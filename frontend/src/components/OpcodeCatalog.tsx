@@ -30,7 +30,7 @@ export function OpcodeCatalog({ opcodes, onAddOpcode }: OpcodeCatalogProps) {
   }, [opcodes, query]);
 
   return (
-    <aside className="flex h-full flex-col rounded-2xl border border-slate-700/70 bg-slate-900/75 p-3">
+    <aside className="flex h-full min-h-0 flex-col rounded-2xl border border-slate-700/70 bg-slate-900/75 p-3">
       <h2 className="font-display text-sm uppercase tracking-[0.24em] text-slate-300">Opcode Catalog</h2>
       <input
         className="mt-2 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-body text-sm text-slate-100 outline-none ring-accent/40 transition focus:ring"
@@ -39,7 +39,7 @@ export function OpcodeCatalog({ opcodes, onAddOpcode }: OpcodeCatalogProps) {
         onChange={(event) => setQuery(event.target.value)}
       />
 
-      <div className="mt-3 flex-1 space-y-2 overflow-y-auto pr-1">
+      <div className="mt-3 min-h-0 flex-1 space-y-2 overflow-y-scroll pr-1">
         {filtered.map((opcode) => (
           <button
             key={opcode.name}

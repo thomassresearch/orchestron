@@ -18,8 +18,22 @@ interface ReteNodeEditorProps {
   onGraphChange: (graph: PatchGraph) => void;
 }
 
+const CONSTANT_OPCODES = new Set(["const_a", "const_i", "const_k"]);
+const NUMERIC_LITERAL_PATTERN = /^[-+]?(\d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?$/;
+
 function socketForType(sockets: Record<SignalType, ClassicPreset.Socket>, type: SignalType) {
   return sockets[type];
+}
+
+function parseNodeLiteral(value: string): string | number {
+  const normalized = value.trim();
+  if (normalized.length === 0) {
+    return 0;
+  }
+  if (NUMERIC_LITERAL_PATTERN.test(normalized)) {
+    return Number(normalized);
+  }
+  return normalized;
 }
 
 export function ReteNodeEditor({ graph, opcodes, onGraphChange }: ReteNodeEditorProps) {
@@ -74,6 +88,7 @@ export function ReteNodeEditor({ graph, opcodes, onGraphChange }: ReteNodeEditor
       for (const node of graph.nodes) {
         const spec = opcodeByName.get(node.opcode);
         const visualNode = new ClassicPreset.Node(spec ? spec.name : node.opcode);
+        const isConstantOpcode = CONSTANT_OPCODES.has(node.opcode);
 
         if (spec) {
           for (const input of spec.inputs) {
@@ -89,6 +104,35 @@ export function ReteNodeEditor({ graph, opcodes, onGraphChange }: ReteNodeEditor
               new ClassicPreset.Output(socketForType(sockets, output.signal_type), output.name)
             );
           }
+        }
+
+        if (isConstantOpcode) {
+          const initialValue = String(node.params.value ?? 0);
+          visualNode.addControl(
+            "value",
+            new ClassicPreset.InputControl("text", {
+              initial: initialValue,
+              change: (nextValue: string) => {
+                if (initializingRef.current) {
+                  return;
+                }
+                onGraphChange({
+                  ...graph,
+                  nodes: graph.nodes.map((graphNode) =>
+                    graphNode.id === node.id
+                      ? {
+                          ...graphNode,
+                          params: {
+                            ...graphNode.params,
+                            value: parseNodeLiteral(nextValue)
+                          }
+                        }
+                      : graphNode
+                  )
+                });
+              }
+            })
+          );
         }
 
         await editor.addNode(visualNode);

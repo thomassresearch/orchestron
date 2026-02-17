@@ -99,6 +99,14 @@ class CompilerService:
                         f"Missing required input '{input_port.id}' on node '{compiled.node.id}' ({compiled.spec.name})."
                     )
 
+            for param_key, param_value in compiled.node.params.items():
+                if param_key in env:
+                    continue
+                env[param_key] = self._format_literal(param_value, SignalType.CONTROL)
+
+            if compiled.spec.name in {"const_a", "const_i", "const_k"} and "value" not in env:
+                env["value"] = "0"
+
             if diagnostics:
                 raise CompilationError(diagnostics)
 

@@ -4,7 +4,6 @@ import { api } from "../api/client";
 import { createUntitledPatch } from "../lib/defaultPatch";
 import type {
   CompileResponse,
-  Connection,
   MidiInputRef,
   NodeInstance,
   OpcodeSpec,
@@ -47,6 +46,8 @@ interface AppStore {
   setCurrentPatchMeta: (name: string, description: string) => void;
   setGraph: (graph: PatchGraph) => void;
   addNodeFromOpcode: (opcode: OpcodeSpec) => void;
+  removeNode: (nodeId: string) => void;
+  removeConnection: (connectionIndex: number) => void;
   saveCurrentPatch: () => Promise<void>;
 
   ensureSession: () => Promise<string>;
@@ -59,12 +60,22 @@ interface AppStore {
   pushEvent: (event: SessionEvent) => void;
 }
 
+const OPCODE_PARAM_DEFAULTS: Record<string, Record<string, string | number | boolean>> = {
+  const_a: { value: 0 },
+  const_i: { value: 0 },
+  const_k: { value: 0 }
+};
+
 function defaultParams(opcode: OpcodeSpec): Record<string, string | number | boolean> {
   const params: Record<string, string | number | boolean> = {};
   for (const input of opcode.inputs) {
     if (input.default !== undefined && input.default !== null) {
       params[input.id] = input.default;
     }
+  }
+  const opcodeDefaults = OPCODE_PARAM_DEFAULTS[opcode.name];
+  if (opcodeDefaults) {
+    Object.assign(params, opcodeDefaults);
   }
   return params;
 }
@@ -190,6 +201,35 @@ export const useAppStore = create<AppStore>((set, get) => ({
         graph: {
           ...current.graph,
           nodes: [...current.graph.nodes, node]
+        }
+      }
+    });
+  },
+
+  removeNode: (nodeId) => {
+    const current = get().currentPatch;
+    set({
+      currentPatch: {
+        ...current,
+        graph: {
+          ...current.graph,
+          nodes: current.graph.nodes.filter((node) => node.id !== nodeId),
+          connections: current.graph.connections.filter(
+            (connection) => connection.from_node_id !== nodeId && connection.to_node_id !== nodeId
+          )
+        }
+      }
+    });
+  },
+
+  removeConnection: (connectionIndex) => {
+    const current = get().currentPatch;
+    set({
+      currentPatch: {
+        ...current,
+        graph: {
+          ...current.graph,
+          connections: current.graph.connections.filter((_, index) => index !== connectionIndex)
         }
       }
     });
