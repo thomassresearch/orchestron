@@ -25,30 +25,124 @@ interface ReteNodeEditorProps {
 }
 
 const CONSTANT_OPCODES = new Set(["const_a", "const_i", "const_k"]);
-const NUMERIC_LITERAL_PATTERN = /^[-+]?(\d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?$/;
+const GENERATOR_CATEGORIES = new Set(["oscillator", "midi", "envelope"]);
+
+type NodePalette = {
+  background: string;
+  border: string;
+  hover: string;
+  selectedBackground: string;
+  selectedBorder: string;
+};
+
+const CATEGORY_NODE_PALETTES: Record<string, NodePalette> = {
+  generator: {
+    background: "#b8dcc4",
+    border: "#7aa58a",
+    hover: "#c8e6d1",
+    selectedBackground: "#ecf8f0",
+    selectedBorder: "#b7dec3"
+  },
+  filter: {
+    background: "#e9b8be",
+    border: "#bf7f88",
+    hover: "#f0c8cd",
+    selectedBackground: "#fdf0f2",
+    selectedBorder: "#eebac0"
+  },
+  constant: {
+    background: "#c8cdd6",
+    border: "#8f98a8",
+    hover: "#d5d9e1",
+    selectedBackground: "#f2f4f7",
+    selectedBorder: "#cfd4dd"
+  },
+  default: {
+    background: "#b8cce6",
+    border: "#7c97bd",
+    hover: "#c7d8ee",
+    selectedBackground: "#ecf2fb",
+    selectedBorder: "#bfd0e7"
+  }
+};
+
+const CONSTANT_INPUT_CSS = `
+  color-scheme: light;
+  background: #ffffff !important;
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  border: 1px solid #475569 !important;
+  opacity: 1 !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  line-height: 1.2 !important;
+  caret-color: #000000 !important;
+  &::placeholder {
+    color: #64748b !important;
+    opacity: 1 !important;
+  }
+`;
 
 function socketForType(sockets: Record<SignalType, ClassicPreset.Socket>, type: SignalType) {
   return sockets[type];
-}
-
-function parseNodeLiteral(value: string): string | number {
-  const normalized = value.trim();
-  if (normalized.length === 0) {
-    return 0;
-  }
-  if (NUMERIC_LITERAL_PATTERN.test(normalized)) {
-    return Number(normalized);
-  }
-  return normalized;
 }
 
 function connectionKey(connection: Connection): string {
   return `${connection.from_node_id}|${connection.from_port_id}|${connection.to_node_id}|${connection.to_port_id}`;
 }
 
+function paletteForCategory(category: string | undefined): NodePalette {
+  if (!category) {
+    return CATEGORY_NODE_PALETTES.default;
+  }
+  if (GENERATOR_CATEGORIES.has(category)) {
+    return CATEGORY_NODE_PALETTES.generator;
+  }
+  if (category === "filter") {
+    return CATEGORY_NODE_PALETTES.filter;
+  }
+  if (category === "constants") {
+    return CATEGORY_NODE_PALETTES.constant;
+  }
+  return CATEGORY_NODE_PALETTES.default;
+}
+
+function nodeCssForCategory(category: string | undefined, selected: boolean): string {
+  const palette = paletteForCategory(category);
+  const background = selected ? palette.selectedBackground : palette.background;
+  const border = selected ? palette.selectedBorder : palette.border;
+  return `
+    background: ${background};
+    border-color: ${border};
+    &:hover {
+      background: ${palette.hover};
+    }
+    ${selected ? "box-shadow: 0 0 0 3px rgba(248, 250, 252, 0.45);" : ""}
+    .title, .input-title, .output-title {
+      color: #0f172a;
+      font-weight: 600;
+    }
+  `;
+}
+
+function graphStructureKey(graph: PatchGraph): string {
+  const nodePart = graph.nodes.map((node) => `${node.id}:${node.opcode}`).join(";");
+  const connectionPart = graph.connections
+    .map(
+      (connection) =>
+        `${connection.from_node_id}.${connection.from_port_id}>${connection.to_node_id}.${connection.to_port_id}`
+    )
+    .join(";");
+  return `${nodePart}|${connectionPart}`;
+}
+
 export function ReteNodeEditor({ graph, opcodes, onGraphChange, onSelectionChange }: ReteNodeEditorProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const initializingRef = useRef(false);
+  const graphRef = useRef(graph);
+
+  graphRef.current = graph;
+  const structureKey = graphStructureKey(graph);
 
   useEffect(() => {
     if (!containerRef.current) {
@@ -65,6 +159,13 @@ export function ReteNodeEditor({ graph, opcodes, onGraphChange, onSelectionChang
         return;
       }
 
+      const updateGraph = (updater: (current: PatchGraph) => PatchGraph) => {
+        const next = updater(graphRef.current);
+        graphRef.current = next;
+        onGraphChange(next);
+      };
+
+      const initialGraph = graphRef.current;
       initializingRef.current = true;
 
       const sockets: Record<SignalType, ClassicPreset.Socket> = {
@@ -80,7 +181,31 @@ export function ReteNodeEditor({ graph, opcodes, onGraphChange, onSelectionChang
       const connection = new ConnectionPlugin<any, any>();
       const render = new ReactPlugin<any, any>({ createRoot });
 
-      render.addPreset(ReactPresets.classic.setup());
+      render.addPreset(
+        ReactPresets.classic.setup({
+          customize: {
+            node(context) {
+              const opcodeCategory = opcodeByName.get(context.payload.label)?.category;
+              return function ColoredNode(props: any) {
+                return (
+                  <ReactPresets.classic.Node
+                    {...props}
+                    styles={(styleProps: any) => nodeCssForCategory(opcodeCategory, Boolean(styleProps.selected))}
+                  />
+                );
+              };
+            },
+            control(context) {
+              if (!(context.payload instanceof ClassicPreset.InputControl)) {
+                return null;
+              }
+              return function ColoredControl(props: any) {
+                return <ReactPresets.classic.InputControl {...props} styles={() => CONSTANT_INPUT_CSS} />;
+              };
+            }
+          }
+        })
+      );
       connection.addPreset(ConnectionPresets.classic.setup());
 
       editor.use(area);
@@ -102,7 +227,8 @@ export function ReteNodeEditor({ graph, opcodes, onGraphChange, onSelectionChang
       const emitSelection = () => {
         const nodeIds = Array.from(selection.entities.values())
           .filter((entity) => entity.label === "node")
-          .map((entity) => entity.id);
+          .map((entity) => reteToPatch.get(String(entity.id)))
+          .filter((nodeId): nodeId is string => Boolean(nodeId));
         const connections = Array.from(selectedConnectionKeys)
           .map((key) => connectionByKey.get(key))
           .filter((connection): connection is Connection => Boolean(connection));
@@ -182,7 +308,7 @@ export function ReteNodeEditor({ graph, opcodes, onGraphChange, onSelectionChang
         connectionHandlers.delete(reteConnectionId);
       };
 
-      for (const node of graph.nodes) {
+      for (const node of initialGraph.nodes) {
         const spec = opcodeByName.get(node.opcode);
         const visualNode = new ClassicPreset.Node(spec ? spec.name : node.opcode);
         const isConstantOpcode = CONSTANT_OPCODES.has(node.opcode);
@@ -213,20 +339,20 @@ export function ReteNodeEditor({ graph, opcodes, onGraphChange, onSelectionChang
                 if (initializingRef.current) {
                   return;
                 }
-                onGraphChange({
-                  ...graph,
-                  nodes: graph.nodes.map((graphNode) =>
+                updateGraph((currentGraph) => ({
+                  ...currentGraph,
+                  nodes: currentGraph.nodes.map((graphNode) =>
                     graphNode.id === node.id
                       ? {
                           ...graphNode,
                           params: {
                             ...graphNode.params,
-                            value: parseNodeLiteral(nextValue)
+                            value: nextValue.trim().length === 0 ? "0" : nextValue.trim()
                           }
                         }
                       : graphNode
                   )
-                });
+                }));
               }
             })
           );
@@ -239,7 +365,7 @@ export function ReteNodeEditor({ graph, opcodes, onGraphChange, onSelectionChang
         reteToPatch.set(String(visualNode.id), node.id);
       }
 
-      for (const connectionDef of graph.connections) {
+      for (const connectionDef of initialGraph.connections) {
         const source = patchToRete.get(connectionDef.from_node_id);
         const target = patchToRete.get(connectionDef.to_node_id);
         if (!source || !target) {
@@ -288,7 +414,7 @@ export function ReteNodeEditor({ graph, opcodes, onGraphChange, onSelectionChang
             connectionByKey.set(key, createdConnection);
             attachConnectionHandler(String(created.id));
 
-            const exists = graph.connections.some(
+            const exists = graphRef.current.connections.some(
               (connection) =>
                 connection.from_node_id === fromNode &&
                 connection.from_port_id === created.sourceOutput &&
@@ -297,10 +423,10 @@ export function ReteNodeEditor({ graph, opcodes, onGraphChange, onSelectionChang
             );
 
             if (!exists) {
-              onGraphChange({
-                ...graph,
-                connections: [...graph.connections, createdConnection]
-              });
+              updateGraph((currentGraph) => ({
+                ...currentGraph,
+                connections: [...currentGraph.connections, createdConnection]
+              }));
             }
           }
         }
@@ -321,9 +447,9 @@ export function ReteNodeEditor({ graph, opcodes, onGraphChange, onSelectionChang
           const fromNode = reteToPatch.get(String(removed.source));
           const toNode = reteToPatch.get(String(removed.target));
           if (fromNode && toNode) {
-            onGraphChange({
-              ...graph,
-              connections: graph.connections.filter(
+            updateGraph((currentGraph) => ({
+              ...currentGraph,
+              connections: currentGraph.connections.filter(
                 (connection) =>
                   !(
                     connection.from_node_id === fromNode &&
@@ -332,7 +458,7 @@ export function ReteNodeEditor({ graph, opcodes, onGraphChange, onSelectionChang
                     connection.to_port_id === removed.targetInput
                   )
               )
-            });
+            }));
           }
         }
 
@@ -373,9 +499,9 @@ export function ReteNodeEditor({ graph, opcodes, onGraphChange, onSelectionChang
           const patchNodeId = reteToPatch.get(String(translated.id));
 
           if (patchNodeId) {
-            onGraphChange({
-              ...graph,
-              nodes: graph.nodes.map((node) =>
+            updateGraph((currentGraph) => ({
+              ...currentGraph,
+              nodes: currentGraph.nodes.map((node) =>
                 node.id === patchNodeId
                   ? {
                       ...node,
@@ -386,7 +512,7 @@ export function ReteNodeEditor({ graph, opcodes, onGraphChange, onSelectionChang
                     }
                   : node
               )
-            });
+            }));
           }
         }
 
@@ -421,7 +547,7 @@ export function ReteNodeEditor({ graph, opcodes, onGraphChange, onSelectionChang
         containerRef.current.innerHTML = "";
       }
     };
-  }, [graph, opcodes, onGraphChange, onSelectionChange]);
+  }, [opcodes, onGraphChange, onSelectionChange, structureKey]);
 
   return (
     <div className="h-full w-full rounded-2xl border border-slate-700/70 bg-slate-950/75">
