@@ -9,7 +9,9 @@ interface OpcodeCatalogProps {
 
 export function OpcodeCatalog({ opcodes, onAddOpcode }: OpcodeCatalogProps) {
   const [query, setQuery] = useState("");
-  const iconBase = (import.meta.env.VITE_BACKEND_BASE as string | undefined) ?? "http://localhost:8000";
+  const iconBase =
+    (import.meta.env.VITE_BACKEND_BASE as string | undefined) ??
+    (typeof window !== "undefined" ? window.location.origin : "http://localhost:8000");
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();

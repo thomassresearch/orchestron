@@ -175,3 +175,9 @@ This file records implementation decisions taken while building the MVP from `/U
 - Decision: Serve built frontend assets from FastAPI at `/client` when `frontend/dist` exists, and return a `503` guidance response at `/client` when build output is missing.
 - Why: Enables single-process distribution of API + UI while giving explicit operator feedback if frontend is not built.
 - Alternative considered: always 404 when dist is missing; rejected because the guidance response is clearer during setup.
+
+## 30) Same-Origin API Defaults for `/client`
+
+- Decision: Change frontend default API base from `http://localhost:8000/api` to `/api`, and default WebSocket base to the current browser host/protocol.
+- Why: Prevents host mismatch/CORS failures when frontend is served from backend at `/client` (for example using `127.0.0.1` instead of `localhost`).
+- Alternative considered: keep absolute localhost URLs and require environment overrides; rejected because same-origin defaults are safer and zero-config for backend-served UI.

@@ -10,7 +10,7 @@ import type {
   SessionInfo
 } from "../types";
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000/api";
+const API_BASE = import.meta.env.VITE_API_BASE ?? "/api";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
@@ -80,14 +80,10 @@ export function wsBaseUrl(): string {
     return fromEnv;
   }
 
-  try {
-    const apiUrl = new URL(API_BASE);
-    apiUrl.pathname = "";
-    apiUrl.search = "";
-    apiUrl.hash = "";
-    apiUrl.protocol = apiUrl.protocol === "https:" ? "wss:" : "ws:";
-    return apiUrl.toString().replace(/\/$/, "");
-  } catch {
-    return "ws://localhost:8000";
+  if (typeof window !== "undefined") {
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    return `${protocol}//${window.location.host}`;
   }
+
+  return "ws://localhost:8000";
 }
