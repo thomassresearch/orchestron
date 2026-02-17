@@ -1,12 +1,16 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { wsBaseUrl } from "./api/client";
 import { OpcodeCatalog } from "./components/OpcodeCatalog";
 import { PatchToolbar } from "./components/PatchToolbar";
-import { ReteNodeEditor } from "./components/ReteNodeEditor";
+import { ReteNodeEditor, type EditorSelection } from "./components/ReteNodeEditor";
 import { RuntimePanel } from "./components/RuntimePanel";
 import { useAppStore } from "./store/useAppStore";
-import type { PatchGraph } from "./types";
+import type { Connection, PatchGraph } from "./types";
+
+function connectionKey(connection: Connection): string {
+  return `${connection.from_node_id}|${connection.from_port_id}|${connection.to_node_id}|${connection.to_port_id}`;
+}
 
 export default function App() {
   const loading = useAppStore((state) => state.loading);
@@ -29,8 +33,6 @@ export default function App() {
   const setCurrentPatchMeta = useAppStore((state) => state.setCurrentPatchMeta);
   const setGraph = useAppStore((state) => state.setGraph);
   const addNodeFromOpcode = useAppStore((state) => state.addNodeFromOpcode);
-  const removeNode = useAppStore((state) => state.removeNode);
-  const removeConnection = useAppStore((state) => state.removeConnection);
   const saveCurrentPatch = useAppStore((state) => state.saveCurrentPatch);
   const compileSession = useAppStore((state) => state.compileSession);
   const startSession = useAppStore((state) => state.startSession);
@@ -72,57 +74,36 @@ export default function App() {
     [setGraph]
   );
 
-  const [selectedNodeId, setSelectedNodeId] = useState<string>("");
-  const [selectedConnectionIndex, setSelectedConnectionIndex] = useState<string>("");
+  const [selection, setSelection] = useState<EditorSelection>({
+    nodeIds: [],
+    connections: []
+  });
 
-  useEffect(() => {
-    const { nodes } = currentPatch.graph;
-    if (nodes.length === 0) {
-      if (selectedNodeId !== "") {
-        setSelectedNodeId("");
-      }
+  const selectedCount = selection.nodeIds.length + selection.connections.length;
+
+  const onDeleteSelection = useCallback(() => {
+    if (selectedCount === 0) {
       return;
     }
 
-    const exists = nodes.some((node) => node.id === selectedNodeId);
-    if (!exists) {
-      setSelectedNodeId(nodes[0].id);
-    }
-  }, [currentPatch.graph.nodes, selectedNodeId]);
-
-  useEffect(() => {
-    const { connections } = currentPatch.graph;
-    if (connections.length === 0) {
-      if (selectedConnectionIndex !== "") {
-        setSelectedConnectionIndex("");
-      }
+    if (selectedCount > 1 && !window.confirm(`Delete ${selectedCount} selected elements?`)) {
       return;
     }
 
-    const parsed = Number.parseInt(selectedConnectionIndex, 10);
-    const isValid =
-      Number.isFinite(parsed) && parsed >= 0 && parsed < currentPatch.graph.connections.length;
-    if (!isValid) {
-      setSelectedConnectionIndex("0");
-    }
-  }, [currentPatch.graph.connections, selectedConnectionIndex]);
+    const nodeIdsToRemove = new Set(selection.nodeIds);
+    const connectionsToRemove = new Set(selection.connections.map((connection) => connectionKey(connection)));
 
-  const nodeLabelById = useMemo(() => {
-    return new Map(
-      currentPatch.graph.nodes.map((node) => [node.id, `${node.opcode} (${node.id.slice(0, 8)})`])
-    );
-  }, [currentPatch.graph.nodes]);
-
-  const connectionLabels = useMemo(() => {
-    return currentPatch.graph.connections.map((connection, index) => {
-      const sourceLabel = nodeLabelById.get(connection.from_node_id) ?? connection.from_node_id;
-      const targetLabel = nodeLabelById.get(connection.to_node_id) ?? connection.to_node_id;
-      return {
-        index,
-        label: `${sourceLabel}.${connection.from_port_id} -> ${targetLabel}.${connection.to_port_id}`
-      };
+    setGraph({
+      ...currentPatch.graph,
+      nodes: currentPatch.graph.nodes.filter((node) => !nodeIdsToRemove.has(node.id)),
+      connections: currentPatch.graph.connections.filter((connection) => {
+        if (nodeIdsToRemove.has(connection.from_node_id) || nodeIdsToRemove.has(connection.to_node_id)) {
+          return false;
+        }
+        return !connectionsToRemove.has(connectionKey(connection));
+      })
     });
-  }, [currentPatch.graph.connections, nodeLabelById]);
+  }, [currentPatch.graph, selectedCount, selection.connections, selection.nodeIds, setGraph]);
 
   return (
     <div className="min-h-screen bg-[radial-gradient(ellipse_at_top_left,_#1e293b,_#020617_60%)] px-4 py-5 text-slate-100 sm:px-6 lg:px-8">
@@ -183,67 +164,35 @@ export default function App() {
               <div className="text-xs uppercase tracking-[0.16em] text-slate-400">
                 Graph Editor ({currentPatch.graph.nodes.length} nodes, {currentPatch.graph.connections.length} connections)
               </div>
-              <div className="mt-2 grid gap-2 text-xs text-slate-300 2xl:grid-cols-2">
-                <div className="flex items-center gap-2">
-                  <select
-                    className="min-w-0 flex-1 rounded-md border border-slate-700 bg-slate-950 px-2 py-1 font-mono text-[11px] text-slate-200"
-                    value={selectedNodeId}
-                    onChange={(event) => setSelectedNodeId(event.target.value)}
-                    disabled={currentPatch.graph.nodes.length === 0}
-                  >
-                    {currentPatch.graph.nodes.length === 0 && <option value="">No opcode selected</option>}
-                    {currentPatch.graph.nodes.map((node) => (
-                      <option key={node.id} value={node.id}>
-                        {node.opcode} ({node.id.slice(0, 8)})
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (selectedNodeId) {
-                        removeNode(selectedNodeId);
-                      }
-                    }}
-                    disabled={!selectedNodeId}
-                    className="rounded-md border border-rose-600/70 bg-rose-950/60 px-2 py-1 text-[11px] uppercase tracking-[0.16em] text-rose-200 transition enabled:hover:bg-rose-900/60 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Delete Opcode
-                  </button>
+              <div className="mt-2 flex items-center justify-between gap-2 text-xs text-slate-300">
+                <div className="rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1">
+                  Selected: {selection.nodeIds.length} opcode(s), {selection.connections.length} connection(s)
                 </div>
-
-                <div className="flex items-center gap-2">
-                  <select
-                    className="min-w-0 flex-1 rounded-md border border-slate-700 bg-slate-950 px-2 py-1 font-mono text-[11px] text-slate-200"
-                    value={selectedConnectionIndex}
-                    onChange={(event) => setSelectedConnectionIndex(event.target.value)}
-                    disabled={connectionLabels.length === 0}
-                  >
-                    {connectionLabels.length === 0 && <option value="">No connection selected</option>}
-                    {connectionLabels.map((connection) => (
-                      <option key={connection.index} value={String(connection.index)}>
-                        {connection.label}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const index = Number.parseInt(selectedConnectionIndex, 10);
-                      if (Number.isFinite(index)) {
-                        removeConnection(index);
-                      }
-                    }}
-                    disabled={connectionLabels.length === 0}
-                    className="rounded-md border border-rose-600/70 bg-rose-950/60 px-2 py-1 text-[11px] uppercase tracking-[0.16em] text-rose-200 transition enabled:hover:bg-rose-900/60 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Delete Connection
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={onDeleteSelection}
+                  disabled={selectedCount === 0}
+                  aria-label="Delete selected elements"
+                  title={selectedCount > 0 ? "Delete selected elements" : "Select elements to delete"}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-rose-600/70 bg-rose-950/60 text-rose-200 transition enabled:hover:bg-rose-900/60 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current" strokeWidth={1.9}>
+                    <path d="M4 7h16" />
+                    <path d="M9 7V4.8A1.8 1.8 0 0 1 10.8 3h2.4A1.8 1.8 0 0 1 15 4.8V7" />
+                    <path d="M6.2 7l.9 12.3A1.8 1.8 0 0 0 8.9 21h6.2a1.8 1.8 0 0 0 1.8-1.7L17.8 7" />
+                    <path d="M10 11v6" />
+                    <path d="M14 11v6" />
+                  </svg>
+                </button>
               </div>
             </div>
             <div className="min-h-0 flex-1">
-              <ReteNodeEditor graph={currentPatch.graph} opcodes={opcodes} onGraphChange={onGraphChange} />
+              <ReteNodeEditor
+                graph={currentPatch.graph}
+                opcodes={opcodes}
+                onGraphChange={onGraphChange}
+                onSelectionChange={setSelection}
+              />
             </div>
           </section>
 

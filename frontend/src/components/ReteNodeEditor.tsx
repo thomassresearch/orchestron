@@ -6,16 +6,22 @@ import { AreaExtensions, AreaPlugin } from "rete-area-plugin";
 import { ConnectionPlugin, Presets as ConnectionPresets } from "rete-connection-plugin";
 import { Presets as ReactPresets, ReactPlugin } from "rete-react-plugin";
 
-import type { OpcodeSpec, PatchGraph, SignalType } from "../types";
+import type { Connection, OpcodeSpec, PatchGraph, SignalType } from "../types";
 
 type EditorHandle = {
   destroy: () => void;
 };
 
+export interface EditorSelection {
+  nodeIds: string[];
+  connections: Connection[];
+}
+
 interface ReteNodeEditorProps {
   graph: PatchGraph;
   opcodes: OpcodeSpec[];
   onGraphChange: (graph: PatchGraph) => void;
+  onSelectionChange: (selection: EditorSelection) => void;
 }
 
 const CONSTANT_OPCODES = new Set(["const_a", "const_i", "const_k"]);
@@ -36,7 +42,11 @@ function parseNodeLiteral(value: string): string | number {
   return normalized;
 }
 
-export function ReteNodeEditor({ graph, opcodes, onGraphChange }: ReteNodeEditorProps) {
+function connectionKey(connection: Connection): string {
+  return `${connection.from_node_id}|${connection.from_port_id}|${connection.to_node_id}|${connection.to_port_id}`;
+}
+
+export function ReteNodeEditor({ graph, opcodes, onGraphChange, onSelectionChange }: ReteNodeEditorProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const initializingRef = useRef(false);
 
@@ -78,12 +88,99 @@ export function ReteNodeEditor({ graph, opcodes, onGraphChange }: ReteNodeEditor
       area.use(render);
 
       AreaExtensions.simpleNodesOrder(area);
-      AreaExtensions.selectableNodes(area, AreaExtensions.selector(), {
-        accumulating: AreaExtensions.accumulateOnCtrl()
-      });
+      const selection = AreaExtensions.selector();
+      const accumulating = AreaExtensions.accumulateOnCtrl();
+      AreaExtensions.selectableNodes(area, selection, { accumulating });
 
       const patchToRete = new Map<string, any>();
       const reteToPatch = new Map<string, string>();
+      const connectionByReteId = new Map<string, string>();
+      const connectionByKey = new Map<string, Connection>();
+      const selectedConnectionKeys = new Set<string>();
+      const connectionHandlers = new Map<string, (event: PointerEvent) => void>();
+
+      const emitSelection = () => {
+        const nodeIds = Array.from(selection.entities.values())
+          .filter((entity) => entity.label === "node")
+          .map((entity) => entity.id);
+        const connections = Array.from(selectedConnectionKeys)
+          .map((key) => connectionByKey.get(key))
+          .filter((connection): connection is Connection => Boolean(connection));
+
+        onSelectionChange({ nodeIds, connections });
+      };
+
+      const updateConnectionClasses = () => {
+        for (const [reteConnectionId, key] of connectionByReteId.entries()) {
+          const view = area.connectionViews.get(reteConnectionId);
+          if (!view) {
+            continue;
+          }
+
+          view.element.classList.add("vs-connection-edge");
+          if (selectedConnectionKeys.has(key)) {
+            view.element.classList.add("vs-connection-selected");
+          } else {
+            view.element.classList.remove("vs-connection-selected");
+          }
+        }
+      };
+
+      const selectConnection = async (reteConnectionId: string, accumulate: boolean) => {
+        const key = connectionByReteId.get(reteConnectionId);
+        if (!key) {
+          return;
+        }
+
+        if (!accumulate) {
+          await selection.unselectAll();
+          selectedConnectionKeys.clear();
+          selectedConnectionKeys.add(key);
+        } else if (selectedConnectionKeys.has(key)) {
+          selectedConnectionKeys.delete(key);
+        } else {
+          selectedConnectionKeys.add(key);
+        }
+
+        updateConnectionClasses();
+        emitSelection();
+      };
+
+      const clearConnectionSelection = () => {
+        if (selectedConnectionKeys.size === 0) {
+          return;
+        }
+        selectedConnectionKeys.clear();
+        updateConnectionClasses();
+      };
+
+      const attachConnectionHandler = (reteConnectionId: string) => {
+        if (connectionHandlers.has(reteConnectionId)) {
+          return;
+        }
+        const view = area.connectionViews.get(reteConnectionId);
+        if (!view) {
+          return;
+        }
+
+        const handler = (event: PointerEvent) => {
+          event.preventDefault();
+          event.stopPropagation();
+          void selectConnection(reteConnectionId, event.ctrlKey);
+        };
+        view.element.addEventListener("pointerdown", handler);
+        connectionHandlers.set(reteConnectionId, handler);
+        updateConnectionClasses();
+      };
+
+      const detachConnectionHandler = (reteConnectionId: string) => {
+        const handler = connectionHandlers.get(reteConnectionId);
+        const view = area.connectionViews.get(reteConnectionId);
+        if (handler && view) {
+          view.element.removeEventListener("pointerdown", handler);
+        }
+        connectionHandlers.delete(reteConnectionId);
+      };
 
       for (const node of graph.nodes) {
         const spec = opcodeByName.get(node.opcode);
@@ -150,9 +247,19 @@ export function ReteNodeEditor({ graph, opcodes, onGraphChange }: ReteNodeEditor
         }
 
         try {
-          await editor.addConnection(
-            new ClassicPreset.Connection(source, connectionDef.from_port_id, target, connectionDef.to_port_id)
+          const reteConnection = new ClassicPreset.Connection(
+            source,
+            connectionDef.from_port_id,
+            target,
+            connectionDef.to_port_id
           );
+          const key = connectionKey(connectionDef);
+
+          connectionByReteId.set(String(reteConnection.id), key);
+          connectionByKey.set(key, connectionDef);
+
+          await editor.addConnection(reteConnection);
+          attachConnectionHandler(String(reteConnection.id));
         } catch {
           // Ignore stale/invalid persisted edges while still rendering the remaining graph.
         }
@@ -169,6 +276,18 @@ export function ReteNodeEditor({ graph, opcodes, onGraphChange }: ReteNodeEditor
           const toNode = reteToPatch.get(String(created.target));
 
           if (fromNode && toNode) {
+            const createdConnection: Connection = {
+              from_node_id: fromNode,
+              from_port_id: created.sourceOutput,
+              to_node_id: toNode,
+              to_port_id: created.targetInput
+            };
+            const key = connectionKey(createdConnection);
+
+            connectionByReteId.set(String(created.id), key);
+            connectionByKey.set(key, createdConnection);
+            attachConnectionHandler(String(created.id));
+
             const exists = graph.connections.some(
               (connection) =>
                 connection.from_node_id === fromNode &&
@@ -180,15 +299,7 @@ export function ReteNodeEditor({ graph, opcodes, onGraphChange }: ReteNodeEditor
             if (!exists) {
               onGraphChange({
                 ...graph,
-                connections: [
-                  ...graph.connections,
-                  {
-                    from_node_id: fromNode,
-                    from_port_id: created.sourceOutput,
-                    to_node_id: toNode,
-                    to_port_id: created.targetInput
-                  }
-                ]
+                connections: [...graph.connections, createdConnection]
               });
             }
           }
@@ -196,6 +307,17 @@ export function ReteNodeEditor({ graph, opcodes, onGraphChange }: ReteNodeEditor
 
         if (context.type === "connectionremoved") {
           const removed = context.data;
+          const removedReteConnectionId = String(removed.id);
+          const removedKey = connectionByReteId.get(removedReteConnectionId);
+          if (removedKey) {
+            connectionByReteId.delete(removedReteConnectionId);
+            connectionByKey.delete(removedKey);
+            selectedConnectionKeys.delete(removedKey);
+            updateConnectionClasses();
+            emitSelection();
+          }
+          detachConnectionHandler(removedReteConnectionId);
+
           const fromNode = reteToPatch.get(String(removed.source));
           const toNode = reteToPatch.get(String(removed.target));
           if (fromNode && toNode) {
@@ -219,6 +341,30 @@ export function ReteNodeEditor({ graph, opcodes, onGraphChange }: ReteNodeEditor
 
       area.addPipe((context: any) => {
         if (initializingRef.current) {
+          return context;
+        }
+
+        if (context.type === "nodepicked") {
+          if (!accumulating.active()) {
+            clearConnectionSelection();
+          }
+          emitSelection();
+          return context;
+        }
+
+        if (context.type === "pointerdown") {
+          const target = context.data.event.target as HTMLElement | null;
+          const clickedNode = target?.closest(".node");
+          const clickedConnection = target?.closest(".vs-connection-edge");
+          if (!clickedNode && !clickedConnection && !context.data.event.ctrlKey) {
+            clearConnectionSelection();
+            emitSelection();
+          }
+          return context;
+        }
+
+        if (context.type === "pointerup") {
+          emitSelection();
           return context;
         }
 
@@ -249,9 +395,17 @@ export function ReteNodeEditor({ graph, opcodes, onGraphChange }: ReteNodeEditor
 
       await AreaExtensions.zoomAt(area, editor.getNodes());
       initializingRef.current = false;
+      emitSelection();
 
       handle = {
         destroy: () => {
+          for (const [reteConnectionId, handler] of connectionHandlers) {
+            const view = area.connectionViews.get(reteConnectionId);
+            if (view) {
+              view.element.removeEventListener("pointerdown", handler);
+            }
+          }
+          accumulating.destroy();
           area.destroy();
         }
       };
@@ -267,7 +421,7 @@ export function ReteNodeEditor({ graph, opcodes, onGraphChange }: ReteNodeEditor
         containerRef.current.innerHTML = "";
       }
     };
-  }, [graph, opcodes, onGraphChange]);
+  }, [graph, opcodes, onGraphChange, onSelectionChange]);
 
   return (
     <div className="h-full w-full rounded-2xl border border-slate-700/70 bg-slate-950/75">

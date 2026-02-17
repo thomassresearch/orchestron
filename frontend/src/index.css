@@ -24,3 +24,36 @@
 .rete-area {
   border-radius: 1rem;
 }
+
+.rete-area .control input[type="text"],
+.rete-area .control input[type="number"] {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+  border: 1px solid #475569 !important;
+}
+
+.rete-area .control input[type="text"]::placeholder,
+.rete-area .control input[type="number"]::placeholder {
+  color: #334155 !important;
+  opacity: 1;
+}
+
+.rete-area .control input[type="text"]:focus,
+.rete-area .control input[type="number"]:focus {
+  outline: 2px solid rgba(34, 211, 238, 0.45);
+  outline-offset: 1px;
+}
+
+.vs-connection-edge {
+  cursor: pointer;
+}
+
+.vs-connection-edge svg path {
+  transition: stroke 120ms ease, stroke-width 120ms ease, filter 120ms ease;
+}
+
+.vs-connection-selected svg path {
+  stroke: #fda4af !important;
+  stroke-width: 7px !important;
+  filter: drop-shadow(0 0 3px rgba(251, 113, 133, 0.8));
+}
