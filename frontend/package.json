@@ -1,0 +1,30 @@
+{
+  "name": "visualcsound-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "rete": "^2.0.4",
+    "rete-area-plugin": "^2.0.2",
+    "rete-connection-plugin": "^2.0.2",
+    "rete-react-plugin": "^2.0.2",
+    "zustand": "^5.0.7"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.4",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.7.0",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.9.2",
+    "vite": "^5.4.20"
+  }
+}
