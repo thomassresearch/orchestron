@@ -90,6 +90,32 @@ const CONSTANT_INPUT_CSS = `
   }
 `;
 
+type SocketGlyphProps = {
+  optional: boolean;
+};
+
+function SocketGlyph({ optional }: SocketGlyphProps) {
+  return (
+    <div style={{ borderRadius: "18px", padding: "6px" }}>
+      <div
+        title={optional ? "Optional input" : undefined}
+        style={{
+          display: "inline-block",
+          cursor: "pointer",
+          border: "1px solid #f8fafc",
+          borderRadius: "12px",
+          width: "24px",
+          height: "24px",
+          verticalAlign: "middle",
+          boxSizing: "border-box",
+          background: optional ? "rgba(148, 163, 184, 0.35)" : "#96b38a",
+          opacity: optional ? 0.62 : 1
+        }}
+      />
+    </div>
+  );
+}
+
 function socketForType(sockets: Record<SignalType, ClassicPreset.Socket>, type: SignalType) {
   return sockets[type];
 }
@@ -190,6 +216,7 @@ export function ReteNodeEditor({ graph, opcodes, onGraphChange, onSelectionChang
       const area = new AreaPlugin<any, any>(containerRef.current);
       const connection = new ConnectionPlugin<any, any>();
       const render = new ReactPlugin<any, any>({ createRoot });
+      const optionalInputPortsByReteNode = new Map<string, Set<string>>();
 
       render.addPreset(
         ReactPresets.classic.setup({
@@ -211,6 +238,13 @@ export function ReteNodeEditor({ graph, opcodes, onGraphChange, onSelectionChang
               }
               return function ColoredControl(props: any) {
                 return <ReactPresets.classic.InputControl {...props} styles={() => CONSTANT_INPUT_CSS} />;
+              };
+            },
+            socket(context) {
+              const optionalPorts = optionalInputPortsByReteNode.get(String(context.nodeId));
+              const isOptionalInput = context.side === "input" && Boolean(optionalPorts?.has(context.key));
+              return function StyledSocket() {
+                return <SocketGlyph optional={isOptionalInput} />;
               };
             }
           }
@@ -325,9 +359,10 @@ export function ReteNodeEditor({ graph, opcodes, onGraphChange, onSelectionChang
 
         if (spec) {
           for (const input of spec.inputs) {
+            const inputLabel = input.required ? input.name : `${input.name} (optional)`;
             visualNode.addInput(
               input.id,
-              new ClassicPreset.Input(socketForType(sockets, input.signal_type), input.name)
+              new ClassicPreset.Input(socketForType(sockets, input.signal_type), inputLabel)
             );
           }
 
@@ -365,6 +400,13 @@ export function ReteNodeEditor({ graph, opcodes, onGraphChange, onSelectionChang
                 }));
               }
             })
+          );
+        }
+
+        if (spec) {
+          optionalInputPortsByReteNode.set(
+            String(visualNode.id),
+            new Set(spec.inputs.filter((input) => !input.required).map((input) => input.id))
           );
         }
 

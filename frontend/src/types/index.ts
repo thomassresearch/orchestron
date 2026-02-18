@@ -1,4 +1,11 @@
 export type SignalType = "a" | "k" | "i" | "S" | "f";
+export type AppPage = "instrument" | "sequencer";
+
+export type JsonPrimitive = string | number | boolean | null;
+export type JsonValue = JsonPrimitive | JsonObject | JsonValue[];
+export interface JsonObject {
+  [key: string]: JsonValue;
+}
 
 export interface PortSpec {
   id: string;
@@ -49,8 +56,17 @@ export interface EngineConfig {
 export interface PatchGraph {
   nodes: NodeInstance[];
   connections: Connection[];
-  ui_layout: Record<string, string | number | boolean>;
+  ui_layout: JsonObject;
   engine_config: EngineConfig;
+}
+
+export interface SequencerState {
+  isPlaying: boolean;
+  bpm: number;
+  midiChannel: number;
+  stepCount: 16 | 32;
+  playhead: number;
+  steps: Array<number | null>;
 }
 
 export interface Patch {
@@ -100,6 +116,13 @@ export interface SessionActionResponse {
   session_id: string;
   state: SessionState;
   detail: string;
+}
+
+export interface SessionMidiEventRequest {
+  type: "note_on" | "note_off" | "all_notes_off";
+  channel: number;
+  note?: number;
+  velocity?: number;
 }
 
 export interface MidiInputRef {

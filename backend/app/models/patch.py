@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, JsonValue, field_validator, model_validator
 
 from backend.app.models.opcode import SignalType
 
@@ -46,7 +46,7 @@ class EngineConfig(BaseModel):
 class PatchGraph(BaseModel):
     nodes: list[NodeInstance] = Field(default_factory=list)
     connections: list[Connection] = Field(default_factory=list)
-    ui_layout: dict[str, str | int | float | bool] = Field(default_factory=dict)
+    ui_layout: dict[str, JsonValue] = Field(default_factory=dict)
     engine_config: EngineConfig = Field(default_factory=EngineConfig)
 
     @field_validator("nodes")

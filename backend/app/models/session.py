@@ -3,8 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import StrEnum
+from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class SessionState(StrEnum):
@@ -55,6 +56,22 @@ class MidiInputRef(BaseModel):
 
 class BindMidiInputRequest(BaseModel):
     midi_input: str = Field(min_length=1)
+
+
+MidiEventType = Literal["note_on", "note_off", "all_notes_off"]
+
+
+class SessionMidiEventRequest(BaseModel):
+    type: MidiEventType
+    channel: int = Field(default=1, ge=1, le=16)
+    note: int | None = Field(default=None, ge=0, le=127)
+    velocity: int = Field(default=100, ge=1, le=127)
+
+    @model_validator(mode="after")
+    def validate_note_requirements(self) -> "SessionMidiEventRequest":
+        if self.type in {"note_on", "note_off"} and self.note is None:
+            raise ValueError("note is required for note_on/note_off MIDI events")
+        return self
 
 
 class SessionEvent(BaseModel):

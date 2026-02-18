@@ -3,13 +3,16 @@ import { create } from "zustand";
 import { api } from "../api/client";
 import { createUntitledPatch } from "../lib/defaultPatch";
 import type {
+  AppPage,
   CompileResponse,
+  JsonObject,
   MidiInputRef,
   NodeInstance,
   OpcodeSpec,
   Patch,
   PatchGraph,
   PatchListItem,
+  SequencerState,
   SessionEvent,
   SessionState
 } from "../types";
@@ -28,17 +31,23 @@ interface AppStore {
   loading: boolean;
   error: string | null;
 
+  activePage: AppPage;
+
   opcodes: OpcodeSpec[];
   patches: PatchListItem[];
   midiInputs: MidiInputRef[];
 
   currentPatch: EditablePatch;
+  sequencer: SequencerState;
+
   activeSessionId: string | null;
   activeSessionState: SessionState;
   activeMidiInput: string | null;
   compileOutput: CompileResponse | null;
 
   events: SessionEvent[];
+
+  setActivePage: (page: AppPage) => void;
 
   loadBootstrap: () => Promise<void>;
   loadPatch: (patchId: string) => Promise<void>;
@@ -49,6 +58,13 @@ interface AppStore {
   removeNode: (nodeId: string) => void;
   removeConnection: (connectionIndex: number) => void;
   saveCurrentPatch: () => Promise<void>;
+
+  setSequencerBpm: (bpm: number) => void;
+  setSequencerMidiChannel: (channel: number) => void;
+  setSequencerStepCount: (stepCount: 16 | 32) => void;
+  setSequencerStepNote: (index: number, note: number | null) => void;
+  setSequencerPlaying: (isPlaying: boolean) => void;
+  setSequencerPlayhead: (playhead: number) => void;
 
   ensureSession: () => Promise<string>;
   compileSession: () => Promise<void>;
@@ -65,6 +81,86 @@ const OPCODE_PARAM_DEFAULTS: Record<string, Record<string, string | number | boo
   const_i: { value: 0 },
   const_k: { value: 0 }
 };
+
+const DEFAULT_SEQUENCER_STEPS: Array<number | null> = Array.from({ length: 32 }, () => null);
+
+function clampInt(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, Math.round(value)));
+}
+
+function normalizeStepCount(value: number): 16 | 32 {
+  return value === 32 ? 32 : 16;
+}
+
+function normalizeStepNote(value: unknown): number | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return null;
+  }
+  return clampInt(value, 0, 127);
+}
+
+function defaultSequencerState(): SequencerState {
+  return {
+    isPlaying: false,
+    bpm: 120,
+    midiChannel: 1,
+    stepCount: 16,
+    playhead: 0,
+    steps: [...DEFAULT_SEQUENCER_STEPS]
+  };
+}
+
+function parseSequencerState(graph: PatchGraph): SequencerState {
+  const defaults = defaultSequencerState();
+  const raw = graph.ui_layout.sequencer;
+
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return defaults;
+  }
+
+  const sequencer = raw as Record<string, unknown>;
+  const bpm = typeof sequencer.bpm === "number" ? clampInt(sequencer.bpm, 30, 300) : defaults.bpm;
+  const midiChannel =
+    typeof sequencer.midiChannel === "number" ? clampInt(sequencer.midiChannel, 1, 16) : defaults.midiChannel;
+  const stepCount = typeof sequencer.stepCount === "number" ? normalizeStepCount(sequencer.stepCount) : defaults.stepCount;
+
+  const steps = [...defaults.steps];
+  if (Array.isArray(sequencer.steps)) {
+    for (let index = 0; index < Math.min(32, sequencer.steps.length); index += 1) {
+      steps[index] = normalizeStepNote(sequencer.steps[index]);
+    }
+  }
+
+  return {
+    ...defaults,
+    bpm,
+    midiChannel,
+    stepCount,
+    steps
+  };
+}
+
+function sequencerLayout(sequencer: SequencerState): JsonObject {
+  return {
+    bpm: clampInt(sequencer.bpm, 30, 300),
+    midiChannel: clampInt(sequencer.midiChannel, 1, 16),
+    stepCount: normalizeStepCount(sequencer.stepCount),
+    steps: Array.from({ length: 32 }, (_, index) => normalizeStepNote(sequencer.steps[index]))
+  };
+}
+
+function withSequencerLayout(graph: PatchGraph, sequencer: SequencerState): PatchGraph {
+  return {
+    ...graph,
+    ui_layout: {
+      ...graph.ui_layout,
+      sequencer: sequencerLayout(sequencer)
+    }
+  };
+}
 
 function defaultParams(opcode: OpcodeSpec): Record<string, string | number | boolean> {
   const params: Record<string, string | number | boolean> = {};
@@ -102,17 +198,29 @@ export const useAppStore = create<AppStore>((set, get) => ({
   loading: false,
   error: null,
 
+  activePage: "instrument",
+
   opcodes: [],
   patches: [],
   midiInputs: [],
 
-  currentPatch: createUntitledPatch(),
+  currentPatch: (() => {
+    const patch = createUntitledPatch();
+    const sequencer = defaultSequencerState();
+    return { ...patch, graph: withSequencerLayout(patch.graph, sequencer) };
+  })(),
+  sequencer: defaultSequencerState(),
+
   activeSessionId: null,
   activeSessionState: "idle",
   activeMidiInput: null,
   compileOutput: null,
 
   events: [],
+
+  setActivePage: (page) => {
+    set({ activePage: page });
+  },
 
   loadBootstrap: async () => {
     set({ loading: true, error: null });
@@ -129,12 +237,19 @@ export const useAppStore = create<AppStore>((set, get) => ({
         currentPatch = normalizePatch(full);
       }
 
+      const sequencer = parseSequencerState(currentPatch.graph);
+      currentPatch = {
+        ...currentPatch,
+        graph: withSequencerLayout(currentPatch.graph, sequencer)
+      };
+
       set({
         opcodes,
         patches,
         midiInputs,
         activeMidiInput: midiInputs.length > 0 ? midiInputs[0].id : null,
         currentPatch,
+        sequencer,
         loading: false,
         error: null
       });
@@ -150,7 +265,16 @@ export const useAppStore = create<AppStore>((set, get) => ({
     set({ loading: true, error: null });
     try {
       const patch = await api.getPatch(patchId);
-      set({ currentPatch: normalizePatch(patch), loading: false });
+      const currentPatch = normalizePatch(patch);
+      const sequencer = parseSequencerState(currentPatch.graph);
+      set({
+        currentPatch: {
+          ...currentPatch,
+          graph: withSequencerLayout(currentPatch.graph, sequencer)
+        },
+        sequencer,
+        loading: false
+      });
     } catch (error) {
       set({
         loading: false,
@@ -160,8 +284,15 @@ export const useAppStore = create<AppStore>((set, get) => ({
   },
 
   newPatch: () => {
+    const patch = createUntitledPatch();
+    const sequencer = defaultSequencerState();
+
     set({
-      currentPatch: createUntitledPatch(),
+      currentPatch: {
+        ...patch,
+        graph: withSequencerLayout(patch.graph, sequencer)
+      },
+      sequencer,
       activeSessionId: null,
       activeSessionState: "idle",
       compileOutput: null
@@ -181,7 +312,13 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   setGraph: (graph) => {
     const current = get().currentPatch;
-    set({ currentPatch: { ...current, graph } });
+    const sequencer = get().sequencer;
+    set({
+      currentPatch: {
+        ...current,
+        graph: withSequencerLayout(graph, sequencer)
+      }
+    });
   },
 
   addNodeFromOpcode: (opcode) => {
@@ -236,8 +373,13 @@ export const useAppStore = create<AppStore>((set, get) => ({
   },
 
   saveCurrentPatch: async () => {
-    const current = get().currentPatch;
-    set({ loading: true, error: null });
+    const sequencer = get().sequencer;
+    const current = {
+      ...get().currentPatch,
+      graph: withSequencerLayout(get().currentPatch.graph, sequencer)
+    };
+
+    set({ loading: true, error: null, currentPatch: current });
 
     try {
       const payload = {
@@ -255,8 +397,15 @@ export const useAppStore = create<AppStore>((set, get) => ({
       }
 
       const patches = await api.listPatches();
+      const normalizedPatch = normalizePatch(saved);
+      const normalizedSequencer = parseSequencerState(normalizedPatch.graph);
+
       set({
-        currentPatch: normalizePatch(saved),
+        currentPatch: {
+          ...normalizedPatch,
+          graph: withSequencerLayout(normalizedPatch.graph, normalizedSequencer)
+        },
+        sequencer: normalizedSequencer,
         patches,
         loading: false
       });
@@ -266,6 +415,101 @@ export const useAppStore = create<AppStore>((set, get) => ({
         error: error instanceof Error ? error.message : "Failed to save patch"
       });
     }
+  },
+
+  setSequencerBpm: (bpm) => {
+    const currentPatch = get().currentPatch;
+    const sequencer = {
+      ...get().sequencer,
+      bpm: clampInt(bpm, 30, 300)
+    };
+
+    set({
+      sequencer,
+      currentPatch: {
+        ...currentPatch,
+        graph: withSequencerLayout(currentPatch.graph, sequencer)
+      }
+    });
+  },
+
+  setSequencerMidiChannel: (channel) => {
+    const currentPatch = get().currentPatch;
+    const sequencer = {
+      ...get().sequencer,
+      midiChannel: clampInt(channel, 1, 16)
+    };
+
+    set({
+      sequencer,
+      currentPatch: {
+        ...currentPatch,
+        graph: withSequencerLayout(currentPatch.graph, sequencer)
+      }
+    });
+  },
+
+  setSequencerStepCount: (stepCount) => {
+    const currentPatch = get().currentPatch;
+    const sequencer = {
+      ...get().sequencer,
+      stepCount: normalizeStepCount(stepCount),
+      playhead: get().sequencer.playhead % normalizeStepCount(stepCount)
+    };
+
+    set({
+      sequencer,
+      currentPatch: {
+        ...currentPatch,
+        graph: withSequencerLayout(currentPatch.graph, sequencer)
+      }
+    });
+  },
+
+  setSequencerStepNote: (index, note) => {
+    if (index < 0 || index >= 32) {
+      return;
+    }
+
+    const currentPatch = get().currentPatch;
+    const sequencer = get().sequencer;
+    const steps = [...sequencer.steps];
+    steps[index] = normalizeStepNote(note);
+
+    const nextSequencer: SequencerState = {
+      ...sequencer,
+      steps
+    };
+
+    set({
+      sequencer: nextSequencer,
+      currentPatch: {
+        ...currentPatch,
+        graph: withSequencerLayout(currentPatch.graph, nextSequencer)
+      }
+    });
+  },
+
+  setSequencerPlaying: (isPlaying) => {
+    const sequencer = get().sequencer;
+    set({
+      sequencer: {
+        ...sequencer,
+        isPlaying
+      }
+    });
+  },
+
+  setSequencerPlayhead: (playhead) => {
+    const sequencer = get().sequencer;
+    const boundedStepCount = normalizeStepCount(sequencer.stepCount);
+    const normalizedPlayhead = ((Math.round(playhead) % boundedStepCount) + boundedStepCount) % boundedStepCount;
+    set({
+      sequencer: {
+        ...sequencer,
+        playhead: normalizedPlayhead
+      }
+    });
   },
 
   ensureSession: async () => {

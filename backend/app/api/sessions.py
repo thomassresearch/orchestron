@@ -7,6 +7,7 @@ from backend.app.core.container import AppContainer
 from backend.app.models.session import (
     BindMidiInputRequest,
     CompileResponse,
+    SessionMidiEventRequest,
     SessionActionResponse,
     SessionCreateRequest,
     SessionCreateResponse,
@@ -52,6 +53,15 @@ async def stop_session(session_id: str, container: AppContainer = Depends(get_co
 @router.post("/{session_id}/panic", response_model=SessionActionResponse)
 async def panic_session(session_id: str, container: AppContainer = Depends(get_container)) -> SessionActionResponse:
     return await container.session_service.panic_session(session_id)
+
+
+@router.post("/{session_id}/midi-event", response_model=SessionActionResponse)
+async def midi_event(
+    session_id: str,
+    request: SessionMidiEventRequest,
+    container: AppContainer = Depends(get_container),
+) -> SessionActionResponse:
+    return await container.session_service.send_midi_event(session_id, request)
 
 
 @router.put("/{session_id}/midi-input", response_model=SessionInfo)

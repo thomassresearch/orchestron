@@ -10,6 +10,8 @@ from backend.app.models.patch import Connection, NodeInstance, PatchDocument
 from backend.app.models.session import CompileArtifact
 from backend.app.services.opcode_service import OpcodeService
 
+OPTIONAL_OMIT_MARKER = "__VS_OPTIONAL_OMIT__"
+
 
 class CompilationError(Exception):
     def __init__(self, diagnostics: list[str]):
@@ -98,6 +100,8 @@ class CompilerService:
                     diagnostics.append(
                         f"Missing required input '{input_port.id}' on node '{compiled.node.id}' ({compiled.spec.name})."
                     )
+                else:
+                    env[input_port.id] = OPTIONAL_OMIT_MARKER
 
             for param_key, param_value in compiled.node.params.items():
                 if param_key in env:
@@ -114,6 +118,8 @@ class CompilerService:
                 rendered = compiled.spec.template.format(**env)
             except KeyError as err:
                 raise CompilationError([f"Template value missing for node '{compiled.node.id}': {err}"]) from err
+
+            rendered = self._cleanup_optional_placeholders(rendered)
 
             instrument_lines.extend(
                 [f"; node:{compiled.node.id} opcode:{compiled.spec.name}", *rendered.splitlines()]
@@ -261,6 +267,33 @@ class CompilerService:
         return "", False
 
     @staticmethod
+    def _cleanup_optional_placeholders(rendered: str) -> str:
+        cleaned_lines: list[str] = []
+        for raw_line in rendered.splitlines():
+            line = raw_line
+            while True:
+                trimmed = re.sub(
+                    rf"(?:,\s*{OPTIONAL_OMIT_MARKER}|\s+{OPTIONAL_OMIT_MARKER})\s*$",
+                    "",
+                    line,
+                )
+                if trimmed == line:
+                    break
+                line = trimmed
+
+            if OPTIONAL_OMIT_MARKER in line:
+                raise CompilationError(
+                    [
+                        "Unsupported optional argument placement in opcode template line: "
+                        f"'{raw_line}'"
+                    ]
+                )
+
+            cleaned_lines.append(line)
+
+        return "\n".join(cleaned_lines)
+
+    @staticmethod
     def _format_literal(value: str | int | float | bool, signal_type: SignalType) -> str:
         if signal_type == SignalType.STRING:
             if isinstance(value, str):
@@ -302,6 +335,7 @@ class CompilerService:
                 orc,
                 "</CsInstruments>",
                 "<CsScore>",
+                "f 1 0 16384 10 1",
                 "f 0 z",
                 "</CsScore>",
                 "</CsoundSynthesizer>",

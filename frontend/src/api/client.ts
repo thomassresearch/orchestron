@@ -7,6 +7,7 @@ import type {
   PatchListItem,
   SessionActionResponse,
   SessionCreateResponse,
+  SessionMidiEventRequest,
   SessionInfo
 } from "../types";
 
@@ -66,6 +67,11 @@ export const api = {
     request<SessionActionResponse>(`/sessions/${sessionId}/stop`, { method: "POST" }),
   panicSession: (sessionId: string) =>
     request<SessionActionResponse>(`/sessions/${sessionId}/panic`, { method: "POST" }),
+  sendSessionMidiEvent: (sessionId: string, payload: SessionMidiEventRequest) =>
+    request<SessionActionResponse>(`/sessions/${sessionId}/midi-event`, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }),
   bindMidiInput: (sessionId: string, midiInput: string) =>
     request<SessionInfo>(`/sessions/${sessionId}/midi-input`, {
       method: "PUT",

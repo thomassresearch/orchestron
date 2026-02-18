@@ -11,6 +11,7 @@ from backend.app.engine.session_runtime import RuntimeSession
 from backend.app.models.session import (
     BindMidiInputRequest,
     CompileResponse,
+    SessionMidiEventRequest,
     SessionActionResponse,
     SessionCreateRequest,
     SessionCreateResponse,
@@ -156,6 +157,52 @@ class SessionService:
         detail = runtime.worker.panic()
 
         await self._publish(runtime.session_id, "panic", {"detail": detail})
+
+        return SessionActionResponse(session_id=runtime.session_id, state=runtime.state, detail=detail)
+
+    async def send_midi_event(self, session_id: str, request: SessionMidiEventRequest) -> SessionActionResponse:
+        runtime = await self._get_session(session_id)
+        if not runtime.worker.is_running:
+            raise HTTPException(status_code=409, detail="Session must be running to receive MIDI events.")
+
+        midi_input_selector = runtime.midi_input or self._settings.default_midi_device
+        channel = request.channel - 1
+
+        try:
+            if request.type == "note_on":
+                assert request.note is not None
+                output_name = self._midi_service.send_message(
+                    midi_input_selector,
+                    [0x90 + channel, request.note, request.velocity],
+                )
+                detail = f"note_on sent via {output_name}"
+            elif request.type == "note_off":
+                assert request.note is not None
+                output_name = self._midi_service.send_message(
+                    midi_input_selector,
+                    [0x80 + channel, request.note, 0],
+                )
+                detail = f"note_off sent via {output_name}"
+            else:
+                output_name = self._midi_service.send_message(midi_input_selector, [0xB0 + channel, 123, 0])
+                self._midi_service.send_message(midi_input_selector, [0xB0 + channel, 120, 0])
+                detail = f"all_notes_off sent via {output_name}"
+        except ValueError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        except RuntimeError as exc:
+            raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+        payload: dict[str, str | int | float | bool | None] = {
+            "type": request.type,
+            "channel": request.channel,
+            "output": output_name,
+        }
+        if request.note is not None:
+            payload["note"] = request.note
+        if request.type == "note_on":
+            payload["velocity"] = request.velocity
+
+        await self._publish(runtime.session_id, "midi_event", payload)
 
         return SessionActionResponse(session_id=runtime.session_id, state=runtime.state, detail=detail)
 
