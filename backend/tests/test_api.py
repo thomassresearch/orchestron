@@ -19,6 +19,7 @@ def _client(tmp_path: Path) -> TestClient:
     os.environ["VISUALCSOUND_DATABASE_URL"] = f"sqlite:///{db_path}"
     os.environ["VISUALCSOUND_STATIC_DIR"] = str(static_dir)
     os.environ["VISUALCSOUND_FRONTEND_DIST_DIR"] = str(frontend_dist)
+    os.environ["VISUALCSOUND_FORCE_MOCK_ENGINE"] = "true"
 
     get_settings.cache_clear()
     app = create_app()
@@ -135,3 +136,99 @@ def test_const_nodes_use_node_params_without_value_input_port(tmp_path: Path) ->
         compile_response = client.post(f"/api/sessions/{session_id}/compile")
         assert compile_response.status_code == 200
         assert " = 0.25" in compile_response.json()["orc"]
+
+
+def test_midi_opcodes_and_vco_compile_flow(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        opcodes_response = client.get("/api/opcodes")
+        assert opcodes_response.status_code == 200
+        opcodes_by_name = {item["name"]: item for item in opcodes_response.json()}
+        assert opcodes_by_name["cpsmidi"]["category"] == "midi"
+        assert opcodes_by_name["cpsmidi"]["outputs"][0]["signal_type"] == "i"
+        assert opcodes_by_name["midictrl"]["category"] == "midi"
+        assert opcodes_by_name["vco"]["category"] == "oscillator"
+
+        patch_payload = {
+            "name": "VCO MIDI Patch",
+            "description": "cpsmidi + midictrl driving vco",
+            "schema_version": 1,
+            "graph": {
+                "nodes": [
+                    {"id": "n1", "opcode": "cpsmidi", "params": {}, "position": {"x": 40, "y": 40}},
+                    {
+                        "id": "n2",
+                        "opcode": "midictrl",
+                        "params": {"inum": 1, "imin": 0, "imax": 0.4},
+                        "position": {"x": 200, "y": 160},
+                    },
+                    {"id": "n3", "opcode": "vco", "params": {"iwave": 1}, "position": {"x": 360, "y": 40}},
+                    {"id": "n4", "opcode": "outs", "params": {}, "position": {"x": 600, "y": 40}},
+                ],
+                "connections": [
+                    {"from_node_id": "n1", "from_port_id": "kfreq", "to_node_id": "n3", "to_port_id": "freq"},
+                    {"from_node_id": "n2", "from_port_id": "kval", "to_node_id": "n3", "to_port_id": "amp"},
+                    {"from_node_id": "n3", "from_port_id": "asig", "to_node_id": "n4", "to_port_id": "left"},
+                    {"from_node_id": "n3", "from_port_id": "asig", "to_node_id": "n4", "to_port_id": "right"},
+                ],
+                "ui_layout": {},
+                "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+            },
+        }
+
+        create_patch = client.post("/api/patches", json=patch_payload)
+        assert create_patch.status_code == 201
+        patch_id = create_patch.json()["id"]
+
+        create_session = client.post("/api/sessions", json={"patch_id": patch_id})
+        assert create_session.status_code == 201
+        session_id = create_session.json()["session_id"]
+
+        compile_response = client.post(f"/api/sessions/{session_id}/compile")
+        assert compile_response.status_code == 200
+        compiled_orc = compile_response.json()["orc"]
+        assert "cpsmidi" in compiled_orc
+        cpsmidi_line = next(line.strip() for line in compiled_orc.splitlines() if " cpsmidi" in line)
+        assert cpsmidi_line.startswith("i_")
+        assert "midictrl" in compiled_orc
+        assert " vco " in compiled_orc
+
+
+def test_vco_accepts_audio_rate_frequency_input(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        patch_payload = {
+            "name": "Audio Rate Freq Mod",
+            "description": "oscili audio output drives vco frequency",
+            "schema_version": 1,
+            "graph": {
+                "nodes": [
+                    {"id": "n1", "opcode": "const_k", "params": {"value": 0.2}, "position": {"x": 40, "y": 40}},
+                    {"id": "n2", "opcode": "const_k", "params": {"value": 3}, "position": {"x": 40, "y": 180}},
+                    {"id": "n3", "opcode": "oscili", "params": {"amp": 440, "ifn": 1}, "position": {"x": 250, "y": 180}},
+                    {"id": "n4", "opcode": "vco", "params": {"iwave": 1}, "position": {"x": 460, "y": 40}},
+                    {"id": "n5", "opcode": "outs", "params": {}, "position": {"x": 660, "y": 40}},
+                ],
+                "connections": [
+                    {"from_node_id": "n1", "from_port_id": "kout", "to_node_id": "n4", "to_port_id": "amp"},
+                    {"from_node_id": "n2", "from_port_id": "kout", "to_node_id": "n3", "to_port_id": "freq"},
+                    {"from_node_id": "n3", "from_port_id": "asig", "to_node_id": "n4", "to_port_id": "freq"},
+                    {"from_node_id": "n4", "from_port_id": "asig", "to_node_id": "n5", "to_port_id": "left"},
+                    {"from_node_id": "n4", "from_port_id": "asig", "to_node_id": "n5", "to_port_id": "right"},
+                ],
+                "ui_layout": {},
+                "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+            },
+        }
+
+        create_patch = client.post("/api/patches", json=patch_payload)
+        assert create_patch.status_code == 201
+        patch_id = create_patch.json()["id"]
+
+        create_session = client.post("/api/sessions", json={"patch_id": patch_id})
+        assert create_session.status_code == 201
+        session_id = create_session.json()["session_id"]
+
+        compile_response = client.post(f"/api/sessions/{session_id}/compile")
+        assert compile_response.status_code == 200
+        compiled_orc = compile_response.json()["orc"]
+        assert " oscili " in compiled_orc
+        assert " vco " in compiled_orc

@@ -169,7 +169,11 @@ class CompilerService:
                 )
                 continue
 
-            if not self._is_compatible_type(source_port.signal_type, target_port.signal_type):
+            if not self._is_compatible_type(
+                source_port.signal_type,
+                target_port.signal_type,
+                target_port.accepted_signal_types,
+            ):
                 errors.append(
                     "Signal type mismatch: "
                     f"{source.node.id}.{source_port.id} ({source_port.signal_type}) -> "
@@ -179,7 +183,13 @@ class CompilerService:
         return errors
 
     @staticmethod
-    def _is_compatible_type(source: SignalType, target: SignalType) -> bool:
+    def _is_compatible_type(
+        source: SignalType,
+        target: SignalType,
+        accepted_signal_types: list[SignalType] | None = None,
+    ) -> bool:
+        if accepted_signal_types and source in accepted_signal_types:
+            return True
         if source == target:
             return True
         return source == SignalType.INIT and target == SignalType.CONTROL

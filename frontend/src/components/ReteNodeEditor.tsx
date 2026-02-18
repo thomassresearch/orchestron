@@ -25,7 +25,7 @@ interface ReteNodeEditorProps {
 }
 
 const CONSTANT_OPCODES = new Set(["const_a", "const_i", "const_k"]);
-const GENERATOR_CATEGORIES = new Set(["oscillator", "midi", "envelope"]);
+const GENERATOR_CATEGORIES = new Set(["oscillator", "envelope"]);
 
 type NodePalette = {
   background: string;
@@ -49,6 +49,13 @@ const CATEGORY_NODE_PALETTES: Record<string, NodePalette> = {
     hover: "#f0c8cd",
     selectedBackground: "#fdf0f2",
     selectedBorder: "#eebac0"
+  },
+  midi: {
+    background: "#b9d4f5",
+    border: "#7ea6d4",
+    hover: "#c8def8",
+    selectedBackground: "#edf5fe",
+    selectedBorder: "#bdd5ef"
   },
   constant: {
     background: "#c8cdd6",
@@ -97,6 +104,9 @@ function paletteForCategory(category: string | undefined): NodePalette {
   }
   if (GENERATOR_CATEGORIES.has(category)) {
     return CATEGORY_NODE_PALETTES.generator;
+  }
+  if (category === "midi") {
+    return CATEGORY_NODE_PALETTES.midi;
   }
   if (category === "filter") {
     return CATEGORY_NODE_PALETTES.filter;

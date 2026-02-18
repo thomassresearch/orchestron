@@ -17,6 +17,7 @@ class PortSpec(BaseModel):
     id: str = Field(min_length=1)
     name: str = Field(min_length=1)
     signal_type: SignalType
+    accepted_signal_types: list[SignalType] = Field(default_factory=list)
     required: bool = True
     default: str | int | float | None = None
     description: str = ""

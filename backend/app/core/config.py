@@ -2,9 +2,20 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
+import sys
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def _default_rtmidi_module() -> str:
+    if sys.platform == "darwin":
+        return "portmidi"
+    if sys.platform.startswith("linux"):
+        return "alsaseq"
+    if sys.platform.startswith(("win32", "cygwin")):
+        return "winmme"
+    return "portmidi"
 
 
 class Settings(BaseSettings):
@@ -38,7 +49,7 @@ class Settings(BaseSettings):
     default_nchnls: int = 2
     default_0dbfs: float = 1.0
 
-    default_rtmidi_module: str = "cmidi"
+    default_rtmidi_module: str = Field(default_factory=_default_rtmidi_module)
     default_midi_device: str = "0"
 
 

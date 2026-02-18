@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import logging
+import os
+import re
+import sys
 import threading
 import time
 from dataclasses import dataclass
@@ -21,6 +24,12 @@ class CsoundWorker:
         self._thread: threading.Thread | None = None
         self._running = False
         self._lock = threading.Lock()
+
+        force_mock = os.getenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "").strip().lower()
+        if force_mock in {"1", "true", "yes", "on"}:
+            self._ctcsound = None
+            logger.info("VISUALCSOUND_FORCE_MOCK_ENGINE is set; using mock realtime engine")
+            return
 
         try:
             import ctcsound  # type: ignore
@@ -86,39 +95,133 @@ class CsoundWorker:
     def _start_ctcsound(self, csd: str, midi_input: str, rtmidi_module: str) -> EngineStartResult:
         assert self._ctcsound is not None
 
-        csound = self._ctcsound.Csound()
-        csound.setOption("-d")
-        csound.setOption("-odac")
-        csound.setOption(f"-M{midi_input}")
-        csound.setOption(f"-+rtmidi={rtmidi_module}")
+        requested_module = self._normalize_rtmidi_module(rtmidi_module)
+        attempts: list[str] = []
+        errors: list[str] = []
 
-        compile_result = csound.compileCsdText(csd)
-        if compile_result != 0:
-            raise RuntimeError(f"CSound compile failed with code {compile_result}")
+        for module in self._rtmidi_candidates(requested_module):
+            attempts.append(module)
+            csound = self._ctcsound.Csound()
+            try:
+                runtime_csd = self._apply_runtime_midi_options(csd, midi_input=midi_input, rtmidi_module=module)
+                csound.setOption("-d")
+                csound.setOption("-odac")
+                csound.setOption(f"-M{midi_input}")
+                csound.setOption(f"-+rtmidi={module}")
 
-        start_result = csound.start()
-        if start_result != 0:
-            raise RuntimeError(f"CSound start failed with code {start_result}")
+                compile_result = csound.compileCsdText(runtime_csd)
+                if compile_result != 0:
+                    raise RuntimeError(f"CSound compile failed with code {compile_result}")
 
-        self._csound = csound
-        self._thread = threading.Thread(target=csound.perform, daemon=True, name="csound-perform")
-        self._thread.start()
+                start_result = csound.start()
+                if start_result != 0:
+                    raise RuntimeError(f"CSound start failed with code {start_result}")
+            except Exception as exc:
+                errors.append(f"{module}: {exc}")
+                self._teardown_csound(csound)
+                logger.warning("CSound startup failed with rtmidi=%s: %s", module, exc)
+                continue
 
-        return EngineStartResult(backend="ctcsound", detail="started with CSound")
+            self._csound = csound
+            self._thread = threading.Thread(target=csound.perform, daemon=True, name="csound-perform")
+            self._thread.start()
+
+            if module != requested_module:
+                logger.warning(
+                    "Requested rtmidi module '%s' unavailable; fell back to '%s'.",
+                    requested_module,
+                    module,
+                )
+                return EngineStartResult(
+                    backend="ctcsound",
+                    detail=f"started with CSound (rtmidi fallback: {module})",
+                )
+
+            return EngineStartResult(backend="ctcsound", detail="started with CSound")
+
+        attempted = ", ".join(attempts)
+        message = "; ".join(errors) if errors else "unknown startup error"
+        raise RuntimeError(f"CSound start failed for all rtmidi modules ({attempted}): {message}")
 
     def _stop_ctcsound(self) -> None:
         if not self._csound:
             return
 
         try:
-            self._csound.stop()
-            self._csound.cleanup()
-            self._csound.reset()
+            self._teardown_csound(self._csound)
         except Exception:
             logger.exception("Failed to stop CSound cleanly")
         finally:
             self._csound = None
             self._thread = None
+
+    @staticmethod
+    def _teardown_csound(csound: object) -> None:
+        for method_name in ("stop", "cleanup", "reset"):
+            method = getattr(csound, method_name, None)
+            if not callable(method):
+                continue
+            try:
+                method()
+            except Exception:
+                # Cleanup is best-effort after a failed startup attempt.
+                pass
+
+    @staticmethod
+    def _normalize_rtmidi_module(module: str) -> str:
+        return module.strip().strip("'\"") if module else ""
+
+    @classmethod
+    def _rtmidi_candidates(cls, preferred: str) -> list[str]:
+        candidates: list[str] = []
+        for module in (preferred, *cls._platform_rtmidi_fallbacks()):
+            normalized = cls._normalize_rtmidi_module(module)
+            if normalized and normalized not in candidates:
+                candidates.append(normalized)
+        return candidates
+
+    @staticmethod
+    def _platform_rtmidi_fallbacks() -> tuple[str, ...]:
+        if sys.platform == "darwin":
+            return ("portmidi", "coremidi", "virtual", "null", "cmidi")
+        if sys.platform.startswith("linux"):
+            return ("alsaseq", "portmidi", "virtual", "null", "cmidi")
+        if sys.platform.startswith(("win32", "cygwin")):
+            return ("winmme", "portmidi", "virtual", "null", "cmidi")
+        return ("portmidi", "virtual", "null", "cmidi")
+
+    @staticmethod
+    def _apply_runtime_midi_options(csd: str, midi_input: str, rtmidi_module: str) -> str:
+        lines: list[str] = []
+        in_options = False
+        option_parts: list[str] = []
+
+        for line in csd.splitlines():
+            stripped = line.strip()
+            if stripped == "<CsOptions>":
+                in_options = True
+                option_parts = []
+                lines.append(line)
+                continue
+            if stripped == "</CsOptions>":
+                in_options = False
+                option_parts.append(f"-M{midi_input}")
+                option_parts.append(f"-+rtmidi={rtmidi_module}")
+                lines.append(" ".join(option_parts).strip())
+                lines.append(line)
+                continue
+
+            if not in_options:
+                lines.append(line)
+                continue
+
+            cleaned = re.sub(r"(^|\s)-M\S+", " ", line)
+            cleaned = re.sub(r"(^|\s)-\+rtmidi=\S+", " ", cleaned)
+            cleaned = re.sub(r"\s{2,}", " ", cleaned).strip()
+            if cleaned:
+                option_parts.append(cleaned)
+
+        return "\n".join(lines)
 
     def _start_mock(self) -> EngineStartResult:
         self._thread = threading.Thread(target=self._mock_loop, daemon=True, name="mock-csound")
