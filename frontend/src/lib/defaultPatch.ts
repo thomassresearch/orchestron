@@ -6,8 +6,9 @@ export function defaultGraph(): PatchGraph {
     connections: [],
     ui_layout: {},
     engine_config: {
-      sr: 48000,
-      ksmps: 64,
+      sr: 44100,
+      control_rate: 4400,
+      ksmps: 10,
       nchnls: 2,
       "0dbfs": 1
     }

@@ -76,6 +76,20 @@ def test_patch_ui_layout_supports_nested_sequencer_payload(tmp_path: Path) -> No
         assert sequencer["steps"][1] is None
 
 
+def test_opcodes_include_markdown_documentation(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        response = client.get("/api/opcodes")
+        assert response.status_code == 200
+
+        opcodes_by_name = {item["name"]: item for item in response.json()}
+        oscili = opcodes_by_name["oscili"]
+
+        assert "documentation_markdown" in oscili
+        assert "documentation_url" in oscili
+        assert "oscili" in oscili["documentation_markdown"].lower()
+        assert oscili["documentation_url"].startswith("https://csound.com/docs/manual/")
+
+
 def test_patch_compile_and_runtime_flow(tmp_path: Path) -> None:
     with _client(tmp_path) as client:
         patch_payload = {
@@ -132,6 +146,42 @@ def test_patch_compile_and_runtime_flow(tmp_path: Path) -> None:
         stop_response = client.post(f"/api/sessions/{session_id}/stop")
         assert stop_response.status_code == 200
         assert stop_response.json()["state"] in {"compiled", "idle"}
+
+
+def test_engine_rates_drive_compiled_sr_and_ksmps(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        patch_payload = {
+            "name": "Engine Rate Patch",
+            "description": "engine config test",
+            "schema_version": 1,
+            "graph": {
+                "nodes": [
+                    {"id": "n1", "opcode": "const_a", "params": {"value": 0.2}, "position": {"x": 50, "y": 50}},
+                    {"id": "n2", "opcode": "outs", "params": {}, "position": {"x": 240, "y": 50}},
+                ],
+                "connections": [
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "left"},
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "right"},
+                ],
+                "ui_layout": {},
+                "engine_config": {"sr": 44100, "control_rate": 4400, "ksmps": 1, "nchnls": 2, "0dbfs": 1.0},
+            },
+        }
+
+        create_patch = client.post("/api/patches", json=patch_payload)
+        assert create_patch.status_code == 201
+        patch_id = create_patch.json()["id"]
+
+        create_session = client.post("/api/sessions", json={"patch_id": patch_id})
+        assert create_session.status_code == 201
+        session_id = create_session.json()["session_id"]
+
+        compile_response = client.post(f"/api/sessions/{session_id}/compile")
+        assert compile_response.status_code == 200
+        orc = compile_response.json()["orc"]
+
+        assert "sr = 44100" in orc
+        assert "ksmps = 10" in orc
 
 
 def test_session_midi_event_endpoint(tmp_path: Path) -> None:

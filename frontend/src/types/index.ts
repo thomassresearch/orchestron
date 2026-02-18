@@ -1,5 +1,5 @@
 export type SignalType = "a" | "k" | "i" | "S" | "f";
-export type AppPage = "instrument" | "sequencer";
+export type AppPage = "instrument" | "sequencer" | "config";
 
 export type JsonPrimitive = string | number | boolean | null;
 export type JsonValue = JsonPrimitive | JsonObject | JsonValue[];
@@ -21,6 +21,8 @@ export interface OpcodeSpec {
   category: string;
   description: string;
   icon: string;
+  documentation_markdown: string;
+  documentation_url: string;
   inputs: PortSpec[];
   outputs: PortSpec[];
   template: string;
@@ -48,6 +50,7 @@ export interface Connection {
 
 export interface EngineConfig {
   sr: number;
+  control_rate: number;
   ksmps: number;
   nchnls: number;
   "0dbfs": number;

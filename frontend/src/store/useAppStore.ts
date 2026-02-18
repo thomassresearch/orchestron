@@ -5,6 +5,7 @@ import { createUntitledPatch } from "../lib/defaultPatch";
 import type {
   AppPage,
   CompileResponse,
+  EngineConfig,
   JsonObject,
   MidiInputRef,
   NodeInstance,
@@ -65,6 +66,8 @@ interface AppStore {
   setSequencerStepNote: (index: number, note: number | null) => void;
   setSequencerPlaying: (isPlaying: boolean) => void;
   setSequencerPlayhead: (playhead: number) => void;
+  setEngineAudioRate: (sr: number) => void;
+  setEngineControlRate: (controlRate: number) => void;
 
   ensureSession: () => Promise<string>;
   compileSession: () => Promise<void>;
@@ -83,6 +86,10 @@ const OPCODE_PARAM_DEFAULTS: Record<string, Record<string, string | number | boo
 };
 
 const DEFAULT_SEQUENCER_STEPS: Array<number | null> = Array.from({ length: 32 }, () => null);
+const AUDIO_RATE_MIN = 22000;
+const AUDIO_RATE_MAX = 48000;
+const CONTROL_RATE_MIN = 25;
+const CONTROL_RATE_MAX = 48000;
 
 function clampInt(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, Math.round(value)));
@@ -162,6 +169,36 @@ function withSequencerLayout(graph: PatchGraph, sequencer: SequencerState): Patc
   };
 }
 
+function normalizeEngineConfig(raw: Partial<EngineConfig> | undefined): EngineConfig {
+  const sr = clampInt(typeof raw?.sr === "number" ? raw.sr : 44100, AUDIO_RATE_MIN, AUDIO_RATE_MAX);
+  let controlRate = 4400;
+
+  if (typeof raw?.control_rate === "number" && Number.isFinite(raw.control_rate)) {
+    controlRate = clampInt(raw.control_rate, CONTROL_RATE_MIN, CONTROL_RATE_MAX);
+  } else if (typeof raw?.ksmps === "number" && Number.isFinite(raw.ksmps) && raw.ksmps > 0) {
+    const derivedControlRate = Math.round(sr / raw.ksmps);
+    if (derivedControlRate >= CONTROL_RATE_MIN && derivedControlRate <= CONTROL_RATE_MAX) {
+      controlRate = derivedControlRate;
+    }
+  }
+
+  const ksmps = Math.max(1, Math.round(sr / controlRate));
+  return {
+    sr,
+    control_rate: controlRate,
+    ksmps,
+    nchnls: typeof raw?.nchnls === "number" ? Math.max(1, Math.round(raw.nchnls)) : 2,
+    "0dbfs": typeof raw?.["0dbfs"] === "number" ? raw["0dbfs"] : 1
+  };
+}
+
+function withNormalizedEngineConfig(graph: PatchGraph): PatchGraph {
+  return {
+    ...graph,
+    engine_config: normalizeEngineConfig(graph.engine_config)
+  };
+}
+
 function defaultParams(opcode: OpcodeSpec): Record<string, string | number | boolean> {
   const params: Record<string, string | number | boolean> = {};
   for (const input of opcode.inputs) {
@@ -188,7 +225,7 @@ function normalizePatch(patch: Patch): EditablePatch {
     name: patch.name,
     description: patch.description,
     schema_version: patch.schema_version,
-    graph: patch.graph,
+    graph: withNormalizedEngineConfig(patch.graph),
     created_at: patch.created_at,
     updated_at: patch.updated_at
   };
@@ -207,7 +244,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   currentPatch: (() => {
     const patch = createUntitledPatch();
     const sequencer = defaultSequencerState();
-    return { ...patch, graph: withSequencerLayout(patch.graph, sequencer) };
+    return { ...patch, graph: withNormalizedEngineConfig(withSequencerLayout(patch.graph, sequencer)) };
   })(),
   sequencer: defaultSequencerState(),
 
@@ -240,7 +277,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       const sequencer = parseSequencerState(currentPatch.graph);
       currentPatch = {
         ...currentPatch,
-        graph: withSequencerLayout(currentPatch.graph, sequencer)
+        graph: withNormalizedEngineConfig(withSequencerLayout(currentPatch.graph, sequencer))
       };
 
       set({
@@ -270,7 +307,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       set({
         currentPatch: {
           ...currentPatch,
-          graph: withSequencerLayout(currentPatch.graph, sequencer)
+          graph: withNormalizedEngineConfig(withSequencerLayout(currentPatch.graph, sequencer))
         },
         sequencer,
         loading: false
@@ -290,7 +327,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     set({
       currentPatch: {
         ...patch,
-        graph: withSequencerLayout(patch.graph, sequencer)
+        graph: withNormalizedEngineConfig(withSequencerLayout(patch.graph, sequencer))
       },
       sequencer,
       activeSessionId: null,
@@ -316,7 +353,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     set({
       currentPatch: {
         ...current,
-        graph: withSequencerLayout(graph, sequencer)
+        graph: withNormalizedEngineConfig(withSequencerLayout(graph, sequencer))
       }
     });
   },
@@ -376,7 +413,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     const sequencer = get().sequencer;
     const current = {
       ...get().currentPatch,
-      graph: withSequencerLayout(get().currentPatch.graph, sequencer)
+      graph: withNormalizedEngineConfig(withSequencerLayout(get().currentPatch.graph, sequencer))
     };
 
     set({ loading: true, error: null, currentPatch: current });
@@ -403,7 +440,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       set({
         currentPatch: {
           ...normalizedPatch,
-          graph: withSequencerLayout(normalizedPatch.graph, normalizedSequencer)
+          graph: withNormalizedEngineConfig(withSequencerLayout(normalizedPatch.graph, normalizedSequencer))
         },
         sequencer: normalizedSequencer,
         patches,
@@ -508,6 +545,48 @@ export const useAppStore = create<AppStore>((set, get) => ({
       sequencer: {
         ...sequencer,
         playhead: normalizedPlayhead
+      }
+    });
+  },
+
+  setEngineAudioRate: (sr) => {
+    const currentPatch = get().currentPatch;
+    const currentEngine = normalizeEngineConfig(currentPatch.graph.engine_config);
+    const nextSr = clampInt(sr, AUDIO_RATE_MIN, AUDIO_RATE_MAX);
+    const nextKsmps = Math.max(1, Math.round(nextSr / currentEngine.control_rate));
+
+    set({
+      currentPatch: {
+        ...currentPatch,
+        graph: {
+          ...currentPatch.graph,
+          engine_config: {
+            ...currentEngine,
+            sr: nextSr,
+            ksmps: nextKsmps
+          }
+        }
+      }
+    });
+  },
+
+  setEngineControlRate: (controlRate) => {
+    const currentPatch = get().currentPatch;
+    const currentEngine = normalizeEngineConfig(currentPatch.graph.engine_config);
+    const nextControlRate = clampInt(controlRate, CONTROL_RATE_MIN, CONTROL_RATE_MAX);
+    const nextKsmps = Math.max(1, Math.round(currentEngine.sr / nextControlRate));
+
+    set({
+      currentPatch: {
+        ...currentPatch,
+        graph: {
+          ...currentPatch.graph,
+          engine_config: {
+            ...currentEngine,
+            control_rate: nextControlRate,
+            ksmps: nextKsmps
+          }
+        }
       }
     });
   },

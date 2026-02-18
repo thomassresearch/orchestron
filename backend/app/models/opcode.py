@@ -28,6 +28,8 @@ class OpcodeSpec(BaseModel):
     category: str = Field(min_length=1)
     description: str = ""
     icon: str
+    documentation_markdown: str = ""
+    documentation_url: str = ""
     inputs: list[PortSpec] = Field(default_factory=list)
     outputs: list[PortSpec] = Field(default_factory=list)
     template: str = ""

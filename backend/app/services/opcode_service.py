@@ -1,13 +1,30 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from pathlib import Path
+import re
 
 from backend.app.models.opcode import OpcodeSpec, PortSpec, SignalType
+
+CSOUND_OVERVIEW_URL = "https://csound.com/docs/manual/PartOpcodesOverview.html"
+OPCODE_REFERENCE_URLS: dict[str, str] = {
+    "adsr": "https://csound.com/docs/manual/madsr.html",
+    "oscili": "https://csound.com/docs/manual/oscili.html",
+    "vco": "https://csound.com/docs/manual/vco.html",
+    "ftgen": "https://csound.com/docs/manual/ftgen.html",
+    "cpsmidi": "https://csound.com/docs/manual/cpsmidi.html",
+    "midictrl": "https://csound.com/docs/manual/midictrl.html",
+    "k_to_a": "https://csound.com/docs/manual/interp.html",
+    "moogladder": "https://csound.com/docs/manual/moogladder.html",
+    "outs": "https://csound.com/docs/manual/outs.html",
+    "midi_note": "https://csound.com/docs/manual/cpsmidi.html",
+}
 
 
 class OpcodeService:
     def __init__(self, icon_prefix: str) -> None:
         self._icon_prefix = icon_prefix.rstrip("/")
+        self._documentation = self._load_opcode_documentation()
         self._opcodes = {opcode.name: opcode for opcode in self._load_builtin_opcodes()}
 
     def list_opcodes(self, category: str | None = None) -> list[OpcodeSpec]:
@@ -28,9 +45,49 @@ class OpcodeService:
     def _icon(self, filename: str) -> str:
         return f"{self._icon_prefix}/{filename}"
 
+    def _spec(self, **kwargs: object) -> OpcodeSpec:
+        name = str(kwargs["name"])
+        description = str(kwargs.get("description", "")).strip()
+        fallback_reference = self._reference_url(name)
+        documentation_markdown = self._documentation.get(name)
+        if not documentation_markdown:
+            documentation_markdown = (
+                f"### `{name}`\n\n{description}\n\n"
+                f"**Reference**\n- [Csound opcode overview]({fallback_reference})"
+            )
+
+        return OpcodeSpec(
+            documentation_markdown=documentation_markdown,
+            documentation_url=fallback_reference,
+            **kwargs,
+        )
+
+    def _reference_url(self, opcode_name: str) -> str:
+        return OPCODE_REFERENCE_URLS.get(opcode_name, CSOUND_OVERVIEW_URL)
+
+    @staticmethod
+    def _load_opcode_documentation() -> dict[str, str]:
+        docs_path = Path(__file__).resolve().parents[3] / "CSOUND_OPCODES.md"
+        if not docs_path.exists():
+            return {}
+
+        text = docs_path.read_text(encoding="utf-8")
+        matches = list(re.finditer(r"^### `([^`]+)`.*$", text, flags=re.MULTILINE))
+        if not matches:
+            return {}
+
+        docs: dict[str, str] = {}
+        for index, match in enumerate(matches):
+            opcode_name = match.group(1).strip()
+            start = match.start()
+            end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+            section = text[start:end].strip()
+            docs[opcode_name] = section
+        return docs
+
     def _load_builtin_opcodes(self) -> list[OpcodeSpec]:
         return [
-            OpcodeSpec(
+            self._spec(
                 name="midi_note",
                 category="midi",
                 description="Extract MIDI note frequency and velocity amplitude.",
@@ -45,7 +102,7 @@ class OpcodeService:
                 template="{kfreq} cpsmidi\n{kamp} ampmidi {gain}",
                 tags=["performance", "source"],
             ),
-            OpcodeSpec(
+            self._spec(
                 name="adsr",
                 category="envelope",
                 description="Control-rate ADSR envelope.",
@@ -60,7 +117,7 @@ class OpcodeService:
                 template="{kenv} madsr {iatt}, {idec}, {islev}, {irel}",
                 tags=["control", "modulation"],
             ),
-            OpcodeSpec(
+            self._spec(
                 name="oscili",
                 category="oscillator",
                 description="Classic interpolating oscillator.",
@@ -80,7 +137,7 @@ class OpcodeService:
                 template="{asig} oscili {amp}, {freq}, {ifn}",
                 tags=["sound", "source"],
             ),
-            OpcodeSpec(
+            self._spec(
                 name="vco",
                 category="oscillator",
                 description="Band-limited voltage-controlled oscillator.",
@@ -119,7 +176,7 @@ class OpcodeService:
                 template="{asig} vco {amp}, {freq}, {iwave}, {kpw}, {ifn}",
                 tags=["sound", "source"],
             ),
-            OpcodeSpec(
+            self._spec(
                 name="ftgen",
                 category="tables",
                 description="Create a function table at init time using a GEN routine.",
@@ -145,7 +202,7 @@ class OpcodeService:
                 ),
                 tags=["source", "tables", "gen"],
             ),
-            OpcodeSpec(
+            self._spec(
                 name="cpsmidi",
                 category="midi",
                 description="Read active MIDI note pitch as cycles-per-second.",
@@ -155,7 +212,7 @@ class OpcodeService:
                 template="{kfreq} cpsmidi",
                 tags=["performance", "source"],
             ),
-            OpcodeSpec(
+            self._spec(
                 name="midictrl",
                 category="midi",
                 description="Read a MIDI controller value with optional scaling.",
@@ -169,7 +226,7 @@ class OpcodeService:
                 template="{kval} midictrl {inum}, {imin}, {imax}",
                 tags=["performance", "modulation"],
             ),
-            OpcodeSpec(
+            self._spec(
                 name="k_mul",
                 category="math",
                 description="Multiply two control signals.",
@@ -182,7 +239,7 @@ class OpcodeService:
                 template="{kout} = ({a}) * ({b})",
                 tags=["utility"],
             ),
-            OpcodeSpec(
+            self._spec(
                 name="a_mul",
                 category="math",
                 description="Multiply two audio signals.",
@@ -195,7 +252,7 @@ class OpcodeService:
                 template="{aout} = ({a}) * ({b})",
                 tags=["utility"],
             ),
-            OpcodeSpec(
+            self._spec(
                 name="k_to_a",
                 category="utility",
                 description="Interpolate control signal to audio-rate.",
@@ -205,7 +262,7 @@ class OpcodeService:
                 template="{aout} interp {kin}",
                 tags=["conversion"],
             ),
-            OpcodeSpec(
+            self._spec(
                 name="moogladder",
                 category="filter",
                 description="Moog ladder low-pass filter.",
@@ -219,7 +276,7 @@ class OpcodeService:
                 template="{aout} moogladder {ain}, {kcf}, {kres}",
                 tags=["tone"],
             ),
-            OpcodeSpec(
+            self._spec(
                 name="mix2",
                 category="mixer",
                 description="Mix two audio signals.",
@@ -232,7 +289,7 @@ class OpcodeService:
                 template="{aout} = ({a}) + ({b})",
                 tags=["mix"],
             ),
-            OpcodeSpec(
+            self._spec(
                 name="outs",
                 category="output",
                 description="Stereo output sink.",
@@ -245,7 +302,7 @@ class OpcodeService:
                 template="outs {left}, {right}",
                 tags=["sink"],
             ),
-            OpcodeSpec(
+            self._spec(
                 name="const_k",
                 category="constants",
                 description="Control-rate constant value.",
@@ -255,7 +312,7 @@ class OpcodeService:
                 template="{kout} = {value}",
                 tags=["source"],
             ),
-            OpcodeSpec(
+            self._spec(
                 name="const_i",
                 category="constants",
                 description="Init-rate constant value.",
@@ -265,7 +322,7 @@ class OpcodeService:
                 template="{iout} = {value}",
                 tags=["source"],
             ),
-            OpcodeSpec(
+            self._spec(
                 name="const_a",
                 category="constants",
                 description="Audio-rate constant value.",

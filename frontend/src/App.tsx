@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { api, wsBaseUrl } from "./api/client";
+import { ConfigPage } from "./components/ConfigPage";
 import { OpcodeCatalog } from "./components/OpcodeCatalog";
+import { OpcodeDocumentationModal } from "./components/OpcodeDocumentationModal";
 import { PatchToolbar } from "./components/PatchToolbar";
 import { ReteNodeEditor, type EditorSelection } from "./components/ReteNodeEditor";
 import { RuntimePanel } from "./components/RuntimePanel";
@@ -84,6 +86,8 @@ export default function App() {
   const setSequencerStepNote = useAppStore((state) => state.setSequencerStepNote);
   const setSequencerPlaying = useAppStore((state) => state.setSequencerPlaying);
   const setSequencerPlayhead = useAppStore((state) => state.setSequencerPlayhead);
+  const setEngineAudioRate = useAppStore((state) => state.setEngineAudioRate);
+  const setEngineControlRate = useAppStore((state) => state.setEngineControlRate);
 
   useEffect(() => {
     void loadBootstrap();
@@ -118,10 +122,15 @@ export default function App() {
     [setGraph]
   );
 
+  const onOpcodeHelpRequest = useCallback((opcodeName: string) => {
+    setActiveOpcodeDocumentation(opcodeName);
+  }, []);
+
   const [selection, setSelection] = useState<EditorSelection>({
     nodeIds: [],
     connections: []
   });
+  const [activeOpcodeDocumentation, setActiveOpcodeDocumentation] = useState<string | null>(null);
   const [sequencerError, setSequencerError] = useState<string | null>(null);
 
   const sequencerRef = useRef(sequencer);
@@ -146,6 +155,20 @@ export default function App() {
   const webMidiSupported = hasWebMidiSupport();
 
   const selectedCount = selection.nodeIds.length + selection.connections.length;
+  const selectedOpcodeDocumentation = useMemo(
+    () => opcodes.find((opcode) => opcode.name === activeOpcodeDocumentation) ?? null,
+    [activeOpcodeDocumentation, opcodes]
+  );
+
+  useEffect(() => {
+    if (!activeOpcodeDocumentation) {
+      return;
+    }
+    if (selectedOpcodeDocumentation) {
+      return;
+    }
+    setActiveOpcodeDocumentation(null);
+  }, [activeOpcodeDocumentation, selectedOpcodeDocumentation]);
 
   const clearNoteOffTimers = useCallback(() => {
     for (const timerId of noteOffTimersRef.current) {
@@ -536,6 +559,15 @@ export default function App() {
           >
             Sequencer
           </button>
+          <button
+            type="button"
+            onClick={() => setActivePage("config")}
+            className={`rounded-lg px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition ${
+              activePage === "config" ? "bg-accent/30 text-accent" : "text-slate-300 hover:bg-slate-800"
+            }`}
+          >
+            Config
+          </button>
         </div>
 
         <PatchToolbar
@@ -613,6 +645,7 @@ export default function App() {
                   opcodes={opcodes}
                   onGraphChange={onGraphChange}
                   onSelectionChange={setSelection}
+                  onOpcodeHelpRequest={onOpcodeHelpRequest}
                 />
               </div>
             </section>
@@ -649,7 +682,24 @@ export default function App() {
             onAllNotesOff={onSequencerAllNotesOff}
           />
         )}
+
+        {activePage === "config" && (
+          <ConfigPage
+            audioRate={currentPatch.graph.engine_config.sr}
+            controlRate={currentPatch.graph.engine_config.control_rate}
+            ksmps={currentPatch.graph.engine_config.ksmps}
+            onAudioRateChange={setEngineAudioRate}
+            onControlRateChange={setEngineControlRate}
+          />
+        )}
       </div>
+
+      {selectedOpcodeDocumentation && (
+        <OpcodeDocumentationModal
+          opcode={selectedOpcodeDocumentation}
+          onClose={() => setActiveOpcodeDocumentation(null)}
+        />
+      )}
     </div>
   );
 }

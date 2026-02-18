@@ -9,6 +9,11 @@ from backend.app.models.opcode import SignalType
 
 PatchParam = str | int | float | bool
 
+AUDIO_RATE_MIN = 22_000
+AUDIO_RATE_MAX = 48_000
+CONTROL_RATE_MIN = 25
+CONTROL_RATE_MAX = 48_000
+
 
 class NodePortRef(BaseModel):
     id: str = Field(min_length=1)
@@ -35,12 +40,47 @@ class Connection(BaseModel):
 
 
 class EngineConfig(BaseModel):
-    sr: int = 48_000
-    ksmps: int = 64
+    sr: int = 44_100
+    control_rate: int = 4_400
+    ksmps: int = 10
     nchnls: int = 2
     zero_dbfs: float = Field(default=1.0, alias="0dbfs")
 
     model_config = {"populate_by_name": True}
+
+    @field_validator("sr")
+    @classmethod
+    def validate_sr_range(cls, value: int) -> int:
+        if value < AUDIO_RATE_MIN or value > AUDIO_RATE_MAX:
+            raise ValueError(f"Audio sample rate must be between {AUDIO_RATE_MIN} and {AUDIO_RATE_MAX}.")
+        return value
+
+    @field_validator("control_rate")
+    @classmethod
+    def validate_control_rate_range(cls, value: int) -> int:
+        if value < CONTROL_RATE_MIN or value > CONTROL_RATE_MAX:
+            raise ValueError(
+                f"Control sample rate must be between {CONTROL_RATE_MIN} and {CONTROL_RATE_MAX}."
+            )
+        return value
+
+    @field_validator("ksmps")
+    @classmethod
+    def validate_ksmps(cls, value: int) -> int:
+        if value < 1:
+            raise ValueError("ksmps must be >= 1.")
+        return value
+
+    @model_validator(mode="after")
+    def sync_rates(self) -> "EngineConfig":
+        fields = self.model_fields_set
+        if "control_rate" not in fields and "ksmps" in fields and self.ksmps > 0:
+            derived_control_rate = round(self.sr / self.ksmps)
+            if CONTROL_RATE_MIN <= derived_control_rate <= CONTROL_RATE_MAX:
+                self.control_rate = derived_control_rate
+
+        self.ksmps = max(1, round(self.sr / self.control_rate))
+        return self
 
 
 class PatchGraph(BaseModel):

@@ -22,6 +22,7 @@ interface ReteNodeEditorProps {
   opcodes: OpcodeSpec[];
   onGraphChange: (graph: PatchGraph) => void;
   onSelectionChange: (selection: EditorSelection) => void;
+  onOpcodeHelpRequest?: (opcodeName: string) => void;
 }
 
 const CONSTANT_OPCODES = new Set(["const_a", "const_i", "const_k"]);
@@ -172,7 +173,13 @@ function graphStructureKey(graph: PatchGraph): string {
   return `${nodePart}|${connectionPart}`;
 }
 
-export function ReteNodeEditor({ graph, opcodes, onGraphChange, onSelectionChange }: ReteNodeEditorProps) {
+export function ReteNodeEditor({
+  graph,
+  opcodes,
+  onGraphChange,
+  onSelectionChange,
+  onOpcodeHelpRequest
+}: ReteNodeEditorProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const initializingRef = useRef(false);
   const graphRef = useRef(graph);
@@ -222,13 +229,55 @@ export function ReteNodeEditor({ graph, opcodes, onGraphChange, onSelectionChang
         ReactPresets.classic.setup({
           customize: {
             node(context) {
-              const opcodeCategory = opcodeByName.get(context.payload.label)?.category;
+              const opcodeName = String(context.payload.label);
+              const spec = opcodeByName.get(opcodeName);
+              const opcodeCategory = spec?.category;
+              const hasDocumentation = Boolean(spec?.documentation_markdown?.trim().length);
+
               return function ColoredNode(props: any) {
                 return (
-                  <ReactPresets.classic.Node
-                    {...props}
-                    styles={(styleProps: any) => nodeCssForCategory(opcodeCategory, Boolean(styleProps.selected))}
-                  />
+                  <div style={{ position: "relative" }}>
+                    <ReactPresets.classic.Node
+                      {...props}
+                      styles={(styleProps: any) => nodeCssForCategory(opcodeCategory, Boolean(styleProps.selected))}
+                    />
+                    {hasDocumentation && onOpcodeHelpRequest ? (
+                      <button
+                        type="button"
+                        aria-label={`Show docs for ${opcodeName}`}
+                        title={`Show documentation for ${opcodeName}`}
+                        onPointerDown={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                        }}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          onOpcodeHelpRequest(opcodeName);
+                        }}
+                        style={{
+                          position: "absolute",
+                          top: "6px",
+                          right: "6px",
+                          width: "18px",
+                          height: "18px",
+                          borderRadius: "999px",
+                          border: "1px solid rgba(15, 23, 42, 0.8)",
+                          background: "rgba(248, 250, 252, 0.92)",
+                          color: "#0f172a",
+                          fontWeight: 800,
+                          fontSize: "12px",
+                          lineHeight: "1",
+                          cursor: "help",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center"
+                        }}
+                      >
+                        ?
+                      </button>
+                    ) : null}
+                  </div>
                 );
               };
             },
@@ -599,7 +648,7 @@ export function ReteNodeEditor({ graph, opcodes, onGraphChange, onSelectionChang
         containerRef.current.innerHTML = "";
       }
     };
-  }, [opcodes, onGraphChange, onSelectionChange, structureKey]);
+  }, [opcodes, onGraphChange, onOpcodeHelpRequest, onSelectionChange, structureKey]);
 
   return (
     <div className="h-full w-full rounded-2xl border border-slate-700/70 bg-slate-950/75">

@@ -1,246 +1,275 @@
-# CSound Opcodes Implemented in VisualCSound
+# Csound Opcode Notes Used by VisualCSound
 
-This file documents the opcode nodes currently implemented in VisualCSound.
-
-Rate types used below:
-- `a-rate`: audio signal
-- `k-rate`: control signal
-- `i-rate`: init-time value
-
-## Constants
+This document stores per-opcode markdown used by the VisualCSound editor.
+The text is rewritten for the VisualCSound node model, based on the official Csound manual.
 
 ### `const_a`
-Audio-rate constant value source.
 
-**Inputs**
-- None
+**Type:** VisualCSound helper node
+
+Generates a constant audio-rate value by emitting an `a`-rate assignment line.
 
 **Outputs**
-| Parameter | Type | Description |
-| --- | --- | --- |
-| `aout` | `a-rate` | Constant audio-rate value. |
+- `aout` (`a-rate`): constant audio signal.
+
+**Reference**
+- [Csound opcode overview](https://csound.com/docs/manual/PartOpcodesOverview.html)
 
 ### `const_i`
-Init-rate constant value source.
 
-**Inputs**
-- None
+**Type:** VisualCSound helper node
+
+Generates a constant init-time value by emitting an `i`-rate assignment line.
 
 **Outputs**
-| Parameter | Type | Description |
-| --- | --- | --- |
-| `iout` | `i-rate` | Constant init-time value. |
+- `iout` (`i-rate`): init value.
+
+**Reference**
+- [Csound opcode overview](https://csound.com/docs/manual/PartOpcodesOverview.html)
 
 ### `const_k`
-Control-rate constant value source.
 
-**Inputs**
-- None
+**Type:** VisualCSound helper node
 
-**Outputs**
-| Parameter | Type | Description |
-| --- | --- | --- |
-| `kout` | `k-rate` | Constant control-rate value. |
-
-## Envelopes
-
-### `adsr` (compiled with `madsr`)
-Control-rate ADSR envelope generator.
-
-**Inputs**
-| Parameter | Type | Description |
-| --- | --- | --- |
-| `iatt` | `i-rate` | Attack time. |
-| `idec` | `i-rate` | Decay time. |
-| `islev` | `i-rate` | Sustain level. |
-| `irel` | `i-rate` | Release time. |
+Generates a constant control-rate value by emitting a `k`-rate assignment line.
 
 **Outputs**
-| Parameter | Type | Description |
-| --- | --- | --- |
-| `kenv` | `k-rate` | Envelope output. |
+- `kout` (`k-rate`): control signal.
 
-## Oscillators
+**Reference**
+- [Csound opcode overview](https://csound.com/docs/manual/PartOpcodesOverview.html)
+
+### `adsr`
+
+**Underlying opcode:** `madsr`
+
+MIDI-aware ADSR envelope generator. Unlike `adsr`, `madsr` is intended for real-time MIDI note lifecycle behavior.
+
+**VisualCSound syntax**
+- `kenv madsr iatt, idec, islev, irel`
+
+**Inputs**
+- `iatt` (`i-rate`): attack time.
+- `idec` (`i-rate`): decay time.
+- `islev` (`i-rate`): sustain level.
+- `irel` (`i-rate`): release time.
+
+**Output**
+- `kenv` (`k-rate`): envelope signal.
+
+**Reference**
+- [madsr](https://csound.com/docs/manual/madsr.html)
 
 ### `oscili`
-Classic interpolating oscillator.
+
+Linear-interpolating oscillator that reads a function table repeatedly at a target frequency.
+
+**VisualCSound syntax**
+- `asig oscili amp, freq, ifn`
 
 **Inputs**
-| Parameter | Type | Description |
-| --- | --- | --- |
-| `amp` | `k-rate` | Oscillator amplitude. |
-| `freq` | `a-rate` / `k-rate` / `i-rate` | Oscillator frequency input (port is control-rate but accepts audio/control/init connections). |
-| `ifn` | `i-rate` | Function table number. |
+- `amp` (`k-rate`): amplitude.
+- `freq` (`a/k/i-rate` accepted): frequency in cycles per second.
+- `ifn` (`i-rate`): function table number (default `1` in VisualCSound).
 
-**Outputs**
-| Parameter | Type | Description |
-| --- | --- | --- |
-| `asig` | `a-rate` | Oscillator audio output. |
+**Output**
+- `asig` (`a-rate`): oscillator signal.
+
+**Reference**
+- [oscili](https://csound.com/docs/manual/oscili.html)
 
 ### `vco`
-Band-limited voltage-controlled oscillator.
+
+Band-limited analog-modeled oscillator. Can produce saw, PWM/square, and triangle-like variants.
+
+**VisualCSound syntax**
+- `asig vco amp, freq, iwave, kpw, ifn`
 
 **Inputs**
-| Parameter | Type | Description |
-| --- | --- | --- |
-| `amp` | `k-rate` | Oscillator amplitude. |
-| `freq` | `a-rate` / `k-rate` / `i-rate` | Oscillator frequency input (port is control-rate but accepts audio/control/init connections). |
-| `iwave` | `i-rate` | Waveform selector. |
+- `amp` (`k-rate`): amplitude.
+- `freq` (`a/k/i-rate` accepted): oscillator frequency.
+- `iwave` (`i-rate`): waveform selector (`1` saw, `2` square/PWM, `3` triangle/saw/ramp).
+- `kpw` (`k-rate`, optional): pulse width / shape control.
+- `ifn` (`i-rate`, optional): sine table used by internals.
 
-**Outputs**
-| Parameter | Type | Description |
-| --- | --- | --- |
-| `asig` | `a-rate` | Oscillator audio output. |
+**Output**
+- `asig` (`a-rate`): oscillator signal.
 
-## Tables
+**Reference**
+- [vco](https://csound.com/docs/manual/vco.html)
 
 ### `ftgen`
-Create a function table at init time using a GEN routine.
+
+Creates a function table from orchestra code (equivalent to score `f` statements).
+
+**VisualCSound syntax**
+- `ift ftgen ifn, itime, isize, igen, iarg1, ...`
 
 **Inputs**
-| Parameter | Type | Description |
-| --- | --- | --- |
-| `ifn` | `i-rate` | Table number to create (use `0` for auto-allocation). |
-| `itime` | `i-rate` | Start time for table creation (typically `0`). |
-| `isize` | `i-rate` | Table size in points (power of two recommended). |
-| `igen` | `i-rate` | GEN routine number (for example `10` for sine-partials). |
-| `iarg1..iarg8` | `i-rate` | GEN routine arguments (`iarg1` required, others optional). |
+- `ifn` (`i-rate`): requested table number (`0` for automatic assignment).
+- `itime` (`i-rate`): score-style time field (typically `0` for init-time creation).
+- `isize` (`i-rate`): table size.
+- `igen` (`i-rate`): GEN routine.
+- `iarg1..iarg8` (`i-rate`): GEN arguments.
 
-**Outputs**
-| Parameter | Type | Description |
-| --- | --- | --- |
-| `ift` | `i-rate` | Generated table number for routing into `ifn` inputs. |
+**Output**
+- `ift` (`i-rate`): resolved function table number.
 
-## Filters
+**Reference**
+- [ftgen](https://csound.com/docs/manual/ftgen.html)
 
 ### `moogladder`
-Moog ladder low-pass filter.
+
+Digital Moog ladder low-pass filter model with resonance feedback.
+
+**VisualCSound syntax**
+- `aout moogladder ain, kcf, kres`
 
 **Inputs**
-| Parameter | Type | Description |
-| --- | --- | --- |
-| `ain` | `a-rate` | Input audio signal. |
-| `kcf` | `k-rate` | Cutoff frequency control. |
-| `kres` | `k-rate` | Resonance control. |
+- `ain` (`a-rate`): input signal.
+- `kcf` (`k-rate`): cutoff frequency.
+- `kres` (`k-rate`): resonance amount.
 
-**Outputs**
-| Parameter | Type | Description |
-| --- | --- | --- |
-| `aout` | `a-rate` | Filtered audio output. |
+**Output**
+- `aout` (`a-rate`): filtered signal.
 
-## Math
+**Reference**
+- [moogladder](https://csound.com/docs/manual/moogladder.html)
 
 ### `k_mul`
-Multiply two control-rate signals.
+
+**Type:** VisualCSound helper node
+
+Multiplies two control-rate signals.
 
 **Inputs**
-| Parameter | Type | Description |
-| --- | --- | --- |
-| `a` | `k-rate` | Left control operand. |
-| `b` | `k-rate` | Right control operand. |
+- `a` (`k-rate`): left operand.
+- `b` (`k-rate`): right operand.
 
-**Outputs**
-| Parameter | Type | Description |
-| --- | --- | --- |
-| `kout` | `k-rate` | Control-rate product. |
+**Output**
+- `kout` (`k-rate`): product.
+
+**Reference**
+- [Csound opcode overview](https://csound.com/docs/manual/PartOpcodesOverview.html)
 
 ### `a_mul`
-Multiply two audio-rate signals.
+
+**Type:** VisualCSound helper node
+
+Multiplies two audio-rate signals.
 
 **Inputs**
-| Parameter | Type | Description |
-| --- | --- | --- |
-| `a` | `a-rate` | Left audio operand. |
-| `b` | `a-rate` | Right audio operand. |
+- `a` (`a-rate`): left operand.
+- `b` (`a-rate`): right operand.
 
-**Outputs**
-| Parameter | Type | Description |
-| --- | --- | --- |
-| `aout` | `a-rate` | Audio-rate product. |
+**Output**
+- `aout` (`a-rate`): product.
 
-## Mixer
+**Reference**
+- [Csound opcode overview](https://csound.com/docs/manual/PartOpcodesOverview.html)
 
 ### `mix2`
-Mix (sum) two audio-rate signals.
+
+**Type:** VisualCSound helper node
+
+Sums two audio signals into one audio output.
 
 **Inputs**
-| Parameter | Type | Description |
-| --- | --- | --- |
-| `a` | `a-rate` | First audio input. |
-| `b` | `a-rate` | Second audio input. |
+- `a` (`a-rate`): first signal.
+- `b` (`a-rate`): second signal.
 
-**Outputs**
-| Parameter | Type | Description |
-| --- | --- | --- |
-| `aout` | `a-rate` | Mixed audio output. |
+**Output**
+- `aout` (`a-rate`): mixed signal.
 
-## Output
+**Reference**
+- [Csound opcode overview](https://csound.com/docs/manual/PartOpcodesOverview.html)
 
 ### `outs`
-Stereo output sink.
+
+Stereo audio output opcode.
+
+**VisualCSound syntax**
+- `outs left, right`
 
 **Inputs**
-| Parameter | Type | Description |
-| --- | --- | --- |
-| `left` | `a-rate` | Left channel signal. |
-| `right` | `a-rate` | Right channel signal. |
+- `left` (`a-rate`): left channel signal.
+- `right` (`a-rate`): right channel signal.
 
-**Outputs**
-- None (sink node)
+**Output**
+- none (sink node).
 
-## MIDI
+**Reference**
+- [outs](https://csound.com/docs/manual/outs.html)
 
-### `midi_note` (composite node)
-Extract MIDI note frequency and velocity amplitude.
+### `midi_note`
+
+**Type:** VisualCSound composite node
+
+Convenience MIDI source that combines pitch and velocity extraction.
+
+**VisualCSound expansion**
+- `kfreq cpsmidi`
+- `kamp ampmidi gain`
 
 **Inputs**
-| Parameter | Type | Description |
-| --- | --- | --- |
-| `gain` | `i-rate` | Gain multiplier for MIDI velocity amplitude. |
+- `gain` (`i-rate`, optional): velocity scaling.
 
 **Outputs**
-| Parameter | Type | Description |
-| --- | --- | --- |
-| `kfreq` | `k-rate` | MIDI note frequency. |
-| `kamp` | `k-rate` | MIDI note amplitude (velocity-based). |
+- `kfreq` (`k-rate`): note frequency in Hz.
+- `kamp` (`k-rate`): velocity-derived amplitude.
+
+**Reference**
+- [cpsmidi](https://csound.com/docs/manual/cpsmidi.html)
+- [ampmidi](https://csound.com/docs/manual/ampmidi.html)
 
 ### `cpsmidi`
-Read active MIDI note pitch in cycles per second.
+
+Reads the current MIDI note and returns pitch in cycles per second.
+
+**VisualCSound syntax**
+- `kfreq cpsmidi`
 
 **Inputs**
-- None
+- none.
 
-**Outputs**
-| Parameter | Type | Description |
-| --- | --- | --- |
-| `kfreq` | `i-rate` | MIDI note frequency value. |
+**Output**
+- `kfreq` (`i-rate` in current VisualCSound typing): MIDI pitch in Hz for the active MIDI-triggered note.
+
+**Reference**
+- [cpsmidi](https://csound.com/docs/manual/cpsmidi.html)
 
 ### `midictrl`
-Read a MIDI controller value with optional scaling.
+
+Reads the value of a MIDI controller, with optional min/max scaling.
+
+**VisualCSound syntax**
+- `kval midictrl inum, imin, imax`
 
 **Inputs**
-| Parameter | Type | Description |
-| --- | --- | --- |
-| `inum` | `i-rate` | MIDI controller number. |
-| `imin` | `i-rate` | Output minimum value. |
-| `imax` | `i-rate` | Output maximum value. |
+- `inum` (`i-rate`): controller number (`0..127`).
+- `imin` (`i-rate`, optional): minimum output value.
+- `imax` (`i-rate`, optional): maximum output value.
 
-**Outputs**
-| Parameter | Type | Description |
-| --- | --- | --- |
-| `kval` | `k-rate` | Scaled controller value. |
+**Output**
+- `kval` (`k-rate`): scaled controller value.
 
-## Utility
+**Reference**
+- [midictrl](https://csound.com/docs/manual/midictrl.html)
 
-### `k_to_a` (compiled with `interp`)
-Convert a control-rate signal to audio-rate.
+### `k_to_a`
 
-**Inputs**
-| Parameter | Type | Description |
-| --- | --- | --- |
-| `kin` | `k-rate` | Input control signal. |
+**Underlying opcode:** `interp`
 
-**Outputs**
-| Parameter | Type | Description |
-| --- | --- | --- |
-| `aout` | `a-rate` | Interpolated audio-rate signal. |
+Converts a control-rate signal to audio-rate with linear interpolation between control steps.
+
+**VisualCSound syntax**
+- `aout interp kin`
+
+**Input**
+- `kin` (`k-rate`): control signal.
+
+**Output**
+- `aout` (`a-rate`): interpolated audio signal.
+
+**Reference**
+- [interp](https://csound.com/docs/manual/interp.html)
