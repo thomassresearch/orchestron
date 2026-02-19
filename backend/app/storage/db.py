@@ -23,6 +23,17 @@ class PatchRecord(Base):
     updated_at = Column(DateTime(timezone=True), nullable=False)
 
 
+class PerformanceRecord(Base):
+    __tablename__ = "performances"
+
+    id = Column(String(64), primary_key=True)
+    name = Column(String(128), nullable=False)
+    description = Column(Text, nullable=False, default="")
+    config_json = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True), nullable=False)
+
+
 class Database:
     def __init__(self, database_url: str) -> None:
         self.engine = create_engine(database_url, future=True, connect_args={"check_same_thread": False})

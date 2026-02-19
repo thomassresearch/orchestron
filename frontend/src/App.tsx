@@ -8,9 +8,7 @@ import { PatchToolbar } from "./components/PatchToolbar";
 import { ReteNodeEditor, type EditorSelection } from "./components/ReteNodeEditor";
 import { RuntimePanel } from "./components/RuntimePanel";
 import { SequencerPage } from "./components/SequencerPage";
-import {
-  resolveMidiInputName,
-} from "./lib/sequencer";
+import { resolveMidiInputName } from "./lib/sequencer";
 import { useAppStore } from "./store/useAppStore";
 import type { Connection, PatchGraph, SessionSequencerConfigRequest, SessionSequencerStatus } from "./types";
 
@@ -45,6 +43,7 @@ export default function App() {
 
   const opcodes = useAppStore((state) => state.opcodes);
   const patches = useAppStore((state) => state.patches);
+  const performances = useAppStore((state) => state.performances);
   const midiInputs = useAppStore((state) => state.midiInputs);
   const instrumentTabs = useAppStore((state) => state.instrumentTabs);
   const activeInstrumentTabId = useAppStore((state) => state.activeInstrumentTabId);
@@ -52,6 +51,9 @@ export default function App() {
   const currentPatch = useAppStore((state) => state.currentPatch);
   const sequencer = useAppStore((state) => state.sequencer);
   const sequencerInstruments = useAppStore((state) => state.sequencerInstruments);
+  const currentPerformanceId = useAppStore((state) => state.currentPerformanceId);
+  const performanceName = useAppStore((state) => state.performanceName);
+  const performanceDescription = useAppStore((state) => state.performanceDescription);
 
   const activeSessionId = useAppStore((state) => state.activeSessionId);
   const activeSessionState = useAppStore((state) => state.activeSessionState);
@@ -61,14 +63,17 @@ export default function App() {
 
   const loadBootstrap = useAppStore((state) => state.loadBootstrap);
   const loadPatch = useAppStore((state) => state.loadPatch);
+  const loadPerformance = useAppStore((state) => state.loadPerformance);
   const addInstrumentTab = useAppStore((state) => state.addInstrumentTab);
   const closeInstrumentTab = useAppStore((state) => state.closeInstrumentTab);
   const setActiveInstrumentTab = useAppStore((state) => state.setActiveInstrumentTab);
   const newPatch = useAppStore((state) => state.newPatch);
   const setCurrentPatchMeta = useAppStore((state) => state.setCurrentPatchMeta);
+  const setCurrentPerformanceMeta = useAppStore((state) => state.setCurrentPerformanceMeta);
   const setGraph = useAppStore((state) => state.setGraph);
   const addNodeFromOpcode = useAppStore((state) => state.addNodeFromOpcode);
   const saveCurrentPatch = useAppStore((state) => state.saveCurrentPatch);
+  const saveCurrentPerformance = useAppStore((state) => state.saveCurrentPerformance);
   const compileSession = useAppStore((state) => state.compileSession);
   const startSession = useAppStore((state) => state.startSession);
   const stopSession = useAppStore((state) => state.stopSession);
@@ -458,7 +463,7 @@ export default function App() {
     [activeSessionState, sendAllNotesOff, setPianoRollEnabled]
   );
 
-  const onSaveSequencerConfig = useCallback(() => {
+  const onExportSequencerConfig = useCallback(() => {
     try {
       const snapshot = buildSequencerConfigSnapshot();
       const payload = JSON.stringify(snapshot, null, 2);
@@ -477,7 +482,7 @@ export default function App() {
     }
   }, [buildSequencerConfigSnapshot]);
 
-  const onLoadSequencerConfig = useCallback(
+  const onImportSequencerConfig = useCallback(
     (file: File) => {
       void file
         .text()
@@ -816,6 +821,10 @@ export default function App() {
             patches={patches}
             instrumentBindings={sequencerInstruments}
             sequencer={sequencer}
+            performances={performances}
+            currentPerformanceId={currentPerformanceId}
+            performanceName={performanceName}
+            performanceDescription={performanceDescription}
             instrumentsRunning={instrumentsRunning}
             sessionState={activeSessionState}
             midiInputName={activeMidiInputName}
@@ -824,8 +833,16 @@ export default function App() {
             onRemoveInstrument={removeSequencerInstrument}
             onInstrumentPatchChange={updateSequencerInstrumentPatch}
             onInstrumentChannelChange={updateSequencerInstrumentChannel}
-            onSaveConfig={onSaveSequencerConfig}
-            onLoadConfig={onLoadSequencerConfig}
+            onPerformanceNameChange={(name) => setCurrentPerformanceMeta(name, performanceDescription)}
+            onPerformanceDescriptionChange={(description) => setCurrentPerformanceMeta(performanceName, description)}
+            onSavePerformance={() => {
+              void saveCurrentPerformance();
+            }}
+            onLoadPerformance={(performanceId) => {
+              void loadPerformance(performanceId);
+            }}
+            onExportConfig={onExportSequencerConfig}
+            onImportConfig={onImportSequencerConfig}
             onStartInstruments={onStartInstrumentEngine}
             onStopInstruments={onStopInstrumentEngine}
             onBpmChange={setSequencerBpm}

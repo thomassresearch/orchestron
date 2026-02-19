@@ -11,6 +11,7 @@ import {
 } from "../lib/sequencer";
 import type {
   PatchListItem,
+  PerformanceListItem,
   PianoRollState,
   SequencerInstrumentBinding,
   SequencerMode,
@@ -356,8 +357,12 @@ function PianoRollKeyboard({ roll, instrumentsRunning, onNoteOn, onNoteOff }: Pi
 
 interface SequencerPageProps {
   patches: PatchListItem[];
+  performances: PerformanceListItem[];
   instrumentBindings: SequencerInstrumentBinding[];
   sequencer: SequencerState;
+  currentPerformanceId: string | null;
+  performanceName: string;
+  performanceDescription: string;
   instrumentsRunning: boolean;
   sessionState: string;
   midiInputName: string | null;
@@ -366,8 +371,12 @@ interface SequencerPageProps {
   onRemoveInstrument: (bindingId: string) => void;
   onInstrumentPatchChange: (bindingId: string, patchId: string) => void;
   onInstrumentChannelChange: (bindingId: string, channel: number) => void;
-  onSaveConfig: () => void;
-  onLoadConfig: (file: File) => void;
+  onPerformanceNameChange: (value: string) => void;
+  onPerformanceDescriptionChange: (value: string) => void;
+  onSavePerformance: () => void;
+  onLoadPerformance: (performanceId: string) => void;
+  onExportConfig: () => void;
+  onImportConfig: (file: File) => void;
   onStartInstruments: () => void;
   onStopInstruments: () => void;
   onBpmChange: (bpm: number) => void;
@@ -414,8 +423,12 @@ function previousNonRestNote(steps: Array<number | null>, fromIndex: number): nu
 
 export function SequencerPage({
   patches,
+  performances,
   instrumentBindings,
   sequencer,
+  currentPerformanceId,
+  performanceName,
+  performanceDescription,
   instrumentsRunning,
   sessionState,
   midiInputName,
@@ -424,8 +437,12 @@ export function SequencerPage({
   onRemoveInstrument,
   onInstrumentPatchChange,
   onInstrumentChannelChange,
-  onSaveConfig,
-  onLoadConfig,
+  onPerformanceNameChange,
+  onPerformanceDescriptionChange,
+  onSavePerformance,
+  onLoadPerformance,
+  onExportConfig,
+  onImportConfig,
   onStartInstruments,
   onStopInstruments,
   onBpmChange,
@@ -461,10 +478,10 @@ export function SequencerPage({
       if (!file) {
         return;
       }
-      onLoadConfig(file);
+      onImportConfig(file);
       event.target.value = "";
     },
-    [onLoadConfig]
+    [onImportConfig]
   );
 
   const transportStartButtonClass =
@@ -490,6 +507,54 @@ export function SequencerPage({
       <div className="rounded-xl border border-cyan-800/45 bg-slate-950/85 p-3">
         <div className="flex flex-wrap items-center gap-2">
           <div className="text-[11px] uppercase tracking-[0.18em] text-cyan-200">Instrument Rack</div>
+          <div className="ml-auto rounded-full border border-slate-700 bg-slate-950 px-3 py-1 font-mono text-xs text-slate-300">
+            state: {sessionState}
+          </div>
+        </div>
+
+        <div className="mt-3 grid grid-cols-1 gap-2 lg:grid-cols-5">
+          <label className="flex flex-col gap-1 lg:col-span-2">
+            <span className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Performance Name</span>
+            <input
+              value={performanceName}
+              onChange={(event) => onPerformanceNameChange(event.target.value)}
+              placeholder="Live Set A"
+              className="rounded-md border border-slate-600 bg-slate-950 px-2 py-1.5 text-xs text-slate-100 outline-none ring-accent/40 transition focus:ring"
+            />
+          </label>
+
+          <label className="flex flex-col gap-1 lg:col-span-2">
+            <span className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Description</span>
+            <input
+              value={performanceDescription}
+              onChange={(event) => onPerformanceDescriptionChange(event.target.value)}
+              placeholder="Stage-ready configuration"
+              className="rounded-md border border-slate-600 bg-slate-950 px-2 py-1.5 text-xs text-slate-100 outline-none ring-accent/40 transition focus:ring"
+            />
+          </label>
+
+          <label className="flex flex-col gap-1">
+            <span className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Load Performance</span>
+            <select
+              value={currentPerformanceId ?? ""}
+              onChange={(event) => {
+                if (event.target.value.length > 0) {
+                  onLoadPerformance(event.target.value);
+                }
+              }}
+              className="rounded-md border border-slate-600 bg-slate-950 px-2 py-1.5 text-xs text-slate-100 outline-none ring-accent/40 transition focus:ring"
+            >
+              <option value="">Current</option>
+              {performances.map((performance) => (
+                <option key={performance.id} value={performance.id}>
+                  {performance.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={onAddInstrument}
@@ -499,21 +564,25 @@ export function SequencerPage({
           </button>
           <button
             type="button"
-            onClick={onSaveConfig}
+            onClick={onSavePerformance}
+            className="rounded-md border border-mint/55 bg-mint/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-mint transition hover:bg-mint/25"
+          >
+            Save Performance
+          </button>
+          <button
+            type="button"
+            onClick={onExportConfig}
             className="rounded-md border border-slate-500 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-300 hover:text-white"
           >
-            Save Config
+            Export
           </button>
           <button
             type="button"
             onClick={triggerConfigLoad}
             className="rounded-md border border-slate-500 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-300 hover:text-white"
           >
-            Load Config
+            Import
           </button>
-          <div className="ml-auto rounded-full border border-slate-700 bg-slate-950 px-3 py-1 font-mono text-xs text-slate-300">
-            state: {sessionState}
-          </div>
         </div>
 
         <div className="mt-3 grid gap-2 lg:grid-cols-2 2xl:grid-cols-3">

@@ -78,6 +78,90 @@ def test_patch_ui_layout_supports_nested_sequencer_payload(tmp_path: Path) -> No
         assert sequencer["steps"][1] is None
 
 
+def test_performance_crud_round_trips_config_payload(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        performance_config = {
+            "version": 2,
+            "instruments": [{"patchId": "patch-alpha", "midiChannel": 1}],
+            "sequencer": {
+                "bpm": 128,
+                "stepCount": 16,
+                "tracks": [
+                    {
+                        "id": "voice-1",
+                        "name": "Kick",
+                        "midiChannel": 1,
+                        "stepCount": 16,
+                        "scaleRoot": "C",
+                        "scaleType": "minor",
+                        "mode": "aeolian",
+                        "activePad": 0,
+                        "queuedPad": None,
+                        "pads": [[36] + [None] * 31] + [[None] * 32 for _ in range(7)],
+                        "enabled": False,
+                        "queuedEnabled": None,
+                    }
+                ],
+                "pianoRolls": [
+                    {
+                        "id": "piano-1",
+                        "name": "Piano Roll 1",
+                        "midiChannel": 2,
+                        "scaleRoot": "C",
+                        "scaleType": "minor",
+                        "mode": "aeolian",
+                        "enabled": False,
+                    }
+                ],
+            },
+        }
+
+        create_response = client.post(
+            "/api/performances",
+            json={
+                "name": "Live Set A",
+                "description": "Main venue set",
+                "config": performance_config,
+            },
+        )
+        assert create_response.status_code == 201
+        created = create_response.json()
+        performance_id = created["id"]
+        assert created["config"] == performance_config
+
+        list_response = client.get("/api/performances")
+        assert list_response.status_code == 200
+        assert any(item["id"] == performance_id for item in list_response.json())
+
+        get_response = client.get(f"/api/performances/{performance_id}")
+        assert get_response.status_code == 200
+        assert get_response.json()["name"] == "Live Set A"
+        assert get_response.json()["config"] == performance_config
+
+        updated_config = {
+            **performance_config,
+            "sequencer": {
+                **performance_config["sequencer"],
+                "bpm": 132,
+            },
+        }
+        update_response = client.put(
+            f"/api/performances/{performance_id}",
+            json={"name": "Live Set A (Updated)", "description": "Updated arrangement", "config": updated_config},
+        )
+        assert update_response.status_code == 200
+        updated = update_response.json()
+        assert updated["name"] == "Live Set A (Updated)"
+        assert updated["description"] == "Updated arrangement"
+        assert updated["config"] == updated_config
+
+        delete_response = client.delete(f"/api/performances/{performance_id}")
+        assert delete_response.status_code == 204
+
+        missing_response = client.get(f"/api/performances/{performance_id}")
+        assert missing_response.status_code == 404
+
+
 def test_opcodes_include_markdown_documentation(tmp_path: Path) -> None:
     with _client(tmp_path) as client:
         response = client.get("/api/opcodes")

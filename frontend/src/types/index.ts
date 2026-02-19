@@ -169,6 +169,22 @@ export interface SequencerConfigSnapshot {
   };
 }
 
+export interface Performance {
+  id: string;
+  name: string;
+  description: string;
+  config: SequencerConfigSnapshot;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PerformanceListItem {
+  id: string;
+  name: string;
+  description: string;
+  updated_at: string;
+}
+
 export interface SessionSequencerPadConfig {
   pad_index: number;
   steps: Array<number | Array<number> | null>;

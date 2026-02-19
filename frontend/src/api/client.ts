@@ -5,6 +5,9 @@ import type {
   Patch,
   PatchGraph,
   PatchListItem,
+  Performance,
+  PerformanceListItem,
+  SequencerConfigSnapshot,
   SessionActionResponse,
   SessionCreateResponse,
   SessionSequencerConfigRequest,
@@ -41,13 +44,17 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   listOpcodes: () => request<OpcodeSpec[]>("/opcodes"),
   listPatches: () => request<PatchListItem[]>("/patches"),
+  listPerformances: () => request<PerformanceListItem[]>("/performances"),
   getPatch: (patchId: string) => request<Patch>(`/patches/${patchId}`),
+  getPerformance: (performanceId: string) => request<Performance>(`/performances/${performanceId}`),
   createPatch: (payload: {
     name: string;
     description: string;
     schema_version: number;
     graph: PatchGraph;
   }) => request<Patch>("/patches", { method: "POST", body: JSON.stringify(payload) }),
+  createPerformance: (payload: { name: string; description: string; config: SequencerConfigSnapshot }) =>
+    request<Performance>("/performances", { method: "POST", body: JSON.stringify(payload) }),
   updatePatch: (
     patchId: string,
     payload: {
@@ -57,6 +64,10 @@ export const api = {
       graph?: PatchGraph;
     }
   ) => request<Patch>(`/patches/${patchId}`, { method: "PUT", body: JSON.stringify(payload) }),
+  updatePerformance: (
+    performanceId: string,
+    payload: { name?: string; description?: string; config?: SequencerConfigSnapshot }
+  ) => request<Performance>(`/performances/${performanceId}`, { method: "PUT", body: JSON.stringify(payload) }),
   createSession: (instruments: Array<{ patch_id: string; midi_channel: number }>) =>
     request<SessionCreateResponse>("/sessions", {
       method: "POST",

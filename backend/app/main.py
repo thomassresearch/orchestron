@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from backend.app.api import midi, opcodes, patches, sessions, ws
+from backend.app.api import midi, opcodes, patches, performances, sessions, ws
 from backend.app.core.config import Settings, get_settings
 from backend.app.core.container import AppContainer
 from backend.app.core.logging import configure_logging
@@ -18,9 +18,11 @@ from backend.app.services.event_bus import SessionEventBus
 from backend.app.services.midi_service import MidiService
 from backend.app.services.opcode_service import OpcodeService
 from backend.app.services.patch_service import PatchService
+from backend.app.services.performance_service import PerformanceService
 from backend.app.services.session_service import SessionService
 from backend.app.storage.db import Database
 from backend.app.storage.repositories.patch_repository import PatchRepository
+from backend.app.storage.repositories.performance_repository import PerformanceRepository
 
 
 def _build_container(settings: Settings) -> AppContainer:
@@ -32,8 +34,10 @@ def _build_container(settings: Settings) -> AppContainer:
     database.create_all()
 
     patch_repository = PatchRepository(database.session)
+    performance_repository = PerformanceRepository(database.session)
     opcode_service = OpcodeService(icon_prefix=settings.icons_url_prefix)
     patch_service = PatchService(repository=patch_repository)
+    performance_service = PerformanceService(repository=performance_repository)
     compiler_service = CompilerService(opcode_service=opcode_service)
     midi_service = MidiService()
     event_bus = SessionEventBus()
@@ -49,8 +53,10 @@ def _build_container(settings: Settings) -> AppContainer:
         settings=settings,
         database=database,
         patch_repository=patch_repository,
+        performance_repository=performance_repository,
         opcode_service=opcode_service,
         patch_service=patch_service,
+        performance_service=performance_service,
         compiler_service=compiler_service,
         midi_service=midi_service,
         event_bus=event_bus,
@@ -105,6 +111,7 @@ def create_app() -> FastAPI:
 
     app.include_router(opcodes.router, prefix=settings.api_prefix)
     app.include_router(patches.router, prefix=settings.api_prefix)
+    app.include_router(performances.router, prefix=settings.api_prefix)
     app.include_router(sessions.router, prefix=settings.api_prefix)
     app.include_router(midi.router, prefix=settings.api_prefix)
     app.include_router(ws.router)

@@ -19,6 +19,7 @@ import type {
   Patch,
   PatchGraph,
   PatchListItem,
+  PerformanceListItem,
   PianoRollState,
   SequencerConfigSnapshot,
   SequencerInstrumentBinding,
@@ -55,6 +56,7 @@ interface AppStore {
 
   opcodes: OpcodeSpec[];
   patches: PatchListItem[];
+  performances: PerformanceListItem[];
   midiInputs: MidiInputRef[];
 
   instrumentTabs: InstrumentTabState[];
@@ -63,6 +65,9 @@ interface AppStore {
 
   sequencer: SequencerState;
   sequencerInstruments: SequencerInstrumentBinding[];
+  currentPerformanceId: string | null;
+  performanceName: string;
+  performanceDescription: string;
 
   activeSessionId: string | null;
   activeSessionState: SessionState;
@@ -87,6 +92,9 @@ interface AppStore {
   removeNode: (nodeId: string) => void;
   removeConnection: (connectionIndex: number) => void;
   saveCurrentPatch: () => Promise<void>;
+  loadPerformance: (performanceId: string) => Promise<void>;
+  setCurrentPerformanceMeta: (name: string, description: string) => void;
+  saveCurrentPerformance: () => Promise<void>;
 
   addSequencerInstrument: () => void;
   removeSequencerInstrument: (bindingId: string) => void;
@@ -765,6 +773,7 @@ export const useAppStore = create<AppStore>((set, get) => {
 
     opcodes: [],
     patches: [],
+    performances: [],
     midiInputs: [],
 
     instrumentTabs: [initialTab],
@@ -773,6 +782,9 @@ export const useAppStore = create<AppStore>((set, get) => {
 
     sequencer: defaultSequencerState(),
     sequencerInstruments: [],
+    currentPerformanceId: null,
+    performanceName: "Untitled Performance",
+    performanceDescription: "",
 
     activeSessionId: null,
     activeSessionState: "idle",
@@ -841,9 +853,10 @@ export const useAppStore = create<AppStore>((set, get) => {
     loadBootstrap: async () => {
       set({ loading: true, error: null });
       try {
-        const [opcodes, patches, midiInputs] = await Promise.all([
+        const [opcodes, patches, performances, midiInputs] = await Promise.all([
           api.listOpcodes(),
           api.listPatches(),
+          api.listPerformances(),
           api.listMidiInputs()
         ]);
 
@@ -864,6 +877,7 @@ export const useAppStore = create<AppStore>((set, get) => {
         set({
           opcodes,
           patches,
+          performances,
           midiInputs,
           activeMidiInput,
           instrumentTabs: [tab],
@@ -896,6 +910,35 @@ export const useAppStore = create<AppStore>((set, get) => {
       }
     },
 
+    loadPerformance: async (performanceId) => {
+      set({ loading: true, error: null });
+      try {
+        const performance = await api.getPerformance(performanceId);
+        const state = get();
+        const availablePatchIds = new Set(state.patches.map((patch) => patch.id));
+        if (state.currentPatch.id) {
+          availablePatchIds.add(state.currentPatch.id);
+        }
+        const fallbackPatchId = state.patches[0]?.id ?? state.currentPatch.id ?? null;
+        const parsed = parseSequencerConfigSnapshot(performance.config, availablePatchIds, fallbackPatchId);
+
+        set({
+          sequencer: parsed.sequencer,
+          sequencerInstruments: parsed.instruments,
+          currentPerformanceId: performance.id,
+          performanceName: performance.name,
+          performanceDescription: performance.description,
+          loading: false,
+          error: null
+        });
+      } catch (error) {
+        set({
+          loading: false,
+          error: error instanceof Error ? error.message : "Failed to load performance"
+        });
+      }
+    },
+
     newPatch: () => {
       commitCurrentPatch(defaultEditablePatch());
     },
@@ -906,6 +949,13 @@ export const useAppStore = create<AppStore>((set, get) => {
         ...current,
         name,
         description
+      });
+    },
+
+    setCurrentPerformanceMeta: (name, description) => {
+      set({
+        performanceName: name,
+        performanceDescription: description
       });
     },
 
@@ -1004,6 +1054,44 @@ export const useAppStore = create<AppStore>((set, get) => {
         set({
           loading: false,
           error: error instanceof Error ? error.message : "Failed to save patch"
+        });
+      }
+    },
+
+    saveCurrentPerformance: async () => {
+      const state = get();
+      const name = state.performanceName.trim();
+      if (name.length === 0) {
+        set({ error: "Performance name is required." });
+        return;
+      }
+
+      const snapshot = buildSequencerConfigSnapshot(state.sequencer, state.sequencerInstruments);
+      set({ loading: true, error: null });
+      try {
+        const payload = {
+          name,
+          description: state.performanceDescription,
+          config: snapshot
+        };
+
+        const saved = state.currentPerformanceId
+          ? await api.updatePerformance(state.currentPerformanceId, payload)
+          : await api.createPerformance(payload);
+        const performances = await api.listPerformances();
+
+        set({
+          performances,
+          currentPerformanceId: saved.id,
+          performanceName: saved.name,
+          performanceDescription: saved.description,
+          loading: false,
+          error: null
+        });
+      } catch (error) {
+        set({
+          loading: false,
+          error: error instanceof Error ? error.message : "Failed to save performance"
         });
       }
     },
