@@ -87,25 +87,40 @@ export type SequencerScaleRoot =
   | "B"
   | "Cb";
 
-export interface SequencerState {
-  isPlaying: boolean;
-  bpm: number;
+export interface SequencerTrackState {
+  id: string;
+  name: string;
   midiChannel: number;
+  stepCount: 16 | 32;
   scaleRoot: SequencerScaleRoot;
   scaleType: SequencerScaleType;
   mode: SequencerMode;
-  trackId: string;
-  stepCount: 16 | 32;
-  playhead: number;
-  cycle: number;
   activePad: number;
   queuedPad: number | null;
   pads: Array<Array<number | null>>;
   steps: Array<number | null>;
-  pianoRollMidiChannel: number;
-  pianoRollScaleRoot: SequencerScaleRoot;
-  pianoRollScaleType: SequencerScaleType;
-  pianoRollMode: SequencerMode;
+  enabled: boolean;
+  queuedEnabled: boolean | null;
+}
+
+export interface PianoRollState {
+  id: string;
+  name: string;
+  midiChannel: number;
+  scaleRoot: SequencerScaleRoot;
+  scaleType: SequencerScaleType;
+  mode: SequencerMode;
+  enabled: boolean;
+}
+
+export interface SequencerState {
+  isPlaying: boolean;
+  bpm: number;
+  stepCount: 16 | 32;
+  playhead: number;
+  cycle: number;
+  tracks: SequencerTrackState[];
+  pianoRolls: PianoRollState[];
 }
 
 export interface SessionInstrumentAssignment {
@@ -120,26 +135,37 @@ export interface SequencerInstrumentBinding {
 }
 
 export interface SequencerConfigSnapshot {
-  version: 1;
+  version: 1 | 2;
   instruments: Array<{
     patchId: string;
     midiChannel: number;
   }>;
   sequencer: {
     bpm: number;
-    midiChannel: number;
-    scaleRoot: SequencerScaleRoot;
-    scaleType: SequencerScaleType;
-    mode: SequencerMode;
-    trackId: string;
     stepCount: 16 | 32;
-    activePad: number;
-    queuedPad: number | null;
-    pads: Array<Array<number | null>>;
-    pianoRollMidiChannel: number;
-    pianoRollScaleRoot: SequencerScaleRoot;
-    pianoRollScaleType: SequencerScaleType;
-    pianoRollMode: SequencerMode;
+    tracks: Array<{
+      id: string;
+      name: string;
+      midiChannel: number;
+      stepCount: 16 | 32;
+      scaleRoot: SequencerScaleRoot;
+      scaleType: SequencerScaleType;
+      mode: SequencerMode;
+      activePad: number;
+      queuedPad: number | null;
+      pads: Array<Array<number | null>>;
+      enabled: boolean;
+      queuedEnabled: boolean | null;
+    }>;
+    pianoRolls: Array<{
+      id: string;
+      name: string;
+      midiChannel: number;
+      scaleRoot: SequencerScaleRoot;
+      scaleType: SequencerScaleType;
+      mode: SequencerMode;
+      enabled: boolean;
+    }>;
   };
 }
 
@@ -151,10 +177,13 @@ export interface SessionSequencerPadConfig {
 export interface SessionSequencerTrackConfig {
   track_id: string;
   midi_channel: number;
+  step_count: 16 | 32;
   velocity?: number;
   gate_ratio?: number;
   active_pad: number;
   queued_pad?: number | null;
+  enabled?: boolean;
+  queued_enabled?: boolean | null;
   pads: SessionSequencerPadConfig[];
 }
 
@@ -175,8 +204,11 @@ export interface SessionSequencerQueuePadRequest {
 export interface SessionSequencerTrackStatus {
   track_id: string;
   midi_channel: number;
+  step_count: 16 | 32;
   active_pad: number;
   queued_pad: number | null;
+  enabled: boolean;
+  queued_enabled: boolean | null;
   active_notes: number[];
 }
 

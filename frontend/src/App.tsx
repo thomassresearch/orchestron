@@ -32,6 +32,10 @@ function sanitizeCsdFileBaseName(value: string): string {
   return normalized.length > 0 ? normalized : "visualcsound_instrument";
 }
 
+function transportStepCountFromTracks(stepCounts: Array<{ stepCount: 16 | 32 }>): 16 | 32 {
+  return stepCounts.some((entry) => entry.stepCount === 32) ? 32 : 16;
+}
+
 export default function App() {
   const loading = useAppStore((state) => state.loading);
   const error = useAppStore((state) => state.error);
@@ -78,16 +82,22 @@ export default function App() {
   const pushEvent = useAppStore((state) => state.pushEvent);
 
   const setSequencerBpm = useAppStore((state) => state.setSequencerBpm);
-  const setSequencerMidiChannel = useAppStore((state) => state.setSequencerMidiChannel);
-  const setSequencerScale = useAppStore((state) => state.setSequencerScale);
-  const setSequencerMode = useAppStore((state) => state.setSequencerMode);
+  const addSequencerTrack = useAppStore((state) => state.addSequencerTrack);
+  const removeSequencerTrack = useAppStore((state) => state.removeSequencerTrack);
+  const setSequencerTrackEnabled = useAppStore((state) => state.setSequencerTrackEnabled);
+  const setSequencerTrackMidiChannel = useAppStore((state) => state.setSequencerTrackMidiChannel);
+  const setSequencerTrackScale = useAppStore((state) => state.setSequencerTrackScale);
+  const setSequencerTrackMode = useAppStore((state) => state.setSequencerTrackMode);
+  const setSequencerTrackStepNote = useAppStore((state) => state.setSequencerTrackStepNote);
+  const setSequencerTrackActivePad = useAppStore((state) => state.setSequencerTrackActivePad);
+  const setSequencerTrackQueuedPad = useAppStore((state) => state.setSequencerTrackQueuedPad);
+  const addPianoRoll = useAppStore((state) => state.addPianoRoll);
+  const removePianoRoll = useAppStore((state) => state.removePianoRoll);
+  const setPianoRollEnabled = useAppStore((state) => state.setPianoRollEnabled);
   const setPianoRollMidiChannel = useAppStore((state) => state.setPianoRollMidiChannel);
   const setPianoRollScale = useAppStore((state) => state.setPianoRollScale);
   const setPianoRollMode = useAppStore((state) => state.setPianoRollMode);
-  const setSequencerStepCount = useAppStore((state) => state.setSequencerStepCount);
-  const setSequencerStepNote = useAppStore((state) => state.setSequencerStepNote);
-  const setSequencerActivePad = useAppStore((state) => state.setSequencerActivePad);
-  const setSequencerQueuedPad = useAppStore((state) => state.setSequencerQueuedPad);
+  const setSequencerTrackStepCount = useAppStore((state) => state.setSequencerTrackStepCount);
   const syncSequencerRuntime = useAppStore((state) => state.syncSequencerRuntime);
   const setSequencerPlayhead = useAppStore((state) => state.setSequencerPlayhead);
   const applyEngineConfig = useAppStore((state) => state.applyEngineConfig);
@@ -154,12 +164,12 @@ export default function App() {
   const [activeOpcodeDocumentation, setActiveOpcodeDocumentation] = useState<string | null>(null);
   const [sequencerError, setSequencerError] = useState<string | null>(null);
   const [runtimePanelCollapsed, setRuntimePanelCollapsed] = useState(false);
-  const [pianoRollRunning, setPianoRollRunning] = useState(false);
 
   const sequencerRef = useRef(sequencer);
   const sequencerSessionIdRef = useRef<string | null>(null);
   const sequencerStatusPollRef = useRef<number | null>(null);
   const sequencerPollInFlightRef = useRef(false);
+  const sequencerConfigSyncPendingRef = useRef(false);
   const pianoRollNoteSessionRef = useRef(new Map<string, string>());
 
   useEffect(() => {
@@ -224,36 +234,47 @@ export default function App() {
   );
 
   const buildBackendSequencerConfig = useCallback((state = sequencerRef.current): SessionSequencerConfigRequest => {
+    const transportStepCount = transportStepCountFromTracks(state.tracks);
     return {
       bpm: state.bpm,
-      step_count: state.stepCount,
-      tracks: [
-        {
-          track_id: state.trackId,
-          midi_channel: state.midiChannel,
-          velocity: 100,
-          gate_ratio: 0.8,
-          active_pad: state.activePad,
-          queued_pad: state.queuedPad,
-          pads: state.pads.map((steps, padIndex) => ({
-            pad_index: padIndex,
-            steps: steps.map((note) => note)
-          }))
-        }
-      ]
+      step_count: transportStepCount,
+      tracks: state.tracks.map((track) => ({
+        track_id: track.id,
+        midi_channel: track.midiChannel,
+        step_count: track.stepCount,
+        velocity: 100,
+        gate_ratio: 0.8,
+        active_pad: track.activePad,
+        queued_pad: track.queuedPad,
+        enabled: track.enabled,
+        queued_enabled: track.queuedEnabled,
+        pads: track.pads.map((steps, padIndex) => ({
+          pad_index: padIndex,
+          steps: steps.map((note) => note)
+        }))
+      }))
     };
   }, []);
+  const sequencerConfigSyncSignature = useMemo(
+    () => JSON.stringify(buildBackendSequencerConfig(sequencer)),
+    [buildBackendSequencerConfig, sequencer.bpm, sequencer.tracks]
+  );
 
   const applySequencerStatus = useCallback(
     (status: SessionSequencerStatus) => {
-      const preferredTrack = status.tracks.find((track) => track.track_id === sequencerRef.current.trackId);
-      const track = preferredTrack ?? status.tracks[0];
       syncSequencerRuntime({
         isPlaying: status.running,
+        transportStepCount: status.step_count,
         playhead: status.current_step,
         cycle: status.cycle,
-        activePad: track?.active_pad,
-        queuedPad: track?.queued_pad ?? null
+        tracks: status.tracks.map((track) => ({
+          trackId: track.track_id,
+          stepCount: track.step_count,
+          activePad: track.active_pad,
+          queuedPad: track.queued_pad,
+          enabled: track.enabled,
+          queuedEnabled: track.queued_enabled
+        }))
       });
     },
     [syncSequencerRuntime]
@@ -262,15 +283,16 @@ export default function App() {
   const stopSequencerTransport = useCallback(
     async (resetPlayhead: boolean) => {
       const sessionId = sequencerSessionIdRef.current ?? activeSessionId;
+      sequencerConfigSyncPendingRef.current = false;
       if (sessionId) {
         try {
           const status = await api.stopSessionSequencer(sessionId);
           applySequencerStatus(status);
         } catch {
-          syncSequencerRuntime({ isPlaying: false, queuedPad: null });
+          syncSequencerRuntime({ isPlaying: false });
         }
       } else {
-        syncSequencerRuntime({ isPlaying: false, queuedPad: null });
+        syncSequencerRuntime({ isPlaying: false });
       }
 
       sequencerSessionIdRef.current = null;
@@ -301,7 +323,7 @@ export default function App() {
       sequencerSessionIdRef.current = sessionId;
       applySequencerStatus(status);
     } catch (transportError) {
-      syncSequencerRuntime({ isPlaying: false, queuedPad: null });
+      syncSequencerRuntime({ isPlaying: false });
       setSequencerError(transportError instanceof Error ? transportError.message : "Failed to start sequencer.");
     }
   }, [
@@ -312,69 +334,73 @@ export default function App() {
     syncSequencerRuntime
   ]);
 
-  const onStartSequencerPlayback = useCallback(() => {
-    if (sequencerRef.current.isPlaying) {
-      return;
-    }
-    void startSequencerTransport();
-  }, [startSequencerTransport]);
-
-  const onStopSequencerPlayback = useCallback(() => {
-    if (!sequencerRef.current.isPlaying) {
-      return;
-    }
-    void stopSequencerTransport(true);
-  }, [stopSequencerTransport]);
+  const onSequencerTrackEnabledChange = useCallback(
+    (trackId: string, enabled: boolean) => {
+      const sequencerState = sequencerRef.current;
+      const hasOtherRunningTracks = sequencerState.tracks.some((track) => track.id !== trackId && track.enabled);
+      // Stop should be immediate; only starting a new track may be cycle-queued for alignment.
+      const shouldQueueOnCycle = sequencerState.isPlaying && enabled && hasOtherRunningTracks;
+      setSequencerTrackEnabled(trackId, enabled, shouldQueueOnCycle);
+      setSequencerError(null);
+    },
+    [setSequencerTrackEnabled]
+  );
 
   const onStartInstrumentEngine = useCallback(() => {
     setSequencerError(null);
     void startSession();
   }, [startSession]);
 
+  const collectPerformanceChannels = useCallback(() => {
+    const channels = new Set<number>();
+    for (const track of sequencerRef.current.tracks) {
+      channels.add(track.midiChannel);
+    }
+    for (const roll of sequencerRef.current.pianoRolls) {
+      channels.add(roll.midiChannel);
+    }
+    for (const instrument of sequencerInstruments) {
+      channels.add(instrument.midiChannel);
+    }
+    return channels;
+  }, [sequencerInstruments]);
+
+  const disableAllPianoRolls = useCallback(() => {
+    for (const roll of sequencerRef.current.pianoRolls) {
+      if (roll.enabled) {
+        setPianoRollEnabled(roll.id, false);
+      }
+    }
+  }, [setPianoRollEnabled]);
+
   const onStopInstrumentEngine = useCallback(() => {
     setSequencerError(null);
     void (async () => {
-      setPianoRollRunning(false);
+      disableAllPianoRolls();
       if (sequencerRef.current.isPlaying) {
         await stopSequencerTransport(false);
       }
-      const channels = new Set<number>();
-      channels.add(sequencerRef.current.midiChannel);
-      channels.add(sequencerRef.current.pianoRollMidiChannel);
-      for (const instrument of sequencerInstruments) {
-        channels.add(instrument.midiChannel);
-      }
-      channels.forEach((channel) => {
+      collectPerformanceChannels().forEach((channel) => {
         sendAllNotesOff(channel);
       });
       pianoRollNoteSessionRef.current.clear();
       await stopSession();
-      syncSequencerRuntime({ isPlaying: false, queuedPad: null });
+      syncSequencerRuntime({ isPlaying: false });
     })().catch((error) => {
       setSequencerError(error instanceof Error ? error.message : "Failed to stop instrument engine.");
     });
-  }, [sendAllNotesOff, sequencerInstruments, stopSequencerTransport, stopSession, syncSequencerRuntime]);
+  }, [collectPerformanceChannels, disableAllPianoRolls, sendAllNotesOff, stopSequencerTransport, stopSession, syncSequencerRuntime]);
 
   const onSequencerAllNotesOff = useCallback(() => {
-    const channels = new Set<number>();
-    channels.add(sequencerRef.current.midiChannel);
-    channels.add(sequencerRef.current.pianoRollMidiChannel);
-    for (const instrument of sequencerInstruments) {
-      channels.add(instrument.midiChannel);
-    }
-
-    channels.forEach((channel) => {
+    collectPerformanceChannels().forEach((channel) => {
       sendAllNotesOff(channel);
     });
     pianoRollNoteSessionRef.current.clear();
     setSequencerError(null);
-  }, [sendAllNotesOff, sequencerInstruments]);
+  }, [collectPerformanceChannels, sendAllNotesOff]);
 
   const onPianoRollNoteOn = useCallback(
     (note: number, channel: number) => {
-      if (!pianoRollRunning) {
-        return;
-      }
       if (activeSessionState !== "running") {
         setSequencerError("Start instruments first before using the piano roll.");
         return;
@@ -392,7 +418,7 @@ export default function App() {
         setSequencerError(error instanceof Error ? error.message : "Failed to start piano roll note.");
       });
     },
-    [activeSessionId, activeSessionState, pianoRollRunning, sendDirectMidiEvent]
+    [activeSessionId, activeSessionState, sendDirectMidiEvent]
   );
 
   const onPianoRollNoteOff = useCallback(
@@ -411,20 +437,26 @@ export default function App() {
     [activeSessionId, sendDirectMidiEvent]
   );
 
-  const onStartPianoRollPlayback = useCallback(() => {
-    if (activeSessionState !== "running") {
-      setSequencerError("Start instruments first before starting the piano roll.");
-      return;
-    }
-    setPianoRollRunning(true);
-    setSequencerError(null);
-  }, [activeSessionState]);
+  const onPianoRollEnabledChange = useCallback(
+    (rollId: string, enabled: boolean) => {
+      if (enabled && activeSessionState !== "running") {
+        setSequencerError("Start instruments first before starting a piano roll.");
+        return;
+      }
 
-  const onStopPianoRollPlayback = useCallback(() => {
-    setPianoRollRunning(false);
-    sendAllNotesOff(sequencerRef.current.pianoRollMidiChannel);
-    pianoRollNoteSessionRef.current.clear();
-  }, [sendAllNotesOff]);
+      if (!enabled) {
+        const roll = sequencerRef.current.pianoRolls.find((entry) => entry.id === rollId);
+        if (roll) {
+          sendAllNotesOff(roll.midiChannel);
+        }
+        pianoRollNoteSessionRef.current.clear();
+      }
+
+      setPianoRollEnabled(rollId, enabled);
+      setSequencerError(null);
+    },
+    [activeSessionState, sendAllNotesOff, setPianoRollEnabled]
+  );
 
   const onSaveSequencerConfig = useCallback(() => {
     try {
@@ -475,6 +507,9 @@ export default function App() {
       if (sequencerPollInFlightRef.current) {
         return;
       }
+      if (sequencerConfigSyncPendingRef.current) {
+        return;
+      }
       sequencerPollInFlightRef.current = true;
       try {
         const status = await api.getSessionSequencerStatus(sessionId);
@@ -503,17 +538,22 @@ export default function App() {
 
   useEffect(() => {
     if (!sequencer.isPlaying) {
+      sequencerConfigSyncPendingRef.current = false;
       return;
     }
 
     const sessionId = sequencerSessionIdRef.current ?? activeSessionId;
     if (!sessionId) {
+      sequencerConfigSyncPendingRef.current = false;
       return;
     }
 
+    const payload = JSON.parse(sequencerConfigSyncSignature) as SessionSequencerConfigRequest;
+    sequencerConfigSyncPendingRef.current = true;
+
     const syncTimer = window.setTimeout(() => {
       void api
-        .configureSessionSequencer(sessionId, buildBackendSequencerConfig(sequencerRef.current))
+        .configureSessionSequencer(sessionId, payload)
         .then((status) => {
           applySequencerStatus(status);
         })
@@ -521,8 +561,17 @@ export default function App() {
           setSequencerError(
             syncError instanceof Error ? `Failed to update sequencer config: ${syncError.message}` : "Failed to update sequencer config."
           );
+        })
+        .finally(() => {
+          sequencerConfigSyncPendingRef.current = false;
+          if (
+            sequencerRef.current.isPlaying &&
+            !sequencerRef.current.tracks.some((track) => track.enabled || track.queuedEnabled === true)
+          ) {
+            void stopSequencerTransport(false);
+          }
         });
-    }, 120);
+    }, 80);
 
     return () => {
       window.clearTimeout(syncTimer);
@@ -530,30 +579,51 @@ export default function App() {
   }, [
     activeSessionId,
     applySequencerStatus,
-    buildBackendSequencerConfig,
     sequencer.isPlaying,
-    sequencer.bpm,
-    sequencer.midiChannel,
-    sequencer.stepCount,
-    sequencer.activePad,
-    sequencer.queuedPad,
-    sequencer.pads
+    sequencerConfigSyncSignature,
+    stopSequencerTransport
   ]);
+
+  useEffect(() => {
+    if (activeSessionState !== "running") {
+      return;
+    }
+    if (sequencer.isPlaying) {
+      return;
+    }
+    if (!sequencer.tracks.some((track) => track.enabled)) {
+      return;
+    }
+    void startSequencerTransport();
+  }, [activeSessionState, sequencer.isPlaying, sequencer.tracks, startSequencerTransport]);
+
+  useEffect(() => {
+    if (!sequencer.isPlaying) {
+      return;
+    }
+    if (sequencerConfigSyncPendingRef.current) {
+      return;
+    }
+    if (sequencer.tracks.some((track) => track.enabled || track.queuedEnabled === true)) {
+      return;
+    }
+    void stopSequencerTransport(false);
+  }, [sequencer.isPlaying, sequencer.tracks, stopSequencerTransport]);
 
   useEffect(() => {
     if (!sequencer.isPlaying) {
       if (activeSessionState !== "running") {
-        setPianoRollRunning(false);
+        disableAllPianoRolls();
       }
       return;
     }
 
     if (activeSessionState !== "running") {
-      setPianoRollRunning(false);
+      disableAllPianoRolls();
       void stopSequencerTransport(false);
       setSequencerError("Session is no longer running. Sequencer transport stopped.");
     }
-  }, [activeSessionState, sequencer.isPlaying, stopSequencerTransport]);
+  }, [activeSessionState, disableAllPianoRolls, sequencer.isPlaying, stopSequencerTransport]);
 
   useEffect(() => {
     return () => {
@@ -621,7 +691,7 @@ export default function App() {
               activePage === "sequencer" ? "bg-accent/30 text-accent" : "text-slate-300 hover:bg-slate-800"
             }`}
           >
-            Sequencer
+            Perform
           </button>
           <button
             type="button"
@@ -747,7 +817,6 @@ export default function App() {
             instrumentBindings={sequencerInstruments}
             sequencer={sequencer}
             instrumentsRunning={instrumentsRunning}
-            pianoRollRunning={pianoRollRunning}
             sessionState={activeSessionState}
             midiInputName={activeMidiInputName}
             transportError={sequencerError}
@@ -759,19 +828,18 @@ export default function App() {
             onLoadConfig={onLoadSequencerConfig}
             onStartInstruments={onStartInstrumentEngine}
             onStopInstruments={onStopInstrumentEngine}
-            onStartSequencerPlayback={onStartSequencerPlayback}
-            onStopSequencerPlayback={onStopSequencerPlayback}
-            onStartPianoRoll={onStartPianoRollPlayback}
-            onStopPianoRoll={onStopPianoRollPlayback}
             onBpmChange={setSequencerBpm}
-            onMidiChannelChange={setSequencerMidiChannel}
-            onScaleChange={setSequencerScale}
-            onModeChange={setSequencerMode}
-            onStepCountChange={setSequencerStepCount}
-            onStepNoteChange={setSequencerStepNote}
-            onPadPress={(padIndex) => {
+            onAddSequencerTrack={addSequencerTrack}
+            onRemoveSequencerTrack={removeSequencerTrack}
+            onSequencerTrackEnabledChange={onSequencerTrackEnabledChange}
+            onSequencerTrackChannelChange={setSequencerTrackMidiChannel}
+            onSequencerTrackScaleChange={setSequencerTrackScale}
+            onSequencerTrackModeChange={setSequencerTrackMode}
+            onSequencerTrackStepCountChange={setSequencerTrackStepCount}
+            onSequencerTrackStepNoteChange={setSequencerTrackStepNote}
+            onSequencerPadPress={(trackId, padIndex) => {
               if (!sequencerRef.current.isPlaying) {
-                setSequencerActivePad(padIndex);
+                setSequencerTrackActivePad(trackId, padIndex);
                 return;
               }
 
@@ -782,9 +850,9 @@ export default function App() {
               }
 
               void api
-                .queueSessionSequencerPad(sessionId, sequencerRef.current.trackId, { pad_index: padIndex })
+                .queueSessionSequencerPad(sessionId, trackId, { pad_index: padIndex })
                 .then((status) => {
-                  setSequencerQueuedPad(padIndex);
+                  setSequencerTrackQueuedPad(trackId, padIndex);
                   applySequencerStatus(status);
                 })
                 .catch((queueError) => {
@@ -793,6 +861,9 @@ export default function App() {
                   );
                 });
             }}
+            onAddPianoRoll={addPianoRoll}
+            onRemovePianoRoll={removePianoRoll}
+            onPianoRollEnabledChange={onPianoRollEnabledChange}
             onPianoRollMidiChannelChange={setPianoRollMidiChannel}
             onPianoRollScaleChange={setPianoRollScale}
             onPianoRollModeChange={setPianoRollMode}

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import heapq
 import logging
+import math
 import threading
 import time
 from dataclasses import dataclass, field
@@ -49,8 +50,11 @@ def _normalize_step_notes(value: int | list[int] | None) -> tuple[int, ...]:
 class SequencerTrackRuntime:
     track_id: str
     midi_channel: int
+    step_count: int
     velocity: int
     gate_ratio: float
+    enabled: bool
+    queued_enabled: bool | None
     pads: dict[int, tuple[tuple[int, ...], ...]] = field(default_factory=dict)
     active_pad: int = 0
     queued_pad: int | None = None
@@ -94,7 +98,10 @@ class SessionSequencerRuntime:
         with self._lock:
             self._config = self._build_runtime_config(request)
             self._current_step = self._current_step % self._config.step_count
-            self._active_notes = {track_id: set() for track_id in self._config.tracks}
+            next_active_notes: dict[str, set[int]] = {}
+            for track_id in self._config.tracks:
+                next_active_notes[track_id] = self._active_notes.get(track_id, set())
+            self._active_notes = next_active_notes
             return self._status_locked()
 
     def queue_pad(self, track_id: str, pad_index: int) -> SessionSequencerStatus:
@@ -204,13 +211,17 @@ class SessionSequencerRuntime:
         note_off_heap: list[tuple[float, str, int, int]],
     ) -> None:
         switch_payloads: list[dict[str, str | int | float | bool | None]] = []
+        running_track_count = 0
+        next_step = 0
 
         with self._lock:
             for track_id, track in config.tracks.items():
                 pad_steps = track.pads.get(track.active_pad)
-                if not pad_steps:
+                if not track.enabled or not pad_steps:
                     continue
-                notes = pad_steps[step_index]
+                running_track_count += 1
+                local_step = step_index % track.step_count
+                notes = pad_steps[local_step]
                 if not notes:
                     continue
 
@@ -220,12 +231,27 @@ class SessionSequencerRuntime:
                     note_off_at = step_start + max(0.005, step_duration * track.gate_ratio)
                     heapq.heappush(note_off_heap, (note_off_at, track_id, track.midi_channel, note))
 
-            self._current_step = (self._current_step + 1) % config.step_count
-            if self._current_step == 0:
+            next_step = (self._current_step + 1) % config.step_count
+            if next_step == 0:
                 self._cycle += 1
-                for track in config.tracks.values():
-                    if track.queued_pad is None or track.queued_pad == track.active_pad:
-                        continue
+
+            for track_id, track in config.tracks.items():
+                local_boundary_reached = (next_step % track.step_count) == 0
+
+                if track.queued_enabled is not None:
+                    if track.queued_enabled:
+                        # Newly armed tracks are aligned to shared step-1 boundaries
+                        # while others are running. If no track is running, they arm now.
+                        if self._can_start_track_on_boundary_locked(config, track_id, next_step):
+                            track.enabled = True
+                            track.queued_enabled = None
+                    elif not track.enabled:
+                        track.queued_enabled = None
+                    elif local_boundary_reached:
+                        track.enabled = False
+                        track.queued_enabled = None
+
+                if local_boundary_reached and track.queued_pad is not None and track.queued_pad != track.active_pad:
                     track.active_pad = track.queued_pad
                     track.queued_pad = None
                     switch_payloads.append(
@@ -236,11 +262,16 @@ class SessionSequencerRuntime:
                         }
                     )
 
+            self._current_step = next_step
+            self._refresh_transport_step_count_locked(config)
+            if self._current_step >= config.step_count:
+                self._current_step = self._current_step % config.step_count
+
             step_payload: dict[str, str | int | float | bool | None] = {
                 "step": step_index,
                 "next_step": self._current_step,
                 "cycle": self._cycle,
-                "track_count": len(config.tracks),
+                "track_count": running_track_count,
             }
 
         self._publish_event("sequencer_step", step_payload)
@@ -309,8 +340,11 @@ class SessionSequencerRuntime:
             SessionSequencerTrackStatus(
                 track_id=track.track_id,
                 midi_channel=track.midi_channel,
+                step_count=16 if track.step_count == 16 else 32,
                 active_pad=track.active_pad,
                 queued_pad=track.queued_pad,
+                enabled=track.enabled,
+                queued_enabled=track.queued_enabled,
                 active_notes=sorted(self._active_notes.get(track.track_id, set())),
             )
             for track in config.tracks.values()
@@ -344,16 +378,45 @@ class SessionSequencerRuntime:
         normalized = [_normalize_step_notes(entry) for entry in padded]
         return tuple(normalized[:_MAX_STEPS])
 
+    @staticmethod
+    def _transport_step_count(tracks: list[SequencerTrackRuntime]) -> int:
+        enabled_counts = [track.step_count for track in tracks if track.enabled]
+        if not enabled_counts:
+            return 16
+
+        loop = enabled_counts[0]
+        for step_count in enabled_counts[1:]:
+            loop = math.lcm(loop, step_count)
+        return 16 if loop <= 16 else 32
+
+    @staticmethod
+    def _can_start_track_on_boundary_locked(
+        config: SequencerRuntimeConfig,
+        track_id: str,
+        next_step: int,
+    ) -> bool:
+        for candidate in config.tracks.values():
+            if candidate.track_id == track_id or not candidate.enabled:
+                continue
+            if (next_step % candidate.step_count) != 0:
+                return False
+        return True
+
+    @staticmethod
+    def _refresh_transport_step_count_locked(config: SequencerRuntimeConfig) -> None:
+        config.step_count = SessionSequencerRuntime._transport_step_count(list(config.tracks.values()))
+
     def _build_runtime_config(self, request: SessionSequencerConfigRequest) -> SequencerRuntimeConfig:
         tracks: dict[str, SequencerTrackRuntime] = {}
         for track_request in request.tracks:
+            track_step_count = 16 if track_request.step_count == 16 else 32
             pads: dict[int, tuple[tuple[int, ...], ...]] = {
-                index: tuple(() for _ in range(request.step_count))
+                index: tuple(() for _ in range(track_step_count))
                 for index in range(_DEFAULT_PADS)
             }
 
             for pad in track_request.pads:
-                pads[pad.pad_index] = self._normalize_steps(pad.steps, request.step_count)
+                pads[pad.pad_index] = self._normalize_steps(pad.steps, track_step_count)
 
             active_pad = track_request.active_pad if track_request.active_pad in pads else 0
             queued_pad = track_request.queued_pad if track_request.queued_pad in pads else None
@@ -361,15 +424,20 @@ class SessionSequencerRuntime:
             tracks[track_request.track_id] = SequencerTrackRuntime(
                 track_id=track_request.track_id,
                 midi_channel=track_request.midi_channel,
+                step_count=track_step_count,
                 velocity=track_request.velocity,
                 gate_ratio=track_request.gate_ratio,
+                enabled=track_request.enabled,
+                queued_enabled=track_request.queued_enabled,
                 pads=pads,
                 active_pad=active_pad,
                 queued_pad=queued_pad,
             )
 
-        return SequencerRuntimeConfig(
+        config = SequencerRuntimeConfig(
             bpm=request.bpm,
-            step_count=request.step_count,
+            step_count=16 if request.step_count == 16 else 32,
             tracks=tracks,
         )
+        self._refresh_transport_step_count_locked(config)
+        return config
