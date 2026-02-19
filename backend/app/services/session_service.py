@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from datetime import datetime, timezone
 from uuid import uuid4
 
@@ -11,6 +12,10 @@ from backend.app.engine.session_runtime import RuntimeSession
 from backend.app.models.session import (
     BindMidiInputRequest,
     CompileResponse,
+    SessionSequencerConfigRequest,
+    SessionSequencerQueuePadRequest,
+    SessionSequencerStartRequest,
+    SessionSequencerStatus,
     SessionMidiEventRequest,
     SessionActionResponse,
     SessionCreateRequest,
@@ -23,6 +28,9 @@ from backend.app.services.compiler_service import CompilationError, CompilerServ
 from backend.app.services.event_bus import SessionEventBus
 from backend.app.services.midi_service import MidiService
 from backend.app.services.patch_service import PatchService
+from backend.app.services.sequencer_runtime import SessionSequencerRuntime
+
+logger = logging.getLogger(__name__)
 
 
 class SessionService:
@@ -41,8 +49,10 @@ class SessionService:
         self._event_bus = event_bus
         self._sessions: dict[str, RuntimeSession] = {}
         self._lock = asyncio.Lock()
+        self._loop: asyncio.AbstractEventLoop | None = None
 
     async def create_session(self, request: SessionCreateRequest) -> SessionCreateResponse:
+        self._remember_running_loop()
         # Verify patch exists before creating runtime.
         self._patch_service.get_patch_document(request.patch_id)
 
@@ -53,6 +63,16 @@ class SessionService:
             session_id=str(uuid4()),
             patch_id=request.patch_id,
             midi_input=default_midi,
+        )
+        runtime.sequencer = SessionSequencerRuntime(
+            session_id=runtime.session_id,
+            midi_service=self._midi_service,
+            midi_input_selector=default_midi,
+            publish_event=lambda event_type, payload, session_id=runtime.session_id: self._publish_from_thread(
+                session_id=session_id,
+                event_type=event_type,
+                payload=payload,
+            ),
         )
 
         async with self._lock:
@@ -67,15 +87,18 @@ class SessionService:
         )
 
     async def list_sessions(self) -> list[SessionInfo]:
+        self._remember_running_loop()
         async with self._lock:
             sessions = list(self._sessions.values())
         return [self._session_info(runtime) for runtime in sessions]
 
     async def get_session(self, session_id: str) -> SessionInfo:
+        self._remember_running_loop()
         runtime = await self._get_session(session_id)
         return self._session_info(runtime)
 
     async def compile_session(self, session_id: str) -> CompileResponse:
+        self._remember_running_loop()
         runtime = await self._get_session(session_id)
         patch = self._patch_service.get_patch_document(runtime.patch_id)
 
@@ -106,6 +129,7 @@ class SessionService:
         )
 
     async def start_session(self, session_id: str) -> SessionActionResponse:
+        self._remember_running_loop()
         runtime = await self._get_session(session_id)
 
         if not runtime.compile_artifact:
@@ -144,7 +168,10 @@ class SessionService:
         )
 
     async def stop_session(self, session_id: str) -> SessionActionResponse:
+        self._remember_running_loop()
         runtime = await self._get_session(session_id)
+        if runtime.sequencer is not None:
+            runtime.sequencer.stop()
         detail = runtime.worker.stop()
         runtime.state = SessionState.COMPILED if runtime.compile_artifact else SessionState.IDLE
 
@@ -153,6 +180,7 @@ class SessionService:
         return SessionActionResponse(session_id=runtime.session_id, state=runtime.state, detail=detail)
 
     async def panic_session(self, session_id: str) -> SessionActionResponse:
+        self._remember_running_loop()
         runtime = await self._get_session(session_id)
         detail = runtime.worker.panic()
 
@@ -161,6 +189,7 @@ class SessionService:
         return SessionActionResponse(session_id=runtime.session_id, state=runtime.state, detail=detail)
 
     async def send_midi_event(self, session_id: str, request: SessionMidiEventRequest) -> SessionActionResponse:
+        self._remember_running_loop()
         runtime = await self._get_session(session_id)
         if not runtime.worker.is_running:
             raise HTTPException(status_code=409, detail="Session must be running to receive MIDI events.")
@@ -206,7 +235,98 @@ class SessionService:
 
         return SessionActionResponse(session_id=runtime.session_id, state=runtime.state, detail=detail)
 
+    async def configure_session_sequencer(
+        self,
+        session_id: str,
+        request: SessionSequencerConfigRequest,
+    ) -> SessionSequencerStatus:
+        self._remember_running_loop()
+        runtime = await self._get_session(session_id)
+        sequencer = self._ensure_sequencer(runtime)
+
+        try:
+            status = sequencer.configure(request)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+        await self._publish(
+            runtime.session_id,
+            "sequencer_configured",
+            {
+                "bpm": status.bpm,
+                "step_count": status.step_count,
+                "tracks": len(status.tracks),
+            },
+        )
+        return status
+
+    async def start_session_sequencer(
+        self,
+        session_id: str,
+        request: SessionSequencerStartRequest,
+    ) -> SessionSequencerStatus:
+        self._remember_running_loop()
+        runtime = await self._get_session(session_id)
+        if not runtime.worker.is_running:
+            await self.start_session(session_id)
+
+        sequencer = self._ensure_sequencer(runtime)
+
+        try:
+            if request.config is not None:
+                sequencer.configure(request.config)
+            status = sequencer.start()
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+        await self._publish(
+            runtime.session_id,
+            "sequencer_started",
+            {
+                "bpm": status.bpm,
+                "step_count": status.step_count,
+            },
+        )
+        return status
+
+    async def stop_session_sequencer(self, session_id: str) -> SessionSequencerStatus:
+        self._remember_running_loop()
+        runtime = await self._get_session(session_id)
+        sequencer = self._ensure_sequencer(runtime)
+        status = sequencer.stop()
+
+        await self._publish(runtime.session_id, "sequencer_stopped", {"cycle": status.cycle})
+        return status
+
+    async def queue_session_sequencer_pad(
+        self,
+        session_id: str,
+        track_id: str,
+        request: SessionSequencerQueuePadRequest,
+    ) -> SessionSequencerStatus:
+        self._remember_running_loop()
+        runtime = await self._get_session(session_id)
+        sequencer = self._ensure_sequencer(runtime)
+        try:
+            status = sequencer.queue_pad(track_id, request.pad_index)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+        await self._publish(
+            runtime.session_id,
+            "sequencer_pad_queued",
+            {"track_id": track_id, "pad_index": request.pad_index},
+        )
+        return status
+
+    async def get_session_sequencer_status(self, session_id: str) -> SessionSequencerStatus:
+        self._remember_running_loop()
+        runtime = await self._get_session(session_id)
+        sequencer = self._ensure_sequencer(runtime)
+        return sequencer.status()
+
     async def bind_midi_input(self, session_id: str, request: BindMidiInputRequest) -> SessionInfo:
+        self._remember_running_loop()
         runtime = await self._get_session(session_id)
 
         try:
@@ -215,6 +335,8 @@ class SessionService:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
 
         runtime.midi_input = resolved
+        if runtime.sequencer is not None:
+            runtime.sequencer.set_midi_input(resolved)
         runtime.compile_artifact = None
         runtime.state = SessionState.IDLE if not runtime.worker.is_running else runtime.state
 
@@ -223,7 +345,10 @@ class SessionService:
         return self._session_info(runtime)
 
     async def delete_session(self, session_id: str) -> None:
+        self._remember_running_loop()
         runtime = await self._get_session(session_id)
+        if runtime.sequencer is not None:
+            runtime.sequencer.shutdown()
         runtime.worker.stop()
 
         async with self._lock:
@@ -252,3 +377,55 @@ class SessionService:
     async def _publish(self, session_id: str, event_type: str, payload: dict[str, str | int | float | bool | None]) -> None:
         event = SessionEvent(session_id=session_id, type=event_type, payload=payload)
         await self._event_bus.publish(event)
+
+    def _ensure_sequencer(self, runtime: RuntimeSession) -> SessionSequencerRuntime:
+        if runtime.sequencer is not None:
+            return runtime.sequencer
+
+        midi_input = runtime.midi_input or self._settings.default_midi_device
+        runtime.sequencer = SessionSequencerRuntime(
+            session_id=runtime.session_id,
+            midi_service=self._midi_service,
+            midi_input_selector=midi_input,
+            publish_event=lambda event_type, payload, session_id=runtime.session_id: self._publish_from_thread(
+                session_id=session_id,
+                event_type=event_type,
+                payload=payload,
+            ),
+        )
+        return runtime.sequencer
+
+    def _remember_running_loop(self) -> None:
+        try:
+            self._loop = asyncio.get_running_loop()
+        except RuntimeError:
+            return
+
+    def _publish_from_thread(
+        self,
+        session_id: str,
+        event_type: str,
+        payload: dict[str, str | int | float | bool | None],
+    ) -> None:
+        loop = self._loop
+        if loop is None:
+            return
+
+        try:
+            future = asyncio.run_coroutine_threadsafe(
+                self._publish(session_id=session_id, event_type=event_type, payload=payload),
+                loop,
+            )
+            future.add_done_callback(self._handle_threadsafe_publish_result)
+        except Exception:  # pragma: no cover - thread to loop failures are environment-dependent
+            logger.exception("Failed to publish sequencer event from worker thread")
+
+    @staticmethod
+    def _handle_threadsafe_publish_result(future: object) -> None:
+        try:
+            error = getattr(future, "exception")()
+        except Exception:  # pragma: no cover - event-loop dependent
+            logger.exception("Failed to inspect sequencer publish future state")
+            return
+        if error is not None:  # pragma: no cover - event-loop dependent
+            logger.warning("Sequencer event publish failed: %s", error)

@@ -79,7 +79,7 @@ class MidiService:
                     port = mido.open_output(output_name)
                     self._output_ports[output_name] = port
 
-            port.send(mido.Message.from_bytes(message))
+                port.send(mido.Message.from_bytes(message))
             return output_name
         except ValueError:
             raise

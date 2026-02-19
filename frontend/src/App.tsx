@@ -9,40 +9,13 @@ import { ReteNodeEditor, type EditorSelection } from "./components/ReteNodeEdito
 import { RuntimePanel } from "./components/RuntimePanel";
 import { SequencerPage } from "./components/SequencerPage";
 import {
-  allNotesOffMessages,
-  findMatchingMidiOutput,
-  nextSequencerStep,
-  noteOffMessage,
-  noteOnMessage,
   resolveMidiInputName,
-  sequencerGateDurationMs,
-  sequencerStepDurationMs
 } from "./lib/sequencer";
 import { useAppStore } from "./store/useAppStore";
-import type { Connection, PatchGraph } from "./types";
-
-type TransportMode = "webmidi" | "backend" | "none";
+import type { Connection, PatchGraph, SessionSequencerConfigRequest, SessionSequencerStatus } from "./types";
 
 function connectionKey(connection: Connection): string {
   return `${connection.from_node_id}|${connection.from_port_id}|${connection.to_node_id}|${connection.to_port_id}`;
-}
-
-function hasWebMidiSupport(): boolean {
-  if (typeof navigator === "undefined") {
-    return false;
-  }
-  return typeof (navigator as Navigator & { requestMIDIAccess?: () => Promise<MIDIAccess> }).requestMIDIAccess === "function";
-}
-
-async function requestMidiAccess(): Promise<MIDIAccess> {
-  if (typeof navigator === "undefined") {
-    throw new Error("Web MIDI is unavailable in this environment.");
-  }
-  const browserNavigator = navigator as Navigator & { requestMIDIAccess?: () => Promise<MIDIAccess> };
-  if (!browserNavigator.requestMIDIAccess) {
-    throw new Error("Web MIDI not available in this browser. Use Chrome or Edge.");
-  }
-  return browserNavigator.requestMIDIAccess();
 }
 
 export default function App() {
@@ -82,9 +55,16 @@ export default function App() {
 
   const setSequencerBpm = useAppStore((state) => state.setSequencerBpm);
   const setSequencerMidiChannel = useAppStore((state) => state.setSequencerMidiChannel);
+  const setSequencerScale = useAppStore((state) => state.setSequencerScale);
+  const setSequencerMode = useAppStore((state) => state.setSequencerMode);
+  const setPianoRollMidiChannel = useAppStore((state) => state.setPianoRollMidiChannel);
+  const setPianoRollScale = useAppStore((state) => state.setPianoRollScale);
+  const setPianoRollMode = useAppStore((state) => state.setPianoRollMode);
   const setSequencerStepCount = useAppStore((state) => state.setSequencerStepCount);
   const setSequencerStepNote = useAppStore((state) => state.setSequencerStepNote);
-  const setSequencerPlaying = useAppStore((state) => state.setSequencerPlaying);
+  const setSequencerActivePad = useAppStore((state) => state.setSequencerActivePad);
+  const setSequencerQueuedPad = useAppStore((state) => state.setSequencerQueuedPad);
+  const syncSequencerRuntime = useAppStore((state) => state.syncSequencerRuntime);
   const setSequencerPlayhead = useAppStore((state) => state.setSequencerPlayhead);
   const setEngineAudioRate = useAppStore((state) => state.setEngineAudioRate);
   const setEngineControlRate = useAppStore((state) => state.setEngineControlRate);
@@ -135,14 +115,9 @@ export default function App() {
   const [runtimePanelCollapsed, setRuntimePanelCollapsed] = useState(false);
 
   const sequencerRef = useRef(sequencer);
-  const intervalRef = useRef<number | null>(null);
-  const noteOffTimersRef = useRef<Set<number>>(new Set());
-  const midiOutputRef = useRef<MIDIOutput | null>(null);
-  const currentStepRef = useRef(0);
-  const activeVoiceRef = useRef<{ note: number; channel: number } | null>(null);
-  const transportModeRef = useRef<TransportMode>("none");
-  const transportSessionIdRef = useRef<string | null>(null);
-  const transportFailureRef = useRef(false);
+  const sequencerSessionIdRef = useRef<string | null>(null);
+  const sequencerStatusPollRef = useRef<number | null>(null);
+  const sequencerPollInFlightRef = useRef(false);
 
   useEffect(() => {
     sequencerRef.current = sequencer;
@@ -152,8 +127,6 @@ export default function App() {
     () => resolveMidiInputName(activeMidiInput, midiInputs),
     [activeMidiInput, midiInputs]
   );
-
-  const webMidiSupported = hasWebMidiSupport();
 
   const selectedCount = selection.nodeIds.length + selection.connections.length;
   const selectedOpcodeDocumentation = useMemo(
@@ -171,134 +144,90 @@ export default function App() {
     setActiveOpcodeDocumentation(null);
   }, [activeOpcodeDocumentation, selectedOpcodeDocumentation]);
 
-  const clearNoteOffTimers = useCallback(() => {
-    for (const timerId of noteOffTimersRef.current) {
-      window.clearTimeout(timerId);
-    }
-    noteOffTimersRef.current.clear();
-  }, []);
-
-  const sendBackendMidiEvent = useCallback(
+  const sendDirectMidiEvent = useCallback(
     async (
       payload: { type: "note_on" | "note_off" | "all_notes_off"; channel: number; note?: number; velocity?: number },
       sessionIdOverride?: string
     ) => {
-      const sessionId = sessionIdOverride ?? transportSessionIdRef.current;
+      const sessionId = sessionIdOverride ?? activeSessionId;
       if (!sessionId) {
-        throw new Error("No active runtime session available for backend MIDI fallback.");
+        throw new Error("No active runtime session available.");
       }
       await api.sendSessionMidiEvent(sessionId, payload);
     },
-    []
+    [activeSessionId]
   );
 
   const sendAllNotesOff = useCallback(
     (channel: number) => {
-      if (transportModeRef.current === "webmidi") {
-        if (!midiOutputRef.current) {
-          return;
-        }
-        try {
-          for (const message of allNotesOffMessages(channel)) {
-            midiOutputRef.current.send(message);
-          }
-        } catch {
-          // Ignore transient MIDI transport errors.
-        }
-        return;
-      }
-
-      if (transportModeRef.current === "backend") {
-        void sendBackendMidiEvent({ type: "all_notes_off", channel }).catch(() => {
-          // Ignore best-effort all-notes-off failures during transport shutdown.
-        });
-      }
+      void sendDirectMidiEvent({ type: "all_notes_off", channel }).catch(() => {
+        // Ignore best-effort all-notes-off failures during panic.
+      });
     },
-    [sendBackendMidiEvent]
+    [sendDirectMidiEvent]
   );
 
-  const releaseActiveVoice = useCallback(() => {
-    const activeVoice = activeVoiceRef.current;
-    if (!activeVoice) {
-      return;
-    }
+  const buildBackendSequencerConfig = useCallback((state = sequencerRef.current): SessionSequencerConfigRequest => {
+    return {
+      bpm: state.bpm,
+      step_count: state.stepCount,
+      tracks: [
+        {
+          track_id: state.trackId,
+          midi_channel: state.midiChannel,
+          velocity: 100,
+          gate_ratio: 0.8,
+          active_pad: state.activePad,
+          queued_pad: state.queuedPad,
+          pads: state.pads.map((steps, padIndex) => ({
+            pad_index: padIndex,
+            steps: steps.map((note) => note)
+          }))
+        }
+      ]
+    };
+  }, []);
 
-    if (transportModeRef.current === "webmidi") {
-      if (!midiOutputRef.current) {
-        activeVoiceRef.current = null;
-        return;
-      }
-      try {
-        midiOutputRef.current.send(noteOffMessage(activeVoice.note, activeVoice.channel));
-      } catch {
-        // Ignore transient MIDI transport errors.
-      } finally {
-        activeVoiceRef.current = null;
-      }
-      return;
-    }
-
-    if (transportModeRef.current === "backend") {
-      void sendBackendMidiEvent({
-        type: "note_off",
-        channel: activeVoice.channel,
-        note: activeVoice.note
-      }).catch(() => {
-        // Ignore best-effort note-off failures; panic/all-notes-off remains available.
+  const applySequencerStatus = useCallback(
+    (status: SessionSequencerStatus) => {
+      const preferredTrack = status.tracks.find((track) => track.track_id === sequencerRef.current.trackId);
+      const track = preferredTrack ?? status.tracks[0];
+      syncSequencerRuntime({
+        isPlaying: status.running,
+        playhead: status.current_step,
+        cycle: status.cycle,
+        activePad: track?.active_pad,
+        queuedPad: track?.queued_pad ?? null
       });
-      activeVoiceRef.current = null;
-      return;
-    }
-
-    activeVoiceRef.current = null;
-  }, [sendBackendMidiEvent]);
+    },
+    [syncSequencerRuntime]
+  );
 
   const stopSequencerTransport = useCallback(
-    (resetPlayhead: boolean) => {
-      if (intervalRef.current !== null) {
-        window.clearInterval(intervalRef.current);
-        intervalRef.current = null;
+    async (resetPlayhead: boolean) => {
+      const sessionId = sequencerSessionIdRef.current ?? activeSessionId;
+      if (sessionId) {
+        try {
+          const status = await api.stopSessionSequencer(sessionId);
+          applySequencerStatus(status);
+        } catch {
+          syncSequencerRuntime({ isPlaying: false, queuedPad: null });
+        }
+      } else {
+        syncSequencerRuntime({ isPlaying: false, queuedPad: null });
       }
 
-      clearNoteOffTimers();
-      releaseActiveVoice();
-      sendAllNotesOff(sequencerRef.current.midiChannel);
-
-      transportModeRef.current = "none";
-      transportSessionIdRef.current = null;
-      transportFailureRef.current = false;
-      midiOutputRef.current = null;
-
-      setSequencerPlaying(false);
+      sequencerSessionIdRef.current = null;
       if (resetPlayhead) {
-        currentStepRef.current = 0;
         setSequencerPlayhead(0);
       }
     },
-    [clearNoteOffTimers, releaseActiveVoice, sendAllNotesOff, setSequencerPlayhead, setSequencerPlaying]
-  );
-
-  const handleTransportFailure = useCallback(
-    (message: string, cause?: unknown) => {
-      if (transportFailureRef.current) {
-        return;
-      }
-      transportFailureRef.current = true;
-      stopSequencerTransport(true);
-      if (cause instanceof Error && cause.message.length > 0) {
-        setSequencerError(`${message}: ${cause.message}`);
-      } else {
-        setSequencerError(message);
-      }
-    },
-    [stopSequencerTransport]
+    [activeSessionId, applySequencerStatus, setSequencerPlayhead, syncSequencerRuntime]
   );
 
   const startSequencerTransport = useCallback(async () => {
     setSequencerError(null);
-
-    const midiTargetName = activeMidiInputName;
-    if (!midiTargetName) {
+    if (!activeMidiInputName) {
       setSequencerError("Select and bind a MIDI input before starting the sequencer.");
       return;
     }
@@ -313,47 +242,22 @@ export default function App() {
         throw new Error(`Session did not start successfully (state: ${sessionState}).`);
       }
 
-      transportSessionIdRef.current = sessionId;
-      transportFailureRef.current = false;
-
-      let usingBackendFallback = true;
-      if (webMidiSupported) {
-        try {
-          const access = await requestMidiAccess();
-          const output = findMatchingMidiOutput(access, midiTargetName);
-          if (output) {
-            midiOutputRef.current = output;
-            transportModeRef.current = "webmidi";
-            usingBackendFallback = false;
-          }
-        } catch {
-          usingBackendFallback = true;
-        }
-      }
-
-      if (usingBackendFallback) {
-        transportModeRef.current = "backend";
-        midiOutputRef.current = null;
-        await sendBackendMidiEvent(
-          { type: "all_notes_off", channel: sequencerRef.current.midiChannel },
-          sessionId
-        );
-      }
-
-      currentStepRef.current = sequencerRef.current.playhead % sequencerRef.current.stepCount;
-      setSequencerPlaying(true);
+      const status = await api.startSessionSequencer(sessionId, {
+        config: buildBackendSequencerConfig(sequencerRef.current)
+      });
+      sequencerSessionIdRef.current = sessionId;
+      applySequencerStatus(status);
     } catch (transportError) {
-      stopSequencerTransport(true);
+      syncSequencerRuntime({ isPlaying: false, queuedPad: null });
       setSequencerError(transportError instanceof Error ? transportError.message : "Failed to start sequencer.");
     }
   }, [
     activeMidiInputName,
+    applySequencerStatus,
+    buildBackendSequencerConfig,
     ensureSession,
-    sendBackendMidiEvent,
-    setSequencerPlaying,
     startSession,
-    stopSequencerTransport,
-    webMidiSupported
+    syncSequencerRuntime
   ]);
 
   const onStartSequencerPlayback = useCallback(() => {
@@ -367,122 +271,113 @@ export default function App() {
     if (!sequencerRef.current.isPlaying) {
       return;
     }
-    stopSequencerTransport(true);
+    void stopSequencerTransport(true);
   }, [stopSequencerTransport]);
 
   const onSequencerAllNotesOff = useCallback(() => {
-    clearNoteOffTimers();
-    releaseActiveVoice();
     sendAllNotesOff(sequencerRef.current.midiChannel);
     setSequencerError(null);
-  }, [clearNoteOffTimers, releaseActiveVoice, sendAllNotesOff]);
+  }, [sendAllNotesOff]);
+
+  const onPianoRollNoteTrigger = useCallback(
+    (note: number, channel: number) => {
+      setSequencerError(null);
+      void (async () => {
+        const sessionId = await ensureSession();
+        if (useAppStore.getState().activeSessionState !== "running") {
+          await startSession();
+        }
+
+        await sendDirectMidiEvent({ type: "note_on", channel, note, velocity: 110 }, sessionId);
+        window.setTimeout(() => {
+          void sendDirectMidiEvent({ type: "note_off", channel, note }, sessionId).catch(() => {
+            // Ignore transient note-off failures during jam interaction.
+          });
+        }, 220);
+      })().catch((error) => {
+        setSequencerError(error instanceof Error ? error.message : "Failed to trigger piano roll note.");
+      });
+    },
+    [ensureSession, sendDirectMidiEvent, startSession]
+  );
 
   useEffect(() => {
     if (!sequencer.isPlaying) {
       return;
     }
 
-    const stepDurationMs = sequencerStepDurationMs(sequencer.bpm);
+    const sessionId = sequencerSessionIdRef.current ?? activeSessionId;
+    if (!sessionId) {
+      return;
+    }
 
-    const tick = () => {
-      const mode = transportModeRef.current;
-      if (mode !== "webmidi" && mode !== "backend") {
-        handleTransportFailure("Sequencer transport is not initialized.");
+    const syncStatus = async () => {
+      if (sequencerPollInFlightRef.current) {
         return;
       }
-
-      const state = sequencerRef.current;
-      const stepCount = state.stepCount;
-      const stepIndex = ((currentStepRef.current % stepCount) + stepCount) % stepCount;
-      const note = state.steps[stepIndex];
-      const channel = state.midiChannel;
-
-      setSequencerPlayhead(stepIndex);
-      releaseActiveVoice();
-
-      if (note !== null) {
-        if (mode === "webmidi") {
-          const output = midiOutputRef.current;
-          if (!output) {
-            handleTransportFailure("MIDI output disconnected. Sequencer transport stopped.");
-            return;
-          }
-
-          try {
-            output.send(noteOnMessage(note, channel));
-            activeVoiceRef.current = { note, channel };
-
-            const gateTimer = window.setTimeout(() => {
-              noteOffTimersRef.current.delete(gateTimer);
-
-              const activeVoice = activeVoiceRef.current;
-              if (!activeVoice || activeVoice.note !== note || activeVoice.channel !== channel) {
-                return;
-              }
-
-              try {
-                midiOutputRef.current?.send(noteOffMessage(note, channel));
-              } catch {
-                // Ignore transient MIDI transport errors.
-              } finally {
-                activeVoiceRef.current = null;
-              }
-            }, sequencerGateDurationMs(stepDurationMs));
-
-            noteOffTimersRef.current.add(gateTimer);
-          } catch {
-            handleTransportFailure("Failed to send MIDI note events. Sequencer transport stopped.");
-            return;
-          }
-        } else {
-          const sessionId = transportSessionIdRef.current;
-          if (!sessionId) {
-            handleTransportFailure("No active session for backend MIDI fallback.");
-            return;
-          }
-
-          activeVoiceRef.current = { note, channel };
-          void sendBackendMidiEvent({ type: "note_on", channel, note, velocity: 100 }, sessionId).catch((eventError) => {
-            handleTransportFailure("Failed to send backend MIDI note_on", eventError);
-          });
-
-          const gateTimer = window.setTimeout(() => {
-            noteOffTimersRef.current.delete(gateTimer);
-
-            const activeVoice = activeVoiceRef.current;
-            if (!activeVoice || activeVoice.note !== note || activeVoice.channel !== channel) {
-              return;
-            }
-
-            void sendBackendMidiEvent({ type: "note_off", channel, note }, sessionId).catch((eventError) => {
-              handleTransportFailure("Failed to send backend MIDI note_off", eventError);
-            });
-            activeVoiceRef.current = null;
-          }, sequencerGateDurationMs(stepDurationMs));
-
-          noteOffTimersRef.current.add(gateTimer);
-        }
+      sequencerPollInFlightRef.current = true;
+      try {
+        const status = await api.getSessionSequencerStatus(sessionId);
+        applySequencerStatus(status);
+      } catch (pollError) {
+        setSequencerError(
+          pollError instanceof Error ? `Failed to sync sequencer status: ${pollError.message}` : "Failed to sync sequencer status."
+        );
+      } finally {
+        sequencerPollInFlightRef.current = false;
       }
-
-      currentStepRef.current = nextSequencerStep(stepIndex, stepCount);
     };
 
-    tick();
-    intervalRef.current = window.setInterval(tick, stepDurationMs);
+    void syncStatus();
+    sequencerStatusPollRef.current = window.setInterval(() => {
+      void syncStatus();
+    }, 80);
 
     return () => {
-      if (intervalRef.current !== null) {
-        window.clearInterval(intervalRef.current);
-        intervalRef.current = null;
+      if (sequencerStatusPollRef.current !== null) {
+        window.clearInterval(sequencerStatusPollRef.current);
+        sequencerStatusPollRef.current = null;
       }
     };
+  }, [activeSessionId, applySequencerStatus, sequencer.isPlaying]);
+
+  useEffect(() => {
+    if (!sequencer.isPlaying) {
+      return;
+    }
+
+    const sessionId = sequencerSessionIdRef.current ?? activeSessionId;
+    if (!sessionId) {
+      return;
+    }
+
+    const syncTimer = window.setTimeout(() => {
+      void api
+        .configureSessionSequencer(sessionId, buildBackendSequencerConfig(sequencerRef.current))
+        .then((status) => {
+          applySequencerStatus(status);
+        })
+        .catch((syncError) => {
+          setSequencerError(
+            syncError instanceof Error ? `Failed to update sequencer config: ${syncError.message}` : "Failed to update sequencer config."
+          );
+        });
+    }, 120);
+
+    return () => {
+      window.clearTimeout(syncTimer);
+    };
   }, [
-    handleTransportFailure,
-    releaseActiveVoice,
-    sendBackendMidiEvent,
+    activeSessionId,
+    applySequencerStatus,
+    buildBackendSequencerConfig,
     sequencer.isPlaying,
     sequencer.bpm,
-    setSequencerPlayhead
+    sequencer.midiChannel,
+    sequencer.stepCount,
+    sequencer.activePad,
+    sequencer.queuedPad,
+    sequencer.pads
   ]);
 
   useEffect(() => {
@@ -491,14 +386,14 @@ export default function App() {
     }
 
     if (activeSessionState !== "running" && activeSessionState !== "compiled") {
-      stopSequencerTransport(false);
+      void stopSequencerTransport(false);
       setSequencerError("Session is no longer running. Sequencer transport stopped.");
     }
   }, [activeSessionState, sequencer.isPlaying, stopSequencerTransport]);
 
   useEffect(() => {
     return () => {
-      stopSequencerTransport(false);
+      void stopSequencerTransport(false);
     };
   }, [stopSequencerTransport]);
 
@@ -598,7 +493,7 @@ export default function App() {
             void startSession();
           }}
           onStop={() => {
-            stopSequencerTransport(false);
+            void stopSequencerTransport(false);
             void stopSession();
           }}
           onPanic={() => {
@@ -677,15 +572,43 @@ export default function App() {
             sessionState={activeSessionState}
             midiInputName={activeMidiInputName}
             transportError={sequencerError}
-            webMidiSupported={webMidiSupported}
             onStartPlayback={onStartSequencerPlayback}
             onStopPlayback={onStopSequencerPlayback}
             onBpmChange={setSequencerBpm}
             onMidiChannelChange={setSequencerMidiChannel}
+            onScaleChange={setSequencerScale}
+            onModeChange={setSequencerMode}
             onStepCountChange={setSequencerStepCount}
             onStepNoteChange={setSequencerStepNote}
+            onPadPress={(padIndex) => {
+              if (!sequencerRef.current.isPlaying) {
+                setSequencerActivePad(padIndex);
+                return;
+              }
+
+              const sessionId = sequencerSessionIdRef.current ?? activeSessionId;
+              if (!sessionId) {
+                setSequencerError("No active session available for pad switching.");
+                return;
+              }
+
+              void api
+                .queueSessionSequencerPad(sessionId, sequencerRef.current.trackId, { pad_index: padIndex })
+                .then((status) => {
+                  setSequencerQueuedPad(padIndex);
+                  applySequencerStatus(status);
+                })
+                .catch((queueError) => {
+                  setSequencerError(
+                    queueError instanceof Error ? `Failed to queue pad: ${queueError.message}` : "Failed to queue pad."
+                  );
+                });
+            }}
+            onPianoRollMidiChannelChange={setPianoRollMidiChannel}
+            onPianoRollScaleChange={setPianoRollScale}
+            onPianoRollModeChange={setPianoRollMode}
+            onPianoRollNoteTrigger={onPianoRollNoteTrigger}
             onResetPlayhead={() => {
-              currentStepRef.current = 0;
               setSequencerPlayhead(0);
             }}
             onAllNotesOff={onSequencerAllNotesOff}

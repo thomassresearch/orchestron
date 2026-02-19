@@ -7,6 +7,10 @@ from backend.app.core.container import AppContainer
 from backend.app.models.session import (
     BindMidiInputRequest,
     CompileResponse,
+    SessionSequencerConfigRequest,
+    SessionSequencerQueuePadRequest,
+    SessionSequencerStartRequest,
+    SessionSequencerStatus,
     SessionMidiEventRequest,
     SessionActionResponse,
     SessionCreateRequest,
@@ -62,6 +66,50 @@ async def midi_event(
     container: AppContainer = Depends(get_container),
 ) -> SessionActionResponse:
     return await container.session_service.send_midi_event(session_id, request)
+
+
+@router.put("/{session_id}/sequencer/config", response_model=SessionSequencerStatus)
+async def configure_sequencer(
+    session_id: str,
+    request: SessionSequencerConfigRequest,
+    container: AppContainer = Depends(get_container),
+) -> SessionSequencerStatus:
+    return await container.session_service.configure_session_sequencer(session_id, request)
+
+
+@router.post("/{session_id}/sequencer/start", response_model=SessionSequencerStatus)
+async def start_sequencer(
+    session_id: str,
+    request: SessionSequencerStartRequest,
+    container: AppContainer = Depends(get_container),
+) -> SessionSequencerStatus:
+    return await container.session_service.start_session_sequencer(session_id, request)
+
+
+@router.post("/{session_id}/sequencer/stop", response_model=SessionSequencerStatus)
+async def stop_sequencer(
+    session_id: str,
+    container: AppContainer = Depends(get_container),
+) -> SessionSequencerStatus:
+    return await container.session_service.stop_session_sequencer(session_id)
+
+
+@router.get("/{session_id}/sequencer/status", response_model=SessionSequencerStatus)
+async def sequencer_status(
+    session_id: str,
+    container: AppContainer = Depends(get_container),
+) -> SessionSequencerStatus:
+    return await container.session_service.get_session_sequencer_status(session_id)
+
+
+@router.post("/{session_id}/sequencer/tracks/{track_id}/queue-pad", response_model=SessionSequencerStatus)
+async def queue_sequencer_pad(
+    session_id: str,
+    track_id: str,
+    request: SessionSequencerQueuePadRequest,
+    container: AppContainer = Depends(get_container),
+) -> SessionSequencerStatus:
+    return await container.session_service.queue_session_sequencer_pad(session_id, track_id, request)
 
 
 @router.put("/{session_id}/midi-input", response_model=SessionInfo)

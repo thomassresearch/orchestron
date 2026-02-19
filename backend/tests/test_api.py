@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import time
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -235,6 +236,84 @@ def test_session_midi_event_endpoint(tmp_path: Path) -> None:
             json={"type": "all_notes_off", "channel": 1},
         )
         assert all_notes_off.status_code == 200
+
+
+def test_session_backend_sequencer_flow_with_pad_queue(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        patch_payload = {
+            "name": "Sequencer Runtime Patch",
+            "description": "backend sequencer runtime test",
+            "schema_version": 1,
+            "graph": {
+                "nodes": [
+                    {"id": "n1", "opcode": "const_a", "params": {"value": 0.2}, "position": {"x": 50, "y": 50}},
+                    {"id": "n2", "opcode": "outs", "params": {}, "position": {"x": 240, "y": 50}},
+                ],
+                "connections": [
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "left"},
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "right"},
+                ],
+                "ui_layout": {},
+                "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+            },
+        }
+
+        create_patch = client.post("/api/patches", json=patch_payload)
+        assert create_patch.status_code == 201
+        patch_id = create_patch.json()["id"]
+
+        create_session = client.post("/api/sessions", json={"patch_id": patch_id})
+        assert create_session.status_code == 201
+        session_id = create_session.json()["session_id"]
+
+        start_sequencer = client.post(
+            f"/api/sessions/{session_id}/sequencer/start",
+            json={
+                "config": {
+                    "bpm": 300,
+                    "step_count": 16,
+                    "tracks": [
+                        {
+                            "track_id": "voice-1",
+                            "midi_channel": 1,
+                            "velocity": 100,
+                            "gate_ratio": 0.8,
+                            "active_pad": 0,
+                            "pads": [
+                                {"pad_index": 0, "steps": [60, None, 67, None] + [None] * 12},
+                                {"pad_index": 1, "steps": [72, None, 74, None] + [None] * 12},
+                            ],
+                        }
+                    ],
+                }
+            },
+        )
+        assert start_sequencer.status_code == 200
+        assert start_sequencer.json()["running"] is True
+        assert start_sequencer.json()["tracks"][0]["active_pad"] == 0
+
+        queue_pad = client.post(
+            f"/api/sessions/{session_id}/sequencer/tracks/voice-1/queue-pad",
+            json={"pad_index": 1},
+        )
+        assert queue_pad.status_code == 200
+        assert queue_pad.json()["tracks"][0]["queued_pad"] == 1
+
+        switched = False
+        for _ in range(25):
+            status = client.get(f"/api/sessions/{session_id}/sequencer/status")
+            assert status.status_code == 200
+            data = status.json()
+            if data["tracks"][0]["active_pad"] == 1 and data["tracks"][0]["queued_pad"] is None:
+                switched = True
+                break
+            time.sleep(0.1)
+
+        assert switched, "Queued pad did not switch on loop boundary in expected time."
+
+        stop_sequencer = client.post(f"/api/sessions/{session_id}/sequencer/stop")
+        assert stop_sequencer.status_code == 200
+        assert stop_sequencer.json()["running"] is False
 
 
 def test_const_nodes_use_node_params_without_value_input_port(tmp_path: Path) -> None:

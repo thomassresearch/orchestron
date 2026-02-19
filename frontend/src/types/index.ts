@@ -63,13 +63,94 @@ export interface PatchGraph {
   engine_config: EngineConfig;
 }
 
+export type SequencerScaleType = "major" | "minor";
+export type SequencerMode = "ionian" | "dorian" | "phrygian" | "lydian" | "mixolydian" | "aeolian" | "locrian";
+export type SequencerScaleRoot =
+  | "C"
+  | "C#"
+  | "Db"
+  | "D"
+  | "D#"
+  | "Eb"
+  | "E"
+  | "F"
+  | "F#"
+  | "Gb"
+  | "G"
+  | "G#"
+  | "Ab"
+  | "A"
+  | "A#"
+  | "Bb"
+  | "B"
+  | "Cb";
+
 export interface SequencerState {
   isPlaying: boolean;
   bpm: number;
   midiChannel: number;
+  scaleRoot: SequencerScaleRoot;
+  scaleType: SequencerScaleType;
+  mode: SequencerMode;
+  trackId: string;
   stepCount: 16 | 32;
   playhead: number;
+  cycle: number;
+  activePad: number;
+  queuedPad: number | null;
+  pads: Array<Array<number | null>>;
   steps: Array<number | null>;
+  pianoRollMidiChannel: number;
+  pianoRollScaleRoot: SequencerScaleRoot;
+  pianoRollScaleType: SequencerScaleType;
+  pianoRollMode: SequencerMode;
+}
+
+export interface SessionSequencerPadConfig {
+  pad_index: number;
+  steps: Array<number | Array<number> | null>;
+}
+
+export interface SessionSequencerTrackConfig {
+  track_id: string;
+  midi_channel: number;
+  velocity?: number;
+  gate_ratio?: number;
+  active_pad: number;
+  queued_pad?: number | null;
+  pads: SessionSequencerPadConfig[];
+}
+
+export interface SessionSequencerConfigRequest {
+  bpm: number;
+  step_count: 16 | 32;
+  tracks: SessionSequencerTrackConfig[];
+}
+
+export interface SessionSequencerStartRequest {
+  config?: SessionSequencerConfigRequest;
+}
+
+export interface SessionSequencerQueuePadRequest {
+  pad_index: number;
+}
+
+export interface SessionSequencerTrackStatus {
+  track_id: string;
+  midi_channel: number;
+  active_pad: number;
+  queued_pad: number | null;
+  active_notes: number[];
+}
+
+export interface SessionSequencerStatus {
+  session_id: string;
+  running: boolean;
+  bpm: number;
+  step_count: 16 | 32;
+  current_step: number;
+  cycle: number;
+  tracks: SessionSequencerTrackStatus[];
 }
 
 export interface Patch {

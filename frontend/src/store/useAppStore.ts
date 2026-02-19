@@ -2,6 +2,12 @@ import { create } from "zustand";
 
 import { api } from "../api/client";
 import { createUntitledPatch } from "../lib/defaultPatch";
+import {
+  defaultModeForScaleType,
+  normalizeSequencerMode,
+  normalizeSequencerScaleRoot,
+  normalizeSequencerScaleType
+} from "../lib/sequencer";
 import type {
   AppPage,
   CompileResponse,
@@ -14,6 +20,9 @@ import type {
   Patch,
   PatchGraph,
   PatchListItem,
+  SequencerMode,
+  SequencerScaleRoot,
+  SequencerScaleType,
   SequencerState,
   SessionEvent,
   SessionState
@@ -63,8 +72,22 @@ interface AppStore {
 
   setSequencerBpm: (bpm: number) => void;
   setSequencerMidiChannel: (channel: number) => void;
+  setSequencerScale: (scaleRoot: SequencerScaleRoot, scaleType: SequencerScaleType) => void;
+  setSequencerMode: (mode: SequencerMode) => void;
+  setPianoRollMidiChannel: (channel: number) => void;
+  setPianoRollScale: (scaleRoot: SequencerScaleRoot, scaleType: SequencerScaleType) => void;
+  setPianoRollMode: (mode: SequencerMode) => void;
   setSequencerStepCount: (stepCount: 16 | 32) => void;
   setSequencerStepNote: (index: number, note: number | null) => void;
+  setSequencerActivePad: (padIndex: number) => void;
+  setSequencerQueuedPad: (padIndex: number | null) => void;
+  syncSequencerRuntime: (payload: {
+    isPlaying: boolean;
+    playhead?: number;
+    cycle?: number;
+    activePad?: number;
+    queuedPad?: number | null;
+  }) => void;
   setSequencerPlaying: (isPlaying: boolean) => void;
   setSequencerPlayhead: (playhead: number) => void;
   setEngineAudioRate: (sr: number) => void;
@@ -87,6 +110,7 @@ const OPCODE_PARAM_DEFAULTS: Record<string, Record<string, string | number | boo
 };
 
 const DEFAULT_SEQUENCER_STEPS: Array<number | null> = Array.from({ length: 32 }, () => null);
+const DEFAULT_PAD_COUNT = 8;
 const AUDIO_RATE_MIN = 22000;
 const AUDIO_RATE_MAX = 48000;
 const CONTROL_RATE_MIN = 25;
@@ -110,14 +134,47 @@ function normalizeStepNote(value: unknown): number | null {
   return clampInt(value, 0, 127);
 }
 
+function defaultSequencerPads(): Array<Array<number | null>> {
+  return Array.from({ length: DEFAULT_PAD_COUNT }, () => [...DEFAULT_SEQUENCER_STEPS]);
+}
+
+function normalizePadIndex(value: number): number {
+  return clampInt(value, 0, DEFAULT_PAD_COUNT - 1);
+}
+
+function normalizePadSteps(raw: unknown): Array<number | null> | null {
+  if (!Array.isArray(raw)) {
+    return null;
+  }
+
+  const steps = [...DEFAULT_SEQUENCER_STEPS];
+  for (let index = 0; index < Math.min(32, raw.length); index += 1) {
+    steps[index] = normalizeStepNote(raw[index]);
+  }
+  return steps;
+}
+
 function defaultSequencerState(): SequencerState {
+  const pads = defaultSequencerPads();
   return {
     isPlaying: false,
     bpm: 120,
     midiChannel: 1,
+    scaleRoot: "C",
+    scaleType: "minor",
+    mode: "aeolian",
+    trackId: "voice-1",
     stepCount: 16,
     playhead: 0,
-    steps: [...DEFAULT_SEQUENCER_STEPS]
+    cycle: 0,
+    activePad: 0,
+    queuedPad: null,
+    pads,
+    steps: [...pads[0]],
+    pianoRollMidiChannel: 1,
+    pianoRollScaleRoot: "C",
+    pianoRollScaleType: "minor",
+    pianoRollMode: "aeolian"
   };
 }
 
@@ -133,30 +190,87 @@ function parseSequencerState(graph: PatchGraph): SequencerState {
   const bpm = typeof sequencer.bpm === "number" ? clampInt(sequencer.bpm, 30, 300) : defaults.bpm;
   const midiChannel =
     typeof sequencer.midiChannel === "number" ? clampInt(sequencer.midiChannel, 1, 16) : defaults.midiChannel;
+  const scaleRoot = normalizeSequencerScaleRoot(sequencer.scaleRoot);
+  const scaleType = normalizeSequencerScaleType(sequencer.scaleType);
+  const fallbackMode = defaultModeForScaleType(scaleType);
+  const mode = sequencer.mode !== undefined ? normalizeSequencerMode(sequencer.mode) : fallbackMode;
+  const trackId = typeof sequencer.trackId === "string" && sequencer.trackId.length > 0 ? sequencer.trackId : defaults.trackId;
   const stepCount = typeof sequencer.stepCount === "number" ? normalizeStepCount(sequencer.stepCount) : defaults.stepCount;
+  const activePad =
+    typeof sequencer.activePad === "number" ? normalizePadIndex(sequencer.activePad) : defaults.activePad;
+  const queuedPad =
+    typeof sequencer.queuedPad === "number" ? normalizePadIndex(sequencer.queuedPad) : null;
 
-  const steps = [...defaults.steps];
-  if (Array.isArray(sequencer.steps)) {
-    for (let index = 0; index < Math.min(32, sequencer.steps.length); index += 1) {
-      steps[index] = normalizeStepNote(sequencer.steps[index]);
+  const pads = defaultSequencerPads();
+  if (Array.isArray(sequencer.pads)) {
+    for (let index = 0; index < Math.min(DEFAULT_PAD_COUNT, sequencer.pads.length); index += 1) {
+      const normalized = normalizePadSteps(sequencer.pads[index]);
+      if (normalized) {
+        pads[index] = normalized;
+      }
+    }
+  } else if (Array.isArray(sequencer.steps)) {
+    // Backward compatibility for earlier single-pattern layout.
+    const legacy = normalizePadSteps(sequencer.steps);
+    if (legacy) {
+      pads[0] = legacy;
     }
   }
+
+  const steps = [...pads[activePad]];
+
+  const pianoRollMidiChannel =
+    typeof sequencer.pianoRollMidiChannel === "number"
+      ? clampInt(sequencer.pianoRollMidiChannel, 1, 16)
+      : defaults.pianoRollMidiChannel;
+  const pianoRollScaleRoot = normalizeSequencerScaleRoot(sequencer.pianoRollScaleRoot);
+  const pianoRollScaleType = normalizeSequencerScaleType(sequencer.pianoRollScaleType);
+  const pianoRollFallbackMode = defaultModeForScaleType(pianoRollScaleType);
+  const pianoRollMode =
+    sequencer.pianoRollMode !== undefined ? normalizeSequencerMode(sequencer.pianoRollMode) : pianoRollFallbackMode;
 
   return {
     ...defaults,
     bpm,
     midiChannel,
+    scaleRoot,
+    scaleType,
+    mode,
+    trackId,
     stepCount,
-    steps
+    cycle: 0,
+    activePad,
+    queuedPad,
+    pads,
+    steps,
+    pianoRollMidiChannel,
+    pianoRollScaleRoot,
+    pianoRollScaleType,
+    pianoRollMode
   };
 }
 
 function sequencerLayout(sequencer: SequencerState): JsonObject {
+  const pads = Array.from({ length: DEFAULT_PAD_COUNT }, (_, padIndex) =>
+    Array.from({ length: 32 }, (_, stepIndex) => normalizeStepNote(sequencer.pads[padIndex]?.[stepIndex]))
+  );
+
   return {
     bpm: clampInt(sequencer.bpm, 30, 300),
     midiChannel: clampInt(sequencer.midiChannel, 1, 16),
+    scaleRoot: normalizeSequencerScaleRoot(sequencer.scaleRoot),
+    scaleType: normalizeSequencerScaleType(sequencer.scaleType),
+    mode: normalizeSequencerMode(sequencer.mode),
+    trackId: sequencer.trackId,
     stepCount: normalizeStepCount(sequencer.stepCount),
-    steps: Array.from({ length: 32 }, (_, index) => normalizeStepNote(sequencer.steps[index]))
+    activePad: normalizePadIndex(sequencer.activePad),
+    queuedPad: sequencer.queuedPad === null ? null : normalizePadIndex(sequencer.queuedPad),
+    pads,
+    steps: pads[normalizePadIndex(sequencer.activePad)],
+    pianoRollMidiChannel: clampInt(sequencer.pianoRollMidiChannel, 1, 16),
+    pianoRollScaleRoot: normalizeSequencerScaleRoot(sequencer.pianoRollScaleRoot),
+    pianoRollScaleType: normalizeSequencerScaleType(sequencer.pianoRollScaleType),
+    pianoRollMode: normalizeSequencerMode(sequencer.pianoRollMode)
   };
 }
 
@@ -487,12 +601,102 @@ export const useAppStore = create<AppStore>((set, get) => ({
     });
   },
 
-  setSequencerStepCount: (stepCount) => {
+  setSequencerScale: (scaleRoot, scaleType) => {
+    const currentPatch = get().currentPatch;
+    const normalizedRoot = normalizeSequencerScaleRoot(scaleRoot);
+    const normalizedType = normalizeSequencerScaleType(scaleType);
+    const sequencer = {
+      ...get().sequencer,
+      scaleRoot: normalizedRoot,
+      scaleType: normalizedType,
+      mode: defaultModeForScaleType(normalizedType)
+    };
+
+    set({
+      sequencer,
+      currentPatch: {
+        ...currentPatch,
+        graph: withSequencerLayout(currentPatch.graph, sequencer)
+      }
+    });
+  },
+
+  setSequencerMode: (mode) => {
     const currentPatch = get().currentPatch;
     const sequencer = {
       ...get().sequencer,
+      mode: normalizeSequencerMode(mode)
+    };
+
+    set({
+      sequencer,
+      currentPatch: {
+        ...currentPatch,
+        graph: withSequencerLayout(currentPatch.graph, sequencer)
+      }
+    });
+  },
+
+  setPianoRollMidiChannel: (channel) => {
+    const currentPatch = get().currentPatch;
+    const sequencer = {
+      ...get().sequencer,
+      pianoRollMidiChannel: clampInt(channel, 1, 16)
+    };
+
+    set({
+      sequencer,
+      currentPatch: {
+        ...currentPatch,
+        graph: withSequencerLayout(currentPatch.graph, sequencer)
+      }
+    });
+  },
+
+  setPianoRollScale: (scaleRoot, scaleType) => {
+    const currentPatch = get().currentPatch;
+    const normalizedRoot = normalizeSequencerScaleRoot(scaleRoot);
+    const normalizedType = normalizeSequencerScaleType(scaleType);
+    const sequencer = {
+      ...get().sequencer,
+      pianoRollScaleRoot: normalizedRoot,
+      pianoRollScaleType: normalizedType,
+      pianoRollMode: defaultModeForScaleType(normalizedType)
+    };
+
+    set({
+      sequencer,
+      currentPatch: {
+        ...currentPatch,
+        graph: withSequencerLayout(currentPatch.graph, sequencer)
+      }
+    });
+  },
+
+  setPianoRollMode: (mode) => {
+    const currentPatch = get().currentPatch;
+    const sequencer = {
+      ...get().sequencer,
+      pianoRollMode: normalizeSequencerMode(mode)
+    };
+
+    set({
+      sequencer,
+      currentPatch: {
+        ...currentPatch,
+        graph: withSequencerLayout(currentPatch.graph, sequencer)
+      }
+    });
+  },
+
+  setSequencerStepCount: (stepCount) => {
+    const currentPatch = get().currentPatch;
+    const sequencerState = get().sequencer;
+    const sequencer = {
+      ...sequencerState,
       stepCount: normalizeStepCount(stepCount),
-      playhead: get().sequencer.playhead % normalizeStepCount(stepCount)
+      playhead: sequencerState.playhead % normalizeStepCount(stepCount),
+      steps: [...sequencerState.pads[sequencerState.activePad]]
     };
 
     set({
@@ -511,12 +715,54 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
     const currentPatch = get().currentPatch;
     const sequencer = get().sequencer;
-    const steps = [...sequencer.steps];
+    const pads = sequencer.pads.map((pad) => [...pad]);
+    const activePad = normalizePadIndex(sequencer.activePad);
+    const steps = [...pads[activePad]];
     steps[index] = normalizeStepNote(note);
+    pads[activePad] = steps;
 
     const nextSequencer: SequencerState = {
       ...sequencer,
+      pads,
       steps
+    };
+
+    set({
+      sequencer: nextSequencer,
+      currentPatch: {
+        ...currentPatch,
+        graph: withSequencerLayout(currentPatch.graph, nextSequencer)
+      }
+    });
+  },
+
+  setSequencerActivePad: (padIndex) => {
+    const currentPatch = get().currentPatch;
+    const sequencer = get().sequencer;
+    const normalizedPad = normalizePadIndex(padIndex);
+    const nextSequencer: SequencerState = {
+      ...sequencer,
+      activePad: normalizedPad,
+      queuedPad: sequencer.isPlaying ? sequencer.queuedPad : null,
+      steps: [...sequencer.pads[normalizedPad]],
+      playhead: sequencer.isPlaying ? sequencer.playhead : 0
+    };
+
+    set({
+      sequencer: nextSequencer,
+      currentPatch: {
+        ...currentPatch,
+        graph: withSequencerLayout(currentPatch.graph, nextSequencer)
+      }
+    });
+  },
+
+  setSequencerQueuedPad: (padIndex) => {
+    const currentPatch = get().currentPatch;
+    const sequencer = get().sequencer;
+    const nextSequencer: SequencerState = {
+      ...sequencer,
+      queuedPad: padIndex === null ? null : normalizePadIndex(padIndex)
     };
 
     set({
@@ -533,7 +779,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
     set({
       sequencer: {
         ...sequencer,
-        isPlaying
+        isPlaying,
+        queuedPad: isPlaying ? sequencer.queuedPad : null
       }
     });
   },
@@ -546,6 +793,26 @@ export const useAppStore = create<AppStore>((set, get) => ({
       sequencer: {
         ...sequencer,
         playhead: normalizedPlayhead
+      }
+    });
+  },
+
+  syncSequencerRuntime: ({ isPlaying, playhead, cycle, activePad, queuedPad }) => {
+    const sequencer = get().sequencer;
+    const nextActivePad = activePad === undefined ? sequencer.activePad : normalizePadIndex(activePad);
+    const boundedStepCount = normalizeStepCount(sequencer.stepCount);
+    const normalizedPlayhead =
+      playhead === undefined ? sequencer.playhead : ((Math.round(playhead) % boundedStepCount) + boundedStepCount) % boundedStepCount;
+
+    set({
+      sequencer: {
+        ...sequencer,
+        isPlaying,
+        cycle: cycle === undefined ? sequencer.cycle : Math.max(0, Math.round(cycle)),
+        activePad: nextActivePad,
+        queuedPad: queuedPad === undefined ? sequencer.queuedPad : queuedPad === null ? null : normalizePadIndex(queuedPad),
+        playhead: normalizedPlayhead,
+        steps: [...sequencer.pads[nextActivePad]]
       }
     });
   },

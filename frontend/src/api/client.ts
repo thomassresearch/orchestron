@@ -7,6 +7,10 @@ import type {
   PatchListItem,
   SessionActionResponse,
   SessionCreateResponse,
+  SessionSequencerConfigRequest,
+  SessionSequencerQueuePadRequest,
+  SessionSequencerStartRequest,
+  SessionSequencerStatus,
   SessionMidiEventRequest,
   SessionInfo
 } from "../types";
@@ -69,6 +73,25 @@ export const api = {
     request<SessionActionResponse>(`/sessions/${sessionId}/panic`, { method: "POST" }),
   sendSessionMidiEvent: (sessionId: string, payload: SessionMidiEventRequest) =>
     request<SessionActionResponse>(`/sessions/${sessionId}/midi-event`, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }),
+  configureSessionSequencer: (sessionId: string, payload: SessionSequencerConfigRequest) =>
+    request<SessionSequencerStatus>(`/sessions/${sessionId}/sequencer/config`, {
+      method: "PUT",
+      body: JSON.stringify(payload)
+    }),
+  startSessionSequencer: (sessionId: string, payload: SessionSequencerStartRequest) =>
+    request<SessionSequencerStatus>(`/sessions/${sessionId}/sequencer/start`, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }),
+  stopSessionSequencer: (sessionId: string) =>
+    request<SessionSequencerStatus>(`/sessions/${sessionId}/sequencer/stop`, { method: "POST" }),
+  getSessionSequencerStatus: (sessionId: string) =>
+    request<SessionSequencerStatus>(`/sessions/${sessionId}/sequencer/status`),
+  queueSessionSequencerPad: (sessionId: string, trackId: string, payload: SessionSequencerQueuePadRequest) =>
+    request<SessionSequencerStatus>(`/sessions/${sessionId}/sequencer/tracks/${trackId}/queue-pad`, {
       method: "POST",
       body: JSON.stringify(payload)
     }),

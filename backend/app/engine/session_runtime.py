@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from typing import Any
 
 from backend.app.engine.csound_worker import CsoundWorker
 from backend.app.models.session import CompileArtifact, SessionState
@@ -17,3 +18,4 @@ class RuntimeSession:
     started_at: datetime | None = None
     compile_artifact: CompileArtifact | None = None
     worker: CsoundWorker = field(default_factory=CsoundWorker)
+    sequencer: Any = None
