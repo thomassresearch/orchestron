@@ -96,6 +96,7 @@ class CsoundWorker:
         assert self._ctcsound is not None
 
         requested_module = self._normalize_rtmidi_module(rtmidi_module)
+        rtaudio_option = self._platform_rtaudio_option()
         attempts: list[str] = []
         errors: list[str] = []
 
@@ -103,11 +104,18 @@ class CsoundWorker:
             attempts.append(module)
             csound = self._ctcsound.Csound()
             try:
-                runtime_csd = self._apply_runtime_midi_options(csd, midi_input=midi_input, rtmidi_module=module)
+                runtime_csd = self._apply_runtime_midi_options(
+                    csd,
+                    midi_input=midi_input,
+                    rtmidi_module=module,
+                    rtaudio_option=rtaudio_option,
+                )
                 csound.setOption("-d")
                 csound.setOption("-odac")
                 csound.setOption(f"-M{midi_input}")
                 csound.setOption(f"-+rtmidi={module}")
+                if rtaudio_option:
+                    csound.setOption(f"-+rtaudio={rtaudio_option}")
 
                 compile_result = csound.compileCsdText(runtime_csd)
                 if compile_result != 0:
@@ -181,6 +189,12 @@ class CsoundWorker:
         return candidates
 
     @staticmethod
+    def _platform_rtaudio_option() -> str | None:
+        if sys.platform == "darwin":
+            return "coreaudio"
+        return None
+
+    @staticmethod
     def _platform_rtmidi_fallbacks() -> tuple[str, ...]:
         if sys.platform == "darwin":
             return ("portmidi", "coremidi", "virtual", "null", "cmidi")
@@ -191,7 +205,12 @@ class CsoundWorker:
         return ("portmidi", "virtual", "null", "cmidi")
 
     @staticmethod
-    def _apply_runtime_midi_options(csd: str, midi_input: str, rtmidi_module: str) -> str:
+    def _apply_runtime_midi_options(
+        csd: str,
+        midi_input: str,
+        rtmidi_module: str,
+        rtaudio_option: str | None = None,
+    ) -> str:
         lines: list[str] = []
         in_options = False
         option_parts: list[str] = []
@@ -207,6 +226,8 @@ class CsoundWorker:
                 in_options = False
                 option_parts.append(f"-M{midi_input}")
                 option_parts.append(f"-+rtmidi={rtmidi_module}")
+                if rtaudio_option:
+                    option_parts.append(f"-+rtaudio={rtaudio_option}")
                 lines.append(" ".join(option_parts).strip())
                 lines.append(line)
                 continue
@@ -217,6 +238,8 @@ class CsoundWorker:
 
             cleaned = re.sub(r"(^|\s)-M\S+", " ", line)
             cleaned = re.sub(r"(^|\s)-\+rtmidi=\S+", " ", cleaned)
+            if rtaudio_option:
+                cleaned = re.sub(r"(^|\s)-\+rtaudio=\S+", " ", cleaned)
             cleaned = re.sub(r"\s{2,}", " ", cleaned).strip()
             if cleaned:
                 option_parts.append(cleaned)

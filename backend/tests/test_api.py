@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 import time
 from pathlib import Path
 
@@ -89,6 +90,19 @@ def test_opcodes_include_markdown_documentation(tmp_path: Path) -> None:
         assert "documentation_url" in oscili
         assert "oscili" in oscili["documentation_markdown"].lower()
         assert oscili["documentation_url"].startswith("https://csound.com/docs/manual/")
+
+
+def test_all_opcodes_have_explicit_markdown_sections(tmp_path: Path) -> None:
+    docs_path = Path(__file__).resolve().parents[2] / "CSOUND_OPCODES.md"
+    section_names = set(re.findall(r"^### `([^`]+)`", docs_path.read_text(encoding="utf-8"), flags=re.MULTILINE))
+
+    with _client(tmp_path) as client:
+        response = client.get("/api/opcodes")
+        assert response.status_code == 200
+        opcode_names = {item["name"] for item in response.json()}
+
+    missing_sections = sorted(opcode_names - section_names)
+    assert not missing_sections, f"Missing markdown sections for: {', '.join(missing_sections)}"
 
 
 def test_patch_compile_and_runtime_flow(tmp_path: Path) -> None:
@@ -750,6 +764,7 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         "comb": "https://csound.com/docs/manual/comb.html",
         "reverb2": "https://csound.com/docs/manual/reverb2.html",
         "limit": "https://csound.com/docs/manual/limit.html",
+        "exciter": "https://csound.com/docs/manual/exciter.html",
     }
 
     with _client(tmp_path) as client:
@@ -795,6 +810,7 @@ def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
                     {"id": "n23", "opcode": "comb", "params": {"asig": 0}, "position": {"x": 20, "y": 1120}},
                     {"id": "n24", "opcode": "reverb2", "params": {"asig": 0}, "position": {"x": 20, "y": 1170}},
                     {"id": "n25", "opcode": "limit", "params": {"xin": 0}, "position": {"x": 20, "y": 1220}},
+                    {"id": "n26", "opcode": "exciter", "params": {"asig": 0}, "position": {"x": 20, "y": 1270}},
                 ],
                 "connections": [
                     {"from_node_id": "n1", "from_port_id": "asig", "to_node_id": "n2", "to_port_id": "left"},
@@ -843,6 +859,7 @@ def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
             "comb",
             "reverb2",
             "limit",
+            "exciter",
         ]:
             assert opcode in compiled_orc
 

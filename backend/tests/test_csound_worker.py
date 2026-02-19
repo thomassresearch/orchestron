@@ -18,7 +18,7 @@ def test_apply_runtime_midi_options_replaces_csd_midi_flags() -> None:
         [
             "<CsoundSynthesizer>",
             "<CsOptions>",
-            "-d -odac -M1 -+rtmidi=cmidi",
+            "-d -odac -M1 -+rtmidi=cmidi -+rtaudio=jack",
             "</CsOptions>",
             "<CsInstruments>",
             "instr 1",
@@ -28,12 +28,19 @@ def test_apply_runtime_midi_options_replaces_csd_midi_flags() -> None:
         ]
     )
 
-    sanitized = CsoundWorker._apply_runtime_midi_options(csd, midi_input="2", rtmidi_module="portmidi")
+    sanitized = CsoundWorker._apply_runtime_midi_options(
+        csd,
+        midi_input="2",
+        rtmidi_module="portmidi",
+        rtaudio_option="coreaudio",
+    )
 
     assert "-M1" not in sanitized
     assert "-+rtmidi=cmidi" not in sanitized
+    assert "-+rtaudio=jack" not in sanitized
     assert "-M2" in sanitized
     assert "-+rtmidi=portmidi" in sanitized
+    assert "-+rtaudio=coreaudio" in sanitized
     assert "-odac" in sanitized
     assert "<CsOptions>" in sanitized
     assert "</CsOptions>" in sanitized
@@ -47,8 +54,10 @@ def test_start_ctcsound_falls_back_to_supported_rtmidi_module(monkeypatch) -> No
             self._failing_modules = failing_modules
             self.selected_module = ""
             self.last_csd = ""
+            self.options: list[str] = []
 
         def setOption(self, option: str) -> None:  # noqa: N802
+            self.options.append(option)
             if option.startswith("-+rtmidi="):
                 self.selected_module = option.split("=", 1)[1]
 
@@ -118,3 +127,7 @@ def test_start_ctcsound_falls_back_to_supported_rtmidi_module(monkeypatch) -> No
     assert instances[1].selected_module == "portmidi"
     assert "-+rtmidi=cmidi" in instances[0].last_csd
     assert "-+rtmidi=portmidi" in instances[1].last_csd
+    assert "-+rtaudio=coreaudio" in instances[0].last_csd
+    assert "-+rtaudio=coreaudio" in instances[1].last_csd
+    assert "-+rtaudio=coreaudio" in instances[0].options
+    assert "-+rtaudio=coreaudio" in instances[1].options

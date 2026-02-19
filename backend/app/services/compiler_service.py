@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import sys
 from collections import defaultdict, deque
 from dataclasses import dataclass
 from typing import Iterable
@@ -677,11 +678,15 @@ class CompilerService:
 
     @staticmethod
     def _wrap_csd(orc: str, midi_input: str, rtmidi_module: str) -> str:
+        options = [f"-d -odac -M{midi_input} -+rtmidi={rtmidi_module}"]
+        if sys.platform == "darwin":
+            options.append("-+rtaudio=coreaudio")
+
         return "\n".join(
             [
                 "<CsoundSynthesizer>",
                 "<CsOptions>",
-                f"-d -odac -M{midi_input} -+rtmidi={rtmidi_module}",
+                " ".join(options),
                 "</CsOptions>",
                 "<CsInstruments>",
                 orc,

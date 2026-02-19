@@ -362,39 +362,59 @@ static bool resolve_destination(const char *spec, MIDIEndpointRef *endpoint_out,
     return false;
 }
 
-static uint64_t now_ns(void) {
-    uint64_t t = mach_absolute_time();
-    return (uint64_t)(((__uint128_t)t * g_timebase.numer) / g_timebase.denom);
+static uint64_t host_to_ns(uint64_t host_ticks) {
+    return (uint64_t)(((__uint128_t)host_ticks * g_timebase.numer) / g_timebase.denom);
 }
 
-static void sleep_until_ns(uint64_t target_ns) {
+static uint64_t ns_to_host(uint64_t ns) {
+    return (uint64_t)(((__uint128_t)ns * g_timebase.denom) / g_timebase.numer);
+}
+
+static uint64_t now_host(void) {
+    return mach_absolute_time();
+}
+
+static int64_t delta_ns_from_host(uint64_t actual, uint64_t target) {
+    if (actual >= target) {
+        return (int64_t)host_to_ns(actual - target);
+    }
+    return -(int64_t)host_to_ns(target - actual);
+}
+
+static void sleep_until_host(uint64_t target_host) {
     while (g_keep_running) {
-        uint64_t current = now_ns();
-        if (current >= target_ns) {
+        uint64_t current = now_host();
+        if (current >= target_host) {
             return;
         }
 
-        uint64_t remaining = target_ns - current;
-        if (remaining > 2000000ULL) {
-            uint64_t sleep_ns = remaining - 500000ULL;
+        uint64_t remaining_ns = host_to_ns(target_host - current);
+        if (remaining_ns > 2000000ULL) {
+            uint64_t sleep_ns = remaining_ns - 500000ULL;
             struct timespec req = {
                 .tv_sec = (time_t)(sleep_ns / 1000000000ULL),
                 .tv_nsec = (long)(sleep_ns % 1000000000ULL),
             };
             nanosleep(&req, NULL);
-        } else if (remaining > 100000ULL) {
-            struct timespec req = {.tv_sec = 0, .tv_nsec = (long)(remaining / 2ULL)};
+        } else if (remaining_ns > 100000ULL) {
+            struct timespec req = {.tv_sec = 0, .tv_nsec = (long)(remaining_ns / 2ULL)};
             nanosleep(&req, NULL);
         }
     }
 }
 
-static OSStatus send_short(MIDIPortRef port, MIDIEndpointRef destination, UInt8 status, UInt8 data1, UInt8 data2) {
+static OSStatus send_short_at(
+    MIDIPortRef port,
+    MIDIEndpointRef destination,
+    MIDITimeStamp timestamp,
+    UInt8 status,
+    UInt8 data1,
+    UInt8 data2) {
     Byte buffer[256];
     MIDIPacketList *packet_list = (MIDIPacketList *)buffer;
     MIDIPacket *packet = MIDIPacketListInit(packet_list);
     Byte data[3] = {status, data1, data2};
-    packet = MIDIPacketListAdd(packet_list, sizeof(buffer), packet, 0, (ByteCount)sizeof(data), data);
+    packet = MIDIPacketListAdd(packet_list, sizeof(buffer), packet, timestamp, (ByteCount)sizeof(data), data);
     if (packet == NULL) {
         return -1;
     }
@@ -492,9 +512,16 @@ int main(int argc, char **argv) {
     const uint8_t velocity = (uint8_t)cfg.velocity;
     const uint64_t interval_ns = (uint64_t)llround(cfg.interval_ms * 1000000.0);
     const uint64_t gate_ns = (uint64_t)llround((long double)interval_ns * cfg.gate);
+    const uint64_t interval_host = ns_to_host(interval_ns);
+    const uint64_t gate_host = ns_to_host(gate_ns);
+    uint64_t schedule_lead_ns = interval_ns / 2ULL;
+    if (schedule_lead_ns > 2000000ULL) {
+        schedule_lead_ns = 2000000ULL;
+    }
+    const uint64_t schedule_lead_host = ns_to_host(schedule_lead_ns);
 
     printf(
-        "Destination [%" PRIuPTR "]: %s | channel=%d note=%d velocity=%d interval=%.3fms gate=%.3f count=%lld\n",
+        "Destination [%" PRIuPTR "]: %s | channel=%d note=%d velocity=%d interval=%.3fms gate=%.3f count=%lld lead=%0.3Lfms\n",
         (uintptr_t)destination_index,
         destination_name,
         cfg.channel,
@@ -502,7 +529,8 @@ int main(int argc, char **argv) {
         cfg.velocity,
         cfg.interval_ms,
         cfg.gate,
-        cfg.count);
+        cfg.count,
+        (long double)schedule_lead_ns / 1000000.0L);
     printf("Press Ctrl+C to stop.\n");
     fflush(stdout);
 
@@ -511,17 +539,28 @@ int main(int argc, char **argv) {
 
     bool note_is_on = false;
     uint64_t sent_notes = 0;
-    uint64_t start_ns = now_ns() + 500000000ULL;
+    uint64_t start_host = now_host() + ns_to_host(500000000ULL);
 
     for (long long i = 0; g_keep_running && (cfg.count == 0 || i < cfg.count); ++i) {
-        uint64_t on_target = start_ns + (uint64_t)i * interval_ns;
-        sleep_until_ns(on_target);
+        uint64_t on_target = start_host + (uint64_t)i * interval_host;
+        uint64_t dispatch_target = on_target;
+        if (dispatch_target > schedule_lead_host) {
+            dispatch_target -= schedule_lead_host;
+        }
+        sleep_until_host(dispatch_target);
         if (!g_keep_running) {
             break;
         }
 
-        int64_t late_ns = (int64_t)now_ns() - (int64_t)on_target;
-        status = send_short(output_port, destination, (uint8_t)(0x90U | channel_zero_based), note, velocity);
+        uint64_t dispatch_now = now_host();
+        int64_t late_ns = delta_ns_from_host(dispatch_now, on_target);
+        status = send_short_at(
+            output_port,
+            destination,
+            (MIDITimeStamp)on_target,
+            (uint8_t)(0x90U | channel_zero_based),
+            note,
+            velocity);
         if (status != noErr) {
             fprintf(stderr, "Failed to send note_on: %d\n", (int)status);
             break;
@@ -538,13 +577,14 @@ int main(int argc, char **argv) {
             stats_print(&stats, sent_notes);
         }
 
-        uint64_t off_target = on_target + gate_ns;
-        sleep_until_ns(off_target);
-        if (!g_keep_running) {
-            break;
-        }
-
-        status = send_short(output_port, destination, (uint8_t)(0x80U | channel_zero_based), note, 0);
+        uint64_t off_target = on_target + gate_host;
+        status = send_short_at(
+            output_port,
+            destination,
+            (MIDITimeStamp)off_target,
+            (uint8_t)(0x80U | channel_zero_based),
+            note,
+            0);
         if (status != noErr) {
             fprintf(stderr, "Failed to send note_off: %d\n", (int)status);
             break;
@@ -553,11 +593,11 @@ int main(int argc, char **argv) {
     }
 
     if (note_is_on) {
-        send_short(output_port, destination, (uint8_t)(0x80U | channel_zero_based), note, 0);
+        send_short_at(output_port, destination, (MIDITimeStamp)now_host(), (uint8_t)(0x80U | channel_zero_based), note, 0);
     }
 
-    send_short(output_port, destination, (uint8_t)(0xB0U | channel_zero_based), 123, 0);
-    send_short(output_port, destination, (uint8_t)(0xB0U | channel_zero_based), 120, 0);
+    send_short_at(output_port, destination, (MIDITimeStamp)now_host(), (uint8_t)(0xB0U | channel_zero_based), 123, 0);
+    send_short_at(output_port, destination, (MIDITimeStamp)now_host(), (uint8_t)(0xB0U | channel_zero_based), 120, 0);
 
     stats_print(&stats, sent_notes);
 
