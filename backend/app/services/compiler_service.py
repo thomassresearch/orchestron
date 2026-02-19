@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Iterable
 
 from backend.app.models.opcode import OpcodeSpec, PortSpec, SignalType
-from backend.app.models.patch import Connection, NodeInstance, PatchDocument
+from backend.app.models.patch import Connection, EngineConfig, NodeInstance, PatchDocument
 from backend.app.models.session import CompileArtifact
 from backend.app.services.opcode_service import OpcodeService
 
@@ -34,6 +34,12 @@ class FormulaToken:
     position: int
 
 
+@dataclass(slots=True)
+class PatchInstrumentTarget:
+    patch: PatchDocument
+    midi_channel: int
+
+
 class CompilerService:
     def __init__(self, opcode_service: OpcodeService) -> None:
         self._opcode_service = opcode_service
@@ -44,6 +50,51 @@ class CompilerService:
         midi_input: str,
         rtmidi_module: str,
     ) -> CompileArtifact:
+        return self.compile_patch_bundle(
+            targets=[PatchInstrumentTarget(patch=patch, midi_channel=0)],
+            midi_input=midi_input,
+            rtmidi_module=rtmidi_module,
+        )
+
+    def compile_patch_bundle(
+        self,
+        targets: list[PatchInstrumentTarget],
+        midi_input: str,
+        rtmidi_module: str,
+    ) -> CompileArtifact:
+        if not targets:
+            raise CompilationError(["At least one patch must be provided for compilation."])
+
+        self._validate_target_channels(targets)
+        engine = self._resolve_shared_engine(targets)
+
+        orc_lines = [
+            f"sr = {engine.sr}",
+            f"ksmps = {engine.ksmps}",
+            f"nchnls = {engine.nchnls}",
+            f"0dbfs = {engine.zero_dbfs}",
+            "",
+            *self._massign_lines(targets),
+            "",
+        ]
+
+        for instrument_number, target in enumerate(targets, start=1):
+            instrument_lines = self._compile_instrument_lines(target.patch)
+            orc_lines.extend(
+                [
+                    f"; patch:{target.patch.id} name:{target.patch.name} channel:{target.midi_channel}",
+                    f"instr {instrument_number}",
+                    *[f"  {line}" if line else "" for line in instrument_lines],
+                    "endin",
+                    "",
+                ]
+            )
+
+        orc = "\n".join(orc_lines).rstrip()
+        csd = self._wrap_csd(orc, midi_input, rtmidi_module)
+        return CompileArtifact(orc=orc, csd=csd, diagnostics=[])
+
+    def _compile_instrument_lines(self, patch: PatchDocument) -> list[str]:
         diagnostics: list[str] = []
         graph = patch.graph
 
@@ -144,24 +195,49 @@ class CompilerService:
                 [f"; node:{compiled.node.id} opcode:{compiled.spec.name}", *rendered.splitlines()]
             )
 
-        engine = patch.graph.engine_config
-        orc_lines = [
-            f"sr = {engine.sr}",
-            f"ksmps = {engine.ksmps}",
-            f"nchnls = {engine.nchnls}",
-            f"0dbfs = {engine.zero_dbfs}",
-            "",
-            "massign 0, 1",
-            "",
-            "instr 1",
-            *[f"  {line}" if line else "" for line in instrument_lines],
-            "endin",
+        return instrument_lines
+
+    @staticmethod
+    def _resolve_shared_engine(targets: list[PatchInstrumentTarget]) -> EngineConfig:
+        engine = targets[0].patch.graph.engine_config
+        engine_tuple = (engine.sr, engine.control_rate, engine.ksmps, engine.nchnls, engine.zero_dbfs)
+        for target in targets[1:]:
+            current = target.patch.graph.engine_config
+            current_tuple = (current.sr, current.control_rate, current.ksmps, current.nchnls, current.zero_dbfs)
+            if current_tuple != engine_tuple:
+                raise CompilationError(
+                    [
+                        "All selected instruments must use the same engine configuration "
+                        "(sr, control_rate, ksmps, nchnls, 0dbfs)."
+                    ]
+                )
+        return engine
+
+    @staticmethod
+    def _validate_target_channels(targets: list[PatchInstrumentTarget]) -> None:
+        seen: set[int] = set()
+        for target in targets:
+            channel = int(target.midi_channel)
+            if channel < 0 or channel > 16:
+                raise CompilationError([f"Invalid MIDI channel '{channel}'. Expected values in the range 0..16."])
+            if channel == 0:
+                continue
+            if channel in seen:
+                raise CompilationError([f"MIDI channel '{channel}' is assigned to more than one instrument."])
+            seen.add(channel)
+
+    @staticmethod
+    def _massign_lines(targets: list[PatchInstrumentTarget]) -> list[str]:
+        if all(target.midi_channel > 0 for target in targets):
+            lines = ["massign 0, 0"]
+            for instrument_number, target in enumerate(targets, start=1):
+                lines.append(f"massign {target.midi_channel}, {instrument_number}")
+            return lines
+
+        return [
+            f"massign {target.midi_channel if target.midi_channel > 0 else 0}, {instrument_number}"
+            for instrument_number, target in enumerate(targets, start=1)
         ]
-
-        orc = "\n".join(orc_lines)
-        csd = self._wrap_csd(orc, midi_input, rtmidi_module)
-
-        return CompileArtifact(orc=orc, csd=csd, diagnostics=[])
 
     def _validate_connections(
         self,

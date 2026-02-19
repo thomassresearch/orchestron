@@ -57,10 +57,10 @@ export const api = {
       graph?: PatchGraph;
     }
   ) => request<Patch>(`/patches/${patchId}`, { method: "PUT", body: JSON.stringify(payload) }),
-  createSession: (patchId: string) =>
+  createSession: (instruments: Array<{ patch_id: string; midi_channel: number }>) =>
     request<SessionCreateResponse>("/sessions", {
       method: "POST",
-      body: JSON.stringify({ patch_id: patchId })
+      body: JSON.stringify({ instruments })
     }),
   getSession: (sessionId: string) => request<SessionInfo>(`/sessions/${sessionId}`),
   compileSession: (sessionId: string) =>
@@ -100,6 +100,7 @@ export const api = {
       method: "PUT",
       body: JSON.stringify({ midi_input: midiInput })
     }),
+  deleteSession: (sessionId: string) => request<void>(`/sessions/${sessionId}`, { method: "DELETE" }),
   listMidiInputs: () => request<MidiInputRef[]>("/midi/inputs")
 };
 

@@ -12,7 +12,6 @@ import type {
   AppPage,
   CompileResponse,
   EngineConfig,
-  JsonObject,
   MidiInputRef,
   NodeInstance,
   NodePosition,
@@ -20,11 +19,14 @@ import type {
   Patch,
   PatchGraph,
   PatchListItem,
+  SequencerConfigSnapshot,
+  SequencerInstrumentBinding,
   SequencerMode,
   SequencerScaleRoot,
   SequencerScaleType,
   SequencerState,
   SessionEvent,
+  SessionInstrumentAssignment,
   SessionState
 } from "../types";
 
@@ -38,6 +40,11 @@ interface EditablePatch {
   updated_at?: string;
 }
 
+interface InstrumentTabState {
+  id: string;
+  patch: EditablePatch;
+}
+
 interface AppStore {
   loading: boolean;
   error: string | null;
@@ -48,17 +55,26 @@ interface AppStore {
   patches: PatchListItem[];
   midiInputs: MidiInputRef[];
 
+  instrumentTabs: InstrumentTabState[];
+  activeInstrumentTabId: string;
   currentPatch: EditablePatch;
+
   sequencer: SequencerState;
+  sequencerInstruments: SequencerInstrumentBinding[];
 
   activeSessionId: string | null;
   activeSessionState: SessionState;
   activeMidiInput: string | null;
+  activeSessionInstruments: SessionInstrumentAssignment[];
   compileOutput: CompileResponse | null;
 
   events: SessionEvent[];
 
   setActivePage: (page: AppPage) => void;
+
+  addInstrumentTab: () => void;
+  closeInstrumentTab: (tabId: string) => void;
+  setActiveInstrumentTab: (tabId: string) => void;
 
   loadBootstrap: () => Promise<void>;
   loadPatch: (patchId: string) => Promise<void>;
@@ -69,6 +85,13 @@ interface AppStore {
   removeNode: (nodeId: string) => void;
   removeConnection: (connectionIndex: number) => void;
   saveCurrentPatch: () => Promise<void>;
+
+  addSequencerInstrument: () => void;
+  removeSequencerInstrument: (bindingId: string) => void;
+  updateSequencerInstrumentPatch: (bindingId: string, patchId: string) => void;
+  updateSequencerInstrumentChannel: (bindingId: string, channel: number) => void;
+  buildSequencerConfigSnapshot: () => SequencerConfigSnapshot;
+  applySequencerConfigSnapshot: (snapshot: unknown) => void;
 
   setSequencerBpm: (bpm: number) => void;
   setSequencerMidiChannel: (channel: number) => void;
@@ -178,9 +201,8 @@ function defaultSequencerState(): SequencerState {
   };
 }
 
-function parseSequencerState(graph: PatchGraph): SequencerState {
+function normalizeSequencerState(raw: unknown): SequencerState {
   const defaults = defaultSequencerState();
-  const raw = graph.ui_layout.sequencer;
 
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
     return defaults;
@@ -210,7 +232,6 @@ function parseSequencerState(graph: PatchGraph): SequencerState {
       }
     }
   } else if (Array.isArray(sequencer.steps)) {
-    // Backward compatibility for earlier single-pattern layout.
     const legacy = normalizePadSteps(sequencer.steps);
     if (legacy) {
       pads[0] = legacy;
@@ -250,40 +271,6 @@ function parseSequencerState(graph: PatchGraph): SequencerState {
   };
 }
 
-function sequencerLayout(sequencer: SequencerState): JsonObject {
-  const pads = Array.from({ length: DEFAULT_PAD_COUNT }, (_, padIndex) =>
-    Array.from({ length: 32 }, (_, stepIndex) => normalizeStepNote(sequencer.pads[padIndex]?.[stepIndex]))
-  );
-
-  return {
-    bpm: clampInt(sequencer.bpm, 30, 300),
-    midiChannel: clampInt(sequencer.midiChannel, 1, 16),
-    scaleRoot: normalizeSequencerScaleRoot(sequencer.scaleRoot),
-    scaleType: normalizeSequencerScaleType(sequencer.scaleType),
-    mode: normalizeSequencerMode(sequencer.mode),
-    trackId: sequencer.trackId,
-    stepCount: normalizeStepCount(sequencer.stepCount),
-    activePad: normalizePadIndex(sequencer.activePad),
-    queuedPad: sequencer.queuedPad === null ? null : normalizePadIndex(sequencer.queuedPad),
-    pads,
-    steps: pads[normalizePadIndex(sequencer.activePad)],
-    pianoRollMidiChannel: clampInt(sequencer.pianoRollMidiChannel, 1, 16),
-    pianoRollScaleRoot: normalizeSequencerScaleRoot(sequencer.pianoRollScaleRoot),
-    pianoRollScaleType: normalizeSequencerScaleType(sequencer.pianoRollScaleType),
-    pianoRollMode: normalizeSequencerMode(sequencer.pianoRollMode)
-  };
-}
-
-function withSequencerLayout(graph: PatchGraph, sequencer: SequencerState): PatchGraph {
-  return {
-    ...graph,
-    ui_layout: {
-      ...graph.ui_layout,
-      sequencer: sequencerLayout(sequencer)
-    }
-  };
-}
-
 function normalizeEngineConfig(raw: Partial<EngineConfig> | undefined): EngineConfig {
   const sr = clampInt(typeof raw?.sr === "number" ? raw.sr : 44100, AUDIO_RATE_MIN, AUDIO_RATE_MAX);
   let controlRate = 4400;
@@ -312,6 +299,40 @@ function withNormalizedEngineConfig(graph: PatchGraph): PatchGraph {
     ...graph,
     engine_config: normalizeEngineConfig(graph.engine_config)
   };
+}
+
+function defaultEditablePatch(): EditablePatch {
+  const patch = createUntitledPatch();
+  return {
+    ...patch,
+    graph: withNormalizedEngineConfig(patch.graph)
+  };
+}
+
+function createInstrumentTab(patch = defaultEditablePatch()): InstrumentTabState {
+  return {
+    id: crypto.randomUUID(),
+    patch
+  };
+}
+
+function updatePatchInTabs(tabs: InstrumentTabState[], tabId: string, patch: EditablePatch): InstrumentTabState[] {
+  let found = false;
+  const next = tabs.map((tab) => {
+    if (tab.id !== tabId) {
+      return tab;
+    }
+    found = true;
+    return {
+      ...tab,
+      patch
+    };
+  });
+
+  if (found) {
+    return next;
+  }
+  return [...tabs, { id: tabId, patch }];
 }
 
 function defaultParams(opcode: OpcodeSpec): Record<string, string | number | boolean> {
@@ -346,159 +367,380 @@ function normalizePatch(patch: Patch): EditablePatch {
   };
 }
 
-export const useAppStore = create<AppStore>((set, get) => ({
-  loading: false,
-  error: null,
+function defaultSequencerInstruments(patches: PatchListItem[], currentPatchId?: string): SequencerInstrumentBinding[] {
+  const patchId = patches[0]?.id ?? currentPatchId;
+  if (!patchId) {
+    return [];
+  }
+  return [
+    {
+      id: crypto.randomUUID(),
+      patchId,
+      midiChannel: 1
+    }
+  ];
+}
 
-  activePage: "instrument",
+function nextAvailableMidiChannel(bindings: SequencerInstrumentBinding[]): number {
+  const occupied = new Set(bindings.map((binding) => clampInt(binding.midiChannel, 1, 16)));
+  for (let channel = 1; channel <= 16; channel += 1) {
+    if (!occupied.has(channel)) {
+      return channel;
+    }
+  }
+  return 1;
+}
 
-  opcodes: [],
-  patches: [],
-  midiInputs: [],
+function buildSequencerConfigSnapshot(
+  sequencer: SequencerState,
+  instruments: SequencerInstrumentBinding[]
+): SequencerConfigSnapshot {
+  const pads = Array.from({ length: DEFAULT_PAD_COUNT }, (_, padIndex) =>
+    Array.from({ length: 32 }, (_, stepIndex) => normalizeStepNote(sequencer.pads[padIndex]?.[stepIndex]))
+  );
 
-  currentPatch: (() => {
-    const patch = createUntitledPatch();
-    const sequencer = defaultSequencerState();
-    return { ...patch, graph: withNormalizedEngineConfig(withSequencerLayout(patch.graph, sequencer)) };
-  })(),
-  sequencer: defaultSequencerState(),
+  return {
+    version: 1,
+    instruments: instruments
+      .filter((instrument) => instrument.patchId.length > 0)
+      .map((instrument) => ({
+        patchId: instrument.patchId,
+        midiChannel: clampInt(instrument.midiChannel, 1, 16)
+      })),
+    sequencer: {
+      bpm: clampInt(sequencer.bpm, 30, 300),
+      midiChannel: clampInt(sequencer.midiChannel, 1, 16),
+      scaleRoot: normalizeSequencerScaleRoot(sequencer.scaleRoot),
+      scaleType: normalizeSequencerScaleType(sequencer.scaleType),
+      mode: normalizeSequencerMode(sequencer.mode),
+      trackId: sequencer.trackId,
+      stepCount: normalizeStepCount(sequencer.stepCount),
+      activePad: normalizePadIndex(sequencer.activePad),
+      queuedPad: sequencer.queuedPad === null ? null : normalizePadIndex(sequencer.queuedPad),
+      pads,
+      pianoRollMidiChannel: clampInt(sequencer.pianoRollMidiChannel, 1, 16),
+      pianoRollScaleRoot: normalizeSequencerScaleRoot(sequencer.pianoRollScaleRoot),
+      pianoRollScaleType: normalizeSequencerScaleType(sequencer.pianoRollScaleType),
+      pianoRollMode: normalizeSequencerMode(sequencer.pianoRollMode)
+    }
+  };
+}
 
-  activeSessionId: null,
-  activeSessionState: "idle",
-  activeMidiInput: null,
-  compileOutput: null,
+function parseSequencerConfigSnapshot(
+  snapshot: unknown,
+  availablePatchIds: Set<string>,
+  fallbackPatchId: string | null
+): { sequencer: SequencerState; instruments: SequencerInstrumentBinding[] } {
+  if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) {
+    throw new Error("Invalid sequencer config file.");
+  }
 
-  events: [],
+  const payload = snapshot as Record<string, unknown>;
+  if (payload.version !== 1) {
+    throw new Error("Unsupported sequencer config version.");
+  }
 
-  setActivePage: (page) => {
-    set({ activePage: page });
-  },
+  const sequencer = normalizeSequencerState(payload.sequencer);
+  const instrumentsRaw = Array.isArray(payload.instruments) ? payload.instruments : [];
 
-  loadBootstrap: async () => {
-    set({ loading: true, error: null });
-    try {
-      const [opcodes, patches, midiInputs] = await Promise.all([
-        api.listOpcodes(),
-        api.listPatches(),
-        api.listMidiInputs()
-      ]);
+  const instruments: SequencerInstrumentBinding[] = [];
+  const seenChannels = new Set<number>();
+  for (const entry of instrumentsRaw) {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      continue;
+    }
 
-      let currentPatch = get().currentPatch;
-      if (patches.length > 0) {
-        const full = await api.getPatch(patches[0].id);
-        currentPatch = normalizePatch(full);
+    const record = entry as Record<string, unknown>;
+    if (typeof record.patchId !== "string" || record.patchId.length === 0) {
+      continue;
+    }
+    if (!availablePatchIds.has(record.patchId)) {
+      continue;
+    }
+
+    const midiChannel =
+      typeof record.midiChannel === "number" ? clampInt(record.midiChannel, 1, 16) : 1;
+    if (seenChannels.has(midiChannel)) {
+      continue;
+    }
+    seenChannels.add(midiChannel);
+
+    instruments.push({
+      id: crypto.randomUUID(),
+      patchId: record.patchId,
+      midiChannel
+    });
+  }
+
+  if (instruments.length === 0 && fallbackPatchId) {
+    instruments.push({ id: crypto.randomUUID(), patchId: fallbackPatchId, midiChannel: 1 });
+  }
+
+  if (instruments.length === 0) {
+    throw new Error("No valid instrument assignments found in config.");
+  }
+
+  return {
+    sequencer,
+    instruments
+  };
+}
+
+function normalizeSessionInstrumentAssignments(
+  bindings: SequencerInstrumentBinding[]
+): SessionInstrumentAssignment[] {
+  const assignments: SessionInstrumentAssignment[] = [];
+  const seenChannels = new Set<number>();
+
+  for (const binding of bindings) {
+    if (!binding.patchId || binding.patchId.length === 0) {
+      continue;
+    }
+
+    const midiChannel = clampInt(binding.midiChannel, 1, 16);
+    if (seenChannels.has(midiChannel)) {
+      throw new Error(`MIDI channel ${midiChannel} is assigned more than once.`);
+    }
+
+    seenChannels.add(midiChannel);
+    assignments.push({
+      patch_id: binding.patchId,
+      midi_channel: midiChannel
+    });
+  }
+
+  if (assignments.length === 0) {
+    throw new Error("Add at least one sequencer instrument before starting the engine.");
+  }
+
+  return assignments;
+}
+
+function sortedAssignments(assignments: SessionInstrumentAssignment[]): SessionInstrumentAssignment[] {
+  return [...assignments].sort((a, b) => {
+    if (a.midi_channel !== b.midi_channel) {
+      return a.midi_channel - b.midi_channel;
+    }
+    return a.patch_id.localeCompare(b.patch_id);
+  });
+}
+
+function sameAssignments(a: SessionInstrumentAssignment[], b: SessionInstrumentAssignment[]): boolean {
+  if (a.length !== b.length) {
+    return false;
+  }
+
+  const aSorted = sortedAssignments(a);
+  const bSorted = sortedAssignments(b);
+  for (let index = 0; index < aSorted.length; index += 1) {
+    if (aSorted[index].midi_channel !== bSorted[index].midi_channel) {
+      return false;
+    }
+    if (aSorted[index].patch_id !== bSorted[index].patch_id) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+const initialPatch = defaultEditablePatch();
+const initialTab = createInstrumentTab(initialPatch);
+
+export const useAppStore = create<AppStore>((set, get) => {
+  const commitCurrentPatch = (patch: EditablePatch, extra?: Partial<AppStore>) => {
+    const state = get();
+    const instrumentTabs = updatePatchInTabs(state.instrumentTabs, state.activeInstrumentTabId, patch);
+    set({
+      ...extra,
+      currentPatch: patch,
+      instrumentTabs
+    });
+  };
+
+  return {
+    loading: false,
+    error: null,
+
+    activePage: "instrument",
+
+    opcodes: [],
+    patches: [],
+    midiInputs: [],
+
+    instrumentTabs: [initialTab],
+    activeInstrumentTabId: initialTab.id,
+    currentPatch: initialPatch,
+
+    sequencer: defaultSequencerState(),
+    sequencerInstruments: [],
+
+    activeSessionId: null,
+    activeSessionState: "idle",
+    activeMidiInput: null,
+    activeSessionInstruments: [],
+    compileOutput: null,
+
+    events: [],
+
+    setActivePage: (page) => {
+      set({ activePage: page });
+    },
+
+    addInstrumentTab: () => {
+      const tab = createInstrumentTab();
+      set((state) => ({
+        instrumentTabs: [...state.instrumentTabs, tab],
+        activeInstrumentTabId: tab.id,
+        currentPatch: tab.patch
+      }));
+    },
+
+    closeInstrumentTab: (tabId) => {
+      const state = get();
+      if (state.instrumentTabs.length <= 1) {
+        const replacement = createInstrumentTab();
+        set({
+          instrumentTabs: [replacement],
+          activeInstrumentTabId: replacement.id,
+          currentPatch: replacement.patch
+        });
+        return;
       }
 
-      const sequencer = parseSequencerState(currentPatch.graph);
-      currentPatch = {
-        ...currentPatch,
-        graph: withNormalizedEngineConfig(withSequencerLayout(currentPatch.graph, sequencer))
-      };
+      const index = state.instrumentTabs.findIndex((tab) => tab.id === tabId);
+      if (index < 0) {
+        return;
+      }
+
+      const nextTabs = state.instrumentTabs.filter((tab) => tab.id !== tabId);
+      if (state.activeInstrumentTabId !== tabId) {
+        set({ instrumentTabs: nextTabs });
+        return;
+      }
+
+      const nextActive = nextTabs[Math.max(0, index - 1)] ?? nextTabs[0];
+      set({
+        instrumentTabs: nextTabs,
+        activeInstrumentTabId: nextActive.id,
+        currentPatch: nextActive.patch
+      });
+    },
+
+    setActiveInstrumentTab: (tabId) => {
+      const tab = get().instrumentTabs.find((candidate) => candidate.id === tabId);
+      if (!tab) {
+        return;
+      }
 
       set({
-        opcodes,
-        patches,
-        midiInputs,
-        activeMidiInput: midiInputs.length > 0 ? midiInputs[0].id : null,
-        currentPatch,
-        sequencer,
-        loading: false,
-        error: null
+        activeInstrumentTabId: tabId,
+        currentPatch: tab.patch
       });
-    } catch (error) {
-      set({
-        loading: false,
-        error: error instanceof Error ? error.message : "Failed to load bootstrap data"
-      });
-    }
-  },
+    },
 
-  loadPatch: async (patchId) => {
-    set({ loading: true, error: null });
-    try {
-      const patch = await api.getPatch(patchId);
-      const currentPatch = normalizePatch(patch);
-      const sequencer = parseSequencerState(currentPatch.graph);
-      set({
-        currentPatch: {
-          ...currentPatch,
-          graph: withNormalizedEngineConfig(withSequencerLayout(currentPatch.graph, sequencer))
-        },
-        sequencer,
-        loading: false
-      });
-    } catch (error) {
-      set({
-        loading: false,
-        error: error instanceof Error ? error.message : "Failed to load patch"
-      });
-    }
-  },
+    loadBootstrap: async () => {
+      set({ loading: true, error: null });
+      try {
+        const [opcodes, patches, midiInputs] = await Promise.all([
+          api.listOpcodes(),
+          api.listPatches(),
+          api.listMidiInputs()
+        ]);
 
-  newPatch: () => {
-    const patch = createUntitledPatch();
-    const sequencer = defaultSequencerState();
+        let currentPatch = defaultEditablePatch();
+        if (patches.length > 0) {
+          const full = await api.getPatch(patches[0].id);
+          currentPatch = normalizePatch(full);
+        }
 
-    set({
-      currentPatch: {
-        ...patch,
-        graph: withNormalizedEngineConfig(withSequencerLayout(patch.graph, sequencer))
-      },
-      sequencer,
-      activeSessionId: null,
-      activeSessionState: "idle",
-      compileOutput: null
-    });
-  },
+        const tab = createInstrumentTab(currentPatch);
+        const sequencerInstruments = defaultSequencerInstruments(patches, currentPatch.id);
+        const preferredMidi = get().activeMidiInput;
+        const activeMidiInput =
+          preferredMidi && midiInputs.some((input) => input.id === preferredMidi)
+            ? preferredMidi
+            : midiInputs[0]?.id ?? null;
 
-  setCurrentPatchMeta: (name, description) => {
-    const current = get().currentPatch;
-    set({
-      currentPatch: {
+        set({
+          opcodes,
+          patches,
+          midiInputs,
+          activeMidiInput,
+          instrumentTabs: [tab],
+          activeInstrumentTabId: tab.id,
+          currentPatch,
+          sequencer: defaultSequencerState(),
+          sequencerInstruments,
+          loading: false,
+          error: null
+        });
+      } catch (error) {
+        set({
+          loading: false,
+          error: error instanceof Error ? error.message : "Failed to load bootstrap data"
+        });
+      }
+    },
+
+    loadPatch: async (patchId) => {
+      set({ loading: true, error: null });
+      try {
+        const patch = await api.getPatch(patchId);
+        const currentPatch = normalizePatch(patch);
+        commitCurrentPatch(currentPatch, { loading: false, error: null });
+      } catch (error) {
+        set({
+          loading: false,
+          error: error instanceof Error ? error.message : "Failed to load patch"
+        });
+      }
+    },
+
+    newPatch: () => {
+      commitCurrentPatch(defaultEditablePatch());
+    },
+
+    setCurrentPatchMeta: (name, description) => {
+      const current = get().currentPatch;
+      commitCurrentPatch({
         ...current,
         name,
         description
-      }
-    });
-  },
+      });
+    },
 
-  setGraph: (graph) => {
-    const current = get().currentPatch;
-    const sequencer = get().sequencer;
-    set({
-      currentPatch: {
+    setGraph: (graph) => {
+      const current = get().currentPatch;
+      commitCurrentPatch({
         ...current,
-        graph: withNormalizedEngineConfig(withSequencerLayout(graph, sequencer))
-      }
-    });
-  },
+        graph: withNormalizedEngineConfig(graph)
+      });
+    },
 
-  addNodeFromOpcode: (opcode, position) => {
-    const current = get().currentPatch;
-    const index = current.graph.nodes.length;
+    addNodeFromOpcode: (opcode, position) => {
+      const current = get().currentPatch;
+      const index = current.graph.nodes.length;
 
-    const node: NodeInstance = {
-      id: crypto.randomUUID(),
-      opcode: opcode.name,
-      params: defaultParams(opcode),
-      position: position ?? randomPosition(index)
-    };
+      const node: NodeInstance = {
+        id: crypto.randomUUID(),
+        opcode: opcode.name,
+        params: defaultParams(opcode),
+        position: position ?? randomPosition(index)
+      };
 
-    set({
-      currentPatch: {
+      commitCurrentPatch({
         ...current,
         graph: {
           ...current.graph,
           nodes: [...current.graph.nodes, node]
         }
-      }
-    });
-  },
+      });
+    },
 
-  removeNode: (nodeId) => {
-    const current = get().currentPatch;
-    set({
-      currentPatch: {
+    removeNode: (nodeId) => {
+      const current = get().currentPatch;
+      commitCurrentPatch({
         ...current,
         graph: {
           ...current.graph,
@@ -507,324 +749,331 @@ export const useAppStore = create<AppStore>((set, get) => ({
             (connection) => connection.from_node_id !== nodeId && connection.to_node_id !== nodeId
           )
         }
-      }
-    });
-  },
+      });
+    },
 
-  removeConnection: (connectionIndex) => {
-    const current = get().currentPatch;
-    set({
-      currentPatch: {
+    removeConnection: (connectionIndex) => {
+      const current = get().currentPatch;
+      commitCurrentPatch({
         ...current,
         graph: {
           ...current.graph,
           connections: current.graph.connections.filter((_, index) => index !== connectionIndex)
         }
-      }
-    });
-  },
+      });
+    },
 
-  saveCurrentPatch: async () => {
-    const sequencer = get().sequencer;
-    const current = {
-      ...get().currentPatch,
-      graph: withNormalizedEngineConfig(withSequencerLayout(get().currentPatch.graph, sequencer))
-    };
-
-    set({ loading: true, error: null, currentPatch: current });
-
-    try {
-      const payload = {
-        name: current.name,
-        description: current.description,
-        schema_version: current.schema_version,
-        graph: current.graph
+    saveCurrentPatch: async () => {
+      const current = {
+        ...get().currentPatch,
+        graph: withNormalizedEngineConfig(get().currentPatch.graph)
       };
 
-      let saved: Patch;
-      if (current.id) {
-        saved = await api.updatePatch(current.id, payload);
-      } else {
-        saved = await api.createPatch(payload);
+      commitCurrentPatch(current, { loading: true, error: null });
+
+      try {
+        const payload = {
+          name: current.name,
+          description: current.description,
+          schema_version: current.schema_version,
+          graph: current.graph
+        };
+
+        let saved: Patch;
+        if (current.id) {
+          saved = await api.updatePatch(current.id, payload);
+        } else {
+          saved = await api.createPatch(payload);
+        }
+
+        const patches = await api.listPatches();
+        const normalizedPatch = normalizePatch(saved);
+        const state = get();
+
+        const hasKnownBindings = state.sequencerInstruments.length > 0;
+        const sequencerInstruments = hasKnownBindings
+          ? state.sequencerInstruments
+          : defaultSequencerInstruments(patches, normalizedPatch.id);
+
+        commitCurrentPatch(normalizedPatch, {
+          patches,
+          sequencerInstruments,
+          loading: false,
+          error: null
+        });
+      } catch (error) {
+        set({
+          loading: false,
+          error: error instanceof Error ? error.message : "Failed to save patch"
+        });
+      }
+    },
+
+    addSequencerInstrument: () => {
+      const state = get();
+      const patchId = state.patches[0]?.id ?? state.currentPatch.id;
+      if (!patchId) {
+        set({ error: "Save at least one instrument patch before adding it to the sequencer." });
+        return;
       }
 
-      const patches = await api.listPatches();
-      const normalizedPatch = normalizePatch(saved);
-      const normalizedSequencer = parseSequencerState(normalizedPatch.graph);
+      const binding: SequencerInstrumentBinding = {
+        id: crypto.randomUUID(),
+        patchId,
+        midiChannel: nextAvailableMidiChannel(state.sequencerInstruments)
+      };
 
       set({
-        currentPatch: {
-          ...normalizedPatch,
-          graph: withNormalizedEngineConfig(withSequencerLayout(normalizedPatch.graph, normalizedSequencer))
-        },
-        sequencer: normalizedSequencer,
-        patches,
-        loading: false
+        sequencerInstruments: [...state.sequencerInstruments, binding],
+        error: null
       });
-    } catch (error) {
+    },
+
+    removeSequencerInstrument: (bindingId) => {
+      const state = get();
       set({
-        loading: false,
-        error: error instanceof Error ? error.message : "Failed to save patch"
+        sequencerInstruments: state.sequencerInstruments.filter((binding) => binding.id !== bindingId)
       });
-    }
-  },
+    },
 
-  setSequencerBpm: (bpm) => {
-    const currentPatch = get().currentPatch;
-    const sequencer = {
-      ...get().sequencer,
-      bpm: clampInt(bpm, 30, 300)
-    };
+    updateSequencerInstrumentPatch: (bindingId, patchId) => {
+      const state = get();
+      set({
+        sequencerInstruments: state.sequencerInstruments.map((binding) =>
+          binding.id === bindingId ? { ...binding, patchId } : binding
+        )
+      });
+    },
 
-    set({
-      sequencer,
-      currentPatch: {
-        ...currentPatch,
-        graph: withSequencerLayout(currentPatch.graph, sequencer)
+    updateSequencerInstrumentChannel: (bindingId, channel) => {
+      const normalizedChannel = clampInt(channel, 1, 16);
+      const state = get();
+
+      const duplicate = state.sequencerInstruments.some(
+        (binding) => binding.id !== bindingId && clampInt(binding.midiChannel, 1, 16) === normalizedChannel
+      );
+      if (duplicate) {
+        set({ error: `MIDI channel ${normalizedChannel} is already assigned.` });
+        return;
       }
-    });
-  },
 
-  setSequencerMidiChannel: (channel) => {
-    const currentPatch = get().currentPatch;
-    const sequencer = {
-      ...get().sequencer,
-      midiChannel: clampInt(channel, 1, 16)
-    };
+      set({
+        sequencerInstruments: state.sequencerInstruments.map((binding) =>
+          binding.id === bindingId ? { ...binding, midiChannel: normalizedChannel } : binding
+        ),
+        error: null
+      });
+    },
 
-    set({
-      sequencer,
-      currentPatch: {
-        ...currentPatch,
-        graph: withSequencerLayout(currentPatch.graph, sequencer)
+    buildSequencerConfigSnapshot: () => {
+      const state = get();
+      return buildSequencerConfigSnapshot(state.sequencer, state.sequencerInstruments);
+    },
+
+    applySequencerConfigSnapshot: (snapshot) => {
+      try {
+        const state = get();
+        const availablePatchIds = new Set(state.patches.map((patch) => patch.id));
+        if (state.currentPatch.id) {
+          availablePatchIds.add(state.currentPatch.id);
+        }
+        const fallbackPatchId = state.patches[0]?.id ?? state.currentPatch.id ?? null;
+        const parsed = parseSequencerConfigSnapshot(snapshot, availablePatchIds, fallbackPatchId);
+
+        set({
+          sequencer: parsed.sequencer,
+          sequencerInstruments: parsed.instruments,
+          error: null
+        });
+      } catch (error) {
+        set({
+          error: error instanceof Error ? error.message : "Failed to load sequencer config"
+        });
       }
-    });
-  },
+    },
 
-  setSequencerScale: (scaleRoot, scaleType) => {
-    const currentPatch = get().currentPatch;
-    const normalizedRoot = normalizeSequencerScaleRoot(scaleRoot);
-    const normalizedType = normalizeSequencerScaleType(scaleType);
-    const sequencer = {
-      ...get().sequencer,
-      scaleRoot: normalizedRoot,
-      scaleType: normalizedType,
-      mode: defaultModeForScaleType(normalizedType)
-    };
+    setSequencerBpm: (bpm) => {
+      set({
+        sequencer: {
+          ...get().sequencer,
+          bpm: clampInt(bpm, 30, 300)
+        }
+      });
+    },
 
-    set({
-      sequencer,
-      currentPatch: {
-        ...currentPatch,
-        graph: withSequencerLayout(currentPatch.graph, sequencer)
+    setSequencerMidiChannel: (channel) => {
+      set({
+        sequencer: {
+          ...get().sequencer,
+          midiChannel: clampInt(channel, 1, 16)
+        }
+      });
+    },
+
+    setSequencerScale: (scaleRoot, scaleType) => {
+      const normalizedRoot = normalizeSequencerScaleRoot(scaleRoot);
+      const normalizedType = normalizeSequencerScaleType(scaleType);
+      set({
+        sequencer: {
+          ...get().sequencer,
+          scaleRoot: normalizedRoot,
+          scaleType: normalizedType,
+          mode: defaultModeForScaleType(normalizedType)
+        }
+      });
+    },
+
+    setSequencerMode: (mode) => {
+      set({
+        sequencer: {
+          ...get().sequencer,
+          mode: normalizeSequencerMode(mode)
+        }
+      });
+    },
+
+    setPianoRollMidiChannel: (channel) => {
+      set({
+        sequencer: {
+          ...get().sequencer,
+          pianoRollMidiChannel: clampInt(channel, 1, 16)
+        }
+      });
+    },
+
+    setPianoRollScale: (scaleRoot, scaleType) => {
+      const normalizedRoot = normalizeSequencerScaleRoot(scaleRoot);
+      const normalizedType = normalizeSequencerScaleType(scaleType);
+      set({
+        sequencer: {
+          ...get().sequencer,
+          pianoRollScaleRoot: normalizedRoot,
+          pianoRollScaleType: normalizedType,
+          pianoRollMode: defaultModeForScaleType(normalizedType)
+        }
+      });
+    },
+
+    setPianoRollMode: (mode) => {
+      set({
+        sequencer: {
+          ...get().sequencer,
+          pianoRollMode: normalizeSequencerMode(mode)
+        }
+      });
+    },
+
+    setSequencerStepCount: (stepCount) => {
+      const sequencerState = get().sequencer;
+      const boundedStepCount = normalizeStepCount(stepCount);
+      const sequencer = {
+        ...sequencerState,
+        stepCount: boundedStepCount,
+        playhead: sequencerState.playhead % boundedStepCount,
+        steps: [...sequencerState.pads[sequencerState.activePad]]
+      };
+
+      set({ sequencer });
+    },
+
+    setSequencerStepNote: (index, note) => {
+      if (index < 0 || index >= 32) {
+        return;
       }
-    });
-  },
 
-  setSequencerMode: (mode) => {
-    const currentPatch = get().currentPatch;
-    const sequencer = {
-      ...get().sequencer,
-      mode: normalizeSequencerMode(mode)
-    };
+      const sequencer = get().sequencer;
+      const pads = sequencer.pads.map((pad) => [...pad]);
+      const activePad = normalizePadIndex(sequencer.activePad);
+      const steps = [...pads[activePad]];
+      steps[index] = normalizeStepNote(note);
+      pads[activePad] = steps;
 
-    set({
-      sequencer,
-      currentPatch: {
-        ...currentPatch,
-        graph: withSequencerLayout(currentPatch.graph, sequencer)
-      }
-    });
-  },
-
-  setPianoRollMidiChannel: (channel) => {
-    const currentPatch = get().currentPatch;
-    const sequencer = {
-      ...get().sequencer,
-      pianoRollMidiChannel: clampInt(channel, 1, 16)
-    };
-
-    set({
-      sequencer,
-      currentPatch: {
-        ...currentPatch,
-        graph: withSequencerLayout(currentPatch.graph, sequencer)
-      }
-    });
-  },
-
-  setPianoRollScale: (scaleRoot, scaleType) => {
-    const currentPatch = get().currentPatch;
-    const normalizedRoot = normalizeSequencerScaleRoot(scaleRoot);
-    const normalizedType = normalizeSequencerScaleType(scaleType);
-    const sequencer = {
-      ...get().sequencer,
-      pianoRollScaleRoot: normalizedRoot,
-      pianoRollScaleType: normalizedType,
-      pianoRollMode: defaultModeForScaleType(normalizedType)
-    };
-
-    set({
-      sequencer,
-      currentPatch: {
-        ...currentPatch,
-        graph: withSequencerLayout(currentPatch.graph, sequencer)
-      }
-    });
-  },
-
-  setPianoRollMode: (mode) => {
-    const currentPatch = get().currentPatch;
-    const sequencer = {
-      ...get().sequencer,
-      pianoRollMode: normalizeSequencerMode(mode)
-    };
-
-    set({
-      sequencer,
-      currentPatch: {
-        ...currentPatch,
-        graph: withSequencerLayout(currentPatch.graph, sequencer)
-      }
-    });
-  },
-
-  setSequencerStepCount: (stepCount) => {
-    const currentPatch = get().currentPatch;
-    const sequencerState = get().sequencer;
-    const sequencer = {
-      ...sequencerState,
-      stepCount: normalizeStepCount(stepCount),
-      playhead: sequencerState.playhead % normalizeStepCount(stepCount),
-      steps: [...sequencerState.pads[sequencerState.activePad]]
-    };
-
-    set({
-      sequencer,
-      currentPatch: {
-        ...currentPatch,
-        graph: withSequencerLayout(currentPatch.graph, sequencer)
-      }
-    });
-  },
-
-  setSequencerStepNote: (index, note) => {
-    if (index < 0 || index >= 32) {
-      return;
-    }
-
-    const currentPatch = get().currentPatch;
-    const sequencer = get().sequencer;
-    const pads = sequencer.pads.map((pad) => [...pad]);
-    const activePad = normalizePadIndex(sequencer.activePad);
-    const steps = [...pads[activePad]];
-    steps[index] = normalizeStepNote(note);
-    pads[activePad] = steps;
-
-    const nextSequencer: SequencerState = {
-      ...sequencer,
-      pads,
-      steps
-    };
-
-    set({
-      sequencer: nextSequencer,
-      currentPatch: {
-        ...currentPatch,
-        graph: withSequencerLayout(currentPatch.graph, nextSequencer)
-      }
-    });
-  },
-
-  setSequencerActivePad: (padIndex) => {
-    const currentPatch = get().currentPatch;
-    const sequencer = get().sequencer;
-    const normalizedPad = normalizePadIndex(padIndex);
-    const nextSequencer: SequencerState = {
-      ...sequencer,
-      activePad: normalizedPad,
-      queuedPad: sequencer.isPlaying ? sequencer.queuedPad : null,
-      steps: [...sequencer.pads[normalizedPad]],
-      playhead: sequencer.isPlaying ? sequencer.playhead : 0
-    };
-
-    set({
-      sequencer: nextSequencer,
-      currentPatch: {
-        ...currentPatch,
-        graph: withSequencerLayout(currentPatch.graph, nextSequencer)
-      }
-    });
-  },
-
-  setSequencerQueuedPad: (padIndex) => {
-    const currentPatch = get().currentPatch;
-    const sequencer = get().sequencer;
-    const nextSequencer: SequencerState = {
-      ...sequencer,
-      queuedPad: padIndex === null ? null : normalizePadIndex(padIndex)
-    };
-
-    set({
-      sequencer: nextSequencer,
-      currentPatch: {
-        ...currentPatch,
-        graph: withSequencerLayout(currentPatch.graph, nextSequencer)
-      }
-    });
-  },
-
-  setSequencerPlaying: (isPlaying) => {
-    const sequencer = get().sequencer;
-    set({
-      sequencer: {
+      const nextSequencer: SequencerState = {
         ...sequencer,
-        isPlaying,
-        queuedPad: isPlaying ? sequencer.queuedPad : null
-      }
-    });
-  },
+        pads,
+        steps
+      };
 
-  setSequencerPlayhead: (playhead) => {
-    const sequencer = get().sequencer;
-    const boundedStepCount = normalizeStepCount(sequencer.stepCount);
-    const normalizedPlayhead = ((Math.round(playhead) % boundedStepCount) + boundedStepCount) % boundedStepCount;
-    set({
-      sequencer: {
+      set({ sequencer: nextSequencer });
+    },
+
+    setSequencerActivePad: (padIndex) => {
+      const sequencer = get().sequencer;
+      const normalizedPad = normalizePadIndex(padIndex);
+      const nextSequencer: SequencerState = {
         ...sequencer,
-        playhead: normalizedPlayhead
-      }
-    });
-  },
+        activePad: normalizedPad,
+        queuedPad: sequencer.isPlaying ? sequencer.queuedPad : null,
+        steps: [...sequencer.pads[normalizedPad]],
+        playhead: sequencer.isPlaying ? sequencer.playhead : 0
+      };
 
-  syncSequencerRuntime: ({ isPlaying, playhead, cycle, activePad, queuedPad }) => {
-    const sequencer = get().sequencer;
-    const nextActivePad = activePad === undefined ? sequencer.activePad : normalizePadIndex(activePad);
-    const boundedStepCount = normalizeStepCount(sequencer.stepCount);
-    const normalizedPlayhead =
-      playhead === undefined ? sequencer.playhead : ((Math.round(playhead) % boundedStepCount) + boundedStepCount) % boundedStepCount;
+      set({ sequencer: nextSequencer });
+    },
 
-    set({
-      sequencer: {
+    setSequencerQueuedPad: (padIndex) => {
+      const sequencer = get().sequencer;
+      const nextSequencer: SequencerState = {
         ...sequencer,
-        isPlaying,
-        cycle: cycle === undefined ? sequencer.cycle : Math.max(0, Math.round(cycle)),
-        activePad: nextActivePad,
-        queuedPad: queuedPad === undefined ? sequencer.queuedPad : queuedPad === null ? null : normalizePadIndex(queuedPad),
-        playhead: normalizedPlayhead,
-        steps: [...sequencer.pads[nextActivePad]]
-      }
-    });
-  },
+        queuedPad: padIndex === null ? null : normalizePadIndex(padIndex)
+      };
 
-  setEngineAudioRate: (sr) => {
-    const currentPatch = get().currentPatch;
-    const currentEngine = normalizeEngineConfig(currentPatch.graph.engine_config);
-    const nextSr = clampInt(sr, AUDIO_RATE_MIN, AUDIO_RATE_MAX);
-    const nextKsmps = Math.max(1, Math.round(nextSr / currentEngine.control_rate));
+      set({ sequencer: nextSequencer });
+    },
 
-    set({
-      currentPatch: {
+    setSequencerPlaying: (isPlaying) => {
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          isPlaying,
+          queuedPad: isPlaying ? sequencer.queuedPad : null
+        }
+      });
+    },
+
+    setSequencerPlayhead: (playhead) => {
+      const sequencer = get().sequencer;
+      const boundedStepCount = normalizeStepCount(sequencer.stepCount);
+      const normalizedPlayhead = ((Math.round(playhead) % boundedStepCount) + boundedStepCount) % boundedStepCount;
+      set({
+        sequencer: {
+          ...sequencer,
+          playhead: normalizedPlayhead
+        }
+      });
+    },
+
+    syncSequencerRuntime: ({ isPlaying, playhead, cycle, activePad, queuedPad }) => {
+      const sequencer = get().sequencer;
+      const nextActivePad = activePad === undefined ? sequencer.activePad : normalizePadIndex(activePad);
+      const boundedStepCount = normalizeStepCount(sequencer.stepCount);
+      const normalizedPlayhead =
+        playhead === undefined
+          ? sequencer.playhead
+          : ((Math.round(playhead) % boundedStepCount) + boundedStepCount) % boundedStepCount;
+
+      set({
+        sequencer: {
+          ...sequencer,
+          isPlaying,
+          cycle: cycle === undefined ? sequencer.cycle : Math.max(0, Math.round(cycle)),
+          activePad: nextActivePad,
+          queuedPad:
+            queuedPad === undefined ? sequencer.queuedPad : queuedPad === null ? null : normalizePadIndex(queuedPad),
+          playhead: normalizedPlayhead,
+          steps: [...sequencer.pads[nextActivePad]]
+        }
+      });
+    },
+
+    setEngineAudioRate: (sr) => {
+      const currentPatch = get().currentPatch;
+      const currentEngine = normalizeEngineConfig(currentPatch.graph.engine_config);
+      const nextSr = clampInt(sr, AUDIO_RATE_MIN, AUDIO_RATE_MAX);
+      const nextKsmps = Math.max(1, Math.round(nextSr / currentEngine.control_rate));
+
+      commitCurrentPatch({
         ...currentPatch,
         graph: {
           ...currentPatch.graph,
@@ -834,18 +1083,16 @@ export const useAppStore = create<AppStore>((set, get) => ({
             ksmps: nextKsmps
           }
         }
-      }
-    });
-  },
+      });
+    },
 
-  setEngineControlRate: (controlRate) => {
-    const currentPatch = get().currentPatch;
-    const currentEngine = normalizeEngineConfig(currentPatch.graph.engine_config);
-    const nextControlRate = clampInt(controlRate, CONTROL_RATE_MIN, CONTROL_RATE_MAX);
-    const nextKsmps = Math.max(1, Math.round(currentEngine.sr / nextControlRate));
+    setEngineControlRate: (controlRate) => {
+      const currentPatch = get().currentPatch;
+      const currentEngine = normalizeEngineConfig(currentPatch.graph.engine_config);
+      const nextControlRate = clampInt(controlRate, CONTROL_RATE_MIN, CONTROL_RATE_MAX);
+      const nextKsmps = Math.max(1, Math.round(currentEngine.sr / nextControlRate));
 
-    set({
-      currentPatch: {
+      commitCurrentPatch({
         ...currentPatch,
         graph: {
           ...currentPatch.graph,
@@ -855,138 +1102,201 @@ export const useAppStore = create<AppStore>((set, get) => ({
             ksmps: nextKsmps
           }
         }
+      });
+    },
+
+    ensureSession: async () => {
+      const requestedAssignments = normalizeSessionInstrumentAssignments(get().sequencerInstruments);
+      let sessionId = get().activeSessionId;
+
+      if (sessionId && sameAssignments(requestedAssignments, get().activeSessionInstruments)) {
+        return sessionId;
       }
-    });
-  },
 
-  ensureSession: async () => {
-    let sessionId = get().activeSessionId;
-    if (sessionId) {
-      return sessionId;
-    }
+      if (sessionId && !sameAssignments(requestedAssignments, get().activeSessionInstruments)) {
+        try {
+          await api.stopSession(sessionId);
+        } catch {
+          // Ignore if session wasn't running.
+        }
+        try {
+          await api.deleteSession(sessionId);
+        } catch {
+          // Ignore cleanup failures and continue with a fresh session.
+        }
 
-    if (!get().currentPatch.id) {
-      await get().saveCurrentPatch();
-    }
-
-    const patchId = get().currentPatch.id;
-    if (!patchId) {
-      throw new Error("Patch must be saved before creating a runtime session.");
-    }
-
-    const session = await api.createSession(patchId);
-    sessionId = session.session_id;
-    const midiInput = get().activeMidiInput;
-    if (midiInput) {
-      try {
-        await api.bindMidiInput(sessionId, midiInput);
-      } catch {
-        // Keep session creation successful even if MIDI binding fails.
+        set({
+          activeSessionId: null,
+          activeSessionState: "idle",
+          activeSessionInstruments: [],
+          compileOutput: null,
+          events: []
+        });
+        sessionId = null;
       }
-    }
-    set({
-      activeSessionId: sessionId,
-      activeSessionState: session.state,
-      activeMidiInput: midiInput
-    });
-    return sessionId;
-  },
 
-  compileSession: async () => {
-    set({ loading: true, error: null });
-    try {
-      const sessionId = await get().ensureSession();
-      await get().saveCurrentPatch();
-      const compileOutput = await api.compileSession(sessionId);
+      if (sessionId) {
+        return sessionId;
+      }
+
+      const session = await api.createSession(requestedAssignments);
+      sessionId = session.session_id;
+
+      const midiInput = get().activeMidiInput;
+      if (midiInput) {
+        try {
+          await api.bindMidiInput(sessionId, midiInput);
+        } catch {
+          // Keep session creation successful even if MIDI binding fails.
+        }
+      }
+
       set({
-        compileOutput,
-        activeSessionState: compileOutput.state,
-        loading: false
-      });
-    } catch (error) {
-      set({
-        loading: false,
-        activeSessionState: "error",
-        error: error instanceof Error ? error.message : "Failed to compile session"
-      });
-    }
-  },
-
-  startSession: async () => {
-    set({ loading: true, error: null });
-    try {
-      const sessionId = await get().ensureSession();
-      await get().saveCurrentPatch();
-      const compileOutput = await api.compileSession(sessionId);
-      const response = await api.startSession(sessionId);
-      set({ compileOutput, activeSessionState: response.state, loading: false });
-    } catch (error) {
-      set({
-        loading: false,
-        activeSessionState: "error",
-        error: error instanceof Error ? error.message : "Failed to start session"
-      });
-    }
-  },
-
-  stopSession: async () => {
-    const sessionId = get().activeSessionId;
-    if (!sessionId) return;
-
-    set({ loading: true, error: null });
-    try {
-      const response = await api.stopSession(sessionId);
-      set({ activeSessionState: response.state, loading: false });
-    } catch (error) {
-      set({
-        loading: false,
-        activeSessionState: "error",
-        error: error instanceof Error ? error.message : "Failed to stop session"
-      });
-    }
-  },
-
-  panicSession: async () => {
-    const sessionId = get().activeSessionId;
-    if (!sessionId) return;
-
-    set({ loading: true, error: null });
-    try {
-      await api.panicSession(sessionId);
-      set({ loading: false });
-    } catch (error) {
-      set({
-        loading: false,
-        error: error instanceof Error ? error.message : "Failed to send panic"
-      });
-    }
-  },
-
-  bindMidiInput: async (midiInput: string) => {
-    const sessionId = get().activeSessionId;
-    if (!sessionId) {
-      set({ activeMidiInput: midiInput });
-      return;
-    }
-
-    set({ loading: true, error: null });
-    try {
-      const session = await api.bindMidiInput(sessionId, midiInput);
-      set({
+        activeSessionId: sessionId,
         activeSessionState: session.state,
         activeMidiInput: midiInput,
-        loading: false
+        activeSessionInstruments: session.instruments.length > 0 ? session.instruments : requestedAssignments
       });
-    } catch (error) {
-      set({
-        loading: false,
-        error: error instanceof Error ? error.message : "Failed to bind MIDI input"
-      });
-    }
-  },
 
-  pushEvent: (event: SessionEvent) => {
-    const events = get().events;
-    set({ events: [...events.slice(-199), event] });
-  }
-}));
+      return sessionId;
+    },
+
+    compileSession: async () => {
+      set({ loading: true, error: null });
+      try {
+        if (!get().currentPatch.id) {
+          await get().saveCurrentPatch();
+        }
+
+        const patchId = get().currentPatch.id;
+        if (!patchId) {
+          throw new Error("Patch must be saved before compiling.");
+        }
+
+        const compileSession = await api.createSession([
+          {
+            patch_id: patchId,
+            midi_channel: 1
+          }
+        ]);
+
+        const sessionId = compileSession.session_id;
+        let compileOutput = null as CompileResponse | null;
+        try {
+          const midiInput = get().activeMidiInput;
+          if (midiInput) {
+            try {
+              await api.bindMidiInput(sessionId, midiInput);
+            } catch {
+              // Keep compile successful even if MIDI binding fails for temporary validation session.
+            }
+          }
+
+          compileOutput = await api.compileSession(sessionId);
+        } finally {
+          try {
+            await api.deleteSession(sessionId);
+          } catch {
+            // Best-effort cleanup for temporary compile sessions.
+          }
+        }
+
+        if (!compileOutput) {
+          throw new Error("Failed to compile current patch.");
+        }
+
+        set({
+          compileOutput,
+          loading: false,
+          error: null
+        });
+      } catch (error) {
+        set({
+          loading: false,
+          error: error instanceof Error ? error.message : "Failed to compile session"
+        });
+      }
+    },
+
+    startSession: async () => {
+      set({ loading: true, error: null });
+      try {
+        const sessionId = await get().ensureSession();
+        const compileOutput = await api.compileSession(sessionId);
+        const response = await api.startSession(sessionId);
+        set({ compileOutput, activeSessionState: response.state, loading: false });
+      } catch (error) {
+        set({
+          loading: false,
+          activeSessionState: "error",
+          error: error instanceof Error ? error.message : "Failed to start session"
+        });
+      }
+    },
+
+    stopSession: async () => {
+      const sessionId = get().activeSessionId;
+      if (!sessionId) {
+        return;
+      }
+
+      set({ loading: true, error: null });
+      try {
+        const response = await api.stopSession(sessionId);
+        set({ activeSessionState: response.state, loading: false });
+      } catch (error) {
+        set({
+          loading: false,
+          activeSessionState: "error",
+          error: error instanceof Error ? error.message : "Failed to stop session"
+        });
+      }
+    },
+
+    panicSession: async () => {
+      const sessionId = get().activeSessionId;
+      if (!sessionId) {
+        return;
+      }
+
+      set({ loading: true, error: null });
+      try {
+        await api.panicSession(sessionId);
+        set({ loading: false });
+      } catch (error) {
+        set({
+          loading: false,
+          error: error instanceof Error ? error.message : "Failed to send panic"
+        });
+      }
+    },
+
+    bindMidiInput: async (midiInput: string) => {
+      const sessionId = get().activeSessionId;
+      if (!sessionId) {
+        set({ activeMidiInput: midiInput });
+        return;
+      }
+
+      set({ loading: true, error: null });
+      try {
+        const session = await api.bindMidiInput(sessionId, midiInput);
+        set({
+          activeSessionState: session.state,
+          activeMidiInput: midiInput,
+          loading: false
+        });
+      } catch (error) {
+        set({
+          loading: false,
+          error: error instanceof Error ? error.message : "Failed to bind MIDI input"
+        });
+      }
+    },
+
+    pushEvent: (event: SessionEvent) => {
+      const events = get().events;
+      set({ events: [...events.slice(-199), event] });
+    }
+  };
+});

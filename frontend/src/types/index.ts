@@ -106,6 +106,41 @@ export interface SequencerState {
   pianoRollMode: SequencerMode;
 }
 
+export interface SessionInstrumentAssignment {
+  patch_id: string;
+  midi_channel: number;
+}
+
+export interface SequencerInstrumentBinding {
+  id: string;
+  patchId: string;
+  midiChannel: number;
+}
+
+export interface SequencerConfigSnapshot {
+  version: 1;
+  instruments: Array<{
+    patchId: string;
+    midiChannel: number;
+  }>;
+  sequencer: {
+    bpm: number;
+    midiChannel: number;
+    scaleRoot: SequencerScaleRoot;
+    scaleType: SequencerScaleType;
+    mode: SequencerMode;
+    trackId: string;
+    stepCount: 16 | 32;
+    activePad: number;
+    queuedPad: number | null;
+    pads: Array<Array<number | null>>;
+    pianoRollMidiChannel: number;
+    pianoRollScaleRoot: SequencerScaleRoot;
+    pianoRollScaleType: SequencerScaleType;
+    pianoRollMode: SequencerMode;
+  };
+}
+
 export interface SessionSequencerPadConfig {
   pad_index: number;
   steps: Array<number | Array<number> | null>;
@@ -176,6 +211,7 @@ export type SessionState = "idle" | "compiled" | "running" | "error";
 export interface SessionInfo {
   session_id: string;
   patch_id: string;
+  instruments: SessionInstrumentAssignment[];
   state: SessionState;
   midi_input: string | null;
   created_at: string;
@@ -185,6 +221,7 @@ export interface SessionInfo {
 export interface SessionCreateResponse {
   session_id: string;
   patch_id: string;
+  instruments: SessionInstrumentAssignment[];
   state: SessionState;
 }
 

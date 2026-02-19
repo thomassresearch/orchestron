@@ -15,19 +15,39 @@ class SessionState(StrEnum):
     ERROR = "error"
 
 
-class SessionCreateRequest(BaseModel):
+class SessionInstrumentAssignment(BaseModel):
     patch_id: str = Field(min_length=1)
+    midi_channel: int = Field(default=1, ge=1, le=16)
+
+
+class SessionCreateRequest(BaseModel):
+    patch_id: str | None = Field(default=None, min_length=1)
+    instruments: list[SessionInstrumentAssignment] = Field(default_factory=list, min_length=0, max_length=16)
+
+    @model_validator(mode="after")
+    def validate_instrument_selection(self) -> "SessionCreateRequest":
+        if not self.instruments and not self.patch_id:
+            raise ValueError("Either patch_id or instruments must be provided when creating a session.")
+
+        seen_channels: set[int] = set()
+        for assignment in self.instruments:
+            if assignment.midi_channel in seen_channels:
+                raise ValueError(f"MIDI channel '{assignment.midi_channel}' is assigned more than once.")
+            seen_channels.add(assignment.midi_channel)
+        return self
 
 
 class SessionCreateResponse(BaseModel):
     session_id: str
     patch_id: str
+    instruments: list[SessionInstrumentAssignment] = Field(default_factory=list)
     state: SessionState
 
 
 class SessionInfo(BaseModel):
     session_id: str
     patch_id: str
+    instruments: list[SessionInstrumentAssignment] = Field(default_factory=list)
     state: SessionState
     midi_input: str | None = None
     created_at: datetime

@@ -22,9 +22,10 @@ from backend.app.models.session import (
     SessionCreateResponse,
     SessionEvent,
     SessionInfo,
+    SessionInstrumentAssignment,
     SessionState,
 )
-from backend.app.services.compiler_service import CompilationError, CompilerService
+from backend.app.services.compiler_service import CompilationError, CompilerService, PatchInstrumentTarget
 from backend.app.services.event_bus import SessionEventBus
 from backend.app.services.midi_service import MidiService
 from backend.app.services.patch_service import PatchService
@@ -53,15 +54,17 @@ class SessionService:
 
     async def create_session(self, request: SessionCreateRequest) -> SessionCreateResponse:
         self._remember_running_loop()
-        # Verify patch exists before creating runtime.
-        self._patch_service.get_patch_document(request.patch_id)
+        instruments = self._resolve_session_instruments(request)
+        # Verify patches exist before creating runtime.
+        for assignment in instruments:
+            self._patch_service.get_patch_document(assignment.patch_id)
 
         midi_inputs = self._midi_service.list_inputs()
         default_midi = midi_inputs[0].id if midi_inputs else self._settings.default_midi_device
 
         runtime = RuntimeSession(
             session_id=str(uuid4()),
-            patch_id=request.patch_id,
+            instruments=instruments,
             midi_input=default_midi,
         )
         runtime.sequencer = SessionSequencerRuntime(
@@ -78,11 +81,16 @@ class SessionService:
         async with self._lock:
             self._sessions[runtime.session_id] = runtime
 
-        await self._publish(runtime.session_id, "session_created", {"patch_id": runtime.patch_id})
+        await self._publish(
+            runtime.session_id,
+            "session_created",
+            {"patch_id": runtime.patch_id, "instrument_count": len(runtime.instruments)},
+        )
 
         return SessionCreateResponse(
             session_id=runtime.session_id,
             patch_id=runtime.patch_id,
+            instruments=runtime.instruments,
             state=runtime.state,
         )
 
@@ -100,13 +108,19 @@ class SessionService:
     async def compile_session(self, session_id: str) -> CompileResponse:
         self._remember_running_loop()
         runtime = await self._get_session(session_id)
-        patch = self._patch_service.get_patch_document(runtime.patch_id)
+        targets = [
+            PatchInstrumentTarget(
+                patch=self._patch_service.get_patch_document(assignment.patch_id),
+                midi_channel=assignment.midi_channel,
+            )
+            for assignment in runtime.instruments
+        ]
 
         midi_device = runtime.midi_input or self._settings.default_midi_device
 
         try:
-            artifact = self._compiler_service.compile_patch(
-                patch=patch,
+            artifact = self._compiler_service.compile_patch_bundle(
+                targets=targets,
                 midi_input=midi_device,
                 rtmidi_module=self._settings.default_rtmidi_module,
             )
@@ -368,11 +382,20 @@ class SessionService:
         return SessionInfo(
             session_id=runtime.session_id,
             patch_id=runtime.patch_id,
+            instruments=runtime.instruments,
             state=runtime.state,
             midi_input=runtime.midi_input,
             created_at=runtime.created_at,
             started_at=runtime.started_at,
         )
+
+    @staticmethod
+    def _resolve_session_instruments(request: SessionCreateRequest) -> list[SessionInstrumentAssignment]:
+        if request.instruments:
+            return list(request.instruments)
+        if request.patch_id:
+            return [SessionInstrumentAssignment(patch_id=request.patch_id, midi_channel=1)]
+        raise HTTPException(status_code=422, detail="Session requires at least one instrument patch.")
 
     async def _publish(self, session_id: str, event_type: str, payload: dict[str, str | int | float | bool | None]) -> None:
         event = SessionEvent(session_id=session_id, type=event_type, payload=payload)
