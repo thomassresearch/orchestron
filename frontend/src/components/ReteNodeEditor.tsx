@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState, type DragEvent } from "react";
 import { createRoot } from "react-dom/client";
 
 import { ClassicPreset, NodeEditor } from "rete";
@@ -6,7 +6,8 @@ import { AreaExtensions, AreaPlugin } from "rete-area-plugin";
 import { ConnectionPlugin, Presets as ConnectionPresets } from "rete-connection-plugin";
 import { Presets as ReactPresets, ReactPlugin } from "rete-react-plugin";
 
-import type { Connection, OpcodeSpec, PatchGraph, SignalType } from "../types";
+import { getDraggedOpcodeName, hasDraggedOpcode } from "../lib/opcodeDragDrop";
+import type { Connection, NodePosition, OpcodeSpec, PatchGraph, SignalType } from "../types";
 
 type EditorHandle = {
   destroy: () => void;
@@ -22,11 +23,14 @@ interface ReteNodeEditorProps {
   opcodes: OpcodeSpec[];
   onGraphChange: (graph: PatchGraph) => void;
   onSelectionChange: (selection: EditorSelection) => void;
+  onAddOpcodeAtPosition?: (opcode: OpcodeSpec, position: NodePosition) => void;
   onOpcodeHelpRequest?: (opcodeName: string) => void;
 }
 
 const CONSTANT_OPCODES = new Set(["const_a", "const_i", "const_k"]);
 const GENERATOR_CATEGORIES = new Set(["oscillator", "envelope"]);
+const MIN_ZOOM = 0.2;
+const MAX_ZOOM = 2;
 
 type NodePalette = {
   background: string;
@@ -178,11 +182,149 @@ export function ReteNodeEditor({
   opcodes,
   onGraphChange,
   onSelectionChange,
+  onAddOpcodeAtPosition,
   onOpcodeHelpRequest
 }: ReteNodeEditorProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const initializingRef = useRef(false);
   const graphRef = useRef(graph);
+  const areaRef = useRef<AreaPlugin<any, any> | null>(null);
+  const editorRef = useRef<NodeEditor<any> | null>(null);
+  const [zoomPercent, setZoomPercent] = useState(100);
+  const [isOpcodeDragOver, setIsOpcodeDragOver] = useState(false);
+
+  const syncZoomPercent = useCallback(() => {
+    const area = areaRef.current;
+    if (!area) {
+      return;
+    }
+    setZoomPercent(Math.round(area.area.transform.k * 100));
+  }, []);
+
+  const zoomToViewportCenter = useCallback(
+    (targetZoom: number) => {
+      const area = areaRef.current;
+      const container = containerRef.current;
+      if (!area || !container) {
+        return;
+      }
+
+      const currentZoom = area.area.transform.k;
+      const nextZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, targetZoom));
+      if (Math.abs(nextZoom - currentZoom) < 0.0001) {
+        return;
+      }
+
+      const containerRect = container.getBoundingClientRect();
+      const holderRect = area.area.content.holder.getBoundingClientRect();
+      const centerClientX = containerRect.left + containerRect.width / 2;
+      const centerClientY = containerRect.top + containerRect.height / 2;
+      const delta = nextZoom / currentZoom - 1;
+      const ox = (holderRect.left - centerClientX) * delta;
+      const oy = (holderRect.top - centerClientY) * delta;
+
+      void area.area.zoom(nextZoom, ox, oy).then((zoomed) => {
+        if (zoomed !== false) {
+          syncZoomPercent();
+        }
+      });
+    },
+    [syncZoomPercent]
+  );
+
+  const zoomByFactor = useCallback(
+    (factor: number) => {
+      const area = areaRef.current;
+      if (!area) {
+        return;
+      }
+      zoomToViewportCenter(area.area.transform.k * factor);
+    },
+    [zoomToViewportCenter]
+  );
+
+  const fitGraphInView = useCallback(() => {
+    const area = areaRef.current;
+    const editor = editorRef.current;
+    const container = containerRef.current;
+    if (!area || !editor || !container) {
+      return;
+    }
+
+    const nodes = editor.getNodes();
+    if (nodes.length === 0) {
+      void area.area.translate(0, 0).then(() => {
+        zoomToViewportCenter(1);
+      });
+      return;
+    }
+
+    void AreaExtensions.zoomAt(area, nodes).then(() => {
+      syncZoomPercent();
+    });
+  }, [syncZoomPercent, zoomToViewportCenter]);
+
+  const resolveGraphPositionFromClient = useCallback((clientX: number, clientY: number): NodePosition | null => {
+    const area = areaRef.current;
+    const container = containerRef.current;
+    if (!area || !container) {
+      return null;
+    }
+
+    const rect = container.getBoundingClientRect();
+    const localX = Math.max(0, Math.min(rect.width, clientX - rect.left));
+    const localY = Math.max(0, Math.min(rect.height, clientY - rect.top));
+    const transform = area.area.transform;
+
+    return {
+      x: (localX - transform.x) / transform.k,
+      y: (localY - transform.y) / transform.k
+    };
+  }, []);
+
+  const onOpcodeDragOver = useCallback(
+    (event: DragEvent<HTMLDivElement>) => {
+      if (!onAddOpcodeAtPosition) {
+        return;
+      }
+      if (!hasDraggedOpcode(event.dataTransfer)) {
+        return;
+      }
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "copy";
+      if (!isOpcodeDragOver) {
+        setIsOpcodeDragOver(true);
+      }
+    },
+    [isOpcodeDragOver, onAddOpcodeAtPosition]
+  );
+
+  const onOpcodeDrop = useCallback(
+    (event: DragEvent<HTMLDivElement>) => {
+      if (!onAddOpcodeAtPosition) {
+        return;
+      }
+
+      const opcodeName = getDraggedOpcodeName(event.dataTransfer);
+      setIsOpcodeDragOver(false);
+      if (!opcodeName) {
+        return;
+      }
+
+      event.preventDefault();
+      const opcode = opcodes.find((entry) => entry.name === opcodeName);
+      if (!opcode) {
+        return;
+      }
+
+      const position = resolveGraphPositionFromClient(event.clientX, event.clientY);
+      if (!position) {
+        return;
+      }
+      onAddOpcodeAtPosition(opcode, position);
+    },
+    [onAddOpcodeAtPosition, opcodes, resolveGraphPositionFromClient]
+  );
 
   graphRef.current = graph;
   const structureKey = graphStructureKey(graph);
@@ -224,6 +366,8 @@ export function ReteNodeEditor({
       const connection = new ConnectionPlugin<any, any>();
       const render = new ReactPlugin<any, any>({ createRoot });
       const optionalInputPortsByReteNode = new Map<string, Set<string>>();
+      editorRef.current = editor;
+      areaRef.current = area;
 
       render.addPreset(
         ReactPresets.classic.setup({
@@ -570,6 +714,11 @@ export function ReteNodeEditor({
           return context;
         }
 
+        if (context.type === "zoomed") {
+          setZoomPercent(Math.round(context.data.zoom * 100));
+          return context;
+        }
+
         if (context.type === "nodepicked") {
           if (!accumulating.active()) {
             clearConnectionSelection();
@@ -621,6 +770,7 @@ export function ReteNodeEditor({
 
       await AreaExtensions.zoomAt(area, editor.getNodes());
       initializingRef.current = false;
+      syncZoomPercent();
       emitSelection();
 
       handle = {
@@ -643,15 +793,56 @@ export function ReteNodeEditor({
       cancelled = true;
       initializingRef.current = false;
       handle?.destroy();
+      areaRef.current = null;
+      editorRef.current = null;
       if (containerRef.current) {
         containerRef.current.innerHTML = "";
       }
     };
-  }, [opcodes, onGraphChange, onOpcodeHelpRequest, onSelectionChange, structureKey]);
+  }, [opcodes, onGraphChange, onOpcodeHelpRequest, onSelectionChange, structureKey, syncZoomPercent]);
 
   return (
-    <div className="h-full w-full rounded-2xl border border-slate-700/70 bg-slate-950/75">
+    <div
+      className={`relative h-full w-full rounded-2xl border bg-slate-950/75 ${
+        isOpcodeDragOver ? "border-accent/80 ring-2 ring-accent/50" : "border-slate-700/70"
+      }`}
+      onDragOver={onOpcodeDragOver}
+      onDrop={onOpcodeDrop}
+      onDragLeave={() => setIsOpcodeDragOver(false)}
+    >
       <div ref={containerRef} className="h-full w-full" />
+      <div className="absolute bottom-3 right-3 z-10 inline-flex items-center overflow-hidden rounded-lg border border-slate-700/90 bg-slate-950/95 text-xs text-slate-200 shadow-lg shadow-black/40">
+        <button
+          type="button"
+          onClick={() => zoomByFactor(0.9)}
+          className="h-7 w-7 border-r border-slate-700/80 transition hover:bg-slate-800"
+          aria-label="Zoom out"
+          title="Zoom out"
+        >
+          -
+        </button>
+        <button
+          type="button"
+          onClick={() => zoomByFactor(1.1)}
+          className="h-7 w-7 border-r border-slate-700/80 transition hover:bg-slate-800"
+          aria-label="Zoom in"
+          title="Zoom in"
+        >
+          +
+        </button>
+        <button
+          type="button"
+          onClick={fitGraphInView}
+          className="h-7 px-2 font-semibold uppercase tracking-[0.12em] transition hover:bg-slate-800"
+          aria-label="Fit full graph in view"
+          title="Fit full graph in view"
+        >
+          Fit
+        </button>
+      </div>
+      <div className="pointer-events-none absolute bottom-3 right-[124px] z-10 rounded-md border border-slate-700/90 bg-slate-950/90 px-2 py-1 font-mono text-[10px] text-slate-300">
+        {zoomPercent}%
+      </div>
     </div>
   );
 }

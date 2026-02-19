@@ -6,6 +6,7 @@ interface RuntimePanelProps {
   compileOutput: CompileResponse | null;
   events: SessionEvent[];
   onBindMidiInput: (midiInput: string) => void;
+  onToggleCollapse?: () => void;
 }
 
 export function RuntimePanel({
@@ -13,13 +14,27 @@ export function RuntimePanel({
   selectedMidiInput,
   compileOutput,
   events,
-  onBindMidiInput
+  onBindMidiInput,
+  onToggleCollapse
 }: RuntimePanelProps) {
   const recentEvents = [...events].slice(-10).reverse();
 
   return (
     <aside className="flex h-full flex-col rounded-2xl border border-slate-700/70 bg-slate-900/75 p-3">
-      <h2 className="font-display text-sm uppercase tracking-[0.24em] text-slate-300">Runtime</h2>
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="font-display text-sm uppercase tracking-[0.24em] text-slate-300">Runtime</h2>
+        {onToggleCollapse ? (
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            className="rounded-md border border-slate-700 bg-slate-950/80 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-300 transition hover:bg-slate-800"
+            aria-label="Collapse runtime panel"
+            title="Collapse runtime panel"
+          >
+            Hide
+          </button>
+        ) : null}
+      </div>
 
       <label className="mt-3 text-xs uppercase tracking-[0.18em] text-slate-400">
         MIDI Input

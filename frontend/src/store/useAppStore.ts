@@ -9,6 +9,7 @@ import type {
   JsonObject,
   MidiInputRef,
   NodeInstance,
+  NodePosition,
   OpcodeSpec,
   Patch,
   PatchGraph,
@@ -55,7 +56,7 @@ interface AppStore {
   newPatch: () => void;
   setCurrentPatchMeta: (name: string, description: string) => void;
   setGraph: (graph: PatchGraph) => void;
-  addNodeFromOpcode: (opcode: OpcodeSpec) => void;
+  addNodeFromOpcode: (opcode: OpcodeSpec, position?: NodePosition) => void;
   removeNode: (nodeId: string) => void;
   removeConnection: (connectionIndex: number) => void;
   saveCurrentPatch: () => Promise<void>;
@@ -358,7 +359,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     });
   },
 
-  addNodeFromOpcode: (opcode) => {
+  addNodeFromOpcode: (opcode, position) => {
     const current = get().currentPatch;
     const index = current.graph.nodes.length;
 
@@ -366,7 +367,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       id: crypto.randomUUID(),
       opcode: opcode.name,
       params: defaultParams(opcode),
-      position: randomPosition(index)
+      position: position ?? randomPosition(index)
     };
 
     set({

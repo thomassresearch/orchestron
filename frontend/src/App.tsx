@@ -132,6 +132,7 @@ export default function App() {
   });
   const [activeOpcodeDocumentation, setActiveOpcodeDocumentation] = useState<string | null>(null);
   const [sequencerError, setSequencerError] = useState<string | null>(null);
+  const [runtimePanelCollapsed, setRuntimePanelCollapsed] = useState(false);
 
   const sequencerRef = useRef(sequencer);
   const intervalRef = useRef<number | null>(null);
@@ -525,6 +526,10 @@ export default function App() {
     });
   }, [currentPatch.graph, selectedCount, selection.connections, selection.nodeIds, setGraph]);
 
+  const instrumentLayoutClassName = runtimePanelCollapsed
+    ? "grid h-[72vh] grid-cols-1 gap-4 xl:grid-cols-[300px_1fr]"
+    : "grid h-[72vh] grid-cols-1 gap-4 xl:grid-cols-[300px_1fr_360px]";
+
   return (
     <div className="min-h-screen bg-[radial-gradient(ellipse_at_top_left,_#1e293b,_#020617_60%)] px-4 py-5 text-slate-100 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-[1700px] space-y-4">
@@ -609,7 +614,7 @@ export default function App() {
         )}
 
         {activePage === "instrument" && (
-          <main className="grid h-[72vh] grid-cols-1 gap-4 xl:grid-cols-[300px_1fr_360px]">
+          <main className={instrumentLayoutClassName}>
             <OpcodeCatalog opcodes={opcodes} onAddOpcode={addNodeFromOpcode} />
 
             <section className="flex h-full min-h-[480px] flex-col gap-2">
@@ -645,20 +650,24 @@ export default function App() {
                   opcodes={opcodes}
                   onGraphChange={onGraphChange}
                   onSelectionChange={setSelection}
+                  onAddOpcodeAtPosition={addNodeFromOpcode}
                   onOpcodeHelpRequest={onOpcodeHelpRequest}
                 />
               </div>
             </section>
 
-            <RuntimePanel
-              midiInputs={midiInputs}
-              selectedMidiInput={activeMidiInput}
-              compileOutput={compileOutput}
-              events={events}
-              onBindMidiInput={(midiInput) => {
-                void bindMidiInput(midiInput);
-              }}
-            />
+            {!runtimePanelCollapsed ? (
+              <RuntimePanel
+                midiInputs={midiInputs}
+                selectedMidiInput={activeMidiInput}
+                compileOutput={compileOutput}
+                events={events}
+                onBindMidiInput={(midiInput) => {
+                  void bindMidiInput(midiInput);
+                }}
+                onToggleCollapse={() => setRuntimePanelCollapsed(true)}
+              />
+            ) : null}
           </main>
         )}
 
