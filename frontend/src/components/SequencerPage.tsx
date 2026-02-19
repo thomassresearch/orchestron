@@ -183,6 +183,7 @@ export function SequencerPage({
     };
   }, [pianoRollNotes, pianoRollOptionsByNote]);
   const [stepSelectPreviewByStep, setStepSelectPreviewByStep] = useState<Record<number, number>>({});
+  const stepPreviewCommitByStepRef = useRef<Record<number, number>>({});
   const [activePianoNotes, setActivePianoNotes] = useState<Record<number, true>>({});
   const pianoPointerNotesRef = useRef<Record<number, { note: number; channel: number }>>({});
   const pianoKeyboardViewportRef = useRef<HTMLDivElement | null>(null);
@@ -353,37 +354,67 @@ export function SequencerPage({
     });
   }, []);
 
+  const clearStepPreviewCommit = useCallback((stepIndex: number) => {
+    if (!(stepIndex in stepPreviewCommitByStepRef.current)) {
+      return;
+    }
+    delete stepPreviewCommitByStepRef.current[stepIndex];
+  }, []);
+
+  const resolveStepPreviewNote = useCallback(
+    (stepIndex: number, noteValue: number | null): number | null => {
+      if (noteValue !== null) {
+        return null;
+      }
+
+      const cached = stepSelectPreviewByStep[stepIndex];
+      if (typeof cached === "number") {
+        return cached;
+      }
+
+      for (let index = stepIndex - 1; index >= 0; index -= 1) {
+        const candidate = sequencer.steps[index];
+        if (typeof candidate === "number") {
+          return candidate;
+        }
+      }
+
+      return null;
+    },
+    [sequencer.steps, stepSelectPreviewByStep]
+  );
+
   const primeStepSelectPreview = useCallback(
     (stepIndex: number, noteValue: number | null) => {
-      if (noteValue !== null) {
+      const previewNote = resolveStepPreviewNote(stepIndex, noteValue);
+      if (previewNote === null) {
         return;
       }
 
       setStepSelectPreviewByStep((previous) => {
-        if (previous[stepIndex] !== undefined) {
-          return previous;
-        }
-
-        let previousNote: number | null = null;
-        for (let index = stepIndex - 1; index >= 0; index -= 1) {
-          const candidate = sequencer.steps[index];
-          if (typeof candidate === "number") {
-            previousNote = candidate;
-            break;
-          }
-        }
-
-        if (previousNote === null) {
+        if (previous[stepIndex] === previewNote) {
           return previous;
         }
 
         return {
           ...previous,
-          [stepIndex]: previousNote
+          [stepIndex]: previewNote
         };
       });
     },
-    [sequencer.steps]
+    [resolveStepPreviewNote]
+  );
+
+  const armStepPreviewCommit = useCallback(
+    (stepIndex: number, noteValue: number | null) => {
+      const previewNote = resolveStepPreviewNote(stepIndex, noteValue);
+      if (previewNote === null) {
+        clearStepPreviewCommit(stepIndex);
+        return;
+      }
+      stepPreviewCommitByStepRef.current[stepIndex] = previewNote;
+    },
+    [clearStepPreviewCommit, resolveStepPreviewNote]
   );
 
   const pianoRollInteractive = instrumentsRunning && pianoRollRunning;
@@ -709,11 +740,22 @@ export function SequencerPage({
                     onChange={(event) => {
                       const raw = event.target.value.trim();
                       onStepNoteChange(step, raw.length === 0 ? null : Number(raw));
+                      clearStepPreviewCommit(step);
                       clearStepSelectPreview(step);
                     }}
                     onFocus={() => primeStepSelectPreview(step, noteValue)}
-                    onMouseDown={() => primeStepSelectPreview(step, noteValue)}
-                    onBlur={() => clearStepSelectPreview(step)}
+                    onMouseDown={() => {
+                      primeStepSelectPreview(step, noteValue);
+                      armStepPreviewCommit(step, noteValue);
+                    }}
+                    onBlur={() => {
+                      const pendingPreview = stepPreviewCommitByStepRef.current[step];
+                      if (noteValue === null && pendingPreview !== undefined) {
+                        onStepNoteChange(step, pendingPreview);
+                      }
+                      clearStepPreviewCommit(step);
+                      clearStepSelectPreview(step);
+                    }}
                     className="mt-2 w-full rounded-md border border-slate-600 bg-slate-950 px-2 py-1 text-center font-mono text-xs text-slate-100 outline-none ring-accent/40 transition focus:ring"
                   >
                     <option value="">Rest</option>
