@@ -408,10 +408,9 @@ export function ReteNodeEditor({
 
         if (spec) {
           for (const input of spec.inputs) {
-            const inputLabel = input.required ? input.name : `${input.name} (optional)`;
             visualNode.addInput(
               input.id,
-              new ClassicPreset.Input(socketForType(sockets, input.signal_type), inputLabel)
+              new ClassicPreset.Input(socketForType(sockets, input.signal_type), input.name)
             );
           }
 

@@ -474,3 +474,126 @@ def test_ftgen_output_connects_to_vco_ifn(tmp_path: Path) -> None:
 
         vco_line = next(line.strip() for line in compiled_orc.splitlines() if " vco " in line)
         assert vco_line.endswith(", 0.5, i_n1_ift_1")
+
+
+def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
+    expected_urls = {
+        "lfo": "https://csound.com/docs/manual/lfo.html",
+        "poscil3": "https://csound.com/docs/manual/poscil3.html",
+        "vibr": "https://csound.com/docs/manual/vibr.html",
+        "vibrato": "https://csound.com/docs/manual/vibrato.html",
+        "fmb3": "https://csound.com/docs/manual/fmb3.html",
+        "fmbell": "https://csound.com/docs/manual/fmbell.html",
+        "fmmetal": "https://csound.com/docs/manual/fmmetal.html",
+        "fmpercfl": "https://csound.com/docs/manual/fmpercfl.html",
+        "fmrhode": "https://csound.com/docs/manual/fmrhode.html",
+        "fmvoice": "https://csound.com/docs/manual/fmvoice.html",
+        "fmwurlie": "https://csound.com/docs/manual/fmwurlie.html",
+        "madsr": "https://csound.com/docs/manual/madsr.html",
+        "mxadsr": "https://csound.com/docs/manual/mxadsr.html",
+        "pinker": "https://csound.com/docs/manual/pinker.html",
+        "noise": "https://csound.com/docs/manual/noise.html",
+        "pluck": "https://csound.com/docs/manual/pluck.html",
+        "wgflute": "https://csound.com/docs/manual/wgflute.html",
+        "wguide2": "https://csound.com/docs/manual/wguide2.html",
+        "pan2": "https://csound.com/docs/manual/pan2.html",
+        "vdelay3": "https://csound.com/docs/manual/vdelay3.html",
+        "flanger": "https://csound.com/docs/manual/flanger.html",
+        "comb": "https://csound.com/docs/manual/comb.html",
+        "reverb2": "https://csound.com/docs/manual/reverb2.html",
+        "limit": "https://csound.com/docs/manual/limit.html",
+    }
+
+    with _client(tmp_path) as client:
+        response = client.get("/api/opcodes")
+        assert response.status_code == 200
+        opcodes_by_name = {item["name"]: item for item in response.json()}
+
+        for opcode_name, expected_url in expected_urls.items():
+            assert opcode_name in opcodes_by_name
+            assert opcodes_by_name[opcode_name]["documentation_url"] == expected_url
+
+
+def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        patch_payload = {
+            "name": "Additional Opcodes",
+            "description": "compile coverage for expanded opcode set",
+            "schema_version": 1,
+            "graph": {
+                "nodes": [
+                    {"id": "n1", "opcode": "poscil3", "params": {"amp": 0.2, "freq": 220}, "position": {"x": 20, "y": 20}},
+                    {"id": "n2", "opcode": "outs", "params": {}, "position": {"x": 200, "y": 20}},
+                    {"id": "n3", "opcode": "lfo", "params": {"kamp": 0.4, "kcps": 3}, "position": {"x": 20, "y": 120}},
+                    {"id": "n4", "opcode": "vibr", "params": {"amp": 0.01, "cps": 5, "ifn": 1}, "position": {"x": 20, "y": 170}},
+                    {"id": "n5", "opcode": "vibrato", "params": {}, "position": {"x": 20, "y": 220}},
+                    {"id": "n6", "opcode": "fmb3", "params": {}, "position": {"x": 20, "y": 270}},
+                    {"id": "n7", "opcode": "fmbell", "params": {}, "position": {"x": 20, "y": 320}},
+                    {"id": "n8", "opcode": "fmmetal", "params": {}, "position": {"x": 20, "y": 370}},
+                    {"id": "n9", "opcode": "fmpercfl", "params": {}, "position": {"x": 20, "y": 420}},
+                    {"id": "n10", "opcode": "fmrhode", "params": {}, "position": {"x": 20, "y": 470}},
+                    {"id": "n11", "opcode": "fmvoice", "params": {}, "position": {"x": 20, "y": 520}},
+                    {"id": "n12", "opcode": "fmwurlie", "params": {}, "position": {"x": 20, "y": 570}},
+                    {"id": "n13", "opcode": "madsr", "params": {}, "position": {"x": 20, "y": 620}},
+                    {"id": "n14", "opcode": "mxadsr", "params": {}, "position": {"x": 20, "y": 670}},
+                    {"id": "n15", "opcode": "pinker", "params": {}, "position": {"x": 20, "y": 720}},
+                    {"id": "n16", "opcode": "noise", "params": {}, "position": {"x": 20, "y": 770}},
+                    {"id": "n17", "opcode": "pluck", "params": {}, "position": {"x": 20, "y": 820}},
+                    {"id": "n18", "opcode": "wgflute", "params": {}, "position": {"x": 20, "y": 870}},
+                    {"id": "n19", "opcode": "wguide2", "params": {"asig": 0}, "position": {"x": 20, "y": 920}},
+                    {"id": "n20", "opcode": "pan2", "params": {"asig": 0}, "position": {"x": 20, "y": 970}},
+                    {"id": "n21", "opcode": "vdelay3", "params": {"asig": 0}, "position": {"x": 20, "y": 1020}},
+                    {"id": "n22", "opcode": "flanger", "params": {"asig": 0}, "position": {"x": 20, "y": 1070}},
+                    {"id": "n23", "opcode": "comb", "params": {"asig": 0}, "position": {"x": 20, "y": 1120}},
+                    {"id": "n24", "opcode": "reverb2", "params": {"asig": 0}, "position": {"x": 20, "y": 1170}},
+                    {"id": "n25", "opcode": "limit", "params": {"xin": 0}, "position": {"x": 20, "y": 1220}},
+                ],
+                "connections": [
+                    {"from_node_id": "n1", "from_port_id": "asig", "to_node_id": "n2", "to_port_id": "left"},
+                    {"from_node_id": "n1", "from_port_id": "asig", "to_node_id": "n2", "to_port_id": "right"},
+                ],
+                "ui_layout": {},
+                "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+            },
+        }
+
+        create_patch = client.post("/api/patches", json=patch_payload)
+        assert create_patch.status_code == 201
+        patch_id = create_patch.json()["id"]
+
+        create_session = client.post("/api/sessions", json={"patch_id": patch_id})
+        assert create_session.status_code == 201
+        session_id = create_session.json()["session_id"]
+
+        compile_response = client.post(f"/api/sessions/{session_id}/compile")
+        assert compile_response.status_code == 200
+        compiled_orc = compile_response.json()["orc"]
+
+        assert "__VS_OPTIONAL_OMIT__" not in compiled_orc
+        for opcode in [
+            "poscil3",
+            "lfo",
+            "vibr",
+            "vibrato",
+            "fmb3",
+            "fmbell",
+            "fmmetal",
+            "fmpercfl",
+            "fmrhode",
+            "fmvoice",
+            "fmwurlie",
+            "madsr",
+            "mxadsr",
+            "pinker",
+            "noise",
+            "pluck",
+            "wgflute",
+            "wguide2",
+            "pan2",
+            "vdelay3",
+            "flanger",
+            "comb",
+            "reverb2",
+            "limit",
+        ]:
+            assert opcode in compiled_orc
