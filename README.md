@@ -68,3 +68,25 @@ Useful flags:
 - `--dest <name|index>`: destination by index (from `--list`) or name
 - `--report-every <N>`: periodic timing summary in milliseconds
 - `--verbose`: per-note lateness output
+
+## MIDI Stats CLI (receiver probe)
+
+This repository also includes a native macOS MIDI receiver for measuring incoming event interval/jitter.
+
+Build:
+
+```bash
+make midi-stats-build
+```
+
+List MIDI sources:
+
+```bash
+./tools/midi_stats --list
+```
+
+Receive and report every 200 matching events:
+
+```bash
+./tools/midi_stats --dest 0 --channel 1 --report-every 200
+```

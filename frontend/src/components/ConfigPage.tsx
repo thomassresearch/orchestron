@@ -4,13 +4,21 @@ const AUDIO_RATE_MIN = 22000;
 const AUDIO_RATE_MAX = 48000;
 const CONTROL_RATE_MIN = 25;
 const CONTROL_RATE_MAX = 48000;
+const ENGINE_BUFFER_MIN = 32;
+const ENGINE_BUFFER_MAX = 8192;
 
 interface ConfigPageProps {
   audioRate: number;
   controlRate: number;
   ksmps: number;
-  onAudioRateChange: (value: number) => void;
-  onControlRateChange: (value: number) => void;
+  softwareBuffer: number;
+  hardwareBuffer: number;
+  onApplyEngineConfig: (config: {
+    sr: number;
+    controlRate: number;
+    softwareBuffer: number;
+    hardwareBuffer: number;
+  }) => void | Promise<void>;
 }
 
 function parsePositiveInteger(value: string): number | null {
@@ -37,11 +45,14 @@ export function ConfigPage({
   audioRate,
   controlRate,
   ksmps,
-  onAudioRateChange,
-  onControlRateChange
+  softwareBuffer,
+  hardwareBuffer,
+  onApplyEngineConfig
 }: ConfigPageProps) {
   const [audioInput, setAudioInput] = useState(String(audioRate));
   const [controlInput, setControlInput] = useState(String(controlRate));
+  const [softwareBufferInput, setSoftwareBufferInput] = useState(String(softwareBuffer));
+  const [hardwareBufferInput, setHardwareBufferInput] = useState(String(hardwareBuffer));
 
   useEffect(() => {
     setAudioInput(String(audioRate));
@@ -51,13 +62,43 @@ export function ConfigPage({
     setControlInput(String(controlRate));
   }, [controlRate]);
 
+  useEffect(() => {
+    setSoftwareBufferInput(String(softwareBuffer));
+  }, [softwareBuffer]);
+
+  useEffect(() => {
+    setHardwareBufferInput(String(hardwareBuffer));
+  }, [hardwareBuffer]);
+
   const parsedAudioRate = parsePositiveInteger(audioInput);
   const parsedControlRate = parsePositiveInteger(controlInput);
+  const parsedSoftwareBuffer = parsePositiveInteger(softwareBufferInput);
+  const parsedHardwareBuffer = parsePositiveInteger(hardwareBufferInput);
 
   const audioError = validateRange(parsedAudioRate, AUDIO_RATE_MIN, AUDIO_RATE_MAX, "Audio sample rate");
   const controlError = validateRange(parsedControlRate, CONTROL_RATE_MIN, CONTROL_RATE_MAX, "Control sample rate");
+  const softwareBufferError = validateRange(
+    parsedSoftwareBuffer,
+    ENGINE_BUFFER_MIN,
+    ENGINE_BUFFER_MAX,
+    "Software buffer"
+  );
+  const hardwareBufferError = validateRange(
+    parsedHardwareBuffer,
+    ENGINE_BUFFER_MIN,
+    ENGINE_BUFFER_MAX,
+    "Hardware buffer"
+  );
 
-  const canApply = audioError === null && controlError === null && parsedAudioRate !== null && parsedControlRate !== null;
+  const canApply =
+    audioError === null &&
+    controlError === null &&
+    softwareBufferError === null &&
+    hardwareBufferError === null &&
+    parsedAudioRate !== null &&
+    parsedControlRate !== null &&
+    parsedSoftwareBuffer !== null &&
+    parsedHardwareBuffer !== null;
 
   const previewKsmps = useMemo(() => {
     if (!canApply || parsedAudioRate === null || parsedControlRate === null) {
@@ -74,12 +115,22 @@ export function ConfigPage({
   }, [audioRate, canApply, ksmps, parsedAudioRate, previewKsmps]);
 
   const onApply = () => {
-    if (!canApply || parsedAudioRate === null || parsedControlRate === null) {
+    if (
+      !canApply ||
+      parsedAudioRate === null ||
+      parsedControlRate === null ||
+      parsedSoftwareBuffer === null ||
+      parsedHardwareBuffer === null
+    ) {
       return;
     }
 
-    onAudioRateChange(parsedAudioRate);
-    onControlRateChange(parsedControlRate);
+    void onApplyEngineConfig({
+      sr: parsedAudioRate,
+      controlRate: parsedControlRate,
+      softwareBuffer: parsedSoftwareBuffer,
+      hardwareBuffer: parsedHardwareBuffer
+    });
   };
 
   return (
@@ -87,7 +138,8 @@ export function ConfigPage({
       <section className="rounded-2xl border border-slate-700/70 bg-slate-900/75 p-5">
         <h2 className="font-display text-lg font-semibold tracking-tight text-slate-100">Audio Engine Configuration</h2>
         <p className="mt-1 text-sm text-slate-400">
-          Configure audio-rate (`sr`) and target control-rate sampling. VisualCSound derives `ksmps` from both values.
+          Configure audio-rate (`sr`), target control-rate sampling, and runtime buffer sizes. VisualCSound derives
+          `ksmps` from sample rate and control rate.
         </p>
 
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
@@ -124,6 +176,40 @@ export function ConfigPage({
               {controlError ?? `Allowed: ${CONTROL_RATE_MIN} - ${CONTROL_RATE_MAX}`}
             </span>
           </label>
+
+          <label className="flex flex-col gap-2">
+            <span className="text-xs uppercase tracking-[0.18em] text-slate-400">Software Buffer (`-b`)</span>
+            <input
+              type="number"
+              inputMode="numeric"
+              min={ENGINE_BUFFER_MIN}
+              max={ENGINE_BUFFER_MAX}
+              step={1}
+              value={softwareBufferInput}
+              onChange={(event) => setSoftwareBufferInput(event.target.value)}
+              className="rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 font-mono text-sm text-slate-100 outline-none ring-accent/40 transition focus:ring"
+            />
+            <span className={`text-xs ${softwareBufferError ? "text-rose-300" : "text-slate-500"}`}>
+              {softwareBufferError ?? `Allowed: ${ENGINE_BUFFER_MIN} - ${ENGINE_BUFFER_MAX}`}
+            </span>
+          </label>
+
+          <label className="flex flex-col gap-2">
+            <span className="text-xs uppercase tracking-[0.18em] text-slate-400">Hardware Buffer (`-B`)</span>
+            <input
+              type="number"
+              inputMode="numeric"
+              min={ENGINE_BUFFER_MIN}
+              max={ENGINE_BUFFER_MAX}
+              step={1}
+              value={hardwareBufferInput}
+              onChange={(event) => setHardwareBufferInput(event.target.value)}
+              className="rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 font-mono text-sm text-slate-100 outline-none ring-accent/40 transition focus:ring"
+            />
+            <span className={`text-xs ${hardwareBufferError ? "text-rose-300" : "text-slate-500"}`}>
+              {hardwareBufferError ?? `Allowed: ${ENGINE_BUFFER_MIN} - ${ENGINE_BUFFER_MAX}`}
+            </span>
+          </label>
         </div>
 
         <div className="mt-5 flex flex-wrap items-center gap-3">
@@ -158,6 +244,14 @@ export function ConfigPage({
           <div className="flex items-center justify-between gap-2 rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2">
             <dt>ksmps</dt>
             <dd className="font-mono">{ksmps}</dd>
+          </div>
+          <div className="flex items-center justify-between gap-2 rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2">
+            <dt>software_buffer (-b)</dt>
+            <dd className="font-mono">{softwareBuffer}</dd>
+          </div>
+          <div className="flex items-center justify-between gap-2 rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2">
+            <dt>hardware_buffer (-B)</dt>
+            <dd className="font-mono">{hardwareBuffer}</dd>
           </div>
         </dl>
       </aside>

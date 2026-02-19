@@ -172,3 +172,13 @@ Run a high-rate timing test:
 ```
 
 The utility prints note-on lateness stats (`mean`, `abs_mean`, `min`, `max`) in milliseconds so you can compare baseline sender jitter against Csound-integrated runs.
+
+Receive-side stats probe:
+
+```bash
+make midi-stats-build
+./tools/midi_stats --list
+./tools/midi_stats --dest 0 --channel 1 --report-every 250
+```
+
+`midi_stats` listens to note-on events (velocity > 0) and prints interval/jitter aggregates every `--report-every` events.

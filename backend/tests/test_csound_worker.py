@@ -18,7 +18,7 @@ def test_apply_runtime_midi_options_replaces_csd_midi_flags() -> None:
         [
             "<CsoundSynthesizer>",
             "<CsOptions>",
-            "-d -odac -M1 -+rtmidi=cmidi -+rtaudio=jack",
+            "-d -odac -b 256 -B2048 -M1 -+rtmidi=cmidi -+rtaudio=jack",
             "</CsOptions>",
             "<CsInstruments>",
             "instr 1",
@@ -31,16 +31,20 @@ def test_apply_runtime_midi_options_replaces_csd_midi_flags() -> None:
     sanitized = CsoundWorker._apply_runtime_midi_options(
         csd,
         midi_input="2",
-        rtmidi_module="portmidi",
-        rtaudio_option="coreaudio",
+        rtmidi_module="coremidi",
+        rtaudio_option="auhal",
     )
 
     assert "-M1" not in sanitized
+    assert "-b 256" in sanitized
+    assert "-B2048" in sanitized
     assert "-+rtmidi=cmidi" not in sanitized
     assert "-+rtaudio=jack" not in sanitized
+    assert "-b 128" not in sanitized
+    assert "-B512" not in sanitized
     assert "-M2" in sanitized
-    assert "-+rtmidi=portmidi" in sanitized
-    assert "-+rtaudio=coreaudio" in sanitized
+    assert "-+rtmidi=coremidi" in sanitized
+    assert "-+rtaudio=auhal" in sanitized
     assert "-odac" in sanitized
     assert "<CsOptions>" in sanitized
     assert "</CsOptions>" in sanitized
@@ -94,7 +98,7 @@ def test_start_ctcsound_falls_back_to_supported_rtmidi_module(monkeypatch) -> No
             self.instances: list[FakeCsound] = []
 
         def Csound(self) -> FakeCsound:  # noqa: N802
-            instance = FakeCsound({"cmidi"})
+            instance = FakeCsound({"coremidi"})
             self.instances.append(instance)
             return instance
 
@@ -123,11 +127,19 @@ def test_start_ctcsound_falls_back_to_supported_rtmidi_module(monkeypatch) -> No
 
     instances = worker._ctcsound.instances
     assert len(instances) >= 2
-    assert instances[0].selected_module == "cmidi"
+    assert instances[0].selected_module == "coremidi"
     assert instances[1].selected_module == "portmidi"
-    assert "-+rtmidi=cmidi" in instances[0].last_csd
+    assert "-b 128" in instances[0].last_csd
+    assert "-B512" in instances[0].last_csd
+    assert "-b 128" in instances[1].last_csd
+    assert "-B512" in instances[1].last_csd
+    assert "-+rtmidi=coremidi" in instances[0].last_csd
     assert "-+rtmidi=portmidi" in instances[1].last_csd
-    assert "-+rtaudio=coreaudio" in instances[0].last_csd
-    assert "-+rtaudio=coreaudio" in instances[1].last_csd
-    assert "-+rtaudio=coreaudio" in instances[0].options
-    assert "-+rtaudio=coreaudio" in instances[1].options
+    assert "-+rtaudio=auhal" in instances[0].last_csd
+    assert "-+rtaudio=auhal" in instances[1].last_csd
+    assert "-b128" in instances[0].options
+    assert "-B512" in instances[0].options
+    assert "-b128" in instances[1].options
+    assert "-B512" in instances[1].options
+    assert "-+rtaudio=auhal" in instances[0].options
+    assert "-+rtaudio=auhal" in instances[1].options

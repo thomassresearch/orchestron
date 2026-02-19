@@ -13,6 +13,8 @@ AUDIO_RATE_MIN = 22_000
 AUDIO_RATE_MAX = 48_000
 CONTROL_RATE_MIN = 25
 CONTROL_RATE_MAX = 48_000
+BUFFER_SIZE_MIN = 32
+BUFFER_SIZE_MAX = 8_192
 
 
 class NodePortRef(BaseModel):
@@ -41,9 +43,11 @@ class Connection(BaseModel):
 
 class EngineConfig(BaseModel):
     sr: int = 44_100
-    control_rate: int = 4_400
-    ksmps: int = 10
+    control_rate: int = 1_378
+    ksmps: int = 32
     nchnls: int = 2
+    software_buffer: int = 128
+    hardware_buffer: int = 512
     zero_dbfs: float = Field(default=1.0, alias="0dbfs")
 
     model_config = {"populate_by_name": True}
@@ -69,6 +73,13 @@ class EngineConfig(BaseModel):
     def validate_ksmps(cls, value: int) -> int:
         if value < 1:
             raise ValueError("ksmps must be >= 1.")
+        return value
+
+    @field_validator("software_buffer", "hardware_buffer")
+    @classmethod
+    def validate_buffer_size_range(cls, value: int) -> int:
+        if value < BUFFER_SIZE_MIN or value > BUFFER_SIZE_MAX:
+            raise ValueError(f"Buffer size must be between {BUFFER_SIZE_MIN} and {BUFFER_SIZE_MAX}.")
         return value
 
     @model_validator(mode="after")

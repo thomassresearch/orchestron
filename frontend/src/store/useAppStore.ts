@@ -113,8 +113,12 @@ interface AppStore {
   }) => void;
   setSequencerPlaying: (isPlaying: boolean) => void;
   setSequencerPlayhead: (playhead: number) => void;
-  setEngineAudioRate: (sr: number) => void;
-  setEngineControlRate: (controlRate: number) => void;
+  applyEngineConfig: (config: {
+    sr: number;
+    controlRate: number;
+    softwareBuffer: number;
+    hardwareBuffer: number;
+  }) => Promise<void>;
 
   ensureSession: () => Promise<string>;
   compileSession: () => Promise<CompileResponse | null>;
@@ -138,6 +142,8 @@ const AUDIO_RATE_MIN = 22000;
 const AUDIO_RATE_MAX = 48000;
 const CONTROL_RATE_MIN = 25;
 const CONTROL_RATE_MAX = 48000;
+const ENGINE_BUFFER_MIN = 32;
+const ENGINE_BUFFER_MAX = 8192;
 
 function clampInt(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, Math.round(value)));
@@ -273,7 +279,7 @@ function normalizeSequencerState(raw: unknown): SequencerState {
 
 function normalizeEngineConfig(raw: Partial<EngineConfig> | undefined): EngineConfig {
   const sr = clampInt(typeof raw?.sr === "number" ? raw.sr : 44100, AUDIO_RATE_MIN, AUDIO_RATE_MAX);
-  let controlRate = 4400;
+  let controlRate = 1378;
 
   if (typeof raw?.control_rate === "number" && Number.isFinite(raw.control_rate)) {
     controlRate = clampInt(raw.control_rate, CONTROL_RATE_MIN, CONTROL_RATE_MAX);
@@ -285,11 +291,24 @@ function normalizeEngineConfig(raw: Partial<EngineConfig> | undefined): EngineCo
   }
 
   const ksmps = Math.max(1, Math.round(sr / controlRate));
+  const softwareBuffer = clampInt(
+    typeof raw?.software_buffer === "number" ? raw.software_buffer : 128,
+    ENGINE_BUFFER_MIN,
+    ENGINE_BUFFER_MAX
+  );
+  const hardwareBuffer = clampInt(
+    typeof raw?.hardware_buffer === "number" ? raw.hardware_buffer : 512,
+    ENGINE_BUFFER_MIN,
+    ENGINE_BUFFER_MAX
+  );
+
   return {
     sr,
     control_rate: controlRate,
     ksmps,
     nchnls: typeof raw?.nchnls === "number" ? Math.max(1, Math.round(raw.nchnls)) : 2,
+    software_buffer: softwareBuffer,
+    hardware_buffer: hardwareBuffer,
     "0dbfs": typeof raw?.["0dbfs"] === "number" ? raw["0dbfs"] : 1
   };
 }
@@ -1067,42 +1086,74 @@ export const useAppStore = create<AppStore>((set, get) => {
       });
     },
 
-    setEngineAudioRate: (sr) => {
+    applyEngineConfig: async ({ sr, controlRate, softwareBuffer, hardwareBuffer }) => {
       const currentPatch = get().currentPatch;
       const currentEngine = normalizeEngineConfig(currentPatch.graph.engine_config);
       const nextSr = clampInt(sr, AUDIO_RATE_MIN, AUDIO_RATE_MAX);
-      const nextKsmps = Math.max(1, Math.round(nextSr / currentEngine.control_rate));
+      const nextControlRate = clampInt(controlRate, CONTROL_RATE_MIN, CONTROL_RATE_MAX);
+      const nextSoftwareBuffer = clampInt(softwareBuffer, ENGINE_BUFFER_MIN, ENGINE_BUFFER_MAX);
+      const nextHardwareBuffer = clampInt(hardwareBuffer, ENGINE_BUFFER_MIN, ENGINE_BUFFER_MAX);
+      const nextKsmps = Math.max(1, Math.round(nextSr / nextControlRate));
 
-      commitCurrentPatch({
+      const nextPatch: EditablePatch = {
         ...currentPatch,
         graph: {
           ...currentPatch.graph,
           engine_config: {
             ...currentEngine,
             sr: nextSr,
-            ksmps: nextKsmps
-          }
-        }
-      });
-    },
-
-    setEngineControlRate: (controlRate) => {
-      const currentPatch = get().currentPatch;
-      const currentEngine = normalizeEngineConfig(currentPatch.graph.engine_config);
-      const nextControlRate = clampInt(controlRate, CONTROL_RATE_MIN, CONTROL_RATE_MAX);
-      const nextKsmps = Math.max(1, Math.round(currentEngine.sr / nextControlRate));
-
-      commitCurrentPatch({
-        ...currentPatch,
-        graph: {
-          ...currentPatch.graph,
-          engine_config: {
-            ...currentEngine,
             control_rate: nextControlRate,
-            ksmps: nextKsmps
+            ksmps: nextKsmps,
+            software_buffer: nextSoftwareBuffer,
+            hardware_buffer: nextHardwareBuffer
           }
         }
-      });
+      };
+
+      commitCurrentPatch(nextPatch, { error: null });
+
+      const normalizedGraph = withNormalizedEngineConfig(nextPatch.graph);
+
+      try {
+        let persisted: Patch;
+        if (nextPatch.id) {
+          persisted = await api.updatePatch(nextPatch.id, { graph: normalizedGraph });
+        } else {
+          persisted = await api.createPatch({
+            name: nextPatch.name,
+            description: nextPatch.description,
+            schema_version: nextPatch.schema_version,
+            graph: normalizedGraph
+          });
+        }
+
+        const patches = await api.listPatches();
+        const persistedNormalized = normalizePatch(persisted);
+        const resolvedPatch: EditablePatch = nextPatch.id
+          ? {
+              ...nextPatch,
+              graph: normalizedGraph,
+              created_at: persistedNormalized.created_at,
+              updated_at: persistedNormalized.updated_at
+            }
+          : persistedNormalized;
+
+        const state = get();
+        const hasKnownBindings = state.sequencerInstruments.length > 0;
+        const sequencerInstruments = hasKnownBindings
+          ? state.sequencerInstruments
+          : defaultSequencerInstruments(patches, resolvedPatch.id);
+
+        commitCurrentPatch(resolvedPatch, {
+          patches,
+          sequencerInstruments,
+          error: null
+        });
+      } catch (error) {
+        set({
+          error: error instanceof Error ? error.message : "Failed to persist engine configuration."
+        });
+      }
     },
 
     ensureSession: async () => {

@@ -14,6 +14,8 @@ from backend.app.services.opcode_service import OpcodeService
 OPTIONAL_OMIT_MARKER = "__VS_OPTIONAL_OMIT__"
 INPUT_FORMULAS_LAYOUT_KEY = "input_formulas"
 FORMULA_TARGET_KEY_SEPARATOR = "::"
+DEFAULT_CSOUND_SOFTWARE_BUFFER_SAMPLES = 128
+DEFAULT_CSOUND_HARDWARE_BUFFER_SAMPLES = 512
 
 
 class CompilationError(Exception):
@@ -92,7 +94,13 @@ class CompilerService:
             )
 
         orc = "\n".join(orc_lines).rstrip()
-        csd = self._wrap_csd(orc, midi_input, rtmidi_module)
+        csd = self._wrap_csd(
+            orc,
+            midi_input,
+            rtmidi_module,
+            software_buffer=engine.software_buffer,
+            hardware_buffer=engine.hardware_buffer,
+        )
         return CompileArtifact(orc=orc, csd=csd, diagnostics=[])
 
     def _compile_instrument_lines(self, patch: PatchDocument) -> list[str]:
@@ -677,10 +685,25 @@ class CompilerService:
         return f"{prefix}_{safe_node}_{safe_port}_{counters[prefix]}"
 
     @staticmethod
-    def _wrap_csd(orc: str, midi_input: str, rtmidi_module: str) -> str:
-        options = [f"-d -odac -M{midi_input} -+rtmidi={rtmidi_module}"]
+    def _wrap_csd(
+        orc: str,
+        midi_input: str,
+        rtmidi_module: str,
+        software_buffer: int = DEFAULT_CSOUND_SOFTWARE_BUFFER_SAMPLES,
+        hardware_buffer: int = DEFAULT_CSOUND_HARDWARE_BUFFER_SAMPLES,
+    ) -> str:
+        selected_rtmidi_module = rtmidi_module.strip().strip("'\"")
         if sys.platform == "darwin":
-            options.append("-+rtaudio=coreaudio")
+            selected_rtmidi_module = "coremidi"
+
+        options = [
+            (
+                f"-d -odac -M{midi_input} -+rtmidi={selected_rtmidi_module} "
+                f"-b {software_buffer} -B{hardware_buffer}"
+            )
+        ]
+        if sys.platform == "darwin":
+            options.append("-+rtaudio=auhal")
 
         return "\n".join(
             [

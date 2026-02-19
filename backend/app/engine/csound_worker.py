@@ -10,6 +10,9 @@ from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_CSOUND_SOFTWARE_BUFFER_SAMPLES = 128
+DEFAULT_CSOUND_HARDWARE_BUFFER_SAMPLES = 512
+
 
 @dataclass(slots=True)
 class EngineStartResult:
@@ -96,6 +99,8 @@ class CsoundWorker:
         assert self._ctcsound is not None
 
         requested_module = self._normalize_rtmidi_module(rtmidi_module)
+        if sys.platform == "darwin":
+            requested_module = "coremidi"
         rtaudio_option = self._platform_rtaudio_option()
         attempts: list[str] = []
         errors: list[str] = []
@@ -104,6 +109,7 @@ class CsoundWorker:
             attempts.append(module)
             csound = self._ctcsound.Csound()
             try:
+                software_buffer, hardware_buffer = self._extract_runtime_buffer_sizes(csd)
                 runtime_csd = self._apply_runtime_midi_options(
                     csd,
                     midi_input=midi_input,
@@ -112,6 +118,8 @@ class CsoundWorker:
                 )
                 csound.setOption("-d")
                 csound.setOption("-odac")
+                csound.setOption(f"-b{software_buffer}")
+                csound.setOption(f"-B{hardware_buffer}")
                 csound.setOption(f"-M{midi_input}")
                 csound.setOption(f"-+rtmidi={module}")
                 if rtaudio_option:
@@ -191,13 +199,13 @@ class CsoundWorker:
     @staticmethod
     def _platform_rtaudio_option() -> str | None:
         if sys.platform == "darwin":
-            return "coreaudio"
+            return "auhal"
         return None
 
     @staticmethod
     def _platform_rtmidi_fallbacks() -> tuple[str, ...]:
         if sys.platform == "darwin":
-            return ("portmidi", "coremidi", "virtual", "null", "cmidi")
+            return ("coremidi", "portmidi", "virtual", "null", "cmidi")
         if sys.platform.startswith("linux"):
             return ("alsaseq", "portmidi", "virtual", "null", "cmidi")
         if sys.platform.startswith(("win32", "cygwin")):
@@ -224,6 +232,11 @@ class CsoundWorker:
                 continue
             if stripped == "</CsOptions>":
                 in_options = False
+                existing_options = " ".join(option_parts)
+                if not CsoundWorker._contains_option_with_int(existing_options, "b"):
+                    option_parts.append(f"-b {DEFAULT_CSOUND_SOFTWARE_BUFFER_SAMPLES}")
+                if not CsoundWorker._contains_option_with_int(existing_options, "B"):
+                    option_parts.append(f"-B{DEFAULT_CSOUND_HARDWARE_BUFFER_SAMPLES}")
                 option_parts.append(f"-M{midi_input}")
                 option_parts.append(f"-+rtmidi={rtmidi_module}")
                 if rtaudio_option:
@@ -245,6 +258,46 @@ class CsoundWorker:
                 option_parts.append(cleaned)
 
         return "\n".join(lines)
+
+    @staticmethod
+    def _contains_option_with_int(options: str, flag: str) -> bool:
+        pattern = rf"(^|\s)-{re.escape(flag)}(?:\s+\d+|\d+)(?=\s|$)"
+        return re.search(pattern, options) is not None
+
+    @classmethod
+    def _extract_runtime_buffer_sizes(cls, csd: str) -> tuple[int, int]:
+        options = cls._extract_csoptions_text(csd)
+        software = cls._extract_numeric_option(options, "b")
+        hardware = cls._extract_numeric_option(options, "B")
+
+        if software is None or software < 1:
+            software = DEFAULT_CSOUND_SOFTWARE_BUFFER_SAMPLES
+        if hardware is None or hardware < 1:
+            hardware = DEFAULT_CSOUND_HARDWARE_BUFFER_SAMPLES
+
+        return software, hardware
+
+    @staticmethod
+    def _extract_csoptions_text(csd: str) -> str:
+        match = re.search(r"<CsOptions>(.*?)</CsOptions>", csd, flags=re.IGNORECASE | re.DOTALL)
+        if not match:
+            return ""
+        return match.group(1)
+
+    @staticmethod
+    def _extract_numeric_option(options: str, flag: str) -> int | None:
+        pattern = rf"(?:^|\s)-{re.escape(flag)}(?:\s+(\d+)|(\d+))(?=\s|$)"
+        match = re.search(pattern, options)
+        if not match:
+            return None
+
+        value = match.group(1) or match.group(2)
+        if value is None:
+            return None
+        try:
+            return int(value)
+        except ValueError:
+            return None
 
     def _start_mock(self) -> EngineStartResult:
         self._thread = threading.Thread(target=self._mock_loop, daemon=True, name="mock-csound")

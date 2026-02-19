@@ -90,8 +90,7 @@ export default function App() {
   const setSequencerQueuedPad = useAppStore((state) => state.setSequencerQueuedPad);
   const syncSequencerRuntime = useAppStore((state) => state.syncSequencerRuntime);
   const setSequencerPlayhead = useAppStore((state) => state.setSequencerPlayhead);
-  const setEngineAudioRate = useAppStore((state) => state.setEngineAudioRate);
-  const setEngineControlRate = useAppStore((state) => state.setEngineControlRate);
+  const applyEngineConfig = useAppStore((state) => state.applyEngineConfig);
 
   useEffect(() => {
     void loadBootstrap();
@@ -811,8 +810,11 @@ export default function App() {
             audioRate={currentPatch.graph.engine_config.sr}
             controlRate={currentPatch.graph.engine_config.control_rate}
             ksmps={currentPatch.graph.engine_config.ksmps}
-            onAudioRateChange={setEngineAudioRate}
-            onControlRateChange={setEngineControlRate}
+            softwareBuffer={currentPatch.graph.engine_config.software_buffer}
+            hardwareBuffer={currentPatch.graph.engine_config.hardware_buffer}
+            onApplyEngineConfig={(config) => {
+              void applyEngineConfig(config);
+            }}
           />
         )}
       </div>

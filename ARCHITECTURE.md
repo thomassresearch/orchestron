@@ -224,7 +224,7 @@ Operational setup:
 
 CSound runtime notes:
 - Use realtime MIDI input option `-M <device>`.
-- Select realtime MIDI module via `-+rtmidi=<module>` as supported by build (macOS commonly includes `cmidi`; some builds may use `portmidi`).
+- On macOS, use native realtime modules: `-+rtmidi=coremidi` and `-+rtaudio=auhal`.
 - Expose discovered devices through `/api/midi/inputs` so UI can present exact names.
 
 ## 11) Opcode Icon Architecture

@@ -53,6 +53,8 @@ export interface EngineConfig {
   control_rate: number;
   ksmps: number;
   nchnls: number;
+  software_buffer: number;
+  hardware_buffer: number;
   "0dbfs": number;
 }
 
