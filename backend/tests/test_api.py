@@ -900,3 +900,70 @@ def test_multi_instrument_session_compiles_distinct_channel_mappings(tmp_path: P
         assert "massign 2, 2" in compiled_orc
         assert "instr 1" in compiled_orc
         assert "instr 2" in compiled_orc
+
+
+def test_multi_instrument_compile_uses_first_instrument_engine_config(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        patch_payload = {
+            "name": "Control Rate Variant",
+            "description": "first engine config should drive bundle header",
+            "schema_version": 1,
+            "graph": {
+                "nodes": [
+                    {"id": "n1", "opcode": "const_a", "params": {"value": 0.05}, "position": {"x": 20, "y": 20}},
+                    {"id": "n2", "opcode": "outs", "params": {}, "position": {"x": 200, "y": 20}},
+                ],
+                "connections": [
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "left"},
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "right"},
+                ],
+                "ui_layout": {},
+                "engine_config": {"sr": 44100, "control_rate": 4410, "ksmps": 10, "nchnls": 2, "0dbfs": 1.0},
+            },
+        }
+
+        variant_payload = {
+            **patch_payload,
+            "name": "Engine Variant B",
+            "graph": {
+                **patch_payload["graph"],
+                "engine_config": {
+                    "sr": 48000,
+                    "control_rate": 3000,
+                    "ksmps": 16,
+                    "nchnls": 1,
+                    "0dbfs": 0.5,
+                },
+            },
+        }
+
+        patch_a = client.post("/api/patches", json={**patch_payload, "name": "Engine Variant A"})
+        patch_b = client.post("/api/patches", json=variant_payload)
+        assert patch_a.status_code == 201
+        assert patch_b.status_code == 201
+
+        patch_a_id = patch_a.json()["id"]
+        patch_b_id = patch_b.json()["id"]
+
+        create_session = client.post(
+            "/api/sessions",
+            json={
+                "instruments": [
+                    {"patch_id": patch_a_id, "midi_channel": 1},
+                    {"patch_id": patch_b_id, "midi_channel": 2},
+                ]
+            },
+        )
+        assert create_session.status_code == 201
+
+        session_id = create_session.json()["session_id"]
+        compile_response = client.post(f"/api/sessions/{session_id}/compile")
+        assert compile_response.status_code == 200
+
+        compiled_orc = compile_response.json()["orc"]
+        assert "sr = 44100" in compiled_orc
+        assert "ksmps = 10" in compiled_orc
+        assert "nchnls = 2" in compiled_orc
+        assert "0dbfs = 1.0" in compiled_orc
+        assert "instr 1" in compiled_orc
+        assert "instr 2" in compiled_orc

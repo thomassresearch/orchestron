@@ -199,19 +199,7 @@ class CompilerService:
 
     @staticmethod
     def _resolve_shared_engine(targets: list[PatchInstrumentTarget]) -> EngineConfig:
-        engine = targets[0].patch.graph.engine_config
-        engine_tuple = (engine.sr, engine.control_rate, engine.ksmps, engine.nchnls, engine.zero_dbfs)
-        for target in targets[1:]:
-            current = target.patch.graph.engine_config
-            current_tuple = (current.sr, current.control_rate, current.ksmps, current.nchnls, current.zero_dbfs)
-            if current_tuple != engine_tuple:
-                raise CompilationError(
-                    [
-                        "All selected instruments must use the same engine configuration "
-                        "(sr, control_rate, ksmps, nchnls, 0dbfs)."
-                    ]
-                )
-        return engine
+        return targets[0].patch.graph.engine_config
 
     @staticmethod
     def _validate_target_channels(targets: list[PatchInstrumentTarget]) -> None:

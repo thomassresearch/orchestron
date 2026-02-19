@@ -17,3 +17,5 @@ backend/.coverage
 coverage.xml
 
 .DS_Store
+
+tools/midi_pulse

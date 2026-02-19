@@ -41,3 +41,30 @@ Backend-served frontend URL: `http://localhost:8000/client`
 ## MIDI on macOS
 
 Enable the **IAC Driver** in Audio MIDI Setup and route MIDI output from your DAW/software into the selected IAC bus.
+
+## MIDI Pulse CLI (jitter probe)
+
+This repository includes a native macOS MIDI pulse emitter to help isolate timing jitter outside the main app/Csound path.
+
+Build:
+
+```bash
+make midi-pulse-build
+```
+
+List MIDI destinations:
+
+```bash
+./tools/midi_pulse --list
+```
+
+Send periodic notes:
+
+```bash
+./tools/midi_pulse --dest 0 --channel 1 --note 60 --interval-ms 10 --gate 0.25 --count 2000
+```
+
+Useful flags:
+- `--dest <name|index>`: destination by index (from `--list`) or name
+- `--report-every <N>`: periodic timing summary in milliseconds
+- `--verbose`: per-note lateness output

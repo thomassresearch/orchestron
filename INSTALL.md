@@ -148,3 +148,27 @@ cd frontend && npm run build
 ### No MIDI outputs available
 - Enable IAC Driver bus in Audio MIDI Setup.
 - Restart backend and browser after changing MIDI device config.
+
+## 10. Standalone MIDI jitter probe (macOS)
+
+Use the native CLI probe when you want to verify timing behavior independent of the main VisualCSound runtime path.
+
+Build:
+
+```bash
+make midi-pulse-build
+```
+
+List destinations:
+
+```bash
+./tools/midi_pulse --list
+```
+
+Run a high-rate timing test:
+
+```bash
+./tools/midi_pulse --dest 0 --channel 1 --interval-ms 5 --gate 0.2 --count 5000 --report-every 250
+```
+
+The utility prints note-on lateness stats (`mean`, `abs_mean`, `min`, `max`) in milliseconds so you can compare baseline sender jitter against Csound-integrated runs.
