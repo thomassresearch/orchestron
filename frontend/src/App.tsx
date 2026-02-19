@@ -22,6 +22,16 @@ function pianoRollNoteKey(note: number, channel: number): string {
   return `${channel}:${note}`;
 }
 
+function sanitizeCsdFileBaseName(value: string): string {
+  const withoutExtension = value.replace(/\.csd$/i, "");
+  const normalized = withoutExtension
+    .trim()
+    .replace(/[^a-zA-Z0-9._-]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+  return normalized.length > 0 ? normalized : "visualcsound_instrument";
+}
+
 export default function App() {
   const loading = useAppStore((state) => state.loading);
   const error = useAppStore((state) => state.error);
@@ -115,6 +125,24 @@ export default function App() {
     },
     [setGraph]
   );
+
+  const onExportCsd = useCallback(async () => {
+    const compileArtifact = await compileSession();
+    if (!compileArtifact) {
+      return;
+    }
+
+    const fileName = `${sanitizeCsdFileBaseName(currentPatch.name)}.csd`;
+    const blob = new Blob([compileArtifact.csd], { type: "application/csound" });
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = downloadUrl;
+    anchor.download = fileName;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    window.URL.revokeObjectURL(downloadUrl);
+  }, [compileSession, currentPatch.name]);
 
   const onOpcodeHelpRequest = useCallback((opcodeName: string) => {
     setActiveOpcodeDocumentation(opcodeName);
@@ -637,6 +665,9 @@ export default function App() {
               }}
               onCompile={() => {
                 void compileSession();
+              }}
+              onExport={() => {
+                void onExportCsd();
               }}
             />
 

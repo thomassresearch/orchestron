@@ -22,6 +22,7 @@ interface PatchToolbarProps {
   onNewPatch: () => void;
   onSavePatch: () => void;
   onCompile: () => void;
+  onExport: () => void;
 }
 
 export function PatchToolbar(props: PatchToolbarProps) {
@@ -130,6 +131,14 @@ export function PatchToolbar(props: PatchToolbarProps) {
           disabled={props.loading}
         >
           Compile
+        </button>
+        <button
+          className="rounded-lg border border-cyan-500/50 bg-cyan-500/15 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-cyan-200 transition hover:bg-cyan-500/25"
+          onClick={props.onExport}
+          type="button"
+          disabled={props.loading}
+        >
+          Export
         </button>
       </div>
     </section>

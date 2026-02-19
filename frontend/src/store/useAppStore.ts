@@ -117,7 +117,7 @@ interface AppStore {
   setEngineControlRate: (controlRate: number) => void;
 
   ensureSession: () => Promise<string>;
-  compileSession: () => Promise<void>;
+  compileSession: () => Promise<CompileResponse | null>;
   startSession: () => Promise<void>;
   stopSession: () => Promise<void>;
   panicSession: () => Promise<void>;
@@ -1210,11 +1210,13 @@ export const useAppStore = create<AppStore>((set, get) => {
           loading: false,
           error: null
         });
+        return compileOutput;
       } catch (error) {
         set({
           loading: false,
           error: error instanceof Error ? error.message : "Failed to compile session"
         });
+        return null;
       }
     },
 
