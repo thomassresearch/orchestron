@@ -28,6 +28,7 @@ Sequencer editing and transport happen on the `Sequencer` page, but session/runt
   - independent scale + mode
   - 7-octave horizontal keyboard (`C1..B7`) styled as white/black piano keys
   - keyboard uses full viewport width and shows left/right scroll arrows when needed
+  - mouse press-hold sends `note_on`; mouse release sends `note_off`
   - scale notes highlighted with degree labels on keys
 
 ## 4. Note Selection and Theory Aids

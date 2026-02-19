@@ -18,6 +18,10 @@ function connectionKey(connection: Connection): string {
   return `${connection.from_node_id}|${connection.from_port_id}|${connection.to_node_id}|${connection.to_port_id}`;
 }
 
+function pianoRollNoteKey(note: number, channel: number): string {
+  return `${channel}:${note}`;
+}
+
 export default function App() {
   const loading = useAppStore((state) => state.loading);
   const error = useAppStore((state) => state.error);
@@ -118,6 +122,7 @@ export default function App() {
   const sequencerSessionIdRef = useRef<string | null>(null);
   const sequencerStatusPollRef = useRef<number | null>(null);
   const sequencerPollInFlightRef = useRef(false);
+  const pianoRollNoteSessionRef = useRef(new Map<string, string>());
 
   useEffect(() => {
     sequencerRef.current = sequencer;
@@ -276,10 +281,11 @@ export default function App() {
 
   const onSequencerAllNotesOff = useCallback(() => {
     sendAllNotesOff(sequencerRef.current.midiChannel);
+    pianoRollNoteSessionRef.current.clear();
     setSequencerError(null);
   }, [sendAllNotesOff]);
 
-  const onPianoRollNoteTrigger = useCallback(
+  const onPianoRollNoteOn = useCallback(
     (note: number, channel: number) => {
       setSequencerError(null);
       void (async () => {
@@ -289,16 +295,28 @@ export default function App() {
         }
 
         await sendDirectMidiEvent({ type: "note_on", channel, note, velocity: 110 }, sessionId);
-        window.setTimeout(() => {
-          void sendDirectMidiEvent({ type: "note_off", channel, note }, sessionId).catch(() => {
-            // Ignore transient note-off failures during jam interaction.
-          });
-        }, 220);
+        pianoRollNoteSessionRef.current.set(pianoRollNoteKey(note, channel), sessionId);
       })().catch((error) => {
-        setSequencerError(error instanceof Error ? error.message : "Failed to trigger piano roll note.");
+        setSequencerError(error instanceof Error ? error.message : "Failed to start piano roll note.");
       });
     },
     [ensureSession, sendDirectMidiEvent, startSession]
+  );
+
+  const onPianoRollNoteOff = useCallback(
+    (note: number, channel: number) => {
+      const noteKey = pianoRollNoteKey(note, channel);
+      const sessionId = pianoRollNoteSessionRef.current.get(noteKey) ?? activeSessionId;
+      pianoRollNoteSessionRef.current.delete(noteKey);
+      if (!sessionId) {
+        return;
+      }
+
+      void sendDirectMidiEvent({ type: "note_off", channel, note }, sessionId).catch(() => {
+        // Ignore transient note-off failures during release.
+      });
+    },
+    [activeSessionId, sendDirectMidiEvent]
   );
 
   useEffect(() => {
@@ -521,22 +539,35 @@ export default function App() {
                   <div className="rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1">
                     Selected: {selection.nodeIds.length} opcode(s), {selection.connections.length} connection(s)
                   </div>
-                  <button
-                    type="button"
-                    onClick={onDeleteSelection}
-                    disabled={selectedCount === 0}
-                    aria-label="Delete selected elements"
-                    title={selectedCount > 0 ? "Delete selected elements" : "Select elements to delete"}
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-rose-600/70 bg-rose-950/60 text-rose-200 transition enabled:hover:bg-rose-900/60 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current" strokeWidth={1.9}>
-                      <path d="M4 7h16" />
-                      <path d="M9 7V4.8A1.8 1.8 0 0 1 10.8 3h2.4A1.8 1.8 0 0 1 15 4.8V7" />
-                      <path d="M6.2 7l.9 12.3A1.8 1.8 0 0 0 8.9 21h6.2a1.8 1.8 0 0 0 1.8-1.7L17.8 7" />
-                      <path d="M10 11v6" />
-                      <path d="M14 11v6" />
-                    </svg>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {runtimePanelCollapsed ? (
+                      <button
+                        type="button"
+                        onClick={() => setRuntimePanelCollapsed(false)}
+                        className="rounded-md border border-accent/70 bg-accent/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-accent transition hover:bg-accent/25"
+                        aria-label="Show runtime panel"
+                        title="Show runtime panel"
+                      >
+                        Show Runtime
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={onDeleteSelection}
+                      disabled={selectedCount === 0}
+                      aria-label="Delete selected elements"
+                      title={selectedCount > 0 ? "Delete selected elements" : "Select elements to delete"}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-rose-600/70 bg-rose-950/60 text-rose-200 transition enabled:hover:bg-rose-900/60 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current" strokeWidth={1.9}>
+                        <path d="M4 7h16" />
+                        <path d="M9 7V4.8A1.8 1.8 0 0 1 10.8 3h2.4A1.8 1.8 0 0 1 15 4.8V7" />
+                        <path d="M6.2 7l.9 12.3A1.8 1.8 0 0 0 8.9 21h6.2a1.8 1.8 0 0 0 1.8-1.7L17.8 7" />
+                        <path d="M10 11v6" />
+                        <path d="M14 11v6" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               </div>
               <div className="min-h-0 flex-1">
@@ -607,7 +638,8 @@ export default function App() {
             onPianoRollMidiChannelChange={setPianoRollMidiChannel}
             onPianoRollScaleChange={setPianoRollScale}
             onPianoRollModeChange={setPianoRollMode}
-            onPianoRollNoteTrigger={onPianoRollNoteTrigger}
+            onPianoRollNoteOn={onPianoRollNoteOn}
+            onPianoRollNoteOff={onPianoRollNoteOff}
             onResetPlayhead={() => {
               setSequencerPlayhead(0);
             }}

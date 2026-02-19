@@ -916,8 +916,10 @@ export const useAppStore = create<AppStore>((set, get) => ({
     set({ loading: true, error: null });
     try {
       const sessionId = await get().ensureSession();
+      await get().saveCurrentPatch();
+      const compileOutput = await api.compileSession(sessionId);
       const response = await api.startSession(sessionId);
-      set({ activeSessionState: response.state, loading: false });
+      set({ compileOutput, activeSessionState: response.state, loading: false });
     } catch (error) {
       set({
         loading: false,

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { PointerEvent as ReactPointerEvent } from "react";
 
 import {
   buildSequencerNoteOptions,
@@ -55,7 +56,8 @@ interface SequencerPageProps {
   onPianoRollMidiChannelChange: (channel: number) => void;
   onPianoRollScaleChange: (scaleRoot: SequencerScaleRoot, scaleType: SequencerScaleType) => void;
   onPianoRollModeChange: (mode: SequencerMode) => void;
-  onPianoRollNoteTrigger: (note: number, channel: number) => void;
+  onPianoRollNoteOn: (note: number, channel: number) => void;
+  onPianoRollNoteOff: (note: number, channel: number) => void;
   onResetPlayhead: () => void;
   onAllNotesOff: () => void;
 }
@@ -77,7 +79,8 @@ export function SequencerPage({
   onPianoRollMidiChannelChange,
   onPianoRollScaleChange,
   onPianoRollModeChange,
-  onPianoRollNoteTrigger,
+  onPianoRollNoteOn,
+  onPianoRollNoteOff,
   onResetPlayhead,
   onAllNotesOff
 }: SequencerPageProps) {
@@ -146,6 +149,7 @@ export function SequencerPage({
   }, [pianoRollNotes, pianoRollOptionsByNote]);
   const [stepSelectPreviewByStep, setStepSelectPreviewByStep] = useState<Record<number, number>>({});
   const [activePianoNotes, setActivePianoNotes] = useState<Record<number, true>>({});
+  const pianoPointerNotesRef = useRef<Record<number, { note: number; channel: number }>>({});
   const pianoKeyboardViewportRef = useRef<HTMLDivElement | null>(null);
   const [pianoHasOverflow, setPianoHasOverflow] = useState(false);
   const [pianoCanScrollLeft, setPianoCanScrollLeft] = useState(false);
@@ -195,20 +199,86 @@ export function SequencerPage({
     [updatePianoScrollState]
   );
 
-  const triggerPianoRollNote = useCallback(
-    (note: number) => {
-      onPianoRollNoteTrigger(note, sequencer.pianoRollMidiChannel);
-      setActivePianoNotes((previous) => ({ ...previous, [note]: true }));
-      window.setTimeout(() => {
-        setActivePianoNotes((previous) => {
-          const next = { ...previous };
-          delete next[note];
-          return next;
-        });
-      }, 220);
+  const setPianoNoteActive = useCallback((note: number, active: boolean) => {
+    if (active) {
+      setActivePianoNotes((previous) => {
+        if (previous[note]) {
+          return previous;
+        }
+        return { ...previous, [note]: true };
+      });
+      return;
+    }
+
+    setActivePianoNotes((previous) => {
+      if (!previous[note]) {
+        return previous;
+      }
+      const next = { ...previous };
+      delete next[note];
+      return next;
+    });
+  }, []);
+
+  const releasePianoPointer = useCallback(
+    (pointerId: number) => {
+      const held = pianoPointerNotesRef.current[pointerId];
+      if (!held) {
+        return;
+      }
+
+      delete pianoPointerNotesRef.current[pointerId];
+      onPianoRollNoteOff(held.note, held.channel);
+      setPianoNoteActive(held.note, false);
     },
-    [onPianoRollNoteTrigger, sequencer.pianoRollMidiChannel]
+    [onPianoRollNoteOff, setPianoNoteActive]
   );
+
+  const handlePianoPointerDown = useCallback(
+    (event: ReactPointerEvent<HTMLButtonElement>, note: number) => {
+      if (event.button !== 0) {
+        return;
+      }
+
+      event.preventDefault();
+      event.currentTarget.setPointerCapture(event.pointerId);
+
+      const channel = sequencer.pianoRollMidiChannel;
+      const existing = pianoPointerNotesRef.current[event.pointerId];
+      if (existing) {
+        onPianoRollNoteOff(existing.note, existing.channel);
+        setPianoNoteActive(existing.note, false);
+      }
+
+      pianoPointerNotesRef.current[event.pointerId] = { note, channel };
+      onPianoRollNoteOn(note, channel);
+      setPianoNoteActive(note, true);
+    },
+    [onPianoRollNoteOff, onPianoRollNoteOn, sequencer.pianoRollMidiChannel, setPianoNoteActive]
+  );
+
+  const handlePianoPointerUp = useCallback(
+    (event: ReactPointerEvent<HTMLButtonElement>) => {
+      releasePianoPointer(event.pointerId);
+    },
+    [releasePianoPointer]
+  );
+
+  const handlePianoPointerCancel = useCallback(
+    (event: ReactPointerEvent<HTMLButtonElement>) => {
+      releasePianoPointer(event.pointerId);
+    },
+    [releasePianoPointer]
+  );
+
+  useEffect(() => {
+    return () => {
+      for (const held of Object.values(pianoPointerNotesRef.current)) {
+        onPianoRollNoteOff(held.note, held.channel);
+      }
+      pianoPointerNotesRef.current = {};
+    };
+  }, [onPianoRollNoteOff]);
 
   const clearStepSelectPreview = useCallback((stepIndex: number) => {
     setStepSelectPreviewByStep((previous) => {
@@ -588,7 +658,10 @@ export function SequencerPage({
                       <button
                         key={`piano-white-${key.note}`}
                         type="button"
-                        onClick={() => triggerPianoRollNote(key.note)}
+                        onPointerDown={(event) => handlePianoPointerDown(event, key.note)}
+                        onPointerUp={handlePianoPointerUp}
+                        onPointerCancel={handlePianoPointerCancel}
+                        onLostPointerCapture={handlePianoPointerCancel}
                         className={`relative flex h-full shrink-0 flex-col items-center justify-end border px-1 pb-2 text-center font-mono text-[10px] transition ${
                           isActive
                             ? "z-20 border-accent bg-accent/25 text-accent"
@@ -612,7 +685,10 @@ export function SequencerPage({
                       <button
                         key={`piano-black-${key.note}`}
                         type="button"
-                        onClick={() => triggerPianoRollNote(key.note)}
+                        onPointerDown={(event) => handlePianoPointerDown(event, key.note)}
+                        onPointerUp={handlePianoPointerUp}
+                        onPointerCancel={handlePianoPointerCancel}
+                        onLostPointerCapture={handlePianoPointerCancel}
                         className={`pointer-events-auto absolute top-0 z-30 flex flex-col items-center justify-end rounded-b-md border px-1 pb-1 text-center font-mono text-[9px] transition ${
                           isActive
                             ? "border-accent bg-accent/35 text-accent"

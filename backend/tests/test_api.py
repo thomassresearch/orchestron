@@ -185,6 +185,175 @@ def test_engine_rates_drive_compiled_sr_and_ksmps(tmp_path: Path) -> None:
         assert "ksmps = 10" in orc
 
 
+def test_compile_uses_input_formula_for_multi_inbound_input(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        patch_payload = {
+            "name": "Formula Merge Patch",
+            "description": "multi-input formula",
+            "schema_version": 1,
+            "graph": {
+                "nodes": [
+                    {"id": "c1", "opcode": "const_k", "params": {"value": 0.2}, "position": {"x": 40, "y": 40}},
+                    {"id": "c2", "opcode": "const_k", "params": {"value": 0.6}, "position": {"x": 40, "y": 150}},
+                    {"id": "c3", "opcode": "const_k", "params": {"value": 2}, "position": {"x": 40, "y": 260}},
+                    {"id": "m1", "opcode": "k_mul", "params": {}, "position": {"x": 240, "y": 100}},
+                    {"id": "k2a", "opcode": "k_to_a", "params": {}, "position": {"x": 430, "y": 100}},
+                    {"id": "out", "opcode": "outs", "params": {}, "position": {"x": 610, "y": 100}},
+                ],
+                "connections": [
+                    {"from_node_id": "c1", "from_port_id": "kout", "to_node_id": "m1", "to_port_id": "a"},
+                    {"from_node_id": "c2", "from_port_id": "kout", "to_node_id": "m1", "to_port_id": "a"},
+                    {"from_node_id": "c3", "from_port_id": "kout", "to_node_id": "m1", "to_port_id": "b"},
+                    {"from_node_id": "m1", "from_port_id": "kout", "to_node_id": "k2a", "to_port_id": "kin"},
+                    {"from_node_id": "k2a", "from_port_id": "aout", "to_node_id": "out", "to_port_id": "left"},
+                    {"from_node_id": "k2a", "from_port_id": "aout", "to_node_id": "out", "to_port_id": "right"},
+                ],
+                "ui_layout": {
+                    "input_formulas": {
+                        "m1::a": {
+                            "expression": "in1 + (in2 * 0.5)",
+                            "inputs": [
+                                {"token": "in1", "from_node_id": "c1", "from_port_id": "kout"},
+                                {"token": "in2", "from_node_id": "c2", "from_port_id": "kout"},
+                            ],
+                        }
+                    }
+                },
+                "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+            },
+        }
+
+        create_patch = client.post("/api/patches", json=patch_payload)
+        assert create_patch.status_code == 201
+        patch_id = create_patch.json()["id"]
+
+        create_session = client.post("/api/sessions", json={"patch_id": patch_id})
+        assert create_session.status_code == 201
+        session_id = create_session.json()["session_id"]
+
+        compile_response = client.post(f"/api/sessions/{session_id}/compile")
+        assert compile_response.status_code == 200
+        compiled_orc = compile_response.json()["orc"]
+
+        lines = compiled_orc.splitlines()
+        formula_line = ""
+        for index, line in enumerate(lines):
+            if "; node:m1 opcode:k_mul" in line and index + 1 < len(lines):
+                formula_line = lines[index + 1].strip()
+                break
+
+        assert formula_line
+        assert "k_c1_kout" in formula_line
+        assert "k_c2_kout" in formula_line
+        assert "0.5" in formula_line
+        assert "k_c3_kout" in formula_line
+
+
+def test_compile_defaults_to_sum_for_multi_inbound_without_formula(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        patch_payload = {
+            "name": "Default Merge Patch",
+            "description": "implicit sum for multi-input",
+            "schema_version": 1,
+            "graph": {
+                "nodes": [
+                    {"id": "c1", "opcode": "const_k", "params": {"value": 0.2}, "position": {"x": 40, "y": 40}},
+                    {"id": "c2", "opcode": "const_k", "params": {"value": 0.6}, "position": {"x": 40, "y": 150}},
+                    {"id": "c3", "opcode": "const_k", "params": {"value": 2}, "position": {"x": 40, "y": 260}},
+                    {"id": "m1", "opcode": "k_mul", "params": {}, "position": {"x": 240, "y": 100}},
+                    {"id": "k2a", "opcode": "k_to_a", "params": {}, "position": {"x": 430, "y": 100}},
+                    {"id": "out", "opcode": "outs", "params": {}, "position": {"x": 610, "y": 100}},
+                ],
+                "connections": [
+                    {"from_node_id": "c1", "from_port_id": "kout", "to_node_id": "m1", "to_port_id": "a"},
+                    {"from_node_id": "c2", "from_port_id": "kout", "to_node_id": "m1", "to_port_id": "a"},
+                    {"from_node_id": "c3", "from_port_id": "kout", "to_node_id": "m1", "to_port_id": "b"},
+                    {"from_node_id": "m1", "from_port_id": "kout", "to_node_id": "k2a", "to_port_id": "kin"},
+                    {"from_node_id": "k2a", "from_port_id": "aout", "to_node_id": "out", "to_port_id": "left"},
+                    {"from_node_id": "k2a", "from_port_id": "aout", "to_node_id": "out", "to_port_id": "right"},
+                ],
+                "ui_layout": {},
+                "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+            },
+        }
+
+        create_patch = client.post("/api/patches", json=patch_payload)
+        assert create_patch.status_code == 201
+        patch_id = create_patch.json()["id"]
+
+        create_session = client.post("/api/sessions", json={"patch_id": patch_id})
+        assert create_session.status_code == 201
+        session_id = create_session.json()["session_id"]
+
+        compile_response = client.post(f"/api/sessions/{session_id}/compile")
+        assert compile_response.status_code == 200
+        compiled_orc = compile_response.json()["orc"]
+
+        lines = compiled_orc.splitlines()
+        formula_line = ""
+        for index, line in enumerate(lines):
+            if "; node:m1 opcode:k_mul" in line and index + 1 < len(lines):
+                formula_line = lines[index + 1].strip()
+                break
+
+        assert formula_line
+        assert "k_c1_kout" in formula_line
+        assert "k_c2_kout" in formula_line
+        assert "+" in formula_line
+
+
+def test_compile_rejects_invalid_input_formula(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        patch_payload = {
+            "name": "Broken Formula Patch",
+            "description": "unknown token in formula",
+            "schema_version": 1,
+            "graph": {
+                "nodes": [
+                    {"id": "c1", "opcode": "const_k", "params": {"value": 0.2}, "position": {"x": 40, "y": 40}},
+                    {"id": "c2", "opcode": "const_k", "params": {"value": 0.6}, "position": {"x": 40, "y": 150}},
+                    {"id": "c3", "opcode": "const_k", "params": {"value": 2}, "position": {"x": 40, "y": 260}},
+                    {"id": "m1", "opcode": "k_mul", "params": {}, "position": {"x": 240, "y": 100}},
+                    {"id": "k2a", "opcode": "k_to_a", "params": {}, "position": {"x": 430, "y": 100}},
+                    {"id": "out", "opcode": "outs", "params": {}, "position": {"x": 610, "y": 100}},
+                ],
+                "connections": [
+                    {"from_node_id": "c1", "from_port_id": "kout", "to_node_id": "m1", "to_port_id": "a"},
+                    {"from_node_id": "c2", "from_port_id": "kout", "to_node_id": "m1", "to_port_id": "a"},
+                    {"from_node_id": "c3", "from_port_id": "kout", "to_node_id": "m1", "to_port_id": "b"},
+                    {"from_node_id": "m1", "from_port_id": "kout", "to_node_id": "k2a", "to_port_id": "kin"},
+                    {"from_node_id": "k2a", "from_port_id": "aout", "to_node_id": "out", "to_port_id": "left"},
+                    {"from_node_id": "k2a", "from_port_id": "aout", "to_node_id": "out", "to_port_id": "right"},
+                ],
+                "ui_layout": {
+                    "input_formulas": {
+                        "m1::a": {
+                            "expression": "in1 + in9",
+                            "inputs": [
+                                {"token": "in1", "from_node_id": "c1", "from_port_id": "kout"},
+                                {"token": "in2", "from_node_id": "c2", "from_port_id": "kout"},
+                            ],
+                        }
+                    }
+                },
+                "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+            },
+        }
+
+        create_patch = client.post("/api/patches", json=patch_payload)
+        assert create_patch.status_code == 201
+        patch_id = create_patch.json()["id"]
+
+        create_session = client.post("/api/sessions", json={"patch_id": patch_id})
+        assert create_session.status_code == 201
+        session_id = create_session.json()["session_id"]
+
+        compile_response = client.post(f"/api/sessions/{session_id}/compile")
+        assert compile_response.status_code == 422
+        diagnostics = compile_response.json()["detail"]["diagnostics"]
+        assert any("unknown input token 'in9'" in item for item in diagnostics)
+
+
 def test_session_midi_event_endpoint(tmp_path: Path) -> None:
     with _client(tmp_path) as client:
         patch_payload = {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type DragEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import { createRoot } from "react-dom/client";
 
 import { ClassicPreset, NodeEditor } from "rete";
@@ -6,6 +6,15 @@ import { AreaExtensions, AreaPlugin } from "rete-area-plugin";
 import { ConnectionPlugin, Presets as ConnectionPresets } from "rete-connection-plugin";
 import { Presets as ReactPresets, ReactPlugin } from "rete-react-plugin";
 
+import {
+  formulaTargetKey,
+  readInputFormulaMap,
+  setInputFormulaConfig,
+  tokenizeGraphFormula,
+  validateGraphFormulaExpression,
+  type GraphFormulaToken,
+  type InputFormulaBinding
+} from "../lib/graphFormula";
 import { getDraggedOpcodeName, hasDraggedOpcode } from "../lib/opcodeDragDrop";
 import type { Connection, NodePosition, OpcodeSpec, PatchGraph, SignalType } from "../types";
 
@@ -97,13 +106,25 @@ const CONSTANT_INPUT_CSS = `
 
 type SocketGlyphProps = {
   optional: boolean;
+  title?: string;
+  onDoubleClick?: () => void;
 };
 
-function SocketGlyph({ optional }: SocketGlyphProps) {
+function SocketGlyph({ optional, title, onDoubleClick }: SocketGlyphProps) {
   return (
-    <div style={{ borderRadius: "18px", padding: "6px" }}>
+    <div
+      style={{ borderRadius: "18px", padding: "6px" }}
+      onDoubleClick={(event) => {
+        if (!onDoubleClick) {
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        onDoubleClick();
+      }}
+    >
       <div
-        title={optional ? "Optional input" : undefined}
+        title={title ?? (optional ? "Optional input" : undefined)}
         style={{
           display: "inline-block",
           cursor: "pointer",
@@ -177,6 +198,59 @@ function graphStructureKey(graph: PatchGraph): string {
   return `${nodePart}|${connectionPart}`;
 }
 
+function sourceBindingKey(fromNodeId: string, fromPortId: string): string {
+  return `${fromNodeId}|${fromPortId}`;
+}
+
+interface FormulaEditorInput {
+  token: string;
+  fromNodeId: string;
+  fromPortId: string;
+  label: string;
+  details: string;
+}
+
+interface FormulaEditorState {
+  targetNodeId: string;
+  targetNodeLabel: string;
+  targetPortId: string;
+  targetPortLabel: string;
+  expression: string;
+  inputs: FormulaEditorInput[];
+  selectionStart: number;
+  selectionEnd: number;
+}
+
+function nextAvailableToken(existing: Set<string>): string {
+  let index = 1;
+  while (existing.has(`in${index}`)) {
+    index += 1;
+  }
+  return `in${index}`;
+}
+
+function sourceLabelForConnection(
+  connection: Connection,
+  graph: PatchGraph,
+  opcodeByName: Map<string, OpcodeSpec>
+): { label: string; details: string } {
+  const sourceNode = graph.nodes.find((node) => node.id === connection.from_node_id);
+  if (!sourceNode) {
+    return {
+      label: `${connection.from_node_id}.${connection.from_port_id}`,
+      details: `Source node ${connection.from_node_id}.${connection.from_port_id}`
+    };
+  }
+  const sourceSpec = opcodeByName.get(sourceNode.opcode);
+  const sourcePortLabel =
+    sourceSpec?.outputs.find((port) => port.id === connection.from_port_id)?.name ?? connection.from_port_id;
+  const sourceOpcodeName = sourceSpec?.name ?? sourceNode.opcode;
+  return {
+    label: `${sourceNode.id}.${sourcePortLabel} (${sourceOpcodeName})`,
+    details: `Source: ${sourceNode.id}.${sourcePortLabel}\nOpcode: ${sourceOpcodeName}\nPort id: ${connection.from_port_id}`
+  };
+}
+
 export function ReteNodeEditor({
   graph,
   opcodes,
@@ -190,8 +264,285 @@ export function ReteNodeEditor({
   const graphRef = useRef(graph);
   const areaRef = useRef<AreaPlugin<any, any> | null>(null);
   const editorRef = useRef<NodeEditor<any> | null>(null);
+  const reteToPatchRef = useRef<Map<string, string>>(new Map());
+  const formulaEditorTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [zoomPercent, setZoomPercent] = useState(100);
   const [isOpcodeDragOver, setIsOpcodeDragOver] = useState(false);
+  const [formulaEditor, setFormulaEditor] = useState<FormulaEditorState | null>(null);
+  const [formulaNumberDraft, setFormulaNumberDraft] = useState("1");
+
+  const opcodeByName = useMemo(() => new Map(opcodes.map((opcode) => [opcode.name, opcode])), [opcodes]);
+
+  const updateGraph = useCallback(
+    (updater: (current: PatchGraph) => PatchGraph) => {
+      const next = updater(graphRef.current);
+      graphRef.current = next;
+      onGraphChange(next);
+    },
+    [onGraphChange]
+  );
+
+  const openFormulaEditor = useCallback(
+    (targetNodeId: string, targetPortId: string) => {
+      const graphState = graphRef.current;
+      const targetNode = graphState.nodes.find((node) => node.id === targetNodeId);
+      if (!targetNode) {
+        return;
+      }
+
+      const targetSpec = opcodeByName.get(targetNode.opcode);
+      const targetPortLabel = targetSpec?.inputs.find((input) => input.id === targetPortId)?.name ?? targetPortId;
+      const targetNodeLabel = targetSpec?.name ?? targetNode.opcode;
+
+      const inboundConnections = graphState.connections.filter(
+        (connection) => connection.to_node_id === targetNodeId && connection.to_port_id === targetPortId
+      );
+
+      const formulaMap = readInputFormulaMap(graphState.ui_layout);
+      const targetKey = formulaTargetKey(targetNodeId, targetPortId);
+      const storedFormula = formulaMap[targetKey];
+
+      const availableBySource = new Map<string, Connection>();
+      for (const connection of inboundConnections) {
+        availableBySource.set(sourceBindingKey(connection.from_node_id, connection.from_port_id), connection);
+      }
+
+      const usedSources = new Set<string>();
+      const usedTokens = new Set<string>();
+      const inputs: FormulaEditorInput[] = [];
+
+      if (storedFormula?.inputs?.length) {
+        for (const binding of storedFormula.inputs) {
+          const sourceKey = sourceBindingKey(binding.from_node_id, binding.from_port_id);
+          const connection = availableBySource.get(sourceKey);
+          if (!connection || usedSources.has(sourceKey) || usedTokens.has(binding.token)) {
+            continue;
+          }
+          const sourceLabel = sourceLabelForConnection(connection, graphState, opcodeByName);
+          usedSources.add(sourceKey);
+          usedTokens.add(binding.token);
+          inputs.push({
+            token: binding.token,
+            fromNodeId: binding.from_node_id,
+            fromPortId: binding.from_port_id,
+            label: sourceLabel.label,
+            details: sourceLabel.details
+          });
+        }
+      }
+
+      for (const connection of inboundConnections) {
+        const sourceKey = sourceBindingKey(connection.from_node_id, connection.from_port_id);
+        if (usedSources.has(sourceKey)) {
+          continue;
+        }
+        const token = nextAvailableToken(usedTokens);
+        const sourceLabel = sourceLabelForConnection(connection, graphState, opcodeByName);
+        usedSources.add(sourceKey);
+        usedTokens.add(token);
+        inputs.push({
+          token,
+          fromNodeId: connection.from_node_id,
+          fromPortId: connection.from_port_id,
+          label: sourceLabel.label,
+          details: sourceLabel.details
+        });
+      }
+
+      const defaultExpression = inputs.map((input) => input.token).join(" + ");
+      const expression = typeof storedFormula?.expression === "string" ? storedFormula.expression : defaultExpression;
+      const initialExpression = expression.trim().length > 0 ? expression : defaultExpression;
+
+      setFormulaNumberDraft("1");
+      setFormulaEditor({
+        targetNodeId,
+        targetNodeLabel,
+        targetPortId,
+        targetPortLabel,
+        expression: initialExpression,
+        inputs,
+        selectionStart: initialExpression.length,
+        selectionEnd: initialExpression.length
+      });
+
+      requestAnimationFrame(() => {
+        const textarea = formulaEditorTextareaRef.current;
+        if (!textarea) {
+          return;
+        }
+        textarea.focus();
+        textarea.setSelectionRange(initialExpression.length, initialExpression.length);
+      });
+    },
+    [opcodeByName]
+  );
+
+  const formulaValidation = useMemo(() => {
+    if (!formulaEditor) {
+      return null;
+    }
+    const tokenSet = new Set(formulaEditor.inputs.map((input) => input.token));
+    const baseValidation = validateGraphFormulaExpression(formulaEditor.expression, tokenSet);
+    const errors = [...baseValidation.errors];
+    if (formulaEditor.inputs.length < 2) {
+      errors.push("At least two connected signals are required to configure a combine formula.");
+    }
+    return {
+      isValid: baseValidation.isValid && errors.length === 0,
+      errors,
+      tokens: baseValidation.tokens
+    };
+  }, [formulaEditor]);
+
+  const formulaTokens = useMemo<GraphFormulaToken[]>(() => {
+    if (!formulaEditor) {
+      return [];
+    }
+    return tokenizeGraphFormula(formulaEditor.expression).tokens;
+  }, [formulaEditor]);
+
+  const canInsertFormulaNumber = useMemo(() => {
+    const normalized = formulaNumberDraft.trim();
+    return /^[-+]?(?:\d+\.?\d*|\.\d+)$/.test(normalized);
+  }, [formulaNumberDraft]);
+
+  const insertFormulaFragment = useCallback((fragment: string) => {
+    setFormulaEditor((current) => {
+      if (!current) {
+        return current;
+      }
+      const start = Math.max(0, Math.min(current.selectionStart, current.expression.length));
+      const end = Math.max(0, Math.min(current.selectionEnd, current.expression.length));
+      const nextExpression = `${current.expression.slice(0, start)}${fragment}${current.expression.slice(end)}`;
+      const nextCaret = start + fragment.length;
+
+      requestAnimationFrame(() => {
+        const textarea = formulaEditorTextareaRef.current;
+        if (!textarea) {
+          return;
+        }
+        textarea.focus();
+        textarea.setSelectionRange(nextCaret, nextCaret);
+      });
+
+      return {
+        ...current,
+        expression: nextExpression,
+        selectionStart: nextCaret,
+        selectionEnd: nextCaret
+      };
+    });
+  }, []);
+
+  const deleteFormulaSelection = useCallback(() => {
+    setFormulaEditor((current) => {
+      if (!current) {
+        return current;
+      }
+
+      const start = Math.max(0, Math.min(current.selectionStart, current.expression.length));
+      const end = Math.max(0, Math.min(current.selectionEnd, current.expression.length));
+      if (start === 0 && end === 0) {
+        return current;
+      }
+
+      const deleteFrom = start === end ? Math.max(0, start - 1) : start;
+      const deleteTo = start === end ? start : end;
+      const nextExpression = `${current.expression.slice(0, deleteFrom)}${current.expression.slice(deleteTo)}`;
+      const nextCaret = deleteFrom;
+
+      requestAnimationFrame(() => {
+        const textarea = formulaEditorTextareaRef.current;
+        if (!textarea) {
+          return;
+        }
+        textarea.focus();
+        textarea.setSelectionRange(nextCaret, nextCaret);
+      });
+
+      return {
+        ...current,
+        expression: nextExpression,
+        selectionStart: nextCaret,
+        selectionEnd: nextCaret
+      };
+    });
+  }, []);
+
+  const selectFormulaRange = useCallback((start: number, end: number) => {
+    setFormulaEditor((current) => {
+      if (!current) {
+        return current;
+      }
+      const nextStart = Math.max(0, Math.min(start, current.expression.length));
+      const nextEnd = Math.max(nextStart, Math.min(end, current.expression.length));
+
+      requestAnimationFrame(() => {
+        const textarea = formulaEditorTextareaRef.current;
+        if (!textarea) {
+          return;
+        }
+        textarea.focus();
+        textarea.setSelectionRange(nextStart, nextEnd);
+      });
+
+      return {
+        ...current,
+        selectionStart: nextStart,
+        selectionEnd: nextEnd
+      };
+    });
+  }, []);
+
+  const saveFormulaEditor = useCallback(() => {
+    if (!formulaEditor || !formulaValidation?.isValid) {
+      return;
+    }
+
+    const targetKey = formulaTargetKey(formulaEditor.targetNodeId, formulaEditor.targetPortId);
+    const bindings: InputFormulaBinding[] = formulaEditor.inputs.map((input) => ({
+      token: input.token,
+      from_node_id: input.fromNodeId,
+      from_port_id: input.fromPortId
+    }));
+    const expression = formulaEditor.expression.trim();
+
+    updateGraph((currentGraph) => ({
+      ...currentGraph,
+      ui_layout: setInputFormulaConfig(currentGraph.ui_layout, targetKey, { expression, inputs: bindings })
+    }));
+    setFormulaEditor(null);
+  }, [formulaEditor, formulaValidation?.isValid, updateGraph]);
+
+  const clearFormulaEditor = useCallback(() => {
+    if (!formulaEditor) {
+      return;
+    }
+
+    const targetKey = formulaTargetKey(formulaEditor.targetNodeId, formulaEditor.targetPortId);
+    updateGraph((currentGraph) => ({
+      ...currentGraph,
+      ui_layout: setInputFormulaConfig(currentGraph.ui_layout, targetKey, null)
+    }));
+    setFormulaEditor(null);
+  }, [formulaEditor, updateGraph]);
+
+  useEffect(() => {
+    if (!formulaEditor) {
+      return;
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setFormulaEditor(null);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [formulaEditor]);
 
   const syncZoomPercent = useCallback(() => {
     const area = areaRef.current;
@@ -337,18 +688,10 @@ export function ReteNodeEditor({
     let cancelled = false;
     let handle: EditorHandle | undefined;
 
-    const opcodeByName = new Map(opcodes.map((opcode) => [opcode.name, opcode]));
-
     const setup = async () => {
       if (!containerRef.current || cancelled) {
         return;
       }
-
-      const updateGraph = (updater: (current: PatchGraph) => PatchGraph) => {
-        const next = updater(graphRef.current);
-        graphRef.current = next;
-        onGraphChange(next);
-      };
 
       const initialGraph = graphRef.current;
       initializingRef.current = true;
@@ -436,8 +779,32 @@ export function ReteNodeEditor({
             socket(context) {
               const optionalPorts = optionalInputPortsByReteNode.get(String(context.nodeId));
               const isOptionalInput = context.side === "input" && Boolean(optionalPorts?.has(context.key));
+              const patchNodeId = reteToPatchRef.current.get(String(context.nodeId));
+              const hasFormulaAssistant = Boolean(patchNodeId && context.side === "input");
+              const socketTitle = hasFormulaAssistant
+                ? isOptionalInput
+                  ? "Optional input. Double-click to edit combine formula."
+                  : "Double-click to edit combine formula."
+                : isOptionalInput
+                  ? "Optional input"
+                  : undefined;
               return function StyledSocket() {
-                return <SocketGlyph optional={isOptionalInput} />;
+                return (
+                  <SocketGlyph
+                    optional={isOptionalInput}
+                    title={socketTitle}
+                    onDoubleClick={
+                      hasFormulaAssistant
+                        ? () => {
+                            if (!patchNodeId) {
+                              return;
+                            }
+                            openFormulaEditor(patchNodeId, context.key);
+                          }
+                        : undefined
+                    }
+                  />
+                );
               };
             }
           }
@@ -456,6 +823,7 @@ export function ReteNodeEditor({
 
       const patchToRete = new Map<string, any>();
       const reteToPatch = new Map<string, string>();
+      reteToPatchRef.current = reteToPatch;
       const connectionByReteId = new Map<string, string>();
       const connectionByKey = new Map<string, Connection>();
       const selectedConnectionKeys = new Set<string>();
@@ -554,7 +922,7 @@ export function ReteNodeEditor({
           for (const input of spec.inputs) {
             visualNode.addInput(
               input.id,
-              new ClassicPreset.Input(socketForType(sockets, input.signal_type), input.name)
+              new ClassicPreset.Input(socketForType(sockets, input.signal_type), input.name, true)
             );
           }
 
@@ -638,6 +1006,12 @@ export function ReteNodeEditor({
       editor.addPipe((context: any) => {
         if (initializingRef.current) {
           return context;
+        }
+
+        if (context.type === "connectionremove") {
+          // Prevent accidental edge deletion from socket interaction.
+          // Connections should only be removed via explicit selection + delete action.
+          return;
         }
 
         if (context.type === "connectioncreated") {
@@ -795,54 +1169,264 @@ export function ReteNodeEditor({
       handle?.destroy();
       areaRef.current = null;
       editorRef.current = null;
+      reteToPatchRef.current = new Map();
       if (containerRef.current) {
         containerRef.current.innerHTML = "";
       }
     };
-  }, [opcodes, onGraphChange, onOpcodeHelpRequest, onSelectionChange, structureKey, syncZoomPercent]);
+  }, [onOpcodeHelpRequest, onSelectionChange, structureKey, syncZoomPercent, openFormulaEditor, opcodeByName, updateGraph]);
 
   return (
-    <div
-      className={`relative h-full w-full rounded-2xl border bg-slate-950/75 ${
-        isOpcodeDragOver ? "border-accent/80 ring-2 ring-accent/50" : "border-slate-700/70"
-      }`}
-      onDragOver={onOpcodeDragOver}
-      onDrop={onOpcodeDrop}
-      onDragLeave={() => setIsOpcodeDragOver(false)}
-    >
-      <div ref={containerRef} className="h-full w-full" />
-      <div className="absolute bottom-3 right-3 z-10 inline-flex items-center overflow-hidden rounded-lg border border-slate-700/90 bg-slate-950/95 text-xs text-slate-200 shadow-lg shadow-black/40">
-        <button
-          type="button"
-          onClick={() => zoomByFactor(0.9)}
-          className="h-7 w-7 border-r border-slate-700/80 transition hover:bg-slate-800"
-          aria-label="Zoom out"
-          title="Zoom out"
-        >
-          -
-        </button>
-        <button
-          type="button"
-          onClick={() => zoomByFactor(1.1)}
-          className="h-7 w-7 border-r border-slate-700/80 transition hover:bg-slate-800"
-          aria-label="Zoom in"
-          title="Zoom in"
-        >
-          +
-        </button>
-        <button
-          type="button"
-          onClick={fitGraphInView}
-          className="h-7 px-2 font-semibold uppercase tracking-[0.12em] transition hover:bg-slate-800"
-          aria-label="Fit full graph in view"
-          title="Fit full graph in view"
-        >
-          Fit
-        </button>
+    <>
+      <div
+        className={`relative h-full w-full rounded-2xl border bg-slate-950/75 ${
+          isOpcodeDragOver ? "border-accent/80 ring-2 ring-accent/50" : "border-slate-700/70"
+        }`}
+        onDragOver={onOpcodeDragOver}
+        onDrop={onOpcodeDrop}
+        onDragLeave={() => setIsOpcodeDragOver(false)}
+      >
+        <div ref={containerRef} className="h-full w-full" />
+        <div className="absolute bottom-3 right-3 z-10 inline-flex items-center overflow-hidden rounded-lg border border-slate-700/90 bg-slate-950/95 text-xs text-slate-200 shadow-lg shadow-black/40">
+          <button
+            type="button"
+            onClick={() => zoomByFactor(0.9)}
+            className="h-7 w-7 border-r border-slate-700/80 transition hover:bg-slate-800"
+            aria-label="Zoom out"
+            title="Zoom out"
+          >
+            -
+          </button>
+          <button
+            type="button"
+            onClick={() => zoomByFactor(1.1)}
+            className="h-7 w-7 border-r border-slate-700/80 transition hover:bg-slate-800"
+            aria-label="Zoom in"
+            title="Zoom in"
+          >
+            +
+          </button>
+          <button
+            type="button"
+            onClick={fitGraphInView}
+            className="h-7 px-2 font-semibold uppercase tracking-[0.12em] transition hover:bg-slate-800"
+            aria-label="Fit full graph in view"
+            title="Fit full graph in view"
+          >
+            Fit
+          </button>
+        </div>
+        <div className="pointer-events-none absolute bottom-3 right-[124px] z-10 rounded-md border border-slate-700/90 bg-slate-950/90 px-2 py-1 font-mono text-[10px] text-slate-300">
+          {zoomPercent}%
+        </div>
       </div>
-      <div className="pointer-events-none absolute bottom-3 right-[124px] z-10 rounded-md border border-slate-700/90 bg-slate-950/90 px-2 py-1 font-mono text-[10px] text-slate-300">
-        {zoomPercent}%
-      </div>
-    </div>
+
+      {formulaEditor && (
+        <div className="fixed inset-0 z-[1250] flex items-center justify-center bg-slate-950/75 p-4" onMouseDown={() => setFormulaEditor(null)}>
+          <section
+            className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl"
+            onMouseDown={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Input combine formula"
+          >
+            <header className="flex items-start justify-between gap-3 border-b border-slate-700 px-4 py-3">
+              <div>
+                <h2 className="font-display text-lg font-semibold text-slate-100">Input Formula Assistant</h2>
+                <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
+                  {formulaEditor.targetNodeId}.{formulaEditor.targetPortId} ({formulaEditor.targetNodeLabel} / {formulaEditor.targetPortLabel})
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFormulaEditor(null)}
+                className="rounded-lg border border-slate-600 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-400"
+              >
+                Close
+              </button>
+            </header>
+
+            <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-y-auto p-4 lg:grid-cols-[280px_1fr]">
+              <aside className="space-y-3">
+                <div className="rounded-xl border border-slate-700 bg-slate-950/60 p-3">
+                  <div className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Connected Inputs</div>
+                  <div className="space-y-2">
+                    {formulaEditor.inputs.map((input) => (
+                      <div key={`${input.token}-${input.fromNodeId}-${input.fromPortId}`} className="group relative">
+                        <button
+                          type="button"
+                          onClick={() => insertFormulaFragment(input.token)}
+                          title={input.details}
+                          className="flex w-full items-center justify-between gap-2 rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-left text-xs text-slate-200 transition hover:border-accent/70 hover:text-accent"
+                        >
+                          <span className="font-mono text-accent">{input.token}</span>
+                          <span className="truncate">{input.label}</span>
+                        </button>
+                        <div className="pointer-events-none absolute left-0 right-0 top-full z-20 mt-1 hidden rounded-md border border-slate-600 bg-slate-950/95 px-2 py-1 text-[11px] leading-relaxed text-slate-200 shadow-lg group-hover:block group-focus-within:block whitespace-pre-line">
+                          {input.details}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-slate-700 bg-slate-950/60 p-3">
+                  <div className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Insert Operator</div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {["+", "-", "*", "/", "(", ")"].map((operator) => (
+                      <button
+                        key={`op-${operator}`}
+                        type="button"
+                        onClick={() => insertFormulaFragment(` ${operator} `)}
+                        className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 font-mono text-sm text-slate-200 transition hover:border-accent/70 hover:text-accent"
+                      >
+                        {operator}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-slate-700 bg-slate-950/60 p-3">
+                  <div className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Insert Number</div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={formulaNumberDraft}
+                      onChange={(event) => setFormulaNumberDraft(event.target.value)}
+                      className="w-full rounded-md border border-slate-600 bg-slate-900 px-2 py-1 font-mono text-xs text-slate-100 outline-none ring-accent/40 transition focus:ring"
+                      placeholder="e.g. 0.5"
+                    />
+                    <button
+                      type="button"
+                      disabled={!canInsertFormulaNumber}
+                      onClick={() => {
+                        if (!canInsertFormulaNumber) {
+                          return;
+                        }
+                        insertFormulaFragment(formulaNumberDraft.trim());
+                      }}
+                      className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-200 transition hover:border-accent/70 hover:text-accent disabled:opacity-40"
+                    >
+                      Add
+                    </button>
+                  </div>
+                </div>
+              </aside>
+
+              <section className="flex min-h-0 flex-col gap-3">
+                <label className="flex min-h-0 flex-1 flex-col gap-2">
+                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Formula</span>
+                  <textarea
+                    ref={formulaEditorTextareaRef}
+                    value={formulaEditor.expression}
+                    onChange={(event) => {
+                      const next = event.target.value;
+                      setFormulaEditor((current) =>
+                        current
+                          ? {
+                              ...current,
+                              expression: next,
+                              selectionStart: event.target.selectionStart ?? next.length,
+                              selectionEnd: event.target.selectionEnd ?? next.length
+                            }
+                          : current
+                      );
+                    }}
+                    onSelect={(event) => {
+                      const target = event.target as HTMLTextAreaElement;
+                      setFormulaEditor((current) =>
+                        current
+                          ? {
+                              ...current,
+                              selectionStart: target.selectionStart ?? current.selectionStart,
+                              selectionEnd: target.selectionEnd ?? current.selectionEnd
+                            }
+                          : current
+                      );
+                    }}
+                    className={`min-h-[180px] w-full rounded-lg border bg-slate-950 px-3 py-2 font-mono text-sm text-slate-100 outline-none ring-accent/40 transition focus:ring ${
+                      formulaValidation?.isValid ? "border-slate-600" : "border-rose-500/70"
+                    }`}
+                    placeholder="Example: in1 + (in2 * 0.5)"
+                  />
+                </label>
+
+                <div className="rounded-xl border border-slate-700 bg-slate-950/60 p-3">
+                  <div className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+                    Token Selection (click to select range)
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {formulaTokens.length > 0 ? (
+                      formulaTokens.map((token, index) => (
+                        <button
+                          key={`formula-token-${index}-${token.start}`}
+                          type="button"
+                          onClick={() => selectFormulaRange(token.start, token.end)}
+                          className={`rounded border px-2 py-1 font-mono text-xs transition ${
+                            token.type === "identifier"
+                              ? "border-cyan-500/40 bg-cyan-500/10 text-cyan-200"
+                              : token.type === "number"
+                                ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200"
+                                : "border-slate-700 bg-slate-900 text-slate-300"
+                          }`}
+                        >
+                          {token.value}
+                        </button>
+                      ))
+                    ) : (
+                      <div className="text-xs text-slate-500">No tokens yet.</div>
+                    )}
+                  </div>
+                  <div className="mt-2">
+                    <button
+                      type="button"
+                      onClick={deleteFormulaSelection}
+                      className="rounded-md border border-rose-500/60 bg-rose-950/40 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-rose-200 transition hover:bg-rose-900/40"
+                    >
+                      Delete Selection
+                    </button>
+                  </div>
+                </div>
+
+                {!formulaValidation?.isValid && formulaValidation?.errors.length ? (
+                  <div className="rounded-xl border border-rose-500/60 bg-rose-950/40 px-3 py-2 text-xs text-rose-200">
+                    {formulaValidation.errors.map((error, index) => (
+                      <div key={`formula-error-${index}`}>- {error}</div>
+                    ))}
+                  </div>
+                ) : null}
+              </section>
+            </div>
+
+            <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-700 px-4 py-3">
+              <button
+                type="button"
+                onClick={clearFormulaEditor}
+                className="rounded-lg border border-amber-500/60 bg-amber-950/35 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-amber-200 transition hover:bg-amber-900/40"
+              >
+                Clear Formula
+              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFormulaEditor(null)}
+                  className="rounded-lg border border-slate-600 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-400"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={!formulaValidation?.isValid}
+                  onClick={saveFormulaEditor}
+                  className="rounded-lg border border-accent/70 bg-accent/20 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-accent transition hover:bg-accent/30 disabled:opacity-40"
+                >
+                  Save Formula
+                </button>
+              </div>
+            </footer>
+          </section>
+        </div>
+      )}
+    </>
   );
 }
