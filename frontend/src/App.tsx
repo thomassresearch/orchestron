@@ -259,6 +259,7 @@ export default function App() {
 
   const activeSessionId = useAppStore((state) => state.activeSessionId);
   const activeSessionState = useAppStore((state) => state.activeSessionState);
+  const activeSessionInstruments = useAppStore((state) => state.activeSessionInstruments);
   const activeMidiInput = useAppStore((state) => state.activeMidiInput);
   const compileOutput = useAppStore((state) => state.compileOutput);
   const events = useAppStore((state) => state.events);
@@ -701,18 +702,47 @@ export default function App() {
     [activeSessionState, appCopy.errors.startInstrumentsBeforePianoRollStart, sendAllNotesOff, setPianoRollEnabled]
   );
 
+  const collectMidiControllerChannels = useCallback(() => {
+    const channels = new Set<number>();
+
+    if (activeSessionInstruments.length > 0) {
+      for (const instrument of activeSessionInstruments) {
+        channels.add(Math.max(1, Math.min(16, Math.round(instrument.midi_channel))));
+      }
+    } else {
+      for (const instrument of sequencerInstruments) {
+        channels.add(Math.max(1, Math.min(16, Math.round(instrument.midiChannel))));
+      }
+    }
+
+    if (channels.size === 0) {
+      channels.add(1);
+    }
+
+    return [...channels];
+  }, [activeSessionInstruments, sequencerInstruments]);
+
   const sendMidiControllerValue = useCallback(
-    (controllerNumber: number, value: number, sessionIdOverride?: string) =>
-      sendDirectMidiEvent(
-        {
-          type: "control_change",
-          channel: 1,
-          controller: Math.max(0, Math.min(127, Math.round(controllerNumber))),
-          value: Math.max(0, Math.min(127, Math.round(value)))
-        },
-        sessionIdOverride
-      ),
-    [sendDirectMidiEvent]
+    async (controllerNumber: number, value: number, sessionIdOverride?: string) => {
+      const normalizedController = Math.max(0, Math.min(127, Math.round(controllerNumber)));
+      const normalizedValue = Math.max(0, Math.min(127, Math.round(value)));
+      const channels = collectMidiControllerChannels();
+
+      await Promise.all(
+        channels.map((channel) =>
+          sendDirectMidiEvent(
+            {
+              type: "control_change",
+              channel,
+              controller: normalizedController,
+              value: normalizedValue
+            },
+            sessionIdOverride
+          )
+        )
+      );
+    },
+    [collectMidiControllerChannels, sendDirectMidiEvent]
   );
 
   const onMidiControllerEnabledChange = useCallback(

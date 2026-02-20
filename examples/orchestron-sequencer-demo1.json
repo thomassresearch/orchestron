@@ -302,7 +302,7 @@
             null
           ]
         ],
-        "enabled": true,
+        "enabled": false,
         "queuedEnabled": null
       }
     ],
@@ -322,14 +322,14 @@
         "id": "cc-1",
         "name": "Controller 1",
         "controllerNumber": 10,
-        "value": 39,
+        "value": 98,
         "enabled": false
       },
       {
         "id": "cc-2",
         "name": "Controller 2",
-        "controllerNumber": 1,
-        "value": 0,
+        "controllerNumber": 11,
+        "value": 36,
         "enabled": false
       },
       {
