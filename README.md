@@ -34,6 +34,16 @@ This application was built using the Codex App with `GPT-5.3-Codex` and **Extra 
 
 ## Quick Start
 
+### Use the Makefile
+Build the app:
+````bash
+make
+```
+Run it:
+````bash
+make run
+```
+
 ### Backend
 
 ```bash
