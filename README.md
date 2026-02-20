@@ -16,21 +16,12 @@ This application was built using the Codex App with `GPT-5.3-Codex` and **Extra 
 
 ## Screenshots
 
-### Instrument Design
-
-![Instrument Design](screenshots/instrument_design.png)
-
-### Perform
-
-![Perform](screenshots/perform.png)
-
-### Config
-
-![Config](screenshots/config.png)
-
-### FastAPI Backend
-
-![FastAPI Backend](screenshots/fastapi_backend.png)
+|  |  |
+|---|---|
+| **Instrument Design**<br>![Instrument Design](screenshots/instrument_design.png) | **Perform**<br>![Perform](screenshots/perform.png) |
+| **Config**<br>![Config](screenshots/config.png) | **FastAPI Backend**<br>![FastAPI Backend](screenshots/fastapi_backend.png) |
+| **Integrated Help Pages**<br>![Integrated Help Pages](screenshots/integrated_help_pages.png) | **Integrated Help Pages (Multilingual)**<br>![Integrated Help Pages (Multilingual)](screenshots/integrated_help_pages_multilingual.png) |
+| **Integrated Help Pages (Opcodes)**<br>![Integrated Help Pages (Opcodes)](screenshots/integrated_help_pages_opcodes.png) |  |
 
 ## Quick Start
 

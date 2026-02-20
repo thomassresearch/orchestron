@@ -190,6 +190,7 @@ let persistTimer: ReturnType<typeof setTimeout> | null = null;
 let persistInFlight = false;
 let pendingPersistSnapshot: PersistedAppState | null = null;
 let lastPersistedSignature: string | null = null;
+let bootstrapLoadInFlight: Promise<void> | null = null;
 
 function clampInt(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, Math.round(value)));
@@ -1122,154 +1123,180 @@ export const useAppStore = create<AppStore>((set, get) => {
     },
 
     loadBootstrap: async () => {
-      set({ loading: true, error: null });
-      try {
-        const [opcodes, patches, performances, midiInputs, persistedState] = await Promise.all([
-          api.listOpcodes(),
-          api.listPatches(),
-          api.listPerformances(),
-          api.listMidiInputs(),
-          api
-            .getAppState()
-            .then((response) => response.state)
-            .catch((error: unknown) => {
-              if (
-                error instanceof Error &&
-                (error.message.includes("API 404") || error.message.includes("App state not found"))
-              ) {
-                return null;
+      if (get().hasLoadedBootstrap) {
+        return;
+      }
+      if (bootstrapLoadInFlight) {
+        return bootstrapLoadInFlight;
+      }
+
+      const initialState = get();
+      const initialActivePage = initialState.activePage;
+      const initialGuiLanguage = initialState.guiLanguage;
+
+      bootstrapLoadInFlight = (async () => {
+        set({ loading: true, error: null });
+        try {
+          const [opcodes, patches, performances, midiInputs, persistedState] = await Promise.all([
+            api.listOpcodes(),
+            api.listPatches(),
+            api.listPerformances(),
+            api.listMidiInputs(),
+            api
+              .getAppState()
+              .then((response) => response.state)
+              .catch((error: unknown) => {
+                if (
+                  error instanceof Error &&
+                  (error.message.includes("API 404") || error.message.includes("App state not found"))
+                ) {
+                  return null;
+                }
+                throw error;
+              })
+          ]);
+
+          let currentPatch = defaultEditablePatch();
+          if (patches.length > 0) {
+            const full = await api.getPatch(patches[0].id);
+            currentPatch = normalizePatch(full);
+          }
+
+          let activePage: AppPage = "instrument";
+          let instrumentTabs: InstrumentTabState[] = [createInstrumentTab(currentPatch)];
+          let activeInstrumentTabId = instrumentTabs[0].id;
+          let sequencer = defaultSequencerState();
+          let sequencerInstruments = defaultSequencerInstruments(patches, currentPatch.id);
+          let currentPerformanceId: string | null = null;
+          let performanceName = "Untitled Performance";
+          let performanceDescription = "";
+          let guiLanguage: GuiLanguage = "english";
+
+          const preferredMidi = get().activeMidiInput;
+          let activeMidiInput =
+            preferredMidi && midiInputs.some((input) => input.id === preferredMidi)
+              ? preferredMidi
+              : midiInputs[0]?.id ?? null;
+
+          if (persistedState && typeof persistedState === "object" && !Array.isArray(persistedState)) {
+            const payload = persistedState as Partial<PersistedAppState>;
+            if (payload.version === APP_STATE_VERSION) {
+              const restoredTabs = normalizePersistedInstrumentTabs(payload.instrumentTabs);
+              if (restoredTabs.length > 0) {
+                instrumentTabs = restoredTabs;
+                activeInstrumentTabId =
+                  typeof payload.activeInstrumentTabId === "string" &&
+                  instrumentTabs.some((tab) => tab.id === payload.activeInstrumentTabId)
+                    ? payload.activeInstrumentTabId
+                    : instrumentTabs[0].id;
+                currentPatch =
+                  instrumentTabs.find((tab) => tab.id === activeInstrumentTabId)?.patch ?? instrumentTabs[0].patch;
               }
-              throw error;
-            })
-        ]);
 
-        let currentPatch = defaultEditablePatch();
-        if (patches.length > 0) {
-          const full = await api.getPatch(patches[0].id);
-          currentPatch = normalizePatch(full);
-        }
+              activePage = normalizeAppPage(payload.activePage);
+              guiLanguage = normalizeGuiLanguage(payload.guiLanguage);
+              sequencer = normalizeSequencerState(payload.sequencer);
 
-        let activePage: AppPage = "instrument";
-        let instrumentTabs: InstrumentTabState[] = [createInstrumentTab(currentPatch)];
-        let activeInstrumentTabId = instrumentTabs[0].id;
-        let sequencer = defaultSequencerState();
-        let sequencerInstruments = defaultSequencerInstruments(patches, currentPatch.id);
-        let currentPerformanceId: string | null = null;
-        let performanceName = "Untitled Performance";
-        let performanceDescription = "";
-        let guiLanguage: GuiLanguage = "english";
+              const availablePatchIds = new Set<string>(patches.map((patch) => patch.id));
+              const fallbackPatchId = patches[0]?.id ?? null;
+              sequencerInstruments = normalizePersistedSequencerInstruments(
+                payload.sequencerInstruments,
+                availablePatchIds,
+                fallbackPatchId
+              );
 
-        const preferredMidi = get().activeMidiInput;
-        let activeMidiInput =
-          preferredMidi && midiInputs.some((input) => input.id === preferredMidi)
-            ? preferredMidi
-            : midiInputs[0]?.id ?? null;
+              currentPerformanceId =
+                typeof payload.currentPerformanceId === "string" &&
+                performances.some((performance) => performance.id === payload.currentPerformanceId)
+                  ? payload.currentPerformanceId
+                  : null;
+              performanceName =
+                typeof payload.performanceName === "string" && payload.performanceName.trim().length > 0
+                  ? payload.performanceName
+                  : "Untitled Performance";
+              performanceDescription =
+                typeof payload.performanceDescription === "string" ? payload.performanceDescription : "";
 
-        if (persistedState && typeof persistedState === "object" && !Array.isArray(persistedState)) {
-          const payload = persistedState as Partial<PersistedAppState>;
-          if (payload.version === APP_STATE_VERSION) {
-            const restoredTabs = normalizePersistedInstrumentTabs(payload.instrumentTabs);
-            if (restoredTabs.length > 0) {
-              instrumentTabs = restoredTabs;
-              activeInstrumentTabId =
-                typeof payload.activeInstrumentTabId === "string" &&
-                instrumentTabs.some((tab) => tab.id === payload.activeInstrumentTabId)
-                  ? payload.activeInstrumentTabId
-                  : instrumentTabs[0].id;
-              currentPatch =
-                instrumentTabs.find((tab) => tab.id === activeInstrumentTabId)?.patch ?? instrumentTabs[0].patch;
-            }
-
-            activePage = normalizeAppPage(payload.activePage);
-            guiLanguage = normalizeGuiLanguage(payload.guiLanguage);
-            sequencer = normalizeSequencerState(payload.sequencer);
-
-            const availablePatchIds = new Set<string>(patches.map((patch) => patch.id));
-            const fallbackPatchId = patches[0]?.id ?? null;
-            sequencerInstruments = normalizePersistedSequencerInstruments(
-              payload.sequencerInstruments,
-              availablePatchIds,
-              fallbackPatchId
-            );
-
-            currentPerformanceId =
-              typeof payload.currentPerformanceId === "string" &&
-              performances.some((performance) => performance.id === payload.currentPerformanceId)
-                ? payload.currentPerformanceId
-                : null;
-            performanceName =
-              typeof payload.performanceName === "string" && payload.performanceName.trim().length > 0
-                ? payload.performanceName
-                : "Untitled Performance";
-            performanceDescription =
-              typeof payload.performanceDescription === "string" ? payload.performanceDescription : "";
-
-            if (
-              typeof payload.activeMidiInput === "string" &&
-              midiInputs.some((input) => input.id === payload.activeMidiInput)
-            ) {
-              activeMidiInput = payload.activeMidiInput;
+              if (
+                typeof payload.activeMidiInput === "string" &&
+                midiInputs.some((input) => input.id === payload.activeMidiInput)
+              ) {
+                activeMidiInput = payload.activeMidiInput;
+              }
             }
           }
+
+          const latestState = get();
+          const activePageChangedDuringBootstrap =
+            !latestState.hasLoadedBootstrap && latestState.activePage !== initialActivePage;
+          const guiLanguageChangedDuringBootstrap =
+            !latestState.hasLoadedBootstrap && latestState.guiLanguage !== initialGuiLanguage;
+
+          const resolvedActivePage = activePageChangedDuringBootstrap ? latestState.activePage : activePage;
+          const resolvedGuiLanguage = guiLanguageChangedDuringBootstrap ? latestState.guiLanguage : guiLanguage;
+
+          const baselineSnapshot: PersistedAppState = {
+            version: APP_STATE_VERSION,
+            activePage: resolvedActivePage,
+            guiLanguage: resolvedGuiLanguage,
+            instrumentTabs: instrumentTabs.map((tab) => ({
+              id: tab.id,
+              patch: {
+                id: tab.patch.id,
+                name: tab.patch.name,
+                description: tab.patch.description,
+                schema_version: tab.patch.schema_version,
+                graph: withNormalizedEngineConfig(tab.patch.graph),
+                created_at: tab.patch.created_at,
+                updated_at: tab.patch.updated_at
+              }
+            })),
+            activeInstrumentTabId,
+            sequencer: sequencerSnapshotForPersistence(sequencer),
+            sequencerInstruments: sequencerInstruments.map((binding) => ({
+              id: binding.id,
+              patchId: binding.patchId,
+              midiChannel: clampInt(binding.midiChannel, 1, 16)
+            })),
+            currentPerformanceId,
+            performanceName,
+            performanceDescription,
+            activeMidiInput
+          };
+          lastPersistedSignature = JSON.stringify(baselineSnapshot);
+
+          set({
+            opcodes,
+            patches,
+            performances,
+            midiInputs,
+            activeMidiInput,
+            activePage: resolvedActivePage,
+            guiLanguage: resolvedGuiLanguage,
+            instrumentTabs,
+            activeInstrumentTabId,
+            currentPatch,
+            sequencer,
+            sequencerInstruments,
+            currentPerformanceId,
+            performanceName,
+            performanceDescription,
+            hasLoadedBootstrap: true,
+            loading: false,
+            error: null
+          });
+        } catch (error) {
+          set({
+            hasLoadedBootstrap: true,
+            loading: false,
+            error: error instanceof Error ? error.message : "Failed to load bootstrap data"
+          });
+        } finally {
+          bootstrapLoadInFlight = null;
         }
+      })();
 
-        const baselineSnapshot: PersistedAppState = {
-          version: APP_STATE_VERSION,
-          activePage,
-          guiLanguage,
-          instrumentTabs: instrumentTabs.map((tab) => ({
-            id: tab.id,
-            patch: {
-              id: tab.patch.id,
-              name: tab.patch.name,
-              description: tab.patch.description,
-              schema_version: tab.patch.schema_version,
-              graph: withNormalizedEngineConfig(tab.patch.graph),
-              created_at: tab.patch.created_at,
-              updated_at: tab.patch.updated_at
-            }
-          })),
-          activeInstrumentTabId,
-          sequencer: sequencerSnapshotForPersistence(sequencer),
-          sequencerInstruments: sequencerInstruments.map((binding) => ({
-            id: binding.id,
-            patchId: binding.patchId,
-            midiChannel: clampInt(binding.midiChannel, 1, 16)
-          })),
-          currentPerformanceId,
-          performanceName,
-          performanceDescription,
-          activeMidiInput
-        };
-        lastPersistedSignature = JSON.stringify(baselineSnapshot);
-
-        set({
-          opcodes,
-          patches,
-          performances,
-          midiInputs,
-          activeMidiInput,
-          activePage,
-          guiLanguage,
-          instrumentTabs,
-          activeInstrumentTabId,
-          currentPatch,
-          sequencer,
-          sequencerInstruments,
-          currentPerformanceId,
-          performanceName,
-          performanceDescription,
-          hasLoadedBootstrap: true,
-          loading: false,
-          error: null
-        });
-      } catch (error) {
-        set({
-          hasLoadedBootstrap: true,
-          loading: false,
-          error: error instanceof Error ? error.message : "Failed to load bootstrap data"
-        });
-      }
+      return bootstrapLoadInFlight;
     },
 
     loadPatch: async (patchId) => {
