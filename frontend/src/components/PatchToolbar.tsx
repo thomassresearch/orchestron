@@ -1,4 +1,4 @@
-import type { PatchListItem } from "../types";
+import type { GuiLanguage, PatchListItem } from "../types";
 
 interface InstrumentTabItem {
   id: string;
@@ -6,6 +6,7 @@ interface InstrumentTabItem {
 }
 
 interface PatchToolbarProps {
+  guiLanguage: GuiLanguage;
   patchName: string;
   patchDescription: string;
   patches: PatchListItem[];
@@ -25,7 +26,83 @@ interface PatchToolbarProps {
   onExport: () => void;
 }
 
+type PatchToolbarCopy = {
+  closeTabAria: string;
+  addInstrumentTab: string;
+  patchName: string;
+  patchNamePlaceholder: string;
+  description: string;
+  descriptionPlaceholder: string;
+  loadPatch: string;
+  currentPatch: string;
+  newPatch: string;
+  savePatch: string;
+  compilePatch: string;
+  exportCsd: string;
+};
+
+const PATCH_TOOLBAR_COPY: Record<GuiLanguage, PatchToolbarCopy> = {
+  english: {
+    closeTabAria: "Close tab",
+    addInstrumentTab: "Add instrument tab",
+    patchName: "Patch Name",
+    patchNamePlaceholder: "Bassline Mono",
+    description: "Description",
+    descriptionPlaceholder: "Warm filter-swept lead",
+    loadPatch: "Load Patch",
+    currentPatch: "Current",
+    newPatch: "New",
+    savePatch: "Save",
+    compilePatch: "Compile",
+    exportCsd: "Export"
+  },
+  german: {
+    closeTabAria: "Tab schliessen",
+    addInstrumentTab: "Instrument-Tab hinzufuegen",
+    patchName: "Patch-Name",
+    patchNamePlaceholder: "Bassline Mono",
+    description: "Beschreibung",
+    descriptionPlaceholder: "Warmer Filter-Sweep-Lead",
+    loadPatch: "Patch laden",
+    currentPatch: "Aktuell",
+    newPatch: "Neu",
+    savePatch: "Speichern",
+    compilePatch: "Kompilieren",
+    exportCsd: "Exportieren"
+  },
+  french: {
+    closeTabAria: "Fermer onglet",
+    addInstrumentTab: "Ajouter onglet instrument",
+    patchName: "Nom du patch",
+    patchNamePlaceholder: "Bassline Mono",
+    description: "Description",
+    descriptionPlaceholder: "Lead chaud avec sweep de filtre",
+    loadPatch: "Charger patch",
+    currentPatch: "Actuel",
+    newPatch: "Nouveau",
+    savePatch: "Enregistrer",
+    compilePatch: "Compiler",
+    exportCsd: "Exporter"
+  },
+  spanish: {
+    closeTabAria: "Cerrar pestana",
+    addInstrumentTab: "Agregar pestana de instrumento",
+    patchName: "Nombre del patch",
+    patchNamePlaceholder: "Bassline Mono",
+    description: "Descripcion",
+    descriptionPlaceholder: "Lead calido con barrido de filtro",
+    loadPatch: "Cargar patch",
+    currentPatch: "Actual",
+    newPatch: "Nuevo",
+    savePatch: "Guardar",
+    compilePatch: "Compilar",
+    exportCsd: "Exportar"
+  }
+};
+
 export function PatchToolbar(props: PatchToolbarProps) {
+  const copy = PATCH_TOOLBAR_COPY[props.guiLanguage];
+
   return (
     <section className="rounded-2xl border border-slate-700/60 bg-slate-900/70 p-3 shadow-glow">
       <div className="mb-3 flex items-center gap-2 overflow-x-auto pb-1">
@@ -46,8 +123,8 @@ export function PatchToolbar(props: PatchToolbarProps) {
                 type="button"
                 onClick={() => props.onCloseTab(tab.id)}
                 className="border-l border-slate-700 px-2 text-[10px] font-semibold text-slate-400 transition hover:bg-slate-800 hover:text-slate-200"
-                aria-label={`Close ${tab.title}`}
-                title={`Close ${tab.title}`}
+                aria-label={`${copy.closeTabAria}: ${tab.title}`}
+                title={`${copy.closeTabAria}: ${tab.title}`}
               >
                 ×
               </button>
@@ -59,8 +136,8 @@ export function PatchToolbar(props: PatchToolbarProps) {
           type="button"
           onClick={props.onAddTab}
           className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-accent/60 bg-accent/15 text-base leading-none text-accent transition hover:bg-accent/25"
-          aria-label="Add instrument tab"
-          title="Add instrument tab"
+          aria-label={copy.addInstrumentTab}
+          title={copy.addInstrumentTab}
         >
           +
         </button>
@@ -68,27 +145,27 @@ export function PatchToolbar(props: PatchToolbarProps) {
 
       <div className="grid grid-cols-1 gap-2 lg:grid-cols-5">
         <label className="flex flex-col gap-1 lg:col-span-2">
-          <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-slate-400">Patch Name</span>
+          <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-slate-400">{copy.patchName}</span>
           <input
             className="rounded-lg border border-slate-600 bg-slate-950 px-3 py-1.5 font-body text-sm text-slate-100 outline-none ring-accent/40 transition focus:ring"
             value={props.patchName}
             onChange={(event) => props.onPatchNameChange(event.target.value)}
-            placeholder="Bassline Mono"
+            placeholder={copy.patchNamePlaceholder}
           />
         </label>
 
         <label className="flex flex-col gap-1 lg:col-span-2">
-          <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-slate-400">Description</span>
+          <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-slate-400">{copy.description}</span>
           <input
             className="rounded-lg border border-slate-600 bg-slate-950 px-3 py-1.5 font-body text-sm text-slate-100 outline-none ring-accent/40 transition focus:ring"
             value={props.patchDescription}
             onChange={(event) => props.onPatchDescriptionChange(event.target.value)}
-            placeholder="Warm filter-swept lead"
+            placeholder={copy.descriptionPlaceholder}
           />
         </label>
 
         <label className="flex flex-col gap-1">
-          <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-slate-400">Load Patch</span>
+          <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-slate-400">{copy.loadPatch}</span>
           <select
             className="rounded-lg border border-slate-600 bg-slate-950 px-3 py-1.5 font-body text-sm text-slate-100 outline-none ring-accent/40 transition focus:ring"
             value={props.currentPatchId ?? ""}
@@ -98,7 +175,7 @@ export function PatchToolbar(props: PatchToolbarProps) {
               }
             }}
           >
-            <option value="">Current</option>
+            <option value="">{copy.currentPatch}</option>
             {props.patches.map((patch) => (
               <option key={patch.id} value={patch.id}>
                 {patch.name}
@@ -114,7 +191,7 @@ export function PatchToolbar(props: PatchToolbarProps) {
           onClick={props.onNewPatch}
           type="button"
         >
-          New
+          {copy.newPatch}
         </button>
         <button
           className="rounded-lg border border-mint/50 bg-mint/15 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-mint transition hover:bg-mint/25"
@@ -122,7 +199,7 @@ export function PatchToolbar(props: PatchToolbarProps) {
           type="button"
           disabled={props.loading}
         >
-          Save
+          {copy.savePatch}
         </button>
         <button
           className="rounded-lg border border-accent/50 bg-accent/15 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-accent transition hover:bg-accent/25"
@@ -130,7 +207,7 @@ export function PatchToolbar(props: PatchToolbarProps) {
           type="button"
           disabled={props.loading}
         >
-          Compile
+          {copy.compilePatch}
         </button>
         <button
           className="rounded-lg border border-cyan-500/50 bg-cyan-500/15 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-cyan-200 transition hover:bg-cyan-500/25"
@@ -138,7 +215,7 @@ export function PatchToolbar(props: PatchToolbarProps) {
           type="button"
           disabled={props.loading}
         >
-          Export
+          {copy.exportCsd}
         </button>
       </div>
     </section>

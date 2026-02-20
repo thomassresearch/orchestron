@@ -1,14 +1,19 @@
 import { useEffect } from "react";
 
-import type { OpcodeSpec } from "../types";
+import type { GuiLanguage, OpcodeSpec } from "../types";
+import { documentationUiCopy, localizedOpcodeMarkdown } from "../lib/documentation";
 import { MarkdownRenderer } from "./MarkdownRenderer";
 
 interface OpcodeDocumentationModalProps {
   opcode: OpcodeSpec;
+  guiLanguage: GuiLanguage;
   onClose: () => void;
 }
 
-export function OpcodeDocumentationModal({ opcode, onClose }: OpcodeDocumentationModalProps) {
+export function OpcodeDocumentationModal({ opcode, guiLanguage, onClose }: OpcodeDocumentationModalProps) {
+  const ui = documentationUiCopy(guiLanguage);
+  const markdown = localizedOpcodeMarkdown(opcode, guiLanguage);
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -29,12 +34,12 @@ export function OpcodeDocumentationModal({ opcode, onClose }: OpcodeDocumentatio
         onMouseDown={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"
-        aria-label={`${opcode.name} documentation`}
+        aria-label={`${opcode.name} ${ui.opcodeDocumentation}`}
       >
         <header className="flex items-center justify-between gap-3 border-b border-slate-700 px-4 py-3">
           <div>
             <h2 className="font-display text-lg font-semibold text-slate-100">{opcode.name}</h2>
-            <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Opcode Documentation</p>
+            <p className="text-xs uppercase tracking-[0.16em] text-slate-400">{ui.opcodeDocumentation}</p>
           </div>
           <div className="flex items-center gap-2">
             {opcode.documentation_url && (
@@ -44,7 +49,7 @@ export function OpcodeDocumentationModal({ opcode, onClose }: OpcodeDocumentatio
                 rel="noreferrer"
                 className="rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-cyan-300 transition hover:bg-cyan-500/20"
               >
-                Open Csound Reference
+                {ui.openCsoundReference}
               </a>
             )}
             <button
@@ -52,16 +57,16 @@ export function OpcodeDocumentationModal({ opcode, onClose }: OpcodeDocumentatio
               onClick={onClose}
               className="rounded-lg border border-slate-600 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-400"
             >
-              Close
+              {ui.close}
             </button>
           </div>
         </header>
 
         <div className="min-h-0 overflow-y-auto px-5 py-4">
-          {opcode.documentation_markdown.trim().length > 0 ? (
-            <MarkdownRenderer markdown={opcode.documentation_markdown} />
+          {markdown.trim().length > 0 ? (
+            <MarkdownRenderer markdown={markdown} />
           ) : (
-            <p className="text-sm text-slate-300">No documentation markdown available for this opcode.</p>
+            <p className="text-sm text-slate-300">{ui.noOpcodeDocumentation}</p>
           )}
         </div>
       </section>

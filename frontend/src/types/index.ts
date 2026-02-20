@@ -1,5 +1,17 @@
 export type SignalType = "a" | "k" | "i" | "S" | "f";
 export type AppPage = "instrument" | "sequencer" | "config";
+export type GuiLanguage = "english" | "german" | "french" | "spanish";
+export type HelpDocId =
+  | "instrument_patch_toolbar"
+  | "instrument_opcode_catalog"
+  | "instrument_graph_editor"
+  | "instrument_runtime_panel"
+  | "sequencer_instrument_rack"
+  | "sequencer_tracks"
+  | "sequencer_piano_rolls"
+  | "sequencer_midi_controllers"
+  | "config_audio_engine"
+  | "config_engine_values";
 
 export type JsonPrimitive = string | number | boolean | null;
 export type JsonValue = JsonPrimitive | JsonObject | JsonValue[];
@@ -11,6 +23,7 @@ export interface PortSpec {
   id: string;
   name: string;
   signal_type: SignalType;
+  accepted_signal_types?: SignalType[];
   required: boolean;
   default?: string | number | null;
   description: string;
@@ -203,6 +216,7 @@ export interface InstrumentTabSnapshot {
 export interface PersistedAppState {
   version: 1;
   activePage: AppPage;
+  guiLanguage: GuiLanguage;
   instrumentTabs: InstrumentTabSnapshot[];
   activeInstrumentTabId: string;
   sequencer: SequencerState;

@@ -5,11 +5,12 @@ import {
   buildSequencerNoteOptions,
   parseSequencerScaleValue,
   SEQUENCER_MODE_OPTIONS,
-  SEQUENCER_SCALE_OPTIONS,
-  sequencerModeLabel,
-  sequencerScaleLabel
+  SEQUENCER_SCALE_OPTIONS
 } from "../lib/sequencer";
+import { HelpIconButton } from "./HelpIconButton";
 import type {
+  GuiLanguage,
+  HelpDocId,
   PatchListItem,
   PerformanceListItem,
   PianoRollState,
@@ -28,6 +29,380 @@ const PIANO_WHITE_KEY_HEIGHT = 132;
 const PIANO_BLACK_KEY_WIDTH = 22;
 const PIANO_BLACK_KEY_HEIGHT = 84;
 const PIANO_SCROLL_STEP_PX = PIANO_WHITE_KEY_WIDTH * 8;
+
+type SequencerUiCopy = {
+  keyboardInfo: string;
+  scrollKeyboardLeft: string;
+  scrollKeyboardRight: string;
+  controllerKnobValue: (value: number) => string;
+  trackQueuedStart: string;
+  trackQueuedStop: string;
+  running: string;
+  stopped: string;
+  instrumentRack: string;
+  state: string;
+  performanceName: string;
+  performanceNamePlaceholder: string;
+  description: string;
+  performanceDescriptionPlaceholder: string;
+  loadPerformance: string;
+  current: string;
+  addInstrument: string;
+  savePerformance: string;
+  export: string;
+  import: string;
+  noInstrumentHint: string;
+  patch: (index: number) => string;
+  channel: string;
+  remove: string;
+  rackTransport: string;
+  startInstruments: string;
+  stopInstruments: string;
+  sequencers: string;
+  addSequencer: string;
+  globalSequencerClock: string;
+  bpm: string;
+  midiChannel: string;
+  scale: string;
+  mode: string;
+  steps: string;
+  notesInScaleMode: (scale: string, mode: string) => string;
+  patternPads: string;
+  sequencerWithIndex: (index: number) => string;
+  start: string;
+  stop: string;
+  rest: string;
+  inScaleOptgroup: (scale: string, mode: string) => string;
+  outOfScaleOptgroup: string;
+  inScaleDegree: (degree: number | null) => string;
+  outOfScale: string;
+  pianoRolls: string;
+  addPianoRoll: string;
+  pianoRollWithIndex: (index: number) => string;
+  inScaleHighlightInfo: (scale: string, mode: string) => string;
+  midiControllers: (count: number) => string;
+  addController: string;
+  noControllersHint: string;
+  controllerWithIndex: (index: number) => string;
+  controllerNumber: string;
+  value: string;
+  clickDragHint: string;
+  playhead: (playhead: number, stepCount: number) => string;
+  cycle: (cycle: number) => string;
+  midiInput: (name: string) => string;
+  none: string;
+  resetPlayhead: string;
+  allNotesOff: string;
+};
+
+const MODE_LABELS: Record<GuiLanguage, Record<SequencerMode, string>> = {
+  english: {
+    ionian: "Ionian",
+    dorian: "Dorian",
+    phrygian: "Phrygian",
+    lydian: "Lydian",
+    mixolydian: "Mixolydian",
+    aeolian: "Aeolian",
+    locrian: "Locrian"
+  },
+  german: {
+    ionian: "Ionisch",
+    dorian: "Dorisch",
+    phrygian: "Phrygisch",
+    lydian: "Lydisch",
+    mixolydian: "Mixolydisch",
+    aeolian: "Aeolisch",
+    locrian: "Lokrisch"
+  },
+  french: {
+    ionian: "Ionien",
+    dorian: "Dorien",
+    phrygian: "Phrygien",
+    lydian: "Lydien",
+    mixolydian: "Mixolydien",
+    aeolian: "Aeolien",
+    locrian: "Locrien"
+  },
+  spanish: {
+    ionian: "Ionico",
+    dorian: "Dorico",
+    phrygian: "Frigio",
+    lydian: "Lidio",
+    mixolydian: "Mixolidio",
+    aeolian: "Eolico",
+    locrian: "Locrio"
+  }
+};
+
+const SCALE_TYPE_LABELS: Record<GuiLanguage, Record<SequencerScaleType, string>> = {
+  english: { major: "major", minor: "minor" },
+  german: { major: "dur", minor: "moll" },
+  french: { major: "majeur", minor: "mineur" },
+  spanish: { major: "mayor", minor: "menor" }
+};
+
+const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
+  english: {
+    keyboardInfo: "7 octaves keyboard (C1..B7).",
+    scrollKeyboardLeft: "Scroll keyboard left",
+    scrollKeyboardRight: "Scroll keyboard right",
+    controllerKnobValue: (value) => `Controller knob value ${value}`,
+    trackQueuedStart: "starting @ step 1",
+    trackQueuedStop: "stopping @ step 1",
+    running: "running",
+    stopped: "stopped",
+    instrumentRack: "Instrument Rack",
+    state: "state",
+    performanceName: "Performance Name",
+    performanceNamePlaceholder: "Live Set A",
+    description: "Description",
+    performanceDescriptionPlaceholder: "Stage-ready configuration",
+    loadPerformance: "Load Performance",
+    current: "Current",
+    addInstrument: "Add Instrument",
+    savePerformance: "Save Performance",
+    export: "Export",
+    import: "Import",
+    noInstrumentHint: "Add at least one saved instrument to start the engine.",
+    patch: (index) => `Patch ${index}`,
+    channel: "Channel",
+    remove: "Remove",
+    rackTransport: "Rack Transport",
+    startInstruments: "Start Instruments",
+    stopInstruments: "Stop Instruments",
+    sequencers: "Sequencers",
+    addSequencer: "Add Sequencer",
+    globalSequencerClock: "Global Sequencer Clock",
+    bpm: "BPM",
+    midiChannel: "MIDI Channel",
+    scale: "Scale",
+    mode: "Mode",
+    steps: "Steps",
+    notesInScaleMode: (scale, mode) => `Notes in ${scale} / ${mode}`,
+    patternPads: "Pattern Pads",
+    sequencerWithIndex: (index) => `Sequencer ${index}`,
+    start: "Start",
+    stop: "Stop",
+    rest: "Rest",
+    inScaleOptgroup: (scale, mode) => `In scale: ${scale} / ${mode}`,
+    outOfScaleOptgroup: "Out of scale",
+    inScaleDegree: (degree) => `in scale (${degree ?? "-"})`,
+    outOfScale: "out of scale",
+    pianoRolls: "Piano Rolls",
+    addPianoRoll: "Add Piano Roll",
+    pianoRollWithIndex: (index) => `Piano Roll ${index}`,
+    inScaleHighlightInfo: (scale, mode) =>
+      `In-scale notes for ${scale} / ${mode} are highlighted with degrees.`,
+    midiControllers: (count) => `MIDI Controllers (${count}/16)`,
+    addController: "Add Controller",
+    noControllersHint: "Add a MIDI controller to send CC values.",
+    controllerWithIndex: (index) => `Controller ${index}`,
+    controllerNumber: "Controller #",
+    value: "Value",
+    clickDragHint: "click + drag up/down",
+    playhead: (playhead, stepCount) => `playhead: ${playhead + 1}/${stepCount}`,
+    cycle: (cycle) => `cycle: ${cycle}`,
+    midiInput: (name) => `midi input: ${name}`,
+    none: "none",
+    resetPlayhead: "Reset Playhead",
+    allNotesOff: "All Notes Off"
+  },
+  german: {
+    keyboardInfo: "7-Oktaven-Tastatur (C1..B7).",
+    scrollKeyboardLeft: "Tastatur nach links scrollen",
+    scrollKeyboardRight: "Tastatur nach rechts scrollen",
+    controllerKnobValue: (value) => `Controller-Wert ${value}`,
+    trackQueuedStart: "startet bei Schritt 1",
+    trackQueuedStop: "stoppt bei Schritt 1",
+    running: "laeuft",
+    stopped: "gestoppt",
+    instrumentRack: "Instrument-Rack",
+    state: "status",
+    performanceName: "Performance-Name",
+    performanceNamePlaceholder: "Live Set A",
+    description: "Beschreibung",
+    performanceDescriptionPlaceholder: "Buehnentaugliche Konfiguration",
+    loadPerformance: "Performance laden",
+    current: "Aktuell",
+    addInstrument: "Instrument hinzufuegen",
+    savePerformance: "Performance speichern",
+    export: "Export",
+    import: "Import",
+    noInstrumentHint: "Fuege mindestens ein gespeichertes Instrument hinzu, um die Engine zu starten.",
+    patch: (index) => `Patch ${index}`,
+    channel: "Kanal",
+    remove: "Entfernen",
+    rackTransport: "Rack-Transport",
+    startInstruments: "Instrumente starten",
+    stopInstruments: "Instrumente stoppen",
+    sequencers: "Sequencer",
+    addSequencer: "Sequencer hinzufuegen",
+    globalSequencerClock: "Globale Sequencer-Clock",
+    bpm: "BPM",
+    midiChannel: "MIDI-Kanal",
+    scale: "Skala",
+    mode: "Modus",
+    steps: "Schritte",
+    notesInScaleMode: (scale, mode) => `Noten in ${scale} / ${mode}`,
+    patternPads: "Pattern-Pads",
+    sequencerWithIndex: (index) => `Sequencer ${index}`,
+    start: "Start",
+    stop: "Stop",
+    rest: "Pause",
+    inScaleOptgroup: (scale, mode) => `In Skala: ${scale} / ${mode}`,
+    outOfScaleOptgroup: "Ausserhalb der Skala",
+    inScaleDegree: (degree) => `in skala (${degree ?? "-"})`,
+    outOfScale: "ausserhalb der skala",
+    pianoRolls: "Piano Rolls",
+    addPianoRoll: "Piano Roll hinzufuegen",
+    pianoRollWithIndex: (index) => `Piano Roll ${index}`,
+    inScaleHighlightInfo: (scale, mode) =>
+      `Skalentreue Noten fuer ${scale} / ${mode} sind mit Stufen markiert.`,
+    midiControllers: (count) => `MIDI-Controller (${count}/16)`,
+    addController: "Controller hinzufuegen",
+    noControllersHint: "Fuege einen MIDI-Controller hinzu, um CC-Werte zu senden.",
+    controllerWithIndex: (index) => `Controller ${index}`,
+    controllerNumber: "Controller #",
+    value: "Wert",
+    clickDragHint: "klicken + nach oben/unten ziehen",
+    playhead: (playhead, stepCount) => `playhead: ${playhead + 1}/${stepCount}`,
+    cycle: (cycle) => `zyklus: ${cycle}`,
+    midiInput: (name) => `midi eingang: ${name}`,
+    none: "kein",
+    resetPlayhead: "Playhead zuruecksetzen",
+    allNotesOff: "Alle Noten aus"
+  },
+  french: {
+    keyboardInfo: "Clavier 7 octaves (C1..B7).",
+    scrollKeyboardLeft: "Defiler clavier a gauche",
+    scrollKeyboardRight: "Defiler clavier a droite",
+    controllerKnobValue: (value) => `Valeur du controleur ${value}`,
+    trackQueuedStart: "demarrage au pas 1",
+    trackQueuedStop: "arret au pas 1",
+    running: "en cours",
+    stopped: "arrete",
+    instrumentRack: "Rack instrument",
+    state: "etat",
+    performanceName: "Nom de performance",
+    performanceNamePlaceholder: "Live Set A",
+    description: "Description",
+    performanceDescriptionPlaceholder: "Configuration prete pour la scene",
+    loadPerformance: "Charger performance",
+    current: "Actuel",
+    addInstrument: "Ajouter instrument",
+    savePerformance: "Enregistrer performance",
+    export: "Exporter",
+    import: "Importer",
+    noInstrumentHint: "Ajoutez au moins un instrument sauvegarde pour demarrer le moteur.",
+    patch: (index) => `Patch ${index}`,
+    channel: "Canal",
+    remove: "Supprimer",
+    rackTransport: "Transport du rack",
+    startInstruments: "Demarrer instruments",
+    stopInstruments: "Arreter instruments",
+    sequencers: "Sequenceurs",
+    addSequencer: "Ajouter sequenceur",
+    globalSequencerClock: "Horloge globale du sequenceur",
+    bpm: "BPM",
+    midiChannel: "Canal MIDI",
+    scale: "Gamme",
+    mode: "Mode",
+    steps: "Pas",
+    notesInScaleMode: (scale, mode) => `Notes dans ${scale} / ${mode}`,
+    patternPads: "Pads de pattern",
+    sequencerWithIndex: (index) => `Sequenceur ${index}`,
+    start: "Demarrer",
+    stop: "Arreter",
+    rest: "Silence",
+    inScaleOptgroup: (scale, mode) => `Dans la gamme: ${scale} / ${mode}`,
+    outOfScaleOptgroup: "Hors gamme",
+    inScaleDegree: (degree) => `dans gamme (${degree ?? "-"})`,
+    outOfScale: "hors gamme",
+    pianoRolls: "Piano Rolls",
+    addPianoRoll: "Ajouter piano roll",
+    pianoRollWithIndex: (index) => `Piano Roll ${index}`,
+    inScaleHighlightInfo: (scale, mode) =>
+      `Les notes dans la gamme pour ${scale} / ${mode} sont surlignees avec les degres.`,
+    midiControllers: (count) => `Controleurs MIDI (${count}/16)`,
+    addController: "Ajouter controleur",
+    noControllersHint: "Ajoutez un controleur MIDI pour envoyer des valeurs CC.",
+    controllerWithIndex: (index) => `Controleur ${index}`,
+    controllerNumber: "Controleur #",
+    value: "Valeur",
+    clickDragHint: "cliquer + glisser haut/bas",
+    playhead: (playhead, stepCount) => `playhead: ${playhead + 1}/${stepCount}`,
+    cycle: (cycle) => `cycle: ${cycle}`,
+    midiInput: (name) => `entree midi: ${name}`,
+    none: "aucune",
+    resetPlayhead: "Reinitialiser playhead",
+    allNotesOff: "Toutes notes off"
+  },
+  spanish: {
+    keyboardInfo: "Teclado de 7 octavas (C1..B7).",
+    scrollKeyboardLeft: "Desplazar teclado a la izquierda",
+    scrollKeyboardRight: "Desplazar teclado a la derecha",
+    controllerKnobValue: (value) => `Valor de perilla ${value}`,
+    trackQueuedStart: "inicia en paso 1",
+    trackQueuedStop: "detiene en paso 1",
+    running: "ejecutando",
+    stopped: "detenido",
+    instrumentRack: "Rack de instrumentos",
+    state: "estado",
+    performanceName: "Nombre de performance",
+    performanceNamePlaceholder: "Live Set A",
+    description: "Descripcion",
+    performanceDescriptionPlaceholder: "Configuracion lista para escenario",
+    loadPerformance: "Cargar performance",
+    current: "Actual",
+    addInstrument: "Agregar instrumento",
+    savePerformance: "Guardar performance",
+    export: "Exportar",
+    import: "Importar",
+    noInstrumentHint: "Agrega al menos un instrumento guardado para iniciar el motor.",
+    patch: (index) => `Patch ${index}`,
+    channel: "Canal",
+    remove: "Eliminar",
+    rackTransport: "Transporte del rack",
+    startInstruments: "Iniciar instrumentos",
+    stopInstruments: "Detener instrumentos",
+    sequencers: "Secuenciadores",
+    addSequencer: "Agregar secuenciador",
+    globalSequencerClock: "Reloj global del secuenciador",
+    bpm: "BPM",
+    midiChannel: "Canal MIDI",
+    scale: "Escala",
+    mode: "Modo",
+    steps: "Pasos",
+    notesInScaleMode: (scale, mode) => `Notas en ${scale} / ${mode}`,
+    patternPads: "Pads de patron",
+    sequencerWithIndex: (index) => `Secuenciador ${index}`,
+    start: "Iniciar",
+    stop: "Detener",
+    rest: "Silencio",
+    inScaleOptgroup: (scale, mode) => `En escala: ${scale} / ${mode}`,
+    outOfScaleOptgroup: "Fuera de escala",
+    inScaleDegree: (degree) => `en escala (${degree ?? "-"})`,
+    outOfScale: "fuera de escala",
+    pianoRolls: "Piano Rolls",
+    addPianoRoll: "Agregar piano roll",
+    pianoRollWithIndex: (index) => `Piano Roll ${index}`,
+    inScaleHighlightInfo: (scale, mode) =>
+      `Las notas en escala para ${scale} / ${mode} se resaltan con grados.`,
+    midiControllers: (count) => `Controladores MIDI (${count}/16)`,
+    addController: "Agregar controlador",
+    noControllersHint: "Agrega un controlador MIDI para enviar valores CC.",
+    controllerWithIndex: (index) => `Controlador ${index}`,
+    controllerNumber: "Controlador #",
+    value: "Valor",
+    clickDragHint: "clic + arrastrar arriba/abajo",
+    playhead: (playhead, stepCount) => `playhead: ${playhead + 1}/${stepCount}`,
+    cycle: (cycle) => `ciclo: ${cycle}`,
+    midiInput: (name) => `entrada midi: ${name}`,
+    none: "ninguna",
+    resetPlayhead: "Reiniciar playhead",
+    allNotesOff: "Todas las notas off"
+  }
+};
 
 function clampMidiControllerValue(value: number): number {
   return Math.max(0, Math.min(127, Math.round(value)));
@@ -53,13 +428,14 @@ function pianoKeyPrimaryLabel(label: string | undefined, note: number): string {
 }
 
 interface PianoRollKeyboardProps {
+  ui: SequencerUiCopy;
   roll: PianoRollState;
   instrumentsRunning: boolean;
   onNoteOn: (note: number, channel: number) => void;
   onNoteOff: (note: number, channel: number) => void;
 }
 
-function PianoRollKeyboard({ roll, instrumentsRunning, onNoteOn, onNoteOff }: PianoRollKeyboardProps) {
+function PianoRollKeyboard({ ui, roll, instrumentsRunning, onNoteOn, onNoteOff }: PianoRollKeyboardProps) {
   const interactive = instrumentsRunning && roll.enabled;
   const pianoRollOptions = useMemo(
     () => buildSequencerNoteOptions(roll.scaleRoot, roll.mode),
@@ -257,7 +633,7 @@ function PianoRollKeyboard({ roll, instrumentsRunning, onNoteOn, onNoteOff }: Pi
 
   return (
     <div className="relative rounded-xl border border-slate-700 bg-slate-950/70 p-2.5">
-      <div className="mb-2 text-[11px] text-slate-500">7 octaves keyboard (C1..B7).</div>
+      <div className="mb-2 text-[11px] text-slate-500">{ui.keyboardInfo}</div>
 
       {pianoHasOverflow && (
         <>
@@ -265,7 +641,7 @@ function PianoRollKeyboard({ roll, instrumentsRunning, onNoteOn, onNoteOff }: Pi
             type="button"
             onClick={() => scrollPianoKeyboard(-1)}
             disabled={!pianoCanScrollLeft}
-            aria-label="Scroll keyboard left"
+            aria-label={ui.scrollKeyboardLeft}
             className="absolute left-1 top-1/2 z-40 -translate-y-1/2 rounded-full border border-slate-600 bg-slate-900/90 px-2 py-2 font-mono text-sm text-slate-100 transition hover:bg-slate-800 disabled:opacity-40"
           >
             {"<"}
@@ -274,7 +650,7 @@ function PianoRollKeyboard({ roll, instrumentsRunning, onNoteOn, onNoteOff }: Pi
             type="button"
             onClick={() => scrollPianoKeyboard(1)}
             disabled={!pianoCanScrollRight}
-            aria-label="Scroll keyboard right"
+            aria-label={ui.scrollKeyboardRight}
             className="absolute right-1 top-1/2 z-40 -translate-y-1/2 rounded-full border border-slate-600 bg-slate-900/90 px-2 py-2 font-mono text-sm text-slate-100 transition hover:bg-slate-800 disabled:opacity-40"
           >
             {">"}
@@ -360,12 +736,13 @@ function PianoRollKeyboard({ roll, instrumentsRunning, onNoteOn, onNoteOff }: Pi
 }
 
 interface MidiControllerKnobProps {
+  ariaLabel: string;
   value: number;
   disabled: boolean;
   onChange: (value: number) => void;
 }
 
-function MidiControllerKnob({ value, disabled, onChange }: MidiControllerKnobProps) {
+function MidiControllerKnob({ ariaLabel, value, disabled, onChange }: MidiControllerKnobProps) {
   const pointerStateRef = useRef<{ pointerId: number; startY: number; startValue: number } | null>(null);
   const normalizedValue = clampMidiControllerValue(value);
   const angle = -135 + (normalizedValue / 127) * 270;
@@ -444,7 +821,7 @@ function MidiControllerKnob({ value, disabled, onChange }: MidiControllerKnobPro
           ? "cursor-not-allowed border-slate-700 bg-slate-900/80 opacity-50"
           : "border-cyan-400/70 bg-slate-900 hover:border-cyan-300"
       }`}
-      aria-label={`Controller knob value ${normalizedValue}`}
+      aria-label={ariaLabel}
     >
       <span className="absolute inset-1 rounded-full border border-slate-700 bg-[radial-gradient(circle_at_35%_25%,_#1e293b,_#020617_72%)]" />
       <span className="absolute inset-0 flex items-center justify-center">
@@ -462,6 +839,7 @@ function MidiControllerKnob({ value, disabled, onChange }: MidiControllerKnobPro
 }
 
 interface SequencerPageProps {
+  guiLanguage: GuiLanguage;
   patches: PatchListItem[];
   performances: PerformanceListItem[];
   instrumentBindings: SequencerInstrumentBinding[];
@@ -510,16 +888,17 @@ interface SequencerPageProps {
   onMidiControllerValueChange: (controllerId: string, value: number) => void;
   onResetPlayhead: () => void;
   onAllNotesOff: () => void;
+  onHelpRequest?: (helpDocId: HelpDocId) => void;
 }
 
-function trackStateLabel(track: SequencerTrackState): string {
+function trackStateLabel(track: SequencerTrackState, ui: Pick<SequencerUiCopy, "trackQueuedStart" | "trackQueuedStop" | "running" | "stopped">): string {
   if (track.queuedEnabled === true) {
-    return "starting @ step 1";
+    return ui.trackQueuedStart;
   }
   if (track.queuedEnabled === false) {
-    return "stopping @ step 1";
+    return ui.trackQueuedStop;
   }
-  return track.enabled ? "running" : "stopped";
+  return track.enabled ? ui.running : ui.stopped;
 }
 
 function previousNonRestNote(steps: Array<number | null>, fromIndex: number): number | null {
@@ -533,6 +912,7 @@ function previousNonRestNote(steps: Array<number | null>, fromIndex: number): nu
 }
 
 export function SequencerPage({
+  guiLanguage,
   patches,
   performances,
   instrumentBindings,
@@ -580,8 +960,38 @@ export function SequencerPage({
   onMidiControllerNumberChange,
   onMidiControllerValueChange,
   onResetPlayhead,
-  onAllNotesOff
+  onAllNotesOff,
+  onHelpRequest
 }: SequencerPageProps) {
+  const ui = SEQUENCER_UI_COPY[guiLanguage];
+  const modeLabels = MODE_LABELS[guiLanguage];
+  const scaleTypeLabels = SCALE_TYPE_LABELS[guiLanguage];
+  const modeOptions = useMemo(
+    () =>
+      SEQUENCER_MODE_OPTIONS.map((option) => ({
+        ...option,
+        label: modeLabels[option.value]
+      })),
+    [modeLabels]
+  );
+  const scaleOptions = useMemo(
+    () =>
+      SEQUENCER_SCALE_OPTIONS.map((option) => ({
+        ...option,
+        label: `${option.root} ${scaleTypeLabels[option.type]}`
+      })),
+    [scaleTypeLabels]
+  );
+  const localizedSessionState = useMemo(() => {
+    if (sessionState === "running") {
+      return ui.running;
+    }
+    if (sessionState === "idle") {
+      return ui.stopped;
+    }
+    return sessionState;
+  }, [sessionState, ui.running, ui.stopped]);
+
   const configFileInputRef = useRef<HTMLInputElement | null>(null);
   const [stepSelectPreview, setStepSelectPreview] = useState<Record<string, string>>({});
   const triggerConfigLoad = useCallback(() => {
@@ -620,37 +1030,40 @@ export function SequencerPage({
         onChange={handleConfigFileChange}
       />
 
-      <div className="rounded-xl border border-cyan-800/45 bg-slate-950/85 p-3">
+      <div className="relative rounded-xl border border-cyan-800/45 bg-slate-950/85 p-3">
+        {onHelpRequest ? (
+          <HelpIconButton guiLanguage={guiLanguage} onClick={() => onHelpRequest("sequencer_instrument_rack")} />
+        ) : null}
         <div className="flex flex-wrap items-center gap-2">
-          <div className="text-[11px] uppercase tracking-[0.18em] text-cyan-200">Instrument Rack</div>
-          <div className="ml-auto rounded-full border border-slate-700 bg-slate-950 px-3 py-1 font-mono text-xs text-slate-300">
-            state: {sessionState}
+          <div className="text-[11px] uppercase tracking-[0.18em] text-cyan-200">{ui.instrumentRack}</div>
+          <div className="ml-auto mr-10 rounded-full border border-slate-700 bg-slate-950 px-3 py-1 font-mono text-xs text-slate-300">
+            {ui.state}: {localizedSessionState}
           </div>
         </div>
 
         <div className="mt-3 grid grid-cols-1 gap-2 lg:grid-cols-5">
           <label className="flex flex-col gap-1 lg:col-span-2">
-            <span className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Performance Name</span>
+            <span className="text-[10px] uppercase tracking-[0.18em] text-slate-400">{ui.performanceName}</span>
             <input
               value={performanceName}
               onChange={(event) => onPerformanceNameChange(event.target.value)}
-              placeholder="Live Set A"
+              placeholder={ui.performanceNamePlaceholder}
               className="rounded-md border border-slate-600 bg-slate-950 px-2 py-1.5 text-xs text-slate-100 outline-none ring-accent/40 transition focus:ring"
             />
           </label>
 
           <label className="flex flex-col gap-1 lg:col-span-2">
-            <span className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Description</span>
+            <span className="text-[10px] uppercase tracking-[0.18em] text-slate-400">{ui.description}</span>
             <input
               value={performanceDescription}
               onChange={(event) => onPerformanceDescriptionChange(event.target.value)}
-              placeholder="Stage-ready configuration"
+              placeholder={ui.performanceDescriptionPlaceholder}
               className="rounded-md border border-slate-600 bg-slate-950 px-2 py-1.5 text-xs text-slate-100 outline-none ring-accent/40 transition focus:ring"
             />
           </label>
 
           <label className="flex flex-col gap-1">
-            <span className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Load Performance</span>
+            <span className="text-[10px] uppercase tracking-[0.18em] text-slate-400">{ui.loadPerformance}</span>
             <select
               value={currentPerformanceId ?? ""}
               onChange={(event) => {
@@ -660,7 +1073,7 @@ export function SequencerPage({
               }}
               className="rounded-md border border-slate-600 bg-slate-950 px-2 py-1.5 text-xs text-slate-100 outline-none ring-accent/40 transition focus:ring"
             >
-              <option value="">Current</option>
+              <option value="">{ui.current}</option>
               {performances.map((performance) => (
                 <option key={performance.id} value={performance.id}>
                   {performance.name}
@@ -676,35 +1089,35 @@ export function SequencerPage({
             onClick={onAddInstrument}
             className="rounded-md border border-accent/60 bg-accent/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-accent transition hover:bg-accent/25"
           >
-            Add Instrument
+            {ui.addInstrument}
           </button>
           <button
             type="button"
             onClick={onSavePerformance}
             className="rounded-md border border-mint/55 bg-mint/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-mint transition hover:bg-mint/25"
           >
-            Save Performance
+            {ui.savePerformance}
           </button>
           <button
             type="button"
             onClick={onExportConfig}
             className="rounded-md border border-slate-500 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-300 hover:text-white"
           >
-            Export
+            {ui.export}
           </button>
           <button
             type="button"
             onClick={triggerConfigLoad}
             className="rounded-md border border-slate-500 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-300 hover:text-white"
           >
-            Import
+            {ui.import}
           </button>
         </div>
 
         <div className="mt-3 grid gap-2 lg:grid-cols-2 2xl:grid-cols-3">
           {instrumentBindings.length === 0 ? (
             <div className="rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-xs text-slate-400">
-              Add at least one saved instrument to start the engine.
+              {ui.noInstrumentHint}
             </div>
           ) : (
             instrumentBindings.map((binding, index) => (
@@ -713,7 +1126,7 @@ export function SequencerPage({
                 className="grid grid-cols-[minmax(0,_1fr)_88px_auto] items-end gap-2 rounded-lg border border-slate-700 bg-slate-900/60 px-2 py-2"
               >
                 <label className="flex min-w-0 flex-col gap-1">
-                  <span className="text-[10px] uppercase tracking-[0.16em] text-slate-400">Patch {index + 1}</span>
+                  <span className="text-[10px] uppercase tracking-[0.16em] text-slate-400">{ui.patch(index + 1)}</span>
                   <select
                     value={binding.patchId}
                     onChange={(event) => onInstrumentPatchChange(binding.id, event.target.value)}
@@ -727,7 +1140,7 @@ export function SequencerPage({
                   </select>
                 </label>
                 <label className="flex flex-col gap-1">
-                  <span className="text-[10px] uppercase tracking-[0.16em] text-slate-400">Channel</span>
+                  <span className="text-[10px] uppercase tracking-[0.16em] text-slate-400">{ui.channel}</span>
                   <input
                     type="number"
                     min={1}
@@ -742,7 +1155,7 @@ export function SequencerPage({
                   onClick={() => onRemoveInstrument(binding.id)}
                   className="rounded-md border border-rose-500/60 bg-rose-500/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-rose-200 transition hover:bg-rose-500/25"
                 >
-                  Remove
+                  {ui.remove}
                 </button>
               </div>
             ))
@@ -750,7 +1163,7 @@ export function SequencerPage({
         </div>
 
         <div className="mt-3 rounded-lg border border-cyan-900/55 bg-slate-900/65 p-2.5">
-          <div className="mb-2 text-xs uppercase tracking-[0.2em] text-slate-400">Rack Transport</div>
+          <div className="mb-2 text-xs uppercase tracking-[0.2em] text-slate-400">{ui.rackTransport}</div>
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
@@ -758,7 +1171,7 @@ export function SequencerPage({
               disabled={instrumentsRunning}
               className={transportStartButtonClass}
             >
-              Start Instruments
+              {ui.startInstruments}
             </button>
             <button
               type="button"
@@ -766,9 +1179,9 @@ export function SequencerPage({
               disabled={!instrumentsRunning}
               className={transportStopButtonClass}
             >
-              Stop Instruments
+              {ui.stopInstruments}
             </button>
-            <span className={transportStateClass}>{instrumentsRunning ? "running" : "stopped"}</span>
+            <span className={transportStateClass}>{instrumentsRunning ? ui.running : ui.stopped}</span>
           </div>
         </div>
       </div>
@@ -779,27 +1192,30 @@ export function SequencerPage({
         </div>
       )}
 
-      <div className="mt-4 rounded-xl border border-sky-800/45 bg-slate-950/85 p-3">
+      <div className="relative mt-4 rounded-xl border border-sky-800/45 bg-slate-950/85 p-3">
+        {onHelpRequest ? (
+          <HelpIconButton guiLanguage={guiLanguage} onClick={() => onHelpRequest("sequencer_tracks")} />
+        ) : null}
         <div className="mb-3 flex flex-wrap items-center gap-2">
-          <div className="text-[11px] uppercase tracking-[0.18em] text-sky-200">Sequencers</div>
+          <div className="text-[11px] uppercase tracking-[0.18em] text-sky-200">{ui.sequencers}</div>
           <button
             type="button"
             onClick={onAddSequencerTrack}
             className="rounded-md border border-accent/60 bg-accent/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-accent transition hover:bg-accent/25"
           >
-            Add Sequencer
+            {ui.addSequencer}
           </button>
         </div>
 
         <div className="mb-3 rounded-lg border border-sky-900/55 bg-slate-900/65 p-2.5">
           <div className="mb-2 flex flex-wrap items-center gap-2">
-            <div className="text-xs uppercase tracking-[0.2em] text-slate-400">Global Sequencer Clock</div>
-            <span className={transportStateClass}>{sequencer.isPlaying ? "running" : "stopped"}</span>
+            <div className="text-xs uppercase tracking-[0.2em] text-slate-400">{ui.globalSequencerClock}</div>
+            <span className={transportStateClass}>{sequencer.isPlaying ? ui.running : ui.stopped}</span>
           </div>
 
           <div className="flex flex-wrap items-end gap-2">
             <label className="flex flex-col gap-1">
-              <span className={controlLabelClass}>BPM</span>
+              <span className={controlLabelClass}>{ui.bpm}</span>
               <input
                 type="number"
                 min={30}
@@ -818,8 +1234,8 @@ export function SequencerPage({
             const noteOptionsByNote = new Map(noteOptions.map((option) => [option.note, option]));
             const inScaleOptions = noteOptions.filter((option) => option.inScale);
             const outOfScaleOptions = noteOptions.filter((option) => !option.inScale);
-            const scaleLabel = sequencerScaleLabel(track.scaleRoot, track.scaleType);
-            const modeLabel = sequencerModeLabel(track.mode);
+            const scaleLabel = `${track.scaleRoot} ${scaleTypeLabels[track.scaleType]}`;
+            const modeLabel = modeLabels[track.mode];
             const scaleValue = `${track.scaleRoot}:${track.scaleType}`;
             const stepIndices = Array.from({ length: track.stepCount }, (_, index) => index);
 
@@ -827,29 +1243,29 @@ export function SequencerPage({
               <article key={track.id} className="rounded-xl border border-slate-700 bg-slate-900/65 p-2.5">
                 <div className="mb-2 flex flex-wrap items-center gap-2">
                   <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-200">
-                    {track.name || `Sequencer ${trackIndex + 1}`}
+                    {track.name || ui.sequencerWithIndex(trackIndex + 1)}
                   </div>
-                  <span className={transportStateClass}>{trackStateLabel(track)}</span>
+                  <span className={transportStateClass}>{trackStateLabel(track, ui)}</span>
                   <button
                     type="button"
                     onClick={() => onSequencerTrackEnabledChange(track.id, !track.enabled)}
                     disabled={!instrumentsRunning && !track.enabled}
                     className={track.enabled ? transportStopButtonClass : transportStartButtonClass}
                   >
-                    {track.enabled ? "Stop" : "Start"}
+                    {track.enabled ? ui.stop : ui.start}
                   </button>
                   <button
                     type="button"
                     onClick={() => onRemoveSequencerTrack(track.id)}
                     className="rounded-md border border-rose-500/60 bg-rose-500/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-rose-200 transition hover:bg-rose-500/25"
                   >
-                    Remove
+                    {ui.remove}
                   </button>
                 </div>
 
                 <div className="mb-2 flex flex-wrap items-end gap-2">
                   <label className="flex flex-col gap-1">
-                    <span className={controlLabelClass}>MIDI Channel</span>
+                    <span className={controlLabelClass}>{ui.midiChannel}</span>
                     <input
                       type="number"
                       min={1}
@@ -861,7 +1277,7 @@ export function SequencerPage({
                   </label>
 
                   <label className="flex min-w-[180px] flex-col gap-1">
-                    <span className={controlLabelClass}>Scale</span>
+                    <span className={controlLabelClass}>{ui.scale}</span>
                     <select
                       value={scaleValue}
                       onChange={(event) => {
@@ -872,7 +1288,7 @@ export function SequencerPage({
                       }}
                       className={controlFieldClass}
                     >
-                      {SEQUENCER_SCALE_OPTIONS.map((option) => (
+                      {scaleOptions.map((option) => (
                         <option key={`${track.id}-${option.value}`} value={option.value}>
                           {option.label}
                         </option>
@@ -881,13 +1297,13 @@ export function SequencerPage({
                   </label>
 
                   <label className="flex min-w-[160px] flex-col gap-1">
-                    <span className={controlLabelClass}>Mode</span>
+                    <span className={controlLabelClass}>{ui.mode}</span>
                     <select
                       value={track.mode}
                       onChange={(event) => onSequencerTrackModeChange(track.id, event.target.value as SequencerMode)}
                       className={controlFieldClass}
                     >
-                      {SEQUENCER_MODE_OPTIONS.map((option) => (
+                      {modeOptions.map((option) => (
                         <option key={`${track.id}-mode-${option.value}`} value={option.value}>
                           {option.label}
                         </option>
@@ -896,7 +1312,7 @@ export function SequencerPage({
                   </label>
 
                   <div className="flex flex-col gap-1">
-                    <span className={controlLabelClass}>Steps</span>
+                    <span className={controlLabelClass}>{ui.steps}</span>
                     <div className="inline-flex rounded-lg border border-slate-600 bg-slate-950 p-1">
                       <button
                         type="button"
@@ -921,12 +1337,11 @@ export function SequencerPage({
                 </div>
 
                 <div className="mb-2 text-[11px] text-slate-500">
-                  Notes in <span className="text-emerald-300">{scaleLabel}</span> /{" "}
-                  <span className="text-emerald-300">{modeLabel}</span>
+                  {ui.notesInScaleMode(scaleLabel, modeLabel)}
                 </div>
 
                 <div className="mb-2">
-                  <div className="mb-1 text-xs uppercase tracking-[0.2em] text-slate-400">Pattern Pads</div>
+                  <div className="mb-1 text-xs uppercase tracking-[0.2em] text-slate-400">{ui.patternPads}</div>
                   <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-8">
                     {Array.from({ length: 8 }, (_, padIndex) => {
                       const isActivePad = track.activePad === padIndex;
@@ -968,7 +1383,8 @@ export function SequencerPage({
                       const degree = selectedNote?.degree ?? null;
                       const stepKey = `${track.id}:${step}`;
                       const selectValue = stepSelectPreview[stepKey] ?? (noteValue === null ? "" : String(noteValue));
-                      const selectedLabel = noteValue === null ? "Rest" : pianoKeyPrimaryLabel(selectedNote?.label, noteValue);
+                      const selectedLabel =
+                        noteValue === null ? ui.rest : pianoKeyPrimaryLabel(selectedNote?.label, noteValue);
 
                       return (
                         <div
@@ -1050,16 +1466,16 @@ export function SequencerPage({
                               className="h-8 w-full appearance-none rounded-md border border-slate-600 bg-slate-950 px-2 py-1 text-center font-mono text-[11px] text-transparent outline-none ring-accent/40 transition focus:ring"
                             >
                               <option value="" style={{ color: "#f8fafc" }}>
-                                Rest
+                                {ui.rest}
                               </option>
-                              <optgroup label={`In scale: ${scaleLabel} / ${modeLabel}`}>
+                              <optgroup label={ui.inScaleOptgroup(scaleLabel, modeLabel)}>
                                 {inScaleOptions.map((option) => (
                                   <option key={`${track.id}-in-${option.note}`} value={option.note} style={{ color: "#f8fafc" }}>
                                     {option.label}
                                   </option>
                                 ))}
                               </optgroup>
-                              <optgroup label="Out of scale">
+                              <optgroup label={ui.outOfScaleOptgroup}>
                                 {outOfScaleOptions.map((option) => (
                                   <option key={`${track.id}-out-${option.note}`} value={option.note} style={{ color: "#f8fafc" }}>
                                     {option.label}
@@ -1077,7 +1493,7 @@ export function SequencerPage({
                               noteValue === null ? "text-slate-500" : isInScale ? "text-emerald-300" : "text-amber-300"
                             }`}
                           >
-                            {noteValue === null ? "rest" : isInScale ? `in scale (${degree})` : "out of scale"}
+                            {noteValue === null ? ui.rest.toLowerCase() : isInScale ? ui.inScaleDegree(degree) : ui.outOfScale}
                           </div>
                         </div>
                       );
@@ -1090,50 +1506,53 @@ export function SequencerPage({
         </div>
       </div>
 
-      <div className="mt-4 rounded-xl border border-emerald-800/45 bg-slate-950/85 p-3">
+      <div className="relative mt-4 rounded-xl border border-emerald-800/45 bg-slate-950/85 p-3">
+        {onHelpRequest ? (
+          <HelpIconButton guiLanguage={guiLanguage} onClick={() => onHelpRequest("sequencer_piano_rolls")} />
+        ) : null}
         <div className="mb-3 flex flex-wrap items-center gap-2">
-          <div className="text-[11px] uppercase tracking-[0.18em] text-emerald-200">Piano Rolls</div>
+          <div className="text-[11px] uppercase tracking-[0.18em] text-emerald-200">{ui.pianoRolls}</div>
           <button
             type="button"
             onClick={onAddPianoRoll}
             className="rounded-md border border-accent/60 bg-accent/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-accent transition hover:bg-accent/25"
           >
-            Add Piano Roll
+            {ui.addPianoRoll}
           </button>
         </div>
 
         <div className="space-y-3">
           {sequencer.pianoRolls.map((roll, rollIndex) => {
             const scaleValue = `${roll.scaleRoot}:${roll.scaleType}`;
-            const scaleLabel = sequencerScaleLabel(roll.scaleRoot, roll.scaleType);
-            const modeLabel = sequencerModeLabel(roll.mode);
+            const scaleLabel = `${roll.scaleRoot} ${scaleTypeLabels[roll.scaleType]}`;
+            const modeLabel = modeLabels[roll.mode];
             return (
               <article key={roll.id} className="rounded-xl border border-slate-700 bg-slate-900/65 p-2.5">
                 <div className="mb-2 flex flex-wrap items-center gap-2">
                   <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-200">
-                    {roll.name || `Piano Roll ${rollIndex + 1}`}
+                    {roll.name || ui.pianoRollWithIndex(rollIndex + 1)}
                   </div>
-                  <span className={transportStateClass}>{roll.enabled ? "running" : "stopped"}</span>
+                  <span className={transportStateClass}>{roll.enabled ? ui.running : ui.stopped}</span>
                   <button
                     type="button"
                     onClick={() => onPianoRollEnabledChange(roll.id, !roll.enabled)}
                     disabled={!instrumentsRunning && !roll.enabled}
                     className={roll.enabled ? transportStopButtonClass : transportStartButtonClass}
                   >
-                    {roll.enabled ? "Stop" : "Start"}
+                    {roll.enabled ? ui.stop : ui.start}
                   </button>
                   <button
                     type="button"
                     onClick={() => onRemovePianoRoll(roll.id)}
                     className="rounded-md border border-rose-500/60 bg-rose-500/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-rose-200 transition hover:bg-rose-500/25"
                   >
-                    Remove
+                    {ui.remove}
                   </button>
                 </div>
 
                 <div className="mb-2 flex flex-wrap items-end gap-2">
                   <label className="flex flex-col gap-1">
-                    <span className={controlLabelClass}>MIDI Channel</span>
+                    <span className={controlLabelClass}>{ui.midiChannel}</span>
                     <input
                       type="number"
                       min={1}
@@ -1144,7 +1563,7 @@ export function SequencerPage({
                     />
                   </label>
                   <label className="flex min-w-[180px] flex-col gap-1">
-                    <span className={controlLabelClass}>Scale</span>
+                    <span className={controlLabelClass}>{ui.scale}</span>
                     <select
                       value={scaleValue}
                       onChange={(event) => {
@@ -1155,7 +1574,7 @@ export function SequencerPage({
                       }}
                       className={controlFieldClass}
                     >
-                      {SEQUENCER_SCALE_OPTIONS.map((option) => (
+                      {scaleOptions.map((option) => (
                         <option key={`${roll.id}-${option.value}`} value={option.value}>
                           {option.label}
                         </option>
@@ -1163,13 +1582,13 @@ export function SequencerPage({
                     </select>
                   </label>
                   <label className="flex min-w-[160px] flex-col gap-1">
-                    <span className={controlLabelClass}>Mode</span>
+                    <span className={controlLabelClass}>{ui.mode}</span>
                     <select
                       value={roll.mode}
                       onChange={(event) => onPianoRollModeChange(roll.id, event.target.value as SequencerMode)}
                       className={controlFieldClass}
                     >
-                      {SEQUENCER_MODE_OPTIONS.map((option) => (
+                      {modeOptions.map((option) => (
                         <option key={`${roll.id}-mode-${option.value}`} value={option.value}>
                           {option.label}
                         </option>
@@ -1179,12 +1598,12 @@ export function SequencerPage({
                 </div>
 
                 <div className="mb-2 text-[11px] text-slate-500">
-                  In-scale notes for <span className="text-emerald-300">{scaleLabel}</span> /{" "}
-                  <span className="text-emerald-300">{modeLabel}</span> are highlighted with degrees.
+                  {ui.inScaleHighlightInfo(scaleLabel, modeLabel)}
                 </div>
 
                 <div className="relative left-1/2 w-screen -translate-x-1/2 px-4 sm:px-6 lg:px-8">
                   <PianoRollKeyboard
+                    ui={ui}
                     roll={roll}
                     instrumentsRunning={instrumentsRunning}
                     onNoteOn={onPianoRollNoteOn}
@@ -1197,10 +1616,13 @@ export function SequencerPage({
         </div>
       </div>
 
-      <div className="mt-4 rounded-xl border border-violet-800/45 bg-slate-950/85 p-3">
+      <div className="relative mt-4 rounded-xl border border-violet-800/45 bg-slate-950/85 p-3">
+        {onHelpRequest ? (
+          <HelpIconButton guiLanguage={guiLanguage} onClick={() => onHelpRequest("sequencer_midi_controllers")} />
+        ) : null}
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <div className="text-[11px] uppercase tracking-[0.18em] text-violet-200">
-            MIDI Controllers ({sequencer.midiControllers.length}/16)
+            {ui.midiControllers(sequencer.midiControllers.length)}
           </div>
           <button
             type="button"
@@ -1208,13 +1630,13 @@ export function SequencerPage({
             disabled={sequencer.midiControllers.length >= 16}
             className="rounded-md border border-accent/60 bg-accent/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-accent transition hover:bg-accent/25 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Add Controller
+            {ui.addController}
           </button>
         </div>
 
         {sequencer.midiControllers.length === 0 ? (
           <div className="rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-xs text-slate-400">
-            Add a MIDI controller to send CC values.
+            {ui.noControllersHint}
           </div>
         ) : (
           <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
@@ -1222,14 +1644,14 @@ export function SequencerPage({
               <article key={controller.id} className="rounded-xl border border-slate-700 bg-slate-900/65 p-2.5">
                 <div className="mb-2 flex items-center gap-2">
                   <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-200">
-                    {controller.name || `Controller ${controllerIndex + 1}`}
+                    {controller.name || ui.controllerWithIndex(controllerIndex + 1)}
                   </div>
-                  <span className={transportStateClass}>{controller.enabled ? "running" : "stopped"}</span>
+                  <span className={transportStateClass}>{controller.enabled ? ui.running : ui.stopped}</span>
                 </div>
 
                 <div className="mb-2 flex flex-wrap items-end gap-2">
                   <label className="flex min-w-[120px] flex-col gap-1">
-                    <span className={controlLabelClass}>Controller #</span>
+                    <span className={controlLabelClass}>{ui.controllerNumber}</span>
                     <input
                       type="number"
                       min={0}
@@ -1244,29 +1666,30 @@ export function SequencerPage({
                     onClick={() => onMidiControllerEnabledChange(controller.id, !controller.enabled)}
                     className={controller.enabled ? transportStopButtonClass : transportStartButtonClass}
                   >
-                    {controller.enabled ? "Stop" : "Start"}
+                    {controller.enabled ? ui.stop : ui.start}
                   </button>
                   <button
                     type="button"
                     onClick={() => onRemoveMidiController(controller.id)}
                     className="rounded-md border border-rose-500/60 bg-rose-500/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-rose-200 transition hover:bg-rose-500/25"
                   >
-                    Remove
+                    {ui.remove}
                   </button>
                 </div>
 
                 <div className="flex items-center gap-3">
                   <MidiControllerKnob
+                    ariaLabel={ui.controllerKnobValue(controller.value)}
                     value={controller.value}
                     disabled={false}
                     onChange={(value) => onMidiControllerValueChange(controller.id, value)}
                   />
                   <div className="space-y-1">
-                    <div className={controlLabelClass}>Value</div>
+                    <div className={controlLabelClass}>{ui.value}</div>
                     <div className="rounded-md border border-slate-700 bg-slate-950 px-2 py-1 font-mono text-xs text-slate-100">
                       {controller.value}
                     </div>
-                    <div className="text-[10px] text-slate-500">click + drag up/down</div>
+                    <div className="text-[10px] text-slate-500">{ui.clickDragHint}</div>
                   </div>
                 </div>
               </article>
@@ -1277,27 +1700,27 @@ export function SequencerPage({
 
       <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-slate-700 bg-slate-950/80 px-2.5 py-1.5 text-xs text-slate-300">
         <span className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 font-mono">
-          playhead: {sequencer.playhead + 1}/{sequencer.stepCount}
+          {ui.playhead(sequencer.playhead, sequencer.stepCount)}
         </span>
         <span className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 font-mono">
-          cycle: {sequencer.cycle}
+          {ui.cycle(sequencer.cycle)}
         </span>
         <span className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 font-mono">
-          midi input: {midiInputName ?? "none"}
+          {ui.midiInput(midiInputName ?? ui.none)}
         </span>
         <button
           type="button"
           onClick={onResetPlayhead}
           className="rounded-lg border border-slate-500 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-300 hover:text-white"
         >
-          Reset Playhead
+          {ui.resetPlayhead}
         </button>
         <button
           type="button"
           onClick={onAllNotesOff}
           className="rounded-lg border border-amber-400/50 bg-amber-400/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-amber-200 transition hover:bg-amber-400/30"
         >
-          All Notes Off
+          {ui.allNotesOff}
         </button>
       </div>
     </section>

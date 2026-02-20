@@ -16,7 +16,7 @@ import {
   type InputFormulaBinding
 } from "../lib/graphFormula";
 import { getDraggedOpcodeName, hasDraggedOpcode } from "../lib/opcodeDragDrop";
-import type { Connection, NodePosition, OpcodeSpec, PatchGraph, SignalType } from "../types";
+import type { Connection, GuiLanguage, NodePosition, OpcodeSpec, PatchGraph, SignalType } from "../types";
 
 type EditorHandle = {
   destroy: () => void;
@@ -28,6 +28,7 @@ export interface EditorSelection {
 }
 
 interface ReteNodeEditorProps {
+  guiLanguage: GuiLanguage;
   graph: PatchGraph;
   opcodes: OpcodeSpec[];
   viewportKey: string;
@@ -35,7 +36,183 @@ interface ReteNodeEditorProps {
   onSelectionChange: (selection: EditorSelection) => void;
   onAddOpcodeAtPosition?: (opcode: OpcodeSpec, position: NodePosition) => void;
   onOpcodeHelpRequest?: (opcodeName: string) => void;
+  opcodeHelpLabel?: string;
+  onDeleteSelection?: () => void;
+  canDeleteSelection?: boolean;
+  deleteSelectionLabel?: string;
 }
+
+type ReteEditorCopy = {
+  showDocumentation: string;
+  optionalInput: string;
+  optionalInputWithFormula: string;
+  inputWithFormula: string;
+  deleteSelectedElements: string;
+  selectElementsToDelete: string;
+  zoomOut: string;
+  zoomIn: string;
+  fitFullGraphInView: string;
+  fit: string;
+  inputCombineFormula: string;
+  inputFormulaAssistant: string;
+  close: string;
+  connectedInputs: string;
+  insertOperator: string;
+  insertNumber: string;
+  numberPlaceholder: string;
+  add: string;
+  formula: string;
+  formulaPlaceholder: string;
+  tokenSelection: string;
+  noTokensYet: string;
+  deleteSelection: string;
+  clearFormula: string;
+  cancel: string;
+  saveFormula: string;
+  atLeastTwoSignalsForFormula: string;
+  sourceLabel: string;
+  sourcePrefix: string;
+  opcodePrefix: string;
+  portIdPrefix: string;
+};
+
+const RETE_EDITOR_COPY: Record<GuiLanguage, ReteEditorCopy> = {
+  english: {
+    showDocumentation: "Show documentation",
+    optionalInput: "Optional input",
+    optionalInputWithFormula: "Optional input. Double-click to edit combine formula.",
+    inputWithFormula: "Double-click to edit combine formula.",
+    deleteSelectedElements: "Delete selected elements",
+    selectElementsToDelete: "Select elements to delete",
+    zoomOut: "Zoom out",
+    zoomIn: "Zoom in",
+    fitFullGraphInView: "Fit full graph in view",
+    fit: "Fit",
+    inputCombineFormula: "Input combine formula",
+    inputFormulaAssistant: "Input Formula Assistant",
+    close: "Close",
+    connectedInputs: "Connected Inputs",
+    insertOperator: "Insert Operator",
+    insertNumber: "Insert Number",
+    numberPlaceholder: "e.g. 0.5",
+    add: "Add",
+    formula: "Formula",
+    formulaPlaceholder: "Example: in1 + (in2 * 0.5)",
+    tokenSelection: "Token Selection (click to select range)",
+    noTokensYet: "No tokens yet.",
+    deleteSelection: "Delete Selection",
+    clearFormula: "Clear Formula",
+    cancel: "Cancel",
+    saveFormula: "Save Formula",
+    atLeastTwoSignalsForFormula: "At least two connected signals are required to configure a combine formula.",
+    sourceLabel: "Source node",
+    sourcePrefix: "Source",
+    opcodePrefix: "Opcode",
+    portIdPrefix: "Port id"
+  },
+  german: {
+    showDocumentation: "Dokumentation anzeigen",
+    optionalInput: "Optionaler Eingang",
+    optionalInputWithFormula: "Optionaler Eingang. Doppelklick zum Bearbeiten der Kombinationsformel.",
+    inputWithFormula: "Doppelklick zum Bearbeiten der Kombinationsformel.",
+    deleteSelectedElements: "Ausgewaehlte Elemente loeschen",
+    selectElementsToDelete: "Elemente zum Loeschen auswaehlen",
+    zoomOut: "Herauszoomen",
+    zoomIn: "Hereinzoomen",
+    fitFullGraphInView: "Gesamten Graph einpassen",
+    fit: "Einpassen",
+    inputCombineFormula: "Eingangs-Kombinationsformel",
+    inputFormulaAssistant: "Eingangs-Formelassistent",
+    close: "Schliessen",
+    connectedInputs: "Verbundene Eingaenge",
+    insertOperator: "Operator einfuegen",
+    insertNumber: "Zahl einfuegen",
+    numberPlaceholder: "z.B. 0.5",
+    add: "Hinzufuegen",
+    formula: "Formel",
+    formulaPlaceholder: "Beispiel: in1 + (in2 * 0.5)",
+    tokenSelection: "Token-Auswahl (klicken, um Bereich zu markieren)",
+    noTokensYet: "Noch keine Tokens.",
+    deleteSelection: "Auswahl loeschen",
+    clearFormula: "Formel loeschen",
+    cancel: "Abbrechen",
+    saveFormula: "Formel speichern",
+    atLeastTwoSignalsForFormula:
+      "Mindestens zwei verbundene Signale sind fuer eine Kombinationsformel erforderlich.",
+    sourceLabel: "Quell-Node",
+    sourcePrefix: "Quelle",
+    opcodePrefix: "Opcode",
+    portIdPrefix: "Port-ID"
+  },
+  french: {
+    showDocumentation: "Afficher la documentation",
+    optionalInput: "Entree optionnelle",
+    optionalInputWithFormula: "Entree optionnelle. Double-clic pour editer la formule de combinaison.",
+    inputWithFormula: "Double-clic pour editer la formule de combinaison.",
+    deleteSelectedElements: "Supprimer les elements selectionnes",
+    selectElementsToDelete: "Selectionnez des elements a supprimer",
+    zoomOut: "Zoom arriere",
+    zoomIn: "Zoom avant",
+    fitFullGraphInView: "Adapter tout le graphe",
+    fit: "Ajuster",
+    inputCombineFormula: "Formule de combinaison d'entree",
+    inputFormulaAssistant: "Assistant de formule d'entree",
+    close: "Fermer",
+    connectedInputs: "Entrees connectees",
+    insertOperator: "Inserer operateur",
+    insertNumber: "Inserer nombre",
+    numberPlaceholder: "ex. 0.5",
+    add: "Ajouter",
+    formula: "Formule",
+    formulaPlaceholder: "Exemple: in1 + (in2 * 0.5)",
+    tokenSelection: "Selection de tokens (cliquer pour selectionner une plage)",
+    noTokensYet: "Aucun token pour le moment.",
+    deleteSelection: "Supprimer la selection",
+    clearFormula: "Effacer formule",
+    cancel: "Annuler",
+    saveFormula: "Enregistrer formule",
+    atLeastTwoSignalsForFormula:
+      "Au moins deux signaux connectes sont requis pour definir une formule de combinaison.",
+    sourceLabel: "Noeud source",
+    sourcePrefix: "Source",
+    opcodePrefix: "Opcode",
+    portIdPrefix: "ID port"
+  },
+  spanish: {
+    showDocumentation: "Mostrar documentacion",
+    optionalInput: "Entrada opcional",
+    optionalInputWithFormula: "Entrada opcional. Doble clic para editar la formula de combinacion.",
+    inputWithFormula: "Doble clic para editar la formula de combinacion.",
+    deleteSelectedElements: "Eliminar elementos seleccionados",
+    selectElementsToDelete: "Selecciona elementos para eliminar",
+    zoomOut: "Alejar zoom",
+    zoomIn: "Acercar zoom",
+    fitFullGraphInView: "Ajustar grafo completo",
+    fit: "Ajustar",
+    inputCombineFormula: "Formula de combinacion de entrada",
+    inputFormulaAssistant: "Asistente de formula de entrada",
+    close: "Cerrar",
+    connectedInputs: "Entradas conectadas",
+    insertOperator: "Insertar operador",
+    insertNumber: "Insertar numero",
+    numberPlaceholder: "p.ej. 0.5",
+    add: "Agregar",
+    formula: "Formula",
+    formulaPlaceholder: "Ejemplo: in1 + (in2 * 0.5)",
+    tokenSelection: "Seleccion de tokens (clic para seleccionar rango)",
+    noTokensYet: "Aun no hay tokens.",
+    deleteSelection: "Eliminar seleccion",
+    clearFormula: "Limpiar formula",
+    cancel: "Cancelar",
+    saveFormula: "Guardar formula",
+    atLeastTwoSignalsForFormula:
+      "Se requieren al menos dos senales conectadas para configurar una formula de combinacion.",
+    sourceLabel: "Nodo fuente",
+    sourcePrefix: "Fuente",
+    opcodePrefix: "Opcode",
+    portIdPrefix: "ID de puerto"
+  }
+};
 
 const CONSTANT_OPCODES = new Set(["const_a", "const_i", "const_k"]);
 const GENERATOR_CATEGORIES = new Set(["oscillator", "envelope"]);
@@ -131,7 +308,7 @@ function SocketGlyph({ optional, title, onDoubleClick }: SocketGlyphProps) {
       }}
     >
       <div
-        title={title ?? (optional ? "Optional input" : undefined)}
+        title={title}
         style={{
           display: "inline-block",
           cursor: "pointer",
@@ -239,13 +416,14 @@ function nextAvailableToken(existing: Set<string>): string {
 function sourceLabelForConnection(
   connection: Connection,
   graph: PatchGraph,
-  opcodeByName: Map<string, OpcodeSpec>
+  opcodeByName: Map<string, OpcodeSpec>,
+  copy: Pick<ReteEditorCopy, "sourceLabel" | "sourcePrefix" | "opcodePrefix" | "portIdPrefix">
 ): { label: string; details: string } {
   const sourceNode = graph.nodes.find((node) => node.id === connection.from_node_id);
   if (!sourceNode) {
     return {
       label: `${connection.from_node_id}.${connection.from_port_id}`,
-      details: `Source node ${connection.from_node_id}.${connection.from_port_id}`
+      details: `${copy.sourceLabel} ${connection.from_node_id}.${connection.from_port_id}`
     };
   }
   const sourceSpec = opcodeByName.get(sourceNode.opcode);
@@ -254,19 +432,27 @@ function sourceLabelForConnection(
   const sourceOpcodeName = sourceSpec?.name ?? sourceNode.opcode;
   return {
     label: `${sourceNode.id}.${sourcePortLabel} (${sourceOpcodeName})`,
-    details: `Source: ${sourceNode.id}.${sourcePortLabel}\nOpcode: ${sourceOpcodeName}\nPort id: ${connection.from_port_id}`
+    details: `${copy.sourcePrefix}: ${sourceNode.id}.${sourcePortLabel}\n${copy.opcodePrefix}: ${sourceOpcodeName}\n${copy.portIdPrefix}: ${connection.from_port_id}`
   };
 }
 
 export function ReteNodeEditor({
+  guiLanguage,
   graph,
   opcodes,
   viewportKey,
   onGraphChange,
   onSelectionChange,
   onAddOpcodeAtPosition,
-  onOpcodeHelpRequest
+  onOpcodeHelpRequest,
+  opcodeHelpLabel,
+  onDeleteSelection,
+  canDeleteSelection = false,
+  deleteSelectionLabel
 }: ReteNodeEditorProps) {
+  const copy = RETE_EDITOR_COPY[guiLanguage];
+  const resolvedOpcodeHelpLabel = opcodeHelpLabel ?? copy.showDocumentation;
+  const resolvedDeleteSelectionLabel = deleteSelectionLabel ?? copy.deleteSelectedElements;
   const containerRef = useRef<HTMLDivElement | null>(null);
   const initializingRef = useRef(false);
   const graphRef = useRef(graph);
@@ -327,7 +513,7 @@ export function ReteNodeEditor({
           if (!connection || usedSources.has(sourceKey) || usedTokens.has(binding.token)) {
             continue;
           }
-          const sourceLabel = sourceLabelForConnection(connection, graphState, opcodeByName);
+          const sourceLabel = sourceLabelForConnection(connection, graphState, opcodeByName, copy);
           usedSources.add(sourceKey);
           usedTokens.add(binding.token);
           inputs.push({
@@ -346,7 +532,7 @@ export function ReteNodeEditor({
           continue;
         }
         const token = nextAvailableToken(usedTokens);
-        const sourceLabel = sourceLabelForConnection(connection, graphState, opcodeByName);
+        const sourceLabel = sourceLabelForConnection(connection, graphState, opcodeByName, copy);
         usedSources.add(sourceKey);
         usedTokens.add(token);
         inputs.push({
@@ -383,7 +569,7 @@ export function ReteNodeEditor({
         textarea.setSelectionRange(initialExpression.length, initialExpression.length);
       });
     },
-    [opcodeByName]
+    [copy, opcodeByName]
   );
 
   const formulaValidation = useMemo(() => {
@@ -394,14 +580,14 @@ export function ReteNodeEditor({
     const baseValidation = validateGraphFormulaExpression(formulaEditor.expression, tokenSet);
     const errors = [...baseValidation.errors];
     if (formulaEditor.inputs.length < 2) {
-      errors.push("At least two connected signals are required to configure a combine formula.");
+      errors.push(copy.atLeastTwoSignalsForFormula);
     }
     return {
       isValid: baseValidation.isValid && errors.length === 0,
       errors,
       tokens: baseValidation.tokens
     };
-  }, [formulaEditor]);
+  }, [copy.atLeastTwoSignalsForFormula, formulaEditor]);
 
   const formulaTokens = useMemo<GraphFormulaToken[]>(() => {
     if (!formulaEditor) {
@@ -759,8 +945,8 @@ export function ReteNodeEditor({
                     {hasDocumentation && onOpcodeHelpRequest ? (
                       <button
                         type="button"
-                        aria-label={`Show docs for ${opcodeName}`}
-                        title={`Show documentation for ${opcodeName}`}
+                        aria-label={`${resolvedOpcodeHelpLabel}: ${opcodeName}`}
+                        title={`${resolvedOpcodeHelpLabel}: ${opcodeName}`}
                         onPointerDown={(event) => {
                           event.preventDefault();
                           event.stopPropagation();
@@ -811,10 +997,10 @@ export function ReteNodeEditor({
               const hasFormulaAssistant = Boolean(patchNodeId && context.side === "input");
               const socketTitle = hasFormulaAssistant
                 ? isOptionalInput
-                  ? "Optional input. Double-click to edit combine formula."
-                  : "Double-click to edit combine formula."
+                  ? copy.optionalInputWithFormula
+                  : copy.inputWithFormula
                 : isOptionalInput
-                  ? "Optional input"
+                  ? copy.optionalInput
                   : undefined;
               return function StyledSocket() {
                 return (
@@ -1212,8 +1398,10 @@ export function ReteNodeEditor({
       }
     };
   }, [
+    copy,
     onOpcodeHelpRequest,
     onSelectionChange,
+    resolvedOpcodeHelpLabel,
     structureKey,
     viewportKey,
     syncZoomPercent,
@@ -1235,13 +1423,31 @@ export function ReteNodeEditor({
         onDragLeave={() => setIsOpcodeDragOver(false)}
       >
         <div ref={containerRef} className="h-full w-full" />
+        {onDeleteSelection ? (
+          <button
+            type="button"
+            onClick={onDeleteSelection}
+            disabled={!canDeleteSelection}
+            aria-label={resolvedDeleteSelectionLabel}
+            title={canDeleteSelection ? resolvedDeleteSelectionLabel : copy.selectElementsToDelete}
+            className="absolute right-3 top-3 z-10 inline-flex h-8 w-8 items-center justify-center rounded-md border border-rose-600/70 bg-rose-950/70 text-rose-200 transition enabled:hover:bg-rose-900/70 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current" strokeWidth={1.9}>
+              <path d="M4 7h16" />
+              <path d="M9 7V4.8A1.8 1.8 0 0 1 10.8 3h2.4A1.8 1.8 0 0 1 15 4.8V7" />
+              <path d="M6.2 7l.9 12.3A1.8 1.8 0 0 0 8.9 21h6.2a1.8 1.8 0 0 0 1.8-1.7L17.8 7" />
+              <path d="M10 11v6" />
+              <path d="M14 11v6" />
+            </svg>
+          </button>
+        ) : null}
         <div className="absolute bottom-3 right-3 z-10 inline-flex items-center overflow-hidden rounded-lg border border-slate-700/90 bg-slate-950/95 text-xs text-slate-200 shadow-lg shadow-black/40">
           <button
             type="button"
             onClick={() => zoomByFactor(0.9)}
             className="h-7 w-7 border-r border-slate-700/80 transition hover:bg-slate-800"
-            aria-label="Zoom out"
-            title="Zoom out"
+            aria-label={copy.zoomOut}
+            title={copy.zoomOut}
           >
             -
           </button>
@@ -1249,8 +1455,8 @@ export function ReteNodeEditor({
             type="button"
             onClick={() => zoomByFactor(1.1)}
             className="h-7 w-7 border-r border-slate-700/80 transition hover:bg-slate-800"
-            aria-label="Zoom in"
-            title="Zoom in"
+            aria-label={copy.zoomIn}
+            title={copy.zoomIn}
           >
             +
           </button>
@@ -1258,10 +1464,10 @@ export function ReteNodeEditor({
             type="button"
             onClick={fitGraphInView}
             className="h-7 px-2 font-semibold uppercase tracking-[0.12em] transition hover:bg-slate-800"
-            aria-label="Fit full graph in view"
-            title="Fit full graph in view"
+            aria-label={copy.fitFullGraphInView}
+            title={copy.fitFullGraphInView}
           >
-            Fit
+            {copy.fit}
           </button>
         </div>
         <div className="pointer-events-none absolute bottom-3 right-[124px] z-10 rounded-md border border-slate-700/90 bg-slate-950/90 px-2 py-1 font-mono text-[10px] text-slate-300">
@@ -1276,11 +1482,11 @@ export function ReteNodeEditor({
             onMouseDown={(event) => event.stopPropagation()}
             role="dialog"
             aria-modal="true"
-            aria-label="Input combine formula"
+            aria-label={copy.inputCombineFormula}
           >
             <header className="flex items-start justify-between gap-3 border-b border-slate-700 px-4 py-3">
               <div>
-                <h2 className="font-display text-lg font-semibold text-slate-100">Input Formula Assistant</h2>
+                <h2 className="font-display text-lg font-semibold text-slate-100">{copy.inputFormulaAssistant}</h2>
                 <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
                   {formulaEditor.targetNodeId}.{formulaEditor.targetPortId} ({formulaEditor.targetNodeLabel} / {formulaEditor.targetPortLabel})
                 </p>
@@ -1290,14 +1496,14 @@ export function ReteNodeEditor({
                 onClick={() => setFormulaEditor(null)}
                 className="rounded-lg border border-slate-600 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-400"
               >
-                Close
+                {copy.close}
               </button>
             </header>
 
             <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-y-auto p-4 lg:grid-cols-[280px_1fr]">
               <aside className="space-y-3">
                 <div className="rounded-xl border border-slate-700 bg-slate-950/60 p-3">
-                  <div className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Connected Inputs</div>
+                  <div className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">{copy.connectedInputs}</div>
                   <div className="space-y-2">
                     {formulaEditor.inputs.map((input) => (
                       <div key={`${input.token}-${input.fromNodeId}-${input.fromPortId}`} className="group relative">
@@ -1319,7 +1525,7 @@ export function ReteNodeEditor({
                 </div>
 
                 <div className="rounded-xl border border-slate-700 bg-slate-950/60 p-3">
-                  <div className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Insert Operator</div>
+                  <div className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">{copy.insertOperator}</div>
                   <div className="grid grid-cols-3 gap-2">
                     {["+", "-", "*", "/", "(", ")"].map((operator) => (
                       <button
@@ -1335,14 +1541,14 @@ export function ReteNodeEditor({
                 </div>
 
                 <div className="rounded-xl border border-slate-700 bg-slate-950/60 p-3">
-                  <div className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Insert Number</div>
+                  <div className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">{copy.insertNumber}</div>
                   <div className="flex items-center gap-2">
                     <input
                       type="text"
                       value={formulaNumberDraft}
                       onChange={(event) => setFormulaNumberDraft(event.target.value)}
                       className="w-full rounded-md border border-slate-600 bg-slate-900 px-2 py-1 font-mono text-xs text-slate-100 outline-none ring-accent/40 transition focus:ring"
-                      placeholder="e.g. 0.5"
+                      placeholder={copy.numberPlaceholder}
                     />
                     <button
                       type="button"
@@ -1355,7 +1561,7 @@ export function ReteNodeEditor({
                       }}
                       className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-200 transition hover:border-accent/70 hover:text-accent disabled:opacity-40"
                     >
-                      Add
+                      {copy.add}
                     </button>
                   </div>
                 </div>
@@ -1363,7 +1569,7 @@ export function ReteNodeEditor({
 
               <section className="flex min-h-0 flex-col gap-3">
                 <label className="flex min-h-0 flex-1 flex-col gap-2">
-                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Formula</span>
+                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">{copy.formula}</span>
                   <textarea
                     ref={formulaEditorTextareaRef}
                     value={formulaEditor.expression}
@@ -1395,13 +1601,13 @@ export function ReteNodeEditor({
                     className={`min-h-[180px] w-full rounded-lg border bg-slate-950 px-3 py-2 font-mono text-sm text-slate-100 outline-none ring-accent/40 transition focus:ring ${
                       formulaValidation?.isValid ? "border-slate-600" : "border-rose-500/70"
                     }`}
-                    placeholder="Example: in1 + (in2 * 0.5)"
+                    placeholder={copy.formulaPlaceholder}
                   />
                 </label>
 
                 <div className="rounded-xl border border-slate-700 bg-slate-950/60 p-3">
                   <div className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
-                    Token Selection (click to select range)
+                    {copy.tokenSelection}
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {formulaTokens.length > 0 ? (
@@ -1422,7 +1628,7 @@ export function ReteNodeEditor({
                         </button>
                       ))
                     ) : (
-                      <div className="text-xs text-slate-500">No tokens yet.</div>
+                      <div className="text-xs text-slate-500">{copy.noTokensYet}</div>
                     )}
                   </div>
                   <div className="mt-2">
@@ -1431,7 +1637,7 @@ export function ReteNodeEditor({
                       onClick={deleteFormulaSelection}
                       className="rounded-md border border-rose-500/60 bg-rose-950/40 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-rose-200 transition hover:bg-rose-900/40"
                     >
-                      Delete Selection
+                      {copy.deleteSelection}
                     </button>
                   </div>
                 </div>
@@ -1452,7 +1658,7 @@ export function ReteNodeEditor({
                 onClick={clearFormulaEditor}
                 className="rounded-lg border border-amber-500/60 bg-amber-950/35 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-amber-200 transition hover:bg-amber-900/40"
               >
-                Clear Formula
+                {copy.clearFormula}
               </button>
               <div className="flex items-center gap-2">
                 <button
@@ -1460,7 +1666,7 @@ export function ReteNodeEditor({
                   onClick={() => setFormulaEditor(null)}
                   className="rounded-lg border border-slate-600 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-400"
                 >
-                  Cancel
+                  {copy.cancel}
                 </button>
                 <button
                   type="button"
@@ -1468,7 +1674,7 @@ export function ReteNodeEditor({
                   onClick={saveFormulaEditor}
                   className="rounded-lg border border-accent/70 bg-accent/20 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-accent transition hover:bg-accent/30 disabled:opacity-40"
                 >
-                  Save Formula
+                  {copy.saveFormula}
                 </button>
               </div>
             </footer>

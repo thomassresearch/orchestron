@@ -2,17 +2,22 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { api, wsBaseUrl } from "./api/client";
 import { ConfigPage } from "./components/ConfigPage";
+import { HelpDocumentationModal } from "./components/HelpDocumentationModal";
+import { HelpIconButton } from "./components/HelpIconButton";
 import { OpcodeCatalog } from "./components/OpcodeCatalog";
 import { OpcodeDocumentationModal } from "./components/OpcodeDocumentationModal";
 import { PatchToolbar } from "./components/PatchToolbar";
 import { ReteNodeEditor, type EditorSelection } from "./components/ReteNodeEditor";
 import { RuntimePanel } from "./components/RuntimePanel";
 import { SequencerPage } from "./components/SequencerPage";
+import { documentationUiCopy, getHelpDocument } from "./lib/documentation";
 import { resolveMidiInputName } from "./lib/sequencer";
 import { useAppStore } from "./store/useAppStore";
 import orchestronIcon from "./assets/orchestron-icon.png";
 import type {
   Connection,
+  GuiLanguage,
+  HelpDocId,
   PatchGraph,
   SessionMidiEventRequest,
   SessionSequencerConfigRequest,
@@ -41,12 +46,202 @@ function transportStepCountFromTracks(stepCounts: Array<{ stepCount: 16 | 32 }>)
   return stepCounts.some((entry) => entry.stepCount === 32) ? 32 : 16;
 }
 
+type AppCopy = {
+  appIconAlt: string;
+  appTitle: string;
+  appDescription: string;
+  instrumentDesign: string;
+  perform: string;
+  config: string;
+  graphEditor: string;
+  graphStats: (nodes: number, connections: number) => string;
+  selectedSummary: (nodes: number, connections: number) => string;
+  showRuntime: string;
+  showRuntimePanel: string;
+  instrumentTabTitle: (index: number) => string;
+  confirmDeleteSelection: (count: number) => string;
+  errors: {
+    noActiveRuntimeSession: string;
+    startInstrumentsFirstForSequencer: string;
+    noActiveInstrumentSessionForSequencer: string;
+    failedToStartSequencer: string;
+    failedToStopInstrumentEngine: string;
+    startInstrumentsBeforePianoRoll: string;
+    noActiveInstrumentSession: string;
+    failedToStartPianoRollNote: string;
+    startInstrumentsBeforePianoRollStart: string;
+    failedToSendMidiControllerValue: string;
+    failedToSaveSequencerConfig: string;
+    failedToLoadSequencerConfig: string;
+    failedToInitializeMidiControllers: string;
+    failedToSyncSequencerStatus: string;
+    failedToUpdateSequencerConfig: string;
+    sessionNotRunningSequencerStopped: string;
+    noActiveSessionForPadSwitching: string;
+    failedToQueuePad: string;
+  };
+};
+
+const APP_COPY: Record<GuiLanguage, AppCopy> = {
+  english: {
+    appIconAlt: "Orchestron icon",
+    appTitle: "Orchestron",
+    appDescription: "Visual opcode patching with realtime CSound sessions and macOS MIDI loopback support.",
+    instrumentDesign: "Instrument Design",
+    perform: "Perform",
+    config: "Config",
+    graphEditor: "Graph Editor",
+    graphStats: (nodes, connections) => `Graph Editor (${nodes} nodes, ${connections} connections)`,
+    selectedSummary: (nodes, connections) => `Selected: ${nodes} opcode(s), ${connections} connection(s)`,
+    showRuntime: "Show Runtime",
+    showRuntimePanel: "Show runtime panel",
+    instrumentTabTitle: (index) => `Instrument ${index}`,
+    confirmDeleteSelection: (count) => `Delete ${count} selected elements?`,
+    errors: {
+      noActiveRuntimeSession: "No active runtime session available.",
+      startInstrumentsFirstForSequencer:
+        "Start instruments first. Sequencer transport is independent from instrument engine start/stop.",
+      noActiveInstrumentSessionForSequencer: "No active instrument session available. Start instruments first.",
+      failedToStartSequencer: "Failed to start sequencer.",
+      failedToStopInstrumentEngine: "Failed to stop instrument engine.",
+      startInstrumentsBeforePianoRoll: "Start instruments first before using the piano roll.",
+      noActiveInstrumentSession: "No active instrument session available.",
+      failedToStartPianoRollNote: "Failed to start piano roll note.",
+      startInstrumentsBeforePianoRollStart: "Start instruments first before starting a piano roll.",
+      failedToSendMidiControllerValue: "Failed to send MIDI controller value.",
+      failedToSaveSequencerConfig: "Failed to save sequencer config.",
+      failedToLoadSequencerConfig: "Failed to load sequencer config.",
+      failedToInitializeMidiControllers: "Failed to initialize MIDI controllers.",
+      failedToSyncSequencerStatus: "Failed to sync sequencer status.",
+      failedToUpdateSequencerConfig: "Failed to update sequencer config.",
+      sessionNotRunningSequencerStopped: "Session is no longer running. Sequencer transport stopped.",
+      noActiveSessionForPadSwitching: "No active session available for pad switching.",
+      failedToQueuePad: "Failed to queue pad."
+    }
+  },
+  german: {
+    appIconAlt: "Orchestron-Icon",
+    appTitle: "Orchestron",
+    appDescription: "Visuelles Opcode-Patching mit Echtzeit-CSound-Sessions und macOS-MIDI-Loopback-Unterstuetzung.",
+    instrumentDesign: "Instrument-Design",
+    perform: "Performance",
+    config: "Konfig",
+    graphEditor: "Graph-Editor",
+    graphStats: (nodes, connections) => `Graph-Editor (${nodes} Nodes, ${connections} Verbindungen)`,
+    selectedSummary: (nodes, connections) => `Ausgewaehlt: ${nodes} Opcode(s), ${connections} Verbindung(en)`,
+    showRuntime: "Runtime anzeigen",
+    showRuntimePanel: "Runtime-Panel anzeigen",
+    instrumentTabTitle: (index) => `Instrument ${index}`,
+    confirmDeleteSelection: (count) => `${count} ausgewaehlte Elemente loeschen?`,
+    errors: {
+      noActiveRuntimeSession: "Keine aktive Runtime-Session verfuegbar.",
+      startInstrumentsFirstForSequencer:
+        "Starte zuerst Instrumente. Der Sequencer-Transport ist vom Start/Stop der Engine getrennt.",
+      noActiveInstrumentSessionForSequencer: "Keine aktive Instrument-Session verfuegbar. Bitte zuerst starten.",
+      failedToStartSequencer: "Sequencer konnte nicht gestartet werden.",
+      failedToStopInstrumentEngine: "Instrument-Engine konnte nicht gestoppt werden.",
+      startInstrumentsBeforePianoRoll: "Starte zuerst Instrumente, bevor du die Piano Roll benutzt.",
+      noActiveInstrumentSession: "Keine aktive Instrument-Session verfuegbar.",
+      failedToStartPianoRollNote: "Piano-Roll-Note konnte nicht gestartet werden.",
+      startInstrumentsBeforePianoRollStart: "Starte zuerst Instrumente, bevor du eine Piano Roll startest.",
+      failedToSendMidiControllerValue: "MIDI-Controller-Wert konnte nicht gesendet werden.",
+      failedToSaveSequencerConfig: "Sequencer-Konfiguration konnte nicht gespeichert werden.",
+      failedToLoadSequencerConfig: "Sequencer-Konfiguration konnte nicht geladen werden.",
+      failedToInitializeMidiControllers: "MIDI-Controller konnten nicht initialisiert werden.",
+      failedToSyncSequencerStatus: "Sequencer-Status konnte nicht synchronisiert werden.",
+      failedToUpdateSequencerConfig: "Sequencer-Konfiguration konnte nicht aktualisiert werden.",
+      sessionNotRunningSequencerStopped: "Session laeuft nicht mehr. Sequencer-Transport wurde gestoppt.",
+      noActiveSessionForPadSwitching: "Keine aktive Session fuer Pad-Wechsel verfuegbar.",
+      failedToQueuePad: "Pad konnte nicht in die Warteschlange gesetzt werden."
+    }
+  },
+  french: {
+    appIconAlt: "Icone Orchestron",
+    appTitle: "Orchestron",
+    appDescription:
+      "Patching visuel d'opcodes avec sessions CSound temps reel et support loopback MIDI macOS.",
+    instrumentDesign: "Design instrument",
+    perform: "Performance",
+    config: "Config",
+    graphEditor: "Editeur de graphe",
+    graphStats: (nodes, connections) => `Editeur de graphe (${nodes} noeuds, ${connections} connexions)`,
+    selectedSummary: (nodes, connections) => `Selection: ${nodes} opcode(s), ${connections} connexion(s)`,
+    showRuntime: "Afficher runtime",
+    showRuntimePanel: "Afficher panneau runtime",
+    instrumentTabTitle: (index) => `Instrument ${index}`,
+    confirmDeleteSelection: (count) => `Supprimer ${count} elements selectionnes ?`,
+    errors: {
+      noActiveRuntimeSession: "Aucune session runtime active disponible.",
+      startInstrumentsFirstForSequencer:
+        "Demarrez d'abord les instruments. Le transport sequencer est independant du start/stop moteur.",
+      noActiveInstrumentSessionForSequencer:
+        "Aucune session instrument active disponible. Demarrez d'abord les instruments.",
+      failedToStartSequencer: "Echec du demarrage du sequencer.",
+      failedToStopInstrumentEngine: "Echec de l'arret du moteur instrument.",
+      startInstrumentsBeforePianoRoll: "Demarrez d'abord les instruments avant d'utiliser le piano roll.",
+      noActiveInstrumentSession: "Aucune session instrument active disponible.",
+      failedToStartPianoRollNote: "Echec du demarrage de la note piano roll.",
+      startInstrumentsBeforePianoRollStart: "Demarrez d'abord les instruments avant de lancer un piano roll.",
+      failedToSendMidiControllerValue: "Echec de l'envoi de la valeur du controleur MIDI.",
+      failedToSaveSequencerConfig: "Echec de l'enregistrement de la configuration sequencer.",
+      failedToLoadSequencerConfig: "Echec du chargement de la configuration sequencer.",
+      failedToInitializeMidiControllers: "Echec de l'initialisation des controleurs MIDI.",
+      failedToSyncSequencerStatus: "Echec de synchronisation du statut sequencer.",
+      failedToUpdateSequencerConfig: "Echec de mise a jour de la configuration sequencer.",
+      sessionNotRunningSequencerStopped: "La session ne tourne plus. Le transport sequencer est arrete.",
+      noActiveSessionForPadSwitching: "Aucune session active pour le changement de pad.",
+      failedToQueuePad: "Echec de mise en file du pad."
+    }
+  },
+  spanish: {
+    appIconAlt: "Icono de Orchestron",
+    appTitle: "Orchestron",
+    appDescription:
+      "Patching visual de opcodes con sesiones CSound en tiempo real y soporte de loopback MIDI en macOS.",
+    instrumentDesign: "Diseno de instrumento",
+    perform: "Performance",
+    config: "Config",
+    graphEditor: "Editor de grafos",
+    graphStats: (nodes, connections) => `Editor de grafos (${nodes} nodos, ${connections} conexiones)`,
+    selectedSummary: (nodes, connections) => `Seleccionado: ${nodes} opcode(s), ${connections} conexion(es)`,
+    showRuntime: "Mostrar runtime",
+    showRuntimePanel: "Mostrar panel runtime",
+    instrumentTabTitle: (index) => `Instrumento ${index}`,
+    confirmDeleteSelection: (count) => `Eliminar ${count} elementos seleccionados?`,
+    errors: {
+      noActiveRuntimeSession: "No hay una sesion runtime activa disponible.",
+      startInstrumentsFirstForSequencer:
+        "Inicia primero los instrumentos. El transporte del secuenciador es independiente del start/stop del motor.",
+      noActiveInstrumentSessionForSequencer:
+        "No hay una sesion de instrumentos activa. Inicia primero los instrumentos.",
+      failedToStartSequencer: "No se pudo iniciar el secuenciador.",
+      failedToStopInstrumentEngine: "No se pudo detener el motor de instrumentos.",
+      startInstrumentsBeforePianoRoll: "Inicia primero los instrumentos antes de usar el piano roll.",
+      noActiveInstrumentSession: "No hay una sesion de instrumentos activa.",
+      failedToStartPianoRollNote: "No se pudo iniciar la nota del piano roll.",
+      startInstrumentsBeforePianoRollStart: "Inicia primero los instrumentos antes de iniciar un piano roll.",
+      failedToSendMidiControllerValue: "No se pudo enviar el valor del controlador MIDI.",
+      failedToSaveSequencerConfig: "No se pudo guardar la configuracion del secuenciador.",
+      failedToLoadSequencerConfig: "No se pudo cargar la configuracion del secuenciador.",
+      failedToInitializeMidiControllers: "No se pudieron inicializar los controladores MIDI.",
+      failedToSyncSequencerStatus: "No se pudo sincronizar el estado del secuenciador.",
+      failedToUpdateSequencerConfig: "No se pudo actualizar la configuracion del secuenciador.",
+      sessionNotRunningSequencerStopped: "La sesion ya no esta en ejecucion. El transporte del secuenciador se detuvo.",
+      noActiveSessionForPadSwitching: "No hay una sesion activa para cambiar pads.",
+      failedToQueuePad: "No se pudo poner en cola el pad."
+    }
+  }
+};
+
 export default function App() {
   const loading = useAppStore((state) => state.loading);
   const error = useAppStore((state) => state.error);
 
   const activePage = useAppStore((state) => state.activePage);
   const setActivePage = useAppStore((state) => state.setActivePage);
+  const guiLanguage = useAppStore((state) => state.guiLanguage);
+  const setGuiLanguage = useAppStore((state) => state.setGuiLanguage);
+  const appCopy = useMemo(() => APP_COPY[guiLanguage], [guiLanguage]);
 
   const opcodes = useAppStore((state) => state.opcodes);
   const patches = useAppStore((state) => state.patches);
@@ -173,11 +368,15 @@ export default function App() {
   const onOpcodeHelpRequest = useCallback((opcodeName: string) => {
     setActiveOpcodeDocumentation(opcodeName);
   }, []);
+  const onHelpRequest = useCallback((helpDocId: HelpDocId) => {
+    setActiveHelpDocumentation(helpDocId);
+  }, []);
 
   const [selection, setSelection] = useState<EditorSelection>({
     nodeIds: [],
     connections: []
   });
+  const [activeHelpDocumentation, setActiveHelpDocumentation] = useState<HelpDocId | null>(null);
   const [activeOpcodeDocumentation, setActiveOpcodeDocumentation] = useState<string | null>(null);
   const [sequencerError, setSequencerError] = useState<string | null>(null);
   const [runtimePanelCollapsed, setRuntimePanelCollapsed] = useState(false);
@@ -205,14 +404,21 @@ export default function App() {
     () =>
       instrumentTabs.map((tab, index) => ({
         id: tab.id,
-        title: tab.patch.name.trim().length > 0 ? tab.patch.name : `Instrument ${index + 1}`
+        title: tab.patch.name.trim().length > 0 ? tab.patch.name : appCopy.instrumentTabTitle(index + 1)
       })),
-    [instrumentTabs]
+    [appCopy, instrumentTabs]
   );
   const selectedOpcodeDocumentation = useMemo(
     () => opcodes.find((opcode) => opcode.name === activeOpcodeDocumentation) ?? null,
     [activeOpcodeDocumentation, opcodes]
   );
+  const documentationCopy = useMemo(() => documentationUiCopy(guiLanguage), [guiLanguage]);
+  const selectedHelpDocumentation = useMemo(() => {
+    if (!activeHelpDocumentation) {
+      return null;
+    }
+    return getHelpDocument(activeHelpDocumentation, guiLanguage);
+  }, [activeHelpDocumentation, guiLanguage]);
 
   useEffect(() => {
     if (!activeOpcodeDocumentation) {
@@ -232,11 +438,11 @@ export default function App() {
     async (payload: SessionMidiEventRequest, sessionIdOverride?: string) => {
       const sessionId = sessionIdOverride ?? activeSessionId;
       if (!sessionId) {
-        throw new Error("No active runtime session available.");
+        throw new Error(appCopy.errors.noActiveRuntimeSession);
       }
       await api.sendSessionMidiEvent(sessionId, payload);
     },
-    [activeSessionId]
+    [activeSessionId, appCopy.errors.noActiveRuntimeSession]
   );
 
   const sendAllNotesOff = useCallback(
@@ -321,13 +527,13 @@ export default function App() {
   const startSequencerTransport = useCallback(async () => {
     setSequencerError(null);
     if (activeSessionState !== "running") {
-      setSequencerError("Start instruments first. Sequencer transport is independent from instrument engine start/stop.");
+      setSequencerError(appCopy.errors.startInstrumentsFirstForSequencer);
       return;
     }
 
     const sessionId = activeSessionId;
     if (!sessionId) {
-      setSequencerError("No active instrument session available. Start instruments first.");
+      setSequencerError(appCopy.errors.noActiveInstrumentSessionForSequencer);
       return;
     }
 
@@ -339,11 +545,16 @@ export default function App() {
       applySequencerStatus(status);
     } catch (transportError) {
       syncSequencerRuntime({ isPlaying: false });
-      setSequencerError(transportError instanceof Error ? transportError.message : "Failed to start sequencer.");
+      setSequencerError(
+        transportError instanceof Error ? transportError.message : appCopy.errors.failedToStartSequencer
+      );
     }
   }, [
     activeSessionId,
     activeSessionState,
+    appCopy.errors.failedToStartSequencer,
+    appCopy.errors.noActiveInstrumentSessionForSequencer,
+    appCopy.errors.startInstrumentsFirstForSequencer,
     applySequencerStatus,
     buildBackendSequencerConfig,
     syncSequencerRuntime
@@ -402,9 +613,17 @@ export default function App() {
       await stopSession();
       syncSequencerRuntime({ isPlaying: false });
     })().catch((error) => {
-      setSequencerError(error instanceof Error ? error.message : "Failed to stop instrument engine.");
+      setSequencerError(error instanceof Error ? error.message : appCopy.errors.failedToStopInstrumentEngine);
     });
-  }, [collectPerformanceChannels, disableAllPianoRolls, sendAllNotesOff, stopSequencerTransport, stopSession, syncSequencerRuntime]);
+  }, [
+    appCopy.errors.failedToStopInstrumentEngine,
+    collectPerformanceChannels,
+    disableAllPianoRolls,
+    sendAllNotesOff,
+    stopSequencerTransport,
+    stopSession,
+    syncSequencerRuntime
+  ]);
 
   const onSequencerAllNotesOff = useCallback(() => {
     collectPerformanceChannels().forEach((channel) => {
@@ -417,11 +636,11 @@ export default function App() {
   const onPianoRollNoteOn = useCallback(
     (note: number, channel: number) => {
       if (activeSessionState !== "running") {
-        setSequencerError("Start instruments first before using the piano roll.");
+        setSequencerError(appCopy.errors.startInstrumentsBeforePianoRoll);
         return;
       }
       if (!activeSessionId) {
-        setSequencerError("No active instrument session available.");
+        setSequencerError(appCopy.errors.noActiveInstrumentSession);
         return;
       }
 
@@ -430,10 +649,17 @@ export default function App() {
         await sendDirectMidiEvent({ type: "note_on", channel, note, velocity: 110 }, activeSessionId);
         pianoRollNoteSessionRef.current.set(pianoRollNoteKey(note, channel), activeSessionId);
       })().catch((error) => {
-        setSequencerError(error instanceof Error ? error.message : "Failed to start piano roll note.");
+        setSequencerError(error instanceof Error ? error.message : appCopy.errors.failedToStartPianoRollNote);
       });
     },
-    [activeSessionId, activeSessionState, sendDirectMidiEvent]
+    [
+      activeSessionId,
+      activeSessionState,
+      appCopy.errors.failedToStartPianoRollNote,
+      appCopy.errors.noActiveInstrumentSession,
+      appCopy.errors.startInstrumentsBeforePianoRoll,
+      sendDirectMidiEvent
+    ]
   );
 
   const onPianoRollNoteOff = useCallback(
@@ -455,7 +681,7 @@ export default function App() {
   const onPianoRollEnabledChange = useCallback(
     (rollId: string, enabled: boolean) => {
       if (enabled && activeSessionState !== "running") {
-        setSequencerError("Start instruments first before starting a piano roll.");
+        setSequencerError(appCopy.errors.startInstrumentsBeforePianoRollStart);
         return;
       }
 
@@ -470,7 +696,7 @@ export default function App() {
       setPianoRollEnabled(rollId, enabled);
       setSequencerError(null);
     },
-    [activeSessionState, sendAllNotesOff, setPianoRollEnabled]
+    [activeSessionState, appCopy.errors.startInstrumentsBeforePianoRollStart, sendAllNotesOff, setPianoRollEnabled]
   );
 
   const sendMidiControllerValue = useCallback(
@@ -500,10 +726,16 @@ export default function App() {
       }
 
       void sendMidiControllerValue(controller.controllerNumber, controller.value, activeSessionId).catch((error) => {
-        setSequencerError(error instanceof Error ? error.message : "Failed to send MIDI controller value.");
+        setSequencerError(error instanceof Error ? error.message : appCopy.errors.failedToSendMidiControllerValue);
       });
     },
-    [activeSessionId, activeSessionState, sendMidiControllerValue, setMidiControllerEnabled]
+    [
+      activeSessionId,
+      activeSessionState,
+      appCopy.errors.failedToSendMidiControllerValue,
+      sendMidiControllerValue,
+      setMidiControllerEnabled
+    ]
   );
 
   const onMidiControllerNumberChange = useCallback(
@@ -519,10 +751,16 @@ export default function App() {
       }
 
       void sendMidiControllerValue(controllerNumber, controller.value, activeSessionId).catch((error) => {
-        setSequencerError(error instanceof Error ? error.message : "Failed to send MIDI controller value.");
+        setSequencerError(error instanceof Error ? error.message : appCopy.errors.failedToSendMidiControllerValue);
       });
     },
-    [activeSessionId, activeSessionState, sendMidiControllerValue, setMidiControllerNumber]
+    [
+      activeSessionId,
+      activeSessionState,
+      appCopy.errors.failedToSendMidiControllerValue,
+      sendMidiControllerValue,
+      setMidiControllerNumber
+    ]
   );
 
   const onMidiControllerValueChange = useCallback(
@@ -538,10 +776,16 @@ export default function App() {
       }
 
       void sendMidiControllerValue(controller.controllerNumber, value, activeSessionId).catch((error) => {
-        setSequencerError(error instanceof Error ? error.message : "Failed to send MIDI controller value.");
+        setSequencerError(error instanceof Error ? error.message : appCopy.errors.failedToSendMidiControllerValue);
       });
     },
-    [activeSessionId, activeSessionState, sendMidiControllerValue, setMidiControllerValue]
+    [
+      activeSessionId,
+      activeSessionState,
+      appCopy.errors.failedToSendMidiControllerValue,
+      sendMidiControllerValue,
+      setMidiControllerValue
+    ]
   );
 
   const onExportSequencerConfig = useCallback(() => {
@@ -559,9 +803,9 @@ export default function App() {
       URL.revokeObjectURL(url);
       setSequencerError(null);
     } catch (error) {
-      setSequencerError(error instanceof Error ? error.message : "Failed to save sequencer config.");
+      setSequencerError(error instanceof Error ? error.message : appCopy.errors.failedToSaveSequencerConfig);
     }
-  }, [buildSequencerConfigSnapshot]);
+  }, [appCopy.errors.failedToSaveSequencerConfig, buildSequencerConfigSnapshot]);
 
   const onImportSequencerConfig = useCallback(
     (file: File) => {
@@ -573,10 +817,10 @@ export default function App() {
           setSequencerError(null);
         })
         .catch((error) => {
-          setSequencerError(error instanceof Error ? error.message : "Failed to load sequencer config.");
+          setSequencerError(error instanceof Error ? error.message : appCopy.errors.failedToLoadSequencerConfig);
         });
     },
-    [applySequencerConfigSnapshot]
+    [appCopy.errors.failedToLoadSequencerConfig, applySequencerConfigSnapshot]
   );
 
   useEffect(() => {
@@ -599,9 +843,14 @@ export default function App() {
         sendMidiControllerValue(controller.controllerNumber, controller.value, activeSessionId)
       )
     ).catch((error) => {
-      setSequencerError(error instanceof Error ? error.message : "Failed to initialize MIDI controllers.");
+      setSequencerError(error instanceof Error ? error.message : appCopy.errors.failedToInitializeMidiControllers);
     });
-  }, [activeSessionId, activeSessionState, sendMidiControllerValue]);
+  }, [
+    activeSessionId,
+    activeSessionState,
+    appCopy.errors.failedToInitializeMidiControllers,
+    sendMidiControllerValue
+  ]);
 
   useEffect(() => {
     if (!sequencer.isPlaying) {
@@ -626,7 +875,9 @@ export default function App() {
         applySequencerStatus(status);
       } catch (pollError) {
         setSequencerError(
-          pollError instanceof Error ? `Failed to sync sequencer status: ${pollError.message}` : "Failed to sync sequencer status."
+          pollError instanceof Error
+            ? `${appCopy.errors.failedToSyncSequencerStatus}: ${pollError.message}`
+            : appCopy.errors.failedToSyncSequencerStatus
         );
       } finally {
         sequencerPollInFlightRef.current = false;
@@ -644,7 +895,7 @@ export default function App() {
         sequencerStatusPollRef.current = null;
       }
     };
-  }, [activeSessionId, applySequencerStatus, sequencer.isPlaying]);
+  }, [activeSessionId, appCopy.errors.failedToSyncSequencerStatus, applySequencerStatus, sequencer.isPlaying]);
 
   useEffect(() => {
     if (!sequencer.isPlaying) {
@@ -669,7 +920,9 @@ export default function App() {
         })
         .catch((syncError) => {
           setSequencerError(
-            syncError instanceof Error ? `Failed to update sequencer config: ${syncError.message}` : "Failed to update sequencer config."
+            syncError instanceof Error
+              ? `${appCopy.errors.failedToUpdateSequencerConfig}: ${syncError.message}`
+              : appCopy.errors.failedToUpdateSequencerConfig
           );
         })
         .finally(() => {
@@ -688,6 +941,7 @@ export default function App() {
     };
   }, [
     activeSessionId,
+    appCopy.errors.failedToUpdateSequencerConfig,
     applySequencerStatus,
     sequencer.isPlaying,
     sequencerConfigSyncSignature,
@@ -731,9 +985,15 @@ export default function App() {
     if (activeSessionState !== "running") {
       disableAllPianoRolls();
       void stopSequencerTransport(false);
-      setSequencerError("Session is no longer running. Sequencer transport stopped.");
+      setSequencerError(appCopy.errors.sessionNotRunningSequencerStopped);
     }
-  }, [activeSessionState, disableAllPianoRolls, sequencer.isPlaying, stopSequencerTransport]);
+  }, [
+    activeSessionState,
+    appCopy.errors.sessionNotRunningSequencerStopped,
+    disableAllPianoRolls,
+    sequencer.isPlaying,
+    stopSequencerTransport
+  ]);
 
   useEffect(() => {
     return () => {
@@ -746,7 +1006,7 @@ export default function App() {
       return;
     }
 
-    if (selectedCount > 1 && !window.confirm(`Delete ${selectedCount} selected elements?`)) {
+    if (selectedCount > 1 && !window.confirm(appCopy.confirmDeleteSelection(selectedCount))) {
       return;
     }
 
@@ -763,7 +1023,7 @@ export default function App() {
         return !connectionsToRemove.has(connectionKey(connection));
       })
     });
-  }, [currentPatch.graph, selectedCount, selection.connections, selection.nodeIds, setGraph]);
+  }, [appCopy, currentPatch.graph, selectedCount, selection.connections, selection.nodeIds, setGraph]);
 
   const instrumentLayoutClassName = runtimePanelCollapsed
     ? "grid h-[68vh] grid-cols-1 gap-3 xl:grid-cols-[280px_1fr]"
@@ -776,14 +1036,12 @@ export default function App() {
           <div className="flex flex-1 items-center gap-3">
             <img
               src={orchestronIcon}
-              alt="Orchestron icon"
+              alt={appCopy.appIconAlt}
               className="h-40 w-40 shrink-0 object-contain"
             />
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-left">
-              <h1 className="font-display text-2xl font-semibold tracking-tight text-slate-100">Orchestron</h1>
-              <p className="text-sm text-slate-400">
-                Visual opcode patching with realtime CSound sessions and macOS MIDI loopback support.
-              </p>
+              <h1 className="font-display text-2xl font-semibold tracking-tight text-slate-100">{appCopy.appTitle}</h1>
+              <p className="text-sm text-slate-400">{appCopy.appDescription}</p>
             </div>
           </div>
           <div className="rounded-full border border-slate-700 bg-slate-950 px-3 py-1 text-xs uppercase tracking-[0.2em] text-slate-400">
@@ -799,7 +1057,7 @@ export default function App() {
               activePage === "instrument" ? "bg-accent/30 text-accent" : "text-slate-300 hover:bg-slate-800"
             }`}
           >
-            Instrument Design
+            {appCopy.instrumentDesign}
           </button>
           <button
             type="button"
@@ -808,7 +1066,7 @@ export default function App() {
               activePage === "sequencer" ? "bg-accent/30 text-accent" : "text-slate-300 hover:bg-slate-800"
             }`}
           >
-            Perform
+            {appCopy.perform}
           </button>
           <button
             type="button"
@@ -817,7 +1075,7 @@ export default function App() {
               activePage === "config" ? "bg-accent/30 text-accent" : "text-slate-300 hover:bg-slate-800"
             }`}
           >
-            Config
+            {appCopy.config}
           </button>
         </div>
 
@@ -829,79 +1087,70 @@ export default function App() {
 
         {activePage === "instrument" && (
           <>
-            <PatchToolbar
-              patchName={currentPatch.name}
-              patchDescription={currentPatch.description}
-              patches={patches}
-              currentPatchId={currentPatch.id}
-              loading={loading}
-              tabs={instrumentTabItems}
-              activeTabId={activeInstrumentTabId}
-              onSelectTab={setActiveInstrumentTab}
-              onAddTab={addInstrumentTab}
-              onCloseTab={closeInstrumentTab}
-              onPatchNameChange={(name) => setCurrentPatchMeta(name, currentPatch.description)}
-              onPatchDescriptionChange={(description) => setCurrentPatchMeta(currentPatch.name, description)}
-              onSelectPatch={(patchId) => {
-                void loadPatch(patchId);
-              }}
-              onNewPatch={newPatch}
-              onSavePatch={() => {
-                void saveCurrentPatch();
-              }}
-              onCompile={() => {
-                void compileSession();
-              }}
-              onExport={() => {
-                void onExportCsd();
-              }}
-            />
+            <div className="relative">
+              <HelpIconButton guiLanguage={guiLanguage} onClick={() => onHelpRequest("instrument_patch_toolbar")} />
+              <PatchToolbar
+                guiLanguage={guiLanguage}
+                patchName={currentPatch.name}
+                patchDescription={currentPatch.description}
+                patches={patches}
+                currentPatchId={currentPatch.id}
+                loading={loading}
+                tabs={instrumentTabItems}
+                activeTabId={activeInstrumentTabId}
+                onSelectTab={setActiveInstrumentTab}
+                onAddTab={addInstrumentTab}
+                onCloseTab={closeInstrumentTab}
+                onPatchNameChange={(name) => setCurrentPatchMeta(name, currentPatch.description)}
+                onPatchDescriptionChange={(description) => setCurrentPatchMeta(currentPatch.name, description)}
+                onSelectPatch={(patchId) => {
+                  void loadPatch(patchId);
+                }}
+                onNewPatch={newPatch}
+                onSavePatch={() => {
+                  void saveCurrentPatch();
+                }}
+                onCompile={() => {
+                  void compileSession();
+                }}
+                onExport={() => {
+                  void onExportCsd();
+                }}
+              />
+            </div>
 
             <main className={instrumentLayoutClassName}>
-              <OpcodeCatalog opcodes={opcodes} onAddOpcode={addNodeFromOpcode} />
+              <div className="relative h-full min-h-0">
+                <HelpIconButton guiLanguage={guiLanguage} onClick={() => onHelpRequest("instrument_opcode_catalog")} />
+                <OpcodeCatalog guiLanguage={guiLanguage} opcodes={opcodes} onAddOpcode={addNodeFromOpcode} />
+              </div>
 
-              <section className="flex h-full min-h-[440px] flex-col gap-2">
+              <section className="relative flex h-full min-h-[440px] flex-col gap-2">
+                <HelpIconButton guiLanguage={guiLanguage} onClick={() => onHelpRequest("instrument_graph_editor")} />
                 <div className="rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2">
                   <div className="text-xs uppercase tracking-[0.16em] text-slate-400">
-                    Graph Editor ({currentPatch.graph.nodes.length} nodes, {currentPatch.graph.connections.length} connections)
+                    {appCopy.graphStats(currentPatch.graph.nodes.length, currentPatch.graph.connections.length)}
                   </div>
                   <div className="mt-1.5 flex items-center justify-between gap-2 text-xs text-slate-300">
                     <div className="rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1">
-                      Selected: {selection.nodeIds.length} opcode(s), {selection.connections.length} connection(s)
+                      {appCopy.selectedSummary(selection.nodeIds.length, selection.connections.length)}
                     </div>
-                    <div className="flex items-center gap-2">
-                      {runtimePanelCollapsed ? (
-                        <button
-                          type="button"
-                          onClick={() => setRuntimePanelCollapsed(false)}
-                          className="rounded-md border border-accent/70 bg-accent/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-accent transition hover:bg-accent/25"
-                          aria-label="Show runtime panel"
-                          title="Show runtime panel"
-                        >
-                          Show Runtime
-                        </button>
-                      ) : null}
+                    {runtimePanelCollapsed ? (
                       <button
                         type="button"
-                        onClick={onDeleteSelection}
-                        disabled={selectedCount === 0}
-                        aria-label="Delete selected elements"
-                        title={selectedCount > 0 ? "Delete selected elements" : "Select elements to delete"}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-rose-600/70 bg-rose-950/60 text-rose-200 transition enabled:hover:bg-rose-900/60 disabled:cursor-not-allowed disabled:opacity-50"
+                        onClick={() => setRuntimePanelCollapsed(false)}
+                        className="rounded-md border border-accent/70 bg-accent/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-accent transition hover:bg-accent/25"
+                        aria-label={appCopy.showRuntimePanel}
+                        title={appCopy.showRuntimePanel}
                       >
-                        <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current" strokeWidth={1.9}>
-                          <path d="M4 7h16" />
-                          <path d="M9 7V4.8A1.8 1.8 0 0 1 10.8 3h2.4A1.8 1.8 0 0 1 15 4.8V7" />
-                          <path d="M6.2 7l.9 12.3A1.8 1.8 0 0 0 8.9 21h6.2a1.8 1.8 0 0 0 1.8-1.7L17.8 7" />
-                          <path d="M10 11v6" />
-                          <path d="M14 11v6" />
-                        </svg>
+                        {appCopy.showRuntime}
                       </button>
-                    </div>
+                    ) : null}
                   </div>
                 </div>
                 <div className="min-h-0 flex-1">
                   <ReteNodeEditor
+                    guiLanguage={guiLanguage}
                     graph={currentPatch.graph}
                     opcodes={opcodes}
                     viewportKey={`${activeInstrumentTabId}:${currentPatch.id ?? "draft"}`}
@@ -909,21 +1158,28 @@ export default function App() {
                     onSelectionChange={setSelection}
                     onAddOpcodeAtPosition={addNodeFromOpcode}
                     onOpcodeHelpRequest={onOpcodeHelpRequest}
+                    opcodeHelpLabel={documentationCopy.showDocumentation}
+                    onDeleteSelection={onDeleteSelection}
+                    canDeleteSelection={selectedCount > 0}
                   />
                 </div>
               </section>
 
               {!runtimePanelCollapsed ? (
-                <RuntimePanel
-                  midiInputs={midiInputs}
-                  selectedMidiInput={activeMidiInput}
-                  compileOutput={compileOutput}
-                  events={events}
-                  onBindMidiInput={(midiInput) => {
-                    void bindMidiInput(midiInput);
-                  }}
-                  onToggleCollapse={() => setRuntimePanelCollapsed(true)}
-                />
+                <div className="relative h-full min-h-0">
+                  <HelpIconButton guiLanguage={guiLanguage} onClick={() => onHelpRequest("instrument_runtime_panel")} />
+                  <RuntimePanel
+                    guiLanguage={guiLanguage}
+                    midiInputs={midiInputs}
+                    selectedMidiInput={activeMidiInput}
+                    compileOutput={compileOutput}
+                    events={events}
+                    onBindMidiInput={(midiInput) => {
+                      void bindMidiInput(midiInput);
+                    }}
+                    onToggleCollapse={() => setRuntimePanelCollapsed(true)}
+                  />
+                </div>
               ) : null}
             </main>
           </>
@@ -931,6 +1187,7 @@ export default function App() {
 
         {activePage === "sequencer" && (
           <SequencerPage
+            guiLanguage={guiLanguage}
             patches={patches}
             instrumentBindings={sequencerInstruments}
             sequencer={sequencer}
@@ -975,7 +1232,7 @@ export default function App() {
 
               const sessionId = sequencerSessionIdRef.current ?? activeSessionId;
               if (!sessionId) {
-                setSequencerError("No active session available for pad switching.");
+                setSequencerError(appCopy.errors.noActiveSessionForPadSwitching);
                 return;
               }
 
@@ -987,7 +1244,9 @@ export default function App() {
                 })
                 .catch((queueError) => {
                   setSequencerError(
-                    queueError instanceof Error ? `Failed to queue pad: ${queueError.message}` : "Failed to queue pad."
+                    queueError instanceof Error
+                      ? `${appCopy.errors.failedToQueuePad}: ${queueError.message}`
+                      : appCopy.errors.failedToQueuePad
                   );
                 });
             }}
@@ -1008,16 +1267,20 @@ export default function App() {
               setSequencerPlayhead(0);
             }}
             onAllNotesOff={onSequencerAllNotesOff}
+            onHelpRequest={onHelpRequest}
           />
         )}
 
         {activePage === "config" && (
           <ConfigPage
+            guiLanguage={guiLanguage}
             audioRate={currentPatch.graph.engine_config.sr}
             controlRate={currentPatch.graph.engine_config.control_rate}
             ksmps={currentPatch.graph.engine_config.ksmps}
             softwareBuffer={currentPatch.graph.engine_config.software_buffer}
             hardwareBuffer={currentPatch.graph.engine_config.hardware_buffer}
+            onGuiLanguageChange={setGuiLanguage}
+            onHelpRequest={onHelpRequest}
             onApplyEngineConfig={(config) => {
               void applyEngineConfig(config);
             }}
@@ -1028,7 +1291,17 @@ export default function App() {
       {selectedOpcodeDocumentation && (
         <OpcodeDocumentationModal
           opcode={selectedOpcodeDocumentation}
+          guiLanguage={guiLanguage}
           onClose={() => setActiveOpcodeDocumentation(null)}
+        />
+      )}
+
+      {selectedHelpDocumentation && (
+        <HelpDocumentationModal
+          title={selectedHelpDocumentation.title}
+          markdown={selectedHelpDocumentation.markdown}
+          guiLanguage={guiLanguage}
+          onClose={() => setActiveHelpDocumentation(null)}
         />
       )}
     </div>

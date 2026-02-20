@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 
+import { HelpIconButton } from "./HelpIconButton";
+import { GUI_LANGUAGE_OPTIONS } from "../lib/guiLanguage";
+import type { GuiLanguage, HelpDocId } from "../types";
+
 const AUDIO_RATE_MIN = 22000;
 const AUDIO_RATE_MAX = 48000;
 const CONTROL_RATE_MIN = 25;
@@ -7,12 +11,145 @@ const CONTROL_RATE_MAX = 48000;
 const ENGINE_BUFFER_MIN = 32;
 const ENGINE_BUFFER_MAX = 8192;
 
+type ConfigPageCopy = {
+  audioEngineConfiguration: string;
+  audioEngineDescription: string;
+  guiLanguage: string;
+  audioSampleRateHz: string;
+  controlSampleRateHz: string;
+  softwareBuffer: string;
+  hardwareBuffer: string;
+  applyConfiguration: string;
+  derivedKsmps: string;
+  actualControlRate: string;
+  currentPatchEngineValues: string;
+  controlRateTarget: string;
+  softwareBufferMetric: string;
+  hardwareBufferMetric: string;
+  integerValidation: (label: string) => string;
+  rangeValidation: (label: string, min: number, max: number) => string;
+  allowedRange: (min: number, max: number) => string;
+};
+
+const CONFIG_PAGE_COPY: Record<GuiLanguage, ConfigPageCopy> = {
+  english: {
+    audioEngineConfiguration: "Audio Engine Configuration",
+    audioEngineDescription:
+      "Configure audio-rate (`sr`), target control-rate sampling, and runtime buffer sizes. VisualCSound derives `ksmps` from sample rate and control rate.",
+    guiLanguage: "GUI Language",
+    audioSampleRateHz: "Audio Sample Rate (Hz)",
+    controlSampleRateHz: "Control Sample Rate (Hz)",
+    softwareBuffer: "Software Buffer (`-b`)",
+    hardwareBuffer: "Hardware Buffer (`-B`)",
+    applyConfiguration: "Apply Configuration",
+    derivedKsmps: "Derived `ksmps`",
+    actualControlRate: "Actual control rate (`sr/ksmps`)",
+    currentPatchEngineValues: "Current Patch Engine Values",
+    controlRateTarget: "control_rate (target)",
+    softwareBufferMetric: "software_buffer (-b)",
+    hardwareBufferMetric: "hardware_buffer (-B)",
+    integerValidation: (label) => `${label} must be an integer.`,
+    rangeValidation: (label, min, max) => `${label} must be between ${min} and ${max}.`,
+    allowedRange: (min, max) => `Allowed: ${min} - ${max}`
+  },
+  german: {
+    audioEngineConfiguration: "Audio Engine Konfiguration",
+    audioEngineDescription:
+      "Konfiguriere Audio-Rate (`sr`), Ziel-Control-Rate und Runtime-Buffergroessen. VisualCSound berechnet `ksmps` aus Sample-Rate und Control-Rate.",
+    guiLanguage: "GUI-Sprache",
+    audioSampleRateHz: "Audio-Sample-Rate (Hz)",
+    controlSampleRateHz: "Control-Sample-Rate (Hz)",
+    softwareBuffer: "Software-Buffer (`-b`)",
+    hardwareBuffer: "Hardware-Buffer (`-B`)",
+    applyConfiguration: "Konfiguration anwenden",
+    derivedKsmps: "Abgeleitetes `ksmps`",
+    actualControlRate: "Tatsaechliche Control-Rate (`sr/ksmps`)",
+    currentPatchEngineValues: "Aktuelle Patch-Engine-Werte",
+    controlRateTarget: "control_rate (ziel)",
+    softwareBufferMetric: "software_buffer (-b)",
+    hardwareBufferMetric: "hardware_buffer (-B)",
+    integerValidation: (label) => `${label} muss eine ganze Zahl sein.`,
+    rangeValidation: (label, min, max) => `${label} muss zwischen ${min} und ${max} liegen.`,
+    allowedRange: (min, max) => `Erlaubt: ${min} - ${max}`
+  },
+  french: {
+    audioEngineConfiguration: "Configuration du moteur audio",
+    audioEngineDescription:
+      "Configurez le taux audio (`sr`), le taux de controle cible et les tailles de buffer runtime. VisualCSound derive `ksmps` depuis `sr` et le taux de controle.",
+    guiLanguage: "Langue GUI",
+    audioSampleRateHz: "Frequence d'echantillonnage audio (Hz)",
+    controlSampleRateHz: "Frequence d'echantillonnage controle (Hz)",
+    softwareBuffer: "Buffer logiciel (`-b`)",
+    hardwareBuffer: "Buffer materiel (`-B`)",
+    applyConfiguration: "Appliquer configuration",
+    derivedKsmps: "`ksmps` derive",
+    actualControlRate: "Taux de controle reel (`sr/ksmps`)",
+    currentPatchEngineValues: "Valeurs moteur du patch courant",
+    controlRateTarget: "control_rate (cible)",
+    softwareBufferMetric: "software_buffer (-b)",
+    hardwareBufferMetric: "hardware_buffer (-B)",
+    integerValidation: (label) => `${label} doit etre un entier.`,
+    rangeValidation: (label, min, max) => `${label} doit etre entre ${min} et ${max}.`,
+    allowedRange: (min, max) => `Autorise: ${min} - ${max}`
+  },
+  spanish: {
+    audioEngineConfiguration: "Configuracion del motor de audio",
+    audioEngineDescription:
+      "Configura la tasa de audio (`sr`), la tasa de control objetivo y los tamanos de buffer runtime. VisualCSound deriva `ksmps` desde sample rate y control rate.",
+    guiLanguage: "Idioma de GUI",
+    audioSampleRateHz: "Frecuencia de muestreo de audio (Hz)",
+    controlSampleRateHz: "Frecuencia de muestreo de control (Hz)",
+    softwareBuffer: "Buffer de software (`-b`)",
+    hardwareBuffer: "Buffer de hardware (`-B`)",
+    applyConfiguration: "Aplicar configuracion",
+    derivedKsmps: "`ksmps` derivado",
+    actualControlRate: "Tasa de control real (`sr/ksmps`)",
+    currentPatchEngineValues: "Valores del motor en el patch actual",
+    controlRateTarget: "control_rate (objetivo)",
+    softwareBufferMetric: "software_buffer (-b)",
+    hardwareBufferMetric: "hardware_buffer (-B)",
+    integerValidation: (label) => `${label} debe ser un entero.`,
+    rangeValidation: (label, min, max) => `${label} debe estar entre ${min} y ${max}.`,
+    allowedRange: (min, max) => `Permitido: ${min} - ${max}`
+  }
+};
+
+const GUI_LANGUAGE_LABELS: Record<GuiLanguage, Record<GuiLanguage, string>> = {
+  english: {
+    english: "English",
+    german: "German",
+    french: "French",
+    spanish: "Spanish"
+  },
+  german: {
+    english: "Englisch",
+    german: "Deutsch",
+    french: "Franzoesisch",
+    spanish: "Spanisch"
+  },
+  french: {
+    english: "Anglais",
+    german: "Allemand",
+    french: "Francais",
+    spanish: "Espagnol"
+  },
+  spanish: {
+    english: "Ingles",
+    german: "Aleman",
+    french: "Frances",
+    spanish: "Espanol"
+  }
+};
+
 interface ConfigPageProps {
+  guiLanguage: GuiLanguage;
   audioRate: number;
   controlRate: number;
   ksmps: number;
   softwareBuffer: number;
   hardwareBuffer: number;
+  onGuiLanguageChange: (language: GuiLanguage) => void;
+  onHelpRequest?: (helpDocId: HelpDocId) => void;
   onApplyEngineConfig: (config: {
     sr: number;
     controlRate: number;
@@ -31,24 +168,35 @@ function parsePositiveInteger(value: string): number | null {
   return Number.isSafeInteger(parsed) ? parsed : null;
 }
 
-function validateRange(value: number | null, min: number, max: number, label: string): string | null {
+function validateRange(
+  value: number | null,
+  min: number,
+  max: number,
+  label: string,
+  copy: Pick<ConfigPageCopy, "integerValidation" | "rangeValidation">
+): string | null {
   if (value === null) {
-    return `${label} must be an integer.`;
+    return copy.integerValidation(label);
   }
   if (value < min || value > max) {
-    return `${label} must be between ${min} and ${max}.`;
+    return copy.rangeValidation(label, min, max);
   }
   return null;
 }
 
 export function ConfigPage({
+  guiLanguage,
   audioRate,
   controlRate,
   ksmps,
   softwareBuffer,
   hardwareBuffer,
+  onGuiLanguageChange,
+  onHelpRequest,
   onApplyEngineConfig
 }: ConfigPageProps) {
+  const copy = CONFIG_PAGE_COPY[guiLanguage];
+
   const [audioInput, setAudioInput] = useState(String(audioRate));
   const [controlInput, setControlInput] = useState(String(controlRate));
   const [softwareBufferInput, setSoftwareBufferInput] = useState(String(softwareBuffer));
@@ -75,19 +223,27 @@ export function ConfigPage({
   const parsedSoftwareBuffer = parsePositiveInteger(softwareBufferInput);
   const parsedHardwareBuffer = parsePositiveInteger(hardwareBufferInput);
 
-  const audioError = validateRange(parsedAudioRate, AUDIO_RATE_MIN, AUDIO_RATE_MAX, "Audio sample rate");
-  const controlError = validateRange(parsedControlRate, CONTROL_RATE_MIN, CONTROL_RATE_MAX, "Control sample rate");
+  const audioError = validateRange(parsedAudioRate, AUDIO_RATE_MIN, AUDIO_RATE_MAX, copy.audioSampleRateHz, copy);
+  const controlError = validateRange(
+    parsedControlRate,
+    CONTROL_RATE_MIN,
+    CONTROL_RATE_MAX,
+    copy.controlSampleRateHz,
+    copy
+  );
   const softwareBufferError = validateRange(
     parsedSoftwareBuffer,
     ENGINE_BUFFER_MIN,
     ENGINE_BUFFER_MAX,
-    "Software buffer"
+    copy.softwareBuffer,
+    copy
   );
   const hardwareBufferError = validateRange(
     parsedHardwareBuffer,
     ENGINE_BUFFER_MIN,
     ENGINE_BUFFER_MAX,
-    "Hardware buffer"
+    copy.hardwareBuffer,
+    copy
   );
 
   const canApply =
@@ -135,16 +291,31 @@ export function ConfigPage({
 
   return (
     <main className="grid gap-4 lg:grid-cols-[minmax(0,_700px)_minmax(0,_1fr)]">
-      <section className="rounded-2xl border border-slate-700/70 bg-slate-900/75 p-5">
-        <h2 className="font-display text-lg font-semibold tracking-tight text-slate-100">Audio Engine Configuration</h2>
-        <p className="mt-1 text-sm text-slate-400">
-          Configure audio-rate (`sr`), target control-rate sampling, and runtime buffer sizes. VisualCSound derives
-          `ksmps` from sample rate and control rate.
-        </p>
+      <section className="relative rounded-2xl border border-slate-700/70 bg-slate-900/75 p-5">
+        {onHelpRequest ? (
+          <HelpIconButton guiLanguage={guiLanguage} onClick={() => onHelpRequest("config_audio_engine")} />
+        ) : null}
+        <h2 className="font-display text-lg font-semibold tracking-tight text-slate-100">{copy.audioEngineConfiguration}</h2>
+        <p className="mt-1 text-sm text-slate-400">{copy.audioEngineDescription}</p>
+
+        <label className="mt-5 flex max-w-xs flex-col gap-2">
+          <span className="text-xs uppercase tracking-[0.18em] text-slate-400">{copy.guiLanguage}</span>
+          <select
+            value={guiLanguage}
+            onChange={(event) => onGuiLanguageChange(event.target.value as GuiLanguage)}
+            className="rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 font-body text-sm text-slate-100 outline-none ring-accent/40 transition focus:ring"
+          >
+            {GUI_LANGUAGE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {GUI_LANGUAGE_LABELS[guiLanguage][option.value]}
+              </option>
+            ))}
+          </select>
+        </label>
 
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
           <label className="flex flex-col gap-2">
-            <span className="text-xs uppercase tracking-[0.18em] text-slate-400">Audio Sample Rate (Hz)</span>
+            <span className="text-xs uppercase tracking-[0.18em] text-slate-400">{copy.audioSampleRateHz}</span>
             <input
               type="number"
               inputMode="numeric"
@@ -156,12 +327,12 @@ export function ConfigPage({
               className="rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 font-mono text-sm text-slate-100 outline-none ring-accent/40 transition focus:ring"
             />
             <span className={`text-xs ${audioError ? "text-rose-300" : "text-slate-500"}`}>
-              {audioError ?? `Allowed: ${AUDIO_RATE_MIN} - ${AUDIO_RATE_MAX}`}
+              {audioError ?? copy.allowedRange(AUDIO_RATE_MIN, AUDIO_RATE_MAX)}
             </span>
           </label>
 
           <label className="flex flex-col gap-2">
-            <span className="text-xs uppercase tracking-[0.18em] text-slate-400">Control Sample Rate (Hz)</span>
+            <span className="text-xs uppercase tracking-[0.18em] text-slate-400">{copy.controlSampleRateHz}</span>
             <input
               type="number"
               inputMode="numeric"
@@ -173,12 +344,12 @@ export function ConfigPage({
               className="rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 font-mono text-sm text-slate-100 outline-none ring-accent/40 transition focus:ring"
             />
             <span className={`text-xs ${controlError ? "text-rose-300" : "text-slate-500"}`}>
-              {controlError ?? `Allowed: ${CONTROL_RATE_MIN} - ${CONTROL_RATE_MAX}`}
+              {controlError ?? copy.allowedRange(CONTROL_RATE_MIN, CONTROL_RATE_MAX)}
             </span>
           </label>
 
           <label className="flex flex-col gap-2">
-            <span className="text-xs uppercase tracking-[0.18em] text-slate-400">Software Buffer (`-b`)</span>
+            <span className="text-xs uppercase tracking-[0.18em] text-slate-400">{copy.softwareBuffer}</span>
             <input
               type="number"
               inputMode="numeric"
@@ -190,12 +361,12 @@ export function ConfigPage({
               className="rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 font-mono text-sm text-slate-100 outline-none ring-accent/40 transition focus:ring"
             />
             <span className={`text-xs ${softwareBufferError ? "text-rose-300" : "text-slate-500"}`}>
-              {softwareBufferError ?? `Allowed: ${ENGINE_BUFFER_MIN} - ${ENGINE_BUFFER_MAX}`}
+              {softwareBufferError ?? copy.allowedRange(ENGINE_BUFFER_MIN, ENGINE_BUFFER_MAX)}
             </span>
           </label>
 
           <label className="flex flex-col gap-2">
-            <span className="text-xs uppercase tracking-[0.18em] text-slate-400">Hardware Buffer (`-B`)</span>
+            <span className="text-xs uppercase tracking-[0.18em] text-slate-400">{copy.hardwareBuffer}</span>
             <input
               type="number"
               inputMode="numeric"
@@ -207,7 +378,7 @@ export function ConfigPage({
               className="rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 font-mono text-sm text-slate-100 outline-none ring-accent/40 transition focus:ring"
             />
             <span className={`text-xs ${hardwareBufferError ? "text-rose-300" : "text-slate-500"}`}>
-              {hardwareBufferError ?? `Allowed: ${ENGINE_BUFFER_MIN} - ${ENGINE_BUFFER_MAX}`}
+              {hardwareBufferError ?? copy.allowedRange(ENGINE_BUFFER_MIN, ENGINE_BUFFER_MAX)}
             </span>
           </label>
         </div>
@@ -219,26 +390,29 @@ export function ConfigPage({
             disabled={!canApply}
             className="rounded-lg border border-accent/60 bg-accent/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-accent transition enabled:hover:bg-accent/30 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Apply Configuration
+            {copy.applyConfiguration}
           </button>
           <span className="rounded-full border border-slate-700 bg-slate-950 px-3 py-1 font-mono text-xs text-slate-300">
-            Derived `ksmps`: {previewKsmps}
+            {copy.derivedKsmps}: {previewKsmps}
           </span>
           <span className="rounded-full border border-slate-700 bg-slate-950 px-3 py-1 font-mono text-xs text-slate-300">
-            Actual control rate (`sr/ksmps`): {previewActualControlRate}
+            {copy.actualControlRate}: {previewActualControlRate}
           </span>
         </div>
       </section>
 
-      <aside className="rounded-2xl border border-slate-700/70 bg-slate-900/55 p-5">
-        <h3 className="font-display text-base font-semibold text-slate-100">Current Patch Engine Values</h3>
+      <aside className="relative rounded-2xl border border-slate-700/70 bg-slate-900/55 p-5">
+        {onHelpRequest ? (
+          <HelpIconButton guiLanguage={guiLanguage} onClick={() => onHelpRequest("config_engine_values")} />
+        ) : null}
+        <h3 className="font-display text-base font-semibold text-slate-100">{copy.currentPatchEngineValues}</h3>
         <dl className="mt-4 space-y-2 text-sm text-slate-300">
           <div className="flex items-center justify-between gap-2 rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2">
             <dt>sr</dt>
             <dd className="font-mono">{audioRate}</dd>
           </div>
           <div className="flex items-center justify-between gap-2 rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2">
-            <dt>control_rate (target)</dt>
+            <dt>{copy.controlRateTarget}</dt>
             <dd className="font-mono">{controlRate}</dd>
           </div>
           <div className="flex items-center justify-between gap-2 rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2">
@@ -246,11 +420,11 @@ export function ConfigPage({
             <dd className="font-mono">{ksmps}</dd>
           </div>
           <div className="flex items-center justify-between gap-2 rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2">
-            <dt>software_buffer (-b)</dt>
+            <dt>{copy.softwareBufferMetric}</dt>
             <dd className="font-mono">{softwareBuffer}</dd>
           </div>
           <div className="flex items-center justify-between gap-2 rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2">
-            <dt>hardware_buffer (-B)</dt>
+            <dt>{copy.hardwareBufferMetric}</dt>
             <dd className="font-mono">{hardwareBuffer}</dd>
           </div>
         </dl>

@@ -1,15 +1,40 @@
 import { useMemo, useState } from "react";
 
 import { setDraggedOpcode } from "../lib/opcodeDragDrop";
-import type { OpcodeSpec } from "../types";
+import type { GuiLanguage, OpcodeSpec } from "../types";
 
 interface OpcodeCatalogProps {
+  guiLanguage: GuiLanguage;
   opcodes: OpcodeSpec[];
   onAddOpcode: (opcode: OpcodeSpec) => void;
 }
 
-export function OpcodeCatalog({ opcodes, onAddOpcode }: OpcodeCatalogProps) {
+const OPCODE_CATALOG_COPY: Record<GuiLanguage, { title: string; searchPlaceholder: string; add: string }> = {
+  english: {
+    title: "Opcode Catalog",
+    searchPlaceholder: "Search opcode",
+    add: "Add"
+  },
+  german: {
+    title: "Opcode-Katalog",
+    searchPlaceholder: "Opcode suchen",
+    add: "Add"
+  },
+  french: {
+    title: "Catalogue Opcode",
+    searchPlaceholder: "Rechercher opcode",
+    add: "Ajouter"
+  },
+  spanish: {
+    title: "Catalogo de Opcode",
+    searchPlaceholder: "Buscar opcode",
+    add: "Agregar"
+  }
+};
+
+export function OpcodeCatalog({ guiLanguage, opcodes, onAddOpcode }: OpcodeCatalogProps) {
   const [query, setQuery] = useState("");
+  const copy = OPCODE_CATALOG_COPY[guiLanguage];
   const iconBase =
     (import.meta.env.VITE_BACKEND_BASE as string | undefined) ??
     (typeof window !== "undefined" ? window.location.origin : "http://localhost:8000");
@@ -32,10 +57,10 @@ export function OpcodeCatalog({ opcodes, onAddOpcode }: OpcodeCatalogProps) {
 
   return (
     <aside className="flex h-full min-h-0 flex-col rounded-2xl border border-slate-700/70 bg-slate-900/75 p-3">
-      <h2 className="font-display text-sm uppercase tracking-[0.24em] text-slate-300">Opcode Catalog</h2>
+      <h2 className="font-display text-sm uppercase tracking-[0.24em] text-slate-300">{copy.title}</h2>
       <input
         className="mt-2 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-body text-sm text-slate-100 outline-none ring-accent/40 transition focus:ring"
-        placeholder="Search opcode"
+        placeholder={copy.searchPlaceholder}
         value={query}
         onChange={(event) => setQuery(event.target.value)}
       />
@@ -61,7 +86,7 @@ export function OpcodeCatalog({ opcodes, onAddOpcode }: OpcodeCatalogProps) {
               <div className="truncate font-mono text-xs text-slate-200">{opcode.name}</div>
               <div className="truncate text-[11px] uppercase tracking-[0.16em] text-slate-500">{opcode.category}</div>
             </div>
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-accent opacity-0 transition group-hover:opacity-100">Add</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-accent opacity-0 transition group-hover:opacity-100">{copy.add}</span>
           </button>
         ))}
       </div>

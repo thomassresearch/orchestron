@@ -34,6 +34,10 @@ This application was built using the Codex App with `GPT-5.3-Codex` and **Extra 
 
 ## Quick Start
 
+### Requirements
+
+- Csound must be installed on your system and available in your `PATH`.
+
 ### Use the Makefile
 
 Build the app:

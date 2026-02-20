@@ -2,6 +2,7 @@ import { create } from "zustand";
 
 import { api } from "../api/client";
 import { createUntitledPatch } from "../lib/defaultPatch";
+import { normalizeGuiLanguage } from "../lib/guiLanguage";
 import {
   defaultModeForScaleType,
   normalizeSequencerMode,
@@ -12,6 +13,7 @@ import type {
   AppPage,
   CompileResponse,
   EngineConfig,
+  GuiLanguage,
   MidiInputRef,
   NodeInstance,
   NodePosition,
@@ -56,6 +58,7 @@ interface AppStore {
   hasLoadedBootstrap: boolean;
 
   activePage: AppPage;
+  guiLanguage: GuiLanguage;
 
   opcodes: OpcodeSpec[];
   patches: PatchListItem[];
@@ -81,6 +84,7 @@ interface AppStore {
   events: SessionEvent[];
 
   setActivePage: (page: AppPage) => void;
+  setGuiLanguage: (language: GuiLanguage) => void;
 
   addInstrumentTab: () => void;
   closeInstrumentTab: (tabId: string) => void;
@@ -732,6 +736,7 @@ function buildPersistedAppStateSnapshot(state: AppStore): PersistedAppState {
   return {
     version: APP_STATE_VERSION,
     activePage: normalizeAppPage(state.activePage),
+    guiLanguage: normalizeGuiLanguage(state.guiLanguage),
     instrumentTabs: state.instrumentTabs.map((tab) => ({
       id: tab.id,
       patch: {
@@ -1031,6 +1036,7 @@ export const useAppStore = create<AppStore>((set, get) => {
     hasLoadedBootstrap: false,
 
     activePage: "instrument",
+    guiLanguage: "english",
 
     opcodes: [],
     patches: [],
@@ -1057,6 +1063,10 @@ export const useAppStore = create<AppStore>((set, get) => {
 
     setActivePage: (page) => {
       set({ activePage: page });
+    },
+
+    setGuiLanguage: (language) => {
+      set({ guiLanguage: normalizeGuiLanguage(language) });
     },
 
     addInstrumentTab: () => {
@@ -1147,6 +1157,7 @@ export const useAppStore = create<AppStore>((set, get) => {
         let currentPerformanceId: string | null = null;
         let performanceName = "Untitled Performance";
         let performanceDescription = "";
+        let guiLanguage: GuiLanguage = "english";
 
         const preferredMidi = get().activeMidiInput;
         let activeMidiInput =
@@ -1170,6 +1181,7 @@ export const useAppStore = create<AppStore>((set, get) => {
             }
 
             activePage = normalizeAppPage(payload.activePage);
+            guiLanguage = normalizeGuiLanguage(payload.guiLanguage);
             sequencer = normalizeSequencerState(payload.sequencer);
 
             const availablePatchIds = new Set<string>(patches.map((patch) => patch.id));
@@ -1204,6 +1216,7 @@ export const useAppStore = create<AppStore>((set, get) => {
         const baselineSnapshot: PersistedAppState = {
           version: APP_STATE_VERSION,
           activePage,
+          guiLanguage,
           instrumentTabs: instrumentTabs.map((tab) => ({
             id: tab.id,
             patch: {
@@ -1237,6 +1250,7 @@ export const useAppStore = create<AppStore>((set, get) => {
           midiInputs,
           activeMidiInput,
           activePage,
+          guiLanguage,
           instrumentTabs,
           activeInstrumentTabId,
           currentPatch,

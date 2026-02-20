@@ -3,6 +3,8 @@
 This document stores per-opcode markdown used by the VisualCSound editor.
 The text is rewritten for the VisualCSound node model, based on the official Csound manual.
 
+For the up-to-date original documentation of all opcodes, see [Csound Part Reference](https://csound.com/docs/manual/PartReference.html).
+
 ### `const_a`
 
 **Type:** VisualCSound helper node
