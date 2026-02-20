@@ -28,26 +28,26 @@ const DOCUMENTATION_UI_COPY: Record<GuiLanguage, DocumentationUiCopy> = {
   german: {
     showDocumentation: "Dokumentation anzeigen",
     help: "Hilfe",
-    close: "Schliessen",
-    openCsoundReference: "Csound-Referenz oeffnen",
+    close: "Schließen",
+    openCsoundReference: "Csound-Referenz öffnen",
     opcodeDocumentation: "Opcode-Dokumentation",
-    noOpcodeDocumentation: "Keine Markdown-Dokumentation fuer dieses Opcode verfuegbar."
+    noOpcodeDocumentation: "Keine Markdown-Dokumentation für dieses Opcode verfügbar."
   },
   french: {
     showDocumentation: "Afficher la documentation",
     help: "Aide",
     close: "Fermer",
-    openCsoundReference: "Ouvrir la reference Csound",
+    openCsoundReference: "Ouvrir la référence Csound",
     opcodeDocumentation: "Documentation Opcode",
     noOpcodeDocumentation: "Aucune documentation markdown disponible pour cet opcode."
   },
   spanish: {
-    showDocumentation: "Mostrar documentacion",
+    showDocumentation: "Mostrar documentación",
     help: "Ayuda",
     close: "Cerrar",
     openCsoundReference: "Abrir referencia de Csound",
-    opcodeDocumentation: "Documentacion de Opcode",
-    noOpcodeDocumentation: "No hay documentacion markdown disponible para este opcode."
+    opcodeDocumentation: "Documentación de Opcode",
+    noOpcodeDocumentation: "No hay documentación markdown disponible para este opcode."
   }
 };
 
@@ -81,22 +81,22 @@ Dieser Bereich steuert Patch-Dateien und Hauptaktionen.
 - Aktuellen Graphen in Csound ORC/CSD kompilieren.
 - Kompilierte CSD-Datei exportieren.
 
-Jeder Instrument-Tab behaelt eine eigene bearbeitbare Graph-Kopie.`
+Jeder Instrument-Tab behält eine eigene bearbeitbare Graph-Kopie.`
     },
     french: {
       title: "Barre de patch instrument",
       markdown: `## Barre de patch instrument
 
-Cette zone gere les fichiers de patch et les actions principales.
+Cette zone gère les fichiers de patch et les actions principales.
 
 - Renommer le patch courant et modifier sa description.
 - Charger un patch existant dans l'onglet courant.
-- Creer un nouveau brouillon de patch.
+- Créer un nouveau brouillon de patch.
 - Enregistrer le patch courant sur le backend.
 - Compiler le graphe courant en Csound ORC/CSD.
-- Exporter le fichier CSD compile.
+- Exporter le fichier CSD compilé.
 
-Chaque onglet instrument garde son propre etat de graphe editable.`
+Chaque onglet instrument garde son propre état de graphe éditable.`
     },
     spanish: {
       title: "Barra de patch de instrumento",
@@ -104,14 +104,14 @@ Chaque onglet instrument garde son propre etat de graphe editable.`
 
 Esta zona controla archivos de patch y acciones principales.
 
-- Renombrar el patch actual y editar su descripcion.
-- Cargar un patch existente en la pestana actual.
+- Renombrar el patch actual y editar su descripción.
+- Cargar un patch existente en la pestaña actual.
 - Crear un nuevo borrador de patch.
 - Guardar el patch actual en el backend.
 - Compilar el grafo actual a Csound ORC/CSD.
 - Exportar el archivo CSD compilado.
 
-Cada pestana de instrumento mantiene su propio estado editable del grafo.`
+Cada pestaña de instrumento mantiene su propio estado editable del grafo.`
     }
   },
   instrument_opcode_catalog: {
@@ -131,11 +131,11 @@ The icon and category help identify the signal role of each opcode.`
       title: "Opcode-Katalog",
       markdown: `## Opcode-Katalog
 
-Hier werden Opcodes fuer den Graph Editor gesucht und eingefuegt.
+Hier werden Opcodes für den Graph Editor gesucht und eingefügt.
 
 - Suche nach Opcode-Name, Kategorie, Tags oder Beschreibung.
-- Klick auf ein Opcode fuegt es in den Graphen ein.
-- Drag-and-drop aus dieser Liste in die Graph-Flaeche.
+- Klick auf ein Opcode fügt es in den Graphen ein.
+- Drag-and-drop aus dieser Liste in die Graph-Fläche.
 
 Icon und Kategorie helfen bei der Einordnung der Signalrolle.`
     },
@@ -143,25 +143,25 @@ Icon und Kategorie helfen bei der Einordnung der Signalrolle.`
       title: "Catalogue Opcode",
       markdown: `## Catalogue Opcode
 
-Parcourez et inserez des opcodes dans l'editeur de graphe.
+Parcourez et insérez des opcodes dans l'éditeur de graphe.
 
-- Rechercher par nom, categorie, tags ou description.
+- Rechercher par nom, catégorie, tags ou description.
 - Cliquer sur un opcode pour l'ajouter au graphe.
 - Glisser-deposer des opcodes vers le canevas du graphe.
 
-L'icone et la categorie aident a identifier le role signal.`
+L'icône et la catégorie aident à identifier le rôle du signal.`
     },
     spanish: {
-      title: "Catalogo de Opcode",
-      markdown: `## Catalogo de Opcode
+      title: "Catálogo de Opcode",
+      markdown: `## Catálogo de Opcode
 
 Explora e inserta opcodes en el editor de grafos.
 
-- Busca por nombre, categoria, etiquetas o descripcion.
+- Busca por nombre, categoría, etiquetas o descripción.
 - Haz clic en un opcode para agregarlo al grafo.
 - Arrastra y suelta opcodes de esta lista al lienzo.
 
-El icono y la categoria ayudan a identificar el rol de la senal.`
+El ícono y la categoría ayudan a identificar el rol de la señal.`
     }
   },
   instrument_graph_editor: {
@@ -182,40 +182,40 @@ Compilation order is derived from graph dependencies.`
       title: "Graph Editor",
       markdown: `## Graph Editor
 
-Dies ist der visuelle Patch-Bereich fuer Signalrouting.
+Dies ist der visuelle Patch-Bereich für Signalrouting.
 
 - Kompatible Ports zwischen Nodes verbinden.
 - Parameter direkt auf den Nodes bearbeiten.
-- Nodes oder Kabel auswaehlen, pruefen und loeschen.
-- Die Node-\`?\`-Taste oeffnet die Opcode-Dokumentation.
+- Nodes oder Kabel auswählen, prüfen und löschen.
+- Die Node-\`?\`-Taste öffnet die Opcode-Dokumentation.
 
-Die Kompilierungsreihenfolge folgt den Graph-Abhaengigkeiten.`
+Die Kompilierungsreihenfolge folgt den Graph-Abhängigkeiten.`
     },
     french: {
-      title: "Editeur de graphe",
-      markdown: `## Editeur de graphe
+      title: "Éditeur de graphe",
+      markdown: `## Éditeur de graphe
 
 Zone visuelle de patch pour le routage des signaux.
 
-- Connecter des ports compatibles entre noeuds.
-- Modifier les parametres sur chaque noeud.
-- Selectionner noeuds ou connexions pour inspection/suppression.
-- Le bouton \`?\` d'un noeud ouvre la documentation opcode.
+- Connecter des ports compatibles entre nœuds.
+- Modifier les paramètres sur chaque nœud.
+- Sélectionner nœuds ou connexions pour inspection/suppression.
+- Le bouton \`?\` d'un nœud ouvre la documentation opcode.
 
-L'ordre de compilation suit les dependances du graphe.`
+L'ordre de compilation suit les dépendances du graphe.`
     },
     spanish: {
       title: "Editor de grafos",
       markdown: `## Editor de grafos
 
-Zona visual de patch para enrutar senales.
+Zona visual de patch para enrutar señales.
 
 - Conectar puertos compatibles entre nodos.
-- Editar parametros en cada nodo.
+- Editar parámetros en cada nodo.
 - Seleccionar nodos o conexiones para inspeccionar/eliminar.
-- El boton \`?\` del nodo abre la documentacion del opcode.
+- El botón \`?\` del nodo abre la documentación del opcode.
 
-El orden de compilacion depende de las dependencias del grafo.`
+El orden de compilación depende de las dependencias del grafo.`
     }
   },
   instrument_runtime_panel: {
@@ -235,23 +235,23 @@ Use this panel while testing patches live.`
       title: "Runtime-Panel",
       markdown: `## Runtime-Panel
 
-Ueberwachen und steuern der laufenden Session.
+Überwachen und steuern der laufenden Session.
 
-- Aktiven MIDI-Eingang fuer die Session binden.
-- Generierten ORC-Output nach der Kompilierung pruefen.
+- Aktiven MIDI-Eingang für die Session binden.
+- Generierten ORC-Output nach der Kompilierung prüfen.
 - Letzte Session-Events aus WebSocket-Updates ansehen.
 
-Dieses Panel waehrend Live-Tests verwenden.`
+Dieses Panel während Live-Tests verwenden.`
     },
     french: {
       title: "Panneau Runtime",
       markdown: `## Panneau Runtime
 
-Surveillance et controle de la session runtime.
+Surveillance et contrôle de la session runtime.
 
-- Associer l'entree MIDI active a la session courante.
-- Inspecter la sortie ORC apres compilation.
-- Consulter les evenements recents de session (WebSocket).
+- Associer l'entrée MIDI active à la session courante.
+- Inspecter la sortie ORC après compilation.
+- Consulter les événements récents de session (WebSocket).
 
 Utilisez ce panneau pendant les tests en direct.`
     },
@@ -259,11 +259,11 @@ Utilisez ce panneau pendant les tests en direct.`
       title: "Panel Runtime",
       markdown: `## Panel Runtime
 
-Monitorea y controla el comportamiento de la sesion runtime.
+Monitorea y controla el comportamiento de la sesión runtime.
 
-- Vincula la entrada MIDI activa para la sesion actual.
+- Vincula la entrada MIDI activa para la sesión actual.
 - Revisa la salida ORC generada tras compilar.
-- Consulta eventos recientes de sesion via WebSocket.
+- Consulta eventos recientes de sesión via WebSocket.
 
 Usa este panel durante pruebas en vivo.`
     }
@@ -289,7 +289,7 @@ Verwaltet Instrument-Zuordnungen auf Performance-Ebene.
 
 - Performance-Name und Beschreibung setzen.
 - Performance-Presets laden und speichern.
-- Gespeicherte Patches MIDI-Kanaelen zuweisen.
+- Gespeicherte Patches MIDI-Kanälen zuweisen.
 - Instrument-Engine starten/stoppen.
 - Sequencer-Konfiguration als JSON importieren/exportieren.`
     },
@@ -299,11 +299,11 @@ Verwaltet Instrument-Zuordnungen auf Performance-Ebene.
 
 Gestion des affectations d'instruments au niveau performance.
 
-- Definir nom et description de performance.
+- Définir nom et description de performance.
 - Charger et enregistrer des presets de performance.
-- Affecter des patches sauvegardes a des canaux MIDI.
-- Demarrer/arreter le moteur instrument.
-- Import/export JSON de configuration sequencer.`
+- Affecter des patches sauvegardés à des canaux MIDI.
+- Démarrer/arrêter le moteur instrument.
+- Import/export JSON de configuration séquenceur.`
     },
     spanish: {
       title: "Rack de instrumentos",
@@ -311,11 +311,11 @@ Gestion des affectations d'instruments au niveau performance.
 
 Gestiona asignaciones de instrumentos a nivel de performance.
 
-- Define nombre y descripcion de performance.
+- Define nombre y descripción de performance.
 - Carga y guarda presets de performance.
 - Asigna patches guardados a canales MIDI.
 - Inicia y detiene el motor de instrumentos.
-- Importa/exporta JSON de configuracion del secuenciador.`
+- Importa/exporta JSON de configuración del secuenciador.`
     }
   },
   sequencer_tracks: {
@@ -337,35 +337,35 @@ Program step-based melodic or rhythmic patterns.
 
 Programmiert schrittbasierte melodische oder rhythmische Patterns.
 
-- Sequencer-Spuren hinzufuegen/entfernen.
+- Sequencer-Spuren hinzufügen/entfernen.
 - Kanal, Skala, Modus und Schrittzahl (16/32) setzen.
-- Pattern-Pads (P1..P8) fuer geplante Pattern-Wechsel nutzen.
+- Pattern-Pads (P1..P8) für geplante Pattern-Wechsel nutzen.
 - Pro Schritt Noten oder Pausen setzen.
 - Globales BPM und Laufstatus steuern.`
     },
     french: {
-      title: "Pistes sequencer",
-      markdown: `## Pistes sequencer
+      title: "Pistes séquenceur",
+      markdown: `## Pistes séquenceur
 
-Programme des patterns melodiques ou rythmiques par pas.
+Programme des patterns mélodiques ou rythmiques par pas.
 
-- Ajouter/supprimer des pistes sequencer.
-- Regler canal, gamme, mode et nombre de pas (16/32).
+- Ajouter/supprimer des pistes séquenceur.
+- Régler canal, gamme, mode et nombre de pas (16/32).
 - Utiliser les pads P1..P8 pour changements de pattern.
-- Definir note ou silence par pas.
-- Controler BPM global et etat de lecture.`
+- Définir note ou silence par pas.
+- Contrôler BPM global et état de lecture.`
     },
     spanish: {
       title: "Pistas del secuenciador",
       markdown: `## Pistas del secuenciador
 
-Programa patrones melodicos o ritmicos por pasos.
+Programa patrones melódicos o rítmicos por pasos.
 
 - Agrega/elimina pistas del secuenciador.
 - Ajusta canal, escala, modo y cantidad de pasos (16/32).
-- Usa pads P1..P8 para cambios de patron en cola.
+- Usa pads P1..P8 para cambios de patrón en cola.
 - Define nota o silencio por paso.
-- Controla BPM global y estado de reproduccion.`
+- Controla BPM global y estado de reproducción.`
     }
   },
   sequencer_piano_rolls: {
@@ -386,10 +386,10 @@ Play notes manually with scale-aware keyboard highlights.
 
 Noten manuell spielen mit skalenbezogener Tastatur-Hervorhebung.
 
-- Piano-Roll-Controller hinzufuegen/entfernen.
+- Piano-Roll-Controller hinzufügen/entfernen.
 - MIDI-Kanal, Grundton/Skala und Modus setzen.
 - Jede Piano Roll separat starten/stoppen.
-- Noten per Pointer auf der Tastatur ausloesen.`
+- Noten per Pointer auf der Tastatur auslösen.`
     },
     french: {
       title: "Piano Rolls",
@@ -397,21 +397,21 @@ Noten manuell spielen mit skalenbezogener Tastatur-Hervorhebung.
 
 Jouez des notes manuellement avec surbrillance selon la gamme.
 
-- Ajouter/supprimer des controleurs piano roll.
-- Definir canal MIDI, tonique/type de gamme et mode.
-- Demarrer/arreter chaque piano roll independamment.
-- Declencher des notes par interaction pointeur clavier.`
+- Ajouter/supprimer des contrôleurs piano roll.
+- Définir canal MIDI, tonique/type de gamme et mode.
+- Démarrer/arrêter chaque piano roll indépendamment.
+- Déclencher des notes par interaction pointeur clavier.`
     },
     spanish: {
       title: "Piano Rolls",
       markdown: `## Piano Rolls
 
-Toca notas manualmente con resaltado segun la escala.
+Toca notas manualmente con resaltado según la escala.
 
 - Agrega/elimina controladores piano roll.
-- Ajusta canal MIDI, raiz/tipo de escala y modo.
+- Ajusta canal MIDI, raíz/tipo de escala y modo.
 - Inicia/detiene cada piano roll de forma independiente.
-- Dispara notas con interaccion de puntero en el teclado.`
+- Dispara notas con interacción de puntero en el teclado.`
     }
   },
   sequencer_midi_controllers: {
@@ -432,30 +432,30 @@ Send MIDI CC messages from the sequencer page.
 
 Sendet MIDI-CC-Nachrichten von der Sequencer-Seite.
 
-- Bis zu 16 Controller-Spuren hinzufuegen.
+- Bis zu 16 Controller-Spuren hinzufügen.
 - Controller-Nummer (\`0..127\`) festlegen.
 - Controller-Wert mit dem Drehregler einstellen.
 - Jede Controller-Spur separat starten/stoppen.`
     },
     french: {
-      title: "Controleurs MIDI",
-      markdown: `## Controleurs MIDI
+      title: "Contrôleurs MIDI",
+      markdown: `## Contrôleurs MIDI
 
-Envoi de messages MIDI CC depuis la page sequencer.
+Envoi de messages MIDI CC depuis la page séquenceur.
 
-- Ajouter jusqu'a 16 pistes de controleur.
-- Definir le numero de controleur (\`0..127\`).
-- Ajuster la valeur avec le potentiometre.
-- Demarrer/arreter chaque piste independamment.`
+- Ajouter jusqu'à 16 pistes de contrôleur.
+- Définir le numéro de contrôleur (\`0..127\`).
+- Ajuster la valeur avec le potentiomètre.
+- Démarrer/arrêter chaque piste indépendamment.`
     },
     spanish: {
       title: "Controladores MIDI",
       markdown: `## Controladores MIDI
 
-Envia mensajes MIDI CC desde la pagina del secuenciador.
+Envía mensajes MIDI CC desde la página del secuenciador.
 
 - Agrega hasta 16 pistas de control.
-- Define numero de controlador (\`0..127\`).
+- Define número de controlador (\`0..127\`).
 - Ajusta el valor con la perilla.
 - Inicia/detiene cada pista de forma independiente.`
     }
@@ -478,12 +478,12 @@ The GUI language setting controls integrated help and opcode docs language.`
       title: "Audio Engine Konfiguration",
       markdown: `## Audio Engine Konfiguration
 
-Konfiguriert Timing und Buffer der Csound-Engine fuer den aktiven Patch.
+Konfiguriert Timing und Buffer der Csound-Engine für den aktiven Patch.
 
 - \`sr\`: Audio-Sample-Rate.
 - Ziel-Control-Rate: daraus wird \`ksmps\` abgeleitet.
 - Software-Buffer (\`-b\`) und Hardware-Buffer (\`-B\`).
-- Gueltige Werte auf den aktuellen Patch anwenden.
+- Gültige Werte auf den aktuellen Patch anwenden.
 
 Die GUI-Sprache steuert integrierte Hilfe und Opcode-Dokumentation.`
     },
@@ -493,16 +493,16 @@ Die GUI-Sprache steuert integrierte Hilfe und Opcode-Dokumentation.`
 
 Configure le timing et les buffers Csound pour le patch actif.
 
-- \`sr\` : frequence d'echantillonnage audio.
-- frequence de controle cible : derive \`ksmps\`.
-- buffer logiciel (\`-b\`) et buffer materiel (\`-B\`).
-- appliquer les valeurs validees au patch courant.
+- \`sr\` : fréquence d'échantillonnage audio.
+- fréquence de contrôle cible : dérive \`ksmps\`.
+- buffer logiciel (\`-b\`) et buffer matériel (\`-B\`).
+- appliquer les valeurs validées au patch courant.
 
-La langue GUI controle l'aide integree et la doc opcode.`
+La langue GUI contrôle l'aide intégrée et la doc opcode.`
     },
     spanish: {
-      title: "Configuracion del motor de audio",
-      markdown: `## Configuracion del motor de audio
+      title: "Configuración del motor de audio",
+      markdown: `## Configuración del motor de audio
 
 Configura tiempos y buffers de Csound para el patch activo.
 
@@ -541,13 +541,13 @@ Nur-Lese Ansicht der normalisierten Engine-Werte im Patch:
 - \`software_buffer\`
 - \`hardware_buffer\`
 
-Dieses Panel zeigt die Werte fuer Compile/Start.`
+Dieses Panel zeigt die Werte für Compile/Start.`
     },
     french: {
       title: "Valeurs moteur du patch courant",
       markdown: `## Valeurs moteur du patch courant
 
-Vue en lecture seule des valeurs moteur normalisees stockees dans le patch :
+Vue en lecture seule des valeurs moteur normalisées stockées dans le patch :
 
 - \`sr\`
 - \`control_rate\`
@@ -555,7 +555,7 @@ Vue en lecture seule des valeurs moteur normalisees stockees dans le patch :
 - \`software_buffer\`
 - \`hardware_buffer\`
 
-Ce panneau confirme les valeurs utilisees en compile/start.`
+Ce panneau confirme les valeurs utilisées en compile/start.`
     },
     spanish: {
       title: "Valores del motor en el patch actual",
@@ -591,46 +591,46 @@ const HELP_DOC_COMMON_APPENDIX: Record<GuiLanguage, string> = {
 | ORC / events view | Runtime diagnostics and feedback |`,
   german: `### Praktische Hinweise
 
-- Die \`?\`-Taste oben rechts oeffnet immer kontextbezogene Hilfe fuer den aktuellen UI-Bereich.
-- Aenderungen mit Einfluss auf die Runtime sollten vor Live-Tests gespeichert werden.
-- Fuer Opcode-Details die \`?\`-Taste direkt am Opcode-Node im Graph Editor verwenden.
+- Die \`?\`-Taste oben rechts öffnet immer kontextbezogene Hilfe für den aktuellen UI-Bereich.
+- Änderungen mit Einfluss auf die Runtime sollten vor Live-Tests gespeichert werden.
+- Für Opcode-Details die \`?\`-Taste direkt am Opcode-Node im Graph Editor verwenden.
 
 ### UI-Konventionen
 
 | Element | Bedeutung |
 | --- | --- |
-| \`?\`-Symbol | Integrierte Markdown-Dokumentation oeffnen |
+| \`?\`-Symbol | Integrierte Markdown-Dokumentation öffnen |
 | runde Statusanzeige | Aktueller Runtime/Transport-Status |
 | roter Aktionsknopf | Entfernen oder destruktive Aktion |
-| ORC-/Event-Ansicht | Runtime-Diagnose und Rueckmeldung |`,
+| ORC-/Event-Ansicht | Runtime-Diagnose und Rückmeldung |`,
   french: `### Notes pratiques
 
-- Le bouton \`?\` en haut a droite ouvre toujours l'aide contextuelle de la zone UI courante.
-- Les changements qui impactent la runtime doivent etre sauvegardes avant test live.
-- Pour les details opcode, utilisez le bouton \`?\` directement sur un noeud opcode du graphe.
+- Le bouton \`?\` en haut à droite ouvre toujours l'aide contextuelle de la zone UI courante.
+- Les changements qui impactent la runtime doivent être sauvegardés avant test live.
+- Pour les détails opcode, utilisez le bouton \`?\` directement sur un nœud opcode du graphe.
 
 ### Conventions UI
 
 | Element | Signification |
 | --- | --- |
-| icone \`?\` | Ouvrir la documentation markdown integree |
-| badge d'etat arrondi | Etat runtime/transport courant |
+| icône \`?\` | Ouvrir la documentation markdown intégrée |
+| badge d'état arrondi | État runtime/transport courant |
 | bouton rouge | Action de suppression/destructive |
-| vue ORC / evenements | Diagnostic runtime et retour systeme |`,
-  spanish: `### Notas practicas
+| vue ORC / événements | Diagnostic runtime et retour système |`,
+  spanish: `### Notas prácticas
 
-- El boton \`?\` arriba a la derecha siempre abre ayuda contextual para el area UI actual.
+- El botón \`?\` arriba a la derecha siempre abre ayuda contextual para el área UI actual.
 - Los cambios que afectan runtime deben guardarse antes de probar en vivo.
-- Para detalles de opcode, usa el boton \`?\` directamente en el nodo opcode del editor de grafos.
+- Para detalles de opcode, usa el botón \`?\` directamente en el nodo opcode del editor de grafos.
 
 ### Convenciones de UI
 
 | Elemento | Significado |
 | --- | --- |
-| icono \`?\` | Abrir documentacion markdown integrada |
+| ícono \`?\` | Abrir documentación markdown integrada |
 | insignia redondeada de estado | Estado actual de runtime/transporte |
-| boton rojo | Accion destructiva o de eliminacion |
-| vista ORC / eventos | Diagnostico y feedback de runtime |`
+| botón rojo | Acción destructiva o de eliminación |
+| vista ORC / eventos | Diagnóstico y feedback de runtime |`
 };
 
 const HELP_DOC_SPECIFIC_APPENDIX: Partial<Record<HelpDocId, Record<GuiLanguage, string>>> = {
@@ -654,9 +654,9 @@ If multiple signals are connected to the **same input** of an opcode:
 
 Wenn mehrere Signale mit **demselben Eingang** eines Opcodes verbunden sind:
 
-1. Den Opcode-Node auswaehlen.
+1. Den Opcode-Node auswählen.
 2. Den Eingangs-Connector dieses Eingangs doppelklicken.
-3. Der **Input Formula Assistant** wird geoeffnet.
+3. Der **Input Formula Assistant** wird geöffnet.
 4. Definieren, wie Signale kombiniert werden (z.B. \`in1 + in2\` oder \`in1 * 0.6 + in2 * 0.4\`).
 5. Formel speichern.
 
@@ -664,37 +664,37 @@ Wenn mehrere Signale mit **demselben Eingang** eines Opcodes verbunden sind:
 | --- | --- |
 | \`in1\`, \`in2\`, ... | Verbundene Eingangssignale |
 | \`+\`, \`-\`, \`*\`, \`/\` | Arithmetische Operatoren |
-| \`(\`, \`)\` | Gruppierung / Prioritaet |`,
-    french: `### Combiner plusieurs signaux sur la meme entree
+| \`(\`, \`)\` | Gruppierung / Priorität |`,
+    french: `### Combiner plusieurs signaux sur la même entrée
 
-Si plusieurs signaux sont connectes a **la meme entree** d'un opcode :
+Si plusieurs signaux sont connectés à **la même entrée** d'un opcode :
 
-1. Selectionnez le noeud opcode.
-2. Double-cliquez le connecteur d'entree cible.
+1. Sélectionnez le nœud opcode.
+2. Double-cliquez le connecteur d'entrée cible.
 3. L'**Input Formula Assistant** s'ouvre.
-4. Definissez la formule de combinaison (ex. \`in1 + in2\` ou \`in1 * 0.6 + in2 * 0.4\`).
+4. Définissez la formule de combinaison (ex. \`in1 + in2\` ou \`in1 * 0.6 + in2 * 0.4\`).
 5. Enregistrez la formule.
 
 | Token | Signification |
 | --- | --- |
-| \`in1\`, \`in2\`, ... | Signaux entrants connectes |
-| \`+\`, \`-\`, \`*\`, \`/\` | Operateurs arithmetiques |
-| \`(\`, \`)\` | Groupement / priorite |`,
-    spanish: `### Combinar multiples senales en la misma entrada
+| \`in1\`, \`in2\`, ... | Signaux entrants connectés |
+| \`+\`, \`-\`, \`*\`, \`/\` | Opérateurs arithmétiques |
+| \`(\`, \`)\` | Groupement / priorité |`,
+    spanish: `### Combinar múltiples señales en la misma entrada
 
-Si multiples senales estan conectadas a **la misma entrada** de un opcode:
+Si múltiples señales están conectadas a **la misma entrada** de un opcode:
 
 1. Selecciona el nodo opcode.
 2. Haz doble clic en el conector de esa entrada.
 3. Se abre el **Input Formula Assistant**.
-4. Define la formula de combinacion (por ejemplo \`in1 + in2\` o \`in1 * 0.6 + in2 * 0.4\`).
-5. Guarda la formula.
+4. Define la fórmula de combinación (por ejemplo \`in1 + in2\` o \`in1 * 0.6 + in2 * 0.4\`).
+5. Guarda la fórmula.
 
 | Token | Significado |
 | --- | --- |
-| \`in1\`, \`in2\`, ... | Senales entrantes conectadas |
-| \`+\`, \`-\`, \`*\`, \`/\` | Operadores aritmeticos |
-| \`(\`, \`)\` | Agrupacion / precedencia |`
+| \`in1\`, \`in2\`, ... | Señales entrantes conectadas |
+| \`+\`, \`-\`, \`*\`, \`/\` | Operadores aritméticos |
+| \`(\`, \`)\` | Agrupación / precedencia |`
   }
 };
 
@@ -737,8 +737,8 @@ const LOCALIZED_OPCODE_COPY: Record<GuiLanguage, LocalizedOpcodeCopy> = {
     category: "Kategorie",
     syntax: "VisualCSound Syntax",
     tags: "Tags",
-    inputs: "Eingaenge",
-    outputs: "Ausgaenge",
+    inputs: "Eingänge",
+    outputs: "Ausgänge",
     noInputs: "keine",
     noOutputs: "keine (Sink-Opcode)",
     reference: "Referenz",
@@ -746,27 +746,27 @@ const LOCALIZED_OPCODE_COPY: Record<GuiLanguage, LocalizedOpcodeCopy> = {
     defaultValue: "default",
     accepts: "akzeptiert",
     originalDescriptionNote: "_Hinweis: Die Original-Beschreibung bleibt auf Englisch._",
-    opcodeNameNotice: "_Opcode-Namen werden nicht uebersetzt._"
+    opcodeNameNotice: "_Opcode-Namen werden nicht übersetzt._"
   },
   french: {
     description: "Description",
-    category: "Categorie",
+    category: "Catégorie",
     syntax: "Syntaxe VisualCSound",
     tags: "Tags",
-    inputs: "Entrees",
+    inputs: "Entrées",
     outputs: "Sorties",
     noInputs: "aucune",
     noOutputs: "aucune (opcode sink)",
-    reference: "Reference",
+    reference: "Référence",
     optional: "optionnel",
-    defaultValue: "defaut",
+    defaultValue: "défaut",
     accepts: "accepte",
     originalDescriptionNote: "_Note : la description originale reste en anglais._",
     opcodeNameNotice: "_Les noms d'opcode ne sont pas traduits._"
   },
   spanish: {
-    description: "Descripcion",
-    category: "Categoria",
+    description: "Descripción",
+    category: "Categoría",
     syntax: "Sintaxis VisualCSound",
     tags: "Etiquetas",
     inputs: "Entradas",
@@ -777,7 +777,7 @@ const LOCALIZED_OPCODE_COPY: Record<GuiLanguage, LocalizedOpcodeCopy> = {
     optional: "opcional",
     defaultValue: "por defecto",
     accepts: "acepta",
-    originalDescriptionNote: "_Nota: la descripcion original se mantiene en ingles._",
+    originalDescriptionNote: "_Nota: la descripción original se mantiene en inglés._",
     opcodeNameNotice: "_Los nombres de opcode no se traducen._"
   }
 };
@@ -792,16 +792,16 @@ const SIGNAL_TYPE_LABELS: Record<GuiLanguage, Record<SignalType, string>> = {
   },
   german: {
     a: "audio-rate",
-    k: "kontroll-rate",
+    k: "Kontrollrate",
     i: "init-rate",
     S: "string-rate",
-    f: "funktions-tabellen-rate"
+    f: "Funktions-Tabellen-Rate"
   },
   french: {
     a: "taux audio",
-    k: "taux controle",
+    k: "taux contrôle",
     i: "taux init",
-    S: "taux chaine",
+    S: "taux chaîne",
     f: "taux table de fonction"
   },
   spanish: {
@@ -809,7 +809,7 @@ const SIGNAL_TYPE_LABELS: Record<GuiLanguage, Record<SignalType, string>> = {
     k: "tasa de control",
     i: "tasa init",
     S: "tasa de cadena",
-    f: "tasa de tabla de funcion"
+    f: "tasa de tabla de función"
   }
 };
 
