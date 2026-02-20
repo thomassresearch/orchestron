@@ -38,7 +38,7 @@ This application was built using the Codex App with `GPT-5.3-Codex` and **Extra 
 
 Build the app:
 
-````bash
+```bash
 make
 make run
 ```
