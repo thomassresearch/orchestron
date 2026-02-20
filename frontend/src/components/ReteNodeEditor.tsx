@@ -1441,37 +1441,39 @@ export function ReteNodeEditor({
             </svg>
           </button>
         ) : null}
-        <div className="absolute bottom-3 right-3 z-10 inline-flex items-center overflow-hidden rounded-lg border border-slate-700/90 bg-slate-950/95 text-xs text-slate-200 shadow-lg shadow-black/40">
-          <button
-            type="button"
-            onClick={() => zoomByFactor(0.9)}
-            className="h-7 w-7 border-r border-slate-700/80 transition hover:bg-slate-800"
-            aria-label={copy.zoomOut}
-            title={copy.zoomOut}
-          >
-            -
-          </button>
-          <button
-            type="button"
-            onClick={() => zoomByFactor(1.1)}
-            className="h-7 w-7 border-r border-slate-700/80 transition hover:bg-slate-800"
-            aria-label={copy.zoomIn}
-            title={copy.zoomIn}
-          >
-            +
-          </button>
-          <button
-            type="button"
-            onClick={fitGraphInView}
-            className="h-7 px-2 font-semibold uppercase tracking-[0.12em] transition hover:bg-slate-800"
-            aria-label={copy.fitFullGraphInView}
-            title={copy.fitFullGraphInView}
-          >
-            {copy.fit}
-          </button>
-        </div>
-        <div className="pointer-events-none absolute bottom-3 right-[124px] z-10 rounded-md border border-slate-700/90 bg-slate-950/90 px-2 py-1 font-mono text-[10px] text-slate-300">
-          {zoomPercent}%
+        <div className="absolute bottom-3 right-3 z-10 inline-flex items-center gap-2">
+          <div className="pointer-events-none rounded-md border border-slate-700/90 bg-slate-950/90 px-2 py-1 font-mono text-[10px] text-slate-300">
+            {zoomPercent}%
+          </div>
+          <div className="inline-flex items-center overflow-hidden rounded-lg border border-slate-700/90 bg-slate-950/95 text-xs text-slate-200 shadow-lg shadow-black/40">
+            <button
+              type="button"
+              onClick={() => zoomByFactor(0.9)}
+              className="h-7 w-7 border-r border-slate-700/80 transition hover:bg-slate-800"
+              aria-label={copy.zoomOut}
+              title={copy.zoomOut}
+            >
+              -
+            </button>
+            <button
+              type="button"
+              onClick={() => zoomByFactor(1.1)}
+              className="h-7 w-7 border-r border-slate-700/80 transition hover:bg-slate-800"
+              aria-label={copy.zoomIn}
+              title={copy.zoomIn}
+            >
+              +
+            </button>
+            <button
+              type="button"
+              onClick={fitGraphInView}
+              className="h-7 px-2 font-semibold uppercase tracking-[0.12em] transition hover:bg-slate-800"
+              aria-label={copy.fitFullGraphInView}
+              title={copy.fitFullGraphInView}
+            >
+              {copy.fit}
+            </button>
+          </div>
         </div>
       </div>
 
