@@ -10,6 +10,28 @@ Orchestron is a visual instrument workshop built on the power of Csound — not 
 - Backend: FastAPI + CSound Python integration
 - Frontend: React + TypeScript + Tailwind + Rete.js
 
+## Built With Codex
+
+This application was built using the Codex App with `GPT-5.3-Codex` and **Extra High** reasoning effort.
+
+## Screenshots
+
+### Instrument Design
+
+![Instrument Design](screenshots/instrument_design.png)
+
+### Perform
+
+![Perform](screenshots/perform.png)
+
+### Config
+
+![Config](screenshots/config.png)
+
+### FastAPI Backend
+
+![FastAPI Backend](screenshots/fastapi_backend.png)
+
 ## Quick Start
 
 ### Backend
