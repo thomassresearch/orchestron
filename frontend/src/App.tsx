@@ -1064,20 +1064,17 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[radial-gradient(ellipse_at_top_left,_#1e293b,_#020617_60%)] px-4 py-4 text-slate-100 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-[1700px] space-y-3">
-        <header className="flex items-center justify-between gap-3 rounded-2xl border-x border-b border-slate-700/70 bg-slate-900/65 px-4 py-1">
+        <header className="flex items-center gap-3 rounded-2xl border-x border-y border-slate-700/70 bg-slate-900/65 px-4 py-0">
           <div className="flex flex-1 items-center gap-3">
             <img
               src={orchestronIcon}
               alt={appCopy.appIconAlt}
-              className="h-40 w-40 shrink-0 object-contain"
+              className="h-40 w-40 shrink-0 object-contain -my-8"
             />
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-left">
               <h1 className="font-display text-2xl font-semibold tracking-tight text-slate-100">{appCopy.appTitle}</h1>
               <p className="text-sm text-slate-400">{appCopy.appDescription}</p>
             </div>
-          </div>
-          <div className="rounded-full border border-slate-700 bg-slate-950 px-3 py-1 text-xs uppercase tracking-[0.2em] text-slate-400">
-            FastAPI + Rete.js
           </div>
         </header>
 
