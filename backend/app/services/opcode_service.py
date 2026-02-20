@@ -92,7 +92,7 @@ class OpcodeService:
 
     @staticmethod
     def _load_opcode_documentation() -> dict[str, str]:
-        docs_path = Path(__file__).resolve().parents[3] / "CSOUND_OPCODES.md"
+        docs_path = Path(__file__).resolve().parents[3] / "ADD_OPCODES.md"
         if not docs_path.exists():
             return {}
 

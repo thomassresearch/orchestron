@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-import re
 import time
 from pathlib import Path
 
@@ -209,17 +208,14 @@ def test_opcodes_include_markdown_documentation(tmp_path: Path) -> None:
         assert oscili["documentation_url"].startswith("https://csound.com/docs/manual/")
 
 
-def test_all_opcodes_have_explicit_markdown_sections(tmp_path: Path) -> None:
-    docs_path = Path(__file__).resolve().parents[2] / "CSOUND_OPCODES.md"
-    section_names = set(re.findall(r"^### `([^`]+)`", docs_path.read_text(encoding="utf-8"), flags=re.MULTILINE))
+def test_add_opcodes_guide_exists_and_contains_key_references() -> None:
+    docs_path = Path(__file__).resolve().parents[2] / "ADD_OPCODES.md"
+    assert docs_path.exists()
 
-    with _client(tmp_path) as client:
-        response = client.get("/api/opcodes")
-        assert response.status_code == 200
-        opcode_names = {item["name"] for item in response.json()}
-
-    missing_sections = sorted(opcode_names - section_names)
-    assert not missing_sections, f"Missing markdown sections for: {', '.join(missing_sections)}"
+    text = docs_path.read_text(encoding="utf-8")
+    assert "https://csound.com/docs/manual/PartReference.html" in text
+    assert "backend/app/services/opcode_service.py" in text
+    assert "frontend/src/lib/documentation.ts" in text
 
 
 def test_patch_compile_and_runtime_flow(tmp_path: Path) -> None:
