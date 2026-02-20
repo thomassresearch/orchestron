@@ -226,6 +226,14 @@ class SessionService:
                     [0x80 + channel, request.note, 0],
                 )
                 detail = f"note_off sent via {output_name}"
+            elif request.type == "control_change":
+                assert request.controller is not None
+                assert request.value is not None
+                output_name = self._midi_service.send_message(
+                    midi_input_selector,
+                    [0xB0 + channel, request.controller, request.value],
+                )
+                detail = f"control_change sent via {output_name}"
             else:
                 output_name = self._midi_service.send_message(midi_input_selector, [0xB0 + channel, 123, 0])
                 self._midi_service.send_message(midi_input_selector, [0xB0 + channel, 120, 0])
@@ -244,6 +252,9 @@ class SessionService:
             payload["note"] = request.note
         if request.type == "note_on":
             payload["velocity"] = request.velocity
+        if request.type == "control_change":
+            payload["controller"] = request.controller
+            payload["value"] = request.value
 
         await self._publish(runtime.session_id, "midi_event", payload)
 

@@ -10,7 +10,14 @@ import { RuntimePanel } from "./components/RuntimePanel";
 import { SequencerPage } from "./components/SequencerPage";
 import { resolveMidiInputName } from "./lib/sequencer";
 import { useAppStore } from "./store/useAppStore";
-import type { Connection, PatchGraph, SessionSequencerConfigRequest, SessionSequencerStatus } from "./types";
+import orchestronIcon from "./assets/orchestron-icon.png";
+import type {
+  Connection,
+  PatchGraph,
+  SessionMidiEventRequest,
+  SessionSequencerConfigRequest,
+  SessionSequencerStatus
+} from "./types";
 
 function connectionKey(connection: Connection): string {
   return `${connection.from_node_id}|${connection.from_port_id}|${connection.to_node_id}|${connection.to_port_id}`;
@@ -27,7 +34,7 @@ function sanitizeCsdFileBaseName(value: string): string {
     .replace(/[^a-zA-Z0-9._-]+/g, "_")
     .replace(/^_+|_+$/g, "");
 
-  return normalized.length > 0 ? normalized : "visualcsound_instrument";
+  return normalized.length > 0 ? normalized : "orchestron_instrument";
 }
 
 function transportStepCountFromTracks(stepCounts: Array<{ stepCount: 16 | 32 }>): 16 | 32 {
@@ -102,6 +109,11 @@ export default function App() {
   const setPianoRollMidiChannel = useAppStore((state) => state.setPianoRollMidiChannel);
   const setPianoRollScale = useAppStore((state) => state.setPianoRollScale);
   const setPianoRollMode = useAppStore((state) => state.setPianoRollMode);
+  const addMidiController = useAppStore((state) => state.addMidiController);
+  const removeMidiController = useAppStore((state) => state.removeMidiController);
+  const setMidiControllerEnabled = useAppStore((state) => state.setMidiControllerEnabled);
+  const setMidiControllerNumber = useAppStore((state) => state.setMidiControllerNumber);
+  const setMidiControllerValue = useAppStore((state) => state.setMidiControllerValue);
   const setSequencerTrackStepCount = useAppStore((state) => state.setSequencerTrackStepCount);
   const syncSequencerRuntime = useAppStore((state) => state.syncSequencerRuntime);
   const setSequencerPlayhead = useAppStore((state) => state.setSequencerPlayhead);
@@ -176,6 +188,7 @@ export default function App() {
   const sequencerPollInFlightRef = useRef(false);
   const sequencerConfigSyncPendingRef = useRef(false);
   const pianoRollNoteSessionRef = useRef(new Map<string, string>());
+  const midiControllerInitSessionRef = useRef<string | null>(null);
 
   useEffect(() => {
     sequencerRef.current = sequencer;
@@ -216,10 +229,7 @@ export default function App() {
   }, [activeInstrumentTabId, currentPatch.id]);
 
   const sendDirectMidiEvent = useCallback(
-    async (
-      payload: { type: "note_on" | "note_off" | "all_notes_off"; channel: number; note?: number; velocity?: number },
-      sessionIdOverride?: string
-    ) => {
+    async (payload: SessionMidiEventRequest, sessionIdOverride?: string) => {
       const sessionId = sessionIdOverride ?? activeSessionId;
       if (!sessionId) {
         throw new Error("No active runtime session available.");
@@ -463,6 +473,77 @@ export default function App() {
     [activeSessionState, sendAllNotesOff, setPianoRollEnabled]
   );
 
+  const sendMidiControllerValue = useCallback(
+    (controllerNumber: number, value: number, sessionIdOverride?: string) =>
+      sendDirectMidiEvent(
+        {
+          type: "control_change",
+          channel: 1,
+          controller: Math.max(0, Math.min(127, Math.round(controllerNumber))),
+          value: Math.max(0, Math.min(127, Math.round(value)))
+        },
+        sessionIdOverride
+      ),
+    [sendDirectMidiEvent]
+  );
+
+  const onMidiControllerEnabledChange = useCallback(
+    (controllerId: string, enabled: boolean) => {
+      setMidiControllerEnabled(controllerId, enabled);
+      if (!enabled || activeSessionState !== "running" || !activeSessionId) {
+        return;
+      }
+
+      const controller = sequencerRef.current.midiControllers.find((entry) => entry.id === controllerId);
+      if (!controller) {
+        return;
+      }
+
+      void sendMidiControllerValue(controller.controllerNumber, controller.value, activeSessionId).catch((error) => {
+        setSequencerError(error instanceof Error ? error.message : "Failed to send MIDI controller value.");
+      });
+    },
+    [activeSessionId, activeSessionState, sendMidiControllerValue, setMidiControllerEnabled]
+  );
+
+  const onMidiControllerNumberChange = useCallback(
+    (controllerId: string, controllerNumber: number) => {
+      setMidiControllerNumber(controllerId, controllerNumber);
+      if (activeSessionState !== "running" || !activeSessionId) {
+        return;
+      }
+
+      const controller = sequencerRef.current.midiControllers.find((entry) => entry.id === controllerId);
+      if (!controller || !controller.enabled) {
+        return;
+      }
+
+      void sendMidiControllerValue(controllerNumber, controller.value, activeSessionId).catch((error) => {
+        setSequencerError(error instanceof Error ? error.message : "Failed to send MIDI controller value.");
+      });
+    },
+    [activeSessionId, activeSessionState, sendMidiControllerValue, setMidiControllerNumber]
+  );
+
+  const onMidiControllerValueChange = useCallback(
+    (controllerId: string, value: number) => {
+      setMidiControllerValue(controllerId, value);
+      if (activeSessionState !== "running" || !activeSessionId) {
+        return;
+      }
+
+      const controller = sequencerRef.current.midiControllers.find((entry) => entry.id === controllerId);
+      if (!controller || !controller.enabled) {
+        return;
+      }
+
+      void sendMidiControllerValue(controller.controllerNumber, value, activeSessionId).catch((error) => {
+        setSequencerError(error instanceof Error ? error.message : "Failed to send MIDI controller value.");
+      });
+    },
+    [activeSessionId, activeSessionState, sendMidiControllerValue, setMidiControllerValue]
+  );
+
   const onExportSequencerConfig = useCallback(() => {
     try {
       const snapshot = buildSequencerConfigSnapshot();
@@ -471,7 +552,7 @@ export default function App() {
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = `visualcsound-sequencer-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
+      anchor.download = `orchestron-sequencer-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
       document.body.appendChild(anchor);
       anchor.click();
       document.body.removeChild(anchor);
@@ -497,6 +578,30 @@ export default function App() {
     },
     [applySequencerConfigSnapshot]
   );
+
+  useEffect(() => {
+    if (activeSessionState !== "running" || !activeSessionId) {
+      midiControllerInitSessionRef.current = null;
+      return;
+    }
+    if (midiControllerInitSessionRef.current === activeSessionId) {
+      return;
+    }
+
+    midiControllerInitSessionRef.current = activeSessionId;
+    const startedControllers = sequencerRef.current.midiControllers.filter((controller) => controller.enabled);
+    if (startedControllers.length === 0) {
+      return;
+    }
+
+    void Promise.all(
+      startedControllers.map((controller) =>
+        sendMidiControllerValue(controller.controllerNumber, controller.value, activeSessionId)
+      )
+    ).catch((error) => {
+      setSequencerError(error instanceof Error ? error.message : "Failed to initialize MIDI controllers.");
+    });
+  }, [activeSessionId, activeSessionState, sendMidiControllerValue]);
 
   useEffect(() => {
     if (!sequencer.isPlaying) {
@@ -667,12 +772,19 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[radial-gradient(ellipse_at_top_left,_#1e293b,_#020617_60%)] px-4 py-4 text-slate-100 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-[1700px] space-y-3">
-        <header className="flex items-end justify-between gap-4 rounded-2xl border border-slate-700/70 bg-slate-900/65 px-4 py-2.5">
-          <div>
-            <h1 className="font-display text-2xl font-semibold tracking-tight text-slate-100">VisualCSound</h1>
-            <p className="mt-1 text-sm text-slate-400">
-              Visual opcode patching with realtime CSound sessions and macOS MIDI loopback support.
-            </p>
+        <header className="flex items-center justify-between gap-3 rounded-2xl border-x border-b border-slate-700/70 bg-slate-900/65 px-4 py-1">
+          <div className="flex flex-1 items-center gap-3">
+            <img
+              src={orchestronIcon}
+              alt="Orchestron icon"
+              className="h-40 w-40 shrink-0 object-contain"
+            />
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-left">
+              <h1 className="font-display text-2xl font-semibold tracking-tight text-slate-100">Orchestron</h1>
+              <p className="text-sm text-slate-400">
+                Visual opcode patching with realtime CSound sessions and macOS MIDI loopback support.
+              </p>
+            </div>
           </div>
           <div className="rounded-full border border-slate-700 bg-slate-950 px-3 py-1 text-xs uppercase tracking-[0.2em] text-slate-400">
             FastAPI + Rete.js
@@ -886,6 +998,11 @@ export default function App() {
             onPianoRollModeChange={setPianoRollMode}
             onPianoRollNoteOn={onPianoRollNoteOn}
             onPianoRollNoteOff={onPianoRollNoteOff}
+            onAddMidiController={addMidiController}
+            onRemoveMidiController={removeMidiController}
+            onMidiControllerEnabledChange={onMidiControllerEnabledChange}
+            onMidiControllerNumberChange={onMidiControllerNumberChange}
+            onMidiControllerValueChange={onMidiControllerValueChange}
             onResetPlayhead={() => {
               setSequencerPlayhead(0);
             }}

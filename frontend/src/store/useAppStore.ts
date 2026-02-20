@@ -20,6 +20,7 @@ import type {
   PatchGraph,
   PatchListItem,
   PerformanceListItem,
+  MidiControllerState,
   PianoRollState,
   SequencerConfigSnapshot,
   SequencerInstrumentBinding,
@@ -121,6 +122,12 @@ interface AppStore {
   setPianoRollScale: (rollId: string, scaleRoot: SequencerScaleRoot, scaleType: SequencerScaleType) => void;
   setPianoRollMode: (rollId: string, mode: SequencerMode) => void;
 
+  addMidiController: () => void;
+  removeMidiController: (controllerId: string) => void;
+  setMidiControllerEnabled: (controllerId: string, enabled: boolean) => void;
+  setMidiControllerNumber: (controllerId: string, controllerNumber: number) => void;
+  setMidiControllerValue: (controllerId: string, value: number) => void;
+
   setSequencerBpm: (bpm: number) => void;
   syncSequencerRuntime: (payload: {
     isPlaying: boolean;
@@ -163,6 +170,7 @@ const OPCODE_PARAM_DEFAULTS: Record<string, Record<string, string | number | boo
 
 const DEFAULT_SEQUENCER_STEPS: Array<number | null> = Array.from({ length: 32 }, () => null);
 const DEFAULT_PAD_COUNT = 8;
+const MAX_MIDI_CONTROLLERS = 16;
 const AUDIO_RATE_MIN = 22000;
 const AUDIO_RATE_MAX = 48000;
 const CONTROL_RATE_MIN = 25;
@@ -191,6 +199,20 @@ function normalizeStepNote(value: unknown): number | null {
   }
   if (typeof value !== "number" || !Number.isFinite(value)) {
     return null;
+  }
+  return clampInt(value, 0, 127);
+}
+
+function normalizeControllerNumber(value: unknown): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return 0;
+  }
+  return clampInt(value, 0, 127);
+}
+
+function normalizeControllerValue(value: unknown): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return 0;
   }
   return clampInt(value, 0, 127);
 }
@@ -248,6 +270,20 @@ function defaultPianoRoll(index = 1, midiChannel = 2): PianoRollState {
   };
 }
 
+function defaultMidiController(index = 1): MidiControllerState {
+  return {
+    id: `cc-${index}`,
+    name: `Controller ${index}`,
+    controllerNumber: clampInt(index - 1, 0, 127),
+    value: 0,
+    enabled: false
+  };
+}
+
+function defaultMidiControllers(count = MAX_MIDI_CONTROLLERS): MidiControllerState[] {
+  return Array.from({ length: count }, (_, index) => defaultMidiController(index + 1));
+}
+
 function defaultSequencerState(): SequencerState {
   return {
     isPlaying: false,
@@ -256,7 +292,8 @@ function defaultSequencerState(): SequencerState {
     playhead: 0,
     cycle: 0,
     tracks: [defaultSequencerTrack(1, 1)],
-    pianoRolls: [defaultPianoRoll(1, 2)]
+    pianoRolls: [defaultPianoRoll(1, 2)],
+    midiControllers: defaultMidiControllers()
   };
 }
 
@@ -351,6 +388,29 @@ function normalizePianoRollState(raw: unknown, index: number): PianoRollState {
   };
 }
 
+function normalizeMidiControllerState(raw: unknown, index: number): MidiControllerState {
+  const fallback = defaultMidiController(index);
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return fallback;
+  }
+
+  const controller = raw as Record<string, unknown>;
+  const id = typeof controller.id === "string" && controller.id.length > 0 ? controller.id : fallback.id;
+  const name =
+    typeof controller.name === "string" && controller.name.trim().length > 0 ? controller.name : fallback.name;
+  const controllerNumber = normalizeControllerNumber(controller.controllerNumber);
+  const value = normalizeControllerValue(controller.value);
+  const enabled = typeof controller.enabled === "boolean" ? controller.enabled : fallback.enabled;
+
+  return {
+    id,
+    name,
+    controllerNumber,
+    value,
+    enabled
+  };
+}
+
 function normalizeSequencerState(raw: unknown): SequencerState {
   const defaults = defaultSequencerState();
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
@@ -394,6 +454,15 @@ function normalizeSequencerState(raw: unknown): SequencerState {
     );
   }
 
+  const midiControllers: MidiControllerState[] = [];
+  const rawMidiControllers = Array.isArray(sequencer.midiControllers) ? sequencer.midiControllers : null;
+  const hasMidiControllers = rawMidiControllers !== null;
+  if (rawMidiControllers) {
+    for (let index = 0; index < Math.min(MAX_MIDI_CONTROLLERS, rawMidiControllers.length); index += 1) {
+      midiControllers.push(normalizeMidiControllerState(rawMidiControllers[index], index + 1));
+    }
+  }
+
   const trackList = tracks.length > 0 ? tracks : defaults.tracks;
   const seenTrackIds = new Set<string>();
   const normalizedTracks = trackList.map((track, index) => {
@@ -422,6 +491,20 @@ function normalizeSequencerState(raw: unknown): SequencerState {
     };
   });
 
+  const controllerList = hasMidiControllers ? midiControllers : defaults.midiControllers;
+  const seenControllerIds = new Set<string>();
+  const normalizedControllers = controllerList.map((controller, index) => {
+    let nextId = controller.id.trim().length > 0 ? controller.id : `cc-${index + 1}`;
+    if (seenControllerIds.has(nextId)) {
+      nextId = `${nextId}-${index + 1}`;
+    }
+    seenControllerIds.add(nextId);
+    return {
+      ...controller,
+      id: nextId
+    };
+  });
+
   const normalizedTransportStepCount = normalizeStepCount(
     typeof sequencer.stepCount === "number"
       ? rawStepCount
@@ -434,7 +517,8 @@ function normalizeSequencerState(raw: unknown): SequencerState {
     stepCount: normalizedTransportStepCount,
     playhead: playhead % normalizedTransportStepCount,
     tracks: normalizedTracks,
-    pianoRolls: normalizedRolls
+    pianoRolls: normalizedRolls,
+    midiControllers: normalizedControllers
   };
 }
 
@@ -588,6 +672,16 @@ function nextAvailablePerformanceChannel(sequencer: SequencerState): number {
   return 1;
 }
 
+function nextAvailableControllerNumber(controllers: MidiControllerState[]): number {
+  const occupied = new Set(controllers.map((controller) => normalizeControllerNumber(controller.controllerNumber)));
+  for (let controllerNumber = 0; controllerNumber <= 127; controllerNumber += 1) {
+    if (!occupied.has(controllerNumber)) {
+      return controllerNumber;
+    }
+  }
+  return 0;
+}
+
 function buildSequencerConfigSnapshot(
   sequencer: SequencerState,
   instruments: SequencerInstrumentBinding[]
@@ -628,6 +722,13 @@ function buildSequencerConfigSnapshot(
         scaleType: normalizeSequencerScaleType(roll.scaleType),
         mode: normalizeSequencerMode(roll.mode),
         enabled: roll.enabled === true
+      })),
+      midiControllers: sequencer.midiControllers.slice(0, MAX_MIDI_CONTROLLERS).map((controller, index) => ({
+        id: controller.id.length > 0 ? controller.id : `cc-${index + 1}`,
+        name: controller.name.trim().length > 0 ? controller.name : `Controller ${index + 1}`,
+        controllerNumber: normalizeControllerNumber(controller.controllerNumber),
+        value: normalizeControllerValue(controller.value),
+        enabled: controller.enabled === true
       }))
     }
   };
@@ -1476,6 +1577,77 @@ export const useAppStore = create<AppStore>((set, get) => {
           ...sequencer,
           pianoRolls: sequencer.pianoRolls.map((roll) =>
             roll.id === rollId ? { ...roll, mode: normalizeSequencerMode(mode) } : roll
+          )
+        }
+      });
+    },
+
+    addMidiController: () => {
+      const sequencer = get().sequencer;
+      if (sequencer.midiControllers.length >= MAX_MIDI_CONTROLLERS) {
+        set({ error: `A maximum of ${MAX_MIDI_CONTROLLERS} MIDI controllers is supported.` });
+        return;
+      }
+
+      const nextIndex = sequencer.midiControllers.length + 1;
+      const controller = defaultMidiController(nextIndex);
+      controller.id = crypto.randomUUID();
+      controller.name = `Controller ${nextIndex}`;
+      controller.controllerNumber = nextAvailableControllerNumber(sequencer.midiControllers);
+
+      set({
+        sequencer: {
+          ...sequencer,
+          midiControllers: [...sequencer.midiControllers, controller]
+        },
+        error: null
+      });
+    },
+
+    removeMidiController: (controllerId) => {
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          midiControllers: sequencer.midiControllers.filter((controller) => controller.id !== controllerId)
+        },
+        error: null
+      });
+    },
+
+    setMidiControllerEnabled: (controllerId, enabled) => {
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          midiControllers: sequencer.midiControllers.map((controller) =>
+            controller.id === controllerId ? { ...controller, enabled } : controller
+          )
+        }
+      });
+    },
+
+    setMidiControllerNumber: (controllerId, controllerNumber) => {
+      const normalizedNumber = normalizeControllerNumber(controllerNumber);
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          midiControllers: sequencer.midiControllers.map((controller) =>
+            controller.id === controllerId ? { ...controller, controllerNumber: normalizedNumber } : controller
+          )
+        }
+      });
+    },
+
+    setMidiControllerValue: (controllerId, value) => {
+      const normalizedValue = normalizeControllerValue(value);
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          midiControllers: sequencer.midiControllers.map((controller) =>
+            controller.id === controllerId ? { ...controller, value: normalizedValue } : controller
           )
         }
       });

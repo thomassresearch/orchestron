@@ -113,6 +113,14 @@ export interface PianoRollState {
   enabled: boolean;
 }
 
+export interface MidiControllerState {
+  id: string;
+  name: string;
+  controllerNumber: number;
+  value: number;
+  enabled: boolean;
+}
+
 export interface SequencerState {
   isPlaying: boolean;
   bpm: number;
@@ -121,6 +129,7 @@ export interface SequencerState {
   cycle: number;
   tracks: SequencerTrackState[];
   pianoRolls: PianoRollState[];
+  midiControllers: MidiControllerState[];
 }
 
 export interface SessionInstrumentAssignment {
@@ -164,6 +173,13 @@ export interface SequencerConfigSnapshot {
       scaleRoot: SequencerScaleRoot;
       scaleType: SequencerScaleType;
       mode: SequencerMode;
+      enabled: boolean;
+    }>;
+    midiControllers: Array<{
+      id: string;
+      name: string;
+      controllerNumber: number;
+      value: number;
       enabled: boolean;
     }>;
   };
@@ -289,12 +305,28 @@ export interface SessionActionResponse {
   detail: string;
 }
 
-export interface SessionMidiEventRequest {
-  type: "note_on" | "note_off" | "all_notes_off";
-  channel: number;
-  note?: number;
-  velocity?: number;
-}
+export type SessionMidiEventRequest =
+  | {
+      type: "note_on";
+      channel: number;
+      note: number;
+      velocity?: number;
+    }
+  | {
+      type: "note_off";
+      channel: number;
+      note: number;
+    }
+  | {
+      type: "all_notes_off";
+      channel: number;
+    }
+  | {
+      type: "control_change";
+      channel: number;
+      controller: number;
+      value: number;
+    };
 
 export interface MidiInputRef {
   id: string;

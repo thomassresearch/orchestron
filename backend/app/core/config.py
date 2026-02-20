@@ -21,7 +21,7 @@ def _default_rtmidi_module() -> str:
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="VISUALCSOUND_", extra="ignore")
 
-    app_name: str = "VisualCSound API"
+    app_name: str = "Orchestron API"
     app_version: str = "0.1.0"
     debug: bool = False
 

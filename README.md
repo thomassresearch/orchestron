@@ -1,6 +1,11 @@
-# VisualCSound
+# Orchestron
 
-VisualCSound is a 2-tier application for visual CSound instrument authoring.
+Here’s the strange, delightful thing about music software: most of it assumes the instrument already exists. Then it gives you knobs. "Orchestron" flips that around.
+
+You don’t load a synthesizer.
+You invent one.
+
+Orchestron is a visual instrument workshop built on the power of Csound — not a preset browser, not a plugin rack, not a timeline with tracks stacked like office paperwork. You design sound from signal flow upward. Oscillators, envelopes, filters, physical models, control signals — connect them, and the instrument comes alive while you hear it.
 
 - Backend: FastAPI + CSound Python integration
 - Frontend: React + TypeScript + Tailwind + Rete.js

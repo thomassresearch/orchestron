@@ -78,7 +78,7 @@ class BindMidiInputRequest(BaseModel):
     midi_input: str = Field(min_length=1)
 
 
-MidiEventType = Literal["note_on", "note_off", "all_notes_off"]
+MidiEventType = Literal["note_on", "note_off", "all_notes_off", "control_change"]
 
 
 class SessionMidiEventRequest(BaseModel):
@@ -86,11 +86,18 @@ class SessionMidiEventRequest(BaseModel):
     channel: int = Field(default=1, ge=1, le=16)
     note: int | None = Field(default=None, ge=0, le=127)
     velocity: int = Field(default=100, ge=1, le=127)
+    controller: int | None = Field(default=None, ge=0, le=127)
+    value: int | None = Field(default=None, ge=0, le=127)
 
     @model_validator(mode="after")
     def validate_note_requirements(self) -> "SessionMidiEventRequest":
         if self.type in {"note_on", "note_off"} and self.note is None:
             raise ValueError("note is required for note_on/note_off MIDI events")
+        if self.type == "control_change":
+            if self.controller is None:
+                raise ValueError("controller is required for control_change MIDI events")
+            if self.value is None:
+                raise ValueError("value is required for control_change MIDI events")
         return self
 
 

@@ -498,6 +498,12 @@ def test_session_midi_event_endpoint(tmp_path: Path) -> None:
         )
         assert note_off.status_code == 200
 
+        control_change = client.post(
+            f"/api/sessions/{session_id}/midi-event",
+            json={"type": "control_change", "channel": 1, "controller": 10, "value": 64},
+        )
+        assert control_change.status_code == 200
+
         all_notes_off = client.post(
             f"/api/sessions/{session_id}/midi-event",
             json={"type": "all_notes_off", "channel": 1},

@@ -29,6 +29,10 @@ const PIANO_BLACK_KEY_WIDTH = 22;
 const PIANO_BLACK_KEY_HEIGHT = 84;
 const PIANO_SCROLL_STEP_PX = PIANO_WHITE_KEY_WIDTH * 8;
 
+function clampMidiControllerValue(value: number): number {
+  return Math.max(0, Math.min(127, Math.round(value)));
+}
+
 function normalizePitchClass(note: number): number {
   const modulo = Math.round(note) % 12;
   return modulo < 0 ? modulo + 12 : modulo;
@@ -355,6 +359,108 @@ function PianoRollKeyboard({ roll, instrumentsRunning, onNoteOn, onNoteOff }: Pi
   );
 }
 
+interface MidiControllerKnobProps {
+  value: number;
+  disabled: boolean;
+  onChange: (value: number) => void;
+}
+
+function MidiControllerKnob({ value, disabled, onChange }: MidiControllerKnobProps) {
+  const pointerStateRef = useRef<{ pointerId: number; startY: number; startValue: number } | null>(null);
+  const normalizedValue = clampMidiControllerValue(value);
+  const angle = -135 + (normalizedValue / 127) * 270;
+
+  const releasePointer = useCallback((pointerId: number) => {
+    if (pointerStateRef.current?.pointerId !== pointerId) {
+      return;
+    }
+    pointerStateRef.current = null;
+  }, []);
+
+  const handlePointerDown = useCallback(
+    (event: ReactPointerEvent<HTMLButtonElement>) => {
+      if (event.button !== 0 || disabled) {
+        return;
+      }
+
+      event.preventDefault();
+      pointerStateRef.current = {
+        pointerId: event.pointerId,
+        startY: event.clientY,
+        startValue: normalizedValue
+      };
+      event.currentTarget.setPointerCapture(event.pointerId);
+    },
+    [disabled, normalizedValue]
+  );
+
+  const handlePointerMove = useCallback(
+    (event: ReactPointerEvent<HTMLButtonElement>) => {
+      const pointerState = pointerStateRef.current;
+      if (!pointerState || pointerState.pointerId !== event.pointerId) {
+        return;
+      }
+
+      event.preventDefault();
+      const delta = pointerState.startY - event.clientY;
+      const nextValue = clampMidiControllerValue(pointerState.startValue + delta * 0.5);
+      onChange(nextValue);
+    },
+    [onChange]
+  );
+
+  const handlePointerUp = useCallback(
+    (event: ReactPointerEvent<HTMLButtonElement>) => {
+      releasePointer(event.pointerId);
+    },
+    [releasePointer]
+  );
+
+  const handlePointerCancel = useCallback(
+    (event: ReactPointerEvent<HTMLButtonElement>) => {
+      releasePointer(event.pointerId);
+    },
+    [releasePointer]
+  );
+
+  useEffect(() => {
+    if (!disabled) {
+      return;
+    }
+    pointerStateRef.current = null;
+  }, [disabled]);
+
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
+      onLostPointerCapture={handlePointerCancel}
+      className={`relative h-16 w-16 rounded-full border transition ${
+        disabled
+          ? "cursor-not-allowed border-slate-700 bg-slate-900/80 opacity-50"
+          : "border-cyan-400/70 bg-slate-900 hover:border-cyan-300"
+      }`}
+      aria-label={`Controller knob value ${normalizedValue}`}
+    >
+      <span className="absolute inset-1 rounded-full border border-slate-700 bg-[radial-gradient(circle_at_35%_25%,_#1e293b,_#020617_72%)]" />
+      <span className="absolute inset-0 flex items-center justify-center">
+        <span
+          className="relative h-9 w-1.5"
+          style={{
+            transform: `rotate(${angle}deg)`
+          }}
+        >
+          <span className="absolute inset-x-0 top-0 h-3.5 rounded-full bg-cyan-200 shadow-[0_0_8px_rgba(34,211,238,0.55)]" />
+        </span>
+      </span>
+    </button>
+  );
+}
+
 interface SequencerPageProps {
   patches: PatchListItem[];
   performances: PerformanceListItem[];
@@ -397,6 +503,11 @@ interface SequencerPageProps {
   onPianoRollModeChange: (rollId: string, mode: SequencerMode) => void;
   onPianoRollNoteOn: (note: number, channel: number) => void;
   onPianoRollNoteOff: (note: number, channel: number) => void;
+  onAddMidiController: () => void;
+  onRemoveMidiController: (controllerId: string) => void;
+  onMidiControllerEnabledChange: (controllerId: string, enabled: boolean) => void;
+  onMidiControllerNumberChange: (controllerId: string, controllerNumber: number) => void;
+  onMidiControllerValueChange: (controllerId: string, value: number) => void;
   onResetPlayhead: () => void;
   onAllNotesOff: () => void;
 }
@@ -463,6 +574,11 @@ export function SequencerPage({
   onPianoRollModeChange,
   onPianoRollNoteOn,
   onPianoRollNoteOff,
+  onAddMidiController,
+  onRemoveMidiController,
+  onMidiControllerEnabledChange,
+  onMidiControllerNumberChange,
+  onMidiControllerValueChange,
   onResetPlayhead,
   onAllNotesOff
 }: SequencerPageProps) {
@@ -1079,6 +1195,84 @@ export function SequencerPage({
             );
           })}
         </div>
+      </div>
+
+      <div className="mt-4 rounded-xl border border-violet-800/45 bg-slate-950/85 p-3">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <div className="text-[11px] uppercase tracking-[0.18em] text-violet-200">
+            MIDI Controllers ({sequencer.midiControllers.length}/16)
+          </div>
+          <button
+            type="button"
+            onClick={onAddMidiController}
+            disabled={sequencer.midiControllers.length >= 16}
+            className="rounded-md border border-accent/60 bg-accent/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-accent transition hover:bg-accent/25 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Add Controller
+          </button>
+        </div>
+
+        {sequencer.midiControllers.length === 0 ? (
+          <div className="rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-xs text-slate-400">
+            Add a MIDI controller to send CC values.
+          </div>
+        ) : (
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+            {sequencer.midiControllers.map((controller, controllerIndex) => (
+              <article key={controller.id} className="rounded-xl border border-slate-700 bg-slate-900/65 p-2.5">
+                <div className="mb-2 flex items-center gap-2">
+                  <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-200">
+                    {controller.name || `Controller ${controllerIndex + 1}`}
+                  </div>
+                  <span className={transportStateClass}>{controller.enabled ? "running" : "stopped"}</span>
+                </div>
+
+                <div className="mb-2 flex flex-wrap items-end gap-2">
+                  <label className="flex min-w-[120px] flex-col gap-1">
+                    <span className={controlLabelClass}>Controller #</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={127}
+                      value={controller.controllerNumber}
+                      onChange={(event) => onMidiControllerNumberChange(controller.id, Number(event.target.value))}
+                      className={`${controlFieldClass} w-24`}
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => onMidiControllerEnabledChange(controller.id, !controller.enabled)}
+                    className={controller.enabled ? transportStopButtonClass : transportStartButtonClass}
+                  >
+                    {controller.enabled ? "Stop" : "Start"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onRemoveMidiController(controller.id)}
+                    className="rounded-md border border-rose-500/60 bg-rose-500/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-rose-200 transition hover:bg-rose-500/25"
+                  >
+                    Remove
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <MidiControllerKnob
+                    value={controller.value}
+                    disabled={false}
+                    onChange={(value) => onMidiControllerValueChange(controller.id, value)}
+                  />
+                  <div className="space-y-1">
+                    <div className={controlLabelClass}>Value</div>
+                    <div className="rounded-md border border-slate-700 bg-slate-950 px-2 py-1 font-mono text-xs text-slate-100">
+                      {controller.value}
+                    </div>
+                    <div className="text-[10px] text-slate-500">click + drag up/down</div>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-slate-700 bg-slate-950/80 px-2.5 py-1.5 text-xs text-slate-300">
