@@ -564,8 +564,10 @@ export default function App() {
     (trackId: string, enabled: boolean) => {
       const sequencerState = sequencerRef.current;
       const hasOtherRunningTracks = sequencerState.tracks.some((track) => track.id !== trackId && track.enabled);
-      // Stop should be immediate; only starting a new track may be cycle-queued for alignment.
-      const shouldQueueOnCycle = sequencerState.isPlaying && enabled && hasOtherRunningTracks;
+      // Start is queued only when aligning with other running tracks.
+      // Stop is always queued while transport is running so the current loop can finish.
+      const shouldQueueOnCycle =
+        sequencerState.isPlaying && (enabled ? hasOtherRunningTracks : true);
       setSequencerTrackEnabled(trackId, enabled, shouldQueueOnCycle);
       setSequencerError(null);
     },
