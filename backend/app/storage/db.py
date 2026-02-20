@@ -34,6 +34,15 @@ class PerformanceRecord(Base):
     updated_at = Column(DateTime(timezone=True), nullable=False)
 
 
+class AppStateRecord(Base):
+    __tablename__ = "app_state"
+
+    id = Column(String(64), primary_key=True)
+    state_json = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True), nullable=False)
+
+
 class Database:
     def __init__(self, database_url: str) -> None:
         self.engine = create_engine(database_url, future=True, connect_args={"check_same_thread": False})

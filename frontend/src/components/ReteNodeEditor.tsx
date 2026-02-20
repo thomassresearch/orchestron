@@ -30,6 +30,7 @@ export interface EditorSelection {
 interface ReteNodeEditorProps {
   graph: PatchGraph;
   opcodes: OpcodeSpec[];
+  viewportKey: string;
   onGraphChange: (graph: PatchGraph) => void;
   onSelectionChange: (selection: EditorSelection) => void;
   onAddOpcodeAtPosition?: (opcode: OpcodeSpec, position: NodePosition) => void;
@@ -47,6 +48,12 @@ type NodePalette = {
   hover: string;
   selectedBackground: string;
   selectedBorder: string;
+};
+
+type ViewportTransform = {
+  x: number;
+  y: number;
+  k: number;
 };
 
 const CATEGORY_NODE_PALETTES: Record<string, NodePalette> = {
@@ -254,6 +261,7 @@ function sourceLabelForConnection(
 export function ReteNodeEditor({
   graph,
   opcodes,
+  viewportKey,
   onGraphChange,
   onSelectionChange,
   onAddOpcodeAtPosition,
@@ -265,6 +273,7 @@ export function ReteNodeEditor({
   const areaRef = useRef<AreaPlugin<any, any> | null>(null);
   const editorRef = useRef<NodeEditor<any> | null>(null);
   const reteToPatchRef = useRef<Map<string, string>>(new Map());
+  const viewportByKeyRef = useRef<Map<string, ViewportTransform>>(new Map());
   const formulaEditorTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [zoomPercent, setZoomPercent] = useState(100);
   const [isOpcodeDragOver, setIsOpcodeDragOver] = useState(false);
@@ -614,6 +623,25 @@ export function ReteNodeEditor({
       syncZoomPercent();
     });
   }, [syncZoomPercent, zoomToViewportCenter]);
+
+  const snapshotViewport = useCallback((area: AreaPlugin<any, any>): ViewportTransform => {
+    const transform = area.area.transform;
+    return {
+      x: transform.x,
+      y: transform.y,
+      k: transform.k
+    };
+  }, []);
+
+  const restoreViewport = useCallback(
+    async (area: AreaPlugin<any, any>, viewport: ViewportTransform) => {
+      const boundedZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, viewport.k));
+      await area.area.zoom(boundedZoom, 0, 0);
+      await area.area.translate(viewport.x, viewport.y);
+      syncZoomPercent();
+    },
+    [syncZoomPercent]
+  );
 
   const resolveGraphPositionFromClient = useCallback((clientX: number, clientY: number): NodePosition | null => {
     const area = areaRef.current;
@@ -1142,9 +1170,14 @@ export function ReteNodeEditor({
         return context;
       });
 
-      await AreaExtensions.zoomAt(area, editor.getNodes());
+      const savedViewport = viewportByKeyRef.current.get(viewportKey);
+      if (savedViewport) {
+        await restoreViewport(area, savedViewport);
+      } else {
+        await AreaExtensions.zoomAt(area, editor.getNodes());
+        syncZoomPercent();
+      }
       initializingRef.current = false;
-      syncZoomPercent();
       emitSelection();
 
       handle = {
@@ -1166,6 +1199,10 @@ export function ReteNodeEditor({
     return () => {
       cancelled = true;
       initializingRef.current = false;
+      const liveArea = areaRef.current;
+      if (liveArea) {
+        viewportByKeyRef.current.set(viewportKey, snapshotViewport(liveArea));
+      }
       handle?.destroy();
       areaRef.current = null;
       editorRef.current = null;
@@ -1174,7 +1211,18 @@ export function ReteNodeEditor({
         containerRef.current.innerHTML = "";
       }
     };
-  }, [onOpcodeHelpRequest, onSelectionChange, structureKey, syncZoomPercent, openFormulaEditor, opcodeByName, updateGraph]);
+  }, [
+    onOpcodeHelpRequest,
+    onSelectionChange,
+    structureKey,
+    viewportKey,
+    syncZoomPercent,
+    snapshotViewport,
+    restoreViewport,
+    openFormulaEditor,
+    opcodeByName,
+    updateGraph
+  ]);
 
   return (
     <>

@@ -20,6 +20,7 @@ import type {
   PatchGraph,
   PatchListItem,
   PerformanceListItem,
+  PersistedAppState,
   MidiControllerState,
   PianoRollState,
   SequencerConfigSnapshot,
@@ -52,6 +53,7 @@ interface InstrumentTabState {
 interface AppStore {
   loading: boolean;
   error: string | null;
+  hasLoadedBootstrap: boolean;
 
   activePage: AppPage;
 
@@ -171,12 +173,19 @@ const OPCODE_PARAM_DEFAULTS: Record<string, Record<string, string | number | boo
 const DEFAULT_SEQUENCER_STEPS: Array<number | null> = Array.from({ length: 32 }, () => null);
 const DEFAULT_PAD_COUNT = 8;
 const MAX_MIDI_CONTROLLERS = 16;
+const APP_STATE_VERSION = 1 as const;
+const APP_STATE_PERSIST_DEBOUNCE_MS = 400;
 const AUDIO_RATE_MIN = 22000;
 const AUDIO_RATE_MAX = 48000;
 const CONTROL_RATE_MIN = 25;
 const CONTROL_RATE_MAX = 48000;
 const ENGINE_BUFFER_MIN = 32;
 const ENGINE_BUFFER_MAX = 8192;
+
+let persistTimer: ReturnType<typeof setTimeout> | null = null;
+let persistInFlight = false;
+let pendingPersistSnapshot: PersistedAppState | null = null;
+let lastPersistedSignature: string | null = null;
 
 function clampInt(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, Math.round(value)));
@@ -599,6 +608,156 @@ function updatePatchInTabs(tabs: InstrumentTabState[], tabId: string, patch: Edi
   return [...tabs, { id: tabId, patch }];
 }
 
+function normalizeAppPage(raw: unknown): AppPage {
+  return raw === "instrument" || raw === "sequencer" || raw === "config" ? raw : "instrument";
+}
+
+function normalizePersistedPatch(raw: unknown): EditablePatch {
+  const fallback = defaultEditablePatch();
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return fallback;
+  }
+
+  const patch = raw as Partial<EditablePatch>;
+  const id = typeof patch.id === "string" && patch.id.length > 0 ? patch.id : undefined;
+  const name =
+    typeof patch.name === "string" && patch.name.trim().length > 0 ? patch.name : fallback.name;
+  const description = typeof patch.description === "string" ? patch.description : "";
+  const schemaVersion =
+    typeof patch.schema_version === "number" && Number.isFinite(patch.schema_version)
+      ? Math.max(1, Math.round(patch.schema_version))
+      : 1;
+  const graph =
+    patch.graph && typeof patch.graph === "object" && !Array.isArray(patch.graph)
+      ? withNormalizedEngineConfig(patch.graph as PatchGraph)
+      : fallback.graph;
+  const createdAt = typeof patch.created_at === "string" ? patch.created_at : undefined;
+  const updatedAt = typeof patch.updated_at === "string" ? patch.updated_at : undefined;
+
+  return {
+    id,
+    name,
+    description,
+    schema_version: schemaVersion,
+    graph,
+    created_at: createdAt,
+    updated_at: updatedAt
+  };
+}
+
+function normalizePersistedInstrumentTabs(raw: unknown): InstrumentTabState[] {
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+
+  const tabs: InstrumentTabState[] = [];
+  const seenIds = new Set<string>();
+  for (const entry of raw) {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      continue;
+    }
+
+    const candidate = entry as Record<string, unknown>;
+    let id = typeof candidate.id === "string" && candidate.id.length > 0 ? candidate.id : crypto.randomUUID();
+    if (seenIds.has(id)) {
+      id = crypto.randomUUID();
+    }
+    seenIds.add(id);
+
+    tabs.push({
+      id,
+      patch: normalizePersistedPatch(candidate.patch)
+    });
+  }
+
+  return tabs;
+}
+
+function normalizePersistedSequencerInstruments(
+  raw: unknown,
+  availablePatchIds: Set<string>,
+  fallbackPatchId: string | null
+): SequencerInstrumentBinding[] {
+  const bindings: SequencerInstrumentBinding[] = [];
+  const seenChannels = new Set<number>();
+
+  if (Array.isArray(raw)) {
+    for (const entry of raw) {
+      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+        continue;
+      }
+
+      const candidate = entry as Record<string, unknown>;
+      if (typeof candidate.patchId !== "string" || !availablePatchIds.has(candidate.patchId)) {
+        continue;
+      }
+
+      const midiChannel =
+        typeof candidate.midiChannel === "number" ? clampInt(candidate.midiChannel, 1, 16) : 1;
+      if (seenChannels.has(midiChannel)) {
+        continue;
+      }
+      seenChannels.add(midiChannel);
+
+      bindings.push({
+        id: typeof candidate.id === "string" && candidate.id.length > 0 ? candidate.id : crypto.randomUUID(),
+        patchId: candidate.patchId,
+        midiChannel
+      });
+    }
+  }
+
+  if (bindings.length === 0 && fallbackPatchId && availablePatchIds.has(fallbackPatchId)) {
+    bindings.push({ id: crypto.randomUUID(), patchId: fallbackPatchId, midiChannel: 1 });
+  }
+
+  return bindings;
+}
+
+function sequencerSnapshotForPersistence(sequencer: SequencerState): SequencerState {
+  return {
+    ...sequencer,
+    isPlaying: false,
+    playhead: 0,
+    cycle: 0,
+    tracks: sequencer.tracks.map((track) => ({
+      ...track,
+      queuedPad: null,
+      queuedEnabled: null
+    }))
+  };
+}
+
+function buildPersistedAppStateSnapshot(state: AppStore): PersistedAppState {
+  return {
+    version: APP_STATE_VERSION,
+    activePage: normalizeAppPage(state.activePage),
+    instrumentTabs: state.instrumentTabs.map((tab) => ({
+      id: tab.id,
+      patch: {
+        id: tab.patch.id,
+        name: tab.patch.name,
+        description: tab.patch.description,
+        schema_version: tab.patch.schema_version,
+        graph: withNormalizedEngineConfig(tab.patch.graph),
+        created_at: tab.patch.created_at,
+        updated_at: tab.patch.updated_at
+      }
+    })),
+    activeInstrumentTabId: state.activeInstrumentTabId,
+    sequencer: sequencerSnapshotForPersistence(state.sequencer),
+    sequencerInstruments: state.sequencerInstruments.map((binding) => ({
+      id: binding.id,
+      patchId: binding.patchId,
+      midiChannel: clampInt(binding.midiChannel, 1, 16)
+    })),
+    currentPerformanceId: state.currentPerformanceId,
+    performanceName: state.performanceName,
+    performanceDescription: state.performanceDescription,
+    activeMidiInput: state.activeMidiInput
+  };
+}
+
 function defaultParams(opcode: OpcodeSpec): Record<string, string | number | boolean> {
   const params: Record<string, string | number | boolean> = {};
   for (const input of opcode.inputs) {
@@ -869,6 +1028,7 @@ export const useAppStore = create<AppStore>((set, get) => {
   return {
     loading: false,
     error: null,
+    hasLoadedBootstrap: false,
 
     activePage: "instrument",
 
@@ -954,11 +1114,23 @@ export const useAppStore = create<AppStore>((set, get) => {
     loadBootstrap: async () => {
       set({ loading: true, error: null });
       try {
-        const [opcodes, patches, performances, midiInputs] = await Promise.all([
+        const [opcodes, patches, performances, midiInputs, persistedState] = await Promise.all([
           api.listOpcodes(),
           api.listPatches(),
           api.listPerformances(),
-          api.listMidiInputs()
+          api.listMidiInputs(),
+          api
+            .getAppState()
+            .then((response) => response.state)
+            .catch((error: unknown) => {
+              if (
+                error instanceof Error &&
+                (error.message.includes("API 404") || error.message.includes("App state not found"))
+              ) {
+                return null;
+              }
+              throw error;
+            })
         ]);
 
         let currentPatch = defaultEditablePatch();
@@ -967,13 +1139,96 @@ export const useAppStore = create<AppStore>((set, get) => {
           currentPatch = normalizePatch(full);
         }
 
-        const tab = createInstrumentTab(currentPatch);
-        const sequencerInstruments = defaultSequencerInstruments(patches, currentPatch.id);
+        let activePage: AppPage = "instrument";
+        let instrumentTabs: InstrumentTabState[] = [createInstrumentTab(currentPatch)];
+        let activeInstrumentTabId = instrumentTabs[0].id;
+        let sequencer = defaultSequencerState();
+        let sequencerInstruments = defaultSequencerInstruments(patches, currentPatch.id);
+        let currentPerformanceId: string | null = null;
+        let performanceName = "Untitled Performance";
+        let performanceDescription = "";
+
         const preferredMidi = get().activeMidiInput;
-        const activeMidiInput =
+        let activeMidiInput =
           preferredMidi && midiInputs.some((input) => input.id === preferredMidi)
             ? preferredMidi
             : midiInputs[0]?.id ?? null;
+
+        if (persistedState && typeof persistedState === "object" && !Array.isArray(persistedState)) {
+          const payload = persistedState as Partial<PersistedAppState>;
+          if (payload.version === APP_STATE_VERSION) {
+            const restoredTabs = normalizePersistedInstrumentTabs(payload.instrumentTabs);
+            if (restoredTabs.length > 0) {
+              instrumentTabs = restoredTabs;
+              activeInstrumentTabId =
+                typeof payload.activeInstrumentTabId === "string" &&
+                instrumentTabs.some((tab) => tab.id === payload.activeInstrumentTabId)
+                  ? payload.activeInstrumentTabId
+                  : instrumentTabs[0].id;
+              currentPatch =
+                instrumentTabs.find((tab) => tab.id === activeInstrumentTabId)?.patch ?? instrumentTabs[0].patch;
+            }
+
+            activePage = normalizeAppPage(payload.activePage);
+            sequencer = normalizeSequencerState(payload.sequencer);
+
+            const availablePatchIds = new Set<string>(patches.map((patch) => patch.id));
+            const fallbackPatchId = patches[0]?.id ?? null;
+            sequencerInstruments = normalizePersistedSequencerInstruments(
+              payload.sequencerInstruments,
+              availablePatchIds,
+              fallbackPatchId
+            );
+
+            currentPerformanceId =
+              typeof payload.currentPerformanceId === "string" &&
+              performances.some((performance) => performance.id === payload.currentPerformanceId)
+                ? payload.currentPerformanceId
+                : null;
+            performanceName =
+              typeof payload.performanceName === "string" && payload.performanceName.trim().length > 0
+                ? payload.performanceName
+                : "Untitled Performance";
+            performanceDescription =
+              typeof payload.performanceDescription === "string" ? payload.performanceDescription : "";
+
+            if (
+              typeof payload.activeMidiInput === "string" &&
+              midiInputs.some((input) => input.id === payload.activeMidiInput)
+            ) {
+              activeMidiInput = payload.activeMidiInput;
+            }
+          }
+        }
+
+        const baselineSnapshot: PersistedAppState = {
+          version: APP_STATE_VERSION,
+          activePage,
+          instrumentTabs: instrumentTabs.map((tab) => ({
+            id: tab.id,
+            patch: {
+              id: tab.patch.id,
+              name: tab.patch.name,
+              description: tab.patch.description,
+              schema_version: tab.patch.schema_version,
+              graph: withNormalizedEngineConfig(tab.patch.graph),
+              created_at: tab.patch.created_at,
+              updated_at: tab.patch.updated_at
+            }
+          })),
+          activeInstrumentTabId,
+          sequencer: sequencerSnapshotForPersistence(sequencer),
+          sequencerInstruments: sequencerInstruments.map((binding) => ({
+            id: binding.id,
+            patchId: binding.patchId,
+            midiChannel: clampInt(binding.midiChannel, 1, 16)
+          })),
+          currentPerformanceId,
+          performanceName,
+          performanceDescription,
+          activeMidiInput
+        };
+        lastPersistedSignature = JSON.stringify(baselineSnapshot);
 
         set({
           opcodes,
@@ -981,16 +1236,22 @@ export const useAppStore = create<AppStore>((set, get) => {
           performances,
           midiInputs,
           activeMidiInput,
-          instrumentTabs: [tab],
-          activeInstrumentTabId: tab.id,
+          activePage,
+          instrumentTabs,
+          activeInstrumentTabId,
           currentPatch,
-          sequencer: defaultSequencerState(),
+          sequencer,
           sequencerInstruments,
+          currentPerformanceId,
+          performanceName,
+          performanceDescription,
+          hasLoadedBootstrap: true,
           loading: false,
           error: null
         });
       } catch (error) {
         set({
+          hasLoadedBootstrap: true,
           loading: false,
           error: error instanceof Error ? error.message : "Failed to load bootstrap data"
         });
@@ -2026,4 +2287,66 @@ export const useAppStore = create<AppStore>((set, get) => {
       set({ events: [...events.slice(-199), event] });
     }
   };
+});
+
+async function flushPersistedAppState(): Promise<void> {
+  if (persistInFlight) {
+    return;
+  }
+
+  const snapshot = pendingPersistSnapshot;
+  if (!snapshot) {
+    return;
+  }
+
+  pendingPersistSnapshot = null;
+  const signature = JSON.stringify(snapshot);
+  if (signature === lastPersistedSignature) {
+    return;
+  }
+
+  persistInFlight = true;
+  try {
+    await api.saveAppState(snapshot);
+    lastPersistedSignature = signature;
+  } catch {
+    // Retry failed saves when the next state change occurs.
+    pendingPersistSnapshot = snapshot;
+  } finally {
+    persistInFlight = false;
+    if (pendingPersistSnapshot) {
+      if (persistTimer !== null) {
+        clearTimeout(persistTimer);
+      }
+      persistTimer = setTimeout(() => {
+        persistTimer = null;
+        void flushPersistedAppState();
+      }, APP_STATE_PERSIST_DEBOUNCE_MS);
+    }
+  }
+}
+
+function schedulePersistedAppState(snapshot: PersistedAppState): void {
+  pendingPersistSnapshot = snapshot;
+  if (persistTimer !== null) {
+    clearTimeout(persistTimer);
+  }
+  persistTimer = setTimeout(() => {
+    persistTimer = null;
+    void flushPersistedAppState();
+  }, APP_STATE_PERSIST_DEBOUNCE_MS);
+}
+
+useAppStore.subscribe((state) => {
+  if (!state.hasLoadedBootstrap) {
+    return;
+  }
+
+  const snapshot = buildPersistedAppStateSnapshot(state);
+  const signature = JSON.stringify(snapshot);
+  if (signature === lastPersistedSignature) {
+    return;
+  }
+
+  schedulePersistedAppState(snapshot);
 });

@@ -185,6 +185,39 @@ export interface SequencerConfigSnapshot {
   };
 }
 
+export interface EditablePatchSnapshot {
+  id?: string;
+  name: string;
+  description: string;
+  schema_version: number;
+  graph: PatchGraph;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface InstrumentTabSnapshot {
+  id: string;
+  patch: EditablePatchSnapshot;
+}
+
+export interface PersistedAppState {
+  version: 1;
+  activePage: AppPage;
+  instrumentTabs: InstrumentTabSnapshot[];
+  activeInstrumentTabId: string;
+  sequencer: SequencerState;
+  sequencerInstruments: SequencerInstrumentBinding[];
+  currentPerformanceId: string | null;
+  performanceName: string;
+  performanceDescription: string;
+  activeMidiInput: string | null;
+}
+
+export interface AppStateResponse {
+  state: PersistedAppState;
+  updated_at: string;
+}
+
 export interface Performance {
   id: string;
   name: string;

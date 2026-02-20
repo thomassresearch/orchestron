@@ -42,6 +42,39 @@ def test_client_static_endpoint(tmp_path: Path) -> None:
         assert "client-ok" in response.text
 
 
+def test_app_state_round_trip(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        missing = client.get("/api/app-state")
+        assert missing.status_code == 404
+
+        payload = {
+            "state": {
+                "version": 1,
+                "activePage": "sequencer",
+                "performanceName": "Last Set",
+                "sequencer": {"bpm": 128, "tracks": []},
+            }
+        }
+        saved = client.put("/api/app-state", json=payload)
+        assert saved.status_code == 200
+        saved_body = saved.json()
+        assert saved_body["state"] == payload["state"]
+        first_updated_at = saved_body["updated_at"]
+
+        loaded = client.get("/api/app-state")
+        assert loaded.status_code == 200
+        assert loaded.json()["state"] == payload["state"]
+
+        updated = client.put(
+            "/api/app-state",
+            json={"state": {"version": 1, "activePage": "config", "performanceName": "Last Set (Updated)"}},
+        )
+        assert updated.status_code == 200
+        updated_body = updated.json()
+        assert updated_body["state"]["activePage"] == "config"
+        assert updated_body["updated_at"] >= first_updated_at
+
+
 def test_patch_ui_layout_supports_nested_sequencer_payload(tmp_path: Path) -> None:
     with _client(tmp_path) as client:
         patch_payload = {

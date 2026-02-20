@@ -1,4 +1,5 @@
 import type {
+  AppStateResponse,
   CompileResponse,
   MidiInputRef,
   OpcodeSpec,
@@ -7,6 +8,7 @@ import type {
   PatchListItem,
   Performance,
   PerformanceListItem,
+  PersistedAppState,
   SequencerConfigSnapshot,
   SessionActionResponse,
   SessionCreateResponse,
@@ -43,6 +45,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   listOpcodes: () => request<OpcodeSpec[]>("/opcodes"),
+  getAppState: () => request<AppStateResponse>("/app-state"),
+  saveAppState: (state: PersistedAppState) =>
+    request<AppStateResponse>("/app-state", {
+      method: "PUT",
+      body: JSON.stringify({ state })
+    }),
   listPatches: () => request<PatchListItem[]>("/patches"),
   listPerformances: () => request<PerformanceListItem[]>("/performances"),
   getPatch: (patchId: string) => request<Patch>(`/patches/${patchId}`),

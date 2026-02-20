@@ -904,6 +904,7 @@ export default function App() {
                   <ReteNodeEditor
                     graph={currentPatch.graph}
                     opcodes={opcodes}
+                    viewportKey={`${activeInstrumentTabId}:${currentPatch.id ?? "draft"}`}
                     onGraphChange={onGraphChange}
                     onSelectionChange={setSelection}
                     onAddOpcodeAtPosition={addNodeFromOpcode}
