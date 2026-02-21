@@ -1,0 +1,2671 @@
+{
+  "const_a": {
+    "description": {
+      "english": "Audio-rate constant value.",
+      "german": "Konstanter Wert der Audiorate.",
+      "french": "Valeur constante du débit audio.",
+      "spanish": "Valor constante de velocidad de audio."
+    },
+    "inputs": {},
+    "outputs": {
+      "aout": {
+        "english": "aOut audio-rate output.",
+        "german": "aOut Audio-Rate-Ausgabe.",
+        "french": "aOut sortie de débit audio.",
+        "spanish": "aSalida de salida de velocidad de audio."
+      }
+    }
+  },
+  "const_i": {
+    "description": {
+      "english": "Init-rate constant value.",
+      "german": "Konstanter Wert der Anfangsrate.",
+      "french": "Valeur constante du taux d'initialisation.",
+      "spanish": "Valor constante de velocidad inicial."
+    },
+    "inputs": {},
+    "outputs": {
+      "iout": {
+        "english": "iOut init-rate output.",
+        "german": "iOut Init-Rate-Ausgabe.",
+        "french": "Sortie du taux d'initialisation iOut.",
+        "spanish": "Salida de velocidad inicial iOut."
+      }
+    }
+  },
+  "const_k": {
+    "description": {
+      "english": "Control-rate constant value.",
+      "german": "Konstanter Wert der Kontrollrate.",
+      "french": "Valeur constante du taux de contrôle.",
+      "spanish": "Valor constante de la tasa de control."
+    },
+    "inputs": {},
+    "outputs": {
+      "kout": {
+        "english": "kOut control-rate output.",
+        "german": "kOut-Kontrollratenausgang.",
+        "french": "Sortie de taux de contrôle kOut.",
+        "spanish": "Salida de tasa de control kOut."
+      }
+    }
+  },
+  "comb": {
+    "description": {
+      "english": "Reverberates an input signal with a “ colored ” frequency response.",
+      "german": "Gibt ein Eingangssignal mit einem „farbigen“ Frequenzgang wieder.",
+      "french": "Réverbère un signal d’entrée avec une réponse en fréquence « colorée ».",
+      "spanish": "Reverbera una señal de entrada con una respuesta de frecuencia “coloreada”."
+    },
+    "inputs": {
+      "asig": {
+        "english": "aIn parameter at audio-rate.",
+        "german": "aIn-Parameter bei Audiorate.",
+        "french": "Paramètre aIn au débit audio.",
+        "spanish": "Parámetro aIn a velocidad de audio."
+      },
+      "krvt": {
+        "english": "the reverberation time (defined as the time in seconds for a signal to decay to 1/1000, or 60dB down from its original amplitude).",
+        "german": "die Nachhallzeit (definiert als die Zeit in Sekunden, die ein Signal benötigt, um auf 1/1000 oder 60 dB von seiner ursprünglichen Amplitude abzuklingen).",
+        "french": "le temps de réverbération (défini comme le temps en secondes nécessaire à un signal pour décliner jusqu'à 1/1000, soit 60 dB par rapport à son amplitude d'origine).",
+        "spanish": "el tiempo de reverberación (definido como el tiempo en segundos para que una señal decaiga a 1/1000, o 60 dB por debajo de su amplitud original)."
+      },
+      "ilpt": {
+        "english": "loop time in seconds, which determines the “ echo density ” of the reverberation. This in turn characterizes the “ color ” of the comb filter whose frequency response curve will contain ilpt * sr /2 peaks spaced evenly between 0 and sr /2 (the Nyquist frequency). Loop time can be as large as available memory will permit. The space required for an n second loop is n * sr floating or double numbers (usually 4 or 8 bytes). Delay space is allocated and returned as in delay.",
+        "german": "Schleifenzeit in Sekunden, die die „Echodichte“ des Nachhalls bestimmt. Dies wiederum charakterisiert die „Farbe“ des Kammfilters, dessen Frequenzgangkurve ilpt * sr /2 Spitzen enthält, die gleichmäßig zwischen 0 und sr /2 (der Nyquist-Frequenz) verteilt sind. Die Schleifenzeit kann so groß sein, wie es der verfügbare Speicher zulässt. Der für eine n-sekündige Schleife erforderliche Platz beträgt n * sr Gleit- oder Doppelzahlen (normalerweise 4 oder 8 Bytes). Verzögerungsraum wird wie bei der Verzögerung zugewiesen und zurückgegeben.",
+        "french": "temps de boucle en secondes, qui détermine la « densité d'écho » de la réverbération. Ceci caractérise à son tour la « couleur » du filtre en peigne dont la courbe de réponse en fréquence contiendra des pics ilpt * sr /2 espacés uniformément entre 0 et sr /2 (la fréquence de Nyquist). La durée de la boucle peut être aussi longue que la mémoire disponible le permet. L'espace requis pour une boucle de n secondes est de n * sr nombres flottants ou doubles (généralement 4 ou 8 octets). L'espace de retard est alloué et renvoyé comme dans retard.",
+        "spanish": "tiempo de bucle en segundos, que determina la “densidad del eco” de la reverberación. Esto a su vez caracteriza el “color” del filtro de peine cuya curva de respuesta de frecuencia contendrá picos ilpt * sr /2 espaciados uniformemente entre 0 y sr /2 (la frecuencia de Nyquist). El tiempo de bucle puede ser tan largo como lo permita la memoria disponible. El espacio requerido para un bucle de n segundos es n * sr números flotantes o dobles (generalmente 4 u 8 bytes). El espacio de retraso se asigna y se devuelve como en retraso."
+      },
+      "iskip": {
+        "english": "initial disposition of delay-loop data space (cf. reson ). The default value is 0.",
+        "german": "anfängliche Anordnung des Verzögerungsschleifen-Datenraums (vgl. reson ). Der Standardwert ist 0.",
+        "french": "disposition initiale de l'espace de données en boucle à retard (cf. reson ). La valeur par défaut est 0.",
+        "spanish": "disposición inicial del espacio de datos del bucle de retardo (cf. reson). El valor predeterminado es 0."
+      }
+    },
+    "outputs": {
+      "aout": {
+        "english": "Output variable `ares` from comb.",
+        "german": "Ausgabevariable „ares“ von comb.",
+        "french": "Variable de sortie `ares` de comb.",
+        "spanish": "Variable de salida `ares` de comb."
+      }
+    }
+  },
+  "delay": {
+    "description": {
+      "english": "Delays an input signal by some time interval. A signal can be read from or written into a delay path, or it can be automatically delayed by some time interval.",
+      "german": "Verzögert ein Eingangssignal um ein bestimmtes Zeitintervall. Ein Signal kann aus einem Verzögerungspfad gelesen oder in diesen geschrieben werden, oder es kann automatisch um ein bestimmtes Zeitintervall verzögert werden.",
+      "french": "Retarde un signal d’entrée d’un certain intervalle de temps. Un signal peut être lu ou écrit dans un chemin de retard, ou il peut être automatiquement retardé d'un certain intervalle de temps.",
+      "spanish": "Retrasa una señal de entrada en algún intervalo de tiempo. Una señal se puede leer o escribir en una ruta de retardo, o se puede retrasar automáticamente en algún intervalo de tiempo."
+    },
+    "inputs": {
+      "asig": {
+        "english": "audio signal",
+        "german": "Audiosignal",
+        "french": "signal sonore",
+        "spanish": "señal de audio"
+      },
+      "idlt": {
+        "english": "requested delay time in seconds. This can be as large as available memory will permit. The space required for n seconds of delay is 4n * sr bytes. It is allocated at the time the instrument is first initialized, and returned to the pool at the end of a score section.",
+        "german": "gewünschte Verzögerungszeit in Sekunden. Dies kann so groß sein, wie der verfügbare Speicher zulässt. Der für n Sekunden Verzögerung erforderliche Speicherplatz beträgt 4n * sr Bytes. Es wird bei der ersten Initialisierung des Instruments zugewiesen und am Ende eines Partiturabschnitts an den Pool zurückgegeben.",
+        "french": "délai demandé en secondes. Cela peut être aussi grand que la mémoire disponible le permet. L'espace requis pour n secondes de délai est de 4n * sr octets. Il est attribué au moment de la première initialisation de l'instrument et renvoyé dans le pool à la fin d'une section de partition.",
+        "spanish": "Tiempo de retraso solicitado en segundos. Puede ser tan grande como lo permita la memoria disponible. El espacio requerido para n segundos de retraso es 4n * sr bytes. Se asigna en el momento en que el instrumento se inicializa por primera vez y se devuelve al grupo al final de una sección de partitura."
+      },
+      "iskip": {
+        "english": "initial disposition of delay-loop data space (see reson ). The default value is 0.",
+        "german": "anfängliche Anordnung des Verzögerungsschleifen-Datenraums (siehe reson ). Der Standardwert ist 0.",
+        "french": "disposition initiale de l'espace de données de boucle à retard (voir reson ). La valeur par défaut est 0.",
+        "spanish": "disposición inicial del espacio de datos del bucle de retardo (ver reson). El valor predeterminado es 0."
+      }
+    },
+    "outputs": {
+      "aout": {
+        "english": "Output variable `ares` from delay.",
+        "german": "Ausgabevariable „ares“ aus der Verzögerung.",
+        "french": "Variable de sortie `ares` du retard.",
+        "spanish": "Variable de salida `ares` del retraso."
+      }
+    }
+  },
+  "delayk": {
+    "description": {
+      "english": "Delays an input signal by some time interval. k-rate delay opcodes",
+      "german": "Verzögert ein Eingangssignal um ein bestimmtes Zeitintervall. K-Rate-Verzögerungs-Opcodes",
+      "french": "Retarde un signal d’entrée d’un certain intervalle de temps. opcodes de retard de taux-k",
+      "spanish": "Retrasa una señal de entrada en algún intervalo de tiempo. códigos de operación de retardo de velocidad k"
+    },
+    "inputs": {
+      "ksig": {
+        "english": "the input signal.",
+        "german": "das Eingangssignal.",
+        "french": "le signal d’entrée.",
+        "spanish": "la señal de entrada."
+      },
+      "idel": {
+        "english": "delay time (in seconds) for delayk. It is rounded to the nearest integer multiple of a k-cycle (i.e. 1/kr).",
+        "german": "Verzögerungszeit (in Sekunden) für Delayk. Es wird auf das nächste ganzzahlige Vielfache eines k-Zyklus gerundet (d. h. 1/kr).",
+        "french": "temps de retard (en secondes) pour delayk. Il est arrondi au multiple entier le plus proche d'un k-cycle (c'est-à-dire 1/kr).",
+        "spanish": "tiempo de retraso (en segundos) para el retrasok. Se redondea al múltiplo entero más cercano de un ciclo k (es decir, 1/kr)."
+      },
+      "imode": {
+        "english": "sum of 1 for skipping initialization (e.g. in tied notes) and 2 for holding the first input value during the initial delay, instead of outputting zero. This is mainly of use when delaying envelopes that do not start at zero.",
+        "german": "Summe aus 1 zum Überspringen der Initialisierung (z. B. bei gebundenen Noten) und 2 zum Halten des ersten Eingabewerts während der anfänglichen Verzögerung, anstatt Null auszugeben. Dies ist vor allem beim Verzögern von Hüllkurven nützlich, die nicht bei Null beginnen.",
+        "french": "somme de 1 pour sauter l'initialisation (par exemple dans les notes liées) et 2 pour maintenir la première valeur d'entrée pendant le délai initial, au lieu de produire zéro. Ceci est principalement utile pour retarder des enveloppes qui ne démarrent pas à zéro.",
+        "spanish": "suma de 1 para omitir la inicialización (por ejemplo, en notas ligadas) y 2 para mantener el primer valor de entrada durante el retraso inicial, en lugar de generar cero. Esto es principalmente útil cuando se retrasan envolventes que no comienzan en cero."
+      }
+    },
+    "outputs": {
+      "kout": {
+        "english": "Output variable `kr` from delayk.",
+        "german": "Ausgabevariable „kr“ von „delayk“.",
+        "french": "Variable de sortie `kr` de delayk.",
+        "spanish": "Variable de salida `kr` de delayk."
+      }
+    }
+  },
+  "delayr": {
+    "description": {
+      "english": "Reads from an automatically established digital delay line.",
+      "german": "Liest von einer automatisch eingerichteten digitalen Verzögerungsleitung.",
+      "french": "Lit à partir d’une ligne à retard numérique établie automatiquement.",
+      "spanish": "Lee desde una línea de retardo digital establecida automáticamente."
+    },
+    "inputs": {
+      "idlt": {
+        "english": "requested delay time in seconds. This can be as large as available memory will permit. The space required for n seconds of delay is 4n * sr bytes. It is allocated at the time the instrument is first initialized, and returned to the pool at the end of a score section.",
+        "german": "gewünschte Verzögerungszeit in Sekunden. Dies kann so groß sein, wie der verfügbare Speicher zulässt. Der für n Sekunden Verzögerung erforderliche Speicherplatz beträgt 4n * sr Bytes. Es wird bei der ersten Initialisierung des Instruments zugewiesen und am Ende eines Partiturabschnitts an den Pool zurückgegeben.",
+        "french": "délai demandé en secondes. Cela peut être aussi grand que la mémoire disponible le permet. L'espace requis pour n secondes de délai est de 4n * sr octets. Il est attribué au moment de la première initialisation de l'instrument et renvoyé dans le pool à la fin d'une section de partition.",
+        "spanish": "Tiempo de retraso solicitado en segundos. Puede ser tan grande como lo permita la memoria disponible. El espacio requerido para n segundos de retraso es 4n * sr bytes. Se asigna en el momento en que el instrumento se inicializa por primera vez y se devuelve al grupo al final de una sección de partitura."
+      },
+      "iskip": {
+        "english": "initial disposition of delay-loop data space (see reson ). The default value is 0.",
+        "german": "anfängliche Anordnung des Verzögerungsschleifen-Datenraums (siehe reson ). Der Standardwert ist 0.",
+        "french": "disposition initiale de l'espace de données de boucle à retard (voir reson ). La valeur par défaut est 0.",
+        "spanish": "disposición inicial del espacio de datos del bucle de retardo (ver reson). El valor predeterminado es 0."
+      }
+    },
+    "outputs": {
+      "aout": {
+        "english": "Output variable `ares` from delayr.",
+        "german": "Ausgabevariable „ares“ vom Verzögerer.",
+        "french": "Variable de sortie `ares` de delayr.",
+        "spanish": "Variable de salida `ares` del retardador."
+      }
+    }
+  },
+  "delayw": {
+    "description": {
+      "english": "Writes the audio signal to a digital delay line.",
+      "german": "Schreibt das Audiosignal auf eine digitale Verzögerungsleitung.",
+      "french": "Écrit le signal audio sur une ligne à retard numérique.",
+      "spanish": "Escribe la señal de audio en una línea de retardo digital."
+    },
+    "inputs": {
+      "asig": {
+        "english": "aIn parameter at audio-rate.",
+        "german": "aIn-Parameter bei Audiorate.",
+        "french": "Paramètre aIn au débit audio.",
+        "spanish": "Parámetro aIn a velocidad de audio."
+      }
+    },
+    "outputs": {}
+  },
+  "deltap": {
+    "description": {
+      "english": "Taps a delay line at variable offset times. Tap a delay line at variable offset times.",
+      "german": "Zapft eine Verzögerungsleitung mit variablen Offset-Zeiten an. Tippen Sie zu variablen Offset-Zeiten auf eine Verzögerungsleitung.",
+      "french": "Exploite une ligne à retard à des temps de décalage variables. Appuyez sur une ligne à retard à des temps de décalage variables.",
+      "spanish": "Toca una línea de retardo en tiempos de compensación variables. Toque una línea de retraso en tiempos de compensación variables."
+    },
+    "inputs": {
+      "kdlt": {
+        "english": "specifies the tapped delay time in seconds. Each can range from 1 control period to the full delay time of the read/write pair; however, since there is no internal check for adherence to this range, the user is wholly responsible. Each argument can be a constant, a variable, or a time-varying signal.",
+        "german": "Gibt die abgegriffene Verzögerungszeit in Sekunden an. Jeder kann von einer Steuerperiode bis zur vollen Verzögerungszeit des Lese-/Schreibpaars reichen; Da es jedoch keine interne Kontrolle zur Einhaltung dieses Bereichs gibt, liegt die alleinige Verantwortung beim Anwender. Jedes Argument kann eine Konstante, eine Variable oder ein zeitlich veränderliches Signal sein.",
+        "french": "spécifie le temps de retard pris en secondes. Chacune peut aller de 1 période de contrôle au temps de retard complet de la paire lecture/écriture; cependant, comme il n’existe aucun contrôle interne du respect de cette plage, l’utilisateur en est entièrement responsable. Chaque argument peut être une constante, une variable ou un signal variable dans le temps.",
+        "spanish": "especifica el tiempo de retardo aprovechado en segundos. Cada uno puede variar desde 1 período de control hasta el tiempo de retardo completo del par de lectura/escritura; sin embargo, dado que no existe un control interno sobre el cumplimiento de este rango, el usuario es totalmente responsable. Cada argumento puede ser una señal constante, variable o variable en el tiempo."
+      }
+    },
+    "outputs": {
+      "aout": {
+        "english": "Output variable `ares` from deltap.",
+        "german": "Ausgabevariable „ares“ von Deltap.",
+        "french": "Variable de sortie `ares` de deltap.",
+        "spanish": "Variable de salida `ares` de deltap."
+      }
+    }
+  },
+  "deltap3": {
+    "description": {
+      "english": "deltap — Taps a delay line at variable offset times, uses cubic interpolation. Taps a delay line at variable offset times, uses cubic interpolation.",
+      "german": "deltap – Taps eine Verzögerungsleitung mit variablen Offset-Zeiten, verwendet kubische Interpolation. Zapft eine Verzögerungsleitung mit variablen Offset-Zeiten an und verwendet kubische Interpolation.",
+      "french": "deltap — Exploite une ligne à retard à des temps de décalage variables, utilise l'interpolation cubique. Exploite une ligne à retard à des temps de décalage variables, utilise l'interpolation cubique.",
+      "spanish": "deltap: toca una línea de retardo en tiempos de compensación variables y utiliza interpolación cúbica. Toca una línea de retardo en tiempos de compensación variables, utiliza interpolación cúbica."
+    },
+    "inputs": {
+      "xdlt": {
+        "english": "specifies the tapped delay time in seconds. Each can range from 1 control period to the full delay time of the read/write pair; however, since there is no internal check for adherence to this range, the user is wholly responsible. Each argument can be a constant, a variable, or a time-varying signal; the xdlt argument in deltap3 implies that an audio-varying delay is permitted there.",
+        "german": "Gibt die abgegriffene Verzögerungszeit in Sekunden an. Jeder kann von einer Steuerperiode bis zur vollen Verzögerungszeit des Lese-/Schreibpaars reichen; Da es jedoch keine interne Kontrolle zur Einhaltung dieses Bereichs gibt, liegt die alleinige Verantwortung beim Anwender. Jedes Argument kann eine Konstante, eine Variable oder ein zeitlich veränderliches Signal sein; Das xdlt-Argument in deltap3 impliziert, dass dort eine audiovariierende Verzögerung zulässig ist.",
+        "french": "spécifie le temps de retard pris en secondes. Chacune peut aller de 1 période de contrôle au temps de retard complet de la paire lecture/écriture; cependant, comme il n’existe aucun contrôle interne du respect de cette plage, l’utilisateur en est entièrement responsable. Chaque argument peut être une constante, une variable ou un signal variable dans le temps; l'argument xdlt dans deltap3 implique qu'un délai variable audio y est autorisé.",
+        "spanish": "especifica el tiempo de retardo aprovechado en segundos. Cada uno puede variar desde 1 período de control hasta el tiempo de retardo completo del par de lectura/escritura; sin embargo, dado que no existe un control interno sobre el cumplimiento de este rango, el usuario es totalmente responsable. Cada argumento puede ser una señal constante, variable o variable en el tiempo; el argumento xdlt en deltap3 implica que allí se permite un retraso variable de audio."
+      }
+    },
+    "outputs": {
+      "aout": {
+        "english": "Output variable `ares` from deltap3.",
+        "german": "Ausgabevariable „ares“ von deltap3.",
+        "french": "Variable de sortie `ares` de deltap3.",
+        "spanish": "Variable de salida `ares` de deltap3."
+      }
+    }
+  },
+  "flanger": {
+    "description": {
+      "english": "A user controlled flanger.",
+      "german": "Ein vom Benutzer gesteuerter Flanger.",
+      "french": "Un flanger contrôlé par l'utilisateur.",
+      "spanish": "Un Flanger controlado por el usuario."
+    },
+    "inputs": {
+      "asig": {
+        "english": "input signal",
+        "german": "Eingangssignal",
+        "french": "signal d'entrée",
+        "spanish": "señal de entrada"
+      },
+      "adel": {
+        "english": "delay in seconds",
+        "german": "Verzögerung in Sekunden",
+        "french": "délai en secondes",
+        "spanish": "retraso en segundos"
+      },
+      "kfeedback": {
+        "english": "feedback amount (in normal tasks this should not exceed 1, even if bigger values are allowed)",
+        "german": "Feedback-Betrag (bei normalen Aufgaben sollte dieser 1 nicht überschreiten, auch wenn größere Werte zulässig sind)",
+        "french": "quantité de feedback (dans les tâches normales, cela ne doit pas dépasser 1, même si des valeurs plus élevées sont autorisées)",
+        "spanish": "cantidad de comentarios (en tareas normales, esto no debe exceder 1, incluso si se permiten valores mayores)"
+      },
+      "imaxd": {
+        "english": "maximum delay in seconds (needed for inital memory allocation)",
+        "german": "maximale Verzögerung in Sekunden (wird für die anfängliche Speicherzuweisung benötigt)",
+        "french": "délai maximum en secondes (nécessaire pour l'allocation de mémoire initiale)",
+        "spanish": "retraso máximo en segundos (necesario para la asignación de memoria inicial)"
+      }
+    },
+    "outputs": {
+      "aout": {
+        "english": "Output variable `ares` from flanger.",
+        "german": "Ausgabevariable „ares“ von Flanger.",
+        "french": "Variable de sortie `ares` de flanger.",
+        "spanish": "Variable de salida `ares` del Flanger."
+      }
+    }
+  },
+  "vdelay3": {
+    "description": {
+      "english": "A variable time delay with cubic interpolation. vdelay3 is experimental. It is the same as vdelay except that it uses cubic interpolation. (New in Version 3.50.)",
+      "german": "Eine variable Zeitverzögerung mit kubischer Interpolation. vdelay3 ist experimentell. Es ist dasselbe wie vdelay, außer dass es kubische Interpolation verwendet. (Neu in Version 3.50.)",
+      "french": "Un délai variable avec interpolation cubique. vdelay3 est expérimental. C'est la même chose que vdelay sauf qu'il utilise une interpolation cubique. (Nouveau dans la version 3.50.)",
+      "spanish": "Un retardo de tiempo variable con interpolación cúbica. vdelay3 es experimental. Es lo mismo que vdelay excepto que utiliza interpolación cúbica. (Nuevo en la versión 3.50.)"
+    },
+    "inputs": {
+      "asig": {
+        "english": "Input signal.",
+        "german": "Eingangssignal.",
+        "french": "Signal d'entrée.",
+        "spanish": "Señal de entrada."
+      },
+      "adel": {
+        "english": "Current value of delay in milliseconds. Note that linear functions have no pitch change effects. Fast changing values of adel will cause discontinuities in the waveform resulting noise.",
+        "german": "Aktueller Wert der Verzögerung in Millisekunden. Beachten Sie, dass lineare Funktionen keine Auswirkungen auf die Tonhöhenänderung haben. Sich schnell ändernde Werte von adel führen zu Diskontinuitäten in der Wellenform, was zu Rauschen führt.",
+        "french": "Valeur actuelle du retard en millisecondes. Notez que les fonctions linéaires n’ont aucun effet de changement de hauteur. Les valeurs changeantes rapides d'adel provoqueront des discontinuités dans la forme d'onde résultant du bruit.",
+        "spanish": "Valor actual del retraso en milisegundos. Tenga en cuenta que las funciones lineales no tienen efectos de cambio de tono. Los valores que cambian rápidamente de adel provocarán discontinuidades en la forma de onda resultante del ruido."
+      },
+      "imd": {
+        "english": "MaxDelay parameter at init-rate.",
+        "german": "MaxDelay-Parameter bei Init-Rate.",
+        "french": "Paramètre MaxDelay au taux d'initialisation.",
+        "spanish": "Parámetro MaxDelay a velocidad inicial."
+      },
+      "iws": {
+        "english": "WindowSize parameter at init-rate.",
+        "german": "WindowSize-Parameter bei Init-Rate.",
+        "french": "Paramètre WindowSize au taux d'initialisation.",
+        "spanish": "Parámetro WindowSize a velocidad inicial."
+      }
+    },
+    "outputs": {
+      "aout": {
+        "english": "Output variable `ares` from vdelay3.",
+        "german": "Ausgabevariable „ares“ von vdelay3.",
+        "french": "Variable de sortie `ares` de vdelay3.",
+        "spanish": "Variable de salida `ares` de vdelay3."
+      }
+    }
+  },
+  "vdelayxs": {
+    "description": {
+      "english": "A stereo variable delay opcode with high quality interpolation.",
+      "german": "Ein Stereo-Opcode mit variabler Verzögerung und hochwertiger Interpolation.",
+      "french": "Un opcode à retard variable stéréo avec interpolation de haute qualité.",
+      "spanish": "Un código de operación de retardo variable estéreo con interpolación de alta calidad."
+    },
+    "inputs": {
+      "asig": {
+        "english": "aIn parameter at audio-rate.",
+        "german": "aIn-Parameter bei Audiorate.",
+        "french": "Paramètre aIn au débit audio.",
+        "spanish": "Parámetro aIn a velocidad de audio."
+      },
+      "adl": {
+        "english": "delay time in seconds",
+        "german": "Verzögerungszeit in Sekunden",
+        "french": "temps de retard en secondes",
+        "spanish": "tiempo de retraso en segundos"
+      },
+      "imaxdel": {
+        "english": "MaxDelay parameter at init-rate.",
+        "german": "MaxDelay-Parameter bei Init-Rate.",
+        "french": "Paramètre MaxDelay au taux d'initialisation.",
+        "spanish": "Parámetro MaxDelay a velocidad inicial."
+      },
+      "isize": {
+        "english": "SincSize parameter at init-rate.",
+        "german": "SincSize-Parameter bei Init-Rate.",
+        "french": "Paramètre SincSize au taux d'initialisation.",
+        "spanish": "Parámetro SincSize a velocidad inicial."
+      },
+      "iws": {
+        "english": "interpolation window size (see below)",
+        "german": "Größe des Interpolationsfensters (siehe unten)",
+        "french": "taille de la fenêtre d'interpolation (voir ci-dessous)",
+        "spanish": "tamaño de la ventana de interpolación (ver más abajo)"
+      }
+    },
+    "outputs": {
+      "aout": {
+        "english": "Output variable `aout1` from vdelayxs.",
+        "german": "Ausgabevariable „aout1“ von vdelayxs.",
+        "french": "Variable de sortie `aout1` de vdelayxs.",
+        "spanish": "Variable de salida `aout1` de vdelayxs."
+      }
+    }
+  },
+  "distort1": {
+    "description": {
+      "english": "Modified hyperbolic tangent distortion. Implementation of modified hyperbolic tangent distortion. distort1 can be used to generate wave shaping distortion based on a modification of the tanh function. exp(asig * (shape1 + pregain)) - exp(asig * (shape2 - pregain)) aout = --------------------------------------------------------------- exp(asig * pregain) + exp(-asig * pregain)",
+      "german": "Modifizierte hyperbolische Tangensverzerrung. Implementierung einer modifizierten hyperbolischen Tangensverzerrung. distort1 kann verwendet werden, um eine Wellenformungsverzerrung basierend auf einer Modifikation der Tanh-Funktion zu erzeugen. exp(asig * (shape1 + pregain)) - exp(asig * (shape2 - pregain)) aout = -------------------------------------------------------------- exp(asig * pregain) + exp(-asig * pregain)",
+      "french": "Distorsion tangente hyperbolique modifiée. Implémentation d'une distorsion tangente hyperbolique modifiée. Distors1 peut être utilisé pour générer une distorsion de mise en forme d'onde basée sur une modification de la fonction tanh. exp(asig * (shape1 + pregain)) - exp(asig * (shape2 - pregain)) aout = --------------------------------------------------------------- exp(asig * pregain) + exp(-asig * pregain)",
+      "spanish": "Distorsión tangente hiperbólica modificada. Implementación de distorsión tangente hiperbólica modificada. Distorsion1 se puede utilizar para generar distorsión de forma de onda basada en una modificación de la función tanh. exp(asig * (forma1 + preganancia)) - exp(asig * (forma2 - preganancia)) aout = --------------------------------------------------------------- exp(asig * preganancia) + exp(-asig * preganancia)"
+    },
+    "inputs": {
+      "asig": {
+        "english": "is the input signal.",
+        "german": "ist das Eingangssignal.",
+        "french": "est le signal d’entrée.",
+        "spanish": "es la señal de entrada."
+      },
+      "kpregain": {
+        "english": "determines the amount of gain applied to the signal before waveshaping. A value of 1 gives slight distortion.",
+        "german": "Bestimmt die Verstärkung, die vor der Wellenformung auf das Signal angewendet wird. Ein Wert von 1 führt zu einer leichten Verzerrung.",
+        "french": "détermine la quantité de gain appliquée au signal avant la mise en forme de l'onde. Une valeur de 1 donne une légère distorsion.",
+        "spanish": "Determina la cantidad de ganancia aplicada a la señal antes de la formación de onda. Un valor de 1 produce una ligera distorsión."
+      },
+      "kpostgain": {
+        "english": "determines the amount of gain applied to the signal after waveshaping.",
+        "german": "Bestimmt die Verstärkung, die nach der Wellenformung auf das Signal angewendet wird.",
+        "french": "détermine la quantité de gain appliquée au signal après la mise en forme de l'onde.",
+        "spanish": "Determina la cantidad de ganancia aplicada a la señal después de la formación de onda."
+      },
+      "kshape1": {
+        "english": "determines the shape of the positive part of the curve. A value of 0 gives a flat clip, small positive values give sloped shaping.",
+        "german": "bestimmt die Form des positiven Teils der Kurve. Ein Wert von 0 ergibt einen flachen Clip, kleine positive Werte ergeben eine geneigte Form.",
+        "french": "détermine la forme de la partie positive de la courbe. Une valeur de 0 donne un clip plat, de petites valeurs positives donnent une forme inclinée.",
+        "spanish": "Determina la forma de la parte positiva de la curva. Un valor de 0 proporciona un clip plano, los valores positivos pequeños dan una forma inclinada."
+      },
+      "kshape2": {
+        "english": "determines the shape of the negative part of the curve.",
+        "german": "bestimmt die Form des negativen Teils der Kurve.",
+        "french": "détermine la forme de la partie négative de la courbe.",
+        "spanish": "Determina la forma de la parte negativa de la curva."
+      },
+      "imode": {
+        "english": "scales kpregain, kpostgain, kshape1, and kshape2 for use with audio signals in the range -32768 to 32768 (imode=0), -0dbfs to 0dbfs (imode=1), or disables scaling of kpregain and kpostgain and scales kshape1 by kpregain and kshape2 by -kpregain (imode=2).",
+        "german": "skaliert kpregain, kpostgain, kshape1 und kshape2 für die Verwendung mit Audiosignalen im Bereich von -32768 bis 32768 (imode=0), -0dbfs bis 0dbfs (imode=1) oder deaktiviert die Skalierung von kpregain und kpostgain und skaliert kshape1 um kpregain und kshape2 um -kpregain (imode=2).",
+        "french": "met à l'échelle kpregain, kpostgain, kshape1 et kshape2 pour une utilisation avec des signaux audio compris entre -32768 et 32768 (imode=0), -0dbfs à 0dbfs (imode=1), ou désactive la mise à l'échelle de kpregain et kpostgain et met à l'échelle kshape1 par kpregain et kshape2 par -kpregain (imode=2).",
+        "spanish": "escala kpregain, kpostgain, kshape1 y kshape2 para usar con señales de audio en el rango -32768 a 32768 (imode=0), -0dbfs a 0dbfs (imode=1), o deshabilita el escalado de kpregain y kpostgain y escala kshape1 por kpregain y kshape2 por -kpregain (imode=2)."
+      }
+    },
+    "outputs": {
+      "aout": {
+        "english": "Output variable `ares` from distort1.",
+        "german": "Ausgabevariable „ares“ von verzerren1.",
+        "french": "Variable de sortie `ares` de distorsion1.",
+        "spanish": "Variable de salida `ares` de distorsionar1."
+      }
+    }
+  },
+  "dam": {
+    "description": {
+      "english": "A dynamic compressor/expander. This opcode dynamically modifies a gain value applied to the input sound ain by comparing its power level to a given threshold level. The signal will be compressed/expanded with different factors regarding that it is over or under the threshold.",
+      "german": "Ein dynamischer Kompressor/Expander. Dieser Opcode modifiziert dynamisch einen auf den Eingangston angewendeten Verstärkungswert, indem er seinen Leistungspegel mit einem bestimmten Schwellenwert vergleicht. Das Signal wird mit unterschiedlichen Faktoren komprimiert/gedehnt, je nachdem, ob es über oder unter dem Schwellenwert liegt.",
+      "french": "Un compresseur/expandeur dynamique. Cet opcode modifie dynamiquement une valeur de gain appliquée au son d'entrée en comparant son niveau de puissance à un niveau de seuil donné. Le signal sera compressé/agrandi avec différents facteurs selon qu'il est supérieur ou inférieur au seuil.",
+      "spanish": "Un compresor/expansor dinámico. Este código de operación modifica dinámicamente un valor de ganancia aplicado al sonido de entrada comparando su nivel de potencia con un nivel de umbral determinado. La señal se comprimirá/ampliará con diferentes factores según esté por encima o por debajo del umbral."
+    },
+    "inputs": {
+      "ain": {
+        "english": "aIn parameter at audio-rate.",
+        "german": "aIn-Parameter bei Audiorate.",
+        "french": "Paramètre aIn au débit audio.",
+        "spanish": "Parámetro aIn a velocidad de audio."
+      },
+      "kthreshold": {
+        "english": "level of input signal which acts as the threshold. Can be changed at k-time (e.g. for ducking)",
+        "german": "Pegel des Eingangssignals, der als Schwelle fungiert. Kann zur k-Zeit geändert werden (z. B. für Ducking)",
+        "french": "niveau du signal d’entrée qui fait office de seuil. Peut être modifié au moment k (par exemple pour esquiver)",
+        "spanish": "Nivel de señal de entrada que actúa como umbral. Se puede cambiar en el momento k (por ejemplo, para agacharse)"
+      },
+      "icomp1": {
+        "english": "compression ratio for upper zone.",
+        "german": "Kompressionsverhältnis für die obere Zone.",
+        "french": "taux de compression pour la zone supérieure.",
+        "spanish": "relación de compresión para la zona superior."
+      },
+      "icomp2": {
+        "english": "compression ratio for lower zone",
+        "german": "Kompressionsverhältnis für die untere Zone",
+        "french": "taux de compression pour la zone inférieure",
+        "spanish": "relación de compresión para la zona inferior"
+      },
+      "irtime": {
+        "english": "gain rise time in seconds. Time over which the gain factor is allowed to raise of one unit.",
+        "german": "Gewinnanstiegszeit in Sekunden. Zeit, in der der Verstärkungsfaktor um eine Einheit erhöht werden darf.",
+        "french": "gagner du temps de montée en secondes. Temps pendant lequel le facteur de gain peut augmenter d’une unité.",
+        "spanish": "ganar tiempo de subida en segundos. Tiempo durante el cual se permite que el factor de ganancia aumente una unidad."
+      },
+      "iftime": {
+        "english": "gain fall time in seconds. Time over which the gain factor is allowed to decrease of one unit.",
+        "german": "Fallzeit in Sekunden gewinnen. Zeit, in der der Verstärkungsfaktor um eine Einheit verringert werden darf.",
+        "french": "gagner du temps de chute en secondes. Temps pendant lequel le facteur de gain peut diminuer d’une unité.",
+        "spanish": "Gana tiempo de caída en segundos. Tiempo durante el cual se permite que el factor de ganancia disminuya una unidad."
+      }
+    },
+    "outputs": {
+      "aout": {
+        "english": "Output variable `ares` from dam.",
+        "german": "Ausgabevariable „ares“ von dam.",
+        "french": "Variable de sortie `ares` du barrage.",
+        "spanish": "Variable de salida `ares` de la presa."
+      }
+    }
+  },
+  "limit": {
+    "description": {
+      "english": "Sets the lower and upper limits of the value it processes.",
+      "german": "Legt die Unter- und Obergrenze des verarbeiteten Werts fest.",
+      "french": "Définit les limites inférieure et supérieure de la valeur qu'il traite.",
+      "spanish": "Establece los límites inferior y superior del valor que procesa."
+    },
+    "inputs": {
+      "xin": {
+        "english": "Input parameter at audio-rate.",
+        "german": "Eingabeparameter bei Audiorate.",
+        "french": "Paramètre d’entrée au débit audio.",
+        "spanish": "Parámetro de entrada a velocidad de audio."
+      },
+      "xmin": {
+        "english": "Min parameter at control-rate.",
+        "german": "Min. Parameter bei Kontrollrate.",
+        "french": "Paramètre minimum au taux de contrôle.",
+        "spanish": "Parámetro mínimo a velocidad de control."
+      },
+      "xmax": {
+        "english": "Max parameter at control-rate.",
+        "german": "Maximaler Parameter bei Kontrollrate.",
+        "french": "Paramètre maximum au taux de contrôle.",
+        "spanish": "Parámetro máximo a velocidad de control."
+      }
+    },
+    "outputs": {
+      "xout": {
+        "english": "Output variable `ares` from limit.",
+        "german": "Ausgabevariable „ares“ vom Grenzwert.",
+        "french": "Variable de sortie `ares` à partir de la limite.",
+        "spanish": "Variable de salida `ares` del límite."
+      }
+    }
+  },
+  "adsr": {
+    "description": {
+      "english": "Calculates the classical ADSR envelope using the linsegr mechanism.",
+      "german": "Berechnet die klassische ADSR-Hüllkurve mithilfe des Linsegr-Mechanismus.",
+      "french": "Calcule l'enveloppe ADSR classique à l'aide du mécanisme linsegr.",
+      "spanish": "Calcula la envolvente ADSR clásica utilizando el mecanismo linsegr."
+    },
+    "inputs": {
+      "iatt": {
+        "english": "duration of attack phase",
+        "german": "Dauer der Angriffsphase",
+        "french": "durée de la phase d'attaque",
+        "spanish": "duración de la fase de ataque"
+      },
+      "idec": {
+        "english": "duration of decay",
+        "german": "Dauer des Verfalls",
+        "french": "durée de la décomposition",
+        "spanish": "duración de la descomposición"
+      },
+      "islev": {
+        "english": "level for sustain phase",
+        "german": "Pegel für die Sustain-Phase",
+        "french": "niveau pour la phase de maintien",
+        "spanish": "nivel para la fase de sostenido"
+      },
+      "irel": {
+        "english": "duration of release phase.",
+        "german": "Dauer der Release-Phase.",
+        "french": "durée de la phase de libération.",
+        "spanish": "duración de la fase de liberación."
+      }
+    },
+    "outputs": {
+      "kenv": {
+        "english": "Output variable `ares` from adsr.",
+        "german": "Ausgabevariable „ares“ von Adsr.",
+        "french": "Variable de sortie `ares` de adsr.",
+        "spanish": "Variable de salida `ares` de adsr."
+      }
+    }
+  },
+  "madsr": {
+    "description": {
+      "english": "Calculates the classical ADSR envelope using the linsegr mechanism.",
+      "german": "Berechnet die klassische ADSR-Hüllkurve mithilfe des Linsegr-Mechanismus.",
+      "french": "Calcule l'enveloppe ADSR classique à l'aide du mécanisme linsegr.",
+      "spanish": "Calcula la envolvente ADSR clásica utilizando el mecanismo linsegr."
+    },
+    "inputs": {
+      "iatt": {
+        "english": "duration of attack phase",
+        "german": "Dauer der Angriffsphase",
+        "french": "durée de la phase d'attaque",
+        "spanish": "duración de la fase de ataque"
+      },
+      "idec": {
+        "english": "duration of decay",
+        "german": "Dauer des Verfalls",
+        "french": "durée de la décomposition",
+        "spanish": "duración de la descomposición"
+      },
+      "islev": {
+        "english": "level for sustain phase",
+        "german": "Pegel für die Sustain-Phase",
+        "french": "niveau pour la phase de maintien",
+        "spanish": "nivel para la fase de sostenido"
+      },
+      "irel": {
+        "english": "duration of release phase.",
+        "german": "Dauer der Release-Phase.",
+        "french": "durée de la phase de libération.",
+        "spanish": "duración de la fase de liberación."
+      },
+      "idel": {
+        "english": "period of zero before the envelope starts",
+        "german": "Periode von Null, bevor die Hüllkurve beginnt",
+        "french": "période de zéro avant le début de l'enveloppe",
+        "spanish": "período de cero antes de que comience el sobre"
+      }
+    },
+    "outputs": {
+      "kenv": {
+        "english": "Output variable `ares` from madsr.",
+        "german": "Ausgabevariable „ares“ von madsr.",
+        "french": "Variable de sortie `ares` de madsr.",
+        "spanish": "Variable de salida `ares` de madsr."
+      }
+    }
+  },
+  "mxadsr": {
+    "description": {
+      "english": "Calculates the classical ADSR envelope using the expsegr mechanism.",
+      "german": "Berechnet die klassische ADSR-Hüllkurve mithilfe des Expsegr-Mechanismus.",
+      "french": "Calcule l'enveloppe ADSR classique à l'aide du mécanisme expsegr.",
+      "spanish": "Calcula la envolvente ADSR clásica utilizando el mecanismo expsegr."
+    },
+    "inputs": {
+      "iatt": {
+        "english": "duration of attack phase",
+        "german": "Dauer der Angriffsphase",
+        "french": "durée de la phase d'attaque",
+        "spanish": "duración de la fase de ataque"
+      },
+      "idec": {
+        "english": "duration of decay",
+        "german": "Dauer des Verfalls",
+        "french": "durée de la décomposition",
+        "spanish": "duración de la descomposición"
+      },
+      "islev": {
+        "english": "level for sustain phase",
+        "german": "Pegel für die Sustain-Phase",
+        "french": "niveau pour la phase de maintien",
+        "spanish": "nivel para la fase de sostenido"
+      },
+      "irel": {
+        "english": "duration of release phase",
+        "german": "Dauer der Release-Phase",
+        "french": "durée de la phase de libération",
+        "spanish": "duración de la fase de liberación"
+      },
+      "idel": {
+        "english": "period of zero before the envelope starts",
+        "german": "Periode von Null, bevor die Hüllkurve beginnt",
+        "french": "période de zéro avant le début de l'enveloppe",
+        "spanish": "período de cero antes de que comience el sobre"
+      },
+      "iatss": {
+        "english": "AttackScale parameter at init-rate.",
+        "german": "AttackScale-Parameter bei Init-Rate.",
+        "french": "Paramètre AttackScale au taux d'initialisation.",
+        "spanish": "Parámetro AttackScale a velocidad inicial."
+      },
+      "idrss": {
+        "english": "ReleaseScale parameter at init-rate.",
+        "german": "ReleaseScale-Parameter bei Init-Rate.",
+        "french": "Paramètre ReleaseScale au taux d'initialisation.",
+        "spanish": "Parámetro ReleaseScale a velocidad inicial."
+      }
+    },
+    "outputs": {
+      "kenv": {
+        "english": "Output variable `ares` from mxadsr.",
+        "german": "Ausgabevariable „ares“ von mxadsr.",
+        "french": "Variable de sortie `ares` de mxadsr.",
+        "spanish": "Variable de salida `ares` de mxadsr."
+      }
+    }
+  },
+  "diode_ladder": {
+    "description": {
+      "english": "Zero-delay feedback implementation of 4 pole diode ladder filter. Zero-delay feedback implementation of a 4 pole (24 dB/oct) diode low-pass filter. This filter design was originally used in the EMS VCS3 and was the resonant filter in the Roland TB-303.",
+      "german": "Verzögerungsfreie Feedback-Implementierung eines 4-poligen Diodenleiterfilters. Verzögerungsfreie Rückkopplungsimplementierung eines 4-poligen (24 dB/Okt.) Dioden-Tiefpassfilters. Dieses Filterdesign wurde ursprünglich im EMS VCS3 verwendet und war der Resonanzfilter im Roland TB-303.",
+      "french": "Implémentation de rétroaction sans délai d'un filtre en échelle de diodes à 4 pôles. Implémentation de rétroaction sans retard d'un filtre passe-bas à diode à 4 pôles (24 dB/oct). Cette conception de filtre était à l'origine utilisée dans l'EMS VCS3 et était le filtre résonant du Roland TB-303.",
+      "spanish": "Implementación de retroalimentación con retardo cero de un filtro de escalera de diodos de 4 polos. Implementación de retroalimentación con retardo cero de un filtro de paso bajo de diodo de 4 polos (24 dB/oct). Este diseño de filtro se usó originalmente en el EMS VCS3 y fue el filtro resonante en el Roland TB-303."
+    },
+    "inputs": {
+      "ain": {
+        "english": "input signal.",
+        "german": "Eingangssignal.",
+        "french": "signal d’entrée.",
+        "spanish": "señal de entrada."
+      },
+      "xcf": {
+        "english": "filter cutoff frequency (i-, k-, or a-rate).",
+        "german": "Filtergrenzfrequenz (i-, k- oder a-Rate).",
+        "french": "fréquence de coupure du filtre (taux i, k ou a).",
+        "spanish": "frecuencia de corte del filtro (velocidad i, k o a)."
+      },
+      "xk": {
+        "english": "filter feedback value k (i-, k-, or a-rate) that controls resonance. Range 0.0-17.0. Self-oscillation occurs at 17.0.",
+        "german": "Filterrückkopplungswert k (i-, k- oder a-Rate), der die Resonanz steuert. Bereich 0,0-17,0. Selbstoszillation tritt bei 17,0 auf.",
+        "french": "valeur de rétroaction du filtre k (taux i, k ou a) qui contrôle la résonance. Plage 0,0-17,0. L'auto-oscillation se produit à 17,0.",
+        "spanish": "valor de retroalimentación de filtro k (velocidad i, k o a) que controla la resonancia. Rango 0,0-17,0. La autooscilación ocurre en 17,0."
+      },
+      "inlp": {
+        "english": "Non-linear processing method. 0 = no processing, 1 = higher-quality NLP, 2 = lower-quality NLP (faster). Method 1 uses (1.0 / tanh(ksaturation)) * tanh(ksaturation * input). Method 2 uses tanh(ksaturation * input). Enabling NLP may increase the overall output of filter above unity and should be compensated for outside of the filter.",
+        "german": "Nichtlineare Verarbeitungsmethode. 0 = keine Verarbeitung, 1 = NLP höherer Qualität, 2 = NLP niedrigerer Qualität (schneller). Methode 1 verwendet (1,0 / tanh(ksaturation)) * tanh(ksaturation * input). Methode 2 verwendet tanh(ksaturation * input). Die Aktivierung von NLP kann die Gesamtausgabe des Filters über eins erhöhen und sollte außerhalb des Filters kompensiert werden.",
+        "french": "Méthode de traitement non linéaire. 0 = aucun traitement, 1 = NLP de meilleure qualité, 2 = NLP de qualité inférieure (plus rapide). La méthode 1 utilise (1.0 / tanh(ksaturation)) * tanh(ksaturation * input). La méthode 2 utilise tanh(ksaturation * input). L'activation du NLP peut augmenter la sortie globale du filtre au-dessus de l'unité et doit être compensée en dehors du filtre.",
+        "spanish": "Método de procesamiento no lineal. 0 = sin procesamiento, 1 = PNL de mayor calidad, 2 = PNL de menor calidad (más rápido). El método 1 usa (1.0 / tanh(ksaturation)) * tanh(ksaturation * input). El método 2 usa tanh (ksaturación * entrada). Habilitar NLP puede aumentar la salida general del filtro por encima de la unidad y debe compensarse fuera del filtro."
+      },
+      "isaturation": {
+        "english": "saturation amount to use for non-linear processing. Values > 1 increase the steepness of the NLP curve.",
+        "german": "Sättigungsbetrag, der für die nichtlineare Verarbeitung verwendet werden soll. Werte > 1 erhöhen die Steilheit der NLP-Kurve.",
+        "french": "quantité de saturation à utiliser pour le traitement non linéaire. Les valeurs > 1 augmentent la pente de la courbe NLP.",
+        "spanish": "Cantidad de saturación que se utilizará para el procesamiento no lineal. Los valores > 1 aumentan la inclinación de la curva PNL."
+      },
+      "istor": {
+        "english": "SkipInit parameter at init-rate.",
+        "german": "SkipInit-Parameter bei Init-Rate.",
+        "french": "Paramètre SkipInit au taux d'initialisation.",
+        "spanish": "Parámetro SkipInit a velocidad inicial."
+      }
+    },
+    "outputs": {
+      "aout": {
+        "english": "Output variable `asig` from diode_ladder.",
+        "german": "Ausgabevariable „asig“ von diode_ladder.",
+        "french": "Variable de sortie `asig` de diode_ladder.",
+        "spanish": "Variable de salida `asig` de diode_ladder."
+      }
+    }
+  },
+  "exciter": {
+    "description": {
+      "english": "A non-linear filter system to excite the signal. Plugin opcode in exciter. \"Filtered distortion to add brilliance to a signal\"",
+      "german": "Ein nichtlineares Filtersystem zur Anregung des Signals. Plugin-Opcode im Exciter. „Gefilterte Verzerrung, um einem Signal Brillanz zu verleihen“",
+      "french": "Un système de filtre non linéaire pour exciter le signal. Opcode du plugin dans l'excitateur. \"Distorsion filtrée pour ajouter de la brillance à un signal\"",
+      "spanish": "Un sistema de filtro no lineal para excitar la señal. Código de operación del complemento en excitador. \"Distorsión filtrada para añadir brillo a una señal\""
+    },
+    "inputs": {
+      "asig": {
+        "english": "input signal",
+        "german": "Eingangssignal",
+        "french": "signal d'entrée",
+        "spanish": "señal de entrada"
+      },
+      "kfreq": {
+        "english": "the lower end of the harmonics created.",
+        "german": "das untere Ende der erzeugten Harmonischen.",
+        "french": "l'extrémité inférieure des harmoniques créées.",
+        "spanish": "el extremo inferior de los armónicos creados."
+      },
+      "kceil": {
+        "english": "the upper end of the harmonics created.",
+        "german": "das obere Ende der erzeugten Harmonischen.",
+        "french": "l'extrémité supérieure des harmoniques créées.",
+        "spanish": "el extremo superior de los armónicos creados."
+      },
+      "kharmonics": {
+        "english": "amount of harmonics in the range 0.1 - 10.",
+        "german": "Anzahl der Harmonischen im Bereich 0,1 - 10.",
+        "french": "quantité d'harmoniques comprise entre 0,1 et 10.",
+        "spanish": "cantidad de armónicos en el rango 0,1 - 10."
+      },
+      "kblend": {
+        "english": "blend between 2nd and 3rd order harmonics in the range -10 - +10.",
+        "german": "Mischung zwischen Harmonischen 2. und 3. Ordnung im Bereich von -10 bis +10.",
+        "french": "mélange entre les harmoniques du 2ème et du 3ème ordre dans la plage -10 - +10.",
+        "spanish": "Mezcla entre armónicos de segundo y tercer orden en el rango -10 - +10."
+      }
+    },
+    "outputs": {
+      "aout": {
+        "english": "Output variable `ares` from exciter.",
+        "german": "Ausgabevariable „ares“ vom Erreger.",
+        "french": "Variable de sortie « ares » de l'excitatrice.",
+        "spanish": "Variable de salida `ares` del excitador."
+      }
+    }
+  },
+  "moogladder": {
+    "description": {
+      "english": "Moog ladder lowpass filter. Moogladder is an new digital implementation of the Moog ladder filter based on the work of Antti Huovilainen, described in the paper \"Non-Linear Digital Implementation of the Moog Ladder Filter\" (Proceedings of DaFX04, Univ of Napoli). This implementation is probably a more accurate digital representation of the original analogue filter.",
+      "german": "Moog-Ladder-Tiefpassfilter. Moogladder ist eine neue digitale Implementierung des Moog-Ladder-Filters, die auf der Arbeit von Antti Huovilainen basiert und im Artikel „Non-Linear Digital Implementation of the Moog Ladder Filter“ (Proceedings of DaFX04, Univ of Napoli) beschrieben wird. Diese Implementierung ist wahrscheinlich eine genauere digitale Darstellung des ursprünglichen analogen Filters.",
+      "french": "Filtre passe-bas en échelle Moog. Moogladder est une nouvelle implémentation numérique du filtre en échelle Moog basée sur le travail d'Antti Huovilainen, décrit dans l'article \"Implémentation numérique non linéaire du filtre en échelle Moog\" (Actes de DaFX04, Univ de Naples). Cette implémentation est probablement une représentation numérique plus précise du filtre analogique original.",
+      "spanish": "Filtro de paso bajo de escalera Moog. Moogladder es una nueva implementación digital del filtro de escalera Moog basada en el trabajo de Antti Huovilainen, descrito en el artículo \"Implementación digital no lineal del filtro de escalera Moog\" (Actas de DaFX04, Univ de Napoli). Esta implementación es probablemente una representación digital más precisa del filtro analógico original."
+    },
+    "inputs": {
+      "ain": {
+        "english": "aIn parameter at audio-rate.",
+        "german": "aIn-Parameter bei Audiorate.",
+        "french": "Paramètre aIn au débit audio.",
+        "spanish": "Parámetro aIn a velocidad de audio."
+      },
+      "kcf": {
+        "english": "filter cutoff frequency",
+        "german": "Grenzfrequenz des Filters",
+        "french": "fréquence de coupure du filtre",
+        "spanish": "frecuencia de corte del filtro"
+      },
+      "kres": {
+        "english": "resonance, generally < 1, but not limited to it. Higher than 1 resonance values might cause aliasing, analogue synths generally allow resonances to be above 1.",
+        "german": "Resonanz, im Allgemeinen < 1, aber nicht darauf beschränkt. Resonanzwerte über 1 können zu Aliasing führen, analoge Synthesizer erlauben im Allgemeinen Resonanzen über 1.",
+        "french": "résonance, généralement < 1, mais sans s'y limiter. Des valeurs de résonance supérieures à 1 peuvent provoquer un alias, les synthés analogiques autorisent généralement des résonances supérieures à 1.",
+        "spanish": "resonancia, generalmente < 1, pero no limitada a ella. Los valores de resonancia superiores a 1 pueden provocar aliasing; los sintetizadores analógicos generalmente permiten que las resonancias estén por encima de 1."
+      }
+    },
+    "outputs": {
+      "aout": {
+        "english": "Output variable `asig` from moogladder.",
+        "german": "Ausgabevariable „asig“ von moogladder.",
+        "french": "Variable de sortie `asig` de moogladder.",
+        "spanish": "Variable de salida `asig` de moogladder."
+      }
+    }
+  },
+  "moogladder2": {
+    "description": {
+      "english": "Moog ladder lowpass filter. Moogladder2 is an new digital implementation of the Moog ladder filter based on the work of Antti Huovilainen, described in the paper \"Non-Linear Digital Implementation of the Moog Ladder Filter\" (Proceedings of DaFX04, Univ of Napoli). This implementation uses approximations to the tanh function and so is faster but less accurate than moogladder.",
+      "german": "Moog-Ladder-Tiefpassfilter. Moogladder2 ist eine neue digitale Implementierung des Moog-Ladder-Filters, die auf der Arbeit von Antti Huovilainen basiert und im Artikel „Non-Linear Digital Implementation of the Moog Ladder Filter“ (Proceedings of DaFX04, Univ of Napoli) beschrieben wird. Diese Implementierung verwendet Näherungen an die Tanh-Funktion und ist daher schneller, aber ungenauer als Moogladder.",
+      "french": "Filtre passe-bas en échelle Moog. Moogladder2 est une nouvelle implémentation numérique du filtre en échelle Moog basée sur le travail d'Antti Huovilainen, décrit dans l'article \"Implémentation numérique non linéaire du filtre en échelle Moog\" (Actes de DaFX04, Univ de Naples). Cette implémentation utilise des approximations de la fonction tanh et est donc plus rapide mais moins précise que moogladder.",
+      "spanish": "Filtro de paso bajo de escalera Moog. Moogladder2 es una nueva implementación digital del filtro de escalera Moog basada en el trabajo de Antti Huovilainen, descrito en el artículo \"Implementación digital no lineal del filtro de escalera Moog\" (Actas de DaFX04, Univ de Napoli). Esta implementación utiliza aproximaciones a la función tanh y, por lo tanto, es más rápida pero menos precisa que moogladder."
+    },
+    "inputs": {
+      "ain": {
+        "english": "aIn parameter at audio-rate.",
+        "german": "aIn-Parameter bei Audiorate.",
+        "french": "Paramètre aIn au débit audio.",
+        "spanish": "Parámetro aIn a velocidad de audio."
+      },
+      "xcf": {
+        "english": "filter cutoff frequency",
+        "german": "Grenzfrequenz des Filters",
+        "french": "fréquence de coupure du filtre",
+        "spanish": "frecuencia de corte del filtro"
+      },
+      "xres": {
+        "english": "resonance, generally < 1, but not limited to it. Higher than 1 resonance values might cause aliasing, analogue synths generally allow resonances to be above 1.",
+        "german": "Resonanz, im Allgemeinen < 1, aber nicht darauf beschränkt. Resonanzwerte über 1 können zu Aliasing führen, analoge Synthesizer erlauben im Allgemeinen Resonanzen über 1.",
+        "french": "résonance, généralement < 1, mais sans s'y limiter. Des valeurs de résonance supérieures à 1 peuvent provoquer un alias, les synthés analogiques autorisent généralement des résonances supérieures à 1.",
+        "spanish": "resonancia, generalmente < 1, pero no limitada a ella. Los valores de resonancia superiores a 1 pueden provocar aliasing; los sintetizadores analógicos generalmente permiten que las resonancias estén por encima de 1."
+      }
+    },
+    "outputs": {
+      "aout": {
+        "english": "Output variable `asig` from moogladder2.",
+        "german": "Ausgabevariable „asig“ von moogladder2.",
+        "french": "Variable de sortie `asig` de moogladder2.",
+        "spanish": "Variable de salida `asig` de moogladder2."
+      }
+    }
+  },
+  "rezzy": {
+    "description": {
+      "english": "A resonant low-pass filter.",
+      "german": "Ein resonanter Tiefpassfilter.",
+      "french": "Un filtre passe-bas résonant.",
+      "spanish": "Un filtro de paso bajo resonante."
+    },
+    "inputs": {
+      "ain": {
+        "english": "aIn parameter at audio-rate.",
+        "german": "aIn-Parameter bei Audiorate.",
+        "french": "Paramètre aIn au débit audio.",
+        "spanish": "Parámetro aIn a velocidad de audio."
+      },
+      "xfco": {
+        "english": "filter cut-off frequency in Hz. As of version 3.50, may i-,k-, or a-rate.",
+        "german": "Filtergrenzfrequenz in Hz. Ab Version 3.50 kann i-, k- oder a-Rate verwendet werden.",
+        "french": "fréquence de coupure du filtre en Hz. À partir de la version 3.50, peut être i-, k- ou a-rate.",
+        "spanish": "Frecuencia de corte del filtro en Hz. A partir de la versión 3.50, puede ser i-,k- o a-rate."
+      },
+      "xres": {
+        "english": "amount of resonance. Values of 1 to 100 are typical. Resonance should be one or greater. As of version 3.50, may a-rate, i-rate, or k-rate.",
+        "german": "Menge an Resonanz. Typisch sind Werte von 1 bis 100. Die Resonanz sollte eins oder größer sein. Ab Version 3.50 können A-Rate, I-Rate oder K-Rate verwendet werden.",
+        "french": "quantité de résonance. Les valeurs de 1 à 100 sont typiques. La résonance doit être égale ou supérieure à 1. À partir de la version 3.50, peut être un taux a, un taux i ou un taux k.",
+        "spanish": "cantidad de resonancia. Los valores típicos de 1 a 100 son. La resonancia debe ser uno o mayor. A partir de la versión 3.50, puede ser a-rate, i-rate o k-rate."
+      },
+      "imode": {
+        "english": "high-pass or low-pass mode. If zero, rezzy is low-pass. If not zero, rezzy is high-pass. Default value is 0. (New in Csound version 3.50)",
+        "german": "Hochpass- oder Tiefpassmodus. Bei Null ist Rezzy ein Tiefpass. Wenn nicht Null, ist Rezzy ein Hochpass. Der Standardwert ist 0. (Neu in Csound Version 3.50)",
+        "french": "mode passe-haut ou passe-bas. Si zéro, rezzy est passe-bas. S'il n'est pas nul, rezzy est passe-haut. La valeur par défaut est 0. (Nouveau dans la version 3.50 de Csound)",
+        "spanish": "modo de paso alto o paso bajo. Si es cero, rezzy es de paso bajo. Si no es cero, rezzy es de paso alto. El valor predeterminado es 0. (Nuevo en la versión 3.50 de Csound)"
+      },
+      "iskip": {
+        "english": "if non zero skip the initialisation of the filter. (New in Csound version 4.23f13 and 5.0)",
+        "german": "Wenn nicht Null, wird die Initialisierung des Filters übersprungen. (Neu in Csound-Version 4.23f13 und 5.0)",
+        "french": "si non nul sauter l'initialisation du filtre. (Nouveau dans Csound version 4.23f13 et 5.0)",
+        "spanish": "si es distinto de cero, omita la inicialización del filtro. (Nuevo en Csound versión 4.23f13 y 5.0)"
+      }
+    },
+    "outputs": {
+      "aout": {
+        "english": "Output variable `ares` from rezzy.",
+        "german": "Ausgabevariable „ares“ von rezzy.",
+        "french": "Variable de sortie `ares` de rezzy.",
+        "spanish": "Variable de salida `ares` de rezzy."
+      }
+    }
+  },
+  "vclpf": {
+    "description": {
+      "english": "Resonant 4pole linear lowpass filter Vclpf is an digital implementation of a standard 4-pole linear analogue filter, similar to the Moog, Arp, and SSM2040/2044 filters, consisting of four identical 1-pole filters with a feedback (resonance or regeneration) path. Unlike the moogladder opcode, this filter does not have any non-linearities, but its implementation preserves the analogue filter topology. The code is based on the work of Federico Fontana, described in the paper \"PRESERVING THE STRUCTURE OF THE MOOG VCF IN THE DIGITAL DOMAIN\" (Proceedings of ICMC 2007).",
+      "german": "Der resonante 4-polige lineare Tiefpassfilter Vclpf ist eine digitale Implementierung eines standardmäßigen 4-poligen linearen Analogfilters, ähnlich den Moog-, Arp- und SSM2040/2044-Filtern, bestehend aus vier identischen 1-poligen Filtern mit einem Rückkopplungspfad (Resonanz oder Regeneration). Im Gegensatz zum Moogladder-Opcode weist dieser Filter keine Nichtlinearitäten auf, aber seine Implementierung behält die analoge Filtertopologie bei. Der Code basiert auf der Arbeit von Federico Fontana, beschrieben im Artikel „PRESERVING THE STRUCTURE OF THE MOOG VCF IN THE DIGITAL DOMAIN“ (Proceedings of ICMC 2007).",
+      "french": "Le filtre passe-bas linéaire résonant à 4 pôles Vclpf est une implémentation numérique d'un filtre analogique linéaire standard à 4 pôles, similaire aux filtres Moog, Arp et SSM2040/2044, composé de quatre filtres unipolaires identiques avec un chemin de rétroaction (résonance ou régénération). Contrairement à l'opcode moogladder, ce filtre n'a aucune non-linéarité, mais son implémentation préserve la topologie du filtre analogique. Le code est basé sur le travail de Federico Fontana, décrit dans l'article \"PRÉSERVER LA STRUCTURE DU MOOG VCF DANS LE DOMAINE NUMÉRIQUE\" (Actes de la CIMC 2007).",
+      "spanish": "El filtro de paso bajo lineal resonante de 4 polos Vclpf es una implementación digital de un filtro analógico lineal estándar de 4 polos, similar a los filtros Moog, Arp y SSM2040/2044, que consta de cuatro filtros idénticos de 1 polo con una ruta de retroalimentación (resonancia o regeneración). A diferencia del código de operación moogladder, este filtro no tiene no linealidades, pero su implementación preserva la topología del filtro analógico. El código se basa en el trabajo de Federico Fontana, descrito en el artículo \"PRESERVING THE STRUCTURE OF THE MOOG VCF IN THE DIGITAL DOMAIN\" (Actas de ICMC 2007)."
+    },
+    "inputs": {
+      "ain": {
+        "english": "aIn parameter at audio-rate.",
+        "german": "aIn-Parameter bei Audiorate.",
+        "french": "Paramètre aIn au débit audio.",
+        "spanish": "Parámetro aIn a velocidad de audio."
+      },
+      "xcf": {
+        "english": "filter cutoff frequency (a- or k-rate)",
+        "german": "Filter-Grenzfrequenz (a- oder k-Rate)",
+        "french": "fréquence de coupure du filtre (taux a ou k)",
+        "spanish": "frecuencia de corte del filtro (velocidad a o k)"
+      },
+      "xres": {
+        "english": "resonance, between 0 and 1. Higher values will make the filter self-oscillate (a- or k-rate).",
+        "german": "Resonanz, zwischen 0 und 1. Höhere Werte bewirken, dass der Filter selbst oszilliert (a- oder k-Rate).",
+        "french": "résonance, entre 0 et 1. Des valeurs plus élevées feront osciller automatiquement le filtre (taux a ou k).",
+        "spanish": "resonancia, entre 0 y 1. Los valores más altos harán que el filtro oscile automáticamente (velocidad a o k)."
+      },
+      "istor": {
+        "english": "SkipInit parameter at init-rate.",
+        "german": "SkipInit-Parameter bei Init-Rate.",
+        "french": "Paramètre SkipInit au taux d'initialisation.",
+        "spanish": "Parámetro SkipInit a velocidad inicial."
+      }
+    },
+    "outputs": {
+      "aout": {
+        "english": "Output variable `asig` from vclpf.",
+        "german": "Ausgabevariable „asig“ von vclpf.",
+        "french": "Variable de sortie `asig` de vclpf.",
+        "spanish": "Variable de salida `asig` de vclpf."
+      }
+    }
+  },
+  "fmb3": {
+    "description": {
+      "english": "Uses FM synthesis to create a Hammond B3 organ sound. It comes from a family of FM sounds, all using 4 basic oscillators and various architectures, as used in the TX81Z synthesizer.",
+      "german": "Verwendet FM-Synthese, um einen Hammond-B3-Orgelklang zu erzeugen. Es stammt aus einer Familie von FM-Sounds, die alle vier Grundoszillatoren und verschiedene Architekturen verwenden, wie sie im Synthesizer TX81Z verwendet werden.",
+      "french": "Utilise la synthèse FM pour créer un son d'orgue Hammond B3. Il est issu d'une famille de sons FM, utilisant tous 4 oscillateurs de base et diverses architectures, tels qu'utilisés dans le synthétiseur TX81Z.",
+      "spanish": "Utiliza síntesis FM para crear un sonido de órgano Hammond B3. Proviene de una familia de sonidos FM, todos usando 4 osciladores básicos y varias arquitecturas, como se usa en el sintetizador TX81Z."
+    },
+    "inputs": {
+      "kamp": {
+        "english": "Amplitude of note.",
+        "german": "Amplitude der Note.",
+        "french": "Amplitude à noter.",
+        "spanish": "Amplitud de nota."
+      },
+      "kfreq": {
+        "english": "Frequency of note played.",
+        "german": "Häufigkeit der gespielten Note.",
+        "french": "Fréquence de la note jouée.",
+        "spanish": "Frecuencia de la nota tocada."
+      },
+      "kindex": {
+        "english": "ModIndex parameter at control-rate.",
+        "german": "ModIndex-Parameter bei Kontrollrate.",
+        "french": "Paramètre ModIndex au taux de contrôle.",
+        "spanish": "Parámetro ModIndex a velocidad de control."
+      },
+      "kcrossfreq": {
+        "english": "CrossFreq parameter at control-rate.",
+        "german": "CrossFreq-Parameter bei Kontrollrate.",
+        "french": "Paramètre CrossFreq au taux de contrôle.",
+        "spanish": "Parámetro CrossFreq a velocidad de control."
+      },
+      "ifn1": {
+        "english": "sine wave",
+        "german": "Sinuswelle",
+        "french": "onde sinusoïdale",
+        "spanish": "onda sinusoidal"
+      },
+      "ifn2": {
+        "english": "sine wave",
+        "german": "Sinuswelle",
+        "french": "onde sinusoïdale",
+        "spanish": "onda sinusoidal"
+      },
+      "ivfn": {
+        "english": "VibratoTable parameter at init-rate.",
+        "german": "VibratoTable-Parameter bei Init-Rate.",
+        "french": "Paramètre VibratoTable au taux d'initialisation.",
+        "spanish": "Parámetro VibratoTable a velocidad inicial."
+      }
+    },
+    "outputs": {
+      "asig": {
+        "english": "Output variable `ares` from fmb3.",
+        "german": "Ausgabevariable „ares“ von fmb3.",
+        "french": "Variable de sortie `ares` de fmb3.",
+        "spanish": "Variable de salida `ares` de fmb3."
+      }
+    }
+  },
+  "fmbell": {
+    "description": {
+      "english": "Uses FM synthesis to create a tublar bell sound. It comes from a family of FM sounds, all using 4 basic oscillators and various architectures, as used in the TX81Z synthesizer.",
+      "german": "Verwendet FM-Synthese, um einen tublaren Glockenklang zu erzeugen. Es stammt aus einer Familie von FM-Sounds, die alle vier Grundoszillatoren und verschiedene Architekturen verwenden, wie sie im Synthesizer TX81Z verwendet werden.",
+      "french": "Utilise la synthèse FM pour créer un son de cloche tubulaire. Il est issu d'une famille de sons FM, utilisant tous 4 oscillateurs de base et diverses architectures, tels qu'utilisés dans le synthétiseur TX81Z.",
+      "spanish": "Utiliza síntesis FM para crear un sonido de campana tubular. Proviene de una familia de sonidos FM, todos usando 4 osciladores básicos y varias arquitecturas, como se usa en el sintetizador TX81Z."
+    },
+    "inputs": {
+      "kamp": {
+        "english": "Amplitude of note.",
+        "german": "Amplitude der Note.",
+        "french": "Amplitude à noter.",
+        "spanish": "Amplitud de nota."
+      },
+      "kfreq": {
+        "english": "Frequency of note played.",
+        "german": "Häufigkeit der gespielten Note.",
+        "french": "Fréquence de la note jouée.",
+        "spanish": "Frecuencia de la nota tocada."
+      },
+      "kc1": {
+        "english": "Controls for the synthesizer:",
+        "german": "Bedienelemente für den Synthesizer:",
+        "french": "Commandes pour le synthétiseur:",
+        "spanish": "Controles para el sintetizador:"
+      },
+      "kc2": {
+        "english": "Controls for the synthesizer:",
+        "german": "Bedienelemente für den Synthesizer:",
+        "french": "Commandes pour le synthétiseur:",
+        "spanish": "Controles para el sintetizador:"
+      },
+      "kvdepth": {
+        "english": "Vibrator depth",
+        "german": "Vibratortiefe",
+        "french": "Profondeur du vibrateur",
+        "spanish": "Profundidad del vibrador"
+      },
+      "ifn1": {
+        "english": "sine wave",
+        "german": "Sinuswelle",
+        "french": "onde sinusoïdale",
+        "spanish": "onda sinusoidal"
+      },
+      "ifn2": {
+        "english": "sine wave",
+        "german": "Sinuswelle",
+        "french": "onde sinusoïdale",
+        "spanish": "onda sinusoidal"
+      },
+      "ivfn": {
+        "english": "VibratoTable parameter at init-rate.",
+        "german": "VibratoTable-Parameter bei Init-Rate.",
+        "french": "Paramètre VibratoTable au taux d'initialisation.",
+        "spanish": "Parámetro VibratoTable a velocidad inicial."
+      }
+    },
+    "outputs": {
+      "asig": {
+        "english": "Output variable `ares` from fmbell.",
+        "german": "Ausgabevariable „ares“ von fmbell.",
+        "french": "Variable de sortie `ares` de fmbell.",
+        "spanish": "Variable de salida `ares` de fmbell."
+      }
+    }
+  },
+  "fmmetal": {
+    "description": {
+      "english": "Uses FM synthesis to create a “ Heavy Metal ” sound. It comes from a family of FM sounds, all using 4 basic oscillators and various architectures, as used in the TX81Z synthesizer.",
+      "german": "Verwendet FM-Synthese, um einen „Heavy Metal“-Sound zu erzeugen. Es stammt aus einer Familie von FM-Sounds, die alle vier Grundoszillatoren und verschiedene Architekturen verwenden, wie sie im Synthesizer TX81Z verwendet werden.",
+      "french": "Utilise la synthèse FM pour créer un son « Heavy Metal ». Il est issu d'une famille de sons FM, utilisant tous 4 oscillateurs de base et diverses architectures, tels qu'utilisés dans le synthétiseur TX81Z.",
+      "spanish": "Utiliza síntesis FM para crear un sonido de “Heavy Metal”. Proviene de una familia de sonidos FM, todos usando 4 osciladores básicos y varias arquitecturas, como se usa en el sintetizador TX81Z."
+    },
+    "inputs": {
+      "kamp": {
+        "english": "Amplitude of note.",
+        "german": "Amplitude der Note.",
+        "french": "Amplitude à noter.",
+        "spanish": "Amplitud de nota."
+      },
+      "kfreq": {
+        "english": "Frequency of note played.",
+        "german": "Häufigkeit der gespielten Note.",
+        "french": "Fréquence de la note jouée.",
+        "spanish": "Frecuencia de la nota tocada."
+      },
+      "kc1": {
+        "english": "Controls for the synthesizer:",
+        "german": "Bedienelemente für den Synthesizer:",
+        "french": "Commandes pour le synthétiseur:",
+        "spanish": "Controles para el sintetizador:"
+      },
+      "kc2": {
+        "english": "Controls for the synthesizer:",
+        "german": "Bedienelemente für den Synthesizer:",
+        "french": "Commandes pour le synthétiseur:",
+        "spanish": "Controles para el sintetizador:"
+      },
+      "kvdepth": {
+        "english": "Vibrator depth",
+        "german": "Vibratortiefe",
+        "french": "Profondeur du vibrateur",
+        "spanish": "Profundidad del vibrador"
+      },
+      "ifn1": {
+        "english": "sine wave",
+        "german": "Sinuswelle",
+        "french": "onde sinusoïdale",
+        "spanish": "onda sinusoidal"
+      },
+      "ifn2": {
+        "english": "twopeaks.aiff",
+        "german": "twopeaks.aiff",
+        "french": "twopeaks.aiff",
+        "spanish": "dospicos.aiff"
+      },
+      "ivfn": {
+        "english": "VibratoTable parameter at init-rate.",
+        "german": "VibratoTable-Parameter bei Init-Rate.",
+        "french": "Paramètre VibratoTable au taux d'initialisation.",
+        "spanish": "Parámetro VibratoTable a velocidad inicial."
+      }
+    },
+    "outputs": {
+      "asig": {
+        "english": "Output variable `ares` from fmmetal.",
+        "german": "Ausgabevariable „ares“ von fmmetal.",
+        "french": "Variable de sortie `ares` de fmmétal.",
+        "spanish": "Variable de salida `ares` de fmmetal."
+      }
+    }
+  },
+  "fmpercfl": {
+    "description": {
+      "english": "Uses FM synthesis to create a percussive flute sound. It comes from a family of FM sounds, all using 4 basic oscillators and various architectures, as used in the TX81Z synthesizer.",
+      "german": "Verwendet FM-Synthese, um einen perkussiven Flötenklang zu erzeugen. Es stammt aus einer Familie von FM-Sounds, die alle vier Grundoszillatoren und verschiedene Architekturen verwenden, wie sie im Synthesizer TX81Z verwendet werden.",
+      "french": "Utilise la synthèse FM pour créer un son de flûte percutant. Il est issu d'une famille de sons FM, utilisant tous 4 oscillateurs de base et diverses architectures, tels qu'utilisés dans le synthétiseur TX81Z.",
+      "spanish": "Utiliza síntesis FM para crear un sonido de flauta de percusión. Proviene de una familia de sonidos FM, todos usando 4 osciladores básicos y varias arquitecturas, como se usa en el sintetizador TX81Z."
+    },
+    "inputs": {
+      "kamp": {
+        "english": "Amplitude of note.",
+        "german": "Amplitude der Note.",
+        "french": "Amplitude à noter.",
+        "spanish": "Amplitud de nota."
+      },
+      "kfreq": {
+        "english": "Frequency of note played.",
+        "german": "Häufigkeit der gespielten Note.",
+        "french": "Fréquence de la note jouée.",
+        "spanish": "Frecuencia de la nota tocada."
+      },
+      "kc1": {
+        "english": "Controls for the synthesizer:",
+        "german": "Bedienelemente für den Synthesizer:",
+        "french": "Commandes pour le synthétiseur:",
+        "spanish": "Controles para el sintetizador:"
+      },
+      "kc2": {
+        "english": "Controls for the synthesizer:",
+        "german": "Bedienelemente für den Synthesizer:",
+        "french": "Commandes pour le synthétiseur:",
+        "spanish": "Controles para el sintetizador:"
+      },
+      "kvdepth": {
+        "english": "Vibrator depth",
+        "german": "Vibratortiefe",
+        "french": "Profondeur du vibrateur",
+        "spanish": "Profundidad del vibrador"
+      },
+      "ifn1": {
+        "english": "sine wave",
+        "german": "Sinuswelle",
+        "french": "onde sinusoïdale",
+        "spanish": "onda sinusoidal"
+      },
+      "ifn2": {
+        "english": "sine wave",
+        "german": "Sinuswelle",
+        "french": "onde sinusoïdale",
+        "spanish": "onda sinusoidal"
+      },
+      "ivfn": {
+        "english": "VibratoTable parameter at init-rate.",
+        "german": "VibratoTable-Parameter bei Init-Rate.",
+        "french": "Paramètre VibratoTable au taux d'initialisation.",
+        "spanish": "Parámetro VibratoTable a velocidad inicial."
+      }
+    },
+    "outputs": {
+      "asig": {
+        "english": "Output variable `ares` from fmpercfl.",
+        "german": "Ausgabevariable „ares“ von fmpercfl.",
+        "french": "Variable de sortie `ares` de fmpercfl.",
+        "spanish": "Variable de salida `ares` de fmpercfl."
+      }
+    }
+  },
+  "fmrhode": {
+    "description": {
+      "english": "Uses FM synthesis to create a Fender Rhodes electric piano sound. It comes from a family of FM sounds, all using 4 basic oscillators and various architectures, as used in the TX81Z synthesizer.",
+      "german": "Verwendet FM-Synthese, um einen Fender Rhodes-E-Piano-Sound zu erzeugen. Es stammt aus einer Familie von FM-Sounds, die alle vier Grundoszillatoren und verschiedene Architekturen verwenden, wie sie im Synthesizer TX81Z verwendet werden.",
+      "french": "Utilise la synthèse FM pour créer un son de piano électrique Fender Rhodes. Il est issu d'une famille de sons FM, utilisant tous 4 oscillateurs de base et diverses architectures, tels qu'utilisés dans le synthétiseur TX81Z.",
+      "spanish": "Utiliza síntesis FM para crear el sonido de un piano eléctrico Fender Rhodes. Proviene de una familia de sonidos FM, todos usando 4 osciladores básicos y varias arquitecturas, como se usa en el sintetizador TX81Z."
+    },
+    "inputs": {
+      "kamp": {
+        "english": "Amplitude of note.",
+        "german": "Amplitude der Note.",
+        "french": "Amplitude à noter.",
+        "spanish": "Amplitud de nota."
+      },
+      "kfreq": {
+        "english": "Frequency of note played.",
+        "german": "Häufigkeit der gespielten Note.",
+        "french": "Fréquence de la note jouée.",
+        "spanish": "Frecuencia de la nota tocada."
+      },
+      "kc1": {
+        "english": "Controls for the synthesizer:",
+        "german": "Bedienelemente für den Synthesizer:",
+        "french": "Commandes pour le synthétiseur:",
+        "spanish": "Controles para el sintetizador:"
+      },
+      "kc2": {
+        "english": "Controls for the synthesizer:",
+        "german": "Bedienelemente für den Synthesizer:",
+        "french": "Commandes pour le synthétiseur:",
+        "spanish": "Controles para el sintetizador:"
+      },
+      "kvdepth": {
+        "english": "Vibrator depth",
+        "german": "Vibratortiefe",
+        "french": "Profondeur du vibrateur",
+        "spanish": "Profundidad del vibrador"
+      },
+      "ifn1": {
+        "english": "sine wave",
+        "german": "Sinuswelle",
+        "french": "onde sinusoïdale",
+        "spanish": "onda sinusoidal"
+      },
+      "ifn2": {
+        "english": "sine wave",
+        "german": "Sinuswelle",
+        "french": "onde sinusoïdale",
+        "spanish": "onda sinusoidal"
+      },
+      "ivfn": {
+        "english": "VibratoTable parameter at init-rate.",
+        "german": "VibratoTable-Parameter bei Init-Rate.",
+        "french": "Paramètre VibratoTable au taux d'initialisation.",
+        "spanish": "Parámetro VibratoTable a velocidad inicial."
+      }
+    },
+    "outputs": {
+      "asig": {
+        "english": "Output variable `ares` from fmrhode.",
+        "german": "Ausgabevariable „ares“ von fmrhode.",
+        "french": "Variable de sortie `ares` de fmrhode.",
+        "spanish": "Variable de salida `ares` de fmrhode."
+      }
+    }
+  },
+  "fmvoice": {
+    "description": {
+      "english": "FM Singing Voice Synthesis",
+      "german": "FM-Gesangsstimmensynthese",
+      "french": "Synthèse vocale chantée FM",
+      "spanish": "Síntesis de voz para canto FM"
+    },
+    "inputs": {
+      "kamp": {
+        "english": "Amplitude of note.",
+        "german": "Amplitude der Note.",
+        "french": "Amplitude à noter.",
+        "spanish": "Amplitud de nota."
+      },
+      "kfreq": {
+        "english": "Frequency of note played.",
+        "german": "Häufigkeit der gespielten Note.",
+        "french": "Fréquence de la note jouée.",
+        "spanish": "Frecuencia de la nota tocada."
+      },
+      "kc1": {
+        "english": "CarrierRatio1 parameter at control-rate.",
+        "german": "CarrierRatio1-Parameter bei Kontrollrate.",
+        "french": "Paramètre CarrierRatio1 au taux de contrôle.",
+        "spanish": "Parámetro CarrierRatio1 a velocidad de control."
+      },
+      "kc2": {
+        "english": "CarrierRatio2 parameter at control-rate.",
+        "german": "CarrierRatio2-Parameter bei Kontrollrate.",
+        "french": "Paramètre CarrierRatio2 au taux de contrôle.",
+        "spanish": "Parámetro CarrierRatio2 a velocidad de control."
+      },
+      "kvdepth": {
+        "english": "VibratoDepth parameter at control-rate.",
+        "german": "VibratoDepth-Parameter bei Kontrollrate.",
+        "french": "Paramètre VibratoDepth au taux de contrôle.",
+        "spanish": "Parámetro VibratoDepth a velocidad de control."
+      },
+      "ifn1": {
+        "english": "Tables, usually of sinewaves. The last is for vibrato",
+        "german": "Tabellen, normalerweise aus Sinuswellen. Der letzte ist für Vibrato",
+        "french": "Tables, généralement d'ondes sinusoïdales. Le dernier est pour le vibrato",
+        "spanish": "Tablas, generalmente de ondas sinusoidales. El último es para vibrato."
+      },
+      "ifn2": {
+        "english": "Tables, usually of sinewaves. The last is for vibrato",
+        "german": "Tabellen, normalerweise aus Sinuswellen. Der letzte ist für Vibrato",
+        "french": "Tables, généralement d'ondes sinusoïdales. Le dernier est pour le vibrato",
+        "spanish": "Tablas, generalmente de ondas sinusoidales. El último es para vibrato."
+      },
+      "ivfn": {
+        "english": "VibratoTable parameter at init-rate.",
+        "german": "VibratoTable-Parameter bei Init-Rate.",
+        "french": "Paramètre VibratoTable au taux d'initialisation.",
+        "spanish": "Parámetro VibratoTable a velocidad inicial."
+      }
+    },
+    "outputs": {
+      "asig": {
+        "english": "Output variable `ares` from fmvoice.",
+        "german": "Ausgabevariable „ares“ von fmvoice.",
+        "french": "Variable de sortie `ares` de fmvoice.",
+        "spanish": "Variable de salida `ares` de fmvoice."
+      }
+    }
+  },
+  "fmwurlie": {
+    "description": {
+      "english": "Uses FM synthesis to create a Wurlitzer electric piano sound. It comes from a family of FM sounds, all using 4 basic oscillators and various architectures, as used in the TX81Z synthesizer.",
+      "german": "Verwendet FM-Synthese, um einen Wurlitzer-E-Piano-Sound zu erzeugen. Es stammt aus einer Familie von FM-Sounds, die alle vier Grundoszillatoren und verschiedene Architekturen verwenden, wie sie im Synthesizer TX81Z verwendet werden.",
+      "french": "Utilise la synthèse FM pour créer un son de piano électrique Wurlitzer. Il est issu d'une famille de sons FM, utilisant tous 4 oscillateurs de base et diverses architectures, tels qu'utilisés dans le synthétiseur TX81Z.",
+      "spanish": "Utiliza síntesis FM para crear un sonido de piano eléctrico Wurlitzer. Proviene de una familia de sonidos FM, todos usando 4 osciladores básicos y varias arquitecturas, como se usa en el sintetizador TX81Z."
+    },
+    "inputs": {
+      "kamp": {
+        "english": "Amplitude of note.",
+        "german": "Amplitude der Note.",
+        "french": "Amplitude à noter.",
+        "spanish": "Amplitud de nota."
+      },
+      "kfreq": {
+        "english": "Frequency of note played.",
+        "german": "Häufigkeit der gespielten Note.",
+        "french": "Fréquence de la note jouée.",
+        "spanish": "Frecuencia de la nota tocada."
+      },
+      "kc1": {
+        "english": "Controls for the synthesizer:",
+        "german": "Bedienelemente für den Synthesizer:",
+        "french": "Commandes pour le synthétiseur:",
+        "spanish": "Controles para el sintetizador:"
+      },
+      "kc2": {
+        "english": "Controls for the synthesizer:",
+        "german": "Bedienelemente für den Synthesizer:",
+        "french": "Commandes pour le synthétiseur:",
+        "spanish": "Controles para el sintetizador:"
+      },
+      "kvdepth": {
+        "english": "Vibrator depth",
+        "german": "Vibratortiefe",
+        "french": "Profondeur du vibrateur",
+        "spanish": "Profundidad del vibrador"
+      },
+      "ifn1": {
+        "english": "sine wave",
+        "german": "Sinuswelle",
+        "french": "onde sinusoïdale",
+        "spanish": "onda sinusoidal"
+      },
+      "ifn2": {
+        "english": "sine wave",
+        "german": "Sinuswelle",
+        "french": "onde sinusoïdale",
+        "spanish": "onda sinusoidal"
+      },
+      "ivfn": {
+        "english": "VibratoTable parameter at init-rate.",
+        "german": "VibratoTable-Parameter bei Init-Rate.",
+        "french": "Paramètre VibratoTable au taux d'initialisation.",
+        "spanish": "Parámetro VibratoTable a velocidad inicial."
+      }
+    },
+    "outputs": {
+      "asig": {
+        "english": "Output variable `ares` from fmwurlie.",
+        "german": "Ausgabevariable „ares“ von fmwurlie.",
+        "french": "Variable de sortie `ares` de fmwurlie.",
+        "spanish": "Variable de salida `ares` de fmwurlie."
+      }
+    }
+  },
+  "a_mul": {
+    "description": {
+      "english": "Multiply two audio signals.",
+      "german": "Multiplizieren Sie zwei Audiosignale.",
+      "french": "Multipliez deux signaux audio.",
+      "spanish": "Multiplica dos señales de audio."
+    },
+    "inputs": {
+      "a": {
+        "english": "A parameter at audio-rate.",
+        "german": "Ein Parameter bei Audiorate.",
+        "french": "Un paramètre au taux audio.",
+        "spanish": "Un parámetro a velocidad de audio."
+      },
+      "b": {
+        "english": "B parameter at audio-rate.",
+        "german": "B-Parameter bei Audiorate.",
+        "french": "Paramètre B au débit audio.",
+        "spanish": "Parámetro B a velocidad de audio."
+      }
+    },
+    "outputs": {
+      "aout": {
+        "english": "aOut audio-rate output.",
+        "german": "aOut Audio-Rate-Ausgabe.",
+        "french": "aOut sortie de débit audio.",
+        "spanish": "aSalida de salida de velocidad de audio."
+      }
+    }
+  },
+  "k_mul": {
+    "description": {
+      "english": "Multiply two control signals.",
+      "german": "Multiplizieren Sie zwei Steuersignale.",
+      "french": "Multipliez deux signaux de commande.",
+      "spanish": "Multiplica dos señales de control."
+    },
+    "inputs": {
+      "a": {
+        "english": "A parameter at control-rate.",
+        "german": "Ein Parameter mit Kontrollrate.",
+        "french": "Un paramètre au taux de contrôle.",
+        "spanish": "Un parámetro a velocidad de control."
+      },
+      "b": {
+        "english": "B parameter at control-rate.",
+        "german": "B-Parameter bei Kontrollrate.",
+        "french": "Paramètre B au taux de contrôle.",
+        "spanish": "Parámetro B a velocidad de control."
+      }
+    },
+    "outputs": {
+      "kout": {
+        "english": "kOut control-rate output.",
+        "german": "kOut-Kontrollratenausgang.",
+        "french": "Sortie de taux de contrôle kOut.",
+        "spanish": "Salida de tasa de control kOut."
+      }
+    }
+  },
+  "cpsmidi": {
+    "description": {
+      "english": "Get the note number of the current MIDI event, expressed in cycles-per-second.",
+      "german": "Ermitteln Sie die Notennummer des aktuellen MIDI-Ereignisses, ausgedrückt in Zyklen pro Sekunde.",
+      "french": "Obtenez le numéro de note de l'événement MIDI en cours, exprimé en cycles par seconde.",
+      "spanish": "Obtenga el número de nota del evento MIDI actual, expresado en ciclos por segundo."
+    },
+    "inputs": {},
+    "outputs": {
+      "kfreq": {
+        "english": "Output variable `icps` from cpsmidi.",
+        "german": "Ausgabevariable „icps“ von cpsmidi.",
+        "french": "Variable de sortie `icps` de cpsmidi.",
+        "spanish": "Variable de salida `icps` de cpsmidi."
+      }
+    }
+  },
+  "midi_note": {
+    "description": {
+      "english": "Get the note number of the current MIDI event, expressed in cycles-per-second.",
+      "german": "Ermitteln Sie die Notennummer des aktuellen MIDI-Ereignisses, ausgedrückt in Zyklen pro Sekunde.",
+      "french": "Obtenez le numéro de note de l'événement MIDI en cours, exprimé en cycles par seconde.",
+      "spanish": "Obtenga el número de nota del evento MIDI actual, expresado en ciclos por segundo."
+    },
+    "inputs": {
+      "gain": {
+        "english": "Gain parameter at init-rate.",
+        "german": "Gain-Parameter bei Init-Rate.",
+        "french": "Paramètre de gain au taux d'initialisation.",
+        "spanish": "Parámetro de ganancia a velocidad inicial."
+      }
+    },
+    "outputs": {
+      "kfreq": {
+        "english": "Output variable `icps` from midi_note.",
+        "german": "Ausgabevariable „icps“ von midi_note.",
+        "french": "Variable de sortie `icps` de midi_note.",
+        "spanish": "Variable de salida `icps` de midi_note."
+      },
+      "kamp": {
+        "english": "kAmp control-rate output.",
+        "german": "kAmp-Steuerratenausgang.",
+        "french": "Sortie à taux de contrôle kAmp.",
+        "spanish": "Salida de tasa de control de kAmp."
+      }
+    }
+  },
+  "midictrl": {
+    "description": {
+      "english": "Get the current value (0-127) of a specified MIDI controller.",
+      "german": "Rufen Sie den aktuellen Wert (0-127) eines angegebenen MIDI-Controllers ab.",
+      "french": "Obtenez la valeur actuelle (0-127) d'un contrôleur MIDI spécifié.",
+      "spanish": "Obtenga el valor actual (0-127) de un controlador MIDI específico."
+    },
+    "inputs": {
+      "inum": {
+        "english": "MIDI controller number (0-127)",
+        "german": "MIDI-Controller-Nummer (0-127)",
+        "french": "Numéro de contrôleur MIDI (0-127)",
+        "spanish": "Número de controlador MIDI (0-127)"
+      },
+      "imin": {
+        "english": "set minimum and maximum limits on values obtained.",
+        "german": "Legen Sie Mindest- und Höchstgrenzen für die erhaltenen Werte fest.",
+        "french": "fixer des limites minimales et maximales aux valeurs obtenues.",
+        "spanish": "establecer límites mínimos y máximos a los valores obtenidos."
+      },
+      "imax": {
+        "english": "set minimum and maximum limits on values obtained.",
+        "german": "Legen Sie Mindest- und Höchstgrenzen für die erhaltenen Werte fest.",
+        "french": "fixer des limites minimales et maximales aux valeurs obtenues.",
+        "spanish": "establecer límites mínimos y máximos a los valores obtenidos."
+      }
+    },
+    "outputs": {
+      "kval": {
+        "english": "Output variable `ival` from midictrl.",
+        "german": "Ausgabevariable „ival“ von midictrl.",
+        "french": "Variable de sortie `ival` de midictrl.",
+        "spanish": "Variable de salida `ival` de midictrl."
+      }
+    }
+  },
+  "mix2": {
+    "description": {
+      "english": "Mix two audio signals.",
+      "german": "Mischen Sie zwei Audiosignale.",
+      "french": "Mélangez deux signaux audio.",
+      "spanish": "Mezcla dos señales de audio."
+    },
+    "inputs": {
+      "a": {
+        "english": "Left parameter at audio-rate.",
+        "german": "Linker Parameter bei Audiorate.",
+        "french": "Paramètre gauche au taux audio.",
+        "spanish": "Parámetro izquierdo a velocidad de audio."
+      },
+      "b": {
+        "english": "Right parameter at audio-rate.",
+        "german": "Richtiger Parameter bei Audiorate.",
+        "french": "Bon paramètre au taux audio.",
+        "spanish": "Parámetro derecho a velocidad de audio."
+      }
+    },
+    "outputs": {
+      "aout": {
+        "english": "aOut audio-rate output.",
+        "german": "aOut Audio-Rate-Ausgabe.",
+        "french": "aOut sortie de débit audio.",
+        "spanish": "aSalida de salida de velocidad de audio."
+      }
+    }
+  },
+  "pan2": {
+    "description": {
+      "english": "Distribute an audio signal across two channels. Distribute an audio signal across two channels with a choice of methods.",
+      "german": "Verteilen Sie ein Audiosignal auf zwei Kanäle. Verteilen Sie ein Audiosignal mit verschiedenen Methoden auf zwei Kanäle.",
+      "french": "Distribuez un signal audio sur deux canaux. Distribuez un signal audio sur deux canaux avec un choix de méthodes.",
+      "spanish": "Distribuir una señal de audio a través de dos canales. Distribuya una señal de audio a través de dos canales con una variedad de métodos."
+    },
+    "inputs": {
+      "asig": {
+        "english": "aIn parameter at audio-rate.",
+        "german": "aIn-Parameter bei Audiorate.",
+        "french": "Paramètre aIn au débit audio.",
+        "spanish": "Parámetro aIn a velocidad de audio."
+      },
+      "xp": {
+        "english": "Pan parameter at control-rate.",
+        "german": "Pan-Parameter bei Kontrollrate.",
+        "french": "Paramètre Pan au taux de contrôle.",
+        "spanish": "Parámetro de panorámica a velocidad de control."
+      },
+      "imode": {
+        "english": "mode of the stereo positioning algorithm. 0 signifies equal power (harmonic) panning, 1 means the square root method, 2 means simple linear and 3 means an alternative equal-power pan (based on an UDO). The default value is 0.",
+        "german": "Modus des Stereopositionierungsalgorithmus. 0 steht für ein harmonisches Schwenken mit gleicher Leistung, 1 für die Quadratwurzelmethode, 2 für ein einfaches lineares Schwenken und 3 für ein alternatives Schwenken mit gleicher Leistung (basierend auf einem UDO). Der Standardwert ist 0.",
+        "french": "mode de l’algorithme de positionnement stéréo. 0 signifie un panoramique à puissance égale (harmonique), 1 signifie la méthode de la racine carrée, 2 signifie un linéaire simple et 3 signifie un panoramique alternatif à puissance égale (basé sur un UDO). La valeur par défaut est 0.",
+        "spanish": "modo del algoritmo de posicionamiento estéreo. 0 significa panorámica de igual potencia (armónica), 1 significa el método de raíz cuadrada, 2 significa lineal simple y 3 significa una panorámica alternativa de igual potencia (basada en un UDO). El valor predeterminado es 0."
+      }
+    },
+    "outputs": {
+      "aleft": {
+        "english": "Output variable `a1` from pan2.",
+        "german": "Ausgabevariable „a1“ von pan2.",
+        "french": "Variable de sortie `a1` de pan2.",
+        "spanish": "Variable de salida `a1` de pan2."
+      },
+      "aright": {
+        "english": "Output variable `a2` from pan2.",
+        "german": "Ausgabevariable „a2“ von pan2.",
+        "french": "Variable de sortie `a2` de pan2.",
+        "spanish": "Variable de salida `a2` de pan2."
+      }
+    }
+  },
+  "lfo": {
+    "description": {
+      "english": "A low frequency oscillator of various shapes.",
+      "german": "Ein Niederfrequenzoszillator in verschiedenen Formen.",
+      "french": "Un oscillateur basse fréquence de différentes formes.",
+      "spanish": "Un oscilador de baja frecuencia de varias formas."
+    },
+    "inputs": {
+      "kamp": {
+        "english": "amplitude of output",
+        "german": "Amplitude der Ausgabe",
+        "french": "amplitude de sortie",
+        "spanish": "amplitud de salida"
+      },
+      "kcps": {
+        "english": "frequency of oscillator",
+        "german": "Frequenz des Oszillators",
+        "french": "fréquence de l'oscillateur",
+        "spanish": "frecuencia del oscilador"
+      },
+      "itype": {
+        "english": "determine the waveform of the oscillator. Default is 0.",
+        "german": "Bestimmen Sie die Wellenform des Oszillators. Der Standardwert ist 0.",
+        "french": "déterminer la forme d'onde de l'oscillateur. La valeur par défaut est 0.",
+        "spanish": "determinar la forma de onda del oscilador. El valor predeterminado es 0."
+      }
+    },
+    "outputs": {
+      "kout": {
+        "english": "Output variable `kres` from lfo.",
+        "german": "Ausgabevariable „kres“ von lfo.",
+        "french": "Variable de sortie `kres` de lfo.",
+        "spanish": "Variable de salida `kres` de lfo."
+      }
+    }
+  },
+  "vibr": {
+    "description": {
+      "english": "Easier-to-use user-controllable vibrato.",
+      "german": "Einfacher zu verwendendes, vom Benutzer steuerbares Vibrato.",
+      "french": "Vibrato contrôlable par l'utilisateur plus facile à utiliser.",
+      "spanish": "Vibrato controlable por el usuario más fácil de usar."
+    },
+    "inputs": {
+      "amp": {
+        "english": "Amplitude parameter at control-rate.",
+        "german": "Amplitudenparameter bei Kontrollrate.",
+        "french": "Paramètre d'amplitude au taux de contrôle.",
+        "spanish": "Parámetro de amplitud a velocidad de control."
+      },
+      "cps": {
+        "english": "Rate parameter at control-rate.",
+        "german": "Rate-Parameter bei Kontrollrate.",
+        "french": "Paramètre de taux au taux de contrôle.",
+        "spanish": "Parámetro de velocidad a velocidad de control."
+      },
+      "ifn": {
+        "english": "Number of vibrato table. It normally contains a sine or a triangle wave.",
+        "german": "Anzahl der Vibratotische. Es enthält normalerweise eine Sinus- oder Dreieckwelle.",
+        "french": "Nombre de table de vibrato. Il contient normalement une onde sinusoïdale ou triangulaire.",
+        "spanish": "Número de mesa de vibrato. Normalmente contiene una onda sinusoidal o triangular."
+      },
+      "iphs": {
+        "english": "Phase parameter at init-rate.",
+        "german": "Phasenparameter bei Init-Rate.",
+        "french": "Paramètre de phase au taux d'initialisation.",
+        "spanish": "Parámetro de fase a velocidad inicial."
+      }
+    },
+    "outputs": {
+      "kout": {
+        "english": "Output variable `kout` from vibr.",
+        "german": "Ausgabevariable „kout“ von vibr.",
+        "french": "Variable de sortie `kout` de vibr.",
+        "spanish": "Variable de salida `kout` de vibr."
+      }
+    }
+  },
+  "vibrato": {
+    "description": {
+      "english": "Generates a natural-sounding user-controllable vibrato.",
+      "german": "Erzeugt ein natürlich klingendes, vom Benutzer steuerbares Vibrato.",
+      "french": "Génère un vibrato au son naturel contrôlable par l'utilisateur.",
+      "spanish": "Genera un vibrato de sonido natural controlable por el usuario."
+    },
+    "inputs": {
+      "kavgamp": {
+        "english": "Average amplitude value of vibrato",
+        "german": "Durchschnittlicher Amplitudenwert des Vibratos",
+        "french": "Valeur d'amplitude moyenne du vibrato",
+        "spanish": "Valor de amplitud promedio del vibrato."
+      },
+      "kavgfreq": {
+        "english": "Average frequency value of vibrato (in cps)",
+        "german": "Durchschnittlicher Frequenzwert des Vibratos (in cps)",
+        "french": "Valeur de fréquence moyenne du vibrato (en cps)",
+        "spanish": "Valor de frecuencia promedio del vibrato (en cps)"
+      },
+      "krandamp": {
+        "english": "RandAmp parameter at control-rate.",
+        "german": "RandAmp-Parameter bei Kontrollrate.",
+        "french": "Paramètre RandAmp au taux de contrôle.",
+        "spanish": "Parámetro RandAmp a velocidad de control."
+      },
+      "krandfreq": {
+        "english": "RandFreq parameter at control-rate.",
+        "german": "RandFreq-Parameter bei Kontrollrate.",
+        "french": "Paramètre RandFreq au taux de contrôle.",
+        "spanish": "Parámetro RandFreq a velocidad de control."
+      },
+      "kampminrate": {
+        "english": "Minimum frequency of random amplitude deviation segments (in cps)",
+        "german": "Minimale Häufigkeit zufälliger Amplitudenabweichungssegmente (in cps)",
+        "french": "Fréquence minimale des segments de déviation d'amplitude aléatoire (en cps)",
+        "spanish": "Frecuencia mínima de segmentos de desviación de amplitud aleatoria (en cps)"
+      },
+      "kampmaxrate": {
+        "english": "Maximum frequency of random amplitude deviation segments (in cps)",
+        "german": "Maximale Häufigkeit zufälliger Amplitudenabweichungssegmente (in cps)",
+        "french": "Fréquence maximale des segments de déviation d'amplitude aléatoire (en cps)",
+        "spanish": "Frecuencia máxima de segmentos de desviación de amplitud aleatoria (en cps)"
+      },
+      "kcpsminrate": {
+        "english": "Minimum frequency of random frequency deviation segments (in cps)",
+        "german": "Mindesthäufigkeit zufälliger Frequenzabweichungssegmente (in cps)",
+        "french": "Fréquence minimale des segments d'écart de fréquence aléatoire (en cps)",
+        "spanish": "Frecuencia mínima de segmentos de desviación de frecuencia aleatoria (en cps)"
+      },
+      "kcpsmaxrate": {
+        "english": "Maximum frequency of random frequency deviation segments (in cps)",
+        "german": "Maximale Häufigkeit zufälliger Frequenzabweichungssegmente (in cps)",
+        "french": "Fréquence maximale des segments d'écart de fréquence aléatoire (en cps)",
+        "spanish": "Frecuencia máxima de segmentos de desviación de frecuencia aleatoria (en cps)"
+      },
+      "ifn": {
+        "english": "Number of vibrato table. It normally contains a sine or a triangle wave.",
+        "german": "Anzahl der Vibratotische. Es enthält normalerweise eine Sinus- oder Dreieckwelle.",
+        "french": "Nombre de table de vibrato. Il contient normalement une onde sinusoïdale ou triangulaire.",
+        "spanish": "Número de mesa de vibrato. Normalmente contiene una onda sinusoidal o triangular."
+      }
+    },
+    "outputs": {
+      "kout": {
+        "english": "Output variable `kout` from vibrato.",
+        "german": "Ausgabevariable „kout“ vom Vibrato.",
+        "french": "Variable de sortie `kout` du vibrato.",
+        "spanish": "Variable de salida `kout` del vibrato."
+      }
+    }
+  },
+  "noise": {
+    "description": {
+      "english": "A white noise generator with an IIR lowpass filter.",
+      "german": "Ein Generator für weißes Rauschen mit einem IIR-Tiefpassfilter.",
+      "french": "Un générateur de bruit blanc avec un filtre passe-bas IIR.",
+      "spanish": "Un generador de ruido blanco con un filtro de paso bajo IIR."
+    },
+    "inputs": {
+      "amp": {
+        "english": "amplitude of final output",
+        "german": "Amplitude der Endausgabe",
+        "french": "amplitude de sortie finale",
+        "spanish": "amplitud de la salida final"
+      },
+      "beta": {
+        "english": "beta of the lowpass filter. Should be in the range of -1 to 1, exclusive of the end-points.",
+        "german": "Beta des Tiefpassfilters. Sollte im Bereich von -1 bis 1 liegen, ausschließlich der Endpunkte.",
+        "french": "bêta du filtre passe-bas. Doit être compris entre -1 et 1, à l'exclusion des points finaux.",
+        "spanish": "beta del filtro de paso bajo. Debe estar en el rango de -1 a 1, excluyendo los puntos finales."
+      },
+      "iseed": {
+        "english": "Seed parameter at init-rate.",
+        "german": "Seed-Parameter bei Init-Rate.",
+        "french": "Paramètre de départ au taux d'initialisation.",
+        "spanish": "Parámetro de semilla a tasa inicial."
+      },
+      "iskip": {
+        "english": "SkipInit parameter at init-rate.",
+        "german": "SkipInit-Parameter bei Init-Rate.",
+        "french": "Paramètre SkipInit au taux d'initialisation.",
+        "spanish": "Parámetro SkipInit a velocidad inicial."
+      }
+    },
+    "outputs": {
+      "aout": {
+        "english": "Output variable `ares` from noise.",
+        "german": "Ausgabevariable „ares“ aus Rauschen.",
+        "french": "Variable de sortie `ares` à partir du bruit.",
+        "spanish": "Variable de salida `ares` del ruido."
+      }
+    }
+  },
+  "pinker": {
+    "description": {
+      "english": "Generates pink noise. Generates pink noise (-3dB/oct response) by the New Shade of Pink algorithm of Stefan Stenzel.",
+      "german": "Erzeugt rosa Rauschen. Erzeugt rosa Rauschen (-3 dB/Okt. Reaktion) durch den New Shade of Pink-Algorithmus von Stefan Stenzel.",
+      "french": "Génère un bruit rose. Génère du bruit rose (réponse de -3 dB/oct) grâce à l'algorithme New Shade of Pink de Stefan Stenzel.",
+      "spanish": "Genera ruido rosa. Genera ruido rosa (respuesta de -3 dB/oct) mediante el algoritmo New Shade of Pink de Stefan Stenzel."
+    },
+    "inputs": {},
+    "outputs": {
+      "aout": {
+        "english": "Output variable `ares` from pinker.",
+        "german": "Ausgabevariable „ares“ von Pinker.",
+        "french": "Variable de sortie `ares` de pinker.",
+        "spanish": "Variable de salida `ares` de pinker."
+      }
+    }
+  },
+  "foscili": {
+    "description": {
+      "english": "Basic frequency modulated oscillator with linear interpolation.",
+      "german": "Grundfrequenzmodulierter Oszillator mit linearer Interpolation.",
+      "french": "Oscillateur de base modulé en fréquence avec interpolation linéaire.",
+      "spanish": "Oscilador básico de frecuencia modulada con interpolación lineal."
+    },
+    "inputs": {
+      "xamp": {
+        "english": "the amplitude of the output signal.",
+        "german": "die Amplitude des Ausgangssignals.",
+        "french": "l'amplitude du signal de sortie.",
+        "spanish": "la amplitud de la señal de salida."
+      },
+      "kcps": {
+        "english": "a common denominator, in cycles per second, for the carrier and modulating frequencies.",
+        "german": "ein gemeinsamer Nenner, in Zyklen pro Sekunde, für die Träger- und Modulationsfrequenzen.",
+        "french": "un dénominateur commun, en cycles par seconde, pour les fréquences porteuses et modulantes.",
+        "spanish": "un denominador común, en ciclos por segundo, para las frecuencias portadora y moduladora."
+      },
+      "xcar": {
+        "english": "a factor that, when multiplied by the kcps parameter, gives the carrier frequency.",
+        "german": "ein Faktor, der, wenn er mit dem kcps-Parameter multipliziert wird, die Trägerfrequenz ergibt.",
+        "french": "un facteur qui, multiplié par le paramètre kcps, donne la fréquence porteuse.",
+        "spanish": "un factor que, cuando se multiplica por el parámetro kcps, da la frecuencia portadora."
+      },
+      "xmod": {
+        "english": "a factor that, when multiplied by the kcps parameter, gives the modulating frequency.",
+        "german": "ein Faktor, der, multipliziert mit dem kcps-Parameter, die Modulationsfrequenz ergibt.",
+        "french": "un facteur qui, multiplié par le paramètre kcps, donne la fréquence de modulation.",
+        "spanish": "un factor que, cuando se multiplica por el parámetro kcps, da la frecuencia de modulación."
+      },
+      "kndx": {
+        "english": "the modulation index.",
+        "german": "der Modulationsindex.",
+        "french": "l'indice de modulation.",
+        "spanish": "el índice de modulación."
+      },
+      "ifn": {
+        "english": "function table number. Requires a wrap-around guard point.",
+        "german": "Funktionstabellennummer. Erfordert einen umlaufenden Schutzpunkt.",
+        "french": "numéro de table de fonctions. Nécessite un point de garde enveloppant.",
+        "spanish": "número de tabla de funciones. Requiere un punto de guardia envolvente."
+      },
+      "iphs": {
+        "english": "initial phase of waveform in table ifn, expressed as a fraction of a cycle (0 to 1). A negative value will cause phase initialization to be skipped. The default value is 0.",
+        "german": "Anfangsphase der Wellenform in Tabelle ifn, ausgedrückt als Bruchteil eines Zyklus (0 bis 1). Ein negativer Wert führt dazu, dass die Phaseninitialisierung übersprungen wird. Der Standardwert ist 0.",
+        "french": "phase initiale de la forme d'onde dans le tableau ifn, exprimée en fraction de cycle (0 à 1). Une valeur négative entraînera le saut de l'initialisation de la phase. La valeur par défaut est 0.",
+        "spanish": "fase inicial de la forma de onda en la tabla ifn, expresada como una fracción de un ciclo (0 a 1). Un valor negativo hará que se omita la inicialización de fase. El valor predeterminado es 0."
+      }
+    },
+    "outputs": {
+      "asig": {
+        "english": "Output variable `ares` from foscili.",
+        "german": "Ausgabevariable „ares“ von foscili.",
+        "french": "Variable de sortie `ares` de foscili.",
+        "spanish": "Variable de salida `ares` de foscili."
+      }
+    }
+  },
+  "oscili": {
+    "description": {
+      "english": "A simple oscillator with linear interpolation. oscili reads table ifn sequentially and repeatedly at a frequency xcps. The amplitude is scaled by xamp. Linear interpolation is applied for table look up from internal phase values.",
+      "german": "Ein einfacher Oszillator mit linearer Interpolation. oscili liest die Tabelle ifn sequentiell und wiederholt mit einer Frequenz von xcps. Die Amplitude wird durch xamp skaliert. Für die Tabellensuche anhand interner Phasenwerte wird lineare Interpolation angewendet.",
+      "french": "Un oscillateur simple avec interpolation linéaire. oscili lit la table ifn de manière séquentielle et répétée à une fréquence xcps. L'amplitude est mise à l'échelle par xamp. L'interpolation linéaire est appliquée pour la recherche de tableau à partir des valeurs de phase internes.",
+      "spanish": "Un oscilador simple con interpolación lineal. oscili lee la tabla ifn de forma secuencial y repetida con una frecuencia xcps. La amplitud está escalada por xamp. Se aplica interpolación lineal para la búsqueda en la tabla a partir de valores de fase internos."
+    },
+    "inputs": {
+      "amp": {
+        "english": "amplitude",
+        "german": "Amplitude",
+        "french": "amplitude",
+        "spanish": "amplitud"
+      },
+      "freq": {
+        "english": "Frequency parameter at control-rate.",
+        "german": "Frequenzparameter bei Kontrollrate.",
+        "french": "Paramètre de fréquence au taux de contrôle.",
+        "spanish": "Parámetro de frecuencia a velocidad de control."
+      },
+      "ifn": {
+        "english": "function table number. Requires a wrap-around guard point. The table number defaults to -1 which indicates a sine wave.",
+        "german": "Funktionstabellennummer. Erfordert einen umlaufenden Schutzpunkt. Die Tabellennummer ist standardmäßig auf -1 eingestellt, was auf eine Sinuswelle hinweist.",
+        "french": "numéro de table de fonctions. Nécessite un point de garde enveloppant. Le numéro du tableau est par défaut -1, ce qui indique une onde sinusoïdale.",
+        "spanish": "número de tabla de funciones. Requiere un punto de guardia envolvente. El número de tabla por defecto es -1, lo que indica una onda sinusoidal."
+      }
+    },
+    "outputs": {
+      "asig": {
+        "english": "Output variable `ares` from oscili.",
+        "german": "Ausgabevariable „ares“ von oscili.",
+        "french": "Variable de sortie `ares` d'oscili.",
+        "spanish": "Variable de salida `ares` de oscili."
+      }
+    }
+  },
+  "poscil3": {
+    "description": {
+      "english": "High precision oscillator with cubic interpolation.",
+      "german": "Hochpräziser Oszillator mit kubischer Interpolation.",
+      "french": "Oscillateur de haute précision avec interpolation cubique.",
+      "spanish": "Oscilador de alta precisión con interpolación cúbica."
+    },
+    "inputs": {
+      "amp": {
+        "english": "the amplitude of the output signal.",
+        "german": "die Amplitude des Ausgangssignals.",
+        "french": "l'amplitude du signal de sortie.",
+        "spanish": "la amplitud de la señal de salida."
+      },
+      "freq": {
+        "english": "Frequency parameter at control-rate.",
+        "german": "Frequenzparameter bei Kontrollrate.",
+        "french": "Paramètre de fréquence au taux de contrôle.",
+        "spanish": "Parámetro de frecuencia a velocidad de control."
+      },
+      "ifn": {
+        "english": "(optional) function table number. This defaults to -1 which indicates a sinewave.",
+        "german": "(optional) Funktionstabellennummer. Der Standardwert ist -1, was auf eine Sinuswelle hinweist.",
+        "french": "(facultatif) numéro de table de fonctions. La valeur par défaut est -1, ce qui indique une onde sinusoïdale.",
+        "spanish": "(opcional) número de tabla de funciones. El valor predeterminado es -1, lo que indica una onda sinusoidal."
+      },
+      "iphs": {
+        "english": "initial phase (normalized table index 0-1). If a negative value is given initialisation of the phase is skipped.",
+        "german": "Anfangsphase (normalisierter Tabellenindex 0-1). Wenn ein negativer Wert angegeben wird, wird die Initialisierung der Phase übersprungen.",
+        "french": "phase initiale (index de table normalisé 0-1). Si une valeur négative est donnée, l'initialisation de la phase est ignorée.",
+        "spanish": "fase inicial (índice de tabla normalizada 0-1). Si se da un valor negativo, se omite la inicialización de la fase."
+      }
+    },
+    "outputs": {
+      "asig": {
+        "english": "Output variable `ares` from poscil3.",
+        "german": "Ausgabevariable „ares“ von poscil3.",
+        "french": "Variable de sortie `ares` de poscil3.",
+        "spanish": "Variable de salida `ares` de poscil3."
+      }
+    }
+  },
+  "vco": {
+    "description": {
+      "english": "Implementation of a band limited, analog modeled oscillator. Implementation of a band limited, analog modeled oscillator, based on integration of band limited impulses. vco can be used to simulate a variety of analog wave forms.",
+      "german": "Implementierung eines bandbegrenzten, analog modellierten Oszillators. Implementierung eines bandbegrenzten, analog modellierten Oszillators, basierend auf der Integration bandbegrenzter Impulse. Mit VCO können verschiedene analoge Wellenformen simuliert werden.",
+      "french": "Implémentation d'un oscillateur modélisé analogique à bande limitée. Implémentation d'un oscillateur modélisé analogique à bande limitée, basé sur l'intégration d'impulsions à bande limitée. vco peut être utilisé pour simuler une variété de formes d’onde analogiques.",
+      "spanish": "Implementación de un oscilador modelado analógico de banda limitada. Implementación de un oscilador modelado analógico de banda limitada, basado en la integración de impulsos de banda limitada. vco se puede utilizar para simular una variedad de formas de onda analógicas."
+    },
+    "inputs": {
+      "amp": {
+        "english": "determines the amplitude",
+        "german": "bestimmt die Amplitude",
+        "french": "détermine l'amplitude",
+        "spanish": "determina la amplitud"
+      },
+      "freq": {
+        "english": "Frequency parameter at control-rate.",
+        "german": "Frequenzparameter bei Kontrollrate.",
+        "french": "Paramètre de fréquence au taux de contrôle.",
+        "spanish": "Parámetro de frecuencia a velocidad de control."
+      },
+      "iwave": {
+        "english": "determines the waveform:",
+        "german": "bestimmt die Wellenform:",
+        "french": "détermine la forme d'onde:",
+        "spanish": "determina la forma de onda:"
+      },
+      "kpw": {
+        "english": "determines either the pulse width (if iwave is 2) or the saw/ramp character (if iwave is 3) The value of kpw should be greater than 0 and less than 1. A value of 0.5 will generate either a square wave (if iwave is 2) or a triangle wave (if iwave is 3).",
+        "german": "bestimmt entweder die Impulsbreite (wenn iwave 2 ist) oder den Sägezahn-/Rampencharakter (wenn iwave 3 ist). Der Wert von kpw sollte größer als 0 und kleiner als 1 sein. Ein Wert von 0,5 erzeugt entweder eine Rechteckwelle (wenn iwave 2 ist) oder eine Dreieckswelle (wenn iwave 3 ist).",
+        "french": "détermine soit la largeur d'impulsion (si iwave est 2), soit le caractère scie/rampe (si iwave est 3). La valeur de kpw doit être supérieure à 0 et inférieure à 1. Une valeur de 0,5 générera soit une onde carrée (si iwave est 2), soit une onde triangulaire (si iwave est 3).",
+        "spanish": "determina el ancho del pulso (si iwave es 2) o el carácter de sierra/rampa (si iwave es 3). El valor de kpw debe ser mayor que 0 y menor que 1. Un valor de 0,5 generará una onda cuadrada (si iwave es 2) o una onda triangular (si iwave es 3)."
+      },
+      "ifn": {
+        "english": "Must point to a valid table which contains a sine wave. Csound will report an error if this parameter is not set and table 1 does not exist.",
+        "german": "Muss auf eine gültige Tabelle verweisen, die eine Sinuswelle enthält. Csound meldet einen Fehler, wenn dieser Parameter nicht gesetzt ist und Tabelle 1 nicht existiert.",
+        "french": "Doit pointer vers un tableau valide contenant une onde sinusoïdale. Csound signalera une erreur si ce paramètre n'est pas défini et que la table 1 n'existe pas.",
+        "spanish": "Debe apuntar a una tabla válida que contenga una onda sinusoidal. Csound informará un error si este parámetro no está configurado y la tabla 1 no existe."
+      }
+    },
+    "outputs": {
+      "asig": {
+        "english": "Output variable `ares` from vco.",
+        "german": "Ausgabevariable „ares“ von vco.",
+        "french": "Variable de sortie `ares` de vco.",
+        "spanish": "Variable de salida `ares` de vco."
+      }
+    }
+  },
+  "vco2": {
+    "description": {
+      "english": "Implementation of a band-limited oscillator using pre-calculated tables. vco2 is similar to vco. But the implementation uses pre-calculated tables of band-limited waveforms (see also GEN30 ) rather than integrating impulses. This opcode can be faster than vco (especially if a low control-rate is used) and also allows better sound quality. Additionally, there are more waveforms and oscillator phase can be modulated at k-rate. The disadvantage is increased memory usage. For more details about vco2 tables, see also vco2init and vco2ft.",
+      "german": "Implementierung eines bandbegrenzten Oszillators mithilfe vorberechneter Tabellen. vco2 ähnelt vco. Die Implementierung verwendet jedoch vorberechnete Tabellen bandbegrenzter Wellenformen (siehe auch GEN30) anstelle der Integration von Impulsen. Dieser Opcode kann schneller als VCO sein (insbesondere wenn eine niedrige Steuerrate verwendet wird) und ermöglicht außerdem eine bessere Klangqualität. Darüber hinaus gibt es mehr Wellenformen und die Oszillatorphase kann mit der K-Rate moduliert werden. Der Nachteil ist die erhöhte Speichernutzung. Weitere Einzelheiten zu vco2-Tabellen finden Sie auch unter vco2init und vco2ft.",
+      "french": "Implémentation d'un oscillateur à bande limitée à l'aide de tables pré-calculées. vco2 est similaire à vco. Mais l'implémentation utilise des tableaux pré-calculés de formes d'onde à bande limitée (voir aussi GEN30 ) plutôt que d'intégrer des impulsions. Cet opcode peut être plus rapide que vco (surtout si un faible taux de contrôle est utilisé) et permet également une meilleure qualité sonore. De plus, il existe davantage de formes d’onde et la phase de l’oscillateur peut être modulée au taux-k. L'inconvénient est une utilisation accrue de la mémoire. Pour plus de détails sur les tables vco2, voir également vco2init et vco2ft.",
+      "spanish": "Implementación de un oscilador de banda limitada mediante tablas precalculadas. vco2 es similar a vco. Pero la implementación utiliza tablas precalculadas de formas de onda de banda limitada (ver también GEN30) en lugar de integrar impulsos. Este código de operación puede ser más rápido que vco (especialmente si se usa una velocidad de control baja) y también permite una mejor calidad de sonido. Además, hay más formas de onda y la fase del oscilador se puede modular a velocidad k. La desventaja es el mayor uso de memoria. Para obtener más detalles sobre las tablas vco2, consulte también vco2init y vco2ft."
+    },
+    "inputs": {
+      "kamp": {
+        "english": "amplitude scale. In the case of a imode waveform value of 6 (a pulse waveform), the actual output level can be a lot higher than this value.",
+        "german": "Amplitudenskala. Bei einem Imode-Wellenformwert von 6 (einer Impulswellenform) kann der tatsächliche Ausgangspegel viel höher als dieser Wert sein.",
+        "french": "échelle d'amplitude. Dans le cas d'une valeur de forme d'onde imode de 6 (une forme d'onde d'impulsion), le niveau de sortie réel peut être bien supérieur à cette valeur.",
+        "spanish": "escala de amplitud. En el caso de un valor de forma de onda de modo de 6 (una forma de onda de pulso), el nivel de salida real puede ser mucho mayor que este valor."
+      },
+      "kcps": {
+        "english": "frequency in Hz (should be in the range - sr /2 to sr /2).",
+        "german": "Frequenz in Hz (sollte im Bereich - sr /2 bis sr /2 liegen).",
+        "french": "fréquence en Hz (doit être comprise entre - sr /2 et sr /2).",
+        "spanish": "frecuencia en Hz (debe estar en el rango - sr /2 a sr /2)."
+      },
+      "imode": {
+        "english": "a sum of values representing the waveform and its control values.",
+        "german": "eine Summe von Werten, die die Wellenform und ihre Steuerwerte darstellen.",
+        "french": "une somme de valeurs représentant la forme d'onde et ses valeurs de contrôle.",
+        "spanish": "una suma de valores que representan la forma de onda y sus valores de control."
+      },
+      "kpw": {
+        "english": "the pulse width of the square wave ( imode waveform=2) or the ramp characteristics of the triangle wave ( imode waveform=4). It is required only by these waveforms and ignored in all other cases. The expected range is 0 to 1, any other value is wrapped to the allowed range.",
+        "german": "die Impulsbreite der Rechteckwelle (Imode-Wellenform=2) oder die Rampencharakteristik der Dreieckwelle (Imode-Wellenform=4). Es ist nur für diese Wellenformen erforderlich und wird in allen anderen Fällen ignoriert. Der erwartete Bereich liegt zwischen 0 und 1, alle anderen Werte werden in den zulässigen Bereich eingeschlossen.",
+        "french": "la largeur d'impulsion de l'onde carrée (forme d'onde imode = 2) ou les caractéristiques de rampe de l'onde triangulaire (forme d'onde imode = 4). Elle est requise uniquement pour ces formes d'onde et ignorée dans tous les autres cas. La plage attendue est comprise entre 0 et 1, toute autre valeur est renvoyée à la plage autorisée.",
+        "spanish": "el ancho de pulso de la onda cuadrada (forma de onda imodo=2) o las características de rampa de la onda triangular (forma de onda imodo=4). Sólo lo requieren estas formas de onda y se ignora en todos los demás casos. El rango esperado es de 0 a 1; cualquier otro valor se ajusta al rango permitido."
+      },
+      "kphs": {
+        "english": "oscillator phase (depending on imode, this can be either an optional i-rate parameter that defaults to zero or required k-rate). Similarly to kpw, the expected range is 0 to 1.",
+        "german": "Oszillatorphase (je nach Imode kann dies entweder ein optionaler i-Rate-Parameter sein, der standardmäßig auf Null steht, oder die erforderliche k-Rate). Ähnlich wie bei kpw liegt der erwartete Bereich zwischen 0 und 1.",
+        "french": "phase de l'oscillateur (en fonction de l'imode, il peut s'agir soit d'un paramètre de taux-i facultatif dont la valeur par défaut est zéro, soit du taux-k requis). De la même manière que kpw, la plage attendue est de 0 à 1.",
+        "spanish": "fase del oscilador (dependiendo del modo, puede ser un parámetro de velocidad i opcional que por defecto es cero o una velocidad k requerida). De manera similar a kpw, el rango esperado es de 0 a 1."
+      },
+      "inyx": {
+        "english": "bandwidth of the generated waveform, as percentage (0 to 1) of the sample rate. The expected range is 0 to 0.5 (i.e. up to sr /2), other values are limited to the allowed range.",
+        "german": "Bandbreite der erzeugten Wellenform als Prozentsatz (0 bis 1) der Abtastrate. Der erwartete Bereich liegt zwischen 0 und 0,5 (also bis zu sr /2), andere Werte sind auf den erlaubten Bereich beschränkt.",
+        "french": "bande passante de la forme d'onde générée, en pourcentage (0 à 1) de la fréquence d'échantillonnage. La plage attendue est de 0 à 0,5 (c'est-à-dire jusqu'à sr /2), les autres valeurs sont limitées à la plage autorisée.",
+        "spanish": "ancho de banda de la forma de onda generada, como porcentaje (0 a 1) de la frecuencia de muestreo. El rango esperado es de 0 a 0,5 (es decir, hasta sr /2), otros valores están limitados al rango permitido."
+      }
+    },
+    "outputs": {
+      "asig": {
+        "english": "Output variable `ares` from vco2.",
+        "german": "Ausgabevariable „ares“ von vco2.",
+        "french": "Variable de sortie `ares` de vco2.",
+        "spanish": "Variable de salida `ares` de vco2."
+      }
+    }
+  },
+  "outs": {
+    "description": {
+      "english": "Writes stereo audio data to an external device or stream.",
+      "german": "Schreibt Stereo-Audiodaten auf ein externes Gerät oder einen Stream.",
+      "french": "Écrit des données audio stéréo sur un périphérique ou un flux externe.",
+      "spanish": "Escribe datos de audio estéreo en un dispositivo o transmisión externa."
+    },
+    "inputs": {
+      "left": {
+        "english": "Left parameter at audio-rate.",
+        "german": "Linker Parameter bei Audiorate.",
+        "french": "Paramètre gauche au taux audio.",
+        "spanish": "Parámetro izquierdo a velocidad de audio."
+      },
+      "right": {
+        "english": "Right parameter at audio-rate.",
+        "german": "Richtiger Parameter bei Audiorate.",
+        "french": "Bon paramètre au taux audio.",
+        "spanish": "Parámetro derecho a velocidad de audio."
+      }
+    },
+    "outputs": {}
+  },
+  "dripwater": {
+    "description": {
+      "english": "Semi-physical model of a water drop. dripwater is a semi-physical model of a water drop. It is one of the PhISEM percussion opcodes. PhISEM (Physically Informed Stochastic Event Modeling) is an algorithmic approach for simulating collisions of multiple independent sound producing objects.",
+      "german": "Halbphysikalisches Modell eines Wassertropfens. Dripwater ist ein halbphysikalisches Modell eines Wassertropfens. Es ist einer der PhISEM-Percussion-Opcodes. PhISEM (Physically Informed Stochastic Event Modeling) ist ein algorithmischer Ansatz zur Simulation von Kollisionen mehrerer unabhängiger schallerzeugender Objekte.",
+      "french": "Modèle semi-physique d'une goutte d'eau. dripwater est un modèle semi-physique d'une goutte d'eau. C'est l'un des opcodes de percussion PhISEM. PhISEM (Physically Informed Stochastic Event Modeling) est une approche algorithmique permettant de simuler les collisions de plusieurs objets indépendants produisant du son.",
+      "spanish": "Modelo semifísico de una gota de agua. El agua de goteo es un modelo semifísico de una gota de agua. Es uno de los códigos de operación de percusión de PhISEM. PhISEM (Modelado de eventos estocásticos con información física) es un enfoque algorítmico para simular colisiones de múltiples objetos productores de sonido independientes."
+    },
+    "inputs": {
+      "kamp": {
+        "english": "Amplitude of output. Note: As these instruments are stochastic, this is only an approximation.",
+        "german": "Amplitude der Ausgabe. Hinweis: Da diese Instrumente stochastisch sind, handelt es sich hierbei nur um eine Näherung.",
+        "french": "Amplitude de sortie. Remarque: Ces instruments étant stochastiques, il ne s’agit que d’une approximation.",
+        "spanish": "Amplitud de producción. Nota: Como estos instrumentos son estocásticos, esto es sólo una aproximación."
+      },
+      "idettack": {
+        "english": "period of time over which all sound is stopped",
+        "german": "Zeitraum, in dem jeglicher Ton gestoppt wird",
+        "french": "période de temps pendant laquelle tous les sons sont arrêtés",
+        "spanish": "Período de tiempo durante el cual se detiene todo sonido."
+      },
+      "inum": {
+        "english": "The number of beads, teeth, bells, timbrels, etc. If zero, the default value is 10.",
+        "german": "Die Anzahl der Perlen, Zähne, Glocken, Timbrels usw. Bei Null ist der Standardwert 10.",
+        "french": "Le nombre de perles, dents, cloches, tambourins, etc. Si zéro, la valeur par défaut est 10.",
+        "spanish": "El número de cuentas, dientes, campanas, panderos, etc. Si es cero, el valor predeterminado es 10."
+      },
+      "idamp": {
+        "english": "the damping factor, as part of this equation:",
+        "german": "der Dämpfungsfaktor als Teil dieser Gleichung:",
+        "french": "le facteur d'amortissement, dans le cadre de cette équation:",
+        "spanish": "el factor de amortiguación, como parte de esta ecuación:"
+      },
+      "imaxshake": {
+        "english": "amount of energy to add back into the system. The value should be in range 0 to 1.",
+        "german": "Energiemenge, die dem System wieder zugeführt werden muss. Der Wert sollte im Bereich von 0 bis 1 liegen.",
+        "french": "quantité d'énergie à réinjecter dans le système. La valeur doit être comprise entre 0 et 1.",
+        "spanish": "cantidad de energía para agregar nuevamente al sistema. El valor debe estar en el rango de 0 a 1."
+      },
+      "ifreq": {
+        "english": "the main resonant frequency. The default value is 450.",
+        "german": "die Hauptresonanzfrequenz. Der Standardwert ist 450.",
+        "french": "la fréquence de résonance principale. La valeur par défaut est 450.",
+        "spanish": "la frecuencia de resonancia principal. El valor predeterminado es 450."
+      },
+      "ifreq1": {
+        "english": "the first resonant frequency. The default value is 600.",
+        "german": "die erste Resonanzfrequenz. Der Standardwert ist 600.",
+        "french": "la première fréquence de résonance. La valeur par défaut est 600.",
+        "spanish": "la primera frecuencia de resonancia. El valor predeterminado es 600."
+      },
+      "ifreq2": {
+        "english": "the second resonant frequency. The default value is 750.",
+        "german": "die zweite Resonanzfrequenz. Der Standardwert ist 750.",
+        "french": "la deuxième fréquence de résonance. La valeur par défaut est 750.",
+        "spanish": "la segunda frecuencia de resonancia. El valor predeterminado es 750."
+      }
+    },
+    "outputs": {
+      "asig": {
+        "english": "Output variable `ares` from dripwater.",
+        "german": "Ausgabevariable „ares“ aus Tropfwasser.",
+        "french": "Variable de sortie `ares` du goutte-à-goutte.",
+        "spanish": "Variable de salida `ares` del agua de goteo."
+      }
+    }
+  },
+  "marimba": {
+    "description": {
+      "english": "Physical model related to the striking of a wooden block. Audio output is a tone related to the striking of a wooden block as found in a marimba. The method is a physical model developed from Perry Cook but re-coded for Csound.",
+      "german": "Physikalisches Modell zum Schlagen eines Holzblocks. Bei der Audioausgabe handelt es sich um einen Ton, der mit dem Anschlagen eines Holzblocks, wie er in einer Marimba zu finden ist, verbunden ist. Die Methode ist ein physikalisches Modell, das von Perry Cook entwickelt, aber für Csound neu codiert wurde.",
+      "french": "Modèle physique lié à la frappe d'un bloc de bois. La sortie audio est une tonalité liée à la frappe d'un bloc de bois comme dans un marimba. La méthode est un modèle physique développé par Perry Cook mais recodé pour Csound.",
+      "spanish": "Modelo físico relacionado con el golpe de un bloque de madera. La salida de audio es un tono relacionado con el golpe de un bloque de madera como el que se encuentra en una marimba. El método es un modelo físico desarrollado por Perry Cook pero recodificado para Csound."
+    },
+    "inputs": {
+      "kamp": {
+        "english": "Amplitude of note.",
+        "german": "Amplitude der Note.",
+        "french": "Amplitude à noter.",
+        "spanish": "Amplitud de nota."
+      },
+      "kfreq": {
+        "english": "Frequency of note played.",
+        "german": "Häufigkeit der gespielten Note.",
+        "french": "Fréquence de la note jouée.",
+        "spanish": "Frecuencia de la nota tocada."
+      },
+      "ihrd": {
+        "english": "the hardness of the stick used in the strike. A range of 0 to 1 is used. 0.5 is a suitable value.",
+        "german": "die Härte des beim Schlag verwendeten Stocks. Es wird ein Bereich von 0 bis 1 verwendet. 0,5 ist ein geeigneter Wert.",
+        "french": "la dureté du bâton utilisé lors de la frappe. Une plage de 0 à 1 est utilisée. 0,5 est une valeur appropriée.",
+        "spanish": "la dureza del palo utilizado en el golpe. Se utiliza un rango de 0 a 1. 0,5 es un valor adecuado."
+      },
+      "ipos": {
+        "english": "where the block is hit, in the range 0 to 1.",
+        "german": "wo der Block getroffen wird, im Bereich 0 bis 1.",
+        "french": "où le bloc est touché, dans la plage 0 à 1.",
+        "spanish": "donde se golpea el bloque, en el rango de 0 a 1."
+      },
+      "imp": {
+        "english": "a table of the strike impulses. The file marmstk1.wav is a suitable function from measurements and can be loaded with a GEN01 table. It is also available at ftp://ftp.cs.bath.ac.uk/pub/dream/documentation/sounds/modelling/.",
+        "german": "eine Tabelle der Schlagimpulse. Die Datei marmstk1.wav ist eine geeignete Funktion aus Messungen und kann mit einer GEN01-Tabelle geladen werden. Es ist auch unter ftp://ftp.cs.bath.ac.uk/pub/dream/documentation/sounds/modelling/ verfügbar.",
+        "french": "un tableau des impulsions de grève. Le fichier marmstk1.wav est une fonction adaptée à partir de mesures et peut être chargé avec une table GEN01. Il est également disponible sur ftp://ftp.cs.bath.ac.uk/pub/dream/documentation/sounds/modelling/.",
+        "spanish": "una tabla de los impulsos de huelga. El archivo marmstk1.wav es una función adecuada a partir de mediciones y se puede cargar con una tabla GEN01. También está disponible en ftp://ftp.cs.bath.ac.uk/pub/dream/documentation/sounds/modelling/."
+      },
+      "kvibf": {
+        "english": "frequency of vibrato in Hertz. Suggested range is 0 to 12",
+        "german": "Frequenz des Vibratos in Hertz. Der empfohlene Bereich liegt zwischen 0 und 12",
+        "french": "fréquence du vibrato en Hertz. La plage suggérée est de 0 à 12",
+        "spanish": "Frecuencia del vibrato en Hertz. El rango sugerido es de 0 a 12"
+      },
+      "kvamp": {
+        "english": "amplitude of the vibrato",
+        "german": "Amplitude des Vibratos",
+        "french": "amplitude du vibrato",
+        "spanish": "amplitud del vibrato"
+      },
+      "ivibfn": {
+        "english": "VibratoTable parameter at init-rate.",
+        "german": "VibratoTable-Parameter bei Init-Rate.",
+        "french": "Paramètre VibratoTable au taux d'initialisation.",
+        "spanish": "Parámetro VibratoTable a velocidad inicial."
+      },
+      "idec": {
+        "english": "time before end of note when damping is introduced",
+        "german": "Zeit vor dem Ende der Note, wenn die Dämpfung eingeführt wird",
+        "french": "temps avant la fin de la note lorsque l'amortissement est introduit",
+        "spanish": "tiempo antes del final de la nota cuando se introduce la amortiguación"
+      },
+      "idoubles": {
+        "english": "percentage of double strikes. Default is 40%.",
+        "german": "Prozentsatz der Doppelschläge. Der Standardwert ist 40 %.",
+        "french": "pourcentage de doubles frappes. La valeur par défaut est de 40 %.",
+        "spanish": "porcentaje de dobles strikes. El valor predeterminado es 40%."
+      },
+      "itriples": {
+        "english": "percentage of triple strikes. Default is 20%.",
+        "german": "Prozentsatz der Dreifachschläge. Der Standardwert beträgt 20 %.",
+        "french": "pourcentage de triples frappes. La valeur par défaut est de 20 %.",
+        "spanish": "porcentaje de triples strikes. El valor predeterminado es el 20%."
+      }
+    },
+    "outputs": {
+      "asig": {
+        "english": "Output variable `ares` from marimba.",
+        "german": "Ausgabevariable „ares“ aus Marimba.",
+        "french": "Variable de sortie `ares` de marimba.",
+        "spanish": "Variable de salida `ares` de marimba."
+      }
+    }
+  },
+  "pluck": {
+    "description": {
+      "english": "Produces a naturally decaying plucked string or drum sound. Audio output is a naturally decaying plucked string or drum sound based on the Karplus-Strong algorithms.",
+      "german": "Erzeugt einen natürlich ausklingenden Klang einer gezupften Saite oder einer Trommel. Bei der Audioausgabe handelt es sich um einen natürlich ausklingenden Klang einer gezupften Saite oder eines Schlagzeugs, der auf den Karplus-Strong-Algorithmen basiert.",
+      "french": "Produit un son de corde pincée ou de batterie en décomposition naturelle. La sortie audio est un son de corde pincée ou de batterie à déclin naturel basé sur les algorithmes Karplus-Strong.",
+      "spanish": "Produce un sonido de cuerda o tambor pulsado que decae naturalmente. La salida de audio es un sonido de batería o cuerda pulsada que decae naturalmente según los algoritmos de Karplus-Strong."
+    },
+    "inputs": {
+      "kamp": {
+        "english": "the output amplitude.",
+        "german": "die Ausgangsamplitude.",
+        "french": "l'amplitude de sortie.",
+        "spanish": "la amplitud de salida."
+      },
+      "kcps": {
+        "english": "the resampling frequency in cycles-per-second.",
+        "german": "die Resampling-Frequenz in Zyklen pro Sekunde.",
+        "french": "la fréquence de rééchantillonnage en cycles par seconde.",
+        "spanish": "la frecuencia de remuestreo en ciclos por segundo."
+      },
+      "icps": {
+        "english": "intended pitch value in Hz, used to set up a buffer of 1 cycle of audio samples which will be smoothed over time by a chosen decay method. icps normally anticipates the value of kcps, but may be set artificially high or low to influence the size of the sample buffer.",
+        "german": "beabsichtigter Tonhöhenwert in Hz, der zum Einrichten eines Puffers mit einem Zyklus von Audio-Samples verwendet wird, der im Laufe der Zeit durch eine ausgewählte Abklingmethode geglättet wird. icps nimmt normalerweise den Wert von kcps vorweg, kann jedoch künstlich hoch oder niedrig eingestellt werden, um die Größe des Beispielpuffers zu beeinflussen.",
+        "french": "valeur de hauteur prévue en Hz, utilisée pour configurer un tampon de 1 cycle d'échantillons audio qui sera lissé au fil du temps par une méthode de décroissance choisie. icps anticipe normalement la valeur de kcps, mais peut être réglé artificiellement haut ou bas pour influencer la taille du tampon d'échantillon.",
+        "spanish": "Valor de tono previsto en Hz, que se utiliza para configurar un búfer de 1 ciclo de muestras de audio que se suavizarán con el tiempo mediante un método de caída elegido. icps normalmente anticipa el valor de kcps, pero puede establecerse artificialmente alto o bajo para influir en el tamaño del búfer de muestra."
+      },
+      "ifn": {
+        "english": "table number of a stored function used to initialize the cyclic decay buffer. If ifn = 0, a random sequence will be used instead.",
+        "german": "Tabellennummer einer gespeicherten Funktion, die zum Initialisieren des zyklischen Abklingpuffers verwendet wird. Wenn ifn = 0, wird stattdessen eine Zufallsfolge verwendet.",
+        "french": "numéro de table d’une fonction stockée utilisée pour initialiser le tampon de décroissance cyclique. Si ifn = 0, une séquence aléatoire sera utilisée à la place.",
+        "spanish": "Número de tabla de una función almacenada utilizada para inicializar el búfer de caída cíclica. Si ifn = 0, en su lugar se utilizará una secuencia aleatoria."
+      },
+      "imeth": {
+        "english": "method of natural decay. There are six, some of which use parameters values that follow.",
+        "german": "Methode des natürlichen Verfalls. Es gibt sechs, von denen einige die folgenden Parameterwerte verwenden.",
+        "french": "méthode de décomposition naturelle. Il y en a six, dont certains utilisent les valeurs des paramètres qui suivent.",
+        "spanish": "método de descomposición natural. Hay seis, algunos de los cuales utilizan los valores de parámetros que aparecen a continuación."
+      },
+      "iparm1": {
+        "english": "parameter values for use by the smoothing algorithms (above). The default values are both 0.",
+        "german": "Parameterwerte zur Verwendung durch die Glättungsalgorithmen (oben). Die Standardwerte sind beide 0.",
+        "french": "valeurs des paramètres à utiliser par les algorithmes de lissage (ci-dessus). Les valeurs par défaut sont toutes deux 0.",
+        "spanish": "valores de parámetros para su uso por los algoritmos de suavizado (arriba). Los valores predeterminados son ambos 0."
+      }
+    },
+    "outputs": {
+      "asig": {
+        "english": "Output variable `ares` from pluck.",
+        "german": "Ausgabevariable „ares“ von pluck.",
+        "french": "Variable de sortie `ares` de Pluck.",
+        "spanish": "Variable de salida `ares` de pluck."
+      }
+    }
+  },
+  "wgflute": {
+    "description": {
+      "english": "Creates a tone similar to a flute. Audio output is a tone similar to a flute, using a physical model developed from Perry Cook, but re-coded for Csound.",
+      "german": "Erzeugt einen flötenähnlichen Ton. Bei der Audioausgabe handelt es sich um einen Flötenton, der ein von Perry Cook entwickeltes, aber für Csound neu codiertes physikalisches Modell verwendet.",
+      "french": "Crée un son semblable à celui d'une flûte. La sortie audio est un son similaire à celui d'une flûte, utilisant un modèle physique développé par Perry Cook, mais recodé pour Csound.",
+      "spanish": "Crea un tono similar a una flauta. La salida de audio es un tono similar al de una flauta, utilizando un modelo físico desarrollado por Perry Cook, pero recodificado para Csound."
+    },
+    "inputs": {
+      "kamp": {
+        "english": "Amplitude of note.",
+        "german": "Amplitude der Note.",
+        "french": "Amplitude à noter.",
+        "spanish": "Amplitud de nota."
+      },
+      "kfreq": {
+        "english": "Frequency of note played. While it can be varied in performance, I have not tried it.",
+        "german": "Häufigkeit der gespielten Note. Obwohl die Leistung variiert werden kann, habe ich es noch nicht ausprobiert.",
+        "french": "Fréquence de la note jouée. Bien que ses performances puissent varier, je ne l’ai pas essayé.",
+        "spanish": "Frecuencia de la nota tocada. Si bien puede variar su rendimiento, no lo he probado."
+      },
+      "kjet": {
+        "english": "a parameter controlling the air jet. Values should be positive, and about 0.3. The useful range is approximately 0.08 to 0.56.",
+        "german": "ein Parameter, der den Luftstrahl steuert. Die Werte sollten positiv sein und etwa 0,3 betragen. Der nutzbare Bereich liegt bei etwa 0,08 bis 0,56.",
+        "french": "un paramètre contrôlant le jet d’air. Les valeurs doivent être positives et environ 0,3. La plage utile est d'environ 0,08 à 0,56.",
+        "spanish": "un parámetro que controla el chorro de aire. Los valores deben ser positivos y alrededor de 0,3. El rango útil es aproximadamente de 0,08 a 0,56."
+      },
+      "iatt": {
+        "english": "time in seconds to reach full blowing pressure. 0.1 seems to correspond to reasonable playing.",
+        "german": "Zeit in Sekunden, um den vollen Blasdruck zu erreichen. 0,1 scheint einem vernünftigen Spiel zu entsprechen.",
+        "french": "temps en secondes pour atteindre la pleine pression de soufflage. 0,1 semble correspondre à un jeu raisonnable.",
+        "spanish": "tiempo en segundos para alcanzar la presión de soplado total. 0,1 parece corresponder a un juego razonable."
+      },
+      "idetk": {
+        "english": "time in seconds taken to stop blowing. 0.1 is a smooth ending",
+        "german": "Zeit in Sekunden, die benötigt wird, um mit dem Blasen aufzuhören. 0,1 ist ein sanftes Ende",
+        "french": "temps en secondes nécessaire pour arrêter de souffler. 0.1 est une fin en douceur",
+        "spanish": "Tiempo en segundos necesario para dejar de soplar. 0.1 es un final suave"
+      },
+      "kngain": {
+        "english": "amplitude of the noise component, about 0 to 0.5",
+        "german": "Amplitude der Rauschkomponente etwa 0 bis 0,5",
+        "french": "amplitude de la composante de bruit, environ 0 à 0,5",
+        "spanish": "amplitud del componente de ruido, aproximadamente 0 a 0,5"
+      },
+      "kvibf": {
+        "english": "frequency of vibrato in Hertz. Suggested range is 0 to 12",
+        "german": "Frequenz des Vibratos in Hertz. Der empfohlene Bereich liegt zwischen 0 und 12",
+        "french": "fréquence du vibrato en Hertz. La plage suggérée est de 0 à 12",
+        "spanish": "Frecuencia del vibrato en Hertz. El rango sugerido es de 0 a 12"
+      },
+      "kvamp": {
+        "english": "amplitude of the vibrato",
+        "german": "Amplitude des Vibratos",
+        "french": "amplitude du vibrato",
+        "spanish": "amplitud del vibrato"
+      },
+      "ifn": {
+        "english": "table of shape of vibrato, defaults to the usual sine table.",
+        "german": "Tabelle der Vibratoformen, standardmäßig die übliche Sinustabelle.",
+        "french": "table de forme du vibrato, par défaut la table sinusoïdale habituelle.",
+        "spanish": "tabla de forma de vibrato, por defecto es la tabla de senos habitual."
+      },
+      "iminfreq": {
+        "english": "lowest frequency at which the instrument will play. If it is omitted it is taken to be the same as the initial kfreq. If iminfreq is negative, initialization will be skipped.",
+        "german": "niedrigste Frequenz, mit der das Instrument spielt. Wenn es weggelassen wird, wird davon ausgegangen, dass es mit dem anfänglichen kfreq übereinstimmt. Wenn iminfreq negativ ist, wird die Initialisierung übersprungen.",
+        "french": "fréquence la plus basse à laquelle l'instrument jouera. S'il est omis, il est considéré comme étant le même que le kfreq initial. Si iminfreq est négatif, l'initialisation sera ignorée.",
+        "spanish": "frecuencia más baja a la que tocará el instrumento. Si se omite, se considera igual que la kfreq inicial. Si iminfreq es negativo, se omitirá la inicialización."
+      }
+    },
+    "outputs": {
+      "asig": {
+        "english": "Output variable `ares` from wgflute.",
+        "german": "Ausgabevariable „ares“ von wgflute.",
+        "french": "Variable de sortie `ares` de wgflute.",
+        "spanish": "Variable de salida `ares` de wgflute."
+      }
+    }
+  },
+  "wguide2": {
+    "description": {
+      "english": "A model of beaten plate consisting of two parallel delay-lines and two first-order lowpass filters.",
+      "german": "Ein Modell einer geschlagenen Platte, bestehend aus zwei parallelen Verzögerungsleitungen und zwei Tiefpassfiltern erster Ordnung.",
+      "french": "Un modèle de plaque battue composé de deux lignes à retard parallèles et de deux filtres passe-bas du premier ordre.",
+      "spanish": "Un modelo de placa batida que consta de dos líneas de retardo paralelas y dos filtros de paso bajo de primer orden."
+    },
+    "inputs": {
+      "asig": {
+        "english": "the input of excitation noise",
+        "german": "die Eingabe von Anregungsrauschen",
+        "french": "l'entrée du bruit d'excitation",
+        "spanish": "la entrada de ruido de excitación"
+      },
+      "xfreq": {
+        "english": "Frequency parameter at control-rate.",
+        "german": "Frequenzparameter bei Kontrollrate.",
+        "french": "Paramètre de fréquence au taux de contrôle.",
+        "spanish": "Parámetro de frecuencia a velocidad de control."
+      },
+      "xcutoff": {
+        "english": "Cutoff parameter at control-rate.",
+        "german": "Cutoff-Parameter bei Kontrollrate.",
+        "french": "Paramètre de coupure au taux de contrôle.",
+        "spanish": "Parámetro de corte a velocidad de control."
+      },
+      "kfeedback": {
+        "english": "Feedback parameter at control-rate.",
+        "german": "Feedback-Parameter bei Kontrollrate.",
+        "french": "Paramètre de rétroaction au taux de contrôle.",
+        "spanish": "Parámetro de retroalimentación a velocidad de control."
+      }
+    },
+    "outputs": {
+      "aout": {
+        "english": "Output variable `ares` from wguide2.",
+        "german": "Ausgabevariable „ares“ von wguide2.",
+        "french": "Variable de sortie `ares` de wguide2.",
+        "spanish": "Variable de salida `ares` de wguide2."
+      }
+    }
+  },
+  "reverb2": {
+    "description": {
+      "english": "Same as the nreverb opcode.",
+      "german": "Identisch mit dem nreverb-Opcode.",
+      "french": "Identique à l'opcode nreverb.",
+      "spanish": "Igual que el código de operación de nreverb."
+    },
+    "inputs": {
+      "asig": {
+        "english": "aIn parameter at audio-rate.",
+        "german": "aIn-Parameter bei Audiorate.",
+        "french": "Paramètre aIn au débit audio.",
+        "spanish": "Parámetro aIn a velocidad de audio."
+      },
+      "krvt": {
+        "english": "ReverbTime parameter at control-rate.",
+        "german": "ReverbTime-Parameter bei Kontrollrate.",
+        "french": "Paramètre ReverbTime au taux de contrôle.",
+        "spanish": "Parámetro ReverbTime a velocidad de control."
+      },
+      "khf": {
+        "english": "HighFreqDamp parameter at control-rate.",
+        "german": "HighFreqDamp-Parameter bei Kontrollrate.",
+        "french": "Paramètre HighFreqDamp au taux de contrôle.",
+        "spanish": "Parámetro HighFreqDamp a velocidad de control."
+      },
+      "israte": {
+        "english": "SampleRateScale parameter at init-rate.",
+        "german": "SampleRateScale-Parameter bei Init-Rate.",
+        "french": "Paramètre SampleRateScale au taux d'initialisation.",
+        "spanish": "Parámetro SampleRateScale en velocidad inicial."
+      },
+      "iskip": {
+        "english": "SkipInit parameter at init-rate.",
+        "german": "SkipInit-Parameter bei Init-Rate.",
+        "french": "Paramètre SkipInit au taux d'initialisation.",
+        "spanish": "Parámetro SkipInit a velocidad inicial."
+      }
+    },
+    "outputs": {
+      "aout": {
+        "english": "Output variable `ares` from reverb2.",
+        "german": "Ausgabevariable „ares“ von reverb2.",
+        "french": "Variable de sortie `ares` de reverb2.",
+        "spanish": "Variable de salida `ares` de reverb2."
+      }
+    }
+  },
+  "ftgen": {
+    "description": {
+      "english": "Generate a score function table from within the orchestra.",
+      "german": "Generieren Sie eine Partitur-Funktionstabelle innerhalb des Orchesters.",
+      "french": "Générez une table de fonctions de partition à partir de l'orchestre.",
+      "spanish": "Genere una tabla de funciones de partitura desde dentro de la orquesta."
+    },
+    "inputs": {
+      "ifn": {
+        "english": "requested table number If ifn is zero, the number is assigned automatically and the value placed in gir. Any other value is used as the table number",
+        "german": "angeforderte Tabellennummer Wenn ifn Null ist, wird die Nummer automatisch zugewiesen und der Wert in gir platziert. Als Tabellennummer wird jeder andere Wert verwendet",
+        "french": "numéro de table demandé Si ifn est nul, le numéro est attribué automatiquement et la valeur placée dans gir. Toute autre valeur est utilisée comme numéro de table",
+        "spanish": "número de tabla solicitado Si ifn es cero, el número se asigna automáticamente y el valor se coloca en gir. Cualquier otro valor se utiliza como número de tabla."
+      },
+      "itime": {
+        "english": "is ignored, but otherwise corresponds to p2 in the score f statement.",
+        "german": "wird ignoriert, entspricht aber ansonsten p2 in der Score-f-Anweisung.",
+        "french": "est ignoré, mais correspond autrement à p2 dans l'instruction score f.",
+        "spanish": "se ignora, pero por lo demás corresponde a p2 en la declaración de puntuación f."
+      },
+      "isize": {
+        "english": "table size. Corresponds to p3 of the score f statement.",
+        "german": "Tischgröße. Entspricht p3 der Score-f-Anweisung.",
+        "french": "taille du tableau. Correspond à p3 de l’énoncé score f.",
+        "spanish": "tamaño de la mesa. Corresponde a p3 de la puntuación f enunciado."
+      },
+      "igen": {
+        "english": "function table GEN routine. Corresponds to p4 of the score f statement.",
+        "german": "Funktionstabelle GEN-Routine. Entspricht p4 der Score-f-Anweisung.",
+        "french": "table de fonctions routine GEN. Correspond à p4 de l'énoncé score f.",
+        "spanish": "tabla de funciones rutina GEN. Corresponde a la p4 del enunciado de puntuación f."
+      },
+      "iarg1": {
+        "english": "Arg1 parameter at init-rate.",
+        "german": "Arg1-Parameter bei Init-Rate.",
+        "french": "Paramètre Arg1 au taux d'initialisation.",
+        "spanish": "Parámetro Arg1 a velocidad inicial."
+      },
+      "iarg2": {
+        "english": "Arg2 parameter at init-rate.",
+        "german": "Arg2-Parameter bei Init-Rate.",
+        "french": "Paramètre Arg2 au taux d'initialisation.",
+        "spanish": "Parámetro Arg2 a velocidad inicial."
+      },
+      "iarg3": {
+        "english": "Arg3 parameter at init-rate.",
+        "german": "Arg3-Parameter bei Init-Rate.",
+        "french": "Paramètre Arg3 au taux d'initialisation.",
+        "spanish": "Parámetro Arg3 a velocidad inicial."
+      },
+      "iarg4": {
+        "english": "Arg4 parameter at init-rate.",
+        "german": "Arg4-Parameter bei Init-Rate.",
+        "french": "Paramètre Arg4 au taux d'initialisation.",
+        "spanish": "Parámetro Arg4 a velocidad inicial."
+      },
+      "iarg5": {
+        "english": "Arg5 parameter at init-rate.",
+        "german": "Arg5-Parameter bei Init-Rate.",
+        "french": "Paramètre Arg5 au taux d'initialisation.",
+        "spanish": "Parámetro Arg5 a velocidad inicial."
+      },
+      "iarg6": {
+        "english": "Arg6 parameter at init-rate.",
+        "german": "Arg6-Parameter bei Init-Rate.",
+        "french": "Paramètre Arg6 au taux d'initialisation.",
+        "spanish": "Parámetro Arg6 a velocidad inicial."
+      },
+      "iarg7": {
+        "english": "Arg7 parameter at init-rate.",
+        "german": "Arg7-Parameter bei Init-Rate.",
+        "french": "Paramètre Arg7 au taux d'initialisation.",
+        "spanish": "Parámetro Arg7 a velocidad inicial."
+      },
+      "iarg8": {
+        "english": "Arg8 parameter at init-rate.",
+        "german": "Arg8-Parameter bei Init-Rate.",
+        "french": "Paramètre Arg8 au taux d'initialisation.",
+        "spanish": "Parámetro Arg8 a velocidad inicial."
+      }
+    },
+    "outputs": {
+      "ift": {
+        "english": "Output variable `gir` from ftgen.",
+        "german": "Ausgabevariable „gir“ von ftgen.",
+        "french": "Variable de sortie `gir` de ftgen.",
+        "spanish": "Variable de salida `gir` de ftgen."
+      }
+    }
+  },
+  "ftgenonce": {
+    "description": {
+      "english": "Generate a function table from within an instrument definition, without duplication of data. Plugin opcode in signalflowgraph. Enables the creation of function tables entirely inside instrument definitions, without any duplication of data.",
+      "german": "Generieren Sie eine Funktionstabelle aus einer Instrumentendefinition heraus, ohne Datenduplizierung. Plugin-Opcode im Signalflowgraph. Ermöglicht die Erstellung von Funktionstabellen vollständig innerhalb der Gerätedefinitionen, ohne dass Daten dupliziert werden.",
+      "french": "Générez une table de fonctions à partir d’une définition d’instrument, sans duplication de données. Opcode du plugin dans signalflowgraph. Permet la création de tables de fonctions entièrement dans les définitions d'instruments, sans aucune duplication de données.",
+      "spanish": "Genere una tabla de funciones desde dentro de una definición de instrumento, sin duplicación de datos. Código de operación del complemento en signalflowgraph. Permite la creación de tablas de funciones completamente dentro de las definiciones de instrumentos, sin duplicación de datos."
+    },
+    "inputs": {
+      "ip1": {
+        "english": "the number of the table to be generated or 0 if the number is to be assigned.",
+        "german": "die Nummer der zu erzeugenden Tabelle oder 0, wenn die Nummer vergeben werden soll.",
+        "french": "le numéro de la table à générer ou 0 si le numéro est à attribuer.",
+        "spanish": "el número de la tabla a generar o 0 si se va a asignar el número."
+      },
+      "ip2dummy": {
+        "english": "ignored.",
+        "german": "ignoriert.",
+        "french": "ignoré.",
+        "spanish": "ignorado."
+      },
+      "isize": {
+        "english": "table size. Corresponds to p3 of the score f statement.",
+        "german": "Tischgröße. Entspricht p3 der Score-f-Anweisung.",
+        "french": "taille du tableau. Correspond à p3 de l’énoncé score f.",
+        "spanish": "tamaño de la mesa. Corresponde a p3 de la puntuación f enunciado."
+      },
+      "igen": {
+        "english": "function table GEN routine. Corresponds to p4 of the score f statement.",
+        "german": "Funktionstabelle GEN-Routine. Entspricht p4 der Score-f-Anweisung.",
+        "french": "table de fonctions routine GEN. Correspond à p4 de l'énoncé score f.",
+        "spanish": "tabla de funciones rutina GEN. Corresponde a la p4 del enunciado de puntuación f."
+      },
+      "iarg1": {
+        "english": "Arg1 parameter at init-rate.",
+        "german": "Arg1-Parameter bei Init-Rate.",
+        "french": "Paramètre Arg1 au taux d'initialisation.",
+        "spanish": "Parámetro Arg1 a velocidad inicial."
+      },
+      "iarg2": {
+        "english": "Arg2 parameter at init-rate.",
+        "german": "Arg2-Parameter bei Init-Rate.",
+        "french": "Paramètre Arg2 au taux d'initialisation.",
+        "spanish": "Parámetro Arg2 a velocidad inicial."
+      },
+      "iarg3": {
+        "english": "Arg3 parameter at init-rate.",
+        "german": "Arg3-Parameter bei Init-Rate.",
+        "french": "Paramètre Arg3 au taux d'initialisation.",
+        "spanish": "Parámetro Arg3 a velocidad inicial."
+      },
+      "iarg4": {
+        "english": "Arg4 parameter at init-rate.",
+        "german": "Arg4-Parameter bei Init-Rate.",
+        "french": "Paramètre Arg4 au taux d'initialisation.",
+        "spanish": "Parámetro Arg4 a velocidad inicial."
+      },
+      "iarg5": {
+        "english": "Arg5 parameter at init-rate.",
+        "german": "Arg5-Parameter bei Init-Rate.",
+        "french": "Paramètre Arg5 au taux d'initialisation.",
+        "spanish": "Parámetro Arg5 a velocidad inicial."
+      },
+      "iarg6": {
+        "english": "Arg6 parameter at init-rate.",
+        "german": "Arg6-Parameter bei Init-Rate.",
+        "french": "Paramètre Arg6 au taux d'initialisation.",
+        "spanish": "Parámetro Arg6 a velocidad inicial."
+      },
+      "iarg7": {
+        "english": "Arg7 parameter at init-rate.",
+        "german": "Arg7-Parameter bei Init-Rate.",
+        "french": "Paramètre Arg7 au taux d'initialisation.",
+        "spanish": "Parámetro Arg7 a velocidad inicial."
+      },
+      "iarg8": {
+        "english": "Arg8 parameter at init-rate.",
+        "german": "Arg8-Parameter bei Init-Rate.",
+        "french": "Paramètre Arg8 au taux d'initialisation.",
+        "spanish": "Parámetro Arg8 a velocidad inicial."
+      }
+    },
+    "outputs": {
+      "ift": {
+        "english": "Output variable `ifno` from ftgenonce.",
+        "german": "Ausgabevariable „ifno“ von ftgenonce.",
+        "french": "Variable de sortie `ifno` de ftgenonce.",
+        "spanish": "Variable de salida `ifno` de ftgenonce."
+      }
+    }
+  },
+  "k_to_a": {
+    "description": {
+      "english": "Converts a control signal to an audio signal using linear interpolation.",
+      "german": "Wandelt ein Steuersignal mithilfe linearer Interpolation in ein Audiosignal um.",
+      "french": "Convertit un signal de contrôle en signal audio à l’aide d’une interpolation linéaire.",
+      "spanish": "Convierte una señal de control en una señal de audio mediante interpolación lineal."
+    },
+    "inputs": {
+      "kin": {
+        "english": "kIn parameter at control-rate.",
+        "german": "kIn-Parameter bei Kontrollrate.",
+        "french": "Paramètre kIn au taux de contrôle.",
+        "spanish": "kIn parámetro a velocidad de control."
+      }
+    },
+    "outputs": {
+      "aout": {
+        "english": "Output variable `ares` from k_to_a.",
+        "german": "Ausgabevariable „ares“ von k_to_a.",
+        "french": "Variable de sortie `ares` de k_to_a.",
+        "spanish": "Variable de salida `ares` de k_to_a."
+      }
+    }
+  }
+}
