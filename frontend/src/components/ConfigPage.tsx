@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { HelpIconButton } from "./HelpIconButton";
-import { GUI_LANGUAGE_OPTIONS } from "../lib/guiLanguage";
 import type { GuiLanguage, HelpDocId } from "../types";
 
 const AUDIO_RATE_MIN = 22000;
@@ -14,7 +13,6 @@ const ENGINE_BUFFER_MAX = 8192;
 type ConfigPageCopy = {
   audioEngineConfiguration: string;
   audioEngineDescription: string;
-  guiLanguage: string;
   audioSampleRateHz: string;
   controlSampleRateHz: string;
   softwareBuffer: string;
@@ -36,7 +34,6 @@ const CONFIG_PAGE_COPY: Record<GuiLanguage, ConfigPageCopy> = {
     audioEngineConfiguration: "Audio Engine Configuration",
     audioEngineDescription:
       "Configure audio-rate (`sr`), target control-rate sampling, and runtime buffer sizes. VisualCSound derives `ksmps` from sample rate and control rate.",
-    guiLanguage: "GUI Language",
     audioSampleRateHz: "Audio Sample Rate (Hz)",
     controlSampleRateHz: "Control Sample Rate (Hz)",
     softwareBuffer: "Software Buffer (`-b`)",
@@ -56,7 +53,6 @@ const CONFIG_PAGE_COPY: Record<GuiLanguage, ConfigPageCopy> = {
     audioEngineConfiguration: "Audio Engine Konfiguration",
     audioEngineDescription:
       "Konfiguriere Audio-Rate (`sr`), Ziel-Control-Rate und Runtime-Buffergroessen. VisualCSound berechnet `ksmps` aus Sample-Rate und Control-Rate.",
-    guiLanguage: "GUI-Sprache",
     audioSampleRateHz: "Audio-Sample-Rate (Hz)",
     controlSampleRateHz: "Control-Sample-Rate (Hz)",
     softwareBuffer: "Software-Buffer (`-b`)",
@@ -76,7 +72,6 @@ const CONFIG_PAGE_COPY: Record<GuiLanguage, ConfigPageCopy> = {
     audioEngineConfiguration: "Configuration du moteur audio",
     audioEngineDescription:
       "Configurez le taux audio (`sr`), le taux de controle cible et les tailles de buffer runtime. VisualCSound derive `ksmps` depuis `sr` et le taux de controle.",
-    guiLanguage: "Langue GUI",
     audioSampleRateHz: "Frequence d'echantillonnage audio (Hz)",
     controlSampleRateHz: "Frequence d'echantillonnage controle (Hz)",
     softwareBuffer: "Buffer logiciel (`-b`)",
@@ -96,7 +91,6 @@ const CONFIG_PAGE_COPY: Record<GuiLanguage, ConfigPageCopy> = {
     audioEngineConfiguration: "Configuracion del motor de audio",
     audioEngineDescription:
       "Configura la tasa de audio (`sr`), la tasa de control objetivo y los tamanos de buffer runtime. VisualCSound deriva `ksmps` desde sample rate y control rate.",
-    guiLanguage: "Idioma de GUI",
     audioSampleRateHz: "Frecuencia de muestreo de audio (Hz)",
     controlSampleRateHz: "Frecuencia de muestreo de control (Hz)",
     softwareBuffer: "Buffer de software (`-b`)",
@@ -114,33 +108,6 @@ const CONFIG_PAGE_COPY: Record<GuiLanguage, ConfigPageCopy> = {
   }
 };
 
-const GUI_LANGUAGE_LABELS: Record<GuiLanguage, Record<GuiLanguage, string>> = {
-  english: {
-    english: "English",
-    german: "German",
-    french: "French",
-    spanish: "Spanish"
-  },
-  german: {
-    english: "Englisch",
-    german: "Deutsch",
-    french: "Franzoesisch",
-    spanish: "Spanisch"
-  },
-  french: {
-    english: "Anglais",
-    german: "Allemand",
-    french: "Francais",
-    spanish: "Espagnol"
-  },
-  spanish: {
-    english: "Ingles",
-    german: "Aleman",
-    french: "Frances",
-    spanish: "Espanol"
-  }
-};
-
 interface ConfigPageProps {
   guiLanguage: GuiLanguage;
   audioRate: number;
@@ -148,7 +115,6 @@ interface ConfigPageProps {
   ksmps: number;
   softwareBuffer: number;
   hardwareBuffer: number;
-  onGuiLanguageChange: (language: GuiLanguage) => void;
   onHelpRequest?: (helpDocId: HelpDocId) => void;
   onApplyEngineConfig: (config: {
     sr: number;
@@ -191,7 +157,6 @@ export function ConfigPage({
   ksmps,
   softwareBuffer,
   hardwareBuffer,
-  onGuiLanguageChange,
   onHelpRequest,
   onApplyEngineConfig
 }: ConfigPageProps) {
@@ -297,21 +262,6 @@ export function ConfigPage({
         ) : null}
         <h2 className="font-display text-lg font-semibold tracking-tight text-slate-100">{copy.audioEngineConfiguration}</h2>
         <p className="mt-1 text-sm text-slate-400">{copy.audioEngineDescription}</p>
-
-        <label className="mt-5 flex max-w-xs flex-col gap-2">
-          <span className="text-xs uppercase tracking-[0.18em] text-slate-400">{copy.guiLanguage}</span>
-          <select
-            value={guiLanguage}
-            onChange={(event) => onGuiLanguageChange(event.target.value as GuiLanguage)}
-            className="rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 font-body text-sm text-slate-100 outline-none ring-accent/40 transition focus:ring"
-          >
-            {GUI_LANGUAGE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {GUI_LANGUAGE_LABELS[guiLanguage][option.value]}
-              </option>
-            ))}
-          </select>
-        </label>
 
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
           <label className="flex flex-col gap-2">

@@ -11,6 +11,7 @@ import { ReteNodeEditor, type EditorSelection } from "./components/ReteNodeEdito
 import { RuntimePanel } from "./components/RuntimePanel";
 import { SequencerPage } from "./components/SequencerPage";
 import { documentationUiCopy, getHelpDocument } from "./lib/documentation";
+import { GUI_LANGUAGE_LABELS, GUI_LANGUAGE_OPTIONS } from "./lib/guiLanguage";
 import { resolveMidiInputName } from "./lib/sequencer";
 import { useAppStore } from "./store/useAppStore";
 import orchestronIcon from "./assets/orchestron-icon.png";
@@ -328,6 +329,7 @@ type AppCopy = {
   appIconAlt: string;
   appTitle: string;
   appDescription: string;
+  guiLanguage: string;
   instrumentDesign: string;
   perform: string;
   config: string;
@@ -365,6 +367,7 @@ const APP_COPY: Record<GuiLanguage, AppCopy> = {
     appIconAlt: "Orchestron icon",
     appTitle: "Orchestron",
     appDescription: "Visual opcode patching with realtime CSound sessions and macOS MIDI loopback support.",
+    guiLanguage: "GUI Language",
     instrumentDesign: "Instrument Design",
     perform: "Perform",
     config: "Config",
@@ -401,6 +404,7 @@ const APP_COPY: Record<GuiLanguage, AppCopy> = {
     appIconAlt: "Orchestron-Icon",
     appTitle: "Orchestron",
     appDescription: "Visuelles Opcode-Patching mit Echtzeit-CSound-Sessions und macOS-MIDI-Loopback-Unterstuetzung.",
+    guiLanguage: "GUI-Sprache",
     instrumentDesign: "Instrument-Design",
     perform: "Performance",
     config: "Konfig",
@@ -438,6 +442,7 @@ const APP_COPY: Record<GuiLanguage, AppCopy> = {
     appTitle: "Orchestron",
     appDescription:
       "Patching visuel d'opcodes avec sessions CSound temps reel et support loopback MIDI macOS.",
+    guiLanguage: "Langue GUI",
     instrumentDesign: "Design instrument",
     perform: "Performance",
     config: "Config",
@@ -476,6 +481,7 @@ const APP_COPY: Record<GuiLanguage, AppCopy> = {
     appTitle: "Orchestron",
     appDescription:
       "Patching visual de opcodes con sesiones CSound en tiempo real y soporte de loopback MIDI en macOS.",
+    guiLanguage: "Idioma de GUI",
     instrumentDesign: "Diseno de instrumento",
     perform: "Performance",
     config: "Config",
@@ -1768,7 +1774,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[radial-gradient(ellipse_at_top_left,_#1e293b,_#020617_60%)] px-4 py-4 text-slate-100 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-[1700px] space-y-3">
-        <header className="flex items-center gap-3 rounded-2xl border-x border-y border-slate-700/70 bg-slate-900/65 px-4 py-0">
+        <header className="relative flex items-center gap-3 rounded-2xl border-x border-y border-slate-700/70 bg-slate-900/65 px-4 py-0 pr-44">
           <div className="flex flex-1 items-center gap-3">
             <img
               src={orchestronIcon}
@@ -1780,6 +1786,21 @@ export default function App() {
               <p className="text-sm text-slate-400">{appCopy.appDescription}</p>
             </div>
           </div>
+          <label className="absolute right-4 top-3 flex w-36 flex-col gap-1">
+            <span className="text-[10px] uppercase tracking-[0.18em] text-slate-400">{appCopy.guiLanguage}</span>
+            <select
+              value={guiLanguage}
+              onChange={(event) => setGuiLanguage(event.target.value as GuiLanguage)}
+              aria-label={appCopy.guiLanguage}
+              className="rounded-lg border border-slate-600 bg-slate-950/90 px-2 py-1 font-body text-xs text-slate-100 outline-none ring-accent/40 transition focus:ring"
+            >
+              {GUI_LANGUAGE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {GUI_LANGUAGE_LABELS[guiLanguage][option.value]}
+                </option>
+              ))}
+            </select>
+          </label>
         </header>
 
         <div className="inline-flex rounded-xl border border-slate-700 bg-slate-950/80 p-1">
@@ -2019,7 +2040,6 @@ export default function App() {
             ksmps={currentPatch.graph.engine_config.ksmps}
             softwareBuffer={currentPatch.graph.engine_config.software_buffer}
             hardwareBuffer={currentPatch.graph.engine_config.hardware_buffer}
-            onGuiLanguageChange={setGuiLanguage}
             onHelpRequest={onHelpRequest}
             onApplyEngineConfig={(config) => {
               void applyEngineConfig(config);
