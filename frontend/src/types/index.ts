@@ -172,6 +172,7 @@ export interface SequencerConfigSnapshot {
   version: 1 | 2;
   instruments: Array<{
     patchId: string;
+    patchName?: string;
     midiChannel: number;
   }>;
   sequencer: {

@@ -96,6 +96,8 @@ interface AppStore {
 
   loadBootstrap: () => Promise<void>;
   loadPatch: (patchId: string) => Promise<void>;
+  refreshPatches: () => Promise<PatchListItem[]>;
+  refreshPerformances: () => Promise<PerformanceListItem[]>;
   newPatch: () => void;
   setCurrentPatchMeta: (name: string, description: string) => void;
   setGraph: (graph: PatchGraph) => void;
@@ -1434,6 +1436,18 @@ export const useAppStore = create<AppStore>((set, get) => {
           error: error instanceof Error ? error.message : "Failed to load patch"
         });
       }
+    },
+
+    refreshPatches: async () => {
+      const patches = await api.listPatches();
+      set({ patches });
+      return patches;
+    },
+
+    refreshPerformances: async () => {
+      const performances = await api.listPerformances();
+      set({ performances });
+      return performances;
     },
 
     loadPerformance: async (performanceId) => {

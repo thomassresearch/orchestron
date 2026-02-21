@@ -18,7 +18,12 @@ import type {
   Connection,
   GuiLanguage,
   HelpDocId,
+  Patch,
   PatchGraph,
+  PatchListItem,
+  Performance,
+  PerformanceListItem,
+  SequencerConfigSnapshot,
   SessionMidiEventRequest,
   SessionSequencerConfigRequest,
   SessionSequencerStatus
@@ -32,14 +37,287 @@ function pianoRollNoteKey(note: number, channel: number): string {
   return `${channel}:${note}`;
 }
 
-function sanitizeCsdFileBaseName(value: string): string {
-  const withoutExtension = value.replace(/\.csd$/i, "");
-  const normalized = withoutExtension
+type ExportedPatchDefinition = {
+  sourcePatchId: string;
+  name: string;
+  description: string;
+  schema_version: number;
+  graph: PatchGraph;
+};
+
+type ExportedPerformanceDocument = {
+  name: string;
+  description: string;
+  config: SequencerConfigSnapshot;
+};
+
+type PerformanceExportPayload = {
+  format: "orchestron.performance";
+  version: 1;
+  exported_at: string;
+  performance: ExportedPerformanceDocument;
+  patch_definitions: ExportedPatchDefinition[];
+};
+
+type ImportSelectionDialogState = {
+  patchDefinitionsAvailable: boolean;
+  importPerformance: boolean;
+  importPatchDefinitions: boolean;
+};
+
+type ImportSelectionDialogResult = {
+  confirmed: boolean;
+  importPerformance: boolean;
+  importPatchDefinitions: boolean;
+};
+
+type ImportConflictDialogItem = {
+  id: string;
+  kind: "patch" | "performance";
+  sourcePatchId?: string;
+  originalName: string;
+  overwrite: boolean;
+  targetName: string;
+  skip: boolean;
+};
+
+type ImportConflictDialogResult = {
+  confirmed: boolean;
+  items: ImportConflictDialogItem[];
+};
+
+type ImportDialogCopy = {
+  optionsTitle: string;
+  optionsDescription: string;
+  performanceLabel: string;
+  patchDefinitionsLabel: string;
+  conflictsTitle: string;
+  conflictsDescription: string;
+  overwriteLabel: string;
+  skipLabel: string;
+  newNameLabel: string;
+  cancel: string;
+  import: string;
+  conflictPatchLabel: (name: string) => string;
+  conflictPerformanceLabel: (name: string) => string;
+  validation: {
+    nameRequired: (kindLabel: string, originalName: string) => string;
+    patchNameExists: (name: string) => string;
+    patchNameDuplicate: (name: string) => string;
+    performanceNameExists: (name: string) => string;
+    performanceNameDuplicate: (name: string) => string;
+  };
+};
+
+function sanitizeFileBaseName(value: string, fallback: string, extensionPatterns: RegExp[]): string {
+  let normalizedValue = value.trim();
+  for (const pattern of extensionPatterns) {
+    normalizedValue = normalizedValue.replace(pattern, "");
+  }
+
+  const normalized = normalizedValue
     .trim()
     .replace(/[^a-zA-Z0-9._-]+/g, "_")
     .replace(/^_+|_+$/g, "");
 
-  return normalized.length > 0 ? normalized : "orchestron_instrument";
+  return normalized.length > 0 ? normalized : fallback;
+}
+
+function sanitizeCsdFileBaseName(value: string): string {
+  return sanitizeFileBaseName(value, "orchestron_instrument", [/\.csd$/i]);
+}
+
+function sanitizePerformanceFileBaseName(value: string): string {
+  return sanitizeFileBaseName(value, "orchestron_performance", [/\.orch\.json$/i, /\.json$/i]);
+}
+
+function normalizeNameKey(value: string): string {
+  return value.trim().toLocaleLowerCase();
+}
+
+function findPatchByName(patches: PatchListItem[], name: string): PatchListItem | null {
+  const target = normalizeNameKey(name);
+  if (target.length === 0) {
+    return null;
+  }
+  return patches.find((patch) => normalizeNameKey(patch.name) === target) ?? null;
+}
+
+function findPerformanceByName(performances: PerformanceListItem[], name: string): PerformanceListItem | null {
+  const target = normalizeNameKey(name);
+  if (target.length === 0) {
+    return null;
+  }
+  return performances.find((performance) => normalizeNameKey(performance.name) === target) ?? null;
+}
+
+function suggestUniqueCopyName(baseName: string, isTaken: (candidate: string) => boolean): string {
+  const seed = baseName.trim().length > 0 ? baseName.trim() : "Imported";
+  let index = 1;
+  let candidate = `${seed} Copy`;
+  while (isTaken(candidate)) {
+    index += 1;
+    candidate = `${seed} Copy ${index}`;
+  }
+  return candidate;
+}
+
+function validateImportConflictItems(
+  items: ImportConflictDialogItem[],
+  patches: PatchListItem[],
+  performances: PerformanceListItem[],
+  copy: ImportDialogCopy
+): string | null {
+  const existingPatchNames = new Set(patches.map((patch) => normalizeNameKey(patch.name)));
+  const existingPerformanceNames = new Set(performances.map((performance) => normalizeNameKey(performance.name)));
+  const plannedPatchNames = new Set<string>();
+  const plannedPerformanceNames = new Set<string>();
+
+  for (const item of items) {
+    if (item.kind === "patch" && item.skip) {
+      continue;
+    }
+    if (item.overwrite) {
+      continue;
+    }
+
+    const nextName = item.targetName.trim();
+    if (nextName.length === 0) {
+      return copy.validation.nameRequired(
+        item.kind === "patch" ? copy.patchDefinitionsLabel : copy.performanceLabel,
+        item.originalName
+      );
+    }
+
+    const key = normalizeNameKey(nextName);
+    if (item.kind === "patch") {
+      if (existingPatchNames.has(key)) {
+        return copy.validation.patchNameExists(nextName);
+      }
+      if (plannedPatchNames.has(key)) {
+        return copy.validation.patchNameDuplicate(nextName);
+      }
+      plannedPatchNames.add(key);
+    } else {
+      if (existingPerformanceNames.has(key)) {
+        return copy.validation.performanceNameExists(nextName);
+      }
+      if (plannedPerformanceNames.has(key)) {
+        return copy.validation.performanceNameDuplicate(nextName);
+      }
+      plannedPerformanceNames.add(key);
+    }
+  }
+
+  return null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function parseExportedPatchDefinition(raw: unknown): ExportedPatchDefinition | null {
+  if (!isRecord(raw) || !isRecord(raw.graph)) {
+    return null;
+  }
+
+  const sourcePatchId = typeof raw.sourcePatchId === "string" ? raw.sourcePatchId.trim() : "";
+  const name = typeof raw.name === "string" ? raw.name.trim() : "";
+  const description = typeof raw.description === "string" ? raw.description : "";
+  const schemaVersion =
+    typeof raw.schema_version === "number" && Number.isFinite(raw.schema_version)
+      ? Math.max(1, Math.round(raw.schema_version))
+      : 1;
+
+  if (sourcePatchId.length === 0 || name.length === 0) {
+    return null;
+  }
+
+  return {
+    sourcePatchId,
+    name,
+    description,
+    schema_version: schemaVersion,
+    graph: raw.graph as unknown as PatchGraph
+  };
+}
+
+function parsePerformanceExportPayload(raw: unknown): PerformanceExportPayload | null {
+  if (!isRecord(raw)) {
+    return null;
+  }
+  if (raw.format !== "orchestron.performance" || raw.version !== 1) {
+    return null;
+  }
+  if (!isRecord(raw.performance) || !isRecord(raw.performance.config)) {
+    return null;
+  }
+  if (!Array.isArray(raw.patch_definitions)) {
+    return null;
+  }
+
+  const parsedPatchDefinitions = raw.patch_definitions
+    .map((entry) => parseExportedPatchDefinition(entry))
+    .filter((entry): entry is ExportedPatchDefinition => entry !== null);
+
+  const performanceName =
+    typeof raw.performance.name === "string" && raw.performance.name.trim().length > 0
+      ? raw.performance.name.trim()
+      : "Imported Performance";
+  const performanceDescription = typeof raw.performance.description === "string" ? raw.performance.description : "";
+
+  return {
+    format: "orchestron.performance",
+    version: 1,
+    exported_at: typeof raw.exported_at === "string" ? raw.exported_at : new Date().toISOString(),
+    performance: {
+      name: performanceName,
+      description: performanceDescription,
+      config: raw.performance.config as unknown as SequencerConfigSnapshot
+    },
+    patch_definitions: parsedPatchDefinitions
+  };
+}
+
+function remapSnapshotPatchIds(
+  snapshot: SequencerConfigSnapshot,
+  patchIdMap: Map<string, string>,
+  patches: PatchListItem[]
+): SequencerConfigSnapshot {
+  return {
+    ...snapshot,
+    instruments: snapshot.instruments.map((instrument) => {
+      const mappedById = patchIdMap.get(instrument.patchId);
+      if (mappedById) {
+        return {
+          ...instrument,
+          patchId: mappedById
+        };
+      }
+
+      if (typeof instrument.patchName === "string" && instrument.patchName.trim().length > 0) {
+        const existing = findPatchByName(patches, instrument.patchName);
+        if (existing) {
+          return {
+            ...instrument,
+            patchId: existing.id
+          };
+        }
+      }
+
+      return instrument;
+    })
+  };
+}
+
+function toPatchListItem(patch: Patch): PatchListItem {
+  return {
+    id: patch.id,
+    name: patch.name,
+    description: patch.description,
+    schema_version: patch.schema_version,
+    updated_at: patch.updated_at
+  };
 }
 
 function transportStepCountFromTracks(stepCounts: Array<{ stepCount: 16 | 32 }>): 16 | 32 {
@@ -233,6 +511,107 @@ const APP_COPY: Record<GuiLanguage, AppCopy> = {
   }
 };
 
+const IMPORT_DIALOG_COPY: Record<GuiLanguage, ImportDialogCopy> = {
+  english: {
+    optionsTitle: "Import Options",
+    optionsDescription: "Choose what should be imported from this file.",
+    performanceLabel: "performance",
+    patchDefinitionsLabel: "patch definitions",
+    conflictsTitle: "Name Conflicts",
+    conflictsDescription:
+      "Existing items were found. Keep overwrite checked to replace existing entries. Uncheck overwrite to import under a new name. Enable skip to ignore a patch definition.",
+    overwriteLabel: "overwrite",
+    skipLabel: "skip",
+    newNameLabel: "New Name",
+    cancel: "Cancel",
+    import: "Import",
+    conflictPatchLabel: (name) => `Instrument patch: ${name}`,
+    conflictPerformanceLabel: (name) => `Performance: ${name}`,
+    validation: {
+      nameRequired: (kindLabel, originalName) => `A new name is required for ${kindLabel} "${originalName}".`,
+      patchNameExists: (name) => `Instrument patch name "${name}" already exists.`,
+      patchNameDuplicate: (name) => `Instrument patch name "${name}" is used more than once in this import.`,
+      performanceNameExists: (name) => `Performance name "${name}" already exists.`,
+      performanceNameDuplicate: (name) => `Performance name "${name}" is used more than once in this import.`
+    }
+  },
+  german: {
+    optionsTitle: "Importoptionen",
+    optionsDescription: "Wähle aus, was aus dieser Datei importiert werden soll.",
+    performanceLabel: "performance",
+    patchDefinitionsLabel: "patch-definitionen",
+    conflictsTitle: "Namenskonflikte",
+    conflictsDescription:
+      "Es wurden bestehende Einträge gefunden. Lass Überschreiben aktiviert, um bestehende Einträge zu ersetzen. Deaktiviere Überschreiben für einen neuen Namen. Aktiviere Überspringen, um eine Patch-Definition zu ignorieren.",
+    overwriteLabel: "überschreiben",
+    skipLabel: "überspringen",
+    newNameLabel: "Neuer Name",
+    cancel: "Abbrechen",
+    import: "Importieren",
+    conflictPatchLabel: (name) => `Instrument-Patch: ${name}`,
+    conflictPerformanceLabel: (name) => `Performance: ${name}`,
+    validation: {
+      nameRequired: (kindLabel, originalName) =>
+        `Ein neuer Name ist erforderlich für ${kindLabel} "${originalName}".`,
+      patchNameExists: (name) => `Instrument-Patch-Name "${name}" existiert bereits.`,
+      patchNameDuplicate: (name) =>
+        `Instrument-Patch-Name "${name}" wird in diesem Import mehr als einmal verwendet.`,
+      performanceNameExists: (name) => `Performance-Name "${name}" existiert bereits.`,
+      performanceNameDuplicate: (name) =>
+        `Performance-Name "${name}" wird in diesem Import mehr als einmal verwendet.`
+    }
+  },
+  french: {
+    optionsTitle: "Options d'importation",
+    optionsDescription: "Choisissez ce qui doit être importé depuis ce fichier.",
+    performanceLabel: "performance",
+    patchDefinitionsLabel: "définitions de patch",
+    conflictsTitle: "Conflits de noms",
+    conflictsDescription:
+      "Des éléments existants ont été trouvés. Laissez Écraser activé pour remplacer les éléments existants. Désactivez Écraser pour importer avec un nouveau nom. Activez Ignorer pour ne pas importer une définition de patch.",
+    overwriteLabel: "écraser",
+    skipLabel: "ignorer",
+    newNameLabel: "Nouveau nom",
+    cancel: "Annuler",
+    import: "Importer",
+    conflictPatchLabel: (name) => `Patch d'instrument : ${name}`,
+    conflictPerformanceLabel: (name) => `Performance : ${name}`,
+    validation: {
+      nameRequired: (kindLabel, originalName) => `Un nouveau nom est requis pour ${kindLabel} "${originalName}".`,
+      patchNameExists: (name) => `Le nom de patch d'instrument "${name}" existe déjà.`,
+      patchNameDuplicate: (name) =>
+        `Le nom de patch d'instrument "${name}" est utilisé plusieurs fois dans cet import.`,
+      performanceNameExists: (name) => `Le nom de performance "${name}" existe déjà.`,
+      performanceNameDuplicate: (name) => `Le nom de performance "${name}" est utilisé plusieurs fois dans cet import.`
+    }
+  },
+  spanish: {
+    optionsTitle: "Opciones de importación",
+    optionsDescription: "Elige qué debe importarse desde este archivo.",
+    performanceLabel: "performance",
+    patchDefinitionsLabel: "definiciones de patch",
+    conflictsTitle: "Conflictos de nombre",
+    conflictsDescription:
+      "Se encontraron elementos existentes. Deja Sobrescribir activado para reemplazar elementos existentes. Desactiva Sobrescribir para importar con un nombre nuevo. Activa Omitir para ignorar una definición de patch.",
+    overwriteLabel: "sobrescribir",
+    skipLabel: "omitir",
+    newNameLabel: "Nuevo nombre",
+    cancel: "Cancelar",
+    import: "Importar",
+    conflictPatchLabel: (name) => `Patch de instrumento: ${name}`,
+    conflictPerformanceLabel: (name) => `Performance: ${name}`,
+    validation: {
+      nameRequired: (kindLabel, originalName) => `Se requiere un nombre nuevo para ${kindLabel} "${originalName}".`,
+      patchNameExists: (name) => `El nombre de patch de instrumento "${name}" ya existe.`,
+      patchNameDuplicate: (name) =>
+        `El nombre de patch de instrumento "${name}" se usa más de una vez en esta importación.`,
+      performanceNameExists: (name) => `El nombre de performance "${name}" ya existe.`,
+      performanceNameDuplicate: (name) =>
+        `El nombre de performance "${name}" se usa más de una vez en esta importación.`
+    }
+  }
+};
+
 export default function App() {
   const loading = useAppStore((state) => state.loading);
   const error = useAppStore((state) => state.error);
@@ -242,6 +621,7 @@ export default function App() {
   const guiLanguage = useAppStore((state) => state.guiLanguage);
   const setGuiLanguage = useAppStore((state) => state.setGuiLanguage);
   const appCopy = useMemo(() => APP_COPY[guiLanguage], [guiLanguage]);
+  const importDialogCopy = useMemo(() => IMPORT_DIALOG_COPY[guiLanguage], [guiLanguage]);
 
   const opcodes = useAppStore((state) => state.opcodes);
   const patches = useAppStore((state) => state.patches);
@@ -266,6 +646,8 @@ export default function App() {
 
   const loadBootstrap = useAppStore((state) => state.loadBootstrap);
   const loadPatch = useAppStore((state) => state.loadPatch);
+  const refreshPatches = useAppStore((state) => state.refreshPatches);
+  const refreshPerformances = useAppStore((state) => state.refreshPerformances);
   const loadPerformance = useAppStore((state) => state.loadPerformance);
   const addInstrumentTab = useAppStore((state) => state.addInstrumentTab);
   const closeInstrumentTab = useAppStore((state) => state.closeInstrumentTab);
@@ -374,6 +756,9 @@ export default function App() {
     setActiveHelpDocumentation(helpDocId);
   }, []);
 
+  const importSelectionDialogResolverRef = useRef<((result: ImportSelectionDialogResult) => void) | null>(null);
+  const importConflictDialogResolverRef = useRef<((result: ImportConflictDialogResult) => void) | null>(null);
+
   const [selection, setSelection] = useState<EditorSelection>({
     nodeIds: [],
     connections: []
@@ -382,6 +767,8 @@ export default function App() {
   const [activeOpcodeDocumentation, setActiveOpcodeDocumentation] = useState<string | null>(null);
   const [sequencerError, setSequencerError] = useState<string | null>(null);
   const [runtimePanelCollapsed, setRuntimePanelCollapsed] = useState(false);
+  const [importSelectionDialog, setImportSelectionDialog] = useState<ImportSelectionDialogState | null>(null);
+  const [importConflictDialog, setImportConflictDialog] = useState<{ items: ImportConflictDialogItem[] } | null>(null);
 
   const sequencerRef = useRef(sequencer);
   const sequencerSessionIdRef = useRef<string | null>(null);
@@ -421,6 +808,99 @@ export default function App() {
     }
     return getHelpDocument(activeHelpDocumentation, guiLanguage);
   }, [activeHelpDocumentation, guiLanguage]);
+  const importConflictValidationError = useMemo(() => {
+    if (!importConflictDialog) {
+      return null;
+    }
+    return validateImportConflictItems(importConflictDialog.items, patches, performances, importDialogCopy);
+  }, [importConflictDialog, importDialogCopy, patches, performances]);
+
+  const requestImportSelectionDialog = useCallback((patchDefinitionsAvailable: boolean) => {
+    return new Promise<ImportSelectionDialogResult>((resolve) => {
+      importSelectionDialogResolverRef.current = resolve;
+      setImportSelectionDialog({
+        patchDefinitionsAvailable,
+        importPerformance: true,
+        importPatchDefinitions: patchDefinitionsAvailable
+      });
+    });
+  }, []);
+
+  const closeImportSelectionDialog = useCallback(
+    (confirmed: boolean) => {
+      const resolver = importSelectionDialogResolverRef.current;
+      const snapshot = importSelectionDialog;
+      importSelectionDialogResolverRef.current = null;
+      setImportSelectionDialog(null);
+      if (!resolver) {
+        return;
+      }
+
+      if (!confirmed || !snapshot) {
+        resolver({
+          confirmed: false,
+          importPerformance: false,
+          importPatchDefinitions: false
+        });
+        return;
+      }
+
+      resolver({
+        confirmed: true,
+        importPerformance: snapshot.importPerformance,
+        importPatchDefinitions: snapshot.patchDefinitionsAvailable ? snapshot.importPatchDefinitions : false
+      });
+    },
+    [importSelectionDialog]
+  );
+
+  const requestImportConflictDialog = useCallback((items: ImportConflictDialogItem[]) => {
+    return new Promise<ImportConflictDialogResult>((resolve) => {
+      importConflictDialogResolverRef.current = resolve;
+      setImportConflictDialog({ items });
+    });
+  }, []);
+
+  const closeImportConflictDialog = useCallback(
+    (confirmed: boolean) => {
+      const resolver = importConflictDialogResolverRef.current;
+      const snapshot = importConflictDialog;
+      importConflictDialogResolverRef.current = null;
+      setImportConflictDialog(null);
+      if (!resolver) {
+        return;
+      }
+
+      resolver({
+        confirmed,
+        items: snapshot?.items ?? []
+      });
+    },
+    [importConflictDialog]
+  );
+
+  useEffect(() => {
+    return () => {
+      const selectionResolver = importSelectionDialogResolverRef.current;
+      if (selectionResolver) {
+        importSelectionDialogResolverRef.current = null;
+        selectionResolver({
+          confirmed: false,
+          importPerformance: false,
+          importPatchDefinitions: false
+        });
+      }
+
+      const conflictResolver = importConflictDialogResolverRef.current;
+      if (conflictResolver) {
+        importConflictDialogResolverRef.current = null;
+        conflictResolver({
+          confirmed: false,
+          items: []
+        });
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!activeOpcodeDocumentation) {
@@ -824,15 +1304,47 @@ export default function App() {
     ]
   );
 
-  const onExportSequencerConfig = useCallback(() => {
+  const onExportSequencerConfig = useCallback(async () => {
     try {
       const snapshot = buildSequencerConfigSnapshot();
-      const payload = JSON.stringify(snapshot, null, 2);
-      const blob = new Blob([payload], { type: "application/json" });
+      const patchIds = [...new Set(snapshot.instruments.map((instrument) => instrument.patchId.trim()).filter(Boolean))];
+      const selectedPatches = await Promise.all(patchIds.map((patchId) => api.getPatch(patchId)));
+      const patchDefinitions: ExportedPatchDefinition[] = selectedPatches.map((patch) => ({
+        sourcePatchId: patch.id,
+        name: patch.name,
+        description: patch.description,
+        schema_version: patch.schema_version,
+        graph: patch.graph
+      }));
+
+      const patchNameById = new Map(patchDefinitions.map((patch) => [patch.sourcePatchId, patch.name]));
+      const exportConfig: SequencerConfigSnapshot = {
+        ...snapshot,
+        instruments: snapshot.instruments.map((instrument) => ({
+          ...instrument,
+          patchName: patchNameById.get(instrument.patchId) ?? instrument.patchName
+        }))
+      };
+
+      const exportedPerformanceName =
+        performanceName.trim().length > 0 ? performanceName.trim() : "Untitled Performance";
+      const payload: PerformanceExportPayload = {
+        format: "orchestron.performance",
+        version: 1,
+        exported_at: new Date().toISOString(),
+        performance: {
+          name: exportedPerformanceName,
+          description: performanceDescription,
+          config: exportConfig
+        },
+        patch_definitions: patchDefinitions
+      };
+
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = `orchestron-sequencer-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
+      anchor.download = `${sanitizePerformanceFileBaseName(exportedPerformanceName)}.orch.json`;
       document.body.appendChild(anchor);
       anchor.click();
       document.body.removeChild(anchor);
@@ -841,22 +1353,210 @@ export default function App() {
     } catch (error) {
       setSequencerError(error instanceof Error ? error.message : appCopy.errors.failedToSaveSequencerConfig);
     }
-  }, [appCopy.errors.failedToSaveSequencerConfig, buildSequencerConfigSnapshot]);
+  }, [
+    appCopy.errors.failedToSaveSequencerConfig,
+    buildSequencerConfigSnapshot,
+    performanceDescription,
+    performanceName
+  ]);
 
   const onImportSequencerConfig = useCallback(
     (file: File) => {
-      void file
-        .text()
-        .then((content) => {
-          const parsed = JSON.parse(content);
+      void (async () => {
+        const content = await file.text();
+        const parsed = JSON.parse(content) as unknown;
+        const exported = parsePerformanceExportPayload(parsed);
+
+        if (!exported) {
           applySequencerConfigSnapshot(parsed);
           setSequencerError(null);
-        })
-        .catch((error) => {
-          setSequencerError(error instanceof Error ? error.message : appCopy.errors.failedToLoadSequencerConfig);
-        });
+          return;
+        }
+
+        const selection = await requestImportSelectionDialog(exported.patch_definitions.length > 0);
+        if (!selection.confirmed || (!selection.importPerformance && !selection.importPatchDefinitions)) {
+          return;
+        }
+
+        let patchCatalog = [...patches];
+        const patchIdMap = new Map<string, string>();
+        let performanceCatalog = [...performances];
+        const conflictItems: ImportConflictDialogItem[] = [];
+
+        if (selection.importPatchDefinitions) {
+          for (const definition of exported.patch_definitions) {
+            const incomingName = definition.name.trim().length > 0 ? definition.name.trim() : "Imported Patch";
+            const existing = findPatchByName(patchCatalog, incomingName);
+            if (!existing) {
+              continue;
+            }
+
+            conflictItems.push({
+              id: `patch:${definition.sourcePatchId}`,
+              kind: "patch",
+              sourcePatchId: definition.sourcePatchId,
+              originalName: incomingName,
+              overwrite: true,
+              targetName: suggestUniqueCopyName(incomingName, (candidate) => findPatchByName(patchCatalog, candidate) !== null),
+              skip: false
+            });
+          }
+        }
+
+        if (selection.importPerformance) {
+          const incomingPerformanceName =
+            exported.performance.name.trim().length > 0 ? exported.performance.name.trim() : "Imported Performance";
+          const existingPerformance = findPerformanceByName(performanceCatalog, incomingPerformanceName);
+          if (existingPerformance) {
+            conflictItems.push({
+              id: "performance",
+              kind: "performance",
+              originalName: incomingPerformanceName,
+              overwrite: true,
+              targetName: suggestUniqueCopyName(
+                incomingPerformanceName,
+                (candidate) => findPerformanceByName(performanceCatalog, candidate) !== null
+              ),
+              skip: false
+            });
+          }
+        }
+
+        let conflictDecisions = conflictItems;
+        if (conflictItems.length > 0) {
+          const decision = await requestImportConflictDialog(conflictItems);
+          if (!decision.confirmed) {
+            return;
+          }
+          const validationError = validateImportConflictItems(
+            decision.items,
+            patchCatalog,
+            performanceCatalog,
+            importDialogCopy
+          );
+          if (validationError) {
+            throw new Error(validationError);
+          }
+          conflictDecisions = decision.items;
+        }
+
+        const patchConflictBySourceId = new Map<string, ImportConflictDialogItem>();
+        let performanceConflict: ImportConflictDialogItem | null = null;
+        for (const item of conflictDecisions) {
+          if (item.kind === "patch" && item.sourcePatchId) {
+            patchConflictBySourceId.set(item.sourcePatchId, item);
+          }
+          if (item.kind === "performance") {
+            performanceConflict = item;
+          }
+        }
+
+        if (selection.importPatchDefinitions) {
+          for (const definition of exported.patch_definitions) {
+            const incomingName = definition.name.trim().length > 0 ? definition.name.trim() : "Imported Patch";
+            const existingPatch = findPatchByName(patchCatalog, incomingName);
+            const conflictItem = patchConflictBySourceId.get(definition.sourcePatchId);
+            let importedPatch: Patch;
+
+            if (conflictItem?.skip) {
+              continue;
+            }
+
+            if (existingPatch) {
+              if (!conflictItem || conflictItem.overwrite) {
+                importedPatch = await api.updatePatch(existingPatch.id, {
+                  name: incomingName,
+                  description: definition.description,
+                  schema_version: definition.schema_version,
+                  graph: definition.graph
+                });
+                patchCatalog = patchCatalog.map((patch) =>
+                  patch.id === existingPatch.id ? toPatchListItem(importedPatch) : patch
+                );
+              } else {
+                const renamed = conflictItem.targetName.trim();
+                importedPatch = await api.createPatch({
+                  name: renamed,
+                  description: definition.description,
+                  schema_version: definition.schema_version,
+                  graph: definition.graph
+                });
+                patchCatalog = [toPatchListItem(importedPatch), ...patchCatalog];
+              }
+            } else {
+              importedPatch = await api.createPatch({
+                name: incomingName,
+                description: definition.description,
+                schema_version: definition.schema_version,
+                graph: definition.graph
+              });
+              patchCatalog = [toPatchListItem(importedPatch), ...patchCatalog];
+            }
+
+            patchIdMap.set(definition.sourcePatchId, importedPatch.id);
+          }
+          if (exported.patch_definitions.length > 0) {
+            patchCatalog = await refreshPatches();
+          }
+        }
+
+        if (selection.importPerformance) {
+          const resolvedConfig = remapSnapshotPatchIds(exported.performance.config, patchIdMap, patchCatalog);
+          const knownPatchIds = new Set(patchCatalog.map((patch) => patch.id));
+          const hasResolvableInstrument = resolvedConfig.instruments.some((instrument) =>
+            knownPatchIds.has(instrument.patchId)
+          );
+          if (!hasResolvableInstrument) {
+            throw new Error(
+              "No instrument assignments in this import match available patches. Import patch definitions or create matching patch names first."
+            );
+          }
+
+          performanceCatalog = await refreshPerformances();
+          const incomingPerformanceName =
+            exported.performance.name.trim().length > 0 ? exported.performance.name.trim() : "Imported Performance";
+          const existingPerformance = findPerformanceByName(performanceCatalog, incomingPerformanceName);
+          let savedPerformance: Performance;
+
+          if (existingPerformance && (!performanceConflict || performanceConflict.overwrite)) {
+            savedPerformance = await api.updatePerformance(existingPerformance.id, {
+              name: incomingPerformanceName,
+              description: exported.performance.description,
+              config: resolvedConfig
+            });
+          } else {
+            const createName =
+              existingPerformance && performanceConflict
+                ? performanceConflict.targetName.trim()
+                : incomingPerformanceName;
+            savedPerformance = await api.createPerformance({
+              name: createName,
+              description: exported.performance.description,
+              config: resolvedConfig
+            });
+          }
+
+          await refreshPerformances();
+          await loadPerformance(savedPerformance.id);
+        }
+
+        setSequencerError(null);
+      })().catch((error) => {
+        setSequencerError(error instanceof Error ? error.message : appCopy.errors.failedToLoadSequencerConfig);
+      });
     },
-    [appCopy.errors.failedToLoadSequencerConfig, applySequencerConfigSnapshot]
+    [
+      appCopy.errors.failedToLoadSequencerConfig,
+      applySequencerConfigSnapshot,
+      importDialogCopy,
+      loadPerformance,
+      patches,
+      performances,
+      refreshPatches,
+      refreshPerformances,
+      requestImportConflictDialog,
+      requestImportSelectionDialog
+    ]
   );
 
   useEffect(() => {
@@ -1327,6 +2027,229 @@ export default function App() {
           />
         )}
       </div>
+
+      {importSelectionDialog && (
+        <div
+          className="fixed inset-0 z-[1300] flex items-center justify-center bg-slate-950/75 p-4"
+          onMouseDown={() => closeImportSelectionDialog(false)}
+        >
+          <section
+            className="w-full max-w-xl rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl"
+            onMouseDown={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label={importDialogCopy.optionsTitle}
+          >
+            <header className="border-b border-slate-700 px-4 py-3">
+              <h2 className="font-display text-lg font-semibold text-slate-100">{importDialogCopy.optionsTitle}</h2>
+              <p className="mt-1 text-xs text-slate-400">{importDialogCopy.optionsDescription}</p>
+            </header>
+
+            <div className="space-y-3 px-4 py-4 text-sm text-slate-200">
+              <label className="flex items-center gap-3 rounded-lg border border-slate-700 bg-slate-950/70 px-3 py-2">
+                <input
+                  type="checkbox"
+                  checked={importSelectionDialog.importPerformance}
+                  onChange={(event) =>
+                    setImportSelectionDialog((state) =>
+                      state
+                        ? {
+                            ...state,
+                            importPerformance: event.target.checked
+                          }
+                        : state
+                    )
+                  }
+                  className="h-4 w-4 accent-cyan-400"
+                />
+                <span>{importDialogCopy.performanceLabel}</span>
+              </label>
+
+              <label
+                className={`flex items-center gap-3 rounded-lg border px-3 py-2 ${
+                  importSelectionDialog.patchDefinitionsAvailable
+                    ? "border-slate-700 bg-slate-950/70"
+                    : "border-slate-800 bg-slate-900/50 text-slate-500"
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={importSelectionDialog.importPatchDefinitions}
+                  disabled={!importSelectionDialog.patchDefinitionsAvailable}
+                  onChange={(event) =>
+                    setImportSelectionDialog((state) =>
+                      state
+                        ? {
+                            ...state,
+                            importPatchDefinitions: event.target.checked
+                          }
+                        : state
+                    )
+                  }
+                  className="h-4 w-4 accent-cyan-400 disabled:opacity-50"
+                />
+                <span>{importDialogCopy.patchDefinitionsLabel}</span>
+              </label>
+            </div>
+
+            <footer className="flex items-center justify-end gap-2 border-t border-slate-700 px-4 py-3">
+              <button
+                type="button"
+                onClick={() => closeImportSelectionDialog(false)}
+                className="rounded-md border border-slate-600 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-slate-200 transition hover:border-slate-400"
+              >
+                {importDialogCopy.cancel}
+              </button>
+              <button
+                type="button"
+                disabled={!importSelectionDialog.importPerformance && !importSelectionDialog.importPatchDefinitions}
+                onClick={() => closeImportSelectionDialog(true)}
+                className="rounded-md border border-cyan-500/70 bg-cyan-500/15 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-cyan-200 transition hover:bg-cyan-500/25 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {importDialogCopy.import}
+              </button>
+            </footer>
+          </section>
+        </div>
+      )}
+
+      {importConflictDialog && (
+        <div
+          className="fixed inset-0 z-[1300] flex items-center justify-center bg-slate-950/75 p-4"
+          onMouseDown={() => closeImportConflictDialog(false)}
+        >
+          <section
+            className="flex max-h-[86vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl"
+            onMouseDown={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label={importDialogCopy.conflictsTitle}
+          >
+            <header className="border-b border-slate-700 px-4 py-3">
+              <h2 className="font-display text-lg font-semibold text-slate-100">{importDialogCopy.conflictsTitle}</h2>
+              <p className="mt-1 text-xs text-slate-400">{importDialogCopy.conflictsDescription}</p>
+            </header>
+
+            <div className="min-h-0 space-y-2 overflow-y-auto px-4 py-4">
+              {importConflictDialog.items.map((item) => (
+                <article key={item.id} className="rounded-lg border border-slate-700 bg-slate-950/70 p-3">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="text-sm font-semibold text-slate-100">
+                      {item.kind === "patch"
+                        ? importDialogCopy.conflictPatchLabel(item.originalName)
+                        : importDialogCopy.conflictPerformanceLabel(item.originalName)}
+                    </div>
+                    <label className="ml-auto inline-flex items-center gap-2 text-xs uppercase tracking-[0.12em] text-slate-300">
+                      <input
+                        type="checkbox"
+                        checked={item.overwrite}
+                        disabled={item.kind === "patch" && item.skip}
+                        onChange={(event) =>
+                          setImportConflictDialog((state) =>
+                            state
+                              ? {
+                                  items: state.items.map((entry) =>
+                                    entry.id === item.id
+                                      ? {
+                                          ...entry,
+                                          overwrite: event.target.checked
+                                        }
+                                      : entry
+                                  )
+                                }
+                              : state
+                          )
+                        }
+                        className="h-4 w-4 accent-cyan-400 disabled:opacity-50"
+                      />
+                      <span>{importDialogCopy.overwriteLabel}</span>
+                    </label>
+                    {item.kind === "patch" && (
+                      <label className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.12em] text-slate-300">
+                        <input
+                          type="checkbox"
+                          checked={item.skip}
+                          onChange={(event) =>
+                            setImportConflictDialog((state) =>
+                              state
+                                ? {
+                                    items: state.items.map((entry) =>
+                                      entry.id === item.id
+                                        ? {
+                                            ...entry,
+                                            skip: event.target.checked
+                                          }
+                                        : entry
+                                    )
+                                  }
+                                : state
+                            )
+                          }
+                          className="h-4 w-4 accent-cyan-400"
+                        />
+                        <span>{importDialogCopy.skipLabel}</span>
+                      </label>
+                    )}
+                  </div>
+
+                  {!item.overwrite && !(item.kind === "patch" && item.skip) && (
+                    <label className="mt-2 flex flex-col gap-1">
+                      <span className="text-[10px] uppercase tracking-[0.14em] text-slate-400">
+                        {importDialogCopy.newNameLabel}
+                      </span>
+                      <input
+                        value={item.targetName}
+                        onChange={(event) =>
+                          setImportConflictDialog((state) =>
+                            state
+                              ? {
+                                  items: state.items.map((entry) =>
+                                    entry.id === item.id
+                                      ? {
+                                          ...entry,
+                                          targetName: event.target.value
+                                        }
+                                      : entry
+                                  )
+                                }
+                              : state
+                          )
+                        }
+                        className="rounded-md border border-slate-600 bg-slate-900 px-2 py-1.5 text-xs text-slate-100 outline-none ring-cyan-400/40 transition focus:ring"
+                      />
+                    </label>
+                  )}
+                </article>
+              ))}
+            </div>
+
+            <footer className="border-t border-slate-700 px-4 py-3">
+              {importConflictValidationError && (
+                <div className="mb-2 rounded-md border border-rose-500/60 bg-rose-950/50 px-2 py-1.5 text-xs text-rose-200">
+                  {importConflictValidationError}
+                </div>
+              )}
+              <div className="flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                onClick={() => closeImportConflictDialog(false)}
+                className="rounded-md border border-slate-600 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-slate-200 transition hover:border-slate-400"
+              >
+                {importDialogCopy.cancel}
+              </button>
+              <button
+                type="button"
+                disabled={importConflictValidationError !== null}
+                onClick={() => closeImportConflictDialog(true)}
+                className="rounded-md border border-cyan-500/70 bg-cyan-500/15 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-cyan-200 transition hover:bg-cyan-500/25 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {importDialogCopy.import}
+              </button>
+              </div>
+            </footer>
+          </section>
+        </div>
+      )}
 
       {selectedOpcodeDocumentation && (
         <OpcodeDocumentationModal
