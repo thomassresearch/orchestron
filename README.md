@@ -34,6 +34,7 @@ This application was built using the Codex App with `GPT-5.3-Codex` and **Extra 
 Build the app:
 
 ```bash
+uv sync # create python virtual env
 make
 make run
 ```
