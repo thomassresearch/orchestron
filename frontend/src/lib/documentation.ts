@@ -711,15 +711,13 @@ type LocalizedOpcodeCopy = {
   optional: string;
   defaultValue: string;
   accepts: string;
-  originalDescriptionNote: string;
-  opcodeNameNotice: string;
 };
 
 const LOCALIZED_OPCODE_COPY: Record<GuiLanguage, LocalizedOpcodeCopy> = {
   english: {
     description: "Description",
     category: "Category",
-    syntax: "VisualCSound syntax",
+    syntax: "Syntax",
     tags: "Tags",
     inputs: "Inputs",
     outputs: "Outputs",
@@ -728,14 +726,12 @@ const LOCALIZED_OPCODE_COPY: Record<GuiLanguage, LocalizedOpcodeCopy> = {
     reference: "Reference",
     optional: "optional",
     defaultValue: "default",
-    accepts: "accepts",
-    originalDescriptionNote: "",
-    opcodeNameNotice: ""
+    accepts: "accepts"
   },
   german: {
     description: "Beschreibung",
     category: "Kategorie",
-    syntax: "VisualCSound Syntax",
+    syntax: "Syntax",
     tags: "Tags",
     inputs: "Eingänge",
     outputs: "Ausgänge",
@@ -744,14 +740,12 @@ const LOCALIZED_OPCODE_COPY: Record<GuiLanguage, LocalizedOpcodeCopy> = {
     reference: "Referenz",
     optional: "optional",
     defaultValue: "default",
-    accepts: "akzeptiert",
-    originalDescriptionNote: "_Hinweis: Die Original-Beschreibung bleibt auf Englisch._",
-    opcodeNameNotice: "_Opcode-Namen werden nicht übersetzt._"
+    accepts: "akzeptiert"
   },
   french: {
     description: "Description",
     category: "Catégorie",
-    syntax: "Syntaxe VisualCSound",
+    syntax: "Syntax",
     tags: "Tags",
     inputs: "Entrées",
     outputs: "Sorties",
@@ -760,14 +754,12 @@ const LOCALIZED_OPCODE_COPY: Record<GuiLanguage, LocalizedOpcodeCopy> = {
     reference: "Référence",
     optional: "optionnel",
     defaultValue: "défaut",
-    accepts: "accepte",
-    originalDescriptionNote: "_Note : la description originale reste en anglais._",
-    opcodeNameNotice: "_Les noms d'opcode ne sont pas traduits._"
+    accepts: "accepte"
   },
   spanish: {
     description: "Descripción",
     category: "Categoría",
-    syntax: "Sintaxis VisualCSound",
+    syntax: "Syntax",
     tags: "Etiquetas",
     inputs: "Entradas",
     outputs: "Salidas",
@@ -776,9 +768,194 @@ const LOCALIZED_OPCODE_COPY: Record<GuiLanguage, LocalizedOpcodeCopy> = {
     reference: "Referencia",
     optional: "opcional",
     defaultValue: "por defecto",
-    accepts: "acepta",
-    originalDescriptionNote: "_Nota: la descripción original se mantiene en inglés._",
-    opcodeNameNotice: "_Los nombres de opcode no se traducen._"
+    accepts: "acepta"
+  }
+};
+
+const LOCALIZED_OPCODE_DESCRIPTIONS: Record<GuiLanguage, Record<string, string>> = {
+  english: {},
+  german: {
+    midi_note: "Extrahiert MIDI-Notenfrequenz und Velocity-Amplitude.",
+    adsr: "ADSR-Hüllkurve mit Kontrollrate.",
+    madsr: "MIDI-release-sensitive ADSR-Hüllkurve.",
+    mxadsr: "Erweiterte MIDI-release-sensitive ADSR-Hüllkurve.",
+    oscili: "Klassischer interpolierender Oszillator.",
+    poscil3: "Hochpräziser kubisch interpolierender Oszillator.",
+    lfo: "Niederfrequenzoszillator für Modulation mit Kontrollrate.",
+    vibr: "Einfacher Vibrato-Kontrolloszillator mit Tabellen-Lookup.",
+    vibrato: "Zufallsbasierter Vibrato-Generator.",
+    fmb3: "B3-Orgel-FM-Modell.",
+    fmbell: "Glocken-FM-Modell.",
+    fmmetal: "Metallisches FM-Modell.",
+    fmpercfl: "Perkussives Flöten-FM-Modell.",
+    fmrhode: "Rhodes-E-Piano-FM-Modell.",
+    fmvoice: "Stimmenähnliches FM-Modell.",
+    fmwurlie: "Wurlitzer-E-Piano-FM-Modell.",
+    vco: "Bandbegrenzter spannungsgesteuerter Oszillator.",
+    vco2: "Verbesserter aliasingarmer analoger Oszillator.",
+    foscili: "FM-Oszillator mit Audiotrate und harmonischen Verhältnissen.",
+    ftgen: "Erzeugt zur Init-Zeit eine Funktionstabelle mit einer GEN-Routine.",
+    ftgenonce: "Erzeugt eine Funktionstabelle einmalig und nutzt sie instanzübergreifend wieder.",
+    cpsmidi: "Liest die aktive MIDI-Notenhöhe in Zyklen pro Sekunde.",
+    midictrl: "Liest einen MIDI-Controllerwert mit optionaler Skalierung.",
+    k_mul: "Multipliziert zwei Kontrollsignale.",
+    a_mul: "Multipliziert zwei Audiosignale.",
+    k_to_a: "Interpoliert ein Kontrollsignal auf Audiotrate.",
+    moogladder: "Moog-Ladder-Tiefpassfilter.",
+    moogladder2: "Nichtlinearer Moog-Ladder-Filter mit Unterstützung für Audioratenmodulation.",
+    diode_ladder: "Dioden-Ladder-Tiefpassfiltermodell.",
+    rezzy: "Resonanter Tiefpass- oder Hochpassfilter.",
+    vclpf: "Virtuell-analoger Tiefpassfilter.",
+    pinker: "Pink-Noise-Generator.",
+    noise: "Zufälliges Audiorauschen mit variabler Farbe.",
+    pluck: "Karplus-Strong-Modell für gezupfte Saiten.",
+    marimba: "Physikalisches Modell eines Marimbabalkens und Resonators.",
+    dripwater: "Stochastische physikalische Quelle für tropfendes Wasser.",
+    wgflute: "Waveguide-Flötenmodell.",
+    wguide2: "Zweipunkt-Waveguide-Resonator.",
+    delay: "Einfache nicht interpolierende Audio-Delay-Linie.",
+    delayk: "Delay-Linie mit Kontrollrate.",
+    delayr: "Liest einen Tap aus einem klassischen Delay-Linienspeicher.",
+    delayw: "Schreibt in den Delay-Linienspeicher.",
+    deltap: "Liest einen Delay-Tap mit linearer Interpolation.",
+    deltap3: "Liest einen Delay-Tap mit kubischer Interpolation.",
+    vdelayxs: "Variables Delay mit hochwertiger Sinc-Interpolation.",
+    vdelay3: "Variable Delay-Linie mit kubischer Interpolation.",
+    flanger: "Flanger-Effekt mit Delay-Modulation und Feedback.",
+    comb: "Kammfilter-/Feedback-Delay.",
+    reverb2: "Schroeder-Hallprozessor.",
+    limit: "Harter Clamp-Limiter.",
+    dam: "Dynamischer Amplitudenprozessor (Downward-Compressor/Rauschunterdrückung).",
+    exciter: "Harmonischer Exciter, der kontrollierte obere Teiltöne hinzufügt.",
+    distort1: "Waveshaping-Verzerrung mit konfigurierbarer Kennlinie.",
+    pan2: "Stereo-Panner.",
+    mix2: "Mischt zwei Audiosignale.",
+    outs: "Stereo-Ausgangssenke.",
+    const_k: "Konstanter Wert mit Kontrollrate.",
+    const_i: "Konstanter Wert mit Init-Rate.",
+    const_a: "Konstanter Wert mit Audiotrate."
+  },
+  french: {
+    midi_note: "Extrait la fréquence de note MIDI et l'amplitude de vélocité.",
+    adsr: "Enveloppe ADSR au taux de contrôle.",
+    madsr: "Enveloppe ADSR sensible au relâchement MIDI.",
+    mxadsr: "Enveloppe ADSR étendue sensible au relâchement MIDI.",
+    oscili: "Oscillateur interpolé classique.",
+    poscil3: "Oscillateur interpolé cubique haute précision.",
+    lfo: "Oscillateur basse fréquence pour modulation au taux de contrôle.",
+    vibr: "Oscillateur de vibrato simple avec lecture de table.",
+    vibrato: "Générateur de vibrato aléatoire.",
+    fmb3: "Modèle FM d'orgue B3.",
+    fmbell: "Modèle FM de cloche.",
+    fmmetal: "Modèle FM métallique.",
+    fmpercfl: "Modèle FM de flûte percussive.",
+    fmrhode: "Modèle FM de piano électrique Rhodes.",
+    fmvoice: "Modèle FM à caractère vocal.",
+    fmwurlie: "Modèle FM de piano électrique Wurlitzer.",
+    vco: "Oscillateur commandé en tension à bande limitée.",
+    vco2: "Oscillateur analogique amélioré avec peu d'aliasing.",
+    foscili: "Oscillateur FM au taux audio avec rapports harmoniques.",
+    ftgen: "Crée une table de fonction à l'initialisation via une routine GEN.",
+    ftgenonce: "Génère une table de fonction une seule fois et la réutilise entre instances.",
+    cpsmidi: "Lit la hauteur de note MIDI active en cycles par seconde.",
+    midictrl: "Lit une valeur de contrôleur MIDI avec mise à l'échelle optionnelle.",
+    k_mul: "Multiplie deux signaux de contrôle.",
+    a_mul: "Multiplie deux signaux audio.",
+    k_to_a: "Interpole un signal de contrôle vers le taux audio.",
+    moogladder: "Filtre passe-bas en échelle de Moog.",
+    moogladder2: "Filtre en échelle de Moog non linéaire avec modulation au taux audio.",
+    diode_ladder: "Modèle de filtre passe-bas en échelle à diodes.",
+    rezzy: "Filtre résonant passe-bas ou passe-haut.",
+    vclpf: "Filtre passe-bas virtuel-analogique.",
+    pinker: "Générateur de bruit rose.",
+    noise: "Bruit audio aléatoire à couleur variable.",
+    pluck: "Modèle de corde pincée Karplus-Strong.",
+    marimba: "Modèle physique d'une lame de marimba et de son résonateur.",
+    dripwater: "Source physique stochastique de gouttes d'eau.",
+    wgflute: "Modèle de flûte waveguide.",
+    wguide2: "Résonateur waveguide à deux points.",
+    delay: "Ligne de délai audio simple sans interpolation.",
+    delayk: "Ligne de délai au taux de contrôle.",
+    delayr: "Lit un point de lecture d'un tampon de délai classique.",
+    delayw: "Écrit dans le tampon de ligne de délai.",
+    deltap: "Lit un point de délai avec interpolation linéaire.",
+    deltap3: "Lit un point de délai avec interpolation cubique.",
+    vdelayxs: "Délai variable avec interpolation sinc de haute qualité.",
+    vdelay3: "Ligne de délai variable avec interpolation cubique.",
+    flanger: "Effet flanger avec modulation du délai et feedback.",
+    comb: "Filtre en peigne / délai avec feedback.",
+    reverb2: "Processeur de réverbération Schroeder.",
+    limit: "Limiteur à écrêtage dur.",
+    dam: "Processeur d'amplitude dynamique (compresseur descendant/réduction de bruit).",
+    exciter: "Exciter harmonique ajoutant des partiels supérieurs contrôlés.",
+    distort1: "Distorsion waveshaping avec courbe de transfert configurable.",
+    pan2: "Panoramique stéréo.",
+    mix2: "Mixe deux signaux audio.",
+    outs: "Sortie stéréo (sink).",
+    const_k: "Valeur constante au taux de contrôle.",
+    const_i: "Valeur constante au taux d'initialisation.",
+    const_a: "Valeur constante au taux audio."
+  },
+  spanish: {
+    midi_note: "Extrae la frecuencia de nota MIDI y la amplitud de velocidad.",
+    adsr: "Envolvente ADSR de tasa de control.",
+    madsr: "Envolvente ADSR sensible al release MIDI.",
+    mxadsr: "Envolvente ADSR extendida sensible al release MIDI.",
+    oscili: "Oscilador interpolado clásico.",
+    poscil3: "Oscilador interpolado cúbico de alta precisión.",
+    lfo: "Oscilador de baja frecuencia para modulación de tasa de control.",
+    vibr: "Oscilador de vibrato simple con búsqueda en tabla.",
+    vibrato: "Generador de vibrato aleatorizado.",
+    fmb3: "Modelo FM de órgano B3.",
+    fmbell: "Modelo FM de campana.",
+    fmmetal: "Modelo FM metálico.",
+    fmpercfl: "Modelo FM de flauta percusiva.",
+    fmrhode: "Modelo FM de piano eléctrico Rhodes.",
+    fmvoice: "Modelo FM con carácter vocal.",
+    fmwurlie: "Modelo FM de piano eléctrico Wurlitzer.",
+    vco: "Oscilador controlado por voltaje de banda limitada.",
+    vco2: "Oscilador analógico mejorado con bajo aliasing.",
+    foscili: "Oscilador FM a tasa de audio con relaciones armónicas.",
+    ftgen: "Crea una tabla de función en init usando una rutina GEN.",
+    ftgenonce: "Genera una tabla de función una sola vez y la reutiliza entre instancias.",
+    cpsmidi: "Lee el tono de la nota MIDI activa como ciclos por segundo.",
+    midictrl: "Lee un valor de controlador MIDI con escalado opcional.",
+    k_mul: "Multiplica dos señales de control.",
+    a_mul: "Multiplica dos señales de audio.",
+    k_to_a: "Interpola una señal de control a tasa de audio.",
+    moogladder: "Filtro pasa-bajos tipo escalera Moog.",
+    moogladder2: "Filtro de escalera Moog no lineal con soporte de modulación a tasa de audio.",
+    diode_ladder: "Modelo de filtro pasa-bajos de escalera de diodos.",
+    rezzy: "Filtro resonante pasa-bajos o pasa-altos.",
+    vclpf: "Filtro pasa-bajos virtual-analógico.",
+    pinker: "Generador de ruido rosa.",
+    noise: "Ruido de audio aleatorio de color variable.",
+    pluck: "Modelo de cuerda pulsada Karplus-Strong.",
+    marimba: "Modelo físico de una barra de marimba y su resonador.",
+    dripwater: "Fuente física estocástica de goteo de agua.",
+    wgflute: "Modelo de flauta por guía de ondas.",
+    wguide2: "Resonador de guía de ondas de dos puntos.",
+    delay: "Línea de retardo de audio simple sin interpolación.",
+    delayk: "Línea de retardo a tasa de control.",
+    delayr: "Lee un tap de un búfer de retardo clásico.",
+    delayw: "Escribe en el búfer de la línea de retardo.",
+    deltap: "Lee un tap de retardo usando interpolación lineal.",
+    deltap3: "Lee un tap de retardo usando interpolación cúbica.",
+    vdelayxs: "Retardo variable con interpolación sinc de alta calidad.",
+    vdelay3: "Línea de retardo variable con interpolación cúbica.",
+    flanger: "Efecto flanger con modulación de retardo y realimentación.",
+    comb: "Filtro comb / retardo con realimentación.",
+    reverb2: "Procesador de reverberación Schroeder.",
+    limit: "Limitador de recorte duro.",
+    dam: "Procesador dinámico de amplitud (compresor descendente/supresión de ruido).",
+    exciter: "Excitador armónico que añade parciales superiores controlados.",
+    distort1: "Distorsión por waveshaping con curva de transferencia configurable.",
+    pan2: "Paneador estéreo.",
+    mix2: "Mezcla dos señales de audio.",
+    outs: "Salida estéreo (sink).",
+    const_k: "Valor constante a tasa de control.",
+    const_i: "Valor constante a tasa de inicialización.",
+    const_a: "Valor constante a tasa de audio."
   }
 };
 
@@ -838,13 +1015,21 @@ function formatPortLine(port: PortSpec, language: GuiLanguage): string {
   return `- \`${port.id}\` (${qualifiers.join("; ")}): ${detail}`;
 }
 
+function localizedOpcodeDescription(opcode: OpcodeSpec, language: GuiLanguage): string {
+  const localized = LOCALIZED_OPCODE_DESCRIPTIONS[language]?.[opcode.name];
+  if (localized && localized.trim().length > 0) {
+    return localized;
+  }
+  return opcode.description.trim().length > 0 ? opcode.description : "-";
+}
+
 function buildGeneratedOpcodeMarkdown(opcode: OpcodeSpec, language: GuiLanguage): string {
   const copy = LOCALIZED_OPCODE_COPY[language];
   const lines: string[] = [];
 
   lines.push(`### \`${opcode.name}\``);
   lines.push("");
-  lines.push(`**${copy.description}:** ${opcode.description.trim().length > 0 ? opcode.description : "-"}`);
+  lines.push(`**${copy.description}:** ${localizedOpcodeDescription(opcode, language)}`);
   lines.push(`**${copy.category}:** \`${opcode.category}\``);
 
   if (opcode.template.trim().length > 0) {
@@ -886,14 +1071,6 @@ function buildGeneratedOpcodeMarkdown(opcode: OpcodeSpec, language: GuiLanguage)
     lines.push("- [Csound Part Reference](https://csound.com/docs/manual/PartReference.html)");
   }
 
-  if (copy.originalDescriptionNote.length > 0) {
-    lines.push("");
-    lines.push(copy.originalDescriptionNote);
-  }
-  if (copy.opcodeNameNotice.length > 0) {
-    lines.push(copy.opcodeNameNotice);
-  }
-
   return lines.join("\n");
 }
 
@@ -920,10 +1097,5 @@ export function getHelpDocument(helpDocId: HelpDocId, language: GuiLanguage): He
 
 export function localizedOpcodeMarkdown(opcode: OpcodeSpec, language: GuiLanguage): string {
   const normalized = normalizeGuiLanguage(language);
-
-  if (normalized === "english" && opcode.documentation_markdown.trim().length > 0) {
-    return opcode.documentation_markdown;
-  }
-
   return buildGeneratedOpcodeMarkdown(opcode, normalized);
 }
