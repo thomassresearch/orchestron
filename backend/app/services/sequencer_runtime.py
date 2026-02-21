@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import heapq
 import logging
 import math
 import threading
@@ -10,6 +9,7 @@ from typing import Callable
 
 from backend.app.models.session import (
     SessionSequencerConfigRequest,
+    SessionSequencerStepConfig,
     SessionSequencerStatus,
     SessionSequencerTrackStatus,
 )
@@ -47,6 +47,12 @@ def _normalize_step_notes(value: int | list[int] | None) -> tuple[int, ...]:
 
 
 @dataclass(slots=True)
+class SequencerStepRuntime:
+    notes: tuple[int, ...]
+    hold: bool = False
+
+
+@dataclass(slots=True)
 class SequencerTrackRuntime:
     track_id: str
     midi_channel: int
@@ -55,7 +61,7 @@ class SequencerTrackRuntime:
     gate_ratio: float
     enabled: bool
     queued_enabled: bool | None
-    pads: dict[int, tuple[tuple[int, ...], ...]] = field(default_factory=dict)
+    pads: dict[int, tuple[SequencerStepRuntime, ...]] = field(default_factory=dict)
     active_pad: int = 0
     queued_pad: int | None = None
 
@@ -96,11 +102,14 @@ class SessionSequencerRuntime:
 
     def configure(self, request: SessionSequencerConfigRequest) -> SessionSequencerStatus:
         with self._lock:
-            self._config = self._build_runtime_config(request)
+            previous_config = self._config
+            next_config = self._build_runtime_config(request)
+            self._release_reconfigured_track_notes_locked(previous_config, next_config)
+            self._config = next_config
             self._current_step = self._current_step % self._config.step_count
             next_active_notes: dict[str, set[int]] = {}
             for track_id in self._config.tracks:
-                next_active_notes[track_id] = self._active_notes.get(track_id, set())
+                next_active_notes[track_id] = set(self._active_notes.get(track_id, set()))
             self._active_notes = next_active_notes
             return self._status_locked()
 
@@ -167,12 +176,10 @@ class SessionSequencerRuntime:
             return self._status_locked()
 
     def _run(self) -> None:
-        note_off_heap: list[tuple[float, str, int, int]] = []
         next_step_time = time.perf_counter() + 0.01
 
         while not self._stop_event.is_set():
             now = time.perf_counter()
-            self._flush_due_note_off(now, note_off_heap)
 
             with self._lock:
                 if not self._running:
@@ -190,13 +197,12 @@ class SessionSequencerRuntime:
             if wait > 0:
                 continue
 
-            self._perform_step(config, current_step, next_step_time, step_duration, note_off_heap)
+            self._perform_step(config, current_step)
             next_step_time += step_duration
 
             if next_step_time < now - (step_duration * 2.0):
                 next_step_time = now + step_duration
 
-        self._flush_due_note_off(time.perf_counter() + 1.0, note_off_heap)
         with self._lock:
             self._send_all_notes_off_locked()
             for notes in self._active_notes.values():
@@ -206,9 +212,6 @@ class SessionSequencerRuntime:
         self,
         config: SequencerRuntimeConfig,
         step_index: int,
-        step_start: float,
-        step_duration: float,
-        note_off_heap: list[tuple[float, str, int, int]],
     ) -> None:
         switch_payloads: list[dict[str, str | int | float | bool | None]] = []
         running_track_count = 0
@@ -217,19 +220,22 @@ class SessionSequencerRuntime:
         with self._lock:
             for track_id, track in config.tracks.items():
                 pad_steps = track.pads.get(track.active_pad)
+                active_notes = self._active_notes.setdefault(track_id, set())
                 if not track.enabled or not pad_steps:
+                    self._release_track_notes_locked(track_id, track.midi_channel)
                     continue
                 running_track_count += 1
                 local_step = step_index % track.step_count
-                notes = pad_steps[local_step]
-                if not notes:
-                    continue
-
-                for note in notes:
-                    self._send_note_on_locked(track, note)
-                    self._active_notes.setdefault(track_id, set()).add(note)
-                    note_off_at = step_start + max(0.005, step_duration * track.gate_ratio)
-                    heapq.heappush(note_off_heap, (note_off_at, track_id, track.midi_channel, note))
+                step_state = pad_steps[local_step]
+                notes = step_state.notes
+                if notes:
+                    # Any non-rest step starts a new note event, so release currently held notes first.
+                    self._release_track_notes_locked(track_id, track.midi_channel)
+                    for note in notes:
+                        self._send_note_on_locked(track, note)
+                        active_notes.add(note)
+                elif not step_state.hold:
+                    self._release_track_notes_locked(track_id, track.midi_channel)
 
             next_step = (self._current_step + 1) % config.step_count
             if next_step == 0:
@@ -250,6 +256,7 @@ class SessionSequencerRuntime:
                     elif local_boundary_reached:
                         track.enabled = False
                         track.queued_enabled = None
+                        self._release_track_notes_locked(track_id, track.midi_channel)
 
                 if local_boundary_reached and track.queued_pad is not None and track.queued_pad != track.active_pad:
                     track.active_pad = track.queued_pad
@@ -278,26 +285,6 @@ class SessionSequencerRuntime:
         for payload in switch_payloads:
             self._publish_event("sequencer_pad_switched", payload)
 
-    def _flush_due_note_off(
-        self,
-        now: float,
-        note_off_heap: list[tuple[float, str, int, int]],
-    ) -> None:
-        due: list[tuple[str, int, int]] = []
-        while note_off_heap and note_off_heap[0][0] <= now:
-            _, track_id, midi_channel, note = heapq.heappop(note_off_heap)
-            due.append((track_id, midi_channel, note))
-
-        if not due:
-            return
-
-        with self._lock:
-            for track_id, midi_channel, note in due:
-                self._send_note_off_locked(midi_channel, note)
-                active_notes = self._active_notes.get(track_id)
-                if active_notes is not None:
-                    active_notes.discard(note)
-
     def _send_note_on_locked(self, track: SequencerTrackRuntime, note: int) -> None:
         channel_byte = (track.midi_channel - 1) & 0x0F
         message = [0x90 + channel_byte, _clamp_midi_note(note), track.velocity]
@@ -307,6 +294,35 @@ class SessionSequencerRuntime:
         channel_byte = (midi_channel - 1) & 0x0F
         message = [0x80 + channel_byte, _clamp_midi_note(note), 0]
         self._send_message_locked(message)
+
+    def _release_track_notes_locked(self, track_id: str, midi_channel: int) -> None:
+        active_notes = self._active_notes.get(track_id)
+        if not active_notes:
+            return
+
+        for note in sorted(active_notes):
+            self._send_note_off_locked(midi_channel, note)
+        active_notes.clear()
+
+    def _release_reconfigured_track_notes_locked(
+        self,
+        previous_config: SequencerRuntimeConfig | None,
+        next_config: SequencerRuntimeConfig,
+    ) -> None:
+        if previous_config is None:
+            return
+
+        for track_id, previous_track in previous_config.tracks.items():
+            active_notes = self._active_notes.get(track_id)
+            if not active_notes:
+                continue
+            next_track = next_config.tracks.get(track_id)
+            if (
+                next_track is None
+                or next_track.midi_channel != previous_track.midi_channel
+                or not next_track.enabled
+            ):
+                self._release_track_notes_locked(track_id, previous_track.midi_channel)
 
     def _send_all_notes_off_locked(self) -> None:
         config = self._config
@@ -373,9 +389,21 @@ class SessionSequencerRuntime:
         return self._config
 
     @staticmethod
-    def _normalize_steps(raw_steps: list[int | list[int] | None], step_count: int) -> tuple[tuple[int, ...], ...]:
+    def _normalize_step(value: int | list[int] | SessionSequencerStepConfig | None) -> SequencerStepRuntime:
+        if isinstance(value, SessionSequencerStepConfig):
+            return SequencerStepRuntime(
+                notes=_normalize_step_notes(value.note),
+                hold=bool(value.hold),
+            )
+        return SequencerStepRuntime(notes=_normalize_step_notes(value), hold=False)
+
+    @staticmethod
+    def _normalize_steps(
+        raw_steps: list[int | list[int] | SessionSequencerStepConfig | None],
+        step_count: int,
+    ) -> tuple[SequencerStepRuntime, ...]:
         padded = raw_steps[:step_count] + [None] * max(0, step_count - len(raw_steps))
-        normalized = [_normalize_step_notes(entry) for entry in padded]
+        normalized = [SessionSequencerRuntime._normalize_step(entry) for entry in padded]
         return tuple(normalized[:_MAX_STEPS])
 
     @staticmethod
@@ -410,8 +438,8 @@ class SessionSequencerRuntime:
         tracks: dict[str, SequencerTrackRuntime] = {}
         for track_request in request.tracks:
             track_step_count = 16 if track_request.step_count == 16 else 32
-            pads: dict[int, tuple[tuple[int, ...], ...]] = {
-                index: tuple(() for _ in range(track_step_count))
+            pads: dict[int, tuple[SequencerStepRuntime, ...]] = {
+                index: tuple(SequencerStepRuntime(notes=(), hold=False) for _ in range(track_step_count))
                 for index in range(_DEFAULT_PADS)
             }
 

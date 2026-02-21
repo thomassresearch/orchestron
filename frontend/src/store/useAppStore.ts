@@ -31,6 +31,7 @@ import type {
   SequencerInstrumentBinding,
   SequencerMode,
   SequencerPadState,
+  SequencerStepState,
   SequencerScaleRoot,
   SequencerScaleType,
   SequencerState,
@@ -121,6 +122,7 @@ interface AppStore {
   setSequencerTrackMode: (trackId: string, mode: SequencerMode) => void;
   setSequencerTrackStepCount: (trackId: string, stepCount: 16 | 32) => void;
   setSequencerTrackStepNote: (trackId: string, index: number, note: number | null) => void;
+  setSequencerTrackStepHold: (trackId: string, index: number, hold: boolean) => void;
   setSequencerTrackActivePad: (trackId: string, padIndex: number) => void;
   setSequencerTrackQueuedPad: (trackId: string, padIndex: number | null) => void;
 
@@ -177,7 +179,6 @@ const OPCODE_PARAM_DEFAULTS: Record<string, Record<string, string | number | boo
   const_k: { value: 0 }
 };
 
-const DEFAULT_SEQUENCER_STEPS: Array<number | null> = Array.from({ length: 32 }, () => null);
 const DEFAULT_PAD_COUNT = 8;
 const MAX_MIDI_CONTROLLERS = 16;
 const APP_STATE_VERSION = 1 as const;
@@ -210,6 +211,30 @@ function transportStepCountForTracks(tracks: SequencerTrackState[]): 16 | 32 {
   return 16;
 }
 
+function createEmptySequencerStep(): SequencerStepState {
+  return {
+    note: null,
+    hold: false
+  };
+}
+
+function cloneSequencerStep(step: SequencerStepState): SequencerStepState {
+  return {
+    note: step.note,
+    hold: step.hold
+  };
+}
+
+function defaultSequencerSteps(): SequencerStepState[] {
+  return Array.from({ length: 32 }, () => createEmptySequencerStep());
+}
+
+const DEFAULT_SEQUENCER_STEPS: SequencerStepState[] = defaultSequencerSteps();
+
+function cloneSequencerSteps(steps: SequencerStepState[]): SequencerStepState[] {
+  return steps.map((step) => cloneSequencerStep(step));
+}
+
 function normalizeStepNote(value: unknown): number | null {
   if (value === null || value === undefined) {
     return null;
@@ -218,6 +243,25 @@ function normalizeStepNote(value: unknown): number | null {
     return null;
   }
   return clampInt(value, 0, 127);
+}
+
+function normalizeStepHold(value: unknown): boolean {
+  return value === true;
+}
+
+function normalizeSequencerStep(value: unknown): SequencerStepState {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    const step = value as Record<string, unknown>;
+    return {
+      note: normalizeStepNote(step.note ?? step.notes ?? step.value),
+      hold: normalizeStepHold(step.hold)
+    };
+  }
+
+  return {
+    note: normalizeStepNote(value),
+    hold: false
+  };
 }
 
 function normalizeControllerNumber(value: unknown): number {
@@ -240,7 +284,7 @@ function defaultSequencerPads(
   mode: SequencerMode = "aeolian"
 ): SequencerPadState[] {
   return Array.from({ length: DEFAULT_PAD_COUNT }, () => ({
-    steps: [...DEFAULT_SEQUENCER_STEPS],
+    steps: defaultSequencerSteps(),
     scaleRoot,
     scaleType,
     mode
@@ -251,14 +295,14 @@ function normalizePadIndex(value: number): number {
   return clampInt(value, 0, DEFAULT_PAD_COUNT - 1);
 }
 
-function normalizePadSteps(raw: unknown): Array<number | null> | null {
+function normalizePadSteps(raw: unknown): SequencerStepState[] | null {
   if (!Array.isArray(raw)) {
     return null;
   }
 
-  const steps = [...DEFAULT_SEQUENCER_STEPS];
+  const steps = cloneSequencerSteps(DEFAULT_SEQUENCER_STEPS);
   for (let index = 0; index < Math.min(32, raw.length); index += 1) {
-    steps[index] = normalizeStepNote(raw[index]);
+    steps[index] = normalizeSequencerStep(raw[index]);
   }
   return steps;
 }
@@ -280,7 +324,7 @@ function normalizeSequencerPadState(raw: unknown, fallback: SequencerPadState): 
   }
 
   const pad = raw as Record<string, unknown>;
-  const steps = normalizePadSteps(pad.steps) ?? [...fallback.steps];
+  const steps = normalizePadSteps(pad.steps) ?? cloneSequencerSteps(fallback.steps);
   const scaleRoot =
     pad.scaleRoot === undefined && pad.scale_root === undefined
       ? fallback.scaleRoot
@@ -322,7 +366,7 @@ function defaultSequencerTrack(index = 1, midiChannel = 1): SequencerTrackState 
     activePad: 0,
     queuedPad: null,
     pads,
-    steps: [...(pads[0]?.steps ?? DEFAULT_SEQUENCER_STEPS)],
+    steps: cloneSequencerSteps(pads[0]?.steps ?? DEFAULT_SEQUENCER_STEPS),
     enabled: false,
     queuedEnabled: null
   };
@@ -420,7 +464,7 @@ function normalizeSequencerTrack(raw: unknown, index: number): SequencerTrackSta
   const activePadTheory =
     pads[activePad] ??
     pads[0] ?? {
-      steps: [...DEFAULT_SEQUENCER_STEPS],
+      steps: cloneSequencerSteps(DEFAULT_SEQUENCER_STEPS),
       scaleRoot,
       scaleType,
       mode
@@ -437,7 +481,7 @@ function normalizeSequencerTrack(raw: unknown, index: number): SequencerTrackSta
     activePad,
     queuedPad,
     pads,
-    steps: [...activePadTheory.steps],
+    steps: cloneSequencerSteps(activePadTheory.steps),
     enabled,
     queuedEnabled
   };
@@ -948,7 +992,7 @@ function buildSequencerConfigSnapshot(
           const padMode =
             sourcePad?.mode === undefined ? defaultModeForScaleType(padScaleType) : normalizeSequencerMode(sourcePad.mode);
           return {
-            steps: Array.from({ length: 32 }, (_, stepIndex) => normalizeStepNote(sourcePad?.steps?.[stepIndex])),
+            steps: Array.from({ length: 32 }, (_, stepIndex) => normalizeSequencerStep(sourcePad?.steps?.[stepIndex])),
             scaleRoot: padScaleRoot,
             scaleType: padScaleType,
             mode: padMode
@@ -1774,7 +1818,7 @@ export const useAppStore = create<AppStore>((set, get) => {
                     );
                     const selectedPad =
                       pads[activePad] ?? {
-                        steps: [...DEFAULT_SEQUENCER_STEPS],
+                        steps: cloneSequencerSteps(DEFAULT_SEQUENCER_STEPS),
                         scaleRoot: normalizedRoot,
                         scaleType: normalizedType,
                         mode: nextMode ?? track.mode
@@ -1817,7 +1861,7 @@ export const useAppStore = create<AppStore>((set, get) => {
                     );
                     const selectedPad =
                       pads[activePad] ?? {
-                        steps: [...DEFAULT_SEQUENCER_STEPS],
+                        steps: cloneSequencerSteps(DEFAULT_SEQUENCER_STEPS),
                         scaleRoot: track.scaleRoot,
                         scaleType: normalizedScaleType,
                         mode: normalizedMode
@@ -1867,18 +1911,69 @@ export const useAppStore = create<AppStore>((set, get) => {
 
             const pads = track.pads.map((pad) => ({
               ...pad,
-              steps: [...pad.steps]
+              steps: cloneSequencerSteps(pad.steps)
             }));
             const activePad = normalizePadIndex(track.activePad);
             const activePadState =
               pads[activePad] ?? {
-                steps: [...DEFAULT_SEQUENCER_STEPS],
+                steps: cloneSequencerSteps(DEFAULT_SEQUENCER_STEPS),
                 scaleRoot: track.scaleRoot,
                 scaleType: track.scaleType,
                 mode: track.mode
               };
-            const steps = [...activePadState.steps];
-            steps[index] = normalizeStepNote(note);
+            const steps = cloneSequencerSteps(activePadState.steps);
+            const stepState = steps[index] ?? createEmptySequencerStep();
+            steps[index] = {
+              ...stepState,
+              note: normalizeStepNote(note)
+            };
+            pads[activePad] = {
+              ...activePadState,
+              steps
+            };
+
+            return {
+              ...track,
+              pads,
+              steps
+            };
+          })
+        }
+      });
+    },
+
+    setSequencerTrackStepHold: (trackId, index, hold) => {
+      if (index < 0 || index >= 32) {
+        return;
+      }
+
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          tracks: sequencer.tracks.map((track) => {
+            if (track.id !== trackId) {
+              return track;
+            }
+
+            const pads = track.pads.map((pad) => ({
+              ...pad,
+              steps: cloneSequencerSteps(pad.steps)
+            }));
+            const activePad = normalizePadIndex(track.activePad);
+            const activePadState =
+              pads[activePad] ?? {
+                steps: cloneSequencerSteps(DEFAULT_SEQUENCER_STEPS),
+                scaleRoot: track.scaleRoot,
+                scaleType: track.scaleType,
+                mode: track.mode
+              };
+            const steps = cloneSequencerSteps(activePadState.steps);
+            const stepState = steps[index] ?? createEmptySequencerStep();
+            steps[index] = {
+              ...stepState,
+              hold: hold === true
+            };
             pads[activePad] = {
               ...activePadState,
               steps
@@ -1907,7 +2002,7 @@ export const useAppStore = create<AppStore>((set, get) => {
                   const selectedPad =
                     track.pads[normalizedPad] ??
                     track.pads[0] ?? {
-                      steps: [...DEFAULT_SEQUENCER_STEPS],
+                      steps: cloneSequencerSteps(DEFAULT_SEQUENCER_STEPS),
                       scaleRoot: track.scaleRoot,
                       scaleType: track.scaleType,
                       mode: track.mode
@@ -1919,7 +2014,7 @@ export const useAppStore = create<AppStore>((set, get) => {
                     scaleRoot: selectedPad.scaleRoot,
                     scaleType: selectedPad.scaleType,
                     mode: selectedPad.mode,
-                    steps: [...selectedPad.steps]
+                    steps: cloneSequencerSteps(selectedPad.steps)
                   };
                 })()
               : track
@@ -2231,7 +2326,10 @@ export const useAppStore = create<AppStore>((set, get) => {
               scaleRoot: nextScaleRoot,
               scaleType: nextScaleType,
               mode: nextMode,
-              steps: nextActivePad === track.activePad ? track.steps : [...(selectedPad?.steps ?? track.steps)]
+              steps:
+                nextActivePad === track.activePad
+                  ? track.steps
+                  : cloneSequencerSteps(selectedPad?.steps ?? track.steps)
             };
           })
         }

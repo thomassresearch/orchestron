@@ -100,8 +100,13 @@ export type SequencerScaleRoot =
   | "B"
   | "Cb";
 
+export interface SequencerStepState {
+  note: number | null;
+  hold: boolean;
+}
+
 export interface SequencerPadState {
-  steps: Array<number | null>;
+  steps: SequencerStepState[];
   scaleRoot: SequencerScaleRoot;
   scaleType: SequencerScaleType;
   mode: SequencerMode;
@@ -118,7 +123,7 @@ export interface SequencerTrackState {
   activePad: number;
   queuedPad: number | null;
   pads: SequencerPadState[];
-  steps: Array<number | null>;
+  steps: SequencerStepState[];
   enabled: boolean;
   queuedEnabled: boolean | null;
 }
@@ -255,9 +260,14 @@ export interface PerformanceListItem {
   updated_at: string;
 }
 
+export interface SessionSequencerStepConfig {
+  note: number | Array<number> | null;
+  hold: boolean;
+}
+
 export interface SessionSequencerPadConfig {
   pad_index: number;
-  steps: Array<number | Array<number> | null>;
+  steps: Array<number | Array<number> | null | SessionSequencerStepConfig>;
 }
 
 export interface SessionSequencerTrackConfig {

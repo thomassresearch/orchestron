@@ -20,6 +20,7 @@ import type {
   SequencerScaleRoot,
   SequencerScaleType,
   SequencerState,
+  SequencerStepState,
   SequencerTrackState
 } from "../types";
 
@@ -74,6 +75,7 @@ type SequencerUiCopy = {
   start: string;
   stop: string;
   rest: string;
+  hold: string;
   inScaleOptgroup: (scale: string, mode: string) => string;
   outOfScaleOptgroup: string;
   inScaleDegree: (degree: number | null) => string;
@@ -187,6 +189,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     start: "Start",
     stop: "Stop",
     rest: "Rest",
+    hold: "HOLD",
     inScaleOptgroup: (scale, mode) => `In scale: ${scale} / ${mode}`,
     outOfScaleOptgroup: "Out of scale",
     inScaleDegree: (degree) => `in scale (${degree ?? "-"})`,
@@ -253,6 +256,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     start: "Start",
     stop: "Stop",
     rest: "Pause",
+    hold: "HOLD",
     inScaleOptgroup: (scale, mode) => `In Skala: ${scale} / ${mode}`,
     outOfScaleOptgroup: "Ausserhalb der Skala",
     inScaleDegree: (degree) => `in skala (${degree ?? "-"})`,
@@ -319,6 +323,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     start: "Demarrer",
     stop: "Arreter",
     rest: "Silence",
+    hold: "HOLD",
     inScaleOptgroup: (scale, mode) => `Dans la gamme: ${scale} / ${mode}`,
     outOfScaleOptgroup: "Hors gamme",
     inScaleDegree: (degree) => `dans gamme (${degree ?? "-"})`,
@@ -385,6 +390,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     start: "Iniciar",
     stop: "Detener",
     rest: "Silencio",
+    hold: "HOLD",
     inScaleOptgroup: (scale, mode) => `En escala: ${scale} / ${mode}`,
     outOfScaleOptgroup: "Fuera de escala",
     inScaleDegree: (degree) => `en escala (${degree ?? "-"})`,
@@ -1137,6 +1143,7 @@ interface SequencerPageProps {
   onSequencerTrackModeChange: (trackId: string, mode: SequencerMode) => void;
   onSequencerTrackStepCountChange: (trackId: string, count: 16 | 32) => void;
   onSequencerTrackStepNoteChange: (trackId: string, index: number, note: number | null) => void;
+  onSequencerTrackStepHoldChange: (trackId: string, index: number, hold: boolean) => void;
   onSequencerPadPress: (trackId: string, padIndex: number) => void;
   onAddPianoRoll: () => void;
   onRemovePianoRoll: (rollId: string) => void;
@@ -1166,9 +1173,9 @@ function trackStateLabel(track: SequencerTrackState, ui: Pick<SequencerUiCopy, "
   return track.enabled ? ui.running : ui.stopped;
 }
 
-function previousNonRestNote(steps: Array<number | null>, fromIndex: number): number | null {
+function previousNonRestNote(steps: SequencerStepState[], fromIndex: number): number | null {
   for (let index = fromIndex - 1; index >= 0; index -= 1) {
-    const note = steps[index];
+    const note = steps[index]?.note;
     if (typeof note === "number") {
       return note;
     }
@@ -1224,6 +1231,7 @@ export function SequencerPage({
   onSequencerTrackModeChange,
   onSequencerTrackStepCountChange,
   onSequencerTrackStepNoteChange,
+  onSequencerTrackStepHoldChange,
   onSequencerPadPress,
   onAddPianoRoll,
   onRemovePianoRoll,
@@ -1699,7 +1707,9 @@ export function SequencerPage({
                     }}
                   >
                     {stepIndices.map((step) => {
-                      const noteValue = track.steps[step];
+                      const stepState = track.steps[step];
+                      const noteValue = stepState?.note ?? null;
+                      const holdActive = stepState?.hold === true;
                       const localPlayhead = sequencer.playhead % track.stepCount;
                       const isActive = track.enabled && sequencer.isPlaying && localPlayhead === step;
                       const selectedNote = noteValue === null ? null : noteOptionsByNote.get(noteValue) ?? null;
@@ -1721,7 +1731,23 @@ export function SequencerPage({
                                 : "border-slate-700 bg-slate-900"
                           }`}
                         >
-                          <div className="text-center font-mono text-[10px] uppercase tracking-[0.18em] text-slate-400">
+                          <div className="relative text-center font-mono text-[10px] uppercase tracking-[0.18em] text-slate-400">
+                            <button
+                              type="button"
+                              onClick={() => onSequencerTrackStepHoldChange(track.id, step, !holdActive)}
+                              className="absolute right-0 top-0 inline-flex items-center gap-1 rounded px-1 py-0.5 text-[8px] font-semibold uppercase tracking-[0.14em] text-slate-300 transition hover:bg-slate-800/80"
+                              title={ui.hold}
+                              aria-label={ui.hold}
+                            >
+                              <span>{ui.hold}</span>
+                              <span
+                                className={`h-2.5 w-2.5 rounded-full border ${
+                                  holdActive
+                                    ? "border-emerald-200 bg-emerald-300 shadow-[0_0_8px_rgba(110,231,183,0.95)]"
+                                    : "border-slate-500 bg-slate-600"
+                                }`}
+                              />
+                            </button>
                             {step + 1}
                           </div>
 
@@ -1814,10 +1840,22 @@ export function SequencerPage({
 
                           <div
                             className={`mt-1 text-center text-[10px] ${
-                              noteValue === null ? "text-slate-500" : isInScale ? "text-emerald-300" : "text-amber-300"
+                              noteValue === null
+                                ? holdActive
+                                  ? "text-emerald-300"
+                                  : "text-slate-500"
+                                : isInScale
+                                  ? "text-emerald-300"
+                                  : "text-amber-300"
                             }`}
                           >
-                            {noteValue === null ? ui.rest.toLowerCase() : isInScale ? ui.inScaleDegree(degree) : ui.outOfScale}
+                            {noteValue === null
+                              ? holdActive
+                                ? `${ui.rest.toLowerCase()} + ${ui.hold.toLowerCase()}`
+                                : ui.rest.toLowerCase()
+                              : isInScale
+                                ? ui.inScaleDegree(degree)
+                                : ui.outOfScale}
                           </div>
                         </div>
                       );

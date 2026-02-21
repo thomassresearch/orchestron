@@ -297,6 +297,7 @@ export default function App() {
   const setSequencerTrackScale = useAppStore((state) => state.setSequencerTrackScale);
   const setSequencerTrackMode = useAppStore((state) => state.setSequencerTrackMode);
   const setSequencerTrackStepNote = useAppStore((state) => state.setSequencerTrackStepNote);
+  const setSequencerTrackStepHold = useAppStore((state) => state.setSequencerTrackStepHold);
   const setSequencerTrackActivePad = useAppStore((state) => state.setSequencerTrackActivePad);
   const setSequencerTrackQueuedPad = useAppStore((state) => state.setSequencerTrackQueuedPad);
   const addPianoRoll = useAppStore((state) => state.addPianoRoll);
@@ -472,7 +473,10 @@ export default function App() {
         queued_enabled: track.queuedEnabled,
         pads: track.pads.map((pad, padIndex) => ({
           pad_index: padIndex,
-          steps: pad.steps.map((note) => note)
+          steps: pad.steps.map((step) => ({
+            note: step.note,
+            hold: step.hold
+          }))
         }))
       }))
     };
@@ -1259,6 +1263,7 @@ export default function App() {
             onSequencerTrackModeChange={setSequencerTrackMode}
             onSequencerTrackStepCountChange={setSequencerTrackStepCount}
             onSequencerTrackStepNoteChange={setSequencerTrackStepNote}
+            onSequencerTrackStepHoldChange={setSequencerTrackStepHold}
             onSequencerPadPress={(trackId, padIndex) => {
               if (!sequencerRef.current.isPlaying) {
                 setSequencerTrackActivePad(trackId, padIndex);

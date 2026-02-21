@@ -104,9 +104,26 @@ class SessionMidiEventRequest(BaseModel):
 SequencerStepNotes = int | list[int] | None
 
 
+class SessionSequencerStepConfig(BaseModel):
+    note: SequencerStepNotes = None
+    hold: bool = False
+
+    @model_validator(mode="before")
+    @classmethod
+    def coerce_notes_alias(cls, value: object) -> object:
+        if not isinstance(value, dict):
+            return value
+        if "note" not in value and "notes" in value:
+            return {**value, "note": value["notes"]}
+        return value
+
+
+SequencerStepConfig = SequencerStepNotes | SessionSequencerStepConfig
+
+
 class SessionSequencerPadConfig(BaseModel):
     pad_index: int = Field(ge=0, le=7)
-    steps: list[SequencerStepNotes] = Field(default_factory=list, max_length=32)
+    steps: list[SequencerStepConfig] = Field(default_factory=list, max_length=32)
 
 
 class SessionSequencerTrackConfig(BaseModel):
