@@ -5,6 +5,8 @@ import { createUntitledPatch } from "../lib/defaultPatch";
 import { normalizeGuiLanguage } from "../lib/guiLanguage";
 import {
   defaultModeForScaleType,
+  linkedModeForScaleType,
+  linkedScaleTypeForMode,
   normalizeSequencerMode,
   normalizeSequencerScaleRoot,
   normalizeSequencerScaleType
@@ -1671,7 +1673,7 @@ export const useAppStore = create<AppStore>((set, get) => {
     setSequencerTrackScale: (trackId, scaleRoot, scaleType) => {
       const normalizedRoot = normalizeSequencerScaleRoot(scaleRoot);
       const normalizedType = normalizeSequencerScaleType(scaleType);
-      const nextMode = defaultModeForScaleType(normalizedType);
+      const nextMode = linkedModeForScaleType(normalizedType);
 
       const sequencer = get().sequencer;
       set({
@@ -1683,7 +1685,7 @@ export const useAppStore = create<AppStore>((set, get) => {
                   ...track,
                   scaleRoot: normalizedRoot,
                   scaleType: normalizedType,
-                  mode: nextMode
+                  mode: nextMode ?? track.mode
                 }
               : track
           )
@@ -1692,12 +1694,20 @@ export const useAppStore = create<AppStore>((set, get) => {
     },
 
     setSequencerTrackMode: (trackId, mode) => {
+      const normalizedMode = normalizeSequencerMode(mode);
+      const normalizedScaleType = linkedScaleTypeForMode(normalizedMode);
       const sequencer = get().sequencer;
       set({
         sequencer: {
           ...sequencer,
           tracks: sequencer.tracks.map((track) =>
-            track.id === trackId ? { ...track, mode: normalizeSequencerMode(mode) } : track
+            track.id === trackId
+              ? {
+                  ...track,
+                  mode: normalizedMode,
+                  scaleType: normalizedScaleType
+                }
+              : track
           )
         }
       });
@@ -1852,7 +1862,7 @@ export const useAppStore = create<AppStore>((set, get) => {
     setPianoRollScale: (rollId, scaleRoot, scaleType) => {
       const normalizedRoot = normalizeSequencerScaleRoot(scaleRoot);
       const normalizedType = normalizeSequencerScaleType(scaleType);
-      const nextMode = defaultModeForScaleType(normalizedType);
+      const nextMode = linkedModeForScaleType(normalizedType);
       const sequencer = get().sequencer;
 
       set({
@@ -1864,7 +1874,7 @@ export const useAppStore = create<AppStore>((set, get) => {
                   ...roll,
                   scaleRoot: normalizedRoot,
                   scaleType: normalizedType,
-                  mode: nextMode
+                  mode: nextMode ?? roll.mode
                 }
               : roll
           )
@@ -1873,12 +1883,20 @@ export const useAppStore = create<AppStore>((set, get) => {
     },
 
     setPianoRollMode: (rollId, mode) => {
+      const normalizedMode = normalizeSequencerMode(mode);
+      const normalizedScaleType = linkedScaleTypeForMode(normalizedMode);
       const sequencer = get().sequencer;
       set({
         sequencer: {
           ...sequencer,
           pianoRolls: sequencer.pianoRolls.map((roll) =>
-            roll.id === rollId ? { ...roll, mode: normalizeSequencerMode(mode) } : roll
+            roll.id === rollId
+              ? {
+                  ...roll,
+                  mode: normalizedMode,
+                  scaleType: normalizedScaleType
+                }
+              : roll
           )
         }
       });

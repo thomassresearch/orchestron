@@ -135,10 +135,10 @@ const MODE_LABELS: Record<GuiLanguage, Record<SequencerMode, string>> = {
 };
 
 const SCALE_TYPE_LABELS: Record<GuiLanguage, Record<SequencerScaleType, string>> = {
-  english: { major: "major", minor: "minor" },
-  german: { major: "dur", minor: "moll" },
-  french: { major: "majeur", minor: "mineur" },
-  spanish: { major: "mayor", minor: "menor" }
+  english: { major: "major", neutral: "", minor: "minor" },
+  german: { major: "dur", neutral: "", minor: "moll" },
+  french: { major: "majeur", neutral: "", minor: "mineur" },
+  spanish: { major: "mayor", neutral: "", minor: "menor" }
 };
 
 const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
@@ -978,7 +978,7 @@ export function SequencerPage({
     () =>
       SEQUENCER_SCALE_OPTIONS.map((option) => ({
         ...option,
-        label: `${option.root} ${scaleTypeLabels[option.type]}`
+        label: scaleTypeLabels[option.type].length > 0 ? `${option.root} ${scaleTypeLabels[option.type]}` : option.root
       })),
     [scaleTypeLabels]
   );
@@ -1234,7 +1234,10 @@ export function SequencerPage({
             const noteOptionsByNote = new Map(noteOptions.map((option) => [option.note, option]));
             const inScaleOptions = noteOptions.filter((option) => option.inScale);
             const outOfScaleOptions = noteOptions.filter((option) => !option.inScale);
-            const scaleLabel = `${track.scaleRoot} ${scaleTypeLabels[track.scaleType]}`;
+            const scaleLabel =
+              scaleTypeLabels[track.scaleType].length > 0
+                ? `${track.scaleRoot} ${scaleTypeLabels[track.scaleType]}`
+                : track.scaleRoot;
             const modeLabel = modeLabels[track.mode];
             const scaleValue = `${track.scaleRoot}:${track.scaleType}`;
             const stepIndices = Array.from({ length: track.stepCount }, (_, index) => index);
@@ -1524,7 +1527,10 @@ export function SequencerPage({
         <div className="space-y-3">
           {sequencer.pianoRolls.map((roll, rollIndex) => {
             const scaleValue = `${roll.scaleRoot}:${roll.scaleType}`;
-            const scaleLabel = `${roll.scaleRoot} ${scaleTypeLabels[roll.scaleType]}`;
+            const scaleLabel =
+              scaleTypeLabels[roll.scaleType].length > 0
+                ? `${roll.scaleRoot} ${scaleTypeLabels[roll.scaleType]}`
+                : roll.scaleRoot;
             const modeLabel = modeLabels[roll.mode];
             return (
               <article key={roll.id} className="rounded-xl border border-slate-700 bg-slate-900/65 p-2.5">

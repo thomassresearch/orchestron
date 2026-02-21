@@ -78,7 +78,7 @@ export interface PatchGraph {
   engine_config: EngineConfig;
 }
 
-export type SequencerScaleType = "major" | "minor";
+export type SequencerScaleType = "major" | "neutral" | "minor";
 export type SequencerMode = "ionian" | "dorian" | "phrygian" | "lydian" | "mixolydian" | "aeolian" | "locrian";
 export type SequencerScaleRoot =
   | "C"

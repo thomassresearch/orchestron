@@ -90,6 +90,12 @@ export const SEQUENCER_SCALE_OPTIONS: SequencerScaleDefinition[] = SEQUENCER_SCA
   },
   {
     root: root.value,
+    type: "neutral",
+    value: `${root.value}:neutral`,
+    label: root.label
+  },
+  {
+    root: root.value,
     type: "minor",
     value: `${root.value}:minor`,
     label: `${root.label} minor`
@@ -134,7 +140,7 @@ export function normalizeSequencerScaleRoot(value: unknown): SequencerScaleRoot 
 }
 
 export function normalizeSequencerScaleType(value: unknown): SequencerScaleType {
-  if (value === "major" || value === "minor") {
+  if (value === "major" || value === "neutral" || value === "minor") {
     return value;
   }
   return DEFAULT_SCALE_TYPE;
@@ -148,10 +154,40 @@ export function normalizeSequencerMode(value: unknown): SequencerMode {
 }
 
 export function defaultModeForScaleType(scaleType: SequencerScaleType): SequencerMode {
-  return scaleType === "major" ? "ionian" : "aeolian";
+  switch (scaleType) {
+    case "major":
+      return "ionian";
+    case "minor":
+      return "aeolian";
+    default:
+      return DEFAULT_MODE;
+  }
+}
+
+export function linkedModeForScaleType(scaleType: SequencerScaleType): SequencerMode | null {
+  if (scaleType === "major") {
+    return "ionian";
+  }
+  if (scaleType === "minor") {
+    return "aeolian";
+  }
+  return null;
+}
+
+export function linkedScaleTypeForMode(mode: SequencerMode): SequencerScaleType {
+  if (mode === "ionian") {
+    return "major";
+  }
+  if (mode === "aeolian") {
+    return "minor";
+  }
+  return "neutral";
 }
 
 export function sequencerScaleLabel(scaleRoot: SequencerScaleRoot, scaleType: SequencerScaleType): string {
+  if (scaleType === "neutral") {
+    return scaleRoot;
+  }
   return `${scaleRoot} ${scaleType}`;
 }
 
@@ -165,7 +201,7 @@ export function parseSequencerScaleValue(value: string): { root: SequencerScaleR
   if (rawRoot !== root) {
     return null;
   }
-  if (rawType !== "major" && rawType !== "minor") {
+  if (rawType !== "major" && rawType !== "neutral" && rawType !== "minor") {
     return null;
   }
   return { root, type: rawType };

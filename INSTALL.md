@@ -1,6 +1,6 @@
-# VisualCSound Installation Manual (macOS)
+# Orchestron Installation Manual (macOS)
 
-This guide installs and runs VisualCSound on macOS with realtime CSound + MIDI support.
+This guide installs and runs Orchestron on macOS with realtime CSound + MIDI support.
 
 ## 1. Prerequisites
 
@@ -30,8 +30,8 @@ Project requirements:
 If you already have the repository, skip this section.
 
 ```bash
-git clone <your-repo-url> VisualCSound
-cd VisualCSound
+git clone <your-repo-url> Orchestron
+cd Orchestron
 ```
 
 ## 3. Install backend dependencies
@@ -101,7 +101,7 @@ Open:
 
 ## 7. MIDI setup on macOS (IAC Driver)
 
-For loopback MIDI from DAWs/apps into VisualCSound:
+For loopback MIDI from DAWs/apps into Orchestron:
 
 1. Open **Audio MIDI Setup**.
 2. Open **MIDI Studio** (Window -> Show MIDI Studio).
@@ -151,7 +151,7 @@ cd frontend && npm run build
 
 ## 10. Standalone MIDI jitter probe (macOS)
 
-Use the native CLI probe when you want to verify timing behavior independent of the main VisualCSound runtime path.
+Use the native CLI probe when you want to verify timing behavior independent of the main Orchestron runtime path.
 
 Build:
 
