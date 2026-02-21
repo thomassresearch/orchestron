@@ -41,7 +41,8 @@ make run
 ### Backend
 
 ```bash
-uv pip install -e '.[dev]'
+# uv pip install -e '.[dev]'
+uv sync
 uvicorn backend.app.main:app --reload
 ```
 
