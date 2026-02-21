@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ChangeEvent, PointerEvent as ReactPointerEvent } from "react";
+import type { ChangeEvent, CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 
 import {
   buildSequencerNoteOptions,
   parseSequencerScaleValue,
+  scaleDegreeForNote,
   SEQUENCER_MODE_OPTIONS,
   SEQUENCER_SCALE_OPTIONS
 } from "../lib/sequencer";
@@ -29,6 +30,7 @@ const PIANO_WHITE_KEY_HEIGHT = 132;
 const PIANO_BLACK_KEY_WIDTH = 22;
 const PIANO_BLACK_KEY_HEIGHT = 84;
 const PIANO_SCROLL_STEP_PX = PIANO_WHITE_KEY_WIDTH * 8;
+const MIXED_SELECT_VALUE = "__mixed__";
 
 type SequencerUiCopy = {
   keyboardInfo: string;
@@ -91,6 +93,7 @@ type SequencerUiCopy = {
   cycle: (cycle: number) => string;
   midiInput: (name: string) => string;
   none: string;
+  mixed: string;
   resetPlayhead: string;
   allNotesOff: string;
 };
@@ -204,6 +207,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     cycle: (cycle) => `cycle: ${cycle}`,
     midiInput: (name) => `midi input: ${name}`,
     none: "none",
+    mixed: "mixed",
     resetPlayhead: "Reset Playhead",
     allNotesOff: "All Notes Off"
   },
@@ -269,6 +273,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     cycle: (cycle) => `zyklus: ${cycle}`,
     midiInput: (name) => `midi eingang: ${name}`,
     none: "kein",
+    mixed: "gemischt",
     resetPlayhead: "Playhead zuruecksetzen",
     allNotesOff: "Alle Noten aus"
   },
@@ -334,6 +339,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     cycle: (cycle) => `cycle: ${cycle}`,
     midiInput: (name) => `entree midi: ${name}`,
     none: "aucune",
+    mixed: "mixte",
     resetPlayhead: "Reinitialiser playhead",
     allNotesOff: "Toutes notes off"
   },
@@ -399,6 +405,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     cycle: (cycle) => `ciclo: ${cycle}`,
     midiInput: (name) => `entrada midi: ${name}`,
     none: "ninguna",
+    mixed: "mixto",
     resetPlayhead: "Reiniciar playhead",
     allNotesOff: "Todas las notas off"
   }
@@ -427,19 +434,244 @@ function pianoKeyPrimaryLabel(label: string | undefined, note: number): string {
   return primary.trim();
 }
 
+interface PianoRollHighlightTheory {
+  scaleRoot: SequencerScaleRoot;
+  mode: SequencerMode;
+}
+
+interface PianoRollNoteDisplay {
+  note: number;
+  label: string;
+  inScale: boolean;
+  degrees: number[];
+  degreeText: string | null;
+  highlightColor: HsvColor | null;
+}
+
+interface HsvColor {
+  h: number;
+  s: number;
+  v: number;
+}
+
+interface RgbColor {
+  r: number;
+  g: number;
+  b: number;
+}
+
+const DEGREE_RAINBOW_HSV: Record<number, HsvColor> = {
+  1: { h: 0, s: 0.86, v: 0.94 },
+  2: { h: 30, s: 0.87, v: 0.95 },
+  3: { h: 54, s: 0.84, v: 0.95 },
+  4: { h: 120, s: 0.74, v: 0.86 },
+  5: { h: 170, s: 0.78, v: 0.85 },
+  6: { h: 220, s: 0.8, v: 0.9 },
+  7: { h: 275, s: 0.74, v: 0.9 }
+};
+
+function clamp01(value: number): number {
+  return Math.max(0, Math.min(1, value));
+}
+
+function normalizeHue(value: number): number {
+  const modulo = value % 360;
+  return modulo < 0 ? modulo + 360 : modulo;
+}
+
+function blendHsvColors(colors: HsvColor[]): HsvColor | null {
+  if (colors.length === 0) {
+    return null;
+  }
+
+  let x = 0;
+  let y = 0;
+  let saturation = 0;
+  let value = 0;
+  for (const color of colors) {
+    const radians = (normalizeHue(color.h) * Math.PI) / 180;
+    x += Math.cos(radians);
+    y += Math.sin(radians);
+    saturation += clamp01(color.s);
+    value += clamp01(color.v);
+  }
+
+  return {
+    h: normalizeHue((Math.atan2(y / colors.length, x / colors.length) * 180) / Math.PI),
+    s: clamp01(saturation / colors.length),
+    v: clamp01(value / colors.length)
+  };
+}
+
+function hsvToRgb(color: HsvColor): RgbColor {
+  const hue = normalizeHue(color.h);
+  const saturation = clamp01(color.s);
+  const value = clamp01(color.v);
+
+  const c = value * saturation;
+  const x = c * (1 - Math.abs(((hue / 60) % 2) - 1));
+  const m = value - c;
+
+  let rPrime = 0;
+  let gPrime = 0;
+  let bPrime = 0;
+
+  if (hue < 60) {
+    rPrime = c;
+    gPrime = x;
+  } else if (hue < 120) {
+    rPrime = x;
+    gPrime = c;
+  } else if (hue < 180) {
+    gPrime = c;
+    bPrime = x;
+  } else if (hue < 240) {
+    gPrime = x;
+    bPrime = c;
+  } else if (hue < 300) {
+    rPrime = x;
+    bPrime = c;
+  } else {
+    rPrime = c;
+    bPrime = x;
+  }
+
+  return {
+    r: Math.round((rPrime + m) * 255),
+    g: Math.round((gPrime + m) * 255),
+    b: Math.round((bPrime + m) * 255)
+  };
+}
+
+function rgbToCss(color: RgbColor): string {
+  return `rgb(${color.r} ${color.g} ${color.b})`;
+}
+
+function colorForDegrees(degrees: number[]): HsvColor | null {
+  const colors = degrees.map((degree) => DEGREE_RAINBOW_HSV[degree]).filter((color): color is HsvColor => color !== undefined);
+  return blendHsvColors(colors);
+}
+
+function whiteKeyHighlightStyle(color: HsvColor | null): CSSProperties | undefined {
+  if (!color) {
+    return undefined;
+  }
+
+  const border = hsvToRgb({ h: color.h, s: clamp01(color.s * 0.78), v: clamp01(color.v * 0.72) });
+  const background = hsvToRgb({ h: color.h, s: clamp01(color.s * 0.24), v: 0.99 });
+  const text = hsvToRgb({ h: color.h, s: clamp01(color.s * 0.82), v: clamp01(color.v * 0.32) });
+
+  return {
+    borderColor: rgbToCss(border),
+    backgroundColor: rgbToCss(background),
+    color: rgbToCss(text)
+  };
+}
+
+function whiteDegreeStyle(color: HsvColor | null): CSSProperties | undefined {
+  if (!color) {
+    return undefined;
+  }
+  const degreeText = hsvToRgb({ h: color.h, s: clamp01(color.s * 0.86), v: clamp01(color.v * 0.42) });
+  return { color: rgbToCss(degreeText) };
+}
+
+function blackKeyHighlightStyle(color: HsvColor | null): CSSProperties | undefined {
+  if (!color) {
+    return undefined;
+  }
+
+  const border = hsvToRgb({ h: color.h, s: clamp01(color.s * 0.88), v: clamp01(color.v * 0.78) });
+  const background = hsvToRgb({ h: color.h, s: clamp01(color.s * 0.76), v: clamp01(color.v * 0.46) });
+  const text = hsvToRgb({ h: color.h, s: clamp01(color.s * 0.2), v: 0.98 });
+
+  return {
+    borderColor: rgbToCss(border),
+    backgroundColor: rgbToCss(background),
+    color: rgbToCss(text)
+  };
+}
+
+function blackDegreeStyle(color: HsvColor | null): CSSProperties | undefined {
+  if (!color) {
+    return undefined;
+  }
+  const degreeText = hsvToRgb({ h: color.h, s: clamp01(color.s * 0.3), v: 0.93 });
+  return { color: rgbToCss(degreeText) };
+}
+
 interface PianoRollKeyboardProps {
   ui: SequencerUiCopy;
   roll: PianoRollState;
   instrumentsRunning: boolean;
+  highlightTheories: PianoRollHighlightTheory[];
   onNoteOn: (note: number, channel: number) => void;
   onNoteOff: (note: number, channel: number) => void;
 }
 
-function PianoRollKeyboard({ ui, roll, instrumentsRunning, onNoteOn, onNoteOff }: PianoRollKeyboardProps) {
+function PianoRollKeyboard({
+  ui,
+  roll,
+  instrumentsRunning,
+  highlightTheories,
+  onNoteOn,
+  onNoteOff
+}: PianoRollKeyboardProps) {
   const interactive = instrumentsRunning && roll.enabled;
-  const pianoRollOptions = useMemo(
-    () => buildSequencerNoteOptions(roll.scaleRoot, roll.mode),
-    [roll.mode, roll.scaleRoot]
+  const effectiveTheories = useMemo<PianoRollHighlightTheory[]>(
+    () =>
+      highlightTheories.length > 0
+        ? highlightTheories
+        : [
+            {
+              scaleRoot: roll.scaleRoot,
+              mode: roll.mode
+            }
+          ],
+    [highlightTheories, roll.mode, roll.scaleRoot]
+  );
+  const labelTheory = effectiveTheories[0];
+  const noteLabelsByNote = useMemo(
+    () =>
+      new Map(
+        buildSequencerNoteOptions(labelTheory.scaleRoot, labelTheory.mode).map((option) => [
+          option.note,
+          pianoKeyPrimaryLabel(option.label, option.note)
+        ])
+      ),
+    [labelTheory.mode, labelTheory.scaleRoot]
+  );
+  const pianoRollOptions = useMemo<PianoRollNoteDisplay[]>(
+    () =>
+      Array.from({ length: 128 }, (_, note) => {
+        const label = noteLabelsByNote.get(note) ?? String(note);
+        const degrees: number[] = [];
+
+        for (const theory of effectiveTheories) {
+          const degree = scaleDegreeForNote(note, theory.scaleRoot, theory.mode);
+          if (degree === null) {
+            return {
+              note,
+              label,
+              inScale: false,
+              degrees: [],
+              degreeText: null,
+              highlightColor: null
+            };
+          }
+          degrees.push(degree);
+        }
+
+        return {
+          note,
+          label,
+          inScale: true,
+          degrees,
+          degreeText: degrees.join("/"),
+          highlightColor: colorForDegrees(degrees)
+        };
+      }),
+    [effectiveTheories, noteLabelsByNote]
   );
   const pianoRollOptionsByNote = useMemo(
     () => new Map(pianoRollOptions.map((option) => [option.note, option])),
@@ -450,15 +682,29 @@ function PianoRollKeyboard({ ui, roll, instrumentsRunning, onNoteOn, onNoteOff }
     []
   );
   const pianoKeyboard = useMemo(() => {
-    const whiteKeys: Array<{ note: number; label: string; inScale: boolean; degree: number | null }> = [];
-    const blackKeys: Array<{ note: number; left: number; label: string; inScale: boolean; degree: number | null }> = [];
+    const whiteKeys: Array<{
+      note: number;
+      label: string;
+      inScale: boolean;
+      degreeText: string | null;
+      highlightColor: HsvColor | null;
+    }> = [];
+    const blackKeys: Array<{
+      note: number;
+      left: number;
+      label: string;
+      inScale: boolean;
+      degreeText: string | null;
+      highlightColor: HsvColor | null;
+    }> = [];
     let whiteIndex = 0;
 
     for (const note of pianoRollNotes) {
       const option = pianoRollOptionsByNote.get(note);
       const inScale = option?.inScale ?? false;
-      const degree = option?.degree ?? null;
-      const label = pianoKeyPrimaryLabel(option?.label, note);
+      const degreeText = option?.degreeText ?? null;
+      const label = option?.label ?? String(note);
+      const highlightColor = option?.highlightColor ?? null;
 
       if (isBlackPianoKey(note)) {
         blackKeys.push({
@@ -466,7 +712,8 @@ function PianoRollKeyboard({ ui, roll, instrumentsRunning, onNoteOn, onNoteOff }
           left: whiteIndex * PIANO_WHITE_KEY_WIDTH - PIANO_BLACK_KEY_WIDTH / 2,
           label,
           inScale,
-          degree
+          degreeText,
+          highlightColor
         });
         continue;
       }
@@ -475,7 +722,8 @@ function PianoRollKeyboard({ ui, roll, instrumentsRunning, onNoteOn, onNoteOff }
         note,
         label,
         inScale,
-        degree
+        degreeText,
+        highlightColor
       });
       whiteIndex += 1;
     }
@@ -673,6 +921,10 @@ function PianoRollKeyboard({ ui, roll, instrumentsRunning, onNoteOn, onNoteOff }
           <div className="absolute inset-0 flex items-start">
             {pianoKeyboard.whiteKeys.map((key) => {
               const isActive = activePianoNotes[key.note] === true;
+              const highlightStyle =
+                !isActive && key.inScale ? whiteKeyHighlightStyle(key.highlightColor) : undefined;
+              const degreeStyle =
+                !isActive && key.inScale ? whiteDegreeStyle(key.highlightColor) : undefined;
               return (
                 <button
                   key={`piano-white-${roll.id}-${key.note}`}
@@ -689,10 +941,14 @@ function PianoRollKeyboard({ ui, roll, instrumentsRunning, onNoteOn, onNoteOff }
                         ? "border-emerald-500/80 bg-emerald-100 text-emerald-950"
                         : "border-slate-500 bg-white text-slate-900 hover:bg-slate-50"
                   } ${interactive ? "" : "cursor-not-allowed opacity-45"}`}
-                  style={{ width: `${PIANO_WHITE_KEY_WIDTH}px` }}
+                  style={{ width: `${PIANO_WHITE_KEY_WIDTH}px`, ...highlightStyle }}
                 >
                   <span>{key.label}</span>
-                  {key.degree ? <span className="text-[9px] text-emerald-700">({key.degree})</span> : null}
+                  {key.degreeText ? (
+                    <span className="text-[9px] text-emerald-700" style={degreeStyle}>
+                      ({key.degreeText})
+                    </span>
+                  ) : null}
                 </button>
               );
             })}
@@ -701,6 +957,10 @@ function PianoRollKeyboard({ ui, roll, instrumentsRunning, onNoteOn, onNoteOff }
           <div className="pointer-events-none absolute inset-0">
             {pianoKeyboard.blackKeys.map((key) => {
               const isActive = activePianoNotes[key.note] === true;
+              const highlightStyle =
+                !isActive && key.inScale ? blackKeyHighlightStyle(key.highlightColor) : undefined;
+              const degreeStyle =
+                !isActive && key.inScale ? blackDegreeStyle(key.highlightColor) : undefined;
               return (
                 <button
                   key={`piano-black-${roll.id}-${key.note}`}
@@ -720,11 +980,16 @@ function PianoRollKeyboard({ ui, roll, instrumentsRunning, onNoteOn, onNoteOff }
                   style={{
                     left: `${key.left}px`,
                     width: `${PIANO_BLACK_KEY_WIDTH}px`,
-                    height: `${PIANO_BLACK_KEY_HEIGHT}px`
+                    height: `${PIANO_BLACK_KEY_HEIGHT}px`,
+                    ...highlightStyle
                   }}
                 >
                   <span>{key.label}</span>
-                  {key.degree ? <span className="text-[8px] text-emerald-300">({key.degree})</span> : null}
+                  {key.degreeText ? (
+                    <span className="text-[8px] text-emerald-300" style={degreeStyle}>
+                      ({key.degreeText})
+                    </span>
+                  ) : null}
                 </button>
               );
             })}
@@ -911,6 +1176,20 @@ function previousNonRestNote(steps: Array<number | null>, fromIndex: number): nu
   return null;
 }
 
+interface RunningSequencerTheory {
+  scaleRoot: SequencerScaleRoot;
+  scaleType: SequencerScaleType;
+  mode: SequencerMode;
+}
+
+function scaleLabelFor(
+  scaleRoot: SequencerScaleRoot,
+  scaleType: SequencerScaleType,
+  scaleTypeLabels: Record<SequencerScaleType, string>
+): string {
+  return scaleTypeLabels[scaleType].length > 0 ? `${scaleRoot} ${scaleTypeLabels[scaleType]}` : scaleRoot;
+}
+
 export function SequencerPage({
   guiLanguage,
   patches,
@@ -982,6 +1261,48 @@ export function SequencerPage({
       })),
     [scaleTypeLabels]
   );
+  const runningSequencerTheories = useMemo<RunningSequencerTheory[]>(
+    () =>
+      sequencer.isPlaying
+        ? sequencer.tracks
+            .filter((track) => track.enabled)
+            .map((track) => ({
+              scaleRoot: track.scaleRoot,
+              scaleType: track.scaleType,
+              mode: track.mode
+            }))
+        : [],
+    [sequencer.isPlaying, sequencer.tracks]
+  );
+  const runningSequencerSummary = useMemo(() => {
+    if (runningSequencerTheories.length === 0) {
+      return null;
+    }
+
+    const first = runningSequencerTheories[0];
+    const sharedScale =
+      runningSequencerTheories.every(
+        (theory) => theory.scaleRoot === first.scaleRoot && theory.scaleType === first.scaleType
+      )
+        ? { scaleRoot: first.scaleRoot, scaleType: first.scaleType }
+        : null;
+    const sharedMode = runningSequencerTheories.every((theory) => theory.mode === first.mode)
+      ? first.mode
+      : null;
+    const highlightTheories: PianoRollHighlightTheory[] =
+      sharedScale && sharedMode
+        ? [{ scaleRoot: sharedScale.scaleRoot, mode: sharedMode }]
+        : runningSequencerTheories.map((theory) => ({
+            scaleRoot: theory.scaleRoot,
+            mode: theory.mode
+          }));
+
+    return {
+      sharedScale,
+      sharedMode,
+      highlightTheories
+    };
+  }, [runningSequencerTheories]);
   const localizedSessionState = useMemo(() => {
     if (sessionState === "running") {
       return ui.running;
@@ -1526,12 +1847,22 @@ export function SequencerPage({
 
         <div className="space-y-3">
           {sequencer.pianoRolls.map((roll, rollIndex) => {
-            const scaleValue = `${roll.scaleRoot}:${roll.scaleType}`;
-            const scaleLabel =
-              scaleTypeLabels[roll.scaleType].length > 0
-                ? `${roll.scaleRoot} ${scaleTypeLabels[roll.scaleType]}`
-                : roll.scaleRoot;
-            const modeLabel = modeLabels[roll.mode];
+            const followSummary = instrumentsRunning && roll.enabled ? runningSequencerSummary : null;
+            const followsMixedScale = followSummary !== null && followSummary.sharedScale === null;
+            const followsMixedMode = followSummary !== null && followSummary.sharedMode === null;
+            const effectiveScaleRoot = followSummary?.sharedScale?.scaleRoot ?? roll.scaleRoot;
+            const effectiveScaleType = followSummary?.sharedScale?.scaleType ?? roll.scaleType;
+            const effectiveScaleValue = followsMixedScale
+              ? MIXED_SELECT_VALUE
+              : `${effectiveScaleRoot}:${effectiveScaleType}`;
+            const effectiveScaleLabel = followsMixedScale
+              ? ui.mixed
+              : scaleLabelFor(effectiveScaleRoot, effectiveScaleType, scaleTypeLabels);
+            const effectiveMode = followSummary?.sharedMode ?? roll.mode;
+            const effectiveModeValue = followsMixedMode ? MIXED_SELECT_VALUE : effectiveMode;
+            const effectiveModeLabel = followsMixedMode ? ui.mixed : modeLabels[effectiveMode];
+            const keyboardHighlightTheories =
+              followSummary?.highlightTheories ?? [{ scaleRoot: roll.scaleRoot, mode: roll.mode }];
             return (
               <article key={roll.id} className="rounded-xl border border-slate-700 bg-slate-900/65 p-2.5">
                 <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -1571,7 +1902,8 @@ export function SequencerPage({
                   <label className="flex min-w-[180px] flex-col gap-1">
                     <span className={controlLabelClass}>{ui.scale}</span>
                     <select
-                      value={scaleValue}
+                      value={effectiveScaleValue}
+                      disabled={followSummary !== null}
                       onChange={(event) => {
                         const selected = parseSequencerScaleValue(event.target.value);
                         if (selected) {
@@ -1580,6 +1912,11 @@ export function SequencerPage({
                       }}
                       className={controlFieldClass}
                     >
+                      {followsMixedScale ? (
+                        <option value={MIXED_SELECT_VALUE} disabled>
+                          {ui.mixed}
+                        </option>
+                      ) : null}
                       {scaleOptions.map((option) => (
                         <option key={`${roll.id}-${option.value}`} value={option.value}>
                           {option.label}
@@ -1590,10 +1927,16 @@ export function SequencerPage({
                   <label className="flex min-w-[160px] flex-col gap-1">
                     <span className={controlLabelClass}>{ui.mode}</span>
                     <select
-                      value={roll.mode}
+                      value={effectiveModeValue}
+                      disabled={followSummary !== null}
                       onChange={(event) => onPianoRollModeChange(roll.id, event.target.value as SequencerMode)}
                       className={controlFieldClass}
                     >
+                      {followsMixedMode ? (
+                        <option value={MIXED_SELECT_VALUE} disabled>
+                          {ui.mixed}
+                        </option>
+                      ) : null}
                       {modeOptions.map((option) => (
                         <option key={`${roll.id}-mode-${option.value}`} value={option.value}>
                           {option.label}
@@ -1604,7 +1947,7 @@ export function SequencerPage({
                 </div>
 
                 <div className="mb-2 text-[11px] text-slate-500">
-                  {ui.inScaleHighlightInfo(scaleLabel, modeLabel)}
+                  {ui.inScaleHighlightInfo(effectiveScaleLabel, effectiveModeLabel)}
                 </div>
 
                 <div className="relative left-1/2 w-screen -translate-x-1/2 px-4 sm:px-6 lg:px-8">
@@ -1612,6 +1955,7 @@ export function SequencerPage({
                     ui={ui}
                     roll={roll}
                     instrumentsRunning={instrumentsRunning}
+                    highlightTheories={keyboardHighlightTheories}
                     onNoteOn={onPianoRollNoteOn}
                     onNoteOff={onPianoRollNoteOff}
                   />

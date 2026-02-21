@@ -30,6 +30,7 @@ import type {
   SequencerConfigSnapshot,
   SequencerInstrumentBinding,
   SequencerMode,
+  SequencerPadState,
   SequencerScaleRoot,
   SequencerScaleType,
   SequencerState,
@@ -233,8 +234,17 @@ function normalizeControllerValue(value: unknown): number {
   return clampInt(value, 0, 127);
 }
 
-function defaultSequencerPads(): Array<Array<number | null>> {
-  return Array.from({ length: DEFAULT_PAD_COUNT }, () => [...DEFAULT_SEQUENCER_STEPS]);
+function defaultSequencerPads(
+  scaleRoot: SequencerScaleRoot = "C",
+  scaleType: SequencerScaleType = "minor",
+  mode: SequencerMode = "aeolian"
+): SequencerPadState[] {
+  return Array.from({ length: DEFAULT_PAD_COUNT }, () => ({
+    steps: [...DEFAULT_SEQUENCER_STEPS],
+    scaleRoot,
+    scaleType,
+    mode
+  }));
 }
 
 function normalizePadIndex(value: number): number {
@@ -253,21 +263,66 @@ function normalizePadSteps(raw: unknown): Array<number | null> | null {
   return steps;
 }
 
+function normalizeSequencerPadState(raw: unknown, fallback: SequencerPadState): SequencerPadState | null {
+  if (Array.isArray(raw)) {
+    const steps = normalizePadSteps(raw);
+    if (!steps) {
+      return null;
+    }
+    return {
+      ...fallback,
+      steps
+    };
+  }
+
+  if (!raw || typeof raw !== "object") {
+    return null;
+  }
+
+  const pad = raw as Record<string, unknown>;
+  const steps = normalizePadSteps(pad.steps) ?? [...fallback.steps];
+  const scaleRoot =
+    pad.scaleRoot === undefined && pad.scale_root === undefined
+      ? fallback.scaleRoot
+      : normalizeSequencerScaleRoot(pad.scaleRoot ?? pad.scale_root);
+  const scaleType =
+    pad.scaleType === undefined && pad.scale_type === undefined
+      ? fallback.scaleType
+      : normalizeSequencerScaleType(pad.scaleType ?? pad.scale_type);
+  const fallbackMode = defaultModeForScaleType(scaleType);
+  const mode =
+    pad.mode === undefined
+      ? scaleType === fallback.scaleType
+        ? fallback.mode
+        : fallbackMode
+      : normalizeSequencerMode(pad.mode);
+
+  return {
+    steps,
+    scaleRoot,
+    scaleType,
+    mode
+  };
+}
+
 function defaultSequencerTrack(index = 1, midiChannel = 1): SequencerTrackState {
   const channel = clampInt(midiChannel, 1, 16);
-  const pads = defaultSequencerPads();
+  const scaleRoot: SequencerScaleRoot = "C";
+  const scaleType: SequencerScaleType = "minor";
+  const mode: SequencerMode = "aeolian";
+  const pads = defaultSequencerPads(scaleRoot, scaleType, mode);
   return {
     id: `voice-${index}`,
     name: `Sequencer ${index}`,
     midiChannel: channel,
     stepCount: 16,
-    scaleRoot: "C",
-    scaleType: "minor",
-    mode: "aeolian",
+    scaleRoot,
+    scaleType,
+    mode,
     activePad: 0,
     queuedPad: null,
     pads,
-    steps: [...pads[0]],
+    steps: [...(pads[0]?.steps ?? DEFAULT_SEQUENCER_STEPS)],
     enabled: false,
     queuedEnabled: null
   };
@@ -344,10 +399,10 @@ function normalizeSequencerTrack(raw: unknown, index: number): SequencerTrackSta
   const enabled = typeof track.enabled === "boolean" ? track.enabled : fallback.enabled;
   const queuedEnabled = typeof track.queuedEnabled === "boolean" ? track.queuedEnabled : null;
 
-  const pads = defaultSequencerPads();
+  const pads = defaultSequencerPads(scaleRoot, scaleType, mode);
   if (Array.isArray(track.pads)) {
     for (let padIndex = 0; padIndex < Math.min(DEFAULT_PAD_COUNT, track.pads.length); padIndex += 1) {
-      const normalized = normalizePadSteps(track.pads[padIndex]);
+      const normalized = normalizeSequencerPadState(track.pads[padIndex], pads[padIndex]);
       if (normalized) {
         pads[padIndex] = normalized;
       }
@@ -355,22 +410,34 @@ function normalizeSequencerTrack(raw: unknown, index: number): SequencerTrackSta
   } else if (Array.isArray(track.steps)) {
     const legacy = normalizePadSteps(track.steps);
     if (legacy) {
-      pads[0] = legacy;
+      pads[0] = {
+        ...pads[0],
+        steps: legacy
+      };
     }
   }
+
+  const activePadTheory =
+    pads[activePad] ??
+    pads[0] ?? {
+      steps: [...DEFAULT_SEQUENCER_STEPS],
+      scaleRoot,
+      scaleType,
+      mode
+    };
 
   return {
     id,
     name,
     midiChannel,
     stepCount,
-    scaleRoot,
-    scaleType,
-    mode,
+    scaleRoot: activePadTheory.scaleRoot,
+    scaleType: activePadTheory.scaleType,
+    mode: activePadTheory.mode,
     activePad,
     queuedPad,
     pads,
-    steps: [...pads[activePad]],
+    steps: [...activePadTheory.steps],
     enabled,
     queuedEnabled
   };
@@ -874,9 +941,19 @@ function buildSequencerConfigSnapshot(
         mode: normalizeSequencerMode(track.mode),
         activePad: normalizePadIndex(track.activePad),
         queuedPad: track.queuedPad === null ? null : normalizePadIndex(track.queuedPad),
-        pads: Array.from({ length: DEFAULT_PAD_COUNT }, (_, padIndex) =>
-          Array.from({ length: 32 }, (_, stepIndex) => normalizeStepNote(track.pads[padIndex]?.[stepIndex]))
-        ),
+        pads: Array.from({ length: DEFAULT_PAD_COUNT }, (_, padIndex) => {
+          const sourcePad = track.pads[padIndex];
+          const padScaleRoot = normalizeSequencerScaleRoot(sourcePad?.scaleRoot ?? track.scaleRoot);
+          const padScaleType = normalizeSequencerScaleType(sourcePad?.scaleType ?? track.scaleType);
+          const padMode =
+            sourcePad?.mode === undefined ? defaultModeForScaleType(padScaleType) : normalizeSequencerMode(sourcePad.mode);
+          return {
+            steps: Array.from({ length: 32 }, (_, stepIndex) => normalizeStepNote(sourcePad?.steps?.[stepIndex])),
+            scaleRoot: padScaleRoot,
+            scaleType: padScaleType,
+            mode: padMode
+          };
+        }),
         enabled: track.enabled === true,
         queuedEnabled:
           track.queuedEnabled === null || typeof track.queuedEnabled === "boolean" ? track.queuedEnabled : null
@@ -1683,9 +1760,32 @@ export const useAppStore = create<AppStore>((set, get) => {
             track.id === trackId
               ? {
                   ...track,
-                  scaleRoot: normalizedRoot,
-                  scaleType: normalizedType,
-                  mode: nextMode ?? track.mode
+                  ...((): Pick<SequencerTrackState, "scaleRoot" | "scaleType" | "mode" | "pads"> => {
+                    const activePad = normalizePadIndex(track.activePad);
+                    const pads = track.pads.map((pad, index) =>
+                      index === activePad
+                        ? {
+                            ...pad,
+                            scaleRoot: normalizedRoot,
+                            scaleType: normalizedType,
+                            mode: nextMode ?? pad.mode
+                          }
+                        : pad
+                    );
+                    const selectedPad =
+                      pads[activePad] ?? {
+                        steps: [...DEFAULT_SEQUENCER_STEPS],
+                        scaleRoot: normalizedRoot,
+                        scaleType: normalizedType,
+                        mode: nextMode ?? track.mode
+                      };
+                    return {
+                      scaleRoot: selectedPad.scaleRoot,
+                      scaleType: selectedPad.scaleType,
+                      mode: selectedPad.mode,
+                      pads
+                    };
+                  })()
                 }
               : track
           )
@@ -1704,8 +1804,30 @@ export const useAppStore = create<AppStore>((set, get) => {
             track.id === trackId
               ? {
                   ...track,
-                  mode: normalizedMode,
-                  scaleType: normalizedScaleType
+                  ...((): Pick<SequencerTrackState, "scaleType" | "mode" | "pads"> => {
+                    const activePad = normalizePadIndex(track.activePad);
+                    const pads = track.pads.map((pad, index) =>
+                      index === activePad
+                        ? {
+                            ...pad,
+                            mode: normalizedMode,
+                            scaleType: normalizedScaleType
+                          }
+                        : pad
+                    );
+                    const selectedPad =
+                      pads[activePad] ?? {
+                        steps: [...DEFAULT_SEQUENCER_STEPS],
+                        scaleRoot: track.scaleRoot,
+                        scaleType: normalizedScaleType,
+                        mode: normalizedMode
+                      };
+                    return {
+                      scaleType: selectedPad.scaleType,
+                      mode: selectedPad.mode,
+                      pads
+                    };
+                  })()
                 }
               : track
           )
@@ -1743,11 +1865,24 @@ export const useAppStore = create<AppStore>((set, get) => {
               return track;
             }
 
-            const pads = track.pads.map((pad) => [...pad]);
+            const pads = track.pads.map((pad) => ({
+              ...pad,
+              steps: [...pad.steps]
+            }));
             const activePad = normalizePadIndex(track.activePad);
-            const steps = [...pads[activePad]];
+            const activePadState =
+              pads[activePad] ?? {
+                steps: [...DEFAULT_SEQUENCER_STEPS],
+                scaleRoot: track.scaleRoot,
+                scaleType: track.scaleType,
+                mode: track.mode
+              };
+            const steps = [...activePadState.steps];
             steps[index] = normalizeStepNote(note);
-            pads[activePad] = steps;
+            pads[activePad] = {
+              ...activePadState,
+              steps
+            };
 
             return {
               ...track,
@@ -1768,12 +1903,25 @@ export const useAppStore = create<AppStore>((set, get) => {
           ...sequencer,
           tracks: sequencer.tracks.map((track) =>
             track.id === trackId
-              ? {
-                  ...track,
-                  activePad: normalizedPad,
-                  queuedPad: sequencer.isPlaying ? track.queuedPad : null,
-                  steps: [...track.pads[normalizedPad]]
-                }
+              ? (() => {
+                  const selectedPad =
+                    track.pads[normalizedPad] ??
+                    track.pads[0] ?? {
+                      steps: [...DEFAULT_SEQUENCER_STEPS],
+                      scaleRoot: track.scaleRoot,
+                      scaleType: track.scaleType,
+                      mode: track.mode
+                    };
+                  return {
+                    ...track,
+                    activePad: normalizedPad,
+                    queuedPad: sequencer.isPlaying ? track.queuedPad : null,
+                    scaleRoot: selectedPad.scaleRoot,
+                    scaleType: selectedPad.scaleType,
+                    mode: selectedPad.mode,
+                    steps: [...selectedPad.steps]
+                  };
+                })()
               : track
           )
         }
@@ -2055,13 +2203,20 @@ export const useAppStore = create<AppStore>((set, get) => {
                 : payload.queuedEnabled === null
                   ? null
                   : payload.queuedEnabled;
+            const selectedPad = track.pads[nextActivePad] ?? track.pads[0];
+            const nextScaleRoot = selectedPad?.scaleRoot ?? track.scaleRoot;
+            const nextScaleType = selectedPad?.scaleType ?? track.scaleType;
+            const nextMode = selectedPad?.mode ?? track.mode;
 
             if (
               nextActivePad === track.activePad &&
               nextQueuedPad === track.queuedPad &&
               nextStepCount === track.stepCount &&
               nextEnabled === track.enabled &&
-              nextQueuedEnabled === track.queuedEnabled
+              nextQueuedEnabled === track.queuedEnabled &&
+              nextScaleRoot === track.scaleRoot &&
+              nextScaleType === track.scaleType &&
+              nextMode === track.mode
             ) {
               return track;
             }
@@ -2073,7 +2228,10 @@ export const useAppStore = create<AppStore>((set, get) => {
               stepCount: nextStepCount,
               enabled: nextEnabled,
               queuedEnabled: nextQueuedEnabled,
-              steps: nextActivePad === track.activePad ? track.steps : [...track.pads[nextActivePad]]
+              scaleRoot: nextScaleRoot,
+              scaleType: nextScaleType,
+              mode: nextMode,
+              steps: nextActivePad === track.activePad ? track.steps : [...(selectedPad?.steps ?? track.steps)]
             };
           })
         }

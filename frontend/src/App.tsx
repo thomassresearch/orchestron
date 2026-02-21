@@ -470,9 +470,9 @@ export default function App() {
         queued_pad: track.queuedPad,
         enabled: track.enabled,
         queued_enabled: track.queuedEnabled,
-        pads: track.pads.map((steps, padIndex) => ({
+        pads: track.pads.map((pad, padIndex) => ({
           pad_index: padIndex,
-          steps: steps.map((note) => note)
+          steps: pad.steps.map((note) => note)
         }))
       }))
     };
