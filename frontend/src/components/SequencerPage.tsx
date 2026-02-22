@@ -45,6 +45,7 @@ const PIANO_BLACK_KEY_HEIGHT = 84;
 const PIANO_SCROLL_STEP_PX = PIANO_WHITE_KEY_WIDTH * 8;
 const MIXED_SELECT_VALUE = "__mixed__";
 const SEQUENCER_PAD_DRAG_MIME = "application/x-visualcsound-sequencer-pad";
+const PAD_TRANSPOSE_LONG_PRESS_MS = 350;
 
 type SequencerPadDragPayload = {
   trackId: string;
@@ -1703,6 +1704,8 @@ interface SequencerPageProps {
   onSequencerTrackClearSteps: (trackId: string) => void;
   onSequencerPadPress: (trackId: string, padIndex: number) => void;
   onSequencerPadCopy: (trackId: string, sourcePadIndex: number, targetPadIndex: number) => void;
+  onSequencerPadTransposeShort: (trackId: string, padIndex: number, direction: -1 | 1) => void;
+  onSequencerPadTransposeLong: (trackId: string, padIndex: number, direction: -1 | 1) => void;
   onSequencerTrackPadLoopEnabledChange: (trackId: string, enabled: boolean) => void;
   onSequencerTrackPadLoopRepeatChange: (trackId: string, repeat: boolean) => void;
   onSequencerTrackPadLoopStepAdd: (trackId: string, padIndex: number) => void;
@@ -1846,6 +1849,8 @@ export function SequencerPage({
   onSequencerTrackClearSteps,
   onSequencerPadPress,
   onSequencerPadCopy,
+  onSequencerPadTransposeShort,
+  onSequencerPadTransposeLong,
   onSequencerTrackPadLoopEnabledChange,
   onSequencerTrackPadLoopRepeatChange,
   onSequencerTrackPadLoopStepAdd,
@@ -1947,8 +1952,18 @@ export function SequencerPage({
 
   const configFileInputRef = useRef<HTMLInputElement | null>(null);
   const [stepSelectPreview, setStepSelectPreview] = useState<Record<string, string>>({});
+  const padTransposePressRef = useRef<Record<string, { timerId: number; longPressTriggered: boolean }>>({});
   const triggerConfigLoad = useCallback(() => {
     configFileInputRef.current?.click();
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      for (const key of Object.keys(padTransposePressRef.current)) {
+        window.clearTimeout(padTransposePressRef.current[key].timerId);
+      }
+      padTransposePressRef.current = {};
+    };
   }, []);
 
   const handleConfigFileChange = useCallback(
@@ -1961,6 +1976,76 @@ export function SequencerPage({
       event.target.value = "";
     },
     [onImportConfig]
+  );
+
+  const padTransposePressKey = useCallback((trackId: string, padIndex: number, direction: -1 | 1) => {
+    return `${trackId}:${padIndex}:${direction}`;
+  }, []);
+
+  const cancelPadTransposePress = useCallback((trackId: string, padIndex: number, direction: -1 | 1) => {
+    const key = padTransposePressKey(trackId, padIndex, direction);
+    const activePress = padTransposePressRef.current[key];
+    if (!activePress) {
+      return;
+    }
+    window.clearTimeout(activePress.timerId);
+    delete padTransposePressRef.current[key];
+  }, [padTransposePressKey]);
+
+  const handlePadTransposePointerDown = useCallback(
+    (event: ReactPointerEvent<HTMLButtonElement>, trackId: string, padIndex: number, direction: -1 | 1) => {
+      if (event.pointerType === "mouse" && event.button !== 0) {
+        return;
+      }
+      event.preventDefault();
+
+      const key = padTransposePressKey(trackId, padIndex, direction);
+      const existing = padTransposePressRef.current[key];
+      if (existing) {
+        window.clearTimeout(existing.timerId);
+      }
+
+      if (event.currentTarget.setPointerCapture) {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      }
+
+      const timerId = window.setTimeout(() => {
+        const activePress = padTransposePressRef.current[key];
+        if (!activePress || activePress.longPressTriggered) {
+          return;
+        }
+        activePress.longPressTriggered = true;
+        onSequencerPadTransposeLong(trackId, padIndex, direction);
+      }, PAD_TRANSPOSE_LONG_PRESS_MS);
+
+      padTransposePressRef.current[key] = {
+        timerId,
+        longPressTriggered: false
+      };
+    },
+    [onSequencerPadTransposeLong, padTransposePressKey]
+  );
+
+  const handlePadTransposePointerUp = useCallback(
+    (event: ReactPointerEvent<HTMLButtonElement>, trackId: string, padIndex: number, direction: -1 | 1) => {
+      if (event.pointerType === "mouse" && event.button !== 0) {
+        return;
+      }
+      event.preventDefault();
+
+      const key = padTransposePressKey(trackId, padIndex, direction);
+      const activePress = padTransposePressRef.current[key];
+      if (!activePress) {
+        return;
+      }
+      window.clearTimeout(activePress.timerId);
+      delete padTransposePressRef.current[key];
+
+      if (!activePress.longPressTriggered) {
+        onSequencerPadTransposeShort(trackId, padIndex, direction);
+      }
+    },
+    [onSequencerPadTransposeShort, padTransposePressKey]
   );
 
   const transportStartButtonClass =
@@ -2416,40 +2501,92 @@ export function SequencerPage({
                     {Array.from({ length: 8 }, (_, padIndex) => {
                       const isActivePad = track.activePad === padIndex;
                       const isQueuedPad = track.queuedPad === padIndex;
+                      const padAccentClass = isActivePad
+                        ? "border-accent/70 bg-accent/10 text-accent hover:bg-accent/15"
+                        : isQueuedPad
+                          ? "border-amber-400/60 bg-amber-500/5 text-amber-300 hover:bg-amber-500/10"
+                          : "border-slate-700 bg-slate-950/85 text-slate-300 hover:border-slate-500 hover:bg-slate-900";
                       return (
-                        <button
-                          key={`${track.id}-pad-${padIndex}`}
-                          type="button"
-                          draggable
-                          onClick={() => onSequencerPadPress(track.id, padIndex)}
-                          onDragStart={(event) => {
-                            const payload = JSON.stringify({ trackId: track.id, padIndex });
-                            event.dataTransfer.effectAllowed = "copy";
-                            event.dataTransfer.setData(SEQUENCER_PAD_DRAG_MIME, payload);
-                            event.dataTransfer.setData("text/plain", payload);
-                          }}
-                          onDragOver={(event) => {
-                            event.preventDefault();
-                            event.dataTransfer.dropEffect = "copy";
-                          }}
-                          onDrop={(event) => {
-                            event.preventDefault();
-                            const payload = parseSequencerPadDragPayload(event);
-                            if (!payload || payload.trackId !== track.id || payload.padIndex === padIndex) {
-                              return;
-                            }
-                            onSequencerPadCopy(track.id, payload.padIndex, padIndex);
-                          }}
-                          className={`rounded-md border px-2 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] transition ${
-                            isActivePad
-                              ? "border-accent bg-accent/25 text-accent"
-                              : isQueuedPad
-                                ? "border-amber-400/70 bg-amber-500/10 text-amber-300"
-                                : "border-slate-700 bg-slate-900 text-slate-300 hover:border-slate-500"
-                          }`}
-                        >
-                          P{padIndex + 1}
-                        </button>
+                        <div key={`${track.id}-pad-${padIndex}`} className="relative">
+                          <button
+                            type="button"
+                            draggable
+                            onClick={() => onSequencerPadPress(track.id, padIndex)}
+                            onDragStart={(event) => {
+                              const payload = JSON.stringify({ trackId: track.id, padIndex });
+                              event.dataTransfer.effectAllowed = "copy";
+                              event.dataTransfer.setData(SEQUENCER_PAD_DRAG_MIME, payload);
+                              event.dataTransfer.setData("text/plain", payload);
+                            }}
+                            onDragOver={(event) => {
+                              event.preventDefault();
+                              event.dataTransfer.dropEffect = "copy";
+                            }}
+                            onDrop={(event) => {
+                              event.preventDefault();
+                              const payload = parseSequencerPadDragPayload(event);
+                              if (!payload || payload.trackId !== track.id || payload.padIndex === padIndex) {
+                                return;
+                              }
+                              onSequencerPadCopy(track.id, payload.padIndex, padIndex);
+                            }}
+                            className={`w-full rounded-md border px-5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] transition ${
+                              isActivePad
+                                ? "border-accent bg-accent/25 text-accent"
+                                : isQueuedPad
+                                  ? "border-amber-400/70 bg-amber-500/10 text-amber-300"
+                                  : "border-slate-700 bg-slate-900 text-slate-300 hover:border-slate-500"
+                            }`}
+                          >
+                            P{padIndex + 1}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.preventDefault();
+                              event.stopPropagation();
+                            }}
+                            onPointerDown={(event) => handlePadTransposePointerDown(event, track.id, padIndex, -1)}
+                            onPointerUp={(event) => handlePadTransposePointerUp(event, track.id, padIndex, -1)}
+                            onPointerCancel={() => cancelPadTransposePress(track.id, padIndex, -1)}
+                            onKeyDown={(event) => {
+                              if (event.key !== "Enter" && event.key !== " ") {
+                                return;
+                              }
+                              event.preventDefault();
+                              event.stopPropagation();
+                              onSequencerPadTransposeShort(track.id, padIndex, -1);
+                            }}
+                            className={`absolute inset-y-0 left-0 z-10 flex w-4 items-center justify-center rounded-l-md border text-[10px] font-bold transition ${padAccentClass}`}
+                            aria-label={`Transpose pattern pad ${padIndex + 1} down (click: in-scale, hold: key-step)`}
+                            title="Short: transpose notes in scale | Long: move key down by degree"
+                          >
+                            -
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.preventDefault();
+                              event.stopPropagation();
+                            }}
+                            onPointerDown={(event) => handlePadTransposePointerDown(event, track.id, padIndex, 1)}
+                            onPointerUp={(event) => handlePadTransposePointerUp(event, track.id, padIndex, 1)}
+                            onPointerCancel={() => cancelPadTransposePress(track.id, padIndex, 1)}
+                            onKeyDown={(event) => {
+                              if (event.key !== "Enter" && event.key !== " ") {
+                                return;
+                              }
+                              event.preventDefault();
+                              event.stopPropagation();
+                              onSequencerPadTransposeShort(track.id, padIndex, 1);
+                            }}
+                            className={`absolute inset-y-0 right-0 z-10 flex w-4 items-center justify-center rounded-r-md border text-[10px] font-bold transition ${padAccentClass}`}
+                            aria-label={`Transpose pattern pad ${padIndex + 1} up (click: in-scale, hold: key-step)`}
+                            title="Short: transpose notes in scale | Long: move key up by degree"
+                          >
+                            +
+                          </button>
+                        </div>
                       );
                     })}
                   </div>

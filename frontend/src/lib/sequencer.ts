@@ -409,6 +409,67 @@ function resolveScaleRoot(root: SequencerScaleRoot): SequencerScaleRootOption {
   return SCALE_ROOT_MAP.get(root) ?? SCALE_ROOT_MAP.get(DEFAULT_SCALE_ROOT)!;
 }
 
+function resolveScaleRootByPitchClass(pitchClass: number, preferFlats: boolean): SequencerScaleRoot {
+  const normalizedPitchClass = normalizePitchClass(pitchClass);
+  const preferred =
+    SEQUENCER_SCALE_ROOTS.find(
+      (option) => option.pitchClass === normalizedPitchClass && option.preferFlats === preferFlats
+    ) ??
+    SEQUENCER_SCALE_ROOTS.find((option) => option.pitchClass === normalizedPitchClass);
+  return preferred?.value ?? DEFAULT_SCALE_ROOT;
+}
+
+export function transposeSequencerTonicByDiatonicStep(
+  scaleRoot: SequencerScaleRoot,
+  mode: SequencerMode,
+  direction: -1 | 1
+): { scaleRoot: SequencerScaleRoot; semitoneOffset: number } {
+  const rootMeta = resolveScaleRoot(scaleRoot);
+  const intervals = MODE_INTERVALS[mode];
+  const semitoneOffset = direction === 1 ? intervals[1] : intervals[intervals.length - 1] - 12;
+
+  return {
+    scaleRoot: resolveScaleRootByPitchClass(rootMeta.pitchClass + semitoneOffset, rootMeta.preferFlats),
+    semitoneOffset
+  };
+}
+
+export function transposeSequencerNoteByScaleDegree(
+  note: number,
+  scaleRoot: SequencerScaleRoot,
+  mode: SequencerMode,
+  direction: -1 | 1
+): number {
+  const clampedNote = clampSequencerNote(note);
+  const rootPitchClass = resolveScaleRoot(scaleRoot).pitchClass;
+  const intervals = MODE_INTERVALS[mode];
+  const relative = clampedNote - rootPitchClass;
+  const relativePitchClass = normalizePitchClass(relative);
+
+  let degreeIndex = 0;
+  for (let index = 0; index < intervals.length; index += 1) {
+    if (intervals[index] <= relativePitchClass) {
+      degreeIndex = index;
+      continue;
+    }
+    break;
+  }
+
+  const currentInterval = intervals[degreeIndex];
+  const targetInterval =
+    direction === 1
+      ? (() => {
+          const nextIndex = (degreeIndex + 1) % intervals.length;
+          return intervals[nextIndex] + (nextIndex <= degreeIndex ? 12 : 0);
+        })()
+      : (() => {
+          const previousIndex = (degreeIndex - 1 + intervals.length) % intervals.length;
+          return intervals[previousIndex] + (previousIndex >= degreeIndex ? -12 : 0);
+        })();
+
+  return clampSequencerNote(clampedNote + (targetInterval - currentInterval));
+}
+
 export function scaleDegreeForNote(note: number, scaleRoot: SequencerScaleRoot, mode: SequencerMode): number | null {
   const rootPitchClass = resolveScaleRoot(scaleRoot).pitchClass;
   const pitchClass = normalizePitchClass(note);

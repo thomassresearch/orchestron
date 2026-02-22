@@ -722,6 +722,8 @@ export default function App() {
   const setSequencerTrackStepHold = useAppStore((state) => state.setSequencerTrackStepHold);
   const clearSequencerTrackSteps = useAppStore((state) => state.clearSequencerTrackSteps);
   const copySequencerTrackPad = useAppStore((state) => state.copySequencerTrackPad);
+  const transposeSequencerTrackPadInScale = useAppStore((state) => state.transposeSequencerTrackPadInScale);
+  const transposeSequencerTrackPadDiatonic = useAppStore((state) => state.transposeSequencerTrackPadDiatonic);
   const setSequencerTrackActivePad = useAppStore((state) => state.setSequencerTrackActivePad);
   const setSequencerTrackQueuedPad = useAppStore((state) => state.setSequencerTrackQueuedPad);
   const setSequencerTrackPadLoopEnabled = useAppStore((state) => state.setSequencerTrackPadLoopEnabled);
@@ -2411,6 +2413,12 @@ export default function App() {
             }}
             onSequencerPadCopy={(trackId, sourcePadIndex, targetPadIndex) => {
               copySequencerTrackPad(trackId, sourcePadIndex, targetPadIndex);
+            }}
+            onSequencerPadTransposeShort={(trackId, padIndex, direction) => {
+              transposeSequencerTrackPadInScale(trackId, padIndex, direction);
+            }}
+            onSequencerPadTransposeLong={(trackId, padIndex, direction) => {
+              transposeSequencerTrackPadDiatonic(trackId, padIndex, direction);
             }}
             onSequencerTrackPadLoopEnabledChange={setSequencerTrackPadLoopEnabled}
             onSequencerTrackPadLoopRepeatChange={setSequencerTrackPadLoopRepeat}

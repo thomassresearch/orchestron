@@ -13,7 +13,9 @@ import {
   normalizeSequencerMode,
   normalizeControllerCurveKeypoints,
   normalizeSequencerScaleRoot,
-  normalizeSequencerScaleType
+  normalizeSequencerScaleType,
+  transposeSequencerNoteByScaleDegree,
+  transposeSequencerTonicByDiatonicStep
 } from "../lib/sequencer";
 import type {
   AppPage,
@@ -133,6 +135,8 @@ interface AppStore {
   setSequencerTrackStepHold: (trackId: string, index: number, hold: boolean) => void;
   clearSequencerTrackSteps: (trackId: string) => void;
   copySequencerTrackPad: (trackId: string, sourcePadIndex: number, targetPadIndex: number) => void;
+  transposeSequencerTrackPadInScale: (trackId: string, padIndex: number, direction: -1 | 1) => void;
+  transposeSequencerTrackPadDiatonic: (trackId: string, padIndex: number, direction: -1 | 1) => void;
   setSequencerTrackActivePad: (trackId: string, padIndex: number) => void;
   setSequencerTrackQueuedPad: (trackId: string, padIndex: number | null) => void;
   setSequencerTrackPadLoopEnabled: (trackId: string, enabled: boolean) => void;
@@ -2301,6 +2305,129 @@ export const useAppStore = create<AppStore>((set, get) => {
               scaleType: copiedPad.scaleType,
               mode: copiedPad.mode,
               steps: cloneSequencerSteps(copiedPad.steps)
+            };
+          })
+        }
+      });
+    },
+
+    transposeSequencerTrackPadInScale: (trackId, padIndex, direction) => {
+      if (direction !== -1 && direction !== 1) {
+        return;
+      }
+
+      const normalizedPad = normalizePadIndex(padIndex);
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          tracks: sequencer.tracks.map((track) => {
+            if (track.id !== trackId) {
+              return track;
+            }
+
+            const pads = track.pads.map((pad) => ({
+              ...pad,
+              steps: cloneSequencerSteps(pad.steps)
+            }));
+            const fallbackPad: SequencerPadState = {
+              steps: cloneSequencerSteps(DEFAULT_SEQUENCER_STEPS),
+              scaleRoot: track.scaleRoot,
+              scaleType: track.scaleType,
+              mode: track.mode
+            };
+            const sourcePad = pads[normalizedPad] ?? fallbackPad;
+            const nextSteps = cloneSequencerSteps(sourcePad.steps).map((step) => ({
+              ...step,
+              note:
+                step.note === null
+                  ? null
+                  : transposeSequencerNoteByScaleDegree(step.note, sourcePad.scaleRoot, sourcePad.mode, direction)
+            }));
+            const nextPad: SequencerPadState = {
+              ...sourcePad,
+              steps: nextSteps
+            };
+            pads[normalizedPad] = nextPad;
+
+            const activePad = normalizePadIndex(track.activePad);
+            if (activePad !== normalizedPad) {
+              return {
+                ...track,
+                pads
+              };
+            }
+
+            return {
+              ...track,
+              pads,
+              steps: cloneSequencerSteps(nextPad.steps),
+              scaleRoot: nextPad.scaleRoot,
+              scaleType: nextPad.scaleType,
+              mode: nextPad.mode
+            };
+          })
+        }
+      });
+    },
+
+    transposeSequencerTrackPadDiatonic: (trackId, padIndex, direction) => {
+      if (direction !== -1 && direction !== 1) {
+        return;
+      }
+
+      const normalizedPad = normalizePadIndex(padIndex);
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          tracks: sequencer.tracks.map((track) => {
+            if (track.id !== trackId) {
+              return track;
+            }
+
+            const pads = track.pads.map((pad) => ({
+              ...pad,
+              steps: cloneSequencerSteps(pad.steps)
+            }));
+            const fallbackPad: SequencerPadState = {
+              steps: cloneSequencerSteps(DEFAULT_SEQUENCER_STEPS),
+              scaleRoot: track.scaleRoot,
+              scaleType: track.scaleType,
+              mode: track.mode
+            };
+            const sourcePad = pads[normalizedPad] ?? fallbackPad;
+            const { scaleRoot: nextScaleRoot, semitoneOffset } = transposeSequencerTonicByDiatonicStep(
+              sourcePad.scaleRoot,
+              sourcePad.mode,
+              direction
+            );
+            const nextSteps = cloneSequencerSteps(sourcePad.steps).map((step) => ({
+              ...step,
+              note: step.note === null ? null : normalizeStepNote(step.note + semitoneOffset)
+            }));
+            const nextPad: SequencerPadState = {
+              ...sourcePad,
+              steps: nextSteps,
+              scaleRoot: nextScaleRoot
+            };
+            pads[normalizedPad] = nextPad;
+
+            const activePad = normalizePadIndex(track.activePad);
+            if (activePad !== normalizedPad) {
+              return {
+                ...track,
+                pads
+              };
+            }
+
+            return {
+              ...track,
+              pads,
+              steps: cloneSequencerSteps(nextPad.steps),
+              scaleRoot: nextPad.scaleRoot,
+              scaleType: nextPad.scaleType,
+              mode: nextPad.mode
             };
           })
         }

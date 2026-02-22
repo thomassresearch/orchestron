@@ -329,6 +329,10 @@ Program step-based melodic or rhythmic patterns.
 - Add/remove sequencer tracks.
 - Set track channel, scale, mode, and step count (16/32).
 - Use pattern pads (P1..P8) for queued pattern changes.
+- Copy a pattern pad by dragging one pad and dropping it onto another pad (copies notes and pad scale/mode settings).
+- Pad edge transpose buttons (\`-\` / \`+\`):
+- Short click: transpose the stored notes to the previous/next degree within the current scale (scale root and mode stay the same).
+- Long press: move the pad tonic to the previous/next degree (key-step transpose), keep the mode, and update the pad scale root.
 - Set per-step notes or rests.
 - Control global BPM and running state.`
     },
@@ -341,6 +345,10 @@ Programmiert schrittbasierte melodische oder rhythmische Patterns.
 - Sequencer-Spuren hinzufügen/entfernen.
 - Kanal, Skala, Modus und Schrittzahl (16/32) setzen.
 - Pattern-Pads (P1..P8) für geplante Pattern-Wechsel nutzen.
+- Ein Pattern-Pad per Drag-and-drop auf ein anderes Pad ziehen, um es zu kopieren (kopiert Noten sowie Pad-Skala/Modus-Einstellungen).
+- Transpositions-Tasten am Pad-Rand (\`-\` / \`+\`):
+- Kurzer Klick: gespeicherte Noten zur vorherigen/nächsten Stufe innerhalb der aktuellen Skala verschieben (Grundton und Modus bleiben gleich).
+- Langer Klick: Tonika zur vorherigen/nächsten Stufe verschieben (Key-Step-Transpose), Modus beibehalten und Pad-Grundton der Skala aktualisieren.
 - Pro Schritt Noten oder Pausen setzen.
 - Globales BPM und Laufstatus steuern.`
     },
@@ -353,6 +361,10 @@ Programme des patterns mélodiques ou rythmiques par pas.
 - Ajouter/supprimer des pistes séquenceur.
 - Régler canal, gamme, mode et nombre de pas (16/32).
 - Utiliser les pads P1..P8 pour changements de pattern.
+- Copier un pad de pattern en le glissant-deposant sur un autre pad (copie les notes et les réglages de gamme/mode du pad).
+- Boutons de transposition sur le bord du pad (\`-\` / \`+\`) :
+- Clic court : transpose les notes stockées vers le degré précédent/suivant dans la gamme actuelle (tonique et mode inchangés).
+- Appui long : déplace la tonique du pad vers le degré précédent/suivant (transposition par degré), conserve le mode et met à jour la tonique de la gamme du pad.
 - Définir note ou silence par pas.
 - Contrôler BPM global et état de lecture.`
     },
@@ -365,6 +377,10 @@ Programa patrones melódicos o rítmicos por pasos.
 - Agrega/elimina pistas del secuenciador.
 - Ajusta canal, escala, modo y cantidad de pasos (16/32).
 - Usa pads P1..P8 para cambios de patrón en cola.
+- Copia un pad de patrón arrastrándolo y soltándolo sobre otro pad (copia notas y ajustes de escala/modo del pad).
+- Botones de transposición en el borde del pad (\`-\` / \`+\`):
+- Clic corto: transpone las notas guardadas al grado anterior/siguiente dentro de la escala actual (la raíz y el modo no cambian).
+- Pulsación larga: mueve la tónica del pad al grado anterior/siguiente (transposición por grado), mantiene el modo y actualiza la raíz de la escala del pad.
 - Define nota o silencio por paso.
 - Controla BPM global y estado de reproducción.`
     }
