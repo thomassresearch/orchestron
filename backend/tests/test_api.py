@@ -1251,7 +1251,10 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         "dam": "https://csound.com/docs/manual/dam.html",
         "exciter": "https://csound.com/docs/manual/exciter.html",
         "distort1": "https://csound.com/docs/manual/distort1.html",
+        "gbuzz": "https://csound.com/docs/manual/gbuzz.html",
         "diode_ladder": "https://csound.com/docs/manual/diode_ladder.html",
+        "expseg": "https://csound.com/docs/manual/expseg.html",
+        "expsega": "https://csound.com/docs/manual/expsega.html",
         "foscili": "https://csound.com/docs/manual/foscili.html",
         "ftgenonce": "https://csound.com/docs/manual/ftgenonce.html",
         "marimba": "https://csound.com/docs/manual/marimba.html",
@@ -1324,6 +1327,9 @@ def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
                     {"id": "n42", "opcode": "vclpf", "params": {"ain": 0}, "position": {"x": 20, "y": 2070}},
                     {"id": "n43", "opcode": "vco2", "params": {}, "position": {"x": 20, "y": 2120}},
                     {"id": "n44", "opcode": "dam", "params": {"ain": 0}, "position": {"x": 20, "y": 2170}},
+                    {"id": "n45", "opcode": "gbuzz", "params": {}, "position": {"x": 20, "y": 2220}},
+                    {"id": "n46", "opcode": "expseg", "params": {}, "position": {"x": 20, "y": 2270}},
+                    {"id": "n47", "opcode": "expsega", "params": {}, "position": {"x": 20, "y": 2320}},
                 ],
                 "connections": [
                     {"from_node_id": "n1", "from_port_id": "asig", "to_node_id": "n2", "to_port_id": "left"},
@@ -1391,6 +1397,9 @@ def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
             "vclpf",
             "vco2",
             "dripwater",
+            "gbuzz",
+            "expseg",
+            "expsega",
         ]:
             assert opcode in compiled_orc
 
