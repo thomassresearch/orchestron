@@ -4,12 +4,16 @@ import type {
   CSSProperties,
   DragEvent as ReactDragEvent,
   KeyboardEvent as ReactKeyboardEvent,
+  MouseEvent as ReactMouseEvent,
   PointerEvent as ReactPointerEvent
 } from "react";
 
 import {
+  buildControllerCurvePath,
   buildSequencerNoteOptions,
+  CONTROLLER_SEQUENCER_STEP_OPTIONS,
   parseSequencerScaleValue,
+  sampleControllerCurveValue,
   scaleDegreeForNote,
   SEQUENCER_MODE_OPTIONS,
   SEQUENCER_SCALE_OPTIONS
@@ -21,6 +25,8 @@ import type {
   PatchListItem,
   PerformanceListItem,
   PianoRollState,
+  ControllerSequencerKeypoint,
+  ControllerSequencerState,
   SequencerInstrumentBinding,
   SequencerMode,
   SequencerScaleRoot,
@@ -76,6 +82,7 @@ type SequencerUiCopy = {
   stopInstruments: string;
   sequencers: string;
   addSequencer: string;
+  addControllerSequencer: string;
   globalSequencerClock: string;
   bpm: string;
   midiChannel: string;
@@ -112,6 +119,10 @@ type SequencerUiCopy = {
   controllerWithIndex: (index: number) => string;
   controllerNumber: string;
   value: string;
+  curveRate: string;
+  controllerSequencerWithIndex: (index: number) => string;
+  curveEditorHint: string;
+  removeCurvePoint: string;
   clickDragHint: string;
   playhead: (playhead: number, stepCount: number) => string;
   cycle: (cycle: number) => string;
@@ -200,6 +211,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     stopInstruments: "Stop Instruments",
     sequencers: "Sequencers",
     addSequencer: "Add Sequencer",
+    addControllerSequencer: "Add Controller Sequencer",
     globalSequencerClock: "Global Sequencer Clock",
     bpm: "BPM",
     midiChannel: "MIDI Channel",
@@ -231,12 +243,16 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     pianoRollWithIndex: (index) => `Piano Roll ${index}`,
     inScaleHighlightInfo: (scale, mode) =>
       `In-scale notes for ${scale} / ${mode} are highlighted with degrees.`,
-    midiControllers: (count) => `MIDI Controllers (${count}/16)`,
+    midiControllers: (count) => `MIDI Controllers (${count}/6)`,
     addController: "Add Controller",
     noControllersHint: "Add a MIDI controller to send CC values.",
     controllerWithIndex: (index) => `Controller ${index}`,
+    controllerSequencerWithIndex: (index) => `Controller Sequencer ${index}`,
     controllerNumber: "Controller #",
     value: "Value",
+    curveRate: "Curve Rate",
+    curveEditorHint: "click to add points, drag vertically, double-click a point to remove",
+    removeCurvePoint: "Remove curve point",
     clickDragHint: "click + drag up/down",
     playhead: (playhead, stepCount) => `playhead: ${playhead + 1}/${stepCount}`,
     cycle: (cycle) => `cycle: ${cycle}`,
@@ -277,6 +293,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     stopInstruments: "Instrumente stoppen",
     sequencers: "Sequencer",
     addSequencer: "Sequencer hinzufuegen",
+    addControllerSequencer: "Controller-Sequencer hinzufuegen",
     globalSequencerClock: "Globale Sequencer-Clock",
     bpm: "BPM",
     midiChannel: "MIDI-Kanal",
@@ -308,12 +325,16 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     pianoRollWithIndex: (index) => `Piano Roll ${index}`,
     inScaleHighlightInfo: (scale, mode) =>
       `Skalentreue Noten fuer ${scale} / ${mode} sind mit Stufen markiert.`,
-    midiControllers: (count) => `MIDI-Controller (${count}/16)`,
+    midiControllers: (count) => `MIDI-Controller (${count}/6)`,
     addController: "Controller hinzufuegen",
     noControllersHint: "Fuege einen MIDI-Controller hinzu, um CC-Werte zu senden.",
     controllerWithIndex: (index) => `Controller ${index}`,
+    controllerSequencerWithIndex: (index) => `Controller-Sequencer ${index}`,
     controllerNumber: "Controller #",
     value: "Wert",
+    curveRate: "Kurvenrate",
+    curveEditorHint: "Klicken, um Punkte zu setzen; vertikal ziehen; Doppelklick entfernt",
+    removeCurvePoint: "Kurvenpunkt entfernen",
     clickDragHint: "klicken + nach oben/unten ziehen",
     playhead: (playhead, stepCount) => `playhead: ${playhead + 1}/${stepCount}`,
     cycle: (cycle) => `zyklus: ${cycle}`,
@@ -354,6 +375,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     stopInstruments: "Arreter instruments",
     sequencers: "Sequenceurs",
     addSequencer: "Ajouter sequenceur",
+    addControllerSequencer: "Ajouter sequenceur controleur",
     globalSequencerClock: "Horloge globale du sequenceur",
     bpm: "BPM",
     midiChannel: "Canal MIDI",
@@ -385,12 +407,16 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     pianoRollWithIndex: (index) => `Piano Roll ${index}`,
     inScaleHighlightInfo: (scale, mode) =>
       `Les notes dans la gamme pour ${scale} / ${mode} sont surlignees avec les degres.`,
-    midiControllers: (count) => `Controleurs MIDI (${count}/16)`,
+    midiControllers: (count) => `Controleurs MIDI (${count}/6)`,
     addController: "Ajouter controleur",
     noControllersHint: "Ajoutez un controleur MIDI pour envoyer des valeurs CC.",
     controllerWithIndex: (index) => `Controleur ${index}`,
+    controllerSequencerWithIndex: (index) => `Sequenceur controleur ${index}`,
     controllerNumber: "Controleur #",
     value: "Valeur",
+    curveRate: "Vitesse courbe",
+    curveEditorHint: "cliquer pour ajouter, glisser verticalement, double-clic pour supprimer",
+    removeCurvePoint: "Supprimer point de courbe",
     clickDragHint: "cliquer + glisser haut/bas",
     playhead: (playhead, stepCount) => `playhead: ${playhead + 1}/${stepCount}`,
     cycle: (cycle) => `cycle: ${cycle}`,
@@ -431,6 +457,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     stopInstruments: "Detener instrumentos",
     sequencers: "Secuenciadores",
     addSequencer: "Agregar secuenciador",
+    addControllerSequencer: "Agregar secuenciador controlador",
     globalSequencerClock: "Reloj global del secuenciador",
     bpm: "BPM",
     midiChannel: "Canal MIDI",
@@ -462,12 +489,16 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     pianoRollWithIndex: (index) => `Piano Roll ${index}`,
     inScaleHighlightInfo: (scale, mode) =>
       `Las notas en escala para ${scale} / ${mode} se resaltan con grados.`,
-    midiControllers: (count) => `Controladores MIDI (${count}/16)`,
+    midiControllers: (count) => `Controladores MIDI (${count}/6)`,
     addController: "Agregar controlador",
     noControllersHint: "Agrega un controlador MIDI para enviar valores CC.",
     controllerWithIndex: (index) => `Controlador ${index}`,
+    controllerSequencerWithIndex: (index) => `Secuenciador controlador ${index}`,
     controllerNumber: "Controlador #",
     value: "Valor",
+    curveRate: "Ritmo curva",
+    curveEditorHint: "clic para agregar, arrastrar verticalmente, doble clic para quitar",
+    removeCurvePoint: "Quitar punto de curva",
     clickDragHint: "clic + arrastrar arriba/abajo",
     playhead: (playhead, stepCount) => `playhead: ${playhead + 1}/${stepCount}`,
     cycle: (cycle) => `ciclo: ${cycle}`,
@@ -1218,6 +1249,421 @@ function MidiControllerKnob({ ariaLabel, value, disabled, onChange }: MidiContro
   );
 }
 
+function clampControllerCurveUiPosition(value: number): number {
+  return Math.max(0, Math.min(1, value));
+}
+
+function controllerCurveValueToY(value: number, height: number): number {
+  const safeHeight = Math.max(1, height);
+  return safeHeight - (clampMidiControllerValue(value) / 127) * safeHeight;
+}
+
+function controllerCurveYToValue(y: number, height: number): number {
+  const safeHeight = Math.max(1, height);
+  const normalized = 1 - Math.max(0, Math.min(safeHeight, y)) / safeHeight;
+  return clampMidiControllerValue(normalized * 127);
+}
+
+interface ControllerSequencerCurveEditorProps {
+  ui: Pick<SequencerUiCopy, "curveEditorHint" | "removeCurvePoint">;
+  controllerSequencer: ControllerSequencerState;
+  playbackTransport:
+    | {
+        playhead: number;
+        cycle: number;
+        stepCount: 16 | 32;
+        bpm: number;
+      }
+    | null;
+  onAddPoint: (position: number, value: number) => void;
+  onPointChange: (keypointId: string, position: number, value: number) => void;
+  onPointRemove: (keypointId: string) => void;
+}
+
+function ControllerSequencerCurveEditor({
+  ui,
+  controllerSequencer,
+  playbackTransport,
+  onAddPoint,
+  onPointChange,
+  onPointRemove
+}: ControllerSequencerCurveEditorProps) {
+  const [width, setWidth] = useState(960);
+  const height = 150;
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const dragRef = useRef<
+    | {
+        pointerId: number;
+        keypointId: string;
+        startClientX: number;
+        startClientY: number;
+        startPosition: number;
+        startValue: number;
+        dragging: boolean;
+      }
+    | null
+  >(null);
+  const transportAnchorRef = useRef<{
+    playhead: number;
+    cycle: number;
+    stepCount: 16 | 32;
+    bpm: number;
+    timestampMs: number;
+  } | null>(null);
+  const [playbackNow, setPlaybackNow] = useState<number>(() =>
+    typeof performance !== "undefined" ? performance.now() : 0
+  );
+
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) {
+      return;
+    }
+
+    const updateWidth = () => {
+      const nextWidth = Math.max(320, Math.round(svg.clientWidth || svg.getBoundingClientRect().width || 960));
+      setWidth((previous) => (previous === nextWidth ? previous : nextWidth));
+    };
+
+    updateWidth();
+
+    const observer = new ResizeObserver(() => updateWidth());
+    observer.observe(svg);
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
+  const path = useMemo(
+    () => buildControllerCurvePath(controllerSequencer.keypoints, width, height),
+    [controllerSequencer.keypoints, height, width]
+  );
+
+  useEffect(() => {
+    if (!playbackTransport) {
+      transportAnchorRef.current = null;
+      return;
+    }
+    transportAnchorRef.current = {
+      ...playbackTransport,
+      timestampMs: typeof performance !== "undefined" ? performance.now() : Date.now()
+    };
+  }, [
+    playbackTransport?.bpm,
+    playbackTransport?.cycle,
+    playbackTransport?.playhead,
+    playbackTransport?.stepCount
+  ]);
+
+  useEffect(() => {
+    if (!playbackTransport) {
+      return;
+    }
+
+    let rafId = 0;
+    let cancelled = false;
+    const frame = (now: number) => {
+      if (cancelled) {
+        return;
+      }
+      setPlaybackNow(now);
+      rafId = window.requestAnimationFrame(frame);
+    };
+
+    rafId = window.requestAnimationFrame(frame);
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(rafId);
+    };
+  }, [playbackTransport !== null]);
+
+  const playbackT = useMemo(() => {
+    if (!playbackTransport) {
+      return null;
+    }
+    const anchor = transportAnchorRef.current;
+    if (!anchor) {
+      return null;
+    }
+    const stepDurationMs = 60000 / Math.max(30, Math.min(300, Math.round(anchor.bpm))) / 4;
+    const elapsedSteps = Math.max(0, (playbackNow - anchor.timestampMs) / Math.max(1, stepDurationMs));
+    const repeatLength = Math.max(1, controllerSequencer.stepCount);
+    const transportPosition = anchor.cycle * anchor.stepCount + anchor.playhead + elapsedSteps;
+    const normalized = ((transportPosition % repeatLength) + repeatLength) % repeatLength;
+    return clampControllerCurveUiPosition(normalized / repeatLength);
+  }, [controllerSequencer.stepCount, playbackNow, playbackTransport]);
+  const playbackValue =
+    playbackT === null ? null : sampleControllerCurveValue(controllerSequencer.keypoints, playbackT);
+
+  const getSvgPoint = useCallback((event: { clientX: number; clientY: number }) => {
+    const svg = svgRef.current;
+    if (!svg) {
+      return null;
+    }
+    const rect = svg.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) {
+      return null;
+    }
+    const x = ((event.clientX - rect.left) / rect.width) * width;
+    const y = ((event.clientY - rect.top) / rect.height) * height;
+    return {
+      x: Math.max(0, Math.min(width, x)),
+      y: Math.max(0, Math.min(height, y))
+    };
+  }, []);
+
+  const handleBackgroundPointerDown = useCallback(
+    (event: ReactPointerEvent<SVGRectElement>) => {
+      if (event.button !== 0) {
+        return;
+      }
+      const point = getSvgPoint(event);
+      if (!point) {
+        return;
+      }
+      const position = clampControllerCurveUiPosition(point.x / width);
+      const value = controllerCurveYToValue(point.y, height);
+      if (position <= 0 || position >= 1) {
+        return;
+      }
+      onAddPoint(position, value);
+    },
+    [getSvgPoint, onAddPoint]
+  );
+
+  const releaseDrag = useCallback((pointerId: number) => {
+    if (dragRef.current?.pointerId !== pointerId) {
+      return;
+    }
+    dragRef.current = null;
+  }, []);
+
+  const handlePointPointerDown = useCallback(
+    (event: ReactPointerEvent<SVGCircleElement>, keypointId: string) => {
+      if (event.button !== 0) {
+        return;
+      }
+      const keypoint = controllerSequencer.keypoints.find((point) => point.id === keypointId);
+      if (!keypoint) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      dragRef.current = {
+        pointerId: event.pointerId,
+        keypointId,
+        startClientX: event.clientX,
+        startClientY: event.clientY,
+        startPosition: keypoint.position,
+        startValue: keypoint.value,
+        dragging: false
+      };
+      event.currentTarget.setPointerCapture(event.pointerId);
+    },
+    [controllerSequencer.keypoints]
+  );
+
+  const handlePointPointerMove = useCallback(
+    (event: ReactPointerEvent<SVGCircleElement>) => {
+      const dragState = dragRef.current;
+      if (!dragState || dragState.pointerId !== event.pointerId) {
+        return;
+      }
+      const dragDistance = Math.hypot(event.clientX - dragState.startClientX, event.clientY - dragState.startClientY);
+      if (!dragState.dragging && dragDistance < 3) {
+        return;
+      }
+      if (!dragState.dragging) {
+        dragRef.current = {
+          ...dragState,
+          dragging: true
+        };
+      }
+      event.preventDefault();
+      const svg = svgRef.current;
+      const rect = svg?.getBoundingClientRect();
+      if (!rect || rect.width <= 0 || rect.height <= 0) {
+        return;
+      }
+      const sortedKeypoints = controllerSequencer.keypoints;
+      const keypointIndex = sortedKeypoints.findIndex((keypoint) => keypoint.id === dragState.keypointId);
+      if (keypointIndex < 0) {
+        return;
+      }
+      const currentKeypoint = sortedKeypoints[keypointIndex];
+      const isStart = currentKeypoint.position <= 1e-6;
+      const isEnd = currentKeypoint.position >= 1 - 1e-6;
+      const deltaX = event.clientX - dragState.startClientX;
+      const deltaY = event.clientY - dragState.startClientY;
+      let nextPosition = clampControllerCurveUiPosition(dragState.startPosition + deltaX / rect.width);
+      const nextValue = clampMidiControllerValue(dragState.startValue + (-deltaY / rect.height) * 127);
+
+      if (isStart) {
+        nextPosition = 0;
+      } else if (isEnd) {
+        nextPosition = 1;
+      } else {
+        const epsilon = 0.001;
+        const previousNeighbor = sortedKeypoints[keypointIndex - 1];
+        const nextNeighbor = sortedKeypoints[keypointIndex + 1];
+        const minPosition = Math.min(1 - epsilon, (previousNeighbor?.position ?? 0) + epsilon);
+        const maxPosition = Math.max(epsilon, (nextNeighbor?.position ?? 1) - epsilon);
+        nextPosition = Math.max(minPosition, Math.min(maxPosition, nextPosition));
+      }
+
+      onPointChange(dragState.keypointId, nextPosition, nextValue);
+    },
+    [controllerSequencer.keypoints, onPointChange]
+  );
+
+  const handlePointPointerUp = useCallback(
+    (event: ReactPointerEvent<SVGCircleElement>) => {
+      releaseDrag(event.pointerId);
+    },
+    [releaseDrag]
+  );
+
+  const handlePointPointerCancel = useCallback(
+    (event: ReactPointerEvent<SVGCircleElement>) => {
+      releaseDrag(event.pointerId);
+    },
+    [releaseDrag]
+  );
+
+  const handlePointDoubleClick = useCallback(
+    (event: ReactMouseEvent<SVGCircleElement>, keypointId: string) => {
+      event.stopPropagation();
+      onPointRemove(keypointId);
+    },
+    [onPointRemove]
+  );
+
+  const visualPoints = useMemo(
+    () =>
+      controllerSequencer.keypoints.map((point) => ({
+        ...point,
+        removable: point.position > 1e-6 && point.position < 1 - 1e-6
+      })) as Array<ControllerSequencerKeypoint & { removable: boolean }>,
+    [controllerSequencer.keypoints]
+  );
+
+  return (
+    <div className="rounded-xl border border-teal-700/50 bg-slate-950/70 p-2">
+      <svg
+        ref={svgRef}
+        viewBox={`0 0 ${width} ${height}`}
+        role="img"
+        aria-label={ui.curveEditorHint}
+        className="h-40 w-full cursor-crosshair overflow-visible rounded-lg border border-slate-700 bg-slate-950"
+      >
+        <defs>
+          <linearGradient id={`controller-curve-${controllerSequencer.id}`} x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#67e8f9" />
+            <stop offset="55%" stopColor="#5eead4" />
+            <stop offset="100%" stopColor="#2dd4bf" />
+          </linearGradient>
+        </defs>
+
+        <rect
+          x={0}
+          y={0}
+          width={width}
+          height={height}
+          fill="transparent"
+          onPointerDown={handleBackgroundPointerDown}
+        />
+
+        {Array.from({ length: 8 }, (_, index) => {
+          const y = (index / 7) * height;
+          return (
+            <line
+              key={`grid-y-${index}`}
+              x1={0}
+              y1={y}
+              x2={width}
+              y2={y}
+              stroke={index === 0 || index === 7 ? "rgba(100,116,139,0.45)" : "rgba(51,65,85,0.35)"}
+              strokeWidth={1}
+            />
+          );
+        })}
+        {Array.from({ length: 9 }, (_, index) => {
+          const x = (index / 8) * width;
+          return (
+            <line
+              key={`grid-x-${index}`}
+              x1={x}
+              y1={0}
+              x2={x}
+              y2={height}
+              stroke={index === 0 || index === 8 ? "rgba(100,116,139,0.45)" : "rgba(51,65,85,0.3)"}
+              strokeWidth={1}
+            />
+          );
+        })}
+
+        <path
+          d={path}
+          fill="none"
+          stroke={`url(#controller-curve-${controllerSequencer.id})`}
+          strokeWidth={2.5}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+
+        {playbackT !== null && playbackValue !== null ? (
+          <>
+            <line
+              x1={playbackT * width}
+              y1={0}
+              x2={playbackT * width}
+              y2={height}
+              stroke="rgba(103,232,249,0.45)"
+              strokeWidth={1.5}
+              strokeDasharray="5 4"
+            />
+            <circle
+              cx={playbackT * width}
+              cy={controllerCurveValueToY(playbackValue, height)}
+              r={5}
+              fill="#67e8f9"
+              stroke="rgba(15,23,42,0.9)"
+              strokeWidth={2}
+            />
+          </>
+        ) : null}
+
+        {visualPoints.map((point) => {
+          const cx = point.position * width;
+          const cy = controllerCurveValueToY(point.value, height);
+          return (
+            <circle
+              key={`${controllerSequencer.id}-${point.id}`}
+              cx={cx}
+              cy={cy}
+              r={point.removable ? 5 : 4}
+              fill={point.removable ? "#ccfbf1" : "#94a3b8"}
+              stroke={point.removable ? "#14b8a6" : "#475569"}
+              strokeWidth={2}
+              className={point.removable ? "cursor-move" : "cursor-ns-resize"}
+              onPointerDown={(event) => handlePointPointerDown(event, point.id)}
+              onPointerMove={handlePointPointerMove}
+              onPointerUp={handlePointPointerUp}
+              onPointerCancel={handlePointPointerCancel}
+              onLostPointerCapture={handlePointPointerCancel}
+              onDoubleClick={
+                point.removable ? (event) => handlePointDoubleClick(event, point.id) : undefined
+              }
+              aria-label={point.removable ? ui.removeCurvePoint : undefined}
+            />
+          );
+        })}
+      </svg>
+      <div className="mt-2 text-[10px] text-slate-500">{ui.curveEditorHint}</div>
+    </div>
+  );
+}
+
 interface SequencerPageProps {
   guiLanguage: GuiLanguage;
   patches: PatchListItem[];
@@ -1245,6 +1691,7 @@ interface SequencerPageProps {
   onStopInstruments: () => void;
   onBpmChange: (bpm: number) => void;
   onAddSequencerTrack: () => void;
+  onAddControllerSequencer: () => void;
   onRemoveSequencerTrack: (trackId: string) => void;
   onSequencerTrackEnabledChange: (trackId: string, enabled: boolean) => void;
   onSequencerTrackChannelChange: (trackId: string, channel: number) => void;
@@ -1273,6 +1720,23 @@ interface SequencerPageProps {
   onMidiControllerEnabledChange: (controllerId: string, enabled: boolean) => void;
   onMidiControllerNumberChange: (controllerId: string, controllerNumber: number) => void;
   onMidiControllerValueChange: (controllerId: string, value: number) => void;
+  onRemoveControllerSequencer: (controllerSequencerId: string) => void;
+  onControllerSequencerEnabledChange: (controllerSequencerId: string, enabled: boolean) => void;
+  onControllerSequencerNumberChange: (controllerSequencerId: string, controllerNumber: number) => void;
+  onControllerSequencerStepCountChange: (controllerSequencerId: string, stepCount: 8 | 16 | 32 | 64) => void;
+  onControllerSequencerKeypointAdd: (controllerSequencerId: string, position: number, value: number) => void;
+  onControllerSequencerKeypointChange: (
+    controllerSequencerId: string,
+    keypointId: string,
+    position: number,
+    value: number
+  ) => void;
+  onControllerSequencerKeypointValueChange: (
+    controllerSequencerId: string,
+    keypointId: string,
+    value: number
+  ) => void;
+  onControllerSequencerKeypointRemove: (controllerSequencerId: string, keypointId: string) => void;
   onResetPlayhead: () => void;
   onAllNotesOff: () => void;
   onHelpRequest?: (helpDocId: HelpDocId) => void;
@@ -1370,6 +1834,7 @@ export function SequencerPage({
   onStopInstruments,
   onBpmChange,
   onAddSequencerTrack,
+  onAddControllerSequencer,
   onRemoveSequencerTrack,
   onSequencerTrackEnabledChange,
   onSequencerTrackChannelChange,
@@ -1398,6 +1863,14 @@ export function SequencerPage({
   onMidiControllerEnabledChange,
   onMidiControllerNumberChange,
   onMidiControllerValueChange,
+  onRemoveControllerSequencer,
+  onControllerSequencerEnabledChange,
+  onControllerSequencerNumberChange,
+  onControllerSequencerStepCountChange,
+  onControllerSequencerKeypointAdd,
+  onControllerSequencerKeypointChange,
+  onControllerSequencerKeypointValueChange,
+  onControllerSequencerKeypointRemove,
   onResetPlayhead,
   onAllNotesOff,
   onHelpRequest
@@ -1684,6 +2157,13 @@ export function SequencerPage({
             className="rounded-md border border-accent/60 bg-accent/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-accent transition hover:bg-accent/25"
           >
             {ui.addSequencer}
+          </button>
+          <button
+            type="button"
+            onClick={onAddControllerSequencer}
+            className="rounded-md border border-teal-400/60 bg-teal-400/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-teal-200 transition hover:bg-teal-400/20"
+          >
+            {ui.addControllerSequencer}
           </button>
         </div>
 
@@ -1997,7 +2477,12 @@ export function SequencerPage({
                       const stepKey = `${track.id}:${step}`;
                       const selectValue =
                         stepSelectPreview[stepKey] ?? (notePitchClass === null ? "" : String(notePitchClass));
-                      const selectedLabel = noteValue === null ? ui.rest : pianoKeyNoteName(selectedNote?.label, noteValue);
+                      const selectedLabel =
+                        noteValue === null
+                          ? ui.rest
+                          : isInScale && degree !== null
+                            ? `${pianoKeyNoteName(selectedNote?.label, noteValue)} (${degree})`
+                            : pianoKeyNoteName(selectedNote?.label, noteValue);
 
                       return (
                         <div
@@ -2195,6 +2680,114 @@ export function SequencerPage({
               </article>
             );
           })}
+
+          {sequencer.controllerSequencers.length > 0 ? (
+            <div className="rounded-xl border border-teal-800/45 bg-slate-900/45 p-2.5">
+              <div className="mb-2 text-xs uppercase tracking-[0.2em] text-teal-200">Controller Sequencers</div>
+              <div className="space-y-3">
+                {sequencer.controllerSequencers.map((controllerSequencer, controllerSequencerIndex) => (
+                  <article
+                    key={controllerSequencer.id}
+                    className="rounded-xl border border-slate-700 bg-slate-900/70 p-2.5"
+                  >
+                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                      <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-200">
+                        {controllerSequencer.name || ui.controllerSequencerWithIndex(controllerSequencerIndex + 1)}
+                      </div>
+                      <span className={transportStateClass}>
+                        {controllerSequencer.enabled ? ui.running : ui.stopped}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onControllerSequencerEnabledChange(controllerSequencer.id, !controllerSequencer.enabled)
+                        }
+                        disabled={!instrumentsRunning && !controllerSequencer.enabled}
+                        className={
+                          controllerSequencer.enabled ? transportStopButtonClass : transportStartButtonClass
+                        }
+                      >
+                        {controllerSequencer.enabled ? ui.stop : ui.start}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onRemoveControllerSequencer(controllerSequencer.id)}
+                        className="rounded-md border border-rose-500/60 bg-rose-500/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-rose-200 transition hover:bg-rose-500/25"
+                      >
+                        {ui.remove}
+                      </button>
+                    </div>
+
+                    <div className="mb-2 flex flex-wrap items-end gap-2">
+                      <label className="flex min-w-[120px] flex-col gap-1">
+                        <span className={controlLabelClass}>{ui.controllerNumber}</span>
+                        <input
+                          type="number"
+                          min={0}
+                          max={127}
+                          value={controllerSequencer.controllerNumber}
+                          onChange={(event) =>
+                            onControllerSequencerNumberChange(controllerSequencer.id, Number(event.target.value))
+                          }
+                          className={`${controlFieldClass} w-24`}
+                        />
+                      </label>
+
+                      <div className="flex flex-col gap-1">
+                        <span className={controlLabelClass}>{ui.curveRate}</span>
+                        <div className="inline-flex rounded-lg border border-slate-600 bg-slate-950 p-1">
+                          {CONTROLLER_SEQUENCER_STEP_OPTIONS.map((option) => (
+                            <button
+                              key={`${controllerSequencer.id}-rate-${option}`}
+                              type="button"
+                              onClick={() =>
+                                onControllerSequencerStepCountChange(controllerSequencer.id, option)
+                              }
+                              className={`rounded-md px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.14em] transition ${
+                                controllerSequencer.stepCount === option
+                                  ? "bg-teal-400/20 text-teal-200"
+                                  : "text-slate-300 hover:bg-slate-800"
+                              }`}
+                            >
+                              {option}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="rounded-md border border-slate-700 bg-slate-950 px-2 py-1 font-mono text-xs text-slate-200">
+                        CC {controllerSequencer.controllerNumber}
+                      </div>
+                    </div>
+
+                    <ControllerSequencerCurveEditor
+                      ui={ui}
+                      controllerSequencer={controllerSequencer}
+                      playbackTransport={
+                        sequencer.isPlaying && controllerSequencer.enabled
+                          ? {
+                              playhead: sequencer.playhead,
+                              cycle: sequencer.cycle,
+                              stepCount: sequencer.stepCount,
+                              bpm: sequencer.bpm
+                            }
+                          : null
+                      }
+                      onAddPoint={(position, value) =>
+                        onControllerSequencerKeypointAdd(controllerSequencer.id, position, value)
+                      }
+                      onPointChange={(keypointId, position, value) =>
+                        onControllerSequencerKeypointChange(controllerSequencer.id, keypointId, position, value)
+                      }
+                      onPointRemove={(keypointId) =>
+                        onControllerSequencerKeypointRemove(controllerSequencer.id, keypointId)
+                      }
+                    />
+                  </article>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -2345,7 +2938,7 @@ export function SequencerPage({
           <button
             type="button"
             onClick={onAddMidiController}
-            disabled={sequencer.midiControllers.length >= 16}
+            disabled={sequencer.midiControllers.length >= 6}
             className="rounded-md border border-accent/60 bg-accent/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-accent transition hover:bg-accent/25 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {ui.addController}

@@ -1,4 +1,5 @@
 import type {
+  ControllerSequencerKeypoint,
   MidiInputRef,
   SequencerMode,
   SequencerScaleRoot,
@@ -6,6 +7,7 @@ import type {
 } from "../types";
 
 export const STEP_CAPACITY = 32;
+export const CONTROLLER_SEQUENCER_STEP_OPTIONS = [8, 16, 32, 64] as const;
 
 interface SequencerScaleRootOption {
   value: SequencerScaleRoot;
@@ -116,6 +118,10 @@ function clampInt(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, Math.round(value)));
 }
 
+function clampFloat(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
 function normalizeName(name: string): string {
   return name.trim().toLowerCase().replace(/\s+/g, " ");
 }
@@ -130,6 +136,163 @@ export function clampSequencerChannel(channel: number): number {
 
 export function clampSequencerNote(note: number): number {
   return clampInt(note, 0, 127);
+}
+
+export function clampControllerSequencerStepCount(value: number): 8 | 16 | 32 | 64 {
+  const rounded = Math.round(value);
+  if (rounded === 8 || rounded === 16 || rounded === 32 || rounded === 64) {
+    return rounded;
+  }
+  return 16;
+}
+
+export function clampControllerCurvePosition(value: number): number {
+  return clampFloat(Number.isFinite(value) ? value : 0, 0, 1);
+}
+
+export function clampControllerCurveValue(value: number): number {
+  return clampInt(Number.isFinite(value) ? value : 0, 0, 127);
+}
+
+export function normalizeControllerCurveKeypoints(raw: ControllerSequencerKeypoint[]): ControllerSequencerKeypoint[] {
+  const epsilon = 1e-6;
+  const normalized = raw
+    .map((point, index) => ({
+      id:
+        typeof point.id === "string" && point.id.trim().length > 0
+          ? point.id
+          : `kp-${index}-${Math.round(clampControllerCurvePosition(point.position) * 1000)}`,
+      position: clampControllerCurvePosition(point.position),
+      value: clampControllerCurveValue(point.value)
+    }))
+    .sort((a, b) => (a.position === b.position ? a.id.localeCompare(b.id) : a.position - b.position));
+
+  let startPoint: ControllerSequencerKeypoint | null = null;
+  let endPoint: ControllerSequencerKeypoint | null = null;
+  const interior: ControllerSequencerKeypoint[] = [];
+
+  for (const point of normalized) {
+    if (point.position <= epsilon) {
+      startPoint = { ...point, position: 0 };
+      continue;
+    }
+    if (point.position >= 1 - epsilon) {
+      endPoint = { ...point, position: 1 };
+      continue;
+    }
+
+    const previous = interior[interior.length - 1];
+    if (previous && Math.abs(previous.position - point.position) <= epsilon) {
+      interior[interior.length - 1] = point;
+    } else {
+      interior.push(point);
+    }
+  }
+
+  if (!startPoint) {
+    startPoint = { id: "kp-start", position: 0, value: 0 };
+  }
+  if (!endPoint) {
+    endPoint = { id: "kp-end", position: 1, value: 0 };
+  }
+
+  const boundaryValue = clampControllerCurveValue(startPoint?.value ?? endPoint?.value ?? 0);
+  startPoint.value = boundaryValue;
+  endPoint.value = boundaryValue;
+
+  return [startPoint, ...interior, endPoint];
+}
+
+type ControllerCurvePoint = { position: number; value: number };
+
+function controllerCurveControlPoints(keypoints: ControllerCurvePoint[]): ControllerCurvePoint[] {
+  const clamped = keypoints
+    .map((point) => ({
+      position: clampControllerCurvePosition(point.position),
+      value: clampControllerCurveValue(point.value)
+    }))
+    .sort((a, b) => a.position - b.position);
+  const normalized = normalizeControllerCurveKeypoints(
+    clamped.map((point, index) => ({
+      id: `curve-${index}`,
+      position: point.position,
+      value: point.value
+    }))
+  );
+
+  return normalized.map((point) => ({
+    position: point.position,
+    value: point.value
+  }));
+}
+
+function catmullRom1d(p0: number, p1: number, p2: number, p3: number, t: number): number {
+  const t2 = t * t;
+  const t3 = t2 * t;
+  return 0.5 * (
+    (2 * p1) +
+    (-p0 + p2) * t +
+    (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2 +
+    (-p0 + 3 * p1 - 3 * p2 + p3) * t3
+  );
+}
+
+export function sampleControllerCurveValue(
+  keypoints: Array<Pick<ControllerCurvePoint, "position" | "value">>,
+  normalizedPosition: number
+): number {
+  const t = clampControllerCurvePosition(normalizedPosition);
+  const points = controllerCurveControlPoints(keypoints);
+
+  if (points.length <= 1) {
+    return 0;
+  }
+
+  if (t <= 0) {
+    return clampControllerCurveValue(points[0]?.value ?? 0);
+  }
+  if (t >= 1) {
+    return clampControllerCurveValue(points[points.length - 1]?.value ?? 0);
+  }
+
+  let segmentIndex = 0;
+  for (let index = 0; index < points.length - 1; index += 1) {
+    if (t <= points[index + 1].position) {
+      segmentIndex = index;
+      break;
+    }
+  }
+
+  const p1 = points[segmentIndex];
+  const p2 = points[Math.min(points.length - 1, segmentIndex + 1)];
+  const p0 = points[Math.max(0, segmentIndex - 1)];
+  const p3 = points[Math.min(points.length - 1, segmentIndex + 2)];
+  const span = Math.max(1e-6, p2.position - p1.position);
+  const localT = clampFloat((t - p1.position) / span, 0, 1);
+  const value = catmullRom1d(p0.value, p1.value, p2.value, p3.value, localT);
+  return clampControllerCurveValue(value);
+}
+
+export function buildControllerCurvePath(
+  keypoints: Array<Pick<ControllerCurvePoint, "position" | "value">>,
+  width: number,
+  height: number,
+  samples = 160
+): string {
+  const safeWidth = Math.max(1, width);
+  const safeHeight = Math.max(1, height);
+  const count = Math.max(8, Math.round(samples));
+  const points: string[] = [];
+
+  for (let index = 0; index <= count; index += 1) {
+    const t = index / count;
+    const value = sampleControllerCurveValue(keypoints, t);
+    const x = t * safeWidth;
+    const y = safeHeight - (value / 127) * safeHeight;
+    points.push(`${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`);
+  }
+
+  return points.join(" ");
 }
 
 export function normalizeSequencerScaleRoot(value: unknown): SequencerScaleRoot {

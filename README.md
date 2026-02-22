@@ -14,14 +14,55 @@ Orchestron is a visual instrument workshop built on the power of Csound — not 
 
 This application was built using the Codex App with `GPT-5.3-Codex` and **Extra High** reasoning effort.
 
-## Screenshots
+## Features
 
-|  |  |
-|---|---|
-| **Instrument Design**<br>![Instrument Design](screenshots/instrument_design.png) | **Perform**<br>![Perform](screenshots/perform.png) |
-| **Config**<br>![Config](screenshots/config.png) | **FastAPI Backend**<br>![FastAPI Backend](screenshots/fastapi_backend.png) |
-| **Integrated Help Pages**<br>![Integrated Help Pages](screenshots/integrated_help_pages.png) | **Integrated Help Pages (Multilingual)**<br>![Integrated Help Pages (Multilingual)](screenshots/integrated_help_pages_multilingual.png) |
-| **Integrated Help Pages (Opcodes)**<br>![Integrated Help Pages (Opcodes)](screenshots/integrated_help_pages_opcodes.png) |  |
+### General Features
+
+Orchestron is a visual music and instrument-building application centered around Csound as the sound generation engine. Instead of starting from fixed instruments, you design instruments visually and perform them live inside the same app.
+
+The application includes multilingual UI/help content and integrated help pages, so opcode references and usage guidance are available directly in the workflow without leaving the app.
+
+### Instrument Design
+
+The instrument design area combines an opcode catalog with a visual graph editor. You build an instrument by selecting Csound opcodes and connecting them into a signal/control graph.
+
+Designed instruments can be exported for reuse, including export to a `.csd` file.
+
+![Instrument Design](screenshots/instrument_design.png)
+
+![Integrated Help Pages (Opcodes)](screenshots/integrated_help_pages_opcodes.png)
+
+![Integrated Help Pages](screenshots/integrated_help_pages.png)
+
+![Integrated Help Pages (Multilingual)](screenshots/integrated_help_pages_multilingual.png)
+
+### Live Performance
+
+The live performance area provides an instrument rack where instruments can be selected and assigned to MIDI channels. A sequencer can then drive those instruments, with scale and mode selection and note entry that supports choosing notes both in-scale and out-of-scale.
+
+A controller sequencer lets you define a curve that is sampled during playback and emitted as MIDI control messages for a selected controller number.
+
+The piano roll follows the active scale/mode (from the running sequencer) and highlights keys by scale degree. When multiple sequencers run with different scales/modes, only keys shared by both scales/modes are highlighted, which supports interactive playing with clear harmonic guidance.
+
+The MIDI controller panel provides 6 controllers that can each be assigned an individual controller number and operated interactively while playing.
+
+![Perform: Instruments and Sequencer](screenshots/perform_instruments_and_sequencer.png)
+
+![Perform: Sequencer Types](screenshots/perform_sequencer_types.png)
+
+![Perform: Keyboard and Controller Panel](screenshots/perform_keyboard_and_controller_panel.png)
+
+### Configuration
+
+The configuration view exposes audio settings and performance-related engine parameters, including audio sampling rate, control sampling rate, and buffer sizes.
+
+![Config](screenshots/config.png)
+
+### Backend
+
+Orchestron is a two-tier application with a FastAPI backend handling the service layer and integration points for the frontend and Csound engine.
+
+![FastAPI Backend](screenshots/fastapi_backend.png)
 
 ## Quick Start
 

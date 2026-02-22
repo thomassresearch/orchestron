@@ -12,11 +12,12 @@ import { RuntimePanel } from "./components/RuntimePanel";
 import { SequencerPage } from "./components/SequencerPage";
 import { documentationUiCopy, getHelpDocument } from "./lib/documentation";
 import { GUI_LANGUAGE_OPTIONS } from "./lib/guiLanguage";
-import { resolveMidiInputName } from "./lib/sequencer";
+import { resolveMidiInputName, sampleControllerCurveValue } from "./lib/sequencer";
 import { useAppStore } from "./store/useAppStore";
 import orchestronIcon from "./assets/orchestron-icon.png";
 import type {
   Connection,
+  ControllerSequencerState,
   GuiLanguage,
   HelpDocId,
   Patch,
@@ -37,6 +38,28 @@ function connectionKey(connection: Connection): string {
 function pianoRollNoteKey(note: number, channel: number): string {
   return `${channel}:${note}`;
 }
+
+function wrapModulo(value: number, modulo: number): number {
+  if (!Number.isFinite(value) || !Number.isFinite(modulo) || modulo <= 0) {
+    return 0;
+  }
+  const remainder = value % modulo;
+  return remainder < 0 ? remainder + modulo : remainder;
+}
+
+function controllerSequencerSignature(controllerSequencer: ControllerSequencerState): string {
+  return JSON.stringify({
+    controllerNumber: controllerSequencer.controllerNumber,
+    stepCount: controllerSequencer.stepCount,
+    keypoints: controllerSequencer.keypoints.map((keypoint) => ({
+      id: keypoint.id,
+      position: keypoint.position,
+      value: keypoint.value
+    }))
+  });
+}
+
+const CONTROLLER_SEQUENCER_SAMPLES_PER_STEP = 8;
 
 type ExportedPatchDefinition = {
   sourcePatchId: string;
@@ -716,6 +739,15 @@ export default function App() {
   const setMidiControllerEnabled = useAppStore((state) => state.setMidiControllerEnabled);
   const setMidiControllerNumber = useAppStore((state) => state.setMidiControllerNumber);
   const setMidiControllerValue = useAppStore((state) => state.setMidiControllerValue);
+  const addControllerSequencer = useAppStore((state) => state.addControllerSequencer);
+  const removeControllerSequencer = useAppStore((state) => state.removeControllerSequencer);
+  const setControllerSequencerEnabled = useAppStore((state) => state.setControllerSequencerEnabled);
+  const setControllerSequencerNumber = useAppStore((state) => state.setControllerSequencerNumber);
+  const setControllerSequencerStepCount = useAppStore((state) => state.setControllerSequencerStepCount);
+  const addControllerSequencerKeypoint = useAppStore((state) => state.addControllerSequencerKeypoint);
+  const setControllerSequencerKeypoint = useAppStore((state) => state.setControllerSequencerKeypoint);
+  const setControllerSequencerKeypointValue = useAppStore((state) => state.setControllerSequencerKeypointValue);
+  const removeControllerSequencerKeypoint = useAppStore((state) => state.removeControllerSequencerKeypoint);
   const setSequencerTrackStepCount = useAppStore((state) => state.setSequencerTrackStepCount);
   const syncSequencerRuntime = useAppStore((state) => state.syncSequencerRuntime);
   const setSequencerPlayhead = useAppStore((state) => state.setSequencerPlayhead);
@@ -802,6 +834,17 @@ export default function App() {
   const sequencerConfigSyncPendingRef = useRef(false);
   const pianoRollNoteSessionRef = useRef(new Map<string, string>());
   const midiControllerInitSessionRef = useRef<string | null>(null);
+  const controllerSequencerTransportAnchorRef = useRef<{
+    playhead: number;
+    cycle: number;
+    stepCount: 16 | 32;
+    bpm: number;
+    timestampMs: number;
+  } | null>(null);
+  const controllerSequencerPlaybackRef = useRef<
+    Record<string, { lastSampleSerial: number; signature: string; lastSentValue: number | null }>
+  >({});
+  const controllerSequencerPlaybackRafRef = useRef<number | null>(null);
 
   const onExportInstrumentDefinition = useCallback(() => {
     const exportedPatchName = currentPatch.name.trim().length > 0 ? currentPatch.name.trim() : "Untitled Patch";
@@ -832,6 +875,22 @@ export default function App() {
   useEffect(() => {
     sequencerRef.current = sequencer;
   }, [sequencer]);
+
+  useEffect(() => {
+    if (!sequencer.isPlaying) {
+      controllerSequencerTransportAnchorRef.current = null;
+      controllerSequencerPlaybackRef.current = {};
+      return;
+    }
+
+    controllerSequencerTransportAnchorRef.current = {
+      playhead: sequencer.playhead,
+      cycle: sequencer.cycle,
+      stepCount: sequencer.stepCount,
+      bpm: sequencer.bpm,
+      timestampMs: performance.now()
+    };
+  }, [sequencer.bpm, sequencer.cycle, sequencer.isPlaying, sequencer.playhead, sequencer.stepCount]);
 
   const activeMidiInputName = useMemo(
     () => resolveMidiInputName(activeMidiInput, midiInputs),
@@ -1759,6 +1818,138 @@ export default function App() {
   ]);
 
   useEffect(() => {
+    if (controllerSequencerPlaybackRafRef.current !== null) {
+      window.cancelAnimationFrame(controllerSequencerPlaybackRafRef.current);
+      controllerSequencerPlaybackRafRef.current = null;
+    }
+
+    if (activeSessionState !== "running" || !activeSessionId || !sequencer.isPlaying) {
+      controllerSequencerPlaybackRef.current = {};
+      return;
+    }
+
+    const enabledControllerSequencers = sequencer.controllerSequencers.filter((controllerSequencer) => controllerSequencer.enabled);
+    if (enabledControllerSequencers.length === 0) {
+      controllerSequencerPlaybackRef.current = {};
+      return;
+    }
+
+    let cancelled = false;
+    let errorReported = false;
+
+    const tick = () => {
+      if (cancelled) {
+        return;
+      }
+
+      const anchor = controllerSequencerTransportAnchorRef.current;
+      const currentSequencer = sequencerRef.current;
+      if (!anchor || !currentSequencer.isPlaying) {
+        controllerSequencerPlaybackRafRef.current = window.requestAnimationFrame(tick);
+        return;
+      }
+
+      const nowMs = performance.now();
+      const stepDurationMs = 60000 / Math.max(30, Math.min(300, Math.round(anchor.bpm))) / 4;
+      const elapsedTransportSteps = Math.max(0, (nowMs - anchor.timestampMs) / Math.max(1, stepDurationMs));
+      const absoluteTransportSteps = anchor.cycle * anchor.stepCount + anchor.playhead + elapsedTransportSteps;
+
+      const controllerTasks: Promise<void>[] = [];
+      const nextPlaybackState: Record<string, { lastSampleSerial: number; signature: string; lastSentValue: number | null }> = {
+        ...controllerSequencerPlaybackRef.current
+      };
+      const activeIds = new Set<string>();
+
+      for (const controllerSequencer of currentSequencer.controllerSequencers) {
+        if (!controllerSequencer.enabled) {
+          continue;
+        }
+        activeIds.add(controllerSequencer.id);
+
+        const controllerStepCount = Math.max(1, controllerSequencer.stepCount);
+        const currentSampleSerial = Math.floor(absoluteTransportSteps * CONTROLLER_SEQUENCER_SAMPLES_PER_STEP);
+        const signature = controllerSequencerSignature(controllerSequencer);
+        const previous = nextPlaybackState[controllerSequencer.id];
+
+        let firstSerialToSend = currentSampleSerial;
+        if (previous && previous.signature === signature) {
+          firstSerialToSend = previous.lastSampleSerial + 1;
+        }
+
+        if (firstSerialToSend > currentSampleSerial) {
+          nextPlaybackState[controllerSequencer.id] = {
+            lastSampleSerial: previous?.lastSampleSerial ?? currentSampleSerial,
+            signature,
+            lastSentValue: previous?.lastSentValue ?? null
+          };
+          continue;
+        }
+
+        if (currentSampleSerial - firstSerialToSend > controllerStepCount * CONTROLLER_SEQUENCER_SAMPLES_PER_STEP * 2) {
+          firstSerialToSend = currentSampleSerial;
+        }
+
+        let lastSentValue = previous?.signature === signature ? previous.lastSentValue : null;
+        for (let serial = firstSerialToSend; serial <= currentSampleSerial; serial += 1) {
+          const sampleStepPosition = serial / CONTROLLER_SEQUENCER_SAMPLES_PER_STEP;
+          const sampleIndex = wrapModulo(sampleStepPosition, controllerStepCount);
+          const samplePosition = sampleIndex / controllerStepCount;
+          const value = sampleControllerCurveValue(controllerSequencer.keypoints, samplePosition);
+          if (lastSentValue === value) {
+            continue;
+          }
+          lastSentValue = value;
+          controllerTasks.push(
+            sendMidiControllerValue(controllerSequencer.controllerNumber, value, activeSessionId).then(() => undefined)
+          );
+        }
+
+        nextPlaybackState[controllerSequencer.id] = {
+          lastSampleSerial: currentSampleSerial,
+          signature,
+          lastSentValue
+        };
+      }
+
+      for (const knownId of Object.keys(nextPlaybackState)) {
+        if (!activeIds.has(knownId)) {
+          delete nextPlaybackState[knownId];
+        }
+      }
+      controllerSequencerPlaybackRef.current = nextPlaybackState;
+
+      if (controllerTasks.length > 0) {
+        void Promise.all(controllerTasks).catch((error) => {
+          if (errorReported) {
+            return;
+          }
+          errorReported = true;
+          setSequencerError(error instanceof Error ? error.message : appCopy.errors.failedToSendMidiControllerValue);
+        });
+      }
+
+      controllerSequencerPlaybackRafRef.current = window.requestAnimationFrame(tick);
+    };
+
+    controllerSequencerPlaybackRafRef.current = window.requestAnimationFrame(tick);
+
+    return () => {
+      cancelled = true;
+      if (controllerSequencerPlaybackRafRef.current !== null) {
+        window.cancelAnimationFrame(controllerSequencerPlaybackRafRef.current);
+        controllerSequencerPlaybackRafRef.current = null;
+      }
+    };
+  }, [
+    activeSessionId,
+    activeSessionState,
+    appCopy.errors.failedToSendMidiControllerValue,
+    sendMidiControllerValue,
+    sequencer.controllerSequencers,
+    sequencer.isPlaying
+  ]);
+
+  useEffect(() => {
     if (!sequencer.isPlaying) {
       return;
     }
@@ -1835,7 +2026,8 @@ export default function App() {
           sequencerConfigSyncPendingRef.current = false;
           if (
             sequencerRef.current.isPlaying &&
-            !sequencerRef.current.tracks.some((track) => track.enabled || track.queuedEnabled === true)
+            !sequencerRef.current.tracks.some((track) => track.enabled || track.queuedEnabled === true) &&
+            !sequencerRef.current.controllerSequencers.some((controllerSequencer) => controllerSequencer.enabled)
           ) {
             void stopSequencerTransport(false);
           }
@@ -1861,11 +2053,14 @@ export default function App() {
     if (sequencer.isPlaying) {
       return;
     }
-    if (!sequencer.tracks.some((track) => track.enabled)) {
+    if (
+      !sequencer.tracks.some((track) => track.enabled) &&
+      !sequencer.controllerSequencers.some((controllerSequencer) => controllerSequencer.enabled)
+    ) {
       return;
     }
     void startSequencerTransport();
-  }, [activeSessionState, sequencer.isPlaying, sequencer.tracks, startSequencerTransport]);
+  }, [activeSessionState, sequencer.controllerSequencers, sequencer.isPlaying, sequencer.tracks, startSequencerTransport]);
 
   useEffect(() => {
     if (!sequencer.isPlaying) {
@@ -1874,11 +2069,14 @@ export default function App() {
     if (sequencerConfigSyncPendingRef.current) {
       return;
     }
-    if (sequencer.tracks.some((track) => track.enabled || track.queuedEnabled === true)) {
+    if (
+      sequencer.tracks.some((track) => track.enabled || track.queuedEnabled === true) ||
+      sequencer.controllerSequencers.some((controllerSequencer) => controllerSequencer.enabled)
+    ) {
       return;
     }
     void stopSequencerTransport(false);
-  }, [sequencer.isPlaying, sequencer.tracks, stopSequencerTransport]);
+  }, [sequencer.controllerSequencers, sequencer.isPlaying, sequencer.tracks, stopSequencerTransport]);
 
   useEffect(() => {
     if (!sequencer.isPlaying) {
@@ -2175,6 +2373,7 @@ export default function App() {
             onStopInstruments={onStopInstrumentEngine}
             onBpmChange={setSequencerBpm}
             onAddSequencerTrack={addSequencerTrack}
+            onAddControllerSequencer={addControllerSequencer}
             onRemoveSequencerTrack={removeSequencerTrack}
             onSequencerTrackEnabledChange={onSequencerTrackEnabledChange}
             onSequencerTrackChannelChange={setSequencerTrackMidiChannel}
@@ -2230,6 +2429,14 @@ export default function App() {
             onMidiControllerEnabledChange={onMidiControllerEnabledChange}
             onMidiControllerNumberChange={onMidiControllerNumberChange}
             onMidiControllerValueChange={onMidiControllerValueChange}
+            onRemoveControllerSequencer={removeControllerSequencer}
+            onControllerSequencerEnabledChange={setControllerSequencerEnabled}
+            onControllerSequencerNumberChange={setControllerSequencerNumber}
+            onControllerSequencerStepCountChange={setControllerSequencerStepCount}
+            onControllerSequencerKeypointAdd={addControllerSequencerKeypoint}
+            onControllerSequencerKeypointChange={setControllerSequencerKeypoint}
+            onControllerSequencerKeypointValueChange={setControllerSequencerKeypointValue}
+            onControllerSequencerKeypointRemove={removeControllerSequencerKeypoint}
             onResetPlayhead={() => {
               setSequencerPlayhead(0);
             }}

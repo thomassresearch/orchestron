@@ -422,7 +422,7 @@ Toca notas manualmente con resaltado según la escala.
 
 Send MIDI CC messages from the sequencer page.
 
-- Add up to 16 controller lanes.
+- Add up to 6 controller lanes.
 - Set controller number (\`0..127\`).
 - Adjust controller value with the knob.
 - Start/stop each controller lane independently.`
@@ -433,7 +433,7 @@ Send MIDI CC messages from the sequencer page.
 
 Sendet MIDI-CC-Nachrichten von der Sequencer-Seite.
 
-- Bis zu 16 Controller-Spuren hinzufügen.
+- Bis zu 6 Controller-Spuren hinzufügen.
 - Controller-Nummer (\`0..127\`) festlegen.
 - Controller-Wert mit dem Drehregler einstellen.
 - Jede Controller-Spur separat starten/stoppen.`
@@ -444,7 +444,7 @@ Sendet MIDI-CC-Nachrichten von der Sequencer-Seite.
 
 Envoi de messages MIDI CC depuis la page séquenceur.
 
-- Ajouter jusqu'à 16 pistes de contrôleur.
+- Ajouter jusqu'à 6 pistes de contrôleur.
 - Définir le numéro de contrôleur (\`0..127\`).
 - Ajuster la valeur avec le potentiomètre.
 - Démarrer/arrêter chaque piste indépendamment.`
@@ -455,7 +455,7 @@ Envoi de messages MIDI CC depuis la page séquenceur.
 
 Envía mensajes MIDI CC desde la página del secuenciador.
 
-- Agrega hasta 16 pistas de control.
+- Agrega hasta 6 pistas de control.
 - Define número de controlador (\`0..127\`).
 - Ajusta el valor con la perilla.
 - Inicia/detiene cada pista de forma independiente.`

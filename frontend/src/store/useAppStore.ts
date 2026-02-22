@@ -4,16 +4,22 @@ import { api } from "../api/client";
 import { createUntitledPatch } from "../lib/defaultPatch";
 import { normalizeGuiLanguage } from "../lib/guiLanguage";
 import {
+  clampControllerCurvePosition,
+  clampControllerCurveValue,
+  clampControllerSequencerStepCount,
   defaultModeForScaleType,
   linkedModeForScaleType,
   linkedScaleTypeForMode,
   normalizeSequencerMode,
+  normalizeControllerCurveKeypoints,
   normalizeSequencerScaleRoot,
   normalizeSequencerScaleType
 } from "../lib/sequencer";
 import type {
   AppPage,
   CompileResponse,
+  ControllerSequencerKeypoint,
+  ControllerSequencerState,
   EngineConfig,
   GuiLanguage,
   MidiInputRef,
@@ -147,6 +153,25 @@ interface AppStore {
   setMidiControllerNumber: (controllerId: string, controllerNumber: number) => void;
   setMidiControllerValue: (controllerId: string, value: number) => void;
 
+  addControllerSequencer: () => void;
+  removeControllerSequencer: (controllerSequencerId: string) => void;
+  setControllerSequencerEnabled: (controllerSequencerId: string, enabled: boolean) => void;
+  setControllerSequencerNumber: (controllerSequencerId: string, controllerNumber: number) => void;
+  setControllerSequencerStepCount: (controllerSequencerId: string, stepCount: 8 | 16 | 32 | 64) => void;
+  addControllerSequencerKeypoint: (controllerSequencerId: string, position: number, value: number) => void;
+  setControllerSequencerKeypoint: (
+    controllerSequencerId: string,
+    keypointId: string,
+    position: number,
+    value: number
+  ) => void;
+  setControllerSequencerKeypointValue: (
+    controllerSequencerId: string,
+    keypointId: string,
+    value: number
+  ) => void;
+  removeControllerSequencerKeypoint: (controllerSequencerId: string, keypointId: string) => void;
+
   setSequencerBpm: (bpm: number) => void;
   syncSequencerRuntime: (payload: {
     isPlaying: boolean;
@@ -189,7 +214,7 @@ const OPCODE_PARAM_DEFAULTS: Record<string, Record<string, string | number | boo
 };
 
 const DEFAULT_PAD_COUNT = 8;
-const MAX_MIDI_CONTROLLERS = 16;
+const MAX_MIDI_CONTROLLERS = 6;
 const APP_STATE_VERSION = 1 as const;
 const APP_STATE_PERSIST_DEBOUNCE_MS = 400;
 const AUDIO_RATE_MIN = 22000;
@@ -285,6 +310,33 @@ function normalizeControllerValue(value: unknown): number {
     return 0;
   }
   return clampInt(value, 0, 127);
+}
+
+function normalizeControllerSequencerStepCount(value: unknown): 8 | 16 | 32 | 64 {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return 16;
+  }
+  return clampControllerSequencerStepCount(value);
+}
+
+function normalizeControllerSequencerKeypoint(raw: unknown, fallbackIndex: number): ControllerSequencerKeypoint | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return null;
+  }
+
+  const point = raw as Record<string, unknown>;
+  const id =
+    typeof point.id === "string" && point.id.trim().length > 0 ? point.id : `kp-${fallbackIndex + 1}`;
+  const rawPosition = point.position ?? point.x ?? point.t;
+  const rawValue = point.value ?? point.y;
+  const position = typeof rawPosition === "number" ? clampControllerCurvePosition(rawPosition) : null;
+  const value = typeof rawValue === "number" ? clampControllerCurveValue(rawValue) : null;
+
+  if (position === null || value === null) {
+    return null;
+  }
+
+  return { id, position, value };
 }
 
 function defaultSequencerPads(
@@ -430,6 +482,58 @@ function defaultMidiControllers(count = MAX_MIDI_CONTROLLERS): MidiControllerSta
   return Array.from({ length: count }, (_, index) => defaultMidiController(index + 1));
 }
 
+function defaultControllerSequencer(index = 1): ControllerSequencerState {
+  return {
+    id: `cc-seq-${index}`,
+    name: `Controller Sequencer ${index}`,
+    controllerNumber: clampInt(index - 1, 0, 127),
+    stepCount: 16,
+    enabled: false,
+    keypoints: normalizeControllerCurveKeypoints([
+      { id: "kp-start", position: 0, value: 0 },
+      { id: "kp-end", position: 1, value: 0 }
+    ])
+  };
+}
+
+function normalizeControllerSequencerState(raw: unknown, index: number): ControllerSequencerState {
+  const fallback = defaultControllerSequencer(index);
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return fallback;
+  }
+
+  const controllerSequencer = raw as Record<string, unknown>;
+  const id =
+    typeof controllerSequencer.id === "string" && controllerSequencer.id.length > 0
+      ? controllerSequencer.id
+      : fallback.id;
+  const name =
+    typeof controllerSequencer.name === "string" && controllerSequencer.name.trim().length > 0
+      ? controllerSequencer.name
+      : fallback.name;
+  const controllerNumber = normalizeControllerNumber(controllerSequencer.controllerNumber);
+  const stepCount = normalizeControllerSequencerStepCount(
+    controllerSequencer.stepCount ?? controllerSequencer.step_count
+  );
+  const enabled = typeof controllerSequencer.enabled === "boolean" ? controllerSequencer.enabled : fallback.enabled;
+
+  const keypointsRaw = Array.isArray(controllerSequencer.keypoints) ? controllerSequencer.keypoints : [];
+  const keypoints = normalizeControllerCurveKeypoints(
+    keypointsRaw
+      .map((entry, keypointIndex) => normalizeControllerSequencerKeypoint(entry, keypointIndex))
+      .filter((point): point is ControllerSequencerKeypoint => point !== null)
+  );
+
+  return {
+    id,
+    name,
+    controllerNumber,
+    stepCount,
+    enabled,
+    keypoints
+  };
+}
+
 function defaultSequencerState(): SequencerState {
   return {
     isPlaying: false,
@@ -438,6 +542,7 @@ function defaultSequencerState(): SequencerState {
     playhead: 0,
     cycle: 0,
     tracks: [defaultSequencerTrack(1, 1)],
+    controllerSequencers: [],
     pianoRolls: [defaultPianoRoll(1, 2)],
     midiControllers: defaultMidiControllers()
   };
@@ -639,6 +744,13 @@ function normalizeSequencerState(raw: unknown): SequencerState {
     }
   }
 
+  const controllerSequencers: ControllerSequencerState[] = [];
+  if (Array.isArray(sequencer.controllerSequencers)) {
+    for (let index = 0; index < Math.min(8, sequencer.controllerSequencers.length); index += 1) {
+      controllerSequencers.push(normalizeControllerSequencerState(sequencer.controllerSequencers[index], index + 1));
+    }
+  }
+
   const trackList = tracks.length > 0 ? tracks : defaults.tracks;
   const seenTrackIds = new Set<string>();
   const normalizedTracks = trackList.map((track, index) => {
@@ -681,6 +793,21 @@ function normalizeSequencerState(raw: unknown): SequencerState {
     };
   });
 
+  const seenControllerSequencerIds = new Set<string>();
+  const normalizedControllerSequencers = controllerSequencers.map((controllerSequencer, index) => {
+    let nextId =
+      controllerSequencer.id.trim().length > 0 ? controllerSequencer.id : `cc-seq-${index + 1}`;
+    if (seenControllerSequencerIds.has(nextId)) {
+      nextId = `${nextId}-${index + 1}`;
+    }
+    seenControllerSequencerIds.add(nextId);
+    return {
+      ...controllerSequencer,
+      id: nextId,
+      keypoints: normalizeControllerCurveKeypoints(controllerSequencer.keypoints)
+    };
+  });
+
   const normalizedTransportStepCount = normalizeStepCount(
     typeof sequencer.stepCount === "number"
       ? rawStepCount
@@ -693,6 +820,7 @@ function normalizeSequencerState(raw: unknown): SequencerState {
     stepCount: normalizedTransportStepCount,
     playhead: playhead % normalizedTransportStepCount,
     tracks: normalizedTracks,
+    controllerSequencers: normalizedControllerSequencers,
     pianoRolls: normalizedRolls,
     midiControllers: normalizedControllers
   };
@@ -892,6 +1020,10 @@ function sequencerSnapshotForPersistence(sequencer: SequencerState): SequencerSt
       queuedPad: null,
       padLoopPosition: null,
       queuedEnabled: null
+    })),
+    controllerSequencers: sequencer.controllerSequencers.map((controllerSequencer) => ({
+      ...controllerSequencer,
+      keypoints: normalizeControllerCurveKeypoints(controllerSequencer.keypoints)
     }))
   };
 }
@@ -1010,6 +1142,18 @@ function nextAvailableControllerNumber(controllers: MidiControllerState[]): numb
   return 0;
 }
 
+function nextAvailableControllerSequencerNumber(controllerSequencers: ControllerSequencerState[]): number {
+  const occupied = new Set(
+    controllerSequencers.map((controllerSequencer) => normalizeControllerNumber(controllerSequencer.controllerNumber))
+  );
+  for (let controllerNumber = 0; controllerNumber <= 127; controllerNumber += 1) {
+    if (!occupied.has(controllerNumber)) {
+      return controllerNumber;
+    }
+  }
+  return 0;
+}
+
 function buildSequencerConfigSnapshot(
   sequencer: SequencerState,
   instruments: SequencerInstrumentBinding[]
@@ -1070,6 +1214,21 @@ function buildSequencerConfigSnapshot(
         controllerNumber: normalizeControllerNumber(controller.controllerNumber),
         value: normalizeControllerValue(controller.value),
         enabled: controller.enabled === true
+      })),
+      controllerSequencers: sequencer.controllerSequencers.slice(0, 8).map((controllerSequencer, index) => ({
+        id: controllerSequencer.id.length > 0 ? controllerSequencer.id : `cc-seq-${index + 1}`,
+        name:
+          controllerSequencer.name.trim().length > 0
+            ? controllerSequencer.name
+            : `Controller Sequencer ${index + 1}`,
+        controllerNumber: normalizeControllerNumber(controllerSequencer.controllerNumber),
+        stepCount: clampControllerSequencerStepCount(controllerSequencer.stepCount),
+        enabled: controllerSequencer.enabled === true,
+        keypoints: normalizeControllerCurveKeypoints(controllerSequencer.keypoints).map((keypoint, keypointIndex) => ({
+          id: keypoint.id.length > 0 ? keypoint.id : `kp-${keypointIndex + 1}`,
+          position: clampControllerCurvePosition(keypoint.position),
+          value: clampControllerCurveValue(keypoint.value)
+        }))
       }))
     }
   };
@@ -2454,6 +2613,214 @@ export const useAppStore = create<AppStore>((set, get) => {
           ...sequencer,
           midiControllers: sequencer.midiControllers.map((controller) =>
             controller.id === controllerId ? { ...controller, value: normalizedValue } : controller
+          )
+        }
+      });
+    },
+
+    addControllerSequencer: () => {
+      const sequencer = get().sequencer;
+      if (sequencer.controllerSequencers.length >= 8) {
+        set({ error: "A maximum of 8 controller sequencers is supported." });
+        return;
+      }
+
+      const nextIndex = sequencer.controllerSequencers.length + 1;
+      const controllerSequencer = defaultControllerSequencer(nextIndex);
+      controllerSequencer.id = crypto.randomUUID();
+      controllerSequencer.name = `Controller Sequencer ${nextIndex}`;
+      controllerSequencer.controllerNumber = nextAvailableControllerSequencerNumber(sequencer.controllerSequencers);
+
+      set({
+        sequencer: {
+          ...sequencer,
+          controllerSequencers: [...sequencer.controllerSequencers, controllerSequencer]
+        },
+        error: null
+      });
+    },
+
+    removeControllerSequencer: (controllerSequencerId) => {
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          controllerSequencers: sequencer.controllerSequencers.filter(
+            (controllerSequencer) => controllerSequencer.id !== controllerSequencerId
+          )
+        },
+        error: null
+      });
+    },
+
+    setControllerSequencerEnabled: (controllerSequencerId, enabled) => {
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          controllerSequencers: sequencer.controllerSequencers.map((controllerSequencer) =>
+            controllerSequencer.id === controllerSequencerId ? { ...controllerSequencer, enabled } : controllerSequencer
+          )
+        }
+      });
+    },
+
+    setControllerSequencerNumber: (controllerSequencerId, controllerNumber) => {
+      const normalizedNumber = normalizeControllerNumber(controllerNumber);
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          controllerSequencers: sequencer.controllerSequencers.map((controllerSequencer) =>
+            controllerSequencer.id === controllerSequencerId
+              ? { ...controllerSequencer, controllerNumber: normalizedNumber }
+              : controllerSequencer
+          )
+        }
+      });
+    },
+
+    setControllerSequencerStepCount: (controllerSequencerId, stepCount) => {
+      const normalizedStepCount = clampControllerSequencerStepCount(stepCount);
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          controllerSequencers: sequencer.controllerSequencers.map((controllerSequencer) =>
+            controllerSequencer.id === controllerSequencerId
+              ? { ...controllerSequencer, stepCount: normalizedStepCount }
+              : controllerSequencer
+          )
+        }
+      });
+    },
+
+    addControllerSequencerKeypoint: (controllerSequencerId, position, value) => {
+      const normalizedPosition = clampControllerCurvePosition(position);
+      const normalizedValue = clampControllerCurveValue(value);
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          controllerSequencers: sequencer.controllerSequencers.map((controllerSequencer) => {
+            if (controllerSequencer.id !== controllerSequencerId) {
+              return controllerSequencer;
+            }
+            const nextKeypoints = normalizeControllerCurveKeypoints([
+              ...controllerSequencer.keypoints,
+              {
+                id: crypto.randomUUID(),
+                position: normalizedPosition,
+                value: normalizedValue
+              }
+            ]);
+            return {
+              ...controllerSequencer,
+              keypoints: nextKeypoints
+            };
+          })
+        }
+      });
+    },
+
+    setControllerSequencerKeypoint: (controllerSequencerId, keypointId, position, value) => {
+      const normalizedPosition = clampControllerCurvePosition(position);
+      const normalizedValue = clampControllerCurveValue(value);
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          controllerSequencers: sequencer.controllerSequencers.map((controllerSequencer) => {
+            if (controllerSequencer.id !== controllerSequencerId) {
+              return controllerSequencer;
+            }
+
+            const nextKeypoints = controllerSequencer.keypoints.map((keypoint) => {
+              if (keypoint.id !== keypointId) {
+                return keypoint;
+              }
+
+              const isStart = keypoint.position <= 1e-6;
+              const isEnd = keypoint.position >= 1 - 1e-6;
+              return {
+                ...keypoint,
+                position: isStart ? 0 : isEnd ? 1 : normalizedPosition,
+                value: normalizedValue
+              };
+            });
+
+            const movedPoint = controllerSequencer.keypoints.find((keypoint) => keypoint.id === keypointId);
+            const movedIsBorder =
+              (movedPoint?.position ?? 0) <= 1e-6 || (movedPoint?.position ?? 0) >= 1 - 1e-6;
+            const linkedKeypoints = movedIsBorder
+              ? nextKeypoints.map((keypoint) =>
+                  keypoint.position <= 1e-6 || keypoint.position >= 1 - 1e-6
+                    ? { ...keypoint, value: normalizedValue }
+                    : keypoint
+                )
+              : nextKeypoints;
+
+            return {
+              ...controllerSequencer,
+              keypoints: normalizeControllerCurveKeypoints(linkedKeypoints)
+            };
+          })
+        }
+      });
+    },
+
+    setControllerSequencerKeypointValue: (controllerSequencerId, keypointId, value) => {
+      const normalizedValue = clampControllerCurveValue(value);
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          controllerSequencers: sequencer.controllerSequencers.map((controllerSequencer) => {
+            if (controllerSequencer.id !== controllerSequencerId) {
+              return controllerSequencer;
+            }
+            const target = controllerSequencer.keypoints.find((keypoint) => keypoint.id === keypointId);
+            const isBorderTarget =
+              (target?.position ?? 0) <= 1e-6 || (target?.position ?? 0) >= 1 - 1e-6;
+            const nextKeypoints = controllerSequencer.keypoints.map((keypoint) => {
+              if (keypoint.id === keypointId) {
+                return { ...keypoint, value: normalizedValue };
+              }
+              if (isBorderTarget && (keypoint.position <= 1e-6 || keypoint.position >= 1 - 1e-6)) {
+                return { ...keypoint, value: normalizedValue };
+              }
+              return keypoint;
+            });
+            return {
+              ...controllerSequencer,
+              keypoints: normalizeControllerCurveKeypoints(nextKeypoints)
+            };
+          })
+        }
+      });
+    },
+
+    removeControllerSequencerKeypoint: (controllerSequencerId, keypointId) => {
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          controllerSequencers: sequencer.controllerSequencers.map((controllerSequencer) =>
+            controllerSequencer.id === controllerSequencerId
+              ? {
+                  ...controllerSequencer,
+                  keypoints: normalizeControllerCurveKeypoints(
+                    controllerSequencer.keypoints.filter((keypoint) => {
+                      const isBorder =
+                        keypoint.position <= 1e-6 || keypoint.position >= 1 - 1e-6;
+                      if (isBorder) {
+                        return true;
+                      }
+                      return keypoint.id !== keypointId;
+                    })
+                  )
+                }
+              : controllerSequencer
           )
         }
       });

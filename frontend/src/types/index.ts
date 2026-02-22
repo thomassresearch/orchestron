@@ -150,6 +150,21 @@ export interface MidiControllerState {
   enabled: boolean;
 }
 
+export interface ControllerSequencerKeypoint {
+  id: string;
+  position: number; // normalized 0..1
+  value: number; // MIDI CC 0..127
+}
+
+export interface ControllerSequencerState {
+  id: string;
+  name: string;
+  controllerNumber: number;
+  stepCount: 8 | 16 | 32 | 64;
+  enabled: boolean;
+  keypoints: ControllerSequencerKeypoint[];
+}
+
 export interface SequencerState {
   isPlaying: boolean;
   bpm: number;
@@ -157,6 +172,7 @@ export interface SequencerState {
   playhead: number;
   cycle: number;
   tracks: SequencerTrackState[];
+  controllerSequencers: ControllerSequencerState[];
   pianoRolls: PianoRollState[];
   midiControllers: MidiControllerState[];
 }
@@ -214,6 +230,18 @@ export interface SequencerConfigSnapshot {
       controllerNumber: number;
       value: number;
       enabled: boolean;
+    }>;
+    controllerSequencers: Array<{
+      id: string;
+      name: string;
+      controllerNumber: number;
+      stepCount: 8 | 16 | 32 | 64;
+      enabled: boolean;
+      keypoints: Array<{
+        id: string;
+        position: number;
+        value: number;
+      }>;
     }>;
   };
 }

@@ -1,7 +1,7 @@
 {
   "format": "orchestron.performance",
   "version": 1,
-  "exported_at": "2026-02-21T20:16:30.463Z",
+  "exported_at": "2026-02-22T16:46:22.828Z",
   "performance": {
     "name": "Demo Performance",
     "description": "Demonstrate the functionality",
@@ -22,6 +22,11 @@
           "patchId": "41017d7b-ff76-4d3a-a993-888b7350259b",
           "midiChannel": 3,
           "patchName": "FM Organ"
+        },
+        {
+          "patchId": "dbf3c476-06d2-4475-bda4-bf0db7b8379a",
+          "midiChannel": 4,
+          "patchName": "Bass Drum"
         }
       ],
       "sequencer": {
@@ -36,8 +41,16 @@
             "scaleRoot": "C",
             "scaleType": "minor",
             "mode": "aeolian",
-            "activePad": 0,
+            "activePad": 2,
             "queuedPad": null,
+            "padLoopEnabled": false,
+            "padLoopRepeat": true,
+            "padLoopSequence": [
+              0,
+              1,
+              0,
+              1
+            ],
             "pads": [
               {
                 "steps": [
@@ -177,27 +190,23 @@
               {
                 "steps": [
                   {
-                    "note": 1,
+                    "note": 37,
                     "hold": false
                   },
                   {
-                    "note": 1,
+                    "note": 49,
                     "hold": false
                   },
                   {
-                    "note": 1,
+                    "note": 37,
                     "hold": false
                   },
                   {
-                    "note": 1,
+                    "note": 49,
                     "hold": false
                   },
                   {
-                    "note": 1,
-                    "hold": false
-                  },
-                  {
-                    "note": null,
+                    "note": 37,
                     "hold": false
                   },
                   {
@@ -205,11 +214,15 @@
                     "hold": false
                   },
                   {
-                    "note": 1,
+                    "note": null,
                     "hold": false
                   },
                   {
-                    "note": 1,
+                    "note": 37,
+                    "hold": false
+                  },
+                  {
+                    "note": 37,
                     "hold": false
                   },
                   {
@@ -217,11 +230,11 @@
                     "hold": false
                   },
                   {
-                    "note": 1,
+                    "note": 36,
                     "hold": false
                   },
                   {
-                    "note": 1,
+                    "note": 49,
                     "hold": false
                   },
                   {
@@ -308,6 +321,1104 @@
                 "scaleRoot": "Db",
                 "scaleType": "major",
                 "mode": "ionian"
+              },
+              {
+                "steps": [
+                  {
+                    "note": 24,
+                    "hold": false
+                  },
+                  {
+                    "note": 24,
+                    "hold": false
+                  },
+                  {
+                    "note": 38,
+                    "hold": true
+                  },
+                  {
+                    "note": null,
+                    "hold": true
+                  },
+                  {
+                    "note": 27,
+                    "hold": false
+                  },
+                  {
+                    "note": 24,
+                    "hold": false
+                  },
+                  {
+                    "note": 43,
+                    "hold": true
+                  },
+                  {
+                    "note": null,
+                    "hold": true
+                  },
+                  {
+                    "note": 24,
+                    "hold": false
+                  },
+                  {
+                    "note": 36,
+                    "hold": false
+                  },
+                  {
+                    "note": 36,
+                    "hold": true
+                  },
+                  {
+                    "note": null,
+                    "hold": true
+                  },
+                  {
+                    "note": 32,
+                    "hold": false
+                  },
+                  {
+                    "note": 36,
+                    "hold": false
+                  },
+                  {
+                    "note": 29,
+                    "hold": true
+                  },
+                  {
+                    "note": 31,
+                    "hold": true
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  }
+                ],
+                "scaleRoot": "C",
+                "scaleType": "minor",
+                "mode": "aeolian"
+              },
+              {
+                "steps": [
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  }
+                ],
+                "scaleRoot": "C",
+                "scaleType": "minor",
+                "mode": "aeolian"
+              },
+              {
+                "steps": [
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  }
+                ],
+                "scaleRoot": "C",
+                "scaleType": "minor",
+                "mode": "aeolian"
+              },
+              {
+                "steps": [
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  }
+                ],
+                "scaleRoot": "C",
+                "scaleType": "minor",
+                "mode": "aeolian"
+              },
+              {
+                "steps": [
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  }
+                ],
+                "scaleRoot": "C",
+                "scaleType": "minor",
+                "mode": "aeolian"
+              },
+              {
+                "steps": [
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  }
+                ],
+                "scaleRoot": "C",
+                "scaleType": "minor",
+                "mode": "aeolian"
+              }
+            ],
+            "enabled": true,
+            "queuedEnabled": null
+          },
+          {
+            "id": "d3fa2d4b-0f37-4c6f-a5fd-e680a61a1ac9",
+            "name": "Sequencer 2",
+            "midiChannel": 4,
+            "stepCount": 16,
+            "scaleRoot": "C",
+            "scaleType": "minor",
+            "mode": "aeolian",
+            "activePad": 0,
+            "queuedPad": null,
+            "padLoopEnabled": false,
+            "padLoopRepeat": true,
+            "padLoopSequence": [],
+            "pads": [
+              {
+                "steps": [
+                  {
+                    "note": 43,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": 43,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": 43,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": 43,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  }
+                ],
+                "scaleRoot": "C",
+                "scaleType": "minor",
+                "mode": "aeolian"
+              },
+              {
+                "steps": [
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  },
+                  {
+                    "note": null,
+                    "hold": false
+                  }
+                ],
+                "scaleRoot": "C",
+                "scaleType": "minor",
+                "mode": "aeolian"
               },
               {
                 "steps": [
@@ -1140,15 +2251,15 @@
             "id": "cc-1",
             "name": "Controller 1",
             "controllerNumber": 10,
-            "value": 104,
+            "value": 127,
             "enabled": true
           },
           {
             "id": "cc-2",
             "name": "Controller 2",
             "controllerNumber": 11,
-            "value": 66,
-            "enabled": true
+            "value": 31,
+            "enabled": false
           },
           {
             "id": "cc-3",
@@ -1177,76 +2288,37 @@
             "controllerNumber": 5,
             "value": 0,
             "enabled": false
-          },
+          }
+        ],
+        "controllerSequencers": [
           {
-            "id": "cc-7",
-            "name": "Controller 7",
-            "controllerNumber": 6,
-            "value": 0,
-            "enabled": false
-          },
-          {
-            "id": "cc-8",
-            "name": "Controller 8",
-            "controllerNumber": 7,
-            "value": 0,
-            "enabled": false
-          },
-          {
-            "id": "cc-9",
-            "name": "Controller 9",
-            "controllerNumber": 8,
-            "value": 0,
-            "enabled": false
-          },
-          {
-            "id": "cc-10",
-            "name": "Controller 10",
-            "controllerNumber": 9,
-            "value": 0,
-            "enabled": false
-          },
-          {
-            "id": "cc-11",
-            "name": "Controller 11",
-            "controllerNumber": 10,
-            "value": 0,
-            "enabled": false
-          },
-          {
-            "id": "cc-12",
-            "name": "Controller 12",
+            "id": "8bf775a2-7c41-4d39-b87d-c69f14773185",
+            "name": "Controller Sequencer 1",
             "controllerNumber": 11,
-            "value": 0,
-            "enabled": false
-          },
-          {
-            "id": "cc-13",
-            "name": "Controller 13",
-            "controllerNumber": 12,
-            "value": 0,
-            "enabled": false
-          },
-          {
-            "id": "cc-14",
-            "name": "Controller 14",
-            "controllerNumber": 13,
-            "value": 0,
-            "enabled": false
-          },
-          {
-            "id": "cc-15",
-            "name": "Controller 15",
-            "controllerNumber": 14,
-            "value": 0,
-            "enabled": false
-          },
-          {
-            "id": "cc-16",
-            "name": "Controller 16",
-            "controllerNumber": 15,
-            "value": 0,
-            "enabled": false
+            "stepCount": 64,
+            "enabled": false,
+            "keypoints": [
+              {
+                "id": "kp-start",
+                "position": 0,
+                "value": 66
+              },
+              {
+                "id": "e4a86bd4-55f9-4138-90cc-76794439adc7",
+                "position": 0.23939298512063498,
+                "value": 36
+              },
+              {
+                "id": "157f6b48-ad5a-41ed-b9bf-e3ee5911e108",
+                "position": 0.6956354495882394,
+                "value": 127
+              },
+              {
+                "id": "kp-end",
+                "position": 1,
+                "value": 66
+              }
+            ]
           }
         ]
       }
@@ -1405,7 +2477,7 @@
             },
             "position": {
               "x": 13191.312257866983,
-              "y": 1359.414952886398
+              "y": 1359.6190640165855
             }
           },
           {
@@ -1609,26 +2681,6 @@
         ],
         "ui_layout": {
           "input_formulas": {
-            "50dcb589-9ec3-481d-9dd0-499a60d40ef8::ain": {
-              "expression": "in1 + (in2 * in3/30)",
-              "inputs": [
-                {
-                  "token": "in1",
-                  "from_node_id": "3e0a0932-4282-4cd6-93e7-24bc70074d45",
-                  "from_port_id": "asig"
-                },
-                {
-                  "token": "in2",
-                  "from_node_id": "58aa53d7-1386-453d-b78b-66839a91d490",
-                  "from_port_id": "kenv"
-                },
-                {
-                  "token": "in3",
-                  "from_node_id": "b6608f37-a64b-4e68-948e-6b6261a7d3b6",
-                  "from_port_id": "kfreq"
-                }
-              ]
-            },
             "50dcb589-9ec3-481d-9dd0-499a60d40ef8::kcf": {
               "expression": "in1 + in2*in3/15",
               "inputs": [
@@ -1677,7 +2729,7 @@
               "kres": 0.2
             },
             "position": {
-              "x": 917.1083263765877,
+              "x": 917.3319716827933,
               "y": -270.36012663963623
             }
           },
@@ -1782,7 +2834,7 @@
             "id": "1bd22fa1-a962-477a-95b8-547350512ce6",
             "opcode": "const_i",
             "params": {
-              "value": "1"
+              "value": "2"
             },
             "position": {
               "x": -464.5960948276248,
@@ -1841,7 +2893,7 @@
             "id": "47e4c373-3ac3-4997-9719-50e23b8fc49b",
             "opcode": "const_i",
             "params": {
-              "value": "4096"
+              "value": "8192"
             },
             "position": {
               "x": -503.833226414668,
@@ -2666,26 +3718,31 @@
               ]
             },
             "2fdbdcac-0f7e-4de8-855b-37cc5b81537e::kres": {
-              "expression": "in2*in1",
+              "expression": "in1",
               "inputs": [
                 {
                   "token": "in1",
-                  "from_node_id": "27663dde-2334-42ed-8dc3-280e8835de88",
+                  "from_node_id": "dbafddd3-9412-40ea-890e-7981595e03dc",
                   "from_port_id": "kout"
-                },
+                }
+              ]
+            },
+            "55dde9d6-6382-4ee6-9965-ef8159f2fb60::asig": {
+              "expression": "in1*0.25",
+              "inputs": [
                 {
-                  "token": "in2",
-                  "from_node_id": "2a9f4bd1-6196-417c-9bea-e2ef2ac38c1c",
-                  "from_port_id": "kval"
+                  "token": "in1",
+                  "from_node_id": "2fdbdcac-0f7e-4de8-855b-37cc5b81537e",
+                  "from_port_id": "aout"
                 }
               ]
             }
           }
         },
         "engine_config": {
-          "sr": 22000,
+          "sr": 44100,
           "control_rate": 1100,
-          "ksmps": 20,
+          "ksmps": 40,
           "nchnls": 2,
           "software_buffer": 256,
           "hardware_buffer": 1024,
@@ -2761,7 +3818,7 @@
             "id": "219932f4-0a75-4cae-b5b4-e617154cfcbe",
             "opcode": "const_i",
             "params": {
-              "value": "2.0"
+              "value": "0.75"
             },
             "position": {
               "x": -759.9599884066746,
@@ -2772,7 +3829,7 @@
             "id": "3338377a-793c-4ed5-8499-d26adc79edfe",
             "opcode": "const_i",
             "params": {
-              "value": "5"
+              "value": "1.0"
             },
             "position": {
               "x": -536.741918970244,
@@ -2783,11 +3840,11 @@
             "id": "8b4c9237-77df-4b17-8279-aab1701ff4a2",
             "opcode": "const_i",
             "params": {
-              "value": "5"
+              "value": "6"
             },
             "position": {
-              "x": -527.0654541199528,
-              "y": 419.42699314660575
+              "x": -617.6812897653512,
+              "y": 417.104802704725
             }
           },
           {
@@ -2814,8 +3871,8 @@
               "value": "1"
             },
             "position": {
-              "x": -462.40165469796403,
-              "y": 671.4430163024479
+              "x": -624.854576906992,
+              "y": 579.8269180664777
             }
           },
           {
@@ -2837,8 +3894,8 @@
               "value": "0.35"
             },
             "position": {
-              "x": -16.813037147676397,
-              "y": 396.89548954564003
+              "x": 9.287184062099591,
+              "y": 361.1058843407036
             }
           },
           {
@@ -2848,6 +3905,76 @@
             "position": {
               "x": 657.9838407965335,
               "y": 121.37099326855868
+            }
+          },
+          {
+            "id": "4aacf6db-e657-4f4b-8b0e-50084d7497f4",
+            "opcode": "ftgen",
+            "params": {
+              "ifn": 1,
+              "itime": 0,
+              "isize": 16384,
+              "igen": 10,
+              "iarg1": 1
+            },
+            "position": {
+              "x": -153.07742488024542,
+              "y": 755.3189837434518
+            }
+          },
+          {
+            "id": "8c23a3dc-2187-4cd7-81a5-fa1cc7b6715e",
+            "opcode": "const_i",
+            "params": {
+              "value": "2"
+            },
+            "position": {
+              "x": -615.1833546665575,
+              "y": 725.7335788289538
+            }
+          },
+          {
+            "id": "ae7266da-4181-47a9-954f-852fd1104bb4",
+            "opcode": "const_i",
+            "params": {
+              "value": 0
+            },
+            "position": {
+              "x": -737.3635903734848,
+              "y": 857.8912935671693
+            }
+          },
+          {
+            "id": "a6378c22-5b05-4d7b-8675-92d2fdca1995",
+            "opcode": "const_i",
+            "params": {
+              "value": "8192"
+            },
+            "position": {
+              "x": -544.7343190203235,
+              "y": 925.2890835331084
+            }
+          },
+          {
+            "id": "2bc9d786-0555-40ff-9f12-118985dc1fbf",
+            "opcode": "const_i",
+            "params": {
+              "value": "10"
+            },
+            "position": {
+              "x": -660.648566093765,
+              "y": 1075.053012930541
+            }
+          },
+          {
+            "id": "5a7c215f-43ef-4204-92ea-359a3a07a39b",
+            "opcode": "const_i",
+            "params": {
+              "value": "0.25"
+            },
+            "position": {
+              "x": -535.4413263292143,
+              "y": 1248.1959487261138
             }
           }
         ],
@@ -2907,12 +4034,6 @@
             "to_port_id": "ifn2"
           },
           {
-            "from_node_id": "3097d36b-9fa3-431b-b2eb-d9bc09c67d84",
-            "from_port_id": "iout",
-            "to_node_id": "3cdbfcd5-74c7-4a16-9cb6-48a9e8b6b59a",
-            "to_port_id": "ivfn"
-          },
-          {
             "from_node_id": "3cdbfcd5-74c7-4a16-9cb6-48a9e8b6b59a",
             "from_port_id": "asig",
             "to_node_id": "61bc0894-3721-4547-91ce-f90de636dac3",
@@ -2941,15 +4062,477 @@
             "from_port_id": "iout",
             "to_node_id": "3cdbfcd5-74c7-4a16-9cb6-48a9e8b6b59a",
             "to_port_id": "ifn1"
+          },
+          {
+            "from_node_id": "8c23a3dc-2187-4cd7-81a5-fa1cc7b6715e",
+            "from_port_id": "iout",
+            "to_node_id": "4aacf6db-e657-4f4b-8b0e-50084d7497f4",
+            "to_port_id": "ifn"
+          },
+          {
+            "from_node_id": "4aacf6db-e657-4f4b-8b0e-50084d7497f4",
+            "from_port_id": "ift",
+            "to_node_id": "3cdbfcd5-74c7-4a16-9cb6-48a9e8b6b59a",
+            "to_port_id": "ivfn"
+          },
+          {
+            "from_node_id": "ae7266da-4181-47a9-954f-852fd1104bb4",
+            "from_port_id": "iout",
+            "to_node_id": "4aacf6db-e657-4f4b-8b0e-50084d7497f4",
+            "to_port_id": "itime"
+          },
+          {
+            "from_node_id": "a6378c22-5b05-4d7b-8675-92d2fdca1995",
+            "from_port_id": "iout",
+            "to_node_id": "4aacf6db-e657-4f4b-8b0e-50084d7497f4",
+            "to_port_id": "isize"
+          },
+          {
+            "from_node_id": "2bc9d786-0555-40ff-9f12-118985dc1fbf",
+            "from_port_id": "iout",
+            "to_node_id": "4aacf6db-e657-4f4b-8b0e-50084d7497f4",
+            "to_port_id": "igen"
+          },
+          {
+            "from_node_id": "5a7c215f-43ef-4204-92ea-359a3a07a39b",
+            "from_port_id": "iout",
+            "to_node_id": "4aacf6db-e657-4f4b-8b0e-50084d7497f4",
+            "to_port_id": "iarg1"
           }
         ],
-        "ui_layout": {},
+        "ui_layout": {
+          "input_formulas": {
+            "61bc0894-3721-4547-91ce-f90de636dac3::asig": {
+              "expression": "in1*0.2",
+              "inputs": [
+                {
+                  "token": "in1",
+                  "from_node_id": "3cdbfcd5-74c7-4a16-9cb6-48a9e8b6b59a",
+                  "from_port_id": "asig"
+                }
+              ]
+            }
+          }
+        },
         "engine_config": {
           "sr": 44100,
           "control_rate": 4400,
           "ksmps": 10,
           "nchnls": 2,
           "software_buffer": 128,
+          "hardware_buffer": 512,
+          "0dbfs": 1
+        }
+      }
+    },
+    {
+      "sourcePatchId": "dbf3c476-06d2-4475-bda4-bf0db7b8379a",
+      "name": "Bass Drum",
+      "description": "Analog base drum",
+      "schema_version": 1,
+      "graph": {
+        "nodes": [
+          {
+            "id": "593b535c-d020-426a-8035-89e165002c01",
+            "opcode": "noise",
+            "params": {
+              "amp": 0.25,
+              "beta": 0
+            },
+            "position": {
+              "x": 85.74282333971496,
+              "y": -145.2217514793484
+            }
+          },
+          {
+            "id": "a0b941ca-82e9-4ce2-8fee-279ce326984b",
+            "opcode": "const_i",
+            "params": {
+              "value": "0.001"
+            },
+            "position": {
+              "x": -740.1449584960938,
+              "y": 83.55816650390625
+            }
+          },
+          {
+            "id": "e3181471-d5e1-4b81-90f9-48e7f83057dc",
+            "opcode": "const_i",
+            "params": {
+              "value": "0.075"
+            },
+            "position": {
+              "x": -732.1032409667969,
+              "y": 211.30465698242188
+            }
+          },
+          {
+            "id": "46755592-c8ec-4608-883e-4690d1fc1783",
+            "opcode": "const_i",
+            "params": {
+              "value": "0.05"
+            },
+            "position": {
+              "x": -765.6319580078125,
+              "y": 325.9851989746094
+            }
+          },
+          {
+            "id": "41967424-e577-4f81-8c13-e495dadd921e",
+            "opcode": "const_i",
+            "params": {
+              "value": "2"
+            },
+            "position": {
+              "x": -735.7786560058594,
+              "y": 456.2300109863281
+            }
+          },
+          {
+            "id": "223a04d2-91c2-4daf-92be-264316bc3579",
+            "opcode": "const_i",
+            "params": {
+              "value": "0.5"
+            },
+            "position": {
+              "x": 50.982817460325464,
+              "y": 198.36378079969862
+            }
+          },
+          {
+            "id": "4ef3075c-919b-4d39-8a21-0874ad717b80",
+            "opcode": "pan2",
+            "params": {
+              "xp": 0.5,
+              "imode": 0
+            },
+            "position": {
+              "x": 1185.344920571426,
+              "y": 59.0948238792206
+            }
+          },
+          {
+            "id": "62792812-fe0a-49c5-bd03-d9a7b5a572c6",
+            "opcode": "const_i",
+            "params": {
+              "value": "0.5"
+            },
+            "position": {
+              "x": 442.6688442392487,
+              "y": 315.43526590226077
+            }
+          },
+          {
+            "id": "17c2b833-7a91-4a50-a07e-ebc539ac4db5",
+            "opcode": "outs",
+            "params": {},
+            "position": {
+              "x": 1527.2539611301204,
+              "y": 128.95334843006157
+            }
+          },
+          {
+            "id": "a8e8eba4-41fb-454f-ab8f-863376bc9aa0",
+            "opcode": "const_i",
+            "params": {
+              "value": "0.5"
+            },
+            "position": {
+              "x": -173.370386527111,
+              "y": -294.7449248087007
+            }
+          },
+          {
+            "id": "c8eeee24-d1ea-47b9-b5da-0d35b2df9628",
+            "opcode": "madsr",
+            "params": {
+              "iatt": 0.01,
+              "idec": 0.15,
+              "islev": 0.7,
+              "irel": 0.2,
+              "idel": 0
+            },
+            "position": {
+              "x": -371.04832864402573,
+              "y": -146.16731886429073
+            }
+          },
+          {
+            "id": "916992a7-7ec8-4742-b9da-5ed651c32219",
+            "opcode": "madsr",
+            "params": {
+              "iatt": 0.01,
+              "idec": 0.15,
+              "islev": 0.7,
+              "irel": 0.2,
+              "idel": 0
+            },
+            "position": {
+              "x": -262.3030367486101,
+              "y": 209.76725186735422
+            }
+          },
+          {
+            "id": "0d88d6d6-e009-44f2-977a-32b42e8427ce",
+            "opcode": "const_i",
+            "params": {
+              "value": "1"
+            },
+            "position": {
+              "x": 98.80542069032045,
+              "y": 426.2655015895052
+            }
+          },
+          {
+            "id": "d6a5b0a4-99e9-4fdc-884c-4a72f14c7fce",
+            "opcode": "moogladder2",
+            "params": {
+              "xcf": 2000,
+              "xres": 0.2
+            },
+            "position": {
+              "x": 441.70792495132844,
+              "y": -34.970741237791394
+            }
+          },
+          {
+            "id": "86e8d23b-b8eb-4d5a-b1de-edbfeec64c04",
+            "opcode": "distort1",
+            "params": {
+              "kpregain": 2,
+              "kpostgain": 0.5,
+              "kshape1": 0,
+              "kshape2": 0,
+              "imode": 1
+            },
+            "position": {
+              "x": 929.0687794022134,
+              "y": -319.1171750783572
+            }
+          },
+          {
+            "id": "452bf6c0-3f0d-4a5d-a9e3-aedf80142ece",
+            "opcode": "const_i",
+            "params": {
+              "value": "4"
+            },
+            "position": {
+              "x": 529.7863005350165,
+              "y": -411.0782047270202
+            }
+          },
+          {
+            "id": "c8639358-0347-4e7c-b388-15faa67edf22",
+            "opcode": "const_i",
+            "params": {
+              "value": "0.5"
+            },
+            "position": {
+              "x": 271.52758332487076,
+              "y": -338.11902596502125
+            }
+          },
+          {
+            "id": "0da41c30-595d-4975-a9b2-4a40ff362dac",
+            "opcode": "const_i",
+            "params": {
+              "value": "0.1"
+            },
+            "position": {
+              "x": 498.42091024142945,
+              "y": -209.42317597751418
+            }
+          }
+        ],
+        "connections": [
+          {
+            "from_node_id": "62792812-fe0a-49c5-bd03-d9a7b5a572c6",
+            "from_port_id": "iout",
+            "to_node_id": "4ef3075c-919b-4d39-8a21-0874ad717b80",
+            "to_port_id": "xp"
+          },
+          {
+            "from_node_id": "4ef3075c-919b-4d39-8a21-0874ad717b80",
+            "from_port_id": "aleft",
+            "to_node_id": "17c2b833-7a91-4a50-a07e-ebc539ac4db5",
+            "to_port_id": "left"
+          },
+          {
+            "from_node_id": "4ef3075c-919b-4d39-8a21-0874ad717b80",
+            "from_port_id": "aright",
+            "to_node_id": "17c2b833-7a91-4a50-a07e-ebc539ac4db5",
+            "to_port_id": "right"
+          },
+          {
+            "from_node_id": "a8e8eba4-41fb-454f-ab8f-863376bc9aa0",
+            "from_port_id": "iout",
+            "to_node_id": "593b535c-d020-426a-8035-89e165002c01",
+            "to_port_id": "beta"
+          },
+          {
+            "from_node_id": "a0b941ca-82e9-4ce2-8fee-279ce326984b",
+            "from_port_id": "iout",
+            "to_node_id": "c8eeee24-d1ea-47b9-b5da-0d35b2df9628",
+            "to_port_id": "iatt"
+          },
+          {
+            "from_node_id": "e3181471-d5e1-4b81-90f9-48e7f83057dc",
+            "from_port_id": "iout",
+            "to_node_id": "c8eeee24-d1ea-47b9-b5da-0d35b2df9628",
+            "to_port_id": "idec"
+          },
+          {
+            "from_node_id": "46755592-c8ec-4608-883e-4690d1fc1783",
+            "from_port_id": "iout",
+            "to_node_id": "c8eeee24-d1ea-47b9-b5da-0d35b2df9628",
+            "to_port_id": "islev"
+          },
+          {
+            "from_node_id": "41967424-e577-4f81-8c13-e495dadd921e",
+            "from_port_id": "iout",
+            "to_node_id": "c8eeee24-d1ea-47b9-b5da-0d35b2df9628",
+            "to_port_id": "irel"
+          },
+          {
+            "from_node_id": "a0b941ca-82e9-4ce2-8fee-279ce326984b",
+            "from_port_id": "iout",
+            "to_node_id": "916992a7-7ec8-4742-b9da-5ed651c32219",
+            "to_port_id": "iatt"
+          },
+          {
+            "from_node_id": "e3181471-d5e1-4b81-90f9-48e7f83057dc",
+            "from_port_id": "iout",
+            "to_node_id": "916992a7-7ec8-4742-b9da-5ed651c32219",
+            "to_port_id": "idec"
+          },
+          {
+            "from_node_id": "46755592-c8ec-4608-883e-4690d1fc1783",
+            "from_port_id": "iout",
+            "to_node_id": "916992a7-7ec8-4742-b9da-5ed651c32219",
+            "to_port_id": "islev"
+          },
+          {
+            "from_node_id": "41967424-e577-4f81-8c13-e495dadd921e",
+            "from_port_id": "iout",
+            "to_node_id": "916992a7-7ec8-4742-b9da-5ed651c32219",
+            "to_port_id": "irel"
+          },
+          {
+            "from_node_id": "916992a7-7ec8-4742-b9da-5ed651c32219",
+            "from_port_id": "kenv",
+            "to_node_id": "593b535c-d020-426a-8035-89e165002c01",
+            "to_port_id": "amp"
+          },
+          {
+            "from_node_id": "593b535c-d020-426a-8035-89e165002c01",
+            "from_port_id": "aout",
+            "to_node_id": "d6a5b0a4-99e9-4fdc-884c-4a72f14c7fce",
+            "to_port_id": "ain"
+          },
+          {
+            "from_node_id": "c8eeee24-d1ea-47b9-b5da-0d35b2df9628",
+            "from_port_id": "kenv",
+            "to_node_id": "d6a5b0a4-99e9-4fdc-884c-4a72f14c7fce",
+            "to_port_id": "xcf"
+          },
+          {
+            "from_node_id": "223a04d2-91c2-4daf-92be-264316bc3579",
+            "from_port_id": "iout",
+            "to_node_id": "d6a5b0a4-99e9-4fdc-884c-4a72f14c7fce",
+            "to_port_id": "xres"
+          },
+          {
+            "from_node_id": "d6a5b0a4-99e9-4fdc-884c-4a72f14c7fce",
+            "from_port_id": "aout",
+            "to_node_id": "86e8d23b-b8eb-4d5a-b1de-edbfeec64c04",
+            "to_port_id": "asig"
+          },
+          {
+            "from_node_id": "86e8d23b-b8eb-4d5a-b1de-edbfeec64c04",
+            "from_port_id": "aout",
+            "to_node_id": "4ef3075c-919b-4d39-8a21-0874ad717b80",
+            "to_port_id": "asig"
+          },
+          {
+            "from_node_id": "452bf6c0-3f0d-4a5d-a9e3-aedf80142ece",
+            "from_port_id": "iout",
+            "to_node_id": "86e8d23b-b8eb-4d5a-b1de-edbfeec64c04",
+            "to_port_id": "kpregain"
+          },
+          {
+            "from_node_id": "c8639358-0347-4e7c-b388-15faa67edf22",
+            "from_port_id": "iout",
+            "to_node_id": "86e8d23b-b8eb-4d5a-b1de-edbfeec64c04",
+            "to_port_id": "kpostgain"
+          },
+          {
+            "from_node_id": "0da41c30-595d-4975-a9b2-4a40ff362dac",
+            "from_port_id": "iout",
+            "to_node_id": "86e8d23b-b8eb-4d5a-b1de-edbfeec64c04",
+            "to_port_id": "kshape1"
+          },
+          {
+            "from_node_id": "0da41c30-595d-4975-a9b2-4a40ff362dac",
+            "from_port_id": "iout",
+            "to_node_id": "86e8d23b-b8eb-4d5a-b1de-edbfeec64c04",
+            "to_port_id": "kshape2"
+          }
+        ],
+        "ui_layout": {
+          "input_formulas": {
+            "a027df05-8805-4cb6-a25f-7edf441078e9::xfco": {
+              "expression": "0.5*in2*in1+10",
+              "inputs": [
+                {
+                  "token": "in1",
+                  "from_node_id": "c8eeee24-d1ea-47b9-b5da-0d35b2df9628",
+                  "from_port_id": "kenv"
+                },
+                {
+                  "token": "in2",
+                  "from_node_id": "6cfc6a2e-244a-4886-84b4-b33f2ce6494f",
+                  "from_port_id": "kfreq"
+                }
+              ]
+            },
+            "d6a5b0a4-99e9-4fdc-884c-4a72f14c7fce::xcf": {
+              "expression": "in2*200+10",
+              "inputs": [
+                {
+                  "token": "in2",
+                  "from_node_id": "c8eeee24-d1ea-47b9-b5da-0d35b2df9628",
+                  "from_port_id": "kenv"
+                }
+              ]
+            },
+            "593b535c-d020-426a-8035-89e165002c01::beta": {
+              "expression": "in1+0.1",
+              "inputs": [
+                {
+                  "token": "in1",
+                  "from_node_id": "a8e8eba4-41fb-454f-ab8f-863376bc9aa0",
+                  "from_port_id": "iout"
+                }
+              ]
+            },
+            "4ef3075c-919b-4d39-8a21-0874ad717b80::asig": {
+              "expression": "in1*5",
+              "inputs": [
+                {
+                  "token": "in1",
+                  "from_node_id": "86e8d23b-b8eb-4d5a-b1de-edbfeec64c04",
+                  "from_port_id": "aout"
+                }
+              ]
+            }
+          }
+        },
+        "engine_config": {
+          "sr": 44100,
+          "control_rate": 1378,
+          "ksmps": 32,
+          "nchnls": 2,
+          "software_buffer": 256,
           "hardware_buffer": 512,
           "0dbfs": 1
         }
