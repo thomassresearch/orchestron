@@ -185,6 +185,7 @@ class SessionSequencerTrackStatus(BaseModel):
     step_count: Literal[16, 32]
     active_pad: int = Field(ge=0, le=7)
     queued_pad: int | None = Field(default=None, ge=0, le=7)
+    pad_loop_position: int | None = Field(default=None, ge=0)
     enabled: bool = True
     queued_enabled: bool | None = None
     active_notes: list[int] = Field(default_factory=list)

@@ -158,6 +158,7 @@ interface AppStore {
       stepCount?: 16 | 32;
       activePad?: number;
       queuedPad?: number | null;
+      padLoopPosition?: number | null;
       enabled?: boolean;
       queuedEnabled?: boolean | null;
     }>;
@@ -391,6 +392,7 @@ function defaultSequencerTrack(index = 1, midiChannel = 1): SequencerTrackState 
     mode,
     activePad: 0,
     queuedPad: null,
+    padLoopPosition: null,
     padLoopEnabled: false,
     padLoopRepeat: true,
     padLoopSequence: [],
@@ -469,6 +471,11 @@ function normalizeSequencerTrack(raw: unknown, index: number): SequencerTrackSta
         : fallback.stepCount;
   const activePad = typeof track.activePad === "number" ? normalizePadIndex(track.activePad) : fallback.activePad;
   const queuedPad = typeof track.queuedPad === "number" ? normalizePadIndex(track.queuedPad) : null;
+  const rawPadLoopPosition = track.padLoopPosition ?? track.pad_loop_position;
+  const padLoopPosition =
+    typeof rawPadLoopPosition === "number" && Number.isFinite(rawPadLoopPosition)
+      ? Math.max(0, Math.round(rawPadLoopPosition))
+      : null;
   const padLoopEnabled =
     track.padLoopEnabled === undefined && track.pad_loop_enabled === undefined
       ? fallback.padLoopEnabled
@@ -518,6 +525,7 @@ function normalizeSequencerTrack(raw: unknown, index: number): SequencerTrackSta
     mode: activePadTheory.mode,
     activePad,
     queuedPad,
+    padLoopPosition,
     padLoopEnabled,
     padLoopRepeat,
     padLoopSequence,
@@ -882,6 +890,7 @@ function sequencerSnapshotForPersistence(sequencer: SequencerState): SequencerSt
     tracks: sequencer.tracks.map((track) => ({
       ...track,
       queuedPad: null,
+      padLoopPosition: null,
       queuedEnabled: null
     }))
   };
@@ -2468,6 +2477,7 @@ export const useAppStore = create<AppStore>((set, get) => {
           tracks: sequencer.tracks.map((track) => ({
             ...track,
             queuedPad: isPlaying ? track.queuedPad : null,
+            padLoopPosition: isPlaying ? track.padLoopPosition : null,
             queuedEnabled: isPlaying ? track.queuedEnabled : null
           }))
         }
@@ -2509,6 +2519,7 @@ export const useAppStore = create<AppStore>((set, get) => {
                 return {
                   ...track,
                   queuedPad: null,
+                  padLoopPosition: null,
                   queuedEnabled: null
                 };
               }
@@ -2523,6 +2534,12 @@ export const useAppStore = create<AppStore>((set, get) => {
                 : payload.queuedPad === null
                   ? null
                   : normalizePadIndex(payload.queuedPad);
+            const nextPadLoopPosition =
+              payload.padLoopPosition === undefined
+                ? track.padLoopPosition
+                : payload.padLoopPosition === null
+                  ? null
+                  : Math.max(0, Math.round(payload.padLoopPosition));
             const nextEnabled = payload.enabled === undefined ? track.enabled : payload.enabled;
             const nextStepCount =
               payload.stepCount === undefined ? track.stepCount : normalizeStepCount(payload.stepCount);
@@ -2540,6 +2557,7 @@ export const useAppStore = create<AppStore>((set, get) => {
             if (
               nextActivePad === track.activePad &&
               nextQueuedPad === track.queuedPad &&
+              nextPadLoopPosition === track.padLoopPosition &&
               nextStepCount === track.stepCount &&
               nextEnabled === track.enabled &&
               nextQueuedEnabled === track.queuedEnabled &&
@@ -2554,6 +2572,7 @@ export const useAppStore = create<AppStore>((set, get) => {
               ...track,
               activePad: nextActivePad,
               queuedPad: nextQueuedPad,
+              padLoopPosition: nextPadLoopPosition,
               stepCount: nextStepCount,
               enabled: nextEnabled,
               queuedEnabled: nextQueuedEnabled,

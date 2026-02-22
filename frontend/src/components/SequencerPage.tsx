@@ -97,6 +97,7 @@ type SequencerUiCopy = {
   stop: string;
   rest: string;
   hold: string;
+  octave: string;
   inScaleOptgroup: (scale: string, mode: string) => string;
   outOfScaleOptgroup: string;
   inScaleDegree: (degree: number | null) => string;
@@ -220,6 +221,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     stop: "Stop",
     rest: "Rest",
     hold: "HOLD",
+    octave: "Octave",
     inScaleOptgroup: (scale, mode) => `In scale: ${scale} / ${mode}`,
     outOfScaleOptgroup: "Out of scale",
     inScaleDegree: (degree) => `in scale (${degree ?? "-"})`,
@@ -296,6 +298,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     stop: "Stop",
     rest: "Pause",
     hold: "HOLD",
+    octave: "Oktave",
     inScaleOptgroup: (scale, mode) => `In Skala: ${scale} / ${mode}`,
     outOfScaleOptgroup: "Ausserhalb der Skala",
     inScaleDegree: (degree) => `in skala (${degree ?? "-"})`,
@@ -372,6 +375,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     stop: "Arreter",
     rest: "Silence",
     hold: "HOLD",
+    octave: "Octave",
     inScaleOptgroup: (scale, mode) => `Dans la gamme: ${scale} / ${mode}`,
     outOfScaleOptgroup: "Hors gamme",
     inScaleDegree: (degree) => `dans gamme (${degree ?? "-"})`,
@@ -448,6 +452,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     stop: "Detener",
     rest: "Silencio",
     hold: "HOLD",
+    octave: "Octava",
     inScaleOptgroup: (scale, mode) => `En escala: ${scale} / ${mode}`,
     outOfScaleOptgroup: "Fuera de escala",
     inScaleDegree: (degree) => `en escala (${degree ?? "-"})`,
@@ -495,6 +500,53 @@ function pianoKeyPrimaryLabel(label: string | undefined, note: number): string {
   const withoutDegree = label.replace(/\s+\(\d+\)$/, "");
   const [primary] = withoutDegree.split(" / ");
   return primary.trim();
+}
+
+interface SequencerPitchClassOption {
+  pitchClass: number;
+  label: string;
+  degree: number | null;
+  inScale: boolean;
+}
+
+function pianoKeyNoteName(label: string | undefined, note: number): string {
+  return pianoKeyPrimaryLabel(label, note).replace(/-?\d+$/, "").trim();
+}
+
+function midiNotePitchClass(note: number): number {
+  return normalizePitchClass(note);
+}
+
+function midiNoteOctave(note: number): number {
+  return Math.floor(Math.round(note) / 12) - 1;
+}
+
+function sequencerMidiNoteFromPitchClassOctave(pitchClass: number, octave: number): number {
+  const normalizedPitchClass = normalizePitchClass(pitchClass);
+  const normalizedOctave = Math.max(0, Math.min(7, Math.round(octave)));
+  return normalizedPitchClass + (normalizedOctave + 1) * 12;
+}
+
+function buildSequencerPitchClassOptions(
+  noteOptions: Array<{ note: number; label: string; degree: number | null; inScale: boolean }>
+): SequencerPitchClassOption[] {
+  const byPitchClass = new Map<number, SequencerPitchClassOption>();
+  for (const option of noteOptions) {
+    const pitchClass = midiNotePitchClass(option.note);
+    if (byPitchClass.has(pitchClass)) {
+      continue;
+    }
+    byPitchClass.set(pitchClass, {
+      pitchClass,
+      label: pianoKeyNoteName(option.label, option.note),
+      degree: option.degree,
+      inScale: option.inScale
+    });
+    if (byPitchClass.size >= 12) {
+      break;
+    }
+  }
+  return Array.from(byPitchClass.values()).sort((a, b) => a.pitchClass - b.pitchClass);
 }
 
 interface PianoRollHighlightTheory {
@@ -1660,8 +1712,9 @@ export function SequencerPage({
           {sequencer.tracks.map((track, trackIndex) => {
             const noteOptions = buildSequencerNoteOptions(track.scaleRoot, track.mode);
             const noteOptionsByNote = new Map(noteOptions.map((option) => [option.note, option]));
-            const inScaleOptions = noteOptions.filter((option) => option.inScale);
-            const outOfScaleOptions = noteOptions.filter((option) => !option.inScale);
+            const pitchClassOptions = buildSequencerPitchClassOptions(noteOptions);
+            const inScalePitchClassOptions = pitchClassOptions.filter((option) => option.inScale);
+            const outOfScalePitchClassOptions = pitchClassOptions.filter((option) => !option.inScale);
             const scaleLabel =
               scaleTypeLabels[track.scaleType].length > 0
                 ? `${track.scaleRoot} ${scaleTypeLabels[track.scaleType]}`
@@ -1833,27 +1886,38 @@ export function SequencerPage({
                           </div>
                         ) : (
                           <div className="flex min-h-[24px] flex-wrap items-center gap-1">
-                            {track.padLoopSequence.map((padIndex, sequenceIndex) => (
-                              <span
-                                key={`${track.id}-pad-loop-${sequenceIndex}-${padIndex}`}
-                                role="listitem"
-                                className="inline-flex items-center gap-1 rounded-md border border-slate-700 bg-slate-950 px-1.5 py-0.5 text-[11px] text-slate-100"
-                              >
-                                <span className="font-mono">{padIndex + 1}</span>
-                                <button
-                                  type="button"
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    onSequencerTrackPadLoopStepRemove(track.id, sequenceIndex);
-                                  }}
-                                  className="rounded px-1 text-[10px] leading-none text-slate-400 transition hover:bg-slate-800 hover:text-rose-300"
-                                  aria-label={ui.removePadLoopStep(padIndex + 1)}
-                                  title={ui.remove}
+                            {track.padLoopSequence.map((padIndex, sequenceIndex) => {
+                              const isCurrentLoopStep =
+                                track.padLoopEnabled &&
+                                sequencer.isPlaying &&
+                                track.enabled &&
+                                track.padLoopPosition === sequenceIndex;
+                              return (
+                                <span
+                                  key={`${track.id}-pad-loop-${sequenceIndex}-${padIndex}`}
+                                  role="listitem"
+                                  className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] transition ${
+                                    isCurrentLoopStep
+                                      ? "border-accent bg-accent/25 text-accent shadow-[0_0_0_1px_rgba(14,165,233,0.45)]"
+                                      : "border-slate-700 bg-slate-950 text-slate-100"
+                                  }`}
                                 >
-                                  x
-                                </button>
-                              </span>
-                            ))}
+                                  <span className="font-mono">{padIndex + 1}</span>
+                                  <button
+                                    type="button"
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      onSequencerTrackPadLoopStepRemove(track.id, sequenceIndex);
+                                    }}
+                                    className="rounded px-1 text-[10px] leading-none text-slate-400 transition hover:bg-slate-800 hover:text-rose-300"
+                                    aria-label={ui.removePadLoopStep(padIndex + 1)}
+                                    title={ui.remove}
+                                  >
+                                    x
+                                  </button>
+                                </span>
+                              );
+                            })}
                             <span className="text-[10px] text-slate-500">{ui.padLoopSequenceHint}</span>
                           </div>
                         )}
@@ -1928,10 +1992,12 @@ export function SequencerPage({
                       const selectedNote = noteValue === null ? null : noteOptionsByNote.get(noteValue) ?? null;
                       const isInScale = selectedNote?.inScale ?? false;
                       const degree = selectedNote?.degree ?? null;
+                      const notePitchClass = noteValue === null ? null : midiNotePitchClass(noteValue);
+                      const noteOctave = noteValue === null ? null : midiNoteOctave(noteValue);
                       const stepKey = `${track.id}:${step}`;
-                      const selectValue = stepSelectPreview[stepKey] ?? (noteValue === null ? "" : String(noteValue));
-                      const selectedLabel =
-                        noteValue === null ? ui.rest : pianoKeyPrimaryLabel(selectedNote?.label, noteValue);
+                      const selectValue =
+                        stepSelectPreview[stepKey] ?? (notePitchClass === null ? "" : String(notePitchClass));
+                      const selectedLabel = noteValue === null ? ui.rest : pianoKeyNoteName(selectedNote?.label, noteValue);
 
                       return (
                         <div
@@ -1944,7 +2010,7 @@ export function SequencerPage({
                                 : "border-slate-700 bg-slate-900"
                           }`}
                         >
-                          <div className="relative text-center font-mono text-[10px] uppercase tracking-[0.18em] text-slate-400">
+                          <div className="relative pr-12 text-left font-mono text-[10px] uppercase tracking-[0.18em] text-slate-400">
                             <button
                               type="button"
                               onClick={() => onSequencerTrackStepHoldChange(track.id, step, !holdActive)}
@@ -1975,7 +2041,7 @@ export function SequencerPage({
                                 if (fallbackNote === null) {
                                   return;
                                 }
-                                const fallbackValue = String(fallbackNote);
+                                const fallbackValue = String(midiNotePitchClass(fallbackNote));
                                 setStepSelectPreview((previous) =>
                                   previous[stepKey] === fallbackValue
                                     ? previous
@@ -1994,7 +2060,7 @@ export function SequencerPage({
                                 if (fallbackNote === null) {
                                   return;
                                 }
-                                const fallbackValue = String(fallbackNote);
+                                const fallbackValue = String(midiNotePitchClass(fallbackNote));
                                 setStepSelectPreview((previous) =>
                                   previous[stepKey] === fallbackValue
                                     ? previous
@@ -2024,23 +2090,46 @@ export function SequencerPage({
                                   delete next[stepKey];
                                   return next;
                                 });
-                                onSequencerTrackStepNoteChange(track.id, step, raw.length === 0 ? null : Number(raw));
+                                if (raw.length === 0) {
+                                  onSequencerTrackStepNoteChange(track.id, step, null);
+                                  return;
+                                }
+                                const nextPitchClass = Number(raw);
+                                const fallbackNote = previousNonRestNote(track.steps, step);
+                                const nextOctave =
+                                  noteOctave ??
+                                  (fallbackNote === null ? 4 : midiNoteOctave(fallbackNote));
+                                onSequencerTrackStepNoteChange(
+                                  track.id,
+                                  step,
+                                  sequencerMidiNoteFromPitchClassOctave(nextPitchClass, nextOctave)
+                                );
                               }}
                               className="h-8 w-full appearance-none rounded-md border border-slate-600 bg-slate-950 px-2 py-1 text-center font-mono text-[11px] text-transparent outline-none ring-accent/40 transition focus:ring"
                             >
-                              <option value="" style={{ color: "#f8fafc" }}>
-                                {ui.rest}
-                              </option>
+                              <optgroup label={ui.rest}>
+                                <option value="" style={{ color: "#f8fafc" }}>
+                                  {ui.rest}
+                                </option>
+                              </optgroup>
                               <optgroup label={ui.inScaleOptgroup(scaleLabel, modeLabel)}>
-                                {inScaleOptions.map((option) => (
-                                  <option key={`${track.id}-in-${option.note}`} value={option.note} style={{ color: "#f8fafc" }}>
+                                {inScalePitchClassOptions.map((option) => (
+                                  <option
+                                    key={`${track.id}-in-pc-${option.pitchClass}`}
+                                    value={option.pitchClass}
+                                    style={{ color: "#f8fafc" }}
+                                  >
                                     {option.label}
                                   </option>
                                 ))}
                               </optgroup>
                               <optgroup label={ui.outOfScaleOptgroup}>
-                                {outOfScaleOptions.map((option) => (
-                                  <option key={`${track.id}-out-${option.note}`} value={option.note} style={{ color: "#f8fafc" }}>
+                                {outOfScalePitchClassOptions.map((option) => (
+                                  <option
+                                    key={`${track.id}-out-pc-${option.pitchClass}`}
+                                    value={option.pitchClass}
+                                    style={{ color: "#f8fafc" }}
+                                  >
                                     {option.label}
                                   </option>
                                 ))}
@@ -2050,6 +2139,34 @@ export function SequencerPage({
                               {selectedLabel}
                             </div>
                           </div>
+
+                          <label className="mt-1 flex items-center justify-between gap-2 rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1">
+                            <span className="text-[9px] uppercase tracking-[0.16em] text-slate-400">OCT</span>
+                            <input
+                              type="number"
+                              min={0}
+                              max={7}
+                              step={1}
+                              disabled={noteValue === null}
+                              value={noteOctave ?? 4}
+                              onChange={(event) => {
+                                if (noteValue === null) {
+                                  return;
+                                }
+                                const raw = event.target.value.trim();
+                                if (raw.length === 0) {
+                                  return;
+                                }
+                                onSequencerTrackStepNoteChange(
+                                  track.id,
+                                  step,
+                                  sequencerMidiNoteFromPitchClassOctave(notePitchClass ?? 0, Number(raw))
+                                );
+                              }}
+                              className="w-14 rounded border border-slate-600 bg-slate-950 px-1.5 py-0.5 text-center font-mono text-[11px] text-slate-100 outline-none ring-accent/40 transition focus:ring disabled:cursor-not-allowed disabled:opacity-50"
+                              aria-label={`${ui.octave} ${step + 1}`}
+                            />
+                          </label>
 
                           <div
                             className={`mt-1 text-center text-[10px] ${

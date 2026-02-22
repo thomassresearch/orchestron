@@ -482,6 +482,7 @@ class SessionSequencerRuntime:
                 step_count=16 if track.step_count == 16 else 32,
                 active_pad=track.active_pad,
                 queued_pad=track.queued_pad,
+                pad_loop_position=track.pad_loop_position,
                 enabled=track.enabled,
                 queued_enabled=track.queued_enabled,
                 active_notes=sorted(self._active_notes.get(track.track_id, set())),

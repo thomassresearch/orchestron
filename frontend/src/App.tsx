@@ -1147,6 +1147,7 @@ export default function App() {
           stepCount: track.step_count,
           activePad: track.active_pad,
           queuedPad: track.queued_pad,
+          padLoopPosition: track.pad_loop_position,
           enabled: track.enabled,
           queuedEnabled: track.queued_enabled
         }))
