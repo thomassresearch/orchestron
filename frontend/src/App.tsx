@@ -11,7 +11,7 @@ import { ReteNodeEditor, type EditorSelection } from "./components/ReteNodeEdito
 import { RuntimePanel } from "./components/RuntimePanel";
 import { SequencerPage } from "./components/SequencerPage";
 import { documentationUiCopy, getHelpDocument } from "./lib/documentation";
-import { GUI_LANGUAGE_LABELS, GUI_LANGUAGE_OPTIONS } from "./lib/guiLanguage";
+import { GUI_LANGUAGE_OPTIONS } from "./lib/guiLanguage";
 import { resolveMidiInputName } from "./lib/sequencer";
 import { useAppStore } from "./store/useAppStore";
 import orchestronIcon from "./assets/orchestron-icon.png";
@@ -360,6 +360,13 @@ type AppCopy = {
     noActiveSessionForPadSwitching: string;
     failedToQueuePad: string;
   };
+};
+
+const GUI_LANGUAGE_SHORT_LABELS: Record<GuiLanguage, string> = {
+  english: "EN",
+  german: "DE",
+  french: "FR",
+  spanish: "ES"
 };
 
 const APP_COPY: Record<GuiLanguage, AppCopy> = {
@@ -1786,21 +1793,30 @@ export default function App() {
               <p className="text-sm text-slate-400">{appCopy.appDescription}</p>
             </div>
           </div>
-          <label className="absolute right-4 top-3 flex w-36 flex-col gap-1">
+          <div className="absolute right-4 top-3 flex flex-col items-end gap-1">
             <span className="text-[10px] uppercase tracking-[0.18em] text-slate-400">{appCopy.guiLanguage}</span>
-            <select
-              value={guiLanguage}
-              onChange={(event) => setGuiLanguage(event.target.value as GuiLanguage)}
+            <div
+              role="group"
               aria-label={appCopy.guiLanguage}
-              className="rounded-lg border border-slate-600 bg-slate-950/90 px-2 py-1 font-body text-xs text-slate-100 outline-none ring-accent/40 transition focus:ring"
+              className="flex items-center gap-2 rounded-lg border border-slate-700/80 bg-slate-950/70 px-2 py-1"
             >
               {GUI_LANGUAGE_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {GUI_LANGUAGE_LABELS[guiLanguage][option.value]}
-                </option>
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setGuiLanguage(option.value)}
+                  aria-pressed={option.value === guiLanguage}
+                  className={`font-body text-xs uppercase tracking-[0.14em] transition focus:outline-none focus-visible:text-slate-100 ${
+                    option.value === guiLanguage
+                      ? "font-bold text-slate-100"
+                      : "font-medium text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  {GUI_LANGUAGE_SHORT_LABELS[option.value]}
+                </button>
               ))}
-            </select>
-          </label>
+            </div>
+          </div>
         </header>
 
         <div className="inline-flex rounded-xl border border-slate-700 bg-slate-950/80 p-1">
