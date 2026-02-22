@@ -69,6 +69,7 @@ Orchestron is a two-tier application with a FastAPI backend handling the service
 ### Requirements
 
 - Csound must be installed on your system and available in your `PATH`.
+- Install "uv", run "uv sync" to create the virtual python environment
 
 ### Use the Makefile
 
