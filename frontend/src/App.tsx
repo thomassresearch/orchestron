@@ -132,6 +132,10 @@ function sanitizePerformanceFileBaseName(value: string): string {
   return sanitizeFileBaseName(value, "orchestron_performance", [/\.orch\.json$/i, /\.json$/i]);
 }
 
+function sanitizeInstrumentDefinitionFileBaseName(value: string): string {
+  return sanitizeFileBaseName(value, "orchestron_instrument", [/\.orch\.instrument\.json$/i, /\.json$/i]);
+}
+
 function normalizeNameKey(value: string): string {
   return value.trim().toLocaleLowerCase();
 }
@@ -777,6 +781,7 @@ export default function App() {
 
   const importSelectionDialogResolverRef = useRef<((result: ImportSelectionDialogResult) => void) | null>(null);
   const importConflictDialogResolverRef = useRef<((result: ImportConflictDialogResult) => void) | null>(null);
+  const instrumentPatchImportInputRef = useRef<HTMLInputElement | null>(null);
 
   const [selection, setSelection] = useState<EditorSelection>({
     nodeIds: [],
@@ -785,6 +790,7 @@ export default function App() {
   const [activeHelpDocumentation, setActiveHelpDocumentation] = useState<HelpDocId | null>(null);
   const [activeOpcodeDocumentation, setActiveOpcodeDocumentation] = useState<string | null>(null);
   const [sequencerError, setSequencerError] = useState<string | null>(null);
+  const [instrumentPatchIoError, setInstrumentPatchIoError] = useState<string | null>(null);
   const [runtimePanelCollapsed, setRuntimePanelCollapsed] = useState(false);
   const [importSelectionDialog, setImportSelectionDialog] = useState<ImportSelectionDialogState | null>(null);
   const [importConflictDialog, setImportConflictDialog] = useState<{ items: ImportConflictDialogItem[] } | null>(null);
@@ -796,6 +802,32 @@ export default function App() {
   const sequencerConfigSyncPendingRef = useRef(false);
   const pianoRollNoteSessionRef = useRef(new Map<string, string>());
   const midiControllerInitSessionRef = useRef<string | null>(null);
+
+  const onExportInstrumentDefinition = useCallback(() => {
+    const exportedPatchName = currentPatch.name.trim().length > 0 ? currentPatch.name.trim() : "Untitled Patch";
+    const payload: ExportedPatchDefinition = {
+      sourcePatchId: currentPatch.id ?? activeInstrumentTabId,
+      name: exportedPatchName,
+      description: currentPatch.description,
+      schema_version: currentPatch.schema_version,
+      graph: currentPatch.graph
+    };
+
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `${sanitizeInstrumentDefinitionFileBaseName(exportedPatchName)}.orch.instrument.json`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+    setInstrumentPatchIoError(null);
+  }, [activeInstrumentTabId, currentPatch]);
+
+  const triggerInstrumentPatchImport = useCallback(() => {
+    instrumentPatchImportInputRef.current?.click();
+  }, []);
 
   useEffect(() => {
     sequencerRef.current = sequencer;
@@ -920,6 +952,121 @@ export default function App() {
       }
     };
   }, []);
+
+  const onImportInstrumentDefinitionFile = useCallback(
+    (file: File) => {
+      void (async () => {
+        const content = await file.text();
+        const parsed = JSON.parse(content) as unknown;
+
+        const standalonePatchDefinition = parseExportedPatchDefinition(parsed);
+        const performanceExport = standalonePatchDefinition ? null : parsePerformanceExportPayload(parsed);
+        const patchDefinitions = standalonePatchDefinition
+          ? [standalonePatchDefinition]
+          : (performanceExport?.patch_definitions ?? []);
+
+        if (patchDefinitions.length === 0) {
+          throw new Error("Import file does not contain an instrument definition.");
+        }
+
+        let patchCatalog = [...patches];
+        const conflictItems: ImportConflictDialogItem[] = [];
+        for (const definition of patchDefinitions) {
+          const incomingName = definition.name.trim().length > 0 ? definition.name.trim() : "Imported Patch";
+          const existing = findPatchByName(patchCatalog, incomingName);
+          if (!existing) {
+            continue;
+          }
+
+          conflictItems.push({
+            id: `patch:${definition.sourcePatchId}`,
+            kind: "patch",
+            sourcePatchId: definition.sourcePatchId,
+            originalName: incomingName,
+            overwrite: true,
+            targetName: suggestUniqueCopyName(incomingName, (candidate) => findPatchByName(patchCatalog, candidate) !== null),
+            skip: false
+          });
+        }
+
+        let conflictDecisions = conflictItems;
+        if (conflictItems.length > 0) {
+          const decision = await requestImportConflictDialog(conflictItems);
+          if (!decision.confirmed) {
+            return;
+          }
+          const validationError = validateImportConflictItems(decision.items, patchCatalog, performances, importDialogCopy);
+          if (validationError) {
+            throw new Error(validationError);
+          }
+          conflictDecisions = decision.items;
+        }
+
+        const patchConflictBySourceId = new Map<string, ImportConflictDialogItem>();
+        for (const item of conflictDecisions) {
+          if (item.kind === "patch" && item.sourcePatchId) {
+            patchConflictBySourceId.set(item.sourcePatchId, item);
+          }
+        }
+
+        let firstImportedPatchId: string | null = null;
+        for (const definition of patchDefinitions) {
+          const incomingName = definition.name.trim().length > 0 ? definition.name.trim() : "Imported Patch";
+          const existingPatch = findPatchByName(patchCatalog, incomingName);
+          const conflictItem = patchConflictBySourceId.get(definition.sourcePatchId);
+          let importedPatch: Patch;
+
+          if (conflictItem?.skip) {
+            continue;
+          }
+
+          if (existingPatch) {
+            if (!conflictItem || conflictItem.overwrite) {
+              importedPatch = await api.updatePatch(existingPatch.id, {
+                name: incomingName,
+                description: definition.description,
+                schema_version: definition.schema_version,
+                graph: definition.graph
+              });
+              patchCatalog = patchCatalog.map((patch) => (patch.id === existingPatch.id ? toPatchListItem(importedPatch) : patch));
+            } else {
+              const renamed = conflictItem.targetName.trim();
+              importedPatch = await api.createPatch({
+                name: renamed,
+                description: definition.description,
+                schema_version: definition.schema_version,
+                graph: definition.graph
+              });
+              patchCatalog = [toPatchListItem(importedPatch), ...patchCatalog];
+            }
+          } else {
+            importedPatch = await api.createPatch({
+              name: incomingName,
+              description: definition.description,
+              schema_version: definition.schema_version,
+              graph: definition.graph
+            });
+            patchCatalog = [toPatchListItem(importedPatch), ...patchCatalog];
+          }
+
+          if (!firstImportedPatchId) {
+            firstImportedPatchId = importedPatch.id;
+          }
+        }
+
+        if (patchDefinitions.length > 0) {
+          await refreshPatches();
+        }
+        if (firstImportedPatchId) {
+          await loadPatch(firstImportedPatchId);
+        }
+        setInstrumentPatchIoError(null);
+      })().catch((error) => {
+        setInstrumentPatchIoError(error instanceof Error ? error.message : "Failed to import instrument definition.");
+      });
+    },
+    [importDialogCopy, loadPatch, patches, performances, refreshPatches, requestImportConflictDialog]
+  );
 
   useEffect(() => {
     if (!activeOpcodeDocumentation) {
@@ -1863,6 +2010,11 @@ export default function App() {
             {error}
           </div>
         )}
+        {activePage === "instrument" && instrumentPatchIoError && (
+          <div className="rounded-xl border border-rose-500/60 bg-rose-950/50 px-3 py-2 font-mono text-xs text-rose-200">
+            {instrumentPatchIoError}
+          </div>
+        )}
 
         {activePage === "instrument" && (
           <>
@@ -1892,8 +2044,28 @@ export default function App() {
                 onCompile={() => {
                   void compileSession();
                 }}
-                onExport={() => {
+                onExportPatch={() => {
+                  onExportInstrumentDefinition();
+                }}
+                onImportPatch={() => {
+                  triggerInstrumentPatchImport();
+                }}
+                onExportCsd={() => {
                   void onExportCsd();
+                }}
+              />
+              <input
+                ref={instrumentPatchImportInputRef}
+                type="file"
+                accept=".json,.orch.json,.orch.instrument.json"
+                className="hidden"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  event.target.value = "";
+                  if (!file) {
+                    return;
+                  }
+                  onImportInstrumentDefinitionFile(file);
                 }}
               />
             </div>

@@ -291,10 +291,12 @@ const CONSTANT_INPUT_CSS = `
 type SocketGlyphProps = {
   optional: boolean;
   title?: string;
+  hasConfiguredFormula?: boolean;
   onDoubleClick?: () => void;
 };
 
-function SocketGlyph({ optional, title, onDoubleClick }: SocketGlyphProps) {
+function SocketGlyph({ optional, title, hasConfiguredFormula, onDoubleClick }: SocketGlyphProps) {
+  const showFormulaHighlight = hasConfiguredFormula === true;
   return (
     <div
       style={{ borderRadius: "18px", padding: "6px" }}
@@ -312,14 +314,15 @@ function SocketGlyph({ optional, title, onDoubleClick }: SocketGlyphProps) {
         style={{
           display: "inline-block",
           cursor: "pointer",
-          border: "1px solid #f8fafc",
+          border: showFormulaHighlight ? "1px solid #dcfce7" : "1px solid #f8fafc",
           borderRadius: "12px",
           width: "24px",
           height: "24px",
           verticalAlign: "middle",
           boxSizing: "border-box",
-          background: optional ? "rgba(148, 163, 184, 0.35)" : "#96b38a",
-          opacity: optional ? 0.62 : 1
+          background: showFormulaHighlight ? "#22c55e" : optional ? "rgba(148, 163, 184, 0.35)" : "#96b38a",
+          opacity: showFormulaHighlight ? 1 : optional ? 0.62 : 1,
+          boxShadow: showFormulaHighlight ? "0 0 0 2px rgba(34, 197, 94, 0.35)" : "none"
         }}
       />
     </div>
@@ -431,7 +434,7 @@ function sourceLabelForConnection(
     sourceSpec?.outputs.find((port) => port.id === connection.from_port_id)?.name ?? connection.from_port_id;
   const sourceOpcodeName = sourceSpec?.name ?? sourceNode.opcode;
   return {
-    label: `${sourceNode.id}.${sourcePortLabel} (${sourceOpcodeName})`,
+    label: `${sourceOpcodeName} (${connection.from_port_id})`,
     details: `${copy.sourcePrefix}: ${sourceNode.id}.${sourcePortLabel}\n${copy.opcodePrefix}: ${sourceOpcodeName}\n${copy.portIdPrefix}: ${connection.from_port_id}`
   };
 }
@@ -467,6 +470,15 @@ export function ReteNodeEditor({
   const [formulaNumberDraft, setFormulaNumberDraft] = useState("1");
 
   const opcodeByName = useMemo(() => new Map(opcodes.map((opcode) => [opcode.name, opcode])), [opcodes]);
+  const configuredFormulaTargetKeys = useMemo(
+    () => Object.keys(readInputFormulaMap(graph.ui_layout)).sort(),
+    [graph.ui_layout]
+  );
+  const configuredFormulaTargetKeySet = useMemo(
+    () => new Set(configuredFormulaTargetKeys),
+    [configuredFormulaTargetKeys]
+  );
+  const formulaSocketHighlightKey = configuredFormulaTargetKeys.join(";");
 
   const updateGraph = useCallback(
     (updater: (current: PatchGraph) => PatchGraph) => {
@@ -578,16 +590,12 @@ export function ReteNodeEditor({
     }
     const tokenSet = new Set(formulaEditor.inputs.map((input) => input.token));
     const baseValidation = validateGraphFormulaExpression(formulaEditor.expression, tokenSet);
-    const errors = [...baseValidation.errors];
-    if (formulaEditor.inputs.length < 2) {
-      errors.push(copy.atLeastTwoSignalsForFormula);
-    }
     return {
-      isValid: baseValidation.isValid && errors.length === 0,
-      errors,
+      isValid: baseValidation.isValid,
+      errors: [...baseValidation.errors],
       tokens: baseValidation.tokens
     };
-  }, [copy.atLeastTwoSignalsForFormula, formulaEditor]);
+  }, [formulaEditor]);
 
   const formulaTokens = useMemo<GraphFormulaToken[]>(() => {
     if (!formulaEditor) {
@@ -995,6 +1003,10 @@ export function ReteNodeEditor({
               const isOptionalInput = context.side === "input" && Boolean(optionalPorts?.has(context.key));
               const patchNodeId = reteToPatchRef.current.get(String(context.nodeId));
               const hasFormulaAssistant = Boolean(patchNodeId && context.side === "input");
+              const hasConfiguredFormula =
+                context.side === "input" && patchNodeId
+                  ? configuredFormulaTargetKeySet.has(formulaTargetKey(patchNodeId, context.key))
+                  : false;
               const socketTitle = hasFormulaAssistant
                 ? isOptionalInput
                   ? copy.optionalInputWithFormula
@@ -1007,6 +1019,7 @@ export function ReteNodeEditor({
                   <SocketGlyph
                     optional={isOptionalInput}
                     title={socketTitle}
+                    hasConfiguredFormula={hasConfiguredFormula}
                     onDoubleClick={
                       hasFormulaAssistant
                         ? () => {
@@ -1184,11 +1197,13 @@ export function ReteNodeEditor({
           );
         }
 
-        await editor.addNode(visualNode);
-        await area.translate(visualNode.id, { x: node.position.x, y: node.position.y });
-
+        // Register the patch<->Rete id mapping before the node is added so socket
+        // customization can resolve formula metadata on the first render pass.
         patchToRete.set(node.id, visualNode);
         reteToPatch.set(String(visualNode.id), node.id);
+
+        await editor.addNode(visualNode);
+        await area.translate(visualNode.id, { x: node.position.x, y: node.position.y });
       }
 
       for (const connectionDef of initialGraph.connections) {
@@ -1403,12 +1418,14 @@ export function ReteNodeEditor({
     onSelectionChange,
     resolvedOpcodeHelpLabel,
     structureKey,
+    formulaSocketHighlightKey,
     viewportKey,
     syncZoomPercent,
     snapshotViewport,
     restoreViewport,
     openFormulaEditor,
     opcodeByName,
+    configuredFormulaTargetKeySet,
     updateGraph
   ]);
 

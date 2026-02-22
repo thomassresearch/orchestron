@@ -147,8 +147,10 @@ class CompilerService:
 
             for input_port in compiled.spec.inputs:
                 inbound_connections = inbound_index.get((compiled.node.id, input_port.id), [])
+                target_key = self._formula_target_key(compiled.node.id, input_port.id)
+                has_input_formula = self._lookup_input_formula_config(patch.graph.ui_layout, target_key) is not None
                 if inbound_connections:
-                    if len(inbound_connections) == 1:
+                    if len(inbound_connections) == 1 and not has_input_formula:
                         source_connection = inbound_connections[0]
                         key = (source_connection.from_node_id, source_connection.from_port_id)
                         source_var = output_vars.get(key)
@@ -161,13 +163,22 @@ class CompilerService:
                             )
                         env[input_port.id] = source_var
                     else:
-                        env[input_port.id] = self._resolve_multi_input_expression(
+                        env[input_port.id] = self._resolve_input_expression(
                             ui_layout=patch.graph.ui_layout,
                             to_node_id=compiled.node.id,
                             to_port_id=input_port.id,
                             inbound_connections=inbound_connections,
                             output_vars=output_vars,
                         )
+                    continue
+                if has_input_formula:
+                    env[input_port.id] = self._resolve_input_expression(
+                        ui_layout=patch.graph.ui_layout,
+                        to_node_id=compiled.node.id,
+                        to_port_id=input_port.id,
+                        inbound_connections=inbound_connections,
+                        output_vars=output_vars,
+                    )
                     continue
 
                 literal, found = self._resolve_literal_value(compiled.node, input_port)
@@ -342,7 +353,7 @@ class CompilerService:
 
         return ordered
 
-    def _resolve_multi_input_expression(
+    def _resolve_input_expression(
         self,
         ui_layout: dict[str, object],
         to_node_id: str,
@@ -350,14 +361,6 @@ class CompilerService:
         inbound_connections: list[Connection],
         output_vars: dict[tuple[str, str], str],
     ) -> str:
-        if not inbound_connections:
-            raise CompilationError(
-                [
-                    "Internal compiler error: expected at least one inbound connection "
-                    f"for {to_node_id}.{to_port_id}"
-                ]
-            )
-
         source_vars_by_binding: dict[tuple[str, str], str] = {}
         ordered_source_keys: list[tuple[str, str]] = []
         for connection in inbound_connections:
@@ -418,6 +421,8 @@ class CompilerService:
 
         raw_expression = formula_config.get("expression")
         if not isinstance(raw_expression, str) or raw_expression.strip() == "":
+            if not token_to_expression:
+                raise CompilationError([f"Invalid formula for input '{context_label}': formula is empty."])
             return self._default_multi_input_expression(list(token_to_expression.values()))
 
         return self._render_formula_expression(raw_expression, token_to_expression, context_label)

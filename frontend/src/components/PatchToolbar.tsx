@@ -23,7 +23,9 @@ interface PatchToolbarProps {
   onNewPatch: () => void;
   onSavePatch: () => void;
   onCompile: () => void;
-  onExport: () => void;
+  onExportCsd: () => void;
+  onExportPatch: () => void;
+  onImportPatch: () => void;
 }
 
 type PatchToolbarCopy = {
@@ -39,6 +41,8 @@ type PatchToolbarCopy = {
   savePatch: string;
   compilePatch: string;
   exportCsd: string;
+  exportPatch: string;
+  importPatch: string;
 };
 
 const PATCH_TOOLBAR_COPY: Record<GuiLanguage, PatchToolbarCopy> = {
@@ -54,7 +58,9 @@ const PATCH_TOOLBAR_COPY: Record<GuiLanguage, PatchToolbarCopy> = {
     newPatch: "New",
     savePatch: "Save",
     compilePatch: "Compile",
-    exportCsd: "Export"
+    exportCsd: "Export CSD",
+    exportPatch: "Export",
+    importPatch: "Import"
   },
   german: {
     closeTabAria: "Tab schliessen",
@@ -68,7 +74,9 @@ const PATCH_TOOLBAR_COPY: Record<GuiLanguage, PatchToolbarCopy> = {
     newPatch: "Neu",
     savePatch: "Speichern",
     compilePatch: "Kompilieren",
-    exportCsd: "Exportieren"
+    exportCsd: "CSD exportieren",
+    exportPatch: "Exportieren",
+    importPatch: "Importieren"
   },
   french: {
     closeTabAria: "Fermer onglet",
@@ -82,7 +90,9 @@ const PATCH_TOOLBAR_COPY: Record<GuiLanguage, PatchToolbarCopy> = {
     newPatch: "Nouveau",
     savePatch: "Enregistrer",
     compilePatch: "Compiler",
-    exportCsd: "Exporter"
+    exportCsd: "Exporter CSD",
+    exportPatch: "Exporter",
+    importPatch: "Importer"
   },
   spanish: {
     closeTabAria: "Cerrar pestana",
@@ -96,7 +106,9 @@ const PATCH_TOOLBAR_COPY: Record<GuiLanguage, PatchToolbarCopy> = {
     newPatch: "Nuevo",
     savePatch: "Guardar",
     compilePatch: "Compilar",
-    exportCsd: "Exportar"
+    exportCsd: "Exportar CSD",
+    exportPatch: "Exportar",
+    importPatch: "Importar"
   }
 };
 
@@ -210,8 +222,24 @@ export function PatchToolbar(props: PatchToolbarProps) {
           {copy.compilePatch}
         </button>
         <button
+          className="rounded-lg border border-emerald-500/50 bg-emerald-500/15 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-emerald-200 transition hover:bg-emerald-500/25"
+          onClick={props.onExportPatch}
+          type="button"
+          disabled={props.loading}
+        >
+          {copy.exportPatch}
+        </button>
+        <button
+          className="rounded-lg border border-teal-500/50 bg-teal-500/15 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-teal-200 transition hover:bg-teal-500/25"
+          onClick={props.onImportPatch}
+          type="button"
+          disabled={props.loading}
+        >
+          {copy.importPatch}
+        </button>
+        <button
           className="rounded-lg border border-cyan-500/50 bg-cyan-500/15 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-cyan-200 transition hover:bg-cyan-500/25"
-          onClick={props.onExport}
+          onClick={props.onExportCsd}
           type="button"
           disabled={props.loading}
         >
