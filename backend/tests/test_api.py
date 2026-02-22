@@ -618,6 +618,89 @@ def test_session_backend_sequencer_flow_with_pad_queue(tmp_path: Path) -> None:
         assert stop_sequencer.json()["running"] is False
 
 
+def test_session_backend_sequencer_pad_looper_sequence_stops_when_repeat_disabled(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        patch_payload = {
+            "name": "Sequencer Pad Looper Patch",
+            "description": "pad looper sequence runtime test",
+            "schema_version": 1,
+            "graph": {
+                "nodes": [
+                    {"id": "n1", "opcode": "const_a", "params": {"value": 0.2}, "position": {"x": 50, "y": 50}},
+                    {"id": "n2", "opcode": "outs", "params": {}, "position": {"x": 240, "y": 50}},
+                ],
+                "connections": [
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "left"},
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "right"},
+                ],
+                "ui_layout": {},
+                "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+            },
+        }
+
+        create_patch = client.post("/api/patches", json=patch_payload)
+        assert create_patch.status_code == 201
+        patch_id = create_patch.json()["id"]
+
+        create_session = client.post("/api/sessions", json={"patch_id": patch_id})
+        assert create_session.status_code == 201
+        session_id = create_session.json()["session_id"]
+
+        start_sequencer = client.post(
+            f"/api/sessions/{session_id}/sequencer/start",
+            json={
+                "config": {
+                    "bpm": 300,
+                    "step_count": 16,
+                    "tracks": [
+                        {
+                            "track_id": "voice-1",
+                            "midi_channel": 1,
+                            "enabled": True,
+                            "active_pad": 7,
+                            "pad_loop_enabled": True,
+                            "pad_loop_repeat": False,
+                            "pad_loop_sequence": [0, 1],
+                            "pads": [
+                                {"pad_index": 0, "steps": [60, None] + [None] * 14},
+                                {"pad_index": 1, "steps": [72, None] + [None] * 14},
+                            ],
+                        }
+                    ],
+                }
+            },
+        )
+        assert start_sequencer.status_code == 200
+        assert start_sequencer.json()["running"] is True
+        track = next(item for item in start_sequencer.json()["tracks"] if item["track_id"] == "voice-1")
+        # Looper start aligns the track to the first pad in the configured sequence.
+        assert track["active_pad"] == 0
+
+        saw_second_pad = False
+        stopped_after_sequence = False
+        for _ in range(50):
+            status = client.get(f"/api/sessions/{session_id}/sequencer/status")
+            assert status.status_code == 200
+            data = status.json()
+            track = next(item for item in data["tracks"] if item["track_id"] == "voice-1")
+
+            if track["enabled"] and track["active_pad"] == 1:
+                saw_second_pad = True
+
+            if saw_second_pad and track["enabled"] is False and track["queued_enabled"] is None:
+                stopped_after_sequence = True
+                break
+
+            time.sleep(0.1)
+
+        assert saw_second_pad, "Pad looper did not advance to the second pad in the configured sequence."
+        assert stopped_after_sequence, "Pad looper did not stop the track when repeat was disabled."
+
+        stop_sequencer = client.post(f"/api/sessions/{session_id}/sequencer/stop")
+        assert stop_sequencer.status_code == 200
+        assert stop_sequencer.json()["running"] is False
+
+
 def test_session_backend_sequencer_hold_steps_release_only_on_non_hold_rest(tmp_path: Path) -> None:
     with _client(tmp_path) as client:
         patch_payload = {

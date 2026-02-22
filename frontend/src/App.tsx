@@ -693,8 +693,14 @@ export default function App() {
   const setSequencerTrackMode = useAppStore((state) => state.setSequencerTrackMode);
   const setSequencerTrackStepNote = useAppStore((state) => state.setSequencerTrackStepNote);
   const setSequencerTrackStepHold = useAppStore((state) => state.setSequencerTrackStepHold);
+  const clearSequencerTrackSteps = useAppStore((state) => state.clearSequencerTrackSteps);
+  const copySequencerTrackPad = useAppStore((state) => state.copySequencerTrackPad);
   const setSequencerTrackActivePad = useAppStore((state) => state.setSequencerTrackActivePad);
   const setSequencerTrackQueuedPad = useAppStore((state) => state.setSequencerTrackQueuedPad);
+  const setSequencerTrackPadLoopEnabled = useAppStore((state) => state.setSequencerTrackPadLoopEnabled);
+  const setSequencerTrackPadLoopRepeat = useAppStore((state) => state.setSequencerTrackPadLoopRepeat);
+  const addSequencerTrackPadLoopStep = useAppStore((state) => state.addSequencerTrackPadLoopStep);
+  const removeSequencerTrackPadLoopStep = useAppStore((state) => state.removeSequencerTrackPadLoopStep);
   const addPianoRoll = useAppStore((state) => state.addPianoRoll);
   const removePianoRoll = useAppStore((state) => state.removePianoRoll);
   const setPianoRollEnabled = useAppStore((state) => state.setPianoRollEnabled);
@@ -962,6 +968,9 @@ export default function App() {
         gate_ratio: 0.8,
         active_pad: track.activePad,
         queued_pad: track.queuedPad,
+        pad_loop_enabled: track.padLoopEnabled,
+        pad_loop_repeat: track.padLoopRepeat,
+        pad_loop_sequence: track.padLoopSequence,
         enabled: track.enabled,
         queued_enabled: track.queuedEnabled,
         pads: track.pads.map((pad, padIndex) => ({
@@ -2001,6 +2010,7 @@ export default function App() {
             onSequencerTrackStepCountChange={setSequencerTrackStepCount}
             onSequencerTrackStepNoteChange={setSequencerTrackStepNote}
             onSequencerTrackStepHoldChange={setSequencerTrackStepHold}
+            onSequencerTrackClearSteps={clearSequencerTrackSteps}
             onSequencerPadPress={(trackId, padIndex) => {
               if (!sequencerRef.current.isPlaying) {
                 setSequencerTrackActivePad(trackId, padIndex);
@@ -2027,6 +2037,13 @@ export default function App() {
                   );
                 });
             }}
+            onSequencerPadCopy={(trackId, sourcePadIndex, targetPadIndex) => {
+              copySequencerTrackPad(trackId, sourcePadIndex, targetPadIndex);
+            }}
+            onSequencerTrackPadLoopEnabledChange={setSequencerTrackPadLoopEnabled}
+            onSequencerTrackPadLoopRepeatChange={setSequencerTrackPadLoopRepeat}
+            onSequencerTrackPadLoopStepAdd={addSequencerTrackPadLoopStep}
+            onSequencerTrackPadLoopStepRemove={removeSequencerTrackPadLoopStep}
             onAddPianoRoll={addPianoRoll}
             onRemovePianoRoll={removePianoRoll}
             onPianoRollEnabledChange={onPianoRollEnabledChange}

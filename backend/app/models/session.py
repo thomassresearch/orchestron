@@ -134,6 +134,9 @@ class SessionSequencerTrackConfig(BaseModel):
     gate_ratio: float = Field(default=0.8, gt=0.0, le=1.0)
     active_pad: int = Field(default=0, ge=0, le=7)
     queued_pad: int | None = Field(default=None, ge=0, le=7)
+    pad_loop_enabled: bool = False
+    pad_loop_repeat: bool = True
+    pad_loop_sequence: list[int] = Field(default_factory=list, max_length=256)
     enabled: bool = True
     queued_enabled: bool | None = None
     pads: list[SessionSequencerPadConfig] = Field(default_factory=list, max_length=8)
@@ -145,6 +148,11 @@ class SessionSequencerTrackConfig(BaseModel):
             if pad.pad_index in seen:
                 raise ValueError(f"Duplicate pad_index '{pad.pad_index}' in track '{self.track_id}'.")
             seen.add(pad.pad_index)
+        for index, pad_number in enumerate(self.pad_loop_sequence):
+            if pad_number < 0 or pad_number > 7:
+                raise ValueError(
+                    f"pad_loop_sequence[{index}] must be in range 0..7 in track '{self.track_id}'."
+                )
         return self
 
 

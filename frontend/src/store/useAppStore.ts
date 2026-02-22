@@ -125,8 +125,14 @@ interface AppStore {
   setSequencerTrackStepCount: (trackId: string, stepCount: 16 | 32) => void;
   setSequencerTrackStepNote: (trackId: string, index: number, note: number | null) => void;
   setSequencerTrackStepHold: (trackId: string, index: number, hold: boolean) => void;
+  clearSequencerTrackSteps: (trackId: string) => void;
+  copySequencerTrackPad: (trackId: string, sourcePadIndex: number, targetPadIndex: number) => void;
   setSequencerTrackActivePad: (trackId: string, padIndex: number) => void;
   setSequencerTrackQueuedPad: (trackId: string, padIndex: number | null) => void;
+  setSequencerTrackPadLoopEnabled: (trackId: string, enabled: boolean) => void;
+  setSequencerTrackPadLoopRepeat: (trackId: string, repeat: boolean) => void;
+  addSequencerTrackPadLoopStep: (trackId: string, padIndex: number) => void;
+  removeSequencerTrackPadLoopStep: (trackId: string, sequenceIndex: number) => void;
 
   addPianoRoll: () => void;
   removePianoRoll: (rollId: string) => void;
@@ -297,6 +303,24 @@ function normalizePadIndex(value: number): number {
   return clampInt(value, 0, DEFAULT_PAD_COUNT - 1);
 }
 
+function normalizePadLoopSequence(raw: unknown): number[] {
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+
+  const sequence: number[] = [];
+  for (const entry of raw) {
+    if (typeof entry !== "number" || !Number.isFinite(entry)) {
+      continue;
+    }
+    sequence.push(normalizePadIndex(entry));
+    if (sequence.length >= 256) {
+      break;
+    }
+  }
+  return sequence;
+}
+
 function normalizePadSteps(raw: unknown): SequencerStepState[] | null {
   if (!Array.isArray(raw)) {
     return null;
@@ -367,6 +391,9 @@ function defaultSequencerTrack(index = 1, midiChannel = 1): SequencerTrackState 
     mode,
     activePad: 0,
     queuedPad: null,
+    padLoopEnabled: false,
+    padLoopRepeat: true,
+    padLoopSequence: [],
     pads,
     steps: cloneSequencerSteps(pads[0]?.steps ?? DEFAULT_SEQUENCER_STEPS),
     enabled: false,
@@ -442,6 +469,15 @@ function normalizeSequencerTrack(raw: unknown, index: number): SequencerTrackSta
         : fallback.stepCount;
   const activePad = typeof track.activePad === "number" ? normalizePadIndex(track.activePad) : fallback.activePad;
   const queuedPad = typeof track.queuedPad === "number" ? normalizePadIndex(track.queuedPad) : null;
+  const padLoopEnabled =
+    track.padLoopEnabled === undefined && track.pad_loop_enabled === undefined
+      ? fallback.padLoopEnabled
+      : (track.padLoopEnabled ?? track.pad_loop_enabled) === true;
+  const padLoopRepeat =
+    track.padLoopRepeat === undefined && track.pad_loop_repeat === undefined
+      ? fallback.padLoopRepeat
+      : (track.padLoopRepeat ?? track.pad_loop_repeat) !== false;
+  const padLoopSequence = normalizePadLoopSequence(track.padLoopSequence ?? track.pad_loop_sequence);
   const enabled = typeof track.enabled === "boolean" ? track.enabled : fallback.enabled;
   const queuedEnabled = typeof track.queuedEnabled === "boolean" ? track.queuedEnabled : null;
 
@@ -482,6 +518,9 @@ function normalizeSequencerTrack(raw: unknown, index: number): SequencerTrackSta
     mode: activePadTheory.mode,
     activePad,
     queuedPad,
+    padLoopEnabled,
+    padLoopRepeat,
+    padLoopSequence,
     pads,
     steps: cloneSequencerSteps(activePadTheory.steps),
     enabled,
@@ -987,6 +1026,9 @@ function buildSequencerConfigSnapshot(
         mode: normalizeSequencerMode(track.mode),
         activePad: normalizePadIndex(track.activePad),
         queuedPad: track.queuedPad === null ? null : normalizePadIndex(track.queuedPad),
+        padLoopEnabled: track.padLoopEnabled === true,
+        padLoopRepeat: track.padLoopRepeat !== false,
+        padLoopSequence: track.padLoopSequence.slice(0, 256).map((padIndex) => normalizePadIndex(padIndex)),
         pads: Array.from({ length: DEFAULT_PAD_COUNT }, (_, padIndex) => {
           const sourcePad = track.pads[padIndex];
           const padScaleRoot = normalizeSequencerScaleRoot(sourcePad?.scaleRoot ?? track.scaleRoot);
@@ -2003,6 +2045,100 @@ export const useAppStore = create<AppStore>((set, get) => {
       });
     },
 
+    clearSequencerTrackSteps: (trackId) => {
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          tracks: sequencer.tracks.map((track) => {
+            if (track.id !== trackId) {
+              return track;
+            }
+
+            const pads = track.pads.map((pad) => ({
+              ...pad,
+              steps: cloneSequencerSteps(pad.steps)
+            }));
+            const activePad = normalizePadIndex(track.activePad);
+            const activePadState =
+              pads[activePad] ?? {
+                steps: cloneSequencerSteps(DEFAULT_SEQUENCER_STEPS),
+                scaleRoot: track.scaleRoot,
+                scaleType: track.scaleType,
+                mode: track.mode
+              };
+            const steps = cloneSequencerSteps(DEFAULT_SEQUENCER_STEPS);
+            pads[activePad] = {
+              ...activePadState,
+              steps
+            };
+
+            return {
+              ...track,
+              pads,
+              steps
+            };
+          })
+        }
+      });
+    },
+
+    copySequencerTrackPad: (trackId, sourcePadIndex, targetPadIndex) => {
+      const normalizedSourcePad = normalizePadIndex(sourcePadIndex);
+      const normalizedTargetPad = normalizePadIndex(targetPadIndex);
+      if (normalizedSourcePad === normalizedTargetPad) {
+        return;
+      }
+
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          tracks: sequencer.tracks.map((track) => {
+            if (track.id !== trackId) {
+              return track;
+            }
+
+            const pads = track.pads.map((pad) => ({
+              ...pad,
+              steps: cloneSequencerSteps(pad.steps)
+            }));
+            const fallbackPad: SequencerPadState = {
+              steps: cloneSequencerSteps(DEFAULT_SEQUENCER_STEPS),
+              scaleRoot: track.scaleRoot,
+              scaleType: track.scaleType,
+              mode: track.mode
+            };
+            const sourcePad = pads[normalizedSourcePad] ?? fallbackPad;
+            const copiedPad: SequencerPadState = {
+              steps: cloneSequencerSteps(sourcePad.steps),
+              scaleRoot: sourcePad.scaleRoot,
+              scaleType: sourcePad.scaleType,
+              mode: sourcePad.mode
+            };
+            pads[normalizedTargetPad] = copiedPad;
+
+            const activePad = normalizePadIndex(track.activePad);
+            if (activePad !== normalizedTargetPad) {
+              return {
+                ...track,
+                pads
+              };
+            }
+
+            return {
+              ...track,
+              pads,
+              scaleRoot: copiedPad.scaleRoot,
+              scaleType: copiedPad.scaleType,
+              mode: copiedPad.mode,
+              steps: cloneSequencerSteps(copiedPad.steps)
+            };
+          })
+        }
+      });
+    },
+
     setSequencerTrackActivePad: (trackId, padIndex) => {
       const sequencer = get().sequencer;
       const normalizedPad = normalizePadIndex(padIndex);
@@ -2050,6 +2186,90 @@ export const useAppStore = create<AppStore>((set, get) => {
                 }
               : track
           )
+        }
+      });
+    },
+
+    setSequencerTrackPadLoopEnabled: (trackId, enabled) => {
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          tracks: sequencer.tracks.map((track) =>
+            track.id === trackId
+              ? {
+                  ...track,
+                  padLoopEnabled: enabled === true
+                }
+              : track
+          )
+        }
+      });
+    },
+
+    setSequencerTrackPadLoopRepeat: (trackId, repeat) => {
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          tracks: sequencer.tracks.map((track) =>
+            track.id === trackId
+              ? {
+                  ...track,
+                  padLoopRepeat: repeat !== false
+                }
+              : track
+          )
+        }
+      });
+    },
+
+    addSequencerTrackPadLoopStep: (trackId, padIndex) => {
+      const normalizedPad = normalizePadIndex(padIndex);
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          tracks: sequencer.tracks.map((track) => {
+            if (track.id !== trackId) {
+              return track;
+            }
+            if (track.padLoopSequence.length >= 256) {
+              return track;
+            }
+            return {
+              ...track,
+              padLoopSequence: [...track.padLoopSequence, normalizedPad]
+            };
+          })
+        }
+      });
+    },
+
+    removeSequencerTrackPadLoopStep: (trackId, sequenceIndex) => {
+      if (!Number.isFinite(sequenceIndex)) {
+        return;
+      }
+      const normalizedSequenceIndex = Math.max(0, Math.round(sequenceIndex));
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          tracks: sequencer.tracks.map((track) => {
+            if (track.id !== trackId) {
+              return track;
+            }
+            if (
+              normalizedSequenceIndex < 0 ||
+              normalizedSequenceIndex >= track.padLoopSequence.length
+            ) {
+              return track;
+            }
+            return {
+              ...track,
+              padLoopSequence: track.padLoopSequence.filter((_, index) => index !== normalizedSequenceIndex)
+            };
+          })
         }
       });
     },

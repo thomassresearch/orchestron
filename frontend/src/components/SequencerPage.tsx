@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ChangeEvent, CSSProperties, PointerEvent as ReactPointerEvent } from "react";
+import type {
+  ChangeEvent,
+  CSSProperties,
+  DragEvent as ReactDragEvent,
+  KeyboardEvent as ReactKeyboardEvent,
+  PointerEvent as ReactPointerEvent
+} from "react";
 
 import {
   buildSequencerNoteOptions,
@@ -32,6 +38,12 @@ const PIANO_BLACK_KEY_WIDTH = 22;
 const PIANO_BLACK_KEY_HEIGHT = 84;
 const PIANO_SCROLL_STEP_PX = PIANO_WHITE_KEY_WIDTH * 8;
 const MIXED_SELECT_VALUE = "__mixed__";
+const SEQUENCER_PAD_DRAG_MIME = "application/x-visualcsound-sequencer-pad";
+
+type SequencerPadDragPayload = {
+  trackId: string;
+  padIndex: number;
+};
 
 type SequencerUiCopy = {
   keyboardInfo: string;
@@ -58,6 +70,7 @@ type SequencerUiCopy = {
   patch: (index: number) => string;
   channel: string;
   remove: string;
+  clearSteps: string;
   rackTransport: string;
   startInstruments: string;
   stopInstruments: string;
@@ -69,6 +82,14 @@ type SequencerUiCopy = {
   scale: string;
   mode: string;
   steps: string;
+  on: string;
+  off: string;
+  padLooper: string;
+  repeat: string;
+  padLoopSequence: string;
+  padLoopSequenceEmpty: string;
+  padLoopSequenceHint: string;
+  removePadLoopStep: (padNumber: number) => string;
   notesInScaleMode: (scale: string, mode: string) => string;
   patternPads: string;
   sequencerWithIndex: (index: number) => string;
@@ -172,6 +193,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     patch: (index) => `Patch ${index}`,
     channel: "Channel",
     remove: "Remove",
+    clearSteps: "Clear Steps",
     rackTransport: "Rack Transport",
     startInstruments: "Start Instruments",
     stopInstruments: "Stop Instruments",
@@ -183,6 +205,14 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     scale: "Scale",
     mode: "Mode",
     steps: "Steps",
+    on: "On",
+    off: "Off",
+    padLooper: "Pad Looper",
+    repeat: "Repeat",
+    padLoopSequence: "Pad Sequence",
+    padLoopSequenceEmpty: "Click here, press 1-8, or drop pads",
+    padLoopSequenceHint: "1-8 / drop pads",
+    removePadLoopStep: (padNumber) => `Remove pad ${padNumber} from sequence`,
     notesInScaleMode: (scale, mode) => `Notes in ${scale} / ${mode}`,
     patternPads: "Pattern Pads",
     sequencerWithIndex: (index) => `Sequencer ${index}`,
@@ -239,6 +269,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     patch: (index) => `Patch ${index}`,
     channel: "Kanal",
     remove: "Entfernen",
+    clearSteps: "Steps loeschen",
     rackTransport: "Rack-Transport",
     startInstruments: "Instrumente starten",
     stopInstruments: "Instrumente stoppen",
@@ -250,6 +281,14 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     scale: "Skala",
     mode: "Modus",
     steps: "Schritte",
+    on: "An",
+    off: "Aus",
+    padLooper: "Pad-Looper",
+    repeat: "Repeat",
+    padLoopSequence: "Pad-Sequenz",
+    padLoopSequenceEmpty: "Hier klicken, 1-8 druecken oder Pads ablegen",
+    padLoopSequenceHint: "1-8 / Pads ablegen",
+    removePadLoopStep: (padNumber) => `Pad ${padNumber} aus Sequenz entfernen`,
     notesInScaleMode: (scale, mode) => `Noten in ${scale} / ${mode}`,
     patternPads: "Pattern-Pads",
     sequencerWithIndex: (index) => `Sequencer ${index}`,
@@ -306,6 +345,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     patch: (index) => `Patch ${index}`,
     channel: "Canal",
     remove: "Supprimer",
+    clearSteps: "Effacer pas",
     rackTransport: "Transport du rack",
     startInstruments: "Demarrer instruments",
     stopInstruments: "Arreter instruments",
@@ -317,6 +357,14 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     scale: "Gamme",
     mode: "Mode",
     steps: "Pas",
+    on: "On",
+    off: "Off",
+    padLooper: "Looper de pads",
+    repeat: "Repeat",
+    padLoopSequence: "Sequence de pads",
+    padLoopSequenceEmpty: "Cliquez ici, appuyez 1-8, ou deposez des pads",
+    padLoopSequenceHint: "1-8 / deposer pads",
+    removePadLoopStep: (padNumber) => `Retirer pad ${padNumber} de la sequence`,
     notesInScaleMode: (scale, mode) => `Notes dans ${scale} / ${mode}`,
     patternPads: "Pads de pattern",
     sequencerWithIndex: (index) => `Sequenceur ${index}`,
@@ -373,6 +421,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     patch: (index) => `Patch ${index}`,
     channel: "Canal",
     remove: "Eliminar",
+    clearSteps: "Limpiar pasos",
     rackTransport: "Transporte del rack",
     startInstruments: "Iniciar instrumentos",
     stopInstruments: "Detener instrumentos",
@@ -384,6 +433,14 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     scale: "Escala",
     mode: "Modo",
     steps: "Pasos",
+    on: "On",
+    off: "Off",
+    padLooper: "Looper de pads",
+    repeat: "Repeat",
+    padLoopSequence: "Secuencia de pads",
+    padLoopSequenceEmpty: "Haz clic aqui, pulsa 1-8 o suelta pads",
+    padLoopSequenceHint: "1-8 / soltar pads",
+    removePadLoopStep: (padNumber) => `Quitar pad ${padNumber} de la secuencia`,
     notesInScaleMode: (scale, mode) => `Notas en ${scale} / ${mode}`,
     patternPads: "Pads de patron",
     sequencerWithIndex: (index) => `Secuenciador ${index}`,
@@ -1144,7 +1201,13 @@ interface SequencerPageProps {
   onSequencerTrackStepCountChange: (trackId: string, count: 16 | 32) => void;
   onSequencerTrackStepNoteChange: (trackId: string, index: number, note: number | null) => void;
   onSequencerTrackStepHoldChange: (trackId: string, index: number, hold: boolean) => void;
+  onSequencerTrackClearSteps: (trackId: string) => void;
   onSequencerPadPress: (trackId: string, padIndex: number) => void;
+  onSequencerPadCopy: (trackId: string, sourcePadIndex: number, targetPadIndex: number) => void;
+  onSequencerTrackPadLoopEnabledChange: (trackId: string, enabled: boolean) => void;
+  onSequencerTrackPadLoopRepeatChange: (trackId: string, repeat: boolean) => void;
+  onSequencerTrackPadLoopStepAdd: (trackId: string, padIndex: number) => void;
+  onSequencerTrackPadLoopStepRemove: (trackId: string, sequenceIndex: number) => void;
   onAddPianoRoll: () => void;
   onRemovePianoRoll: (rollId: string) => void;
   onPianoRollEnabledChange: (rollId: string, enabled: boolean) => void;
@@ -1181,6 +1244,37 @@ function previousNonRestNote(steps: SequencerStepState[], fromIndex: number): nu
     }
   }
   return null;
+}
+
+function parseSequencerPadDragPayload(event: ReactDragEvent): SequencerPadDragPayload | null {
+  const raw =
+    event.dataTransfer.getData(SEQUENCER_PAD_DRAG_MIME) || event.dataTransfer.getData("text/plain");
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as Partial<SequencerPadDragPayload>;
+    if (typeof parsed.trackId !== "string" || typeof parsed.padIndex !== "number" || !Number.isFinite(parsed.padIndex)) {
+      return null;
+    }
+    return {
+      trackId: parsed.trackId,
+      padIndex: Math.round(parsed.padIndex)
+    };
+  } catch {
+    return null;
+  }
+}
+
+function padSequencePadIndexFromKey(event: ReactKeyboardEvent): number | null {
+  if (event.altKey || event.ctrlKey || event.metaKey) {
+    return null;
+  }
+  if (!/^[1-8]$/.test(event.key)) {
+    return null;
+  }
+  return Number(event.key) - 1;
 }
 
 interface RunningSequencerTheory {
@@ -1232,7 +1326,13 @@ export function SequencerPage({
   onSequencerTrackStepCountChange,
   onSequencerTrackStepNoteChange,
   onSequencerTrackStepHoldChange,
+  onSequencerTrackClearSteps,
   onSequencerPadPress,
+  onSequencerPadCopy,
+  onSequencerTrackPadLoopEnabledChange,
+  onSequencerTrackPadLoopRepeatChange,
+  onSequencerTrackPadLoopStepAdd,
+  onSequencerTrackPadLoopStepRemove,
   onAddPianoRoll,
   onRemovePianoRoll,
   onPianoRollEnabledChange,
@@ -1593,6 +1693,13 @@ export function SequencerPage({
                   >
                     {ui.remove}
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => onSequencerTrackClearSteps(track.id)}
+                    className="rounded-md border border-slate-500/70 bg-slate-800/70 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-400 hover:bg-slate-700"
+                  >
+                    {ui.clearSteps}
+                  </button>
                 </div>
 
                 <div className="mb-2 flex flex-wrap items-end gap-2">
@@ -1666,6 +1773,94 @@ export function SequencerPage({
                       </button>
                     </div>
                   </div>
+
+                  <div className="flex min-w-[300px] flex-1 flex-col gap-1">
+                    <span className={controlLabelClass}>{ui.padLoopSequence}</span>
+                    <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-slate-600 bg-slate-950 p-1.5">
+                      <button
+                        type="button"
+                        onClick={() => onSequencerTrackPadLoopEnabledChange(track.id, !track.padLoopEnabled)}
+                        className={`rounded-md border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] transition ${
+                          track.padLoopEnabled
+                            ? "border-accent/70 bg-accent/20 text-accent"
+                            : "border-slate-700 bg-slate-900 text-slate-300 hover:border-slate-500"
+                        }`}
+                        aria-pressed={track.padLoopEnabled}
+                      >
+                        {ui.padLooper}: {track.padLoopEnabled ? ui.on : ui.off}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onSequencerTrackPadLoopRepeatChange(track.id, !track.padLoopRepeat)}
+                        className={`rounded-md border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] transition ${
+                          track.padLoopRepeat
+                            ? "border-emerald-400/55 bg-emerald-500/10 text-emerald-300"
+                            : "border-amber-400/55 bg-amber-500/10 text-amber-300"
+                        }`}
+                        aria-pressed={track.padLoopRepeat}
+                      >
+                        {ui.repeat}: {track.padLoopRepeat ? ui.on : ui.off}
+                      </button>
+
+                      <div
+                        tabIndex={0}
+                        role="list"
+                        aria-label={ui.padLoopSequence}
+                        onKeyDown={(event) => {
+                          const padIndex = padSequencePadIndexFromKey(event);
+                          if (padIndex === null) {
+                            return;
+                          }
+                          event.preventDefault();
+                          onSequencerTrackPadLoopStepAdd(track.id, padIndex);
+                        }}
+                        onDragOver={(event) => {
+                          event.preventDefault();
+                          event.dataTransfer.dropEffect = "copy";
+                        }}
+                        onDrop={(event) => {
+                          event.preventDefault();
+                          const payload = parseSequencerPadDragPayload(event);
+                          if (!payload || payload.trackId !== track.id) {
+                            return;
+                          }
+                          onSequencerTrackPadLoopStepAdd(track.id, payload.padIndex);
+                        }}
+                        className="min-h-[34px] min-w-[180px] flex-1 rounded-md border border-dashed border-slate-700 bg-slate-900/75 px-2 py-1 outline-none ring-accent/40 transition focus:ring"
+                      >
+                        {track.padLoopSequence.length === 0 ? (
+                          <div className="flex min-h-[24px] items-center text-[10px] text-slate-500">
+                            {ui.padLoopSequenceEmpty}
+                          </div>
+                        ) : (
+                          <div className="flex min-h-[24px] flex-wrap items-center gap-1">
+                            {track.padLoopSequence.map((padIndex, sequenceIndex) => (
+                              <span
+                                key={`${track.id}-pad-loop-${sequenceIndex}-${padIndex}`}
+                                role="listitem"
+                                className="inline-flex items-center gap-1 rounded-md border border-slate-700 bg-slate-950 px-1.5 py-0.5 text-[11px] text-slate-100"
+                              >
+                                <span className="font-mono">{padIndex + 1}</span>
+                                <button
+                                  type="button"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    onSequencerTrackPadLoopStepRemove(track.id, sequenceIndex);
+                                  }}
+                                  className="rounded px-1 text-[10px] leading-none text-slate-400 transition hover:bg-slate-800 hover:text-rose-300"
+                                  aria-label={ui.removePadLoopStep(padIndex + 1)}
+                                  title={ui.remove}
+                                >
+                                  x
+                                </button>
+                              </span>
+                            ))}
+                            <span className="text-[10px] text-slate-500">{ui.padLoopSequenceHint}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="mb-2 text-[11px] text-slate-500">
@@ -1682,7 +1877,26 @@ export function SequencerPage({
                         <button
                           key={`${track.id}-pad-${padIndex}`}
                           type="button"
+                          draggable
                           onClick={() => onSequencerPadPress(track.id, padIndex)}
+                          onDragStart={(event) => {
+                            const payload = JSON.stringify({ trackId: track.id, padIndex });
+                            event.dataTransfer.effectAllowed = "copy";
+                            event.dataTransfer.setData(SEQUENCER_PAD_DRAG_MIME, payload);
+                            event.dataTransfer.setData("text/plain", payload);
+                          }}
+                          onDragOver={(event) => {
+                            event.preventDefault();
+                            event.dataTransfer.dropEffect = "copy";
+                          }}
+                          onDrop={(event) => {
+                            event.preventDefault();
+                            const payload = parseSequencerPadDragPayload(event);
+                            if (!payload || payload.trackId !== track.id || payload.padIndex === padIndex) {
+                              return;
+                            }
+                            onSequencerPadCopy(track.id, payload.padIndex, padIndex);
+                          }}
                           className={`rounded-md border px-2 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] transition ${
                             isActivePad
                               ? "border-accent bg-accent/25 text-accent"

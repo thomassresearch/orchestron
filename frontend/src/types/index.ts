@@ -122,6 +122,9 @@ export interface SequencerTrackState {
   mode: SequencerMode;
   activePad: number;
   queuedPad: number | null;
+  padLoopEnabled: boolean;
+  padLoopRepeat: boolean;
+  padLoopSequence: number[];
   pads: SequencerPadState[];
   steps: SequencerStepState[];
   enabled: boolean;
@@ -188,6 +191,9 @@ export interface SequencerConfigSnapshot {
       mode: SequencerMode;
       activePad: number;
       queuedPad: number | null;
+      padLoopEnabled: boolean;
+      padLoopRepeat: boolean;
+      padLoopSequence: number[];
       pads: SequencerPadState[];
       enabled: boolean;
       queuedEnabled: boolean | null;
@@ -279,6 +285,9 @@ export interface SessionSequencerTrackConfig {
   gate_ratio?: number;
   active_pad: number;
   queued_pad?: number | null;
+  pad_loop_enabled?: boolean;
+  pad_loop_repeat?: boolean;
+  pad_loop_sequence?: number[];
   enabled?: boolean;
   queued_enabled?: boolean | null;
   pads: SessionSequencerPadConfig[];

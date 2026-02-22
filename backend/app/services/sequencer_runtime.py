@@ -64,6 +64,10 @@ class SequencerTrackRuntime:
     pads: dict[int, tuple[SequencerStepRuntime, ...]] = field(default_factory=dict)
     active_pad: int = 0
     queued_pad: int | None = None
+    pad_loop_enabled: bool = False
+    pad_loop_repeat: bool = True
+    pad_loop_sequence: tuple[int, ...] = ()
+    pad_loop_position: int | None = None
 
 
 @dataclass(slots=True)
@@ -104,6 +108,7 @@ class SessionSequencerRuntime:
         with self._lock:
             previous_config = self._config
             next_config = self._build_runtime_config(request)
+            self._restore_pad_loop_runtime_state_locked(previous_config, next_config)
             self._release_reconfigured_track_notes_locked(previous_config, next_config)
             self._config = next_config
             self._current_step = self._current_step % self._config.step_count
@@ -133,9 +138,12 @@ class SessionSequencerRuntime:
 
     def start(self) -> SessionSequencerStatus:
         with self._lock:
-            self._ensure_config()
+            config = self._ensure_config()
             if self._running:
                 return self._status_locked()
+
+            for track in config.tracks.values():
+                self._reset_pad_loop_for_start_locked(track)
 
             self._stop_event.clear()
             self._running = True
@@ -208,6 +216,95 @@ class SessionSequencerRuntime:
             for notes in self._active_notes.values():
                 notes.clear()
 
+    @staticmethod
+    def _pad_loop_config_matches(a: SequencerTrackRuntime, b: SequencerTrackRuntime) -> bool:
+        return (
+            a.pad_loop_enabled == b.pad_loop_enabled
+            and a.pad_loop_repeat == b.pad_loop_repeat
+            and a.pad_loop_sequence == b.pad_loop_sequence
+        )
+
+    @staticmethod
+    def _pad_loop_position_for_active_pad(track: SequencerTrackRuntime) -> int | None:
+        if not track.pad_loop_enabled or not track.pad_loop_sequence:
+            return None
+        for index, pad_index in enumerate(track.pad_loop_sequence):
+            if pad_index == track.active_pad:
+                return index
+        return None
+
+    def _initialize_pad_loop_state_locked(self, track: SequencerTrackRuntime) -> None:
+        track.pad_loop_position = self._pad_loop_position_for_active_pad(track)
+
+    def _reset_pad_loop_for_start_locked(self, track: SequencerTrackRuntime) -> None:
+        if not track.pad_loop_enabled or not track.pad_loop_sequence:
+            track.pad_loop_position = None
+            return
+
+        first_pad = track.pad_loop_sequence[0]
+        if first_pad in track.pads:
+            track.active_pad = first_pad
+        track.pad_loop_position = 0
+
+        if track.queued_pad == track.active_pad:
+            track.queued_pad = None
+
+    def _restore_pad_loop_runtime_state_locked(
+        self,
+        previous_config: SequencerRuntimeConfig | None,
+        next_config: SequencerRuntimeConfig,
+    ) -> None:
+        for track_id, next_track in next_config.tracks.items():
+            previous_track = previous_config.tracks.get(track_id) if previous_config else None
+            if previous_track and self._pad_loop_config_matches(previous_track, next_track):
+                previous_position = previous_track.pad_loop_position
+                if previous_position is not None and 0 <= previous_position < len(next_track.pad_loop_sequence):
+                    next_track.pad_loop_position = previous_position
+                    continue
+            self._initialize_pad_loop_state_locked(next_track)
+
+    def _pad_loop_boundary_action_locked(
+        self,
+        track: SequencerTrackRuntime,
+        *,
+        manual_switch_applied: bool,
+    ) -> tuple[int | None, bool]:
+        if not track.pad_loop_enabled or not track.pad_loop_sequence:
+            track.pad_loop_position = None
+            return (None, False)
+
+        if manual_switch_applied:
+            track.pad_loop_position = self._pad_loop_position_for_active_pad(track)
+            return (None, False)
+
+        sequence = track.pad_loop_sequence
+        current_position = track.pad_loop_position
+        if current_position is None:
+            track.pad_loop_position = 0
+            return (sequence[0], False)
+
+        if (
+            current_position < 0
+            or current_position >= len(sequence)
+            or sequence[current_position] != track.active_pad
+        ):
+            current_position = self._pad_loop_position_for_active_pad(track)
+            if current_position is None:
+                track.pad_loop_position = 0
+                return (sequence[0], False)
+
+        next_position = current_position + 1
+        if next_position < len(sequence):
+            track.pad_loop_position = next_position
+            return (sequence[next_position], False)
+
+        if track.pad_loop_repeat:
+            track.pad_loop_position = 0
+            return (sequence[0], False)
+
+        track.pad_loop_position = None
+        return (None, True)
+
     def _perform_step(
         self,
         config: SequencerRuntimeConfig,
@@ -243,14 +340,18 @@ class SessionSequencerRuntime:
 
             for track_id, track in config.tracks.items():
                 local_boundary_reached = (next_step % track.step_count) == 0
+                manual_pad_switch_applied = False
+                track_started_on_boundary = False
 
                 if track.queued_enabled is not None:
                     if track.queued_enabled:
                         # Newly armed tracks are aligned to shared step-1 boundaries
                         # while others are running. If no track is running, they arm now.
                         if self._can_start_track_on_boundary_locked(config, track_id, next_step):
+                            self._reset_pad_loop_for_start_locked(track)
                             track.enabled = True
                             track.queued_enabled = None
+                            track_started_on_boundary = True
                     elif not track.enabled:
                         track.queued_enabled = None
                     elif local_boundary_reached:
@@ -261,6 +362,7 @@ class SessionSequencerRuntime:
                 if local_boundary_reached and track.queued_pad is not None and track.queued_pad != track.active_pad:
                     track.active_pad = track.queued_pad
                     track.queued_pad = None
+                    manual_pad_switch_applied = True
                     switch_payloads.append(
                         {
                             "track_id": track.track_id,
@@ -268,6 +370,27 @@ class SessionSequencerRuntime:
                             "cycle": self._cycle,
                         }
                     )
+
+                if local_boundary_reached and track.enabled and not track_started_on_boundary:
+                    next_pad_from_loop, stop_track_on_loop_end = self._pad_loop_boundary_action_locked(
+                        track,
+                        manual_switch_applied=manual_pad_switch_applied,
+                    )
+                    if stop_track_on_loop_end:
+                        track.enabled = False
+                        track.queued_enabled = None
+                        track.queued_pad = None
+                        self._release_track_notes_locked(track_id, track.midi_channel)
+                    elif next_pad_from_loop is not None and next_pad_from_loop != track.active_pad:
+                        track.active_pad = next_pad_from_loop
+                        track.queued_pad = None
+                        switch_payloads.append(
+                            {
+                                "track_id": track.track_id,
+                                "active_pad": track.active_pad,
+                                "cycle": self._cycle,
+                            }
+                        )
 
             self._current_step = next_step
             self._refresh_transport_step_count_locked(config)
@@ -407,6 +530,15 @@ class SessionSequencerRuntime:
         return tuple(normalized[:_MAX_STEPS])
 
     @staticmethod
+    def _normalize_pad_loop_sequence(raw_sequence: list[int]) -> tuple[int, ...]:
+        normalized: list[int] = []
+        for entry in raw_sequence[:256]:
+            pad_index = int(entry)
+            if 0 <= pad_index < _DEFAULT_PADS:
+                normalized.append(pad_index)
+        return tuple(normalized)
+
+    @staticmethod
     def _transport_step_count(tracks: list[SequencerTrackRuntime]) -> int:
         enabled_counts = [track.step_count for track in tracks if track.enabled]
         if not enabled_counts:
@@ -460,6 +592,9 @@ class SessionSequencerRuntime:
                 pads=pads,
                 active_pad=active_pad,
                 queued_pad=queued_pad,
+                pad_loop_enabled=track_request.pad_loop_enabled,
+                pad_loop_repeat=track_request.pad_loop_repeat,
+                pad_loop_sequence=self._normalize_pad_loop_sequence(track_request.pad_loop_sequence),
             )
 
         config = SequencerRuntimeConfig(
