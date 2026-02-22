@@ -1370,17 +1370,16 @@ export function SequencerPage({
     [scaleTypeLabels]
   );
   const runningSequencerTheories = useMemo<RunningSequencerTheory[]>(
-    () =>
-      sequencer.isPlaying
-        ? sequencer.tracks
-            .filter((track) => track.enabled)
-            .map((track) => ({
-              scaleRoot: track.scaleRoot,
-              scaleType: track.scaleType,
-              mode: track.mode
-            }))
-        : [],
-    [sequencer.isPlaying, sequencer.tracks]
+    () => {
+      const enabledTracks = sequencer.tracks.filter((track) => track.enabled);
+      const sourceTracks = enabledTracks.length > 0 ? enabledTracks : sequencer.tracks;
+      return sourceTracks.map((track) => ({
+        scaleRoot: track.scaleRoot,
+        scaleType: track.scaleType,
+        mode: track.mode
+      }));
+    },
+    [sequencer.tracks]
   );
   const runningSequencerSummary = useMemo(() => {
     if (runningSequencerTheories.length === 0) {
