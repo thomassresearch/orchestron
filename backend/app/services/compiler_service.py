@@ -19,6 +19,7 @@ SFLOAD_NODES_LAYOUT_KEY = "sfload_nodes"
 FORMULA_TARGET_KEY_SEPARATOR = "::"
 DEFAULT_CSOUND_SOFTWARE_BUFFER_SAMPLES = 128
 DEFAULT_CSOUND_HARDWARE_BUFFER_SAMPLES = 512
+FORMULA_UNARY_FUNCTIONS = frozenset({"abs", "ceil", "floor"})
 
 
 class CompilationError(Exception):
@@ -888,6 +889,19 @@ class CompilerService:
 
             if token.kind == "identifier":
                 name = consume().value
+                if peek() and peek().kind == "lparen":
+                    if name not in FORMULA_UNARY_FUNCTIONS:
+                        raise CompilationError(
+                            [f"Invalid formula for input '{context_label}': unknown function '{name}'."]
+                        )
+                    consume()
+                    argument = parse_expression()
+                    if not peek() or peek().kind != "rparen":
+                        raise CompilationError(
+                            [f"Invalid formula for input '{context_label}': missing closing ')'."]
+                        )
+                    consume()
+                    return f"{name}({argument})"
                 value = token_to_expression.get(name)
                 if not value:
                     raise CompilationError(

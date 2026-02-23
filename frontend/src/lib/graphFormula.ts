@@ -36,6 +36,9 @@ export interface GraphFormulaValidationResult {
   tokens: GraphFormulaToken[];
 }
 
+export const GRAPH_FORMULA_UNARY_FUNCTIONS = ["abs", "ceil", "floor"] as const;
+const GRAPH_FORMULA_UNARY_FUNCTION_SET = new Set<string>(GRAPH_FORMULA_UNARY_FUNCTIONS);
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -264,6 +267,7 @@ export function validateGraphFormulaExpression(
   const errors: string[] = [];
 
   const current = () => tokens[index];
+  const next = () => tokens[index + 1];
   const consume = () => {
     index += 1;
   };
@@ -314,6 +318,25 @@ export function validateGraphFormulaExpression(
     }
 
     if (token.type === "identifier") {
+      if (next()?.type === "lparen") {
+        const functionName = token.value;
+        if (!GRAPH_FORMULA_UNARY_FUNCTION_SET.has(functionName)) {
+          errors.push(`Unknown function '${functionName}'.`);
+          return false;
+        }
+        consume();
+        consume();
+        if (!parseExpression()) {
+          errors.push(`Expected expression inside '${functionName}(...)'.`);
+          return false;
+        }
+        if (current()?.type !== "rparen") {
+          errors.push(`Missing closing ')' for '${functionName}(...)'.`);
+          return false;
+        }
+        consume();
+        return true;
+      }
       if (!allowedIdentifiers.has(token.value)) {
         errors.push(`Unknown input token '${token.value}'.`);
       }

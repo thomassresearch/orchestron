@@ -2182,7 +2182,7 @@ export function SequencerPage({
       <input
         ref={configFileInputRef}
         type="file"
-        accept="application/json,.json"
+        accept="application/json,.json,.orch.json,.zip,.orch.zip,application/zip,application/x-zip-compressed"
         className="hidden"
         onChange={handleConfigFileChange}
       />

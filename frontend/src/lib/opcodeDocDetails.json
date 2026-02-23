@@ -3631,5 +3631,47 @@
         "spanish": "Variable de salida `ar2` de sfinstr3."
       }
     }
+  },
+  "syncphasor": {
+    "description": {
+      "english": "Produces a normalized moving phase value (0 to 1) and a one-sample sync impulse output. The phase can be reset by a non-zero sync input, which makes it useful for chained phasors and hard-sync style oscillator behavior.",
+      "german": "Erzeugt einen normalisierten laufenden Phasenwert (0 bis 1) und einen Sync-Ausgangsimpuls mit einer Sample-Länge. Die Phase kann durch einen von Null verschiedenen Sync-Eingang zurückgesetzt werden, was den Opcode für verkettete Phasoren und Hard-Sync-ähnliches Oszillatorverhalten nützlich macht.",
+      "french": "Produit une valeur de phase mobile normalisée (de 0 à 1) et une impulsion de synchronisation de sortie d'un seul échantillon. La phase peut être réinitialisée par une entrée de synchro non nulle, ce qui rend cet opcode utile pour les phasors chaînés et les comportements d'oscillateur de type hard sync.",
+      "spanish": "Produce un valor de fase móvil normalizado (de 0 a 1) y una salida de sincronía con un impulso de una sola muestra. La fase puede reiniciarse con una entrada de sincronía distinta de cero, lo que hace útil este opcode para encadenar phasors y para comportamientos de oscilador tipo hard sync."
+    },
+    "inputs": {
+      "xcps": {
+        "english": "Phasor frequency in cycles per second. If xcps is negative, the phase decreases from 1 to 0 instead of increasing.",
+        "german": "Phasor-Frequenz in Zyklen pro Sekunde. Wenn xcps negativ ist, nimmt die Phase von 1 nach 0 ab, statt anzusteigen.",
+        "french": "Fréquence du phasor en cycles par seconde. Si xcps est négatif, la phase décroît de 1 vers 0 au lieu d'augmenter.",
+        "spanish": "Frecuencia del phasor en ciclos por segundo. Si xcps es negativo, la fase disminuye de 1 a 0 en lugar de aumentar."
+      },
+      "asyncin": {
+        "english": "Audio-rate sync input. Whenever asyncin is non-zero, the phase output is reset to zero.",
+        "german": "Audio-Rate-Sync-Eingang. Immer wenn asyncin ungleich Null ist, wird die Phasenausgabe auf Null zurückgesetzt.",
+        "french": "Entrée de synchronisation au taux audio. Dès que asyncin est non nul, la phase de sortie est réinitialisée à zéro.",
+        "spanish": "Entrada de sincronía a tasa de audio. Siempre que asyncin sea distinto de cero, la salida de fase se reinicia a cero."
+      },
+      "iphs": {
+        "english": "Optional initial phase expressed as a fraction of one cycle (0 to 1). A negative value skips phase initialization. Default is 0.",
+        "german": "Optionale Anfangsphase als Bruchteil eines Zyklus (0 bis 1). Ein negativer Wert überspringt die Phaseninitialisierung. Standardwert ist 0.",
+        "french": "Phase initiale optionnelle exprimée comme fraction d'un cycle (de 0 à 1). Une valeur négative ignore l'initialisation de la phase. La valeur par défaut est 0.",
+        "spanish": "Fase inicial opcional expresada como fracción de un ciclo (de 0 a 1). Un valor negativo omite la inicialización de la fase. El valor predeterminado es 0."
+      }
+    },
+    "outputs": {
+      "aphase": {
+        "english": "Normalized phase output, always in the range 0 <= phase < 1. Useful for table indexing and phase-driven synthesis.",
+        "german": "Normalisierte Phasenausgabe, immer im Bereich 0 <= Phase < 1. Nützlich für Tabellenindizierung und phasengetriebene Synthese.",
+        "french": "Sortie de phase normalisée, toujours dans la plage 0 <= phase < 1. Utile pour l'indexation de table et la synthèse pilotée par phase.",
+        "spanish": "Salida de fase normalizada, siempre en el rango 0 <= fase < 1. Útil para indexar tablas y para síntesis controlada por fase."
+      },
+      "asyncout": {
+        "english": "Sync output impulse. It is 1.0 for one sample when the phase crosses zero or when a non-zero sync input resets the phase; otherwise it is 0.",
+        "german": "Sync-Ausgangsimpuls. Er ist für ein Sample 1.0, wenn die Phase Null kreuzt oder wenn ein von Null verschiedener Sync-Eingang die Phase zurücksetzt; sonst ist er 0.",
+        "french": "Impulsion de synchronisation en sortie. Elle vaut 1.0 pendant un échantillon lorsque la phase franchit zéro ou lorsqu'une entrée de synchro non nulle réinitialise la phase ; sinon elle vaut 0.",
+        "spanish": "Impulso de sincronía de salida. Vale 1.0 durante una muestra cuando la fase cruza cero o cuando una entrada de sincronía distinta de cero reinicia la fase; en otros casos vale 0."
+      }
+    }
   }
 }

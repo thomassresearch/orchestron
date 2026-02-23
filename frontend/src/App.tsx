@@ -20,6 +20,7 @@ import type {
   ControllerSequencerState,
   GuiLanguage,
   HelpDocId,
+  OpcodeSpec,
   Patch,
   PatchGraph,
   PatchListItem,
@@ -139,6 +140,12 @@ type ImportConflictDialogItem = {
 type ImportConflictDialogResult = {
   confirmed: boolean;
   items: ImportConflictDialogItem[];
+};
+
+type DeleteSelectionDialogState = {
+  nodeIds: string[];
+  connectionKeys: string[];
+  itemLabels: string[];
 };
 
 type ImportDialogCopy = {
@@ -418,6 +425,10 @@ type AppCopy = {
   patchCompileStatusErrors: string;
   instrumentTabTitle: (index: number) => string;
   confirmDeleteSelection: (count: number) => string;
+  deleteSelectionDialogListLabel: string;
+  deleteSelectionDialogOpcodeItem: (opcodeName: string, nodeId: string) => string;
+  deleteSelectionDialogConnectionItem: (from: string, to: string) => string;
+  cancel: string;
   confirmDeletePatch: string;
   confirmDeletePerformance: string;
   errors: {
@@ -441,6 +452,53 @@ type AppCopy = {
     failedToQueuePad: string;
   };
 };
+
+function buildGraphSelectionDeletePlan(
+  graph: PatchGraph,
+  selection: EditorSelection,
+  opcodes: OpcodeSpec[],
+  copy: Pick<AppCopy, "deleteSelectionDialogOpcodeItem" | "deleteSelectionDialogConnectionItem">
+): DeleteSelectionDialogState {
+  const nodeIds = Array.from(new Set(selection.nodeIds));
+  const nodeIdSet = new Set(nodeIds);
+  const selectedConnectionKeySet = new Set(selection.connections.map((connection) => connectionKey(connection)));
+  const nodeById = new Map(graph.nodes.map((node) => [node.id, node]));
+  const opcodeByName = new Map(opcodes.map((opcode) => [opcode.name, opcode]));
+  const itemLabels: string[] = [];
+  const connectionKeys: string[] = [];
+
+  for (const nodeId of nodeIds) {
+    const node = nodeById.get(nodeId);
+    if (!node) {
+      continue;
+    }
+    const opcodeName = opcodeByName.get(node.opcode)?.name ?? node.opcode;
+    itemLabels.push(copy.deleteSelectionDialogOpcodeItem(opcodeName, node.id));
+  }
+
+  for (const connection of graph.connections) {
+    const key = connectionKey(connection);
+    const removedWithNode =
+      nodeIdSet.has(connection.from_node_id) || nodeIdSet.has(connection.to_node_id);
+    if (!removedWithNode && !selectedConnectionKeySet.has(key)) {
+      continue;
+    }
+
+    connectionKeys.push(key);
+    itemLabels.push(
+      copy.deleteSelectionDialogConnectionItem(
+        `${connection.from_node_id}.${connection.from_port_id}`,
+        `${connection.to_node_id}.${connection.to_port_id}`
+      )
+    );
+  }
+
+  return {
+    nodeIds,
+    connectionKeys,
+    itemLabels
+  };
+}
 
 const GUI_LANGUAGE_SHORT_LABELS: Record<GuiLanguage, string> = {
   english: "EN",
@@ -467,7 +525,11 @@ const APP_COPY: Record<GuiLanguage, AppCopy> = {
     patchCompileStatusPending: "(pending changes)",
     patchCompileStatusErrors: "(errors)",
     instrumentTabTitle: (index) => `Instrument ${index}`,
-    confirmDeleteSelection: (count) => `Delete ${count} selected elements?`,
+    confirmDeleteSelection: (count) => `Delete ${count} elements?`,
+    deleteSelectionDialogListLabel: "The following elements will be deleted:",
+    deleteSelectionDialogOpcodeItem: (opcodeName, nodeId) => `Opcode: ${opcodeName} (${nodeId})`,
+    deleteSelectionDialogConnectionItem: (from, to) => `Connection: ${from} -> ${to}`,
+    cancel: "Cancel",
     confirmDeletePatch: "do you really want to delete this patch?",
     confirmDeletePerformance: "do you really want to delete this performance?",
     errors: {
@@ -509,7 +571,11 @@ const APP_COPY: Record<GuiLanguage, AppCopy> = {
     patchCompileStatusPending: "(aenderungen offen)",
     patchCompileStatusErrors: "(fehler)",
     instrumentTabTitle: (index) => `Instrument ${index}`,
-    confirmDeleteSelection: (count) => `${count} ausgewaehlte Elemente loeschen?`,
+    confirmDeleteSelection: (count) => `${count} Elemente loeschen?`,
+    deleteSelectionDialogListLabel: "Die folgenden Elemente werden geloescht:",
+    deleteSelectionDialogOpcodeItem: (opcodeName, nodeId) => `Opcode: ${opcodeName} (${nodeId})`,
+    deleteSelectionDialogConnectionItem: (from, to) => `Verbindung: ${from} -> ${to}`,
+    cancel: "Abbrechen",
     confirmDeletePatch: "Willst du dieses Patch wirklich loeschen?",
     confirmDeletePerformance: "Willst du diese Performance wirklich loeschen?",
     errors: {
@@ -552,7 +618,11 @@ const APP_COPY: Record<GuiLanguage, AppCopy> = {
     patchCompileStatusPending: "(modifications en attente)",
     patchCompileStatusErrors: "(erreurs)",
     instrumentTabTitle: (index) => `Instrument ${index}`,
-    confirmDeleteSelection: (count) => `Supprimer ${count} elements selectionnes ?`,
+    confirmDeleteSelection: (count) => `Supprimer ${count} elements ?`,
+    deleteSelectionDialogListLabel: "Les elements suivants seront supprimes :",
+    deleteSelectionDialogOpcodeItem: (opcodeName, nodeId) => `Opcode : ${opcodeName} (${nodeId})`,
+    deleteSelectionDialogConnectionItem: (from, to) => `Connexion : ${from} -> ${to}`,
+    cancel: "Annuler",
     confirmDeletePatch: "Voulez-vous vraiment supprimer ce patch ?",
     confirmDeletePerformance: "Voulez-vous vraiment supprimer cette performance ?",
     errors: {
@@ -596,7 +666,11 @@ const APP_COPY: Record<GuiLanguage, AppCopy> = {
     patchCompileStatusPending: "(cambios pendientes)",
     patchCompileStatusErrors: "(errores)",
     instrumentTabTitle: (index) => `Instrumento ${index}`,
-    confirmDeleteSelection: (count) => `Eliminar ${count} elementos seleccionados?`,
+    confirmDeleteSelection: (count) => `Eliminar ${count} elementos?`,
+    deleteSelectionDialogListLabel: "Se eliminaran los siguientes elementos:",
+    deleteSelectionDialogOpcodeItem: (opcodeName, nodeId) => `Opcode: ${opcodeName} (${nodeId})`,
+    deleteSelectionDialogConnectionItem: (from, to) => `Conexion: ${from} -> ${to}`,
+    cancel: "Cancelar",
     confirmDeletePatch: "Deseas eliminar este patch?",
     confirmDeletePerformance: "Deseas eliminar esta performance?",
     errors: {
@@ -904,6 +978,7 @@ export default function App() {
   const [runtimePanelCollapsed, setRuntimePanelCollapsed] = useState(false);
   const [importSelectionDialog, setImportSelectionDialog] = useState<ImportSelectionDialogState | null>(null);
   const [importConflictDialog, setImportConflictDialog] = useState<{ items: ImportConflictDialogItem[] } | null>(null);
+  const [deleteSelectionDialog, setDeleteSelectionDialog] = useState<DeleteSelectionDialogState | null>(null);
 
   const sequencerRef = useRef(sequencer);
   const sequencerSessionIdRef = useRef<string | null>(null);
@@ -2718,29 +2793,58 @@ export default function App() {
     };
   }, [stopSequencerTransport]);
 
+  const applyDeleteSelectionPlan = useCallback(
+    (plan: DeleteSelectionDialogState) => {
+      if (plan.nodeIds.length === 0 && plan.connectionKeys.length === 0) {
+        return;
+      }
+
+      const nodeIdsToRemove = new Set(plan.nodeIds);
+      const connectionsToRemove = new Set(plan.connectionKeys);
+
+      setGraph({
+        ...currentPatch.graph,
+        nodes: currentPatch.graph.nodes.filter((node) => !nodeIdsToRemove.has(node.id)),
+        connections: currentPatch.graph.connections.filter((connection) => {
+          if (nodeIdsToRemove.has(connection.from_node_id) || nodeIdsToRemove.has(connection.to_node_id)) {
+            return false;
+          }
+          return !connectionsToRemove.has(connectionKey(connection));
+        })
+      });
+    },
+    [currentPatch.graph, setGraph]
+  );
+
+  const closeDeleteSelectionDialog = useCallback(() => {
+    setDeleteSelectionDialog(null);
+  }, []);
+
+  const confirmDeleteSelectionDialog = useCallback(() => {
+    if (!deleteSelectionDialog) {
+      return;
+    }
+    applyDeleteSelectionPlan(deleteSelectionDialog);
+    setDeleteSelectionDialog(null);
+  }, [applyDeleteSelectionPlan, deleteSelectionDialog]);
+
   const onDeleteSelection = useCallback(() => {
     if (selectedCount === 0) {
       return;
     }
 
-    if (selectedCount > 1 && !window.confirm(appCopy.confirmDeleteSelection(selectedCount))) {
+    const plan = buildGraphSelectionDeletePlan(currentPatch.graph, selection, opcodes, appCopy);
+    if (plan.itemLabels.length === 0) {
       return;
     }
 
-    const nodeIdsToRemove = new Set(selection.nodeIds);
-    const connectionsToRemove = new Set(selection.connections.map((connection) => connectionKey(connection)));
+    if (plan.itemLabels.length > 1) {
+      setDeleteSelectionDialog(plan);
+      return;
+    }
 
-    setGraph({
-      ...currentPatch.graph,
-      nodes: currentPatch.graph.nodes.filter((node) => !nodeIdsToRemove.has(node.id)),
-      connections: currentPatch.graph.connections.filter((connection) => {
-        if (nodeIdsToRemove.has(connection.from_node_id) || nodeIdsToRemove.has(connection.to_node_id)) {
-          return false;
-        }
-        return !connectionsToRemove.has(connectionKey(connection));
-      })
-    });
-  }, [appCopy, currentPatch.graph, selectedCount, selection.connections, selection.nodeIds, setGraph]);
+    applyDeleteSelectionPlan(plan);
+  }, [appCopy, applyDeleteSelectionPlan, currentPatch.graph, opcodes, selectedCount, selection]);
 
   const instrumentLayoutClassName = runtimePanelCollapsed
     ? "grid h-[68vh] grid-cols-1 gap-3 xl:grid-cols-[280px_1fr]"
@@ -2880,7 +2984,7 @@ export default function App() {
               <input
                 ref={instrumentPatchImportInputRef}
                 type="file"
-                accept=".json,.orch.json,.orch.instrument.json"
+                accept=".json,.orch.json,.orch.instrument.json,.zip,.orch.zip,.orch.instrument.zip,application/json,application/zip,application/x-zip-compressed"
                 className="hidden"
                 onChange={(event) => {
                   const file = event.target.files?.[0];
@@ -3098,6 +3202,58 @@ export default function App() {
           />
         )}
       </div>
+
+      {deleteSelectionDialog && (
+        <div
+          className="fixed inset-0 z-[1300] flex items-center justify-center bg-slate-950/75 p-4"
+          onMouseDown={closeDeleteSelectionDialog}
+        >
+          <section
+            className="flex max-h-[86vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl"
+            onMouseDown={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label={appCopy.confirmDeleteSelection(deleteSelectionDialog.itemLabels.length)}
+          >
+            <header className="border-b border-slate-700 px-4 py-3">
+              <h2 className="font-display text-lg font-semibold text-slate-100">
+                {appCopy.confirmDeleteSelection(deleteSelectionDialog.itemLabels.length)}
+              </h2>
+              <p className="mt-1 text-xs text-slate-400">{appCopy.deleteSelectionDialogListLabel}</p>
+            </header>
+
+            <div className="min-h-0 overflow-y-auto px-4 py-4">
+              <ul className="space-y-2">
+                {deleteSelectionDialog.itemLabels.map((item, index) => (
+                  <li
+                    key={`${index}:${item}`}
+                    className="rounded-lg border border-slate-700 bg-slate-950/70 px-3 py-2 font-mono text-xs text-slate-200"
+                  >
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <footer className="flex items-center justify-end gap-2 border-t border-slate-700 px-4 py-3">
+              <button
+                type="button"
+                onClick={closeDeleteSelectionDialog}
+                className="rounded-md border border-slate-600 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-slate-200 transition hover:border-slate-400"
+              >
+                {appCopy.cancel}
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteSelectionDialog}
+                className="rounded-md border border-rose-500/70 bg-rose-500/15 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-rose-200 transition hover:bg-rose-500/25"
+              >
+                OK
+              </button>
+            </footer>
+          </section>
+        </div>
+      )}
 
       {importSelectionDialog && (
         <div

@@ -12,6 +12,7 @@ OPCODE_REFERENCE_URLS: dict[str, str] = {
     "oscili": "https://csound.com/docs/manual/oscili.html",
     "lfo": "https://csound.com/docs/manual/lfo.html",
     "poscil3": "https://csound.com/docs/manual/poscil3.html",
+    "syncphasor": "https://csound.com/docs/manual/syncphasor.html",
     "vibr": "https://csound.com/docs/manual/vibr.html",
     "vibrato": "https://csound.com/docs/manual/vibrato.html",
     "fmb3": "https://csound.com/docs/manual/fmb3.html",
@@ -338,6 +339,29 @@ class OpcodeService:
                 outputs=[PortSpec(id="asig", name="aSig", signal_type=SignalType.AUDIO)],
                 template="{asig} poscil3 {amp}, {freq}, {ifn}, {iphs}",
                 tags=["sound", "source"],
+            ),
+            self._spec(
+                name="syncphasor",
+                category="oscillator",
+                description="Audio-rate normalized phase generator with sync trigger I/O.",
+                icon=self._icon("oscili.svg"),
+                inputs=[
+                    PortSpec(
+                        id="xcps",
+                        name="Frequency",
+                        signal_type=SignalType.CONTROL,
+                        accepted_signal_types=[SignalType.AUDIO, SignalType.CONTROL, SignalType.INIT],
+                        default=440,
+                    ),
+                    PortSpec(id="asyncin", name="aSyncIn", signal_type=SignalType.AUDIO, default=0),
+                    PortSpec(id="iphs", name="Phase", signal_type=SignalType.INIT, required=False, default=0),
+                ],
+                outputs=[
+                    PortSpec(id="aphase", name="aPhase", signal_type=SignalType.AUDIO),
+                    PortSpec(id="asyncout", name="aSyncOut", signal_type=SignalType.AUDIO),
+                ],
+                template="{aphase}, {asyncout} syncphasor {xcps}, {asyncin}, {iphs}",
+                tags=["phase", "sync", "oscillator", "modulation"],
             ),
             self._spec(
                 name="gbuzz",

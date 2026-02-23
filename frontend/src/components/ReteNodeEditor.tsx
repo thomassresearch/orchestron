@@ -8,6 +8,7 @@ import { Presets as ReactPresets, ReactPlugin } from "rete-react-plugin";
 
 import {
   formulaTargetKey,
+  GRAPH_FORMULA_UNARY_FUNCTIONS,
   readInputFormulaMap,
   setInputFormulaConfig,
   tokenizeGraphFormula,
@@ -617,7 +618,7 @@ export function ReteNodeEditor({
     return /^[-+]?(?:\d+\.?\d*|\.\d+)$/.test(normalized);
   }, [formulaNumberDraft]);
 
-  const insertFormulaFragment = useCallback((fragment: string) => {
+  const insertFormulaFragment = useCallback((fragment: string, caretOffset = fragment.length) => {
     setFormulaEditor((current) => {
       if (!current) {
         return current;
@@ -625,7 +626,8 @@ export function ReteNodeEditor({
       const start = Math.max(0, Math.min(current.selectionStart, current.expression.length));
       const end = Math.max(0, Math.min(current.selectionEnd, current.expression.length));
       const nextExpression = `${current.expression.slice(0, start)}${fragment}${current.expression.slice(end)}`;
-      const nextCaret = start + fragment.length;
+      const clampedCaretOffset = Math.max(0, Math.min(caretOffset, fragment.length));
+      const nextCaret = start + clampedCaretOffset;
 
       requestAnimationFrame(() => {
         const textarea = formulaEditorTextareaRef.current;
@@ -1642,6 +1644,16 @@ export function ReteNodeEditor({
                         className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 font-mono text-sm text-slate-200 transition hover:border-accent/70 hover:text-accent"
                       >
                         {operator}
+                      </button>
+                    ))}
+                    {GRAPH_FORMULA_UNARY_FUNCTIONS.map((functionName) => (
+                      <button
+                        key={`fn-${functionName}`}
+                        type="button"
+                        onClick={() => insertFormulaFragment(`${functionName}()`, functionName.length + 1)}
+                        className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 font-mono text-sm text-slate-200 transition hover:border-accent/70 hover:text-accent"
+                      >
+                        {functionName}()
                       </button>
                     ))}
                   </div>

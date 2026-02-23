@@ -434,6 +434,72 @@ def test_compile_defaults_to_sum_for_multi_inbound_without_formula(tmp_path: Pat
         assert "+" in formula_line
 
 
+def test_compile_supports_unary_functions_in_input_formula(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        patch_payload = {
+            "name": "Unary Function Formula Patch",
+            "description": "input formula unary functions",
+            "schema_version": 1,
+            "graph": {
+                "nodes": [
+                    {"id": "c1", "opcode": "const_k", "params": {"value": -0.2}, "position": {"x": 40, "y": 40}},
+                    {"id": "c2", "opcode": "const_k", "params": {"value": 0.6}, "position": {"x": 40, "y": 150}},
+                    {"id": "c3", "opcode": "const_k", "params": {"value": 2}, "position": {"x": 40, "y": 260}},
+                    {"id": "m1", "opcode": "k_mul", "params": {}, "position": {"x": 240, "y": 100}},
+                    {"id": "k2a", "opcode": "k_to_a", "params": {}, "position": {"x": 430, "y": 100}},
+                    {"id": "out", "opcode": "outs", "params": {}, "position": {"x": 610, "y": 100}},
+                ],
+                "connections": [
+                    {"from_node_id": "c1", "from_port_id": "kout", "to_node_id": "m1", "to_port_id": "a"},
+                    {"from_node_id": "c2", "from_port_id": "kout", "to_node_id": "m1", "to_port_id": "a"},
+                    {"from_node_id": "c3", "from_port_id": "kout", "to_node_id": "m1", "to_port_id": "b"},
+                    {"from_node_id": "m1", "from_port_id": "kout", "to_node_id": "k2a", "to_port_id": "kin"},
+                    {"from_node_id": "k2a", "from_port_id": "aout", "to_node_id": "out", "to_port_id": "left"},
+                    {"from_node_id": "k2a", "from_port_id": "aout", "to_node_id": "out", "to_port_id": "right"},
+                ],
+                "ui_layout": {
+                    "input_formulas": {
+                        "m1::a": {
+                            "expression": "floor(abs(in1) + ceil(in2 * 0.5))",
+                            "inputs": [
+                                {"token": "in1", "from_node_id": "c1", "from_port_id": "kout"},
+                                {"token": "in2", "from_node_id": "c2", "from_port_id": "kout"},
+                            ],
+                        }
+                    }
+                },
+                "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+            },
+        }
+
+        create_patch = client.post("/api/patches", json=patch_payload)
+        assert create_patch.status_code == 201
+        patch_id = create_patch.json()["id"]
+
+        create_session = client.post("/api/sessions", json={"patch_id": patch_id})
+        assert create_session.status_code == 201
+        session_id = create_session.json()["session_id"]
+
+        compile_response = client.post(f"/api/sessions/{session_id}/compile")
+        assert compile_response.status_code == 200
+        compiled_orc = compile_response.json()["orc"]
+
+        lines = compiled_orc.splitlines()
+        formula_line = ""
+        for index, line in enumerate(lines):
+            if "; node:m1 opcode:k_mul" in line and index + 1 < len(lines):
+                formula_line = lines[index + 1].strip()
+                break
+
+        assert formula_line
+        assert "abs(" in formula_line
+        assert "ceil(" in formula_line
+        assert "floor(" in formula_line
+        assert "k_c1_kout" in formula_line
+        assert "k_c2_kout" in formula_line
+        assert "k_c3_kout" in formula_line
+
+
 def test_compile_uses_input_formula_for_single_inbound_input(tmp_path: Path) -> None:
     with _client(tmp_path) as client:
         patch_payload = {
@@ -1169,6 +1235,46 @@ def test_vco_with_explicit_ifn_keeps_function_table_argument(tmp_path: Path) -> 
         assert vco_line.endswith(", 0.5, i_n2_iout_1")
 
 
+def test_syncphasor_compile_flow(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        patch_payload = {
+            "name": "Syncphasor Patch",
+            "description": "syncphasor schema and compile coverage",
+            "schema_version": 1,
+            "graph": {
+                "nodes": [
+                    {"id": "n1", "opcode": "const_a", "params": {"value": 0.0}, "position": {"x": 40, "y": 160}},
+                    {"id": "n2", "opcode": "syncphasor", "params": {"xcps": 55, "iphs": 0.25}, "position": {"x": 260, "y": 80}},
+                    {"id": "n3", "opcode": "outs", "params": {}, "position": {"x": 520, "y": 80}},
+                ],
+                "connections": [
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "asyncin"},
+                    {"from_node_id": "n2", "from_port_id": "asyncout", "to_node_id": "n3", "to_port_id": "left"},
+                    {"from_node_id": "n2", "from_port_id": "aphase", "to_node_id": "n3", "to_port_id": "right"},
+                ],
+                "ui_layout": {},
+                "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+            },
+        }
+
+        create_patch = client.post("/api/patches", json=patch_payload)
+        assert create_patch.status_code == 201
+        patch_id = create_patch.json()["id"]
+
+        create_session = client.post("/api/sessions", json={"patch_id": patch_id})
+        assert create_session.status_code == 201
+        session_id = create_session.json()["session_id"]
+
+        compile_response = client.post(f"/api/sessions/{session_id}/compile")
+        assert compile_response.status_code == 200
+        compiled_orc = compile_response.json()["orc"]
+
+        syncphasor_line = next(line.strip() for line in compiled_orc.splitlines() if " syncphasor " in line)
+        outputs_fragment = syncphasor_line.split(" syncphasor ", 1)[0]
+        assert "," in outputs_fragment
+        assert syncphasor_line.endswith(", 0.25")
+
+
 def test_ftgen_output_connects_to_vco_ifn(tmp_path: Path) -> None:
     with _client(tmp_path) as client:
         patch_payload = {
@@ -1772,6 +1878,7 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         "sfload": "https://csound.com/docs/manual/sfload.html",
         "sfplay3": "https://csound.com/docs/manual/sfplay3.html",
         "sfinstr3": "https://csound.com/docs/manual/sfinstr3.html",
+        "syncphasor": "https://csound.com/docs/manual/syncphasor.html",
         "vco2": "https://csound.com/docs/manual/vco2.html",
         "dripwater": "https://csound.com/docs/manual/dripwater.html",
     }
@@ -1802,6 +1909,16 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         sfload_outputs = {item["id"]: item for item in opcodes_by_name["sfload"]["outputs"]}
         assert sfload_inputs["filename"]["signal_type"] == "S"
         assert sfload_outputs["ifilhandle"]["signal_type"] == "i"
+
+        syncphasor_inputs = {item["id"]: item for item in opcodes_by_name["syncphasor"]["inputs"]}
+        syncphasor_outputs = {item["id"]: item for item in opcodes_by_name["syncphasor"]["outputs"]}
+        assert syncphasor_inputs["xcps"]["signal_type"] == "k"
+        assert syncphasor_inputs["xcps"]["accepted_signal_types"] == ["a", "k", "i"]
+        assert syncphasor_inputs["asyncin"]["signal_type"] == "a"
+        assert syncphasor_inputs["asyncin"]["default"] == 0
+        assert syncphasor_inputs["iphs"]["required"] is False
+        assert syncphasor_outputs["aphase"]["signal_type"] == "a"
+        assert syncphasor_outputs["asyncout"]["signal_type"] == "a"
 
 
 def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
