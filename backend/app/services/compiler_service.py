@@ -9,10 +9,12 @@ from typing import Iterable
 from backend.app.models.opcode import OpcodeSpec, PortSpec, SignalType
 from backend.app.models.patch import Connection, EngineConfig, NodeInstance, PatchDocument
 from backend.app.models.session import CompileArtifact
+from backend.app.services.gen_asset_service import GenAssetService
 from backend.app.services.opcode_service import OpcodeService
 
 OPTIONAL_OMIT_MARKER = "__VS_OPTIONAL_OMIT__"
 INPUT_FORMULAS_LAYOUT_KEY = "input_formulas"
+GEN_NODES_LAYOUT_KEY = "gen_nodes"
 FORMULA_TARGET_KEY_SEPARATOR = "::"
 DEFAULT_CSOUND_SOFTWARE_BUFFER_SAMPLES = 128
 DEFAULT_CSOUND_HARDWARE_BUFFER_SAMPLES = 512
@@ -44,8 +46,13 @@ class PatchInstrumentTarget:
 
 
 class CompilerService:
-    def __init__(self, opcode_service: OpcodeService) -> None:
+    def __init__(
+        self,
+        opcode_service: OpcodeService,
+        gen_asset_service: GenAssetService | None = None,
+    ) -> None:
         self._opcode_service = opcode_service
+        self._gen_asset_service = gen_asset_service
 
     def compile_patch(
         self,
@@ -193,6 +200,16 @@ class CompilerService:
                 else:
                     env[input_port.id] = OPTIONAL_OMIT_MARKER
 
+            if diagnostics:
+                raise CompilationError(diagnostics)
+
+            if compiled.spec.name == "GEN":
+                rendered = self._render_gen_node(compiled.node, patch.graph.ui_layout, env)
+                instrument_lines.extend(
+                    [f"; node:{compiled.node.id} opcode:{compiled.spec.name}", *rendered.splitlines()]
+                )
+                continue
+
             for param_key, param_value in compiled.node.params.items():
                 if param_key in env:
                     continue
@@ -200,9 +217,6 @@ class CompilerService:
 
             if compiled.spec.name in {"const_a", "const_i", "const_k"} and "value" not in env:
                 env["value"] = "0"
-
-            if diagnostics:
-                raise CompilationError(diagnostics)
 
             try:
                 rendered = compiled.spec.template.format(**env)
@@ -216,6 +230,237 @@ class CompilerService:
             )
 
         return instrument_lines
+
+    def _render_gen_node(
+        self,
+        node: NodeInstance,
+        ui_layout: dict[str, object],
+        env: dict[str, str],
+    ) -> str:
+        if "ift" not in env:
+            raise CompilationError([f"GEN node '{node.id}' is missing output variable binding."])
+
+        raw_config = self._lookup_gen_node_config(ui_layout, node.id)
+
+        mode = self._gen_mode(raw_config.get("mode"))
+        table_number = self._gen_int(raw_config.get("tableNumber"), default=0)
+        start_time = self._gen_number(raw_config.get("startTime"), default=0)
+        table_size = self._gen_int(raw_config.get("tableSize"), default=16384)
+        if table_size == 0:
+            raise CompilationError([f"GEN node '{node.id}' tableSize cannot be 0."])
+
+        routine_number = abs(self._gen_int(raw_config.get("routineNumber"), default=10))
+        if routine_number == 0:
+            routine_number = 10
+        normalize = self._gen_bool(raw_config.get("normalize"), default=True)
+        igen = routine_number if normalize else -routine_number
+
+        args = self._flatten_gen_node_args(
+            node_id=node.id,
+            raw_config=raw_config,
+            routine_number=routine_number,
+            table_size=table_size,
+        )
+        rendered_args = ", ".join(self._format_gen_argument(value) for value in args)
+
+        if mode == "ftgenonce":
+            line = f"{env['ift']} ftgenonce {table_number}, 0, {table_size}, {igen}"
+        else:
+            line = f"{env['ift']} ftgen {table_number}, {self._format_gen_argument(start_time)}, {table_size}, {igen}"
+
+        if rendered_args:
+            line = f"{line}, {rendered_args}"
+        return line
+
+    def _flatten_gen_node_args(
+        self,
+        *,
+        node_id: str,
+        raw_config: dict[str, object],
+        routine_number: int,
+        table_size: int,
+    ) -> list[str | int | float | bool]:
+        if routine_number == 10:
+            partials = self._gen_number_list(raw_config.get("harmonicAmplitudes"))
+            if not partials:
+                partials = self._gen_number_list(raw_config.get("partials"))
+            return partials or [1]
+
+        if routine_number == 2:
+            values = self._gen_number_list(raw_config.get("valueList"))
+            if not values:
+                values = self._gen_number_list(raw_config.get("values"))
+            return values or [1]
+
+        if routine_number == 7:
+            start_value = self._gen_number(raw_config.get("segmentStartValue"), default=0)
+            segment_rows = raw_config.get("segments")
+            points: list[str | int | float | bool] = [start_value]
+            if isinstance(segment_rows, list):
+                for entry in segment_rows:
+                    if not isinstance(entry, dict):
+                        continue
+                    length = self._gen_number(entry.get("length"), default=None)
+                    value = self._gen_number(entry.get("value"), default=None)
+                    if length is None or value is None:
+                        continue
+                    points.extend([length, value])
+            if len(points) == 1:
+                points.extend([max(1, table_size), 1])
+            return points
+
+        if routine_number == 1:
+            sample_asset = raw_config.get("sampleAsset")
+            sample_path: str | None = None
+            if isinstance(sample_asset, dict):
+                stored_name = sample_asset.get("stored_name")
+                if isinstance(stored_name, str) and stored_name.strip():
+                    sample_path = self._resolve_gen_audio_asset_path(stored_name.strip())
+            if sample_path is None:
+                raw_sample_path = raw_config.get("samplePath")
+                if isinstance(raw_sample_path, str) and raw_sample_path.strip():
+                    sample_path = raw_sample_path.strip()
+            if sample_path is None:
+                raise CompilationError(
+                    [f"GEN node '{node_id}' GEN01 requires an uploaded audio asset or samplePath."]
+                )
+
+            skip_time = self._gen_number(raw_config.get("sampleSkipTime"), default=0)
+            file_format = self._gen_int(raw_config.get("sampleFormat"), default=0)
+            channel = self._gen_int(raw_config.get("sampleChannel"), default=0)
+            return [sample_path, skip_time, file_format, channel]
+
+        raw_args = raw_config.get("rawArgs")
+        if isinstance(raw_args, list):
+            parsed: list[str | int | float | bool] = []
+            for value in raw_args:
+                parsed.append(self._gen_parse_raw_arg(value))
+            return parsed
+
+        raw_args_text = raw_config.get("rawArgsText")
+        if isinstance(raw_args_text, str) and raw_args_text.strip():
+            tokens = re.split(r"[\n,]+", raw_args_text)
+            return [self._gen_parse_raw_arg(token.strip()) for token in tokens if token.strip()]
+
+        return []
+
+    def _resolve_gen_audio_asset_path(self, stored_name: str) -> str:
+        if self._gen_asset_service is None:
+            raise CompilationError(["GEN audio asset support is not configured on the backend."])
+        try:
+            path = self._gen_asset_service.resolve_audio_path(stored_name)
+        except ValueError as err:
+            raise CompilationError([str(err)]) from err
+        if not path.exists():
+            raise CompilationError([f"GEN audio asset '{stored_name}' does not exist on the backend."])
+        return str(path)
+
+    @staticmethod
+    def _lookup_gen_node_config(ui_layout: dict[str, object], node_id: str) -> dict[str, object]:
+        raw_gen_nodes = ui_layout.get(GEN_NODES_LAYOUT_KEY)
+        if not isinstance(raw_gen_nodes, dict):
+            return {}
+        raw_config = raw_gen_nodes.get(node_id)
+        if not isinstance(raw_config, dict):
+            return {}
+        return raw_config
+
+    @staticmethod
+    def _gen_mode(value: object) -> str:
+        if isinstance(value, str) and value.strip().lower() == "ftgenonce":
+            return "ftgenonce"
+        return "ftgen"
+
+    @staticmethod
+    def _gen_bool(value: object, *, default: bool) -> bool:
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, (int, float)):
+            return value != 0
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            if normalized in {"1", "true", "yes", "on"}:
+                return True
+            if normalized in {"0", "false", "no", "off"}:
+                return False
+        return default
+
+    @staticmethod
+    def _gen_int(value: object, *, default: int) -> int:
+        number = CompilerService._gen_number(value, default=None)
+        if number is None:
+            return default
+        return int(round(number))
+
+    @staticmethod
+    def _gen_number(value: object, *, default: float | int | None) -> float | int | None:
+        if isinstance(value, bool):
+            return 1 if value else 0
+        if isinstance(value, (int, float)):
+            if isinstance(value, float) and not (value == value and abs(value) != float("inf")):
+                return default
+            return value
+        if isinstance(value, str):
+            text = value.strip()
+            if not text:
+                return default
+            try:
+                if re.fullmatch(r"[-+]?\d+", text):
+                    return int(text)
+                if re.fullmatch(r"[-+]?(?:\d+\.?\d*|\.\d+)", text):
+                    return float(text)
+            except ValueError:
+                return default
+        return default
+
+    @staticmethod
+    def _gen_number_list(value: object) -> list[int | float]:
+        if not isinstance(value, list):
+            return []
+        result: list[int | float] = []
+        for entry in value:
+            number = CompilerService._gen_number(entry, default=None)
+            if number is None:
+                continue
+            result.append(number)
+        return result
+
+    @staticmethod
+    def _gen_parse_raw_arg(value: object) -> str | int | float | bool:
+        if isinstance(value, (bool, int, float)):
+            return value
+        if not isinstance(value, str):
+            return str(value)
+
+        token = value.strip()
+        if token == "":
+            return ""
+
+        if (token.startswith('"') and token.endswith('"')) or (token.startswith("'") and token.endswith("'")):
+            return token[1:-1]
+
+        number = CompilerService._gen_number(token, default=None)
+        if number is not None:
+            return number
+
+        return f"expr:{token}"
+
+    @staticmethod
+    def _format_gen_argument(value: str | int | float | bool) -> str:
+        if isinstance(value, bool):
+            return "1" if value else "0"
+        if isinstance(value, (int, float)):
+            return str(value)
+        if value.startswith("expr:"):
+            expression = value[5:].strip()
+            if not expression:
+                raise CompilationError(["GEN raw argument expression is empty."])
+            if not re.fullmatch(r"[-+*/(). 0-9a-zA-Z_]+", expression):
+                raise CompilationError([f"Unsafe GEN raw expression '{expression}' blocked by compiler."])
+            return expression
+
+        escaped = value.replace("\\", "\\\\").replace('"', '\\"')
+        return f'"{escaped}"'
 
     @staticmethod
     def _resolve_shared_engine(targets: list[PatchInstrumentTarget]) -> EngineConfig:

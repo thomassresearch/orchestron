@@ -11,6 +11,7 @@ from backend.app.services.opcode_service import OpcodeService
 from backend.app.services.patch_service import PatchService
 from backend.app.services.performance_service import PerformanceService
 from backend.app.services.session_service import SessionService
+from backend.app.services.gen_asset_service import GenAssetService
 from backend.app.storage.db import Database
 from backend.app.storage.repositories.patch_repository import PatchRepository
 from backend.app.storage.repositories.app_state_repository import AppStateRepository
@@ -25,6 +26,7 @@ class AppContainer:
     app_state_repository: AppStateRepository
     performance_repository: PerformanceRepository
     opcode_service: OpcodeService
+    gen_asset_service: GenAssetService
     patch_service: PatchService
     performance_service: PerformanceService
     app_state_service: AppStateService

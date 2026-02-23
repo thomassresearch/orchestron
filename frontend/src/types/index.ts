@@ -290,6 +290,14 @@ export interface RuntimeConfigResponse {
   webrtc_browser_ice_servers: WebRtcIceServerConfig[];
 }
 
+export interface GenAudioAssetUploadResponse {
+  asset_id: string;
+  original_name: string;
+  stored_name: string;
+  content_type: string;
+  size_bytes: number;
+}
+
 export interface Performance {
   id: string;
   name: string;

@@ -15,7 +15,9 @@ import {
   type GraphFormulaToken,
   type InputFormulaBinding
 } from "../lib/graphFormula";
+import { getGenNodeConfig, setGenNodeConfig, type GenNodeConfig } from "../lib/genNodeConfig";
 import { getDraggedOpcodeName, hasDraggedOpcode } from "../lib/opcodeDragDrop";
+import { GenNodeEditorModal } from "./GenNodeEditorModal";
 import type { Connection, GuiLanguage, NodePosition, OpcodeSpec, PatchGraph, SignalType } from "../types";
 
 type EditorHandle = {
@@ -408,6 +410,11 @@ interface FormulaEditorState {
   selectionEnd: number;
 }
 
+interface GenEditorState {
+  nodeId: string;
+  config: GenNodeConfig;
+}
+
 function nextAvailableToken(existing: Set<string>): string {
   let index = 1;
   while (existing.has(`in${index}`)) {
@@ -468,6 +475,7 @@ export function ReteNodeEditor({
   const [isOpcodeDragOver, setIsOpcodeDragOver] = useState(false);
   const [formulaEditor, setFormulaEditor] = useState<FormulaEditorState | null>(null);
   const [formulaNumberDraft, setFormulaNumberDraft] = useState("1");
+  const [genEditor, setGenEditor] = useState<GenEditorState | null>(null);
 
   const opcodeByName = useMemo(() => new Map(opcodes.map((opcode) => [opcode.name, opcode])), [opcodes]);
   const configuredFormulaTargetKeys = useMemo(
@@ -730,6 +738,33 @@ export function ReteNodeEditor({
     setFormulaEditor(null);
   }, [formulaEditor, updateGraph]);
 
+  const openGenEditor = useCallback((nodeId: string) => {
+    const graphState = graphRef.current;
+    const targetNode = graphState.nodes.find((node) => node.id === nodeId);
+    if (!targetNode || targetNode.opcode !== "GEN") {
+      return;
+    }
+    setGenEditor({
+      nodeId,
+      config: getGenNodeConfig(graphState.ui_layout, nodeId)
+    });
+  }, []);
+
+  const saveGenEditor = useCallback(
+    (config: GenNodeConfig) => {
+      if (!genEditor) {
+        return;
+      }
+      const targetNodeId = genEditor.nodeId;
+      updateGraph((currentGraph) => ({
+        ...currentGraph,
+        ui_layout: setGenNodeConfig(currentGraph.ui_layout, targetNodeId, config)
+      }));
+      setGenEditor(null);
+    },
+    [genEditor, updateGraph]
+  );
+
   useEffect(() => {
     if (!formulaEditor) {
       return;
@@ -942,14 +977,56 @@ export function ReteNodeEditor({
               const spec = opcodeByName.get(opcodeName);
               const opcodeCategory = spec?.category;
               const hasDocumentation = Boolean(spec?.documentation_markdown?.trim().length);
+              const isGenNode = opcodeName === "GEN";
 
               return function ColoredNode(props: any) {
+                const patchNodeId = reteToPatchRef.current.get(String((context.payload as { id?: unknown }).id ?? ""));
                 return (
                   <div style={{ position: "relative" }}>
                     <ReactPresets.classic.Node
                       {...props}
                       styles={(styleProps: any) => nodeCssForCategory(opcodeCategory, Boolean(styleProps.selected))}
                     />
+                    {isGenNode ? (
+                      <button
+                        type="button"
+                        aria-label={`Configure GEN node ${patchNodeId ?? ""}`.trim()}
+                        title="Configure GEN routine"
+                        onPointerDown={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                        }}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          if (!patchNodeId) {
+                            return;
+                          }
+                          openGenEditor(patchNodeId);
+                        }}
+                        style={{
+                          position: "absolute",
+                          top: "6px",
+                          right: hasDocumentation ? "30px" : "6px",
+                          minWidth: "22px",
+                          height: "18px",
+                          padding: "0 5px",
+                          borderRadius: "999px",
+                          border: "1px solid rgba(15, 23, 42, 0.75)",
+                          background: "rgba(8, 47, 73, 0.92)",
+                          color: "#cffafe",
+                          fontWeight: 800,
+                          fontSize: "10px",
+                          lineHeight: "1",
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center"
+                        }}
+                      >
+                        GEN
+                      </button>
+                    ) : null}
                     {hasDocumentation && onOpcodeHelpRequest ? (
                       <button
                         type="button"
@@ -1424,6 +1501,7 @@ export function ReteNodeEditor({
     snapshotViewport,
     restoreViewport,
     openFormulaEditor,
+    openGenEditor,
     opcodeByName,
     configuredFormulaTargetKeySet,
     updateGraph
@@ -1493,6 +1571,15 @@ export function ReteNodeEditor({
           </div>
         </div>
       </div>
+
+      {genEditor && (
+        <GenNodeEditorModal
+          nodeId={genEditor.nodeId}
+          initialConfig={genEditor.config}
+          onClose={() => setGenEditor(null)}
+          onSave={saveGenEditor}
+        />
+      )}
 
       {formulaEditor && (
         <div className="fixed inset-0 z-[1250] flex items-center justify-center bg-slate-950/75 p-4" onMouseDown={() => setFormulaEditor(null)}>

@@ -41,6 +41,9 @@ class Settings(BaseSettings):
         default_factory=lambda: Path(__file__).resolve().parents[3] / "frontend" / "dist"
     )
     icons_url_prefix: str = "/static/icons"
+    gen_audio_assets_dir: Path = Field(
+        default_factory=lambda: Path(__file__).resolve().parents[3] / "backend" / "data" / "assets" / "audio"
+    )
 
     cors_origins: list[str] = [
         "http://localhost:5173",

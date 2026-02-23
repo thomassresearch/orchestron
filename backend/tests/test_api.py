@@ -14,12 +14,14 @@ def _client(tmp_path: Path) -> TestClient:
     db_path = tmp_path / "test.db"
     static_dir = tmp_path / "static"
     frontend_dist = tmp_path / "frontend_dist"
+    gen_audio_assets_dir = tmp_path / "gen_audio_assets"
     frontend_dist.mkdir(parents=True, exist_ok=True)
     (frontend_dist / "index.html").write_text("<!doctype html><html><body>client-ok</body></html>")
 
     os.environ["VISUALCSOUND_DATABASE_URL"] = f"sqlite:///{db_path}"
     os.environ["VISUALCSOUND_STATIC_DIR"] = str(static_dir)
     os.environ["VISUALCSOUND_FRONTEND_DIST_DIR"] = str(frontend_dist)
+    os.environ["VISUALCSOUND_GEN_AUDIO_ASSETS_DIR"] = str(gen_audio_assets_dir)
     os.environ["VISUALCSOUND_FORCE_MOCK_ENGINE"] = "true"
 
     get_settings.cache_clear()
@@ -1213,6 +1215,85 @@ def test_ftgen_output_connects_to_vco_ifn(tmp_path: Path) -> None:
 
         vco_line = next(line.strip() for line in compiled_orc.splitlines() if " vco " in line)
         assert vco_line.endswith(", 0.5, i_n1_ift_1")
+
+
+def test_gen_meta_opcode_renders_ftgen_line(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        patch_payload = {
+            "name": "GEN Meta Node",
+            "description": "GEN meta-opcode compiles to ftgen",
+            "schema_version": 1,
+            "graph": {
+                "nodes": [
+                    {
+                        "id": "n1",
+                        "opcode": "GEN",
+                        "params": {},
+                        "position": {"x": 40, "y": 60},
+                    },
+                    {
+                        "id": "n2",
+                        "opcode": "vco",
+                        "params": {"amp": 0.2, "freq": 220, "iwave": 1},
+                        "position": {"x": 280, "y": 40},
+                    },
+                    {"id": "n3", "opcode": "outs", "params": {}, "position": {"x": 520, "y": 40}},
+                ],
+                "connections": [
+                    {"from_node_id": "n1", "from_port_id": "ift", "to_node_id": "n2", "to_port_id": "ifn"},
+                    {"from_node_id": "n2", "from_port_id": "asig", "to_node_id": "n3", "to_port_id": "left"},
+                    {"from_node_id": "n2", "from_port_id": "asig", "to_node_id": "n3", "to_port_id": "right"},
+                ],
+                "ui_layout": {
+                    "gen_nodes": {
+                        "n1": {
+                            "mode": "ftgen",
+                            "tableNumber": 0,
+                            "startTime": 0,
+                            "tableSize": 4096,
+                            "routineNumber": 10,
+                            "normalize": True,
+                            "harmonicAmplitudes": [1, 0.5, 0.25],
+                        }
+                    }
+                },
+                "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+            },
+        }
+
+        create_patch = client.post("/api/patches", json=patch_payload)
+        assert create_patch.status_code == 201
+        patch_id = create_patch.json()["id"]
+
+        create_session = client.post("/api/sessions", json={"patch_id": patch_id})
+        assert create_session.status_code == 201
+        session_id = create_session.json()["session_id"]
+
+        compile_response = client.post(f"/api/sessions/{session_id}/compile")
+        assert compile_response.status_code == 200
+        compiled_orc = compile_response.json()["orc"]
+
+        gen_line = next(line.strip() for line in compiled_orc.splitlines() if " ftgen " in line)
+        assert gen_line.endswith("ftgen 0, 0, 4096, 10, 1, 0.5, 0.25")
+
+
+def test_gen_audio_asset_upload_persists_file(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        payload = b"RIFFdemoWAVEfmt "
+        response = client.post(
+            "/api/assets/gen-audio",
+            content=payload,
+            headers={"X-File-Name": "kick sample.wav", "Content-Type": "audio/wav"},
+        )
+        assert response.status_code == 201
+        body = response.json()
+        assert body["original_name"] == "kick_sample.wav"
+        assert body["stored_name"].endswith(".wav")
+        assert body["size_bytes"] == len(payload)
+
+        stored_path = tmp_path / "gen_audio_assets" / body["stored_name"]
+        assert stored_path.exists()
+        assert stored_path.read_bytes() == payload
 
 
 def test_additional_opcode_references_are_available(tmp_path: Path) -> None:

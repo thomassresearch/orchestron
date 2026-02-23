@@ -1,6 +1,7 @@
 import type {
   AppStateResponse,
   CompileResponse,
+  GenAudioAssetUploadResponse,
   MidiInputRef,
   OpcodeSpec,
   Patch,
@@ -44,12 +45,15 @@ export function isApiError(error: unknown): error is ApiError {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const providedHeaders = new Headers(init?.headers ?? {});
+  const isFormDataBody = typeof FormData !== "undefined" && init?.body instanceof FormData;
+  if (!isFormDataBody && !providedHeaders.has("Content-Type")) {
+    providedHeaders.set("Content-Type", "application/json");
+  }
+
   const response = await fetch(`${API_BASE}${path}`, {
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers ?? {})
-    },
-    ...init
+    ...init,
+    headers: providedHeaders
   });
 
   if (!response.ok) {
@@ -66,6 +70,23 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   listOpcodes: () => request<OpcodeSpec[]>("/opcodes"),
+  uploadGenAudioAsset: async (file: File) => {
+    const response = await fetch(`${API_BASE}/assets/gen-audio`, {
+      method: "POST",
+      headers: {
+        "X-File-Name": file.name,
+        "Content-Type": file.type && file.type.trim().length > 0 ? file.type : "application/octet-stream"
+      },
+      body: file
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new ApiError(response.status, response.statusText, text);
+    }
+
+    return (await response.json()) as GenAudioAssetUploadResponse;
+  },
   getRuntimeConfig: () => request<RuntimeConfigResponse>("/runtime-config"),
   getAppState: () => request<AppStateResponse>("/app-state"),
   saveAppState: (state: PersistedAppState) =>

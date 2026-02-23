@@ -50,6 +50,7 @@ OPCODE_REFERENCE_URLS: dict[str, str] = {
     "foscili": "https://csound.com/docs/manual/foscili.html",
     "ftgen": "https://csound.com/docs/manual/ftgen.html",
     "ftgenonce": "https://csound.com/docs/manual/ftgenonce.html",
+    "GEN": "https://csound.com/docs/manual/ScoreGenRef.html",
     "cpsmidi": "https://csound.com/docs/manual/cpsmidi.html",
     "midictrl": "https://csound.com/docs/manual/midictrl.html",
     "k_to_a": "https://csound.com/docs/manual/interp.html",
@@ -879,6 +880,19 @@ class OpcodeService:
                 outputs=[PortSpec(id="asig", name="aSig", signal_type=SignalType.AUDIO)],
                 template="{asig} foscili {xamp}, {kcps}, {xcar}, {xmod}, {kndx}, {ifn}, {iphs}",
                 tags=["sound", "fm", "source"],
+            ),
+            self._spec(
+                name="GEN",
+                category="tables",
+                description=(
+                    "Routine-aware function table generator (meta-opcode) that renders ftgen/ftgenonce "
+                    "from a specialized editor."
+                ),
+                icon=self._icon("ftgen.svg"),
+                inputs=[],
+                outputs=[PortSpec(id="ift", name="iFn", signal_type=SignalType.INIT)],
+                template="; GEN meta-opcode is rendered by the compiler",
+                tags=["source", "tables", "gen", "meta"],
             ),
             self._spec(
                 name="ftgen",
