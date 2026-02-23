@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import queue
 import time
 from fractions import Fraction
@@ -10,9 +11,53 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 WEBRTC_AUDIO_SAMPLE_RATE = 48_000
-WEBRTC_AUDIO_FRAME_MS = 20
+
+
+def _env_int(name: str, default: int, *, minimum: int = 1) -> int:
+    raw = os.getenv(name)
+    if raw is None or raw.strip() == "":
+        return default
+    try:
+        value = int(raw)
+    except ValueError:
+        logger.warning("Invalid %s=%r; expected integer. Using default %s.", name, raw, default)
+        return default
+    if value < minimum:
+        logger.warning("Invalid %s=%r; expected >= %s. Using default %s.", name, raw, minimum, default)
+        return default
+    return value
+
+
+def _env_bool(name: str, default: bool) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    value = raw.strip().lower()
+    if value in {"1", "true", "yes", "on"}:
+        return True
+    if value in {"0", "false", "no", "off"}:
+        return False
+    logger.warning("Invalid %s=%r; expected boolean. Using default %s.", name, raw, default)
+    return default
+
+
+def _resolve_webrtc_frame_ms() -> int:
+    value = _env_int("VISUALCSOUND_WEBRTC_AUDIO_FRAME_MS", 20)
+    if value not in {10, 20}:
+        logger.warning(
+            "Unsupported VISUALCSOUND_WEBRTC_AUDIO_FRAME_MS=%s; using 20. Supported values: 10, 20.",
+            value,
+        )
+        return 20
+    return value
+
+
+WEBRTC_AUDIO_FRAME_MS = _resolve_webrtc_frame_ms()
 WEBRTC_AUDIO_FRAME_SAMPLES = WEBRTC_AUDIO_SAMPLE_RATE * WEBRTC_AUDIO_FRAME_MS // 1000
-DEFAULT_FRAME_QUEUE_SIZE = 64
+DEFAULT_FRAME_QUEUE_SIZE = _env_int("VISUALCSOUND_WEBRTC_AUDIO_QUEUE_FRAMES_MAX", 8)
+DEFAULT_TARGET_FRAME_QUEUE_SIZE = _env_int("VISUALCSOUND_WEBRTC_AUDIO_QUEUE_FRAMES_TARGET", 4, minimum=0)
+WEBRTC_AUDIO_FLUSH_STARTUP_BACKLOG = _env_bool("VISUALCSOUND_WEBRTC_AUDIO_FLUSH_ON_CONNECT", True)
+WEBRTC_AUDIO_STARTUP_KEEP_FRAMES = _env_int("VISUALCSOUND_WEBRTC_AUDIO_STARTUP_KEEP_FRAMES", 1, minimum=0)
 WEBRTC_AUDIO_STATS_LOG_INTERVAL_SECONDS = 2.0
 
 
@@ -25,6 +70,7 @@ class CsoundAudioFrameBuffer:
         target_sample_rate: int = WEBRTC_AUDIO_SAMPLE_RATE,
         frame_samples: int = WEBRTC_AUDIO_FRAME_SAMPLES,
         queue_size: int = DEFAULT_FRAME_QUEUE_SIZE,
+        target_queue_size: int | None = DEFAULT_TARGET_FRAME_QUEUE_SIZE,
     ) -> None:
         import numpy as np  # type: ignore
 
@@ -43,6 +89,11 @@ class CsoundAudioFrameBuffer:
         self.target_sample_rate = int(target_sample_rate)
         self.frame_samples = int(frame_samples)
         self._frames: queue.Queue[Any] = queue.Queue(maxsize=max(1, queue_size))
+        if target_queue_size is None:
+            resolved_target_queue_size = self._frames.maxsize
+        else:
+            resolved_target_queue_size = min(self._frames.maxsize, max(0, int(target_queue_size)))
+        self._target_queue_size = resolved_target_queue_size
         self._pending_blocks: list[Any] = []
         self._pending_sample_count = 0
         self._closed = False
@@ -81,15 +132,22 @@ class CsoundAudioFrameBuffer:
         except queue.Empty:
             return self._silence.copy()
 
-    def close(self) -> None:
-        self._closed = True
-        self._pending_blocks.clear()
-        self._pending_sample_count = 0
-        while not self._frames.empty():
+    def drop_queued_frames(self, *, keep_latest: int = 0) -> int:
+        keep = max(0, int(keep_latest))
+        dropped = 0
+        while self._frames.qsize() > keep:
             try:
                 self._frames.get_nowait()
             except queue.Empty:
                 break
+            dropped += 1
+        return dropped
+
+    def close(self) -> None:
+        self._closed = True
+        self._pending_blocks.clear()
+        self._pending_sample_count = 0
+        self.drop_queued_frames()
 
     def _maybe_log_ingest_stats(self, block: Any) -> None:
         if getattr(block, "size", 0) == 0:
@@ -114,11 +172,12 @@ class CsoundAudioFrameBuffer:
             return
 
         logger.info(
-            "WebRTC audio ingest stats: min=%0.5f max=%0.5f blocks=%d queued_frames=%d",
+            "WebRTC audio ingest stats: min=%0.5f max=%0.5f blocks=%d queued_frames=%d target_frames=%d",
             self._ingest_stats_min if self._ingest_stats_min is not None else 0.0,
             self._ingest_stats_max if self._ingest_stats_max is not None else 0.0,
             self._ingest_stats_blocks,
             self._frames.qsize(),
+            self._target_queue_size,
         )
         self._ingest_stats_window_started_at = now
         self._ingest_stats_min = None
@@ -209,6 +268,7 @@ class CsoundAudioFrameBuffer:
     def _enqueue_frame(self, frame_block: Any) -> None:
         try:
             self._frames.put_nowait(frame_block)
+            self._trim_queue_latency()
             return
         except queue.Full:
             pass
@@ -220,9 +280,17 @@ class CsoundAudioFrameBuffer:
 
         try:
             self._frames.put_nowait(frame_block)
+            self._trim_queue_latency()
         except queue.Full:
             # Drop when the consumer is too slow; realtime continuity is more important than backpressure.
             pass
+
+    def _trim_queue_latency(self) -> None:
+        if self._target_queue_size < 0:
+            return
+        if self._frames.qsize() <= self._target_queue_size:
+            return
+        self.drop_queued_frames(keep_latest=self._target_queue_size)
 
 
 class CsoundWebRtcAudioBridge:
@@ -297,6 +365,7 @@ class CsoundWebRtcAudioBridge:
                 self._timestamp = 0
                 self._started_at: float | None = None
                 self._recv_started_logged = False
+                self._startup_backlog_flushed = False
                 self._stats_window_started_at: float | None = None
                 self._stats_min: float | None = None
                 self._stats_max: float | None = None
@@ -348,6 +417,18 @@ class CsoundWebRtcAudioBridge:
                     delay = target_time - now
                     if delay > 0:
                         await asyncio.sleep(delay)
+
+                if not self._startup_backlog_flushed and WEBRTC_AUDIO_FLUSH_STARTUP_BACKLOG:
+                    dropped = frame_buffer.drop_queued_frames(keep_latest=WEBRTC_AUDIO_STARTUP_KEEP_FRAMES)
+                    if dropped > 0:
+                        logger.info(
+                            "Dropped %d queued WebRTC audio frames before playback start (keeping %d).",
+                            dropped,
+                            WEBRTC_AUDIO_STARTUP_KEEP_FRAMES,
+                        )
+                    self._startup_backlog_flushed = True
+                elif not self._startup_backlog_flushed:
+                    self._startup_backlog_flushed = True
 
                 block = await asyncio.to_thread(frame_buffer.read_frame, 1.0)
                 if int(block.shape[0]) != frame_buffer.frame_samples:

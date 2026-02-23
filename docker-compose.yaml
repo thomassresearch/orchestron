@@ -40,7 +40,7 @@ services:
       - "49160-49200:49160-49200/udp"
     restart: unless-stopped
 
-  visualcsound:
+  orchestron:
     build:
       context: .
       dockerfile: Dockerfile
@@ -66,6 +66,11 @@ services:
       - info
     environment:
       VISUALCSOUND_AUDIO_OUTPUT_MODE: streaming
+      VISUALCSOUND_WEBRTC_AUDIO_FRAME_MS: "20"
+      VISUALCSOUND_WEBRTC_AUDIO_QUEUE_FRAMES_MAX: "5"
+      VISUALCSOUND_WEBRTC_AUDIO_QUEUE_FRAMES_TARGET: "3"
+      VISUALCSOUND_WEBRTC_AUDIO_FLUSH_ON_CONNECT: "true"
+      VISUALCSOUND_WEBRTC_AUDIO_STARTUP_KEEP_FRAMES: "1"
       # On macOS (Docker Desktop), ALSA device passthrough is not available.
       # Use a non-ALSA backend by default so `docker compose up` works.
       # In browser-streaming mode the app injects MIDI via host-implemented callbacks inside

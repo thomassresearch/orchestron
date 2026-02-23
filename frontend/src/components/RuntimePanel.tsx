@@ -125,7 +125,7 @@ export function RuntimePanel({
           : copy.browserAudioOff;
 
   return (
-    <aside className="flex h-full flex-col rounded-2xl border border-slate-700/70 bg-slate-900/75 p-3">
+    <aside className="flex h-full min-h-0 flex-col rounded-2xl border border-slate-700/70 bg-slate-900/75 p-3">
       <div className="flex items-center justify-between gap-2">
         <h2 className="font-display text-sm uppercase tracking-[0.24em] text-slate-300">{copy.title}</h2>
         {onToggleCollapse ? (
@@ -141,61 +141,63 @@ export function RuntimePanel({
         ) : null}
       </div>
 
-      <label className="mt-3 text-xs uppercase tracking-[0.18em] text-slate-400">
-        {copy.midiInput}
-        <select
-          className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-2 py-2 font-body text-sm text-slate-100 outline-none ring-accent/40 transition focus:ring"
-          value={selectedMidiInput ?? ""}
-          onChange={(event) => onBindMidiInput(event.target.value)}
-        >
-          <option value="">{copy.selectMidiInput}</option>
-          {midiInputs.map((input) => (
-            <option key={input.id} value={input.id}>
-              {input.name}
-            </option>
-          ))}
-        </select>
-      </label>
+      <div className="mt-3 min-h-0 flex-1 space-y-4 overflow-y-scroll pr-1">
+        <label className="block text-xs uppercase tracking-[0.18em] text-slate-400">
+          {copy.midiInput}
+          <select
+            className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-2 py-2 font-body text-sm text-slate-100 outline-none ring-accent/40 transition focus:ring"
+            value={selectedMidiInput ?? ""}
+            onChange={(event) => onBindMidiInput(event.target.value)}
+          >
+            <option value="">{copy.selectMidiInput}</option>
+            {midiInputs.map((input) => (
+              <option key={input.id} value={input.id}>
+                {input.name}
+              </option>
+            ))}
+          </select>
+        </label>
 
-      <div className="mt-4 rounded-xl border border-slate-700 bg-slate-950/80 p-2">
-        <div className="text-xs uppercase tracking-[0.2em] text-slate-500">{copy.compileOutput}</div>
-        <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap font-mono text-[10px] text-slate-300">
-          {compileOutput ? compileOutput.orc : copy.compileOutputEmpty}
-        </pre>
-      </div>
-
-      {showBrowserAudio ? (
-        <div className="mt-4 rounded-xl border border-slate-700 bg-slate-950/80 p-2">
-          <div className="text-xs uppercase tracking-[0.2em] text-slate-500">{copy.browserAudio}</div>
-          <div className="mt-2 text-[11px] text-slate-300">{browserAudioStatusText}</div>
-          {browserAudioError ? <div className="mt-1 text-[10px] text-rose-300">{browserAudioError}</div> : null}
-          {browserAudioElementRef ? (
-            <audio
-              ref={browserAudioElementRef}
-              className="mt-2 w-full"
-              controls
-              autoPlay
-              playsInline
-              preload="none"
-            />
-          ) : null}
+        <div className="rounded-xl border border-slate-700 bg-slate-950/80 p-2">
+          <div className="text-xs uppercase tracking-[0.2em] text-slate-500">{copy.compileOutput}</div>
+          <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap font-mono text-[10px] text-slate-300">
+            {compileOutput ? compileOutput.orc : copy.compileOutputEmpty}
+          </pre>
         </div>
-      ) : null}
 
-      <div className="mt-4 flex-1 rounded-xl border border-slate-700 bg-slate-950/80 p-2">
-        <div className="text-xs uppercase tracking-[0.2em] text-slate-500">{copy.sessionEvents}</div>
-        <div className="mt-2 space-y-2 overflow-y-auto font-mono text-[10px] text-slate-300">
-          {recentEvents.length === 0 ? (
-            <div className="text-slate-500">{copy.noEvents}</div>
-          ) : (
-            recentEvents.map((event, index) => (
-              <div key={`${event.ts}-${event.type}-${index}`} className="rounded-md border border-slate-700 bg-slate-900 p-2">
-                <div className="text-accent">{event.type}</div>
-                <div className="text-slate-500">{new Date(event.ts).toLocaleTimeString()}</div>
-                <div className="text-slate-400">{JSON.stringify(event.payload)}</div>
-              </div>
-            ))
-          )}
+        {showBrowserAudio ? (
+          <div className="rounded-xl border border-slate-700 bg-slate-950/80 p-2">
+            <div className="text-xs uppercase tracking-[0.2em] text-slate-500">{copy.browserAudio}</div>
+            <div className="mt-2 text-[11px] text-slate-300">{browserAudioStatusText}</div>
+            {browserAudioError ? <div className="mt-1 text-[10px] text-rose-300">{browserAudioError}</div> : null}
+            {browserAudioElementRef ? (
+              <audio
+                ref={browserAudioElementRef}
+                className="mt-2 w-full"
+                controls
+                autoPlay
+                playsInline
+                preload="none"
+              />
+            ) : null}
+          </div>
+        ) : null}
+
+        <div className="rounded-xl border border-slate-700 bg-slate-950/80 p-2">
+          <div className="text-xs uppercase tracking-[0.2em] text-slate-500">{copy.sessionEvents}</div>
+          <div className="mt-2 space-y-2 overflow-y-auto font-mono text-[10px] text-slate-300">
+            {recentEvents.length === 0 ? (
+              <div className="text-slate-500">{copy.noEvents}</div>
+            ) : (
+              recentEvents.map((event, index) => (
+                <div key={`${event.ts}-${event.type}-${index}`} className="rounded-md border border-slate-700 bg-slate-900 p-2">
+                  <div className="text-accent">{event.type}</div>
+                  <div className="text-slate-500">{new Date(event.ts).toLocaleTimeString()}</div>
+                  <div className="text-slate-400">{JSON.stringify(event.payload)}</div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </div>
     </aside>

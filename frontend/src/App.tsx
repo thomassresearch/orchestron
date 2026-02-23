@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { api, wsBaseUrl } from "./api/client";
+import { api, isApiError, wsBaseUrl } from "./api/client";
 import { ConfigPage } from "./components/ConfigPage";
 import { HelpDocumentationModal } from "./components/HelpDocumentationModal";
 import { HelpIconButton } from "./components/HelpIconButton";
@@ -61,6 +61,14 @@ function controllerSequencerSignature(controllerSequencer: ControllerSequencerSt
 }
 
 const CONTROLLER_SEQUENCER_SAMPLES_PER_STEP = 8;
+
+function isSessionNotFoundApiError(error: unknown): boolean {
+  return (
+    isApiError(error) &&
+    error.status === 404 &&
+    /Session\s+['"][^'"]+['"]\s+not found/i.test(error.body)
+  );
+}
 
 function waitForIceGatheringComplete(peer: RTCPeerConnection): Promise<void> {
   if (peer.iceGatheringState === "complete") {
@@ -1019,6 +1027,44 @@ export default function App() {
     }
   }, []);
 
+  const invalidateMissingRuntimeSession = useCallback(
+    (sessionId: string, error: unknown): boolean => {
+      if (!isSessionNotFoundApiError(error)) {
+        return false;
+      }
+
+      const currentActiveSessionId = useAppStore.getState().activeSessionId;
+      const currentSequencerSessionId = sequencerSessionIdRef.current;
+      if (currentActiveSessionId !== sessionId && currentSequencerSessionId !== sessionId) {
+        return false;
+      }
+
+      if (sequencerStatusPollRef.current !== null) {
+        window.clearInterval(sequencerStatusPollRef.current);
+        sequencerStatusPollRef.current = null;
+      }
+      sequencerConfigSyncPendingRef.current = false;
+      sequencerSessionIdRef.current = null;
+      midiControllerInitSessionRef.current = null;
+      controllerSequencerTransportAnchorRef.current = null;
+
+      disconnectBrowserAudio();
+      syncSequencerRuntime({ isPlaying: false });
+      setSequencerPlayhead(0);
+      setSequencerError(`${appCopy.errors.noActiveRuntimeSession} Start instruments again.`);
+
+      useAppStore.setState({
+        activeSessionId: null,
+        activeSessionState: "idle",
+        activeSessionInstruments: [],
+        compileOutput: null,
+        events: []
+      });
+      return true;
+    },
+    [appCopy.errors.noActiveRuntimeSession, disconnectBrowserAudio, setSequencerPlayhead, syncSequencerRuntime]
+  );
+
   const getBrowserAudioRtcConfiguration = useCallback(async (): Promise<RTCConfiguration | null> => {
     if (browserAudioRtcConfigurationLoadedRef.current) {
       return browserAudioRtcConfigurationRef.current;
@@ -1149,6 +1195,14 @@ export default function App() {
           sdp: answer.sdp
         });
       } catch (error) {
+        if (invalidateMissingRuntimeSession(sessionId, error)) {
+          if (browserAudioPeerRef.current === peer) {
+            browserAudioPeerRef.current = null;
+            browserAudioSessionRef.current = null;
+          }
+          peer.close();
+          return;
+        }
         if (browserAudioPeerRef.current === peer) {
           peer.close();
           browserAudioPeerRef.current = null;
@@ -1158,7 +1212,7 @@ export default function App() {
         setBrowserAudioError(error instanceof Error ? error.message : "Failed to connect browser audio stream.");
       }
     },
-    [disconnectBrowserAudio, getBrowserAudioRtcConfiguration, syncBrowserAudioOutput]
+    [disconnectBrowserAudio, getBrowserAudioRtcConfiguration, invalidateMissingRuntimeSession, syncBrowserAudioOutput]
   );
 
   useEffect(() => {
@@ -1673,9 +1727,16 @@ export default function App() {
       if (!sessionId) {
         throw new Error(appCopy.errors.noActiveRuntimeSession);
       }
-      await api.sendSessionMidiEvent(sessionId, payload);
+      try {
+        await api.sendSessionMidiEvent(sessionId, payload);
+      } catch (error) {
+        if (invalidateMissingRuntimeSession(sessionId, error)) {
+          throw new Error(appCopy.errors.noActiveRuntimeSession);
+        }
+        throw error;
+      }
     },
-    [activeSessionId, appCopy.errors.noActiveRuntimeSession]
+    [activeSessionId, appCopy.errors.noActiveRuntimeSession, invalidateMissingRuntimeSession]
   );
 
   const sendAllNotesOff = useCallback(
@@ -1784,6 +1845,9 @@ export default function App() {
       sequencerSessionIdRef.current = sessionId;
       applySequencerStatus(status);
     } catch (transportError) {
+      if (invalidateMissingRuntimeSession(sessionId, transportError)) {
+        return;
+      }
       syncSequencerRuntime({ isPlaying: false });
       setSequencerError(
         transportError instanceof Error ? transportError.message : appCopy.errors.failedToStartSequencer
@@ -1797,6 +1861,7 @@ export default function App() {
     appCopy.errors.startInstrumentsFirstForSequencer,
     applySequencerStatus,
     buildBackendSequencerConfig,
+    invalidateMissingRuntimeSession,
     syncSequencerRuntime
   ]);
 
@@ -2497,6 +2562,9 @@ export default function App() {
         const status = await api.getSessionSequencerStatus(sessionId);
         applySequencerStatus(status);
       } catch (pollError) {
+        if (invalidateMissingRuntimeSession(sessionId, pollError)) {
+          return;
+        }
         setSequencerError(
           pollError instanceof Error
             ? `${appCopy.errors.failedToSyncSequencerStatus}: ${pollError.message}`
@@ -2518,7 +2586,13 @@ export default function App() {
         sequencerStatusPollRef.current = null;
       }
     };
-  }, [activeSessionId, appCopy.errors.failedToSyncSequencerStatus, applySequencerStatus, sequencer.isPlaying]);
+  }, [
+    activeSessionId,
+    appCopy.errors.failedToSyncSequencerStatus,
+    applySequencerStatus,
+    invalidateMissingRuntimeSession,
+    sequencer.isPlaying
+  ]);
 
   useEffect(() => {
     if (!sequencer.isPlaying) {
@@ -2542,6 +2616,9 @@ export default function App() {
           applySequencerStatus(status);
         })
         .catch((syncError) => {
+          if (invalidateMissingRuntimeSession(sessionId, syncError)) {
+            return;
+          }
           setSequencerError(
             syncError instanceof Error
               ? `${appCopy.errors.failedToUpdateSequencerConfig}: ${syncError.message}`
@@ -2567,6 +2644,7 @@ export default function App() {
     activeSessionId,
     appCopy.errors.failedToUpdateSequencerConfig,
     applySequencerStatus,
+    invalidateMissingRuntimeSession,
     sequencer.isPlaying,
     sequencerConfigSyncSignature,
     stopSequencerTransport

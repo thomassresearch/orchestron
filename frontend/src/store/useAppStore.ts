@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-import { api } from "../api/client";
+import { api, isApiError } from "../api/client";
 import { createUntitledPatch } from "../lib/defaultPatch";
 import { normalizeGuiLanguage } from "../lib/guiLanguage";
 import {
@@ -3163,7 +3163,23 @@ export const useAppStore = create<AppStore>((set, get) => {
       let sessionId = get().activeSessionId;
 
       if (sessionId && sameAssignments(requestedAssignments, get().activeSessionInstruments)) {
-        return sessionId;
+        try {
+          await api.getSession(sessionId);
+          return sessionId;
+        } catch (error) {
+          if (!isApiError(error) || error.status !== 404) {
+            throw error;
+          }
+
+          set({
+            activeSessionId: null,
+            activeSessionState: "idle",
+            activeSessionInstruments: [],
+            compileOutput: null,
+            events: []
+          });
+          sessionId = null;
+        }
       }
 
       if (sessionId && !sameAssignments(requestedAssignments, get().activeSessionInstruments)) {

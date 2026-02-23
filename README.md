@@ -81,6 +81,23 @@ make
 make run
 ```
 
+### Running in Docker
+
+Run the backend in browser-audio streaming mode (WebRTC) with Docker Compose:
+
+```bash
+docker compose up --build
+```
+
+Then open:
+
+- Backend API: `http://localhost:8000`
+- Backend-served frontend: `http://localhost:8000/client`
+
+This Compose setup runs Csound in `streaming` mode and sends audio to the browser over WebRTC (via the bundled TURN service).
+
+See `/Users/thuber/Projekte/VisualCSound/WEBRTC_STREAMING.md` for implementation details, latency tuning, and Docker-specific notes.
+
 ### Backend
 
 ```bash

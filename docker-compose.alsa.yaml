@@ -1,9 +1,0 @@
-services:
-  visualcsound:
-    environment:
-      VISUALCSOUND_DEFAULT_RTMIDI_MODULE: alsaseq
-    devices:
-      - /dev/snd:/dev/snd
-      - /dev/snd/seq:/dev/snd/seq
-    group_add:
-      - audio
