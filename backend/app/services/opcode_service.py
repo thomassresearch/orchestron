@@ -406,12 +406,18 @@ class OpcodeService:
                     ),
                     PortSpec(id="kindex", name="ModIndex", signal_type=SignalType.CONTROL, default=2),
                     PortSpec(id="kcrossfreq", name="CrossFreq", signal_type=SignalType.CONTROL, default=2),
-                    PortSpec(id="ifn1", name="CarrierTable", signal_type=SignalType.INIT, default=1),
-                    PortSpec(id="ifn2", name="ModTable", signal_type=SignalType.INIT, default=1),
-                    PortSpec(id="ivfn", name="VibratoTable", signal_type=SignalType.INIT, default=1),
+                    PortSpec(id="kvrate", name="VibratoRate", signal_type=SignalType.CONTROL, default=6),
+                    PortSpec(id="ifn1", name="CarrierTable1", signal_type=SignalType.INIT, required=False, default=1),
+                    PortSpec(id="ifn2", name="CarrierTable2", signal_type=SignalType.INIT, required=False, default=1),
+                    PortSpec(id="ifn3", name="ModTable1", signal_type=SignalType.INIT, required=False, default=1),
+                    PortSpec(id="ifn4", name="ModTable2", signal_type=SignalType.INIT, required=False, default=1),
+                    PortSpec(id="ivfn", name="VibratoTable", signal_type=SignalType.INIT, required=False, default=1),
                 ],
                 outputs=[PortSpec(id="asig", name="aSig", signal_type=SignalType.AUDIO)],
-                template="{asig} fmb3 {kamp}, {kfreq}, {kindex}, {kcrossfreq}, {ifn1}, {ifn2}, {ivfn}",
+                template=(
+                    "{asig} fmb3 {kamp}, {kfreq}, {kindex}, {kcrossfreq}, {kvrate}, "
+                    "{ifn1}, {ifn2}, {ifn3}, {ifn4}, {ivfn}"
+                ),
                 tags=["sound", "fm", "source"],
             ),
             self._spec(
@@ -431,12 +437,19 @@ class OpcodeService:
                     PortSpec(id="kc1", name="CarrierRatio1", signal_type=SignalType.CONTROL, default=2),
                     PortSpec(id="kc2", name="CarrierRatio2", signal_type=SignalType.CONTROL, default=3),
                     PortSpec(id="kvdepth", name="VibratoDepth", signal_type=SignalType.CONTROL, default=0.1),
-                    PortSpec(id="ifn1", name="CarrierTable", signal_type=SignalType.INIT, default=1),
-                    PortSpec(id="ifn2", name="ModTable", signal_type=SignalType.INIT, default=1),
-                    PortSpec(id="ivfn", name="VibratoTable", signal_type=SignalType.INIT, default=1),
+                    PortSpec(id="kvrate", name="VibratoRate", signal_type=SignalType.CONTROL, default=6),
+                    PortSpec(id="ifn1", name="CarrierTable1", signal_type=SignalType.INIT, required=False, default=1),
+                    PortSpec(id="ifn2", name="CarrierTable2", signal_type=SignalType.INIT, required=False, default=1),
+                    PortSpec(id="ifn3", name="ModTable1", signal_type=SignalType.INIT, required=False, default=1),
+                    PortSpec(id="ifn4", name="ModTable2", signal_type=SignalType.INIT, required=False, default=1),
+                    PortSpec(id="ivfn", name="VibratoTable", signal_type=SignalType.INIT, required=False, default=1),
+                    PortSpec(id="isus", name="SustainFlag", signal_type=SignalType.INIT, required=False, default=4),
                 ],
                 outputs=[PortSpec(id="asig", name="aSig", signal_type=SignalType.AUDIO)],
-                template="{asig} fmbell {kamp}, {kfreq}, {kc1}, {kc2}, {kvdepth}, {ifn1}, {ifn2}, {ivfn}",
+                template=(
+                    "{asig} fmbell {kamp}, {kfreq}, {kc1}, {kc2}, {kvdepth}, {kvrate}, "
+                    "{ifn1}, {ifn2}, {ifn3}, {ifn4}, {ivfn}, {isus}"
+                ),
                 tags=["sound", "fm", "source"],
             ),
             self._spec(
@@ -456,12 +469,18 @@ class OpcodeService:
                     PortSpec(id="kc1", name="CarrierRatio1", signal_type=SignalType.CONTROL, default=2),
                     PortSpec(id="kc2", name="CarrierRatio2", signal_type=SignalType.CONTROL, default=3),
                     PortSpec(id="kvdepth", name="VibratoDepth", signal_type=SignalType.CONTROL, default=0.1),
-                    PortSpec(id="ifn1", name="CarrierTable", signal_type=SignalType.INIT, default=1),
-                    PortSpec(id="ifn2", name="ModTable", signal_type=SignalType.INIT, default=1),
+                    PortSpec(id="kvrate", name="VibratoRate", signal_type=SignalType.CONTROL, default=6),
+                    PortSpec(id="ifn1", name="CarrierTable1", signal_type=SignalType.INIT, default=1),
+                    PortSpec(id="ifn2", name="CarrierTable2", signal_type=SignalType.INIT, default=1),
+                    PortSpec(id="ifn3", name="ModTable1", signal_type=SignalType.INIT, default=1),
+                    PortSpec(id="ifn4", name="ModTable2", signal_type=SignalType.INIT, default=1),
                     PortSpec(id="ivfn", name="VibratoTable", signal_type=SignalType.INIT, default=1),
                 ],
                 outputs=[PortSpec(id="asig", name="aSig", signal_type=SignalType.AUDIO)],
-                template="{asig} fmmetal {kamp}, {kfreq}, {kc1}, {kc2}, {kvdepth}, {ifn1}, {ifn2}, {ivfn}",
+                template=(
+                    "{asig} fmmetal {kamp}, {kfreq}, {kc1}, {kc2}, {kvdepth}, {kvrate}, "
+                    "{ifn1}, {ifn2}, {ifn3}, {ifn4}, {ivfn}"
+                ),
                 tags=["sound", "fm", "source"],
             ),
             self._spec(
@@ -481,12 +500,18 @@ class OpcodeService:
                     PortSpec(id="kc1", name="CarrierRatio1", signal_type=SignalType.CONTROL, default=2),
                     PortSpec(id="kc2", name="CarrierRatio2", signal_type=SignalType.CONTROL, default=3),
                     PortSpec(id="kvdepth", name="VibratoDepth", signal_type=SignalType.CONTROL, default=0.1),
-                    PortSpec(id="ifn1", name="CarrierTable", signal_type=SignalType.INIT, default=1),
-                    PortSpec(id="ifn2", name="ModTable", signal_type=SignalType.INIT, default=1),
-                    PortSpec(id="ivfn", name="VibratoTable", signal_type=SignalType.INIT, default=1),
+                    PortSpec(id="kvrate", name="VibratoRate", signal_type=SignalType.CONTROL, default=6),
+                    PortSpec(id="ifn1", name="CarrierTable1", signal_type=SignalType.INIT, required=False, default=1),
+                    PortSpec(id="ifn2", name="CarrierTable2", signal_type=SignalType.INIT, required=False, default=1),
+                    PortSpec(id="ifn3", name="ModTable1", signal_type=SignalType.INIT, required=False, default=1),
+                    PortSpec(id="ifn4", name="ModTable2", signal_type=SignalType.INIT, required=False, default=1),
+                    PortSpec(id="ivfn", name="VibratoTable", signal_type=SignalType.INIT, required=False, default=1),
                 ],
                 outputs=[PortSpec(id="asig", name="aSig", signal_type=SignalType.AUDIO)],
-                template="{asig} fmpercfl {kamp}, {kfreq}, {kc1}, {kc2}, {kvdepth}, {ifn1}, {ifn2}, {ivfn}",
+                template=(
+                    "{asig} fmpercfl {kamp}, {kfreq}, {kc1}, {kc2}, {kvdepth}, {kvrate}, "
+                    "{ifn1}, {ifn2}, {ifn3}, {ifn4}, {ivfn}"
+                ),
                 tags=["sound", "fm", "source"],
             ),
             self._spec(
@@ -506,12 +531,18 @@ class OpcodeService:
                     PortSpec(id="kc1", name="CarrierRatio1", signal_type=SignalType.CONTROL, default=2),
                     PortSpec(id="kc2", name="CarrierRatio2", signal_type=SignalType.CONTROL, default=3),
                     PortSpec(id="kvdepth", name="VibratoDepth", signal_type=SignalType.CONTROL, default=0.1),
-                    PortSpec(id="ifn1", name="CarrierTable", signal_type=SignalType.INIT, default=1),
-                    PortSpec(id="ifn2", name="ModTable", signal_type=SignalType.INIT, default=1),
+                    PortSpec(id="kvrate", name="VibratoRate", signal_type=SignalType.CONTROL, default=6),
+                    PortSpec(id="ifn1", name="CarrierTable1", signal_type=SignalType.INIT, default=1),
+                    PortSpec(id="ifn2", name="CarrierTable2", signal_type=SignalType.INIT, default=1),
+                    PortSpec(id="ifn3", name="ModTable1", signal_type=SignalType.INIT, default=1),
+                    PortSpec(id="ifn4", name="ModTable2", signal_type=SignalType.INIT, default=1),
                     PortSpec(id="ivfn", name="VibratoTable", signal_type=SignalType.INIT, default=1),
                 ],
                 outputs=[PortSpec(id="asig", name="aSig", signal_type=SignalType.AUDIO)],
-                template="{asig} fmrhode {kamp}, {kfreq}, {kc1}, {kc2}, {kvdepth}, {ifn1}, {ifn2}, {ivfn}",
+                template=(
+                    "{asig} fmrhode {kamp}, {kfreq}, {kc1}, {kc2}, {kvdepth}, {kvrate}, "
+                    "{ifn1}, {ifn2}, {ifn3}, {ifn4}, {ivfn}"
+                ),
                 tags=["sound", "fm", "source"],
             ),
             self._spec(
@@ -528,15 +559,21 @@ class OpcodeService:
                         accepted_signal_types=[SignalType.AUDIO, SignalType.CONTROL, SignalType.INIT],
                         default=440,
                     ),
-                    PortSpec(id="kc1", name="CarrierRatio1", signal_type=SignalType.CONTROL, default=2),
-                    PortSpec(id="kc2", name="CarrierRatio2", signal_type=SignalType.CONTROL, default=3),
-                    PortSpec(id="kvdepth", name="VibratoDepth", signal_type=SignalType.CONTROL, default=0.1),
-                    PortSpec(id="ifn1", name="CarrierTable", signal_type=SignalType.INIT, default=1),
-                    PortSpec(id="ifn2", name="ModTable", signal_type=SignalType.INIT, default=1),
-                    PortSpec(id="ivfn", name="VibratoTable", signal_type=SignalType.INIT, default=1),
+                    PortSpec(id="kc1", name="Vowel", signal_type=SignalType.CONTROL, default=2),
+                    PortSpec(id="kc2", name="Tilt", signal_type=SignalType.CONTROL, default=3),
+                    PortSpec(id="kvdepth", name="VibratoAmount", signal_type=SignalType.CONTROL, default=0.1),
+                    PortSpec(id="kvrate", name="VibratoRate", signal_type=SignalType.CONTROL, default=6),
+                    PortSpec(id="ifn1", name="WaveTable1", signal_type=SignalType.INIT, required=False, default=1),
+                    PortSpec(id="ifn2", name="WaveTable2", signal_type=SignalType.INIT, required=False, default=1),
+                    PortSpec(id="ifn3", name="WaveTable3", signal_type=SignalType.INIT, required=False, default=1),
+                    PortSpec(id="ifn4", name="WaveTable4", signal_type=SignalType.INIT, required=False, default=1),
+                    PortSpec(id="ivfn", name="VibratoTable", signal_type=SignalType.INIT, required=False, default=1),
                 ],
                 outputs=[PortSpec(id="asig", name="aSig", signal_type=SignalType.AUDIO)],
-                template="{asig} fmvoice {kamp}, {kfreq}, {kc1}, {kc2}, {kvdepth}, {ifn1}, {ifn2}, {ivfn}",
+                template=(
+                    "{asig} fmvoice {kamp}, {kfreq}, {kc1}, {kc2}, {kvdepth}, {kvrate}, "
+                    "{ifn1}, {ifn2}, {ifn3}, {ifn4}, {ivfn}"
+                ),
                 tags=["sound", "fm", "source"],
             ),
             self._spec(
@@ -556,12 +593,18 @@ class OpcodeService:
                     PortSpec(id="kc1", name="CarrierRatio1", signal_type=SignalType.CONTROL, default=2),
                     PortSpec(id="kc2", name="CarrierRatio2", signal_type=SignalType.CONTROL, default=3),
                     PortSpec(id="kvdepth", name="VibratoDepth", signal_type=SignalType.CONTROL, default=0.1),
-                    PortSpec(id="ifn1", name="CarrierTable", signal_type=SignalType.INIT, default=1),
-                    PortSpec(id="ifn2", name="ModTable", signal_type=SignalType.INIT, default=1),
+                    PortSpec(id="kvrate", name="VibratoRate", signal_type=SignalType.CONTROL, default=6),
+                    PortSpec(id="ifn1", name="CarrierTable1", signal_type=SignalType.INIT, default=1),
+                    PortSpec(id="ifn2", name="CarrierTable2", signal_type=SignalType.INIT, default=1),
+                    PortSpec(id="ifn3", name="ModTable1", signal_type=SignalType.INIT, default=1),
+                    PortSpec(id="ifn4", name="ModTable2", signal_type=SignalType.INIT, default=1),
                     PortSpec(id="ivfn", name="VibratoTable", signal_type=SignalType.INIT, default=1),
                 ],
                 outputs=[PortSpec(id="asig", name="aSig", signal_type=SignalType.AUDIO)],
-                template="{asig} fmwurlie {kamp}, {kfreq}, {kc1}, {kc2}, {kvdepth}, {ifn1}, {ifn2}, {ivfn}",
+                template=(
+                    "{asig} fmwurlie {kamp}, {kfreq}, {kc1}, {kc2}, {kvdepth}, {kvrate}, "
+                    "{ifn1}, {ifn2}, {ifn3}, {ifn4}, {ivfn}"
+                ),
                 tags=["sound", "fm", "source"],
             ),
             self._spec(
