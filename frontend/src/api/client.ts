@@ -61,8 +61,10 @@ export const api = {
     schema_version: number;
     graph: PatchGraph;
   }) => request<Patch>("/patches", { method: "POST", body: JSON.stringify(payload) }),
+  deletePatch: (patchId: string) => request<void>(`/patches/${patchId}`, { method: "DELETE" }),
   createPerformance: (payload: { name: string; description: string; config: SequencerConfigSnapshot }) =>
     request<Performance>("/performances", { method: "POST", body: JSON.stringify(payload) }),
+  deletePerformance: (performanceId: string) => request<void>(`/performances/${performanceId}`, { method: "DELETE" }),
   updatePatch: (
     patchId: string,
     payload: {

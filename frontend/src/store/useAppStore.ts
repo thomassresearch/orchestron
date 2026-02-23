@@ -115,6 +115,7 @@ interface AppStore {
   saveCurrentPatch: () => Promise<void>;
   loadPerformance: (performanceId: string) => Promise<void>;
   setCurrentPerformanceMeta: (name: string, description: string) => void;
+  clearCurrentPerformanceSelection: () => void;
   saveCurrentPerformance: () => Promise<void>;
 
   addSequencerInstrument: () => void;
@@ -1713,6 +1714,10 @@ export const useAppStore = create<AppStore>((set, get) => {
       });
     },
 
+    clearCurrentPerformanceSelection: () => {
+      set({ currentPerformanceId: null });
+    },
+
     setGraph: (graph) => {
       const current = get().currentPatch;
       commitCurrentPatch({
@@ -3212,40 +3217,52 @@ export const useAppStore = create<AppStore>((set, get) => {
     compileSession: async () => {
       set({ loading: true, error: null });
       try {
-        if (!get().currentPatch.id) {
-          await get().saveCurrentPatch();
-        }
+        const current = {
+          ...get().currentPatch,
+          graph: withNormalizedEngineConfig(get().currentPatch.graph)
+        };
 
-        const patchId = get().currentPatch.id;
-        if (!patchId) {
-          throw new Error("Patch must be saved before compiling.");
-        }
+        const patchName = current.name.trim().length > 0 ? current.name.trim() : "Untitled Patch";
+        const temporaryPatch = await api.createPatch({
+          name: patchName,
+          description: current.description,
+          schema_version: current.schema_version,
+          graph: current.graph
+        });
 
-        const compileSession = await api.createSession([
-          {
-            patch_id: patchId,
-            midi_channel: 1
-          }
-        ]);
-
-        const sessionId = compileSession.session_id;
         let compileOutput = null as CompileResponse | null;
         try {
-          const midiInput = get().activeMidiInput;
-          if (midiInput) {
+          const compileSession = await api.createSession([
+            {
+              patch_id: temporaryPatch.id,
+              midi_channel: 1
+            }
+          ]);
+
+          const sessionId = compileSession.session_id;
+          try {
+            const midiInput = get().activeMidiInput;
+            if (midiInput) {
+              try {
+                await api.bindMidiInput(sessionId, midiInput);
+              } catch {
+                // Keep compile successful even if MIDI binding fails for temporary validation session.
+              }
+            }
+
+            compileOutput = await api.compileSession(sessionId);
+          } finally {
             try {
-              await api.bindMidiInput(sessionId, midiInput);
+              await api.deleteSession(sessionId);
             } catch {
-              // Keep compile successful even if MIDI binding fails for temporary validation session.
+              // Best-effort cleanup for temporary compile sessions.
             }
           }
-
-          compileOutput = await api.compileSession(sessionId);
         } finally {
           try {
-            await api.deleteSession(sessionId);
+            await api.deletePatch(temporaryPatch.id);
           } catch {
-            // Best-effort cleanup for temporary compile sessions.
+            // Best-effort cleanup for temporary compile validation patch.
           }
         }
 

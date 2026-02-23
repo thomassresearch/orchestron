@@ -352,6 +352,19 @@ function transportStepCountFromTracks(stepCounts: Array<{ stepCount: 16 | 32 }>)
   return stepCounts.some((entry) => entry.stepCount === 32) ? 32 : 16;
 }
 
+function patchCompileSignatureFor(
+  patch: { id?: string; name: string; description: string; schema_version: number; graph: PatchGraph },
+  tabId: string
+): string {
+  return JSON.stringify({
+    patchKey: patch.id ?? `draft:${tabId}`,
+    name: patch.name,
+    description: patch.description,
+    schema_version: patch.schema_version,
+    graph: patch.graph
+  });
+}
+
 type AppCopy = {
   appIconAlt: string;
   appTitle: string;
@@ -365,8 +378,13 @@ type AppCopy = {
   selectedSummary: (nodes: number, connections: number) => string;
   showRuntime: string;
   showRuntimePanel: string;
+  patchCompileStatusCompiled: string;
+  patchCompileStatusPending: string;
+  patchCompileStatusErrors: string;
   instrumentTabTitle: (index: number) => string;
   confirmDeleteSelection: (count: number) => string;
+  confirmDeletePatch: string;
+  confirmDeletePerformance: string;
   errors: {
     noActiveRuntimeSession: string;
     startInstrumentsFirstForSequencer: string;
@@ -410,8 +428,13 @@ const APP_COPY: Record<GuiLanguage, AppCopy> = {
     selectedSummary: (nodes, connections) => `Selected: ${nodes} opcode(s), ${connections} connection(s)`,
     showRuntime: "Show Runtime",
     showRuntimePanel: "Show runtime panel",
+    patchCompileStatusCompiled: "(compiled)",
+    patchCompileStatusPending: "(pending changes)",
+    patchCompileStatusErrors: "(errors)",
     instrumentTabTitle: (index) => `Instrument ${index}`,
     confirmDeleteSelection: (count) => `Delete ${count} selected elements?`,
+    confirmDeletePatch: "do you really want to delete this patch?",
+    confirmDeletePerformance: "do you really want to delete this performance?",
     errors: {
       noActiveRuntimeSession: "No active runtime session available.",
       startInstrumentsFirstForSequencer:
@@ -447,8 +470,13 @@ const APP_COPY: Record<GuiLanguage, AppCopy> = {
     selectedSummary: (nodes, connections) => `Ausgewaehlt: ${nodes} Opcode(s), ${connections} Verbindung(en)`,
     showRuntime: "Runtime anzeigen",
     showRuntimePanel: "Runtime-Panel anzeigen",
+    patchCompileStatusCompiled: "(kompiliert)",
+    patchCompileStatusPending: "(aenderungen offen)",
+    patchCompileStatusErrors: "(fehler)",
     instrumentTabTitle: (index) => `Instrument ${index}`,
     confirmDeleteSelection: (count) => `${count} ausgewaehlte Elemente loeschen?`,
+    confirmDeletePatch: "Willst du dieses Patch wirklich loeschen?",
+    confirmDeletePerformance: "Willst du diese Performance wirklich loeschen?",
     errors: {
       noActiveRuntimeSession: "Keine aktive Runtime-Session verfuegbar.",
       startInstrumentsFirstForSequencer:
@@ -485,8 +513,13 @@ const APP_COPY: Record<GuiLanguage, AppCopy> = {
     selectedSummary: (nodes, connections) => `Selection: ${nodes} opcode(s), ${connections} connexion(s)`,
     showRuntime: "Afficher runtime",
     showRuntimePanel: "Afficher panneau runtime",
+    patchCompileStatusCompiled: "(compile)",
+    patchCompileStatusPending: "(modifications en attente)",
+    patchCompileStatusErrors: "(erreurs)",
     instrumentTabTitle: (index) => `Instrument ${index}`,
     confirmDeleteSelection: (count) => `Supprimer ${count} elements selectionnes ?`,
+    confirmDeletePatch: "Voulez-vous vraiment supprimer ce patch ?",
+    confirmDeletePerformance: "Voulez-vous vraiment supprimer cette performance ?",
     errors: {
       noActiveRuntimeSession: "Aucune session runtime active disponible.",
       startInstrumentsFirstForSequencer:
@@ -524,8 +557,13 @@ const APP_COPY: Record<GuiLanguage, AppCopy> = {
     selectedSummary: (nodes, connections) => `Seleccionado: ${nodes} opcode(s), ${connections} conexion(es)`,
     showRuntime: "Mostrar runtime",
     showRuntimePanel: "Mostrar panel runtime",
+    patchCompileStatusCompiled: "(compilado)",
+    patchCompileStatusPending: "(cambios pendientes)",
+    patchCompileStatusErrors: "(errores)",
     instrumentTabTitle: (index) => `Instrumento ${index}`,
     confirmDeleteSelection: (count) => `Eliminar ${count} elementos seleccionados?`,
+    confirmDeletePatch: "Deseas eliminar este patch?",
+    confirmDeletePerformance: "Deseas eliminar esta performance?",
     errors: {
       noActiveRuntimeSession: "No hay una sesion runtime activa disponible.",
       startInstrumentsFirstForSequencer:
@@ -689,6 +727,7 @@ export default function App() {
   const refreshPatches = useAppStore((state) => state.refreshPatches);
   const refreshPerformances = useAppStore((state) => state.refreshPerformances);
   const loadPerformance = useAppStore((state) => state.loadPerformance);
+  const clearCurrentPerformanceSelection = useAppStore((state) => state.clearCurrentPerformanceSelection);
   const addInstrumentTab = useAppStore((state) => state.addInstrumentTab);
   const closeInstrumentTab = useAppStore((state) => state.closeInstrumentTab);
   const setActiveInstrumentTab = useAppStore((state) => state.setActiveInstrumentTab);
@@ -825,6 +864,8 @@ export default function App() {
   const [activeOpcodeDocumentation, setActiveOpcodeDocumentation] = useState<string | null>(null);
   const [sequencerError, setSequencerError] = useState<string | null>(null);
   const [instrumentPatchIoError, setInstrumentPatchIoError] = useState<string | null>(null);
+  const [lastCompiledPatchSignature, setLastCompiledPatchSignature] = useState<string | null>(null);
+  const [lastFailedPatchSignature, setLastFailedPatchSignature] = useState<string | null>(null);
   const [runtimePanelCollapsed, setRuntimePanelCollapsed] = useState(false);
   const [importSelectionDialog, setImportSelectionDialog] = useState<ImportSelectionDialogState | null>(null);
   const [importConflictDialog, setImportConflictDialog] = useState<{ items: ImportConflictDialogItem[] } | null>(null);
@@ -847,6 +888,175 @@ export default function App() {
     Record<string, { lastSampleSerial: number; signature: string; lastSentValue: number | null }>
   >({});
   const controllerSequencerPlaybackRafRef = useRef<number | null>(null);
+
+  const currentPatchCompileSignature = useMemo(
+    () => patchCompileSignatureFor(currentPatch, activeInstrumentTabId),
+    [activeInstrumentTabId, currentPatch]
+  );
+  const patchCompileBadge = useMemo<"compiled" | "pending" | "errors">(() => {
+    if (lastFailedPatchSignature === currentPatchCompileSignature) {
+      return "errors";
+    }
+    if (lastCompiledPatchSignature === currentPatchCompileSignature) {
+      return "compiled";
+    }
+    return "pending";
+  }, [currentPatchCompileSignature, lastCompiledPatchSignature, lastFailedPatchSignature]);
+
+  const compileCurrentPatchWithStatus = useCallback(async () => {
+    const signature = currentPatchCompileSignature;
+    const compileArtifact = await compileSession();
+    if (!compileArtifact) {
+      setLastFailedPatchSignature(signature);
+      return null;
+    }
+
+    setLastFailedPatchSignature(null);
+    setLastCompiledPatchSignature(signature);
+    return compileArtifact;
+  }, [compileSession, currentPatchCompileSignature]);
+
+  const onCompileCurrentPatch = useCallback(() => {
+    void compileCurrentPatchWithStatus();
+  }, [compileCurrentPatchWithStatus]);
+
+  const onSavePatchWithCompileValidation = useCallback(() => {
+    void (async () => {
+      const compileArtifact = await compileCurrentPatchWithStatus();
+      if (!compileArtifact) {
+        return;
+      }
+
+      await saveCurrentPatch();
+      const latestState = useAppStore.getState();
+      if (latestState.error) {
+        return;
+      }
+
+      setLastFailedPatchSignature(null);
+      setLastCompiledPatchSignature(
+        patchCompileSignatureFor(latestState.currentPatch, latestState.activeInstrumentTabId)
+      );
+    })();
+  }, [compileCurrentPatchWithStatus, saveCurrentPatch]);
+
+  const onCloneCurrentPatch = useCallback(() => {
+    void (async () => {
+      try {
+        const baseName = currentPatch.name.trim().length > 0 ? currentPatch.name.trim() : "Untitled Patch";
+        let cloneName = `${baseName} (copy)`;
+        let cloneIndex = 2;
+        while (findPatchByName(patches, cloneName)) {
+          cloneName = `${baseName} (copy ${cloneIndex})`;
+          cloneIndex += 1;
+        }
+
+        const cloned = await api.createPatch({
+          name: cloneName,
+          description: currentPatch.description,
+          schema_version: currentPatch.schema_version,
+          graph: currentPatch.graph
+        });
+        await refreshPatches();
+        await loadPatch(cloned.id);
+        setInstrumentPatchIoError(null);
+      } catch (cloneError) {
+        setInstrumentPatchIoError(cloneError instanceof Error ? cloneError.message : "Failed to clone patch.");
+      }
+    })();
+  }, [currentPatch, loadPatch, patches, refreshPatches]);
+
+  const onDeleteCurrentPatch = useCallback(() => {
+    if (!currentPatch.id) {
+      return;
+    }
+    if (!window.confirm(appCopy.confirmDeletePatch)) {
+      return;
+    }
+
+    void (async () => {
+      try {
+        const patchId = currentPatch.id as string;
+        await api.deletePatch(patchId);
+        const refreshed = await refreshPatches();
+        const nextPatch = refreshed.find((patch) => patch.id !== patchId) ?? refreshed[0] ?? null;
+        setInstrumentPatchIoError(null);
+        if (nextPatch) {
+          await loadPatch(nextPatch.id);
+        } else {
+          newPatch();
+        }
+      } catch (deleteError) {
+        setInstrumentPatchIoError(deleteError instanceof Error ? deleteError.message : "Failed to delete patch.");
+      }
+    })();
+  }, [appCopy.confirmDeletePatch, currentPatch.id, loadPatch, newPatch, refreshPatches]);
+
+  const onCloneCurrentPerformance = useCallback(() => {
+    void (async () => {
+      try {
+        const baseName = performanceName.trim().length > 0 ? performanceName.trim() : "Untitled Performance";
+        let cloneName = `${baseName} (copy)`;
+        let cloneIndex = 2;
+        while (findPerformanceByName(performances, cloneName)) {
+          cloneName = `${baseName} (copy ${cloneIndex})`;
+          cloneIndex += 1;
+        }
+
+        const cloned = await api.createPerformance({
+          name: cloneName,
+          description: performanceDescription,
+          config: buildSequencerConfigSnapshot()
+        });
+        await refreshPerformances();
+        await loadPerformance(cloned.id);
+        setSequencerError(null);
+      } catch (cloneError) {
+        setSequencerError(cloneError instanceof Error ? cloneError.message : "Failed to clone performance.");
+      }
+    })();
+  }, [
+    buildSequencerConfigSnapshot,
+    loadPerformance,
+    performanceDescription,
+    performanceName,
+    performances,
+    refreshPerformances
+  ]);
+
+  const onDeleteCurrentPerformance = useCallback(() => {
+    if (!currentPerformanceId) {
+      return;
+    }
+    if (!window.confirm(appCopy.confirmDeletePerformance)) {
+      return;
+    }
+
+    void (async () => {
+      try {
+        const deletedPerformanceId = currentPerformanceId;
+        await api.deletePerformance(deletedPerformanceId);
+        const refreshed = await refreshPerformances();
+        const nextPerformance = refreshed.find((performance) => performance.id !== deletedPerformanceId) ?? null;
+        if (nextPerformance) {
+          await loadPerformance(nextPerformance.id);
+        } else {
+          clearCurrentPerformanceSelection();
+        }
+        setSequencerError(null);
+      } catch (deleteError) {
+        setSequencerError(
+          deleteError instanceof Error ? deleteError.message : "Failed to delete performance."
+        );
+      }
+    })();
+  }, [
+    appCopy.confirmDeletePerformance,
+    clearCurrentPerformanceSelection,
+    currentPerformanceId,
+    loadPerformance,
+    refreshPerformances
+  ]);
 
   const onExportInstrumentDefinition = useCallback(() => {
     const exportedPatchName = currentPatch.name.trim().length > 0 ? currentPatch.name.trim() : "Untitled Patch";
@@ -2134,6 +2344,14 @@ export default function App() {
   const instrumentLayoutClassName = runtimePanelCollapsed
     ? "grid h-[68vh] grid-cols-1 gap-3 xl:grid-cols-[280px_1fr]"
     : "grid h-[68vh] grid-cols-1 gap-3 xl:grid-cols-[280px_1fr_340px]";
+  const patchCompileBadgeText =
+    patchCompileBadge === "compiled"
+      ? appCopy.patchCompileStatusCompiled
+      : patchCompileBadge === "errors"
+        ? appCopy.patchCompileStatusErrors
+        : appCopy.patchCompileStatusPending;
+  const patchCompileBadgeClass =
+    patchCompileBadge === "errors" ? "text-[11px] font-medium text-rose-300" : "text-[11px] font-medium text-orange-300";
 
   return (
     <div className="min-h-screen bg-[radial-gradient(ellipse_at_top_left,_#1e293b,_#020617_60%)] px-4 py-4 text-slate-100 sm:px-6 lg:px-8">
@@ -2239,11 +2457,13 @@ export default function App() {
                   void loadPatch(patchId);
                 }}
                 onNewPatch={newPatch}
+                onClonePatch={onCloneCurrentPatch}
+                onDeletePatch={onDeleteCurrentPatch}
                 onSavePatch={() => {
-                  void saveCurrentPatch();
+                  onSavePatchWithCompileValidation();
                 }}
                 onCompile={() => {
-                  void compileSession();
+                  onCompileCurrentPatch();
                 }}
                 onExportPatch={() => {
                   onExportInstrumentDefinition();
@@ -2280,8 +2500,11 @@ export default function App() {
               <section className="relative flex h-full min-h-[440px] flex-col gap-2">
                 <div className="rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="text-xs uppercase tracking-[0.16em] text-slate-400">
-                      {appCopy.graphStats(currentPatch.graph.nodes.length, currentPatch.graph.connections.length)}
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <div className="text-xs uppercase tracking-[0.16em] text-slate-400">
+                        {appCopy.graphStats(currentPatch.graph.nodes.length, currentPatch.graph.connections.length)}
+                      </div>
+                      <div className={patchCompileBadgeClass}>{patchCompileBadgeText}</div>
                     </div>
                     <HelpIconButton
                       guiLanguage={guiLanguage}
@@ -2366,6 +2589,8 @@ export default function App() {
             onSavePerformance={() => {
               void saveCurrentPerformance();
             }}
+            onClonePerformance={onCloneCurrentPerformance}
+            onDeletePerformance={onDeleteCurrentPerformance}
             onLoadPerformance={(performanceId) => {
               void loadPerformance(performanceId);
             }}

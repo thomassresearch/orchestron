@@ -71,6 +71,8 @@ type SequencerUiCopy = {
   current: string;
   addInstrument: string;
   savePerformance: string;
+  clonePerformance: string;
+  deletePerformance: string;
   export: string;
   import: string;
   noInstrumentHint: string;
@@ -81,6 +83,8 @@ type SequencerUiCopy = {
   rackTransport: string;
   startInstruments: string;
   stopInstruments: string;
+  startAll: string;
+  stopAll: string;
   sequencers: string;
   addSequencer: string;
   addControllerSequencer: string;
@@ -200,6 +204,8 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     current: "Current",
     addInstrument: "Add Instrument",
     savePerformance: "Save Performance",
+    clonePerformance: "Clone",
+    deletePerformance: "Delete",
     export: "Export",
     import: "Import",
     noInstrumentHint: "Add at least one saved instrument to start the engine.",
@@ -210,6 +216,8 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     rackTransport: "Rack Transport",
     startInstruments: "Start Instruments",
     stopInstruments: "Stop Instruments",
+    startAll: "Start All",
+    stopAll: "Stop All",
     sequencers: "Sequencers",
     addSequencer: "Add Sequencer",
     addControllerSequencer: "Add Controller Sequencer",
@@ -282,6 +290,8 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     current: "Aktuell",
     addInstrument: "Instrument hinzufuegen",
     savePerformance: "Performance speichern",
+    clonePerformance: "Klonen",
+    deletePerformance: "Loeschen",
     export: "Export",
     import: "Import",
     noInstrumentHint: "Fuege mindestens ein gespeichertes Instrument hinzu, um die Engine zu starten.",
@@ -292,6 +302,8 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     rackTransport: "Rack-Transport",
     startInstruments: "Instrumente starten",
     stopInstruments: "Instrumente stoppen",
+    startAll: "Alles starten",
+    stopAll: "Alles stoppen",
     sequencers: "Sequencer",
     addSequencer: "Sequencer hinzufuegen",
     addControllerSequencer: "Controller-Sequencer hinzufuegen",
@@ -364,6 +376,8 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     current: "Actuel",
     addInstrument: "Ajouter instrument",
     savePerformance: "Enregistrer performance",
+    clonePerformance: "Cloner",
+    deletePerformance: "Supprimer",
     export: "Exporter",
     import: "Importer",
     noInstrumentHint: "Ajoutez au moins un instrument sauvegarde pour demarrer le moteur.",
@@ -374,6 +388,8 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     rackTransport: "Transport du rack",
     startInstruments: "Demarrer instruments",
     stopInstruments: "Arreter instruments",
+    startAll: "Tout demarrer",
+    stopAll: "Tout arreter",
     sequencers: "Sequenceurs",
     addSequencer: "Ajouter sequenceur",
     addControllerSequencer: "Ajouter sequenceur controleur",
@@ -446,6 +462,8 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     current: "Actual",
     addInstrument: "Agregar instrumento",
     savePerformance: "Guardar performance",
+    clonePerformance: "Clonar",
+    deletePerformance: "Eliminar",
     export: "Exportar",
     import: "Importar",
     noInstrumentHint: "Agrega al menos un instrumento guardado para iniciar el motor.",
@@ -456,6 +474,8 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     rackTransport: "Transporte del rack",
     startInstruments: "Iniciar instrumentos",
     stopInstruments: "Detener instrumentos",
+    startAll: "Iniciar todo",
+    stopAll: "Detener todo",
     sequencers: "Secuenciadores",
     addSequencer: "Agregar secuenciador",
     addControllerSequencer: "Agregar secuenciador controlador",
@@ -1685,6 +1705,8 @@ interface SequencerPageProps {
   onPerformanceNameChange: (value: string) => void;
   onPerformanceDescriptionChange: (value: string) => void;
   onSavePerformance: () => void;
+  onClonePerformance: () => void;
+  onDeletePerformance: () => void;
   onLoadPerformance: (performanceId: string) => void;
   onExportConfig: () => void;
   onImportConfig: (file: File) => void;
@@ -1830,6 +1852,8 @@ export function SequencerPage({
   onPerformanceNameChange,
   onPerformanceDescriptionChange,
   onSavePerformance,
+  onClonePerformance,
+  onDeletePerformance,
   onLoadPerformance,
   onExportConfig,
   onImportConfig,
@@ -1952,6 +1976,7 @@ export function SequencerPage({
 
   const configFileInputRef = useRef<HTMLInputElement | null>(null);
   const [stepSelectPreview, setStepSelectPreview] = useState<Record<string, string>>({});
+  const [pendingStartAllPianoRolls, setPendingStartAllPianoRolls] = useState(false);
   const padTransposePressRef = useRef<Record<string, { timerId: number; longPressTriggered: boolean }>>({});
   const triggerConfigLoad = useCallback(() => {
     configFileInputRef.current?.click();
@@ -1965,6 +1990,100 @@ export function SequencerPage({
       padTransposePressRef.current = {};
     };
   }, []);
+
+  const enableAllNonPianoRollDevices = useCallback(() => {
+    for (const track of sequencer.tracks) {
+      if (!track.enabled) {
+        onSequencerTrackEnabledChange(track.id, true);
+      }
+    }
+    for (const controllerSequencer of sequencer.controllerSequencers) {
+      if (!controllerSequencer.enabled) {
+        onControllerSequencerEnabledChange(controllerSequencer.id, true);
+      }
+    }
+    for (const controller of sequencer.midiControllers) {
+      if (!controller.enabled) {
+        onMidiControllerEnabledChange(controller.id, true);
+      }
+    }
+  }, [
+    onControllerSequencerEnabledChange,
+    onMidiControllerEnabledChange,
+    onSequencerTrackEnabledChange,
+    sequencer.controllerSequencers,
+    sequencer.midiControllers,
+    sequencer.tracks
+  ]);
+
+  const enableAllPianoRolls = useCallback(() => {
+    for (const roll of sequencer.pianoRolls) {
+      if (!roll.enabled) {
+        onPianoRollEnabledChange(roll.id, true);
+      }
+    }
+  }, [onPianoRollEnabledChange, sequencer.pianoRolls]);
+
+  const disableAllDevices = useCallback(() => {
+    for (const track of sequencer.tracks) {
+      if (track.enabled || track.queuedEnabled === true) {
+        onSequencerTrackEnabledChange(track.id, false);
+      }
+    }
+    for (const controllerSequencer of sequencer.controllerSequencers) {
+      if (controllerSequencer.enabled) {
+        onControllerSequencerEnabledChange(controllerSequencer.id, false);
+      }
+    }
+    for (const roll of sequencer.pianoRolls) {
+      if (roll.enabled) {
+        onPianoRollEnabledChange(roll.id, false);
+      }
+    }
+    for (const controller of sequencer.midiControllers) {
+      if (controller.enabled) {
+        onMidiControllerEnabledChange(controller.id, false);
+      }
+    }
+  }, [
+    onControllerSequencerEnabledChange,
+    onMidiControllerEnabledChange,
+    onPianoRollEnabledChange,
+    onSequencerTrackEnabledChange,
+    sequencer.controllerSequencers,
+    sequencer.midiControllers,
+    sequencer.pianoRolls,
+    sequencer.tracks
+  ]);
+
+  const handleStartAll = useCallback(() => {
+    enableAllNonPianoRollDevices();
+
+    if (instrumentsRunning) {
+      enableAllPianoRolls();
+      setPendingStartAllPianoRolls(false);
+      return;
+    }
+
+    setPendingStartAllPianoRolls(sequencer.pianoRolls.some((roll) => !roll.enabled));
+    onStartInstruments();
+  }, [enableAllNonPianoRollDevices, enableAllPianoRolls, instrumentsRunning, onStartInstruments, sequencer.pianoRolls]);
+
+  const handleStopAll = useCallback(() => {
+    setPendingStartAllPianoRolls(false);
+    disableAllDevices();
+    if (instrumentsRunning) {
+      onStopInstruments();
+    }
+  }, [disableAllDevices, instrumentsRunning, onStopInstruments]);
+
+  useEffect(() => {
+    if (!pendingStartAllPianoRolls || !instrumentsRunning) {
+      return;
+    }
+    enableAllPianoRolls();
+    setPendingStartAllPianoRolls(false);
+  }, [enableAllPianoRolls, instrumentsRunning, pendingStartAllPianoRolls]);
 
   const handleConfigFileChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
@@ -2138,6 +2257,21 @@ export function SequencerPage({
           </button>
           <button
             type="button"
+            onClick={onClonePerformance}
+            className="rounded-md border border-slate-500 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-300 hover:text-white"
+          >
+            {ui.clonePerformance}
+          </button>
+          <button
+            type="button"
+            onClick={onDeletePerformance}
+            disabled={!currentPerformanceId}
+            className="rounded-md border border-rose-500/60 bg-rose-500/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-rose-200 transition hover:bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {ui.deletePerformance}
+          </button>
+          <button
+            type="button"
             onClick={onExportConfig}
             className="rounded-md border border-slate-500 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-300 hover:text-white"
           >
@@ -2161,7 +2295,7 @@ export function SequencerPage({
             instrumentBindings.map((binding, index) => (
               <div
                 key={binding.id}
-                className="grid grid-cols-[minmax(0,_1fr)_88px_auto] items-end gap-2 rounded-lg border border-slate-700 bg-slate-900/60 px-2 py-2"
+                className="grid grid-cols-[minmax(0,_1fr)_88px_auto] items-end gap-2 rounded-lg border border-slate-600/80 bg-slate-800/75 px-2 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
               >
                 <label className="flex min-w-0 flex-col gap-1">
                   <span className="text-[10px] uppercase tracking-[0.16em] text-slate-400">{ui.patch(index + 1)}</span>
@@ -2219,6 +2353,12 @@ export function SequencerPage({
             >
               {ui.stopInstruments}
             </button>
+            <button type="button" onClick={handleStartAll} className={transportStartButtonClass}>
+              {ui.startAll}
+            </button>
+            <button type="button" onClick={handleStopAll} className={transportStopButtonClass}>
+              {ui.stopAll}
+            </button>
             <span className={transportStateClass}>{instrumentsRunning ? ui.running : ui.stopped}</span>
           </div>
         </div>
@@ -2246,7 +2386,7 @@ export function SequencerPage({
           <button
             type="button"
             onClick={onAddControllerSequencer}
-            className="rounded-md border border-teal-400/60 bg-teal-400/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-teal-200 transition hover:bg-teal-400/20"
+            className="rounded-md border border-accent/60 bg-accent/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-accent transition hover:bg-accent/25"
           >
             {ui.addControllerSequencer}
           </button>

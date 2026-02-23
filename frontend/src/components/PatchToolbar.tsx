@@ -21,6 +21,8 @@ interface PatchToolbarProps {
   onPatchDescriptionChange: (value: string) => void;
   onSelectPatch: (patchId: string) => void;
   onNewPatch: () => void;
+  onClonePatch: () => void;
+  onDeletePatch: () => void;
   onSavePatch: () => void;
   onCompile: () => void;
   onExportCsd: () => void;
@@ -38,6 +40,8 @@ type PatchToolbarCopy = {
   loadPatch: string;
   currentPatch: string;
   newPatch: string;
+  clonePatch: string;
+  deletePatch: string;
   savePatch: string;
   compilePatch: string;
   exportCsd: string;
@@ -56,6 +60,8 @@ const PATCH_TOOLBAR_COPY: Record<GuiLanguage, PatchToolbarCopy> = {
     loadPatch: "Load Patch",
     currentPatch: "Current",
     newPatch: "New",
+    clonePatch: "Clone",
+    deletePatch: "Delete",
     savePatch: "Save",
     compilePatch: "Compile",
     exportCsd: "Export CSD",
@@ -72,6 +78,8 @@ const PATCH_TOOLBAR_COPY: Record<GuiLanguage, PatchToolbarCopy> = {
     loadPatch: "Patch laden",
     currentPatch: "Aktuell",
     newPatch: "Neu",
+    clonePatch: "Klonen",
+    deletePatch: "Loeschen",
     savePatch: "Speichern",
     compilePatch: "Kompilieren",
     exportCsd: "CSD exportieren",
@@ -88,6 +96,8 @@ const PATCH_TOOLBAR_COPY: Record<GuiLanguage, PatchToolbarCopy> = {
     loadPatch: "Charger patch",
     currentPatch: "Actuel",
     newPatch: "Nouveau",
+    clonePatch: "Cloner",
+    deletePatch: "Supprimer",
     savePatch: "Enregistrer",
     compilePatch: "Compiler",
     exportCsd: "Exporter CSD",
@@ -104,6 +114,8 @@ const PATCH_TOOLBAR_COPY: Record<GuiLanguage, PatchToolbarCopy> = {
     loadPatch: "Cargar patch",
     currentPatch: "Actual",
     newPatch: "Nuevo",
+    clonePatch: "Clonar",
+    deletePatch: "Eliminar",
     savePatch: "Guardar",
     compilePatch: "Compilar",
     exportCsd: "Exportar CSD",
@@ -204,6 +216,22 @@ export function PatchToolbar(props: PatchToolbarProps) {
           type="button"
         >
           {copy.newPatch}
+        </button>
+        <button
+          className="rounded-lg border border-slate-500 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-slate-200 transition hover:border-slate-300 hover:text-white"
+          onClick={props.onClonePatch}
+          type="button"
+          disabled={props.loading}
+        >
+          {copy.clonePatch}
+        </button>
+        <button
+          className="rounded-lg border border-rose-500/55 bg-rose-500/12 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-rose-200 transition hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+          onClick={props.onDeletePatch}
+          type="button"
+          disabled={props.loading || !props.currentPatchId}
+        >
+          {copy.deletePatch}
         </button>
         <button
           className="rounded-lg border border-mint/50 bg-mint/15 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-mint transition hover:bg-mint/25"
