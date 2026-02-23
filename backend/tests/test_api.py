@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+from io import BytesIO
+import json
 import os
 import time
 from pathlib import Path
+import zipfile
 
 from fastapi.testclient import TestClient
 
@@ -1296,6 +1299,413 @@ def test_gen_audio_asset_upload_persists_file(tmp_path: Path) -> None:
         assert stored_path.read_bytes() == payload
 
 
+def test_patch_bundle_export_uses_zip_when_gen_audio_is_referenced(tmp_path: Path) -> None:
+    asset_dir = tmp_path / "gen_audio_assets"
+    asset_dir.mkdir(parents=True, exist_ok=True)
+    stored_name = "sample.aiff"
+    audio_bytes = b"FORMfake"
+    (asset_dir / stored_name).write_bytes(audio_bytes)
+
+    payload = {
+        "sourcePatchId": "patch-1",
+        "name": "Bundled Patch",
+        "description": "zip export",
+        "schema_version": 1,
+        "graph": {
+            "nodes": [{"id": "g1", "opcode": "GEN", "params": {}, "position": {"x": 0, "y": 0}}],
+            "connections": [],
+            "ui_layout": {
+                "gen_nodes": {
+                    "g1": {
+                        "mode": "ftgen",
+                        "tableNumber": 5,
+                        "startTime": 0,
+                        "tableSize": 0,
+                        "routineNumber": 1,
+                        "normalize": True,
+                        "sampleAsset": {
+                            "asset_id": "asset-1",
+                            "original_name": "demo.aiff",
+                            "stored_name": stored_name,
+                            "content_type": "audio/aiff",
+                            "size_bytes": len(audio_bytes),
+                        },
+                        "sampleSkipTime": 0,
+                        "sampleFormat": 0,
+                        "sampleChannel": 0,
+                    }
+                }
+            },
+            "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+        },
+    }
+
+    with _client(tmp_path) as client:
+        response = client.post("/api/bundles/export/patch", json=payload)
+        assert response.status_code == 200
+        assert response.headers["x-orchestron-export-format"] == "zip"
+        assert response.headers["content-type"].startswith("application/zip")
+
+        with zipfile.ZipFile(BytesIO(response.content), "r") as archive:
+            entries = set(archive.namelist())
+            assert "instrument.orch.instrument.json" in entries
+            assert f"audio/{stored_name}" in entries
+            exported_json = json.loads(archive.read("instrument.orch.instrument.json").decode("utf-8"))
+            assert exported_json["name"] == "Bundled Patch"
+            assert archive.read(f"audio/{stored_name}") == audio_bytes
+
+
+def test_performance_bundle_export_uses_zip_when_patch_definitions_reference_gen_audio(tmp_path: Path) -> None:
+    asset_dir = tmp_path / "gen_audio_assets"
+    asset_dir.mkdir(parents=True, exist_ok=True)
+    stored_name = "sample.wav"
+    audio_bytes = b"RIFFdemoWAVEfmt "
+    (asset_dir / stored_name).write_bytes(audio_bytes)
+
+    payload = {
+        "format": "orchestron.performance",
+        "version": 1,
+        "exported_at": "2026-02-23T12:00:00Z",
+        "performance": {
+            "name": "Bundled Performance",
+            "description": "",
+            "config": {
+                "version": 1,
+                "bpm": 120,
+                "stepCount": 16,
+                "tracks": [],
+                "pianoRolls": [],
+                "midiControllers": [],
+                "instruments": [{"patchId": "patch-1", "patchName": "Patch A", "midiChannel": 1}],
+            },
+        },
+        "patch_definitions": [
+            {
+                "sourcePatchId": "patch-1",
+                "name": "Patch A",
+                "description": "",
+                "schema_version": 1,
+                "graph": {
+                    "nodes": [{"id": "g1", "opcode": "GEN", "params": {}, "position": {"x": 0, "y": 0}}],
+                    "connections": [],
+                    "ui_layout": {
+                        "gen_nodes": {
+                            "g1": {
+                                "mode": "ftgen",
+                                "tableNumber": 5,
+                                "startTime": 0,
+                                "tableSize": 0,
+                                "routineNumber": 1,
+                                "normalize": True,
+                                "sampleAsset": {
+                                    "asset_id": "asset-1",
+                                    "original_name": "demo.wav",
+                                    "stored_name": stored_name,
+                                    "content_type": "audio/wav",
+                                    "size_bytes": len(audio_bytes),
+                                },
+                            }
+                        }
+                    },
+                    "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+                },
+            }
+        ],
+    }
+
+    with _client(tmp_path) as client:
+        response = client.post("/api/bundles/export/performance", json=payload)
+        assert response.status_code == 200
+        assert response.headers["x-orchestron-export-format"] == "zip"
+        with zipfile.ZipFile(BytesIO(response.content), "r") as archive:
+            entries = set(archive.namelist())
+            assert "performance.orch.json" in entries
+            assert f"audio/{stored_name}" in entries
+            exported_json = json.loads(archive.read("performance.orch.json").decode("utf-8"))
+            assert exported_json["format"] == "orchestron.performance"
+
+
+def test_bundle_import_expand_restores_audio_files_with_identical_filename(tmp_path: Path) -> None:
+    stored_name = "aa963aa1-921d-41f8-a250-2b0fa13713b3.aiff"
+    audio_bytes = b"FORMfake"
+    payload = {
+        "sourcePatchId": "patch-1",
+        "name": "Imported Patch",
+        "description": "",
+        "schema_version": 1,
+        "graph": {
+            "nodes": [{"id": "g1", "opcode": "GEN", "params": {}, "position": {"x": 0, "y": 0}}],
+            "connections": [],
+            "ui_layout": {
+                "gen_nodes": {
+                    "g1": {
+                        "mode": "ftgen",
+                        "tableNumber": 5,
+                        "startTime": 0,
+                        "tableSize": 0,
+                        "routineNumber": 1,
+                        "normalize": True,
+                        "sampleAsset": {
+                            "asset_id": "asset-1",
+                            "original_name": "demo.aiff",
+                            "stored_name": stored_name,
+                            "content_type": "audio/aiff",
+                            "size_bytes": len(audio_bytes),
+                        },
+                        "sampleSkipTime": 0,
+                        "sampleFormat": 0,
+                        "sampleChannel": 0,
+                    }
+                }
+            },
+            "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+        },
+    }
+
+    archive_bytes = BytesIO()
+    with zipfile.ZipFile(archive_bytes, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("anything.orch.instrument.json", json.dumps(payload).encode("utf-8"))
+        archive.writestr(f"audio/{stored_name}", audio_bytes)
+
+    with _client(tmp_path) as client:
+        response = client.post(
+            "/api/bundles/import/expand",
+            content=archive_bytes.getvalue(),
+            headers={
+                "X-File-Name": "bundle.orch.instrument.zip",
+                "Content-Type": "application/zip",
+            },
+        )
+        assert response.status_code == 200
+        parsed = response.json()
+        assert parsed["name"] == "Imported Patch"
+        stored_path = tmp_path / "gen_audio_assets" / stored_name
+        assert stored_path.exists()
+        assert stored_path.read_bytes() == audio_bytes
+
+
+def test_gen01_uploaded_asset_uses_numeric_filecode_alias(tmp_path: Path) -> None:
+    asset_dir = tmp_path / "gen_audio_assets"
+    asset_dir.mkdir(parents=True, exist_ok=True)
+    stored_name = "sample.aiff"
+    (asset_dir / stored_name).write_bytes(b"FORMfake")
+
+    with _client(tmp_path) as client:
+        patch_payload = {
+            "name": "GEN01 Filename Workaround",
+            "description": "GEN01 filename is emitted via string variable",
+            "schema_version": 1,
+            "graph": {
+                "nodes": [
+                    {"id": "g1", "opcode": "GEN", "params": {}, "position": {"x": 40, "y": 40}},
+                    {"id": "v1", "opcode": "vco", "params": {"amp": 0.2, "freq": 220, "iwave": 1}, "position": {"x": 280, "y": 40}},
+                    {"id": "o1", "opcode": "outs", "params": {}, "position": {"x": 520, "y": 40}},
+                ],
+                "connections": [
+                    {"from_node_id": "g1", "from_port_id": "ift", "to_node_id": "v1", "to_port_id": "ifn"},
+                    {"from_node_id": "v1", "from_port_id": "asig", "to_node_id": "o1", "to_port_id": "left"},
+                    {"from_node_id": "v1", "from_port_id": "asig", "to_node_id": "o1", "to_port_id": "right"},
+                ],
+                "ui_layout": {
+                    "gen_nodes": {
+                        "g1": {
+                            "mode": "ftgen",
+                            "tableNumber": 5,
+                            "startTime": 0,
+                            "tableSize": 0,
+                            "routineNumber": 1,
+                            "normalize": True,
+                            "sampleAsset": {
+                                "asset_id": "asset-1",
+                                "original_name": "demo.aiff",
+                                "stored_name": stored_name,
+                                "content_type": "audio/aiff",
+                                "size_bytes": 8,
+                            },
+                            "sampleSkipTime": 0,
+                            "sampleFormat": 0,
+                            "sampleChannel": 0,
+                        }
+                    }
+                },
+                "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+            },
+        }
+
+        create_patch = client.post("/api/patches", json=patch_payload)
+        assert create_patch.status_code == 201
+        patch_id = create_patch.json()["id"]
+
+        create_session = client.post("/api/sessions", json={"patch_id": patch_id})
+        assert create_session.status_code == 201
+        session_id = create_session.json()["session_id"]
+
+        compile_response = client.post(f"/api/sessions/{session_id}/compile")
+        assert compile_response.status_code == 200
+        compiled_orc = compile_response.json()["orc"]
+
+        gen01_line = next(line.strip() for line in compiled_orc.splitlines() if " ftgen 5, 0, 0, 1," in line)
+        assert "ftgenonce" not in gen01_line
+        assert '"sample.aiff"' not in gen01_line
+        assert "S_g1_gen01_file" not in gen01_line
+        assert gen01_line.endswith(", 0, 0, 0")
+
+        gen_args = gen01_line.split(" ftgen ", 1)[1].split(", ")
+        assert len(gen_args) == 8
+        filecode = int(gen_args[4])
+        alias_path = asset_dir / f"soundin.{filecode}"
+        assert alias_path.exists()
+        assert alias_path.samefile(asset_dir / stored_name)
+
+
+def test_gen01_ftgenonce_mode_is_coerced_to_ftgen(tmp_path: Path) -> None:
+    asset_dir = tmp_path / "gen_audio_assets"
+    asset_dir.mkdir(parents=True, exist_ok=True)
+    stored_name = "sample.aiff"
+    (asset_dir / stored_name).write_bytes(b"FORMfake")
+
+    with _client(tmp_path) as client:
+        patch_payload = {
+            "name": "GEN01 ftgenonce coercion",
+            "description": "GEN01 should compile as ftgen to avoid ftgenonce.iS runtime issue",
+            "schema_version": 1,
+            "graph": {
+                "nodes": [
+                    {"id": "g1", "opcode": "GEN", "params": {}, "position": {"x": 40, "y": 40}},
+                    {"id": "v1", "opcode": "vco", "params": {"amp": 0.2, "freq": 220, "iwave": 1}, "position": {"x": 280, "y": 40}},
+                    {"id": "o1", "opcode": "outs", "params": {}, "position": {"x": 520, "y": 40}},
+                ],
+                "connections": [
+                    {"from_node_id": "g1", "from_port_id": "ift", "to_node_id": "v1", "to_port_id": "ifn"},
+                    {"from_node_id": "v1", "from_port_id": "asig", "to_node_id": "o1", "to_port_id": "left"},
+                    {"from_node_id": "v1", "from_port_id": "asig", "to_node_id": "o1", "to_port_id": "right"},
+                ],
+                "ui_layout": {
+                    "gen_nodes": {
+                        "g1": {
+                            "mode": "ftgenonce",
+                            "tableNumber": 5,
+                            "startTime": 0,
+                            "tableSize": 16384,
+                            "routineNumber": 1,
+                            "normalize": True,
+                            "sampleAsset": {
+                                "asset_id": "asset-1",
+                                "original_name": "demo.aiff",
+                                "stored_name": stored_name,
+                                "content_type": "audio/aiff",
+                                "size_bytes": 8,
+                            },
+                            "sampleSkipTime": 0,
+                            "sampleFormat": 0,
+                            "sampleChannel": 0,
+                        }
+                    }
+                },
+                "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+            },
+        }
+
+        create_patch = client.post("/api/patches", json=patch_payload)
+        assert create_patch.status_code == 201
+        patch_id = create_patch.json()["id"]
+
+        create_session = client.post("/api/sessions", json={"patch_id": patch_id})
+        assert create_session.status_code == 201
+        session_id = create_session.json()["session_id"]
+
+        compile_response = client.post(f"/api/sessions/{session_id}/compile")
+        assert compile_response.status_code == 200
+        compiled_orc = compile_response.json()["orc"]
+
+        gen01_line = next(line.strip() for line in compiled_orc.splitlines() if " ftgen 5, " in line)
+        assert " ftgenonce " not in gen01_line
+        assert "S_g1_gen01_file" not in gen01_line
+
+
+def test_gen_meta_opcode_supports_gen11_gen17_gen20(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        patch_payload = {
+            "name": "GEN 11 17 20",
+            "description": "Routine-specific GEN forms compile correctly",
+            "schema_version": 1,
+            "graph": {
+                "nodes": [
+                    {"id": "g11", "opcode": "GEN", "params": {}, "position": {"x": 40, "y": 40}},
+                    {"id": "g17", "opcode": "GEN", "params": {}, "position": {"x": 40, "y": 180}},
+                    {"id": "g20", "opcode": "GEN", "params": {}, "position": {"x": 40, "y": 320}},
+                    {"id": "v1", "opcode": "vco", "params": {"amp": 0.2, "freq": 220, "iwave": 1}, "position": {"x": 300, "y": 40}},
+                    {"id": "o1", "opcode": "outs", "params": {}, "position": {"x": 540, "y": 40}},
+                ],
+                "connections": [
+                    {"from_node_id": "g11", "from_port_id": "ift", "to_node_id": "v1", "to_port_id": "ifn"},
+                    {"from_node_id": "v1", "from_port_id": "asig", "to_node_id": "o1", "to_port_id": "left"},
+                    {"from_node_id": "v1", "from_port_id": "asig", "to_node_id": "o1", "to_port_id": "right"},
+                ],
+                "ui_layout": {
+                    "gen_nodes": {
+                        "g11": {
+                            "mode": "ftgen",
+                            "tableNumber": 11,
+                            "startTime": 0,
+                            "tableSize": 2048,
+                            "routineNumber": 11,
+                            "normalize": True,
+                            "gen11HarmonicCount": 8,
+                            "gen11LowestHarmonic": 2,
+                            "gen11Multiplier": 0.5,
+                        },
+                        "g17": {
+                            "mode": "ftgen",
+                            "tableNumber": 17,
+                            "startTime": 0,
+                            "tableSize": 128,
+                            "routineNumber": 17,
+                            "normalize": False,
+                            "gen17Pairs": [
+                                {"x": 0, "y": 60},
+                                {"x": 12, "y": 62},
+                                {"x": 24, "y": 67},
+                            ],
+                        },
+                        "g20": {
+                            "mode": "ftgenonce",
+                            "tableNumber": 20,
+                            "tableSize": 1024,
+                            "routineNumber": 20,
+                            "normalize": True,
+                            "gen20WindowType": 7,
+                            "gen20Max": 1,
+                            "gen20Opt": 6.8,
+                        },
+                    }
+                },
+                "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+            },
+        }
+
+        create_patch = client.post("/api/patches", json=patch_payload)
+        assert create_patch.status_code == 201
+        patch_id = create_patch.json()["id"]
+
+        create_session = client.post("/api/sessions", json={"patch_id": patch_id})
+        assert create_session.status_code == 201
+        session_id = create_session.json()["session_id"]
+
+        compile_response = client.post(f"/api/sessions/{session_id}/compile")
+        assert compile_response.status_code == 200
+        compiled_orc = compile_response.json()["orc"]
+
+        gen11_line = next(line.strip() for line in compiled_orc.splitlines() if " ftgen 11, 0, 2048, 11," in line)
+        assert gen11_line.endswith("ftgen 11, 0, 2048, 11, 8, 2, 0.5")
+
+        gen17_line = next(line.strip() for line in compiled_orc.splitlines() if " ftgen 17, 0, 128, -17," in line)
+        assert gen17_line.endswith("ftgen 17, 0, 128, -17, 0, 60, 12, 62, 24, 67")
+
+        gen20_line = next(line.strip() for line in compiled_orc.splitlines() if " ftgenonce 20, 0, 1024, 20," in line)
+        assert gen20_line.endswith("ftgenonce 20, 0, 1024, 20, 7, 1, 6.8")
+
+
 def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
     expected_urls = {
         "lfo": "https://csound.com/docs/manual/lfo.html",
@@ -1357,6 +1767,11 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         "outleta": "https://csound.com/docs/manual/outleta.html",
         "inletk": "https://csound.com/docs/manual/inletk.html",
         "inleta": "https://csound.com/docs/manual/inleta.html",
+        "rms": "https://csound.com/docs/manual/rms.html",
+        "samphold": "https://csound.com/docs/manual/samphold.html",
+        "sfload": "https://csound.com/docs/manual/sfload.html",
+        "sfplay3": "https://csound.com/docs/manual/sfplay3.html",
+        "sfinstr3": "https://csound.com/docs/manual/sfinstr3.html",
         "vco2": "https://csound.com/docs/manual/vco2.html",
         "dripwater": "https://csound.com/docs/manual/dripwater.html",
     }
@@ -1382,6 +1797,11 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         linsegr_inputs = {item["id"]: item for item in opcodes_by_name["linsegr"]["inputs"]}
         for required_port in ["ia", "idur1", "ib", "irel", "iz"]:
             assert linsegr_inputs[required_port]["required"] is True
+
+        sfload_inputs = {item["id"]: item for item in opcodes_by_name["sfload"]["inputs"]}
+        sfload_outputs = {item["id"]: item for item in opcodes_by_name["sfload"]["outputs"]}
+        assert sfload_inputs["filename"]["signal_type"] == "S"
+        assert sfload_outputs["ifilhandle"]["signal_type"] == "i"
 
 
 def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
@@ -1464,12 +1884,27 @@ def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
                         "params": {"sname": "a_bus", "asignal": 0},
                         "position": {"x": 20, "y": 3070},
                     },
+                    {"id": "n63", "opcode": "rms", "params": {"asig": 0}, "position": {"x": 20, "y": 3120}},
+                    {"id": "n64", "opcode": "samphold", "params": {}, "position": {"x": 20, "y": 3170}},
+                    {
+                        "id": "n65",
+                        "opcode": "sfload",
+                        "params": {},
+                        "position": {"x": 20, "y": 3220},
+                    },
+                    {"id": "n66", "opcode": "sfplay3", "params": {"ipreindex": 0}, "position": {"x": 20, "y": 3270}},
+                    {
+                        "id": "n67",
+                        "opcode": "sfinstr3",
+                        "params": {"ifilhandle": 1, "instrnum": 0},
+                        "position": {"x": 20, "y": 3320},
+                    },
                 ],
                 "connections": [
                     {"from_node_id": "n1", "from_port_id": "asig", "to_node_id": "n2", "to_port_id": "left"},
                     {"from_node_id": "n1", "from_port_id": "asig", "to_node_id": "n2", "to_port_id": "right"},
                 ],
-                "ui_layout": {},
+                "ui_layout": {"sfload_nodes": {"n65": {"samplePath": "/tmp/test.sf2"}}},
                 "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
             },
         }
@@ -1549,8 +1984,14 @@ def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
             "inleta",
             "outletk",
             "outleta",
+            "rms",
+            "samphold",
+            "sfload",
+            "sfplay3",
+            "sfinstr3",
         ]:
             assert opcode in compiled_orc
+        assert 'sfload "/tmp/test.sf2"' in compiled_orc
 
 
 def test_multi_instrument_session_compiles_distinct_channel_mappings(tmp_path: Path) -> None:

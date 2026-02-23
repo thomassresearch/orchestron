@@ -33,12 +33,19 @@ class EngineStartResult:
 
 
 class CsoundWorker:
-    def __init__(self, *, webrtc_ice_servers: list[dict[str, Any]] | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        webrtc_ice_servers: list[dict[str, Any]] | None = None,
+        gen_audio_assets_dir: str | None = None,
+    ) -> None:
         self._backend = "mock"
         self._audio_output_mode = self._resolve_audio_output_mode(
             os.getenv("VISUALCSOUND_AUDIO_OUTPUT_MODE", "local")
         )
         self._webrtc_ice_servers = [dict(server) for server in (webrtc_ice_servers or [])]
+        configured_assets_dir = (gen_audio_assets_dir or os.getenv("VISUALCSOUND_GEN_AUDIO_ASSETS_DIR", "")).strip()
+        self._gen_audio_assets_dir = os.path.abspath(configured_assets_dir) if configured_assets_dir else None
         self._csound: Any | None = None
         self._thread: threading.Thread | None = None
         self._running = False
@@ -213,6 +220,7 @@ class CsoundWorker:
                 csound.setOption(f"-+rtmidi={module}")
                 if rtaudio_option:
                     csound.setOption(f"-+rtaudio={rtaudio_option}")
+                self._apply_gen_audio_search_dir_option(csound)
 
                 compile_result = csound.compileCsdText(runtime_csd)
                 if compile_result != 0:
@@ -279,6 +287,7 @@ class CsoundWorker:
                 csound.setOption(f"-B{hardware_buffer}")
                 csound.setOption(f"-M{midi_input}")
                 csound.setOption(f"-+rtmidi={module}")
+                self._apply_gen_audio_search_dir_option(csound)
                 self._configure_host_midi_callbacks(csound)
 
                 compile_result = csound.compileCsdText(runtime_csd)
@@ -416,6 +425,11 @@ class CsoundWorker:
         finally:
             self._csound = None
             self._thread = None
+
+    def _apply_gen_audio_search_dir_option(self, csound: Any) -> None:
+        if not self._gen_audio_assets_dir:
+            return
+        csound.setOption(f"--env:SSDIR={self._gen_audio_assets_dir}")
 
     @staticmethod
     def _teardown_csound(csound: object) -> None:

@@ -8,6 +8,16 @@ export default defineConfig(({ command }) => ({
     rollupOptions: {
       output: {
         manualChunks(id) {
+          if (
+            id.includes("/src/lib/documentation.ts") ||
+            id.includes("/src/lib/opcodeDocDetails.json") ||
+            id.includes("/src/components/OpcodeDocumentationModal.tsx") ||
+            id.includes("/src/components/HelpDocumentationModal.tsx") ||
+            id.includes("/src/components/MarkdownRenderer.tsx")
+          ) {
+            return "docs";
+          }
+
           if (id.includes("node_modules/rete") || id.includes("node_modules/rete-")) {
             return "rete-vendor";
           }

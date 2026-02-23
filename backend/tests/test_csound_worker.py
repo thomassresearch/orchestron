@@ -174,3 +174,62 @@ def test_start_ctcsound_falls_back_to_supported_rtmidi_module(monkeypatch) -> No
     assert "-B512" in instances[1].options
     assert "-+rtaudio=auhal" in instances[0].options
     assert "-+rtaudio=auhal" in instances[1].options
+
+
+def test_start_ctcsound_sets_ssdir_option_for_gen_audio_assets(monkeypatch, tmp_path) -> None:
+    monkeypatch.setattr("backend.app.engine.csound_worker.sys.platform", "linux")
+
+    class FakeCsound:
+        def __init__(self) -> None:
+            self.options: list[str] = []
+
+        def setOption(self, option: str) -> None:  # noqa: N802
+            self.options.append(option)
+
+        def compileCsdText(self, _csd: str) -> int:  # noqa: N802
+            return 0
+
+        def start(self) -> int:
+            return 0
+
+        def perform(self) -> int:
+            return 0
+
+        def stop(self) -> None:
+            return None
+
+        def cleanup(self) -> None:
+            return None
+
+        def reset(self) -> None:
+            return None
+
+    class FakeCtcsound:
+        def __init__(self) -> None:
+            self.instance = FakeCsound()
+
+        def Csound(self) -> FakeCsound:  # noqa: N802
+            return self.instance
+
+    assets_dir = tmp_path / "gen_audio_assets"
+    worker = CsoundWorker(gen_audio_assets_dir=str(assets_dir))
+    worker._backend = "ctcsound"
+    worker._ctcsound = FakeCtcsound()
+
+    csd = "\n".join(
+        [
+            "<CsoundSynthesizer>",
+            "<CsOptions>",
+            "-d -odac -M0 -+rtmidi=alsaseq",
+            "</CsOptions>",
+            "<CsInstruments>",
+            "instr 1",
+            "endin",
+            "</CsInstruments>",
+            "</CsoundSynthesizer>",
+        ]
+    )
+
+    worker.start(csd=csd, midi_input="0", rtmidi_module="alsaseq")
+
+    assert f"--env:SSDIR={assets_dir.resolve()}" in worker._ctcsound.instance.options

@@ -183,11 +183,15 @@ function sanitizeCsdFileBaseName(value: string): string {
 }
 
 function sanitizePerformanceFileBaseName(value: string): string {
-  return sanitizeFileBaseName(value, "orchestron_performance", [/\.orch\.json$/i, /\.json$/i]);
+  return sanitizeFileBaseName(value, "orchestron_performance", [/\.orch\.zip$/i, /\.orch\.json$/i, /\.json$/i]);
 }
 
 function sanitizeInstrumentDefinitionFileBaseName(value: string): string {
-  return sanitizeFileBaseName(value, "orchestron_instrument", [/\.orch\.instrument\.json$/i, /\.json$/i]);
+  return sanitizeFileBaseName(
+    value,
+    "orchestron_instrument",
+    [/\.orch\.instrument\.zip$/i, /\.orch\.instrument\.json$/i, /\.json$/i]
+  );
 }
 
 function normalizeNameKey(value: string): string {
@@ -1427,25 +1431,31 @@ export default function App() {
   ]);
 
   const onExportInstrumentDefinition = useCallback(() => {
-    const exportedPatchName = currentPatch.name.trim().length > 0 ? currentPatch.name.trim() : "Untitled Patch";
-    const payload: ExportedPatchDefinition = {
-      sourcePatchId: currentPatch.id ?? activeInstrumentTabId,
-      name: exportedPatchName,
-      description: currentPatch.description,
-      schema_version: currentPatch.schema_version,
-      graph: currentPatch.graph
-    };
+    void (async () => {
+      const exportedPatchName = currentPatch.name.trim().length > 0 ? currentPatch.name.trim() : "Untitled Patch";
+      const payload: ExportedPatchDefinition = {
+        sourcePatchId: currentPatch.id ?? activeInstrumentTabId,
+        name: exportedPatchName,
+        description: currentPatch.description,
+        schema_version: currentPatch.schema_version,
+        graph: currentPatch.graph
+      };
 
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `${sanitizeInstrumentDefinitionFileBaseName(exportedPatchName)}.orch.instrument.json`;
-    document.body.appendChild(anchor);
-    anchor.click();
-    document.body.removeChild(anchor);
-    URL.revokeObjectURL(url);
-    setInstrumentPatchIoError(null);
+      const { blob, headers } = await api.exportPatchBundle(payload as unknown as Record<string, unknown>);
+      const format = headers.get("x-orchestron-export-format") === "zip" ? "zip" : "json";
+      const fileName = `${sanitizeInstrumentDefinitionFileBaseName(exportedPatchName)}.orch.instrument.${format}`;
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = fileName;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      URL.revokeObjectURL(url);
+      setInstrumentPatchIoError(null);
+    })().catch((error) => {
+      setInstrumentPatchIoError(error instanceof Error ? error.message : "Failed to export instrument definition.");
+    });
   }, [activeInstrumentTabId, currentPatch]);
 
   const triggerInstrumentPatchImport = useCallback(() => {
@@ -1595,8 +1605,7 @@ export default function App() {
   const onImportInstrumentDefinitionFile = useCallback(
     (file: File) => {
       void (async () => {
-        const content = await file.text();
-        const parsed = JSON.parse(content) as unknown;
+        const parsed = await api.expandImportBundle(file);
 
         const standalonePatchDefinition = parseExportedPatchDefinition(parsed);
         const performanceExport = standalonePatchDefinition ? null : parsePerformanceExportPayload(parsed);
@@ -2160,11 +2169,12 @@ export default function App() {
         patch_definitions: patchDefinitions
       };
 
-      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      const { blob, headers } = await api.exportPerformanceBundle(payload as unknown as Record<string, unknown>);
+      const format = headers.get("x-orchestron-export-format") === "zip" ? "zip" : "json";
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = `${sanitizePerformanceFileBaseName(exportedPerformanceName)}.orch.json`;
+      anchor.download = `${sanitizePerformanceFileBaseName(exportedPerformanceName)}.orch.${format}`;
       document.body.appendChild(anchor);
       anchor.click();
       document.body.removeChild(anchor);
@@ -2183,8 +2193,7 @@ export default function App() {
   const onImportSequencerConfig = useCallback(
     (file: File) => {
       void (async () => {
-        const content = await file.text();
-        const parsed = JSON.parse(content) as unknown;
+        const parsed = await api.expandImportBundle(file);
         const exported = parsePerformanceExportPayload(parsed);
 
         if (!exported) {

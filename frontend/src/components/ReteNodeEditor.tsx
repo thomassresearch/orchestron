@@ -1575,6 +1575,7 @@ export function ReteNodeEditor({
       {genEditor && (
         <GenNodeEditorModal
           nodeId={genEditor.nodeId}
+          guiLanguage={guiLanguage}
           initialConfig={genEditor.config}
           onClose={() => setGenEditor(null)}
           onSave={saveGenEditor}

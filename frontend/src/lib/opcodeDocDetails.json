@@ -3385,5 +3385,251 @@
         "spanish": "Variable de salida `asignal` desde la entrada."
       }
     }
+  },
+  "rms": {
+    "description": {
+      "english": "Determines the root-mean-square amplitude of an audio signal. It low-pass filters the actual value, to average in the manner of a VU meter.",
+      "german": "Bestimmt die quadratische Mittelwertamplitude eines Audiosignals. Der tatsächliche Wert wird tiefpassgefiltert und nach Art eines VU-Meters gemittelt.",
+      "french": "Détermine l’amplitude quadratique moyenne d’un signal audio. Il filtre passe-bas la valeur réelle, pour faire la moyenne à la manière d'un vu-mètre.",
+      "spanish": "Determina la amplitud cuadrática media de una señal de audio. Filtra de paso bajo el valor real, para promediarlo a la manera de un vúmetro."
+    },
+    "inputs": {
+      "asig": {
+        "english": "input audio signal",
+        "german": "Eingangs-Audiosignal",
+        "french": "signal audio d'entrée",
+        "spanish": "señal de audio de entrada"
+      },
+      "ihp": {
+        "english": "half-power point (in Hz) of a special internal low-pass filter. The default value is 10.",
+        "german": "Halbleistungspunkt (in Hz) eines speziellen internen Tiefpassfilters. Der Standardwert ist 10.",
+        "french": "point de demi-puissance (en Hz) d’un filtre passe-bas interne spécial. La valeur par défaut est 10.",
+        "spanish": "punto de media potencia (en Hz) de un filtro de paso bajo interno especial. El valor predeterminado es 10."
+      },
+      "iskip": {
+        "english": "initial disposition of internal data space (see reson ). The default value is 0.",
+        "german": "anfängliche Disposition des internen Datenraums (siehe reson ). Der Standardwert ist 0.",
+        "french": "disposition initiale de l'espace de données interne (voir reson ). La valeur par défaut est 0.",
+        "spanish": "disposición inicial del espacio de datos interno (ver reson). El valor predeterminado es 0."
+      }
+    },
+    "outputs": {
+      "krms": {
+        "english": "Output variable `kres` from rms.",
+        "german": "Ausgabevariable „kres“ von RMS.",
+        "french": "Variable de sortie `kres` de rms.",
+        "spanish": "Variable de salida `kres` de rms."
+      }
+    }
+  },
+  "samphold": {
+    "description": {
+      "english": "Performs a sample-and-hold operation on its input.",
+      "german": "Führt einen Sample-and-Hold-Vorgang an seinem Eingang durch.",
+      "french": "Effectue une opération d'échantillonnage et de maintien sur son entrée.",
+      "spanish": "Realiza una operación de muestreo y retención en su entrada."
+    },
+    "inputs": {
+      "ksig": {
+        "english": "kIn parameter at control-rate.",
+        "german": "kIn-Parameter bei Kontrollrate.",
+        "french": "Paramètre kIn au taux de contrôle.",
+        "spanish": "kIn parámetro a velocidad de control."
+      },
+      "kgate": {
+        "english": "controls whether to hold the signal.",
+        "german": "steuert, ob das Signal gehalten werden soll.",
+        "french": "contrôle s’il faut maintenir le signal.",
+        "spanish": "controla si se retendrá la señal."
+      },
+      "ival": {
+        "english": "controls initial disposition of internal save space. If ivstor is zero the internal “ hold ” value is set to ival; else it retains its previous value. Defaults are 0,0 (i.e. init to zero)",
+        "german": "Steuert die anfängliche Anordnung des internen Speicherplatzes. Wenn ivstor Null ist, wird der interne „hold“-Wert auf ival gesetzt; andernfalls behält es seinen vorherigen Wert. Die Standardwerte sind 0,0 (d. h. Initialisierung auf Null).",
+        "french": "contrôle la disposition initiale de l’espace de sauvegarde interne. Si ivstor est nul, la valeur interne « hold » est définie sur ival; sinon, il conserve sa valeur précédente. Les valeurs par défaut sont 0,0 (c'est-à-dire init à zéro)",
+        "spanish": "controla la disposición inicial del espacio de almacenamiento interno. Si ivstor es cero, el valor interno de “retención” se establece en ival; de lo contrario conserva su valor anterior. Los valores predeterminados son 0,0 (es decir, inicio a cero)"
+      },
+      "ivstor": {
+        "english": "controls initial disposition of internal save space. If ivstor is zero the internal “ hold ” value is set to ival; else it retains its previous value. Defaults are 0,0 (i.e. init to zero)",
+        "german": "Steuert die anfängliche Anordnung des internen Speicherplatzes. Wenn ivstor Null ist, wird der interne „hold“-Wert auf ival gesetzt; andernfalls behält es seinen vorherigen Wert. Die Standardwerte sind 0,0 (d. h. Initialisierung auf Null).",
+        "french": "contrôle la disposition initiale de l’espace de sauvegarde interne. Si ivstor est nul, la valeur interne « hold » est définie sur ival; sinon, il conserve sa valeur précédente. Les valeurs par défaut sont 0,0 (c'est-à-dire init à zéro)",
+        "spanish": "controla la disposición inicial del espacio de almacenamiento interno. Si ivstor es cero, el valor interno de “retención” se establece en ival; de lo contrario conserva su valor anterior. Los valores predeterminados son 0,0 (es decir, inicio a cero)"
+      }
+    },
+    "outputs": {
+      "kout": {
+        "english": "Output variable `ares` from samphold.",
+        "german": "Ausgabevariable „ares“ von samphold.",
+        "french": "Variable de sortie `ares` de samphold.",
+        "spanish": "Variable de salida `ares` de samphold."
+      }
+    }
+  },
+  "sfload": {
+    "description": {
+      "english": "Loads an entire SoundFont2 (SF2) sample file into memory. These opcodes allow management the sample-structure of SF2 files. In order to understand the usage of these opcodes, the user must have some knowledge of the SF2 format, so a brief description of this format can be found in the SoundFont2 File Format section. sfload should be placed in the header section of a Csound orchestra.",
+      "german": "Lädt eine gesamte SoundFont2 (SF2)-Beispieldatei in den Speicher. Diese Opcodes ermöglichen die Verwaltung der Beispielstruktur von SF2-Dateien. Um die Verwendung dieser Opcodes zu verstehen, muss der Benutzer über einige Kenntnisse des SF2-Formats verfügen. Eine kurze Beschreibung dieses Formats finden Sie daher im Abschnitt „SoundFont2-Dateiformat“. sfload sollte im Header-Bereich eines Csound-Orchesters platziert werden.",
+      "french": "Charge un fichier échantillon SoundFont2 (SF2) entier en mémoire. Ces opcodes permettent de gérer la structure d'échantillon des fichiers SF2. Afin de comprendre l'utilisation de ces opcodes, l'utilisateur doit avoir une certaine connaissance du format SF2, c'est pourquoi une brève description de ce format peut être trouvée dans la section Format de fichier SoundFont2. sfload doit être placé dans la section d'en-tête d'un orchestre Csound.",
+      "spanish": "Carga un archivo de muestra completo de SoundFont2 (SF2) en la memoria. Estos códigos de operación permiten gestionar la estructura de muestra de los archivos SF2. Para comprender el uso de estos códigos de operación, el usuario debe tener cierto conocimiento del formato SF2, por lo que se puede encontrar una breve descripción de este formato en la sección Formato de archivo SoundFont2. sfload debe colocarse en la sección de encabezado de una orquesta Csound."
+    },
+    "inputs": {
+      "filename": {
+        "english": "name of the SF2 file, with its complete path. It must be a string typed within double-quotes with “ / ” to separate directories (this applies to DOS and Windows as well, where using a backslash will generate an error), or an integer that has been the subject of a strset operation",
+        "german": "Name der SF2-Datei mit vollständigem Pfad. Es muss eine Zeichenfolge sein, die in doppelte Anführungszeichen mit „/“ eingegeben wird, um Verzeichnisse zu trennen (dies gilt auch für DOS und Windows, wo die Verwendung eines Backslashs einen Fehler erzeugt), oder eine Ganzzahl, die Gegenstand einer Strset-Operation war",
+        "french": "nom du fichier SF2, avec son chemin complet. Il doit s'agir d'une chaîne saisie entre guillemets doubles avec « / » pour séparer les répertoires (cela s'applique également à DOS et Windows, où l'utilisation d'une barre oblique inverse générera une erreur), ou d'un entier ayant fait l'objet d'une opération strset.",
+        "spanish": "nombre del archivo SF2, con su ruta completa. Debe ser una cadena escrita entre comillas dobles con \" / \" para separar directorios (esto también se aplica a DOS y Windows, donde el uso de una barra invertida generará un error), o un número entero que haya sido objeto de una operación strset."
+      }
+    },
+    "outputs": {
+      "ifilhandle": {
+        "english": "Output variable `ir` from sfload.",
+        "german": "Ausgabevariable „ir“ von sfload.",
+        "french": "Variable de sortie `ir` de sfload.",
+        "spanish": "Variable de salida `ir` de sfload."
+      }
+    }
+  },
+  "sfplay3": {
+    "description": {
+      "english": "Plays a SoundFont2 (SF2) sample preset, generating a stereo sound with cubic interpolation. These opcodes allow management the sample-structure of SF2 files. In order to understand the usage of these opcodes, the user must have some knowledge of the SF2 format, so a brief description of this format can be found in the SoundFont2 File Format section.",
+      "german": "Spielt ein SoundFont2 (SF2)-Beispiel-Preset ab und erzeugt einen Stereoklang mit kubischer Interpolation. Diese Opcodes ermöglichen die Verwaltung der Beispielstruktur von SF2-Dateien. Um die Verwendung dieser Opcodes zu verstehen, muss der Benutzer über einige Kenntnisse des SF2-Formats verfügen. Eine kurze Beschreibung dieses Formats finden Sie daher im Abschnitt „SoundFont2-Dateiformat“.",
+      "french": "Lit un échantillon prédéfini SoundFont2 (SF2), générant un son stéréo avec interpolation cubique. Ces opcodes permettent de gérer la structure d'échantillon des fichiers SF2. Afin de comprendre l'utilisation de ces opcodes, l'utilisateur doit avoir une certaine connaissance du format SF2, c'est pourquoi une brève description de ce format peut être trouvée dans la section Format de fichier SoundFont2.",
+      "spanish": "Reproduce un preajuste de muestra SoundFont2 (SF2), generando un sonido estéreo con interpolación cúbica. Estos códigos de operación permiten gestionar la estructura de muestra de los archivos SF2. Para comprender el uso de estos códigos de operación, el usuario debe tener cierto conocimiento del formato SF2, por lo que se puede encontrar una breve descripción de este formato en la sección Formato de archivo SoundFont2."
+    },
+    "inputs": {
+      "ivel": {
+        "english": "velocity value",
+        "german": "Geschwindigkeitswert",
+        "french": "valeur de vitesse",
+        "spanish": "valor de velocidad"
+      },
+      "inotenum": {
+        "english": "MIDI note number value",
+        "german": "Wert der MIDI-Notennummer",
+        "french": "Valeur du numéro de note MIDI",
+        "spanish": "Valor del número de nota MIDI"
+      },
+      "xamp": {
+        "english": "amplitude correction factor",
+        "german": "Amplitudenkorrekturfaktor",
+        "french": "facteur de correction d'amplitude",
+        "spanish": "factor de corrección de amplitud"
+      },
+      "xfreq": {
+        "english": "frequency value or frequency multiplier, depending by iflag. When iflag = 0, xfreq is a multiplier of a the default frequency, assigned by SF2 preset to the inotenum value. When iflag = 1, xfreq is the absolute frequency of the output sound, in Hz. Default is 0.",
+        "german": "Frequenzwert oder Frequenzmultiplikator, abhängig von iflag. Wenn iflag = 0, ist xfreq ein Multiplikator der Standardfrequenz, der durch die SF2-Voreinstellung dem Inotenum-Wert zugewiesen wird. Wenn iflag = 1, ist xfreq die absolute Frequenz des ausgegebenen Tons in Hz. Der Standardwert ist 0.",
+        "french": "valeur de fréquence ou multiplicateur de fréquence, selon iflag. Lorsque iflag = 0, xfreq est un multiplicateur de la fréquence par défaut, attribué par le préréglage SF2 à la valeur de l'inoténum. Lorsque iflag = 1, xfreq est la fréquence absolue du son de sortie, en Hz. La valeur par défaut est 0.",
+        "spanish": "valor de frecuencia o multiplicador de frecuencia, dependiendo de iflag. Cuando iflag = 0, xfreq es un multiplicador de la frecuencia predeterminada, asignada por SF2 preestablecida al valor inotenum. Cuando iflag = 1, xfreq es la frecuencia absoluta del sonido de salida, en Hz. El valor predeterminado es 0."
+      },
+      "ipreindex": {
+        "english": "preset index",
+        "german": "voreingestellter Index",
+        "french": "index prédéfini",
+        "spanish": "índice preestablecido"
+      },
+      "iflag": {
+        "english": "flag regarding the behavior of xfreq and inotenum",
+        "german": "Flag bezüglich des Verhaltens von xfreq und inotenum",
+        "french": "indicateur concernant le comportement de xfreq et inotenum",
+        "spanish": "bandera sobre el comportamiento de xfreq e inotenum"
+      },
+      "ioffset": {
+        "english": "start playing at offset, in samples.",
+        "german": "Beginnen Sie mit der Wiedergabe in Samples.",
+        "french": "commencez à jouer au décalage, en échantillons.",
+        "spanish": "comience a reproducir en offset, en muestras."
+      },
+      "ienv": {
+        "english": "enables and determines amplitude envelope. 0 = no envelope, 1 = linear attack and decay, 2 = linear attack, exponential decay (see below). Default = 0.",
+        "german": "Aktiviert und bestimmt die Amplitudenhüllkurve. 0 = keine Hüllkurve, 1 = linearer Attack und Decay, 2 = linearer Attack, exponentieller Decay (siehe unten). Standard = 0.",
+        "french": "active et détermine l’enveloppe d’amplitude. 0 = pas d'enveloppe, 1 = attaque et décroissance linéaires, 2 = attaque linéaire, décroissance exponentielle (voir ci-dessous). Par défaut = 0.",
+        "spanish": "habilita y determina la envolvente de amplitud. 0 = sin envolvente, 1 = ataque y caída lineal, 2 = ataque lineal, caída exponencial (ver más abajo). Predeterminado = 0."
+      }
+    },
+    "outputs": {
+      "aleft": {
+        "english": "Output variable `ar1` from sfplay3.",
+        "german": "Ausgabevariable „ar1“ von sfplay3.",
+        "french": "Variable de sortie `ar1` de sfplay3.",
+        "spanish": "Variable de salida `ar1` de sfplay3."
+      },
+      "aright": {
+        "english": "Output variable `ar2` from sfplay3.",
+        "german": "Ausgabevariable „ar2“ von sfplay3.",
+        "french": "Variable de sortie `ar2` de sfplay3.",
+        "spanish": "Variable de salida `ar2` de sfplay3."
+      }
+    }
+  },
+  "sfinstr3": {
+    "description": {
+      "english": "Plays a SoundFont2 (SF2) sample instrument, generating a stereo sound with cubic interpolation. These opcodes allow management the sample-structure of SF2 files. In order to understand the usage of these opcodes, the user must have some knowledge of the SF2 format, so a brief description of this format can be found in the SoundFont2 File Format section.",
+      "german": "Spielt ein SoundFont2 (SF2)-Beispielinstrument und erzeugt einen Stereoklang mit kubischer Interpolation. Diese Opcodes ermöglichen die Verwaltung der Beispielstruktur von SF2-Dateien. Um die Verwendung dieser Opcodes zu verstehen, muss der Benutzer über einige Kenntnisse des SF2-Formats verfügen. Eine kurze Beschreibung dieses Formats finden Sie daher im Abschnitt „SoundFont2-Dateiformat“.",
+      "french": "Joue un instrument échantillon SoundFont2 (SF2), générant un son stéréo avec interpolation cubique. Ces opcodes permettent de gérer la structure d'échantillon des fichiers SF2. Afin de comprendre l'utilisation de ces opcodes, l'utilisateur doit avoir une certaine connaissance du format SF2, c'est pourquoi une brève description de ce format peut être trouvée dans la section Format de fichier SoundFont2.",
+      "spanish": "Reproduce un instrumento de muestra SoundFont2 (SF2), generando un sonido estéreo con interpolación cúbica. Estos códigos de operación permiten gestionar la estructura de muestra de los archivos SF2. Para comprender el uso de estos códigos de operación, el usuario debe tener cierto conocimiento del formato SF2, por lo que se puede encontrar una breve descripción de este formato en la sección Formato de archivo SoundFont2."
+    },
+    "inputs": {
+      "ivel": {
+        "english": "velocity value",
+        "german": "Geschwindigkeitswert",
+        "french": "valeur de vitesse",
+        "spanish": "valor de velocidad"
+      },
+      "inotenum": {
+        "english": "MIDI note number value",
+        "german": "Wert der MIDI-Notennummer",
+        "french": "Valeur du numéro de note MIDI",
+        "spanish": "Valor del número de nota MIDI"
+      },
+      "xamp": {
+        "english": "amplitude correction factor",
+        "german": "Amplitudenkorrekturfaktor",
+        "french": "facteur de correction d'amplitude",
+        "spanish": "factor de corrección de amplitud"
+      },
+      "xfreq": {
+        "english": "frequency value or frequency multiplier, depending by iflag. When iflag = 0, xfreq is a multiplier of a the default frequency, assigned by SF2 preset to the inotenum value. When iflag = 1, xfreq is the absolute frequency of the output sound, in Hz. Default is 0.",
+        "german": "Frequenzwert oder Frequenzmultiplikator, abhängig von iflag. Wenn iflag = 0, ist xfreq ein Multiplikator der Standardfrequenz, der durch die SF2-Voreinstellung dem Inotenum-Wert zugewiesen wird. Wenn iflag = 1, ist xfreq die absolute Frequenz des ausgegebenen Tons in Hz. Der Standardwert ist 0.",
+        "french": "valeur de fréquence ou multiplicateur de fréquence, selon iflag. Lorsque iflag = 0, xfreq est un multiplicateur de la fréquence par défaut, attribué par le préréglage SF2 à la valeur de l'inoténum. Lorsque iflag = 1, xfreq est la fréquence absolue du son de sortie, en Hz. La valeur par défaut est 0.",
+        "spanish": "valor de frecuencia o multiplicador de frecuencia, dependiendo de iflag. Cuando iflag = 0, xfreq es un multiplicador de la frecuencia predeterminada, asignada por SF2 preestablecida al valor inotenum. Cuando iflag = 1, xfreq es la frecuencia absoluta del sonido de salida, en Hz. El valor predeterminado es 0."
+      },
+      "instrnum": {
+        "english": "number of an instrument of a SF2 file.",
+        "german": "Nummer eines Instruments einer SF2-Datei.",
+        "french": "numéro d'un instrument d'un fichier SF2.",
+        "spanish": "número de un instrumento de un archivo SF2."
+      },
+      "ifilhandle": {
+        "english": "unique number generated by sfload opcode to be used as an identifier for a SF2 file. Several SF2 files can be loaded and activated at the same time.",
+        "german": "Eindeutige Nummer, die vom sfload-Opcode generiert wird und als Kennung für eine SF2-Datei verwendet wird. Es können mehrere SF2-Dateien gleichzeitig geladen und aktiviert werden.",
+        "french": "numéro unique généré par l'opcode sfload à utiliser comme identifiant pour un fichier SF2. Plusieurs fichiers SF2 peuvent être chargés et activés en même temps.",
+        "spanish": "Número único generado por el código de operación sfload que se utilizará como identificador de un archivo SF2. Se pueden cargar y activar varios archivos SF2 al mismo tiempo."
+      },
+      "iflag": {
+        "english": "flag regarding the behavior of xfreq and inotenum",
+        "german": "Flag bezüglich des Verhaltens von xfreq und inotenum",
+        "french": "indicateur concernant le comportement de xfreq et inotenum",
+        "spanish": "bandera sobre el comportamiento de xfreq e inotenum"
+      },
+      "ioffset": {
+        "english": "start playing at offset, in samples.",
+        "german": "Beginnen Sie mit der Wiedergabe in Samples.",
+        "french": "commencez à jouer au décalage, en échantillons.",
+        "spanish": "comience a reproducir en offset, en muestras."
+      }
+    },
+    "outputs": {
+      "aleft": {
+        "english": "Output variable `ar1` from sfinstr3.",
+        "german": "Ausgabevariable „ar1“ von sfinstr3.",
+        "french": "Variable de sortie `ar1` de sfinstr3.",
+        "spanish": "Variable de salida `ar1` de sfinstr3."
+      },
+      "aright": {
+        "english": "Output variable `ar2` from sfinstr3.",
+        "german": "Ausgabevariable „ar2“ von sfinstr3.",
+        "french": "Variable de sortie `ar2` de sfinstr3.",
+        "spanish": "Variable de salida `ar2` de sfinstr3."
+      }
+    }
   }
 }

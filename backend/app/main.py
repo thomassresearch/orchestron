@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from backend.app.api import app_state, assets, midi, opcodes, patches, performances, runtime, sessions, ws
+from backend.app.api import app_state, assets, bundles, midi, opcodes, patches, performances, runtime, sessions, ws
 from backend.app.core.config import Settings, get_settings
 from backend.app.core.container import AppContainer
 from backend.app.core.logging import configure_logging
@@ -124,6 +124,7 @@ def create_app() -> FastAPI:
 
     app.include_router(opcodes.router, prefix=settings.api_prefix)
     app.include_router(assets.router, prefix=settings.api_prefix)
+    app.include_router(bundles.router, prefix=settings.api_prefix)
     app.include_router(app_state.router, prefix=settings.api_prefix)
     app.include_router(runtime.router, prefix=settings.api_prefix)
     app.include_router(patches.router, prefix=settings.api_prefix)

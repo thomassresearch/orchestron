@@ -72,7 +72,10 @@ class SessionService:
             session_id=str(uuid4()),
             instruments=instruments,
             midi_input=default_midi,
-            worker=CsoundWorker(webrtc_ice_servers=backend_webrtc_ice_servers),
+            worker=CsoundWorker(
+                webrtc_ice_servers=backend_webrtc_ice_servers,
+                gen_audio_assets_dir=str(self._settings.gen_audio_assets_dir),
+            ),
         )
         runtime.sequencer = SessionSequencerRuntime(
             session_id=runtime.session_id,

@@ -79,6 +79,11 @@ OPCODE_REFERENCE_URLS: dict[str, str] = {
     "outleta": "https://csound.com/docs/manual/outleta.html",
     "inletk": "https://csound.com/docs/manual/inletk.html",
     "inleta": "https://csound.com/docs/manual/inleta.html",
+    "rms": "https://csound.com/docs/manual/rms.html",
+    "samphold": "https://csound.com/docs/manual/samphold.html",
+    "sfload": "https://csound.com/docs/manual/sfload.html",
+    "sfplay3": "https://csound.com/docs/manual/sfplay3.html",
+    "sfinstr3": "https://csound.com/docs/manual/sfinstr3.html",
     "midi_note": "https://csound.com/docs/manual/cpsmidi.html",
 }
 
@@ -535,6 +540,33 @@ class OpcodeService:
                 tags=["control", "modulation", "vibrato"],
             ),
             self._spec(
+                name="samphold",
+                category="modulation",
+                description="Control-rate sample-and-hold processor.",
+                icon=self._icon("oscili.svg"),
+                inputs=[
+                    PortSpec(
+                        id="ksig",
+                        name="kIn",
+                        signal_type=SignalType.CONTROL,
+                        accepted_signal_types=[SignalType.CONTROL, SignalType.INIT],
+                        default=0,
+                    ),
+                    PortSpec(
+                        id="kgate",
+                        name="Gate",
+                        signal_type=SignalType.CONTROL,
+                        accepted_signal_types=[SignalType.CONTROL, SignalType.INIT],
+                        default=1,
+                    ),
+                    PortSpec(id="ival", name="InitValue", signal_type=SignalType.INIT, required=False, default=0),
+                    PortSpec(id="ivstor", name="InitStore", signal_type=SignalType.INIT, required=False, default=0),
+                ],
+                outputs=[PortSpec(id="kout", name="kOut", signal_type=SignalType.CONTROL)],
+                template="{kout} samphold {ksig}, {kgate}, {ival}, {ivstor}",
+                tags=["control", "modulation", "sample-and-hold"],
+            ),
+            self._spec(
                 name="fmb3",
                 category="fm",
                 description="B3 organ FM model.",
@@ -947,6 +979,90 @@ class OpcodeService:
                 tags=["source", "tables", "gen"],
             ),
             self._spec(
+                name="sfload",
+                category="soundfont",
+                description="Load a SoundFont2 file and return a file handle.",
+                icon=self._icon("ftgen.svg"),
+                inputs=[PortSpec(id="filename", name="Filename", signal_type=SignalType.STRING)],
+                outputs=[PortSpec(id="ifilhandle", name="iFileHandle", signal_type=SignalType.INIT)],
+                template="{ifilhandle} sfload {filename}",
+                tags=["soundfont", "loader", "init", "source"],
+            ),
+            self._spec(
+                name="sfplay3",
+                category="soundfont",
+                description="Play a SoundFont preset as stereo audio with cubic interpolation.",
+                icon=self._icon("vco.svg"),
+                inputs=[
+                    PortSpec(id="ivel", name="Velocity", signal_type=SignalType.INIT, default=100),
+                    PortSpec(id="inotenum", name="MidiNote", signal_type=SignalType.INIT, default=60),
+                    PortSpec(
+                        id="xamp",
+                        name="Amplitude",
+                        signal_type=SignalType.CONTROL,
+                        accepted_signal_types=[SignalType.AUDIO, SignalType.CONTROL, SignalType.INIT],
+                        default=1,
+                    ),
+                    PortSpec(
+                        id="xfreq",
+                        name="Frequency",
+                        signal_type=SignalType.CONTROL,
+                        accepted_signal_types=[SignalType.AUDIO, SignalType.CONTROL, SignalType.INIT],
+                        default=1,
+                    ),
+                    PortSpec(id="ipreindex", name="PresetIndex", signal_type=SignalType.INIT, default=0),
+                    PortSpec(id="iflag", name="FreqMode", signal_type=SignalType.INIT, required=False, default=0),
+                    PortSpec(id="ioffset", name="Offset", signal_type=SignalType.INIT, required=False, default=0),
+                    PortSpec(id="ienv", name="EnvMode", signal_type=SignalType.INIT, required=False, default=0),
+                ],
+                outputs=[
+                    PortSpec(id="aleft", name="aLeft", signal_type=SignalType.AUDIO),
+                    PortSpec(id="aright", name="aRight", signal_type=SignalType.AUDIO),
+                ],
+                template=(
+                    "{aleft}, {aright} sfplay3 {ivel}, {inotenum}, {xamp}, {xfreq}, {ipreindex}, "
+                    "{iflag}, {ioffset}, {ienv}"
+                ),
+                tags=["soundfont", "sampler", "stereo", "source"],
+            ),
+            self._spec(
+                name="sfinstr3",
+                category="soundfont",
+                description="Play a SoundFont instrument as stereo audio with cubic interpolation.",
+                icon=self._icon("vco.svg"),
+                inputs=[
+                    PortSpec(id="ivel", name="Velocity", signal_type=SignalType.INIT, default=100),
+                    PortSpec(id="inotenum", name="MidiNote", signal_type=SignalType.INIT, default=60),
+                    PortSpec(
+                        id="xamp",
+                        name="Amplitude",
+                        signal_type=SignalType.CONTROL,
+                        accepted_signal_types=[SignalType.AUDIO, SignalType.CONTROL, SignalType.INIT],
+                        default=1,
+                    ),
+                    PortSpec(
+                        id="xfreq",
+                        name="Frequency",
+                        signal_type=SignalType.CONTROL,
+                        accepted_signal_types=[SignalType.AUDIO, SignalType.CONTROL, SignalType.INIT],
+                        default=1,
+                    ),
+                    PortSpec(id="instrnum", name="Instrument", signal_type=SignalType.INIT, default=0),
+                    PortSpec(id="ifilhandle", name="FileHandle", signal_type=SignalType.INIT, default=1),
+                    PortSpec(id="iflag", name="FreqMode", signal_type=SignalType.INIT, required=False, default=0),
+                    PortSpec(id="ioffset", name="Offset", signal_type=SignalType.INIT, required=False, default=0),
+                ],
+                outputs=[
+                    PortSpec(id="aleft", name="aLeft", signal_type=SignalType.AUDIO),
+                    PortSpec(id="aright", name="aRight", signal_type=SignalType.AUDIO),
+                ],
+                template=(
+                    "{aleft}, {aright} sfinstr3 {ivel}, {inotenum}, {xamp}, {xfreq}, {instrnum}, "
+                    "{ifilhandle}, {iflag}, {ioffset}"
+                ),
+                tags=["soundfont", "sampler", "stereo", "source"],
+            ),
+            self._spec(
                 name="cpsmidi",
                 category="midi",
                 description="Read active MIDI note pitch as cycles-per-second.",
@@ -1005,6 +1121,20 @@ class OpcodeService:
                 outputs=[PortSpec(id="aout", name="aOut", signal_type=SignalType.AUDIO)],
                 template="{aout} interp {kin}",
                 tags=["conversion"],
+            ),
+            self._spec(
+                name="rms",
+                category="analysis",
+                description="RMS envelope follower for an audio signal.",
+                icon=self._icon("k_to_a.svg"),
+                inputs=[
+                    PortSpec(id="asig", name="aIn", signal_type=SignalType.AUDIO),
+                    PortSpec(id="ihp", name="HalfPowerHz", signal_type=SignalType.INIT, required=False, default=10),
+                    PortSpec(id="iskip", name="SkipInit", signal_type=SignalType.INIT, required=False, default=0),
+                ],
+                outputs=[PortSpec(id="krms", name="kRms", signal_type=SignalType.CONTROL)],
+                template="{krms} rms {asig}, {ihp}, {iskip}",
+                tags=["analysis", "meter", "envelope", "control"],
             ),
             self._spec(
                 name="moogladder",

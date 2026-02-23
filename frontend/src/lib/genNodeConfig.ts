@@ -17,6 +17,11 @@ export interface GenSegmentPoint {
   value: number;
 }
 
+export interface GenXYPoint {
+  x: number;
+  y: number;
+}
+
 export interface GenNodeConfig {
   mode: GenNodeMode;
   tableNumber: number;
@@ -25,9 +30,16 @@ export interface GenNodeConfig {
   routineNumber: number;
   normalize: boolean;
   harmonicAmplitudes: number[];
+  gen11HarmonicCount: number;
+  gen11LowestHarmonic: number;
+  gen11Multiplier: number;
   valueList: number[];
   segmentStartValue: number;
   segments: GenSegmentPoint[];
+  gen17Pairs: GenXYPoint[];
+  gen20WindowType: number;
+  gen20Max: number;
+  gen20Opt: number;
   sampleAsset: GenAudioAssetRef | null;
   samplePath: string;
   sampleSkipTime: number;
@@ -45,7 +57,7 @@ export interface GenNodePreview {
 
 type GenNodeConfigMap = Record<string, GenNodeConfig>;
 
-export type GenRoutineEditorKind = "gen10" | "gen2" | "gen7" | "gen1" | "raw";
+export type GenRoutineEditorKind = "gen10" | "gen11" | "gen2" | "gen7" | "gen17" | "gen20" | "gen1" | "raw";
 
 export interface GenRoutineOption {
   value: number;
@@ -62,6 +74,12 @@ export const GEN_ROUTINE_OPTIONS: GenRoutineOption[] = [
     description: "Enter harmonic amplitudes (1st, 2nd, 3rd partial, ...)."
   },
   {
+    value: 11,
+    label: "GEN11 - Harmonic Cosine Partials",
+    kind: "gen11",
+    description: "Specify number of harmonics, lowest harmonic, and harmonic multiplier."
+  },
+  {
     value: 2,
     label: "GEN02 - Value List",
     kind: "gen2",
@@ -72,6 +90,18 @@ export const GEN_ROUTINE_OPTIONS: GenRoutineOption[] = [
     label: "GEN07 - Segments",
     kind: "gen7",
     description: "Define a start value and line segments using length/value pairs."
+  },
+  {
+    value: 17,
+    label: "GEN17 - Step Table From x/y Pairs",
+    kind: "gen17",
+    description: "Specify x/y point pairs for stepped lookup mappings (often used unnormalized)."
+  },
+  {
+    value: 20,
+    label: "GEN20 - Window / Distribution Function",
+    kind: "gen20",
+    description: "Generate a window or distribution by window type, max value, and optional parameter."
   },
   {
     value: 1,
@@ -154,6 +184,25 @@ function parseSegmentList(value: unknown, fallback: GenSegmentPoint[]): GenSegme
   return result.length > 0 ? result : fallback.map((entry) => ({ ...entry }));
 }
 
+function parseXYPointList(value: unknown, fallback: GenXYPoint[]): GenXYPoint[] {
+  if (!Array.isArray(value)) {
+    return fallback.map((entry) => ({ ...entry }));
+  }
+  const result: GenXYPoint[] = [];
+  for (const entry of value) {
+    if (!isRecord(entry)) {
+      continue;
+    }
+    const x = toNumber(entry.x, Number.NaN);
+    const y = toNumber(entry.y, Number.NaN);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) {
+      continue;
+    }
+    result.push({ x: Number(x), y: Number(y) });
+  }
+  return result.length > 0 ? result : fallback.map((entry) => ({ ...entry }));
+}
+
 function parseSampleAsset(value: unknown): GenAudioAssetRef | null {
   if (!isRecord(value)) {
     return null;
@@ -182,9 +231,19 @@ export function defaultGenNodeConfig(): GenNodeConfig {
     routineNumber: 10,
     normalize: true,
     harmonicAmplitudes: [1],
+    gen11HarmonicCount: 8,
+    gen11LowestHarmonic: 1,
+    gen11Multiplier: 1,
     valueList: [1],
     segmentStartValue: 0,
     segments: [{ length: 16384, value: 1 }],
+    gen17Pairs: [
+      { x: 0, y: 0 },
+      { x: 127, y: 127 }
+    ],
+    gen20WindowType: 1,
+    gen20Max: 1,
+    gen20Opt: 0.5,
     sampleAsset: null,
     samplePath: "",
     sampleSkipTime: 0,
@@ -215,9 +274,16 @@ export function normalizeGenNodeConfig(raw: unknown): GenNodeConfig {
     routineNumber,
     normalize: toBool(raw.normalize, defaults.normalize),
     harmonicAmplitudes: toNumberList(raw.harmonicAmplitudes, defaults.harmonicAmplitudes),
+    gen11HarmonicCount: Math.max(1, toInt(raw.gen11HarmonicCount, defaults.gen11HarmonicCount)),
+    gen11LowestHarmonic: Math.max(1, toInt(raw.gen11LowestHarmonic, defaults.gen11LowestHarmonic)),
+    gen11Multiplier: toNumber(raw.gen11Multiplier, defaults.gen11Multiplier),
     valueList: toNumberList(raw.valueList, defaults.valueList),
     segmentStartValue: toNumber(raw.segmentStartValue, defaults.segmentStartValue),
     segments: parseSegmentList(raw.segments, defaults.segments),
+    gen17Pairs: parseXYPointList(raw.gen17Pairs, defaults.gen17Pairs),
+    gen20WindowType: Math.max(1, toInt(raw.gen20WindowType, defaults.gen20WindowType)),
+    gen20Max: toNumber(raw.gen20Max, defaults.gen20Max),
+    gen20Opt: toNumber(raw.gen20Opt, defaults.gen20Opt),
     sampleAsset: parseSampleAsset(raw.sampleAsset),
     samplePath: typeof raw.samplePath === "string" ? raw.samplePath : "",
     sampleSkipTime: toNumber(raw.sampleSkipTime, defaults.sampleSkipTime),
@@ -284,9 +350,16 @@ function genNodeConfigToJson(config: GenNodeConfig): JsonValue {
     routineNumber: config.routineNumber,
     normalize: config.normalize,
     harmonicAmplitudes: config.harmonicAmplitudes,
+    gen11HarmonicCount: config.gen11HarmonicCount,
+    gen11LowestHarmonic: config.gen11LowestHarmonic,
+    gen11Multiplier: config.gen11Multiplier,
     valueList: config.valueList,
     segmentStartValue: config.segmentStartValue,
     segments: config.segments.map((point) => ({ length: point.length, value: point.value })),
+    gen17Pairs: config.gen17Pairs.map((point) => ({ x: point.x, y: point.y })),
+    gen20WindowType: config.gen20WindowType,
+    gen20Max: config.gen20Max,
+    gen20Opt: config.gen20Opt,
     sampleAsset: config.sampleAsset
       ? {
           asset_id: config.sampleAsset.asset_id,
@@ -321,6 +394,13 @@ function previewArgsForConfig(config: GenNodeConfig): string[] {
   if (routineNumber === 10) {
     return (config.harmonicAmplitudes.length > 0 ? config.harmonicAmplitudes : [1]).map(String);
   }
+  if (routineNumber === 11) {
+    return [
+      String(Math.max(1, Math.round(config.gen11HarmonicCount))),
+      String(Math.max(1, Math.round(config.gen11LowestHarmonic))),
+      String(config.gen11Multiplier)
+    ];
+  }
   if (routineNumber === 2) {
     return (config.valueList.length > 0 ? config.valueList : [1]).map(String);
   }
@@ -331,6 +411,22 @@ function previewArgsForConfig(config: GenNodeConfig): string[] {
       values.push(String(row.length), String(row.value));
     }
     return values;
+  }
+  if (routineNumber === 17) {
+    const pairs = config.gen17Pairs.length > 0 ? config.gen17Pairs : [{ x: 0, y: 0 }];
+    const flattened: string[] = [];
+    for (const pair of pairs) {
+      flattened.push(String(pair.x), String(pair.y));
+    }
+    return flattened;
+  }
+  if (routineNumber === 20) {
+    const windowType = Math.max(1, Math.round(config.gen20WindowType));
+    const args = [String(windowType), String(config.gen20Max)];
+    if ([6, 7, 9].includes(windowType)) {
+      args.push(String(config.gen20Opt));
+    }
+    return args;
   }
   if (routineNumber === 1) {
     const fileArg = config.sampleAsset?.original_name || config.samplePath.trim() || "<audio-file>";
@@ -361,20 +457,21 @@ export function buildGenNodePreview(config: GenNodeConfig): GenNodePreview {
   const igen = normalized.normalize ? routineNumber : -routineNumber;
   const args = previewArgsForConfig(normalized);
   const renderedArgs = args.map((arg) => (arg.startsWith("expr:") ? arg.slice(5) : arg));
+  const effectiveMode: GenNodeMode = routineNumber === 1 ? "ftgen" : normalized.mode;
 
   const linePrefix =
-    normalized.mode === "ftgenonce"
+    effectiveMode === "ftgenonce"
       ? "{ift} ftgenonce "
       : "{ift} ftgen ";
   const lineBase =
-    normalized.mode === "ftgenonce"
+    effectiveMode === "ftgenonce"
       ? `${linePrefix}${normalized.tableNumber}, 0, ${normalized.tableSize}, ${igen}`
       : `${linePrefix}${normalized.tableNumber}, ${normalized.startTime}, ${normalized.tableSize}, ${igen}`;
   const line = renderedArgs.length > 0 ? `${lineBase}, ${renderedArgs.join(", ")}` : lineBase;
 
   return {
     igen,
-    mode: normalized.mode,
+    mode: effectiveMode,
     args,
     line
   };

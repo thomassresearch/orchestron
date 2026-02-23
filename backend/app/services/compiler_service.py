@@ -15,6 +15,7 @@ from backend.app.services.opcode_service import OpcodeService
 OPTIONAL_OMIT_MARKER = "__VS_OPTIONAL_OMIT__"
 INPUT_FORMULAS_LAYOUT_KEY = "input_formulas"
 GEN_NODES_LAYOUT_KEY = "gen_nodes"
+SFLOAD_NODES_LAYOUT_KEY = "sfload_nodes"
 FORMULA_TARGET_KEY_SEPARATOR = "::"
 DEFAULT_CSOUND_SOFTWARE_BUFFER_SAMPLES = 128
 DEFAULT_CSOUND_HARDWARE_BUFFER_SAMPLES = 512
@@ -188,6 +189,12 @@ class CompilerService:
                     )
                     continue
 
+                if compiled.spec.name == "sfload" and input_port.id == "filename":
+                    sfload_filename = self._resolve_sfload_filename(patch.graph.ui_layout, compiled.node.id)
+                    if sfload_filename is not None:
+                        env[input_port.id] = self._format_literal(sfload_filename, SignalType.STRING)
+                        continue
+
                 literal, found = self._resolve_literal_value(compiled.node, input_port)
                 if found:
                     env[input_port.id] = literal
@@ -246,14 +253,14 @@ class CompilerService:
         table_number = self._gen_int(raw_config.get("tableNumber"), default=0)
         start_time = self._gen_number(raw_config.get("startTime"), default=0)
         table_size = self._gen_int(raw_config.get("tableSize"), default=16384)
-        if table_size == 0:
-            raise CompilationError([f"GEN node '{node.id}' tableSize cannot be 0."])
-
         routine_number = abs(self._gen_int(raw_config.get("routineNumber"), default=10))
         if routine_number == 0:
             routine_number = 10
+        if table_size == 0 and routine_number != 1:
+            raise CompilationError([f"GEN node '{node.id}' tableSize cannot be 0 for GEN{routine_number}."])
         normalize = self._gen_bool(raw_config.get("normalize"), default=True)
         igen = routine_number if normalize else -routine_number
+        effective_mode = "ftgen" if routine_number == 1 else mode
 
         args = self._flatten_gen_node_args(
             node_id=node.id,
@@ -261,15 +268,22 @@ class CompilerService:
             routine_number=routine_number,
             table_size=table_size,
         )
+        prelude_lines: list[str] = []
+        if routine_number == 1 and args and isinstance(args[0], str) and not args[0].startswith("expr:"):
+            string_var = self._allocate_string_temp_name(node.id, "gen01_file")
+            prelude_lines.append(f"{string_var} init {self._format_gen_argument(args[0])}")
+            args = [f"expr:{string_var}", *args[1:]]
         rendered_args = ", ".join(self._format_gen_argument(value) for value in args)
 
-        if mode == "ftgenonce":
+        if effective_mode == "ftgenonce":
             line = f"{env['ift']} ftgenonce {table_number}, 0, {table_size}, {igen}"
         else:
             line = f"{env['ift']} ftgen {table_number}, {self._format_gen_argument(start_time)}, {table_size}, {igen}"
 
         if rendered_args:
             line = f"{line}, {rendered_args}"
+        if prelude_lines:
+            return "\n".join([*prelude_lines, line])
         return line
 
     def _flatten_gen_node_args(
@@ -285,6 +299,27 @@ class CompilerService:
             if not partials:
                 partials = self._gen_number_list(raw_config.get("partials"))
             return partials or [1]
+
+        if routine_number == 11:
+            nh = max(
+                1,
+                self._gen_int(
+                    raw_config.get("gen11HarmonicCount", raw_config.get("nh")),
+                    default=8,
+                ),
+            )
+            lh = max(
+                1,
+                self._gen_int(
+                    raw_config.get("gen11LowestHarmonic", raw_config.get("lh")),
+                    default=1,
+                ),
+            )
+            multiplier = self._gen_number(
+                raw_config.get("gen11Multiplier", raw_config.get("r")),
+                default=1,
+            )
+            return [nh, lh, 1 if multiplier is None else multiplier]
 
         if routine_number == 2:
             values = self._gen_number_list(raw_config.get("valueList"))
@@ -309,18 +344,59 @@ class CompilerService:
                 points.extend([max(1, table_size), 1])
             return points
 
+        if routine_number == 17:
+            pair_rows = raw_config.get("gen17Pairs", raw_config.get("pairs"))
+            points: list[str | int | float | bool] = []
+            if isinstance(pair_rows, list):
+                for entry in pair_rows:
+                    if not isinstance(entry, dict):
+                        continue
+                    x_value = self._gen_number(entry.get("x"), default=None)
+                    y_value = self._gen_number(entry.get("y"), default=None)
+                    if x_value is None or y_value is None:
+                        continue
+                    points.extend([x_value, y_value])
+            if not points:
+                return [0, 0, max(1, table_size - 1), 1]
+            return points
+
+        if routine_number == 20:
+            window_type = max(
+                1,
+                self._gen_int(
+                    raw_config.get("gen20WindowType", raw_config.get("windowType")),
+                    default=1,
+                ),
+            )
+            max_value = self._gen_number(raw_config.get("gen20Max", raw_config.get("max")), default=1)
+            args: list[str | int | float | bool] = [window_type, 1 if max_value is None else max_value]
+            if self._gen20_requires_opt(window_type):
+                opt_value = self._gen_number(raw_config.get("gen20Opt", raw_config.get("opt")), default=0.5)
+                args.append(0.5 if opt_value is None else opt_value)
+            return args
+
         if routine_number == 1:
             sample_asset = raw_config.get("sampleAsset")
             sample_path: str | None = None
+            sample_filecode: int | None = None
             if isinstance(sample_asset, dict):
                 stored_name = sample_asset.get("stored_name")
                 if isinstance(stored_name, str) and stored_name.strip():
-                    sample_path = self._resolve_gen_audio_asset_path(stored_name.strip())
+                    normalized_stored_name = stored_name.strip()
+                    if self._gen_asset_service is not None:
+                        try:
+                            sample_filecode = self._gen_asset_service.ensure_gen01_numeric_filecode_alias(
+                                normalized_stored_name
+                            )
+                        except ValueError as err:
+                            raise CompilationError([str(err)]) from err
+                    else:
+                        sample_path = self._resolve_gen_audio_asset_path(normalized_stored_name)
             if sample_path is None:
                 raw_sample_path = raw_config.get("samplePath")
                 if isinstance(raw_sample_path, str) and raw_sample_path.strip():
                     sample_path = raw_sample_path.strip()
-            if sample_path is None:
+            if sample_path is None and sample_filecode is None:
                 raise CompilationError(
                     [f"GEN node '{node_id}' GEN01 requires an uploaded audio asset or samplePath."]
                 )
@@ -328,7 +404,12 @@ class CompilerService:
             skip_time = self._gen_number(raw_config.get("sampleSkipTime"), default=0)
             file_format = self._gen_int(raw_config.get("sampleFormat"), default=0)
             channel = self._gen_int(raw_config.get("sampleChannel"), default=0)
-            return [sample_path, skip_time, file_format, channel]
+            return [
+                sample_filecode if sample_filecode is not None else sample_path,
+                0 if skip_time is None else skip_time,
+                file_format,
+                channel,
+            ]
 
         raw_args = raw_config.get("rawArgs")
         if isinstance(raw_args, list):
@@ -356,11 +437,44 @@ class CompilerService:
         return str(path)
 
     @staticmethod
+    def _allocate_string_temp_name(node_id: str, suffix: str) -> str:
+        safe_node = re.sub(r"[^A-Za-z0-9_]", "_", node_id)
+        safe_suffix = re.sub(r"[^A-Za-z0-9_]", "_", suffix)
+        return f"S_{safe_node}_{safe_suffix}"
+
+    def _resolve_sfload_filename(self, ui_layout: dict[str, object], node_id: str) -> str | None:
+        raw_config = self._lookup_sfload_node_config(ui_layout, node_id)
+        if not raw_config:
+            return None
+
+        sample_asset = raw_config.get("sampleAsset")
+        if isinstance(sample_asset, dict):
+            stored_name = sample_asset.get("stored_name")
+            if isinstance(stored_name, str) and stored_name.strip():
+                return self._resolve_gen_audio_asset_path(stored_name.strip())
+
+        raw_sample_path = raw_config.get("samplePath")
+        if isinstance(raw_sample_path, str) and raw_sample_path.strip():
+            return raw_sample_path.strip()
+
+        return None
+
+    @staticmethod
     def _lookup_gen_node_config(ui_layout: dict[str, object], node_id: str) -> dict[str, object]:
         raw_gen_nodes = ui_layout.get(GEN_NODES_LAYOUT_KEY)
         if not isinstance(raw_gen_nodes, dict):
             return {}
         raw_config = raw_gen_nodes.get(node_id)
+        if not isinstance(raw_config, dict):
+            return {}
+        return raw_config
+
+    @staticmethod
+    def _lookup_sfload_node_config(ui_layout: dict[str, object], node_id: str) -> dict[str, object]:
+        raw_sfload_nodes = ui_layout.get(SFLOAD_NODES_LAYOUT_KEY)
+        if not isinstance(raw_sfload_nodes, dict):
+            return {}
+        raw_config = raw_sfload_nodes.get(node_id)
         if not isinstance(raw_config, dict):
             return {}
         return raw_config
@@ -444,6 +558,10 @@ class CompilerService:
             return number
 
         return f"expr:{token}"
+
+    @staticmethod
+    def _gen20_requires_opt(window_type: int) -> bool:
+        return window_type in {6, 7, 9}
 
     @staticmethod
     def _format_gen_argument(value: str | int | float | bool) -> str:
