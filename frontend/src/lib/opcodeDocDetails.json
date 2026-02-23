@@ -2667,5 +2667,723 @@
         "spanish": "Variable de salida `ares` de k_to_a."
       }
     }
+  },
+  "tbvcf": {
+    "description": {
+      "english": "Models some of the filter characteristics of a Roland TB303 voltage-controlled filter. This opcode attempts to model some of the filter characteristics of a Roland TB303 voltage-controlled filter. Euler's method is used to approximate the system, rather than traditional filter methods. Cutoff frequency, Q, and distortion are all coupled. Empirical methods were used to try to unentwine, but frequency is only approximate as a result. Future fixes for some problems with this opcode may break existing orchestras relying on this version of tbvcf.",
+      "german": "Modelliert einige der Filtereigenschaften eines spannungsgesteuerten Roland TB303-Filters. Dieser Opcode versucht, einige der Filtereigenschaften eines spannungsgesteuerten Roland TB303-Filters zu modellieren. Zur Approximation des Systems wird die Euler-Methode anstelle herkömmlicher Filtermethoden verwendet. Grenzfrequenz, Q und Verzerrung sind alle gekoppelt. Empirische Methoden wurden verwendet, um zu versuchen, die Verflechtung zu lösen, aber die Häufigkeit ist daher nur ungefähr. Zukünftige Korrekturen für einige Probleme mit diesem Opcode können dazu führen, dass bestehende Orchester, die auf dieser Version von tbvcf basieren, kaputt gehen.",
+      "french": "Modélise certaines des caractéristiques de filtre d'un filtre contrôlé en tension Roland TB303. Cet opcode tente de modéliser certaines des caractéristiques d'un filtre contrôlé en tension Roland TB303. La méthode d'Euler est utilisée pour approximer le système, plutôt que les méthodes de filtrage traditionnelles. La fréquence de coupure, le Q et la distorsion sont tous couplés. Des méthodes empiriques ont été utilisées pour tenter de dénouer les liens, mais la fréquence n’est donc qu’approximative. Les correctifs futurs pour certains problèmes avec cet opcode pourraient briser les orchestres existants qui s'appuient sur cette version de tbvcf.",
+      "spanish": "Modela algunas de las características del filtro de un filtro controlado por voltaje Roland TB303. Este código de operación intenta modelar algunas de las características del filtro de un filtro controlado por voltaje Roland TB303. Se utiliza el método de Euler para aproximar el sistema, en lugar de los métodos de filtrado tradicionales. La frecuencia de corte, la Q y la distorsión están todas acopladas. Se utilizaron métodos empíricos para intentar desenlazar, pero como resultado la frecuencia es sólo aproximada. Las correcciones futuras para algunos problemas con este código de operación pueden dañar las orquestas existentes que dependen de esta versión de tbvcf."
+    },
+    "inputs": {
+      "asig": {
+        "english": "input signal. Should be normalized to ±1.",
+        "german": "Eingangssignal. Sollte auf ±1 normiert werden.",
+        "french": "signal d'entrée. Doit être normalisé à ±1.",
+        "spanish": "señal de entrada. Debe normalizarse a ±1."
+      },
+      "xfco": {
+        "english": "filter cutoff frequency. Optimum range is 10,000 to 1500. Values below 1000 may cause problems.",
+        "german": "Grenzfrequenz des Filters. Der optimale Bereich liegt zwischen 10.000 und 1.500. Werte unter 1.000 können zu Problemen führen.",
+        "french": "fréquence de coupure du filtre. La plage optimale est comprise entre 10 000 et 1 500. Les valeurs inférieures à 1 000 peuvent causer des problèmes.",
+        "spanish": "frecuencia de corte del filtro. El rango óptimo es de 10 000 a 1500. Los valores inferiores a 1000 pueden causar problemas."
+      },
+      "xres": {
+        "english": "resonance or Q. Typically in the range 0 to 2.",
+        "german": "Resonanz oder Q. Typischerweise im Bereich 0 bis 2.",
+        "french": "résonance ou Q. Généralement compris entre 0 et 2.",
+        "spanish": "resonancia o Q. Normalmente en el rango de 0 a 2."
+      },
+      "kdist": {
+        "english": "amount of distortion. Typical value is 2. Changing kdist significantly from 2 may cause odd interaction with xfco and xres.",
+        "german": "Ausmaß der Verzerrung. Der typische Wert ist 2. Eine deutliche Änderung von kdist von 2 kann zu seltsamen Interaktionen mit xfco und xres führen.",
+        "french": "quantité de distorsion. La valeur typique est 2. Changer considérablement kdist à partir de 2 peut provoquer une interaction étrange avec xfco et xres.",
+        "spanish": "cantidad de distorsión. El valor típico es 2. Cambiar kdist significativamente desde 2 puede causar una interacción extraña con xfco y xres."
+      },
+      "kasym": {
+        "english": "asymmetry of resonance. Typically in the range 0 to 1.",
+        "german": "Asymmetrie der Resonanz. Typischerweise im Bereich 0 bis 1.",
+        "french": "asymétrie de résonance. Généralement compris entre 0 et 1.",
+        "spanish": "asimetría de resonancia. Normalmente en el rango de 0 a 1."
+      },
+      "iskip": {
+        "english": "if non zero skip the initialisation of the filter. (New in Csound version 4.23f13 and 5.0)",
+        "german": "Wenn nicht Null, wird die Initialisierung des Filters übersprungen. (Neu in Csound-Version 4.23f13 und 5.0)",
+        "french": "si non nul sauter l'initialisation du filtre. (Nouveau dans Csound version 4.23f13 et 5.0)",
+        "spanish": "si es distinto de cero, omita la inicialización del filtro. (Nuevo en Csound versión 4.23f13 y 5.0)"
+      }
+    },
+    "outputs": {
+      "aout": {
+        "english": "Output variable `ares` from tbvcf.",
+        "german": "Ausgabevariable „ares“ von tbvcf.",
+        "french": "Variable de sortie `ares` de tbvcf.",
+        "spanish": "Variable de salida `ares` de tbvcf."
+      }
+    }
+  },
+  "linseg": {
+    "description": {
+      "english": "Trace a series of line segments between specified points.",
+      "german": "Verfolgen Sie eine Reihe von Liniensegmenten zwischen angegebenen Punkten.",
+      "french": "Tracez une série de segments de ligne entre des points spécifiés.",
+      "spanish": "Traza una serie de segmentos de línea entre puntos específicos."
+    },
+    "inputs": {
+      "ia": {
+        "english": "starting value.",
+        "german": "Startwert.",
+        "french": "valeur de départ.",
+        "spanish": "valor inicial."
+      },
+      "idur1": {
+        "english": "duration in seconds of first segment. A zero or negative value will cause all initialization to be skipped.",
+        "german": "Dauer in Sekunden des ersten Segments. Ein Null- oder negativer Wert führt dazu, dass alle Initialisierungen übersprungen werden.",
+        "french": "durée en secondes du premier segment. Une valeur nulle ou négative entraînera l’omission de toute initialisation.",
+        "spanish": "Duración en segundos del primer segmento. Un valor cero o negativo hará que se omita toda la inicialización."
+      },
+      "ib": {
+        "english": "value after dur1 seconds, etc.",
+        "german": "Wert nach dur1 Sekunden usw.",
+        "french": "valeur après dur1 secondes, etc.",
+        "spanish": "valor después de dur1 segundos, etc."
+      },
+      "idur2": {
+        "english": "duration in seconds of subsequent segments. A zero or negative value will terminate the initialization process with the preceding point, permitting the last-defined line or curve to be continued indefinitely in performance. The default is zero.",
+        "german": "Dauer in Sekunden nachfolgender Segmente. Ein Null- oder negativer Wert beendet den Initialisierungsprozess mit dem vorhergehenden Punkt und ermöglicht die unbegrenzte Fortsetzung der zuletzt definierten Linie oder Kurve. Der Standardwert ist Null.",
+        "french": "durée en secondes des segments suivants. Une valeur nulle ou négative mettra fin au processus d'initialisation avec le point précédent, permettant ainsi à la dernière ligne ou courbe définie de se poursuivre indéfiniment. La valeur par défaut est zéro.",
+        "spanish": "duración en segundos de los segmentos siguientes. Un valor cero o negativo finalizará el proceso de inicialización con el punto anterior, permitiendo que la última línea o curva definida continúe indefinidamente en funcionamiento. El valor predeterminado es cero."
+      },
+      "ic": {
+        "english": "value after dur1 seconds, etc.",
+        "german": "Wert nach dur1 Sekunden usw.",
+        "french": "valeur après dur1 secondes, etc.",
+        "spanish": "valor después de dur1 segundos, etc."
+      },
+      "idur3": {
+        "english": "duration in seconds of subsequent segments. A zero or negative value will terminate the initialization process with the preceding point, permitting the last-defined line or curve to be continued indefinitely in performance. The default is zero.",
+        "german": "Dauer in Sekunden nachfolgender Segmente. Ein Null- oder negativer Wert beendet den Initialisierungsprozess mit dem vorhergehenden Punkt und ermöglicht die unbegrenzte Fortsetzung der zuletzt definierten Linie oder Kurve. Der Standardwert ist Null.",
+        "french": "durée en secondes des segments suivants. Une valeur nulle ou négative mettra fin au processus d'initialisation avec le point précédent, permettant ainsi à la dernière ligne ou courbe définie de se poursuivre indéfiniment. La valeur par défaut est zéro.",
+        "spanish": "duración en segundos de los segmentos siguientes. Un valor cero o negativo finalizará el proceso de inicialización con el punto anterior, permitiendo que la última línea o curva definida continúe indefinidamente en funcionamiento. El valor predeterminado es cero."
+      },
+      "id": {
+        "english": "Val3 parameter at init-rate.",
+        "german": "Val3-Parameter bei Init-Rate.",
+        "french": "Paramètre Val3 au taux d'initialisation.",
+        "spanish": "Parámetro Val3 a velocidad inicial."
+      }
+    },
+    "outputs": {
+      "kenv": {
+        "english": "Output variable `ares` from linseg.",
+        "german": "Ausgabevariable „ares“ von linseg.",
+        "french": "Variable de sortie `ares` de linseg.",
+        "spanish": "Variable de salida `ares` de linseg."
+      }
+    }
+  },
+  "linsegr": {
+    "description": {
+      "english": "Trace a series of line segments between specified points including a release segment.",
+      "german": "Verfolgen Sie eine Reihe von Liniensegmenten zwischen angegebenen Punkten, einschließlich eines Freigabesegments.",
+      "french": "Tracez une série de segments de ligne entre des points spécifiés, y compris un segment de libération.",
+      "spanish": "Traza una serie de segmentos de línea entre puntos específicos, incluido un segmento de liberación."
+    },
+    "inputs": {
+      "ia": {
+        "english": "starting value.",
+        "german": "Startwert.",
+        "french": "valeur de départ.",
+        "spanish": "valor inicial."
+      },
+      "idur1": {
+        "english": "duration in seconds of first segment. A zero or negative value will cause all initialization to be skipped.",
+        "german": "Dauer in Sekunden des ersten Segments. Ein Null- oder negativer Wert führt dazu, dass alle Initialisierungen übersprungen werden.",
+        "french": "durée en secondes du premier segment. Une valeur nulle ou négative entraînera l’omission de toute initialisation.",
+        "spanish": "Duración en segundos del primer segmento. Un valor cero o negativo hará que se omita toda la inicialización."
+      },
+      "ib": {
+        "english": "value after dur1 seconds, etc.",
+        "german": "Wert nach dur1 Sekunden usw.",
+        "french": "valeur après dur1 secondes, etc.",
+        "spanish": "valor después de dur1 segundos, etc."
+      },
+      "irel": {
+        "english": "duration in seconds and final value of a note releasing segment.",
+        "german": "Dauer in Sekunden und Endwert eines Notenfreigabesegments.",
+        "french": "durée en secondes et valeur finale d'un segment de déclenchement de note.",
+        "spanish": "duración en segundos y valor final de un segmento de liberación de notas."
+      },
+      "iz": {
+        "english": "duration in seconds and final value of a note releasing segment.",
+        "german": "Dauer in Sekunden und Endwert eines Notenfreigabesegments.",
+        "french": "durée en secondes et valeur finale d'un segment de déclenchement de note.",
+        "spanish": "duración en segundos y valor final de un segmento de liberación de notas."
+      }
+    },
+    "outputs": {
+      "kenv": {
+        "english": "Output variable `ares` from linsegr.",
+        "german": "Ausgabevariable „ares“ aus linsegr.",
+        "french": "Variable de sortie `ares` de linsegr.",
+        "spanish": "Variable de salida `ares` de linsegr."
+      }
+    }
+  },
+  "butterlp": {
+    "description": {
+      "english": "A low-pass Butterworth filter. Implementation of a second-order low-pass Butterworth filter. This opcode can also be written as butlp.",
+      "german": "Ein Butterworth-Tiefpassfilter. Implementierung eines Butterworth-Tiefpassfilters zweiter Ordnung. Dieser Opcode kann auch als butlp geschrieben werden.",
+      "french": "Un filtre Butterworth passe-bas. Implémentation d'un filtre Butterworth passe-bas du second ordre. Cet opcode peut également être écrit sous la forme butlp.",
+      "spanish": "Un filtro Butterworth de paso bajo. Implementación de un filtro Butterworth de paso bajo de segundo orden. Este código de operación también se puede escribir como butlp."
+    },
+    "inputs": {
+      "asig": {
+        "english": "Input signal to be filtered.",
+        "german": "Zu filterndes Eingangssignal.",
+        "french": "Signal d'entrée à filtrer.",
+        "spanish": "Señal de entrada a filtrar."
+      },
+      "xfreq": {
+        "english": "Cutoff or center frequency for each of the filters.",
+        "german": "Grenz- oder Mittenfrequenz für jeden Filter.",
+        "french": "Fréquence de coupure ou fréquence centrale pour chacun des filtres.",
+        "spanish": "Frecuencia de corte o central para cada uno de los filtros."
+      },
+      "iskip": {
+        "english": "Skip initialization if present and non-zero.",
+        "german": "Initialisierung überspringen, falls vorhanden und ungleich Null.",
+        "french": "Ignorer l'initialisation si elle est présente et non nulle.",
+        "spanish": "Omita la inicialización si está presente y es distinta de cero."
+      }
+    },
+    "outputs": {
+      "aout": {
+        "english": "Output variable `ares` from butterlp.",
+        "german": "Ausgabevariable „ares“ von butterlp.",
+        "french": "Variable de sortie `ares` de butterlp.",
+        "spanish": "Variable de salida `ares` de butterlp."
+      }
+    }
+  },
+  "butterbp": {
+    "description": {
+      "english": "A band-pass Butterworth filter. Implementation of a second-order band-pass Butterworth filter. This opcode can also be written as butbp.",
+      "german": "Ein Bandpass-Butterworth-Filter. Implementierung eines Butterworth-Bandpassfilters zweiter Ordnung. Dieser Opcode kann auch als butbp geschrieben werden.",
+      "french": "Un filtre Butterworth passe-bande. Implémentation d'un filtre Butterworth passe-bande du second ordre. Cet opcode peut également être écrit sous la forme butbp.",
+      "spanish": "Un filtro Butterworth de paso de banda. Implementación de un filtro Butterworth paso banda de segundo orden. Este código de operación también se puede escribir como butbp."
+    },
+    "inputs": {
+      "asig": {
+        "english": "Input signal to be filtered.",
+        "german": "Zu filterndes Eingangssignal.",
+        "french": "Signal d'entrée à filtrer.",
+        "spanish": "Señal de entrada a filtrar."
+      },
+      "xfreq": {
+        "english": "Cutoff or center frequency for each of the filters.",
+        "german": "Grenz- oder Mittenfrequenz für jeden Filter.",
+        "french": "Fréquence de coupure ou fréquence centrale pour chacun des filtres.",
+        "spanish": "Frecuencia de corte o central para cada uno de los filtros."
+      },
+      "xband": {
+        "english": "Bandwidth of the bandpass and bandreject filters.",
+        "german": "Bandbreite der Bandpass- und Bandsperrfilter.",
+        "french": "Bande passante des filtres passe-bande et réjecteur de bande.",
+        "spanish": "Ancho de banda de los filtros de paso de banda y rechazo de banda."
+      },
+      "iskip": {
+        "english": "Skip initialization if present and non-zero.",
+        "german": "Initialisierung überspringen, falls vorhanden und ungleich Null.",
+        "french": "Ignorer l'initialisation si elle est présente et non nulle.",
+        "spanish": "Omita la inicialización si está presente y es distinta de cero."
+      }
+    },
+    "outputs": {
+      "aout": {
+        "english": "Output variable `ares` from butterbp.",
+        "german": "Ausgabevariable „ares“ von butterbp.",
+        "french": "Variable de sortie `ares` de butterbp.",
+        "spanish": "Variable de salida `ares` de butterbp."
+      }
+    }
+  },
+  "butterhp": {
+    "description": {
+      "english": "A high-pass Butterworth filter. Implementation of second-order high-pass Butterworth filter. This opcode can also be written as buthp.",
+      "german": "Ein Hochpass-Butterworth-Filter. Implementierung eines Butterworth-Hochpassfilters zweiter Ordnung. Dieser Opcode kann auch als buthp geschrieben werden.",
+      "french": "Un filtre Butterworth passe-haut. Implémentation d'un filtre Butterworth passe-haut de second ordre. Cet opcode peut également être écrit sous la forme buthp.",
+      "spanish": "Un filtro Butterworth de paso alto. Implementación de filtro Butterworth de paso alto de segundo orden. Este código de operación también se puede escribir como buthp."
+    },
+    "inputs": {
+      "asig": {
+        "english": "Input signal to be filtered.",
+        "german": "Zu filterndes Eingangssignal.",
+        "french": "Signal d'entrée à filtrer.",
+        "spanish": "Señal de entrada a filtrar."
+      },
+      "xfreq": {
+        "english": "Cutoff or center frequency for each of the filters.",
+        "german": "Grenz- oder Mittenfrequenz für jeden Filter.",
+        "french": "Fréquence de coupure ou fréquence centrale pour chacun des filtres.",
+        "spanish": "Frecuencia de corte o central para cada uno de los filtros."
+      },
+      "iskip": {
+        "english": "Skip initialization if present and non-zero.",
+        "german": "Initialisierung überspringen, falls vorhanden und ungleich Null.",
+        "french": "Ignorer l'initialisation si elle est présente et non nulle.",
+        "spanish": "Omita la inicialización si está presente y es distinta de cero."
+      }
+    },
+    "outputs": {
+      "aout": {
+        "english": "Output variable `ares` from butterhp.",
+        "german": "Ausgabevariable „ares“ von butterhp.",
+        "french": "Variable de sortie `ares` de butterhp.",
+        "spanish": "Variable de salida `ares` de butterhp."
+      }
+    }
+  },
+  "butterbr": {
+    "description": {
+      "english": "A band-reject Butterworth filter. Implementation of a second-order band-reject Butterworth filter. This opcode can also be written as butbr.",
+      "german": "Ein Butterworth-Filter mit Bandsperre. Implementierung eines Butterworth-Filters mit Bandsperre zweiter Ordnung. Dieser Opcode kann auch als butbr geschrieben werden.",
+      "french": "Un filtre Butterworth à rejet de bande. Implémentation d'un filtre Butterworth à rejet de bande du second ordre. Cet opcode peut également être écrit sous la forme butbr.",
+      "spanish": "Un filtro Butterworth de rechazo de banda. Implementación de un filtro Butterworth de rechazo de banda de segundo orden. Este código de operación también se puede escribir como butbr."
+    },
+    "inputs": {
+      "asig": {
+        "english": "Input signal to be filtered.",
+        "german": "Zu filterndes Eingangssignal.",
+        "french": "Signal d'entrée à filtrer.",
+        "spanish": "Señal de entrada a filtrar."
+      },
+      "xfreq": {
+        "english": "Cutoff or center frequency for each of the filters.",
+        "german": "Grenz- oder Mittenfrequenz für jeden Filter.",
+        "french": "Fréquence de coupure ou fréquence centrale pour chacun des filtres.",
+        "spanish": "Frecuencia de corte o central para cada uno de los filtros."
+      },
+      "xband": {
+        "english": "Bandwidth of the bandpass and bandreject filters.",
+        "german": "Bandbreite der Bandpass- und Bandsperrfilter.",
+        "french": "Bande passante des filtres passe-bande et réjecteur de bande.",
+        "spanish": "Ancho de banda de los filtros de paso de banda y rechazo de banda."
+      },
+      "iskip": {
+        "english": "Skip initialization if present and non-zero.",
+        "german": "Initialisierung überspringen, falls vorhanden und ungleich Null.",
+        "french": "Ignorer l'initialisation si elle est présente et non nulle.",
+        "spanish": "Omita la inicialización si está presente y es distinta de cero."
+      }
+    },
+    "outputs": {
+      "aout": {
+        "english": "Output variable `ares` from butterbr.",
+        "german": "Ausgabevariable „ares“ von butterbr.",
+        "french": "Variable de sortie `ares` de butterbr.",
+        "spanish": "Variable de salida `ares` de butterbr."
+      }
+    }
+  },
+  "clip": {
+    "description": {
+      "english": "Clips a signal to a predefined limit. Clips an a-rate signal to a predefined limit, in a “ soft ” manner, using one of three methods.",
+      "german": "Begrenzt ein Signal auf einen vordefinierten Grenzwert. Begrenzt ein A-Rate-Signal auf „weiche“ Weise mit einer von drei Methoden auf einen vordefinierten Grenzwert.",
+      "french": "Coupe un signal à une limite prédéfinie. Coupe un signal de taux-a à une limite prédéfinie, de manière « douce », en utilisant l'une des trois méthodes suivantes.",
+      "spanish": "Recorta una señal a un límite predefinido. Recorta una señal de velocidad a a un límite predefinido, de manera \"suave\", utilizando uno de tres métodos."
+    },
+    "inputs": {
+      "asig": {
+        "english": "a-rate input signal",
+        "german": "a-rate eingangssignal",
+        "french": "signal d'entrée de taux-a",
+        "spanish": "señal de entrada de velocidad a"
+      },
+      "imeth": {
+        "english": "selects the clipping method. The default is 0. The methods are:",
+        "german": "wählt die Clipping-Methode aus. Der Standardwert ist 0. Die Methoden sind:",
+        "french": "sélectionne la méthode de découpage. La valeur par défaut est 0. Les méthodes sont:",
+        "spanish": "Selecciona el método de recorte. El valor predeterminado es 0. Los métodos son:"
+      },
+      "ilimit": {
+        "english": "limiting value",
+        "german": "Grenzwert",
+        "french": "valeur limite",
+        "spanish": "valor límite"
+      },
+      "iarg": {
+        "english": "when imeth = 0, indicates the point at which clipping starts, in the range 0 - 1. Not used when imeth = 1 or imeth = 2. Default is 0.5.",
+        "german": "when imeth = 0, indicates the point at which clipping starts, in the range 0 - 1. Not used when imeth = 1 or imeth = 2. Default is 0.5.",
+        "french": "lorsque imeth = 0, indique le point auquel le découpage commence, dans la plage 0 - 1. Non utilisé lorsque imeth = 1 ou imeth = 2. La valeur par défaut est 0,5.",
+        "spanish": "cuando imeth = 0, indica el punto en el que comienza el recorte, en el rango 0 - 1. No se utiliza cuando imeth = 1 o imeth = 2. El valor predeterminado es 0,5."
+      }
+    },
+    "outputs": {
+      "aout": {
+        "english": "Output variable `ares` from clip.",
+        "german": "Ausgabevariable „ares“ aus dem Clip.",
+        "french": "Variable de sortie `ares` du clip.",
+        "spanish": "Variable de salida `ares` del clip."
+      }
+    }
+  },
+  "fof": {
+    "description": {
+      "english": "Produces sinusoid bursts useful for formant and granular synthesis. Audio output is a succession of sinusoid bursts initiated at frequency xfund with a spectral peak at xform. For xfund above 25 Hz these bursts produce a speech-like formant with spectral characteristics determined by the k-input parameters. For lower fundamentals this generator provides a special form of granular synthesis.",
+      "german": "Erzeugt sinusförmige Ausbrüche, die für die Formant- und Granularsynthese nützlich sind. Die Audioausgabe ist eine Folge sinusförmiger Bursts, die bei der Frequenz xfund mit einem spektralen Peak bei xform eingeleitet werden. Für xfund über 25 Hz erzeugen diese Bursts einen sprachähnlichen Formanten mit spektralen Eigenschaften, die durch die k-Eingabeparameter bestimmt werden. Für niedrigere Grundfrequenzen bietet dieser Generator eine spezielle Form der Granularsynthese.",
+      "french": "Produit des rafales sinusoïdales utiles pour la synthèse formantante et granulaire. La sortie audio est une succession de salves sinusoïdales initiées à la fréquence xfund avec un pic spectral à xform. Pour xfund au-dessus de 25 Hz, ces salves produisent un formant de type vocal avec des caractéristiques spectrales déterminées par les paramètres d'entrée k. Pour les fondamentaux inférieurs, ce générateur fournit une forme spéciale de synthèse granulaire.",
+      "spanish": "Produce ráfagas sinusoides útiles para síntesis granular y de formantes. La salida de audio es una sucesión de ráfagas sinusoides iniciadas en la frecuencia xfund con un pico espectral en xform. Para xfund por encima de 25 Hz, estas ráfagas producen un formante similar al habla con características espectrales determinadas por los parámetros de entrada k. Para fundamentos más bajos, este generador proporciona una forma especial de síntesis granular."
+    },
+    "inputs": {
+      "xamp": {
+        "english": "peak amplitude of each sineburst, observed at the true end of its rise pattern. The rise may exceed this value given a large bandwidth (say, Q < 10) and/or when the bursts are overlapping.",
+        "german": "Spitzenamplitude jedes Sinusstoßes, beobachtet am wahren Ende seines Anstiegsmusters. Bei einer großen Bandbreite (z. B. Q < 10) und/oder wenn sich die Bursts überlappen, kann der Anstieg diesen Wert überschreiten.",
+        "french": "amplitude maximale de chaque explosion sinusoïdale, observée à la véritable extrémité de son schéma de montée. L'augmentation peut dépasser cette valeur dans le cas d'une large bande passante (par exemple Q < 10) et/ou lorsque les salves se chevauchent.",
+        "spanish": "amplitud máxima de cada explosión sinusoidal, observada en el verdadero final de su patrón de ascenso. El aumento puede exceder este valor dado un ancho de banda grande (digamos, Q < 10) y/o cuando las ráfagas se superponen."
+      },
+      "xfund": {
+        "english": "the fundamental frequency (in Hertz) of the impulses that create new sinebursts.",
+        "german": "die Grundfrequenz (in Hertz) der Impulse, die neue Sinusausbrüche erzeugen.",
+        "french": "la fréquence fondamentale (en Hertz) des impulsions qui créent de nouvelles sinusoïdes.",
+        "spanish": "la frecuencia fundamental (en Hertz) de los impulsos que crean nuevas explosiones sinusoidales."
+      },
+      "xform": {
+        "english": "the formant frequency, i.e. freq of the sinusoid burst induced by each xfund impulse. This frequency can be fixed for each burst or can vary continuously (see ifmode ).",
+        "german": "die Formantfrequenz, d. h. die Frequenz des Sinusstoßes, der durch jeden xfund-Impuls induziert wird. Diese Frequenz kann für jeden Burst festgelegt werden oder kontinuierlich variieren (siehe ifmode ).",
+        "french": "la fréquence des formants, c'est-à-dire la fréquence de la salve sinusoïdale induite par chaque impulsion xfund. Cette fréquence peut être fixe pour chaque burst ou peut varier continuellement (voir ifmode ).",
+        "spanish": "la frecuencia del formante, es decir, la frecuencia del estallido sinusoide inducido por cada impulso xfund. Esta frecuencia puede fijarse para cada ráfaga o puede variar continuamente (consulte ifmode)."
+      },
+      "koct": {
+        "english": "octaviation index, normally zero. If greater than zero, lowers the effective xfund frequency by attenuating odd-numbered sinebursts. Whole numbers are full octaves, fractions transitional.",
+        "german": "Oktaviationsindex, normalerweise Null. Wenn größer als Null, wird die effektive xfund-Frequenz durch Dämpfung ungeradzahliger Sinusbursts verringert. Ganze Zahlen sind volle Oktaven, Brüche Übergangszahlen.",
+        "french": "indice d'octaviation, normalement nul. Si elle est supérieure à zéro, diminue la fréquence xfund effective en atténuant les sinusoïdes impaires. Les nombres entiers sont des octaves complètes, les fractions transitionnelles.",
+        "spanish": "índice de octaviación, normalmente cero. Si es mayor que cero, reduce la frecuencia efectiva de xfund al atenuar las ráfagas sinusoidales impares. Los números enteros son octavas completas, las fracciones de transición."
+      },
+      "kband": {
+        "english": "the formant bandwidth (at -6dB), expressed in Hz. The bandwidth determines the rate of exponential decay throughout the sineburst, before the enveloping described below is applied.",
+        "german": "die Formantbandbreite (bei -6 dB), ausgedrückt in Hz. Die Bandbreite bestimmt die Rate des exponentiellen Abfalls während des Sinusstoßes, bevor die unten beschriebene Hüllkurve angewendet wird.",
+        "french": "la bande passante des formants (à -6dB), exprimée en Hz. La bande passante détermine le taux de décroissance exponentielle tout au long de la sinusoïde, avant que l'enveloppement décrit ci-dessous ne soit appliqué.",
+        "spanish": "el ancho de banda del formante (a -6 dB), expresado en Hz. El ancho de banda determina la tasa de caída exponencial a lo largo de la explosión sinusoidal, antes de que se aplique la envolvente que se describe a continuación."
+      },
+      "kris": {
+        "english": "rise, overall duration, and decay times (in seconds) of the sinusoid burst. These values apply an enveloped duration to each burst, in similar fashion to a Csound linen generator but with rise and decay shapes derived from the ifnb input. kris inversely determines the skirtwidth (at -40 dB) of the induced formant region. kdur affects the density of sineburst overlaps, and thus the speed of computation. Typical values for vocal imitation are.003,.02,.007.",
+        "german": "Anstieg, Gesamtdauer und Abklingzeiten (in Sekunden) des Sinus-Bursts. Diese Werte wenden auf jeden Burst eine Hüllkurvendauer an, ähnlich wie bei einem Csound-Leinengenerator, jedoch mit Anstiegs- und Abfallformen, die von der ifnb-Eingabe abgeleitet werden. Kris bestimmt umgekehrt die Randbreite (bei -40 dB) der induzierten Formantregion. kdur beeinflusst die Dichte der Sineburst-Überlappungen und damit die Geschwindigkeit der Berechnung. Typische Werte für Stimmimitation sind.003,.02,.007.",
+        "french": "montée, durée globale et temps de décroissance (en secondes) de la salve sinusoïdale. Ces valeurs appliquent une durée enveloppée à chaque rafale, de la même manière qu'un générateur de lin Csound mais avec des formes de montée et de décroissance dérivées de l'entrée ifnb. Kris détermine inversement la largeur de jupe (à -40 dB) de la région des formants induits. kdur affecte la densité des chevauchements sinusoïdaux, et donc la vitesse de calcul. Les valeurs typiques pour l'imitation vocale sont.003,.02,.007.",
+        "spanish": "tiempos de subida, duración total y caída (en segundos) de la explosión sinusoide. Estos valores aplican una duración envolvente a cada ráfaga, de manera similar a un generador de lino Csound pero con formas de subida y bajada derivadas de la entrada ifnb. kris determina inversamente el ancho de la falda (a -40 dB) de la región formante inducida. kdur afecta la densidad de las superposiciones de explosiones sinusoidales y, por tanto, la velocidad de cálculo. Los valores típicos para la imitación vocal son.003,.02,.007."
+      },
+      "kdur": {
+        "english": "rise, overall duration, and decay times (in seconds) of the sinusoid burst. These values apply an enveloped duration to each burst, in similar fashion to a Csound linen generator but with rise and decay shapes derived from the ifnb input. kris inversely determines the skirtwidth (at -40 dB) of the induced formant region. kdur affects the density of sineburst overlaps, and thus the speed of computation. Typical values for vocal imitation are.003,.02,.007.",
+        "german": "Anstieg, Gesamtdauer und Abklingzeiten (in Sekunden) des Sinus-Bursts. Diese Werte wenden auf jeden Burst eine Hüllkurvendauer an, ähnlich wie bei einem Csound-Leinengenerator, jedoch mit Anstiegs- und Abfallformen, die von der ifnb-Eingabe abgeleitet werden. Kris bestimmt umgekehrt die Randbreite (bei -40 dB) der induzierten Formantregion. kdur beeinflusst die Dichte der Sineburst-Überlappungen und damit die Geschwindigkeit der Berechnung. Typische Werte für Stimmimitation sind.003,.02,.007.",
+        "french": "montée, durée globale et temps de décroissance (en secondes) de la salve sinusoïdale. Ces valeurs appliquent une durée enveloppée à chaque rafale, de la même manière qu'un générateur de lin Csound mais avec des formes de montée et de décroissance dérivées de l'entrée ifnb. Kris détermine inversement la largeur de jupe (à -40 dB) de la région des formants induits. kdur affecte la densité des chevauchements sinusoïdaux, et donc la vitesse de calcul. Les valeurs typiques pour l'imitation vocale sont.003,.02,.007.",
+        "spanish": "tiempos de subida, duración total y caída (en segundos) de la explosión sinusoide. Estos valores aplican una duración envolvente a cada ráfaga, de manera similar a un generador de lino Csound pero con formas de subida y bajada derivadas de la entrada ifnb. kris determina inversamente el ancho de la falda (a -40 dB) de la región formante inducida. kdur afecta la densidad de las superposiciones de explosiones sinusoidales y, por tanto, la velocidad de cálculo. Los valores típicos para la imitación vocal son.003,.02,.007."
+      },
+      "kdec": {
+        "english": "rise, overall duration, and decay times (in seconds) of the sinusoid burst. These values apply an enveloped duration to each burst, in similar fashion to a Csound linen generator but with rise and decay shapes derived from the ifnb input. kris inversely determines the skirtwidth (at -40 dB) of the induced formant region. kdur affects the density of sineburst overlaps, and thus the speed of computation. Typical values for vocal imitation are.003,.02,.007.",
+        "german": "Anstieg, Gesamtdauer und Abklingzeiten (in Sekunden) des Sinus-Bursts. Diese Werte wenden auf jeden Burst eine Hüllkurvendauer an, ähnlich wie bei einem Csound-Leinengenerator, jedoch mit Anstiegs- und Abfallformen, die von der ifnb-Eingabe abgeleitet werden. Kris bestimmt umgekehrt die Randbreite (bei -40 dB) der induzierten Formantregion. kdur beeinflusst die Dichte der Sineburst-Überlappungen und damit die Geschwindigkeit der Berechnung. Typische Werte für Stimmimitation sind.003,.02,.007.",
+        "french": "montée, durée globale et temps de décroissance (en secondes) de la salve sinusoïdale. Ces valeurs appliquent une durée enveloppée à chaque rafale, de la même manière qu'un générateur de lin Csound mais avec des formes de montée et de décroissance dérivées de l'entrée ifnb. Kris détermine inversement la largeur de jupe (à -40 dB) de la région des formants induits. kdur affecte la densité des chevauchements sinusoïdaux, et donc la vitesse de calcul. Les valeurs typiques pour l'imitation vocale sont.003,.02,.007.",
+        "spanish": "tiempos de subida, duración total y caída (en segundos) de la explosión sinusoide. Estos valores aplican una duración envolvente a cada ráfaga, de manera similar a un generador de lino Csound pero con formas de subida y bajada derivadas de la entrada ifnb. kris determina inversamente el ancho de la falda (a -40 dB) de la región formante inducida. kdur afecta la densidad de las superposiciones de explosiones sinusoidales y, por tanto, la velocidad de cálculo. Los valores típicos para la imitación vocal son.003,.02,.007."
+      },
+      "iolaps": {
+        "english": "number of preallocated spaces needed to hold overlapping burst data. Overlaps are frequency dependent, and the space required depends on the maximum value of xfund * kdur. Can be over-estimated at no computation cost. Uses less than 50 bytes of memory per iolap.",
+        "german": "Anzahl der vorab zugewiesenen Speicherplätze, die zum Speichern überlappender Burst-Daten erforderlich sind. Überlappungen sind frequenzabhängig und der benötigte Platz hängt vom Maximalwert von xfund * kdur ab. Kann ohne Rechenaufwand überschätzt werden. Benötigt weniger als 50 Byte Speicher pro Iolap.",
+        "french": "nombre d'espaces pré-alloués nécessaires pour contenir des données en rafale qui se chevauchent. Les chevauchements dépendent de la fréquence et l'espace requis dépend de la valeur maximale de xfund * kdur. Peut être surestimé sans frais de calcul. Utilise moins de 50 octets de mémoire par iolap.",
+        "spanish": "número de espacios preasignados necesarios para contener datos de ráfagas superpuestos. Las superposiciones dependen de la frecuencia y el espacio requerido depende del valor máximo de xfund * kdur. Puede sobreestimarse sin costo de cálculo. Utiliza menos de 50 bytes de memoria por iolap."
+      },
+      "ifna": {
+        "english": "table numbers of two stored functions. The first is a sine table for sineburst synthesis (size of at least 4096 recommended). The second is a rise shape, used forwards and backwards to shape the sineburst rise and decay; this may be linear ( GEN07 ) or perhaps a sigmoid ( GEN19 ).",
+        "german": "Tabellennummern von zwei gespeicherten Funktionen. Die erste ist eine Sinustabelle für die Sineburst-Synthese (Größe mindestens 4096 empfohlen). Die zweite ist eine Anstiegsform, die vorwärts und rückwärts verwendet wird, um den Anstieg und Abfall des Sinusstoßes zu formen. Dies kann linear (GEN07) oder möglicherweise sigmoid (GEN19) sein.",
+        "french": "numéros de table de deux fonctions stockées. La première est une table sinusoïdale pour la synthèse sinusoïdale (taille d'au moins 4096 recommandée). La seconde est une forme de montée, utilisée vers l'avant et vers l'arrière pour façonner la montée et la décroissance de la sinusoïde; cela peut être linéaire ( GEN07 ) ou peut-être sigmoïde ( GEN19 ).",
+        "spanish": "números de tabla de dos funciones almacenadas. La primera es una tabla de senos para síntesis sineburst (se recomienda un tamaño de al menos 4096). La segunda es una forma de elevación, que se utiliza hacia adelante y hacia atrás para dar forma a la subida y caída de la explosión sinusoidal; Esto puede ser lineal (GEN07) o quizás sigmoideo (GEN19)."
+      },
+      "ifnb": {
+        "english": "table numbers of two stored functions. The first is a sine table for sineburst synthesis (size of at least 4096 recommended). The second is a rise shape, used forwards and backwards to shape the sineburst rise and decay; this may be linear ( GEN07 ) or perhaps a sigmoid ( GEN19 ).",
+        "german": "Tabellennummern von zwei gespeicherten Funktionen. Die erste ist eine Sinustabelle für die Sineburst-Synthese (Größe mindestens 4096 empfohlen). Die zweite ist eine Anstiegsform, die vorwärts und rückwärts verwendet wird, um den Anstieg und Abfall des Sinusstoßes zu formen. Dies kann linear (GEN07) oder möglicherweise sigmoid (GEN19) sein.",
+        "french": "numéros de table de deux fonctions stockées. La première est une table sinusoïdale pour la synthèse sinusoïdale (taille d'au moins 4096 recommandée). La seconde est une forme de montée, utilisée vers l'avant et vers l'arrière pour façonner la montée et la décroissance de la sinusoïde; cela peut être linéaire ( GEN07 ) ou peut-être sigmoïde ( GEN19 ).",
+        "spanish": "números de tabla de dos funciones almacenadas. La primera es una tabla de senos para síntesis sineburst (se recomienda un tamaño de al menos 4096). La segunda es una forma de elevación, que se utiliza hacia adelante y hacia atrás para dar forma a la subida y caída de la explosión sinusoidal; Esto puede ser lineal (GEN07) o quizás sigmoideo (GEN19)."
+      },
+      "itotdur": {
+        "english": "total time during which this fof will be active. Normally set to p3. No new sineburst is created if it cannot complete its kdur within the remaining itotdur.",
+        "german": "Gesamtzeit, während der dieser Fof aktiv sein wird. Normalerweise auf p3 eingestellt. Es wird kein neuer Sineburst erstellt, wenn er seinen Kdur nicht innerhalb des verbleibenden Itotdur abschließen kann.",
+        "french": "temps total pendant lequel ce fof sera actif. Normalement réglé sur p3. Aucune nouvelle explosion sinusoïdale n'est créée si elle ne peut pas terminer son kdur dans l'itotdur restant.",
+        "spanish": "Tiempo total durante el cual este fof estará activo. Normalmente configurado en p3. No se crea ningún nuevo sineburst si no puede completar su kdur dentro del itotdur restante."
+      },
+      "iphs": {
+        "english": "initial phase of the fundamental, expressed as a fraction of a cycle (0 to 1). The default value is 0.",
+        "german": "Anfangsphase der Grundschwingung, ausgedrückt als Bruchteil eines Zyklus (0 bis 1). Der Standardwert ist 0.",
+        "french": "phase initiale du fondamental, exprimée en fraction de cycle (0 à 1). La valeur par défaut est 0.",
+        "spanish": "Fase inicial de la fundamental, expresada como fracción de ciclo (0 a 1). El valor predeterminado es 0."
+      },
+      "ifmode": {
+        "english": "formant frequency mode. If zero, each sineburst keeps the xform frequency it was launched with. If non-zero, each is influenced by xform continuously. The default value is 0.",
+        "german": "Formant-Frequenzmodus. Bei Null behält jeder Sineburst die xform-Frequenz bei, mit der er gestartet wurde. Wenn nicht Null, wird jedes kontinuierlich von xform beeinflusst. Der Standardwert ist 0.",
+        "french": "mode de fréquence des formants. Si zéro, chaque sineburst conserve la fréquence xform avec laquelle elle a été lancée. S'il est différent de zéro, chacun est influencé en permanence par xform. La valeur par défaut est 0.",
+        "spanish": "Modo de frecuencia de formante. Si es cero, cada explosión sinusoidal mantiene la frecuencia xform con la que se lanzó. Si es distinto de cero, cada uno está influenciado por xform continuamente. El valor predeterminado es 0."
+      },
+      "iskip": {
+        "english": "If non-zero, skip initialisation (allows legato use).",
+        "german": "Wenn nicht Null, wird die Initialisierung übersprungen (ermöglicht die Verwendung von Legato).",
+        "french": "S'il est différent de zéro, ignorez l'initialisation (permet une utilisation legato).",
+        "spanish": "Si es distinto de cero, omita la inicialización (permite el uso de legato)."
+      }
+    },
+    "outputs": {
+      "asig": {
+        "english": "Output variable `ares` from fof.",
+        "german": "Ausgabevariable „ares“ von fof.",
+        "french": "Variable de sortie `ares` de fof.",
+        "spanish": "Variable de salida `ares` de fof."
+      }
+    }
+  },
+  "fof2": {
+    "description": {
+      "english": "Produces sinusoid bursts including k-rate incremental indexing with each successive burst. Audio output is a succession of sinusoid bursts initiated at frequency xfund with a spectral peak at xform. For xfund above 25 Hz these bursts produce a speech-like formant with spectral characteristics determined by the k-input parameters. For lower fundamentals this generator provides a special form of granular synthesis. fof2 implements k-rate incremental indexing into ifna function with each successive burst.",
+      "german": "Erzeugt sinusförmige Bursts einschließlich inkrementeller K-Rate-Indizierung bei jedem nachfolgenden Burst. Die Audioausgabe ist eine Folge sinusförmiger Bursts, die bei der Frequenz xfund mit einem spektralen Peak bei xform eingeleitet werden. Für xfund über 25 Hz erzeugen diese Bursts einen sprachähnlichen Formanten mit spektralen Eigenschaften, die durch die k-Eingabeparameter bestimmt werden. Für niedrigere Grundfrequenzen bietet dieser Generator eine spezielle Form der Granularsynthese. fof2 implementiert bei jedem aufeinanderfolgenden Burst eine inkrementelle K-Rate-Indizierung in die ifna-Funktion.",
+      "french": "Produit des rafales sinusoïdales, y compris une indexation incrémentielle au taux K avec chaque rafale successive. La sortie audio est une succession de salves sinusoïdales initiées à la fréquence xfund avec un pic spectral à xform. Pour xfund au-dessus de 25 Hz, ces salves produisent un formant de type vocal avec des caractéristiques spectrales déterminées par les paramètres d'entrée k. Pour les fondamentaux inférieurs, ce générateur fournit une forme spéciale de synthèse granulaire. fof2 implémente une indexation incrémentielle au taux-k dans la fonction ifna à chaque rafale successive.",
+      "spanish": "Produce ráfagas sinusoidales, incluida una indexación incremental de velocidad k con cada ráfaga sucesiva. La salida de audio es una sucesión de ráfagas sinusoides iniciadas en la frecuencia xfund con un pico espectral en xform. Para xfund por encima de 25 Hz, estas ráfagas producen un formante similar al habla con características espectrales determinadas por los parámetros de entrada k. Para fundamentos más bajos, este generador proporciona una forma especial de síntesis granular. fof2 implementa una indexación incremental de tasa k en la función ifna con cada ráfaga sucesiva."
+    },
+    "inputs": {
+      "xamp": {
+        "english": "peak amplitude of each sineburst, observed at the true end of its rise pattern. The rise may exceed this value given a large bandwidth (say, Q < 10) and/or when the bursts are overlapping.",
+        "german": "Spitzenamplitude jedes Sinusstoßes, beobachtet am wahren Ende seines Anstiegsmusters. Bei einer großen Bandbreite (z. B. Q < 10) und/oder wenn sich die Bursts überlappen, kann der Anstieg diesen Wert überschreiten.",
+        "french": "amplitude maximale de chaque explosion sinusoïdale, observée à la véritable extrémité de son schéma de montée. L'augmentation peut dépasser cette valeur dans le cas d'une large bande passante (par exemple Q < 10) et/ou lorsque les salves se chevauchent.",
+        "spanish": "amplitud máxima de cada explosión sinusoidal, observada en el verdadero final de su patrón de ascenso. El aumento puede exceder este valor dado un ancho de banda grande (digamos, Q < 10) y/o cuando las ráfagas se superponen."
+      },
+      "xfund": {
+        "english": "the fundamental frequency (in Hertz) of the impulses that create new sinebursts.",
+        "german": "die Grundfrequenz (in Hertz) der Impulse, die neue Sinusausbrüche erzeugen.",
+        "french": "la fréquence fondamentale (en Hertz) des impulsions qui créent de nouvelles sinusoïdes.",
+        "spanish": "la frecuencia fundamental (en Hertz) de los impulsos que crean nuevas explosiones sinusoidales."
+      },
+      "xform": {
+        "english": "the formant frequency, i.e. freq of the sinusoid burst induced by each xfund impulse. This frequency can be fixed for each burst or can vary continuously.",
+        "german": "die Formantfrequenz, d. h. die Frequenz des Sinusstoßes, der durch jeden xfund-Impuls induziert wird. Diese Frequenz kann für jeden Burst festgelegt werden oder kontinuierlich variieren.",
+        "french": "la fréquence des formants, c'est-à-dire la fréquence de la salve sinusoïdale induite par chaque impulsion xfund. Cette fréquence peut être fixe pour chaque salve ou varier de façon continue.",
+        "spanish": "la frecuencia del formante, es decir, la frecuencia del estallido sinusoide inducido por cada impulso xfund. Esta frecuencia puede fijarse para cada ráfaga o puede variar continuamente."
+      },
+      "koct": {
+        "english": "octaviation index, normally zero. If greater than zero, lowers the effective xfund frequency by attenuating odd-numbered sinebursts. Whole numbers are full octaves, fractions transitional.",
+        "german": "Oktaviationsindex, normalerweise Null. Wenn größer als Null, wird die effektive xfund-Frequenz durch Dämpfung ungeradzahliger Sinusbursts verringert. Ganze Zahlen sind volle Oktaven, Brüche Übergangszahlen.",
+        "french": "indice d'octaviation, normalement nul. Si elle est supérieure à zéro, diminue la fréquence xfund effective en atténuant les sinusoïdes impaires. Les nombres entiers sont des octaves complètes, les fractions transitionnelles.",
+        "spanish": "índice de octaviación, normalmente cero. Si es mayor que cero, reduce la frecuencia efectiva de xfund al atenuar las ráfagas sinusoidales impares. Los números enteros son octavas completas, las fracciones de transición."
+      },
+      "kband": {
+        "english": "the formant bandwidth (at -6dB), expressed in Hz. The bandwidth determines the rate of exponential decay throughout the sineburst, before the enveloping described below is applied.",
+        "german": "die Formantbandbreite (bei -6 dB), ausgedrückt in Hz. Die Bandbreite bestimmt die Rate des exponentiellen Abfalls während des Sinusstoßes, bevor die unten beschriebene Hüllkurve angewendet wird.",
+        "french": "la bande passante des formants (à -6dB), exprimée en Hz. La bande passante détermine le taux de décroissance exponentielle tout au long de la sinusoïde, avant que l'enveloppement décrit ci-dessous ne soit appliqué.",
+        "spanish": "el ancho de banda del formante (a -6 dB), expresado en Hz. El ancho de banda determina la tasa de caída exponencial a lo largo de la explosión sinusoidal, antes de que se aplique la envolvente que se describe a continuación."
+      },
+      "kris": {
+        "english": "rise, overall duration, and decay times (in seconds) of the sinusoid burst. These values apply an enveloped duration to each burst, in similar fashion to a Csound linen generator but with rise and decay shapes derived from the ifnb input. kris inversely determines the skirtwidth (at -40 dB) of the induced formant region. kdur affects the density of sineburst overlaps, and thus the speed of computation. Typical values for vocal imitation are.003,.02,.007.",
+        "german": "Anstieg, Gesamtdauer und Abklingzeiten (in Sekunden) des Sinus-Bursts. Diese Werte wenden auf jeden Burst eine Hüllkurvendauer an, ähnlich wie bei einem Csound-Leinengenerator, jedoch mit Anstiegs- und Abfallformen, die von der ifnb-Eingabe abgeleitet werden. Kris bestimmt umgekehrt die Randbreite (bei -40 dB) der induzierten Formantregion. kdur beeinflusst die Dichte der Sineburst-Überlappungen und damit die Geschwindigkeit der Berechnung. Typische Werte für Stimmimitation sind.003,.02,.007.",
+        "french": "montée, durée globale et temps de décroissance (en secondes) de la salve sinusoïdale. Ces valeurs appliquent une durée enveloppée à chaque rafale, de la même manière qu'un générateur de lin Csound mais avec des formes de montée et de décroissance dérivées de l'entrée ifnb. Kris détermine inversement la largeur de jupe (à -40 dB) de la région des formants induits. kdur affecte la densité des chevauchements sinusoïdaux, et donc la vitesse de calcul. Les valeurs typiques pour l'imitation vocale sont.003,.02,.007.",
+        "spanish": "tiempos de subida, duración total y caída (en segundos) de la explosión sinusoide. Estos valores aplican una duración envolvente a cada ráfaga, de manera similar a un generador de lino Csound pero con formas de subida y bajada derivadas de la entrada ifnb. kris determina inversamente el ancho de la falda (a -40 dB) de la región formante inducida. kdur afecta la densidad de las superposiciones de explosiones sinusoidales y, por tanto, la velocidad de cálculo. Los valores típicos para la imitación vocal son.003,.02,.007."
+      },
+      "kdur": {
+        "english": "rise, overall duration, and decay times (in seconds) of the sinusoid burst. These values apply an enveloped duration to each burst, in similar fashion to a Csound linen generator but with rise and decay shapes derived from the ifnb input. kris inversely determines the skirtwidth (at -40 dB) of the induced formant region. kdur affects the density of sineburst overlaps, and thus the speed of computation. Typical values for vocal imitation are.003,.02,.007.",
+        "german": "Anstieg, Gesamtdauer und Abklingzeiten (in Sekunden) des Sinus-Bursts. Diese Werte wenden auf jeden Burst eine Hüllkurvendauer an, ähnlich wie bei einem Csound-Leinengenerator, jedoch mit Anstiegs- und Abfallformen, die von der ifnb-Eingabe abgeleitet werden. Kris bestimmt umgekehrt die Randbreite (bei -40 dB) der induzierten Formantregion. kdur beeinflusst die Dichte der Sineburst-Überlappungen und damit die Geschwindigkeit der Berechnung. Typische Werte für Stimmimitation sind.003,.02,.007.",
+        "french": "montée, durée globale et temps de décroissance (en secondes) de la salve sinusoïdale. Ces valeurs appliquent une durée enveloppée à chaque rafale, de la même manière qu'un générateur de lin Csound mais avec des formes de montée et de décroissance dérivées de l'entrée ifnb. Kris détermine inversement la largeur de jupe (à -40 dB) de la région des formants induits. kdur affecte la densité des chevauchements sinusoïdaux, et donc la vitesse de calcul. Les valeurs typiques pour l'imitation vocale sont.003,.02,.007.",
+        "spanish": "tiempos de subida, duración total y caída (en segundos) de la explosión sinusoide. Estos valores aplican una duración envolvente a cada ráfaga, de manera similar a un generador de lino Csound pero con formas de subida y bajada derivadas de la entrada ifnb. kris determina inversamente el ancho de la falda (a -40 dB) de la región formante inducida. kdur afecta la densidad de las superposiciones de explosiones sinusoidales y, por tanto, la velocidad de cálculo. Los valores típicos para la imitación vocal son.003,.02,.007."
+      },
+      "kdec": {
+        "english": "rise, overall duration, and decay times (in seconds) of the sinusoid burst. These values apply an enveloped duration to each burst, in similar fashion to a Csound linen generator but with rise and decay shapes derived from the ifnb input. kris inversely determines the skirtwidth (at -40 dB) of the induced formant region. kdur affects the density of sineburst overlaps, and thus the speed of computation. Typical values for vocal imitation are.003,.02,.007.",
+        "german": "Anstieg, Gesamtdauer und Abklingzeiten (in Sekunden) des Sinus-Bursts. Diese Werte wenden auf jeden Burst eine Hüllkurvendauer an, ähnlich wie bei einem Csound-Leinengenerator, jedoch mit Anstiegs- und Abfallformen, die von der ifnb-Eingabe abgeleitet werden. Kris bestimmt umgekehrt die Randbreite (bei -40 dB) der induzierten Formantregion. kdur beeinflusst die Dichte der Sineburst-Überlappungen und damit die Geschwindigkeit der Berechnung. Typische Werte für Stimmimitation sind.003,.02,.007.",
+        "french": "montée, durée globale et temps de décroissance (en secondes) de la salve sinusoïdale. Ces valeurs appliquent une durée enveloppée à chaque rafale, de la même manière qu'un générateur de lin Csound mais avec des formes de montée et de décroissance dérivées de l'entrée ifnb. Kris détermine inversement la largeur de jupe (à -40 dB) de la région des formants induits. kdur affecte la densité des chevauchements sinusoïdaux, et donc la vitesse de calcul. Les valeurs typiques pour l'imitation vocale sont.003,.02,.007.",
+        "spanish": "tiempos de subida, duración total y caída (en segundos) de la explosión sinusoide. Estos valores aplican una duración envolvente a cada ráfaga, de manera similar a un generador de lino Csound pero con formas de subida y bajada derivadas de la entrada ifnb. kris determina inversamente el ancho de la falda (a -40 dB) de la región formante inducida. kdur afecta la densidad de las superposiciones de explosiones sinusoidales y, por tanto, la velocidad de cálculo. Los valores típicos para la imitación vocal son.003,.02,.007."
+      },
+      "iolaps": {
+        "english": "number of preallocated spaces needed to hold overlapping burst data. Overlaps are frequency dependent, and the space required depends on the maximum value of xfund * kdur. Can be over-estimated at no computation cost. Uses less than 50 bytes of memory per iolap.",
+        "german": "Anzahl der vorab zugewiesenen Speicherplätze, die zum Speichern überlappender Burst-Daten erforderlich sind. Überlappungen sind frequenzabhängig und der benötigte Platz hängt vom Maximalwert von xfund * kdur ab. Kann ohne Rechenaufwand überschätzt werden. Benötigt weniger als 50 Byte Speicher pro Iolap.",
+        "french": "nombre d'espaces pré-alloués nécessaires pour contenir des données en rafale qui se chevauchent. Les chevauchements dépendent de la fréquence et l'espace requis dépend de la valeur maximale de xfund * kdur. Peut être surestimé sans frais de calcul. Utilise moins de 50 octets de mémoire par iolap.",
+        "spanish": "número de espacios preasignados necesarios para contener datos de ráfagas superpuestos. Las superposiciones dependen de la frecuencia y el espacio requerido depende del valor máximo de xfund * kdur. Puede sobreestimarse sin costo de cálculo. Utiliza menos de 50 bytes de memoria por iolap."
+      },
+      "ifna": {
+        "english": "table numbers of two stored functions. The first is a sine table for sineburst synthesis (size of at least 4096 recommended). The second is a rise shape, used forwards and backwards to shape the sineburst rise and decay; this may be linear ( GEN07 ) or perhaps a sigmoid ( GEN19 ).",
+        "german": "Tabellennummern von zwei gespeicherten Funktionen. Die erste ist eine Sinustabelle für die Sineburst-Synthese (Größe mindestens 4096 empfohlen). Die zweite ist eine Anstiegsform, die vorwärts und rückwärts verwendet wird, um den Anstieg und Abfall des Sinusstoßes zu formen. Dies kann linear (GEN07) oder möglicherweise sigmoid (GEN19) sein.",
+        "french": "numéros de table de deux fonctions stockées. La première est une table sinusoïdale pour la synthèse sinusoïdale (taille d'au moins 4096 recommandée). La seconde est une forme de montée, utilisée vers l'avant et vers l'arrière pour façonner la montée et la décroissance de la sinusoïde; cela peut être linéaire ( GEN07 ) ou peut-être sigmoïde ( GEN19 ).",
+        "spanish": "números de tabla de dos funciones almacenadas. La primera es una tabla de senos para síntesis sineburst (se recomienda un tamaño de al menos 4096). La segunda es una forma de elevación, que se utiliza hacia adelante y hacia atrás para dar forma a la subida y caída de la explosión sinusoidal; Esto puede ser lineal (GEN07) o quizás sigmoideo (GEN19)."
+      },
+      "ifnb": {
+        "english": "table numbers of two stored functions. The first is a sine table for sineburst synthesis (size of at least 4096 recommended). The second is a rise shape, used forwards and backwards to shape the sineburst rise and decay; this may be linear ( GEN07 ) or perhaps a sigmoid ( GEN19 ).",
+        "german": "Tabellennummern von zwei gespeicherten Funktionen. Die erste ist eine Sinustabelle für die Sineburst-Synthese (Größe mindestens 4096 empfohlen). Die zweite ist eine Anstiegsform, die vorwärts und rückwärts verwendet wird, um den Anstieg und Abfall des Sinusstoßes zu formen. Dies kann linear (GEN07) oder möglicherweise sigmoid (GEN19) sein.",
+        "french": "numéros de table de deux fonctions stockées. La première est une table sinusoïdale pour la synthèse sinusoïdale (taille d'au moins 4096 recommandée). La seconde est une forme de montée, utilisée vers l'avant et vers l'arrière pour façonner la montée et la décroissance de la sinusoïde; cela peut être linéaire ( GEN07 ) ou peut-être sigmoïde ( GEN19 ).",
+        "spanish": "números de tabla de dos funciones almacenadas. La primera es una tabla de senos para síntesis sineburst (se recomienda un tamaño de al menos 4096). La segunda es una forma de elevación, que se utiliza hacia adelante y hacia atrás para dar forma a la subida y caída de la explosión sinusoidal; Esto puede ser lineal (GEN07) o quizás sigmoideo (GEN19)."
+      },
+      "itotdur": {
+        "english": "total time during which this fof will be active. Normally set to p3. No new sineburst is created if it cannot complete its kdur within the remaining itotdur.",
+        "german": "Gesamtzeit, während der dieser Fof aktiv sein wird. Normalerweise auf p3 eingestellt. Es wird kein neuer Sineburst erstellt, wenn er seinen Kdur nicht innerhalb des verbleibenden Itotdur abschließen kann.",
+        "french": "temps total pendant lequel ce fof sera actif. Normalement réglé sur p3. Aucune nouvelle explosion sinusoïdale n'est créée si elle ne peut pas terminer son kdur dans l'itotdur restant.",
+        "spanish": "Tiempo total durante el cual este fof estará activo. Normalmente configurado en p3. No se crea ningún nuevo sineburst si no puede completar su kdur dentro del itotdur restante."
+      },
+      "kphs": {
+        "english": "allows k-rate indexing of function table ifna with each successive burst, making it suitable for time-warping applications. Values of kphs are normalized from 0 to 1, 1 being the end of the function table ifna.",
+        "german": "Ermöglicht die K-Rate-Indizierung der Funktionstabelle ifna bei jedem aufeinanderfolgenden Burst, wodurch sie für zeitverzerrende Anwendungen geeignet ist. Die Werte von km/h werden von 0 auf 1 normalisiert, wobei 1 das Ende der Funktionstabelle ifna darstellt.",
+        "french": "permet l'indexation au taux-k de la table de fonctions ifna avec chaque rafale successive, ce qui la rend adaptée aux applications de déformation temporelle. Les valeurs des km/h sont normalisées de 0 à 1, 1 étant la fin de la table des fonctions ifna.",
+        "spanish": "permite la indexación de velocidad k de la tabla de funciones ifna con cada ráfaga sucesiva, lo que la hace adecuada para aplicaciones de distorsión del tiempo. Los valores de kphs están normalizados de 0 a 1, siendo 1 el final de la tabla de funciones ifna."
+      },
+      "kgliss": {
+        "english": "sets the end pitch of each grain relative to the initial pitch, in octaves. Thus kgliss = 2 means that the grain ends two octaves above its initial pitch, while kgliss = -3/4 has the grain ending a major sixth below. Each 1/12 added to kgliss raises the ending frequency one half-step. If you want no glissando, set kgliss to 0.",
+        "german": "Legt die Endtonhöhe jedes Grains relativ zur Anfangstonhöhe in Oktaven fest. Somit bedeutet kgliss = 2, dass der Grain zwei Oktaven über seiner Anfangstonhöhe endet, während bei kgliss = -3/4 der Grain eine große Sexte darunter endet. Jedes zu kgliss hinzugefügte 1/12 erhöht die Endfrequenz um einen Halbtonschritt. Wenn Sie kein Glissando wünschen, setzen Sie kgliss auf 0.",
+        "french": "définit la hauteur finale de chaque grain par rapport à la hauteur initiale, en octaves. Ainsi, kgliss = 2 signifie que le grain se termine deux octaves au-dessus de sa hauteur initiale, tandis que kgliss = -3/4 a le grain se terminant une sixte majeure en dessous. Chaque 1/12 ajouté à kgliss augmente la fréquence finale d'un demi-ton. Si vous ne voulez pas de glissando, réglez kgliss sur 0.",
+        "spanish": "establece el tono final de cada grano en relación con el tono inicial, en octavas. Por lo tanto, kgliss = 2 significa que la fibra termina dos octavas por encima de su tono inicial, mientras que kgliss = -3/4 tiene la fibra terminando en una sexta mayor por debajo. Cada 1/12 agregado a kgliss aumenta la frecuencia final en medio tono. Si no desea ningún glissando, establezca kgliss en 0."
+      },
+      "iskip": {
+        "english": "If non-zero, skip initialization (allows legato use).",
+        "german": "Wenn nicht Null, wird die Initialisierung übersprungen (ermöglicht die Verwendung von Legato).",
+        "french": "S'il est différent de zéro, ignorez l'initialisation (autorise une utilisation legato).",
+        "spanish": "Si es distinto de cero, omita la inicialización (permite el uso de legato)."
+      }
+    },
+    "outputs": {
+      "asig": {
+        "english": "Output variable `ares` from fof2.",
+        "german": "Ausgabevariable „ares“ von fof2.",
+        "french": "Variable de sortie `ares` de fof2.",
+        "spanish": "Variable de salida `ares` de fof2."
+      }
+    }
+  },
+  "fofilter": {
+    "description": {
+      "english": "Formant filter. Fofilter generates a stream of overlapping sinewave grains, when fed with a pulse train. Each grain is the impulse response of a combination of two BP filters. The grains are defined by their attack time (determining the skirtwidth of the formant region at -60dB) and decay time (-6dB bandwidth). Overlapping will occur when 1/freq < decay, but, unlike FOF, there is no upper limit on the number of overlaps. The original idea for this opcode came from J McCartney's formlet class in SuperCollider, but this is possibly implemented differently(?).",
+      "german": "Formantfilter. Fofilter erzeugt einen Strom überlappender Sinuswellenkörner, wenn es mit einer Impulsfolge gespeist wird. Jedes Grain ist die Impulsantwort einer Kombination aus zwei BP-Filtern. Die Grains werden durch ihre Attack-Zeit (bestimmt die Randbreite des Formant-Bereichs bei -60 dB) und Decay-Zeit (-6 dB Bandbreite) definiert. Überlappungen treten auf, wenn 1/freq < Decay ist, aber im Gegensatz zu FOF gibt es keine Obergrenze für die Anzahl der Überlappungen. Die ursprüngliche Idee für diesen Opcode stammt von J McCartneys Formlet-Klasse in SuperCollider, wird aber möglicherweise anders implementiert (?).",
+      "french": "Filtre formant. Fofilter génère un flux de grains sinusoïdaux superposés lorsqu'il est alimenté par un train d'impulsions. Chaque grain est la réponse impulsionnelle d'une combinaison de deux filtres BP. Les grains sont définis par leur temps d'attaque (déterminant la largeur de jupe de la région des formants à -60 dB) et leur temps de décroissance (bande passante de -6 dB). Le chevauchement se produira lorsque 1/freq < décroissance, mais, contrairement au FOF, il n'y a pas de limite supérieure sur le nombre de chevauchements. L'idée originale de cet opcode est venue de la classe formlet de J McCartney dans SuperCollider, mais elle est peut-être implémentée différemment (?).",
+      "spanish": "Filtro de formantes. Fofilter genera una corriente de granos de ondas sinusoidales superpuestas cuando se alimenta con un tren de pulsos. Cada grano es la respuesta al impulso de una combinación de dos filtros BP. Los granos se definen por su tiempo de ataque (que determina el ancho de falda de la región formante a -60 dB) y su tiempo de caída (ancho de banda de -6 dB). La superposición se producirá cuando 1/freq < decaiga, pero, a diferencia de FOF, no hay un límite superior en el número de superposiciones. La idea original para este código de operación surgió de la clase formlet de J McCartney en SuperCollider, pero posiblemente se implemente de manera diferente (?)."
+    },
+    "inputs": {
+      "ain": {
+        "english": "aIn parameter at audio-rate.",
+        "german": "aIn-Parameter bei Audiorate.",
+        "french": "Paramètre aIn au débit audio.",
+        "spanish": "Parámetro aIn a velocidad de audio."
+      },
+      "xcf": {
+        "english": "filter centre frequency",
+        "german": "Filtermittenfrequenz",
+        "french": "fréquence centrale du filtre",
+        "spanish": "frecuencia central del filtro"
+      },
+      "xris": {
+        "english": "impulse response attack time (secs).",
+        "german": "Impulsantwort-Angriffszeit (Sek.).",
+        "french": "temps d'attaque de la réponse impulsionnelle (sec).",
+        "spanish": "Tiempo de ataque de respuesta al impulso (segundos)."
+      },
+      "xdec": {
+        "english": "impulse response decay time (secs).",
+        "german": "Abklingzeit der Impulsantwort (Sek.).",
+        "french": "temps de décroissance de la réponse impulsionnelle (sec).",
+        "spanish": "Tiempo de caída de la respuesta al impulso (segundos)."
+      },
+      "istor": {
+        "english": "SkipInit parameter at init-rate.",
+        "german": "SkipInit-Parameter bei Init-Rate.",
+        "french": "Paramètre SkipInit au taux d'initialisation.",
+        "spanish": "Parámetro SkipInit a velocidad inicial."
+      }
+    },
+    "outputs": {
+      "aout": {
+        "english": "Output variable `asig` from fofilter.",
+        "german": "Ausgabevariable „asig“ von fofilter.",
+        "french": "Variable de sortie `asig` de fofilter.",
+        "spanish": "Variable de salida `asig` de fofilter."
+      }
+    }
+  },
+  "outletk": {
+    "description": {
+      "english": "Sends a krate signal out from an instrument to a named port. Plugin opcode in signalflowgraph Sends a krate signal out from an instrument to a named port.",
+      "german": "Sendet ein Krate-Signal von einem Instrument an einen benannten Port. Plugin-Opcode im Signalflowgraph Sendet ein Krate-Signal von einem Instrument an einen benannten Port.",
+      "french": "Envoie un signal krate depuis un instrument vers un port nommé. Opcode du plugin dans signalflowgraph Envoie un signal krate d'un instrument vers un port nommé.",
+      "spanish": "Envía una señal krate desde un instrumento a un puerto designado. Código de operación del complemento en signalflowgraph Envía una señal krate desde un instrumento a un puerto con nombre."
+    },
+    "inputs": {
+      "sname": {
+        "english": "String name of the outlet port. The name of the outlet is implicitly qualified by the instrument name or number, so it is valid to use the same outlet name in more than one instrument (but not to use the same outlet name twice in one instrument).",
+        "german": "String-Name des Auslassports. Der Name der Steckdose wird implizit durch den Namen oder die Nummer des Instruments qualifiziert, sodass es zulässig ist, denselben Steckdosennamen in mehr als einem Instrument zu verwenden (jedoch nicht denselben Steckdosennamen zweimal in einem Instrument zu verwenden).",
+        "french": "Nom de chaîne du port de sortie. Le nom de la prise est implicitement qualifié par le nom ou le numéro de l'instrument, il est donc valide d'utiliser le même nom de prise dans plusieurs instruments (mais de ne pas utiliser deux fois le même nom de prise dans un instrument).",
+        "spanish": "Nombre de cadena del puerto de salida. El nombre de la salida está implícitamente calificado por el nombre o número del instrumento, por lo que es válido usar el mismo nombre de salida en más de un instrumento (pero no usar el mismo nombre de salida dos veces en un instrumento)."
+      },
+      "ksignal": {
+        "english": "krate output signal",
+        "german": "Krate-Ausgangssignal",
+        "french": "signal de sortie du krate",
+        "spanish": "señal de salida krate"
+      }
+    },
+    "outputs": {}
+  },
+  "outleta": {
+    "description": {
+      "english": "Sends an arate signal out from an instrument to a named port. Plugin opcode in signalflowgraph Sends an arate signal out from an instrument to a named port.",
+      "german": "Sendet ein Ratesignal von einem Instrument an einen benannten Port. Plugin-Opcode im Signalflowgraph Sendet ein Ratesignal von einem Instrument an einen benannten Port.",
+      "french": "Envoie un signal de fréquence depuis un instrument vers un port nommé. Opcode du plugin dans signalflowgraph Envoie un signal d'arate d'un instrument vers un port nommé.",
+      "spanish": "Envía una señal de velocidad desde un instrumento a un puerto designado. Código de operación del complemento en signalflowgraph Envía una señal de velocidad desde un instrumento a un puerto con nombre."
+    },
+    "inputs": {
+      "sname": {
+        "english": "String name of the outlet port. The name of the outlet is implicitly qualified by the instrument name or number, so it is valid to use the same outlet name in more than one instrument (but not to use the same outlet name twice in one instrument).",
+        "german": "String-Name des Auslassports. Der Name der Steckdose wird implizit durch den Namen oder die Nummer des Instruments qualifiziert, sodass es zulässig ist, denselben Steckdosennamen in mehr als einem Instrument zu verwenden (jedoch nicht denselben Steckdosennamen zweimal in einem Instrument zu verwenden).",
+        "french": "Nom de chaîne du port de sortie. Le nom de la prise est implicitement qualifié par le nom ou le numéro de l'instrument, il est donc valide d'utiliser le même nom de prise dans plusieurs instruments (mais de ne pas utiliser deux fois le même nom de prise dans un instrument).",
+        "spanish": "Nombre de cadena del puerto de salida. El nombre de la salida está implícitamente calificado por el nombre o número del instrumento, por lo que es válido usar el mismo nombre de salida en más de un instrumento (pero no usar el mismo nombre de salida dos veces en un instrumento)."
+      },
+      "asignal": {
+        "english": "audio output signal",
+        "german": "Audioausgangssignal",
+        "french": "signal de sortie audio",
+        "spanish": "señal de salida de audio"
+      }
+    },
+    "outputs": {}
+  },
+  "inletk": {
+    "description": {
+      "english": "Receives a krate signal into an instrument from a named port. Plugin opcode in signalflowgraph Receives a krate signal into an instrument from a named port.",
+      "german": "Empfängt ein Krate-Signal von einem benannten Port in ein Instrument. Plugin-Opcode im Signalflowgraph Empfängt ein Krate-Signal von einem benannten Port in ein Instrument.",
+      "french": "Reçoit un signal krate dans un instrument à partir d'un port nommé. Opcode du plugin dans signalflowgraph Reçoit un signal krate dans un instrument à partir d'un port nommé.",
+      "spanish": "Recibe una señal krate en un instrumento desde un puerto designado. Código de operación del complemento en signalflowgraph Recibe una señal krate en un instrumento desde un puerto con nombre."
+    },
+    "inputs": {
+      "sname": {
+        "english": "String name of the inlet port. The name of the inlet is implicitly qualified by the instrument name or number, so it is valid to use the same inlet name in more than one instrument (but not to use the same inlet name twice in one instrument).",
+        "german": "String-Name des Einlassports. Der Name des Einlasses wird implizit durch den Namen oder die Nummer des Instruments qualifiziert, sodass es zulässig ist, denselben Einlassnamen in mehr als einem Instrument zu verwenden (jedoch nicht denselben Einlassnamen zweimal in einem Instrument zu verwenden).",
+        "french": "Nom de chaîne du port d'entrée. Le nom de l'injecteur est implicitement qualifié par le nom ou le numéro de l'instrument. Il est donc possible d'utiliser le même nom d'injecteur dans plusieurs instruments (mais de ne pas utiliser le même nom d'injecteur deux fois dans un instrument).",
+        "spanish": "Nombre de cadena del puerto de entrada. El nombre de la entrada está implícitamente calificado por el nombre o número del instrumento, por lo que es válido usar el mismo nombre de entrada en más de un instrumento (pero no usar el mismo nombre de entrada dos veces en un instrumento)."
+      }
+    },
+    "outputs": {
+      "ksignal": {
+        "english": "Output variable `ksignal` from inletk.",
+        "german": "Ausgabevariable „ksignal“ von inletk.",
+        "french": "Variable de sortie `ksignal` de inletk.",
+        "spanish": "Variable de salida `ksignal` de inletk."
+      }
+    }
+  },
+  "inleta": {
+    "description": {
+      "english": "Receives an arate signal into an instrument through a named port. Plugin opcode in signalflowgraph Receives an arate signal into an instrument through a named port.",
+      "german": "Empfängt ein Ratensignal über einen benannten Port in ein Instrument. Plugin-Opcode im Signalflowgraph Empfängt ein Ratesignal über einen benannten Port in ein Instrument.",
+      "french": "Reçoit un signal de débit dans un instrument via un port nommé. Opcode du plugin dans signalflowgraph Reçoit un signal d'arate dans un instrument via un port nommé.",
+      "spanish": "Recibe una señal de velocidad en un instrumento a través de un puerto con nombre. Código de operación del complemento en signalflowgraph Recibe una señal de velocidad en un instrumento a través de un puerto con nombre."
+    },
+    "inputs": {
+      "sname": {
+        "english": "String name of the inlet port. The name of the inlet is implicitly qualified by the instrument name or number, so it is valid to use the same inlet name in more than one instrument (but not to use the same inlet name twice in one instrument).",
+        "german": "String-Name des Einlassports. Der Name des Einlasses wird implizit durch den Namen oder die Nummer des Instruments qualifiziert, sodass es zulässig ist, denselben Einlassnamen in mehr als einem Instrument zu verwenden (jedoch nicht denselben Einlassnamen zweimal in einem Instrument zu verwenden).",
+        "french": "Nom de chaîne du port d'entrée. Le nom de l'injecteur est implicitement qualifié par le nom ou le numéro de l'instrument. Il est donc possible d'utiliser le même nom d'injecteur dans plusieurs instruments (mais de ne pas utiliser le même nom d'injecteur deux fois dans un instrument).",
+        "spanish": "Nombre de cadena del puerto de entrada. El nombre de la entrada está implícitamente calificado por el nombre o número del instrumento, por lo que es válido usar el mismo nombre de entrada en más de un instrumento (pero no usar el mismo nombre de entrada dos veces en un instrumento)."
+      }
+    },
+    "outputs": {
+      "asignal": {
+        "english": "Output variable `asignal` from inleta.",
+        "german": "Ausgabevariable „asignal“ von inleta.",
+        "french": "Variable de sortie `asignal` de inleta.",
+        "spanish": "Variable de salida `asignal` desde la entrada."
+      }
+    }
   }
 }

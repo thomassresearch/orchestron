@@ -1255,12 +1255,27 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         "diode_ladder": "https://csound.com/docs/manual/diode_ladder.html",
         "expseg": "https://csound.com/docs/manual/expseg.html",
         "expsega": "https://csound.com/docs/manual/expsega.html",
+        "linseg": "https://csound.com/docs/manual/linseg.html",
+        "linsegr": "https://csound.com/docs/manual/linsegr.html",
         "foscili": "https://csound.com/docs/manual/foscili.html",
         "ftgenonce": "https://csound.com/docs/manual/ftgenonce.html",
         "marimba": "https://csound.com/docs/manual/marimba.html",
         "moogladder2": "https://csound.com/docs/manual/moogladder2.html",
         "rezzy": "https://csound.com/docs/manual/rezzy.html",
         "vclpf": "https://csound.com/docs/manual/vclpf.html",
+        "tbvcf": "https://csound.com/docs/manual/tbvcf.html",
+        "butterlp": "https://csound.com/docs/manual/butterlp.html",
+        "butterbp": "https://csound.com/docs/manual/butterbp.html",
+        "butterhp": "https://csound.com/docs/manual/butterhp.html",
+        "butterbr": "https://csound.com/docs/manual/butterbr.html",
+        "clip": "https://csound.com/docs/manual/clip.html",
+        "fof": "https://csound.com/docs/manual/fof.html",
+        "fof2": "https://csound.com/docs/manual/fof2.html",
+        "fofilter": "https://csound.com/docs/manual/fofilter.html",
+        "outletk": "https://csound.com/docs/manual/outletk.html",
+        "outleta": "https://csound.com/docs/manual/outleta.html",
+        "inletk": "https://csound.com/docs/manual/inletk.html",
+        "inleta": "https://csound.com/docs/manual/inleta.html",
         "vco2": "https://csound.com/docs/manual/vco2.html",
         "dripwater": "https://csound.com/docs/manual/dripwater.html",
     }
@@ -1273,6 +1288,19 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         for opcode_name, expected_url in expected_urls.items():
             assert opcode_name in opcodes_by_name
             assert opcodes_by_name[opcode_name]["documentation_url"] == expected_url
+
+        linseg_inputs = {item["id"]: item for item in opcodes_by_name["linseg"]["inputs"]}
+        assert linseg_inputs["ia"]["required"] is True
+        assert linseg_inputs["idur1"]["required"] is True
+        assert linseg_inputs["ib"]["required"] is True
+        assert linseg_inputs["idur2"]["required"] is False
+        assert linseg_inputs["ic"]["required"] is False
+        assert linseg_inputs["idur3"]["required"] is False
+        assert linseg_inputs["id"]["required"] is False
+
+        linsegr_inputs = {item["id"]: item for item in opcodes_by_name["linsegr"]["inputs"]}
+        for required_port in ["ia", "idur1", "ib", "irel", "iz"]:
+            assert linsegr_inputs[required_port]["required"] is True
 
 
 def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
@@ -1330,6 +1358,31 @@ def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
                     {"id": "n45", "opcode": "gbuzz", "params": {}, "position": {"x": 20, "y": 2220}},
                     {"id": "n46", "opcode": "expseg", "params": {}, "position": {"x": 20, "y": 2270}},
                     {"id": "n47", "opcode": "expsega", "params": {}, "position": {"x": 20, "y": 2320}},
+                    {"id": "n48", "opcode": "linseg", "params": {}, "position": {"x": 20, "y": 2370}},
+                    {"id": "n49", "opcode": "linsegr", "params": {}, "position": {"x": 20, "y": 2420}},
+                    {"id": "n50", "opcode": "butterlp", "params": {"asig": 0}, "position": {"x": 20, "y": 2470}},
+                    {"id": "n51", "opcode": "butterbp", "params": {"asig": 0}, "position": {"x": 20, "y": 2520}},
+                    {"id": "n52", "opcode": "butterhp", "params": {"asig": 0}, "position": {"x": 20, "y": 2570}},
+                    {"id": "n53", "opcode": "butterbr", "params": {"asig": 0}, "position": {"x": 20, "y": 2620}},
+                    {"id": "n54", "opcode": "tbvcf", "params": {"asig": 0}, "position": {"x": 20, "y": 2670}},
+                    {"id": "n55", "opcode": "clip", "params": {"asig": 0}, "position": {"x": 20, "y": 2720}},
+                    {"id": "n56", "opcode": "fof", "params": {}, "position": {"x": 20, "y": 2770}},
+                    {"id": "n57", "opcode": "fof2", "params": {}, "position": {"x": 20, "y": 2820}},
+                    {"id": "n58", "opcode": "fofilter", "params": {"ain": 0}, "position": {"x": 20, "y": 2870}},
+                    {"id": "n59", "opcode": "inletk", "params": {"sname": "k_bus"}, "position": {"x": 20, "y": 2920}},
+                    {"id": "n60", "opcode": "inleta", "params": {"sname": "a_bus"}, "position": {"x": 20, "y": 2970}},
+                    {
+                        "id": "n61",
+                        "opcode": "outletk",
+                        "params": {"sname": "k_bus", "ksignal": 0},
+                        "position": {"x": 20, "y": 3020},
+                    },
+                    {
+                        "id": "n62",
+                        "opcode": "outleta",
+                        "params": {"sname": "a_bus", "asignal": 0},
+                        "position": {"x": 20, "y": 3070},
+                    },
                 ],
                 "connections": [
                     {"from_node_id": "n1", "from_port_id": "asig", "to_node_id": "n2", "to_port_id": "left"},
@@ -1400,6 +1453,21 @@ def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
             "gbuzz",
             "expseg",
             "expsega",
+            "linseg",
+            "linsegr",
+            "butterlp",
+            "butterbp",
+            "butterhp",
+            "butterbr",
+            "tbvcf",
+            "clip",
+            "fof",
+            "fof2",
+            "fofilter",
+            "inletk",
+            "inleta",
+            "outletk",
+            "outleta",
         ]:
             assert opcode in compiled_orc
 
