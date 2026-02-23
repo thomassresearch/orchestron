@@ -280,6 +280,16 @@ export interface AppStateResponse {
   updated_at: string;
 }
 
+export interface WebRtcIceServerConfig {
+  urls: string | string[];
+  username?: string | null;
+  credential?: string | null;
+}
+
+export interface RuntimeConfigResponse {
+  webrtc_browser_ice_servers: WebRtcIceServerConfig[];
+}
+
 export interface Performance {
   id: string;
   name: string;
@@ -407,6 +417,17 @@ export interface SessionActionResponse {
   session_id: string;
   state: SessionState;
   detail: string;
+}
+
+export interface SessionAudioWebRtcOfferRequest {
+  type: "offer";
+  sdp: string;
+}
+
+export interface SessionAudioWebRtcAnswerResponse {
+  type: "answer";
+  sdp: string;
+  sample_rate: number;
 }
 
 export type SessionMidiEventRequest =

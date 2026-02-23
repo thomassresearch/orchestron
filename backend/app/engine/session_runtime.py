@@ -19,6 +19,7 @@ class RuntimeSession:
     compile_artifact: CompileArtifact | None = None
     worker: CsoundWorker = field(default_factory=CsoundWorker)
     sequencer: Any = None
+    direct_midi_sink_selector: str | None = None
 
     @property
     def patch_id(self) -> str:

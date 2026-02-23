@@ -3,9 +3,12 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 import sys
+from typing import Literal
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from backend.app.models.runtime import WebRtcIceServerConfig
 
 
 def _default_rtmidi_module() -> str:
@@ -51,6 +54,14 @@ class Settings(BaseSettings):
 
     default_rtmidi_module: str = Field(default_factory=_default_rtmidi_module)
     default_midi_device: str = "0"
+    audio_output_mode: Literal["local", "streaming"] = "local"
+    webrtc_frontend_ice_servers: list[WebRtcIceServerConfig] = Field(default_factory=list)
+    webrtc_backend_ice_servers: list[WebRtcIceServerConfig] = Field(default_factory=list)
+
+    @property
+    def resolved_webrtc_backend_ice_servers(self) -> list[WebRtcIceServerConfig]:
+        source = self.webrtc_backend_ice_servers or self.webrtc_frontend_ice_servers
+        return [server.model_copy(deep=True) for server in source]
 
 
 @lru_cache

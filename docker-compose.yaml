@@ -1,0 +1,85 @@
+services:
+  coturn:
+    image: coturn/coturn:latest
+    # Docker Desktop users: set VISUALCSOUND_TURN_EXTERNAL_IP to your host's LAN IP
+    # (for example 192.168.x.y) so TURN relayed candidates are reachable by both the
+    # host browser and the backend container. Without this, coturn may advertise a
+    # container-private IP and WebRTC will still fail.
+    entrypoint:
+      - /bin/sh
+      - -ec
+    command:
+      - |
+        if [ -n "${VISUALCSOUND_TURN_EXTERNAL_IP:-}" ]; then
+          exec turnserver -n --log-file=stdout \
+            --realm=visualcsound.local \
+            --lt-cred-mech \
+            --user="${VISUALCSOUND_TURN_USERNAME:-visualcsound}:${VISUALCSOUND_TURN_PASSWORD:-visualcsound-dev}" \
+            --min-port=49160 \
+            --max-port=49200 \
+            --fingerprint \
+            --no-cli \
+            --no-tls \
+            --no-dtls \
+            --external-ip="${VISUALCSOUND_TURN_EXTERNAL_IP}"
+        fi
+        exec turnserver -n --log-file=stdout \
+          --realm=visualcsound.local \
+          --lt-cred-mech \
+          --user="${VISUALCSOUND_TURN_USERNAME:-visualcsound}:${VISUALCSOUND_TURN_PASSWORD:-visualcsound-dev}" \
+          --min-port=49160 \
+          --max-port=49200 \
+          --fingerprint \
+          --no-cli \
+          --no-tls \
+          --no-dtls
+    ports:
+      - "3478:3478/tcp"
+      - "3478:3478/udp"
+      - "49160-49200:49160-49200/tcp"
+      - "49160-49200:49160-49200/udp"
+    restart: unless-stopped
+
+  visualcsound:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: visualcsound-streaming:local
+    # Use explicit port publishing so the API is reachable on macOS Docker Desktop.
+    # (Host networking is not a good default on macOS.)
+    ports:
+      - "8000:8000"
+    depends_on:
+      - coturn
+    command:
+      - .venv/bin/python
+      - -m
+      - backend.app.main
+      - --audio-output-mode
+      - streaming
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+      - --no-reload
+      - --log-level
+      - info
+    environment:
+      VISUALCSOUND_AUDIO_OUTPUT_MODE: streaming
+      # On macOS (Docker Desktop), ALSA device passthrough is not available.
+      # Use a non-ALSA backend by default so `docker compose up` works.
+      # In browser-streaming mode the app injects MIDI via host-implemented callbacks inside
+      # CSound. Prefer the "null" RTMIDI backend so container MIDI devices are not required.
+      VISUALCSOUND_DEFAULT_RTMIDI_MODULE: null
+      VISUALCSOUND_CORS_ORIGINS: '["http://localhost:5173","http://127.0.0.1:5173","http://localhost:8000","http://127.0.0.1:8000"]'
+      # Browser runs on the host, so it must reach TURN via localhost.
+      VISUALCSOUND_WEBRTC_FRONTEND_ICE_SERVERS: >-
+        [{"urls":["turn:localhost:3478?transport=udp","turn:localhost:3478?transport=tcp"],"username":"${VISUALCSOUND_TURN_USERNAME:-visualcsound}","credential":"${VISUALCSOUND_TURN_PASSWORD:-visualcsound-dev}"}]
+      # Backend runs inside the compose network, so it reaches TURN by service name.
+      VISUALCSOUND_WEBRTC_BACKEND_ICE_SERVERS: >-
+        [{"urls":["turn:coturn:3478?transport=udp","turn:coturn:3478?transport=tcp"],"username":"${VISUALCSOUND_TURN_USERNAME:-visualcsound}","credential":"${VISUALCSOUND_TURN_PASSWORD:-visualcsound-dev}"}]
+    volumes:
+      - ./backend/data:/app/backend/data
+    # Linux ALSA passthrough is provided via docker-compose.alsa.yaml
+    # (do not enable on macOS; /dev/snd does not exist there).
+    restart: unless-stopped

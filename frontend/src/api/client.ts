@@ -9,8 +9,11 @@ import type {
   Performance,
   PerformanceListItem,
   PersistedAppState,
+  RuntimeConfigResponse,
   SequencerConfigSnapshot,
   SessionActionResponse,
+  SessionAudioWebRtcAnswerResponse,
+  SessionAudioWebRtcOfferRequest,
   SessionCreateResponse,
   SessionSequencerConfigRequest,
   SessionSequencerQueuePadRequest,
@@ -45,6 +48,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   listOpcodes: () => request<OpcodeSpec[]>("/opcodes"),
+  getRuntimeConfig: () => request<RuntimeConfigResponse>("/runtime-config"),
   getAppState: () => request<AppStateResponse>("/app-state"),
   saveAppState: (state: PersistedAppState) =>
     request<AppStateResponse>("/app-state", {
@@ -94,6 +98,11 @@ export const api = {
     request<SessionActionResponse>(`/sessions/${sessionId}/panic`, { method: "POST" }),
   sendSessionMidiEvent: (sessionId: string, payload: SessionMidiEventRequest) =>
     request<SessionActionResponse>(`/sessions/${sessionId}/midi-event`, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }),
+  negotiateSessionAudioWebRtc: (sessionId: string, payload: SessionAudioWebRtcOfferRequest) =>
+    request<SessionAudioWebRtcAnswerResponse>(`/sessions/${sessionId}/audio/webrtc`, {
       method: "POST",
       body: JSON.stringify(payload)
     }),

@@ -8,10 +8,13 @@ from uuid import uuid4
 from fastapi import HTTPException
 
 from backend.app.core.config import Settings
+from backend.app.engine.csound_worker import CsoundWorker
 from backend.app.engine.session_runtime import RuntimeSession
 from backend.app.models.session import (
     BindMidiInputRequest,
     CompileResponse,
+    SessionAudioWebRtcAnswerResponse,
+    SessionAudioWebRtcOfferRequest,
     SessionSequencerConfigRequest,
     SessionSequencerQueuePadRequest,
     SessionSequencerStartRequest,
@@ -61,11 +64,15 @@ class SessionService:
 
         midi_inputs = self._midi_service.list_inputs()
         default_midi = midi_inputs[0].id if midi_inputs else self._settings.default_midi_device
+        backend_webrtc_ice_servers = [
+            server.model_dump(exclude_none=True) for server in self._settings.resolved_webrtc_backend_ice_servers
+        ]
 
         runtime = RuntimeSession(
             session_id=str(uuid4()),
             instruments=instruments,
             midi_input=default_midi,
+            worker=CsoundWorker(webrtc_ice_servers=backend_webrtc_ice_servers),
         )
         runtime.sequencer = SessionSequencerRuntime(
             session_id=runtime.session_id,
@@ -164,6 +171,7 @@ class SessionService:
 
         runtime.state = SessionState.RUNNING
         runtime.started_at = datetime.now(timezone.utc)
+        self._sync_runtime_direct_midi_sink(runtime)
 
         await self._publish(
             runtime.session_id,
@@ -172,6 +180,9 @@ class SessionService:
                 "backend": result.backend,
                 "detail": result.detail,
                 "midi_input": runtime.midi_input or self._settings.default_midi_device,
+                "audio_mode": result.audio_mode,
+                "audio_stream_ready": result.audio_stream_ready,
+                "audio_stream_sample_rate": result.audio_stream_sample_rate,
             },
         )
 
@@ -186,6 +197,8 @@ class SessionService:
         runtime = await self._get_session(session_id)
         if runtime.sequencer is not None:
             runtime.sequencer.stop()
+        self._detach_runtime_direct_midi_sink(runtime)
+        await runtime.worker.close_webrtc_audio()
         detail = runtime.worker.stop()
         runtime.state = SessionState.COMPILED if runtime.compile_artifact else SessionState.IDLE
 
@@ -201,6 +214,52 @@ class SessionService:
         await self._publish(runtime.session_id, "panic", {"detail": detail})
 
         return SessionActionResponse(session_id=runtime.session_id, state=runtime.state, detail=detail)
+
+    async def negotiate_session_audio_stream(
+        self,
+        session_id: str,
+        request: SessionAudioWebRtcOfferRequest,
+    ) -> SessionAudioWebRtcAnswerResponse:
+        self._remember_running_loop()
+        runtime = await self._get_session(session_id)
+
+        try:
+            answer_sdp, answer_type = await runtime.worker.create_webrtc_audio_answer(
+                offer_sdp=request.sdp,
+                offer_type=request.type,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        except RuntimeError as exc:
+            message = str(exc)
+            status_code = (
+                409
+                if any(
+                    token in message.lower()
+                    for token in (
+                        "disabled",
+                        "must be running",
+                        "not ready",
+                        "requires the ctcsound backend",
+                    )
+                )
+                else 500
+            )
+            raise HTTPException(status_code=status_code, detail=message) from exc
+
+        await self._publish(
+            runtime.session_id,
+            "audio_stream_negotiated",
+            {
+                "sample_rate": runtime.worker.browser_audio_stream_sample_rate or 0,
+                "mode": runtime.worker.audio_output_mode,
+            },
+        )
+        return SessionAudioWebRtcAnswerResponse(
+            type=answer_type,  # type: ignore[arg-type]
+            sdp=answer_sdp,
+            sample_rate=runtime.worker.browser_audio_stream_sample_rate or 48_000,
+        )
 
     async def send_midi_event(self, session_id: str, request: SessionMidiEventRequest) -> SessionActionResponse:
         self._remember_running_loop()
@@ -362,6 +421,7 @@ class SessionService:
         runtime.midi_input = resolved
         if runtime.sequencer is not None:
             runtime.sequencer.set_midi_input(resolved)
+        self._sync_runtime_direct_midi_sink(runtime)
         runtime.compile_artifact = None
         runtime.state = SessionState.IDLE if not runtime.worker.is_running else runtime.state
 
@@ -374,6 +434,8 @@ class SessionService:
         runtime = await self._get_session(session_id)
         if runtime.sequencer is not None:
             runtime.sequencer.shutdown()
+        self._detach_runtime_direct_midi_sink(runtime)
+        await runtime.worker.close_webrtc_audio()
         runtime.worker.stop()
 
         async with self._lock:
@@ -434,6 +496,36 @@ class SessionService:
             self._loop = asyncio.get_running_loop()
         except RuntimeError:
             return
+
+    def _sync_runtime_direct_midi_sink(self, runtime: RuntimeSession) -> None:
+        selector = runtime.midi_input or self._settings.default_midi_device
+
+        if runtime.direct_midi_sink_selector and runtime.direct_midi_sink_selector != selector:
+            self._midi_service.unregister_virtual_output_sink(
+                selector=runtime.direct_midi_sink_selector,
+                sink_id=runtime.session_id,
+            )
+            runtime.direct_midi_sink_selector = None
+
+        if runtime.worker.accepts_direct_midi:
+            self._midi_service.register_virtual_output_sink(
+                selector=selector,
+                sink_id=runtime.session_id,
+                sink=runtime.worker.queue_midi_message,
+            )
+            runtime.direct_midi_sink_selector = selector
+            return
+
+        self._detach_runtime_direct_midi_sink(runtime)
+
+    def _detach_runtime_direct_midi_sink(self, runtime: RuntimeSession) -> None:
+        if not runtime.direct_midi_sink_selector:
+            return
+        self._midi_service.unregister_virtual_output_sink(
+            selector=runtime.direct_midi_sink_selector,
+            sink_id=runtime.session_id,
+        )
+        runtime.direct_midi_sink_selector = None
 
     def _publish_from_thread(
         self,

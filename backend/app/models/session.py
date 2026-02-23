@@ -68,6 +68,17 @@ class SessionActionResponse(BaseModel):
     detail: str
 
 
+class SessionAudioWebRtcOfferRequest(BaseModel):
+    type: Literal["offer"]
+    sdp: str = Field(min_length=1)
+
+
+class SessionAudioWebRtcAnswerResponse(BaseModel):
+    type: Literal["answer"]
+    sdp: str = Field(min_length=1)
+    sample_rate: int = Field(ge=1)
+
+
 class MidiInputRef(BaseModel):
     id: str
     name: str

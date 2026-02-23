@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import argparse
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -9,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from backend.app.api import app_state, midi, opcodes, patches, performances, sessions, ws
+from backend.app.api import app_state, midi, opcodes, patches, performances, runtime, sessions, ws
 from backend.app.core.config import Settings, get_settings
 from backend.app.core.container import AppContainer
 from backend.app.core.logging import configure_logging
@@ -117,6 +119,7 @@ def create_app() -> FastAPI:
 
     app.include_router(opcodes.router, prefix=settings.api_prefix)
     app.include_router(app_state.router, prefix=settings.api_prefix)
+    app.include_router(runtime.router, prefix=settings.api_prefix)
     app.include_router(patches.router, prefix=settings.api_prefix)
     app.include_router(performances.router, prefix=settings.api_prefix)
     app.include_router(sessions.router, prefix=settings.api_prefix)
@@ -124,8 +127,13 @@ def create_app() -> FastAPI:
     app.include_router(ws.router)
 
     @app.get("/api/health")
-    async def health() -> dict[str, str]:
-        return {"status": "ok"}
+    async def health() -> dict[str, str | bool | int]:
+        return {
+            "status": "ok",
+            "audio_output_mode": settings.audio_output_mode,
+            "browser_audio_streaming_enabled": settings.audio_output_mode == "streaming",
+            "browser_audio_sample_rate": 48_000,
+        }
 
     @app.get("/api/health/realtime")
     async def health_realtime() -> dict[str, str | int]:
@@ -142,7 +150,39 @@ app = create_app()
 
 
 def run() -> None:
-    uvicorn.run("backend.app.main:app", host="0.0.0.0", port=8000, reload=True)
+    parser = argparse.ArgumentParser(description="Run the VisualCSound backend")
+    parser.add_argument(
+        "--audio-output-mode",
+        choices=("local", "streaming"),
+        default=None,
+        help="Select local DAC output or browser audio streaming mode.",
+    )
+    parser.add_argument("--host", default="0.0.0.0")
+    parser.add_argument("--port", type=int, default=8000)
+    parser.add_argument("--log-level", default="info")
+    parser.add_argument("--reload", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--access-log", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--debug", action=argparse.BooleanOptionalAction, default=None)
+    args = parser.parse_args()
+
+    if args.audio_output_mode is not None:
+        os.environ["VISUALCSOUND_AUDIO_OUTPUT_MODE"] = args.audio_output_mode
+    if args.debug is True:
+        os.environ["VISUALCSOUND_DEBUG"] = "1"
+    elif args.debug is False:
+        os.environ["VISUALCSOUND_DEBUG"] = "0"
+
+    get_settings.cache_clear()
+    globals()["app"] = create_app()
+
+    uvicorn.run(
+        "backend.app.main:app",
+        host=args.host,
+        port=args.port,
+        reload=args.reload,
+        log_level=args.log_level,
+        access_log=args.access_log,
+    )
 
 
 if __name__ == "__main__":

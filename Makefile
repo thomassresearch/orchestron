@@ -8,7 +8,7 @@ MIDI_PULSE_LDFLAGS := -framework CoreMIDI -framework CoreFoundation
 MIDI_STATS_BIN := tools/midi_stats
 MIDI_STATS_SRC := tools/midi_stats.c
 
-.PHONY: frontend-install frontend-build build test run run-debug midi-pulse-build midi-pulse midi-stats-build midi-stats
+.PHONY: frontend-install frontend-build build test run run-debug run-streaming run-streaming-debug midi-pulse-build midi-pulse midi-stats-build midi-stats
 
 frontend-install:
 	cd frontend && npm install
@@ -26,6 +26,12 @@ run:
 
 run-debug:
 	VISUALCSOUND_DEBUG=1 uv run uvicorn backend.app.main:app --reload --log-level info
+
+run-streaming:
+	uv run python -m backend.app.main --audio-output-mode streaming --reload --log-level error --no-access-log
+
+run-streaming-debug:
+	uv run python -m backend.app.main --audio-output-mode streaming --reload --log-level info --debug
 
 midi-pulse-build: $(MIDI_PULSE_BIN)
 

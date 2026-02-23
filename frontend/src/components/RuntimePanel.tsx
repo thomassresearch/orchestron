@@ -1,3 +1,5 @@
+import type { Ref } from "react";
+
 import type { CompileResponse, GuiLanguage, MidiInputRef, SessionEvent } from "../types";
 
 interface RuntimePanelProps {
@@ -6,6 +8,9 @@ interface RuntimePanelProps {
   selectedMidiInput?: string | null;
   compileOutput: CompileResponse | null;
   events: SessionEvent[];
+  browserAudioStatus?: "off" | "connecting" | "live" | "error";
+  browserAudioError?: string | null;
+  browserAudioElementRef?: Ref<HTMLAudioElement>;
   onBindMidiInput: (midiInput: string) => void;
   onToggleCollapse?: () => void;
 }
@@ -20,6 +25,11 @@ const RUNTIME_PANEL_COPY: Record<
     selectMidiInput: string;
     compileOutput: string;
     compileOutputEmpty: string;
+    browserAudio: string;
+    browserAudioOff: string;
+    browserAudioConnecting: string;
+    browserAudioLive: string;
+    browserAudioError: string;
     sessionEvents: string;
     noEvents: string;
   }
@@ -32,6 +42,11 @@ const RUNTIME_PANEL_COPY: Record<
     selectMidiInput: "Select MIDI input",
     compileOutput: "Compile Output",
     compileOutputEmpty: "Compile to view generated ORC.",
+    browserAudio: "Browser Audio",
+    browserAudioOff: "Local output mode",
+    browserAudioConnecting: "Connecting WebRTC stream...",
+    browserAudioLive: "Streaming to browser",
+    browserAudioError: "Browser stream error",
     sessionEvents: "Session Events",
     noEvents: "No events yet."
   },
@@ -43,6 +58,11 @@ const RUNTIME_PANEL_COPY: Record<
     selectMidiInput: "MIDI-Eingang waehlen",
     compileOutput: "Compile-Ausgabe",
     compileOutputEmpty: "Kompilieren, um generiertes ORC zu sehen.",
+    browserAudio: "Browser-Audio",
+    browserAudioOff: "Lokaler Ausgabemodus",
+    browserAudioConnecting: "WebRTC-Stream verbindet...",
+    browserAudioLive: "Stream zum Browser aktiv",
+    browserAudioError: "Browser-Stream-Fehler",
     sessionEvents: "Session-Events",
     noEvents: "Noch keine Events."
   },
@@ -54,6 +74,11 @@ const RUNTIME_PANEL_COPY: Record<
     selectMidiInput: "Selectionner entree MIDI",
     compileOutput: "Sortie de compilation",
     compileOutputEmpty: "Compilez pour voir le ORC genere.",
+    browserAudio: "Audio navigateur",
+    browserAudioOff: "Mode sortie locale",
+    browserAudioConnecting: "Connexion du flux WebRTC...",
+    browserAudioLive: "Flux vers navigateur actif",
+    browserAudioError: "Erreur flux navigateur",
     sessionEvents: "Evenements de session",
     noEvents: "Pas encore d'evenements."
   },
@@ -65,6 +90,11 @@ const RUNTIME_PANEL_COPY: Record<
     selectMidiInput: "Seleccionar entrada MIDI",
     compileOutput: "Salida de compilacion",
     compileOutputEmpty: "Compila para ver el ORC generado.",
+    browserAudio: "Audio del navegador",
+    browserAudioOff: "Modo de salida local",
+    browserAudioConnecting: "Conectando flujo WebRTC...",
+    browserAudioLive: "Flujo al navegador activo",
+    browserAudioError: "Error de flujo del navegador",
     sessionEvents: "Eventos de sesion",
     noEvents: "Aun no hay eventos."
   }
@@ -76,11 +106,23 @@ export function RuntimePanel({
   selectedMidiInput,
   compileOutput,
   events,
+  browserAudioStatus = "off",
+  browserAudioError = null,
+  browserAudioElementRef,
   onBindMidiInput,
   onToggleCollapse
 }: RuntimePanelProps) {
   const copy = RUNTIME_PANEL_COPY[guiLanguage];
   const recentEvents = [...events].slice(-10).reverse();
+  const showBrowserAudio = browserAudioStatus !== "off" || browserAudioElementRef != null;
+  const browserAudioStatusText =
+    browserAudioStatus === "live"
+      ? copy.browserAudioLive
+      : browserAudioStatus === "connecting"
+        ? copy.browserAudioConnecting
+        : browserAudioStatus === "error"
+          ? copy.browserAudioError
+          : copy.browserAudioOff;
 
   return (
     <aside className="flex h-full flex-col rounded-2xl border border-slate-700/70 bg-slate-900/75 p-3">
@@ -121,6 +163,24 @@ export function RuntimePanel({
           {compileOutput ? compileOutput.orc : copy.compileOutputEmpty}
         </pre>
       </div>
+
+      {showBrowserAudio ? (
+        <div className="mt-4 rounded-xl border border-slate-700 bg-slate-950/80 p-2">
+          <div className="text-xs uppercase tracking-[0.2em] text-slate-500">{copy.browserAudio}</div>
+          <div className="mt-2 text-[11px] text-slate-300">{browserAudioStatusText}</div>
+          {browserAudioError ? <div className="mt-1 text-[10px] text-rose-300">{browserAudioError}</div> : null}
+          {browserAudioElementRef ? (
+            <audio
+              ref={browserAudioElementRef}
+              className="mt-2 w-full"
+              controls
+              autoPlay
+              playsInline
+              preload="none"
+            />
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="mt-4 flex-1 rounded-xl border border-slate-700 bg-slate-950/80 p-2">
         <div className="text-xs uppercase tracking-[0.2em] text-slate-500">{copy.sessionEvents}</div>

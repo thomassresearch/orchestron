@@ -50,6 +50,37 @@ def test_apply_runtime_midi_options_replaces_csd_midi_flags() -> None:
     assert "</CsOptions>" in sanitized
 
 
+def test_streaming_runtime_options_disable_realtime_audio_output() -> None:
+    csd = "\n".join(
+        [
+            "<CsoundSynthesizer>",
+            "<CsOptions>",
+            "-d -odac -iadc -M0 -+rtmidi=coremidi -+rtaudio=auhal",
+            "</CsOptions>",
+            "<CsInstruments>",
+            "sr = 44100",
+            "nchnls = 2",
+            "instr 1",
+            "endin",
+            "</CsInstruments>",
+            "</CsoundSynthesizer>",
+        ]
+    )
+
+    sanitized = CsoundWorker._apply_streaming_runtime_options(
+        csd,
+        midi_input="1",
+        rtmidi_module="alsaseq",
+    )
+
+    assert "-M1" in sanitized
+    assert "-+rtmidi=alsaseq" in sanitized
+    assert "-odac" not in sanitized
+    assert "-iadc" not in sanitized
+    assert "-+rtaudio=auhal" not in sanitized
+    assert " -n" in sanitized or sanitized.strip().endswith("-n")
+
+
 def test_start_ctcsound_falls_back_to_supported_rtmidi_module(monkeypatch) -> None:
     monkeypatch.setattr("backend.app.engine.csound_worker.sys.platform", "darwin")
 

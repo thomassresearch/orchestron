@@ -7,6 +7,8 @@ from backend.app.core.container import AppContainer
 from backend.app.models.session import (
     BindMidiInputRequest,
     CompileResponse,
+    SessionAudioWebRtcAnswerResponse,
+    SessionAudioWebRtcOfferRequest,
     SessionSequencerConfigRequest,
     SessionSequencerQueuePadRequest,
     SessionSequencerStartRequest,
@@ -66,6 +68,15 @@ async def midi_event(
     container: AppContainer = Depends(get_container),
 ) -> SessionActionResponse:
     return await container.session_service.send_midi_event(session_id, request)
+
+
+@router.post("/{session_id}/audio/webrtc", response_model=SessionAudioWebRtcAnswerResponse)
+async def negotiate_audio_stream(
+    session_id: str,
+    request: SessionAudioWebRtcOfferRequest,
+    container: AppContainer = Depends(get_container),
+) -> SessionAudioWebRtcAnswerResponse:
+    return await container.session_service.negotiate_session_audio_stream(session_id, request)
 
 
 @router.put("/{session_id}/sequencer/config", response_model=SessionSequencerStatus)

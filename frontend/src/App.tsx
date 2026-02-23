@@ -26,6 +26,7 @@ import type {
   Performance,
   PerformanceListItem,
   SequencerConfigSnapshot,
+  SessionEvent,
   SessionMidiEventRequest,
   SessionSequencerConfigRequest,
   SessionSequencerStatus
@@ -60,6 +61,28 @@ function controllerSequencerSignature(controllerSequencer: ControllerSequencerSt
 }
 
 const CONTROLLER_SEQUENCER_SAMPLES_PER_STEP = 8;
+
+function waitForIceGatheringComplete(peer: RTCPeerConnection): Promise<void> {
+  if (peer.iceGatheringState === "complete") {
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve) => {
+    const onStateChange = () => {
+      if (peer.iceGatheringState !== "complete") {
+        return;
+      }
+      peer.removeEventListener("icegatheringstatechange", onStateChange);
+      resolve();
+    };
+
+    peer.addEventListener("icegatheringstatechange", onStateChange);
+    window.setTimeout(() => {
+      peer.removeEventListener("icegatheringstatechange", onStateChange);
+      resolve();
+    }, 5000);
+  });
+}
 
 type ExportedPatchDefinition = {
   sourcePatchId: string;
@@ -888,6 +911,297 @@ export default function App() {
     Record<string, { lastSampleSerial: number; signature: string; lastSentValue: number | null }>
   >({});
   const controllerSequencerPlaybackRafRef = useRef<number | null>(null);
+  const browserAudioFallbackElementRef = useRef<HTMLAudioElement | null>(null);
+  const browserAudioRuntimeElementRef = useRef<HTMLAudioElement | null>(null);
+  const browserAudioStreamRef = useRef<MediaStream | null>(null);
+  const browserAudioPeerRef = useRef<RTCPeerConnection | null>(null);
+  const browserAudioSessionRef = useRef<string | null>(null);
+  const browserAudioNegotiationTokenRef = useRef(0);
+  const browserAudioRtcConfigurationRef = useRef<RTCConfiguration | null>(null);
+  const browserAudioRtcConfigurationLoadedRef = useRef(false);
+  const browserAudioRtcConfigurationPromiseRef = useRef<Promise<RTCConfiguration | null> | null>(null);
+  const [browserAudioStatus, setBrowserAudioStatus] = useState<"off" | "connecting" | "live" | "error">("off");
+  const [browserAudioError, setBrowserAudioError] = useState<string | null>(null);
+
+  const syncBrowserAudioOutput = useCallback(
+    (reportPlaybackError: boolean) => {
+      const stream = browserAudioStreamRef.current;
+      const runtimeElement = browserAudioRuntimeElementRef.current;
+      const fallbackElement = browserAudioFallbackElementRef.current;
+      const activeElement = runtimeElement ?? fallbackElement;
+
+      const applyToElement = (audioElement: HTMLAudioElement | null, shouldUseStream: boolean) => {
+        if (!audioElement) {
+          return;
+        }
+
+        if (!shouldUseStream || !stream) {
+          if (audioElement.srcObject !== null) {
+            audioElement.srcObject = null;
+          }
+          return;
+        }
+
+        if (audioElement.srcObject !== stream) {
+          audioElement.srcObject = stream;
+        }
+
+        void audioElement.play().catch((playbackError: unknown) => {
+          if (!reportPlaybackError) {
+            return;
+          }
+          setBrowserAudioStatus("error");
+          setBrowserAudioError(
+            playbackError instanceof Error ? playbackError.message : "Browser blocked autoplay for streamed audio."
+          );
+        });
+      };
+
+      applyToElement(runtimeElement, activeElement === runtimeElement);
+      applyToElement(fallbackElement, activeElement === fallbackElement);
+    },
+    [setBrowserAudioError, setBrowserAudioStatus]
+  );
+
+  const setBrowserAudioRuntimeElement = useCallback(
+    (audioElement: HTMLAudioElement | null) => {
+      browserAudioRuntimeElementRef.current = audioElement;
+      syncBrowserAudioOutput(false);
+    },
+    [syncBrowserAudioOutput]
+  );
+
+  const latestStartedEvent = useMemo<SessionEvent | null>(() => {
+    for (let index = events.length - 1; index >= 0; index -= 1) {
+      const event = events[index];
+      if (event.type === "started") {
+        return event;
+      }
+    }
+    return null;
+  }, [events]);
+  const latestStartedAudioMode = useMemo<"local" | "streaming" | null>(() => {
+    const raw = latestStartedEvent?.payload?.audio_mode;
+    return raw === "streaming" ? "streaming" : raw === "local" ? "local" : null;
+  }, [latestStartedEvent]);
+  const latestStartedAudioStreamReady = useMemo<boolean | null>(() => {
+    const value = latestStartedEvent?.payload?.audio_stream_ready;
+    return typeof value === "boolean" ? value : null;
+  }, [latestStartedEvent]);
+
+  const disconnectBrowserAudio = useCallback(() => {
+    browserAudioNegotiationTokenRef.current += 1;
+
+    const peer = browserAudioPeerRef.current;
+    browserAudioPeerRef.current = null;
+    browserAudioSessionRef.current = null;
+    if (peer) {
+      try {
+        peer.ontrack = null;
+        peer.onconnectionstatechange = null;
+        peer.oniceconnectionstatechange = null;
+        peer.close();
+      } catch {
+        // Ignore browser-side cleanup failures.
+      }
+    }
+
+    browserAudioStreamRef.current = null;
+
+    const runtimeElement = browserAudioRuntimeElementRef.current;
+    if (runtimeElement) {
+      runtimeElement.srcObject = null;
+    }
+
+    const fallbackElement = browserAudioFallbackElementRef.current;
+    if (fallbackElement) {
+      fallbackElement.srcObject = null;
+    }
+  }, []);
+
+  const getBrowserAudioRtcConfiguration = useCallback(async (): Promise<RTCConfiguration | null> => {
+    if (browserAudioRtcConfigurationLoadedRef.current) {
+      return browserAudioRtcConfigurationRef.current;
+    }
+    if (browserAudioRtcConfigurationPromiseRef.current) {
+      return browserAudioRtcConfigurationPromiseRef.current;
+    }
+
+    const pending = api
+      .getRuntimeConfig()
+      .then((runtimeConfig) => {
+        const iceServers: RTCIceServer[] = runtimeConfig.webrtc_browser_ice_servers
+          .filter((server) => {
+            if (typeof server.urls === "string") {
+              return server.urls.length > 0;
+            }
+            return Array.isArray(server.urls) && server.urls.some((url) => typeof url === "string" && url.length > 0);
+          })
+          .map((server) => {
+            const normalized: RTCIceServer = { urls: server.urls };
+            if (server.username) {
+              normalized.username = server.username;
+            }
+            if (server.credential) {
+              normalized.credential = server.credential;
+            }
+            return normalized;
+          });
+
+        const configuration = iceServers.length > 0 ? ({ iceServers } satisfies RTCConfiguration) : null;
+        browserAudioRtcConfigurationRef.current = configuration;
+        browserAudioRtcConfigurationLoadedRef.current = true;
+        browserAudioRtcConfigurationPromiseRef.current = null;
+        return configuration;
+      })
+      .catch((error) => {
+        browserAudioRtcConfigurationPromiseRef.current = null;
+        throw error;
+      });
+
+    browserAudioRtcConfigurationPromiseRef.current = pending;
+    return pending;
+  }, []);
+
+  const ensureBrowserAudioConnection = useCallback(
+    async (sessionId: string) => {
+      const existing = browserAudioPeerRef.current;
+      if (
+        existing &&
+        browserAudioSessionRef.current === sessionId &&
+        existing.connectionState !== "closed" &&
+        existing.connectionState !== "failed"
+      ) {
+        return;
+      }
+
+      disconnectBrowserAudio();
+      setBrowserAudioStatus("connecting");
+      setBrowserAudioError(null);
+
+      const token = browserAudioNegotiationTokenRef.current;
+      const rtcConfiguration = await getBrowserAudioRtcConfiguration();
+      if (browserAudioNegotiationTokenRef.current !== token) {
+        return;
+      }
+
+      const peer = new RTCPeerConnection(rtcConfiguration ?? undefined);
+      browserAudioPeerRef.current = peer;
+      browserAudioSessionRef.current = sessionId;
+
+      peer.ontrack = (event) => {
+        const stream = event.streams[0] ?? new MediaStream([event.track]);
+        browserAudioStreamRef.current = stream;
+        syncBrowserAudioOutput(true);
+      };
+      peer.onconnectionstatechange = () => {
+        if (browserAudioPeerRef.current !== peer) {
+          return;
+        }
+        if (peer.connectionState === "connected") {
+          setBrowserAudioStatus("live");
+          setBrowserAudioError(null);
+          return;
+        }
+        if (peer.connectionState === "failed" || peer.connectionState === "disconnected") {
+          setBrowserAudioStatus("error");
+          setBrowserAudioError(`WebRTC connection ${peer.connectionState}.`);
+        }
+      };
+      peer.oniceconnectionstatechange = () => {
+        if (browserAudioPeerRef.current !== peer) {
+          return;
+        }
+        if (peer.iceConnectionState === "failed" || peer.iceConnectionState === "disconnected") {
+          setBrowserAudioStatus("error");
+          setBrowserAudioError(`ICE ${peer.iceConnectionState}.`);
+        }
+      };
+
+      try {
+        peer.addTransceiver("audio", { direction: "recvonly" });
+        const offer = await peer.createOffer();
+        await peer.setLocalDescription(offer);
+        await waitForIceGatheringComplete(peer);
+
+        if (browserAudioNegotiationTokenRef.current !== token) {
+          peer.close();
+          return;
+        }
+
+        const localDescription = peer.localDescription;
+        if (!localDescription?.sdp) {
+          throw new Error("Failed to create WebRTC offer.");
+        }
+
+        const answer = await api.negotiateSessionAudioWebRtc(sessionId, {
+          type: "offer",
+          sdp: localDescription.sdp
+        });
+
+        if (browserAudioNegotiationTokenRef.current !== token) {
+          peer.close();
+          return;
+        }
+
+        await peer.setRemoteDescription({
+          type: answer.type,
+          sdp: answer.sdp
+        });
+      } catch (error) {
+        if (browserAudioPeerRef.current === peer) {
+          peer.close();
+          browserAudioPeerRef.current = null;
+          browserAudioSessionRef.current = null;
+        }
+        setBrowserAudioStatus("error");
+        setBrowserAudioError(error instanceof Error ? error.message : "Failed to connect browser audio stream.");
+      }
+    },
+    [disconnectBrowserAudio, getBrowserAudioRtcConfiguration, syncBrowserAudioOutput]
+  );
+
+  useEffect(() => {
+    if (!activeSessionId || activeSessionState !== "running") {
+      disconnectBrowserAudio();
+      setBrowserAudioStatus("off");
+      setBrowserAudioError(null);
+      return;
+    }
+
+    if (latestStartedAudioMode === null) {
+      return;
+    }
+
+    if (latestStartedAudioMode !== "streaming") {
+      disconnectBrowserAudio();
+      setBrowserAudioStatus("off");
+      setBrowserAudioError(null);
+      return;
+    }
+
+    if (latestStartedAudioStreamReady === false) {
+      disconnectBrowserAudio();
+      setBrowserAudioStatus("error");
+      setBrowserAudioError("Backend started in streaming mode, but browser audio is not available.");
+      return;
+    }
+
+    void ensureBrowserAudioConnection(activeSessionId);
+  }, [
+    activeSessionId,
+    activeSessionState,
+    disconnectBrowserAudio,
+    ensureBrowserAudioConnection,
+    latestStartedAudioMode,
+    latestStartedAudioStreamReady
+  ]);
+
+  useEffect(() => {
+    return () => {
+      disconnectBrowserAudio();
+    };
+  }, [disconnectBrowserAudio]);
 
   const currentPatchCompileSignature = useMemo(
     () => patchCompileSignatureFor(currentPatch, activeInstrumentTabId),
@@ -2355,6 +2669,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[radial-gradient(ellipse_at_top_left,_#1e293b,_#020617_60%)] px-4 py-4 text-slate-100 sm:px-6 lg:px-8">
+      <audio ref={browserAudioFallbackElementRef} className="sr-only" autoPlay playsInline preload="none" aria-hidden />
       <div className="mx-auto max-w-[1700px] space-y-3">
         <header className="relative flex items-center gap-3 rounded-2xl border-x border-y border-slate-700/70 bg-slate-900/65 px-4 py-0 pr-44">
           <div className="flex flex-1 items-center gap-3">
@@ -2555,6 +2870,9 @@ export default function App() {
                     selectedMidiInput={activeMidiInput}
                     compileOutput={compileOutput}
                     events={events}
+                    browserAudioStatus={latestStartedAudioMode === "streaming" ? browserAudioStatus : "off"}
+                    browserAudioError={latestStartedAudioMode === "streaming" ? browserAudioError : null}
+                    browserAudioElementRef={latestStartedAudioMode === "streaming" ? setBrowserAudioRuntimeElement : undefined}
                     onBindMidiInput={(midiInput) => {
                       void bindMidiInput(midiInput);
                     }}
