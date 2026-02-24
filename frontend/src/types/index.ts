@@ -103,6 +103,7 @@ export type SequencerScaleRoot =
 export interface SequencerStepState {
   note: number | null;
   hold: boolean;
+  velocity: number;
 }
 
 export interface SequencerPadState {
@@ -317,6 +318,7 @@ export interface PerformanceListItem {
 export interface SessionSequencerStepConfig {
   note: number | Array<number> | null;
   hold: boolean;
+  velocity?: number;
 }
 
 export interface SessionSequencerPadConfig {

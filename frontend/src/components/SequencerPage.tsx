@@ -1723,6 +1723,7 @@ interface SequencerPageProps {
   onSequencerTrackStepCountChange: (trackId: string, count: 16 | 32) => void;
   onSequencerTrackStepNoteChange: (trackId: string, index: number, note: number | null) => void;
   onSequencerTrackStepHoldChange: (trackId: string, index: number, hold: boolean) => void;
+  onSequencerTrackStepVelocityChange: (trackId: string, index: number, velocity: number) => void;
   onSequencerTrackClearSteps: (trackId: string) => void;
   onSequencerPadPress: (trackId: string, padIndex: number) => void;
   onSequencerPadCopy: (trackId: string, sourcePadIndex: number, targetPadIndex: number) => void;
@@ -1870,6 +1871,7 @@ export function SequencerPage({
   onSequencerTrackStepCountChange,
   onSequencerTrackStepNoteChange,
   onSequencerTrackStepHoldChange,
+  onSequencerTrackStepVelocityChange,
   onSequencerTrackClearSteps,
   onSequencerPadPress,
   onSequencerPadCopy,
@@ -2744,6 +2746,7 @@ export function SequencerPage({
                       const stepState = track.steps[step];
                       const noteValue = stepState?.note ?? null;
                       const holdActive = stepState?.hold === true;
+                      const stepVelocity = stepState?.velocity ?? 127;
                       const localPlayhead = sequencer.playhead % track.stepCount;
                       const isActive = track.enabled && sequencer.isPlaying && localPlayhead === step;
                       const selectedNote = noteValue === null ? null : noteOptionsByNote.get(noteValue) ?? null;
@@ -2927,6 +2930,26 @@ export function SequencerPage({
                               }}
                               className="w-14 rounded border border-slate-600 bg-slate-950 px-1.5 py-0.5 text-center font-mono text-[11px] text-slate-100 outline-none ring-accent/40 transition focus:ring disabled:cursor-not-allowed disabled:opacity-50"
                               aria-label={`${ui.octave} ${step + 1}`}
+                            />
+                          </label>
+
+                          <label className="mt-1 flex items-center justify-between gap-2 rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1">
+                            <span className="text-[9px] uppercase tracking-[0.16em] text-slate-400">VEL</span>
+                            <input
+                              type="number"
+                              min={0}
+                              max={127}
+                              step={1}
+                              value={stepVelocity}
+                              onChange={(event) => {
+                                const raw = event.target.value.trim();
+                                if (raw.length === 0) {
+                                  return;
+                                }
+                                onSequencerTrackStepVelocityChange(track.id, step, Number(raw));
+                              }}
+                              className="w-14 rounded border border-slate-600 bg-slate-950 px-1.5 py-0.5 text-center font-mono text-[11px] text-slate-100 outline-none ring-accent/40 transition focus:ring"
+                              aria-label={`VEL ${step + 1}`}
                             />
                           </label>
 

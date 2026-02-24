@@ -29,6 +29,10 @@ def _clamp_midi_note(value: int) -> int:
     return max(0, min(127, int(value)))
 
 
+def _clamp_midi_velocity(value: int) -> int:
+    return max(0, min(127, int(value)))
+
+
 def _normalize_step_notes(value: int | list[int] | None) -> tuple[int, ...]:
     if value is None:
         return ()
@@ -50,6 +54,7 @@ def _normalize_step_notes(value: int | list[int] | None) -> tuple[int, ...]:
 class SequencerStepRuntime:
     notes: tuple[int, ...]
     hold: bool = False
+    velocity: int = 100
 
 
 @dataclass(slots=True)
@@ -329,7 +334,7 @@ class SessionSequencerRuntime:
                     # Any non-rest step starts a new note event, so release currently held notes first.
                     self._release_track_notes_locked(track_id, track.midi_channel)
                     for note in notes:
-                        self._send_note_on_locked(track, note)
+                        self._send_note_on_locked(track, note, step_state.velocity)
                         active_notes.add(note)
                 elif not step_state.hold:
                     self._release_track_notes_locked(track_id, track.midi_channel)
@@ -408,9 +413,9 @@ class SessionSequencerRuntime:
         for payload in switch_payloads:
             self._publish_event("sequencer_pad_switched", payload)
 
-    def _send_note_on_locked(self, track: SequencerTrackRuntime, note: int) -> None:
+    def _send_note_on_locked(self, track: SequencerTrackRuntime, note: int, velocity: int) -> None:
         channel_byte = (track.midi_channel - 1) & 0x0F
-        message = [0x90 + channel_byte, _clamp_midi_note(note), track.velocity]
+        message = [0x90 + channel_byte, _clamp_midi_note(note), _clamp_midi_velocity(velocity)]
         self._send_message_locked(message)
 
     def _send_note_off_locked(self, midi_channel: int, note: int) -> None:
@@ -513,21 +518,32 @@ class SessionSequencerRuntime:
         return self._config
 
     @staticmethod
-    def _normalize_step(value: int | list[int] | SessionSequencerStepConfig | None) -> SequencerStepRuntime:
+    def _normalize_step(
+        value: int | list[int] | SessionSequencerStepConfig | None,
+        default_velocity: int,
+    ) -> SequencerStepRuntime:
         if isinstance(value, SessionSequencerStepConfig):
             return SequencerStepRuntime(
                 notes=_normalize_step_notes(value.note),
                 hold=bool(value.hold),
+                velocity=_clamp_midi_velocity(
+                    value.velocity if value.velocity is not None else default_velocity
+                ),
             )
-        return SequencerStepRuntime(notes=_normalize_step_notes(value), hold=False)
+        return SequencerStepRuntime(
+            notes=_normalize_step_notes(value),
+            hold=False,
+            velocity=_clamp_midi_velocity(default_velocity),
+        )
 
     @staticmethod
     def _normalize_steps(
         raw_steps: list[int | list[int] | SessionSequencerStepConfig | None],
         step_count: int,
+        default_velocity: int,
     ) -> tuple[SequencerStepRuntime, ...]:
         padded = raw_steps[:step_count] + [None] * max(0, step_count - len(raw_steps))
-        normalized = [SessionSequencerRuntime._normalize_step(entry) for entry in padded]
+        normalized = [SessionSequencerRuntime._normalize_step(entry, default_velocity) for entry in padded]
         return tuple(normalized[:_MAX_STEPS])
 
     @staticmethod
@@ -577,7 +593,11 @@ class SessionSequencerRuntime:
             }
 
             for pad in track_request.pads:
-                pads[pad.pad_index] = self._normalize_steps(pad.steps, track_step_count)
+                pads[pad.pad_index] = self._normalize_steps(
+                    pad.steps,
+                    track_step_count,
+                    track_request.velocity,
+                )
 
             active_pad = track_request.active_pad if track_request.active_pad in pads else 0
             queued_pad = track_request.queued_pad if track_request.queued_pad in pads else None

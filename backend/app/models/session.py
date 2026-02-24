@@ -118,6 +118,7 @@ SequencerStepNotes = int | list[int] | None
 class SessionSequencerStepConfig(BaseModel):
     note: SequencerStepNotes = None
     hold: bool = False
+    velocity: int | None = Field(default=None, ge=0, le=127)
 
     @model_validator(mode="before")
     @classmethod

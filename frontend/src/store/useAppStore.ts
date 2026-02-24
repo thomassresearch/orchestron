@@ -134,6 +134,7 @@ interface AppStore {
   setSequencerTrackStepCount: (trackId: string, stepCount: 16 | 32) => void;
   setSequencerTrackStepNote: (trackId: string, index: number, note: number | null) => void;
   setSequencerTrackStepHold: (trackId: string, index: number, hold: boolean) => void;
+  setSequencerTrackStepVelocity: (trackId: string, index: number, velocity: number) => void;
   clearSequencerTrackSteps: (trackId: string) => void;
   copySequencerTrackPad: (trackId: string, sourcePadIndex: number, targetPadIndex: number) => void;
   transposeSequencerTrackPadInScale: (trackId: string, padIndex: number, direction: -1 | 1) => void;
@@ -253,14 +254,16 @@ function transportStepCountForTracks(tracks: SequencerTrackState[]): 16 | 32 {
 function createEmptySequencerStep(): SequencerStepState {
   return {
     note: null,
-    hold: false
+    hold: false,
+    velocity: 127
   };
 }
 
 function cloneSequencerStep(step: SequencerStepState): SequencerStepState {
   return {
     note: step.note,
-    hold: step.hold
+    hold: step.hold,
+    velocity: step.velocity
   };
 }
 
@@ -288,18 +291,27 @@ function normalizeStepHold(value: unknown): boolean {
   return value === true;
 }
 
+function normalizeStepVelocity(value: unknown): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return 127;
+  }
+  return clampInt(value, 0, 127);
+}
+
 function normalizeSequencerStep(value: unknown): SequencerStepState {
   if (value && typeof value === "object" && !Array.isArray(value)) {
     const step = value as Record<string, unknown>;
     return {
       note: normalizeStepNote(step.note ?? step.notes ?? step.value),
-      hold: normalizeStepHold(step.hold)
+      hold: normalizeStepHold(step.hold),
+      velocity: normalizeStepVelocity(step.velocity ?? step.vel)
     };
   }
 
   return {
     note: normalizeStepNote(value),
-    hold: false
+    hold: false,
+    velocity: 127
   };
 }
 
@@ -2206,6 +2218,54 @@ export const useAppStore = create<AppStore>((set, get) => {
             steps[index] = {
               ...stepState,
               hold: hold === true
+            };
+            pads[activePad] = {
+              ...activePadState,
+              steps
+            };
+
+            return {
+              ...track,
+              pads,
+              steps
+            };
+          })
+        }
+      });
+    },
+
+    setSequencerTrackStepVelocity: (trackId, index, velocity) => {
+      if (index < 0 || index >= 32) {
+        return;
+      }
+
+      const sequencer = get().sequencer;
+      const normalizedVelocity = normalizeStepVelocity(velocity);
+      set({
+        sequencer: {
+          ...sequencer,
+          tracks: sequencer.tracks.map((track) => {
+            if (track.id !== trackId) {
+              return track;
+            }
+
+            const pads = track.pads.map((pad) => ({
+              ...pad,
+              steps: cloneSequencerSteps(pad.steps)
+            }));
+            const activePad = normalizePadIndex(track.activePad);
+            const activePadState =
+              pads[activePad] ?? {
+                steps: cloneSequencerSteps(DEFAULT_SEQUENCER_STEPS),
+                scaleRoot: track.scaleRoot,
+                scaleType: track.scaleType,
+                mode: track.mode
+              };
+            const steps = cloneSequencerSteps(activePadState.steps);
+            const stepState = steps[index] ?? createEmptySequencerStep();
+            steps[index] = {
+              ...stepState,
+              velocity: normalizedVelocity
             };
             pads[activePad] = {
               ...activePadState,
