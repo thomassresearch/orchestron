@@ -188,6 +188,9 @@ def _collect_referenced_gen_audio_stored_names_from_graph(graph: object) -> set[
     for raw_node_config in gen_nodes.values():
         if not isinstance(raw_node_config, dict):
             continue
+        routine_name = raw_node_config.get("routineName")
+        if isinstance(routine_name, str) and routine_name.strip():
+            continue
         routine_number = _coerce_int(raw_node_config.get("routineNumber"), default=10)
         if abs(routine_number) != 1:
             continue

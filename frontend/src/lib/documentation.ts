@@ -666,7 +666,8 @@ If multiple signals are connected to the **same input** of an opcode:
 | --- | --- |
 | \`in1\`, \`in2\`, ... | Connected incoming signals |
 | \`+\`, \`-\`, \`*\`, \`/\` | Arithmetic operators |
-| \`(\`, \`)\` | Grouping / precedence |`,
+| \`(\`, \`)\` | Grouping / precedence |
+| \`abs()\`, \`ceil()\`, \`floor()\`, \`ampdb()\`, \`dbamp()\` | Unary functions |`,
     german: `### Mehrere Signale auf demselben Eingang kombinieren
 
 Wenn mehrere Signale mit **demselben Eingang** eines Opcodes verbunden sind:
@@ -681,7 +682,8 @@ Wenn mehrere Signale mit **demselben Eingang** eines Opcodes verbunden sind:
 | --- | --- |
 | \`in1\`, \`in2\`, ... | Verbundene Eingangssignale |
 | \`+\`, \`-\`, \`*\`, \`/\` | Arithmetische Operatoren |
-| \`(\`, \`)\` | Gruppierung / Priorität |`,
+| \`(\`, \`)\` | Gruppierung / Priorität |
+| \`abs()\`, \`ceil()\`, \`floor()\`, \`ampdb()\`, \`dbamp()\` | Unäre Funktionen |`,
     french: `### Combiner plusieurs signaux sur la même entrée
 
 Si plusieurs signaux sont connectés à **la même entrée** d'un opcode :
@@ -696,7 +698,8 @@ Si plusieurs signaux sont connectés à **la même entrée** d'un opcode :
 | --- | --- |
 | \`in1\`, \`in2\`, ... | Signaux entrants connectés |
 | \`+\`, \`-\`, \`*\`, \`/\` | Opérateurs arithmétiques |
-| \`(\`, \`)\` | Groupement / priorité |`,
+| \`(\`, \`)\` | Groupement / priorité |
+| \`abs()\`, \`ceil()\`, \`floor()\`, \`ampdb()\`, \`dbamp()\` | Fonctions unaires |`,
     spanish: `### Combinar múltiples señales en la misma entrada
 
 Si múltiples señales están conectadas a **la misma entrada** de un opcode:
@@ -711,7 +714,8 @@ Si múltiples señales están conectadas a **la misma entrada** de un opcode:
 | --- | --- |
 | \`in1\`, \`in2\`, ... | Señales entrantes conectadas |
 | \`+\`, \`-\`, \`*\`, \`/\` | Operadores aritméticos |
-| \`(\`, \`)\` | Agrupación / precedencia |`
+| \`(\`, \`)\` | Agrupación / precedencia |
+| \`abs()\`, \`ceil()\`, \`floor()\`, \`ampdb()\`, \`dbamp()\` | Funciones unarias |`
   }
 };
 

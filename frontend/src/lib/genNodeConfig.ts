@@ -28,6 +28,7 @@ export interface GenNodeConfig {
   startTime: number;
   tableSize: number;
   routineNumber: number;
+  routineName: string;
   normalize: boolean;
   harmonicAmplitudes: number[];
   gen11HarmonicCount: number;
@@ -49,7 +50,7 @@ export interface GenNodeConfig {
 }
 
 export interface GenNodePreview {
-  igen: number;
+  igen: number | string;
   mode: GenNodeMode;
   args: string[];
   line: string;
@@ -222,6 +223,14 @@ function parseSampleAsset(value: unknown): GenAudioAssetRef | null {
   };
 }
 
+function normalizeRoutineName(value: unknown): string {
+  if (typeof value !== "string") {
+    return "";
+  }
+  const normalized = value.trim().toLowerCase();
+  return normalized;
+}
+
 export function defaultGenNodeConfig(): GenNodeConfig {
   return {
     mode: "ftgen",
@@ -229,6 +238,7 @@ export function defaultGenNodeConfig(): GenNodeConfig {
     startTime: 0,
     tableSize: 16384,
     routineNumber: 10,
+    routineName: "",
     normalize: true,
     harmonicAmplitudes: [1],
     gen11HarmonicCount: 8,
@@ -265,6 +275,7 @@ export function normalizeGenNodeConfig(raw: unknown): GenNodeConfig {
   if (routineNumber === 0) {
     routineNumber = defaults.routineNumber;
   }
+  const routineName = normalizeRoutineName(raw.routineName);
 
   return {
     mode,
@@ -272,6 +283,7 @@ export function normalizeGenNodeConfig(raw: unknown): GenNodeConfig {
     startTime: toNumber(raw.startTime, defaults.startTime),
     tableSize: toInt(raw.tableSize, defaults.tableSize),
     routineNumber,
+    routineName,
     normalize: toBool(raw.normalize, defaults.normalize),
     harmonicAmplitudes: toNumberList(raw.harmonicAmplitudes, defaults.harmonicAmplitudes),
     gen11HarmonicCount: Math.max(1, toInt(raw.gen11HarmonicCount, defaults.gen11HarmonicCount)),
@@ -348,6 +360,7 @@ function genNodeConfigToJson(config: GenNodeConfig): JsonValue {
     startTime: config.startTime,
     tableSize: config.tableSize,
     routineNumber: config.routineNumber,
+    routineName: config.routineName,
     normalize: config.normalize,
     harmonicAmplitudes: config.harmonicAmplitudes,
     gen11HarmonicCount: config.gen11HarmonicCount,
@@ -390,6 +403,21 @@ function parseRawArgsText(rawArgsText: string): string[] {
 }
 
 function previewArgsForConfig(config: GenNodeConfig): string[] {
+  if (config.routineName.trim()) {
+    const rawTokens = parseRawArgsText(config.rawArgsText);
+    return rawTokens.map((token) => {
+      const isQuoted =
+        (token.startsWith('"') && token.endsWith('"')) || (token.startsWith("'") && token.endsWith("'"));
+      if (isQuoted) {
+        return token;
+      }
+      if (/^[-+]?(?:\d+\.?\d*|\.\d+)$/.test(token) || /^[-+]?\d+$/.test(token)) {
+        return token;
+      }
+      return `expr:${token}`;
+    });
+  }
+
   const routineNumber = Math.abs(Math.round(config.routineNumber)) || 10;
   if (routineNumber === 10) {
     return (config.harmonicAmplitudes.length > 0 ? config.harmonicAmplitudes : [1]).map(String);
@@ -453,11 +481,17 @@ function previewArgsForConfig(config: GenNodeConfig): string[] {
 
 export function buildGenNodePreview(config: GenNodeConfig): GenNodePreview {
   const normalized = normalizeGenNodeConfig(config);
+  const routineName = normalized.routineName.trim();
+  const hasNamedRoutine = routineName.length > 0;
   const routineNumber = Math.abs(Math.round(normalized.routineNumber)) || 10;
-  const igen = normalized.normalize ? routineNumber : -routineNumber;
+  const igen: number | string = hasNamedRoutine
+    ? JSON.stringify(routineName)
+    : normalized.normalize
+      ? routineNumber
+      : -routineNumber;
   const args = previewArgsForConfig(normalized);
   const renderedArgs = args.map((arg) => (arg.startsWith("expr:") ? arg.slice(5) : arg));
-  const effectiveMode: GenNodeMode = routineNumber === 1 ? "ftgen" : normalized.mode;
+  const effectiveMode: GenNodeMode = !hasNamedRoutine && routineNumber === 1 ? "ftgen" : normalized.mode;
 
   const linePrefix =
     effectiveMode === "ftgenonce"
@@ -465,8 +499,8 @@ export function buildGenNodePreview(config: GenNodeConfig): GenNodePreview {
       : "{ift} ftgen ";
   const lineBase =
     effectiveMode === "ftgenonce"
-      ? `${linePrefix}${normalized.tableNumber}, 0, ${normalized.tableSize}, ${igen}`
-      : `${linePrefix}${normalized.tableNumber}, ${normalized.startTime}, ${normalized.tableSize}, ${igen}`;
+      ? `${linePrefix}${normalized.tableNumber}, 0, ${normalized.tableSize}, ${String(igen)}`
+      : `${linePrefix}${normalized.tableNumber}, ${normalized.startTime}, ${normalized.tableSize}, ${String(igen)}`;
   const line = renderedArgs.length > 0 ? `${lineBase}, ${renderedArgs.join(", ")}` : lineBase;
 
   return {

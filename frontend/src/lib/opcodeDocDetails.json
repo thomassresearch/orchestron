@@ -1465,6 +1465,102 @@
       }
     }
   },
+  "ampmidi": {
+    "description": {
+      "english": "Generate an amplitude value from the velocity of a MIDI note according to a normalized translation table. It is convenient to use in conjunction with the cpsmidi opcode, to generate a MIDI-controlled note in an instrument.",
+      "german": "Erzeugen Sie einen Amplitudenwert aus der Velocity einer MIDI-Note anhand einer normalisierten Übersetzungstabelle. Es ist praktisch, dies zusammen mit dem Opcode cpsmidi zu verwenden, um in einem Instrument eine MIDI-gesteuerte Note zu erzeugen.",
+      "french": "Générez une valeur d'amplitude à partir de la vélocité d'une note MIDI selon une table de conversion normalisée. Il est pratique de l'utiliser avec l'opcode cpsmidi pour générer une note contrôlée par MIDI dans un instrument.",
+      "spanish": "Genere un valor de amplitud a partir de la velocidad de una nota MIDI según una tabla de traducción normalizada. Es conveniente usarlo junto con el opcode cpsmidi para generar una nota controlada por MIDI en un instrumento."
+    },
+    "inputs": {
+      "iscal": {
+        "english": "scale factor",
+        "german": "Skalierungsfaktor",
+        "french": "facteur d'échelle",
+        "spanish": "factor de escala"
+      },
+      "ifn": {
+        "english": "function table number of normalized translation curve, mapping MIDI velocity to amplitude.",
+        "german": "Funktionstabellennummer der normalisierten Übersetzungskurve, die MIDI-Velocity auf Amplitude abbildet.",
+        "french": "numéro de table de fonction de la courbe de conversion normalisée, qui mappe la vélocité MIDI vers l'amplitude.",
+        "spanish": "número de tabla de funciones de la curva de traducción normalizada, que asigna la velocidad MIDI a la amplitud."
+      }
+    },
+    "outputs": {
+      "iamp": {
+        "english": "Output variable `iamp` from ampmidi.",
+        "german": "Ausgabevariable „iamp“ von ampmidi.",
+        "french": "Variable de sortie `iamp` de ampmidi.",
+        "spanish": "Variable de salida `iamp` de ampmidi."
+      }
+    }
+  },
+  "ampmidicurve": {
+    "description": {
+      "english": "Generate an amplitude value from a velocity value in a MIDI like range (0-127) using a translated exponential range.",
+      "german": "Erzeugen Sie einen Amplitudenwert aus einem Velocity-Wert in einem MIDI-ähnlichen Bereich (0-127) unter Verwendung eines übersetzten Exponentialbereichs.",
+      "french": "Générez une valeur d'amplitude à partir d'une valeur de vélocité dans une plage de type MIDI (0-127) en utilisant une plage exponentielle transposée.",
+      "spanish": "Genere un valor de amplitud a partir de un valor de velocidad en un rango tipo MIDI (0-127) usando un rango exponencial traducido."
+    },
+    "inputs": {
+      "kvelocity": {
+        "english": "MIDI velocity value (0-127)",
+        "german": "MIDI-Velocity-Wert (0-127)",
+        "french": "valeur de vélocité MIDI (0-127)",
+        "spanish": "valor de velocidad MIDI (0-127)"
+      },
+      "kdynamicrange": {
+        "english": "total dynamic range in dB",
+        "german": "gesamter Dynamikbereich in dB",
+        "french": "plage dynamique totale en dB",
+        "spanish": "rango dinámico total en dB"
+      },
+      "kexponent": {
+        "english": "exponent of the curve.",
+        "german": "Exponent der Kurve.",
+        "french": "exposant de la courbe.",
+        "spanish": "exponente de la curva."
+      }
+    },
+    "outputs": {
+      "kgain": {
+        "english": "Output variable `kgain` from ampmidicurve.",
+        "german": "Ausgabevariable „kgain“ von ampmidicurve.",
+        "french": "Variable de sortie `kgain` de ampmidicurve.",
+        "spanish": "Variable de salida `kgain` de ampmidicurve."
+      }
+    }
+  },
+  "ampmidid": {
+    "description": {
+      "english": "Generate an amplitude value from a velocity value in a MIDI like range (0-127), using a straight dB range.",
+      "german": "Erzeugen Sie einen Amplitudenwert aus einem Velocity-Wert in einem MIDI-ähnlichen Bereich (0-127) unter Verwendung eines linearen dB-Bereichs.",
+      "french": "Générez une valeur d'amplitude à partir d'une valeur de vélocité dans une plage de type MIDI (0-127), en utilisant une plage en dB linéaire.",
+      "spanish": "Genere un valor de amplitud a partir de un valor de velocidad en un rango tipo MIDI (0-127), usando un rango en dB lineal."
+    },
+    "inputs": {
+      "kvelocity": {
+        "english": "MIDI velocity value (0-127)",
+        "german": "MIDI-Velocity-Wert (0-127)",
+        "french": "valeur de vélocité MIDI (0-127)",
+        "spanish": "valor de velocidad MIDI (0-127)"
+      },
+      "idecibels": {
+        "english": "output amplitude in dB corresponding to MIDI velocity 127.",
+        "german": "Ausgangsamplitude in dB entsprechend MIDI-Velocity 127.",
+        "french": "amplitude de sortie en dB correspondant à la vélocité MIDI 127.",
+        "spanish": "amplitud de salida en dB correspondiente a la velocidad MIDI 127."
+      }
+    },
+    "outputs": {
+      "kamplitude": {
+        "english": "Output variable `kamplitude` from ampmidid.",
+        "german": "Ausgabevariable „kamplitude“ von ampmidid.",
+        "french": "Variable de sortie `kamplitude` de ampmidid.",
+        "spanish": "Variable de salida `kamplitude` de ampmidid."
+      }
+    }
+  },
   "cpsmidi": {
     "description": {
       "english": "Get the note number of the current MIDI event, expressed in cycles-per-second.",

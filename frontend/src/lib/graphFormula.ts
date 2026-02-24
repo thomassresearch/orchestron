@@ -36,7 +36,7 @@ export interface GraphFormulaValidationResult {
   tokens: GraphFormulaToken[];
 }
 
-export const GRAPH_FORMULA_UNARY_FUNCTIONS = ["abs", "ceil", "floor"] as const;
+export const GRAPH_FORMULA_UNARY_FUNCTIONS = ["abs", "ceil", "floor", "ampdb", "dbamp"] as const;
 const GRAPH_FORMULA_UNARY_FUNCTION_SET = new Set<string>(GRAPH_FORMULA_UNARY_FUNCTIONS);
 
 function isRecord(value: unknown): value is Record<string, unknown> {

@@ -68,11 +68,16 @@ type GenEditorCopy = {
   saveGen: string;
   customRoutineOption: (routineNumber: number) => string;
   configureGenNodeAria: (nodeId: string) => string;
+  padsynthRoutineLabel: string;
+  padsynthRoutineDescription: string;
   routineLabels: Partial<Record<number, string>>;
   routineDescriptions: Partial<Record<number, string>>;
   gen20WindowLabels: Record<number, string>;
   customWindowOption: (value: number) => string;
 };
+
+const PADSYNTH_ROUTINE_NAME = "padsynth";
+const PADSYNTH_SELECT_VALUE = `name:${PADSYNTH_ROUTINE_NAME}`;
 
 const GEN_EDITOR_COPY: Record<GuiLanguage, GenEditorCopy> = {
   english: {
@@ -133,6 +138,9 @@ const GEN_EDITOR_COPY: Record<GuiLanguage, GenEditorCopy> = {
     saveGen: "Save GEN",
     customRoutineOption: (routineNumber) => `Custom GEN${routineNumber}`,
     configureGenNodeAria: (nodeId) => `GEN editor for ${nodeId}`,
+    padsynthRoutineLabel: "GENpadsynth - padsynth algorithm",
+    padsynthRoutineDescription:
+      "Named GEN routine. Enter padsynth parameters and partial amplitude/frequency pairs in Raw Arguments (see Csound GENpadsynth docs for argument order).",
     routineLabels: {
       1: "GEN01 - Audio File",
       2: "GEN02 - Value List",
@@ -225,6 +233,9 @@ const GEN_EDITOR_COPY: Record<GuiLanguage, GenEditorCopy> = {
     saveGen: "GEN speichern",
     customRoutineOption: (routineNumber) => `Benutzerdef. GEN${routineNumber}`,
     configureGenNodeAria: (nodeId) => `GEN-Editor fuer ${nodeId}`,
+    padsynthRoutineLabel: "GENpadsynth - padsynth algorithm",
+    padsynthRoutineDescription:
+      "Benannte GEN-Routine. Padsynth-Parameter und Partial-Amplituden/Frequenz-Paare in den Raw-Argumenten eingeben (Reihenfolge laut Csound GENpadsynth-Doku).",
     routineLabels: {
       1: "GEN01 - Audiodatei",
       2: "GEN02 - Werteliste",
@@ -317,6 +328,9 @@ const GEN_EDITOR_COPY: Record<GuiLanguage, GenEditorCopy> = {
     saveGen: "Enregistrer GEN",
     customRoutineOption: (routineNumber) => `GEN${routineNumber} perso`,
     configureGenNodeAria: (nodeId) => `Editeur GEN pour ${nodeId}`,
+    padsynthRoutineLabel: "GENpadsynth - padsynth algorithm",
+    padsynthRoutineDescription:
+      "Routine GEN nommee. Saisissez les parametres padsynth et les paires amplitude/frequence partielles dans les Arguments bruts (ordre selon la doc Csound GENpadsynth).",
     routineLabels: {
       1: "GEN01 - Fichier audio",
       2: "GEN02 - Liste de valeurs",
@@ -409,6 +423,9 @@ const GEN_EDITOR_COPY: Record<GuiLanguage, GenEditorCopy> = {
     saveGen: "Guardar GEN",
     customRoutineOption: (routineNumber) => `GEN${routineNumber} personalizado`,
     configureGenNodeAria: (nodeId) => `Editor GEN para ${nodeId}`,
+    padsynthRoutineLabel: "GENpadsynth - padsynth algorithm",
+    padsynthRoutineDescription:
+      "Rutina GEN con nombre. Introduce parametros padsynth y pares amplitud/frecuencia de parciales en Argumentos raw (orden segun la doc de Csound GENpadsynth).",
     routineLabels: {
       1: "GEN01 - Archivo de audio",
       2: "GEN02 - Lista de valores",
@@ -541,14 +558,25 @@ export function GenNodeEditorModal({ nodeId, guiLanguage, initialConfig, onClose
     setUploadError(null);
   }, [initialConfig]);
 
-  const routineKind = useMemo(() => genRoutineKindForNumber(draft.routineNumber), [draft.routineNumber]);
+  const selectedNamedRoutine = useMemo(() => draft.routineName.trim().toLowerCase(), [draft.routineName]);
+  const isPadsynthRoutine = selectedNamedRoutine === PADSYNTH_ROUTINE_NAME;
+  const routineKind = useMemo(
+    () => (selectedNamedRoutine ? "raw" : genRoutineKindForNumber(draft.routineNumber)),
+    [selectedNamedRoutine, draft.routineNumber]
+  );
   const selectedRoutine = useMemo(
-    () => GEN_ROUTINE_OPTIONS.find((option) => option.value === Math.abs(Math.round(draft.routineNumber))),
-    [draft.routineNumber]
+    () =>
+      selectedNamedRoutine
+        ? null
+        : GEN_ROUTINE_OPTIONS.find((option) => option.value === Math.abs(Math.round(draft.routineNumber))),
+    [selectedNamedRoutine, draft.routineNumber]
   );
   const preview = useMemo(() => buildGenNodePreview(draft), [draft]);
   const gen20WindowOptions = useMemo(() => gen20WindowOptionsForLanguage(copy), [copy]);
   const localizedRoutineLabel = (value: number, fallback: string): string => copy.routineLabels[value] ?? fallback;
+  const selectedRoutineSelectValue = selectedNamedRoutine
+    ? `name:${selectedNamedRoutine}`
+    : `num:${Math.abs(Math.round(draft.routineNumber))}`;
 
   const setSampleAsset = (asset: GenAudioAssetRef | null) => {
     setDraft((current) => ({ ...current, sampleAsset: asset }));
@@ -623,22 +651,31 @@ export function GenNodeEditorModal({ nodeId, guiLanguage, initialConfig, onClose
                 <label className="flex flex-col gap-1">
                   <span className="text-[11px] uppercase tracking-[0.14em] text-slate-400">{copy.genRoutine}</span>
                   <select
-                    value={String(Math.abs(Math.round(draft.routineNumber)))}
-                    onChange={(event) =>
+                    value={selectedRoutineSelectValue}
+                    onChange={(event) => {
+                      if (event.target.value === PADSYNTH_SELECT_VALUE) {
+                        setDraft((current) => ({ ...current, routineName: PADSYNTH_ROUTINE_NAME }));
+                        return;
+                      }
+                      const selectedValue = event.target.value.startsWith("num:")
+                        ? event.target.value.slice(4)
+                        : event.target.value;
                       setDraft((current) => ({
                         ...current,
-                        routineNumber: Math.max(1, parseIntegerInput(event.target.value, current.routineNumber))
-                      }))
-                    }
+                        routineName: "",
+                        routineNumber: Math.max(1, parseIntegerInput(selectedValue, current.routineNumber))
+                      }));
+                    }}
                     className="rounded-md border border-slate-600 bg-slate-900 px-2 py-1.5 text-xs text-slate-100 outline-none ring-cyan-400/30 transition focus:ring"
                   >
                     {GEN_ROUTINE_OPTIONS.map((option) => (
-                      <option key={`gen-routine-${option.value}`} value={option.value}>
+                      <option key={`gen-routine-${option.value}`} value={`num:${option.value}`}>
                         {localizedRoutineLabel(option.value, option.label)}
                       </option>
                     ))}
-                    {!selectedRoutine ? (
-                      <option value={Math.abs(Math.round(draft.routineNumber))}>
+                    <option value={PADSYNTH_SELECT_VALUE}>{copy.padsynthRoutineLabel}</option>
+                    {!selectedNamedRoutine && !selectedRoutine ? (
+                      <option value={`num:${Math.abs(Math.round(draft.routineNumber))}`}>
                         {copy.customRoutineOption(Math.abs(Math.round(draft.routineNumber)))}
                       </option>
                     ) : null}
@@ -650,13 +687,15 @@ export function GenNodeEditorModal({ nodeId, guiLanguage, initialConfig, onClose
                   <input
                     type="text"
                     value={String(Math.abs(Math.round(draft.routineNumber)))}
+                    disabled={selectedNamedRoutine.length > 0}
                     onChange={(event) =>
                       setDraft((current) => ({
                         ...current,
+                        routineName: "",
                         routineNumber: Math.max(1, parseIntegerInput(event.target.value, current.routineNumber))
                       }))
                     }
-                    className="rounded-md border border-slate-600 bg-slate-900 px-2 py-1.5 font-mono text-xs text-slate-100 outline-none ring-cyan-400/30 transition focus:ring"
+                    className="rounded-md border border-slate-600 bg-slate-900 px-2 py-1.5 font-mono text-xs text-slate-100 outline-none ring-cyan-400/30 transition focus:ring disabled:cursor-not-allowed disabled:opacity-50"
                   />
                 </label>
 
@@ -704,6 +743,7 @@ export function GenNodeEditorModal({ nodeId, guiLanguage, initialConfig, onClose
                   <input
                     type="checkbox"
                     checked={draft.normalize}
+                    disabled={selectedNamedRoutine.length > 0}
                     onChange={(event) => setDraft((current) => ({ ...current, normalize: event.target.checked }))}
                     className="h-4 w-4 accent-cyan-400"
                   />
@@ -711,6 +751,12 @@ export function GenNodeEditorModal({ nodeId, guiLanguage, initialConfig, onClose
                 </label>
               </div>
 
+              {isPadsynthRoutine && (
+                <p className="mt-3 text-xs text-slate-300">
+                  <span className="font-semibold text-slate-200">{copy.padsynthRoutineLabel}</span>:{" "}
+                  {copy.padsynthRoutineDescription}
+                </p>
+              )}
               {selectedRoutine && (
                 <p className="mt-3 text-xs text-slate-300">
                   <span className="font-semibold text-slate-200">
@@ -720,7 +766,7 @@ export function GenNodeEditorModal({ nodeId, guiLanguage, initialConfig, onClose
                   {copy.routineDescriptions[selectedRoutine.value] ?? selectedRoutine.description}
                 </p>
               )}
-              {!selectedRoutine && (
+              {!isPadsynthRoutine && !selectedRoutine && (
                 <p className="mt-3 text-xs text-slate-400">
                   {copy.customRoutineNoteBeforeExpr}{" "}
                   <span className="mx-1 rounded bg-slate-800 px-1 py-0.5 font-mono text-[11px]">

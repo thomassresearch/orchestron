@@ -460,7 +460,7 @@ def test_compile_supports_unary_functions_in_input_formula(tmp_path: Path) -> No
                 "ui_layout": {
                     "input_formulas": {
                         "m1::a": {
-                            "expression": "floor(abs(in1) + ceil(in2 * 0.5))",
+                            "expression": "floor(abs(in1) + ceil(ampdb(dbamp(in2)) * 0.5))",
                             "inputs": [
                                 {"token": "in1", "from_node_id": "c1", "from_port_id": "kout"},
                                 {"token": "in2", "from_node_id": "c2", "from_port_id": "kout"},
@@ -493,6 +493,8 @@ def test_compile_supports_unary_functions_in_input_formula(tmp_path: Path) -> No
 
         assert formula_line
         assert "abs(" in formula_line
+        assert "ampdb(" in formula_line
+        assert "dbamp(" in formula_line
         assert "ceil(" in formula_line
         assert "floor(" in formula_line
         assert "k_c1_kout" in formula_line
@@ -1092,6 +1094,14 @@ def test_midi_opcodes_and_vco_compile_flow(tmp_path: Path) -> None:
         opcodes_response = client.get("/api/opcodes")
         assert opcodes_response.status_code == 200
         opcodes_by_name = {item["name"]: item for item in opcodes_response.json()}
+        assert opcodes_by_name["ampmidi"]["category"] == "midi"
+        assert opcodes_by_name["ampmidi"]["outputs"][0]["signal_type"] == "i"
+        ampmidi_inputs = {item["id"]: item for item in opcodes_by_name["ampmidi"]["inputs"]}
+        assert ampmidi_inputs["ifn"]["required"] is False
+        assert opcodes_by_name["ampmidicurve"]["category"] == "midi"
+        assert opcodes_by_name["ampmidicurve"]["outputs"][0]["signal_type"] == "k"
+        assert opcodes_by_name["ampmidid"]["category"] == "midi"
+        assert opcodes_by_name["ampmidid"]["outputs"][0]["signal_type"] == "k"
         assert opcodes_by_name["cpsmidi"]["category"] == "midi"
         assert opcodes_by_name["cpsmidi"]["outputs"][0]["signal_type"] == "i"
         assert opcodes_by_name["midictrl"]["category"] == "midi"
@@ -1812,8 +1822,61 @@ def test_gen_meta_opcode_supports_gen11_gen17_gen20(tmp_path: Path) -> None:
         assert gen20_line.endswith("ftgenonce 20, 0, 1024, 20, 7, 1, 6.8")
 
 
+def test_gen_meta_opcode_supports_genpadsynth_named_routine(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        patch_payload = {
+            "name": "GENpadsynth",
+            "description": "Named padsynth GEN routine compiles correctly",
+            "schema_version": 1,
+            "graph": {
+                "nodes": [
+                    {"id": "gpad", "opcode": "GEN", "params": {}, "position": {"x": 40, "y": 40}},
+                    {"id": "v1", "opcode": "vco", "params": {"amp": 0.2, "freq": 220, "iwave": 1}, "position": {"x": 300, "y": 40}},
+                    {"id": "o1", "opcode": "outs", "params": {}, "position": {"x": 540, "y": 40}},
+                ],
+                "connections": [
+                    {"from_node_id": "gpad", "from_port_id": "ift", "to_node_id": "v1", "to_port_id": "ifn"},
+                    {"from_node_id": "v1", "from_port_id": "asig", "to_node_id": "o1", "to_port_id": "left"},
+                    {"from_node_id": "v1", "from_port_id": "asig", "to_node_id": "o1", "to_port_id": "right"},
+                ],
+                "ui_layout": {
+                    "gen_nodes": {
+                        "gpad": {
+                            "mode": "ftgenonce",
+                            "tableNumber": 21,
+                            "tableSize": 262144,
+                            "routineNumber": 10,
+                            "routineName": "padsynth",
+                            "normalize": False,
+                            "rawArgsText": "261.625565, 55, 0, 1, 1, 1, 1, 0.5, 0.25",
+                        }
+                    }
+                },
+                "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+            },
+        }
+
+        create_patch = client.post("/api/patches", json=patch_payload)
+        assert create_patch.status_code == 201
+        patch_id = create_patch.json()["id"]
+
+        create_session = client.post("/api/sessions", json={"patch_id": patch_id})
+        assert create_session.status_code == 201
+        session_id = create_session.json()["session_id"]
+
+        compile_response = client.post(f"/api/sessions/{session_id}/compile")
+        assert compile_response.status_code == 200
+        compiled_orc = compile_response.json()["orc"]
+
+        padsynth_line = next(line.strip() for line in compiled_orc.splitlines() if ' ftgenonce 21, 0, 262144, "padsynth",' in line)
+        assert padsynth_line.endswith('ftgenonce 21, 0, 262144, "padsynth", 261.625565, 55, 0, 1, 1, 1, 1, 0.5, 0.25')
+
+
 def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
     expected_urls = {
+        "ampmidi": "https://csound.com/docs/manual/ampmidi.html",
+        "ampmidicurve": "https://csound.com/docs/manual/ampmidicurve.html",
+        "ampmidid": "https://csound.com/docs/manual/ampmidid.html",
         "lfo": "https://csound.com/docs/manual/lfo.html",
         "poscil3": "https://csound.com/docs/manual/poscil3.html",
         "vibr": "https://csound.com/docs/manual/vibr.html",
@@ -2016,6 +2079,9 @@ def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
                         "params": {"ifilhandle": 1, "instrnum": 0},
                         "position": {"x": 20, "y": 3320},
                     },
+                    {"id": "n68", "opcode": "ampmidi", "params": {}, "position": {"x": 20, "y": 3370}},
+                    {"id": "n69", "opcode": "ampmidicurve", "params": {}, "position": {"x": 20, "y": 3420}},
+                    {"id": "n70", "opcode": "ampmidid", "params": {}, "position": {"x": 20, "y": 3470}},
                 ],
                 "connections": [
                     {"from_node_id": "n1", "from_port_id": "asig", "to_node_id": "n2", "to_port_id": "left"},
@@ -2106,6 +2172,9 @@ def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
             "sfload",
             "sfplay3",
             "sfinstr3",
+            "ampmidi",
+            "ampmidicurve",
+            "ampmidid",
         ]:
             assert opcode in compiled_orc
         assert 'sfload "/tmp/test.sf2"' in compiled_orc

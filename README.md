@@ -96,7 +96,7 @@ Then open:
 
 This Compose setup runs Csound in `streaming` mode and sends audio to the browser over WebRTC (via the bundled TURN service).
 
-See `/Users/thuber/Projekte/VisualCSound/WEBRTC_STREAMING.md` for implementation details, latency tuning, and Docker-specific notes.
+See `WEBRTC_STREAMING.md` for implementation details, latency tuning, and Docker-specific notes.
 
 ### Backend
 

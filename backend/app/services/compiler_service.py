@@ -19,7 +19,7 @@ SFLOAD_NODES_LAYOUT_KEY = "sfload_nodes"
 FORMULA_TARGET_KEY_SEPARATOR = "::"
 DEFAULT_CSOUND_SOFTWARE_BUFFER_SAMPLES = 128
 DEFAULT_CSOUND_HARDWARE_BUFFER_SAMPLES = 512
-FORMULA_UNARY_FUNCTIONS = frozenset({"abs", "ceil", "floor"})
+FORMULA_UNARY_FUNCTIONS = frozenset({"abs", "ceil", "floor", "ampdb", "dbamp"})
 
 
 class CompilationError(Exception):
@@ -254,32 +254,39 @@ class CompilerService:
         table_number = self._gen_int(raw_config.get("tableNumber"), default=0)
         start_time = self._gen_number(raw_config.get("startTime"), default=0)
         table_size = self._gen_int(raw_config.get("tableSize"), default=16384)
+        routine_name = self._gen_routine_name(raw_config.get("routineName"))
         routine_number = abs(self._gen_int(raw_config.get("routineNumber"), default=10))
         if routine_number == 0:
             routine_number = 10
-        if table_size == 0 and routine_number != 1:
-            raise CompilationError([f"GEN node '{node.id}' tableSize cannot be 0 for GEN{routine_number}."])
+        if table_size == 0 and (routine_name is not None or routine_number != 1):
+            routine_label = f'GEN{routine_name}' if routine_name is not None else f"GEN{routine_number}"
+            raise CompilationError([f"GEN node '{node.id}' tableSize cannot be 0 for {routine_label}."])
         normalize = self._gen_bool(raw_config.get("normalize"), default=True)
         igen = routine_number if normalize else -routine_number
-        effective_mode = "ftgen" if routine_number == 1 else mode
+        generator = routine_name if routine_name is not None else igen
+        effective_mode = "ftgen" if routine_name is None and routine_number == 1 else mode
 
         args = self._flatten_gen_node_args(
             node_id=node.id,
             raw_config=raw_config,
-            routine_number=routine_number,
+            routine_number=0 if routine_name is not None else routine_number,
             table_size=table_size,
         )
         prelude_lines: list[str] = []
-        if routine_number == 1 and args and isinstance(args[0], str) and not args[0].startswith("expr:"):
+        if routine_name is None and routine_number == 1 and args and isinstance(args[0], str) and not args[0].startswith("expr:"):
             string_var = self._allocate_string_temp_name(node.id, "gen01_file")
             prelude_lines.append(f"{string_var} init {self._format_gen_argument(args[0])}")
             args = [f"expr:{string_var}", *args[1:]]
         rendered_args = ", ".join(self._format_gen_argument(value) for value in args)
+        rendered_generator = self._format_gen_argument(generator)
 
         if effective_mode == "ftgenonce":
-            line = f"{env['ift']} ftgenonce {table_number}, 0, {table_size}, {igen}"
+            line = f"{env['ift']} ftgenonce {table_number}, 0, {table_size}, {rendered_generator}"
         else:
-            line = f"{env['ift']} ftgen {table_number}, {self._format_gen_argument(start_time)}, {table_size}, {igen}"
+            line = (
+                f"{env['ift']} ftgen {table_number}, {self._format_gen_argument(start_time)}, "
+                f"{table_size}, {rendered_generator}"
+            )
 
         if rendered_args:
             line = f"{line}, {rendered_args}"
@@ -539,6 +546,13 @@ class CompilerService:
                 continue
             result.append(number)
         return result
+
+    @staticmethod
+    def _gen_routine_name(value: object) -> str | None:
+        if not isinstance(value, str):
+            return None
+        normalized = value.strip().lower()
+        return normalized or None
 
     @staticmethod
     def _gen_parse_raw_arg(value: object) -> str | int | float | bool:
