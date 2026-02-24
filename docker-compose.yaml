@@ -86,7 +86,11 @@ services:
       VISUALCSOUND_WEBRTC_BACKEND_ICE_SERVERS: >-
         [{"urls":["turn:coturn:3478?transport=udp","turn:coturn:3478?transport=tcp"],"username":"${VISUALCSOUND_TURN_USERNAME:-visualcsound}","credential":"${VISUALCSOUND_TURN_PASSWORD:-visualcsound-dev}"}]
     volumes:
-      - ./backend/data:/app/backend/data
+      - orchestron_data:/app/backend/data
     # Linux ALSA passthrough is provided via docker-compose.alsa.yaml
     # (do not enable on macOS; /dev/snd does not exist there).
     restart: unless-stopped
+
+volumes:
+  orchestron_data:
+    external: true

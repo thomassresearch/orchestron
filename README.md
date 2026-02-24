@@ -85,6 +85,12 @@ make run
 
 Run the backend in browser-audio streaming mode (WebRTC) with Docker Compose:
 
+Create the external Docker volume first (used for persistent `backend/data` storage):
+
+```bash
+docker volume create orchestron_data
+```
+
 ```bash
 docker compose up --build
 ```

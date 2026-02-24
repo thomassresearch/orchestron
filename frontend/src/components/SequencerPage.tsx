@@ -36,8 +36,8 @@ import type {
   SequencerTrackState
 } from "../types";
 
-const PIANO_ROLL_START_NOTE = 24; // C1
-const PIANO_ROLL_NOTE_COUNT = 84; // C1..B7
+const PIANO_ROLL_START_NOTE = 12; // C0
+const PIANO_ROLL_NOTE_COUNT = 96; // C0..B7
 const PIANO_WHITE_KEY_WIDTH = 36;
 const PIANO_WHITE_KEY_HEIGHT = 132;
 const PIANO_BLACK_KEY_WIDTH = 22;
@@ -186,7 +186,7 @@ const SCALE_TYPE_LABELS: Record<GuiLanguage, Record<SequencerScaleType, string>>
 
 const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
   english: {
-    keyboardInfo: "7 octaves keyboard (C1..B7).",
+    keyboardInfo: "8 octaves keyboard (C0..B7).",
     scrollKeyboardLeft: "Scroll keyboard left",
     scrollKeyboardRight: "Scroll keyboard right",
     controllerKnobValue: (value) => `Controller knob value ${value}`,
@@ -272,7 +272,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     allNotesOff: "All Notes Off"
   },
   german: {
-    keyboardInfo: "7-Oktaven-Tastatur (C1..B7).",
+    keyboardInfo: "8-Oktaven-Tastatur (C0..B7).",
     scrollKeyboardLeft: "Tastatur nach links scrollen",
     scrollKeyboardRight: "Tastatur nach rechts scrollen",
     controllerKnobValue: (value) => `Controller-Wert ${value}`,
@@ -358,7 +358,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     allNotesOff: "Alle Noten aus"
   },
   french: {
-    keyboardInfo: "Clavier 7 octaves (C1..B7).",
+    keyboardInfo: "Clavier 8 octaves (C0..B7).",
     scrollKeyboardLeft: "Defiler clavier a gauche",
     scrollKeyboardRight: "Defiler clavier a droite",
     controllerKnobValue: (value) => `Valeur du controleur ${value}`,
@@ -444,7 +444,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     allNotesOff: "Toutes notes off"
   },
   spanish: {
-    keyboardInfo: "Teclado de 7 octavas (C1..B7).",
+    keyboardInfo: "Teclado de 8 octavas (C0..B7).",
     scrollKeyboardLeft: "Desplazar teclado a la izquierda",
     scrollKeyboardRight: "Desplazar teclado a la derecha",
     controllerKnobValue: (value) => `Valor de perilla ${value}`,
