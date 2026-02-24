@@ -1506,9 +1506,6 @@ export default function App() {
     if (!currentPerformanceId) {
       return;
     }
-    if (!window.confirm(appCopy.confirmDeletePerformance)) {
-      return;
-    }
 
     void (async () => {
       try {
@@ -1529,7 +1526,6 @@ export default function App() {
       }
     })();
   }, [
-    appCopy.confirmDeletePerformance,
     clearCurrentPerformanceSelection,
     currentPerformanceId,
     loadPerformance,

@@ -75,6 +75,9 @@ type SequencerUiCopy = {
   savePerformance: string;
   clonePerformance: string;
   deletePerformance: string;
+  cancel: string;
+  deletePerformanceDialogTitle: string;
+  deletePerformanceDialogMessage: (name: string) => string;
   export: string;
   import: string;
   noInstrumentHint: string;
@@ -212,6 +215,10 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     savePerformance: "Save Performance",
     clonePerformance: "Clone",
     deletePerformance: "Delete",
+    cancel: "Cancel",
+    deletePerformanceDialogTitle: "Delete Performance?",
+    deletePerformanceDialogMessage: (name) =>
+      `This will permanently delete the performance "${name}".`,
     export: "Export",
     import: "Import",
     noInstrumentHint: "Add at least one saved instrument to start the engine.",
@@ -302,6 +309,10 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     savePerformance: "Performance speichern",
     clonePerformance: "Klonen",
     deletePerformance: "Loeschen",
+    cancel: "Abbrechen",
+    deletePerformanceDialogTitle: "Performance loeschen?",
+    deletePerformanceDialogMessage: (name) =>
+      `Die Performance "${name}" wird dauerhaft geloescht.`,
     export: "Export",
     import: "Import",
     noInstrumentHint: "Fuege mindestens ein gespeichertes Instrument hinzu, um die Engine zu starten.",
@@ -392,6 +403,10 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     savePerformance: "Enregistrer performance",
     clonePerformance: "Cloner",
     deletePerformance: "Supprimer",
+    cancel: "Annuler",
+    deletePerformanceDialogTitle: "Supprimer la performance ?",
+    deletePerformanceDialogMessage: (name) =>
+      `La performance "${name}" sera supprimee definitivement.`,
     export: "Exporter",
     import: "Importer",
     noInstrumentHint: "Ajoutez au moins un instrument sauvegarde pour demarrer le moteur.",
@@ -482,6 +497,10 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     savePerformance: "Guardar performance",
     clonePerformance: "Clonar",
     deletePerformance: "Eliminar",
+    cancel: "Cancelar",
+    deletePerformanceDialogTitle: "Eliminar performance?",
+    deletePerformanceDialogMessage: (name) =>
+      `La performance "${name}" se eliminara permanentemente.`,
     export: "Exportar",
     import: "Importar",
     noInstrumentHint: "Agrega al menos un instrumento guardado para iniciar el motor.",
@@ -2038,10 +2057,25 @@ export function SequencerPage({
     }
     return sessionState;
   }, [sessionState, ui.running, ui.stopped]);
+  const totalPerformDevices =
+    sequencer.tracks.length +
+    sequencer.controllerSequencers.length +
+    sequencer.pianoRolls.length +
+    sequencer.midiControllers.length;
+  const canRemovePerformDevice = totalPerformDevices > 1;
+  const selectedPerformance = useMemo(
+    () => performances.find((performance) => performance.id === currentPerformanceId) ?? null,
+    [currentPerformanceId, performances]
+  );
+  const deletePerformanceTargetName =
+    selectedPerformance?.name.trim() ||
+    performanceName.trim() ||
+    (currentPerformanceId ? `#${currentPerformanceId}` : ui.current);
 
   const configFileInputRef = useRef<HTMLInputElement | null>(null);
   const [stepSelectPreview, setStepSelectPreview] = useState<Record<string, string>>({});
   const [pendingStartAllPianoRolls, setPendingStartAllPianoRolls] = useState(false);
+  const [deletePerformanceDialogOpen, setDeletePerformanceDialogOpen] = useState(false);
   const padTransposePressRef = useRef<Record<string, { timerId: number; longPressTriggered: boolean }>>({});
   const triggerConfigLoad = useCallback(() => {
     configFileInputRef.current?.click();
@@ -2055,6 +2089,29 @@ export function SequencerPage({
       padTransposePressRef.current = {};
     };
   }, []);
+
+  useEffect(() => {
+    if (!deletePerformanceDialogOpen) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setDeletePerformanceDialogOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [deletePerformanceDialogOpen]);
+
+  useEffect(() => {
+    if (currentPerformanceId) {
+      return;
+    }
+    setDeletePerformanceDialogOpen(false);
+  }, [currentPerformanceId]);
 
   const enableAllNonPianoRollDevices = useCallback(() => {
     for (const track of sequencer.tracks) {
@@ -2166,6 +2223,22 @@ export function SequencerPage({
     return `${trackId}:${padIndex}:${direction}`;
   }, []);
 
+  const openDeletePerformanceDialog = useCallback(() => {
+    if (!currentPerformanceId) {
+      return;
+    }
+    setDeletePerformanceDialogOpen(true);
+  }, [currentPerformanceId]);
+
+  const closeDeletePerformanceDialog = useCallback(() => {
+    setDeletePerformanceDialogOpen(false);
+  }, []);
+
+  const confirmDeletePerformance = useCallback(() => {
+    setDeletePerformanceDialogOpen(false);
+    onDeletePerformance();
+  }, [onDeletePerformance]);
+
   const cancelPadTransposePress = useCallback((trackId: string, padIndex: number, direction: -1 | 1) => {
     const key = padTransposePressKey(trackId, padIndex, direction);
     const activePress = padTransposePressRef.current[key];
@@ -2243,7 +2316,8 @@ export function SequencerPage({
     "rounded-lg border border-slate-600 bg-slate-950 px-2 py-1.5 text-xs text-slate-100 outline-none ring-accent/40 transition focus:ring";
 
   return (
-    <section className="rounded-2xl border border-slate-700/70 bg-slate-900/70 p-3 shadow-glow">
+    <>
+      <section className="rounded-2xl border border-slate-700/70 bg-slate-900/70 p-3 shadow-glow">
       <input
         ref={configFileInputRef}
         type="file"
@@ -2329,14 +2403,6 @@ export function SequencerPage({
           </button>
           <button
             type="button"
-            onClick={onDeletePerformance}
-            disabled={!currentPerformanceId}
-            className="rounded-md border border-rose-500/60 bg-rose-500/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-rose-200 transition hover:bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {ui.deletePerformance}
-          </button>
-          <button
-            type="button"
             onClick={onExportConfig}
             className="rounded-md border border-slate-500 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-300 hover:text-white"
           >
@@ -2349,6 +2415,14 @@ export function SequencerPage({
           >
             {ui.import}
           </button>
+          <button
+            type="button"
+            onClick={openDeletePerformanceDialog}
+            disabled={!currentPerformanceId}
+            className="ml-auto rounded-md border border-rose-500/60 bg-rose-500/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-rose-200 transition hover:bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {ui.deletePerformance}
+          </button>
         </div>
 
         <div className="mt-3 grid gap-2 lg:grid-cols-2 2xl:grid-cols-3">
@@ -2360,7 +2434,7 @@ export function SequencerPage({
             instrumentBindings.map((binding, index) => (
               <div
                 key={binding.id}
-                className="grid grid-cols-[minmax(0,_1fr)_88px_auto] items-end gap-2 rounded-lg border border-slate-600/80 bg-slate-800/75 px-2 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
+                className="grid grid-cols-[minmax(0,_1fr)_88px_minmax(0,_1fr)] items-end gap-2 rounded-lg border border-slate-600/80 bg-slate-800/75 px-2 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
               >
                 <label className="flex min-w-0 flex-col gap-1">
                   <span className="text-[10px] uppercase tracking-[0.16em] text-slate-400">{ui.patch(index + 1)}</span>
@@ -2390,7 +2464,7 @@ export function SequencerPage({
                 <button
                   type="button"
                   onClick={() => onRemoveInstrument(binding.id)}
-                  className="rounded-md border border-rose-500/60 bg-rose-500/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-rose-200 transition hover:bg-rose-500/25"
+                  className="justify-self-end rounded-md border border-rose-500/60 bg-rose-500/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-rose-200 transition hover:bg-rose-500/25"
                 >
                   {ui.remove}
                 </button>
@@ -2502,7 +2576,7 @@ export function SequencerPage({
                     className="absolute right-2 top-2 z-10 inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-500 bg-slate-950/90 text-xs font-bold text-slate-100 transition hover:border-accent hover:text-accent"
                   />
                 ) : null}
-                <div className="mb-2 flex flex-wrap items-center gap-2 pr-8">
+                <div className="mb-2 flex flex-wrap items-center gap-2">
                   <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-200">
                     {track.name || ui.sequencerWithIndex(trackIndex + 1)}
                   </div>
@@ -2517,17 +2591,18 @@ export function SequencerPage({
                   </button>
                   <button
                     type="button"
-                    onClick={() => onRemoveSequencerTrack(track.id)}
-                    className="rounded-md border border-rose-500/60 bg-rose-500/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-rose-200 transition hover:bg-rose-500/25"
+                    onClick={() => onSequencerTrackClearSteps(track.id)}
+                    className="ml-2 rounded-md border border-slate-500/70 bg-slate-800/70 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-400 hover:bg-slate-700"
                   >
-                    {ui.remove}
+                    {ui.clearSteps}
                   </button>
                   <button
                     type="button"
-                    onClick={() => onSequencerTrackClearSteps(track.id)}
-                    className="rounded-md border border-slate-500/70 bg-slate-800/70 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-400 hover:bg-slate-700"
+                    onClick={() => onRemoveSequencerTrack(track.id)}
+                    disabled={!canRemovePerformDevice}
+                    className="ml-auto rounded-md border border-rose-500/60 bg-rose-500/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-rose-200 transition hover:bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {ui.clearSteps}
+                    {ui.remove}
                   </button>
                 </div>
 
@@ -3160,7 +3235,7 @@ export function SequencerPage({
                         className="absolute right-2 top-2 z-10 inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-500 bg-slate-950/90 text-xs font-bold text-slate-100 transition hover:border-accent hover:text-accent"
                       />
                     ) : null}
-                    <div className="mb-2 flex flex-wrap items-center gap-2 pr-8">
+                    <div className="mb-2 flex flex-wrap items-center gap-2">
                       <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-200">
                         {controllerSequencer.name || ui.controllerSequencerWithIndex(controllerSequencerIndex + 1)}
                       </div>
@@ -3182,7 +3257,8 @@ export function SequencerPage({
                       <button
                         type="button"
                         onClick={() => onRemoveControllerSequencer(controllerSequencer.id)}
-                        className="rounded-md border border-rose-500/60 bg-rose-500/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-rose-200 transition hover:bg-rose-500/25"
+                        disabled={!canRemovePerformDevice}
+                        className="ml-auto rounded-md border border-rose-500/60 bg-rose-500/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-rose-200 transition hover:bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {ui.remove}
                       </button>
@@ -3312,7 +3388,8 @@ export function SequencerPage({
                   <button
                     type="button"
                     onClick={() => onRemovePianoRoll(roll.id)}
-                    className="rounded-md border border-rose-500/60 bg-rose-500/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-rose-200 transition hover:bg-rose-500/25"
+                    disabled={!canRemovePerformDevice}
+                    className="ml-auto rounded-md border border-rose-500/60 bg-rose-500/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-rose-200 transition hover:bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {ui.remove}
                   </button>
@@ -3381,7 +3458,7 @@ export function SequencerPage({
                   {ui.inScaleHighlightInfo(effectiveScaleLabel, effectiveModeLabel)}
                 </div>
 
-                <div className="relative left-1/2 w-screen -translate-x-1/2 px-4 sm:px-6 lg:px-8">
+                <div className="max-w-full">
                   <PianoRollKeyboard
                     ui={ui}
                     roll={roll}
@@ -3452,7 +3529,8 @@ export function SequencerPage({
                   <button
                     type="button"
                     onClick={() => onRemoveMidiController(controller.id)}
-                    className="rounded-md border border-rose-500/60 bg-rose-500/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-rose-200 transition hover:bg-rose-500/25"
+                    disabled={!canRemovePerformDevice}
+                    className="ml-auto rounded-md border border-rose-500/60 bg-rose-500/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-rose-200 transition hover:bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {ui.remove}
                   </button>
@@ -3504,6 +3582,51 @@ export function SequencerPage({
           {ui.allNotesOff}
         </button>
       </div>
-    </section>
+      </section>
+
+      {deletePerformanceDialogOpen ? (
+        <div
+          className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm"
+          onClick={closeDeletePerformanceDialog}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-performance-dialog-title"
+            className="w-full max-w-md rounded-2xl border border-rose-500/35 bg-slate-900/95 p-4 shadow-[0_24px_80px_rgba(2,6,23,0.65)]"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mb-1 text-sm font-semibold uppercase tracking-[0.14em] text-rose-200">
+              {ui.deletePerformanceDialogTitle}
+            </div>
+            <div
+              id="delete-performance-dialog-title"
+              className="mb-2 rounded-lg border border-slate-700 bg-slate-950/85 px-3 py-2 text-sm text-slate-100"
+            >
+              {deletePerformanceTargetName}
+            </div>
+            <p className="mb-4 text-xs text-slate-300">
+              {ui.deletePerformanceDialogMessage(deletePerformanceTargetName)}
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeDeletePerformanceDialog}
+                className="rounded-md border border-slate-500 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-300 hover:text-white"
+              >
+                {ui.cancel}
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeletePerformance}
+                className="rounded-md border border-rose-500/60 bg-rose-500/15 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-rose-200 transition hover:bg-rose-500/25"
+              >
+                {ui.deletePerformance}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }

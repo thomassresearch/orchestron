@@ -572,6 +572,15 @@ function defaultSequencerState(): SequencerState {
   };
 }
 
+function performanceDeviceCount(sequencer: SequencerState): number {
+  return (
+    sequencer.tracks.length +
+    sequencer.controllerSequencers.length +
+    sequencer.pianoRolls.length +
+    sequencer.midiControllers.length
+  );
+}
+
 function normalizeSequencerTrack(raw: unknown, index: number): SequencerTrackState {
   const fallback = defaultSequencerTrack(index, index);
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
@@ -729,18 +738,22 @@ function normalizeSequencerState(raw: unknown): SequencerState {
   const playhead = typeof sequencer.playhead === "number" ? Math.max(0, Math.round(sequencer.playhead)) : 0;
 
   const tracks: SequencerTrackState[] = [];
-  if (Array.isArray(sequencer.tracks)) {
-    for (let index = 0; index < Math.min(8, sequencer.tracks.length); index += 1) {
-      tracks.push(normalizeSequencerTrack(sequencer.tracks[index], index + 1));
+  const rawTracks = Array.isArray(sequencer.tracks) ? sequencer.tracks : null;
+  const hasTracks = rawTracks !== null;
+  if (rawTracks) {
+    for (let index = 0; index < Math.min(8, rawTracks.length); index += 1) {
+      tracks.push(normalizeSequencerTrack(rawTracks[index], index + 1));
     }
   } else {
     tracks.push(normalizeSequencerTrack(sequencer, 1));
   }
 
   const pianoRolls: PianoRollState[] = [];
-  if (Array.isArray(sequencer.pianoRolls)) {
-    for (let index = 0; index < Math.min(8, sequencer.pianoRolls.length); index += 1) {
-      pianoRolls.push(normalizePianoRollState(sequencer.pianoRolls[index], index + 1));
+  const rawPianoRolls = Array.isArray(sequencer.pianoRolls) ? sequencer.pianoRolls : null;
+  const hasPianoRolls = rawPianoRolls !== null;
+  if (rawPianoRolls) {
+    for (let index = 0; index < Math.min(8, rawPianoRolls.length); index += 1) {
+      pianoRolls.push(normalizePianoRollState(rawPianoRolls[index], index + 1));
     }
   } else {
     pianoRolls.push(
@@ -775,7 +788,7 @@ function normalizeSequencerState(raw: unknown): SequencerState {
     }
   }
 
-  const trackList = tracks.length > 0 ? tracks : defaults.tracks;
+  const trackList = hasTracks ? tracks : defaults.tracks;
   const seenTrackIds = new Set<string>();
   const normalizedTracks = trackList.map((track, index) => {
     let nextId = track.id.trim().length > 0 ? track.id : `voice-${index + 1}`;
@@ -789,7 +802,7 @@ function normalizeSequencerState(raw: unknown): SequencerState {
     };
   });
 
-  const rollList = pianoRolls.length > 0 ? pianoRolls : defaults.pianoRolls;
+  const rollList = hasPianoRolls ? pianoRolls : defaults.pianoRolls;
   const seenRollIds = new Set<string>();
   const normalizedRolls = rollList.map((roll, index) => {
     let nextId = roll.id.trim().length > 0 ? roll.id : `piano-${index + 1}`;
@@ -1992,8 +2005,11 @@ export const useAppStore = create<AppStore>((set, get) => {
 
     removeSequencerTrack: (trackId) => {
       const sequencer = get().sequencer;
-      if (sequencer.tracks.length <= 1) {
-        set({ error: "At least one sequencer is required." });
+      if (!sequencer.tracks.some((track) => track.id === trackId)) {
+        return;
+      }
+      if (performanceDeviceCount(sequencer) <= 1) {
+        set({ error: "At least one performance device is required." });
         return;
       }
       const nextTracks = sequencer.tracks.filter((track) => track.id !== trackId);
@@ -2722,8 +2738,11 @@ export const useAppStore = create<AppStore>((set, get) => {
 
     removePianoRoll: (rollId) => {
       const sequencer = get().sequencer;
-      if (sequencer.pianoRolls.length <= 1) {
-        set({ error: "At least one piano roll is required." });
+      if (!sequencer.pianoRolls.some((roll) => roll.id === rollId)) {
+        return;
+      }
+      if (performanceDeviceCount(sequencer) <= 1) {
+        set({ error: "At least one performance device is required." });
         return;
       }
 
@@ -2828,6 +2847,13 @@ export const useAppStore = create<AppStore>((set, get) => {
 
     removeMidiController: (controllerId) => {
       const sequencer = get().sequencer;
+      if (!sequencer.midiControllers.some((controller) => controller.id === controllerId)) {
+        return;
+      }
+      if (performanceDeviceCount(sequencer) <= 1) {
+        set({ error: "At least one performance device is required." });
+        return;
+      }
       set({
         sequencer: {
           ...sequencer,
@@ -2899,6 +2925,13 @@ export const useAppStore = create<AppStore>((set, get) => {
 
     removeControllerSequencer: (controllerSequencerId) => {
       const sequencer = get().sequencer;
+      if (!sequencer.controllerSequencers.some((controllerSequencer) => controllerSequencer.id === controllerSequencerId)) {
+        return;
+      }
+      if (performanceDeviceCount(sequencer) <= 1) {
+        set({ error: "At least one performance device is required." });
+        return;
+      }
       set({
         sequencer: {
           ...sequencer,
