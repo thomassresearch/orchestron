@@ -2289,6 +2289,61 @@ def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
         assert sfload_line_index < instr_line_index
 
 
+def test_sfload_uploaded_asset_uses_relative_stored_name(tmp_path: Path) -> None:
+    asset_dir = tmp_path / "gen_audio_assets"
+    asset_dir.mkdir(parents=True, exist_ok=True)
+    stored_name = "uploaded.sf2"
+    (asset_dir / stored_name).write_bytes(b"sfbkfake")
+
+    with _client(tmp_path) as client:
+        patch_payload = {
+            "name": "Uploaded sfload Asset",
+            "description": "sfload should compile uploaded assets with relative path",
+            "schema_version": 1,
+            "graph": {
+                "nodes": [
+                    {"id": "n1", "opcode": "const_a", "params": {"value": 0.05}, "position": {"x": 20, "y": 20}},
+                    {"id": "n2", "opcode": "outs", "params": {}, "position": {"x": 200, "y": 20}},
+                    {"id": "n3", "opcode": "sfload", "params": {}, "position": {"x": 20, "y": 120}},
+                ],
+                "connections": [
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "left"},
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "right"},
+                ],
+                "ui_layout": {
+                    "sfload_nodes": {
+                        "n3": {
+                            "sampleAsset": {
+                                "asset_id": "sf2-asset-1",
+                                "original_name": "bank.sf2",
+                                "stored_name": stored_name,
+                                "content_type": "audio/sf2",
+                                "size_bytes": 8,
+                            }
+                        }
+                    }
+                },
+                "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+            },
+        }
+
+        create_patch = client.post("/api/patches", json=patch_payload)
+        assert create_patch.status_code == 201
+        patch_id = create_patch.json()["id"]
+
+        create_session = client.post("/api/sessions", json={"patch_id": patch_id})
+        assert create_session.status_code == 201
+        session_id = create_session.json()["session_id"]
+
+        compile_response = client.post(f"/api/sessions/{session_id}/compile")
+        assert compile_response.status_code == 200
+        compiled_orc = compile_response.json()["orc"]
+
+        sfload_line = next(line for line in compiled_orc.splitlines() if ' sfload "' in line)
+        assert f' sfload "{stored_name}"' in sfload_line
+        assert str(asset_dir) not in compiled_orc
+
+
 def test_multi_instrument_session_compiles_distinct_channel_mappings(tmp_path: Path) -> None:
     with _client(tmp_path) as client:
         patch_payload = {

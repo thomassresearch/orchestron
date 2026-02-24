@@ -480,7 +480,8 @@ class CompilerService:
             raise CompilationError([str(err)]) from err
         if not path.exists():
             raise CompilationError([f"GEN audio asset '{stored_name}' does not exist on the backend."])
-        return str(path)
+        # Use an SSDIR-relative filename so compiled ORC does not embed host-specific absolute paths.
+        return path.name
 
     def _render_sfload_global_request(
         self,
