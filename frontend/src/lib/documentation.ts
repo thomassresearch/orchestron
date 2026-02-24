@@ -385,6 +385,118 @@ Programa patrones melódicos o rítmicos por pasos.
 - Controla BPM global y estado de reproducción.`
     }
   },
+  sequencer_track_editor: {
+    english: {
+      title: "Sequencer Track",
+      markdown: `## Sequencer Track
+
+This help applies to one sequencer track card.
+
+- Start/stop the track independently (instrument transport must be running to start).
+- Set MIDI channel, scale root/type, and mode for note generation.
+- Switch step count between 16 and 32.
+- Clear all steps for the current track.
+- Use pattern pads (P1..P8) to queue or switch patterns.
+- Use pad transpose buttons for short-click degree transpose and long-press tonic/key-step transpose.
+- Edit each step note, hold state, and velocity.`
+    },
+    german: {
+      title: "Sequencer-Spur",
+      markdown: `## Sequencer-Spur
+
+Diese Hilfe gilt für eine einzelne Sequencer-Spurkarte.
+
+- Spur separat starten/stoppen (zum Starten muss der Instrument-Transport laufen).
+- MIDI-Kanal, Skalen-Grundton/-Typ und Modus für die Notenerzeugung setzen.
+- Schrittzahl zwischen 16 und 32 umschalten.
+- Alle Schritte dieser Spur löschen.
+- Pattern-Pads (P1..P8) verwenden, um Patterns zu wechseln oder vorzumerken.
+- Pad-Transpositionsknöpfe für kurzen Klick (Stufentransposition) und langen Druck (Tonika/Key-Step-Transpose) nutzen.
+- Pro Schritt Note, Hold-Zustand und Velocity bearbeiten.`
+    },
+    french: {
+      title: "Piste séquenceur",
+      markdown: `## Piste séquenceur
+
+Cette aide s'applique à une carte de piste séquenceur individuelle.
+
+- Démarrer/arrêter la piste indépendamment (le transport instrument doit être actif pour démarrer).
+- Régler canal MIDI, tonique/type de gamme et mode pour la génération de notes.
+- Basculer le nombre de pas entre 16 et 32.
+- Effacer tous les pas de cette piste.
+- Utiliser les pads de pattern (P1..P8) pour changer ou mettre en file d'attente des patterns.
+- Utiliser les boutons de transposition de pad pour clic court (transposition par degré) et appui long (tonique / transposition par degré de tonalité).
+- Modifier note, état hold et vélocité pour chaque pas.`
+    },
+    spanish: {
+      title: "Pista del secuenciador",
+      markdown: `## Pista del secuenciador
+
+Esta ayuda se aplica a una tarjeta individual de pista del secuenciador.
+
+- Inicia/detiene la pista de forma independiente (el transporte de instrumentos debe estar activo para iniciar).
+- Ajusta canal MIDI, raíz/tipo de escala y modo para la generación de notas.
+- Cambia la cantidad de pasos entre 16 y 32.
+- Borra todos los pasos de esta pista.
+- Usa pads de patrón (P1..P8) para cambiar o poner en cola patrones.
+- Usa los botones de transposición del pad para clic corto (transposición por grado) y pulsación larga (tónica / transposición por grado tonal).
+- Edita nota, estado hold y velocidad de cada paso.`
+    }
+  },
+  sequencer_controller_sequencer: {
+    english: {
+      title: "Controller Sequencer",
+      markdown: `## Controller Sequencer
+
+Automate a MIDI CC value over time with a curve.
+
+- Start/stop this controller sequencer independently (instrument transport must be running to start).
+- Set the MIDI controller number (\`0..127\`).
+- Choose the curve rate/length (step count) for the repeating cycle.
+- Use the curve editor to add, move, and shape key points.
+- The curve loops continuously while the lane is running.
+- The displayed \`CC n\` badge shows the target controller currently sent.`
+    },
+    german: {
+      title: "Controller-Sequencer",
+      markdown: `## Controller-Sequencer
+
+Automatisiert einen MIDI-CC-Wert über die Zeit mit einer Kurve.
+
+- Diesen Controller-Sequencer separat starten/stoppen (zum Starten muss der Instrument-Transport laufen).
+- MIDI-Controller-Nummer (\`0..127\`) festlegen.
+- Kurvenrate/-länge (Schrittzahl) für den wiederholten Zyklus wählen.
+- Im Kurveneditor Keypoints hinzufügen, verschieben und formen.
+- Die Kurve läuft in einer Schleife, solange die Spur aktiv ist.
+- Das angezeigte \`CC n\`-Badge zeigt den aktuell gesendeten Ziel-Controller.`
+    },
+    french: {
+      title: "Séquenceur contrôleur",
+      markdown: `## Séquenceur contrôleur
+
+Automatise une valeur MIDI CC dans le temps avec une courbe.
+
+- Démarrer/arrêter ce séquenceur contrôleur indépendamment (le transport instrument doit être actif pour démarrer).
+- Définir le numéro de contrôleur MIDI (\`0..127\`).
+- Choisir la cadence/longueur de courbe (nombre de pas) pour le cycle répétitif.
+- Utiliser l'éditeur de courbe pour ajouter, déplacer et façonner des points-clés.
+- La courbe boucle en continu pendant l'exécution de la piste.
+- Le badge \`CC n\` affiché indique le contrôleur cible envoyé.`
+    },
+    spanish: {
+      title: "Secuenciador controlador",
+      markdown: `## Secuenciador controlador
+
+Automatiza un valor MIDI CC en el tiempo mediante una curva.
+
+- Inicia/detiene este secuenciador controlador de forma independiente (el transporte de instrumentos debe estar activo para iniciar).
+- Define el número de controlador MIDI (\`0..127\`).
+- Elige la tasa/longitud de la curva (cantidad de pasos) para el ciclo repetitivo.
+- Usa el editor de curva para agregar, mover y dar forma a puntos clave.
+- La curva se repite en bucle mientras la pista esté activa.
+- La insignia \`CC n\` muestra el controlador destino que se está enviando.`
+    }
+  },
   sequencer_piano_rolls: {
     english: {
       title: "Piano Rolls",

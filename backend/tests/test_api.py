@@ -1197,6 +1197,8 @@ def test_midi_opcodes_and_vco_compile_flow(tmp_path: Path) -> None:
         assert opcodes_by_name["cpsmidi"]["category"] == "midi"
         assert opcodes_by_name["cpsmidi"]["outputs"][0]["signal_type"] == "i"
         assert opcodes_by_name["midictrl"]["category"] == "midi"
+        assert opcodes_by_name["notnum"]["category"] == "midi"
+        assert opcodes_by_name["notnum"]["outputs"][0]["signal_type"] == "i"
         assert opcodes_by_name["vco"]["category"] == "oscillator"
         assert opcodes_by_name["ftgen"]["category"] == "tables"
         assert opcodes_by_name["ftgen"]["outputs"][0]["signal_type"] == "i"
@@ -2028,6 +2030,8 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         "outleta": "https://csound.com/docs/manual/outleta.html",
         "inletk": "https://csound.com/docs/manual/inletk.html",
         "inleta": "https://csound.com/docs/manual/inleta.html",
+        "notnum": "https://csound.com/docs/manual/notnum.html",
+        "ntrpol": "https://csound.com/docs/manual/ntrpol.html",
         "rms": "https://csound.com/docs/manual/rms.html",
         "samphold": "https://csound.com/docs/manual/samphold.html",
         "sfload": "https://csound.com/docs/manual/sfload.html",
@@ -2060,9 +2064,9 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         for required_port in ["ia", "idur1", "ib", "irel", "iz"]:
             assert linsegr_inputs[required_port]["required"] is True
 
-        sfload_inputs = {item["id"]: item for item in opcodes_by_name["sfload"]["inputs"]}
+        sfload_inputs = opcodes_by_name["sfload"]["inputs"]
         sfload_outputs = {item["id"]: item for item in opcodes_by_name["sfload"]["outputs"]}
-        assert sfload_inputs["filename"]["signal_type"] == "S"
+        assert sfload_inputs == []
         assert sfload_outputs["ifilhandle"]["signal_type"] == "i"
 
         syncphasor_inputs = {item["id"]: item for item in opcodes_by_name["syncphasor"]["inputs"]}
@@ -2174,6 +2178,13 @@ def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
                     {"id": "n68", "opcode": "ampmidi", "params": {}, "position": {"x": 20, "y": 3370}},
                     {"id": "n69", "opcode": "ampmidicurve", "params": {}, "position": {"x": 20, "y": 3420}},
                     {"id": "n70", "opcode": "ampmidid", "params": {}, "position": {"x": 20, "y": 3470}},
+                    {"id": "n71", "opcode": "notnum", "params": {}, "position": {"x": 20, "y": 3520}},
+                    {
+                        "id": "n72",
+                        "opcode": "ntrpol",
+                        "params": {"asig1": 0, "asig2": 0},
+                        "position": {"x": 20, "y": 3570},
+                    },
                 ],
                 "connections": [
                     {"from_node_id": "n1", "from_port_id": "asig", "to_node_id": "n2", "to_port_id": "left"},
@@ -2267,9 +2278,15 @@ def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
             "ampmidi",
             "ampmidicurve",
             "ampmidid",
+            "notnum",
+            "ntrpol",
         ]:
             assert opcode in compiled_orc
-        assert 'sfload "/tmp/test.sf2"' in compiled_orc
+        sfload_line = next(line for line in compiled_orc.splitlines() if ' sfload "/tmp/test.sf2"' in line)
+        instr_line_index = compiled_orc.splitlines().index("instr 1")
+        sfload_line_index = compiled_orc.splitlines().index(sfload_line)
+        assert sfload_line.startswith("gi_")
+        assert sfload_line_index < instr_line_index
 
 
 def test_multi_instrument_session_compiles_distinct_channel_mappings(tmp_path: Path) -> None:
@@ -2325,6 +2342,52 @@ def test_multi_instrument_session_compiles_distinct_channel_mappings(tmp_path: P
         assert "massign 2, 2" in compiled_orc
         assert "instr 1" in compiled_orc
         assert "instr 2" in compiled_orc
+
+
+def test_multi_instrument_compile_deduplicates_sfload_for_same_file(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        patch_payload = {
+            "name": "Shared SoundFont",
+            "description": "dedupe sfload across instruments",
+            "schema_version": 1,
+            "graph": {
+                "nodes": [
+                    {"id": "n1", "opcode": "const_a", "params": {"value": 0.05}, "position": {"x": 20, "y": 20}},
+                    {"id": "n2", "opcode": "outs", "params": {}, "position": {"x": 200, "y": 20}},
+                    {"id": "n3", "opcode": "sfload", "params": {}, "position": {"x": 20, "y": 120}},
+                ],
+                "connections": [
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "left"},
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "right"},
+                ],
+                "ui_layout": {"sfload_nodes": {"n3": {"samplePath": "/tmp/shared.sf2"}}},
+                "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+            },
+        }
+
+        patch_response = client.post("/api/patches", json=patch_payload)
+        assert patch_response.status_code == 201
+        patch_id = patch_response.json()["id"]
+
+        create_session = client.post(
+            "/api/sessions",
+            json={
+                "instruments": [
+                    {"patch_id": patch_id, "midi_channel": 1},
+                    {"patch_id": patch_id, "midi_channel": 2},
+                ]
+            },
+        )
+        assert create_session.status_code == 201
+        session_id = create_session.json()["session_id"]
+
+        compile_response = client.post(f"/api/sessions/{session_id}/compile")
+        assert compile_response.status_code == 200
+        compiled_orc = compile_response.json()["orc"]
+
+        sfload_calls = [line for line in compiled_orc.splitlines() if ' sfload "/tmp/shared.sf2"' in line]
+        assert len(sfload_calls) == 1
+        assert "opcode:sfload (alias)" in compiled_orc
 
 
 def test_multi_instrument_compile_uses_first_instrument_engine_config(tmp_path: Path) -> None:

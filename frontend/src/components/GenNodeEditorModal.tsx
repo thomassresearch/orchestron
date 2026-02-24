@@ -140,7 +140,18 @@ const GEN_EDITOR_COPY: Record<GuiLanguage, GenEditorCopy> = {
     configureGenNodeAria: (nodeId) => `GEN editor for ${nodeId}`,
     padsynthRoutineLabel: "GENpadsynth - padsynth algorithm",
     padsynthRoutineDescription:
-      "Named GEN routine. Enter padsynth parameters and partial amplitude/frequency pairs in Raw Arguments (see Csound GENpadsynth docs for argument order).",
+      [
+        `Paul Octavian Nasca's "padsynth algorithm" adds bandwidth to each partial of a periodic weaveform. This bandwidth is heard as color, movement, and additional richness of sound.`,
+        "Initialization",
+        "- table_size -- Function table size. Should be large, e.g. 2^18 == 262144. Must be a power of 2 or power-of-2 plus 1 (see f statement).",
+        "- fundamental_frequency -- Fundamental frequency for the generated table.",
+        "- partial_bandwidth -- Bandwidth of each partial in cents.",
+        "- partial_scale -- Scaling factor for bandwidth of each partial (log of increase/decrease with partial frequency, 0 is no stretch or shrink).",
+        "- harmonic_stretch -- Harmonic stretch/shrink for all partials (1 is harmonic).",
+        "- profile_shape -- Number specifying the shape of the bandwidth profile: 1 = Gaussian, 2 = square, and 3 = exponential",
+        "- profile_shape_parameter -- Parameter passed to the function generating the profile shape, e.g. exponent.",
+        "- partial1_amplitude, partial2_amplitude, ... -- Amplitudes for each partial (may be zero)."
+      ].join("\n"),
     routineLabels: {
       1: "GEN01 - Audio File",
       2: "GEN02 - Value List",
@@ -235,7 +246,18 @@ const GEN_EDITOR_COPY: Record<GuiLanguage, GenEditorCopy> = {
     configureGenNodeAria: (nodeId) => `GEN-Editor fuer ${nodeId}`,
     padsynthRoutineLabel: "GENpadsynth - padsynth algorithm",
     padsynthRoutineDescription:
-      "Benannte GEN-Routine. Padsynth-Parameter und Partial-Amplituden/Frequenz-Paare in den Raw-Argumenten eingeben (Reihenfolge laut Csound GENpadsynth-Doku).",
+      [
+        `Paul Octavian Nascas "padsynth algorithm" fügt jedem Partial einer periodischen Wellenform Bandbreite hinzu. Diese Bandbreite wird als Klangfarbe, Bewegung und zusätzliche Klangfülle wahrgenommen.`,
+        "Initialisierung",
+        "- table_size -- Größe der Funktionstabelle. Sollte groß sein, z. B. 2^18 == 262144. Muss eine Zweierpotenz oder Zweierpotenz plus 1 sein (siehe f-Statement).",
+        "- fundamental_frequency -- Grundfrequenz der erzeugten Tabelle.",
+        "- partial_bandwidth -- Bandbreite jedes Partials in Cent.",
+        "- partial_scale -- Skalierungsfaktor für die Bandbreite jedes Partials (Logarithmus der Zu-/Abnahme mit der Partialfrequenz, 0 bedeutet kein Strecken oder Stauchen).",
+        "- harmonic_stretch -- Harmonische Streckung/Stauchung fuer alle Partials (1 ist harmonisch).",
+        "- profile_shape -- Zahl fuer die Form des Bandbreitenprofils: 1 = Gaussian, 2 = square und 3 = exponential",
+        "- profile_shape_parameter -- Parameter für die Funktion, die die Profilform erzeugt, z. B. Exponent.",
+        "- partial1_amplitude, partial2_amplitude, ... -- Amplituden für jedes Partial (dürfen null sein)."
+      ].join("\n"),
     routineLabels: {
       1: "GEN01 - Audiodatei",
       2: "GEN02 - Werteliste",
@@ -330,7 +352,18 @@ const GEN_EDITOR_COPY: Record<GuiLanguage, GenEditorCopy> = {
     configureGenNodeAria: (nodeId) => `Editeur GEN pour ${nodeId}`,
     padsynthRoutineLabel: "GENpadsynth - padsynth algorithm",
     padsynthRoutineDescription:
-      "Routine GEN nommee. Saisissez les parametres padsynth et les paires amplitude/frequence partielles dans les Arguments bruts (ordre selon la doc Csound GENpadsynth).",
+      [
+        `L'algorithme "padsynth" de Paul Octavian Nasca ajoute une bande passante à chaque partielle d'une forme d'onde périodique. Cette bande passante s'entend comme de la couleur, du mouvement et une richesse sonore supplémentaire.`,
+        "Initialisation",
+        "- table_size -- Taille de la table de fonction. Doit être grande, p. ex. 2^18 == 262144. Doit être une puissance de 2 ou une puissance de 2 plus 1 (voir instruction f).",
+        "- fundamental_frequency -- Fréquence fondamentale de la table générée.",
+        "- partial_bandwidth -- Bande passante de chaque partielle en cents.",
+        "- partial_scale -- Facteur d'échelle de la bande passante de chaque partielle (log de l'augmentation/diminution avec la fréquence de la partielle, 0 = pas d'étirement ni de compression).",
+        "- harmonic_stretch -- Étirement/compression harmonique pour toutes les partielles (1 = harmonique).",
+        "- profile_shape -- Nombre indiquant la forme du profil de bande passante : 1 = Gaussian, 2 = square et 3 = exponential",
+        "- profile_shape_parameter -- Paramètre passé à la fonction qui génère la forme du profil, p. ex. exposant.",
+        "- partial1_amplitude, partial2_amplitude, ... -- Amplitudes de chaque partielle (peuvent être nulles)."
+      ].join("\n"),
     routineLabels: {
       1: "GEN01 - Fichier audio",
       2: "GEN02 - Liste de valeurs",
@@ -425,7 +458,18 @@ const GEN_EDITOR_COPY: Record<GuiLanguage, GenEditorCopy> = {
     configureGenNodeAria: (nodeId) => `Editor GEN para ${nodeId}`,
     padsynthRoutineLabel: "GENpadsynth - padsynth algorithm",
     padsynthRoutineDescription:
-      "Rutina GEN con nombre. Introduce parametros padsynth y pares amplitud/frecuencia de parciales en Argumentos raw (orden segun la doc de Csound GENpadsynth).",
+      [
+        `El "padsynth algorithm" de Paul Octavian Nasca añade ancho de banda a cada parcial de una forma de onda periódica. Este ancho de banda se percibe como color, movimiento y riqueza adicional del sonido.`,
+        "Inicialización",
+        "- table_size -- Tamaño de la tabla de función. Debe ser grande, p. ej. 2^18 == 262144. Debe ser una potencia de 2 o una potencia de 2 más 1 (ver sentencia f).",
+        "- fundamental_frequency -- Frecuencia fundamental de la tabla generada.",
+        "- partial_bandwidth -- Ancho de banda de cada parcial en cents.",
+        "- partial_scale -- Factor de escala del ancho de banda de cada parcial (logaritmo del aumento/disminución con la frecuencia del parcial, 0 = sin estiramiento ni compresión).",
+        "- harmonic_stretch -- Estiramiento/compresión armónica para todos los parciales (1 = armónico).",
+        "- profile_shape -- Número que especifica la forma del perfil de ancho de banda: 1 = Gaussian, 2 = square y 3 = exponential",
+        "- profile_shape_parameter -- Parámetro que se pasa a la función que genera la forma del perfil, p. ej. exponente.",
+        "- partial1_amplitude, partial2_amplitude, ... -- Amplitudes de cada parcial (pueden ser cero)."
+      ].join("\n"),
     routineLabels: {
       1: "GEN01 - Archivo de audio",
       2: "GEN02 - Lista de valores",
@@ -754,7 +798,7 @@ export function GenNodeEditorModal({ nodeId, guiLanguage, initialConfig, onClose
               {isPadsynthRoutine && (
                 <p className="mt-3 text-xs text-slate-300">
                   <span className="font-semibold text-slate-200">{copy.padsynthRoutineLabel}</span>:{" "}
-                  {copy.padsynthRoutineDescription}
+                  <span className="whitespace-pre-line">{copy.padsynthRoutineDescription}</span>
                 </p>
               )}
               {selectedRoutine && (

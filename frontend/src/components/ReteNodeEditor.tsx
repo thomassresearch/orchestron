@@ -17,8 +17,10 @@ import {
   type InputFormulaBinding
 } from "../lib/graphFormula";
 import { getGenNodeConfig, setGenNodeConfig, type GenNodeConfig } from "../lib/genNodeConfig";
+import { getSfloadNodeConfig, setSfloadNodeConfig, type SfloadNodeConfig } from "../lib/sfloadNodeConfig";
 import { getDraggedOpcodeName, hasDraggedOpcode } from "../lib/opcodeDragDrop";
 import { GenNodeEditorModal } from "./GenNodeEditorModal";
+import { SfloadNodeEditorModal } from "./SfloadNodeEditorModal";
 import type { Connection, GuiLanguage, NodePosition, OpcodeSpec, PatchGraph, SignalType } from "../types";
 
 type EditorHandle = {
@@ -416,6 +418,11 @@ interface GenEditorState {
   config: GenNodeConfig;
 }
 
+interface SfloadEditorState {
+  nodeId: string;
+  config: SfloadNodeConfig;
+}
+
 function nextAvailableToken(existing: Set<string>): string {
   let index = 1;
   while (existing.has(`in${index}`)) {
@@ -477,6 +484,7 @@ export function ReteNodeEditor({
   const [formulaEditor, setFormulaEditor] = useState<FormulaEditorState | null>(null);
   const [formulaNumberDraft, setFormulaNumberDraft] = useState("1");
   const [genEditor, setGenEditor] = useState<GenEditorState | null>(null);
+  const [sfloadEditor, setSfloadEditor] = useState<SfloadEditorState | null>(null);
 
   const opcodeByName = useMemo(() => new Map(opcodes.map((opcode) => [opcode.name, opcode])), [opcodes]);
   const configuredFormulaTargetKeys = useMemo(
@@ -752,6 +760,18 @@ export function ReteNodeEditor({
     });
   }, []);
 
+  const openSfloadEditor = useCallback((nodeId: string) => {
+    const graphState = graphRef.current;
+    const targetNode = graphState.nodes.find((node) => node.id === nodeId);
+    if (!targetNode || targetNode.opcode !== "sfload") {
+      return;
+    }
+    setSfloadEditor({
+      nodeId,
+      config: getSfloadNodeConfig(graphState.ui_layout, nodeId)
+    });
+  }, []);
+
   const saveGenEditor = useCallback(
     (config: GenNodeConfig) => {
       if (!genEditor) {
@@ -765,6 +785,21 @@ export function ReteNodeEditor({
       setGenEditor(null);
     },
     [genEditor, updateGraph]
+  );
+
+  const saveSfloadEditor = useCallback(
+    (config: SfloadNodeConfig) => {
+      if (!sfloadEditor) {
+        return;
+      }
+      const targetNodeId = sfloadEditor.nodeId;
+      updateGraph((currentGraph) => ({
+        ...currentGraph,
+        ui_layout: setSfloadNodeConfig(currentGraph.ui_layout, targetNodeId, config)
+      }));
+      setSfloadEditor(null);
+    },
+    [sfloadEditor, updateGraph]
   );
 
   useEffect(() => {
@@ -980,6 +1015,7 @@ export function ReteNodeEditor({
               const opcodeCategory = spec?.category;
               const hasDocumentation = Boolean(spec?.documentation_markdown?.trim().length);
               const isGenNode = opcodeName === "GEN";
+              const isSfloadNode = opcodeName === "sfload";
 
               return function ColoredNode(props: any) {
                 const patchNodeId = reteToPatchRef.current.get(String((context.payload as { id?: unknown }).id ?? ""));
@@ -989,11 +1025,15 @@ export function ReteNodeEditor({
                       {...props}
                       styles={(styleProps: any) => nodeCssForCategory(opcodeCategory, Boolean(styleProps.selected))}
                     />
-                    {isGenNode ? (
+                    {isGenNode || isSfloadNode ? (
                       <button
                         type="button"
-                        aria-label={`Configure GEN node ${patchNodeId ?? ""}`.trim()}
-                        title="Configure GEN routine"
+                        aria-label={
+                          isGenNode
+                            ? `Configure GEN node ${patchNodeId ?? ""}`.trim()
+                            : `Configure sfload node ${patchNodeId ?? ""}`.trim()
+                        }
+                        title={isGenNode ? "Configure GEN routine" : "Configure SoundFont file"}
                         onPointerDown={(event) => {
                           event.preventDefault();
                           event.stopPropagation();
@@ -1004,7 +1044,11 @@ export function ReteNodeEditor({
                           if (!patchNodeId) {
                             return;
                           }
-                          openGenEditor(patchNodeId);
+                          if (isGenNode) {
+                            openGenEditor(patchNodeId);
+                            return;
+                          }
+                          openSfloadEditor(patchNodeId);
                         }}
                         style={{
                           position: "absolute",
@@ -1026,7 +1070,7 @@ export function ReteNodeEditor({
                           justifyContent: "center"
                         }}
                       >
-                        GEN
+                        {isGenNode ? "GEN" : "SF2"}
                       </button>
                     ) : null}
                     {hasDocumentation && onOpcodeHelpRequest ? (
@@ -1504,6 +1548,7 @@ export function ReteNodeEditor({
     restoreViewport,
     openFormulaEditor,
     openGenEditor,
+    openSfloadEditor,
     opcodeByName,
     configuredFormulaTargetKeySet,
     updateGraph
@@ -1581,6 +1626,16 @@ export function ReteNodeEditor({
           initialConfig={genEditor.config}
           onClose={() => setGenEditor(null)}
           onSave={saveGenEditor}
+        />
+      )}
+
+      {sfloadEditor && (
+        <SfloadNodeEditorModal
+          nodeId={sfloadEditor.nodeId}
+          guiLanguage={guiLanguage}
+          initialConfig={sfloadEditor.config}
+          onClose={() => setSfloadEditor(null)}
+          onSave={saveSfloadEditor}
         />
       )}
 

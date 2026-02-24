@@ -8,6 +8,8 @@ export type HelpDocId =
   | "instrument_runtime_panel"
   | "sequencer_instrument_rack"
   | "sequencer_tracks"
+  | "sequencer_track_editor"
+  | "sequencer_controller_sequencer"
   | "sequencer_piano_rolls"
   | "sequencer_midi_controllers"
   | "config_audio_engine"

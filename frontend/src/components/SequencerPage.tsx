@@ -2431,8 +2431,15 @@ export function SequencerPage({
             const stepIndices = Array.from({ length: track.stepCount }, (_, index) => index);
 
             return (
-              <article key={track.id} className="rounded-xl border border-slate-700 bg-slate-900/65 p-2.5">
-                <div className="mb-2 flex flex-wrap items-center gap-2">
+              <article key={track.id} className="relative rounded-xl border border-slate-700 bg-slate-900/65 p-2.5 pr-10">
+                {onHelpRequest ? (
+                  <HelpIconButton
+                    guiLanguage={guiLanguage}
+                    onClick={() => onHelpRequest("sequencer_track_editor")}
+                    className="absolute right-2 top-2 z-10 inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-500 bg-slate-950/90 text-xs font-bold text-slate-100 transition hover:border-accent hover:text-accent"
+                  />
+                ) : null}
+                <div className="mb-2 flex flex-wrap items-center gap-2 pr-8">
                   <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-200">
                     {track.name || ui.sequencerWithIndex(trackIndex + 1)}
                   </div>
@@ -2988,9 +2995,16 @@ export function SequencerPage({
                 {sequencer.controllerSequencers.map((controllerSequencer, controllerSequencerIndex) => (
                   <article
                     key={controllerSequencer.id}
-                    className="rounded-xl border border-slate-700 bg-slate-900/70 p-2.5"
+                    className="relative rounded-xl border border-slate-700 bg-slate-900/70 p-2.5 pr-10"
                   >
-                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                    {onHelpRequest ? (
+                      <HelpIconButton
+                        guiLanguage={guiLanguage}
+                        onClick={() => onHelpRequest("sequencer_controller_sequencer")}
+                        className="absolute right-2 top-2 z-10 inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-500 bg-slate-950/90 text-xs font-bold text-slate-100 transition hover:border-accent hover:text-accent"
+                      />
+                    ) : null}
+                    <div className="mb-2 flex flex-wrap items-center gap-2 pr-8">
                       <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-200">
                         {controllerSequencer.name || ui.controllerSequencerWithIndex(controllerSequencerIndex + 1)}
                       </div>

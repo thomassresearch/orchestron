@@ -47,6 +47,19 @@ class PatchInstrumentTarget:
     midi_channel: int
 
 
+@dataclass(slots=True)
+class SfloadGlobalRequest:
+    node_id: str
+    var_name: str
+    filename: str
+
+
+@dataclass(slots=True)
+class CompiledInstrumentLines:
+    instrument_lines: list[str]
+    sfload_global_requests: list[SfloadGlobalRequest]
+
+
 class CompilerService:
     def __init__(
         self,
@@ -90,8 +103,22 @@ class CompilerService:
             "",
         ]
 
+        compiled_instruments: list[tuple[int, PatchInstrumentTarget, CompiledInstrumentLines]] = []
+        sfload_global_requests: list[SfloadGlobalRequest] = []
         for instrument_number, target in enumerate(targets, start=1):
-            instrument_lines = self._compile_instrument_lines(target.patch)
+            compiled_lines = self._compile_instrument_lines(
+                target.patch,
+                global_scope_key=f"{instrument_number}_{target.patch.id}",
+            )
+            compiled_instruments.append((instrument_number, target, compiled_lines))
+            sfload_global_requests.extend(compiled_lines.sfload_global_requests)
+
+        global_sfload_lines = self._render_sfload_global_requests(sfload_global_requests)
+        if global_sfload_lines:
+            orc_lines.extend([*global_sfload_lines, ""])
+
+        for instrument_number, target, compiled_lines in compiled_instruments:
+            instrument_lines = compiled_lines.instrument_lines
             orc_lines.extend(
                 [
                     f"; patch:{target.patch.id} name:{target.patch.name} channel:{target.midi_channel}",
@@ -112,7 +139,12 @@ class CompilerService:
         )
         return CompileArtifact(orc=orc, csd=csd, diagnostics=[])
 
-    def _compile_instrument_lines(self, patch: PatchDocument) -> list[str]:
+    def _compile_instrument_lines(
+        self,
+        patch: PatchDocument,
+        *,
+        global_scope_key: str,
+    ) -> CompiledInstrumentLines:
         diagnostics: list[str] = []
         graph = patch.graph
 
@@ -145,13 +177,17 @@ class CompilerService:
         output_vars: dict[tuple[str, str], str] = {}
         rate_counters: dict[str, int] = defaultdict(int)
         instrument_lines: list[str] = []
+        sfload_global_requests: list[SfloadGlobalRequest] = []
 
         for node_id in ordered_ids:
             compiled = compiled_nodes[node_id]
             env: dict[str, str] = {}
 
             for output in compiled.spec.outputs:
-                env[output.id] = self._allocate_var_name(rate_counters, compiled.node.id, output)
+                if compiled.spec.name == "sfload":
+                    env[output.id] = self._allocate_global_var_name(global_scope_key, compiled.node.id, output)
+                else:
+                    env[output.id] = self._allocate_var_name(rate_counters, compiled.node.id, output)
                 output_vars[(compiled.node.id, output.id)] = env[output.id]
 
             for input_port in compiled.spec.inputs:
@@ -190,12 +226,6 @@ class CompilerService:
                     )
                     continue
 
-                if compiled.spec.name == "sfload" and input_port.id == "filename":
-                    sfload_filename = self._resolve_sfload_filename(patch.graph.ui_layout, compiled.node.id)
-                    if sfload_filename is not None:
-                        env[input_port.id] = self._format_literal(sfload_filename, SignalType.STRING)
-                        continue
-
                 literal, found = self._resolve_literal_value(compiled.node, input_port)
                 if found:
                     env[input_port.id] = literal
@@ -218,6 +248,11 @@ class CompilerService:
                 )
                 continue
 
+            if compiled.spec.name == "sfload":
+                rendered = self._render_sfload_global_request(compiled.node, patch.graph.ui_layout, env)
+                sfload_global_requests.append(rendered)
+                continue
+
             for param_key, param_value in compiled.node.params.items():
                 if param_key in env:
                     continue
@@ -237,7 +272,10 @@ class CompilerService:
                 [f"; node:{compiled.node.id} opcode:{compiled.spec.name}", *rendered.splitlines()]
             )
 
-        return instrument_lines
+        return CompiledInstrumentLines(
+            instrument_lines=instrument_lines,
+            sfload_global_requests=sfload_global_requests,
+        )
 
     def _render_gen_node(
         self,
@@ -444,16 +482,71 @@ class CompilerService:
             raise CompilationError([f"GEN audio asset '{stored_name}' does not exist on the backend."])
         return str(path)
 
+    def _render_sfload_global_request(
+        self,
+        node: NodeInstance,
+        ui_layout: dict[str, object],
+        env: dict[str, str],
+    ) -> SfloadGlobalRequest:
+        output_name = env.get("ifilhandle")
+        if not output_name:
+            raise CompilationError([f"sfload node '{node.id}' is missing output variable binding."])
+
+        filename = self._resolve_sfload_filename(ui_layout, node.id, legacy_params=node.params)
+        if filename is None:
+            raise CompilationError([f"sfload node '{node.id}' requires an uploaded SF2 asset or samplePath."])
+
+        return SfloadGlobalRequest(
+            node_id=node.id,
+            var_name=output_name,
+            filename=filename,
+        )
+
+    def _render_sfload_global_requests(self, requests: list[SfloadGlobalRequest]) -> list[str]:
+        if not requests:
+            return []
+
+        lines: list[str] = []
+        first_var_by_filename: dict[str, str] = {}
+        for request in requests:
+            existing_var = first_var_by_filename.get(request.filename)
+            if existing_var is None:
+                first_var_by_filename[request.filename] = request.var_name
+                lines.extend(
+                    [
+                        f"; node:{request.node_id} opcode:sfload",
+                        f"{request.var_name} sfload {self._format_literal(request.filename, SignalType.STRING)}",
+                    ]
+                )
+                continue
+
+            if existing_var == request.var_name:
+                continue
+
+            lines.extend(
+                [
+                    f"; node:{request.node_id} opcode:sfload (alias)",
+                    f"{request.var_name} init {existing_var}",
+                ]
+            )
+
+        return lines
+
     @staticmethod
     def _allocate_string_temp_name(node_id: str, suffix: str) -> str:
         safe_node = re.sub(r"[^A-Za-z0-9_]", "_", node_id)
         safe_suffix = re.sub(r"[^A-Za-z0-9_]", "_", suffix)
         return f"S_{safe_node}_{safe_suffix}"
 
-    def _resolve_sfload_filename(self, ui_layout: dict[str, object], node_id: str) -> str | None:
+    def _resolve_sfload_filename(
+        self,
+        ui_layout: dict[str, object],
+        node_id: str,
+        legacy_params: dict[str, object] | None = None,
+    ) -> str | None:
         raw_config = self._lookup_sfload_node_config(ui_layout, node_id)
         if not raw_config:
-            return None
+            raw_config = {}
 
         sample_asset = raw_config.get("sampleAsset")
         if isinstance(sample_asset, dict):
@@ -464,6 +557,11 @@ class CompilerService:
         raw_sample_path = raw_config.get("samplePath")
         if isinstance(raw_sample_path, str) and raw_sample_path.strip():
             return raw_sample_path.strip()
+
+        if legacy_params is not None:
+            raw_filename = legacy_params.get("filename")
+            if isinstance(raw_filename, str) and raw_filename.strip():
+                return raw_filename.strip()
 
         return None
 
@@ -1079,6 +1177,13 @@ class CompilerService:
         prefix = port.signal_type.value
         counters[prefix] += 1
         return f"{prefix}_{safe_node}_{safe_port}_{counters[prefix]}"
+
+    @staticmethod
+    def _allocate_global_var_name(scope_key: str, node_id: str, port: PortSpec) -> str:
+        safe_scope = re.sub(r"[^A-Za-z0-9_]", "_", scope_key)
+        safe_node = re.sub(r"[^A-Za-z0-9_]", "_", node_id)
+        safe_port = re.sub(r"[^A-Za-z0-9_]", "_", port.id)
+        return f"g{port.signal_type.value}_{safe_scope}_{safe_node}_{safe_port}"
 
     @staticmethod
     def _wrap_csd(
