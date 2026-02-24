@@ -45,14 +45,7 @@ export function OpcodeCatalog({ guiLanguage, opcodes, onAddOpcode }: OpcodeCatal
       return opcodes;
     }
 
-    return opcodes.filter((opcode) => {
-      return (
-        opcode.name.toLowerCase().includes(q) ||
-        opcode.category.toLowerCase().includes(q) ||
-        opcode.description.toLowerCase().includes(q) ||
-        opcode.tags.some((tag) => tag.toLowerCase().includes(q))
-      );
-    });
+    return opcodes.filter((opcode) => opcode.name.toLowerCase().includes(q));
   }, [opcodes, query]);
 
   return (
