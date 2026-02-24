@@ -60,6 +60,8 @@ class Settings(BaseSettings):
     audio_output_mode: Literal["local", "streaming"] = "local"
     webrtc_frontend_ice_servers: list[WebRtcIceServerConfig] = Field(default_factory=list)
     webrtc_backend_ice_servers: list[WebRtcIceServerConfig] = Field(default_factory=list)
+    frontend_disconnect_grace_seconds: float = Field(default=5.0, gt=0.0)
+    frontend_heartbeat_timeout_seconds: float = Field(default=5.0, gt=0.0)
 
     @property
     def resolved_webrtc_backend_ice_servers(self) -> list[WebRtcIceServerConfig]:

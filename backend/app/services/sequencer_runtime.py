@@ -333,8 +333,11 @@ class SessionSequencerRuntime:
                 if notes:
                     # Any non-rest step starts a new note event, so release currently held notes first.
                     self._release_track_notes_locked(track_id, track.midi_channel)
+                    # Send chord tones as one batch to minimize inter-note skew within the step tick.
+                    self._send_messages_locked(
+                        [self._note_on_message(track.midi_channel, note, step_state.velocity) for note in notes]
+                    )
                     for note in notes:
-                        self._send_note_on_locked(track, note, step_state.velocity)
                         active_notes.add(note)
                 elif not step_state.hold:
                     self._release_track_notes_locked(track_id, track.midi_channel)
@@ -414,22 +417,29 @@ class SessionSequencerRuntime:
             self._publish_event("sequencer_pad_switched", payload)
 
     def _send_note_on_locked(self, track: SequencerTrackRuntime, note: int, velocity: int) -> None:
-        channel_byte = (track.midi_channel - 1) & 0x0F
-        message = [0x90 + channel_byte, _clamp_midi_note(note), _clamp_midi_velocity(velocity)]
-        self._send_message_locked(message)
+        self._send_message_locked(self._note_on_message(track.midi_channel, note, velocity))
 
     def _send_note_off_locked(self, midi_channel: int, note: int) -> None:
+        self._send_message_locked(self._note_off_message(midi_channel, note))
+
+    @staticmethod
+    def _note_on_message(midi_channel: int, note: int, velocity: int) -> list[int]:
         channel_byte = (midi_channel - 1) & 0x0F
-        message = [0x80 + channel_byte, _clamp_midi_note(note), 0]
-        self._send_message_locked(message)
+        return [0x90 + channel_byte, _clamp_midi_note(note), _clamp_midi_velocity(velocity)]
+
+    @staticmethod
+    def _note_off_message(midi_channel: int, note: int) -> list[int]:
+        channel_byte = (midi_channel - 1) & 0x0F
+        return [0x80 + channel_byte, _clamp_midi_note(note), 0]
 
     def _release_track_notes_locked(self, track_id: str, midi_channel: int) -> None:
         active_notes = self._active_notes.get(track_id)
         if not active_notes:
             return
 
-        for note in sorted(active_notes):
-            self._send_note_off_locked(midi_channel, note)
+        self._send_messages_locked(
+            [self._note_off_message(midi_channel, note) for note in sorted(active_notes)]
+        )
         active_notes.clear()
 
     def _release_reconfigured_track_notes_locked(
@@ -458,14 +468,21 @@ class SessionSequencerRuntime:
             return
         for track in config.tracks.values():
             channel_byte = (track.midi_channel - 1) & 0x0F
-            self._send_message_locked([0xB0 + channel_byte, 123, 0])
-            self._send_message_locked([0xB0 + channel_byte, 120, 0])
+            self._send_messages_locked([[0xB0 + channel_byte, 123, 0], [0xB0 + channel_byte, 120, 0]])
 
     def _send_message_locked(self, message: list[int]) -> None:
         try:
             self._midi_service.send_message(self._midi_input_selector, message)
         except Exception as exc:  # pragma: no cover - runtime dependent
             logger.warning("Sequencer MIDI message failed: %s", exc)
+
+    def _send_messages_locked(self, messages: list[list[int]]) -> None:
+        if not messages:
+            return
+        try:
+            self._midi_service.send_messages(self._midi_input_selector, messages)
+        except Exception as exc:  # pragma: no cover - runtime dependent
+            logger.warning("Sequencer MIDI batch failed: %s", exc)
 
     def _status_locked(self) -> SessionSequencerStatus:
         config = self._config

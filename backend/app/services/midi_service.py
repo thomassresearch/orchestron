@@ -64,16 +64,26 @@ class MidiService:
         raise ValueError(f"MIDI input '{selector}' is unavailable.")
 
     def send_message(self, input_selector: str, message: list[int]) -> str:
-        if len(message) != 3:
-            raise ValueError("MIDI message must contain exactly 3 bytes")
+        return self.send_messages(input_selector, [message])
 
-        message = [int(value) & 0xFF for value in message]
+    def send_messages(self, input_selector: str, messages: list[list[int]]) -> str:
+        if len(messages) == 0:
+            raise ValueError("At least one MIDI message is required")
+
+        normalized_messages: list[list[int]] = []
+        for message in messages:
+            if len(message) != 3:
+                raise ValueError("MIDI message must contain exactly 3 bytes")
+            normalized_messages.append([int(value) & 0xFF for value in message])
+
         input_ref = self.resolve_input_ref(input_selector)
 
         if self._backend.name != "mido":
-            delivered = self._deliver_virtual_output(input_ref.id, message)
-            if delivered > 0:
-                return f"virtual:{delivered}"
+            delivered_total = 0
+            for message in normalized_messages:
+                delivered_total += self._deliver_virtual_output(input_ref.id, message)
+            if delivered_total > 0:
+                return f"virtual:{delivered_total}"
             if not self._warned_missing_output_backend:
                 logger.warning(
                     "MIDI output backend unavailable; dropping MIDI messages (selector=%s). "
@@ -93,7 +103,8 @@ class MidiService:
                     port = mido.open_output(output_name)
                     self._output_ports[output_name] = port
 
-                port.send(mido.Message.from_bytes(message))
+                for message in normalized_messages:
+                    port.send(mido.Message.from_bytes(message))
             return output_name
         except ValueError:
             raise

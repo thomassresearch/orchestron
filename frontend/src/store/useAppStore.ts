@@ -10,8 +10,9 @@ import {
   defaultModeForScaleType,
   linkedModeForScaleType,
   linkedScaleTypeForMode,
-  normalizeSequencerMode,
   normalizeControllerCurveKeypoints,
+  normalizeSequencerChord,
+  normalizeSequencerMode,
   normalizeSequencerScaleRoot,
   normalizeSequencerScaleType,
   transposeSequencerNoteByScaleDegree,
@@ -35,6 +36,7 @@ import type {
   PersistedAppState,
   MidiControllerState,
   PianoRollState,
+  SequencerChord,
   SequencerConfigSnapshot,
   SequencerInstrumentBinding,
   SequencerMode,
@@ -133,6 +135,7 @@ interface AppStore {
   setSequencerTrackMode: (trackId: string, mode: SequencerMode) => void;
   setSequencerTrackStepCount: (trackId: string, stepCount: 16 | 32) => void;
   setSequencerTrackStepNote: (trackId: string, index: number, note: number | null) => void;
+  setSequencerTrackStepChord: (trackId: string, index: number, chord: SequencerChord) => void;
   setSequencerTrackStepHold: (trackId: string, index: number, hold: boolean) => void;
   setSequencerTrackStepVelocity: (trackId: string, index: number, velocity: number) => void;
   clearSequencerTrackSteps: (trackId: string) => void;
@@ -254,6 +257,7 @@ function transportStepCountForTracks(tracks: SequencerTrackState[]): 16 | 32 {
 function createEmptySequencerStep(): SequencerStepState {
   return {
     note: null,
+    chord: "none",
     hold: false,
     velocity: 127
   };
@@ -262,6 +266,7 @@ function createEmptySequencerStep(): SequencerStepState {
 function cloneSequencerStep(step: SequencerStepState): SequencerStepState {
   return {
     note: step.note,
+    chord: normalizeSequencerChord(step.chord),
     hold: step.hold,
     velocity: step.velocity
   };
@@ -303,6 +308,7 @@ function normalizeSequencerStep(value: unknown): SequencerStepState {
     const step = value as Record<string, unknown>;
     return {
       note: normalizeStepNote(step.note ?? step.notes ?? step.value),
+      chord: normalizeSequencerChord(step.chord),
       hold: normalizeStepHold(step.hold),
       velocity: normalizeStepVelocity(step.velocity ?? step.vel)
     };
@@ -310,6 +316,7 @@ function normalizeSequencerStep(value: unknown): SequencerStepState {
 
   return {
     note: normalizeStepNote(value),
+    chord: "none",
     hold: false,
     velocity: 127
   };
@@ -1652,6 +1659,16 @@ export const useAppStore = create<AppStore>((set, get) => {
     },
 
     loadPatch: async (patchId) => {
+      const existingTab = get().instrumentTabs.find((tab) => tab.patch.id === patchId);
+      if (existingTab) {
+        set({
+          activeInstrumentTabId: existingTab.id,
+          currentPatch: existingTab.patch,
+          error: null
+        });
+        return;
+      }
+
       set({ loading: true, error: null });
       try {
         const patch = await api.getPatch(patchId);
@@ -2171,6 +2188,54 @@ export const useAppStore = create<AppStore>((set, get) => {
             steps[index] = {
               ...stepState,
               note: normalizeStepNote(note)
+            };
+            pads[activePad] = {
+              ...activePadState,
+              steps
+            };
+
+            return {
+              ...track,
+              pads,
+              steps
+            };
+          })
+        }
+      });
+    },
+
+    setSequencerTrackStepChord: (trackId, index, chord) => {
+      if (index < 0 || index >= 32) {
+        return;
+      }
+
+      const sequencer = get().sequencer;
+      const normalizedChord = normalizeSequencerChord(chord);
+      set({
+        sequencer: {
+          ...sequencer,
+          tracks: sequencer.tracks.map((track) => {
+            if (track.id !== trackId) {
+              return track;
+            }
+
+            const pads = track.pads.map((pad) => ({
+              ...pad,
+              steps: cloneSequencerSteps(pad.steps)
+            }));
+            const activePad = normalizePadIndex(track.activePad);
+            const activePadState =
+              pads[activePad] ?? {
+                steps: cloneSequencerSteps(DEFAULT_SEQUENCER_STEPS),
+                scaleRoot: track.scaleRoot,
+                scaleType: track.scaleType,
+                mode: track.mode
+              };
+            const steps = cloneSequencerSteps(activePadState.steps);
+            const stepState = steps[index] ?? createEmptySequencerStep();
+            steps[index] = {
+              ...stepState,
+              chord: normalizedChord
             };
             pads[activePad] = {
               ...activePadState,

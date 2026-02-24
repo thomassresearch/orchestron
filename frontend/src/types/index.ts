@@ -102,8 +102,24 @@ export type SequencerScaleRoot =
   | "B"
   | "Cb";
 
+export type SequencerChord =
+  | "none"
+  | "maj"
+  | "min"
+  | "dim"
+  | "aug"
+  | "sus2"
+  | "sus4"
+  | "maj7"
+  | "min7"
+  | "dom7"
+  | "m7b5"
+  | "dim7"
+  | "minmaj7";
+
 export interface SequencerStepState {
   note: number | null;
+  chord: SequencerChord;
   hold: boolean;
   velocity: number;
 }

@@ -126,6 +126,8 @@ const PATCH_TOOLBAR_COPY: Record<GuiLanguage, PatchToolbarCopy> = {
 
 export function PatchToolbar(props: PatchToolbarProps) {
   const copy = PATCH_TOOLBAR_COPY[props.guiLanguage];
+  const loadPatchSelectValue =
+    props.currentPatchId && props.patches.some((patch) => patch.id === props.currentPatchId) ? props.currentPatchId : "";
 
   return (
     <section className="rounded-2xl border border-slate-700/60 bg-slate-900/70 p-3 shadow-glow">
@@ -192,7 +194,7 @@ export function PatchToolbar(props: PatchToolbarProps) {
           <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-slate-400">{copy.loadPatch}</span>
           <select
             className="rounded-lg border border-slate-600 bg-slate-950 px-3 py-1.5 font-body text-sm text-slate-100 outline-none ring-accent/40 transition focus:ring"
-            value={props.currentPatchId ?? ""}
+            value={loadPatchSelectValue}
             onChange={(event) => {
               if (event.target.value.length > 0) {
                 props.onSelectPatch(event.target.value);

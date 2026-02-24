@@ -10,6 +10,7 @@ import type {
 
 import {
   buildControllerCurvePath,
+  buildSequencerChordOptions,
   buildSequencerNoteOptions,
   CONTROLLER_SEQUENCER_STEP_OPTIONS,
   parseSequencerScaleValue,
@@ -28,6 +29,7 @@ import type {
   ControllerSequencerKeypoint,
   ControllerSequencerState,
   SequencerInstrumentBinding,
+  SequencerChord,
   SequencerMode,
   SequencerScaleRoot,
   SequencerScaleType,
@@ -109,7 +111,11 @@ type SequencerUiCopy = {
   stop: string;
   rest: string;
   hold: string;
+  chord: string;
   octave: string;
+  chordNoneOptgroup: string;
+  chordDiatonicOptgroup: string;
+  chordChromaticOptgroup: string;
   inScaleOptgroup: (scale: string, mode: string) => string;
   outOfScaleOptgroup: string;
   inScaleDegree: (degree: number | null) => string;
@@ -242,7 +248,11 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     stop: "Stop",
     rest: "Rest",
     hold: "HOLD",
+    chord: "Chord",
     octave: "Octave",
+    chordNoneOptgroup: "None",
+    chordDiatonicOptgroup: "Diatonic",
+    chordChromaticOptgroup: "Chromatic",
     inScaleOptgroup: (scale, mode) => `In scale: ${scale} / ${mode}`,
     outOfScaleOptgroup: "Out of scale",
     inScaleDegree: (degree) => `in scale (${degree ?? "-"})`,
@@ -328,7 +338,11 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     stop: "Stop",
     rest: "Pause",
     hold: "HOLD",
+    chord: "Akkord",
     octave: "Oktave",
+    chordNoneOptgroup: "Kein Akkord",
+    chordDiatonicOptgroup: "Diatonisch",
+    chordChromaticOptgroup: "Chromatisch",
     inScaleOptgroup: (scale, mode) => `In Skala: ${scale} / ${mode}`,
     outOfScaleOptgroup: "Ausserhalb der Skala",
     inScaleDegree: (degree) => `in skala (${degree ?? "-"})`,
@@ -414,7 +428,11 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     stop: "Arreter",
     rest: "Silence",
     hold: "HOLD",
+    chord: "Accord",
     octave: "Octave",
+    chordNoneOptgroup: "Aucun",
+    chordDiatonicOptgroup: "Diatonique",
+    chordChromaticOptgroup: "Chromatique",
     inScaleOptgroup: (scale, mode) => `Dans la gamme: ${scale} / ${mode}`,
     outOfScaleOptgroup: "Hors gamme",
     inScaleDegree: (degree) => `dans gamme (${degree ?? "-"})`,
@@ -500,7 +518,11 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     stop: "Detener",
     rest: "Silencio",
     hold: "HOLD",
+    chord: "Acorde",
     octave: "Octava",
+    chordNoneOptgroup: "Ninguno",
+    chordDiatonicOptgroup: "Diatonico",
+    chordChromaticOptgroup: "Cromatico",
     inScaleOptgroup: (scale, mode) => `En escala: ${scale} / ${mode}`,
     outOfScaleOptgroup: "Fuera de escala",
     inScaleDegree: (degree) => `en escala (${degree ?? "-"})`,
@@ -599,6 +621,45 @@ function buildSequencerPitchClassOptions(
     }
   }
   return Array.from(byPitchClass.values()).sort((a, b) => a.pitchClass - b.pitchClass);
+}
+
+function chordColorTextClass(color: "neutral" | "green" | "orange" | "red"): string {
+  if (color === "green") {
+    return "text-emerald-300";
+  }
+  if (color === "orange") {
+    return "text-amber-300";
+  }
+  if (color === "red") {
+    return "text-rose-300";
+  }
+  return "text-slate-100";
+}
+
+function chordColorBorderClass(color: "neutral" | "green" | "orange" | "red"): string {
+  if (color === "green") {
+    return "border-emerald-500/50";
+  }
+  if (color === "orange") {
+    return "border-amber-500/50";
+  }
+  if (color === "red") {
+    return "border-rose-500/50";
+  }
+  return "border-slate-700";
+}
+
+function chordOptionInlineStyle(color: "neutral" | "green" | "orange" | "red"): CSSProperties {
+  if (color === "green") {
+    return { color: "#86efac" };
+  }
+  if (color === "orange") {
+    return { color: "#fcd34d" };
+  }
+  if (color === "red") {
+    return { color: "#fda4af" };
+  }
+  return { color: "#f8fafc" };
 }
 
 interface PianoRollHighlightTheory {
@@ -1722,6 +1783,7 @@ interface SequencerPageProps {
   onSequencerTrackModeChange: (trackId: string, mode: SequencerMode) => void;
   onSequencerTrackStepCountChange: (trackId: string, count: 16 | 32) => void;
   onSequencerTrackStepNoteChange: (trackId: string, index: number, note: number | null) => void;
+  onSequencerTrackStepChordChange: (trackId: string, index: number, chord: SequencerChord) => void;
   onSequencerTrackStepHoldChange: (trackId: string, index: number, hold: boolean) => void;
   onSequencerTrackStepVelocityChange: (trackId: string, index: number, velocity: number) => void;
   onSequencerTrackClearSteps: (trackId: string) => void;
@@ -1870,6 +1932,7 @@ export function SequencerPage({
   onSequencerTrackModeChange,
   onSequencerTrackStepCountChange,
   onSequencerTrackStepNoteChange,
+  onSequencerTrackStepChordChange,
   onSequencerTrackStepHoldChange,
   onSequencerTrackStepVelocityChange,
   onSequencerTrackClearSteps,
@@ -2650,11 +2713,17 @@ export function SequencerPage({
                     {Array.from({ length: 8 }, (_, padIndex) => {
                       const isActivePad = track.activePad === padIndex;
                       const isQueuedPad = track.queuedPad === padIndex;
+                      const padHasContent = (track.pads[padIndex]?.steps ?? []).some((step) => step.note !== null);
+                      const inactivePadMainClass = padHasContent
+                        ? "border-cyan-700/65 bg-slate-900 text-cyan-100 hover:border-cyan-500/70 hover:bg-slate-800/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_0_1px_rgba(34,211,238,0.08)]"
+                        : "border-slate-700 bg-slate-900 text-slate-300 hover:border-slate-500";
                       const padAccentClass = isActivePad
                         ? "border-accent/70 bg-accent/10 text-accent hover:bg-accent/15"
                         : isQueuedPad
                           ? "border-amber-400/60 bg-amber-500/5 text-amber-300 hover:bg-amber-500/10"
-                          : "border-slate-700 bg-slate-950/85 text-slate-300 hover:border-slate-500 hover:bg-slate-900";
+                          : padHasContent
+                            ? "border-cyan-800/70 bg-cyan-500/5 text-cyan-200 hover:border-cyan-600/80 hover:bg-cyan-500/10"
+                            : "border-slate-700 bg-slate-950/85 text-slate-300 hover:border-slate-500 hover:bg-slate-900";
                       return (
                         <div key={`${track.id}-pad-${padIndex}`} className="relative">
                           <button
@@ -2684,11 +2753,17 @@ export function SequencerPage({
                                 ? "border-accent bg-accent/25 text-accent"
                                 : isQueuedPad
                                   ? "border-amber-400/70 bg-amber-500/10 text-amber-300"
-                                  : "border-slate-700 bg-slate-900 text-slate-300 hover:border-slate-500"
+                                  : inactivePadMainClass
                             }`}
                           >
                             P{padIndex + 1}
                           </button>
+                          {padHasContent ? (
+                            <span
+                              className="pointer-events-none absolute right-1 top-1 z-20 h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_8px_rgba(34,211,238,0.7)]"
+                              aria-hidden="true"
+                            />
+                          ) : null}
                           <button
                             type="button"
                             onClick={(event) => {
@@ -2761,6 +2836,25 @@ export function SequencerPage({
                       const degree = selectedNote?.degree ?? null;
                       const notePitchClass = noteValue === null ? null : midiNotePitchClass(noteValue);
                       const noteOctave = noteValue === null ? null : midiNoteOctave(noteValue);
+                      const chordValue = stepState?.chord ?? "none";
+                      const chordOptions = buildSequencerChordOptions(noteValue, track.scaleRoot, track.mode);
+                      const chordNoneOptions = chordOptions.filter((option) => option.group === "none");
+                      const chordDiatonicOptions = chordOptions.filter((option) => option.group === "diatonic");
+                      const chordChromaticOptions = chordOptions.filter((option) => option.group === "chromatic");
+                      const selectedChordOption =
+                        chordOptions.find((option) => option.value === chordValue) ??
+                        chordOptions.find((option) => option.value === "none") ??
+                        chordOptions[0];
+                      const selectedChordLabel = selectedChordOption?.label ?? "none";
+                      const selectedChordColor = selectedChordOption?.color ?? "neutral";
+                      const chordStatusText =
+                        noteValue === null || chordValue === "none"
+                          ? null
+                          : selectedChordOption?.group === "diatonic"
+                            ? "diatonic"
+                            : selectedChordOption?.inScaleToneCount && selectedChordOption.inScaleToneCount > 0
+                              ? "chromatic / partial in-scale"
+                              : "chromatic / out of scale";
                       const stepKey = `${track.id}:${step}`;
                       const selectValue =
                         stepSelectPreview[stepKey] ?? (notePitchClass === null ? "" : String(notePitchClass));
@@ -2911,6 +3005,68 @@ export function SequencerPage({
                               {selectedLabel}
                             </div>
                           </div>
+
+                          <label
+                            className={`mt-1 flex items-center gap-2 rounded-md border bg-slate-950/70 px-2 py-1 ${chordColorBorderClass(selectedChordColor)}`}
+                          >
+                            <span className="shrink-0 text-[9px] uppercase tracking-[0.16em] text-slate-400">CHD</span>
+                            <div className="relative min-w-0 flex-1">
+                              <select
+                                disabled={noteValue === null}
+                                value={chordValue}
+                                onChange={(event) =>
+                                  onSequencerTrackStepChordChange(track.id, step, event.target.value as SequencerChord)
+                                }
+                                className="h-6 w-full appearance-none rounded border border-slate-600 bg-slate-950 px-1.5 py-0.5 text-center font-mono text-[10px] text-transparent outline-none ring-accent/40 transition focus:ring disabled:cursor-not-allowed disabled:opacity-50"
+                                aria-label={`${ui.chord} ${step + 1}`}
+                              >
+                                <optgroup label={ui.chordNoneOptgroup}>
+                                  {chordNoneOptions.map((option) => (
+                                    <option
+                                      key={`${track.id}-step-${step}-chord-${option.value}`}
+                                      value={option.value}
+                                      style={chordOptionInlineStyle(option.color)}
+                                    >
+                                      {option.label}
+                                    </option>
+                                  ))}
+                                </optgroup>
+                                <optgroup label={ui.chordDiatonicOptgroup}>
+                                  {chordDiatonicOptions.map((option) => (
+                                    <option
+                                      key={`${track.id}-step-${step}-chord-${option.value}`}
+                                      value={option.value}
+                                      style={chordOptionInlineStyle(option.color)}
+                                    >
+                                      {option.label}
+                                    </option>
+                                  ))}
+                                </optgroup>
+                                <optgroup label={ui.chordChromaticOptgroup}>
+                                  {chordChromaticOptions.map((option) => (
+                                    <option
+                                      key={`${track.id}-step-${step}-chord-${option.value}`}
+                                      value={option.value}
+                                      style={chordOptionInlineStyle(option.color)}
+                                    >
+                                      {option.label}
+                                    </option>
+                                  ))}
+                                </optgroup>
+                              </select>
+                              <div
+                                className={`pointer-events-none absolute inset-0 flex items-center justify-center text-[10px] font-semibold tracking-[0.08em] ${chordColorTextClass(selectedChordColor)}`}
+                              >
+                                {selectedChordLabel}
+                              </div>
+                            </div>
+                          </label>
+
+                          {chordStatusText ? (
+                            <div className={`mt-1 text-center text-[9px] tracking-[0.12em] ${chordColorTextClass(selectedChordColor)}`}>
+                              {chordStatusText}
+                            </div>
+                          ) : null}
 
                           <label className="mt-1 flex items-center justify-between gap-2 rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1">
                             <span className="text-[9px] uppercase tracking-[0.16em] text-slate-400">OCT</span>

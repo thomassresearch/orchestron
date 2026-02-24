@@ -1,6 +1,7 @@
 import type {
   ControllerSequencerKeypoint,
   MidiInputRef,
+  SequencerChord,
   SequencerMode,
   SequencerScaleRoot,
   SequencerScaleType
@@ -28,11 +29,32 @@ interface SequencerModeDefinition {
   label: string;
 }
 
+type SequencerChordFamily = "tertian" | "sus";
+
+interface SequencerChordDefinition {
+  value: Exclude<SequencerChord, "none">;
+  label: string;
+  family: SequencerChordFamily;
+  intervals: readonly number[];
+}
+
 export interface SequencerNoteOption {
   note: number;
   label: string;
   degree: number | null;
   inScale: boolean;
+}
+
+export type SequencerChordOptionGroup = "none" | "diatonic" | "chromatic";
+export type SequencerChordColorClass = "neutral" | "green" | "orange" | "red";
+
+export interface SequencerChordOption {
+  value: SequencerChord;
+  label: string;
+  group: SequencerChordOptionGroup;
+  color: SequencerChordColorClass;
+  notes: number[];
+  inScaleToneCount: number;
 }
 
 const DEFAULT_SCALE_ROOT: SequencerScaleRoot = "C";
@@ -113,6 +135,25 @@ export const SEQUENCER_MODE_OPTIONS: SequencerModeDefinition[] = [
   { value: "aeolian", label: "Aeolian" },
   { value: "locrian", label: "Locrian" }
 ];
+
+export const SEQUENCER_CHORD_OPTIONS: readonly SequencerChordDefinition[] = [
+  { value: "maj", label: "maj", family: "tertian", intervals: [0, 4, 7] },
+  { value: "min", label: "min", family: "tertian", intervals: [0, 3, 7] },
+  { value: "dim", label: "dim", family: "tertian", intervals: [0, 3, 6] },
+  { value: "aug", label: "aug", family: "tertian", intervals: [0, 4, 8] },
+  { value: "sus2", label: "sus2", family: "sus", intervals: [0, 2, 7] },
+  { value: "sus4", label: "sus4", family: "sus", intervals: [0, 5, 7] },
+  { value: "maj7", label: "maj7", family: "tertian", intervals: [0, 4, 7, 11] },
+  { value: "min7", label: "min7", family: "tertian", intervals: [0, 3, 7, 10] },
+  { value: "dom7", label: "dom7", family: "tertian", intervals: [0, 4, 7, 10] },
+  { value: "m7b5", label: "m7b5", family: "tertian", intervals: [0, 3, 6, 10] },
+  { value: "dim7", label: "dim7", family: "tertian", intervals: [0, 3, 6, 9] },
+  { value: "minmaj7", label: "minmaj7", family: "tertian", intervals: [0, 3, 7, 11] }
+] as const;
+
+const SEQUENCER_CHORD_MAP = new Map<Exclude<SequencerChord, "none">, SequencerChordDefinition>(
+  SEQUENCER_CHORD_OPTIONS.map((definition) => [definition.value, definition])
+);
 
 function clampInt(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, Math.round(value)));
@@ -314,6 +355,191 @@ export function normalizeSequencerMode(value: unknown): SequencerMode {
     return value as SequencerMode;
   }
   return DEFAULT_MODE;
+}
+
+export function normalizeSequencerChord(value: unknown): SequencerChord {
+  if (value === "none") {
+    return "none";
+  }
+  if (typeof value === "string" && SEQUENCER_CHORD_MAP.has(value as Exclude<SequencerChord, "none">)) {
+    return value as Exclude<SequencerChord, "none">;
+  }
+  return "none";
+}
+
+export function sequencerChordLabel(chord: SequencerChord): string {
+  if (chord === "none") {
+    return "none";
+  }
+  return SEQUENCER_CHORD_MAP.get(chord)?.label ?? chord;
+}
+
+function scalePitchClassesForMode(scaleRoot: SequencerScaleRoot, mode: SequencerMode): number[] {
+  const rootPitchClass = resolveScaleRoot(scaleRoot).pitchClass;
+  return MODE_INTERVALS[mode].map((interval) => normalizePitchClass(rootPitchClass + interval));
+}
+
+function scalePitchClassSetForMode(scaleRoot: SequencerScaleRoot, mode: SequencerMode): Set<number> {
+  return new Set(scalePitchClassesForMode(scaleRoot, mode));
+}
+
+function arraysEqualNumbers(a: readonly number[], b: readonly number[]): boolean {
+  if (a.length !== b.length) {
+    return false;
+  }
+  for (let index = 0; index < a.length; index += 1) {
+    if (a[index] !== b[index]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function diatonicTertianIntervalsForRoot(
+  rootPitchClass: number,
+  scaleRoot: SequencerScaleRoot,
+  mode: SequencerMode,
+  toneCount: number
+): number[] | null {
+  const rootPitchClassNormalized = normalizePitchClass(rootPitchClass);
+  const modeIntervals = MODE_INTERVALS[mode];
+  const scalePitchClasses = scalePitchClassesForMode(scaleRoot, mode);
+  const rootDegreeIndex = scalePitchClasses.findIndex((pitchClass) => pitchClass === rootPitchClassNormalized);
+  if (rootDegreeIndex < 0) {
+    return null;
+  }
+
+  const rootModeInterval = modeIntervals[rootDegreeIndex];
+  const intervals: number[] = [];
+  for (let toneIndex = 0; toneIndex < Math.max(1, Math.round(toneCount)); toneIndex += 1) {
+    const scaleIndex = rootDegreeIndex + toneIndex * 2;
+    const wrappedIndex = scaleIndex % modeIntervals.length;
+    const octaveOffset = Math.floor(scaleIndex / modeIntervals.length);
+    intervals.push(modeIntervals[wrappedIndex] - rootModeInterval + octaveOffset * 12);
+  }
+  return intervals;
+}
+
+function fixedIntervalMidiNotes(rootNote: number, intervals: readonly number[]): number[] {
+  const root = clampSequencerNote(rootNote);
+  const notes: number[] = [];
+  for (const interval of intervals) {
+    const note = clampSequencerNote(root + interval);
+    if (!notes.includes(note)) {
+      notes.push(note);
+    }
+  }
+  return notes;
+}
+
+function diatonicTertianMidiNotes(
+  rootNote: number,
+  scaleRoot: SequencerScaleRoot,
+  mode: SequencerMode,
+  toneCount: number
+): number[] {
+  const intervals = diatonicTertianIntervalsForRoot(rootNote, scaleRoot, mode, toneCount);
+  if (!intervals) {
+    return [clampSequencerNote(rootNote)];
+  }
+  return fixedIntervalMidiNotes(rootNote, intervals);
+}
+
+function resolveChordOption(
+  chord: SequencerChord,
+  rootNote: number | null,
+  scaleRoot: SequencerScaleRoot,
+  mode: SequencerMode
+): SequencerChordOption {
+  if (chord === "none") {
+    const notes = typeof rootNote === "number" ? [clampSequencerNote(rootNote)] : [];
+    const inScaleToneCount =
+      typeof rootNote === "number" && scaleDegreeForNote(rootNote, scaleRoot, mode) !== null ? 1 : 0;
+    return {
+      value: "none",
+      label: "none",
+      group: "none",
+      color: "neutral",
+      notes,
+      inScaleToneCount
+    };
+  }
+
+  const definition = SEQUENCER_CHORD_MAP.get(chord);
+  if (!definition) {
+    return resolveChordOption("none", rootNote, scaleRoot, mode);
+  }
+
+  if (typeof rootNote !== "number") {
+    return {
+      value: chord,
+      label: definition.label,
+      group: "chromatic",
+      color: "neutral",
+      notes: [],
+      inScaleToneCount: 0
+    };
+  }
+
+  const root = clampSequencerNote(rootNote);
+  const rootPitchClass = normalizePitchClass(root);
+  const scalePitchClassSet = scalePitchClassSetForMode(scaleRoot, mode);
+  const rootInScale = scalePitchClassSet.has(rootPitchClass);
+
+  let isDiatonic = false;
+  if (rootInScale) {
+    if (definition.family === "tertian") {
+      const diatonicIntervals = diatonicTertianIntervalsForRoot(rootPitchClass, scaleRoot, mode, definition.intervals.length);
+      isDiatonic = diatonicIntervals !== null && arraysEqualNumbers(diatonicIntervals, definition.intervals);
+    } else {
+      isDiatonic = definition.intervals.every((interval) => scalePitchClassSet.has(normalizePitchClass(rootPitchClass + interval)));
+    }
+  }
+
+  const notes =
+    isDiatonic && definition.family === "tertian"
+      ? diatonicTertianMidiNotes(root, scaleRoot, mode, definition.intervals.length)
+      : fixedIntervalMidiNotes(root, definition.intervals);
+
+  let inScaleToneCount = 0;
+  for (const note of notes) {
+    if (scalePitchClassSet.has(normalizePitchClass(note))) {
+      inScaleToneCount += 1;
+    }
+  }
+
+  return {
+    value: chord,
+    label: definition.label,
+    group: isDiatonic ? "diatonic" : "chromatic",
+    color: isDiatonic ? "green" : inScaleToneCount > 0 ? "orange" : "red",
+    notes,
+    inScaleToneCount
+  };
+}
+
+export function buildSequencerChordOptions(
+  rootNote: number | null,
+  scaleRoot: SequencerScaleRoot,
+  mode: SequencerMode
+): SequencerChordOption[] {
+  const options: SequencerChordOption[] = [resolveChordOption("none", rootNote, scaleRoot, mode)];
+  for (const definition of SEQUENCER_CHORD_OPTIONS) {
+    options.push(resolveChordOption(definition.value, rootNote, scaleRoot, mode));
+  }
+  return options;
+}
+
+export function buildSequencerStepChordMidiNotes(
+  rootNote: number | null,
+  chord: SequencerChord,
+  scaleRoot: SequencerScaleRoot,
+  mode: SequencerMode
+): number[] {
+  if (typeof rootNote !== "number") {
+    return [];
+  }
+  return resolveChordOption(normalizeSequencerChord(chord), rootNote, scaleRoot, mode).notes;
 }
 
 export function defaultModeForScaleType(scaleType: SequencerScaleType): SequencerMode {

@@ -12,7 +12,7 @@ import { RuntimePanel } from "./components/RuntimePanel";
 import { SequencerPage } from "./components/SequencerPage";
 import { documentationUiCopy, getHelpDocument } from "./lib/documentation";
 import { GUI_LANGUAGE_OPTIONS } from "./lib/guiLanguage";
-import { resolveMidiInputName, sampleControllerCurveValue } from "./lib/sequencer";
+import { buildSequencerStepChordMidiNotes, resolveMidiInputName, sampleControllerCurveValue } from "./lib/sequencer";
 import { useAppStore } from "./store/useAppStore";
 import orchestronIcon from "./assets/orchestron-icon.png";
 import type {
@@ -867,6 +867,7 @@ export default function App() {
   const setSequencerTrackScale = useAppStore((state) => state.setSequencerTrackScale);
   const setSequencerTrackMode = useAppStore((state) => state.setSequencerTrackMode);
   const setSequencerTrackStepNote = useAppStore((state) => state.setSequencerTrackStepNote);
+  const setSequencerTrackStepChord = useAppStore((state) => state.setSequencerTrackStepChord);
   const setSequencerTrackStepHold = useAppStore((state) => state.setSequencerTrackStepHold);
   const setSequencerTrackStepVelocity = useAppStore((state) => state.setSequencerTrackStepVelocity);
   const clearSequencerTrackSteps = useAppStore((state) => state.clearSequencerTrackSteps);
@@ -915,6 +916,34 @@ export default function App() {
 
     const url = `${wsBaseUrl()}/ws/sessions/${activeSessionId}`;
     const socket = new WebSocket(url);
+    let heartbeatTimer: number | null = null;
+
+    const clearHeartbeatTimer = () => {
+      if (heartbeatTimer !== null) {
+        window.clearInterval(heartbeatTimer);
+        heartbeatTimer = null;
+      }
+    };
+
+    const sendHeartbeat = () => {
+      if (socket.readyState !== WebSocket.OPEN) {
+        return;
+      }
+      try {
+        socket.send(JSON.stringify({ type: "heartbeat", timestamp_ms: Date.now() }));
+      } catch {
+        // Ignore heartbeat send failures during shutdown/reconnect races.
+      }
+    };
+
+    socket.onopen = () => {
+      sendHeartbeat();
+      heartbeatTimer = window.setInterval(sendHeartbeat, 2000);
+    };
+
+    socket.onclose = () => {
+      clearHeartbeatTimer();
+    };
 
     socket.onmessage = (message) => {
       try {
@@ -926,6 +955,7 @@ export default function App() {
     };
 
     return () => {
+      clearHeartbeatTimer();
       socket.close();
     };
   }, [activeSessionId, pushEvent]);
@@ -1565,6 +1595,19 @@ export default function App() {
   const instrumentsRunning = activeSessionState === "running";
 
   const selectedCount = selection.nodeIds.length + selection.connections.length;
+  const openInstrumentPatchIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const tab of instrumentTabs) {
+      if (tab.patch.id) {
+        ids.add(tab.patch.id);
+      }
+    }
+    return ids;
+  }, [instrumentTabs]);
+  const loadableInstrumentPatches = useMemo(
+    () => patches.filter((patch) => !openInstrumentPatchIds.has(patch.id)),
+    [openInstrumentPatchIds, patches]
+  );
   const instrumentTabItems = useMemo(
     () =>
       instrumentTabs.map((tab, index) => ({
@@ -1853,11 +1896,14 @@ export default function App() {
         queued_enabled: track.queuedEnabled,
         pads: track.pads.map((pad, padIndex) => ({
           pad_index: padIndex,
-          steps: pad.steps.map((step) => ({
-            note: step.note,
-            hold: step.hold,
-            velocity: step.velocity
-          }))
+          steps: pad.steps.map((step) => {
+            const notes = buildSequencerStepChordMidiNotes(step.note, step.chord, pad.scaleRoot, pad.mode);
+            return {
+              note: notes.length === 0 ? null : notes.length === 1 ? notes[0] : notes,
+              hold: step.hold,
+              velocity: step.velocity
+            };
+          })
         }))
       }))
     };
@@ -2951,7 +2997,7 @@ export default function App() {
                 guiLanguage={guiLanguage}
                 patchName={currentPatch.name}
                 patchDescription={currentPatch.description}
-                patches={patches}
+                patches={loadableInstrumentPatches}
                 currentPatchId={currentPatch.id}
                 loading={loading}
                 tabs={instrumentTabItems}
@@ -3119,6 +3165,7 @@ export default function App() {
             onSequencerTrackModeChange={setSequencerTrackMode}
             onSequencerTrackStepCountChange={setSequencerTrackStepCount}
             onSequencerTrackStepNoteChange={setSequencerTrackStepNote}
+            onSequencerTrackStepChordChange={setSequencerTrackStepChord}
             onSequencerTrackStepHoldChange={setSequencerTrackStepHold}
             onSequencerTrackStepVelocityChange={setSequencerTrackStepVelocity}
             onSequencerTrackClearSteps={clearSequencerTrackSteps}

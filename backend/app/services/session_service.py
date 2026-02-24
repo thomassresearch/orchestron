@@ -52,6 +52,9 @@ class SessionService:
         self._midi_service = midi_service
         self._event_bus = event_bus
         self._sessions: dict[str, RuntimeSession] = {}
+        self._frontend_connections: dict[str, set[str]] = {}
+        self._frontend_heartbeat_watchdogs: dict[str, dict[str, asyncio.Task[None]]] = {}
+        self._frontend_auto_stop_tasks: dict[str, asyncio.Task[None]] = {}
         self._lock = asyncio.Lock()
         self._loop: asyncio.AbstractEventLoop | None = None
 
@@ -114,6 +117,30 @@ class SessionService:
         self._remember_running_loop()
         runtime = await self._get_session(session_id)
         return self._session_info(runtime)
+
+    async def frontend_connected(self, session_id: str, connection_id: str) -> None:
+        self._remember_running_loop()
+        async with self._lock:
+            if session_id not in self._sessions:
+                return
+            self._cancel_frontend_auto_stop_task_unlocked(session_id)
+            connections = self._frontend_connections.setdefault(session_id, set())
+            connections.add(connection_id)
+            self._reset_frontend_heartbeat_watchdog_unlocked(session_id, connection_id)
+
+    async def frontend_heartbeat(self, session_id: str, connection_id: str) -> None:
+        self._remember_running_loop()
+        async with self._lock:
+            if session_id not in self._sessions:
+                return
+            connections = self._frontend_connections.get(session_id)
+            if not connections or connection_id not in connections:
+                return
+            self._reset_frontend_heartbeat_watchdog_unlocked(session_id, connection_id)
+
+    async def frontend_disconnected(self, session_id: str, connection_id: str) -> None:
+        self._remember_running_loop()
+        await self._drop_frontend_connection(session_id, connection_id, immediate_stop=False, reason="disconnect")
 
     async def compile_session(self, session_id: str) -> CompileResponse:
         self._remember_running_loop()
@@ -441,8 +468,18 @@ class SessionService:
         await runtime.worker.close_webrtc_audio()
         runtime.worker.stop()
 
+        heartbeat_tasks_to_cancel: list[asyncio.Task[None]] = []
+        auto_stop_task_to_cancel: asyncio.Task[None] | None = None
         async with self._lock:
             self._sessions.pop(session_id, None)
+            heartbeat_tasks = self._frontend_heartbeat_watchdogs.pop(session_id, {})
+            heartbeat_tasks_to_cancel = list(heartbeat_tasks.values())
+            self._frontend_connections.pop(session_id, None)
+            auto_stop_task_to_cancel = self._frontend_auto_stop_tasks.pop(session_id, None)
+        for task in heartbeat_tasks_to_cancel:
+            task.cancel()
+        if auto_stop_task_to_cancel is not None:
+            auto_stop_task_to_cancel.cancel()
 
         await self._publish(session_id, "session_deleted", {})
 
@@ -499,6 +536,146 @@ class SessionService:
             self._loop = asyncio.get_running_loop()
         except RuntimeError:
             return
+
+    async def _drop_frontend_connection(
+        self,
+        session_id: str,
+        connection_id: str,
+        *,
+        immediate_stop: bool,
+        reason: str,
+    ) -> None:
+        should_stop_now = False
+
+        async with self._lock:
+            self._cancel_frontend_heartbeat_watchdog_unlocked(session_id, connection_id)
+
+            connections = self._frontend_connections.get(session_id)
+            if not connections or connection_id not in connections:
+                return
+
+            connections.discard(connection_id)
+            if not connections:
+                self._frontend_connections.pop(session_id, None)
+
+            if session_id not in self._sessions:
+                return
+
+            if self._frontend_connections.get(session_id):
+                return
+
+            if immediate_stop:
+                self._cancel_frontend_auto_stop_task_unlocked(session_id)
+                should_stop_now = True
+            else:
+                self._schedule_frontend_auto_stop_task_unlocked(
+                    session_id=session_id,
+                    delay_seconds=self._settings.frontend_disconnect_grace_seconds,
+                    reason=reason,
+                )
+
+        if should_stop_now:
+            await self._auto_stop_session_if_running(session_id, reason)
+
+    def _reset_frontend_heartbeat_watchdog_unlocked(self, session_id: str, connection_id: str) -> None:
+        watchdogs = self._frontend_heartbeat_watchdogs.setdefault(session_id, {})
+        existing = watchdogs.pop(connection_id, None)
+        if existing is not None:
+            existing.cancel()
+        watchdogs[connection_id] = asyncio.create_task(
+            self._frontend_heartbeat_watchdog(session_id, connection_id),
+            name=f"frontend-heartbeat:{session_id}:{connection_id}",
+        )
+
+    def _cancel_frontend_heartbeat_watchdog_unlocked(self, session_id: str, connection_id: str) -> None:
+        watchdogs = self._frontend_heartbeat_watchdogs.get(session_id)
+        if not watchdogs:
+            return
+        task = watchdogs.pop(connection_id, None)
+        current_task = asyncio.current_task()
+        if task is not None and task is not current_task:
+            task.cancel()
+        if not watchdogs:
+            self._frontend_heartbeat_watchdogs.pop(session_id, None)
+
+    async def _frontend_heartbeat_watchdog(self, session_id: str, connection_id: str) -> None:
+        try:
+            await asyncio.sleep(self._settings.frontend_heartbeat_timeout_seconds)
+        except asyncio.CancelledError:
+            return
+
+        logger.info(
+            "Frontend heartbeat timed out for session '%s' connection '%s'",
+            session_id,
+            connection_id,
+        )
+        await self._drop_frontend_connection(
+            session_id,
+            connection_id,
+            immediate_stop=True,
+            reason="heartbeat_timeout",
+        )
+
+    def _schedule_frontend_auto_stop_task_unlocked(
+        self,
+        *,
+        session_id: str,
+        delay_seconds: float,
+        reason: str,
+    ) -> None:
+        self._cancel_frontend_auto_stop_task_unlocked(session_id)
+        self._frontend_auto_stop_tasks[session_id] = asyncio.create_task(
+            self._frontend_auto_stop_after_delay(session_id, delay_seconds, reason),
+            name=f"frontend-autostop:{session_id}",
+        )
+
+    def _cancel_frontend_auto_stop_task_unlocked(self, session_id: str) -> None:
+        task = self._frontend_auto_stop_tasks.pop(session_id, None)
+        if task is not None:
+            task.cancel()
+
+    async def _frontend_auto_stop_after_delay(self, session_id: str, delay_seconds: float, reason: str) -> None:
+        try:
+            await asyncio.sleep(delay_seconds)
+
+            async with self._lock:
+                if self._frontend_connections.get(session_id):
+                    return
+                current = self._frontend_auto_stop_tasks.get(session_id)
+                if current is not asyncio.current_task():
+                    return
+                self._frontend_auto_stop_tasks.pop(session_id, None)
+
+            await self._auto_stop_session_if_running(session_id, reason)
+        except asyncio.CancelledError:
+            return
+        except Exception:
+            logger.exception("Failed during frontend disconnect auto-stop for session '%s'", session_id)
+
+    async def _auto_stop_session_if_running(self, session_id: str, reason: str) -> None:
+        try:
+            runtime = await self._get_session(session_id)
+        except HTTPException as exc:
+            if exc.status_code == 404:
+                return
+            raise
+
+        if not runtime.worker.is_running:
+            return
+
+        logger.info("Auto-stopping session '%s' after frontend loss (%s)", session_id, reason)
+        try:
+            await self.stop_session(session_id)
+        except HTTPException as exc:
+            if exc.status_code != 404:
+                logger.warning(
+                    "Auto-stop for session '%s' failed with HTTP %s: %s",
+                    session_id,
+                    exc.status_code,
+                    exc.detail,
+                )
+        except Exception:
+            logger.exception("Auto-stop for session '%s' failed", session_id)
 
     def _sync_runtime_direct_midi_sink(self, runtime: RuntimeSession) -> None:
         selector = runtime.midi_input or self._settings.default_midi_device
