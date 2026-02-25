@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   ChangeEvent,
   CSSProperties,
@@ -1848,6 +1848,7 @@ interface SequencerPageProps {
   onDrummerSequencerRowAdd: (trackId: string) => void;
   onDrummerSequencerRowRemove: (trackId: string, rowId: string) => void;
   onDrummerSequencerRowKeyChange: (trackId: string, rowId: string, key: number) => void;
+  onDrummerSequencerRowKeyPreview?: (key: number, channel: number) => void;
   onDrummerSequencerCellToggle: (trackId: string, rowId: string, stepIndex: number, active?: boolean) => void;
   onDrummerSequencerCellVelocityChange: (trackId: string, rowId: string, stepIndex: number, velocity: number) => void;
   onDrummerSequencerTrackClearSteps: (trackId: string) => void;
@@ -2078,6 +2079,7 @@ export function SequencerPage({
   onDrummerSequencerRowAdd,
   onDrummerSequencerRowRemove,
   onDrummerSequencerRowKeyChange,
+  onDrummerSequencerRowKeyPreview,
   onDrummerSequencerCellToggle,
   onDrummerSequencerCellVelocityChange,
   onDrummerSequencerTrackClearSteps,
@@ -2202,6 +2204,16 @@ export function SequencerPage({
   const [pendingStartAllPianoRolls, setPendingStartAllPianoRolls] = useState(false);
   const [deletePerformanceDialogOpen, setDeletePerformanceDialogOpen] = useState(false);
   const padTransposePressRef = useRef<Record<string, { timerId: number; longPressTriggered: boolean }>>({});
+  const drummerLedDragRef = useRef<{
+    pointerId: number;
+    trackId: string;
+    rowId: string;
+    stepIndex: number;
+    startY: number;
+    startVelocity: number;
+    startedActive: boolean;
+    moved: boolean;
+  } | null>(null);
   const triggerConfigLoad = useCallback(() => {
     configFileInputRef.current?.click();
   }, []);
@@ -2212,6 +2224,7 @@ export function SequencerPage({
         window.clearTimeout(padTransposePressRef.current[key].timerId);
       }
       padTransposePressRef.current = {};
+      drummerLedDragRef.current = null;
     };
   }, []);
 
@@ -2443,6 +2456,77 @@ export function SequencerPage({
     },
     [onSequencerPadTransposeShort, padTransposePressKey]
   );
+
+  const handleDrummerLedPointerDown = useCallback(
+    (
+      event: ReactPointerEvent<HTMLButtonElement>,
+      trackId: string,
+      rowId: string,
+      stepIndex: number,
+      active: boolean,
+      velocity: number
+    ) => {
+      if (event.pointerType === "mouse" && event.button !== 0) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      if (event.currentTarget.setPointerCapture) {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      }
+      if (!active) {
+        onDrummerSequencerCellToggle(trackId, rowId, stepIndex, true);
+      }
+      drummerLedDragRef.current = {
+        pointerId: event.pointerId,
+        trackId,
+        rowId,
+        stepIndex,
+        startY: event.clientY,
+        startVelocity: Math.max(0, Math.min(127, Math.round(velocity))),
+        startedActive: active,
+        moved: false
+      };
+    },
+    [onDrummerSequencerCellToggle]
+  );
+
+  const handleDrummerLedPointerMove = useCallback(
+    (event: ReactPointerEvent<HTMLButtonElement>) => {
+      const drag = drummerLedDragRef.current;
+      if (!drag || drag.pointerId !== event.pointerId) {
+        return;
+      }
+      event.preventDefault();
+      const deltaY = drag.startY - event.clientY;
+      const nextVelocity = Math.max(0, Math.min(127, drag.startVelocity + Math.round(deltaY)));
+      if (Math.abs(deltaY) >= 2) {
+        drag.moved = true;
+      }
+      onDrummerSequencerCellVelocityChange(drag.trackId, drag.rowId, drag.stepIndex, nextVelocity);
+    },
+    [onDrummerSequencerCellVelocityChange]
+  );
+
+  const handleDrummerLedPointerEnd = useCallback(
+    (event: ReactPointerEvent<HTMLButtonElement>) => {
+      const drag = drummerLedDragRef.current;
+      if (!drag || drag.pointerId !== event.pointerId) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      if (!drag.moved && drag.startedActive) {
+        onDrummerSequencerCellToggle(drag.trackId, drag.rowId, drag.stepIndex, false);
+      }
+      drummerLedDragRef.current = null;
+    },
+    [onDrummerSequencerCellToggle]
+  );
+
+  const cancelDrummerLedPointer = useCallback(() => {
+    drummerLedDragRef.current = null;
+  }, []);
 
   const transportStartButtonClass =
     "rounded-md border border-emerald-400/55 bg-emerald-400/20 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-300 transition hover:bg-emerald-400/30 disabled:cursor-not-allowed disabled:opacity-50";
@@ -3721,13 +3805,39 @@ export function SequencerPage({
                       </div>
 
                       <div className="overflow-x-auto pb-1">
-                        <div className="flex min-w-max gap-2">
-                          <div className="shrink-0 rounded-lg border border-slate-700 bg-slate-950/70 p-2">
-                            <div className="mb-1 text-[10px] uppercase tracking-[0.18em] text-slate-400">Keys</div>
-                            <div className="space-y-1.5">
-                              {track.rows.map((row, rowIndex) => (
-                                <div key={`${track.id}-row-key-${row.id}`} className="flex items-center gap-1">
-                                  <span className="w-6 text-center font-mono text-[10px] text-slate-500">
+                        <div
+                          className="grid w-full items-center gap-x-1 gap-y-1"
+                          style={{
+                            gridTemplateColumns: `minmax(136px, 136px) repeat(${track.stepCount}, minmax(20px, 1fr))`,
+                            minWidth: `${136 + track.stepCount * 21}px`
+                          }}
+                        >
+                          <div className="rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-slate-400">
+                            Keys
+                          </div>
+                          {stepIndices.map((step) => {
+                            const isCurrentStep = track.enabled && sequencer.isPlaying && localPlayhead === step;
+                            return (
+                              <div
+                                key={`${track.id}-drum-header-${step}`}
+                                className={`flex h-5 min-w-0 items-center justify-center rounded border font-mono text-[9px] ${
+                                  isCurrentStep
+                                    ? "border-emerald-400/80 bg-emerald-400/15 text-emerald-200"
+                                    : "border-slate-700 bg-slate-950/70 text-slate-400"
+                                }`}
+                              >
+                                {step + 1}
+                              </div>
+                            );
+                          })}
+
+                          {track.rows.map((row, rowIndex) => {
+                            const activePad = track.pads[track.activePad];
+                            const padRow = activePad?.rows.find((candidate) => candidate.rowId === row.id) ?? null;
+                            return (
+                              <Fragment key={`${track.id}-drum-row-${row.id}`}>
+                                <div className="flex h-7 items-center gap-0.5 rounded-md border border-slate-700 bg-slate-950/70 px-1">
+                                  <span className="w-4 text-center font-mono text-[9px] text-slate-500">
                                     {rowIndex + 1}
                                   </span>
                                   <input
@@ -3736,97 +3846,117 @@ export function SequencerPage({
                                     max={127}
                                     step={1}
                                     value={row.key}
-                                    onChange={(event) =>
-                                      onDrummerSequencerRowKeyChange(track.id, row.id, Number(event.target.value))
-                                    }
-                                    className="w-20 rounded border border-slate-600 bg-slate-950 px-1.5 py-1 text-center font-mono text-xs text-slate-100 outline-none ring-accent/40 transition focus:ring"
+                                    onChange={(event) => {
+                                      const raw = event.target.value.trim();
+                                      if (raw.length === 0) {
+                                        return;
+                                      }
+                                      const nextKey = Number(raw);
+                                      onDrummerSequencerRowKeyChange(track.id, row.id, nextKey);
+                                      onDrummerSequencerRowKeyPreview?.(nextKey, track.midiChannel);
+                                    }}
+                                    className="w-14 rounded border border-slate-600 bg-slate-950 px-1 py-0.5 text-center font-mono text-[11px] text-slate-100 outline-none ring-accent/40 transition focus:ring"
                                     aria-label={`Drum key ${rowIndex + 1}`}
                                   />
                                   <button
                                     type="button"
                                     onClick={() => onDrummerSequencerRowRemove(track.id, row.id)}
                                     disabled={track.rows.length <= 1}
-                                    className="rounded border border-slate-700 bg-slate-900 px-1.5 py-1 text-[10px] text-slate-300 transition hover:border-rose-400 hover:text-rose-200 disabled:cursor-not-allowed disabled:opacity-40"
+                                    className="rounded border border-slate-700 bg-slate-900 px-0.5 py-0.5 text-[9px] text-slate-300 transition hover:border-rose-400 hover:text-rose-200 disabled:cursor-not-allowed disabled:opacity-40"
                                     title={ui.remove}
                                     aria-label={`${ui.remove} drum key ${rowIndex + 1}`}
                                   >
                                     x
                                   </button>
                                 </div>
-                              ))}
-                            </div>
-                          </div>
 
-                          <div
-                            className="grid gap-1.5"
-                            style={{
-                              gridTemplateColumns: `repeat(${track.stepCount}, minmax(82px, 1fr))`,
-                              minWidth: `${Math.max(360, track.stepCount * 84)}px`
-                            }}
-                          >
-                            {stepIndices.map((step) => {
-                              const isCurrentStep = track.enabled && sequencer.isPlaying && localPlayhead === step;
-                              return (
-                                <div
-                                  key={`${track.id}-drum-step-${step}`}
-                                  className={`rounded-md border p-1.5 ${
-                                    isCurrentStep
-                                      ? "border-emerald-400/70 bg-emerald-900/10 shadow-[0_0_0_1px_rgba(74,222,128,0.25)]"
-                                      : "border-slate-700 bg-slate-900"
-                                  }`}
-                                >
-                                  <div className="mb-1 text-center font-mono text-[10px] uppercase tracking-[0.18em] text-slate-400">
-                                    {step + 1}
-                                  </div>
-                                  <div className="space-y-1">
-                                    {track.rows.map((row) => {
-                                      const pad = track.pads[track.activePad];
-                                      const padRow =
-                                        pad?.rows.find((candidate) => candidate.rowId === row.id) ?? null;
-                                      const cell = padRow?.steps[step] ?? { active: false, velocity: 127 };
-                                      const ledClass =
-                                        cell.active && isCurrentStep
-                                          ? "border-emerald-200 bg-emerald-300 shadow-[0_0_10px_rgba(110,231,183,1)] animate-pulse"
-                                          : cell.active
-                                            ? "border-rose-200 bg-rose-400 shadow-[0_0_8px_rgba(251,113,133,0.95)]"
-                                            : "border-slate-500 bg-slate-700";
-                                      return (
-                                        <div key={`${track.id}-drum-cell-${row.id}-${step}`} className="rounded border border-slate-700/70 bg-slate-950/70 px-1 py-1">
-                                          <button
-                                            type="button"
-                                            onClick={() => onDrummerSequencerCellToggle(track.id, row.id, step)}
-                                            className="flex w-full items-center justify-center"
-                                            aria-pressed={cell.active}
-                                            aria-label={`Step ${step + 1}, drum key ${row.key}`}
-                                          >
-                                            <span className={`h-3 w-3 rounded-full border ${ledClass}`} />
-                                          </button>
-                                          <input
-                                            type="number"
-                                            min={0}
-                                            max={127}
-                                            step={1}
-                                            value={cell.velocity}
-                                            disabled={!cell.active}
-                                            onChange={(event) =>
-                                              onDrummerSequencerCellVelocityChange(
-                                                track.id,
-                                                row.id,
-                                                step,
-                                                Number(event.target.value)
-                                              )
-                                            }
-                                            className="mt-1 w-full rounded border border-slate-600 bg-slate-950 px-1 py-0.5 text-center font-mono text-[10px] text-slate-100 outline-none ring-accent/40 transition focus:ring disabled:cursor-not-allowed disabled:opacity-40"
-                                            aria-label={`Velocity step ${step + 1} key ${row.key}`}
-                                          />
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
+                                {stepIndices.map((step) => {
+                                  const cell = padRow?.steps[step] ?? { active: false, velocity: 127 };
+                                  const isCurrentStep = track.enabled && sequencer.isPlaying && localPlayhead === step;
+                                  const activeAlpha = 0.14 + (Math.max(0, Math.min(127, cell.velocity)) / 127) * 0.86;
+                                  const ledDotStyle: CSSProperties | undefined = cell.active
+                                    ? isCurrentStep
+                                      ? {
+                                          borderColor: "rgb(74 222 128)",
+                                          backgroundColor: `rgba(74, 222, 128, ${activeAlpha})`,
+                                          boxShadow: `0 0 ${4 + activeAlpha * 8}px rgba(74, 222, 128, ${0.35 + activeAlpha * 0.45})`
+                                        }
+                                      : {
+                                          borderColor: "rgb(251 113 133)",
+                                          backgroundColor: `rgba(251, 113, 133, ${activeAlpha})`,
+                                          boxShadow: `0 0 ${3 + activeAlpha * 6}px rgba(251, 113, 133, ${0.25 + activeAlpha * 0.35})`
+                                      }
+                                    : undefined;
+                                  const ledDotClass = cell.active
+                                    ? isCurrentStep
+                                      ? "h-3 w-3 rounded-full border animate-pulse"
+                                      : "h-3 w-3 rounded-full border"
+                                    : "h-3 w-3 rounded-full border border-slate-500 bg-slate-700";
+
+                                  return (
+                                    <button
+                                      key={`${track.id}-drum-led-${row.id}-${step}`}
+                                      type="button"
+                                      onPointerDown={(event) =>
+                                        handleDrummerLedPointerDown(
+                                          event,
+                                          track.id,
+                                          row.id,
+                                          step,
+                                          cell.active,
+                                          cell.velocity
+                                        )
+                                      }
+                                      onPointerMove={handleDrummerLedPointerMove}
+                                      onPointerUp={handleDrummerLedPointerEnd}
+                                      onPointerCancel={cancelDrummerLedPointer}
+                                      onKeyDown={(event) => {
+                                        if (event.key === " " || event.key === "Enter") {
+                                          event.preventDefault();
+                                          onDrummerSequencerCellToggle(track.id, row.id, step);
+                                        }
+                                        if (event.key === "ArrowUp") {
+                                          event.preventDefault();
+                                          if (!cell.active) {
+                                            onDrummerSequencerCellToggle(track.id, row.id, step, true);
+                                          }
+                                          onDrummerSequencerCellVelocityChange(
+                                            track.id,
+                                            row.id,
+                                            step,
+                                            Math.min(127, cell.velocity + 8)
+                                          );
+                                        }
+                                        if (event.key === "ArrowDown") {
+                                          event.preventDefault();
+                                          if (!cell.active) {
+                                            onDrummerSequencerCellToggle(track.id, row.id, step, true);
+                                          }
+                                          onDrummerSequencerCellVelocityChange(
+                                            track.id,
+                                            row.id,
+                                            step,
+                                            Math.max(0, cell.velocity - 8)
+                                          );
+                                        }
+                                      }}
+                                      className={`flex h-7 min-w-0 items-center justify-center rounded-md border transition ${
+                                        isCurrentStep
+                                          ? "border-emerald-500/60 bg-emerald-950/10"
+                                          : "border-slate-700 bg-slate-900/35 hover:bg-slate-800/35"
+                                      }`}
+                                      aria-pressed={cell.active}
+                                      aria-label={`Step ${step + 1}, drum key ${row.key}, velocity ${cell.velocity}`}
+                                      title={`Step ${step + 1} | key ${row.key} | velocity ${cell.velocity} (drag up/down to change)`}
+                                    >
+                                      <span className={ledDotClass} style={ledDotStyle} aria-hidden="true" />
+                                      <span className="sr-only">{cell.velocity}</span>
+                                    </button>
+                                  );
+                                })}
+                              </Fragment>
+                            );
+                          })}
                         </div>
                       </div>
                     </article>

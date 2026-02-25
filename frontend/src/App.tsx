@@ -2168,6 +2168,32 @@ export default function App() {
     [setDrummerSequencerTrackEnabled]
   );
 
+  const onDrummerSequencerRowKeyPreview = useCallback(
+    (note: number, channel: number) => {
+      const sessionId = activeSessionId;
+      if (activeSessionState !== "running" || !sessionId) {
+        return;
+      }
+
+      const normalizedNote = Math.max(0, Math.min(127, Math.round(note)));
+      const normalizedChannel = Math.max(1, Math.min(16, Math.round(channel)));
+      void sendDirectMidiEvent(
+        { type: "note_on", channel: normalizedChannel, note: normalizedNote, velocity: 110 },
+        sessionId
+      )
+        .then(() => {
+          window.setTimeout(() => {
+            void sendDirectMidiEvent(
+              { type: "note_off", channel: normalizedChannel, note: normalizedNote },
+              sessionId
+            ).catch(() => undefined);
+          }, 140);
+        })
+        .catch(() => undefined);
+    },
+    [activeSessionId, activeSessionState, sendDirectMidiEvent]
+  );
+
   const onStartInstrumentEngine = useCallback(() => {
     setSequencerError(null);
     void startSession();
@@ -3395,6 +3421,7 @@ export default function App() {
             onDrummerSequencerRowAdd={addDrummerSequencerRow}
             onDrummerSequencerRowRemove={removeDrummerSequencerRow}
             onDrummerSequencerRowKeyChange={setDrummerSequencerRowKey}
+            onDrummerSequencerRowKeyPreview={onDrummerSequencerRowKeyPreview}
             onDrummerSequencerCellToggle={toggleDrummerSequencerCell}
             onDrummerSequencerCellVelocityChange={setDrummerSequencerCellVelocity}
             onDrummerSequencerTrackClearSteps={clearDrummerSequencerTrackSteps}
