@@ -328,12 +328,15 @@ Program step-based melodic or rhythmic patterns.
 
 - Add/remove sequencer tracks.
 - Set track channel, scale, mode, and step count (16/32).
+- Synchronize a track to another sequencer with \`Sync To\`.
+- Reorder sequencer tracks by dragging the \`::\` handle on each track card.
 - Use pattern pads (P1..P8) for queued pattern changes.
 - Copy a pattern pad by dragging one pad and dropping it onto another pad (copies notes and pad scale/mode settings).
 - Pad edge transpose buttons (\`-\` / \`+\`):
-- Short click: transpose the stored notes to the previous/next degree within the current scale (scale root and mode stay the same).
+- Short click: transpose the stored notes to the previous/next degree within the current scale (scale root and mode stay the same), and update configured step chords to matching diatonic chord types for the transposed step when available.
 - Long press: move the pad tonic to the previous/next degree (key-step transpose), keep the mode, and update the pad scale root.
 - Set per-step notes or rests.
+- Drag a step \`::\` handle onto another step (including steps in other sequencer tracks) to copy step note/chord/velocity settings.
 - Control global BPM and running state.`
     },
     german: {
@@ -344,12 +347,15 @@ Programmiert schrittbasierte melodische oder rhythmische Patterns.
 
 - Sequencer-Spuren hinzufügen/entfernen.
 - Kanal, Skala, Modus und Schrittzahl (16/32) setzen.
+- Eine Spur über \`Sync zu\` mit einer anderen Sequencer-Spur synchronisieren.
+- Reihenfolge der Sequencer-Spuren per Drag-and-drop am \`::\`-Handle jeder Spurkarte ändern.
 - Pattern-Pads (P1..P8) für geplante Pattern-Wechsel nutzen.
 - Ein Pattern-Pad per Drag-and-drop auf ein anderes Pad ziehen, um es zu kopieren (kopiert Noten sowie Pad-Skala/Modus-Einstellungen).
 - Transpositions-Tasten am Pad-Rand (\`-\` / \`+\`):
-- Kurzer Klick: gespeicherte Noten zur vorherigen/nächsten Stufe innerhalb der aktuellen Skala verschieben (Grundton und Modus bleiben gleich).
+- Kurzer Klick: gespeicherte Noten zur vorherigen/nächsten Stufe innerhalb der aktuellen Skala verschieben (Grundton und Modus bleiben gleich) und konfigurierte Step-Akkorde auf passende diatonische Akkordtypen für den transponierten Schritt aktualisieren (falls verfügbar).
 - Langer Klick: Tonika zur vorherigen/nächsten Stufe verschieben (Key-Step-Transpose), Modus beibehalten und Pad-Grundton der Skala aktualisieren.
 - Pro Schritt Noten oder Pausen setzen.
+- Einen Schritt am \`::\`-Handle auf einen anderen Schritt ziehen (auch in anderen Sequencer-Spuren), um Noten-/Akkord-/Velocity-Einstellungen zu kopieren.
 - Globales BPM und Laufstatus steuern.`
     },
     french: {
@@ -360,12 +366,15 @@ Programme des patterns mélodiques ou rythmiques par pas.
 
 - Ajouter/supprimer des pistes séquenceur.
 - Régler canal, gamme, mode et nombre de pas (16/32).
+- Synchroniser une piste à une autre piste séquenceur via \`Sync vers\`.
+- Réordonner les pistes séquenceur par glisser-déposer avec la poignée \`::\` de chaque carte de piste.
 - Utiliser les pads P1..P8 pour changements de pattern.
 - Copier un pad de pattern en le glissant-deposant sur un autre pad (copie les notes et les réglages de gamme/mode du pad).
 - Boutons de transposition sur le bord du pad (\`-\` / \`+\`) :
-- Clic court : transpose les notes stockées vers le degré précédent/suivant dans la gamme actuelle (tonique et mode inchangés).
+- Clic court : transpose les notes stockées vers le degré précédent/suivant dans la gamme actuelle (tonique et mode inchangés) et met à jour les accords de pas configurés vers des types d'accords diatoniques correspondants pour le pas transposé quand c'est possible.
 - Appui long : déplace la tonique du pad vers le degré précédent/suivant (transposition par degré), conserve le mode et met à jour la tonique de la gamme du pad.
 - Définir note ou silence par pas.
+- Glisser la poignée \`::\` d'un pas sur un autre pas (y compris dans une autre piste séquenceur) pour copier les réglages note/accord/vélocité du pas.
 - Contrôler BPM global et état de lecture.`
     },
     spanish: {
@@ -376,12 +385,15 @@ Programa patrones melódicos o rítmicos por pasos.
 
 - Agrega/elimina pistas del secuenciador.
 - Ajusta canal, escala, modo y cantidad de pasos (16/32).
+- Sincroniza una pista con otro secuenciador usando \`Sync con\`.
+- Reordena las pistas del secuenciador arrastrando el asa \`::\` en cada tarjeta de pista.
 - Usa pads P1..P8 para cambios de patrón en cola.
 - Copia un pad de patrón arrastrándolo y soltándolo sobre otro pad (copia notas y ajustes de escala/modo del pad).
 - Botones de transposición en el borde del pad (\`-\` / \`+\`):
-- Clic corto: transpone las notas guardadas al grado anterior/siguiente dentro de la escala actual (la raíz y el modo no cambian).
+- Clic corto: transpone las notas guardadas al grado anterior/siguiente dentro de la escala actual (la raíz y el modo no cambian) y actualiza los acordes configurados del paso a tipos de acorde diatónicos correspondientes para el paso transpuesto cuando sea posible.
 - Pulsación larga: mueve la tónica del pad al grado anterior/siguiente (transposición por grado), mantiene el modo y actualiza la raíz de la escala del pad.
 - Define nota o silencio por paso.
+- Arrastra el asa \`::\` de un paso sobre otro paso (incluyendo pasos de otras pistas del secuenciador) para copiar ajustes de nota/acorde/velocidad.
 - Controla BPM global y estado de reproducción.`
     }
   },
@@ -393,12 +405,14 @@ Programa patrones melódicos o rítmicos por pasos.
 This help applies to one sequencer track card.
 
 - Start/stop the track independently (instrument transport must be running to start).
-- Set MIDI channel, scale root/type, and mode for note generation.
+- Set MIDI channel, \`Sync To\` target, scale root/type, and mode for note generation.
 - Switch step count between 16 and 32.
+- Drag the track \`::\` handle in the header to reorder sequencers in the panel.
 - Clear all steps for the current track.
 - Use pattern pads (P1..P8) to queue or switch patterns.
-- Use pad transpose buttons for short-click degree transpose and long-press tonic/key-step transpose.
-- Edit each step note, hold state, and velocity.`
+- Use pad transpose buttons for short-click degree transpose (also remaps configured step chords to matching diatonic chord types when available) and long-press tonic/key-step transpose.
+- Edit each step note, hold state, and velocity.
+- Drag a step \`::\` handle onto another step (same track or another sequencer track) to copy step note/chord/velocity settings.`
     },
     german: {
       title: "Sequencer-Spur",
@@ -407,12 +421,14 @@ This help applies to one sequencer track card.
 Diese Hilfe gilt für eine einzelne Sequencer-Spurkarte.
 
 - Spur separat starten/stoppen (zum Starten muss der Instrument-Transport laufen).
-- MIDI-Kanal, Skalen-Grundton/-Typ und Modus für die Notenerzeugung setzen.
+- MIDI-Kanal, \`Sync zu\`-Ziel, Skalen-Grundton/-Typ und Modus für die Notenerzeugung setzen.
 - Schrittzahl zwischen 16 und 32 umschalten.
+- Das \`::\`-Handle in der Kopfzeile ziehen, um Sequencer-Spuren im Panel umzusortieren.
 - Alle Schritte dieser Spur löschen.
 - Pattern-Pads (P1..P8) verwenden, um Patterns zu wechseln oder vorzumerken.
-- Pad-Transpositionsknöpfe für kurzen Klick (Stufentransposition) und langen Druck (Tonika/Key-Step-Transpose) nutzen.
-- Pro Schritt Note, Hold-Zustand und Velocity bearbeiten.`
+- Pad-Transpositionsknöpfe für kurzen Klick (Stufentransposition; aktualisiert konfigurierte Step-Akkorde wenn möglich auf passende diatonische Akkordtypen) und langen Druck (Tonika/Key-Step-Transpose) nutzen.
+- Pro Schritt Note, Hold-Zustand und Velocity bearbeiten.
+- Einen Schritt am \`::\`-Handle auf einen anderen Schritt ziehen (gleiche oder andere Sequencer-Spur), um Noten-/Akkord-/Velocity-Einstellungen zu kopieren.`
     },
     french: {
       title: "Piste séquenceur",
@@ -421,12 +437,14 @@ Diese Hilfe gilt für eine einzelne Sequencer-Spurkarte.
 Cette aide s'applique à une carte de piste séquenceur individuelle.
 
 - Démarrer/arrêter la piste indépendamment (le transport instrument doit être actif pour démarrer).
-- Régler canal MIDI, tonique/type de gamme et mode pour la génération de notes.
+- Régler canal MIDI, cible \`Sync vers\`, tonique/type de gamme et mode pour la génération de notes.
 - Basculer le nombre de pas entre 16 et 32.
+- Glisser la poignée \`::\` de l'en-tête pour réordonner les séquenceurs dans le panneau.
 - Effacer tous les pas de cette piste.
 - Utiliser les pads de pattern (P1..P8) pour changer ou mettre en file d'attente des patterns.
-- Utiliser les boutons de transposition de pad pour clic court (transposition par degré) et appui long (tonique / transposition par degré de tonalité).
-- Modifier note, état hold et vélocité pour chaque pas.`
+- Utiliser les boutons de transposition de pad pour clic court (transposition par degré; met aussi à jour les accords de pas configurés vers des types diatoniques correspondants quand c'est possible) et appui long (tonique / transposition par degré de tonalité).
+- Modifier note, état hold et vélocité pour chaque pas.
+- Glisser la poignée \`::\` d'un pas sur un autre pas (même piste ou autre piste séquenceur) pour copier les réglages note/accord/vélocité du pas.`
     },
     spanish: {
       title: "Pista del secuenciador",
@@ -435,12 +453,14 @@ Cette aide s'applique à une carte de piste séquenceur individuelle.
 Esta ayuda se aplica a una tarjeta individual de pista del secuenciador.
 
 - Inicia/detiene la pista de forma independiente (el transporte de instrumentos debe estar activo para iniciar).
-- Ajusta canal MIDI, raíz/tipo de escala y modo para la generación de notas.
+- Ajusta canal MIDI, destino \`Sync con\`, raíz/tipo de escala y modo para la generación de notas.
 - Cambia la cantidad de pasos entre 16 y 32.
+- Arrastra el asa \`::\` del encabezado para reordenar los secuenciadores en el panel.
 - Borra todos los pasos de esta pista.
 - Usa pads de patrón (P1..P8) para cambiar o poner en cola patrones.
-- Usa los botones de transposición del pad para clic corto (transposición por grado) y pulsación larga (tónica / transposición por grado tonal).
-- Edita nota, estado hold y velocidad de cada paso.`
+- Usa los botones de transposición del pad para clic corto (transposición por grado; también actualiza los acordes configurados del paso a tipos diatónicos correspondientes cuando sea posible) y pulsación larga (tónica / transposición por grado tonal).
+- Edita nota, estado hold y velocidad de cada paso.
+- Arrastra el asa \`::\` de un paso sobre otro paso (misma pista u otra pista del secuenciador) para copiar ajustes de nota/acorde/velocidad.`
     }
   },
   sequencer_controller_sequencer: {

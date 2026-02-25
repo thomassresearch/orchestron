@@ -144,6 +144,7 @@ class SessionSequencerTrackConfig(BaseModel):
     step_count: Literal[16, 32] = 16
     velocity: int = Field(default=100, ge=1, le=127)
     gate_ratio: float = Field(default=0.8, gt=0.0, le=1.0)
+    sync_to_track_id: str | None = Field(default=None, min_length=1, max_length=64)
     active_pad: int = Field(default=0, ge=0, le=7)
     queued_pad: int | None = Field(default=None, ge=0, le=7)
     pad_loop_enabled: bool = False
@@ -180,6 +181,15 @@ class SessionSequencerConfigRequest(BaseModel):
             if track.track_id in seen:
                 raise ValueError(f"Duplicate track_id '{track.track_id}'.")
             seen.add(track.track_id)
+        for track in self.tracks:
+            if track.sync_to_track_id is None:
+                continue
+            if track.sync_to_track_id == track.track_id:
+                raise ValueError(f"Track '{track.track_id}' cannot sync to itself.")
+            if track.sync_to_track_id not in seen:
+                raise ValueError(
+                    f"Track '{track.track_id}' sync_to_track_id '{track.sync_to_track_id}' does not exist."
+                )
         return self
 
 
@@ -195,6 +205,7 @@ class SessionSequencerTrackStatus(BaseModel):
     track_id: str
     midi_channel: int
     step_count: Literal[16, 32]
+    local_step: int = Field(ge=0)
     active_pad: int = Field(ge=0, le=7)
     queued_pad: int | None = Field(default=None, ge=0, le=7)
     pad_loop_position: int | None = Field(default=None, ge=0)

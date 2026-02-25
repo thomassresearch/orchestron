@@ -136,6 +136,7 @@ export interface SequencerTrackState {
   name: string;
   midiChannel: number;
   stepCount: 16 | 32;
+  syncToTrackId: string | null;
   scaleRoot: SequencerScaleRoot;
   scaleType: SequencerScaleType;
   mode: SequencerMode;
@@ -147,6 +148,7 @@ export interface SequencerTrackState {
   padLoopSequence: number[];
   pads: SequencerPadState[];
   steps: SequencerStepState[];
+  runtimeLocalStep: number | null;
   enabled: boolean;
   queuedEnabled: boolean | null;
 }
@@ -222,6 +224,7 @@ export interface SequencerConfigSnapshot {
       name: string;
       midiChannel: number;
       stepCount: 16 | 32;
+      syncToTrackId: string | null;
       scaleRoot: SequencerScaleRoot;
       scaleType: SequencerScaleType;
       mode: SequencerMode;
@@ -350,6 +353,7 @@ export interface SessionSequencerTrackConfig {
   step_count: 16 | 32;
   velocity?: number;
   gate_ratio?: number;
+  sync_to_track_id?: string | null;
   active_pad: number;
   queued_pad?: number | null;
   pad_loop_enabled?: boolean;
@@ -378,6 +382,7 @@ export interface SessionSequencerTrackStatus {
   track_id: string;
   midi_channel: number;
   step_count: 16 | 32;
+  local_step: number;
   active_pad: number;
   queued_pad: number | null;
   pad_loop_position: number | null;

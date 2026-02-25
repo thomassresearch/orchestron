@@ -542,6 +542,57 @@ export function buildSequencerStepChordMidiNotes(
   return resolveChordOption(normalizeSequencerChord(chord), rootNote, scaleRoot, mode).notes;
 }
 
+export function resolveDiatonicSequencerChordVariant(
+  chord: SequencerChord,
+  rootNote: number | null,
+  scaleRoot: SequencerScaleRoot,
+  mode: SequencerMode
+): SequencerChord {
+  const normalizedChord = normalizeSequencerChord(chord);
+  if (normalizedChord === "none" || typeof rootNote !== "number") {
+    return normalizedChord;
+  }
+
+  const definition = SEQUENCER_CHORD_MAP.get(normalizedChord);
+  if (!definition) {
+    return normalizedChord;
+  }
+
+  const root = clampSequencerNote(rootNote);
+  const candidates: SequencerChord[] = [];
+  const pushCandidate = (candidate: SequencerChord) => {
+    if (!candidates.includes(candidate)) {
+      candidates.push(candidate);
+    }
+  };
+
+  pushCandidate(normalizedChord);
+
+  for (const option of SEQUENCER_CHORD_OPTIONS) {
+    if (option.family === definition.family && option.intervals.length === definition.intervals.length) {
+      pushCandidate(option.value);
+    }
+  }
+
+  // Sus voicings can become non-diatonic on some degrees (for example a Locrian tonic with b5).
+  // In that case, fall back to the diatonic tertian chord with the same tone count.
+  if (definition.family !== "tertian") {
+    for (const option of SEQUENCER_CHORD_OPTIONS) {
+      if (option.family === "tertian" && option.intervals.length === definition.intervals.length) {
+        pushCandidate(option.value);
+      }
+    }
+  }
+
+  for (const candidate of candidates) {
+    if (resolveChordOption(candidate, root, scaleRoot, mode).group === "diatonic") {
+      return candidate;
+    }
+  }
+
+  return normalizedChord;
+}
+
 export function defaultModeForScaleType(scaleType: SequencerScaleType): SequencerMode {
   switch (scaleType) {
     case "major":

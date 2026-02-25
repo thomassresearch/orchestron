@@ -15,6 +15,7 @@ import {
   normalizeSequencerMode,
   normalizeSequencerScaleRoot,
   normalizeSequencerScaleType,
+  resolveDiatonicSequencerChordVariant,
   transposeSequencerNoteByScaleDegree,
   transposeSequencerTonicByDiatonicStep
 } from "../lib/sequencer";
@@ -131,6 +132,7 @@ interface AppStore {
   removeSequencerTrack: (trackId: string) => void;
   setSequencerTrackEnabled: (trackId: string, enabled: boolean, queueOnCycle?: boolean) => void;
   setSequencerTrackMidiChannel: (trackId: string, channel: number) => void;
+  setSequencerTrackSyncTarget: (trackId: string, syncToTrackId: string | null) => void;
   setSequencerTrackScale: (trackId: string, scaleRoot: SequencerScaleRoot, scaleType: SequencerScaleType) => void;
   setSequencerTrackMode: (trackId: string, mode: SequencerMode) => void;
   setSequencerTrackStepCount: (trackId: string, stepCount: 16 | 32) => void;
@@ -138,6 +140,12 @@ interface AppStore {
   setSequencerTrackStepChord: (trackId: string, index: number, chord: SequencerChord) => void;
   setSequencerTrackStepHold: (trackId: string, index: number, hold: boolean) => void;
   setSequencerTrackStepVelocity: (trackId: string, index: number, velocity: number) => void;
+  copySequencerTrackStepSettings: (
+    sourceTrackId: string,
+    sourceIndex: number,
+    targetTrackId: string,
+    targetIndex: number
+  ) => void;
   clearSequencerTrackSteps: (trackId: string) => void;
   copySequencerTrackPad: (trackId: string, sourcePadIndex: number, targetPadIndex: number) => void;
   transposeSequencerTrackPadInScale: (trackId: string, padIndex: number, direction: -1 | 1) => void;
@@ -148,6 +156,7 @@ interface AppStore {
   setSequencerTrackPadLoopRepeat: (trackId: string, repeat: boolean) => void;
   addSequencerTrackPadLoopStep: (trackId: string, padIndex: number) => void;
   removeSequencerTrackPadLoopStep: (trackId: string, sequenceIndex: number) => void;
+  moveSequencerTrack: (sourceTrackId: string, targetTrackId: string, position?: "before" | "after") => void;
 
   addPianoRoll: () => void;
   removePianoRoll: (rollId: string) => void;
@@ -190,6 +199,7 @@ interface AppStore {
     tracks?: Array<{
       trackId: string;
       stepCount?: 16 | 32;
+      localStep?: number;
       activePad?: number;
       queuedPad?: number | null;
       padLoopPosition?: number | null;
@@ -463,6 +473,7 @@ function defaultSequencerTrack(index = 1, midiChannel = 1): SequencerTrackState 
     name: `Sequencer ${index}`,
     midiChannel: channel,
     stepCount: 16,
+    syncToTrackId: null,
     scaleRoot,
     scaleType,
     mode,
@@ -474,6 +485,7 @@ function defaultSequencerTrack(index = 1, midiChannel = 1): SequencerTrackState 
     padLoopSequence: [],
     pads,
     steps: cloneSequencerSteps(pads[0]?.steps ?? DEFAULT_SEQUENCER_STEPS),
+    runtimeLocalStep: null,
     enabled: false,
     queuedEnabled: null
   };
@@ -607,6 +619,9 @@ function normalizeSequencerTrack(raw: unknown, index: number): SequencerTrackSta
       : typeof track.step_count === "number"
         ? normalizeStepCount(track.step_count)
         : fallback.stepCount;
+  const rawSyncToTrackId = track.syncToTrackId ?? track.sync_to_track_id;
+  const syncToTrackId =
+    typeof rawSyncToTrackId === "string" && rawSyncToTrackId.trim().length > 0 ? rawSyncToTrackId : null;
   const activePad = typeof track.activePad === "number" ? normalizePadIndex(track.activePad) : fallback.activePad;
   const queuedPad = typeof track.queuedPad === "number" ? normalizePadIndex(track.queuedPad) : null;
   const rawPadLoopPosition = track.padLoopPosition ?? track.pad_loop_position;
@@ -658,6 +673,7 @@ function normalizeSequencerTrack(raw: unknown, index: number): SequencerTrackSta
     name,
     midiChannel,
     stepCount,
+    syncToTrackId,
     scaleRoot: activePadTheory.scaleRoot,
     scaleType: activePadTheory.scaleType,
     mode: activePadTheory.mode,
@@ -669,6 +685,7 @@ function normalizeSequencerTrack(raw: unknown, index: number): SequencerTrackSta
     padLoopSequence,
     pads,
     steps: cloneSequencerSteps(activePadTheory.steps),
+    runtimeLocalStep: null,
     enabled,
     queuedEnabled
   };
@@ -746,6 +763,15 @@ function normalizeSequencerState(raw: unknown): SequencerState {
     }
   } else {
     tracks.push(normalizeSequencerTrack(sequencer, 1));
+  }
+  const validTrackIds = new Set(tracks.map((track) => track.id));
+  for (const track of tracks) {
+    if (track.syncToTrackId === null) {
+      continue;
+    }
+    if (track.syncToTrackId === track.id || !validTrackIds.has(track.syncToTrackId)) {
+      track.syncToTrackId = null;
+    }
   }
 
   const pianoRolls: PianoRollState[] = [];
@@ -1056,6 +1082,7 @@ function sequencerSnapshotForPersistence(sequencer: SequencerState): SequencerSt
       ...track,
       queuedPad: null,
       padLoopPosition: null,
+      runtimeLocalStep: null,
       queuedEnabled: null
     })),
     controllerSequencers: sequencer.controllerSequencers.map((controllerSequencer) => ({
@@ -1211,6 +1238,8 @@ function buildSequencerConfigSnapshot(
         name: track.name.trim().length > 0 ? track.name : `Sequencer ${index + 1}`,
         midiChannel: clampInt(track.midiChannel, 1, 16),
         stepCount: normalizeStepCount(track.stepCount),
+        syncToTrackId:
+          track.syncToTrackId && track.syncToTrackId !== track.id ? track.syncToTrackId : null,
         scaleRoot: normalizeSequencerScaleRoot(track.scaleRoot),
         scaleType: normalizeSequencerScaleType(track.scaleType),
         mode: normalizeSequencerMode(track.mode),
@@ -2012,7 +2041,16 @@ export const useAppStore = create<AppStore>((set, get) => {
         set({ error: "At least one performance device is required." });
         return;
       }
-      const nextTracks = sequencer.tracks.filter((track) => track.id !== trackId);
+      const nextTracks = sequencer.tracks
+        .filter((track) => track.id !== trackId)
+        .map((track) =>
+          track.syncToTrackId === trackId
+            ? {
+                ...track,
+                syncToTrackId: null
+              }
+            : track
+        );
 
       set({
         sequencer: {
@@ -2021,6 +2059,32 @@ export const useAppStore = create<AppStore>((set, get) => {
           tracks: nextTracks
         },
         error: null
+      });
+    },
+
+    moveSequencerTrack: (sourceTrackId, targetTrackId, position = "before") => {
+      const sequencer = get().sequencer;
+      const sourceIndex = sequencer.tracks.findIndex((track) => track.id === sourceTrackId);
+      const targetIndex = sequencer.tracks.findIndex((track) => track.id === targetTrackId);
+      if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) {
+        return;
+      }
+
+      const sourceTrack = sequencer.tracks[sourceIndex];
+      const remainingTracks = sequencer.tracks.filter((track) => track.id !== sourceTrackId);
+      const targetIndexInRemaining = remainingTracks.findIndex((track) => track.id === targetTrackId);
+      if (targetIndexInRemaining < 0) {
+        return;
+      }
+      const insertionIndex = position === "after" ? targetIndexInRemaining + 1 : targetIndexInRemaining;
+      const nextTracks = [...remainingTracks];
+      nextTracks.splice(insertionIndex, 0, sourceTrack);
+
+      set({
+        sequencer: {
+          ...sequencer,
+          tracks: nextTracks
+        }
       });
     },
 
@@ -2064,6 +2128,33 @@ export const useAppStore = create<AppStore>((set, get) => {
           ...sequencer,
           tracks: sequencer.tracks.map((track) =>
             track.id === trackId ? { ...track, midiChannel: normalizedChannel } : track
+          )
+        }
+      });
+    },
+
+    setSequencerTrackSyncTarget: (trackId, syncToTrackId) => {
+      const sequencer = get().sequencer;
+      const normalizedSyncTarget =
+        typeof syncToTrackId === "string" && syncToTrackId.trim().length > 0 ? syncToTrackId : null;
+      const trackIds = new Set(sequencer.tracks.map((track) => track.id));
+      if (!trackIds.has(trackId)) {
+        return;
+      }
+      const resolvedSyncTarget =
+        normalizedSyncTarget !== null && normalizedSyncTarget !== trackId && trackIds.has(normalizedSyncTarget)
+          ? normalizedSyncTarget
+          : null;
+      set({
+        sequencer: {
+          ...sequencer,
+          tracks: sequencer.tracks.map((track) =>
+            track.id === trackId
+              ? {
+                  ...track,
+                  syncToTrackId: resolvedSyncTarget
+                }
+              : track
           )
         }
       });
@@ -2363,6 +2454,77 @@ export const useAppStore = create<AppStore>((set, get) => {
       });
     },
 
+    copySequencerTrackStepSettings: (sourceTrackId, sourceIndex, targetTrackId, targetIndex) => {
+      if (
+        !Number.isFinite(sourceIndex) ||
+        !Number.isFinite(targetIndex) ||
+        sourceIndex < 0 ||
+        sourceIndex >= 32 ||
+        targetIndex < 0 ||
+        targetIndex >= 32
+      ) {
+        return;
+      }
+
+      const sequencer = get().sequencer;
+      const sourceTrack = sequencer.tracks.find((track) => track.id === sourceTrackId);
+      if (!sourceTrack) {
+        return;
+      }
+      const sourcePadIndex = normalizePadIndex(sourceTrack.activePad);
+      const sourcePad =
+        sourceTrack.pads[sourcePadIndex] ??
+        sourceTrack.pads[0] ?? {
+          steps: cloneSequencerSteps(DEFAULT_SEQUENCER_STEPS),
+          scaleRoot: sourceTrack.scaleRoot,
+          scaleType: sourceTrack.scaleType,
+          mode: sourceTrack.mode
+        };
+      const sourceStep = sourcePad.steps[sourceIndex] ?? createEmptySequencerStep();
+
+      set({
+        sequencer: {
+          ...sequencer,
+          tracks: sequencer.tracks.map((track) => {
+            if (track.id !== targetTrackId) {
+              return track;
+            }
+
+            const pads = track.pads.map((pad) => ({
+              ...pad,
+              steps: cloneSequencerSteps(pad.steps)
+            }));
+            const activePad = normalizePadIndex(track.activePad);
+            const activePadState =
+              pads[activePad] ?? {
+                steps: cloneSequencerSteps(DEFAULT_SEQUENCER_STEPS),
+                scaleRoot: track.scaleRoot,
+                scaleType: track.scaleType,
+                mode: track.mode
+              };
+            const steps = cloneSequencerSteps(activePadState.steps);
+            const targetStep = steps[targetIndex] ?? createEmptySequencerStep();
+            steps[targetIndex] = {
+              ...targetStep,
+              note: normalizeStepNote(sourceStep.note),
+              chord: normalizeSequencerChord(sourceStep.chord),
+              velocity: normalizeStepVelocity(sourceStep.velocity)
+            };
+            pads[activePad] = {
+              ...activePadState,
+              steps
+            };
+
+            return {
+              ...track,
+              pads,
+              steps
+            };
+          })
+        }
+      });
+    },
+
     clearSequencerTrackSteps: (trackId) => {
       const sequencer = get().sequencer;
       set({
@@ -2483,13 +2645,24 @@ export const useAppStore = create<AppStore>((set, get) => {
               mode: track.mode
             };
             const sourcePad = pads[normalizedPad] ?? fallbackPad;
-            const nextSteps = cloneSequencerSteps(sourcePad.steps).map((step) => ({
-              ...step,
-              note:
-                step.note === null
-                  ? null
-                  : transposeSequencerNoteByScaleDegree(step.note, sourcePad.scaleRoot, sourcePad.mode, direction)
-            }));
+            const nextSteps = cloneSequencerSteps(sourcePad.steps).map((step) => {
+              if (step.note === null) {
+                return { ...step };
+              }
+
+              const nextNote = transposeSequencerNoteByScaleDegree(
+                step.note,
+                sourcePad.scaleRoot,
+                sourcePad.mode,
+                direction
+              );
+
+              return {
+                ...step,
+                note: nextNote,
+                chord: resolveDiatonicSequencerChordVariant(step.chord, nextNote, sourcePad.scaleRoot, sourcePad.mode)
+              };
+            });
             const nextPad: SequencerPadState = {
               ...sourcePad,
               steps: nextSteps
@@ -3135,6 +3308,7 @@ export const useAppStore = create<AppStore>((set, get) => {
             ...track,
             queuedPad: isPlaying ? track.queuedPad : null,
             padLoopPosition: isPlaying ? track.padLoopPosition : null,
+            runtimeLocalStep: isPlaying ? track.runtimeLocalStep : null,
             queuedEnabled: isPlaying ? track.queuedEnabled : null
           }))
         }
@@ -3177,6 +3351,7 @@ export const useAppStore = create<AppStore>((set, get) => {
                   ...track,
                   queuedPad: null,
                   padLoopPosition: null,
+                  runtimeLocalStep: null,
                   queuedEnabled: null
                 };
               }
@@ -3185,6 +3360,12 @@ export const useAppStore = create<AppStore>((set, get) => {
 
             const nextActivePad =
               payload.activePad === undefined ? track.activePad : normalizePadIndex(payload.activePad);
+            const nextStepCount =
+              payload.stepCount === undefined ? track.stepCount : normalizeStepCount(payload.stepCount);
+            const nextRuntimeLocalStep =
+              payload.localStep === undefined
+                ? track.runtimeLocalStep
+                : Math.max(0, Math.round(payload.localStep)) % Math.max(1, nextStepCount);
             const nextQueuedPad =
               payload.queuedPad === undefined
                 ? track.queuedPad
@@ -3198,8 +3379,6 @@ export const useAppStore = create<AppStore>((set, get) => {
                   ? null
                   : Math.max(0, Math.round(payload.padLoopPosition));
             const nextEnabled = payload.enabled === undefined ? track.enabled : payload.enabled;
-            const nextStepCount =
-              payload.stepCount === undefined ? track.stepCount : normalizeStepCount(payload.stepCount);
             const nextQueuedEnabled =
               payload.queuedEnabled === undefined
                 ? track.queuedEnabled
@@ -3213,6 +3392,7 @@ export const useAppStore = create<AppStore>((set, get) => {
 
             if (
               nextActivePad === track.activePad &&
+              nextRuntimeLocalStep === track.runtimeLocalStep &&
               nextQueuedPad === track.queuedPad &&
               nextPadLoopPosition === track.padLoopPosition &&
               nextStepCount === track.stepCount &&
@@ -3228,6 +3408,7 @@ export const useAppStore = create<AppStore>((set, get) => {
             return {
               ...track,
               activePad: nextActivePad,
+              runtimeLocalStep: nextRuntimeLocalStep,
               queuedPad: nextQueuedPad,
               padLoopPosition: nextPadLoopPosition,
               stepCount: nextStepCount,

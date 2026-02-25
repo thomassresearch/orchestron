@@ -47,11 +47,22 @@ const PIANO_BLACK_KEY_HEIGHT = 84;
 const PIANO_SCROLL_STEP_PX = PIANO_WHITE_KEY_WIDTH * 8;
 const MIXED_SELECT_VALUE = "__mixed__";
 const SEQUENCER_PAD_DRAG_MIME = "application/x-visualcsound-sequencer-pad";
+const SEQUENCER_TRACK_DRAG_MIME = "application/x-visualcsound-sequencer-track";
+const SEQUENCER_STEP_DRAG_MIME = "application/x-visualcsound-sequencer-step";
 const PAD_TRANSPOSE_LONG_PRESS_MS = 350;
 
 type SequencerPadDragPayload = {
   trackId: string;
   padIndex: number;
+};
+
+type SequencerTrackDragPayload = {
+  trackId: string;
+};
+
+type SequencerStepDragPayload = {
+  trackId: string;
+  stepIndex: number;
 };
 
 type SequencerUiCopy = {
@@ -99,6 +110,7 @@ type SequencerUiCopy = {
   scale: string;
   mode: string;
   steps: string;
+  syncToSequencer: string;
   on: string;
   off: string;
   padLooper: string;
@@ -240,6 +252,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     scale: "Scale",
     mode: "Mode",
     steps: "Steps",
+    syncToSequencer: "Sync To",
     on: "On",
     off: "Off",
     padLooper: "Pad Looper",
@@ -334,6 +347,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     scale: "Skala",
     mode: "Modus",
     steps: "Schritte",
+    syncToSequencer: "Sync zu",
     on: "An",
     off: "Aus",
     padLooper: "Pad-Looper",
@@ -428,6 +442,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     scale: "Gamme",
     mode: "Mode",
     steps: "Pas",
+    syncToSequencer: "Sync vers",
     on: "On",
     off: "Off",
     padLooper: "Looper de pads",
@@ -522,6 +537,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     scale: "Escala",
     mode: "Modo",
     steps: "Pasos",
+    syncToSequencer: "Sync con",
     on: "On",
     off: "Off",
     padLooper: "Looper de pads",
@@ -1798,6 +1814,7 @@ interface SequencerPageProps {
   onRemoveSequencerTrack: (trackId: string) => void;
   onSequencerTrackEnabledChange: (trackId: string, enabled: boolean) => void;
   onSequencerTrackChannelChange: (trackId: string, channel: number) => void;
+  onSequencerTrackSyncTargetChange: (trackId: string, syncToTrackId: string | null) => void;
   onSequencerTrackScaleChange: (trackId: string, scaleRoot: SequencerScaleRoot, scaleType: SequencerScaleType) => void;
   onSequencerTrackModeChange: (trackId: string, mode: SequencerMode) => void;
   onSequencerTrackStepCountChange: (trackId: string, count: 16 | 32) => void;
@@ -1805,7 +1822,14 @@ interface SequencerPageProps {
   onSequencerTrackStepChordChange: (trackId: string, index: number, chord: SequencerChord) => void;
   onSequencerTrackStepHoldChange: (trackId: string, index: number, hold: boolean) => void;
   onSequencerTrackStepVelocityChange: (trackId: string, index: number, velocity: number) => void;
+  onSequencerTrackStepCopy: (
+    sourceTrackId: string,
+    sourceIndex: number,
+    targetTrackId: string,
+    targetIndex: number
+  ) => void;
   onSequencerTrackClearSteps: (trackId: string) => void;
+  onSequencerTrackReorder: (sourceTrackId: string, targetTrackId: string, position?: "before" | "after") => void;
   onSequencerPadPress: (trackId: string, padIndex: number) => void;
   onSequencerPadCopy: (trackId: string, sourcePadIndex: number, targetPadIndex: number) => void;
   onSequencerPadTransposeShort: (trackId: string, padIndex: number, direction: -1 | 1) => void;
@@ -1890,6 +1914,64 @@ function parseSequencerPadDragPayload(event: ReactDragEvent): SequencerPadDragPa
   }
 }
 
+function dragEventHasMimeType(event: ReactDragEvent, mimeType: string): boolean {
+  const types = event.dataTransfer?.types;
+  if (!types) {
+    return false;
+  }
+  return Array.from(types).includes(mimeType);
+}
+
+function parseSequencerTrackDragPayload(event: ReactDragEvent): SequencerTrackDragPayload | null {
+  const raw =
+    event.dataTransfer.getData(SEQUENCER_TRACK_DRAG_MIME) || event.dataTransfer.getData("text/plain");
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as Partial<
+      SequencerTrackDragPayload & { padIndex?: unknown; stepIndex?: unknown }
+    >;
+    if (
+      typeof parsed.trackId !== "string" ||
+      parsed.trackId.trim().length === 0 ||
+      parsed.padIndex !== undefined ||
+      parsed.stepIndex !== undefined
+    ) {
+      return null;
+    }
+    return { trackId: parsed.trackId };
+  } catch {
+    return null;
+  }
+}
+
+function parseSequencerStepDragPayload(event: ReactDragEvent): SequencerStepDragPayload | null {
+  const raw =
+    event.dataTransfer.getData(SEQUENCER_STEP_DRAG_MIME) || event.dataTransfer.getData("text/plain");
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as Partial<SequencerStepDragPayload>;
+    if (
+      typeof parsed.trackId !== "string" ||
+      typeof parsed.stepIndex !== "number" ||
+      !Number.isFinite(parsed.stepIndex)
+    ) {
+      return null;
+    }
+    return {
+      trackId: parsed.trackId,
+      stepIndex: Math.round(parsed.stepIndex)
+    };
+  } catch {
+    return null;
+  }
+}
+
 function padSequencePadIndexFromKey(event: ReactKeyboardEvent): number | null {
   if (event.altKey || event.ctrlKey || event.metaKey) {
     return null;
@@ -1947,6 +2029,7 @@ export function SequencerPage({
   onRemoveSequencerTrack,
   onSequencerTrackEnabledChange,
   onSequencerTrackChannelChange,
+  onSequencerTrackSyncTargetChange,
   onSequencerTrackScaleChange,
   onSequencerTrackModeChange,
   onSequencerTrackStepCountChange,
@@ -1954,7 +2037,9 @@ export function SequencerPage({
   onSequencerTrackStepChordChange,
   onSequencerTrackStepHoldChange,
   onSequencerTrackStepVelocityChange,
+  onSequencerTrackStepCopy,
   onSequencerTrackClearSteps,
+  onSequencerTrackReorder,
   onSequencerPadPress,
   onSequencerPadCopy,
   onSequencerPadTransposeShort,
@@ -2566,9 +2651,31 @@ export function SequencerPage({
             const modeLabel = modeLabels[track.mode];
             const scaleValue = `${track.scaleRoot}:${track.scaleType}`;
             const stepIndices = Array.from({ length: track.stepCount }, (_, index) => index);
+            const trackDisplayLabel = ui.sequencerWithIndex(trackIndex + 1);
+            const syncTargetValue = track.syncToTrackId ?? "";
 
             return (
-              <article key={track.id} className="relative rounded-xl border border-slate-700 bg-slate-900/65 p-2.5 pr-10">
+              <article
+                key={track.id}
+                onDragOver={(event) => {
+                  if (!dragEventHasMimeType(event, SEQUENCER_TRACK_DRAG_MIME)) {
+                    return;
+                  }
+                  event.preventDefault();
+                  event.dataTransfer.dropEffect = "move";
+                }}
+                onDrop={(event) => {
+                  const payload = parseSequencerTrackDragPayload(event);
+                  if (!payload || payload.trackId === track.id) {
+                    return;
+                  }
+                  event.preventDefault();
+                  const rect = event.currentTarget.getBoundingClientRect();
+                  const position = event.clientY >= rect.top + rect.height / 2 ? "after" : "before";
+                  onSequencerTrackReorder(payload.trackId, track.id, position);
+                }}
+                className="relative rounded-xl border border-slate-700 bg-slate-900/65 p-2.5 pr-10"
+              >
                 {onHelpRequest ? (
                   <HelpIconButton
                     guiLanguage={guiLanguage}
@@ -2577,8 +2684,23 @@ export function SequencerPage({
                   />
                 ) : null}
                 <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <div
+                    draggable
+                    onDragStart={(event) => {
+                      event.stopPropagation();
+                      const payload = JSON.stringify({ trackId: track.id });
+                      event.dataTransfer.effectAllowed = "move";
+                      event.dataTransfer.setData(SEQUENCER_TRACK_DRAG_MIME, payload);
+                      event.dataTransfer.setData("text/plain", payload);
+                    }}
+                    className="inline-flex cursor-grab select-none items-center rounded-md border border-slate-700 bg-slate-950 px-1.5 py-0.5 font-mono text-[10px] text-slate-400 active:cursor-grabbing"
+                    aria-label={`${trackDisplayLabel}: drag to reorder`}
+                    title="Drag to reorder sequencers"
+                  >
+                    ::
+                  </div>
                   <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-200">
-                    {track.name || ui.sequencerWithIndex(trackIndex + 1)}
+                    {trackDisplayLabel}
                   </div>
                   <span className={transportStateClass}>{trackStateLabel(track, ui)}</span>
                   <button
@@ -2617,6 +2739,32 @@ export function SequencerPage({
                       onChange={(event) => onSequencerTrackChannelChange(track.id, Number(event.target.value))}
                       className={`${controlFieldClass} w-24`}
                     />
+                  </label>
+
+                  <label className="flex min-w-[170px] flex-col gap-1">
+                    <span className={controlLabelClass}>{ui.syncToSequencer}</span>
+                    <select
+                      value={syncTargetValue}
+                      onChange={(event) =>
+                        onSequencerTrackSyncTargetChange(
+                          track.id,
+                          event.target.value.trim().length > 0 ? event.target.value : null
+                        )
+                      }
+                      className={controlFieldClass}
+                    >
+                      <option value="">{ui.none}</option>
+                      {sequencer.tracks.map((candidateTrack, candidateIndex) => {
+                        if (candidateTrack.id === track.id) {
+                          return null;
+                        }
+                        return (
+                          <option key={`${track.id}-sync-${candidateTrack.id}`} value={candidateTrack.id}>
+                            {ui.sequencerWithIndex(candidateIndex + 1)}
+                          </option>
+                        );
+                      })}
+                    </select>
                   </label>
 
                   <label className="flex min-w-[180px] flex-col gap-1">
@@ -2904,7 +3052,10 @@ export function SequencerPage({
                       const noteValue = stepState?.note ?? null;
                       const holdActive = stepState?.hold === true;
                       const stepVelocity = stepState?.velocity ?? 127;
-                      const localPlayhead = sequencer.playhead % track.stepCount;
+                      const localPlayhead =
+                        typeof track.runtimeLocalStep === "number"
+                          ? track.runtimeLocalStep % track.stepCount
+                          : sequencer.playhead % track.stepCount;
                       const isActive = track.enabled && sequencer.isPlaying && localPlayhead === step;
                       const selectedNote = noteValue === null ? null : noteOptionsByNote.get(noteValue) ?? null;
                       const isInScale = selectedNote?.inScale ?? false;
@@ -2943,6 +3094,26 @@ export function SequencerPage({
                       return (
                         <div
                           key={`${track.id}-step-${step}`}
+                          onDragOver={(event) => {
+                            if (!dragEventHasMimeType(event, SEQUENCER_STEP_DRAG_MIME)) {
+                              return;
+                            }
+                            event.preventDefault();
+                            event.stopPropagation();
+                            event.dataTransfer.dropEffect = "copy";
+                          }}
+                          onDrop={(event) => {
+                            const payload = parseSequencerStepDragPayload(event);
+                            if (!payload) {
+                              return;
+                            }
+                            event.preventDefault();
+                            event.stopPropagation();
+                            if (payload.trackId === track.id && payload.stepIndex === step) {
+                              return;
+                            }
+                            onSequencerTrackStepCopy(payload.trackId, payload.stepIndex, track.id, step);
+                          }}
                           className={`rounded-md border p-1.5 transition ${
                             isActive
                               ? "border-accent bg-accent/15 shadow-[0_0_0_1px_rgba(14,165,233,0.55)]"
@@ -2951,7 +3122,22 @@ export function SequencerPage({
                                 : "border-slate-700 bg-slate-900"
                           }`}
                         >
-                          <div className="relative pr-12 text-left font-mono text-[10px] uppercase tracking-[0.18em] text-slate-400">
+                          <div className="relative pl-5 pr-12 text-left font-mono text-[10px] uppercase tracking-[0.18em] text-slate-400">
+                            <div
+                              draggable
+                              onDragStart={(event) => {
+                                event.stopPropagation();
+                                const payload = JSON.stringify({ trackId: track.id, stepIndex: step });
+                                event.dataTransfer.effectAllowed = "copy";
+                                event.dataTransfer.setData(SEQUENCER_STEP_DRAG_MIME, payload);
+                                event.dataTransfer.setData("text/plain", payload);
+                              }}
+                              className="absolute left-0 top-0 inline-flex cursor-grab select-none rounded px-1 py-0.5 text-[8px] text-slate-500 hover:bg-slate-800/80 hover:text-slate-300 active:cursor-grabbing"
+                              aria-label={`Step ${step + 1}: drag to copy settings`}
+                              title="Drag onto another step to copy note/chord/octave/velocity"
+                            >
+                              ::
+                            </div>
                             <button
                               type="button"
                               onClick={() => onSequencerTrackStepHoldChange(track.id, step, !holdActive)}
