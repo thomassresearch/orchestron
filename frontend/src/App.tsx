@@ -52,14 +52,65 @@ function wrapModulo(value: number, modulo: number): number {
   return remainder < 0 ? remainder + modulo : remainder;
 }
 
+function controllerSequencerPadIndex(value: number): number {
+  return Math.max(0, Math.min(7, Math.round(value)));
+}
+
+function controllerSequencerPadState(
+  controllerSequencer: ControllerSequencerState,
+  padIndex: number
+): {
+  stepCount: 8 | 16 | 32 | 64;
+  keypoints: ControllerSequencerState["keypoints"];
+} {
+  const normalizedPadIndex = controllerSequencerPadIndex(padIndex);
+  const pad = controllerSequencer.pads[normalizedPadIndex] ?? controllerSequencer.pads[0];
+  if (pad) {
+    return {
+      stepCount: pad.stepCount,
+      keypoints: pad.keypoints
+    };
+  }
+  return {
+    stepCount: controllerSequencer.stepCount,
+    keypoints: controllerSequencer.keypoints
+  };
+}
+
+function controllerSequencerActivePadState(controllerSequencer: ControllerSequencerState): {
+  stepCount: 8 | 16 | 32 | 64;
+  keypoints: ControllerSequencerState["keypoints"];
+} {
+  return controllerSequencerPadState(controllerSequencer, controllerSequencer.activePad);
+}
+
+function controllerSequencerPadLoopPositionForActivePad(
+  controllerSequencer: Pick<ControllerSequencerState, "padLoopEnabled" | "padLoopSequence">,
+  activePad: number
+): number | null {
+  if (!controllerSequencer.padLoopEnabled || controllerSequencer.padLoopSequence.length === 0) {
+    return null;
+  }
+  const normalizedActivePad = controllerSequencerPadIndex(activePad);
+  const position = controllerSequencer.padLoopSequence.findIndex(
+    (padIndex) => controllerSequencerPadIndex(padIndex) === normalizedActivePad
+  );
+  return position >= 0 ? position : null;
+}
+
 function controllerSequencerSignature(controllerSequencer: ControllerSequencerState): string {
   return JSON.stringify({
     controllerNumber: controllerSequencer.controllerNumber,
-    stepCount: controllerSequencer.stepCount,
-    keypoints: controllerSequencer.keypoints.map((keypoint) => ({
-      id: keypoint.id,
-      position: keypoint.position,
-      value: keypoint.value
+    padLoopEnabled: controllerSequencer.padLoopEnabled,
+    padLoopRepeat: controllerSequencer.padLoopRepeat,
+    padLoopSequence: controllerSequencer.padLoopSequence.map((padIndex) => controllerSequencerPadIndex(padIndex)),
+    pads: controllerSequencer.pads.map((pad) => ({
+      stepCount: pad.stepCount,
+      keypoints: pad.keypoints.map((keypoint) => ({
+        id: keypoint.id,
+        position: keypoint.position,
+        value: keypoint.value
+      }))
     }))
   });
 }
@@ -398,12 +449,16 @@ function transportStepCountFromTracks(stepCounts: Array<{ stepCount: 16 | 32 }>)
 }
 
 function transportStepCountFromPerformanceSequencers(
-  melodicTracks: Array<{ stepCount: 16 | 32 }>,
-  drummerTracks: Array<{ stepCount: 4 | 8 | 16 | 32 }>
+  melodicTracks: Array<{ stepCount: 16 | 32; pads?: Array<{ stepCount: 16 | 32 }> }>,
+  drummerTracks: Array<{ stepCount: 4 | 8 | 16 | 32; pads?: Array<{ stepCount: 4 | 8 | 16 | 32 }> }>
 ): 16 | 32 {
-  return melodicTracks.some((entry) => entry.stepCount === 32) || drummerTracks.some((entry) => entry.stepCount === 32)
-    ? 32
-    : 16;
+  if (melodicTracks.some((entry) => entry.stepCount === 32 || entry.pads?.some((pad) => pad.stepCount === 32))) {
+    return 32;
+  }
+  if (drummerTracks.some((entry) => entry.stepCount === 32 || entry.pads?.some((pad) => pad.stepCount === 32))) {
+    return 32;
+  }
+  return 16;
 }
 
 function drummerRowRuntimeTrackId(drummerTrackId: string, rowId: string): string {
@@ -443,6 +498,7 @@ function buildDrummerRowTrackConfigs(drummerTrack: DrummerSequencerTrackState): 
       const padRow = pad.rows.find((candidate) => candidate.rowId === row.id);
       return {
         pad_index: padIndex,
+        step_count: pad.stepCount,
         steps: Array.from({ length: 32 }, (_, stepIndex) => {
           const cell = padRow?.steps?.[stepIndex];
           if (cell?.active !== true) {
@@ -1036,11 +1092,20 @@ export default function App() {
   const removeControllerSequencer = useAppStore((state) => state.removeControllerSequencer);
   const setControllerSequencerEnabled = useAppStore((state) => state.setControllerSequencerEnabled);
   const setControllerSequencerNumber = useAppStore((state) => state.setControllerSequencerNumber);
+  const setControllerSequencerActivePad = useAppStore((state) => state.setControllerSequencerActivePad);
+  const setControllerSequencerQueuedPad = useAppStore((state) => state.setControllerSequencerQueuedPad);
+  const copyControllerSequencerPad = useAppStore((state) => state.copyControllerSequencerPad);
+  const clearControllerSequencerSteps = useAppStore((state) => state.clearControllerSequencerSteps);
+  const setControllerSequencerPadLoopEnabled = useAppStore((state) => state.setControllerSequencerPadLoopEnabled);
+  const setControllerSequencerPadLoopRepeat = useAppStore((state) => state.setControllerSequencerPadLoopRepeat);
+  const addControllerSequencerPadLoopStep = useAppStore((state) => state.addControllerSequencerPadLoopStep);
+  const removeControllerSequencerPadLoopStep = useAppStore((state) => state.removeControllerSequencerPadLoopStep);
   const setControllerSequencerStepCount = useAppStore((state) => state.setControllerSequencerStepCount);
   const addControllerSequencerKeypoint = useAppStore((state) => state.addControllerSequencerKeypoint);
   const setControllerSequencerKeypoint = useAppStore((state) => state.setControllerSequencerKeypoint);
   const setControllerSequencerKeypointValue = useAppStore((state) => state.setControllerSequencerKeypointValue);
   const removeControllerSequencerKeypoint = useAppStore((state) => state.removeControllerSequencerKeypoint);
+  const syncControllerSequencerRuntime = useAppStore((state) => state.syncControllerSequencerRuntime);
   const setSequencerTrackStepCount = useAppStore((state) => state.setSequencerTrackStepCount);
   const syncSequencerRuntime = useAppStore((state) => state.syncSequencerRuntime);
   const setSequencerPlayhead = useAppStore((state) => state.setSequencerPlayhead);
@@ -1167,7 +1232,15 @@ export default function App() {
     timestampMs: number;
   } | null>(null);
   const controllerSequencerPlaybackRef = useRef<
-    Record<string, { lastSampleSerial: number; signature: string; lastSentValue: number | null }>
+    Record<
+      string,
+      {
+        lastSampleSerial: number;
+        signature: string;
+        lastSentValue: number | null;
+        padStartStep: number;
+      }
+    >
   >({});
   const controllerSequencerPlaybackRafRef = useRef<number | null>(null);
   const browserAudioFallbackElementRef = useRef<HTMLAudioElement | null>(null);
@@ -2031,6 +2104,7 @@ export default function App() {
       queued_enabled: track.queuedEnabled,
       pads: track.pads.map((pad, padIndex) => ({
         pad_index: padIndex,
+        step_count: pad.stepCount,
         steps: pad.steps.map((step) => {
           const notes = buildSequencerStepChordMidiNotes(step.note, step.chord, pad.scaleRoot, pad.mode);
           return {
@@ -2764,7 +2838,15 @@ export default function App() {
       const absoluteTransportSteps = anchor.cycle * anchor.stepCount + anchor.playhead + elapsedTransportSteps;
 
       const controllerTasks: Promise<void>[] = [];
-      const nextPlaybackState: Record<string, { lastSampleSerial: number; signature: string; lastSentValue: number | null }> = {
+      const runtimeUpdates: Array<{
+        controllerSequencerId: string;
+        activePad?: number;
+        queuedPad?: number | null;
+        padLoopPosition?: number | null;
+        runtimePadStartStep?: number | null;
+        enabled?: boolean;
+      }> = [];
+      const nextPlaybackState: Record<string, { lastSampleSerial: number; signature: string; lastSentValue: number | null; padStartStep: number }> = {
         ...controllerSequencerPlaybackRef.current
       };
       const activeIds = new Set<string>();
@@ -2775,7 +2857,6 @@ export default function App() {
         }
         activeIds.add(controllerSequencer.id);
 
-        const controllerStepCount = Math.max(1, controllerSequencer.stepCount);
         const currentSampleSerial = Math.floor(absoluteTransportSteps * CONTROLLER_SEQUENCER_SAMPLES_PER_STEP);
         const signature = controllerSequencerSignature(controllerSequencer);
         const previous = nextPlaybackState[controllerSequencer.id];
@@ -2789,9 +2870,54 @@ export default function App() {
           nextPlaybackState[controllerSequencer.id] = {
             lastSampleSerial: previous?.lastSampleSerial ?? currentSampleSerial,
             signature,
-            lastSentValue: previous?.lastSentValue ?? null
+            lastSentValue: previous?.lastSentValue ?? null,
+            padStartStep:
+              typeof controllerSequencer.runtimePadStartStep === "number"
+                ? controllerSequencer.runtimePadStartStep
+                : (previous?.padStartStep ?? Math.floor(absoluteTransportSteps))
           };
           continue;
+        }
+
+        let runtimeActivePad = controllerSequencerPadIndex(controllerSequencer.activePad);
+        let runtimeQueuedPad =
+          controllerSequencer.queuedPad === null ? null : controllerSequencerPadIndex(controllerSequencer.queuedPad);
+        let runtimePadLoopPosition =
+          typeof controllerSequencer.padLoopPosition === "number" && Number.isFinite(controllerSequencer.padLoopPosition)
+            ? Math.max(0, Math.round(controllerSequencer.padLoopPosition))
+            : null;
+        let runtimeEnabled: boolean = controllerSequencer.enabled;
+        const storeRuntimePadStartStep =
+          typeof controllerSequencer.runtimePadStartStep === "number" && Number.isFinite(controllerSequencer.runtimePadStartStep)
+            ? controllerSequencer.runtimePadStartStep
+            : null;
+        let padStartStep =
+          storeRuntimePadStartStep ??
+          (previous && previous.signature === signature && Number.isFinite(previous.padStartStep)
+            ? previous.padStartStep
+            : Math.floor(absoluteTransportSteps));
+        const initialActivePad = runtimeActivePad;
+        const initialQueuedPad = runtimeQueuedPad;
+        const initialPadLoopPosition = runtimePadLoopPosition;
+        const initialPadStartStep = storeRuntimePadStartStep;
+        const initialEnabled = runtimeEnabled;
+
+        let activePadState = controllerSequencerPadState(controllerSequencer, runtimeActivePad);
+        let controllerStepCount = Math.max(1, activePadState.stepCount);
+
+        const shouldResetRuntimePhase =
+          storeRuntimePadStartStep === null || !previous || previous.signature !== signature;
+        if (shouldResetRuntimePhase && controllerSequencer.padLoopEnabled && controllerSequencer.padLoopSequence.length > 0) {
+          runtimeActivePad = controllerSequencerPadIndex(controllerSequencer.padLoopSequence[0] ?? runtimeActivePad);
+          if (runtimeQueuedPad === runtimeActivePad) {
+            runtimeQueuedPad = null;
+          }
+          runtimePadLoopPosition = 0;
+          padStartStep = Math.floor(absoluteTransportSteps);
+          activePadState = controllerSequencerPadState(controllerSequencer, runtimeActivePad);
+          controllerStepCount = Math.max(1, activePadState.stepCount);
+        } else if (!controllerSequencer.padLoopEnabled || controllerSequencer.padLoopSequence.length === 0) {
+          runtimePadLoopPosition = null;
         }
 
         if (currentSampleSerial - firstSerialToSend > controllerStepCount * CONTROLLER_SEQUENCER_SAMPLES_PER_STEP * 2) {
@@ -2800,10 +2926,96 @@ export default function App() {
 
         let lastSentValue = previous?.signature === signature ? previous.lastSentValue : null;
         for (let serial = firstSerialToSend; serial <= currentSampleSerial; serial += 1) {
+          if (serial % CONTROLLER_SEQUENCER_SAMPLES_PER_STEP === 0) {
+            const boundaryStep = serial / CONTROLLER_SEQUENCER_SAMPLES_PER_STEP;
+            if (boundaryStep > padStartStep && (boundaryStep - padStartStep) % controllerStepCount === 0) {
+              let manualPadSwitchApplied = false;
+              if (runtimeQueuedPad !== null && runtimeQueuedPad !== runtimeActivePad) {
+                runtimeActivePad = runtimeQueuedPad;
+                runtimeQueuedPad = null;
+                padStartStep = boundaryStep;
+                activePadState = controllerSequencerPadState(controllerSequencer, runtimeActivePad);
+                controllerStepCount = Math.max(1, activePadState.stepCount);
+                manualPadSwitchApplied = true;
+              }
+
+              if (controllerSequencer.padLoopEnabled && controllerSequencer.padLoopSequence.length > 0) {
+                const padLoopSequence = controllerSequencer.padLoopSequence.map((padIndex) =>
+                  controllerSequencerPadIndex(padIndex)
+                );
+
+                if (manualPadSwitchApplied) {
+                  runtimePadLoopPosition = controllerSequencerPadLoopPositionForActivePad(controllerSequencer, runtimeActivePad);
+                } else {
+                  let nextPadFromLoop: number | null = null;
+                  let stopOnLoopEnd = false;
+                  let currentLoopPosition = runtimePadLoopPosition;
+
+                  if (currentLoopPosition === null) {
+                    runtimePadLoopPosition = 0;
+                    nextPadFromLoop = padLoopSequence[0] ?? null;
+                  } else {
+                    const currentLoopPositionValid =
+                      currentLoopPosition >= 0 &&
+                      currentLoopPosition < padLoopSequence.length &&
+                      padLoopSequence[currentLoopPosition] === runtimeActivePad;
+
+                    if (!currentLoopPositionValid) {
+                      currentLoopPosition = controllerSequencerPadLoopPositionForActivePad(
+                        controllerSequencer,
+                        runtimeActivePad
+                      );
+                      if (currentLoopPosition === null) {
+                        runtimePadLoopPosition = 0;
+                        nextPadFromLoop = padLoopSequence[0] ?? null;
+                      }
+                    }
+
+                    if (nextPadFromLoop === null) {
+                      const resolvedLoopPosition = currentLoopPosition;
+                      if (resolvedLoopPosition === null) {
+                        runtimePadLoopPosition = 0;
+                        nextPadFromLoop = padLoopSequence[0] ?? null;
+                      } else {
+                        const nextLoopPosition = resolvedLoopPosition + 1;
+                        if (nextLoopPosition < padLoopSequence.length) {
+                          runtimePadLoopPosition = nextLoopPosition;
+                          nextPadFromLoop = padLoopSequence[nextLoopPosition] ?? null;
+                        } else if (controllerSequencer.padLoopRepeat) {
+                          runtimePadLoopPosition = 0;
+                          nextPadFromLoop = padLoopSequence[0] ?? null;
+                        } else {
+                          runtimePadLoopPosition = null;
+                          stopOnLoopEnd = true;
+                        }
+                      }
+                    }
+                  }
+
+                  if (stopOnLoopEnd) {
+                    runtimeEnabled = false;
+                    runtimeQueuedPad = null;
+                    runtimePadLoopPosition = null;
+                  } else if (nextPadFromLoop !== null && nextPadFromLoop !== runtimeActivePad) {
+                    runtimeActivePad = nextPadFromLoop;
+                    runtimeQueuedPad = null;
+                    padStartStep = boundaryStep;
+                    activePadState = controllerSequencerPadState(controllerSequencer, runtimeActivePad);
+                    controllerStepCount = Math.max(1, activePadState.stepCount);
+                  }
+                }
+              } else {
+                runtimePadLoopPosition = null;
+              }
+            }
+          }
+          if (!runtimeEnabled) {
+            break;
+          }
           const sampleStepPosition = serial / CONTROLLER_SEQUENCER_SAMPLES_PER_STEP;
-          const sampleIndex = wrapModulo(sampleStepPosition, controllerStepCount);
+          const sampleIndex = wrapModulo(sampleStepPosition - padStartStep, controllerStepCount);
           const samplePosition = sampleIndex / controllerStepCount;
-          const value = sampleControllerCurveValue(controllerSequencer.keypoints, samplePosition);
+          const value = sampleControllerCurveValue(activePadState.keypoints, samplePosition);
           if (lastSentValue === value) {
             continue;
           }
@@ -2813,10 +3025,31 @@ export default function App() {
           );
         }
 
+        if (
+          runtimeActivePad !== initialActivePad ||
+          runtimeQueuedPad !== initialQueuedPad ||
+          runtimePadLoopPosition !== initialPadLoopPosition ||
+          initialPadStartStep === null ||
+          padStartStep !== initialPadStartStep ||
+          runtimeEnabled !== initialEnabled
+        ) {
+          runtimeUpdates.push({
+            controllerSequencerId: controllerSequencer.id,
+            ...(runtimeActivePad !== initialActivePad ? { activePad: runtimeActivePad } : {}),
+            ...(runtimeQueuedPad !== initialQueuedPad ? { queuedPad: runtimeQueuedPad } : {}),
+            ...(runtimePadLoopPosition !== initialPadLoopPosition ? { padLoopPosition: runtimePadLoopPosition } : {}),
+            ...(initialPadStartStep === null || padStartStep !== initialPadStartStep
+              ? { runtimePadStartStep: padStartStep }
+              : {}),
+            ...(runtimeEnabled !== initialEnabled ? { enabled: runtimeEnabled } : {})
+          });
+        }
+
         nextPlaybackState[controllerSequencer.id] = {
           lastSampleSerial: currentSampleSerial,
           signature,
-          lastSentValue
+          lastSentValue,
+          padStartStep
         };
       }
 
@@ -2826,6 +3059,9 @@ export default function App() {
         }
       }
       controllerSequencerPlaybackRef.current = nextPlaybackState;
+      if (runtimeUpdates.length > 0) {
+        syncControllerSequencerRuntime(runtimeUpdates);
+      }
 
       if (controllerTasks.length > 0) {
         void Promise.all(controllerTasks).catch((error) => {
@@ -2855,7 +3091,8 @@ export default function App() {
     appCopy.errors.failedToSendMidiControllerValue,
     sendMidiControllerValue,
     sequencer.controllerSequencers,
-    sequencer.isPlaying
+    sequencer.isPlaying,
+    syncControllerSequencerRuntime
   ]);
 
   useEffect(() => {
@@ -3485,6 +3722,30 @@ export default function App() {
             onRemoveControllerSequencer={removeControllerSequencer}
             onControllerSequencerEnabledChange={setControllerSequencerEnabled}
             onControllerSequencerNumberChange={setControllerSequencerNumber}
+            onControllerSequencerPadPress={(controllerSequencerId, padIndex) => {
+              const controllerSequencer = sequencerRef.current.controllerSequencers.find(
+                (candidate) => candidate.id === controllerSequencerId
+              );
+              if (!controllerSequencer) {
+                return;
+              }
+              if (sequencerRef.current.isPlaying && controllerSequencer.enabled) {
+                if (controllerSequencer.activePad === padIndex) {
+                  setControllerSequencerQueuedPad(controllerSequencerId, null);
+                } else {
+                  setControllerSequencerQueuedPad(controllerSequencerId, padIndex);
+                }
+                return;
+              }
+              setControllerSequencerActivePad(controllerSequencerId, padIndex);
+              setControllerSequencerQueuedPad(controllerSequencerId, null);
+            }}
+            onControllerSequencerPadCopy={copyControllerSequencerPad}
+            onControllerSequencerClearSteps={clearControllerSequencerSteps}
+            onControllerSequencerPadLoopEnabledChange={setControllerSequencerPadLoopEnabled}
+            onControllerSequencerPadLoopRepeatChange={setControllerSequencerPadLoopRepeat}
+            onControllerSequencerPadLoopStepAdd={addControllerSequencerPadLoopStep}
+            onControllerSequencerPadLoopStepRemove={removeControllerSequencerPadLoopStep}
             onControllerSequencerStepCountChange={setControllerSequencerStepCount}
             onControllerSequencerKeypointAdd={addControllerSequencerKeypoint}
             onControllerSequencerKeypointChange={setControllerSequencerKeypoint}

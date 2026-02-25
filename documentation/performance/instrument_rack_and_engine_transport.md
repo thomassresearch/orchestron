@@ -52,11 +52,11 @@ These start/stop the underlying instrument engine session.
 These are higher-level live-performance helpers:
 
 - `Start All`
-  - enables non-piano-roll devices (tracks, controller sequencers, controller lanes)
+  - enables non-piano-roll devices (melodic sequencer tracks, drummer sequencers, controller sequencers, controller lanes)
   - starts instruments if needed
   - then enables piano rolls once the session is running
 - `Stop All`
-  - disables tracks/controller sequencers/piano rolls/controller lanes
+  - disables melodic sequencer tracks/drummer sequencers/controller sequencers/piano rolls/controller lanes
   - stops instruments if running
 
 This helps bring a full performance online or offline with fewer clicks.

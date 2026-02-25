@@ -143,10 +143,12 @@ export interface DrummerSequencerPadRowState {
 }
 
 export interface DrummerSequencerPadState {
+  stepCount: DrummerSequencerStepCount;
   rows: DrummerSequencerPadRowState[];
 }
 
 export interface SequencerPadState {
+  stepCount: 16 | 32;
   steps: SequencerStepState[];
   scaleRoot: SequencerScaleRoot;
   scaleType: SequencerScaleType;
@@ -217,11 +219,24 @@ export interface ControllerSequencerKeypoint {
   value: number; // MIDI CC 0..127
 }
 
+export interface ControllerSequencerPadState {
+  stepCount: 8 | 16 | 32 | 64;
+  keypoints: ControllerSequencerKeypoint[];
+}
+
 export interface ControllerSequencerState {
   id: string;
   name: string;
   controllerNumber: number;
   stepCount: 8 | 16 | 32 | 64;
+  activePad: number;
+  queuedPad: number | null;
+  padLoopPosition: number | null;
+  padLoopEnabled: boolean;
+  padLoopRepeat: boolean;
+  padLoopSequence: number[];
+  pads: ControllerSequencerPadState[];
+  runtimePadStartStep: number | null;
   enabled: boolean;
   keypoints: ControllerSequencerKeypoint[];
 }
@@ -314,7 +329,13 @@ export interface SequencerConfigSnapshot {
       name: string;
       controllerNumber: number;
       stepCount: 8 | 16 | 32 | 64;
+      activePad: number;
+      queuedPad: number | null;
+      padLoopEnabled: boolean;
+      padLoopRepeat: boolean;
+      padLoopSequence: number[];
       enabled: boolean;
+      pads: ControllerSequencerPadState[];
       keypoints: Array<{
         id: string;
         position: number;
@@ -400,6 +421,7 @@ export interface SessionSequencerStepConfig {
 
 export interface SessionSequencerPadConfig {
   pad_index: number;
+  step_count?: 4 | 8 | 16 | 32;
   steps: Array<number | Array<number> | null | SessionSequencerStepConfig>;
 }
 

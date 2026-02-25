@@ -23,6 +23,7 @@ import type {
   AppPage,
   CompileResponse,
   ControllerSequencerKeypoint,
+  ControllerSequencerPadState,
   ControllerSequencerState,
   DrummerSequencerCellState,
   DrummerSequencerPadState,
@@ -200,6 +201,14 @@ interface AppStore {
   removeControllerSequencer: (controllerSequencerId: string) => void;
   setControllerSequencerEnabled: (controllerSequencerId: string, enabled: boolean) => void;
   setControllerSequencerNumber: (controllerSequencerId: string, controllerNumber: number) => void;
+  setControllerSequencerActivePad: (controllerSequencerId: string, padIndex: number) => void;
+  setControllerSequencerQueuedPad: (controllerSequencerId: string, padIndex: number | null) => void;
+  copyControllerSequencerPad: (controllerSequencerId: string, sourcePadIndex: number, targetPadIndex: number) => void;
+  clearControllerSequencerSteps: (controllerSequencerId: string) => void;
+  setControllerSequencerPadLoopEnabled: (controllerSequencerId: string, enabled: boolean) => void;
+  setControllerSequencerPadLoopRepeat: (controllerSequencerId: string, repeat: boolean) => void;
+  addControllerSequencerPadLoopStep: (controllerSequencerId: string, padIndex: number) => void;
+  removeControllerSequencerPadLoopStep: (controllerSequencerId: string, sequenceIndex: number) => void;
   setControllerSequencerStepCount: (controllerSequencerId: string, stepCount: 8 | 16 | 32 | 64) => void;
   addControllerSequencerKeypoint: (controllerSequencerId: string, position: number, value: number) => void;
   setControllerSequencerKeypoint: (
@@ -214,6 +223,16 @@ interface AppStore {
     value: number
   ) => void;
   removeControllerSequencerKeypoint: (controllerSequencerId: string, keypointId: string) => void;
+  syncControllerSequencerRuntime: (
+    updates: Array<{
+      controllerSequencerId: string;
+      activePad?: number;
+      queuedPad?: number | null;
+      padLoopPosition?: number | null;
+      runtimePadStartStep?: number | null;
+      enabled?: boolean;
+    }>
+  ) => void;
 
   setSequencerBpm: (bpm: number) => void;
   syncSequencerRuntime: (payload: {
@@ -293,8 +312,15 @@ function normalizeStepCount(value: number): 16 | 32 {
   return value === 32 ? 32 : 16;
 }
 
+function sequencerTrackHas32StepPad(track: SequencerTrackState): boolean {
+  if (Array.isArray(track.pads) && track.pads.some((pad) => normalizeStepCount(pad.stepCount ?? track.stepCount) === 32)) {
+    return true;
+  }
+  return normalizeStepCount(track.stepCount) === 32;
+}
+
 function transportStepCountForTracks(tracks: SequencerTrackState[]): 16 | 32 {
-  if (tracks.some((track) => normalizeStepCount(track.stepCount) === 32)) {
+  if (tracks.some((track) => sequencerTrackHas32StepPad(track))) {
     return 32;
   }
   return 16;
@@ -311,14 +337,21 @@ function normalizeDrummerSequencerStepCount(value: unknown): DrummerSequencerSte
   return 16;
 }
 
+function drummerTrackHas32StepPad(track: DrummerSequencerTrackState): boolean {
+  if (Array.isArray(track.pads) && track.pads.some((pad) => normalizeDrummerSequencerStepCount(pad.stepCount) === 32)) {
+    return true;
+  }
+  return normalizeDrummerSequencerStepCount(track.stepCount) === 32;
+}
+
 function transportStepCountForPerformanceTracks(
   tracks: SequencerTrackState[],
   drummerTracks: DrummerSequencerTrackState[]
 ): 16 | 32 {
-  if (tracks.some((track) => normalizeStepCount(track.stepCount) === 32)) {
+  if (tracks.some((track) => sequencerTrackHas32StepPad(track))) {
     return 32;
   }
-  if (drummerTracks.some((track) => normalizeDrummerSequencerStepCount(track.stepCount) === 32)) {
+  if (drummerTracks.some((track) => drummerTrackHas32StepPad(track))) {
     return 32;
   }
   return 16;
@@ -472,8 +505,12 @@ function cloneDrummerSequencerRows(rows: DrummerSequencerRowState[]): DrummerSeq
   }));
 }
 
-function buildDefaultDrummerSequencerPad(rows: DrummerSequencerRowState[]): DrummerSequencerPadState {
+function buildDefaultDrummerSequencerPad(
+  rows: DrummerSequencerRowState[],
+  stepCount: DrummerSequencerStepCount = 16
+): DrummerSequencerPadState {
   return {
+    stepCount: normalizeDrummerSequencerStepCount(stepCount),
     rows: rows.map((row) => ({
       rowId: row.id,
       steps: cloneDrummerSequencerCells(DEFAULT_DRUMMER_SEQUENCER_CELLS)
@@ -481,12 +518,16 @@ function buildDefaultDrummerSequencerPad(rows: DrummerSequencerRowState[]): Drum
   };
 }
 
-function defaultDrummerSequencerPads(rows: DrummerSequencerRowState[]): DrummerSequencerPadState[] {
-  return Array.from({ length: DEFAULT_PAD_COUNT }, () => buildDefaultDrummerSequencerPad(rows));
+function defaultDrummerSequencerPads(
+  rows: DrummerSequencerRowState[],
+  stepCount: DrummerSequencerStepCount = 16
+): DrummerSequencerPadState[] {
+  return Array.from({ length: DEFAULT_PAD_COUNT }, () => buildDefaultDrummerSequencerPad(rows, stepCount));
 }
 
 function cloneDrummerSequencerPads(pads: DrummerSequencerPadState[]): DrummerSequencerPadState[] {
   return pads.map((pad) => ({
+    stepCount: normalizeDrummerSequencerStepCount(pad.stepCount),
     rows: Array.isArray(pad.rows)
       ? pad.rows.map((row) => ({
           rowId: row.rowId,
@@ -502,6 +543,7 @@ function alignDrummerPadRowsToTrackRows(
 ): DrummerSequencerPadState {
   const byRowId = new Map(pad.rows.map((row) => [row.rowId, row]));
   return {
+    stepCount: normalizeDrummerSequencerStepCount(pad.stepCount),
     rows: trackRows.map((trackRow) =>
       normalizeDrummerSequencerRowPadState(byRowId.get(trackRow.id) ?? null, trackRow.id)
     )
@@ -568,12 +610,72 @@ function normalizeControllerSequencerKeypoint(raw: unknown, fallbackIndex: numbe
   return { id, position, value };
 }
 
+function defaultControllerSequencerKeypoints(): ControllerSequencerKeypoint[] {
+  return normalizeControllerCurveKeypoints([
+    { id: "kp-start", position: 0, value: 0 },
+    { id: "kp-end", position: 1, value: 0 }
+  ]);
+}
+
+function cloneControllerSequencerPad(pad: ControllerSequencerPadState): ControllerSequencerPadState {
+  return {
+    stepCount: normalizeControllerSequencerStepCount(pad.stepCount),
+    keypoints: normalizeControllerCurveKeypoints(pad.keypoints)
+  };
+}
+
+function defaultControllerSequencerPad(stepCount: 8 | 16 | 32 | 64 = 16): ControllerSequencerPadState {
+  return {
+    stepCount: normalizeControllerSequencerStepCount(stepCount),
+    keypoints: defaultControllerSequencerKeypoints()
+  };
+}
+
+function defaultControllerSequencerPads(stepCount: 8 | 16 | 32 | 64 = 16): ControllerSequencerPadState[] {
+  return Array.from({ length: DEFAULT_PAD_COUNT }, () => defaultControllerSequencerPad(stepCount));
+}
+
+function normalizeControllerSequencerPadState(
+  raw: unknown,
+  fallback: ControllerSequencerPadState
+): ControllerSequencerPadState | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return null;
+  }
+
+  const pad = raw as Record<string, unknown>;
+  const stepCount = normalizeControllerSequencerStepCount(pad.stepCount ?? pad.step_count ?? fallback.stepCount);
+  const keypointsRaw = Array.isArray(pad.keypoints) ? pad.keypoints : [];
+  const keypoints = normalizeControllerCurveKeypoints(
+    keypointsRaw
+      .map((entry, keypointIndex) => normalizeControllerSequencerKeypoint(entry, keypointIndex))
+      .filter((point): point is ControllerSequencerKeypoint => point !== null)
+  );
+
+  return {
+    stepCount,
+    keypoints: keypoints.length > 0 ? keypoints : normalizeControllerCurveKeypoints(fallback.keypoints)
+  };
+}
+
+function fallbackControllerSequencerPadStateForSequencer(
+  controllerSequencer: Pick<ControllerSequencerState, "stepCount" | "keypoints">
+): ControllerSequencerPadState {
+  return {
+    stepCount: normalizeControllerSequencerStepCount(controllerSequencer.stepCount),
+    keypoints: normalizeControllerCurveKeypoints(controllerSequencer.keypoints)
+  };
+}
+
 function defaultSequencerPads(
   scaleRoot: SequencerScaleRoot = "C",
   scaleType: SequencerScaleType = "minor",
-  mode: SequencerMode = "aeolian"
+  mode: SequencerMode = "aeolian",
+  stepCount: 16 | 32 = 16
 ): SequencerPadState[] {
+  const normalizedStepCount = normalizeStepCount(stepCount);
   return Array.from({ length: DEFAULT_PAD_COUNT }, () => ({
+    stepCount: normalizedStepCount,
     steps: defaultSequencerSteps(),
     scaleRoot,
     scaleType,
@@ -632,6 +734,7 @@ function normalizeSequencerPadState(raw: unknown, fallback: SequencerPadState): 
   }
 
   const pad = raw as Record<string, unknown>;
+  const stepCount = normalizeStepCount((pad.stepCount ?? pad.step_count ?? fallback.stepCount) as number);
   const steps = normalizePadSteps(pad.steps) ?? cloneSequencerSteps(fallback.steps);
   const scaleRoot =
     pad.scaleRoot === undefined && pad.scale_root === undefined
@@ -650,6 +753,7 @@ function normalizeSequencerPadState(raw: unknown, fallback: SequencerPadState): 
       : normalizeSequencerMode(pad.mode);
 
   return {
+    stepCount,
     steps,
     scaleRoot,
     scaleType,
@@ -657,12 +761,30 @@ function normalizeSequencerPadState(raw: unknown, fallback: SequencerPadState): 
   };
 }
 
+function fallbackSequencerPadStateForTrack(
+  track: Pick<SequencerTrackState, "stepCount" | "scaleRoot" | "scaleType" | "mode">
+): SequencerPadState {
+  return {
+    stepCount: normalizeStepCount(track.stepCount),
+    steps: cloneSequencerSteps(DEFAULT_SEQUENCER_STEPS),
+    scaleRoot: track.scaleRoot,
+    scaleType: track.scaleType,
+    mode: track.mode
+  };
+}
+
+function fallbackDrummerSequencerPadStateForTrack(
+  track: Pick<DrummerSequencerTrackState, "stepCount" | "rows">
+): DrummerSequencerPadState {
+  return buildDefaultDrummerSequencerPad(track.rows, normalizeDrummerSequencerStepCount(track.stepCount));
+}
+
 function defaultSequencerTrack(index = 1, midiChannel = 1): SequencerTrackState {
   const channel = clampInt(midiChannel, 1, 16);
   const scaleRoot: SequencerScaleRoot = "C";
   const scaleType: SequencerScaleType = "minor";
   const mode: SequencerMode = "aeolian";
-  const pads = defaultSequencerPads(scaleRoot, scaleType, mode);
+  const pads = defaultSequencerPads(scaleRoot, scaleType, mode, 16);
   return {
     id: `voice-${index}`,
     name: `Sequencer ${index}`,
@@ -689,11 +811,12 @@ function defaultSequencerTrack(index = 1, midiChannel = 1): SequencerTrackState 
 function defaultDrummerSequencerTrack(index = 1, midiChannel = 10): DrummerSequencerTrackState {
   const channel = clampInt(midiChannel, 1, 16);
   const rows = defaultDrummerSequencerRows();
+  const stepCount: DrummerSequencerStepCount = 16;
   return {
     id: `drum-${index}`,
     name: `Drummer Sequencer ${index}`,
     midiChannel: channel,
-    stepCount: 16,
+    stepCount,
     activePad: 0,
     queuedPad: null,
     padLoopPosition: null,
@@ -701,7 +824,7 @@ function defaultDrummerSequencerTrack(index = 1, midiChannel = 10): DrummerSeque
     padLoopRepeat: true,
     padLoopSequence: [],
     rows,
-    pads: defaultDrummerSequencerPads(rows),
+    pads: defaultDrummerSequencerPads(rows, stepCount),
     runtimeLocalStep: null,
     enabled: false,
     queuedEnabled: null
@@ -736,16 +859,24 @@ function defaultMidiControllers(count = MAX_MIDI_CONTROLLERS): MidiControllerSta
 }
 
 function defaultControllerSequencer(index = 1): ControllerSequencerState {
+  const pads = defaultControllerSequencerPads(16);
+  const activePad = 0;
+  const activePadState = pads[activePad] ?? defaultControllerSequencerPad(16);
   return {
     id: `cc-seq-${index}`,
     name: `Controller Sequencer ${index}`,
     controllerNumber: clampInt(index - 1, 0, 127),
-    stepCount: 16,
+    stepCount: activePadState.stepCount,
+    activePad,
+    queuedPad: null,
+    padLoopPosition: null,
+    padLoopEnabled: false,
+    padLoopRepeat: true,
+    padLoopSequence: [],
+    pads,
+    runtimePadStartStep: null,
     enabled: false,
-    keypoints: normalizeControllerCurveKeypoints([
-      { id: "kp-start", position: 0, value: 0 },
-      { id: "kp-end", position: 1, value: 0 }
-    ])
+    keypoints: normalizeControllerCurveKeypoints(activePadState.keypoints)
   };
 }
 
@@ -765,25 +896,74 @@ function normalizeControllerSequencerState(raw: unknown, index: number): Control
       ? controllerSequencer.name
       : fallback.name;
   const controllerNumber = normalizeControllerNumber(controllerSequencer.controllerNumber);
-  const stepCount = normalizeControllerSequencerStepCount(
+  const legacyStepCount = normalizeControllerSequencerStepCount(
     controllerSequencer.stepCount ?? controllerSequencer.step_count
+  );
+  const activePadRaw = controllerSequencer.activePad ?? controllerSequencer.active_pad;
+  const activePad = typeof activePadRaw === "number" ? normalizePadIndex(activePadRaw) : 0;
+  const queuedPadRaw = controllerSequencer.queuedPad ?? controllerSequencer.queued_pad;
+  const queuedPad = typeof queuedPadRaw === "number" ? normalizePadIndex(queuedPadRaw) : null;
+  const rawPadLoopPosition = controllerSequencer.padLoopPosition ?? controllerSequencer.pad_loop_position;
+  const padLoopPosition =
+    typeof rawPadLoopPosition === "number" && Number.isFinite(rawPadLoopPosition)
+      ? Math.max(0, Math.round(rawPadLoopPosition))
+      : null;
+  const padLoopEnabled =
+    controllerSequencer.padLoopEnabled === undefined && controllerSequencer.pad_loop_enabled === undefined
+      ? fallback.padLoopEnabled
+      : (controllerSequencer.padLoopEnabled ?? controllerSequencer.pad_loop_enabled) === true;
+  const padLoopRepeat =
+    controllerSequencer.padLoopRepeat === undefined && controllerSequencer.pad_loop_repeat === undefined
+      ? fallback.padLoopRepeat
+      : (controllerSequencer.padLoopRepeat ?? controllerSequencer.pad_loop_repeat) !== false;
+  const padLoopSequence = normalizePadLoopSequence(
+    controllerSequencer.padLoopSequence ?? controllerSequencer.pad_loop_sequence
   );
   const enabled = typeof controllerSequencer.enabled === "boolean" ? controllerSequencer.enabled : fallback.enabled;
 
-  const keypointsRaw = Array.isArray(controllerSequencer.keypoints) ? controllerSequencer.keypoints : [];
-  const keypoints = normalizeControllerCurveKeypoints(
-    keypointsRaw
-      .map((entry, keypointIndex) => normalizeControllerSequencerKeypoint(entry, keypointIndex))
-      .filter((point): point is ControllerSequencerKeypoint => point !== null)
-  );
+  const pads = defaultControllerSequencerPads(legacyStepCount);
+  if (Array.isArray(controllerSequencer.pads)) {
+    for (let padIndex = 0; padIndex < Math.min(DEFAULT_PAD_COUNT, controllerSequencer.pads.length); padIndex += 1) {
+      const normalizedPad = normalizeControllerSequencerPadState(controllerSequencer.pads[padIndex], pads[padIndex]);
+      if (normalizedPad) {
+        pads[padIndex] = normalizedPad;
+      }
+    }
+  } else {
+    const keypointsRaw = Array.isArray(controllerSequencer.keypoints) ? controllerSequencer.keypoints : [];
+    const keypoints = normalizeControllerCurveKeypoints(
+      keypointsRaw
+        .map((entry, keypointIndex) => normalizeControllerSequencerKeypoint(entry, keypointIndex))
+        .filter((point): point is ControllerSequencerKeypoint => point !== null)
+    );
+    pads[0] = {
+      stepCount: legacyStepCount,
+      keypoints
+    };
+  }
+
+  const activePadState = pads[activePad] ?? pads[0] ?? defaultControllerSequencerPad(legacyStepCount);
+  const runtimePadStartStepRaw = controllerSequencer.runtimePadStartStep ?? controllerSequencer.runtime_pad_start_step;
+  const runtimePadStartStep =
+    typeof runtimePadStartStepRaw === "number" && Number.isFinite(runtimePadStartStepRaw)
+      ? runtimePadStartStepRaw
+      : null;
 
   return {
     id,
     name,
     controllerNumber,
-    stepCount,
+    stepCount: activePadState.stepCount,
+    activePad,
+    queuedPad,
+    padLoopPosition,
+    padLoopEnabled,
+    padLoopRepeat,
+    padLoopSequence,
+    pads: pads.map((pad) => cloneControllerSequencerPad(pad)),
+    runtimePadStartStep,
     enabled,
-    keypoints
+    keypoints: normalizeControllerCurveKeypoints(activePadState.keypoints)
   };
 }
 
@@ -860,7 +1040,7 @@ function normalizeSequencerTrack(raw: unknown, index: number): SequencerTrackSta
   const enabled = typeof track.enabled === "boolean" ? track.enabled : fallback.enabled;
   const queuedEnabled = typeof track.queuedEnabled === "boolean" ? track.queuedEnabled : null;
 
-  const pads = defaultSequencerPads(scaleRoot, scaleType, mode);
+  const pads = defaultSequencerPads(scaleRoot, scaleType, mode, stepCount);
   if (Array.isArray(track.pads)) {
     for (let padIndex = 0; padIndex < Math.min(DEFAULT_PAD_COUNT, track.pads.length); padIndex += 1) {
       const normalized = normalizeSequencerPadState(track.pads[padIndex], pads[padIndex]);
@@ -881,6 +1061,7 @@ function normalizeSequencerTrack(raw: unknown, index: number): SequencerTrackSta
   const activePadTheory =
     pads[activePad] ??
     pads[0] ?? {
+      stepCount,
       steps: cloneSequencerSteps(DEFAULT_SEQUENCER_STEPS),
       scaleRoot,
       scaleType,
@@ -891,7 +1072,7 @@ function normalizeSequencerTrack(raw: unknown, index: number): SequencerTrackSta
     id,
     name,
     midiChannel,
-    stepCount,
+    stepCount: normalizeStepCount(activePadTheory.stepCount),
     syncToTrackId,
     scaleRoot: activePadTheory.scaleRoot,
     scaleType: activePadTheory.scaleType,
@@ -980,15 +1161,17 @@ function normalizeDrummerSequencerTrack(raw: unknown, index: number): DrummerSeq
     });
   })();
 
-  const pads = defaultDrummerSequencerPads(rows);
+  const pads = defaultDrummerSequencerPads(rows, stepCount);
   if (Array.isArray(track.pads)) {
     for (let padIndex = 0; padIndex < Math.min(DEFAULT_PAD_COUNT, track.pads.length); padIndex += 1) {
       const rawPad = track.pads[padIndex];
       let rawPadRows: unknown[] = [];
+      let padStepCount: DrummerSequencerStepCount = pads[padIndex]?.stepCount ?? stepCount;
       if (Array.isArray(rawPad)) {
         rawPadRows = rawPad;
       } else if (rawPad && typeof rawPad === "object" && !Array.isArray(rawPad)) {
         const candidate = rawPad as Record<string, unknown>;
+        padStepCount = normalizeDrummerSequencerStepCount(candidate.stepCount ?? candidate.step_count ?? padStepCount);
         rawPadRows = Array.isArray(candidate.rows) ? candidate.rows : [];
       }
 
@@ -1008,16 +1191,19 @@ function normalizeDrummerSequencerTrack(raw: unknown, index: number): DrummerSeq
       }
 
       pads[padIndex] = {
+        stepCount: padStepCount,
         rows: rows.map((row) => normalizeDrummerSequencerRowPadState(byRowId.get(row.id) ?? null, row.id))
       };
     }
   }
 
+  const activePadState = pads[activePad] ?? pads[0] ?? fallbackDrummerSequencerPadStateForTrack({ stepCount, rows });
+
   return {
     id,
     name,
     midiChannel,
-    stepCount,
+    stepCount: normalizeDrummerSequencerStepCount(activePadState.stepCount),
     activePad,
     queuedPad,
     padLoopPosition,
@@ -1461,6 +1647,10 @@ function sequencerSnapshotForPersistence(sequencer: SequencerState): SequencerSt
     })),
     controllerSequencers: sequencer.controllerSequencers.map((controllerSequencer) => ({
       ...controllerSequencer,
+      queuedPad: null,
+      padLoopPosition: null,
+      runtimePadStartStep: null,
+      pads: controllerSequencer.pads.map((pad) => cloneControllerSequencerPad(pad)),
       keypoints: normalizeControllerCurveKeypoints(controllerSequencer.keypoints)
     }))
   };
@@ -1632,6 +1822,7 @@ function buildSequencerConfigSnapshot(
           const padMode =
             sourcePad?.mode === undefined ? defaultModeForScaleType(padScaleType) : normalizeSequencerMode(sourcePad.mode);
           return {
+            stepCount: normalizeStepCount(sourcePad?.stepCount ?? track.stepCount),
             steps: Array.from({ length: 32 }, (_, stepIndex) => normalizeSequencerStep(sourcePad?.steps?.[stepIndex])),
             scaleRoot: padScaleRoot,
             scaleType: padScaleType,
@@ -1648,6 +1839,7 @@ function buildSequencerConfigSnapshot(
           .map((pad) => alignDrummerPadRowsToTrackRows(pad, rows))
           .slice(0, DEFAULT_PAD_COUNT)
           .map((pad) => ({
+            stepCount: normalizeDrummerSequencerStepCount(pad.stepCount),
             rows: rows.map((row) => {
               const padRow = pad.rows.find((candidate) => candidate.rowId === row.id);
               return {
@@ -1699,7 +1891,30 @@ function buildSequencerConfigSnapshot(
             : `Controller Sequencer ${index + 1}`,
         controllerNumber: normalizeControllerNumber(controllerSequencer.controllerNumber),
         stepCount: clampControllerSequencerStepCount(controllerSequencer.stepCount),
+        activePad: normalizePadIndex(controllerSequencer.activePad),
+        queuedPad: controllerSequencer.queuedPad === null ? null : normalizePadIndex(controllerSequencer.queuedPad),
+        padLoopEnabled: controllerSequencer.padLoopEnabled === true,
+        padLoopRepeat: controllerSequencer.padLoopRepeat !== false,
+        padLoopSequence: controllerSequencer.padLoopSequence.slice(0, 256).map((padIndex) => normalizePadIndex(padIndex)),
         enabled: controllerSequencer.enabled === true,
+        pads: Array.from({ length: DEFAULT_PAD_COUNT }, (_, padIndex) => {
+          const sourcePad =
+            controllerSequencer.pads[padIndex] ??
+            (padIndex === normalizePadIndex(controllerSequencer.activePad)
+              ? {
+                  stepCount: clampControllerSequencerStepCount(controllerSequencer.stepCount),
+                  keypoints: normalizeControllerCurveKeypoints(controllerSequencer.keypoints)
+                }
+              : defaultControllerSequencerPad());
+          return {
+            stepCount: clampControllerSequencerStepCount(sourcePad.stepCount),
+            keypoints: normalizeControllerCurveKeypoints(sourcePad.keypoints).map((keypoint, keypointIndex) => ({
+              id: keypoint.id.length > 0 ? keypoint.id : `kp-${padIndex + 1}-${keypointIndex + 1}`,
+              position: clampControllerCurvePosition(keypoint.position),
+              value: clampControllerCurveValue(keypoint.value)
+            }))
+          };
+        }),
         keypoints: normalizeControllerCurveKeypoints(controllerSequencer.keypoints).map((keypoint, keypointIndex) => ({
           id: keypoint.id.length > 0 ? keypoint.id : `kp-${keypointIndex + 1}`,
           position: clampControllerCurvePosition(keypoint.position),
@@ -2597,6 +2812,7 @@ export const useAppStore = create<AppStore>((set, get) => {
                     );
                     const selectedPad =
                       pads[activePad] ?? {
+                        stepCount: normalizeStepCount(track.stepCount),
                         steps: cloneSequencerSteps(DEFAULT_SEQUENCER_STEPS),
                         scaleRoot: normalizedRoot,
                         scaleType: normalizedType,
@@ -2640,6 +2856,7 @@ export const useAppStore = create<AppStore>((set, get) => {
                     );
                     const selectedPad =
                       pads[activePad] ?? {
+                        stepCount: normalizeStepCount(track.stepCount),
                         steps: cloneSequencerSteps(DEFAULT_SEQUENCER_STEPS),
                         scaleRoot: track.scaleRoot,
                         scaleType: normalizedScaleType,
@@ -2661,9 +2878,20 @@ export const useAppStore = create<AppStore>((set, get) => {
     setSequencerTrackStepCount: (trackId, stepCount) => {
       const sequencer = get().sequencer;
       const normalizedStepCount = normalizeStepCount(stepCount);
-      const nextTracks = sequencer.tracks.map((track) =>
-        track.id === trackId ? { ...track, stepCount: normalizedStepCount } : track
-      );
+      const nextTracks = sequencer.tracks.map((track) => {
+        if (track.id !== trackId) {
+          return track;
+        }
+        const activePad = normalizePadIndex(track.activePad);
+        const pads = track.pads.map((pad, index) =>
+          index === activePad ? { ...pad, stepCount: normalizedStepCount } : pad
+        );
+        return {
+          ...track,
+          stepCount: normalizedStepCount,
+          pads
+        };
+      });
 
       set({
         sequencer: {
@@ -2693,13 +2921,7 @@ export const useAppStore = create<AppStore>((set, get) => {
               steps: cloneSequencerSteps(pad.steps)
             }));
             const activePad = normalizePadIndex(track.activePad);
-            const activePadState =
-              pads[activePad] ?? {
-                steps: cloneSequencerSteps(DEFAULT_SEQUENCER_STEPS),
-                scaleRoot: track.scaleRoot,
-                scaleType: track.scaleType,
-                mode: track.mode
-              };
+            const activePadState = pads[activePad] ?? fallbackSequencerPadStateForTrack(track);
             const steps = cloneSequencerSteps(activePadState.steps);
             const stepState = steps[index] ?? createEmptySequencerStep();
             steps[index] = {
@@ -2741,13 +2963,7 @@ export const useAppStore = create<AppStore>((set, get) => {
               steps: cloneSequencerSteps(pad.steps)
             }));
             const activePad = normalizePadIndex(track.activePad);
-            const activePadState =
-              pads[activePad] ?? {
-                steps: cloneSequencerSteps(DEFAULT_SEQUENCER_STEPS),
-                scaleRoot: track.scaleRoot,
-                scaleType: track.scaleType,
-                mode: track.mode
-              };
+            const activePadState = pads[activePad] ?? fallbackSequencerPadStateForTrack(track);
             const steps = cloneSequencerSteps(activePadState.steps);
             const stepState = steps[index] ?? createEmptySequencerStep();
             steps[index] = {
@@ -2788,13 +3004,7 @@ export const useAppStore = create<AppStore>((set, get) => {
               steps: cloneSequencerSteps(pad.steps)
             }));
             const activePad = normalizePadIndex(track.activePad);
-            const activePadState =
-              pads[activePad] ?? {
-                steps: cloneSequencerSteps(DEFAULT_SEQUENCER_STEPS),
-                scaleRoot: track.scaleRoot,
-                scaleType: track.scaleType,
-                mode: track.mode
-              };
+            const activePadState = pads[activePad] ?? fallbackSequencerPadStateForTrack(track);
             const steps = cloneSequencerSteps(activePadState.steps);
             const stepState = steps[index] ?? createEmptySequencerStep();
             steps[index] = {
@@ -2836,13 +3046,7 @@ export const useAppStore = create<AppStore>((set, get) => {
               steps: cloneSequencerSteps(pad.steps)
             }));
             const activePad = normalizePadIndex(track.activePad);
-            const activePadState =
-              pads[activePad] ?? {
-                steps: cloneSequencerSteps(DEFAULT_SEQUENCER_STEPS),
-                scaleRoot: track.scaleRoot,
-                scaleType: track.scaleType,
-                mode: track.mode
-              };
+            const activePadState = pads[activePad] ?? fallbackSequencerPadStateForTrack(track);
             const steps = cloneSequencerSteps(activePadState.steps);
             const stepState = steps[index] ?? createEmptySequencerStep();
             steps[index] = {
@@ -2884,12 +3088,8 @@ export const useAppStore = create<AppStore>((set, get) => {
       const sourcePadIndex = normalizePadIndex(sourceTrack.activePad);
       const sourcePad =
         sourceTrack.pads[sourcePadIndex] ??
-        sourceTrack.pads[0] ?? {
-          steps: cloneSequencerSteps(DEFAULT_SEQUENCER_STEPS),
-          scaleRoot: sourceTrack.scaleRoot,
-          scaleType: sourceTrack.scaleType,
-          mode: sourceTrack.mode
-        };
+        sourceTrack.pads[0] ??
+        fallbackSequencerPadStateForTrack(sourceTrack);
       const sourceStep = sourcePad.steps[sourceIndex] ?? createEmptySequencerStep();
 
       set({
@@ -2905,13 +3105,7 @@ export const useAppStore = create<AppStore>((set, get) => {
               steps: cloneSequencerSteps(pad.steps)
             }));
             const activePad = normalizePadIndex(track.activePad);
-            const activePadState =
-              pads[activePad] ?? {
-                steps: cloneSequencerSteps(DEFAULT_SEQUENCER_STEPS),
-                scaleRoot: track.scaleRoot,
-                scaleType: track.scaleType,
-                mode: track.mode
-              };
+            const activePadState = pads[activePad] ?? fallbackSequencerPadStateForTrack(track);
             const steps = cloneSequencerSteps(activePadState.steps);
             const targetStep = steps[targetIndex] ?? createEmptySequencerStep();
             steps[targetIndex] = {
@@ -2950,13 +3144,7 @@ export const useAppStore = create<AppStore>((set, get) => {
               steps: cloneSequencerSteps(pad.steps)
             }));
             const activePad = normalizePadIndex(track.activePad);
-            const activePadState =
-              pads[activePad] ?? {
-                steps: cloneSequencerSteps(DEFAULT_SEQUENCER_STEPS),
-                scaleRoot: track.scaleRoot,
-                scaleType: track.scaleType,
-                mode: track.mode
-              };
+            const activePadState = pads[activePad] ?? fallbackSequencerPadStateForTrack(track);
             const steps = cloneSequencerSteps(DEFAULT_SEQUENCER_STEPS);
             pads[activePad] = {
               ...activePadState,
@@ -2993,14 +3181,10 @@ export const useAppStore = create<AppStore>((set, get) => {
               ...pad,
               steps: cloneSequencerSteps(pad.steps)
             }));
-            const fallbackPad: SequencerPadState = {
-              steps: cloneSequencerSteps(DEFAULT_SEQUENCER_STEPS),
-              scaleRoot: track.scaleRoot,
-              scaleType: track.scaleType,
-              mode: track.mode
-            };
+            const fallbackPad: SequencerPadState = fallbackSequencerPadStateForTrack(track);
             const sourcePad = pads[normalizedSourcePad] ?? fallbackPad;
             const copiedPad: SequencerPadState = {
+              stepCount: normalizeStepCount(sourcePad.stepCount),
               steps: cloneSequencerSteps(sourcePad.steps),
               scaleRoot: sourcePad.scaleRoot,
               scaleType: sourcePad.scaleType,
@@ -3048,12 +3232,7 @@ export const useAppStore = create<AppStore>((set, get) => {
               ...pad,
               steps: cloneSequencerSteps(pad.steps)
             }));
-            const fallbackPad: SequencerPadState = {
-              steps: cloneSequencerSteps(DEFAULT_SEQUENCER_STEPS),
-              scaleRoot: track.scaleRoot,
-              scaleType: track.scaleType,
-              mode: track.mode
-            };
+            const fallbackPad: SequencerPadState = fallbackSequencerPadStateForTrack(track);
             const sourcePad = pads[normalizedPad] ?? fallbackPad;
             const nextSteps = cloneSequencerSteps(sourcePad.steps).map((step) => {
               if (step.note === null) {
@@ -3119,12 +3298,7 @@ export const useAppStore = create<AppStore>((set, get) => {
               ...pad,
               steps: cloneSequencerSteps(pad.steps)
             }));
-            const fallbackPad: SequencerPadState = {
-              steps: cloneSequencerSteps(DEFAULT_SEQUENCER_STEPS),
-              scaleRoot: track.scaleRoot,
-              scaleType: track.scaleType,
-              mode: track.mode
-            };
+            const fallbackPad: SequencerPadState = fallbackSequencerPadStateForTrack(track);
             const sourcePad = pads[normalizedPad] ?? fallbackPad;
             const { scaleRoot: nextScaleRoot, semitoneOffset } = transposeSequencerTonicByDiatonicStep(
               sourcePad.scaleRoot,
@@ -3175,14 +3349,11 @@ export const useAppStore = create<AppStore>((set, get) => {
               ? (() => {
                   const selectedPad =
                     track.pads[normalizedPad] ??
-                    track.pads[0] ?? {
-                      steps: cloneSequencerSteps(DEFAULT_SEQUENCER_STEPS),
-                      scaleRoot: track.scaleRoot,
-                      scaleType: track.scaleType,
-                      mode: track.mode
-                    };
+                    track.pads[0] ??
+                    fallbackSequencerPadStateForTrack(track);
                   return {
                     ...track,
+                    stepCount: normalizeStepCount(selectedPad.stepCount),
                     activePad: normalizedPad,
                     queuedPad: sequencer.isPlaying ? track.queuedPad : null,
                     scaleRoot: selectedPad.scaleRoot,
@@ -3389,9 +3560,20 @@ export const useAppStore = create<AppStore>((set, get) => {
     setDrummerSequencerTrackStepCount: (trackId, stepCount) => {
       const sequencer = get().sequencer;
       const normalizedStepCount = normalizeDrummerSequencerStepCount(stepCount);
-      const nextDrummerTracks = sequencer.drummerTracks.map((track) =>
-        track.id === trackId ? { ...track, stepCount: normalizedStepCount } : track
-      );
+      const nextDrummerTracks = sequencer.drummerTracks.map((track) => {
+        if (track.id !== trackId) {
+          return track;
+        }
+        const activePad = normalizePadIndex(track.activePad);
+        const nextPads = cloneDrummerSequencerPads(track.pads).map((pad, index) =>
+          index === activePad ? { ...pad, stepCount: normalizedStepCount } : pad
+        );
+        return {
+          ...track,
+          stepCount: normalizedStepCount,
+          pads: nextPads
+        };
+      });
       set({
         sequencer: {
           ...sequencer,
@@ -3423,6 +3605,7 @@ export const useAppStore = create<AppStore>((set, get) => {
             };
             const nextRows = [...cloneDrummerSequencerRows(track.rows), newRow];
             const nextPads = cloneDrummerSequencerPads(track.pads).map((pad) => ({
+              stepCount: normalizeDrummerSequencerStepCount(pad.stepCount),
               rows: [
                 ...alignDrummerPadRowsToTrackRows(pad, track.rows).rows,
                 { rowId: newRow.id, steps: cloneDrummerSequencerCells(DEFAULT_DRUMMER_SEQUENCER_CELLS) }
@@ -3452,8 +3635,10 @@ export const useAppStore = create<AppStore>((set, get) => {
             }
             const nextRows = track.rows.filter((row) => row.id !== rowId);
             const nextPads = cloneDrummerSequencerPads(track.pads).map((pad) => ({
+              stepCount: normalizeDrummerSequencerStepCount(pad.stepCount),
               rows: alignDrummerPadRowsToTrackRows(
                 {
+                  stepCount: normalizeDrummerSequencerStepCount(pad.stepCount),
                   rows: pad.rows.filter((row) => row.rowId !== rowId)
                 },
                 nextRows
@@ -3501,7 +3686,7 @@ export const useAppStore = create<AppStore>((set, get) => {
             }
             const activePad = normalizePadIndex(track.activePad);
             const nextPads = cloneDrummerSequencerPads(track.pads).map((pad) => alignDrummerPadRowsToTrackRows(pad, track.rows));
-            const pad = nextPads[activePad] ?? buildDefaultDrummerSequencerPad(track.rows);
+            const pad = nextPads[activePad] ?? fallbackDrummerSequencerPadStateForTrack(track);
             const nextRows = pad.rows.map((row) => {
               if (row.rowId !== rowId) {
                 return row;
@@ -3514,7 +3699,7 @@ export const useAppStore = create<AppStore>((set, get) => {
               };
               return { ...row, steps: nextSteps };
             });
-            nextPads[activePad] = { rows: nextRows };
+            nextPads[activePad] = { ...pad, rows: nextRows };
             return {
               ...track,
               pads: nextPads
@@ -3539,7 +3724,7 @@ export const useAppStore = create<AppStore>((set, get) => {
             }
             const activePad = normalizePadIndex(track.activePad);
             const nextPads = cloneDrummerSequencerPads(track.pads).map((pad) => alignDrummerPadRowsToTrackRows(pad, track.rows));
-            const pad = nextPads[activePad] ?? buildDefaultDrummerSequencerPad(track.rows);
+            const pad = nextPads[activePad] ?? fallbackDrummerSequencerPadStateForTrack(track);
             const nextRows = pad.rows.map((row) => {
               if (row.rowId !== rowId) {
                 return row;
@@ -3552,7 +3737,7 @@ export const useAppStore = create<AppStore>((set, get) => {
               };
               return { ...row, steps: nextSteps };
             });
-            nextPads[activePad] = { rows: nextRows };
+            nextPads[activePad] = { ...pad, rows: nextRows };
             return {
               ...track,
               pads: nextPads
@@ -3573,7 +3758,7 @@ export const useAppStore = create<AppStore>((set, get) => {
             }
             const activePad = normalizePadIndex(track.activePad);
             const nextPads = cloneDrummerSequencerPads(track.pads).map((pad) => alignDrummerPadRowsToTrackRows(pad, track.rows));
-            nextPads[activePad] = buildDefaultDrummerSequencerPad(track.rows);
+            nextPads[activePad] = buildDefaultDrummerSequencerPad(track.rows, track.stepCount);
             return {
               ...track,
               pads: nextPads
@@ -3599,9 +3784,10 @@ export const useAppStore = create<AppStore>((set, get) => {
               return track;
             }
             const nextPads = cloneDrummerSequencerPads(track.pads).map((pad) => alignDrummerPadRowsToTrackRows(pad, track.rows));
-            const sourcePad = nextPads[normalizedSourcePad] ?? buildDefaultDrummerSequencerPad(track.rows);
+            const sourcePad = nextPads[normalizedSourcePad] ?? fallbackDrummerSequencerPadStateForTrack(track);
             nextPads[normalizedTargetPad] = alignDrummerPadRowsToTrackRows(
               {
+                stepCount: normalizeDrummerSequencerStepCount(sourcePad.stepCount),
                 rows: sourcePad.rows.map((row) => ({
                   rowId: row.rowId,
                   steps: cloneDrummerSequencerCells(row.steps)
@@ -3609,8 +3795,15 @@ export const useAppStore = create<AppStore>((set, get) => {
               },
               track.rows
             );
+            if (normalizePadIndex(track.activePad) !== normalizedTargetPad) {
+              return {
+                ...track,
+                pads: nextPads
+              };
+            }
             return {
               ...track,
+              stepCount: normalizeDrummerSequencerStepCount(nextPads[normalizedTargetPad]?.stepCount ?? track.stepCount),
               pads: nextPads
             };
           })
@@ -3626,11 +3819,18 @@ export const useAppStore = create<AppStore>((set, get) => {
           ...sequencer,
           drummerTracks: sequencer.drummerTracks.map((track) =>
             track.id === trackId
-              ? {
-                  ...track,
-                  activePad: normalizedPad,
-                  queuedPad: sequencer.isPlaying ? track.queuedPad : null
-                }
+              ? (() => {
+                  const selectedPad =
+                    track.pads[normalizedPad] ??
+                    track.pads[0] ??
+                    fallbackDrummerSequencerPadStateForTrack(track);
+                  return {
+                    ...track,
+                    stepCount: normalizeDrummerSequencerStepCount(selectedPad.stepCount),
+                    activePad: normalizedPad,
+                    queuedPad: sequencer.isPlaying ? track.queuedPad : null
+                  };
+                })()
               : track
           )
         }
@@ -3971,9 +4171,23 @@ export const useAppStore = create<AppStore>((set, get) => {
       set({
         sequencer: {
           ...sequencer,
-          controllerSequencers: sequencer.controllerSequencers.map((controllerSequencer) =>
-            controllerSequencer.id === controllerSequencerId ? { ...controllerSequencer, enabled } : controllerSequencer
-          )
+          controllerSequencers: sequencer.controllerSequencers.map((controllerSequencer) => {
+            if (controllerSequencer.id !== controllerSequencerId) {
+              return controllerSequencer;
+            }
+            const wasEnabled = controllerSequencer.enabled;
+            const nextEnabled = enabled === true;
+            const runtimeResetRequired = nextEnabled !== wasEnabled;
+            return {
+              ...controllerSequencer,
+              enabled: nextEnabled,
+              queuedPad: !nextEnabled ? null : runtimeResetRequired ? null : controllerSequencer.queuedPad,
+              padLoopPosition:
+                !nextEnabled || runtimeResetRequired ? null : controllerSequencer.padLoopPosition,
+              runtimePadStartStep:
+                !nextEnabled || runtimeResetRequired ? null : controllerSequencer.runtimePadStartStep
+            };
+          })
         }
       });
     },
@@ -3993,17 +4207,223 @@ export const useAppStore = create<AppStore>((set, get) => {
       });
     },
 
-    setControllerSequencerStepCount: (controllerSequencerId, stepCount) => {
-      const normalizedStepCount = clampControllerSequencerStepCount(stepCount);
+    setControllerSequencerActivePad: (controllerSequencerId, padIndex) => {
+      const sequencer = get().sequencer;
+      const normalizedPad = normalizePadIndex(padIndex);
+      set({
+        sequencer: {
+          ...sequencer,
+          controllerSequencers: sequencer.controllerSequencers.map((controllerSequencer) => {
+            if (controllerSequencer.id !== controllerSequencerId) {
+              return controllerSequencer;
+            }
+            const selectedPad =
+              controllerSequencer.pads[normalizedPad] ??
+              controllerSequencer.pads[0] ??
+              fallbackControllerSequencerPadStateForSequencer(controllerSequencer);
+            return {
+              ...controllerSequencer,
+              activePad: normalizedPad,
+              queuedPad: sequencer.isPlaying ? controllerSequencer.queuedPad : null,
+              stepCount: normalizeControllerSequencerStepCount(selectedPad.stepCount),
+              keypoints: normalizeControllerCurveKeypoints(selectedPad.keypoints)
+            };
+          })
+        }
+      });
+    },
+
+    setControllerSequencerQueuedPad: (controllerSequencerId, padIndex) => {
       const sequencer = get().sequencer;
       set({
         sequencer: {
           ...sequencer,
           controllerSequencers: sequencer.controllerSequencers.map((controllerSequencer) =>
             controllerSequencer.id === controllerSequencerId
-              ? { ...controllerSequencer, stepCount: normalizedStepCount }
+              ? {
+                  ...controllerSequencer,
+                  queuedPad: padIndex === null ? null : normalizePadIndex(padIndex)
+                }
               : controllerSequencer
           )
+        }
+      });
+    },
+
+    copyControllerSequencerPad: (controllerSequencerId, sourcePadIndex, targetPadIndex) => {
+      const normalizedSourcePad = normalizePadIndex(sourcePadIndex);
+      const normalizedTargetPad = normalizePadIndex(targetPadIndex);
+      if (normalizedSourcePad === normalizedTargetPad) {
+        return;
+      }
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          controllerSequencers: sequencer.controllerSequencers.map((controllerSequencer) => {
+            if (controllerSequencer.id !== controllerSequencerId) {
+              return controllerSequencer;
+            }
+            const pads = controllerSequencer.pads.map((pad) => cloneControllerSequencerPad(pad));
+            const fallbackPad = fallbackControllerSequencerPadStateForSequencer(controllerSequencer);
+            const sourcePad = pads[normalizedSourcePad] ?? fallbackPad;
+            const copiedPad = cloneControllerSequencerPad(sourcePad);
+            pads[normalizedTargetPad] = copiedPad;
+
+            if (normalizePadIndex(controllerSequencer.activePad) !== normalizedTargetPad) {
+              return {
+                ...controllerSequencer,
+                pads
+              };
+            }
+
+            return {
+              ...controllerSequencer,
+              pads,
+              stepCount: copiedPad.stepCount,
+              keypoints: normalizeControllerCurveKeypoints(copiedPad.keypoints)
+            };
+          })
+        }
+      });
+    },
+
+    clearControllerSequencerSteps: (controllerSequencerId) => {
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          controllerSequencers: sequencer.controllerSequencers.map((controllerSequencer) => {
+            if (controllerSequencer.id !== controllerSequencerId) {
+              return controllerSequencer;
+            }
+            const activePad = normalizePadIndex(controllerSequencer.activePad);
+            const pads = controllerSequencer.pads.map((pad) => cloneControllerSequencerPad(pad));
+            const sourcePad = pads[activePad] ?? fallbackControllerSequencerPadStateForSequencer(controllerSequencer);
+            const nextKeypoints = defaultControllerSequencerKeypoints();
+            pads[activePad] = {
+              ...sourcePad,
+              keypoints: nextKeypoints
+            };
+            return {
+              ...controllerSequencer,
+              pads,
+              keypoints: nextKeypoints
+            };
+          })
+        }
+      });
+    },
+
+    setControllerSequencerPadLoopEnabled: (controllerSequencerId, enabled) => {
+      const sequencer = get().sequencer;
+      const nextEnabled = enabled === true;
+      set({
+        sequencer: {
+          ...sequencer,
+          controllerSequencers: sequencer.controllerSequencers.map((controllerSequencer) =>
+            controllerSequencer.id === controllerSequencerId
+              ? {
+                  ...controllerSequencer,
+                  padLoopEnabled: nextEnabled,
+                  padLoopPosition:
+                    nextEnabled && sequencer.isPlaying ? controllerSequencer.padLoopPosition : null
+                }
+              : controllerSequencer
+          )
+        }
+      });
+    },
+
+    setControllerSequencerPadLoopRepeat: (controllerSequencerId, repeat) => {
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          controllerSequencers: sequencer.controllerSequencers.map((controllerSequencer) =>
+            controllerSequencer.id === controllerSequencerId
+              ? {
+                  ...controllerSequencer,
+                  padLoopRepeat: repeat !== false
+                }
+              : controllerSequencer
+          )
+        }
+      });
+    },
+
+    addControllerSequencerPadLoopStep: (controllerSequencerId, padIndex) => {
+      const normalizedPad = normalizePadIndex(padIndex);
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          controllerSequencers: sequencer.controllerSequencers.map((controllerSequencer) => {
+            if (controllerSequencer.id !== controllerSequencerId) {
+              return controllerSequencer;
+            }
+            if (controllerSequencer.padLoopSequence.length >= 256) {
+              return controllerSequencer;
+            }
+            return {
+              ...controllerSequencer,
+              padLoopSequence: [...controllerSequencer.padLoopSequence, normalizedPad]
+            };
+          })
+        }
+      });
+    },
+
+    removeControllerSequencerPadLoopStep: (controllerSequencerId, sequenceIndex) => {
+      if (!Number.isFinite(sequenceIndex)) {
+        return;
+      }
+      const normalizedSequenceIndex = Math.max(0, Math.round(sequenceIndex));
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          controllerSequencers: sequencer.controllerSequencers.map((controllerSequencer) => {
+            if (controllerSequencer.id !== controllerSequencerId) {
+              return controllerSequencer;
+            }
+            if (
+              normalizedSequenceIndex < 0 ||
+              normalizedSequenceIndex >= controllerSequencer.padLoopSequence.length
+            ) {
+              return controllerSequencer;
+            }
+            return {
+              ...controllerSequencer,
+              padLoopSequence: controllerSequencer.padLoopSequence.filter(
+                (_, index) => index !== normalizedSequenceIndex
+              )
+            };
+          })
+        }
+      });
+    },
+
+    setControllerSequencerStepCount: (controllerSequencerId, stepCount) => {
+      const normalizedStepCount = clampControllerSequencerStepCount(stepCount);
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          controllerSequencers: sequencer.controllerSequencers.map((controllerSequencer) => {
+            if (controllerSequencer.id !== controllerSequencerId) {
+              return controllerSequencer;
+            }
+            const activePad = normalizePadIndex(controllerSequencer.activePad);
+            const pads = controllerSequencer.pads.map((pad, index) =>
+              index === activePad ? { ...pad, stepCount: normalizedStepCount } : cloneControllerSequencerPad(pad)
+            );
+            return {
+              ...controllerSequencer,
+              stepCount: normalizedStepCount,
+              pads
+            };
+          })
         }
       });
     },
@@ -4019,16 +4439,24 @@ export const useAppStore = create<AppStore>((set, get) => {
             if (controllerSequencer.id !== controllerSequencerId) {
               return controllerSequencer;
             }
+            const activePad = normalizePadIndex(controllerSequencer.activePad);
+            const pads = controllerSequencer.pads.map((pad) => cloneControllerSequencerPad(pad));
+            const sourcePad = pads[activePad] ?? fallbackControllerSequencerPadStateForSequencer(controllerSequencer);
             const nextKeypoints = normalizeControllerCurveKeypoints([
-              ...controllerSequencer.keypoints,
+              ...sourcePad.keypoints,
               {
                 id: crypto.randomUUID(),
                 position: normalizedPosition,
                 value: normalizedValue
               }
             ]);
+            pads[activePad] = {
+              ...sourcePad,
+              keypoints: nextKeypoints
+            };
             return {
               ...controllerSequencer,
+              pads,
               keypoints: nextKeypoints
             };
           })
@@ -4047,8 +4475,11 @@ export const useAppStore = create<AppStore>((set, get) => {
             if (controllerSequencer.id !== controllerSequencerId) {
               return controllerSequencer;
             }
+            const activePad = normalizePadIndex(controllerSequencer.activePad);
+            const pads = controllerSequencer.pads.map((pad) => cloneControllerSequencerPad(pad));
+            const sourcePad = pads[activePad] ?? fallbackControllerSequencerPadStateForSequencer(controllerSequencer);
 
-            const nextKeypoints = controllerSequencer.keypoints.map((keypoint) => {
+            const nextKeypoints = sourcePad.keypoints.map((keypoint) => {
               if (keypoint.id !== keypointId) {
                 return keypoint;
               }
@@ -4062,7 +4493,7 @@ export const useAppStore = create<AppStore>((set, get) => {
               };
             });
 
-            const movedPoint = controllerSequencer.keypoints.find((keypoint) => keypoint.id === keypointId);
+            const movedPoint = sourcePad.keypoints.find((keypoint) => keypoint.id === keypointId);
             const movedIsBorder =
               (movedPoint?.position ?? 0) <= 1e-6 || (movedPoint?.position ?? 0) >= 1 - 1e-6;
             const linkedKeypoints = movedIsBorder
@@ -4072,10 +4503,16 @@ export const useAppStore = create<AppStore>((set, get) => {
                     : keypoint
                 )
               : nextKeypoints;
+            const normalizedKeypoints = normalizeControllerCurveKeypoints(linkedKeypoints);
+            pads[activePad] = {
+              ...sourcePad,
+              keypoints: normalizedKeypoints
+            };
 
             return {
               ...controllerSequencer,
-              keypoints: normalizeControllerCurveKeypoints(linkedKeypoints)
+              pads,
+              keypoints: normalizedKeypoints
             };
           })
         }
@@ -4092,10 +4529,13 @@ export const useAppStore = create<AppStore>((set, get) => {
             if (controllerSequencer.id !== controllerSequencerId) {
               return controllerSequencer;
             }
-            const target = controllerSequencer.keypoints.find((keypoint) => keypoint.id === keypointId);
+            const activePad = normalizePadIndex(controllerSequencer.activePad);
+            const pads = controllerSequencer.pads.map((pad) => cloneControllerSequencerPad(pad));
+            const sourcePad = pads[activePad] ?? fallbackControllerSequencerPadStateForSequencer(controllerSequencer);
+            const target = sourcePad.keypoints.find((keypoint) => keypoint.id === keypointId);
             const isBorderTarget =
               (target?.position ?? 0) <= 1e-6 || (target?.position ?? 0) >= 1 - 1e-6;
-            const nextKeypoints = controllerSequencer.keypoints.map((keypoint) => {
+            const nextKeypoints = sourcePad.keypoints.map((keypoint) => {
               if (keypoint.id === keypointId) {
                 return { ...keypoint, value: normalizedValue };
               }
@@ -4104,9 +4544,15 @@ export const useAppStore = create<AppStore>((set, get) => {
               }
               return keypoint;
             });
+            const normalizedKeypoints = normalizeControllerCurveKeypoints(nextKeypoints);
+            pads[activePad] = {
+              ...sourcePad,
+              keypoints: normalizedKeypoints
+            };
             return {
               ...controllerSequencer,
-              keypoints: normalizeControllerCurveKeypoints(nextKeypoints)
+              pads,
+              keypoints: normalizedKeypoints
             };
           })
         }
@@ -4121,20 +4567,101 @@ export const useAppStore = create<AppStore>((set, get) => {
           controllerSequencers: sequencer.controllerSequencers.map((controllerSequencer) =>
             controllerSequencer.id === controllerSequencerId
               ? {
-                  ...controllerSequencer,
-                  keypoints: normalizeControllerCurveKeypoints(
-                    controllerSequencer.keypoints.filter((keypoint) => {
-                      const isBorder =
-                        keypoint.position <= 1e-6 || keypoint.position >= 1 - 1e-6;
-                      if (isBorder) {
-                        return true;
-                      }
-                      return keypoint.id !== keypointId;
-                    })
-                  )
+                  ...(() => {
+                    const activePad = normalizePadIndex(controllerSequencer.activePad);
+                    const pads = controllerSequencer.pads.map((pad) => cloneControllerSequencerPad(pad));
+                    const sourcePad = pads[activePad] ?? fallbackControllerSequencerPadStateForSequencer(controllerSequencer);
+                    const normalizedKeypoints = normalizeControllerCurveKeypoints(
+                      sourcePad.keypoints.filter((keypoint) => {
+                        const isBorder =
+                          keypoint.position <= 1e-6 || keypoint.position >= 1 - 1e-6;
+                        if (isBorder) {
+                          return true;
+                        }
+                        return keypoint.id !== keypointId;
+                      })
+                    );
+                    pads[activePad] = {
+                      ...sourcePad,
+                      keypoints: normalizedKeypoints
+                    };
+                    return {
+                      ...controllerSequencer,
+                      pads,
+                      keypoints: normalizedKeypoints
+                    };
+                  })()
                 }
               : controllerSequencer
           )
+        }
+      });
+    },
+
+    syncControllerSequencerRuntime: (updates) => {
+      const sequencer = get().sequencer;
+      const byId = new Map(updates.map((update) => [update.controllerSequencerId, update]));
+      if (byId.size === 0) {
+        return;
+      }
+      set({
+        sequencer: {
+          ...sequencer,
+          controllerSequencers: sequencer.controllerSequencers.map((controllerSequencer) => {
+            const update = byId.get(controllerSequencer.id);
+            if (!update) {
+              return controllerSequencer;
+            }
+
+            const nextActivePad =
+              update.activePad === undefined ? controllerSequencer.activePad : normalizePadIndex(update.activePad);
+            const nextQueuedPad =
+              update.queuedPad === undefined
+                ? controllerSequencer.queuedPad
+                : update.queuedPad === null
+                  ? null
+                  : normalizePadIndex(update.queuedPad);
+            const nextPadLoopPosition =
+              update.padLoopPosition === undefined
+                ? controllerSequencer.padLoopPosition
+                : update.padLoopPosition === null
+                  ? null
+                  : Math.max(0, Math.round(update.padLoopPosition));
+            const nextRuntimePadStartStep =
+              update.runtimePadStartStep === undefined
+                ? controllerSequencer.runtimePadStartStep
+                : update.runtimePadStartStep;
+            const nextEnabled = update.enabled === undefined ? controllerSequencer.enabled : update.enabled === true;
+            const activePadChanged = nextActivePad !== controllerSequencer.activePad;
+            const selectedPad =
+              controllerSequencer.pads[nextActivePad] ??
+              controllerSequencer.pads[0] ??
+              fallbackControllerSequencerPadStateForSequencer(controllerSequencer);
+            const nextStepCount = normalizeControllerSequencerStepCount(selectedPad.stepCount);
+            const nextKeypoints = normalizeControllerCurveKeypoints(selectedPad.keypoints);
+
+            if (
+              !activePadChanged &&
+              nextQueuedPad === controllerSequencer.queuedPad &&
+              nextPadLoopPosition === controllerSequencer.padLoopPosition &&
+              nextRuntimePadStartStep === controllerSequencer.runtimePadStartStep &&
+              nextEnabled === controllerSequencer.enabled &&
+              nextStepCount === controllerSequencer.stepCount
+            ) {
+              return controllerSequencer;
+            }
+
+            return {
+              ...controllerSequencer,
+              activePad: nextActivePad,
+              queuedPad: nextEnabled ? nextQueuedPad : null,
+              padLoopPosition: nextEnabled ? nextPadLoopPosition : null,
+              runtimePadStartStep: nextEnabled ? nextRuntimePadStartStep : null,
+              enabled: nextEnabled,
+              stepCount: activePadChanged ? nextStepCount : controllerSequencer.stepCount,
+              keypoints: activePadChanged ? nextKeypoints : controllerSequencer.keypoints
+            };
+          })
         }
       });
     },
@@ -4167,6 +4694,12 @@ export const useAppStore = create<AppStore>((set, get) => {
             padLoopPosition: isPlaying ? track.padLoopPosition : null,
             runtimeLocalStep: isPlaying ? track.runtimeLocalStep : null,
             queuedEnabled: isPlaying ? track.queuedEnabled : null
+          })),
+          controllerSequencers: sequencer.controllerSequencers.map((controllerSequencer) => ({
+            ...controllerSequencer,
+            queuedPad: isPlaying ? controllerSequencer.queuedPad : null,
+            padLoopPosition: isPlaying ? controllerSequencer.padLoopPosition : null,
+            runtimePadStartStep: isPlaying ? controllerSequencer.runtimePadStartStep : null
           }))
         }
       });
@@ -4218,8 +4751,11 @@ export const useAppStore = create<AppStore>((set, get) => {
 
             const nextActivePad =
               payload.activePad === undefined ? track.activePad : normalizePadIndex(payload.activePad);
+            const currentSelectedPad = track.pads[nextActivePad] ?? track.pads[0];
             const nextStepCount =
-              payload.stepCount === undefined ? track.stepCount : normalizeStepCount(payload.stepCount);
+              payload.stepCount === undefined
+                ? normalizeStepCount(currentSelectedPad?.stepCount ?? track.stepCount)
+                : normalizeStepCount(payload.stepCount);
             const nextRuntimeLocalStep =
               payload.localStep === undefined
                 ? track.runtimeLocalStep
@@ -4244,6 +4780,12 @@ export const useAppStore = create<AppStore>((set, get) => {
                   ? null
                   : payload.queuedEnabled;
             const selectedPad = track.pads[nextActivePad] ?? track.pads[0];
+            const nextPads =
+              payload.stepCount === undefined
+                ? track.pads
+                : track.pads.map((pad, index) =>
+                    index === nextActivePad ? { ...pad, stepCount: nextStepCount } : pad
+                  );
             const nextScaleRoot = selectedPad?.scaleRoot ?? track.scaleRoot;
             const nextScaleType = selectedPad?.scaleType ?? track.scaleType;
             const nextMode = selectedPad?.mode ?? track.mode;
@@ -4254,6 +4796,7 @@ export const useAppStore = create<AppStore>((set, get) => {
               nextQueuedPad === track.queuedPad &&
               nextPadLoopPosition === track.padLoopPosition &&
               nextStepCount === track.stepCount &&
+              nextPads === track.pads &&
               nextEnabled === track.enabled &&
               nextQueuedEnabled === track.queuedEnabled &&
               nextScaleRoot === track.scaleRoot &&
@@ -4270,6 +4813,7 @@ export const useAppStore = create<AppStore>((set, get) => {
               queuedPad: nextQueuedPad,
               padLoopPosition: nextPadLoopPosition,
               stepCount: nextStepCount,
+              pads: nextPads,
               enabled: nextEnabled,
               queuedEnabled: nextQueuedEnabled,
               scaleRoot: nextScaleRoot,
@@ -4281,6 +4825,16 @@ export const useAppStore = create<AppStore>((set, get) => {
                   : cloneSequencerSteps(selectedPad?.steps ?? track.steps)
             };
           }),
+          controllerSequencers: sequencer.controllerSequencers.map((controllerSequencer) =>
+            isPlaying
+              ? controllerSequencer
+              : {
+                  ...controllerSequencer,
+                  queuedPad: null,
+                  padLoopPosition: null,
+                  runtimePadStartStep: null
+                }
+          ),
           drummerTracks: sequencer.drummerTracks.map((track) => {
             const payload = drummerTrackPayload.get(track.id) as
               | {
@@ -4310,7 +4864,7 @@ export const useAppStore = create<AppStore>((set, get) => {
               payload.activePad === undefined ? track.activePad : normalizePadIndex(payload.activePad);
             const nextStepCount =
               payload.stepCount === undefined
-                ? track.stepCount
+                ? normalizeDrummerSequencerStepCount((track.pads[nextActivePad] ?? track.pads[0])?.stepCount ?? track.stepCount)
                 : normalizeDrummerSequencerStepCount(payload.stepCount);
             const nextRuntimeLocalStep =
               payload.localStep === undefined
@@ -4335,6 +4889,12 @@ export const useAppStore = create<AppStore>((set, get) => {
                 : payload.queuedEnabled === null
                   ? null
                   : payload.queuedEnabled;
+            const nextPads =
+              payload.stepCount === undefined
+                ? track.pads
+                : track.pads.map((pad, index) =>
+                    index === nextActivePad ? { ...pad, stepCount: nextStepCount } : pad
+                  );
 
             if (
               nextActivePad === track.activePad &&
@@ -4342,6 +4902,7 @@ export const useAppStore = create<AppStore>((set, get) => {
               nextQueuedPad === track.queuedPad &&
               nextPadLoopPosition === track.padLoopPosition &&
               nextStepCount === track.stepCount &&
+              nextPads === track.pads &&
               nextEnabled === track.enabled &&
               nextQueuedEnabled === track.queuedEnabled
             ) {
@@ -4355,6 +4916,7 @@ export const useAppStore = create<AppStore>((set, get) => {
               queuedPad: nextQueuedPad,
               padLoopPosition: nextPadLoopPosition,
               stepCount: nextStepCount,
+              pads: nextPads,
               enabled: nextEnabled,
               queuedEnabled: nextQueuedEnabled
             };

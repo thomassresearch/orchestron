@@ -1508,9 +1508,13 @@ function ControllerSequencerCurveEditor({
     const elapsedSteps = Math.max(0, (playbackNow - anchor.timestampMs) / Math.max(1, stepDurationMs));
     const repeatLength = Math.max(1, controllerSequencer.stepCount);
     const transportPosition = anchor.cycle * anchor.stepCount + anchor.playhead + elapsedSteps;
-    const normalized = ((transportPosition % repeatLength) + repeatLength) % repeatLength;
+    const patternStartStep =
+      typeof controllerSequencer.runtimePadStartStep === "number" && Number.isFinite(controllerSequencer.runtimePadStartStep)
+        ? controllerSequencer.runtimePadStartStep
+        : 0;
+    const normalized = (((transportPosition - patternStartStep) % repeatLength) + repeatLength) % repeatLength;
     return clampControllerCurveUiPosition(normalized / repeatLength);
-  }, [controllerSequencer.stepCount, playbackNow, playbackTransport]);
+  }, [controllerSequencer.runtimePadStartStep, controllerSequencer.stepCount, playbackNow, playbackTransport]);
   const playbackValue =
     playbackT === null ? null : sampleControllerCurveValue(controllerSequencer.keypoints, playbackT);
 
@@ -1874,6 +1878,13 @@ interface SequencerPageProps {
   onRemoveControllerSequencer: (controllerSequencerId: string) => void;
   onControllerSequencerEnabledChange: (controllerSequencerId: string, enabled: boolean) => void;
   onControllerSequencerNumberChange: (controllerSequencerId: string, controllerNumber: number) => void;
+  onControllerSequencerPadPress: (controllerSequencerId: string, padIndex: number) => void;
+  onControllerSequencerPadCopy: (controllerSequencerId: string, sourcePadIndex: number, targetPadIndex: number) => void;
+  onControllerSequencerClearSteps: (controllerSequencerId: string) => void;
+  onControllerSequencerPadLoopEnabledChange: (controllerSequencerId: string, enabled: boolean) => void;
+  onControllerSequencerPadLoopRepeatChange: (controllerSequencerId: string, repeat: boolean) => void;
+  onControllerSequencerPadLoopStepAdd: (controllerSequencerId: string, padIndex: number) => void;
+  onControllerSequencerPadLoopStepRemove: (controllerSequencerId: string, sequenceIndex: number) => void;
   onControllerSequencerStepCountChange: (controllerSequencerId: string, stepCount: 8 | 16 | 32 | 64) => void;
   onControllerSequencerKeypointAdd: (controllerSequencerId: string, position: number, value: number) => void;
   onControllerSequencerKeypointChange: (
@@ -2105,6 +2116,13 @@ export function SequencerPage({
   onRemoveControllerSequencer,
   onControllerSequencerEnabledChange,
   onControllerSequencerNumberChange,
+  onControllerSequencerPadPress,
+  onControllerSequencerPadCopy,
+  onControllerSequencerClearSteps,
+  onControllerSequencerPadLoopEnabledChange,
+  onControllerSequencerPadLoopRepeatChange,
+  onControllerSequencerPadLoopStepAdd,
+  onControllerSequencerPadLoopStepRemove,
   onControllerSequencerStepCountChange,
   onControllerSequencerKeypointAdd,
   onControllerSequencerKeypointChange,
@@ -3188,8 +3206,8 @@ export function SequencerPage({
                   <div
                     className="grid gap-1.5"
                     style={{
-                      gridTemplateColumns: `repeat(${track.stepCount}, minmax(96px, 1fr))`,
-                      minWidth: `${Math.max(720, track.stepCount * 100)}px`
+                      gridTemplateColumns: `repeat(${track.stepCount}, minmax(112px, 1fr))`,
+                      minWidth: `${Math.max(760, track.stepCount * 116)}px`
                     }}
                   >
                     {stepIndices.map((step) => {
@@ -3413,7 +3431,7 @@ export function SequencerPage({
                           </div>
 
                           <label
-                            className={`mt-1 flex items-center gap-2 rounded-md border bg-slate-950/70 px-2 py-1 ${chordColorBorderClass(selectedChordColor)}`}
+                            className={`mt-1 flex items-center gap-1.5 rounded-md border bg-slate-950/70 px-2 py-1 ${chordColorBorderClass(selectedChordColor)}`}
                           >
                             <span className="shrink-0 text-[9px] uppercase tracking-[0.16em] text-slate-400">CHD</span>
                             <div className="relative min-w-0 flex-1">
@@ -3474,8 +3492,8 @@ export function SequencerPage({
                             </div>
                           ) : null}
 
-                          <label className="mt-1 flex items-center justify-between gap-2 rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1">
-                            <span className="text-[9px] uppercase tracking-[0.16em] text-slate-400">OCT</span>
+                          <label className="mt-1 flex items-center gap-1.5 rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1">
+                            <span className="shrink-0 text-[9px] uppercase tracking-[0.16em] text-slate-400">OCT</span>
                             <input
                               type="number"
                               min={0}
@@ -3502,8 +3520,8 @@ export function SequencerPage({
                             />
                           </label>
 
-                          <label className="mt-1 flex items-center justify-between gap-2 rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1">
-                            <span className="text-[9px] uppercase tracking-[0.16em] text-slate-400">VEL</span>
+                          <label className="mt-1 flex items-center gap-1.5 rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1">
+                            <span className="shrink-0 text-[9px] uppercase tracking-[0.16em] text-slate-400">VEL</span>
                             <input
                               type="number"
                               min={0}
@@ -4003,6 +4021,13 @@ export function SequencerPage({
                       </button>
                       <button
                         type="button"
+                        onClick={() => onControllerSequencerClearSteps(controllerSequencer.id)}
+                        className="rounded-md border border-slate-500/70 bg-slate-800/70 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-400 hover:bg-slate-700"
+                      >
+                        {ui.clearSteps}
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => onRemoveControllerSequencer(controllerSequencer.id)}
                         disabled={!canRemovePerformDevice}
                         className="ml-auto rounded-md border border-rose-500/60 bg-rose-500/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-rose-200 transition hover:bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-50"
@@ -4050,6 +4075,182 @@ export function SequencerPage({
 
                       <div className="rounded-md border border-slate-700 bg-slate-950 px-2 py-1 font-mono text-xs text-slate-200">
                         CC {controllerSequencer.controllerNumber}
+                      </div>
+
+                      <div className="flex min-w-[300px] flex-1 flex-col gap-1">
+                        <span className={controlLabelClass}>{ui.padLoopSequence}</span>
+                        <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-slate-600 bg-slate-950 p-1.5">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              onControllerSequencerPadLoopEnabledChange(
+                                controllerSequencer.id,
+                                !controllerSequencer.padLoopEnabled
+                              )
+                            }
+                            className={`rounded-md border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] transition ${
+                              controllerSequencer.padLoopEnabled
+                                ? "border-accent/70 bg-accent/20 text-accent"
+                                : "border-slate-700 bg-slate-900 text-slate-300 hover:border-slate-500"
+                            }`}
+                            aria-pressed={controllerSequencer.padLoopEnabled}
+                          >
+                            {ui.padLooper}: {controllerSequencer.padLoopEnabled ? ui.on : ui.off}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              onControllerSequencerPadLoopRepeatChange(
+                                controllerSequencer.id,
+                                !controllerSequencer.padLoopRepeat
+                              )
+                            }
+                            className={`rounded-md border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] transition ${
+                              controllerSequencer.padLoopRepeat
+                                ? "border-emerald-400/55 bg-emerald-500/10 text-emerald-300"
+                                : "border-amber-400/55 bg-amber-500/10 text-amber-300"
+                            }`}
+                            aria-pressed={controllerSequencer.padLoopRepeat}
+                          >
+                            {ui.repeat}: {controllerSequencer.padLoopRepeat ? ui.on : ui.off}
+                          </button>
+
+                          <div
+                            tabIndex={0}
+                            role="list"
+                            aria-label={ui.padLoopSequence}
+                            onKeyDown={(event) => {
+                              const padIndex = padSequencePadIndexFromKey(event);
+                              if (padIndex === null) {
+                                return;
+                              }
+                              event.preventDefault();
+                              onControllerSequencerPadLoopStepAdd(controllerSequencer.id, padIndex);
+                            }}
+                            onDragOver={(event) => {
+                              event.preventDefault();
+                              event.dataTransfer.dropEffect = "copy";
+                            }}
+                            onDrop={(event) => {
+                              event.preventDefault();
+                              const payload = parseSequencerPadDragPayload(event);
+                              if (!payload || payload.trackId !== controllerSequencer.id) {
+                                return;
+                              }
+                              onControllerSequencerPadLoopStepAdd(controllerSequencer.id, payload.padIndex);
+                            }}
+                            className="min-h-[34px] min-w-[180px] flex-1 rounded-md border border-dashed border-slate-700 bg-slate-900/75 px-2 py-1 outline-none ring-accent/40 transition focus:ring"
+                          >
+                            {controllerSequencer.padLoopSequence.length === 0 ? (
+                              <div className="flex min-h-[24px] items-center text-[10px] text-slate-500">
+                                {ui.padLoopSequenceEmpty}
+                              </div>
+                            ) : (
+                              <div className="flex min-h-[24px] flex-wrap items-center gap-1">
+                                {controllerSequencer.padLoopSequence.map((padIndex, sequenceIndex) => {
+                                  const isCurrentLoopStep =
+                                    controllerSequencer.padLoopEnabled &&
+                                    sequencer.isPlaying &&
+                                    controllerSequencer.enabled &&
+                                    controllerSequencer.padLoopPosition === sequenceIndex;
+                                  return (
+                                    <span
+                                      key={`${controllerSequencer.id}-pad-loop-${sequenceIndex}-${padIndex}`}
+                                      role="listitem"
+                                      className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] transition ${
+                                        isCurrentLoopStep
+                                          ? "border-accent bg-accent/25 text-accent shadow-[0_0_0_1px_rgba(14,165,233,0.45)]"
+                                          : "border-slate-700 bg-slate-950 text-slate-100"
+                                      }`}
+                                    >
+                                      <span className="font-mono">{padIndex + 1}</span>
+                                      <button
+                                        type="button"
+                                        onClick={(event) => {
+                                          event.stopPropagation();
+                                          onControllerSequencerPadLoopStepRemove(
+                                            controllerSequencer.id,
+                                            sequenceIndex
+                                          );
+                                        }}
+                                        className="rounded px-1 text-[10px] leading-none text-slate-400 transition hover:bg-slate-800 hover:text-rose-300"
+                                        aria-label={ui.removePadLoopStep(padIndex + 1)}
+                                        title={ui.remove}
+                                      >
+                                        x
+                                      </button>
+                                    </span>
+                                  );
+                                })}
+                                <span className="text-[10px] text-slate-500">{ui.padLoopSequenceHint}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mb-2">
+                      <div className="mb-1 text-xs uppercase tracking-[0.2em] text-slate-400">{ui.patternPads}</div>
+                      <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-8">
+                        {Array.from({ length: 8 }, (_, padIndex) => {
+                          const pad = controllerSequencer.pads[padIndex] ?? null;
+                          const isActive = controllerSequencer.activePad === padIndex;
+                          const isQueued = controllerSequencer.queuedPad === padIndex;
+                          const padEndValue =
+                            pad && pad.keypoints.length > 0 ? (pad.keypoints[pad.keypoints.length - 1]?.value ?? 0) : 0;
+                          const padHasContent =
+                            (pad?.keypoints.length ?? 0) > 2 ||
+                            (pad?.keypoints[0]?.value ?? 0) !== 0 ||
+                            padEndValue !== 0;
+                          return (
+                            <button
+                              key={`${controllerSequencer.id}-pad-${padIndex}`}
+                              type="button"
+                              draggable
+                              onClick={() => onControllerSequencerPadPress(controllerSequencer.id, padIndex)}
+                              onDragStart={(event) => {
+                                const payload = JSON.stringify({ trackId: controllerSequencer.id, padIndex });
+                                event.dataTransfer.effectAllowed = "copy";
+                                event.dataTransfer.setData(SEQUENCER_PAD_DRAG_MIME, payload);
+                                event.dataTransfer.setData("text/plain", payload);
+                              }}
+                              onDragOver={(event) => {
+                                event.preventDefault();
+                                event.dataTransfer.dropEffect = "copy";
+                              }}
+                              onDrop={(event) => {
+                                event.preventDefault();
+                                const payload = parseSequencerPadDragPayload(event);
+                                if (
+                                  !payload ||
+                                  payload.trackId !== controllerSequencer.id ||
+                                  payload.padIndex === padIndex
+                                ) {
+                                  return;
+                                }
+                                onControllerSequencerPadCopy(controllerSequencer.id, payload.padIndex, padIndex);
+                              }}
+                              className={`relative w-full rounded-md border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] transition ${
+                                isActive
+                                  ? "border-teal-300 bg-teal-400/20 text-teal-100"
+                                  : isQueued
+                                    ? "border-amber-400/70 bg-amber-400/10 text-amber-100"
+                                    : "border-slate-700 bg-slate-900/50 text-slate-200 hover:bg-slate-800/55"
+                              }`}
+                              aria-pressed={isActive}
+                              aria-label={`Controller pattern pad ${padIndex + 1}${isQueued ? " queued" : isActive ? " active" : ""}`}
+                            >
+                              P{padIndex + 1}
+                              {padHasContent ? (
+                                <span
+                                  aria-hidden="true"
+                                  className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-cyan-300"
+                                />
+                              ) : null}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
 

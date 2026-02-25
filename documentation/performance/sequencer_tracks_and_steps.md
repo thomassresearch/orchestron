@@ -1,8 +1,10 @@
 # Sequencer Tracks and Step Editing
 
-**Navigation:** [Up](performance.md) | [Prev](instrument_rack_and_engine_transport.md) | [Next](pattern_pads_and_pad_looper.md)
+**Navigation:** [Up](performance.md) | [Prev](instrument_rack_and_engine_transport.md) | [Next](drummer_sequencers.md)
 
 Sequencer tracks are step-based pattern sequencers used for melodic/rhythmic note playback.
+
+This page covers the **melodic sequencer track** editor. Drum-machine style programming is documented in [Drummer Sequencers](drummer_sequencers.md).
 
 ## Global Sequencer Clock
 
@@ -16,6 +18,7 @@ The backend runs the step timing (native runtime clock), which reduces browser t
 ## Adding / Removing Tracks
 
 - `Add Sequencer` creates a new sequencer track
+- `Drummer` creates a drummer sequencer card (documented separately in [Drummer Sequencers](drummer_sequencers.md))
 - Each track has its own `Remove` button
 
 ## Per-Track Controls
@@ -107,4 +110,4 @@ Step cells visually indicate:
 </p>
 <p align="center"><em>Sequencer track detail showing step editing, note selection, octave, and hold controls.</em></p>
 
-**Navigation:** [Up](performance.md) | [Prev](instrument_rack_and_engine_transport.md) | [Next](pattern_pads_and_pad_looper.md)
+**Navigation:** [Up](performance.md) | [Prev](instrument_rack_and_engine_transport.md) | [Next](drummer_sequencers.md)

@@ -135,6 +135,7 @@ SequencerStepConfig = SequencerStepNotes | SessionSequencerStepConfig
 
 class SessionSequencerPadConfig(BaseModel):
     pad_index: int = Field(ge=0, le=7)
+    step_count: Literal[4, 8, 16, 32] | None = None
     steps: list[SequencerStepConfig] = Field(default_factory=list, max_length=32)
 
 

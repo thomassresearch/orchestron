@@ -58,6 +58,12 @@ class SequencerStepRuntime:
 
 
 @dataclass(slots=True)
+class SequencerPadRuntime:
+    step_count: int
+    steps: tuple[SequencerStepRuntime, ...]
+
+
+@dataclass(slots=True)
 class SequencerTrackRuntime:
     track_id: str
     midi_channel: int
@@ -67,7 +73,7 @@ class SequencerTrackRuntime:
     sync_to_track_id: str | None
     enabled: bool
     queued_enabled: bool | None
-    pads: dict[int, tuple[SequencerStepRuntime, ...]] = field(default_factory=dict)
+    pads: dict[int, SequencerPadRuntime] = field(default_factory=dict)
     active_pad: int = 0
     queued_pad: int | None = None
     pad_loop_enabled: bool = False
@@ -286,12 +292,27 @@ class SessionSequencerRuntime:
             next_track.phase_offset = previous_track.phase_offset % max(1, next_config.step_count)
 
     @staticmethod
+    def _step_count_for_pad(track: SequencerTrackRuntime, pad_index: int) -> int:
+        pad = track.pads.get(pad_index)
+        if pad and pad.step_count in (4, 8, 16, 32):
+            return pad.step_count
+        return track.step_count if track.step_count in (4, 8, 16, 32) else 16
+
+    @staticmethod
+    def _active_pad_runtime(track: SequencerTrackRuntime) -> SequencerPadRuntime | None:
+        return track.pads.get(track.active_pad)
+
+    @staticmethod
+    def _active_pad_step_count(track: SequencerTrackRuntime) -> int:
+        return SessionSequencerRuntime._step_count_for_pad(track, track.active_pad)
+
+    @staticmethod
     def _local_step_for(track: SequencerTrackRuntime, step_index: int) -> int:
-        return (step_index - track.phase_offset) % track.step_count
+        return (step_index - track.phase_offset) % SessionSequencerRuntime._active_pad_step_count(track)
 
     @staticmethod
     def _local_boundary_reached_for_next_step(track: SequencerTrackRuntime, next_step: int) -> bool:
-        return ((next_step - track.phase_offset) % track.step_count) == 0
+        return ((next_step - track.phase_offset) % SessionSequencerRuntime._active_pad_step_count(track)) == 0
 
     @staticmethod
     def _track_at_sync_boundary_locked(track: SequencerTrackRuntime, next_step: int) -> bool:
@@ -373,14 +394,14 @@ class SessionSequencerRuntime:
 
         with self._lock:
             for track_id, track in config.tracks.items():
-                pad_steps = track.pads.get(track.active_pad)
+                pad_runtime = self._active_pad_runtime(track)
                 active_notes = self._active_notes.setdefault(track_id, set())
-                if not track.enabled or not pad_steps:
+                if not track.enabled or pad_runtime is None or not pad_runtime.steps:
                     self._release_track_notes_locked(track_id, track.midi_channel)
                     continue
                 running_track_count += 1
                 local_step = self._local_step_for(track, step_index)
-                step_state = pad_steps[local_step]
+                step_state = pad_runtime.steps[local_step]
                 notes = step_state.notes
                 if notes:
                     # Any non-rest step starts a new note event, so release currently held notes first.
@@ -578,7 +599,7 @@ class SessionSequencerRuntime:
             SessionSequencerTrackStatus(
                 track_id=track.track_id,
                 midi_channel=track.midi_channel,
-                step_count=track.step_count if track.step_count in (4, 8, 16, 32) else 16,
+                step_count=self._active_pad_step_count(track),
                 local_step=self._local_step_for(track, self._current_step),
                 active_pad=track.active_pad,
                 queued_pad=track.queued_pad,
@@ -652,7 +673,7 @@ class SessionSequencerRuntime:
 
     @staticmethod
     def _transport_step_count(tracks: list[SequencerTrackRuntime]) -> int:
-        enabled_counts = [track.step_count for track in tracks if track.enabled]
+        enabled_counts = [SessionSequencerRuntime._active_pad_step_count(track) for track in tracks if track.enabled]
         if not enabled_counts:
             return 16
 
@@ -684,16 +705,25 @@ class SessionSequencerRuntime:
             track_step_count = (
                 track_request.step_count if track_request.step_count in (4, 8, 16, 32) else 16
             )
-            pads: dict[int, tuple[SequencerStepRuntime, ...]] = {
-                index: tuple(SequencerStepRuntime(notes=(), hold=False) for _ in range(track_step_count))
+            pads: dict[int, SequencerPadRuntime] = {
+                index: SequencerPadRuntime(
+                    step_count=track_step_count,
+                    steps=tuple(SequencerStepRuntime(notes=(), hold=False) for _ in range(track_step_count)),
+                )
                 for index in range(_DEFAULT_PADS)
             }
 
             for pad in track_request.pads:
-                pads[pad.pad_index] = self._normalize_steps(
-                    pad.steps,
-                    track_step_count,
-                    track_request.velocity,
+                pad_step_count = (
+                    pad.step_count if pad.step_count in (4, 8, 16, 32) else track_step_count
+                )
+                pads[pad.pad_index] = SequencerPadRuntime(
+                    step_count=pad_step_count,
+                    steps=self._normalize_steps(
+                        pad.steps,
+                        pad_step_count,
+                        track_request.velocity,
+                    ),
                 )
 
             active_pad = track_request.active_pad if track_request.active_pad in pads else 0

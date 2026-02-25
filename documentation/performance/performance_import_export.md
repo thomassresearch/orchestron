@@ -18,7 +18,7 @@ File extensions:
 A performance export includes:
 
 - Performance metadata (`name`, `description`)
-- Sequencer/piano-roll/controller/controller-sequencer configuration snapshot
+- Sequencer/drummer-sequencer/piano-roll/controller/controller-sequencer configuration snapshot
 - Instrument assignments
 - Referenced patch definitions for the instruments currently assigned in the performance rack
 - Patch names (included in the snapshot for easier remapping on import)

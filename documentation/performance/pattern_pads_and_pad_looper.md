@@ -1,18 +1,21 @@
 # Pattern Pads, Queued Switching, and Pad Looper
 
-**Navigation:** [Up](performance.md) | [Prev](sequencer_tracks_and_steps.md) | [Next](controller_sequencers.md)
+**Navigation:** [Up](performance.md) | [Prev](drummer_sequencers.md) | [Next](controller_sequencers.md)
 
-Pattern pads are the per-track pattern banks (`P1..P8`). They support live switching, copying, transposition, and pad-loop sequencing.
+Pattern pads are the per-track pattern banks (`P1..P8`). They support live switching, copying, and pad-loop sequencing for melodic and drummer sequencers (with transposition available on melodic sequencer pads only).
 
 ## Pattern Pads Overview
 
-Each sequencer track contains 8 pattern pads:
+Each melodic sequencer track and drummer sequencer contains 8 pattern pads:
 
 - `P1` to `P8`
 - one active pad
 - optional queued pad during live playback
 
-Each pad stores the pattern content for that track (step notes/holds and related pad theory state used by pad operations).
+Each pad stores the pattern content for that track:
+
+- melodic sequencers: step notes/holds and related pad theory state used by pad operations
+- drummer sequencers: per-row drum hits and per-hit velocities
 
 ## Pad States
 
@@ -42,9 +45,11 @@ What gets copied:
 
 This is the fastest way to create variations.
 
-## Pad Edge Transpose Buttons (`-` / `+`)
+## Pad Edge Transpose Buttons (`-` / `+`) (Melodic Sequencer Pads)
 
-Each pad button has small edge buttons for transposition.
+Melodic sequencer pad buttons include small edge buttons for transposition.
+
+Drummer sequencer pads do **not** include transpose edge buttons.
 
 ### Short Press (Quick Click)
 
@@ -108,4 +113,4 @@ Use pad looper when you want:
 </p>
 <p align="center"><em>Pattern pads with transpose edge buttons and pad-loop sequence controls.</em></p>
 
-**Navigation:** [Up](performance.md) | [Prev](sequencer_tracks_and_steps.md) | [Next](controller_sequencers.md)
+**Navigation:** [Up](performance.md) | [Prev](drummer_sequencers.md) | [Next](controller_sequencers.md)
