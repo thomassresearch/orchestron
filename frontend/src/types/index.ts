@@ -9,6 +9,7 @@ export type HelpDocId =
   | "sequencer_instrument_rack"
   | "sequencer_tracks"
   | "sequencer_track_editor"
+  | "sequencer_drummer_sequencer"
   | "sequencer_controller_sequencer"
   | "sequencer_piano_rolls"
   | "sequencer_midi_controllers"
@@ -124,6 +125,27 @@ export interface SequencerStepState {
   velocity: number;
 }
 
+export type DrummerSequencerStepCount = 4 | 8 | 16 | 32;
+
+export interface DrummerSequencerCellState {
+  active: boolean;
+  velocity: number;
+}
+
+export interface DrummerSequencerRowState {
+  id: string;
+  key: number;
+}
+
+export interface DrummerSequencerPadRowState {
+  rowId: string;
+  steps: DrummerSequencerCellState[];
+}
+
+export interface DrummerSequencerPadState {
+  rows: DrummerSequencerPadRowState[];
+}
+
 export interface SequencerPadState {
   steps: SequencerStepState[];
   scaleRoot: SequencerScaleRoot;
@@ -148,6 +170,24 @@ export interface SequencerTrackState {
   padLoopSequence: number[];
   pads: SequencerPadState[];
   steps: SequencerStepState[];
+  runtimeLocalStep: number | null;
+  enabled: boolean;
+  queuedEnabled: boolean | null;
+}
+
+export interface DrummerSequencerTrackState {
+  id: string;
+  name: string;
+  midiChannel: number;
+  stepCount: DrummerSequencerStepCount;
+  activePad: number;
+  queuedPad: number | null;
+  padLoopPosition: number | null;
+  padLoopEnabled: boolean;
+  padLoopRepeat: boolean;
+  padLoopSequence: number[];
+  rows: DrummerSequencerRowState[];
+  pads: DrummerSequencerPadState[];
   runtimeLocalStep: number | null;
   enabled: boolean;
   queuedEnabled: boolean | null;
@@ -193,6 +233,7 @@ export interface SequencerState {
   playhead: number;
   cycle: number;
   tracks: SequencerTrackState[];
+  drummerTracks: DrummerSequencerTrackState[];
   controllerSequencers: ControllerSequencerState[];
   pianoRolls: PianoRollState[];
   midiControllers: MidiControllerState[];
@@ -210,7 +251,7 @@ export interface SequencerInstrumentBinding {
 }
 
 export interface SequencerConfigSnapshot {
-  version: 1 | 2;
+  version: 1 | 2 | 3;
   instruments: Array<{
     patchId: string;
     patchName?: string;
@@ -234,6 +275,21 @@ export interface SequencerConfigSnapshot {
       padLoopRepeat: boolean;
       padLoopSequence: number[];
       pads: SequencerPadState[];
+      enabled: boolean;
+      queuedEnabled: boolean | null;
+    }>;
+    drummerTracks: Array<{
+      id: string;
+      name: string;
+      midiChannel: number;
+      stepCount: DrummerSequencerStepCount;
+      activePad: number;
+      queuedPad: number | null;
+      padLoopEnabled: boolean;
+      padLoopRepeat: boolean;
+      padLoopSequence: number[];
+      rows: DrummerSequencerRowState[];
+      pads: DrummerSequencerPadState[];
       enabled: boolean;
       queuedEnabled: boolean | null;
     }>;
@@ -350,7 +406,7 @@ export interface SessionSequencerPadConfig {
 export interface SessionSequencerTrackConfig {
   track_id: string;
   midi_channel: number;
-  step_count: 16 | 32;
+  step_count: 4 | 8 | 16 | 32;
   velocity?: number;
   gate_ratio?: number;
   sync_to_track_id?: string | null;
@@ -381,7 +437,7 @@ export interface SessionSequencerQueuePadRequest {
 export interface SessionSequencerTrackStatus {
   track_id: string;
   midi_channel: number;
-  step_count: 16 | 32;
+  step_count: 4 | 8 | 16 | 32;
   local_step: number;
   active_pad: number;
   queued_pad: number | null;

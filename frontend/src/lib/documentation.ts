@@ -463,6 +463,64 @@ Esta ayuda se aplica a una tarjeta individual de pista del secuenciador.
 - Arrastra el asa \`::\` de un paso sobre otro paso (misma pista u otra pista del secuenciador) para copiar ajustes de nota/acorde/velocidad.`
     }
   },
+  sequencer_drummer_sequencer: {
+    english: {
+      title: "Drummer Sequencer",
+      markdown: `## Drummer Sequencer
+
+Drum-machine style step sequencer for fixed MIDI drum keys.
+
+- Add/remove drum rows (keys) and set each row key in the 0..127 MIDI range.
+- Program steps by toggling row LEDs on/off for each step.
+- Set per-cell velocity (0..127) for active hits.
+- Active hits show red LEDs; during playback the current-step active LEDs flash green.
+- Choose 4, 8, 16, or 32 steps.
+- Use pattern pads (P1..P8) for pattern switching/queueing and pad-loop sequences.
+- No chord editing or transposition controls are used in this sequencer type.`
+    },
+    german: {
+      title: "Drummer-Sequencer",
+      markdown: `## Drummer-Sequencer
+
+Drum-Machine-Step-Sequencer fuer feste MIDI-Drum-Keys.
+
+- Drum-Reihen (Keys) hinzufuegen/entfernen und MIDI-Key 0..127 setzen.
+- Steps programmieren durch Ein/Aus der LED pro Reihe und Schritt.
+- Velocity pro Zelle (0..127) fuer aktive Hits setzen.
+- Aktive Hits sind rot; beim Abspielen blinken aktive LEDs im aktuellen Schritt gruen.
+- 4, 8, 16 oder 32 Schritte waehlen.
+- Pattern-Pads (P1..P8) fuer Pattern-Wechsel/Warteschlange und Pad-Loop-Sequenzen nutzen.
+- Keine Akkord- oder Transpositionsfunktionen in diesem Sequencer-Typ.`
+    },
+    french: {
+      title: "Séquenceur batterie",
+      markdown: `## Séquenceur batterie
+
+Séquenceur pas à pas type boîte à rythmes pour des touches MIDI fixes.
+
+- Ajouter/supprimer des lignes de batterie et régler la touche MIDI (0..127).
+- Programmer les pas en activant/désactivant les LED par ligne et par pas.
+- Régler la vélocité par cellule (0..127) pour les frappes actives.
+- Les frappes actives sont rouges ; en lecture, les LED actives du pas courant clignotent en vert.
+- Choisir 4, 8, 16 ou 32 pas.
+- Utiliser les pads de pattern (P1..P8) pour changements/queue et séquences de boucle de pads.
+- Pas d'édition d'accords ni de transposition pour ce type de séquenceur.`
+    },
+    spanish: {
+      title: "Secuenciador de batería",
+      markdown: `## Secuenciador de batería
+
+Secuenciador por pasos estilo caja de ritmos para teclas MIDI fijas.
+
+- Agrega/elimina filas de batería y ajusta la tecla MIDI (0..127).
+- Programa pasos activando/desactivando LEDs por fila y paso.
+- Ajusta velocidad por celda (0..127) para golpes activos.
+- Los golpes activos se muestran en rojo; durante reproducción, los LEDs activos del paso actual parpadean en verde.
+- Elige 4, 8, 16 o 32 pasos.
+- Usa pads de patrón (P1..P8) para cambios/cola y secuencias de bucle de pads.
+- Sin edición de acordes ni controles de transposición en este tipo de secuenciador.`
+    }
+  },
   sequencer_controller_sequencer: {
     english: {
       title: "Controller Sequencer",

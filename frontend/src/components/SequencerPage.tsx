@@ -28,6 +28,8 @@ import type {
   PianoRollState,
   ControllerSequencerKeypoint,
   ControllerSequencerState,
+  DrummerSequencerStepCount,
+  DrummerSequencerTrackState,
   SequencerInstrumentBinding,
   SequencerChord,
   SequencerMode,
@@ -1810,6 +1812,7 @@ interface SequencerPageProps {
   onStopInstruments: () => void;
   onBpmChange: (bpm: number) => void;
   onAddSequencerTrack: () => void;
+  onAddDrummerSequencerTrack: () => void;
   onAddControllerSequencer: () => void;
   onRemoveSequencerTrack: (trackId: string) => void;
   onSequencerTrackEnabledChange: (trackId: string, enabled: boolean) => void;
@@ -1838,6 +1841,22 @@ interface SequencerPageProps {
   onSequencerTrackPadLoopRepeatChange: (trackId: string, repeat: boolean) => void;
   onSequencerTrackPadLoopStepAdd: (trackId: string, padIndex: number) => void;
   onSequencerTrackPadLoopStepRemove: (trackId: string, sequenceIndex: number) => void;
+  onRemoveDrummerSequencerTrack: (trackId: string) => void;
+  onDrummerSequencerTrackEnabledChange: (trackId: string, enabled: boolean) => void;
+  onDrummerSequencerTrackChannelChange: (trackId: string, channel: number) => void;
+  onDrummerSequencerTrackStepCountChange: (trackId: string, count: DrummerSequencerStepCount) => void;
+  onDrummerSequencerRowAdd: (trackId: string) => void;
+  onDrummerSequencerRowRemove: (trackId: string, rowId: string) => void;
+  onDrummerSequencerRowKeyChange: (trackId: string, rowId: string, key: number) => void;
+  onDrummerSequencerCellToggle: (trackId: string, rowId: string, stepIndex: number, active?: boolean) => void;
+  onDrummerSequencerCellVelocityChange: (trackId: string, rowId: string, stepIndex: number, velocity: number) => void;
+  onDrummerSequencerTrackClearSteps: (trackId: string) => void;
+  onDrummerSequencerPadPress: (trackId: string, padIndex: number) => void;
+  onDrummerSequencerPadCopy: (trackId: string, sourcePadIndex: number, targetPadIndex: number) => void;
+  onDrummerSequencerTrackPadLoopEnabledChange: (trackId: string, enabled: boolean) => void;
+  onDrummerSequencerTrackPadLoopRepeatChange: (trackId: string, repeat: boolean) => void;
+  onDrummerSequencerTrackPadLoopStepAdd: (trackId: string, padIndex: number) => void;
+  onDrummerSequencerTrackPadLoopStepRemove: (trackId: string, sequenceIndex: number) => void;
   onAddPianoRoll: () => void;
   onRemovePianoRoll: (rollId: string) => void;
   onPianoRollEnabledChange: (rollId: string, enabled: boolean) => void;
@@ -1873,7 +1892,10 @@ interface SequencerPageProps {
   onHelpRequest?: (helpDocId: HelpDocId) => void;
 }
 
-function trackStateLabel(track: SequencerTrackState, ui: Pick<SequencerUiCopy, "trackQueuedStart" | "trackQueuedStop" | "running" | "stopped">): string {
+function trackStateLabel(
+  track: Pick<SequencerTrackState, "enabled" | "queuedEnabled">,
+  ui: Pick<SequencerUiCopy, "trackQueuedStart" | "trackQueuedStop" | "running" | "stopped">
+): string {
   if (track.queuedEnabled === true) {
     return ui.trackQueuedStart;
   }
@@ -2025,6 +2047,7 @@ export function SequencerPage({
   onStopInstruments,
   onBpmChange,
   onAddSequencerTrack,
+  onAddDrummerSequencerTrack,
   onAddControllerSequencer,
   onRemoveSequencerTrack,
   onSequencerTrackEnabledChange,
@@ -2048,6 +2071,22 @@ export function SequencerPage({
   onSequencerTrackPadLoopRepeatChange,
   onSequencerTrackPadLoopStepAdd,
   onSequencerTrackPadLoopStepRemove,
+  onRemoveDrummerSequencerTrack,
+  onDrummerSequencerTrackEnabledChange,
+  onDrummerSequencerTrackChannelChange,
+  onDrummerSequencerTrackStepCountChange,
+  onDrummerSequencerRowAdd,
+  onDrummerSequencerRowRemove,
+  onDrummerSequencerRowKeyChange,
+  onDrummerSequencerCellToggle,
+  onDrummerSequencerCellVelocityChange,
+  onDrummerSequencerTrackClearSteps,
+  onDrummerSequencerPadPress,
+  onDrummerSequencerPadCopy,
+  onDrummerSequencerTrackPadLoopEnabledChange,
+  onDrummerSequencerTrackPadLoopRepeatChange,
+  onDrummerSequencerTrackPadLoopStepAdd,
+  onDrummerSequencerTrackPadLoopStepRemove,
   onAddPianoRoll,
   onRemovePianoRoll,
   onPianoRollEnabledChange,
@@ -2144,6 +2183,7 @@ export function SequencerPage({
   }, [sessionState, ui.running, ui.stopped]);
   const totalPerformDevices =
     sequencer.tracks.length +
+    sequencer.drummerTracks.length +
     sequencer.controllerSequencers.length +
     sequencer.pianoRolls.length +
     sequencer.midiControllers.length;
@@ -2204,6 +2244,11 @@ export function SequencerPage({
         onSequencerTrackEnabledChange(track.id, true);
       }
     }
+    for (const track of sequencer.drummerTracks) {
+      if (!track.enabled) {
+        onDrummerSequencerTrackEnabledChange(track.id, true);
+      }
+    }
     for (const controllerSequencer of sequencer.controllerSequencers) {
       if (!controllerSequencer.enabled) {
         onControllerSequencerEnabledChange(controllerSequencer.id, true);
@@ -2215,10 +2260,12 @@ export function SequencerPage({
       }
     }
   }, [
+    onDrummerSequencerTrackEnabledChange,
     onControllerSequencerEnabledChange,
     onMidiControllerEnabledChange,
     onSequencerTrackEnabledChange,
     sequencer.controllerSequencers,
+    sequencer.drummerTracks,
     sequencer.midiControllers,
     sequencer.tracks
   ]);
@@ -2237,6 +2284,11 @@ export function SequencerPage({
         onSequencerTrackEnabledChange(track.id, false);
       }
     }
+    for (const track of sequencer.drummerTracks) {
+      if (track.enabled || track.queuedEnabled === true) {
+        onDrummerSequencerTrackEnabledChange(track.id, false);
+      }
+    }
     for (const controllerSequencer of sequencer.controllerSequencers) {
       if (controllerSequencer.enabled) {
         onControllerSequencerEnabledChange(controllerSequencer.id, false);
@@ -2253,11 +2305,13 @@ export function SequencerPage({
       }
     }
   }, [
+    onDrummerSequencerTrackEnabledChange,
     onControllerSequencerEnabledChange,
     onMidiControllerEnabledChange,
     onPianoRollEnabledChange,
     onSequencerTrackEnabledChange,
     sequencer.controllerSequencers,
+    sequencer.drummerTracks,
     sequencer.midiControllers,
     sequencer.pianoRolls,
     sequencer.tracks
@@ -2606,6 +2660,13 @@ export function SequencerPage({
             className="rounded-md border border-accent/60 bg-accent/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-accent transition hover:bg-accent/25"
           >
             {ui.addSequencer}
+          </button>
+          <button
+            type="button"
+            onClick={onAddDrummerSequencerTrack}
+            className="rounded-md border border-rose-400/60 bg-rose-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-rose-200 transition hover:bg-rose-500/20"
+          >
+            Drummer
           </button>
           <button
             type="button"
@@ -3404,6 +3465,376 @@ export function SequencerPage({
               </article>
             );
           })}
+
+          {sequencer.drummerTracks.length > 0 ? (
+            <div className="rounded-xl border border-rose-800/45 bg-slate-900/45 p-2.5">
+              <div className="mb-2 text-xs uppercase tracking-[0.2em] text-rose-200">Drummer Sequencers</div>
+              <div className="space-y-3">
+                {sequencer.drummerTracks.map((track, trackIndex) => {
+                  const stepIndices = Array.from({ length: track.stepCount }, (_, index) => index);
+                  const localPlayhead =
+                    typeof track.runtimeLocalStep === "number"
+                      ? track.runtimeLocalStep % track.stepCount
+                      : sequencer.playhead % track.stepCount;
+
+                  return (
+                    <article
+                      key={track.id}
+                      className="relative rounded-xl border border-slate-700 bg-slate-900/70 p-2.5 pr-10"
+                    >
+                      {onHelpRequest ? (
+                        <HelpIconButton
+                          guiLanguage={guiLanguage}
+                          onClick={() => onHelpRequest("sequencer_drummer_sequencer")}
+                          className="absolute right-2 top-2 z-10 inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-500 bg-slate-950/90 text-xs font-bold text-slate-100 transition hover:border-accent hover:text-accent"
+                        />
+                      ) : null}
+
+                      <div className="mb-2 flex flex-wrap items-center gap-2">
+                        <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-200">
+                          Drummer {trackIndex + 1}
+                        </div>
+                        <span className={transportStateClass}>{trackStateLabel(track, ui)}</span>
+                        <button
+                          type="button"
+                          onClick={() => onDrummerSequencerTrackEnabledChange(track.id, !track.enabled)}
+                          disabled={!instrumentsRunning && !track.enabled}
+                          className={track.enabled ? transportStopButtonClass : transportStartButtonClass}
+                        >
+                          {track.enabled ? ui.stop : ui.start}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onDrummerSequencerTrackClearSteps(track.id)}
+                          className="ml-2 rounded-md border border-slate-500/70 bg-slate-800/70 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-400 hover:bg-slate-700"
+                        >
+                          {ui.clearSteps}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onDrummerSequencerRowAdd(track.id)}
+                          className="rounded-md border border-rose-400/60 bg-rose-500/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-rose-200 transition hover:bg-rose-500/20"
+                        >
+                          + Key
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onRemoveDrummerSequencerTrack(track.id)}
+                          disabled={!canRemovePerformDevice}
+                          className="ml-auto rounded-md border border-rose-500/60 bg-rose-500/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-rose-200 transition hover:bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {ui.remove}
+                        </button>
+                      </div>
+
+                      <div className="mb-2 flex flex-wrap items-end gap-2">
+                        <label className="flex flex-col gap-1">
+                          <span className={controlLabelClass}>{ui.midiChannel}</span>
+                          <input
+                            type="number"
+                            min={1}
+                            max={16}
+                            value={track.midiChannel}
+                            onChange={(event) => onDrummerSequencerTrackChannelChange(track.id, Number(event.target.value))}
+                            className={`${controlFieldClass} w-24`}
+                          />
+                        </label>
+
+                        <div className="flex flex-col gap-1">
+                          <span className={controlLabelClass}>{ui.steps}</span>
+                          <div className="inline-flex rounded-lg border border-slate-600 bg-slate-950 p-1">
+                            {[4, 8, 16, 32].map((count) => (
+                              <button
+                                key={`${track.id}-drum-steps-${count}`}
+                                type="button"
+                                onClick={() =>
+                                  onDrummerSequencerTrackStepCountChange(track.id, count as DrummerSequencerStepCount)
+                                }
+                                className={`rounded-md px-2 py-1 text-xs font-semibold uppercase tracking-[0.14em] transition ${
+                                  track.stepCount === count
+                                    ? "bg-rose-500/20 text-rose-200"
+                                    : "text-slate-300 hover:bg-slate-800"
+                                }`}
+                              >
+                                {count}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="flex min-w-[300px] flex-1 flex-col gap-1">
+                          <span className={controlLabelClass}>{ui.padLoopSequence}</span>
+                          <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-slate-600 bg-slate-950 p-1.5">
+                            <button
+                              type="button"
+                              onClick={() => onDrummerSequencerTrackPadLoopEnabledChange(track.id, !track.padLoopEnabled)}
+                              className={`rounded-md border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] transition ${
+                                track.padLoopEnabled
+                                  ? "border-accent/70 bg-accent/20 text-accent"
+                                  : "border-slate-700 bg-slate-900 text-slate-300 hover:border-slate-500"
+                              }`}
+                              aria-pressed={track.padLoopEnabled}
+                            >
+                              {ui.padLooper}: {track.padLoopEnabled ? ui.on : ui.off}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => onDrummerSequencerTrackPadLoopRepeatChange(track.id, !track.padLoopRepeat)}
+                              className={`rounded-md border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] transition ${
+                                track.padLoopRepeat
+                                  ? "border-emerald-400/55 bg-emerald-500/10 text-emerald-300"
+                                  : "border-amber-400/55 bg-amber-500/10 text-amber-300"
+                              }`}
+                              aria-pressed={track.padLoopRepeat}
+                            >
+                              {ui.repeat}: {track.padLoopRepeat ? ui.on : ui.off}
+                            </button>
+
+                            <div
+                              tabIndex={0}
+                              role="list"
+                              aria-label={ui.padLoopSequence}
+                              onKeyDown={(event) => {
+                                const padIndex = padSequencePadIndexFromKey(event);
+                                if (padIndex === null) {
+                                  return;
+                                }
+                                event.preventDefault();
+                                onDrummerSequencerTrackPadLoopStepAdd(track.id, padIndex);
+                              }}
+                              onDragOver={(event) => {
+                                event.preventDefault();
+                                event.dataTransfer.dropEffect = "copy";
+                              }}
+                              onDrop={(event) => {
+                                event.preventDefault();
+                                const payload = parseSequencerPadDragPayload(event);
+                                if (!payload || payload.trackId !== track.id) {
+                                  return;
+                                }
+                                onDrummerSequencerTrackPadLoopStepAdd(track.id, payload.padIndex);
+                              }}
+                              className="min-h-[34px] min-w-[180px] flex-1 rounded-md border border-dashed border-slate-700 bg-slate-900/75 px-2 py-1 outline-none ring-accent/40 transition focus:ring"
+                            >
+                              {track.padLoopSequence.length === 0 ? (
+                                <div className="flex min-h-[24px] items-center text-[10px] text-slate-500">
+                                  {ui.padLoopSequenceEmpty}
+                                </div>
+                              ) : (
+                                <div className="flex min-h-[24px] flex-wrap items-center gap-1">
+                                  {track.padLoopSequence.map((padIndex, sequenceIndex) => {
+                                    const isCurrentLoopStep =
+                                      track.padLoopEnabled &&
+                                      sequencer.isPlaying &&
+                                      track.enabled &&
+                                      track.padLoopPosition === sequenceIndex;
+                                    return (
+                                      <span
+                                        key={`${track.id}-drum-pad-loop-${sequenceIndex}-${padIndex}`}
+                                        role="listitem"
+                                        className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] transition ${
+                                          isCurrentLoopStep
+                                            ? "border-accent bg-accent/25 text-accent shadow-[0_0_0_1px_rgba(14,165,233,0.45)]"
+                                            : "border-slate-700 bg-slate-950 text-slate-100"
+                                        }`}
+                                      >
+                                        <span className="font-mono">{padIndex + 1}</span>
+                                        <button
+                                          type="button"
+                                          onClick={(event) => {
+                                            event.stopPropagation();
+                                            onDrummerSequencerTrackPadLoopStepRemove(track.id, sequenceIndex);
+                                          }}
+                                          className="rounded px-1 text-[10px] leading-none text-slate-400 transition hover:bg-slate-800 hover:text-rose-300"
+                                          aria-label={ui.removePadLoopStep(padIndex + 1)}
+                                          title={ui.remove}
+                                        >
+                                          x
+                                        </button>
+                                      </span>
+                                    );
+                                  })}
+                                  <span className="text-[10px] text-slate-500">{ui.padLoopSequenceHint}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mb-2">
+                        <div className="mb-1 text-xs uppercase tracking-[0.2em] text-slate-400">{ui.patternPads}</div>
+                        <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-8">
+                          {Array.from({ length: 8 }, (_, padIndex) => {
+                            const isActivePad = track.activePad === padIndex;
+                            const isQueuedPad = track.queuedPad === padIndex;
+                            const padHasContent = (track.pads[padIndex]?.rows ?? []).some((row) =>
+                              row.steps.some((cell) => cell.active)
+                            );
+                            const inactivePadMainClass = padHasContent
+                              ? "border-rose-700/65 bg-slate-900 text-rose-100 hover:border-rose-500/70 hover:bg-slate-800/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_0_1px_rgba(251,113,133,0.08)]"
+                              : "border-slate-700 bg-slate-900 text-slate-300 hover:border-slate-500";
+                            return (
+                              <div key={`${track.id}-drum-pad-${padIndex}`} className="relative">
+                                <button
+                                  type="button"
+                                  draggable
+                                  onClick={() => onDrummerSequencerPadPress(track.id, padIndex)}
+                                  onDragStart={(event) => {
+                                    const payload = JSON.stringify({ trackId: track.id, padIndex });
+                                    event.dataTransfer.effectAllowed = "copy";
+                                    event.dataTransfer.setData(SEQUENCER_PAD_DRAG_MIME, payload);
+                                    event.dataTransfer.setData("text/plain", payload);
+                                  }}
+                                  onDragOver={(event) => {
+                                    event.preventDefault();
+                                    event.dataTransfer.dropEffect = "copy";
+                                  }}
+                                  onDrop={(event) => {
+                                    event.preventDefault();
+                                    const payload = parseSequencerPadDragPayload(event);
+                                    if (!payload || payload.trackId !== track.id || payload.padIndex === padIndex) {
+                                      return;
+                                    }
+                                    onDrummerSequencerPadCopy(track.id, payload.padIndex, padIndex);
+                                  }}
+                                  className={`w-full rounded-md border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] transition ${
+                                    isActivePad
+                                      ? "border-rose-400 bg-rose-500/20 text-rose-100"
+                                      : isQueuedPad
+                                        ? "border-amber-400/70 bg-amber-500/10 text-amber-300"
+                                        : inactivePadMainClass
+                                  }`}
+                                >
+                                  P{padIndex + 1}
+                                </button>
+                                {padHasContent ? (
+                                  <span
+                                    className="pointer-events-none absolute right-1 top-1 z-20 h-1.5 w-1.5 rounded-full bg-rose-300 shadow-[0_0_8px_rgba(251,113,133,0.7)]"
+                                    aria-hidden="true"
+                                  />
+                                ) : null}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <div className="overflow-x-auto pb-1">
+                        <div className="flex min-w-max gap-2">
+                          <div className="shrink-0 rounded-lg border border-slate-700 bg-slate-950/70 p-2">
+                            <div className="mb-1 text-[10px] uppercase tracking-[0.18em] text-slate-400">Keys</div>
+                            <div className="space-y-1.5">
+                              {track.rows.map((row, rowIndex) => (
+                                <div key={`${track.id}-row-key-${row.id}`} className="flex items-center gap-1">
+                                  <span className="w-6 text-center font-mono text-[10px] text-slate-500">
+                                    {rowIndex + 1}
+                                  </span>
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    max={127}
+                                    step={1}
+                                    value={row.key}
+                                    onChange={(event) =>
+                                      onDrummerSequencerRowKeyChange(track.id, row.id, Number(event.target.value))
+                                    }
+                                    className="w-20 rounded border border-slate-600 bg-slate-950 px-1.5 py-1 text-center font-mono text-xs text-slate-100 outline-none ring-accent/40 transition focus:ring"
+                                    aria-label={`Drum key ${rowIndex + 1}`}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => onDrummerSequencerRowRemove(track.id, row.id)}
+                                    disabled={track.rows.length <= 1}
+                                    className="rounded border border-slate-700 bg-slate-900 px-1.5 py-1 text-[10px] text-slate-300 transition hover:border-rose-400 hover:text-rose-200 disabled:cursor-not-allowed disabled:opacity-40"
+                                    title={ui.remove}
+                                    aria-label={`${ui.remove} drum key ${rowIndex + 1}`}
+                                  >
+                                    x
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div
+                            className="grid gap-1.5"
+                            style={{
+                              gridTemplateColumns: `repeat(${track.stepCount}, minmax(82px, 1fr))`,
+                              minWidth: `${Math.max(360, track.stepCount * 84)}px`
+                            }}
+                          >
+                            {stepIndices.map((step) => {
+                              const isCurrentStep = track.enabled && sequencer.isPlaying && localPlayhead === step;
+                              return (
+                                <div
+                                  key={`${track.id}-drum-step-${step}`}
+                                  className={`rounded-md border p-1.5 ${
+                                    isCurrentStep
+                                      ? "border-emerald-400/70 bg-emerald-900/10 shadow-[0_0_0_1px_rgba(74,222,128,0.25)]"
+                                      : "border-slate-700 bg-slate-900"
+                                  }`}
+                                >
+                                  <div className="mb-1 text-center font-mono text-[10px] uppercase tracking-[0.18em] text-slate-400">
+                                    {step + 1}
+                                  </div>
+                                  <div className="space-y-1">
+                                    {track.rows.map((row) => {
+                                      const pad = track.pads[track.activePad];
+                                      const padRow =
+                                        pad?.rows.find((candidate) => candidate.rowId === row.id) ?? null;
+                                      const cell = padRow?.steps[step] ?? { active: false, velocity: 127 };
+                                      const ledClass =
+                                        cell.active && isCurrentStep
+                                          ? "border-emerald-200 bg-emerald-300 shadow-[0_0_10px_rgba(110,231,183,1)] animate-pulse"
+                                          : cell.active
+                                            ? "border-rose-200 bg-rose-400 shadow-[0_0_8px_rgba(251,113,133,0.95)]"
+                                            : "border-slate-500 bg-slate-700";
+                                      return (
+                                        <div key={`${track.id}-drum-cell-${row.id}-${step}`} className="rounded border border-slate-700/70 bg-slate-950/70 px-1 py-1">
+                                          <button
+                                            type="button"
+                                            onClick={() => onDrummerSequencerCellToggle(track.id, row.id, step)}
+                                            className="flex w-full items-center justify-center"
+                                            aria-pressed={cell.active}
+                                            aria-label={`Step ${step + 1}, drum key ${row.key}`}
+                                          >
+                                            <span className={`h-3 w-3 rounded-full border ${ledClass}`} />
+                                          </button>
+                                          <input
+                                            type="number"
+                                            min={0}
+                                            max={127}
+                                            step={1}
+                                            value={cell.velocity}
+                                            disabled={!cell.active}
+                                            onChange={(event) =>
+                                              onDrummerSequencerCellVelocityChange(
+                                                track.id,
+                                                row.id,
+                                                step,
+                                                Number(event.target.value)
+                                              )
+                                            }
+                                            className="mt-1 w-full rounded border border-slate-600 bg-slate-950 px-1 py-0.5 text-center font-mono text-[10px] text-slate-100 outline-none ring-accent/40 transition focus:ring disabled:cursor-not-allowed disabled:opacity-40"
+                                            aria-label={`Velocity step ${step + 1} key ${row.key}`}
+                                          />
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
 
           {sequencer.controllerSequencers.length > 0 ? (
             <div className="rounded-xl border border-teal-800/45 bg-slate-900/45 p-2.5">

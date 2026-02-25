@@ -18,6 +18,7 @@ import orchestronIcon from "./assets/orchestron-icon.png";
 import type {
   Connection,
   ControllerSequencerState,
+  DrummerSequencerTrackState,
   GuiLanguage,
   HelpDocId,
   OpcodeSpec,
@@ -27,9 +28,11 @@ import type {
   Performance,
   PerformanceListItem,
   SequencerConfigSnapshot,
+  SequencerState,
   SessionEvent,
   SessionMidiEventRequest,
   SessionSequencerConfigRequest,
+  SessionSequencerTrackStatus,
   SessionSequencerStatus
 } from "./types";
 
@@ -392,6 +395,123 @@ function toPatchListItem(patch: Patch): PatchListItem {
 
 function transportStepCountFromTracks(stepCounts: Array<{ stepCount: 16 | 32 }>): 16 | 32 {
   return stepCounts.some((entry) => entry.stepCount === 32) ? 32 : 16;
+}
+
+function transportStepCountFromPerformanceSequencers(
+  melodicTracks: Array<{ stepCount: 16 | 32 }>,
+  drummerTracks: Array<{ stepCount: 4 | 8 | 16 | 32 }>
+): 16 | 32 {
+  return melodicTracks.some((entry) => entry.stepCount === 32) || drummerTracks.some((entry) => entry.stepCount === 32)
+    ? 32
+    : 16;
+}
+
+function drummerRowRuntimeTrackId(drummerTrackId: string, rowId: string): string {
+  return `drumrow:${drummerTrackId}:${rowId}`;
+}
+
+function parseDrummerRowRuntimeTrackId(trackId: string): { drummerTrackId: string; rowId: string } | null {
+  if (!trackId.startsWith("drumrow:")) {
+    return null;
+  }
+  const parts = trackId.split(":");
+  if (parts.length !== 3 || parts[1].trim().length === 0 || parts[2].trim().length === 0) {
+    return null;
+  }
+  return {
+    drummerTrackId: parts[1],
+    rowId: parts[2]
+  };
+}
+
+function buildDrummerRowTrackConfigs(drummerTrack: DrummerSequencerTrackState): SessionSequencerConfigRequest["tracks"] {
+  return drummerTrack.rows.map((row) => ({
+    track_id: drummerRowRuntimeTrackId(drummerTrack.id, row.id),
+    midi_channel: drummerTrack.midiChannel,
+    step_count: drummerTrack.stepCount,
+    velocity: 127,
+    gate_ratio: 0.8,
+    sync_to_track_id: null,
+    active_pad: drummerTrack.activePad,
+    queued_pad: drummerTrack.queuedPad,
+    pad_loop_enabled: drummerTrack.padLoopEnabled,
+    pad_loop_repeat: drummerTrack.padLoopRepeat,
+    pad_loop_sequence: drummerTrack.padLoopSequence,
+    enabled: drummerTrack.enabled,
+    queued_enabled: drummerTrack.queuedEnabled,
+    pads: drummerTrack.pads.map((pad, padIndex) => {
+      const padRow = pad.rows.find((candidate) => candidate.rowId === row.id);
+      return {
+        pad_index: padIndex,
+        steps: Array.from({ length: 32 }, (_, stepIndex) => {
+          const cell = padRow?.steps?.[stepIndex];
+          if (cell?.active !== true) {
+            return {
+              note: null,
+              hold: false,
+              velocity: cell?.velocity ?? 127
+            };
+          }
+          return {
+            note: row.key,
+            hold: false,
+            velocity: cell.velocity
+          };
+        })
+      };
+    })
+  }));
+}
+
+function aggregateDrummerRuntimeTrackStatuses(
+  backendTracks: SessionSequencerTrackStatus[],
+  drummerTracks: DrummerSequencerTrackState[]
+): Array<{
+  trackId: string;
+  stepCount?: 4 | 8 | 16 | 32;
+  localStep?: number;
+  activePad?: number;
+  queuedPad?: number | null;
+  padLoopPosition?: number | null;
+  enabled?: boolean;
+  queuedEnabled?: boolean | null;
+}> {
+  const validIds = new Set(drummerTracks.map((track) => track.id));
+  const byTrackId = new Map<
+    string,
+    {
+      trackId: string;
+      stepCount?: 4 | 8 | 16 | 32;
+      localStep?: number;
+      activePad?: number;
+      queuedPad?: number | null;
+      padLoopPosition?: number | null;
+      enabled?: boolean;
+      queuedEnabled?: boolean | null;
+    }
+  >();
+
+  for (const statusTrack of backendTracks) {
+    const parsed = parseDrummerRowRuntimeTrackId(statusTrack.track_id);
+    if (!parsed || !validIds.has(parsed.drummerTrackId)) {
+      continue;
+    }
+    if (byTrackId.has(parsed.drummerTrackId)) {
+      continue;
+    }
+    byTrackId.set(parsed.drummerTrackId, {
+      trackId: parsed.drummerTrackId,
+      stepCount: statusTrack.step_count,
+      localStep: statusTrack.local_step,
+      activePad: statusTrack.active_pad,
+      queuedPad: statusTrack.queued_pad,
+      padLoopPosition: statusTrack.pad_loop_position,
+      enabled: statusTrack.enabled,
+      queuedEnabled: statusTrack.queued_enabled
+    });
+  }
+
+  return Array.from(byTrackId.values());
 }
 
 function patchCompileSignatureFor(
@@ -883,6 +1003,24 @@ export default function App() {
   const addSequencerTrackPadLoopStep = useAppStore((state) => state.addSequencerTrackPadLoopStep);
   const removeSequencerTrackPadLoopStep = useAppStore((state) => state.removeSequencerTrackPadLoopStep);
   const moveSequencerTrack = useAppStore((state) => state.moveSequencerTrack);
+  const addDrummerSequencerTrack = useAppStore((state) => state.addDrummerSequencerTrack);
+  const removeDrummerSequencerTrack = useAppStore((state) => state.removeDrummerSequencerTrack);
+  const setDrummerSequencerTrackEnabled = useAppStore((state) => state.setDrummerSequencerTrackEnabled);
+  const setDrummerSequencerTrackMidiChannel = useAppStore((state) => state.setDrummerSequencerTrackMidiChannel);
+  const setDrummerSequencerTrackStepCount = useAppStore((state) => state.setDrummerSequencerTrackStepCount);
+  const addDrummerSequencerRow = useAppStore((state) => state.addDrummerSequencerRow);
+  const removeDrummerSequencerRow = useAppStore((state) => state.removeDrummerSequencerRow);
+  const setDrummerSequencerRowKey = useAppStore((state) => state.setDrummerSequencerRowKey);
+  const toggleDrummerSequencerCell = useAppStore((state) => state.toggleDrummerSequencerCell);
+  const setDrummerSequencerCellVelocity = useAppStore((state) => state.setDrummerSequencerCellVelocity);
+  const clearDrummerSequencerTrackSteps = useAppStore((state) => state.clearDrummerSequencerTrackSteps);
+  const copyDrummerSequencerPad = useAppStore((state) => state.copyDrummerSequencerPad);
+  const setDrummerSequencerTrackActivePad = useAppStore((state) => state.setDrummerSequencerTrackActivePad);
+  const setDrummerSequencerTrackQueuedPad = useAppStore((state) => state.setDrummerSequencerTrackQueuedPad);
+  const setDrummerSequencerTrackPadLoopEnabled = useAppStore((state) => state.setDrummerSequencerTrackPadLoopEnabled);
+  const setDrummerSequencerTrackPadLoopRepeat = useAppStore((state) => state.setDrummerSequencerTrackPadLoopRepeat);
+  const addDrummerSequencerTrackPadLoopStep = useAppStore((state) => state.addDrummerSequencerTrackPadLoopStep);
+  const removeDrummerSequencerTrackPadLoopStep = useAppStore((state) => state.removeDrummerSequencerTrackPadLoopStep);
   const addPianoRoll = useAppStore((state) => state.addPianoRoll);
   const removePianoRoll = useAppStore((state) => state.removePianoRoll);
   const setPianoRollEnabled = useAppStore((state) => state.setPianoRollEnabled);
@@ -1876,51 +2014,55 @@ export default function App() {
   );
 
   const buildBackendSequencerConfig = useCallback((state = sequencerRef.current): SessionSequencerConfigRequest => {
-    const transportStepCount = transportStepCountFromTracks(state.tracks);
+    const transportStepCount = transportStepCountFromPerformanceSequencers(state.tracks, state.drummerTracks);
+    const melodicTracks = state.tracks.map((track) => ({
+      track_id: track.id,
+      midi_channel: track.midiChannel,
+      step_count: track.stepCount,
+      velocity: 127,
+      gate_ratio: 0.8,
+      sync_to_track_id: track.syncToTrackId,
+      active_pad: track.activePad,
+      queued_pad: track.queuedPad,
+      pad_loop_enabled: track.padLoopEnabled,
+      pad_loop_repeat: track.padLoopRepeat,
+      pad_loop_sequence: track.padLoopSequence,
+      enabled: track.enabled,
+      queued_enabled: track.queuedEnabled,
+      pads: track.pads.map((pad, padIndex) => ({
+        pad_index: padIndex,
+        steps: pad.steps.map((step) => {
+          const notes = buildSequencerStepChordMidiNotes(step.note, step.chord, pad.scaleRoot, pad.mode);
+          return {
+            note: notes.length === 0 ? null : notes.length === 1 ? notes[0] : notes,
+            hold: step.hold,
+            velocity: step.velocity
+          };
+        })
+      }))
+    }));
+    const drummerRowTracks = state.drummerTracks.flatMap((drummerTrack) => buildDrummerRowTrackConfigs(drummerTrack));
     return {
       bpm: state.bpm,
       step_count: transportStepCount,
-      tracks: state.tracks.map((track) => ({
-        track_id: track.id,
-        midi_channel: track.midiChannel,
-        step_count: track.stepCount,
-        velocity: 127,
-        gate_ratio: 0.8,
-        sync_to_track_id: track.syncToTrackId,
-        active_pad: track.activePad,
-        queued_pad: track.queuedPad,
-        pad_loop_enabled: track.padLoopEnabled,
-        pad_loop_repeat: track.padLoopRepeat,
-        pad_loop_sequence: track.padLoopSequence,
-        enabled: track.enabled,
-        queued_enabled: track.queuedEnabled,
-        pads: track.pads.map((pad, padIndex) => ({
-          pad_index: padIndex,
-          steps: pad.steps.map((step) => {
-            const notes = buildSequencerStepChordMidiNotes(step.note, step.chord, pad.scaleRoot, pad.mode);
-            return {
-              note: notes.length === 0 ? null : notes.length === 1 ? notes[0] : notes,
-              hold: step.hold,
-              velocity: step.velocity
-            };
-          })
-        }))
-      }))
+      tracks: [...melodicTracks, ...drummerRowTracks]
     };
   }, []);
   const sequencerConfigSyncSignature = useMemo(
     () => JSON.stringify(buildBackendSequencerConfig(sequencer)),
-    [buildBackendSequencerConfig, sequencer.bpm, sequencer.tracks]
+    [buildBackendSequencerConfig, sequencer.bpm, sequencer.drummerTracks, sequencer.tracks]
   );
 
   const applySequencerStatus = useCallback(
     (status: SessionSequencerStatus) => {
+      const melodicTrackStatuses = status.tracks.filter((track) => parseDrummerRowRuntimeTrackId(track.track_id) === null);
+      const drummerTrackStatuses = aggregateDrummerRuntimeTrackStatuses(status.tracks, sequencerRef.current.drummerTracks);
       syncSequencerRuntime({
         isPlaying: status.running,
         transportStepCount: status.step_count,
         playhead: status.current_step,
         cycle: status.cycle,
-        tracks: status.tracks.map((track) => ({
+        tracks: melodicTrackStatuses.map((track) => ({
           trackId: track.track_id,
           stepCount: track.step_count,
           localStep: track.local_step,
@@ -1929,7 +2071,8 @@ export default function App() {
           padLoopPosition: track.pad_loop_position,
           enabled: track.enabled,
           queuedEnabled: track.queued_enabled
-        }))
+        })),
+        drummerTracks: drummerTrackStatuses
       });
     },
     [syncSequencerRuntime]
@@ -2012,6 +2155,19 @@ export default function App() {
     [setSequencerTrackEnabled]
   );
 
+  const onDrummerSequencerTrackEnabledChange = useCallback(
+    (trackId: string, enabled: boolean) => {
+      const sequencerState = sequencerRef.current;
+      const hasOtherRunningTracks =
+        sequencerState.tracks.some((track) => track.enabled) ||
+        sequencerState.drummerTracks.some((track) => track.id !== trackId && track.enabled);
+      const shouldQueueOnCycle = sequencerState.isPlaying && (enabled ? hasOtherRunningTracks : true);
+      setDrummerSequencerTrackEnabled(trackId, enabled, shouldQueueOnCycle);
+      setSequencerError(null);
+    },
+    [setDrummerSequencerTrackEnabled]
+  );
+
   const onStartInstrumentEngine = useCallback(() => {
     setSequencerError(null);
     void startSession();
@@ -2020,6 +2176,9 @@ export default function App() {
   const collectPerformanceChannels = useCallback(() => {
     const channels = new Set<number>();
     for (const track of sequencerRef.current.tracks) {
+      channels.add(track.midiChannel);
+    }
+    for (const track of sequencerRef.current.drummerTracks) {
       channels.add(track.midiChannel);
     }
     for (const roll of sequencerRef.current.pianoRolls) {
@@ -2763,6 +2922,7 @@ export default function App() {
           if (
             sequencerRef.current.isPlaying &&
             !sequencerRef.current.tracks.some((track) => track.enabled || track.queuedEnabled === true) &&
+            !sequencerRef.current.drummerTracks.some((track) => track.enabled || track.queuedEnabled === true) &&
             !sequencerRef.current.controllerSequencers.some((controllerSequencer) => controllerSequencer.enabled)
           ) {
             void stopSequencerTransport(false);
@@ -2792,12 +2952,20 @@ export default function App() {
     }
     if (
       !sequencer.tracks.some((track) => track.enabled) &&
+      !sequencer.drummerTracks.some((track) => track.enabled) &&
       !sequencer.controllerSequencers.some((controllerSequencer) => controllerSequencer.enabled)
     ) {
       return;
     }
     void startSequencerTransport();
-  }, [activeSessionState, sequencer.controllerSequencers, sequencer.isPlaying, sequencer.tracks, startSequencerTransport]);
+  }, [
+    activeSessionState,
+    sequencer.controllerSequencers,
+    sequencer.drummerTracks,
+    sequencer.isPlaying,
+    sequencer.tracks,
+    startSequencerTransport
+  ]);
 
   useEffect(() => {
     if (!sequencer.isPlaying) {
@@ -2808,12 +2976,19 @@ export default function App() {
     }
     if (
       sequencer.tracks.some((track) => track.enabled || track.queuedEnabled === true) ||
+      sequencer.drummerTracks.some((track) => track.enabled || track.queuedEnabled === true) ||
       sequencer.controllerSequencers.some((controllerSequencer) => controllerSequencer.enabled)
     ) {
       return;
     }
     void stopSequencerTransport(false);
-  }, [sequencer.controllerSequencers, sequencer.isPlaying, sequencer.tracks, stopSequencerTransport]);
+  }, [
+    sequencer.controllerSequencers,
+    sequencer.drummerTracks,
+    sequencer.isPlaying,
+    sequencer.tracks,
+    stopSequencerTransport
+  ]);
 
   useEffect(() => {
     if (!sequencer.isPlaying) {
@@ -3158,6 +3333,7 @@ export default function App() {
             onStopInstruments={onStopInstrumentEngine}
             onBpmChange={setSequencerBpm}
             onAddSequencerTrack={addSequencerTrack}
+            onAddDrummerSequencerTrack={addDrummerSequencerTrack}
             onAddControllerSequencer={addControllerSequencer}
             onRemoveSequencerTrack={removeSequencerTrack}
             onSequencerTrackEnabledChange={onSequencerTrackEnabledChange}
@@ -3212,6 +3388,60 @@ export default function App() {
             onSequencerTrackPadLoopRepeatChange={setSequencerTrackPadLoopRepeat}
             onSequencerTrackPadLoopStepAdd={addSequencerTrackPadLoopStep}
             onSequencerTrackPadLoopStepRemove={removeSequencerTrackPadLoopStep}
+            onRemoveDrummerSequencerTrack={removeDrummerSequencerTrack}
+            onDrummerSequencerTrackEnabledChange={onDrummerSequencerTrackEnabledChange}
+            onDrummerSequencerTrackChannelChange={setDrummerSequencerTrackMidiChannel}
+            onDrummerSequencerTrackStepCountChange={setDrummerSequencerTrackStepCount}
+            onDrummerSequencerRowAdd={addDrummerSequencerRow}
+            onDrummerSequencerRowRemove={removeDrummerSequencerRow}
+            onDrummerSequencerRowKeyChange={setDrummerSequencerRowKey}
+            onDrummerSequencerCellToggle={toggleDrummerSequencerCell}
+            onDrummerSequencerCellVelocityChange={setDrummerSequencerCellVelocity}
+            onDrummerSequencerTrackClearSteps={clearDrummerSequencerTrackSteps}
+            onDrummerSequencerPadPress={(trackId, padIndex) => {
+              if (!sequencerRef.current.isPlaying) {
+                setDrummerSequencerTrackActivePad(trackId, padIndex);
+                return;
+              }
+
+              const sessionId = sequencerSessionIdRef.current ?? activeSessionId;
+              if (!sessionId) {
+                setSequencerError(appCopy.errors.noActiveSessionForPadSwitching);
+                return;
+              }
+              const drummerTrack = sequencerRef.current.drummerTracks.find((track) => track.id === trackId);
+              if (!drummerTrack) {
+                return;
+              }
+
+              void (async () => {
+                let latestStatus: SessionSequencerStatus | null = null;
+                for (const row of drummerTrack.rows) {
+                  latestStatus = await api.queueSessionSequencerPad(
+                    sessionId,
+                    drummerRowRuntimeTrackId(trackId, row.id),
+                    { pad_index: padIndex }
+                  );
+                }
+                setDrummerSequencerTrackQueuedPad(trackId, padIndex);
+                if (latestStatus) {
+                  applySequencerStatus(latestStatus);
+                }
+              })().catch((queueError) => {
+                setSequencerError(
+                  queueError instanceof Error
+                    ? `${appCopy.errors.failedToQueuePad}: ${queueError.message}`
+                    : appCopy.errors.failedToQueuePad
+                );
+              });
+            }}
+            onDrummerSequencerPadCopy={(trackId, sourcePadIndex, targetPadIndex) => {
+              copyDrummerSequencerPad(trackId, sourcePadIndex, targetPadIndex);
+            }}
+            onDrummerSequencerTrackPadLoopEnabledChange={setDrummerSequencerTrackPadLoopEnabled}
+            onDrummerSequencerTrackPadLoopRepeatChange={setDrummerSequencerTrackPadLoopRepeat}
+            onDrummerSequencerTrackPadLoopStepAdd={addDrummerSequencerTrackPadLoopStep}
+            onDrummerSequencerTrackPadLoopStepRemove={removeDrummerSequencerTrackPadLoopStep}
             onAddPianoRoll={addPianoRoll}
             onRemovePianoRoll={removePianoRoll}
             onPianoRollEnabledChange={onPianoRollEnabledChange}

@@ -578,7 +578,7 @@ class SessionSequencerRuntime:
             SessionSequencerTrackStatus(
                 track_id=track.track_id,
                 midi_channel=track.midi_channel,
-                step_count=16 if track.step_count == 16 else 32,
+                step_count=track.step_count if track.step_count in (4, 8, 16, 32) else 16,
                 local_step=self._local_step_for(track, self._current_step),
                 active_pad=track.active_pad,
                 queued_pad=track.queued_pad,
@@ -681,7 +681,9 @@ class SessionSequencerRuntime:
     def _build_runtime_config(self, request: SessionSequencerConfigRequest) -> SequencerRuntimeConfig:
         tracks: dict[str, SequencerTrackRuntime] = {}
         for track_request in request.tracks:
-            track_step_count = 16 if track_request.step_count == 16 else 32
+            track_step_count = (
+                track_request.step_count if track_request.step_count in (4, 8, 16, 32) else 16
+            )
             pads: dict[int, tuple[SequencerStepRuntime, ...]] = {
                 index: tuple(SequencerStepRuntime(notes=(), hold=False) for _ in range(track_step_count))
                 for index in range(_DEFAULT_PADS)

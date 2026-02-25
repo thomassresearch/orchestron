@@ -139,12 +139,12 @@ class SessionSequencerPadConfig(BaseModel):
 
 
 class SessionSequencerTrackConfig(BaseModel):
-    track_id: str = Field(min_length=1, max_length=64)
+    track_id: str = Field(min_length=1, max_length=256)
     midi_channel: int = Field(default=1, ge=1, le=16)
-    step_count: Literal[16, 32] = 16
+    step_count: Literal[4, 8, 16, 32] = 16
     velocity: int = Field(default=100, ge=1, le=127)
     gate_ratio: float = Field(default=0.8, gt=0.0, le=1.0)
-    sync_to_track_id: str | None = Field(default=None, min_length=1, max_length=64)
+    sync_to_track_id: str | None = Field(default=None, min_length=1, max_length=256)
     active_pad: int = Field(default=0, ge=0, le=7)
     queued_pad: int | None = Field(default=None, ge=0, le=7)
     pad_loop_enabled: bool = False
@@ -172,7 +172,7 @@ class SessionSequencerTrackConfig(BaseModel):
 class SessionSequencerConfigRequest(BaseModel):
     bpm: int = Field(default=120, ge=30, le=300)
     step_count: Literal[16, 32] = 16
-    tracks: list[SessionSequencerTrackConfig] = Field(min_length=1, max_length=8)
+    tracks: list[SessionSequencerTrackConfig] = Field(min_length=1, max_length=128)
 
     @model_validator(mode="after")
     def validate_unique_track_ids(self) -> "SessionSequencerConfigRequest":
@@ -204,7 +204,7 @@ class SessionSequencerQueuePadRequest(BaseModel):
 class SessionSequencerTrackStatus(BaseModel):
     track_id: str
     midi_channel: int
-    step_count: Literal[16, 32]
+    step_count: Literal[4, 8, 16, 32]
     local_step: int = Field(ge=0)
     active_pad: int = Field(ge=0, le=7)
     queued_pad: int | None = Field(default=None, ge=0, le=7)

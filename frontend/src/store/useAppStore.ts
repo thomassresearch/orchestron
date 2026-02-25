@@ -24,6 +24,12 @@ import type {
   CompileResponse,
   ControllerSequencerKeypoint,
   ControllerSequencerState,
+  DrummerSequencerCellState,
+  DrummerSequencerPadState,
+  DrummerSequencerPadRowState,
+  DrummerSequencerRowState,
+  DrummerSequencerStepCount,
+  DrummerSequencerTrackState,
   EngineConfig,
   GuiLanguage,
   MidiInputRef,
@@ -158,6 +164,25 @@ interface AppStore {
   removeSequencerTrackPadLoopStep: (trackId: string, sequenceIndex: number) => void;
   moveSequencerTrack: (sourceTrackId: string, targetTrackId: string, position?: "before" | "after") => void;
 
+  addDrummerSequencerTrack: () => void;
+  removeDrummerSequencerTrack: (trackId: string) => void;
+  setDrummerSequencerTrackEnabled: (trackId: string, enabled: boolean, queueOnCycle?: boolean) => void;
+  setDrummerSequencerTrackMidiChannel: (trackId: string, channel: number) => void;
+  setDrummerSequencerTrackStepCount: (trackId: string, stepCount: DrummerSequencerStepCount) => void;
+  addDrummerSequencerRow: (trackId: string) => void;
+  removeDrummerSequencerRow: (trackId: string, rowId: string) => void;
+  setDrummerSequencerRowKey: (trackId: string, rowId: string, key: number) => void;
+  toggleDrummerSequencerCell: (trackId: string, rowId: string, stepIndex: number, active?: boolean) => void;
+  setDrummerSequencerCellVelocity: (trackId: string, rowId: string, stepIndex: number, velocity: number) => void;
+  clearDrummerSequencerTrackSteps: (trackId: string) => void;
+  copyDrummerSequencerPad: (trackId: string, sourcePadIndex: number, targetPadIndex: number) => void;
+  setDrummerSequencerTrackActivePad: (trackId: string, padIndex: number) => void;
+  setDrummerSequencerTrackQueuedPad: (trackId: string, padIndex: number | null) => void;
+  setDrummerSequencerTrackPadLoopEnabled: (trackId: string, enabled: boolean) => void;
+  setDrummerSequencerTrackPadLoopRepeat: (trackId: string, repeat: boolean) => void;
+  addDrummerSequencerTrackPadLoopStep: (trackId: string, padIndex: number) => void;
+  removeDrummerSequencerTrackPadLoopStep: (trackId: string, sequenceIndex: number) => void;
+
   addPianoRoll: () => void;
   removePianoRoll: (rollId: string) => void;
   setPianoRollEnabled: (rollId: string, enabled: boolean) => void;
@@ -198,7 +223,17 @@ interface AppStore {
     cycle?: number;
     tracks?: Array<{
       trackId: string;
-      stepCount?: 16 | 32;
+      stepCount?: 4 | 8 | 16 | 32;
+      localStep?: number;
+      activePad?: number;
+      queuedPad?: number | null;
+      padLoopPosition?: number | null;
+      enabled?: boolean;
+      queuedEnabled?: boolean | null;
+    }>;
+    drummerTracks?: Array<{
+      trackId: string;
+      stepCount?: DrummerSequencerStepCount;
       localStep?: number;
       activePad?: number;
       queuedPad?: number | null;
@@ -234,6 +269,7 @@ const OPCODE_PARAM_DEFAULTS: Record<string, Record<string, string | number | boo
 
 const DEFAULT_PAD_COUNT = 8;
 const MAX_MIDI_CONTROLLERS = 6;
+const DEFAULT_DRUMMER_ROW_KEYS = [36, 38, 42, 46] as const;
 const APP_STATE_VERSION = 1 as const;
 const APP_STATE_PERSIST_DEBOUNCE_MS = 400;
 const AUDIO_RATE_MIN = 22000;
@@ -259,6 +295,30 @@ function normalizeStepCount(value: number): 16 | 32 {
 
 function transportStepCountForTracks(tracks: SequencerTrackState[]): 16 | 32 {
   if (tracks.some((track) => normalizeStepCount(track.stepCount) === 32)) {
+    return 32;
+  }
+  return 16;
+}
+
+function normalizeDrummerSequencerStepCount(value: unknown): DrummerSequencerStepCount {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return 16;
+  }
+  const normalized = Math.round(value);
+  if (normalized === 4 || normalized === 8 || normalized === 16 || normalized === 32) {
+    return normalized;
+  }
+  return 16;
+}
+
+function transportStepCountForPerformanceTracks(
+  tracks: SequencerTrackState[],
+  drummerTracks: DrummerSequencerTrackState[]
+): 16 | 32 {
+  if (tracks.some((track) => normalizeStepCount(track.stepCount) === 32)) {
+    return 32;
+  }
+  if (drummerTracks.some((track) => normalizeDrummerSequencerStepCount(track.stepCount) === 32)) {
     return 32;
   }
   return 16;
@@ -311,6 +371,141 @@ function normalizeStepVelocity(value: unknown): number {
     return 127;
   }
   return clampInt(value, 0, 127);
+}
+
+function createEmptyDrummerSequencerCell(): DrummerSequencerCellState {
+  return {
+    active: false,
+    velocity: 127
+  };
+}
+
+function cloneDrummerSequencerCell(cell: DrummerSequencerCellState): DrummerSequencerCellState {
+  return {
+    active: cell.active === true,
+    velocity: normalizeStepVelocity(cell.velocity)
+  };
+}
+
+function defaultDrummerSequencerCells(): DrummerSequencerCellState[] {
+  return Array.from({ length: 32 }, () => createEmptyDrummerSequencerCell());
+}
+
+const DEFAULT_DRUMMER_SEQUENCER_CELLS: DrummerSequencerCellState[] = defaultDrummerSequencerCells();
+
+function cloneDrummerSequencerCells(cells: DrummerSequencerCellState[]): DrummerSequencerCellState[] {
+  return cells.map((cell) => cloneDrummerSequencerCell(cell));
+}
+
+function normalizeDrummerSequencerKey(value: unknown): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return 36;
+  }
+  return clampInt(value, 0, 127);
+}
+
+function normalizeDrummerSequencerCell(raw: unknown): DrummerSequencerCellState {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    if (typeof raw === "number" && Number.isFinite(raw)) {
+      return {
+        active: true,
+        velocity: normalizeStepVelocity(raw)
+      };
+    }
+    if (raw === true) {
+      return { active: true, velocity: 127 };
+    }
+    return createEmptyDrummerSequencerCell();
+  }
+  const cell = raw as Record<string, unknown>;
+  return {
+    active: cell.active === true || cell.on === true || cell.enabled === true,
+    velocity: normalizeStepVelocity(cell.velocity ?? cell.vel)
+  };
+}
+
+function normalizeDrummerSequencerRowPadState(
+  raw: unknown,
+  fallbackRowId: string
+): DrummerSequencerPadRowState {
+  let rowId = fallbackRowId;
+  let rawSteps: unknown = null;
+
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+    const row = raw as Record<string, unknown>;
+    if (typeof row.rowId === "string" && row.rowId.trim().length > 0) {
+      rowId = row.rowId;
+    } else if (typeof row.row_id === "string" && row.row_id.trim().length > 0) {
+      rowId = row.row_id;
+    }
+    rawSteps = row.steps;
+  } else {
+    rawSteps = raw;
+  }
+
+  const steps = cloneDrummerSequencerCells(DEFAULT_DRUMMER_SEQUENCER_CELLS);
+  if (Array.isArray(rawSteps)) {
+    for (let index = 0; index < Math.min(32, rawSteps.length); index += 1) {
+      steps[index] = normalizeDrummerSequencerCell(rawSteps[index]);
+    }
+  }
+
+  return {
+    rowId,
+    steps
+  };
+}
+
+function defaultDrummerSequencerRows(
+  keys: readonly number[] = DEFAULT_DRUMMER_ROW_KEYS
+): DrummerSequencerRowState[] {
+  return keys.map((key, index) => ({
+    id: `drum-row-${index + 1}`,
+    key: normalizeDrummerSequencerKey(key)
+  }));
+}
+
+function cloneDrummerSequencerRows(rows: DrummerSequencerRowState[]): DrummerSequencerRowState[] {
+  return rows.map((row, index) => ({
+    id: typeof row.id === "string" && row.id.trim().length > 0 ? row.id : `drum-row-${index + 1}`,
+    key: normalizeDrummerSequencerKey(row.key)
+  }));
+}
+
+function buildDefaultDrummerSequencerPad(rows: DrummerSequencerRowState[]): DrummerSequencerPadState {
+  return {
+    rows: rows.map((row) => ({
+      rowId: row.id,
+      steps: cloneDrummerSequencerCells(DEFAULT_DRUMMER_SEQUENCER_CELLS)
+    }))
+  };
+}
+
+function defaultDrummerSequencerPads(rows: DrummerSequencerRowState[]): DrummerSequencerPadState[] {
+  return Array.from({ length: DEFAULT_PAD_COUNT }, () => buildDefaultDrummerSequencerPad(rows));
+}
+
+function cloneDrummerSequencerPads(pads: DrummerSequencerPadState[]): DrummerSequencerPadState[] {
+  return pads.map((pad) => ({
+    rows: Array.isArray(pad.rows)
+      ? pad.rows.map((row) => ({
+          rowId: row.rowId,
+          steps: cloneDrummerSequencerCells(row.steps)
+        }))
+      : []
+  }));
+}
+
+function alignDrummerPadRowsToTrackRows(
+  pad: DrummerSequencerPadState,
+  trackRows: DrummerSequencerRowState[]
+): DrummerSequencerPadState {
+  const byRowId = new Map(pad.rows.map((row) => [row.rowId, row]));
+  return {
+    rows: trackRows.map((trackRow) =>
+      normalizeDrummerSequencerRowPadState(byRowId.get(trackRow.id) ?? null, trackRow.id)
+    )
+  };
 }
 
 function normalizeSequencerStep(value: unknown): SequencerStepState {
@@ -491,6 +686,28 @@ function defaultSequencerTrack(index = 1, midiChannel = 1): SequencerTrackState 
   };
 }
 
+function defaultDrummerSequencerTrack(index = 1, midiChannel = 10): DrummerSequencerTrackState {
+  const channel = clampInt(midiChannel, 1, 16);
+  const rows = defaultDrummerSequencerRows();
+  return {
+    id: `drum-${index}`,
+    name: `Drummer Sequencer ${index}`,
+    midiChannel: channel,
+    stepCount: 16,
+    activePad: 0,
+    queuedPad: null,
+    padLoopPosition: null,
+    padLoopEnabled: false,
+    padLoopRepeat: true,
+    padLoopSequence: [],
+    rows,
+    pads: defaultDrummerSequencerPads(rows),
+    runtimeLocalStep: null,
+    enabled: false,
+    queuedEnabled: null
+  };
+}
+
 function defaultPianoRoll(index = 1, midiChannel = 2): PianoRollState {
   const channel = clampInt(midiChannel, 1, 16);
   return {
@@ -578,6 +795,7 @@ function defaultSequencerState(): SequencerState {
     playhead: 0,
     cycle: 0,
     tracks: [defaultSequencerTrack(1, 1)],
+    drummerTracks: [],
     controllerSequencers: [],
     pianoRolls: [defaultPianoRoll(1, 2)],
     midiControllers: defaultMidiControllers()
@@ -587,6 +805,7 @@ function defaultSequencerState(): SequencerState {
 function performanceDeviceCount(sequencer: SequencerState): number {
   return (
     sequencer.tracks.length +
+    sequencer.drummerTracks.length +
     sequencer.controllerSequencers.length +
     sequencer.pianoRolls.length +
     sequencer.midiControllers.length
@@ -691,6 +910,128 @@ function normalizeSequencerTrack(raw: unknown, index: number): SequencerTrackSta
   };
 }
 
+function normalizeDrummerSequencerTrack(raw: unknown, index: number): DrummerSequencerTrackState {
+  const fallback = defaultDrummerSequencerTrack(index, index === 1 ? 10 : index);
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return fallback;
+  }
+
+  const track = raw as Record<string, unknown>;
+  const id =
+    typeof track.id === "string" && track.id.length > 0
+      ? track.id
+      : typeof track.trackId === "string" && track.trackId.length > 0
+        ? track.trackId
+        : fallback.id;
+  const name = typeof track.name === "string" && track.name.trim().length > 0 ? track.name : fallback.name;
+  const midiChannel =
+    typeof track.midiChannel === "number" ? clampInt(track.midiChannel, 1, 16) : fallback.midiChannel;
+  const stepCount = normalizeDrummerSequencerStepCount(track.stepCount ?? track.step_count);
+  const activePad = typeof track.activePad === "number" ? normalizePadIndex(track.activePad) : fallback.activePad;
+  const queuedPad = typeof track.queuedPad === "number" ? normalizePadIndex(track.queuedPad) : null;
+  const rawPadLoopPosition = track.padLoopPosition ?? track.pad_loop_position;
+  const padLoopPosition =
+    typeof rawPadLoopPosition === "number" && Number.isFinite(rawPadLoopPosition)
+      ? Math.max(0, Math.round(rawPadLoopPosition))
+      : null;
+  const padLoopEnabled =
+    track.padLoopEnabled === undefined && track.pad_loop_enabled === undefined
+      ? fallback.padLoopEnabled
+      : (track.padLoopEnabled ?? track.pad_loop_enabled) === true;
+  const padLoopRepeat =
+    track.padLoopRepeat === undefined && track.pad_loop_repeat === undefined
+      ? fallback.padLoopRepeat
+      : (track.padLoopRepeat ?? track.pad_loop_repeat) !== false;
+  const padLoopSequence = normalizePadLoopSequence(track.padLoopSequence ?? track.pad_loop_sequence);
+  const enabled = typeof track.enabled === "boolean" ? track.enabled : fallback.enabled;
+  const queuedEnabled = typeof track.queuedEnabled === "boolean" ? track.queuedEnabled : null;
+
+  const rowsFallback = cloneDrummerSequencerRows(fallback.rows);
+  const parsedRows: DrummerSequencerRowState[] = [];
+  if (Array.isArray(track.rows)) {
+    for (let rowIndex = 0; rowIndex < Math.min(64, track.rows.length); rowIndex += 1) {
+      const rawRow = track.rows[rowIndex];
+      if (!rawRow || typeof rawRow !== "object" || Array.isArray(rawRow)) {
+        continue;
+      }
+      const row = rawRow as Record<string, unknown>;
+      parsedRows.push({
+        id:
+          typeof row.id === "string" && row.id.trim().length > 0
+            ? row.id
+            : `drum-row-${rowIndex + 1}`,
+        key: normalizeDrummerSequencerKey(row.key ?? row.note ?? row.midiNote ?? row.midi_note)
+      });
+    }
+  }
+  const sourceRows = parsedRows.length > 0 ? parsedRows : rowsFallback;
+  const rows = (() => {
+    const seen = new Set<string>();
+    return sourceRows.map((row, rowIndex) => {
+      let nextId = row.id.trim().length > 0 ? row.id : `drum-row-${rowIndex + 1}`;
+      if (seen.has(nextId)) {
+        nextId = `${nextId}-${rowIndex + 1}`;
+      }
+      seen.add(nextId);
+      return {
+        id: nextId,
+        key: normalizeDrummerSequencerKey(row.key)
+      };
+    });
+  })();
+
+  const pads = defaultDrummerSequencerPads(rows);
+  if (Array.isArray(track.pads)) {
+    for (let padIndex = 0; padIndex < Math.min(DEFAULT_PAD_COUNT, track.pads.length); padIndex += 1) {
+      const rawPad = track.pads[padIndex];
+      let rawPadRows: unknown[] = [];
+      if (Array.isArray(rawPad)) {
+        rawPadRows = rawPad;
+      } else if (rawPad && typeof rawPad === "object" && !Array.isArray(rawPad)) {
+        const candidate = rawPad as Record<string, unknown>;
+        rawPadRows = Array.isArray(candidate.rows) ? candidate.rows : [];
+      }
+
+      const byRowId = new Map<string, unknown>();
+      for (let rowIndex = 0; rowIndex < rawPadRows.length; rowIndex += 1) {
+        const rawPadRow = rawPadRows[rowIndex];
+        let rowId = rows[rowIndex]?.id ?? `drum-row-${rowIndex + 1}`;
+        if (rawPadRow && typeof rawPadRow === "object" && !Array.isArray(rawPadRow)) {
+          const candidate = rawPadRow as Record<string, unknown>;
+          if (typeof candidate.rowId === "string" && candidate.rowId.trim().length > 0) {
+            rowId = candidate.rowId;
+          } else if (typeof candidate.row_id === "string" && candidate.row_id.trim().length > 0) {
+            rowId = candidate.row_id;
+          }
+        }
+        byRowId.set(rowId, rawPadRow);
+      }
+
+      pads[padIndex] = {
+        rows: rows.map((row) => normalizeDrummerSequencerRowPadState(byRowId.get(row.id) ?? null, row.id))
+      };
+    }
+  }
+
+  return {
+    id,
+    name,
+    midiChannel,
+    stepCount,
+    activePad,
+    queuedPad,
+    padLoopPosition,
+    padLoopEnabled,
+    padLoopRepeat,
+    padLoopSequence,
+    rows,
+    pads: pads.map((pad) => alignDrummerPadRowsToTrackRows(pad, rows)),
+    runtimeLocalStep: null,
+    enabled,
+    queuedEnabled
+  };
+}
+
 function normalizePianoRollState(raw: unknown, index: number): PianoRollState {
   const fallback = defaultPianoRoll(index, index + 1);
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
@@ -771,6 +1112,13 @@ function normalizeSequencerState(raw: unknown): SequencerState {
     }
     if (track.syncToTrackId === track.id || !validTrackIds.has(track.syncToTrackId)) {
       track.syncToTrackId = null;
+    }
+  }
+
+  const drummerTracks: DrummerSequencerTrackState[] = [];
+  if (Array.isArray(sequencer.drummerTracks)) {
+    for (let index = 0; index < Math.min(8, sequencer.drummerTracks.length); index += 1) {
+      drummerTracks.push(normalizeDrummerSequencerTrack(sequencer.drummerTracks[index], index + 1));
     }
   }
 
@@ -871,10 +1219,26 @@ function normalizeSequencerState(raw: unknown): SequencerState {
     };
   });
 
+  const seenDrummerTrackIds = new Set<string>();
+  const normalizedDrummerTracks = drummerTracks.map((track, index) => {
+    let nextId = track.id.trim().length > 0 ? track.id : `drum-${index + 1}`;
+    if (seenDrummerTrackIds.has(nextId)) {
+      nextId = `${nextId}-${index + 1}`;
+    }
+    seenDrummerTrackIds.add(nextId);
+    const rows = cloneDrummerSequencerRows(track.rows);
+    return {
+      ...track,
+      id: nextId,
+      rows,
+      pads: cloneDrummerSequencerPads(track.pads).map((pad) => alignDrummerPadRowsToTrackRows(pad, rows))
+    };
+  });
+
   const normalizedTransportStepCount = normalizeStepCount(
     typeof sequencer.stepCount === "number"
       ? rawStepCount
-      : transportStepCountForTracks(normalizedTracks)
+      : transportStepCountForPerformanceTracks(normalizedTracks, normalizedDrummerTracks)
   );
 
   return {
@@ -883,6 +1247,7 @@ function normalizeSequencerState(raw: unknown): SequencerState {
     stepCount: normalizedTransportStepCount,
     playhead: playhead % normalizedTransportStepCount,
     tracks: normalizedTracks,
+    drummerTracks: normalizedDrummerTracks,
     controllerSequencers: normalizedControllerSequencers,
     pianoRolls: normalizedRolls,
     midiControllers: normalizedControllers
@@ -1085,6 +1450,15 @@ function sequencerSnapshotForPersistence(sequencer: SequencerState): SequencerSt
       runtimeLocalStep: null,
       queuedEnabled: null
     })),
+    drummerTracks: sequencer.drummerTracks.map((track) => ({
+      ...track,
+      queuedPad: null,
+      padLoopPosition: null,
+      runtimeLocalStep: null,
+      queuedEnabled: null,
+      rows: cloneDrummerSequencerRows(track.rows),
+      pads: cloneDrummerSequencerPads(track.pads).map((pad) => alignDrummerPadRowsToTrackRows(pad, track.rows))
+    })),
     controllerSequencers: sequencer.controllerSequencers.map((controllerSequencer) => ({
       ...controllerSequencer,
       keypoints: normalizeControllerCurveKeypoints(controllerSequencer.keypoints)
@@ -1184,6 +1558,9 @@ function nextAvailablePerformanceChannel(sequencer: SequencerState): number {
   for (const track of sequencer.tracks) {
     occupied.add(clampInt(track.midiChannel, 1, 16));
   }
+  for (const track of sequencer.drummerTracks) {
+    occupied.add(clampInt(track.midiChannel, 1, 16));
+  }
   for (const roll of sequencer.pianoRolls) {
     occupied.add(clampInt(roll.midiChannel, 1, 16));
   }
@@ -1223,7 +1600,7 @@ function buildSequencerConfigSnapshot(
   instruments: SequencerInstrumentBinding[]
 ): SequencerConfigSnapshot {
   return {
-    version: 2,
+    version: 3,
     instruments: instruments
       .filter((instrument) => instrument.patchId.length > 0)
       .map((instrument) => ({
@@ -1265,6 +1642,39 @@ function buildSequencerConfigSnapshot(
         queuedEnabled:
           track.queuedEnabled === null || typeof track.queuedEnabled === "boolean" ? track.queuedEnabled : null
       })),
+      drummerTracks: sequencer.drummerTracks.slice(0, 8).map((track, index) => {
+        const rows = cloneDrummerSequencerRows(track.rows).slice(0, 64);
+        const pads = cloneDrummerSequencerPads(track.pads)
+          .map((pad) => alignDrummerPadRowsToTrackRows(pad, rows))
+          .slice(0, DEFAULT_PAD_COUNT)
+          .map((pad) => ({
+            rows: rows.map((row) => {
+              const padRow = pad.rows.find((candidate) => candidate.rowId === row.id);
+              return {
+                rowId: row.id,
+                steps: Array.from({ length: 32 }, (_, stepIndex) =>
+                  cloneDrummerSequencerCell(padRow?.steps?.[stepIndex] ?? createEmptyDrummerSequencerCell())
+                )
+              };
+            })
+          }));
+        return {
+          id: track.id.length > 0 ? track.id : `drum-${index + 1}`,
+          name: track.name.trim().length > 0 ? track.name : `Drummer Sequencer ${index + 1}`,
+          midiChannel: clampInt(track.midiChannel, 1, 16),
+          stepCount: normalizeDrummerSequencerStepCount(track.stepCount),
+          activePad: normalizePadIndex(track.activePad),
+          queuedPad: track.queuedPad === null ? null : normalizePadIndex(track.queuedPad),
+          padLoopEnabled: track.padLoopEnabled === true,
+          padLoopRepeat: track.padLoopRepeat !== false,
+          padLoopSequence: track.padLoopSequence.slice(0, 256).map((padIndex) => normalizePadIndex(padIndex)),
+          rows,
+          pads,
+          enabled: track.enabled === true,
+          queuedEnabled:
+            track.queuedEnabled === null || typeof track.queuedEnabled === "boolean" ? track.queuedEnabled : null
+        };
+      }),
       pianoRolls: sequencer.pianoRolls.slice(0, 8).map((roll, index) => ({
         id: roll.id.length > 0 ? roll.id : `piano-${index + 1}`,
         name: roll.name.trim().length > 0 ? roll.name : `Piano Roll ${index + 1}`,
@@ -1310,7 +1720,7 @@ function parseSequencerConfigSnapshot(
   }
 
   const payload = snapshot as Record<string, unknown>;
-  if (payload.version !== 1 && payload.version !== 2) {
+  if (payload.version !== 1 && payload.version !== 2 && payload.version !== 3) {
     throw new Error("Unsupported sequencer config version.");
   }
 
@@ -2025,7 +2435,7 @@ export const useAppStore = create<AppStore>((set, get) => {
       set({
         sequencer: {
           ...sequencer,
-          stepCount: transportStepCountForTracks(nextTracks),
+          stepCount: transportStepCountForPerformanceTracks(nextTracks, sequencer.drummerTracks),
           tracks: nextTracks
         },
         error: null
@@ -2055,7 +2465,7 @@ export const useAppStore = create<AppStore>((set, get) => {
       set({
         sequencer: {
           ...sequencer,
-          stepCount: transportStepCountForTracks(nextTracks),
+          stepCount: transportStepCountForPerformanceTracks(nextTracks, sequencer.drummerTracks),
           tracks: nextTracks
         },
         error: null
@@ -2114,7 +2524,7 @@ export const useAppStore = create<AppStore>((set, get) => {
       set({
         sequencer: {
           ...sequencer,
-          stepCount: transportStepCountForTracks(nextTracks),
+          stepCount: transportStepCountForPerformanceTracks(nextTracks, sequencer.drummerTracks),
           tracks: nextTracks
         }
       });
@@ -2258,7 +2668,7 @@ export const useAppStore = create<AppStore>((set, get) => {
       set({
         sequencer: {
           ...sequencer,
-          stepCount: transportStepCountForTracks(nextTracks),
+          stepCount: transportStepCountForPerformanceTracks(nextTracks, sequencer.drummerTracks),
           tracks: nextTracks
         }
       });
@@ -2888,6 +3298,446 @@ export const useAppStore = create<AppStore>((set, get) => {
       });
     },
 
+    addDrummerSequencerTrack: () => {
+      const sequencer = get().sequencer;
+      if (sequencer.drummerTracks.length >= 8) {
+        set({ error: "A maximum of 8 drummer sequencers is supported." });
+        return;
+      }
+
+      const nextIndex = sequencer.drummerTracks.length + 1;
+      const track = defaultDrummerSequencerTrack(nextIndex, nextAvailablePerformanceChannel(sequencer));
+      track.id = crypto.randomUUID();
+      track.name = `Drummer Sequencer ${nextIndex}`;
+
+      const nextDrummerTracks = [...sequencer.drummerTracks, track];
+      set({
+        sequencer: {
+          ...sequencer,
+          stepCount: transportStepCountForPerformanceTracks(sequencer.tracks, nextDrummerTracks),
+          drummerTracks: nextDrummerTracks
+        },
+        error: null
+      });
+    },
+
+    removeDrummerSequencerTrack: (trackId) => {
+      const sequencer = get().sequencer;
+      if (!sequencer.drummerTracks.some((track) => track.id === trackId)) {
+        return;
+      }
+      if (performanceDeviceCount(sequencer) <= 1) {
+        set({ error: "At least one performance device is required." });
+        return;
+      }
+      const nextDrummerTracks = sequencer.drummerTracks.filter((track) => track.id !== trackId);
+      set({
+        sequencer: {
+          ...sequencer,
+          stepCount: transportStepCountForPerformanceTracks(sequencer.tracks, nextDrummerTracks),
+          drummerTracks: nextDrummerTracks
+        },
+        error: null
+      });
+    },
+
+    setDrummerSequencerTrackEnabled: (trackId, enabled, queueOnCycle) => {
+      const sequencer = get().sequencer;
+      const shouldQueue = queueOnCycle ?? sequencer.isPlaying;
+      const nextDrummerTracks = sequencer.drummerTracks.map((track) => {
+        if (track.id !== trackId) {
+          return track;
+        }
+        if (shouldQueue && sequencer.isPlaying) {
+          if (track.enabled === enabled) {
+            return { ...track, queuedEnabled: null };
+          }
+          return {
+            ...track,
+            queuedEnabled: enabled
+          };
+        }
+        return {
+          ...track,
+          enabled,
+          queuedEnabled: null
+        };
+      });
+
+      set({
+        sequencer: {
+          ...sequencer,
+          stepCount: transportStepCountForPerformanceTracks(sequencer.tracks, nextDrummerTracks),
+          drummerTracks: nextDrummerTracks
+        }
+      });
+    },
+
+    setDrummerSequencerTrackMidiChannel: (trackId, channel) => {
+      const normalizedChannel = clampInt(channel, 1, 16);
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          drummerTracks: sequencer.drummerTracks.map((track) =>
+            track.id === trackId ? { ...track, midiChannel: normalizedChannel } : track
+          )
+        }
+      });
+    },
+
+    setDrummerSequencerTrackStepCount: (trackId, stepCount) => {
+      const sequencer = get().sequencer;
+      const normalizedStepCount = normalizeDrummerSequencerStepCount(stepCount);
+      const nextDrummerTracks = sequencer.drummerTracks.map((track) =>
+        track.id === trackId ? { ...track, stepCount: normalizedStepCount } : track
+      );
+      set({
+        sequencer: {
+          ...sequencer,
+          stepCount: transportStepCountForPerformanceTracks(sequencer.tracks, nextDrummerTracks),
+          drummerTracks: nextDrummerTracks
+        }
+      });
+    },
+
+    addDrummerSequencerRow: (trackId) => {
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          drummerTracks: sequencer.drummerTracks.map((track) => {
+            if (track.id !== trackId) {
+              return track;
+            }
+            if (track.rows.length >= 64) {
+              return track;
+            }
+            const nextKeySeed =
+              track.rows.length < DEFAULT_DRUMMER_ROW_KEYS.length
+                ? DEFAULT_DRUMMER_ROW_KEYS[track.rows.length]
+                : (track.rows[track.rows.length - 1]?.key ?? 35) + 1;
+            const newRow: DrummerSequencerRowState = {
+              id: crypto.randomUUID(),
+              key: normalizeDrummerSequencerKey(nextKeySeed)
+            };
+            const nextRows = [...cloneDrummerSequencerRows(track.rows), newRow];
+            const nextPads = cloneDrummerSequencerPads(track.pads).map((pad) => ({
+              rows: [
+                ...alignDrummerPadRowsToTrackRows(pad, track.rows).rows,
+                { rowId: newRow.id, steps: cloneDrummerSequencerCells(DEFAULT_DRUMMER_SEQUENCER_CELLS) }
+              ]
+            }));
+            return {
+              ...track,
+              rows: nextRows,
+              pads: nextPads
+            };
+          })
+        }
+      });
+    },
+
+    removeDrummerSequencerRow: (trackId, rowId) => {
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          drummerTracks: sequencer.drummerTracks.map((track) => {
+            if (track.id !== trackId) {
+              return track;
+            }
+            if (!track.rows.some((row) => row.id === rowId) || track.rows.length <= 1) {
+              return track;
+            }
+            const nextRows = track.rows.filter((row) => row.id !== rowId);
+            const nextPads = cloneDrummerSequencerPads(track.pads).map((pad) => ({
+              rows: alignDrummerPadRowsToTrackRows(
+                {
+                  rows: pad.rows.filter((row) => row.rowId !== rowId)
+                },
+                nextRows
+              ).rows
+            }));
+            return {
+              ...track,
+              rows: cloneDrummerSequencerRows(nextRows),
+              pads: nextPads
+            };
+          })
+        }
+      });
+    },
+
+    setDrummerSequencerRowKey: (trackId, rowId, key) => {
+      const normalizedKey = normalizeDrummerSequencerKey(key);
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          drummerTracks: sequencer.drummerTracks.map((track) =>
+            track.id === trackId
+              ? {
+                  ...track,
+                  rows: track.rows.map((row) => (row.id === rowId ? { ...row, key: normalizedKey } : row))
+                }
+              : track
+          )
+        }
+      });
+    },
+
+    toggleDrummerSequencerCell: (trackId, rowId, stepIndex, active) => {
+      if (stepIndex < 0 || stepIndex >= 32) {
+        return;
+      }
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          drummerTracks: sequencer.drummerTracks.map((track) => {
+            if (track.id !== trackId) {
+              return track;
+            }
+            const activePad = normalizePadIndex(track.activePad);
+            const nextPads = cloneDrummerSequencerPads(track.pads).map((pad) => alignDrummerPadRowsToTrackRows(pad, track.rows));
+            const pad = nextPads[activePad] ?? buildDefaultDrummerSequencerPad(track.rows);
+            const nextRows = pad.rows.map((row) => {
+              if (row.rowId !== rowId) {
+                return row;
+              }
+              const nextSteps = cloneDrummerSequencerCells(row.steps);
+              const current = nextSteps[stepIndex] ?? createEmptyDrummerSequencerCell();
+              nextSteps[stepIndex] = {
+                ...current,
+                active: active === undefined ? current.active !== true : active === true
+              };
+              return { ...row, steps: nextSteps };
+            });
+            nextPads[activePad] = { rows: nextRows };
+            return {
+              ...track,
+              pads: nextPads
+            };
+          })
+        }
+      });
+    },
+
+    setDrummerSequencerCellVelocity: (trackId, rowId, stepIndex, velocity) => {
+      if (stepIndex < 0 || stepIndex >= 32) {
+        return;
+      }
+      const normalizedVelocity = normalizeStepVelocity(velocity);
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          drummerTracks: sequencer.drummerTracks.map((track) => {
+            if (track.id !== trackId) {
+              return track;
+            }
+            const activePad = normalizePadIndex(track.activePad);
+            const nextPads = cloneDrummerSequencerPads(track.pads).map((pad) => alignDrummerPadRowsToTrackRows(pad, track.rows));
+            const pad = nextPads[activePad] ?? buildDefaultDrummerSequencerPad(track.rows);
+            const nextRows = pad.rows.map((row) => {
+              if (row.rowId !== rowId) {
+                return row;
+              }
+              const nextSteps = cloneDrummerSequencerCells(row.steps);
+              const current = nextSteps[stepIndex] ?? createEmptyDrummerSequencerCell();
+              nextSteps[stepIndex] = {
+                ...current,
+                velocity: normalizedVelocity
+              };
+              return { ...row, steps: nextSteps };
+            });
+            nextPads[activePad] = { rows: nextRows };
+            return {
+              ...track,
+              pads: nextPads
+            };
+          })
+        }
+      });
+    },
+
+    clearDrummerSequencerTrackSteps: (trackId) => {
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          drummerTracks: sequencer.drummerTracks.map((track) => {
+            if (track.id !== trackId) {
+              return track;
+            }
+            const activePad = normalizePadIndex(track.activePad);
+            const nextPads = cloneDrummerSequencerPads(track.pads).map((pad) => alignDrummerPadRowsToTrackRows(pad, track.rows));
+            nextPads[activePad] = buildDefaultDrummerSequencerPad(track.rows);
+            return {
+              ...track,
+              pads: nextPads
+            };
+          })
+        }
+      });
+    },
+
+    copyDrummerSequencerPad: (trackId, sourcePadIndex, targetPadIndex) => {
+      const normalizedSourcePad = normalizePadIndex(sourcePadIndex);
+      const normalizedTargetPad = normalizePadIndex(targetPadIndex);
+      if (normalizedSourcePad === normalizedTargetPad) {
+        return;
+      }
+
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          drummerTracks: sequencer.drummerTracks.map((track) => {
+            if (track.id !== trackId) {
+              return track;
+            }
+            const nextPads = cloneDrummerSequencerPads(track.pads).map((pad) => alignDrummerPadRowsToTrackRows(pad, track.rows));
+            const sourcePad = nextPads[normalizedSourcePad] ?? buildDefaultDrummerSequencerPad(track.rows);
+            nextPads[normalizedTargetPad] = alignDrummerPadRowsToTrackRows(
+              {
+                rows: sourcePad.rows.map((row) => ({
+                  rowId: row.rowId,
+                  steps: cloneDrummerSequencerCells(row.steps)
+                }))
+              },
+              track.rows
+            );
+            return {
+              ...track,
+              pads: nextPads
+            };
+          })
+        }
+      });
+    },
+
+    setDrummerSequencerTrackActivePad: (trackId, padIndex) => {
+      const sequencer = get().sequencer;
+      const normalizedPad = normalizePadIndex(padIndex);
+      set({
+        sequencer: {
+          ...sequencer,
+          drummerTracks: sequencer.drummerTracks.map((track) =>
+            track.id === trackId
+              ? {
+                  ...track,
+                  activePad: normalizedPad,
+                  queuedPad: sequencer.isPlaying ? track.queuedPad : null
+                }
+              : track
+          )
+        }
+      });
+    },
+
+    setDrummerSequencerTrackQueuedPad: (trackId, padIndex) => {
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          drummerTracks: sequencer.drummerTracks.map((track) =>
+            track.id === trackId
+              ? {
+                  ...track,
+                  queuedPad: padIndex === null ? null : normalizePadIndex(padIndex)
+                }
+              : track
+          )
+        }
+      });
+    },
+
+    setDrummerSequencerTrackPadLoopEnabled: (trackId, enabled) => {
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          drummerTracks: sequencer.drummerTracks.map((track) =>
+            track.id === trackId
+              ? {
+                  ...track,
+                  padLoopEnabled: enabled === true
+                }
+              : track
+          )
+        }
+      });
+    },
+
+    setDrummerSequencerTrackPadLoopRepeat: (trackId, repeat) => {
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          drummerTracks: sequencer.drummerTracks.map((track) =>
+            track.id === trackId
+              ? {
+                  ...track,
+                  padLoopRepeat: repeat !== false
+                }
+              : track
+          )
+        }
+      });
+    },
+
+    addDrummerSequencerTrackPadLoopStep: (trackId, padIndex) => {
+      const normalizedPad = normalizePadIndex(padIndex);
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          drummerTracks: sequencer.drummerTracks.map((track) => {
+            if (track.id !== trackId) {
+              return track;
+            }
+            if (track.padLoopSequence.length >= 256) {
+              return track;
+            }
+            return {
+              ...track,
+              padLoopSequence: [...track.padLoopSequence, normalizedPad]
+            };
+          })
+        }
+      });
+    },
+
+    removeDrummerSequencerTrackPadLoopStep: (trackId, sequenceIndex) => {
+      if (!Number.isFinite(sequenceIndex)) {
+        return;
+      }
+      const normalizedSequenceIndex = Math.max(0, Math.round(sequenceIndex));
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          drummerTracks: sequencer.drummerTracks.map((track) => {
+            if (track.id !== trackId) {
+              return track;
+            }
+            if (
+              normalizedSequenceIndex < 0 ||
+              normalizedSequenceIndex >= track.padLoopSequence.length
+            ) {
+              return track;
+            }
+            return {
+              ...track,
+              padLoopSequence: track.padLoopSequence.filter((_, index) => index !== normalizedSequenceIndex)
+            };
+          })
+        }
+      });
+    },
+
     addPianoRoll: () => {
       const sequencer = get().sequencer;
       if (sequencer.pianoRolls.length >= 8) {
@@ -3310,6 +4160,13 @@ export const useAppStore = create<AppStore>((set, get) => {
             padLoopPosition: isPlaying ? track.padLoopPosition : null,
             runtimeLocalStep: isPlaying ? track.runtimeLocalStep : null,
             queuedEnabled: isPlaying ? track.queuedEnabled : null
+          })),
+          drummerTracks: sequencer.drummerTracks.map((track) => ({
+            ...track,
+            queuedPad: isPlaying ? track.queuedPad : null,
+            padLoopPosition: isPlaying ? track.padLoopPosition : null,
+            runtimeLocalStep: isPlaying ? track.runtimeLocalStep : null,
+            queuedEnabled: isPlaying ? track.queuedEnabled : null
           }))
         }
       });
@@ -3327,7 +4184,7 @@ export const useAppStore = create<AppStore>((set, get) => {
       });
     },
 
-    syncSequencerRuntime: ({ isPlaying, transportStepCount, playhead, cycle, tracks }) => {
+    syncSequencerRuntime: ({ isPlaying, transportStepCount, playhead, cycle, tracks, drummerTracks }) => {
       const sequencer = get().sequencer;
       const boundedStepCount = normalizeStepCount(transportStepCount ?? sequencer.stepCount);
       const normalizedPlayhead =
@@ -3335,6 +4192,7 @@ export const useAppStore = create<AppStore>((set, get) => {
           ? sequencer.playhead
           : ((Math.round(playhead) % boundedStepCount) + boundedStepCount) % boundedStepCount;
       const trackPayload = new Map((tracks ?? []).map((track) => [track.trackId, track]));
+      const drummerTrackPayload = new Map((drummerTracks ?? []).map((track) => [track.trackId, track]));
 
       set({
         sequencer: {
@@ -3421,6 +4279,84 @@ export const useAppStore = create<AppStore>((set, get) => {
                 nextActivePad === track.activePad
                   ? track.steps
                   : cloneSequencerSteps(selectedPad?.steps ?? track.steps)
+            };
+          }),
+          drummerTracks: sequencer.drummerTracks.map((track) => {
+            const payload = drummerTrackPayload.get(track.id) as
+              | {
+                  stepCount?: DrummerSequencerStepCount;
+                  localStep?: number;
+                  activePad?: number;
+                  queuedPad?: number | null;
+                  padLoopPosition?: number | null;
+                  enabled?: boolean;
+                  queuedEnabled?: boolean | null;
+                }
+              | undefined;
+            if (!payload) {
+              if (!isPlaying) {
+                return {
+                  ...track,
+                  queuedPad: null,
+                  padLoopPosition: null,
+                  runtimeLocalStep: null,
+                  queuedEnabled: null
+                };
+              }
+              return track;
+            }
+
+            const nextActivePad =
+              payload.activePad === undefined ? track.activePad : normalizePadIndex(payload.activePad);
+            const nextStepCount =
+              payload.stepCount === undefined
+                ? track.stepCount
+                : normalizeDrummerSequencerStepCount(payload.stepCount);
+            const nextRuntimeLocalStep =
+              payload.localStep === undefined
+                ? track.runtimeLocalStep
+                : Math.max(0, Math.round(payload.localStep)) % Math.max(1, nextStepCount);
+            const nextQueuedPad =
+              payload.queuedPad === undefined
+                ? track.queuedPad
+                : payload.queuedPad === null
+                  ? null
+                  : normalizePadIndex(payload.queuedPad);
+            const nextPadLoopPosition =
+              payload.padLoopPosition === undefined
+                ? track.padLoopPosition
+                : payload.padLoopPosition === null
+                  ? null
+                  : Math.max(0, Math.round(payload.padLoopPosition));
+            const nextEnabled = payload.enabled === undefined ? track.enabled : payload.enabled;
+            const nextQueuedEnabled =
+              payload.queuedEnabled === undefined
+                ? track.queuedEnabled
+                : payload.queuedEnabled === null
+                  ? null
+                  : payload.queuedEnabled;
+
+            if (
+              nextActivePad === track.activePad &&
+              nextRuntimeLocalStep === track.runtimeLocalStep &&
+              nextQueuedPad === track.queuedPad &&
+              nextPadLoopPosition === track.padLoopPosition &&
+              nextStepCount === track.stepCount &&
+              nextEnabled === track.enabled &&
+              nextQueuedEnabled === track.queuedEnabled
+            ) {
+              return track;
+            }
+
+            return {
+              ...track,
+              activePad: nextActivePad,
+              runtimeLocalStep: nextRuntimeLocalStep,
+              queuedPad: nextQueuedPad,
+              padLoopPosition: nextPadLoopPosition,
+              stepCount: nextStepCount,
+              enabled: nextEnabled,
+              queuedEnabled: nextQueuedEnabled
             };
           })
         }
