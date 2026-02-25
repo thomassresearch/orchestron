@@ -2005,6 +2005,7 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         "dam": "https://csound.com/docs/manual/dam.html",
         "exciter": "https://csound.com/docs/manual/exciter.html",
         "distort1": "https://csound.com/docs/manual/distort1.html",
+        "fold": "https://csound.com/docs/manual/fold.html",
         "gbuzz": "https://csound.com/docs/manual/gbuzz.html",
         "diode_ladder": "https://csound.com/docs/manual/diode_ladder.html",
         "expseg": "https://csound.com/docs/manual/expseg.html",
@@ -2014,7 +2015,9 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         "foscili": "https://csound.com/docs/manual/foscili.html",
         "ftgenonce": "https://csound.com/docs/manual/ftgenonce.html",
         "marimba": "https://csound.com/docs/manual/marimba.html",
+        "moog": "https://csound.com/docs/manual/moog.html",
         "moogladder2": "https://csound.com/docs/manual/moogladder2.html",
+        "moogvcf": "https://csound.com/docs/manual/moogvcf.html",
         "rezzy": "https://csound.com/docs/manual/rezzy.html",
         "vclpf": "https://csound.com/docs/manual/vclpf.html",
         "tbvcf": "https://csound.com/docs/manual/tbvcf.html",
@@ -2034,10 +2037,12 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         "ntrpol": "https://csound.com/docs/manual/ntrpol.html",
         "rms": "https://csound.com/docs/manual/rms.html",
         "samphold": "https://csound.com/docs/manual/samphold.html",
+        "downsamp": "https://csound.com/docs/manual/downsamp.html",
         "sfload": "https://csound.com/docs/manual/sfload.html",
         "sfplay3": "https://csound.com/docs/manual/sfplay3.html",
         "sfinstr3": "https://csound.com/docs/manual/sfinstr3.html",
         "syncphasor": "https://csound.com/docs/manual/syncphasor.html",
+        "upsamp": "https://csound.com/docs/manual/upsamp.html",
         "vco2": "https://csound.com/docs/manual/vco2.html",
         "dripwater": "https://csound.com/docs/manual/dripwater.html",
     }
@@ -2078,6 +2083,26 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         assert syncphasor_inputs["iphs"]["required"] is False
         assert syncphasor_outputs["aphase"]["signal_type"] == "a"
         assert syncphasor_outputs["asyncout"]["signal_type"] == "a"
+
+        moogvcf_inputs = {item["id"]: item for item in opcodes_by_name["moogvcf"]["inputs"]}
+        moogvcf_outputs = {item["id"]: item for item in opcodes_by_name["moogvcf"]["outputs"]}
+        assert moogvcf_inputs["xfco"]["accepted_signal_types"] == ["a", "k", "i"]
+        assert moogvcf_inputs["xres"]["accepted_signal_types"] == ["a", "k", "i"]
+        assert moogvcf_inputs["iscale"]["required"] is False
+        assert moogvcf_inputs["iskip"]["required"] is False
+        assert moogvcf_outputs["aout"]["signal_type"] == "a"
+
+        upsamp_inputs = {item["id"]: item for item in opcodes_by_name["upsamp"]["inputs"]}
+        upsamp_outputs = {item["id"]: item for item in opcodes_by_name["upsamp"]["outputs"]}
+        assert upsamp_inputs["ksig"]["signal_type"] == "k"
+        assert upsamp_inputs["ksig"]["accepted_signal_types"] == ["k", "i"]
+        assert upsamp_outputs["aout"]["signal_type"] == "a"
+
+        downsamp_inputs = {item["id"]: item for item in opcodes_by_name["downsamp"]["inputs"]}
+        downsamp_outputs = {item["id"]: item for item in opcodes_by_name["downsamp"]["outputs"]}
+        assert downsamp_inputs["asig"]["signal_type"] == "a"
+        assert downsamp_inputs["iwlen"]["required"] is False
+        assert downsamp_outputs["kout"]["signal_type"] == "k"
 
 
 def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
@@ -2185,6 +2210,11 @@ def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
                         "params": {"asig1": 0, "asig2": 0},
                         "position": {"x": 20, "y": 3570},
                     },
+                    {"id": "n73", "opcode": "moog", "params": {}, "position": {"x": 20, "y": 3620}},
+                    {"id": "n74", "opcode": "moogvcf", "params": {"asig": 0}, "position": {"x": 20, "y": 3670}},
+                    {"id": "n75", "opcode": "upsamp", "params": {"ksig": 0}, "position": {"x": 20, "y": 3720}},
+                    {"id": "n76", "opcode": "downsamp", "params": {"asig": 0}, "position": {"x": 20, "y": 3770}},
+                    {"id": "n77", "opcode": "fold", "params": {"asig": 0}, "position": {"x": 20, "y": 3820}},
                 ],
                 "connections": [
                     {"from_node_id": "n1", "from_port_id": "asig", "to_node_id": "n2", "to_port_id": "left"},
@@ -2280,6 +2310,11 @@ def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
             "ampmidid",
             "notnum",
             "ntrpol",
+            "moog",
+            "moogvcf",
+            "upsamp",
+            "downsamp",
+            "fold",
         ]:
             assert opcode in compiled_orc
         sfload_line = next(line for line in compiled_orc.splitlines() if ' sfload "/tmp/test.sf2"' in line)

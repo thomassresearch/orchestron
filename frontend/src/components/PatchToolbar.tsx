@@ -228,14 +228,6 @@ export function PatchToolbar(props: PatchToolbarProps) {
           {copy.clonePatch}
         </button>
         <button
-          className="rounded-lg border border-rose-500/55 bg-rose-500/12 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-rose-200 transition hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-          onClick={props.onDeletePatch}
-          type="button"
-          disabled={props.loading || !props.currentPatchId}
-        >
-          {copy.deletePatch}
-        </button>
-        <button
           className="rounded-lg border border-mint/50 bg-mint/15 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-mint transition hover:bg-mint/25"
           onClick={props.onSavePatch}
           type="button"
@@ -274,6 +266,14 @@ export function PatchToolbar(props: PatchToolbarProps) {
           disabled={props.loading}
         >
           {copy.exportCsd}
+        </button>
+        <button
+          className="ml-auto rounded-lg border border-rose-500/55 bg-rose-500/12 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-rose-200 transition hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+          onClick={props.onDeletePatch}
+          type="button"
+          disabled={props.loading || !props.currentPatchId}
+        >
+          {copy.deletePatch}
         </button>
       </div>
     </section>
