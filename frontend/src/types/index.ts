@@ -231,6 +231,7 @@ export interface PianoRollState {
   id: string;
   name: string;
   midiChannel: number;
+  velocity: number;
   scaleRoot: SequencerScaleRoot;
   scaleType: SequencerScaleType;
   mode: SequencerMode;
@@ -354,6 +355,7 @@ export interface SequencerConfigSnapshot {
       id: string;
       name: string;
       midiChannel: number;
+      velocity: number;
       scaleRoot: SequencerScaleRoot;
       scaleType: SequencerScaleType;
       mode: SequencerMode;

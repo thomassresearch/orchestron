@@ -96,7 +96,7 @@ class SessionMidiEventRequest(BaseModel):
     type: MidiEventType
     channel: int = Field(default=1, ge=1, le=16)
     note: int | None = Field(default=None, ge=0, le=127)
-    velocity: int = Field(default=100, ge=1, le=127)
+    velocity: int = Field(default=100, ge=0, le=127)
     controller: int | None = Field(default=None, ge=0, le=127)
     value: int | None = Field(default=None, ge=0, le=127)
 

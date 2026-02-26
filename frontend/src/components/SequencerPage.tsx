@@ -138,6 +138,7 @@ type SequencerUiCopy = {
   globalSequencerClock: string;
   bpm: string;
   midiChannel: string;
+  velocity: string;
   scale: string;
   mode: string;
   steps: string;
@@ -281,6 +282,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     globalSequencerClock: "Global Sequencer Clock",
     bpm: "BPM",
     midiChannel: "MIDI Channel",
+    velocity: "Velocity",
     scale: "Scale",
     mode: "Mode",
     steps: "Steps",
@@ -377,6 +379,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     globalSequencerClock: "Globale Sequencer-Clock",
     bpm: "BPM",
     midiChannel: "MIDI-Kanal",
+    velocity: "Velocity",
     scale: "Skala",
     mode: "Modus",
     steps: "Schritte",
@@ -473,6 +476,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     globalSequencerClock: "Horloge globale du sequenceur",
     bpm: "BPM",
     midiChannel: "Canal MIDI",
+    velocity: "Velocite",
     scale: "Gamme",
     mode: "Mode",
     steps: "Pas",
@@ -569,6 +573,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     globalSequencerClock: "Reloj global del secuenciador",
     bpm: "BPM",
     midiChannel: "Canal MIDI",
+    velocity: "Velocidad",
     scale: "Escala",
     mode: "Modo",
     steps: "Pasos",
@@ -903,7 +908,7 @@ interface PianoRollKeyboardProps {
   roll: PianoRollState;
   instrumentsRunning: boolean;
   highlightTheories: PianoRollHighlightTheory[];
-  onNoteOn: (note: number, channel: number) => void;
+  onNoteOn: (note: number, channel: number, velocity: number) => void;
   onNoteOff: (note: number, channel: number) => void;
 }
 
@@ -1136,10 +1141,10 @@ function PianoRollKeyboard({
       }
 
       pianoPointerNotesRef.current[event.pointerId] = { note, channel };
-      onNoteOn(note, channel);
+      onNoteOn(note, channel, roll.velocity);
       setPianoNoteActive(note, true);
     },
-    [interactive, onNoteOff, onNoteOn, roll.midiChannel, setPianoNoteActive]
+    [interactive, onNoteOff, onNoteOn, roll.midiChannel, roll.velocity, setPianoNoteActive]
   );
 
   const handlePianoPointerUp = useCallback(
@@ -1904,9 +1909,10 @@ interface SequencerPageProps {
   onRemovePianoRoll: (rollId: string) => void;
   onPianoRollEnabledChange: (rollId: string, enabled: boolean) => void;
   onPianoRollMidiChannelChange: (rollId: string, channel: number) => void;
+  onPianoRollVelocityChange: (rollId: string, velocity: number) => void;
   onPianoRollScaleChange: (rollId: string, scaleRoot: SequencerScaleRoot, scaleType: SequencerScaleType) => void;
   onPianoRollModeChange: (rollId: string, mode: SequencerMode) => void;
-  onPianoRollNoteOn: (note: number, channel: number) => void;
+  onPianoRollNoteOn: (note: number, channel: number, velocity: number) => void;
   onPianoRollNoteOff: (note: number, channel: number) => void;
   onAddMidiController: () => void;
   onRemoveMidiController: (controllerId: string) => void;
@@ -2989,6 +2995,7 @@ export function SequencerPage({
   onRemovePianoRoll,
   onPianoRollEnabledChange,
   onPianoRollMidiChannelChange,
+  onPianoRollVelocityChange,
   onPianoRollScaleChange,
   onPianoRollModeChange,
   onPianoRollNoteOn,
@@ -5046,6 +5053,17 @@ export function SequencerPage({
                         </option>
                       ))}
                     </select>
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className={controlLabelClass}>{ui.velocity}</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={127}
+                      value={roll.velocity}
+                      onChange={(event) => onPianoRollVelocityChange(roll.id, Number(event.target.value))}
+                      className={`${controlFieldClass} w-24`}
+                    />
                   </label>
                 </div>
 

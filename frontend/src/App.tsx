@@ -1185,6 +1185,7 @@ export default function App() {
   const removePianoRoll = useAppStore((state) => state.removePianoRoll);
   const setPianoRollEnabled = useAppStore((state) => state.setPianoRollEnabled);
   const setPianoRollMidiChannel = useAppStore((state) => state.setPianoRollMidiChannel);
+  const setPianoRollVelocity = useAppStore((state) => state.setPianoRollVelocity);
   const setPianoRollScale = useAppStore((state) => state.setPianoRollScale);
   const setPianoRollMode = useAppStore((state) => state.setPianoRollMode);
   const addMidiController = useAppStore((state) => state.addMidiController);
@@ -2485,7 +2486,7 @@ export default function App() {
   );
 
   const onPianoRollNoteOn = useCallback(
-    (note: number, channel: number) => {
+    (note: number, channel: number, velocity: number) => {
       if (activeSessionState !== "running") {
         setSequencerError(appCopy.errors.startInstrumentsBeforePianoRoll);
         return;
@@ -2496,8 +2497,9 @@ export default function App() {
       }
 
       setSequencerError(null);
+      const normalizedVelocity = Math.max(0, Math.min(127, Math.round(velocity)));
       void (async () => {
-        await sendDirectMidiEvent({ type: "note_on", channel, note, velocity: 110 }, activeSessionId);
+        await sendDirectMidiEvent({ type: "note_on", channel, note, velocity: normalizedVelocity }, activeSessionId);
         pianoRollNoteSessionRef.current.set(pianoRollNoteKey(note, channel), activeSessionId);
       })().catch((error) => {
         setSequencerError(error instanceof Error ? error.message : appCopy.errors.failedToStartPianoRollNote);
@@ -3905,6 +3907,7 @@ export default function App() {
             onRemovePianoRoll={removePianoRoll}
             onPianoRollEnabledChange={onPianoRollEnabledChange}
             onPianoRollMidiChannelChange={setPianoRollMidiChannel}
+            onPianoRollVelocityChange={setPianoRollVelocity}
             onPianoRollScaleChange={setPianoRollScale}
             onPianoRollModeChange={setPianoRollMode}
             onPianoRollNoteOn={onPianoRollNoteOn}

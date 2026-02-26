@@ -199,6 +199,7 @@ interface AppStore {
   removePianoRoll: (rollId: string) => void;
   setPianoRollEnabled: (rollId: string, enabled: boolean) => void;
   setPianoRollMidiChannel: (rollId: string, channel: number) => void;
+  setPianoRollVelocity: (rollId: string, velocity: number) => void;
   setPianoRollScale: (rollId: string, scaleRoot: SequencerScaleRoot, scaleType: SequencerScaleType) => void;
   setPianoRollMode: (rollId: string, mode: SequencerMode) => void;
 
@@ -598,6 +599,13 @@ function normalizeControllerValue(value: unknown): number {
   return clampInt(value, 0, 127);
 }
 
+function normalizePianoRollVelocity(value: unknown): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return 110;
+  }
+  return clampInt(value, 0, 127);
+}
+
 function normalizeControllerSequencerStepCount(value: unknown): 8 | 16 | 32 | 64 {
   if (typeof value !== "number" || !Number.isFinite(value)) {
     return 16;
@@ -875,6 +883,7 @@ function defaultPianoRoll(index = 1, midiChannel = 2): PianoRollState {
     id: `piano-${index}`,
     name: `Piano Roll ${index}`,
     midiChannel: channel,
+    velocity: 110,
     scaleRoot: "C",
     scaleType: "minor",
     mode: "aeolian",
@@ -1292,6 +1301,7 @@ function normalizePianoRollState(raw: unknown, index: number): PianoRollState {
   const name = typeof roll.name === "string" && roll.name.trim().length > 0 ? roll.name : fallback.name;
   const midiChannel =
     typeof roll.midiChannel === "number" ? clampInt(roll.midiChannel, 1, 16) : fallback.midiChannel;
+  const velocity = normalizePianoRollVelocity(roll.velocity);
   const scaleRoot = normalizeSequencerScaleRoot(roll.scaleRoot);
   const scaleType = normalizeSequencerScaleType(roll.scaleType);
   const fallbackMode = defaultModeForScaleType(scaleType);
@@ -1302,6 +1312,7 @@ function normalizePianoRollState(raw: unknown, index: number): PianoRollState {
     id,
     name,
     midiChannel,
+    velocity,
     scaleRoot,
     scaleType,
     mode,
@@ -2121,6 +2132,7 @@ function buildSequencerConfigSnapshot(
         id: roll.id.length > 0 ? roll.id : `piano-${index + 1}`,
         name: roll.name.trim().length > 0 ? roll.name : `Piano Roll ${index + 1}`,
         midiChannel: clampInt(roll.midiChannel, 1, 16),
+        velocity: normalizePianoRollVelocity(roll.velocity),
         scaleRoot: normalizeSequencerScaleRoot(roll.scaleRoot),
         scaleType: normalizeSequencerScaleType(roll.scaleType),
         mode: normalizeSequencerMode(roll.mode),
@@ -4347,6 +4359,19 @@ export const useAppStore = create<AppStore>((set, get) => {
           ...sequencer,
           pianoRolls: sequencer.pianoRolls.map((roll) =>
             roll.id === rollId ? { ...roll, midiChannel: normalizedChannel } : roll
+          )
+        }
+      });
+    },
+
+    setPianoRollVelocity: (rollId, velocity) => {
+      const normalizedVelocity = clampInt(velocity, 0, 127);
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          pianoRolls: sequencer.pianoRolls.map((roll) =>
+            roll.id === rollId ? { ...roll, velocity: normalizedVelocity } : roll
           )
         }
       });
