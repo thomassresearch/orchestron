@@ -2196,6 +2196,74 @@ function padLoopTokenColors(item: PadLoopPatternItem, seed: number, selected: bo
   };
 }
 
+type PadLoopCompiledRange = {
+  start: number;
+  end: number;
+};
+
+type PadLoopRangeIndex = Record<string, PadLoopCompiledRange[][]>;
+
+function buildPadLoopRangeIndex(pattern: PadLoopPatternState): PadLoopRangeIndex {
+  const byKey: PadLoopRangeIndex = {};
+  const groups = new Map(pattern.groups.map((group) => [group.id, group]));
+  const superGroups = new Map(pattern.superGroups.map((group) => [group.id, group]));
+  let cursor = 0;
+
+  const ensureContainer = (containerKey: string, length: number): PadLoopCompiledRange[][] => {
+    const current = byKey[containerKey] ?? [];
+    if (current.length < length) {
+      for (let index = current.length; index < length; index += 1) {
+        current.push([]);
+      }
+    }
+    byKey[containerKey] = current;
+    return current;
+  };
+
+  const walkSequence = (
+    container: PadLoopContainerRef,
+    sequence: PadLoopPatternItem[],
+    path: string[]
+  ): void => {
+    const containerKey = padLoopContainerKey(container);
+    const containerRanges = ensureContainer(containerKey, sequence.length);
+
+    for (let index = 0; index < sequence.length; index += 1) {
+      const item = sequence[index];
+      const start = cursor;
+      if (!item) {
+        containerRanges[index].push({ start, end: start });
+        continue;
+      }
+
+      if (item.type === "pad") {
+        cursor += 1;
+      } else if (item.type === "group") {
+        const refKey = `group:${item.groupId}`;
+        if (!path.includes(refKey)) {
+          const group = groups.get(item.groupId);
+          if (group) {
+            walkSequence({ kind: "group", id: item.groupId }, group.sequence, [...path, refKey]);
+          }
+        }
+      } else if (item.type === "super") {
+        const refKey = `super:${item.superGroupId}`;
+        if (!path.includes(refKey)) {
+          const group = superGroups.get(item.superGroupId);
+          if (group) {
+            walkSequence({ kind: "super", id: item.superGroupId }, group.sequence, [...path, refKey]);
+          }
+        }
+      }
+
+      containerRanges[index].push({ start, end: cursor });
+    }
+  };
+
+  walkSequence({ kind: "root" }, pattern.rootSequence, []);
+  return byKey;
+}
+
 type PadLoopEditorTrackLike = {
   id: string;
   enabled: boolean;
@@ -2239,7 +2307,7 @@ function PadLoopPatternEditor({
   const [dropTarget, setDropTarget] = useState<{ containerKey: string; index: number } | null>(null);
 
   const compiledPattern = useMemo(() => compilePadLoopPattern(track.padLoopPattern), [track.padLoopPattern]);
-  const rootRanges = compiledPattern.rootRanges;
+  const rangeIndexByContainer = useMemo(() => buildPadLoopRangeIndex(track.padLoopPattern), [track.padLoopPattern]);
 
   useEffect(() => {
     if (activeContainer.kind === "root") {
@@ -2526,17 +2594,19 @@ function PadLoopPatternEditor({
                 {sequence.map((item, index) => {
                   const nestedContainer = padLoopContainerFromItem(item);
                   const isSelected = selectedIndexSet.has(index);
-                  const rootRange = container.kind === "root" ? rootRanges[index] : null;
+                  const itemRanges = rangeIndexByContainer[containerKey]?.[index] ?? [];
                   const isCurrentLoopStep =
-                    container.kind === "root" &&
                     track.padLoopEnabled &&
                     isPlaying &&
                     track.enabled &&
                     track.padLoopPosition !== null &&
-                    !!rootRange &&
-                    rootRange.end > rootRange.start &&
-                    track.padLoopPosition >= rootRange.start &&
-                    track.padLoopPosition < rootRange.end;
+                    itemRanges.some(
+                      (range) =>
+                        range.end > range.start &&
+                        track.padLoopPosition !== null &&
+                        track.padLoopPosition >= range.start &&
+                        track.padLoopPosition < range.end
+                    );
                   const dropBefore = dropTarget?.containerKey === containerKey && dropTarget.index === index;
                   const label = itemDisplayLabel(item);
                   const seed = item.type === "pad" ? item.padIndex : hashString(label);
@@ -2648,7 +2718,7 @@ function PadLoopPatternEditor({
       dropTarget,
       hostId,
       isPlaying,
-      rootRanges,
+      rangeIndexByContainer,
       selectedIndexesFor,
       setSelectionFor,
       track.enabled,
@@ -2662,7 +2732,6 @@ function PadLoopPatternEditor({
     ]
   );
 
-  const activeSequence = getPadLoopContainerSequence(track.padLoopPattern, activeContainer) ?? [];
   const contextMenuSelection = contextMenu ? selectedIndexesFor(contextMenu.container) : [];
   const hasUngroupableSelection =
     contextMenu !== null &&
@@ -3697,101 +3766,109 @@ export function SequencerPage({
                   </button>
                 </div>
 
-                <div className="mb-2 flex flex-wrap items-end gap-2">
-                  <label className="flex flex-col gap-1">
-                    <span className={controlLabelClass}>{ui.midiChannel}</span>
-                    <input
-                      type="number"
-                      min={1}
-                      max={16}
-                      value={track.midiChannel}
-                      onChange={(event) => onSequencerTrackChannelChange(track.id, Number(event.target.value))}
-                      className={`${controlFieldClass} w-24`}
-                    />
-                  </label>
+                <div className="mb-2 grid gap-2 lg:grid-cols-[minmax(320px,420px)_minmax(0,1fr)] lg:items-start">
+                  <div className="grid gap-2">
+                    <div className="flex flex-wrap items-end gap-2">
+                      <label className="flex flex-col gap-1">
+                        <span className={controlLabelClass}>{ui.midiChannel}</span>
+                        <input
+                          type="number"
+                          min={1}
+                          max={16}
+                          value={track.midiChannel}
+                          onChange={(event) => onSequencerTrackChannelChange(track.id, Number(event.target.value))}
+                          className={`${controlFieldClass} w-24`}
+                        />
+                      </label>
 
-                  <label className="flex min-w-[170px] flex-col gap-1">
-                    <span className={controlLabelClass}>{ui.syncToSequencer}</span>
-                    <select
-                      value={syncTargetValue}
-                      onChange={(event) =>
-                        onSequencerTrackSyncTargetChange(
-                          track.id,
-                          event.target.value.trim().length > 0 ? event.target.value : null
-                        )
-                      }
-                      className={controlFieldClass}
-                    >
-                      <option value="">{ui.none}</option>
-                      {sequencer.tracks.map((candidateTrack, candidateIndex) => {
-                        if (candidateTrack.id === track.id) {
-                          return null;
-                        }
-                        return (
-                          <option key={`${track.id}-sync-${candidateTrack.id}`} value={candidateTrack.id}>
-                            {ui.sequencerWithIndex(candidateIndex + 1)}
-                          </option>
-                        );
-                      })}
-                    </select>
-                  </label>
+                      <label className="flex min-w-[170px] flex-1 flex-col gap-1">
+                        <span className={controlLabelClass}>{ui.syncToSequencer}</span>
+                        <select
+                          value={syncTargetValue}
+                          onChange={(event) =>
+                            onSequencerTrackSyncTargetChange(
+                              track.id,
+                              event.target.value.trim().length > 0 ? event.target.value : null
+                            )
+                          }
+                          className={controlFieldClass}
+                        >
+                          <option value="">{ui.none}</option>
+                          {sequencer.tracks.map((candidateTrack, candidateIndex) => {
+                            if (candidateTrack.id === track.id) {
+                              return null;
+                            }
+                            return (
+                              <option key={`${track.id}-sync-${candidateTrack.id}`} value={candidateTrack.id}>
+                                {ui.sequencerWithIndex(candidateIndex + 1)}
+                              </option>
+                            );
+                          })}
+                        </select>
+                      </label>
+                    </div>
 
-                  <label className="flex min-w-[180px] flex-col gap-1">
-                    <span className={controlLabelClass}>{ui.scale}</span>
-                    <select
-                      value={scaleValue}
-                      onChange={(event) => {
-                        const selected = parseSequencerScaleValue(event.target.value);
-                        if (selected) {
-                          onSequencerTrackScaleChange(track.id, selected.root, selected.type);
-                        }
-                      }}
-                      className={controlFieldClass}
-                    >
-                      {scaleOptions.map((option) => (
-                        <option key={`${track.id}-${option.value}`} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                    <div className="flex flex-wrap items-end gap-2">
+                      <label className="flex min-w-[180px] flex-1 flex-col gap-1">
+                        <span className={controlLabelClass}>{ui.scale}</span>
+                        <select
+                          value={scaleValue}
+                          onChange={(event) => {
+                            const selected = parseSequencerScaleValue(event.target.value);
+                            if (selected) {
+                              onSequencerTrackScaleChange(track.id, selected.root, selected.type);
+                            }
+                          }}
+                          className={controlFieldClass}
+                        >
+                          {scaleOptions.map((option) => (
+                            <option key={`${track.id}-${option.value}`} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
 
-                  <label className="flex min-w-[160px] flex-col gap-1">
-                    <span className={controlLabelClass}>{ui.mode}</span>
-                    <select
-                      value={track.mode}
-                      onChange={(event) => onSequencerTrackModeChange(track.id, event.target.value as SequencerMode)}
-                      className={controlFieldClass}
-                    >
-                      {modeOptions.map((option) => (
-                        <option key={`${track.id}-mode-${option.value}`} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                      <label className="flex min-w-[160px] flex-1 flex-col gap-1">
+                        <span className={controlLabelClass}>{ui.mode}</span>
+                        <select
+                          value={track.mode}
+                          onChange={(event) => onSequencerTrackModeChange(track.id, event.target.value as SequencerMode)}
+                          className={controlFieldClass}
+                        >
+                          {modeOptions.map((option) => (
+                            <option key={`${track.id}-mode-${option.value}`} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
 
-                  <div className="flex flex-col gap-1">
-                    <span className={controlLabelClass}>{ui.steps}</span>
-                    <div className="inline-flex rounded-lg border border-slate-600 bg-slate-950 p-1">
-                      <button
-                        type="button"
-                        onClick={() => onSequencerTrackStepCountChange(track.id, 16)}
-                        className={`rounded-md px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.14em] transition ${
-                          track.stepCount === 16 ? "bg-accent/30 text-accent" : "text-slate-300 hover:bg-slate-800"
-                        }`}
-                      >
-                        16
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onSequencerTrackStepCountChange(track.id, 32)}
-                        className={`rounded-md px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.14em] transition ${
-                          track.stepCount === 32 ? "bg-accent/30 text-accent" : "text-slate-300 hover:bg-slate-800"
-                        }`}
-                      >
-                        32
-                      </button>
+                    <div className="flex flex-wrap items-end gap-2">
+                      <div className="flex flex-col gap-1">
+                        <span className={controlLabelClass}>{ui.steps}</span>
+                        <div className="inline-flex rounded-lg border border-slate-600 bg-slate-950 p-1">
+                          <button
+                            type="button"
+                            onClick={() => onSequencerTrackStepCountChange(track.id, 16)}
+                            className={`rounded-md px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.14em] transition ${
+                              track.stepCount === 16 ? "bg-accent/30 text-accent" : "text-slate-300 hover:bg-slate-800"
+                            }`}
+                          >
+                            16
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onSequencerTrackStepCountChange(track.id, 32)}
+                            className={`rounded-md px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.14em] transition ${
+                              track.stepCount === 32 ? "bg-accent/30 text-accent" : "text-slate-300 hover:bg-slate-800"
+                            }`}
+                          >
+                            32
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
