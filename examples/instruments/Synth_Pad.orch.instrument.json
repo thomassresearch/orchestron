@@ -1,0 +1,437 @@
+{
+  "sourcePatchId": "dc38906c-9b93-476d-89b7-240c33241816",
+  "name": "Synth Pad",
+  "description": "Using the padynth algorithm",
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "f6a7a645-d03c-4542-8b5c-8e84ee373613",
+        "opcode": "GEN",
+        "params": {},
+        "position": {
+          "x": -376.31533133035464,
+          "y": 255.62895420281055
+        }
+      },
+      {
+        "id": "98ecc381-3913-496e-9d6c-e01be42b0c48",
+        "opcode": "poscil3",
+        "params": {
+          "amp": 0.4,
+          "freq": 440,
+          "ifn": 1
+        },
+        "position": {
+          "x": -69.754320639594,
+          "y": -166.34271553174412
+        }
+      },
+      {
+        "id": "3e9426be-3558-4ada-b2a7-e8fbd988c6cb",
+        "opcode": "cpsmidi",
+        "params": {},
+        "position": {
+          "x": -624.2265243242621,
+          "y": 110.94408313046907
+        }
+      },
+      {
+        "id": "1894c058-6774-4bde-a1c5-8f960d7a7a65",
+        "opcode": "madsr",
+        "params": {
+          "iatt": 0.01,
+          "idec": 0.15,
+          "islev": 0.7,
+          "irel": 0.2,
+          "idel": 0
+        },
+        "position": {
+          "x": -464.41879789539047,
+          "y": -322.68832207403517
+        }
+      },
+      {
+        "id": "7f87f4e1-1421-46e1-aa1a-e6bb1de8ec96",
+        "opcode": "const_i",
+        "params": {
+          "value": "2.5"
+        },
+        "position": {
+          "x": -86.31689453125,
+          "y": 113.10757446289062
+        }
+      },
+      {
+        "id": "c999e719-cd7a-48ed-8135-254f527663d0",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.5"
+        },
+        "position": {
+          "x": -113.9288330078125,
+          "y": 274.0329895019531
+        }
+      },
+      {
+        "id": "3d32416e-3789-4f26-981a-81f52bceb0f0",
+        "opcode": "outs",
+        "params": {},
+        "position": {
+          "x": 869.6237490508342,
+          "y": 4.553994655099398
+        }
+      },
+      {
+        "id": "b3b2c763-0f4c-493b-ab36-8691f22a6f91",
+        "opcode": "const_i",
+        "params": {
+          "value": "262144"
+        },
+        "position": {
+          "x": -716.9952418810753,
+          "y": -34.88791349147193
+        }
+      },
+      {
+        "id": "efff203b-18c7-463a-b2c0-e4b85e2ea390",
+        "opcode": "const_i",
+        "params": {
+          "value": "440"
+        },
+        "position": {
+          "x": -651.7948891217637,
+          "y": 247.32875809420685
+        }
+      },
+      {
+        "id": "3f3842b0-b281-47a2-9838-61c1de5f5d83",
+        "opcode": "const_i",
+        "params": {
+          "value": "0"
+        },
+        "position": {
+          "x": 231.2424384001559,
+          "y": 37.883574059848755
+        }
+      },
+      {
+        "id": "eb79eaba-f578-423e-bc2a-fa5e09c85592",
+        "opcode": "reverb2",
+        "params": {
+          "krvt": 1.5,
+          "khf": 0.5
+        },
+        "position": {
+          "x": 245.67506355773298,
+          "y": 291.66154138843353
+        }
+      },
+      {
+        "id": "045ef5e0-2511-49a2-9dd0-61f5afb06f32",
+        "opcode": "reverb2",
+        "params": {
+          "krvt": 1.5,
+          "khf": 0.5
+        },
+        "position": {
+          "x": 255.90196120957424,
+          "y": -312.0154128929455
+        }
+      },
+      {
+        "id": "e7b880f7-8b22-4b25-9533-300b519c3e37",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.5"
+        },
+        "position": {
+          "x": -711.200684139039,
+          "y": -434.65791968758003
+        }
+      },
+      {
+        "id": "d6c327d1-56d4-42ba-be93-ff26adc07c94",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.4"
+        },
+        "position": {
+          "x": -982.512860465262,
+          "y": -332.1550414362019
+        }
+      },
+      {
+        "id": "5ee83d67-4915-4fbf-897b-72b3b0eed523",
+        "opcode": "const_i",
+        "params": {
+          "value": "1.5"
+        },
+        "position": {
+          "x": -962.4875387640544,
+          "y": -140.0984890284269
+        }
+      },
+      {
+        "id": "02eb8d35-4aff-49a4-bb0a-3a8796f52a04",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.7"
+        },
+        "position": {
+          "x": -741.4195226836089,
+          "y": -227.68727531258222
+        }
+      },
+      {
+        "id": "fd78f1b8-a0b9-44ff-8d47-afb5b8ae89ec",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.1"
+        },
+        "position": {
+          "x": -653.233749141592,
+          "y": -573.8081856341872
+        }
+      },
+      {
+        "id": "cba8eff2-2819-4d36-a625-122452bddfb8",
+        "opcode": "ampmidi",
+        "params": {
+          "iscal": 1
+        },
+        "position": {
+          "x": -172.85305260623767,
+          "y": -404.45047344770165
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "f6a7a645-d03c-4542-8b5c-8e84ee373613",
+        "from_port_id": "ift",
+        "to_node_id": "98ecc381-3913-496e-9d6c-e01be42b0c48",
+        "to_port_id": "ifn"
+      },
+      {
+        "from_node_id": "3e9426be-3558-4ada-b2a7-e8fbd988c6cb",
+        "from_port_id": "kfreq",
+        "to_node_id": "98ecc381-3913-496e-9d6c-e01be42b0c48",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "1894c058-6774-4bde-a1c5-8f960d7a7a65",
+        "from_port_id": "kenv",
+        "to_node_id": "98ecc381-3913-496e-9d6c-e01be42b0c48",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "b3b2c763-0f4c-493b-ab36-8691f22a6f91",
+        "from_port_id": "iout",
+        "to_node_id": "98ecc381-3913-496e-9d6c-e01be42b0c48",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "efff203b-18c7-463a-b2c0-e4b85e2ea390",
+        "from_port_id": "iout",
+        "to_node_id": "98ecc381-3913-496e-9d6c-e01be42b0c48",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "98ecc381-3913-496e-9d6c-e01be42b0c48",
+        "from_port_id": "asig",
+        "to_node_id": "eb79eaba-f578-423e-bc2a-fa5e09c85592",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "7f87f4e1-1421-46e1-aa1a-e6bb1de8ec96",
+        "from_port_id": "iout",
+        "to_node_id": "eb79eaba-f578-423e-bc2a-fa5e09c85592",
+        "to_port_id": "krvt"
+      },
+      {
+        "from_node_id": "c999e719-cd7a-48ed-8135-254f527663d0",
+        "from_port_id": "iout",
+        "to_node_id": "eb79eaba-f578-423e-bc2a-fa5e09c85592",
+        "to_port_id": "khf"
+      },
+      {
+        "from_node_id": "3f3842b0-b281-47a2-9838-61c1de5f5d83",
+        "from_port_id": "iout",
+        "to_node_id": "eb79eaba-f578-423e-bc2a-fa5e09c85592",
+        "to_port_id": "iskip"
+      },
+      {
+        "from_node_id": "eb79eaba-f578-423e-bc2a-fa5e09c85592",
+        "from_port_id": "aout",
+        "to_node_id": "3d32416e-3789-4f26-981a-81f52bceb0f0",
+        "to_port_id": "right"
+      },
+      {
+        "from_node_id": "98ecc381-3913-496e-9d6c-e01be42b0c48",
+        "from_port_id": "asig",
+        "to_node_id": "045ef5e0-2511-49a2-9dd0-61f5afb06f32",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "7f87f4e1-1421-46e1-aa1a-e6bb1de8ec96",
+        "from_port_id": "iout",
+        "to_node_id": "045ef5e0-2511-49a2-9dd0-61f5afb06f32",
+        "to_port_id": "krvt"
+      },
+      {
+        "from_node_id": "c999e719-cd7a-48ed-8135-254f527663d0",
+        "from_port_id": "iout",
+        "to_node_id": "045ef5e0-2511-49a2-9dd0-61f5afb06f32",
+        "to_port_id": "khf"
+      },
+      {
+        "from_node_id": "3f3842b0-b281-47a2-9838-61c1de5f5d83",
+        "from_port_id": "iout",
+        "to_node_id": "045ef5e0-2511-49a2-9dd0-61f5afb06f32",
+        "to_port_id": "iskip"
+      },
+      {
+        "from_node_id": "045ef5e0-2511-49a2-9dd0-61f5afb06f32",
+        "from_port_id": "aout",
+        "to_node_id": "3d32416e-3789-4f26-981a-81f52bceb0f0",
+        "to_port_id": "left"
+      },
+      {
+        "from_node_id": "e7b880f7-8b22-4b25-9533-300b519c3e37",
+        "from_port_id": "iout",
+        "to_node_id": "1894c058-6774-4bde-a1c5-8f960d7a7a65",
+        "to_port_id": "iatt"
+      },
+      {
+        "from_node_id": "d6c327d1-56d4-42ba-be93-ff26adc07c94",
+        "from_port_id": "iout",
+        "to_node_id": "1894c058-6774-4bde-a1c5-8f960d7a7a65",
+        "to_port_id": "idec"
+      },
+      {
+        "from_node_id": "02eb8d35-4aff-49a4-bb0a-3a8796f52a04",
+        "from_port_id": "iout",
+        "to_node_id": "1894c058-6774-4bde-a1c5-8f960d7a7a65",
+        "to_port_id": "islev"
+      },
+      {
+        "from_node_id": "5ee83d67-4915-4fbf-897b-72b3b0eed523",
+        "from_port_id": "iout",
+        "to_node_id": "1894c058-6774-4bde-a1c5-8f960d7a7a65",
+        "to_port_id": "irel"
+      },
+      {
+        "from_node_id": "fd78f1b8-a0b9-44ff-8d47-afb5b8ae89ec",
+        "from_port_id": "iout",
+        "to_node_id": "cba8eff2-2819-4d36-a625-122452bddfb8",
+        "to_port_id": "iscal"
+      },
+      {
+        "from_node_id": "cba8eff2-2819-4d36-a625-122452bddfb8",
+        "from_port_id": "iamp",
+        "to_node_id": "98ecc381-3913-496e-9d6c-e01be42b0c48",
+        "to_port_id": "amp"
+      }
+    ],
+    "ui_layout": {
+      "gen_nodes": {
+        "f6a7a645-d03c-4542-8b5c-8e84ee373613": {
+          "mode": "ftgenonce",
+          "tableNumber": 20,
+          "startTime": 0,
+          "tableSize": 262144,
+          "routineNumber": 10,
+          "routineName": "padsynth",
+          "normalize": true,
+          "harmonicAmplitudes": [
+            1
+          ],
+          "gen11HarmonicCount": 8,
+          "gen11LowestHarmonic": 1,
+          "gen11Multiplier": 1,
+          "valueList": [
+            1
+          ],
+          "segmentStartValue": 0,
+          "segments": [
+            {
+              "length": 16384,
+              "value": 1
+            }
+          ],
+          "gen17Pairs": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 127,
+              "y": 127
+            }
+          ],
+          "gen20WindowType": 1,
+          "gen20Max": 1,
+          "gen20Opt": 0.5,
+          "sampleAsset": null,
+          "samplePath": "",
+          "sampleSkipTime": 0,
+          "sampleFormat": 0,
+          "sampleChannel": 0,
+          "rawArgsText": "440, 20, 0.25, 1, 1, 0.732, 0.562, 0.122, 0.32322, 0.434533, 0.02342, 0.03233, 0.1213432, 0.09322, 0.01"
+        }
+      },
+      "input_formulas": {
+        "98ecc381-3913-496e-9d6c-e01be42b0c48::freq": {
+          "expression": "in1 * (sr / in2 / in4)",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "3e9426be-3558-4ada-b2a7-e8fbd988c6cb",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "in2",
+              "from_node_id": "b3b2c763-0f4c-493b-ab36-8691f22a6f91",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "in4",
+              "from_node_id": "efff203b-18c7-463a-b2c0-e4b85e2ea390",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "in3",
+              "from_node_id": "fb66e7f0-6a6b-4d3b-9275-7db3bbb20c41",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "98ecc381-3913-496e-9d6c-e01be42b0c48::amp": {
+          "expression": "in1 * in2",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "1894c058-6774-4bde-a1c5-8f960d7a7a65",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "in2",
+              "from_node_id": "cba8eff2-2819-4d36-a625-122452bddfb8",
+              "from_port_id": "iamp"
+            }
+          ]
+        }
+      }
+    },
+    "engine_config": {
+      "sr": 44100,
+      "control_rate": 1378,
+      "ksmps": 32,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1
+    }
+  }
+}
