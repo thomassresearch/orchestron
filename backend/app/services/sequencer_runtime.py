@@ -150,6 +150,14 @@ class SessionSequencerRuntime:
 
             return self._status_locked()
 
+    def rewind_cycle(self) -> SessionSequencerStatus:
+        with self._lock:
+            return self._jump_cycle_locked(direction=-1)
+
+    def forward_cycle(self) -> SessionSequencerStatus:
+        with self._lock:
+            return self._jump_cycle_locked(direction=1)
+
     def start(self) -> SessionSequencerStatus:
         with self._lock:
             config = self._ensure_config()
@@ -290,6 +298,73 @@ class SessionSequencerRuntime:
             if previous_track is None:
                 continue
             next_track.phase_offset = previous_track.phase_offset % max(1, next_config.step_count)
+
+    def _manual_pad_loop_jump_for_track_locked(self, track: SequencerTrackRuntime, direction: int) -> None:
+        if direction not in (-1, 1):
+            return
+
+        if not track.pad_loop_enabled or not track.pad_loop_sequence:
+            track.pad_loop_position = None
+            if track.queued_pad == track.active_pad:
+                track.queued_pad = None
+            return
+
+        sequence = track.pad_loop_sequence
+        current_position = track.pad_loop_position
+        if (
+            current_position is None
+            or current_position < 0
+            or current_position >= len(sequence)
+            or sequence[current_position] != track.active_pad
+        ):
+            current_position = self._pad_loop_position_for_active_pad(track)
+
+        if current_position is None:
+            next_position = 0 if direction > 0 else len(sequence) - 1
+        else:
+            proposed_position = current_position + direction
+            if proposed_position < 0:
+                next_position = len(sequence) - 1 if track.pad_loop_repeat else 0
+            elif proposed_position >= len(sequence):
+                next_position = 0 if track.pad_loop_repeat else len(sequence) - 1
+            else:
+                next_position = proposed_position
+
+        track.pad_loop_position = next_position
+        next_pad = sequence[next_position]
+        if next_pad in track.pads:
+            track.active_pad = next_pad
+        if track.queued_pad == track.active_pad:
+            track.queued_pad = None
+
+    def _jump_cycle_locked(self, direction: int) -> SessionSequencerStatus:
+        if direction not in (-1, 1):
+            return self._status_locked()
+
+        config = self._config
+        if config is None or not self._running:
+            return self._status_locked()
+
+        for track_id, track in config.tracks.items():
+            self._release_track_notes_locked(track_id, track.midi_channel)
+
+        for notes in self._active_notes.values():
+            notes.clear()
+
+        for track in config.tracks.values():
+            if not track.enabled:
+                continue
+            track.phase_offset = 0
+            self._manual_pad_loop_jump_for_track_locked(track, direction)
+
+        self._current_step = 0
+        if direction > 0:
+            self._cycle += 1
+        else:
+            self._cycle = max(0, self._cycle - 1)
+
+        self._refresh_transport_step_count_locked(config)
+        return self._status_locked()
 
     @staticmethod
     def _step_count_for_pad(track: SequencerTrackRuntime, pad_index: int) -> int:

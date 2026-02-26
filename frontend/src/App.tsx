@@ -98,6 +98,75 @@ function controllerSequencerPadLoopPositionForActivePad(
   return position >= 0 ? position : null;
 }
 
+function controllerSequencerManualCycleJumpUpdate(
+  controllerSequencer: ControllerSequencerState,
+  direction: -1 | 1,
+  runtimePadStartStep: number
+):
+  | {
+      controllerSequencerId: string;
+      activePad: number;
+      queuedPad: number | null;
+      padLoopPosition: number | null;
+      runtimePadStartStep: number;
+    }
+  | null {
+  if (!controllerSequencer.enabled) {
+    return null;
+  }
+
+  let activePad = controllerSequencerPadIndex(controllerSequencer.activePad);
+  let queuedPad = controllerSequencer.queuedPad === null ? null : controllerSequencerPadIndex(controllerSequencer.queuedPad);
+  let padLoopPosition =
+    typeof controllerSequencer.padLoopPosition === "number" && Number.isFinite(controllerSequencer.padLoopPosition)
+      ? Math.max(0, Math.round(controllerSequencer.padLoopPosition))
+      : null;
+
+  if (controllerSequencer.padLoopEnabled && controllerSequencer.padLoopSequence.length > 0) {
+    const sequence = controllerSequencer.padLoopSequence.map((padIndex) => controllerSequencerPadIndex(padIndex));
+    let currentPosition = padLoopPosition;
+    if (
+      currentPosition === null ||
+      currentPosition < 0 ||
+      currentPosition >= sequence.length ||
+      sequence[currentPosition] !== activePad
+    ) {
+      currentPosition = controllerSequencerPadLoopPositionForActivePad(controllerSequencer, activePad);
+    }
+
+    let nextPosition: number;
+    if (currentPosition === null) {
+      nextPosition = direction > 0 ? 0 : Math.max(0, sequence.length - 1);
+    } else {
+      const proposedPosition = currentPosition + direction;
+      if (proposedPosition < 0) {
+        nextPosition = controllerSequencer.padLoopRepeat ? Math.max(0, sequence.length - 1) : 0;
+      } else if (proposedPosition >= sequence.length) {
+        nextPosition = controllerSequencer.padLoopRepeat ? 0 : Math.max(0, sequence.length - 1);
+      } else {
+        nextPosition = proposedPosition;
+      }
+    }
+
+    padLoopPosition = nextPosition;
+    activePad = sequence[nextPosition] ?? activePad;
+  } else {
+    padLoopPosition = null;
+  }
+
+  if (queuedPad === activePad) {
+    queuedPad = null;
+  }
+
+  return {
+    controllerSequencerId: controllerSequencer.id,
+    activePad,
+    queuedPad,
+    padLoopPosition,
+    runtimePadStartStep: Math.max(0, Math.floor(runtimePadStartStep))
+  };
+}
+
 function controllerSequencerSignature(controllerSequencer: ControllerSequencerState): string {
   return JSON.stringify({
     controllerNumber: controllerSequencer.controllerNumber,
@@ -200,6 +269,13 @@ type DeleteSelectionDialogState = {
   nodeIds: string[];
   connectionKeys: string[];
   itemLabels: string[];
+};
+
+type DeletePatchDialogState = {
+  patchId: string;
+  patchName: string;
+  nodeCount: number;
+  connectionCount: number;
 };
 
 type ImportDialogCopy = {
@@ -604,7 +680,12 @@ type AppCopy = {
   deleteSelectionDialogListLabel: string;
   deleteSelectionDialogOpcodeItem: (opcodeName: string, nodeId: string) => string;
   deleteSelectionDialogConnectionItem: (from: string, to: string) => string;
+  deletePatchDialogListLabel: string;
+  deletePatchDialogPatchItem: (name: string) => string;
+  deletePatchDialogIdItem: (patchId: string) => string;
+  deletePatchDialogGraphItem: (nodes: number, connections: number) => string;
   cancel: string;
+  deleteAction: string;
   confirmDeletePatch: string;
   confirmDeletePerformance: string;
   errors: {
@@ -705,7 +786,12 @@ const APP_COPY: Record<GuiLanguage, AppCopy> = {
     deleteSelectionDialogListLabel: "The following elements will be deleted:",
     deleteSelectionDialogOpcodeItem: (opcodeName, nodeId) => `Opcode: ${opcodeName} (${nodeId})`,
     deleteSelectionDialogConnectionItem: (from, to) => `Connection: ${from} -> ${to}`,
+    deletePatchDialogListLabel: "The following saved patch will be deleted:",
+    deletePatchDialogPatchItem: (name) => `Patch: ${name}`,
+    deletePatchDialogIdItem: (patchId) => `ID: ${patchId}`,
+    deletePatchDialogGraphItem: (nodes, connections) => `Graph: ${nodes} opcode(s), ${connections} connection(s)`,
     cancel: "Cancel",
+    deleteAction: "Delete",
     confirmDeletePatch: "do you really want to delete this patch?",
     confirmDeletePerformance: "do you really want to delete this performance?",
     errors: {
@@ -751,7 +837,12 @@ const APP_COPY: Record<GuiLanguage, AppCopy> = {
     deleteSelectionDialogListLabel: "Die folgenden Elemente werden geloescht:",
     deleteSelectionDialogOpcodeItem: (opcodeName, nodeId) => `Opcode: ${opcodeName} (${nodeId})`,
     deleteSelectionDialogConnectionItem: (from, to) => `Verbindung: ${from} -> ${to}`,
+    deletePatchDialogListLabel: "Das folgende gespeicherte Patch wird geloescht:",
+    deletePatchDialogPatchItem: (name) => `Patch: ${name}`,
+    deletePatchDialogIdItem: (patchId) => `ID: ${patchId}`,
+    deletePatchDialogGraphItem: (nodes, connections) => `Graph: ${nodes} Opcode(s), ${connections} Verbindung(en)`,
     cancel: "Abbrechen",
+    deleteAction: "Loeschen",
     confirmDeletePatch: "Willst du dieses Patch wirklich loeschen?",
     confirmDeletePerformance: "Willst du diese Performance wirklich loeschen?",
     errors: {
@@ -798,7 +889,12 @@ const APP_COPY: Record<GuiLanguage, AppCopy> = {
     deleteSelectionDialogListLabel: "Les elements suivants seront supprimes :",
     deleteSelectionDialogOpcodeItem: (opcodeName, nodeId) => `Opcode : ${opcodeName} (${nodeId})`,
     deleteSelectionDialogConnectionItem: (from, to) => `Connexion : ${from} -> ${to}`,
+    deletePatchDialogListLabel: "Le patch enregistre suivant sera supprime :",
+    deletePatchDialogPatchItem: (name) => `Patch : ${name}`,
+    deletePatchDialogIdItem: (patchId) => `ID : ${patchId}`,
+    deletePatchDialogGraphItem: (nodes, connections) => `Graphe : ${nodes} opcode(s), ${connections} connexion(s)`,
     cancel: "Annuler",
+    deleteAction: "Supprimer",
     confirmDeletePatch: "Voulez-vous vraiment supprimer ce patch ?",
     confirmDeletePerformance: "Voulez-vous vraiment supprimer cette performance ?",
     errors: {
@@ -846,7 +942,12 @@ const APP_COPY: Record<GuiLanguage, AppCopy> = {
     deleteSelectionDialogListLabel: "Se eliminaran los siguientes elementos:",
     deleteSelectionDialogOpcodeItem: (opcodeName, nodeId) => `Opcode: ${opcodeName} (${nodeId})`,
     deleteSelectionDialogConnectionItem: (from, to) => `Conexion: ${from} -> ${to}`,
+    deletePatchDialogListLabel: "Se eliminara el siguiente patch guardado:",
+    deletePatchDialogPatchItem: (name) => `Patch: ${name}`,
+    deletePatchDialogIdItem: (patchId) => `ID: ${patchId}`,
+    deletePatchDialogGraphItem: (nodes, connections) => `Grafo: ${nodes} opcode(s), ${connections} conexion(es)`,
     cancel: "Cancelar",
+    deleteAction: "Eliminar",
     confirmDeletePatch: "Deseas eliminar este patch?",
     confirmDeletePerformance: "Deseas eliminar esta performance?",
     errors: {
@@ -1220,6 +1321,7 @@ export default function App() {
   const [importSelectionDialog, setImportSelectionDialog] = useState<ImportSelectionDialogState | null>(null);
   const [importConflictDialog, setImportConflictDialog] = useState<{ items: ImportConflictDialogItem[] } | null>(null);
   const [deleteSelectionDialog, setDeleteSelectionDialog] = useState<DeleteSelectionDialogState | null>(null);
+  const [deletePatchDialog, setDeletePatchDialog] = useState<DeletePatchDialogState | null>(null);
 
   const sequencerRef = useRef(sequencer);
   const sequencerSessionIdRef = useRef<string | null>(null);
@@ -1663,30 +1765,16 @@ export default function App() {
   }, [currentPatch, loadPatch, patches, refreshPatches]);
 
   const onDeleteCurrentPatch = useCallback(() => {
-    if (!currentPatch.id) {
+    if (typeof currentPatch.id !== "string" || currentPatch.id.trim().length === 0) {
       return;
     }
-    if (!window.confirm(appCopy.confirmDeletePatch)) {
-      return;
-    }
-
-    void (async () => {
-      try {
-        const patchId = currentPatch.id as string;
-        await api.deletePatch(patchId);
-        const refreshed = await refreshPatches();
-        const nextPatch = refreshed.find((patch) => patch.id !== patchId) ?? refreshed[0] ?? null;
-        setInstrumentPatchIoError(null);
-        if (nextPatch) {
-          await loadPatch(nextPatch.id);
-        } else {
-          newPatch();
-        }
-      } catch (deleteError) {
-        setInstrumentPatchIoError(deleteError instanceof Error ? deleteError.message : "Failed to delete patch.");
-      }
-    })();
-  }, [appCopy.confirmDeletePatch, currentPatch.id, loadPatch, newPatch, refreshPatches]);
+    setDeletePatchDialog({
+      patchId: currentPatch.id,
+      patchName: currentPatch.name.trim(),
+      nodeCount: currentPatch.graph.nodes.length,
+      connectionCount: currentPatch.graph.connections.length
+    });
+  }, [currentPatch.graph.connections.length, currentPatch.graph.nodes.length, currentPatch.id, currentPatch.name]);
 
   const onCloneCurrentPerformance = useCallback(() => {
     void (async () => {
@@ -2335,13 +2423,66 @@ export default function App() {
     syncSequencerRuntime
   ]);
 
-  const onSequencerAllNotesOff = useCallback(() => {
-    collectPerformanceChannels().forEach((channel) => {
-      sendAllNotesOff(channel);
-    });
-    pianoRollNoteSessionRef.current.clear();
-    setSequencerError(null);
-  }, [collectPerformanceChannels, sendAllNotesOff]);
+  const jumpSequencerCycle = useCallback(
+    async (direction: -1 | 1) => {
+      if (!sequencerRef.current.isPlaying) {
+        return;
+      }
+
+      const sessionId = sequencerSessionIdRef.current ?? activeSessionId;
+      if (!sessionId) {
+        setSequencerError(appCopy.errors.noActiveInstrumentSessionForSequencer);
+        return;
+      }
+
+      const controllerSequencersSnapshot = sequencerRef.current.controllerSequencers;
+      setSequencerError(null);
+
+      try {
+        const status =
+          direction < 0
+            ? await api.rewindSessionSequencerCycle(sessionId)
+            : await api.forwardSessionSequencerCycle(sessionId);
+
+        applySequencerStatus(status);
+
+        if (status.running) {
+          const runtimePadStartStep = status.cycle * status.step_count + status.current_step;
+          const controllerRuntimeUpdates = controllerSequencersSnapshot
+            .map((controllerSequencer) =>
+              controllerSequencerManualCycleJumpUpdate(controllerSequencer, direction, runtimePadStartStep)
+            )
+            .filter(
+              (
+                update
+              ): update is {
+                controllerSequencerId: string;
+                activePad: number;
+                queuedPad: number | null;
+                padLoopPosition: number | null;
+                runtimePadStartStep: number;
+              } => update !== null
+            );
+
+          if (controllerRuntimeUpdates.length > 0) {
+            syncControllerSequencerRuntime(controllerRuntimeUpdates);
+          }
+        }
+      } catch (error) {
+        if (invalidateMissingRuntimeSession(sessionId, error)) {
+          return;
+        }
+        setSequencerError(error instanceof Error ? error.message : "Failed to jump sequencer cycle.");
+      }
+    },
+    [
+      activeSessionId,
+      appCopy.errors.noActiveInstrumentSessionForSequencer,
+      applySequencerStatus,
+      invalidateMissingRuntimeSession,
+      syncControllerSequencerRuntime
+    ]
+  );
 
   const onPianoRollNoteOn = useCallback(
     (note: number, channel: number) => {
@@ -3318,6 +3459,35 @@ export default function App() {
     setDeleteSelectionDialog(null);
   }, []);
 
+  const closeDeletePatchDialog = useCallback(() => {
+    setDeletePatchDialog(null);
+  }, []);
+
+  const confirmDeletePatchDialog = useCallback(() => {
+    if (!deletePatchDialog) {
+      return;
+    }
+
+    const patchId = deletePatchDialog.patchId;
+    setDeletePatchDialog(null);
+
+    void (async () => {
+      try {
+        await api.deletePatch(patchId);
+        const refreshed = await refreshPatches();
+        const nextPatch = refreshed.find((patch) => patch.id !== patchId) ?? refreshed[0] ?? null;
+        setInstrumentPatchIoError(null);
+        if (nextPatch) {
+          await loadPatch(nextPatch.id);
+        } else {
+          newPatch();
+        }
+      } catch (deleteError) {
+        setInstrumentPatchIoError(deleteError instanceof Error ? deleteError.message : "Failed to delete patch.");
+      }
+    })();
+  }, [deletePatchDialog, loadPatch, newPatch, refreshPatches]);
+
   const confirmDeleteSelectionDialog = useCallback(() => {
     if (!deleteSelectionDialog) {
       return;
@@ -3498,7 +3668,12 @@ export default function App() {
             <main className={instrumentLayoutClassName}>
               <div className="relative h-full min-h-0">
                 <HelpIconButton guiLanguage={guiLanguage} onClick={() => onHelpRequest("instrument_opcode_catalog")} />
-                <OpcodeCatalog guiLanguage={guiLanguage} opcodes={opcodes} onAddOpcode={addNodeFromOpcode} />
+                <OpcodeCatalog
+                  guiLanguage={guiLanguage}
+                  opcodes={opcodes}
+                  onAddOpcode={addNodeFromOpcode}
+                  onOpcodeHelpRequest={onOpcodeHelpRequest}
+                />
               </div>
 
               <section className="relative flex h-full min-h-[440px] flex-col gap-2">
@@ -3610,6 +3785,12 @@ export default function App() {
             onAddSequencerTrack={addSequencerTrack}
             onAddDrummerSequencerTrack={addDrummerSequencerTrack}
             onAddControllerSequencer={addControllerSequencer}
+            onSequencerCycleRewind={() => {
+              void jumpSequencerCycle(-1);
+            }}
+            onSequencerCycleForward={() => {
+              void jumpSequencerCycle(1);
+            }}
             onRemoveSequencerTrack={removeSequencerTrack}
             onSequencerTrackEnabledChange={onSequencerTrackEnabledChange}
             onSequencerTrackChannelChange={setSequencerTrackMidiChannel}
@@ -3766,10 +3947,6 @@ export default function App() {
             onControllerSequencerKeypointChange={setControllerSequencerKeypoint}
             onControllerSequencerKeypointValueChange={setControllerSequencerKeypointValue}
             onControllerSequencerKeypointRemove={removeControllerSequencerKeypoint}
-            onResetPlayhead={() => {
-              setSequencerPlayhead(0);
-            }}
-            onAllNotesOff={onSequencerAllNotesOff}
             onHelpRequest={onHelpRequest}
           />
         )}
@@ -3836,6 +4013,55 @@ export default function App() {
                 className="rounded-md border border-rose-500/70 bg-rose-500/15 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-rose-200 transition hover:bg-rose-500/25"
               >
                 OK
+              </button>
+            </footer>
+          </section>
+        </div>
+      )}
+
+      {deletePatchDialog && (
+        <div
+          className="fixed inset-0 z-[1300] flex items-center justify-center bg-slate-950/75 p-4"
+          onMouseDown={closeDeletePatchDialog}
+        >
+          <section
+            className="flex w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl"
+            onMouseDown={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label={appCopy.confirmDeletePatch}
+          >
+            <header className="border-b border-slate-700 px-4 py-3">
+              <h2 className="font-display text-lg font-semibold text-slate-100">{appCopy.confirmDeletePatch}</h2>
+              <p className="mt-1 text-xs text-slate-400">{appCopy.deletePatchDialogListLabel}</p>
+            </header>
+
+            <div className="space-y-2 px-4 py-4">
+              <div className="rounded-lg border border-slate-700 bg-slate-950/70 px-3 py-2 font-mono text-xs text-slate-200">
+                {appCopy.deletePatchDialogPatchItem(deletePatchDialog.patchName || "(unnamed)")}
+              </div>
+              <div className="rounded-lg border border-slate-700 bg-slate-950/70 px-3 py-2 font-mono text-xs text-slate-200">
+                {appCopy.deletePatchDialogIdItem(deletePatchDialog.patchId)}
+              </div>
+              <div className="rounded-lg border border-slate-700 bg-slate-950/70 px-3 py-2 font-mono text-xs text-slate-200">
+                {appCopy.deletePatchDialogGraphItem(deletePatchDialog.nodeCount, deletePatchDialog.connectionCount)}
+              </div>
+            </div>
+
+            <footer className="flex items-center justify-end gap-2 border-t border-slate-700 px-4 py-3">
+              <button
+                type="button"
+                onClick={closeDeletePatchDialog}
+                className="rounded-md border border-slate-600 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-slate-200 transition hover:border-slate-400"
+              >
+                {appCopy.cancel}
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeletePatchDialog}
+                className="rounded-md border border-rose-500/70 bg-rose-500/15 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-rose-200 transition hover:bg-rose-500/25"
+              >
+                {appCopy.deleteAction}
               </button>
             </footer>
           </section>

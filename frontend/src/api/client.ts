@@ -200,6 +200,10 @@ export const api = {
     request<SessionSequencerStatus>(`/sessions/${sessionId}/sequencer/stop`, { method: "POST" }),
   getSessionSequencerStatus: (sessionId: string) =>
     request<SessionSequencerStatus>(`/sessions/${sessionId}/sequencer/status`),
+  rewindSessionSequencerCycle: (sessionId: string) =>
+    request<SessionSequencerStatus>(`/sessions/${sessionId}/sequencer/rewind`, { method: "POST" }),
+  forwardSessionSequencerCycle: (sessionId: string) =>
+    request<SessionSequencerStatus>(`/sessions/${sessionId}/sequencer/forward`, { method: "POST" }),
   queueSessionSequencerPad: (sessionId: string, trackId: string, payload: SessionSequencerQueuePadRequest) =>
     request<SessionSequencerStatus>(`/sessions/${sessionId}/sequencer/tracks/${trackId}/queue-pad`, {
       method: "POST",

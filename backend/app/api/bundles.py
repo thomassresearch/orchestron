@@ -183,26 +183,43 @@ def _collect_referenced_gen_audio_stored_names_from_graph(graph: object) -> set[
     if not isinstance(ui_layout, dict):
         return names
     gen_nodes = ui_layout.get("gen_nodes")
-    if not isinstance(gen_nodes, dict):
-        return names
-    for raw_node_config in gen_nodes.values():
-        if not isinstance(raw_node_config, dict):
-            continue
-        routine_name = raw_node_config.get("routineName")
-        if isinstance(routine_name, str) and routine_name.strip():
-            continue
-        routine_number = _coerce_int(raw_node_config.get("routineNumber"), default=10)
-        if abs(routine_number) != 1:
-            continue
-        sample_asset = raw_node_config.get("sampleAsset")
-        if not isinstance(sample_asset, dict):
-            continue
-        stored_name = sample_asset.get("stored_name")
-        if isinstance(stored_name, str):
-            trimmed = stored_name.strip()
-            if trimmed:
-                names.add(trimmed)
+    if isinstance(gen_nodes, dict):
+        for raw_node_config in gen_nodes.values():
+            if not isinstance(raw_node_config, dict):
+                continue
+            if not _is_gen01_node_config(raw_node_config):
+                continue
+            _add_sample_asset_stored_name(names, raw_node_config.get("sampleAsset"))
+
+    sfload_nodes = ui_layout.get("sfload_nodes")
+    if isinstance(sfload_nodes, dict):
+        for raw_node_config in sfload_nodes.values():
+            if not isinstance(raw_node_config, dict):
+                continue
+            _add_sample_asset_stored_name(names, raw_node_config.get("sampleAsset"))
     return names
+
+
+def _is_gen01_node_config(raw_node_config: dict[str, object]) -> bool:
+    routine_name = raw_node_config.get("routineName")
+    if isinstance(routine_name, str):
+        normalized = routine_name.strip().lower()
+        if normalized:
+            return normalized in {"1", "gen1", "gen01"}
+
+    routine_number = _coerce_int(raw_node_config.get("routineNumber"), default=10)
+    return abs(routine_number) == 1
+
+
+def _add_sample_asset_stored_name(names: set[str], sample_asset: object) -> None:
+    if not isinstance(sample_asset, dict):
+        return
+    stored_name = sample_asset.get("stored_name")
+    if not isinstance(stored_name, str):
+        return
+    trimmed = stored_name.strip()
+    if trimmed:
+        names.add(trimmed)
 
 
 def _looks_like_zip(*, payload: bytes, filename: str | None) -> bool:

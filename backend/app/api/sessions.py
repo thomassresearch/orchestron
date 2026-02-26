@@ -113,6 +113,22 @@ async def sequencer_status(
     return await container.session_service.get_session_sequencer_status(session_id)
 
 
+@router.post("/{session_id}/sequencer/rewind", response_model=SessionSequencerStatus)
+async def rewind_sequencer_cycle(
+    session_id: str,
+    container: AppContainer = Depends(get_container),
+) -> SessionSequencerStatus:
+    return await container.session_service.rewind_session_sequencer_cycle(session_id)
+
+
+@router.post("/{session_id}/sequencer/forward", response_model=SessionSequencerStatus)
+async def forward_sequencer_cycle(
+    session_id: str,
+    container: AppContainer = Depends(get_container),
+) -> SessionSequencerStatus:
+    return await container.session_service.forward_session_sequencer_cycle(session_id)
+
+
 @router.post("/{session_id}/sequencer/tracks/{track_id}/queue-pad", response_model=SessionSequencerStatus)
 async def queue_sequencer_pad(
     session_id: str,

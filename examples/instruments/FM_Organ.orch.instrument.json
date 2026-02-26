@@ -1,0 +1,359 @@
+{
+  "sourcePatchId": "89c88242-2a6a-4b46-a4ba-c8de2de433cc",
+  "name": "FM Organ",
+  "description": "Organ using FM synthesis",
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "9131dbe5-509a-45d8-98d3-7d64ede31c7a",
+        "opcode": "cpsmidi",
+        "params": {},
+        "position": {
+          "x": -507.6839545599727,
+          "y": 138.68803877611845
+        }
+      },
+      {
+        "id": "2683860f-d0bc-478f-b085-40026edbcc04",
+        "opcode": "madsr",
+        "params": {
+          "iatt": 0.01,
+          "idec": 0.15,
+          "islev": 0.7,
+          "irel": 0.2,
+          "idel": 0
+        },
+        "position": {
+          "x": -486.25611877441406,
+          "y": -152.72918701171875
+        }
+      },
+      {
+        "id": "d19353ae-dee7-4c79-9366-65a286f49f9b",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.05"
+        },
+        "position": {
+          "x": -952.523218386057,
+          "y": -279.8883723354302
+        }
+      },
+      {
+        "id": "3ec93120-c66e-4bd1-b2cc-e38ef1e907a9",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.05"
+        },
+        "position": {
+          "x": -814.6469169365328,
+          "y": -138.6204299289737
+        }
+      },
+      {
+        "id": "a4254939-5a66-458d-9324-32ad28583637",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.5"
+        },
+        "position": {
+          "x": -982.74300287966,
+          "y": -27.38932968900472
+        }
+      },
+      {
+        "id": "219932f4-0a75-4cae-b5b4-e617154cfcbe",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.75"
+        },
+        "position": {
+          "x": -759.9599884066746,
+          "y": 53.48907709937275
+        }
+      },
+      {
+        "id": "3338377a-793c-4ed5-8499-d26adc79edfe",
+        "opcode": "const_i",
+        "params": {
+          "value": "1.0"
+        },
+        "position": {
+          "x": -654.6093261082709,
+          "y": 251.71465482023677
+        }
+      },
+      {
+        "id": "8b4c9237-77df-4b17-8279-aab1701ff4a2",
+        "opcode": "const_i",
+        "params": {
+          "value": "6"
+        },
+        "position": {
+          "x": -694.1702247032223,
+          "y": 420.4789870151818
+        }
+      },
+      {
+        "id": "3cdbfcd5-74c7-4a16-9cb6-48a9e8b6b59a",
+        "opcode": "fmb3",
+        "params": {
+          "kamp": 0.4,
+          "kfreq": 440,
+          "kindex": 2,
+          "kcrossfreq": 2,
+          "ifn1": 1,
+          "ifn2": 1,
+          "ivfn": 1
+        },
+        "position": {
+          "x": -91.37403631082464,
+          "y": -17.458502757010557
+        }
+      },
+      {
+        "id": "3097d36b-9fa3-431b-b2eb-d9bc09c67d84",
+        "opcode": "const_i",
+        "params": {
+          "value": "1"
+        },
+        "position": {
+          "x": -624.854576906992,
+          "y": 579.8269180664777
+        }
+      },
+      {
+        "id": "61bc0894-3721-4547-91ce-f90de636dac3",
+        "opcode": "pan2",
+        "params": {
+          "xp": 0.5,
+          "imode": 0
+        },
+        "position": {
+          "x": 256.03298825891613,
+          "y": -44.066774522116475
+        }
+      },
+      {
+        "id": "b21bc76c-fd17-4b7f-89f5-2fbf508a0f7e",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.35"
+        },
+        "position": {
+          "x": 177.123827622427,
+          "y": 389.84467374134135
+        }
+      },
+      {
+        "id": "d10efff1-aaf4-4922-a637-a4b594101602",
+        "opcode": "outs",
+        "params": {},
+        "position": {
+          "x": 657.9838407965335,
+          "y": 121.37099326855868
+        }
+      },
+      {
+        "id": "6be76351-0ed5-4ce8-ab86-31362d793eee",
+        "opcode": "GEN",
+        "params": {},
+        "position": {
+          "x": -347.94235900304153,
+          "y": 628.0124032585102
+        }
+      },
+      {
+        "id": "a8e7e9c6-4838-4297-a8bb-63a7c5ab5682",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.1"
+        },
+        "position": {
+          "x": -478.19531214276464,
+          "y": 316.1097341940285
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "d19353ae-dee7-4c79-9366-65a286f49f9b",
+        "from_port_id": "iout",
+        "to_node_id": "2683860f-d0bc-478f-b085-40026edbcc04",
+        "to_port_id": "iatt"
+      },
+      {
+        "from_node_id": "3ec93120-c66e-4bd1-b2cc-e38ef1e907a9",
+        "from_port_id": "iout",
+        "to_node_id": "2683860f-d0bc-478f-b085-40026edbcc04",
+        "to_port_id": "idec"
+      },
+      {
+        "from_node_id": "a4254939-5a66-458d-9324-32ad28583637",
+        "from_port_id": "iout",
+        "to_node_id": "2683860f-d0bc-478f-b085-40026edbcc04",
+        "to_port_id": "islev"
+      },
+      {
+        "from_node_id": "219932f4-0a75-4cae-b5b4-e617154cfcbe",
+        "from_port_id": "iout",
+        "to_node_id": "2683860f-d0bc-478f-b085-40026edbcc04",
+        "to_port_id": "irel"
+      },
+      {
+        "from_node_id": "2683860f-d0bc-478f-b085-40026edbcc04",
+        "from_port_id": "kenv",
+        "to_node_id": "3cdbfcd5-74c7-4a16-9cb6-48a9e8b6b59a",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "9131dbe5-509a-45d8-98d3-7d64ede31c7a",
+        "from_port_id": "kfreq",
+        "to_node_id": "3cdbfcd5-74c7-4a16-9cb6-48a9e8b6b59a",
+        "to_port_id": "kfreq"
+      },
+      {
+        "from_node_id": "3338377a-793c-4ed5-8499-d26adc79edfe",
+        "from_port_id": "iout",
+        "to_node_id": "3cdbfcd5-74c7-4a16-9cb6-48a9e8b6b59a",
+        "to_port_id": "kindex"
+      },
+      {
+        "from_node_id": "8b4c9237-77df-4b17-8279-aab1701ff4a2",
+        "from_port_id": "iout",
+        "to_node_id": "3cdbfcd5-74c7-4a16-9cb6-48a9e8b6b59a",
+        "to_port_id": "kcrossfreq"
+      },
+      {
+        "from_node_id": "3097d36b-9fa3-431b-b2eb-d9bc09c67d84",
+        "from_port_id": "iout",
+        "to_node_id": "3cdbfcd5-74c7-4a16-9cb6-48a9e8b6b59a",
+        "to_port_id": "ifn2"
+      },
+      {
+        "from_node_id": "3cdbfcd5-74c7-4a16-9cb6-48a9e8b6b59a",
+        "from_port_id": "asig",
+        "to_node_id": "61bc0894-3721-4547-91ce-f90de636dac3",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "b21bc76c-fd17-4b7f-89f5-2fbf508a0f7e",
+        "from_port_id": "iout",
+        "to_node_id": "61bc0894-3721-4547-91ce-f90de636dac3",
+        "to_port_id": "xp"
+      },
+      {
+        "from_node_id": "61bc0894-3721-4547-91ce-f90de636dac3",
+        "from_port_id": "aleft",
+        "to_node_id": "d10efff1-aaf4-4922-a637-a4b594101602",
+        "to_port_id": "left"
+      },
+      {
+        "from_node_id": "61bc0894-3721-4547-91ce-f90de636dac3",
+        "from_port_id": "aright",
+        "to_node_id": "d10efff1-aaf4-4922-a637-a4b594101602",
+        "to_port_id": "right"
+      },
+      {
+        "from_node_id": "3097d36b-9fa3-431b-b2eb-d9bc09c67d84",
+        "from_port_id": "iout",
+        "to_node_id": "3cdbfcd5-74c7-4a16-9cb6-48a9e8b6b59a",
+        "to_port_id": "ifn1"
+      },
+      {
+        "from_node_id": "6be76351-0ed5-4ce8-ab86-31362d793eee",
+        "from_port_id": "ift",
+        "to_node_id": "3cdbfcd5-74c7-4a16-9cb6-48a9e8b6b59a",
+        "to_port_id": "ifn3"
+      },
+      {
+        "from_node_id": "6be76351-0ed5-4ce8-ab86-31362d793eee",
+        "from_port_id": "ift",
+        "to_node_id": "3cdbfcd5-74c7-4a16-9cb6-48a9e8b6b59a",
+        "to_port_id": "ifn4"
+      },
+      {
+        "from_node_id": "6be76351-0ed5-4ce8-ab86-31362d793eee",
+        "from_port_id": "ift",
+        "to_node_id": "3cdbfcd5-74c7-4a16-9cb6-48a9e8b6b59a",
+        "to_port_id": "ivfn"
+      },
+      {
+        "from_node_id": "a8e7e9c6-4838-4297-a8bb-63a7c5ab5682",
+        "from_port_id": "iout",
+        "to_node_id": "3cdbfcd5-74c7-4a16-9cb6-48a9e8b6b59a",
+        "to_port_id": "kvrate"
+      }
+    ],
+    "ui_layout": {
+      "input_formulas": {
+        "61bc0894-3721-4547-91ce-f90de636dac3::asig": {
+          "expression": "in1*0.2",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "3cdbfcd5-74c7-4a16-9cb6-48a9e8b6b59a",
+              "from_port_id": "asig"
+            }
+          ]
+        }
+      },
+      "gen_nodes": {
+        "6be76351-0ed5-4ce8-ab86-31362d793eee": {
+          "mode": "ftgenonce",
+          "tableNumber": 2,
+          "startTime": 0,
+          "tableSize": 16384,
+          "routineNumber": 10,
+          "normalize": true,
+          "harmonicAmplitudes": [
+            0.55,
+            0.1
+          ],
+          "gen11HarmonicCount": 8,
+          "gen11LowestHarmonic": 1,
+          "gen11Multiplier": 1,
+          "valueList": [
+            1
+          ],
+          "segmentStartValue": 0,
+          "segments": [
+            {
+              "length": 16384,
+              "value": 1
+            }
+          ],
+          "gen17Pairs": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 127,
+              "y": 127
+            }
+          ],
+          "gen20WindowType": 1,
+          "gen20Max": 1,
+          "gen20Opt": 0.5,
+          "sampleAsset": null,
+          "samplePath": "",
+          "sampleSkipTime": 0,
+          "sampleFormat": 0,
+          "sampleChannel": 0,
+          "rawArgsText": ""
+        }
+      }
+    },
+    "engine_config": {
+      "sr": 44100,
+      "control_rate": 4400,
+      "ksmps": 10,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1
+    }
+  }
+}

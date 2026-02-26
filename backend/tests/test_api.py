@@ -1713,6 +1713,107 @@ def test_performance_bundle_export_uses_zip_when_patch_definitions_reference_gen
             assert exported_json["format"] == "orchestron.performance"
 
 
+def test_patch_bundle_export_uses_zip_when_sfload_asset_is_referenced(tmp_path: Path) -> None:
+    asset_dir = tmp_path / "gen_audio_assets"
+    asset_dir.mkdir(parents=True, exist_ok=True)
+    stored_name = "drums.sf2"
+    audio_bytes = b"RIFFfakeSF2"
+    (asset_dir / stored_name).write_bytes(audio_bytes)
+
+    payload = {
+        "sourcePatchId": "patch-1",
+        "name": "Bundled sfload Patch",
+        "description": "zip export for sfload",
+        "schema_version": 1,
+        "graph": {
+            "nodes": [{"id": "s1", "opcode": "sfload", "params": {}, "position": {"x": 0, "y": 0}}],
+            "connections": [],
+            "ui_layout": {
+                "sfload_nodes": {
+                    "s1": {
+                        "sampleAsset": {
+                            "asset_id": "asset-1",
+                            "original_name": "drums.sf2",
+                            "stored_name": stored_name,
+                            "content_type": "audio/sf2",
+                            "size_bytes": len(audio_bytes),
+                        },
+                        "samplePath": "",
+                    }
+                }
+            },
+            "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+        },
+    }
+
+    with _client(tmp_path) as client:
+        response = client.post("/api/bundles/export/patch", json=payload)
+        assert response.status_code == 200
+        assert response.headers["x-orchestron-export-format"] == "zip"
+        assert response.headers["content-type"].startswith("application/zip")
+
+        with zipfile.ZipFile(BytesIO(response.content), "r") as archive:
+            entries = set(archive.namelist())
+            assert "instrument.orch.instrument.json" in entries
+            assert f"audio/{stored_name}" in entries
+            exported_json = json.loads(archive.read("instrument.orch.instrument.json").decode("utf-8"))
+            assert exported_json["name"] == "Bundled sfload Patch"
+            assert archive.read(f"audio/{stored_name}") == audio_bytes
+
+
+def test_patch_bundle_export_uses_zip_when_gen01_named_routine_is_referenced(tmp_path: Path) -> None:
+    asset_dir = tmp_path / "gen_audio_assets"
+    asset_dir.mkdir(parents=True, exist_ok=True)
+    stored_name = "sample.aiff"
+    audio_bytes = b"FORMfake"
+    (asset_dir / stored_name).write_bytes(audio_bytes)
+
+    payload = {
+        "sourcePatchId": "patch-1",
+        "name": "Bundled Named GEN01 Patch",
+        "description": "zip export for GEN01 routineName",
+        "schema_version": 1,
+        "graph": {
+            "nodes": [{"id": "g1", "opcode": "GEN", "params": {}, "position": {"x": 0, "y": 0}}],
+            "connections": [],
+            "ui_layout": {
+                "gen_nodes": {
+                    "g1": {
+                        "mode": "ftgen",
+                        "tableNumber": 5,
+                        "startTime": 0,
+                        "tableSize": 0,
+                        "routineNumber": 1,
+                        "routineName": "GEN01",
+                        "normalize": True,
+                        "sampleAsset": {
+                            "asset_id": "asset-1",
+                            "original_name": "demo.aiff",
+                            "stored_name": stored_name,
+                            "content_type": "audio/aiff",
+                            "size_bytes": len(audio_bytes),
+                        },
+                        "sampleSkipTime": 0,
+                        "sampleFormat": 0,
+                        "sampleChannel": 0,
+                    }
+                }
+            },
+            "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+        },
+    }
+
+    with _client(tmp_path) as client:
+        response = client.post("/api/bundles/export/patch", json=payload)
+        assert response.status_code == 200
+        assert response.headers["x-orchestron-export-format"] == "zip"
+
+        with zipfile.ZipFile(BytesIO(response.content), "r") as archive:
+            entries = set(archive.namelist())
+            assert "instrument.orch.instrument.json" in entries
+            assert f"audio/{stored_name}" in entries
+
+
 def test_bundle_import_expand_restores_audio_files_with_identical_filename(tmp_path: Path) -> None:
     stored_name = "aa963aa1-921d-41f8-a250-2b0fa13713b3.aiff"
     audio_bytes = b"FORMfake"
@@ -1767,6 +1868,57 @@ def test_bundle_import_expand_restores_audio_files_with_identical_filename(tmp_p
         assert response.status_code == 200
         parsed = response.json()
         assert parsed["name"] == "Imported Patch"
+        stored_path = tmp_path / "gen_audio_assets" / stored_name
+        assert stored_path.exists()
+        assert stored_path.read_bytes() == audio_bytes
+
+
+def test_bundle_import_expand_restores_sfload_audio_asset(tmp_path: Path) -> None:
+    stored_name = "piano.sf2"
+    audio_bytes = b"RIFFfakeSF2"
+    payload = {
+        "sourcePatchId": "patch-1",
+        "name": "Imported sfload Patch",
+        "description": "",
+        "schema_version": 1,
+        "graph": {
+            "nodes": [{"id": "s1", "opcode": "sfload", "params": {}, "position": {"x": 0, "y": 0}}],
+            "connections": [],
+            "ui_layout": {
+                "sfload_nodes": {
+                    "s1": {
+                        "sampleAsset": {
+                            "asset_id": "asset-1",
+                            "original_name": "piano.sf2",
+                            "stored_name": stored_name,
+                            "content_type": "audio/sf2",
+                            "size_bytes": len(audio_bytes),
+                        },
+                        "samplePath": "",
+                    }
+                }
+            },
+            "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+        },
+    }
+
+    archive_bytes = BytesIO()
+    with zipfile.ZipFile(archive_bytes, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("anything.orch.instrument.json", json.dumps(payload).encode("utf-8"))
+        archive.writestr(f"audio/{stored_name}", audio_bytes)
+
+    with _client(tmp_path) as client:
+        response = client.post(
+            "/api/bundles/import/expand",
+            content=archive_bytes.getvalue(),
+            headers={
+                "X-File-Name": "bundle.orch.instrument.zip",
+                "Content-Type": "application/zip",
+            },
+        )
+        assert response.status_code == 200
+        parsed = response.json()
+        assert parsed["name"] == "Imported sfload Patch"
         stored_path = tmp_path / "gen_audio_assets" / stored_name
         assert stored_path.exists()
         assert stored_path.read_bytes() == audio_bytes

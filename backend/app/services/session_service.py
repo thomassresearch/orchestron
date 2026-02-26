@@ -433,6 +433,32 @@ class SessionService:
         )
         return status
 
+    async def rewind_session_sequencer_cycle(self, session_id: str) -> SessionSequencerStatus:
+        self._remember_running_loop()
+        runtime = await self._get_session(session_id)
+        sequencer = self._ensure_sequencer(runtime)
+        status = sequencer.rewind_cycle()
+
+        await self._publish(
+            runtime.session_id,
+            "sequencer_cycle_rewound",
+            {"cycle": status.cycle, "step": status.current_step, "running": status.running},
+        )
+        return status
+
+    async def forward_session_sequencer_cycle(self, session_id: str) -> SessionSequencerStatus:
+        self._remember_running_loop()
+        runtime = await self._get_session(session_id)
+        sequencer = self._ensure_sequencer(runtime)
+        status = sequencer.forward_cycle()
+
+        await self._publish(
+            runtime.session_id,
+            "sequencer_cycle_forwarded",
+            {"cycle": status.cycle, "step": status.current_step, "running": status.running},
+        )
+        return status
+
     async def get_session_sequencer_status(self, session_id: str) -> SessionSequencerStatus:
         self._remember_running_loop()
         runtime = await self._get_session(session_id)

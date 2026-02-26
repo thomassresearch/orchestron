@@ -1852,6 +1852,8 @@ interface SequencerPageProps {
   onAddSequencerTrack: () => void;
   onAddDrummerSequencerTrack: () => void;
   onAddControllerSequencer: () => void;
+  onSequencerCycleRewind: () => void;
+  onSequencerCycleForward: () => void;
   onRemoveSequencerTrack: (trackId: string) => void;
   onSequencerTrackEnabledChange: (trackId: string, enabled: boolean) => void;
   onSequencerTrackChannelChange: (trackId: string, channel: number) => void;
@@ -1939,8 +1941,6 @@ interface SequencerPageProps {
     value: number
   ) => void;
   onControllerSequencerKeypointRemove: (controllerSequencerId: string, keypointId: string) => void;
-  onResetPlayhead: () => void;
-  onAllNotesOff: () => void;
   onHelpRequest?: (helpDocId: HelpDocId) => void;
 }
 
@@ -2644,6 +2644,7 @@ function PadLoopPatternEditor({
                             return;
                           }
                           event.preventDefault();
+                          event.stopPropagation();
                           setDropTarget({ containerKey, index });
                           const itemDragPayload = parsePadLoopItemDragPayload(event);
                           event.dataTransfer.dropEffect =
@@ -2654,7 +2655,8 @@ function PadLoopPatternEditor({
                         }}
                         onDrop={(event) => {
                           event.preventDefault();
-                          setDropTarget({ containerKey, index });
+                          event.stopPropagation();
+                          setDropTarget(null);
                           applyDrop(event, container, index);
                         }}
                         onContextMenu={(event) => {
@@ -2940,6 +2942,8 @@ export function SequencerPage({
   onAddSequencerTrack,
   onAddDrummerSequencerTrack,
   onAddControllerSequencer,
+  onSequencerCycleRewind,
+  onSequencerCycleForward,
   onRemoveSequencerTrack,
   onSequencerTrackEnabledChange,
   onSequencerTrackChannelChange,
@@ -3010,8 +3014,6 @@ export function SequencerPage({
   onControllerSequencerKeypointChange,
   onControllerSequencerKeypointValueChange,
   onControllerSequencerKeypointRemove,
-  onResetPlayhead,
-  onAllNotesOff,
   onHelpRequest
 }: SequencerPageProps) {
   const ui = SEQUENCER_UI_COPY[guiLanguage];
@@ -3432,6 +3434,8 @@ export function SequencerPage({
     "rounded-md border border-emerald-400/55 bg-emerald-400/20 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-300 transition hover:bg-emerald-400/30 disabled:cursor-not-allowed disabled:opacity-50";
   const transportStopButtonClass =
     "rounded-md border border-amber-400/55 bg-amber-400/20 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-200 transition hover:bg-amber-400/30 disabled:cursor-not-allowed disabled:opacity-50";
+  const transportJumpButtonClass =
+    "rounded-md border border-accent/60 bg-accent/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-accent transition hover:bg-accent/20 disabled:cursor-not-allowed disabled:opacity-50";
   const transportStateClass =
     "rounded-full border border-slate-700 bg-slate-950 px-2 py-0.5 font-mono text-[10px] text-slate-300";
   const controlLabelClass = "text-[10px] uppercase tracking-[0.18em] text-slate-400";
@@ -3655,9 +3659,9 @@ export function SequencerPage({
           <button
             type="button"
             onClick={onAddDrummerSequencerTrack}
-            className="rounded-md border border-rose-400/60 bg-rose-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-rose-200 transition hover:bg-rose-500/20"
+            className="rounded-md border border-accent/60 bg-accent/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-accent transition hover:bg-accent/25"
           >
-            Drummer
+            ADD DRUMMER SEQUENCER
           </button>
           <button
             type="button"
@@ -3686,6 +3690,24 @@ export function SequencerPage({
                 className={`${controlFieldClass} w-24`}
               />
             </label>
+            <div className="ml-2 flex items-end gap-2">
+              <button
+                type="button"
+                onClick={onSequencerCycleRewind}
+                disabled={!sequencer.isPlaying}
+                className={transportJumpButtonClass}
+              >
+                REWIND
+              </button>
+              <button
+                type="button"
+                onClick={onSequencerCycleForward}
+                disabled={!sequencer.isPlaying}
+                className={transportJumpButtonClass}
+              >
+                FORWARD
+              </button>
+            </div>
           </div>
         </div>
 
@@ -5140,20 +5162,6 @@ export function SequencerPage({
         <span className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 font-mono">
           {ui.midiInput(midiInputName ?? ui.none)}
         </span>
-        <button
-          type="button"
-          onClick={onResetPlayhead}
-          className="rounded-lg border border-slate-500 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-300 hover:text-white"
-        >
-          {ui.resetPlayhead}
-        </button>
-        <button
-          type="button"
-          onClick={onAllNotesOff}
-          className="rounded-lg border border-amber-400/50 bg-amber-400/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-amber-200 transition hover:bg-amber-400/30"
-        >
-          {ui.allNotesOff}
-        </button>
       </div>
       </section>
 
