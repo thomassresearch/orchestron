@@ -680,6 +680,10 @@ function buildSequencerPitchClassOptions(
   noteOptions: Array<{ note: number; label: string; degree: number | null; inScale: boolean }>
 ): SequencerPitchClassOption[] {
   const byPitchClass = new Map<number, SequencerPitchClassOption>();
+  const tonicPitchClass = (() => {
+    const tonic = noteOptions.find((option) => option.degree === 1);
+    return tonic ? midiNotePitchClass(tonic.note) : 0;
+  })();
   for (const option of noteOptions) {
     const pitchClass = midiNotePitchClass(option.note);
     if (byPitchClass.has(pitchClass)) {
@@ -695,7 +699,11 @@ function buildSequencerPitchClassOptions(
       break;
     }
   }
-  return Array.from(byPitchClass.values()).sort((a, b) => a.pitchClass - b.pitchClass);
+  return Array.from(byPitchClass.values()).sort((a, b) => {
+    const aOffset = (a.pitchClass - tonicPitchClass + 12) % 12;
+    const bOffset = (b.pitchClass - tonicPitchClass + 12) % 12;
+    return aOffset - bOffset;
+  });
 }
 
 function chordColorTextClass(color: "neutral" | "green" | "orange" | "red"): string {
