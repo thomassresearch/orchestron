@@ -1056,6 +1056,7 @@ export default function App() {
   const setSequencerTrackQueuedPad = useAppStore((state) => state.setSequencerTrackQueuedPad);
   const setSequencerTrackPadLoopEnabled = useAppStore((state) => state.setSequencerTrackPadLoopEnabled);
   const setSequencerTrackPadLoopRepeat = useAppStore((state) => state.setSequencerTrackPadLoopRepeat);
+  const setSequencerTrackPadLoopPattern = useAppStore((state) => state.setSequencerTrackPadLoopPattern);
   const addSequencerTrackPadLoopStep = useAppStore((state) => state.addSequencerTrackPadLoopStep);
   const removeSequencerTrackPadLoopStep = useAppStore((state) => state.removeSequencerTrackPadLoopStep);
   const moveSequencerTrack = useAppStore((state) => state.moveSequencerTrack);
@@ -1075,6 +1076,7 @@ export default function App() {
   const setDrummerSequencerTrackQueuedPad = useAppStore((state) => state.setDrummerSequencerTrackQueuedPad);
   const setDrummerSequencerTrackPadLoopEnabled = useAppStore((state) => state.setDrummerSequencerTrackPadLoopEnabled);
   const setDrummerSequencerTrackPadLoopRepeat = useAppStore((state) => state.setDrummerSequencerTrackPadLoopRepeat);
+  const setDrummerSequencerTrackPadLoopPattern = useAppStore((state) => state.setDrummerSequencerTrackPadLoopPattern);
   const addDrummerSequencerTrackPadLoopStep = useAppStore((state) => state.addDrummerSequencerTrackPadLoopStep);
   const removeDrummerSequencerTrackPadLoopStep = useAppStore((state) => state.removeDrummerSequencerTrackPadLoopStep);
   const addPianoRoll = useAppStore((state) => state.addPianoRoll);
@@ -1098,6 +1100,7 @@ export default function App() {
   const clearControllerSequencerSteps = useAppStore((state) => state.clearControllerSequencerSteps);
   const setControllerSequencerPadLoopEnabled = useAppStore((state) => state.setControllerSequencerPadLoopEnabled);
   const setControllerSequencerPadLoopRepeat = useAppStore((state) => state.setControllerSequencerPadLoopRepeat);
+  const setControllerSequencerPadLoopPattern = useAppStore((state) => state.setControllerSequencerPadLoopPattern);
   const addControllerSequencerPadLoopStep = useAppStore((state) => state.addControllerSequencerPadLoopStep);
   const removeControllerSequencerPadLoopStep = useAppStore((state) => state.removeControllerSequencerPadLoopStep);
   const setControllerSequencerStepCount = useAppStore((state) => state.setControllerSequencerStepCount);
@@ -3649,6 +3652,7 @@ export default function App() {
             }}
             onSequencerTrackPadLoopEnabledChange={setSequencerTrackPadLoopEnabled}
             onSequencerTrackPadLoopRepeatChange={setSequencerTrackPadLoopRepeat}
+            onSequencerTrackPadLoopPatternChange={setSequencerTrackPadLoopPattern}
             onSequencerTrackPadLoopStepAdd={addSequencerTrackPadLoopStep}
             onSequencerTrackPadLoopStepRemove={removeSequencerTrackPadLoopStep}
             onRemoveDrummerSequencerTrack={removeDrummerSequencerTrack}
@@ -3704,6 +3708,7 @@ export default function App() {
             }}
             onDrummerSequencerTrackPadLoopEnabledChange={setDrummerSequencerTrackPadLoopEnabled}
             onDrummerSequencerTrackPadLoopRepeatChange={setDrummerSequencerTrackPadLoopRepeat}
+            onDrummerSequencerTrackPadLoopPatternChange={setDrummerSequencerTrackPadLoopPattern}
             onDrummerSequencerTrackPadLoopStepAdd={addDrummerSequencerTrackPadLoopStep}
             onDrummerSequencerTrackPadLoopStepRemove={removeDrummerSequencerTrackPadLoopStep}
             onAddPianoRoll={addPianoRoll}
@@ -3744,6 +3749,7 @@ export default function App() {
             onControllerSequencerClearSteps={clearControllerSequencerSteps}
             onControllerSequencerPadLoopEnabledChange={setControllerSequencerPadLoopEnabled}
             onControllerSequencerPadLoopRepeatChange={setControllerSequencerPadLoopRepeat}
+            onControllerSequencerPadLoopPatternChange={setControllerSequencerPadLoopPattern}
             onControllerSequencerPadLoopStepAdd={addControllerSequencerPadLoopStep}
             onControllerSequencerPadLoopStepRemove={removeControllerSequencerPadLoopStep}
             onControllerSequencerStepCountChange={setControllerSequencerStepCount}

@@ -155,6 +155,36 @@ export interface SequencerPadState {
   mode: SequencerMode;
 }
 
+export type PadLoopPatternItem =
+  | {
+      type: "pad";
+      padIndex: number;
+    }
+  | {
+      type: "group";
+      groupId: string;
+    }
+  | {
+      type: "super";
+      superGroupId: string;
+    };
+
+export interface PadLoopGroupPatternState {
+  id: string;
+  sequence: PadLoopPatternItem[];
+}
+
+export interface PadLoopSuperGroupPatternState {
+  id: string;
+  sequence: PadLoopPatternItem[];
+}
+
+export interface PadLoopPatternState {
+  rootSequence: PadLoopPatternItem[];
+  groups: PadLoopGroupPatternState[];
+  superGroups: PadLoopSuperGroupPatternState[];
+}
+
 export interface SequencerTrackState {
   id: string;
   name: string;
@@ -170,6 +200,7 @@ export interface SequencerTrackState {
   padLoopEnabled: boolean;
   padLoopRepeat: boolean;
   padLoopSequence: number[];
+  padLoopPattern: PadLoopPatternState;
   pads: SequencerPadState[];
   steps: SequencerStepState[];
   runtimeLocalStep: number | null;
@@ -188,6 +219,7 @@ export interface DrummerSequencerTrackState {
   padLoopEnabled: boolean;
   padLoopRepeat: boolean;
   padLoopSequence: number[];
+  padLoopPattern: PadLoopPatternState;
   rows: DrummerSequencerRowState[];
   pads: DrummerSequencerPadState[];
   runtimeLocalStep: number | null;
@@ -235,6 +267,7 @@ export interface ControllerSequencerState {
   padLoopEnabled: boolean;
   padLoopRepeat: boolean;
   padLoopSequence: number[];
+  padLoopPattern: PadLoopPatternState;
   pads: ControllerSequencerPadState[];
   runtimePadStartStep: number | null;
   enabled: boolean;
@@ -266,7 +299,7 @@ export interface SequencerInstrumentBinding {
 }
 
 export interface SequencerConfigSnapshot {
-  version: 1 | 2 | 3;
+  version: 1 | 2 | 3 | 4;
   instruments: Array<{
     patchId: string;
     patchName?: string;
@@ -289,6 +322,7 @@ export interface SequencerConfigSnapshot {
       padLoopEnabled: boolean;
       padLoopRepeat: boolean;
       padLoopSequence: number[];
+      padLoopPattern?: PadLoopPatternState;
       pads: SequencerPadState[];
       enabled: boolean;
       queuedEnabled: boolean | null;
@@ -303,6 +337,7 @@ export interface SequencerConfigSnapshot {
       padLoopEnabled: boolean;
       padLoopRepeat: boolean;
       padLoopSequence: number[];
+      padLoopPattern?: PadLoopPatternState;
       rows: DrummerSequencerRowState[];
       pads: DrummerSequencerPadState[];
       enabled: boolean;
@@ -334,6 +369,7 @@ export interface SequencerConfigSnapshot {
       padLoopEnabled: boolean;
       padLoopRepeat: boolean;
       padLoopSequence: number[];
+      padLoopPattern?: PadLoopPatternState;
       enabled: boolean;
       pads: ControllerSequencerPadState[];
       keypoints: Array<{
