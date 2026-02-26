@@ -2478,6 +2478,10 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         assert platerev_outputs["aleft"]["signal_type"] == "a"
         assert platerev_outputs["aright"]["signal_type"] == "a"
 
+        reverb2_inputs = {item["id"]: item for item in opcodes_by_name["reverb2"]["inputs"]}
+        assert "israte" not in reverb2_inputs
+        assert reverb2_inputs["iskip"]["required"] is False
+
         downsamp_inputs = {item["id"]: item for item in opcodes_by_name["downsamp"]["inputs"]}
         downsamp_outputs = {item["id"]: item for item in opcodes_by_name["downsamp"]["outputs"]}
         assert downsamp_inputs["asig"]["signal_type"] == "a"
@@ -2716,6 +2720,42 @@ def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
         sfload_line_index = compiled_orc.splitlines().index(sfload_line)
         assert sfload_line.startswith("gi_")
         assert sfload_line_index < instr_line_index
+
+
+def test_reverb2_compiles_with_iskip_without_optional_gap(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        patch_payload = {
+            "name": "Reverb2 SkipInit",
+            "description": "reverb2 should accept iskip as the only optional arg",
+            "schema_version": 1,
+            "graph": {
+                "nodes": [
+                    {"id": "n1", "opcode": "reverb2", "params": {"asig": 0, "iskip": 1}, "position": {"x": 20, "y": 20}},
+                    {"id": "n2", "opcode": "outs", "params": {}, "position": {"x": 220, "y": 20}},
+                ],
+                "connections": [
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "left"},
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "right"},
+                ],
+                "ui_layout": {},
+                "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+            },
+        }
+
+        create_patch = client.post("/api/patches", json=patch_payload)
+        assert create_patch.status_code == 201
+        patch_id = create_patch.json()["id"]
+
+        create_session = client.post("/api/sessions", json={"patch_id": patch_id})
+        assert create_session.status_code == 201
+        session_id = create_session.json()["session_id"]
+
+        compile_response = client.post(f"/api/sessions/{session_id}/compile")
+        assert compile_response.status_code == 200
+        compiled_orc = compile_response.json()["orc"]
+
+        reverb2_line = next(line.strip() for line in compiled_orc.splitlines() if " reverb2 " in line)
+        assert reverb2_line.endswith("reverb2 0, 1.5, 0.5, 1")
 
 
 def test_sfload_uploaded_asset_uses_relative_stored_name(tmp_path: Path) -> None:

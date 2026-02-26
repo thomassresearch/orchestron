@@ -2538,12 +2538,6 @@
         "french": "Paramètre HighFreqDamp au taux de contrôle.",
         "spanish": "Parámetro HighFreqDamp a velocidad de control."
       },
-      "israte": {
-        "english": "SampleRateScale parameter at init-rate.",
-        "german": "SampleRateScale-Parameter bei Init-Rate.",
-        "french": "Paramètre SampleRateScale au taux d'initialisation.",
-        "spanish": "Parámetro SampleRateScale en velocidad inicial."
-      },
       "iskip": {
         "english": "SkipInit parameter at init-rate.",
         "german": "SkipInit-Parameter bei Init-Rate.",

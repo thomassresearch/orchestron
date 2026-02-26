@@ -2050,11 +2050,10 @@ class OpcodeService:
                     PortSpec(id="asig", name="aIn", signal_type=SignalType.AUDIO),
                     PortSpec(id="krvt", name="ReverbTime", signal_type=SignalType.CONTROL, default=1.5),
                     PortSpec(id="khf", name="HighFreqDamp", signal_type=SignalType.CONTROL, default=0.5),
-                    PortSpec(id="israte", name="SampleRateScale", signal_type=SignalType.INIT, required=False),
                     PortSpec(id="iskip", name="SkipInit", signal_type=SignalType.INIT, required=False),
                 ],
                 outputs=[PortSpec(id="aout", name="aOut", signal_type=SignalType.AUDIO)],
-                template="{aout} reverb2 {asig}, {krvt}, {khf}, {israte}, {iskip}",
+                template="{aout} reverb2 {asig}, {krvt}, {khf}, {iskip}",
                 tags=["reverb", "effect"],
             ),
             self._spec(
