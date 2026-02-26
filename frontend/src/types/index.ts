@@ -305,6 +305,13 @@ export interface SequencerConfigSnapshot {
     patchName?: string;
     midiChannel: number;
   }>;
+  patchDefinitions?: Array<{
+    sourcePatchId: string;
+    name: string;
+    description: string;
+    schema_version: number;
+    graph: PatchGraph;
+  }>;
   sequencer: {
     bpm: number;
     stepCount: 16 | 32;

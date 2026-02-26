@@ -1013,6 +1013,7 @@ export default function App() {
   const refreshPerformances = useAppStore((state) => state.refreshPerformances);
   const loadPerformance = useAppStore((state) => state.loadPerformance);
   const clearCurrentPerformanceSelection = useAppStore((state) => state.clearCurrentPerformanceSelection);
+  const newPerformanceWorkspace = useAppStore((state) => state.newPerformanceWorkspace);
   const addInstrumentTab = useAppStore((state) => state.addInstrumentTab);
   const closeInstrumentTab = useAppStore((state) => state.closeInstrumentTab);
   const setActiveInstrumentTab = useAppStore((state) => state.setActiveInstrumentTab);
@@ -1748,6 +1749,13 @@ export default function App() {
     loadPerformance,
     refreshPerformances
   ]);
+
+  const onNewCurrentPerformance = useCallback(() => {
+    void (async () => {
+      setSequencerError(null);
+      await newPerformanceWorkspace();
+    })();
+  }, [newPerformanceWorkspace]);
 
   const onExportInstrumentDefinition = useCallback(() => {
     void (async () => {
@@ -3585,6 +3593,7 @@ export default function App() {
             onInstrumentChannelChange={updateSequencerInstrumentChannel}
             onPerformanceNameChange={(name) => setCurrentPerformanceMeta(name, performanceDescription)}
             onPerformanceDescriptionChange={(description) => setCurrentPerformanceMeta(performanceName, description)}
+            onNewPerformance={onNewCurrentPerformance}
             onSavePerformance={() => {
               void saveCurrentPerformance();
             }}

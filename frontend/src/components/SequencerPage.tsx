@@ -112,6 +112,7 @@ type SequencerUiCopy = {
   performanceDescriptionPlaceholder: string;
   loadPerformance: string;
   current: string;
+  newPerformance: string;
   addInstrument: string;
   savePerformance: string;
   clonePerformance: string;
@@ -253,6 +254,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     performanceDescriptionPlaceholder: "Stage-ready configuration",
     loadPerformance: "Load Performance",
     current: "Current",
+    newPerformance: "New",
     addInstrument: "Add Instrument",
     savePerformance: "Save Performance",
     clonePerformance: "Clone",
@@ -348,6 +350,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     performanceDescriptionPlaceholder: "Buehnentaugliche Konfiguration",
     loadPerformance: "Performance laden",
     current: "Aktuell",
+    newPerformance: "Neu",
     addInstrument: "Instrument hinzufuegen",
     savePerformance: "Performance speichern",
     clonePerformance: "Klonen",
@@ -443,6 +446,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     performanceDescriptionPlaceholder: "Configuration prete pour la scene",
     loadPerformance: "Charger performance",
     current: "Actuel",
+    newPerformance: "Nouveau",
     addInstrument: "Ajouter instrument",
     savePerformance: "Enregistrer performance",
     clonePerformance: "Cloner",
@@ -538,6 +542,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     performanceDescriptionPlaceholder: "Configuracion lista para escenario",
     loadPerformance: "Cargar performance",
     current: "Actual",
+    newPerformance: "Nuevo",
     addInstrument: "Agregar instrumento",
     savePerformance: "Guardar performance",
     clonePerformance: "Clonar",
@@ -1834,6 +1839,7 @@ interface SequencerPageProps {
   onInstrumentChannelChange: (bindingId: string, channel: number) => void;
   onPerformanceNameChange: (value: string) => void;
   onPerformanceDescriptionChange: (value: string) => void;
+  onNewPerformance: () => void;
   onSavePerformance: () => void;
   onClonePerformance: () => void;
   onDeletePerformance: () => void;
@@ -2921,6 +2927,7 @@ export function SequencerPage({
   onInstrumentChannelChange,
   onPerformanceNameChange,
   onPerformanceDescriptionChange,
+  onNewPerformance,
   onSavePerformance,
   onClonePerformance,
   onDeletePerformance,
@@ -3498,6 +3505,20 @@ export function SequencerPage({
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <button
             type="button"
+            onClick={onNewPerformance}
+            className="rounded-md border border-slate-500 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-300 hover:text-white"
+          >
+            {ui.newPerformance}
+          </button>
+          <button
+            type="button"
+            onClick={onClonePerformance}
+            className="rounded-md border border-slate-500 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-300 hover:text-white"
+          >
+            {ui.clonePerformance}
+          </button>
+          <button
+            type="button"
             onClick={onAddInstrument}
             className="rounded-md border border-accent/60 bg-accent/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-accent transition hover:bg-accent/25"
           >
@@ -3509,13 +3530,6 @@ export function SequencerPage({
             className="rounded-md border border-mint/55 bg-mint/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-mint transition hover:bg-mint/25"
           >
             {ui.savePerformance}
-          </button>
-          <button
-            type="button"
-            onClick={onClonePerformance}
-            className="rounded-md border border-slate-500 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-300 hover:text-white"
-          >
-            {ui.clonePerformance}
           </button>
           <button
             type="button"

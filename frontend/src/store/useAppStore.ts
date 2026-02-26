@@ -134,6 +134,7 @@ interface AppStore {
   loadPerformance: (performanceId: string) => Promise<void>;
   setCurrentPerformanceMeta: (name: string, description: string) => void;
   clearCurrentPerformanceSelection: () => void;
+  newPerformanceWorkspace: () => Promise<void>;
   saveCurrentPerformance: () => Promise<void>;
 
   addSequencerInstrument: () => void;
@@ -1022,6 +1023,20 @@ function defaultSequencerState(): SequencerState {
   };
 }
 
+function emptyPerformanceSequencerState(): SequencerState {
+  return {
+    ...defaultSequencerState(),
+    isPlaying: false,
+    playhead: 0,
+    cycle: 0,
+    tracks: [],
+    drummerTracks: [],
+    controllerSequencers: [],
+    pianoRolls: [],
+    midiControllers: []
+  };
+}
+
 function performanceDeviceCount(sequencer: SequencerState): number {
   return (
     sequencer.tracks.length +
@@ -1767,6 +1782,191 @@ function normalizePatch(patch: Patch): EditablePatch {
   };
 }
 
+type EmbeddedPerformancePatchDefinition = {
+  sourcePatchId: string;
+  name: string;
+  description: string;
+  schema_version: number;
+  graph: PatchGraph;
+};
+
+function toPatchListItem(patch: Patch): PatchListItem {
+  return {
+    id: patch.id,
+    name: patch.name,
+    description: patch.description,
+    schema_version: patch.schema_version,
+    updated_at: patch.updated_at
+  };
+}
+
+function normalizeNameKey(value: string): string {
+  return value.trim().toLocaleLowerCase();
+}
+
+function findPatchByName(patches: PatchListItem[], name: string): PatchListItem | null {
+  const target = normalizeNameKey(name);
+  if (target.length === 0) {
+    return null;
+  }
+  return patches.find((patch) => normalizeNameKey(patch.name) === target) ?? null;
+}
+
+function parseEmbeddedPerformancePatchDefinition(raw: unknown): EmbeddedPerformancePatchDefinition | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return null;
+  }
+
+  const record = raw as Record<string, unknown>;
+  const sourcePatchId = typeof record.sourcePatchId === "string" ? record.sourcePatchId.trim() : "";
+  const name = typeof record.name === "string" ? record.name.trim() : "";
+  const description = typeof record.description === "string" ? record.description : "";
+  const schemaVersion =
+    typeof record.schema_version === "number" && Number.isFinite(record.schema_version)
+      ? Math.max(1, Math.round(record.schema_version))
+      : 1;
+
+  if (
+    sourcePatchId.length === 0 ||
+    name.length === 0 ||
+    !record.graph ||
+    typeof record.graph !== "object" ||
+    Array.isArray(record.graph)
+  ) {
+    return null;
+  }
+
+  return {
+    sourcePatchId,
+    name,
+    description,
+    schema_version: schemaVersion,
+    graph: withNormalizedEngineConfig(record.graph as PatchGraph)
+  };
+}
+
+function embeddedPatchDefinitionsFromSnapshot(snapshot: unknown): EmbeddedPerformancePatchDefinition[] {
+  if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) {
+    return [];
+  }
+
+  const payload = snapshot as Record<string, unknown>;
+  const rawDefinitions =
+    Array.isArray(payload.patchDefinitions)
+      ? payload.patchDefinitions
+      : Array.isArray(payload.patch_definitions)
+        ? payload.patch_definitions
+        : [];
+
+  const definitions = rawDefinitions
+    .map((entry) => parseEmbeddedPerformancePatchDefinition(entry))
+    .filter((entry): entry is EmbeddedPerformancePatchDefinition => entry !== null);
+
+  const deduped = new Map<string, EmbeddedPerformancePatchDefinition>();
+  for (const definition of definitions) {
+    if (!deduped.has(definition.sourcePatchId)) {
+      deduped.set(definition.sourcePatchId, definition);
+    }
+  }
+  return [...deduped.values()];
+}
+
+function remapSnapshotPatchIds(
+  snapshot: SequencerConfigSnapshot,
+  patchIdMap: Map<string, string>,
+  patches: PatchListItem[]
+): SequencerConfigSnapshot {
+  return {
+    ...snapshot,
+    instruments: snapshot.instruments.map((instrument) => {
+      const mappedPatchId = patchIdMap.get(instrument.patchId);
+      if (mappedPatchId) {
+        return {
+          ...instrument,
+          patchId: mappedPatchId
+        };
+      }
+
+      if (typeof instrument.patchName === "string" && instrument.patchName.trim().length > 0) {
+        const existing = findPatchByName(patches, instrument.patchName);
+        if (existing) {
+          return {
+            ...instrument,
+            patchId: existing.id
+          };
+        }
+      }
+
+      return instrument;
+    })
+  };
+}
+
+async function hydrateEmbeddedPerformancePatches(
+  snapshot: SequencerConfigSnapshot,
+  patches: PatchListItem[]
+): Promise<{ snapshot: SequencerConfigSnapshot; patches: PatchListItem[] }> {
+  const definitions = embeddedPatchDefinitionsFromSnapshot(snapshot);
+  if (definitions.length === 0) {
+    return { snapshot, patches };
+  }
+
+  const referencedPatchIds = new Set(
+    snapshot.instruments.map((instrument) => instrument.patchId.trim()).filter((patchId) => patchId.length > 0)
+  );
+  const currentPatchIds = new Set(patches.map((patch) => patch.id));
+  const patchIdMap = new Map<string, string>();
+  let nextPatches = patches;
+  let createdAnyPatch = false;
+
+  for (const definition of definitions) {
+    if (!referencedPatchIds.has(definition.sourcePatchId)) {
+      continue;
+    }
+    if (currentPatchIds.has(definition.sourcePatchId)) {
+      continue;
+    }
+
+    const existingByName = findPatchByName(nextPatches, definition.name);
+    if (existingByName) {
+      patchIdMap.set(definition.sourcePatchId, existingByName.id);
+      continue;
+    }
+
+    const importedPatch = await api.createPatch({
+      name: definition.name,
+      description: definition.description,
+      schema_version: definition.schema_version,
+      graph: definition.graph
+    });
+
+    createdAnyPatch = true;
+    patchIdMap.set(definition.sourcePatchId, importedPatch.id);
+    currentPatchIds.add(importedPatch.id);
+    nextPatches = [toPatchListItem(importedPatch), ...nextPatches];
+  }
+
+  if (createdAnyPatch) {
+    nextPatches = await api.listPatches();
+  }
+
+  const patchNameById = new Map(definitions.map((definition) => [definition.sourcePatchId, definition.name]));
+  const snapshotWithPatchNames: SequencerConfigSnapshot = {
+    ...snapshot,
+    instruments: snapshot.instruments.map((instrument) => ({
+      ...instrument,
+      patchName: patchNameById.get(instrument.patchId) ?? instrument.patchName
+    }))
+  };
+
+  const remapped = remapSnapshotPatchIds(snapshotWithPatchNames, patchIdMap, nextPatches);
+
+  return {
+    snapshot: remapped,
+    patches: nextPatches
+  };
+}
+
 function defaultSequencerInstruments(patches: PatchListItem[], currentPatchId?: string): SequencerInstrumentBinding[] {
   const patchId = patches[0]?.id ?? currentPatchId;
   if (!patchId) {
@@ -2417,14 +2617,16 @@ export const useAppStore = create<AppStore>((set, get) => {
       try {
         const performance = await api.getPerformance(performanceId);
         const state = get();
-        const availablePatchIds = new Set(state.patches.map((patch) => patch.id));
+        const hydrated = await hydrateEmbeddedPerformancePatches(performance.config, state.patches);
+        const availablePatchIds = new Set(hydrated.patches.map((patch) => patch.id));
         if (state.currentPatch.id) {
           availablePatchIds.add(state.currentPatch.id);
         }
-        const fallbackPatchId = state.patches[0]?.id ?? state.currentPatch.id ?? null;
-        const parsed = parseSequencerConfigSnapshot(performance.config, availablePatchIds, fallbackPatchId);
+        const fallbackPatchId = hydrated.patches[0]?.id ?? state.currentPatch.id ?? null;
+        const parsed = parseSequencerConfigSnapshot(hydrated.snapshot, availablePatchIds, fallbackPatchId);
 
         set({
+          patches: hydrated.patches,
           sequencer: parsed.sequencer,
           sequencerInstruments: parsed.instruments,
           currentPerformanceId: performance.id,
@@ -2463,6 +2665,18 @@ export const useAppStore = create<AppStore>((set, get) => {
 
     clearCurrentPerformanceSelection: () => {
       set({ currentPerformanceId: null });
+    },
+
+    newPerformanceWorkspace: async () => {
+      set({
+        sequencer: emptyPerformanceSequencerState(),
+        sequencerInstruments: [],
+        currentPerformanceId: null,
+        performanceName: "new performance",
+        performanceDescription: "new performance",
+        compileOutput: null,
+        error: null
+      });
     },
 
     setGraph: (graph) => {
@@ -2572,13 +2786,33 @@ export const useAppStore = create<AppStore>((set, get) => {
         return;
       }
 
-      const snapshot = buildSequencerConfigSnapshot(state.sequencer, state.sequencerInstruments);
       set({ loading: true, error: null });
       try {
+        const snapshot = buildSequencerConfigSnapshot(state.sequencer, state.sequencerInstruments);
+        const selectedPatchIds = [
+          ...new Set(snapshot.instruments.map((instrument) => instrument.patchId.trim()).filter((patchId) => patchId.length > 0))
+        ];
+        const selectedPatches = await Promise.all(selectedPatchIds.map((patchId) => api.getPatch(patchId)));
+        const patchNameById = new Map(selectedPatches.map((patch) => [patch.id, patch.name]));
+        const configWithEmbeddedPatches: SequencerConfigSnapshot = {
+          ...snapshot,
+          instruments: snapshot.instruments.map((instrument) => ({
+            ...instrument,
+            patchName: patchNameById.get(instrument.patchId) ?? instrument.patchName
+          })),
+          patchDefinitions: selectedPatches.map((patch) => ({
+            sourcePatchId: patch.id,
+            name: patch.name,
+            description: patch.description,
+            schema_version: patch.schema_version,
+            graph: patch.graph
+          }))
+        };
+
         const payload = {
           name,
           description: state.performanceDescription,
-          config: snapshot
+          config: configWithEmbeddedPatches
         };
 
         const saved = state.currentPerformanceId

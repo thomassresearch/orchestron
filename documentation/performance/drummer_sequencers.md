@@ -91,6 +91,13 @@ Differences vs melodic sequencer pads:
 - no transpose edge buttons (`-` / `+`)
 - pad content is drum-row hit data + per-hit velocities (not note/chord/theory state)
 
+## Screenshots
+
+<p align="center">
+  <img src="../../screenshots/perform_sequencer_drummer.png" alt="Drummer sequencer" width="1100" style="max-width: 100%; height: auto;" />
+</p>
+<p align="center"><em>Drummer sequencer showing multiple drum rows, per-step hits, and velocity editing on the LED grid.</em></p>
+
 ## Typical Uses
 
 - Kick / snare / hat step programming
