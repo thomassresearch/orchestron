@@ -135,15 +135,15 @@
           "khf": 0.5
         },
         "position": {
-          "x": 255.90196120957424,
-          "y": -312.0154128929455
+          "x": 318.0935737404537,
+          "y": -316.6286972657265
         }
       },
       {
         "id": "e7b880f7-8b22-4b25-9533-300b519c3e37",
         "opcode": "const_i",
         "params": {
-          "value": "0.5"
+          "value": "1.5"
         },
         "position": {
           "x": -711.200684139039,
@@ -165,7 +165,7 @@
         "id": "5ee83d67-4915-4fbf-897b-72b3b0eed523",
         "opcode": "const_i",
         "params": {
-          "value": "1.5"
+          "value": "1.0"
         },
         "position": {
           "x": -962.4875387640544,
@@ -201,8 +201,45 @@
           "iscal": 1
         },
         "position": {
-          "x": -172.85305260623767,
-          "y": -404.45047344770165
+          "x": -222.49046987104538,
+          "y": -408.94965911273783
+        }
+      },
+      {
+        "id": "2f46141e-bda5-431d-9a89-c3421e5b58b2",
+        "opcode": "madsr",
+        "params": {
+          "iatt": 0.01,
+          "idec": 0.15,
+          "islev": 0.7,
+          "irel": 0.2,
+          "idel": 0
+        },
+        "position": {
+          "x": 94.28973566863132,
+          "y": -690.7824230616294
+        }
+      },
+      {
+        "id": "8e76e73e-6b91-4547-a17a-4c70ad908b9a",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.001"
+        },
+        "position": {
+          "x": -347.62527764809056,
+          "y": -745.4332753255859
+        }
+      },
+      {
+        "id": "825b94b1-8b9b-4fae-a7b6-4c1d737b58b4",
+        "opcode": "const_i",
+        "params": {
+          "value": "7.5"
+        },
+        "position": {
+          "x": -310.9137946215363,
+          "y": -561.2268618465082
         }
       }
     ],
@@ -332,6 +369,30 @@
         "from_port_id": "iamp",
         "to_node_id": "98ecc381-3913-496e-9d6c-e01be42b0c48",
         "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "8e76e73e-6b91-4547-a17a-4c70ad908b9a",
+        "from_port_id": "iout",
+        "to_node_id": "2f46141e-bda5-431d-9a89-c3421e5b58b2",
+        "to_port_id": "iatt"
+      },
+      {
+        "from_node_id": "8e76e73e-6b91-4547-a17a-4c70ad908b9a",
+        "from_port_id": "iout",
+        "to_node_id": "2f46141e-bda5-431d-9a89-c3421e5b58b2",
+        "to_port_id": "idec"
+      },
+      {
+        "from_node_id": "8e76e73e-6b91-4547-a17a-4c70ad908b9a",
+        "from_port_id": "iout",
+        "to_node_id": "2f46141e-bda5-431d-9a89-c3421e5b58b2",
+        "to_port_id": "islev"
+      },
+      {
+        "from_node_id": "825b94b1-8b9b-4fae-a7b6-4c1d737b58b4",
+        "from_port_id": "iout",
+        "to_node_id": "2f46141e-bda5-431d-9a89-c3421e5b58b2",
+        "to_port_id": "irel"
       }
     ],
     "ui_layout": {
@@ -402,7 +463,7 @@
             },
             {
               "token": "in3",
-              "from_node_id": "fb66e7f0-6a6b-4d3b-9275-7db3bbb20c41",
+              "from_node_id": "07a2d04c-8820-4f67-b5e7-90ebf45d047c",
               "from_port_id": "iout"
             }
           ]
