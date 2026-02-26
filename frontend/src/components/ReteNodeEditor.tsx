@@ -8,6 +8,7 @@ import { Presets as ReactPresets, ReactPlugin } from "rete-react-plugin";
 
 import {
   formulaTargetKey,
+  GRAPH_FORMULA_LITERAL_IDENTIFIERS,
   GRAPH_FORMULA_UNARY_FUNCTIONS,
   readInputFormulaMap,
   setInputFormulaConfig,
@@ -1709,6 +1710,16 @@ export function ReteNodeEditor({
                         className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 font-mono text-sm text-slate-200 transition hover:border-accent/70 hover:text-accent"
                       >
                         {functionName}()
+                      </button>
+                    ))}
+                    {GRAPH_FORMULA_LITERAL_IDENTIFIERS.map((literalName) => (
+                      <button
+                        key={`lit-${literalName}`}
+                        type="button"
+                        onClick={() => insertFormulaFragment(literalName)}
+                        className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 font-mono text-sm text-slate-200 transition hover:border-accent/70 hover:text-accent"
+                      >
+                        {literalName}
                       </button>
                     ))}
                   </div>

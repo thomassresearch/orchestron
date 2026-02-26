@@ -855,6 +855,7 @@ If multiple signals are connected to the **same input** of an opcode:
 | Token | Meaning |
 | --- | --- |
 | \`in1\`, \`in2\`, ... | Connected incoming signals |
+| \`sr\` | Audio sample rate configured for the patch |
 | \`+\`, \`-\`, \`*\`, \`/\` | Arithmetic operators |
 | \`(\`, \`)\` | Grouping / precedence |
 | \`abs()\`, \`ceil()\`, \`floor()\`, \`ampdb()\`, \`dbamp()\` | Unary functions |`,
@@ -871,6 +872,7 @@ Wenn mehrere Signale mit **demselben Eingang** eines Opcodes verbunden sind:
 | Token | Bedeutung |
 | --- | --- |
 | \`in1\`, \`in2\`, ... | Verbundene Eingangssignale |
+| \`sr\` | Im Patch konfigurierte Audio-Sample-Rate |
 | \`+\`, \`-\`, \`*\`, \`/\` | Arithmetische Operatoren |
 | \`(\`, \`)\` | Gruppierung / Priorität |
 | \`abs()\`, \`ceil()\`, \`floor()\`, \`ampdb()\`, \`dbamp()\` | Unäre Funktionen |`,
@@ -887,6 +889,7 @@ Si plusieurs signaux sont connectés à **la même entrée** d'un opcode :
 | Token | Signification |
 | --- | --- |
 | \`in1\`, \`in2\`, ... | Signaux entrants connectés |
+| \`sr\` | Fréquence d'échantillonnage audio configurée pour le patch |
 | \`+\`, \`-\`, \`*\`, \`/\` | Opérateurs arithmétiques |
 | \`(\`, \`)\` | Groupement / priorité |
 | \`abs()\`, \`ceil()\`, \`floor()\`, \`ampdb()\`, \`dbamp()\` | Fonctions unaires |`,
@@ -903,6 +906,7 @@ Si múltiples señales están conectadas a **la misma entrada** de un opcode:
 | Token | Significado |
 | --- | --- |
 | \`in1\`, \`in2\`, ... | Señales entrantes conectadas |
+| \`sr\` | Frecuencia de muestreo de audio configurada en el patch |
 | \`+\`, \`-\`, \`*\`, \`/\` | Operadores aritméticos |
 | \`(\`, \`)\` | Agrupación / precedencia |
 | \`abs()\`, \`ceil()\`, \`floor()\`, \`ampdb()\`, \`dbamp()\` | Funciones unarias |`

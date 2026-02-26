@@ -20,6 +20,7 @@ FORMULA_TARGET_KEY_SEPARATOR = "::"
 DEFAULT_CSOUND_SOFTWARE_BUFFER_SAMPLES = 128
 DEFAULT_CSOUND_HARDWARE_BUFFER_SAMPLES = 512
 FORMULA_UNARY_FUNCTIONS = frozenset({"abs", "ceil", "floor", "ampdb", "dbamp"})
+FORMULA_LITERAL_IDENTIFIERS = frozenset({"sr"})
 
 
 class CompilationError(Exception):
@@ -1016,11 +1017,13 @@ class CompilerService:
                     consume()
                     return f"{name}({argument})"
                 value = token_to_expression.get(name)
-                if not value:
-                    raise CompilationError(
-                        [f"Invalid formula for input '{context_label}': unknown input token '{name}'."]
-                    )
-                return value
+                if value:
+                    return value
+                if name in FORMULA_LITERAL_IDENTIFIERS:
+                    return name
+                raise CompilationError(
+                    [f"Invalid formula for input '{context_label}': unknown input token '{name}'."]
+                )
 
             if token.kind == "lparen":
                 consume()

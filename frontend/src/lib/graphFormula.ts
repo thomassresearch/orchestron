@@ -37,7 +37,9 @@ export interface GraphFormulaValidationResult {
 }
 
 export const GRAPH_FORMULA_UNARY_FUNCTIONS = ["abs", "ceil", "floor", "ampdb", "dbamp"] as const;
+export const GRAPH_FORMULA_LITERAL_IDENTIFIERS = ["sr"] as const;
 const GRAPH_FORMULA_UNARY_FUNCTION_SET = new Set<string>(GRAPH_FORMULA_UNARY_FUNCTIONS);
+const GRAPH_FORMULA_LITERAL_IDENTIFIER_SET = new Set<string>(GRAPH_FORMULA_LITERAL_IDENTIFIERS);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -337,7 +339,7 @@ export function validateGraphFormulaExpression(
         consume();
         return true;
       }
-      if (!allowedIdentifiers.has(token.value)) {
+      if (!allowedIdentifiers.has(token.value) && !GRAPH_FORMULA_LITERAL_IDENTIFIER_SET.has(token.value)) {
         errors.push(`Unknown input token '${token.value}'.`);
       }
       consume();

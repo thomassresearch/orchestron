@@ -617,6 +617,63 @@ def test_compile_uses_constant_input_formula_without_inbound_connection(tmp_path
         assert "k_c2_kout" in formula_line
 
 
+def test_compile_supports_sr_literal_in_input_formula(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        patch_payload = {
+            "name": "SR Literal Formula Patch",
+            "description": "formula can reference configured sample rate",
+            "schema_version": 1,
+            "graph": {
+                "nodes": [
+                    {"id": "c2", "opcode": "const_k", "params": {"value": 2}, "position": {"x": 40, "y": 150}},
+                    {"id": "m1", "opcode": "k_mul", "params": {}, "position": {"x": 240, "y": 100}},
+                    {"id": "k2a", "opcode": "k_to_a", "params": {}, "position": {"x": 430, "y": 100}},
+                    {"id": "out", "opcode": "outs", "params": {}, "position": {"x": 610, "y": 100}},
+                ],
+                "connections": [
+                    {"from_node_id": "c2", "from_port_id": "kout", "to_node_id": "m1", "to_port_id": "b"},
+                    {"from_node_id": "m1", "from_port_id": "kout", "to_node_id": "k2a", "to_port_id": "kin"},
+                    {"from_node_id": "k2a", "from_port_id": "aout", "to_node_id": "out", "to_port_id": "left"},
+                    {"from_node_id": "k2a", "from_port_id": "aout", "to_node_id": "out", "to_port_id": "right"},
+                ],
+                "ui_layout": {
+                    "input_formulas": {
+                        "m1::a": {
+                            "expression": "sr / 2",
+                            "inputs": [],
+                        }
+                    }
+                },
+                "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+            },
+        }
+
+        create_patch = client.post("/api/patches", json=patch_payload)
+        assert create_patch.status_code == 201
+        patch_id = create_patch.json()["id"]
+
+        create_session = client.post("/api/sessions", json={"patch_id": patch_id})
+        assert create_session.status_code == 201
+        session_id = create_session.json()["session_id"]
+
+        compile_response = client.post(f"/api/sessions/{session_id}/compile")
+        assert compile_response.status_code == 200
+        compiled_orc = compile_response.json()["orc"]
+        assert "sr = 48000" in compiled_orc
+
+        lines = compiled_orc.splitlines()
+        formula_line = ""
+        for index, line in enumerate(lines):
+            if "; node:m1 opcode:k_mul" in line and index + 1 < len(lines):
+                formula_line = lines[index + 1].strip()
+                break
+
+        assert formula_line
+        assert "sr" in formula_line
+        assert "/ 2" in formula_line
+        assert "k_c2_kout" in formula_line
+
+
 def test_compile_rejects_invalid_input_formula(tmp_path: Path) -> None:
     with _client(tmp_path) as client:
         patch_payload = {
@@ -1457,6 +1514,54 @@ def test_syncphasor_compile_flow(tmp_path: Path) -> None:
         assert syncphasor_line.endswith(", 0.25")
 
 
+def test_platerev_compile_flow(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        patch_payload = {
+            "name": "Platerev Patch",
+            "description": "platerev schema and compile coverage",
+            "schema_version": 1,
+            "graph": {
+                "nodes": [
+                    {"id": "n1", "opcode": "const_a", "params": {"value": 0.05}, "position": {"x": 40, "y": 120}},
+                    {
+                        "id": "n2",
+                        "opcode": "platerev",
+                        "params": {"itabexcite": 1, "itabouts": 1, "kbndry": 0.9},
+                        "position": {"x": 280, "y": 60},
+                    },
+                    {"id": "n3", "opcode": "outs", "params": {}, "position": {"x": 580, "y": 60}},
+                ],
+                "connections": [
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "aexcite1"},
+                    {"from_node_id": "n2", "from_port_id": "aleft", "to_node_id": "n3", "to_port_id": "left"},
+                    {"from_node_id": "n2", "from_port_id": "aright", "to_node_id": "n3", "to_port_id": "right"},
+                ],
+                "ui_layout": {},
+                "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+            },
+        }
+
+        create_patch = client.post("/api/patches", json=patch_payload)
+        assert create_patch.status_code == 201
+        patch_id = create_patch.json()["id"]
+
+        create_session = client.post("/api/sessions", json={"patch_id": patch_id})
+        assert create_session.status_code == 201
+        session_id = create_session.json()["session_id"]
+
+        compile_response = client.post(f"/api/sessions/{session_id}/compile")
+        assert compile_response.status_code == 200
+        compiled_orc = compile_response.json()["orc"]
+        assert "__VS_OPTIONAL_OMIT__" not in compiled_orc
+
+        platerev_line = next(line.strip() for line in compiled_orc.splitlines() if " platerev " in line)
+        outputs_fragment = platerev_line.split(" platerev ", 1)[0]
+        assert "," in outputs_fragment
+        assert "platerev 1, 1, 0.9" in platerev_line
+        assert "a_n1_aout" in platerev_line
+        assert platerev_line.endswith(", 0")
+
+
 def test_ftgen_output_connects_to_vco_ifn(tmp_path: Path) -> None:
     with _client(tmp_path) as client:
         patch_payload = {
@@ -2205,6 +2310,7 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         "poscil3": "https://csound.com/docs/manual/poscil3.html",
         "vibr": "https://csound.com/docs/manual/vibr.html",
         "vibrato": "https://csound.com/docs/manual/vibrato.html",
+        "voice": "https://csound.com/docs/manual/voice.html",
         "fmb3": "https://csound.com/docs/manual/fmb3.html",
         "fmbell": "https://csound.com/docs/manual/fmbell.html",
         "fmmetal": "https://csound.com/docs/manual/fmmetal.html",
@@ -2231,6 +2337,7 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         "flanger": "https://csound.com/docs/manual/flanger.html",
         "comb": "https://csound.com/docs/manual/comb.html",
         "reverb2": "https://csound.com/docs/manual/reverb2.html",
+        "platerev": "https://csound.com/docs/manual/platerev.html",
         "limit": "https://csound.com/docs/manual/limit.html",
         "dam": "https://csound.com/docs/manual/dam.html",
         "exciter": "https://csound.com/docs/manual/exciter.html",
@@ -2251,6 +2358,8 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         "rezzy": "https://csound.com/docs/manual/rezzy.html",
         "vclpf": "https://csound.com/docs/manual/vclpf.html",
         "tbvcf": "https://csound.com/docs/manual/tbvcf.html",
+        "statevar": "https://csound.com/docs/manual/statevar.html",
+        "skf": "https://csound.com/docs/manual/skf.html",
         "butterlp": "https://csound.com/docs/manual/butterlp.html",
         "butterbp": "https://csound.com/docs/manual/butterbp.html",
         "butterhp": "https://csound.com/docs/manual/butterhp.html",
@@ -2314,6 +2423,15 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         assert syncphasor_outputs["aphase"]["signal_type"] == "a"
         assert syncphasor_outputs["asyncout"]["signal_type"] == "a"
 
+        voice_inputs = {item["id"]: item for item in opcodes_by_name["voice"]["inputs"]}
+        voice_outputs = {item["id"]: item for item in opcodes_by_name["voice"]["outputs"]}
+        assert opcodes_by_name["voice"]["category"] == "oscillator"
+        assert voice_inputs["kamp"]["signal_type"] == "k"
+        assert voice_inputs["kfreq"]["signal_type"] == "k"
+        assert voice_inputs["ifn"]["signal_type"] == "i"
+        assert voice_inputs["ivfn"]["signal_type"] == "i"
+        assert voice_outputs["asig"]["signal_type"] == "a"
+
         moogvcf_inputs = {item["id"]: item for item in opcodes_by_name["moogvcf"]["inputs"]}
         moogvcf_outputs = {item["id"]: item for item in opcodes_by_name["moogvcf"]["outputs"]}
         assert moogvcf_inputs["xfco"]["accepted_signal_types"] == ["a", "k", "i"]
@@ -2327,6 +2445,38 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         assert upsamp_inputs["ksig"]["signal_type"] == "k"
         assert upsamp_inputs["ksig"]["accepted_signal_types"] == ["k", "i"]
         assert upsamp_outputs["aout"]["signal_type"] == "a"
+
+        statevar_inputs = {item["id"]: item for item in opcodes_by_name["statevar"]["inputs"]}
+        statevar_outputs = {item["id"]: item for item in opcodes_by_name["statevar"]["outputs"]}
+        assert statevar_inputs["ain"]["signal_type"] == "a"
+        assert statevar_inputs["xcf"]["accepted_signal_types"] == ["a", "k", "i"]
+        assert statevar_inputs["xq"]["accepted_signal_types"] == ["a", "k", "i"]
+        assert statevar_inputs["iosamps"]["required"] is False
+        assert statevar_inputs["istor"]["required"] is False
+        assert statevar_outputs["ahp"]["signal_type"] == "a"
+        assert statevar_outputs["alp"]["signal_type"] == "a"
+        assert statevar_outputs["abp"]["signal_type"] == "a"
+        assert statevar_outputs["abr"]["signal_type"] == "a"
+
+        skf_inputs = {item["id"]: item for item in opcodes_by_name["skf"]["inputs"]}
+        skf_outputs = {item["id"]: item for item in opcodes_by_name["skf"]["outputs"]}
+        assert skf_inputs["asig"]["signal_type"] == "a"
+        assert skf_inputs["xcf"]["accepted_signal_types"] == ["a", "k", "i"]
+        assert skf_inputs["xk"]["accepted_signal_types"] == ["a", "k", "i"]
+        assert skf_inputs["ihp"]["required"] is False
+        assert skf_inputs["istor"]["required"] is False
+        assert skf_outputs["aout"]["signal_type"] == "a"
+
+        platerev_inputs = {item["id"]: item for item in opcodes_by_name["platerev"]["inputs"]}
+        platerev_outputs = {item["id"]: item for item in opcodes_by_name["platerev"]["outputs"]}
+        assert opcodes_by_name["platerev"]["category"] == "reverb"
+        assert platerev_inputs["itabexcite"]["signal_type"] == "i"
+        assert platerev_inputs["itabouts"]["signal_type"] == "i"
+        assert platerev_inputs["kbndry"]["signal_type"] == "k"
+        assert platerev_inputs["aexcite1"]["signal_type"] == "a"
+        assert platerev_inputs["aexcite2"]["required"] is False
+        assert platerev_outputs["aleft"]["signal_type"] == "a"
+        assert platerev_outputs["aright"]["signal_type"] == "a"
 
         downsamp_inputs = {item["id"]: item for item in opcodes_by_name["downsamp"]["inputs"]}
         downsamp_outputs = {item["id"]: item for item in opcodes_by_name["downsamp"]["outputs"]}
@@ -2401,6 +2551,7 @@ def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
                     {"id": "n56", "opcode": "fof", "params": {}, "position": {"x": 20, "y": 2770}},
                     {"id": "n57", "opcode": "fof2", "params": {}, "position": {"x": 20, "y": 2820}},
                     {"id": "n58", "opcode": "fofilter", "params": {"ain": 0}, "position": {"x": 20, "y": 2870}},
+                    {"id": "n58b", "opcode": "voice", "params": {}, "position": {"x": 20, "y": 2895}},
                     {"id": "n59", "opcode": "inletk", "params": {"sname": "k_bus"}, "position": {"x": 20, "y": 2920}},
                     {"id": "n60", "opcode": "inleta", "params": {"sname": "a_bus"}, "position": {"x": 20, "y": 2970}},
                     {
@@ -2445,6 +2596,14 @@ def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
                     {"id": "n75", "opcode": "upsamp", "params": {"ksig": 0}, "position": {"x": 20, "y": 3720}},
                     {"id": "n76", "opcode": "downsamp", "params": {"asig": 0}, "position": {"x": 20, "y": 3770}},
                     {"id": "n77", "opcode": "fold", "params": {"asig": 0}, "position": {"x": 20, "y": 3820}},
+                    {"id": "n78", "opcode": "statevar", "params": {"ain": 0}, "position": {"x": 20, "y": 3870}},
+                    {"id": "n79", "opcode": "skf", "params": {"asig": 0}, "position": {"x": 20, "y": 3920}},
+                    {
+                        "id": "n80",
+                        "opcode": "platerev",
+                        "params": {"itabexcite": 1, "itabouts": 1, "aexcite1": 0},
+                        "position": {"x": 20, "y": 3970},
+                    },
                 ],
                 "connections": [
                     {"from_node_id": "n1", "from_port_id": "asig", "to_node_id": "n2", "to_port_id": "left"},
@@ -2522,10 +2681,13 @@ def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
             "butterhp",
             "butterbr",
             "tbvcf",
+            "statevar",
+            "skf",
             "clip",
             "fof",
             "fof2",
             "fofilter",
+            "voice",
             "inletk",
             "inleta",
             "outletk",
@@ -2545,8 +2707,10 @@ def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
             "upsamp",
             "downsamp",
             "fold",
+            "platerev",
         ]:
             assert opcode in compiled_orc
+        assert any(" voice " in line for line in compiled_orc.splitlines())
         sfload_line = next(line for line in compiled_orc.splitlines() if ' sfload "/tmp/test.sf2"' in line)
         instr_line_index = compiled_orc.splitlines().index("instr 1")
         sfload_line_index = compiled_orc.splitlines().index(sfload_line)

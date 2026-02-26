@@ -43,6 +43,7 @@ The assistant provides insertion buttons for:
 - Operators: `+`, `-`, `*`, `/`
 - Grouping: `(`, `)`
 - Unary functions: `abs()`, `ceil()`, `floor()`, `ampdb()`, `dbamp()`
+- Built-in literals: `sr` (configured audio sample rate)
 - Custom numeric literals via the number entry field
 
 ### Formula Text Area
@@ -67,7 +68,7 @@ Validation includes:
 - Supported characters/operators only
 - Balanced parentheses
 - Valid token ordering
-- Known identifiers only (`inN` tokens or supported unary function names)
+- Known identifiers only (`inN` tokens, supported built-in literals like `sr`, or supported unary function names)
 
 If validation fails:
 
@@ -111,6 +112,12 @@ abs(in1)
 
 ```text
 0.5
+```
+
+### Sample-Rate-Aware Expression
+
+```text
+sr * 0.5
 ```
 
 ## Screenshots
