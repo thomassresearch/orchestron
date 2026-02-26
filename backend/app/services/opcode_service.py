@@ -239,7 +239,7 @@ class OpcodeService:
                 description="Control-rate exponential breakpoint envelope generator.",
                 icon=self._icon("adsr.svg"),
                 inputs=[
-                    PortSpec(id="ia", name="Start", signal_type=SignalType.INIT, default=0.001),
+                    PortSpec(id="ia", name="Start", signal_type=SignalType.INIT, default=0.001, description="Start value"),
                     PortSpec(id="idur1", name="Dur1", signal_type=SignalType.INIT, default=0.05),
                     PortSpec(id="ib", name="Val1", signal_type=SignalType.INIT, default=1.0),
                     PortSpec(id="idur2", name="Dur2", signal_type=SignalType.INIT, required=False),
@@ -259,7 +259,7 @@ class OpcodeService:
                 description="Audio-rate exponential breakpoint envelope generator.",
                 icon=self._icon("adsr.svg"),
                 inputs=[
-                    PortSpec(id="ia", name="Start", signal_type=SignalType.INIT, default=0.001),
+                    PortSpec(id="ia", name="Start", signal_type=SignalType.INIT, default=0.001, description="Start value"),
                     PortSpec(id="idur1", name="Dur1", signal_type=SignalType.INIT, default=0.05),
                     PortSpec(id="ib", name="Val1", signal_type=SignalType.INIT, default=1.0),
                     PortSpec(id="idur2", name="Dur2", signal_type=SignalType.INIT, required=False),

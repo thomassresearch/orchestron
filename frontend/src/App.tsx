@@ -3714,6 +3714,7 @@ export default function App() {
                   <ReteNodeEditor
                     guiLanguage={guiLanguage}
                     graph={currentPatch.graph}
+                    graphLabel={currentPatch.name.trim().length > 0 ? currentPatch.name.trim() : "Untitled Patch"}
                     opcodes={opcodes}
                     viewportKey={`${activeInstrumentTabId}:${currentPatch.id ?? "draft"}`}
                     onGraphChange={onGraphChange}

@@ -36,6 +36,7 @@ export interface EditorSelection {
 interface ReteNodeEditorProps {
   guiLanguage: GuiLanguage;
   graph: PatchGraph;
+  graphLabel?: string;
   opcodes: OpcodeSpec[];
   viewportKey: string;
   onGraphChange: (graph: PatchGraph) => void;
@@ -458,6 +459,7 @@ function sourceLabelForConnection(
 export function ReteNodeEditor({
   guiLanguage,
   graph,
+  graphLabel,
   opcodes,
   viewportKey,
   onGraphChange,
@@ -470,6 +472,7 @@ export function ReteNodeEditor({
   deleteSelectionLabel
 }: ReteNodeEditorProps) {
   const copy = RETE_EDITOR_COPY[guiLanguage];
+  const resolvedGraphLabel = typeof graphLabel === "string" ? graphLabel.trim() : "";
   const resolvedOpcodeHelpLabel = opcodeHelpLabel ?? copy.showDocumentation;
   const resolvedDeleteSelectionLabel = deleteSelectionLabel ?? copy.deleteSelectedElements;
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -1566,6 +1569,11 @@ export function ReteNodeEditor({
         onDragLeave={() => setIsOpcodeDragOver(false)}
       >
         <div ref={containerRef} className="h-full w-full" />
+        {resolvedGraphLabel ? (
+          <div className="pointer-events-none absolute left-3 top-3 z-10 max-w-[70%] rounded-md border border-slate-700/90 bg-slate-950/90 px-2.5 py-1.5 shadow-lg shadow-black/30">
+            <div className="truncate text-xs font-semibold text-slate-100">{resolvedGraphLabel}</div>
+          </div>
+        ) : null}
         {onDeleteSelection ? (
           <button
             type="button"
