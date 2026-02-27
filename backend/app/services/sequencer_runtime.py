@@ -23,6 +23,7 @@ _DEFAULT_PADS = 8
 _MAX_STEPS = 32
 _SCHEDULER_SLEEP_S = 0.001
 _SCHEDULER_SPIN_THRESHOLD_S = 0.0008
+_PAUSE_STEP_COUNTS = frozenset({4, 8, 16, 32})
 
 
 def _clamp_midi_note(value: int) -> int:
@@ -248,6 +249,22 @@ class SessionSequencerRuntime:
         )
 
     @staticmethod
+    def _pause_step_count_from_token(token: int) -> int | None:
+        if token >= 0:
+            return None
+        step_count = abs(int(token))
+        return step_count if step_count in _PAUSE_STEP_COUNTS else None
+
+    @staticmethod
+    def _current_pad_loop_token(track: SequencerTrackRuntime) -> int | None:
+        if not track.pad_loop_enabled or not track.pad_loop_sequence:
+            return None
+        position = track.pad_loop_position
+        if position is None or position < 0 or position >= len(track.pad_loop_sequence):
+            return None
+        return track.pad_loop_sequence[position]
+
+    @staticmethod
     def _pad_loop_position_for_active_pad(track: SequencerTrackRuntime) -> int | None:
         if not track.pad_loop_enabled or not track.pad_loop_sequence:
             return None
@@ -264,9 +281,9 @@ class SessionSequencerRuntime:
             track.pad_loop_position = None
             return
 
-        first_pad = track.pad_loop_sequence[0]
-        if first_pad in track.pads:
-            track.active_pad = first_pad
+        first_token = track.pad_loop_sequence[0]
+        if first_token in track.pads:
+            track.active_pad = first_token
         track.pad_loop_position = 0
 
         if track.queued_pad == track.active_pad:
@@ -315,7 +332,6 @@ class SessionSequencerRuntime:
             current_position is None
             or current_position < 0
             or current_position >= len(sequence)
-            or sequence[current_position] != track.active_pad
         ):
             current_position = self._pad_loop_position_for_active_pad(track)
 
@@ -374,11 +390,26 @@ class SessionSequencerRuntime:
         return track.step_count if track.step_count in (4, 8, 16, 32) else 16
 
     @staticmethod
+    def _step_count_for_loop_token(track: SequencerTrackRuntime, token: int) -> int:
+        if token in track.pads:
+            return SessionSequencerRuntime._step_count_for_pad(track, token)
+        pause_step_count = SessionSequencerRuntime._pause_step_count_from_token(token)
+        if pause_step_count is not None:
+            return pause_step_count
+        return SessionSequencerRuntime._step_count_for_pad(track, track.active_pad)
+
+    @staticmethod
     def _active_pad_runtime(track: SequencerTrackRuntime) -> SequencerPadRuntime | None:
+        token = SessionSequencerRuntime._current_pad_loop_token(track)
+        if token is not None:
+            return track.pads.get(token)
         return track.pads.get(track.active_pad)
 
     @staticmethod
     def _active_pad_step_count(track: SequencerTrackRuntime) -> int:
+        token = SessionSequencerRuntime._current_pad_loop_token(track)
+        if token is not None:
+            return SessionSequencerRuntime._step_count_for_loop_token(track, token)
         return SessionSequencerRuntime._step_count_for_pad(track, track.active_pad)
 
     @staticmethod
@@ -396,10 +427,12 @@ class SessionSequencerRuntime:
         if not SessionSequencerRuntime._local_boundary_reached_for_next_step(track, next_step):
             return False
         if track.pad_loop_enabled and track.pad_loop_sequence:
-            return (
-                track.pad_loop_position == 0
-                and track.active_pad == track.pad_loop_sequence[0]
-            )
+            if track.pad_loop_position != 0:
+                return False
+            first_token = track.pad_loop_sequence[0]
+            if first_token in track.pads:
+                return track.active_pad == first_token
+            return SessionSequencerRuntime._pause_step_count_from_token(first_token) is not None
         return True
 
     def _reset_track_for_sync_locked(self, track_id: str, track: SequencerTrackRuntime, next_step: int) -> None:
@@ -438,7 +471,6 @@ class SessionSequencerRuntime:
         if (
             current_position < 0
             or current_position >= len(sequence)
-            or sequence[current_position] != track.active_pad
         ):
             current_position = self._pad_loop_position_for_active_pad(track)
             if current_position is None:
@@ -538,16 +570,20 @@ class SessionSequencerRuntime:
                         track.queued_enabled = None
                         track.queued_pad = None
                         self._release_track_notes_locked(track_id, track.midi_channel)
-                    elif next_pad_from_loop is not None and next_pad_from_loop != track.active_pad:
-                        track.active_pad = next_pad_from_loop
-                        track.queued_pad = None
-                        switch_payloads.append(
-                            {
-                                "track_id": track.track_id,
-                                "active_pad": track.active_pad,
-                                "cycle": self._cycle,
-                            }
-                        )
+                    elif next_pad_from_loop is not None:
+                        if next_pad_from_loop in track.pads and next_pad_from_loop != track.active_pad:
+                            track.active_pad = next_pad_from_loop
+                            track.queued_pad = None
+                            switch_payloads.append(
+                                {
+                                    "track_id": track.track_id,
+                                    "active_pad": track.active_pad,
+                                    "cycle": self._cycle,
+                                }
+                            )
+                        elif self._pause_step_count_from_token(next_pad_from_loop) is not None:
+                            # Ensure held notes stop when entering a pause token.
+                            self._release_track_notes_locked(track_id, track.midi_channel)
 
             for track_id, track in config.tracks.items():
                 if self._track_at_sync_boundary_locked(track, next_step):
@@ -653,6 +689,9 @@ class SessionSequencerRuntime:
         if not messages:
             return
         try:
+            if len(messages) == 1:
+                self._midi_service.send_message(self._midi_input_selector, messages[0])
+                return
             self._midi_service.send_messages(self._midi_input_selector, messages)
         except Exception as exc:  # pragma: no cover - runtime dependent
             logger.warning("Sequencer MIDI batch failed: %s", exc)
@@ -741,9 +780,13 @@ class SessionSequencerRuntime:
     def _normalize_pad_loop_sequence(raw_sequence: list[int]) -> tuple[int, ...]:
         normalized: list[int] = []
         for entry in raw_sequence[:256]:
-            pad_index = int(entry)
-            if 0 <= pad_index < _DEFAULT_PADS:
-                normalized.append(pad_index)
+            token = int(entry)
+            if 0 <= token < _DEFAULT_PADS:
+                normalized.append(token)
+                continue
+            pause_step_count = SessionSequencerRuntime._pause_step_count_from_token(token)
+            if pause_step_count is not None:
+                normalized.append(-pause_step_count)
         return tuple(normalized)
 
     @staticmethod

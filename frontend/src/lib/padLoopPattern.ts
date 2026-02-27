@@ -1,5 +1,6 @@
 import type {
   PadLoopGroupPatternState,
+  PadLoopPauseStepCount,
   PadLoopPatternItem,
   PadLoopPatternState,
   PadLoopSuperGroupPatternState
@@ -7,7 +8,9 @@ import type {
 
 export const PAD_LOOP_PAD_COUNT = 8;
 export const PAD_LOOP_COMPILED_MAX_LENGTH = 256;
+export const PAD_LOOP_PAUSE_STEP_OPTIONS: readonly PadLoopPauseStepCount[] = [4, 8, 16, 32];
 const MAX_PATTERN_DEFINITIONS = 256;
+const PAD_LOOP_PAUSE_STEP_SET = new Set<number>(PAD_LOOP_PAUSE_STEP_OPTIONS);
 
 const GROUP_LABEL_RE = /^[A-Z]+$/;
 const SUPER_GROUP_LABEL_RE = /^[IVXLCDM]+$/;
@@ -39,8 +42,65 @@ function clampInt(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, Math.round(value)));
 }
 
+function normalizePadLoopPauseStepCount(value: unknown): PadLoopPauseStepCount | null {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return null;
+  }
+  const rounded = Math.round(value);
+  if (PAD_LOOP_PAUSE_STEP_SET.has(rounded)) {
+    return rounded as PadLoopPauseStepCount;
+  }
+  return null;
+}
+
 export function normalizePadIndex(value: number): number {
   return clampInt(value, 0, PAD_LOOP_PAD_COUNT - 1);
+}
+
+export function encodePadLoopPauseToken(stepCount: PadLoopPauseStepCount): number {
+  return -stepCount;
+}
+
+export function decodePadLoopPauseToken(token: number): PadLoopPauseStepCount | null {
+  if (!Number.isFinite(token)) {
+    return null;
+  }
+  const rounded = Math.round(token);
+  if (rounded >= 0) {
+    return null;
+  }
+  const pauseStepCount = Math.abs(rounded);
+  if (!PAD_LOOP_PAUSE_STEP_SET.has(pauseStepCount)) {
+    return null;
+  }
+  return pauseStepCount as PadLoopPauseStepCount;
+}
+
+export function normalizePadLoopSequenceToken(value: number): number | null {
+  if (!Number.isFinite(value)) {
+    return null;
+  }
+  const rounded = Math.round(value);
+  const pauseStepCount = decodePadLoopPauseToken(rounded);
+  if (pauseStepCount !== null) {
+    return encodePadLoopPauseToken(pauseStepCount);
+  }
+  if (rounded >= 0 && rounded < PAD_LOOP_PAD_COUNT) {
+    return normalizePadIndex(rounded);
+  }
+  return null;
+}
+
+export function padLoopPatternItemFromSequenceToken(value: number): PadLoopPatternItem | null {
+  const normalized = normalizePadLoopSequenceToken(value);
+  if (normalized === null) {
+    return null;
+  }
+  const pauseStepCount = decodePadLoopPauseToken(normalized);
+  if (pauseStepCount !== null) {
+    return { type: "pause", stepCount: pauseStepCount };
+  }
+  return { type: "pad", padIndex: normalizePadIndex(normalized) };
 }
 
 export function isPadLoopGroupId(value: string): boolean {
@@ -71,6 +131,12 @@ export function clonePadLoopPatternItem(item: PadLoopPatternItem): PadLoopPatter
   if (item.type === "pad") {
     return { type: "pad", padIndex: normalizePadIndex(item.padIndex) };
   }
+  if (item.type === "pause") {
+    return {
+      type: "pause",
+      stepCount: normalizePadLoopPauseStepCount(item.stepCount) ?? 4
+    };
+  }
   if (item.type === "group") {
     return { type: "group", groupId: item.groupId };
   }
@@ -100,7 +166,7 @@ export function createEmptyPadLoopPattern(): PadLoopPatternState {
 }
 
 function itemLevel(item: PadLoopPatternItem): 0 | 1 | 2 {
-  if (item.type === "pad") {
+  if (item.type === "pad" || item.type === "pause") {
     return 0;
   }
   if (item.type === "group") {
@@ -121,7 +187,7 @@ export function padLoopContainerLevel(container: PadLoopContainerRef): 1 | 2 | 3
 
 function normalizeRootItem(raw: unknown): PadLoopPatternItem | null {
   if (typeof raw === "number" && Number.isFinite(raw)) {
-    return { type: "pad", padIndex: normalizePadIndex(raw) };
+    return padLoopPatternItemFromSequenceToken(raw);
   }
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
     return null;
@@ -134,6 +200,10 @@ function normalizeRootItem(raw: unknown): PadLoopPatternItem | null {
       return null;
     }
     return { type: "pad", padIndex: normalizePadIndex(padIndex) };
+  }
+  if (rawType === "pause") {
+    const stepCount = normalizePadLoopPauseStepCount(item.stepCount ?? item.step_count ?? item.steps ?? item.length);
+    return stepCount === null ? null : { type: "pause", stepCount };
   }
   if (rawType === "group") {
     const groupId = sanitizeGroupId(item.groupId ?? item.group_id ?? item.id);
@@ -201,11 +271,48 @@ function sanitizePatternWithHierarchyRules(pattern: PadLoopPatternState): PadLoo
   const groupIds = new Set(pattern.groups.map((group) => group.id));
   const superGroupIds = new Set(pattern.superGroups.map((group) => group.id));
 
+  const sanitizeGroupSequence = (source: PadLoopPatternItem[]): PadLoopPatternItem[] =>
+    source
+      .filter(
+        (item): item is Extract<PadLoopPatternItem, { type: "pad" | "pause" }> =>
+          item.type === "pad" || item.type === "pause"
+      )
+      .map((item) =>
+        item.type === "pad"
+          ? ({ type: "pad", padIndex: normalizePadIndex(item.padIndex) } satisfies PadLoopPatternItem)
+          : ({
+              type: "pause",
+              stepCount: normalizePadLoopPauseStepCount(item.stepCount) ?? 4
+            } satisfies PadLoopPatternItem)
+      );
+
+  const sanitizeSuperGroupSequence = (source: PadLoopPatternItem[]): PadLoopPatternItem[] => {
+    const next: PadLoopPatternItem[] = [];
+    for (const item of source) {
+      if (item.type === "pad") {
+        next.push({ type: "pad", padIndex: normalizePadIndex(item.padIndex) });
+        continue;
+      }
+      if (item.type === "pause") {
+        next.push({ type: "pause", stepCount: normalizePadLoopPauseStepCount(item.stepCount) ?? 4 });
+        continue;
+      }
+      if (item.type === "group" && groupIds.has(item.groupId)) {
+        next.push({ type: "group", groupId: item.groupId });
+      }
+    }
+    return next;
+  };
+
   const sanitizeRootSequence = (source: PadLoopPatternItem[]): PadLoopPatternItem[] => {
     const next: PadLoopPatternItem[] = [];
     for (const item of source) {
       if (item.type === "pad") {
         next.push({ type: "pad", padIndex: normalizePadIndex(item.padIndex) });
+        continue;
+      }
+      if (item.type === "pause") {
+        next.push({ type: "pause", stepCount: normalizePadLoopPauseStepCount(item.stepCount) ?? 4 });
         continue;
       }
       if (item.type === "group" && groupIds.has(item.groupId)) {
@@ -219,35 +326,62 @@ function sanitizePatternWithHierarchyRules(pattern: PadLoopPatternState): PadLoo
     return next;
   };
 
-  const sanitizeGroupSequence = (source: PadLoopPatternItem[]): PadLoopPatternItem[] =>
-    source
-      .filter((item): item is Extract<PadLoopPatternItem, { type: "pad" }> => item.type === "pad")
-      .map((item) => ({ type: "pad", padIndex: normalizePadIndex(item.padIndex) }));
+  const sanitizedGroups = pattern.groups.map((group) => ({
+    id: group.id,
+    sequence: sanitizeGroupSequence(group.sequence)
+  }));
+  const sanitizedSuperGroups = pattern.superGroups.map((group) => ({
+    id: group.id,
+    sequence: sanitizeSuperGroupSequence(group.sequence)
+  }));
+  const sanitizedRootSequence = sanitizeRootSequence(pattern.rootSequence);
 
-  const sanitizeSuperGroupSequence = (source: PadLoopPatternItem[]): PadLoopPatternItem[] => {
-    const next: PadLoopPatternItem[] = [];
-    for (const item of source) {
-      if (item.type === "pad") {
-        next.push({ type: "pad", padIndex: normalizePadIndex(item.padIndex) });
-        continue;
-      }
-      if (item.type === "group" && groupIds.has(item.groupId)) {
-        next.push({ type: "group", groupId: item.groupId });
+  // Keep only definitions that are reachable from the main sequence.
+  const reachableSuperGroupIds = new Set<string>();
+  const reachableGroupIds = new Set<string>();
+  for (const item of sanitizedRootSequence) {
+    if (item.type === "group") {
+      reachableGroupIds.add(item.groupId);
+      continue;
+    }
+    if (item.type === "super") {
+      reachableSuperGroupIds.add(item.superGroupId);
+    }
+  }
+
+  for (const group of sanitizedSuperGroups) {
+    if (!reachableSuperGroupIds.has(group.id)) {
+      continue;
+    }
+    for (const item of group.sequence) {
+      if (item.type === "group") {
+        reachableGroupIds.add(item.groupId);
       }
     }
-    return next;
-  };
+  }
+
+  const filteredGroups = sanitizedGroups.filter((group) => reachableGroupIds.has(group.id));
+  const filteredGroupIds = new Set(filteredGroups.map((group) => group.id));
+
+  const filteredSuperGroups = sanitizedSuperGroups
+    .filter((group) => reachableSuperGroupIds.has(group.id))
+    .map((group) => ({
+      ...group,
+      sequence: group.sequence.filter(
+        (item) => item.type === "pad" || (item.type === "group" && filteredGroupIds.has(item.groupId))
+      )
+    }));
 
   return {
-    rootSequence: sanitizeRootSequence(pattern.rootSequence),
-    groups: pattern.groups.map((group) => ({
-      id: group.id,
-      sequence: sanitizeGroupSequence(group.sequence)
-    })),
-    superGroups: pattern.superGroups.map((group) => ({
-      id: group.id,
-      sequence: sanitizeSuperGroupSequence(group.sequence)
-    }))
+    rootSequence: sanitizedRootSequence.filter(
+      (item) =>
+        item.type === "pad" ||
+        item.type === "pause" ||
+        (item.type === "group" && filteredGroupIds.has(item.groupId)) ||
+        (item.type === "super" && reachableSuperGroupIds.has(item.superGroupId))
+    ),
+    groups: filteredGroups,
+    superGroups: filteredSuperGroups
   };
 }
 
@@ -566,6 +700,9 @@ function resolvedImmediateSequence(
   if (item.type === "pad") {
     return [clonePadLoopPatternItem(item)];
   }
+  if (item.type === "pause") {
+    return [clonePadLoopPatternItem(item)];
+  }
   if (item.type === "group") {
     const group = pattern.groups.find((candidate) => candidate.id === item.groupId);
     return group ? group.sequence.map(clonePadLoopPatternItem) : [];
@@ -644,6 +781,10 @@ export function compilePadLoopPattern(pattern: PadLoopPatternState): CompiledPad
       sequence.push(normalizePadIndex(item.padIndex));
       return;
     }
+    if (item.type === "pause") {
+      sequence.push(encodePadLoopPauseToken(item.stepCount));
+      return;
+    }
     if (item.type === "group") {
       if (path.includes(`group:${item.groupId}`)) {
         return;
@@ -694,13 +835,16 @@ export function itemDisplayLabel(item: PadLoopPatternItem): string {
   if (item.type === "pad") {
     return String(normalizePadIndex(item.padIndex) + 1);
   }
+  if (item.type === "pause") {
+    return `P${item.stepCount}`;
+  }
   if (item.type === "group") {
     return item.groupId;
   }
   return item.superGroupId;
 }
 
-export function itemColorKind(item: PadLoopPatternItem): "pad" | "group" | "super" {
+export function itemColorKind(item: PadLoopPatternItem): "pad" | "pause" | "group" | "super" {
   return item.type;
 }
 
@@ -738,4 +882,3 @@ export function canCreatePadLoopGroupFromSelection(
   }
   return true;
 }
-

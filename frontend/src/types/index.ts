@@ -126,6 +126,7 @@ export interface SequencerStepState {
 }
 
 export type DrummerSequencerStepCount = 4 | 8 | 16 | 32;
+export type PadLoopPauseStepCount = 4 | 8 | 16 | 32;
 
 export interface DrummerSequencerCellState {
   active: boolean;
@@ -148,7 +149,7 @@ export interface DrummerSequencerPadState {
 }
 
 export interface SequencerPadState {
-  stepCount: 16 | 32;
+  stepCount: 4 | 8 | 16 | 32;
   steps: SequencerStepState[];
   scaleRoot: SequencerScaleRoot;
   scaleType: SequencerScaleType;
@@ -159,6 +160,10 @@ export type PadLoopPatternItem =
   | {
       type: "pad";
       padIndex: number;
+    }
+  | {
+      type: "pause";
+      stepCount: PadLoopPauseStepCount;
     }
   | {
       type: "group";
@@ -189,7 +194,7 @@ export interface SequencerTrackState {
   id: string;
   name: string;
   midiChannel: number;
-  stepCount: 16 | 32;
+  stepCount: 4 | 8 | 16 | 32;
   syncToTrackId: string | null;
   scaleRoot: SequencerScaleRoot;
   scaleType: SequencerScaleType;
@@ -320,7 +325,7 @@ export interface SequencerConfigSnapshot {
       id: string;
       name: string;
       midiChannel: number;
-      stepCount: 16 | 32;
+      stepCount: 4 | 8 | 16 | 32;
       syncToTrackId: string | null;
       scaleRoot: SequencerScaleRoot;
       scaleType: SequencerScaleType;

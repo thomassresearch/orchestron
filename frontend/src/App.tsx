@@ -12,6 +12,7 @@ import { RuntimePanel } from "./components/RuntimePanel";
 import { SequencerPage } from "./components/SequencerPage";
 import { documentationUiCopy, getHelpDocument } from "./lib/documentation";
 import { GUI_LANGUAGE_OPTIONS } from "./lib/guiLanguage";
+import { decodePadLoopPauseToken } from "./lib/padLoopPattern";
 import { buildSequencerStepChordMidiNotes, resolveMidiInputName, sampleControllerCurveValue } from "./lib/sequencer";
 import { useAppStore } from "./store/useAppStore";
 import orchestronIcon from "./assets/orchestron-icon.png";
@@ -56,6 +57,39 @@ function controllerSequencerPadIndex(value: number): number {
   return Math.max(0, Math.min(7, Math.round(value)));
 }
 
+function normalizeControllerSequencerPadLoopToken(value: number): number | null {
+  if (!Number.isFinite(value)) {
+    return null;
+  }
+  const rounded = Math.round(value);
+  if (rounded >= 0 && rounded <= 7) {
+    return rounded;
+  }
+  const pauseStepCount = decodePadLoopPauseToken(rounded);
+  if (pauseStepCount !== null) {
+    return -pauseStepCount;
+  }
+  return null;
+}
+
+function normalizeControllerSequencerPadLoopSequence(rawSequence: number[]): number[] {
+  const normalized: number[] = [];
+  for (const entry of rawSequence) {
+    const token = normalizeControllerSequencerPadLoopToken(entry);
+    if (token !== null) {
+      normalized.push(token);
+    }
+  }
+  return normalized;
+}
+
+function controllerSequencerPadLoopTokenAtPosition(sequence: number[], position: number | null): number | null {
+  if (position === null || position < 0 || position >= sequence.length) {
+    return null;
+  }
+  return sequence[position] ?? null;
+}
+
 function controllerSequencerPadState(
   controllerSequencer: ControllerSequencerState,
   padIndex: number
@@ -92,10 +126,26 @@ function controllerSequencerPadLoopPositionForActivePad(
     return null;
   }
   const normalizedActivePad = controllerSequencerPadIndex(activePad);
-  const position = controllerSequencer.padLoopSequence.findIndex(
-    (padIndex) => controllerSequencerPadIndex(padIndex) === normalizedActivePad
-  );
+  const sequence = normalizeControllerSequencerPadLoopSequence(controllerSequencer.padLoopSequence);
+  const position = sequence.findIndex((token) => token >= 0 && token === normalizedActivePad);
   return position >= 0 ? position : null;
+}
+
+function controllerSequencerStepCountForLoopToken(
+  controllerSequencer: ControllerSequencerState,
+  token: number | null,
+  fallbackPadIndex: number
+): number {
+  if (typeof token === "number") {
+    if (token >= 0) {
+      return Math.max(1, controllerSequencerPadState(controllerSequencer, token).stepCount);
+    }
+    const pauseStepCount = decodePadLoopPauseToken(token);
+    if (pauseStepCount !== null) {
+      return pauseStepCount;
+    }
+  }
+  return Math.max(1, controllerSequencerPadState(controllerSequencer, fallbackPadIndex).stepCount);
 }
 
 function controllerSequencerManualCycleJumpUpdate(
@@ -123,33 +173,39 @@ function controllerSequencerManualCycleJumpUpdate(
       : null;
 
   if (controllerSequencer.padLoopEnabled && controllerSequencer.padLoopSequence.length > 0) {
-    const sequence = controllerSequencer.padLoopSequence.map((padIndex) => controllerSequencerPadIndex(padIndex));
-    let currentPosition = padLoopPosition;
-    if (
-      currentPosition === null ||
-      currentPosition < 0 ||
-      currentPosition >= sequence.length ||
-      sequence[currentPosition] !== activePad
-    ) {
-      currentPosition = controllerSequencerPadLoopPositionForActivePad(controllerSequencer, activePad);
-    }
-
-    let nextPosition: number;
-    if (currentPosition === null) {
-      nextPosition = direction > 0 ? 0 : Math.max(0, sequence.length - 1);
+    const sequence = normalizeControllerSequencerPadLoopSequence(controllerSequencer.padLoopSequence);
+    if (sequence.length === 0) {
+      padLoopPosition = null;
     } else {
-      const proposedPosition = currentPosition + direction;
-      if (proposedPosition < 0) {
-        nextPosition = controllerSequencer.padLoopRepeat ? Math.max(0, sequence.length - 1) : 0;
-      } else if (proposedPosition >= sequence.length) {
-        nextPosition = controllerSequencer.padLoopRepeat ? 0 : Math.max(0, sequence.length - 1);
+      let currentPosition = padLoopPosition;
+      if (
+        currentPosition === null ||
+        currentPosition < 0 ||
+        currentPosition >= sequence.length
+      ) {
+        currentPosition = controllerSequencerPadLoopPositionForActivePad(controllerSequencer, activePad);
+      }
+
+      let nextPosition: number;
+      if (currentPosition === null) {
+        nextPosition = direction > 0 ? 0 : Math.max(0, sequence.length - 1);
       } else {
-        nextPosition = proposedPosition;
+        const proposedPosition = currentPosition + direction;
+        if (proposedPosition < 0) {
+          nextPosition = controllerSequencer.padLoopRepeat ? Math.max(0, sequence.length - 1) : 0;
+        } else if (proposedPosition >= sequence.length) {
+          nextPosition = controllerSequencer.padLoopRepeat ? 0 : Math.max(0, sequence.length - 1);
+        } else {
+          nextPosition = proposedPosition;
+        }
+      }
+
+      padLoopPosition = nextPosition;
+      const nextToken = sequence[nextPosition];
+      if (typeof nextToken === "number" && nextToken >= 0) {
+        activePad = nextToken;
       }
     }
-
-    padLoopPosition = nextPosition;
-    activePad = sequence[nextPosition] ?? activePad;
   } else {
     padLoopPosition = null;
   }
@@ -172,7 +228,7 @@ function controllerSequencerSignature(controllerSequencer: ControllerSequencerSt
     controllerNumber: controllerSequencer.controllerNumber,
     padLoopEnabled: controllerSequencer.padLoopEnabled,
     padLoopRepeat: controllerSequencer.padLoopRepeat,
-    padLoopSequence: controllerSequencer.padLoopSequence.map((padIndex) => controllerSequencerPadIndex(padIndex)),
+    padLoopSequence: normalizeControllerSequencerPadLoopSequence(controllerSequencer.padLoopSequence),
     pads: controllerSequencer.pads.map((pad) => ({
       stepCount: pad.stepCount,
       keypoints: pad.keypoints.map((keypoint) => ({
@@ -520,12 +576,12 @@ function toPatchListItem(patch: Patch): PatchListItem {
   };
 }
 
-function transportStepCountFromTracks(stepCounts: Array<{ stepCount: 16 | 32 }>): 16 | 32 {
+function transportStepCountFromTracks(stepCounts: Array<{ stepCount: 4 | 8 | 16 | 32 }>): 16 | 32 {
   return stepCounts.some((entry) => entry.stepCount === 32) ? 32 : 16;
 }
 
 function transportStepCountFromPerformanceSequencers(
-  melodicTracks: Array<{ stepCount: 16 | 32; pads?: Array<{ stepCount: 16 | 32 }> }>,
+  melodicTracks: Array<{ stepCount: 4 | 8 | 16 | 32; pads?: Array<{ stepCount: 4 | 8 | 16 | 32 }> }>,
   drummerTracks: Array<{ stepCount: 4 | 8 | 16 | 32; pads?: Array<{ stepCount: 4 | 8 | 16 | 32 }> }>
 ): 16 | 32 {
   if (melodicTracks.some((entry) => entry.stepCount === 32 || entry.pads?.some((pad) => pad.stepCount === 32))) {
@@ -3040,6 +3096,9 @@ export default function App() {
           typeof controllerSequencer.padLoopPosition === "number" && Number.isFinite(controllerSequencer.padLoopPosition)
             ? Math.max(0, Math.round(controllerSequencer.padLoopPosition))
             : null;
+        const normalizedPadLoopSequence = normalizeControllerSequencerPadLoopSequence(
+          controllerSequencer.padLoopSequence
+        );
         let runtimeEnabled: boolean = controllerSequencer.enabled;
         const storeRuntimePadStartStep =
           typeof controllerSequencer.runtimePadStartStep === "number" && Number.isFinite(controllerSequencer.runtimePadStartStep)
@@ -3057,21 +3116,43 @@ export default function App() {
         const initialEnabled = runtimeEnabled;
 
         let activePadState = controllerSequencerPadState(controllerSequencer, runtimeActivePad);
-        let controllerStepCount = Math.max(1, activePadState.stepCount);
+        let currentLoopToken =
+          controllerSequencer.padLoopEnabled
+            ? controllerSequencerPadLoopTokenAtPosition(normalizedPadLoopSequence, runtimePadLoopPosition)
+            : null;
+        let controllerStepCount = controllerSequencerStepCountForLoopToken(
+          controllerSequencer,
+          currentLoopToken,
+          runtimeActivePad
+        );
 
         const shouldResetRuntimePhase =
           storeRuntimePadStartStep === null || !previous || previous.signature !== signature;
-        if (shouldResetRuntimePhase && controllerSequencer.padLoopEnabled && controllerSequencer.padLoopSequence.length > 0) {
-          runtimeActivePad = controllerSequencerPadIndex(controllerSequencer.padLoopSequence[0] ?? runtimeActivePad);
-          if (runtimeQueuedPad === runtimeActivePad) {
-            runtimeQueuedPad = null;
-          }
+        if (shouldResetRuntimePhase && controllerSequencer.padLoopEnabled && normalizedPadLoopSequence.length > 0) {
+          const firstToken = normalizedPadLoopSequence[0];
           runtimePadLoopPosition = 0;
+          if (typeof firstToken === "number" && firstToken >= 0) {
+            runtimeActivePad = firstToken;
+            if (runtimeQueuedPad === runtimeActivePad) {
+              runtimeQueuedPad = null;
+            }
+          }
           padStartStep = Math.floor(absoluteTransportSteps);
           activePadState = controllerSequencerPadState(controllerSequencer, runtimeActivePad);
-          controllerStepCount = Math.max(1, activePadState.stepCount);
-        } else if (!controllerSequencer.padLoopEnabled || controllerSequencer.padLoopSequence.length === 0) {
+          currentLoopToken = firstToken ?? null;
+          controllerStepCount = controllerSequencerStepCountForLoopToken(
+            controllerSequencer,
+            currentLoopToken,
+            runtimeActivePad
+          );
+        } else if (!controllerSequencer.padLoopEnabled || normalizedPadLoopSequence.length === 0) {
           runtimePadLoopPosition = null;
+          currentLoopToken = null;
+          controllerStepCount = controllerSequencerStepCountForLoopToken(
+            controllerSequencer,
+            currentLoopToken,
+            runtimeActivePad
+          );
         }
 
         if (currentSampleSerial - firstSerialToSend > controllerStepCount * CONTROLLER_SEQUENCER_SAMPLES_PER_STEP * 2) {
@@ -3089,30 +3170,44 @@ export default function App() {
                 runtimeQueuedPad = null;
                 padStartStep = boundaryStep;
                 activePadState = controllerSequencerPadState(controllerSequencer, runtimeActivePad);
-                controllerStepCount = Math.max(1, activePadState.stepCount);
+                currentLoopToken = controllerSequencer.padLoopEnabled
+                  ? controllerSequencerPadLoopTokenAtPosition(normalizedPadLoopSequence, runtimePadLoopPosition)
+                  : null;
+                controllerStepCount = controllerSequencerStepCountForLoopToken(
+                  controllerSequencer,
+                  currentLoopToken,
+                  runtimeActivePad
+                );
                 manualPadSwitchApplied = true;
               }
 
-              if (controllerSequencer.padLoopEnabled && controllerSequencer.padLoopSequence.length > 0) {
-                const padLoopSequence = controllerSequencer.padLoopSequence.map((padIndex) =>
-                  controllerSequencerPadIndex(padIndex)
-                );
-
+              if (controllerSequencer.padLoopEnabled && normalizedPadLoopSequence.length > 0) {
                 if (manualPadSwitchApplied) {
-                  runtimePadLoopPosition = controllerSequencerPadLoopPositionForActivePad(controllerSequencer, runtimeActivePad);
+                  runtimePadLoopPosition = controllerSequencerPadLoopPositionForActivePad(
+                    controllerSequencer,
+                    runtimeActivePad
+                  );
+                  currentLoopToken = controllerSequencerPadLoopTokenAtPosition(
+                    normalizedPadLoopSequence,
+                    runtimePadLoopPosition
+                  );
+                  controllerStepCount = controllerSequencerStepCountForLoopToken(
+                    controllerSequencer,
+                    currentLoopToken,
+                    runtimeActivePad
+                  );
                 } else {
-                  let nextPadFromLoop: number | null = null;
+                  let nextLoopToken: number | null = null;
                   let stopOnLoopEnd = false;
                   let currentLoopPosition = runtimePadLoopPosition;
 
                   if (currentLoopPosition === null) {
                     runtimePadLoopPosition = 0;
-                    nextPadFromLoop = padLoopSequence[0] ?? null;
+                    nextLoopToken = normalizedPadLoopSequence[0] ?? null;
                   } else {
                     const currentLoopPositionValid =
                       currentLoopPosition >= 0 &&
-                      currentLoopPosition < padLoopSequence.length &&
-                      padLoopSequence[currentLoopPosition] === runtimeActivePad;
+                      currentLoopPosition < normalizedPadLoopSequence.length;
 
                     if (!currentLoopPositionValid) {
                       currentLoopPosition = controllerSequencerPadLoopPositionForActivePad(
@@ -3121,23 +3216,23 @@ export default function App() {
                       );
                       if (currentLoopPosition === null) {
                         runtimePadLoopPosition = 0;
-                        nextPadFromLoop = padLoopSequence[0] ?? null;
+                        nextLoopToken = normalizedPadLoopSequence[0] ?? null;
                       }
                     }
 
-                    if (nextPadFromLoop === null) {
+                    if (nextLoopToken === null) {
                       const resolvedLoopPosition = currentLoopPosition;
                       if (resolvedLoopPosition === null) {
                         runtimePadLoopPosition = 0;
-                        nextPadFromLoop = padLoopSequence[0] ?? null;
+                        nextLoopToken = normalizedPadLoopSequence[0] ?? null;
                       } else {
                         const nextLoopPosition = resolvedLoopPosition + 1;
-                        if (nextLoopPosition < padLoopSequence.length) {
+                        if (nextLoopPosition < normalizedPadLoopSequence.length) {
                           runtimePadLoopPosition = nextLoopPosition;
-                          nextPadFromLoop = padLoopSequence[nextLoopPosition] ?? null;
+                          nextLoopToken = normalizedPadLoopSequence[nextLoopPosition] ?? null;
                         } else if (controllerSequencer.padLoopRepeat) {
                           runtimePadLoopPosition = 0;
-                          nextPadFromLoop = padLoopSequence[0] ?? null;
+                          nextLoopToken = normalizedPadLoopSequence[0] ?? null;
                         } else {
                           runtimePadLoopPosition = null;
                           stopOnLoopEnd = true;
@@ -3150,21 +3245,40 @@ export default function App() {
                     runtimeEnabled = false;
                     runtimeQueuedPad = null;
                     runtimePadLoopPosition = null;
-                  } else if (nextPadFromLoop !== null && nextPadFromLoop !== runtimeActivePad) {
-                    runtimeActivePad = nextPadFromLoop;
-                    runtimeQueuedPad = null;
+                    currentLoopToken = null;
+                  } else if (nextLoopToken !== null) {
+                    if (nextLoopToken >= 0) {
+                      if (nextLoopToken !== runtimeActivePad) {
+                        runtimeActivePad = nextLoopToken;
+                        runtimeQueuedPad = null;
+                        activePadState = controllerSequencerPadState(controllerSequencer, runtimeActivePad);
+                      }
+                    }
                     padStartStep = boundaryStep;
-                    activePadState = controllerSequencerPadState(controllerSequencer, runtimeActivePad);
-                    controllerStepCount = Math.max(1, activePadState.stepCount);
+                    currentLoopToken = nextLoopToken;
+                    controllerStepCount = controllerSequencerStepCountForLoopToken(
+                      controllerSequencer,
+                      currentLoopToken,
+                      runtimeActivePad
+                    );
                   }
                 }
               } else {
                 runtimePadLoopPosition = null;
+                currentLoopToken = null;
+                controllerStepCount = controllerSequencerStepCountForLoopToken(
+                  controllerSequencer,
+                  currentLoopToken,
+                  runtimeActivePad
+                );
               }
             }
           }
           if (!runtimeEnabled) {
             break;
+          }
+          if (typeof currentLoopToken === "number" && decodePadLoopPauseToken(currentLoopToken) !== null) {
+            continue;
           }
           const sampleStepPosition = serial / CONTROLLER_SEQUENCER_SAMPLES_PER_STEP;
           const sampleIndex = wrapModulo(sampleStepPosition - padStartStep, controllerStepCount);

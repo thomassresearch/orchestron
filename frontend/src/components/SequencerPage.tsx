@@ -9,6 +9,7 @@ import type {
 } from "react";
 
 import {
+  PAD_LOOP_PAUSE_STEP_OPTIONS,
   canCreatePadLoopGroupFromSelection,
   canInsertItemIntoPadLoopContainer,
   compilePadLoopPattern,
@@ -1873,7 +1874,7 @@ interface SequencerPageProps {
   onSequencerTrackSyncTargetChange: (trackId: string, syncToTrackId: string | null) => void;
   onSequencerTrackScaleChange: (trackId: string, scaleRoot: SequencerScaleRoot, scaleType: SequencerScaleType) => void;
   onSequencerTrackModeChange: (trackId: string, mode: SequencerMode) => void;
-  onSequencerTrackStepCountChange: (trackId: string, count: 16 | 32) => void;
+  onSequencerTrackStepCountChange: (trackId: string, count: 4 | 8 | 16 | 32) => void;
   onSequencerTrackStepNoteChange: (trackId: string, index: number, note: number | null) => void;
   onSequencerTrackStepChordChange: (trackId: string, index: number, chord: SequencerChord) => void;
   onSequencerTrackStepHoldChange: (trackId: string, index: number, hold: boolean) => void;
@@ -2061,7 +2062,7 @@ function parseSequencerStepDragPayload(event: ReactDragEvent): SequencerStepDrag
 }
 
 function parsePadLoopItemDragPayload(event: ReactDragEvent): PadLoopItemDragPayload | null {
-  const raw = event.dataTransfer.getData(PAD_LOOP_ITEM_DRAG_MIME);
+  const raw = event.dataTransfer.getData(PAD_LOOP_ITEM_DRAG_MIME) || event.dataTransfer.getData("text/plain");
   if (!raw) {
     return null;
   }
@@ -2127,13 +2128,25 @@ function parsePadLoopReferenceDragPayload(event: ReactDragEvent): PadLoopReferen
         }
       };
     }
-    if (item.type === "super" && typeof item.superGroupId === "string") {
+  if (item.type === "super" && typeof item.superGroupId === "string") {
       return {
         item: {
           type: "super",
           superGroupId: item.superGroupId
         }
       };
+    }
+    if (item.type === "pause" && typeof item.stepCount === "number") {
+      const normalizedStepCount = Math.round(item.stepCount);
+      if (normalizedStepCount === 4 || normalizedStepCount === 8 || normalizedStepCount === 16 || normalizedStepCount === 32) {
+        return {
+          item: {
+            type: "pause",
+            stepCount: normalizedStepCount
+          }
+        };
+      }
+      return null;
     }
     return null;
   } catch {
@@ -2199,8 +2212,8 @@ function hashString(value: string): number {
 
 function padLoopTokenColors(item: PadLoopPatternItem, seed: number, selected: boolean, active: boolean): CSSProperties {
   const kind = itemColorKind(item);
-  const hue = kind === "pad" ? 142 : kind === "group" ? 28 : 272;
-  const shadeSeed = seed + (kind === "pad" ? 7 : kind === "group" ? 11 : 17);
+  const hue = kind === "pad" ? 142 : kind === "pause" ? 198 : kind === "group" ? 28 : 272;
+  const shadeSeed = seed + (kind === "pad" ? 7 : kind === "pause" ? 9 : kind === "group" ? 11 : 17);
   const light = 20 + (shadeSeed % 6) * 4;
   const borderAlpha = active ? 0.95 : selected ? 0.8 : 0.58;
   const bgAlpha = active ? 0.3 : selected ? 0.24 : 0.18;
@@ -2257,6 +2270,8 @@ function buildPadLoopRangeIndex(pattern: PadLoopPatternState): PadLoopRangeIndex
       }
 
       if (item.type === "pad") {
+        cursor += 1;
+      } else if (item.type === "pause") {
         cursor += 1;
       } else if (item.type === "group") {
         const refKey = `group:${item.groupId}`;
@@ -2325,6 +2340,7 @@ function PadLoopPatternEditor({
   const [selectionByContainer, setSelectionByContainer] = useState<Record<string, number[]>>({});
   const [contextMenu, setContextMenu] = useState<PadLoopContextMenuState | null>(null);
   const [dropTarget, setDropTarget] = useState<{ containerKey: string; index: number } | null>(null);
+  const draggedItemRef = useRef<PadLoopItemDragPayload | null>(null);
 
   const compiledPattern = useMemo(() => compilePadLoopPattern(track.padLoopPattern), [track.padLoopPattern]);
   const rangeIndexByContainer = useMemo(() => buildPadLoopRangeIndex(track.padLoopPattern), [track.padLoopPattern]);
@@ -2395,14 +2411,15 @@ function PadLoopPatternEditor({
       }
 
       const itemPayload = parsePadLoopItemDragPayload(event);
-      if (itemPayload) {
-        if (padLoopContainerKey(itemPayload.sourceContainer) !== padLoopContainerKey(container)) {
+      const resolvedItemPayload = itemPayload ?? draggedItemRef.current;
+      if (resolvedItemPayload) {
+        if (padLoopContainerKey(resolvedItemPayload.sourceContainer) !== padLoopContainerKey(container)) {
           return false;
         }
         const nextPattern = movePadLoopItemWithinContainer(
           track.padLoopPattern,
           container,
-          itemPayload.sourceIndex,
+          resolvedItemPayload.sourceIndex,
           insertIndex
         );
         if (nextPattern !== track.padLoopPattern) {
@@ -2479,6 +2496,21 @@ function PadLoopPatternEditor({
             ? "text-violet-200"
             : "text-slate-300";
 
+      const supportsPadLoopDrop = (event: ReactDragEvent): boolean =>
+        dragEventHasMimeType(event, SEQUENCER_PAD_DRAG_MIME) ||
+        dragEventHasMimeType(event, PAD_LOOP_ITEM_DRAG_MIME) ||
+        dragEventHasMimeType(event, PAD_LOOP_REF_DRAG_MIME) ||
+        draggedItemRef.current !== null;
+
+      const updatePadLoopDropEffect = (event: ReactDragEvent) => {
+        const itemDragPayload = parsePadLoopItemDragPayload(event) ?? draggedItemRef.current;
+        event.dataTransfer.dropEffect =
+          itemDragPayload &&
+          padLoopContainerKey(itemDragPayload.sourceContainer) === padLoopContainerKey(container)
+            ? "move"
+            : "copy";
+      };
+
       return (
         <div className={`flex flex-col gap-1.5 rounded-lg border p-2 ${containerHueClass}`} key={`panel-${containerKey}`}>
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -2495,6 +2527,36 @@ function PadLoopPatternEditor({
           </div>
 
           <div className="flex flex-wrap items-center gap-1">
+            {PAD_LOOP_PAUSE_STEP_OPTIONS.map((pauseStepCount) => {
+              const item: PadLoopPatternItem = { type: "pause", stepCount: pauseStepCount };
+              const allowed = canInsertItemIntoPadLoopContainer(track.padLoopPattern, container, item);
+              return (
+                <button
+                  key={`${containerKey}-pause-ref-${pauseStepCount}`}
+                  type="button"
+                  onClick={() => {
+                    if (allowed) {
+                      commitPattern(insertPadLoopItem(track.padLoopPattern, container, sequence.length, item));
+                    }
+                  }}
+                  draggable
+                  onDragStart={(event) => {
+                    draggedItemRef.current = null;
+                    event.dataTransfer.effectAllowed = "copy";
+                    event.dataTransfer.setData(PAD_LOOP_REF_DRAG_MIME, JSON.stringify({ item }));
+                    event.dataTransfer.setData("text/plain", `P${pauseStepCount}`);
+                  }}
+                  className={`rounded-md border px-2 py-0.5 text-[10px] font-semibold transition ${
+                    allowed
+                      ? "border-cyan-500/45 bg-cyan-500/10 text-cyan-200 hover:border-cyan-300/70"
+                      : "cursor-not-allowed border-slate-700 bg-slate-900 text-slate-500"
+                  }`}
+                  title={`Insert pause token for ${pauseStepCount} steps`}
+                >
+                  P{pauseStepCount}
+                </button>
+              );
+            })}
             {track.padLoopPattern.groups.map((group) => {
               const item: PadLoopPatternItem = { type: "group", groupId: group.id };
               const allowed = canInsertItemIntoPadLoopContainer(track.padLoopPattern, container, item);
@@ -2511,6 +2573,7 @@ function PadLoopPatternEditor({
                   }}
                   draggable
                   onDragStart={(event) => {
+                    draggedItemRef.current = null;
                     event.dataTransfer.effectAllowed = "copy";
                     event.dataTransfer.setData(PAD_LOOP_REF_DRAG_MIME, JSON.stringify({ item }));
                     event.dataTransfer.setData("text/plain", group.id);
@@ -2544,6 +2607,7 @@ function PadLoopPatternEditor({
                   }}
                   draggable
                   onDragStart={(event) => {
+                    draggedItemRef.current = null;
                     event.dataTransfer.effectAllowed = "copy";
                     event.dataTransfer.setData(PAD_LOOP_REF_DRAG_MIME, JSON.stringify({ item }));
                     event.dataTransfer.setData("text/plain", group.id);
@@ -2581,26 +2645,18 @@ function PadLoopPatternEditor({
             onClick={() => setSelectionFor(container, [])}
             onContextMenu={(event) => openContextMenu(event)}
             onDragOver={(event) => {
-              if (
-                !dragEventHasMimeType(event, SEQUENCER_PAD_DRAG_MIME) &&
-                !dragEventHasMimeType(event, PAD_LOOP_ITEM_DRAG_MIME) &&
-                !dragEventHasMimeType(event, PAD_LOOP_REF_DRAG_MIME)
-              ) {
+              if (!supportsPadLoopDrop(event)) {
                 return;
               }
               event.preventDefault();
-              const itemDragPayload = parsePadLoopItemDragPayload(event);
-              event.dataTransfer.dropEffect =
-                itemDragPayload &&
-                padLoopContainerKey(itemDragPayload.sourceContainer) === padLoopContainerKey(container)
-                  ? "move"
-                  : "copy";
+              updatePadLoopDropEffect(event);
               setDropTarget({ containerKey, index: sequence.length });
             }}
             onDrop={(event) => {
               event.preventDefault();
               setDropTarget(null);
               applyDrop(event, container, sequence.length);
+              draggedItemRef.current = null;
             }}
             onDragLeave={() => {
               setDropTarget((previous) => (previous?.containerKey === containerKey ? null : previous));
@@ -2639,39 +2695,34 @@ function PadLoopPatternEditor({
                         role="listitem"
                         draggable
                         onDragStart={(event) => {
+                          const itemPayload = {
+                            sourceContainer: container,
+                            sourceIndex: index
+                          } satisfies PadLoopItemDragPayload;
+                          draggedItemRef.current = itemPayload;
+                          const payload = JSON.stringify(itemPayload);
                           event.dataTransfer.effectAllowed = "move";
-                          event.dataTransfer.setData(
-                            PAD_LOOP_ITEM_DRAG_MIME,
-                            JSON.stringify({
-                              sourceContainer: container,
-                              sourceIndex: index
-                            } satisfies PadLoopItemDragPayload)
-                          );
-                          event.dataTransfer.setData("text/plain", label);
+                          event.dataTransfer.setData(PAD_LOOP_ITEM_DRAG_MIME, payload);
+                          event.dataTransfer.setData("text/plain", payload);
+                        }}
+                        onDragEnd={() => {
+                          draggedItemRef.current = null;
                         }}
                         onDragOver={(event) => {
-                          if (
-                            !dragEventHasMimeType(event, SEQUENCER_PAD_DRAG_MIME) &&
-                            !dragEventHasMimeType(event, PAD_LOOP_ITEM_DRAG_MIME) &&
-                            !dragEventHasMimeType(event, PAD_LOOP_REF_DRAG_MIME)
-                          ) {
+                          if (!supportsPadLoopDrop(event)) {
                             return;
                           }
                           event.preventDefault();
                           event.stopPropagation();
                           setDropTarget({ containerKey, index });
-                          const itemDragPayload = parsePadLoopItemDragPayload(event);
-                          event.dataTransfer.dropEffect =
-                            itemDragPayload &&
-                            padLoopContainerKey(itemDragPayload.sourceContainer) === padLoopContainerKey(container)
-                              ? "move"
-                              : "copy";
+                          updatePadLoopDropEffect(event);
                         }}
                         onDrop={(event) => {
                           event.preventDefault();
                           event.stopPropagation();
                           setDropTarget(null);
                           applyDrop(event, container, index);
+                          draggedItemRef.current = null;
                         }}
                         onContextMenu={(event) => {
                           const current = selectedIndexesFor(container);
@@ -2688,7 +2739,9 @@ function PadLoopPatternEditor({
                           title={
                             nestedContainer
                               ? `Click to edit ${nestedContainer.kind === "group" ? "group" : "super-group"} ${label}`
-                              : `Pad ${label}`
+                              : item.type === "pause"
+                                ? `Pause ${label}`
+                                : `Pad ${label}`
                           }
                         >
                           <span className="font-mono">{label}</span>
@@ -2724,9 +2777,48 @@ function PadLoopPatternEditor({
                   );
                 })}
                 {dropTarget?.containerKey === containerKey && dropTarget.index === sequence.length && (
-                  <span className="h-5 w-[2px] rounded-full bg-accent/90" aria-hidden />
+                  <span
+                    className="h-5 w-[2px] rounded-full bg-accent/90"
+                    aria-hidden
+                    onDragOver={(event) => {
+                      if (!supportsPadLoopDrop(event)) {
+                        return;
+                      }
+                      event.preventDefault();
+                      event.stopPropagation();
+                      setDropTarget({ containerKey, index: sequence.length });
+                      updatePadLoopDropEffect(event);
+                    }}
+                    onDrop={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      setDropTarget(null);
+                      applyDrop(event, container, sequence.length);
+                      draggedItemRef.current = null;
+                    }}
+                  />
                 )}
-                <span className="text-[10px] text-slate-500">{ui.padLoopSequenceHint}</span>
+                <span
+                  className="text-[10px] text-slate-500"
+                  onDragOver={(event) => {
+                    if (!supportsPadLoopDrop(event)) {
+                      return;
+                    }
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setDropTarget({ containerKey, index: sequence.length });
+                    updatePadLoopDropEffect(event);
+                  }}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setDropTarget(null);
+                    applyDrop(event, container, sequence.length);
+                    draggedItemRef.current = null;
+                  }}
+                >
+                  {ui.padLoopSequenceHint}
+                </span>
               </div>
             )}
           </div>
@@ -2760,7 +2852,7 @@ function PadLoopPatternEditor({
     contextMenuSelection.some((index) => {
       const sequence = getPadLoopContainerSequence(track.padLoopPattern, contextMenu.container) ?? [];
       const item = sequence[index];
-      return item && item.type !== "pad";
+      return item && (item.type === "group" || item.type === "super");
     });
   const canCreateGroup =
     contextMenu !== null &&
@@ -3900,24 +3992,20 @@ export function SequencerPage({
                       <div className="flex flex-col gap-1">
                         <span className={controlLabelClass}>{ui.steps}</span>
                         <div className="inline-flex rounded-lg border border-slate-600 bg-slate-950 p-1">
-                          <button
-                            type="button"
-                            onClick={() => onSequencerTrackStepCountChange(track.id, 16)}
-                            className={`rounded-md px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.14em] transition ${
-                              track.stepCount === 16 ? "bg-accent/30 text-accent" : "text-slate-300 hover:bg-slate-800"
-                            }`}
-                          >
-                            16
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => onSequencerTrackStepCountChange(track.id, 32)}
-                            className={`rounded-md px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.14em] transition ${
-                              track.stepCount === 32 ? "bg-accent/30 text-accent" : "text-slate-300 hover:bg-slate-800"
-                            }`}
-                          >
-                            32
-                          </button>
+                          {[4, 8, 16, 32].map((count) => (
+                            <button
+                              key={`${track.id}-steps-${count}`}
+                              type="button"
+                              onClick={() => onSequencerTrackStepCountChange(track.id, count as 4 | 8 | 16 | 32)}
+                              className={`rounded-md px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.14em] transition ${
+                                track.stepCount === count
+                                  ? "bg-accent/30 text-accent"
+                                  : "text-slate-300 hover:bg-slate-800"
+                              }`}
+                            >
+                              {count}
+                            </button>
+                          ))}
                         </div>
                       </div>
                     </div>

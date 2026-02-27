@@ -7,6 +7,15 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
 
+_PAUSE_STEP_COUNTS: tuple[int, ...] = (4, 8, 16, 32)
+_PAUSE_TOKENS: tuple[int, ...] = tuple(-step_count for step_count in _PAUSE_STEP_COUNTS)
+
+
+def _is_valid_pad_loop_token(token: int) -> bool:
+    if 0 <= token <= 7:
+        return True
+    return token in _PAUSE_TOKENS
+
 
 class SessionState(StrEnum):
     IDLE = "idle"
@@ -162,10 +171,11 @@ class SessionSequencerTrackConfig(BaseModel):
             if pad.pad_index in seen:
                 raise ValueError(f"Duplicate pad_index '{pad.pad_index}' in track '{self.track_id}'.")
             seen.add(pad.pad_index)
-        for index, pad_number in enumerate(self.pad_loop_sequence):
-            if pad_number < 0 or pad_number > 7:
+        for index, token in enumerate(self.pad_loop_sequence):
+            if not _is_valid_pad_loop_token(token):
                 raise ValueError(
-                    f"pad_loop_sequence[{index}] must be in range 0..7 in track '{self.track_id}'."
+                    "pad_loop_sequence[{index}] must be a pad index 0..7 or a pause token "
+                    "-4/-8/-16/-32 in track '{track_id}'.".format(index=index, track_id=self.track_id)
                 )
         return self
 
