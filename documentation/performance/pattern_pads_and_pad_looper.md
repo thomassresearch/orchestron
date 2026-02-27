@@ -69,7 +69,7 @@ Use this to move the pattern to a new key center while preserving mode character
 
 ## Pad Looper (Pad Sequence)
 
-Each track includes a **Pad Looper** section that can play a sequence of pads automatically.
+Each track includes a **Pad Looper** section that can play a sequence of pattern tokens automatically.
 
 Controls:
 
@@ -84,11 +84,29 @@ You can add pad steps to the pad-loop sequence by:
 - Clicking the sequence area and pressing keyboard `1..8`
 - Dragging pad buttons into the sequence area
 
+### Pause Tokens (Silence Patterns)
+
+The pad looper supports explicit silence tokens:
+
+- `P4`
+- `P8`
+- `P16`
+- `P32`
+
+Each token inserts a pause segment for the given number of sequencer steps.
+
+How to use them:
+
+- Click a pause token button to append it to the current sequence editor
+- Drag a pause token into root, group, or super-group sequences
+
+Pause tokens are always available in the editor token list, even when not used anywhere in the pattern.
+
 ### Sequence Display
 
 The pad sequence area shows:
 
-- ordered pad numbers
+- ordered sequence tokens (pads, pauses, groups, super-groups)
 - remove (`x`) button per sequence item
 - current pad-loop position highlight while running
 
@@ -124,6 +142,7 @@ You can edit grouped content by:
 
 - reordering items (drag-and-drop)
 - adding pads (`1..8` or drag pad buttons)
+- adding pause tokens (`P4`, `P8`, `P16`, `P32`)
 - removing items
 - ungrouping selected items back inline
 
@@ -131,9 +150,9 @@ You can edit grouped content by:
 
 To prevent recursive pattern definitions, hierarchy rules are enforced:
 
-- groups can contain pads only
-- super-groups can contain pads and groups
-- root sequence can contain pads, groups, and super-groups
+- groups can contain pads and pause tokens
+- super-groups can contain pads, pause tokens, and groups
+- root sequence can contain pads, pause tokens, groups, and super-groups
 - same-level or higher-level nesting is blocked
 
 #### Playback Highlighting (Nested)
@@ -149,6 +168,7 @@ While the sequencer is running, the pad looper highlights:
 Nested pad-sequence tokens are color-coded by hierarchy:
 
 - pads: green shades
+- pauses (`P4`, `P8`, `P16`, `P32`): cyan shades
 - groups (`A`, `B`, `C`, ...): orange shades
 - super-groups (`I`, `II`, `III`, ...): violet shades
 

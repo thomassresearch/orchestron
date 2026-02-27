@@ -2310,6 +2310,7 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         "poscil3": "https://csound.com/docs/manual/poscil3.html",
         "vibr": "https://csound.com/docs/manual/vibr.html",
         "vibrato": "https://csound.com/docs/manual/vibrato.html",
+        "vosim": "https://csound.com/docs/manual/vosim.html",
         "voice": "https://csound.com/docs/manual/voice.html",
         "fmb3": "https://csound.com/docs/manual/fmb3.html",
         "fmbell": "https://csound.com/docs/manual/fmbell.html",
@@ -2323,7 +2324,11 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         "pinker": "https://csound.com/docs/manual/pinker.html",
         "noise": "https://csound.com/docs/manual/noise.html",
         "pluck": "https://csound.com/docs/manual/pluck.html",
+        "wgpluck2": "https://csound.com/docs/manual/wgpluck2.html",
         "wgflute": "https://csound.com/docs/manual/wgflute.html",
+        "wgclar": "https://csound.com/docs/manual/wgclar.html",
+        "wgbow": "https://csound.com/docs/manual/wgbow.html",
+        "wgbowedbar": "https://csound.com/docs/manual/wgbowedbar.html",
         "wguide2": "https://csound.com/docs/manual/wguide2.html",
         "pan2": "https://csound.com/docs/manual/pan2.html",
         "delay": "https://csound.com/docs/manual/delay.html",
@@ -2376,6 +2381,7 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         "ntrpol": "https://csound.com/docs/manual/ntrpol.html",
         "rms": "https://csound.com/docs/manual/rms.html",
         "samphold": "https://csound.com/docs/manual/samphold.html",
+        "portk": "https://csound.com/docs/manual/portk.html",
         "downsamp": "https://csound.com/docs/manual/downsamp.html",
         "sfload": "https://csound.com/docs/manual/sfload.html",
         "sfplay3": "https://csound.com/docs/manual/sfplay3.html",
@@ -2432,6 +2438,15 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         assert voice_inputs["ivfn"]["signal_type"] == "i"
         assert voice_outputs["asig"]["signal_type"] == "a"
 
+        vosim_inputs = {item["id"]: item for item in opcodes_by_name["vosim"]["inputs"]}
+        vosim_outputs = {item["id"]: item for item in opcodes_by_name["vosim"]["outputs"]}
+        assert opcodes_by_name["vosim"]["category"] == "oscillator"
+        assert vosim_inputs["kamp"]["signal_type"] == "k"
+        assert vosim_inputs["kfund"]["signal_type"] == "k"
+        assert vosim_inputs["ifn"]["signal_type"] == "i"
+        assert vosim_inputs["iskip"]["required"] is False
+        assert vosim_outputs["asig"]["signal_type"] == "a"
+
         moogvcf_inputs = {item["id"]: item for item in opcodes_by_name["moogvcf"]["inputs"]}
         moogvcf_outputs = {item["id"]: item for item in opcodes_by_name["moogvcf"]["outputs"]}
         assert moogvcf_inputs["xfco"]["accepted_signal_types"] == ["a", "k", "i"]
@@ -2487,6 +2502,39 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         assert downsamp_inputs["asig"]["signal_type"] == "a"
         assert downsamp_inputs["iwlen"]["required"] is False
         assert downsamp_outputs["kout"]["signal_type"] == "k"
+
+        portk_inputs = {item["id"]: item for item in opcodes_by_name["portk"]["inputs"]}
+        portk_outputs = {item["id"]: item for item in opcodes_by_name["portk"]["outputs"]}
+        assert opcodes_by_name["portk"]["category"] == "modulation"
+        assert portk_inputs["ksig"]["signal_type"] == "k"
+        assert portk_inputs["ksig"]["accepted_signal_types"] == ["k", "i"]
+        assert portk_inputs["khtim"]["default"] == 0.05
+        assert portk_inputs["isig"]["required"] is False
+        assert portk_outputs["kout"]["signal_type"] == "k"
+
+        wgpluck2_inputs = {item["id"]: item for item in opcodes_by_name["wgpluck2"]["inputs"]}
+        wgpluck2_outputs = {item["id"]: item for item in opcodes_by_name["wgpluck2"]["outputs"]}
+        assert opcodes_by_name["wgpluck2"]["category"] == "physical_modeling"
+        assert wgpluck2_inputs["iplk"]["signal_type"] == "i"
+        assert wgpluck2_inputs["kamp"]["signal_type"] == "k"
+        assert wgpluck2_inputs["icps"]["signal_type"] == "i"
+        assert wgpluck2_outputs["asig"]["signal_type"] == "a"
+
+        wgclar_inputs = {item["id"]: item for item in opcodes_by_name["wgclar"]["inputs"]}
+        assert wgclar_inputs["kfreq"]["accepted_signal_types"] == ["a", "k", "i"]
+        assert wgclar_inputs["iminfreq"]["required"] is False
+
+        wgbow_inputs = {item["id"]: item for item in opcodes_by_name["wgbow"]["inputs"]}
+        assert wgbow_inputs["kfreq"]["accepted_signal_types"] == ["a", "k", "i"]
+        assert wgbow_inputs["ifn"]["required"] is False
+        assert wgbow_inputs["iminfreq"]["required"] is False
+
+        wgbowedbar_inputs = {item["id"]: item for item in opcodes_by_name["wgbowedbar"]["inputs"]}
+        assert wgbowedbar_inputs["kfreq"]["accepted_signal_types"] == ["a", "k", "i"]
+        assert wgbowedbar_inputs["const"]["required"] is False
+        assert wgbowedbar_inputs["itvel"]["required"] is False
+        assert wgbowedbar_inputs["ibowpos"]["required"] is False
+        assert wgbowedbar_inputs["ilow"]["required"] is False
 
 
 def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
@@ -2608,6 +2656,12 @@ def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
                         "params": {"itabexcite": 1, "itabouts": 1, "aexcite1": 0},
                         "position": {"x": 20, "y": 3970},
                     },
+                    {"id": "n81", "opcode": "wgclar", "params": {}, "position": {"x": 20, "y": 4020}},
+                    {"id": "n82", "opcode": "wgbow", "params": {}, "position": {"x": 20, "y": 4070}},
+                    {"id": "n83", "opcode": "wgbowedbar", "params": {}, "position": {"x": 20, "y": 4120}},
+                    {"id": "n84", "opcode": "wgpluck2", "params": {}, "position": {"x": 20, "y": 4170}},
+                    {"id": "n85", "opcode": "portk", "params": {"ksig": 0, "khtim": 0.05}, "position": {"x": 20, "y": 4220}},
+                    {"id": "n86", "opcode": "vosim", "params": {}, "position": {"x": 20, "y": 4270}},
                 ],
                 "connections": [
                     {"from_node_id": "n1", "from_port_id": "asig", "to_node_id": "n2", "to_port_id": "left"},
@@ -2648,7 +2702,11 @@ def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
             "pinker",
             "noise",
             "pluck",
+            "wgpluck2",
             "wgflute",
+            "wgclar",
+            "wgbow",
+            "wgbowedbar",
             "wguide2",
             "pan2",
             "vdelay3",
@@ -2691,6 +2749,7 @@ def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
             "fof",
             "fof2",
             "fofilter",
+            "vosim",
             "voice",
             "inletk",
             "inleta",
@@ -2698,6 +2757,7 @@ def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
             "outleta",
             "rms",
             "samphold",
+            "portk",
             "sfload",
             "sfplay3",
             "sfinstr3",
