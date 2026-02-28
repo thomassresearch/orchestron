@@ -614,6 +614,12 @@
         "german": "Periode von Null, bevor die Hüllkurve beginnt",
         "french": "période de zéro avant le début de l'enveloppe",
         "spanish": "período de cero antes de que comience el sobre"
+      },
+      "ireltim": {
+        "english": "release time override. Values < 0 use the longest release time in the instrument.",
+        "german": "Release-Zeit-Override. Werte < 0 verwenden die längste Release-Zeit im Instrument.",
+        "french": "forçage du temps de relâchement. Les valeurs < 0 utilisent le temps de relâchement le plus long de l'instrument.",
+        "spanish": "anulación del tiempo de liberación. Los valores < 0 usan el tiempo de liberación más largo del instrumento."
       }
     },
     "outputs": {
@@ -663,17 +669,11 @@
         "french": "période de zéro avant le début de l'enveloppe",
         "spanish": "período de cero antes de que comience el sobre"
       },
-      "iatss": {
-        "english": "AttackScale parameter at init-rate.",
-        "german": "AttackScale-Parameter bei Init-Rate.",
-        "french": "Paramètre AttackScale au taux d'initialisation.",
-        "spanish": "Parámetro AttackScale a velocidad inicial."
-      },
-      "idrss": {
-        "english": "ReleaseScale parameter at init-rate.",
-        "german": "ReleaseScale-Parameter bei Init-Rate.",
-        "french": "Paramètre ReleaseScale au taux d'initialisation.",
-        "spanish": "Parámetro ReleaseScale a velocidad inicial."
+      "ireltim": {
+        "english": "release time override. Values < 0 use the longest release time in the instrument.",
+        "german": "Release-Zeit-Override. Werte < 0 verwenden die längste Release-Zeit im Instrument.",
+        "french": "forçage du temps de relâchement. Les valeurs < 0 utilisent le temps de relâchement le plus long de l'instrument.",
+        "spanish": "anulación del tiempo de liberación. Los valores < 0 usan el tiempo de liberación más largo del instrumento."
       }
     },
     "outputs": {
@@ -2132,10 +2132,10 @@
         "spanish": "frecuencia en Hz (debe estar en el rango - sr /2 a sr /2)."
       },
       "imode": {
-        "english": "a sum of values representing the waveform and its control values.",
-        "german": "eine Summe von Werten, die die Wellenform und ihre Steuerwerte darstellen.",
-        "french": "une somme de valeurs représentant la forme d'onde et ses valeurs de contrôle.",
-        "spanish": "una suma de valores que representan la forma de onda y sus valores de control."
+        "english": "Optional (default 0): sum of flags. Control flags: +16 enables k-rate phase control (kphs becomes required at k-rate), +1 skips initialization. Add exactly one waveform selector: 0 sawtooth, 2 square/PWM, 4 saw/triangle/ramp (uses kpw), 6 pulse (not normalized), 8 integrated saw (4*x*(1-x)), 10 square (no PWM, faster), 12 triangle (no ramp, faster), 14 user-defined waveform -1 (requires vco2init). Example: 18 = square/PWM with k-rate phase control.",
+        "german": "Optional (Standard 0): Summe von Flags. Steuer-Flags: +16 aktiviert Phasensteuerung mit k-Rate (kphs wird als k-Rate-Eingang erforderlich), +1 überspringt die Initialisierung. Genau einen Wellenform-Selektor addieren: 0 Sägezahn, 2 Rechteck/PWM, 4 Sägezahn/Dreieck/Rampe (nutzt kpw), 6 Puls (nicht normalisiert), 8 integrierter Sägezahn (4*x*(1-x)), 10 Rechteck (ohne PWM, schneller), 12 Dreieck (ohne Rampe, schneller), 14 benutzerdefinierte Wellenform -1 (erfordert vco2init). Beispiel: 18 = Rechteck/PWM mit k-Rate-Phasensteuerung.",
+        "french": "Optionnel (valeur par défaut 0) : somme de drapeaux. Drapeaux de contrôle : +16 active le contrôle de phase au taux-k (kphs devient requis au taux-k), +1 ignore l'initialisation. Ajouter exactement un sélecteur de forme d'onde : 0 dent de scie, 2 carré/PWM, 4 dent de scie/triangle/rampe (utilise kpw), 6 impulsion (non normalisée), 8 dent de scie intégrée (4*x*(1-x)), 10 carré (sans PWM, plus rapide), 12 triangle (sans rampe, plus rapide), 14 forme d'onde utilisateur -1 (nécessite vco2init). Exemple : 18 = carré/PWM avec contrôle de phase au taux-k.",
+        "spanish": "Opcional (por defecto 0): suma de banderas. Banderas de control: +16 habilita control de fase a tasa-k (kphs pasa a ser obligatorio a tasa-k), +1 omite la inicialización. Suma exactamente un selector de forma de onda: 0 diente de sierra, 2 cuadrada/PWM, 4 diente de sierra/triángulo/rampa (usa kpw), 6 pulso (no normalizada), 8 sierra integrada (4*x*(1-x)), 10 cuadrada (sin PWM, más rápida), 12 triangular (sin rampa, más rápida), 14 forma de onda definida por el usuario -1 (requiere vco2init). Ejemplo: 18 = cuadrada/PWM con control de fase a tasa-k."
       },
       "kpw": {
         "english": "the pulse width of the square wave ( imode waveform=2) or the ramp characteristics of the triangle wave ( imode waveform=4). It is required only by these waveforms and ignored in all other cases. The expected range is 0 to 1, any other value is wrapped to the allowed range.",

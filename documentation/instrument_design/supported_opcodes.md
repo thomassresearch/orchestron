@@ -91,8 +91,8 @@ This appendix is generated from `backend/app/services/opcode_service.py` and cur
 | expsega | 9 (i, i, i, i, i, i, i, i, i) | 1 (a) | Audio-rate exponential breakpoint envelope generator. |
 | linseg | 7 (i, i, i, i, i, i, i) | 1 (k) | Control-rate linear breakpoint envelope generator. |
 | linsegr | 5 (i, i, i, i, i) | 1 (k) | Control-rate linear breakpoint envelope with release segment. |
-| madsr | 5 (i, i, i, i, i) | 1 (k) | MIDI release-sensitive ADSR envelope. |
-| mxadsr | 7 (i, i, i, i, i, i, i) | 1 (k) | Extended MIDI release-sensitive ADSR envelope. |
+| madsr | 6 (i, i, i, i, i, i) | 1 (k) | MIDI release-sensitive ADSR envelope. |
+| mxadsr | 6 (i, i, i, i, i, i) | 1 (k) | Extended MIDI release-sensitive ADSR envelope. |
 
 ### filter
 

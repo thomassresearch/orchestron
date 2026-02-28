@@ -176,13 +176,19 @@ class CompilerService:
         ordered_ids = self._topological_sort(graph.nodes, graph.connections)
 
         output_vars: dict[tuple[str, str], str] = {}
+        output_signal_types: dict[tuple[str, str], SignalType] = {}
         rate_counters: dict[str, int] = defaultdict(int)
         instrument_lines: list[str] = []
         sfload_global_requests: list[SfloadGlobalRequest] = []
 
+        for node_id, compiled in compiled_nodes.items():
+            for output in compiled.spec.outputs:
+                output_signal_types[(node_id, output.id)] = output.signal_type
+
         for node_id in ordered_ids:
             compiled = compiled_nodes[node_id]
             env: dict[str, str] = {}
+            input_is_audio: dict[str, bool] = {}
 
             for output in compiled.spec.outputs:
                 if compiled.spec.name == "sfload":
@@ -208,6 +214,9 @@ class CompilerService:
                                 ]
                             )
                         env[input_port.id] = source_var
+                        input_is_audio[input_port.id] = (
+                            output_signal_types.get(key) == SignalType.AUDIO
+                        )
                     else:
                         env[input_port.id] = self._resolve_input_expression(
                             ui_layout=patch.graph.ui_layout,
@@ -215,6 +224,10 @@ class CompilerService:
                             to_port_id=input_port.id,
                             inbound_connections=inbound_connections,
                             output_vars=output_vars,
+                        )
+                        input_is_audio[input_port.id] = any(
+                            output_signal_types.get((item.from_node_id, item.from_port_id)) == SignalType.AUDIO
+                            for item in inbound_connections
                         )
                     continue
                 if has_input_formula:
@@ -225,11 +238,13 @@ class CompilerService:
                         inbound_connections=inbound_connections,
                         output_vars=output_vars,
                     )
+                    input_is_audio[input_port.id] = False
                     continue
 
                 literal, found = self._resolve_literal_value(compiled.node, input_port)
                 if found:
                     env[input_port.id] = literal
+                    input_is_audio[input_port.id] = False
                     continue
 
                 if input_port.required:
@@ -254,10 +269,31 @@ class CompilerService:
                 sfload_global_requests.append(rendered)
                 continue
 
+            if compiled.spec.name == "flanger" and "adel" in env:
+                adel = env["adel"].strip()
+                if (
+                    adel
+                    and adel != OPTIONAL_OMIT_MARKER
+                    and not input_is_audio.get("adel", False)
+                    and not re.fullmatch(r"a\s*\(.+\)", adel)
+                ):
+                    # flanger expects an audio-rate delay signal; adapt k/i or literal delay inputs.
+                    env["adel"] = f"a({adel})"
+
             for param_key, param_value in compiled.node.params.items():
                 if param_key in env:
                     continue
                 env[param_key] = self._format_literal(param_value, SignalType.CONTROL)
+
+            if (
+                compiled.spec.name in {"madsr", "mxadsr"}
+                and "ireltim" in env
+                and "ireltim" not in compiled.node.params
+                and "idrss" in compiled.node.params
+            ):
+                # Backward compatibility for saved patches that used the previous mxadsr/madsr
+                # parameter key before this input was aligned to Csound's ireltim naming.
+                env["ireltim"] = self._format_literal(compiled.node.params["idrss"], SignalType.INIT)
 
             if compiled.spec.name in {"const_a", "const_i", "const_k"} and "value" not in env:
                 env["value"] = "0"

@@ -4708,6 +4708,7 @@ export function SequencerPage({
                           {track.rows.map((row, rowIndex) => {
                             const activePad = track.pads[track.activePad];
                             const padRow = activePad?.rows.find((candidate) => candidate.rowId === row.id) ?? null;
+                            const isTopKeyRow = rowIndex === 0;
                             return (
                               <Fragment key={`${track.id}-drum-row-${row.id}`}>
                                 <div className="flex h-7 items-center gap-0.5 rounded-md border border-slate-700 bg-slate-950/70 px-1">
@@ -4746,7 +4747,8 @@ export function SequencerPage({
 
                                 {stepIndices.map((step) => {
                                   const cell = padRow?.steps[step] ?? { active: false, velocity: 127 };
-                                  const isCurrentStep = track.enabled && sequencer.isPlaying && localPlayhead === step;
+                                  const isCurrentStep =
+                                    isTopKeyRow && track.enabled && sequencer.isPlaying && localPlayhead === step;
                                   const activeAlpha = 0.14 + (Math.max(0, Math.min(127, cell.velocity)) / 127) * 0.86;
                                   const ledDotStyle: CSSProperties | undefined = cell.active
                                     ? isCurrentStep
