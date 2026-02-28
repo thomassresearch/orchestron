@@ -2434,6 +2434,7 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         assert opcodes_by_name["voice"]["category"] == "oscillator"
         assert voice_inputs["kamp"]["signal_type"] == "k"
         assert voice_inputs["kfreq"]["signal_type"] == "k"
+        assert voice_inputs["kform"]["default"] == 1
         assert voice_inputs["ifn"]["signal_type"] == "i"
         assert voice_inputs["ivfn"]["signal_type"] == "i"
         assert voice_outputs["asig"]["signal_type"] == "a"

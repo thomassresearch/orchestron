@@ -528,7 +528,7 @@ class OpcodeService:
                     PortSpec(id="kamp", name="Amplitude", signal_type=SignalType.CONTROL, default=0.2),
                     PortSpec(id="kfreq", name="Frequency", signal_type=SignalType.CONTROL, default=220),
                     PortSpec(id="kphoneme", name="Phoneme", signal_type=SignalType.CONTROL, default=0),
-                    PortSpec(id="kform", name="Formant", signal_type=SignalType.CONTROL, default=0),
+                    PortSpec(id="kform", name="Formant", signal_type=SignalType.CONTROL, default=1),
                     PortSpec(id="kvibf", name="VibratoRate", signal_type=SignalType.CONTROL, default=0),
                     PortSpec(id="kvamp", name="VibratoDepth", signal_type=SignalType.CONTROL, default=0),
                     PortSpec(id="ifn", name="ExcitationTable", signal_type=SignalType.INIT, default=1),

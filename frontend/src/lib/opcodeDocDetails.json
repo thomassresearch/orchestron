@@ -2165,6 +2165,72 @@
       }
     }
   },
+  "voice": {
+    "description": {
+      "english": "Simple vocal synthesis using predefined phoneme formants. The opcode simulates vowels and consonants by selecting and scaling formant regions.",
+      "german": "Einfache Sprachsynthese mit vordefinierten Phonem-Formanten. Der Opcode simuliert Vokale und Konsonanten durch Auswahl und Skalierung von Formantbereichen.",
+      "french": "Synthèse vocale simple à l'aide de formants phonémiques prédéfinis. L'opcode simule voyelles et consonnes en sélectionnant et en redimensionnant les zones de formants.",
+      "spanish": "Síntesis vocal simple usando formantes fonémicos predefinidos. El opcode simula vocales y consonantes seleccionando y escalando regiones formánticas."
+    },
+    "inputs": {
+      "kamp": {
+        "english": "Overall output amplitude.",
+        "german": "Gesamtamplitude der Ausgabe.",
+        "french": "Amplitude globale de sortie.",
+        "spanish": "Amplitud general de salida."
+      },
+      "kfreq": {
+        "english": "Base pitch / fundamental frequency in Hz.",
+        "german": "Grundton / Grundfrequenz in Hz.",
+        "french": "Hauteur de base / fréquence fondamentale en Hz.",
+        "spanish": "Tono base / frecuencia fundamental en Hz."
+      },
+      "kphoneme": {
+        "english": "Phoneme selector from the performance section. Use integer values in the documented phoneme range. Named phonemes include: eee, ihh, ehh, aaa, ahh, aww, ohh, uhh, uuu, ooo, rrr, lll, mmm, nnn, nng, ngg.",
+        "german": "Phonem-Auswahl aus dem Performance-Abschnitt. Verwende ganzzahlige Werte im dokumentierten Phonem-Bereich. Genannte Phoneme sind: eee, ihh, ehh, aaa, ahh, aww, ohh, uhh, uuu, ooo, rrr, lll, mmm, nnn, nng, ngg.",
+        "french": "Sélecteur de phonème depuis la section Performance. Utilisez des valeurs entières dans la plage documentée. Phonèmes nommés : eee, ihh, ehh, aaa, ahh, aww, ohh, uhh, uuu, ooo, rrr, lll, mmm, nnn, nng, ngg.",
+        "spanish": "Selector de fonema de la sección de rendimiento. Use valores enteros en el rango documentado. Fonemas nombrados: eee, ihh, ehh, aaa, ahh, aww, ohh, uhh, uuu, ooo, rrr, lll, mmm, nnn, nng, ngg."
+      },
+      "kform": {
+        "english": "Formant scaling factor. 1.0 keeps nominal formants; useful range is roughly 0.6..1.5.",
+        "german": "Formant-Skalierungsfaktor. 1.0 entspricht nominalen Formanten; ein sinnvoller Bereich liegt etwa bei 0.6..1.5.",
+        "french": "Facteur d'échelle des formants. 1.0 conserve les formants nominaux ; plage utile approximative 0.6..1.5.",
+        "spanish": "Factor de escala de formantes. 1.0 conserva los formantes nominales; rango útil aproximado 0.6..1.5."
+      },
+      "kvibf": {
+        "english": "Vibrato rate in Hz.",
+        "german": "Vibrato-Rate in Hz.",
+        "french": "Fréquence du vibrato en Hz.",
+        "spanish": "Frecuencia de vibrato en Hz."
+      },
+      "kvamp": {
+        "english": "Vibrato depth (pitch modulation amount).",
+        "german": "Vibrato-Tiefe (Stärke der Tonhöhenmodulation).",
+        "french": "Profondeur du vibrato (intensité de modulation de hauteur).",
+        "spanish": "Profundidad de vibrato (cantidad de modulación de tono)."
+      },
+      "ifn": {
+        "english": "Function table number for the excitation waveform.",
+        "german": "Funktions-Tabellennummer für die Erregerwellenform.",
+        "french": "Numéro de table de fonctions pour la forme d'onde d'excitation.",
+        "spanish": "Número de tabla de funciones para la forma de onda de excitación."
+      },
+      "ivfn": {
+        "english": "Function table number for the vibrato waveform (typically a sine table).",
+        "german": "Funktions-Tabellennummer für die Vibrato-Wellenform (typischerweise eine Sinustabelle).",
+        "french": "Numéro de table de fonctions pour la forme d'onde de vibrato (généralement une table sinusoïdale).",
+        "spanish": "Número de tabla de funciones para la forma de onda de vibrato (normalmente una tabla senoidal)."
+      }
+    },
+    "outputs": {
+      "asig": {
+        "english": "Output variable `ares` from voice.",
+        "german": "Ausgabevariable `ares` von voice.",
+        "french": "Variable de sortie `ares` de voice.",
+        "spanish": "Variable de salida `ares` de voice."
+      }
+    }
+  },
   "outs": {
     "description": {
       "english": "Writes stereo audio data to an external device or stream.",

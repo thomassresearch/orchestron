@@ -9,10 +9,12 @@ import type {
 } from "react";
 
 import {
+  PAD_LOOP_PAD_COUNT,
   PAD_LOOP_PAUSE_STEP_OPTIONS,
   canCreatePadLoopGroupFromSelection,
   canInsertItemIntoPadLoopContainer,
   compilePadLoopPattern,
+  decodePadLoopPauseToken,
   getPadLoopContainerSequence,
   groupPadLoopItemsInContainer,
   insertPadLoopItem,
@@ -2322,6 +2324,8 @@ type PadLoopPatternEditorProps = {
   >;
   hostId: string;
   track: PadLoopEditorTrackLike;
+  padStepCounts: number[];
+  defaultPadStepCount: number;
   isPlaying: boolean;
   onPadLoopEnabledChange: (enabled: boolean) => void;
   onPadLoopRepeatChange: (repeat: boolean) => void;
@@ -2338,6 +2342,8 @@ function PadLoopPatternEditor({
   ui,
   hostId,
   track,
+  padStepCounts,
+  defaultPadStepCount,
   isPlaying,
   onPadLoopEnabledChange,
   onPadLoopRepeatChange,
@@ -2350,6 +2356,27 @@ function PadLoopPatternEditor({
   const draggedItemRef = useRef<PadLoopItemDragPayload | null>(null);
 
   const compiledPattern = useMemo(() => compilePadLoopPattern(track.padLoopPattern), [track.padLoopPattern]);
+  const compiledPatternStepCount = useMemo(() => {
+    const normalizedFallback = Math.max(1, Math.round(defaultPadStepCount));
+    let total = 0;
+    for (const token of compiledPattern.sequence) {
+      if (token >= 0) {
+        const padIndex = Math.round(token);
+        const candidate =
+          padIndex >= 0 && padIndex < PAD_LOOP_PAD_COUNT
+            ? padStepCounts[padIndex]
+            : undefined;
+        const normalized = typeof candidate === "number" && Number.isFinite(candidate) ? Math.round(candidate) : normalizedFallback;
+        total += normalized > 0 ? normalized : normalizedFallback;
+        continue;
+      }
+      const pauseStepCount = decodePadLoopPauseToken(token);
+      if (pauseStepCount !== null) {
+        total += pauseStepCount;
+      }
+    }
+    return total;
+  }, [compiledPattern.sequence, defaultPadStepCount, padStepCounts]);
   const rangeIndexByContainer = useMemo(() => buildPadLoopRangeIndex(track.padLoopPattern), [track.padLoopPattern]);
 
   useEffect(() => {
@@ -2900,6 +2927,9 @@ function PadLoopPatternEditor({
           </button>
           <div className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-[10px] text-slate-300">
             compiled: {compiledPattern.sequence.length}
+          </div>
+          <div className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-[10px] text-slate-300">
+            steps: {compiledPatternStepCount}
           </div>
         </div>
 
@@ -4038,6 +4068,8 @@ export function SequencerPage({
                     ui={ui}
                     hostId={track.id}
                     track={track}
+                    padStepCounts={track.pads.map((pad) => pad.stepCount)}
+                    defaultPadStepCount={track.stepCount}
                     isPlaying={sequencer.isPlaying}
                     onPadLoopEnabledChange={(enabled) => onSequencerTrackPadLoopEnabledChange(track.id, enabled)}
                     onPadLoopRepeatChange={(repeat) => onSequencerTrackPadLoopRepeatChange(track.id, repeat)}
@@ -4624,6 +4656,8 @@ export function SequencerPage({
                           ui={ui}
                           hostId={track.id}
                           track={track}
+                          padStepCounts={track.pads.map((pad) => pad.stepCount)}
+                          defaultPadStepCount={track.stepCount}
                           isPlaying={sequencer.isPlaying}
                           onPadLoopEnabledChange={(enabled) => onDrummerSequencerTrackPadLoopEnabledChange(track.id, enabled)}
                           onPadLoopRepeatChange={(repeat) => onDrummerSequencerTrackPadLoopRepeatChange(track.id, repeat)}
@@ -4952,6 +4986,8 @@ export function SequencerPage({
                         ui={ui}
                         hostId={controllerSequencer.id}
                         track={controllerSequencer}
+                        padStepCounts={controllerSequencer.pads.map((pad) => pad.stepCount)}
+                        defaultPadStepCount={controllerSequencer.stepCount}
                         isPlaying={sequencer.isPlaying}
                         onPadLoopEnabledChange={(enabled) =>
                           onControllerSequencerPadLoopEnabledChange(controllerSequencer.id, enabled)
