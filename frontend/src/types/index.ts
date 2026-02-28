@@ -302,6 +302,7 @@ export interface SequencerInstrumentBinding {
   id: string;
   patchId: string;
   midiChannel: number;
+  level: number;
 }
 
 export interface SequencerConfigSnapshot {
@@ -310,6 +311,7 @@ export interface SequencerConfigSnapshot {
     patchId: string;
     patchName?: string;
     midiChannel: number;
+    level?: number;
   }>;
   patchDefinitions?: Array<{
     sourcePatchId: string;

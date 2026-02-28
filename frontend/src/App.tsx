@@ -29,6 +29,7 @@ import type {
   Performance,
   PerformanceListItem,
   SequencerConfigSnapshot,
+  SequencerInstrumentBinding,
   SequencerState,
   SessionEvent,
   SessionMidiEventRequest,
@@ -43,6 +44,38 @@ function connectionKey(connection: Connection): string {
 
 function pianoRollNoteKey(note: number, channel: number): string {
   return `${channel}:${note}`;
+}
+
+function normalizeMidiChannel(channel: number): number {
+  return Math.max(1, Math.min(16, Math.round(channel)));
+}
+
+function normalizeMidiVelocity(velocity: number): number {
+  return Math.max(0, Math.min(127, Math.round(velocity)));
+}
+
+function normalizeInstrumentLevel(level: number): number {
+  return Math.max(1, Math.min(10, Math.round(level)));
+}
+
+function instrumentLevelByChannel(bindings: SequencerInstrumentBinding[]): Map<number, number> {
+  const levelMap = new Map<number, number>();
+  for (const binding of bindings) {
+    const channel = normalizeMidiChannel(binding.midiChannel);
+    levelMap.set(channel, normalizeInstrumentLevel(binding.level));
+  }
+  return levelMap;
+}
+
+function levelForChannel(channel: number, levelMap: Map<number, number>): number {
+  const level = levelMap.get(normalizeMidiChannel(channel));
+  return level === undefined ? 10 : normalizeInstrumentLevel(level);
+}
+
+function scaleVelocityForChannel(velocity: number, channel: number, levelMap: Map<number, number>): number {
+  const normalizedVelocity = normalizeMidiVelocity(velocity);
+  const level = levelForChannel(channel, levelMap);
+  return normalizeMidiVelocity(Math.round((normalizedVelocity * level) / 10));
 }
 
 function wrapModulo(value: number, modulo: number): number {
@@ -611,12 +644,16 @@ function parseDrummerRowRuntimeTrackId(trackId: string): { drummerTrackId: strin
   };
 }
 
-function buildDrummerRowTrackConfigs(drummerTrack: DrummerSequencerTrackState): SessionSequencerConfigRequest["tracks"] {
+function buildDrummerRowTrackConfigs(
+  drummerTrack: DrummerSequencerTrackState,
+  levelMap: Map<number, number>
+): SessionSequencerConfigRequest["tracks"] {
+  const scaledTrackVelocity = scaleVelocityForChannel(127, drummerTrack.midiChannel, levelMap);
   return drummerTrack.rows.map((row) => ({
     track_id: drummerRowRuntimeTrackId(drummerTrack.id, row.id),
     midi_channel: drummerTrack.midiChannel,
     step_count: drummerTrack.stepCount,
-    velocity: 127,
+    velocity: scaledTrackVelocity,
     gate_ratio: 0.8,
     sync_to_track_id: null,
     active_pad: drummerTrack.activePad,
@@ -637,13 +674,13 @@ function buildDrummerRowTrackConfigs(drummerTrack: DrummerSequencerTrackState): 
             return {
               note: null,
               hold: false,
-              velocity: cell?.velocity ?? 127
+              velocity: scaleVelocityForChannel(cell?.velocity ?? 127, drummerTrack.midiChannel, levelMap)
             };
           }
           return {
             note: row.key,
             hold: false,
-            velocity: cell.velocity
+            velocity: scaleVelocityForChannel(cell.velocity, drummerTrack.midiChannel, levelMap)
           };
         })
       };
@@ -1189,6 +1226,7 @@ export default function App() {
   const removeSequencerInstrument = useAppStore((state) => state.removeSequencerInstrument);
   const updateSequencerInstrumentPatch = useAppStore((state) => state.updateSequencerInstrumentPatch);
   const updateSequencerInstrumentChannel = useAppStore((state) => state.updateSequencerInstrumentChannel);
+  const updateSequencerInstrumentLevel = useAppStore((state) => state.updateSequencerInstrumentLevel);
   const buildSequencerConfigSnapshot = useAppStore((state) => state.buildSequencerConfigSnapshot);
   const applySequencerConfigSnapshot = useAppStore((state) => state.applySequencerConfigSnapshot);
   const pushEvent = useAppStore((state) => state.pushEvent);
@@ -1959,6 +1997,10 @@ export default function App() {
     [activeMidiInput, midiInputs]
   );
   const instrumentsRunning = activeSessionState === "running";
+  const instrumentLevelsByChannel = useMemo(
+    () => instrumentLevelByChannel(sequencerInstruments),
+    [sequencerInstruments]
+  );
 
   const selectedCount = selection.nodeIds.length + selection.connections.length;
   const openInstrumentPatchIds = useMemo(() => {
@@ -2244,40 +2286,45 @@ export default function App() {
 
   const buildBackendSequencerConfig = useCallback((state = sequencerRef.current): SessionSequencerConfigRequest => {
     const transportStepCount = transportStepCountFromPerformanceSequencers(state.tracks, state.drummerTracks);
-    const melodicTracks = state.tracks.map((track) => ({
-      track_id: track.id,
-      midi_channel: track.midiChannel,
-      step_count: track.stepCount,
-      velocity: 127,
-      gate_ratio: 0.8,
-      sync_to_track_id: track.syncToTrackId,
-      active_pad: track.activePad,
-      queued_pad: track.queuedPad,
-      pad_loop_enabled: track.padLoopEnabled,
-      pad_loop_repeat: track.padLoopRepeat,
-      pad_loop_sequence: track.padLoopSequence,
-      enabled: track.enabled,
-      queued_enabled: track.queuedEnabled,
-      pads: track.pads.map((pad, padIndex) => ({
-        pad_index: padIndex,
-        step_count: pad.stepCount,
-        steps: pad.steps.map((step) => {
-          const notes = buildSequencerStepChordMidiNotes(step.note, step.chord, pad.scaleRoot, pad.mode);
-          return {
-            note: notes.length === 0 ? null : notes.length === 1 ? notes[0] : notes,
-            hold: step.hold,
-            velocity: step.velocity
-          };
-        })
-      }))
-    }));
-    const drummerRowTracks = state.drummerTracks.flatMap((drummerTrack) => buildDrummerRowTrackConfigs(drummerTrack));
+    const melodicTracks = state.tracks.map((track) => {
+      const scaledTrackVelocity = scaleVelocityForChannel(127, track.midiChannel, instrumentLevelsByChannel);
+      return {
+        track_id: track.id,
+        midi_channel: track.midiChannel,
+        step_count: track.stepCount,
+        velocity: scaledTrackVelocity,
+        gate_ratio: 0.8,
+        sync_to_track_id: track.syncToTrackId,
+        active_pad: track.activePad,
+        queued_pad: track.queuedPad,
+        pad_loop_enabled: track.padLoopEnabled,
+        pad_loop_repeat: track.padLoopRepeat,
+        pad_loop_sequence: track.padLoopSequence,
+        enabled: track.enabled,
+        queued_enabled: track.queuedEnabled,
+        pads: track.pads.map((pad, padIndex) => ({
+          pad_index: padIndex,
+          step_count: pad.stepCount,
+          steps: pad.steps.map((step) => {
+            const notes = buildSequencerStepChordMidiNotes(step.note, step.chord, pad.scaleRoot, pad.mode);
+            return {
+              note: notes.length === 0 ? null : notes.length === 1 ? notes[0] : notes,
+              hold: step.hold,
+              velocity: scaleVelocityForChannel(step.velocity, track.midiChannel, instrumentLevelsByChannel)
+            };
+          })
+        }))
+      };
+    });
+    const drummerRowTracks = state.drummerTracks.flatMap((drummerTrack) =>
+      buildDrummerRowTrackConfigs(drummerTrack, instrumentLevelsByChannel)
+    );
     return {
       bpm: state.bpm,
       step_count: transportStepCount,
       tracks: [...melodicTracks, ...drummerRowTracks]
     };
-  }, []);
+  }, [instrumentLevelsByChannel]);
   const sequencerConfigSyncSignature = useMemo(
     () => JSON.stringify(buildBackendSequencerConfig(sequencer)),
     [buildBackendSequencerConfig, sequencer.bpm, sequencer.drummerTracks, sequencer.tracks]
@@ -2406,9 +2453,10 @@ export default function App() {
       }
 
       const normalizedNote = Math.max(0, Math.min(127, Math.round(note)));
-      const normalizedChannel = Math.max(1, Math.min(16, Math.round(channel)));
+      const normalizedChannel = normalizeMidiChannel(channel);
+      const scaledVelocity = scaleVelocityForChannel(110, normalizedChannel, instrumentLevelsByChannel);
       void sendDirectMidiEvent(
-        { type: "note_on", channel: normalizedChannel, note: normalizedNote, velocity: 110 },
+        { type: "note_on", channel: normalizedChannel, note: normalizedNote, velocity: scaledVelocity },
         sessionId
       )
         .then(() => {
@@ -2421,7 +2469,7 @@ export default function App() {
         })
         .catch(() => undefined);
     },
-    [activeSessionId, activeSessionState, sendDirectMidiEvent]
+    [activeSessionId, activeSessionState, instrumentLevelsByChannel, sendDirectMidiEvent]
   );
 
   const onStartInstrumentEngine = useCallback(() => {
@@ -2553,10 +2601,15 @@ export default function App() {
       }
 
       setSequencerError(null);
-      const normalizedVelocity = Math.max(0, Math.min(127, Math.round(velocity)));
+      const normalizedChannel = normalizeMidiChannel(channel);
+      const normalizedNote = Math.max(0, Math.min(127, Math.round(note)));
+      const scaledVelocity = scaleVelocityForChannel(velocity, normalizedChannel, instrumentLevelsByChannel);
       void (async () => {
-        await sendDirectMidiEvent({ type: "note_on", channel, note, velocity: normalizedVelocity }, activeSessionId);
-        pianoRollNoteSessionRef.current.set(pianoRollNoteKey(note, channel), activeSessionId);
+        await sendDirectMidiEvent(
+          { type: "note_on", channel: normalizedChannel, note: normalizedNote, velocity: scaledVelocity },
+          activeSessionId
+        );
+        pianoRollNoteSessionRef.current.set(pianoRollNoteKey(normalizedNote, normalizedChannel), activeSessionId);
       })().catch((error) => {
         setSequencerError(error instanceof Error ? error.message : appCopy.errors.failedToStartPianoRollNote);
       });
@@ -2567,20 +2620,23 @@ export default function App() {
       appCopy.errors.failedToStartPianoRollNote,
       appCopy.errors.noActiveInstrumentSession,
       appCopy.errors.startInstrumentsBeforePianoRoll,
+      instrumentLevelsByChannel,
       sendDirectMidiEvent
     ]
   );
 
   const onPianoRollNoteOff = useCallback(
     (note: number, channel: number) => {
-      const noteKey = pianoRollNoteKey(note, channel);
+      const normalizedChannel = normalizeMidiChannel(channel);
+      const normalizedNote = Math.max(0, Math.min(127, Math.round(note)));
+      const noteKey = pianoRollNoteKey(normalizedNote, normalizedChannel);
       const sessionId = pianoRollNoteSessionRef.current.get(noteKey) ?? activeSessionId;
       pianoRollNoteSessionRef.current.delete(noteKey);
       if (!sessionId) {
         return;
       }
 
-      void sendDirectMidiEvent({ type: "note_off", channel, note }, sessionId).catch(() => {
+      void sendDirectMidiEvent({ type: "note_off", channel: normalizedChannel, note: normalizedNote }, sessionId).catch(() => {
         // Ignore transient note-off failures during release.
       });
     },
@@ -3883,6 +3939,7 @@ export default function App() {
             onRemoveInstrument={removeSequencerInstrument}
             onInstrumentPatchChange={updateSequencerInstrumentPatch}
             onInstrumentChannelChange={updateSequencerInstrumentChannel}
+            onInstrumentLevelChange={updateSequencerInstrumentLevel}
             onPerformanceNameChange={(name) => setCurrentPerformanceMeta(name, performanceDescription)}
             onPerformanceDescriptionChange={(description) => setCurrentPerformanceMeta(performanceName, description)}
             onNewPerformance={onNewCurrentPerformance}

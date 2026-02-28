@@ -142,6 +142,7 @@ interface AppStore {
   removeSequencerInstrument: (bindingId: string) => void;
   updateSequencerInstrumentPatch: (bindingId: string, patchId: string) => void;
   updateSequencerInstrumentChannel: (bindingId: string, channel: number) => void;
+  updateSequencerInstrumentLevel: (bindingId: string, level: number) => void;
   buildSequencerConfigSnapshot: () => SequencerConfigSnapshot;
   applySequencerConfigSnapshot: (snapshot: unknown) => void;
 
@@ -323,6 +324,13 @@ let bootstrapLoadInFlight: Promise<void> | null = null;
 
 function clampInt(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, Math.round(value)));
+}
+
+function normalizeInstrumentLevel(value: unknown): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return 10;
+  }
+  return clampInt(value, 1, 10);
 }
 
 function normalizeSequencerTrackStepCount(value: number): 4 | 8 | 16 | 32 {
@@ -1700,13 +1708,14 @@ function normalizePersistedSequencerInstruments(
       bindings.push({
         id: typeof candidate.id === "string" && candidate.id.length > 0 ? candidate.id : crypto.randomUUID(),
         patchId: candidate.patchId,
-        midiChannel
+        midiChannel,
+        level: normalizeInstrumentLevel(candidate.level)
       });
     }
   }
 
   if (bindings.length === 0 && fallbackPatchId && availablePatchIds.has(fallbackPatchId)) {
-    bindings.push({ id: crypto.randomUUID(), patchId: fallbackPatchId, midiChannel: 1 });
+    bindings.push({ id: crypto.randomUUID(), patchId: fallbackPatchId, midiChannel: 1, level: 10 });
   }
 
   return bindings;
@@ -1767,7 +1776,8 @@ function buildPersistedAppStateSnapshot(state: AppStore): PersistedAppState {
     sequencerInstruments: state.sequencerInstruments.map((binding) => ({
       id: binding.id,
       patchId: binding.patchId,
-      midiChannel: clampInt(binding.midiChannel, 1, 16)
+      midiChannel: clampInt(binding.midiChannel, 1, 16),
+      level: normalizeInstrumentLevel(binding.level)
     })),
     currentPerformanceId: state.currentPerformanceId,
     performanceName: state.performanceName,
@@ -2002,7 +2012,8 @@ function defaultSequencerInstruments(patches: PatchListItem[], currentPatchId?: 
     {
       id: crypto.randomUUID(),
       patchId,
-      midiChannel: 1
+      midiChannel: 1,
+      level: 10
     }
   ];
 }
@@ -2069,7 +2080,8 @@ function buildSequencerConfigSnapshot(
       .filter((instrument) => instrument.patchId.length > 0)
       .map((instrument) => ({
         patchId: instrument.patchId,
-        midiChannel: clampInt(instrument.midiChannel, 1, 16)
+        midiChannel: clampInt(instrument.midiChannel, 1, 16),
+        level: normalizeInstrumentLevel(instrument.level)
       })),
     sequencer: {
       bpm: clampInt(sequencer.bpm, 30, 300),
@@ -2245,12 +2257,13 @@ function parseSequencerConfigSnapshot(
     instruments.push({
       id: crypto.randomUUID(),
       patchId: record.patchId,
-      midiChannel
+      midiChannel,
+      level: normalizeInstrumentLevel(record.level)
     });
   }
 
   if (instruments.length === 0 && fallbackPatchId) {
-    instruments.push({ id: crypto.randomUUID(), patchId: fallbackPatchId, midiChannel: 1 });
+    instruments.push({ id: crypto.randomUUID(), patchId: fallbackPatchId, midiChannel: 1, level: 10 });
   }
 
   if (instruments.length === 0) {
@@ -2560,7 +2573,8 @@ export const useAppStore = create<AppStore>((set, get) => {
             sequencerInstruments: sequencerInstruments.map((binding) => ({
               id: binding.id,
               patchId: binding.patchId,
-              midiChannel: clampInt(binding.midiChannel, 1, 16)
+              midiChannel: clampInt(binding.midiChannel, 1, 16),
+              level: normalizeInstrumentLevel(binding.level)
             })),
             currentPerformanceId,
             performanceName,
@@ -2874,7 +2888,8 @@ export const useAppStore = create<AppStore>((set, get) => {
       const binding: SequencerInstrumentBinding = {
         id: crypto.randomUUID(),
         patchId,
-        midiChannel: nextAvailableMidiChannel(state.sequencerInstruments)
+        midiChannel: nextAvailableMidiChannel(state.sequencerInstruments),
+        level: 10
       };
 
       set({
@@ -2914,6 +2929,17 @@ export const useAppStore = create<AppStore>((set, get) => {
       set({
         sequencerInstruments: state.sequencerInstruments.map((binding) =>
           binding.id === bindingId ? { ...binding, midiChannel: normalizedChannel } : binding
+        ),
+        error: null
+      });
+    },
+
+    updateSequencerInstrumentLevel: (bindingId, level) => {
+      const normalizedLevel = normalizeInstrumentLevel(level);
+      const state = get();
+      set({
+        sequencerInstruments: state.sequencerInstruments.map((binding) =>
+          binding.id === bindingId ? { ...binding, level: normalizedLevel } : binding
         ),
         error: null
       });

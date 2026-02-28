@@ -1857,6 +1857,7 @@ interface SequencerPageProps {
   onRemoveInstrument: (bindingId: string) => void;
   onInstrumentPatchChange: (bindingId: string, patchId: string) => void;
   onInstrumentChannelChange: (bindingId: string, channel: number) => void;
+  onInstrumentLevelChange: (bindingId: string, level: number) => void;
   onPerformanceNameChange: (value: string) => void;
   onPerformanceDescriptionChange: (value: string) => void;
   onNewPerformance: () => void;
@@ -3039,6 +3040,7 @@ export function SequencerPage({
   onRemoveInstrument,
   onInstrumentPatchChange,
   onInstrumentChannelChange,
+  onInstrumentLevelChange,
   onPerformanceNameChange,
   onPerformanceDescriptionChange,
   onNewPerformance,
@@ -3681,7 +3683,7 @@ export function SequencerPage({
             instrumentBindings.map((binding, index) => (
               <div
                 key={binding.id}
-                className="grid grid-cols-[minmax(0,_1fr)_88px_minmax(0,_1fr)] items-end gap-2 rounded-lg border border-slate-600/80 bg-slate-800/75 px-2 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
+                className="grid grid-cols-[minmax(0,_1fr)_74px_74px_auto] items-end gap-2 rounded-lg border border-slate-600/80 bg-slate-800/75 px-2 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
               >
                 <label className="flex min-w-0 flex-col gap-1">
                   <span className="text-[10px] uppercase tracking-[0.16em] text-slate-400">{ui.patch(index + 1)}</span>
@@ -3705,6 +3707,17 @@ export function SequencerPage({
                     max={16}
                     value={binding.midiChannel}
                     onChange={(event) => onInstrumentChannelChange(binding.id, Number(event.target.value))}
+                    className="w-full rounded-md border border-slate-600 bg-slate-950 px-2 py-1 text-xs text-slate-100 outline-none ring-accent/40 transition focus:ring"
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-[10px] uppercase tracking-[0.16em] text-slate-400">LEVEL</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={10}
+                    value={binding.level}
+                    onChange={(event) => onInstrumentLevelChange(binding.id, Number(event.target.value))}
                     className="w-full rounded-md border border-slate-600 bg-slate-950 px-2 py-1 text-xs text-slate-100 outline-none ring-accent/40 transition focus:ring"
                   />
                 </label>
