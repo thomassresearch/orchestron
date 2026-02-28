@@ -2358,6 +2358,7 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         "vdelayxs": "https://csound.com/docs/manual/vdelayxs.html",
         "flanger": "https://csound.com/docs/manual/flanger.html",
         "comb": "https://csound.com/docs/manual/comb.html",
+        "vcomb": "https://csound.com/docs/manual/vcomb.html",
         "reverb2": "https://csound.com/docs/manual/reverb2.html",
         "platerev": "https://csound.com/docs/manual/platerev.html",
         "limit": "https://csound.com/docs/manual/limit.html",
@@ -2394,6 +2395,7 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         "outleta": "https://csound.com/docs/manual/outleta.html",
         "inletk": "https://csound.com/docs/manual/inletk.html",
         "inleta": "https://csound.com/docs/manual/inleta.html",
+        "maxalloc": "https://csound.com/docs/manual/maxalloc.html",
         "notnum": "https://csound.com/docs/manual/notnum.html",
         "ntrpol": "https://csound.com/docs/manual/ntrpol.html",
         "rms": "https://csound.com/docs/manual/rms.html",
@@ -2406,6 +2408,7 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         "syncphasor": "https://csound.com/docs/manual/syncphasor.html",
         "upsamp": "https://csound.com/docs/manual/upsamp.html",
         "vco2": "https://csound.com/docs/manual/vco2.html",
+        "vco2init": "https://csound.com/docs/manual/vco2init.html",
         "dripwater": "https://csound.com/docs/manual/dripwater.html",
     }
 
@@ -2529,6 +2532,31 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         assert portk_inputs["khtim"]["default"] == 0.05
         assert portk_inputs["isig"]["required"] is False
         assert portk_outputs["kout"]["signal_type"] == "k"
+
+        vco2init_inputs = {item["id"]: item for item in opcodes_by_name["vco2init"]["inputs"]}
+        vco2init_outputs = {item["id"]: item for item in opcodes_by_name["vco2init"]["outputs"]}
+        assert opcodes_by_name["vco2init"]["category"] == "tables"
+        assert vco2init_inputs["iwave"]["signal_type"] == "i"
+        assert vco2init_inputs["ibasfn"]["required"] is False
+        assert vco2init_inputs["ipmul"]["default"] == 1.05
+        assert vco2init_inputs["isrcft"]["required"] is False
+        assert vco2init_outputs["ifn"]["signal_type"] == "i"
+
+        vcomb_inputs = {item["id"]: item for item in opcodes_by_name["vcomb"]["inputs"]}
+        vcomb_outputs = {item["id"]: item for item in opcodes_by_name["vcomb"]["outputs"]}
+        assert opcodes_by_name["vcomb"]["category"] == "delay"
+        assert vcomb_inputs["asig"]["signal_type"] == "a"
+        assert vcomb_inputs["xlpt"]["accepted_signal_types"] == ["a", "k", "i"]
+        assert vcomb_inputs["iskip"]["required"] is False
+        assert vcomb_inputs["insmps"]["required"] is False
+        assert vcomb_outputs["aout"]["signal_type"] == "a"
+
+        maxalloc_inputs = {item["id"]: item for item in opcodes_by_name["maxalloc"]["inputs"]}
+        assert opcodes_by_name["maxalloc"]["category"] == "utility"
+        assert list(maxalloc_inputs.keys()) == ["icount"]
+        assert maxalloc_inputs["icount"]["signal_type"] == "i"
+        assert maxalloc_inputs["icount"]["default"] == 8
+        assert opcodes_by_name["maxalloc"]["outputs"] == []
 
         wgpluck2_inputs = {item["id"]: item for item in opcodes_by_name["wgpluck2"]["inputs"]}
         wgpluck2_outputs = {item["id"]: item for item in opcodes_by_name["wgpluck2"]["outputs"]}
@@ -2680,6 +2708,9 @@ def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
                     {"id": "n84", "opcode": "wgpluck2", "params": {}, "position": {"x": 20, "y": 4170}},
                     {"id": "n85", "opcode": "portk", "params": {"ksig": 0, "khtim": 0.05}, "position": {"x": 20, "y": 4220}},
                     {"id": "n86", "opcode": "vosim", "params": {}, "position": {"x": 20, "y": 4270}},
+                    {"id": "n87", "opcode": "vco2init", "params": {}, "position": {"x": 20, "y": 4320}},
+                    {"id": "n88", "opcode": "vcomb", "params": {"asig": 0}, "position": {"x": 20, "y": 4370}},
+                    {"id": "n89", "opcode": "maxalloc", "params": {"icount": 8}, "position": {"x": 20, "y": 4420}},
                 ],
                 "connections": [
                     {"from_node_id": "n1", "from_port_id": "asig", "to_node_id": "n2", "to_port_id": "left"},
@@ -2750,6 +2781,8 @@ def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
             "rezzy",
             "vclpf",
             "vco2",
+            "vco2init",
+            "vcomb",
             "dripwater",
             "gbuzz",
             "expseg",
@@ -2776,6 +2809,7 @@ def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
             "rms",
             "samphold",
             "portk",
+            "maxalloc",
             "sfload",
             "sfplay3",
             "sfinstr3",
@@ -2798,10 +2832,155 @@ def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
         flanger_line = next(line.strip() for line in compiled_orc.splitlines() if " flanger " in line)
         assert ", a(" in flanger_line
         sfload_line = next(line for line in compiled_orc.splitlines() if ' sfload "/tmp/test.sf2"' in line)
+        maxalloc_line = next(line for line in compiled_orc.splitlines() if line.strip().startswith("maxalloc "))
         instr_line_index = compiled_orc.splitlines().index("instr 1")
         sfload_line_index = compiled_orc.splitlines().index(sfload_line)
+        maxalloc_line_index = compiled_orc.splitlines().index(maxalloc_line)
         assert sfload_line.startswith("gi_")
+        assert maxalloc_line.strip() == "maxalloc 1, 8"
+        assert maxalloc_line_index < instr_line_index
         assert sfload_line_index < instr_line_index
+
+
+def test_maxalloc_uses_assigned_instrument_number_in_multi_instrument_compile(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        patch_payload_a = {
+            "name": "maxalloc instrument a",
+            "description": "maxalloc should target assigned instrument number",
+            "schema_version": 1,
+            "graph": {
+                "nodes": [
+                    {"id": "n1", "opcode": "const_a", "params": {"value": 0.05}, "position": {"x": 20, "y": 20}},
+                    {"id": "n2", "opcode": "outs", "params": {}, "position": {"x": 200, "y": 20}},
+                    {"id": "n3", "opcode": "maxalloc", "params": {"icount": 3}, "position": {"x": 20, "y": 120}},
+                ],
+                "connections": [
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "left"},
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "right"},
+                ],
+                "ui_layout": {},
+                "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+            },
+        }
+        patch_payload_b = {
+            **patch_payload_a,
+            "name": "maxalloc instrument b",
+            "graph": {
+                **patch_payload_a["graph"],
+                "nodes": [
+                    {"id": "n1", "opcode": "const_a", "params": {"value": 0.05}, "position": {"x": 20, "y": 20}},
+                    {"id": "n2", "opcode": "outs", "params": {}, "position": {"x": 200, "y": 20}},
+                    {"id": "n3", "opcode": "maxalloc", "params": {"icount": 7}, "position": {"x": 20, "y": 120}},
+                ],
+            },
+        }
+
+        create_patch_a = client.post("/api/patches", json=patch_payload_a)
+        create_patch_b = client.post("/api/patches", json=patch_payload_b)
+        assert create_patch_a.status_code == 201
+        assert create_patch_b.status_code == 201
+        patch_id_a = create_patch_a.json()["id"]
+        patch_id_b = create_patch_b.json()["id"]
+
+        create_session = client.post(
+            "/api/sessions",
+            json={
+                "instruments": [
+                    {"patch_id": patch_id_a, "midi_channel": 1},
+                    {"patch_id": patch_id_b, "midi_channel": 2},
+                ]
+            },
+        )
+        assert create_session.status_code == 201
+        session_id = create_session.json()["session_id"]
+
+        compile_response = client.post(f"/api/sessions/{session_id}/compile")
+        assert compile_response.status_code == 200
+        compiled_orc = compile_response.json()["orc"]
+
+        maxalloc_lines = [line.strip() for line in compiled_orc.splitlines() if line.strip().startswith("maxalloc ")]
+        instr_line_index = compiled_orc.splitlines().index("instr 1")
+        maxalloc_line_index = min(
+            compiled_orc.splitlines().index(line)
+            for line in compiled_orc.splitlines()
+            if line.strip().startswith("maxalloc ")
+        )
+        assert maxalloc_lines == ["maxalloc 1, 3", "maxalloc 2, 7"]
+        assert maxalloc_line_index < instr_line_index
+
+
+def test_maxalloc_accepts_connected_const_i_icount_source(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        patch_payload = {
+            "name": "maxalloc const_i icount",
+            "description": "maxalloc should accept connected const_i icount source",
+            "schema_version": 1,
+            "graph": {
+                "nodes": [
+                    {"id": "n1", "opcode": "const_i", "params": {"value": 4}, "position": {"x": 20, "y": 20}},
+                    {"id": "n2", "opcode": "const_a", "params": {"value": 0.05}, "position": {"x": 20, "y": 120}},
+                    {"id": "n3", "opcode": "outs", "params": {}, "position": {"x": 200, "y": 120}},
+                    {"id": "n4", "opcode": "maxalloc", "params": {}, "position": {"x": 200, "y": 20}},
+                ],
+                "connections": [
+                    {"from_node_id": "n1", "from_port_id": "iout", "to_node_id": "n4", "to_port_id": "icount"},
+                    {"from_node_id": "n2", "from_port_id": "aout", "to_node_id": "n3", "to_port_id": "left"},
+                    {"from_node_id": "n2", "from_port_id": "aout", "to_node_id": "n3", "to_port_id": "right"},
+                ],
+                "ui_layout": {},
+                "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+            },
+        }
+
+        create_patch = client.post("/api/patches", json=patch_payload)
+        assert create_patch.status_code == 201
+        patch_id = create_patch.json()["id"]
+
+        create_session = client.post("/api/sessions", json={"patch_id": patch_id})
+        assert create_session.status_code == 201
+        session_id = create_session.json()["session_id"]
+
+        compile_response = client.post(f"/api/sessions/{session_id}/compile")
+        assert compile_response.status_code == 200
+        compiled_orc = compile_response.json()["orc"]
+        assert "maxalloc 1, 4" in compiled_orc
+
+
+def test_maxalloc_rejects_connected_non_const_i_icount_source(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        patch_payload = {
+            "name": "maxalloc invalid connected icount",
+            "description": "maxalloc should reject non-const_i icount source",
+            "schema_version": 1,
+            "graph": {
+                "nodes": [
+                    {"id": "n1", "opcode": "notnum", "params": {}, "position": {"x": 20, "y": 20}},
+                    {"id": "n2", "opcode": "const_a", "params": {"value": 0.05}, "position": {"x": 20, "y": 120}},
+                    {"id": "n3", "opcode": "outs", "params": {}, "position": {"x": 200, "y": 120}},
+                    {"id": "n4", "opcode": "maxalloc", "params": {}, "position": {"x": 200, "y": 20}},
+                ],
+                "connections": [
+                    {"from_node_id": "n1", "from_port_id": "inote", "to_node_id": "n4", "to_port_id": "icount"},
+                    {"from_node_id": "n2", "from_port_id": "aout", "to_node_id": "n3", "to_port_id": "left"},
+                    {"from_node_id": "n2", "from_port_id": "aout", "to_node_id": "n3", "to_port_id": "right"},
+                ],
+                "ui_layout": {},
+                "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+            },
+        }
+
+        create_patch = client.post("/api/patches", json=patch_payload)
+        assert create_patch.status_code == 201
+        patch_id = create_patch.json()["id"]
+
+        create_session = client.post("/api/sessions", json={"patch_id": patch_id})
+        assert create_session.status_code == 201
+        session_id = create_session.json()["session_id"]
+
+        compile_response = client.post(f"/api/sessions/{session_id}/compile")
+        assert compile_response.status_code == 422
+        diagnostics = compile_response.json()["detail"]["diagnostics"]
+        assert any("only accepts a direct const_i connection for icount" in item for item in diagnostics)
 
 
 def test_mxadsr_supports_legacy_idrss_param_key(tmp_path: Path) -> None:

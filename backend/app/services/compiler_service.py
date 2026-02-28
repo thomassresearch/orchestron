@@ -59,6 +59,7 @@ class SfloadGlobalRequest:
 class CompiledInstrumentLines:
     instrument_lines: list[str]
     sfload_global_requests: list[SfloadGlobalRequest]
+    global_header_lines: list[str]
 
 
 class CompilerService:
@@ -105,14 +106,20 @@ class CompilerService:
         ]
 
         compiled_instruments: list[tuple[int, PatchInstrumentTarget, CompiledInstrumentLines]] = []
+        global_header_lines: list[str] = []
         sfload_global_requests: list[SfloadGlobalRequest] = []
         for instrument_number, target in enumerate(targets, start=1):
             compiled_lines = self._compile_instrument_lines(
                 target.patch,
+                instrument_number=instrument_number,
                 global_scope_key=f"{instrument_number}_{target.patch.id}",
             )
             compiled_instruments.append((instrument_number, target, compiled_lines))
+            global_header_lines.extend(compiled_lines.global_header_lines)
             sfload_global_requests.extend(compiled_lines.sfload_global_requests)
+
+        if global_header_lines:
+            orc_lines.extend([*global_header_lines, ""])
 
         global_sfload_lines = self._render_sfload_global_requests(sfload_global_requests)
         if global_sfload_lines:
@@ -144,6 +151,7 @@ class CompilerService:
         self,
         patch: PatchDocument,
         *,
+        instrument_number: int,
         global_scope_key: str,
     ) -> CompiledInstrumentLines:
         diagnostics: list[str] = []
@@ -179,6 +187,7 @@ class CompilerService:
         output_signal_types: dict[tuple[str, str], SignalType] = {}
         rate_counters: dict[str, int] = defaultdict(int)
         instrument_lines: list[str] = []
+        global_header_lines: list[str] = []
         sfload_global_requests: list[SfloadGlobalRequest] = []
 
         for node_id, compiled in compiled_nodes.items():
@@ -269,6 +278,53 @@ class CompilerService:
                 sfload_global_requests.append(rendered)
                 continue
 
+            if compiled.spec.name == "maxalloc":
+                icount_connections = inbound_index.get((compiled.node.id, "icount"), [])
+                icount_formula_key = self._formula_target_key(compiled.node.id, "icount")
+                if self._lookup_input_formula_config(patch.graph.ui_layout, icount_formula_key) is not None:
+                    raise CompilationError(
+                        [
+                            f"maxalloc node '{compiled.node.id}' requires a literal icount value; "
+                            "input formulas are not supported because maxalloc is emitted in the orchestra header."
+                        ]
+                    )
+
+                icount = OPTIONAL_OMIT_MARKER
+                if icount_connections:
+                    if len(icount_connections) != 1:
+                        raise CompilationError(
+                            [f"maxalloc node '{compiled.node.id}' supports exactly one icount source connection."]
+                        )
+
+                    source_connection = icount_connections[0]
+                    source_node = compiled_nodes.get(source_connection.from_node_id)
+                    if (
+                        not source_node
+                        or source_node.spec.name != "const_i"
+                        or source_connection.from_port_id != "iout"
+                    ):
+                        raise CompilationError(
+                            [
+                                f"maxalloc node '{compiled.node.id}' only accepts a direct const_i connection for icount; "
+                                "other connected sources are instrument-local and cannot be used in orchestra header code."
+                            ]
+                        )
+                    icount = self._format_literal(source_node.node.params.get("value", 0), SignalType.INIT)
+                else:
+                    icount_port = self._find_port(compiled.spec.inputs, "icount")
+                    if not icount_port:
+                        raise CompilationError(
+                            [f"Internal compiler error: maxalloc node '{compiled.node.id}' is missing icount input spec."]
+                        )
+
+                    icount, found = self._resolve_literal_value(compiled.node, icount_port)
+                    if not found or not icount or icount == OPTIONAL_OMIT_MARKER:
+                        raise CompilationError([f"maxalloc node '{compiled.node.id}' requires icount."])
+
+                rendered = f"maxalloc {instrument_number}, {icount}"
+                global_header_lines.extend([f"; node:{compiled.node.id} opcode:{compiled.spec.name}", rendered])
+                continue
+
             if compiled.spec.name == "flanger" and "adel" in env:
                 adel = env["adel"].strip()
                 if (
@@ -326,6 +382,7 @@ class CompilerService:
         return CompiledInstrumentLines(
             instrument_lines=instrument_lines,
             sfload_global_requests=sfload_global_requests,
+            global_header_lines=global_header_lines,
         )
 
     def _render_gen_node(
