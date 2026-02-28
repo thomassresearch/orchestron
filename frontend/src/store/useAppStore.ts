@@ -5173,10 +5173,7 @@ export const useAppStore = create<AppStore>((set, get) => {
             const nextActivePad =
               payload.activePad === undefined ? track.activePad : normalizePadIndex(payload.activePad);
             const currentSelectedPad = track.pads[nextActivePad] ?? track.pads[0];
-            const nextStepCount =
-              payload.stepCount === undefined
-                ? normalizeSequencerTrackStepCount(currentSelectedPad?.stepCount ?? track.stepCount)
-                : normalizeSequencerTrackStepCount(payload.stepCount);
+            const nextStepCount = normalizeSequencerTrackStepCount(currentSelectedPad?.stepCount ?? track.stepCount);
             const nextRuntimeLocalStep =
               payload.localStep === undefined
                 ? track.runtimeLocalStep
@@ -5201,12 +5198,7 @@ export const useAppStore = create<AppStore>((set, get) => {
                   ? null
                   : payload.queuedEnabled;
             const selectedPad = track.pads[nextActivePad] ?? track.pads[0];
-            const nextPads =
-              payload.stepCount === undefined
-                ? track.pads
-                : track.pads.map((pad, index) =>
-                    index === nextActivePad ? { ...pad, stepCount: nextStepCount } : pad
-                  );
+            const nextPads = track.pads;
             const nextScaleRoot = selectedPad?.scaleRoot ?? track.scaleRoot;
             const nextScaleType = selectedPad?.scaleType ?? track.scaleType;
             const nextMode = selectedPad?.mode ?? track.mode;
@@ -5283,10 +5275,9 @@ export const useAppStore = create<AppStore>((set, get) => {
 
             const nextActivePad =
               payload.activePad === undefined ? track.activePad : normalizePadIndex(payload.activePad);
-            const nextStepCount =
-              payload.stepCount === undefined
-                ? normalizeDrummerSequencerStepCount((track.pads[nextActivePad] ?? track.pads[0])?.stepCount ?? track.stepCount)
-                : normalizeDrummerSequencerStepCount(payload.stepCount);
+            const nextStepCount = normalizeDrummerSequencerStepCount(
+              (track.pads[nextActivePad] ?? track.pads[0])?.stepCount ?? track.stepCount
+            );
             const nextRuntimeLocalStep =
               payload.localStep === undefined
                 ? track.runtimeLocalStep
@@ -5310,12 +5301,7 @@ export const useAppStore = create<AppStore>((set, get) => {
                 : payload.queuedEnabled === null
                   ? null
                   : payload.queuedEnabled;
-            const nextPads =
-              payload.stepCount === undefined
-                ? track.pads
-                : track.pads.map((pad, index) =>
-                    index === nextActivePad ? { ...pad, stepCount: nextStepCount } : pad
-                  );
+            const nextPads = track.pads;
 
             if (
               nextActivePad === track.activePad &&

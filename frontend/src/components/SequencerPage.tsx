@@ -667,14 +667,20 @@ function midiNotePitchClass(note: number): number {
   return normalizePitchClass(note);
 }
 
-function midiNoteOctave(note: number): number {
-  return Math.floor(Math.round(note) / 12) - 1;
+function midiNoteOctave(note: number, tonicPitchClass = 0): number {
+  const roundedNote = Math.round(note);
+  const normalizedTonicPitchClass = normalizePitchClass(tonicPitchClass);
+  const pitchClass = normalizePitchClass(roundedNote);
+  const chromaticOctave = Math.floor(roundedNote / 12) - 1;
+  return pitchClass < normalizedTonicPitchClass ? chromaticOctave - 1 : chromaticOctave;
 }
 
-function sequencerMidiNoteFromPitchClassOctave(pitchClass: number, octave: number): number {
+function sequencerMidiNoteFromPitchClassOctave(pitchClass: number, octave: number, tonicPitchClass = 0): number {
   const normalizedPitchClass = normalizePitchClass(pitchClass);
+  const normalizedTonicPitchClass = normalizePitchClass(tonicPitchClass);
   const normalizedOctave = Math.max(0, Math.min(7, Math.round(octave)));
-  return normalizedPitchClass + (normalizedOctave + 1) * 12;
+  const chromaticOctave = normalizedPitchClass < normalizedTonicPitchClass ? normalizedOctave + 1 : normalizedOctave;
+  return normalizedPitchClass + (chromaticOctave + 1) * 12;
 }
 
 function buildSequencerPitchClassOptions(
@@ -3822,6 +3828,10 @@ export function SequencerPage({
           {sequencer.tracks.map((track, trackIndex) => {
             const noteOptions = buildSequencerNoteOptions(track.scaleRoot, track.mode);
             const noteOptionsByNote = new Map(noteOptions.map((option) => [option.note, option]));
+            const tonicPitchClass = (() => {
+              const tonic = noteOptions.find((option) => option.degree === 1);
+              return tonic ? midiNotePitchClass(tonic.note) : 0;
+            })();
             const pitchClassOptions = buildSequencerPitchClassOptions(noteOptions);
             const inScalePitchClassOptions = pitchClassOptions.filter((option) => option.inScale);
             const outOfScalePitchClassOptions = pitchClassOptions.filter((option) => !option.inScale);
@@ -4157,7 +4167,7 @@ export function SequencerPage({
                       const isInScale = selectedNote?.inScale ?? false;
                       const degree = selectedNote?.degree ?? null;
                       const notePitchClass = noteValue === null ? null : midiNotePitchClass(noteValue);
-                      const noteOctave = noteValue === null ? null : midiNoteOctave(noteValue);
+                      const noteOctave = noteValue === null ? null : midiNoteOctave(noteValue, tonicPitchClass);
                       const chordValue = stepState?.chord ?? "none";
                       const chordOptions = buildSequencerChordOptions(noteValue, track.scaleRoot, track.mode);
                       const chordNoneOptions = chordOptions.filter((option) => option.group === "none");
@@ -4321,11 +4331,11 @@ export function SequencerPage({
                                 const fallbackNote = previousNonRestNote(track.steps, step);
                                 const nextOctave =
                                   noteOctave ??
-                                  (fallbackNote === null ? 4 : midiNoteOctave(fallbackNote));
+                                  (fallbackNote === null ? 4 : midiNoteOctave(fallbackNote, tonicPitchClass));
                                 onSequencerTrackStepNoteChange(
                                   track.id,
                                   step,
-                                  sequencerMidiNoteFromPitchClassOctave(nextPitchClass, nextOctave)
+                                  sequencerMidiNoteFromPitchClassOctave(nextPitchClass, nextOctave, tonicPitchClass)
                                 );
                               }}
                               className="h-8 w-full appearance-none rounded-md border border-slate-600 bg-slate-950 px-2 py-1 text-center font-mono text-[11px] text-transparent outline-none ring-accent/40 transition focus:ring"
@@ -4445,7 +4455,7 @@ export function SequencerPage({
                                 onSequencerTrackStepNoteChange(
                                   track.id,
                                   step,
-                                  sequencerMidiNoteFromPitchClassOctave(notePitchClass ?? 0, Number(raw))
+                                  sequencerMidiNoteFromPitchClassOctave(notePitchClass ?? 0, Number(raw), tonicPitchClass)
                                 );
                               }}
                               className="w-14 rounded border border-slate-600 bg-slate-950 px-1.5 py-0.5 text-center font-mono text-[11px] text-slate-100 outline-none ring-accent/40 transition focus:ring disabled:cursor-not-allowed disabled:opacity-50"
