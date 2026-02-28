@@ -36,6 +36,7 @@ You can choose from structured editors for common routines and a named routine o
 - `GEN01` - Audio File
 - `GEN02` - Value List
 - `GEN07` - Segments
+- `GEN08` - Cubic Spline Segments
 - `GEN10` - Harmonic Sine Partials
 - `GEN11` - Harmonic Cosine Partials
 - `GEN17` - Step Table From x/y Pairs
@@ -59,6 +60,7 @@ You can choose from structured editors for common routines and a named routine o
 | `GEN11` | Harmonic cosine partials | harmonic count, lowest harmonic, multiplier |
 | `GEN02` | Literal value list | Numeric value list |
 | `GEN07` | Segments | Start value + repeated length/value rows |
+| `GEN08` | Cubic spline segments | Start value + repeated length/value rows |
 | `GEN17` | Step table from x/y pairs | x/y pairs (editable list) |
 | `GEN20` | Window / distribution | window type, max, optional parameter (for selected windows) |
 | `GEN01` | Load audio file into table | uploaded asset or fallback path, skip time, format, channel |

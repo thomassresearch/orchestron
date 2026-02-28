@@ -1526,7 +1526,7 @@ def test_platerev_compile_flow(tmp_path: Path) -> None:
                     {
                         "id": "n2",
                         "opcode": "platerev",
-                        "params": {"itabexcite": 1, "itabouts": 1, "kbndry": 0.9},
+                        "params": {"itabexcite": 1, "itabouts": 1, "kbndry": 0.9, "aexcite2": 0},
                         "position": {"x": 280, "y": 60},
                     },
                     {"id": "n3", "opcode": "outs", "params": {}, "position": {"x": 580, "y": 60}},
@@ -1559,7 +1559,7 @@ def test_platerev_compile_flow(tmp_path: Path) -> None:
         assert "," in outputs_fragment
         assert "platerev 1, 1, 0.9" in platerev_line
         assert "a_n1_aout" in platerev_line
-        assert platerev_line.endswith(", 0")
+        assert platerev_line.rsplit(", ", 1)[1].startswith("a_n1_aout")
 
 
 def test_ftgen_output_connects_to_vco_ifn(tmp_path: Path) -> None:
@@ -2168,14 +2168,15 @@ def test_gen01_ftgenonce_mode_is_coerced_to_ftgen(tmp_path: Path) -> None:
         assert "S_g1_gen01_file" not in gen01_line
 
 
-def test_gen_meta_opcode_supports_gen11_gen17_gen20(tmp_path: Path) -> None:
+def test_gen_meta_opcode_supports_gen08_gen11_gen17_gen20(tmp_path: Path) -> None:
     with _client(tmp_path) as client:
         patch_payload = {
-            "name": "GEN 11 17 20",
+            "name": "GEN 8 11 17 20",
             "description": "Routine-specific GEN forms compile correctly",
             "schema_version": 1,
             "graph": {
                 "nodes": [
+                    {"id": "g8", "opcode": "GEN", "params": {}, "position": {"x": 40, "y": 40}},
                     {"id": "g11", "opcode": "GEN", "params": {}, "position": {"x": 40, "y": 40}},
                     {"id": "g17", "opcode": "GEN", "params": {}, "position": {"x": 40, "y": 180}},
                     {"id": "g20", "opcode": "GEN", "params": {}, "position": {"x": 40, "y": 320}},
@@ -2189,6 +2190,19 @@ def test_gen_meta_opcode_supports_gen11_gen17_gen20(tmp_path: Path) -> None:
                 ],
                 "ui_layout": {
                     "gen_nodes": {
+                        "g8": {
+                            "mode": "ftgen",
+                            "tableNumber": 8,
+                            "startTime": 0,
+                            "tableSize": 512,
+                            "routineNumber": 8,
+                            "normalize": True,
+                            "segmentStartValue": 1,
+                            "segments": [
+                                {"length": 0.3, "value": 0.5},
+                                {"length": 0.7, "value": 0.125},
+                            ],
+                        },
                         "g11": {
                             "mode": "ftgen",
                             "tableNumber": 11,
@@ -2240,6 +2254,9 @@ def test_gen_meta_opcode_supports_gen11_gen17_gen20(tmp_path: Path) -> None:
         compile_response = client.post(f"/api/sessions/{session_id}/compile")
         assert compile_response.status_code == 200
         compiled_orc = compile_response.json()["orc"]
+
+        gen08_line = next(line.strip() for line in compiled_orc.splitlines() if " ftgen 8, 0, 512, 8," in line)
+        assert gen08_line.endswith("ftgen 8, 0, 512, 8, 1, 0.3, 0.5, 0.7, 0.125")
 
         gen11_line = next(line.strip() for line in compiled_orc.splitlines() if " ftgen 11, 0, 2048, 11," in line)
         assert gen11_line.endswith("ftgen 11, 0, 2048, 11, 8, 2, 0.5")

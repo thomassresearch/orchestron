@@ -280,6 +280,20 @@ class CompilerService:
                     # flanger expects an audio-rate delay signal; adapt k/i or literal delay inputs.
                     env["adel"] = f"a({adel})"
 
+            if compiled.spec.name == "platerev" and "aexcite2" in env:
+                aexcite2 = env["aexcite2"].strip()
+                if (
+                    aexcite2
+                    and aexcite2 != OPTIONAL_OMIT_MARKER
+                    and not input_is_audio.get("aexcite2", False)
+                    and not re.fullmatch(r"a\s*\(.+\)", aexcite2)
+                    and not aexcite2.startswith("a_")
+                ):
+                    # Backward compatibility: older platerev node specs set a literal default (0) for
+                    # aexcite2, but Csound requires this optional argument to be audio when present.
+                    # Omit non-audio values so existing patches continue to compile.
+                    env["aexcite2"] = OPTIONAL_OMIT_MARKER
+
             for param_key, param_value in compiled.node.params.items():
                 if param_key in env:
                     continue
@@ -410,7 +424,7 @@ class CompilerService:
                 values = self._gen_number_list(raw_config.get("values"))
             return values or [1]
 
-        if routine_number == 7:
+        if routine_number in (7, 8):
             start_value = self._gen_number(raw_config.get("segmentStartValue"), default=0)
             segment_rows = raw_config.get("segments")
             points: list[str | int | float | bool] = [start_value]

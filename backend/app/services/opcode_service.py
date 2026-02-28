@@ -2235,7 +2235,7 @@ class OpcodeService:
                     PortSpec(id="idecay", name="Decay", signal_type=SignalType.INIT, default=5),
                     PortSpec(id="iloss", name="Loss", signal_type=SignalType.INIT, default=0.001),
                     PortSpec(id="aexcite1", name="aExcite1", signal_type=SignalType.AUDIO, default=0),
-                    PortSpec(id="aexcite2", name="aExcite2", signal_type=SignalType.AUDIO, required=False, default=0),
+                    PortSpec(id="aexcite2", name="aExcite2", signal_type=SignalType.AUDIO, required=False),
                 ],
                 outputs=[
                     PortSpec(id="aleft", name="aLeft", signal_type=SignalType.AUDIO),

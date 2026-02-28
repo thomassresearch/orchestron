@@ -93,6 +93,12 @@ export const GEN_ROUTINE_OPTIONS: GenRoutineOption[] = [
     description: "Define a start value and line segments using length/value pairs."
   },
   {
+    value: 8,
+    label: "GEN08 - Cubic Spline Segments",
+    kind: "gen7",
+    description: "Define a start value and cubic spline segments using length/value pairs."
+  },
+  {
     value: 17,
     label: "GEN17 - Step Table From x/y Pairs",
     kind: "gen17",
@@ -432,7 +438,7 @@ function previewArgsForConfig(config: GenNodeConfig): string[] {
   if (routineNumber === 2) {
     return (config.valueList.length > 0 ? config.valueList : [1]).map(String);
   }
-  if (routineNumber === 7) {
+  if (routineNumber === 7 || routineNumber === 8) {
     const rows = config.segments.length > 0 ? config.segments : [{ length: config.tableSize || 16384, value: 1 }];
     const values = [String(config.segmentStartValue)];
     for (const row of rows) {

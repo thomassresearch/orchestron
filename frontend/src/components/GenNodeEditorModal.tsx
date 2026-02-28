@@ -156,6 +156,7 @@ const GEN_EDITOR_COPY: Record<GuiLanguage, GenEditorCopy> = {
       1: "GEN01 - Audio File",
       2: "GEN02 - Value List",
       7: "GEN07 - Segments",
+      8: "GEN08 - Cubic Spline Segments",
       10: "GEN10 - Harmonic Sine Partials",
       11: "GEN11 - Harmonic Cosine Partials",
       17: "GEN17 - Step Table From x/y Pairs",
@@ -165,6 +166,7 @@ const GEN_EDITOR_COPY: Record<GuiLanguage, GenEditorCopy> = {
       1: "Load a sound file into a function table (uploaded asset or custom path).",
       2: "Enter literal values copied into the table.",
       7: "Define a start value and line segments using length/value pairs.",
+      8: "Define a start value and cubic spline segments using length/value pairs.",
       10: "Enter harmonic amplitudes (1st, 2nd, 3rd partial, ...).",
       11: "Specify number of harmonics, lowest harmonic, and harmonic multiplier.",
       17: "Specify x/y point pairs for stepped lookup mappings (often used unnormalized).",
@@ -262,6 +264,7 @@ const GEN_EDITOR_COPY: Record<GuiLanguage, GenEditorCopy> = {
       1: "GEN01 - Audiodatei",
       2: "GEN02 - Werteliste",
       7: "GEN07 - Segmente",
+      8: "GEN08 - Kubische Spline-Segmente",
       10: "GEN10 - Harmonische Sinus-Teiltone",
       11: "GEN11 - Harmonische Kosinus-Teiltone",
       17: "GEN17 - Stufentabelle aus x/y-Paaren",
@@ -271,6 +274,7 @@ const GEN_EDITOR_COPY: Record<GuiLanguage, GenEditorCopy> = {
       1: "Laedt eine Audiodatei in eine Funktionstabelle (Upload-Asset oder benutzerdefinierter Pfad).",
       2: "Trage Literalwerte ein, die in die Tabelle kopiert werden.",
       7: "Definiere Startwert und Liniensegmente ueber Laenge/Wert-Paare.",
+      8: "Definiere Startwert und kubische Spline-Segmente ueber Laenge/Wert-Paare.",
       10: "Trage harmonische Amplituden ein (1., 2., 3. Partial, ...).",
       11: "Anzahl Harmonische, niedrigste Harmonische und Harmonik-Multiplikator festlegen.",
       17: "x/y-Paare fuer gestufte Lookup-Mappings festlegen (oft unnormalisiert).",
@@ -368,6 +372,7 @@ const GEN_EDITOR_COPY: Record<GuiLanguage, GenEditorCopy> = {
       1: "GEN01 - Fichier audio",
       2: "GEN02 - Liste de valeurs",
       7: "GEN07 - Segments",
+      8: "GEN08 - Segments spline cubique",
       10: "GEN10 - Partielles sinus harmoniques",
       11: "GEN11 - Partielles cosinus harmoniques",
       17: "GEN17 - Table par paires x/y",
@@ -377,6 +382,7 @@ const GEN_EDITOR_COPY: Record<GuiLanguage, GenEditorCopy> = {
       1: "Charge un fichier audio dans une table de fonction (asset televerse ou chemin personnalise).",
       2: "Saisissez des valeurs litterales copiees dans la table.",
       7: "Definissez une valeur initiale et des segments par paires longueur/valeur.",
+      8: "Definissez une valeur initiale et des segments spline cubique par paires longueur/valeur.",
       10: "Saisissez les amplitudes harmoniques (1re, 2e, 3e partielle, ...).",
       11: "Definir nombre d'harmoniques, plus basse harmonique et multiplicateur harmonique.",
       17: "Definir des paires x/y pour des mappings lookup par paliers (souvent non normalises).",
@@ -474,6 +480,7 @@ const GEN_EDITOR_COPY: Record<GuiLanguage, GenEditorCopy> = {
       1: "GEN01 - Archivo de audio",
       2: "GEN02 - Lista de valores",
       7: "GEN07 - Segmentos",
+      8: "GEN08 - Segmentos spline cubica",
       10: "GEN10 - Parciales seno armonicos",
       11: "GEN11 - Parciales coseno armonicos",
       17: "GEN17 - Tabla escalonada por pares x/y",
@@ -483,6 +490,7 @@ const GEN_EDITOR_COPY: Record<GuiLanguage, GenEditorCopy> = {
       1: "Carga un archivo de audio en una tabla de funcion (asset subido o ruta personalizada).",
       2: "Introduce valores literales copiados a la tabla.",
       7: "Define un valor inicial y segmentos con pares longitud/valor.",
+      8: "Define un valor inicial y segmentos spline cubica con pares longitud/valor.",
       10: "Introduce amplitudes armonicas (1er, 2do, 3er parcial, ...).",
       11: "Especifica numero de armonicos, armonico mas bajo y multiplicador armonico.",
       17: "Especifica pares x/y para mapeos escalonados de lookup (a menudo sin normalizar).",
@@ -944,7 +952,7 @@ export function GenNodeEditorModal({ nodeId, guiLanguage, initialConfig, onClose
                                 rowIndex === index
                                   ? {
                                       ...row,
-                                      length: Math.max(1, parseNumericInput(event.target.value, row.length))
+                                      length: parseNumericInput(event.target.value, row.length)
                                     }
                                   : row
                               )
