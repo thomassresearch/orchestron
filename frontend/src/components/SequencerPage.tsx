@@ -38,6 +38,7 @@ import {
   SEQUENCER_SCALE_OPTIONS
 } from "../lib/sequencer";
 import { HelpIconButton } from "./HelpIconButton";
+import { MultitrackArranger } from "./MultitrackArranger";
 import type {
   GuiLanguage,
   HelpDocId,
@@ -5380,6 +5381,17 @@ export function SequencerPage({
           </div>
         )}
       </div>
+
+      {sequencer.tracks.length + sequencer.drummerTracks.length + sequencer.controllerSequencers.length > 0 ? (
+        <MultitrackArranger
+          sequencer={sequencer}
+          patches={patches}
+          instrumentBindings={instrumentBindings}
+          onSequencerTrackPadLoopPatternChange={onSequencerTrackPadLoopPatternChange}
+          onDrummerSequencerTrackPadLoopPatternChange={onDrummerSequencerTrackPadLoopPatternChange}
+          onControllerSequencerPadLoopPatternChange={onControllerSequencerPadLoopPatternChange}
+        />
+      ) : null}
 
       <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-slate-700 bg-slate-950/80 px-2.5 py-1.5 text-xs text-slate-300">
         <span className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 font-mono">
