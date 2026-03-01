@@ -1003,28 +1003,28 @@ const SIGNAL_TYPE_LABELS: Record<GuiLanguage, Record<SignalType, string>> = {
     k: "control-rate",
     i: "init-rate",
     S: "string-rate",
-    f: "function-table rate"
+    f: "phase-vocoder frame signal"
   },
   german: {
     a: "audio-rate",
     k: "Kontrollrate",
     i: "init-rate",
     S: "string-rate",
-    f: "Funktions-Tabellen-Rate"
+    f: "Phase-Vocoder-Frame-Signal"
   },
   french: {
     a: "taux audio",
     k: "taux contrôle",
     i: "taux init",
     S: "taux chaîne",
-    f: "taux table de fonction"
+    f: "signal de trame phase-vocodeur"
   },
   spanish: {
     a: "tasa de audio",
     k: "tasa de control",
     i: "tasa init",
     S: "tasa de cadena",
-    f: "tasa de tabla de función"
+    f: "señal de trama de vocoder de fase"
   }
 };
 

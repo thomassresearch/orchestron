@@ -3,7 +3,8 @@ import type {
   KeyboardEvent as ReactKeyboardEvent,
   MouseEvent as ReactMouseEvent,
   PointerEvent as ReactPointerEvent,
-  DragEvent as ReactDragEvent
+  DragEvent as ReactDragEvent,
+  WheelEvent as ReactWheelEvent
 } from "react";
 
 import {
@@ -14,6 +15,7 @@ import {
   insertPadLoopItem,
   movePadLoopItemWithinContainer,
   removePadLoopItemsFromContainer,
+  setPadLoopContainerSequence,
   ungroupPadLoopItemsInContainer,
   type PadLoopContainerRef
 } from "../lib/padLoopPattern";
@@ -27,9 +29,8 @@ import type {
 
 const STEP_GRID_QUANTUM = 4;
 const DEFAULT_STEP_PIXEL_WIDTH = 9;
-const MIN_STEP_PIXEL_WIDTH = 4;
+const ABSOLUTE_MIN_STEP_PIXEL_WIDTH = 0.05;
 const MAX_STEP_PIXEL_WIDTH = 24;
-const STEP_PIXEL_WIDTH_ZOOM_STEP = 2;
 const TOKEN_REORDER_DRAG_MIME = "application/x-visualcsound-arranger-token";
 
 type ArrangerTrackKind = "sequencer" | "drummer" | "controller";
@@ -65,13 +66,23 @@ type ArrangerContextMenuState = {
 type RootDragState = {
   pointerId: number;
   trackId: string;
-  sourceIndex: number;
+  blockSourceStartIndex: number;
+  blockSourceEndIndex: number;
   originStartStep: number;
-  stepCount: number;
-  totalSteps: number;
-  otherRanges: Array<{ startStep: number; endStep: number }>;
+  blockStepCount: number;
   startClientX: number;
   moved: boolean;
+  allTokens: ArrangerTimelineToken[];
+};
+
+type RootDragPreview = {
+  trackId: string;
+  blockSourceStartIndex: number;
+  blockSourceEndIndex: number;
+  originStartStep: number;
+  visualStartStep: number;
+  nextStartStep: number;
+  valid: boolean;
 };
 
 type ArrangerTokenDragPayload = {
@@ -107,7 +118,9 @@ function normalizeQuantizedStepCount(value: number): number {
 }
 
 function pauseTokensForGap(totalSteps: number): PadLoopPatternItem[] {
-  let remaining = Math.max(0, Math.round(totalSteps));
+  // Normalize to the step grid so pause decomposition never drops sub-grid remainders.
+  const quantizedTotal = Math.max(0, quantizeToGrid(totalSteps));
+  let remaining = quantizedTotal;
   const result: PadLoopPatternItem[] = [];
   const sizes = [...PAD_LOOP_PAUSE_STEP_OPTIONS].sort((a, b) => b - a);
   for (const size of sizes) {
@@ -152,7 +165,7 @@ function parseTokenDragPayload(event: ReactDragEvent): ArrangerTokenDragPayload 
 
 function tokenLabel(item: PadLoopPatternItem): string {
   if (item.type === "pad") {
-    return `P${item.padIndex + 1}`;
+    return String(item.padIndex + 1);
   }
   if (item.type === "pause") {
     return `P${item.stepCount}`;
@@ -165,7 +178,7 @@ function tokenLabel(item: PadLoopPatternItem): string {
 
 function tokenClass(item: PadLoopPatternItem): string {
   if (item.type === "pad") {
-    return "border-cyan-400/60 bg-cyan-500/10 text-cyan-100";
+    return "border-emerald-400/60 bg-emerald-500/10 text-emerald-100";
   }
   if (item.type === "pause") {
     return "border-slate-600 bg-slate-800/60 text-slate-300";
@@ -187,23 +200,6 @@ function clonePatternItem(item: PadLoopPatternItem): PadLoopPatternItem {
     return { type: "group", groupId: item.groupId };
   }
   return { type: "super", superGroupId: item.superGroupId };
-}
-
-function replaceContainerSequence(
-  pattern: PadLoopPatternState,
-  container: PadLoopContainerRef,
-  nextSequence: PadLoopPatternItem[]
-): PadLoopPatternState {
-  const existing = getPadLoopContainerSequence(pattern, container) ?? [];
-  let nextPattern = removePadLoopItemsFromContainer(
-    pattern,
-    container,
-    Array.from({ length: existing.length }, (_, index) => index)
-  );
-  for (let index = 0; index < nextSequence.length; index += 1) {
-    nextPattern = insertPadLoopItem(nextPattern, container, index, nextSequence[index]);
-  }
-  return nextPattern;
 }
 
 function buildTrackSubtitle(
@@ -236,6 +232,276 @@ function sameContainer(a: PadLoopContainerRef, b: PadLoopContainerRef): boolean 
   return a.id === (b as typeof a).id;
 }
 
+type RootMovePlan = {
+  valid: boolean;
+  mode: "gap" | "append" | "swap";
+  visualTargetStartStep: number;
+  normalizedTargetStartStep: number;
+  originStartStep: number;
+  blockStepCount: number;
+  blockSourceStartIndex: number;
+  blockSourceEndIndex: number;
+  swapTargetSourceIndex: number | null;
+  sourceItems: PadLoopPatternItem[];
+  remainingTotalSteps: number;
+  blockItems: PadLoopPatternItem[];
+  remainingTokens: {
+    item: PadLoopPatternItem;
+    stepCount: number;
+    startStep: number;
+    endStep: number;
+  }[];
+};
+
+function normalizePauseSequence(sequence: PadLoopPatternItem[]): PadLoopPatternItem[] {
+  const normalized: PadLoopPatternItem[] = [];
+  let pendingPauseSteps = 0;
+
+  const flushPause = () => {
+    if (pendingPauseSteps <= 0) {
+      return;
+    }
+    normalized.push(...pauseTokensForGap(pendingPauseSteps));
+    pendingPauseSteps = 0;
+  };
+
+  for (const item of sequence) {
+    if (item.type === "pause") {
+      pendingPauseSteps += normalizeQuantizedStepCount(item.stepCount);
+      continue;
+    }
+    flushPause();
+    normalized.push(clonePatternItem(item));
+  }
+
+  flushPause();
+  while (normalized.length > 0 && normalized[normalized.length - 1]?.type === "pause") {
+    normalized.pop();
+  }
+  return normalized;
+}
+
+function planRootBlockMove(
+  allTokens: ArrangerTimelineToken[],
+  blockSourceStartIndex: number,
+  blockSourceEndIndex: number,
+  targetStartStep: number
+): RootMovePlan | null {
+  if (allTokens.length === 0) {
+    return null;
+  }
+
+  const blockStart = Math.max(0, Math.min(blockSourceStartIndex, blockSourceEndIndex));
+  const blockEnd = Math.max(blockStart, Math.max(blockSourceStartIndex, blockSourceEndIndex));
+  const sortedTokens = [...allTokens].sort((a, b) => a.sourceIndex - b.sourceIndex);
+  const blockTokens = sortedTokens.filter(
+    (token) => token.sourceIndex >= blockStart && token.sourceIndex <= blockEnd
+  );
+
+  if (blockTokens.length === 0) {
+    return null;
+  }
+
+  const blockStepCount = blockTokens.reduce((sum, token) => sum + token.stepCount, 0);
+  const originStartStep = blockTokens[0].startStep;
+  const blockItems = blockTokens.map((token) => clonePatternItem(token.item));
+  const sourceItems = sortedTokens.map((token) => clonePatternItem(token.item));
+  const beforeSourceTokens = sortedTokens.filter((token) => token.sourceIndex < blockStart);
+  const afterSourceTokens = sortedTokens.filter((token) => token.sourceIndex > blockEnd);
+  const sourceGapItems = pauseTokensForGap(blockStepCount);
+
+  const remainingSourceItems: Array<{ item: PadLoopPatternItem; stepCount: number }> = [
+    ...beforeSourceTokens.map((token) => ({
+      item: clonePatternItem(token.item),
+      stepCount: token.stepCount
+    })),
+    ...sourceGapItems.map((item) => {
+      const stepCount = item.type === "pause" ? item.stepCount : STEP_GRID_QUANTUM;
+      return {
+        item: clonePatternItem(item),
+        stepCount: normalizeQuantizedStepCount(stepCount)
+      };
+    }),
+    ...afterSourceTokens.map((token) => ({
+      item: clonePatternItem(token.item),
+      stepCount: token.stepCount
+    }))
+  ].filter((entry) => entry.stepCount > 0);
+
+  const mergedRemainingSourceItems: Array<{ item: PadLoopPatternItem; stepCount: number }> = [];
+  for (const entry of remainingSourceItems) {
+    const previous = mergedRemainingSourceItems[mergedRemainingSourceItems.length - 1];
+    if (entry.item.type === "pause" && previous?.item.type === "pause") {
+      previous.stepCount += entry.stepCount;
+      continue;
+    }
+    mergedRemainingSourceItems.push({ item: clonePatternItem(entry.item), stepCount: entry.stepCount });
+  }
+
+  let cursor = 0;
+  const remainingTokens = mergedRemainingSourceItems.map((entry) => {
+    const startStep = cursor;
+    const endStep = startStep + entry.stepCount;
+    cursor = endStep;
+    return {
+      item: entry.item,
+      stepCount: entry.stepCount,
+      startStep,
+      endStep
+    };
+  });
+
+  const visualTargetStartStep = Math.max(0, quantizeToGrid(targetStartStep));
+  let normalizedTargetStartStep = visualTargetStartStep;
+  let mode: RootMovePlan["mode"] = "gap";
+  let swapTargetSourceIndex: number | null = null;
+  let valid = false;
+
+  // Reorder by swapping with an adjacent token only when both lengths match.
+  const canSwapSingleToken =
+    blockTokens.length === 1 &&
+    blockStart === blockEnd &&
+    blockTokens[0].item.type !== "pause";
+  if (canSwapSingleToken) {
+    const swapCandidate = sortedTokens.find(
+      (token) =>
+        token.sourceIndex !== blockStart &&
+        token.startStep === visualTargetStartStep &&
+        token.item.type !== "pause"
+    );
+    if (
+      swapCandidate &&
+      (swapCandidate.sourceIndex === blockStart - 1 || swapCandidate.sourceIndex === blockEnd + 1) &&
+      swapCandidate.stepCount === blockStepCount
+    ) {
+      mode = "swap";
+      normalizedTargetStartStep = swapCandidate.startStep;
+      swapTargetSourceIndex = swapCandidate.sourceIndex;
+      valid = true;
+    }
+  }
+
+  if (!valid) {
+    // Gap placement: keep all non-moved tokens at their absolute step positions.
+    const containingPause = remainingTokens.find(
+      (token) =>
+        token.item.type === "pause" &&
+        visualTargetStartStep >= token.startStep &&
+        visualTargetStartStep <= token.endStep
+    );
+    if (containingPause) {
+      const minStart = containingPause.startStep;
+      const maxStart = containingPause.endStep - blockStepCount;
+      if (maxStart >= minStart) {
+        normalizedTargetStartStep = Math.max(minStart, Math.min(visualTargetStartStep, maxStart));
+        mode = "gap";
+        valid = true;
+      }
+    } else if (visualTargetStartStep >= cursor) {
+      // Move beyond current content: respect absolute drop position, pad with pause if needed.
+      normalizedTargetStartStep = visualTargetStartStep;
+      mode = "append";
+      valid = true;
+    }
+  }
+
+  return {
+    valid,
+    mode,
+    visualTargetStartStep,
+    normalizedTargetStartStep,
+    originStartStep,
+    blockStepCount,
+    blockSourceStartIndex: blockStart,
+    blockSourceEndIndex: blockEnd,
+    swapTargetSourceIndex,
+    sourceItems,
+    remainingTotalSteps: cursor,
+    blockItems,
+    remainingTokens
+  };
+}
+
+function materializeRootMoveSequence(plan: RootMovePlan): PadLoopPatternItem[] | null {
+  if (!plan.valid) {
+    return null;
+  }
+
+  if (plan.mode === "swap") {
+    if (
+      plan.swapTargetSourceIndex === null ||
+      plan.blockSourceStartIndex !== plan.blockSourceEndIndex ||
+      plan.blockSourceStartIndex < 0 ||
+      plan.blockSourceStartIndex >= plan.sourceItems.length ||
+      plan.swapTargetSourceIndex < 0 ||
+      plan.swapTargetSourceIndex >= plan.sourceItems.length
+    ) {
+      return null;
+    }
+    const nextSequence = plan.sourceItems.map((item) => clonePatternItem(item));
+    const sourceItem = nextSequence[plan.blockSourceStartIndex];
+    const targetItem = nextSequence[plan.swapTargetSourceIndex];
+    if (!sourceItem || !targetItem) {
+      return null;
+    }
+    nextSequence[plan.blockSourceStartIndex] = clonePatternItem(targetItem);
+    nextSequence[plan.swapTargetSourceIndex] = clonePatternItem(sourceItem);
+    return normalizePauseSequence(nextSequence);
+  }
+
+  const nextSequence: PadLoopPatternItem[] = [];
+  let inserted = false;
+
+  const insertBlock = () => {
+    for (const item of plan.blockItems) {
+      nextSequence.push(clonePatternItem(item));
+    }
+    inserted = true;
+  };
+
+  for (const token of plan.remainingTokens) {
+    if (!inserted && plan.mode === "gap" && token.item.type === "pause") {
+      const minStart = token.startStep;
+      const maxStart = token.endStep - plan.blockStepCount;
+      if (maxStart >= minStart && plan.normalizedTargetStartStep >= minStart && plan.normalizedTargetStartStep <= maxStart) {
+        const beforeSteps = plan.normalizedTargetStartStep - token.startStep;
+        const afterSteps = token.endStep - (plan.normalizedTargetStartStep + plan.blockStepCount);
+        if (beforeSteps > 0) {
+          nextSequence.push(...pauseTokensForGap(beforeSteps));
+        }
+        insertBlock();
+        if (afterSteps > 0) {
+          nextSequence.push(...pauseTokensForGap(afterSteps));
+        }
+        continue;
+      }
+    }
+    nextSequence.push(clonePatternItem(token.item));
+  }
+
+  if (!inserted) {
+    if (plan.mode !== "append") {
+      return null;
+    }
+    if (plan.normalizedTargetStartStep > plan.remainingTotalSteps) {
+      nextSequence.push(...pauseTokensForGap(plan.normalizedTargetStartStep - plan.remainingTotalSteps));
+    }
+    insertBlock();
+  }
+
+  return normalizePauseSequence(nextSequence);
+}
+
+function isAdditiveSelection(event: ReactMouseEvent): boolean {
+  return (
+    event.metaKey ||
+    event.ctrlKey ||
+    event.shiftKey ||
+    event.getModifierState("Meta") ||
+    event.getModifierState("Control")
+  );
+}
+
 export function MultitrackArranger({
   sequencer,
   patches,
@@ -252,12 +518,7 @@ export function MultitrackArranger({
   const [stepPixelWidth, setStepPixelWidth] = useState<number>(DEFAULT_STEP_PIXEL_WIDTH);
   const [timelineViewportWidth, setTimelineViewportWidth] = useState<number>(0);
   const [timelineScrollLeft, setTimelineScrollLeft] = useState<number>(0);
-  const [rootDragPreview, setRootDragPreview] = useState<{
-    trackId: string;
-    sourceIndex: number;
-    nextStartStep: number;
-    valid: boolean;
-  } | null>(null);
+  const [rootDragPreview, setRootDragPreview] = useState<RootDragPreview | null>(null);
   const dragStateRef = useRef<RootDragState | null>(null);
 
   const patchNameById = useMemo(() => {
@@ -534,6 +795,29 @@ export function MultitrackArranger({
       };
     });
   }, []);
+  const toggleSelectionAtIndex = useCallback(
+    (trackId: string, container: PadLoopContainerRef, index: number, additive: boolean) => {
+      const key = selectionKey(trackId, container);
+      const normalizedIndex = Math.max(0, Math.round(index));
+      setSelectionByContainer((previous) => {
+        const current = previous[key] ?? [];
+        const next = additive
+          ? current.includes(normalizedIndex)
+            ? current.filter((entry) => entry !== normalizedIndex)
+            : [...current, normalizedIndex]
+          : [normalizedIndex];
+        const normalized = Array.from(new Set(next)).sort((a, b) => a - b);
+        if (normalized.length === 0) {
+          return Object.fromEntries(Object.entries(previous).filter(([entryKey]) => entryKey !== key));
+        }
+        return {
+          ...previous,
+          [key]: normalized
+        };
+      });
+    },
+    []
+  );
 
   const appendPadToken = useCallback(
     (track: ArrangerTrack, container: PadLoopContainerRef, padIndex: number) => {
@@ -569,7 +853,7 @@ export function MultitrackArranger({
       event: ReactPointerEvent<HTMLButtonElement>,
       track: ArrangerTrack,
       token: ArrangerTimelineToken,
-      totalSteps: number,
+      allTokens: ArrangerTimelineToken[],
       visibleTokens: ArrangerTimelineToken[]
     ) => {
       if (event.button !== 0) {
@@ -577,85 +861,82 @@ export function MultitrackArranger({
       }
       event.preventDefault();
       event.stopPropagation();
-      const sourceIndex = token.sourceIndex;
-      const otherRanges = visibleTokens
-        .filter((candidate) => candidate.sourceIndex !== sourceIndex)
-        .map((candidate) => ({
-          startStep: candidate.startStep,
-          endStep: candidate.endStep
-        }));
+
+      const selectedIndexes = getSelection(track.id, { kind: "root" });
+      const selectedSet = new Set(selectedIndexes);
+      let blockSourceStartIndex = token.sourceIndex;
+      let blockSourceEndIndex = token.sourceIndex;
+
+      if (selectedSet.has(token.sourceIndex)) {
+        const tokenVisibleIndex = visibleTokens.findIndex((candidate) => candidate.sourceIndex === token.sourceIndex);
+        if (tokenVisibleIndex >= 0) {
+          let left = tokenVisibleIndex;
+          while (left > 0 && selectedSet.has(visibleTokens[left - 1].sourceIndex)) {
+            left -= 1;
+          }
+          let right = tokenVisibleIndex;
+          while (right + 1 < visibleTokens.length && selectedSet.has(visibleTokens[right + 1].sourceIndex)) {
+            right += 1;
+          }
+          blockSourceStartIndex = Math.min(visibleTokens[left].sourceIndex, visibleTokens[right].sourceIndex);
+          blockSourceEndIndex = Math.max(visibleTokens[left].sourceIndex, visibleTokens[right].sourceIndex);
+        }
+      }
+
+      const plan = planRootBlockMove(allTokens, blockSourceStartIndex, blockSourceEndIndex, token.startStep);
+      if (!plan) {
+        return;
+      }
+
       dragStateRef.current = {
         pointerId: event.pointerId,
         trackId: track.id,
-        sourceIndex,
-        originStartStep: token.startStep,
-        stepCount: token.stepCount,
-        totalSteps,
-        otherRanges,
+        blockSourceStartIndex,
+        blockSourceEndIndex,
+        originStartStep: plan.originStartStep,
+        blockStepCount: plan.blockStepCount,
         startClientX: event.clientX,
-        moved: false
+        moved: false,
+        allTokens
       };
       setRootDragPreview({
         trackId: track.id,
-        sourceIndex,
-        nextStartStep: token.startStep,
+        blockSourceStartIndex,
+        blockSourceEndIndex,
+        originStartStep: plan.originStartStep,
+        visualStartStep: plan.visualTargetStartStep,
+        nextStartStep: plan.originStartStep,
         valid: true
       });
       if (event.currentTarget.setPointerCapture) {
         event.currentTarget.setPointerCapture(event.pointerId);
       }
     },
-    []
+    [getSelection]
   );
 
   const commitRootDrag = useCallback(
-    (dragState: RootDragState, nextStartStep: number) => {
+    (dragState: RootDragState, visualTargetStartStep: number) => {
       const track = arrangerTracks.find((candidate) => candidate.id === dragState.trackId);
       if (!track) {
         return;
       }
       const timeline = buildTimeline(track, { kind: "root" }, true);
-      const movedToken = timeline.allTokens.find((token) => token.sourceIndex === dragState.sourceIndex);
-      if (!movedToken) {
+      const plan = planRootBlockMove(
+        timeline.allTokens,
+        dragState.blockSourceStartIndex,
+        dragState.blockSourceEndIndex,
+        visualTargetStartStep
+      );
+      if (!plan || !plan.valid) {
         return;
       }
-      const nextEndStep = nextStartStep + movedToken.stepCount;
-      const hasOverlap = timeline.allTokens
-        .filter((token) => token.sourceIndex !== dragState.sourceIndex && token.item.type !== "pause")
-        .some((token) => nextStartStep < token.endStep && nextEndStep > token.startStep);
-      if (hasOverlap) {
+      const nextRootSequence = materializeRootMoveSequence(plan);
+      if (!nextRootSequence) {
         return;
       }
 
-      const nonPauseTokens = timeline.allTokens.filter((token) => token.item.type !== "pause");
-      const moved = nonPauseTokens.find((token) => token.sourceIndex === dragState.sourceIndex);
-      if (!moved) {
-        return;
-      }
-      const others = nonPauseTokens.filter((token) => token.sourceIndex !== dragState.sourceIndex);
-      const withMoved = [
-        ...others,
-        {
-          ...moved,
-          startStep: nextStartStep,
-          endStep: nextStartStep + moved.stepCount
-        }
-      ].sort((a, b) => (a.startStep === b.startStep ? a.sourceIndex - b.sourceIndex : a.startStep - b.startStep));
-
-      const nextRootSequence: PadLoopPatternItem[] = [];
-      let cursor = 0;
-      for (const token of withMoved) {
-        if (token.startStep > cursor) {
-          nextRootSequence.push(...pauseTokensForGap(token.startStep - cursor));
-        }
-        nextRootSequence.push(clonePatternItem(token.item));
-        cursor = token.endStep;
-      }
-      if (timeline.totalSteps > cursor) {
-        nextRootSequence.push(...pauseTokensForGap(timeline.totalSteps - cursor));
-      }
-
-      const nextPattern = replaceContainerSequence(track.padLoopPattern, { kind: "root" }, nextRootSequence);
+      const nextPattern = setPadLoopContainerSequence(track.padLoopPattern, { kind: "root" }, nextRootSequence);
       if (nextPattern !== track.padLoopPattern) {
         commitTrackPattern(track, nextPattern);
       }
@@ -670,20 +951,26 @@ export function MultitrackArranger({
         return;
       }
       const deltaSteps = Math.round((event.clientX - drag.startClientX) / stepPixelWidth);
-      const proposedStart = quantizeToGrid(drag.originStartStep + deltaSteps);
-      const clampedStart = Math.max(0, Math.min(drag.totalSteps - drag.stepCount, proposedStart));
-      const proposedEnd = clampedStart + drag.stepCount;
-      const hasOverlap = drag.otherRanges.some(
-        (range) => clampedStart < range.endStep && proposedEnd > range.startStep
+      const proposedStart = Math.max(0, quantizeToGrid(drag.originStartStep + deltaSteps));
+      const plan = planRootBlockMove(
+        drag.allTokens,
+        drag.blockSourceStartIndex,
+        drag.blockSourceEndIndex,
+        proposedStart
       );
+      const nextStartStep = plan?.normalizedTargetStartStep ?? proposedStart;
+      const valid = plan?.valid ?? false;
       if (Math.abs(event.clientX - drag.startClientX) > 1) {
         drag.moved = true;
       }
       setRootDragPreview({
         trackId: drag.trackId,
-        sourceIndex: drag.sourceIndex,
-        nextStartStep: clampedStart,
-        valid: !hasOverlap
+        blockSourceStartIndex: drag.blockSourceStartIndex,
+        blockSourceEndIndex: drag.blockSourceEndIndex,
+        originStartStep: drag.originStartStep,
+        visualStartStep: plan?.normalizedTargetStartStep ?? proposedStart,
+        nextStartStep,
+        valid
       });
     },
     [stepPixelWidth]
@@ -698,7 +985,12 @@ export function MultitrackArranger({
       const preview = rootDragPreview;
       dragStateRef.current = null;
       setRootDragPreview(null);
-      if (!preview || preview.trackId !== drag.trackId || preview.sourceIndex !== drag.sourceIndex) {
+      if (
+        !preview ||
+        preview.trackId !== drag.trackId ||
+        preview.blockSourceStartIndex !== drag.blockSourceStartIndex ||
+        preview.blockSourceEndIndex !== drag.blockSourceEndIndex
+      ) {
         return;
       }
       if (!preview.valid) {
@@ -751,11 +1043,33 @@ export function MultitrackArranger({
     },
     [appendPadToken, commitTrackPattern, getSelection, setSelection]
   );
-
-  const timelineWidth = Math.max(maxRootSteps * stepPixelWidth, 240);
+  const fitStepPixelWidth =
+    timelineViewportWidth > 0 ? timelineViewportWidth / Math.max(1, maxRootSteps) : DEFAULT_STEP_PIXEL_WIDTH;
+  const minStepPixelWidth = Math.max(ABSOLUTE_MIN_STEP_PIXEL_WIDTH, Math.min(DEFAULT_STEP_PIXEL_WIDTH, fitStepPixelWidth));
+  const timelineContentWidth = maxRootSteps * stepPixelWidth;
+  const timelineWidth = Math.max(timelineContentWidth, timelineViewportWidth);
   const maxTimelineScrollLeft = Math.max(0, timelineWidth - timelineViewportWidth);
+  const handleTimelineWheel = useCallback(
+    (event: ReactWheelEvent<HTMLDivElement>) => {
+      const hasHorizontalIntent = Math.abs(event.deltaX) > 0.1 || (event.shiftKey && Math.abs(event.deltaY) > 0.1);
+      const fallbackVerticalIntent = Math.abs(event.deltaY) > 0.1;
+      if (!hasHorizontalIntent && !fallbackVerticalIntent) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (maxTimelineScrollLeft <= 0) {
+        return;
+      }
+
+      const delta = Math.abs(event.deltaX) > 0.1 ? event.deltaX : event.deltaY;
+      setTimelineScrollLeft((previous) => Math.max(0, Math.min(maxTimelineScrollLeft, previous + delta)));
+    },
+    [maxTimelineScrollLeft]
+  );
   const zoomPercent = Math.round((stepPixelWidth / DEFAULT_STEP_PIXEL_WIDTH) * 100);
-  const canZoomOut = stepPixelWidth > MIN_STEP_PIXEL_WIDTH;
+  const canZoomOut = stepPixelWidth > minStepPixelWidth + 1e-6;
   const canZoomIn = stepPixelWidth < MAX_STEP_PIXEL_WIDTH;
 
   useEffect(() => {
@@ -792,7 +1106,7 @@ export function MultitrackArranger({
   }
 
   return (
-    <div className="relative mt-4 rounded-xl border border-amber-700/45 bg-slate-950/85 p-3">
+    <div className="relative mt-4 overscroll-x-none rounded-xl border border-amber-700/45 bg-slate-950/85 p-3">
       <div className="mb-2 flex items-center gap-2">
         <div className="text-[11px] uppercase tracking-[0.18em] text-amber-200">Multitrack Arranger</div>
         <span className="rounded-md border border-slate-700 bg-slate-900 px-2 py-0.5 font-mono text-[10px] text-slate-300">
@@ -801,7 +1115,9 @@ export function MultitrackArranger({
         <div className="ml-auto flex items-center gap-1.5">
           <button
             type="button"
-            onClick={() => setStepPixelWidth((value) => Math.max(MIN_STEP_PIXEL_WIDTH, value - STEP_PIXEL_WIDTH_ZOOM_STEP))}
+            onClick={() =>
+              setStepPixelWidth((value) => Math.max(minStepPixelWidth, value * 0.85))
+            }
             disabled={!canZoomOut}
             className="rounded border border-slate-700 bg-slate-900 px-2 py-0.5 text-[10px] text-slate-200 transition hover:border-slate-500 disabled:cursor-not-allowed disabled:opacity-50"
           >
@@ -809,7 +1125,7 @@ export function MultitrackArranger({
           </button>
           <button
             type="button"
-            onClick={() => setStepPixelWidth((value) => Math.min(MAX_STEP_PIXEL_WIDTH, value + STEP_PIXEL_WIDTH_ZOOM_STEP))}
+            onClick={() => setStepPixelWidth((value) => Math.min(MAX_STEP_PIXEL_WIDTH, value * 1.15))}
             disabled={!canZoomIn}
             className="rounded border border-slate-700 bg-slate-900 px-2 py-0.5 text-[10px] text-slate-200 transition hover:border-slate-500 disabled:cursor-not-allowed disabled:opacity-50"
           >
@@ -825,7 +1141,7 @@ export function MultitrackArranger({
         <div>Pattern Timeline (4-step grid)</div>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-1">
         {arrangerTracks.map((track) => {
           const rootTimeline = rootTimelines[track.key] ?? {
             sequence: [],
@@ -838,20 +1154,25 @@ export function MultitrackArranger({
           const selectedSet = new Set(rowSelection);
 
           return (
-            <div key={track.key} className="rounded-lg border border-slate-700 bg-slate-900/70 p-2">
-              <div className="grid grid-cols-[280px_minmax(0,1fr)] gap-2">
+            <div key={track.key} className="rounded-lg border border-slate-700 bg-slate-900/70 p-1.5">
+              <div className="grid grid-cols-[280px_minmax(0,1fr)] gap-1.5">
                 <div className="rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1.5">
                   <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-100">{track.title}</div>
                   <div className="mt-0.5 text-[11px] text-slate-400">{track.subtitle}</div>
-                  <div className="mt-1 text-[10px] uppercase tracking-[0.12em] text-slate-500">
-                    {track.enabled ? "running" : "stopped"}
-                  </div>
                 </div>
 
                 <div
                   ref={track.index === 0 ? timelineViewportRef : null}
-                  className="overflow-hidden"
+                  onWheel={handleTimelineWheel}
+                  className="relative overflow-hidden overscroll-x-none"
                 >
+                  {quantizedPlayhead !== null ? (
+                    <span
+                      className="pointer-events-none absolute inset-y-0 z-50 w-[2px] rounded-full bg-amber-200 shadow-[0_0_10px_rgba(251,191,36,0.9)]"
+                      style={{ left: `${quantizedPlayhead * stepPixelWidth - timelineScrollLeft}px` }}
+                      aria-hidden
+                    />
+                  ) : null}
                   <div
                     role="list"
                     tabIndex={0}
@@ -868,7 +1189,7 @@ export function MultitrackArranger({
                         container: { kind: "root" }
                       });
                     }}
-                    className="relative h-12 rounded-md border border-slate-700 bg-slate-950/80 outline-none ring-accent/40 focus:ring"
+                    className="relative h-8 rounded-md border border-slate-700 bg-slate-950/80 outline-none ring-accent/40 focus:ring"
                     style={{
                       width: `${timelineWidth}px`,
                       transform: `translateX(${-timelineScrollLeft}px)`
@@ -886,23 +1207,18 @@ export function MultitrackArranger({
                       );
                     })}
 
-                    {quantizedPlayhead !== null && (
-                      <span
-                        className="pointer-events-none absolute inset-y-0 z-20 w-[2px] rounded-full bg-amber-300/80"
-                        style={{ left: `${quantizedPlayhead * stepPixelWidth}px` }}
-                        aria-hidden
-                      />
-                    )}
-
                     {rootTimeline.visibleTokens.map((token) => {
                       const selected = selectedSet.has(token.sourceIndex);
                       const preview =
-                        rootDragPreview &&
-                        rootDragPreview.trackId === track.id &&
-                        rootDragPreview.sourceIndex === token.sourceIndex
+                        rootDragPreview && rootDragPreview.trackId === track.id
                           ? rootDragPreview
                           : null;
-                      const tokenStart = preview ? preview.nextStartStep : token.startStep;
+                      const previewDelta = preview ? preview.visualStartStep - preview.originStartStep : 0;
+                      const tokenIsDragged =
+                        preview &&
+                        token.sourceIndex >= preview.blockSourceStartIndex &&
+                        token.sourceIndex <= preview.blockSourceEndIndex;
+                      const tokenStart = tokenIsDragged ? token.startStep + previewDelta : token.startStep;
                       const tokenWidth = token.stepCount * stepPixelWidth;
                       const tokenIsOpen =
                         token.item.type === "group"
@@ -914,17 +1230,17 @@ export function MultitrackArranger({
                       return (
                         <div
                           key={`${track.id}-root-${token.sourceIndex}`}
-                          className={`absolute top-1.5 flex h-9 items-center rounded-md border px-1 text-[11px] ${tokenClass(token.item)} ${
+                          className={`absolute top-1 flex h-5 items-center rounded-md border px-1 text-[10px] ${tokenClass(token.item)} ${
                             selected ? "ring-2 ring-cyan-300/60" : ""
-                          } ${preview && !preview.valid ? "opacity-45" : ""}`}
+                          } ${tokenIsDragged && preview && !preview.valid ? "opacity-45" : ""}`}
                           style={{ left: `${tokenStart * stepPixelWidth}px`, width: `${tokenWidth}px` }}
                         >
                           <button
                             type="button"
                             onPointerDown={(event) =>
-                              startRootDrag(event, track, token, rootTimeline.totalSteps, rootTimeline.visibleTokens)
+                              startRootDrag(event, track, token, rootTimeline.allTokens, rootTimeline.visibleTokens)
                             }
-                            className="mr-1 inline-flex h-6 w-4 shrink-0 items-center justify-center rounded border border-slate-600 bg-slate-950/80 text-[10px] text-slate-300"
+                            className="mr-1 inline-flex h-4 w-3 shrink-0 items-center justify-center rounded border border-slate-600 bg-slate-950/80 text-[9px] text-slate-300"
                             title="Drag token"
                             aria-label="Drag token"
                           >
@@ -934,43 +1250,26 @@ export function MultitrackArranger({
                             type="button"
                             onClick={(event) => {
                               event.stopPropagation();
-                              const current = getSelection(track.id, { kind: "root" });
-                              if (event.metaKey || event.ctrlKey) {
-                                const next = current.includes(token.sourceIndex)
-                                  ? current.filter((index) => index !== token.sourceIndex)
-                                  : [...current, token.sourceIndex];
-                                setSelection(track.id, { kind: "root" }, next);
-                              } else {
-                                setSelection(track.id, { kind: "root" }, [token.sourceIndex]);
-                              }
+                              toggleSelectionAtIndex(
+                                track.id,
+                                { kind: "root" },
+                                token.sourceIndex,
+                                isAdditiveSelection(event)
+                              );
 
                               if (token.item.type === "group") {
                                 const groupId = token.item.groupId;
-                                setOpenContainerByTrack((previous) => {
-                                  const current = previous[track.id];
-                                  const alreadyOpen = current?.kind === "group" && current.id === groupId;
-                                  return {
-                                    ...previous,
-                                    [track.id]:
-                                      alreadyOpen
-                                        ? ({ kind: "root" } as PadLoopContainerRef)
-                                        : ({ kind: "group", id: groupId } as PadLoopContainerRef)
-                                  };
-                                });
+                                setOpenContainerByTrack((previous) => ({
+                                  ...previous,
+                                  [track.id]: ({ kind: "group", id: groupId } as PadLoopContainerRef)
+                                }));
                               }
                               if (token.item.type === "super") {
                                 const superGroupId = token.item.superGroupId;
-                                setOpenContainerByTrack((previous) => {
-                                  const current = previous[track.id];
-                                  const alreadyOpen = current?.kind === "super" && current.id === superGroupId;
-                                  return {
-                                    ...previous,
-                                    [track.id]:
-                                      alreadyOpen
-                                        ? ({ kind: "root" } as PadLoopContainerRef)
-                                        : ({ kind: "super", id: superGroupId } as PadLoopContainerRef)
-                                  };
-                                });
+                                setOpenContainerByTrack((previous) => ({
+                                  ...previous,
+                                  [track.id]: ({ kind: "super", id: superGroupId } as PadLoopContainerRef)
+                                }));
                               }
                             }}
                             onContextMenu={(event) => {
@@ -996,12 +1295,25 @@ export function MultitrackArranger({
                         </div>
                       );
                     })}
+
+                    {rootDragPreview && rootDragPreview.trackId === track.id ? (
+                      <span
+                        className={`pointer-events-none absolute inset-y-0 z-30 w-[2px] rounded-full ${
+                          rootDragPreview.valid
+                            ? "bg-cyan-300/90 shadow-[0_0_6px_rgba(103,232,249,0.8)]"
+                            : "bg-rose-300/60"
+                        }`}
+                        style={{ left: `${rootDragPreview.visualStartStep * stepPixelWidth}px` }}
+                        aria-hidden
+                      />
+                    ) : null}
                   </div>
                 </div>
               </div>
 
               {openContainer && openContainer.kind !== "root" ? (
                 <OpenedContainerEditor
+                  key={`${track.id}-${openContainer.kind}-${openContainer.id}`}
                   track={track}
                   container={openContainer}
                   buildTimeline={buildTimeline}
@@ -1033,6 +1345,10 @@ export function MultitrackArranger({
                   onAppendPad={(padIndex) => appendPadToken(track, openContainer, padIndex)}
                   onAppendPause={(stepCount) => appendPauseToken(track, openContainer, stepCount)}
                   stepPixelWidth={stepPixelWidth}
+                  onTimelineWheel={handleTimelineWheel}
+                  toggleSelectionAtIndex={(container, index, additive) =>
+                    toggleSelectionAtIndex(track.id, container, index, additive)
+                  }
                 />
               ) : null}
             </div>
@@ -1044,7 +1360,7 @@ export function MultitrackArranger({
         <div />
         <div
           ref={timelineScrollbarRef}
-          className="h-4 overflow-x-auto overflow-y-hidden rounded border border-slate-700 bg-slate-900/60"
+          className="h-4 overflow-x-auto overflow-y-hidden overscroll-x-none rounded border border-slate-700 bg-slate-900/60"
           onScroll={(event) => {
             setTimelineScrollLeft(event.currentTarget.scrollLeft);
           }}
@@ -1098,6 +1414,8 @@ type OpenedContainerEditorProps = {
   onAppendPad: (padIndex: number) => void;
   onAppendPause: (stepCount: number) => void;
   stepPixelWidth: number;
+  onTimelineWheel: (event: ReactWheelEvent<HTMLDivElement>) => void;
+  toggleSelectionAtIndex: (container: PadLoopContainerRef, index: number, additive: boolean) => void;
 };
 
 function OpenedContainerEditor({
@@ -1113,7 +1431,9 @@ function OpenedContainerEditor({
   onContainerKeyDown,
   onAppendPad,
   onAppendPause,
-  stepPixelWidth
+  stepPixelWidth,
+  onTimelineWheel,
+  toggleSelectionAtIndex
 }: OpenedContainerEditorProps) {
   const timeline = buildTimeline(track, container, true);
   const tokenSelection = getSelection(container);
@@ -1121,7 +1441,7 @@ function OpenedContainerEditor({
   const label = container.kind === "group" ? `Group ${container.id}` : `Super-group ${container.id}`;
 
   return (
-    <div className="mt-2 ml-[288px] rounded-md border border-slate-700 bg-slate-950/75 p-2">
+    <div className="mt-1 ml-[288px] rounded-md border border-slate-700 bg-slate-950/75 p-1.5">
       <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
         <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-300">{label}</div>
         <button
@@ -1163,7 +1483,8 @@ function OpenedContainerEditor({
         onKeyDown={(event) => onContainerKeyDown(event, container)}
         onClick={() => setSelection(container, [])}
         onContextMenu={(event) => onContextMenu(event, container)}
-        className="flex min-h-[42px] flex-wrap items-center gap-1 rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1.5 outline-none ring-accent/40 focus:ring"
+        onWheel={onTimelineWheel}
+        className="flex min-h-[28px] flex-wrap items-center gap-1 overscroll-x-none rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1 outline-none ring-accent/40 focus:ring"
       >
         {timeline.visibleTokens.length === 0 ? (
           <span className="text-[11px] text-slate-500">Empty</span>
@@ -1204,7 +1525,7 @@ function OpenedContainerEditor({
                     onPatternCommit(nextPattern);
                   }
                 }}
-                className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] ${tokenClass(token.item)} ${
+                className={`inline-flex items-center gap-1 rounded-md border px-2 py-0 text-[10px] ${tokenClass(token.item)} ${
                   selected ? "ring-2 ring-cyan-300/60" : ""
                 }`}
                 style={{ width: `${Math.max(token.stepCount * stepPixelWidth, 32)}px` }}
@@ -1220,15 +1541,7 @@ function OpenedContainerEditor({
                   type="button"
                   onClick={(event) => {
                     event.stopPropagation();
-                    const current = getSelection(container);
-                    if (event.metaKey || event.ctrlKey) {
-                      const next = current.includes(token.sourceIndex)
-                        ? current.filter((index) => index !== token.sourceIndex)
-                        : [...current, token.sourceIndex];
-                      setSelection(container, next);
-                    } else {
-                      setSelection(container, [token.sourceIndex]);
-                    }
+                    toggleSelectionAtIndex(container, token.sourceIndex, isAdditiveSelection(event));
                     if (token.item.type === "group") {
                       openNestedContainer({ kind: "group", id: token.item.groupId });
                     }

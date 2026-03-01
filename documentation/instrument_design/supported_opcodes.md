@@ -2,23 +2,23 @@
 
 **Navigation:** [Up](instrument_design.md) | [Prev](instrument_import_export.md) | [Next](../performance/performance.md)
 
-This appendix is generated from `backend/app/services/opcode_service.py` and currently lists **87** user-selectable opcodes in the Instrument Design opcode catalog.
+This appendix is generated from `backend/app/services/opcode_service.py` and currently lists **99** user-selectable opcodes in the Instrument Design opcode catalog.
 
 ## How To Use This Appendix
 
 - Use the table for quick discovery (category, signal I/O, one-line purpose).
 - In the app, click the `?` on an opcode node to open the integrated, localized documentation with port-level details and a Csound reference link.
 - The `Inputs` / `Outputs` columns show port count and signal-rate shorthand.
-- Signal legend: `a` = audio-rate, `k` = control-rate, `i` = init-rate, `S` = string, `f` = function-table.
+- Signal legend: `a` = audio-rate, `k` = control-rate, `i` = init-rate, `S` = string, `f` = phase-vocoder frame signal.
 
 ## Category Counts
 
 | Category | Count |
 | --- | --- |
-| analysis | 1 |
+| analysis | 2 |
 | constants | 3 |
 | delay | 10 |
-| distortion | 2 |
+| distortion | 3 |
 | dynamics | 2 |
 | envelope | 7 |
 | filter | 12 |
@@ -27,13 +27,14 @@ This appendix is generated from `backend/app/services/opcode_service.py` and cur
 | midi | 6 |
 | mixer | 2 |
 | modulation | 4 |
-| noise | 2 |
-| oscillator | 9 |
+| noise | 3 |
+| oscillator | 10 |
 | output | 1 |
 | physical_modeling | 5 |
 | reverb | 1 |
 | routing | 4 |
 | soundfont | 3 |
+| spectral | 8 |
 | tables | 3 |
 | utility | 1 |
 
@@ -43,6 +44,7 @@ This appendix is generated from `backend/app/services/opcode_service.py` and cur
 
 | Opcode | Inputs | Outputs | Short Description |
 | --- | --- | --- | --- |
+| follow2 | 3 (a, k, k) | 1 (a) | Envelope follower with independent attack and release controls. |
 | rms | 3 (a, i, i) | 1 (k) | RMS envelope follower for an audio signal. |
 
 ### constants
@@ -74,6 +76,7 @@ This appendix is generated from `backend/app/services/opcode_service.py` and cur
 | --- | --- | --- | --- |
 | clip | 4 (a, i, i, i) | 1 (a) | Signal clipper with selectable transfer curves. |
 | distort1 | 6 (a, k, k, k, k, i) | 1 (a) | Waveshaping distortion with configurable transfer curve. |
+| powershape | 3 (a, k, i) | 1 (a) | Power-law waveshaper for controllable nonlinear distortion. |
 
 ### dynamics
 
@@ -163,6 +166,7 @@ This appendix is generated from `backend/app/services/opcode_service.py` and cur
 | --- | --- | --- | --- |
 | noise | 4 (k, k, i, i) | 1 (a) | Variable-color random audio noise. |
 | pinker | - | 1 (a) | Pink noise generator. |
+| pinkish | 2 (a, i) | 1 (a) | Pinkening filter for shaping white noise toward a pink spectrum. |
 
 ### oscillator
 
@@ -172,6 +176,7 @@ This appendix is generated from `backend/app/services/opcode_service.py` and cur
 | fof2 | 15 (k, k, k, k, k, k, k, k, i, i, i, i, k, k, i) | 1 (a) | FOF source with per-grain phase indexing and glissando. |
 | foscili | 7 (k, k, k, k, k, i, i) | 1 (a) | Audio-rate FM oscillator with harmonic ratios. |
 | gbuzz | 7 (k, k, k, k, k, i, i) | 1 (a) | Generalized buzz oscillator with controllable harmonics. |
+| oscil3 | 4 (k, k, i, i) | 1 (a) | Cubic-interpolating oscillator with low distortion. |
 | oscili | 3 (k, k, i) | 1 (a) | Classic interpolating oscillator. |
 | poscil3 | 4 (k, k, i, i) | 1 (a) | High-precision cubic interpolating oscillator. |
 | syncphasor | 3 (k, a, i) | 2 (a, a) | Audio-rate normalized phase generator with sync trigger I/O. |
@@ -216,6 +221,19 @@ This appendix is generated from `backend/app/services/opcode_service.py` and cur
 | sfinstr3 | 8 (i, i, k, k, i, i, i, i) | 2 (a, a) | Play a SoundFont instrument as stereo audio with cubic interpolation. |
 | sfload | 1 (S) | 1 (i) | Load a SoundFont2 file and return a file handle. |
 | sfplay3 | 8 (i, i, k, k, i, i, i, i) | 2 (a, a) | Play a SoundFont preset as stereo audio with cubic interpolation. |
+
+### spectral
+
+| Opcode | Inputs | Outputs | Short Description |
+| --- | --- | --- | --- |
+| pvsanal | 7 (a, i, i, i, i, i, i) | 1 (f) | Phase-vocoder analysis from an audio input to an fsig stream. |
+| pvsmorph | 4 (f, f, k, k) | 1 (f) | Morph between two fsig streams by amplitude and frequency interpolation. |
+| pvsmooth | 3 (f, k, k) | 1 (f) | Smooth fsig amplitude and frequency trajectories with lowpass filtering. |
+| pvsosc | 8 (k, k, k, i, i, i, i, i) | 1 (f) | Generate oscillator spectra directly as an fsig stream. |
+| pvshift | 6 (f, k, k, k, k, k) | 1 (f) | Shift fsig partial frequencies by a fixed amount in Hz. |
+| pvsynth | 2 (f, i) | 1 (a) | Resynthesize audio from an fsig stream via overlap-add. |
+| pvsvoc | 5 (f, f, k, k, k) | 1 (f) | Cross-synthesize fsig amplitudes and excitation frequencies. |
+| pvswarp | 7 (f, k, k, k, k, k, k) | 1 (f) | Warp and shift the spectral envelope of an fsig stream. |
 
 ### tables
 

@@ -67,7 +67,7 @@ It is organized by chapter and subchapter so you can read it front-to-back or ju
 | Audio engine settings (`sr`, `control_rate`, `ksmps`, buffers) | [Audio Engine Settings (Config Page)](configuration/audio_engine_settings.md) |
 | Browser audio streaming (WebRTC / Docker mode) | [Browser Audio Streaming (WebRTC)](configuration/browser_audio_streaming_webrtc.md) |
 | App-state persistence and defaults | [Persistence and Defaults](configuration/persistence_and_defaults.md) |
-| Supported opcode catalog (87 opcodes) | [Supported Opcodes](instrument_design/supported_opcodes.md) |
+| Supported opcode catalog (99 opcodes) | [Supported Opcodes](instrument_design/supported_opcodes.md) |
 
 ## File Format Quick Reference
 

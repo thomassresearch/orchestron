@@ -465,6 +465,14 @@ function replaceContainerSequence(
   return sanitizePatternWithHierarchyRules(next);
 }
 
+export function setPadLoopContainerSequence(
+  pattern: PadLoopPatternState,
+  container: PadLoopContainerRef,
+  nextSequence: PadLoopPatternItem[]
+): PadLoopPatternState {
+  return replaceContainerSequence(pattern, container, nextSequence);
+}
+
 export function canInsertItemIntoPadLoopContainer(
   pattern: PadLoopPatternState,
   container: PadLoopContainerRef,

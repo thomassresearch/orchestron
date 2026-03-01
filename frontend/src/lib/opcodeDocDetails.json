@@ -445,6 +445,42 @@
       }
     }
   },
+  "powershape": {
+    "description": {
+      "english": "Power-law waveshaping distortion.",
+      "german": "Power-Law-Waveshaping-Verzerrung.",
+      "french": "Distorsion de waveshaping à loi de puissance.",
+      "spanish": "Distorsión de conformación de onda por ley de potencia."
+    },
+    "inputs": {
+      "ain": {
+        "english": "input audio signal.",
+        "german": "Eingangs-Audiosignal.",
+        "french": "signal audio d'entrée.",
+        "spanish": "señal de audio de entrada."
+      },
+      "kshapeamount": {
+        "english": "shape amount controlling the transfer-curve exponent; higher values increase distortion.",
+        "german": "Formungsmenge, die den Exponenten der Übertragungskurve steuert; höhere Werte erhöhen die Verzerrung.",
+        "french": "quantité de forme contrôlant l'exposant de la courbe de transfert ; des valeurs plus élevées augmentent la distorsion.",
+        "spanish": "cantidad de forma que controla el exponente de la curva de transferencia; valores más altos aumentan la distorsión."
+      },
+      "ifullscale": {
+        "english": "optional full-scale reference for input normalization. The default is 1.",
+        "german": "optionale Full-Scale-Referenz für die Eingangsnormalisierung. Der Standardwert ist 1.",
+        "french": "référence pleine échelle optionnelle pour la normalisation d'entrée. La valeur par défaut est 1.",
+        "spanish": "referencia de escala completa opcional para la normalización de entrada. El valor predeterminado es 1."
+      }
+    },
+    "outputs": {
+      "aout": {
+        "english": "Output variable `ares` from powershape.",
+        "german": "Ausgabevariable „ares“ von powershape.",
+        "french": "Variable de sortie `ares` de powershape.",
+        "spanish": "Variable de salida `ares` de powershape."
+      }
+    }
+  },
   "dam": {
     "description": {
       "english": "A dynamic compressor/expander. This opcode dynamically modifies a gain value applied to the input sound ain by comparing its power level to a given threshold level. The signal will be compressed/expanded with different factors regarding that it is over or under the threshold.",
@@ -1925,6 +1961,36 @@
       }
     }
   },
+  "pinkish": {
+    "description": {
+      "english": "Pinking filter for white-noise signals.",
+      "german": "Pinkening-Filter für Weißrauschsignale.",
+      "french": "Filtre de pinkening pour les signaux de bruit blanc.",
+      "spanish": "Filtro de pinking para señales de ruido blanco."
+    },
+    "inputs": {
+      "xin": {
+        "english": "input signal to be pinkened (typically white noise).",
+        "german": "Eingangssignal, das pink gefärbt werden soll (typischerweise weißes Rauschen).",
+        "french": "signal d'entrée à rosir (généralement du bruit blanc).",
+        "spanish": "señal de entrada que se volverá rosada (normalmente ruido blanco)."
+      },
+      "imethod": {
+        "english": "optional method selector for the pinking algorithm. The default is 0.",
+        "german": "optionaler Methodenselektor für den Pinking-Algorithmus. Der Standardwert ist 0.",
+        "french": "sélecteur de méthode optionnel pour l'algorithme de pinking. La valeur par défaut est 0.",
+        "spanish": "selector de método opcional para el algoritmo de pinking. El valor predeterminado es 0."
+      }
+    },
+    "outputs": {
+      "aout": {
+        "english": "Output variable `ares` from pinkish.",
+        "german": "Ausgabevariable „ares“ von pinkish.",
+        "french": "Variable de sortie `ares` de pinkish.",
+        "spanish": "Variable de salida `ares` de pinkish."
+      }
+    }
+  },
   "foscili": {
     "description": {
       "english": "Basic frequency modulated oscillator with linear interpolation.",
@@ -1982,6 +2048,48 @@
         "german": "Ausgabevariable „ares“ von foscili.",
         "french": "Variable de sortie `ares` de foscili.",
         "spanish": "Variable de salida `ares` de foscili."
+      }
+    }
+  },
+  "oscil3": {
+    "description": {
+      "english": "Oscillator with cubic interpolation and low table-lookup distortion.",
+      "german": "Oszillator mit kubischer Interpolation und geringer Tabellen-Abtastverzerrung.",
+      "french": "Oscillateur à interpolation cubique et faible distorsion de lecture de table.",
+      "spanish": "Oscilador con interpolación cúbica y baja distorsión en la lectura de tabla."
+    },
+    "inputs": {
+      "amp": {
+        "english": "output amplitude.",
+        "german": "Ausgangsamplitude.",
+        "french": "amplitude de sortie.",
+        "spanish": "amplitud de salida."
+      },
+      "freq": {
+        "english": "oscillation frequency (cycles per second).",
+        "german": "Oszillationsfrequenz (Zyklen pro Sekunde).",
+        "french": "fréquence d'oscillation (cycles par seconde).",
+        "spanish": "frecuencia de oscilación (ciclos por segundo)."
+      },
+      "ifn": {
+        "english": "optional function table number; -1 selects an internal sine table.",
+        "german": "optionale Funktionstabellennummer; -1 wählt eine interne Sinustabelle.",
+        "french": "numéro de table de fonctions optionnel ; -1 sélectionne une table sinus interne.",
+        "spanish": "número de tabla de funciones opcional; -1 selecciona una tabla seno interna."
+      },
+      "iphs": {
+        "english": "optional initial phase as normalized table position (0 to 1).",
+        "german": "optionale Anfangsphase als normalisierte Tabellenposition (0 bis 1).",
+        "french": "phase initiale optionnelle en position de table normalisée (0 à 1).",
+        "spanish": "fase inicial opcional como posición normalizada de tabla (0 a 1)."
+      }
+    },
+    "outputs": {
+      "asig": {
+        "english": "Output variable `ares` from oscil3.",
+        "german": "Ausgabevariable „ares“ von oscil3.",
+        "french": "Variable de sortie `ares` de oscil3.",
+        "spanish": "Variable de salida `ares` de oscil3."
       }
     }
   },
@@ -3539,6 +3647,438 @@
         "german": "Ausgabevariable „asignal“ von inleta.",
         "french": "Variable de sortie `asignal` de inleta.",
         "spanish": "Variable de salida `asignal` desde la entrada."
+      }
+    }
+  },
+  "follow2": {
+    "description": {
+      "english": "Envelope follower with separate attack and release times.",
+      "german": "Hüllkurvenfolger mit separaten Attack- und Release-Zeiten.",
+      "french": "Suiveur d'enveloppe avec temps d'attaque et de relâchement séparés.",
+      "spanish": "Seguidor de envolvente con tiempos de ataque y liberación separados."
+    },
+    "inputs": {
+      "asig": {
+        "english": "input audio signal to track.",
+        "german": "zu verfolgendes Eingangs-Audiosignal.",
+        "french": "signal audio d'entrée à suivre.",
+        "spanish": "señal de audio de entrada a seguir."
+      },
+      "katt": {
+        "english": "attack time constant in seconds for rising levels.",
+        "german": "Attack-Zeitkonstante in Sekunden für ansteigende Pegel.",
+        "french": "constante de temps d'attaque en secondes pour les niveaux montants.",
+        "spanish": "constante de tiempo de ataque en segundos para niveles ascendentes."
+      },
+      "krel": {
+        "english": "release time constant in seconds for falling levels.",
+        "german": "Release-Zeitkonstante in Sekunden für fallende Pegel.",
+        "french": "constante de temps de relâchement en secondes pour les niveaux descendants.",
+        "spanish": "constante de tiempo de liberación en segundos para niveles descendentes."
+      }
+    },
+    "outputs": {
+      "aout": {
+        "english": "Output variable `ares` from follow2.",
+        "german": "Ausgabevariable „ares“ von follow2.",
+        "french": "Variable de sortie `ares` de follow2.",
+        "spanish": "Variable de salida `ares` de follow2."
+      }
+    }
+  },
+  "pvsanal": {
+    "description": {
+      "english": "Analyzes an audio signal into a phase-vocoder fsig stream.",
+      "german": "Analysiert ein Audiosignal in einen Phase-Vocoder-fsig-Stream.",
+      "french": "Analyse un signal audio en un flux fsig de vocodeur de phase.",
+      "spanish": "Analiza una señal de audio en un flujo fsig de vocoder de fase."
+    },
+    "inputs": {
+      "ain": {
+        "english": "input audio signal to analyze.",
+        "german": "Eingangs-Audiosignal für die Analyse.",
+        "french": "signal audio d'entrée à analyser.",
+        "spanish": "señal de audio de entrada para analizar."
+      },
+      "ifftsize": {
+        "english": "FFT size in samples.",
+        "german": "FFT-Größe in Samples.",
+        "french": "taille FFT en échantillons.",
+        "spanish": "tamaño de la FFT en muestras."
+      },
+      "ioverlap": {
+        "english": "frame overlap in samples.",
+        "german": "Frame-Überlappung in Samples.",
+        "french": "recouvrement de trames en échantillons.",
+        "spanish": "solapamiento de tramas en muestras."
+      },
+      "iwinsize": {
+        "english": "analysis window size in samples.",
+        "german": "Analysefenstergröße in Samples.",
+        "french": "taille de fenêtre d'analyse en échantillons.",
+        "spanish": "tamaño de ventana de análisis en muestras."
+      },
+      "iwintype": {
+        "english": "analysis window type selector.",
+        "german": "Auswahl des Analysefenstertyps.",
+        "french": "sélecteur du type de fenêtre d'analyse.",
+        "spanish": "selector del tipo de ventana de análisis."
+      },
+      "iformat": {
+        "english": "optional fsig output format selector.",
+        "german": "optionaler fsig-Ausgabeformat-Selektor.",
+        "french": "sélecteur optionnel de format de sortie fsig.",
+        "spanish": "selector opcional de formato de salida fsig."
+      },
+      "iinit": {
+        "english": "optional initialization mode.",
+        "german": "optionaler Initialisierungsmodus.",
+        "french": "mode d'initialisation optionnel.",
+        "spanish": "modo de inicialización opcional."
+      }
+    },
+    "outputs": {
+      "fsig": {
+        "english": "Output fsig stream from pvsanal.",
+        "german": "Ausgabe-fsig-Stream von pvsanal.",
+        "french": "Flux fsig de sortie de pvsanal.",
+        "spanish": "Flujo fsig de salida de pvsanal."
+      }
+    }
+  },
+  "pvsmorph": {
+    "description": {
+      "english": "Morphs between two fsig streams by interpolating amplitudes and frequencies.",
+      "german": "Morphing zwischen zwei fsig-Streams durch Interpolation von Amplituden und Frequenzen.",
+      "french": "Morphe entre deux flux fsig en interpolant amplitudes et fréquences.",
+      "spanish": "Morfología entre dos flujos fsig interpolando amplitudes y frecuencias."
+    },
+    "inputs": {
+      "fsig1": {
+        "english": "first fsig source stream.",
+        "german": "erster fsig-Quellstream.",
+        "french": "premier flux fsig source.",
+        "spanish": "primer flujo fuente fsig."
+      },
+      "fsig2": {
+        "english": "second fsig source stream.",
+        "german": "zweiter fsig-Quellstream.",
+        "french": "deuxième flux fsig source.",
+        "spanish": "segundo flujo fuente fsig."
+      },
+      "kampint": {
+        "english": "amplitude interpolation factor (0 to 1).",
+        "german": "Amplituden-Interpolationsfaktor (0 bis 1).",
+        "french": "facteur d'interpolation d'amplitude (0 à 1).",
+        "spanish": "factor de interpolación de amplitud (0 a 1)."
+      },
+      "kfrqint": {
+        "english": "frequency interpolation factor (0 to 1).",
+        "german": "Frequenz-Interpolationsfaktor (0 bis 1).",
+        "french": "facteur d'interpolation de fréquence (0 à 1).",
+        "spanish": "factor de interpolación de frecuencia (0 a 1)."
+      }
+    },
+    "outputs": {
+      "fsig": {
+        "english": "Output fsig stream from pvsmorph.",
+        "german": "Ausgabe-fsig-Stream von pvsmorph.",
+        "french": "Flux fsig de sortie de pvsmorph.",
+        "spanish": "Flujo fsig de salida de pvsmorph."
+      }
+    }
+  },
+  "pvshift": {
+    "description": {
+      "english": "Shifts fsig bin frequencies by a fixed amount.",
+      "german": "Verschiebt fsig-Bin-Frequenzen um einen festen Betrag.",
+      "french": "Décale les fréquences de bins fsig d'une valeur fixe.",
+      "spanish": "Desplaza las frecuencias de bins fsig en una cantidad fija."
+    },
+    "inputs": {
+      "fsigin": {
+        "english": "input fsig stream to process.",
+        "german": "zu verarbeitender Eingangs-fsig-Stream.",
+        "french": "flux fsig d'entrée à traiter.",
+        "spanish": "flujo fsig de entrada a procesar."
+      },
+      "kshift": {
+        "english": "frequency shift amount (Hz).",
+        "german": "Frequenzverschiebungsbetrag (Hz).",
+        "french": "valeur de décalage de fréquence (Hz).",
+        "spanish": "cantidad de desplazamiento de frecuencia (Hz)."
+      },
+      "klowest": {
+        "english": "lowest frequency considered for shifting.",
+        "german": "niedrigste für die Verschiebung berücksichtigte Frequenz.",
+        "french": "fréquence la plus basse prise en compte pour le décalage.",
+        "spanish": "frecuencia más baja considerada para el desplazamiento."
+      },
+      "kkeepform": {
+        "english": "optional formant-preservation control.",
+        "german": "optionale Formanterhaltungs-Steuerung.",
+        "french": "contrôle optionnel de préservation des formants.",
+        "spanish": "control opcional de preservación de formantes."
+      },
+      "kgain": {
+        "english": "optional gain compensation.",
+        "german": "optionale Gain-Kompensation.",
+        "french": "compensation de gain optionnelle.",
+        "spanish": "compensación de ganancia opcional."
+      },
+      "kcoefs": {
+        "english": "optional cepstral coefficient count.",
+        "german": "optionale Anzahl von Cepstral-Koeffizienten.",
+        "french": "nombre optionnel de coefficients cepstraux.",
+        "spanish": "conteo opcional de coeficientes cepstrales."
+      }
+    },
+    "outputs": {
+      "fsig": {
+        "english": "Output fsig stream from pvshift.",
+        "german": "Ausgabe-fsig-Stream von pvshift.",
+        "french": "Flux fsig de sortie de pvshift.",
+        "spanish": "Flujo fsig de salida de pvshift."
+      }
+    }
+  },
+  "pvsynth": {
+    "description": {
+      "english": "Resynthesizes an audio signal from an fsig stream.",
+      "german": "Resynthetisiert ein Audiosignal aus einem fsig-Stream.",
+      "french": "Resynthétise un signal audio à partir d'un flux fsig.",
+      "spanish": "Resintetiza una señal de audio desde un flujo fsig."
+    },
+    "inputs": {
+      "fsrc": {
+        "english": "input fsig stream to synthesize.",
+        "german": "zu synthetisierender Eingangs-fsig-Stream.",
+        "french": "flux fsig d'entrée à synthétiser.",
+        "spanish": "flujo fsig de entrada para sintetizar."
+      },
+      "iinit": {
+        "english": "optional initialization mode.",
+        "german": "optionaler Initialisierungsmodus.",
+        "french": "mode d'initialisation optionnel.",
+        "spanish": "modo de inicialización opcional."
+      }
+    },
+    "outputs": {
+      "aout": {
+        "english": "Output variable `ares` from pvsynth.",
+        "german": "Ausgabevariable „ares“ von pvsynth.",
+        "french": "Variable de sortie `ares` de pvsynth.",
+        "spanish": "Variable de salida `ares` de pvsynth."
+      }
+    }
+  },
+  "pvsosc": {
+    "description": {
+      "english": "Generates an fsig stream from oscillator-style parameters.",
+      "german": "Erzeugt einen fsig-Stream aus oszillatorähnlichen Parametern.",
+      "french": "Génère un flux fsig à partir de paramètres de type oscillateur.",
+      "spanish": "Genera un flujo fsig a partir de parámetros tipo oscilador."
+    },
+    "inputs": {
+      "kamp": {
+        "english": "output amplitude.",
+        "german": "Ausgangsamplitude.",
+        "french": "amplitude de sortie.",
+        "spanish": "amplitud de salida."
+      },
+      "kfreq": {
+        "english": "oscillator frequency.",
+        "german": "Oszillatorfrequenz.",
+        "french": "fréquence de l'oscillateur.",
+        "spanish": "frecuencia del oscilador."
+      },
+      "ktype": {
+        "english": "waveform type selector.",
+        "german": "Wellenformtyp-Selektor.",
+        "french": "sélecteur de type d'onde.",
+        "spanish": "selector de tipo de forma de onda."
+      },
+      "isize": {
+        "english": "FFT size for generated fsig frames.",
+        "german": "FFT-Größe für erzeugte fsig-Frames.",
+        "french": "taille FFT pour les trames fsig générées.",
+        "spanish": "tamaño FFT para las tramas fsig generadas."
+      },
+      "ioverlap": {
+        "english": "optional frame overlap.",
+        "german": "optionale Frame-Überlappung.",
+        "french": "recouvrement de trames optionnel.",
+        "spanish": "solapamiento de tramas opcional."
+      },
+      "iwinsize": {
+        "english": "optional window size.",
+        "german": "optionale Fenstergröße.",
+        "french": "taille de fenêtre optionnelle.",
+        "spanish": "tamaño de ventana opcional."
+      },
+      "iwintype": {
+        "english": "optional window type.",
+        "german": "optionaler Fenstertyp.",
+        "french": "type de fenêtre optionnel.",
+        "spanish": "tipo de ventana opcional."
+      },
+      "iformat": {
+        "english": "optional output format selector.",
+        "german": "optionaler Ausgabeformat-Selektor.",
+        "french": "sélecteur de format de sortie optionnel.",
+        "spanish": "selector opcional de formato de salida."
+      }
+    },
+    "outputs": {
+      "fsig": {
+        "english": "Output fsig stream from pvsosc.",
+        "german": "Ausgabe-fsig-Stream von pvsosc.",
+        "french": "Flux fsig de sortie de pvsosc.",
+        "spanish": "Flujo fsig de salida de pvsosc."
+      }
+    }
+  },
+  "pvsvoc": {
+    "description": {
+      "english": "Vocoder-style cross synthesis between two fsig streams.",
+      "german": "Vocoder-artige Kreuzsynthese zwischen zwei fsig-Streams.",
+      "french": "Synthèse croisée de type vocodeur entre deux flux fsig.",
+      "spanish": "Síntesis cruzada tipo vocoder entre dos flujos fsig."
+    },
+    "inputs": {
+      "famp": {
+        "english": "amplitude/control fsig source.",
+        "german": "Amplituden-/Kontroll-fsig-Quelle.",
+        "french": "source fsig d'amplitude/contrôle.",
+        "spanish": "fuente fsig de amplitud/control."
+      },
+      "fexc": {
+        "english": "excitation fsig source.",
+        "german": "Anregungs-fsig-Quelle.",
+        "french": "source fsig d'excitation.",
+        "spanish": "fuente fsig de excitación."
+      },
+      "kdepth": {
+        "english": "vocoder depth amount.",
+        "german": "Vocoder-Tiefenmenge.",
+        "french": "quantité de profondeur du vocodeur.",
+        "spanish": "cantidad de profundidad del vocoder."
+      },
+      "kgain": {
+        "english": "output gain control.",
+        "german": "Ausgangsverstärkungssteuerung.",
+        "french": "contrôle du gain de sortie.",
+        "spanish": "control de ganancia de salida."
+      },
+      "kcoefs": {
+        "english": "optional cepstral coefficient count.",
+        "german": "optionale Anzahl von Cepstral-Koeffizienten.",
+        "french": "nombre optionnel de coefficients cepstraux.",
+        "spanish": "conteo opcional de coeficientes cepstrales."
+      }
+    },
+    "outputs": {
+      "fsig": {
+        "english": "Output fsig stream from pvsvoc.",
+        "german": "Ausgabe-fsig-Stream von pvsvoc.",
+        "french": "Flux fsig de sortie de pvsvoc.",
+        "spanish": "Flujo fsig de salida de pvsvoc."
+      }
+    }
+  },
+  "pvswarp": {
+    "description": {
+      "english": "Warps and shifts spectral envelopes in an fsig stream.",
+      "german": "Verzerrt und verschiebt Spektralhüllkurven in einem fsig-Stream.",
+      "french": "Déforme et décale les enveloppes spectrales dans un flux fsig.",
+      "spanish": "Deforma y desplaza envolventes espectrales en un flujo fsig."
+    },
+    "inputs": {
+      "fsigin": {
+        "english": "input fsig stream to warp.",
+        "german": "zu verzerrender Eingangs-fsig-Stream.",
+        "french": "flux fsig d'entrée à déformer.",
+        "spanish": "flujo fsig de entrada para deformar."
+      },
+      "kscal": {
+        "english": "spectral envelope scaling factor.",
+        "german": "Skalierungsfaktor der Spektralhüllkurve.",
+        "french": "facteur d'échelle de l'enveloppe spectrale.",
+        "spanish": "factor de escala de la envolvente espectral."
+      },
+      "kshift": {
+        "english": "spectral shift amount.",
+        "german": "Spektralverschiebungsbetrag.",
+        "french": "valeur de décalage spectral.",
+        "spanish": "cantidad de desplazamiento espectral."
+      },
+      "klowest": {
+        "english": "optional lowest reference frequency.",
+        "german": "optionale niedrigste Referenzfrequenz.",
+        "french": "fréquence de référence la plus basse optionnelle.",
+        "spanish": "frecuencia de referencia mínima opcional."
+      },
+      "kmeth": {
+        "english": "optional processing method selector.",
+        "german": "optionaler Verarbeitungsmethoden-Selektor.",
+        "french": "sélecteur optionnel de méthode de traitement.",
+        "spanish": "selector opcional del método de procesamiento."
+      },
+      "kgain": {
+        "english": "optional gain compensation.",
+        "german": "optionale Gain-Kompensation.",
+        "french": "compensation de gain optionnelle.",
+        "spanish": "compensación de ganancia opcional."
+      },
+      "kcoefs": {
+        "english": "optional cepstral coefficient count.",
+        "german": "optionale Anzahl von Cepstral-Koeffizienten.",
+        "french": "nombre optionnel de coefficients cepstraux.",
+        "spanish": "conteo opcional de coeficientes cepstrales."
+      }
+    },
+    "outputs": {
+      "fsig": {
+        "english": "Output fsig stream from pvswarp.",
+        "german": "Ausgabe-fsig-Stream von pvswarp.",
+        "french": "Flux fsig de sortie de pvswarp.",
+        "spanish": "Flujo fsig de salida de pvswarp."
+      }
+    }
+  },
+  "pvsmooth": {
+    "description": {
+      "english": "Smooths fsig amplitude and frequency trajectories.",
+      "german": "Glättet fsig-Amplituden- und Frequenzverläufe.",
+      "french": "Lisse les trajectoires d'amplitude et de fréquence fsig.",
+      "spanish": "Suaviza las trayectorias de amplitud y frecuencia fsig."
+    },
+    "inputs": {
+      "fsigin": {
+        "english": "input fsig stream to smooth.",
+        "german": "zu glättender Eingangs-fsig-Stream.",
+        "french": "flux fsig d'entrée à lisser.",
+        "spanish": "flujo fsig de entrada para suavizar."
+      },
+      "kacf": {
+        "english": "amplitude smoothing cutoff control.",
+        "german": "Steuerung der Amplituden-Glättungsgrenzfrequenz.",
+        "french": "contrôle de coupure du lissage d'amplitude.",
+        "spanish": "control de corte del suavizado de amplitud."
+      },
+      "kfcf": {
+        "english": "frequency smoothing cutoff control.",
+        "german": "Steuerung der Frequenz-Glättungsgrenzfrequenz.",
+        "french": "contrôle de coupure du lissage de fréquence.",
+        "spanish": "control de corte del suavizado de frecuencia."
+      }
+    },
+    "outputs": {
+      "fsig": {
+        "english": "Output fsig stream from pvsmooth.",
+        "german": "Ausgabe-fsig-Stream von pvsmooth.",
+        "french": "Flux fsig de sortie de pvsmooth.",
+        "spanish": "Flujo fsig de salida de pvsmooth."
       }
     }
   },

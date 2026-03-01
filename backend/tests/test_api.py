@@ -2324,6 +2324,7 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         "ampmidicurve": "https://csound.com/docs/manual/ampmidicurve.html",
         "ampmidid": "https://csound.com/docs/manual/ampmidid.html",
         "lfo": "https://csound.com/docs/manual/lfo.html",
+        "oscil3": "https://csound.com/docs/manual/oscil3.html",
         "poscil3": "https://csound.com/docs/manual/poscil3.html",
         "vibr": "https://csound.com/docs/manual/vibr.html",
         "vibrato": "https://csound.com/docs/manual/vibrato.html",
@@ -2339,6 +2340,7 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         "madsr": "https://csound.com/docs/manual/madsr.html",
         "mxadsr": "https://csound.com/docs/manual/mxadsr.html",
         "pinker": "https://csound.com/docs/manual/pinker.html",
+        "pinkish": "https://csound.com/docs/manual/pinkish.html",
         "noise": "https://csound.com/docs/manual/noise.html",
         "pluck": "https://csound.com/docs/manual/pluck.html",
         "wgpluck2": "https://csound.com/docs/manual/wgpluck2.html",
@@ -2363,8 +2365,18 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         "platerev": "https://csound.com/docs/manual/platerev.html",
         "limit": "https://csound.com/docs/manual/limit.html",
         "dam": "https://csound.com/docs/manual/dam.html",
+        "follow2": "https://csound.com/docs/manual/follow2.html",
         "exciter": "https://csound.com/docs/manual/exciter.html",
         "distort1": "https://csound.com/docs/manual/distort1.html",
+        "powershape": "https://csound.com/docs/manual/powershape.html",
+        "pvsanal": "https://csound.com/docs/manual/pvsanal.html",
+        "pvsmorph": "https://csound.com/docs/manual/pvsmorph.html",
+        "pvshift": "https://csound.com/docs/manual/pvshift.html",
+        "pvsynth": "https://csound.com/docs/manual/pvsynth.html",
+        "pvsosc": "https://csound.com/docs/manual/pvsosc.html",
+        "pvsvoc": "https://csound.com/docs/manual/pvsvoc.html",
+        "pvswarp": "https://csound.com/docs/manual/pvswarp.html",
+        "pvsmooth": "https://csound.com/docs/manual/pvsmooth.html",
         "fold": "https://csound.com/docs/manual/fold.html",
         "gbuzz": "https://csound.com/docs/manual/gbuzz.html",
         "diode_ladder": "https://csound.com/docs/manual/diode_ladder.html",
@@ -2582,6 +2594,100 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         assert wgbowedbar_inputs["ibowpos"]["required"] is False
         assert wgbowedbar_inputs["ilow"]["required"] is False
 
+        oscil3_inputs = {item["id"]: item for item in opcodes_by_name["oscil3"]["inputs"]}
+        oscil3_outputs = {item["id"]: item for item in opcodes_by_name["oscil3"]["outputs"]}
+        assert opcodes_by_name["oscil3"]["category"] == "oscillator"
+        assert oscil3_inputs["amp"]["accepted_signal_types"] == ["a", "k", "i"]
+        assert oscil3_inputs["freq"]["accepted_signal_types"] == ["a", "k", "i"]
+        assert oscil3_inputs["ifn"]["required"] is False
+        assert oscil3_inputs["ifn"]["default"] == -1
+        assert oscil3_inputs["iphs"]["required"] is False
+        assert oscil3_outputs["asig"]["signal_type"] == "a"
+
+        follow2_inputs = {item["id"]: item for item in opcodes_by_name["follow2"]["inputs"]}
+        follow2_outputs = {item["id"]: item for item in opcodes_by_name["follow2"]["outputs"]}
+        assert opcodes_by_name["follow2"]["category"] == "analysis"
+        assert follow2_inputs["asig"]["signal_type"] == "a"
+        assert follow2_inputs["katt"]["accepted_signal_types"] == ["k", "i"]
+        assert follow2_inputs["krel"]["accepted_signal_types"] == ["k", "i"]
+        assert follow2_outputs["aout"]["signal_type"] == "a"
+
+        pinkish_inputs = {item["id"]: item for item in opcodes_by_name["pinkish"]["inputs"]}
+        pinkish_outputs = {item["id"]: item for item in opcodes_by_name["pinkish"]["outputs"]}
+        assert opcodes_by_name["pinkish"]["category"] == "noise"
+        assert pinkish_inputs["xin"]["signal_type"] == "a"
+        assert pinkish_inputs["imethod"]["required"] is False
+        assert pinkish_outputs["aout"]["signal_type"] == "a"
+
+        powershape_inputs = {item["id"]: item for item in opcodes_by_name["powershape"]["inputs"]}
+        powershape_outputs = {item["id"]: item for item in opcodes_by_name["powershape"]["outputs"]}
+        assert opcodes_by_name["powershape"]["category"] == "distortion"
+        assert powershape_inputs["ain"]["signal_type"] == "a"
+        assert powershape_inputs["kshapeamount"]["accepted_signal_types"] == ["k", "i"]
+        assert powershape_inputs["ifullscale"]["required"] is False
+        assert powershape_outputs["aout"]["signal_type"] == "a"
+
+        pvsanal_inputs = {item["id"]: item for item in opcodes_by_name["pvsanal"]["inputs"]}
+        pvsanal_outputs = {item["id"]: item for item in opcodes_by_name["pvsanal"]["outputs"]}
+        assert opcodes_by_name["pvsanal"]["category"] == "spectral"
+        assert pvsanal_inputs["ain"]["signal_type"] == "a"
+        assert pvsanal_inputs["iformat"]["required"] is False
+        assert pvsanal_inputs["iinit"]["required"] is False
+        assert pvsanal_outputs["fsig"]["signal_type"] == "f"
+
+        pvsynth_inputs = {item["id"]: item for item in opcodes_by_name["pvsynth"]["inputs"]}
+        pvsynth_outputs = {item["id"]: item for item in opcodes_by_name["pvsynth"]["outputs"]}
+        assert opcodes_by_name["pvsynth"]["category"] == "spectral"
+        assert pvsynth_inputs["fsrc"]["signal_type"] == "f"
+        assert pvsynth_inputs["iinit"]["required"] is False
+        assert pvsynth_outputs["aout"]["signal_type"] == "a"
+
+        pvsmorph_inputs = {item["id"]: item for item in opcodes_by_name["pvsmorph"]["inputs"]}
+        pvsmorph_outputs = {item["id"]: item for item in opcodes_by_name["pvsmorph"]["outputs"]}
+        assert pvsmorph_inputs["fsig1"]["signal_type"] == "f"
+        assert pvsmorph_inputs["fsig2"]["signal_type"] == "f"
+        assert pvsmorph_inputs["kampint"]["accepted_signal_types"] == ["k", "i"]
+        assert pvsmorph_inputs["kfrqint"]["accepted_signal_types"] == ["k", "i"]
+        assert pvsmorph_outputs["fsig"]["signal_type"] == "f"
+
+        pvshift_inputs = {item["id"]: item for item in opcodes_by_name["pvshift"]["inputs"]}
+        pvshift_outputs = {item["id"]: item for item in opcodes_by_name["pvshift"]["outputs"]}
+        assert pvshift_inputs["fsigin"]["signal_type"] == "f"
+        assert pvshift_inputs["kkeepform"]["required"] is False
+        assert pvshift_inputs["kgain"]["required"] is False
+        assert pvshift_inputs["kcoefs"]["required"] is False
+        assert pvshift_outputs["fsig"]["signal_type"] == "f"
+
+        pvsosc_inputs = {item["id"]: item for item in opcodes_by_name["pvsosc"]["inputs"]}
+        pvsosc_outputs = {item["id"]: item for item in opcodes_by_name["pvsosc"]["outputs"]}
+        assert pvsosc_inputs["kamp"]["accepted_signal_types"] == ["k", "i"]
+        assert pvsosc_inputs["kfreq"]["accepted_signal_types"] == ["k", "i"]
+        assert pvsosc_inputs["ioverlap"]["required"] is False
+        assert pvsosc_outputs["fsig"]["signal_type"] == "f"
+
+        pvsvoc_inputs = {item["id"]: item for item in opcodes_by_name["pvsvoc"]["inputs"]}
+        pvsvoc_outputs = {item["id"]: item for item in opcodes_by_name["pvsvoc"]["outputs"]}
+        assert pvsvoc_inputs["famp"]["signal_type"] == "f"
+        assert pvsvoc_inputs["fexc"]["signal_type"] == "f"
+        assert pvsvoc_inputs["kcoefs"]["required"] is False
+        assert pvsvoc_outputs["fsig"]["signal_type"] == "f"
+
+        pvswarp_inputs = {item["id"]: item for item in opcodes_by_name["pvswarp"]["inputs"]}
+        pvswarp_outputs = {item["id"]: item for item in opcodes_by_name["pvswarp"]["outputs"]}
+        assert pvswarp_inputs["fsigin"]["signal_type"] == "f"
+        assert pvswarp_inputs["klowest"]["required"] is False
+        assert pvswarp_inputs["kmeth"]["required"] is False
+        assert pvswarp_inputs["kgain"]["required"] is False
+        assert pvswarp_inputs["kcoefs"]["required"] is False
+        assert pvswarp_outputs["fsig"]["signal_type"] == "f"
+
+        pvsmooth_inputs = {item["id"]: item for item in opcodes_by_name["pvsmooth"]["inputs"]}
+        pvsmooth_outputs = {item["id"]: item for item in opcodes_by_name["pvsmooth"]["outputs"]}
+        assert pvsmooth_inputs["fsigin"]["signal_type"] == "f"
+        assert pvsmooth_inputs["kacf"]["accepted_signal_types"] == ["k", "i"]
+        assert pvsmooth_inputs["kfcf"]["accepted_signal_types"] == ["k", "i"]
+        assert pvsmooth_outputs["fsig"]["signal_type"] == "f"
+
 
 def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
     with _client(tmp_path) as client:
@@ -2711,6 +2817,18 @@ def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
                     {"id": "n87", "opcode": "vco2init", "params": {}, "position": {"x": 20, "y": 4320}},
                     {"id": "n88", "opcode": "vcomb", "params": {"asig": 0}, "position": {"x": 20, "y": 4370}},
                     {"id": "n89", "opcode": "maxalloc", "params": {"icount": 8}, "position": {"x": 20, "y": 4420}},
+                    {"id": "n90", "opcode": "oscil3", "params": {"amp": 0.2, "freq": 330}, "position": {"x": 20, "y": 4470}},
+                    {"id": "n91", "opcode": "follow2", "params": {"asig": 0}, "position": {"x": 20, "y": 4520}},
+                    {"id": "n92", "opcode": "pinkish", "params": {"xin": 0}, "position": {"x": 20, "y": 4570}},
+                    {"id": "n93", "opcode": "powershape", "params": {"ain": 0}, "position": {"x": 20, "y": 4620}},
+                    {"id": "n94", "opcode": "pvsanal", "params": {"ain": 0}, "position": {"x": 20, "y": 4670}},
+                    {"id": "n95", "opcode": "pvsosc", "params": {}, "position": {"x": 20, "y": 4720}},
+                    {"id": "n96", "opcode": "pvsmorph", "params": {"fsig1": 0, "fsig2": 0}, "position": {"x": 20, "y": 4770}},
+                    {"id": "n97", "opcode": "pvsmooth", "params": {"fsigin": 0}, "position": {"x": 20, "y": 4820}},
+                    {"id": "n98", "opcode": "pvshift", "params": {"fsigin": 0}, "position": {"x": 20, "y": 4870}},
+                    {"id": "n99", "opcode": "pvswarp", "params": {"fsigin": 0}, "position": {"x": 20, "y": 4920}},
+                    {"id": "n100", "opcode": "pvsvoc", "params": {"famp": 0, "fexc": 0}, "position": {"x": 20, "y": 4970}},
+                    {"id": "n101", "opcode": "pvsynth", "params": {"fsrc": 0}, "position": {"x": 20, "y": 5020}},
                 ],
                 "connections": [
                     {"from_node_id": "n1", "from_port_id": "asig", "to_node_id": "n2", "to_port_id": "left"},
@@ -2785,6 +2903,18 @@ def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
             "vcomb",
             "dripwater",
             "gbuzz",
+            "oscil3",
+            "follow2",
+            "pinkish",
+            "powershape",
+            "pvsanal",
+            "pvsosc",
+            "pvsmorph",
+            "pvsmooth",
+            "pvshift",
+            "pvswarp",
+            "pvsvoc",
+            "pvsynth",
             "expseg",
             "expsega",
             "linseg",
