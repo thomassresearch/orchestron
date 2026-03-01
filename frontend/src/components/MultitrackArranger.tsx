@@ -202,6 +202,62 @@ function clonePatternItem(item: PadLoopPatternItem): PadLoopPatternItem {
   return { type: "super", superGroupId: item.superGroupId };
 }
 
+function samePatternItem(a: PadLoopPatternItem, b: PadLoopPatternItem): boolean {
+  if (a.type !== b.type) {
+    return false;
+  }
+  if (a.type === "pad" && b.type === "pad") {
+    return a.padIndex === b.padIndex;
+  }
+  if (a.type === "pause" && b.type === "pause") {
+    return a.stepCount === b.stepCount;
+  }
+  if (a.type === "group" && b.type === "group") {
+    return a.groupId === b.groupId;
+  }
+  if (a.type === "super" && b.type === "super") {
+    return a.superGroupId === b.superGroupId;
+  }
+  return false;
+}
+
+function movedSelectionIndexesForSequence(
+  sequence: PadLoopPatternItem[],
+  blockItems: PadLoopPatternItem[],
+  targetStartStep: number,
+  countSteps: (item: PadLoopPatternItem) => number
+): number[] {
+  if (blockItems.length === 0 || sequence.length === 0) {
+    return [];
+  }
+
+  let cursor = 0;
+  for (let index = 0; index < sequence.length; index += 1) {
+    if (cursor === targetStartStep) {
+      let matches = true;
+      for (let offset = 0; offset < blockItems.length; offset += 1) {
+        const sequenceItem = sequence[index + offset];
+        if (!sequenceItem || !samePatternItem(sequenceItem, blockItems[offset])) {
+          matches = false;
+          break;
+        }
+      }
+      if (matches) {
+        const selected: number[] = [];
+        for (let offset = 0; offset < blockItems.length; offset += 1) {
+          if (blockItems[offset]?.type !== "pause") {
+            selected.push(index + offset);
+          }
+        }
+        return selected;
+      }
+    }
+    cursor += countSteps(sequence[index]);
+  }
+
+  return [];
+}
+
 function buildTrackSubtitle(
   trackKind: ArrangerTrackKind,
   midiChannel: number | null,
@@ -234,7 +290,7 @@ function sameContainer(a: PadLoopContainerRef, b: PadLoopContainerRef): boolean 
 
 type RootMovePlan = {
   valid: boolean;
-  mode: "gap" | "append" | "swap";
+  mode: "gap" | "gapTail" | "append" | "swap";
   visualTargetStartStep: number;
   normalizedTargetStartStep: number;
   originStartStep: number;
@@ -294,6 +350,14 @@ function planRootBlockMove(
   const blockStart = Math.max(0, Math.min(blockSourceStartIndex, blockSourceEndIndex));
   const blockEnd = Math.max(blockStart, Math.max(blockSourceStartIndex, blockSourceEndIndex));
   const sortedTokens = [...allTokens].sort((a, b) => a.sourceIndex - b.sourceIndex);
+  // Root timeline hides pauses; trailing pauses are semantically empty space and should not
+  // affect drag thresholds or append positioning.
+  while (sortedTokens.length > 0 && sortedTokens[sortedTokens.length - 1]?.item.type === "pause") {
+    sortedTokens.pop();
+  }
+  if (sortedTokens.length === 0) {
+    return null;
+  }
   const blockTokens = sortedTokens.filter(
     (token) => token.sourceIndex >= blockStart && token.sourceIndex <= blockEnd
   );
@@ -366,7 +430,8 @@ function planRootBlockMove(
     const swapCandidate = sortedTokens.find(
       (token) =>
         token.sourceIndex !== blockStart &&
-        token.startStep === visualTargetStartStep &&
+        visualTargetStartStep >= token.startStep &&
+        visualTargetStartStep < token.endStep &&
         token.item.type !== "pause"
     );
     if (
@@ -382,26 +447,33 @@ function planRootBlockMove(
   }
 
   if (!valid) {
-    // Gap placement: keep all non-moved tokens at their absolute step positions.
-    const containingPause = remainingTokens.find(
-      (token) =>
-        token.item.type === "pause" &&
-        visualTargetStartStep >= token.startStep &&
-        visualTargetStartStep <= token.endStep
-    );
-    if (containingPause) {
-      const minStart = containingPause.startStep;
-      const maxStart = containingPause.endStep - blockStepCount;
-      if (maxStart >= minStart) {
-        normalizedTargetStartStep = Math.max(minStart, Math.min(visualTargetStartStep, maxStart));
-        mode = "gap";
-        valid = true;
-      }
-    } else if (visualTargetStartStep >= cursor) {
+    if (visualTargetStartStep >= cursor) {
       // Move beyond current content: respect absolute drop position, pad with pause if needed.
       normalizedTargetStartStep = visualTargetStartStep;
       mode = "append";
       valid = true;
+    } else {
+      // Gap placement: keep all non-moved tokens at their absolute step positions.
+      const containingPause = remainingTokens.find(
+        (token) =>
+          token.item.type === "pause" &&
+          visualTargetStartStep >= token.startStep &&
+          visualTargetStartStep < token.endStep
+      );
+      if (containingPause) {
+        const maxStart = containingPause.endStep - blockStepCount;
+        if (visualTargetStartStep <= maxStart) {
+          normalizedTargetStartStep = visualTargetStartStep;
+          mode = "gap";
+          valid = true;
+        } else if (containingPause.endStep === cursor) {
+          // Special case for the trailing pause region: allow extending the timeline while
+          // keeping all non-moved tokens pinned to absolute step positions.
+          normalizedTargetStartStep = visualTargetStartStep;
+          mode = "gapTail";
+          valid = true;
+        }
+      }
     }
   }
 
@@ -460,10 +532,19 @@ function materializeRootMoveSequence(plan: RootMovePlan): PadLoopPatternItem[] |
   };
 
   for (const token of plan.remainingTokens) {
-    if (!inserted && plan.mode === "gap" && token.item.type === "pause") {
+    if (!inserted && (plan.mode === "gap" || plan.mode === "gapTail") && token.item.type === "pause") {
       const minStart = token.startStep;
       const maxStart = token.endStep - plan.blockStepCount;
-      if (maxStart >= minStart && plan.normalizedTargetStartStep >= minStart && plan.normalizedTargetStartStep <= maxStart) {
+      const inPauseRange =
+        plan.normalizedTargetStartStep >= token.startStep && plan.normalizedTargetStartStep < token.endStep;
+      const matchesGap =
+        plan.mode === "gap" &&
+        maxStart >= minStart &&
+        plan.normalizedTargetStartStep >= minStart &&
+        plan.normalizedTargetStartStep <= maxStart;
+      const matchesGapTail =
+        plan.mode === "gapTail" && inPauseRange && token.endStep === plan.remainingTotalSteps;
+      if (matchesGap || matchesGapTail) {
         const beforeSteps = plan.normalizedTargetStartStep - token.startStep;
         const afterSteps = token.endStep - (plan.normalizedTargetStartStep + plan.blockStepCount);
         if (beforeSteps > 0) {
@@ -476,7 +557,12 @@ function materializeRootMoveSequence(plan: RootMovePlan): PadLoopPatternItem[] |
         continue;
       }
     }
-    nextSequence.push(clonePatternItem(token.item));
+    if (token.item.type === "pause") {
+      // `token.stepCount` can represent merged pause spans; re-emit from the actual span length.
+      nextSequence.push(...pauseTokensForGap(token.stepCount));
+    } else {
+      nextSequence.push(clonePatternItem(token.item));
+    }
   }
 
   if (!inserted) {
@@ -936,12 +1022,20 @@ export function MultitrackArranger({
         return;
       }
 
+      const countSteps = tokenStepCounter(track);
+      const nextSelection = movedSelectionIndexesForSequence(
+        nextRootSequence,
+        plan.blockItems,
+        plan.normalizedTargetStartStep,
+        countSteps
+      );
       const nextPattern = setPadLoopContainerSequence(track.padLoopPattern, { kind: "root" }, nextRootSequence);
       if (nextPattern !== track.padLoopPattern) {
         commitTrackPattern(track, nextPattern);
+        setSelection(track.id, { kind: "root" }, nextSelection);
       }
     },
-    [arrangerTracks, buildTimeline, commitTrackPattern]
+    [arrangerTracks, buildTimeline, commitTrackPattern, setSelection, tokenStepCounter]
   );
 
   const onRootDragMove = useCallback(
