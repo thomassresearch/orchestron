@@ -606,6 +606,8 @@ export function MultitrackArranger({
   const [timelineScrollLeft, setTimelineScrollLeft] = useState<number>(0);
   const [rootDragPreview, setRootDragPreview] = useState<RootDragPreview | null>(null);
   const dragStateRef = useRef<RootDragState | null>(null);
+  const playheadRunStartStepRef = useRef<number | null>(null);
+  const playheadWasPlayingRef = useRef<boolean>(sequencer.isPlaying);
 
   const patchNameById = useMemo(() => {
     const map = new Map<string, string>();
@@ -801,13 +803,32 @@ export function MultitrackArranger({
     }, Math.max(sequencer.stepCount, STEP_GRID_QUANTUM));
   }, [arrangerTracks, rootTimelines, sequencer.stepCount]);
 
+  const absoluteTransportStep = useMemo(() => {
+    const cycle = Math.max(0, Math.floor(sequencer.cycle));
+    const stepCount = Math.max(STEP_GRID_QUANTUM, Math.floor(sequencer.stepCount));
+    const stepInCycle = Math.max(0, Math.floor(sequencer.playhead));
+    return cycle * stepCount + stepInCycle;
+  }, [sequencer.cycle, sequencer.playhead, sequencer.stepCount]);
+
+  useEffect(() => {
+    if (sequencer.isPlaying) {
+      if (!playheadWasPlayingRef.current || playheadRunStartStepRef.current === null) {
+        playheadRunStartStepRef.current = absoluteTransportStep;
+      }
+    } else {
+      playheadRunStartStepRef.current = null;
+    }
+    playheadWasPlayingRef.current = sequencer.isPlaying;
+  }, [absoluteTransportStep, sequencer.isPlaying]);
+
   const quantizedPlayhead = useMemo(() => {
     if (!sequencer.isPlaying) {
       return null;
     }
-    const step = Math.max(0, Math.floor(sequencer.playhead));
-    return Math.floor(step / STEP_GRID_QUANTUM) * STEP_GRID_QUANTUM;
-  }, [sequencer.isPlaying, sequencer.playhead]);
+    const runStartStep = playheadRunStartStepRef.current ?? absoluteTransportStep;
+    const runStep = Math.max(0, absoluteTransportStep - runStartStep);
+    return Math.floor(runStep / STEP_GRID_QUANTUM) * STEP_GRID_QUANTUM;
+  }, [absoluteTransportStep, sequencer.isPlaying]);
 
   useEffect(() => {
     const nextOpenByTrack: Record<string, PadLoopContainerRef> = {};

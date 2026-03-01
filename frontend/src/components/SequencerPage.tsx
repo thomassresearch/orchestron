@@ -1485,9 +1485,7 @@ function ControllerSequencerCurveEditor({
     bpm: number;
     timestampMs: number;
   } | null>(null);
-  const [playbackNow, setPlaybackNow] = useState<number>(() =>
-    typeof performance !== "undefined" ? performance.now() : 0
-  );
+  const [playbackTransportStep, setPlaybackTransportStep] = useState<number>(0);
 
   useEffect(() => {
     const svg = svgRef.current;
@@ -1519,6 +1517,11 @@ function ControllerSequencerCurveEditor({
       transportAnchorRef.current = null;
       return;
     }
+    const anchoredStep = Math.max(
+      0,
+      Math.floor(playbackTransport.cycle) * Math.floor(playbackTransport.stepCount) + Math.floor(playbackTransport.playhead)
+    );
+    setPlaybackTransportStep((previous) => (previous === anchoredStep ? previous : anchoredStep));
     transportAnchorRef.current = {
       ...playbackTransport,
       timestampMs: typeof performance !== "undefined" ? performance.now() : Date.now()
@@ -1541,7 +1544,16 @@ function ControllerSequencerCurveEditor({
       if (cancelled) {
         return;
       }
-      setPlaybackNow(now);
+      const anchor = transportAnchorRef.current;
+      if (anchor) {
+        const stepDurationMs = 60000 / Math.max(30, Math.min(300, Math.round(anchor.bpm))) / 4;
+        const elapsedSteps = Math.max(0, (now - anchor.timestampMs) / Math.max(1, stepDurationMs));
+        const absoluteStep = Math.max(
+          0,
+          Math.floor(anchor.cycle) * Math.floor(anchor.stepCount) + Math.floor(anchor.playhead + elapsedSteps)
+        );
+        setPlaybackTransportStep((previous) => (previous === absoluteStep ? previous : absoluteStep));
+      }
       rafId = window.requestAnimationFrame(frame);
     };
 
@@ -1556,21 +1568,14 @@ function ControllerSequencerCurveEditor({
     if (!playbackTransport) {
       return null;
     }
-    const anchor = transportAnchorRef.current;
-    if (!anchor) {
-      return null;
-    }
-    const stepDurationMs = 60000 / Math.max(30, Math.min(300, Math.round(anchor.bpm))) / 4;
-    const elapsedSteps = Math.max(0, (playbackNow - anchor.timestampMs) / Math.max(1, stepDurationMs));
     const repeatLength = Math.max(1, controllerSequencer.stepCount);
-    const transportPosition = anchor.cycle * anchor.stepCount + anchor.playhead + elapsedSteps;
     const patternStartStep =
       typeof controllerSequencer.runtimePadStartStep === "number" && Number.isFinite(controllerSequencer.runtimePadStartStep)
         ? controllerSequencer.runtimePadStartStep
         : 0;
-    const normalized = (((transportPosition - patternStartStep) % repeatLength) + repeatLength) % repeatLength;
+    const normalized = (((playbackTransportStep - patternStartStep) % repeatLength) + repeatLength) % repeatLength;
     return clampControllerCurveUiPosition(normalized / repeatLength);
-  }, [controllerSequencer.runtimePadStartStep, controllerSequencer.stepCount, playbackNow, playbackTransport]);
+  }, [controllerSequencer.runtimePadStartStep, controllerSequencer.stepCount, playbackTransport, playbackTransportStep]);
   const playbackValue =
     playbackT === null ? null : sampleControllerCurveValue(controllerSequencer.keypoints, playbackT);
 
