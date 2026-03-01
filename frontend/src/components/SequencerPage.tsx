@@ -2219,19 +2219,27 @@ function hashString(value: string): number {
   return hash;
 }
 
-function padLoopTokenColors(item: PadLoopPatternItem, seed: number, selected: boolean, active: boolean): CSSProperties {
+function padLoopTokenColors(
+  item: PadLoopPatternItem,
+  seed: number,
+  selected: boolean,
+  active: boolean,
+  linked: boolean
+): CSSProperties {
   const kind = itemColorKind(item);
   const hue = kind === "pad" ? 142 : kind === "pause" ? 198 : kind === "group" ? 28 : 272;
   const shadeSeed = seed + (kind === "pad" ? 7 : kind === "pause" ? 9 : kind === "group" ? 11 : 17);
   const light = 20 + (shadeSeed % 6) * 4;
-  const borderAlpha = active ? 0.95 : selected ? 0.8 : 0.58;
-  const bgAlpha = active ? 0.3 : selected ? 0.24 : 0.18;
+  const borderAlpha = active ? 0.95 : linked ? 0.9 : selected ? 0.8 : 0.58;
+  const bgAlpha = active ? 0.3 : linked ? 0.26 : selected ? 0.24 : 0.18;
   return {
     borderColor: `hsla(${hue}, 82%, ${Math.min(88, light + 32)}%, ${borderAlpha})`,
     backgroundColor: `hsla(${hue}, 85%, ${light}%, ${bgAlpha})`,
     color: `hsl(${hue}, 92%, 88%)`,
     boxShadow: active
       ? `0 0 0 1px hsla(${hue}, 90%, 70%, 0.5), inset 0 1px 0 hsla(${hue}, 90%, 90%, 0.08)`
+      : linked
+        ? `0 0 0 1px hsla(${hue}, 90%, 70%, 0.38), 0 0 0 3px hsla(${hue}, 90%, 55%, 0.2), inset 0 1px 0 hsla(${hue}, 90%, 90%, 0.08)`
       : selected
         ? `0 0 0 1px hsla(${hue}, 90%, 70%, 0.22) inset`
         : "inset 0 1px 0 rgba(255,255,255,0.03)"
@@ -2245,7 +2253,10 @@ type PadLoopCompiledRange = {
 
 type PadLoopRangeIndex = Record<string, PadLoopCompiledRange[][]>;
 
-function buildPadLoopRangeIndex(pattern: PadLoopPatternState): PadLoopRangeIndex {
+function buildPadLoopRangeIndex(
+  pattern: PadLoopPatternState,
+  tokenStepCount: (item: PadLoopPatternItem) => number = () => 1
+): PadLoopRangeIndex {
   const byKey: PadLoopRangeIndex = {};
   const groups = new Map(pattern.groups.map((group) => [group.id, group]));
   const superGroups = new Map(pattern.superGroups.map((group) => [group.id, group]));
@@ -2279,9 +2290,9 @@ function buildPadLoopRangeIndex(pattern: PadLoopPatternState): PadLoopRangeIndex
       }
 
       if (item.type === "pad") {
-        cursor += 1;
+        cursor += Math.max(1, Math.round(tokenStepCount(item)));
       } else if (item.type === "pause") {
-        cursor += 1;
+        cursor += Math.max(1, Math.round(tokenStepCount(item)));
       } else if (item.type === "group") {
         const refKey = `group:${item.groupId}`;
         if (!path.includes(refKey)) {
@@ -2327,6 +2338,8 @@ type PadLoopPatternEditorProps = {
   padStepCounts: number[];
   defaultPadStepCount: number;
   isPlaying: boolean;
+  linkedPadLoopStepPosition: number | null;
+  onLinkedPadLoopStepPositionChange: (position: number | null) => void;
   onPadLoopEnabledChange: (enabled: boolean) => void;
   onPadLoopRepeatChange: (repeat: boolean) => void;
   onPadLoopPatternChange: (pattern: PadLoopPatternState) => void;
@@ -2345,6 +2358,8 @@ function PadLoopPatternEditor({
   padStepCounts,
   defaultPadStepCount,
   isPlaying,
+  linkedPadLoopStepPosition,
+  onLinkedPadLoopStepPositionChange,
   onPadLoopEnabledChange,
   onPadLoopRepeatChange,
   onPadLoopPatternChange
@@ -2378,6 +2393,20 @@ function PadLoopPatternEditor({
     return total;
   }, [compiledPattern.sequence, defaultPadStepCount, padStepCounts]);
   const rangeIndexByContainer = useMemo(() => buildPadLoopRangeIndex(track.padLoopPattern), [track.padLoopPattern]);
+  const timelineRangeIndexByContainer = useMemo(() => {
+    const normalizedFallback = Math.max(1, Math.round(defaultPadStepCount));
+    return buildPadLoopRangeIndex(track.padLoopPattern, (item) => {
+      if (item.type === "pause") {
+        return Math.max(1, Math.round(item.stepCount));
+      }
+      if (item.type === "pad") {
+        const candidate = padStepCounts[item.padIndex];
+        const normalized = typeof candidate === "number" && Number.isFinite(candidate) ? Math.round(candidate) : normalizedFallback;
+        return normalized > 0 ? normalized : normalizedFallback;
+      }
+      return 1;
+    });
+  }, [defaultPadStepCount, padStepCounts, track.padLoopPattern]);
 
   useEffect(() => {
     if (activeContainer.kind === "root") {
@@ -2502,6 +2531,9 @@ function PadLoopPatternEditor({
       const selectToken = (event: ReactMouseEvent, index: number, item: PadLoopPatternItem) => {
         event.stopPropagation();
         const current = selectedIndexesFor(container);
+        const stepRanges = timelineRangeIndexByContainer[containerKey]?.[index] ?? [];
+        const linkedPosition = stepRanges.find((range) => range.end > range.start)?.start ?? null;
+        onLinkedPadLoopStepPositionChange(linkedPosition);
         if (event.metaKey || event.ctrlKey) {
           const next = current.includes(index) ? current.filter((value) => value !== index) : [...current, index];
           setSelectionFor(container, next);
@@ -2676,7 +2708,10 @@ function PadLoopPatternEditor({
               event.preventDefault();
               commitPattern(insertPadLoopItem(track.padLoopPattern, container, sequence.length, { type: "pad", padIndex }));
             }}
-            onClick={() => setSelectionFor(container, [])}
+            onClick={() => {
+              setSelectionFor(container, []);
+              onLinkedPadLoopStepPositionChange(null);
+            }}
             onContextMenu={(event) => openContextMenu(event)}
             onDragOver={(event) => {
               if (!supportsPadLoopDrop(event)) {
@@ -2705,6 +2740,7 @@ function PadLoopPatternEditor({
                   const nestedContainer = padLoopContainerFromItem(item);
                   const isSelected = selectedIndexSet.has(index);
                   const itemRanges = rangeIndexByContainer[containerKey]?.[index] ?? [];
+                  const itemTimelineRanges = timelineRangeIndexByContainer[containerKey]?.[index] ?? [];
                   const isCurrentLoopStep =
                     track.padLoopEnabled &&
                     isPlaying &&
@@ -2717,10 +2753,18 @@ function PadLoopPatternEditor({
                         track.padLoopPosition >= range.start &&
                         track.padLoopPosition < range.end
                     );
+                  const isLinkedStep =
+                    linkedPadLoopStepPosition !== null &&
+                    itemTimelineRanges.some(
+                      (range) =>
+                        range.end > range.start &&
+                        linkedPadLoopStepPosition >= range.start &&
+                        linkedPadLoopStepPosition < range.end
+                    );
                   const dropBefore = dropTarget?.containerKey === containerKey && dropTarget.index === index;
                   const label = itemDisplayLabel(item);
                   const seed = item.type === "pad" ? item.padIndex : hashString(label);
-                  const tokenStyle = padLoopTokenColors(item, seed + index, isSelected, isCurrentLoopStep);
+                  const tokenStyle = padLoopTokenColors(item, seed + index, isSelected, isCurrentLoopStep, isLinkedStep);
 
                   return (
                     <Fragment key={`${containerKey}-item-${index}-${label}-${item.type}`}>
@@ -2866,9 +2910,12 @@ function PadLoopPatternEditor({
       dropTarget,
       hostId,
       isPlaying,
+      linkedPadLoopStepPosition,
+      onLinkedPadLoopStepPositionChange,
       rangeIndexByContainer,
       selectedIndexesFor,
       setSelectionFor,
+      timelineRangeIndexByContainer,
       track.enabled,
       track.padLoopEnabled,
       track.padLoopPattern,
@@ -3250,6 +3297,7 @@ export function SequencerPage({
   const [stepSelectPreview, setStepSelectPreview] = useState<Record<string, string>>({});
   const [pendingStartAllPianoRolls, setPendingStartAllPianoRolls] = useState(false);
   const [deletePerformanceDialogOpen, setDeletePerformanceDialogOpen] = useState(false);
+  const [linkedPadLoopStepPosition, setLinkedPadLoopStepPosition] = useState<number | null>(null);
   const padTransposePressRef = useRef<Record<string, { timerId: number; longPressTriggered: boolean }>>({});
   const drummerLedDragRef = useRef<{
     pointerId: number;
@@ -4071,6 +4119,8 @@ export function SequencerPage({
                     padStepCounts={track.pads.map((pad) => pad.stepCount)}
                     defaultPadStepCount={track.stepCount}
                     isPlaying={sequencer.isPlaying}
+                    linkedPadLoopStepPosition={linkedPadLoopStepPosition}
+                    onLinkedPadLoopStepPositionChange={setLinkedPadLoopStepPosition}
                     onPadLoopEnabledChange={(enabled) => onSequencerTrackPadLoopEnabledChange(track.id, enabled)}
                     onPadLoopRepeatChange={(repeat) => onSequencerTrackPadLoopRepeatChange(track.id, repeat)}
                     onPadLoopPatternChange={(pattern) => onSequencerTrackPadLoopPatternChange(track.id, pattern)}
@@ -4659,6 +4709,8 @@ export function SequencerPage({
                           padStepCounts={track.pads.map((pad) => pad.stepCount)}
                           defaultPadStepCount={track.stepCount}
                           isPlaying={sequencer.isPlaying}
+                          linkedPadLoopStepPosition={linkedPadLoopStepPosition}
+                          onLinkedPadLoopStepPositionChange={setLinkedPadLoopStepPosition}
                           onPadLoopEnabledChange={(enabled) => onDrummerSequencerTrackPadLoopEnabledChange(track.id, enabled)}
                           onPadLoopRepeatChange={(repeat) => onDrummerSequencerTrackPadLoopRepeatChange(track.id, repeat)}
                           onPadLoopPatternChange={(pattern) =>
@@ -4989,6 +5041,8 @@ export function SequencerPage({
                         padStepCounts={controllerSequencer.pads.map((pad) => pad.stepCount)}
                         defaultPadStepCount={controllerSequencer.stepCount}
                         isPlaying={sequencer.isPlaying}
+                        linkedPadLoopStepPosition={linkedPadLoopStepPosition}
+                        onLinkedPadLoopStepPositionChange={setLinkedPadLoopStepPosition}
                         onPadLoopEnabledChange={(enabled) =>
                           onControllerSequencerPadLoopEnabledChange(controllerSequencer.id, enabled)
                         }
