@@ -1,6 +1,6 @@
 # Pattern Pads, Queued Switching, and Pad Looper
 
-**Navigation:** [Up](performance.md) | [Prev](drummer_sequencers.md) | [Next](controller_sequencers.md)
+**Navigation:** [Up](performance.md) | [Prev](drummer_sequencers.md) | [Next](multitrack_arranger.md)
 
 Pattern pads are the per-track pattern banks (`P1..P8`). They support live switching, copying, and pad-loop sequencing for melodic, drummer, and controller sequencers (with transposition available on melodic sequencer pads only).
 
@@ -199,4 +199,4 @@ Use pad looper when you want:
 </p>
 <p align="center"><em>Nested pad-loop editor with reusable groups (A, B, C, ...) and super-groups (I, II, III, ...).</em></p>
 
-**Navigation:** [Up](performance.md) | [Prev](drummer_sequencers.md) | [Next](controller_sequencers.md)
+**Navigation:** [Up](performance.md) | [Prev](drummer_sequencers.md) | [Next](multitrack_arranger.md)

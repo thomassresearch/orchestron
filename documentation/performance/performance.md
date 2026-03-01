@@ -10,6 +10,7 @@ This chapter covers the `Perform` page (labeled `Perform` / `Performance` depend
 - Start/stop the instrument engine session
 - Create multiple melodic sequencer tracks, drummer sequencers, and controller sequencers
 - Use pattern pads with queued switching and pad-loop sequences
+- Arrange multiple track timelines in the multitrack arranger
 - Perform live with piano rolls and manual MIDI controller knobs
 - Save/load/clone/delete performances
 - Import/export performance bundles (with optional patch definitions)
@@ -20,6 +21,7 @@ This chapter covers the `Perform` page (labeled `Perform` / `Performance` depend
 - [Sequencer Tracks and Step Editing](sequencer_tracks_and_steps.md)
 - [Drummer Sequencers](drummer_sequencers.md)
 - [Pattern Pads, Queued Switching, and Pad Looper](pattern_pads_and_pad_looper.md)
+- [Multitrack Arranger](multitrack_arranger.md)
 - [Controller Sequencers](controller_sequencers.md)
 - [Piano Rolls](piano_rolls.md)
 - [MIDI Controllers](midi_controllers.md)
