@@ -2324,6 +2324,7 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         "ampmidicurve": "https://csound.com/docs/manual/ampmidicurve.html",
         "ampmidid": "https://csound.com/docs/manual/ampmidid.html",
         "lfo": "https://csound.com/docs/manual/lfo.html",
+        "jitter": "https://csound.com/docs/manual/jitter.html",
         "oscil3": "https://csound.com/docs/manual/oscil3.html",
         "poscil3": "https://csound.com/docs/manual/poscil3.html",
         "vibr": "https://csound.com/docs/manual/vibr.html",
@@ -2342,7 +2343,13 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         "pinker": "https://csound.com/docs/manual/pinker.html",
         "pinkish": "https://csound.com/docs/manual/pinkish.html",
         "noise": "https://csound.com/docs/manual/noise.html",
+        "random": "https://csound.com/docs/manual/random.html",
+        "randomh": "https://csound.com/docs/manual/randomh.html",
+        "randomi": "https://csound.com/docs/manual/randomi.html",
+        "release": "https://csound.com/docs/manual/release.html",
         "pluck": "https://csound.com/docs/manual/pluck.html",
+        "sekere": "https://csound.com/docs/manual/sekere.html",
+        "sleighbells": "https://csound.com/docs/manual/sleighbells.html",
         "wgpluck2": "https://csound.com/docs/manual/wgpluck2.html",
         "wgflute": "https://csound.com/docs/manual/wgflute.html",
         "wgclar": "https://csound.com/docs/manual/wgclar.html",
@@ -2391,6 +2398,7 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         "moogladder2": "https://csound.com/docs/manual/moogladder2.html",
         "moogvcf": "https://csound.com/docs/manual/moogvcf.html",
         "rezzy": "https://csound.com/docs/manual/rezzy.html",
+        "resonx": "https://csound.com/docs/manual/resonx.html",
         "vclpf": "https://csound.com/docs/manual/vclpf.html",
         "tbvcf": "https://csound.com/docs/manual/tbvcf.html",
         "statevar": "https://csound.com/docs/manual/statevar.html",
@@ -2545,6 +2553,58 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         assert portk_inputs["isig"]["required"] is False
         assert portk_outputs["kout"]["signal_type"] == "k"
 
+        jitter_inputs = {item["id"]: item for item in opcodes_by_name["jitter"]["inputs"]}
+        jitter_outputs = {item["id"]: item for item in opcodes_by_name["jitter"]["outputs"]}
+        assert opcodes_by_name["jitter"]["category"] == "modulation"
+        assert jitter_inputs["kamp"]["accepted_signal_types"] == ["k", "i"]
+        assert jitter_inputs["kcpsmin"]["accepted_signal_types"] == ["k", "i"]
+        assert jitter_inputs["kcpsmax"]["accepted_signal_types"] == ["k", "i"]
+        assert jitter_outputs["kout"]["signal_type"] == "k"
+
+        random_inputs = {item["id"]: item for item in opcodes_by_name["random"]["inputs"]}
+        random_outputs = {item["id"]: item for item in opcodes_by_name["random"]["outputs"]}
+        assert opcodes_by_name["random"]["category"] == "modulation"
+        assert random_inputs["kmin"]["accepted_signal_types"] == ["k", "i"]
+        assert random_inputs["kmax"]["accepted_signal_types"] == ["k", "i"]
+        assert random_outputs["kout"]["signal_type"] == "k"
+
+        randomh_inputs = {item["id"]: item for item in opcodes_by_name["randomh"]["inputs"]}
+        randomh_outputs = {item["id"]: item for item in opcodes_by_name["randomh"]["outputs"]}
+        assert opcodes_by_name["randomh"]["category"] == "modulation"
+        assert randomh_inputs["kmin"]["accepted_signal_types"] == ["k", "i"]
+        assert randomh_inputs["kmax"]["accepted_signal_types"] == ["k", "i"]
+        assert randomh_inputs["kcps"]["accepted_signal_types"] == ["k", "i"]
+        assert randomh_inputs["imode"]["required"] is False
+        assert randomh_inputs["ifirstval"]["required"] is False
+        assert randomh_outputs["kout"]["signal_type"] == "k"
+
+        randomi_inputs = {item["id"]: item for item in opcodes_by_name["randomi"]["inputs"]}
+        randomi_outputs = {item["id"]: item for item in opcodes_by_name["randomi"]["outputs"]}
+        assert opcodes_by_name["randomi"]["category"] == "modulation"
+        assert randomi_inputs["kmin"]["accepted_signal_types"] == ["k", "i"]
+        assert randomi_inputs["kmax"]["accepted_signal_types"] == ["k", "i"]
+        assert randomi_inputs["kcps"]["accepted_signal_types"] == ["k", "i"]
+        assert randomi_inputs["imode"]["required"] is False
+        assert randomi_inputs["ifirstval"]["required"] is False
+        assert randomi_outputs["kout"]["signal_type"] == "k"
+
+        release_inputs = opcodes_by_name["release"]["inputs"]
+        release_outputs = {item["id"]: item for item in opcodes_by_name["release"]["outputs"]}
+        assert opcodes_by_name["release"]["category"] == "modulation"
+        assert release_inputs == []
+        assert release_outputs["krel"]["signal_type"] == "k"
+
+        resonx_inputs = {item["id"]: item for item in opcodes_by_name["resonx"]["inputs"]}
+        resonx_outputs = {item["id"]: item for item in opcodes_by_name["resonx"]["outputs"]}
+        assert opcodes_by_name["resonx"]["category"] == "filter"
+        assert resonx_inputs["asig"]["signal_type"] == "a"
+        assert resonx_inputs["xcf"]["accepted_signal_types"] == ["a", "k", "i"]
+        assert resonx_inputs["xbw"]["accepted_signal_types"] == ["a", "k", "i"]
+        assert resonx_inputs["inumlayer"]["required"] is False
+        assert resonx_inputs["iscl"]["required"] is False
+        assert resonx_inputs["iskip"]["required"] is False
+        assert resonx_outputs["aout"]["signal_type"] == "a"
+
         vco2init_inputs = {item["id"]: item for item in opcodes_by_name["vco2init"]["inputs"]}
         vco2init_outputs = {item["id"]: item for item in opcodes_by_name["vco2init"]["outputs"]}
         assert opcodes_by_name["vco2init"]["category"] == "tables"
@@ -2577,6 +2637,30 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         assert wgpluck2_inputs["kamp"]["signal_type"] == "k"
         assert wgpluck2_inputs["icps"]["signal_type"] == "i"
         assert wgpluck2_outputs["asig"]["signal_type"] == "a"
+
+        sekere_inputs = {item["id"]: item for item in opcodes_by_name["sekere"]["inputs"]}
+        sekere_outputs = {item["id"]: item for item in opcodes_by_name["sekere"]["outputs"]}
+        assert opcodes_by_name["sekere"]["category"] == "physical_modeling"
+        assert sekere_inputs["iamp"]["signal_type"] == "i"
+        assert sekere_inputs["idettack"]["signal_type"] == "i"
+        assert sekere_inputs["inum"]["required"] is False
+        assert sekere_inputs["idamp"]["required"] is False
+        assert sekere_inputs["imaxshake"]["required"] is False
+        assert sekere_outputs["asig"]["signal_type"] == "a"
+
+        sleighbells_inputs = {item["id"]: item for item in opcodes_by_name["sleighbells"]["inputs"]}
+        sleighbells_outputs = {item["id"]: item for item in opcodes_by_name["sleighbells"]["outputs"]}
+        assert opcodes_by_name["sleighbells"]["category"] == "physical_modeling"
+        assert sleighbells_inputs["kamp"]["signal_type"] == "k"
+        assert sleighbells_inputs["kamp"]["accepted_signal_types"] == ["k", "i"]
+        assert sleighbells_inputs["idettack"]["signal_type"] == "i"
+        assert sleighbells_inputs["inum"]["required"] is False
+        assert sleighbells_inputs["idamp"]["required"] is False
+        assert sleighbells_inputs["imaxshake"]["required"] is False
+        assert sleighbells_inputs["ifreq"]["required"] is False
+        assert sleighbells_inputs["ifreq1"]["required"] is False
+        assert sleighbells_inputs["ifreq2"]["required"] is False
+        assert sleighbells_outputs["asig"]["signal_type"] == "a"
 
         wgclar_inputs = {item["id"]: item for item in opcodes_by_name["wgclar"]["inputs"]}
         assert wgclar_inputs["kfreq"]["accepted_signal_types"] == ["a", "k", "i"]
@@ -2829,6 +2913,14 @@ def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
                     {"id": "n99", "opcode": "pvswarp", "params": {"fsigin": 0}, "position": {"x": 20, "y": 4920}},
                     {"id": "n100", "opcode": "pvsvoc", "params": {"famp": 0, "fexc": 0}, "position": {"x": 20, "y": 4970}},
                     {"id": "n101", "opcode": "pvsynth", "params": {"fsrc": 0}, "position": {"x": 20, "y": 5020}},
+                    {"id": "n102", "opcode": "jitter", "params": {}, "position": {"x": 20, "y": 5070}},
+                    {"id": "n103", "opcode": "random", "params": {}, "position": {"x": 20, "y": 5120}},
+                    {"id": "n104", "opcode": "randomh", "params": {}, "position": {"x": 20, "y": 5170}},
+                    {"id": "n105", "opcode": "randomi", "params": {}, "position": {"x": 20, "y": 5220}},
+                    {"id": "n106", "opcode": "resonx", "params": {"asig": 0}, "position": {"x": 20, "y": 5270}},
+                    {"id": "n107", "opcode": "release", "params": {}, "position": {"x": 20, "y": 5320}},
+                    {"id": "n108", "opcode": "sekere", "params": {}, "position": {"x": 20, "y": 5370}},
+                    {"id": "n109", "opcode": "sleighbells", "params": {}, "position": {"x": 20, "y": 5420}},
                 ],
                 "connections": [
                     {"from_node_id": "n1", "from_port_id": "asig", "to_node_id": "n2", "to_port_id": "left"},
@@ -2938,6 +3030,11 @@ def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
             "outleta",
             "rms",
             "samphold",
+            "jitter",
+            "random",
+            "randomh",
+            "randomi",
+            "release",
             "portk",
             "maxalloc",
             "sfload",
@@ -2950,6 +3047,9 @@ def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
             "ntrpol",
             "moog",
             "moogvcf",
+            "resonx",
+            "sekere",
+            "sleighbells",
             "upsamp",
             "downsamp",
             "fold",
