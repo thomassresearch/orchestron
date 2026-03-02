@@ -97,6 +97,12 @@ When a timeline container is focused:
 <p align="center">
   <img src="../../screenshots/perform_sequencers_nested_pattern_pad_sequences.png" alt="Multitrack arranger nested group editor" width="900" style="max-width: 100%; height: auto;" />
 </p>
-<p align="center"><em>Nested sequence editing inside the multitrack arranger (groups and super-groups).</em></p>
+<p align="center"><em>Nested sequence editing inside the pattern pad sequencer (groups and super-groups).</em></p>
+
+<p align="center">
+  <img src="../../screenshots/perform_multitrack_arranger.png" alt="Multitrack arranger track view" width="900" style="max-width: 100%; height: auto;" />
+</p>
+<p align="center"><em>Multitrack arranger (track view, all instruments).</em></p>
+
 
 **Navigation:** [Up](performance.md) | [Prev](pattern_pads_and_pad_looper.md) | [Next](controller_sequencers.md)
