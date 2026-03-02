@@ -68,7 +68,7 @@ This appendix is generated from `backend/app/services/opcode_service.py` and cur
 | deltap3 | 1 (k) | 1 (a) | Read a delay tap using cubic interpolation. |
 | flanger | 4 (a, k, k, i) | 1 (a) | Flanger effect with delay modulation and feedback. |
 | vdelay3 | 4 (a, k, i, i) | 1 (a) | Variable delay line with cubic interpolation. |
-| vdelayxs | 5 (a, a, i, i, i) | 1 (a) | Variable delay with high-quality sinc interpolation. |
+| vdelayxs | 6 (a, a, a, i, i, i) | 2 (a, a) | Stereo variable delay with high-quality sinc interpolation. |
 
 ### distortion
 

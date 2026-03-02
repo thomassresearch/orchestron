@@ -2623,6 +2623,21 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         assert vcomb_inputs["insmps"]["required"] is False
         assert vcomb_outputs["aout"]["signal_type"] == "a"
 
+        vdelayxs_inputs = {item["id"]: item for item in opcodes_by_name["vdelayxs"]["inputs"]}
+        vdelayxs_outputs = {item["id"]: item for item in opcodes_by_name["vdelayxs"]["outputs"]}
+        assert opcodes_by_name["vdelayxs"]["category"] == "delay"
+        assert vdelayxs_inputs["asig"]["signal_type"] == "a"
+        assert vdelayxs_inputs["asig2"]["signal_type"] == "a"
+        assert vdelayxs_inputs["asig2"]["default"] == 0
+        assert vdelayxs_inputs["adl"]["signal_type"] == "a"
+        assert vdelayxs_inputs["adl"]["accepted_signal_types"] == ["a", "k", "i"]
+        assert vdelayxs_inputs["imaxdel"]["signal_type"] == "i"
+        assert vdelayxs_inputs["iws"]["signal_type"] == "i"
+        assert vdelayxs_inputs["ist"]["required"] is False
+        assert list(vdelayxs_outputs.keys()) == ["aout", "aout2"]
+        assert vdelayxs_outputs["aout"]["signal_type"] == "a"
+        assert vdelayxs_outputs["aout2"]["signal_type"] == "a"
+
         maxalloc_inputs = {item["id"]: item for item in opcodes_by_name["maxalloc"]["inputs"]}
         assert opcodes_by_name["maxalloc"]["category"] == "utility"
         assert list(maxalloc_inputs.keys()) == ["icount"]
@@ -3061,6 +3076,8 @@ def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
         assert mxadsr_line.count(",") == 5
         flanger_line = next(line.strip() for line in compiled_orc.splitlines() if " flanger " in line)
         assert ", a(" in flanger_line
+        vdelayxs_line = next(line.strip() for line in compiled_orc.splitlines() if " vdelayxs " in line)
+        assert ", a(" in vdelayxs_line
         sfload_line = next(line for line in compiled_orc.splitlines() if ' sfload "/tmp/test.sf2"' in line)
         maxalloc_line = next(line for line in compiled_orc.splitlines() if line.strip().startswith("maxalloc "))
         instr_line_index = compiled_orc.splitlines().index("instr 1")
@@ -3303,6 +3320,56 @@ def test_flanger_accepts_audio_delay_input_without_forced_cast(tmp_path: Path) -
 
         flanger_line = next(line.strip() for line in compiled_orc.splitlines() if " flanger " in line)
         assert "a(a_" not in flanger_line
+
+
+def test_vdelayxs_accepts_init_delay_input_with_audio_cast(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        patch_payload = {
+            "name": "vdelayxs init delay input",
+            "description": "vdelayxs should accept init-rate delay input and cast it to audio",
+            "schema_version": 1,
+            "graph": {
+                "nodes": [
+                    {
+                        "id": "n1",
+                        "opcode": "poscil3",
+                        "params": {"amp": 0.2, "freq": 220},
+                        "position": {"x": 20, "y": 20},
+                    },
+                    {"id": "n2", "opcode": "const_i", "params": {"value": 0.03}, "position": {"x": 20, "y": 120}},
+                    {
+                        "id": "n3",
+                        "opcode": "vdelayxs",
+                        "params": {"imaxdel": 1, "iws": 1024},
+                        "position": {"x": 220, "y": 70},
+                    },
+                    {"id": "n4", "opcode": "outs", "params": {}, "position": {"x": 420, "y": 70}},
+                ],
+                "connections": [
+                    {"from_node_id": "n1", "from_port_id": "asig", "to_node_id": "n3", "to_port_id": "asig"},
+                    {"from_node_id": "n2", "from_port_id": "iout", "to_node_id": "n3", "to_port_id": "adl"},
+                    {"from_node_id": "n3", "from_port_id": "aout", "to_node_id": "n4", "to_port_id": "left"},
+                    {"from_node_id": "n3", "from_port_id": "aout2", "to_node_id": "n4", "to_port_id": "right"},
+                ],
+                "ui_layout": {},
+                "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+            },
+        }
+
+        create_patch = client.post("/api/patches", json=patch_payload)
+        assert create_patch.status_code == 201
+        patch_id = create_patch.json()["id"]
+
+        create_session = client.post("/api/sessions", json={"patch_id": patch_id})
+        assert create_session.status_code == 201
+        session_id = create_session.json()["session_id"]
+
+        compile_response = client.post(f"/api/sessions/{session_id}/compile")
+        assert compile_response.status_code == 200
+        compiled_orc = compile_response.json()["orc"]
+
+        vdelayxs_line = next(line.strip() for line in compiled_orc.splitlines() if " vdelayxs " in line)
+        assert "a(i_" in vdelayxs_line
 
 
 def test_reverb2_compiles_with_iskip_without_optional_gap(tmp_path: Path) -> None:

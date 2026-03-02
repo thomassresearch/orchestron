@@ -336,6 +336,17 @@ class CompilerService:
                     # flanger expects an audio-rate delay signal; adapt k/i or literal delay inputs.
                     env["adel"] = f"a({adel})"
 
+            if compiled.spec.name == "vdelayxs" and "adl" in env:
+                adl = env["adl"].strip()
+                if (
+                    adl
+                    and adl != OPTIONAL_OMIT_MARKER
+                    and not input_is_audio.get("adl", False)
+                    and not re.fullmatch(r"a\s*\(.+\)", adl)
+                ):
+                    # vdelayxs delay-time modulation is audio-rate; adapt k/i or literal delay inputs.
+                    env["adl"] = f"a({adl})"
+
             if compiled.spec.name == "platerev" and "aexcite2" in env:
                 aexcite2 = env["aexcite2"].strip()
                 if (

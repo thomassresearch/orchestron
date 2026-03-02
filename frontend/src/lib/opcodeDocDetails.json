@@ -345,49 +345,61 @@
   },
   "vdelayxs": {
     "description": {
-      "english": "A stereo variable delay opcode with high quality interpolation.",
-      "german": "Ein Stereo-Opcode mit variabler Verzögerung und hochwertiger Interpolation.",
-      "french": "Un opcode à retard variable stéréo avec interpolation de haute qualité.",
-      "spanish": "Un código de operación de retardo variable estéreo con interpolación de alta calidad."
+      "english": "Stereo variable delay with high-quality sinc interpolation. Csound syntax: `aout1, aout2 vdelayxs ain1, ain2, adl, imd, iws [, ist]`. Delay time is audio-rate and can create pitch-shift style effects when modulated quickly.",
+      "german": "Stereo-Delay mit variabler Verzögerungszeit und hochwertiger Sinc-Interpolation. Csound-Syntax: `aout1, aout2 vdelayxs ain1, ain2, adl, imd, iws [, ist]`. Die Verzögerungszeit ist Audio-Rate und kann bei schneller Modulation Tonhöhenverschiebungs-Effekte erzeugen.",
+      "french": "Délai stéréo variable avec interpolation sinc de haute qualité. Syntaxe Csound : `aout1, aout2 vdelayxs ain1, ain2, adl, imd, iws [, ist]`. Le temps de retard est au taux audio et peut produire des effets de type transposition lorsqu'il est modulé rapidement.",
+      "spanish": "Retardo estéreo variable con interpolación sinc de alta calidad. Sintaxis de Csound: `aout1, aout2 vdelayxs ain1, ain2, adl, imd, iws [, ist]`. El tiempo de retardo es a velocidad de audio y puede producir efectos tipo cambio de tono cuando se modula rápidamente."
     },
     "inputs": {
       "asig": {
-        "english": "aIn parameter at audio-rate.",
-        "german": "aIn-Parameter bei Audiorate.",
-        "french": "Paramètre aIn au débit audio.",
-        "spanish": "Parámetro aIn a velocidad de audio."
+        "english": "First input audio channel (manual: `ain1`).",
+        "german": "Erster Audio-Eingangskanal (im Handbuch: `ain1`).",
+        "french": "Premier canal audio d'entrée (manuel : `ain1`).",
+        "spanish": "Primer canal de entrada de audio (manual: `ain1`)."
+      },
+      "asig2": {
+        "english": "Second input audio channel (manual: `ain2`).",
+        "german": "Zweiter Audio-Eingangskanal (im Handbuch: `ain2`).",
+        "french": "Deuxième canal audio d'entrée (manuel : `ain2`).",
+        "spanish": "Segundo canal de entrada de audio (manual: `ain2`)."
       },
       "adl": {
-        "english": "delay time in seconds",
-        "german": "Verzögerungszeit in Sekunden",
-        "french": "temps de retard en secondes",
-        "spanish": "tiempo de retraso en segundos"
+        "english": "Audio-rate delay time in seconds. Range: 0 to `imd`. Fast changes produce Doppler/pitch-shift behavior.",
+        "german": "Verzögerungszeit in Sekunden bei Audio-Rate. Bereich: 0 bis `imd`. Schnelle Änderungen erzeugen Doppler-/Pitch-Shift-Verhalten.",
+        "french": "Temps de retard au taux audio, en secondes. Plage : 0 à `imd`. Des changements rapides produisent un comportement Doppler/transposition.",
+        "spanish": "Tiempo de retardo a velocidad de audio, en segundos. Rango: 0 a `imd`. Los cambios rápidos producen un comportamiento Doppler/cambio de tono."
       },
       "imaxdel": {
-        "english": "MaxDelay parameter at init-rate.",
-        "german": "MaxDelay-Parameter bei Init-Rate.",
-        "french": "Paramètre MaxDelay au taux d'initialisation.",
-        "spanish": "Parámetro MaxDelay a velocidad inicial."
-      },
-      "isize": {
-        "english": "SincSize parameter at init-rate.",
-        "german": "SincSize-Parameter bei Init-Rate.",
-        "french": "Paramètre SincSize au taux d'initialisation.",
-        "spanish": "Parámetro SincSize a velocidad inicial."
+        "english": "Maximum delay time in seconds at init-rate (manual: `imd`). Sets delay-memory size.",
+        "german": "Maximale Verzögerungszeit in Sekunden bei Init-Rate (im Handbuch: `imd`). Bestimmt die Größe des Delay-Speichers.",
+        "french": "Temps de retard maximal en secondes au taux d'initialisation (manuel : `imd`). Définit la taille de la mémoire de délai.",
+        "spanish": "Tiempo máximo de retardo en segundos a velocidad de inicialización (manual: `imd`). Define el tamaño de la memoria de retardo."
       },
       "iws": {
-        "english": "interpolation window size (see below)",
-        "german": "Größe des Interpolationsfensters (siehe unten)",
-        "french": "taille de la fenêtre d'interpolation (voir ci-dessous)",
-        "spanish": "tamaño de la ventana de interpolación (ver más abajo)"
+        "english": "Window size for sinc interpolation (init-rate). Must be at least 4; values <= 0 default internally to 1024. Larger values increase quality and CPU usage.",
+        "german": "Fenstergröße für die Sinc-Interpolation (Init-Rate). Muss mindestens 4 sein; Werte <= 0 werden intern auf 1024 gesetzt. Größere Werte erhöhen Qualität und CPU-Last.",
+        "french": "Taille de fenêtre pour l'interpolation sinc (taux d'initialisation). Doit être au moins 4 ; les valeurs <= 0 deviennent 1024 en interne. Des valeurs plus grandes augmentent la qualité et l'utilisation CPU.",
+        "spanish": "Tamaño de ventana para la interpolación sinc (velocidad de inicialización). Debe ser al menos 4; los valores <= 0 pasan internamente a 1024. Valores mayores aumentan calidad y uso de CPU."
+      },
+      "ist": {
+        "english": "Optional skip-initialization flag. `0` clears delay memory at note start; non-zero preserves previous content (useful for tied notes).",
+        "german": "Optionales Skip-Initialization-Flag. `0` leert den Delay-Speicher beim Notenstart; ungleich 0 behält den vorherigen Inhalt (nützlich bei gebundenen Noten).",
+        "french": "Indicateur optionnel de saut d'initialisation. `0` efface la mémoire de délai au début de la note ; une valeur non nulle conserve le contenu précédent (utile pour les notes liées).",
+        "spanish": "Indicador opcional de omitir inicialización. `0` limpia la memoria de retardo al inicio de la nota; un valor distinto de cero conserva el contenido previo (útil en notas ligadas)."
       }
     },
     "outputs": {
       "aout": {
-        "english": "Output variable `aout1` from vdelayxs.",
-        "german": "Ausgabevariable „aout1“ von vdelayxs.",
-        "french": "Variable de sortie `aout1` de vdelayxs.",
-        "spanish": "Variable de salida `aout1` de vdelayxs."
+        "english": "First delayed output channel (manual: `aout1`).",
+        "german": "Erster verzögerter Ausgangskanal (im Handbuch: `aout1`).",
+        "french": "Premier canal de sortie retardé (manuel : `aout1`).",
+        "spanish": "Primer canal de salida retardada (manual: `aout1`)."
+      },
+      "aout2": {
+        "english": "Second delayed output channel (manual: `aout2`).",
+        "german": "Zweiter verzögerter Ausgangskanal (im Handbuch: `aout2`).",
+        "french": "Deuxième canal de sortie retardé (manuel : `aout2`).",
+        "spanish": "Segundo canal de salida retardada (manual: `aout2`)."
       }
     }
   },
