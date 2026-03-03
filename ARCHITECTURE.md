@@ -1,7 +1,7 @@
-# VisualCSound Architecture
+# Orchestron (formerly called VisualCSound) Architecture
 
 ## 1) Purpose
-VisualCSound is a 2-tier application for creating CSound instruments visually by connecting opcode nodes, then playing them in real time via MIDI.
+Orchestron is a 2-tier application for creating CSound instruments visually by connecting opcode nodes, then playing them in real time via MIDI.
 
 Primary outcomes:
 - Visual patching experience similar to modular analog synth workflows.
@@ -16,9 +16,10 @@ In scope:
 - Backend compilation from visual graph to CSound `.orc`/`.csd`.
 - Realtime play/stop lifecycle and MIDI routing.
 - Opcode catalog with icons and typed ports.
+- Sequencers and virtual piano roll keyboards
+- Multitrack arranger for the stored sequencer patterns
 
 Out of scope (initial versions):
-- Full DAW/sequencer features (timeline editing, multitrack arrangement).
 - Collaborative multi-user patch editing.
 - Cloud rendering farms or distributed audio engines.
 
@@ -41,7 +42,7 @@ Out of scope (initial versions):
 - SQLModel or SQLAlchemy for persistence (SQLite for local, PostgreSQL optional)
 
 ### Audio/MIDI Integration
-- CSound realtime engine in-process with backend worker isolation
+- CSound realtime engine (version 6.x) in-process with backend worker isolation
 - CSound realtime MIDI input (`-M` and `-+rtmidi` runtime options)
 - macOS CoreMIDI/IAC Driver loopback (recommended default)
 
