@@ -7,6 +7,8 @@ You invent one.
 
 Orchestron is a visual instrument workshop built on the power of Csound — not a preset browser, not a plugin rack, not a timeline with tracks stacked like office paperwork. You design sound from signal flow upward. Oscillators, envelopes, filters, physical models, control signals — connect them, and the instrument comes alive while you hear it.
 
+Read the complete user documentation in [user_documentation.md](documentation/user_documentation.md).
+
 - Backend: FastAPI + CSound Python integration
 - Frontend: React + TypeScript + Tailwind + Rete.js
 
