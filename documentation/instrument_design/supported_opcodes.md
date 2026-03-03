@@ -2,7 +2,7 @@
 
 **Navigation:** [Up](instrument_design.md) | [Prev](instrument_import_export.md) | [Next](../performance/performance.md)
 
-This appendix is generated from `backend/app/services/opcode_service.py` and currently lists **99** user-selectable opcodes in the Instrument Design opcode catalog.
+This appendix is generated from `backend/app/services/opcode_service.py` and currently lists **103** user-selectable opcodes in the Instrument Design opcode catalog.
 
 ## How To Use This Appendix
 
@@ -28,7 +28,7 @@ This appendix is generated from `backend/app/services/opcode_service.py` and cur
 | mixer | 2 |
 | modulation | 4 |
 | noise | 3 |
-| oscillator | 10 |
+| oscillator | 14 |
 | output | 1 |
 | physical_modeling | 5 |
 | reverb | 1 |
@@ -176,6 +176,10 @@ This appendix is generated from `backend/app/services/opcode_service.py` and cur
 | fof2 | 15 (k, k, k, k, k, k, k, k, i, i, i, i, k, k, i) | 1 (a) | FOF source with per-grain phase indexing and glissando. |
 | foscili | 7 (k, k, k, k, k, i, i) | 1 (a) | Audio-rate FM oscillator with harmonic ratios. |
 | gbuzz | 7 (k, k, k, k, k, i, i) | 1 (a) | Generalized buzz oscillator with controllable harmonics. |
+| grain | 10 (k, k, k, k, k, k, i, i, i, i) | 1 (a) | Classic granular synthesis oscillator with table-based grains. |
+| grain2 | 10 (k, k, k, k, i, k, i, i, i, i) | 1 (a) | Granular oscillator with FM depth control and overlap management. |
+| grain3 | 11 (k, k, k, k, k, k, i, k, i, i, i) | 1 (a) | Granular oscillator with independent pitch and frequency modulation. |
+| granule | 22 (k, i, i, i, i, i, i, i, i, i, k, i, k, i, i, i, i, i, i, i, i, i) | 1 (a) | Multi-voice granular processor with independent gap and grain-size controls. |
 | oscil3 | 4 (k, k, i, i) | 1 (a) | Cubic-interpolating oscillator with low distortion. |
 | oscili | 3 (k, k, i) | 1 (a) | Classic interpolating oscillator. |
 | poscil3 | 4 (k, k, i, i) | 1 (a) | High-precision cubic interpolating oscillator. |

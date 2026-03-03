@@ -2386,6 +2386,10 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         "pvsmooth": "https://csound.com/docs/manual/pvsmooth.html",
         "fold": "https://csound.com/docs/manual/fold.html",
         "gbuzz": "https://csound.com/docs/manual/gbuzz.html",
+        "grain": "https://csound.com/docs/manual/grain.html",
+        "grain2": "https://csound.com/docs/manual/grain2.html",
+        "grain3": "https://csound.com/docs/manual/grain3.html",
+        "granule": "https://csound.com/docs/manual/granule.html",
         "diode_ladder": "https://csound.com/docs/manual/diode_ladder.html",
         "expseg": "https://csound.com/docs/manual/expseg.html",
         "expsega": "https://csound.com/docs/manual/expsega.html",
@@ -2703,6 +2707,43 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         assert oscil3_inputs["iphs"]["required"] is False
         assert oscil3_outputs["asig"]["signal_type"] == "a"
 
+        grain_inputs = {item["id"]: item for item in opcodes_by_name["grain"]["inputs"]}
+        grain_outputs = {item["id"]: item for item in opcodes_by_name["grain"]["outputs"]}
+        assert opcodes_by_name["grain"]["category"] == "oscillator"
+        assert grain_inputs["xamp"]["accepted_signal_types"] == ["a", "k", "i"]
+        assert grain_inputs["xpitch"]["accepted_signal_types"] == ["a", "k", "i"]
+        assert grain_inputs["xdens"]["accepted_signal_types"] == ["a", "k", "i"]
+        assert grain_inputs["i_max_grains"]["required"] is False
+        assert grain_outputs["asig"]["signal_type"] == "a"
+
+        grain2_inputs = {item["id"]: item for item in opcodes_by_name["grain2"]["inputs"]}
+        grain2_outputs = {item["id"]: item for item in opcodes_by_name["grain2"]["outputs"]}
+        assert opcodes_by_name["grain2"]["category"] == "oscillator"
+        assert grain2_inputs["kamp"]["accepted_signal_types"] == ["k", "i"]
+        assert grain2_inputs["kfn"]["accepted_signal_types"] == ["k", "i"]
+        assert grain2_inputs["irpow"]["required"] is False
+        assert grain2_inputs["iseed"]["required"] is False
+        assert grain2_inputs["imode"]["required"] is False
+        assert grain2_outputs["asig"]["signal_type"] == "a"
+
+        grain3_inputs = {item["id"]: item for item in opcodes_by_name["grain3"]["inputs"]}
+        grain3_outputs = {item["id"]: item for item in opcodes_by_name["grain3"]["outputs"]}
+        assert opcodes_by_name["grain3"]["category"] == "oscillator"
+        assert grain3_inputs["kamp"]["accepted_signal_types"] == ["k", "i"]
+        assert grain3_inputs["kfn"]["accepted_signal_types"] == ["k", "i"]
+        assert grain3_inputs["iseed"]["required"] is False
+        assert grain3_inputs["imode"]["required"] is False
+        assert grain3_outputs["asig"]["signal_type"] == "a"
+
+        granule_inputs = {item["id"]: item for item in opcodes_by_name["granule"]["inputs"]}
+        granule_outputs = {item["id"]: item for item in opcodes_by_name["granule"]["outputs"]}
+        assert opcodes_by_name["granule"]["category"] == "oscillator"
+        assert granule_inputs["xamp"]["accepted_signal_types"] == ["a", "k", "i"]
+        assert granule_inputs["kgap"]["accepted_signal_types"] == ["k", "i"]
+        assert granule_inputs["kgsize"]["accepted_signal_types"] == ["k", "i"]
+        assert granule_inputs["ifnenv"]["required"] is False
+        assert granule_outputs["asig"]["signal_type"] == "a"
+
         follow2_inputs = {item["id"]: item for item in opcodes_by_name["follow2"]["inputs"]}
         follow2_outputs = {item["id"]: item for item in opcodes_by_name["follow2"]["outputs"]}
         assert opcodes_by_name["follow2"]["category"] == "analysis"
@@ -2936,6 +2977,10 @@ def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
                     {"id": "n107", "opcode": "release", "params": {}, "position": {"x": 20, "y": 5320}},
                     {"id": "n108", "opcode": "sekere", "params": {}, "position": {"x": 20, "y": 5370}},
                     {"id": "n109", "opcode": "sleighbells", "params": {}, "position": {"x": 20, "y": 5420}},
+                    {"id": "n110", "opcode": "grain", "params": {}, "position": {"x": 20, "y": 5470}},
+                    {"id": "n111", "opcode": "grain2", "params": {}, "position": {"x": 20, "y": 5520}},
+                    {"id": "n112", "opcode": "grain3", "params": {}, "position": {"x": 20, "y": 5570}},
+                    {"id": "n113", "opcode": "granule", "params": {}, "position": {"x": 20, "y": 5620}},
                 ],
                 "connections": [
                     {"from_node_id": "n1", "from_port_id": "asig", "to_node_id": "n2", "to_port_id": "left"},
@@ -3010,6 +3055,10 @@ def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
             "vcomb",
             "dripwater",
             "gbuzz",
+            "grain",
+            "grain2",
+            "grain3",
+            "granule",
             "oscil3",
             "follow2",
             "pinkish",
