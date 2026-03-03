@@ -1,0 +1,901 @@
+{
+  "sourcePatchId": "b0364428-5110-4266-a409-c9404587200c",
+  "name": "PAD with VCOs and LFOs",
+  "description": "Stereo PAD with using vco2 opcode and vcomb",
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "02982b05-c169-4fff-84dd-f802ca9eabee",
+        "opcode": "vco2",
+        "params": {
+          "kamp": 0.4,
+          "kcps": 440,
+          "imode": 0,
+          "kpw": 0.5,
+          "kphs": 0,
+          "inyx": 0.5
+        },
+        "position": {
+          "x": 437.38593882010207,
+          "y": -169.23205244589508
+        }
+      },
+      {
+        "id": "e2061be2-c1bc-46c6-8ed3-faa41edb43df",
+        "opcode": "madsr",
+        "params": {
+          "iatt": 0.01,
+          "idec": 0.15,
+          "islev": 0.7,
+          "irel": 0.2,
+          "idel": 0,
+          "ireltim": -1
+        },
+        "position": {
+          "x": -564.5729370117188,
+          "y": -183.64935302734375
+        }
+      },
+      {
+        "id": "f922b737-c529-458c-9ab7-2ff66c2e39a6",
+        "opcode": "ampmidi",
+        "params": {
+          "iscal": 1
+        },
+        "position": {
+          "x": 117.96311710725176,
+          "y": 222.87486473263226
+        }
+      },
+      {
+        "id": "e3626bc5-3d4d-4d15-81d0-852d1f92256f",
+        "opcode": "cpsmidi",
+        "params": {},
+        "position": {
+          "x": -88.68962603178333,
+          "y": -429.8833073774352
+        }
+      },
+      {
+        "id": "ce5f0735-700a-489c-aa17-750d7643674b",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.5"
+        },
+        "position": {
+          "x": -891.6060737013327,
+          "y": -275.8621134607553
+        }
+      },
+      {
+        "id": "8352a020-ac85-4c42-9e21-48c96ba88949",
+        "opcode": "const_i",
+        "params": {
+          "value": "1"
+        },
+        "position": {
+          "x": -939.3234378935051,
+          "y": -110.34569642704045
+        }
+      },
+      {
+        "id": "4c4c2c6f-e8ad-4fa2-9ba5-d66f9b84b295",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.7"
+        },
+        "position": {
+          "x": -969.1742203740966,
+          "y": 44.84114338149753
+        }
+      },
+      {
+        "id": "ddf8c614-fc4f-4233-8aa3-cb173355f118",
+        "opcode": "const_i",
+        "params": {
+          "value": "3"
+        },
+        "position": {
+          "x": -874.0656635718744,
+          "y": 195.11403811942728
+        }
+      },
+      {
+        "id": "4d81e78b-1405-4321-b03a-4155dcfcbbc3",
+        "opcode": "const_i",
+        "params": {
+          "value": "2"
+        },
+        "position": {
+          "x": -346.7313329542289,
+          "y": 51.87959814921978
+        }
+      },
+      {
+        "id": "48714da4-e4a2-434e-91bb-90564757aca6",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.5"
+        },
+        "position": {
+          "x": -313.1407150312801,
+          "y": 215.14681192727204
+        }
+      },
+      {
+        "id": "9dc8ff44-cd9e-47e7-aacc-9d5b262e12a5",
+        "opcode": "lfo",
+        "params": {
+          "kamp": 0.5,
+          "kcps": 5,
+          "itype": 0
+        },
+        "position": {
+          "x": -227.1733910801545,
+          "y": 368.23591745647093
+        }
+      },
+      {
+        "id": "aed21fa7-7bc0-4c5f-82ef-72b5111646a8",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.4"
+        },
+        "position": {
+          "x": -604.5063571707512,
+          "y": 387.74598628411553
+        }
+      },
+      {
+        "id": "4547e5fe-9b73-4422-9cb9-44dcf4f5a72d",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.3465"
+        },
+        "position": {
+          "x": -678.3886550103824,
+          "y": 571.9975581210699
+        }
+      },
+      {
+        "id": "e48ff84b-85b7-4f85-8171-f1639c79503d",
+        "opcode": "vco2",
+        "params": {
+          "kamp": 0.4,
+          "kcps": 440,
+          "imode": 0,
+          "kpw": 0.5,
+          "kphs": 0,
+          "inyx": 0.5
+        },
+        "position": {
+          "x": 359.56416676621853,
+          "y": 473.5823810045818
+        }
+      },
+      {
+        "id": "bc0d231c-c7d7-4442-9a33-e1ea42627b9c",
+        "opcode": "lfo",
+        "params": {
+          "kamp": 0.5,
+          "kcps": 5,
+          "itype": 0
+        },
+        "position": {
+          "x": -237.8741854141912,
+          "y": 653.0627460953448
+        }
+      },
+      {
+        "id": "213fdc94-1ad4-4e03-b31c-e4b78907fbac",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.1834"
+        },
+        "position": {
+          "x": -674.459063140799,
+          "y": 713.1653332196092
+        }
+      },
+      {
+        "id": "3075a431-bb16-4bc3-91cf-efc8d21bf424",
+        "opcode": "vcomb",
+        "params": {
+          "krvt": 2,
+          "xlpt": 0.05,
+          "imaxlpt": 1,
+          "iskip": 0,
+          "insmps": 0
+        },
+        "position": {
+          "x": 1047.0347583819657,
+          "y": -26.754365297106094
+        }
+      },
+      {
+        "id": "3243ca5a-fd7c-4539-abdc-1f701ba21a78",
+        "opcode": "vcomb",
+        "params": {
+          "krvt": 2,
+          "xlpt": 0.05,
+          "imaxlpt": 1,
+          "iskip": 0,
+          "insmps": 0
+        },
+        "position": {
+          "x": 1022.8466739425804,
+          "y": 367.06083107457204
+        }
+      },
+      {
+        "id": "9535b776-d853-4f97-b9af-158146da6855",
+        "opcode": "const_i",
+        "params": {
+          "value": "5"
+        },
+        "position": {
+          "x": 472.2140588031321,
+          "y": 306.80700365427
+        }
+      },
+      {
+        "id": "a91f64b5-3a16-42f4-81f2-26127eee496d",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.05"
+        },
+        "position": {
+          "x": 471.7918549773276,
+          "y": 171.56000934046466
+        }
+      },
+      {
+        "id": "a32c4403-86f4-4ff6-b55e-6ed7669783f9",
+        "opcode": "const_i",
+        "params": {
+          "value": "1"
+        },
+        "position": {
+          "x": 708.871685396066,
+          "y": 556.3452552831312
+        }
+      },
+      {
+        "id": "5654f1c0-3940-46f4-9e39-958ae6d3a22c",
+        "opcode": "outs",
+        "params": {},
+        "position": {
+          "x": 1974.329534431312,
+          "y": 80.48838491575655
+        }
+      },
+      {
+        "id": "d53e68a6-cb8d-4f81-83ce-bd35933192bb",
+        "opcode": "madsr",
+        "params": {
+          "iatt": 0.01,
+          "idec": 0.15,
+          "islev": 0.7,
+          "irel": 0.2,
+          "idel": 0,
+          "ireltim": -1
+        },
+        "position": {
+          "x": 1028.9652613821718,
+          "y": 749.0729750371156
+        }
+      },
+      {
+        "id": "d7526595-a720-44d3-a97d-cee5d6d1a70a",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.001"
+        },
+        "position": {
+          "x": 570.3408547857879,
+          "y": 838.1233810690818
+        }
+      },
+      {
+        "id": "746f1fae-cc1a-4ffc-90e7-0a4d324ee64c",
+        "opcode": "const_i",
+        "params": {
+          "value": "10"
+        },
+        "position": {
+          "x": 625.4763773276345,
+          "y": 1016.2535308196633
+        }
+      },
+      {
+        "id": "525265c4-ee24-493e-b760-0dbd5da46686",
+        "opcode": "moogvcf",
+        "params": {
+          "xfco": 1000,
+          "xres": 0.7,
+          "iscale": 1,
+          "iskip": 0
+        },
+        "position": {
+          "x": 1627.6012656084004,
+          "y": -79.2331450982559
+        }
+      },
+      {
+        "id": "ceb3f0af-06a0-4eb8-ba19-463ee5bfdfb5",
+        "opcode": "moogvcf",
+        "params": {
+          "xfco": 1000,
+          "xres": 0.7,
+          "iscale": 1,
+          "iskip": 0
+        },
+        "position": {
+          "x": 1810.4150225310875,
+          "y": 352.3084586317506
+        }
+      },
+      {
+        "id": "e0ac9906-f6f4-4313-9702-d6534476a347",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.75"
+        },
+        "position": {
+          "x": 1279.6568858749358,
+          "y": 177.63208018658094
+        }
+      },
+      {
+        "id": "27a84707-58c6-49c3-9e23-af31570f92c2",
+        "opcode": "lfo",
+        "params": {
+          "kamp": 0.5,
+          "kcps": 5,
+          "itype": 0
+        },
+        "position": {
+          "x": 1303.6553203205306,
+          "y": -399.36399571002585
+        }
+      },
+      {
+        "id": "cd970fd0-f2e4-4da1-9ac4-9fa3c2b50e20",
+        "opcode": "lfo",
+        "params": {
+          "kamp": 0.5,
+          "kcps": 5,
+          "itype": 0
+        },
+        "position": {
+          "x": 1449.9057733228722,
+          "y": 807.034255269509
+        }
+      },
+      {
+        "id": "b4324f42-29fc-441a-b313-1ac57c9a8c20",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.11"
+        },
+        "position": {
+          "x": 896.7304033679873,
+          "y": -474.47049735966516
+        }
+      },
+      {
+        "id": "3a0e9f68-207b-475f-b812-581e77e32baa",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.33"
+        },
+        "position": {
+          "x": 817.754187690484,
+          "y": -321.94677836457276
+        }
+      },
+      {
+        "id": "2463e40f-97c9-479f-b252-0bf009ecc774",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.12"
+        },
+        "position": {
+          "x": 999.642786939679,
+          "y": 1108.1611986240816
+        }
+      },
+      {
+        "id": "0026046b-8e82-4759-aafd-aaa44a2936f2",
+        "opcode": "const_i",
+        "params": {
+          "value": "1.34"
+        },
+        "position": {
+          "x": 1251.3054016857793,
+          "y": 1063.262255354837
+        }
+      },
+      {
+        "id": "3d32e3bf-e14d-4922-aa89-73043f44e466",
+        "opcode": "lfo",
+        "params": {
+          "kamp": 0.5,
+          "kcps": 5,
+          "itype": 0
+        },
+        "position": {
+          "x": 1488.477448300408,
+          "y": 513.0024779383384
+        }
+      },
+      {
+        "id": "d215bbce-1294-4ccb-9acc-b5ad668e5d8d",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.5"
+        },
+        "position": {
+          "x": 1250.873472263543,
+          "y": 470.41161827629594
+        }
+      },
+      {
+        "id": "7d992290-8280-4d41-81a7-b4c4fa8c6b70",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.21"
+        },
+        "position": {
+          "x": 1253.2681379140033,
+          "y": 626.0469655531143
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "e2061be2-c1bc-46c6-8ed3-faa41edb43df",
+        "from_port_id": "kenv",
+        "to_node_id": "02982b05-c169-4fff-84dd-f802ca9eabee",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "f922b737-c529-458c-9ab7-2ff66c2e39a6",
+        "from_port_id": "iamp",
+        "to_node_id": "02982b05-c169-4fff-84dd-f802ca9eabee",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "e3626bc5-3d4d-4d15-81d0-852d1f92256f",
+        "from_port_id": "kfreq",
+        "to_node_id": "02982b05-c169-4fff-84dd-f802ca9eabee",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "ce5f0735-700a-489c-aa17-750d7643674b",
+        "from_port_id": "iout",
+        "to_node_id": "e2061be2-c1bc-46c6-8ed3-faa41edb43df",
+        "to_port_id": "iatt"
+      },
+      {
+        "from_node_id": "8352a020-ac85-4c42-9e21-48c96ba88949",
+        "from_port_id": "iout",
+        "to_node_id": "e2061be2-c1bc-46c6-8ed3-faa41edb43df",
+        "to_port_id": "idec"
+      },
+      {
+        "from_node_id": "4c4c2c6f-e8ad-4fa2-9ba5-d66f9b84b295",
+        "from_port_id": "iout",
+        "to_node_id": "e2061be2-c1bc-46c6-8ed3-faa41edb43df",
+        "to_port_id": "islev"
+      },
+      {
+        "from_node_id": "ddf8c614-fc4f-4233-8aa3-cb173355f118",
+        "from_port_id": "iout",
+        "to_node_id": "e2061be2-c1bc-46c6-8ed3-faa41edb43df",
+        "to_port_id": "irel"
+      },
+      {
+        "from_node_id": "4d81e78b-1405-4321-b03a-4155dcfcbbc3",
+        "from_port_id": "iout",
+        "to_node_id": "02982b05-c169-4fff-84dd-f802ca9eabee",
+        "to_port_id": "imode"
+      },
+      {
+        "from_node_id": "48714da4-e4a2-434e-91bb-90564757aca6",
+        "from_port_id": "iout",
+        "to_node_id": "02982b05-c169-4fff-84dd-f802ca9eabee",
+        "to_port_id": "kpw"
+      },
+      {
+        "from_node_id": "9dc8ff44-cd9e-47e7-aacc-9d5b262e12a5",
+        "from_port_id": "kout",
+        "to_node_id": "02982b05-c169-4fff-84dd-f802ca9eabee",
+        "to_port_id": "kpw"
+      },
+      {
+        "from_node_id": "aed21fa7-7bc0-4c5f-82ef-72b5111646a8",
+        "from_port_id": "iout",
+        "to_node_id": "9dc8ff44-cd9e-47e7-aacc-9d5b262e12a5",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "4547e5fe-9b73-4422-9cb9-44dcf4f5a72d",
+        "from_port_id": "iout",
+        "to_node_id": "9dc8ff44-cd9e-47e7-aacc-9d5b262e12a5",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "48714da4-e4a2-434e-91bb-90564757aca6",
+        "from_port_id": "iout",
+        "to_node_id": "e48ff84b-85b7-4f85-8171-f1639c79503d",
+        "to_port_id": "kpw"
+      },
+      {
+        "from_node_id": "e2061be2-c1bc-46c6-8ed3-faa41edb43df",
+        "from_port_id": "kenv",
+        "to_node_id": "e48ff84b-85b7-4f85-8171-f1639c79503d",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "f922b737-c529-458c-9ab7-2ff66c2e39a6",
+        "from_port_id": "iamp",
+        "to_node_id": "e48ff84b-85b7-4f85-8171-f1639c79503d",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "e3626bc5-3d4d-4d15-81d0-852d1f92256f",
+        "from_port_id": "kfreq",
+        "to_node_id": "e48ff84b-85b7-4f85-8171-f1639c79503d",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "bc0d231c-c7d7-4442-9a33-e1ea42627b9c",
+        "from_port_id": "kout",
+        "to_node_id": "e48ff84b-85b7-4f85-8171-f1639c79503d",
+        "to_port_id": "kpw"
+      },
+      {
+        "from_node_id": "aed21fa7-7bc0-4c5f-82ef-72b5111646a8",
+        "from_port_id": "iout",
+        "to_node_id": "bc0d231c-c7d7-4442-9a33-e1ea42627b9c",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "213fdc94-1ad4-4e03-b31c-e4b78907fbac",
+        "from_port_id": "iout",
+        "to_node_id": "bc0d231c-c7d7-4442-9a33-e1ea42627b9c",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "02982b05-c169-4fff-84dd-f802ca9eabee",
+        "from_port_id": "asig",
+        "to_node_id": "3075a431-bb16-4bc3-91cf-efc8d21bf424",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "e48ff84b-85b7-4f85-8171-f1639c79503d",
+        "from_port_id": "asig",
+        "to_node_id": "3243ca5a-fd7c-4539-abdc-1f701ba21a78",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "9535b776-d853-4f97-b9af-158146da6855",
+        "from_port_id": "iout",
+        "to_node_id": "3243ca5a-fd7c-4539-abdc-1f701ba21a78",
+        "to_port_id": "krvt"
+      },
+      {
+        "from_node_id": "9535b776-d853-4f97-b9af-158146da6855",
+        "from_port_id": "iout",
+        "to_node_id": "3075a431-bb16-4bc3-91cf-efc8d21bf424",
+        "to_port_id": "krvt"
+      },
+      {
+        "from_node_id": "a91f64b5-3a16-42f4-81f2-26127eee496d",
+        "from_port_id": "iout",
+        "to_node_id": "3075a431-bb16-4bc3-91cf-efc8d21bf424",
+        "to_port_id": "xlpt"
+      },
+      {
+        "from_node_id": "a91f64b5-3a16-42f4-81f2-26127eee496d",
+        "from_port_id": "iout",
+        "to_node_id": "3243ca5a-fd7c-4539-abdc-1f701ba21a78",
+        "to_port_id": "xlpt"
+      },
+      {
+        "from_node_id": "a32c4403-86f4-4ff6-b55e-6ed7669783f9",
+        "from_port_id": "iout",
+        "to_node_id": "3243ca5a-fd7c-4539-abdc-1f701ba21a78",
+        "to_port_id": "imaxlpt"
+      },
+      {
+        "from_node_id": "a32c4403-86f4-4ff6-b55e-6ed7669783f9",
+        "from_port_id": "iout",
+        "to_node_id": "3075a431-bb16-4bc3-91cf-efc8d21bf424",
+        "to_port_id": "imaxlpt"
+      },
+      {
+        "from_node_id": "d7526595-a720-44d3-a97d-cee5d6d1a70a",
+        "from_port_id": "iout",
+        "to_node_id": "d53e68a6-cb8d-4f81-83ce-bd35933192bb",
+        "to_port_id": "iatt"
+      },
+      {
+        "from_node_id": "d7526595-a720-44d3-a97d-cee5d6d1a70a",
+        "from_port_id": "iout",
+        "to_node_id": "d53e68a6-cb8d-4f81-83ce-bd35933192bb",
+        "to_port_id": "idec"
+      },
+      {
+        "from_node_id": "d7526595-a720-44d3-a97d-cee5d6d1a70a",
+        "from_port_id": "iout",
+        "to_node_id": "d53e68a6-cb8d-4f81-83ce-bd35933192bb",
+        "to_port_id": "islev"
+      },
+      {
+        "from_node_id": "746f1fae-cc1a-4ffc-90e7-0a4d324ee64c",
+        "from_port_id": "iout",
+        "to_node_id": "d53e68a6-cb8d-4f81-83ce-bd35933192bb",
+        "to_port_id": "irel"
+      },
+      {
+        "from_node_id": "3075a431-bb16-4bc3-91cf-efc8d21bf424",
+        "from_port_id": "aout",
+        "to_node_id": "525265c4-ee24-493e-b760-0dbd5da46686",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "3243ca5a-fd7c-4539-abdc-1f701ba21a78",
+        "from_port_id": "aout",
+        "to_node_id": "ceb3f0af-06a0-4eb8-ba19-463ee5bfdfb5",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "525265c4-ee24-493e-b760-0dbd5da46686",
+        "from_port_id": "aout",
+        "to_node_id": "5654f1c0-3940-46f4-9e39-958ae6d3a22c",
+        "to_port_id": "left"
+      },
+      {
+        "from_node_id": "ceb3f0af-06a0-4eb8-ba19-463ee5bfdfb5",
+        "from_port_id": "aout",
+        "to_node_id": "5654f1c0-3940-46f4-9e39-958ae6d3a22c",
+        "to_port_id": "right"
+      },
+      {
+        "from_node_id": "e3626bc5-3d4d-4d15-81d0-852d1f92256f",
+        "from_port_id": "kfreq",
+        "to_node_id": "525265c4-ee24-493e-b760-0dbd5da46686",
+        "to_port_id": "xfco"
+      },
+      {
+        "from_node_id": "e3626bc5-3d4d-4d15-81d0-852d1f92256f",
+        "from_port_id": "kfreq",
+        "to_node_id": "ceb3f0af-06a0-4eb8-ba19-463ee5bfdfb5",
+        "to_port_id": "xfco"
+      },
+      {
+        "from_node_id": "e0ac9906-f6f4-4313-9702-d6534476a347",
+        "from_port_id": "iout",
+        "to_node_id": "525265c4-ee24-493e-b760-0dbd5da46686",
+        "to_port_id": "xres"
+      },
+      {
+        "from_node_id": "e0ac9906-f6f4-4313-9702-d6534476a347",
+        "from_port_id": "iout",
+        "to_node_id": "ceb3f0af-06a0-4eb8-ba19-463ee5bfdfb5",
+        "to_port_id": "xres"
+      },
+      {
+        "from_node_id": "27a84707-58c6-49c3-9e23-af31570f92c2",
+        "from_port_id": "kout",
+        "to_node_id": "525265c4-ee24-493e-b760-0dbd5da46686",
+        "to_port_id": "xres"
+      },
+      {
+        "from_node_id": "cd970fd0-f2e4-4da1-9ac4-9fa3c2b50e20",
+        "from_port_id": "kout",
+        "to_node_id": "ceb3f0af-06a0-4eb8-ba19-463ee5bfdfb5",
+        "to_port_id": "xres"
+      },
+      {
+        "from_node_id": "b4324f42-29fc-441a-b313-1ac57c9a8c20",
+        "from_port_id": "iout",
+        "to_node_id": "27a84707-58c6-49c3-9e23-af31570f92c2",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "3a0e9f68-207b-475f-b812-581e77e32baa",
+        "from_port_id": "iout",
+        "to_node_id": "27a84707-58c6-49c3-9e23-af31570f92c2",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "2463e40f-97c9-479f-b252-0bf009ecc774",
+        "from_port_id": "iout",
+        "to_node_id": "cd970fd0-f2e4-4da1-9ac4-9fa3c2b50e20",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "0026046b-8e82-4759-aafd-aaa44a2936f2",
+        "from_port_id": "iout",
+        "to_node_id": "cd970fd0-f2e4-4da1-9ac4-9fa3c2b50e20",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "3d32e3bf-e14d-4922-aa89-73043f44e466",
+        "from_port_id": "kout",
+        "to_node_id": "525265c4-ee24-493e-b760-0dbd5da46686",
+        "to_port_id": "xfco"
+      },
+      {
+        "from_node_id": "3d32e3bf-e14d-4922-aa89-73043f44e466",
+        "from_port_id": "kout",
+        "to_node_id": "ceb3f0af-06a0-4eb8-ba19-463ee5bfdfb5",
+        "to_port_id": "xfco"
+      },
+      {
+        "from_node_id": "d215bbce-1294-4ccb-9acc-b5ad668e5d8d",
+        "from_port_id": "iout",
+        "to_node_id": "3d32e3bf-e14d-4922-aa89-73043f44e466",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "7d992290-8280-4d41-81a7-b4c4fa8c6b70",
+        "from_port_id": "iout",
+        "to_node_id": "3d32e3bf-e14d-4922-aa89-73043f44e466",
+        "to_port_id": "kcps"
+      }
+    ],
+    "ui_layout": {
+      "input_formulas": {
+        "02982b05-c169-4fff-84dd-f802ca9eabee::kamp": {
+          "expression": "in1 * in2",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "e2061be2-c1bc-46c6-8ed3-faa41edb43df",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "in2",
+              "from_node_id": "f922b737-c529-458c-9ab7-2ff66c2e39a6",
+              "from_port_id": "iamp"
+            }
+          ]
+        },
+        "e48ff84b-85b7-4f85-8171-f1639c79503d::kamp": {
+          "expression": "in1 * in2",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "e2061be2-c1bc-46c6-8ed3-faa41edb43df",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "in2",
+              "from_node_id": "f922b737-c529-458c-9ab7-2ff66c2e39a6",
+              "from_port_id": "iamp"
+            }
+          ]
+        },
+        "e48ff84b-85b7-4f85-8171-f1639c79503d::kcps": {
+          "expression": "in1*0.995",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "e3626bc5-3d4d-4d15-81d0-852d1f92256f",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "e48ff84b-85b7-4f85-8171-f1639c79503d::kpw": {
+          "expression": "in1 + in2",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "48714da4-e4a2-434e-91bb-90564757aca6",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "in2",
+              "from_node_id": "bc0d231c-c7d7-4442-9a33-e1ea42627b9c",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "02982b05-c169-4fff-84dd-f802ca9eabee::kpw": {
+          "expression": "in1 + in2",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "48714da4-e4a2-434e-91bb-90564757aca6",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "in2",
+              "from_node_id": "9dc8ff44-cd9e-47e7-aacc-9d5b262e12a5",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "5654f1c0-3940-46f4-9e39-958ae6d3a22c::left": {
+          "expression": "in1*0.4",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "525265c4-ee24-493e-b760-0dbd5da46686",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "5654f1c0-3940-46f4-9e39-958ae6d3a22c::right": {
+          "expression": "in1*0.4",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "ceb3f0af-06a0-4eb8-ba19-463ee5bfdfb5",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "525265c4-ee24-493e-b760-0dbd5da46686::xfco": {
+          "expression": "in1*3*(1+in2)",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "e3626bc5-3d4d-4d15-81d0-852d1f92256f",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "in2",
+              "from_node_id": "3d32e3bf-e14d-4922-aa89-73043f44e466",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "ceb3f0af-06a0-4eb8-ba19-463ee5bfdfb5::xfco": {
+          "expression": "in1*6*(1+in2)",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "e3626bc5-3d4d-4d15-81d0-852d1f92256f",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "in2",
+              "from_node_id": "3d32e3bf-e14d-4922-aa89-73043f44e466",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "525265c4-ee24-493e-b760-0dbd5da46686::xres": {
+          "expression": "in1 + in2",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "e0ac9906-f6f4-4313-9702-d6534476a347",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "in2",
+              "from_node_id": "27a84707-58c6-49c3-9e23-af31570f92c2",
+              "from_port_id": "kout"
+            }
+          ]
+        }
+      }
+    },
+    "engine_config": {
+      "sr": 44100,
+      "control_rate": 1378,
+      "ksmps": 32,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1
+    }
+  }
+}

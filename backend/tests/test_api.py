@@ -2393,6 +2393,11 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         "diode_ladder": "https://csound.com/docs/manual/diode_ladder.html",
         "expseg": "https://csound.com/docs/manual/expseg.html",
         "expsega": "https://csound.com/docs/manual/expsega.html",
+        "expsegr": "https://csound.com/docs/manual/expsegr.html",
+        "expon": "https://csound.com/docs/manual/expon.html",
+        "linenr": "https://csound.com/docs/manual/linenr.html",
+        "envlpxr": "https://csound.com/docs/manual/envlpxr.html",
+        "transegr": "https://csound.com/docs/manual/transegr.html",
         "linseg": "https://csound.com/docs/manual/linseg.html",
         "linsegr": "https://csound.com/docs/manual/linsegr.html",
         "foscili": "https://csound.com/docs/manual/foscili.html",
@@ -2433,6 +2438,7 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         "upsamp": "https://csound.com/docs/manual/upsamp.html",
         "vco2": "https://csound.com/docs/manual/vco2.html",
         "vco2init": "https://csound.com/docs/manual/vco2init.html",
+        "xtratim": "https://csound.com/docs/manual/xtratim.html",
         "dripwater": "https://csound.com/docs/manual/dripwater.html",
     }
 
@@ -2457,6 +2463,41 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         linsegr_inputs = {item["id"]: item for item in opcodes_by_name["linsegr"]["inputs"]}
         for required_port in ["ia", "idur1", "ib", "irel", "iz"]:
             assert linsegr_inputs[required_port]["required"] is True
+
+        expsegr_inputs = {item["id"]: item for item in opcodes_by_name["expsegr"]["inputs"]}
+        expsegr_outputs = {item["id"]: item for item in opcodes_by_name["expsegr"]["outputs"]}
+        assert opcodes_by_name["expsegr"]["category"] == "envelope"
+        for required_port in ["ia", "idur1", "ib", "irel", "iz"]:
+            assert expsegr_inputs[required_port]["required"] is True
+        assert expsegr_outputs["kenv"]["signal_type"] == "k"
+
+        expon_inputs = {item["id"]: item for item in opcodes_by_name["expon"]["inputs"]}
+        expon_outputs = {item["id"]: item for item in opcodes_by_name["expon"]["outputs"]}
+        assert opcodes_by_name["expon"]["category"] == "envelope"
+        assert list(expon_inputs.keys()) == ["ia", "idur", "ib"]
+        assert expon_outputs["kenv"]["signal_type"] == "k"
+
+        linenr_inputs = {item["id"]: item for item in opcodes_by_name["linenr"]["inputs"]}
+        linenr_outputs = {item["id"]: item for item in opcodes_by_name["linenr"]["outputs"]}
+        assert opcodes_by_name["linenr"]["category"] == "envelope"
+        assert linenr_inputs["kamp"]["signal_type"] == "k"
+        assert linenr_inputs["kamp"]["accepted_signal_types"] == ["k", "i"]
+        assert linenr_inputs["iatdec"]["default"] == 0.01
+        assert linenr_outputs["kenv"]["signal_type"] == "k"
+
+        envlpxr_inputs = {item["id"]: item for item in opcodes_by_name["envlpxr"]["inputs"]}
+        envlpxr_outputs = {item["id"]: item for item in opcodes_by_name["envlpxr"]["outputs"]}
+        assert opcodes_by_name["envlpxr"]["category"] == "envelope"
+        assert envlpxr_inputs["kamp"]["accepted_signal_types"] == ["k", "i"]
+        assert envlpxr_inputs["ixmod"]["required"] is False
+        assert envlpxr_inputs["irind"]["required"] is False
+        assert envlpxr_outputs["kenv"]["signal_type"] == "k"
+
+        transegr_inputs = {item["id"]: item for item in opcodes_by_name["transegr"]["inputs"]}
+        transegr_outputs = {item["id"]: item for item in opcodes_by_name["transegr"]["outputs"]}
+        assert opcodes_by_name["transegr"]["category"] == "envelope"
+        assert list(transegr_inputs.keys()) == ["ia", "idur1", "itype1", "ib", "idur2", "itype2", "ic"]
+        assert transegr_outputs["kenv"]["signal_type"] == "k"
 
         sfload_inputs = opcodes_by_name["sfload"]["inputs"]
         sfload_outputs = {item["id"]: item for item in opcodes_by_name["sfload"]["outputs"]}
@@ -2648,6 +2689,13 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         assert maxalloc_inputs["icount"]["signal_type"] == "i"
         assert maxalloc_inputs["icount"]["default"] == 8
         assert opcodes_by_name["maxalloc"]["outputs"] == []
+
+        xtratim_inputs = {item["id"]: item for item in opcodes_by_name["xtratim"]["inputs"]}
+        assert opcodes_by_name["xtratim"]["category"] == "utility"
+        assert list(xtratim_inputs.keys()) == ["iextradur"]
+        assert xtratim_inputs["iextradur"]["signal_type"] == "i"
+        assert xtratim_inputs["iextradur"]["default"] == 0.2
+        assert opcodes_by_name["xtratim"]["outputs"] == []
 
         wgpluck2_inputs = {item["id"]: item for item in opcodes_by_name["wgpluck2"]["inputs"]}
         wgpluck2_outputs = {item["id"]: item for item in opcodes_by_name["wgpluck2"]["outputs"]}
@@ -2886,6 +2934,11 @@ def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
                     {"id": "n47", "opcode": "expsega", "params": {}, "position": {"x": 20, "y": 2320}},
                     {"id": "n48", "opcode": "linseg", "params": {}, "position": {"x": 20, "y": 2370}},
                     {"id": "n49", "opcode": "linsegr", "params": {}, "position": {"x": 20, "y": 2420}},
+                    {"id": "n49a", "opcode": "expon", "params": {}, "position": {"x": 20, "y": 2445}},
+                    {"id": "n49b", "opcode": "expsegr", "params": {}, "position": {"x": 20, "y": 2470}},
+                    {"id": "n49c", "opcode": "linenr", "params": {}, "position": {"x": 20, "y": 2495}},
+                    {"id": "n49d", "opcode": "envlpxr", "params": {}, "position": {"x": 20, "y": 2520}},
+                    {"id": "n49e", "opcode": "transegr", "params": {}, "position": {"x": 20, "y": 2545}},
                     {"id": "n50", "opcode": "butterlp", "params": {"asig": 0}, "position": {"x": 20, "y": 2470}},
                     {"id": "n51", "opcode": "butterbp", "params": {"asig": 0}, "position": {"x": 20, "y": 2520}},
                     {"id": "n52", "opcode": "butterhp", "params": {"asig": 0}, "position": {"x": 20, "y": 2570}},
@@ -2957,6 +3010,7 @@ def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
                     {"id": "n87", "opcode": "vco2init", "params": {}, "position": {"x": 20, "y": 4320}},
                     {"id": "n88", "opcode": "vcomb", "params": {"asig": 0}, "position": {"x": 20, "y": 4370}},
                     {"id": "n89", "opcode": "maxalloc", "params": {"icount": 8}, "position": {"x": 20, "y": 4420}},
+                    {"id": "n89a", "opcode": "xtratim", "params": {}, "position": {"x": 20, "y": 4445}},
                     {"id": "n90", "opcode": "oscil3", "params": {"amp": 0.2, "freq": 330}, "position": {"x": 20, "y": 4470}},
                     {"id": "n91", "opcode": "follow2", "params": {"asig": 0}, "position": {"x": 20, "y": 4520}},
                     {"id": "n92", "opcode": "pinkish", "params": {"xin": 0}, "position": {"x": 20, "y": 4570}},
@@ -3073,8 +3127,13 @@ def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
             "pvsynth",
             "expseg",
             "expsega",
+            "expsegr",
+            "expon",
             "linseg",
             "linsegr",
+            "linenr",
+            "envlpxr",
+            "transegr",
             "butterlp",
             "butterbp",
             "butterhp",
@@ -3101,6 +3160,7 @@ def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
             "release",
             "portk",
             "maxalloc",
+            "xtratim",
             "sfload",
             "sfplay3",
             "sfinstr3",

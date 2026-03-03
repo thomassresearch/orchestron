@@ -1,0 +1,539 @@
+{
+  "sourcePatchId": "7fd180c9-aadb-4ce1-a1bf-6d15661f4545",
+  "name": "FM bell",
+  "description": "Demo of fmbell opcode",
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "4b890dab-99ef-49f9-a0d1-c374ead181a4",
+        "opcode": "fmbell",
+        "params": {
+          "kamp": 0.4,
+          "kfreq": 440,
+          "kc1": 2,
+          "kc2": 3,
+          "kvdepth": 0.1,
+          "kvrate": 6,
+          "ifn1": 1,
+          "ifn2": 1,
+          "ifn3": 1,
+          "ifn4": 1,
+          "ivfn": 1,
+          "isus": 4
+        },
+        "position": {
+          "x": -24.783456390507098,
+          "y": -258.8115372929102
+        }
+      },
+      {
+        "id": "2a08c7c3-ed80-4326-b053-76db50f24851",
+        "opcode": "madsr",
+        "params": {
+          "iatt": 0.01,
+          "idec": 0.15,
+          "islev": 0.7,
+          "irel": 0.2,
+          "idel": 0,
+          "ireltim": -1
+        },
+        "position": {
+          "x": -673.9678649902344,
+          "y": -219.19534301757812
+        }
+      },
+      {
+        "id": "7a532e0f-a01a-43d0-b521-c5d981de8410",
+        "opcode": "ampmidi",
+        "params": {
+          "iscal": 1
+        },
+        "position": {
+          "x": -593.5848757233283,
+          "y": -432.22336766823275
+        }
+      },
+      {
+        "id": "cfd9484e-093f-4499-956a-ffe1abcb36e8",
+        "opcode": "const_i",
+        "params": {
+          "value": "1"
+        },
+        "position": {
+          "x": -954.9471772090943,
+          "y": -500.9945564528372
+        }
+      },
+      {
+        "id": "2a60b366-53a1-4818-b5dd-ea0ee5444431",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.01"
+        },
+        "position": {
+          "x": -1023.600029969255,
+          "y": -315.64322108100487
+        }
+      },
+      {
+        "id": "d679e05d-8b0d-4821-9d65-58f51754ae8e",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.2"
+        },
+        "position": {
+          "x": -1056.4752724361797,
+          "y": -137.62179664250237
+        }
+      },
+      {
+        "id": "a682dfe9-56ad-470c-83e6-5412a394fd00",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.25"
+        },
+        "position": {
+          "x": -1057.6367613340058,
+          "y": 9.847363124727153
+        }
+      },
+      {
+        "id": "04b36d0a-72b8-4b70-9668-6341cec69af0",
+        "opcode": "const_i",
+        "params": {
+          "value": "3"
+        },
+        "position": {
+          "x": -901.9616328416336,
+          "y": 181.26805528666742
+        }
+      },
+      {
+        "id": "3333e189-2fca-414d-aa73-86e36281d100",
+        "opcode": "cpsmidi",
+        "params": {},
+        "position": {
+          "x": -468.9072643621542,
+          "y": -139.97186280322393
+        }
+      },
+      {
+        "id": "62f9c019-016d-4e78-9f58-26037749e8f3",
+        "opcode": "const_i",
+        "params": {
+          "value": "2"
+        },
+        "position": {
+          "x": -617.0871425669926,
+          "y": 109.95412180387272
+        }
+      },
+      {
+        "id": "af341629-8b30-4ece-b185-a882e84dd6d0",
+        "opcode": "const_i",
+        "params": {
+          "value": "3"
+        },
+        "position": {
+          "x": -602.9709942200116,
+          "y": 253.91172651255482
+        }
+      },
+      {
+        "id": "afc17997-7804-494f-8523-4f3a7dcfe494",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.01"
+        },
+        "position": {
+          "x": -664.5008108941531,
+          "y": 398.43577903302963
+        }
+      },
+      {
+        "id": "fd3cccb0-1cf0-4ef3-b348-e3d907a2a6ca",
+        "opcode": "const_i",
+        "params": {
+          "value": "4.2"
+        },
+        "position": {
+          "x": -437.88566868422754,
+          "y": 477.8899668738531
+        }
+      },
+      {
+        "id": "3d79a563-213c-4877-a010-e882fc810a79",
+        "opcode": "GEN",
+        "params": {},
+        "position": {
+          "x": -196.73641468702175,
+          "y": 534.1545578330124
+        }
+      },
+      {
+        "id": "c3b9b346-e2f0-4dfc-8df9-161047fced2f",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.02"
+        },
+        "position": {
+          "x": 54.33027312925307,
+          "y": 317.95151574473994
+        }
+      },
+      {
+        "id": "d2f792a0-3e23-4844-98f3-f1562db56e04",
+        "opcode": "outs",
+        "params": {},
+        "position": {
+          "x": 1041.8750068694528,
+          "y": -71.15844414556557
+        }
+      },
+      {
+        "id": "4f5589c9-03c3-4f6f-89d6-0ee3834081b6",
+        "opcode": "vdelayxs",
+        "params": {
+          "asig2": 0,
+          "adl": 0.02,
+          "imaxdel": 1,
+          "iws": 1024
+        },
+        "position": {
+          "x": 678.7348584536934,
+          "y": -107.82844215185855
+        }
+      },
+      {
+        "id": "823c6008-4063-4005-af4c-bb8c470e6fdf",
+        "opcode": "const_i",
+        "params": {
+          "value": "4"
+        },
+        "position": {
+          "x": 274.03055139585035,
+          "y": 420.8545188535457
+        }
+      },
+      {
+        "id": "3cb8f4c3-0c0b-4f93-b80a-32011e02a795",
+        "opcode": "const_i",
+        "params": {
+          "value": "1024"
+        },
+        "position": {
+          "x": 215.79940107954926,
+          "y": 13.60228101029594
+        }
+      },
+      {
+        "id": "a7de6775-31a1-40a4-9efb-9f15b5096145",
+        "opcode": "const_i",
+        "params": {
+          "value": 0
+        },
+        "position": {
+          "x": 239.56541053820104,
+          "y": 155.3969451402173
+        }
+      },
+      {
+        "id": "673afea9-a8ea-4598-8202-0871e5c6112f",
+        "opcode": "lfo",
+        "params": {
+          "kamp": 0.5,
+          "kcps": 5,
+          "itype": 0
+        },
+        "position": {
+          "x": 333.1878278220358,
+          "y": 579.009047644854
+        }
+      },
+      {
+        "id": "20d11993-806c-47e1-8e8d-c7cbf2849268",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.0075"
+        },
+        "position": {
+          "x": 12.232107287119078,
+          "y": 652.1538940034583
+        }
+      },
+      {
+        "id": "71744ee6-7265-4907-a4f4-955d0af31828",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.234"
+        },
+        "position": {
+          "x": 38.84914024595656,
+          "y": 833.8982854978412
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "2a08c7c3-ed80-4326-b053-76db50f24851",
+        "from_port_id": "kenv",
+        "to_node_id": "4b890dab-99ef-49f9-a0d1-c374ead181a4",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "7a532e0f-a01a-43d0-b521-c5d981de8410",
+        "from_port_id": "iamp",
+        "to_node_id": "4b890dab-99ef-49f9-a0d1-c374ead181a4",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "cfd9484e-093f-4499-956a-ffe1abcb36e8",
+        "from_port_id": "iout",
+        "to_node_id": "7a532e0f-a01a-43d0-b521-c5d981de8410",
+        "to_port_id": "iscal"
+      },
+      {
+        "from_node_id": "2a60b366-53a1-4818-b5dd-ea0ee5444431",
+        "from_port_id": "iout",
+        "to_node_id": "2a08c7c3-ed80-4326-b053-76db50f24851",
+        "to_port_id": "iatt"
+      },
+      {
+        "from_node_id": "d679e05d-8b0d-4821-9d65-58f51754ae8e",
+        "from_port_id": "iout",
+        "to_node_id": "2a08c7c3-ed80-4326-b053-76db50f24851",
+        "to_port_id": "idec"
+      },
+      {
+        "from_node_id": "a682dfe9-56ad-470c-83e6-5412a394fd00",
+        "from_port_id": "iout",
+        "to_node_id": "2a08c7c3-ed80-4326-b053-76db50f24851",
+        "to_port_id": "islev"
+      },
+      {
+        "from_node_id": "04b36d0a-72b8-4b70-9668-6341cec69af0",
+        "from_port_id": "iout",
+        "to_node_id": "2a08c7c3-ed80-4326-b053-76db50f24851",
+        "to_port_id": "irel"
+      },
+      {
+        "from_node_id": "3333e189-2fca-414d-aa73-86e36281d100",
+        "from_port_id": "kfreq",
+        "to_node_id": "4b890dab-99ef-49f9-a0d1-c374ead181a4",
+        "to_port_id": "kfreq"
+      },
+      {
+        "from_node_id": "62f9c019-016d-4e78-9f58-26037749e8f3",
+        "from_port_id": "iout",
+        "to_node_id": "4b890dab-99ef-49f9-a0d1-c374ead181a4",
+        "to_port_id": "kc1"
+      },
+      {
+        "from_node_id": "af341629-8b30-4ece-b185-a882e84dd6d0",
+        "from_port_id": "iout",
+        "to_node_id": "4b890dab-99ef-49f9-a0d1-c374ead181a4",
+        "to_port_id": "kc2"
+      },
+      {
+        "from_node_id": "afc17997-7804-494f-8523-4f3a7dcfe494",
+        "from_port_id": "iout",
+        "to_node_id": "4b890dab-99ef-49f9-a0d1-c374ead181a4",
+        "to_port_id": "kvdepth"
+      },
+      {
+        "from_node_id": "fd3cccb0-1cf0-4ef3-b348-e3d907a2a6ca",
+        "from_port_id": "iout",
+        "to_node_id": "4b890dab-99ef-49f9-a0d1-c374ead181a4",
+        "to_port_id": "kvrate"
+      },
+      {
+        "from_node_id": "3d79a563-213c-4877-a010-e882fc810a79",
+        "from_port_id": "ift",
+        "to_node_id": "4b890dab-99ef-49f9-a0d1-c374ead181a4",
+        "to_port_id": "ifn1"
+      },
+      {
+        "from_node_id": "3d79a563-213c-4877-a010-e882fc810a79",
+        "from_port_id": "ift",
+        "to_node_id": "4b890dab-99ef-49f9-a0d1-c374ead181a4",
+        "to_port_id": "ifn2"
+      },
+      {
+        "from_node_id": "4b890dab-99ef-49f9-a0d1-c374ead181a4",
+        "from_port_id": "asig",
+        "to_node_id": "4f5589c9-03c3-4f6f-89d6-0ee3834081b6",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "4b890dab-99ef-49f9-a0d1-c374ead181a4",
+        "from_port_id": "asig",
+        "to_node_id": "4f5589c9-03c3-4f6f-89d6-0ee3834081b6",
+        "to_port_id": "asig2"
+      },
+      {
+        "from_node_id": "4f5589c9-03c3-4f6f-89d6-0ee3834081b6",
+        "from_port_id": "aout",
+        "to_node_id": "d2f792a0-3e23-4844-98f3-f1562db56e04",
+        "to_port_id": "left"
+      },
+      {
+        "from_node_id": "4f5589c9-03c3-4f6f-89d6-0ee3834081b6",
+        "from_port_id": "aout2",
+        "to_node_id": "d2f792a0-3e23-4844-98f3-f1562db56e04",
+        "to_port_id": "right"
+      },
+      {
+        "from_node_id": "c3b9b346-e2f0-4dfc-8df9-161047fced2f",
+        "from_port_id": "iout",
+        "to_node_id": "4f5589c9-03c3-4f6f-89d6-0ee3834081b6",
+        "to_port_id": "adl"
+      },
+      {
+        "from_node_id": "823c6008-4063-4005-af4c-bb8c470e6fdf",
+        "from_port_id": "iout",
+        "to_node_id": "4f5589c9-03c3-4f6f-89d6-0ee3834081b6",
+        "to_port_id": "imaxdel"
+      },
+      {
+        "from_node_id": "3cb8f4c3-0c0b-4f93-b80a-32011e02a795",
+        "from_port_id": "iout",
+        "to_node_id": "4f5589c9-03c3-4f6f-89d6-0ee3834081b6",
+        "to_port_id": "iws"
+      },
+      {
+        "from_node_id": "a7de6775-31a1-40a4-9efb-9f15b5096145",
+        "from_port_id": "iout",
+        "to_node_id": "4f5589c9-03c3-4f6f-89d6-0ee3834081b6",
+        "to_port_id": "ist"
+      },
+      {
+        "from_node_id": "673afea9-a8ea-4598-8202-0871e5c6112f",
+        "from_port_id": "kout",
+        "to_node_id": "4f5589c9-03c3-4f6f-89d6-0ee3834081b6",
+        "to_port_id": "adl"
+      },
+      {
+        "from_node_id": "20d11993-806c-47e1-8e8d-c7cbf2849268",
+        "from_port_id": "iout",
+        "to_node_id": "673afea9-a8ea-4598-8202-0871e5c6112f",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "71744ee6-7265-4907-a4f4-955d0af31828",
+        "from_port_id": "iout",
+        "to_node_id": "673afea9-a8ea-4598-8202-0871e5c6112f",
+        "to_port_id": "kcps"
+      }
+    ],
+    "ui_layout": {
+      "input_formulas": {
+        "4b890dab-99ef-49f9-a0d1-c374ead181a4::kamp": {
+          "expression": "in1 * in2",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "2a08c7c3-ed80-4326-b053-76db50f24851",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "in2",
+              "from_node_id": "7a532e0f-a01a-43d0-b521-c5d981de8410",
+              "from_port_id": "iamp"
+            }
+          ]
+        },
+        "4f5589c9-03c3-4f6f-89d6-0ee3834081b6::adl": {
+          "expression": "in1 + in2",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "c3b9b346-e2f0-4dfc-8df9-161047fced2f",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "in2",
+              "from_node_id": "673afea9-a8ea-4598-8202-0871e5c6112f",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "d2f792a0-3e23-4844-98f3-f1562db56e04::left": {
+          "expression": "in1*0.25",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "4f5589c9-03c3-4f6f-89d6-0ee3834081b6",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "d2f792a0-3e23-4844-98f3-f1562db56e04::right": {
+          "expression": "in1*0.25",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "4f5589c9-03c3-4f6f-89d6-0ee3834081b6",
+              "from_port_id": "aout2"
+            }
+          ]
+        }
+      },
+      "gen_nodes": {
+        "3d79a563-213c-4877-a010-e882fc810a79": {
+          "mode": "ftgenonce",
+          "tableNumber": 0,
+          "startTime": 0,
+          "tableSize": 16384,
+          "routineNumber": 10,
+          "routineName": "",
+          "normalize": true,
+          "harmonicAmplitudes": [
+            1
+          ],
+          "gen11HarmonicCount": 8,
+          "gen11LowestHarmonic": 1,
+          "gen11Multiplier": 1,
+          "valueList": [
+            1
+          ],
+          "segmentStartValue": 0,
+          "segments": [
+            {
+              "length": 16384,
+              "value": 1
+            }
+          ],
+          "gen17Pairs": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 127,
+              "y": 127
+            }
+          ],
+          "gen20WindowType": 1,
+          "gen20Max": 1,
+          "gen20Opt": 0.5,
+          "sampleAsset": null,
+          "samplePath": "",
+          "sampleSkipTime": 0,
+          "sampleFormat": 0,
+          "sampleChannel": 0,
+          "rawArgsText": ""
+        }
+      }
+    },
+    "engine_config": {
+      "sr": 44100,
+      "control_rate": 1378,
+      "ksmps": 32,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1
+    }
+  }
+}

@@ -4381,5 +4381,274 @@
         "spanish": "Impulso de sincronía de salida. Vale 1.0 durante una muestra cuando la fase cruza cero o cuando una entrada de sincronía distinta de cero reinicia la fase; en otros casos vale 0."
       }
     }
+  },
+  "envlpxr": {
+    "description": {
+      "english": "The envlpx opcode with a final release segment. envlpxr is the same as envlpx except that the final segment is entered only on sensing a MIDI note release. The note is then extended by the decay time.",
+      "german": "Der envlpx-Opcode mit einem endgültigen Release-Segment. envlpxr ist dasselbe wie envlpx, außer dass das letzte Segment nur eingegeben wird, wenn eine MIDI-Notenfreigabe erkannt wird. Die Note wird dann um die Abklingzeit verlängert.",
+      "french": "L'opcode envlpx avec un segment de version finale. envlpxr est identique à envlpx sauf que le segment final n'est saisi que lors de la détection d'un relâchement de note MIDI. La note est ensuite prolongée du temps de chute.",
+      "spanish": "El código de operación envlpx con un segmento de lanzamiento final. envlpxr es igual que envlpx excepto que el segmento final se ingresa solo al detectar una liberación de nota MIDI. Luego, la nota se prolonga según el tiempo de caída."
+    },
+    "inputs": {
+      "kamp": {
+        "english": "input amplitude signal.",
+        "german": "Eingangsamplitudensignal.",
+        "french": "signal d'amplitude d'entrée.",
+        "spanish": "señal de amplitud de entrada."
+      },
+      "irise": {
+        "english": "rise time in seconds. A zero or negative value signifies no rise modification.",
+        "german": "Anstiegszeit in Sekunden. Ein Null- oder negativer Wert bedeutet, dass keine Anstiegsänderung erfolgt.",
+        "french": "temps de montée en secondes. Une valeur nulle ou négative signifie aucune modification de la hausse.",
+        "spanish": "tiempo de subida en segundos. Un valor cero o negativo significa que no hay modificación del aumento."
+      },
+      "idec": {
+        "english": "decay time in seconds. Zero means no decay.",
+        "german": "Abklingzeit in Sekunden. Null bedeutet kein Verfall.",
+        "french": "temps de décroissance en secondes. Zéro signifie pas de dégradation.",
+        "spanish": "tiempo de decaimiento en segundos. Cero significa que no hay decadencia."
+      },
+      "ifn": {
+        "english": "function table number of stored rise shape with extended guard point.",
+        "german": "Funktionstabellennummer der gespeicherten Anstiegsform mit verlängertem Schutzpunkt.",
+        "french": "numéro de table de fonction de la forme de montée stockée avec point de garde étendu.",
+        "spanish": "tabla de funciones número de forma de subida almacenada con punto de protección extendido."
+      },
+      "iatss": {
+        "english": "attenuation factor determining the exponential change in value over time during the pseudo steady state period between the end of the rise and the beginning of the decay (at the note's release). A factor greater than 1 causes an exponential growth and a factor less than 1 creates an exponential decay. A factor of 1 will maintain a true steady state at the last rise value; 0 is illegal. The value will change by abs ( iatss ) per second.",
+        "german": "Dämpfungsfaktor, der die exponentielle Wertänderung über die Zeit während der Pseudo-Steady-State-Periode zwischen dem Ende des Anstiegs und dem Beginn des Abfalls (beim Loslassen der Note) bestimmt. Ein Faktor größer als 1 führt zu einem exponentiellen Wachstum und ein Faktor kleiner als 1 führt zu einem exponentiellen Abfall. Ein Faktor von 1 sorgt für einen echten stationären Zustand beim letzten Anstiegswert; 0 ist illegal. Der Wert ändert sich um abs (iatss) pro Sekunde.",
+        "french": "facteur d'atténuation déterminant la variation exponentielle de la valeur dans le temps pendant la période de pseudo-équilibre entre la fin de la montée et le début de la décroissance (au moment du relâchement de la note). Un facteur supérieur à 1 provoque une croissance exponentielle et un facteur inférieur à 1 crée une décroissance exponentielle. Un facteur de 1 maintiendra un véritable état stable à la dernière valeur de montée; 0 est illégal. La valeur changera en abs ( iatss ) par seconde.",
+        "spanish": "factor de atenuación que determina el cambio exponencial en el valor a lo largo del tiempo durante el período de estado pseudoestable entre el final del ascenso y el comienzo de la caída (al soltar la nota). Un factor mayor que 1 provoca un crecimiento exponencial y un factor menor que 1 crea una caída exponencial. Un factor de 1 mantendrá un verdadero estado estable en el último valor de aumento; 0 es ilegal. El valor cambiará en abs (iatss) por segundo."
+      },
+      "iatdec": {
+        "english": "the ratio of the value at the end of the decay period to the value at its beginning (when the note is released). It must be positive and is normally of the order of.01. A large or excessively small value is apt to produce a cutoff which is audible. A zero or negative value is illegal.",
+        "german": "das Verhältnis des Wertes am Ende der Abklingperiode zum Wert am Anfang (wenn die Note losgelassen wird). Er muss positiv sein und liegt normalerweise in der Größenordnung von 0,01. Ein großer oder zu kleiner Wert kann zu einem hörbaren Cutoff führen. Ein Null- oder negativer Wert ist unzulässig.",
+        "french": "le rapport entre la valeur à la fin de la période de décroissance et la valeur à son début (lorsque la note est relâchée). Il doit être positif et est normalement de l'ordre de 0,01. Une valeur élevée ou excessivement petite est susceptible de produire une coupure audible. Une valeur nulle ou négative est illégale.",
+        "spanish": "la relación entre el valor al final del período de caída y el valor al principio (cuando se suelta la nota). Debe ser positivo y normalmente es del orden de.01. Un valor grande o excesivamente pequeño puede producir un límite audible. Un valor cero o negativo es ilegal."
+      },
+      "ixmod": {
+        "english": "exponential curve modifier, influencing the steepness of the exponential trajectory during the steady state. Values less than zero will cause an accelerated growth or decay towards the target (e.g. subito piano ). Values greater than zero will cause a retarded growth or decay. The default value is zero (unmodified exponential).",
+        "german": "exponentieller Kurvenmodifikator, der die Steilheit der exponentiellen Trajektorie im stationären Zustand beeinflusst. Werte unter Null führen zu einem beschleunigten Wachstum oder Abfall in Richtung des Ziels (z. B. Subito Piano). Werte größer als Null führen zu einem verzögerten Wachstum oder Zerfall. Der Standardwert ist Null (unveränderter Exponentialwert).",
+        "french": "modificateur de courbe exponentielle, influençant la pente de la trajectoire exponentielle pendant l'état stable. Les valeurs inférieures à zéro entraîneront une croissance ou une décroissance accélérée vers la cible (par exemple subito piano). Des valeurs supérieures à zéro entraîneront un retard de croissance ou une décroissance. La valeur par défaut est zéro (exponentielle non modifiée).",
+        "spanish": "Modificador de curva exponencial, que influye en la inclinación de la trayectoria exponencial durante el estado estacionario. Los valores inferiores a cero provocarán un crecimiento acelerado o un decaimiento hacia el objetivo (por ejemplo, subito piano). Los valores superiores a cero provocarán un crecimiento retardado o una decadencia. El valor predeterminado es cero (exponencial sin modificar)."
+      },
+      "irind": {
+        "english": "independence flag. If left zero, the release time ( idec ) will influence the extended life of the current note following a note-off. If non-zero, the idec time is quite independent of the note extension (see below). The default value is 0.",
+        "german": "Unabhängigkeitsflagge. Wenn sie auf Null belassen wird, beeinflusst die Release-Zeit (idec) die verlängerte Lebensdauer der aktuellen Note nach einem Note-Off. Wenn sie ungleich Null ist, ist die IDEC-Zeit völlig unabhängig von der Notenerweiterung (siehe unten). Der Standardwert ist 0.",
+        "french": "drapeau de l'indépendance. S'il est laissé à zéro, le temps de relâchement ( idec ) influencera la durée de vie prolongée de la note actuelle suite à une coupure de note. S'il est différent de zéro, le temps idec est tout à fait indépendant de l'extension de la note (voir ci-dessous). La valeur par défaut est 0.",
+        "spanish": "bandera de la independencia. Si se deja cero, el tiempo de liberación (idec) influirá en la duración extendida de la nota actual después de una nota desactivada. Si es distinto de cero, el tiempo idec es bastante independiente de la extensión de la nota (ver más abajo). El valor predeterminado es 0."
+      }
+    },
+    "outputs": {
+      "kenv": {
+        "english": "Output variable `ares` from envlpxr.",
+        "german": "Ausgabevariable „ares“ von envlpxr.",
+        "french": "Variable de sortie `ares` d'envlpxr.",
+        "spanish": "Variable de salida `ares` de envlpxr."
+      }
+    }
+  },
+  "expon": {
+    "description": {
+      "english": "Trace an exponential curve between specified points.",
+      "german": "Verfolgen Sie eine Exponentialkurve zwischen angegebenen Punkten.",
+      "french": "Tracez une courbe exponentielle entre des points spécifiés.",
+      "spanish": "Traza una curva exponencial entre puntos específicos."
+    },
+    "inputs": {
+      "ia": {
+        "english": "starting value. Zero is illegal for exponentials.",
+        "german": "Startwert. Null ist für Exponentialfunktionen unzulässig.",
+        "french": "valeur de départ. Zéro est illégal pour les exponentielles.",
+        "spanish": "valor inicial. El cero es ilegal para las exponenciales."
+      },
+      "idur": {
+        "english": "duration in seconds of the segment. A zero or negative value will cause all initialization to be skipped.",
+        "german": "Dauer des Segments in Sekunden. Ein Null- oder negativer Wert führt dazu, dass alle Initialisierungen übersprungen werden.",
+        "french": "durée en secondes du segment. Une valeur nulle ou négative entraînera l’omission de toute initialisation.",
+        "spanish": "Duración en segundos del segmento. Un valor cero o negativo hará que se omita toda la inicialización."
+      },
+      "ib": {
+        "english": "value after idur seconds. For exponentials, must be non-zero and must agree in sign with ia.",
+        "german": "Wert nach idur Sekunden. Für Exponentialfunktionen muss es ungleich Null sein und im Vorzeichen mit ia übereinstimmen.",
+        "french": "valeur après idur secondes. Pour les exponentielles, doit être non nul et doit être en accord avec ia.",
+        "spanish": "valor después de idur segundos. Para exponenciales, debe ser distinto de cero y debe concordar en signo con ia."
+      }
+    },
+    "outputs": {
+      "kenv": {
+        "english": "Output variable `ares` from expon.",
+        "german": "Ausgabevariable „ares“ von expon.",
+        "french": "Variable de sortie `ares` de expon.",
+        "spanish": "Variable de salida `ares` de expon."
+      }
+    }
+  },
+  "expsegr": {
+    "description": {
+      "english": "Trace a series of exponential segments between specified points including a release segment.",
+      "german": "Verfolgen Sie eine Reihe exponentieller Segmente zwischen angegebenen Punkten, einschließlich eines Release-Segments.",
+      "french": "Tracez une série de segments exponentiels entre des points spécifiés, y compris un segment de libération.",
+      "spanish": "Trace una serie de segmentos exponenciales entre puntos específicos, incluido un segmento de liberación."
+    },
+    "inputs": {
+      "ia": {
+        "english": "starting value. Zero is illegal for exponentials.",
+        "german": "Startwert. Null ist für Exponentialfunktionen unzulässig.",
+        "french": "valeur de départ. Zéro est illégal pour les exponentielles.",
+        "spanish": "valor inicial. El cero es ilegal para las exponenciales."
+      },
+      "idur1": {
+        "english": "duration in seconds of first segment. A zero or negative value will cause all initialization to be skipped.",
+        "german": "Dauer in Sekunden des ersten Segments. Ein Null- oder negativer Wert führt dazu, dass alle Initialisierungen übersprungen werden.",
+        "french": "durée en secondes du premier segment. Une valeur nulle ou négative entraînera l’omission de toute initialisation.",
+        "spanish": "Duración en segundos del primer segmento. Un valor cero o negativo hará que se omita toda la inicialización."
+      },
+      "ib": {
+        "english": "value after dur1 seconds, etc. For exponentials, must be non-zero and must agree in sign with ia.",
+        "german": "Wert nach dur1 Sekunden usw. Bei Exponentialfunktionen muss dieser Wert ungleich Null sein und im Vorzeichen mit ia übereinstimmen.",
+        "french": "valeur après dur1 secondes, etc. Pour les exponentielles, doit être différent de zéro et doit être en accord avec ia.",
+        "spanish": "valor después de dur1 segundos, etc. Para exponenciales, debe ser distinto de cero y debe coincidir en signo con ia."
+      },
+      "irel": {
+        "english": "duration in seconds and final value of a note releasing segment.",
+        "german": "Dauer in Sekunden und Endwert eines Notenfreigabesegments.",
+        "french": "durée en secondes et valeur finale d'un segment de déclenchement de note.",
+        "spanish": "duración en segundos y valor final de un segmento de liberación de notas."
+      },
+      "iz": {
+        "english": "duration in seconds and final value of a note releasing segment.",
+        "german": "Dauer in Sekunden und Endwert eines Notenfreigabesegments.",
+        "french": "durée en secondes et valeur finale d'un segment de déclenchement de note.",
+        "spanish": "duración en segundos y valor final de un segmento de liberación de notas."
+      }
+    },
+    "outputs": {
+      "kenv": {
+        "english": "Output variable `ares` from expsegr.",
+        "german": "Ausgabevariable „ares“ von expsegr.",
+        "french": "Variable de sortie `ares` de expsegr.",
+        "spanish": "Variable de salida `ares` de expsegr."
+      }
+    }
+  },
+  "linenr": {
+    "description": {
+      "english": "The linen opcode extended with a final release segment. linenr -- same as linen except that the final segment is entered only on sensing a MIDI note release. The note is then extended by the decay time.",
+      "german": "Der Leinen-Opcode wurde um ein letztes Release-Segment erweitert. Linenr – das Gleiche wie Linen, außer dass das letzte Segment nur eingegeben wird, wenn eine MIDI-Notenfreigabe erkannt wird. Die Note wird dann um die Abklingzeit verlängert.",
+      "french": "L'opcode Linen étendu avec un segment de version finale. linger -- identique à linge sauf que le segment final n'est saisi que lors de la détection d'une libération de note MIDI. La note est ensuite prolongée du temps de chute.",
+      "spanish": "El código de operación de lino se amplió con un segmento de lanzamiento final. Linenr: igual que Linen, excepto que se ingresa al segmento final solo al detectar la liberación de una nota MIDI. Luego, la nota se prolonga según el tiempo de caída."
+    },
+    "inputs": {
+      "kamp": {
+        "english": "input amplitude signal.",
+        "german": "Eingangsamplitudensignal.",
+        "french": "signal d'amplitude d'entrée.",
+        "spanish": "señal de amplitud de entrada."
+      },
+      "irise": {
+        "english": "rise time in seconds. A zero or negative value signifies no rise modification.",
+        "german": "Anstiegszeit in Sekunden. Ein Null- oder negativer Wert bedeutet, dass keine Anstiegsänderung erfolgt.",
+        "french": "temps de montée en secondes. Une valeur nulle ou négative signifie aucune modification de la hausse.",
+        "spanish": "tiempo de subida en segundos. Un valor cero o negativo significa que no hay modificación del aumento."
+      },
+      "idec": {
+        "english": "decay time in seconds. Zero means no decay.",
+        "german": "Abklingzeit in Sekunden. Null bedeutet kein Verfall.",
+        "french": "temps de décroissance en secondes. Zéro signifie pas de dégradation.",
+        "spanish": "tiempo de decaimiento en segundos. Cero significa que no hay decadencia."
+      },
+      "iatdec": {
+        "english": "attenuation factor by which the closing steady state value is reduced exponentially over the decay period. This value must be positive and is normally of the order of.01. A large or excessively small value is apt to produce a cutoff which is audible. A zero or negative value is illegal.",
+        "german": "Dämpfungsfaktor, um den sich der Schließwert im stationären Zustand über die Abklingzeit exponentiell verringert. Dieser Wert muss positiv sein und liegt normalerweise in der Größenordnung von 0,01. Ein großer oder zu kleiner Wert kann zu einem hörbaren Cutoff führen. Ein Null- oder negativer Wert ist unzulässig.",
+        "french": "facteur d'atténuation par lequel la valeur de fermeture à l'état stable est réduite de façon exponentielle au cours de la période de décroissance. Cette valeur doit être positive et est normalement de l'ordre de 0,01. Une valeur élevée ou excessivement petite est susceptible de produire une coupure audible. Une valeur nulle ou négative est illégale.",
+        "spanish": "Factor de atenuación por el cual el valor de cierre del estado estacionario se reduce exponencialmente durante el período de caída. Este valor debe ser positivo y normalmente es del orden de.01. Un valor grande o excesivamente pequeño puede producir un límite audible. Un valor cero o negativo es ilegal."
+      }
+    },
+    "outputs": {
+      "kenv": {
+        "english": "Output variable `ares` from linenr.",
+        "german": "Ausgabevariable „ares“ von Linenr.",
+        "french": "Variable de sortie `ares` de Linenr.",
+        "spanish": "Variable de salida `ares` de Linenr."
+      }
+    }
+  },
+  "transegr": {
+    "description": {
+      "english": "Constructs a user-definable envelope with extended release segment. Constructs a user-definable envelope. It is the same as transeg, with an extended release segment.",
+      "german": "Konstruiert einen benutzerdefinierbaren Umschlag mit erweitertem Release-Segment. Konstruiert einen benutzerdefinierbaren Umschlag. Es ist dasselbe wie transeg, mit einem erweiterten Release-Segment.",
+      "french": "Construit une enveloppe définissable par l'utilisateur avec un segment de version étendue. Construit une enveloppe définissable par l'utilisateur. C'est la même chose que transeg, avec un segment de version étendue.",
+      "spanish": "Construye una envolvente definible por el usuario con un segmento de liberación extendido. Construye un sobre definible por el usuario. Es lo mismo que transeg, con un segmento de liberación extendido."
+    },
+    "inputs": {
+      "ia": {
+        "english": "starting value.",
+        "german": "Startwert.",
+        "french": "valeur de départ.",
+        "spanish": "valor inicial."
+      },
+      "idur1": {
+        "english": "Dur1 parameter at init-rate.",
+        "german": "Dur1-Parameter bei Init-Rate.",
+        "french": "Paramètre Dur1 au taux d'initialisation.",
+        "spanish": "Parámetro Dur1 a velocidad inicial."
+      },
+      "itype1": {
+        "english": "Type1 parameter at init-rate.",
+        "german": "Typ1-Parameter bei Init-Rate.",
+        "french": "Paramètre de type 1 au taux d'initialisation.",
+        "spanish": "Parámetro tipo 1 a velocidad inicial."
+      },
+      "ib": {
+        "english": "value after idur seconds.",
+        "german": "Wert nach idur Sekunden.",
+        "french": "valeur après idur secondes.",
+        "spanish": "valor después de idur segundos."
+      },
+      "idur2": {
+        "english": "duration in seconds of segment",
+        "german": "Dauer in Sekunden des Segments",
+        "french": "durée en secondes du segment",
+        "spanish": "duración en segundos del segmento"
+      },
+      "itype2": {
+        "english": "if 0, a straight line is produced. If non-zero, then transegr creates the following curve, for n steps:",
+        "german": "wenn 0, wird eine gerade Linie erzeugt. Wenn ungleich Null, erstellt transegr die folgende Kurve für n Schritte:",
+        "french": "si 0, une ligne droite est produite. S'il est différent de zéro, alors transegr crée la courbe suivante, pour n étapes:",
+        "spanish": "si 0, se produce una línea recta. Si es distinto de cero, entonces transegr crea la siguiente curva, para n pasos:"
+      },
+      "ic": {
+        "english": "value after idur seconds.",
+        "german": "Wert nach idur Sekunden.",
+        "french": "valeur après idur secondes.",
+        "spanish": "valor después de idur segundos."
+      }
+    },
+    "outputs": {
+      "kenv": {
+        "english": "Output variable `ares` from transegr.",
+        "german": "Ausgabevariable „ares“ von transegr.",
+        "french": "Variable de sortie `ares` de transegr.",
+        "spanish": "Variable de salida `ares` de transegr."
+      }
+    }
+  },
+  "xtratim": {
+    "description": {
+      "english": "Extend the duration of real-time generated events. Extend the duration of real-time generated events and handle their extra life (Usually for usage along with release instead of linenr, linsegr, etc).",
+      "german": "Verlängern Sie die Dauer von in Echtzeit generierten Ereignissen. Verlängern Sie die Dauer von in Echtzeit generierten Ereignissen und verwalten Sie deren zusätzliche Lebensdauer (normalerweise zur Verwendung zusammen mit Release anstelle von Linenr, Linsegr usw.).",
+      "french": "Prolongez la durée des événements générés en temps réel. Prolongez la durée des événements générés en temps réel et gérez leur durée de vie supplémentaire (généralement pour une utilisation avec la publication au lieu de Linenr, Linsegr, etc.).",
+      "spanish": "Amplíe la duración de los eventos generados en tiempo real. Amplíe la duración de los eventos generados en tiempo real y maneje su vida adicional (generalmente para uso junto con la liberación en lugar de Linenr, Linsegr, etc.)."
+    },
+    "inputs": {
+      "iextradur": {
+        "english": "additional duration of current instrument instance",
+        "german": "zusätzliche Dauer der aktuellen Instrumenteninstanz",
+        "french": "durée supplémentaire de l'instance d'instrument actuelle",
+        "spanish": "duración adicional de la instancia del instrumento actual"
+      }
+    },
+    "outputs": {}
   }
 }
