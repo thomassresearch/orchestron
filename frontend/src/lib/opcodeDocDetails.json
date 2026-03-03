@@ -4382,6 +4382,96 @@
       }
     }
   },
+  "linenr": {
+    "description": {
+      "english": "The linen opcode extended with a final release segment. linenr -- same as linen except that the final segment is entered only on sensing a MIDI note release. The note is then extended by the decay time.",
+      "german": "Der Leinen-Opcode wurde um ein letztes Release-Segment erweitert. Linenr – das Gleiche wie Linen, außer dass das letzte Segment nur eingegeben wird, wenn eine MIDI-Notenfreigabe erkannt wird. Die Note wird dann um die Abklingzeit verlängert.",
+      "french": "L'opcode Linen étendu avec un segment de version finale. linger -- identique à linge sauf que le segment final n'est saisi que lors de la détection d'une libération de note MIDI. La note est ensuite prolongée du temps de chute.",
+      "spanish": "El código de operación de lino se amplió con un segmento de lanzamiento final. Linenr: igual que Linen, excepto que se ingresa al segmento final solo al detectar la liberación de una nota MIDI. Luego, la nota se prolonga según el tiempo de caída."
+    },
+    "inputs": {
+      "kamp": {
+        "english": "input amplitude signal.",
+        "german": "Eingangsamplitudensignal.",
+        "french": "signal d'amplitude d'entrée.",
+        "spanish": "señal de amplitud de entrada."
+      },
+      "irise": {
+        "english": "rise time in seconds. A zero or negative value signifies no rise modification.",
+        "german": "Anstiegszeit in Sekunden. Ein Null- oder negativer Wert bedeutet, dass keine Anstiegsänderung erfolgt.",
+        "french": "temps de montée en secondes. Une valeur nulle ou négative signifie aucune modification de la hausse.",
+        "spanish": "tiempo de subida en segundos. Un valor cero o negativo significa que no hay modificación del aumento."
+      },
+      "idec": {
+        "english": "decay time in seconds. Zero means no decay.",
+        "german": "Abklingzeit in Sekunden. Null bedeutet kein Verfall.",
+        "french": "temps de décroissance en secondes. Zéro signifie pas de dégradation.",
+        "spanish": "tiempo de decaimiento en segundos. Cero significa que no hay decadencia."
+      },
+      "iatdec": {
+        "english": "attenuation factor by which the closing steady state value is reduced exponentially over the decay period. This value must be positive and is normally of the order of.01. A large or excessively small value is apt to produce a cutoff which is audible. A zero or negative value is illegal.",
+        "german": "Dämpfungsfaktor, um den sich der Schließwert im stationären Zustand über die Abklingzeit exponentiell verringert. Dieser Wert muss positiv sein und liegt normalerweise in der Größenordnung von 0,01. Ein großer oder zu kleiner Wert kann zu einem hörbaren Cutoff führen. Ein Null- oder negativer Wert ist unzulässig.",
+        "french": "facteur d'atténuation par lequel la valeur de fermeture à l'état stable est réduite de façon exponentielle au cours de la période de décroissance. Cette valeur doit être positive et est normalement de l'ordre de 0,01. Une valeur élevée ou excessivement petite est susceptible de produire une coupure audible. Une valeur nulle ou négative est illégale.",
+        "spanish": "Factor de atenuación por el cual el valor de cierre del estado estacionario se reduce exponencialmente durante el período de caída. Este valor debe ser positivo y normalmente es del orden de.01. Un valor grande o excesivamente pequeño puede producir un límite audible. Un valor cero o negativo es ilegal."
+      }
+    },
+    "outputs": {
+      "kenv": {
+        "english": "Output variable `ares` from linenr.",
+        "german": "Ausgabevariable „ares“ von Linenr.",
+        "french": "Variable de sortie `ares` de Linenr.",
+        "spanish": "Variable de salida `ares` de Linenr."
+      }
+    }
+  },
+  "expsegr": {
+    "description": {
+      "english": "Trace a series of exponential segments between specified points including a release segment.",
+      "german": "Verfolgen Sie eine Reihe exponentieller Segmente zwischen angegebenen Punkten, einschließlich eines Release-Segments.",
+      "french": "Tracez une série de segments exponentiels entre des points spécifiés, y compris un segment de libération.",
+      "spanish": "Trace una serie de segmentos exponenciales entre puntos específicos, incluido un segmento de liberación."
+    },
+    "inputs": {
+      "ia": {
+        "english": "starting value. Zero is illegal for exponentials.",
+        "german": "Startwert. Null ist für Exponentialfunktionen unzulässig.",
+        "french": "valeur de départ. Zéro est illégal pour les exponentielles.",
+        "spanish": "valor inicial. El cero es ilegal para las exponenciales."
+      },
+      "idur1": {
+        "english": "duration in seconds of first segment. A zero or negative value will cause all initialization to be skipped.",
+        "german": "Dauer in Sekunden des ersten Segments. Ein Null- oder negativer Wert führt dazu, dass alle Initialisierungen übersprungen werden.",
+        "french": "durée en secondes du premier segment. Une valeur nulle ou négative entraînera l’omission de toute initialisation.",
+        "spanish": "Duración en segundos del primer segmento. Un valor cero o negativo hará que se omita toda la inicialización."
+      },
+      "ib": {
+        "english": "value after dur1 seconds, etc. For exponentials, must be non-zero and must agree in sign with ia.",
+        "german": "Wert nach dur1 Sekunden usw. Bei Exponentialfunktionen muss dieser Wert ungleich Null sein und im Vorzeichen mit ia übereinstimmen.",
+        "french": "valeur après dur1 secondes, etc. Pour les exponentielles, doit être différent de zéro et doit être en accord avec ia.",
+        "spanish": "valor después de dur1 segundos, etc. Para exponenciales, debe ser distinto de cero y debe coincidir en signo con ia."
+      },
+      "irel": {
+        "english": "duration in seconds and final value of a note releasing segment.",
+        "german": "Dauer in Sekunden und Endwert eines Notenfreigabesegments.",
+        "french": "durée en secondes et valeur finale d'un segment de déclenchement de note.",
+        "spanish": "duración en segundos y valor final de un segmento de liberación de notas."
+      },
+      "iz": {
+        "english": "duration in seconds and final value of a note releasing segment.",
+        "german": "Dauer in Sekunden und Endwert eines Notenfreigabesegments.",
+        "french": "durée en secondes et valeur finale d'un segment de déclenchement de note.",
+        "spanish": "duración en segundos y valor final de un segmento de liberación de notas."
+      }
+    },
+    "outputs": {
+      "kenv": {
+        "english": "Output variable `ares` from expsegr.",
+        "german": "Ausgabevariable „ares“ von expsegr.",
+        "french": "Variable de sortie `ares` de expsegr.",
+        "spanish": "Variable de salida `ares` de expsegr."
+      }
+    }
+  },
   "envlpxr": {
     "description": {
       "english": "The envlpx opcode with a final release segment. envlpxr is the same as envlpx except that the final segment is entered only on sensing a MIDI note release. The note is then extended by the decay time.",
@@ -4484,95 +4574,22 @@
       }
     }
   },
-  "expsegr": {
+  "xtratim": {
     "description": {
-      "english": "Trace a series of exponential segments between specified points including a release segment.",
-      "german": "Verfolgen Sie eine Reihe exponentieller Segmente zwischen angegebenen Punkten, einschließlich eines Release-Segments.",
-      "french": "Tracez une série de segments exponentiels entre des points spécifiés, y compris un segment de libération.",
-      "spanish": "Trace una serie de segmentos exponenciales entre puntos específicos, incluido un segmento de liberación."
+      "english": "Extend the duration of real-time generated events. Extend the duration of real-time generated events and handle their extra life (Usually for usage along with release instead of linenr, linsegr, etc).",
+      "german": "Verlängern Sie die Dauer von in Echtzeit generierten Ereignissen. Verlängern Sie die Dauer von in Echtzeit generierten Ereignissen und verwalten Sie deren zusätzliche Lebensdauer (normalerweise zur Verwendung zusammen mit Release anstelle von Linenr, Linsegr usw.).",
+      "french": "Prolongez la durée des événements générés en temps réel. Prolongez la durée des événements générés en temps réel et gérez leur durée de vie supplémentaire (généralement pour une utilisation avec la publication au lieu de Linenr, Linsegr, etc.).",
+      "spanish": "Amplíe la duración de los eventos generados en tiempo real. Amplíe la duración de los eventos generados en tiempo real y maneje su vida adicional (generalmente para uso junto con la liberación en lugar de Linenr, Linsegr, etc.)."
     },
     "inputs": {
-      "ia": {
-        "english": "starting value. Zero is illegal for exponentials.",
-        "german": "Startwert. Null ist für Exponentialfunktionen unzulässig.",
-        "french": "valeur de départ. Zéro est illégal pour les exponentielles.",
-        "spanish": "valor inicial. El cero es ilegal para las exponenciales."
-      },
-      "idur1": {
-        "english": "duration in seconds of first segment. A zero or negative value will cause all initialization to be skipped.",
-        "german": "Dauer in Sekunden des ersten Segments. Ein Null- oder negativer Wert führt dazu, dass alle Initialisierungen übersprungen werden.",
-        "french": "durée en secondes du premier segment. Une valeur nulle ou négative entraînera l’omission de toute initialisation.",
-        "spanish": "Duración en segundos del primer segmento. Un valor cero o negativo hará que se omita toda la inicialización."
-      },
-      "ib": {
-        "english": "value after dur1 seconds, etc. For exponentials, must be non-zero and must agree in sign with ia.",
-        "german": "Wert nach dur1 Sekunden usw. Bei Exponentialfunktionen muss dieser Wert ungleich Null sein und im Vorzeichen mit ia übereinstimmen.",
-        "french": "valeur après dur1 secondes, etc. Pour les exponentielles, doit être différent de zéro et doit être en accord avec ia.",
-        "spanish": "valor después de dur1 segundos, etc. Para exponenciales, debe ser distinto de cero y debe coincidir en signo con ia."
-      },
-      "irel": {
-        "english": "duration in seconds and final value of a note releasing segment.",
-        "german": "Dauer in Sekunden und Endwert eines Notenfreigabesegments.",
-        "french": "durée en secondes et valeur finale d'un segment de déclenchement de note.",
-        "spanish": "duración en segundos y valor final de un segmento de liberación de notas."
-      },
-      "iz": {
-        "english": "duration in seconds and final value of a note releasing segment.",
-        "german": "Dauer in Sekunden und Endwert eines Notenfreigabesegments.",
-        "french": "durée en secondes et valeur finale d'un segment de déclenchement de note.",
-        "spanish": "duración en segundos y valor final de un segmento de liberación de notas."
+      "iextradur": {
+        "english": "additional duration of current instrument instance",
+        "german": "zusätzliche Dauer der aktuellen Instrumenteninstanz",
+        "french": "durée supplémentaire de l'instance d'instrument actuelle",
+        "spanish": "duración adicional de la instancia del instrumento actual"
       }
     },
-    "outputs": {
-      "kenv": {
-        "english": "Output variable `ares` from expsegr.",
-        "german": "Ausgabevariable „ares“ von expsegr.",
-        "french": "Variable de sortie `ares` de expsegr.",
-        "spanish": "Variable de salida `ares` de expsegr."
-      }
-    }
-  },
-  "linenr": {
-    "description": {
-      "english": "The linen opcode extended with a final release segment. linenr -- same as linen except that the final segment is entered only on sensing a MIDI note release. The note is then extended by the decay time.",
-      "german": "Der Leinen-Opcode wurde um ein letztes Release-Segment erweitert. Linenr – das Gleiche wie Linen, außer dass das letzte Segment nur eingegeben wird, wenn eine MIDI-Notenfreigabe erkannt wird. Die Note wird dann um die Abklingzeit verlängert.",
-      "french": "L'opcode Linen étendu avec un segment de version finale. linger -- identique à linge sauf que le segment final n'est saisi que lors de la détection d'une libération de note MIDI. La note est ensuite prolongée du temps de chute.",
-      "spanish": "El código de operación de lino se amplió con un segmento de lanzamiento final. Linenr: igual que Linen, excepto que se ingresa al segmento final solo al detectar la liberación de una nota MIDI. Luego, la nota se prolonga según el tiempo de caída."
-    },
-    "inputs": {
-      "kamp": {
-        "english": "input amplitude signal.",
-        "german": "Eingangsamplitudensignal.",
-        "french": "signal d'amplitude d'entrée.",
-        "spanish": "señal de amplitud de entrada."
-      },
-      "irise": {
-        "english": "rise time in seconds. A zero or negative value signifies no rise modification.",
-        "german": "Anstiegszeit in Sekunden. Ein Null- oder negativer Wert bedeutet, dass keine Anstiegsänderung erfolgt.",
-        "french": "temps de montée en secondes. Une valeur nulle ou négative signifie aucune modification de la hausse.",
-        "spanish": "tiempo de subida en segundos. Un valor cero o negativo significa que no hay modificación del aumento."
-      },
-      "idec": {
-        "english": "decay time in seconds. Zero means no decay.",
-        "german": "Abklingzeit in Sekunden. Null bedeutet kein Verfall.",
-        "french": "temps de décroissance en secondes. Zéro signifie pas de dégradation.",
-        "spanish": "tiempo de decaimiento en segundos. Cero significa que no hay decadencia."
-      },
-      "iatdec": {
-        "english": "attenuation factor by which the closing steady state value is reduced exponentially over the decay period. This value must be positive and is normally of the order of.01. A large or excessively small value is apt to produce a cutoff which is audible. A zero or negative value is illegal.",
-        "german": "Dämpfungsfaktor, um den sich der Schließwert im stationären Zustand über die Abklingzeit exponentiell verringert. Dieser Wert muss positiv sein und liegt normalerweise in der Größenordnung von 0,01. Ein großer oder zu kleiner Wert kann zu einem hörbaren Cutoff führen. Ein Null- oder negativer Wert ist unzulässig.",
-        "french": "facteur d'atténuation par lequel la valeur de fermeture à l'état stable est réduite de façon exponentielle au cours de la période de décroissance. Cette valeur doit être positive et est normalement de l'ordre de 0,01. Une valeur élevée ou excessivement petite est susceptible de produire une coupure audible. Une valeur nulle ou négative est illégale.",
-        "spanish": "Factor de atenuación por el cual el valor de cierre del estado estacionario se reduce exponencialmente durante el período de caída. Este valor debe ser positivo y normalmente es del orden de.01. Un valor grande o excesivamente pequeño puede producir un límite audible. Un valor cero o negativo es ilegal."
-      }
-    },
-    "outputs": {
-      "kenv": {
-        "english": "Output variable `ares` from linenr.",
-        "german": "Ausgabevariable „ares“ von Linenr.",
-        "french": "Variable de sortie `ares` de Linenr.",
-        "spanish": "Variable de salida `ares` de Linenr."
-      }
-    }
+    "outputs": {}
   },
   "transegr": {
     "description": {
@@ -4633,22 +4650,5 @@
         "spanish": "Variable de salida `ares` de transegr."
       }
     }
-  },
-  "xtratim": {
-    "description": {
-      "english": "Extend the duration of real-time generated events. Extend the duration of real-time generated events and handle their extra life (Usually for usage along with release instead of linenr, linsegr, etc).",
-      "german": "Verlängern Sie die Dauer von in Echtzeit generierten Ereignissen. Verlängern Sie die Dauer von in Echtzeit generierten Ereignissen und verwalten Sie deren zusätzliche Lebensdauer (normalerweise zur Verwendung zusammen mit Release anstelle von Linenr, Linsegr usw.).",
-      "french": "Prolongez la durée des événements générés en temps réel. Prolongez la durée des événements générés en temps réel et gérez leur durée de vie supplémentaire (généralement pour une utilisation avec la publication au lieu de Linenr, Linsegr, etc.).",
-      "spanish": "Amplíe la duración de los eventos generados en tiempo real. Amplíe la duración de los eventos generados en tiempo real y maneje su vida adicional (generalmente para uso junto con la liberación en lugar de Linenr, Linsegr, etc.)."
-    },
-    "inputs": {
-      "iextradur": {
-        "english": "additional duration of current instrument instance",
-        "german": "zusätzliche Dauer der aktuellen Instrumenteninstanz",
-        "french": "durée supplémentaire de l'instance d'instrument actuelle",
-        "spanish": "duración adicional de la instancia del instrumento actual"
-      }
-    },
-    "outputs": {}
   }
 }
