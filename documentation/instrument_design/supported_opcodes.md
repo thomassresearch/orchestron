@@ -2,7 +2,7 @@
 
 **Navigation:** [Up](instrument_design.md) | [Prev](instrument_import_export.md) | [Next](../performance/performance.md)
 
-This appendix is generated from `backend/app/services/opcode_service.py` and currently lists **103** user-selectable opcodes in the Instrument Design opcode catalog.
+This appendix is generated from `backend/app/services/opcode_service.py` and currently lists **137** user-selectable opcodes in the Instrument Design opcode catalog.
 
 ## How To Use This Appendix
 
@@ -17,26 +17,26 @@ This appendix is generated from `backend/app/services/opcode_service.py` and cur
 | --- | --- |
 | analysis | 2 |
 | constants | 3 |
-| delay | 10 |
-| distortion | 3 |
+| delay | 11 |
+| distortion | 4 |
 | dynamics | 2 |
-| envelope | 7 |
-| filter | 12 |
+| envelope | 12 |
+| filter | 16 |
 | fm | 7 |
 | math | 2 |
-| midi | 6 |
-| mixer | 2 |
-| modulation | 4 |
+| midi | 7 |
+| mixer | 3 |
+| modulation | 10 |
 | noise | 3 |
-| oscillator | 14 |
+| oscillator | 17 |
 | output | 1 |
-| physical_modeling | 5 |
-| reverb | 1 |
+| physical_modeling | 11 |
+| reverb | 2 |
 | routing | 4 |
 | soundfont | 3 |
 | spectral | 8 |
-| tables | 3 |
-| utility | 1 |
+| tables | 4 |
+| utility | 5 |
 
 ## Opcode Index
 
@@ -67,6 +67,7 @@ This appendix is generated from `backend/app/services/opcode_service.py` and cur
 | deltap | 1 (k) | 1 (a) | Read a delay tap using linear interpolation. |
 | deltap3 | 1 (k) | 1 (a) | Read a delay tap using cubic interpolation. |
 | flanger | 4 (a, k, k, i) | 1 (a) | Flanger effect with delay modulation and feedback. |
+| vcomb | 6 (a, k, k, i, i, i) | 1 (a) | Variable-time comb reverb with controllable loop time. |
 | vdelay3 | 4 (a, k, i, i) | 1 (a) | Variable delay line with cubic interpolation. |
 | vdelayxs | 6 (a, a, a, i, i, i) | 2 (a, a) | Stereo variable delay with high-quality sinc interpolation. |
 
@@ -76,6 +77,7 @@ This appendix is generated from `backend/app/services/opcode_service.py` and cur
 | --- | --- | --- | --- |
 | clip | 4 (a, i, i, i) | 1 (a) | Signal clipper with selectable transfer curves. |
 | distort1 | 6 (a, k, k, k, k, i) | 1 (a) | Waveshaping distortion with configurable transfer curve. |
+| fold | 2 (a, k) | 1 (a) | Artificial foldover effect for audio signals. |
 | powershape | 3 (a, k, i) | 1 (a) | Power-law waveshaper for controllable nonlinear distortion. |
 
 ### dynamics
@@ -90,12 +92,17 @@ This appendix is generated from `backend/app/services/opcode_service.py` and cur
 | Opcode | Inputs | Outputs | Short Description |
 | --- | --- | --- | --- |
 | adsr | 4 (i, i, i, i) | 1 (k) | Control-rate ADSR envelope. |
+| envlpxr | 8 (k, i, i, i, i, i, i, i) | 1 (k) | Control-rate envelope with optional release scaling controls. |
+| expon | 3 (i, i, i) | 1 (k) | Control-rate exponential segment between two points. |
 | expseg | 9 (i, i, i, i, i, i, i, i, i) | 1 (k) | Control-rate exponential breakpoint envelope generator. |
 | expsega | 9 (i, i, i, i, i, i, i, i, i) | 1 (a) | Audio-rate exponential breakpoint envelope generator. |
+| expsegr | 5 (i, i, i, i, i) | 1 (k) | Control-rate exponential envelope with release segment. |
+| linenr | 4 (k, i, i, i) | 1 (k) | Control-rate envelope with note-release stage. |
 | linseg | 7 (i, i, i, i, i, i, i) | 1 (k) | Control-rate linear breakpoint envelope generator. |
 | linsegr | 5 (i, i, i, i, i) | 1 (k) | Control-rate linear breakpoint envelope with release segment. |
 | madsr | 6 (i, i, i, i, i, i) | 1 (k) | MIDI release-sensitive ADSR envelope. |
 | mxadsr | 6 (i, i, i, i, i, i) | 1 (k) | Extended MIDI release-sensitive ADSR envelope. |
+| transegr | 7 (i, i, i, i, i, i, i) | 1 (k) | Control-rate transition envelope with release-triggered final segment. |
 
 ### filter
 
@@ -110,7 +117,11 @@ This appendix is generated from `backend/app/services/opcode_service.py` and cur
 | fofilter | 5 (a, k, k, k, i) | 1 (a) | Formant filter. |
 | moogladder | 3 (a, k, k) | 1 (a) | Moog ladder low-pass filter. |
 | moogladder2 | 3 (a, k, k) | 1 (a) | Nonlinear Moog-style ladder filter with audio-rate modulation support. |
+| moogvcf | 5 (a, k, k, i, i) | 1 (a) | Moog ladder voltage-controlled filter emulation. |
+| resonx | 6 (a, k, k, i, i, i) | 1 (a) | Multi-layer resonant band-pass filter. |
 | rezzy | 5 (a, k, k, i, i) | 1 (a) | Resonant low-pass or high-pass filter. |
+| skf | 5 (a, k, k, i, i) | 1 (a) | Sallen-Key low-pass or high-pass filter. |
+| statevar | 5 (a, k, k, i, i) | 4 (a, a, a, a) | State-variable filter with simultaneous HP/LP/BP/BR outputs. |
 | tbvcf | 6 (a, k, k, k, k, i) | 1 (a) | TB-303 style voltage-controlled filter model. |
 | vclpf | 4 (a, k, k, i) | 1 (a) | Virtual-analog low-pass filter. |
 
@@ -143,19 +154,27 @@ This appendix is generated from `backend/app/services/opcode_service.py` and cur
 | cpsmidi | - | 1 (i) | Read active MIDI note pitch as cycles-per-second. |
 | midi_note | 1 (i) | 2 (k, k) | Extract MIDI note frequency and velocity amplitude. |
 | midictrl | 3 (i, i, i) | 1 (k) | Read a MIDI controller value with optional scaling. |
+| notnum | - | 1 (i) | Read the MIDI note number for the current note event. |
 
 ### mixer
 
 | Opcode | Inputs | Outputs | Short Description |
 | --- | --- | --- | --- |
 | mix2 | 2 (a, a) | 1 (a) | Mix two audio signals. |
+| ntrpol | 3 (a, a, k) | 1 (a) | Linear crossfade between two audio signals. |
 | pan2 | 3 (a, k, i) | 2 (a, a) | Stereo panner. |
 
 ### modulation
 
 | Opcode | Inputs | Outputs | Short Description |
 | --- | --- | --- | --- |
+| jitter | 3 (k, k, k) | 1 (k) | Control-rate segmented random line generator. |
 | lfo | 3 (k, k, i) | 1 (k) | Low-frequency oscillator for control-rate modulation. |
+| portk | 3 (k, k, i) | 1 (k) | Control-rate portamento/slew limiter with optional init value. |
+| random | 2 (k, k) | 1 (k) | Control-rate random value generator between a minimum and maximum. |
+| randomh | 5 (k, k, k, i, i) | 1 (k) | Control-rate random sample-and-hold generator with update frequency control. |
+| randomi | 5 (k, k, k, i, i) | 1 (k) | Control-rate interpolated random generator with update frequency control. |
+| release | - | 1 (k) | Return 1 during note release phase and 0 otherwise. |
 | samphold | 4 (k, k, i, i) | 1 (k) | Control-rate sample-and-hold processor. |
 | vibr | 4 (k, k, i, i) | 1 (k) | Simple vibrato control oscillator with table lookup. |
 | vibrato | 9 (k, k, k, k, k, k, k, k, i) | 1 (k) | Randomized vibrato generator. |
@@ -180,12 +199,15 @@ This appendix is generated from `backend/app/services/opcode_service.py` and cur
 | grain2 | 10 (k, k, k, k, i, k, i, i, i, i) | 1 (a) | Granular oscillator with FM depth control and overlap management. |
 | grain3 | 11 (k, k, k, k, k, k, i, k, i, i, i) | 1 (a) | Granular oscillator with independent pitch and frequency modulation. |
 | granule | 22 (k, i, i, i, i, i, i, i, i, i, k, i, k, i, i, i, i, i, i, i, i, i) | 1 (a) | Multi-voice granular processor with independent gap and grain-size controls. |
+| moog | 9 (k, k, k, k, k, k, i, i, i) | 1 (a) | Mini-Moog style synthesizer model source. |
 | oscil3 | 4 (k, k, i, i) | 1 (a) | Cubic-interpolating oscillator with low distortion. |
 | oscili | 3 (k, k, i) | 1 (a) | Classic interpolating oscillator. |
 | poscil3 | 4 (k, k, i, i) | 1 (a) | High-precision cubic interpolating oscillator. |
 | syncphasor | 3 (k, a, i) | 2 (a, a) | Audio-rate normalized phase generator with sync trigger I/O. |
 | vco | 5 (k, k, i, k, i) | 1 (a) | Band-limited voltage-controlled oscillator. |
 | vco2 | 6 (k, k, i, k, k, i) | 1 (a) | Improved anti-aliased analog-style oscillator. |
+| voice | 8 (k, k, k, k, k, k, i, i) | 1 (a) | Formant-based vocal source synthesizer. |
+| vosim | 8 (k, k, k, k, k, k, i, i) | 1 (a) | Vocal formant synthesis using overlapping sinusoidal bursts. |
 
 ### output
 
@@ -200,14 +222,21 @@ This appendix is generated from `backend/app/services/opcode_service.py` and cur
 | dripwater | 8 (k, i, i, i, i, i, i, i) | 1 (a) | Stochastic dripping-water physical model source. |
 | marimba | 11 (k, k, i, i, i, k, k, i, i, i, i) | 1 (a) | Physical model of a marimba bar and resonator. |
 | pluck | 6 (k, k, i, i, i, i) | 1 (a) | Karplus-Strong plucked-string model. |
+| sekere | 5 (i, i, i, i, i) | 1 (a) | PhISEM sekere shaker model. |
+| sleighbells | 8 (k, i, i, i, i, i, i, i) | 1 (a) | PhISEM sleigh bells model. |
+| wgbow | 8 (k, k, k, k, k, k, i, i) | 1 (a) | Waveguide bowed-string model. |
+| wgbowedbar | 9 (k, k, k, k, k, i, i, i, i) | 1 (a) | Waveguide bowed-bar model. |
+| wgclar | 10 (k, k, k, i, i, k, k, k, i, i) | 1 (a) | Waveguide clarinet model. |
 | wgflute | 10 (k, k, k, i, i, k, k, k, i, i) | 1 (a) | Waveguide flute model. |
+| wgpluck2 | 5 (i, k, i, k, k) | 1 (a) | Waveguide plucked string model with pick and reflection controls. |
 | wguide2 | 4 (a, k, k, k) | 1 (a) | Two-point waveguide resonator. |
 
 ### reverb
 
 | Opcode | Inputs | Outputs | Short Description |
 | --- | --- | --- | --- |
-| reverb2 | 5 (a, k, k, i, i) | 1 (a) | Schroeder reverb processor. |
+| platerev | 9 (i, i, k, i, i, i, i, a, a) | 2 (a, a) | Physical-model plate reverb with stereo output taps. |
+| reverb2 | 4 (a, k, k, i) | 1 (a) | Schroeder reverb processor. |
 
 ### routing
 
@@ -223,7 +252,7 @@ This appendix is generated from `backend/app/services/opcode_service.py` and cur
 | Opcode | Inputs | Outputs | Short Description |
 | --- | --- | --- | --- |
 | sfinstr3 | 8 (i, i, k, k, i, i, i, i) | 2 (a, a) | Play a SoundFont instrument as stereo audio with cubic interpolation. |
-| sfload | 1 (S) | 1 (i) | Load a SoundFont2 file and return a file handle. |
+| sfload | - | 1 (i) | Load a SoundFont2 file and return a file handle. |
 | sfplay3 | 8 (i, i, k, k, i, i, i, i) | 2 (a, a) | Play a SoundFont preset as stereo audio with cubic interpolation. |
 
 ### spectral
@@ -231,13 +260,13 @@ This appendix is generated from `backend/app/services/opcode_service.py` and cur
 | Opcode | Inputs | Outputs | Short Description |
 | --- | --- | --- | --- |
 | pvsanal | 7 (a, i, i, i, i, i, i) | 1 (f) | Phase-vocoder analysis from an audio input to an fsig stream. |
-| pvsmorph | 4 (f, f, k, k) | 1 (f) | Morph between two fsig streams by amplitude and frequency interpolation. |
-| pvsmooth | 3 (f, k, k) | 1 (f) | Smooth fsig amplitude and frequency trajectories with lowpass filtering. |
-| pvsosc | 8 (k, k, k, i, i, i, i, i) | 1 (f) | Generate oscillator spectra directly as an fsig stream. |
 | pvshift | 6 (f, k, k, k, k, k) | 1 (f) | Shift fsig partial frequencies by a fixed amount in Hz. |
-| pvsynth | 2 (f, i) | 1 (a) | Resynthesize audio from an fsig stream via overlap-add. |
+| pvsmooth | 3 (f, k, k) | 1 (f) | Smooth fsig amplitude and frequency trajectories with lowpass filtering. |
+| pvsmorph | 4 (f, f, k, k) | 1 (f) | Morph between two fsig streams by amplitude and frequency interpolation. |
+| pvsosc | 8 (k, k, k, i, i, i, i, i) | 1 (f) | Generate oscillator spectra directly as an fsig stream. |
 | pvsvoc | 5 (f, f, k, k, k) | 1 (f) | Cross-synthesize fsig amplitudes and excitation frequencies. |
 | pvswarp | 7 (f, k, k, k, k, k, k) | 1 (f) | Warp and shift the spectral envelope of an fsig stream. |
+| pvsynth | 2 (f, i) | 1 (a) | Resynthesize audio from an fsig stream via overlap-add. |
 
 ### tables
 
@@ -246,11 +275,16 @@ This appendix is generated from `backend/app/services/opcode_service.py` and cur
 | GEN | - | 1 (i) | Routine-aware function table generator (meta-opcode) that renders ftgen/ftgenonce from a specialized editor. |
 | ftgen | 12 (i, i, i, i, i, i, i, i, i, i, i, i) | 1 (i) | Create a function table at init time using a GEN routine. |
 | ftgenonce | 12 (i, i, i, i, i, i, i, i, i, i, i, i) | 1 (i) | Generate a function table once and reuse it across instances. |
+| vco2init | 6 (i, i, i, i, i, i) | 1 (i) | Precompute band-limited wavetable sets for vco2 oscillators. |
 
 ### utility
 
 | Opcode | Inputs | Outputs | Short Description |
 | --- | --- | --- | --- |
+| downsamp | 2 (a, i) | 1 (k) | Convert an audio signal to control-rate by downsampling. |
 | k_to_a | 1 (k) | 1 (a) | Interpolate control signal to audio-rate. |
+| maxalloc | 1 (i) | - | Limit simultaneous instrument allocations for the compiled instrument. |
+| upsamp | 1 (k) | 1 (a) | Convert a control signal to audio-rate by repeating k-values. |
+| xtratim | 1 (i) | - | Extend current note duration by an additional init-time amount. |
 
 **Navigation:** [Up](instrument_design.md) | [Prev](instrument_import_export.md) | [Next](../performance/performance.md)
