@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   ChangeEvent,
   CSSProperties,
@@ -921,6 +921,36 @@ function blackDegreeStyle(color: HsvColor | null): CSSProperties | undefined {
   return { color: rgbToCss(degreeText) };
 }
 
+function numberArrayEqual(a: number[], b: number[]): boolean {
+  if (a === b) {
+    return true;
+  }
+  if (a.length !== b.length) {
+    return false;
+  }
+  for (let index = 0; index < a.length; index += 1) {
+    if (a[index] !== b[index]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function pianoRollHighlightTheoriesEqual(a: PianoRollHighlightTheory[], b: PianoRollHighlightTheory[]): boolean {
+  if (a === b) {
+    return true;
+  }
+  if (a.length !== b.length) {
+    return false;
+  }
+  for (let index = 0; index < a.length; index += 1) {
+    if (a[index].scaleRoot !== b[index].scaleRoot || a[index].mode !== b[index].mode) {
+      return false;
+    }
+  }
+  return true;
+}
+
 interface PianoRollKeyboardProps {
   ui: SequencerUiCopy;
   roll: PianoRollState;
@@ -930,7 +960,7 @@ interface PianoRollKeyboardProps {
   onNoteOff: (note: number, channel: number) => void;
 }
 
-function PianoRollKeyboard({
+const PianoRollKeyboard = memo(function PianoRollKeyboard({
   ui,
   roll,
   instrumentsRunning,
@@ -1319,6 +1349,17 @@ function PianoRollKeyboard({
       </div>
     </div>
   );
+}, arePianoRollKeyboardPropsEqual);
+
+function arePianoRollKeyboardPropsEqual(previous: PianoRollKeyboardProps, next: PianoRollKeyboardProps): boolean {
+  return (
+    previous.ui === next.ui &&
+    previous.roll === next.roll &&
+    previous.instrumentsRunning === next.instrumentsRunning &&
+    previous.onNoteOn === next.onNoteOn &&
+    previous.onNoteOff === next.onNoteOff &&
+    pianoRollHighlightTheoriesEqual(previous.highlightTheories, next.highlightTheories)
+  );
 }
 
 interface MidiControllerKnobProps {
@@ -1328,7 +1369,7 @@ interface MidiControllerKnobProps {
   onChange: (value: number) => void;
 }
 
-function MidiControllerKnob({ ariaLabel, value, disabled, onChange }: MidiControllerKnobProps) {
+const MidiControllerKnob = memo(function MidiControllerKnob({ ariaLabel, value, disabled, onChange }: MidiControllerKnobProps) {
   const pointerStateRef = useRef<{ pointerId: number; startY: number; startValue: number } | null>(null);
   const normalizedValue = clampMidiControllerValue(value);
   const angle = -135 + (normalizedValue / 127) * 270;
@@ -1422,6 +1463,10 @@ function MidiControllerKnob({ ariaLabel, value, disabled, onChange }: MidiContro
       </span>
     </button>
   );
+}, areMidiControllerKnobPropsEqual);
+
+function areMidiControllerKnobPropsEqual(previous: MidiControllerKnobProps, next: MidiControllerKnobProps): boolean {
+  return previous.ariaLabel === next.ariaLabel && previous.value === next.value && previous.disabled === next.disabled;
 }
 
 function clampControllerCurveUiPosition(value: number): number {
@@ -1455,7 +1500,7 @@ interface ControllerSequencerCurveEditorProps {
   onPointRemove: (keypointId: string) => void;
 }
 
-function ControllerSequencerCurveEditor({
+const ControllerSequencerCurveEditor = memo(function ControllerSequencerCurveEditor({
   ui,
   controllerSequencer,
   playbackTransport,
@@ -1846,6 +1891,24 @@ function ControllerSequencerCurveEditor({
       <div className="mt-2 text-[10px] text-slate-500">{ui.curveEditorHint}</div>
     </div>
   );
+}, areControllerSequencerCurveEditorPropsEqual);
+
+function areControllerSequencerCurveEditorPropsEqual(
+  previous: ControllerSequencerCurveEditorProps,
+  next: ControllerSequencerCurveEditorProps
+): boolean {
+  const previousPlayback = previous.playbackTransport;
+  const nextPlayback = next.playbackTransport;
+  const playbackEqual =
+    previousPlayback === nextPlayback ||
+    (previousPlayback !== null &&
+      nextPlayback !== null &&
+      previousPlayback.playhead === nextPlayback.playhead &&
+      previousPlayback.cycle === nextPlayback.cycle &&
+      previousPlayback.stepCount === nextPlayback.stepCount &&
+      previousPlayback.bpm === nextPlayback.bpm);
+
+  return previous.ui === next.ui && previous.controllerSequencer === next.controllerSequencer && playbackEqual;
 }
 
 interface SequencerPageProps {
@@ -2357,7 +2420,7 @@ type PadLoopContextMenuState = {
   container: PadLoopContainerRef;
 };
 
-function PadLoopPatternEditor({
+const PadLoopPatternEditor = memo(function PadLoopPatternEditor({
   ui,
   hostId,
   track,
@@ -3103,6 +3166,26 @@ function PadLoopPatternEditor({
         </div>
       )}
     </div>
+  );
+}, arePadLoopPatternEditorPropsEqual);
+
+function arePadLoopPatternEditorPropsEqual(
+  previous: PadLoopPatternEditorProps,
+  next: PadLoopPatternEditorProps
+): boolean {
+  return (
+    previous.ui === next.ui &&
+    previous.hostId === next.hostId &&
+    previous.track.id === next.track.id &&
+    previous.track.enabled === next.track.enabled &&
+    previous.track.padLoopEnabled === next.track.padLoopEnabled &&
+    previous.track.padLoopRepeat === next.track.padLoopRepeat &&
+    previous.track.padLoopPosition === next.track.padLoopPosition &&
+    previous.track.padLoopPattern === next.track.padLoopPattern &&
+    previous.defaultPadStepCount === next.defaultPadStepCount &&
+    previous.isPlaying === next.isPlaying &&
+    previous.linkedPadLoopStepPosition === next.linkedPadLoopStepPosition &&
+    numberArrayEqual(previous.padStepCounts, next.padStepCounts)
   );
 }
 

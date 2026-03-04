@@ -320,7 +320,21 @@ let persistTimer: ReturnType<typeof setTimeout> | null = null;
 let persistInFlight = false;
 let pendingPersistSnapshot: PersistedAppState | null = null;
 let lastPersistedSignature: string | null = null;
+let lastPersistWatchState: PersistWatchState | null = null;
 let bootstrapLoadInFlight: Promise<void> | null = null;
+
+type PersistWatchState = {
+  activePage: AppPage;
+  guiLanguage: GuiLanguage;
+  instrumentTabs: InstrumentTabState[];
+  activeInstrumentTabId: string;
+  sequencer: SequencerState;
+  sequencerInstruments: SequencerInstrumentBinding[];
+  currentPerformanceId: string | null;
+  performanceName: string;
+  performanceDescription: string;
+  activeMidiInput: string | null;
+};
 
 function clampInt(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, Math.round(value)));
@@ -1786,6 +1800,59 @@ function buildPersistedAppStateSnapshot(state: AppStore): PersistedAppState {
   };
 }
 
+function capturePersistWatchState(state: AppStore): PersistWatchState {
+  return {
+    activePage: state.activePage,
+    guiLanguage: state.guiLanguage,
+    instrumentTabs: state.instrumentTabs,
+    activeInstrumentTabId: state.activeInstrumentTabId,
+    sequencer: state.sequencer,
+    sequencerInstruments: state.sequencerInstruments,
+    currentPerformanceId: state.currentPerformanceId,
+    performanceName: state.performanceName,
+    performanceDescription: state.performanceDescription,
+    activeMidiInput: state.activeMidiInput
+  };
+}
+
+function hasPersistableStateChange(current: PersistWatchState, previous: PersistWatchState | null): boolean {
+  if (!previous) {
+    return true;
+  }
+  return (
+    current.activePage !== previous.activePage ||
+    current.guiLanguage !== previous.guiLanguage ||
+    current.instrumentTabs !== previous.instrumentTabs ||
+    current.activeInstrumentTabId !== previous.activeInstrumentTabId ||
+    current.sequencer !== previous.sequencer ||
+    current.sequencerInstruments !== previous.sequencerInstruments ||
+    current.currentPerformanceId !== previous.currentPerformanceId ||
+    current.performanceName !== previous.performanceName ||
+    current.performanceDescription !== previous.performanceDescription ||
+    current.activeMidiInput !== previous.activeMidiInput
+  );
+}
+
+function isSequencerRuntimeOnlyUpdate(current: PersistWatchState, previous: PersistWatchState | null): boolean {
+  if (!previous || !current.sequencer.isPlaying) {
+    return false;
+  }
+  if (
+    current.activePage !== previous.activePage ||
+    current.guiLanguage !== previous.guiLanguage ||
+    current.instrumentTabs !== previous.instrumentTabs ||
+    current.activeInstrumentTabId !== previous.activeInstrumentTabId ||
+    current.sequencerInstruments !== previous.sequencerInstruments ||
+    current.currentPerformanceId !== previous.currentPerformanceId ||
+    current.performanceName !== previous.performanceName ||
+    current.performanceDescription !== previous.performanceDescription ||
+    current.activeMidiInput !== previous.activeMidiInput
+  ) {
+    return false;
+  }
+  return current.sequencer !== previous.sequencer;
+}
+
 function defaultParams(opcode: OpcodeSpec): Record<string, string | number | boolean> {
   const params: Record<string, string | number | boolean> = {};
   for (const input of opcode.inputs) {
@@ -2582,6 +2649,18 @@ export const useAppStore = create<AppStore>((set, get) => {
             activeMidiInput
           };
           lastPersistedSignature = JSON.stringify(baselineSnapshot);
+          lastPersistWatchState = {
+            activePage: resolvedActivePage,
+            guiLanguage: resolvedGuiLanguage,
+            instrumentTabs,
+            activeInstrumentTabId,
+            sequencer,
+            sequencerInstruments,
+            currentPerformanceId,
+            performanceName,
+            performanceDescription,
+            activeMidiInput
+          };
 
           set({
             opcodes,
@@ -5707,11 +5786,18 @@ useAppStore.subscribe((state) => {
     return;
   }
 
-  const snapshot = buildPersistedAppStateSnapshot(state);
-  const signature = JSON.stringify(snapshot);
-  if (signature === lastPersistedSignature) {
+  const watchState = capturePersistWatchState(state);
+  if (!hasPersistableStateChange(watchState, lastPersistWatchState)) {
     return;
   }
+  if (isSequencerRuntimeOnlyUpdate(watchState, lastPersistWatchState)) {
+    // Runtime transport ticks should not trigger full persisted snapshot rebuilds.
+    // Sequencer edits made while running are still captured on the next non-runtime transition (e.g. stop).
+    return;
+  }
+
+  const snapshot = buildPersistedAppStateSnapshot(state);
+  lastPersistWatchState = watchState;
 
   schedulePersistedAppState(snapshot);
 });
