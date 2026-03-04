@@ -62,6 +62,7 @@ import type {
   SequencerScaleRoot,
   SequencerScaleType,
   SequencerState,
+  SequencerRuntimeState,
   SequencerTrackState,
   SessionEvent,
   SessionInstrumentAssignment,
@@ -101,6 +102,7 @@ interface AppStore {
   currentPatch: EditablePatch;
 
   sequencer: SequencerState;
+  sequencerRuntime: SequencerRuntimeState;
   sequencerInstruments: SequencerInstrumentBinding[];
   currentPerformanceId: string | null;
   performanceName: string;
@@ -1066,6 +1068,43 @@ function defaultSequencerState(): SequencerState {
     controllerSequencers: [],
     pianoRolls: [defaultPianoRoll(1, 2)],
     midiControllers: defaultMidiControllers()
+  };
+}
+
+function sequencerRuntimeStateFromSequencer(sequencer: SequencerState): SequencerRuntimeState {
+  const trackLocalStepById: Record<string, number | null> = {};
+  for (const track of sequencer.tracks) {
+    trackLocalStepById[track.id] =
+      typeof track.runtimeLocalStep === "number" && Number.isFinite(track.runtimeLocalStep)
+        ? Math.max(0, Math.round(track.runtimeLocalStep))
+        : null;
+  }
+
+  const drummerTrackLocalStepById: Record<string, number | null> = {};
+  for (const track of sequencer.drummerTracks) {
+    drummerTrackLocalStepById[track.id] =
+      typeof track.runtimeLocalStep === "number" && Number.isFinite(track.runtimeLocalStep)
+        ? Math.max(0, Math.round(track.runtimeLocalStep))
+        : null;
+  }
+
+  const controllerRuntimePadStartStepById: Record<string, number | null> = {};
+  for (const controllerSequencer of sequencer.controllerSequencers) {
+    controllerRuntimePadStartStepById[controllerSequencer.id] =
+      typeof controllerSequencer.runtimePadStartStep === "number" && Number.isFinite(controllerSequencer.runtimePadStartStep)
+        ? Math.max(0, Math.floor(controllerSequencer.runtimePadStartStep))
+        : null;
+  }
+
+  const stepCount = normalizeTransportStepCount(sequencer.stepCount);
+  return {
+    isPlaying: sequencer.isPlaying === true,
+    stepCount,
+    playhead: Math.max(0, Math.round(sequencer.playhead)) % stepCount,
+    cycle: Math.max(0, Math.round(sequencer.cycle)),
+    trackLocalStepById,
+    drummerTrackLocalStepById,
+    controllerRuntimePadStartStepById
   };
 }
 
@@ -2141,6 +2180,7 @@ function buildSequencerConfigSnapshot(
   sequencer: SequencerState,
   instruments: SequencerInstrumentBinding[]
 ): SequencerConfigSnapshot {
+  const transportStepCount = transportStepCountForPerformanceTracks(sequencer.tracks, sequencer.drummerTracks);
   return {
     version: 4,
     instruments: instruments
@@ -2152,7 +2192,7 @@ function buildSequencerConfigSnapshot(
       })),
     sequencer: {
       bpm: clampInt(sequencer.bpm, 30, 300),
-      stepCount: normalizeTransportStepCount(sequencer.stepCount),
+      stepCount: normalizeTransportStepCount(transportStepCount),
       tracks: sequencer.tracks.slice(0, 8).map((track, index) => ({
         id: track.id.length > 0 ? track.id : `voice-${index + 1}`,
         name: track.name.trim().length > 0 ? track.name : `Sequencer ${index + 1}`,
@@ -2403,6 +2443,8 @@ function sameAssignments(a: SessionInstrumentAssignment[], b: SessionInstrumentA
 
 const initialPatch = defaultEditablePatch();
 const initialTab = createInstrumentTab(initialPatch);
+const initialSequencerState = defaultSequencerState();
+const initialSequencerRuntimeState = sequencerRuntimeStateFromSequencer(initialSequencerState);
 
 export const useAppStore = create<AppStore>((set, get) => {
   const commitCurrentPatch = (patch: EditablePatch, extra?: Partial<AppStore>) => {
@@ -2432,7 +2474,8 @@ export const useAppStore = create<AppStore>((set, get) => {
     activeInstrumentTabId: initialTab.id,
     currentPatch: initialPatch,
 
-    sequencer: defaultSequencerState(),
+    sequencer: initialSequencerState,
+    sequencerRuntime: initialSequencerRuntimeState,
     sequencerInstruments: [],
     currentPerformanceId: null,
     performanceName: "Untitled Performance",
@@ -2550,6 +2593,7 @@ export const useAppStore = create<AppStore>((set, get) => {
           let instrumentTabs: InstrumentTabState[] = [createInstrumentTab(currentPatch)];
           let activeInstrumentTabId = instrumentTabs[0].id;
           let sequencer = defaultSequencerState();
+          let sequencerRuntime = sequencerRuntimeStateFromSequencer(sequencer);
           let sequencerInstruments = defaultSequencerInstruments(patches, currentPatch.id);
           let currentPerformanceId: string | null = null;
           let performanceName = "Untitled Performance";
@@ -2580,6 +2624,7 @@ export const useAppStore = create<AppStore>((set, get) => {
               activePage = normalizeAppPage(payload.activePage);
               guiLanguage = normalizeGuiLanguage(payload.guiLanguage);
               sequencer = normalizeSequencerState(payload.sequencer);
+              sequencerRuntime = sequencerRuntimeStateFromSequencer(sequencer);
 
               const availablePatchIds = new Set<string>(patches.map((patch) => patch.id));
               const fallbackPatchId = patches[0]?.id ?? null;
@@ -2674,6 +2719,7 @@ export const useAppStore = create<AppStore>((set, get) => {
             activeInstrumentTabId,
             currentPatch,
             sequencer,
+            sequencerRuntime,
             sequencerInstruments,
             currentPerformanceId,
             performanceName,
@@ -2748,6 +2794,7 @@ export const useAppStore = create<AppStore>((set, get) => {
         set({
           patches: hydrated.patches,
           sequencer: parsed.sequencer,
+          sequencerRuntime: sequencerRuntimeStateFromSequencer(parsed.sequencer),
           sequencerInstruments: parsed.instruments,
           currentPerformanceId: performance.id,
           performanceName: performance.name,
@@ -2788,8 +2835,10 @@ export const useAppStore = create<AppStore>((set, get) => {
     },
 
     newPerformanceWorkspace: async () => {
+      const nextSequencer = emptyPerformanceSequencerState();
       set({
-        sequencer: emptyPerformanceSequencerState(),
+        sequencer: nextSequencer,
+        sequencerRuntime: sequencerRuntimeStateFromSequencer(nextSequencer),
         sequencerInstruments: [],
         currentPerformanceId: null,
         performanceName: "new performance",
@@ -3041,6 +3090,7 @@ export const useAppStore = create<AppStore>((set, get) => {
 
         set({
           sequencer: parsed.sequencer,
+          sequencerRuntime: sequencerRuntimeStateFromSequencer(parsed.sequencer),
           sequencerInstruments: parsed.instruments,
           error: null
         });
@@ -3132,12 +3182,13 @@ export const useAppStore = create<AppStore>((set, get) => {
 
     setSequencerTrackEnabled: (trackId, enabled, queueOnCycle) => {
       const sequencer = get().sequencer;
-      const shouldQueue = queueOnCycle ?? sequencer.isPlaying;
+      const isPlaying = get().sequencerRuntime.isPlaying;
+      const shouldQueue = queueOnCycle ?? isPlaying;
       const nextTracks = sequencer.tracks.map((track) => {
         if (track.id !== trackId) {
           return track;
         }
-        if (shouldQueue && sequencer.isPlaying) {
+        if (shouldQueue && isPlaying) {
           if (track.enabled === enabled) {
             return { ...track, queuedEnabled: null };
           }
@@ -3756,6 +3807,7 @@ export const useAppStore = create<AppStore>((set, get) => {
 
     setSequencerTrackActivePad: (trackId, padIndex) => {
       const sequencer = get().sequencer;
+      const isPlaying = get().sequencerRuntime.isPlaying;
       const normalizedPad = normalizePadIndex(padIndex);
 
       set({
@@ -3772,7 +3824,7 @@ export const useAppStore = create<AppStore>((set, get) => {
                     ...track,
                     stepCount: normalizeSequencerTrackStepCount(selectedPad.stepCount),
                     activePad: normalizedPad,
-                    queuedPad: sequencer.isPlaying ? track.queuedPad : null,
+                    queuedPad: isPlaying ? track.queuedPad : null,
                     scaleRoot: selectedPad.scaleRoot,
                     scaleType: selectedPad.scaleType,
                     mode: selectedPad.mode,
@@ -3963,12 +4015,13 @@ export const useAppStore = create<AppStore>((set, get) => {
 
     setDrummerSequencerTrackEnabled: (trackId, enabled, queueOnCycle) => {
       const sequencer = get().sequencer;
-      const shouldQueue = queueOnCycle ?? sequencer.isPlaying;
+      const isPlaying = get().sequencerRuntime.isPlaying;
+      const shouldQueue = queueOnCycle ?? isPlaying;
       const nextDrummerTracks = sequencer.drummerTracks.map((track) => {
         if (track.id !== trackId) {
           return track;
         }
-        if (shouldQueue && sequencer.isPlaying) {
+        if (shouldQueue && isPlaying) {
           if (track.enabled === enabled) {
             return { ...track, queuedEnabled: null };
           }
@@ -4262,6 +4315,7 @@ export const useAppStore = create<AppStore>((set, get) => {
 
     setDrummerSequencerTrackActivePad: (trackId, padIndex) => {
       const sequencer = get().sequencer;
+      const isPlaying = get().sequencerRuntime.isPlaying;
       const normalizedPad = normalizePadIndex(padIndex);
       set({
         sequencer: {
@@ -4277,7 +4331,7 @@ export const useAppStore = create<AppStore>((set, get) => {
                     ...track,
                     stepCount: normalizeDrummerSequencerStepCount(selectedPad.stepCount),
                     activePad: normalizedPad,
-                    queuedPad: sequencer.isPlaying ? track.queuedPad : null
+                    queuedPad: isPlaying ? track.queuedPad : null
                   };
                 })()
               : track
@@ -4662,6 +4716,13 @@ export const useAppStore = create<AppStore>((set, get) => {
 
     setControllerSequencerEnabled: (controllerSequencerId, enabled) => {
       const sequencer = get().sequencer;
+      const runtimeState = get().sequencerRuntime;
+      const controllerRuntime = runtimeState.controllerRuntimePadStartStepById;
+      const nextEnabled = enabled === true;
+      const currentController =
+        sequencer.controllerSequencers.find((controllerSequencer) => controllerSequencer.id === controllerSequencerId) ??
+        null;
+      const runtimeResetRequired = currentController ? nextEnabled !== currentController.enabled : false;
       set({
         sequencer: {
           ...sequencer,
@@ -4669,19 +4730,22 @@ export const useAppStore = create<AppStore>((set, get) => {
             if (controllerSequencer.id !== controllerSequencerId) {
               return controllerSequencer;
             }
-            const wasEnabled = controllerSequencer.enabled;
-            const nextEnabled = enabled === true;
-            const runtimeResetRequired = nextEnabled !== wasEnabled;
             return {
               ...controllerSequencer,
               enabled: nextEnabled,
               queuedPad: !nextEnabled ? null : runtimeResetRequired ? null : controllerSequencer.queuedPad,
               padLoopPosition:
-                !nextEnabled || runtimeResetRequired ? null : controllerSequencer.padLoopPosition,
-              runtimePadStartStep:
-                !nextEnabled || runtimeResetRequired ? null : controllerSequencer.runtimePadStartStep
+                !nextEnabled || runtimeResetRequired ? null : controllerSequencer.padLoopPosition
             };
           })
+        },
+        sequencerRuntime: {
+          ...runtimeState,
+          controllerRuntimePadStartStepById: {
+            ...controllerRuntime,
+            [controllerSequencerId]:
+              !nextEnabled || runtimeResetRequired ? null : (controllerRuntime[controllerSequencerId] ?? null)
+          }
         }
       });
     },
@@ -4703,6 +4767,7 @@ export const useAppStore = create<AppStore>((set, get) => {
 
     setControllerSequencerActivePad: (controllerSequencerId, padIndex) => {
       const sequencer = get().sequencer;
+      const isPlaying = get().sequencerRuntime.isPlaying;
       const normalizedPad = normalizePadIndex(padIndex);
       set({
         sequencer: {
@@ -4718,7 +4783,7 @@ export const useAppStore = create<AppStore>((set, get) => {
             return {
               ...controllerSequencer,
               activePad: normalizedPad,
-              queuedPad: sequencer.isPlaying ? controllerSequencer.queuedPad : null,
+              queuedPad: isPlaying ? controllerSequencer.queuedPad : null,
               stepCount: normalizeControllerSequencerStepCount(selectedPad.stepCount),
               keypoints: normalizeControllerCurveKeypoints(selectedPad.keypoints)
             };
@@ -4811,6 +4876,7 @@ export const useAppStore = create<AppStore>((set, get) => {
 
     setControllerSequencerPadLoopEnabled: (controllerSequencerId, enabled) => {
       const sequencer = get().sequencer;
+      const isPlaying = get().sequencerRuntime.isPlaying;
       const nextEnabled = enabled === true;
       set({
         sequencer: {
@@ -4821,7 +4887,7 @@ export const useAppStore = create<AppStore>((set, get) => {
                   ...controllerSequencer,
                   padLoopEnabled: nextEnabled,
                   padLoopPosition:
-                    nextEnabled && sequencer.isPlaying ? controllerSequencer.padLoopPosition : null
+                    nextEnabled && isPlaying ? controllerSequencer.padLoopPosition : null
                 }
               : controllerSequencer
           )
@@ -5126,69 +5192,100 @@ export const useAppStore = create<AppStore>((set, get) => {
 
     syncControllerSequencerRuntime: (updates) => {
       const sequencer = get().sequencer;
+      const sequencerRuntime = get().sequencerRuntime;
       const byId = new Map(updates.map((update) => [update.controllerSequencerId, update]));
       if (byId.size === 0) {
         return;
       }
-      set({
-        sequencer: {
-          ...sequencer,
-          controllerSequencers: sequencer.controllerSequencers.map((controllerSequencer) => {
-            const update = byId.get(controllerSequencer.id);
-            if (!update) {
-              return controllerSequencer;
-            }
-
-            const nextActivePad =
-              update.activePad === undefined ? controllerSequencer.activePad : normalizePadIndex(update.activePad);
-            const nextQueuedPad =
-              update.queuedPad === undefined
-                ? controllerSequencer.queuedPad
-                : update.queuedPad === null
-                  ? null
-                  : normalizePadIndex(update.queuedPad);
-            const nextPadLoopPosition =
-              update.padLoopPosition === undefined
-                ? controllerSequencer.padLoopPosition
-                : update.padLoopPosition === null
-                  ? null
-                  : Math.max(0, Math.round(update.padLoopPosition));
-            const nextRuntimePadStartStep =
-              update.runtimePadStartStep === undefined
-                ? controllerSequencer.runtimePadStartStep
-                : update.runtimePadStartStep;
-            const nextEnabled = update.enabled === undefined ? controllerSequencer.enabled : update.enabled === true;
-            const activePadChanged = nextActivePad !== controllerSequencer.activePad;
-            const selectedPad =
-              controllerSequencer.pads[nextActivePad] ??
-              controllerSequencer.pads[0] ??
-              fallbackControllerSequencerPadStateForSequencer(controllerSequencer);
-            const nextStepCount = normalizeControllerSequencerStepCount(selectedPad.stepCount);
-            const nextKeypoints = normalizeControllerCurveKeypoints(selectedPad.keypoints);
-
-            if (
-              !activePadChanged &&
-              nextQueuedPad === controllerSequencer.queuedPad &&
-              nextPadLoopPosition === controllerSequencer.padLoopPosition &&
-              nextRuntimePadStartStep === controllerSequencer.runtimePadStartStep &&
-              nextEnabled === controllerSequencer.enabled &&
-              nextStepCount === controllerSequencer.stepCount
-            ) {
-              return controllerSequencer;
-            }
-
-            return {
-              ...controllerSequencer,
-              activePad: nextActivePad,
-              queuedPad: nextEnabled ? nextQueuedPad : null,
-              padLoopPosition: nextEnabled ? nextPadLoopPosition : null,
-              runtimePadStartStep: nextEnabled ? nextRuntimePadStartStep : null,
-              enabled: nextEnabled,
-              stepCount: activePadChanged ? nextStepCount : controllerSequencer.stepCount,
-              keypoints: activePadChanged ? nextKeypoints : controllerSequencer.keypoints
-            };
-          })
+      const nextControllerRuntimePadStartStepById = { ...sequencerRuntime.controllerRuntimePadStartStepById };
+      let runtimeChanged = false;
+      let controllerSequencersChanged = false;
+      const nextControllerSequencers = sequencer.controllerSequencers.map((controllerSequencer) => {
+        const update = byId.get(controllerSequencer.id);
+        if (!update) {
+          return controllerSequencer;
         }
+
+        const nextActivePad =
+          update.activePad === undefined ? controllerSequencer.activePad : normalizePadIndex(update.activePad);
+        const nextQueuedPad =
+          update.queuedPad === undefined
+            ? controllerSequencer.queuedPad
+            : update.queuedPad === null
+              ? null
+              : normalizePadIndex(update.queuedPad);
+        const nextPadLoopPosition =
+          update.padLoopPosition === undefined
+            ? controllerSequencer.padLoopPosition
+            : update.padLoopPosition === null
+              ? null
+              : Math.max(0, Math.round(update.padLoopPosition));
+        const nextEnabled = update.enabled === undefined ? controllerSequencer.enabled : update.enabled === true;
+        const activePadChanged = nextActivePad !== controllerSequencer.activePad;
+        const selectedPad =
+          controllerSequencer.pads[nextActivePad] ??
+          controllerSequencer.pads[0] ??
+          fallbackControllerSequencerPadStateForSequencer(controllerSequencer);
+        const nextStepCount = normalizeControllerSequencerStepCount(selectedPad.stepCount);
+        const nextKeypoints = normalizeControllerCurveKeypoints(selectedPad.keypoints);
+
+        const runtimeCandidate =
+          update.runtimePadStartStep === undefined
+            ? sequencerRuntime.controllerRuntimePadStartStepById[controllerSequencer.id] ?? null
+            : update.runtimePadStartStep;
+        const normalizedRuntimePadStartStep =
+          typeof runtimeCandidate === "number" && Number.isFinite(runtimeCandidate)
+            ? Math.max(0, Math.floor(runtimeCandidate))
+            : null;
+        const nextRuntimePadStartStep = nextEnabled ? normalizedRuntimePadStartStep : null;
+        if ((nextControllerRuntimePadStartStepById[controllerSequencer.id] ?? null) !== nextRuntimePadStartStep) {
+          nextControllerRuntimePadStartStepById[controllerSequencer.id] = nextRuntimePadStartStep;
+          runtimeChanged = true;
+        }
+
+        if (
+          !activePadChanged &&
+          nextQueuedPad === controllerSequencer.queuedPad &&
+          nextPadLoopPosition === controllerSequencer.padLoopPosition &&
+          nextEnabled === controllerSequencer.enabled &&
+          nextStepCount === controllerSequencer.stepCount
+        ) {
+          return controllerSequencer;
+        }
+
+        controllerSequencersChanged = true;
+        return {
+          ...controllerSequencer,
+          activePad: nextActivePad,
+          queuedPad: nextEnabled ? nextQueuedPad : null,
+          padLoopPosition: nextEnabled ? nextPadLoopPosition : null,
+          enabled: nextEnabled,
+          stepCount: activePadChanged ? nextStepCount : controllerSequencer.stepCount,
+          keypoints: activePadChanged ? nextKeypoints : controllerSequencer.keypoints
+        };
+      });
+
+      if (!controllerSequencersChanged && !runtimeChanged) {
+        return;
+      }
+
+      set({
+        ...(controllerSequencersChanged
+          ? {
+              sequencer: {
+                ...sequencer,
+                controllerSequencers: nextControllerSequencers
+              }
+            }
+          : {}),
+        ...(runtimeChanged
+          ? {
+              sequencerRuntime: {
+                ...sequencerRuntime,
+                controllerRuntimePadStartStepById: nextControllerRuntimePadStartStepById
+              }
+            }
+          : {})
       });
     },
 
@@ -5203,41 +5300,62 @@ export const useAppStore = create<AppStore>((set, get) => {
 
     setSequencerPlaying: (isPlaying) => {
       const sequencer = get().sequencer;
+      const sequencerRuntime = get().sequencerRuntime;
+      const nextTrackLocalStepById: Record<string, number | null> = {};
+      for (const track of sequencer.tracks) {
+        nextTrackLocalStepById[track.id] = isPlaying ? (sequencerRuntime.trackLocalStepById[track.id] ?? null) : null;
+      }
+      const nextDrummerTrackLocalStepById: Record<string, number | null> = {};
+      for (const track of sequencer.drummerTracks) {
+        nextDrummerTrackLocalStepById[track.id] = isPlaying
+          ? (sequencerRuntime.drummerTrackLocalStepById[track.id] ?? null)
+          : null;
+      }
+      const nextControllerRuntimePadStartStepById: Record<string, number | null> = {};
+      for (const controllerSequencer of sequencer.controllerSequencers) {
+        nextControllerRuntimePadStartStepById[controllerSequencer.id] = isPlaying
+          ? (sequencerRuntime.controllerRuntimePadStartStepById[controllerSequencer.id] ?? null)
+          : null;
+      }
       set({
         sequencer: {
           ...sequencer,
-          isPlaying,
+          isPlaying: isPlaying === true,
           tracks: sequencer.tracks.map((track) => ({
             ...track,
             queuedPad: isPlaying ? track.queuedPad : null,
             padLoopPosition: isPlaying ? track.padLoopPosition : null,
-            runtimeLocalStep: isPlaying ? track.runtimeLocalStep : null,
             queuedEnabled: isPlaying ? track.queuedEnabled : null
           })),
           drummerTracks: sequencer.drummerTracks.map((track) => ({
             ...track,
             queuedPad: isPlaying ? track.queuedPad : null,
             padLoopPosition: isPlaying ? track.padLoopPosition : null,
-            runtimeLocalStep: isPlaying ? track.runtimeLocalStep : null,
             queuedEnabled: isPlaying ? track.queuedEnabled : null
           })),
           controllerSequencers: sequencer.controllerSequencers.map((controllerSequencer) => ({
             ...controllerSequencer,
             queuedPad: isPlaying ? controllerSequencer.queuedPad : null,
-            padLoopPosition: isPlaying ? controllerSequencer.padLoopPosition : null,
-            runtimePadStartStep: isPlaying ? controllerSequencer.runtimePadStartStep : null
+            padLoopPosition: isPlaying ? controllerSequencer.padLoopPosition : null
           }))
+        },
+        sequencerRuntime: {
+          ...sequencerRuntime,
+          isPlaying: isPlaying === true,
+          trackLocalStepById: nextTrackLocalStepById,
+          drummerTrackLocalStepById: nextDrummerTrackLocalStepById,
+          controllerRuntimePadStartStepById: nextControllerRuntimePadStartStepById
         }
       });
     },
 
     setSequencerPlayhead: (playhead) => {
-      const sequencer = get().sequencer;
-      const boundedStepCount = normalizeTransportStepCount(sequencer.stepCount);
+      const sequencerRuntime = get().sequencerRuntime;
+      const boundedStepCount = normalizeTransportStepCount(sequencerRuntime.stepCount);
       const normalizedPlayhead = ((Math.round(playhead) % boundedStepCount) + boundedStepCount) % boundedStepCount;
       set({
-        sequencer: {
-          ...sequencer,
+        sequencerRuntime: {
+          ...sequencerRuntime,
           playhead: normalizedPlayhead
         }
       });
@@ -5245,194 +5363,249 @@ export const useAppStore = create<AppStore>((set, get) => {
 
     syncSequencerRuntime: ({ isPlaying, transportStepCount, playhead, cycle, tracks, drummerTracks }) => {
       const sequencer = get().sequencer;
-      const boundedStepCount = normalizeTransportStepCount(transportStepCount ?? sequencer.stepCount);
+      const sequencerRuntime = get().sequencerRuntime;
+      const nextIsPlaying = isPlaying === true;
+      const boundedStepCount = normalizeTransportStepCount(transportStepCount ?? sequencerRuntime.stepCount);
       const normalizedPlayhead =
         playhead === undefined
-          ? sequencer.playhead
+          ? sequencerRuntime.playhead
           : ((Math.round(playhead) % boundedStepCount) + boundedStepCount) % boundedStepCount;
       const trackPayload = new Map((tracks ?? []).map((track) => [track.trackId, track]));
       const drummerTrackPayload = new Map((drummerTracks ?? []).map((track) => [track.trackId, track]));
+      let sequencerChanged = sequencer.isPlaying !== nextIsPlaying;
+      const nextTracks = sequencer.tracks.map((track) => {
+        const payload = trackPayload.get(track.id);
+        if (!payload) {
+          if (!nextIsPlaying) {
+            if (track.queuedPad === null && track.padLoopPosition === null && track.queuedEnabled === null) {
+              return track;
+            }
+            sequencerChanged = true;
+            return {
+              ...track,
+              queuedPad: null,
+              padLoopPosition: null,
+              queuedEnabled: null
+            };
+          }
+          return track;
+        }
+
+        const nextActivePad =
+          payload.activePad === undefined ? track.activePad : normalizePadIndex(payload.activePad);
+        const currentSelectedPad = track.pads[nextActivePad] ?? track.pads[0];
+        const nextStepCount = normalizeSequencerTrackStepCount(currentSelectedPad?.stepCount ?? track.stepCount);
+        const nextQueuedPad =
+          payload.queuedPad === undefined
+            ? track.queuedPad
+            : payload.queuedPad === null
+              ? null
+              : normalizePadIndex(payload.queuedPad);
+        const nextPadLoopPosition =
+          payload.padLoopPosition === undefined
+            ? track.padLoopPosition
+            : payload.padLoopPosition === null
+              ? null
+              : Math.max(0, Math.round(payload.padLoopPosition));
+        const nextEnabled = payload.enabled === undefined ? track.enabled : payload.enabled;
+        const nextQueuedEnabled =
+          payload.queuedEnabled === undefined
+            ? track.queuedEnabled
+            : payload.queuedEnabled === null
+              ? null
+              : payload.queuedEnabled;
+        const selectedPad = track.pads[nextActivePad] ?? track.pads[0];
+        const nextScaleRoot = selectedPad?.scaleRoot ?? track.scaleRoot;
+        const nextScaleType = selectedPad?.scaleType ?? track.scaleType;
+        const nextMode = selectedPad?.mode ?? track.mode;
+
+        if (
+          nextActivePad === track.activePad &&
+          nextQueuedPad === track.queuedPad &&
+          nextPadLoopPosition === track.padLoopPosition &&
+          nextStepCount === track.stepCount &&
+          nextEnabled === track.enabled &&
+          nextQueuedEnabled === track.queuedEnabled &&
+          nextScaleRoot === track.scaleRoot &&
+          nextScaleType === track.scaleType &&
+          nextMode === track.mode
+        ) {
+          return track;
+        }
+
+        sequencerChanged = true;
+        return {
+          ...track,
+          activePad: nextActivePad,
+          queuedPad: nextQueuedPad,
+          padLoopPosition: nextPadLoopPosition,
+          stepCount: nextStepCount,
+          enabled: nextEnabled,
+          queuedEnabled: nextQueuedEnabled,
+          scaleRoot: nextScaleRoot,
+          scaleType: nextScaleType,
+          mode: nextMode,
+          steps:
+            nextActivePad === track.activePad
+              ? track.steps
+              : cloneSequencerSteps(selectedPad?.steps ?? track.steps)
+        };
+      });
+      const nextDrummerTracks = sequencer.drummerTracks.map((track) => {
+        const payload = drummerTrackPayload.get(track.id) as
+          | {
+              stepCount?: DrummerSequencerStepCount;
+              localStep?: number;
+              activePad?: number;
+              queuedPad?: number | null;
+              padLoopPosition?: number | null;
+              enabled?: boolean;
+              queuedEnabled?: boolean | null;
+            }
+          | undefined;
+        if (!payload) {
+          if (!nextIsPlaying) {
+            if (track.queuedPad === null && track.padLoopPosition === null && track.queuedEnabled === null) {
+              return track;
+            }
+            sequencerChanged = true;
+            return {
+              ...track,
+              queuedPad: null,
+              padLoopPosition: null,
+              queuedEnabled: null
+            };
+          }
+          return track;
+        }
+
+        const nextActivePad =
+          payload.activePad === undefined ? track.activePad : normalizePadIndex(payload.activePad);
+        const nextStepCount = normalizeDrummerSequencerStepCount(
+          (track.pads[nextActivePad] ?? track.pads[0])?.stepCount ?? track.stepCount
+        );
+        const nextQueuedPad =
+          payload.queuedPad === undefined
+            ? track.queuedPad
+            : payload.queuedPad === null
+              ? null
+              : normalizePadIndex(payload.queuedPad);
+        const nextPadLoopPosition =
+          payload.padLoopPosition === undefined
+            ? track.padLoopPosition
+            : payload.padLoopPosition === null
+              ? null
+              : Math.max(0, Math.round(payload.padLoopPosition));
+        const nextEnabled = payload.enabled === undefined ? track.enabled : payload.enabled;
+        const nextQueuedEnabled =
+          payload.queuedEnabled === undefined
+            ? track.queuedEnabled
+            : payload.queuedEnabled === null
+              ? null
+              : payload.queuedEnabled;
+
+        if (
+          nextActivePad === track.activePad &&
+          nextQueuedPad === track.queuedPad &&
+          nextPadLoopPosition === track.padLoopPosition &&
+          nextStepCount === track.stepCount &&
+          nextEnabled === track.enabled &&
+          nextQueuedEnabled === track.queuedEnabled
+        ) {
+          return track;
+        }
+
+        sequencerChanged = true;
+        return {
+          ...track,
+          activePad: nextActivePad,
+          queuedPad: nextQueuedPad,
+          padLoopPosition: nextPadLoopPosition,
+          stepCount: nextStepCount,
+          enabled: nextEnabled,
+          queuedEnabled: nextQueuedEnabled
+        };
+      });
+      const nextControllerSequencers = sequencer.controllerSequencers.map((controllerSequencer) =>
+        nextIsPlaying
+          ? controllerSequencer
+          : {
+              ...controllerSequencer,
+              queuedPad: null,
+              padLoopPosition: null
+            }
+      );
+      if (
+        !nextIsPlaying &&
+        nextControllerSequencers.some(
+          (controllerSequencer, index) => controllerSequencer !== sequencer.controllerSequencers[index]
+        )
+      ) {
+        sequencerChanged = true;
+      }
+
+      const nextTrackLocalStepById: Record<string, number | null> = {};
+      for (const track of nextTracks) {
+        const payload = trackPayload.get(track.id);
+        const normalizedLocalStep =
+          !nextIsPlaying || !payload || payload.localStep === undefined
+            ? null
+            : Math.max(0, Math.round(payload.localStep)) % Math.max(1, normalizeSequencerTrackStepCount(track.stepCount));
+        nextTrackLocalStepById[track.id] =
+          normalizedLocalStep === null ? sequencerRuntime.trackLocalStepById[track.id] ?? null : normalizedLocalStep;
+      }
+      if (!nextIsPlaying) {
+        for (const trackId of Object.keys(nextTrackLocalStepById)) {
+          nextTrackLocalStepById[trackId] = null;
+        }
+      }
+
+      const nextDrummerTrackLocalStepById: Record<string, number | null> = {};
+      for (const track of nextDrummerTracks) {
+        const payload = drummerTrackPayload.get(track.id);
+        const normalizedLocalStep =
+          !nextIsPlaying || !payload || payload.localStep === undefined
+            ? null
+            : Math.max(0, Math.round(payload.localStep)) % Math.max(1, normalizeDrummerSequencerStepCount(track.stepCount));
+        nextDrummerTrackLocalStepById[track.id] =
+          normalizedLocalStep === null
+            ? sequencerRuntime.drummerTrackLocalStepById[track.id] ?? null
+            : normalizedLocalStep;
+      }
+      if (!nextIsPlaying) {
+        for (const trackId of Object.keys(nextDrummerTrackLocalStepById)) {
+          nextDrummerTrackLocalStepById[trackId] = null;
+        }
+      }
+
+      const nextControllerRuntimePadStartStepById: Record<string, number | null> = {};
+      for (const controllerSequencer of nextControllerSequencers) {
+        nextControllerRuntimePadStartStepById[controllerSequencer.id] = nextIsPlaying
+          ? (sequencerRuntime.controllerRuntimePadStartStepById[controllerSequencer.id] ?? null)
+          : null;
+      }
 
       set({
-        sequencer: {
-          ...sequencer,
-          isPlaying,
+        ...(sequencerChanged
+          ? {
+              sequencer: {
+                ...sequencer,
+                isPlaying: nextIsPlaying,
+                tracks: nextTracks,
+                controllerSequencers: nextControllerSequencers,
+                drummerTracks: nextDrummerTracks
+              }
+            }
+          : {}),
+        sequencerRuntime: {
+          ...sequencerRuntime,
+          isPlaying: nextIsPlaying,
           stepCount: boundedStepCount,
-          cycle: cycle === undefined ? sequencer.cycle : Math.max(0, Math.round(cycle)),
+          cycle: cycle === undefined ? sequencerRuntime.cycle : Math.max(0, Math.round(cycle)),
           playhead: normalizedPlayhead,
-          tracks: sequencer.tracks.map((track) => {
-            const payload = trackPayload.get(track.id);
-            if (!payload) {
-              if (!isPlaying) {
-                return {
-                  ...track,
-                  queuedPad: null,
-                  padLoopPosition: null,
-                  runtimeLocalStep: null,
-                  queuedEnabled: null
-                };
-              }
-              return track;
-            }
-
-            const nextActivePad =
-              payload.activePad === undefined ? track.activePad : normalizePadIndex(payload.activePad);
-            const currentSelectedPad = track.pads[nextActivePad] ?? track.pads[0];
-            const nextStepCount = normalizeSequencerTrackStepCount(currentSelectedPad?.stepCount ?? track.stepCount);
-            const nextRuntimeLocalStep =
-              payload.localStep === undefined
-                ? track.runtimeLocalStep
-                : Math.max(0, Math.round(payload.localStep)) % Math.max(1, nextStepCount);
-            const nextQueuedPad =
-              payload.queuedPad === undefined
-                ? track.queuedPad
-                : payload.queuedPad === null
-                  ? null
-                  : normalizePadIndex(payload.queuedPad);
-            const nextPadLoopPosition =
-              payload.padLoopPosition === undefined
-                ? track.padLoopPosition
-                : payload.padLoopPosition === null
-                  ? null
-                  : Math.max(0, Math.round(payload.padLoopPosition));
-            const nextEnabled = payload.enabled === undefined ? track.enabled : payload.enabled;
-            const nextQueuedEnabled =
-              payload.queuedEnabled === undefined
-                ? track.queuedEnabled
-                : payload.queuedEnabled === null
-                  ? null
-                  : payload.queuedEnabled;
-            const selectedPad = track.pads[nextActivePad] ?? track.pads[0];
-            const nextPads = track.pads;
-            const nextScaleRoot = selectedPad?.scaleRoot ?? track.scaleRoot;
-            const nextScaleType = selectedPad?.scaleType ?? track.scaleType;
-            const nextMode = selectedPad?.mode ?? track.mode;
-
-            if (
-              nextActivePad === track.activePad &&
-              nextRuntimeLocalStep === track.runtimeLocalStep &&
-              nextQueuedPad === track.queuedPad &&
-              nextPadLoopPosition === track.padLoopPosition &&
-              nextStepCount === track.stepCount &&
-              nextPads === track.pads &&
-              nextEnabled === track.enabled &&
-              nextQueuedEnabled === track.queuedEnabled &&
-              nextScaleRoot === track.scaleRoot &&
-              nextScaleType === track.scaleType &&
-              nextMode === track.mode
-            ) {
-              return track;
-            }
-
-            return {
-              ...track,
-              activePad: nextActivePad,
-              runtimeLocalStep: nextRuntimeLocalStep,
-              queuedPad: nextQueuedPad,
-              padLoopPosition: nextPadLoopPosition,
-              stepCount: nextStepCount,
-              pads: nextPads,
-              enabled: nextEnabled,
-              queuedEnabled: nextQueuedEnabled,
-              scaleRoot: nextScaleRoot,
-              scaleType: nextScaleType,
-              mode: nextMode,
-              steps:
-                nextActivePad === track.activePad
-                  ? track.steps
-                  : cloneSequencerSteps(selectedPad?.steps ?? track.steps)
-            };
-          }),
-          controllerSequencers: sequencer.controllerSequencers.map((controllerSequencer) =>
-            isPlaying
-              ? controllerSequencer
-              : {
-                  ...controllerSequencer,
-                  queuedPad: null,
-                  padLoopPosition: null,
-                  runtimePadStartStep: null
-                }
-          ),
-          drummerTracks: sequencer.drummerTracks.map((track) => {
-            const payload = drummerTrackPayload.get(track.id) as
-              | {
-                  stepCount?: DrummerSequencerStepCount;
-                  localStep?: number;
-                  activePad?: number;
-                  queuedPad?: number | null;
-                  padLoopPosition?: number | null;
-                  enabled?: boolean;
-                  queuedEnabled?: boolean | null;
-                }
-              | undefined;
-            if (!payload) {
-              if (!isPlaying) {
-                return {
-                  ...track,
-                  queuedPad: null,
-                  padLoopPosition: null,
-                  runtimeLocalStep: null,
-                  queuedEnabled: null
-                };
-              }
-              return track;
-            }
-
-            const nextActivePad =
-              payload.activePad === undefined ? track.activePad : normalizePadIndex(payload.activePad);
-            const nextStepCount = normalizeDrummerSequencerStepCount(
-              (track.pads[nextActivePad] ?? track.pads[0])?.stepCount ?? track.stepCount
-            );
-            const nextRuntimeLocalStep =
-              payload.localStep === undefined
-                ? track.runtimeLocalStep
-                : Math.max(0, Math.round(payload.localStep)) % Math.max(1, nextStepCount);
-            const nextQueuedPad =
-              payload.queuedPad === undefined
-                ? track.queuedPad
-                : payload.queuedPad === null
-                  ? null
-                  : normalizePadIndex(payload.queuedPad);
-            const nextPadLoopPosition =
-              payload.padLoopPosition === undefined
-                ? track.padLoopPosition
-                : payload.padLoopPosition === null
-                  ? null
-                  : Math.max(0, Math.round(payload.padLoopPosition));
-            const nextEnabled = payload.enabled === undefined ? track.enabled : payload.enabled;
-            const nextQueuedEnabled =
-              payload.queuedEnabled === undefined
-                ? track.queuedEnabled
-                : payload.queuedEnabled === null
-                  ? null
-                  : payload.queuedEnabled;
-            const nextPads = track.pads;
-
-            if (
-              nextActivePad === track.activePad &&
-              nextRuntimeLocalStep === track.runtimeLocalStep &&
-              nextQueuedPad === track.queuedPad &&
-              nextPadLoopPosition === track.padLoopPosition &&
-              nextStepCount === track.stepCount &&
-              nextPads === track.pads &&
-              nextEnabled === track.enabled &&
-              nextQueuedEnabled === track.queuedEnabled
-            ) {
-              return track;
-            }
-
-            return {
-              ...track,
-              activePad: nextActivePad,
-              runtimeLocalStep: nextRuntimeLocalStep,
-              queuedPad: nextQueuedPad,
-              padLoopPosition: nextPadLoopPosition,
-              stepCount: nextStepCount,
-              pads: nextPads,
-              enabled: nextEnabled,
-              queuedEnabled: nextQueuedEnabled
-            };
-          })
+          trackLocalStepById: nextTrackLocalStepById,
+          drummerTrackLocalStepById: nextDrummerTrackLocalStepById,
+          controllerRuntimePadStartStepById: nextControllerRuntimePadStartStepById
         }
       });
     },

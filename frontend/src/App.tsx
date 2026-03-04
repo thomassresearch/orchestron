@@ -30,6 +30,7 @@ import type {
   PerformanceListItem,
   SequencerConfigSnapshot,
   SequencerInstrumentBinding,
+  SequencerRuntimeState,
   SequencerState,
   SessionEvent,
   SessionMidiEventRequest,
@@ -52,6 +53,96 @@ function normalizeMidiChannel(channel: number): number {
 
 function normalizeMidiVelocity(velocity: number): number {
   return Math.max(0, Math.min(127, Math.round(velocity)));
+}
+
+function hasOwnRecordKey(record: Record<string, unknown>, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(record, key);
+}
+
+function mergedSequencerState(
+  sequencerConfig: SequencerState,
+  sequencerRuntime: SequencerRuntimeState
+): SequencerState {
+  const runtimeStepCount = sequencerRuntime.stepCount === 32 ? 32 : 16;
+  const runtimePlayhead = ((Math.round(sequencerRuntime.playhead) % runtimeStepCount) + runtimeStepCount) % runtimeStepCount;
+  const runtimeCycle = Math.max(0, Math.round(sequencerRuntime.cycle));
+
+  let trackRuntimeChanged = false;
+  const tracks = sequencerConfig.tracks.map((track) => {
+    const runtimeRecord = sequencerRuntime.trackLocalStepById as Record<string, unknown>;
+    const runtimeValue = hasOwnRecordKey(runtimeRecord, track.id)
+      ? sequencerRuntime.trackLocalStepById[track.id]
+      : track.runtimeLocalStep;
+    const runtimeLocalStep =
+      typeof runtimeValue === "number" && Number.isFinite(runtimeValue) ? Math.max(0, Math.round(runtimeValue)) : null;
+    if (runtimeLocalStep === track.runtimeLocalStep) {
+      return track;
+    }
+    trackRuntimeChanged = true;
+    return {
+      ...track,
+      runtimeLocalStep
+    };
+  });
+
+  let drummerRuntimeChanged = false;
+  const drummerTracks = sequencerConfig.drummerTracks.map((track) => {
+    const runtimeRecord = sequencerRuntime.drummerTrackLocalStepById as Record<string, unknown>;
+    const runtimeValue = hasOwnRecordKey(runtimeRecord, track.id)
+      ? sequencerRuntime.drummerTrackLocalStepById[track.id]
+      : track.runtimeLocalStep;
+    const runtimeLocalStep =
+      typeof runtimeValue === "number" && Number.isFinite(runtimeValue) ? Math.max(0, Math.round(runtimeValue)) : null;
+    if (runtimeLocalStep === track.runtimeLocalStep) {
+      return track;
+    }
+    drummerRuntimeChanged = true;
+    return {
+      ...track,
+      runtimeLocalStep
+    };
+  });
+
+  let controllerRuntimeChanged = false;
+  const controllerSequencers = sequencerConfig.controllerSequencers.map((controllerSequencer) => {
+    const runtimeRecord = sequencerRuntime.controllerRuntimePadStartStepById as Record<string, unknown>;
+    const runtimeValue = hasOwnRecordKey(runtimeRecord, controllerSequencer.id)
+      ? sequencerRuntime.controllerRuntimePadStartStepById[controllerSequencer.id]
+      : controllerSequencer.runtimePadStartStep;
+    const runtimePadStartStep =
+      typeof runtimeValue === "number" && Number.isFinite(runtimeValue) ? Math.max(0, Math.floor(runtimeValue)) : null;
+    if (runtimePadStartStep === controllerSequencer.runtimePadStartStep) {
+      return controllerSequencer;
+    }
+    controllerRuntimeChanged = true;
+    return {
+      ...controllerSequencer,
+      runtimePadStartStep
+    };
+  });
+
+  if (
+    sequencerConfig.isPlaying === sequencerRuntime.isPlaying &&
+    sequencerConfig.stepCount === runtimeStepCount &&
+    sequencerConfig.playhead === runtimePlayhead &&
+    sequencerConfig.cycle === runtimeCycle &&
+    !trackRuntimeChanged &&
+    !drummerRuntimeChanged &&
+    !controllerRuntimeChanged
+  ) {
+    return sequencerConfig;
+  }
+
+  return {
+    ...sequencerConfig,
+    isPlaying: sequencerRuntime.isPlaying,
+    stepCount: runtimeStepCount,
+    playhead: runtimePlayhead,
+    cycle: runtimeCycle,
+    tracks: trackRuntimeChanged ? tracks : sequencerConfig.tracks,
+    drummerTracks: drummerRuntimeChanged ? drummerTracks : sequencerConfig.drummerTracks,
+    controllerSequencers: controllerRuntimeChanged ? controllerSequencers : sequencerConfig.controllerSequencers
+  };
 }
 
 function normalizeInstrumentLevel(level: number): number {
@@ -1188,7 +1279,12 @@ export default function App() {
   const activeInstrumentTabId = useAppStore((state) => state.activeInstrumentTabId);
 
   const currentPatch = useAppStore((state) => state.currentPatch);
-  const sequencer = useAppStore((state) => state.sequencer);
+  const sequencerConfig = useAppStore((state) => state.sequencer);
+  const sequencerRuntime = useAppStore((state) => state.sequencerRuntime);
+  const sequencer = useMemo(
+    () => mergedSequencerState(sequencerConfig, sequencerRuntime),
+    [sequencerConfig, sequencerRuntime]
+  );
   const sequencerInstruments = useAppStore((state) => state.sequencerInstruments);
   const currentPerformanceId = useAppStore((state) => state.currentPerformanceId);
   const performanceName = useAppStore((state) => state.performanceName);
@@ -2326,8 +2422,8 @@ export default function App() {
     };
   }, [instrumentLevelsByChannel]);
   const sequencerConfigSyncSignature = useMemo(
-    () => JSON.stringify(buildBackendSequencerConfig(sequencer)),
-    [buildBackendSequencerConfig, sequencer.bpm, sequencer.drummerTracks, sequencer.tracks]
+    () => JSON.stringify(buildBackendSequencerConfig(sequencerConfig)),
+    [buildBackendSequencerConfig, sequencerConfig.bpm, sequencerConfig.drummerTracks, sequencerConfig.tracks]
   );
 
   const applySequencerStatus = useCallback(

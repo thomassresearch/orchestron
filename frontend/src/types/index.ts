@@ -293,6 +293,16 @@ export interface SequencerState {
   midiControllers: MidiControllerState[];
 }
 
+export interface SequencerRuntimeState {
+  isPlaying: boolean;
+  stepCount: 16 | 32;
+  playhead: number;
+  cycle: number;
+  trackLocalStepById: Record<string, number | null>;
+  drummerTrackLocalStepById: Record<string, number | null>;
+  controllerRuntimePadStartStepById: Record<string, number | null>;
+}
+
 export interface SessionInstrumentAssignment {
   patch_id: string;
   midi_channel: number;
