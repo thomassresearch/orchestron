@@ -607,6 +607,8 @@ function buildMainHtml({ title, sectionsHtml, generatedAt, logoUrl }) {
         --line: #d9deea;
         --line-strong: #bbc4d9;
         --accent: #0e547d;
+        --link: #3f434a;
+        --link-line: #8f939b;
         --code-bg: #f5f7fb;
       }
       html, body {
@@ -684,10 +686,18 @@ function buildMainHtml({ title, sectionsHtml, generatedAt, logoUrl }) {
       p, li {
         color: var(--ink);
       }
-      a {
-        color: var(--accent);
-        text-decoration: none;
-        border-bottom: 1px solid #97bad0;
+      a,
+      a:link,
+      a:visited,
+      a:hover,
+      a:active {
+        color: #3f434a !important;
+        text-decoration: none !important;
+        border-bottom: 1px solid #8f939b;
+      }
+      h1 a, h2 a, h3 a, h4 a, h5 a, h6 a {
+        color: #2d333b !important;
+        border-bottom: 1px solid #8f939b;
       }
       strong {
         font-weight: 700;
@@ -820,7 +830,7 @@ function buildHeaderHtml({ title, logoUrl }) {
         position: absolute;
         left: 0;
         right: 0;
-        top: 11.4mm;
+        top: 13.4mm;
         border-bottom: 1px solid #ced5e3;
       }
       .left {
@@ -832,6 +842,7 @@ function buildHeaderHtml({ title, logoUrl }) {
       .left img {
         width: 11mm;
         height: 11mm;
+        transform: translateY(2mm);
         object-fit: contain;
       }
       .title {
