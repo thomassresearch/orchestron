@@ -281,9 +281,50 @@ def translate_strings(strings: set[str], skip_translate: bool = False) -> dict[s
     return translations
 
 
-def build_dataset(limit: int | None = None, skip_translate: bool = False) -> dict[str, Any]:
+def parse_opcodes(opcodes_arg: str | None) -> list[str] | None:
+    if opcodes_arg is None:
+        return None
+    names = [normalize_spaces(name) for name in opcodes_arg.split(",")]
+    parsed = [name for name in names if name]
+    if not parsed:
+        raise ValueError("`--opcodes` was provided, but no opcode names were parsed.")
+    unique: list[str] = []
+    seen: set[str] = set()
+    for name in parsed:
+        key = name.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(name)
+    return unique
+
+
+def filter_opcodes(all_opcodes: list[Any], requested: list[str] | None) -> list[Any]:
+    if not requested:
+        return all_opcodes
+    by_name = {opcode.name.lower(): opcode for opcode in all_opcodes}
+    selected: list[Any] = []
+    missing: list[str] = []
+    for name in requested:
+        opcode = by_name.get(name.lower())
+        if opcode is None:
+            missing.append(name)
+            continue
+        selected.append(opcode)
+    if missing:
+        missing_csv = ", ".join(missing)
+        raise ValueError(f"Unknown opcode name(s) in `--opcodes`: {missing_csv}")
+    return selected
+
+
+def build_dataset(
+    limit: int | None = None,
+    skip_translate: bool = False,
+    opcode_names: list[str] | None = None,
+) -> dict[str, Any]:
     service = OpcodeService(icon_prefix="/static/icons")
     opcodes = service.list_opcodes()
+    opcodes = filter_opcodes(opcodes, opcode_names)
     if limit is not None:
         opcodes = opcodes[:limit]
     unique_urls = sorted({opcode.documentation_url for opcode in opcodes if opcode.documentation_url})
@@ -370,13 +411,26 @@ def main() -> None:
     )
     parser.add_argument("--limit", type=int, default=None, help="Process only the first N opcodes.")
     parser.add_argument(
+        "--opcodes",
+        default=None,
+        help=(
+            "Process only selected opcode names. Accepts one opcode or a comma-separated list, "
+            "for example: --opcodes adsr or --opcodes adsr,oscili,midi_note"
+        ),
+    )
+    parser.add_argument(
         "--skip-translate",
         action="store_true",
         help="Skip de/fr/es translation (copy English text).",
     )
     args = parser.parse_args()
 
-    dataset = build_dataset(limit=args.limit, skip_translate=args.skip_translate)
+    try:
+        requested_opcodes = parse_opcodes(args.opcodes)
+        dataset = build_dataset(limit=args.limit, skip_translate=args.skip_translate, opcode_names=requested_opcodes)
+    except ValueError as exc:
+        parser.error(str(exc))
+
     output_path = Path(args.output).resolve()
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(dataset, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
