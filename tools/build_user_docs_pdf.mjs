@@ -593,23 +593,18 @@ function renderBlocks(blocks, context) {
   return html.join("\n");
 }
 
-function buildMainHtml({ title, sectionsHtml, generatedAt, logoUrl }) {
+function buildCoverHtml({ title, generatedAt, logoUrl }) {
   return `<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>${escapeHtml(title)}</title>
+    <title>${escapeHtml(title)} - Cover</title>
     <style>
       :root {
-        --ink: #1d2430;
         --muted: #5b6472;
         --line: #d9deea;
-        --line-strong: #bbc4d9;
         --accent: #0e547d;
-        --link: #3f434a;
-        --link-line: #8f939b;
-        --code-bg: #f5f7fb;
       }
       html, body {
         margin: 0;
@@ -617,19 +612,17 @@ function buildMainHtml({ title, sectionsHtml, generatedAt, logoUrl }) {
       }
       body {
         font-family: "Helvetica Neue", "Segoe UI", Arial, sans-serif;
-        color: var(--ink);
-        line-height: 1.45;
-        font-size: 11pt;
+        color: #1d2430;
       }
       .cover {
-        min-height: 70vh;
+        min-height: 72vh;
         display: flex;
         flex-direction: column;
         justify-content: center;
         border: 1px solid var(--line);
         border-radius: 12px;
         padding: 42px;
-        margin: 18px 0;
+        margin: 20px 0;
       }
       .cover h1 {
         font-size: 32pt;
@@ -658,6 +651,49 @@ function buildMainHtml({ title, sectionsHtml, generatedAt, logoUrl }) {
         margin-top: 20px;
         color: var(--muted);
         font-size: 10pt;
+      }
+    </style>
+  </head>
+  <body>
+    <section class="cover">
+      <h1>${escapeHtml(title)}</h1>
+      <div class="subtitle">Compiled from markdown documentation</div>
+      <div class="cover-logo-wrap">
+        <img class="cover-logo" src="${escapeAttribute(logoUrl)}" alt="Orchestron logo" />
+      </div>
+      <div class="date">Generated on ${escapeHtml(generatedAt)}</div>
+    </section>
+  </body>
+</html>`;
+}
+
+function buildMainHtml({ title, sectionsHtml }) {
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>${escapeHtml(title)}</title>
+    <style>
+      :root {
+        --ink: #1d2430;
+        --muted: #5b6472;
+        --line: #d9deea;
+        --line-strong: #bbc4d9;
+        --accent: #0e547d;
+        --link: #3f434a;
+        --link-line: #8f939b;
+        --code-bg: #f5f7fb;
+      }
+      html, body {
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: "Helvetica Neue", "Segoe UI", Arial, sans-serif;
+        color: var(--ink);
+        line-height: 1.45;
+        font-size: 11pt;
       }
       .doc-section {
         page-break-before: always;
@@ -791,14 +827,6 @@ function buildMainHtml({ title, sectionsHtml, generatedAt, logoUrl }) {
     </style>
   </head>
   <body>
-    <section class="cover">
-      <h1>${escapeHtml(title)}</h1>
-      <div class="subtitle">Compiled from markdown documentation</div>
-      <div class="cover-logo-wrap">
-        <img class="cover-logo" src="${escapeAttribute(logoUrl)}" alt="Orchestron logo" />
-      </div>
-      <div class="date">Generated on ${escapeHtml(generatedAt)}</div>
-    </section>
 ${sectionsHtml}
   </body>
 </html>`;
@@ -941,7 +969,171 @@ function buildFooterHtml() {
 </html>`;
 }
 
-function runWkhtmltopdf({ contentPath, headerPath, footerPath, outputPath, title }) {
+function buildTocXsl() {
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet version="2.0"
+                xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
+                xmlns:outline="http://wkhtmltopdf.org/outline"
+                xmlns="http://www.w3.org/1999/xhtml">
+  <xsl:output doctype-public="-//W3C//DTD XHTML 1.0 Strict//EN"
+              doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"
+              indent="yes" />
+  <xsl:template match="outline:outline">
+    <html>
+      <head>
+        <title>Table of Contents</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            color: #1f2732;
+            margin: 0;
+            padding: 0;
+          }
+          h1 {
+            text-align: center;
+            font-size: 24px;
+            margin: 0 0 16px;
+          }
+          .toc-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+          }
+          .toc-col-title {
+            width: 44%;
+          }
+          .toc-col-dots {
+            width: auto;
+          }
+          .toc-col-page {
+            width: 18mm;
+          }
+          .toc-row td {
+            padding: 3px 0;
+            vertical-align: baseline;
+          }
+          .toc-title-cell {
+            width: 44%;
+            overflow: hidden;
+            white-space: nowrap;
+          }
+          .toc-title {
+            color: #2d333b;
+            text-decoration: none;
+            display: inline-block;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 17px;
+          }
+          .toc-row.level-2 .toc-title {
+            padding-left: 15px;
+            font-size: 15px;
+          }
+          .toc-dots-cell {
+            width: auto;
+            overflow: hidden;
+            padding: 0 6px;
+          }
+          .toc-dots {
+            color: #6f7682;
+            display: block;
+            width: 100%;
+            border-bottom: 1px dotted #6f7682;
+            transform: translateY(-2px);
+            line-height: 1;
+          }
+          .toc-page-cell {
+            width: 18mm;
+            text-align: right;
+            white-space: nowrap;
+          }
+          .toc-page {
+            color: #2d333b;
+            text-decoration: none;
+            display: inline-block;
+            width: 100%;
+            text-align: right;
+            font-size: 17px;
+            font-variant-numeric: tabular-nums;
+            font-feature-settings: "tnum";
+          }
+          .toc-row.level-2 .toc-page {
+            font-size: 15px;
+          }
+        </style>
+      </head>
+      <body>
+        <h1>Table of Contents</h1>
+        <table class="toc-table">
+          <colgroup>
+            <col class="toc-col-title" />
+            <col class="toc-col-dots" />
+            <col class="toc-col-page" />
+          </colgroup>
+          <tbody>
+            <xsl:apply-templates select="outline:item/outline:item">
+              <xsl:with-param name="level" select="1"/>
+            </xsl:apply-templates>
+          </tbody>
+        </table>
+      </body>
+    </html>
+  </xsl:template>
+  <xsl:template match="outline:item">
+    <xsl:param name="level" select="1"/>
+    <xsl:if test="@title!=''">
+      <tr>
+        <xsl:attribute name="class">toc-row level-<xsl:value-of select="$level"/></xsl:attribute>
+        <td class="toc-title-cell">
+          <a class="toc-title">
+            <xsl:choose>
+              <xsl:when test="normalize-space(@link)!=''">
+                <xsl:attribute name="href"><xsl:value-of select="@link"/></xsl:attribute>
+              </xsl:when>
+              <xsl:when test="normalize-space((descendant::outline:item[normalize-space(@link)!=''][1]/@link))!=''">
+                <xsl:attribute name="href"><xsl:value-of select="(descendant::outline:item[normalize-space(@link)!=''][1]/@link)"/></xsl:attribute>
+              </xsl:when>
+            </xsl:choose>
+            <xsl:if test="@backLink">
+              <xsl:attribute name="name"><xsl:value-of select="@backLink"/></xsl:attribute>
+            </xsl:if>
+            <xsl:value-of select="@title" />
+          </a>
+        </td>
+        <td class="toc-dots-cell">
+          <span class="toc-dots"><xsl:text> </xsl:text></span>
+        </td>
+        <td class="toc-page-cell">
+          <a class="toc-page">
+            <xsl:choose>
+              <xsl:when test="normalize-space(@link)!=''">
+                <xsl:attribute name="href"><xsl:value-of select="@link"/></xsl:attribute>
+              </xsl:when>
+              <xsl:when test="normalize-space((descendant::outline:item[normalize-space(@link)!=''][1]/@link))!=''">
+                <xsl:attribute name="href"><xsl:value-of select="(descendant::outline:item[normalize-space(@link)!=''][1]/@link)"/></xsl:attribute>
+              </xsl:when>
+            </xsl:choose>
+            <xsl:choose>
+              <xsl:when test="normalize-space(@page)!=''"><xsl:value-of select="@page"/></xsl:when>
+              <xsl:otherwise><xsl:value-of select="(descendant::outline:item[normalize-space(@page)!=''][1]/@page)"/></xsl:otherwise>
+            </xsl:choose>
+          </a>
+        </td>
+      </tr>
+    </xsl:if>
+    <xsl:if test="$level &lt; 2">
+      <xsl:apply-templates select="outline:item">
+        <xsl:with-param name="level" select="$level + 1"/>
+      </xsl:apply-templates>
+    </xsl:if>
+  </xsl:template>
+  <xsl:template match="text()"/>
+</xsl:stylesheet>`;
+}
+
+function runWkhtmltopdf({ coverPath, contentPath, headerPath, footerPath, tocXslPath, outputPath, title }) {
   const args = [
     "--enable-local-file-access",
     "--encoding",
@@ -966,12 +1158,16 @@ function runWkhtmltopdf({ contentPath, headerPath, footerPath, outputPath, title
     "--title",
     title,
     "--outline-depth",
-    "1",
+    "2",
+    "cover",
+    coverPath,
     "toc",
     "--toc-header-text",
     "Table of Contents",
     "--toc-level-indentation",
     "1em",
+    "--xsl-style-sheet",
+    tocXslPath,
     contentPath,
     outputPath
   ];
@@ -1023,11 +1219,14 @@ function main() {
   }
 
   const generatedAt = new Date().toLocaleString("en-GB", { dateStyle: "long", timeStyle: "short" });
-  const contentHtml = buildMainHtml({
+  const coverHtml = buildCoverHtml({
     title: args.title,
-    sectionsHtml: sections.join("\n"),
     generatedAt,
     logoUrl: pathToFileURL(logoFile).toString()
+  });
+  const contentHtml = buildMainHtml({
+    title: args.title,
+    sectionsHtml: sections.join("\n")
   });
   const headerHtml = buildHeaderHtml({
     title: args.title,
@@ -1037,17 +1236,23 @@ function main() {
 
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "orchestron-docs-"));
   const contentPath = path.join(tempDir, "content.html");
+  const coverPath = path.join(tempDir, "cover.html");
   const headerPath = path.join(tempDir, "header.html");
   const footerPath = path.join(tempDir, "footer.html");
+  const tocXslPath = path.join(tempDir, "toc.xsl");
+  fs.writeFileSync(coverPath, coverHtml, "utf8");
   fs.writeFileSync(contentPath, contentHtml, "utf8");
   fs.writeFileSync(headerPath, headerHtml, "utf8");
   fs.writeFileSync(footerPath, footerHtml, "utf8");
+  fs.writeFileSync(tocXslPath, buildTocXsl(), "utf8");
 
   fs.mkdirSync(path.dirname(outputFile), { recursive: true });
   runWkhtmltopdf({
+    coverPath,
     contentPath,
     headerPath,
     footerPath,
+    tocXslPath,
     outputPath: outputFile,
     title: args.title
   });
