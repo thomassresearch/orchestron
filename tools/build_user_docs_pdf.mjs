@@ -623,12 +623,13 @@ function getTocLevel(filePath, entryFile, documentationRoot) {
 }
 
 function buildTocMarkup(entries, pageBreakAfter) {
+  const leaderText = ". ".repeat(240);
   const rows = entries
     .map(
       (entry) => `<div class="toc-entry level-${entry.level}">
   <span class="toc-page-wrap"><a class="toc-page" href="#${escapeAttribute(entry.anchor)}">${escapeHtml(String(entry.page))}</a></span>
   <span class="toc-title-wrap"><a class="toc-title" href="#${escapeAttribute(entry.anchor)}">${escapeHtml(entry.title)}</a></span>
-  <span class="toc-leader" aria-hidden="true"></span>
+  <span class="toc-leader" aria-hidden="true">${leaderText}</span>
 </div>`
     )
     .join("\n");
@@ -814,10 +815,14 @@ function buildMainHtml({ title, tocHtml, sectionsHtml }) {
       .toc-leader {
         display: block;
         overflow: hidden;
-        height: 0;
-        position: relative;
-        top: 0.86em;
-        border-top: 2px dotted #6f7682;
+        color: #6f7682;
+        font-size: 17px;
+        line-height: 1.25;
+        letter-spacing: 0.02em;
+        white-space: pre;
+      }
+      .toc-entry.level-2 .toc-leader {
+        font-size: 15px;
       }
       .doc-section {
         page-break-before: always;
