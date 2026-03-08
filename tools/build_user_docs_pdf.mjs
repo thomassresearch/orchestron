@@ -101,6 +101,12 @@ function escapeAttribute(value) {
   return escapeHtml(value);
 }
 
+function countPdfPages(pdfPath) {
+  const pdfText = fs.readFileSync(pdfPath, "latin1");
+  const matches = pdfText.match(/\/Type\s*\/Page\b/g);
+  return matches ? matches.length : 0;
+}
+
 function safeDecodeUriComponent(value) {
   try {
     return decodeURIComponent(value);
@@ -593,6 +599,49 @@ function renderBlocks(blocks, context) {
   return html.join("\n");
 }
 
+function getFirstHeadingText(blocks, fallbackTitle) {
+  const heading = blocks.find((block) => block.type === "heading");
+  return heading ? heading.text : fallbackTitle;
+}
+
+function getTocLevel(filePath, entryFile, documentationRoot) {
+  const normalizedFile = path.normalize(filePath);
+  const normalizedEntry = path.normalize(entryFile);
+  if (normalizedFile === normalizedEntry) {
+    return 1;
+  }
+
+  const relative = path.relative(documentationRoot, normalizedFile).replaceAll(path.sep, "/");
+  const segments = relative.split("/");
+  if (segments.length === 1) {
+    return 1;
+  }
+  if (segments.length === 2 && path.basename(relative) === `${segments[0]}.md`) {
+    return 1;
+  }
+  return 2;
+}
+
+function buildTocMarkup(entries, pageBreakAfter) {
+  const rows = entries
+    .map(
+      (entry) => `<div class="toc-entry level-${entry.level}">
+  <span class="toc-page-wrap"><a class="toc-page" href="#${escapeAttribute(entry.anchor)}">${escapeHtml(String(entry.page))}</a></span>
+  <span class="toc-title-wrap"><a class="toc-title" href="#${escapeAttribute(entry.anchor)}">${escapeHtml(entry.title)}</a></span>
+  <span class="toc-leader" aria-hidden="true"></span>
+</div>`
+    )
+    .join("\n");
+
+  const sectionClass = pageBreakAfter ? "toc-section toc-section-break" : "toc-section";
+  return `<section class="${sectionClass}">
+  <div class="toc-heading">Table of Contents</div>
+  <div class="toc-list">
+${rows}
+  </div>
+</section>`;
+}
+
 function buildCoverHtml({ title, generatedAt, logoUrl }) {
   return `<!doctype html>
 <html lang="en">
@@ -667,7 +716,7 @@ function buildCoverHtml({ title, generatedAt, logoUrl }) {
 </html>`;
 }
 
-function buildMainHtml({ title, sectionsHtml }) {
+function buildMainHtml({ title, tocHtml, sectionsHtml }) {
   return `<!doctype html>
 <html lang="en">
   <head>
@@ -694,6 +743,83 @@ function buildMainHtml({ title, sectionsHtml }) {
         color: var(--ink);
         line-height: 1.45;
         font-size: 11pt;
+      }
+      .toc-section {
+        margin: 0;
+        padding: 6pt 0 0;
+      }
+      .toc-section-break {
+        page-break-after: always;
+      }
+      .toc-heading {
+        margin: 0 0 18pt;
+        text-align: center;
+        font-size: 28pt;
+        font-weight: 700;
+        color: #1f2732;
+      }
+      .toc-list {
+        width: 100%;
+      }
+      .toc-entry {
+        display: block;
+        overflow: hidden;
+        margin: 0 0 8pt;
+        padding: 0;
+        line-height: 1.25;
+        white-space: nowrap;
+      }
+      .toc-title,
+      .toc-title:link,
+      .toc-title:visited,
+      .toc-page,
+      .toc-page:link,
+      .toc-page:visited {
+        color: #2d333b !important;
+        text-decoration: none !important;
+        border-bottom: none !important;
+      }
+      .toc-title-wrap {
+        float: left;
+        display: block;
+        padding-right: 8pt;
+      }
+      .toc-title {
+        display: block;
+        font-size: 17px;
+        white-space: nowrap;
+      }
+      .toc-entry.level-2 .toc-title-wrap {
+        padding-left: 15pt;
+      }
+      .toc-entry.level-2 .toc-title {
+        font-size: 15px;
+      }
+      .toc-page-wrap {
+        float: right;
+        display: block;
+        width: 18mm;
+        box-sizing: border-box;
+        padding-left: 8pt;
+        text-align: right;
+      }
+      .toc-page {
+        display: block;
+        font-size: 17px;
+        font-variant-numeric: tabular-nums;
+        font-feature-settings: "tnum";
+        white-space: nowrap;
+      }
+      .toc-entry.level-2 .toc-page {
+        font-size: 15px;
+      }
+      .toc-leader {
+        display: block;
+        overflow: hidden;
+        height: 0;
+        position: relative;
+        top: 0.86em;
+        border-top: 2px dotted #6f7682;
       }
       .doc-section {
         page-break-before: always;
@@ -827,6 +953,7 @@ function buildMainHtml({ title, sectionsHtml }) {
     </style>
   </head>
   <body>
+${tocHtml}
 ${sectionsHtml}
   </body>
 </html>`;
@@ -969,171 +1096,50 @@ function buildFooterHtml() {
 </html>`;
 }
 
-function buildTocXsl() {
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet version="2.0"
-                xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
-                xmlns:outline="http://wkhtmltopdf.org/outline"
-                xmlns="http://www.w3.org/1999/xhtml">
-  <xsl:output doctype-public="-//W3C//DTD XHTML 1.0 Strict//EN"
-              doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"
-              indent="yes" />
-  <xsl:template match="outline:outline">
-    <html>
-      <head>
-        <title>Table of Contents</title>
-        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-        <style>
-          body {
-            font-family: Arial, sans-serif;
-            color: #1f2732;
-            margin: 0;
-            padding: 0;
-          }
-          h1 {
-            text-align: center;
-            font-size: 24px;
-            margin: 0 0 16px;
-          }
-          .toc-table {
-            width: 100%;
-            border-collapse: collapse;
-            table-layout: fixed;
-          }
-          .toc-col-title {
-            width: 44%;
-          }
-          .toc-col-dots {
-            width: auto;
-          }
-          .toc-col-page {
-            width: 18mm;
-          }
-          .toc-row td {
-            padding: 3px 0;
-            vertical-align: baseline;
-          }
-          .toc-title-cell {
-            width: 44%;
-            overflow: hidden;
-            white-space: nowrap;
-          }
-          .toc-title {
-            color: #2d333b;
-            text-decoration: none;
-            display: inline-block;
-            max-width: 100%;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            font-size: 17px;
-          }
-          .toc-row.level-2 .toc-title {
-            padding-left: 15px;
-            font-size: 15px;
-          }
-          .toc-dots-cell {
-            width: auto;
-            overflow: hidden;
-            padding: 0 6px;
-          }
-          .toc-dots {
-            color: #6f7682;
-            display: block;
-            width: 100%;
-            border-bottom: 1px dotted #6f7682;
-            transform: translateY(-2px);
-            line-height: 1;
-          }
-          .toc-page-cell {
-            width: 18mm;
-            text-align: right;
-            white-space: nowrap;
-          }
-          .toc-page {
-            color: #2d333b;
-            text-decoration: none;
-            display: inline-block;
-            width: 100%;
-            text-align: right;
-            font-size: 17px;
-            font-variant-numeric: tabular-nums;
-            font-feature-settings: "tnum";
-          }
-          .toc-row.level-2 .toc-page {
-            font-size: 15px;
-          }
-        </style>
-      </head>
-      <body>
-        <h1>Table of Contents</h1>
-        <table class="toc-table">
-          <colgroup>
-            <col class="toc-col-title" />
-            <col class="toc-col-dots" />
-            <col class="toc-col-page" />
-          </colgroup>
-          <tbody>
-            <xsl:apply-templates select="outline:item/outline:item">
-              <xsl:with-param name="level" select="1"/>
-            </xsl:apply-templates>
-          </tbody>
-        </table>
-      </body>
-    </html>
-  </xsl:template>
-  <xsl:template match="outline:item">
-    <xsl:param name="level" select="1"/>
-    <xsl:if test="@title!=''">
-      <tr>
-        <xsl:attribute name="class">toc-row level-<xsl:value-of select="$level"/></xsl:attribute>
-        <td class="toc-title-cell">
-          <a class="toc-title">
-            <xsl:choose>
-              <xsl:when test="normalize-space(@link)!=''">
-                <xsl:attribute name="href"><xsl:value-of select="@link"/></xsl:attribute>
-              </xsl:when>
-              <xsl:when test="normalize-space((descendant::outline:item[normalize-space(@link)!=''][1]/@link))!=''">
-                <xsl:attribute name="href"><xsl:value-of select="(descendant::outline:item[normalize-space(@link)!=''][1]/@link)"/></xsl:attribute>
-              </xsl:when>
-            </xsl:choose>
-            <xsl:if test="@backLink">
-              <xsl:attribute name="name"><xsl:value-of select="@backLink"/></xsl:attribute>
-            </xsl:if>
-            <xsl:value-of select="@title" />
-          </a>
-        </td>
-        <td class="toc-dots-cell">
-          <span class="toc-dots"><xsl:text> </xsl:text></span>
-        </td>
-        <td class="toc-page-cell">
-          <a class="toc-page">
-            <xsl:choose>
-              <xsl:when test="normalize-space(@link)!=''">
-                <xsl:attribute name="href"><xsl:value-of select="@link"/></xsl:attribute>
-              </xsl:when>
-              <xsl:when test="normalize-space((descendant::outline:item[normalize-space(@link)!=''][1]/@link))!=''">
-                <xsl:attribute name="href"><xsl:value-of select="(descendant::outline:item[normalize-space(@link)!=''][1]/@link)"/></xsl:attribute>
-              </xsl:when>
-            </xsl:choose>
-            <xsl:choose>
-              <xsl:when test="normalize-space(@page)!=''"><xsl:value-of select="@page"/></xsl:when>
-              <xsl:otherwise><xsl:value-of select="(descendant::outline:item[normalize-space(@page)!=''][1]/@page)"/></xsl:otherwise>
-            </xsl:choose>
-          </a>
-        </td>
-      </tr>
-    </xsl:if>
-    <xsl:if test="$level &lt; 2">
-      <xsl:apply-templates select="outline:item">
-        <xsl:with-param name="level" select="$level + 1"/>
-      </xsl:apply-templates>
-    </xsl:if>
-  </xsl:template>
-  <xsl:template match="text()"/>
-</xsl:stylesheet>`;
+function runWkhtmltopdfPage({ inputPath, headerPath, footerPath, outputPath, title }) {
+  const args = [
+    "--enable-local-file-access",
+    "--encoding",
+    "utf-8",
+    "--print-media-type",
+    "--margin-top",
+    "26",
+    "--margin-bottom",
+    "18",
+    "--margin-left",
+    "16",
+    "--margin-right",
+    "16",
+    "--header-html",
+    headerPath,
+    "--header-spacing",
+    "6",
+    "--footer-html",
+    footerPath,
+    "--footer-spacing",
+    "5",
+    "--title",
+    title,
+    "--javascript-delay",
+    "200",
+    inputPath,
+    outputPath
+  ];
+
+  const result = spawnSync("wkhtmltopdf", args, { encoding: "utf8" });
+  if (result.status !== 0) {
+    const details = [
+      "wkhtmltopdf failed.",
+      result.stdout ? `stdout:\n${result.stdout}` : "",
+      result.stderr ? `stderr:\n${result.stderr}` : ""
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+    throw new Error(details);
+  }
 }
 
-function runWkhtmltopdf({ coverPath, contentPath, headerPath, footerPath, tocXslPath, outputPath, title }) {
+function runWkhtmltopdfDocument({ coverPath, mainPath, headerPath, footerPath, outputPath, title }) {
   const args = [
     "--enable-local-file-access",
     "--encoding",
@@ -1159,16 +1165,11 @@ function runWkhtmltopdf({ coverPath, contentPath, headerPath, footerPath, tocXsl
     title,
     "--outline-depth",
     "2",
+    "--javascript-delay",
+    "200",
     "cover",
     coverPath,
-    "toc",
-    "--toc-header-text",
-    "Table of Contents",
-    "--toc-level-indentation",
-    "1em",
-    "--xsl-style-sheet",
-    tocXslPath,
-    contentPath,
+    mainPath,
     outputPath
   ];
 
@@ -1208,6 +1209,7 @@ function main() {
     anchorsByFile.set(file, `doc-${slugify(relative)}`);
   }
 
+  const fileInfos = [];
   const sections = [];
   for (const file of markdownFiles) {
     const markdown = sanitizeMarkdown(fs.readFileSync(file, "utf8"));
@@ -1215,7 +1217,16 @@ function main() {
     const sectionAnchor = anchorsByFile.get(file);
     const context = { currentFile: file, anchorsByFile, sectionAnchor };
     const rendered = renderBlocks(blocks, context);
-    sections.push(`<section class="doc-section" id="${escapeAttribute(sectionAnchor)}">\n${rendered}\n</section>`);
+    const title = getFirstHeadingText(blocks, path.basename(file, ".md"));
+    const sectionHtml = `<section class="doc-section" id="${escapeAttribute(sectionAnchor)}">\n${rendered}\n</section>`;
+    sections.push(sectionHtml);
+    fileInfos.push({
+      file,
+      title,
+      anchor: sectionAnchor,
+      tocLevel: getTocLevel(file, entryFile, docsRoot),
+      sectionHtml
+    });
   }
 
   const generatedAt = new Date().toLocaleString("en-GB", { dateStyle: "long", timeStyle: "short" });
@@ -1224,10 +1235,6 @@ function main() {
     generatedAt,
     logoUrl: pathToFileURL(logoFile).toString()
   });
-  const contentHtml = buildMainHtml({
-    title: args.title,
-    sectionsHtml: sections.join("\n")
-  });
   const headerHtml = buildHeaderHtml({
     title: args.title,
     logoUrl: pathToFileURL(logoFile).toString()
@@ -1235,24 +1242,87 @@ function main() {
   const footerHtml = buildFooterHtml();
 
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "orchestron-docs-"));
-  const contentPath = path.join(tempDir, "content.html");
   const coverPath = path.join(tempDir, "cover.html");
   const headerPath = path.join(tempDir, "header.html");
   const footerPath = path.join(tempDir, "footer.html");
-  const tocXslPath = path.join(tempDir, "toc.xsl");
   fs.writeFileSync(coverPath, coverHtml, "utf8");
-  fs.writeFileSync(contentPath, contentHtml, "utf8");
   fs.writeFileSync(headerPath, headerHtml, "utf8");
   fs.writeFileSync(footerPath, footerHtml, "utf8");
-  fs.writeFileSync(tocXslPath, buildTocXsl(), "utf8");
+
+  let runningContentPage = 1;
+  for (let index = 0; index < fileInfos.length; index += 1) {
+    const info = fileInfos[index];
+    const sectionOnlyHtml = buildMainHtml({
+      title: info.title,
+      tocHtml: "",
+      sectionsHtml: info.sectionHtml
+    });
+    const sectionHtmlPath = path.join(tempDir, `section-${index}.html`);
+    const sectionPdfPath = path.join(tempDir, `section-${index}.pdf`);
+    fs.writeFileSync(sectionHtmlPath, sectionOnlyHtml, "utf8");
+    runWkhtmltopdfPage({
+      inputPath: sectionHtmlPath,
+      headerPath,
+      footerPath,
+      outputPath: sectionPdfPath,
+      title: info.title
+    });
+    const pageCount = Math.max(1, countPdfPages(sectionPdfPath));
+    info.contentStartPage = runningContentPage;
+    info.pageCount = pageCount;
+    runningContentPage += pageCount;
+  }
+
+  let tocPageCount = 1;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const tocEntries = fileInfos.map((info) => ({
+      title: info.title,
+      level: info.tocLevel,
+      anchor: info.anchor,
+      page: info.contentStartPage + 1 + tocPageCount
+    }));
+    const tocOnlyHtml = buildMainHtml({
+      title: args.title,
+      tocHtml: buildTocMarkup(tocEntries, false),
+      sectionsHtml: ""
+    });
+    const tocMeasureHtmlPath = path.join(tempDir, `toc-measure-${attempt}.html`);
+    const tocMeasurePdfPath = path.join(tempDir, `toc-measure-${attempt}.pdf`);
+    fs.writeFileSync(tocMeasureHtmlPath, tocOnlyHtml, "utf8");
+    runWkhtmltopdfPage({
+      inputPath: tocMeasureHtmlPath,
+      headerPath,
+      footerPath,
+      outputPath: tocMeasurePdfPath,
+      title: `${args.title} - TOC`
+    });
+    const measuredPages = Math.max(1, countPdfPages(tocMeasurePdfPath));
+    if (measuredPages === tocPageCount) {
+      break;
+    }
+    tocPageCount = measuredPages;
+  }
+
+  const tocEntries = fileInfos.map((info) => ({
+    title: info.title,
+    level: info.tocLevel,
+    anchor: info.anchor,
+    page: info.contentStartPage + 1 + tocPageCount
+  }));
+  const contentPath = path.join(tempDir, "main.html");
+  const finalMainHtml = buildMainHtml({
+    title: args.title,
+    tocHtml: buildTocMarkup(tocEntries, true),
+    sectionsHtml: sections.join("\n")
+  });
+  fs.writeFileSync(contentPath, finalMainHtml, "utf8");
 
   fs.mkdirSync(path.dirname(outputFile), { recursive: true });
-  runWkhtmltopdf({
+  runWkhtmltopdfDocument({
     coverPath,
-    contentPath,
+    mainPath: contentPath,
     headerPath,
     footerPath,
-    tocXslPath,
     outputPath: outputFile,
     title: args.title
   });
