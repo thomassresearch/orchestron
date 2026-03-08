@@ -790,6 +790,9 @@ function buildMainHtml({ title, tocHtml, sectionsHtml }) {
         font-size: 17px;
         white-space: nowrap;
       }
+      .toc-entry.level-1 .toc-title {
+        font-weight: 700;
+      }
       .toc-entry.level-2 .toc-title-wrap {
         padding-left: 15pt;
       }
@@ -808,6 +811,9 @@ function buildMainHtml({ title, tocHtml, sectionsHtml }) {
         font-variant-numeric: tabular-nums;
         font-feature-settings: "tnum";
         white-space: nowrap;
+      }
+      .toc-entry.level-1 .toc-page {
+        font-weight: 700;
       }
       .toc-entry.level-2 .toc-page {
         font-size: 15px;
