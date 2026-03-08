@@ -798,9 +798,7 @@ function buildMainHtml({ title, tocHtml, sectionsHtml }) {
       .toc-page-wrap {
         float: right;
         display: block;
-        width: 18mm;
-        box-sizing: border-box;
-        padding-left: 8pt;
+        margin-left: 4pt;
         text-align: right;
       }
       .toc-page {
