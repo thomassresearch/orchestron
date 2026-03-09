@@ -4650,5 +4650,101 @@
         "spanish": "Variable de salida `ares` de transegr."
       }
     }
+  },
+  "grain3": {
+    "description": {
+      "english": "Granular oscillator with more control than grain2, including independent frequency and phase randomization.",
+      "german": "Granularoszillator mit mehr Kontrolle als grain2, einschliesslich unabhaengiger Frequenz- und Phasenrandomisierung.",
+      "french": "Oscillateur granulaire offrant plus de contrôle que grain2, avec une randomisation indépendante de la fréquence et de la phase.",
+      "spanish": "Oscilador granular con más control que grain2, incluida la aleatorización independiente de la frecuencia y la fase."
+    },
+    "inputs": {
+      "kcps": {
+        "english": "Grain frequency in Hz.",
+        "german": "Grain-Frequenz in Hz.",
+        "french": "Fréquence des grains en Hz.",
+        "spanish": "Frecuencia del grano en Hz."
+      },
+      "kphs": {
+        "english": "Grain start phase as a fraction of the waveform table length.",
+        "german": "Startphase des Grains als Anteil der Wellenformtabellenlaenge.",
+        "french": "Phase de départ du grain sous forme de fraction de la longueur de la table d'onde.",
+        "spanish": "Fase inicial del grano como fracción de la longitud de la tabla de onda."
+      },
+      "kfmd": {
+        "english": "Bipolar random variation of grain frequency in Hz.",
+        "german": "Bipolare Zufallsvariation der Grain-Frequenz in Hz.",
+        "french": "Variation aléatoire bipolaire de la fréquence des grains en Hz.",
+        "spanish": "Variación aleatoria bipolar de la frecuencia del grano en Hz."
+      },
+      "kpmd": {
+        "english": "Bipolar random variation of the grain start phase.",
+        "german": "Bipolare Zufallsvariation der Startphase des Grains.",
+        "french": "Variation aléatoire bipolaire de la phase de départ du grain.",
+        "spanish": "Variación aleatoria bipolar de la fase inicial del grano."
+      },
+      "kgdur": {
+        "english": "Grain duration in seconds; also affects grains that are already active.",
+        "german": "Grain-Dauer in Sekunden; beeinflusst auch bereits aktive Grains.",
+        "french": "Durée du grain en secondes ; affecte aussi les grains déjà actifs.",
+        "spanish": "Duración del grano en segundos; también afecta a los granos ya activos."
+      },
+      "kdens": {
+        "english": "Number of grains generated per second.",
+        "german": "Anzahl der pro Sekunde erzeugten Grains.",
+        "french": "Nombre de grains générés par seconde.",
+        "spanish": "Número de granos generados por segundo."
+      },
+      "imaxovr": {
+        "english": "Maximum number of overlapping grains.",
+        "german": "Maximale Anzahl gleichzeitig ueberlappender Grains.",
+        "french": "Nombre maximal de grains qui se chevauchent.",
+        "spanish": "Número máximo de granos superpuestos."
+      },
+      "kfn": {
+        "english": "Function table containing the grain waveform; it can change at k-rate.",
+        "german": "Funktionstabelle mit der Grain-Wellenform; sie kann mit k-Rate gewechselt werden.",
+        "french": "Table de fonctions contenant la forme d'onde du grain ; elle peut changer au taux k.",
+        "spanish": "Tabla de funciones que contiene la forma de onda del grano; puede cambiar a tasa k."
+      },
+      "iwfn": {
+        "english": "Function table containing the grain window waveform.",
+        "german": "Funktionstabelle mit der Fensterhuellkurve des Grains.",
+        "french": "Table de fonctions contenant la fenêtre du grain.",
+        "spanish": "Tabla de funciones que contiene la ventana del grano."
+      },
+      "kfrpow": {
+        "english": "Shapes the probability distribution of random frequency variation.",
+        "german": "Formt die Wahrscheinlichkeitsverteilung der zufaelligen Frequenzvariation.",
+        "french": "Façonne la distribution de probabilité de la variation aléatoire de fréquence.",
+        "spanish": "Da forma a la distribución de probabilidad de la variación aleatoria de frecuencia."
+      },
+      "kprpow": {
+        "english": "Shapes the probability distribution of random phase variation; 0 with kphs = kpmd = 0.5 emulates grain2.",
+        "german": "Formt die Wahrscheinlichkeitsverteilung der zufaelligen Phasenvariation; 0 mit kphs = kpmd = 0.5 emuliert grain2.",
+        "french": "Façonne la distribution de probabilité de la variation aléatoire de phase ; 0 avec kphs = kpmd = 0.5 émule grain2.",
+        "spanish": "Da forma a la distribución de probabilidad de la variación aleatoria de fase; 0 con kphs = kpmd = 0.5 emula grain2."
+      },
+      "iseed": {
+        "english": "Random seed; non-positive values use the current time.",
+        "german": "Zufalls-Seed; nicht positive Werte verwenden die aktuelle Zeit.",
+        "french": "Graine aléatoire ; les valeurs non positives utilisent l'heure actuelle.",
+        "spanish": "Semilla aleatoria; los valores no positivos usan la hora actual."
+      },
+      "imode": {
+        "english": "Mode flags that control grain behavior.",
+        "german": "Modus-Flags zur Steuerung des Grain-Verhaltens.",
+        "french": "Indicateurs de mode qui contrôlent le comportement du grain.",
+        "spanish": "Indicadores de modo que controlan el comportamiento del grano."
+      }
+    },
+    "outputs": {
+      "asig": {
+        "english": "Audio output from grain3.",
+        "german": "Audio-Ausgang von grain3.",
+        "french": "Sortie audio de grain3.",
+        "spanish": "Salida de audio de grain3."
+      }
+    }
   }
 }
