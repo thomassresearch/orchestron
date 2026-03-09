@@ -152,6 +152,7 @@ type MultitrackArrangerProps = {
   instrumentBindings: SequencerInstrumentBinding[];
   onTransportPlay: () => void;
   onTransportStop: () => void;
+  onTransportStopDoubleClick: () => void;
   onTransportRewind: () => void;
   onTransportFastForward: () => void;
   onArrangerLoopSelectionChange: (selection: ArrangerLoopSelection | null) => void;
@@ -803,6 +804,7 @@ export function MultitrackArranger({
   instrumentBindings,
   onTransportPlay,
   onTransportStop,
+  onTransportStopDoubleClick,
   onTransportRewind,
   onTransportFastForward,
   onArrangerLoopSelectionChange,
@@ -1620,6 +1622,7 @@ export function MultitrackArranger({
           <button
             type="button"
             onClick={onTransportStop}
+            onDoubleClick={onTransportStopDoubleClick}
             className={transportButtonClass}
             title={copy.transportStop}
             aria-label={copy.transportStop}

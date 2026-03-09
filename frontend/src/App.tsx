@@ -2717,9 +2717,16 @@ export default function App() {
     }
   }, [setPianoRollEnabled]);
 
-  const onStopInstrumentEngine = useCallback(() => {
-    setSequencerError(null);
-    void (async () => {
+  const resetArrangerTransportToSelectionStart = useCallback(() => {
+    const currentState = sequencerRef.current;
+    const { selection } = arrangerPlaybackBounds(currentState);
+    const targetAbsoluteStep = selection?.startStep ?? 0;
+    setSequencerTransportAbsoluteStep(targetAbsoluteStep);
+    syncControllerSequencersToAbsoluteStep(targetAbsoluteStep, currentState);
+  }, [setSequencerTransportAbsoluteStep, syncControllerSequencersToAbsoluteStep]);
+
+  const stopPerformance = useCallback(
+    async (resetTransport: boolean) => {
       disableAllPianoRolls();
       if (sequencerRef.current.isPlaying) {
         await stopSequencerTransport(false);
@@ -2728,20 +2735,39 @@ export default function App() {
         sendAllNotesOff(channel);
       });
       pianoRollNoteSessionRef.current.clear();
-      await stopSession();
+      if (activeSessionState === "running") {
+        await stopSession();
+      }
       syncSequencerRuntime({ isPlaying: false });
-    })().catch((error) => {
+      if (resetTransport) {
+        resetArrangerTransportToSelectionStart();
+      }
+    },
+    [
+      activeSessionState,
+      collectPerformanceChannels,
+      disableAllPianoRolls,
+      resetArrangerTransportToSelectionStart,
+      sendAllNotesOff,
+      stopSequencerTransport,
+      stopSession,
+      syncSequencerRuntime
+    ]
+  );
+
+  const onStopInstrumentEngine = useCallback(() => {
+    setSequencerError(null);
+    void stopPerformance(false).catch((error) => {
       setSequencerError(error instanceof Error ? error.message : appCopy.errors.failedToStopInstrumentEngine);
     });
-  }, [
-    appCopy.errors.failedToStopInstrumentEngine,
-    collectPerformanceChannels,
-    disableAllPianoRolls,
-    sendAllNotesOff,
-    stopSequencerTransport,
-    stopSession,
-    syncSequencerRuntime
-  ]);
+  }, [appCopy.errors.failedToStopInstrumentEngine, stopPerformance]);
+
+  const onStopInstrumentEngineAndResetTransport = useCallback(() => {
+    setSequencerError(null);
+    void stopPerformance(true).catch((error) => {
+      setSequencerError(error instanceof Error ? error.message : appCopy.errors.failedToStopInstrumentEngine);
+    });
+  }, [appCopy.errors.failedToStopInstrumentEngine, stopPerformance]);
 
   const moveSequencerTransport = useCallback(
     async (deltaSteps: number) => {
@@ -4150,6 +4176,7 @@ export default function App() {
             onImportConfig={onImportSequencerConfig}
             onStartInstruments={onStartInstrumentEngine}
             onStopInstruments={onStopInstrumentEngine}
+            onStopInstrumentsAndResetTransport={onStopInstrumentEngineAndResetTransport}
             onBpmChange={setSequencerBpm}
             onAddSequencerTrack={addSequencerTrack}
             onAddDrummerSequencerTrack={addDrummerSequencerTrack}

@@ -42,6 +42,8 @@ The arranger header provides cassette-style transport controls with icon buttons
 
 The transport controls the full performance arrangement, including melodic sequencer tracks, drummer sequencers, and controller sequencers.
 
+Double-click `Stop` to reset the playhead to the selected loop start. If no loop range is selected, the playhead resets to step `0`.
+
 ## Root Timeline Editing
 
 You can edit arrangement structure directly on each row:

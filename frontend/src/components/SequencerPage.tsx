@@ -2079,6 +2079,7 @@ interface SequencerPageProps {
   onImportConfig: (file: File) => void;
   onStartInstruments: () => void;
   onStopInstruments: () => void;
+  onStopInstrumentsAndResetTransport: () => void;
   onBpmChange: (bpm: number) => void;
   onAddSequencerTrack: () => void;
   onAddDrummerSequencerTrack: () => void;
@@ -3358,6 +3359,7 @@ export function SequencerPage({
   onImportConfig,
   onStartInstruments,
   onStopInstruments,
+  onStopInstrumentsAndResetTransport,
   onBpmChange,
   onAddSequencerTrack,
   onAddDrummerSequencerTrack,
@@ -3675,6 +3677,12 @@ export function SequencerPage({
       onStopInstruments();
     }
   }, [disableAllDevices, instrumentsRunning, onStopInstruments]);
+
+  const handleStopAllAndResetTransport = useCallback(() => {
+    setPendingStartAllPianoRolls(false);
+    disableAllDevices();
+    onStopInstrumentsAndResetTransport();
+  }, [disableAllDevices, onStopInstrumentsAndResetTransport]);
 
   useEffect(() => {
     if (!pendingStartAllPianoRolls || !instrumentsRunning) {
@@ -5637,6 +5645,7 @@ export function SequencerPage({
           instrumentBindings={instrumentBindings}
           onTransportPlay={handleStartAll}
           onTransportStop={handleStopAll}
+          onTransportStopDoubleClick={handleStopAllAndResetTransport}
           onTransportRewind={onSequencerCycleRewind}
           onTransportFastForward={onSequencerCycleForward}
           onArrangerLoopSelectionChange={onSequencerArrangerLoopSelectionChange}
