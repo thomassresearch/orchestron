@@ -33,6 +33,17 @@ export interface CompiledPadLoopPattern {
   rootRanges: Array<{ start: number; end: number }>;
 }
 
+export interface PadLoopPatternClipboardState {
+  items: PadLoopPatternItem[];
+  groups: PadLoopGroupPatternState[];
+  superGroups: PadLoopSuperGroupPatternState[];
+}
+
+export interface PreparedPadLoopClipboardInsertion {
+  pattern: PadLoopPatternState;
+  items: PadLoopPatternItem[];
+}
+
 type ParsedGroupLike = {
   id: string;
   sequence: PadLoopPatternItem[];
@@ -141,6 +152,37 @@ export function clonePadLoopPatternItem(item: PadLoopPatternItem): PadLoopPatter
     return { type: "group", groupId: item.groupId };
   }
   return { type: "super", superGroupId: item.superGroupId };
+}
+
+function samePadLoopPatternItem(a: PadLoopPatternItem, b: PadLoopPatternItem): boolean {
+  if (a.type !== b.type) {
+    return false;
+  }
+  if (a.type === "pad" && b.type === "pad") {
+    return a.padIndex === b.padIndex;
+  }
+  if (a.type === "pause" && b.type === "pause") {
+    return a.stepCount === b.stepCount;
+  }
+  if (a.type === "group" && b.type === "group") {
+    return a.groupId === b.groupId;
+  }
+  if (a.type === "super" && b.type === "super") {
+    return a.superGroupId === b.superGroupId;
+  }
+  return false;
+}
+
+function samePadLoopPatternSequence(a: PadLoopPatternItem[], b: PadLoopPatternItem[]): boolean {
+  if (a.length !== b.length) {
+    return false;
+  }
+  for (let index = 0; index < a.length; index += 1) {
+    if (!samePadLoopPatternItem(a[index], b[index])) {
+      return false;
+    }
+  }
+  return true;
 }
 
 export function clonePadLoopPattern(pattern: PadLoopPatternState): PadLoopPatternState {
@@ -509,6 +551,28 @@ export function insertPadLoopItem(
   return replaceContainerSequence(pattern, container, nextSequence);
 }
 
+export function insertPadLoopItemsIntoContainer(
+  pattern: PadLoopPatternState,
+  container: PadLoopContainerRef,
+  index: number,
+  items: PadLoopPatternItem[]
+): PadLoopPatternState {
+  if (items.length === 0) {
+    return pattern;
+  }
+  if (items.some((item) => !canInsertItemIntoPadLoopContainer(pattern, container, item))) {
+    return pattern;
+  }
+  const sequence = groupSequenceByContainerKind(pattern, container);
+  if (!sequence) {
+    return pattern;
+  }
+  const nextSequence = sequence.map(clonePadLoopPatternItem);
+  const insertionIndex = clampInt(index, 0, nextSequence.length);
+  nextSequence.splice(insertionIndex, 0, ...items.map(clonePadLoopPatternItem));
+  return replaceContainerSequence(pattern, container, nextSequence);
+}
+
 export function movePadLoopItemWithinContainer(
   pattern: PadLoopPatternState,
   container: PadLoopContainerRef,
@@ -643,6 +707,232 @@ export function nextPadLoopSuperGroupId(existingIds: Iterable<string>): string {
     }
   }
   return `M${Date.now()}`;
+}
+
+function normalizedSelectionIndexes(sequenceLength: number, indexes: number[]): number[] {
+  return Array.from(
+    new Set(
+      indexes
+        .filter((value) => Number.isFinite(value))
+        .map((value) => Math.round(value))
+        .filter((value) => value >= 0 && value < sequenceLength)
+    )
+  ).sort((a, b) => a - b);
+}
+
+function extractSelectionRuns(sequence: PadLoopPatternItem[], indexes: number[]): Array<{ start: number; end: number }> {
+  const selected = normalizedSelectionIndexes(sequence.length, indexes);
+  if (selected.length === 0) {
+    return [];
+  }
+
+  const runs: Array<{ start: number; end: number }> = [];
+  let runStart = selected[0];
+  let runEnd = selected[0];
+
+  for (let position = 1; position < selected.length; position += 1) {
+    const nextIndex = selected[position];
+    let onlyPausesBetween = true;
+    for (let index = runEnd + 1; index < nextIndex; index += 1) {
+      if (sequence[index]?.type !== "pause") {
+        onlyPausesBetween = false;
+        break;
+      }
+    }
+    if (onlyPausesBetween) {
+      runEnd = nextIndex;
+      continue;
+    }
+    runs.push({ start: runStart, end: runEnd });
+    runStart = nextIndex;
+    runEnd = nextIndex;
+  }
+
+  runs.push({ start: runStart, end: runEnd });
+  return runs;
+}
+
+export function copyPadLoopItemsFromContainer(
+  pattern: PadLoopPatternState,
+  container: PadLoopContainerRef,
+  indexes: number[]
+): PadLoopPatternClipboardState | null {
+  const sequence = groupSequenceByContainerKind(pattern, container);
+  if (!sequence || sequence.length === 0) {
+    return null;
+  }
+
+  const runs = extractSelectionRuns(sequence, indexes);
+  if (runs.length === 0) {
+    return null;
+  }
+
+  const items: PadLoopPatternItem[] = [];
+  const copiedGroupIds = new Set<string>();
+  const copiedSuperGroupIds = new Set<string>();
+
+  for (const run of runs) {
+    for (let index = run.start; index <= run.end; index += 1) {
+      const item = sequence[index];
+      if (!item) {
+        continue;
+      }
+      items.push(clonePadLoopPatternItem(item));
+      if (item.type === "group") {
+        copiedGroupIds.add(item.groupId);
+      }
+      if (item.type === "super") {
+        copiedSuperGroupIds.add(item.superGroupId);
+      }
+    }
+  }
+
+  const groupsById = new Map(pattern.groups.map((group) => [group.id, group]));
+  const superGroupsById = new Map(pattern.superGroups.map((group) => [group.id, group]));
+
+  const superGroups = Array.from(copiedSuperGroupIds)
+    .map((id) => superGroupsById.get(id))
+    .filter((group): group is PadLoopSuperGroupPatternState => Boolean(group))
+    .map((group) => ({
+      id: group.id,
+      sequence: group.sequence.map(clonePadLoopPatternItem)
+    }));
+
+  for (const superGroup of superGroups) {
+    for (const item of superGroup.sequence) {
+      if (item.type === "group") {
+        copiedGroupIds.add(item.groupId);
+      }
+    }
+  }
+
+  const groups = Array.from(copiedGroupIds)
+    .map((id) => groupsById.get(id))
+    .filter((group): group is PadLoopGroupPatternState => Boolean(group))
+    .map((group) => ({
+      id: group.id,
+      sequence: group.sequence.map(clonePadLoopPatternItem)
+    }));
+
+  return {
+    items,
+    groups,
+    superGroups
+  };
+}
+
+export function canPastePadLoopClipboardIntoContainer(
+  container: PadLoopContainerRef,
+  clipboard: PadLoopPatternClipboardState | null
+): boolean {
+  if (!clipboard || clipboard.items.length === 0) {
+    return false;
+  }
+  return clipboard.items.every((item) => itemLevel(item) < padLoopContainerLevel(container));
+}
+
+export function preparePadLoopClipboardInsertion(
+  pattern: PadLoopPatternState,
+  clipboard: PadLoopPatternClipboardState
+): PreparedPadLoopClipboardInsertion {
+  if (clipboard.items.length === 0) {
+    return {
+      pattern,
+      items: []
+    };
+  }
+
+  const next = clonePadLoopPattern(pattern);
+  const groupIdMap = new Map<string, string>();
+  const superGroupIdMap = new Map<string, string>();
+
+  for (const group of clipboard.groups) {
+    const nextSequence = group.sequence.map(clonePadLoopPatternItem);
+    const existing = next.groups.find((candidate) => candidate.id === group.id);
+    if (existing && samePadLoopPatternSequence(existing.sequence, nextSequence)) {
+      groupIdMap.set(group.id, existing.id);
+      continue;
+    }
+    if (existing) {
+      const remappedId = nextPadLoopGroupId(next.groups.map((candidate) => candidate.id));
+      next.groups.push({
+        id: remappedId,
+        sequence: nextSequence
+      });
+      groupIdMap.set(group.id, remappedId);
+      continue;
+    }
+    next.groups.push({
+      id: group.id,
+      sequence: nextSequence
+    });
+    groupIdMap.set(group.id, group.id);
+  }
+
+  for (const superGroup of clipboard.superGroups) {
+    const nextSequence = superGroup.sequence.map((item) => {
+      if (item.type !== "group") {
+        return clonePadLoopPatternItem(item);
+      }
+      return {
+        type: "group",
+        groupId: groupIdMap.get(item.groupId) ?? item.groupId
+      } satisfies PadLoopPatternItem;
+    });
+    const existing = next.superGroups.find((candidate) => candidate.id === superGroup.id);
+    if (existing && samePadLoopPatternSequence(existing.sequence, nextSequence)) {
+      superGroupIdMap.set(superGroup.id, existing.id);
+      continue;
+    }
+    if (existing) {
+      const remappedId = nextPadLoopSuperGroupId(next.superGroups.map((candidate) => candidate.id));
+      next.superGroups.push({
+        id: remappedId,
+        sequence: nextSequence
+      });
+      superGroupIdMap.set(superGroup.id, remappedId);
+      continue;
+    }
+    next.superGroups.push({
+      id: superGroup.id,
+      sequence: nextSequence
+    });
+    superGroupIdMap.set(superGroup.id, superGroup.id);
+  }
+
+  const items = clipboard.items.map((item) => {
+    if (item.type === "group") {
+      return {
+        type: "group",
+        groupId: groupIdMap.get(item.groupId) ?? item.groupId
+      } satisfies PadLoopPatternItem;
+    }
+    if (item.type === "super") {
+      return {
+        type: "super",
+        superGroupId: superGroupIdMap.get(item.superGroupId) ?? item.superGroupId
+      } satisfies PadLoopPatternItem;
+    }
+    return clonePadLoopPatternItem(item);
+  });
+
+  return {
+    pattern: next,
+    items
+  };
+}
+
+export function insertPadLoopClipboardIntoContainer(
+  pattern: PadLoopPatternState,
+  container: PadLoopContainerRef,
+  index: number,
+  clipboard: PadLoopPatternClipboardState
+): PadLoopPatternState {
+  if (!canPastePadLoopClipboardIntoContainer(container, clipboard)) {
+    return pattern;
+  }
+  const prepared = preparePadLoopClipboardInsertion(pattern, clipboard);
+  return insertPadLoopItemsIntoContainer(prepared.pattern, container, index, prepared.items);
 }
 
 export function groupPadLoopItemsInContainer(

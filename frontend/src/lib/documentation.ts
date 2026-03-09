@@ -472,6 +472,8 @@ Arrange melodic sequencers, drummer sequencers, and controller sequencers on one
 
 - Use cassette transport to rewind, stop, play, or fast-forward the whole arrangement in 4-step blocks.
 - Drag root-timeline tokens to reorder pads, groups, and super-groups.
+- Use the right-click menu to insert pads, existing groups, or existing super-groups into a matching pause gap or at the end.
+- Copy and paste selected pads, groups, and super-groups from the context menu to duplicate phrases.
 - Click a group or super-group token to open its nested editor and build longer phrases.
 - Use the loop ruler and zoom controls to focus playback on a selected arranger range.`
     },
@@ -483,6 +485,8 @@ Ordnet melodische Sequencer, Drummer-Sequencer und Controller-Sequencer auf eine
 
 - Mit dem Kassetten-Transport die gesamte Performance in 4-Schritt-Bloecken zurueckspulen, stoppen, starten oder vorspulen.
 - Tokens auf der Root-Timeline ziehen, um Pads, Gruppen und Super-Gruppen neu anzuordnen.
+- Mit dem Rechtsklick-Menue Pads, vorhandene Gruppen oder vorhandene Super-Gruppen in eine passende Pause oder ans Ende einfuegen.
+- Ausgewaehlte Pads, Gruppen und Super-Gruppen per Kontextmenue kopieren und einfuegen, um Phrasen zu duplizieren.
 - Auf ein Gruppen- oder Super-Gruppen-Token klicken, um den verschachtelten Editor fuer laengere Phrasen zu oeffnen.
 - Mit Loop-Lineal und Zoom die Wiedergabe auf einen ausgewaehlten Arranger-Bereich fokussieren.`
     },
@@ -494,6 +498,8 @@ Organise les sequenceurs melodiques, les sequenceurs batterie et les sequenceurs
 
 - Utiliser le transport cassette pour revenir en arriere, arreter, lancer ou avancer toute l'arrangement par blocs de 4 pas.
 - Faire glisser les jetons de la timeline principale pour reordonner pads, groupes et super-groupes.
+- Utiliser le menu contextuel pour inserer des pads, des groupes existants ou des super-groupes existants dans une pause adaptee ou a la fin.
+- Copier et coller des pads, groupes et super-groupes selectionnes depuis le menu contextuel pour dupliquer des phrases.
 - Cliquer sur un jeton de groupe ou de super-groupe pour ouvrir son editeur imbrique et construire des phrases plus longues.
 - Utiliser la regle de boucle et le zoom pour concentrer la lecture sur une plage choisie de l'arrangeur.`
     },
@@ -505,6 +511,8 @@ Organiza secuenciadores melodicos, secuenciadores de bateria y secuenciadores de
 
 - Usa el transporte tipo casete para rebobinar, detener, reproducir o adelantar todo el arreglo en bloques de 4 pasos.
 - Arrastra los tokens de la linea principal para reordenar pads, grupos y supergrupos.
+- Usa el menu contextual para insertar pads, grupos existentes o supergrupos existentes en una pausa adecuada o al final.
+- Copia y pega pads, grupos y supergrupos seleccionados desde el menu contextual para duplicar frases.
 - Haz clic en un token de grupo o supergrupo para abrir su editor anidado y construir frases mas largas.
 - Usa la regla de bucle y el zoom para centrar la reproduccion en un rango concreto del arreglador.`
     }

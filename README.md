@@ -46,7 +46,7 @@ When the rack transport has started instruments, rack assignment edits are inten
 
 A controller sequencer lets you define a curve that is sampled during playback and emitted as MIDI control messages for a selected controller number.
 
-The multitrack arranger combines melodic sequencers, drummer sequencers, and controller sequencers in one shared timeline. Cassette-style transport controls can rewind or fast-forward in `4-step` blocks, `Stop` preserves the playhead, an optional loop selection repeats only the chosen arranger range, and the section now exposes the same integrated `?` help flow as the other perform devices.
+The multitrack arranger combines melodic sequencers, drummer sequencers, and controller sequencers in one shared timeline. Cassette-style transport controls can rewind or fast-forward in `4-step` blocks, `Stop` preserves the playhead, an optional loop selection repeats only the chosen arranger range, right-click menus can insert pads or existing group/super-group tokens and copy/paste selected phrase blocks into later gaps or the sequence end, and the section now exposes the same integrated `?` help flow as the other perform devices.
 
 The piano roll follows the active scale/mode (from the running sequencer) and highlights keys by scale degree. When multiple sequencers run with different scales/modes, only keys shared by both scales/modes are highlighted, which supports interactive playing with clear harmonic guidance.
 

@@ -149,6 +149,19 @@ type SequencerUiCopy = {
   multitrackArrangerTransportStop: string;
   multitrackArrangerTransportPlay: string;
   multitrackArrangerTransportFastForward: string;
+  multitrackArrangerContextMenuAddPad: string;
+  multitrackArrangerContextMenuAddGroup: string;
+  multitrackArrangerContextMenuAddSuperGroup: string;
+  multitrackArrangerContextMenuCopy: string;
+  multitrackArrangerContextMenuPaste: string;
+  multitrackArrangerContextMenuGroup: string;
+  multitrackArrangerContextMenuSuperGroup: string;
+  multitrackArrangerContextMenuUngroup: string;
+  multitrackArrangerContextMenuRemove: string;
+  multitrackArrangerContextMenuNoGroups: string;
+  multitrackArrangerContextMenuNoSuperGroups: string;
+  multitrackArrangerContextMenuPasteDisabled: string;
+  multitrackArrangerContextMenuInsertHint: string;
   zoomOut: string;
   zoomIn: string;
   sequencers: string;
@@ -307,6 +320,19 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     multitrackArrangerTransportStop: "Stop",
     multitrackArrangerTransportPlay: "Play",
     multitrackArrangerTransportFastForward: "Fast forward 4 steps",
+    multitrackArrangerContextMenuAddPad: "Add pad",
+    multitrackArrangerContextMenuAddGroup: "Add group",
+    multitrackArrangerContextMenuAddSuperGroup: "Add super-group",
+    multitrackArrangerContextMenuCopy: "Copy",
+    multitrackArrangerContextMenuPaste: "Paste",
+    multitrackArrangerContextMenuGroup: "Group",
+    multitrackArrangerContextMenuSuperGroup: "Super-group",
+    multitrackArrangerContextMenuUngroup: "Ungroup",
+    multitrackArrangerContextMenuRemove: "Remove",
+    multitrackArrangerContextMenuNoGroups: "No groups available",
+    multitrackArrangerContextMenuNoSuperGroups: "No super-groups available",
+    multitrackArrangerContextMenuPasteDisabled: "Copy pads/groups/super-groups first",
+    multitrackArrangerContextMenuInsertHint: "Insert into a pause gap at the clicked step, or append at the end.",
     zoomOut: "Zoom -",
     zoomIn: "Zoom +",
     sequencers: "Sequencers",
@@ -418,6 +444,20 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     multitrackArrangerTransportStop: "Stopp",
     multitrackArrangerTransportPlay: "Abspielen",
     multitrackArrangerTransportFastForward: "4 Schritte vorspulen",
+    multitrackArrangerContextMenuAddPad: "Pad hinzufuegen",
+    multitrackArrangerContextMenuAddGroup: "Gruppe hinzufuegen",
+    multitrackArrangerContextMenuAddSuperGroup: "Super-Gruppe hinzufuegen",
+    multitrackArrangerContextMenuCopy: "Kopieren",
+    multitrackArrangerContextMenuPaste: "Einfuegen",
+    multitrackArrangerContextMenuGroup: "Gruppe",
+    multitrackArrangerContextMenuSuperGroup: "Super-Gruppe",
+    multitrackArrangerContextMenuUngroup: "Aufloesen",
+    multitrackArrangerContextMenuRemove: "Entfernen",
+    multitrackArrangerContextMenuNoGroups: "Keine Gruppen verfuegbar",
+    multitrackArrangerContextMenuNoSuperGroups: "Keine Super-Gruppen verfuegbar",
+    multitrackArrangerContextMenuPasteDisabled: "Zuerst Pads/Gruppen/Super-Gruppen kopieren",
+    multitrackArrangerContextMenuInsertHint:
+      "In eine passende Pause an der Klickposition einfuegen oder am Ende anhaengen.",
     zoomOut: "Zoom -",
     zoomIn: "Zoom +",
     sequencers: "Sequencer",
@@ -529,6 +569,20 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     multitrackArrangerTransportStop: "Arret",
     multitrackArrangerTransportPlay: "Lecture",
     multitrackArrangerTransportFastForward: "Avancer de 4 pas",
+    multitrackArrangerContextMenuAddPad: "Ajouter pad",
+    multitrackArrangerContextMenuAddGroup: "Ajouter groupe",
+    multitrackArrangerContextMenuAddSuperGroup: "Ajouter super-groupe",
+    multitrackArrangerContextMenuCopy: "Copier",
+    multitrackArrangerContextMenuPaste: "Coller",
+    multitrackArrangerContextMenuGroup: "Groupe",
+    multitrackArrangerContextMenuSuperGroup: "Super-groupe",
+    multitrackArrangerContextMenuUngroup: "Degrouper",
+    multitrackArrangerContextMenuRemove: "Supprimer",
+    multitrackArrangerContextMenuNoGroups: "Aucun groupe disponible",
+    multitrackArrangerContextMenuNoSuperGroups: "Aucun super-groupe disponible",
+    multitrackArrangerContextMenuPasteDisabled: "Copier d'abord des pads/groupes/super-groupes",
+    multitrackArrangerContextMenuInsertHint:
+      "Inserer dans une pause assez grande a la position cliquee, sinon a la fin.",
     zoomOut: "Zoom -",
     zoomIn: "Zoom +",
     sequencers: "Sequenceurs",
@@ -640,6 +694,20 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     multitrackArrangerTransportStop: "Detener",
     multitrackArrangerTransportPlay: "Reproducir",
     multitrackArrangerTransportFastForward: "Avanzar 4 pasos",
+    multitrackArrangerContextMenuAddPad: "Agregar pad",
+    multitrackArrangerContextMenuAddGroup: "Agregar grupo",
+    multitrackArrangerContextMenuAddSuperGroup: "Agregar supergrupo",
+    multitrackArrangerContextMenuCopy: "Copiar",
+    multitrackArrangerContextMenuPaste: "Pegar",
+    multitrackArrangerContextMenuGroup: "Grupo",
+    multitrackArrangerContextMenuSuperGroup: "Supergrupo",
+    multitrackArrangerContextMenuUngroup: "Desagrupar",
+    multitrackArrangerContextMenuRemove: "Eliminar",
+    multitrackArrangerContextMenuNoGroups: "No hay grupos disponibles",
+    multitrackArrangerContextMenuNoSuperGroups: "No hay supergrupos disponibles",
+    multitrackArrangerContextMenuPasteDisabled: "Primero copia pads/grupos/supergrupos",
+    multitrackArrangerContextMenuInsertHint:
+      "Inserta en una pausa suficientemente grande en la posicion marcada o al final.",
     zoomOut: "Zoom -",
     zoomIn: "Zoom +",
     sequencers: "Secuenciadores",
@@ -3631,7 +3699,20 @@ export function SequencerPage({
       selectionRuler: ui.multitrackArrangerSelectionRuler,
       selectionHint: ui.multitrackArrangerSelectionHint,
       clearSelection: ui.multitrackArrangerClearSelection,
-      dragToken: ui.multitrackArrangerDragToken
+      dragToken: ui.multitrackArrangerDragToken,
+      contextMenuAddPad: ui.multitrackArrangerContextMenuAddPad,
+      contextMenuAddGroup: ui.multitrackArrangerContextMenuAddGroup,
+      contextMenuAddSuperGroup: ui.multitrackArrangerContextMenuAddSuperGroup,
+      contextMenuCopy: ui.multitrackArrangerContextMenuCopy,
+      contextMenuPaste: ui.multitrackArrangerContextMenuPaste,
+      contextMenuGroup: ui.multitrackArrangerContextMenuGroup,
+      contextMenuSuperGroup: ui.multitrackArrangerContextMenuSuperGroup,
+      contextMenuUngroup: ui.multitrackArrangerContextMenuUngroup,
+      contextMenuRemove: ui.multitrackArrangerContextMenuRemove,
+      contextMenuNoGroups: ui.multitrackArrangerContextMenuNoGroups,
+      contextMenuNoSuperGroups: ui.multitrackArrangerContextMenuNoSuperGroups,
+      contextMenuPasteDisabled: ui.multitrackArrangerContextMenuPasteDisabled,
+      contextMenuInsertAtEnd: ui.multitrackArrangerContextMenuInsertHint
     }),
     [ui]
   );

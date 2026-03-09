@@ -9,15 +9,21 @@ import type {
 
 import {
   PAD_LOOP_PAUSE_STEP_OPTIONS,
+  canInsertItemIntoPadLoopContainer,
+  canPastePadLoopClipboardIntoContainer,
   canCreatePadLoopGroupFromSelection,
+  copyPadLoopItemsFromContainer,
   getPadLoopContainerSequence,
   groupPadLoopItemsInContainer,
   insertPadLoopItem,
+  insertPadLoopItemsIntoContainer,
   movePadLoopItemWithinContainer,
+  preparePadLoopClipboardInsertion,
   removePadLoopItemsFromContainer,
   setPadLoopContainerSequence,
   ungroupPadLoopItemsInContainer,
-  type PadLoopContainerRef
+  type PadLoopContainerRef,
+  type PadLoopPatternClipboardState
 } from "../lib/padLoopPattern";
 import type {
   ArrangerLoopSelection,
@@ -65,6 +71,15 @@ type ArrangerContextMenuState = {
   y: number;
   trackId: string;
   container: PadLoopContainerRef;
+  target:
+    | {
+        kind: "root";
+        step: number;
+      }
+    | {
+        kind: "sequence";
+        index: number;
+      };
 };
 
 type RootDragState = {
@@ -118,6 +133,19 @@ type MultitrackArrangerProps = {
     selectionHint: string;
     clearSelection: string;
     dragToken: string;
+    contextMenuAddPad: string;
+    contextMenuAddGroup: string;
+    contextMenuAddSuperGroup: string;
+    contextMenuCopy: string;
+    contextMenuPaste: string;
+    contextMenuGroup: string;
+    contextMenuSuperGroup: string;
+    contextMenuUngroup: string;
+    contextMenuRemove: string;
+    contextMenuNoGroups: string;
+    contextMenuNoSuperGroups: string;
+    contextMenuPasteDisabled: string;
+    contextMenuInsertAtEnd: string;
   };
   sequencer: SequencerState;
   patches: PatchListItem[];
@@ -373,6 +401,20 @@ type RootMovePlan = {
   }[];
 };
 
+type RootPauseGap = {
+  startStep: number;
+  endStep: number;
+  startSourceIndex: number;
+  endSourceIndex: number;
+};
+
+type RootInsertionPlan = {
+  mode: "gap" | "append";
+  targetStartStep: number;
+  totalSteps: number;
+  gap: RootPauseGap | null;
+};
+
 function normalizePauseSequence(sequence: PadLoopPatternItem[]): PadLoopPatternItem[] {
   const normalized: PadLoopPatternItem[] = [];
   let pendingPauseSteps = 0;
@@ -399,6 +441,107 @@ function normalizePauseSequence(sequence: PadLoopPatternItem[]): PadLoopPatternI
     normalized.pop();
   }
   return normalized;
+}
+
+function buildRootPauseGaps(allTokens: ArrangerTimelineToken[]): RootPauseGap[] {
+  const gaps: RootPauseGap[] = [];
+  for (const token of allTokens) {
+    if (token.item.type !== "pause") {
+      continue;
+    }
+    const previous = gaps[gaps.length - 1];
+    if (
+      previous &&
+      previous.endSourceIndex + 1 === token.sourceIndex &&
+      previous.endStep === token.startStep
+    ) {
+      previous.endSourceIndex = token.sourceIndex;
+      previous.endStep = token.endStep;
+      continue;
+    }
+    gaps.push({
+      startStep: token.startStep,
+      endStep: token.endStep,
+      startSourceIndex: token.sourceIndex,
+      endSourceIndex: token.sourceIndex
+    });
+  }
+  return gaps;
+}
+
+function planRootInsertion(
+  allTokens: ArrangerTimelineToken[],
+  blockStepCount: number,
+  targetStartStep: number
+): RootInsertionPlan {
+  const normalizedBlockStepCount = Math.max(STEP_GRID_QUANTUM, quantizeToGrid(blockStepCount));
+  const visualTargetStartStep = Math.max(0, quantizeToGrid(targetStartStep));
+  const totalSteps = allTokens[allTokens.length - 1]?.endStep ?? 0;
+  const gap =
+    buildRootPauseGaps(allTokens).find(
+      (candidate) =>
+        visualTargetStartStep >= candidate.startStep &&
+        visualTargetStartStep + normalizedBlockStepCount <= candidate.endStep
+    ) ?? null;
+
+  if (gap) {
+    return {
+      mode: "gap",
+      targetStartStep: visualTargetStartStep,
+      totalSteps,
+      gap
+    };
+  }
+
+  return {
+    mode: "append",
+    targetStartStep: visualTargetStartStep >= totalSteps ? visualTargetStartStep : totalSteps,
+    totalSteps,
+    gap: null
+  };
+}
+
+function materializeRootInsertionSequence(
+  sequence: PadLoopPatternItem[],
+  items: PadLoopPatternItem[],
+  plan: RootInsertionPlan,
+  countSteps: (item: PadLoopPatternItem) => number
+): PadLoopPatternItem[] {
+  const normalizedItems = items.map(clonePatternItem);
+  const blockStepCount = normalizedItems.reduce((sum, item) => sum + countSteps(item), 0);
+  const nextSequence: PadLoopPatternItem[] = [];
+  let inserted = false;
+
+  if (plan.mode === "gap" && plan.gap) {
+    for (let index = 0; index < sequence.length; index += 1) {
+      if (index === plan.gap.startSourceIndex) {
+        const beforeSteps = plan.targetStartStep - plan.gap.startStep;
+        const afterSteps = plan.gap.endStep - (plan.targetStartStep + blockStepCount);
+        if (beforeSteps > 0) {
+          nextSequence.push(...pauseTokensForGap(beforeSteps));
+        }
+        nextSequence.push(...normalizedItems.map(clonePatternItem));
+        if (afterSteps > 0) {
+          nextSequence.push(...pauseTokensForGap(afterSteps));
+        }
+        inserted = true;
+        index = plan.gap.endSourceIndex;
+        continue;
+      }
+      nextSequence.push(clonePatternItem(sequence[index]));
+    }
+  } else {
+    nextSequence.push(...sequence.map(clonePatternItem));
+  }
+
+  if (!inserted) {
+    if (plan.targetStartStep > plan.totalSteps) {
+      nextSequence.push(...pauseTokensForGap(plan.targetStartStep - plan.totalSteps));
+    }
+    nextSequence.push(...normalizedItems.map(clonePatternItem));
+  }
+
+  return normalizePauseSequence(nextSequence);
 }
 
 function planRootBlockMove(
@@ -674,6 +817,7 @@ export function MultitrackArranger({
   const [openContainerByTrack, setOpenContainerByTrack] = useState<Record<string, PadLoopContainerRef>>({});
   const [selectionByContainer, setSelectionByContainer] = useState<Record<string, number[]>>({});
   const [contextMenu, setContextMenu] = useState<ArrangerContextMenuState | null>(null);
+  const [clipboard, setClipboard] = useState<PadLoopPatternClipboardState | null>(null);
   const [stepPixelWidth, setStepPixelWidth] = useState<number>(DEFAULT_STEP_PIXEL_WIDTH);
   const [timelineViewportWidth, setTimelineViewportWidth] = useState<number>(0);
   const [timelineScrollLeft, setTimelineScrollLeft] = useState<number>(0);
@@ -768,9 +912,9 @@ export function MultitrackArranger({
     ]
   );
 
-  const tokenStepCounter = useCallback((track: ArrangerTrack) => {
-    const groupById = new Map(track.padLoopPattern.groups.map((group) => [group.id, group.sequence]));
-    const superById = new Map(track.padLoopPattern.superGroups.map((group) => [group.id, group.sequence]));
+  const tokenStepCounter = useCallback((track: ArrangerTrack, pattern: PadLoopPatternState = track.padLoopPattern) => {
+    const groupById = new Map(pattern.groups.map((group) => [group.id, group.sequence]));
+    const superById = new Map(pattern.superGroups.map((group) => [group.id, group.sequence]));
     const fallbackPadStepCount = normalizeQuantizedStepCount(track.defaultPadStepCount);
 
     const countFor = (item: PadLoopPatternItem, path: string[]): number => {
@@ -1078,6 +1222,80 @@ export function MultitrackArranger({
       });
     },
     []
+  );
+
+  const copySelectionToClipboard = useCallback(
+    (track: ArrangerTrack, container: PadLoopContainerRef): boolean => {
+      const selection = getSelection(track.id, container);
+      const snapshot = copyPadLoopItemsFromContainer(track.padLoopPattern, container, selection);
+      if (!snapshot) {
+        return false;
+      }
+      setClipboard(snapshot);
+      return true;
+    },
+    [getSelection]
+  );
+
+  const insertItemsAtTarget = useCallback(
+    (
+      track: ArrangerTrack,
+      container: PadLoopContainerRef,
+      target: ArrangerContextMenuState["target"],
+      items: PadLoopPatternItem[],
+      basePattern: PadLoopPatternState = track.padLoopPattern
+    ): boolean => {
+      if (items.length === 0) {
+        return false;
+      }
+      if (items.some((item) => !canInsertItemIntoPadLoopContainer(basePattern, container, item))) {
+        return false;
+      }
+
+      let nextPattern = basePattern;
+      if (container.kind === "root" && target.kind === "root") {
+        const sequence = getPadLoopContainerSequence(basePattern, { kind: "root" }) ?? [];
+        const countSteps = tokenStepCounter(track, basePattern);
+        const allTokens: ArrangerTimelineToken[] = [];
+        let cursor = 0;
+        for (let index = 0; index < sequence.length; index += 1) {
+          const item = sequence[index];
+          const stepCount = countSteps(item);
+          allTokens.push({
+            sourceIndex: index,
+            item,
+            startStep: cursor,
+            endStep: cursor + stepCount,
+            stepCount
+          });
+          cursor += stepCount;
+        }
+        const blockStepCount = items.reduce((sum, item) => sum + countSteps(item), 0);
+        const plan = planRootInsertion(allTokens, blockStepCount, target.step);
+        const nextRootSequence = materializeRootInsertionSequence(sequence, items, plan, countSteps);
+        nextPattern = setPadLoopContainerSequence(basePattern, { kind: "root" }, nextRootSequence);
+      } else if (target.kind === "sequence") {
+        nextPattern = insertPadLoopItemsIntoContainer(basePattern, container, target.index, items);
+      }
+
+      if (nextPattern === basePattern) {
+        return false;
+      }
+      commitTrackPattern(track, nextPattern);
+      return true;
+    },
+    [commitTrackPattern, tokenStepCounter]
+  );
+
+  const pasteClipboardAtTarget = useCallback(
+    (track: ArrangerTrack, container: PadLoopContainerRef, target: ArrangerContextMenuState["target"]): boolean => {
+      if (!clipboard || !canPastePadLoopClipboardIntoContainer(container, clipboard)) {
+        return false;
+      }
+      const prepared = preparePadLoopClipboardInsertion(track.padLoopPattern, clipboard);
+      return insertItemsAtTarget(track, container, target, prepared.items, prepared.pattern);
+    },
+    [clipboard, insertItemsAtTarget]
   );
 
   const appendPadToken = useCallback(
@@ -1507,7 +1725,11 @@ export function MultitrackArranger({
                         x: event.clientX,
                         y: event.clientY,
                         trackId: track.id,
-                        container: { kind: "root" }
+                        container: { kind: "root" },
+                        target: {
+                          kind: "root",
+                          step: stepFromClientX(event.clientX)
+                        }
                       });
                     }}
                     className="relative h-8 rounded-md border border-slate-700 bg-slate-950/80 outline-none ring-accent/40 focus:ring"
@@ -1605,7 +1827,11 @@ export function MultitrackArranger({
                                 x: event.clientX,
                                 y: event.clientY,
                                 trackId: track.id,
-                                container: { kind: "root" }
+                                container: { kind: "root" },
+                                target: {
+                                  kind: "root",
+                                  step: token.startStep
+                                }
                               });
                             }}
                             className="min-w-0 flex-1 truncate text-left font-mono"
@@ -1653,13 +1879,14 @@ export function MultitrackArranger({
                       [track.id]: container
                     }));
                   }}
-                  onContextMenu={(event, container) => {
+                  onContextMenu={(event, container, target) => {
                     event.preventDefault();
                     setContextMenu({
                       x: event.clientX,
                       y: event.clientY,
                       trackId: track.id,
-                      container
+                      container,
+                      target
                     });
                   }}
                   onContainerKeyDown={(event, container) => handleContainerKeyDown(event, track, container)}
@@ -1735,11 +1962,16 @@ export function MultitrackArranger({
 
       {contextMenu ? (
         <ArrangerContextMenu
+          copy={copy}
           contextMenu={contextMenu}
           tracks={arrangerTracks}
+          clipboard={clipboard}
           getSelection={getSelection}
           setSelection={setSelection}
           commitTrackPattern={commitTrackPattern}
+          copySelectionToClipboard={copySelectionToClipboard}
+          pasteClipboardAtTarget={pasteClipboardAtTarget}
+          insertItemsAtTarget={insertItemsAtTarget}
           close={() => setContextMenu(null)}
         />
       ) : null}
@@ -1773,7 +2005,11 @@ type OpenedContainerEditorProps = {
   getSelection: (container: PadLoopContainerRef) => number[];
   setSelection: (container: PadLoopContainerRef, indexes: number[]) => void;
   openNestedContainer: (container: PadLoopContainerRef) => void;
-  onContextMenu: (event: ReactMouseEvent, container: PadLoopContainerRef) => void;
+  onContextMenu: (
+    event: ReactMouseEvent,
+    container: PadLoopContainerRef,
+    target: ArrangerContextMenuState["target"]
+  ) => void;
   onContainerKeyDown: (event: ReactKeyboardEvent<HTMLDivElement>, container: PadLoopContainerRef) => void;
   onAppendPad: (padIndex: number) => void;
   onAppendPause: (stepCount: number) => void;
@@ -1846,7 +2082,12 @@ function OpenedContainerEditor({
         tabIndex={0}
         onKeyDown={(event) => onContainerKeyDown(event, container)}
         onClick={() => setSelection(container, [])}
-        onContextMenu={(event) => onContextMenu(event, container)}
+        onContextMenu={(event) =>
+          onContextMenu(event, container, {
+            kind: "sequence",
+            index: timeline.sequence.length
+          })
+        }
         onWheel={onTimelineWheel}
         className="flex min-h-[28px] flex-wrap items-center gap-1 overscroll-x-none rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1 outline-none ring-accent/40 focus:ring"
       >
@@ -1898,7 +2139,10 @@ function OpenedContainerEditor({
                   const current = getSelection(container);
                   const nextSelection = current.includes(token.sourceIndex) ? current : [token.sourceIndex];
                   setSelection(container, nextSelection);
-                  onContextMenu(event, container);
+                  onContextMenu(event, container, {
+                    kind: "sequence",
+                    index: token.sourceIndex
+                  });
                 }}
               >
                 <button
@@ -1971,24 +2215,44 @@ function OpenedContainerEditor({
 }
 
 type ArrangerContextMenuProps = {
+  copy: MultitrackArrangerProps["copy"];
   contextMenu: ArrangerContextMenuState;
   tracks: ArrangerTrack[];
+  clipboard: PadLoopPatternClipboardState | null;
   getSelection: (trackId: string, container: PadLoopContainerRef) => number[];
   setSelection: (trackId: string, container: PadLoopContainerRef, indexes: number[]) => void;
   commitTrackPattern: (track: ArrangerTrack, nextPattern: PadLoopPatternState) => void;
+  copySelectionToClipboard: (track: ArrangerTrack, container: PadLoopContainerRef) => boolean;
+  pasteClipboardAtTarget: (
+    track: ArrangerTrack,
+    container: PadLoopContainerRef,
+    target: ArrangerContextMenuState["target"]
+  ) => boolean;
+  insertItemsAtTarget: (
+    track: ArrangerTrack,
+    container: PadLoopContainerRef,
+    target: ArrangerContextMenuState["target"],
+    items: PadLoopPatternItem[]
+  ) => boolean;
   close: () => void;
 };
 
 function ArrangerContextMenu({
+  copy,
   contextMenu,
   tracks,
+  clipboard,
   getSelection,
   setSelection,
   commitTrackPattern,
+  copySelectionToClipboard,
+  pasteClipboardAtTarget,
+  insertItemsAtTarget,
   close
 }: ArrangerContextMenuProps) {
   const track = tracks.find((candidate) => candidate.id === contextMenu.trackId) ?? null;
   const selection = track ? getSelection(track.id, contextMenu.container) : [];
+  const [openSubmenu, setOpenSubmenu] = useState<"pad" | "group" | "super" | null>(null);
 
   if (!track) {
     return null;
@@ -1996,8 +2260,42 @@ function ArrangerContextMenu({
 
   const canGroup = canCreatePadLoopGroupFromSelection(track.padLoopPattern, contextMenu.container, selection, "group");
   const canSuper = canCreatePadLoopGroupFromSelection(track.padLoopPattern, contextMenu.container, selection, "super");
-  const canUngroup = selection.length > 0;
+  const sequence = getPadLoopContainerSequence(track.padLoopPattern, contextMenu.container) ?? [];
+  const hasUngroupableSelection = selection.some((index) => {
+    const item = sequence[index];
+    return item?.type === "group" || item?.type === "super";
+  });
   const canRemove = selection.length > 0;
+  const canCopy = selection.length > 0;
+  const canPaste = canPastePadLoopClipboardIntoContainer(contextMenu.container, clipboard);
+
+  const padItems = Array.from({ length: 8 }, (_, index) => {
+    const item: PadLoopPatternItem = {
+      type: "pad",
+      padIndex: index
+    };
+    return {
+      key: `pad-${index}`,
+      label: String(index + 1),
+      item
+    };
+  }).filter((entry) => canInsertItemIntoPadLoopContainer(track.padLoopPattern, contextMenu.container, entry.item));
+
+  const groupItems = track.padLoopPattern.groups
+    .map((group) => ({
+      key: `group-${group.id}`,
+      label: group.id,
+      item: ({ type: "group", groupId: group.id } satisfies PadLoopPatternItem)
+    }))
+    .filter((entry) => canInsertItemIntoPadLoopContainer(track.padLoopPattern, contextMenu.container, entry.item));
+
+  const superItems = track.padLoopPattern.superGroups
+    .map((group) => ({
+      key: `super-${group.id}`,
+      label: group.id,
+      item: ({ type: "super", superGroupId: group.id } satisfies PadLoopPatternItem)
+    }))
+    .filter((entry) => canInsertItemIntoPadLoopContainer(track.padLoopPattern, contextMenu.container, entry.item));
 
   const handleAction = (action: "group" | "super" | "ungroup" | "remove") => {
     let nextPattern = track.padLoopPattern;
@@ -2017,15 +2315,127 @@ function ArrangerContextMenu({
     close();
   };
 
+  const handleInsertItem = (item: PadLoopPatternItem) => {
+    if (insertItemsAtTarget(track, contextMenu.container, contextMenu.target, [item])) {
+      close();
+    }
+  };
+
+  const renderSubmenu = (
+    submenuKey: "pad" | "group" | "super",
+    label: string,
+    items: Array<{ key: string; label: string; item: PadLoopPatternItem }>,
+    emptyLabel: string,
+    accentClass: string
+  ) => {
+    const enabled = items.length > 0;
+    return (
+      <div
+        className="relative"
+        onMouseEnter={() => {
+          if (enabled) {
+            setOpenSubmenu(submenuKey);
+          }
+        }}
+        onMouseLeave={() => {
+          setOpenSubmenu((current) => (current === submenuKey ? null : current));
+        }}
+      >
+        <button
+          type="button"
+          disabled={!enabled}
+          onClick={() => {
+            if (!enabled) {
+              return;
+            }
+            setOpenSubmenu((current) => (current === submenuKey ? null : submenuKey));
+          }}
+          className={`flex w-full items-center justify-between rounded px-2 py-1 text-left text-xs transition ${
+            enabled ? "text-slate-200 hover:bg-slate-800" : "cursor-not-allowed text-slate-500"
+          }`}
+        >
+          <span>{label}</span>
+          <span className={`text-[10px] ${enabled ? accentClass : "text-slate-500"}`}>▸</span>
+        </button>
+
+        {enabled && openSubmenu === submenuKey ? (
+          <div className="absolute top-0 left-full ml-1 min-w-[9rem] rounded-lg border border-slate-700 bg-slate-900 p-1 shadow-2xl">
+            {items.length > 0 ? (
+              items.map((entry) => (
+                <button
+                  key={entry.key}
+                  type="button"
+                  onClick={() => handleInsertItem(entry.item)}
+                  className="flex w-full items-center justify-between rounded px-2 py-1 text-left text-xs text-slate-200 transition hover:bg-slate-800"
+                >
+                  <span>{entry.label}</span>
+                </button>
+              ))
+            ) : (
+              <div className="px-2 py-1 text-xs text-slate-500">{emptyLabel}</div>
+            )}
+          </div>
+        ) : null}
+      </div>
+    );
+  };
+
   return (
     <div
-      className="fixed z-[1700] w-48 rounded-lg border border-slate-700 bg-slate-900 p-1 shadow-2xl"
+      className="fixed z-[1700] w-52 rounded-lg border border-slate-700 bg-slate-900 p-1 shadow-2xl"
       style={{ left: contextMenu.x, top: contextMenu.y }}
       onMouseDown={(event) => event.stopPropagation()}
     >
       <div className="px-2 py-1 text-[10px] uppercase tracking-[0.14em] text-slate-500">
         {track.title} / {containerKey(contextMenu.container)}
       </div>
+
+      {renderSubmenu("pad", copy.contextMenuAddPad, padItems, copy.contextMenuNoGroups, "text-cyan-300")}
+      {renderSubmenu("group", copy.contextMenuAddGroup, groupItems, copy.contextMenuNoGroups, "text-orange-300")}
+      {renderSubmenu(
+        "super",
+        copy.contextMenuAddSuperGroup,
+        superItems,
+        copy.contextMenuNoSuperGroups,
+        "text-violet-300"
+      )}
+
+      <div className="my-1 border-t border-slate-800" />
+
+      <button
+        type="button"
+        disabled={!canCopy}
+        onClick={() => {
+          if (copySelectionToClipboard(track, contextMenu.container)) {
+            close();
+          }
+        }}
+        className={`flex w-full items-center justify-between rounded px-2 py-1 text-left text-xs transition ${
+          canCopy ? "text-slate-200 hover:bg-slate-800" : "cursor-not-allowed text-slate-500"
+        }`}
+      >
+        <span>{copy.contextMenuCopy}</span>
+        <span className="text-[10px] text-slate-400">{selection.length}</span>
+      </button>
+
+      <button
+        type="button"
+        disabled={!canPaste}
+        onClick={() => {
+          if (pasteClipboardAtTarget(track, contextMenu.container, contextMenu.target)) {
+            close();
+          }
+        }}
+        title={!canPaste ? copy.contextMenuPasteDisabled : undefined}
+        className={`flex w-full items-center justify-between rounded px-2 py-1 text-left text-xs transition ${
+          canPaste ? "text-slate-200 hover:bg-slate-800" : "cursor-not-allowed text-slate-500"
+        }`}
+      >
+        <span>{copy.contextMenuPaste}</span>
+        <span className="text-[10px] text-slate-400">{clipboard?.items.length ?? 0}</span>
+      </button>
+
+      <div className="my-1 border-t border-slate-800" />
 
       <button
         type="button"
@@ -2035,7 +2445,7 @@ function ArrangerContextMenu({
           canGroup ? "text-slate-200 hover:bg-slate-800" : "cursor-not-allowed text-slate-500"
         }`}
       >
-        <span>Group</span>
+        <span>{copy.contextMenuGroup}</span>
         <span className="text-[10px] text-orange-300">A..Z</span>
       </button>
 
@@ -2047,19 +2457,19 @@ function ArrangerContextMenu({
           canSuper ? "text-slate-200 hover:bg-slate-800" : "cursor-not-allowed text-slate-500"
         }`}
       >
-        <span>Super-group</span>
+        <span>{copy.contextMenuSuperGroup}</span>
         <span className="text-[10px] text-violet-300">I..X</span>
       </button>
 
       <button
         type="button"
-        disabled={!canUngroup}
+        disabled={!hasUngroupableSelection}
         onClick={() => handleAction("ungroup")}
         className={`flex w-full items-center justify-between rounded px-2 py-1 text-left text-xs transition ${
-          canUngroup ? "text-slate-200 hover:bg-slate-800" : "cursor-not-allowed text-slate-500"
+          hasUngroupableSelection ? "text-slate-200 hover:bg-slate-800" : "cursor-not-allowed text-slate-500"
         }`}
       >
-        <span>Ungroup</span>
+        <span>{copy.contextMenuUngroup}</span>
         <span className="text-[10px] text-slate-400">inline</span>
       </button>
 
@@ -2071,9 +2481,13 @@ function ArrangerContextMenu({
           canRemove ? "text-rose-200 hover:bg-rose-500/10" : "cursor-not-allowed text-slate-500"
         }`}
       >
-        <span>Remove</span>
+        <span>{copy.contextMenuRemove}</span>
         <span className="text-[10px] text-slate-400">{selection.length}</span>
       </button>
+
+      {contextMenu.container.kind === "root" ? (
+        <div className="px-2 py-1 text-[10px] text-slate-500">{copy.contextMenuInsertAtEnd}</div>
+      ) : null}
     </div>
   );
 }

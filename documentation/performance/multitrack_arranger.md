@@ -52,6 +52,10 @@ You can edit arrangement structure directly on each row:
 
 Context menu actions:
 
+- `Add pad` submenu (insert a pad token at the clicked pause gap, or append at the end)
+- `Add group` submenu (insert an existing lettered group token)
+- `Add super-group` submenu (insert an existing roman-numeral super-group token)
+- `Copy` / `Paste` (duplicate selected pads/groups/super-groups; root pastes use a large-enough pause gap or the sequence end)
 - `Group` (creates a lettered group)
 - `Super-group` (creates a roman-numeral super-group)
 - `Ungroup` (expands grouped content inline)
@@ -78,7 +82,7 @@ In the opened editor, you can:
 - append pauses using `P4`, `P8`, `P16`, `P32`
 - drag-and-drop tokens to reorder within the same container
 - remove individual tokens with `x`
-- right-click for `Group`, `Super-group`, `Ungroup`, `Remove`
+- right-click for `Add pad`, `Add group`, `Add super-group`, `Copy`, `Paste`, `Group`, `Super-group`, `Ungroup`, `Remove`
 
 The editor also shows `Total steps` for the opened container.
 
