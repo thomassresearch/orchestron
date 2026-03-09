@@ -1024,6 +1024,241 @@ def test_session_backend_sequencer_pad_looper_sequence_stops_when_repeat_disable
         assert stop_sequencer.json()["running"] is False
 
 
+def test_session_backend_sequencer_stop_preserves_playhead_and_position_start(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        patch_payload = {
+            "name": "Sequencer Transport Resume Patch",
+            "description": "transport resume test",
+            "schema_version": 1,
+            "graph": {
+                "nodes": [
+                    {"id": "n1", "opcode": "const_a", "params": {"value": 0.2}, "position": {"x": 50, "y": 50}},
+                    {"id": "n2", "opcode": "outs", "params": {}, "position": {"x": 240, "y": 50}},
+                ],
+                "connections": [
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "left"},
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "right"},
+                ],
+                "ui_layout": {},
+                "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+            },
+        }
+
+        patch_response = client.post("/api/patches", json=patch_payload)
+        assert patch_response.status_code == 201
+        session_response = client.post("/api/sessions", json={"patch_id": patch_response.json()["id"]})
+        assert session_response.status_code == 201
+        session_id = session_response.json()["session_id"]
+
+        start_response = client.post(
+            f"/api/sessions/{session_id}/sequencer/start",
+            json={
+                "config": {
+                    "bpm": 300,
+                    "step_count": 16,
+                    "playback_end_step": 32,
+                    "tracks": [
+                        {
+                            "track_id": "voice-1",
+                            "midi_channel": 1,
+                            "pads": [{"pad_index": 0, "steps": [60, None, 67, None] + [None] * 12}],
+                        }
+                    ],
+                }
+            },
+        )
+        assert start_response.status_code == 200
+
+        preserved_absolute_step: int | None = None
+        for _ in range(20):
+            status = client.get(f"/api/sessions/{session_id}/sequencer/status")
+            assert status.status_code == 200
+            body = status.json()
+            absolute_step = body["cycle"] * body["step_count"] + body["current_step"]
+            if absolute_step >= 4:
+                preserved_absolute_step = absolute_step
+                break
+            time.sleep(0.05)
+
+        assert preserved_absolute_step is not None
+
+        stop_response = client.post(f"/api/sessions/{session_id}/sequencer/stop")
+        assert stop_response.status_code == 200
+        stopped_absolute_step = stop_response.json()["cycle"] * stop_response.json()["step_count"] + stop_response.json()["current_step"]
+        assert stopped_absolute_step == preserved_absolute_step
+
+        resume_response = client.post(
+            f"/api/sessions/{session_id}/sequencer/start",
+            json={"position_step": preserved_absolute_step},
+        )
+        assert resume_response.status_code == 200
+        resumed_absolute_step = resume_response.json()["cycle"] * resume_response.json()["step_count"] + resume_response.json()["current_step"]
+        assert resumed_absolute_step == preserved_absolute_step
+
+        client.post(f"/api/sessions/{session_id}/sequencer/stop")
+
+
+def test_session_backend_sequencer_transport_seek_moves_in_four_step_blocks(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        patch_payload = {
+            "name": "Sequencer Transport Seek Patch",
+            "description": "transport seek test",
+            "schema_version": 1,
+            "graph": {
+                "nodes": [
+                    {"id": "n1", "opcode": "const_a", "params": {"value": 0.2}, "position": {"x": 50, "y": 50}},
+                    {"id": "n2", "opcode": "outs", "params": {}, "position": {"x": 240, "y": 50}},
+                ],
+                "connections": [
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "left"},
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "right"},
+                ],
+                "ui_layout": {},
+                "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+            },
+        }
+
+        patch_response = client.post("/api/patches", json=patch_payload)
+        assert patch_response.status_code == 201
+        session_response = client.post("/api/sessions", json={"patch_id": patch_response.json()["id"]})
+        assert session_response.status_code == 201
+        session_id = session_response.json()["session_id"]
+
+        start_response = client.post(
+            f"/api/sessions/{session_id}/sequencer/start",
+            json={
+                "config": {
+                    "bpm": 120,
+                    "step_count": 16,
+                    "playback_end_step": 32,
+                    "tracks": [
+                        {
+                            "track_id": "voice-1",
+                            "midi_channel": 1,
+                            "pads": [{"pad_index": 0, "steps": [60] + [None] * 15}],
+                        }
+                    ],
+                }
+            },
+        )
+        assert start_response.status_code == 200
+
+        stop_response = client.post(f"/api/sessions/{session_id}/sequencer/stop")
+        assert stop_response.status_code == 200
+
+        forward_response = client.post(f"/api/sessions/{session_id}/sequencer/forward")
+        assert forward_response.status_code == 200
+        forward_absolute_step = forward_response.json()["cycle"] * forward_response.json()["step_count"] + forward_response.json()["current_step"]
+        assert forward_absolute_step == 4
+
+        rewind_response = client.post(f"/api/sessions/{session_id}/sequencer/rewind")
+        assert rewind_response.status_code == 200
+        rewind_absolute_step = rewind_response.json()["cycle"] * rewind_response.json()["step_count"] + rewind_response.json()["current_step"]
+        assert rewind_absolute_step == 0
+
+
+def test_session_backend_sequencer_selected_range_loops_and_one_shot_ends_at_range_end(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        patch_payload = {
+            "name": "Sequencer Playback Window Patch",
+            "description": "playback range test",
+            "schema_version": 1,
+            "graph": {
+                "nodes": [
+                    {"id": "n1", "opcode": "const_a", "params": {"value": 0.2}, "position": {"x": 50, "y": 50}},
+                    {"id": "n2", "opcode": "outs", "params": {}, "position": {"x": 240, "y": 50}},
+                ],
+                "connections": [
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "left"},
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "right"},
+                ],
+                "ui_layout": {},
+                "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+            },
+        }
+
+        patch_response = client.post("/api/patches", json=patch_payload)
+        assert patch_response.status_code == 201
+        session_response = client.post("/api/sessions", json={"patch_id": patch_response.json()["id"]})
+        assert session_response.status_code == 201
+        session_id = session_response.json()["session_id"]
+
+        loop_response = client.post(
+            f"/api/sessions/{session_id}/sequencer/start",
+            json={
+                "config": {
+                    "bpm": 300,
+                    "step_count": 16,
+                    "playback_start_step": 16,
+                    "playback_end_step": 24,
+                    "playback_loop": True,
+                    "tracks": [
+                        {
+                            "track_id": "voice-1",
+                            "midi_channel": 1,
+                            "pad_loop_enabled": True,
+                            "pad_loop_repeat": True,
+                            "pad_loop_sequence": [0, 1],
+                            "pads": [
+                                {"pad_index": 0, "steps": [60] + [None] * 15},
+                                {"pad_index": 1, "steps": [67] + [None] * 15},
+                            ],
+                        }
+                    ],
+                }
+            },
+        )
+        assert loop_response.status_code == 200
+
+        saw_range_wrap = False
+        for _ in range(30):
+            status = client.get(f"/api/sessions/{session_id}/sequencer/status")
+            assert status.status_code == 200
+            absolute_step = status.json()["cycle"] * status.json()["step_count"] + status.json()["current_step"]
+            if absolute_step == 16 and status.json()["running"] is True:
+                saw_range_wrap = True
+                break
+            time.sleep(0.05)
+
+        assert saw_range_wrap, "Expected looping playback window to wrap back to the selected range start."
+
+        client.post(f"/api/sessions/{session_id}/sequencer/stop")
+
+        one_shot_response = client.post(
+            f"/api/sessions/{session_id}/sequencer/start",
+            json={
+                "config": {
+                    "bpm": 300,
+                    "step_count": 16,
+                    "playback_start_step": 0,
+                    "playback_end_step": 8,
+                    "playback_loop": False,
+                    "tracks": [
+                        {
+                            "track_id": "voice-1",
+                            "midi_channel": 1,
+                            "pads": [{"pad_index": 0, "steps": [60] + [None] * 15}],
+                        }
+                    ],
+                }
+            },
+        )
+        assert one_shot_response.status_code == 200
+
+        stopped_at_end = False
+        for _ in range(30):
+            status = client.get(f"/api/sessions/{session_id}/sequencer/status")
+            assert status.status_code == 200
+            body = status.json()
+            absolute_step = body["cycle"] * body["step_count"] + body["current_step"]
+            if body["running"] is False and absolute_step == 8:
+                stopped_at_end = True
+                break
+            time.sleep(0.05)
+
+        assert stopped_at_end, "Expected one-shot playback to stop at the configured playback_end_step."
+
+
 def test_session_backend_sequencer_hold_steps_release_only_on_non_hold_rest(tmp_path: Path) -> None:
     with _client(tmp_path) as client:
         patch_payload = {

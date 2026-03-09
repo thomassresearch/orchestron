@@ -1,6 +1,11 @@
 import { create } from "zustand";
 
 import { api, isApiError } from "../api/client";
+import {
+  ARRANGER_STEP_QUANTUM,
+  normalizeArrangerLoopSelection,
+  transportPositionFromAbsoluteStep
+} from "../lib/arrangerTransport";
 import { createUntitledPatch } from "../lib/defaultPatch";
 import { normalizeGuiLanguage } from "../lib/guiLanguage";
 import {
@@ -28,6 +33,7 @@ import {
   transposeSequencerTonicByDiatonicStep
 } from "../lib/sequencer";
 import type {
+  ArrangerLoopSelection,
   AppPage,
   CompileResponse,
   ControllerSequencerKeypoint,
@@ -255,6 +261,7 @@ interface AppStore {
   ) => void;
 
   setSequencerBpm: (bpm: number) => void;
+  setSequencerArrangerLoopSelection: (selection: ArrangerLoopSelection | null) => void;
   syncSequencerRuntime: (payload: {
     isPlaying: boolean;
     transportStepCount?: 16 | 32;
@@ -283,6 +290,7 @@ interface AppStore {
   }) => void;
   setSequencerPlaying: (isPlaying: boolean) => void;
   setSequencerPlayhead: (playhead: number) => void;
+  setSequencerTransportAbsoluteStep: (absoluteStep: number) => void;
   applyEngineConfig: (config: {
     sr: number;
     controlRate: number;
@@ -788,6 +796,32 @@ function normalizePadLoopPatternForState(
   };
 }
 
+function normalizeRawArrangerLoopSelection(raw: unknown): ArrangerLoopSelection | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return null;
+  }
+  const selection = raw as Record<string, unknown>;
+  const startStep =
+    typeof selection.startStep === "number"
+      ? selection.startStep
+      : typeof selection.start_step === "number"
+        ? selection.start_step
+        : null;
+  const endStep =
+    typeof selection.endStep === "number"
+      ? selection.endStep
+      : typeof selection.end_step === "number"
+        ? selection.end_step
+        : null;
+  if (startStep === null || endStep === null) {
+    return null;
+  }
+  return {
+    startStep: Math.max(0, Math.round(startStep)),
+    endStep: Math.max(0, Math.round(endStep))
+  };
+}
+
 function normalizePadSteps(raw: unknown): SequencerStepState[] | null {
   if (!Array.isArray(raw)) {
     return null;
@@ -1063,6 +1097,7 @@ function defaultSequencerState(): SequencerState {
     stepCount: 16,
     playhead: 0,
     cycle: 0,
+    arrangerLoopSelection: null,
     tracks: [defaultSequencerTrack(1, 1)],
     drummerTracks: [],
     controllerSequencers: [],
@@ -1114,6 +1149,7 @@ function emptyPerformanceSequencerState(): SequencerState {
     isPlaying: false,
     playhead: 0,
     cycle: 0,
+    arrangerLoopSelection: null,
     tracks: [],
     drummerTracks: [],
     controllerSequencers: [],
@@ -1576,12 +1612,17 @@ function normalizeSequencerState(raw: unknown): SequencerState {
       ? rawStepCount
       : transportStepCountForPerformanceTracks(normalizedTracks, normalizedDrummerTracks)
   );
+  const rawArrangerLoopSelection = normalizeRawArrangerLoopSelection(
+    sequencer.arrangerLoopSelection ?? sequencer.arranger_loop_selection
+  );
+  const arrangerLoopSelection = normalizeArrangerLoopSelection(rawArrangerLoopSelection, Number.MAX_SAFE_INTEGER);
 
   return {
     ...defaults,
     bpm,
     stepCount: normalizedTransportStepCount,
     playhead: playhead % normalizedTransportStepCount,
+    arrangerLoopSelection,
     tracks: normalizedTracks,
     drummerTracks: normalizedDrummerTracks,
     controllerSequencers: normalizedControllerSequencers,
@@ -2182,7 +2223,7 @@ function buildSequencerConfigSnapshot(
 ): SequencerConfigSnapshot {
   const transportStepCount = transportStepCountForPerformanceTracks(sequencer.tracks, sequencer.drummerTracks);
   return {
-    version: 4,
+    version: 5,
     instruments: instruments
       .filter((instrument) => instrument.patchId.length > 0)
       .map((instrument) => ({
@@ -2193,6 +2234,7 @@ function buildSequencerConfigSnapshot(
     sequencer: {
       bpm: clampInt(sequencer.bpm, 30, 300),
       stepCount: normalizeTransportStepCount(transportStepCount),
+      arrangerLoopSelection: normalizeArrangerLoopSelection(sequencer.arrangerLoopSelection, Number.MAX_SAFE_INTEGER),
       tracks: sequencer.tracks.slice(0, 8).map((track, index) => ({
         id: track.id.length > 0 ? track.id : `voice-${index + 1}`,
         name: track.name.trim().length > 0 ? track.name : `Sequencer ${index + 1}`,
@@ -2332,7 +2374,7 @@ function parseSequencerConfigSnapshot(
   }
 
   const payload = snapshot as Record<string, unknown>;
-  if (payload.version !== 1 && payload.version !== 2 && payload.version !== 3 && payload.version !== 4) {
+  if (payload.version !== 1 && payload.version !== 2 && payload.version !== 3 && payload.version !== 4 && payload.version !== 5) {
     throw new Error("Unsupported sequencer config version.");
   }
 
@@ -5298,6 +5340,16 @@ export const useAppStore = create<AppStore>((set, get) => {
       });
     },
 
+    setSequencerArrangerLoopSelection: (selection) => {
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          arrangerLoopSelection: normalizeArrangerLoopSelection(selection, Number.MAX_SAFE_INTEGER)
+        }
+      });
+    },
+
     setSequencerPlaying: (isPlaying) => {
       const sequencer = get().sequencer;
       const sequencerRuntime = get().sequencerRuntime;
@@ -5357,6 +5409,20 @@ export const useAppStore = create<AppStore>((set, get) => {
         sequencerRuntime: {
           ...sequencerRuntime,
           playhead: normalizedPlayhead
+        }
+      });
+    },
+
+    setSequencerTransportAbsoluteStep: (absoluteStep) => {
+      const sequencerRuntime = get().sequencerRuntime;
+      const boundedStepCount = normalizeTransportStepCount(sequencerRuntime.stepCount);
+      const normalizedStep = Math.max(0, Math.round(absoluteStep));
+      const { playhead, cycle } = transportPositionFromAbsoluteStep(normalizedStep, boundedStepCount);
+      set({
+        sequencerRuntime: {
+          ...sequencerRuntime,
+          playhead,
+          cycle
         }
       });
     },

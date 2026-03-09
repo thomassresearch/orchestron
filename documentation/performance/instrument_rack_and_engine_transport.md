@@ -40,26 +40,12 @@ Buttons:
 
 - `Start Instruments`
 - `Stop Instruments`
-- `Start All`
-- `Stop All`
 
 ### `Start Instruments` / `Stop Instruments`
 
 These start/stop the underlying instrument engine session.
 
-### `Start All` / `Stop All`
-
-These are higher-level live-performance helpers:
-
-- `Start All`
-  - enables non-piano-roll devices (melodic sequencer tracks, drummer sequencers, controller sequencers, controller lanes)
-  - starts instruments if needed
-  - then enables piano rolls once the session is running
-- `Stop All`
-  - disables melodic sequencer tracks/drummer sequencers/controller sequencers/piano rolls/controller lanes
-  - stops instruments if running
-
-This helps bring a full performance online or offline with fewer clicks.
+Global arrangement transport now lives in the multitrack arranger section. There, cassette-style `Rewind`, `Stop`, `Play`, and `Fast forward` buttons start or stop all arrangement-driven sequencers together and move the shared playhead in `4-step` blocks. `Stop` preserves the current playhead position.
 
 ## Session State Badge
 
@@ -82,7 +68,7 @@ If engine start/stop or transport actions fail, the Perform page shows an error 
 ## Screenshots
 
 <p align="center">
-  <img src="../../screenshots/ perform_instrument_rack_transport_controls.png" alt="Instrument rack and transport controls" width="1100" style="max-width: 100%; height: auto;" />
+  <img src="../../screenshots/perform_instrument_rack_transport_controls.png" alt="Instrument rack and transport controls" width="1100" style="max-width: 100%; height: auto;" />
 </p>
 <p align="center"><em>Instrument rack detail with performance metadata, assignments, and transport controls.</em></p>
 

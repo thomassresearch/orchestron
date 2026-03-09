@@ -20,6 +20,7 @@ import {
   type PadLoopContainerRef
 } from "../lib/padLoopPattern";
 import type {
+  ArrangerLoopSelection,
   PadLoopPatternItem,
   PadLoopPatternState,
   PatchListItem,
@@ -85,6 +86,12 @@ type RootDragPreview = {
   valid: boolean;
 };
 
+type SelectionDragState = {
+  pointerId: number;
+  anchorStep: number;
+  moved: boolean;
+};
+
 type ArrangerTokenDragPayload = {
   trackId: string;
   container: PadLoopContainerRef;
@@ -92,9 +99,30 @@ type ArrangerTokenDragPayload = {
 };
 
 type MultitrackArrangerProps = {
+  copy: {
+    title: string;
+    deviceSummary: string;
+    zoomOut: string;
+    zoomIn: string;
+    instrumentColumn: string;
+    timelineColumn: string;
+    transportRewind: string;
+    transportStop: string;
+    transportPlay: string;
+    transportFastForward: string;
+    selectionRuler: string;
+    selectionHint: string;
+    clearSelection: string;
+    dragToken: string;
+  };
   sequencer: SequencerState;
   patches: PatchListItem[];
   instrumentBindings: SequencerInstrumentBinding[];
+  onTransportPlay: () => void;
+  onTransportStop: () => void;
+  onTransportRewind: () => void;
+  onTransportFastForward: () => void;
+  onArrangerLoopSelectionChange: (selection: ArrangerLoopSelection | null) => void;
   onSequencerTrackPadLoopPatternChange: (trackId: string, pattern: PadLoopPatternState) => void;
   onDrummerSequencerTrackPadLoopPatternChange: (trackId: string, pattern: PadLoopPatternState) => void;
   onControllerSequencerPadLoopPatternChange: (controllerSequencerId: string, pattern: PadLoopPatternState) => void;
@@ -187,6 +215,37 @@ function tokenClass(item: PadLoopPatternItem): string {
     return "border-orange-400/60 bg-orange-500/10 text-orange-100";
   }
   return "border-violet-400/60 bg-violet-500/10 text-violet-100";
+}
+
+function CassetteIcon({ kind }: { kind: "rewind" | "stop" | "play" | "fastForward" }) {
+  if (kind === "stop") {
+    return (
+      <svg viewBox="0 0 20 20" className="h-3.5 w-3.5 fill-current" aria-hidden>
+        <rect x="5" y="5" width="10" height="10" rx="1.2" />
+      </svg>
+    );
+  }
+  if (kind === "play") {
+    return (
+      <svg viewBox="0 0 20 20" className="h-3.5 w-3.5 fill-current" aria-hidden>
+        <path d="M6 4.5 15 10 6 15.5Z" />
+      </svg>
+    );
+  }
+  if (kind === "rewind") {
+    return (
+      <svg viewBox="0 0 20 20" className="h-3.5 w-3.5 fill-current" aria-hidden>
+        <path d="M11.2 4.5 4 10l7.2 5.5Z" />
+        <path d="M16 4.5 8.8 10l7.2 5.5Z" />
+      </svg>
+    );
+  }
+  return (
+    <svg viewBox="0 0 20 20" className="h-3.5 w-3.5 fill-current" aria-hidden>
+      <path d="M4 4.5 11.2 10 4 15.5Z" />
+      <path d="M8.8 4.5 16 10l-7.2 5.5Z" />
+    </svg>
+  );
 }
 
 function clonePatternItem(item: PadLoopPatternItem): PadLoopPatternItem {
@@ -589,15 +648,22 @@ function isAdditiveSelection(event: ReactMouseEvent): boolean {
 }
 
 export function MultitrackArranger({
+  copy,
   sequencer,
   patches,
   instrumentBindings,
+  onTransportPlay,
+  onTransportStop,
+  onTransportRewind,
+  onTransportFastForward,
+  onArrangerLoopSelectionChange,
   onSequencerTrackPadLoopPatternChange,
   onDrummerSequencerTrackPadLoopPatternChange,
   onControllerSequencerPadLoopPatternChange
 }: MultitrackArrangerProps) {
   const timelineViewportRef = useRef<HTMLDivElement | null>(null);
   const timelineScrollbarRef = useRef<HTMLDivElement | null>(null);
+  const selectionRulerRef = useRef<HTMLDivElement | null>(null);
   const [openContainerByTrack, setOpenContainerByTrack] = useState<Record<string, PadLoopContainerRef>>({});
   const [selectionByContainer, setSelectionByContainer] = useState<Record<string, number[]>>({});
   const [contextMenu, setContextMenu] = useState<ArrangerContextMenuState | null>(null);
@@ -606,8 +672,7 @@ export function MultitrackArranger({
   const [timelineScrollLeft, setTimelineScrollLeft] = useState<number>(0);
   const [rootDragPreview, setRootDragPreview] = useState<RootDragPreview | null>(null);
   const dragStateRef = useRef<RootDragState | null>(null);
-  const playheadRunStartStepRef = useRef<number | null>(null);
-  const playheadWasPlayingRef = useRef<boolean>(sequencer.isPlaying);
+  const selectionDragRef = useRef<SelectionDragState | null>(null);
 
   const patchNameById = useMemo(() => {
     const map = new Map<string, string>();
@@ -809,26 +874,108 @@ export function MultitrackArranger({
     const stepInCycle = Math.max(0, Math.floor(sequencer.playhead));
     return cycle * stepCount + stepInCycle;
   }, [sequencer.cycle, sequencer.playhead, sequencer.stepCount]);
-
-  useEffect(() => {
-    if (sequencer.isPlaying) {
-      if (!playheadWasPlayingRef.current || playheadRunStartStepRef.current === null) {
-        playheadRunStartStepRef.current = absoluteTransportStep;
-      }
-    } else {
-      playheadRunStartStepRef.current = null;
-    }
-    playheadWasPlayingRef.current = sequencer.isPlaying;
-  }, [absoluteTransportStep, sequencer.isPlaying]);
-
-  const quantizedPlayhead = useMemo(() => {
-    if (!sequencer.isPlaying) {
+  const displayedTransportStep = useMemo(
+    () => Math.max(0, Math.min(absoluteTransportStep, maxRootSteps)),
+    [absoluteTransportStep, maxRootSteps]
+  );
+  const loopSelection = useMemo(() => {
+    if (!sequencer.arrangerLoopSelection) {
       return null;
     }
-    const runStartStep = playheadRunStartStepRef.current ?? absoluteTransportStep;
-    const runStep = Math.max(0, absoluteTransportStep - runStartStep);
-    return Math.floor(runStep / STEP_GRID_QUANTUM) * STEP_GRID_QUANTUM;
-  }, [absoluteTransportStep, sequencer.isPlaying]);
+    const boundedStart = Math.max(
+      0,
+      Math.min(sequencer.arrangerLoopSelection.startStep, Math.max(0, maxRootSteps - STEP_GRID_QUANTUM))
+    );
+    const boundedEnd = Math.max(
+      boundedStart + STEP_GRID_QUANTUM,
+      Math.min(sequencer.arrangerLoopSelection.endStep, maxRootSteps)
+    );
+    return {
+      startStep: boundedStart,
+      endStep: boundedEnd
+    };
+  }, [maxRootSteps, sequencer.arrangerLoopSelection]);
+
+  const stepFromClientX = useCallback(
+    (clientX: number): number => {
+      const ruler = selectionRulerRef.current ?? timelineViewportRef.current;
+      if (!ruler) {
+        return 0;
+      }
+      const rect = ruler.getBoundingClientRect();
+      const localX = clientX - rect.left + timelineScrollLeft;
+      const rawStep = Math.floor(localX / Math.max(ABSOLUTE_MIN_STEP_PIXEL_WIDTH, stepPixelWidth));
+      const quantizedStep = Math.floor(rawStep / STEP_GRID_QUANTUM) * STEP_GRID_QUANTUM;
+      return Math.max(0, Math.min(Math.max(0, maxRootSteps - STEP_GRID_QUANTUM), quantizedStep));
+    },
+    [maxRootSteps, stepPixelWidth, timelineScrollLeft]
+  );
+
+  const commitSelection = useCallback(
+    (anchorStep: number, currentStep: number) => {
+      const startStep = Math.max(0, Math.min(anchorStep, currentStep));
+      const endStep = Math.min(maxRootSteps, Math.max(anchorStep, currentStep) + STEP_GRID_QUANTUM);
+      onArrangerLoopSelectionChange({ startStep, endStep });
+    },
+    [maxRootSteps, onArrangerLoopSelectionChange]
+  );
+
+  const handleSelectionPointerDown = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      if (event.pointerType === "mouse" && event.button !== 0) {
+        return;
+      }
+      event.preventDefault();
+      const anchorStep = stepFromClientX(event.clientX);
+      selectionDragRef.current = {
+        pointerId: event.pointerId,
+        anchorStep,
+        moved: false
+      };
+      if (event.currentTarget.setPointerCapture) {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      }
+    },
+    [stepFromClientX]
+  );
+
+  const handleSelectionPointerMove = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      const dragState = selectionDragRef.current;
+      if (!dragState || dragState.pointerId !== event.pointerId) {
+        return;
+      }
+      event.preventDefault();
+      const currentStep = stepFromClientX(event.clientX);
+      dragState.moved = dragState.moved || currentStep !== dragState.anchorStep;
+      commitSelection(dragState.anchorStep, currentStep);
+    },
+    [commitSelection, stepFromClientX]
+  );
+
+  const handleSelectionPointerEnd = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      const dragState = selectionDragRef.current;
+      if (!dragState || dragState.pointerId !== event.pointerId) {
+        return;
+      }
+      event.preventDefault();
+      const currentStep = stepFromClientX(event.clientX);
+      if (!dragState.moved) {
+        if (
+          loopSelection &&
+          currentStep >= loopSelection.startStep &&
+          currentStep < loopSelection.endStep
+        ) {
+          onArrangerLoopSelectionChange(null);
+        } else {
+          commitSelection(currentStep, currentStep);
+        }
+      }
+      selectionDragRef.current = null;
+    },
+    [commitSelection, loopSelection, onArrangerLoopSelectionChange, stepFromClientX]
+  );
 
   useEffect(() => {
     const nextOpenByTrack: Record<string, PadLoopContainerRef> = {};
@@ -1186,6 +1333,8 @@ export function MultitrackArranger({
   const zoomPercent = Math.round((stepPixelWidth / DEFAULT_STEP_PIXEL_WIDTH) * 100);
   const canZoomOut = stepPixelWidth > minStepPixelWidth + 1e-6;
   const canZoomIn = stepPixelWidth < MAX_STEP_PIXEL_WIDTH;
+  const transportButtonClass =
+    "inline-flex h-8 w-8 items-center justify-center rounded-md border border-amber-400/50 bg-amber-400/10 text-amber-100 transition hover:bg-amber-400/20 disabled:cursor-not-allowed disabled:opacity-45";
 
   useEffect(() => {
     const viewport = timelineViewportRef.current;
@@ -1223,11 +1372,47 @@ export function MultitrackArranger({
   return (
     <div className="relative mt-4 overscroll-x-none rounded-xl border border-amber-700/45 bg-slate-950/85 p-3">
       <div className="mb-2 flex items-center gap-2">
-        <div className="text-[11px] uppercase tracking-[0.18em] text-amber-200">Multitrack Arranger</div>
+        <div className="text-[11px] uppercase tracking-[0.18em] text-amber-200">{copy.title}</div>
         <span className="rounded-md border border-slate-700 bg-slate-900 px-2 py-0.5 font-mono text-[10px] text-slate-300">
-          1 device (auto)
+          {copy.deviceSummary}
         </span>
         <div className="ml-auto flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={onTransportRewind}
+            className={transportButtonClass}
+            title={copy.transportRewind}
+            aria-label={copy.transportRewind}
+          >
+            <CassetteIcon kind="rewind" />
+          </button>
+          <button
+            type="button"
+            onClick={onTransportStop}
+            className={transportButtonClass}
+            title={copy.transportStop}
+            aria-label={copy.transportStop}
+          >
+            <CassetteIcon kind="stop" />
+          </button>
+          <button
+            type="button"
+            onClick={onTransportPlay}
+            className={transportButtonClass}
+            title={copy.transportPlay}
+            aria-label={copy.transportPlay}
+          >
+            <CassetteIcon kind="play" />
+          </button>
+          <button
+            type="button"
+            onClick={onTransportFastForward}
+            className={transportButtonClass}
+            title={copy.transportFastForward}
+            aria-label={copy.transportFastForward}
+          >
+            <CassetteIcon kind="fastForward" />
+          </button>
           <button
             type="button"
             onClick={() =>
@@ -1236,7 +1421,7 @@ export function MultitrackArranger({
             disabled={!canZoomOut}
             className="rounded border border-slate-700 bg-slate-900 px-2 py-0.5 text-[10px] text-slate-200 transition hover:border-slate-500 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Zoom -
+            {copy.zoomOut}
           </button>
           <button
             type="button"
@@ -1244,7 +1429,7 @@ export function MultitrackArranger({
             disabled={!canZoomIn}
             className="rounded border border-slate-700 bg-slate-900 px-2 py-0.5 text-[10px] text-slate-200 transition hover:border-slate-500 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Zoom +
+            {copy.zoomIn}
           </button>
           <span className="rounded border border-slate-700 bg-slate-900 px-2 py-0.5 font-mono text-[10px] text-slate-300">
             {zoomPercent}%
@@ -1252,8 +1437,8 @@ export function MultitrackArranger({
         </div>
       </div>
       <div className="mb-2 grid grid-cols-[280px_minmax(0,1fr)] gap-2 text-[10px] uppercase tracking-[0.14em] text-slate-500">
-        <div>Instrument</div>
-        <div>Pattern Timeline (4-step grid)</div>
+        <div>{copy.instrumentColumn}</div>
+        <div>{copy.timelineColumn}</div>
       </div>
 
       <div className="space-y-1">
@@ -1281,10 +1466,18 @@ export function MultitrackArranger({
                   onWheel={handleTimelineWheel}
                   className="relative overflow-hidden overscroll-x-none"
                 >
-                  {quantizedPlayhead !== null ? (
+                  <span
+                    className="pointer-events-none absolute inset-y-0 z-50 w-[2px] rounded-full bg-amber-200 shadow-[0_0_10px_rgba(251,191,36,0.9)]"
+                    style={{ left: `${displayedTransportStep * stepPixelWidth - timelineScrollLeft}px` }}
+                    aria-hidden
+                  />
+                  {loopSelection ? (
                     <span
-                      className="pointer-events-none absolute inset-y-0 z-50 w-[2px] rounded-full bg-amber-200 shadow-[0_0_10px_rgba(251,191,36,0.9)]"
-                      style={{ left: `${quantizedPlayhead * stepPixelWidth - timelineScrollLeft}px` }}
+                      className="pointer-events-none absolute inset-y-0 z-10 border-x border-amber-300/35 bg-amber-400/10"
+                      style={{
+                        left: `${loopSelection.startStep * stepPixelWidth - timelineScrollLeft}px`,
+                        width: `${(loopSelection.endStep - loopSelection.startStep) * stepPixelWidth}px`
+                      }}
                       aria-hidden
                     />
                   ) : null}
@@ -1356,8 +1549,8 @@ export function MultitrackArranger({
                               startRootDrag(event, track, token, rootTimeline.allTokens, rootTimeline.visibleTokens)
                             }
                             className="mr-1 inline-flex h-4 w-3 shrink-0 items-center justify-center rounded border border-slate-600 bg-slate-950/80 text-[9px] text-slate-300"
-                            title="Drag token"
-                            aria-label="Drag token"
+                            title={copy.dragToken}
+                            aria-label={copy.dragToken}
                           >
                             ::
                           </button>
@@ -1469,6 +1662,49 @@ export function MultitrackArranger({
             </div>
           );
         })}
+      </div>
+
+      <div className="mt-2 grid grid-cols-[280px_minmax(0,1fr)] gap-2">
+        <div className="flex items-center justify-end px-1 text-[10px] uppercase tracking-[0.14em] text-slate-500">
+          {copy.selectionRuler}
+        </div>
+        <div
+          ref={selectionRulerRef}
+          onPointerDown={handleSelectionPointerDown}
+          onPointerMove={handleSelectionPointerMove}
+          onPointerUp={handleSelectionPointerEnd}
+          onPointerCancel={handleSelectionPointerEnd}
+          className="relative h-7 overflow-hidden rounded border border-slate-700 bg-slate-900/65"
+          title={loopSelection ? copy.clearSelection : copy.selectionHint}
+          aria-label={copy.selectionHint}
+        >
+          <div
+            className="relative h-full"
+            style={{
+              width: `${timelineWidth}px`,
+              transform: `translateX(${-timelineScrollLeft}px)`,
+              backgroundImage:
+                "repeating-linear-gradient(to right, rgba(51, 65, 85, 0.7) 0, rgba(51, 65, 85, 0.7) 1px, transparent 1px, transparent 100%)",
+              backgroundSize: `${STEP_GRID_QUANTUM * stepPixelWidth}px 100%`
+            }}
+          >
+            {loopSelection ? (
+              <span
+                className="pointer-events-none absolute inset-y-0 border-x border-amber-300/35 bg-amber-400/12"
+                style={{
+                  left: `${loopSelection.startStep * stepPixelWidth}px`,
+                  width: `${(loopSelection.endStep - loopSelection.startStep) * stepPixelWidth}px`
+                }}
+                aria-hidden
+              />
+            ) : null}
+            <span
+              className="pointer-events-none absolute inset-y-0 z-10 w-[2px] rounded-full bg-amber-200 shadow-[0_0_8px_rgba(251,191,36,0.8)]"
+              style={{ left: `${displayedTransportStep * stepPixelWidth}px` }}
+              aria-hidden
+            />
+          </div>
+        </div>
       </div>
 
       <div className="mt-2 grid grid-cols-[280px_minmax(0,1fr)] gap-2">

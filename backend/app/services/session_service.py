@@ -389,7 +389,7 @@ class SessionService:
         try:
             if request.config is not None:
                 sequencer.configure(request.config)
-            status = sequencer.start()
+            status = sequencer.start(request.position_step)
         except ValueError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
 

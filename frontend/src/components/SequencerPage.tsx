@@ -40,6 +40,7 @@ import {
 import { HelpIconButton } from "./HelpIconButton";
 import { MultitrackArranger } from "./MultitrackArranger";
 import type {
+  ArrangerLoopSelection,
   GuiLanguage,
   HelpDocId,
   PatchListItem,
@@ -136,6 +137,20 @@ type SequencerUiCopy = {
   stopInstruments: string;
   startAll: string;
   stopAll: string;
+  multitrackArrangerTitle: string;
+  multitrackArrangerDeviceSummary: string;
+  multitrackArrangerInstrumentColumn: string;
+  multitrackArrangerTimelineColumn: string;
+  multitrackArrangerSelectionRuler: string;
+  multitrackArrangerSelectionHint: string;
+  multitrackArrangerClearSelection: string;
+  multitrackArrangerDragToken: string;
+  multitrackArrangerTransportRewind: string;
+  multitrackArrangerTransportStop: string;
+  multitrackArrangerTransportPlay: string;
+  multitrackArrangerTransportFastForward: string;
+  zoomOut: string;
+  zoomIn: string;
   sequencers: string;
   addSequencer: string;
   addControllerSequencer: string;
@@ -280,6 +295,20 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     stopInstruments: "Stop Instruments",
     startAll: "Start All",
     stopAll: "Stop All",
+    multitrackArrangerTitle: "Multitrack Arranger",
+    multitrackArrangerDeviceSummary: "1 device (auto)",
+    multitrackArrangerInstrumentColumn: "Instrument",
+    multitrackArrangerTimelineColumn: "Pattern Timeline (4-step grid)",
+    multitrackArrangerSelectionRuler: "Loop Range",
+    multitrackArrangerSelectionHint: "Drag to select a loop range in 4-step blocks",
+    multitrackArrangerClearSelection: "Click the highlighted range to clear the loop",
+    multitrackArrangerDragToken: "Drag token",
+    multitrackArrangerTransportRewind: "Rewind 4 steps",
+    multitrackArrangerTransportStop: "Stop",
+    multitrackArrangerTransportPlay: "Play",
+    multitrackArrangerTransportFastForward: "Fast forward 4 steps",
+    zoomOut: "Zoom -",
+    zoomIn: "Zoom +",
     sequencers: "Sequencers",
     addSequencer: "Add Sequencer",
     addControllerSequencer: "Add Controller Sequencer",
@@ -377,6 +406,20 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     stopInstruments: "Instrumente stoppen",
     startAll: "Alles starten",
     stopAll: "Alles stoppen",
+    multitrackArrangerTitle: "Multitrack-Arranger",
+    multitrackArrangerDeviceSummary: "1 Geraet (auto)",
+    multitrackArrangerInstrumentColumn: "Instrument",
+    multitrackArrangerTimelineColumn: "Pattern-Timeline (4-Step-Raster)",
+    multitrackArrangerSelectionRuler: "Loop-Bereich",
+    multitrackArrangerSelectionHint: "Ziehen, um einen Loop-Bereich in 4-Step-Bloecken zu markieren",
+    multitrackArrangerClearSelection: "Auf den markierten Bereich klicken, um den Loop zu loeschen",
+    multitrackArrangerDragToken: "Token ziehen",
+    multitrackArrangerTransportRewind: "4 Schritte zurueckspulen",
+    multitrackArrangerTransportStop: "Stopp",
+    multitrackArrangerTransportPlay: "Abspielen",
+    multitrackArrangerTransportFastForward: "4 Schritte vorspulen",
+    zoomOut: "Zoom -",
+    zoomIn: "Zoom +",
     sequencers: "Sequencer",
     addSequencer: "Sequencer hinzufuegen",
     addControllerSequencer: "Controller-Sequencer hinzufuegen",
@@ -474,6 +517,20 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     stopInstruments: "Arreter instruments",
     startAll: "Tout demarrer",
     stopAll: "Tout arreter",
+    multitrackArrangerTitle: "Arrangeur multipiste",
+    multitrackArrangerDeviceSummary: "1 appareil (auto)",
+    multitrackArrangerInstrumentColumn: "Instrument",
+    multitrackArrangerTimelineColumn: "Timeline de pattern (grille 4 pas)",
+    multitrackArrangerSelectionRuler: "Plage de boucle",
+    multitrackArrangerSelectionHint: "Glissez pour selectionner une plage de boucle en blocs de 4 pas",
+    multitrackArrangerClearSelection: "Cliquez sur la plage surlignee pour effacer la boucle",
+    multitrackArrangerDragToken: "Glisser le token",
+    multitrackArrangerTransportRewind: "Reculer de 4 pas",
+    multitrackArrangerTransportStop: "Arret",
+    multitrackArrangerTransportPlay: "Lecture",
+    multitrackArrangerTransportFastForward: "Avancer de 4 pas",
+    zoomOut: "Zoom -",
+    zoomIn: "Zoom +",
     sequencers: "Sequenceurs",
     addSequencer: "Ajouter sequenceur",
     addControllerSequencer: "Ajouter sequenceur controleur",
@@ -571,6 +628,20 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     stopInstruments: "Detener instrumentos",
     startAll: "Iniciar todo",
     stopAll: "Detener todo",
+    multitrackArrangerTitle: "Arreglador multipista",
+    multitrackArrangerDeviceSummary: "1 dispositivo (auto)",
+    multitrackArrangerInstrumentColumn: "Instrumento",
+    multitrackArrangerTimelineColumn: "Linea de patrones (rejilla de 4 pasos)",
+    multitrackArrangerSelectionRuler: "Rango de bucle",
+    multitrackArrangerSelectionHint: "Arrastra para marcar un rango de bucle en bloques de 4 pasos",
+    multitrackArrangerClearSelection: "Haz clic en el rango resaltado para borrar el bucle",
+    multitrackArrangerDragToken: "Arrastrar token",
+    multitrackArrangerTransportRewind: "Retroceder 4 pasos",
+    multitrackArrangerTransportStop: "Detener",
+    multitrackArrangerTransportPlay: "Reproducir",
+    multitrackArrangerTransportFastForward: "Avanzar 4 pasos",
+    zoomOut: "Zoom -",
+    zoomIn: "Zoom +",
     sequencers: "Secuenciadores",
     addSequencer: "Agregar secuenciador",
     addControllerSequencer: "Agregar secuenciador controlador",
@@ -1946,6 +2017,7 @@ interface SequencerPageProps {
   onAddControllerSequencer: () => void;
   onSequencerCycleRewind: () => void;
   onSequencerCycleForward: () => void;
+  onSequencerArrangerLoopSelectionChange: (selection: ArrangerLoopSelection | null) => void;
   onRemoveSequencerTrack: (trackId: string) => void;
   onSequencerTrackEnabledChange: (trackId: string, enabled: boolean) => void;
   onSequencerTrackChannelChange: (trackId: string, channel: number) => void;
@@ -3224,6 +3296,7 @@ export function SequencerPage({
   onAddControllerSequencer,
   onSequencerCycleRewind,
   onSequencerCycleForward,
+  onSequencerArrangerLoopSelectionChange,
   onRemoveSequencerTrack,
   onSequencerTrackEnabledChange,
   onSequencerTrackChannelChange,
@@ -3543,6 +3616,26 @@ export function SequencerPage({
     setPendingStartAllPianoRolls(false);
   }, [enableAllPianoRolls, instrumentsRunning, pendingStartAllPianoRolls]);
 
+  const arrangerCopy = useMemo(
+    () => ({
+      title: ui.multitrackArrangerTitle,
+      deviceSummary: ui.multitrackArrangerDeviceSummary,
+      zoomOut: ui.zoomOut,
+      zoomIn: ui.zoomIn,
+      instrumentColumn: ui.multitrackArrangerInstrumentColumn,
+      timelineColumn: ui.multitrackArrangerTimelineColumn,
+      transportRewind: ui.multitrackArrangerTransportRewind,
+      transportStop: ui.multitrackArrangerTransportStop,
+      transportPlay: ui.multitrackArrangerTransportPlay,
+      transportFastForward: ui.multitrackArrangerTransportFastForward,
+      selectionRuler: ui.multitrackArrangerSelectionRuler,
+      selectionHint: ui.multitrackArrangerSelectionHint,
+      clearSelection: ui.multitrackArrangerClearSelection,
+      dragToken: ui.multitrackArrangerDragToken
+    }),
+    [ui]
+  );
+
   const handleConfigFileChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0];
@@ -3716,8 +3809,6 @@ export function SequencerPage({
     "rounded-md border border-emerald-400/55 bg-emerald-400/20 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-300 transition hover:bg-emerald-400/30 disabled:cursor-not-allowed disabled:opacity-50";
   const transportStopButtonClass =
     "rounded-md border border-amber-400/55 bg-amber-400/20 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-200 transition hover:bg-amber-400/30 disabled:cursor-not-allowed disabled:opacity-50";
-  const transportJumpButtonClass =
-    "rounded-md border border-accent/60 bg-accent/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-accent transition hover:bg-accent/20 disabled:cursor-not-allowed disabled:opacity-50";
   const transportStateClass =
     "rounded-full border border-slate-700 bg-slate-950 px-2 py-0.5 font-mono text-[10px] text-slate-300";
   const controlLabelClass = "text-[10px] uppercase tracking-[0.18em] text-slate-400";
@@ -3919,12 +4010,6 @@ export function SequencerPage({
             >
               {ui.stopInstruments}
             </button>
-            <button type="button" onClick={handleStartAll} className={transportStartButtonClass}>
-              {ui.startAll}
-            </button>
-            <button type="button" onClick={handleStopAll} className={transportStopButtonClass}>
-              {ui.stopAll}
-            </button>
             <span className={transportStateClass}>{instrumentsRunning ? ui.running : ui.stopped}</span>
           </div>
         </div>
@@ -3983,24 +4068,6 @@ export function SequencerPage({
                 className={`${controlFieldClass} w-24`}
               />
             </label>
-            <div className="ml-2 flex items-end gap-2">
-              <button
-                type="button"
-                onClick={onSequencerCycleRewind}
-                disabled={!sequencer.isPlaying}
-                className={transportJumpButtonClass}
-              >
-                REWIND
-              </button>
-              <button
-                type="button"
-                onClick={onSequencerCycleForward}
-                disabled={!sequencer.isPlaying}
-                className={transportJumpButtonClass}
-              >
-                FORWARD
-              </button>
-            </div>
           </div>
         </div>
 
@@ -5472,9 +5539,15 @@ export function SequencerPage({
 
       {sequencer.tracks.length + sequencer.drummerTracks.length + sequencer.controllerSequencers.length > 0 ? (
         <MultitrackArranger
+          copy={arrangerCopy}
           sequencer={sequencer}
           patches={patches}
           instrumentBindings={instrumentBindings}
+          onTransportPlay={handleStartAll}
+          onTransportStop={handleStopAll}
+          onTransportRewind={onSequencerCycleRewind}
+          onTransportFastForward={onSequencerCycleForward}
+          onArrangerLoopSelectionChange={onSequencerArrangerLoopSelectionChange}
           onSequencerTrackPadLoopPatternChange={onSequencerTrackPadLoopPatternChange}
           onDrummerSequencerTrackPadLoopPatternChange={onDrummerSequencerTrackPadLoopPatternChange}
           onControllerSequencerPadLoopPatternChange={onControllerSequencerPadLoopPatternChange}

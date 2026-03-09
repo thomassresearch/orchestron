@@ -28,7 +28,18 @@ The root timeline displays arranged pattern tokens:
 
 Pause tokens are part of the underlying data model, but they are hidden in the root timeline to keep the overview compact.
 
-While the transport is running, a quantized playhead marker moves across the timeline.
+The arranger always shows the current absolute playhead position, even while stopped.
+
+## Arranger Transport
+
+The arranger header provides cassette-style transport controls with icon buttons:
+
+- `Rewind`: move the playhead `4` steps backward
+- `Stop`: stop all instruments and sequencers while preserving the current playhead position
+- `Play`: start all instruments and sequencers from the current playhead position
+- `Fast forward`: move the playhead `4` steps forward
+
+The transport controls the full performance arrangement, including melodic sequencer tracks, drummer sequencers, and controller sequencers.
 
 ## Root Timeline Editing
 
@@ -74,10 +85,21 @@ The editor also shows `Total steps` for the opened container.
 
 Arranger timeline controls:
 
+- cassette-style transport buttons
 - `Zoom -` / `Zoom +`
 - live zoom percent readout
 - horizontal scroll via mouse wheel (and `Shift + wheel` support)
 - bottom scrollbar for long timelines
+
+## Loop Range Selection
+
+Above the horizontal scrollbar, the arranger shows a shared loop-range ruler quantized to `4-step` blocks.
+
+- drag on the ruler to define a playback range
+- click the highlighted range to clear the selection
+- the selected span is highlighted across all arranger rows
+- when a range is selected, playback loops inside that range
+- when no range is selected, the arrangement plays once from step `0` to the last arranged step
 
 ## Keyboard Shortcuts
 
@@ -89,6 +111,7 @@ When a timeline container is focused:
 ## Notes
 
 - Arranger edits write directly into each track's pad-loop pattern state.
+- Playback range selection is stored with the performance and restored when the performance is loaded again.
 - The section currently shows `1 device (auto)` as the device summary.
 - If no sequencer-type tracks exist, the multitrack arranger is hidden.
 

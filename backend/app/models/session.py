@@ -183,10 +183,15 @@ class SessionSequencerTrackConfig(BaseModel):
 class SessionSequencerConfigRequest(BaseModel):
     bpm: int = Field(default=120, ge=30, le=300)
     step_count: Literal[16, 32] = 16
+    playback_start_step: int = Field(default=0, ge=0)
+    playback_end_step: int = Field(default=16, ge=4)
+    playback_loop: bool = False
     tracks: list[SessionSequencerTrackConfig] = Field(min_length=1, max_length=128)
 
     @model_validator(mode="after")
     def validate_unique_track_ids(self) -> "SessionSequencerConfigRequest":
+        if self.playback_end_step <= self.playback_start_step:
+            raise ValueError("playback_end_step must be greater than playback_start_step.")
         seen: set[str] = set()
         for track in self.tracks:
             if track.track_id in seen:
@@ -206,6 +211,7 @@ class SessionSequencerConfigRequest(BaseModel):
 
 class SessionSequencerStartRequest(BaseModel):
     config: SessionSequencerConfigRequest | None = None
+    position_step: int | None = Field(default=None, ge=0)
 
 
 class SessionSequencerQueuePadRequest(BaseModel):

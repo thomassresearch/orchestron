@@ -280,12 +280,18 @@ export interface ControllerSequencerState {
   keypoints: ControllerSequencerKeypoint[];
 }
 
+export interface ArrangerLoopSelection {
+  startStep: number;
+  endStep: number;
+}
+
 export interface SequencerState {
   isPlaying: boolean;
   bpm: number;
   stepCount: 16 | 32;
   playhead: number;
   cycle: number;
+  arrangerLoopSelection: ArrangerLoopSelection | null;
   tracks: SequencerTrackState[];
   drummerTracks: DrummerSequencerTrackState[];
   controllerSequencers: ControllerSequencerState[];
@@ -316,7 +322,7 @@ export interface SequencerInstrumentBinding {
 }
 
 export interface SequencerConfigSnapshot {
-  version: 1 | 2 | 3 | 4;
+  version: 1 | 2 | 3 | 4 | 5;
   instruments: Array<{
     patchId: string;
     patchName?: string;
@@ -333,6 +339,7 @@ export interface SequencerConfigSnapshot {
   sequencer: {
     bpm: number;
     stepCount: 16 | 32;
+    arrangerLoopSelection?: ArrangerLoopSelection | null;
     tracks: Array<{
       id: string;
       name: string;
@@ -507,11 +514,15 @@ export interface SessionSequencerTrackConfig {
 export interface SessionSequencerConfigRequest {
   bpm: number;
   step_count: 16 | 32;
+  playback_start_step?: number;
+  playback_end_step?: number;
+  playback_loop?: boolean;
   tracks: SessionSequencerTrackConfig[];
 }
 
 export interface SessionSequencerStartRequest {
   config?: SessionSequencerConfigRequest;
+  position_step?: number;
 }
 
 export interface SessionSequencerQueuePadRequest {
