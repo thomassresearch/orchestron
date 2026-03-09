@@ -3814,6 +3814,12 @@ export function SequencerPage({
   const controlLabelClass = "text-[10px] uppercase tracking-[0.18em] text-slate-400";
   const controlFieldClass =
     "rounded-lg border border-slate-600 bg-slate-950 px-2 py-1.5 text-xs text-slate-100 outline-none ring-accent/40 transition focus:ring";
+  const rackAssignmentButtonClass =
+    "rounded-md border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] transition disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-slate-800/60 disabled:text-slate-500";
+  const rackAssignmentSelectClass =
+    "rounded-md border border-slate-600 bg-slate-950 px-2 py-1 text-xs text-slate-100 outline-none ring-accent/40 transition focus:ring disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-slate-900 disabled:text-slate-500";
+  const rackAssignmentNumberInputClass =
+    "w-full rounded-md border border-slate-600 bg-slate-950 px-2 py-1 text-xs text-slate-100 outline-none ring-accent/40 transition focus:ring disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-slate-900 disabled:text-slate-500";
 
   return (
     <>
@@ -3897,7 +3903,8 @@ export function SequencerPage({
           <button
             type="button"
             onClick={onAddInstrument}
-            className="rounded-md border border-accent/60 bg-accent/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-accent transition hover:bg-accent/25"
+            disabled={instrumentsRunning}
+            className={`${rackAssignmentButtonClass} border-accent/60 bg-accent/15 text-accent hover:bg-accent/25`}
           >
             {ui.addInstrument}
           </button>
@@ -3948,7 +3955,8 @@ export function SequencerPage({
                   <select
                     value={binding.patchId}
                     onChange={(event) => onInstrumentPatchChange(binding.id, event.target.value)}
-                    className="rounded-md border border-slate-600 bg-slate-950 px-2 py-1 text-xs text-slate-100 outline-none ring-accent/40 transition focus:ring"
+                    disabled={instrumentsRunning}
+                    className={rackAssignmentSelectClass}
                   >
                     {patches.map((patch) => (
                       <option key={`rack-${binding.id}-${patch.id}`} value={patch.id}>
@@ -3965,7 +3973,8 @@ export function SequencerPage({
                     max={16}
                     value={binding.midiChannel}
                     onChange={(event) => onInstrumentChannelChange(binding.id, Number(event.target.value))}
-                    className="w-full rounded-md border border-slate-600 bg-slate-950 px-2 py-1 text-xs text-slate-100 outline-none ring-accent/40 transition focus:ring"
+                    disabled={instrumentsRunning}
+                    className={rackAssignmentNumberInputClass}
                   />
                 </label>
                 <label className="flex flex-col gap-1">
@@ -3982,7 +3991,8 @@ export function SequencerPage({
                 <button
                   type="button"
                   onClick={() => onRemoveInstrument(binding.id)}
-                  className="justify-self-end rounded-md border border-rose-500/60 bg-rose-500/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-rose-200 transition hover:bg-rose-500/25"
+                  disabled={instrumentsRunning}
+                  className={`${rackAssignmentButtonClass} justify-self-end border-rose-500/60 bg-rose-500/15 px-2 text-rose-200 hover:bg-rose-500/25`}
                 >
                   {ui.remove}
                 </button>
@@ -5539,6 +5549,7 @@ export function SequencerPage({
 
       {sequencer.tracks.length + sequencer.drummerTracks.length + sequencer.controllerSequencers.length > 0 ? (
         <MultitrackArranger
+          guiLanguage={guiLanguage}
           copy={arrangerCopy}
           sequencer={sequencer}
           patches={patches}
@@ -5551,6 +5562,7 @@ export function SequencerPage({
           onSequencerTrackPadLoopPatternChange={onSequencerTrackPadLoopPatternChange}
           onDrummerSequencerTrackPadLoopPatternChange={onDrummerSequencerTrackPadLoopPatternChange}
           onControllerSequencerPadLoopPatternChange={onControllerSequencerPadLoopPatternChange}
+          onHelpRequest={onHelpRequest}
         />
       ) : null}
 

@@ -25,12 +25,21 @@ Each rack entry lets you choose:
 
 - A saved patch (`Patch N` dropdown)
 - A MIDI channel (`1..16`)
+- A level value (`1..10`)
 - Remove action
+
+While instruments are running, rack assignment changes are locked:
+
+- `Add Instrument` is disabled
+- Rack-slot `Remove` is disabled
+- Patch and MIDI channel selectors are disabled
+- `Level` remains active so you can rebalance the live mix without stopping the engine
 
 ### Add Instrument
 
 - Use `Add Instrument` to create another rack slot.
 - This enables multi-instrument performances driven by different MIDI channels.
+- The button is unavailable while the engine is running; stop instruments before changing rack assignments.
 
 ## Rack Transport (Instrument Engine Control)
 

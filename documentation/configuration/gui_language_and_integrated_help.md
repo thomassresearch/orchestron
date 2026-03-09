@@ -37,7 +37,7 @@ Examples include:
 - Opcode catalog
 - Graph editor header/area
 - Runtime panel
-- Sequencer sections (rack, tracks, piano rolls, MIDI controllers)
+- Sequencer sections (rack, tracks, multitrack arranger, piano rolls, MIDI controllers)
 - Config page sections
 
 Clicking a context `?` opens a markdown help modal tailored to that UI area.

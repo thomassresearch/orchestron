@@ -38,6 +38,7 @@ The arranger header provides cassette-style transport controls with icon buttons
 - `Stop`: stop all instruments and sequencers while preserving the current playhead position
 - `Play`: start all instruments and sequencers from the current playhead position
 - `Fast forward`: move the playhead `4` steps forward
+- `?`: open the integrated multilingual help modal for a concise arranger workflow summary
 
 The transport controls the full performance arrangement, including melodic sequencer tracks, drummer sequencers, and controller sequencers.
 

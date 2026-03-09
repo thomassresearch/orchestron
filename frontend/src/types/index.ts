@@ -9,6 +9,7 @@ export type HelpDocId =
   | "sequencer_instrument_rack"
   | "sequencer_tracks"
   | "sequencer_track_editor"
+  | "sequencer_multitrack_arranger"
   | "sequencer_drummer_sequencer"
   | "sequencer_controller_sequencer"
   | "sequencer_piano_rolls"

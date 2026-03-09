@@ -21,12 +21,15 @@ import {
 } from "../lib/padLoopPattern";
 import type {
   ArrangerLoopSelection,
+  GuiLanguage,
+  HelpDocId,
   PadLoopPatternItem,
   PadLoopPatternState,
   PatchListItem,
   SequencerInstrumentBinding,
   SequencerState
 } from "../types";
+import { HelpIconButton } from "./HelpIconButton";
 
 const STEP_GRID_QUANTUM = 4;
 const DEFAULT_STEP_PIXEL_WIDTH = 9;
@@ -99,6 +102,7 @@ type ArrangerTokenDragPayload = {
 };
 
 type MultitrackArrangerProps = {
+  guiLanguage: GuiLanguage;
   copy: {
     title: string;
     deviceSummary: string;
@@ -126,6 +130,7 @@ type MultitrackArrangerProps = {
   onSequencerTrackPadLoopPatternChange: (trackId: string, pattern: PadLoopPatternState) => void;
   onDrummerSequencerTrackPadLoopPatternChange: (trackId: string, pattern: PadLoopPatternState) => void;
   onControllerSequencerPadLoopPatternChange: (controllerSequencerId: string, pattern: PadLoopPatternState) => void;
+  onHelpRequest?: (helpDocId: HelpDocId) => void;
 };
 
 function containerKey(container: PadLoopContainerRef): string {
@@ -648,6 +653,7 @@ function isAdditiveSelection(event: ReactMouseEvent): boolean {
 }
 
 export function MultitrackArranger({
+  guiLanguage,
   copy,
   sequencer,
   patches,
@@ -659,7 +665,8 @@ export function MultitrackArranger({
   onArrangerLoopSelectionChange,
   onSequencerTrackPadLoopPatternChange,
   onDrummerSequencerTrackPadLoopPatternChange,
-  onControllerSequencerPadLoopPatternChange
+  onControllerSequencerPadLoopPatternChange,
+  onHelpRequest
 }: MultitrackArrangerProps) {
   const timelineViewportRef = useRef<HTMLDivElement | null>(null);
   const timelineScrollbarRef = useRef<HTMLDivElement | null>(null);
@@ -1371,7 +1378,13 @@ export function MultitrackArranger({
 
   return (
     <div className="relative mt-4 overscroll-x-none rounded-xl border border-amber-700/45 bg-slate-950/85 p-3">
-      <div className="mb-2 flex items-center gap-2">
+      {onHelpRequest ? (
+        <HelpIconButton
+          guiLanguage={guiLanguage}
+          onClick={() => onHelpRequest("sequencer_multitrack_arranger")}
+        />
+      ) : null}
+      <div className="mb-2 flex items-center gap-2 pr-10">
         <div className="text-[11px] uppercase tracking-[0.18em] text-amber-200">{copy.title}</div>
         <span className="rounded-md border border-slate-700 bg-slate-900 px-2 py-0.5 font-mono text-[10px] text-slate-300">
           {copy.deviceSummary}

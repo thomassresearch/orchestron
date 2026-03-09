@@ -463,6 +463,52 @@ Esta ayuda se aplica a una tarjeta individual de pista del secuenciador.
 - Arrastra el asa \`::\` de un paso sobre otro paso (misma pista u otra pista del secuenciador) para copiar ajustes de nota/acorde/velocidad.`
     }
   },
+  sequencer_multitrack_arranger: {
+    english: {
+      title: "Multitrack Arranger",
+      markdown: `## Multitrack Arranger
+
+Arrange melodic sequencers, drummer sequencers, and controller sequencers on one shared timeline.
+
+- Use cassette transport to rewind, stop, play, or fast-forward the whole arrangement in 4-step blocks.
+- Drag root-timeline tokens to reorder pads, groups, and super-groups.
+- Click a group or super-group token to open its nested editor and build longer phrases.
+- Use the loop ruler and zoom controls to focus playback on a selected arranger range.`
+    },
+    german: {
+      title: "Multitrack Arranger",
+      markdown: `## Multitrack Arranger
+
+Ordnet melodische Sequencer, Drummer-Sequencer und Controller-Sequencer auf einer gemeinsamen Timeline an.
+
+- Mit dem Kassetten-Transport die gesamte Performance in 4-Schritt-Bloecken zurueckspulen, stoppen, starten oder vorspulen.
+- Tokens auf der Root-Timeline ziehen, um Pads, Gruppen und Super-Gruppen neu anzuordnen.
+- Auf ein Gruppen- oder Super-Gruppen-Token klicken, um den verschachtelten Editor fuer laengere Phrasen zu oeffnen.
+- Mit Loop-Lineal und Zoom die Wiedergabe auf einen ausgewaehlten Arranger-Bereich fokussieren.`
+    },
+    french: {
+      title: "Arrangeur multipiste",
+      markdown: `## Arrangeur multipiste
+
+Organise les sequenceurs melodiques, les sequenceurs batterie et les sequenceurs controleur sur une timeline partagee.
+
+- Utiliser le transport cassette pour revenir en arriere, arreter, lancer ou avancer toute l'arrangement par blocs de 4 pas.
+- Faire glisser les jetons de la timeline principale pour reordonner pads, groupes et super-groupes.
+- Cliquer sur un jeton de groupe ou de super-groupe pour ouvrir son editeur imbrique et construire des phrases plus longues.
+- Utiliser la regle de boucle et le zoom pour concentrer la lecture sur une plage choisie de l'arrangeur.`
+    },
+    spanish: {
+      title: "Arreglador multipista",
+      markdown: `## Arreglador multipista
+
+Organiza secuenciadores melodicos, secuenciadores de bateria y secuenciadores de control en una linea de tiempo compartida.
+
+- Usa el transporte tipo casete para rebobinar, detener, reproducir o adelantar todo el arreglo en bloques de 4 pasos.
+- Arrastra los tokens de la linea principal para reordenar pads, grupos y supergrupos.
+- Haz clic en un token de grupo o supergrupo para abrir su editor anidado y construir frases mas largas.
+- Usa la regla de bucle y el zoom para centrar la reproduccion en un rango concreto del arreglador.`
+    }
+  },
   sequencer_drummer_sequencer: {
     english: {
       title: "Drummer Sequencer",

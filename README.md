@@ -42,9 +42,11 @@ Designed instruments can be exported for reuse, including export to a `.csd` fil
 
 The live performance area provides an instrument rack where instruments can be selected and assigned to MIDI channels. A sequencer can then drive those instruments, with scale and mode selection and note entry that supports choosing notes both in-scale and out-of-scale.
 
+When the rack transport has started instruments, rack assignment edits are intentionally locked: adding/removing instruments and changing patch or MIDI channel assignments stay disabled until `Stop Instruments` is pressed, while per-instrument `Level` stays live for mix adjustments.
+
 A controller sequencer lets you define a curve that is sampled during playback and emitted as MIDI control messages for a selected controller number.
 
-The multitrack arranger combines melodic sequencers, drummer sequencers, and controller sequencers in one shared timeline. Cassette-style transport controls can rewind or fast-forward in `4-step` blocks, `Stop` preserves the playhead, and an optional loop selection repeats only the chosen arranger range.
+The multitrack arranger combines melodic sequencers, drummer sequencers, and controller sequencers in one shared timeline. Cassette-style transport controls can rewind or fast-forward in `4-step` blocks, `Stop` preserves the playhead, an optional loop selection repeats only the chosen arranger range, and the section now exposes the same integrated `?` help flow as the other perform devices.
 
 The piano roll follows the active scale/mode (from the running sequencer) and highlights keys by scale degree. When multiple sequencers run with different scales/modes, only keys shared by both scales/modes are highlighted, which supports interactive playing with clear harmonic guidance.
 
