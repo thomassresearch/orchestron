@@ -83,3 +83,38 @@ def test_grain3_compile_uses_correct_argument_order_and_omits_optional_tail() ->
 
     assert "__VS_OPTIONAL_OMIT__" not in artifact.orc
     assert grain3_line == "a_grain_asig_1 grain3 220, 0.5, 0.25, 0.125, 0.04, 24, 64, 1, 2, 0, 0, 0, 0"
+
+
+def test_grain2_compile_uses_manual_argument_order() -> None:
+    compiler = CompilerService(OpcodeService(icon_prefix="/static/icons"))
+    patch = PatchDocument(
+        name="grain2 compile test",
+        description="grain2 renders corrected syntax",
+        graph=PatchGraph(
+            nodes=[
+                NodeInstance(
+                    id="grain",
+                    opcode="grain2",
+                    params={
+                        "kcps": 220,
+                        "kfmd": 0.25,
+                        "kgdur": 0.04,
+                        "iovrlp": 64,
+                        "kfn": 1,
+                        "iwfn": 2,
+                    },
+                ),
+                NodeInstance(id="out", opcode="outs"),
+            ],
+            connections=[
+                Connection(from_node_id="grain", from_port_id="asig", to_node_id="out", to_port_id="left"),
+                Connection(from_node_id="grain", from_port_id="asig", to_node_id="out", to_port_id="right"),
+            ],
+        ),
+    )
+
+    artifact = compiler.compile_patch(patch, midi_input="0", rtmidi_module="alsaseq")
+    grain2_line = next(line.strip() for line in artifact.orc.splitlines() if " grain2 " in line)
+
+    assert "__VS_OPTIONAL_OMIT__" not in artifact.orc
+    assert grain2_line == "a_grain_asig_1 grain2 220, 0.25, 0.04, 64, 1, 2, 0, 0, 0"

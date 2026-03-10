@@ -648,22 +648,16 @@ class OpcodeService:
             self._spec(
                 name="grain2",
                 category="oscillator",
-                description="Granular oscillator with FM depth control and overlap management.",
+                description="Easy-to-use granular synthesis texture generator.",
                 icon=self._icon("vco.svg"),
                 inputs=[
                     PortSpec(
-                        id="kamp",
-                        name="Amplitude",
-                        signal_type=SignalType.CONTROL,
-                        accepted_signal_types=[SignalType.CONTROL, SignalType.INIT],
-                        default=0.2,
-                    ),
-                    PortSpec(
                         id="kcps",
-                        name="Rate",
+                        name="Frequency",
                         signal_type=SignalType.CONTROL,
                         accepted_signal_types=[SignalType.CONTROL, SignalType.INIT],
-                        default=10,
+                        default=220,
+                        description="Grain frequency in Hz.",
                     ),
                     PortSpec(
                         id="kfmd",
@@ -671,6 +665,7 @@ class OpcodeService:
                         signal_type=SignalType.CONTROL,
                         accepted_signal_types=[SignalType.CONTROL, SignalType.INIT],
                         default=0,
+                        description="Random bipolar variation of grain frequency in Hz.",
                     ),
                     PortSpec(
                         id="kgdur",
@@ -678,25 +673,59 @@ class OpcodeService:
                         signal_type=SignalType.CONTROL,
                         accepted_signal_types=[SignalType.CONTROL, SignalType.INIT],
                         default=0.05,
+                        description=(
+                            "Grain duration in seconds; changing it also affects grains that are already active."
+                        ),
                     ),
-                    PortSpec(id="iovrlp", name="Overlaps", signal_type=SignalType.INIT, default=64),
+                    PortSpec(
+                        id="iovrlp",
+                        name="Overlaps",
+                        signal_type=SignalType.INIT,
+                        default=64,
+                        description="Fixed number of overlapping grains.",
+                    ),
                     PortSpec(
                         id="kfn",
                         name="GrainTable",
                         signal_type=SignalType.CONTROL,
                         accepted_signal_types=[SignalType.CONTROL, SignalType.INIT],
                         default=1,
+                        description="Function table containing the grain waveform; it can change at k-rate.",
                     ),
-                    PortSpec(id="iwfn", name="WindowTable", signal_type=SignalType.INIT, default=2),
-                    PortSpec(id="irpow", name="RatePow", signal_type=SignalType.INIT, required=False, default=1),
-                    PortSpec(id="iseed", name="Seed", signal_type=SignalType.INIT, required=False, default=0),
-                    PortSpec(id="imode", name="Mode", signal_type=SignalType.INIT, required=False, default=0),
+                    PortSpec(
+                        id="iwfn",
+                        name="WindowTable",
+                        signal_type=SignalType.INIT,
+                        default=2,
+                        description="Function table containing the window waveform, typically generated with GEN20.",
+                    ),
+                    PortSpec(
+                        id="irpow",
+                        name="RatePow",
+                        signal_type=SignalType.INIT,
+                        required=False,
+                        default=0,
+                        description="Shapes the distribution of random grain-frequency variation.",
+                    ),
+                    PortSpec(
+                        id="iseed",
+                        name="Seed",
+                        signal_type=SignalType.INIT,
+                        required=False,
+                        default=0,
+                        description="Seed for the internal random number generator; 0 or below uses the current time.",
+                    ),
+                    PortSpec(
+                        id="imode",
+                        name="Mode",
+                        signal_type=SignalType.INIT,
+                        required=False,
+                        default=0,
+                        description="Bitmask controlling interpolation, continuous modulation, and initialization behavior.",
+                    ),
                 ],
                 outputs=[PortSpec(id="asig", name="aSig", signal_type=SignalType.AUDIO)],
-                template=(
-                    "{asig} grain2 {kamp}, {kcps}, {kfmd}, {kgdur}, {iovrlp}, {kfn}, {iwfn}, "
-                    "{irpow}, {iseed}, {imode}"
-                ),
+                template="{asig} grain2 {kcps}, {kfmd}, {kgdur}, {iovrlp}, {kfn}, {iwfn}, {irpow}, {iseed}, {imode}",
                 tags=["sound", "source", "granular"],
             ),
             self._spec(

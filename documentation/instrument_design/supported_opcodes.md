@@ -196,7 +196,7 @@ This appendix is generated from `backend/app/services/opcode_service.py` and cur
 | foscili | 7 (k, k, k, k, k, i, i) | 1 (a) | Audio-rate FM oscillator with harmonic ratios. |
 | gbuzz | 7 (k, k, k, k, k, i, i) | 1 (a) | Generalized buzz oscillator with controllable harmonics. |
 | grain | 10 (k, k, k, k, k, k, i, i, i, i) | 1 (a) | Classic granular synthesis oscillator with table-based grains. |
-| grain2 | 10 (k, k, k, k, i, k, i, i, i, i) | 1 (a) | Granular oscillator with FM depth control and overlap management. |
+| grain2 | 9 (k, k, k, i, k, i, i, i, i) | 1 (a) | Easy-to-use granular synthesis texture generator. |
 | grain3 | 11 (k, k, k, k, k, k, i, k, i, i, i) | 1 (a) | Granular oscillator with independent pitch and frequency modulation. |
 | granule | 22 (k, i, i, i, i, i, i, i, i, i, k, i, k, i, i, i, i, i, i, i, i, i) | 1 (a) | Multi-voice granular processor with independent gap and grain-size controls. |
 | moog | 9 (k, k, k, k, k, k, i, i, i) | 1 (a) | Mini-Moog style synthesizer model source. |

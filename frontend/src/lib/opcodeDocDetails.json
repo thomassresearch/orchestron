@@ -4651,6 +4651,78 @@
       }
     }
   },
+  "grain2": {
+    "description": {
+      "english": "Easy-to-use granular synthesis texture generator. Generate granular synthesis textures. grain2 is simpler to use, but grain3 offers more control.",
+      "german": "Einfach zu verwendender Granularsynthese-Texturgenerator. Erzeugt granulare Synthesetexturen. grain2 ist einfacher zu verwenden, aber grain3 bietet mehr Kontrolle.",
+      "french": "Générateur de textures de synthèse granulaire simple à utiliser. Génère des textures de synthèse granulaire. grain2 est plus simple à utiliser, mais grain3 offre davantage de contrôle.",
+      "spanish": "Generador de texturas de síntesis granular fácil de usar. Genera texturas de síntesis granular. grain2 es más sencillo de usar, pero grain3 ofrece más control."
+    },
+    "inputs": {
+      "kcps": {
+        "english": "Grain frequency in Hz.",
+        "german": "Grain-Frequenz in Hz.",
+        "french": "Fréquence des grains en Hz.",
+        "spanish": "Frecuencia del grano en Hz."
+      },
+      "kfmd": {
+        "english": "Bipolar random variation of grain frequency in Hz.",
+        "german": "Bipolare Zufallsvariation der Grain-Frequenz in Hz.",
+        "french": "Variation aléatoire bipolaire de la fréquence des grains en Hz.",
+        "spanish": "Variación aleatoria bipolar de la frecuencia del grano en Hz."
+      },
+      "kgdur": {
+        "english": "Grain duration in seconds. Changes also affect grains that are already active.",
+        "german": "Grain-Dauer in Sekunden. Änderungen wirken sich auch auf bereits aktive Grains aus.",
+        "french": "Durée du grain en secondes. Les changements affectent aussi les grains déjà actifs.",
+        "spanish": "Duración del grano en segundos. Los cambios también afectan a los granos que ya están activos."
+      },
+      "iovrlp": {
+        "english": "Fixed number of overlapping grains.",
+        "german": "Feste Anzahl gleichzeitig überlappender Grains.",
+        "french": "Nombre fixe de grains qui se chevauchent.",
+        "spanish": "Número fijo de granos superpuestos."
+      },
+      "kfn": {
+        "english": "Function table containing the grain waveform. The table number can change at k-rate, which is useful for switching among band-limited GEN30 tables to avoid aliasing.",
+        "german": "Funktionstabelle mit der Grain-Wellenform. Die Tabellennummer kann mit k-Rate geändert werden, was für den Wechsel zwischen bandbegrenzten GEN30-Tabellen zur Vermeidung von Aliasing nützlich ist.",
+        "french": "Table de fonctions contenant la forme d’onde du grain. Le numéro de table peut changer au taux k, ce qui est utile pour basculer entre des tables GEN30 à bande limitée afin d’éviter l’aliasing.",
+        "spanish": "Tabla de funciones que contiene la forma de onda del grano. El número de tabla puede cambiar a tasa k, lo que resulta útil para alternar entre tablas GEN30 de banda limitada y evitar aliasing."
+      },
+      "iwfn": {
+        "english": "Function table containing the window waveform, typically generated with GEN20.",
+        "german": "Funktionstabelle mit der Fensterwellenform, typischerweise mit GEN20 erzeugt.",
+        "french": "Table de fonctions contenant la forme d’onde de fenêtre, généralement générée avec GEN20.",
+        "spanish": "Tabla de funciones que contiene la forma de onda de la ventana, normalmente generada con GEN20."
+      },
+      "irpow": {
+        "english": "Shapes the probability distribution of random grain-frequency variation.",
+        "german": "Formt die Wahrscheinlichkeitsverteilung der zufälligen Grain-Frequenzvariation.",
+        "french": "Façonne la distribution de probabilité de la variation aléatoire de la fréquence des grains.",
+        "spanish": "Da forma a la distribución de probabilidad de la variación aleatoria de la frecuencia del grano."
+      },
+      "iseed": {
+        "english": "Seed for the random number generator. Positive integers from 1 to 2147483646 are valid; 0 or negative values seed from the current time.",
+        "german": "Startwert für den Zufallszahlengenerator. Positive Ganzzahlen von 1 bis 2147483646 sind gültig; bei 0 oder negativen Werten wird die aktuelle Zeit verwendet.",
+        "french": "Valeur d’amorçage pour le générateur de nombres aléatoires. Les entiers positifs de 1 à 2147483646 sont valides ; 0 ou une valeur négative utilise l’heure actuelle.",
+        "spanish": "Semilla para el generador de números aleatorios. Son válidos los enteros positivos de 1 a 2147483646; con 0 o valores negativos se usa la hora actual."
+      },
+      "imode": {
+        "english": "Bitmask controlling interpolation, continuous modulation, and initialization behavior.",
+        "german": "Bitmaske zur Steuerung von Interpolation, kontinuierlicher Modulation und Initialisierungsverhalten.",
+        "french": "Masque binaire contrôlant l’interpolation, la modulation continue et le comportement d’initialisation.",
+        "spanish": "Máscara de bits que controla la interpolación, la modulación continua y el comportamiento de inicialización."
+      }
+    },
+    "outputs": {
+      "asig": {
+        "english": "Audio output from grain2.",
+        "german": "Audio-Ausgang von grain2.",
+        "french": "Sortie audio de grain2.",
+        "spanish": "Salida de audio de grain2."
+      }
+    }
+  },
   "grain3": {
     "description": {
       "english": "Granular oscillator with more control than grain2, including independent frequency and phase randomization.",

@@ -3002,8 +3002,23 @@ def test_additional_opcode_references_are_available(tmp_path: Path) -> None:
         grain2_inputs = {item["id"]: item for item in opcodes_by_name["grain2"]["inputs"]}
         grain2_outputs = {item["id"]: item for item in opcodes_by_name["grain2"]["outputs"]}
         assert opcodes_by_name["grain2"]["category"] == "oscillator"
-        assert grain2_inputs["kamp"]["accepted_signal_types"] == ["k", "i"]
+        assert list(grain2_inputs.keys()) == [
+            "kcps",
+            "kfmd",
+            "kgdur",
+            "iovrlp",
+            "kfn",
+            "iwfn",
+            "irpow",
+            "iseed",
+            "imode",
+        ]
+        assert grain2_inputs["kcps"]["accepted_signal_types"] == ["k", "i"]
+        assert grain2_inputs["kcps"]["default"] == 220
+        assert grain2_inputs["kfmd"]["accepted_signal_types"] == ["k", "i"]
+        assert grain2_inputs["kgdur"]["accepted_signal_types"] == ["k", "i"]
         assert grain2_inputs["kfn"]["accepted_signal_types"] == ["k", "i"]
+        assert grain2_inputs["irpow"]["default"] == 0
         assert grain2_inputs["irpow"]["required"] is False
         assert grain2_inputs["iseed"]["required"] is False
         assert grain2_inputs["imode"]["required"] is False
