@@ -143,7 +143,7 @@ Use this to verify the exact Csound line before compile.
 ## Screenshots
 
 <p align="center">
-  <img src="../../screenshots/ instrument_gen_editor_structured_preview.png" alt="GEN editor structured routine mode" width="1000" style="max-width: 100%; height: auto;" />
+  <img src="../../screenshots/instrument_gen_editor_structured_preview.png" alt="GEN editor structured routine mode" width="1000" style="max-width: 100%; height: auto;" />
 </p>
 <p align="center"><em>GEN editor in structured routine mode with live preview panel.</em></p>
 
@@ -153,7 +153,7 @@ Use this to verify the exact Csound line before compile.
 <p align="center"><em>GEN01 table setup using an uploaded backend audio asset.</em></p>
 
 <p align="center">
-  <img src="../../screenshots/ instrument_gen_editor_padsynth_raw_args.png" alt="GENpadsynth editor using raw arguments" width="980" style="max-width: 100%; height: auto;" />
+  <img src="../../screenshots/instrument_gen_editor_padsynth_raw_args.png" alt="GENpadsynth editor using raw arguments" width="980" style="max-width: 100%; height: auto;" />
 </p>
 <p align="center"><em>GENpadsynth named routine using raw arguments input.</em></p>
 

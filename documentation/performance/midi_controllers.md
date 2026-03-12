@@ -63,7 +63,7 @@ Both can exist in the same performance.
 ## Screenshots
 
 <p align="center">
-  <img src="../../screenshots/ perform_midi_controllers_knob_lanes_closeup.png" alt="MIDI controller knob lanes" width="980" style="max-width: 100%; height: auto;" />
+  <img src="../../screenshots/perform_midi_controllers_knob_lanes_closeup.png" alt="MIDI controller knob lanes" width="980" style="max-width: 100%; height: auto;" />
 </p>
 <p align="center"><em>Manual MIDI controller lanes with knobs, CC numbers, and values.</em></p>
 
