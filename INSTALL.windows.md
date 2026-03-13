@@ -29,7 +29,7 @@ csound --version
 ```
 
 Project requirements:
-- Python `>= 3.14`
+- Python `>= 3.13,<3.14` # as 3.14 is currently ALPHA on windows, that will change, then 3.14 is fine
 - Node + npm (Node 20+ recommended)
 - Csound runtime (for realtime synthesis via `ctcsound`)
 
