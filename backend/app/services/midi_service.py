@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import sys
 import threading
 from dataclasses import dataclass
@@ -138,7 +139,10 @@ class MidiService:
 
     @staticmethod
     def _normalize_name(name: str) -> str:
-        return " ".join(name.strip().lower().split())
+        normalized = " ".join(name.strip().lower().split())
+        # Ignore backend-added numeric suffixes like " 0", " 1"
+        normalized = re.sub(r"\s+\d+$", "", normalized)
+        return normalized
 
     def _deliver_virtual_output(self, selector_id: str, message: list[int]) -> int:
         with self._lock:
@@ -158,21 +162,19 @@ class MidiService:
         output_names = list(mido_module.get_output_names())
         if not output_names:
             raise ValueError(
-                "No backend MIDI outputs are available. Enable the macOS IAC Driver bus in Audio MIDI Setup."
+                "No backend MIDI outputs are available."
             )
 
         target = self._normalize_name(input_ref.name)
 
-        exact = next((name for name in output_names if self._normalize_name(name) == target), None)
+        normalized_outputs = [(name, self._normalize_name(name)) for name in output_names]
+
+        exact = next((name for name, norm in normalized_outputs if norm == target), None)
         if exact:
             return exact
 
         partial = next(
-            (
-                name
-                for name in output_names
-                if target in self._normalize_name(name) or self._normalize_name(name) in target
-            ),
+            (name for name, norm in normalized_outputs if target in norm or norm in target),
             None,
         )
         if partial:
@@ -183,11 +185,8 @@ class MidiService:
 
         available = ", ".join(output_names)
         raise ValueError(
-            (
-                f"No backend MIDI output matched '{input_ref.name}'. "
-                f"Available outputs: {available}. "
-                "Confirm the IAC Driver bus name and restart the browser/backend."
-            )
+            f"No backend MIDI output matched '{input_ref.name}'. "
+            f"Available outputs: {available}."
         )
 
     @staticmethod
