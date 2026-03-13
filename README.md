@@ -72,75 +72,12 @@ Orchestron is a two-tier application with a FastAPI backend handling the service
 
 ## Quick Start
 
-### Requirements
+Choose the installation guide that matches your environment. The platform guides cover native development setup, and the Docker guide covers the containerized WebRTC streaming workflow.
 
-- Csound must be installed on your system and available in your `PATH`.
-- Install "uv", run "uv sync" to create the virtual python environment
-
-### Use the Makefile
-
-Build the app:
-
-```bash
-uv sync # create python virtual env
-make
-make run
-```
-
-### Running in Docker
-
-Run the backend in browser-audio streaming mode (WebRTC) with Docker Compose:
-
-Create the external Docker volume first (used for persistent `backend/data` storage):
-
-```bash
-docker volume create orchestron_data
-```
-
-```bash
-docker compose up --build
-```
-
-Then open:
-
-- Backend API: `http://localhost:8000`
-- Backend-served frontend: `http://localhost:8000/client`
-
-This Compose setup runs Csound in `streaming` mode and sends audio to the browser over WebRTC (via the bundled TURN service).
-
-See `WEBRTC_STREAMING.md` for implementation details, latency tuning, and Docker-specific notes.
-
-### Backend
-
-```bash
-# uv pip install -e '.[dev]'
-uv sync
-uvicorn backend.app.main:app --reload
-```
-
-### Frontend
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-### Backend Serving Built Frontend
-
-Build frontend once, then serve it from the backend at `/client`:
-
-```bash
-cd frontend
-npm install
-npm run build
-cd ..
-uvicorn backend.app.main:app --reload
-```
-
-Default backend URL: `http://localhost:8000`
-Default frontend URL: `http://localhost:5173`
-Backend-served frontend URL: `http://localhost:8000/client`
+- [macOS installation](INSTALL.macos.md)
+- [Linux installation](INSTALL.linux.md)
+- [Windows installation](INSTALL.windows.md)
+- [Docker installation](INSTALL.docker.md)
 
 ## MIDI on macOS
 
