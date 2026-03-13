@@ -13,6 +13,7 @@ from backend.app.engine.session_runtime import RuntimeSession
 from backend.app.models.session import (
     BindMidiInputRequest,
     CompileResponse,
+    MidiInputRef,
     SessionAudioWebRtcAnswerResponse,
     SessionAudioWebRtcOfferRequest,
     SessionSequencerConfigRequest,
@@ -66,7 +67,7 @@ class SessionService:
             self._patch_service.get_patch_document(assignment.patch_id)
 
         midi_inputs = self._midi_service.list_inputs()
-        default_midi = midi_inputs[0].id if midi_inputs else self._settings.default_midi_device
+        default_midi = self._resolve_default_midi_input_id(midi_inputs)
         backend_webrtc_ice_servers = [
             server.model_dump(exclude_none=True) for server in self._settings.resolved_webrtc_backend_ice_servers
         ]
@@ -153,7 +154,7 @@ class SessionService:
             for assignment in runtime.instruments
         ]
 
-        midi_device = runtime.midi_input or self._settings.default_midi_device
+        midi_device = self._resolve_runtime_midi_backend_selector(runtime)
 
         try:
             artifact = self._compiler_service.compile_patch_bundle(
@@ -191,7 +192,7 @@ class SessionService:
         try:
             result = runtime.worker.start(
                 runtime.compile_artifact.csd,
-                midi_input=runtime.midi_input or self._settings.default_midi_device,
+                midi_input=self._resolve_runtime_midi_backend_selector(runtime),
                 rtmidi_module=self._settings.default_rtmidi_module,
             )
         except Exception as exc:
@@ -544,7 +545,7 @@ class SessionService:
         if runtime.sequencer is not None:
             return runtime.sequencer
 
-        midi_input = runtime.midi_input or self._settings.default_midi_device
+        midi_input = runtime.midi_input or self._resolve_default_midi_input_id()
         runtime.sequencer = SessionSequencerRuntime(
             session_id=runtime.session_id,
             midi_service=self._midi_service,
@@ -556,6 +557,19 @@ class SessionService:
             ),
         )
         return runtime.sequencer
+
+    def _resolve_default_midi_input_id(self, midi_inputs: list[MidiInputRef] | None = None) -> str:
+        inputs = midi_inputs if midi_inputs is not None else self._midi_service.list_inputs()
+        if not inputs:
+            return self._settings.default_midi_device
+        try:
+            return self._midi_service.resolve_input(self._settings.default_midi_device)
+        except ValueError:
+            return inputs[0].id
+
+    def _resolve_runtime_midi_backend_selector(self, runtime: RuntimeSession) -> str:
+        selector = runtime.midi_input or self._resolve_default_midi_input_id()
+        return self._midi_service.resolve_backend_selector(selector)
 
     def _remember_running_loop(self) -> None:
         try:

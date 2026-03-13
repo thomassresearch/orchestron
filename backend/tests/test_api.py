@@ -9,6 +9,7 @@ import zipfile
 
 from fastapi.testclient import TestClient
 
+from backend.app.models.session import MidiInputRef
 from backend.app.core.config import get_settings
 from backend.app.main import create_app
 
@@ -44,6 +45,41 @@ def test_client_static_endpoint(tmp_path: Path) -> None:
         response = client.get("/client")
         assert response.status_code == 200
         assert "client-ok" in response.text
+
+
+def test_bind_midi_input_normalizes_legacy_selector_to_stable_id(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        container = client.app.state.container
+        stable_input = MidiInputRef(
+            id="mido:arturia-keystep-37:abcdef123456",
+            name="Arturia KeyStep 37",
+            backend="mido",
+            selector="3",
+        )
+        container.midi_service.list_inputs = lambda: [stable_input]
+
+        patch_payload = {
+            "name": "MIDI Binding Patch",
+            "description": "selector migration",
+            "schema_version": 1,
+            "graph": {
+                "nodes": [{"id": "n1", "opcode": "outs", "params": {}, "position": {"x": 10, "y": 10}}],
+                "connections": [],
+                "ui_layout": {},
+                "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+            },
+        }
+        created_patch = client.post("/api/patches", json=patch_payload)
+        assert created_patch.status_code == 201
+        patch_id = created_patch.json()["id"]
+
+        created_session = client.post("/api/sessions", json={"patch_id": patch_id})
+        assert created_session.status_code == 201
+        session_id = created_session.json()["session_id"]
+
+        response = client.put(f"/api/sessions/{session_id}/midi-input", json={"midi_input": "3"})
+        assert response.status_code == 200
+        assert response.json()["midi_input"] == stable_input.id
 
 
 def test_app_state_round_trip(tmp_path: Path) -> None:

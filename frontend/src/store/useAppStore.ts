@@ -950,6 +950,17 @@ function defaultDrummerSequencerTrack(index = 1, midiChannel = 10): DrummerSeque
   };
 }
 
+function normalizeMidiInputSelection(selection: string | null | undefined, midiInputs: MidiInputRef[]): string | null {
+  if (typeof selection !== "string" || selection.trim().length === 0) {
+    return null;
+  }
+
+  const match = midiInputs.find(
+    (input) => input.id === selection || input.selector === selection || input.name === selection
+  );
+  return match?.id ?? null;
+}
+
 function defaultPianoRoll(index = 1, midiChannel = 2): PianoRollState {
   const channel = clampInt(midiChannel, 1, 16);
   return {
@@ -2642,11 +2653,8 @@ export const useAppStore = create<AppStore>((set, get) => {
           let performanceDescription = "";
           let guiLanguage: GuiLanguage = "english";
 
-          const preferredMidi = get().activeMidiInput;
-          let activeMidiInput =
-            preferredMidi && midiInputs.some((input) => input.id === preferredMidi)
-              ? preferredMidi
-              : midiInputs[0]?.id ?? null;
+          const preferredMidi = normalizeMidiInputSelection(get().activeMidiInput, midiInputs);
+          let activeMidiInput = preferredMidi ?? midiInputs[0]?.id ?? null;
 
           if (persistedState && typeof persistedState === "object" && !Array.isArray(persistedState)) {
             const payload = persistedState as Partial<PersistedAppState>;
@@ -2688,11 +2696,9 @@ export const useAppStore = create<AppStore>((set, get) => {
               performanceDescription =
                 typeof payload.performanceDescription === "string" ? payload.performanceDescription : "";
 
-              if (
-                typeof payload.activeMidiInput === "string" &&
-                midiInputs.some((input) => input.id === payload.activeMidiInput)
-              ) {
-                activeMidiInput = payload.activeMidiInput;
+              const persistedMidiInput = normalizeMidiInputSelection(payload.activeMidiInput, midiInputs);
+              if (persistedMidiInput) {
+                activeMidiInput = persistedMidiInput;
               }
             }
           }
@@ -5800,9 +5806,11 @@ export const useAppStore = create<AppStore>((set, get) => {
       sessionId = session.session_id;
 
       const midiInput = get().activeMidiInput;
+      let boundMidiInput = midiInput;
       if (midiInput) {
         try {
-          await api.bindMidiInput(sessionId, midiInput);
+          const boundSession = await api.bindMidiInput(sessionId, midiInput);
+          boundMidiInput = boundSession.midi_input ?? midiInput;
         } catch {
           // Keep session creation successful even if MIDI binding fails.
         }
@@ -5811,7 +5819,7 @@ export const useAppStore = create<AppStore>((set, get) => {
       set({
         activeSessionId: sessionId,
         activeSessionState: session.state,
-        activeMidiInput: midiInput,
+        activeMidiInput: boundMidiInput,
         activeSessionInstruments: session.instruments.length > 0 ? session.instruments : requestedAssignments
       });
 
@@ -5954,7 +5962,7 @@ export const useAppStore = create<AppStore>((set, get) => {
         const session = await api.bindMidiInput(sessionId, midiInput);
         set({
           activeSessionState: session.state,
-          activeMidiInput: midiInput,
+          activeMidiInput: session.midi_input ?? midiInput,
           loading: false
         });
       } catch (error) {

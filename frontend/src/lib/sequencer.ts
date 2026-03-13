@@ -818,7 +818,9 @@ export function resolveMidiInputName(midiInputId: string | null, midiInputs: Mid
   if (!midiInputId) {
     return null;
   }
-  const selected = midiInputs.find((input) => input.id === midiInputId);
+  const selected = midiInputs.find(
+    (input) => input.id === midiInputId || input.selector === midiInputId || input.name === midiInputId
+  );
   return selected?.name ?? null;
 }
 

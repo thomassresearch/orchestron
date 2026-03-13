@@ -92,6 +92,7 @@ class MidiInputRef(BaseModel):
     id: str
     name: str
     backend: str
+    selector: str
 
 
 class BindMidiInputRequest(BaseModel):

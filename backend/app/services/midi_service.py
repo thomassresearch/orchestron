@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import logging
 import os
 import re
@@ -34,10 +35,7 @@ class MidiService:
                 import mido
 
                 names = mido.get_input_names()
-                refs = [
-                    MidiInputRef(id=str(index), name=name, backend="mido")
-                    for index, name in enumerate(names)
-                ]
+                refs = self._build_input_refs(names, backend="mido")
                 if refs:
                     return refs
             except Exception:  # pragma: no cover - runtime dependent
@@ -55,11 +53,14 @@ class MidiService:
     def resolve_input(self, selector: str) -> str:
         return self.resolve_input_ref(selector).id
 
+    def resolve_backend_selector(self, selector: str) -> str:
+        return self.resolve_input_ref(selector).selector
+
     def resolve_input_ref(self, selector: str) -> MidiInputRef:
         inputs = self.list_inputs()
 
         for midi_input in inputs:
-            if midi_input.id == selector or midi_input.name == selector:
+            if midi_input.id == selector or midi_input.selector == selector or midi_input.name == selector:
                 return midi_input
 
         raise ValueError(f"MIDI input '{selector}' is unavailable.")
@@ -144,6 +145,27 @@ class MidiService:
         normalized = re.sub(r"\s+\d+$", "", normalized)
         return normalized
 
+    @classmethod
+    def _build_input_refs(cls, names: list[str], *, backend: str) -> list[MidiInputRef]:
+        refs: list[MidiInputRef] = []
+        for index, name in enumerate(names):
+            refs.append(
+                MidiInputRef(
+                    id=cls._stable_input_id(backend, name),
+                    name=name,
+                    backend=backend,
+                    selector=str(index),
+                )
+            )
+        return refs
+
+    @staticmethod
+    def _stable_input_id(backend: str, name: str) -> str:
+        normalized = " ".join(name.strip().lower().split())
+        slug = re.sub(r"[^a-z0-9]+", "-", normalized).strip("-") or "device"
+        digest = hashlib.sha1(normalized.encode("utf-8")).hexdigest()[:12]
+        return f"{backend}:{slug}:{digest}"
+
     def _deliver_virtual_output(self, selector_id: str, message: list[int]) -> int:
         with self._lock:
             sinks = list(self._virtual_output_sinks.get(selector_id, {}).values())
@@ -211,11 +233,11 @@ class MidiService:
     @staticmethod
     def _fallback_inputs() -> list[MidiInputRef]:
         if sys.platform == "darwin":
-            return [
-                MidiInputRef(id="0", name="IAC Driver Bus 1", backend="fallback"),
-                MidiInputRef(id="1", name="IAC Driver Bus 2", backend="fallback"),
-            ]
-        return [
-            MidiInputRef(id="0", name="Virtual MIDI Input 1", backend="fallback"),
-            MidiInputRef(id="1", name="Virtual MIDI Input 2", backend="fallback"),
-        ]
+            return MidiService._build_input_refs(
+                ["IAC Driver Bus 1", "IAC Driver Bus 2"],
+                backend="fallback",
+            )
+        return MidiService._build_input_refs(
+            ["Virtual MIDI Input 1", "Virtual MIDI Input 2"],
+            backend="fallback",
+        )

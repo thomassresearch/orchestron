@@ -642,6 +642,7 @@ export interface MidiInputRef {
   id: string;
   name: string;
   backend: string;
+  selector: string;
 }
 
 export interface SessionEvent {
