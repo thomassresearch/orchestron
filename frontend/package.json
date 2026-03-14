@@ -9,7 +9,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "esbuild": "^0.25.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "rete": "^2.0.4",
@@ -26,6 +25,6 @@
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.9.2",
-    "vite": "^5.4.20"
+    "vite": "^6.4.1"
   }
 }
