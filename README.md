@@ -81,6 +81,8 @@ Choose the installation guide that matches your environment. The platform guides
 
 To make sound quickly, open [http://localhost:8000/client](http://localhost:8000/client), then in `Instrument Design` import an instrument from [`examples/instruments/`](examples/instruments/). Switch to the `Perform` panel, add the instrument to the performance, add a piano roll keyboard if it is not already visible, set its MIDI channel to match the instrument channel, press `Start Instrument`, then go to the piano keyboards, press `Start`, and play.
 
+**Troubleshooting**: if audio output is chopped, increase the hardware and software buffer sizes in the configuration settings.
+
 ## MIDI on macOS
 
 Enable the **IAC Driver** in Audio MIDI Setup and route MIDI output from your DAW/software into the selected IAC bus.
