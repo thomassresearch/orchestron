@@ -1878,13 +1878,30 @@ def test_session_backend_sequencer_uses_step_velocity_for_note_on(tmp_path: Path
 
         midi_service = client.app.state.container.midi_service
         captured_messages: list[list[int]] = []
-        original_send_message = midi_service.send_message
+        original_send_scheduled_message = midi_service.send_scheduled_message
+        original_send_scheduled_messages = midi_service.send_scheduled_messages
 
-        def capture_send_message(input_selector: str, message: list[int]) -> str:
+        def capture_send_scheduled_message(
+            input_selector: str,
+            message: list[int],
+            *,
+            delivery_delay_seconds: float | None,
+        ) -> str:
             captured_messages.append(list(message))
             return "mock"
 
-        midi_service.send_message = capture_send_message  # type: ignore[method-assign]
+        def capture_send_scheduled_messages(
+            input_selector: str,
+            messages: list[list[int]],
+            *,
+            delivery_delay_seconds: float | None,
+        ) -> str:
+            for message in messages:
+                captured_messages.append(list(message))
+            return "mock"
+
+        midi_service.send_scheduled_message = capture_send_scheduled_message  # type: ignore[method-assign]
+        midi_service.send_scheduled_messages = capture_send_scheduled_messages  # type: ignore[method-assign]
         try:
             start_sequencer = client.post(
                 f"/api/sessions/{session_id}/sequencer/start",
@@ -1936,7 +1953,115 @@ def test_session_backend_sequencer_uses_step_velocity_for_note_on(tmp_path: Path
             assert stop_sequencer.status_code == 200
             assert stop_sequencer.json()["running"] is False
         finally:
-            midi_service.send_message = original_send_message  # type: ignore[method-assign]
+            midi_service.send_scheduled_message = original_send_scheduled_message  # type: ignore[method-assign]
+            midi_service.send_scheduled_messages = original_send_scheduled_messages  # type: ignore[method-assign]
+
+
+def test_session_backend_sequencer_schedules_pad_switch_note_events_with_positive_delay(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        patch_payload = {
+            "name": "Sequencer Timing Patch",
+            "description": "scheduled pad switch timing",
+            "schema_version": 1,
+            "graph": {
+                "nodes": [
+                    {"id": "n1", "opcode": "const_a", "params": {"value": 0.2}, "position": {"x": 50, "y": 50}},
+                    {"id": "n2", "opcode": "outs", "params": {}, "position": {"x": 240, "y": 50}},
+                ],
+                "connections": [
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "left"},
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "right"},
+                ],
+                "ui_layout": {},
+                "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+            },
+        }
+
+        create_patch = client.post("/api/patches", json=patch_payload)
+        assert create_patch.status_code == 201
+        patch_id = create_patch.json()["id"]
+
+        create_session = client.post("/api/sessions", json={"patch_id": patch_id})
+        assert create_session.status_code == 201
+        session_id = create_session.json()["session_id"]
+
+        midi_service = client.app.state.container.midi_service
+        scheduled_calls: list[tuple[list[list[int]], float | None]] = []
+        original_send_scheduled_message = midi_service.send_scheduled_message
+        original_send_scheduled_messages = midi_service.send_scheduled_messages
+
+        def capture_send_scheduled_message(
+            input_selector: str,
+            message: list[int],
+            *,
+            delivery_delay_seconds: float | None,
+        ) -> str:
+            scheduled_calls.append(([list(message)], delivery_delay_seconds))
+            return "mock"
+
+        def capture_send_scheduled_messages(
+            input_selector: str,
+            messages: list[list[int]],
+            *,
+            delivery_delay_seconds: float | None,
+        ) -> str:
+            scheduled_calls.append(([list(message) for message in messages], delivery_delay_seconds))
+            return "mock"
+
+        midi_service.send_scheduled_message = capture_send_scheduled_message  # type: ignore[method-assign]
+        midi_service.send_scheduled_messages = capture_send_scheduled_messages  # type: ignore[method-assign]
+        try:
+            start_sequencer = client.post(
+                f"/api/sessions/{session_id}/sequencer/start",
+                json={
+                    "config": _sequencer_config(
+                            [
+                                {
+                                    "track_id": "voice-1",
+                                    "midi_channel": 1,
+                                    "length_beats": 1,
+                                    "active_pad": 0,
+                                    "pads": [
+                                        {"pad_index": 0, "length_beats": 1, "steps": [60, None, None, None]},
+                                        {"pad_index": 1, "length_beats": 1, "steps": [67, None, None, None]},
+                                    ],
+                                }
+                            ],
+                            tempo_bpm=300,
+                            playback_end_step=16,
+                        )
+                    },
+                )
+            assert start_sequencer.status_code == 200
+
+            queue_pad = client.post(
+                f"/api/sessions/{session_id}/sequencer/tracks/voice-1/queue-pad",
+                json={"pad_index": 1},
+            )
+            assert queue_pad.status_code == 200
+
+            saw_switched_note = False
+            saw_positive_delay = False
+            for _ in range(50):
+                for messages, delivery_delay_seconds in scheduled_calls:
+                    if delivery_delay_seconds is not None and delivery_delay_seconds > 0:
+                        saw_positive_delay = True
+                    if any(len(message) == 3 and (message[0] & 0xF0) == 0x90 and message[1] == 67 for message in messages):
+                        saw_switched_note = True
+                        if delivery_delay_seconds is not None and delivery_delay_seconds > 0:
+                            saw_positive_delay = True
+                if saw_switched_note and saw_positive_delay:
+                    break
+                time.sleep(0.05)
+
+            assert saw_switched_note, "Expected queued pad switch to emit the first note from pad 1."
+            assert saw_positive_delay, "Expected sequencer note events to be queued with a positive delivery delay."
+
+            stop_sequencer = client.post(f"/api/sessions/{session_id}/sequencer/stop")
+            assert stop_sequencer.status_code == 200
+        finally:
+            midi_service.send_scheduled_message = original_send_scheduled_message  # type: ignore[method-assign]
+            midi_service.send_scheduled_messages = original_send_scheduled_messages  # type: ignore[method-assign]
 
 
 def test_session_backend_sequencer_queued_track_enable_starts_on_loop_boundary(tmp_path: Path) -> None:
@@ -2010,6 +2135,302 @@ def test_session_backend_sequencer_queued_track_enable_starts_on_loop_boundary(t
             time.sleep(0.1)
 
         assert enabled_after_boundary, "Queued track enable did not activate on step-1 boundary in expected time."
+
+        stop_sequencer = client.post(f"/api/sessions/{session_id}/sequencer/stop")
+        assert stop_sequencer.status_code == 200
+        assert stop_sequencer.json()["running"] is False
+
+
+def test_session_backend_controller_sequencer_runs_without_note_tracks(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        patch_payload = {
+            "name": "Controller Sequencer Patch",
+            "description": "controller-only sequencer runtime",
+            "schema_version": 1,
+            "graph": {
+                "nodes": [
+                    {"id": "n1", "opcode": "const_a", "params": {"value": 0.2}, "position": {"x": 50, "y": 50}},
+                    {"id": "n2", "opcode": "outs", "params": {}, "position": {"x": 240, "y": 50}},
+                ],
+                "connections": [
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "left"},
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "right"},
+                ],
+                "ui_layout": {},
+                "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+            },
+        }
+
+        create_patch = client.post("/api/patches", json=patch_payload)
+        assert create_patch.status_code == 201
+        patch_id = create_patch.json()["id"]
+
+        create_session = client.post("/api/sessions", json={"patch_id": patch_id})
+        assert create_session.status_code == 201
+        session_id = create_session.json()["session_id"]
+
+        start_sequencer = client.post(
+            f"/api/sessions/{session_id}/sequencer/start",
+            json={
+                "config": _sequencer_config(
+                    [],
+                    tempo_bpm=240,
+                    controller_tracks=[
+                        {
+                            "track_id": "cc-1",
+                            "controller_number": 74,
+                            "length_beats": 16,
+                            "active_pad": 0,
+                            "enabled": True,
+                            "pads": [
+                                {
+                                    "pad_index": 0,
+                                    "length_beats": 16,
+                                    "keypoints": [
+                                        {"position": 0.0, "value": 10},
+                                        {"position": 0.5, "value": 96},
+                                        {"position": 1.0, "value": 10},
+                                    ],
+                                }
+                            ],
+                        }
+                    ],
+                )
+            },
+        )
+        assert start_sequencer.status_code == 200
+        payload = start_sequencer.json()
+        assert payload["running"] is True
+        assert payload["tracks"] == []
+        assert len(payload["controller_tracks"]) == 1
+        controller_track = payload["controller_tracks"][0]
+        assert controller_track["track_id"] == "cc-1"
+        assert controller_track["step_count"] == 64
+        assert controller_track["length_beats"] == 16
+        assert controller_track["active_pad"] == 0
+        assert controller_track["runtime_pad_start_subunit"] == 0
+        assert controller_track["target_channels"] == [1]
+
+        stop_sequencer = client.post(f"/api/sessions/{session_id}/sequencer/stop")
+        assert stop_sequencer.status_code == 200
+        assert stop_sequencer.json()["running"] is False
+
+
+def test_session_backend_controller_sequencer_sends_control_changes_on_session_channels(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        patch_payload = {
+            "name": "Controller Routing Patch",
+            "description": "controller sequencer output routing",
+            "schema_version": 1,
+            "graph": {
+                "nodes": [
+                    {"id": "n1", "opcode": "const_a", "params": {"value": 0.2}, "position": {"x": 50, "y": 50}},
+                    {"id": "n2", "opcode": "outs", "params": {}, "position": {"x": 240, "y": 50}},
+                ],
+                "connections": [
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "left"},
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "right"},
+                ],
+                "ui_layout": {},
+                "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+            },
+        }
+
+        create_patch = client.post("/api/patches", json=patch_payload)
+        assert create_patch.status_code == 201
+        patch_id = create_patch.json()["id"]
+
+        create_session = client.post(
+            "/api/sessions",
+            json={
+                "instruments": [
+                    {"patch_id": patch_id, "midi_channel": 2},
+                    {"patch_id": patch_id, "midi_channel": 5},
+                ]
+            },
+        )
+        assert create_session.status_code == 201
+        session_id = create_session.json()["session_id"]
+
+        midi_service = client.app.state.container.midi_service
+        captured_messages: list[list[int]] = []
+        original_send_scheduled_message = midi_service.send_scheduled_message
+        original_send_scheduled_messages = midi_service.send_scheduled_messages
+
+        def capture_send_scheduled_message(
+            input_selector: str,
+            message: list[int],
+            *,
+            delivery_delay_seconds: float | None,
+        ) -> str:
+            captured_messages.append(list(message))
+            return "mock"
+
+        def capture_send_scheduled_messages(
+            input_selector: str,
+            messages: list[list[int]],
+            *,
+            delivery_delay_seconds: float | None,
+        ) -> str:
+            for message in messages:
+                captured_messages.append(list(message))
+            return "mock"
+
+        midi_service.send_scheduled_message = capture_send_scheduled_message  # type: ignore[method-assign]
+        midi_service.send_scheduled_messages = capture_send_scheduled_messages  # type: ignore[method-assign]
+        try:
+            start_sequencer = client.post(
+                f"/api/sessions/{session_id}/sequencer/start",
+                json={
+                    "config": _sequencer_config(
+                        [],
+                        tempo_bpm=300,
+                        controller_tracks=[
+                            {
+                                "track_id": "cc-1",
+                                "controller_number": 74,
+                                "active_pad": 0,
+                                "enabled": True,
+                                "pads": [
+                                    {
+                                        "pad_index": 0,
+                                        "keypoints": [
+                                            {"position": 0.0, "value": 22},
+                                            {"position": 0.5, "value": 90},
+                                            {"position": 1.0, "value": 22},
+                                        ],
+                                    }
+                                ],
+                            }
+                        ],
+                    )
+                },
+            )
+            assert start_sequencer.status_code == 200
+
+            saw_channel_2 = False
+            saw_channel_5 = False
+            for _ in range(40):
+                for message in captured_messages:
+                    if len(message) != 3 or (message[0] & 0xF0) != 0xB0:
+                        continue
+                    channel = (message[0] & 0x0F) + 1
+                    if message[1] == 74 and channel == 2:
+                        saw_channel_2 = True
+                    if message[1] == 74 and channel == 5:
+                        saw_channel_5 = True
+                if saw_channel_2 and saw_channel_5:
+                    break
+                time.sleep(0.05)
+
+            assert saw_channel_2, "Expected controller sequencer to emit CC74 on session MIDI channel 2."
+            assert saw_channel_5, "Expected controller sequencer to emit CC74 on session MIDI channel 5."
+
+            stop_sequencer = client.post(f"/api/sessions/{session_id}/sequencer/stop")
+            assert stop_sequencer.status_code == 200
+        finally:
+            midi_service.send_scheduled_message = original_send_scheduled_message  # type: ignore[method-assign]
+            midi_service.send_scheduled_messages = original_send_scheduled_messages  # type: ignore[method-assign]
+
+
+def test_session_backend_controller_sequencer_queue_pad_switches_and_clears_queue(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        patch_payload = {
+            "name": "Controller Queue Patch",
+            "description": "controller pad queueing",
+            "schema_version": 1,
+            "graph": {
+                "nodes": [
+                    {"id": "n1", "opcode": "const_a", "params": {"value": 0.2}, "position": {"x": 50, "y": 50}},
+                    {"id": "n2", "opcode": "outs", "params": {}, "position": {"x": 240, "y": 50}},
+                ],
+                "connections": [
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "left"},
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "right"},
+                ],
+                "ui_layout": {},
+                "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+            },
+        }
+
+        create_patch = client.post("/api/patches", json=patch_payload)
+        assert create_patch.status_code == 201
+        patch_id = create_patch.json()["id"]
+
+        create_session = client.post("/api/sessions", json={"patch_id": patch_id})
+        assert create_session.status_code == 201
+        session_id = create_session.json()["session_id"]
+
+        start_sequencer = client.post(
+            f"/api/sessions/{session_id}/sequencer/start",
+            json={
+                "config": _sequencer_config(
+                    [],
+                    tempo_bpm=300,
+                    playback_end_step=96,
+                    controller_tracks=[
+                        {
+                            "track_id": "cc-1",
+                            "controller_number": 74,
+                            "length_beats": 4,
+                            "active_pad": 0,
+                            "enabled": True,
+                            "pads": [
+                                {"pad_index": 0, "length_beats": 4, "keypoints": [{"position": 0.0, "value": 10}]},
+                                {"pad_index": 1, "length_beats": 4, "keypoints": [{"position": 0.0, "value": 90}]},
+                            ],
+                        }
+                    ],
+                )
+            },
+        )
+        assert start_sequencer.status_code == 200
+
+        queue_pad = client.post(
+            f"/api/sessions/{session_id}/sequencer/tracks/cc-1/queue-pad",
+            json={"pad_index": 1},
+        )
+        assert queue_pad.status_code == 200
+        queued_track = queue_pad.json()["controller_tracks"][0]
+        assert queued_track["active_pad"] == 0
+        assert queued_track["queued_pad"] == 1
+
+        switched = False
+        for _ in range(30):
+            status = client.get(f"/api/sessions/{session_id}/sequencer/status")
+            assert status.status_code == 200
+            controller_track = status.json()["controller_tracks"][0]
+            if controller_track["active_pad"] == 1 and controller_track["queued_pad"] is None:
+                switched = True
+                break
+            time.sleep(0.05)
+
+        assert switched, "Expected queued controller pad to switch on the next loop boundary."
+
+        queue_second_pad = client.post(
+            f"/api/sessions/{session_id}/sequencer/tracks/cc-1/queue-pad",
+            json={"pad_index": 0},
+        )
+        assert queue_second_pad.status_code == 200
+        clear_queue = client.post(
+            f"/api/sessions/{session_id}/sequencer/tracks/cc-1/queue-pad",
+            json={"pad_index": None},
+        )
+        assert clear_queue.status_code == 200
+        cleared_track = clear_queue.json()["controller_tracks"][0]
+        assert cleared_track["queued_pad"] is None
+
+        remained_on_pad_1 = True
+        for _ in range(30):
+            status = client.get(f"/api/sessions/{session_id}/sequencer/status")
+            assert status.status_code == 200
+            controller_track = status.json()["controller_tracks"][0]
+            if controller_track["active_pad"] != 1:
+                remained_on_pad_1 = False
+                break
+            time.sleep(0.05)
+
+        assert remained_on_pad_1, "Expected cleared controller queue to leave the active pad unchanged."
 
         stop_sequencer = client.post(f"/api/sessions/{session_id}/sequencer/stop")
         assert stop_sequencer.status_code == 200

@@ -44,7 +44,7 @@ The live performance area provides an instrument rack where instruments can be s
 
 When the rack transport has started instruments, rack assignment edits are intentionally locked: adding/removing instruments and changing patch or MIDI channel assignments stay disabled until `Stop Instruments` is pressed, while per-instrument `Level` stays live for mix adjustments.
 
-A controller sequencer lets you define a curve that is sampled during playback and emitted as MIDI control messages for a selected controller number. Melodic and drummer pads are sized in beats (`1..8`), which makes one-bar pads possible in odd meters such as `3/4`, `5/4`, or `7/8`, while controller pads extend to `16` beats for longer repeating automation. Beat ratios change how quickly each sequencer advances across the shared transport without introducing float drift in the runtime clock, and stopped sequencers can switch to another pattern pad immediately even while other sequencers keep running.
+A controller sequencer lets you define a curve that is sent to the backend sequencer and emitted there as timed MIDI Control Change messages for a selected controller number. Melodic and drummer pads are sized in beats (`1..8`), which makes one-bar pads possible in odd meters such as `3/4`, `5/4`, or `7/8`, while controller pads extend to `16` beats for longer repeating automation. Beat ratios change how quickly each sequencer advances across the shared transport without introducing float drift in the backend runtime clock, and running controller sequencers now queue pad changes on loop boundaries the same way the note sequencers do.
 
 The multitrack arranger combines melodic sequencers, drummer sequencers, and controller sequencers in one shared timeline. Cassette-style transport controls rewind or fast-forward in shared `1-beat` transport blocks, `Stop` preserves the playhead, double-clicking `Stop` resets to the selected loop start or step `0`, an optional loop selection repeats only the chosen arranger range down to a single beat, right-click menus can insert pads or existing group/super-group tokens and copy/paste selected phrase blocks into later gaps or the sequence end, and the section now exposes the same integrated `?` help flow as the other perform devices.
 
@@ -66,7 +66,7 @@ The configuration view exposes audio settings and performance-related engine par
 
 ### Backend
 
-Orchestron is a two-tier application with a FastAPI backend handling the service layer and integration points for the frontend and Csound engine.
+Orchestron is a two-tier application with a FastAPI backend handling the service layer and integration points for the frontend and Csound engine. A detailed backend and endpoint reference lives in [BACKEND.md](BACKEND.md).
 
 ![FastAPI Backend](screenshots/fastapi_backend.png)
 

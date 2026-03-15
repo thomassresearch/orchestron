@@ -85,6 +85,7 @@ class SessionService:
             session_id=runtime.session_id,
             midi_service=self._midi_service,
             midi_input_selector=default_midi,
+            controller_default_channels=self._controller_default_channels_for_runtime(runtime),
             publish_event=lambda event_type, payload, session_id=runtime.session_id: self._publish_from_thread(
                 session_id=session_id,
                 event_type=event_type,
@@ -550,6 +551,7 @@ class SessionService:
             session_id=runtime.session_id,
             midi_service=self._midi_service,
             midi_input_selector=midi_input,
+            controller_default_channels=self._controller_default_channels_for_runtime(runtime),
             publish_event=lambda event_type, payload, session_id=runtime.session_id: self._publish_from_thread(
                 session_id=session_id,
                 event_type=event_type,
@@ -557,6 +559,18 @@ class SessionService:
             ),
         )
         return runtime.sequencer
+
+    @staticmethod
+    def _controller_default_channels_for_runtime(runtime: RuntimeSession) -> tuple[int, ...]:
+        channels = tuple(
+            sorted(
+                {
+                    max(1, min(16, int(assignment.midi_channel)))
+                    for assignment in runtime.instruments
+                }
+            )
+        )
+        return channels if channels else (1,)
 
     def _resolve_default_midi_input_id(self, midi_inputs: list[MidiInputRef] | None = None) -> str:
         inputs = midi_inputs if midi_inputs is not None else self._midi_service.list_inputs()
@@ -756,14 +770,19 @@ class SessionService:
         loop = self._loop
         if loop is None:
             return
+        coroutine = self._publish(session_id=session_id, event_type=event_type, payload=payload)
+        if loop.is_closed():
+            coroutine.close()
+            return
 
         try:
             future = asyncio.run_coroutine_threadsafe(
-                self._publish(session_id=session_id, event_type=event_type, payload=payload),
+                coroutine,
                 loop,
             )
             future.add_done_callback(self._handle_threadsafe_publish_result)
         except Exception:  # pragma: no cover - thread to loop failures are environment-dependent
+            coroutine.close()
             logger.exception("Failed to publish sequencer event from worker thread")
 
     @staticmethod

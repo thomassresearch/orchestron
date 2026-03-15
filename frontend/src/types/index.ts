@@ -538,6 +538,17 @@ export interface SessionSequencerPadConfig {
   steps: Array<number | Array<number> | null | SessionSequencerStepConfig>;
 }
 
+export interface SessionControllerSequencerKeypointConfig {
+  position: number;
+  value: number;
+}
+
+export interface SessionControllerSequencerPadConfig {
+  pad_index: number;
+  length_beats?: ControllerSequencerPadLengthBeats;
+  keypoints: SessionControllerSequencerKeypointConfig[];
+}
+
 export interface SessionSequencerTrackConfig {
   track_id: string;
   midi_channel: number;
@@ -556,6 +567,21 @@ export interface SessionSequencerTrackConfig {
   pads: SessionSequencerPadConfig[];
 }
 
+export interface SessionControllerSequencerTrackConfig {
+  track_id: string;
+  controller_number: number;
+  timing: SessionSequencerTimingConfig;
+  length_beats?: ControllerSequencerPadLengthBeats;
+  active_pad: number;
+  queued_pad?: number | null;
+  pad_loop_enabled?: boolean;
+  pad_loop_repeat?: boolean;
+  pad_loop_sequence?: number[];
+  enabled?: boolean;
+  pads: SessionControllerSequencerPadConfig[];
+  target_channels?: number[];
+}
+
 export interface SessionSequencerConfigRequest {
   timing: SessionSequencerTimingConfig;
   step_count: number;
@@ -563,6 +589,7 @@ export interface SessionSequencerConfigRequest {
   playback_end_step?: number;
   playback_loop?: boolean;
   tracks: SessionSequencerTrackConfig[];
+  controller_tracks: SessionControllerSequencerTrackConfig[];
 }
 
 export interface SessionSequencerStartRequest {
@@ -571,7 +598,7 @@ export interface SessionSequencerStartRequest {
 }
 
 export interface SessionSequencerQueuePadRequest {
-  pad_index: number;
+  pad_index: number | null;
 }
 
 export interface SessionSequencerTrackStatus {
@@ -589,6 +616,21 @@ export interface SessionSequencerTrackStatus {
   active_notes: number[];
 }
 
+export interface SessionControllerSequencerTrackStatus {
+  track_id: string;
+  controller_number: number;
+  timing: SessionSequencerTimingConfig;
+  length_beats: number;
+  step_count: number;
+  active_pad: number;
+  queued_pad: number | null;
+  pad_loop_position: number | null;
+  enabled: boolean;
+  runtime_pad_start_subunit: number | null;
+  last_value: number | null;
+  target_channels: number[];
+}
+
 export interface SessionSequencerStatus {
   session_id: string;
   running: boolean;
@@ -598,6 +640,7 @@ export interface SessionSequencerStatus {
   cycle: number;
   transport_subunit: number;
   tracks: SessionSequencerTrackStatus[];
+  controller_tracks: SessionControllerSequencerTrackStatus[];
 }
 
 export interface Patch {

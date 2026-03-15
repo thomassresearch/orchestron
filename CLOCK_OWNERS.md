@@ -11,8 +11,8 @@ It is based on the current implementation in `frontend/src` and `backend/app`.
 
 There is not one global clock. The app uses several clocks:
 
-- The backend sequencer thread is the authoritative transport clock for melodic sequencer tracks and drummer tracks.
-- The frontend is the clock owner for controller sequencers and piano-roll/direct-play interactions.
+- The backend sequencer thread is the authoritative transport clock for melodic sequencer tracks, drummer tracks, and controller sequencers.
+- The frontend is the clock owner for piano-roll/direct-play interactions and manual controller gestures.
 - Csound is the clock owner for continuous sound generation once a note is active.
 - In streaming mode, WebRTC and the browser audio subsystem add an output/playback clock on top of Csound.
 
@@ -20,7 +20,7 @@ There is not one global clock. The app uses several clocks:
 
 - Frontend React app: edits performances, starts/stops runtime, sends direct MIDI events, mirrors runtime state.
 - Backend session service: owns runtime sessions, starts Csound, exposes sequencer and MIDI APIs.
-- Backend sequencer runtime: emits timed MIDI note events for melodic and drummer tracks.
+- Backend sequencer runtime: emits timed MIDI note and controller events for sequenced tracks.
 - Csound engine: turns MIDI and internal DSP graph logic into continuous audio.
 - WebRTC bridge: only in streaming mode, packages backend audio for browser playback.
 
@@ -63,13 +63,13 @@ Drummer tracks are also converted by the frontend into backend runtime tracks. I
 
 ### Controller sequencers
 
-These are different:
+Controller sequencers are also sent to the backend sequencer:
 
-- They are not part of the backend timed note sequencer.
-- The frontend computes controller-curve playback itself.
-- The frontend samples the curve in a `requestAnimationFrame` loop and sends `control_change` MIDI events to the backend session.
+- The frontend sends controller timing, pad-loop state, pad lengths, controller number, and curve keypoints.
+- The backend compiles those pads into controller automation events.
+- The backend sequencer thread emits timed `control_change` MIDI messages.
 
-So controller sequencers are frontend-clocked, not backend-clocked.
+So controller sequencers are backend-clocked, not frontend-clocked.
 
 ### Piano roll and direct play
 
@@ -83,39 +83,37 @@ These are not scheduled by the backend sequencer transport.
 
 ## 3. Who Drives The Sequencer Clock?
 
-## Melodic tracks and drummer tracks: backend
+## Melodic tracks, drummer tracks, and controller sequencers: backend
 
 The backend `SessionSequencerRuntime` owns a dedicated thread. That thread:
 
 - uses `time.perf_counter()`
-- computes step duration as `60 / bpm / 4`
-- waits until the next step deadline
-- emits MIDI note on/off messages at those deadlines
+- advances by transport subunits and local step spans
+- waits until the next note or controller deadline
+- emits MIDI note and controller messages at those deadlines
 - advances playhead, cycle, pad switching, queueing, and sync behavior
 
 This makes the backend sequencer thread the authoritative transport clock for:
 
 - melodic sequencer tracks
 - drummer tracks
+- controller sequencers
 - pad switching and queued pad activation
 - track enable/disable boundary behavior
 - transport playhead and cycle state
 
 The frontend only mirrors this state.
 
-## Controller sequencers: frontend
+## Controller sequencers: backend
 
 Controller sequencers use a different timing model:
 
-- the frontend takes a backend transport snapshot
-- it stores an anchor `{ playhead, cycle, stepCount, bpm, timestamp }`
-- then it estimates in-between transport position in the browser
-- it samples controller curves at sub-step resolution
-- it sends CC MIDI messages back to the backend
+- the frontend sends controller pads and keypoints to the backend
+- the backend compiles controller pads into transport-relative automation events
+- the backend sequencer thread emits `control_change` MIDI messages
+- the frontend mirrors runtime state such as `active_pad`, `queued_pad`, and `runtime_pad_start_subunit`
 
-So the controller sequencer's effective playback clock is owned by the browser render loop.
-
-This means the transport reference comes from the backend, but the actual CC emission timing is frontend-driven.
+So the controller sequencer's effective playback clock is owned by the backend sequencer thread.
 
 ## UI playhead animation: frontend, but not authoritative
 
@@ -136,7 +134,7 @@ So the backend drives MIDI timing for those devices.
 
 ## Frontend direct MIDI
 
-For piano roll, manual controller changes, and controller sequencers:
+For piano roll and manual controller changes:
 
 - frontend decides when to send the event
 - backend accepts the event through the session MIDI API
@@ -179,11 +177,11 @@ In `local` mode:
 
 - driven by backend sequencer thread
 
-### MIDI note emission for melodic/drummer tracks
+### Scheduled MIDI emission for melodic/drummer/controller tracks
 
 - driven by backend sequencer thread
 
-### Direct MIDI from piano roll / controller sequencers / manual controls
+### Direct MIDI from piano roll / manual controls
 
 - driven by frontend
 
@@ -200,7 +198,7 @@ So in local mode the audible end of the chain is anchored to the host sound devi
 ## Local mode flow
 
 1. Frontend starts session and sequencer.
-2. Backend sequencer thread emits MIDI note events on step boundaries.
+2. Backend sequencer thread emits scheduled MIDI note and controller events.
 3. MIDI reaches Csound through the local runtime MIDI path.
 4. Csound instruments react using opcodes such as `cpsmidi`, `ampmidi`, `midictrl`, and `notnum`.
 5. Csound continuously renders audio.
@@ -236,11 +234,11 @@ In the Docker-oriented setup, `MidiService` fallback delivery and the worker's v
 
 - driven by backend sequencer thread
 
-### MIDI note emission for melodic/drummer tracks
+### Scheduled MIDI emission for melodic/drummer/controller tracks
 
 - driven by backend sequencer thread
 
-### Direct MIDI from piano roll / controller sequencers / manual controls
+### Direct MIDI from piano roll / manual controls
 
 - driven by frontend
 
@@ -270,7 +268,7 @@ So streaming mode introduces one more layer than local mode: browser playback ti
 
 1. Frontend starts the runtime session.
 2. Backend starts Csound in headless streaming mode.
-3. Backend sequencer thread emits MIDI note events.
+3. Backend sequencer thread emits scheduled MIDI note and controller events.
 4. MIDI is injected into Csound through host-implemented MIDI callbacks.
 5. Backend worker advances Csound one `ksmps` block at a time.
 6. Each output block is written into a WebRTC frame buffer.
@@ -290,14 +288,13 @@ The compiled orchestra:
 
 That means the app's patterns do not directly produce waveforms. They produce MIDI events that trigger Csound instruments, and those instruments then run continuously until release or stop conditions occur.
 
-## 9. Important Nuance: Controller Sequencers Are Separate
+## 9. Important Nuance: Controller Sequencers Share The Backend Transport
 
 The biggest architectural nuance is this:
 
 - note and drum sequencing are backend-clocked
-- controller sequencing is frontend-clocked
-
-The frontend tries to keep controller sequencers aligned by anchoring to backend transport state, but the CC messages themselves are emitted from the browser.
+- controller sequencing is also backend-clocked
+- piano roll and manual controller gestures remain frontend-clocked
 
 So if someone asks "who drives the clock?" the correct answer depends on which device they mean.
 
@@ -310,8 +307,8 @@ So if someone asks "who drives the clock?" the correct answer depends on which d
 
 ### Backend sequencer runtime
 
-- owns melodic/drummer transport timing
-- owns step advancement and timed note emission
+- owns melodic/drummer/controller transport timing
+- owns step advancement and timed MIDI emission
 
 ### Piano roll
 
@@ -323,7 +320,7 @@ So if someone asks "who drives the clock?" the correct answer depends on which d
 
 ### Controller sequencers
 
-- frontend-owned event timing, backend-referenced transport
+- backend-owned event timing
 
 ### Csound engine
 
@@ -347,7 +344,8 @@ So if someone asks "who drives the clock?" the correct answer depends on which d
 If you want the simplest internal model, use this:
 
 - The backend decides when notes happen.
-- The frontend decides when manual notes and controller curves happen.
+- The backend decides when controller curves happen.
+- The frontend decides when manual notes and manual controller events happen.
 - Csound decides how active notes evolve sample by sample.
 - Local mode ends at the host sound card.
 - Streaming mode ends at the browser audio output.

@@ -1,10 +1,10 @@
 # MIDI Sequencer and Multitrack Arranger (Current Implementation)
 
 ## 1. Scope
-The current sequencer system is a hybrid:
+The current sequencer system is split by interaction type:
 
-- Backend-timed note sequencing for melodic and drummer tracks (low-jitter clock and boundary-safe switching)
-- Frontend-timed controller-sequencer automation (CC curves), synchronized to global transport state
+- Backend-timed sequencing for melodic tracks, drummer tracks, and controller sequencers
+- Frontend-timed direct MIDI for piano rolls and manual MIDI controller lanes
 - Shared performance UI on the `Sequencer` page, including the multitrack arranger
 
 This document reflects the code in:
@@ -14,6 +14,7 @@ This document reflects the code in:
 - `frontend/src/components/MultitrackArranger.tsx`
 - `frontend/src/lib/padLoopPattern.ts`
 - `frontend/src/store/useAppStore.ts`
+- `backend/app/models/session.py`
 - `backend/app/services/sequencer_runtime.py`
 - `backend/app/api/sessions.py`
 
@@ -70,7 +71,7 @@ When instruments are running:
 While transport is running, frontend polls backend sequencer status every `80ms`:
 
 - `/api/sessions/{sessionId}/sequencer/status`
-- updates `isPlaying`, `playhead`, `cycle`, track runtime states
+- updates `isPlaying`, `playhead`, `cycle`, `transportSubunit`, and note/drum/controller runtime states
 
 Footer status currently shows:
 
@@ -84,9 +85,10 @@ Footer status currently shows:
 Each track has:
 
 - MIDI channel (`1..16`)
+- per-track timing (`meter`, `steps per beat`, `beat ratio`)
 - scale root/type + mode
 - per-track sync target (`syncToTrackId`)
-- step count options `4 | 8 | 16 | 32`
+- per-pad beat length (`1..8`) with derived step count from timing
 - step editor with note/chord/hold/velocity
 - pad loop controls
 - queued pad switching and queued enable/disable at loop boundaries
@@ -101,7 +103,8 @@ Backend step data supports:
 Each drummer track has:
 
 - MIDI channel (`1..16`)
-- step count `4 | 8 | 16 | 32`
+- per-track timing (`meter`, `steps per beat`, `beat ratio`)
+- per-pad beat length (`1..8`) with derived step count from timing
 - multiple drum rows (each row has MIDI note key)
 - per-cell active + velocity
 - pad loop controls
@@ -113,23 +116,24 @@ At backend config time, each drummer row is mapped to an internal runtime track:
 Pad queue operations for drummer tracks fan out to all row runtime tracks.
 
 ### 5.3 Controller Sequencers
-Controller sequencers are not executed by backend sequencer runtime.
-They run in frontend and send MIDI CC messages via `/midi-event`:
+Controller sequencers are executed by backend sequencer runtime as `controller_tracks`:
 
-- curve step count `8 | 16 | 32 | 64`
+- per-track timing (`meter`, `steps per beat`, `beat ratio`)
+- curve length in beats (`1..8`, plus `16`) with derived step count from timing
 - per-pad curve keypoints
-- pad loop controls and pad queue behavior
-- runtime phase (`runtimePadStartStep`) tracked in frontend state
+- pad loop controls and backend-queued pad switching
+- runtime phase (`runtimePadStartSubunit`) tracked from backend status
 
 Sampling/sending behavior:
 
-- internal sampling resolution: `8` samples per transport step
-- CC is sent only when sampled value changes
+- backend compiles pad keypoints into controller automation events
+- backend sequencer thread emits CC through `MidiService`
+- CC is sent only when the scheduled value changes
 
 UI playback indicator behavior:
 
-- Curve playhead visualization is updated at most once per transport step
-- CC send cadence is unchanged (still high-resolution internal sampling)
+- Curve playhead visualization is derived from backend transport plus backend controller runtime phase
+- UI indication is presentation only; it does not own CC timing
 
 ### 5.4 Piano Rolls and Manual MIDI Controllers
 - Piano roll note input uses direct MIDI events (`note_on` / `note_off`) while session is running.
@@ -150,7 +154,7 @@ Core behavior:
 Token types:
 
 - pad token (`1..8`)
-- pause token (`P4`, `P8`, `P16`, `P32`)
+- pause token (`P1`, `P2`, `P4`, `P8`, `P16`)
 - group token (`A`, `B`, `C`, ...)
 - super-group token (`I`, `II`, `III`, ...)
 
@@ -191,8 +195,8 @@ Compilation:
 
 - Pattern is flattened to `padLoopSequence: number[]` (max 256 tokens)
 - Pad tokens: `0..7`
-- Pause tokens: `-4`, `-8`, `-16`, `-32`
-- Flattened sequence is what backend note runtime consumes
+- Pause tokens: `-1`, `-2`, `-4`, `-8`, `-16`
+- Flattened sequence is what backend note and controller runtime consume
 
 This means:
 
@@ -205,10 +209,11 @@ Top-level sequencer state:
 ```ts
 interface SequencerState {
   isPlaying: boolean;
-  bpm: number;
-  stepCount: 16 | 32;
+  timing: SequencerTimingConfig;
+  stepCount: number;
   playhead: number;
   cycle: number;
+  arrangerLoopSelection: ArrangerLoopSelection | null;
   tracks: SequencerTrackState[];
   drummerTracks: DrummerSequencerTrackState[];
   controllerSequencers: ControllerSequencerState[];
@@ -217,23 +222,25 @@ interface SequencerState {
 }
 ```
 
-Runtime-only fields are present on device states (for example `queuedPad`, `padLoopPosition`, `runtimeLocalStep`, `runtimePadStartStep`) and are cleared for persistence snapshots.
+Runtime-only fields are present on device states (for example `queuedPad`, `padLoopPosition`, `runtimeLocalStep`, `runtimePadStartSubunit`) and are cleared for persistence snapshots.
 
-## 9. Backend Sequencer Runtime (Notes/Drums)
+## 9. Backend Sequencer Runtime (Notes/Drums/Controllers)
 Per session, backend creates a dedicated runtime thread with:
 
 - monotonic scheduling (`time.perf_counter`)
-- 16th-note tick duration: `60 / bpm / 4`
+- transport-subunit scheduling instead of a fixed frontend clock
 - note-on batch sending for chord tones
+- controller CC event emission for `controller_tracks`
 - deterministic note-off behavior and panic-safe release
-- queued enable/disable and pad switch on local boundaries
-- pad-loop sequencing with pause tokens and optional non-repeat stop-on-loop-end
-- optional track sync-to-master boundary alignment (`sync_to_track_id`)
+- queued enable/disable for note/drum tracks and queued pad switch on local boundaries
+- pad-loop sequencing with pause tokens `1 | 2 | 4 | 8 | 16` beats and optional non-repeat stop-on-loop-end
+- optional melodic track sync-to-master boundary alignment (`sync_to_track_id`)
 
 Status payload includes:
 
-- global `current_step`, `cycle`, `step_count`
+- global `current_step`, `cycle`, `step_count`, `transport_subunit`
 - per-runtime-track `local_step`, `active_pad`, `queued_pad`, `pad_loop_position`, `queued_enabled`, `active_notes`
+- per-controller-track `active_pad`, `queued_pad`, `pad_loop_position`, `enabled`, `runtime_pad_start_subunit`, `last_value`
 
 ## 10. Sequencer API Surface
 Current endpoints:
@@ -246,7 +253,12 @@ Current endpoints:
 - `POST /api/sessions/{sessionId}/sequencer/forward`
 - `POST /api/sessions/{sessionId}/sequencer/tracks/{trackId}/queue-pad`
 
-Direct MIDI endpoint (manual notes + CC + controller sequencer output):
+Notes:
+
+- Sequencer config/start/status payloads now include `controller_tracks`
+- `queue-pad` accepts `pad_index: null` to clear a queued pad
+
+Direct MIDI endpoint (manual notes + manual CC):
 
 - `POST /api/sessions/{sessionId}/midi-event`
 
@@ -272,8 +284,8 @@ When persisting app state, runtime playback fields are normalized/reset:
 ## 12. Summary
 Current implementation is fully multitrack in both runtime and UI authoring:
 
-- backend-native note/drum transport
-- frontend controller-sequencer automation synced to transport
+- backend-native note/drum/controller transport
+- frontend direct MIDI for piano rolls and manual controller lanes
 - structured pad-loop model with nested groups/super-groups
 - multitrack arranger for cross-track pattern timeline editing
 

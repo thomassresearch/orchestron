@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from bisect import bisect_right
 import logging
 import threading
 import time
@@ -7,7 +8,9 @@ from dataclasses import dataclass, field
 from typing import Callable
 
 from backend.app.models.session import (
+    SessionControllerSequencerKeypointConfig,
     SessionSequencerConfigRequest,
+    SessionControllerSequencerTrackStatus,
     SessionSequencerStepConfig,
     SessionSequencerStatus,
     SessionSequencerTimingConfig,
@@ -23,11 +26,13 @@ _DEFAULT_PADS = 8
 _MAX_STEPS = 128
 _SCHEDULER_SLEEP_S = 0.001
 _SCHEDULER_SPIN_THRESHOLD_S = 0.0008
+_MIDI_SCHEDULE_LEAD_S = 0.002
 _PAUSE_BEAT_COUNTS = frozenset({1, 2, 4, 8, 16})
 _DEFAULT_TRACK_LENGTH_BEATS = 4
 _TRANSPORT_STEPS_PER_BEAT = 8
 _TRANSPORT_SUBUNITS_PER_STEP = 420
 _TRANSPORT_SUBUNITS_PER_BEAT = _TRANSPORT_STEPS_PER_BEAT * _TRANSPORT_SUBUNITS_PER_STEP
+_CONTROLLER_AUTOMATION_SUBUNIT_QUANTUM = 28
 
 
 def _clamp_midi_note(value: int) -> int:
@@ -36,6 +41,14 @@ def _clamp_midi_note(value: int) -> int:
 
 def _clamp_midi_velocity(value: int) -> int:
     return max(0, min(127, int(value)))
+
+
+def _clamp_controller_position(value: float) -> float:
+    return max(0.0, min(1.0, float(value)))
+
+
+def _clamp_controller_value(value: float) -> int:
+    return max(0, min(127, int(round(value))))
 
 
 def _normalize_step_notes(value: int | list[int] | None) -> tuple[int, ...]:
@@ -55,6 +68,97 @@ def _normalize_step_notes(value: int | list[int] | None) -> tuple[int, ...]:
     raise ValueError("Step value must be null, an integer note, or a list of integer notes.")
 
 
+def _normalize_controller_keypoints(
+    raw: list[SessionControllerSequencerKeypointConfig],
+) -> tuple[tuple[float, int], ...]:
+    epsilon = 1e-6
+    normalized = sorted(
+        (
+            _clamp_controller_position(point.position),
+            _clamp_controller_value(point.value),
+        )
+        for point in raw
+    )
+
+    start_point: tuple[float, int] | None = None
+    end_point: tuple[float, int] | None = None
+    interior: list[tuple[float, int]] = []
+    for position, value in normalized:
+        if position <= epsilon:
+            start_point = (0.0, value)
+            continue
+        if position >= 1.0 - epsilon:
+            end_point = (1.0, value)
+            continue
+        if interior and abs(interior[-1][0] - position) <= epsilon:
+            interior[-1] = (position, value)
+        else:
+            interior.append((position, value))
+
+    if start_point is None:
+        start_point = (0.0, 0)
+    if end_point is None:
+        end_point = (1.0, 0)
+
+    boundary_value = _clamp_controller_value(start_point[1])
+    start_point = (0.0, boundary_value)
+    end_point = (1.0, boundary_value)
+    return (start_point, *interior, end_point)
+
+
+def _controller_curve_control_points(
+    keypoints: tuple[tuple[float, int], ...],
+) -> tuple[tuple[float, int], ...]:
+    if not keypoints:
+        return _normalize_controller_keypoints([])
+    return _normalize_controller_keypoints(
+        [
+            SessionControllerSequencerKeypointConfig(position=position, value=value)
+            for position, value in keypoints
+        ]
+    )
+
+
+def _catmull_rom_1d(p0: float, p1: float, p2: float, p3: float, t: float) -> float:
+    t2 = t * t
+    t3 = t2 * t
+    return 0.5 * (
+        (2.0 * p1)
+        + (-p0 + p2) * t
+        + (2.0 * p0 - 5.0 * p1 + 4.0 * p2 - p3) * t2
+        + (-p0 + 3.0 * p1 - 3.0 * p2 + p3) * t3
+    )
+
+
+def _sample_controller_curve_value(
+    keypoints: tuple[tuple[float, int], ...],
+    normalized_position: float,
+) -> int:
+    t = _clamp_controller_position(normalized_position)
+    points = _controller_curve_control_points(keypoints)
+    if len(points) <= 1:
+        return 0
+    if t <= 0.0:
+        return _clamp_controller_value(points[0][1])
+    if t >= 1.0:
+        return _clamp_controller_value(points[-1][1])
+
+    segment_index = 0
+    for index in range(len(points) - 1):
+        if t <= points[index + 1][0]:
+            segment_index = index
+            break
+
+    p1 = points[segment_index]
+    p2 = points[min(len(points) - 1, segment_index + 1)]
+    p0 = points[max(0, segment_index - 1)]
+    p3 = points[min(len(points) - 1, segment_index + 2)]
+    span = max(1e-6, p2[0] - p1[0])
+    local_t = max(0.0, min(1.0, (t - p1[0]) / span))
+    value = _catmull_rom_1d(p0[1], p1[1], p2[1], p3[1], local_t)
+    return _clamp_controller_value(value)
+
+
 @dataclass(slots=True)
 class SequencerStepRuntime:
     notes: tuple[int, ...]
@@ -68,6 +172,21 @@ class SequencerPadRuntime:
     step_count: int
     transport_subunit_count: int
     steps: tuple[SequencerStepRuntime, ...]
+
+
+@dataclass(slots=True)
+class ControllerSequencerEventRuntime:
+    offset_subunit: int
+    value: int
+
+
+@dataclass(slots=True)
+class ControllerSequencerPadRuntime:
+    length_beats: int
+    step_count: int
+    transport_subunit_count: int
+    events: tuple[ControllerSequencerEventRuntime, ...]
+    event_offsets: tuple[int, ...] = ()
 
 
 @dataclass(slots=True)
@@ -94,6 +213,30 @@ class SequencerTrackRuntime:
     pad_loop_position: int | None = None
     phase_offset_subunit: int = 0
     sequence_ended: bool = False
+
+
+@dataclass(slots=True)
+class ControllerSequencerTrackRuntime:
+    track_id: str
+    controller_number: int
+    target_channels: tuple[int, ...]
+    timing: SequencerTimingRuntime
+    length_beats: int
+    step_count: int
+    transport_subunit_count: int
+    enabled: bool
+    configured_enabled: bool
+    pads: dict[int, ControllerSequencerPadRuntime] = field(default_factory=dict)
+    active_pad: int = 0
+    configured_active_pad: int = 0
+    queued_pad: int | None = None
+    pad_loop_enabled: bool = False
+    pad_loop_repeat: bool = True
+    pad_loop_sequence: tuple[int, ...] = ()
+    pad_loop_position: int | None = None
+    phase_offset_subunit: int = 0
+    sequence_ended: bool = False
+    last_value: int | None = None
 
 
 @dataclass(slots=True)
@@ -140,6 +283,7 @@ class SequencerRuntimeConfig:
     playback_end_subunit: int = _TRANSPORT_SUBUNITS_PER_BEAT
     playback_loop: bool = False
     tracks: dict[str, SequencerTrackRuntime] = field(default_factory=dict)
+    controller_tracks: dict[str, ControllerSequencerTrackRuntime] = field(default_factory=dict)
 
 
 class SessionSequencerRuntime:
@@ -148,11 +292,13 @@ class SessionSequencerRuntime:
         session_id: str,
         midi_service: MidiService,
         midi_input_selector: str,
+        controller_default_channels: tuple[int, ...],
         publish_event: PublishEventFn,
     ) -> None:
         self._session_id = session_id
         self._midi_service = midi_service
         self._midi_input_selector = midi_input_selector
+        self._controller_default_channels = controller_default_channels
         self._publish_event = publish_event
 
         self._lock = threading.RLock()
@@ -182,28 +328,71 @@ class SessionSequencerRuntime:
             self._active_notes = next_active_notes
             return self._status_locked()
 
-    def queue_pad(self, track_id: str, pad_index: int) -> SessionSequencerStatus:
+    def queue_pad(self, track_id: str, pad_index: int | None) -> SessionSequencerStatus:
         with self._lock:
             config = self._ensure_config()
             track = config.tracks.get(track_id)
-            if not track:
-                raise ValueError(f"Track '{track_id}' is not configured.")
-            if pad_index not in track.pads:
-                raise ValueError(f"Pad '{pad_index}' is not configured for track '{track_id}'.")
+            if track is not None:
+                self._queue_note_track_pad_locked(track_id, track, pad_index)
+                return self._status_locked()
 
-            if self._running:
-                track.queued_pad = pad_index
-            else:
-                track.active_pad = pad_index
-                track.configured_active_pad = pad_index
-                track.queued_pad = None
-                track.phase_offset_subunit = self._absolute_subunit - (
-                    self._absolute_subunit % self._transport_subunit_count_for_pad(track, pad_index)
-                )
-                track.pad_loop_position = None
-                track.sequence_ended = False
+            controller_track = config.controller_tracks.get(track_id)
+            if controller_track is not None:
+                self._queue_controller_track_pad_locked(track_id, controller_track, pad_index)
+                return self._status_locked()
 
-            return self._status_locked()
+            raise ValueError(f"Track '{track_id}' is not configured.")
+
+    def _queue_note_track_pad_locked(
+        self,
+        track_id: str,
+        track: SequencerTrackRuntime,
+        pad_index: int | None,
+    ) -> None:
+        if pad_index is None:
+            track.queued_pad = None
+            return
+        if pad_index not in track.pads:
+            raise ValueError(f"Pad '{pad_index}' is not configured for track '{track_id}'.")
+
+        if self._running:
+            track.queued_pad = pad_index
+            return
+
+        track.active_pad = pad_index
+        track.configured_active_pad = pad_index
+        track.queued_pad = None
+        track.phase_offset_subunit = self._absolute_subunit - (
+            self._absolute_subunit % self._transport_subunit_count_for_pad(track, pad_index)
+        )
+        track.pad_loop_position = None
+        track.sequence_ended = False
+
+    def _queue_controller_track_pad_locked(
+        self,
+        track_id: str,
+        track: ControllerSequencerTrackRuntime,
+        pad_index: int | None,
+    ) -> None:
+        if pad_index is None:
+            track.queued_pad = None
+            return
+        if pad_index not in track.pads:
+            raise ValueError(f"Pad '{pad_index}' is not configured for track '{track_id}'.")
+
+        if self._running:
+            track.queued_pad = pad_index
+            return
+
+        track.active_pad = pad_index
+        track.configured_active_pad = pad_index
+        track.queued_pad = None
+        track.phase_offset_subunit = self._absolute_subunit - (
+            self._absolute_subunit % self._transport_subunit_count_for_pad(track, pad_index)
+        )
+        track.pad_loop_position = None
+        track.sequence_ended = False
+        track.last_value = None
 
     def rewind_cycle(self) -> SessionSequencerStatus:
         with self._lock:
@@ -276,10 +465,10 @@ class SessionSequencerRuntime:
                 current_subunit = self._absolute_subunit
 
             wait = next_event_time - now
-            if wait > _SCHEDULER_SPIN_THRESHOLD_S:
-                time.sleep(min(wait, _SCHEDULER_SLEEP_S))
+            if wait > _MIDI_SCHEDULE_LEAD_S + _SCHEDULER_SPIN_THRESHOLD_S:
+                time.sleep(min(wait - _MIDI_SCHEDULE_LEAD_S, _SCHEDULER_SLEEP_S))
                 continue
-            if wait > 0:
+            if wait > _MIDI_SCHEDULE_LEAD_S:
                 continue
 
             with self._lock:
@@ -290,9 +479,14 @@ class SessionSequencerRuntime:
                     break
                 current_subunit = self._absolute_subunit
 
-            wait_duration = self._perform_subunit_event(config, current_subunit)
+            wait_duration = self._perform_subunit_event(
+                config,
+                current_subunit,
+                scheduled_time=next_event_time,
+            )
             next_event_time += wait_duration
 
+            now = time.perf_counter()
             if next_event_time < now - (wait_duration * 2.0):
                 next_event_time = now + wait_duration
 
@@ -325,7 +519,7 @@ class SessionSequencerRuntime:
         ) // timing.beat_rate_numerator
 
     @staticmethod
-    def _current_pad_loop_token(track: SequencerTrackRuntime) -> int | None:
+    def _current_pad_loop_token(track: SequencerTrackRuntime | ControllerSequencerTrackRuntime) -> int | None:
         if not track.pad_loop_enabled or not track.pad_loop_sequence:
             return None
         position = track.pad_loop_position
@@ -334,7 +528,7 @@ class SessionSequencerRuntime:
         return track.pad_loop_sequence[position]
 
     @staticmethod
-    def _pad_loop_position_for_active_pad(track: SequencerTrackRuntime) -> int | None:
+    def _pad_loop_position_for_active_pad(track: SequencerTrackRuntime | ControllerSequencerTrackRuntime) -> int | None:
         if not track.pad_loop_enabled or not track.pad_loop_sequence:
             return None
         for index, pad_index in enumerate(track.pad_loop_sequence):
@@ -342,7 +536,10 @@ class SessionSequencerRuntime:
                 return index
         return None
 
-    def _reset_pad_loop_for_start_locked(self, track: SequencerTrackRuntime) -> None:
+    def _reset_pad_loop_for_start_locked(
+        self,
+        track: SequencerTrackRuntime | ControllerSequencerTrackRuntime,
+    ) -> None:
         if not track.pad_loop_enabled or not track.pad_loop_sequence:
             track.pad_loop_position = None
             return
@@ -356,28 +553,47 @@ class SessionSequencerRuntime:
             track.queued_pad = None
 
     @staticmethod
-    def _step_count_for_pad(track: SequencerTrackRuntime, pad_index: int) -> int:
+    def _set_track_phase_offset_for_boundary_locked(
+        track: SequencerTrackRuntime | ControllerSequencerTrackRuntime,
+        next_subunit: int,
+    ) -> None:
+        track.phase_offset_subunit = next_subunit
+
+    @staticmethod
+    def _step_count_for_pad(
+        track: SequencerTrackRuntime | ControllerSequencerTrackRuntime,
+        pad_index: int,
+    ) -> int:
         pad = track.pads.get(pad_index)
         if pad and 1 <= pad.step_count <= _MAX_STEPS:
             return pad.step_count
         return track.step_count if 1 <= track.step_count <= _MAX_STEPS else 16
 
     @staticmethod
-    def _transport_subunit_count_for_pad(track: SequencerTrackRuntime, pad_index: int) -> int:
+    def _transport_subunit_count_for_pad(
+        track: SequencerTrackRuntime | ControllerSequencerTrackRuntime,
+        pad_index: int,
+    ) -> int:
         pad = track.pads.get(pad_index)
         if pad and pad.transport_subunit_count > 0:
             return pad.transport_subunit_count
         return max(1, track.transport_subunit_count)
 
     @staticmethod
-    def _length_beats_for_pad(track: SequencerTrackRuntime, pad_index: int) -> int:
+    def _length_beats_for_pad(
+        track: SequencerTrackRuntime | ControllerSequencerTrackRuntime,
+        pad_index: int,
+    ) -> int:
         pad = track.pads.get(pad_index)
-        if pad and 1 <= pad.length_beats <= 8:
+        if pad and pad.length_beats > 0:
             return pad.length_beats
-        return track.length_beats if 1 <= track.length_beats <= 8 else _DEFAULT_TRACK_LENGTH_BEATS
+        return track.length_beats if track.length_beats > 0 else _DEFAULT_TRACK_LENGTH_BEATS
 
     @staticmethod
-    def _step_count_for_loop_token(track: SequencerTrackRuntime, token: int) -> int:
+    def _step_count_for_loop_token(
+        track: SequencerTrackRuntime | ControllerSequencerTrackRuntime,
+        token: int,
+    ) -> int:
         if token in track.pads:
             return SessionSequencerRuntime._step_count_for_pad(track, token)
         pause_beat_count = SessionSequencerRuntime._pause_beat_count_from_token(token)
@@ -386,7 +602,10 @@ class SessionSequencerRuntime:
         return SessionSequencerRuntime._step_count_for_pad(track, track.active_pad)
 
     @staticmethod
-    def _transport_subunit_count_for_loop_token(track: SequencerTrackRuntime, token: int) -> int:
+    def _transport_subunit_count_for_loop_token(
+        track: SequencerTrackRuntime | ControllerSequencerTrackRuntime,
+        token: int,
+    ) -> int:
         if token in track.pads:
             return SessionSequencerRuntime._transport_subunit_count_for_pad(track, token)
         pause_beat_count = SessionSequencerRuntime._pause_beat_count_from_token(token)
@@ -395,7 +614,10 @@ class SessionSequencerRuntime:
         return SessionSequencerRuntime._transport_subunit_count_for_pad(track, track.active_pad)
 
     @staticmethod
-    def _length_beats_for_loop_token(track: SequencerTrackRuntime, token: int) -> int:
+    def _length_beats_for_loop_token(
+        track: SequencerTrackRuntime | ControllerSequencerTrackRuntime,
+        token: int,
+    ) -> int:
         if token in track.pads:
             return SessionSequencerRuntime._length_beats_for_pad(track, token)
         pause_beat_count = SessionSequencerRuntime._pause_beat_count_from_token(token)
@@ -404,32 +626,41 @@ class SessionSequencerRuntime:
         return SessionSequencerRuntime._length_beats_for_pad(track, track.active_pad)
 
     @staticmethod
-    def _active_pad_runtime(track: SequencerTrackRuntime) -> SequencerPadRuntime | None:
+    def _active_pad_runtime(
+        track: SequencerTrackRuntime | ControllerSequencerTrackRuntime,
+    ) -> SequencerPadRuntime | ControllerSequencerPadRuntime | None:
         token = SessionSequencerRuntime._current_pad_loop_token(track)
         if token is not None:
             return track.pads.get(token)
         return track.pads.get(track.active_pad)
 
     @staticmethod
-    def _active_pad_step_count(track: SequencerTrackRuntime) -> int:
+    def _active_pad_step_count(track: SequencerTrackRuntime | ControllerSequencerTrackRuntime) -> int:
         token = SessionSequencerRuntime._current_pad_loop_token(track)
         if token is not None:
             return SessionSequencerRuntime._step_count_for_loop_token(track, token)
         return SessionSequencerRuntime._step_count_for_pad(track, track.active_pad)
 
     @staticmethod
-    def _active_pad_transport_subunit_count(track: SequencerTrackRuntime) -> int:
+    def _active_pad_transport_subunit_count(
+        track: SequencerTrackRuntime | ControllerSequencerTrackRuntime,
+    ) -> int:
         token = SessionSequencerRuntime._current_pad_loop_token(track)
         if token is not None:
             return SessionSequencerRuntime._transport_subunit_count_for_loop_token(track, token)
         return SessionSequencerRuntime._transport_subunit_count_for_pad(track, track.active_pad)
 
     @staticmethod
-    def _transport_subunits_per_local_step(track: SequencerTrackRuntime) -> int:
+    def _transport_subunits_per_local_step(
+        track: SequencerTrackRuntime | ControllerSequencerTrackRuntime,
+    ) -> int:
         return max(1, track.timing.transport_subunits_per_local_step)
 
     @staticmethod
-    def _local_transport_offset_for(track: SequencerTrackRuntime, transport_subunit: int) -> int:
+    def _local_transport_offset_for(
+        track: SequencerTrackRuntime | ControllerSequencerTrackRuntime,
+        transport_subunit: int,
+    ) -> int:
         return (
             transport_subunit - track.phase_offset_subunit
         ) % SessionSequencerRuntime._active_pad_transport_subunit_count(track)
@@ -451,7 +682,10 @@ class SessionSequencerRuntime:
         ) == 0
 
     @staticmethod
-    def _track_cycle_boundary_reached_for_next_subunit(track: SequencerTrackRuntime, next_subunit: int) -> bool:
+    def _track_cycle_boundary_reached_for_next_subunit(
+        track: SequencerTrackRuntime | ControllerSequencerTrackRuntime,
+        next_subunit: int,
+    ) -> bool:
         return (
             (next_subunit - track.phase_offset_subunit)
             % SessionSequencerRuntime._active_pad_transport_subunit_count(track)
@@ -475,10 +709,11 @@ class SessionSequencerRuntime:
     def _reset_track_for_sync_locked(
         self,
         track_id: str,
-        track: SequencerTrackRuntime,
+        track: SequencerTrackRuntime | ControllerSequencerTrackRuntime,
         next_subunit: int,
         *,
         release_notes: bool,
+        delivery_delay_seconds: float | None = None,
     ) -> None:
         track.phase_offset_subunit = next_subunit
         track.sequence_ended = False
@@ -487,11 +722,15 @@ class SessionSequencerRuntime:
         else:
             track.pad_loop_position = None
         if release_notes:
-            self._release_track_notes_locked(track_id, track.midi_channel)
+            self._release_track_notes_locked(
+                track_id,
+                track.midi_channel,
+                delivery_delay_seconds=delivery_delay_seconds,
+            )
 
     def _pad_loop_boundary_action_locked(
         self,
-        track: SequencerTrackRuntime,
+        track: SequencerTrackRuntime | ControllerSequencerTrackRuntime,
         *,
         manual_switch_applied: bool,
     ) -> tuple[int | None, bool]:
@@ -546,6 +785,7 @@ class SessionSequencerRuntime:
         next_subunit: int,
         *,
         release_notes: bool,
+        delivery_delay_seconds: float | None = None,
     ) -> list[dict[str, str | int | float | bool | None]]:
         switch_payloads: list[dict[str, str | int | float | bool | None]] = []
         sync_master_triggered_ids: set[str] = set()
@@ -572,12 +812,17 @@ class SessionSequencerRuntime:
                     track.sequence_ended = False
                     track.queued_enabled = None
                     if release_notes:
-                        self._release_track_notes_locked(track_id, track.midi_channel)
+                        self._release_track_notes_locked(
+                            track_id,
+                            track.midi_channel,
+                            delivery_delay_seconds=delivery_delay_seconds,
+                        )
 
             if local_boundary_reached and track.queued_pad is not None and track.queued_pad != track.active_pad:
                 track.active_pad = track.queued_pad
                 track.queued_pad = None
                 track.sequence_ended = False
+                self._set_track_phase_offset_for_boundary_locked(track, next_subunit)
                 manual_pad_switch_applied = True
                 switch_payloads.append(
                     {
@@ -598,8 +843,13 @@ class SessionSequencerRuntime:
                     track.queued_enabled = None
                     track.queued_pad = None
                     if release_notes:
-                        self._release_track_notes_locked(track_id, track.midi_channel)
+                        self._release_track_notes_locked(
+                            track_id,
+                            track.midi_channel,
+                            delivery_delay_seconds=delivery_delay_seconds,
+                        )
                 elif next_pad_from_loop is not None:
+                    self._set_track_phase_offset_for_boundary_locked(track, next_subunit)
                     if next_pad_from_loop in track.pads and next_pad_from_loop != track.active_pad:
                         track.active_pad = next_pad_from_loop
                         track.queued_pad = None
@@ -612,7 +862,13 @@ class SessionSequencerRuntime:
                             }
                         )
                     elif self._pause_beat_count_from_token(next_pad_from_loop) is not None and release_notes:
-                        self._release_track_notes_locked(track_id, track.midi_channel)
+                        self._release_track_notes_locked(
+                            track_id,
+                            track.midi_channel,
+                            delivery_delay_seconds=delivery_delay_seconds,
+                        )
+                else:
+                    self._set_track_phase_offset_for_boundary_locked(track, next_subunit)
 
         for track_id, track in config.tracks.items():
             if self._track_at_sync_boundary_locked(track, next_subunit):
@@ -633,6 +889,7 @@ class SessionSequencerRuntime:
                     track,
                     next_subunit,
                     release_notes=release_notes,
+                    delivery_delay_seconds=delivery_delay_seconds,
                 )
                 if track.active_pad != previous_active_pad:
                     switch_payloads.append(
@@ -642,6 +899,63 @@ class SessionSequencerRuntime:
                             "cycle": next_cycle,
                         }
                     )
+
+        return switch_payloads
+
+    def _advance_controller_tracks_for_next_subunit_locked(
+        self,
+        config: SequencerRuntimeConfig,
+        next_subunit: int,
+    ) -> list[dict[str, str | int | float | bool | None]]:
+        switch_payloads: list[dict[str, str | int | float | bool | None]] = []
+        _, next_cycle = self._transport_position_locked(config, next_subunit)
+
+        for track in config.controller_tracks.values():
+            local_boundary_reached = self._track_cycle_boundary_reached_for_next_subunit(track, next_subunit)
+            manual_pad_switch_applied = False
+            if not local_boundary_reached or not track.enabled:
+                continue
+
+            if track.queued_pad is not None and track.queued_pad != track.active_pad:
+                track.active_pad = track.queued_pad
+                track.queued_pad = None
+                track.sequence_ended = False
+                self._set_track_phase_offset_for_boundary_locked(track, next_subunit)
+                manual_pad_switch_applied = True
+                switch_payloads.append(
+                    {
+                        "track_id": track.track_id,
+                        "active_pad": track.active_pad,
+                        "cycle": next_cycle,
+                    }
+                )
+
+            next_pad_from_loop, stop_track_on_loop_end = self._pad_loop_boundary_action_locked(
+                track,
+                manual_switch_applied=manual_pad_switch_applied,
+            )
+            if stop_track_on_loop_end:
+                track.enabled = False
+                track.sequence_ended = True
+                track.queued_pad = None
+                track.last_value = None
+                continue
+
+            if next_pad_from_loop is not None:
+                self._set_track_phase_offset_for_boundary_locked(track, next_subunit)
+                if next_pad_from_loop in track.pads and next_pad_from_loop != track.active_pad:
+                    track.active_pad = next_pad_from_loop
+                    track.queued_pad = None
+                    track.sequence_ended = False
+                    switch_payloads.append(
+                        {
+                            "track_id": track.track_id,
+                            "active_pad": track.active_pad,
+                            "cycle": next_cycle,
+                        }
+                    )
+            else:
+                self._set_track_phase_offset_for_boundary_locked(track, next_subunit)
 
         return switch_payloads
 
@@ -700,7 +1014,24 @@ class SessionSequencerRuntime:
         if track.enabled:
             self._reset_pad_loop_for_start_locked(track)
 
-    def _next_track_cycle_boundary_subunit(self, track: SequencerTrackRuntime, current_subunit: int) -> int:
+    def _reset_controller_track_runtime_for_absolute_subunit_locked(
+        self,
+        track: ControllerSequencerTrackRuntime,
+    ) -> None:
+        track.enabled = track.configured_enabled
+        track.active_pad = track.configured_active_pad
+        track.phase_offset_subunit = 0
+        track.pad_loop_position = None
+        track.sequence_ended = False
+        track.last_value = None
+        if track.enabled:
+            self._reset_pad_loop_for_start_locked(track)
+
+    def _next_track_cycle_boundary_subunit(
+        self,
+        track: SequencerTrackRuntime | ControllerSequencerTrackRuntime,
+        current_subunit: int,
+    ) -> int:
         cycle_length = max(1, self._active_pad_transport_subunit_count(track))
         cycle_offset = self._local_transport_offset_for(track, current_subunit)
         return current_subunit - cycle_offset + cycle_length
@@ -710,9 +1041,51 @@ class SessionSequencerRuntime:
         step_span = max(1, self._transport_subunits_per_local_step(track))
         return current_subunit - transport_offset + (((transport_offset // step_span) + 1) * step_span)
 
+    @staticmethod
+    def _controller_pause_token_active(track: ControllerSequencerTrackRuntime) -> bool:
+        token = SessionSequencerRuntime._current_pad_loop_token(track)
+        return token is not None and SessionSequencerRuntime._pause_beat_count_from_token(token) is not None
+
+    def _controller_track_value_at_current_subunit_locked(
+        self,
+        track: ControllerSequencerTrackRuntime,
+        transport_subunit: int,
+    ) -> int | None:
+        if not track.enabled or self._controller_pause_token_active(track):
+            return None
+        pad_runtime = self._active_pad_runtime(track)
+        if not isinstance(pad_runtime, ControllerSequencerPadRuntime) or not pad_runtime.event_offsets:
+            return None
+        local_offset = self._local_transport_offset_for(track, transport_subunit)
+        index = bisect_right(pad_runtime.event_offsets, local_offset) - 1
+        if index < 0:
+            return None
+        return pad_runtime.events[index].value
+
+    def _next_controller_change_subunit_locked(
+        self,
+        track: ControllerSequencerTrackRuntime,
+        current_subunit: int,
+    ) -> int | None:
+        if not track.enabled or self._controller_pause_token_active(track):
+            return None
+        pad_runtime = self._active_pad_runtime(track)
+        if not isinstance(pad_runtime, ControllerSequencerPadRuntime) or not pad_runtime.event_offsets:
+            return None
+        local_offset = self._local_transport_offset_for(track, current_subunit)
+        next_index = bisect_right(pad_runtime.event_offsets, local_offset)
+        if next_index >= len(pad_runtime.event_offsets):
+            return None
+        return current_subunit - local_offset + pad_runtime.event_offsets[next_index]
+
     def _next_cycle_event_subunit_locked(self, config: SequencerRuntimeConfig, current_subunit: int) -> int | None:
         next_boundary: int | None = None
         for track in config.tracks.values():
+            candidate = self._next_track_cycle_boundary_subunit(track, current_subunit)
+            if candidate <= current_subunit:
+                continue
+            next_boundary = candidate if next_boundary is None else min(next_boundary, candidate)
+        for track in config.controller_tracks.values():
             candidate = self._next_track_cycle_boundary_subunit(track, current_subunit)
             if candidate <= current_subunit:
                 continue
@@ -727,6 +1100,13 @@ class SessionSequencerRuntime:
                 pad_runtime = self._active_pad_runtime(track)
                 if pad_runtime is not None and pad_runtime.steps:
                     candidates.append(self._next_local_step_boundary_subunit(track, current_subunit))
+        for track in config.controller_tracks.values():
+            if not track.enabled:
+                continue
+            candidates.append(self._next_track_cycle_boundary_subunit(track, current_subunit))
+            next_controller_change = self._next_controller_change_subunit_locked(track, current_subunit)
+            if next_controller_change is not None:
+                candidates.append(next_controller_change)
         candidates.append(config.playback_end_subunit)
         return min(candidate for candidate in candidates if candidate > current_subunit)
 
@@ -734,12 +1114,17 @@ class SessionSequencerRuntime:
         normalized_absolute = max(0, int(round(absolute_subunit)))
         simulation_target = min(normalized_absolute, config.playback_end_subunit)
         pending_by_track: dict[str, tuple[int | None, bool | None]] = {}
+        pending_by_controller_track: dict[str, int | None] = {}
 
         for track in config.tracks.values():
             pending_by_track[track.track_id] = (track.queued_pad, track.queued_enabled)
             track.queued_pad = None
             track.queued_enabled = None
             self._reset_track_runtime_for_absolute_subunit_locked(track)
+        for track in config.controller_tracks.values():
+            pending_by_controller_track[track.track_id] = track.queued_pad
+            track.queued_pad = None
+            self._reset_controller_track_runtime_for_absolute_subunit_locked(track)
 
         simulated_subunit = 0
         while True:
@@ -751,6 +1136,7 @@ class SessionSequencerRuntime:
                 next_boundary,
                 release_notes=False,
             )
+            self._advance_controller_tracks_for_next_subunit_locked(config, next_boundary)
             simulated_subunit = next_boundary
 
         for track in config.tracks.values():
@@ -766,6 +1152,13 @@ class SessionSequencerRuntime:
                 track.queued_enabled = None
             else:
                 track.queued_enabled = pending_enabled
+        for track in config.controller_tracks.values():
+            pending_pad = pending_by_controller_track[track.track_id]
+            track.queued_pad = (
+                pending_pad
+                if pending_pad is not None and pending_pad in track.pads and pending_pad != track.active_pad
+                else None
+            )
 
         self._absolute_subunit = normalized_absolute
 
@@ -793,6 +1186,8 @@ class SessionSequencerRuntime:
         self,
         config: SequencerRuntimeConfig,
         transport_subunit: int,
+        *,
+        scheduled_time: float | None = None,
     ) -> float:
         switch_payloads: list[dict[str, str | int | float | bool | None]] = []
         running_track_count = 0
@@ -800,11 +1195,21 @@ class SessionSequencerRuntime:
         next_wait_subunits = 1
 
         with self._lock:
+            event_delivery_delay_seconds = (
+                None
+                if scheduled_time is None
+                else max(0.0, scheduled_time - time.perf_counter())
+            )
+            controller_messages: list[list[int]] = []
             for track_id, track in config.tracks.items():
                 pad_runtime = self._active_pad_runtime(track)
                 active_notes = self._active_notes.setdefault(track_id, set())
                 if not track.enabled or pad_runtime is None or not pad_runtime.steps:
-                    self._release_track_notes_locked(track_id, track.midi_channel)
+                    self._release_track_notes_locked(
+                        track_id,
+                        track.midi_channel,
+                        delivery_delay_seconds=event_delivery_delay_seconds,
+                    )
                     continue
                 if not self._local_step_boundary_reached(track, transport_subunit):
                     continue
@@ -813,23 +1218,63 @@ class SessionSequencerRuntime:
                 step_state = pad_runtime.steps[local_step]
                 notes = step_state.notes
                 if notes:
-                    self._release_track_notes_locked(track_id, track.midi_channel)
+                    self._release_track_notes_locked(
+                        track_id,
+                        track.midi_channel,
+                        delivery_delay_seconds=event_delivery_delay_seconds,
+                    )
                     self._send_messages_locked(
-                        [self._note_on_message(track.midi_channel, note, step_state.velocity) for note in notes]
+                        [self._note_on_message(track.midi_channel, note, step_state.velocity) for note in notes],
+                        delivery_delay_seconds=event_delivery_delay_seconds,
                     )
                     for note in notes:
                         active_notes.add(note)
                 elif not step_state.hold:
-                    self._release_track_notes_locked(track_id, track.midi_channel)
+                    self._release_track_notes_locked(
+                        track_id,
+                        track.midi_channel,
+                        delivery_delay_seconds=event_delivery_delay_seconds,
+                    )
+
+            for track in config.controller_tracks.values():
+                value = self._controller_track_value_at_current_subunit_locked(track, transport_subunit)
+                if value is None or value == track.last_value:
+                    continue
+                track.last_value = value
+                for channel in track.target_channels:
+                    controller_messages.append(
+                        self._control_change_message(channel, track.controller_number, value)
+                    )
+
+            if controller_messages:
+                self._send_messages_locked(
+                    controller_messages,
+                    delivery_delay_seconds=event_delivery_delay_seconds,
+                )
 
             next_subunit = self._next_event_subunit_locked(config, transport_subunit)
             next_wait_subunits = max(1, next_subunit - transport_subunit)
+            boundary_scheduled_time = (
+                None
+                if scheduled_time is None
+                else scheduled_time + (next_wait_subunits * config.timing.transport_subunit_duration_seconds)
+            )
+            boundary_delivery_delay_seconds = (
+                None
+                if boundary_scheduled_time is None
+                else max(0.0, boundary_scheduled_time - time.perf_counter())
+            )
             current_visible_step = transport_subunit // _TRANSPORT_SUBUNITS_PER_STEP
 
             if config.playback_loop and next_subunit >= config.playback_end_subunit:
                 previous_active_pads = {
                     track_id: track.active_pad
                     for track_id, track in config.tracks.items()
+                    if track.enabled
+                }
+                previous_controller_active_pads = {
+                    track_id: track.active_pad
+                    for track_id, track in config.controller_tracks.items()
                     if track.enabled
                 }
                 self._apply_absolute_subunit_locked(config, config.playback_start_subunit)
@@ -844,12 +1289,25 @@ class SessionSequencerRuntime:
                                 "cycle": cycle,
                             }
                         )
+                for track_id, previous_active_pad in previous_controller_active_pads.items():
+                    track = config.controller_tracks.get(track_id)
+                    if track and track.enabled and track.active_pad != previous_active_pad:
+                        _, cycle = self._transport_position_locked(config, self._absolute_subunit)
+                        switch_payloads.append(
+                            {
+                                "track_id": track.track_id,
+                                "active_pad": track.active_pad,
+                                "cycle": cycle,
+                            }
+                        )
             else:
                 switch_payloads = self._advance_tracks_for_next_subunit_locked(
                     config,
                     next_subunit,
                     release_notes=True,
+                    delivery_delay_seconds=boundary_delivery_delay_seconds,
                 )
+                switch_payloads.extend(self._advance_controller_tracks_for_next_subunit_locked(config, next_subunit))
                 if next_subunit >= config.playback_end_subunit:
                     self._absolute_subunit = config.playback_end_subunit
                     self._running = False
@@ -887,13 +1345,25 @@ class SessionSequencerRuntime:
         channel_byte = (midi_channel - 1) & 0x0F
         return [0x80 + channel_byte, _clamp_midi_note(note), 0]
 
-    def _release_track_notes_locked(self, track_id: str, midi_channel: int) -> None:
+    @staticmethod
+    def _control_change_message(midi_channel: int, controller_number: int, value: int) -> list[int]:
+        channel_byte = (midi_channel - 1) & 0x0F
+        return [0xB0 + channel_byte, _clamp_midi_note(controller_number), _clamp_controller_value(value)]
+
+    def _release_track_notes_locked(
+        self,
+        track_id: str,
+        midi_channel: int,
+        *,
+        delivery_delay_seconds: float | None = None,
+    ) -> None:
         active_notes = self._active_notes.get(track_id)
         if not active_notes:
             return
 
         self._send_messages_locked(
-            [self._note_off_message(midi_channel, note) for note in sorted(active_notes)]
+            [self._note_off_message(midi_channel, note) for note in sorted(active_notes)],
+            delivery_delay_seconds=delivery_delay_seconds,
         )
         active_notes.clear()
 
@@ -925,20 +1395,42 @@ class SessionSequencerRuntime:
             channel_byte = (track.midi_channel - 1) & 0x0F
             self._send_messages_locked([[0xB0 + channel_byte, 123, 0], [0xB0 + channel_byte, 120, 0]])
 
-    def _send_message_locked(self, message: list[int]) -> None:
+    def _send_message_locked(
+        self,
+        message: list[int],
+        *,
+        delivery_delay_seconds: float | None = None,
+    ) -> None:
         try:
-            self._midi_service.send_message(self._midi_input_selector, message)
+            self._midi_service.send_scheduled_message(
+                self._midi_input_selector,
+                message,
+                delivery_delay_seconds=delivery_delay_seconds,
+            )
         except Exception as exc:  # pragma: no cover - runtime dependent
             logger.warning("Sequencer MIDI message failed: %s", exc)
 
-    def _send_messages_locked(self, messages: list[list[int]]) -> None:
+    def _send_messages_locked(
+        self,
+        messages: list[list[int]],
+        *,
+        delivery_delay_seconds: float | None = None,
+    ) -> None:
         if not messages:
             return
         try:
             if len(messages) == 1:
-                self._midi_service.send_message(self._midi_input_selector, messages[0])
+                self._midi_service.send_scheduled_message(
+                    self._midi_input_selector,
+                    messages[0],
+                    delivery_delay_seconds=delivery_delay_seconds,
+                )
                 return
-            self._midi_service.send_messages(self._midi_input_selector, messages)
+            self._midi_service.send_scheduled_messages(
+                self._midi_input_selector,
+                messages,
+                delivery_delay_seconds=delivery_delay_seconds,
+            )
         except Exception as exc:  # pragma: no cover - runtime dependent
             logger.warning("Sequencer MIDI batch failed: %s", exc)
 
@@ -954,6 +1446,7 @@ class SessionSequencerRuntime:
                 cycle=0,
                 transport_subunit=0,
                 tracks=[],
+                controller_tracks=[],
             )
 
         current_step, cycle = self._transport_position_locked(config)
@@ -981,6 +1474,30 @@ class SessionSequencerRuntime:
             )
             for track in config.tracks.values()
         ]
+        controller_tracks = [
+            SessionControllerSequencerTrackStatus(
+                track_id=track.track_id,
+                controller_number=track.controller_number,
+                timing=SessionSequencerTimingConfig(
+                    tempo_bpm=track.timing.tempo_bpm,
+                    meter_numerator=track.timing.meter_numerator,
+                    meter_denominator=track.timing.meter_denominator,
+                    steps_per_beat=track.timing.steps_per_beat,
+                    beat_rate_numerator=track.timing.beat_rate_numerator,
+                    beat_rate_denominator=track.timing.beat_rate_denominator,
+                ),
+                length_beats=self._length_beats_for_pad(track, track.active_pad),
+                step_count=self._active_pad_step_count(track),
+                active_pad=track.active_pad,
+                queued_pad=track.queued_pad,
+                pad_loop_position=track.pad_loop_position if track.enabled else None,
+                enabled=track.enabled,
+                runtime_pad_start_subunit=track.phase_offset_subunit if track.enabled else None,
+                last_value=track.last_value,
+                target_channels=list(track.target_channels),
+            )
+            for track in config.controller_tracks.values()
+        ]
 
         return SessionSequencerStatus(
             session_id=self._session_id,
@@ -998,6 +1515,7 @@ class SessionSequencerRuntime:
             cycle=cycle,
             transport_subunit=self._absolute_subunit,
             tracks=tracks,
+            controller_tracks=controller_tracks,
         )
 
     def _ensure_config(self) -> SequencerRuntimeConfig:
@@ -1050,6 +1568,37 @@ class SessionSequencerRuntime:
         return tuple(normalized[:_MAX_STEPS])
 
     @staticmethod
+    def _compile_controller_pad_runtime(
+        keypoints: list[SessionControllerSequencerKeypointConfig],
+        *,
+        length_beats: int,
+        timing: SequencerTimingRuntime,
+    ) -> ControllerSequencerPadRuntime:
+        step_count = SessionSequencerRuntime._step_count_for_length(length_beats, timing)
+        transport_subunit_count = SessionSequencerRuntime._transport_subunit_count_for_length(length_beats, timing)
+        normalized_keypoints = _normalize_controller_keypoints(keypoints)
+        events: list[ControllerSequencerEventRuntime] = []
+
+        event_offset = 0
+        while event_offset < transport_subunit_count:
+            normalized_position = event_offset / float(max(1, transport_subunit_count))
+            value = _sample_controller_curve_value(normalized_keypoints, normalized_position)
+            if not events or events[-1].value != value:
+                events.append(ControllerSequencerEventRuntime(offset_subunit=event_offset, value=value))
+            event_offset += _CONTROLLER_AUTOMATION_SUBUNIT_QUANTUM
+
+        if not events:
+            events.append(ControllerSequencerEventRuntime(offset_subunit=0, value=0))
+
+        return ControllerSequencerPadRuntime(
+            length_beats=length_beats,
+            step_count=step_count,
+            transport_subunit_count=transport_subunit_count,
+            events=tuple(events),
+            event_offsets=tuple(event.offset_subunit for event in events),
+        )
+
+    @staticmethod
     def _normalize_pad_loop_sequence(raw_sequence: list[int]) -> tuple[int, ...]:
         normalized: list[int] = []
         for entry in raw_sequence[:256]:
@@ -1062,8 +1611,20 @@ class SessionSequencerRuntime:
                 normalized.append(-pause_beat_count)
         return tuple(normalized)
 
+    def _normalize_controller_target_channels(self, raw_channels: list[int]) -> tuple[int, ...]:
+        if raw_channels:
+            normalized = tuple(sorted({max(1, min(16, int(channel))) for channel in raw_channels}))
+            if normalized:
+                return normalized
+        if self._controller_default_channels:
+            return self._controller_default_channels
+        return (1,)
+
     @staticmethod
-    def _transport_extent_for_track(track: SequencerTrackRuntime, step_quantum: int) -> int:
+    def _transport_extent_for_track(
+        track: SequencerTrackRuntime | ControllerSequencerTrackRuntime,
+        step_quantum: int,
+    ) -> int:
         if track.pad_loop_enabled and track.pad_loop_sequence:
             return max(
                 step_quantum,
@@ -1086,6 +1647,7 @@ class SessionSequencerRuntime:
         step_quantum = _TRANSPORT_STEPS_PER_BEAT
         subunit_quantum = _TRANSPORT_SUBUNITS_PER_BEAT
         tracks: dict[str, SequencerTrackRuntime] = {}
+        controller_tracks: dict[str, ControllerSequencerTrackRuntime] = {}
         for track_request in request.tracks:
             track_timing = SequencerTimingRuntime(
                 tempo_bpm=request.timing.tempo_bpm,
@@ -1147,11 +1709,71 @@ class SessionSequencerRuntime:
                 pad_loop_sequence=self._normalize_pad_loop_sequence(track_request.pad_loop_sequence),
             )
 
+        for track_request in request.controller_tracks:
+            track_timing = SequencerTimingRuntime(
+                tempo_bpm=request.timing.tempo_bpm,
+                meter_numerator=track_request.timing.meter_numerator,
+                meter_denominator=track_request.timing.meter_denominator,
+                steps_per_beat=track_request.timing.steps_per_beat,
+                beat_rate_numerator=track_request.timing.beat_rate_numerator,
+                beat_rate_denominator=track_request.timing.beat_rate_denominator,
+            )
+            track_length_beats = track_request.length_beats if 1 <= track_request.length_beats <= 16 else 4
+            track_step_count = self._step_count_for_length(track_length_beats, track_timing)
+            track_transport_subunit_count = self._transport_subunit_count_for_length(track_length_beats, track_timing)
+            pads = {
+                index: self._compile_controller_pad_runtime(
+                    [],
+                    length_beats=track_length_beats,
+                    timing=track_timing,
+                )
+                for index in range(_DEFAULT_PADS)
+            }
+
+            for pad in track_request.pads:
+                pad_length_beats = (
+                    pad.length_beats
+                    if pad.length_beats is not None and 1 <= pad.length_beats <= 16
+                    else track_length_beats
+                )
+                pads[pad.pad_index] = self._compile_controller_pad_runtime(
+                    pad.keypoints,
+                    length_beats=pad_length_beats,
+                    timing=track_timing,
+                )
+
+            active_pad = track_request.active_pad if track_request.active_pad in pads else 0
+            queued_pad = track_request.queued_pad if track_request.queued_pad in pads else None
+            controller_tracks[track_request.track_id] = ControllerSequencerTrackRuntime(
+                track_id=track_request.track_id,
+                controller_number=track_request.controller_number,
+                target_channels=self._normalize_controller_target_channels(track_request.target_channels),
+                timing=track_timing,
+                length_beats=track_length_beats,
+                step_count=track_step_count,
+                transport_subunit_count=track_transport_subunit_count,
+                enabled=track_request.enabled,
+                configured_enabled=track_request.enabled,
+                pads=pads,
+                active_pad=active_pad,
+                configured_active_pad=active_pad,
+                queued_pad=queued_pad,
+                pad_loop_enabled=track_request.pad_loop_enabled,
+                pad_loop_repeat=track_request.pad_loop_repeat,
+                pad_loop_sequence=self._normalize_pad_loop_sequence(track_request.pad_loop_sequence),
+            )
+
         playback_end_subunit = request.playback_end_step * _TRANSPORT_SUBUNITS_PER_STEP
         if "playback_end_step" not in request.model_fields_set:
             playback_end_subunit = max(
                 subunit_quantum,
-                max((self._transport_extent_for_track(track, subunit_quantum) for track in tracks.values()), default=subunit_quantum),
+                max(
+                    (
+                        self._transport_extent_for_track(track, subunit_quantum)
+                        for track in [*tracks.values(), *controller_tracks.values()]
+                    ),
+                    default=subunit_quantum,
+                ),
             )
 
         return SequencerRuntimeConfig(
@@ -1161,4 +1783,5 @@ class SessionSequencerRuntime:
             playback_end_subunit=playback_end_subunit,
             playback_loop=request.playback_loop,
             tracks=tracks,
+            controller_tracks=controller_tracks,
         )

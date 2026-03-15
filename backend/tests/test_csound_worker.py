@@ -233,3 +233,24 @@ def test_start_ctcsound_sets_ssdir_option_for_gen_audio_assets(monkeypatch, tmp_
     worker.start(csd=csd, midi_input="0", rtmidi_module="alsaseq")
 
     assert f"--env:SSDIR={assets_dir.resolve()}" in worker._ctcsound.instance.options
+
+
+def test_queue_midi_message_honors_delivery_delay(monkeypatch) -> None:
+    current_time = {"value": 10.0}
+    monkeypatch.setattr("backend.app.engine.csound_worker.time.perf_counter", lambda: current_time["value"])
+
+    worker = CsoundWorker()
+    worker._backend = "ctcsound"
+    worker._running = True
+    worker._host_midi_enabled = True
+
+    assert worker.queue_midi_message([0x90, 60, 100], delivery_delay_seconds=0.05) is True
+
+    with worker._host_midi_lock:
+        assert worker._host_midi_buffer == bytearray()
+        assert len(worker._host_midi_pending) == 1
+        worker._drain_due_host_midi_locked(10.04)
+        assert worker._host_midi_buffer == bytearray()
+        worker._drain_due_host_midi_locked(10.051)
+        assert worker._host_midi_buffer == bytearray([0x90, 60, 100])
+        assert worker._host_midi_pending == []

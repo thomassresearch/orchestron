@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field, model_validator
 _PAUSE_BEAT_COUNTS: tuple[int, ...] = (1, 2, 4, 8, 16)
 _PAUSE_TOKENS: tuple[int, ...] = tuple(-beat_count for beat_count in _PAUSE_BEAT_COUNTS)
 _SEQUENCER_PAD_LENGTH_BEATS: tuple[int, ...] = (1, 2, 3, 4, 5, 6, 7, 8)
+_CONTROLLER_SEQUENCER_PAD_LENGTH_BEATS: tuple[int, ...] = (1, 2, 3, 4, 5, 6, 7, 8, 16)
 _SEQUENCER_BEAT_RATE_OPTIONS: tuple[tuple[int, int], ...] = (
     (1, 1),
     (2, 1),
@@ -22,6 +23,7 @@ _SEQUENCER_BEAT_RATE_OPTIONS: tuple[tuple[int, int], ...] = (
 )
 
 SequencerPadLengthBeats = Literal[1, 2, 3, 4, 5, 6, 7, 8]
+ControllerSequencerPadLengthBeats = Literal[1, 2, 3, 4, 5, 6, 7, 8, 16]
 
 
 def _is_valid_pad_loop_token(token: int) -> bool:
@@ -185,6 +187,17 @@ class SessionSequencerPadConfig(BaseModel):
     steps: list[SequencerStepConfig] = Field(default_factory=list, max_length=128)
 
 
+class SessionControllerSequencerKeypointConfig(BaseModel):
+    position: float = Field(ge=0.0, le=1.0)
+    value: int = Field(ge=0, le=127)
+
+
+class SessionControllerSequencerPadConfig(BaseModel):
+    pad_index: int = Field(ge=0, le=7)
+    length_beats: ControllerSequencerPadLengthBeats | None = None
+    keypoints: list[SessionControllerSequencerKeypointConfig] = Field(default_factory=list, max_length=256)
+
+
 class SessionSequencerTrackConfig(BaseModel):
     track_id: str = Field(min_length=1, max_length=256)
     midi_channel: int = Field(default=1, ge=1, le=16)
@@ -218,20 +231,72 @@ class SessionSequencerTrackConfig(BaseModel):
         return self
 
 
+class SessionControllerSequencerTrackConfig(BaseModel):
+    track_id: str = Field(min_length=1, max_length=256)
+    controller_number: int = Field(ge=0, le=127)
+    timing: SessionSequencerTimingConfig = Field(default_factory=SessionSequencerTimingConfig)
+    length_beats: ControllerSequencerPadLengthBeats = 4
+    active_pad: int = Field(default=0, ge=0, le=7)
+    queued_pad: int | None = Field(default=None, ge=0, le=7)
+    pad_loop_enabled: bool = False
+    pad_loop_repeat: bool = True
+    pad_loop_sequence: list[int] = Field(default_factory=list, max_length=256)
+    enabled: bool = True
+    pads: list[SessionControllerSequencerPadConfig] = Field(default_factory=list, max_length=8)
+    target_channels: list[int] = Field(default_factory=list, max_length=16)
+
+    @model_validator(mode="after")
+    def validate_unique_pad_indexes(self) -> "SessionControllerSequencerTrackConfig":
+        seen: set[int] = set()
+        for pad in self.pads:
+            if pad.pad_index in seen:
+                raise ValueError(f"Duplicate pad_index '{pad.pad_index}' in controller track '{self.track_id}'.")
+            seen.add(pad.pad_index)
+        for index, token in enumerate(self.pad_loop_sequence):
+            if not _is_valid_pad_loop_token(token):
+                raise ValueError(
+                    "pad_loop_sequence[{index}] must be a pad index 0..7 or a pause token "
+                    "-1/-2/-4/-8/-16 in controller track '{track_id}'.".format(index=index, track_id=self.track_id)
+                )
+        if self.length_beats not in _CONTROLLER_SEQUENCER_PAD_LENGTH_BEATS:
+            raise ValueError(
+                "length_beats must be one of "
+                + ", ".join(str(value) for value in _CONTROLLER_SEQUENCER_PAD_LENGTH_BEATS)
+                + f" in controller track '{self.track_id}'."
+            )
+        normalized_channels: set[int] = set()
+        for channel in self.target_channels:
+            normalized_channel = int(channel)
+            if normalized_channel < 1 or normalized_channel > 16:
+                raise ValueError(
+                    f"target_channels entries must be between 1 and 16 in controller track '{self.track_id}'."
+                )
+            normalized_channels.add(normalized_channel)
+        self.target_channels = sorted(normalized_channels)
+        return self
+
+
 class SessionSequencerConfigRequest(BaseModel):
     timing: SessionSequencerTimingConfig = Field(default_factory=SessionSequencerTimingConfig)
     step_count: int = Field(default=16, ge=1)
     playback_start_step: int = Field(default=0, ge=0)
     playback_end_step: int = Field(default=16, ge=1)
     playback_loop: bool = False
-    tracks: list[SessionSequencerTrackConfig] = Field(min_length=1, max_length=128)
+    tracks: list[SessionSequencerTrackConfig] = Field(default_factory=list, max_length=128)
+    controller_tracks: list[SessionControllerSequencerTrackConfig] = Field(default_factory=list, max_length=128)
 
     @model_validator(mode="after")
     def validate_unique_track_ids(self) -> "SessionSequencerConfigRequest":
         if self.playback_end_step <= self.playback_start_step:
             raise ValueError("playback_end_step must be greater than playback_start_step.")
+        if not self.tracks and not self.controller_tracks:
+            raise ValueError("At least one sequencer track or controller track must be configured.")
         seen: set[str] = set()
         for track in self.tracks:
+            if track.track_id in seen:
+                raise ValueError(f"Duplicate track_id '{track.track_id}'.")
+            seen.add(track.track_id)
+        for track in self.controller_tracks:
             if track.track_id in seen:
                 raise ValueError(f"Duplicate track_id '{track.track_id}'.")
             seen.add(track.track_id)
@@ -253,7 +318,7 @@ class SessionSequencerStartRequest(BaseModel):
 
 
 class SessionSequencerQueuePadRequest(BaseModel):
-    pad_index: int = Field(ge=0, le=7)
+    pad_index: int | None = Field(default=None, ge=0, le=7)
 
 
 class SessionSequencerTrackStatus(BaseModel):
@@ -271,6 +336,21 @@ class SessionSequencerTrackStatus(BaseModel):
     active_notes: list[int] = Field(default_factory=list)
 
 
+class SessionControllerSequencerTrackStatus(BaseModel):
+    track_id: str
+    controller_number: int = Field(ge=0, le=127)
+    timing: SessionSequencerTimingConfig
+    length_beats: ControllerSequencerPadLengthBeats
+    step_count: int = Field(ge=1, le=128)
+    active_pad: int = Field(ge=0, le=7)
+    queued_pad: int | None = Field(default=None, ge=0, le=7)
+    pad_loop_position: int | None = Field(default=None, ge=0)
+    enabled: bool = True
+    runtime_pad_start_subunit: int | None = Field(default=None, ge=0)
+    last_value: int | None = Field(default=None, ge=0, le=127)
+    target_channels: list[int] = Field(default_factory=list)
+
+
 class SessionSequencerStatus(BaseModel):
     session_id: str
     running: bool
@@ -280,6 +360,7 @@ class SessionSequencerStatus(BaseModel):
     cycle: int = Field(ge=0)
     transport_subunit: int = Field(ge=0)
     tracks: list[SessionSequencerTrackStatus] = Field(default_factory=list)
+    controller_tracks: list[SessionControllerSequencerTrackStatus] = Field(default_factory=list)
 
 
 class SessionEvent(BaseModel):

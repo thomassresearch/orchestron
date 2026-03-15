@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import ctypes
+import heapq
 import logging
 import os
 import re
@@ -55,6 +56,8 @@ class CsoundWorker:
         self._streaming_block_seconds = 0.0
         self._host_midi_enabled = False
         self._host_midi_buffer = bytearray()
+        self._host_midi_pending: list[tuple[float, int, bytes]] = []
+        self._host_midi_sequence = 0
         self._host_midi_lock = threading.Lock()
         self._host_midi_callbacks: dict[str, Any] = {}
 
@@ -164,13 +167,26 @@ class CsoundWorker:
         if bridge is not None:
             await bridge.close()
 
-    def queue_midi_message(self, message: list[int]) -> bool:
+    def queue_midi_message(
+        self,
+        message: list[int],
+        delivery_delay_seconds: float | None = None,
+    ) -> bool:
         if len(message) != 3:
             return False
         if not self.accepts_direct_midi:
             return False
+        due_time = time.perf_counter() + max(0.0, delivery_delay_seconds or 0.0)
         with self._host_midi_lock:
-            self._host_midi_buffer.extend(int(value) & 0xFF for value in message)
+            self._host_midi_sequence += 1
+            heapq.heappush(
+                self._host_midi_pending,
+                (
+                    due_time,
+                    self._host_midi_sequence,
+                    bytes(int(value) & 0xFF for value in message),
+                ),
+            )
         return True
 
     def panic(self) -> str:
@@ -414,6 +430,8 @@ class CsoundWorker:
         self._host_midi_callbacks = {}
         with self._host_midi_lock:
             self._host_midi_buffer.clear()
+            self._host_midi_pending.clear()
+            self._host_midi_sequence = 0
 
         if not self._csound:
             return
@@ -450,6 +468,8 @@ class CsoundWorker:
         self._host_midi_enabled = False
         with self._host_midi_lock:
             self._host_midi_buffer.clear()
+            self._host_midi_pending.clear()
+            self._host_midi_sequence = 0
 
         ct = self._ctcsound
         raw_midi_read_func = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int)
@@ -484,6 +504,7 @@ class CsoundWorker:
             if count <= 0:
                 return 0
             with self._host_midi_lock:
+                self._drain_due_host_midi_locked(time.perf_counter())
                 available = len(self._host_midi_buffer)
                 if available <= 0:
                     return 0
@@ -519,6 +540,11 @@ class CsoundWorker:
         ct.libcsound.csoundSetExternalMidiReadCallback(csound.cs, callbacks["read"])
         ct.libcsound.csoundSetExternalMidiWriteCallback.argtypes = [ctypes.c_void_p, raw_midi_write_func]
         ct.libcsound.csoundSetExternalMidiWriteCallback(csound.cs, callbacks["write"])
+
+    def _drain_due_host_midi_locked(self, now: float) -> None:
+        while self._host_midi_pending and self._host_midi_pending[0][0] <= now:
+            _, _, message = heapq.heappop(self._host_midi_pending)
+            self._host_midi_buffer.extend(message)
 
     @staticmethod
     def _normalize_rtmidi_module(module: str) -> str:

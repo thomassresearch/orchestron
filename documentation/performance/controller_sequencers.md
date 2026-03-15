@@ -6,7 +6,7 @@ Controller Sequencers automate MIDI CC values using editable curves.
 
 ## What A Controller Sequencer Does
 
-A controller sequencer samples a CC curve over a repeating length and emits MIDI Control Change messages during playback.
+A controller sequencer sends its programmed CC curve to the backend sequencer, which samples that curve over a repeating length and emits timed MIDI Control Change messages during playback.
 
 Typical uses:
 
@@ -62,7 +62,8 @@ This makes it easy to understand exactly what value is being sent at each transp
 
 ## Live Use Notes
 
-- Controller sequencers run alongside melodic sequencers.
+- Controller sequencers run alongside melodic sequencers on the same backend transport clock.
+- While transport is running, pad presses are queued and applied on the next controller-pad boundary.
 - You can combine automated controller sequencers with manual MIDI controller knob lanes on the same performance page.
 - If you automate the same CC number from multiple sources, the last-sent value wins at the MIDI receiver side (plan mappings accordingly).
 

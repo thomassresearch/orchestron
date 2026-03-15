@@ -16,25 +16,17 @@ import {
   absoluteTransportStep as sequencerAbsoluteTransportStep,
   arrangerPlaybackBounds,
   clampArrangerSeekStep,
-  compileArrangerTransportSequence,
-  stepCountForTransportToken
+  compileArrangerTransportSequence
 } from "./lib/arrangerTransport";
-import { decodePadLoopPauseToken } from "./lib/padLoopPattern";
 import {
   buildSequencerStepChordMidiNotes,
   resolveMidiInputName,
-  sampleControllerCurveValue,
-  sequencerTransportSubunitCount,
-  sequencerTransportSubunitDurationSeconds,
-  sequencerTransportSubunitsPerBeat,
-  sequencerTransportSubunitsPerStep,
   sequencerTransportStepsPerBeat
 } from "./lib/sequencer";
 import { useAppStore } from "./store/useAppStore";
 import orchestronIcon from "./assets/orchestron-icon.png";
 import type {
   Connection,
-  ControllerSequencerState,
   DrummerSequencerTrackState,
   GuiLanguage,
   HelpDocId,
@@ -184,250 +176,6 @@ function scaleVelocityForChannel(velocity: number, channel: number, levelMap: Ma
   const normalizedVelocity = normalizeMidiVelocity(velocity);
   const level = levelForChannel(channel, levelMap);
   return normalizeMidiVelocity(Math.round((normalizedVelocity * level) / 10));
-}
-
-function wrapModulo(value: number, modulo: number): number {
-  if (!Number.isFinite(value) || !Number.isFinite(modulo) || modulo <= 0) {
-    return 0;
-  }
-  const remainder = value % modulo;
-  return remainder < 0 ? remainder + modulo : remainder;
-}
-
-function controllerSequencerPadIndex(value: number): number {
-  return Math.max(0, Math.min(7, Math.round(value)));
-}
-
-function controllerSequencerPadLoopTokenAtPosition(sequence: number[], position: number | null): number | null {
-  if (position === null || position < 0 || position >= sequence.length) {
-    return null;
-  }
-  return sequence[position] ?? null;
-}
-
-function controllerSequencerPadState(
-  controllerSequencer: ControllerSequencerState,
-  padIndex: number
-): {
-  lengthBeats: ControllerSequencerState["lengthBeats"];
-  stepCount: number;
-  keypoints: ControllerSequencerState["keypoints"];
-} {
-  const normalizedPadIndex = controllerSequencerPadIndex(padIndex);
-  const pad = controllerSequencer.pads[normalizedPadIndex] ?? controllerSequencer.pads[0];
-  if (pad) {
-    return {
-      lengthBeats: pad.lengthBeats,
-      stepCount: pad.stepCount,
-      keypoints: pad.keypoints
-    };
-  }
-  return {
-    lengthBeats: controllerSequencer.lengthBeats,
-    stepCount: controllerSequencer.stepCount,
-    keypoints: controllerSequencer.keypoints
-  };
-}
-
-function controllerSequencerTransportSubunitCountForPad(
-  controllerSequencer: ControllerSequencerState,
-  padIndex: number
-): number {
-  return Math.max(
-    1,
-    Math.round(
-      sequencerTransportSubunitCount(
-        controllerSequencer.timing,
-        controllerSequencerPadState(controllerSequencer, padIndex).lengthBeats
-      )
-    )
-  );
-}
-
-function controllerSequencerTransportSubunitCountForLoopToken(
-  controllerSequencer: ControllerSequencerState,
-  token: number | null,
-  fallbackPadIndex: number
-): number {
-  if (typeof token === "number") {
-    if (token >= 0) {
-      return controllerSequencerTransportSubunitCountForPad(controllerSequencer, token);
-    }
-    const pauseStepCount = decodePadLoopPauseToken(token);
-    if (pauseStepCount !== null) {
-      return pauseStepCount * sequencerTransportSubunitsPerBeat();
-    }
-  }
-  return controllerSequencerTransportSubunitCountForPad(controllerSequencer, fallbackPadIndex);
-}
-
-function controllerSequencerTransportSequence(controllerSequencer: ControllerSequencerState): number[] {
-  return compileArrangerTransportSequence(controllerSequencer.padLoopPattern, controllerSequencer.activePad);
-}
-
-function controllerSequencerStartStateAtTransportSubunit(
-  controllerSequencer: ControllerSequencerState,
-  transportSubunit: number
-): {
-  activePad: number;
-  padLoopPosition: number | null;
-  runtimePadStartSubunit: number;
-  enabled: boolean;
-} {
-  const normalizedTransportSubunit = Math.max(0, Math.floor(transportSubunit));
-  const usesPadLoop =
-    controllerSequencer.padLoopEnabled && controllerSequencer.padLoopPattern.rootSequence.length > 0;
-  const sequence = controllerSequencerTransportSequence(controllerSequencer);
-  const fallbackActivePad = controllerSequencerPadIndex(controllerSequencer.activePad);
-  const firstToken = sequence[0] ?? null;
-  if (!usesPadLoop) {
-    return {
-      activePad: fallbackActivePad,
-      padLoopPosition: null,
-      runtimePadStartSubunit: normalizedTransportSubunit,
-      enabled: controllerSequencer.enabled
-    };
-  }
-  return {
-    activePad: typeof firstToken === "number" && firstToken >= 0 ? controllerSequencerPadIndex(firstToken) : fallbackActivePad,
-    padLoopPosition: 0,
-    runtimePadStartSubunit: normalizedTransportSubunit,
-    enabled: controllerSequencer.enabled
-  };
-}
-
-function controllerSequencerRuntimeStateAtTransportSubunit(
-  controllerSequencer: ControllerSequencerState,
-  transportSubunit: number,
-  runtimePadStartSubunit: number | null
-): {
-  activePad: number;
-  padLoopPosition: number | null;
-  runtimePadStartSubunit: number;
-  enabled: boolean;
-} {
-  const normalizedTransportSubunit = Math.max(0, Math.floor(transportSubunit));
-  const usesPadLoop =
-    controllerSequencer.padLoopEnabled && controllerSequencer.padLoopPattern.rootSequence.length > 0;
-  const loopsContinuously = !usesPadLoop || controllerSequencer.padLoopRepeat;
-  const sequence = controllerSequencerTransportSequence(controllerSequencer);
-  const fallbackActivePad = controllerSequencerPadIndex(controllerSequencer.activePad);
-  const normalizedRuntimePadStartSubunit =
-    typeof runtimePadStartSubunit === "number" && Number.isFinite(runtimePadStartSubunit)
-      ? Math.max(0, Math.floor(runtimePadStartSubunit))
-      : null;
-
-  if (sequence.length === 0) {
-    return {
-      activePad: fallbackActivePad,
-      padLoopPosition: null,
-      runtimePadStartSubunit: normalizedRuntimePadStartSubunit ?? normalizedTransportSubunit,
-      enabled: controllerSequencer.enabled
-    };
-  }
-
-  if (!usesPadLoop) {
-    return {
-      activePad: fallbackActivePad,
-      padLoopPosition: null,
-      runtimePadStartSubunit: normalizedRuntimePadStartSubunit ?? normalizedTransportSubunit,
-      enabled: controllerSequencer.enabled
-    };
-  }
-
-  if (normalizedRuntimePadStartSubunit === null || normalizedTransportSubunit < normalizedRuntimePadStartSubunit) {
-    return controllerSequencerStartStateAtTransportSubunit(controllerSequencer, normalizedTransportSubunit);
-  }
-
-  const padTransportSubunitCounts = controllerSequencer.pads.map((pad) =>
-    Math.max(1, Math.round(sequencerTransportSubunitCount(controllerSequencer.timing, pad.lengthBeats)))
-  );
-  const defaultPadTransportSubunitCount = Math.max(
-    1,
-    Math.round(sequencerTransportSubunitCount(controllerSequencer.timing, controllerSequencer.lengthBeats))
-  );
-  const totalSubunits = sequence.reduce(
-    (sum, token) =>
-      sum +
-      stepCountForTransportToken(
-        token,
-        padTransportSubunitCounts,
-        defaultPadTransportSubunitCount,
-        sequencerTransportSubunitsPerBeat()
-      ),
-    0
-  );
-  if (totalSubunits <= 0) {
-    return {
-      activePad: fallbackActivePad,
-      padLoopPosition: null,
-      runtimePadStartSubunit: normalizedRuntimePadStartSubunit ?? normalizedTransportSubunit,
-      enabled: controllerSequencer.enabled
-    };
-  }
-
-  let subunitInSequence = normalizedTransportSubunit - normalizedRuntimePadStartSubunit;
-  if (subunitInSequence >= totalSubunits) {
-    if (!loopsContinuously) {
-      return {
-        activePad: fallbackActivePad,
-        padLoopPosition: null,
-        runtimePadStartSubunit: normalizedRuntimePadStartSubunit,
-        enabled: false
-      };
-    }
-    subunitInSequence = wrapModulo(subunitInSequence, totalSubunits);
-  }
-
-  let cursor = 0;
-  let lastPositivePad = fallbackActivePad;
-  for (let index = 0; index < sequence.length; index += 1) {
-    const token = sequence[index];
-    const tokenTransportSubunitCount = stepCountForTransportToken(
-      token,
-      padTransportSubunitCounts,
-      defaultPadTransportSubunitCount,
-      sequencerTransportSubunitsPerBeat()
-    );
-    if (subunitInSequence < cursor + tokenTransportSubunitCount) {
-      return {
-        activePad: token >= 0 ? controllerSequencerPadIndex(token) : lastPositivePad,
-        padLoopPosition: index,
-        runtimePadStartSubunit: normalizedRuntimePadStartSubunit + cursor,
-        enabled: controllerSequencer.enabled
-      };
-    }
-    if (token >= 0) {
-      lastPositivePad = controllerSequencerPadIndex(token);
-    }
-    cursor += tokenTransportSubunitCount;
-  }
-
-  return {
-    activePad: lastPositivePad,
-    padLoopPosition: Math.max(0, sequence.length - 1),
-    runtimePadStartSubunit: normalizedRuntimePadStartSubunit,
-    enabled: controllerSequencer.enabled
-  };
-}
-
-function controllerSequencerSignature(controllerSequencer: ControllerSequencerState): string {
-  const transportSequence = controllerSequencerTransportSequence(controllerSequencer);
-  return JSON.stringify({
-    controllerNumber: controllerSequencer.controllerNumber,
-    timing: controllerSequencer.timing,
-    transportSequence,
-    fallbackPad: controllerSequencer.padLoopPattern.rootSequence.length === 0 ? controllerSequencer.activePad : null,
-    pads: controllerSequencer.pads.map((pad) => ({
-      lengthBeats: pad.lengthBeats,
-      stepCount: pad.stepCount,
-      keypoints: pad.keypoints.map((keypoint) => ({
-        id: keypoint.id,
-        position: keypoint.position,
-        value: keypoint.value
-      }))
-    }))
-  });
 }
 
 function isSessionNotFoundApiError(error: unknown): boolean {
@@ -1620,27 +1368,6 @@ export default function App() {
   const sequencerConfigSyncPendingRef = useRef(false);
   const pianoRollNoteSessionRef = useRef(new Map<string, string>());
   const midiControllerInitSessionRef = useRef<string | null>(null);
-  const controllerSequencerTransportAnchorRef = useRef<{
-    transportSubunit: number;
-    transportSubunitDurationMs: number;
-    timestampMs: number;
-  } | null>(null);
-  const controllerSequencerPlaybackRef = useRef<
-    Record<
-      string,
-      {
-        signature: string;
-        lastSentValue: number | null;
-        padStartSubunit: number;
-        activePad: number;
-        queuedPad: number | null;
-        padLoopPosition: number | null;
-        enabled: boolean;
-        absoluteTransportSubunit: number;
-      }
-    >
-  >({});
-  const controllerSequencerPlaybackRafRef = useRef<number | null>(null);
   const browserAudioFallbackElementRef = useRef<HTMLAudioElement | null>(null);
   const browserAudioRuntimeElementRef = useRef<HTMLAudioElement | null>(null);
   const browserAudioStreamRef = useRef<MediaStream | null>(null);
@@ -1768,7 +1495,6 @@ export default function App() {
       sequencerConfigSyncPendingRef.current = false;
       sequencerSessionIdRef.current = null;
       midiControllerInitSessionRef.current = null;
-      controllerSequencerTransportAnchorRef.current = null;
 
       disconnectBrowserAudio();
       syncSequencerRuntime({ isPlaying: false });
@@ -2173,20 +1899,6 @@ export default function App() {
     sequencerRef.current = sequencer;
   }, [sequencer]);
 
-  useEffect(() => {
-    if (!sequencer.isPlaying) {
-      controllerSequencerTransportAnchorRef.current = null;
-      controllerSequencerPlaybackRef.current = {};
-      return;
-    }
-
-    controllerSequencerTransportAnchorRef.current = {
-      transportSubunit: Math.max(0, Math.floor(sequencerRuntime.transportSubunit)),
-      transportSubunitDurationMs: sequencerTransportSubunitDurationSeconds(sequencer.timing) * 1000,
-      timestampMs: performance.now()
-    };
-  }, [sequencer.isPlaying, sequencer.timing, sequencerRuntime.transportSubunit]);
-
   const activeMidiInputName = useMemo(
     () => resolveMidiInputName(activeMidiInput, midiInputs),
     [activeMidiInput, midiInputs]
@@ -2535,8 +2247,41 @@ export default function App() {
     const drummerRowTracks = state.drummerTracks.flatMap((drummerTrack) =>
       buildDrummerRowTrackConfigs(drummerTrack, instrumentLevelsByChannel)
     );
+    const controllerTracks = state.controllerSequencers.map((controllerSequencer) => {
+      const transportSequence = compileArrangerTransportSequence(
+        controllerSequencer.padLoopPattern,
+        controllerSequencer.activePad
+      );
+      return {
+        track_id: controllerSequencer.id,
+        controller_number: controllerSequencer.controllerNumber,
+        timing: {
+          tempo_bpm: controllerSequencer.timing.tempoBPM,
+          meter_numerator: controllerSequencer.timing.meterNumerator,
+          meter_denominator: controllerSequencer.timing.meterDenominator,
+          steps_per_beat: controllerSequencer.timing.stepsPerBeat,
+          beat_rate_numerator: controllerSequencer.timing.beatRateNumerator,
+          beat_rate_denominator: controllerSequencer.timing.beatRateDenominator
+        },
+        length_beats: controllerSequencer.lengthBeats,
+        active_pad: controllerSequencer.activePad,
+        queued_pad: controllerSequencer.queuedPad,
+        pad_loop_enabled: controllerSequencer.padLoopEnabled,
+        pad_loop_repeat: controllerSequencer.padLoopRepeat,
+        pad_loop_sequence: transportSequence,
+        enabled: controllerSequencer.enabled,
+        pads: controllerSequencer.pads.map((pad, padIndex) => ({
+          pad_index: padIndex,
+          length_beats: pad.lengthBeats,
+          keypoints: pad.keypoints.map((keypoint) => ({
+            position: keypoint.position,
+            value: keypoint.value
+          }))
+        }))
+      };
+    });
     const transportTracks: SessionSequencerConfigRequest["tracks"] =
-      melodicTracks.length + drummerRowTracks.length > 0
+      melodicTracks.length + drummerRowTracks.length > 0 || controllerTracks.length > 0
         ? [...melodicTracks, ...drummerRowTracks]
         : [
             {
@@ -2583,7 +2328,8 @@ export default function App() {
       playback_start_step: playbackStartStep,
       playback_end_step: resolvedPlaybackEndStep,
       playback_loop: playbackLoop,
-      tracks: transportTracks
+      tracks: transportTracks,
+      controller_tracks: controllerTracks
     };
   }, [instrumentLevelsByChannel]);
   const sequencerConfigSyncSignature = useMemo(() => {
@@ -2592,37 +2338,6 @@ export default function App() {
     }
     return JSON.stringify(buildBackendSequencerConfig(sequencerConfig));
   }, [buildBackendSequencerConfig, sequencer.isPlaying, sequencerConfig]);
-
-  const syncControllerSequencersToTransportSubunit = useCallback(
-    (transportSubunit: number, state = sequencerRef.current) => {
-      const updates = state.controllerSequencers.map((controllerSequencer) => {
-        if (!controllerSequencer.enabled) {
-          return {
-            controllerSequencerId: controllerSequencer.id,
-            runtimePadStartSubunit: null
-          };
-        }
-        const derived = controllerSequencerRuntimeStateAtTransportSubunit(
-          controllerSequencer,
-          transportSubunit,
-          controllerSequencer.runtimePadStartSubunit
-        );
-        return {
-          controllerSequencerId: controllerSequencer.id,
-          activePad: derived.activePad,
-          queuedPad:
-            controllerSequencer.queuedPad === null || controllerSequencer.queuedPad === derived.activePad
-              ? null
-              : controllerSequencer.queuedPad,
-          padLoopPosition: derived.padLoopPosition,
-          runtimePadStartSubunit: derived.runtimePadStartSubunit,
-          enabled: derived.enabled
-        };
-      });
-      syncControllerSequencerRuntime(updates);
-    },
-    [syncControllerSequencerRuntime]
-  );
 
   const applySequencerStatus = useCallback(
     (status: SessionSequencerStatus) => {
@@ -2646,9 +2361,18 @@ export default function App() {
         })),
         drummerTracks: drummerTrackStatuses
       });
-      syncControllerSequencersToTransportSubunit(status.transport_subunit, sequencerRef.current);
+      syncControllerSequencerRuntime(
+        status.controller_tracks.map((track) => ({
+          controllerSequencerId: track.track_id,
+          activePad: track.active_pad,
+          queuedPad: track.queued_pad,
+          padLoopPosition: track.pad_loop_position,
+          runtimePadStartSubunit: track.runtime_pad_start_subunit,
+          enabled: track.enabled
+        }))
+      );
     },
-    [syncControllerSequencersToTransportSubunit, syncSequencerRuntime]
+    [syncControllerSequencerRuntime, syncSequencerRuntime]
   );
 
   const stopSequencerTransport = useCallback(
@@ -2810,11 +2534,7 @@ export default function App() {
     const { selection } = arrangerPlaybackBounds(currentState);
     const targetAbsoluteStep = selection?.startStep ?? 0;
     setSequencerTransportAbsoluteStep(targetAbsoluteStep);
-    syncControllerSequencersToTransportSubunit(
-      targetAbsoluteStep * sequencerTransportSubunitsPerStep(),
-      currentState
-    );
-  }, [setSequencerTransportAbsoluteStep, syncControllerSequencersToTransportSubunit]);
+  }, [setSequencerTransportAbsoluteStep]);
 
   const stopPerformance = useCallback(
     async (resetTransport: boolean) => {
@@ -2878,10 +2598,6 @@ export default function App() {
 
       if (!currentState.isPlaying) {
         setSequencerTransportAbsoluteStep(targetAbsoluteStep);
-        syncControllerSequencersToTransportSubunit(
-          targetAbsoluteStep * sequencerTransportSubunitsPerStep(),
-          currentState
-        );
         return;
       }
 
@@ -2911,8 +2627,7 @@ export default function App() {
       appCopy.errors.noActiveInstrumentSessionForSequencer,
       applySequencerStatus,
       invalidateMissingRuntimeSession,
-      setSequencerTransportAbsoluteStep,
-      syncControllerSequencersToTransportSubunit
+      setSequencerTransportAbsoluteStep
     ]
   );
 
@@ -2938,16 +2653,8 @@ export default function App() {
         sequencerTransportStepsPerBeat(currentState.timing)
       );
       setSequencerTransportAbsoluteStep(nextAbsoluteStep);
-      syncControllerSequencersToTransportSubunit(
-        nextAbsoluteStep * sequencerTransportSubunitsPerStep(),
-        sequencerRef.current
-      );
     },
-    [
-      setSequencerArrangerLoopSelection,
-      setSequencerTransportAbsoluteStep,
-      syncControllerSequencersToTransportSubunit
-    ]
+    [setSequencerArrangerLoopSelection, setSequencerTransportAbsoluteStep]
   );
 
   const onPianoRollNoteOn = useCallback(
@@ -3425,301 +3132,6 @@ export default function App() {
     activeSessionState,
     appCopy.errors.failedToInitializeMidiControllers,
     sendMidiControllerValue
-  ]);
-
-  useEffect(() => {
-    if (controllerSequencerPlaybackRafRef.current !== null) {
-      window.cancelAnimationFrame(controllerSequencerPlaybackRafRef.current);
-      controllerSequencerPlaybackRafRef.current = null;
-    }
-
-    if (activeSessionState !== "running" || !activeSessionId || !sequencer.isPlaying) {
-      controllerSequencerPlaybackRef.current = {};
-      return;
-    }
-
-    const enabledControllerSequencers = sequencer.controllerSequencers.filter((controllerSequencer) => controllerSequencer.enabled);
-    if (enabledControllerSequencers.length === 0) {
-      controllerSequencerPlaybackRef.current = {};
-      return;
-    }
-
-    let cancelled = false;
-    let errorReported = false;
-
-    const tick = () => {
-      if (cancelled) {
-        return;
-      }
-
-      const anchor = controllerSequencerTransportAnchorRef.current;
-      const currentSequencer = sequencerRef.current;
-      if (!anchor || !currentSequencer.isPlaying) {
-        controllerSequencerPlaybackRafRef.current = window.requestAnimationFrame(tick);
-        return;
-      }
-
-      const nowMs = performance.now();
-      const elapsedTransportSubunits = Math.max(
-        0,
-        (nowMs - anchor.timestampMs) / Math.max(0.001, anchor.transportSubunitDurationMs)
-      );
-      const rawAbsoluteTransportSubunits = anchor.transportSubunit + elapsedTransportSubunits;
-      const { playbackStartStep, playbackEndStep, playbackLoop } = arrangerPlaybackBounds(currentSequencer);
-      const playbackStartSubunit = playbackStartStep * sequencerTransportSubunitsPerStep();
-      const playbackEndSubunit = playbackEndStep * sequencerTransportSubunitsPerStep();
-      const playbackRangeSubunits = Math.max(1, playbackEndSubunit - playbackStartSubunit);
-      const effectiveAbsoluteTransportSubunits = playbackLoop
-        ? playbackStartSubunit +
-          wrapModulo(rawAbsoluteTransportSubunits - playbackStartSubunit, playbackRangeSubunits)
-        : Math.max(playbackStartSubunit, Math.min(rawAbsoluteTransportSubunits, playbackEndSubunit));
-      const currentBoundarySubunit = Math.max(0, Math.floor(effectiveAbsoluteTransportSubunits));
-
-      const controllerTasks: Promise<void>[] = [];
-      const runtimeUpdates: Array<{
-        controllerSequencerId: string;
-        activePad?: number;
-        queuedPad?: number | null;
-        padLoopPosition?: number | null;
-        runtimePadStartSubunit?: number | null;
-        enabled?: boolean;
-      }> = [];
-      const nextPlaybackState: Record<
-        string,
-        {
-          signature: string;
-          lastSentValue: number | null;
-          padStartSubunit: number;
-          activePad: number;
-          queuedPad: number | null;
-          padLoopPosition: number | null;
-          enabled: boolean;
-          absoluteTransportSubunit: number;
-        }
-      > = {
-        ...controllerSequencerPlaybackRef.current
-      };
-      const activeIds = new Set<string>();
-
-      for (const controllerSequencer of currentSequencer.controllerSequencers) {
-        if (!controllerSequencer.enabled) {
-          continue;
-        }
-        activeIds.add(controllerSequencer.id);
-
-        const signature = controllerSequencerSignature(controllerSequencer);
-        const previous = nextPlaybackState[controllerSequencer.id];
-        const transportSequence = controllerSequencerTransportSequence(controllerSequencer);
-        const storeRuntimePadStartSubunit =
-          typeof controllerSequencer.runtimePadStartSubunit === "number" && Number.isFinite(controllerSequencer.runtimePadStartSubunit)
-            ? controllerSequencer.runtimePadStartSubunit
-            : null;
-        const initialActivePad = controllerSequencerPadIndex(controllerSequencer.activePad);
-        const initialQueuedPad =
-          controllerSequencer.queuedPad === null ? null : controllerSequencerPadIndex(controllerSequencer.queuedPad);
-        const initialPadLoopPosition =
-          typeof controllerSequencer.padLoopPosition === "number" && Number.isFinite(controllerSequencer.padLoopPosition)
-            ? Math.max(0, Math.round(controllerSequencer.padLoopPosition))
-            : null;
-        const initialEnabled = controllerSequencer.enabled;
-
-        let runtimeActivePad = previous?.signature === signature ? previous.activePad : initialActivePad;
-        let runtimeQueuedPad = initialQueuedPad;
-        let runtimePadLoopPosition = previous?.signature === signature ? previous.padLoopPosition : initialPadLoopPosition;
-        let runtimeEnabled = previous?.signature === signature ? previous.enabled : initialEnabled;
-        let padStartSubunit =
-          previous?.signature === signature
-            ? previous.padStartSubunit
-            : (storeRuntimePadStartSubunit ?? currentBoundarySubunit);
-        let lastSentValue = previous?.signature === signature ? previous.lastSentValue : null;
-
-        const shouldResetRuntimePhase =
-          storeRuntimePadStartSubunit === null ||
-          !previous ||
-          previous.signature !== signature ||
-          currentBoundarySubunit < previous.absoluteTransportSubunit;
-        if (shouldResetRuntimePhase) {
-          const derived = controllerSequencerRuntimeStateAtTransportSubunit(
-            controllerSequencer,
-            currentBoundarySubunit,
-            storeRuntimePadStartSubunit
-          );
-          runtimeActivePad = derived.activePad;
-          runtimePadLoopPosition = derived.padLoopPosition;
-          runtimeEnabled = derived.enabled;
-          padStartSubunit = derived.runtimePadStartSubunit;
-          lastSentValue = null;
-        }
-
-        let activePadState = controllerSequencerPadState(controllerSequencer, runtimeActivePad);
-        let currentLoopToken = controllerSequencerPadLoopTokenAtPosition(transportSequence, runtimePadLoopPosition);
-        let controllerTransportSubunitCount = controllerSequencerTransportSubunitCountForLoopToken(
-          controllerSequencer,
-          currentLoopToken,
-          runtimeActivePad
-        );
-
-        while (
-          runtimeEnabled &&
-          currentBoundarySubunit >= padStartSubunit + controllerTransportSubunitCount
-        ) {
-          const boundarySubunit = padStartSubunit + controllerTransportSubunitCount;
-          let manualPadSwitchApplied = false;
-
-          if (runtimeQueuedPad !== null && runtimeQueuedPad !== runtimeActivePad) {
-            runtimeActivePad = runtimeQueuedPad;
-            runtimeQueuedPad = null;
-            padStartSubunit = boundarySubunit;
-            activePadState = controllerSequencerPadState(controllerSequencer, runtimeActivePad);
-            const matchingPosition = transportSequence.findIndex(
-              (token) => token >= 0 && controllerSequencerPadIndex(token) === runtimeActivePad
-            );
-            runtimePadLoopPosition = matchingPosition >= 0 ? matchingPosition : null;
-            currentLoopToken = controllerSequencerPadLoopTokenAtPosition(transportSequence, runtimePadLoopPosition);
-            controllerTransportSubunitCount = controllerSequencerTransportSubunitCountForLoopToken(
-              controllerSequencer,
-              currentLoopToken,
-              runtimeActivePad
-            );
-            manualPadSwitchApplied = true;
-          }
-
-          if (!manualPadSwitchApplied) {
-            const currentPosition =
-              runtimePadLoopPosition === null ||
-              runtimePadLoopPosition < 0 ||
-              runtimePadLoopPosition >= transportSequence.length
-                ? null
-                : runtimePadLoopPosition;
-            const nextPosition = currentPosition === null ? 0 : currentPosition + 1;
-            if (nextPosition < transportSequence.length) {
-              runtimePadLoopPosition = nextPosition;
-            } else if (!controllerSequencer.padLoopEnabled || controllerSequencer.padLoopRepeat) {
-              runtimePadLoopPosition = 0;
-            } else {
-              runtimeEnabled = false;
-              runtimeQueuedPad = null;
-              runtimePadLoopPosition = null;
-              currentLoopToken = null;
-            }
-          }
-
-          if (runtimeEnabled && !manualPadSwitchApplied) {
-            const nextLoopToken = controllerSequencerPadLoopTokenAtPosition(
-              transportSequence,
-              runtimePadLoopPosition
-            );
-            if (typeof nextLoopToken === "number") {
-              if (nextLoopToken >= 0) {
-                runtimeActivePad = controllerSequencerPadIndex(nextLoopToken);
-                runtimeQueuedPad = null;
-                activePadState = controllerSequencerPadState(controllerSequencer, runtimeActivePad);
-              }
-              padStartSubunit = boundarySubunit;
-              currentLoopToken = nextLoopToken;
-              controllerTransportSubunitCount = controllerSequencerTransportSubunitCountForLoopToken(
-                controllerSequencer,
-                currentLoopToken,
-                runtimeActivePad
-              );
-            }
-          }
-        }
-
-        if (
-          runtimeActivePad !== initialActivePad ||
-          runtimeQueuedPad !== initialQueuedPad ||
-          runtimePadLoopPosition !== initialPadLoopPosition ||
-          storeRuntimePadStartSubunit === null ||
-          padStartSubunit !== storeRuntimePadStartSubunit ||
-          runtimeEnabled !== initialEnabled
-        ) {
-          runtimeUpdates.push({
-            controllerSequencerId: controllerSequencer.id,
-            ...(runtimeActivePad !== initialActivePad ? { activePad: runtimeActivePad } : {}),
-            ...(runtimeQueuedPad !== initialQueuedPad ? { queuedPad: runtimeQueuedPad } : {}),
-            ...(runtimePadLoopPosition !== initialPadLoopPosition ? { padLoopPosition: runtimePadLoopPosition } : {}),
-            ...(storeRuntimePadStartSubunit === null || padStartSubunit !== storeRuntimePadStartSubunit
-              ? { runtimePadStartSubunit: padStartSubunit }
-              : {}),
-            ...(runtimeEnabled !== initialEnabled ? { enabled: runtimeEnabled } : {})
-          });
-        }
-
-        if (
-          runtimeEnabled &&
-          (playbackLoop || effectiveAbsoluteTransportSubunits < playbackEndSubunit) &&
-          (typeof currentLoopToken !== "number" || decodePadLoopPauseToken(currentLoopToken) === null)
-        ) {
-          const sampleIndex = wrapModulo(
-            effectiveAbsoluteTransportSubunits - padStartSubunit,
-            controllerTransportSubunitCount
-          );
-          const samplePosition = sampleIndex / controllerTransportSubunitCount;
-          const value = sampleControllerCurveValue(activePadState.keypoints, samplePosition);
-          if (lastSentValue !== value) {
-            lastSentValue = value;
-            controllerTasks.push(
-              sendMidiControllerValue(controllerSequencer.controllerNumber, value, activeSessionId).then(
-                () => undefined
-              )
-            );
-          }
-        }
-
-        nextPlaybackState[controllerSequencer.id] = {
-          signature,
-          lastSentValue,
-          padStartSubunit,
-          activePad: runtimeActivePad,
-          queuedPad: runtimeQueuedPad,
-          padLoopPosition: runtimePadLoopPosition,
-          enabled: runtimeEnabled,
-          absoluteTransportSubunit: currentBoundarySubunit
-        };
-      }
-
-      for (const knownId of Object.keys(nextPlaybackState)) {
-        if (!activeIds.has(knownId)) {
-          delete nextPlaybackState[knownId];
-        }
-      }
-      controllerSequencerPlaybackRef.current = nextPlaybackState;
-      if (runtimeUpdates.length > 0) {
-        syncControllerSequencerRuntime(runtimeUpdates);
-      }
-
-      if (controllerTasks.length > 0) {
-        void Promise.all(controllerTasks).catch((error) => {
-          if (errorReported) {
-            return;
-          }
-          errorReported = true;
-          setSequencerError(error instanceof Error ? error.message : appCopy.errors.failedToSendMidiControllerValue);
-        });
-      }
-
-      controllerSequencerPlaybackRafRef.current = window.requestAnimationFrame(tick);
-    };
-
-    controllerSequencerPlaybackRafRef.current = window.requestAnimationFrame(tick);
-
-    return () => {
-      cancelled = true;
-      if (controllerSequencerPlaybackRafRef.current !== null) {
-        window.cancelAnimationFrame(controllerSequencerPlaybackRafRef.current);
-        controllerSequencerPlaybackRafRef.current = null;
-      }
-    };
-  }, [
-    activeSessionId,
-    activeSessionState,
-    appCopy.errors.failedToSendMidiControllerValue,
-    sendMidiControllerValue,
-    sequencer.arrangerLoopSelection,
-    sequencer.controllerSequencers,
-    sequencer.isPlaying,
-    syncControllerSequencerRuntime
   ]);
 
   useEffect(() => {
@@ -4426,16 +3838,31 @@ export default function App() {
               if (!controllerSequencer) {
                 return;
               }
-              if (sequencerRef.current.isPlaying && controllerSequencer.enabled) {
-                if (controllerSequencer.activePad === padIndex) {
-                  setControllerSequencerQueuedPad(controllerSequencerId, null);
-                } else {
-                  setControllerSequencerQueuedPad(controllerSequencerId, padIndex);
-                }
+              if (!sequencerRef.current.isPlaying || !controllerSequencer.enabled) {
+                setControllerSequencerActivePad(controllerSequencerId, padIndex);
+                setControllerSequencerQueuedPad(controllerSequencerId, null);
                 return;
               }
-              setControllerSequencerActivePad(controllerSequencerId, padIndex);
-              setControllerSequencerQueuedPad(controllerSequencerId, null);
+
+              const sessionId = sequencerSessionIdRef.current ?? activeSessionId;
+              if (!sessionId) {
+                setSequencerError(appCopy.errors.noActiveSessionForPadSwitching);
+                return;
+              }
+
+              const queuedPad = controllerSequencer.activePad === padIndex ? null : padIndex;
+              void api
+                .queueSessionSequencerPad(sessionId, controllerSequencerId, { pad_index: queuedPad })
+                .then((status) => {
+                  applySequencerStatus(status);
+                })
+                .catch((queueError) => {
+                  setSequencerError(
+                    queueError instanceof Error
+                      ? `${appCopy.errors.failedToQueuePad}: ${queueError.message}`
+                      : appCopy.errors.failedToQueuePad
+                  );
+                });
             }}
             onControllerSequencerPadCopy={copyControllerSequencerPad}
             onControllerSequencerClearSteps={clearControllerSequencerSteps}
