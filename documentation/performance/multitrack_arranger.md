@@ -16,7 +16,7 @@ Each row includes:
 
 - track title (`Sequencer N`, `Drummer Sequencer N`, `Controller Sequencer N`)
 - track subtitle (MIDI channel + assigned patch name, or `CC N` for controller sequencers)
-- a root pattern timeline aligned to a `4-step` grid
+- a root pattern timeline aligned to the shared transport beat grid
 
 ## Root Timeline Tokens
 
@@ -34,10 +34,10 @@ The arranger always shows the current absolute playhead position, even while sto
 
 The arranger header provides cassette-style transport controls with icon buttons:
 
-- `Rewind`: move the playhead `4` steps backward
+- `Rewind`: move the playhead `1` beat backward
 - `Stop`: stop all instruments and sequencers while preserving the current playhead position
 - `Play`: start all instruments and sequencers from the current playhead position
-- `Fast forward`: move the playhead `4` steps forward
+- `Fast forward`: move the playhead `1` beat forward
 - `?`: open the integrated multilingual help modal for a concise arranger workflow summary
 
 The transport controls the full performance arrangement, including melodic sequencer tracks, drummer sequencers, and controller sequencers.
@@ -67,7 +67,7 @@ Context menu actions:
 
 Use the `::` handle on a token to drag it on the root timeline.
 
-- drag moves are quantized to the `4-step` grid
+- drag moves are quantized to the shared transport beat grid
 - dragging a selected contiguous block moves that whole block
 - dropping beyond current content can extend the timeline
 - when needed, pause spans are re-materialized automatically to preserve timing structure
@@ -81,12 +81,12 @@ In the opened editor, you can:
 
 - return to root with `Main`
 - append pads using `1..8`
-- append pauses using `P4`, `P8`, `P16`, `P32`
+- append pauses using `P1`, `P2`, `P4`, `P8`, `P16`
 - drag-and-drop tokens to reorder within the same container
 - remove individual tokens with `x`
 - right-click for `Add pad`, `Add group`, `Add super-group`, `Copy`, `Paste`, `Group`, `Super-group`, `Ungroup`, `Remove`
 
-The editor also shows `Total steps` for the opened container.
+The editor also shows `Total steps` for the opened container, resolved from beat lengths on the shared transport grid.
 
 ## Zoom and Timeline Navigation
 
@@ -100,13 +100,13 @@ Arranger timeline controls:
 
 ## Loop Range Selection
 
-Above the horizontal scrollbar, the arranger shows a shared loop-range ruler quantized to `4-step` blocks.
+Above the horizontal scrollbar, the arranger shows a shared loop-range ruler quantized to beat blocks.
 
 - drag on the ruler to define a playback range
 - click the highlighted range to clear the selection
 - the selected span is highlighted across all arranger rows
 - when a range is selected, playback loops inside that range
-- when no range is selected, the arrangement plays once from step `0` to the last arranged step
+- when no range is selected, playback continues until stopped; continuously looping tracks keep cycling according to their own repeat settings
 
 ## Keyboard Shortcuts
 

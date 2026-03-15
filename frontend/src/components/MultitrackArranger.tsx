@@ -25,6 +25,7 @@ import {
   type PadLoopContainerRef,
   type PadLoopPatternClipboardState
 } from "../lib/padLoopPattern";
+import { sequencerTransportStepsPerBeat } from "../lib/sequencer";
 import type {
   ArrangerLoopSelection,
   GuiLanguage,
@@ -37,7 +38,7 @@ import type {
 } from "../types";
 import { HelpIconButton } from "./HelpIconButton";
 
-const STEP_GRID_QUANTUM = 4;
+const DEFAULT_STEP_GRID_QUANTUM = 4;
 const DEFAULT_STEP_PIXEL_WIDTH = 9;
 const ABSOLUTE_MIN_STEP_PIXEL_WIDTH = 0.05;
 const MAX_STEP_PIXEL_WIDTH = 24;
@@ -173,22 +174,23 @@ function selectionKey(trackId: string, container: PadLoopContainerRef): string {
   return `${trackId}:${containerKey(container)}`;
 }
 
-function normalizeQuantizedStepCount(value: number): number {
-  const rounded = Math.max(STEP_GRID_QUANTUM, Math.round(value));
-  const quantized = Math.round(rounded / STEP_GRID_QUANTUM) * STEP_GRID_QUANTUM;
-  return Math.max(STEP_GRID_QUANTUM, quantized);
+function normalizeQuantizedStepCount(value: number, stepGridQuantum = DEFAULT_STEP_GRID_QUANTUM): number {
+  const rounded = Math.max(stepGridQuantum, Math.round(value));
+  const quantized = Math.round(rounded / stepGridQuantum) * stepGridQuantum;
+  return Math.max(stepGridQuantum, quantized);
 }
 
-function pauseTokensForGap(totalSteps: number): PadLoopPatternItem[] {
+function pauseTokensForGap(totalSteps: number, stepGridQuantum = DEFAULT_STEP_GRID_QUANTUM): PadLoopPatternItem[] {
   // Normalize to the step grid so pause decomposition never drops sub-grid remainders.
-  const quantizedTotal = Math.max(0, quantizeToGrid(totalSteps));
+  const quantizedTotal = Math.max(0, quantizeToGrid(totalSteps, stepGridQuantum));
   let remaining = quantizedTotal;
   const result: PadLoopPatternItem[] = [];
   const sizes = [...PAD_LOOP_PAUSE_STEP_OPTIONS].sort((a, b) => b - a);
   for (const size of sizes) {
-    while (remaining >= size) {
-      result.push({ type: "pause", stepCount: size });
-      remaining -= size;
+    const pauseStepCount = size * stepGridQuantum;
+    while (remaining >= pauseStepCount) {
+      result.push({ type: "pause", lengthBeats: size });
+      remaining -= pauseStepCount;
     }
   }
   return result;
@@ -230,7 +232,7 @@ function tokenLabel(item: PadLoopPatternItem): string {
     return String(item.padIndex + 1);
   }
   if (item.type === "pause") {
-    return `P${item.stepCount}`;
+    return `P${item.lengthBeats}`;
   }
   if (item.type === "group") {
     return item.groupId;
@@ -287,7 +289,7 @@ function clonePatternItem(item: PadLoopPatternItem): PadLoopPatternItem {
     return { type: "pad", padIndex: item.padIndex };
   }
   if (item.type === "pause") {
-    return { type: "pause", stepCount: item.stepCount };
+    return { type: "pause", lengthBeats: item.lengthBeats };
   }
   if (item.type === "group") {
     return { type: "group", groupId: item.groupId };
@@ -303,7 +305,7 @@ function samePatternItem(a: PadLoopPatternItem, b: PadLoopPatternItem): boolean 
     return a.padIndex === b.padIndex;
   }
   if (a.type === "pause" && b.type === "pause") {
-    return a.stepCount === b.stepCount;
+    return a.lengthBeats === b.lengthBeats;
   }
   if (a.type === "group" && b.type === "group") {
     return a.groupId === b.groupId;
@@ -367,8 +369,14 @@ function buildTrackSubtitle(
   return `CH ${midiChannel} - ${patchName}`;
 }
 
-function quantizeToGrid(value: number): number {
-  return Math.round(value / STEP_GRID_QUANTUM) * STEP_GRID_QUANTUM;
+function trackRunsContinuously(
+  track: Pick<SequencerState["tracks"][number] | SequencerState["drummerTracks"][number] | SequencerState["controllerSequencers"][number], "enabled" | "padLoopEnabled" | "padLoopRepeat">
+): boolean {
+  return track.enabled && (!track.padLoopEnabled || track.padLoopRepeat);
+}
+
+function quantizeToGrid(value: number, stepGridQuantum = DEFAULT_STEP_GRID_QUANTUM): number {
+  return Math.round(value / stepGridQuantum) * stepGridQuantum;
 }
 
 function sameContainer(a: PadLoopContainerRef, b: PadLoopContainerRef): boolean {
@@ -416,7 +424,10 @@ type RootInsertionPlan = {
   gap: RootPauseGap | null;
 };
 
-function normalizePauseSequence(sequence: PadLoopPatternItem[]): PadLoopPatternItem[] {
+function normalizePauseSequence(
+  sequence: PadLoopPatternItem[],
+  stepGridQuantum = DEFAULT_STEP_GRID_QUANTUM
+): PadLoopPatternItem[] {
   const normalized: PadLoopPatternItem[] = [];
   let pendingPauseSteps = 0;
 
@@ -424,13 +435,13 @@ function normalizePauseSequence(sequence: PadLoopPatternItem[]): PadLoopPatternI
     if (pendingPauseSteps <= 0) {
       return;
     }
-    normalized.push(...pauseTokensForGap(pendingPauseSteps));
+    normalized.push(...pauseTokensForGap(pendingPauseSteps, stepGridQuantum));
     pendingPauseSteps = 0;
   };
 
   for (const item of sequence) {
     if (item.type === "pause") {
-      pendingPauseSteps += normalizeQuantizedStepCount(item.stepCount);
+      pendingPauseSteps += normalizeQuantizedStepCount(item.lengthBeats * stepGridQuantum, stepGridQuantum);
       continue;
     }
     flushPause();
@@ -473,10 +484,11 @@ function buildRootPauseGaps(allTokens: ArrangerTimelineToken[]): RootPauseGap[] 
 function planRootInsertion(
   allTokens: ArrangerTimelineToken[],
   blockStepCount: number,
-  targetStartStep: number
+  targetStartStep: number,
+  stepGridQuantum = DEFAULT_STEP_GRID_QUANTUM
 ): RootInsertionPlan {
-  const normalizedBlockStepCount = Math.max(STEP_GRID_QUANTUM, quantizeToGrid(blockStepCount));
-  const visualTargetStartStep = Math.max(0, quantizeToGrid(targetStartStep));
+  const normalizedBlockStepCount = Math.max(stepGridQuantum, quantizeToGrid(blockStepCount, stepGridQuantum));
+  const visualTargetStartStep = Math.max(0, quantizeToGrid(targetStartStep, stepGridQuantum));
   const totalSteps = allTokens[allTokens.length - 1]?.endStep ?? 0;
   const gap =
     buildRootPauseGaps(allTokens).find(
@@ -506,7 +518,8 @@ function materializeRootInsertionSequence(
   sequence: PadLoopPatternItem[],
   items: PadLoopPatternItem[],
   plan: RootInsertionPlan,
-  countSteps: (item: PadLoopPatternItem) => number
+  countSteps: (item: PadLoopPatternItem) => number,
+  stepGridQuantum = DEFAULT_STEP_GRID_QUANTUM
 ): PadLoopPatternItem[] {
   const normalizedItems = items.map(clonePatternItem);
   const blockStepCount = normalizedItems.reduce((sum, item) => sum + countSteps(item), 0);
@@ -519,11 +532,11 @@ function materializeRootInsertionSequence(
         const beforeSteps = plan.targetStartStep - plan.gap.startStep;
         const afterSteps = plan.gap.endStep - (plan.targetStartStep + blockStepCount);
         if (beforeSteps > 0) {
-          nextSequence.push(...pauseTokensForGap(beforeSteps));
+          nextSequence.push(...pauseTokensForGap(beforeSteps, stepGridQuantum));
         }
         nextSequence.push(...normalizedItems.map(clonePatternItem));
         if (afterSteps > 0) {
-          nextSequence.push(...pauseTokensForGap(afterSteps));
+          nextSequence.push(...pauseTokensForGap(afterSteps, stepGridQuantum));
         }
         inserted = true;
         index = plan.gap.endSourceIndex;
@@ -537,19 +550,20 @@ function materializeRootInsertionSequence(
 
   if (!inserted) {
     if (plan.targetStartStep > plan.totalSteps) {
-      nextSequence.push(...pauseTokensForGap(plan.targetStartStep - plan.totalSteps));
+      nextSequence.push(...pauseTokensForGap(plan.targetStartStep - plan.totalSteps, stepGridQuantum));
     }
     nextSequence.push(...normalizedItems.map(clonePatternItem));
   }
 
-  return normalizePauseSequence(nextSequence);
+  return normalizePauseSequence(nextSequence, stepGridQuantum);
 }
 
 function planRootBlockMove(
   allTokens: ArrangerTimelineToken[],
   blockSourceStartIndex: number,
   blockSourceEndIndex: number,
-  targetStartStep: number
+  targetStartStep: number,
+  stepGridQuantum = DEFAULT_STEP_GRID_QUANTUM
 ): RootMovePlan | null {
   if (allTokens.length === 0) {
     return null;
@@ -580,7 +594,7 @@ function planRootBlockMove(
   const sourceItems = sortedTokens.map((token) => clonePatternItem(token.item));
   const beforeSourceTokens = sortedTokens.filter((token) => token.sourceIndex < blockStart);
   const afterSourceTokens = sortedTokens.filter((token) => token.sourceIndex > blockEnd);
-  const sourceGapItems = pauseTokensForGap(blockStepCount);
+  const sourceGapItems = pauseTokensForGap(blockStepCount, stepGridQuantum);
 
   const remainingSourceItems: Array<{ item: PadLoopPatternItem; stepCount: number }> = [
     ...beforeSourceTokens.map((token) => ({
@@ -588,10 +602,10 @@ function planRootBlockMove(
       stepCount: token.stepCount
     })),
     ...sourceGapItems.map((item) => {
-      const stepCount = item.type === "pause" ? item.stepCount : STEP_GRID_QUANTUM;
+      const stepCount = item.type === "pause" ? item.lengthBeats * stepGridQuantum : stepGridQuantum;
       return {
         item: clonePatternItem(item),
-        stepCount: normalizeQuantizedStepCount(stepCount)
+        stepCount: normalizeQuantizedStepCount(stepCount, stepGridQuantum)
       };
     }),
     ...afterSourceTokens.map((token) => ({
@@ -623,7 +637,7 @@ function planRootBlockMove(
     };
   });
 
-  const visualTargetStartStep = Math.max(0, quantizeToGrid(targetStartStep));
+  const visualTargetStartStep = Math.max(0, quantizeToGrid(targetStartStep, stepGridQuantum));
   let normalizedTargetStartStep = visualTargetStartStep;
   let mode: RootMovePlan["mode"] = "gap";
   let swapTargetSourceIndex: number | null = null;
@@ -702,7 +716,10 @@ function planRootBlockMove(
   };
 }
 
-function materializeRootMoveSequence(plan: RootMovePlan): PadLoopPatternItem[] | null {
+function materializeRootMoveSequence(
+  plan: RootMovePlan,
+  stepGridQuantum = DEFAULT_STEP_GRID_QUANTUM
+): PadLoopPatternItem[] | null {
   if (!plan.valid) {
     return null;
   }
@@ -726,7 +743,7 @@ function materializeRootMoveSequence(plan: RootMovePlan): PadLoopPatternItem[] |
     }
     nextSequence[plan.blockSourceStartIndex] = clonePatternItem(targetItem);
     nextSequence[plan.swapTargetSourceIndex] = clonePatternItem(sourceItem);
-    return normalizePauseSequence(nextSequence);
+    return normalizePauseSequence(nextSequence, stepGridQuantum);
   }
 
   const nextSequence: PadLoopPatternItem[] = [];
@@ -756,18 +773,18 @@ function materializeRootMoveSequence(plan: RootMovePlan): PadLoopPatternItem[] |
         const beforeSteps = plan.normalizedTargetStartStep - token.startStep;
         const afterSteps = token.endStep - (plan.normalizedTargetStartStep + plan.blockStepCount);
         if (beforeSteps > 0) {
-          nextSequence.push(...pauseTokensForGap(beforeSteps));
+          nextSequence.push(...pauseTokensForGap(beforeSteps, stepGridQuantum));
         }
         insertBlock();
         if (afterSteps > 0) {
-          nextSequence.push(...pauseTokensForGap(afterSteps));
+          nextSequence.push(...pauseTokensForGap(afterSteps, stepGridQuantum));
         }
         continue;
       }
     }
     if (token.item.type === "pause") {
       // `token.stepCount` can represent merged pause spans; re-emit from the actual span length.
-      nextSequence.push(...pauseTokensForGap(token.stepCount));
+      nextSequence.push(...pauseTokensForGap(token.stepCount, stepGridQuantum));
     } else {
       nextSequence.push(clonePatternItem(token.item));
     }
@@ -778,12 +795,12 @@ function materializeRootMoveSequence(plan: RootMovePlan): PadLoopPatternItem[] |
       return null;
     }
     if (plan.normalizedTargetStartStep > plan.remainingTotalSteps) {
-      nextSequence.push(...pauseTokensForGap(plan.normalizedTargetStartStep - plan.remainingTotalSteps));
+      nextSequence.push(...pauseTokensForGap(plan.normalizedTargetStartStep - plan.remainingTotalSteps, stepGridQuantum));
     }
     insertBlock();
   }
 
-  return normalizePauseSequence(nextSequence);
+  return normalizePauseSequence(nextSequence, stepGridQuantum);
 }
 
 function isAdditiveSelection(event: ReactMouseEvent): boolean {
@@ -826,6 +843,7 @@ export function MultitrackArranger({
   const [rootDragPreview, setRootDragPreview] = useState<RootDragPreview | null>(null);
   const dragStateRef = useRef<RootDragState | null>(null);
   const selectionDragRef = useRef<SelectionDragState | null>(null);
+  const stepGridQuantum = sequencerTransportStepsPerBeat(sequencer.timing);
 
   const patchNameById = useMemo(() => {
     const map = new Map<string, string>();
@@ -917,42 +935,42 @@ export function MultitrackArranger({
   const tokenStepCounter = useCallback((track: ArrangerTrack, pattern: PadLoopPatternState = track.padLoopPattern) => {
     const groupById = new Map(pattern.groups.map((group) => [group.id, group.sequence]));
     const superById = new Map(pattern.superGroups.map((group) => [group.id, group.sequence]));
-    const fallbackPadStepCount = normalizeQuantizedStepCount(track.defaultPadStepCount);
+    const fallbackPadStepCount = normalizeQuantizedStepCount(track.defaultPadStepCount, stepGridQuantum);
 
     const countFor = (item: PadLoopPatternItem, path: string[]): number => {
       if (item.type === "pad") {
         const raw = track.padStepCounts[item.padIndex] ?? fallbackPadStepCount;
-        return normalizeQuantizedStepCount(raw);
+        return normalizeQuantizedStepCount(raw, stepGridQuantum);
       }
       if (item.type === "pause") {
-        return normalizeQuantizedStepCount(item.stepCount);
+        return normalizeQuantizedStepCount(item.lengthBeats * stepGridQuantum, stepGridQuantum);
       }
       if (item.type === "group") {
         const pathKey = `group:${item.groupId}`;
         if (path.includes(pathKey)) {
-          return STEP_GRID_QUANTUM;
+          return stepGridQuantum;
         }
         const sequence = groupById.get(item.groupId) ?? [];
         if (sequence.length === 0) {
-          return STEP_GRID_QUANTUM;
+          return stepGridQuantum;
         }
         const total = sequence.reduce((sum, nested) => sum + countFor(nested, [...path, pathKey]), 0);
-        return normalizeQuantizedStepCount(total);
+        return normalizeQuantizedStepCount(total, stepGridQuantum);
       }
       const pathKey = `super:${item.superGroupId}`;
       if (path.includes(pathKey)) {
-        return STEP_GRID_QUANTUM;
+        return stepGridQuantum;
       }
       const sequence = superById.get(item.superGroupId) ?? [];
       if (sequence.length === 0) {
-        return STEP_GRID_QUANTUM;
+        return stepGridQuantum;
       }
       const total = sequence.reduce((sum, nested) => sum + countFor(nested, [...path, pathKey]), 0);
-      return normalizeQuantizedStepCount(total);
+      return normalizeQuantizedStepCount(total, stepGridQuantum);
     };
 
     return (item: PadLoopPatternItem): number => countFor(item, []);
-  }, []);
+  }, [stepGridQuantum]);
 
   const buildTimeline = useCallback(
     (
@@ -1016,20 +1034,28 @@ export function MultitrackArranger({
 
   const maxRootSteps = useMemo(() => {
     return arrangerTracks.reduce((max, track) => {
-      const total = rootTimelines[track.key]?.totalSteps ?? STEP_GRID_QUANTUM;
+      const total = rootTimelines[track.key]?.totalSteps ?? stepGridQuantum;
       return Math.max(max, total);
-    }, Math.max(sequencer.stepCount, STEP_GRID_QUANTUM));
-  }, [arrangerTracks, rootTimelines, sequencer.stepCount]);
+    }, Math.max(sequencer.stepCount, stepGridQuantum));
+  }, [arrangerTracks, rootTimelines, sequencer.stepCount, stepGridQuantum]);
 
   const absoluteTransportStep = useMemo(() => {
     const cycle = Math.max(0, Math.floor(sequencer.cycle));
-    const stepCount = Math.max(STEP_GRID_QUANTUM, Math.floor(sequencer.stepCount));
+    const stepCount = Math.max(stepGridQuantum, Math.floor(sequencer.stepCount));
     const stepInCycle = Math.max(0, Math.floor(sequencer.playhead));
     return cycle * stepCount + stepInCycle;
-  }, [sequencer.cycle, sequencer.playhead, sequencer.stepCount]);
+  }, [sequencer.cycle, sequencer.playhead, sequencer.stepCount, stepGridQuantum]);
+  const wrapTransportDisplay =
+    !sequencer.arrangerLoopSelection &&
+    (sequencer.tracks.some(trackRunsContinuously) ||
+      sequencer.drummerTracks.some(trackRunsContinuously) ||
+      sequencer.controllerSequencers.some(trackRunsContinuously));
   const displayedTransportStep = useMemo(
-    () => Math.max(0, Math.min(absoluteTransportStep, maxRootSteps)),
-    [absoluteTransportStep, maxRootSteps]
+    () =>
+      wrapTransportDisplay
+        ? absoluteTransportStep % Math.max(stepGridQuantum, maxRootSteps)
+        : Math.max(0, Math.min(absoluteTransportStep, maxRootSteps)),
+    [absoluteTransportStep, maxRootSteps, stepGridQuantum, wrapTransportDisplay]
   );
   const loopSelection = useMemo(() => {
     if (!sequencer.arrangerLoopSelection) {
@@ -1037,17 +1063,17 @@ export function MultitrackArranger({
     }
     const boundedStart = Math.max(
       0,
-      Math.min(sequencer.arrangerLoopSelection.startStep, Math.max(0, maxRootSteps - STEP_GRID_QUANTUM))
+      Math.min(sequencer.arrangerLoopSelection.startStep, Math.max(0, maxRootSteps - stepGridQuantum))
     );
     const boundedEnd = Math.max(
-      boundedStart + STEP_GRID_QUANTUM,
+      boundedStart + stepGridQuantum,
       Math.min(sequencer.arrangerLoopSelection.endStep, maxRootSteps)
     );
     return {
       startStep: boundedStart,
       endStep: boundedEnd
     };
-  }, [maxRootSteps, sequencer.arrangerLoopSelection]);
+  }, [maxRootSteps, sequencer.arrangerLoopSelection, stepGridQuantum]);
 
   const stepFromClientX = useCallback(
     (clientX: number): number => {
@@ -1058,19 +1084,19 @@ export function MultitrackArranger({
       const rect = ruler.getBoundingClientRect();
       const localX = clientX - rect.left + timelineScrollLeft;
       const rawStep = Math.floor(localX / Math.max(ABSOLUTE_MIN_STEP_PIXEL_WIDTH, stepPixelWidth));
-      const quantizedStep = Math.floor(rawStep / STEP_GRID_QUANTUM) * STEP_GRID_QUANTUM;
-      return Math.max(0, Math.min(Math.max(0, maxRootSteps - STEP_GRID_QUANTUM), quantizedStep));
+      const quantizedStep = Math.floor(rawStep / stepGridQuantum) * stepGridQuantum;
+      return Math.max(0, Math.min(Math.max(0, maxRootSteps - stepGridQuantum), quantizedStep));
     },
-    [maxRootSteps, stepPixelWidth, timelineScrollLeft]
+    [maxRootSteps, stepGridQuantum, stepPixelWidth, timelineScrollLeft]
   );
 
   const commitSelection = useCallback(
     (anchorStep: number, currentStep: number) => {
       const startStep = Math.max(0, Math.min(anchorStep, currentStep));
-      const endStep = Math.min(maxRootSteps, Math.max(anchorStep, currentStep) + STEP_GRID_QUANTUM);
+      const endStep = Math.min(maxRootSteps, Math.max(anchorStep, currentStep) + stepGridQuantum);
       onArrangerLoopSelectionChange({ startStep, endStep });
     },
-    [maxRootSteps, onArrangerLoopSelectionChange]
+    [maxRootSteps, onArrangerLoopSelectionChange, stepGridQuantum]
   );
 
   const handleSelectionPointerDown = useCallback(
@@ -1273,8 +1299,14 @@ export function MultitrackArranger({
           cursor += stepCount;
         }
         const blockStepCount = items.reduce((sum, item) => sum + countSteps(item), 0);
-        const plan = planRootInsertion(allTokens, blockStepCount, target.step);
-        const nextRootSequence = materializeRootInsertionSequence(sequence, items, plan, countSteps);
+        const plan = planRootInsertion(allTokens, blockStepCount, target.step, stepGridQuantum);
+        const nextRootSequence = materializeRootInsertionSequence(
+          sequence,
+          items,
+          plan,
+          countSteps,
+          stepGridQuantum
+        );
         nextPattern = setPadLoopContainerSequence(basePattern, { kind: "root" }, nextRootSequence);
       } else if (target.kind === "sequence") {
         nextPattern = insertPadLoopItemsIntoContainer(basePattern, container, target.index, items);
@@ -1286,7 +1318,7 @@ export function MultitrackArranger({
       commitTrackPattern(track, nextPattern);
       return true;
     },
-    [commitTrackPattern, tokenStepCounter]
+    [commitTrackPattern, stepGridQuantum, tokenStepCounter]
   );
 
   const pasteClipboardAtTarget = useCallback(
@@ -1314,13 +1346,15 @@ export function MultitrackArranger({
   );
 
   const appendPauseToken = useCallback(
-    (track: ArrangerTrack, container: PadLoopContainerRef, stepCount: number) => {
-      const normalized = PAD_LOOP_PAUSE_STEP_OPTIONS.includes(stepCount as (typeof PAD_LOOP_PAUSE_STEP_OPTIONS)[number])
-        ? (stepCount as (typeof PAD_LOOP_PAUSE_STEP_OPTIONS)[number])
-        : STEP_GRID_QUANTUM;
+    (track: ArrangerTrack, container: PadLoopContainerRef, lengthBeats: number) => {
+      const normalized = PAD_LOOP_PAUSE_STEP_OPTIONS.includes(
+        lengthBeats as (typeof PAD_LOOP_PAUSE_STEP_OPTIONS)[number]
+      )
+        ? (lengthBeats as (typeof PAD_LOOP_PAUSE_STEP_OPTIONS)[number])
+        : 1;
       const nextPattern = insertPadLoopItem(track.padLoopPattern, container, Number.MAX_SAFE_INTEGER, {
         type: "pause",
-        stepCount: normalized
+        lengthBeats: normalized
       });
       if (nextPattern !== track.padLoopPattern) {
         commitTrackPattern(track, nextPattern);
@@ -1364,7 +1398,13 @@ export function MultitrackArranger({
         }
       }
 
-      const plan = planRootBlockMove(allTokens, blockSourceStartIndex, blockSourceEndIndex, token.startStep);
+      const plan = planRootBlockMove(
+        allTokens,
+        blockSourceStartIndex,
+        blockSourceEndIndex,
+        token.startStep,
+        stepGridQuantum
+      );
       if (!plan) {
         return;
       }
@@ -1393,7 +1433,7 @@ export function MultitrackArranger({
         event.currentTarget.setPointerCapture(event.pointerId);
       }
     },
-    [getSelection]
+    [getSelection, stepGridQuantum]
   );
 
   const commitRootDrag = useCallback(
@@ -1407,12 +1447,13 @@ export function MultitrackArranger({
         timeline.allTokens,
         dragState.blockSourceStartIndex,
         dragState.blockSourceEndIndex,
-        visualTargetStartStep
+        visualTargetStartStep,
+        stepGridQuantum
       );
       if (!plan || !plan.valid) {
         return;
       }
-      const nextRootSequence = materializeRootMoveSequence(plan);
+      const nextRootSequence = materializeRootMoveSequence(plan, stepGridQuantum);
       if (!nextRootSequence) {
         return;
       }
@@ -1430,7 +1471,7 @@ export function MultitrackArranger({
         setSelection(track.id, { kind: "root" }, nextSelection);
       }
     },
-    [arrangerTracks, buildTimeline, commitTrackPattern, setSelection, tokenStepCounter]
+    [arrangerTracks, buildTimeline, commitTrackPattern, setSelection, stepGridQuantum, tokenStepCounter]
   );
 
   const onRootDragMove = useCallback(
@@ -1440,12 +1481,13 @@ export function MultitrackArranger({
         return;
       }
       const deltaSteps = Math.round((event.clientX - drag.startClientX) / stepPixelWidth);
-      const proposedStart = Math.max(0, quantizeToGrid(drag.originStartStep + deltaSteps));
+      const proposedStart = Math.max(0, quantizeToGrid(drag.originStartStep + deltaSteps, stepGridQuantum));
       const plan = planRootBlockMove(
         drag.allTokens,
         drag.blockSourceStartIndex,
         drag.blockSourceEndIndex,
-        proposedStart
+        proposedStart,
+        stepGridQuantum
       );
       const nextStartStep = plan?.normalizedTargetStartStep ?? proposedStart;
       const valid = plan?.valid ?? false;
@@ -1462,7 +1504,7 @@ export function MultitrackArranger({
         valid
       });
     },
-    [stepPixelWidth]
+    [stepGridQuantum, stepPixelWidth]
   );
 
   const onRootDragEnd = useCallback(
@@ -1681,7 +1723,7 @@ export function MultitrackArranger({
             sequence: [],
             allTokens: [],
             visibleTokens: [],
-            totalSteps: STEP_GRID_QUANTUM
+            totalSteps: stepGridQuantum
           };
           const openContainer = openContainerByTrack[track.id];
           const rowSelection = getSelection(track.id, { kind: "root" });
@@ -1741,8 +1783,8 @@ export function MultitrackArranger({
                       transform: `translateX(${-timelineScrollLeft}px)`
                     }}
                   >
-                    {Array.from({ length: Math.floor(maxRootSteps / STEP_GRID_QUANTUM) + 1 }, (_, gridIndex) => {
-                      const left = gridIndex * STEP_GRID_QUANTUM * stepPixelWidth;
+                    {Array.from({ length: Math.floor(maxRootSteps / stepGridQuantum) + 1 }, (_, gridIndex) => {
+                      const left = gridIndex * stepGridQuantum * stepPixelWidth;
                       return (
                         <span
                           key={`${track.id}-grid-${gridIndex}`}
@@ -1928,7 +1970,7 @@ export function MultitrackArranger({
               transform: `translateX(${-timelineScrollLeft}px)`,
               backgroundImage:
                 "repeating-linear-gradient(to right, rgba(51, 65, 85, 0.7) 0, rgba(51, 65, 85, 0.7) 1px, transparent 1px, transparent 100%)",
-              backgroundSize: `${STEP_GRID_QUANTUM * stepPixelWidth}px 100%`
+              backgroundSize: `${stepGridQuantum * stepPixelWidth}px 100%`
             }}
           >
             {loopSelection ? (

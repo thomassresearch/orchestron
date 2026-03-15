@@ -126,8 +126,21 @@ export interface SequencerStepState {
   velocity: number;
 }
 
-export type DrummerSequencerStepCount = 4 | 8 | 16 | 32;
-export type PadLoopPauseStepCount = 4 | 8 | 16 | 32;
+export type SequencerMeterNumerator = 2 | 3 | 4 | 5 | 6 | 7;
+export type SequencerMeterDenominator = 4 | 8;
+export type SequencerStepsPerBeat = 2 | 4 | 8;
+export type SequencerPadLengthBeats = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+export type ControllerSequencerPadLengthBeats = SequencerPadLengthBeats | 16;
+export type PadLoopPauseBeatCount = 1 | 2 | 4 | 8 | 16;
+export type DrummerSequencerStepCount = number;
+export type PadLoopPauseStepCount = PadLoopPauseBeatCount;
+
+export interface SequencerTimingConfig {
+  tempoBPM: number;
+  meterNumerator: SequencerMeterNumerator;
+  meterDenominator: SequencerMeterDenominator;
+  stepsPerBeat: SequencerStepsPerBeat;
+}
 
 export interface DrummerSequencerCellState {
   active: boolean;
@@ -145,12 +158,14 @@ export interface DrummerSequencerPadRowState {
 }
 
 export interface DrummerSequencerPadState {
-  stepCount: DrummerSequencerStepCount;
+  lengthBeats: SequencerPadLengthBeats;
+  stepCount: number;
   rows: DrummerSequencerPadRowState[];
 }
 
 export interface SequencerPadState {
-  stepCount: 4 | 8 | 16 | 32;
+  lengthBeats: SequencerPadLengthBeats;
+  stepCount: number;
   steps: SequencerStepState[];
   scaleRoot: SequencerScaleRoot;
   scaleType: SequencerScaleType;
@@ -164,7 +179,7 @@ export type PadLoopPatternItem =
     }
   | {
       type: "pause";
-      stepCount: PadLoopPauseStepCount;
+      lengthBeats: PadLoopPauseBeatCount;
     }
   | {
       type: "group";
@@ -195,7 +210,9 @@ export interface SequencerTrackState {
   id: string;
   name: string;
   midiChannel: number;
-  stepCount: 4 | 8 | 16 | 32;
+  timing: SequencerTimingConfig;
+  lengthBeats: SequencerPadLengthBeats;
+  stepCount: number;
   syncToTrackId: string | null;
   scaleRoot: SequencerScaleRoot;
   scaleType: SequencerScaleType;
@@ -218,7 +235,9 @@ export interface DrummerSequencerTrackState {
   id: string;
   name: string;
   midiChannel: number;
-  stepCount: DrummerSequencerStepCount;
+  timing: SequencerTimingConfig;
+  lengthBeats: SequencerPadLengthBeats;
+  stepCount: number;
   activePad: number;
   queuedPad: number | null;
   padLoopPosition: number | null;
@@ -259,7 +278,8 @@ export interface ControllerSequencerKeypoint {
 }
 
 export interface ControllerSequencerPadState {
-  stepCount: 8 | 16 | 32 | 64;
+  lengthBeats: ControllerSequencerPadLengthBeats;
+  stepCount: number;
   keypoints: ControllerSequencerKeypoint[];
 }
 
@@ -267,7 +287,9 @@ export interface ControllerSequencerState {
   id: string;
   name: string;
   controllerNumber: number;
-  stepCount: 8 | 16 | 32 | 64;
+  timing: SequencerTimingConfig;
+  lengthBeats: ControllerSequencerPadLengthBeats;
+  stepCount: number;
   activePad: number;
   queuedPad: number | null;
   padLoopPosition: number | null;
@@ -288,8 +310,8 @@ export interface ArrangerLoopSelection {
 
 export interface SequencerState {
   isPlaying: boolean;
-  bpm: number;
-  stepCount: 16 | 32;
+  timing: SequencerTimingConfig;
+  stepCount: number;
   playhead: number;
   cycle: number;
   arrangerLoopSelection: ArrangerLoopSelection | null;
@@ -302,7 +324,7 @@ export interface SequencerState {
 
 export interface SequencerRuntimeState {
   isPlaying: boolean;
-  stepCount: 16 | 32;
+  stepCount: number;
   playhead: number;
   cycle: number;
   trackLocalStepById: Record<string, number | null>;
@@ -323,7 +345,7 @@ export interface SequencerInstrumentBinding {
 }
 
 export interface SequencerConfigSnapshot {
-  version: 1 | 2 | 3 | 4 | 5;
+  version: 1 | 2 | 3 | 4 | 5 | 6;
   instruments: Array<{
     patchId: string;
     patchName?: string;
@@ -338,14 +360,19 @@ export interface SequencerConfigSnapshot {
     graph: PatchGraph;
   }>;
   sequencer: {
-    bpm: number;
-    stepCount: 16 | 32;
+    timing?: SequencerTimingConfig;
+    tempoBPM?: number;
+    meterNumerator?: SequencerMeterNumerator;
+    meterDenominator?: SequencerMeterDenominator;
+    stepsPerBeat?: SequencerStepsPerBeat;
+    stepCount?: number;
     arrangerLoopSelection?: ArrangerLoopSelection | null;
     tracks: Array<{
       id: string;
       name: string;
       midiChannel: number;
-      stepCount: 4 | 8 | 16 | 32;
+      lengthBeats?: SequencerPadLengthBeats;
+      stepCount?: number;
       syncToTrackId: string | null;
       scaleRoot: SequencerScaleRoot;
       scaleType: SequencerScaleType;
@@ -364,7 +391,8 @@ export interface SequencerConfigSnapshot {
       id: string;
       name: string;
       midiChannel: number;
-      stepCount: DrummerSequencerStepCount;
+      lengthBeats?: SequencerPadLengthBeats;
+      stepCount?: number;
       activePad: number;
       queuedPad: number | null;
       padLoopEnabled: boolean;
@@ -397,7 +425,8 @@ export interface SequencerConfigSnapshot {
       id: string;
       name: string;
       controllerNumber: number;
-      stepCount: 8 | 16 | 32 | 64;
+      lengthBeats?: ControllerSequencerPadLengthBeats;
+      stepCount?: number;
       activePad: number;
       queuedPad: number | null;
       padLoopEnabled: boolean;
@@ -489,16 +518,24 @@ export interface SessionSequencerStepConfig {
   velocity?: number;
 }
 
+export interface SessionSequencerTimingConfig {
+  tempo_bpm: number;
+  meter_numerator: SequencerMeterNumerator;
+  meter_denominator: SequencerMeterDenominator;
+  steps_per_beat: SequencerStepsPerBeat;
+}
+
 export interface SessionSequencerPadConfig {
   pad_index: number;
-  step_count?: 4 | 8 | 16 | 32;
+  length_beats?: SequencerPadLengthBeats | ControllerSequencerPadLengthBeats;
   steps: Array<number | Array<number> | null | SessionSequencerStepConfig>;
 }
 
 export interface SessionSequencerTrackConfig {
   track_id: string;
   midi_channel: number;
-  step_count: 4 | 8 | 16 | 32;
+  timing: SessionSequencerTimingConfig;
+  length_beats?: SequencerPadLengthBeats;
   velocity?: number;
   gate_ratio?: number;
   sync_to_track_id?: string | null;
@@ -513,8 +550,8 @@ export interface SessionSequencerTrackConfig {
 }
 
 export interface SessionSequencerConfigRequest {
-  bpm: number;
-  step_count: 16 | 32;
+  timing: SessionSequencerTimingConfig;
+  step_count: number;
   playback_start_step?: number;
   playback_end_step?: number;
   playback_loop?: boolean;
@@ -533,7 +570,9 @@ export interface SessionSequencerQueuePadRequest {
 export interface SessionSequencerTrackStatus {
   track_id: string;
   midi_channel: number;
-  step_count: 4 | 8 | 16 | 32;
+  timing: SessionSequencerTimingConfig;
+  length_beats: number;
+  step_count: number;
   local_step: number;
   active_pad: number;
   queued_pad: number | null;
@@ -546,8 +585,8 @@ export interface SessionSequencerTrackStatus {
 export interface SessionSequencerStatus {
   session_id: string;
   running: boolean;
-  bpm: number;
-  step_count: 16 | 32;
+  timing: SessionSequencerTimingConfig;
+  step_count: number;
   current_step: number;
   cycle: number;
   tracks: SessionSequencerTrackStatus[];

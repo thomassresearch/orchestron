@@ -30,12 +30,16 @@ import {
   buildControllerCurvePath,
   buildSequencerChordOptions,
   buildSequencerNoteOptions,
-  CONTROLLER_SEQUENCER_STEP_OPTIONS,
+  controllerSequencerPadLengthBeatOptions,
   parseSequencerScaleValue,
   sampleControllerCurveValue,
   scaleDegreeForNote,
   SEQUENCER_MODE_OPTIONS,
-  SEQUENCER_SCALE_OPTIONS
+  SEQUENCER_SCALE_OPTIONS,
+  sequencerPadLengthBeatOptions,
+  sequencerTransportStepCount,
+  sequencerTransportStepsPerBeat,
+  sequencerTransportStepsPerLocalStep
 } from "../lib/sequencer";
 import { HelpIconButton } from "./HelpIconButton";
 import { MultitrackArranger } from "./MultitrackArranger";
@@ -169,6 +173,9 @@ type SequencerUiCopy = {
   addControllerSequencer: string;
   globalSequencerClock: string;
   bpm: string;
+  meter: string;
+  grid: string;
+  beats: string;
   midiChannel: string;
   velocity: string;
   scale: string;
@@ -311,15 +318,15 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     multitrackArrangerTitle: "Multitrack Arranger",
     multitrackArrangerDeviceSummary: "1 device (auto)",
     multitrackArrangerInstrumentColumn: "Instrument",
-    multitrackArrangerTimelineColumn: "Pattern Timeline (4-step grid)",
+    multitrackArrangerTimelineColumn: "Pattern Timeline (beat grid)",
     multitrackArrangerSelectionRuler: "Loop Range",
-    multitrackArrangerSelectionHint: "Drag to select a loop range in 4-step blocks",
+    multitrackArrangerSelectionHint: "Drag to select a loop range in beat-sized blocks",
     multitrackArrangerClearSelection: "Click the highlighted range to clear the loop",
     multitrackArrangerDragToken: "Drag token",
-    multitrackArrangerTransportRewind: "Rewind 4 steps",
+    multitrackArrangerTransportRewind: "Rewind 1 beat",
     multitrackArrangerTransportStop: "Stop",
     multitrackArrangerTransportPlay: "Play",
-    multitrackArrangerTransportFastForward: "Fast forward 4 steps",
+    multitrackArrangerTransportFastForward: "Fast forward 1 beat",
     multitrackArrangerContextMenuAddPad: "Add pad",
     multitrackArrangerContextMenuAddGroup: "Add group",
     multitrackArrangerContextMenuAddSuperGroup: "Add super-group",
@@ -332,7 +339,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     multitrackArrangerContextMenuNoGroups: "No groups available",
     multitrackArrangerContextMenuNoSuperGroups: "No super-groups available",
     multitrackArrangerContextMenuPasteDisabled: "Copy pads/groups/super-groups first",
-    multitrackArrangerContextMenuInsertHint: "Insert into a pause gap at the clicked step, or append at the end.",
+    multitrackArrangerContextMenuInsertHint: "Insert into a pause gap at the clicked beat, or append at the end.",
     zoomOut: "Zoom -",
     zoomIn: "Zoom +",
     sequencers: "Sequencers",
@@ -340,6 +347,9 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     addControllerSequencer: "Add Controller Sequencer",
     globalSequencerClock: "Global Sequencer Clock",
     bpm: "BPM",
+    meter: "Meter",
+    grid: "Grid",
+    beats: "Beats",
     midiChannel: "MIDI Channel",
     velocity: "Velocity",
     scale: "Scale",
@@ -435,15 +445,15 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     multitrackArrangerTitle: "Multitrack-Arranger",
     multitrackArrangerDeviceSummary: "1 Geraet (auto)",
     multitrackArrangerInstrumentColumn: "Instrument",
-    multitrackArrangerTimelineColumn: "Pattern-Timeline (4-Step-Raster)",
+    multitrackArrangerTimelineColumn: "Pattern-Timeline (Beat-Raster)",
     multitrackArrangerSelectionRuler: "Loop-Bereich",
-    multitrackArrangerSelectionHint: "Ziehen, um einen Loop-Bereich in 4-Step-Bloecken zu markieren",
+    multitrackArrangerSelectionHint: "Ziehen, um einen Loop-Bereich in Beat-Bloecken zu markieren",
     multitrackArrangerClearSelection: "Auf den markierten Bereich klicken, um den Loop zu loeschen",
     multitrackArrangerDragToken: "Token ziehen",
-    multitrackArrangerTransportRewind: "4 Schritte zurueckspulen",
+    multitrackArrangerTransportRewind: "1 Beat zurueckspulen",
     multitrackArrangerTransportStop: "Stopp",
     multitrackArrangerTransportPlay: "Abspielen",
-    multitrackArrangerTransportFastForward: "4 Schritte vorspulen",
+    multitrackArrangerTransportFastForward: "1 Beat vorspulen",
     multitrackArrangerContextMenuAddPad: "Pad hinzufuegen",
     multitrackArrangerContextMenuAddGroup: "Gruppe hinzufuegen",
     multitrackArrangerContextMenuAddSuperGroup: "Super-Gruppe hinzufuegen",
@@ -457,7 +467,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     multitrackArrangerContextMenuNoSuperGroups: "Keine Super-Gruppen verfuegbar",
     multitrackArrangerContextMenuPasteDisabled: "Zuerst Pads/Gruppen/Super-Gruppen kopieren",
     multitrackArrangerContextMenuInsertHint:
-      "In eine passende Pause an der Klickposition einfuegen oder am Ende anhaengen.",
+      "In eine passende Pause an der angeklickten Beat-Position einfuegen oder am Ende anhaengen.",
     zoomOut: "Zoom -",
     zoomIn: "Zoom +",
     sequencers: "Sequencer",
@@ -465,6 +475,9 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     addControllerSequencer: "Controller-Sequencer hinzufuegen",
     globalSequencerClock: "Globale Sequencer-Clock",
     bpm: "BPM",
+    meter: "Taktart",
+    grid: "Raster",
+    beats: "Schlaege",
     midiChannel: "MIDI-Kanal",
     velocity: "Velocity",
     scale: "Skala",
@@ -560,15 +573,15 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     multitrackArrangerTitle: "Arrangeur multipiste",
     multitrackArrangerDeviceSummary: "1 appareil (auto)",
     multitrackArrangerInstrumentColumn: "Instrument",
-    multitrackArrangerTimelineColumn: "Timeline de pattern (grille 4 pas)",
+    multitrackArrangerTimelineColumn: "Timeline de pattern (grille temps)",
     multitrackArrangerSelectionRuler: "Plage de boucle",
-    multitrackArrangerSelectionHint: "Glissez pour selectionner une plage de boucle en blocs de 4 pas",
+    multitrackArrangerSelectionHint: "Glissez pour selectionner une plage de boucle en blocs d'un temps",
     multitrackArrangerClearSelection: "Cliquez sur la plage surlignee pour effacer la boucle",
     multitrackArrangerDragToken: "Glisser le token",
-    multitrackArrangerTransportRewind: "Reculer de 4 pas",
+    multitrackArrangerTransportRewind: "Reculer d'un temps",
     multitrackArrangerTransportStop: "Arret",
     multitrackArrangerTransportPlay: "Lecture",
-    multitrackArrangerTransportFastForward: "Avancer de 4 pas",
+    multitrackArrangerTransportFastForward: "Avancer d'un temps",
     multitrackArrangerContextMenuAddPad: "Ajouter pad",
     multitrackArrangerContextMenuAddGroup: "Ajouter groupe",
     multitrackArrangerContextMenuAddSuperGroup: "Ajouter super-groupe",
@@ -582,7 +595,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     multitrackArrangerContextMenuNoSuperGroups: "Aucun super-groupe disponible",
     multitrackArrangerContextMenuPasteDisabled: "Copier d'abord des pads/groupes/super-groupes",
     multitrackArrangerContextMenuInsertHint:
-      "Inserer dans une pause assez grande a la position cliquee, sinon a la fin.",
+      "Inserer dans une pause assez grande au temps clique, sinon a la fin.",
     zoomOut: "Zoom -",
     zoomIn: "Zoom +",
     sequencers: "Sequenceurs",
@@ -590,6 +603,9 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     addControllerSequencer: "Ajouter sequenceur controleur",
     globalSequencerClock: "Horloge globale du sequenceur",
     bpm: "BPM",
+    meter: "Mesure",
+    grid: "Grille",
+    beats: "Temps",
     midiChannel: "Canal MIDI",
     velocity: "Velocite",
     scale: "Gamme",
@@ -685,15 +701,15 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     multitrackArrangerTitle: "Arreglador multipista",
     multitrackArrangerDeviceSummary: "1 dispositivo (auto)",
     multitrackArrangerInstrumentColumn: "Instrumento",
-    multitrackArrangerTimelineColumn: "Linea de patrones (rejilla de 4 pasos)",
+    multitrackArrangerTimelineColumn: "Linea de patrones (rejilla por pulso)",
     multitrackArrangerSelectionRuler: "Rango de bucle",
-    multitrackArrangerSelectionHint: "Arrastra para marcar un rango de bucle en bloques de 4 pasos",
+    multitrackArrangerSelectionHint: "Arrastra para marcar un rango de bucle en bloques de un pulso",
     multitrackArrangerClearSelection: "Haz clic en el rango resaltado para borrar el bucle",
     multitrackArrangerDragToken: "Arrastrar token",
-    multitrackArrangerTransportRewind: "Retroceder 4 pasos",
+    multitrackArrangerTransportRewind: "Retroceder 1 pulso",
     multitrackArrangerTransportStop: "Detener",
     multitrackArrangerTransportPlay: "Reproducir",
-    multitrackArrangerTransportFastForward: "Avanzar 4 pasos",
+    multitrackArrangerTransportFastForward: "Avanzar 1 pulso",
     multitrackArrangerContextMenuAddPad: "Agregar pad",
     multitrackArrangerContextMenuAddGroup: "Agregar grupo",
     multitrackArrangerContextMenuAddSuperGroup: "Agregar supergrupo",
@@ -715,6 +731,9 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     addControllerSequencer: "Agregar secuenciador controlador",
     globalSequencerClock: "Reloj global del secuenciador",
     bpm: "BPM",
+    meter: "Compas",
+    grid: "Cuadricula",
+    beats: "Pulsos",
     midiChannel: "Canal MIDI",
     velocity: "Velocidad",
     scale: "Escala",
@@ -1630,8 +1649,9 @@ interface ControllerSequencerCurveEditorProps {
     | {
         playhead: number;
         cycle: number;
-        stepCount: 16 | 32;
-        bpm: number;
+        stepCount: number;
+        tempoBPM: number;
+        stepsPerBeat: number;
       }
     | null;
   onAddPoint: (position: number, value: number) => void;
@@ -1665,8 +1685,9 @@ const ControllerSequencerCurveEditor = memo(function ControllerSequencerCurveEdi
   const transportAnchorRef = useRef<{
     playhead: number;
     cycle: number;
-    stepCount: 16 | 32;
-    bpm: number;
+    stepCount: number;
+    tempoBPM: number;
+    stepsPerBeat: number;
     timestampMs: number;
   } | null>(null);
   const [playbackTransportStep, setPlaybackTransportStep] = useState<number>(0);
@@ -1711,10 +1732,11 @@ const ControllerSequencerCurveEditor = memo(function ControllerSequencerCurveEdi
       timestampMs: typeof performance !== "undefined" ? performance.now() : Date.now()
     };
   }, [
-    playbackTransport?.bpm,
+    playbackTransport?.tempoBPM,
     playbackTransport?.cycle,
     playbackTransport?.playhead,
-    playbackTransport?.stepCount
+    playbackTransport?.stepCount,
+    playbackTransport?.stepsPerBeat
   ]);
 
   useEffect(() => {
@@ -1730,7 +1752,10 @@ const ControllerSequencerCurveEditor = memo(function ControllerSequencerCurveEdi
       }
       const anchor = transportAnchorRef.current;
       if (anchor) {
-        const stepDurationMs = 60000 / Math.max(30, Math.min(300, Math.round(anchor.bpm))) / 4;
+        const stepDurationMs =
+          60000 /
+          Math.max(30, Math.min(300, Math.round(anchor.tempoBPM))) /
+          Math.max(1, Math.round(anchor.stepsPerBeat));
         const elapsedSteps = Math.max(0, (now - anchor.timestampMs) / Math.max(1, stepDurationMs));
         const absoluteStep = Math.max(
           0,
@@ -2045,7 +2070,8 @@ function areControllerSequencerCurveEditorPropsEqual(
       previousPlayback.playhead === nextPlayback.playhead &&
       previousPlayback.cycle === nextPlayback.cycle &&
       previousPlayback.stepCount === nextPlayback.stepCount &&
-      previousPlayback.bpm === nextPlayback.bpm);
+      previousPlayback.tempoBPM === nextPlayback.tempoBPM &&
+      previousPlayback.stepsPerBeat === nextPlayback.stepsPerBeat);
 
   return previous.ui === next.ui && previous.controllerSequencer === next.controllerSequencer && playbackEqual;
 }
@@ -2093,7 +2119,10 @@ interface SequencerPageProps {
   onSequencerTrackSyncTargetChange: (trackId: string, syncToTrackId: string | null) => void;
   onSequencerTrackScaleChange: (trackId: string, scaleRoot: SequencerScaleRoot, scaleType: SequencerScaleType) => void;
   onSequencerTrackModeChange: (trackId: string, mode: SequencerMode) => void;
-  onSequencerTrackStepCountChange: (trackId: string, count: 4 | 8 | 16 | 32) => void;
+  onSequencerTrackMeterNumeratorChange: (trackId: string, numerator: number) => void;
+  onSequencerTrackMeterDenominatorChange: (trackId: string, denominator: number) => void;
+  onSequencerTrackStepsPerBeatChange: (trackId: string, stepsPerBeat: number) => void;
+  onSequencerTrackStepCountChange: (trackId: string, count: number) => void;
   onSequencerTrackStepNoteChange: (trackId: string, index: number, note: number | null) => void;
   onSequencerTrackStepChordChange: (trackId: string, index: number, chord: SequencerChord) => void;
   onSequencerTrackStepHoldChange: (trackId: string, index: number, hold: boolean) => void;
@@ -2118,6 +2147,9 @@ interface SequencerPageProps {
   onRemoveDrummerSequencerTrack: (trackId: string) => void;
   onDrummerSequencerTrackEnabledChange: (trackId: string, enabled: boolean) => void;
   onDrummerSequencerTrackChannelChange: (trackId: string, channel: number) => void;
+  onDrummerSequencerTrackMeterNumeratorChange: (trackId: string, numerator: number) => void;
+  onDrummerSequencerTrackMeterDenominatorChange: (trackId: string, denominator: number) => void;
+  onDrummerSequencerTrackStepsPerBeatChange: (trackId: string, stepsPerBeat: number) => void;
   onDrummerSequencerTrackStepCountChange: (trackId: string, count: DrummerSequencerStepCount) => void;
   onDrummerSequencerRowAdd: (trackId: string) => void;
   onDrummerSequencerRowRemove: (trackId: string, rowId: string) => void;
@@ -2150,6 +2182,9 @@ interface SequencerPageProps {
   onRemoveControllerSequencer: (controllerSequencerId: string) => void;
   onControllerSequencerEnabledChange: (controllerSequencerId: string, enabled: boolean) => void;
   onControllerSequencerNumberChange: (controllerSequencerId: string, controllerNumber: number) => void;
+  onControllerSequencerMeterNumeratorChange: (controllerSequencerId: string, numerator: number) => void;
+  onControllerSequencerMeterDenominatorChange: (controllerSequencerId: string, denominator: number) => void;
+  onControllerSequencerStepsPerBeatChange: (controllerSequencerId: string, stepsPerBeat: number) => void;
   onControllerSequencerPadPress: (controllerSequencerId: string, padIndex: number) => void;
   onControllerSequencerPadCopy: (controllerSequencerId: string, sourcePadIndex: number, targetPadIndex: number) => void;
   onControllerSequencerClearSteps: (controllerSequencerId: string) => void;
@@ -2161,7 +2196,7 @@ interface SequencerPageProps {
   ) => void;
   onControllerSequencerPadLoopStepAdd: (controllerSequencerId: string, padIndex: number) => void;
   onControllerSequencerPadLoopStepRemove: (controllerSequencerId: string, sequenceIndex: number) => void;
-  onControllerSequencerStepCountChange: (controllerSequencerId: string, stepCount: 8 | 16 | 32 | 64) => void;
+  onControllerSequencerStepCountChange: (controllerSequencerId: string, stepCount: number) => void;
   onControllerSequencerKeypointAdd: (controllerSequencerId: string, position: number, value: number) => void;
   onControllerSequencerKeypointChange: (
     controllerSequencerId: string,
@@ -2355,13 +2390,19 @@ function parsePadLoopReferenceDragPayload(event: ReactDragEvent): PadLoopReferen
         }
       };
     }
-    if (item.type === "pause" && typeof item.stepCount === "number") {
-      const normalizedStepCount = Math.round(item.stepCount);
-      if (normalizedStepCount === 4 || normalizedStepCount === 8 || normalizedStepCount === 16 || normalizedStepCount === 32) {
+    if (item.type === "pause" && typeof item.lengthBeats === "number") {
+      const normalizedLengthBeats = Math.round(item.lengthBeats);
+      if (
+        normalizedLengthBeats === 1 ||
+        normalizedLengthBeats === 2 ||
+        normalizedLengthBeats === 4 ||
+        normalizedLengthBeats === 8 ||
+        normalizedLengthBeats === 16
+      ) {
         return {
           item: {
             type: "pause",
-            stepCount: normalizedStepCount
+            lengthBeats: normalizedLengthBeats
           }
         };
       }
@@ -2381,6 +2422,21 @@ function padSequencePadIndexFromKey(event: ReactKeyboardEvent): number | null {
     return null;
   }
   return Number(event.key) - 1;
+}
+
+function sequencerAbsoluteTransportStepValue(sequencer: Pick<SequencerState, "playhead" | "cycle" | "stepCount">): number {
+  return Math.max(0, Math.floor(sequencer.cycle) * Math.max(1, Math.floor(sequencer.stepCount)) + Math.floor(sequencer.playhead));
+}
+
+function localStepFromTransportPosition(
+  track: Pick<SequencerTrackState, "timing" | "lengthBeats" | "stepCount"> | Pick<DrummerSequencerTrackState, "timing" | "lengthBeats" | "stepCount">,
+  absoluteTransportStep: number
+): number {
+  const boundedStepCount = Math.max(1, Math.round(track.stepCount));
+  const boundedTransportStepCount = Math.max(1, sequencerTransportStepCount(track.lengthBeats));
+  const transportOffset = Math.max(0, Math.floor(absoluteTransportStep)) % boundedTransportStepCount;
+  const transportStepsPerLocalStep = Math.max(1, sequencerTransportStepsPerLocalStep(track.timing));
+  return Math.min(boundedStepCount - 1, Math.floor(transportOffset / transportStepsPerLocalStep));
 }
 
 interface RunningSequencerTheory {
@@ -2545,6 +2601,7 @@ type PadLoopPatternEditorProps = {
   >;
   hostId: string;
   track: PadLoopEditorTrackLike;
+  stepsPerBeat: number;
   padStepCounts: number[];
   defaultPadStepCount: number;
   isPlaying: boolean;
@@ -2565,6 +2622,7 @@ const PadLoopPatternEditor = memo(function PadLoopPatternEditor({
   ui,
   hostId,
   track,
+  stepsPerBeat,
   padStepCounts,
   defaultPadStepCount,
   isPlaying,
@@ -2597,17 +2655,17 @@ const PadLoopPatternEditor = memo(function PadLoopPatternEditor({
       }
       const pauseStepCount = decodePadLoopPauseToken(token);
       if (pauseStepCount !== null) {
-        total += pauseStepCount;
+        total += pauseStepCount * Math.max(1, Math.round(stepsPerBeat));
       }
     }
     return total;
-  }, [compiledPattern.sequence, defaultPadStepCount, padStepCounts]);
+  }, [compiledPattern.sequence, defaultPadStepCount, padStepCounts, stepsPerBeat]);
   const rangeIndexByContainer = useMemo(() => buildPadLoopRangeIndex(track.padLoopPattern), [track.padLoopPattern]);
   const timelineRangeIndexByContainer = useMemo(() => {
     const normalizedFallback = Math.max(1, Math.round(defaultPadStepCount));
     return buildPadLoopRangeIndex(track.padLoopPattern, (item) => {
       if (item.type === "pause") {
-        return Math.max(1, Math.round(item.stepCount));
+        return Math.max(1, Math.round(item.lengthBeats * Math.max(1, Math.round(stepsPerBeat))));
       }
       if (item.type === "pad") {
         const candidate = padStepCounts[item.padIndex];
@@ -2616,7 +2674,7 @@ const PadLoopPatternEditor = memo(function PadLoopPatternEditor({
       }
       return 1;
     });
-  }, [defaultPadStepCount, padStepCounts, track.padLoopPattern]);
+  }, [defaultPadStepCount, padStepCounts, stepsPerBeat, track.padLoopPattern]);
 
   useEffect(() => {
     if (activeContainer.kind === "root") {
@@ -2804,7 +2862,7 @@ const PadLoopPatternEditor = memo(function PadLoopPatternEditor({
 
           <div className="flex flex-wrap items-center gap-1">
             {PAD_LOOP_PAUSE_STEP_OPTIONS.map((pauseStepCount) => {
-              const item: PadLoopPatternItem = { type: "pause", stepCount: pauseStepCount };
+              const item: PadLoopPatternItem = { type: "pause", lengthBeats: pauseStepCount };
               const allowed = canInsertItemIntoPadLoopContainer(track.padLoopPattern, container, item);
               return (
                 <button
@@ -2827,7 +2885,7 @@ const PadLoopPatternEditor = memo(function PadLoopPatternEditor({
                       ? "border-cyan-500/45 bg-cyan-500/10 text-cyan-200 hover:border-cyan-300/70"
                       : "cursor-not-allowed border-slate-700 bg-slate-900 text-slate-500"
                   }`}
-                  title={`Insert pause token for ${pauseStepCount} steps`}
+                  title={`Insert pause token for ${pauseStepCount} beats`}
                 >
                   P{pauseStepCount}
                 </button>
@@ -3323,6 +3381,7 @@ function arePadLoopPatternEditorPropsEqual(
     previous.track.padLoopRepeat === next.track.padLoopRepeat &&
     previous.track.padLoopPosition === next.track.padLoopPosition &&
     previous.track.padLoopPattern === next.track.padLoopPattern &&
+    previous.stepsPerBeat === next.stepsPerBeat &&
     previous.defaultPadStepCount === next.defaultPadStepCount &&
     previous.isPlaying === next.isPlaying &&
     previous.linkedPadLoopStepPosition === next.linkedPadLoopStepPosition &&
@@ -3373,6 +3432,9 @@ export function SequencerPage({
   onSequencerTrackSyncTargetChange,
   onSequencerTrackScaleChange,
   onSequencerTrackModeChange,
+  onSequencerTrackMeterNumeratorChange,
+  onSequencerTrackMeterDenominatorChange,
+  onSequencerTrackStepsPerBeatChange,
   onSequencerTrackStepCountChange,
   onSequencerTrackStepNoteChange,
   onSequencerTrackStepChordChange,
@@ -3393,6 +3455,9 @@ export function SequencerPage({
   onRemoveDrummerSequencerTrack,
   onDrummerSequencerTrackEnabledChange,
   onDrummerSequencerTrackChannelChange,
+  onDrummerSequencerTrackMeterNumeratorChange,
+  onDrummerSequencerTrackMeterDenominatorChange,
+  onDrummerSequencerTrackStepsPerBeatChange,
   onDrummerSequencerTrackStepCountChange,
   onDrummerSequencerRowAdd,
   onDrummerSequencerRowRemove,
@@ -3425,6 +3490,9 @@ export function SequencerPage({
   onRemoveControllerSequencer,
   onControllerSequencerEnabledChange,
   onControllerSequencerNumberChange,
+  onControllerSequencerMeterNumeratorChange,
+  onControllerSequencerMeterDenominatorChange,
+  onControllerSequencerStepsPerBeatChange,
   onControllerSequencerPadPress,
   onControllerSequencerPadCopy,
   onControllerSequencerClearSteps,
@@ -4162,7 +4230,7 @@ export function SequencerPage({
                 type="number"
                 min={30}
                 max={300}
-                value={sequencer.bpm}
+                value={sequencer.timing.tempoBPM}
                 onChange={(event) => onBpmChange(Number(event.target.value))}
                 className={`${controlFieldClass} w-24`}
               />
@@ -4345,16 +4413,66 @@ export function SequencerPage({
                     </div>
 
                     <div className="flex flex-wrap items-end gap-2">
+                      <label className="flex flex-col gap-1">
+                        <span className={controlLabelClass}>{ui.meter}</span>
+                        <div className="flex items-center gap-1">
+                          <select
+                            value={track.timing.meterNumerator}
+                            onChange={(event) =>
+                              onSequencerTrackMeterNumeratorChange(track.id, Number(event.target.value))
+                            }
+                            className={`${controlFieldClass} w-20`}
+                          >
+                            {[2, 3, 4, 5, 6, 7].map((value) => (
+                              <option key={`${track.id}-meter-numerator-${value}`} value={value}>
+                                {value}
+                              </option>
+                            ))}
+                          </select>
+                          <span className="text-slate-400">/</span>
+                          <select
+                            value={track.timing.meterDenominator}
+                            onChange={(event) =>
+                              onSequencerTrackMeterDenominatorChange(track.id, Number(event.target.value))
+                            }
+                            className={`${controlFieldClass} w-20`}
+                          >
+                            {[4, 8].map((value) => (
+                              <option key={`${track.id}-meter-denominator-${value}`} value={value}>
+                                {value}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </label>
+
+                      <label className="flex flex-col gap-1">
+                        <span className={controlLabelClass}>{ui.grid}</span>
+                        <select
+                          value={track.timing.stepsPerBeat}
+                          onChange={(event) =>
+                            onSequencerTrackStepsPerBeatChange(track.id, Number(event.target.value))
+                          }
+                          className={`${controlFieldClass} w-24`}
+                        >
+                          {[2, 4, 8].map((value) => (
+                            <option key={`${track.id}-steps-per-beat-${value}`} value={value}>
+                              {value}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
                       <div className="flex flex-col gap-1">
-                        <span className={controlLabelClass}>{ui.steps}</span>
-                        <div className="inline-flex rounded-lg border border-slate-600 bg-slate-950 p-1">
-                          {[4, 8, 16, 32].map((count) => (
+                        <span className={controlLabelClass}>{ui.beats}</span>
+                        <div className="inline-flex flex-wrap gap-1 rounded-lg border border-slate-600 bg-slate-950 p-1">
+                          {sequencerPadLengthBeatOptions(track.timing.meterNumerator, track.lengthBeats).map((count) => (
                             <button
                               key={`${track.id}-steps-${count}`}
                               type="button"
-                              onClick={() => onSequencerTrackStepCountChange(track.id, count as 4 | 8 | 16 | 32)}
+                              onClick={() => onSequencerTrackStepCountChange(track.id, count)}
                               className={`rounded-md px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.14em] transition ${
-                                track.stepCount === count
+                                track.lengthBeats === count
                                   ? "bg-accent/30 text-accent"
                                   : "text-slate-300 hover:bg-slate-800"
                               }`}
@@ -4371,8 +4489,9 @@ export function SequencerPage({
                     ui={ui}
                     hostId={track.id}
                     track={track}
-                    padStepCounts={track.pads.map((pad) => pad.stepCount)}
-                    defaultPadStepCount={track.stepCount}
+                    stepsPerBeat={sequencerTransportStepsPerBeat(track.timing)}
+                    padStepCounts={track.pads.map((pad) => sequencerTransportStepCount(track.timing, pad.lengthBeats))}
+                    defaultPadStepCount={sequencerTransportStepCount(track.timing, track.lengthBeats)}
                     isPlaying={sequencer.isPlaying}
                     linkedPadLoopStepPosition={linkedPadLoopStepPosition}
                     onLinkedPadLoopStepPositionChange={setLinkedPadLoopStepPosition}
@@ -4508,10 +4627,11 @@ export function SequencerPage({
                       const noteValue = stepState?.note ?? null;
                       const holdActive = stepState?.hold === true;
                       const stepVelocity = stepState?.velocity ?? 127;
+                      const absoluteTransportStep = sequencerAbsoluteTransportStepValue(sequencer);
                       const localPlayhead =
                         typeof track.runtimeLocalStep === "number"
                           ? track.runtimeLocalStep % track.stepCount
-                          : sequencer.playhead % track.stepCount;
+                          : localStepFromTransportPosition(track, absoluteTransportStep);
                       const isActive = track.enabled && sequencer.isPlaying && localPlayhead === step;
                       const selectedNote = noteValue === null ? null : noteOptionsByNote.get(noteValue) ?? null;
                       const isInScale = selectedNote?.inScale ?? false;
@@ -4867,10 +4987,11 @@ export function SequencerPage({
               <div className="space-y-3">
                 {sequencer.drummerTracks.map((track, trackIndex) => {
                   const stepIndices = Array.from({ length: track.stepCount }, (_, index) => index);
+                  const absoluteTransportStep = sequencerAbsoluteTransportStepValue(sequencer);
                   const localPlayhead =
                     typeof track.runtimeLocalStep === "number"
                       ? track.runtimeLocalStep % track.stepCount
-                      : sequencer.playhead % track.stepCount;
+                      : localStepFromTransportPosition(track, absoluteTransportStep);
 
                   return (
                     <article
@@ -4935,18 +5056,66 @@ export function SequencerPage({
                           />
                         </label>
 
+                        <label className="flex flex-col gap-1">
+                          <span className={controlLabelClass}>{ui.meter}</span>
+                          <div className="flex items-center gap-1">
+                            <select
+                              value={track.timing.meterNumerator}
+                              onChange={(event) =>
+                                onDrummerSequencerTrackMeterNumeratorChange(track.id, Number(event.target.value))
+                              }
+                              className={`${controlFieldClass} w-20`}
+                            >
+                              {[2, 3, 4, 5, 6, 7].map((value) => (
+                                <option key={`${track.id}-drum-meter-numerator-${value}`} value={value}>
+                                  {value}
+                                </option>
+                              ))}
+                            </select>
+                            <span className="text-slate-400">/</span>
+                            <select
+                              value={track.timing.meterDenominator}
+                              onChange={(event) =>
+                                onDrummerSequencerTrackMeterDenominatorChange(track.id, Number(event.target.value))
+                              }
+                              className={`${controlFieldClass} w-20`}
+                            >
+                              {[4, 8].map((value) => (
+                                <option key={`${track.id}-drum-meter-denominator-${value}`} value={value}>
+                                  {value}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </label>
+
+                        <label className="flex flex-col gap-1">
+                          <span className={controlLabelClass}>{ui.grid}</span>
+                          <select
+                            value={track.timing.stepsPerBeat}
+                            onChange={(event) =>
+                              onDrummerSequencerTrackStepsPerBeatChange(track.id, Number(event.target.value))
+                            }
+                            className={`${controlFieldClass} w-24`}
+                          >
+                            {[2, 4, 8].map((value) => (
+                              <option key={`${track.id}-drum-steps-per-beat-${value}`} value={value}>
+                                {value}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+
                         <div className="flex flex-col gap-1">
-                          <span className={controlLabelClass}>{ui.steps}</span>
-                          <div className="inline-flex rounded-lg border border-slate-600 bg-slate-950 p-1">
-                            {[4, 8, 16, 32].map((count) => (
+                          <span className={controlLabelClass}>{ui.beats}</span>
+                          <div className="inline-flex flex-wrap gap-1 rounded-lg border border-slate-600 bg-slate-950 p-1">
+                            {sequencerPadLengthBeatOptions(track.timing.meterNumerator, track.lengthBeats).map((count) => (
                               <button
                                 key={`${track.id}-drum-steps-${count}`}
                                 type="button"
-                                onClick={() =>
-                                  onDrummerSequencerTrackStepCountChange(track.id, count as DrummerSequencerStepCount)
-                                }
+                                onClick={() => onDrummerSequencerTrackStepCountChange(track.id, count)}
                                 className={`rounded-md px-2 py-1 text-xs font-semibold uppercase tracking-[0.14em] transition ${
-                                  track.stepCount === count
+                                  track.lengthBeats === count
                                     ? "bg-rose-500/20 text-rose-200"
                                     : "text-slate-300 hover:bg-slate-800"
                                 }`}
@@ -4961,8 +5130,9 @@ export function SequencerPage({
                           ui={ui}
                           hostId={track.id}
                           track={track}
-                          padStepCounts={track.pads.map((pad) => pad.stepCount)}
-                          defaultPadStepCount={track.stepCount}
+                          stepsPerBeat={sequencerTransportStepsPerBeat(track.timing)}
+                          padStepCounts={track.pads.map((pad) => sequencerTransportStepCount(track.timing, pad.lengthBeats))}
+                          defaultPadStepCount={sequencerTransportStepCount(track.timing, track.lengthBeats)}
                           isPlaying={sequencer.isPlaying}
                           linkedPadLoopStepPosition={linkedPadLoopStepPosition}
                           onLinkedPadLoopStepPositionChange={setLinkedPadLoopStepPosition}
@@ -5263,10 +5433,72 @@ export function SequencerPage({
                         />
                       </label>
 
+                      <label className="flex flex-col gap-1">
+                        <span className={controlLabelClass}>{ui.meter}</span>
+                        <div className="flex items-center gap-1">
+                          <select
+                            value={controllerSequencer.timing.meterNumerator}
+                            onChange={(event) =>
+                              onControllerSequencerMeterNumeratorChange(
+                                controllerSequencer.id,
+                                Number(event.target.value)
+                              )
+                            }
+                            className={`${controlFieldClass} w-20`}
+                          >
+                            {[2, 3, 4, 5, 6, 7].map((value) => (
+                              <option key={`${controllerSequencer.id}-meter-numerator-${value}`} value={value}>
+                                {value}
+                              </option>
+                            ))}
+                          </select>
+                          <span className="text-slate-400">/</span>
+                          <select
+                            value={controllerSequencer.timing.meterDenominator}
+                            onChange={(event) =>
+                              onControllerSequencerMeterDenominatorChange(
+                                controllerSequencer.id,
+                                Number(event.target.value)
+                              )
+                            }
+                            className={`${controlFieldClass} w-20`}
+                          >
+                            {[4, 8].map((value) => (
+                              <option key={`${controllerSequencer.id}-meter-denominator-${value}`} value={value}>
+                                {value}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </label>
+
+                      <label className="flex flex-col gap-1">
+                        <span className={controlLabelClass}>{ui.grid}</span>
+                        <select
+                          value={controllerSequencer.timing.stepsPerBeat}
+                          onChange={(event) =>
+                            onControllerSequencerStepsPerBeatChange(
+                              controllerSequencer.id,
+                              Number(event.target.value)
+                            )
+                          }
+                          className={`${controlFieldClass} w-24`}
+                        >
+                          {[2, 4, 8].map((value) => (
+                            <option key={`${controllerSequencer.id}-steps-per-beat-${value}`} value={value}>
+                              {value}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
                       <div className="flex flex-col gap-1">
-                        <span className={controlLabelClass}>{ui.curveRate}</span>
-                        <div className="inline-flex rounded-lg border border-slate-600 bg-slate-950 p-1">
-                          {CONTROLLER_SEQUENCER_STEP_OPTIONS.map((option) => (
+                        <span className={controlLabelClass}>{ui.beats}</span>
+                        <div className="inline-flex flex-wrap gap-1 rounded-lg border border-slate-600 bg-slate-950 p-1">
+                          {controllerSequencerPadLengthBeatOptions(
+                            controllerSequencer.timing.meterNumerator,
+                            controllerSequencer.lengthBeats
+                          ).map((option) => (
                             <button
                               key={`${controllerSequencer.id}-rate-${option}`}
                               type="button"
@@ -5274,7 +5506,7 @@ export function SequencerPage({
                                 onControllerSequencerStepCountChange(controllerSequencer.id, option)
                               }
                               className={`rounded-md px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.14em] transition ${
-                                controllerSequencer.stepCount === option
+                                controllerSequencer.lengthBeats === option
                                   ? "bg-teal-400/20 text-teal-200"
                                   : "text-slate-300 hover:bg-slate-800"
                               }`}
@@ -5293,8 +5525,14 @@ export function SequencerPage({
                         ui={ui}
                         hostId={controllerSequencer.id}
                         track={controllerSequencer}
-                        padStepCounts={controllerSequencer.pads.map((pad) => pad.stepCount)}
-                        defaultPadStepCount={controllerSequencer.stepCount}
+                        stepsPerBeat={sequencerTransportStepsPerBeat(controllerSequencer.timing)}
+                        padStepCounts={controllerSequencer.pads.map((pad) =>
+                          sequencerTransportStepCount(controllerSequencer.timing, pad.lengthBeats)
+                        )}
+                        defaultPadStepCount={sequencerTransportStepCount(
+                          controllerSequencer.timing,
+                          controllerSequencer.lengthBeats
+                        )}
                         isPlaying={sequencer.isPlaying}
                         linkedPadLoopStepPosition={linkedPadLoopStepPosition}
                         onLinkedPadLoopStepPositionChange={setLinkedPadLoopStepPosition}
@@ -5379,14 +5617,15 @@ export function SequencerPage({
                       controllerSequencer={controllerSequencer}
                       playbackTransport={
                         sequencer.isPlaying && controllerSequencer.enabled
-                          ? {
-                              playhead: sequencer.playhead,
-                              cycle: sequencer.cycle,
-                              stepCount: sequencer.stepCount,
-                              bpm: sequencer.bpm
-                            }
-                          : null
-                      }
+                            ? {
+                                playhead: sequencer.playhead,
+                                cycle: sequencer.cycle,
+                                stepCount: sequencer.stepCount,
+                                tempoBPM: sequencer.timing.tempoBPM,
+                                stepsPerBeat: sequencerTransportStepsPerBeat(sequencer.timing)
+                              }
+                            : null
+                        }
                       onAddPoint={(position, value) =>
                         onControllerSequencerKeypointAdd(controllerSequencer.id, position, value)
                       }

@@ -32,7 +32,16 @@ Each track card provides:
 - `MIDI Channel` (`1..16`)
 - `Scale` (root + scale type)
 - `Mode` (Ionian, Dorian, Phrygian, Lydian, Mixolydian, Aeolian, Locrian)
-- `Steps` (`16` or `32`)
+- `Meter` (`2..7` over `4` or `8`)
+- `Grid` (`2`, `4`, or `8`, steps per beat)
+- `Beats` (`1..8`, with the current meter numerator exposed directly)
+
+The step editor width is derived from the track's own timing and length:
+
+- steps per beat = the track's selected `Grid`
+- pad steps = `beats * steps per beat`
+- default timing (`4/4`, grid `4`) gives `16` steps for a `4`-beat pad
+- odd meters can still use matching one-bar pad lengths such as `3` beats in `3/4` or `5` beats in `5/4`
 
 ### Queued Start/Stop State Labels
 

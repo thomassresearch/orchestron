@@ -31,7 +31,9 @@ Each drummer sequencer card provides:
 - `Clear Steps`
 - `+ Key` (add another drum row)
 - `MIDI Channel` (`1..16`)
-- `Steps` (`4`, `8`, `16`, `32`)
+- `Meter` (`2..7` over `4` or `8`)
+- `Grid` (`2`, `4`, or `8`, steps per beat)
+- `Beats` (`1..8`, with the current meter numerator exposed directly)
 - Pad Looper controls (same concept as melodic sequencers)
 
 ## Drum Rows (`Keys`)
@@ -55,7 +57,7 @@ This helps identify which drum sound is mapped to a given MIDI key number.
 The grid is row-based:
 
 - rows = selected drum keys
-- columns = steps (`4/8/16/32`)
+- columns = `beats * steps per beat`
 
 This keeps the `Keys` column horizontally aligned with the LED rows.
 
@@ -83,6 +85,10 @@ The LED border color stays visible even at low velocities, so low-velocity activ
 ## Pattern Pads and Pad Looper
 
 Drummer sequencers support the same `P1..P8` pattern-pad workflow and queued pad switching as melodic sequencer tracks.
+
+Drummer pad length is stored in beats, while meter and grid are configured per drummer sequencer.
+
+This keeps drummer pads beat-based while still allowing one-bar patterns in odd meters such as `3/4`, `5/4`, or `7/8` by matching the pad beat count to the meter.
 
 They also support pad-loop sequences (`Pad Looper`, `Repeat`, pad sequence list).
 

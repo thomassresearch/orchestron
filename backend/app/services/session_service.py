@@ -368,7 +368,7 @@ class SessionService:
             runtime.session_id,
             "sequencer_configured",
             {
-                "bpm": status.bpm,
+                "tempo_bpm": status.timing.tempo_bpm,
                 "step_count": status.step_count,
                 "tracks": len(status.tracks),
             },
@@ -398,7 +398,7 @@ class SessionService:
             runtime.session_id,
             "sequencer_started",
             {
-                "bpm": status.bpm,
+                "tempo_bpm": status.timing.tempo_bpm,
                 "step_count": status.step_count,
             },
         )

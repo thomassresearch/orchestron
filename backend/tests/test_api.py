@@ -33,6 +33,45 @@ def _client(tmp_path: Path) -> TestClient:
     return TestClient(app)
 
 
+def _sequencer_timing(
+    *,
+    tempo_bpm: int = 120,
+    meter_numerator: int = 4,
+    meter_denominator: int = 4,
+    steps_per_beat: int = 4,
+) -> dict[str, int]:
+    return {
+        "tempo_bpm": tempo_bpm,
+        "meter_numerator": meter_numerator,
+        "meter_denominator": meter_denominator,
+        "steps_per_beat": steps_per_beat,
+    }
+
+
+def _sequencer_config(
+    tracks: list[dict[str, object]],
+    *,
+    tempo_bpm: int = 120,
+    meter_numerator: int = 4,
+    meter_denominator: int = 4,
+    steps_per_beat: int = 4,
+    **extra: object,
+) -> dict[str, object]:
+    timing = _sequencer_timing(
+        tempo_bpm=tempo_bpm,
+        meter_numerator=meter_numerator,
+        meter_denominator=meter_denominator,
+        steps_per_beat=steps_per_beat,
+    )
+    config: dict[str, object] = {
+        "timing": timing,
+        "step_count": 8,
+        "tracks": [{**track, "timing": track.get("timing", timing)} for track in tracks],
+    }
+    config.update(extra)
+    return config
+
+
 def test_health_endpoint(tmp_path: Path) -> None:
     with _client(tmp_path) as client:
         response = client.get("/api/health")
@@ -852,10 +891,8 @@ def test_session_backend_sequencer_flow_with_pad_queue(tmp_path: Path) -> None:
         start_sequencer = client.post(
             f"/api/sessions/{session_id}/sequencer/start",
             json={
-                "config": {
-                    "bpm": 300,
-                    "step_count": 16,
-                    "tracks": [
+                "config": _sequencer_config(
+                    [
                         {
                             "track_id": "voice-1",
                             "midi_channel": 1,
@@ -868,7 +905,8 @@ def test_session_backend_sequencer_flow_with_pad_queue(tmp_path: Path) -> None:
                             ],
                         }
                     ],
-                }
+                    tempo_bpm=300,
+                )
             },
         )
         assert start_sequencer.status_code == 200
@@ -930,21 +968,20 @@ def test_session_backend_sequencer_active_pad_uses_pad_specific_step_count(tmp_p
         start_sequencer = client.post(
             f"/api/sessions/{session_id}/sequencer/start",
             json={
-                "config": {
-                    "bpm": 300,
-                    "step_count": 16,
-                    "tracks": [
+                "config": _sequencer_config(
+                    [
                         {
                             "track_id": "voice-1",
                             "midi_channel": 1,
                             "active_pad": 1,
                             "pads": [
-                                {"pad_index": 0, "step_count": 16, "steps": [60, None] + [None] * 14},
-                                {"pad_index": 1, "step_count": 8, "steps": [72, None] + [None] * 6},
+                                {"pad_index": 0, "length_beats": 4, "steps": [60, None] + [None] * 14},
+                                {"pad_index": 1, "length_beats": 2, "steps": [72, None] + [None] * 6},
                             ],
                         }
                     ],
-                }
+                    tempo_bpm=300,
+                )
             },
         )
         assert start_sequencer.status_code == 200
@@ -1008,10 +1045,8 @@ def test_session_backend_sequencer_pad_looper_sequence_stops_when_repeat_disable
         start_sequencer = client.post(
             f"/api/sessions/{session_id}/sequencer/start",
             json={
-                "config": {
-                    "bpm": 300,
-                    "step_count": 16,
-                    "tracks": [
+                "config": _sequencer_config(
+                    [
                         {
                             "track_id": "voice-1",
                             "midi_channel": 1,
@@ -1026,7 +1061,8 @@ def test_session_backend_sequencer_pad_looper_sequence_stops_when_repeat_disable
                             ],
                         }
                     ],
-                }
+                    tempo_bpm=300,
+                )
             },
         )
         assert start_sequencer.status_code == 200
@@ -1054,6 +1090,89 @@ def test_session_backend_sequencer_pad_looper_sequence_stops_when_repeat_disable
 
         assert saw_second_pad, "Pad looper did not advance to the second pad in the configured sequence."
         assert stopped_after_sequence, "Pad looper did not stop the track when repeat was disabled."
+
+        stop_sequencer = client.post(f"/api/sessions/{session_id}/sequencer/stop")
+        assert stop_sequencer.status_code == 200
+        assert stop_sequencer.json()["running"] is False
+
+
+def test_session_backend_sequencer_pad_looper_repeats_across_multiple_pause_tokens(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        patch_payload = {
+            "name": "Sequencer Multi Pause Loop Patch",
+            "description": "pad looper multi-pause repeat test",
+            "schema_version": 1,
+            "graph": {
+                "nodes": [
+                    {"id": "n1", "opcode": "const_a", "params": {"value": 0.2}, "position": {"x": 50, "y": 50}},
+                    {"id": "n2", "opcode": "outs", "params": {}, "position": {"x": 240, "y": 50}},
+                ],
+                "connections": [
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "left"},
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "right"},
+                ],
+                "ui_layout": {},
+                "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+            },
+        }
+
+        create_patch = client.post("/api/patches", json=patch_payload)
+        assert create_patch.status_code == 201
+        patch_id = create_patch.json()["id"]
+
+        create_session = client.post("/api/sessions", json={"patch_id": patch_id})
+        assert create_session.status_code == 201
+        session_id = create_session.json()["session_id"]
+
+        start_sequencer = client.post(
+            f"/api/sessions/{session_id}/sequencer/start",
+            json={
+                "config": _sequencer_config(
+                    [
+                        {
+                            "track_id": "voice-1",
+                            "midi_channel": 1,
+                            "enabled": True,
+                            "active_pad": 0,
+                            "pad_loop_enabled": True,
+                            "pad_loop_repeat": True,
+                            "pad_loop_sequence": [0, -4, -8],
+                            "pads": [
+                                {"pad_index": 0, "steps": [60, None] + [None] * 14},
+                            ],
+                        }
+                    ],
+                    tempo_bpm=300,
+                    playback_end_step=256,
+                )
+            },
+        )
+        assert start_sequencer.status_code == 200
+        assert start_sequencer.json()["running"] is True
+
+        saw_first_pause = False
+        saw_second_pause = False
+        wrapped_to_start = False
+
+        for _ in range(80):
+            status = client.get(f"/api/sessions/{session_id}/sequencer/status")
+            assert status.status_code == 200
+            data = status.json()
+            track = next(item for item in data["tracks"] if item["track_id"] == "voice-1")
+
+            if track["pad_loop_position"] == 1:
+                saw_first_pause = True
+            if track["pad_loop_position"] == 2:
+                saw_second_pause = True
+            if saw_second_pause and track["pad_loop_position"] == 0 and data["running"] is True:
+                wrapped_to_start = True
+                break
+
+            time.sleep(0.05)
+
+        assert saw_first_pause, "Pad looper never entered the first pause token."
+        assert saw_second_pause, "Pad looper never entered the second pause token."
+        assert wrapped_to_start, "Pad looper did not wrap back to the first token after the second pause."
 
         stop_sequencer = client.post(f"/api/sessions/{session_id}/sequencer/stop")
         assert stop_sequencer.status_code == 200
@@ -1089,18 +1208,17 @@ def test_session_backend_sequencer_stop_preserves_playhead_and_position_start(tm
         start_response = client.post(
             f"/api/sessions/{session_id}/sequencer/start",
             json={
-                "config": {
-                    "bpm": 300,
-                    "step_count": 16,
-                    "playback_end_step": 32,
-                    "tracks": [
+                "config": _sequencer_config(
+                    [
                         {
                             "track_id": "voice-1",
                             "midi_channel": 1,
                             "pads": [{"pad_index": 0, "steps": [60, None, 67, None] + [None] * 12}],
                         }
                     ],
-                }
+                    tempo_bpm=300,
+                    playback_end_step=32,
+                )
             },
         )
         assert start_response.status_code == 200
@@ -1163,18 +1281,17 @@ def test_session_backend_sequencer_transport_seek_moves_in_four_step_blocks(tmp_
         start_response = client.post(
             f"/api/sessions/{session_id}/sequencer/start",
             json={
-                "config": {
-                    "bpm": 120,
-                    "step_count": 16,
-                    "playback_end_step": 32,
-                    "tracks": [
+                "config": _sequencer_config(
+                    [
                         {
                             "track_id": "voice-1",
                             "midi_channel": 1,
                             "pads": [{"pad_index": 0, "steps": [60] + [None] * 15}],
                         }
                     ],
-                }
+                    tempo_bpm=120,
+                    playback_end_step=32,
+                )
             },
         )
         assert start_response.status_code == 200
@@ -1185,12 +1302,204 @@ def test_session_backend_sequencer_transport_seek_moves_in_four_step_blocks(tmp_
         forward_response = client.post(f"/api/sessions/{session_id}/sequencer/forward")
         assert forward_response.status_code == 200
         forward_absolute_step = forward_response.json()["cycle"] * forward_response.json()["step_count"] + forward_response.json()["current_step"]
-        assert forward_absolute_step == 4
+        assert forward_absolute_step == 8
 
         rewind_response = client.post(f"/api/sessions/{session_id}/sequencer/rewind")
         assert rewind_response.status_code == 200
         rewind_absolute_step = rewind_response.json()["cycle"] * rewind_response.json()["step_count"] + rewind_response.json()["current_step"]
         assert rewind_absolute_step == 0
+
+
+def test_session_backend_sequencer_three_four_timing_updates_transport_status(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        patch_payload = {
+            "name": "Sequencer Three Four Patch",
+            "description": "3/4 timing status test",
+            "schema_version": 1,
+            "graph": {
+                "nodes": [
+                    {"id": "n1", "opcode": "const_a", "params": {"value": 0.2}, "position": {"x": 50, "y": 50}},
+                    {"id": "n2", "opcode": "outs", "params": {}, "position": {"x": 240, "y": 50}},
+                ],
+                "connections": [
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "left"},
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "right"},
+                ],
+                "ui_layout": {},
+                "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+            },
+        }
+
+        patch_response = client.post("/api/patches", json=patch_payload)
+        assert patch_response.status_code == 201
+        session_response = client.post("/api/sessions", json={"patch_id": patch_response.json()["id"]})
+        assert session_response.status_code == 201
+        session_id = session_response.json()["session_id"]
+
+        start_response = client.post(
+            f"/api/sessions/{session_id}/sequencer/start",
+            json={
+                "config": _sequencer_config(
+                    [
+                        {
+                            "track_id": "voice-1",
+                            "midi_channel": 1,
+                            "pads": [{"pad_index": 0, "steps": [60] + [None] * 11}],
+                        }
+                    ],
+                    tempo_bpm=180,
+                    meter_numerator=3,
+                    meter_denominator=4,
+                    steps_per_beat=4,
+                )
+            },
+        )
+        assert start_response.status_code == 200
+        started = start_response.json()
+        assert started["timing"] == _sequencer_timing(
+            tempo_bpm=180,
+            meter_numerator=4,
+            meter_denominator=4,
+            steps_per_beat=8,
+        )
+        assert started["step_count"] == 8
+        assert started["tracks"][0]["timing"] == _sequencer_timing(
+            tempo_bpm=180,
+            meter_numerator=3,
+            meter_denominator=4,
+            steps_per_beat=4,
+        )
+
+        client.post(f"/api/sessions/{session_id}/sequencer/stop")
+        forward_response = client.post(f"/api/sessions/{session_id}/sequencer/forward")
+        assert forward_response.status_code == 200
+        forward_absolute_step = forward_response.json()["cycle"] * forward_response.json()["step_count"] + forward_response.json()["current_step"]
+        assert forward_absolute_step == 8
+
+def test_session_backend_sequencer_accepts_meter_aligned_three_beat_pad_lengths(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        patch_payload = {
+            "name": "Sequencer Odd Beat Length Patch",
+            "description": "3/4 odd beat length test",
+            "schema_version": 1,
+            "graph": {
+                "nodes": [
+                    {"id": "n1", "opcode": "const_a", "params": {"value": 0.2}, "position": {"x": 50, "y": 50}},
+                    {"id": "n2", "opcode": "outs", "params": {}, "position": {"x": 240, "y": 50}},
+                ],
+                "connections": [
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "left"},
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "right"},
+                ],
+                "ui_layout": {},
+                "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+            },
+        }
+
+        patch_response = client.post("/api/patches", json=patch_payload)
+        assert patch_response.status_code == 201
+        session_response = client.post("/api/sessions", json={"patch_id": patch_response.json()["id"]})
+        assert session_response.status_code == 201
+        session_id = session_response.json()["session_id"]
+
+        start_response = client.post(
+            f"/api/sessions/{session_id}/sequencer/start",
+            json={
+                "config": _sequencer_config(
+                    [
+                        {
+                            "track_id": "voice-1",
+                            "midi_channel": 1,
+                            "length_beats": 3,
+                            "pads": [{"pad_index": 0, "length_beats": 3, "steps": [60, None] + [None] * 10}],
+                        }
+                    ],
+                    tempo_bpm=210,
+                    meter_numerator=3,
+                    meter_denominator=4,
+                    steps_per_beat=4,
+                )
+            },
+        )
+        assert start_response.status_code == 200
+        started = start_response.json()
+        assert started["tracks"][0]["timing"] == _sequencer_timing(
+            tempo_bpm=210,
+            meter_numerator=3,
+            meter_denominator=4,
+            steps_per_beat=4,
+        )
+        assert started["tracks"][0]["length_beats"] == 3
+        assert started["tracks"][0]["step_count"] == 12
+
+        stop_response = client.post(f"/api/sessions/{session_id}/sequencer/stop")
+        assert stop_response.status_code == 200
+
+
+def test_session_backend_sequencer_six_eight_timing_uses_steps_per_bar(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        patch_payload = {
+            "name": "Sequencer Six Eight Patch",
+            "description": "6/8 timing status test",
+            "schema_version": 1,
+            "graph": {
+                "nodes": [
+                    {"id": "n1", "opcode": "const_a", "params": {"value": 0.2}, "position": {"x": 50, "y": 50}},
+                    {"id": "n2", "opcode": "outs", "params": {}, "position": {"x": 240, "y": 50}},
+                ],
+                "connections": [
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "left"},
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "right"},
+                ],
+                "ui_layout": {},
+                "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+            },
+        }
+
+        patch_response = client.post("/api/patches", json=patch_payload)
+        assert patch_response.status_code == 201
+        session_response = client.post("/api/sessions", json={"patch_id": patch_response.json()["id"]})
+        assert session_response.status_code == 201
+        session_id = session_response.json()["session_id"]
+
+        start_response = client.post(
+            f"/api/sessions/{session_id}/sequencer/start",
+            json={
+                "config": _sequencer_config(
+                    [
+                        {
+                            "track_id": "voice-1",
+                            "midi_channel": 1,
+                            "pads": [{"pad_index": 0, "length_beats": 8, "steps": [60] + [None] * 31}],
+                        }
+                    ],
+                    tempo_bpm=210,
+                    meter_numerator=6,
+                    meter_denominator=8,
+                    steps_per_beat=4,
+                )
+            },
+        )
+        assert start_response.status_code == 200
+        started = start_response.json()
+        assert started["timing"] == _sequencer_timing(
+            tempo_bpm=210,
+            meter_numerator=4,
+            meter_denominator=4,
+            steps_per_beat=8,
+        )
+        assert started["step_count"] == 8
+        assert started["tracks"][0]["timing"] == _sequencer_timing(
+            tempo_bpm=210,
+            meter_numerator=6,
+            meter_denominator=8,
+            steps_per_beat=4,
+        )
+        assert started["tracks"][0]["length_beats"] == 8
+        assert started["tracks"][0]["step_count"] == 32
+
+        stop_response = client.post(f"/api/sessions/{session_id}/sequencer/stop")
+        assert stop_response.status_code == 200
 
 
 def test_session_backend_sequencer_selected_range_loops_and_one_shot_ends_at_range_end(tmp_path: Path) -> None:
@@ -1222,13 +1531,8 @@ def test_session_backend_sequencer_selected_range_loops_and_one_shot_ends_at_ran
         loop_response = client.post(
             f"/api/sessions/{session_id}/sequencer/start",
             json={
-                "config": {
-                    "bpm": 300,
-                    "step_count": 16,
-                    "playback_start_step": 16,
-                    "playback_end_step": 24,
-                    "playback_loop": True,
-                    "tracks": [
+                "config": _sequencer_config(
+                    [
                         {
                             "track_id": "voice-1",
                             "midi_channel": 1,
@@ -1241,7 +1545,11 @@ def test_session_backend_sequencer_selected_range_loops_and_one_shot_ends_at_ran
                             ],
                         }
                     ],
-                }
+                    tempo_bpm=300,
+                    playback_start_step=16,
+                    playback_end_step=24,
+                    playback_loop=True,
+                )
             },
         )
         assert loop_response.status_code == 200
@@ -1263,20 +1571,19 @@ def test_session_backend_sequencer_selected_range_loops_and_one_shot_ends_at_ran
         one_shot_response = client.post(
             f"/api/sessions/{session_id}/sequencer/start",
             json={
-                "config": {
-                    "bpm": 300,
-                    "step_count": 16,
-                    "playback_start_step": 0,
-                    "playback_end_step": 8,
-                    "playback_loop": False,
-                    "tracks": [
+                "config": _sequencer_config(
+                    [
                         {
                             "track_id": "voice-1",
                             "midi_channel": 1,
                             "pads": [{"pad_index": 0, "steps": [60] + [None] * 15}],
                         }
                     ],
-                }
+                    tempo_bpm=300,
+                    playback_start_step=0,
+                    playback_end_step=8,
+                    playback_loop=False,
+                )
             },
         )
         assert one_shot_response.status_code == 200
@@ -1326,10 +1633,8 @@ def test_session_backend_sequencer_hold_steps_release_only_on_non_hold_rest(tmp_
         start_sequencer = client.post(
             f"/api/sessions/{session_id}/sequencer/start",
             json={
-                "config": {
-                    "bpm": 300,
-                    "step_count": 16,
-                    "tracks": [
+                "config": _sequencer_config(
+                    [
                         {
                             "track_id": "voice-1",
                             "midi_channel": 1,
@@ -1348,7 +1653,8 @@ def test_session_backend_sequencer_hold_steps_release_only_on_non_hold_rest(tmp_
                             ],
                         }
                     ],
-                }
+                    tempo_bpm=300,
+                )
             },
         )
         assert start_sequencer.status_code == 200
@@ -1418,10 +1724,8 @@ def test_session_backend_sequencer_uses_step_velocity_for_note_on(tmp_path: Path
             start_sequencer = client.post(
                 f"/api/sessions/{session_id}/sequencer/start",
                 json={
-                    "config": {
-                        "bpm": 300,
-                        "step_count": 16,
-                        "tracks": [
+                    "config": _sequencer_config(
+                        [
                             {
                                 "track_id": "voice-1",
                                 "midi_channel": 1,
@@ -1441,7 +1745,8 @@ def test_session_backend_sequencer_uses_step_velocity_for_note_on(tmp_path: Path
                                 ],
                             }
                         ],
-                    }
+                        tempo_bpm=300,
+                    )
                 },
             )
             assert start_sequencer.status_code == 200
@@ -1500,10 +1805,8 @@ def test_session_backend_sequencer_queued_track_enable_starts_on_loop_boundary(t
         start_sequencer = client.post(
             f"/api/sessions/{session_id}/sequencer/start",
             json={
-                "config": {
-                    "bpm": 300,
-                    "step_count": 16,
-                    "tracks": [
+                "config": _sequencer_config(
+                    [
                         {
                             "track_id": "voice-1",
                             "midi_channel": 1,
@@ -1520,7 +1823,8 @@ def test_session_backend_sequencer_queued_track_enable_starts_on_loop_boundary(t
                             "pads": [{"pad_index": 0, "steps": [72] + [None] * 15}],
                         },
                     ],
-                }
+                    tempo_bpm=300,
+                )
             },
         )
         assert start_sequencer.status_code == 200

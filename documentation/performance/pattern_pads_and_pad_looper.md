@@ -12,6 +12,16 @@ Each melodic sequencer track, drummer sequencer, and controller sequencer contai
 - one active pad
 - optional queued pad during live playback
 
+Pad length is stored per pad in beats:
+
+- melodic sequencer pads: `1..8` beats
+- drummer sequencer pads: `1..8` beats
+- controller sequencer pads: `1..8` beats, plus `16` beats
+
+Meter and grid belong to the owning sequencer instance, not to individual pads.
+
+The pad-length controls keep the common musical shortcuts (`1`, `2`, `4`, `8`) visible and also expose the owning sequencer's current meter numerator directly, so a `3/4`, `5/4`, or `7/8` sequencer can reach a one-bar pad length without leaving the beat-based model.
+
 Each pad stores the pattern content for that track:
 
 - melodic sequencers: step notes/holds and related pad theory state used by pad operations
@@ -31,7 +41,7 @@ Pad buttons use visual states to indicate:
 Pad press behavior depends on transport state:
 
 - When sequencer transport is stopped: pad selection changes immediately
-- When sequencer transport is running: the pad switch is queued and applied on the next loop boundary
+- When sequencer transport is running: the pad switch is queued and applied on the next loop boundary, restarting the new pad at step `0`
 
 This avoids mid-pattern timing glitches and keeps pattern changes musical.
 
@@ -88,12 +98,13 @@ You can add pad steps to the pad-loop sequence by:
 
 The pad looper supports explicit silence tokens:
 
+- `P1`
+- `P2`
 - `P4`
 - `P8`
 - `P16`
-- `P32`
 
-Each token inserts a pause segment for the given number of sequencer steps.
+Each token inserts a pause segment for the given number of beats.
 
 How to use them:
 
@@ -142,7 +153,7 @@ You can edit grouped content by:
 
 - reordering items (drag-and-drop)
 - adding pads (`1..8` or drag pad buttons)
-- adding pause tokens (`P4`, `P8`, `P16`, `P32`)
+- adding pause tokens (`P1`, `P2`, `P4`, `P8`, `P16`)
 - removing items
 - ungrouping selected items back inline
 
@@ -168,7 +179,7 @@ While the sequencer is running, the pad looper highlights:
 Nested pad-sequence tokens are color-coded by hierarchy:
 
 - pads: green shades
-- pauses (`P4`, `P8`, `P16`, `P32`): cyan shades
+- pauses (`P1`, `P2`, `P4`, `P8`, `P16`): cyan shades
 - groups (`A`, `B`, `C`, ...): orange shades
 - super-groups (`I`, `II`, `III`, ...): violet shades
 

@@ -27,13 +27,15 @@ Each controller sequencer provides:
 - Running/stopped state badge
 - `Start` / `Stop` enable toggle
 - `Controller #` (`0..127`)
-- Curve rate selection (`8`, `16`, `32`, `64`)
+- `Meter` (`2..7` over `4` or `8`)
+- `Grid` (`2`, `4`, or `8`, steps per beat)
+- Curve length in beats (`1..8`, plus `16`)
 - CC label preview (`CC N`)
 - Curve editor
 
-### Curve Rate (`8/16/32/64`)
+### Curve Length (`1..8`, plus `16`, beats)
 
-This defines the repeat length for the curve sampling relative to transport steps and affects how quickly the curve cycles.
+This defines the repeat length for the curve sampling relative to that controller sequencer's own timing. Keypoints stay normalized across the full pad duration, so the same curve shape stretches automatically when you choose a longer beat length.
 
 ## Curve Editor Interactions
 

@@ -7,8 +7,11 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
 
-_PAUSE_STEP_COUNTS: tuple[int, ...] = (4, 8, 16, 32)
-_PAUSE_TOKENS: tuple[int, ...] = tuple(-step_count for step_count in _PAUSE_STEP_COUNTS)
+_PAUSE_BEAT_COUNTS: tuple[int, ...] = (1, 2, 4, 8, 16)
+_PAUSE_TOKENS: tuple[int, ...] = tuple(-beat_count for beat_count in _PAUSE_BEAT_COUNTS)
+_SEQUENCER_PAD_LENGTH_BEATS: tuple[int, ...] = (1, 2, 3, 4, 5, 6, 7, 8)
+
+SequencerPadLengthBeats = Literal[1, 2, 3, 4, 5, 6, 7, 8]
 
 
 def _is_valid_pad_loop_token(token: int) -> bool:
@@ -143,16 +146,28 @@ class SessionSequencerStepConfig(BaseModel):
 SequencerStepConfig = SequencerStepNotes | SessionSequencerStepConfig
 
 
+class SessionSequencerTimingConfig(BaseModel):
+    tempo_bpm: int = Field(default=120, ge=30, le=300)
+    meter_numerator: Literal[2, 3, 4, 5, 6, 7] = 4
+    meter_denominator: Literal[4, 8] = 4
+    steps_per_beat: Literal[2, 4, 8] = 4
+
+    @property
+    def steps_per_bar(self) -> int:
+        return self.meter_numerator * self.steps_per_beat
+
+
 class SessionSequencerPadConfig(BaseModel):
     pad_index: int = Field(ge=0, le=7)
-    step_count: Literal[4, 8, 16, 32] | None = None
-    steps: list[SequencerStepConfig] = Field(default_factory=list, max_length=32)
+    length_beats: SequencerPadLengthBeats | None = None
+    steps: list[SequencerStepConfig] = Field(default_factory=list, max_length=128)
 
 
 class SessionSequencerTrackConfig(BaseModel):
     track_id: str = Field(min_length=1, max_length=256)
     midi_channel: int = Field(default=1, ge=1, le=16)
-    step_count: Literal[4, 8, 16, 32] = 16
+    timing: SessionSequencerTimingConfig = Field(default_factory=SessionSequencerTimingConfig)
+    length_beats: SequencerPadLengthBeats = 4
     velocity: int = Field(default=100, ge=1, le=127)
     gate_ratio: float = Field(default=0.8, gt=0.0, le=1.0)
     sync_to_track_id: str | None = Field(default=None, min_length=1, max_length=256)
@@ -176,16 +191,16 @@ class SessionSequencerTrackConfig(BaseModel):
             if not _is_valid_pad_loop_token(token):
                 raise ValueError(
                     "pad_loop_sequence[{index}] must be a pad index 0..7 or a pause token "
-                    "-4/-8/-16/-32 in track '{track_id}'.".format(index=index, track_id=self.track_id)
+                    "-1/-2/-4/-8/-16 in track '{track_id}'.".format(index=index, track_id=self.track_id)
                 )
         return self
 
 
 class SessionSequencerConfigRequest(BaseModel):
-    bpm: int = Field(default=120, ge=30, le=300)
-    step_count: Literal[16, 32] = 16
+    timing: SessionSequencerTimingConfig = Field(default_factory=SessionSequencerTimingConfig)
+    step_count: int = Field(default=16, ge=1)
     playback_start_step: int = Field(default=0, ge=0)
-    playback_end_step: int = Field(default=16, ge=4)
+    playback_end_step: int = Field(default=16, ge=1)
     playback_loop: bool = False
     tracks: list[SessionSequencerTrackConfig] = Field(min_length=1, max_length=128)
 
@@ -222,7 +237,9 @@ class SessionSequencerQueuePadRequest(BaseModel):
 class SessionSequencerTrackStatus(BaseModel):
     track_id: str
     midi_channel: int
-    step_count: Literal[4, 8, 16, 32]
+    timing: SessionSequencerTimingConfig
+    length_beats: SequencerPadLengthBeats
+    step_count: int = Field(ge=1, le=128)
     local_step: int = Field(ge=0)
     active_pad: int = Field(ge=0, le=7)
     queued_pad: int | None = Field(default=None, ge=0, le=7)
@@ -235,8 +252,8 @@ class SessionSequencerTrackStatus(BaseModel):
 class SessionSequencerStatus(BaseModel):
     session_id: str
     running: bool
-    bpm: int = Field(ge=30, le=300)
-    step_count: Literal[16, 32]
+    timing: SessionSequencerTimingConfig
+    step_count: int = Field(ge=1)
     current_step: int = Field(ge=0)
     cycle: int = Field(ge=0)
     tracks: list[SessionSequencerTrackStatus] = Field(default_factory=list)
