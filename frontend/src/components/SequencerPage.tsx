@@ -34,12 +34,16 @@ import {
   parseSequencerScaleValue,
   sampleControllerCurveValue,
   scaleDegreeForNote,
+  SEQUENCER_BEAT_RATE_OPTIONS,
   SEQUENCER_MODE_OPTIONS,
   SEQUENCER_SCALE_OPTIONS,
   sequencerPadLengthBeatOptions,
   sequencerTransportStepCount,
+  sequencerTransportSubunitCount,
+  sequencerTransportSubunitDurationSeconds,
+  sequencerTransportSubunitsPerLocalStep,
+  sequencerTransportSubunitsPerStep,
   sequencerTransportStepsPerBeat,
-  sequencerTransportStepsPerLocalStep
 } from "../lib/sequencer";
 import { HelpIconButton } from "./HelpIconButton";
 import { MultitrackArranger } from "./MultitrackArranger";
@@ -175,6 +179,7 @@ type SequencerUiCopy = {
   bpm: string;
   meter: string;
   grid: string;
+  beatRate: string;
   beats: string;
   midiChannel: string;
   velocity: string;
@@ -349,6 +354,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     bpm: "BPM",
     meter: "Meter",
     grid: "Grid",
+    beatRate: "Beat Rate",
     beats: "Beats",
     midiChannel: "MIDI Channel",
     velocity: "Velocity",
@@ -477,6 +483,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     bpm: "BPM",
     meter: "Taktart",
     grid: "Raster",
+    beatRate: "Beat-Rate",
     beats: "Schlaege",
     midiChannel: "MIDI-Kanal",
     velocity: "Velocity",
@@ -605,6 +612,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     bpm: "BPM",
     meter: "Mesure",
     grid: "Grille",
+    beatRate: "Rapport rythmique",
     beats: "Temps",
     midiChannel: "Canal MIDI",
     velocity: "Velocite",
@@ -733,6 +741,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     bpm: "BPM",
     meter: "Compas",
     grid: "Cuadricula",
+    beatRate: "Relacion ritmica",
     beats: "Pulsos",
     midiChannel: "Canal MIDI",
     velocity: "Velocidad",
@@ -1647,11 +1656,8 @@ interface ControllerSequencerCurveEditorProps {
   controllerSequencer: ControllerSequencerState;
   playbackTransport:
     | {
-        playhead: number;
-        cycle: number;
-        stepCount: number;
-        tempoBPM: number;
-        stepsPerBeat: number;
+        transportSubunit: number;
+        transportSubunitDurationMs: number;
       }
     | null;
   onAddPoint: (position: number, value: number) => void;
@@ -1683,14 +1689,11 @@ const ControllerSequencerCurveEditor = memo(function ControllerSequencerCurveEdi
     | null
   >(null);
   const transportAnchorRef = useRef<{
-    playhead: number;
-    cycle: number;
-    stepCount: number;
-    tempoBPM: number;
-    stepsPerBeat: number;
+    transportSubunit: number;
+    transportSubunitDurationMs: number;
     timestampMs: number;
   } | null>(null);
-  const [playbackTransportStep, setPlaybackTransportStep] = useState<number>(0);
+  const [playbackTransportSubunit, setPlaybackTransportSubunit] = useState<number>(0);
 
   useEffect(() => {
     const svg = svgRef.current;
@@ -1722,22 +1725,16 @@ const ControllerSequencerCurveEditor = memo(function ControllerSequencerCurveEdi
       transportAnchorRef.current = null;
       return;
     }
-    const anchoredStep = Math.max(
+    const anchoredSubunit = Math.max(
       0,
-      Math.floor(playbackTransport.cycle) * Math.floor(playbackTransport.stepCount) + Math.floor(playbackTransport.playhead)
+      Math.floor(playbackTransport.transportSubunit)
     );
-    setPlaybackTransportStep((previous) => (previous === anchoredStep ? previous : anchoredStep));
+    setPlaybackTransportSubunit((previous) => (previous === anchoredSubunit ? previous : anchoredSubunit));
     transportAnchorRef.current = {
       ...playbackTransport,
       timestampMs: typeof performance !== "undefined" ? performance.now() : Date.now()
     };
-  }, [
-    playbackTransport?.tempoBPM,
-    playbackTransport?.cycle,
-    playbackTransport?.playhead,
-    playbackTransport?.stepCount,
-    playbackTransport?.stepsPerBeat
-  ]);
+  }, [playbackTransport?.transportSubunit, playbackTransport?.transportSubunitDurationMs]);
 
   useEffect(() => {
     if (!playbackTransport) {
@@ -1752,16 +1749,12 @@ const ControllerSequencerCurveEditor = memo(function ControllerSequencerCurveEdi
       }
       const anchor = transportAnchorRef.current;
       if (anchor) {
-        const stepDurationMs =
-          60000 /
-          Math.max(30, Math.min(300, Math.round(anchor.tempoBPM))) /
-          Math.max(1, Math.round(anchor.stepsPerBeat));
-        const elapsedSteps = Math.max(0, (now - anchor.timestampMs) / Math.max(1, stepDurationMs));
-        const absoluteStep = Math.max(
+        const elapsedSubunits = Math.max(
           0,
-          Math.floor(anchor.cycle) * Math.floor(anchor.stepCount) + Math.floor(anchor.playhead + elapsedSteps)
+          (now - anchor.timestampMs) / Math.max(0.001, anchor.transportSubunitDurationMs)
         );
-        setPlaybackTransportStep((previous) => (previous === absoluteStep ? previous : absoluteStep));
+        const absoluteSubunit = Math.max(0, Math.floor(anchor.transportSubunit + elapsedSubunits));
+        setPlaybackTransportSubunit((previous) => (previous === absoluteSubunit ? previous : absoluteSubunit));
       }
       rafId = window.requestAnimationFrame(frame);
     };
@@ -1777,14 +1770,24 @@ const ControllerSequencerCurveEditor = memo(function ControllerSequencerCurveEdi
     if (!playbackTransport) {
       return null;
     }
-    const repeatLength = Math.max(1, controllerSequencer.stepCount);
+    const repeatLength = Math.max(
+      1,
+      Math.round(sequencerTransportSubunitCount(controllerSequencer.timing, controllerSequencer.lengthBeats))
+    );
     const patternStartStep =
-      typeof controllerSequencer.runtimePadStartStep === "number" && Number.isFinite(controllerSequencer.runtimePadStartStep)
-        ? controllerSequencer.runtimePadStartStep
+      typeof controllerSequencer.runtimePadStartSubunit === "number" && Number.isFinite(controllerSequencer.runtimePadStartSubunit)
+        ? controllerSequencer.runtimePadStartSubunit
         : 0;
-    const normalized = (((playbackTransportStep - patternStartStep) % repeatLength) + repeatLength) % repeatLength;
+    const normalized =
+      (((playbackTransportSubunit - patternStartStep) % repeatLength) + repeatLength) % repeatLength;
     return clampControllerCurveUiPosition(normalized / repeatLength);
-  }, [controllerSequencer.runtimePadStartStep, controllerSequencer.stepCount, playbackTransport, playbackTransportStep]);
+  }, [
+    controllerSequencer.lengthBeats,
+    controllerSequencer.runtimePadStartSubunit,
+    controllerSequencer.timing,
+    playbackTransport,
+    playbackTransportSubunit
+  ]);
   const playbackValue =
     playbackT === null ? null : sampleControllerCurveValue(controllerSequencer.keypoints, playbackT);
 
@@ -2067,11 +2070,8 @@ function areControllerSequencerCurveEditorPropsEqual(
     previousPlayback === nextPlayback ||
     (previousPlayback !== null &&
       nextPlayback !== null &&
-      previousPlayback.playhead === nextPlayback.playhead &&
-      previousPlayback.cycle === nextPlayback.cycle &&
-      previousPlayback.stepCount === nextPlayback.stepCount &&
-      previousPlayback.tempoBPM === nextPlayback.tempoBPM &&
-      previousPlayback.stepsPerBeat === nextPlayback.stepsPerBeat);
+      previousPlayback.transportSubunit === nextPlayback.transportSubunit &&
+      previousPlayback.transportSubunitDurationMs === nextPlayback.transportSubunitDurationMs);
 
   return previous.ui === next.ui && previous.controllerSequencer === next.controllerSequencer && playbackEqual;
 }
@@ -2082,6 +2082,7 @@ interface SequencerPageProps {
   performances: PerformanceListItem[];
   instrumentBindings: SequencerInstrumentBinding[];
   sequencer: SequencerState;
+  sequencerTransportSubunit: number;
   currentPerformanceId: string | null;
   performanceName: string;
   performanceDescription: string;
@@ -2122,6 +2123,7 @@ interface SequencerPageProps {
   onSequencerTrackMeterNumeratorChange: (trackId: string, numerator: number) => void;
   onSequencerTrackMeterDenominatorChange: (trackId: string, denominator: number) => void;
   onSequencerTrackStepsPerBeatChange: (trackId: string, stepsPerBeat: number) => void;
+  onSequencerTrackBeatRateChange: (trackId: string, numerator: number, denominator: number) => void;
   onSequencerTrackStepCountChange: (trackId: string, count: number) => void;
   onSequencerTrackStepNoteChange: (trackId: string, index: number, note: number | null) => void;
   onSequencerTrackStepChordChange: (trackId: string, index: number, chord: SequencerChord) => void;
@@ -2150,6 +2152,7 @@ interface SequencerPageProps {
   onDrummerSequencerTrackMeterNumeratorChange: (trackId: string, numerator: number) => void;
   onDrummerSequencerTrackMeterDenominatorChange: (trackId: string, denominator: number) => void;
   onDrummerSequencerTrackStepsPerBeatChange: (trackId: string, stepsPerBeat: number) => void;
+  onDrummerSequencerTrackBeatRateChange: (trackId: string, numerator: number, denominator: number) => void;
   onDrummerSequencerTrackStepCountChange: (trackId: string, count: DrummerSequencerStepCount) => void;
   onDrummerSequencerRowAdd: (trackId: string) => void;
   onDrummerSequencerRowRemove: (trackId: string, rowId: string) => void;
@@ -2185,6 +2188,11 @@ interface SequencerPageProps {
   onControllerSequencerMeterNumeratorChange: (controllerSequencerId: string, numerator: number) => void;
   onControllerSequencerMeterDenominatorChange: (controllerSequencerId: string, denominator: number) => void;
   onControllerSequencerStepsPerBeatChange: (controllerSequencerId: string, stepsPerBeat: number) => void;
+  onControllerSequencerBeatRateChange: (
+    controllerSequencerId: string,
+    numerator: number,
+    denominator: number
+  ) => void;
   onControllerSequencerPadPress: (controllerSequencerId: string, padIndex: number) => void;
   onControllerSequencerPadCopy: (controllerSequencerId: string, sourcePadIndex: number, targetPadIndex: number) => void;
   onControllerSequencerClearSteps: (controllerSequencerId: string) => void;
@@ -2430,13 +2438,29 @@ function sequencerAbsoluteTransportStepValue(sequencer: Pick<SequencerState, "pl
 
 function localStepFromTransportPosition(
   track: Pick<SequencerTrackState, "timing" | "lengthBeats" | "stepCount"> | Pick<DrummerSequencerTrackState, "timing" | "lengthBeats" | "stepCount">,
-  absoluteTransportStep: number
+  absoluteTransportSubunit: number
 ): number {
   const boundedStepCount = Math.max(1, Math.round(track.stepCount));
-  const boundedTransportStepCount = Math.max(1, sequencerTransportStepCount(track.lengthBeats));
-  const transportOffset = Math.max(0, Math.floor(absoluteTransportStep)) % boundedTransportStepCount;
-  const transportStepsPerLocalStep = Math.max(1, sequencerTransportStepsPerLocalStep(track.timing));
-  return Math.min(boundedStepCount - 1, Math.floor(transportOffset / transportStepsPerLocalStep));
+  const boundedTransportSubunitCount = Math.max(
+    1,
+    Math.round(sequencerTransportSubunitCount(track.timing, track.lengthBeats))
+  );
+  const transportOffset = Math.max(0, Math.floor(absoluteTransportSubunit)) % boundedTransportSubunitCount;
+  const transportSubunitsPerLocalStep = Math.max(1, Math.round(sequencerTransportSubunitsPerLocalStep(track.timing)));
+  return Math.min(boundedStepCount - 1, Math.floor(transportOffset / transportSubunitsPerLocalStep));
+}
+
+function parseBeatRateValue(value: string): { numerator: number; denominator: number } | null {
+  const [rawNumerator, rawDenominator] = value.split(":");
+  const numerator = Number(rawNumerator);
+  const denominator = Number(rawDenominator);
+  if (!Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator <= 0) {
+    return null;
+  }
+  return {
+    numerator: Math.round(numerator),
+    denominator: Math.round(denominator)
+  };
 }
 
 interface RunningSequencerTheory {
@@ -3395,6 +3419,7 @@ export function SequencerPage({
   performances,
   instrumentBindings,
   sequencer,
+  sequencerTransportSubunit,
   currentPerformanceId,
   performanceName,
   performanceDescription,
@@ -3435,6 +3460,7 @@ export function SequencerPage({
   onSequencerTrackMeterNumeratorChange,
   onSequencerTrackMeterDenominatorChange,
   onSequencerTrackStepsPerBeatChange,
+  onSequencerTrackBeatRateChange,
   onSequencerTrackStepCountChange,
   onSequencerTrackStepNoteChange,
   onSequencerTrackStepChordChange,
@@ -3458,6 +3484,7 @@ export function SequencerPage({
   onDrummerSequencerTrackMeterNumeratorChange,
   onDrummerSequencerTrackMeterDenominatorChange,
   onDrummerSequencerTrackStepsPerBeatChange,
+  onDrummerSequencerTrackBeatRateChange,
   onDrummerSequencerTrackStepCountChange,
   onDrummerSequencerRowAdd,
   onDrummerSequencerRowRemove,
@@ -3493,6 +3520,7 @@ export function SequencerPage({
   onControllerSequencerMeterNumeratorChange,
   onControllerSequencerMeterDenominatorChange,
   onControllerSequencerStepsPerBeatChange,
+  onControllerSequencerBeatRateChange,
   onControllerSequencerPadPress,
   onControllerSequencerPadCopy,
   onControllerSequencerClearSteps,
@@ -4463,6 +4491,29 @@ export function SequencerPage({
                         </select>
                       </label>
 
+                      <label className="flex flex-col gap-1">
+                        <span className={controlLabelClass}>{ui.beatRate}</span>
+                        <select
+                          value={`${track.timing.beatRateNumerator}:${track.timing.beatRateDenominator}`}
+                          onChange={(event) => {
+                            const beatRate = parseBeatRateValue(event.target.value);
+                            if (beatRate) {
+                              onSequencerTrackBeatRateChange(track.id, beatRate.numerator, beatRate.denominator);
+                            }
+                          }}
+                          className={`${controlFieldClass} w-28`}
+                        >
+                          {SEQUENCER_BEAT_RATE_OPTIONS.map((option) => (
+                            <option
+                              key={`${track.id}-beat-rate-${option.label}`}
+                              value={`${option.numerator}:${option.denominator}`}
+                            >
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
                       <div className="flex flex-col gap-1">
                         <span className={controlLabelClass}>{ui.beats}</span>
                         <div className="inline-flex flex-wrap gap-1 rounded-lg border border-slate-600 bg-slate-950 p-1">
@@ -4627,11 +4678,13 @@ export function SequencerPage({
                       const noteValue = stepState?.note ?? null;
                       const holdActive = stepState?.hold === true;
                       const stepVelocity = stepState?.velocity ?? 127;
-                      const absoluteTransportStep = sequencerAbsoluteTransportStepValue(sequencer);
+                      const absoluteTransportSubunit = sequencer.isPlaying
+                        ? sequencerTransportSubunit
+                        : sequencerAbsoluteTransportStepValue(sequencer) * sequencerTransportSubunitsPerStep();
                       const localPlayhead =
                         typeof track.runtimeLocalStep === "number"
                           ? track.runtimeLocalStep % track.stepCount
-                          : localStepFromTransportPosition(track, absoluteTransportStep);
+                          : localStepFromTransportPosition(track, absoluteTransportSubunit);
                       const isActive = track.enabled && sequencer.isPlaying && localPlayhead === step;
                       const selectedNote = noteValue === null ? null : noteOptionsByNote.get(noteValue) ?? null;
                       const isInScale = selectedNote?.inScale ?? false;
@@ -4987,11 +5040,13 @@ export function SequencerPage({
               <div className="space-y-3">
                 {sequencer.drummerTracks.map((track, trackIndex) => {
                   const stepIndices = Array.from({ length: track.stepCount }, (_, index) => index);
-                  const absoluteTransportStep = sequencerAbsoluteTransportStepValue(sequencer);
+                  const absoluteTransportSubunit = sequencer.isPlaying
+                    ? sequencerTransportSubunit
+                    : sequencerAbsoluteTransportStepValue(sequencer) * sequencerTransportSubunitsPerStep();
                   const localPlayhead =
                     typeof track.runtimeLocalStep === "number"
                       ? track.runtimeLocalStep % track.stepCount
-                      : localStepFromTransportPosition(track, absoluteTransportStep);
+                      : localStepFromTransportPosition(track, absoluteTransportSubunit);
 
                   return (
                     <article
@@ -5101,6 +5156,33 @@ export function SequencerPage({
                             {[2, 4, 8].map((value) => (
                               <option key={`${track.id}-drum-steps-per-beat-${value}`} value={value}>
                                 {value}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+
+                        <label className="flex flex-col gap-1">
+                          <span className={controlLabelClass}>{ui.beatRate}</span>
+                          <select
+                            value={`${track.timing.beatRateNumerator}:${track.timing.beatRateDenominator}`}
+                            onChange={(event) => {
+                              const beatRate = parseBeatRateValue(event.target.value);
+                              if (beatRate) {
+                                onDrummerSequencerTrackBeatRateChange(
+                                  track.id,
+                                  beatRate.numerator,
+                                  beatRate.denominator
+                                );
+                              }
+                            }}
+                            className={`${controlFieldClass} w-28`}
+                          >
+                            {SEQUENCER_BEAT_RATE_OPTIONS.map((option) => (
+                              <option
+                                key={`${track.id}-drum-beat-rate-${option.label}`}
+                                value={`${option.numerator}:${option.denominator}`}
+                              >
+                                {option.label}
                               </option>
                             ))}
                           </select>
@@ -5492,6 +5574,33 @@ export function SequencerPage({
                         </select>
                       </label>
 
+                      <label className="flex flex-col gap-1">
+                        <span className={controlLabelClass}>{ui.beatRate}</span>
+                        <select
+                          value={`${controllerSequencer.timing.beatRateNumerator}:${controllerSequencer.timing.beatRateDenominator}`}
+                          onChange={(event) => {
+                            const beatRate = parseBeatRateValue(event.target.value);
+                            if (beatRate) {
+                              onControllerSequencerBeatRateChange(
+                                controllerSequencer.id,
+                                beatRate.numerator,
+                                beatRate.denominator
+                              );
+                            }
+                          }}
+                          className={`${controlFieldClass} w-28`}
+                        >
+                          {SEQUENCER_BEAT_RATE_OPTIONS.map((option) => (
+                            <option
+                              key={`${controllerSequencer.id}-beat-rate-${option.label}`}
+                              value={`${option.numerator}:${option.denominator}`}
+                            >
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
                       <div className="flex flex-col gap-1">
                         <span className={controlLabelClass}>{ui.beats}</span>
                         <div className="inline-flex flex-wrap gap-1 rounded-lg border border-slate-600 bg-slate-950 p-1">
@@ -5617,15 +5726,13 @@ export function SequencerPage({
                       controllerSequencer={controllerSequencer}
                       playbackTransport={
                         sequencer.isPlaying && controllerSequencer.enabled
-                            ? {
-                                playhead: sequencer.playhead,
-                                cycle: sequencer.cycle,
-                                stepCount: sequencer.stepCount,
-                                tempoBPM: sequencer.timing.tempoBPM,
-                                stepsPerBeat: sequencerTransportStepsPerBeat(sequencer.timing)
-                              }
-                            : null
-                        }
+                          ? {
+                              transportSubunit: sequencerTransportSubunit,
+                              transportSubunitDurationMs:
+                                sequencerTransportSubunitDurationSeconds(sequencer.timing) * 1000
+                            }
+                          : null
+                      }
                       onAddPoint={(position, value) =>
                         onControllerSequencerKeypointAdd(controllerSequencer.id, position, value)
                       }

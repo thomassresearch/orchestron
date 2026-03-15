@@ -29,6 +29,7 @@ Each controller sequencer provides:
 - `Controller #` (`0..127`)
 - `Meter` (`2..7` over `4` or `8`)
 - `Grid` (`2`, `4`, or `8`, steps per beat)
+- `Beat Rate` (`1:1`, `2:1`, `3:2`, `4:3`, `3:4`, `5:4`, `4:5`, `7:4`)
 - Curve length in beats (`1..8`, plus `16`)
 - CC label preview (`CC N`)
 - Curve editor
@@ -36,6 +37,8 @@ Each controller sequencer provides:
 ### Curve Length (`1..8`, plus `16`, beats)
 
 This defines the repeat length for the curve sampling relative to that controller sequencer's own timing. Keypoints stay normalized across the full pad duration, so the same curve shape stretches automatically when you choose a longer beat length.
+
+`Beat Rate` changes how quickly the controller sequencer moves through that curve relative to the shared transport. Faster ratios create repeating automation polyrhythms without changing the stored keypoint positions.
 
 ## Curve Editor Interactions
 

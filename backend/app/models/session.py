@@ -10,6 +10,16 @@ from pydantic import BaseModel, Field, model_validator
 _PAUSE_BEAT_COUNTS: tuple[int, ...] = (1, 2, 4, 8, 16)
 _PAUSE_TOKENS: tuple[int, ...] = tuple(-beat_count for beat_count in _PAUSE_BEAT_COUNTS)
 _SEQUENCER_PAD_LENGTH_BEATS: tuple[int, ...] = (1, 2, 3, 4, 5, 6, 7, 8)
+_SEQUENCER_BEAT_RATE_OPTIONS: tuple[tuple[int, int], ...] = (
+    (1, 1),
+    (2, 1),
+    (3, 2),
+    (4, 3),
+    (3, 4),
+    (5, 4),
+    (4, 5),
+    (7, 4),
+)
 
 SequencerPadLengthBeats = Literal[1, 2, 3, 4, 5, 6, 7, 8]
 
@@ -151,6 +161,18 @@ class SessionSequencerTimingConfig(BaseModel):
     meter_numerator: Literal[2, 3, 4, 5, 6, 7] = 4
     meter_denominator: Literal[4, 8] = 4
     steps_per_beat: Literal[2, 4, 8] = 4
+    beat_rate_numerator: int = Field(default=1, ge=1)
+    beat_rate_denominator: int = Field(default=1, ge=1)
+
+    @model_validator(mode="after")
+    def validate_beat_rate(self) -> "SessionSequencerTimingConfig":
+        if (self.beat_rate_numerator, self.beat_rate_denominator) not in _SEQUENCER_BEAT_RATE_OPTIONS:
+            raise ValueError(
+                "beat_rate must be one of "
+                + ", ".join(f"{numerator}:{denominator}" for numerator, denominator in _SEQUENCER_BEAT_RATE_OPTIONS)
+                + "."
+            )
+        return self
 
     @property
     def steps_per_bar(self) -> int:
@@ -256,6 +278,7 @@ class SessionSequencerStatus(BaseModel):
     step_count: int = Field(ge=1)
     current_step: int = Field(ge=0)
     cycle: int = Field(ge=0)
+    transport_subunit: int = Field(ge=0)
     tracks: list[SessionSequencerTrackStatus] = Field(default_factory=list)
 
 

@@ -34,6 +34,7 @@ Each track card provides:
 - `Mode` (Ionian, Dorian, Phrygian, Lydian, Mixolydian, Aeolian, Locrian)
 - `Meter` (`2..7` over `4` or `8`)
 - `Grid` (`2`, `4`, or `8`, steps per beat)
+- `Beat Rate` (`1:1`, `2:1`, `3:2`, `4:3`, `3:4`, `5:4`, `4:5`, `7:4`)
 - `Beats` (`1..8`, with the current meter numerator exposed directly)
 
 The step editor width is derived from the track's own timing and length:
@@ -42,6 +43,14 @@ The step editor width is derived from the track's own timing and length:
 - pad steps = `beats * steps per beat`
 - default timing (`4/4`, grid `4`) gives `16` steps for a `4`-beat pad
 - odd meters can still use matching one-bar pad lengths such as `3` beats in `3/4` or `5` beats in `5/4`
+
+`Beat Rate` changes how quickly the track advances relative to the shared transport beat:
+
+- `1:1` keeps normal speed
+- ratios above `1:1` make the track run faster
+- ratios below `1:1` make the track run slower
+
+This is separate from `Meter` and `Grid`, so you can combine polymeter and true polyrhythm on the same performance page.
 
 ### Queued Start/Stop State Labels
 

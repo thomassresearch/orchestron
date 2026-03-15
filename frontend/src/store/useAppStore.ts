@@ -21,6 +21,7 @@ import {
   clampControllerCurvePosition,
   clampControllerCurveValue,
   clampControllerSequencerPadLengthBeats,
+  normalizeSequencerBeatRate,
   clampSequencerMeterDenominator,
   clampSequencerMeterNumerator,
   clampSequencerPadLengthBeats,
@@ -38,6 +39,7 @@ import {
   resolveDiatonicSequencerChordVariant,
   sequencerPadStepCount,
   sequencerTransportStepCount,
+  sequencerTransportSubunitsPerStep,
   sequencerTransportStepsPerBeat,
   transposeSequencerNoteByScaleDegree,
   transposeSequencerTonicByDiatonicStep
@@ -180,6 +182,7 @@ interface AppStore {
   setSequencerTrackMeterNumerator: (trackId: string, numerator: number) => void;
   setSequencerTrackMeterDenominator: (trackId: string, denominator: number) => void;
   setSequencerTrackStepsPerBeat: (trackId: string, stepsPerBeat: number) => void;
+  setSequencerTrackBeatRate: (trackId: string, numerator: number, denominator: number) => void;
   setSequencerTrackStepCount: (trackId: string, stepCount: number) => void;
   setSequencerTrackStepNote: (trackId: string, index: number, note: number | null) => void;
   setSequencerTrackStepChord: (trackId: string, index: number, chord: SequencerChord) => void;
@@ -211,6 +214,7 @@ interface AppStore {
   setDrummerSequencerTrackMeterNumerator: (trackId: string, numerator: number) => void;
   setDrummerSequencerTrackMeterDenominator: (trackId: string, denominator: number) => void;
   setDrummerSequencerTrackStepsPerBeat: (trackId: string, stepsPerBeat: number) => void;
+  setDrummerSequencerTrackBeatRate: (trackId: string, numerator: number, denominator: number) => void;
   setDrummerSequencerTrackStepCount: (trackId: string, stepCount: DrummerSequencerStepCount) => void;
   addDrummerSequencerRow: (trackId: string) => void;
   removeDrummerSequencerRow: (trackId: string, rowId: string) => void;
@@ -260,6 +264,7 @@ interface AppStore {
   setControllerSequencerMeterNumerator: (controllerSequencerId: string, numerator: number) => void;
   setControllerSequencerMeterDenominator: (controllerSequencerId: string, denominator: number) => void;
   setControllerSequencerStepsPerBeat: (controllerSequencerId: string, stepsPerBeat: number) => void;
+  setControllerSequencerBeatRate: (controllerSequencerId: string, numerator: number, denominator: number) => void;
   setControllerSequencerStepCount: (controllerSequencerId: string, stepCount: number) => void;
   addControllerSequencerKeypoint: (controllerSequencerId: string, position: number, value: number) => void;
   setControllerSequencerKeypoint: (
@@ -280,7 +285,7 @@ interface AppStore {
       activePad?: number;
       queuedPad?: number | null;
       padLoopPosition?: number | null;
-      runtimePadStartStep?: number | null;
+      runtimePadStartSubunit?: number | null;
       enabled?: boolean;
     }>
   ) => void;
@@ -295,6 +300,7 @@ interface AppStore {
     transportStepCount?: number;
     playhead?: number;
     cycle?: number;
+    transportSubunit?: number;
     tracks?: Array<{
       trackId: string;
       stepCount?: number;
@@ -496,7 +502,9 @@ function normalizeSequencerInstanceTiming(
       tempoBPM: raw.tempoBPM ?? raw.tempo_bpm ?? fallback.tempoBPM,
       meterNumerator: raw.meterNumerator ?? raw.meter_numerator ?? fallback.meterNumerator,
       meterDenominator: raw.meterDenominator ?? raw.meter_denominator ?? fallback.meterDenominator,
-      stepsPerBeat: raw.stepsPerBeat ?? raw.steps_per_beat ?? fallback.stepsPerBeat
+      stepsPerBeat: raw.stepsPerBeat ?? raw.steps_per_beat ?? fallback.stepsPerBeat,
+      beatRateNumerator: raw.beatRateNumerator ?? raw.beat_rate_numerator ?? fallback.beatRateNumerator,
+      beatRateDenominator: raw.beatRateDenominator ?? raw.beat_rate_denominator ?? fallback.beatRateDenominator
     }
   );
 }
@@ -1134,7 +1142,7 @@ function defaultControllerSequencer(
     padLoopSequence: [],
     padLoopPattern: createEmptyPadLoopPattern(),
     pads,
-    runtimePadStartStep: null,
+    runtimePadStartSubunit: null,
     enabled: false,
     keypoints: normalizeControllerCurveKeypoints(activePadState.keypoints)
   };
@@ -1215,10 +1223,10 @@ function normalizeControllerSequencerState(
   }
 
   const activePadState = pads[activePad] ?? pads[0] ?? defaultControllerSequencerPad(lengthBeats, controllerTiming);
-  const runtimePadStartStepRaw = controllerSequencer.runtimePadStartStep ?? controllerSequencer.runtime_pad_start_step;
-  const runtimePadStartStep =
-    typeof runtimePadStartStepRaw === "number" && Number.isFinite(runtimePadStartStepRaw)
-      ? runtimePadStartStepRaw
+  const runtimePadStartSubunitRaw = controllerSequencer.runtimePadStartSubunit ?? controllerSequencer.runtime_pad_start_subunit;
+  const runtimePadStartSubunit =
+    typeof runtimePadStartSubunitRaw === "number" && Number.isFinite(runtimePadStartSubunitRaw)
+      ? runtimePadStartSubunitRaw
       : null;
 
   return {
@@ -1236,7 +1244,7 @@ function normalizeControllerSequencerState(
     padLoopSequence,
     padLoopPattern,
     pads: pads.map((pad) => cloneControllerSequencerPad(pad)),
-    runtimePadStartStep,
+    runtimePadStartSubunit,
     enabled,
     keypoints: normalizeControllerCurveKeypoints(activePadState.keypoints)
   };
@@ -1276,11 +1284,11 @@ function sequencerRuntimeStateFromSequencer(sequencer: SequencerState): Sequence
         : null;
   }
 
-  const controllerRuntimePadStartStepById: Record<string, number | null> = {};
+  const controllerRuntimePadStartSubunitById: Record<string, number | null> = {};
   for (const controllerSequencer of sequencer.controllerSequencers) {
-    controllerRuntimePadStartStepById[controllerSequencer.id] =
-      typeof controllerSequencer.runtimePadStartStep === "number" && Number.isFinite(controllerSequencer.runtimePadStartStep)
-        ? Math.max(0, Math.floor(controllerSequencer.runtimePadStartStep))
+    controllerRuntimePadStartSubunitById[controllerSequencer.id] =
+      typeof controllerSequencer.runtimePadStartSubunit === "number" && Number.isFinite(controllerSequencer.runtimePadStartSubunit)
+        ? Math.max(0, Math.floor(controllerSequencer.runtimePadStartSubunit))
         : null;
   }
 
@@ -1290,9 +1298,12 @@ function sequencerRuntimeStateFromSequencer(sequencer: SequencerState): Sequence
     stepCount,
     playhead: Math.max(0, Math.round(sequencer.playhead)) % stepCount,
     cycle: Math.max(0, Math.round(sequencer.cycle)),
+    transportSubunit:
+      Math.max(0, Math.round(sequencer.cycle)) * stepCount * sequencerTransportSubunitsPerStep() +
+      (Math.max(0, Math.round(sequencer.playhead)) % stepCount) * sequencerTransportSubunitsPerStep(),
     trackLocalStepById,
     drummerTrackLocalStepById,
-    controllerRuntimePadStartStepById
+    controllerRuntimePadStartSubunitById
   };
 }
 
@@ -2158,7 +2169,7 @@ function sequencerSnapshotForPersistence(sequencer: SequencerState): SequencerSt
       ...controllerSequencer,
       queuedPad: null,
       padLoopPosition: null,
-      runtimePadStartStep: null,
+      runtimePadStartSubunit: null,
       pads: controllerSequencer.pads.map((pad) => cloneControllerSequencerPad(pad)),
       keypoints: normalizeControllerCurveKeypoints(controllerSequencer.keypoints)
     }))
@@ -2545,7 +2556,7 @@ function buildSequencerConfigSnapshot(
     timing
   );
   return {
-    version: 6,
+    version: 7,
     instruments: instruments
       .filter((instrument) => instrument.patchId.length > 0)
       .map((instrument) => ({
@@ -2720,7 +2731,8 @@ function parseSequencerConfigSnapshot(
     payload.version !== 3 &&
     payload.version !== 4 &&
     payload.version !== 5 &&
-    payload.version !== 6
+    payload.version !== 6 &&
+    payload.version !== 7
   ) {
     throw new Error("Unsupported sequencer config version.");
   }
@@ -3775,6 +3787,24 @@ export const useAppStore = create<AppStore>((set, get) => {
       });
     },
 
+    setSequencerTrackBeatRate: (trackId, numerator, denominator) => {
+      const sequencer = get().sequencer;
+      const beatRate = normalizeSequencerBeatRate(numerator, denominator);
+      set({
+        sequencer: {
+          ...sequencer,
+          tracks: sequencer.tracks.map((track) =>
+            track.id === trackId
+              ? updateSequencerTrackTimingState(track, {
+                  beatRateNumerator: beatRate.numerator,
+                  beatRateDenominator: beatRate.denominator
+                })
+              : track
+          )
+        }
+      });
+    },
+
     setSequencerTrackStepCount: (trackId, stepCount) => {
       const sequencer = get().sequencer;
       const normalizedLengthBeats = normalizeSequencerPadLengthBeats(stepCount);
@@ -4547,6 +4577,24 @@ export const useAppStore = create<AppStore>((set, get) => {
       });
     },
 
+    setDrummerSequencerTrackBeatRate: (trackId, numerator, denominator) => {
+      const sequencer = get().sequencer;
+      const beatRate = normalizeSequencerBeatRate(numerator, denominator);
+      set({
+        sequencer: {
+          ...sequencer,
+          drummerTracks: sequencer.drummerTracks.map((track) =>
+            track.id === trackId
+              ? updateDrummerTrackTimingState(track, {
+                  beatRateNumerator: beatRate.numerator,
+                  beatRateDenominator: beatRate.denominator
+                })
+              : track
+          )
+        }
+      });
+    },
+
     setDrummerSequencerTrackStepCount: (trackId, stepCount) => {
       const sequencer = get().sequencer;
       const normalizedLengthBeats = normalizeSequencerPadLengthBeats(stepCount);
@@ -5215,7 +5263,7 @@ export const useAppStore = create<AppStore>((set, get) => {
     setControllerSequencerEnabled: (controllerSequencerId, enabled) => {
       const sequencer = get().sequencer;
       const runtimeState = get().sequencerRuntime;
-      const controllerRuntime = runtimeState.controllerRuntimePadStartStepById;
+      const controllerRuntime = runtimeState.controllerRuntimePadStartSubunitById;
       const nextEnabled = enabled === true;
       const currentController =
         sequencer.controllerSequencers.find((controllerSequencer) => controllerSequencer.id === controllerSequencerId) ??
@@ -5239,7 +5287,7 @@ export const useAppStore = create<AppStore>((set, get) => {
         },
         sequencerRuntime: {
           ...runtimeState,
-          controllerRuntimePadStartStepById: {
+          controllerRuntimePadStartSubunitById: {
             ...controllerRuntime,
             [controllerSequencerId]:
               !nextEnabled || runtimeResetRequired ? null : (controllerRuntime[controllerSequencerId] ?? null)
@@ -5544,6 +5592,24 @@ export const useAppStore = create<AppStore>((set, get) => {
       });
     },
 
+    setControllerSequencerBeatRate: (controllerSequencerId, numerator, denominator) => {
+      const sequencer = get().sequencer;
+      const beatRate = normalizeSequencerBeatRate(numerator, denominator);
+      set({
+        sequencer: {
+          ...sequencer,
+          controllerSequencers: sequencer.controllerSequencers.map((controllerSequencer) =>
+            controllerSequencer.id === controllerSequencerId
+              ? updateControllerSequencerTimingState(controllerSequencer, {
+                  beatRateNumerator: beatRate.numerator,
+                  beatRateDenominator: beatRate.denominator
+                })
+              : controllerSequencer
+          )
+        }
+      });
+    },
+
     setControllerSequencerStepCount: (controllerSequencerId, stepCount) => {
       const sequencer = get().sequencer;
       const normalizedLengthBeats = normalizeControllerSequencerLengthBeats(stepCount);
@@ -5752,7 +5818,7 @@ export const useAppStore = create<AppStore>((set, get) => {
       if (byId.size === 0) {
         return;
       }
-      const nextControllerRuntimePadStartStepById = { ...sequencerRuntime.controllerRuntimePadStartStepById };
+      const nextControllerRuntimePadStartSubunitById = { ...sequencerRuntime.controllerRuntimePadStartSubunitById };
       let runtimeChanged = false;
       let controllerSequencersChanged = false;
       const nextControllerSequencers = sequencer.controllerSequencers.map((controllerSequencer) => {
@@ -5786,16 +5852,19 @@ export const useAppStore = create<AppStore>((set, get) => {
         const nextKeypoints = normalizeControllerCurveKeypoints(selectedPad.keypoints);
 
         const runtimeCandidate =
-          update.runtimePadStartStep === undefined
-            ? sequencerRuntime.controllerRuntimePadStartStepById[controllerSequencer.id] ?? null
-            : update.runtimePadStartStep;
-        const normalizedRuntimePadStartStep =
+          update.runtimePadStartSubunit === undefined
+            ? sequencerRuntime.controllerRuntimePadStartSubunitById[controllerSequencer.id] ?? null
+            : update.runtimePadStartSubunit;
+        const normalizedRuntimePadStartSubunit =
           typeof runtimeCandidate === "number" && Number.isFinite(runtimeCandidate)
             ? Math.max(0, Math.floor(runtimeCandidate))
             : null;
-        const nextRuntimePadStartStep = nextEnabled ? normalizedRuntimePadStartStep : null;
-        if ((nextControllerRuntimePadStartStepById[controllerSequencer.id] ?? null) !== nextRuntimePadStartStep) {
-          nextControllerRuntimePadStartStepById[controllerSequencer.id] = nextRuntimePadStartStep;
+        const nextRuntimePadStartSubunit = nextEnabled ? normalizedRuntimePadStartSubunit : null;
+        if (
+          (nextControllerRuntimePadStartSubunitById[controllerSequencer.id] ?? null) !==
+          nextRuntimePadStartSubunit
+        ) {
+          nextControllerRuntimePadStartSubunitById[controllerSequencer.id] = nextRuntimePadStartSubunit;
           runtimeChanged = true;
         }
 
@@ -5840,7 +5909,7 @@ export const useAppStore = create<AppStore>((set, get) => {
           ? {
               sequencerRuntime: {
                 ...sequencerRuntime,
-                controllerRuntimePadStartStepById: nextControllerRuntimePadStartStepById
+                controllerRuntimePadStartSubunitById: nextControllerRuntimePadStartSubunitById
               }
             }
           : {})
@@ -5928,7 +5997,7 @@ export const useAppStore = create<AppStore>((set, get) => {
       const nextControllerRuntimePadStartStepById: Record<string, number | null> = {};
       for (const controllerSequencer of sequencer.controllerSequencers) {
         nextControllerRuntimePadStartStepById[controllerSequencer.id] = isPlaying
-          ? (sequencerRuntime.controllerRuntimePadStartStepById[controllerSequencer.id] ?? null)
+          ? (sequencerRuntime.controllerRuntimePadStartSubunitById[controllerSequencer.id] ?? null)
           : null;
       }
       set({
@@ -5958,7 +6027,7 @@ export const useAppStore = create<AppStore>((set, get) => {
           isPlaying: isPlaying === true,
           trackLocalStepById: nextTrackLocalStepById,
           drummerTrackLocalStepById: nextDrummerTrackLocalStepById,
-          controllerRuntimePadStartStepById: nextControllerRuntimePadStartStepById
+          controllerRuntimePadStartSubunitById: nextControllerRuntimePadStartStepById
         }
       });
     },
@@ -5970,7 +6039,10 @@ export const useAppStore = create<AppStore>((set, get) => {
       set({
         sequencerRuntime: {
           ...sequencerRuntime,
-          playhead: normalizedPlayhead
+          playhead: normalizedPlayhead,
+          transportSubunit:
+            Math.max(0, Math.round(sequencerRuntime.cycle)) * boundedStepCount * sequencerTransportSubunitsPerStep() +
+            normalizedPlayhead * sequencerTransportSubunitsPerStep()
         }
       });
     },
@@ -5984,12 +6056,13 @@ export const useAppStore = create<AppStore>((set, get) => {
         sequencerRuntime: {
           ...sequencerRuntime,
           playhead,
-          cycle
+          cycle,
+          transportSubunit: normalizedStep * sequencerTransportSubunitsPerStep()
         }
       });
     },
 
-    syncSequencerRuntime: ({ isPlaying, transportStepCount, playhead, cycle, tracks, drummerTracks }) => {
+    syncSequencerRuntime: ({ isPlaying, transportStepCount, playhead, cycle, transportSubunit, tracks, drummerTracks }) => {
       const sequencer = get().sequencer;
       const sequencerRuntime = get().sequencerRuntime;
       const nextIsPlaying = isPlaying === true;
@@ -5998,6 +6071,12 @@ export const useAppStore = create<AppStore>((set, get) => {
         playhead === undefined
           ? sequencerRuntime.playhead
           : ((Math.round(playhead) % boundedStepCount) + boundedStepCount) % boundedStepCount;
+      const normalizedCycle = cycle === undefined ? sequencerRuntime.cycle : Math.max(0, Math.round(cycle));
+      const nextTransportSubunit =
+        transportSubunit === undefined
+          ? normalizedCycle * boundedStepCount * sequencerTransportSubunitsPerStep() +
+            normalizedPlayhead * sequencerTransportSubunitsPerStep()
+          : Math.max(0, Math.floor(transportSubunit));
       const trackPayload = new Map((tracks ?? []).map((track) => [track.trackId, track]));
       const drummerTrackPayload = new Map((drummerTracks ?? []).map((track) => [track.trackId, track]));
       let sequencerChanged = sequencer.isPlaying !== nextIsPlaying;
@@ -6214,7 +6293,7 @@ export const useAppStore = create<AppStore>((set, get) => {
       const nextControllerRuntimePadStartStepById: Record<string, number | null> = {};
       for (const controllerSequencer of nextControllerSequencers) {
         nextControllerRuntimePadStartStepById[controllerSequencer.id] = nextIsPlaying
-          ? (sequencerRuntime.controllerRuntimePadStartStepById[controllerSequencer.id] ?? null)
+          ? (sequencerRuntime.controllerRuntimePadStartSubunitById[controllerSequencer.id] ?? null)
           : null;
       }
 
@@ -6234,11 +6313,12 @@ export const useAppStore = create<AppStore>((set, get) => {
           ...sequencerRuntime,
           isPlaying: nextIsPlaying,
           stepCount: boundedStepCount,
-          cycle: cycle === undefined ? sequencerRuntime.cycle : Math.max(0, Math.round(cycle)),
+          cycle: normalizedCycle,
           playhead: normalizedPlayhead,
+          transportSubunit: nextTransportSubunit,
           trackLocalStepById: nextTrackLocalStepById,
           drummerTrackLocalStepById: nextDrummerTrackLocalStepById,
-          controllerRuntimePadStartStepById: nextControllerRuntimePadStartStepById
+          controllerRuntimePadStartSubunitById: nextControllerRuntimePadStartStepById
         }
       });
     },

@@ -129,6 +129,8 @@ export interface SequencerStepState {
 export type SequencerMeterNumerator = 2 | 3 | 4 | 5 | 6 | 7;
 export type SequencerMeterDenominator = 4 | 8;
 export type SequencerStepsPerBeat = 2 | 4 | 8;
+export type SequencerBeatRateNumerator = 1 | 2 | 3 | 4 | 5 | 7;
+export type SequencerBeatRateDenominator = 1 | 2 | 3 | 4 | 5;
 export type SequencerPadLengthBeats = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 export type ControllerSequencerPadLengthBeats = SequencerPadLengthBeats | 16;
 export type PadLoopPauseBeatCount = 1 | 2 | 4 | 8 | 16;
@@ -140,6 +142,8 @@ export interface SequencerTimingConfig {
   meterNumerator: SequencerMeterNumerator;
   meterDenominator: SequencerMeterDenominator;
   stepsPerBeat: SequencerStepsPerBeat;
+  beatRateNumerator: SequencerBeatRateNumerator;
+  beatRateDenominator: SequencerBeatRateDenominator;
 }
 
 export interface DrummerSequencerCellState {
@@ -298,7 +302,7 @@ export interface ControllerSequencerState {
   padLoopSequence: number[];
   padLoopPattern: PadLoopPatternState;
   pads: ControllerSequencerPadState[];
-  runtimePadStartStep: number | null;
+  runtimePadStartSubunit: number | null;
   enabled: boolean;
   keypoints: ControllerSequencerKeypoint[];
 }
@@ -327,9 +331,10 @@ export interface SequencerRuntimeState {
   stepCount: number;
   playhead: number;
   cycle: number;
+  transportSubunit: number;
   trackLocalStepById: Record<string, number | null>;
   drummerTrackLocalStepById: Record<string, number | null>;
-  controllerRuntimePadStartStepById: Record<string, number | null>;
+  controllerRuntimePadStartSubunitById: Record<string, number | null>;
 }
 
 export interface SessionInstrumentAssignment {
@@ -345,7 +350,7 @@ export interface SequencerInstrumentBinding {
 }
 
 export interface SequencerConfigSnapshot {
-  version: 1 | 2 | 3 | 4 | 5 | 6;
+  version: 1 | 2 | 3 | 4 | 5 | 6 | 7;
   instruments: Array<{
     patchId: string;
     patchName?: string;
@@ -523,6 +528,8 @@ export interface SessionSequencerTimingConfig {
   meter_numerator: SequencerMeterNumerator;
   meter_denominator: SequencerMeterDenominator;
   steps_per_beat: SequencerStepsPerBeat;
+  beat_rate_numerator: SequencerBeatRateNumerator;
+  beat_rate_denominator: SequencerBeatRateDenominator;
 }
 
 export interface SessionSequencerPadConfig {
@@ -589,6 +596,7 @@ export interface SessionSequencerStatus {
   step_count: number;
   current_step: number;
   cycle: number;
+  transport_subunit: number;
   tracks: SessionSequencerTrackStatus[];
 }
 

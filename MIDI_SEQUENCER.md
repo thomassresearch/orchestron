@@ -145,6 +145,7 @@ Core behavior:
 - Shared horizontal timeline on a 4-step grid
 - Zoom and horizontal scroll
 - Cross-row visual playhead (orange vertical bar) during playback
+- Per-sequencer beat-rate ratios are resolved in a finer hidden transport subdivision, so runtime polyrhythms stay exact even though the arranger display stays beat-grid aligned
 
 Token types:
 
@@ -250,12 +251,13 @@ Direct MIDI endpoint (manual notes + CC + controller sequencer output):
 - `POST /api/sessions/{sessionId}/midi-event`
 
 ## 11. Snapshot/Persistence Format
-Sequencer/performance config snapshot version is currently `4`.
+Sequencer/performance config snapshot version is currently `7`.
 
 Snapshot includes:
 
 - instrument assignments
 - melodic/drummer/controller sequencers
+- per-sequencer meter, grid, and beat-rate ratio timing
 - piano rolls
 - manual MIDI controllers
 - pad loop pattern data (and compatibility with legacy sequence fields)

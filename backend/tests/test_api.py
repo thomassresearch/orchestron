@@ -39,12 +39,16 @@ def _sequencer_timing(
     meter_numerator: int = 4,
     meter_denominator: int = 4,
     steps_per_beat: int = 4,
+    beat_rate_numerator: int = 1,
+    beat_rate_denominator: int = 1,
 ) -> dict[str, int]:
     return {
         "tempo_bpm": tempo_bpm,
         "meter_numerator": meter_numerator,
         "meter_denominator": meter_denominator,
         "steps_per_beat": steps_per_beat,
+        "beat_rate_numerator": beat_rate_numerator,
+        "beat_rate_denominator": beat_rate_denominator,
     }
 
 
@@ -1375,6 +1379,90 @@ def test_session_backend_sequencer_three_four_timing_updates_transport_status(tm
         assert forward_response.status_code == 200
         forward_absolute_step = forward_response.json()["cycle"] * forward_response.json()["step_count"] + forward_response.json()["current_step"]
         assert forward_absolute_step == 8
+
+
+def test_session_backend_sequencer_polyrhythm_beat_rate_advances_local_step_between_transport_steps(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        patch_payload = {
+            "name": "Sequencer Polyrhythm Patch",
+            "description": "beat-rate ratio timing test",
+            "schema_version": 1,
+            "graph": {
+                "nodes": [
+                    {"id": "n1", "opcode": "const_a", "params": {"value": 0.2}, "position": {"x": 50, "y": 50}},
+                    {"id": "n2", "opcode": "outs", "params": {}, "position": {"x": 240, "y": 50}},
+                ],
+                "connections": [
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "left"},
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "right"},
+                ],
+                "ui_layout": {},
+                "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+            },
+        }
+
+        patch_response = client.post("/api/patches", json=patch_payload)
+        assert patch_response.status_code == 201
+        session_response = client.post("/api/sessions", json={"patch_id": patch_response.json()["id"]})
+        assert session_response.status_code == 201
+        session_id = session_response.json()["session_id"]
+
+        start_response = client.post(
+            f"/api/sessions/{session_id}/sequencer/start",
+            json={
+                "config": _sequencer_config(
+                    [
+                        {
+                            "track_id": "voice-1",
+                            "midi_channel": 1,
+                            "timing": _sequencer_timing(
+                                tempo_bpm=120,
+                                meter_numerator=4,
+                                meter_denominator=4,
+                                steps_per_beat=4,
+                                beat_rate_numerator=3,
+                                beat_rate_denominator=2,
+                            ),
+                            "length_beats": 1,
+                            "pads": [{"pad_index": 0, "length_beats": 1, "steps": [60, None, None, None]}],
+                        }
+                    ],
+                    tempo_bpm=120,
+                )
+            },
+        )
+        assert start_response.status_code == 200
+        started = start_response.json()
+        assert started["transport_subunit"] == 0
+        assert started["tracks"][0]["timing"] == _sequencer_timing(
+            tempo_bpm=120,
+            meter_numerator=4,
+            meter_denominator=4,
+            steps_per_beat=4,
+            beat_rate_numerator=3,
+            beat_rate_denominator=2,
+        )
+
+        target_status: dict[str, object] | None = None
+        deadline = time.time() + 0.75
+        while time.time() < deadline:
+            status_response = client.get(f"/api/sessions/{session_id}/sequencer/status")
+            assert status_response.status_code == 200
+            status = status_response.json()
+            transport_subunit = int(status["transport_subunit"])
+            if 560 <= transport_subunit < 840:
+                target_status = status
+                break
+            time.sleep(0.005)
+
+        assert target_status is not None, "Expected to observe the 3:2 local-step window before transport step 2."
+        assert target_status["current_step"] == 1
+        assert target_status["tracks"][0]["local_step"] == 1
+        assert target_status["transport_subunit"] < 840
+
+        stop_response = client.post(f"/api/sessions/{session_id}/sequencer/stop")
+        assert stop_response.status_code == 200
+
 
 def test_session_backend_sequencer_accepts_meter_aligned_three_beat_pad_lengths(tmp_path: Path) -> None:
     with _client(tmp_path) as client:

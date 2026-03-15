@@ -33,6 +33,7 @@ Each drummer sequencer card provides:
 - `MIDI Channel` (`1..16`)
 - `Meter` (`2..7` over `4` or `8`)
 - `Grid` (`2`, `4`, or `8`, steps per beat)
+- `Beat Rate` (`1:1`, `2:1`, `3:2`, `4:3`, `3:4`, `5:4`, `4:5`, `7:4`)
 - `Beats` (`1..8`, with the current meter numerator exposed directly)
 - Pad Looper controls (same concept as melodic sequencers)
 
@@ -86,9 +87,9 @@ The LED border color stays visible even at low velocities, so low-velocity activ
 
 Drummer sequencers support the same `P1..P8` pattern-pad workflow and queued pad switching as melodic sequencer tracks.
 
-Drummer pad length is stored in beats, while meter and grid are configured per drummer sequencer.
+Drummer pad length is stored in beats, while meter, grid, and beat rate are configured per drummer sequencer.
 
-This keeps drummer pads beat-based while still allowing one-bar patterns in odd meters such as `3/4`, `5/4`, or `7/8` by matching the pad beat count to the meter.
+This keeps drummer pads beat-based while still allowing one-bar patterns in odd meters such as `3/4`, `5/4`, or `7/8` by matching the pad beat count to the meter, while `Beat Rate` changes how fast the row pattern cycles against the shared transport.
 
 They also support pad-loop sequences (`Pad Looper`, `Repeat`, pad sequence list).
 
