@@ -910,6 +910,19 @@ const HELP_DOC_COMMON_APPENDIX: Record<GuiLanguage, string> = {
 | vista ORC / eventos | Diagnóstico y feedback de runtime |`
 };
 
+const HELP_DOC_SKIP_COMMON_APPENDIX = new Set<HelpDocId>([
+  "sequencer_instrument_rack",
+  "sequencer_tracks",
+  "sequencer_track_editor",
+  "sequencer_multitrack_arranger",
+  "sequencer_drummer_sequencer",
+  "sequencer_controller_sequencer",
+  "sequencer_piano_rolls",
+  "sequencer_midi_controllers",
+  "config_audio_engine",
+  "config_engine_values"
+]);
+
 const HELP_DOC_SPECIFIC_APPENDIX: Partial<Record<HelpDocId, Record<GuiLanguage, string>>> = {
   instrument_graph_editor: {
     english: `### Combining Multiple Signals On One Input
@@ -980,6 +993,474 @@ Si múltiples señales están conectadas a **la misma entrada** de un opcode:
 | \`+\`, \`-\`, \`*\`, \`/\` | Operadores aritméticos |
 | \`(\`, \`)\` | Agrupación / precedencia |
 | \`abs()\`, \`ceil()\`, \`floor()\`, \`ampdb()\`, \`dbamp()\` | Funciones unarias |`
+  },
+  sequencer_instrument_rack: {
+    english: `### Rack Behavior
+
+- Saving or loading a performance restores the full Perform-page state: rack assignments, sequencers, controller lanes, piano rolls, and arranger data.
+- Each rack slot routes one saved patch to one MIDI channel. Reusing the same channel on multiple slots layers instruments on the same notes and CC messages.
+- \`Level\` remains editable while instruments are running so you can rebalance the live mix without rebuilding the rack.
+- Patch/channel add/remove controls lock while the engine is running because changing the rack would invalidate the active runtime session.
+
+### Transport And Session State
+
+- Starting instruments builds the current rack into a live backend session.
+- The state badge reflects the backend instrument engine, not only the arranger transport.
+- Import/export writes the perform configuration as JSON/ZIP so a live setup can be moved to another machine.`,
+    german: `### Rack-Verhalten
+
+- Das Speichern oder Laden einer Performance stellt den kompletten Zustand der Perform-Seite wieder her: Rack-Zuordnungen, Sequencer, Controller-Spuren, Piano Rolls und Arranger-Daten.
+- Jeder Rack-Slot routet einen gespeicherten Patch auf genau einen MIDI-Kanal. Derselbe Kanal auf mehreren Slots layert Instrumente auf denselben Noten- und CC-Daten.
+- \`Level\` bleibt waehrend laufender Instrumente editierbar, damit der Live-Mix ohne Neubau des Racks angepasst werden kann.
+- Patch-/Kanal-, Add- und Remove-Steuerungen sperren waehrend die Engine laeuft, weil Rack-Aenderungen die aktive Runtime-Session ungueltig machen wuerden.
+
+### Transport und Session-Status
+
+- Das Starten der Instrumente baut das aktuelle Rack als Live-Session im Backend auf.
+- Das Status-Badge zeigt den Zustand der Backend-Instrument-Engine, nicht nur den Arranger-Transport.
+- Import/Export schreibt die Perform-Konfiguration als JSON/ZIP, damit ein Live-Setup auf einen anderen Rechner uebertragen werden kann.`,
+    french: `### Comportement du rack
+
+- Enregistrer ou charger une performance restaure tout l'etat de la page Perform : affectations du rack, sequenceurs, lanes de controle, piano rolls et donnees d'arrangeur.
+- Chaque slot du rack route un patch sauvegarde vers un seul canal MIDI. Reutiliser le meme canal sur plusieurs slots superpose les instruments sur les memes notes et messages CC.
+- \`Level\` reste editable pendant que les instruments jouent afin de reequilibrer le mix live sans reconstruire le rack.
+- Les controles d'ajout/suppression et de patch/canal se verrouillent pendant l'execution, car modifier le rack invaliderait la session runtime active.
+
+### Transport et etat de session
+
+- Le demarrage des instruments construit le rack courant comme session live cote backend.
+- Le badge d'etat reflete l'etat reel du moteur instrument backend, pas seulement le transport de l'arrangeur.
+- L'import/export ecrit la configuration Perform en JSON/ZIP pour deplacer facilement un setup live vers une autre machine.`,
+    spanish: `### Comportamiento del rack
+
+- Guardar o cargar una performance restaura todo el estado de la pagina Perform: asignaciones del rack, secuenciadores, pistas de control, piano rolls y datos del arreglador.
+- Cada slot del rack enruta un patch guardado a un solo canal MIDI. Reutilizar el mismo canal en varios slots superpone instrumentos sobre las mismas notas y mensajes CC.
+- \`Level\` sigue editable mientras los instrumentos estan en marcha para reequilibrar la mezcla en vivo sin reconstruir el rack.
+- Los controles de patch/canal y de agregar/eliminar se bloquean mientras el motor esta ejecutandose porque un cambio del rack invalidaria la sesion runtime activa.
+
+### Transporte y estado de sesion
+
+- Iniciar los instrumentos construye el rack actual como una sesion en vivo en el backend.
+- La insignia de estado refleja el motor de instrumentos del backend, no solo el transporte del arreglador.
+- Importar/exportar escribe la configuracion Perform como JSON/ZIP para mover un setup en vivo a otra maquina.`
+  },
+  sequencer_tracks: {
+    english: `### Timing Model
+
+- \`Meter\`, \`Grid\`, \`Beats\`, and \`Beat Ratio\` belong to each sequencer individually, so one performance can mix different bar lengths and playback speeds.
+- Steps are derived as \`beats * grid\`; a \`4\`-beat pad at grid \`4\` yields \`16\` editable steps.
+- \`Sync To\` lets one sequencer follow another sequencer's cycle boundary instead of free-running against the shared transport.
+- Pattern pad changes queue to the next loop boundary while a sequencer is running, and switch immediately while it is stopped.
+
+### Step Programming Notes
+
+- Pitch class and octave are edited separately to make note entry faster.
+- In-scale notes are highlighted with degree labels, but chromatic notes stay available for borrowed tones and passing notes.
+- \`HOLD\` sustains the previous note instead of sending a fresh note trigger on that step.`,
+    german: `### Timing-Modell
+
+- \`Takt\`, \`Raster\`, \`Beats\` und \`Beat-Verhaeltnis\` gehoeren zu jedem Sequencer einzeln, sodass eine Performance unterschiedliche Taktlaengen und Abspielgeschwindigkeiten mischen kann.
+- Die Schrittzahl ergibt sich aus \`beats * grid\`; ein \`4\`-Beat-Pad mit Raster \`4\` ergibt \`16\` bearbeitbare Schritte.
+- \`Sync zu\` laesst einen Sequencer an der Zyklusgrenze eines anderen Sequencers folgen, statt frei gegen den gemeinsamen Transport zu laufen.
+- Pattern-Pad-Wechsel werden im laufenden Zustand bis zur naechsten Loop-Grenze vorgemerkt und im gestoppten Zustand sofort umgeschaltet.
+
+### Hinweise zur Step-Programmierung
+
+- Tonklasse und Oktave werden getrennt bearbeitet, damit die Noteneingabe schneller geht.
+- Skaleninterne Noten sind mit Stufen markiert; chromatische Noten bleiben fuer Borrowed Tones und Durchgangsnoten verfuegbar.
+- \`HOLD\` verlaengert die vorherige Note, statt in diesem Schritt einen neuen Note-Trigger zu senden.`,
+    french: `### Modele temporel
+
+- \`Meter\`, \`Grid\`, \`Beats\` et \`Beat Ratio\` appartiennent a chaque sequenceur individuellement ; une meme performance peut donc melanger plusieurs longueurs de mesure et vitesses de lecture.
+- Le nombre de pas vaut \`beats * grid\` ; un pad de \`4\` temps avec une grille \`4\` donne \`16\` pas editables.
+- \`Sync vers\` permet a un sequenceur de suivre la frontiere de cycle d'un autre sequenceur au lieu de tourner librement sur le transport partage.
+- Les changements de pad sont mis en file jusqu'a la prochaine frontiere de boucle pendant la lecture et s'appliquent immediatement quand le sequenceur est arrete.
+
+### Notes sur l'edition des pas
+
+- La hauteur (classe) et l'octave se reglent separement, ce qui accelere la saisie des notes.
+- Les notes dans la gamme sont surlignees avec leurs degres, mais les notes chromatiques restent disponibles pour les emprunts et notes de passage.
+- \`HOLD\` prolonge la note precedente au lieu d'envoyer un nouveau declenchement sur ce pas.`,
+    spanish: `### Modelo temporal
+
+- \`Meter\`, \`Grid\`, \`Beats\` y \`Beat Ratio\` pertenecen a cada secuenciador por separado, asi que una misma performance puede mezclar longitudes de compas y velocidades distintas.
+- Los pasos se derivan como \`beats * grid\`; un pad de \`4\` pulsos con cuadricula \`4\` produce \`16\` pasos editables.
+- \`Sync con\` permite que un secuenciador siga el limite de ciclo de otro en lugar de correr libremente contra el transporte compartido.
+- Los cambios de pad se ponen en cola hasta el siguiente limite de bucle mientras el secuenciador esta en marcha y cambian al instante cuando esta detenido.
+
+### Notas sobre la programacion por pasos
+
+- La clase de nota y la octava se editan por separado para agilizar la entrada.
+- Las notas de la escala se resaltan con grados, pero las cromaticas siguen disponibles para notas prestadas y de paso.
+- \`HOLD\` prolonga la nota anterior en vez de disparar una nota nueva en ese paso.`
+  },
+  sequencer_track_editor: {
+    english: `### Editing One Sequencer Card
+
+- \`Start\` and \`Stop\` only arm this sequencer; the rack's instrument engine must already be running before notes will sound.
+- \`Clear Steps\` resets the active pattern pad of this sequencer, not every pad in the performance.
+- \`Beats\` changes the pad length in beats, while \`Meter\` and \`Grid\` determine how many editable steps fit inside that span.
+
+### Pads And Copy Behavior
+
+- P1..P8 are alternate pattern memories for the same sequencer.
+- Dragging a step \`::\` handle copies note/chord/velocity data to another step, including across melodic sequencers.
+- Short pad transpose keeps the current tonic and mode and shifts notes by scale degree; long press moves the pad tonic itself.`,
+    german: `### Eine Sequencer-Karte bearbeiten
+
+- \`Start\` und \`Stop\` schalten nur diesen Sequencer scharf; die Instrument-Engine des Racks muss bereits laufen, damit Noten hoerbar sind.
+- \`Clear Steps\` setzt nur das aktive Pattern-Pad dieses Sequencers zurueck, nicht alle Pads der Performance.
+- \`Beats\` aendert die Pad-Laenge in Beats, waehrend \`Takt\` und \`Raster\` festlegen, wie viele bearbeitbare Schritte in diese Laenge passen.
+
+### Pad- und Kopierverhalten
+
+- P1..P8 sind alternative Pattern-Speicher fuer denselben Sequencer.
+- Das Ziehen eines Schritt-\`::\`-Handles kopiert Noten-/Akkord-/Velocity-Daten auf einen anderen Schritt, auch ueber mehrere melodische Sequencer hinweg.
+- Kurze Pad-Transposition behaelt Tonika und Modus bei und verschiebt Noten nach Skalenstufen; langer Druck verschiebt die Tonika des Pads selbst.`,
+    french: `### Edition d'une carte de sequenceur
+
+- \`Start\` et \`Stop\` n'arment que ce sequenceur ; le moteur instrument du rack doit deja tourner pour entendre des notes.
+- \`Clear Steps\` reinitialise uniquement le pad de pattern actif de ce sequenceur, pas tous les pads de la performance.
+- \`Beats\` change la longueur du pad en temps, tandis que \`Meter\` et \`Grid\` determinent combien de pas editables tiennent dans cette duree.
+
+### Comportement des pads et copies
+
+- P1..P8 sont des memoires de pattern alternatives pour le meme sequenceur.
+- Faire glisser la poignee \`::\` d'un pas copie les donnees note/accord/velocite vers un autre pas, y compris entre sequenceurs melodiques.
+- Une transposition courte conserve tonique et mode et deplace les notes par degre ; un appui long deplace la tonique du pad elle-meme.`,
+    spanish: `### Edicion de una tarjeta de secuenciador
+
+- \`Start\` y \`Stop\` solo activan este secuenciador; el motor de instrumentos del rack ya debe estar en marcha para que suenen notas.
+- \`Clear Steps\` reinicia solo el pad de patron activo de este secuenciador, no todos los pads de la performance.
+- \`Beats\` cambia la longitud del pad en pulsos, mientras \`Meter\` y \`Grid\` determinan cuantos pasos editables caben en ese tramo.
+
+### Comportamiento de pads y copias
+
+- P1..P8 son memorias alternativas de patron para el mismo secuenciador.
+- Arrastrar el asa \`::\` de un paso copia datos de nota/acorde/velocidad a otro paso, incluso entre secuenciadores melodicos.
+- La transposicion corta mantiene tonica y modo y mueve las notas por grado; la pulsacion larga mueve la tonica del propio pad.`
+  },
+  sequencer_multitrack_arranger: {
+    english: `### Timeline Structure
+
+- Each row represents one melodic, drummer, or controller sequencer and reuses that track's pads, groups, and super-groups.
+- Root tokens \`1..8\`, letter groups, and roman-numeral super-groups all resolve to beat-based spans on the shared playhead.
+- Pause gaps stay hidden in the root overview, but they are recreated automatically whenever timing must be preserved.
+
+### Playback And Editing
+
+- \`Play\` starts all enabled perform tracks from the current playhead. \`Stop\` preserves position, and double-click \`Stop\` resets to the loop start or beat \`0\`.
+- Right-click menus insert pads/groups into a gap or the sequence end, and \`Copy\` / \`Paste\` duplicate whole phrase blocks.
+- Loop range selection constrains playback to the highlighted beat span without rewriting the stored arrangement.`,
+    german: `### Aufbau der Timeline
+
+- Jede Zeile repraesentiert einen melodischen Sequencer, Drummer-Sequencer oder Controller-Sequencer und nutzt dessen Pads, Gruppen und Super-Gruppen.
+- Root-Tokens \`1..8\`, Buchstaben-Gruppen und roemische Super-Gruppen werden alle in beat-basierte Bereiche auf dem gemeinsamen Playhead aufgeloest.
+- Pausenbereiche bleiben in der Root-Uebersicht verborgen, werden aber automatisch wieder erzeugt, sobald das Timing erhalten bleiben muss.
+
+### Wiedergabe und Bearbeitung
+
+- \`Play\` startet alle aktivierten Perform-Spuren ab der aktuellen Playhead-Position. \`Stop\` behaelt die Position bei; Doppelklick auf \`Stop\` setzt auf Loop-Start oder Beat \`0\` zurueck.
+- Rechtsklick-Menues fuegen Pads/Gruppen in eine Luecke oder ans Sequenzende ein, und \`Copy\` / \`Paste\` duplizieren ganze Phrasenbloecke.
+- Die Loop-Bereichsauswahl begrenzt die Wiedergabe auf den markierten Beat-Bereich, ohne das gespeicherte Arrangement umzuschreiben.`,
+    french: `### Structure de la timeline
+
+- Chaque ligne represente un sequenceur melodique, batterie ou controleur et reutilise les pads, groupes et super-groupes de cette piste.
+- Les jetons racine \`1..8\`, les groupes lettres et les super-groupes en chiffres romains se resolvent tous en segments bases sur les temps du playhead partage.
+- Les silences restent caches dans la vue racine, mais sont recrees automatiquement quand il faut preserver le timing.
+
+### Lecture et edition
+
+- \`Play\` lance toutes les pistes Perform actives depuis la position courante du playhead. \`Stop\` conserve la position ; un double-clic sur \`Stop\` revient au debut de boucle ou au temps \`0\`.
+- Les menus clic droit inserent pads/groupes dans un vide ou en fin de sequence, et \`Copy\` / \`Paste\` dupliquent des blocs de phrase entiers.
+- La selection de boucle limite la lecture a la plage de temps surlignee sans reecrire l'arrangement stocke.`,
+    spanish: `### Estructura de la linea de tiempo
+
+- Cada fila representa un secuenciador melodico, de bateria o controlador y reutiliza los pads, grupos y supergrupos de esa pista.
+- Los tokens raiz \`1..8\`, los grupos con letras y los supergrupos en numeros romanos se resuelven como tramos basados en pulsos sobre el playhead compartido.
+- Los huecos de pausa permanecen ocultos en la vista raiz, pero se recrean automaticamente cuando hace falta conservar el timing.
+
+### Reproduccion y edicion
+
+- \`Play\` inicia todas las pistas activas de Perform desde la posicion actual del playhead. \`Stop\` conserva la posicion y el doble clic en \`Stop\` vuelve al inicio del bucle o al pulso \`0\`.
+- Los menus de clic derecho insertan pads/grupos en un hueco o al final de la secuencia, y \`Copy\` / \`Paste\` duplican bloques completos de frase.
+- La seleccion de rango de bucle limita la reproduccion al tramo resaltado sin reescribir el arreglo guardado.`
+  },
+  sequencer_drummer_sequencer: {
+    english: `### Row And Hit Model
+
+- Each row is one fixed MIDI note number. Use separate rows for kick, snare, hat, or any drum mapping your target instrument expects.
+- Changing a row key while instruments are running sends a short preview note on that drummer sequencer's MIDI channel.
+- Velocity is stored per active hit, so two hits in the same column can have different strengths.
+
+### Timing And Pads
+
+- \`Meter\`, \`Grid\`, \`Beats\`, and \`Beat Ratio\` work like melodic sequencers, but pad content stores row/hit data instead of note/chord data.
+- Pattern pad changes queue to the next loop boundary while the drummer sequencer is running, and switch immediately while it is stopped.
+- Drummer pads do not use scale, chord, or transpose controls.`,
+    german: `### Zeilen- und Hit-Modell
+
+- Jede Zeile ist genau eine feste MIDI-Notennummer. Verwende getrennte Zeilen fuer Kick, Snare, Hi-Hat oder jede andere Drum-Zuordnung des Zielinstruments.
+- Das Aendern eines Row-Keys sendet waehrend laufender Instrumente eine kurze Vorschau-Note auf dem MIDI-Kanal dieses Drummer-Sequencers.
+- Velocity wird pro aktivem Hit gespeichert, sodass zwei Hits in derselben Spalte unterschiedliche Staerken haben koennen.
+
+### Timing und Pads
+
+- \`Takt\`, \`Raster\`, \`Beats\` und \`Beat-Verhaeltnis\` funktionieren wie bei melodischen Sequencern, aber der Pad-Inhalt speichert Row-/Hit-Daten statt Noten-/Akkord-Daten.
+- Pattern-Pad-Wechsel werden im laufenden Zustand bis zur naechsten Loop-Grenze vorgemerkt und im gestoppten Zustand sofort umgeschaltet.
+- Drummer-Pads verwenden keine Skalen-, Akkord- oder Transpositionssteuerungen.`,
+    french: `### Modele des lignes et impacts
+
+- Chaque ligne correspond a un numero de note MIDI fixe. Utilisez des lignes distinctes pour kick, caisse claire, charley ou tout mapping batterie attendu par l'instrument cible.
+- Modifier une touche de ligne pendant que les instruments tournent envoie une courte note de preecoute sur le canal MIDI de ce sequenceur batterie.
+- La velocite est stockee pour chaque impact actif ; deux impacts dans la meme colonne peuvent donc avoir des intensites differentes.
+
+### Timing et pads
+
+- \`Meter\`, \`Grid\`, \`Beats\` et \`Beat Ratio\` fonctionnent comme pour les sequenceurs melodiques, mais le contenu du pad stocke des donnees ligne/impact au lieu de notes/accords.
+- Les changements de pattern pad sont mis en file jusqu'a la prochaine frontiere de boucle pendant la lecture et s'appliquent immediatement a l'arret.
+- Les pads batterie n'utilisent ni gamme, ni accords, ni commandes de transposition.`,
+    spanish: `### Modelo de filas y golpes
+
+- Cada fila corresponde a un numero de nota MIDI fijo. Usa filas separadas para bombo, caja, hi-hat o cualquier mapeo de bateria que espere el instrumento destino.
+- Cambiar la tecla de una fila mientras los instrumentos estan en marcha envia una nota corta de vista previa por el canal MIDI de ese secuenciador de bateria.
+- La velocidad se guarda por golpe activo, asi que dos golpes en la misma columna pueden tener intensidades distintas.
+
+### Timing y pads
+
+- \`Meter\`, \`Grid\`, \`Beats\` y \`Beat Ratio\` funcionan como en los secuenciadores melodicos, pero el contenido del pad guarda datos de fila/golpe en lugar de notas/acordes.
+- Los cambios de pad se ponen en cola hasta el siguiente limite de bucle mientras el secuenciador de bateria esta en marcha y cambian al instante cuando esta detenido.
+- Los pads de bateria no usan controles de escala, acorde ni transposicion.`
+  },
+  sequencer_controller_sequencer: {
+    english: `### Curve Playback
+
+- The selected controller number is sent repeatedly from the sampled curve while this lane is running.
+- Curve length changes the loop duration, but key points keep their relative position across the full span.
+- \`Beat Ratio\` changes how quickly the curve cycles against the shared transport, which is useful for slow sweeps or faster rhythmic modulation.
+
+### Editing Rules
+
+- Click the background to add an interior point, drag points to reshape the curve, and double-click an interior point to remove it.
+- The first and last points act as boundary anchors so the loop always has a defined start and end.
+- If the same CC is driven from multiple sources, the latest transmitted value wins at the receiver.`,
+    german: `### Kurven-Wiedergabe
+
+- Die gewaehlte Controller-Nummer wird waehrend des Laufens dieser Spur fortlaufend aus der gesampelten Kurve gesendet.
+- Die Kurvenlaenge aendert die Loop-Dauer, aber Keypoints behalten ihre relative Position ueber die gesamte Laenge.
+- Das \`Beat-Verhaeltnis\` aendert, wie schnell die Kurve gegen den gemeinsamen Transport zyklisch laeuft; das ist nuetzlich fuer langsame Sweeps oder schnellere rhythmische Modulation.
+
+### Bearbeitungsregeln
+
+- Hintergrund anklicken, um einen inneren Punkt hinzuzufuegen; Punkte ziehen, um die Kurve zu formen; einen inneren Punkt doppelklicken, um ihn zu entfernen.
+- Der erste und letzte Punkt sind Randanker, sodass die Schleife immer einen definierten Start und ein definiertes Ende hat.
+- Wenn dieselbe CC von mehreren Quellen gesteuert wird, gewinnt am Empfaenger der zuletzt gesendete Wert.`,
+    french: `### Lecture de courbe
+
+- Le numero de controleur choisi est emis en continu depuis la courbe echantillonnee tant que cette piste tourne.
+- La longueur de courbe change la duree de boucle, mais les points-cles gardent leur position relative sur toute la plage.
+- \`Beat Ratio\` change la vitesse de cycle de la courbe face au transport partage ; c'est utile pour des sweeps lents ou des modulations rythmiques plus rapides.
+
+### Regles d'edition
+
+- Cliquez sur le fond pour ajouter un point interieur, faites glisser les points pour remodeler la courbe et double-cliquez un point interieur pour le supprimer.
+- Le premier et le dernier point servent d'ancrages de bord, de sorte que la boucle garde toujours un debut et une fin definis.
+- Si le meme CC est pilote par plusieurs sources, c'est la valeur envoyee en dernier qui gagne cote recepteur.`,
+    spanish: `### Reproduccion de la curva
+
+- El numero de controlador elegido se envia de forma continua desde la curva muestreada mientras esta pista esta en marcha.
+- La longitud de la curva cambia la duracion del bucle, pero los puntos clave mantienen su posicion relativa en todo el tramo.
+- \`Beat Ratio\` cambia la velocidad con la que la curva cicla frente al transporte compartido; resulta util para barridos lentos o modulaciones ritmicas mas rapidas.
+
+### Reglas de edicion
+
+- Haz clic en el fondo para agregar un punto interior, arrastra puntos para remodelar la curva y haz doble clic en un punto interior para eliminarlo.
+- El primer y el ultimo punto actuan como anclas de borde, de modo que el bucle siempre tiene un inicio y un final definidos.
+- Si el mismo CC esta controlado por varias fuentes, en el receptor prevalece el ultimo valor transmitido.`
+  },
+  sequencer_piano_rolls: {
+    english: `### Live Input Behavior
+
+- A piano roll only sends notes when its own lane is enabled and the instrument engine is already running.
+- Use the MIDI channel to target one rack instrument or intentionally layer several instruments on the same channel.
+- The on-screen keyboard spans \`C1..B7\` and uses pointer press/release gestures for note on/off.
+
+### Scale Guidance
+
+- The keyboard highlights notes from the selected scale and mode.
+- When running melodic sequencers agree on one theory, the piano roll follows that shared scale/mode for visual guidance.
+- When running sequencers disagree, the UI shows a mixed state and highlights only notes common to the active theories.`,
+    german: `### Live-Eingabeverhalten
+
+- Eine Piano Roll sendet nur dann Noten, wenn ihre eigene Spur aktiviert ist und die Instrument-Engine bereits laeuft.
+- Ueber den MIDI-Kanal kann gezielt ein Rack-Instrument angesteuert oder bewusst ein Layer mehrerer Instrumente auf demselben Kanal gebaut werden.
+- Die Onscreen-Tastatur reicht von \`C1..B7\` und nutzt Pointer-Press/Release fuer Note On/Off.
+
+### Skalenfuehrung
+
+- Die Tastatur markiert Noten der ausgewaehlten Skala und des Modus.
+- Wenn laufende melodische Sequencer dieselbe Theorie teilen, folgt die Piano Roll dieser gemeinsamen Skala/diesem Modus als visuelle Orientierung.
+- Wenn laufende Sequencer unterschiedliche Theorien haben, zeigt die UI einen Mixed-Zustand und markiert nur die gemeinsamen Noten der aktiven Theorien.`,
+    french: `### Comportement en entree live
+
+- Un piano roll n'envoie des notes que si sa propre voie est active et que le moteur instrument tourne deja.
+- Utilisez le canal MIDI pour viser un instrument du rack ou pour superposer volontairement plusieurs instruments sur le meme canal.
+- Le clavier a l'ecran couvre \`C1..B7\` et utilise des gestes de pression/relachement du pointeur pour les note on/off.
+
+### Guidage tonal
+
+- Le clavier surligne les notes de la gamme et du mode selectionnes.
+- Quand les sequenceurs melodiques actifs partagent la meme theorie, le piano roll suit cette gamme/ce mode communs pour le guidage visuel.
+- Quand les sequenceurs actifs divergent, l'UI affiche un etat mixte et ne surligne que les notes communes aux theories actives.`,
+    spanish: `### Comportamiento de entrada en vivo
+
+- Un piano roll solo envia notas cuando su propia pista esta activada y el motor de instrumentos ya esta en marcha.
+- Usa el canal MIDI para apuntar a un instrumento del rack o para superponer intencionalmente varios instrumentos en el mismo canal.
+- El teclado en pantalla cubre \`C1..B7\` y utiliza gestos de pulsar/soltar con el puntero para note on/off.
+
+### Guia tonal
+
+- El teclado resalta las notas de la escala y el modo seleccionados.
+- Cuando los secuenciadores melodicos en marcha comparten una misma teoria, el piano roll sigue esa escala/modo comun para guiar visualmente.
+- Cuando los secuenciadores activos discrepan, la UI muestra un estado mixto y solo resalta las notas comunes a las teorias activas.`
+  },
+  sequencer_midi_controllers: {
+    english: `### Manual CC Lanes
+
+- This panel is for hands-on CC control, not repeating automation. Use controller sequencers when you need transport-synced curves.
+- Each lane targets one MIDI controller number (\`0..127\`) and can be enabled or disabled independently.
+- The knob and numeric readout edit the same live value, so you can make broad sweeps and still land on exact numbers.
+
+### When Messages Are Sent
+
+- CC messages are sent immediately when the instrument session is running and the lane is enabled.
+- Up to six lanes can coexist, which is useful for filter, resonance, mix, or macro controls in one performance.
+- If multiple destinations listen to the same CC mapping, all of them react to the transmitted value.`,
+    german: `### Manuelle CC-Spuren
+
+- Dieses Panel ist fuer direkte CC-Steuerung gedacht, nicht fuer wiederholte Automation. Fuer transport-synchrone Kurven sind Controller-Sequencer gedacht.
+- Jede Spur steuert genau eine MIDI-Controller-Nummer (\`0..127\`) und kann unabhaengig aktiviert oder deaktiviert werden.
+- Drehregler und Zahlenanzeige bearbeiten denselben Live-Wert, sodass weite Sweeps und trotzdem exakte Zielwerte moeglich sind.
+
+### Wann Nachrichten gesendet werden
+
+- CC-Nachrichten werden sofort gesendet, wenn die Instrument-Session laeuft und die Spur aktiviert ist.
+- Bis zu sechs Spuren koennen parallel existieren; das ist praktisch fuer Filter-, Resonanz-, Mix- oder Macro-Steuerungen in einer Performance.
+- Wenn mehrere Ziele auf dieselbe CC-Zuordnung hoeren, reagieren alle auf den gesendeten Wert.`,
+    french: `### Voies CC manuelles
+
+- Ce panneau sert au controle CC direct, pas a l'automation repetee. Utilisez les sequenceurs controleur quand vous avez besoin de courbes synchronisees au transport.
+- Chaque voie cible un seul numero de controleur MIDI (\`0..127\`) et peut etre activee ou desactivee independamment.
+- Le potentiometre et l'affichage numerique modifient la meme valeur live, ce qui permet de grands sweeps tout en retombant sur des chiffres precis.
+
+### Quand les messages sont envoyes
+
+- Les messages CC partent immediatement quand la session instrument tourne et que la voie est activee.
+- Jusqu'a six voies peuvent coexister, utile pour des controles de filtre, resonance, mix ou macro dans une meme performance.
+- Si plusieurs destinations ecoutent le meme mapping CC, elles reagissent toutes a la valeur transmise.`,
+    spanish: `### Pistas CC manuales
+
+- Este panel sirve para control CC directo, no para automatizacion repetitiva. Usa secuenciadores controladores cuando necesites curvas sincronizadas al transporte.
+- Cada pista apunta a un solo numero de controlador MIDI (\`0..127\`) y puede activarse o desactivarse de forma independiente.
+- La perilla y la lectura numerica editan el mismo valor en vivo, de modo que puedes hacer barridos amplios y aun asi caer en numeros exactos.
+
+### Cuando se envian los mensajes
+
+- Los mensajes CC se envian inmediatamente cuando la sesion de instrumentos esta en marcha y la pista esta activada.
+- Pueden coexistir hasta seis pistas, lo que resulta util para controles de filtro, resonancia, mezcla o macros dentro de una misma performance.
+- Si varios destinos escuchan el mismo mapeo CC, todos reaccionan al valor transmitido.`
+  },
+  config_audio_engine: {
+    english: `### How Each Field Affects Runtime
+
+- \`sr\` sets the audio sample rate used when the patch compiles and starts. Higher values extend bandwidth but cost more CPU.
+- The target control rate defines the desired control update frequency. VisualCSound derives an integer \`ksmps\` from \`sr / control_rate\`, so the actual control rate may be rounded slightly.
+- Software buffer (\`-b\`) is the internal Csound block size. Hardware buffer (\`-B\`) is the device-facing buffer and is usually kept equal to or larger than \`-b\`.
+
+### Practical Tuning
+
+- Lower buffer values reduce latency but glitch sooner on heavy patches or slower machines.
+- Higher buffer values are safer for complex patches but feel less immediate when playing live.
+- Applying the form only updates the current patch state. Save the patch as well if these settings should persist in the patch library.`,
+    german: `### Wie jedes Feld die Runtime beeinflusst
+
+- \`sr\` setzt die Audio-Sample-Rate fuer Compile/Start des Patches. Hoehere Werte erweitern die Bandbreite, kosten aber mehr CPU.
+- Die Ziel-Control-Rate definiert die gewuenschte Frequenz von Control-Updates. VisualCSound leitet daraus ein ganzzahliges \`ksmps\` aus \`sr / control_rate\` ab; die tatsaechliche Control-Rate kann daher leicht gerundet sein.
+- Software-Buffer (\`-b\`) ist die interne Csound-Blockgroesse. Hardware-Buffer (\`-B\`) ist der geraeteseitige Buffer und sollte meist gleich gross oder groesser als \`-b\` sein.
+
+### Praktische Abstimmung
+
+- Niedrige Buffer-Werte reduzieren Latenz, erzeugen bei schweren Patches oder langsameren Rechnern aber frueher Aussetzer.
+- Hoehere Buffer-Werte sind fuer komplexe Patches sicherer, fuehlen sich live jedoch weniger direkt an.
+- Das Anwenden des Formulars aktualisiert nur den Zustand des aktuellen Patches. Den Patch zusaetzlich speichern, wenn die Werte in der Patch-Bibliothek erhalten bleiben sollen.`,
+    french: `### Effet de chaque champ sur la runtime
+
+- \`sr\` fixe le taux d'echantillonnage audio utilise au compile/start du patch. Des valeurs plus hautes etendent la bande passante mais coutent plus de CPU.
+- Le taux de controle cible definit la frequence souhaitee des mises a jour de controle. VisualCSound derive un \`ksmps\` entier depuis \`sr / control_rate\` ; le taux de controle reel peut donc etre legerement arrondi.
+- Le buffer logiciel (\`-b\`) correspond a la taille de bloc interne Csound. Le buffer materiel (\`-B\`) fait face au device et reste generalement egal ou superieur a \`-b\`.
+
+### Reglage pratique
+
+- Des buffers plus faibles reduisent la latence mais provoquent plus vite des glitches sur des patches lourds ou des machines lentes.
+- Des buffers plus eleves sont plus surs pour les patches complexes, mais donnent une sensation moins immediate en jeu live.
+- Appliquer le formulaire met uniquement a jour l'etat du patch courant. Enregistrez aussi le patch si ces reglages doivent rester dans la bibliotheque.`,
+    spanish: `### Como afecta cada campo al runtime
+
+- \`sr\` fija la frecuencia de muestreo de audio usada al compilar/iniciar el patch. Valores mas altos amplian el ancho de banda pero consumen mas CPU.
+- La tasa de control objetivo define la frecuencia deseada de actualizacion de control. VisualCSound deriva un \`ksmps\` entero a partir de \`sr / control_rate\`, por lo que la tasa real puede quedar ligeramente redondeada.
+- El buffer software (\`-b\`) es el tamano interno de bloque de Csound. El buffer hardware (\`-B\`) mira al dispositivo y normalmente conviene mantenerlo igual o mayor que \`-b\`.
+
+### Ajuste practico
+
+- Valores bajos de buffer reducen la latencia, pero producen fallos antes en patches pesados o maquinas lentas.
+- Valores altos de buffer son mas seguros para patches complejos, aunque se sienten menos inmediatos en interpretacion en vivo.
+- Aplicar el formulario solo actualiza el estado del patch actual. Guarda tambien el patch si quieres conservar estos valores en la biblioteca.`
+  },
+  config_engine_values: {
+    english: `### What This Panel Shows
+
+- The values here are the normalized numbers already stored in the patch, not the raw text currently typed into the editable form.
+- \`control_rate\` is the target value saved with the patch, while \`ksmps\` is the derived block size the engine will actually use.
+- \`software_buffer\` and \`hardware_buffer\` are the exact values passed to Csound during compile/start.
+- If the editable form contains invalid input, this read-only panel still shows the last valid patch configuration.
+
+### When To Use It
+
+- Compare this panel with the preview badges on the left before applying changes.
+- Reopen the Config page after loading another patch to confirm which engine settings belong to that patch.`,
+    german: `### Was dieses Panel zeigt
+
+- Die Werte hier sind die normalisierten Zahlen, die bereits im Patch gespeichert sind, nicht der rohe Text aus dem editierbaren Formular.
+- \`control_rate\` ist der im Patch gespeicherte Zielwert, waehrend \`ksmps\` die daraus abgeleitete Blockgroesse ist, die die Engine tatsaechlich benutzt.
+- \`software_buffer\` und \`hardware_buffer\` sind die exakten Werte, die beim Compile/Start an Csound uebergeben werden.
+- Enthält das editierbare Formular ungueltige Eingaben, zeigt dieses Nur-Lese-Panel weiterhin die letzte gueltige Patch-Konfiguration.
+
+### Wann es hilfreich ist
+
+- Dieses Panel vor dem Anwenden mit den Vorschau-Badges links vergleichen.
+- Nach dem Laden eines anderen Patches die Config-Seite erneut pruefen, um die zu diesem Patch gehoerenden Engine-Werte zu bestaetigen.`,
+    french: `### Ce que montre ce panneau
+
+- Les valeurs affichees ici sont les nombres normalises deja stockes dans le patch, pas le texte brut actuellement saisi dans le formulaire editable.
+- \`control_rate\` est la valeur cible sauvegardee avec le patch, tandis que \`ksmps\` est la taille de bloc derivee que le moteur utilisera reellement.
+- \`software_buffer\` et \`hardware_buffer\` sont les valeurs exactes transmises a Csound pendant compile/start.
+- Si le formulaire editable contient une entree invalide, ce panneau en lecture seule continue d'afficher la derniere configuration valide du patch.
+
+### Quand l'utiliser
+
+- Comparez ce panneau avec les badges de previsualisation a gauche avant d'appliquer des changements.
+- Rouvrez la page Config apres avoir charge un autre patch pour confirmer quels reglages moteur appartiennent a ce patch.`,
+    spanish: `### Que muestra este panel
+
+- Los valores de aqui son los numeros normalizados ya guardados en el patch, no el texto bruto que este escrito en el formulario editable.
+- \`control_rate\` es el valor objetivo guardado con el patch, mientras que \`ksmps\` es el tamano de bloque derivado que el motor usara realmente.
+- \`software_buffer\` y \`hardware_buffer\` son los valores exactos que se pasan a Csound durante compilar/iniciar.
+- Si el formulario editable contiene una entrada invalida, este panel de solo lectura sigue mostrando la ultima configuracion valida del patch.
+
+### Cuando usarlo
+
+- Compara este panel con las insignias de vista previa de la izquierda antes de aplicar cambios.
+- Vuelve a abrir la pagina Config despues de cargar otro patch para confirmar que ajustes del motor pertenecen a ese patch.`
   }
 };
 
@@ -1202,7 +1683,7 @@ export function documentationUiCopy(language: GuiLanguage): DocumentationUiCopy 
 export function getHelpDocument(helpDocId: HelpDocId, language: GuiLanguage): HelpDocument {
   const normalized = normalizeGuiLanguage(language);
   const base = HELP_DOCUMENTS[helpDocId][normalized];
-  const commonAppendix = HELP_DOC_COMMON_APPENDIX[normalized];
+  const commonAppendix = HELP_DOC_SKIP_COMMON_APPENDIX.has(helpDocId) ? "" : HELP_DOC_COMMON_APPENDIX[normalized];
   const specificAppendix = HELP_DOC_SPECIFIC_APPENDIX[helpDocId]?.[normalized] ?? "";
 
   const markdown = [base.markdown.trim(), commonAppendix.trim(), specificAppendix.trim()]
