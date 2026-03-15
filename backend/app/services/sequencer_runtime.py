@@ -197,12 +197,11 @@ class SessionSequencerRuntime:
                 track.active_pad = pad_index
                 track.configured_active_pad = pad_index
                 track.queued_pad = None
-                if not track.pad_loop_enabled or not track.pad_loop_sequence:
-                    track.phase_offset_subunit = self._absolute_subunit - (
-                        self._absolute_subunit % self._transport_subunit_count_for_pad(track, pad_index)
-                    )
-                    track.pad_loop_position = None
-                    track.sequence_ended = False
+                track.phase_offset_subunit = self._absolute_subunit - (
+                    self._absolute_subunit % self._transport_subunit_count_for_pad(track, pad_index)
+                )
+                track.pad_loop_position = None
+                track.sequence_ended = False
 
             return self._status_locked()
 
@@ -698,7 +697,8 @@ class SessionSequencerRuntime:
         track.phase_offset_subunit = 0
         track.pad_loop_position = None
         track.sequence_ended = False
-        self._reset_pad_loop_for_start_locked(track)
+        if track.enabled:
+            self._reset_pad_loop_for_start_locked(track)
 
     def _next_track_cycle_boundary_subunit(self, track: SequencerTrackRuntime, current_subunit: int) -> int:
         cycle_length = max(1, self._active_pad_transport_subunit_count(track))

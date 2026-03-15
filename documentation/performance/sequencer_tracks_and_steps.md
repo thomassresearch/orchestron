@@ -34,7 +34,7 @@ Each melodic sequencer card provides:
 - `Mode` (Ionian, Dorian, Phrygian, Lydian, Mixolydian, Aeolian, Locrian)
 - `Meter` (`2..7` over `4` or `8`)
 - `Grid` (`2`, `4`, or `8`, steps per beat)
-- `Beat Rate` (`1:1`, `2:1`, `3:2`, `4:3`, `3:4`, `5:4`, `4:5`, `7:4`)
+- `Beat Ratio` (`1:1`, `2:1`, `3:2`, `4:3`, `3:4`, `5:4`, `4:5`, `7:4`)
 - `Beats` (`1..8`, with the current meter numerator exposed directly)
 
 The step editor width is derived from the sequencer's own timing and length:
@@ -44,7 +44,7 @@ The step editor width is derived from the sequencer's own timing and length:
 - default timing (`4/4`, grid `4`) gives `16` steps for a `4`-beat pad
 - odd meters can still use matching one-bar pad lengths such as `3` beats in `3/4` or `5` beats in `5/4`
 
-`Beat Rate` changes how quickly the sequencer advances relative to the shared transport beat:
+`Beat Ratio` changes how quickly the sequencer advances relative to the shared transport beat without changing its stored pad length, meter, or grid:
 
 - `1:1` keeps normal speed
 - ratios above `1:1` make the melodic sequencer run faster

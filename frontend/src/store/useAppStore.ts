@@ -4294,7 +4294,7 @@ export const useAppStore = create<AppStore>((set, get) => {
                     lengthBeats: normalizeSequencerPadLengthBeats(selectedPad.lengthBeats),
                     stepCount: normalizeSequencerTrackStepCount(selectedPad.stepCount),
                     activePad: normalizedPad,
-                    queuedPad: isPlaying ? track.queuedPad : null,
+                    queuedPad: isPlaying && track.enabled ? track.queuedPad : null,
                     scaleRoot: selectedPad.scaleRoot,
                     scaleType: selectedPad.scaleType,
                     mode: selectedPad.mode,
@@ -4877,7 +4877,7 @@ export const useAppStore = create<AppStore>((set, get) => {
                     lengthBeats: normalizeSequencerPadLengthBeats(selectedPad.lengthBeats),
                     stepCount: normalizeDrummerSequencerStepCount(selectedPad.stepCount),
                     activePad: normalizedPad,
-                    queuedPad: isPlaying ? track.queuedPad : null
+                    queuedPad: isPlaying && track.enabled ? track.queuedPad : null
                   };
                 })()
               : track
@@ -5329,7 +5329,7 @@ export const useAppStore = create<AppStore>((set, get) => {
             return {
               ...controllerSequencer,
               activePad: normalizedPad,
-              queuedPad: isPlaying ? controllerSequencer.queuedPad : null,
+              queuedPad: isPlaying && controllerSequencer.enabled ? controllerSequencer.queuedPad : null,
               lengthBeats: normalizeControllerSequencerLengthBeats(selectedPad.lengthBeats),
               stepCount: normalizeTransportStepCount(selectedPad.stepCount),
               keypoints: normalizeControllerCurveKeypoints(selectedPad.keypoints)

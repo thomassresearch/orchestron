@@ -36,12 +36,13 @@ Pad buttons use visual states to indicate:
 - Queued pad (will switch on loop boundary)
 - Idle pad
 
-## Live Pad Switching (Queued On Boundary)
+## Live Pad Switching
 
 Pad press behavior depends on transport state:
 
 - When sequencer transport is stopped: pad selection changes immediately
-- When sequencer transport is running: the pad switch is queued and applied on the next loop boundary, restarting the new pad at step `0`
+- When sequencer transport is running and that sequencer is also running: the pad switch is queued and applied on the next loop boundary, restarting the new pad at step `0`
+- When sequencer transport is running but that sequencer is stopped: pad selection still changes immediately for editing
 
 This avoids mid-pattern timing glitches and keeps pattern changes musical.
 

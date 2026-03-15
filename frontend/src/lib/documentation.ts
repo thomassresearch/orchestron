@@ -327,11 +327,12 @@ Gestiona asignaciones de instrumentos a nivel de performance.
 Program step-based melodic or rhythmic patterns.
 
 - Add/remove melodic sequencers.
-- Set MIDI channel, scale, mode, and adjust each melodic sequencer's own meter/grid timing.
+- Set MIDI channel, scale, mode, and adjust each melodic sequencer's own meter/grid timing plus beat ratio.
 - Synchronize a melodic sequencer to another melodic sequencer with \`Sync To\`.
 - Reorder melodic sequencers by dragging the \`::\` handle on each sequencer card.
-- Use pattern pads (P1..P8) for queued pattern changes.
+- Use pattern pads (P1..P8) for queued pattern changes on running sequencers and instant pattern edits on stopped sequencers.
 - Copy a pattern pad by dragging one pad and dropping it onto another pad (copies notes and pad scale/mode settings).
+- \`Beat Ratio\` changes how fast each sequencer advances against the shared transport without changing the stored pad length, meter, or grid.
 - Pad edge transpose buttons (\`-\` / \`+\`):
 - Short click: transpose the stored notes to the previous/next degree within the current scale (scale root and mode stay the same), and update configured step chords to matching diatonic chord types for the transposed step when available.
 - Long press: move the pad tonic to the previous/next degree (key-step transpose), keep the mode, and update the pad scale root.
@@ -346,11 +347,12 @@ Program step-based melodic or rhythmic patterns.
 Programmiert schrittbasierte melodische oder rhythmische Patterns.
 
 - Melodische Sequencer hinzufuegen/entfernen.
-- MIDI-Kanal, Skala, Modus und die eigene Takt-/Raster-Zeitbasis jedes melodischen Sequencers setzen.
+- MIDI-Kanal, Skala, Modus, Takt-/Raster-Zeitbasis und Beat-Verhaeltnis jedes melodischen Sequencers setzen.
 - Einen melodischen Sequencer ueber \`Sync zu\` mit einem anderen melodischen Sequencer synchronisieren.
 - Reihenfolge der melodischen Sequencer per Drag-and-drop am \`::\`-Handle jeder Sequencer-Karte aendern.
-- Pattern-Pads (P1..P8) für geplante Pattern-Wechsel nutzen.
+- Pattern-Pads (P1..P8) fuer geplante Pattern-Wechsel bei laufenden Sequencern und fuer sofortige Pad-Wechsel bei gestoppten Sequencern nutzen.
 - Ein Pattern-Pad per Drag-and-drop auf ein anderes Pad ziehen, um es zu kopieren (kopiert Noten sowie Pad-Skala/Modus-Einstellungen).
+- Das Beat-Verhaeltnis aendert nur die Abspielgeschwindigkeit gegenueber dem gemeinsamen Transport; gespeicherte Pad-Laenge, Taktart und Raster bleiben gleich.
 - Transpositions-Tasten am Pad-Rand (\`-\` / \`+\`):
 - Kurzer Klick: gespeicherte Noten zur vorherigen/nächsten Stufe innerhalb der aktuellen Skala verschieben (Grundton und Modus bleiben gleich) und konfigurierte Step-Akkorde auf passende diatonische Akkordtypen für den transponierten Schritt aktualisieren (falls verfügbar).
 - Langer Klick: Tonika zur vorherigen/nächsten Stufe verschieben (Key-Step-Transpose), Modus beibehalten und Pad-Grundton der Skala aktualisieren.
@@ -365,11 +367,12 @@ Programmiert schrittbasierte melodische oder rhythmische Patterns.
 Programme des patterns mélodiques ou rythmiques par pas.
 
 - Ajouter/supprimer des sequenceurs melodiques.
-- Regler canal MIDI, gamme, mode et la mesure/grille propres a chaque sequenceur melodique.
+- Regler canal MIDI, gamme, mode, mesure/grille et ratio de temps propres a chaque sequenceur melodique.
 - Synchroniser un sequenceur melodique a un autre via \`Sync vers\`.
 - Reordonner les sequenceurs melodiques par glisser-deposer avec la poignee \`::\` de chaque carte.
-- Utiliser les pads P1..P8 pour changements de pattern.
+- Utiliser les pads P1..P8 pour file d'attente sur les sequenceurs en lecture et changement immediat sur les sequenceurs arretes.
 - Copier un pad de pattern en le glissant-deposant sur un autre pad (copie les notes et les réglages de gamme/mode du pad).
+- Le ratio de temps change seulement la vitesse de lecture face au transport partage ; la longueur stockee du pad, la mesure et la grille restent identiques.
 - Boutons de transposition sur le bord du pad (\`-\` / \`+\`) :
 - Clic court : transpose les notes stockées vers le degré précédent/suivant dans la gamme actuelle (tonique et mode inchangés) et met à jour les accords de pas configurés vers des types d'accords diatoniques correspondants pour le pas transposé quand c'est possible.
 - Appui long : déplace la tonique du pad vers le degré précédent/suivant (transposition par degré), conserve le mode et met à jour la tonique de la gamme du pad.
@@ -384,11 +387,12 @@ Programme des patterns mélodiques ou rythmiques par pas.
 Programa patrones melódicos o rítmicos por pasos.
 
 - Agrega/elimina secuenciadores melodicos.
-- Ajusta canal MIDI, escala, modo y la metrica/cuadricula propias de cada secuenciador melodico.
+- Ajusta canal MIDI, escala, modo, metrica/cuadricula y relacion de pulso propias de cada secuenciador melodico.
 - Sincroniza un secuenciador melodico con otro usando \`Sync con\`.
 - Reordena los secuenciadores melodicos arrastrando el asa \`::\` en cada tarjeta.
-- Usa pads P1..P8 para cambios de patrón en cola.
+- Usa pads P1..P8 para cambios en cola en secuenciadores en reproduccion y cambios inmediatos en secuenciadores detenidos.
 - Copia un pad de patrón arrastrándolo y soltándolo sobre otro pad (copia notas y ajustes de escala/modo del pad).
+- La relacion de pulso solo cambia la velocidad frente al transporte compartido; la longitud guardada del pad, el compas y la cuadricula no cambian.
 - Botones de transposición en el borde del pad (\`-\` / \`+\`):
 - Clic corto: transpone las notas guardadas al grado anterior/siguiente dentro de la escala actual (la raíz y el modo no cambian) y actualiza los acordes configurados del paso a tipos de acorde diatónicos correspondientes para el paso transpuesto cuando sea posible.
 - Pulsación larga: mueve la tónica del pad al grado anterior/siguiente (transposición por grado), mantiene el modo y actualiza la raíz de la escala del pad.
@@ -406,10 +410,11 @@ This help applies to one melodic sequencer card.
 
 - Start/stop the sequencer independently (instrument transport must be running to start).
 - Set MIDI channel, \`Sync To\` target, scale root/type, and mode for note generation.
-- Use this sequencer's meter/grid timing and choose pattern-pad length in beats (\`1..8\`), including the current meter numerator when needed.
+- Use this sequencer's meter/grid timing, beat ratio, and pattern-pad length in beats (\`1..8\`), including the current meter numerator when needed.
 - Drag the sequencer \`::\` handle in the header to reorder melodic sequencers in the panel.
 - Clear all steps for the current sequencer.
-- Use pattern pads (P1..P8) to queue or switch patterns.
+- Use pattern pads (P1..P8) to queue changes for a running sequencer or switch immediately when that sequencer is stopped.
+- \`Beat Ratio\` changes playback speed against the shared transport while keeping the stored pad length, meter, and grid unchanged.
 - Use pad transpose buttons for short-click degree transpose (also remaps configured step chords to matching diatonic chord types when available) and long-press tonic/key-step transpose.
 - Edit each step note, hold state, and velocity.
 - Drag a step \`::\` handle onto another step (same sequencer or another melodic sequencer) to copy step note/chord/velocity settings.`
@@ -422,10 +427,11 @@ Diese Hilfe gilt fuer eine einzelne Karte eines melodischen Sequencers.
 
 - Sequencer separat starten/stoppen (zum Starten muss der Instrument-Transport laufen).
 - MIDI-Kanal, \`Sync zu\`-Ziel, Skalen-Grundton/-Typ und Modus für die Notenerzeugung setzen.
-- Die Takt-/Raster-Zeitbasis dieses melodischen Sequencers nutzen und die Pattern-Pad-Laenge in Beats waehlen (\`1..8\`), bei Bedarf direkt inklusive des aktuellen Taktzaehlers.
+- Die Takt-/Raster-Zeitbasis, das Beat-Verhaeltnis und die Pattern-Pad-Laenge in Beats dieses melodischen Sequencers nutzen (\`1..8\`), bei Bedarf direkt inklusive des aktuellen Taktzaehlers.
 - Das \`::\`-Handle in der Kopfzeile ziehen, um melodische Sequencer im Panel umzusortieren.
 - Alle Schritte dieses Sequencers loeschen.
-- Pattern-Pads (P1..P8) verwenden, um Patterns zu wechseln oder vorzumerken.
+- Pattern-Pads (P1..P8) verwenden, um laufende Sequencer vorzumerken oder gestoppte Sequencer sofort umzuschalten.
+- Das Beat-Verhaeltnis aendert nur die Abspielgeschwindigkeit gegenueber dem gemeinsamen Transport; gespeicherte Pad-Laenge, Taktart und Raster bleiben gleich.
 - Pad-Transpositionsknöpfe für kurzen Klick (Stufentransposition; aktualisiert konfigurierte Step-Akkorde wenn möglich auf passende diatonische Akkordtypen) und langen Druck (Tonika/Key-Step-Transpose) nutzen.
 - Pro Schritt Note, Hold-Zustand und Velocity bearbeiten.
 - Einen Schritt am \`::\`-Handle auf einen anderen Schritt ziehen (gleicher oder anderer melodischer Sequencer), um Noten-/Akkord-/Velocity-Einstellungen zu kopieren.`
@@ -438,10 +444,11 @@ Cette aide s'applique a une carte individuelle de sequenceur melodique.
 
 - Demarrer/arreter le sequenceur independamment (le transport instrument doit etre actif pour demarrer).
 - Régler canal MIDI, cible \`Sync vers\`, tonique/type de gamme et mode pour la génération de notes.
-- Utiliser la mesure/grille de ce sequenceur et choisir la longueur du pad en temps (\`1..8\`), avec le numerateur courant propose si besoin.
+- Utiliser la mesure/grille, le ratio de temps et la longueur du pad en temps de ce sequenceur (\`1..8\`), avec le numerateur courant propose si besoin.
 - Glisser la poignee \`::\` de l'en-tete pour reordonner les sequenceurs melodiques dans le panneau.
 - Effacer tous les pas de ce sequenceur.
-- Utiliser les pads de pattern (P1..P8) pour changer ou mettre en file d'attente des patterns.
+- Utiliser les pads de pattern (P1..P8) pour mettre en file d'attente un sequenceur en lecture ou changer immediatement un sequenceur arrete.
+- Le ratio de temps change seulement la vitesse de lecture face au transport partage ; la longueur stockee du pad, la mesure et la grille restent identiques.
 - Utiliser les boutons de transposition de pad pour clic court (transposition par degré; met aussi à jour les accords de pas configurés vers des types diatoniques correspondants quand c'est possible) et appui long (tonique / transposition par degré de tonalité).
 - Modifier note, état hold et vélocité pour chaque pas.
 - Glisser la poignee \`::\` d'un pas sur un autre pas (meme sequenceur ou autre sequenceur melodique) pour copier les reglages note/accord/velocite du pas.`
@@ -454,10 +461,11 @@ Esta ayuda se aplica a una tarjeta individual de secuenciador melodico.
 
 - Inicia/detiene el secuenciador de forma independiente (el transporte de instrumentos debe estar activo para iniciar).
 - Ajusta canal MIDI, destino \`Sync con\`, raíz/tipo de escala y modo para la generación de notas.
-- Usa la metrica/cuadricula de este secuenciador y elige la longitud del pad en pulsos (\`1..8\`), con el numerador actual disponible cuando haga falta.
+- Usa la metrica/cuadricula, la relacion de pulso y la longitud del pad de este secuenciador en pulsos (\`1..8\`), con el numerador actual disponible cuando haga falta.
 - Arrastra el asa \`::\` del encabezado para reordenar los secuenciadores melodicos en el panel.
 - Borra todos los pasos de este secuenciador.
-- Usa pads de patrón (P1..P8) para cambiar o poner en cola patrones.
+- Usa pads de patrón (P1..P8) para poner en cola un secuenciador en reproduccion o cambiar de inmediato uno detenido.
+- La relacion de pulso solo cambia la velocidad frente al transporte compartido; la longitud guardada del pad, el compas y la cuadricula siguen iguales.
 - Usa los botones de transposición del pad para clic corto (transposición por grado; también actualiza los acordes configurados del paso a tipos diatónicos correspondientes cuando sea posible) y pulsación larga (tónica / transposición por grado tonal).
 - Edita nota, estado hold y velocidad de cada paso.
 - Arrastra el asa \`::\` de un paso sobre otro paso (mismo secuenciador u otro secuenciador melodico) para copiar ajustes de nota/acorde/velocidad.`
@@ -528,8 +536,9 @@ Drum-machine style step sequencer for fixed MIDI drum keys.
 - Program steps by toggling row LEDs on/off for each step.
 - Set per-cell velocity (0..127) for active hits.
 - Active hits show red LEDs; during playback the current-step active LEDs flash green.
-- Use this drummer sequencer's meter/grid timing and choose pad lengths in beats (\`1..8\`), including the current meter numerator when needed.
-- Use pattern pads (P1..P8) for pattern switching/queueing and pad-loop sequences.
+- Use this drummer sequencer's meter/grid timing, beat ratio, and pad lengths in beats (\`1..8\`), including the current meter numerator when needed.
+- Use pattern pads (P1..P8) for queued switching while the drummer sequencer is running, instant switching while it is stopped, and pad-loop sequences.
+- \`Beat Ratio\` changes how fast the row pattern cycles against the shared transport without changing the stored beat length.
 - No chord editing or transposition controls are used in this sequencer type.`
     },
     german: {
@@ -542,8 +551,9 @@ Drum-Machine-Step-Sequencer fuer feste MIDI-Drum-Keys.
 - Steps programmieren durch Ein/Aus der LED pro Reihe und Schritt.
 - Velocity pro Zelle (0..127) fuer aktive Hits setzen.
 - Aktive Hits sind rot; beim Abspielen blinken aktive LEDs im aktuellen Schritt gruen.
-- Die Takt-/Raster-Zeitbasis dieses Drummer-Sequencers nutzen und Pad-Laengen in Beats waehlen (\`1..8\`), bei Bedarf direkt inklusive des aktuellen Taktzaehlers.
-- Pattern-Pads (P1..P8) fuer Pattern-Wechsel/Warteschlange und beat-basierte Pad-Loop-Sequenzen nutzen.
+- Die Takt-/Raster-Zeitbasis, das Beat-Verhaeltnis und Pad-Laengen dieses Drummer-Sequencers in Beats nutzen (\`1..8\`), bei Bedarf direkt inklusive des aktuellen Taktzaehlers.
+- Pattern-Pads (P1..P8) fuer Warteschlangen-Wechsel waehrend des Laufens, sofortige Wechsel im gestoppten Zustand und beat-basierte Pad-Loop-Sequenzen nutzen.
+- Das Beat-Verhaeltnis aendert nur, wie schnell das Row-Pattern gegenueber dem gemeinsamen Transport laeuft.
 - Keine Akkord- oder Transpositionsfunktionen in diesem Sequencer-Typ.`
     },
     french: {
@@ -556,8 +566,9 @@ Séquenceur pas à pas type boîte à rythmes pour des touches MIDI fixes.
 - Programmer les pas en activant/désactivant les LED par ligne et par pas.
 - Régler la vélocité par cellule (0..127) pour les frappes actives.
 - Les frappes actives sont rouges ; en lecture, les LED actives du pas courant clignotent en vert.
-- Utiliser la mesure/grille de ce sequenceur batterie et choisir des longueurs de pad en temps (\`1..8\`), avec le numerateur courant propose si besoin.
-- Utiliser les pads de pattern (P1..P8) pour changements/queue et sequences de boucle basees sur les temps.
+- Utiliser la mesure/grille, le ratio de temps et les longueurs de pad en temps de ce sequenceur batterie (\`1..8\`), avec le numerateur courant propose si besoin.
+- Utiliser les pads de pattern (P1..P8) pour mise en file d'attente pendant la lecture, changement immediat a l'arret et sequences de boucle basees sur les temps.
+- Le ratio de temps change seulement la vitesse du motif de lignes face au transport partage.
 - Pas d'édition d'accords ni de transposition pour ce type de séquenceur.`
     },
     spanish: {
@@ -570,8 +581,9 @@ Secuenciador por pasos estilo caja de ritmos para teclas MIDI fijas.
 - Programa pasos activando/desactivando LEDs por fila y paso.
 - Ajusta velocidad por celda (0..127) para golpes activos.
 - Los golpes activos se muestran en rojo; durante reproducción, los LEDs activos del paso actual parpadean en verde.
-- Usa la metrica/cuadricula de este secuenciador de bateria y elige longitudes de pad en pulsos (\`1..8\`), con el numerador actual disponible cuando haga falta.
-- Usa pads de patron (P1..P8) para cambios/cola y secuencias de bucle basadas en pulsos.
+- Usa la metrica/cuadricula, la relacion de pulso y las longitudes de pad en pulsos de este secuenciador de bateria (\`1..8\`), con el numerador actual disponible cuando haga falta.
+- Usa pads de patron (P1..P8) para cambios en cola durante la reproduccion, cambios inmediatos cuando esta detenido y secuencias de bucle basadas en pulsos.
+- La relacion de pulso solo cambia la velocidad del patron de filas frente al transporte compartido.
 - Sin edición de acordes ni controles de transposición en este tipo de secuenciador.`
     }
   },
@@ -584,8 +596,9 @@ Automate a MIDI CC value over time with a curve.
 
 - Start/stop this controller sequencer independently (instrument transport must be running to start).
 - Set the MIDI controller number (\`0..127\`).
-- Choose the repeating curve length in beats (\`1..8\`, plus \`16\` for longer controller loops).
+- Choose the repeating curve length in beats (\`1..8\`, plus \`16\` for longer controller loops) and set the beat ratio.
 - Use the curve editor to add, move, and shape key points.
+- \`Beat Ratio\` changes how quickly the curve advances against the shared transport without moving the stored key points.
 - The curve loops continuously while the lane is running.
 - The displayed \`CC n\` badge shows the target controller currently sent.`
     },
@@ -597,8 +610,9 @@ Automatisiert einen MIDI-CC-Wert über die Zeit mit einer Kurve.
 
 - Diesen Controller-Sequencer separat starten/stoppen (zum Starten muss der Instrument-Transport laufen).
 - MIDI-Controller-Nummer (\`0..127\`) festlegen.
-- Die wiederholte Kurvenlaenge in Beats waehlen (\`1..8\`, plus \`16\` fuer laengere Controller-Loops).
+- Die wiederholte Kurvenlaenge in Beats waehlen (\`1..8\`, plus \`16\` fuer laengere Controller-Loops) und das Beat-Verhaeltnis setzen.
 - Im Kurveneditor Keypoints hinzufügen, verschieben und formen.
+- Das Beat-Verhaeltnis aendert nur, wie schnell die Kurve gegenueber dem gemeinsamen Transport laeuft; gespeicherte Keypoints bleiben unveraendert.
 - Die Kurve läuft in einer Schleife, solange die Spur aktiv ist.
 - Das angezeigte \`CC n\`-Badge zeigt den aktuell gesendeten Ziel-Controller.`
     },
@@ -610,8 +624,9 @@ Automatise une valeur MIDI CC dans le temps avec une courbe.
 
 - Démarrer/arrêter ce séquenceur contrôleur indépendamment (le transport instrument doit être actif pour démarrer).
 - Définir le numéro de contrôleur MIDI (\`0..127\`).
-- Choisir la longueur repetee de la courbe en temps (\`1..8\`, plus \`16\` pour les boucles controleur plus longues).
+- Choisir la longueur repetee de la courbe en temps (\`1..8\`, plus \`16\` pour les boucles controleur plus longues) et regler le ratio de temps.
 - Utiliser l'éditeur de courbe pour ajouter, déplacer et façonner des points-clés.
+- Le ratio de temps change seulement la vitesse de lecture de la courbe face au transport partage ; les points-cles stockes restent au meme endroit.
 - La courbe boucle en continu pendant l'exécution de la piste.
 - Le badge \`CC n\` affiché indique le contrôleur cible envoyé.`
     },
@@ -623,8 +638,9 @@ Automatiza un valor MIDI CC en el tiempo mediante una curva.
 
 - Inicia/detiene este secuenciador controlador de forma independiente (el transporte de instrumentos debe estar activo para iniciar).
 - Define el número de controlador MIDI (\`0..127\`).
-- Elige la longitud repetida de la curva en pulsos (\`1..8\`, mas \`16\` para bucles de controlador mas largos).
+- Elige la longitud repetida de la curva en pulsos (\`1..8\`, mas \`16\` para bucles de controlador mas largos) y ajusta la relacion de pulso.
 - Usa el editor de curva para agregar, mover y dar forma a puntos clave.
+- La relacion de pulso solo cambia la velocidad de la curva frente al transporte compartido; los puntos guardados no se mueven.
 - La curva se repite en bucle mientras la pista esté activa.
 - La insignia \`CC n\` muestra el controlador destino que se está enviando.`
     }

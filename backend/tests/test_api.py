@@ -1100,6 +1100,83 @@ def test_session_backend_sequencer_pad_looper_sequence_stops_when_repeat_disable
         assert stop_sequencer.json()["running"] is False
 
 
+def test_session_backend_disabled_pad_looper_track_preserves_selected_pad_while_transport_runs(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        patch_payload = {
+            "name": "Sequencer Disabled Pad Selection Patch",
+            "description": "stopped pad-looper track selection test",
+            "schema_version": 1,
+            "graph": {
+                "nodes": [
+                    {"id": "n1", "opcode": "const_a", "params": {"value": 0.2}, "position": {"x": 50, "y": 50}},
+                    {"id": "n2", "opcode": "outs", "params": {}, "position": {"x": 240, "y": 50}},
+                ],
+                "connections": [
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "left"},
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "right"},
+                ],
+                "ui_layout": {},
+                "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+            },
+        }
+
+        create_patch = client.post("/api/patches", json=patch_payload)
+        assert create_patch.status_code == 201
+        patch_id = create_patch.json()["id"]
+
+        create_session = client.post("/api/sessions", json={"patch_id": patch_id})
+        assert create_session.status_code == 201
+        session_id = create_session.json()["session_id"]
+
+        start_sequencer = client.post(
+            f"/api/sessions/{session_id}/sequencer/start",
+            json={
+                "config": _sequencer_config(
+                    [
+                        {
+                            "track_id": "voice-1",
+                            "midi_channel": 1,
+                            "enabled": True,
+                            "active_pad": 0,
+                            "pads": [
+                                {"pad_index": 0, "steps": [60, None] + [None] * 14},
+                            ],
+                        },
+                        {
+                            "track_id": "voice-2",
+                            "midi_channel": 2,
+                            "enabled": False,
+                            "active_pad": 1,
+                            "pad_loop_enabled": True,
+                            "pad_loop_repeat": True,
+                            "pad_loop_sequence": [0, 1],
+                            "pads": [
+                                {"pad_index": 0, "steps": [36, None] + [None] * 14},
+                                {"pad_index": 1, "steps": [48, None] + [None] * 14},
+                            ],
+                        },
+                    ],
+                    tempo_bpm=300,
+                )
+            },
+        )
+        assert start_sequencer.status_code == 200
+        started_tracks = {track["track_id"]: track for track in start_sequencer.json()["tracks"]}
+        assert started_tracks["voice-2"]["enabled"] is False
+        assert started_tracks["voice-2"]["active_pad"] == 1
+        assert started_tracks["voice-2"]["pad_loop_position"] is None
+
+        status = client.get(f"/api/sessions/{session_id}/sequencer/status")
+        assert status.status_code == 200
+        tracks = {track["track_id"]: track for track in status.json()["tracks"]}
+        assert tracks["voice-2"]["enabled"] is False
+        assert tracks["voice-2"]["active_pad"] == 1
+        assert tracks["voice-2"]["pad_loop_position"] is None
+
+        stop_sequencer = client.post(f"/api/sessions/{session_id}/sequencer/stop")
+        assert stop_sequencer.status_code == 200
+
+
 def test_session_backend_sequencer_pad_looper_repeats_across_multiple_pause_tokens(tmp_path: Path) -> None:
     with _client(tmp_path) as client:
         patch_payload = {
