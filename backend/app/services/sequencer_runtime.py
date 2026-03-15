@@ -26,7 +26,7 @@ _DEFAULT_PADS = 8
 _MAX_STEPS = 128
 _SCHEDULER_SLEEP_S = 0.001
 _SCHEDULER_SPIN_THRESHOLD_S = 0.0008
-_MIDI_SCHEDULE_LEAD_S = 0.002
+_MIDI_SCHEDULE_LEAD_S = 0.020
 _PAUSE_BEAT_COUNTS = frozenset({1, 2, 4, 8, 16})
 _DEFAULT_TRACK_LENGTH_BEATS = 4
 _TRANSPORT_STEPS_PER_BEAT = 8
@@ -308,6 +308,8 @@ class SessionSequencerRuntime:
         self._config: SequencerRuntimeConfig | None = None
         self._running = False
         self._absolute_subunit = 0
+        self._scheduled_visible_subunit = 0
+        self._scheduled_visible_until_time: float | None = None
         self._active_notes: dict[str, set[int]] = {}
 
     def set_midi_input(self, midi_input_selector: str) -> None:
@@ -429,8 +431,15 @@ class SessionSequencerRuntime:
             if not self._running:
                 return self._status_locked()
 
+            config = self._config
+            if config is not None:
+                visible_subunit = self._visible_absolute_subunit_locked()
+                if visible_subunit != self._absolute_subunit:
+                    self._apply_absolute_subunit_locked(config, visible_subunit)
+
             self._running = False
             self._stop_event.set()
+            self._scheduled_visible_until_time = None
             thread = self._thread
 
         if thread and thread.is_alive():
@@ -969,6 +978,16 @@ class SessionSequencerRuntime:
         step_count = max(1, config.step_count)
         return (visible_absolute_step % step_count, visible_absolute_step // step_count)
 
+    def _visible_absolute_subunit_locked(self) -> int:
+        if not self._running:
+            return self._absolute_subunit
+        if (
+            self._scheduled_visible_until_time is not None
+            and time.perf_counter() < self._scheduled_visible_until_time
+        ):
+            return self._scheduled_visible_subunit
+        return self._absolute_subunit
+
     def _playback_seek_bounds_locked(self, config: SequencerRuntimeConfig, *, running: bool) -> tuple[int, int]:
         min_subunit = max(0, config.playback_start_subunit)
         max_subunit = max(min_subunit, config.playback_end_subunit - (1 if running else 0))
@@ -1161,6 +1180,8 @@ class SessionSequencerRuntime:
             )
 
         self._absolute_subunit = normalized_absolute
+        self._scheduled_visible_subunit = normalized_absolute
+        self._scheduled_visible_until_time = None
 
     def _seek_steps_locked(self, delta_steps: int) -> SessionSequencerStatus:
         config = self._ensure_config()
@@ -1259,6 +1280,8 @@ class SessionSequencerRuntime:
                 if scheduled_time is None
                 else scheduled_time + (next_wait_subunits * config.timing.transport_subunit_duration_seconds)
             )
+            self._scheduled_visible_subunit = transport_subunit
+            self._scheduled_visible_until_time = boundary_scheduled_time
             boundary_delivery_delay_seconds = (
                 None
                 if boundary_scheduled_time is None
@@ -1450,6 +1473,8 @@ class SessionSequencerRuntime:
             )
 
         current_step, cycle = self._transport_position_locked(config)
+        visible_absolute_subunit = self._visible_absolute_subunit_locked()
+        current_step, cycle = self._transport_position_locked(config, visible_absolute_subunit)
         tracks = [
             SessionSequencerTrackStatus(
                 track_id=track.track_id,
@@ -1464,7 +1489,7 @@ class SessionSequencerRuntime:
                 ),
                 length_beats=self._length_beats_for_pad(track, track.active_pad),
                 step_count=self._active_pad_step_count(track),
-                local_step=self._local_step_for(track, self._absolute_subunit),
+                local_step=self._local_step_for(track, visible_absolute_subunit),
                 active_pad=track.active_pad,
                 queued_pad=track.queued_pad,
                 pad_loop_position=track.pad_loop_position,
@@ -1513,7 +1538,7 @@ class SessionSequencerRuntime:
             step_count=max(1, config.step_count),
             current_step=current_step,
             cycle=cycle,
-            transport_subunit=self._absolute_subunit,
+            transport_subunit=visible_absolute_subunit,
             tracks=tracks,
             controller_tracks=controller_tracks,
         )
