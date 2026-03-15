@@ -102,7 +102,7 @@ Arranger timeline controls:
 
 Above the horizontal scrollbar, the arranger shows a shared loop-range ruler quantized to beat blocks.
 
-- drag on the ruler to define a playback range
+- drag on the ruler to define a playback range, including a single beat
 - click the highlighted range to clear the selection
 - the selected span is highlighted across all arranger rows
 - when a range is selected, playback loops inside that range

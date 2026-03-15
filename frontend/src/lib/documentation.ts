@@ -483,7 +483,7 @@ Arrange melodic sequencers, drummer sequencers, and controller sequencers on one
 - Use the right-click menu to insert pads, existing groups, or existing super-groups into a matching pause gap or at the end.
 - Copy and paste selected pads, groups, and super-groups from the context menu to duplicate phrases.
 - Click a group or super-group token to open its nested editor and build longer phrases.
-- Use the loop ruler and zoom controls to focus playback on a selected arranger range.`
+- Use the loop ruler and zoom controls to focus playback on a selected arranger range, down to a single beat.`
     },
     german: {
       title: "Multitrack Arranger",
@@ -496,7 +496,7 @@ Ordnet melodische Sequencer, Drummer-Sequencer und Controller-Sequencer auf eine
 - Mit dem Rechtsklick-Menue Pads, vorhandene Gruppen oder vorhandene Super-Gruppen in eine passende Pause oder ans Ende einfuegen.
 - Ausgewaehlte Pads, Gruppen und Super-Gruppen per Kontextmenue kopieren und einfuegen, um Phrasen zu duplizieren.
 - Auf ein Gruppen- oder Super-Gruppen-Token klicken, um den verschachtelten Editor fuer laengere Phrasen zu oeffnen.
-- Mit Loop-Lineal und Zoom die Wiedergabe auf einen ausgewaehlten Arranger-Bereich fokussieren.`
+- Mit Loop-Lineal und Zoom die Wiedergabe auf einen ausgewaehlten Arranger-Bereich bis hin zu einem einzelnen Beat fokussieren.`
     },
     french: {
       title: "Arrangeur multipiste",
@@ -509,7 +509,7 @@ Organise les sequenceurs melodiques, les sequenceurs batterie et les sequenceurs
 - Utiliser le menu contextuel pour inserer des pads, des groupes existants ou des super-groupes existants dans une pause adaptee ou a la fin.
 - Copier et coller des pads, groupes et super-groupes selectionnes depuis le menu contextuel pour dupliquer des phrases.
 - Cliquer sur un jeton de groupe ou de super-groupe pour ouvrir son editeur imbrique et construire des phrases plus longues.
-- Utiliser la regle de boucle et le zoom pour concentrer la lecture sur une plage choisie de l'arrangeur.`
+- Utiliser la regle de boucle et le zoom pour concentrer la lecture sur une plage choisie de l'arrangeur, jusqu'a un seul temps.`
     },
     spanish: {
       title: "Arreglador multipista",
@@ -522,7 +522,7 @@ Organiza secuenciadores melodicos, secuenciadores de bateria y secuenciadores de
 - Usa el menu contextual para insertar pads, grupos existentes o supergrupos existentes en una pausa adecuada o al final.
 - Copia y pega pads, grupos y supergrupos seleccionados desde el menu contextual para duplicar frases.
 - Haz clic en un token de grupo o supergrupo para abrir su editor anidado y construir frases mas largas.
-- Usa la regla de bucle y el zoom para centrar la reproduccion en un rango concreto del arreglador.`
+- Usa la regla de bucle y el zoom para centrar la reproduccion en un rango concreto del arreglador, incluso de un solo pulso.`
     }
   },
   sequencer_drummer_sequencer: {
@@ -534,7 +534,7 @@ Drum-machine style step sequencer for fixed MIDI drum keys.
 
 - Add/remove drum rows (keys) and set each row key in the 0..127 MIDI range.
 - Program steps by toggling row LEDs on/off for each step.
-- Set per-cell velocity (0..127) for active hits.
+- Set per-cell velocity (0..127) for active hits by clicking and dragging up or down.
 - Active hits show red LEDs; during playback the current-step active LEDs flash green.
 - Use this drummer sequencer's meter/grid timing, beat ratio, and pad lengths in beats (\`1..8\`), including the current meter numerator when needed.
 - Use pattern pads (P1..P8) for queued switching while the drummer sequencer is running, instant switching while it is stopped, and pad-loop sequences.
@@ -549,7 +549,7 @@ Drum-Machine-Step-Sequencer fuer feste MIDI-Drum-Keys.
 
 - Drum-Reihen (Keys) hinzufuegen/entfernen und MIDI-Key 0..127 setzen.
 - Steps programmieren durch Ein/Aus der LED pro Reihe und Schritt.
-- Velocity pro Zelle (0..127) fuer aktive Hits setzen.
+- Velocity pro Zelle (0..127) fuer aktive Hits durch Klicken und Ziehen nach oben oder unten setzen.
 - Aktive Hits sind rot; beim Abspielen blinken aktive LEDs im aktuellen Schritt gruen.
 - Die Takt-/Raster-Zeitbasis, das Beat-Verhaeltnis und Pad-Laengen dieses Drummer-Sequencers in Beats nutzen (\`1..8\`), bei Bedarf direkt inklusive des aktuellen Taktzaehlers.
 - Pattern-Pads (P1..P8) fuer Warteschlangen-Wechsel waehrend des Laufens, sofortige Wechsel im gestoppten Zustand und beat-basierte Pad-Loop-Sequenzen nutzen.
@@ -564,7 +564,7 @@ Séquenceur pas à pas type boîte à rythmes pour des touches MIDI fixes.
 
 - Ajouter/supprimer des lignes de batterie et régler la touche MIDI (0..127).
 - Programmer les pas en activant/désactivant les LED par ligne et par pas.
-- Régler la vélocité par cellule (0..127) pour les frappes actives.
+- Régler la vélocité par cellule (0..127) pour les frappes actives en cliquant et en faisant glisser vers le haut ou vers le bas.
 - Les frappes actives sont rouges ; en lecture, les LED actives du pas courant clignotent en vert.
 - Utiliser la mesure/grille, le ratio de temps et les longueurs de pad en temps de ce sequenceur batterie (\`1..8\`), avec le numerateur courant propose si besoin.
 - Utiliser les pads de pattern (P1..P8) pour mise en file d'attente pendant la lecture, changement immediat a l'arret et sequences de boucle basees sur les temps.
@@ -579,7 +579,7 @@ Secuenciador por pasos estilo caja de ritmos para teclas MIDI fijas.
 
 - Agrega/elimina filas de batería y ajusta la tecla MIDI (0..127).
 - Programa pasos activando/desactivando LEDs por fila y paso.
-- Ajusta velocidad por celda (0..127) para golpes activos.
+- Ajusta velocidad por celda (0..127) para golpes activos haciendo clic y arrastrando hacia arriba o hacia abajo.
 - Los golpes activos se muestran en rojo; durante reproducción, los LEDs activos del paso actual parpadean en verde.
 - Usa la metrica/cuadricula, la relacion de pulso y las longitudes de pad en pulsos de este secuenciador de bateria (\`1..8\`), con el numerador actual disponible cuando haga falta.
 - Usa pads de patron (P1..P8) para cambios en cola durante la reproduccion, cambios inmediatos cuando esta detenido y secuencias de bucle basadas en pulsos.

@@ -43,6 +43,7 @@ const DEFAULT_STEP_PIXEL_WIDTH = 9;
 const ABSOLUTE_MIN_STEP_PIXEL_WIDTH = 0.05;
 const MAX_STEP_PIXEL_WIDTH = 24;
 const TOKEN_REORDER_DRAG_MIME = "application/x-visualcsound-arranger-token";
+const SELECTION_DRAG_THRESHOLD_PX = 4;
 
 type ArrangerTrackKind = "sequencer" | "drummer" | "controller";
 
@@ -108,7 +109,8 @@ type RootDragPreview = {
 type SelectionDragState = {
   pointerId: number;
   anchorStep: number;
-  moved: boolean;
+  startClientX: number;
+  dragging: boolean;
 };
 
 type ArrangerTokenDragPayload = {
@@ -1078,7 +1080,7 @@ export function MultitrackArranger({
     };
   }, [maxRootSteps, sequencer.arrangerLoopSelection, stepGridQuantum]);
 
-  const stepFromClientX = useCallback(
+  const rawStepFromClientX = useCallback(
     (clientX: number): number => {
       const ruler = selectionRulerRef.current ?? timelineViewportRef.current;
       if (!ruler) {
@@ -1086,20 +1088,56 @@ export function MultitrackArranger({
       }
       const rect = ruler.getBoundingClientRect();
       const localX = clientX - rect.left + timelineScrollLeft;
-      const rawStep = Math.floor(localX / Math.max(ABSOLUTE_MIN_STEP_PIXEL_WIDTH, stepPixelWidth));
+      return Math.max(0, Math.min(maxRootSteps, localX / Math.max(ABSOLUTE_MIN_STEP_PIXEL_WIDTH, stepPixelWidth)));
+    },
+    [maxRootSteps, stepPixelWidth, timelineScrollLeft]
+  );
+
+  const stepFromClientX = useCallback(
+    (clientX: number): number => {
+      const rawStep = Math.floor(rawStepFromClientX(clientX));
       const quantizedStep = Math.floor(rawStep / stepGridQuantum) * stepGridQuantum;
       return Math.max(0, Math.min(Math.max(0, maxRootSteps - stepGridQuantum), quantizedStep));
     },
-    [maxRootSteps, stepGridQuantum, stepPixelWidth, timelineScrollLeft]
+    [maxRootSteps, rawStepFromClientX, stepGridQuantum]
+  );
+
+  const selectionFromClientX = useCallback(
+    (anchorStep: number, clientX: number): ArrangerLoopSelection => {
+      const boundedAnchorStep = Math.max(0, Math.min(anchorStep, Math.max(0, maxRootSteps - stepGridQuantum)));
+      const anchorEndStep = Math.min(maxRootSteps, boundedAnchorStep + stepGridQuantum);
+      const rawStep = rawStepFromClientX(clientX);
+
+      if (rawStep <= boundedAnchorStep) {
+        return {
+          startStep: Math.max(0, Math.floor(rawStep / stepGridQuantum) * stepGridQuantum),
+          endStep: anchorEndStep
+        };
+      }
+
+      if (rawStep >= anchorEndStep) {
+        return {
+          startStep: boundedAnchorStep,
+          endStep: Math.max(
+            anchorEndStep,
+            Math.min(maxRootSteps, Math.ceil(rawStep / stepGridQuantum) * stepGridQuantum)
+          )
+        };
+      }
+
+      return {
+        startStep: boundedAnchorStep,
+        endStep: anchorEndStep
+      };
+    },
+    [maxRootSteps, rawStepFromClientX, stepGridQuantum]
   );
 
   const commitSelection = useCallback(
-    (anchorStep: number, currentStep: number) => {
-      const startStep = Math.max(0, Math.min(anchorStep, currentStep));
-      const endStep = Math.min(maxRootSteps, Math.max(anchorStep, currentStep) + stepGridQuantum);
-      onArrangerLoopSelectionChange({ startStep, endStep });
+    (anchorStep: number, clientX: number) => {
+      onArrangerLoopSelectionChange(selectionFromClientX(anchorStep, clientX));
     },
-    [maxRootSteps, onArrangerLoopSelectionChange, stepGridQuantum]
+    [onArrangerLoopSelectionChange, selectionFromClientX]
   );
 
   const handleSelectionPointerDown = useCallback(
@@ -1112,7 +1150,8 @@ export function MultitrackArranger({
       selectionDragRef.current = {
         pointerId: event.pointerId,
         anchorStep,
-        moved: false
+        startClientX: event.clientX,
+        dragging: false
       };
       if (event.currentTarget.setPointerCapture) {
         event.currentTarget.setPointerCapture(event.pointerId);
@@ -1128,11 +1167,14 @@ export function MultitrackArranger({
         return;
       }
       event.preventDefault();
-      const currentStep = stepFromClientX(event.clientX);
-      dragState.moved = dragState.moved || currentStep !== dragState.anchorStep;
-      commitSelection(dragState.anchorStep, currentStep);
+      const movedFarEnough = Math.abs(event.clientX - dragState.startClientX) >= SELECTION_DRAG_THRESHOLD_PX;
+      dragState.dragging = dragState.dragging || movedFarEnough;
+      if (!dragState.dragging) {
+        return;
+      }
+      commitSelection(dragState.anchorStep, event.clientX);
     },
-    [commitSelection, stepFromClientX]
+    [commitSelection]
   );
 
   const handleSelectionPointerEnd = useCallback(
@@ -1143,7 +1185,10 @@ export function MultitrackArranger({
       }
       event.preventDefault();
       const currentStep = stepFromClientX(event.clientX);
-      if (!dragState.moved) {
+      const movedFarEnough = Math.abs(event.clientX - dragState.startClientX) >= SELECTION_DRAG_THRESHOLD_PX;
+      if (!dragState.dragging && movedFarEnough) {
+        commitSelection(dragState.anchorStep, event.clientX);
+      } else if (!dragState.dragging) {
         if (
           loopSelection &&
           currentStep >= loopSelection.startStep &&
@@ -1151,7 +1196,7 @@ export function MultitrackArranger({
         ) {
           onArrangerLoopSelectionChange(null);
         } else {
-          commitSelection(currentStep, currentStep);
+          commitSelection(currentStep, event.clientX);
         }
       }
       selectionDragRef.current = null;
