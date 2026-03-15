@@ -115,6 +115,10 @@ The `GEN` meta-opcode node shows a `GEN` button that opens the specialized GEN t
 - Invalid wiring, missing required inputs, or invalid formulas surface compile diagnostics.
 - Graph compile status is reflected in the instrument page header (`compiled`, `pending changes`, `errors`).
 
+## Integrated Help Focus
+
+The graph editor `?` help now concentrates on graph-specific behavior: persisted layout, deliberate deletion, constant-node inline editing, and the Input Formula Assistant workflow for combining multiple signals on one input.
+
 ## Screenshots
 
 <p align="center">

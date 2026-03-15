@@ -63,6 +63,8 @@ The opcode documentation modal provides:
 
 In addition to opcode-level docs, the app provides context help buttons for page sections (toolbar, catalog, graph, runtime, sequencer panels, config panels). These open integrated markdown help content in the currently selected GUI language.
 
+For the opcode catalog specifically, the integrated help now focuses on search/add workflow and on the distinction between catalog help and the node-level opcode documentation modal.
+
 See also:
 
 - [GUI Language and Integrated Help](../configuration/gui_language_and_integrated_help.md)

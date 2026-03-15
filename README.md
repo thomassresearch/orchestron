@@ -22,7 +22,7 @@ This application was built using the Codex App with `GPT-5.3-Codex` and **Extra 
 
 Orchestron is a visual music and instrument-building application centered around Csound as the sound generation engine. Instead of starting from fixed instruments, you design instruments visually and perform them live inside the same app.
 
-The application includes multilingual UI/help content and integrated help pages, with perform/config help focused on the active device or engine settings so opcode references and usage guidance stay available directly in the workflow without leaving the app.
+The application includes multilingual UI/help content and integrated help pages, with instrument-design, perform, and config help focused on the active tool, device, or engine settings so opcode references and usage guidance stay available directly in the workflow without leaving the app.
 
 ### Instrument Design
 

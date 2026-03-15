@@ -42,7 +42,7 @@ Examples include:
 
 Clicking a context `?` opens a markdown help modal tailored to that UI area.
 
-On the Perform and Config pages, these help modals focus on the current device, transport section, or engine setting panel instead of repeating generic UI conventions.
+On the Instrument Design, Perform, and Config pages, these help modals focus on the current tool, device, transport section, or engine setting panel instead of repeating generic UI conventions.
 
 ## Opcode Documentation (`?` On Opcode Node)
 

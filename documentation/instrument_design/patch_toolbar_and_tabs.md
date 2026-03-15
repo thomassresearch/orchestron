@@ -81,6 +81,7 @@ The toolbar includes:
 - `Save` is the persistence action for the patch library.
 - `Export` is the sharing/transfer action for Orchestron-specific instrument bundles.
 - `Export CSD` is the interoperability action for raw Csound usage.
+- The integrated `?` help for this toolbar now focuses on tab-local draft state versus saved library state, plus the difference between `Compile`, `Save`, `Clone`, and export actions.
 
 ## Screenshots
 

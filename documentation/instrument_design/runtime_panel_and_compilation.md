@@ -79,6 +79,8 @@ This helps you avoid assuming a graph is live-valid after edits.
 4. Start or continue runtime testing with MIDI input
 5. Save only after compile is clean
 
+The integrated `?` help for this panel now focuses on session-specific MIDI binding, generated ORC inspection, runtime event feedback, and the difference between browser-streaming audio mode and local DAC mode.
+
 ## Screenshots
 
 <p align="center">

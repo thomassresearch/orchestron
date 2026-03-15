@@ -851,81 +851,108 @@ Este panel permite verificar valores para compilar/iniciar.`
   }
 };
 
-const HELP_DOC_COMMON_APPENDIX: Record<GuiLanguage, string> = {
-  english: `### Practical Notes
-
-- The top-right \`?\` button always opens context-specific help for the current UI area.
-- Changes that affect runtime behavior should be saved before live testing.
-- For opcode-level details, use the \`?\` button directly on an opcode node in the graph editor.
-
-### UI Conventions
-
-| Element | Meaning |
-| --- | --- |
-| \`?\` icon | Open integrated markdown documentation |
-| rounded status badge | Current runtime/transport state |
-| red action button | Remove or destructive action |
-| ORC / events view | Runtime diagnostics and feedback |`,
-  german: `### Praktische Hinweise
-
-- Die \`?\`-Taste oben rechts öffnet immer kontextbezogene Hilfe für den aktuellen UI-Bereich.
-- Änderungen mit Einfluss auf die Runtime sollten vor Live-Tests gespeichert werden.
-- Für Opcode-Details die \`?\`-Taste direkt am Opcode-Node im Graph Editor verwenden.
-
-### UI-Konventionen
-
-| Element | Bedeutung |
-| --- | --- |
-| \`?\`-Symbol | Integrierte Markdown-Dokumentation öffnen |
-| runde Statusanzeige | Aktueller Runtime/Transport-Status |
-| roter Aktionsknopf | Entfernen oder destruktive Aktion |
-| ORC-/Event-Ansicht | Runtime-Diagnose und Rückmeldung |`,
-  french: `### Notes pratiques
-
-- Le bouton \`?\` en haut à droite ouvre toujours l'aide contextuelle de la zone UI courante.
-- Les changements qui impactent la runtime doivent être sauvegardés avant test live.
-- Pour les détails opcode, utilisez le bouton \`?\` directement sur un nœud opcode du graphe.
-
-### Conventions UI
-
-| Element | Signification |
-| --- | --- |
-| icône \`?\` | Ouvrir la documentation markdown intégrée |
-| badge d'état arrondi | État runtime/transport courant |
-| bouton rouge | Action de suppression/destructive |
-| vue ORC / événements | Diagnostic runtime et retour système |`,
-  spanish: `### Notas prácticas
-
-- El botón \`?\` arriba a la derecha siempre abre ayuda contextual para el área UI actual.
-- Los cambios que afectan runtime deben guardarse antes de probar en vivo.
-- Para detalles de opcode, usa el botón \`?\` directamente en el nodo opcode del editor de grafos.
-
-### Convenciones de UI
-
-| Elemento | Significado |
-| --- | --- |
-| ícono \`?\` | Abrir documentación markdown integrada |
-| insignia redondeada de estado | Estado actual de runtime/transporte |
-| botón rojo | Acción destructiva o de eliminación |
-| vista ORC / eventos | Diagnóstico y feedback de runtime |`
-};
-
-const HELP_DOC_SKIP_COMMON_APPENDIX = new Set<HelpDocId>([
-  "sequencer_instrument_rack",
-  "sequencer_tracks",
-  "sequencer_track_editor",
-  "sequencer_multitrack_arranger",
-  "sequencer_drummer_sequencer",
-  "sequencer_controller_sequencer",
-  "sequencer_piano_rolls",
-  "sequencer_midi_controllers",
-  "config_audio_engine",
-  "config_engine_values"
-]);
-
 const HELP_DOC_SPECIFIC_APPENDIX: Partial<Record<HelpDocId, Record<GuiLanguage, string>>> = {
+  instrument_patch_toolbar: {
+    english: `### Patch Library Workflow
+
+- Tabs are local working slots. Switching tabs keeps each draft graph open, but does not save anything to the backend library by itself.
+- \`Load Patch\` replaces the active tab with a saved patch snapshot, which is useful for comparing or reusing library patches without closing other tabs.
+- \`Save\` persists the current graph, metadata, layout, and engine settings only after compile validation succeeds.
+
+### Action Differences
+
+- \`Compile\` refreshes the generated ORC/CSD artifacts and compile status, but does not store the patch in the library.
+- \`New\` starts a fresh unsaved draft, while \`Clone\` creates another saved patch from the current one.
+- \`Export\` / \`Import\` move Orchestron instrument bundles, while \`Export CSD\` downloads the raw compiled Csound file for use outside the app.`,
+    german: `### Workflow der Patch-Bibliothek
+
+- Tabs sind lokale Arbeits-Slots. Beim Wechseln bleiben Entwuerfe offen, es wird aber nichts automatisch in der Backend-Bibliothek gespeichert.
+- \`Load Patch\` ersetzt den aktiven Tab durch einen gespeicherten Patch-Snapshot. Das ist praktisch, um Library-Patches zu vergleichen oder wiederzuverwenden, ohne andere Tabs zu schliessen.
+- \`Save\` persistiert den aktuellen Graphen, die Metadaten, das Layout und die Engine-Werte erst dann, wenn die Compile-Validierung erfolgreich war.
+
+### Unterschiede der Aktionen
+
+- \`Compile\` aktualisiert die erzeugten ORC/CSD-Artefakte und den Compile-Status, speichert den Patch aber nicht in der Bibliothek.
+- \`New\` startet einen neuen ungespeicherten Entwurf, waehrend \`Clone\` einen zweiten gespeicherten Patch aus dem aktuellen erzeugt.
+- \`Export\` / \`Import\` bewegen Orchestron-Instrument-Bundles; \`Export CSD\` laedt die rohe kompilierte Csound-Datei fuer die Nutzung ausserhalb der App herunter.`,
+    french: `### Workflow de la bibliotheque de patchs
+
+- Les onglets sont des espaces de travail locaux. Changer d'onglet conserve chaque brouillon ouvert, mais ne sauvegarde rien dans la bibliotheque backend.
+- \`Load Patch\` remplace l'onglet actif par un snapshot de patch sauvegarde ; c'est pratique pour comparer ou reutiliser des patchs de la bibliotheque sans fermer les autres onglets.
+- \`Save\` persiste le graphe courant, les metadonnees, la mise en page et les reglages moteur uniquement apres une validation de compilation reussie.
+
+### Differences entre les actions
+
+- \`Compile\` rafraichit les artefacts ORC/CSD generes et l'etat de compilation, mais n'enregistre pas le patch dans la bibliotheque.
+- \`New\` demarre un nouveau brouillon non sauvegarde, tandis que \`Clone\` cree un deuxieme patch sauvegarde a partir du patch courant.
+- \`Export\` / \`Import\` deplacent des bundles d'instrument Orchestron, alors que \`Export CSD\` telecharge le fichier Csound compile brut pour une utilisation hors de l'app.`,
+    spanish: `### Flujo de biblioteca de patches
+
+- Las pestanas son espacios de trabajo locales. Cambiar de pestana mantiene cada borrador abierto, pero no guarda nada por si solo en la biblioteca del backend.
+- \`Load Patch\` reemplaza la pestana activa con un snapshot guardado del patch; esto sirve para comparar o reutilizar patches de la biblioteca sin cerrar otras pestanas.
+- \`Save\` persiste el grafo actual, los metadatos, el layout y los ajustes del motor solo despues de que la validacion de compilacion haya sido correcta.
+
+### Diferencias entre acciones
+
+- \`Compile\` actualiza los artefactos ORC/CSD generados y el estado de compilacion, pero no guarda el patch en la biblioteca.
+- \`New\` inicia un borrador nuevo sin guardar, mientras que \`Clone\` crea otro patch guardado a partir del actual.
+- \`Export\` / \`Import\` mueven bundles de instrumento de Orchestron, mientras que \`Export CSD\` descarga el archivo Csound compilado en bruto para usarlo fuera de la app.`
+  },
+  instrument_opcode_catalog: {
+    english: `### Search And Discovery
+
+- Search matches opcode name, category, tags, and description, so functional terms such as \`filter\`, \`midi\`, or \`reverb\` are enough to find relevant nodes.
+- Icon and category labels mirror the graph editor's visual grouping, which helps identify generators, filters, MIDI utilities, and similar signal roles before insertion.
+- Click insertion is fastest for rough sketching; drag-and-drop is better when node placement already matters.
+
+### Catalog Help vs Opcode Docs
+
+- This help explains how to find and place supported opcodes inside VisualCSound.
+- Technical opcode details open from the placed node's \`?\` button and include ports, syntax, tags, and the direct Csound reference link.
+- Only opcodes with app support appear here, so search results reflect what the graph editor and compiler can render end-to-end.`,
+    german: `### Suche und Orientierung
+
+- Die Suche gleicht Opcode-Name, Kategorie, Tags und Beschreibung ab, daher reichen Funktionsbegriffe wie \`filter\`, \`midi\` oder \`reverb\`, um passende Nodes zu finden.
+- Icon und Kategorie spiegeln die visuelle Gruppierung des Graph Editors wider und helfen schon vor dem Einfuegen bei Generatoren, Filtern, MIDI-Helfern und aehnlichen Signalrollen.
+- Klick-Einfuegen ist am schnellsten fuer grobe Skizzen; Drag-and-drop ist besser, wenn die Node-Position bereits wichtig ist.
+
+### Katalog-Hilfe vs. Opcode-Dokumentation
+
+- Diese Hilfe erklaert, wie unterstuetzte Opcodes in VisualCSound gefunden und platziert werden.
+- Technische Opcode-Details oeffnen ueber die \`?\`-Taste eines platzierten Nodes und enthalten Ports, Syntax, Tags sowie den direkten Csound-Referenzlink.
+- Hier erscheinen nur Opcodes mit App-Unterstuetzung; die Suchergebnisse entsprechen also dem, was Graph Editor und Compiler Ende-zu-Ende verarbeiten koennen.`,
+    french: `### Recherche et reperage
+
+- La recherche couvre le nom d'opcode, la categorie, les tags et la description ; des termes fonctionnels comme \`filter\`, \`midi\` ou \`reverb\` suffisent donc pour trouver les bons nœuds.
+- Les icones et categories reprennent le regroupement visuel de l'editeur de graphe et aident a identifier generateurs, filtres, utilitaires MIDI et roles similaires avant insertion.
+- Le clic pour inserer est le plus rapide pour esquisser un patch ; le glisser-deposer est preferable quand le placement du nœud compte deja.
+
+### Aide du catalogue vs documentation opcode
+
+- Cette aide explique comment trouver et placer les opcodes pris en charge dans VisualCSound.
+- Les details techniques d'un opcode s'ouvrent depuis le bouton \`?\` du nœud place et incluent ports, syntaxe, tags et lien direct vers la reference Csound.
+- Seuls les opcodes pris en charge par l'application apparaissent ici ; les resultats de recherche correspondent donc a ce que l'editeur de graphe et le compilateur savent rendre de bout en bout.`,
+    spanish: `### Busqueda y orientacion
+
+- La busqueda coincide con nombre de opcode, categoria, etiquetas y descripcion, asi que terminos funcionales como \`filter\`, \`midi\` o \`reverb\` bastan para encontrar nodos relevantes.
+- El icono y la categoria reflejan la agrupacion visual del editor de grafos y ayudan a identificar generadores, filtros, utilidades MIDI y roles similares antes de insertar.
+- Insertar con clic es lo mas rapido para esbozar; arrastrar y soltar funciona mejor cuando la posicion del nodo ya importa.
+
+### Ayuda del catalogo vs documentacion de opcode
+
+- Esta ayuda explica como encontrar y colocar opcodes compatibles dentro de VisualCSound.
+- Los detalles tecnicos del opcode se abren desde el boton \`?\` del nodo colocado e incluyen puertos, sintaxis, etiquetas y el enlace directo a la referencia de Csound.
+- Aqui solo aparecen opcodes con soporte de la app, asi que los resultados de busqueda reflejan lo que el editor de grafos y el compilador pueden procesar de extremo a extremo.`
+  },
   instrument_graph_editor: {
-    english: `### Combining Multiple Signals On One Input
+    english: `### Working In The Graph
+
+- The canvas stores node positions, input-formula metadata, and other UI layout details with the patch, so reopening a saved patch restores the last arranged view.
+- Connections should follow compatible port types, but the backend compiler remains the final source of truth for missing inputs, invalid formulas, and compile errors.
+- The delete action only removes explicitly selected nodes or cables; casual socket interaction is intentionally prevented from tearing down existing wiring.
+- Constant nodes expose inline value editing, so simple control or init values can be adjusted without opening another inspector.
+
+### Combining Multiple Signals On One Input
 
 If multiple signals are connected to the **same input** of an opcode:
 
@@ -942,7 +969,14 @@ If multiple signals are connected to the **same input** of an opcode:
 | \`+\`, \`-\`, \`*\`, \`/\` | Arithmetic operators |
 | \`(\`, \`)\` | Grouping / precedence |
 | \`abs()\`, \`ceil()\`, \`floor()\`, \`ampdb()\`, \`dbamp()\` | Unary functions |`,
-    german: `### Mehrere Signale auf demselben Eingang kombinieren
+    german: `### Arbeiten im Graph Editor
+
+- Die Canvas speichert Node-Positionen, Input-Formula-Metadaten und weitere UI-Layout-Details zusammen mit dem Patch, sodass ein gespeicherter Patch wieder in der zuletzt angeordneten Ansicht oeffnet.
+- Verbindungen sollten kompatiblen Port-Typen folgen, aber der Backend-Compiler bleibt die letzte Instanz fuer fehlende Eingänge, ungueltige Formeln und Compile-Fehler.
+- Die Delete-Aktion entfernt nur explizit ausgewaehlte Nodes oder Kabel; lockere Socket-Interaktionen sollen bestehendes Wiring bewusst nicht versehentlich zerreissen.
+- Constant-Nodes erlauben Inline-Wertbearbeitung, damit einfache Control- oder Init-Werte ohne zusaetzlichen Inspector angepasst werden koennen.
+
+### Mehrere Signale auf demselben Eingang kombinieren
 
 Wenn mehrere Signale mit **demselben Eingang** eines Opcodes verbunden sind:
 
@@ -959,7 +993,14 @@ Wenn mehrere Signale mit **demselben Eingang** eines Opcodes verbunden sind:
 | \`+\`, \`-\`, \`*\`, \`/\` | Arithmetische Operatoren |
 | \`(\`, \`)\` | Gruppierung / Priorität |
 | \`abs()\`, \`ceil()\`, \`floor()\`, \`ampdb()\`, \`dbamp()\` | Unäre Funktionen |`,
-    french: `### Combiner plusieurs signaux sur la même entrée
+    french: `### Travailler dans l'editeur de graphe
+
+- Le canevas stocke les positions des nœuds, les metadonnees de formule d'entree et d'autres details de mise en page UI avec le patch ; rouvrir un patch sauvegarde restaure donc la derniere vue organisee.
+- Les connexions doivent suivre des types de ports compatibles, mais le compilateur backend reste l'autorite finale pour les entrees manquantes, les formules invalides et les erreurs de compilation.
+- L'action de suppression ne retire que les nœuds ou cables explicitement selectionnes ; une interaction normale avec les sockets ne doit pas casser le cablage existant par accident.
+- Les nœuds constants exposent une edition inline des valeurs, ce qui permet d'ajuster des valeurs simples de controle ou d'init sans ouvrir un autre inspecteur.
+
+### Combiner plusieurs signaux sur la même entrée
 
 Si plusieurs signaux sont connectés à **la même entrée** d'un opcode :
 
@@ -976,7 +1017,14 @@ Si plusieurs signaux sont connectés à **la même entrée** d'un opcode :
 | \`+\`, \`-\`, \`*\`, \`/\` | Opérateurs arithmétiques |
 | \`(\`, \`)\` | Groupement / priorité |
 | \`abs()\`, \`ceil()\`, \`floor()\`, \`ampdb()\`, \`dbamp()\` | Fonctions unaires |`,
-    spanish: `### Combinar múltiples señales en la misma entrada
+    spanish: `### Trabajo en el editor de grafos
+
+- El lienzo guarda posiciones de nodos, metadatos de formulas de entrada y otros detalles de layout de la UI junto con el patch, asi que al reabrir un patch guardado se recupera la ultima disposicion.
+- Las conexiones deben seguir tipos de puerto compatibles, pero el compilador del backend sigue siendo la referencia final para entradas faltantes, formulas invalidas y errores de compilacion.
+- La accion de borrar solo elimina nodos o cables seleccionados de forma explicita; una interaccion casual con sockets no debe romper el cableado existente por accidente.
+- Los nodos constantes exponen edicion inline de valores para ajustar controles o valores init simples sin abrir otro inspector.
+
+### Combinar múltiples señales en la misma entrada
 
 Si múltiples señales están conectadas a **la misma entrada** de un opcode:
 
@@ -993,6 +1041,52 @@ Si múltiples señales están conectadas a **la misma entrada** de un opcode:
 | \`+\`, \`-\`, \`*\`, \`/\` | Operadores aritméticos |
 | \`(\`, \`)\` | Agrupación / precedencia |
 | \`abs()\`, \`ceil()\`, \`floor()\`, \`ampdb()\`, \`dbamp()\` | Funciones unarias |`
+  },
+  instrument_runtime_panel: {
+    english: `### Live Test Workflow
+
+- The MIDI input selector binds external hardware or DAW input to the active runtime session of the current patch. It is session-specific, so changing sessions can change the available binding.
+- Compile output shows the generated ORC used for runtime, which is useful when checking how formulas, GEN data, and meta-opcodes were rendered.
+- Session events list recent backend/runtime messages so start, stop, compile, and error transitions can be verified without leaving the patch page.
+
+### Audio Mode Details
+
+- In browser-streaming mode, this panel also reports browser-audio connection status and exposes the built-in audio player for the incoming stream.
+- In local DAC mode, audio stays on the backend machine and the panel focuses on diagnostics instead of browser playback.
+- If the panel is collapsed, the graph header can show it again with \`Show runtime\`.`,
+    german: `### Workflow fuer Live-Tests
+
+- Der MIDI-Input-Selector bindet externe Hardware- oder DAW-Eingaben an die aktive Runtime-Session des aktuellen Patches. Die Bindung ist sessionspezifisch; ein Session-Wechsel kann also auch die Zuweisung aendern.
+- Der Compile-Output zeigt das erzeugte ORC, das die Runtime wirklich benutzt. Das hilft beim Pruefen, wie Formeln, GEN-Daten und Meta-Opcodes gerendert wurden.
+- Session-Events listen juengste Backend-/Runtime-Meldungen auf, sodass Start-, Stop-, Compile- und Fehler-Uebergaenge direkt auf der Patch-Seite nachvollzogen werden koennen.
+
+### Details zum Audio-Modus
+
+- Im Browser-Streaming-Modus meldet dieses Panel zusaetzlich den Status der Browser-Audio-Verbindung und zeigt den eingebauten Audio-Player fuer den eingehenden Stream.
+- Im lokalen DAC-Modus bleibt das Audio auf dem Backend-Rechner; das Panel konzentriert sich dann auf Diagnostik statt Browser-Wiedergabe.
+- Ist das Panel eingeklappt, kann es ueber \`Show runtime\` in der Kopfzeile des Graph Editors wieder eingeblendet werden.`,
+    french: `### Workflow de test live
+
+- Le selecteur d'entree MIDI relie le materiel externe ou l'entree DAW a la session runtime active du patch courant. Cette liaison est propre a la session ; changer de session peut donc changer l'affectation disponible.
+- La sortie de compilation montre l'ORC genere utilise par la runtime, ce qui aide a verifier comment les formules, donnees GEN et meta-opcodes ont ete rendus.
+- Les evenements de session listent les messages backend/runtime recents afin de verifier les transitions de demarrage, d'arret, de compilation et d'erreur sans quitter la page du patch.
+
+### Details du mode audio
+
+- En mode de streaming navigateur, ce panneau affiche aussi l'etat de la connexion audio du navigateur et propose le lecteur audio integre pour le flux entrant.
+- En mode DAC local, l'audio reste sur la machine backend ; le panneau se concentre alors sur le diagnostic plutot que sur la lecture dans le navigateur.
+- Si le panneau est replie, l'en-tete du graphe peut le rouvrir via \`Show runtime\`.`,
+    spanish: `### Flujo de prueba en vivo
+
+- El selector de entrada MIDI enlaza hardware externo o entrada de DAW con la sesion runtime activa del patch actual. La vinculacion es especifica de la sesion, asi que al cambiar de sesion puede cambiar tambien la asignacion disponible.
+- La salida de compilacion muestra el ORC generado que usa el runtime, lo que ayuda a comprobar como se renderizaron formulas, datos GEN y meta-opcodes.
+- Los eventos de sesion listan mensajes recientes del backend/runtime para verificar transiciones de inicio, parada, compilacion y error sin salir de la pagina del patch.
+
+### Detalles del modo de audio
+
+- En modo de streaming al navegador, este panel tambien informa del estado de la conexion de audio del navegador y expone el reproductor integrado para el flujo entrante.
+- En modo DAC local, el audio permanece en la maquina del backend y el panel se centra en diagnostico en lugar de reproduccion en navegador.
+- Si el panel esta colapsado, el encabezado del editor de grafos puede volver a mostrarlo con \`Show runtime\`.`
   },
   sequencer_instrument_rack: {
     english: `### Rack Behavior
@@ -1683,10 +1777,9 @@ export function documentationUiCopy(language: GuiLanguage): DocumentationUiCopy 
 export function getHelpDocument(helpDocId: HelpDocId, language: GuiLanguage): HelpDocument {
   const normalized = normalizeGuiLanguage(language);
   const base = HELP_DOCUMENTS[helpDocId][normalized];
-  const commonAppendix = HELP_DOC_SKIP_COMMON_APPENDIX.has(helpDocId) ? "" : HELP_DOC_COMMON_APPENDIX[normalized];
   const specificAppendix = HELP_DOC_SPECIFIC_APPENDIX[helpDocId]?.[normalized] ?? "";
 
-  const markdown = [base.markdown.trim(), commonAppendix.trim(), specificAppendix.trim()]
+  const markdown = [base.markdown.trim(), specificAppendix.trim()]
     .filter((section) => section.length > 0)
     .join("\n\n");
 
