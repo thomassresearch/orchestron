@@ -8,7 +8,7 @@ They are optimized for per-step drum hit programming instead of melodic note/cho
 
 ## What Makes Them Different
 
-Compared to melodic sequencer tracks, drummer sequencers:
+Compared to melodic sequencers, drummer sequencers:
 
 - use MIDI key numbers (`0..127`) per row (drum instrument selection)
 - do not use scale / mode / chord controls
@@ -18,15 +18,15 @@ Compared to melodic sequencer tracks, drummer sequencers:
 
 ## Adding / Removing Drummer Sequencers
 
-- Use the `Drummer` button in the sequencer section header to add a drummer sequencer card
+- Use the `Add Drummer Sequencer` button in the sequencer section header to add a drummer sequencer card
 - Each drummer sequencer card has its own `Remove` button
 
 ## Per-Drummer-Sequencer Controls
 
 Each drummer sequencer card provides:
 
-- track state badge (running/stopped or queued start/stop state)
-- `Start` / `Stop` (enable state)
+- sequencer state badge (running/stopped or queued start/stop state)
+- `Start` / `Stop` (sequencer enable state)
 - `Remove`
 - `Clear Steps`
 - `+ Key` (add another drum row)
@@ -85,7 +85,7 @@ The LED border color stays visible even at low velocities, so low-velocity activ
 
 ## Pattern Pads and Pad Looper
 
-Drummer sequencers support the same `P1..P8` pattern-pad workflow and queued pad switching as melodic sequencer tracks.
+Drummer sequencers support the same `P1..P8` pattern-pad workflow and queued pad switching as melodic sequencers.
 
 Drummer pad length is stored in beats, while meter, grid, and beat rate are configured per drummer sequencer.
 

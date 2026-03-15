@@ -1,10 +1,10 @@
-# Sequencer Tracks and Step Editing
+# Melodic Sequencers and Step Editing
 
 **Navigation:** [Up](performance.md) | [Prev](instrument_rack_and_engine_transport.md) | [Next](drummer_sequencers.md)
 
-Sequencer tracks are step-based pattern sequencers used for melodic/rhythmic note playback.
+Melodic sequencers are step-based pattern sequencers used for note playback.
 
-This page covers the **melodic sequencer track** editor. Drum-machine style programming is documented in [Drummer Sequencers](drummer_sequencers.md).
+This page covers the **melodic sequencer** editor. Drum-machine style programming is documented in [Drummer Sequencers](drummer_sequencers.md).
 
 ## Global Sequencer Clock
 
@@ -15,18 +15,18 @@ The sequencer section contains a global clock with:
 
 The backend runs the step timing (native runtime clock), which reduces browser timing jitter during playback.
 
-## Adding / Removing Tracks
+## Adding / Removing Melodic Sequencers
 
-- `Add Sequencer` creates a new sequencer track
-- `Drummer` creates a drummer sequencer card (documented separately in [Drummer Sequencers](drummer_sequencers.md))
-- Each track has its own `Remove` button
+- `Add Melodic Sequencer` creates a new melodic sequencer card
+- `Add Drummer Sequencer` creates a drummer sequencer card (documented separately in [Drummer Sequencers](drummer_sequencers.md))
+- Each melodic sequencer has its own `Remove` button
 
-## Per-Track Controls
+## Per-Sequencer Controls
 
-Each track card provides:
+Each melodic sequencer card provides:
 
-- track state badge (running/stopped or queued start/stop state)
-- `Start` / `Stop` (track enable state)
+- sequencer state badge (running/stopped or queued start/stop state)
+- `Start` / `Stop` (sequencer enable state)
 - `Remove`
 - `Clear Steps`
 - `MIDI Channel` (`1..16`)
@@ -37,24 +37,24 @@ Each track card provides:
 - `Beat Rate` (`1:1`, `2:1`, `3:2`, `4:3`, `3:4`, `5:4`, `4:5`, `7:4`)
 - `Beats` (`1..8`, with the current meter numerator exposed directly)
 
-The step editor width is derived from the track's own timing and length:
+The step editor width is derived from the sequencer's own timing and length:
 
-- steps per beat = the track's selected `Grid`
+- steps per beat = the sequencer's selected `Grid`
 - pad steps = `beats * steps per beat`
 - default timing (`4/4`, grid `4`) gives `16` steps for a `4`-beat pad
 - odd meters can still use matching one-bar pad lengths such as `3` beats in `3/4` or `5` beats in `5/4`
 
-`Beat Rate` changes how quickly the track advances relative to the shared transport beat:
+`Beat Rate` changes how quickly the sequencer advances relative to the shared transport beat:
 
 - `1:1` keeps normal speed
-- ratios above `1:1` make the track run faster
-- ratios below `1:1` make the track run slower
+- ratios above `1:1` make the melodic sequencer run faster
+- ratios below `1:1` make the melodic sequencer run slower
 
 This is separate from `Meter` and `Grid`, so you can combine polymeter and true polyrhythm on the same performance page.
 
 ### Queued Start/Stop State Labels
 
-When changes are queued to take effect at the next cycle boundary, the track state label can show queued states such as:
+When changes are queued to take effect at the next cycle boundary, the sequencer state label can show queued states such as:
 
 - starting at step 1
 - stopping at step 1
@@ -67,7 +67,7 @@ Orchestron separates:
 - Scale type (`major`, `neutral`, `minor`)
 - Mode (7 diatonic modes)
 
-This supports guided note entry and better readability in the track step editor and piano roll highlighting.
+This supports guided note entry and better readability in the sequencer step editor and piano roll highlighting.
 
 ## Step Editor (Per-Step Note Programming)
 
@@ -84,7 +84,7 @@ Each step cell supports:
 Each step has a pitch-class dropdown grouped into:
 
 - `Rest`
-- In-scale notes (for the current track scale/mode)
+- In-scale notes (for the current sequencer scale/mode)
 - Out-of-scale notes
 
 The octave is edited separately via the `OCT` field.
@@ -108,14 +108,14 @@ Use `HOLD` to sustain behavior across steps according to the sequencer runtime l
 
 Step cells visually indicate:
 
-- Active playhead step (when track + transport are running)
+- Active playhead step (when the melodic sequencer + transport are running)
 - In-scale programmed note
 - Out-of-scale programmed note
 - Rest / hold combinations
 
 ## Clear Steps
 
-`Clear Steps` resets the current track step contents (for the active pad pattern context) so you can quickly reprogram a track.
+`Clear Steps` resets the current melodic sequencer step contents (for the active pad pattern context) so you can quickly reprogram it.
 
 ## Related Features
 
@@ -124,8 +124,8 @@ Step cells visually indicate:
 ## Screenshots
 
 <p align="center">
-  <img src="../../screenshots/perform_sequencer_track_step_editor_detail.png" alt="Sequencer track step editor detail" width="1100" style="max-width: 100%; height: auto;" />
+  <img src="../../screenshots/perform_sequencer_track_step_editor_detail.png" alt="Melodic sequencer step editor detail" width="1100" style="max-width: 100%; height: auto;" />
 </p>
-<p align="center"><em>Sequencer track detail showing step editing, note selection, octave, and hold controls.</em></p>
+<p align="center"><em>Melodic sequencer detail showing step editing, note selection, octave, and hold controls.</em></p>
 
 **Navigation:** [Up](performance.md) | [Prev](instrument_rack_and_engine_transport.md) | [Next](drummer_sequencers.md)

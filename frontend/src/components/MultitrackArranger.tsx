@@ -134,6 +134,9 @@ type MultitrackArrangerProps = {
     selectionHint: string;
     clearSelection: string;
     dragToken: string;
+    melodicSequencerWithIndex: (index: number) => string;
+    drummerSequencerWithIndex: (index: number) => string;
+    controllerSequencerWithIndex: (index: number) => string;
     contextMenuAddPad: string;
     contextMenuAddGroup: string;
     contextMenuAddSuperGroup: string;
@@ -874,7 +877,7 @@ export function MultitrackArranger({
         id: track.id,
         kind: "sequencer",
         index,
-        title: `Sequencer ${index + 1}`,
+        title: copy.melodicSequencerWithIndex(index + 1),
         subtitle: buildTrackSubtitle("sequencer", track.midiChannel, patchByChannel, null),
         padLoopPattern: track.padLoopPattern,
         padStepCounts: track.pads.map((pad) => pad.stepCount),
@@ -888,7 +891,7 @@ export function MultitrackArranger({
         id: track.id,
         kind: "drummer",
         index,
-        title: `Drummer Sequencer ${index + 1}`,
+        title: copy.drummerSequencerWithIndex(index + 1),
         subtitle: buildTrackSubtitle("drummer", track.midiChannel, patchByChannel, null),
         padLoopPattern: track.padLoopPattern,
         padStepCounts: track.pads.map((pad) => pad.stepCount),
@@ -902,7 +905,7 @@ export function MultitrackArranger({
         id: track.id,
         kind: "controller",
         index,
-        title: `Controller Sequencer ${index + 1}`,
+        title: copy.controllerSequencerWithIndex(index + 1),
         subtitle: buildTrackSubtitle("controller", null, patchByChannel, track.controllerNumber),
         padLoopPattern: track.padLoopPattern,
         padStepCounts: track.pads.map((pad) => pad.stepCount),
@@ -911,7 +914,7 @@ export function MultitrackArranger({
       });
     });
     return tracks;
-  }, [patchByChannel, sequencer.controllerSequencers, sequencer.drummerTracks, sequencer.tracks]);
+  }, [copy, patchByChannel, sequencer.controllerSequencers, sequencer.drummerTracks, sequencer.tracks]);
 
   const commitTrackPattern = useCallback(
     (track: ArrangerTrack, nextPattern: PadLoopPatternState) => {

@@ -8,7 +8,7 @@ This chapter covers the `Perform` page (labeled `Perform` / `Performance` depend
 
 - Assemble an instrument rack from saved patches and assign MIDI channels
 - Start/stop the instrument engine session
-- Create multiple melodic sequencer tracks, drummer sequencers, and controller sequencers
+- Create multiple melodic sequencers, drummer sequencers, and controller sequencers
 - Use pattern pads with queued switching and pad-loop sequences
 - Arrange multiple track timelines in the multitrack arranger with shared transport and loop-range playback
 - Perform live with piano rolls and manual MIDI controller knobs
@@ -18,7 +18,7 @@ This chapter covers the `Perform` page (labeled `Perform` / `Performance` depend
 ## Chapter Contents
 
 - [Instrument Rack and Engine Transport](instrument_rack_and_engine_transport.md)
-- [Sequencer Tracks and Step Editing](sequencer_tracks_and_steps.md)
+- [Melodic Sequencers and Step Editing](sequencer_tracks_and_steps.md)
 - [Drummer Sequencers](drummer_sequencers.md)
 - [Pattern Pads, Queued Switching, and Pad Looper](pattern_pads_and_pad_looper.md)
 - [Multitrack Arranger](multitrack_arranger.md)
@@ -38,7 +38,7 @@ This chapter covers the `Perform` page (labeled `Perform` / `Performance` depend
 1. Save at least one patch in Instrument Design.
 2. Add instruments to the performance rack and assign channels.
 3. Start instruments (engine session).
-4. Build sequencer tracks / drummer sequencers / controller sequencers / piano rolls.
+4. Build melodic sequencers / drummer sequencers / controller sequencers / piano rolls.
 5. Save the performance.
 6. Export the performance bundle for backup or sharing.
 
@@ -47,6 +47,6 @@ This chapter covers the `Perform` page (labeled `Perform` / `Performance` depend
 <p align="center">
   <img src="../../screenshots/perform_instruments_and_sequencer.png" alt="Performance page overview" width="1100" style="max-width: 100%; height: auto;" />
 </p>
-<p align="center"><em>Performance page overview with instrument rack and sequencer sections.</em></p>
+<p align="center"><em>Performance page overview with instrument rack plus melodic, drummer, and controller sequencer sections.</em></p>
 
 **Navigation:** [Up](../user_documentation.md) | [Prev](../instrument_design/supported_opcodes.md) | [Next](instrument_rack_and_engine_transport.md)

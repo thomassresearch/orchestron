@@ -21,7 +21,7 @@ The selected MIDI input is reflected in the Perform page footer status line.
 
 These features generate MIDI/control events internally and do not require an external MIDI input device:
 
-- sequencer tracks
+- melodic sequencers
 - controller sequencers
 - piano rolls (on-screen keyboard)
 - manual MIDI controller knob lanes

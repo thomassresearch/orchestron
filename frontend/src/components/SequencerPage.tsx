@@ -174,6 +174,9 @@ type SequencerUiCopy = {
   zoomIn: string;
   sequencers: string;
   addSequencer: string;
+  drummerSequencers: string;
+  addDrummerSequencer: string;
+  controllerSequencers: string;
   addControllerSequencer: string;
   globalSequencerClock: string;
   bpm: string;
@@ -198,6 +201,7 @@ type SequencerUiCopy = {
   notesInScaleMode: (scale: string, mode: string) => string;
   patternPads: string;
   sequencerWithIndex: (index: number) => string;
+  drummerSequencerWithIndex: (index: number) => string;
   start: string;
   stop: string;
   rest: string;
@@ -347,8 +351,11 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     multitrackArrangerContextMenuInsertHint: "Insert into a pause gap at the clicked beat, or append at the end.",
     zoomOut: "Zoom -",
     zoomIn: "Zoom +",
-    sequencers: "Sequencers",
-    addSequencer: "Add Sequencer",
+    sequencers: "Melodic Sequencers",
+    addSequencer: "Add Melodic Sequencer",
+    drummerSequencers: "Drummer Sequencers",
+    addDrummerSequencer: "Add Drummer Sequencer",
+    controllerSequencers: "Controller Sequencers",
     addControllerSequencer: "Add Controller Sequencer",
     globalSequencerClock: "Global Sequencer Clock",
     bpm: "BPM",
@@ -372,7 +379,8 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     removePadLoopStep: (padNumber) => `Remove pad ${padNumber} from sequence`,
     notesInScaleMode: (scale, mode) => `Notes in ${scale} / ${mode}`,
     patternPads: "Pattern Pads",
-    sequencerWithIndex: (index) => `Sequencer ${index}`,
+    sequencerWithIndex: (index) => `Melodic Sequencer ${index}`,
+    drummerSequencerWithIndex: (index) => `Drummer Sequencer ${index}`,
     start: "Start",
     stop: "Stop",
     rest: "Rest",
@@ -476,8 +484,11 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
       "In eine passende Pause an der angeklickten Beat-Position einfuegen oder am Ende anhaengen.",
     zoomOut: "Zoom -",
     zoomIn: "Zoom +",
-    sequencers: "Sequencer",
-    addSequencer: "Sequencer hinzufuegen",
+    sequencers: "Melodische Sequencer",
+    addSequencer: "Melodischen Sequencer hinzufuegen",
+    drummerSequencers: "Drummer-Sequencer",
+    addDrummerSequencer: "Drummer-Sequencer hinzufuegen",
+    controllerSequencers: "Controller-Sequencer",
     addControllerSequencer: "Controller-Sequencer hinzufuegen",
     globalSequencerClock: "Globale Sequencer-Clock",
     bpm: "BPM",
@@ -501,7 +512,8 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     removePadLoopStep: (padNumber) => `Pad ${padNumber} aus Sequenz entfernen`,
     notesInScaleMode: (scale, mode) => `Noten in ${scale} / ${mode}`,
     patternPads: "Pattern-Pads",
-    sequencerWithIndex: (index) => `Sequencer ${index}`,
+    sequencerWithIndex: (index) => `Melodischer Sequencer ${index}`,
+    drummerSequencerWithIndex: (index) => `Drummer-Sequencer ${index}`,
     start: "Start",
     stop: "Stop",
     rest: "Pause",
@@ -605,8 +617,11 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
       "Inserer dans une pause assez grande au temps clique, sinon a la fin.",
     zoomOut: "Zoom -",
     zoomIn: "Zoom +",
-    sequencers: "Sequenceurs",
-    addSequencer: "Ajouter sequenceur",
+    sequencers: "Sequenceurs melodiques",
+    addSequencer: "Ajouter sequenceur melodique",
+    drummerSequencers: "Sequenceurs batterie",
+    addDrummerSequencer: "Ajouter sequenceur batterie",
+    controllerSequencers: "Sequenceurs controleur",
     addControllerSequencer: "Ajouter sequenceur controleur",
     globalSequencerClock: "Horloge globale du sequenceur",
     bpm: "BPM",
@@ -630,7 +645,8 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     removePadLoopStep: (padNumber) => `Retirer pad ${padNumber} de la sequence`,
     notesInScaleMode: (scale, mode) => `Notes dans ${scale} / ${mode}`,
     patternPads: "Pads de pattern",
-    sequencerWithIndex: (index) => `Sequenceur ${index}`,
+    sequencerWithIndex: (index) => `Sequenceur melodique ${index}`,
+    drummerSequencerWithIndex: (index) => `Sequenceur batterie ${index}`,
     start: "Demarrer",
     stop: "Arreter",
     rest: "Silence",
@@ -734,8 +750,11 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
       "Inserta en una pausa suficientemente grande en la posicion marcada o al final.",
     zoomOut: "Zoom -",
     zoomIn: "Zoom +",
-    sequencers: "Secuenciadores",
-    addSequencer: "Agregar secuenciador",
+    sequencers: "Secuenciadores melodicos",
+    addSequencer: "Agregar secuenciador melodico",
+    drummerSequencers: "Secuenciadores de bateria",
+    addDrummerSequencer: "Agregar secuenciador de bateria",
+    controllerSequencers: "Secuenciadores controladores",
     addControllerSequencer: "Agregar secuenciador controlador",
     globalSequencerClock: "Reloj global del secuenciador",
     bpm: "BPM",
@@ -759,7 +778,8 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     removePadLoopStep: (padNumber) => `Quitar pad ${padNumber} de la secuencia`,
     notesInScaleMode: (scale, mode) => `Notas en ${scale} / ${mode}`,
     patternPads: "Pads de patron",
-    sequencerWithIndex: (index) => `Secuenciador ${index}`,
+    sequencerWithIndex: (index) => `Secuenciador melodico ${index}`,
+    drummerSequencerWithIndex: (index) => `Secuenciador de bateria ${index}`,
     start: "Iniciar",
     stop: "Detener",
     rest: "Silencio",
@@ -3804,6 +3824,9 @@ export function SequencerPage({
       selectionHint: ui.multitrackArrangerSelectionHint,
       clearSelection: ui.multitrackArrangerClearSelection,
       dragToken: ui.multitrackArrangerDragToken,
+      melodicSequencerWithIndex: ui.sequencerWithIndex,
+      drummerSequencerWithIndex: ui.drummerSequencerWithIndex,
+      controllerSequencerWithIndex: ui.controllerSequencerWithIndex,
       contextMenuAddPad: ui.multitrackArrangerContextMenuAddPad,
       contextMenuAddGroup: ui.multitrackArrangerContextMenuAddGroup,
       contextMenuAddSuperGroup: ui.multitrackArrangerContextMenuAddSuperGroup,
@@ -4234,7 +4257,7 @@ export function SequencerPage({
             onClick={onAddDrummerSequencerTrack}
             className="rounded-md border border-accent/60 bg-accent/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-accent transition hover:bg-accent/25"
           >
-            ADD DRUMMER SEQUENCER
+            {ui.addDrummerSequencer}
           </button>
           <button
             type="button"
@@ -5036,7 +5059,7 @@ export function SequencerPage({
 
           {sequencer.drummerTracks.length > 0 ? (
             <div className="rounded-xl border border-rose-800/45 bg-slate-900/45 p-2.5">
-              <div className="mb-2 text-xs uppercase tracking-[0.2em] text-rose-200">Drummer Sequencers</div>
+              <div className="mb-2 text-xs uppercase tracking-[0.2em] text-rose-200">{ui.drummerSequencers}</div>
               <div className="space-y-3">
                 {sequencer.drummerTracks.map((track, trackIndex) => {
                   const stepIndices = Array.from({ length: track.stepCount }, (_, index) => index);
@@ -5063,7 +5086,7 @@ export function SequencerPage({
 
                       <div className="mb-2 flex flex-wrap items-center gap-2">
                         <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-200">
-                          Drummer {trackIndex + 1}
+                          {ui.drummerSequencerWithIndex(trackIndex + 1)}
                         </div>
                         <span className={transportStateClass}>{trackStateLabel(track, ui)}</span>
                         <button
@@ -5450,7 +5473,7 @@ export function SequencerPage({
 
           {sequencer.controllerSequencers.length > 0 ? (
             <div className="rounded-xl border border-teal-800/45 bg-slate-900/45 p-2.5">
-              <div className="mb-2 text-xs uppercase tracking-[0.2em] text-teal-200">Controller Sequencers</div>
+              <div className="mb-2 text-xs uppercase tracking-[0.2em] text-teal-200">{ui.controllerSequencers}</div>
               <div className="space-y-3">
                 {sequencer.controllerSequencers.map((controllerSequencer, controllerSequencerIndex) => (
                   <article

@@ -6,7 +6,7 @@ Pattern pads are the per-track pattern banks (`P1..P8`). They support live switc
 
 ## Pattern Pads Overview
 
-Each melodic sequencer track, drummer sequencer, and controller sequencer contains 8 pattern pads:
+Each melodic sequencer, drummer sequencer, and controller sequencer contains 8 pattern pads:
 
 - `P1` to `P8`
 - one active pad

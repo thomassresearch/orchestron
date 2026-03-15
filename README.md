@@ -40,7 +40,7 @@ Designed instruments can be exported for reuse, including export to a `.csd` fil
 
 ### Live Performance
 
-The live performance area provides an instrument rack where instruments can be selected and assigned to MIDI channels. A sequencer can then drive those instruments, with scale and mode selection and note entry that supports choosing notes both in-scale and out-of-scale. `tempoBPM` stays global, while every melodic sequencer, drummer sequencer, and controller sequencer now has its own meter (`2..7` over `4` or `8`), grid in steps per beat (`2`, `4`, or `8`), and beat-rate ratio (`1:1`, `2:1`, `3:2`, `4:3`, `3:4`, `5:4`, `4:5`, `7:4`). That makes polymeter and true per-sequencer polyrhythm possible inside one performance.
+The live performance area provides an instrument rack where instruments can be selected and assigned to MIDI channels. A melodic sequencer can then drive those instruments, with scale and mode selection and note entry that supports choosing notes both in-scale and out-of-scale. `tempoBPM` stays global, while every melodic sequencer, drummer sequencer, and controller sequencer now has its own meter (`2..7` over `4` or `8`), grid in steps per beat (`2`, `4`, or `8`), and beat-rate ratio (`1:1`, `2:1`, `3:2`, `4:3`, `3:4`, `5:4`, `4:5`, `7:4`). That makes polymeter and true per-sequencer polyrhythm possible inside one performance.
 
 When the rack transport has started instruments, rack assignment edits are intentionally locked: adding/removing instruments and changing patch or MIDI channel assignments stay disabled until `Stop Instruments` is pressed, while per-instrument `Level` stays live for mix adjustments.
 
@@ -48,13 +48,13 @@ A controller sequencer lets you define a curve that is sampled during playback a
 
 The multitrack arranger combines melodic sequencers, drummer sequencers, and controller sequencers in one shared timeline. Cassette-style transport controls rewind or fast-forward in shared `1-beat` transport blocks, `Stop` preserves the playhead, double-clicking `Stop` resets to the selected loop start or step `0`, an optional loop selection repeats only the chosen arranger range, right-click menus can insert pads or existing group/super-group tokens and copy/paste selected phrase blocks into later gaps or the sequence end, and the section now exposes the same integrated `?` help flow as the other perform devices.
 
-The piano roll follows the active scale/mode (from the running sequencer) and highlights keys by scale degree. When multiple sequencers run with different scales/modes, only keys shared by both scales/modes are highlighted, which supports interactive playing with clear harmonic guidance.
+The piano roll follows the active scale/mode (from the running melodic sequencer) and highlights keys by scale degree. When multiple melodic sequencers run with different scales/modes, only keys shared by both scales/modes are highlighted, which supports interactive playing with clear harmonic guidance.
 
 The MIDI controller panel provides 6 controllers that can each be assigned an individual controller number and operated interactively while playing.
 
-![Perform: Instruments and Sequencer](screenshots/perform_instruments_and_sequencer.png)
+![Perform: Instruments and Melodic Sequencer](screenshots/perform_instruments_and_sequencer.png)
 
-![Perform: Sequencer Types](screenshots/perform_sequencer_types.png)
+![Perform: Melodic, Drummer, and Controller Sequencers](screenshots/perform_sequencer_types.png)
 
 ![Perform: Keyboard and Controller Panel](screenshots/perform_keyboard_and_controller_panel.png)
 

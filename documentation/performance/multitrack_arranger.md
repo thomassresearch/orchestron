@@ -2,19 +2,19 @@
 
 **Navigation:** [Up](performance.md) | [Prev](pattern_pads_and_pad_looper.md) | [Next](controller_sequencers.md)
 
-The **Multitrack Arranger** is a shared timeline view for pad-loop arrangements across all sequencer types. It appears on the Perform page when at least one melodic sequencer track, drummer sequencer, or controller sequencer exists.
+The **Multitrack Arranger** is a shared timeline view for pad-loop arrangements across all sequencer types. It appears on the Perform page when at least one melodic sequencer, drummer sequencer, or controller sequencer exists.
 
 ## What It Arranges
 
 The arranger shows one row per track:
 
-- melodic sequencer tracks
+- melodic sequencers
 - drummer sequencers
 - controller sequencers
 
 Each row includes:
 
-- track title (`Sequencer N`, `Drummer Sequencer N`, `Controller Sequencer N`)
+- track title (`Melodic Sequencer N`, `Drummer Sequencer N`, `Controller Sequencer N`)
 - track subtitle (MIDI channel + assigned patch name, or `CC N` for controller sequencers)
 - a root pattern timeline aligned to the shared transport beat grid
 
@@ -40,7 +40,7 @@ The arranger header provides cassette-style transport controls with icon buttons
 - `Fast forward`: move the playhead `1` beat forward
 - `?`: open the integrated multilingual help modal for a concise arranger workflow summary
 
-The transport controls the full performance arrangement, including melodic sequencer tracks, drummer sequencers, and controller sequencers.
+The transport controls the full performance arrangement, including melodic sequencers, drummer sequencers, and controller sequencers.
 
 Double-click `Stop` to reset the playhead to the selected loop start. If no loop range is selected, the playhead resets to step `0`.
 

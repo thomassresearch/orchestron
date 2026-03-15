@@ -8,7 +8,7 @@ Piano Rolls provide manual performance input with scale-aware keyboard highlight
 
 Piano Rolls are for live/manual playing on an on-screen keyboard while the instrument engine is running.
 
-They coexist with sequencer tracks and controller sequencers, which means you can jam manually on top of sequenced playback.
+They coexist with melodic sequencers and controller sequencers, which means you can jam manually on top of sequenced playback.
 
 ## Add / Remove / Enable
 
@@ -33,18 +33,18 @@ Each piano roll has:
 
 ## Scale/Mode Following Behavior During Live Playback
 
-When the instrument engine is running and a piano roll is enabled, the piano roll can follow the currently running sequencer tracks for harmonic guidance.
+When the instrument engine is running and a piano roll is enabled, the piano roll can follow the currently running melodic sequencers for harmonic guidance.
 
 ### Shared Scale/Mode Case
 
-If running sequencer tracks agree on the same scale+mode:
+If running melodic sequencers agree on the same scale+mode:
 
 - the piano roll shows that shared scale/mode
 - keys are highlighted according to that theory
 
 ### Mixed Scale/Mode Case
 
-If running sequencer tracks disagree:
+If running melodic sequencers disagree:
 
 - piano roll controls show `mixed`
 - highlighting is computed from the intersection of the active theories
@@ -86,7 +86,7 @@ The UI tracks held notes and clears them if the piano roll becomes inactive or t
 
 - Live melody or bass improvisation on top of sequencer patterns
 - Testing an instrument patch in musical context without external MIDI hardware
-- Performing harmonically guided lines while sequencer tracks define the key center
+- Performing harmonically guided lines while melodic sequencers define the key center
 
 ## Screenshots
 

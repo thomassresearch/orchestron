@@ -32,7 +32,7 @@ It is organized by chapter and subchapter so you can read it front-to-back or ju
 ## [Performance](performance/performance.md)
 
 - [Instrument Rack and Engine Transport](performance/instrument_rack_and_engine_transport.md)
-- [Sequencer Tracks and Step Editing](performance/sequencer_tracks_and_steps.md)
+- [Melodic Sequencers and Step Editing](performance/sequencer_tracks_and_steps.md)
 - [Pattern Pads, Queued Switching, and Pad Looper](performance/pattern_pads_and_pad_looper.md)
 - [Controller Sequencers](performance/controller_sequencers.md)
 - [Piano Rolls](performance/piano_rolls.md)
@@ -59,7 +59,7 @@ It is organized by chapter and subchapter so you can read it front-to-back or ju
 | GEN meta-opcode editor (GEN01/GENpadsynth/etc.) | [GEN Table Editor (GEN Meta-Opcode)](instrument_design/gen_table_editor.md) |
 | Instrument import/export bundles + CSD export | [Instrument Import / Export and CSD Export](instrument_design/instrument_import_export.md) |
 | Performance rack, multi-instrument assignments, engine transport | [Instrument Rack and Engine Transport](performance/instrument_rack_and_engine_transport.md) |
-| Sequencer tracks, pattern pads, pad looper, transposition | [Sequencer Tracks and Step Editing](performance/sequencer_tracks_and_steps.md), [Pattern Pads, Queued Switching, and Pad Looper](performance/pattern_pads_and_pad_looper.md) |
+| Melodic sequencers, pattern pads, pad looper, transposition | [Melodic Sequencers and Step Editing](performance/sequencer_tracks_and_steps.md), [Pattern Pads, Queued Switching, and Pad Looper](performance/pattern_pads_and_pad_looper.md) |
 | Controller sequencers and CC curve editor | [Controller Sequencers](performance/controller_sequencers.md) |
 | Piano rolls, scale/mode following, mixed-mode highlighting | [Piano Rolls](performance/piano_rolls.md) |
 | Manual MIDI controller panel (up to 6 knobs) | [MIDI Controllers](performance/midi_controllers.md) |

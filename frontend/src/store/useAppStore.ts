@@ -1027,7 +1027,7 @@ function defaultSequencerTrack(
   const pads = defaultSequencerPads(scaleRoot, scaleType, mode, lengthBeats, timing);
   return {
     id: `voice-${index}`,
-    name: `Sequencer ${index}`,
+    name: `Melodic Sequencer ${index}`,
     midiChannel: channel,
     timing: normalizeSequencerTiming(timing),
     lengthBeats,
@@ -2578,7 +2578,7 @@ function buildSequencerConfigSnapshot(
       ),
       tracks: sequencer.tracks.slice(0, 8).map((track, index) => ({
         id: track.id.length > 0 ? track.id : `voice-${index + 1}`,
-        name: track.name.trim().length > 0 ? track.name : `Sequencer ${index + 1}`,
+        name: track.name.trim().length > 0 ? track.name : `Melodic Sequencer ${index + 1}`,
         midiChannel: clampInt(track.midiChannel, 1, 16),
         timing: normalizeSequencerTiming(track.timing),
         lengthBeats: normalizeSequencerPadLengthBeats(track.lengthBeats),
@@ -3507,7 +3507,7 @@ export const useAppStore = create<AppStore>((set, get) => {
       const nextIndex = sequencer.tracks.length + 1;
       const track = defaultSequencerTrack(nextIndex, nextAvailablePerformanceChannel(sequencer));
       track.id = crypto.randomUUID();
-      track.name = `Sequencer ${nextIndex}`;
+      track.name = `Melodic Sequencer ${nextIndex}`;
       const nextTracks = [...sequencer.tracks, track];
 
       set({
