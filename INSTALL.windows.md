@@ -18,6 +18,10 @@ powershell -ExecutionPolicy Bypass -c "irm https://astral.sh/uv/install.ps1 | ie
 - Node.js + npm from [nodejs.org](https://nodejs.org/) or your preferred Windows package manager. Node 20+ is recommended.
 - Csound from [csound.com/download.html](https://csound.com/download.html). After installation, ensure the directory containing `csound.exe` is on your `PATH`.
 - Needed on Windows: Visual Studio Build Tools or Visual Studio with `Desktop development with C++` as the portaudio python package will need native compilation.
+- Set environment variables for Csound: make sure csound.exe is in the Path, and set the path to the opcode DLL's:
+  - $env:Path = $env:Path + ";C:\....\Csound-6.18.1-windows-x64-binaries\build\Release"
+  - $env:OPCODE6DIR = "C:\....\Csound-6.18.1-windows-x64-binaries\build\Release" 
+  - $env:OPCODE6DIR64 = "C:\....\Csound-6.18.1-windows-x64-binaries\build\Release" 
 
 Confirm the installed tools in a new PowerShell window:
 
