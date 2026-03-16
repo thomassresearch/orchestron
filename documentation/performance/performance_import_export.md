@@ -8,6 +8,12 @@ Performance import/export lets you move complete live setups between machines or
 
 The Performance page `Export` button creates an Orchestron performance bundle from the current performance workspace.
 
+Use this export when you want to:
+
+- Re-import the performance into Orchestron later
+- Move a full performance setup to another machine
+- Keep versioned backups of a performance together with its patch references
+
 File extensions:
 
 - `.orch.json`
@@ -29,6 +35,11 @@ If any referenced patch contains uploaded GEN01 audio assets, export is automati
 
 The Performance page `Export CSD` button creates a separate offline-render ZIP for Csound.
 
+This export is different from the normal `Export` bundle:
+
+- `Export` is for Orchestron import/export workflows
+- `Export CSD` is for rendering outside Orchestron with standard Csound tools
+
 This ZIP contains:
 
 - A compiled `.csd` with every instrument currently used in the performance rack
@@ -38,11 +49,40 @@ This ZIP contains:
 - Referenced bundled sample audio / SoundFont files used by the exported instruments
 - A `README.txt` with the exact Csound command line needed to render the package
 
+ZIP layout:
+
+- The ZIP contains a single top-level directory
+- That directory has the same basename as the exported performance `.csd`
+- Inside that directory you will find the `.csd`, `.mid`, `README.txt`, and `assets/` subdirectory
+
+Typical extracted structure:
+
+```text
+Offline_Export/
+  Offline_Export.csd
+  Offline_Export.mid
+  README.txt
+  assets/
+```
+
 Typical use:
 
 - Share a performance as a portable offline render package
 - Render the arrangement outside Orchestron with stock Csound
 - Archive a self-contained `.csd` + `.mid` + assets bundle for later mastering or batch rendering
+
+Rendering workflow:
+
+1. Click `Export CSD` on the Performance page.
+2. Extract the downloaded ZIP.
+3. Change into the bundled directory inside the extracted archive.
+4. Run the command from `README.txt`, for example:
+
+```bash
+csound -d -W -o Offline_Export.wav -F Offline_Export.mid Offline_Export.csd
+```
+
+The exported `.csd` already includes matching `CsOptions`, so `csound Offline_Export.csd` also works after you change into that directory.
 
 ## Performance Import (`Import`)
 
