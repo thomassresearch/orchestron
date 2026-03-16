@@ -64,6 +64,7 @@ It is organized by chapter and subchapter so you can read it front-to-back or ju
 | Piano rolls, scale/mode following, mixed-mode highlighting | [Piano Rolls](performance/piano_rolls.md) |
 | Manual MIDI controller panel (up to 6 knobs) | [MIDI Controllers](performance/midi_controllers.md) |
 | Performance bundle import/export with conflict resolution | [Performance Import / Export](performance/performance_import_export.md) |
+| Offline performance render export (`.csd` + `.mid` + assets ZIP) | [Performance Import / Export](performance/performance_import_export.md) |
 | Audio engine settings (`sr`, `control_rate`, `ksmps`, buffers) | [Audio Engine Settings (Config Page)](configuration/audio_engine_settings.md) |
 | Browser audio streaming (WebRTC / Docker mode) | [Browser Audio Streaming (WebRTC)](configuration/browser_audio_streaming_webrtc.md) |
 | App-state persistence and defaults | [Persistence and Defaults](configuration/persistence_and_defaults.md) |
@@ -73,6 +74,7 @@ It is organized by chapter and subchapter so you can read it front-to-back or ju
 
 - Instrument definition export: `.orch.instrument.json` or `.orch.instrument.zip`
 - Performance export: `.orch.json` or `.orch.zip`
+- Offline performance Csound export: `.csd.zip`
 - Csound export from Instrument Design: `.csd`
 - ZIP exports are used automatically when referenced GEN01 audio assets are included.
 

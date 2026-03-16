@@ -10,6 +10,9 @@ from fastapi.responses import JSONResponse, Response
 
 from backend.app.api.deps import get_container
 from backend.app.core.container import AppContainer
+from backend.app.models.export import PerformanceCsdExportRequest
+from backend.app.services.compiler_service import CompilationError
+from backend.app.services.performance_export_service import PerformanceExportService
 
 router = APIRouter(prefix="/bundles", tags=["bundles"])
 
@@ -35,6 +38,29 @@ async def export_performance_bundle(
         payload=payload,
         json_entry_name="performance.orch.json",
         container=container,
+    )
+
+
+@router.post("/export/performance-csd")
+async def export_performance_csd_bundle(
+    payload: PerformanceCsdExportRequest,
+    container: AppContainer = Depends(get_container),
+) -> Response:
+    exporter = PerformanceExportService(
+        compiler_service=container.compiler_service,
+        gen_asset_service=container.gen_asset_service,
+    )
+    try:
+        archive_bytes = exporter.build_performance_csd_archive(payload)
+    except ValueError as err:
+        raise HTTPException(status_code=400, detail=str(err)) from err
+    except CompilationError as err:
+        raise HTTPException(status_code=422, detail={"diagnostics": err.diagnostics}) from err
+
+    return Response(
+        content=archive_bytes,
+        media_type="application/zip",
+        headers={"X-Orchestron-Export-Format": "zip"},
     )
 
 

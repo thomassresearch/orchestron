@@ -25,6 +25,25 @@ A performance export includes:
 
 If any referenced patch contains uploaded GEN01 audio assets, export is automatically produced as a ZIP and includes those assets.
 
+## Offline Render Export (`Export CSD`)
+
+The Performance page `Export CSD` button creates a separate offline-render ZIP for Csound.
+
+This ZIP contains:
+
+- A compiled `.csd` with every instrument currently used in the performance rack
+- Offline render settings forced to `sr = 48000` and `ksmps = 1`
+- A finite `f 0 ...` score duration sized for the exported arranger playback
+- The arranger playback rendered as a `.mid` file from beginning to arrangement end
+- Referenced bundled sample audio / SoundFont files used by the exported instruments
+- A `README.txt` with the exact Csound command line needed to render the package
+
+Typical use:
+
+- Share a performance as a portable offline render package
+- Render the arrangement outside Orchestron with stock Csound
+- Archive a self-contained `.csd` + `.mid` + assets bundle for later mastering or batch rendering
+
 ## Performance Import (`Import`)
 
 The Performance page `Import` button supports two categories of files:

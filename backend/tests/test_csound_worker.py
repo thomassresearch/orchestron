@@ -1,5 +1,11 @@
 from __future__ import annotations
 
+import os
+import sys
+import time
+
+import pytest
+
 from backend.app.engine.csound_worker import CsoundWorker
 
 
@@ -254,3 +260,63 @@ def test_queue_midi_message_honors_delivery_delay(monkeypatch) -> None:
         worker._drain_due_host_midi_locked(10.051)
         assert worker._host_midi_buffer == bytearray([0x90, 60, 100])
         assert worker._host_midi_pending == []
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows-only integration test")
+@pytest.mark.skipif(
+    os.getenv("VISUALCSOUND_RUN_WINDOWS_LOCAL_MIDI") != "1",
+    reason="Set VISUALCSOUND_RUN_WINDOWS_LOCAL_MIDI=1 to enable this integration test",
+)
+def test_windows_local_mode_consumes_host_midi_callbacks(monkeypatch) -> None:
+    monkeypatch.setenv("VISUALCSOUND_AUDIO_OUTPUT_MODE", "local")
+    monkeypatch.delenv("VISUALCSOUND_FORCE_MOCK_ENGINE", raising=False)
+
+    worker = CsoundWorker()
+    assert worker.backend == "ctcsound", "ctcsound is required for the Windows local MIDI integration test"
+
+    csd = "\n".join(
+        [
+            "<CsoundSynthesizer>",
+            "<CsOptions>",
+            "</CsOptions>",
+            "<CsInstruments>",
+            "sr = 48000",
+            "ksmps = 32",
+            "nchnls = 2",
+            "0dbfs = 1",
+            "",
+            "massign 0, 1",
+            "",
+            "instr 1",
+            "  iNote notnum",
+            '  chnset iNote, "last_note"',
+            "  outs 0, 0",
+            "endin",
+            "</CsInstruments>",
+            "<CsScore>",
+            "f0 z",
+            "</CsScore>",
+            "</CsoundSynthesizer>",
+        ]
+    )
+
+    worker.start(csd=csd, midi_input="unused-host-midi", rtmidi_module="winmme")
+
+    try:
+        assert worker.accepts_direct_midi, "Windows local mode did not enable direct host MIDI injection"
+        assert worker.queue_midi_message([0x90, 60, 100], delivery_delay_seconds=0.02) is True
+
+        deadline = time.time() + 2.0
+        observed_note = None
+        observed_error = None
+        while time.time() < deadline:
+            observed_note, observed_error = worker._csound.controlChannel("last_note")
+            if observed_error == 0 and int(round(float(observed_note))) == 60:
+                break
+            time.sleep(0.01)
+
+        assert observed_error == 0, "Control channel 'last_note' was not readable"
+        assert int(round(float(observed_note))) == 60
+        assert worker.queue_midi_message([0x80, 60, 0], delivery_delay_seconds=0.0) is True
+    finally:
+        worker.stop()

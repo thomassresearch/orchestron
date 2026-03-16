@@ -15,9 +15,13 @@ The rack includes fields and actions for the current performance:
 - `Clone`
 - `Delete`
 - `Export`
+- `Export CSD`
 - `Import`
 
 These actions operate on the performance configuration (instrument rack + sequencers + controllers + piano rolls), not on individual patch definitions.
+
+- `Export` writes an Orchestron `.orch.json` / `.orch.zip` performance bundle for backup, sharing, and re-import.
+- `Export CSD` writes an offline-render ZIP with a compiled `.csd`, the arranger performance as `.mid`, bundled sample/SF assets, and a `README.txt` with the render command.
 
 ## Instrument Assignments (Rack Slots)
 

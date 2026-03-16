@@ -14,6 +14,7 @@ import { documentationUiCopy, getHelpDocument } from "./lib/documentation";
 import { GUI_LANGUAGE_OPTIONS } from "./lib/guiLanguage";
 import {
   absoluteTransportStep as sequencerAbsoluteTransportStep,
+  arrangerTransportExtent,
   arrangerPlaybackBounds,
   clampArrangerSeekStep,
   compileArrangerTransportSequence
@@ -228,6 +229,11 @@ type PerformanceExportPayload = {
   exported_at: string;
   performance: ExportedPerformanceDocument;
   patch_definitions: ExportedPatchDefinition[];
+};
+
+type PerformanceCsdExportRequestPayload = {
+  performanceExport: PerformanceExportPayload;
+  sequencerConfig: SessionSequencerConfigRequest;
 };
 
 type ImportSelectionDialogState = {
@@ -561,7 +567,8 @@ function parseDrummerRowRuntimeTrackId(trackId: string): { drummerTrackId: strin
 
 function buildDrummerRowTrackConfigs(
   drummerTrack: DrummerSequencerTrackState,
-  levelMap: Map<number, number>
+  levelMap: Map<number, number>,
+  queueRuntimeState = true
 ): SessionSequencerConfigRequest["tracks"] {
   const scaledTrackVelocity = scaleVelocityForChannel(127, drummerTrack.midiChannel, levelMap);
   const transportSequence = compileArrangerTransportSequence(drummerTrack.padLoopPattern, drummerTrack.activePad);
@@ -581,12 +588,12 @@ function buildDrummerRowTrackConfigs(
     gate_ratio: 0.8,
     sync_to_track_id: null,
     active_pad: drummerTrack.activePad,
-    queued_pad: drummerTrack.queuedPad,
+    queued_pad: queueRuntimeState ? drummerTrack.queuedPad : null,
     pad_loop_enabled: drummerTrack.padLoopEnabled,
     pad_loop_repeat: drummerTrack.padLoopRepeat,
     pad_loop_sequence: transportSequence,
     enabled: drummerTrack.enabled,
-    queued_enabled: drummerTrack.queuedEnabled,
+    queued_enabled: queueRuntimeState ? drummerTrack.queuedEnabled : null,
     pads: drummerTrack.pads.map((pad, padIndex) => {
       const padRow = pad.rows.find((candidate) => candidate.rowId === row.id);
       return {
@@ -717,6 +724,7 @@ type AppCopy = {
     startInstrumentsBeforePianoRollStart: string;
     failedToSendMidiControllerValue: string;
     failedToSaveSequencerConfig: string;
+    failedToExportPerformanceCsd: string;
     failedToLoadSequencerConfig: string;
     failedToInitializeMidiControllers: string;
     failedToSyncSequencerStatus: string;
@@ -824,6 +832,7 @@ const APP_COPY: Record<GuiLanguage, AppCopy> = {
       startInstrumentsBeforePianoRollStart: "Start instruments first before starting a piano roll.",
       failedToSendMidiControllerValue: "Failed to send MIDI controller value.",
       failedToSaveSequencerConfig: "Failed to save sequencer config.",
+      failedToExportPerformanceCsd: "Failed to export performance CSD bundle.",
       failedToLoadSequencerConfig: "Failed to load sequencer config.",
       failedToInitializeMidiControllers: "Failed to initialize MIDI controllers.",
       failedToSyncSequencerStatus: "Failed to sync sequencer status.",
@@ -875,6 +884,7 @@ const APP_COPY: Record<GuiLanguage, AppCopy> = {
       startInstrumentsBeforePianoRollStart: "Starte zuerst Instrumente, bevor du eine Piano Roll startest.",
       failedToSendMidiControllerValue: "MIDI-Controller-Wert konnte nicht gesendet werden.",
       failedToSaveSequencerConfig: "Sequencer-Konfiguration konnte nicht gespeichert werden.",
+      failedToExportPerformanceCsd: "Performance-CSD-Bundle konnte nicht exportiert werden.",
       failedToLoadSequencerConfig: "Sequencer-Konfiguration konnte nicht geladen werden.",
       failedToInitializeMidiControllers: "MIDI-Controller konnten nicht initialisiert werden.",
       failedToSyncSequencerStatus: "Sequencer-Status konnte nicht synchronisiert werden.",
@@ -928,6 +938,7 @@ const APP_COPY: Record<GuiLanguage, AppCopy> = {
       startInstrumentsBeforePianoRollStart: "Demarrez d'abord les instruments avant de lancer un piano roll.",
       failedToSendMidiControllerValue: "Echec de l'envoi de la valeur du controleur MIDI.",
       failedToSaveSequencerConfig: "Echec de l'enregistrement de la configuration sequencer.",
+      failedToExportPerformanceCsd: "Echec de l'export du bundle CSD de performance.",
       failedToLoadSequencerConfig: "Echec du chargement de la configuration sequencer.",
       failedToInitializeMidiControllers: "Echec de l'initialisation des controleurs MIDI.",
       failedToSyncSequencerStatus: "Echec de synchronisation du statut sequencer.",
@@ -981,6 +992,7 @@ const APP_COPY: Record<GuiLanguage, AppCopy> = {
       startInstrumentsBeforePianoRollStart: "Inicia primero los instrumentos antes de iniciar un piano roll.",
       failedToSendMidiControllerValue: "No se pudo enviar el valor del controlador MIDI.",
       failedToSaveSequencerConfig: "No se pudo guardar la configuracion del secuenciador.",
+      failedToExportPerformanceCsd: "No se pudo exportar el bundle CSD de la performance.",
       failedToLoadSequencerConfig: "No se pudo cargar la configuracion del secuenciador.",
       failedToInitializeMidiControllers: "No se pudieron inicializar los controladores MIDI.",
       failedToSyncSequencerStatus: "No se pudo sincronizar el estado del secuenciador.",
@@ -2191,147 +2203,163 @@ export default function App() {
     [sendDirectMidiEvent]
   );
 
-  const buildBackendSequencerConfig = useCallback((state = sequencerRef.current): SessionSequencerConfigRequest => {
-    const transportStepCount = transportStepCountFromPerformanceSequencers(
-      state.timing,
-      state.tracks,
-      state.drummerTracks,
-      state.controllerSequencers
-    );
-    const { playbackStartStep, playbackEndStep, playbackLoop, selection } = arrangerPlaybackBounds(state);
-    const hasUnboundedPlayback =
-      selection === null &&
-      (state.tracks.some(trackShouldRunContinuously) ||
-        state.drummerTracks.some(trackShouldRunContinuously) ||
-        state.controllerSequencers.some(trackShouldRunContinuously));
-    const resolvedPlaybackEndStep = hasUnboundedPlayback ? UNBOUNDED_PLAYBACK_END_STEP : playbackEndStep;
-    const melodicTracks = state.tracks.map((track) => {
-      const scaledTrackVelocity = scaleVelocityForChannel(127, track.midiChannel, instrumentLevelsByChannel);
-      const transportSequence = compileArrangerTransportSequence(track.padLoopPattern, track.activePad);
-      return {
-        track_id: track.id,
-        midi_channel: track.midiChannel,
-        timing: {
-          tempo_bpm: track.timing.tempoBPM,
-          meter_numerator: track.timing.meterNumerator,
-          meter_denominator: track.timing.meterDenominator,
-          steps_per_beat: track.timing.stepsPerBeat,
-          beat_rate_numerator: track.timing.beatRateNumerator,
-          beat_rate_denominator: track.timing.beatRateDenominator
-        },
-        length_beats: track.lengthBeats,
-        velocity: scaledTrackVelocity,
-        gate_ratio: 0.8,
-        sync_to_track_id: track.syncToTrackId,
-        active_pad: track.activePad,
-        queued_pad: track.queuedPad,
-        pad_loop_enabled: track.padLoopEnabled,
-        pad_loop_repeat: track.padLoopRepeat,
-        pad_loop_sequence: transportSequence,
-        enabled: track.enabled,
-        queued_enabled: track.queuedEnabled,
-        pads: track.pads.map((pad, padIndex) => ({
-          pad_index: padIndex,
-          length_beats: pad.lengthBeats,
-          steps: pad.steps.map((step) => {
-            const notes = buildSequencerStepChordMidiNotes(step.note, step.chord, pad.scaleRoot, pad.mode);
-            return {
-              note: notes.length === 0 ? null : notes.length === 1 ? notes[0] : notes,
-              hold: step.hold,
-              velocity: scaleVelocityForChannel(step.velocity, track.midiChannel, instrumentLevelsByChannel)
-            };
-          })
-        }))
-      };
-    });
-    const drummerRowTracks = state.drummerTracks.flatMap((drummerTrack) =>
-      buildDrummerRowTrackConfigs(drummerTrack, instrumentLevelsByChannel)
-    );
-    const controllerTracks = state.controllerSequencers.map((controllerSequencer) => {
-      const transportSequence = compileArrangerTransportSequence(
-        controllerSequencer.padLoopPattern,
-        controllerSequencer.activePad
+  const buildBackendSequencerConfig = useCallback(
+    (
+      state = sequencerRef.current,
+      mode: "runtime" | "export" = "runtime"
+    ): SessionSequencerConfigRequest => {
+      const transportStepCount = transportStepCountFromPerformanceSequencers(
+        state.timing,
+        state.tracks,
+        state.drummerTracks,
+        state.controllerSequencers
       );
-      return {
-        track_id: controllerSequencer.id,
-        controller_number: controllerSequencer.controllerNumber,
-        timing: {
-          tempo_bpm: controllerSequencer.timing.tempoBPM,
-          meter_numerator: controllerSequencer.timing.meterNumerator,
-          meter_denominator: controllerSequencer.timing.meterDenominator,
-          steps_per_beat: controllerSequencer.timing.stepsPerBeat,
-          beat_rate_numerator: controllerSequencer.timing.beatRateNumerator,
-          beat_rate_denominator: controllerSequencer.timing.beatRateDenominator
-        },
-        length_beats: controllerSequencer.lengthBeats,
-        active_pad: controllerSequencer.activePad,
-        queued_pad: controllerSequencer.queuedPad,
-        pad_loop_enabled: controllerSequencer.padLoopEnabled,
-        pad_loop_repeat: controllerSequencer.padLoopRepeat,
-        pad_loop_sequence: transportSequence,
-        enabled: controllerSequencer.enabled,
-        pads: controllerSequencer.pads.map((pad, padIndex) => ({
-          pad_index: padIndex,
-          length_beats: pad.lengthBeats,
-          keypoints: pad.keypoints.map((keypoint) => ({
-            position: keypoint.position,
-            value: keypoint.value
+      const { playbackStartStep, playbackEndStep, playbackLoop, selection } = arrangerPlaybackBounds(state);
+      const arrangementEndStep = arrangerTransportExtent(state);
+      const exportMode = mode === "export";
+      const hasUnboundedPlayback =
+        !exportMode &&
+        selection === null &&
+        (state.tracks.some(trackShouldRunContinuously) ||
+          state.drummerTracks.some(trackShouldRunContinuously) ||
+          state.controllerSequencers.some(trackShouldRunContinuously));
+      const resolvedPlaybackStartStep = exportMode ? 0 : playbackStartStep;
+      const resolvedPlaybackEndStep = exportMode
+        ? Math.max(sequencerTransportStepsPerBeat(state.timing), arrangementEndStep)
+        : hasUnboundedPlayback
+          ? UNBOUNDED_PLAYBACK_END_STEP
+          : playbackEndStep;
+      const resolvedPlaybackLoop = exportMode ? false : playbackLoop;
+      const useRuntimeQueues = !exportMode;
+      const melodicTracks = state.tracks.map((track) => {
+        const scaledTrackVelocity = scaleVelocityForChannel(127, track.midiChannel, instrumentLevelsByChannel);
+        const transportSequence = compileArrangerTransportSequence(track.padLoopPattern, track.activePad);
+        return {
+          track_id: track.id,
+          midi_channel: track.midiChannel,
+          timing: {
+            tempo_bpm: track.timing.tempoBPM,
+            meter_numerator: track.timing.meterNumerator,
+            meter_denominator: track.timing.meterDenominator,
+            steps_per_beat: track.timing.stepsPerBeat,
+            beat_rate_numerator: track.timing.beatRateNumerator,
+            beat_rate_denominator: track.timing.beatRateDenominator
+          },
+          length_beats: track.lengthBeats,
+          velocity: scaledTrackVelocity,
+          gate_ratio: 0.8,
+          sync_to_track_id: track.syncToTrackId,
+          active_pad: track.activePad,
+          queued_pad: useRuntimeQueues ? track.queuedPad : null,
+          pad_loop_enabled: track.padLoopEnabled,
+          pad_loop_repeat: track.padLoopRepeat,
+          pad_loop_sequence: transportSequence,
+          enabled: track.enabled,
+          queued_enabled: useRuntimeQueues ? track.queuedEnabled : null,
+          pads: track.pads.map((pad, padIndex) => ({
+            pad_index: padIndex,
+            length_beats: pad.lengthBeats,
+            steps: pad.steps.map((step) => {
+              const notes = buildSequencerStepChordMidiNotes(step.note, step.chord, pad.scaleRoot, pad.mode);
+              return {
+                note: notes.length === 0 ? null : notes.length === 1 ? notes[0] : notes,
+                hold: step.hold,
+                velocity: scaleVelocityForChannel(step.velocity, track.midiChannel, instrumentLevelsByChannel)
+              };
+            })
           }))
-        }))
+        };
+      });
+      const drummerRowTracks = state.drummerTracks.flatMap((drummerTrack) =>
+        buildDrummerRowTrackConfigs(drummerTrack, instrumentLevelsByChannel, useRuntimeQueues)
+      );
+      const controllerTracks = state.controllerSequencers.map((controllerSequencer) => {
+        const transportSequence = compileArrangerTransportSequence(
+          controllerSequencer.padLoopPattern,
+          controllerSequencer.activePad
+        );
+        return {
+          track_id: controllerSequencer.id,
+          controller_number: controllerSequencer.controllerNumber,
+          timing: {
+            tempo_bpm: controllerSequencer.timing.tempoBPM,
+            meter_numerator: controllerSequencer.timing.meterNumerator,
+            meter_denominator: controllerSequencer.timing.meterDenominator,
+            steps_per_beat: controllerSequencer.timing.stepsPerBeat,
+            beat_rate_numerator: controllerSequencer.timing.beatRateNumerator,
+            beat_rate_denominator: controllerSequencer.timing.beatRateDenominator
+          },
+          length_beats: controllerSequencer.lengthBeats,
+          active_pad: controllerSequencer.activePad,
+          queued_pad: useRuntimeQueues ? controllerSequencer.queuedPad : null,
+          pad_loop_enabled: controllerSequencer.padLoopEnabled,
+          pad_loop_repeat: controllerSequencer.padLoopRepeat,
+          pad_loop_sequence: transportSequence,
+          enabled: controllerSequencer.enabled,
+          pads: controllerSequencer.pads.map((pad, padIndex) => ({
+            pad_index: padIndex,
+            length_beats: pad.lengthBeats,
+            keypoints: pad.keypoints.map((keypoint) => ({
+              position: keypoint.position,
+              value: keypoint.value
+            }))
+          }))
+        };
+      });
+      const transportTracks: SessionSequencerConfigRequest["tracks"] =
+        melodicTracks.length + drummerRowTracks.length > 0 || controllerTracks.length > 0
+          ? [...melodicTracks, ...drummerRowTracks]
+          : [
+              {
+                track_id: "__transport__",
+                midi_channel: 1,
+                timing: {
+                  tempo_bpm: state.timing.tempoBPM,
+                  meter_numerator: state.timing.meterNumerator,
+                  meter_denominator: state.timing.meterDenominator,
+                  steps_per_beat: 8,
+                  beat_rate_numerator: 1,
+                  beat_rate_denominator: 1
+                },
+                length_beats: 4,
+                velocity: 1,
+                gate_ratio: 0.8,
+                sync_to_track_id: null,
+                active_pad: 0,
+                queued_pad: null,
+                pad_loop_enabled: true,
+                pad_loop_repeat: true,
+                pad_loop_sequence: [0],
+                enabled: false,
+                queued_enabled: null,
+                pads: [
+                  {
+                    pad_index: 0,
+                    length_beats: 4,
+                    steps: Array.from({ length: transportStepCount }, () => ({ note: null, hold: false, velocity: 1 }))
+                  }
+                ]
+              }
+            ];
+      return {
+        timing: {
+          tempo_bpm: state.timing.tempoBPM,
+          meter_numerator: state.timing.meterNumerator,
+          meter_denominator: state.timing.meterDenominator,
+          steps_per_beat: 8,
+          beat_rate_numerator: 1,
+          beat_rate_denominator: 1
+        },
+        step_count: transportStepCount,
+        playback_start_step: resolvedPlaybackStartStep,
+        playback_end_step: resolvedPlaybackEndStep,
+        playback_loop: resolvedPlaybackLoop,
+        tracks: transportTracks,
+        controller_tracks: controllerTracks
       };
-    });
-    const transportTracks: SessionSequencerConfigRequest["tracks"] =
-      melodicTracks.length + drummerRowTracks.length > 0 || controllerTracks.length > 0
-        ? [...melodicTracks, ...drummerRowTracks]
-        : [
-            {
-              track_id: "__transport__",
-              midi_channel: 1,
-              timing: {
-                tempo_bpm: state.timing.tempoBPM,
-                meter_numerator: state.timing.meterNumerator,
-                meter_denominator: state.timing.meterDenominator,
-                steps_per_beat: 8,
-                beat_rate_numerator: 1,
-                beat_rate_denominator: 1
-              },
-              length_beats: 4,
-              velocity: 1,
-              gate_ratio: 0.8,
-              sync_to_track_id: null,
-              active_pad: 0,
-              queued_pad: null,
-              pad_loop_enabled: true,
-              pad_loop_repeat: true,
-              pad_loop_sequence: [0],
-              enabled: false,
-              queued_enabled: null,
-              pads: [
-                {
-                  pad_index: 0,
-                  length_beats: 4,
-                  steps: Array.from({ length: transportStepCount }, () => ({ note: null, hold: false, velocity: 1 }))
-                }
-              ]
-            }
-          ];
-    return {
-      timing: {
-        tempo_bpm: state.timing.tempoBPM,
-        meter_numerator: state.timing.meterNumerator,
-        meter_denominator: state.timing.meterDenominator,
-        steps_per_beat: 8,
-        beat_rate_numerator: 1,
-        beat_rate_denominator: 1
-      },
-      step_count: transportStepCount,
-      playback_start_step: playbackStartStep,
-      playback_end_step: resolvedPlaybackEndStep,
-      playback_loop: playbackLoop,
-      tracks: transportTracks,
-      controller_tracks: controllerTracks
-    };
-  }, [instrumentLevelsByChannel]);
+    },
+    [instrumentLevelsByChannel]
+  );
   const sequencerConfigSyncSignature = useMemo(() => {
     if (!sequencer.isPlaying) {
       return null;
@@ -2850,42 +2878,47 @@ export default function App() {
     ]
   );
 
+  const buildPerformanceExportPayload = useCallback(async () => {
+    const snapshot = buildSequencerConfigSnapshot();
+    const patchIds = [...new Set(snapshot.instruments.map((instrument) => instrument.patchId.trim()).filter(Boolean))];
+    const selectedPatches = await Promise.all(patchIds.map((patchId) => api.getPatch(patchId)));
+    const patchDefinitions: ExportedPatchDefinition[] = selectedPatches.map((patch) => ({
+      sourcePatchId: patch.id,
+      name: patch.name,
+      description: patch.description,
+      schema_version: patch.schema_version,
+      graph: patch.graph
+    }));
+
+    const patchNameById = new Map(patchDefinitions.map((patch) => [patch.sourcePatchId, patch.name]));
+    const exportConfig: SequencerConfigSnapshot = {
+      ...snapshot,
+      instruments: snapshot.instruments.map((instrument) => ({
+        ...instrument,
+        patchName: patchNameById.get(instrument.patchId) ?? instrument.patchName
+      }))
+    };
+
+    const exportedPerformanceName =
+      performanceName.trim().length > 0 ? performanceName.trim() : "Untitled Performance";
+    const payload: PerformanceExportPayload = {
+      format: "orchestron.performance",
+      version: 1,
+      exported_at: new Date().toISOString(),
+      performance: {
+        name: exportedPerformanceName,
+        description: performanceDescription,
+        config: exportConfig
+      },
+      patch_definitions: patchDefinitions
+    };
+
+    return { exportedPerformanceName, payload };
+  }, [buildSequencerConfigSnapshot, performanceDescription, performanceName]);
+
   const onExportSequencerConfig = useCallback(async () => {
     try {
-      const snapshot = buildSequencerConfigSnapshot();
-      const patchIds = [...new Set(snapshot.instruments.map((instrument) => instrument.patchId.trim()).filter(Boolean))];
-      const selectedPatches = await Promise.all(patchIds.map((patchId) => api.getPatch(patchId)));
-      const patchDefinitions: ExportedPatchDefinition[] = selectedPatches.map((patch) => ({
-        sourcePatchId: patch.id,
-        name: patch.name,
-        description: patch.description,
-        schema_version: patch.schema_version,
-        graph: patch.graph
-      }));
-
-      const patchNameById = new Map(patchDefinitions.map((patch) => [patch.sourcePatchId, patch.name]));
-      const exportConfig: SequencerConfigSnapshot = {
-        ...snapshot,
-        instruments: snapshot.instruments.map((instrument) => ({
-          ...instrument,
-          patchName: patchNameById.get(instrument.patchId) ?? instrument.patchName
-        }))
-      };
-
-      const exportedPerformanceName =
-        performanceName.trim().length > 0 ? performanceName.trim() : "Untitled Performance";
-      const payload: PerformanceExportPayload = {
-        format: "orchestron.performance",
-        version: 1,
-        exported_at: new Date().toISOString(),
-        performance: {
-          name: exportedPerformanceName,
-          description: performanceDescription,
-          config: exportConfig
-        },
-        patch_definitions: patchDefinitions
-      };
-
+      const { exportedPerformanceName, payload } = await buildPerformanceExportPayload();
       const { blob, headers } = await api.exportPerformanceBundle(payload as unknown as Record<string, unknown>);
       const format = headers.get("x-orchestron-export-format") === "zip" ? "zip" : "json";
       const url = URL.createObjectURL(blob);
@@ -2901,10 +2934,34 @@ export default function App() {
       setSequencerError(error instanceof Error ? error.message : appCopy.errors.failedToSaveSequencerConfig);
     }
   }, [
+    buildPerformanceExportPayload,
     appCopy.errors.failedToSaveSequencerConfig,
-    buildSequencerConfigSnapshot,
-    performanceDescription,
-    performanceName
+  ]);
+
+  const onExportPerformanceCsd = useCallback(async () => {
+    try {
+      const { exportedPerformanceName, payload } = await buildPerformanceExportPayload();
+      const exportPayload: PerformanceCsdExportRequestPayload = {
+        performanceExport: payload,
+        sequencerConfig: buildBackendSequencerConfig(sequencerRef.current, "export")
+      };
+      const { blob } = await api.exportPerformanceCsdBundle(exportPayload as unknown as Record<string, unknown>);
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `${sanitizePerformanceFileBaseName(exportedPerformanceName)}.csd.zip`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      URL.revokeObjectURL(url);
+      setSequencerError(null);
+    } catch (error) {
+      setSequencerError(error instanceof Error ? error.message : appCopy.errors.failedToExportPerformanceCsd);
+    }
+  }, [
+    appCopy.errors.failedToExportPerformanceCsd,
+    buildBackendSequencerConfig,
+    buildPerformanceExportPayload
   ]);
 
   const onImportSequencerConfig = useCallback(
@@ -3673,6 +3730,7 @@ export default function App() {
               void loadPerformance(performanceId);
             }}
             onExportConfig={onExportSequencerConfig}
+            onExportCsd={onExportPerformanceCsd}
             onImportConfig={onImportSequencerConfig}
             onStartInstruments={onStartInstrumentEngine}
             onStopInstruments={onStopInstrumentEngine}

@@ -134,6 +134,7 @@ type SequencerUiCopy = {
   deletePerformanceDialogTitle: string;
   deletePerformanceDialogMessage: (name: string) => string;
   export: string;
+  exportCsd: string;
   import: string;
   noInstrumentHint: string;
   patch: (index: number) => string;
@@ -313,6 +314,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     deletePerformanceDialogMessage: (name) =>
       `This will permanently delete the performance "${name}".`,
     export: "Export",
+    exportCsd: "Export CSD",
     import: "Import",
     noInstrumentHint: "Add at least one saved instrument to start the engine.",
     patch: (index) => `Patch ${index}`,
@@ -445,6 +447,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     deletePerformanceDialogMessage: (name) =>
       `Die Performance "${name}" wird dauerhaft geloescht.`,
     export: "Export",
+    exportCsd: "CSD exportieren",
     import: "Import",
     noInstrumentHint: "Fuege mindestens ein gespeichertes Instrument hinzu, um die Engine zu starten.",
     patch: (index) => `Patch ${index}`,
@@ -578,6 +581,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     deletePerformanceDialogMessage: (name) =>
       `La performance "${name}" sera supprimee definitivement.`,
     export: "Exporter",
+    exportCsd: "Exporter CSD",
     import: "Importer",
     noInstrumentHint: "Ajoutez au moins un instrument sauvegarde pour demarrer le moteur.",
     patch: (index) => `Patch ${index}`,
@@ -711,6 +715,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     deletePerformanceDialogMessage: (name) =>
       `La performance "${name}" se eliminara permanentemente.`,
     export: "Exportar",
+    exportCsd: "Exportar CSD",
     import: "Importar",
     noInstrumentHint: "Agrega al menos un instrumento guardado para iniciar el motor.",
     patch: (index) => `Patch ${index}`,
@@ -2123,6 +2128,7 @@ interface SequencerPageProps {
   onDeletePerformance: () => void;
   onLoadPerformance: (performanceId: string) => void;
   onExportConfig: () => void;
+  onExportCsd: () => void;
   onImportConfig: (file: File) => void;
   onStartInstruments: () => void;
   onStopInstruments: () => void;
@@ -3460,6 +3466,7 @@ export function SequencerPage({
   onDeletePerformance,
   onLoadPerformance,
   onExportConfig,
+  onExportCsd,
   onImportConfig,
   onStartInstruments,
   onStopInstruments,
@@ -4129,6 +4136,13 @@ export function SequencerPage({
             className="rounded-md border border-slate-500 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-300 hover:text-white"
           >
             {ui.export}
+          </button>
+          <button
+            type="button"
+            onClick={onExportCsd}
+            className="rounded-md border border-slate-500 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-300 hover:text-white"
+          >
+            {ui.exportCsd}
           </button>
           <button
             type="button"

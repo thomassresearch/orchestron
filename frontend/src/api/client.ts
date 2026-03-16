@@ -94,6 +94,8 @@ export const api = {
     requestBlob("/bundles/export/patch", { method: "POST", body: JSON.stringify(payload) }),
   exportPerformanceBundle: (payload: Record<string, unknown>) =>
     requestBlob("/bundles/export/performance", { method: "POST", body: JSON.stringify(payload) }),
+  exportPerformanceCsdBundle: (payload: Record<string, unknown>) =>
+    requestBlob("/bundles/export/performance-csd", { method: "POST", body: JSON.stringify(payload) }),
   expandImportBundle: async (file: File) => {
     const response = await fetch(`${API_BASE}/bundles/import/expand`, {
       method: "POST",

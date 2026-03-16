@@ -3027,6 +3027,169 @@ def test_patch_bundle_export_uses_zip_when_sfload_asset_is_referenced(tmp_path: 
             assert archive.read(f"audio/{stored_name}") == audio_bytes
 
 
+def test_performance_csd_export_bundle_includes_csd_midi_readme_and_assets(tmp_path: Path) -> None:
+    asset_dir = tmp_path / "gen_audio_assets"
+    asset_dir.mkdir(parents=True, exist_ok=True)
+    stored_name = "sample.aiff"
+    uploaded_sample_bytes = b"FORMoffline"
+    (asset_dir / stored_name).write_bytes(uploaded_sample_bytes)
+
+    external_asset_dir = tmp_path / "external_assets"
+    external_asset_dir.mkdir(parents=True, exist_ok=True)
+    external_soundfont_path = external_asset_dir / "lead.sf2"
+    external_soundfont_bytes = b"sfbkoffline"
+    external_soundfont_path.write_bytes(external_soundfont_bytes)
+
+    payload = {
+        "performanceExport": {
+            "format": "orchestron.performance",
+            "version": 1,
+            "exported_at": "2026-03-16T12:00:00.000Z",
+            "performance": {
+                "name": "Offline Export",
+                "description": "render bundle",
+                "config": {
+                    "version": 7,
+                    "instruments": [{"patchId": "patch-1", "midiChannel": 1}],
+                },
+            },
+            "patch_definitions": [
+                {
+                    "sourcePatchId": "patch-1",
+                    "name": "Offline Instrument",
+                    "description": "includes bundled assets",
+                    "schema_version": 1,
+                    "graph": {
+                        "nodes": [
+                            {"id": "a1", "opcode": "const_a", "params": {"value": 0.1}, "position": {"x": 20, "y": 20}},
+                            {"id": "o1", "opcode": "outs", "params": {}, "position": {"x": 200, "y": 20}},
+                            {"id": "g1", "opcode": "GEN", "params": {}, "position": {"x": 20, "y": 140}},
+                            {"id": "s1", "opcode": "sfload", "params": {}, "position": {"x": 20, "y": 260}},
+                        ],
+                        "connections": [
+                            {"from_node_id": "a1", "from_port_id": "aout", "to_node_id": "o1", "to_port_id": "left"},
+                            {"from_node_id": "a1", "from_port_id": "aout", "to_node_id": "o1", "to_port_id": "right"},
+                        ],
+                        "ui_layout": {
+                            "gen_nodes": {
+                                "g1": {
+                                    "mode": "ftgen",
+                                    "tableNumber": 5,
+                                    "startTime": 0,
+                                    "tableSize": 16384,
+                                    "routineNumber": 1,
+                                    "normalize": True,
+                                    "sampleAsset": {
+                                        "asset_id": "asset-1",
+                                        "original_name": "demo.aiff",
+                                        "stored_name": stored_name,
+                                        "content_type": "audio/aiff",
+                                        "size_bytes": len(uploaded_sample_bytes),
+                                    },
+                                    "sampleSkipTime": 0,
+                                    "sampleFormat": 0,
+                                    "sampleChannel": 0,
+                                }
+                            },
+                            "sfload_nodes": {"s1": {"samplePath": str(external_soundfont_path)}},
+                        },
+                        "engine_config": {"sr": 44100, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+                    },
+                }
+            ],
+        },
+        "sequencerConfig": {
+            "timing": _sequencer_timing(tempo_bpm=120, steps_per_beat=8),
+            "step_count": 8,
+            "playback_start_step": 0,
+            "playback_end_step": 8,
+            "playback_loop": False,
+            "tracks": [
+                {
+                    "track_id": "voice-1",
+                    "midi_channel": 1,
+                    "timing": _sequencer_timing(tempo_bpm=120, steps_per_beat=4),
+                    "length_beats": 1,
+                    "velocity": 100,
+                    "gate_ratio": 0.8,
+                    "sync_to_track_id": None,
+                    "active_pad": 0,
+                    "queued_pad": None,
+                    "pad_loop_enabled": False,
+                    "pad_loop_repeat": True,
+                    "pad_loop_sequence": [0],
+                    "enabled": True,
+                    "queued_enabled": None,
+                    "pads": [
+                        {
+                            "pad_index": 0,
+                            "length_beats": 1,
+                            "steps": [{"note": 60, "hold": False, "velocity": 100}, None, None, None],
+                        }
+                    ],
+                }
+            ],
+            "controller_tracks": [
+                {
+                    "track_id": "cc-1",
+                    "controller_number": 1,
+                    "timing": _sequencer_timing(tempo_bpm=120, steps_per_beat=4),
+                    "length_beats": 1,
+                    "active_pad": 0,
+                    "queued_pad": None,
+                    "pad_loop_enabled": False,
+                    "pad_loop_repeat": True,
+                    "pad_loop_sequence": [0],
+                    "enabled": True,
+                    "pads": [
+                        {
+                            "pad_index": 0,
+                            "length_beats": 1,
+                            "keypoints": [{"position": 0.0, "value": 0}, {"position": 1.0, "value": 127}],
+                        }
+                    ],
+                }
+            ],
+        },
+    }
+
+    with _client(tmp_path) as client:
+        response = client.post("/api/bundles/export/performance-csd", json=payload)
+        assert response.status_code == 200
+        assert response.headers["x-orchestron-export-format"] == "zip"
+        assert response.headers["content-type"].startswith("application/zip")
+
+        with zipfile.ZipFile(BytesIO(response.content), "r") as archive:
+            bundle_root = "Offline_Export"
+            entries = set(archive.namelist())
+            assert f"{bundle_root}/Offline_Export.csd" in entries
+            assert f"{bundle_root}/Offline_Export.mid" in entries
+            assert f"{bundle_root}/README.txt" in entries
+            assert f"{bundle_root}/assets/{stored_name}" in entries
+            assert f"{bundle_root}/assets/lead.sf2" in entries
+            assert archive.read(f"{bundle_root}/assets/{stored_name}") == uploaded_sample_bytes
+            assert archive.read(f"{bundle_root}/assets/lead.sf2") == external_soundfont_bytes
+
+            csd = archive.read(f"{bundle_root}/Offline_Export.csd").decode("utf-8")
+            assert "sr = 48000" in csd
+            assert "ksmps = 1" in csd
+            assert f'"assets/{stored_name}"' in csd
+            assert '"assets/lead.sf2"' in csd
+            assert str(external_soundfont_path) not in csd
+            assert "-F Offline_Export.mid" in csd
+            assert "f 0 " in csd
+
+            readme = archive.read(f"{bundle_root}/README.txt").decode("utf-8")
+            assert f"change into the bundled '{bundle_root}/' directory" in readme
+            assert "csound -d -W -o Offline_Export.wav -F Offline_Export.mid Offline_Export.csd" in readme
+
+            midi_bytes = archive.read(f"{bundle_root}/Offline_Export.mid")
+            assert midi_bytes.startswith(b"MThd")
+            assert b"\xFF\x51\x03" in midi_bytes
+            assert b"\x90\x3C\x64" in midi_bytes
+            assert b"\xB0\x01" in midi_bytes
+
+
 def test_patch_bundle_export_uses_zip_when_gen01_named_routine_is_referenced(tmp_path: Path) -> None:
     asset_dir = tmp_path / "gen_audio_assets"
     asset_dir.mkdir(parents=True, exist_ok=True)

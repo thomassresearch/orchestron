@@ -1100,7 +1100,8 @@ Si múltiples señales están conectadas a **la misma entrada** de un opcode:
 
 - Starting instruments builds the current rack into a live backend session.
 - The state badge reflects the backend instrument engine, not only the arranger transport.
-- Import/export writes the perform configuration as JSON/ZIP so a live setup can be moved to another machine.`,
+- Import/export writes the perform configuration as JSON/ZIP so a live setup can be moved to another machine.
+- \`Export CSD\` writes a separate offline render ZIP with the compiled performance CSD, arranger MIDI file, bundled assets, and exact Csound render instructions.`,
     german: `### Rack-Verhalten
 
 - Das Speichern oder Laden einer Performance stellt den kompletten Zustand der Perform-Seite wieder her: Rack-Zuordnungen, Sequencer, Controller-Spuren, Piano Rolls und Arranger-Daten.
@@ -1112,7 +1113,8 @@ Si múltiples señales están conectadas a **la misma entrada** de un opcode:
 
 - Das Starten der Instrumente baut das aktuelle Rack als Live-Session im Backend auf.
 - Das Status-Badge zeigt den Zustand der Backend-Instrument-Engine, nicht nur den Arranger-Transport.
-- Import/Export schreibt die Perform-Konfiguration als JSON/ZIP, damit ein Live-Setup auf einen anderen Rechner uebertragen werden kann.`,
+- Import/Export schreibt die Perform-Konfiguration als JSON/ZIP, damit ein Live-Setup auf einen anderen Rechner uebertragen werden kann.
+- \`Export CSD\` schreibt ein separates Offline-Render-ZIP mit der kompilierten Performance-CSD, der Arranger-MIDI-Datei, gebuendelten Assets und dem exakten Csound-Renderkommando.`,
     french: `### Comportement du rack
 
 - Enregistrer ou charger une performance restaure tout l'etat de la page Perform : affectations du rack, sequenceurs, lanes de controle, piano rolls et donnees d'arrangeur.
@@ -1124,7 +1126,8 @@ Si múltiples señales están conectadas a **la misma entrada** de un opcode:
 
 - Le demarrage des instruments construit le rack courant comme session live cote backend.
 - Le badge d'etat reflete l'etat reel du moteur instrument backend, pas seulement le transport de l'arrangeur.
-- L'import/export ecrit la configuration Perform en JSON/ZIP pour deplacer facilement un setup live vers une autre machine.`,
+- L'import/export ecrit la configuration Perform en JSON/ZIP pour deplacer facilement un setup live vers une autre machine.
+- \`Export CSD\` ecrit un ZIP de rendu hors ligne distinct avec la CSD compilee de la performance, le fichier MIDI de l'arrangeur, les assets inclus et la commande Csound exacte.`,
     spanish: `### Comportamiento del rack
 
 - Guardar o cargar una performance restaura todo el estado de la pagina Perform: asignaciones del rack, secuenciadores, pistas de control, piano rolls y datos del arreglador.
@@ -1136,7 +1139,8 @@ Si múltiples señales están conectadas a **la misma entrada** de un opcode:
 
 - Iniciar los instrumentos construye el rack actual como una sesion en vivo en el backend.
 - La insignia de estado refleja el motor de instrumentos del backend, no solo el transporte del arreglador.
-- Importar/exportar escribe la configuracion Perform como JSON/ZIP para mover un setup en vivo a otra maquina.`
+- Importar/exportar escribe la configuracion Perform como JSON/ZIP para mover un setup en vivo a otra maquina.
+- \`Export CSD\` escribe un ZIP de render offline separado con la CSD compilada de la performance, el archivo MIDI del arreglador, los assets incluidos y el comando exacto de Csound.`
   },
   sequencer_tracks: {
     english: `### Timing Model
