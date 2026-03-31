@@ -7,6 +7,7 @@ from pathlib import Path
 
 import uvicorn
 from fastapi import FastAPI
+from fastapi import Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -103,6 +104,15 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    if settings.audio_output_mode == "browser_clock":
+        @app.middleware("http")
+        async def browser_clock_isolation_headers(request: Request, call_next):
+            response = await call_next(request)
+            if request.url.path.startswith("/client"):
+                response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+                response.headers["Cross-Origin-Embedder-Policy"] = "require-corp"
+            return response
+
     static_root = Path(settings.static_dir)
     app.mount("/static", StaticFiles(directory=static_root), name="static")
 
@@ -139,6 +149,7 @@ def create_app() -> FastAPI:
             "status": "ok",
             "audio_output_mode": settings.audio_output_mode,
             "browser_audio_streaming_enabled": settings.audio_output_mode == "streaming",
+            "browser_clock_enabled": settings.audio_output_mode == "browser_clock",
             "browser_audio_sample_rate": 48_000,
         }
 
@@ -160,9 +171,9 @@ def run() -> None:
     parser = argparse.ArgumentParser(description="Run the VisualCSound backend")
     parser.add_argument(
         "--audio-output-mode",
-        choices=("local", "streaming"),
+        choices=("local", "streaming", "browser_clock"),
         default=None,
-        help="Select local DAC output or browser audio streaming mode.",
+        help="Select local DAC output, browser WebRTC streaming, or browser-clock PCM mode.",
     )
     parser.add_argument("--host", default="0.0.0.0")
     parser.add_argument("--port", type=int, default=8000)

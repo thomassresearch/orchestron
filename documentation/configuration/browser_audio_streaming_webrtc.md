@@ -6,49 +6,60 @@ Orchestron supports two audio output modes:
 
 - `local` - Csound outputs to a local realtime audio backend (DAC)
 - `streaming` - Csound runs headless and audio is streamed to the browser via WebRTC
+- `browser_clock` - Csound runs headless and the browser owns PCM buffering/playback via Web Audio
 
-This page explains what users need to know when using browser audio streaming, especially in Docker/remote setups.
+This page explains the two browser-audio modes. `browser_clock` is now the recommended Docker mode. `streaming` remains available when you specifically want the WebRTC transport.
 
 ## Why Streaming Mode Exists
 
-Streaming mode makes Orchestron usable in environments where local device passthrough is not practical, especially:
+Browser-output modes make Orchestron usable in environments where local device passthrough is not practical, especially:
 
 - Docker Desktop on macOS
 - remote or containerized backend runs
 
 ## How To Enable Streaming Mode
 
-Streaming mode is selected at backend startup, for example via:
+Browser audio mode is selected at backend startup, for example via:
 
 - CLI argument `--audio-output-mode streaming`
 - environment variable `VISUALCSOUND_AUDIO_OUTPUT_MODE=streaming`
+- CLI argument `--audio-output-mode browser_clock`
+- environment variable `VISUALCSOUND_AUDIO_OUTPUT_MODE=browser_clock`
 
 Accepted user-friendly aliases such as `browser` / `webrtc` are normalized to `streaming` internally.
+Accepted user-friendly aliases such as `browser-clock` / `pcm` are normalized to `browser_clock` internally.
 
 ## What Changes In The UI (User View)
 
-When a session starts in streaming mode:
+When a session starts in `streaming` mode:
 
 - the Runtime panel shows a `Browser Audio` section
 - Orchestron attempts to establish a WebRTC audio connection automatically
 - an audio player appears in the Runtime panel when browser audio is available
 - status text shows connection state (`connecting`, `live`, `error`)
 
+When a session starts in `browser_clock` mode:
+
+- the Runtime panel still shows a `Browser Audio` section
+- the browser opens a controller WebSocket and claims ownership of the PCM queue
+- audio plays through `AudioContext` + `AudioWorklet`, not a WebRTC `<audio>` element
+- sequencer runtime status is updated from render chunks instead of the old 80 ms REST poll
+
 When the backend runs in local mode:
 
 - audio plays through the backend host's local audio device path
 - the Runtime panel reflects local output mode instead of a live browser stream
 
-## Docker Workflow (Recommended Streaming Use Case)
+## Docker Workflow (Recommended Browser-Clock Use Case)
 
-The repository's `docker-compose.yaml` is built around streaming mode and includes a TURN server service for reliable WebRTC connectivity between browser and backend container.
+The repository's `docker-compose.yaml` now defaults to `browser_clock` mode. The browser becomes the master clock and requests PCM chunks from the backend as its queue drops below target.
 
 Practical workflow:
 
 1. Start `docker compose up --build`
 2. Open `http://localhost:8000/client`
 3. Start instruments/session normally
-4. Browser audio should connect automatically in the Runtime panel
+4. Browser audio should connect automatically in the Runtime panel and prime its PCM queue
 
 ## Browser Audio Troubleshooting
 
@@ -56,23 +67,24 @@ Practical workflow:
 
 Check:
 
-- backend really started in `streaming` mode
-- WebRTC dependencies are installed on backend (aiortc/av in streaming setup)
-- TURN/ICE config if running across hosts/networks
+- backend really started in the intended mode (`browser_clock` or `streaming`)
+- for `browser_clock`, make sure COOP/COEP headers are preserved by any reverse proxy
+- for `streaming`, verify WebRTC dependencies are installed on backend (aiortc/av) and TURN/ICE config is correct if running across hosts/networks
 
 ### Browser Blocks Autoplay
 
-Some browsers block autoplay until user interaction.
+Some browsers block autoplay or suspend Web Audio until user interaction.
 
-- Use the Runtime panel audio control to start playback manually if needed.
+- In `streaming` mode, use the Runtime panel audio control if needed.
+- In `browser_clock` mode, click/tap the page once so the AudioContext can resume.
 
 ### Docker Remote Access / ICE Issues
 
-If accessing from another device, TURN external IP configuration may be required. See `WEBRTC_STREAMING.md` for deployment-specific notes.
+If you are using `streaming` across devices or networks, TURN external IP configuration may be required. See `WEBRTC_STREAMING.md` for deployment-specific notes.
 
 ## Latency Tuning (Advanced)
 
-The project includes WebRTC audio queue/frame tuning environment variables (documented in `WEBRTC_STREAMING.md`), for example:
+For `streaming`, the project includes WebRTC audio queue/frame tuning environment variables (documented in `WEBRTC_STREAMING.md`), for example:
 
 - `VISUALCSOUND_WEBRTC_AUDIO_FRAME_MS`
 - `VISUALCSOUND_WEBRTC_AUDIO_QUEUE_FRAMES_MAX`
@@ -82,24 +94,32 @@ The project includes WebRTC audio queue/frame tuning environment variables (docu
 
 Lower-latency settings can improve responsiveness but increase dropout risk.
 
-## When To Prefer Local Mode vs Streaming Mode
+For `browser_clock`, latency is primarily controlled by the browser-side queue thresholds and `ksmps` render chunk requests rather than the WebRTC frame queue.
+
+## When To Prefer Local Mode vs Browser Modes
 
 Prefer `local` when:
 
 - backend and audio device are on the same machine
 - you want the simplest realtime path
 
+Prefer `browser_clock` when:
+
+- running in Docker, especially on macOS Docker Desktop
+- you want the browser to be the master clock for audio buffering and sequencer status
+- you want to avoid WebRTC/TURN setup entirely
+
 Prefer `streaming` when:
 
-- running in Docker (especially on macOS Docker Desktop)
+- you specifically want the WebRTC media-track transport
 - using a remote backend
-- you want browser-based audio output from the backend session
+- you want browser-based audio output but need to stay on the legacy streaming path
 
 ## Screenshots
 
 <p align="center">
   <img src="../../screenshots/instrument_runtime_panel_browser_audio_streaming.png" alt="Browser audio streaming in runtime panel" width="760" style="max-width: 100%; height: auto;" />
 </p>
-<p align="center"><em>Browser audio streaming state in the Runtime panel (WebRTC mode).</em></p>
+<p align="center"><em>Browser audio streaming state in the Runtime panel (WebRTC mode). A refreshed browser-clock Runtime panel screenshot should be added separately.</em></p>
 
 **Navigation:** [Up](configuration.md) | [Prev](midi_setup_and_inputs.md) | [Next](persistence_and_defaults.md)

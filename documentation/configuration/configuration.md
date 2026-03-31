@@ -9,7 +9,7 @@ The Configuration chapter covers both UI-visible settings and practical runtime/
 - GUI language switching and integrated help/docs behavior
 - Config page audio engine settings (`sr`, control rate, buffers, derived `ksmps`)
 - MIDI setup and runtime input binding workflow
-- Browser audio streaming mode (WebRTC) vs local audio mode
+- Browser audio modes (`browser_clock` PCM, `streaming` WebRTC) vs local audio mode
 - App-state persistence and default values
 
 ## Chapter Contents
@@ -25,7 +25,7 @@ The Configuration chapter covers both UI-visible settings and practical runtime/
 Orchestron has two kinds of configuration:
 
 - **Patch-level configuration** (stored with a patch, editable in the Config page)
-- **Runtime/startup configuration** (backend launch mode, especially local vs browser streaming audio)
+- **Runtime/startup configuration** (backend launch mode, especially local vs browser-clock PCM vs WebRTC streaming audio)
 
 Both are important for successful use.
 

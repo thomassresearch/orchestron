@@ -11,4 +11,9 @@ router = APIRouter(prefix="/runtime-config", tags=["runtime"])
 
 @router.get("", response_model=RuntimeConfigResponse)
 async def get_runtime_config(container: AppContainer = Depends(get_container)) -> RuntimeConfigResponse:
-    return RuntimeConfigResponse(webrtc_browser_ice_servers=container.settings.webrtc_frontend_ice_servers)
+    return RuntimeConfigResponse(
+        audio_output_mode=container.settings.audio_output_mode,
+        browser_audio_streaming_enabled=container.settings.audio_output_mode == "streaming",
+        browser_clock_enabled=container.settings.audio_output_mode == "browser_clock",
+        webrtc_browser_ice_servers=container.settings.webrtc_frontend_ice_servers,
+    )

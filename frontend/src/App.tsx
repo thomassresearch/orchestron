@@ -12,6 +12,7 @@ import { RuntimePanel } from "./components/RuntimePanel";
 import { SequencerPage } from "./components/SequencerPage";
 import { documentationUiCopy, getHelpDocument } from "./lib/documentation";
 import { GUI_LANGUAGE_OPTIONS } from "./lib/guiLanguage";
+import { BrowserClockAudioClient } from "./lib/browserClockAudio";
 import {
   absoluteTransportStep as sequencerAbsoluteTransportStep,
   arrangerTransportExtent,
@@ -37,10 +38,12 @@ import type {
   PatchListItem,
   Performance,
   PerformanceListItem,
+  RuntimeConfigResponse,
   SequencerConfigSnapshot,
   SequencerInstrumentBinding,
   SequencerRuntimeState,
   SequencerState,
+  SessionAudioOutputMode,
   SessionEvent,
   SessionMidiEventRequest,
   SessionSequencerConfigRequest,
@@ -1378,6 +1381,7 @@ export default function App() {
   const sequencerStatusPollRef = useRef<number | null>(null);
   const sequencerPollInFlightRef = useRef(false);
   const sequencerConfigSyncPendingRef = useRef(false);
+  const applySequencerStatusRef = useRef<(status: SessionSequencerStatus) => void>(() => undefined);
   const pianoRollNoteSessionRef = useRef(new Map<string, string>());
   const midiControllerInitSessionRef = useRef<string | null>(null);
   const browserAudioFallbackElementRef = useRef<HTMLAudioElement | null>(null);
@@ -1389,8 +1393,22 @@ export default function App() {
   const browserAudioRtcConfigurationRef = useRef<RTCConfiguration | null>(null);
   const browserAudioRtcConfigurationLoadedRef = useRef(false);
   const browserAudioRtcConfigurationPromiseRef = useRef<Promise<RTCConfiguration | null> | null>(null);
+  const runtimeConfigRef = useRef<RuntimeConfigResponse | null>(null);
+  const runtimeConfigPromiseRef = useRef<Promise<RuntimeConfigResponse> | null>(null);
+  const browserClockClientRef = useRef<BrowserClockAudioClient | null>(null);
   const [browserAudioStatus, setBrowserAudioStatus] = useState<"off" | "connecting" | "live" | "error">("off");
   const [browserAudioError, setBrowserAudioError] = useState<string | null>(null);
+  const [runtimeAudioOutputMode, setRuntimeAudioOutputMode] = useState<SessionAudioOutputMode | null>(null);
+
+  if (browserClockClientRef.current === null) {
+    browserClockClientRef.current = new BrowserClockAudioClient({
+      onStatusChange: setBrowserAudioStatus,
+      onErrorChange: setBrowserAudioError,
+      onSequencerStatus: (status) => {
+        applySequencerStatusRef.current(status);
+      }
+    });
+  }
 
   const syncBrowserAudioOutput = useCallback(
     (reportPlaybackError: boolean) => {
@@ -1449,16 +1467,22 @@ export default function App() {
     }
     return null;
   }, [events]);
-  const latestStartedAudioMode = useMemo<"local" | "streaming" | null>(() => {
+  const latestStartedAudioMode = useMemo<SessionAudioOutputMode | null>(() => {
     const raw = latestStartedEvent?.payload?.audio_mode;
-    return raw === "streaming" ? "streaming" : raw === "local" ? "local" : null;
+    return raw === "browser_clock" || raw === "streaming" || raw === "local" ? raw : null;
   }, [latestStartedEvent]);
   const latestStartedAudioStreamReady = useMemo<boolean | null>(() => {
     const value = latestStartedEvent?.payload?.audio_stream_ready;
     return typeof value === "boolean" ? value : null;
   }, [latestStartedEvent]);
+  const effectiveAudioOutputMode = latestStartedAudioMode ?? runtimeAudioOutputMode;
+  const browserAudioTransport = effectiveAudioOutputMode === "browser_clock"
+    ? "browser_clock"
+    : effectiveAudioOutputMode === "streaming"
+      ? "webrtc"
+      : "off";
 
-  const disconnectBrowserAudio = useCallback(() => {
+  const disconnectStreamingBrowserAudio = useCallback(() => {
     browserAudioNegotiationTokenRef.current += 1;
 
     const peer = browserAudioPeerRef.current;
@@ -1487,6 +1511,19 @@ export default function App() {
       fallbackElement.srcObject = null;
     }
   }, []);
+
+  const disconnectBrowserClockAudio = useCallback(() => {
+    const client = browserClockClientRef.current;
+    if (!client) {
+      return;
+    }
+    void client.disconnect();
+  }, []);
+
+  const disconnectBrowserAudio = useCallback(() => {
+    disconnectStreamingBrowserAudio();
+    disconnectBrowserClockAudio();
+  }, [disconnectBrowserClockAudio, disconnectStreamingBrowserAudio]);
 
   const invalidateMissingRuntimeSession = useCallback(
     (sessionId: string, error: unknown): boolean => {
@@ -1525,6 +1562,31 @@ export default function App() {
     [appCopy.errors.noActiveRuntimeSession, disconnectBrowserAudio, setSequencerPlayhead, syncSequencerRuntime]
   );
 
+  const loadRuntimeConfig = useCallback(async (): Promise<RuntimeConfigResponse> => {
+    if (runtimeConfigRef.current) {
+      return runtimeConfigRef.current;
+    }
+    if (runtimeConfigPromiseRef.current) {
+      return runtimeConfigPromiseRef.current;
+    }
+
+    const pending = api
+      .getRuntimeConfig()
+      .then((runtimeConfig) => {
+        runtimeConfigRef.current = runtimeConfig;
+        runtimeConfigPromiseRef.current = null;
+        setRuntimeAudioOutputMode(runtimeConfig.audio_output_mode);
+        return runtimeConfig;
+      })
+      .catch((error) => {
+        runtimeConfigPromiseRef.current = null;
+        throw error;
+      });
+
+    runtimeConfigPromiseRef.current = pending;
+    return pending;
+  }, []);
+
   const getBrowserAudioRtcConfiguration = useCallback(async (): Promise<RTCConfiguration | null> => {
     if (browserAudioRtcConfigurationLoadedRef.current) {
       return browserAudioRtcConfigurationRef.current;
@@ -1533,8 +1595,7 @@ export default function App() {
       return browserAudioRtcConfigurationPromiseRef.current;
     }
 
-    const pending = api
-      .getRuntimeConfig()
+    const pending = loadRuntimeConfig()
       .then((runtimeConfig) => {
         const iceServers: RTCIceServer[] = runtimeConfig.webrtc_browser_ice_servers
           .filter((server) => {
@@ -1567,7 +1628,7 @@ export default function App() {
 
     browserAudioRtcConfigurationPromiseRef.current = pending;
     return pending;
-  }, []);
+  }, [loadRuntimeConfig]);
 
   const ensureBrowserAudioConnection = useCallback(
     async (sessionId: string) => {
@@ -1581,7 +1642,7 @@ export default function App() {
         return;
       }
 
-      disconnectBrowserAudio();
+      disconnectStreamingBrowserAudio();
       setBrowserAudioStatus("connecting");
       setBrowserAudioError(null);
 
@@ -1672,8 +1733,33 @@ export default function App() {
         setBrowserAudioError(error instanceof Error ? error.message : "Failed to connect browser audio stream.");
       }
     },
-    [disconnectBrowserAudio, getBrowserAudioRtcConfiguration, invalidateMissingRuntimeSession, syncBrowserAudioOutput]
+    [disconnectStreamingBrowserAudio, getBrowserAudioRtcConfiguration, invalidateMissingRuntimeSession, syncBrowserAudioOutput]
   );
+
+  const ensureBrowserClockConnection = useCallback(
+    async (sessionId: string) => {
+      const client = browserClockClientRef.current;
+      if (!client) {
+        throw new Error("Browser PCM runtime is unavailable.");
+      }
+      try {
+        await client.connect(sessionId);
+      } catch (error) {
+        if (invalidateMissingRuntimeSession(sessionId, error)) {
+          return;
+        }
+        setBrowserAudioStatus("error");
+        setBrowserAudioError(error instanceof Error ? error.message : "Failed to connect browser PCM runtime.");
+      }
+    },
+    [invalidateMissingRuntimeSession]
+  );
+
+  useEffect(() => {
+    void loadRuntimeConfig().catch(() => {
+      // Runtime mode discovery is best-effort here; the session "started" event remains authoritative.
+    });
+  }, [loadRuntimeConfig]);
 
   useEffect(() => {
     if (!activeSessionId || activeSessionState !== "running") {
@@ -1683,19 +1769,27 @@ export default function App() {
       return;
     }
 
-    if (latestStartedAudioMode === null) {
+    if (effectiveAudioOutputMode === null) {
       return;
     }
 
-    if (latestStartedAudioMode !== "streaming") {
-      disconnectBrowserAudio();
+    if (effectiveAudioOutputMode === "browser_clock") {
+      disconnectStreamingBrowserAudio();
+      void ensureBrowserClockConnection(activeSessionId);
+      return;
+    }
+
+    disconnectBrowserClockAudio();
+
+    if (effectiveAudioOutputMode !== "streaming") {
+      disconnectStreamingBrowserAudio();
       setBrowserAudioStatus("off");
       setBrowserAudioError(null);
       return;
     }
 
     if (latestStartedAudioStreamReady === false) {
-      disconnectBrowserAudio();
+      disconnectStreamingBrowserAudio();
       setBrowserAudioStatus("error");
       setBrowserAudioError("Backend started in streaming mode, but browser audio is not available.");
       return;
@@ -1705,9 +1799,12 @@ export default function App() {
   }, [
     activeSessionId,
     activeSessionState,
+    disconnectBrowserClockAudio,
+    disconnectStreamingBrowserAudio,
     disconnectBrowserAudio,
+    effectiveAudioOutputMode,
+    ensureBrowserClockConnection,
     ensureBrowserAudioConnection,
-    latestStartedAudioMode,
     latestStartedAudioStreamReady
   ]);
 
@@ -2183,6 +2280,14 @@ export default function App() {
         throw new Error(appCopy.errors.noActiveRuntimeSession);
       }
       try {
+        if (effectiveAudioOutputMode === "browser_clock") {
+          const client = browserClockClientRef.current;
+          if (!client) {
+            throw new Error("Browser PCM runtime is unavailable.");
+          }
+          await client.sendManualMidi(sessionId, payload);
+          return;
+        }
         await api.sendSessionMidiEvent(sessionId, payload);
       } catch (error) {
         if (invalidateMissingRuntimeSession(sessionId, error)) {
@@ -2191,7 +2296,7 @@ export default function App() {
         throw error;
       }
     },
-    [activeSessionId, appCopy.errors.noActiveRuntimeSession, invalidateMissingRuntimeSession]
+    [activeSessionId, appCopy.errors.noActiveRuntimeSession, effectiveAudioOutputMode, invalidateMissingRuntimeSession]
   );
 
   const sendAllNotesOff = useCallback(
@@ -2402,6 +2507,7 @@ export default function App() {
     },
     [syncControllerSequencerRuntime, syncSequencerRuntime]
   );
+  applySequencerStatusRef.current = applySequencerStatus;
 
   const stopSequencerTransport = useCallback(
     async (resetPlayhead: boolean) => {
@@ -2409,7 +2515,10 @@ export default function App() {
       sequencerConfigSyncPendingRef.current = false;
       if (sessionId) {
         try {
-          const status = await api.stopSessionSequencer(sessionId);
+          const status =
+            effectiveAudioOutputMode === "browser_clock"
+              ? await browserClockClientRef.current!.stopSequencer(sessionId)
+              : await api.stopSessionSequencer(sessionId);
           applySequencerStatus(status);
         } catch {
           syncSequencerRuntime({ isPlaying: false });
@@ -2423,7 +2532,7 @@ export default function App() {
         setSequencerPlayhead(0);
       }
     },
-    [activeSessionId, applySequencerStatus, setSequencerPlayhead, syncSequencerRuntime]
+    [activeSessionId, applySequencerStatus, effectiveAudioOutputMode, setSequencerPlayhead, syncSequencerRuntime]
   );
 
   const startSequencerTransport = useCallback(async () => {
@@ -2449,7 +2558,13 @@ export default function App() {
           currentSequencerState.stepCount
         )
       };
-      const status = await api.startSessionSequencer(sessionId, payload);
+      const status =
+        effectiveAudioOutputMode === "browser_clock"
+          ? await browserClockClientRef.current!.startSequencer(sessionId, {
+              config: payload.config,
+              positionStep: payload.position_step
+            })
+          : await api.startSessionSequencer(sessionId, payload);
       sequencerSessionIdRef.current = sessionId;
       applySequencerStatus(status);
     } catch (transportError) {
@@ -2469,6 +2584,7 @@ export default function App() {
     appCopy.errors.startInstrumentsFirstForSequencer,
     applySequencerStatus,
     buildBackendSequencerConfig,
+    effectiveAudioOutputMode,
     invalidateMissingRuntimeSession,
     syncSequencerRuntime
   ]);
@@ -2529,8 +2645,13 @@ export default function App() {
 
   const onStartInstrumentEngine = useCallback(() => {
     setSequencerError(null);
+    if (runtimeAudioOutputMode === "browser_clock") {
+      void browserClockClientRef.current?.prime().catch(() => {
+        // Connection setup will surface the actionable error if priming fails.
+      });
+    }
     void startSession();
-  }, [startSession]);
+  }, [runtimeAudioOutputMode, startSession]);
 
   const collectPerformanceChannels = useCallback(() => {
     const channels = new Set<number>();
@@ -2639,9 +2760,13 @@ export default function App() {
 
       try {
         const status =
-          deltaSteps < 0
-            ? await api.rewindSessionSequencerCycle(sessionId)
-            : await api.forwardSessionSequencerCycle(sessionId);
+          effectiveAudioOutputMode === "browser_clock"
+            ? deltaSteps < 0
+              ? await browserClockClientRef.current!.rewindSequencer(sessionId)
+              : await browserClockClientRef.current!.forwardSequencer(sessionId)
+            : deltaSteps < 0
+              ? await api.rewindSessionSequencerCycle(sessionId)
+              : await api.forwardSessionSequencerCycle(sessionId);
         applySequencerStatus(status);
       } catch (error) {
         if (invalidateMissingRuntimeSession(sessionId, error)) {
@@ -2654,9 +2779,20 @@ export default function App() {
       activeSessionId,
       appCopy.errors.noActiveInstrumentSessionForSequencer,
       applySequencerStatus,
+      effectiveAudioOutputMode,
       invalidateMissingRuntimeSession,
       setSequencerTransportAbsoluteStep
     ]
+  );
+
+  const queueSequencerPadRuntime = useCallback(
+    async (sessionId: string, trackId: string, padIndex: number | null) => {
+      if (effectiveAudioOutputMode === "browser_clock") {
+        return browserClockClientRef.current!.queuePad(sessionId, trackId, padIndex);
+      }
+      return api.queueSessionSequencerPad(sessionId, trackId, { pad_index: padIndex });
+    },
+    [effectiveAudioOutputMode]
   );
 
   const handleArrangerLoopSelectionChange = useCallback(
@@ -3195,6 +3331,9 @@ export default function App() {
     if (!sequencer.isPlaying) {
       return;
     }
+    if (effectiveAudioOutputMode === "browser_clock") {
+      return;
+    }
 
     const sessionId = sequencerSessionIdRef.current ?? activeSessionId;
     if (!sessionId) {
@@ -3241,6 +3380,7 @@ export default function App() {
     activeSessionId,
     appCopy.errors.failedToSyncSequencerStatus,
     applySequencerStatus,
+    effectiveAudioOutputMode,
     invalidateMissingRuntimeSession,
     sequencer.isPlaying
   ]);
@@ -3684,9 +3824,10 @@ export default function App() {
                     selectedMidiInput={activeMidiInput}
                     compileOutput={compileOutput}
                     events={events}
-                    browserAudioStatus={latestStartedAudioMode === "streaming" ? browserAudioStatus : "off"}
-                    browserAudioError={latestStartedAudioMode === "streaming" ? browserAudioError : null}
-                    browserAudioElementRef={latestStartedAudioMode === "streaming" ? setBrowserAudioRuntimeElement : undefined}
+                    browserAudioTransport={browserAudioTransport}
+                    browserAudioStatus={browserAudioTransport !== "off" ? browserAudioStatus : "off"}
+                    browserAudioError={browserAudioTransport !== "off" ? browserAudioError : null}
+                    browserAudioElementRef={browserAudioTransport === "webrtc" ? setBrowserAudioRuntimeElement : undefined}
                     onBindMidiInput={(midiInput) => {
                       void bindMidiInput(midiInput);
                     }}
@@ -3780,8 +3921,7 @@ export default function App() {
                 return;
               }
 
-              void api
-                .queueSessionSequencerPad(sessionId, trackId, { pad_index: padIndex })
+              void queueSequencerPadRuntime(sessionId, trackId, padIndex)
                 .then((status) => {
                   setSequencerTrackQueuedPad(trackId, padIndex);
                   applySequencerStatus(status);
@@ -3842,11 +3982,7 @@ export default function App() {
               void (async () => {
                 let latestStatus: SessionSequencerStatus | null = null;
                 for (const row of drummerTrack.rows) {
-                  latestStatus = await api.queueSessionSequencerPad(
-                    sessionId,
-                    drummerRowRuntimeTrackId(trackId, row.id),
-                    { pad_index: padIndex }
-                  );
+                  latestStatus = await queueSequencerPadRuntime(sessionId, drummerRowRuntimeTrackId(trackId, row.id), padIndex);
                 }
                 setDrummerSequencerTrackQueuedPad(trackId, padIndex);
                 if (latestStatus) {
@@ -3909,8 +4045,7 @@ export default function App() {
               }
 
               const queuedPad = controllerSequencer.activePad === padIndex ? null : padIndex;
-              void api
-                .queueSessionSequencerPad(sessionId, controllerSequencerId, { pad_index: queuedPad })
+              void queueSequencerPadRuntime(sessionId, controllerSequencerId, queuedPad)
                 .then((status) => {
                   applySequencerStatus(status);
                 })

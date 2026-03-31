@@ -8,6 +8,7 @@ interface RuntimePanelProps {
   selectedMidiInput?: string | null;
   compileOutput: CompileResponse | null;
   events: SessionEvent[];
+  browserAudioTransport?: "off" | "webrtc" | "browser_clock";
   browserAudioStatus?: "off" | "connecting" | "live" | "error";
   browserAudioError?: string | null;
   browserAudioElementRef?: Ref<HTMLAudioElement>;
@@ -27,9 +28,12 @@ const RUNTIME_PANEL_COPY: Record<
     compileOutputEmpty: string;
     browserAudio: string;
     browserAudioOff: string;
-    browserAudioConnecting: string;
-    browserAudioLive: string;
-    browserAudioError: string;
+    browserAudioWebRtcConnecting: string;
+    browserAudioWebRtcLive: string;
+    browserAudioWebRtcError: string;
+    browserAudioBrowserClockConnecting: string;
+    browserAudioBrowserClockLive: string;
+    browserAudioBrowserClockError: string;
     sessionEvents: string;
     noEvents: string;
   }
@@ -44,9 +48,12 @@ const RUNTIME_PANEL_COPY: Record<
     compileOutputEmpty: "Compile to view generated ORC.",
     browserAudio: "Browser Audio",
     browserAudioOff: "Local output mode",
-    browserAudioConnecting: "Connecting WebRTC stream...",
-    browserAudioLive: "Streaming to browser",
-    browserAudioError: "Browser stream error",
+    browserAudioWebRtcConnecting: "Connecting WebRTC stream...",
+    browserAudioWebRtcLive: "Streaming to browser",
+    browserAudioWebRtcError: "Browser stream error",
+    browserAudioBrowserClockConnecting: "Priming browser PCM queue...",
+    browserAudioBrowserClockLive: "Browser-owned PCM runtime active",
+    browserAudioBrowserClockError: "Browser PCM runtime error",
     sessionEvents: "Session Events",
     noEvents: "No events yet."
   },
@@ -60,9 +67,12 @@ const RUNTIME_PANEL_COPY: Record<
     compileOutputEmpty: "Kompilieren, um generiertes ORC zu sehen.",
     browserAudio: "Browser-Audio",
     browserAudioOff: "Lokaler Ausgabemodus",
-    browserAudioConnecting: "WebRTC-Stream verbindet...",
-    browserAudioLive: "Stream zum Browser aktiv",
-    browserAudioError: "Browser-Stream-Fehler",
+    browserAudioWebRtcConnecting: "WebRTC-Stream verbindet...",
+    browserAudioWebRtcLive: "Stream zum Browser aktiv",
+    browserAudioWebRtcError: "Browser-Stream-Fehler",
+    browserAudioBrowserClockConnecting: "PCM-Puffer im Browser wird vorbereitet...",
+    browserAudioBrowserClockLive: "Browser-gesteuerte PCM-Laufzeit aktiv",
+    browserAudioBrowserClockError: "Browser-PCM-Laufzeitfehler",
     sessionEvents: "Session-Events",
     noEvents: "Noch keine Events."
   },
@@ -76,9 +86,12 @@ const RUNTIME_PANEL_COPY: Record<
     compileOutputEmpty: "Compilez pour voir le ORC genere.",
     browserAudio: "Audio navigateur",
     browserAudioOff: "Mode sortie locale",
-    browserAudioConnecting: "Connexion du flux WebRTC...",
-    browserAudioLive: "Flux vers navigateur actif",
-    browserAudioError: "Erreur flux navigateur",
+    browserAudioWebRtcConnecting: "Connexion du flux WebRTC...",
+    browserAudioWebRtcLive: "Flux vers navigateur actif",
+    browserAudioWebRtcError: "Erreur flux navigateur",
+    browserAudioBrowserClockConnecting: "Preparation de la file PCM navigateur...",
+    browserAudioBrowserClockLive: "Runtime PCM pilote par le navigateur actif",
+    browserAudioBrowserClockError: "Erreur runtime PCM navigateur",
     sessionEvents: "Evenements de session",
     noEvents: "Pas encore d'evenements."
   },
@@ -92,9 +105,12 @@ const RUNTIME_PANEL_COPY: Record<
     compileOutputEmpty: "Compila para ver el ORC generado.",
     browserAudio: "Audio del navegador",
     browserAudioOff: "Modo de salida local",
-    browserAudioConnecting: "Conectando flujo WebRTC...",
-    browserAudioLive: "Flujo al navegador activo",
-    browserAudioError: "Error de flujo del navegador",
+    browserAudioWebRtcConnecting: "Conectando flujo WebRTC...",
+    browserAudioWebRtcLive: "Flujo al navegador activo",
+    browserAudioWebRtcError: "Error de flujo del navegador",
+    browserAudioBrowserClockConnecting: "Preparando cola PCM del navegador...",
+    browserAudioBrowserClockLive: "Runtime PCM controlado por el navegador activo",
+    browserAudioBrowserClockError: "Error del runtime PCM del navegador",
     sessionEvents: "Eventos de sesion",
     noEvents: "Aun no hay eventos."
   }
@@ -106,6 +122,7 @@ export function RuntimePanel({
   selectedMidiInput,
   compileOutput,
   events,
+  browserAudioTransport = "off",
   browserAudioStatus = "off",
   browserAudioError = null,
   browserAudioElementRef,
@@ -115,14 +132,31 @@ export function RuntimePanel({
   const copy = RUNTIME_PANEL_COPY[guiLanguage];
   const recentEvents = [...events].slice(-10).reverse();
   const showBrowserAudio = browserAudioStatus !== "off" || browserAudioElementRef != null;
-  const browserAudioStatusText =
-    browserAudioStatus === "live"
-      ? copy.browserAudioLive
-      : browserAudioStatus === "connecting"
-        ? copy.browserAudioConnecting
-        : browserAudioStatus === "error"
-          ? copy.browserAudioError
-          : copy.browserAudioOff;
+  const browserAudioStatusText = (() => {
+    if (browserAudioTransport === "browser_clock") {
+      if (browserAudioStatus === "live") {
+        return copy.browserAudioBrowserClockLive;
+      }
+      if (browserAudioStatus === "connecting") {
+        return copy.browserAudioBrowserClockConnecting;
+      }
+      if (browserAudioStatus === "error") {
+        return copy.browserAudioBrowserClockError;
+      }
+      return copy.browserAudioOff;
+    }
+
+    if (browserAudioStatus === "live") {
+      return copy.browserAudioWebRtcLive;
+    }
+    if (browserAudioStatus === "connecting") {
+      return copy.browserAudioWebRtcConnecting;
+    }
+    if (browserAudioStatus === "error") {
+      return copy.browserAudioWebRtcError;
+    }
+    return copy.browserAudioOff;
+  })();
 
   return (
     <aside className="flex h-full min-h-0 flex-col rounded-2xl border border-slate-700/70 bg-slate-900/75 p-3">

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import asyncio
+from dataclasses import dataclass
 import logging
 from datetime import datetime, timezone
+from typing import Awaitable, Callable
 from uuid import uuid4
 
 from fastapi import HTTPException
@@ -11,6 +13,13 @@ from backend.app.core.config import Settings
 from backend.app.engine.csound_worker import CsoundWorker
 from backend.app.engine.session_runtime import RuntimeSession
 from backend.app.models.session import (
+    BrowserClockClaimControllerRequest,
+    BrowserClockManualMidiRequest,
+    BrowserClockQueuePadControlRequest,
+    BrowserClockReleaseControllerRequest,
+    BrowserClockRequestRenderRequest,
+    BrowserClockSequencerCommandRequest,
+    BrowserClockSequencerStartControlRequest,
     BindMidiInputRequest,
     CompileResponse,
     MidiInputRef,
@@ -37,6 +46,20 @@ from backend.app.services.sequencer_runtime import SessionSequencerRuntime
 
 logger = logging.getLogger(__name__)
 
+BrowserClockSendJson = Callable[[dict[str, object]], Awaitable[None]]
+BrowserClockClose = Callable[[int, str], Awaitable[None]]
+
+
+@dataclass(slots=True)
+class BrowserClockControllerLease:
+    connection_id: str
+    sample_rate: int
+    queue_low_water_frames: int
+    queue_high_water_frames: int
+    max_blocks_per_request: int
+    send_json: BrowserClockSendJson
+    close: BrowserClockClose
+
 
 class SessionService:
     def __init__(
@@ -56,6 +79,8 @@ class SessionService:
         self._frontend_connections: dict[str, set[str]] = {}
         self._frontend_heartbeat_watchdogs: dict[str, dict[str, asyncio.Task[None]]] = {}
         self._frontend_auto_stop_tasks: dict[str, asyncio.Task[None]] = {}
+        self._browser_clock_controllers: dict[str, BrowserClockControllerLease] = {}
+        self._browser_clock_auto_stop_tasks: dict[str, asyncio.Task[None]] = {}
         self._lock = asyncio.Lock()
         self._loop: asyncio.AbstractEventLoop | None = None
 
@@ -86,6 +111,7 @@ class SessionService:
             midi_service=self._midi_service,
             midi_input_selector=default_midi,
             controller_default_channels=self._controller_default_channels_for_runtime(runtime),
+            clock_mode="render_driven" if self._settings.audio_output_mode == "browser_clock" else "wall_clock",
             publish_event=lambda event_type, payload, session_id=runtime.session_id: self._publish_from_thread(
                 session_id=session_id,
                 event_type=event_type,
@@ -227,6 +253,12 @@ class SessionService:
     async def stop_session(self, session_id: str) -> SessionActionResponse:
         self._remember_running_loop()
         runtime = await self._get_session(session_id)
+        await self._disconnect_browser_clock_controller(
+            session_id,
+            detail="Session stopped.",
+            close_code=4001,
+            close_reason="session_stopped",
+        )
         if runtime.sequencer is not None:
             runtime.sequencer.stop()
         self._detach_runtime_direct_midi_sink(runtime)
@@ -291,6 +323,233 @@ class SessionService:
             type=answer_type,  # type: ignore[arg-type]
             sdp=answer_sdp,
             sample_rate=runtime.worker.browser_audio_stream_sample_rate or 48_000,
+        )
+
+    async def claim_browser_clock_controller(
+        self,
+        session_id: str,
+        connection_id: str,
+        request: BrowserClockClaimControllerRequest,
+        *,
+        send_json: BrowserClockSendJson,
+        close: BrowserClockClose,
+    ) -> dict[str, object]:
+        self._remember_running_loop()
+        runtime = await self._get_session(session_id)
+        self._assert_browser_clock_mode(runtime)
+        if not runtime.worker.is_running:
+            raise HTTPException(status_code=409, detail="Session must be running before claiming browser-clock control.")
+
+        previous: BrowserClockControllerLease | None = None
+        lease = BrowserClockControllerLease(
+            connection_id=connection_id,
+            sample_rate=request.audio_context_sample_rate,
+            queue_low_water_frames=request.queue_low_water_frames,
+            queue_high_water_frames=request.queue_high_water_frames,
+            max_blocks_per_request=request.max_blocks_per_request,
+            send_json=send_json,
+            close=close,
+        )
+
+        async with self._lock:
+            previous = self._browser_clock_controllers.get(session_id)
+            self._cancel_browser_clock_auto_stop_task_unlocked(session_id)
+            self._browser_clock_controllers[session_id] = lease
+
+        if previous is not None and previous.connection_id != connection_id:
+            try:
+                await previous.send_json(
+                    {
+                        "type": "controller_revoked",
+                        "reason": "A newer browser claimed controller ownership for this session.",
+                    }
+                )
+            except Exception:
+                logger.exception("Failed to notify previous browser-clock controller for session '%s'", session_id)
+            try:
+                await previous.close(4002, "controller_revoked")
+            except Exception:
+                logger.exception("Failed to close previous browser-clock controller for session '%s'", session_id)
+
+        sequencer = self._ensure_sequencer(runtime)
+        return {
+            "type": "stream_config",
+            "engine_sample_rate": runtime.worker.runtime_sample_rate,
+            "ksmps": runtime.worker.runtime_ksmps,
+            "channels": 2,
+            "target_sample_rate": request.audio_context_sample_rate,
+            "engine_sample_cursor": runtime.worker.render_sample_cursor,
+            "queue_low_water_frames": request.queue_low_water_frames,
+            "queue_high_water_frames": request.queue_high_water_frames,
+            "max_blocks_per_request": request.max_blocks_per_request,
+            "sequencer_status": sequencer.status().model_dump(mode="json"),
+        }
+
+    async def release_browser_clock_controller(self, session_id: str, connection_id: str) -> None:
+        self._remember_running_loop()
+        runtime = await self._get_session(session_id)
+        self._assert_browser_clock_mode(runtime)
+
+        should_schedule_auto_stop = False
+        async with self._lock:
+            lease = self._browser_clock_controllers.get(session_id)
+            if lease is None or lease.connection_id != connection_id:
+                return
+            self._browser_clock_controllers.pop(session_id, None)
+            self._schedule_browser_clock_auto_stop_task_unlocked(
+                session_id=session_id,
+                delay_seconds=self._settings.frontend_disconnect_grace_seconds,
+            )
+            should_schedule_auto_stop = True
+
+        if should_schedule_auto_stop:
+            logger.info(
+                "Browser-clock controller disconnected for session '%s'; scheduling auto-stop.",
+                session_id,
+            )
+
+    async def browser_clock_manual_midi(
+        self,
+        session_id: str,
+        connection_id: str,
+        request: BrowserClockManualMidiRequest,
+    ) -> None:
+        self._remember_running_loop()
+        await self.require_browser_clock_controller(session_id, connection_id)
+        await self.send_midi_event(session_id, request.midi)
+
+    async def browser_clock_release_controller(
+        self,
+        session_id: str,
+        connection_id: str,
+        _request: BrowserClockReleaseControllerRequest,
+    ) -> None:
+        self._remember_running_loop()
+        await self.release_browser_clock_controller(session_id, connection_id)
+
+    async def browser_clock_start_sequencer(
+        self,
+        session_id: str,
+        connection_id: str,
+        request: BrowserClockSequencerStartControlRequest,
+    ) -> dict[str, object]:
+        self._remember_running_loop()
+        await self.require_browser_clock_controller(session_id, connection_id)
+        status = await self.start_session_sequencer(
+            session_id,
+            SessionSequencerStartRequest(
+                config=request.config,
+                position_step=request.position_step,
+            ),
+        )
+        return self._browser_clock_sequencer_status_message(
+            request_id=request.request_id,
+            action=request.type,
+            status=status,
+        )
+
+    async def browser_clock_command_sequencer(
+        self,
+        session_id: str,
+        connection_id: str,
+        request: BrowserClockSequencerCommandRequest,
+    ) -> dict[str, object]:
+        self._remember_running_loop()
+        await self.require_browser_clock_controller(session_id, connection_id)
+        if request.type == "sequencer_stop":
+            status = await self.stop_session_sequencer(session_id)
+        elif request.type == "sequencer_rewind":
+            status = await self.rewind_session_sequencer_cycle(session_id)
+        else:
+            status = await self.forward_session_sequencer_cycle(session_id)
+        return self._browser_clock_sequencer_status_message(
+            request_id=request.request_id,
+            action=request.type,
+            status=status,
+        )
+
+    async def browser_clock_queue_pad(
+        self,
+        session_id: str,
+        connection_id: str,
+        request: BrowserClockQueuePadControlRequest,
+    ) -> dict[str, object]:
+        self._remember_running_loop()
+        await self.require_browser_clock_controller(session_id, connection_id)
+        status = await self.queue_session_sequencer_pad(
+            session_id,
+            request.track_id,
+            SessionSequencerQueuePadRequest(pad_index=request.pad_index),
+        )
+        return self._browser_clock_sequencer_status_message(
+            request_id=request.request_id,
+            action=request.type,
+            status=status,
+        )
+
+    async def require_browser_clock_controller(
+        self,
+        session_id: str,
+        connection_id: str,
+    ) -> tuple[RuntimeSession, BrowserClockControllerLease]:
+        runtime = await self._get_session(session_id)
+        self._assert_browser_clock_mode(runtime)
+
+        async with self._lock:
+            lease = self._browser_clock_controllers.get(session_id)
+        if lease is None or lease.connection_id != connection_id:
+            raise HTTPException(status_code=409, detail="This browser is not the active controller for the session.")
+        return runtime, lease
+
+    async def render_browser_clock_audio(
+        self,
+        session_id: str,
+        connection_id: str,
+        request: BrowserClockRequestRenderRequest,
+    ) -> tuple[dict[str, object], bytes]:
+        self._remember_running_loop()
+        runtime, lease = await self.require_browser_clock_controller(session_id, connection_id)
+        if not runtime.worker.browser_clock_ready and runtime.worker.backend != "mock":
+            raise HTTPException(status_code=409, detail="Browser-clock audio is not ready for this session.")
+
+        block_count = max(1, min(request.block_count, lease.max_blocks_per_request))
+        sequencer = self._ensure_sequencer(runtime)
+        latest_status = sequencer.status()
+
+        def _before_block(_block_index: int) -> None:
+            nonlocal latest_status
+            latest_status = sequencer.advance_render_block(
+                sample_rate=runtime.worker.runtime_sample_rate,
+                ksmps=runtime.worker.runtime_ksmps,
+            )
+
+        try:
+            render = runtime.worker.render_blocks(
+                block_count=block_count,
+                target_sample_rate=lease.sample_rate,
+                before_block=_before_block,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        except RuntimeError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=f"Failed to render browser-clock audio: {exc}") from exc
+
+        return (
+            {
+                "type": "render_chunk",
+                "chunk_id": str(uuid4()),
+                "engine_block_count": render.block_count,
+                "engine_sample_start": render.engine_sample_start,
+                "engine_sample_end": render.engine_sample_end,
+                "engine_sample_rate": render.engine_sample_rate,
+                "target_sample_rate": render.target_sample_rate,
+                "target_frame_count": render.target_frame_count,
+                "channels": render.channels,
+                "sequencer_status": latest_status.model_dump(mode="json"),
+            },
+            render.pcm_f32le,
         )
 
     async def send_midi_event(self, session_id: str, request: SessionMidiEventRequest) -> SessionActionResponse:
@@ -490,6 +749,12 @@ class SessionService:
     async def delete_session(self, session_id: str) -> None:
         self._remember_running_loop()
         runtime = await self._get_session(session_id)
+        await self._disconnect_browser_clock_controller(
+            session_id,
+            detail="Session deleted.",
+            close_code=4004,
+            close_reason="session_deleted",
+        )
         if runtime.sequencer is not None:
             runtime.sequencer.shutdown()
         self._detach_runtime_direct_midi_sink(runtime)
@@ -504,10 +769,13 @@ class SessionService:
             heartbeat_tasks_to_cancel = list(heartbeat_tasks.values())
             self._frontend_connections.pop(session_id, None)
             auto_stop_task_to_cancel = self._frontend_auto_stop_tasks.pop(session_id, None)
+            browser_clock_auto_stop_task = self._browser_clock_auto_stop_tasks.pop(session_id, None)
         for task in heartbeat_tasks_to_cancel:
             task.cancel()
         if auto_stop_task_to_cancel is not None:
             auto_stop_task_to_cancel.cancel()
+        if browser_clock_auto_stop_task is not None:
+            browser_clock_auto_stop_task.cancel()
 
         await self._publish(session_id, "session_deleted", {})
 
@@ -552,6 +820,7 @@ class SessionService:
             midi_service=self._midi_service,
             midi_input_selector=midi_input,
             controller_default_channels=self._controller_default_channels_for_runtime(runtime),
+            clock_mode="render_driven" if self._settings.audio_output_mode == "browser_clock" else "wall_clock",
             publish_event=lambda event_type, payload, session_id=runtime.session_id: self._publish_from_thread(
                 session_id=session_id,
                 event_type=event_type,
@@ -590,6 +859,51 @@ class SessionService:
             self._loop = asyncio.get_running_loop()
         except RuntimeError:
             return
+
+    @staticmethod
+    def _browser_clock_sequencer_status_message(
+        *,
+        request_id: str,
+        action: str,
+        status: SessionSequencerStatus,
+    ) -> dict[str, object]:
+        return {
+            "type": "sequencer_status",
+            "request_id": request_id,
+            "action": action,
+            "sequencer_status": status.model_dump(mode="json"),
+        }
+
+    @staticmethod
+    def _assert_browser_clock_mode(runtime: RuntimeSession) -> None:
+        if runtime.worker.audio_output_mode != "browser_clock":
+            raise HTTPException(
+                status_code=409,
+                detail="Browser-clock control requires VISUALCSOUND_AUDIO_OUTPUT_MODE=browser_clock.",
+            )
+
+    async def _disconnect_browser_clock_controller(
+        self,
+        session_id: str,
+        *,
+        detail: str,
+        close_code: int,
+        close_reason: str,
+    ) -> None:
+        lease: BrowserClockControllerLease | None = None
+        async with self._lock:
+            lease = self._browser_clock_controllers.pop(session_id, None)
+            self._cancel_browser_clock_auto_stop_task_unlocked(session_id)
+        if lease is None:
+            return
+        try:
+            await lease.send_json({"type": "engine_error", "detail": detail})
+        except Exception:
+            logger.exception("Failed to notify browser-clock controller for session '%s'", session_id)
+        try:
+            await lease.close(close_code, close_reason)
+        except Exception:
+            logger.exception("Failed to close browser-clock controller for session '%s'", session_id)
 
     async def _drop_frontend_connection(
         self,
@@ -705,6 +1019,36 @@ class SessionService:
             return
         except Exception:
             logger.exception("Failed during frontend disconnect auto-stop for session '%s'", session_id)
+
+    def _schedule_browser_clock_auto_stop_task_unlocked(self, *, session_id: str, delay_seconds: float) -> None:
+        self._cancel_browser_clock_auto_stop_task_unlocked(session_id)
+        self._browser_clock_auto_stop_tasks[session_id] = asyncio.create_task(
+            self._browser_clock_auto_stop_after_delay(session_id, delay_seconds),
+            name=f"browser-clock-autostop:{session_id}",
+        )
+
+    def _cancel_browser_clock_auto_stop_task_unlocked(self, session_id: str) -> None:
+        task = self._browser_clock_auto_stop_tasks.pop(session_id, None)
+        if task is not None:
+            task.cancel()
+
+    async def _browser_clock_auto_stop_after_delay(self, session_id: str, delay_seconds: float) -> None:
+        try:
+            await asyncio.sleep(delay_seconds)
+
+            async with self._lock:
+                if self._browser_clock_controllers.get(session_id) is not None:
+                    return
+                current = self._browser_clock_auto_stop_tasks.get(session_id)
+                if current is not asyncio.current_task():
+                    return
+                self._browser_clock_auto_stop_tasks.pop(session_id, None)
+
+            await self._auto_stop_session_if_running(session_id, "browser_clock_controller_disconnect")
+        except asyncio.CancelledError:
+            return
+        except Exception:
+            logger.exception("Failed during browser-clock controller auto-stop for session '%s'", session_id)
 
     async def _auto_stop_session_if_running(self, session_id: str, reason: str) -> None:
         try:

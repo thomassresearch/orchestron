@@ -262,6 +262,82 @@ def test_queue_midi_message_honors_delivery_delay(monkeypatch) -> None:
         assert worker._host_midi_pending == []
 
 
+def test_browser_clock_mock_runtime_renders_exact_block_windows(monkeypatch) -> None:
+    monkeypatch.setenv("VISUALCSOUND_AUDIO_OUTPUT_MODE", "browser_clock")
+    monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "true")
+
+    worker = CsoundWorker()
+    csd = "\n".join(
+        [
+            "<CsoundSynthesizer>",
+            "<CsOptions>",
+            "</CsOptions>",
+            "<CsInstruments>",
+            "sr = 48000",
+            "ksmps = 64",
+            "nchnls = 2",
+            "instr 1",
+            "endin",
+            "</CsInstruments>",
+            "</CsoundSynthesizer>",
+        ]
+    )
+
+    start = worker.start(csd=csd, midi_input="unused", rtmidi_module="null")
+
+    assert start.audio_mode == "browser_clock"
+    assert worker.is_running is True
+    assert worker._thread is None
+
+    first = worker.render_blocks(block_count=3, target_sample_rate=48_000)
+    second = worker.render_blocks(block_count=1, target_sample_rate=48_000)
+
+    assert first.engine_sample_start == 0
+    assert first.engine_sample_end == 192
+    assert first.block_count == 3
+    assert first.target_frame_count == 192
+    assert len(first.pcm_f32le) == 192 * 2 * 4
+    assert second.engine_sample_start == 192
+    assert second.engine_sample_end == 256
+    assert worker.render_sample_cursor == 256
+
+    worker.stop()
+
+
+def test_browser_clock_mock_runtime_resamples_to_requested_output_rate(monkeypatch) -> None:
+    monkeypatch.setenv("VISUALCSOUND_AUDIO_OUTPUT_MODE", "browser_clock")
+    monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "true")
+
+    worker = CsoundWorker()
+    csd = "\n".join(
+        [
+            "<CsoundSynthesizer>",
+            "<CsOptions>",
+            "</CsOptions>",
+            "<CsInstruments>",
+            "sr = 44100",
+            "ksmps = 64",
+            "nchnls = 2",
+            "instr 1",
+            "endin",
+            "</CsInstruments>",
+            "</CsoundSynthesizer>",
+        ]
+    )
+
+    worker.start(csd=csd, midi_input="unused", rtmidi_module="null")
+
+    render = worker.render_blocks(block_count=2, target_sample_rate=48_000)
+
+    assert render.engine_sample_rate == 44_100
+    assert render.target_sample_rate == 48_000
+    assert render.engine_sample_end - render.engine_sample_start == 128
+    assert render.target_frame_count == 139
+    assert len(render.pcm_f32le) == 139 * 2 * 4
+
+    worker.stop()
+
+
 @pytest.mark.skipif(sys.platform != "win32", reason="Windows-only integration test")
 @pytest.mark.skipif(
     os.getenv("VISUALCSOUND_RUN_WINDOWS_LOCAL_MIDI") != "1",

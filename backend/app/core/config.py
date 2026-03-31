@@ -57,7 +57,7 @@ class Settings(BaseSettings):
 
     default_rtmidi_module: str = Field(default_factory=_default_rtmidi_module)
     default_midi_device: str = "0"
-    audio_output_mode: Literal["local", "streaming"] = "local"
+    audio_output_mode: Literal["local", "streaming", "browser_clock"] = "local"
     webrtc_frontend_ice_servers: list[WebRtcIceServerConfig] = Field(default_factory=list)
     webrtc_backend_ice_servers: list[WebRtcIceServerConfig] = Field(default_factory=list)
     frontend_disconnect_grace_seconds: float = Field(default=5.0, gt=0.0)

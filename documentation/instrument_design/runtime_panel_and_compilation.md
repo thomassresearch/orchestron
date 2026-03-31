@@ -8,7 +8,7 @@ The Runtime panel supports live testing of the current patch and exposes compile
 
 - `MIDI Input` selector
 - `Compile Output` (generated ORC)
-- `Browser Audio` status/player (streaming mode only)
+- `Browser Audio` status (and player in WebRTC streaming mode)
 - `Session Events` log (recent backend/runtime events)
 
 ## MIDI Input Binding
@@ -40,7 +40,7 @@ Typical uses:
 - Inspect runtime payloads and state transitions
 - Diagnose issues during live testing
 
-## Browser Audio (Streaming Mode)
+## Browser Audio (Browser Modes)
 
 When the backend session starts in `streaming` audio mode, the Runtime panel can show:
 
@@ -48,9 +48,15 @@ When the backend session starts in `streaming` audio mode, the Runtime panel can
 - Error message when browser stream setup fails
 - A built-in `<audio>` player control for the incoming WebRTC stream
 
+When the backend session starts in `browser_clock` audio mode, the Runtime panel can show:
+
+- Browser PCM queue/runtime status (`connecting`, `live`, `error`)
+- Error message when the controller socket or AudioWorklet path fails
+- no `<audio>` player, because playback is owned directly by the browser `AudioContext`
+
 If the backend is running in local DAC mode, this section reports local output behavior instead.
 
-See [Browser Audio Streaming (WebRTC)](../configuration/browser_audio_streaming_webrtc.md) for the full streaming-mode guide.
+See [Browser Audio Streaming (WebRTC)](../configuration/browser_audio_streaming_webrtc.md) for the browser-audio mode guide, including the new `browser_clock` Docker workflow.
 
 ## Runtime Panel Collapse / Show
 
@@ -79,7 +85,7 @@ This helps you avoid assuming a graph is live-valid after edits.
 4. Start or continue runtime testing with MIDI input
 5. Save only after compile is clean
 
-The integrated `?` help for this panel now focuses on session-specific MIDI binding, generated ORC inspection, runtime event feedback, and the difference between browser-streaming audio mode and local DAC mode.
+The integrated `?` help for this panel now focuses on session-specific MIDI binding, generated ORC inspection, runtime event feedback, and the difference between local audio, WebRTC streaming, and browser-clock PCM mode.
 
 ## Screenshots
 
@@ -92,5 +98,7 @@ The integrated `?` help for this panel now focuses on session-specific MIDI bind
   <img src="../../screenshots/instrument_runtime_panel_browser_audio_streaming.png" alt="Runtime panel browser audio streaming" width="760" style="max-width: 100%; height: auto;" />
 </p>
 <p align="center"><em>Runtime panel browser-audio section when backend audio output mode is streaming (WebRTC).</em></p>
+
+<p align="center"><em>A refreshed Runtime panel screenshot for `browser_clock` mode should be added after capturing the new AudioWorklet/PCM status UI.</em></p>
 
 **Navigation:** [Up](instrument_design.md) | [Prev](gen_table_editor.md) | [Next](instrument_import_export.md)

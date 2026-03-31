@@ -74,7 +74,7 @@ Orchestron is a two-tier application with a FastAPI backend handling the service
 
 ## Quick Start
 
-Choose the installation guide that matches your environment. The platform guides cover native development setup, and the Docker guide covers the containerized WebRTC streaming workflow.
+Choose the installation guide that matches your environment. The platform guides cover native development setup, and the Docker guide covers the containerized browser-clock PCM workflow.
 
 - [macOS installation](INSTALL.macos.md)
 - [Linux installation](INSTALL.linux.md)
@@ -84,6 +84,8 @@ Choose the installation guide that matches your environment. The platform guides
 To make sound quickly, open [http://localhost:8000/client](http://localhost:8000/client), then in `Instrument Design` import an instrument from [`examples/instruments/`](examples/instruments/). Switch to the `Perform` panel, add the instrument to the performance, add a piano roll keyboard if it is not already visible, set its MIDI channel to match the instrument channel, press `Start Instrument`, then go to the piano keyboards, press `Start`, and play.
 
 **Troubleshooting**: if audio output is chopped, increase the hardware and software buffer sizes in the configuration settings.
+
+Docker now defaults to `browser_clock` mode: the browser owns the PCM queue via Web Audio (`AudioContext` + `AudioWorklet`) and the backend renders Csound blocks on demand. The older WebRTC path remains available as the separate `streaming` runtime mode.
 
 ## MIDI on macOS
 

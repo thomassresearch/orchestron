@@ -1,6 +1,6 @@
 # Orchestron Installation Manual (Docker)
 
-This guide runs Orchestron in Docker using browser-audio streaming over WebRTC.
+This guide runs Orchestron in Docker using the browser-clock PCM runtime.
 
 ## 1. Prerequisites
 
@@ -34,7 +34,7 @@ docker volume create orchestron_data
 
 ## 4. Start the Docker stack
 
-Run the backend in browser-audio streaming mode with Docker Compose:
+Run the backend in browser-clock mode with Docker Compose:
 
 ```bash
 docker compose up --build
@@ -47,7 +47,7 @@ After startup, open:
 - Backend API: `http://localhost:8000`
 - Backend-served frontend: `http://localhost:8000/client`
 
-The Compose setup runs Csound in `streaming` mode and sends audio to the browser over WebRTC using the bundled TURN service.
+The Compose setup runs Csound in `browser_clock` mode. The browser owns the PCM queue through `AudioContext` + `AudioWorklet`, and the backend renders Csound blocks on demand over a controller WebSocket.
 
 ## 6. Stop the stack
 
@@ -59,4 +59,4 @@ docker compose down
 
 ## 7. Additional notes
 
-For implementation details, latency tuning, and Docker-specific WebRTC notes, see [WEBRTC_STREAMING.md](WEBRTC_STREAMING.md).
+For implementation details, latency tuning, and the legacy WebRTC streaming mode, see [WEBRTC_STREAMING.md](WEBRTC_STREAMING.md) and [Browser Audio Streaming (WebRTC)](documentation/configuration/browser_audio_streaming_webrtc.md).

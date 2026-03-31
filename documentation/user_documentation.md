@@ -10,13 +10,13 @@ It is organized by chapter and subchapter so you can read it front-to-back or ju
 
 - Visual instrument design (opcode graph editor, formulas, GEN tables, compile/runtime testing)
 - Live performance workflow (instrument rack, sequencers, piano rolls, MIDI controllers, import/export)
-- Configuration and runtime behavior (audio engine settings, MIDI setup, browser streaming, persistence)
+- Configuration and runtime behavior (audio engine settings, MIDI setup, browser audio modes, persistence)
 
 ## Reading Order
 
 - Start with **Instrument Design** if you are creating patches.
 - Continue with **Performance** to build and perform a multi-instrument setup.
-- Use **Configuration** for audio engine tuning, MIDI setup, UI language/help, and browser streaming mode.
+- Use **Configuration** for audio engine tuning, MIDI setup, UI language/help, and browser audio modes.
 
 ## [Instrument Design](instrument_design/instrument_design.md)
 
@@ -66,7 +66,7 @@ It is organized by chapter and subchapter so you can read it front-to-back or ju
 | Performance bundle import/export with conflict resolution | [Performance Import / Export](performance/performance_import_export.md) |
 | Offline performance render export (`.csd` + `.mid` + assets ZIP) | [Performance Import / Export](performance/performance_import_export.md) |
 | Audio engine settings (`sr`, `control_rate`, `ksmps`, buffers) | [Audio Engine Settings (Config Page)](configuration/audio_engine_settings.md) |
-| Browser audio streaming (WebRTC / Docker mode) | [Browser Audio Streaming (WebRTC)](configuration/browser_audio_streaming_webrtc.md) |
+| Browser audio modes (`browser_clock` Docker PCM and `streaming` WebRTC) | [Browser Audio Streaming (WebRTC)](configuration/browser_audio_streaming_webrtc.md) |
 | App-state persistence and defaults | [Persistence and Defaults](configuration/persistence_and_defaults.md) |
 | Supported opcode catalog (137 opcodes) | [Supported Opcodes](instrument_design/supported_opcodes.md) |
 

@@ -489,7 +489,12 @@ export interface WebRtcIceServerConfig {
   credential?: string | null;
 }
 
+export type SessionAudioOutputMode = "local" | "streaming" | "browser_clock";
+
 export interface RuntimeConfigResponse {
+  audio_output_mode: SessionAudioOutputMode;
+  browser_audio_streaming_enabled: boolean;
+  browser_clock_enabled: boolean;
   webrtc_browser_ice_servers: WebRtcIceServerConfig[];
 }
 
@@ -704,6 +709,97 @@ export interface SessionAudioWebRtcAnswerResponse {
   sdp: string;
   sample_rate: number;
 }
+
+export interface BrowserClockClaimControllerRequest {
+  type: "claim_controller";
+  audio_context_sample_rate: number;
+  queue_low_water_frames: number;
+  queue_high_water_frames: number;
+  max_blocks_per_request: number;
+}
+
+export interface BrowserClockRequestRenderRequest {
+  type: "request_render";
+  block_count: number;
+}
+
+export interface BrowserClockReleaseControllerRequest {
+  type: "release_controller";
+}
+
+export interface BrowserClockManualMidiRequest {
+  type: "manual_midi";
+  midi: SessionMidiEventRequest;
+}
+
+export interface BrowserClockSequencerStartControlRequest {
+  type: "sequencer_start";
+  request_id: string;
+  config?: SessionSequencerConfigRequest | null;
+  position_step?: number | null;
+}
+
+export interface BrowserClockSequencerCommandRequest {
+  type: "sequencer_stop" | "sequencer_rewind" | "sequencer_forward";
+  request_id: string;
+}
+
+export interface BrowserClockQueuePadControlRequest {
+  type: "queue_pad";
+  request_id: string;
+  track_id: string;
+  pad_index: number | null;
+}
+
+export interface BrowserClockStreamConfigMessage {
+  type: "stream_config";
+  engine_sample_rate: number;
+  ksmps: number;
+  channels: number;
+  target_sample_rate: number;
+  engine_sample_cursor: number;
+  queue_low_water_frames: number;
+  queue_high_water_frames: number;
+  max_blocks_per_request: number;
+  sequencer_status: SessionSequencerStatus;
+}
+
+export interface BrowserClockRenderChunkMessage {
+  type: "render_chunk";
+  chunk_id: string;
+  engine_block_count: number;
+  engine_sample_start: number;
+  engine_sample_end: number;
+  engine_sample_rate: number;
+  target_sample_rate: number;
+  target_frame_count: number;
+  channels: number;
+  sequencer_status: SessionSequencerStatus;
+}
+
+export interface BrowserClockControllerRevokedMessage {
+  type: "controller_revoked";
+  reason: string;
+}
+
+export interface BrowserClockSequencerStatusMessage {
+  type: "sequencer_status";
+  request_id: string;
+  action: string;
+  sequencer_status: SessionSequencerStatus;
+}
+
+export interface BrowserClockEngineErrorMessage {
+  type: "engine_error";
+  detail: string;
+}
+
+export type BrowserClockServerMessage =
+  | BrowserClockStreamConfigMessage
+  | BrowserClockRenderChunkMessage
+  | BrowserClockControllerRevokedMessage
+  | BrowserClockSequencerStatusMessage
+  | BrowserClockEngineErrorMessage;
 
 export type SessionMidiEventRequest =
   | {

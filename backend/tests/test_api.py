@@ -8,13 +8,15 @@ from pathlib import Path
 import zipfile
 
 from fastapi.testclient import TestClient
+import pytest
+from starlette.websockets import WebSocketDisconnect
 
 from backend.app.models.session import MidiInputRef
 from backend.app.core.config import get_settings
 from backend.app.main import create_app
 
 
-def _client(tmp_path: Path) -> TestClient:
+def _client(tmp_path: Path, *, audio_output_mode: str = "local") -> TestClient:
     db_path = tmp_path / "test.db"
     static_dir = tmp_path / "static"
     frontend_dist = tmp_path / "frontend_dist"
@@ -27,6 +29,7 @@ def _client(tmp_path: Path) -> TestClient:
     os.environ["VISUALCSOUND_FRONTEND_DIST_DIR"] = str(frontend_dist)
     os.environ["VISUALCSOUND_GEN_AUDIO_ASSETS_DIR"] = str(gen_audio_assets_dir)
     os.environ["VISUALCSOUND_FORCE_MOCK_ENGINE"] = "true"
+    os.environ["VISUALCSOUND_AUDIO_OUTPUT_MODE"] = audio_output_mode
 
     get_settings.cache_clear()
     app = create_app()
@@ -76,6 +79,39 @@ def _sequencer_config(
     return config
 
 
+def _create_running_session(client: TestClient, *, patch_name: str = "Browser Clock Patch") -> str:
+    patch_payload = {
+        "name": patch_name,
+        "description": "browser clock runtime",
+        "schema_version": 1,
+        "graph": {
+            "nodes": [
+                {"id": "n1", "opcode": "const_a", "params": {"value": 0.2}, "position": {"x": 50, "y": 50}},
+                {"id": "n2", "opcode": "outs", "params": {}, "position": {"x": 240, "y": 50}},
+            ],
+            "connections": [
+                {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "left"},
+                {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "right"},
+            ],
+            "ui_layout": {},
+            "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+        },
+    }
+    patch_response = client.post("/api/patches", json=patch_payload)
+    assert patch_response.status_code == 201
+    patch_id = patch_response.json()["id"]
+
+    session_response = client.post("/api/sessions", json={"patch_id": patch_id})
+    assert session_response.status_code == 201
+    session_id = session_response.json()["session_id"]
+
+    compile_response = client.post(f"/api/sessions/{session_id}/compile")
+    assert compile_response.status_code == 200
+    start_response = client.post(f"/api/sessions/{session_id}/start")
+    assert start_response.status_code == 200
+    return session_id
+
+
 def test_health_endpoint(tmp_path: Path) -> None:
     with _client(tmp_path) as client:
         response = client.get("/api/health")
@@ -88,6 +124,93 @@ def test_client_static_endpoint(tmp_path: Path) -> None:
         response = client.get("/client")
         assert response.status_code == 200
         assert "client-ok" in response.text
+
+
+def test_runtime_config_exposes_browser_clock_mode(tmp_path: Path) -> None:
+    with _client(tmp_path, audio_output_mode="browser_clock") as client:
+        response = client.get("/api/runtime-config")
+        assert response.status_code == 200
+        assert response.json()["audio_output_mode"] == "browser_clock"
+        assert response.json()["browser_clock_enabled"] is True
+        assert response.json()["browser_audio_streaming_enabled"] is False
+
+
+def test_browser_clock_client_assets_include_shared_array_buffer_headers(tmp_path: Path) -> None:
+    with _client(tmp_path, audio_output_mode="browser_clock") as client:
+        response = client.get("/client")
+        assert response.status_code == 200
+        assert response.headers["cross-origin-opener-policy"] == "same-origin"
+        assert response.headers["cross-origin-embedder-policy"] == "require-corp"
+
+
+def test_browser_clock_controller_websocket_streams_pcm_chunks(tmp_path: Path) -> None:
+    with _client(tmp_path, audio_output_mode="browser_clock") as client:
+        session_id = _create_running_session(client)
+
+        with client.websocket_connect(f"/ws/sessions/{session_id}/browser-clock") as websocket:
+            websocket.send_json(
+                {
+                    "type": "claim_controller",
+                    "audio_context_sample_rate": 48_000,
+                    "queue_low_water_frames": 1024,
+                    "queue_high_water_frames": 2048,
+                    "max_blocks_per_request": 8,
+                }
+            )
+            stream_config = websocket.receive_json()
+            assert stream_config["type"] == "stream_config"
+            assert stream_config["engine_sample_rate"] == 48_000
+            assert stream_config["ksmps"] == 64
+            assert stream_config["channels"] == 2
+            assert stream_config["target_sample_rate"] == 48_000
+
+            websocket.send_json({"type": "request_render", "block_count": 2})
+            metadata = websocket.receive_json()
+            assert metadata["type"] == "render_chunk"
+            assert metadata["engine_block_count"] == 2
+            assert metadata["engine_sample_start"] == 0
+            assert metadata["engine_sample_end"] == 128
+            assert metadata["target_frame_count"] == 128
+
+            pcm = websocket.receive_bytes()
+            assert len(pcm) == metadata["target_frame_count"] * metadata["channels"] * 4
+
+
+def test_browser_clock_controller_takeover_revokes_previous_browser(tmp_path: Path) -> None:
+    with _client(tmp_path, audio_output_mode="browser_clock") as client:
+        session_id = _create_running_session(client, patch_name="Browser Clock Takeover")
+
+        with client.websocket_connect(f"/ws/sessions/{session_id}/browser-clock") as first:
+            first.send_json(
+                {
+                    "type": "claim_controller",
+                    "audio_context_sample_rate": 48_000,
+                    "queue_low_water_frames": 1024,
+                    "queue_high_water_frames": 2048,
+                    "max_blocks_per_request": 8,
+                }
+            )
+            first_config = first.receive_json()
+            assert first_config["type"] == "stream_config"
+
+            with client.websocket_connect(f"/ws/sessions/{session_id}/browser-clock") as second:
+                second.send_json(
+                    {
+                        "type": "claim_controller",
+                        "audio_context_sample_rate": 48_000,
+                        "queue_low_water_frames": 1024,
+                        "queue_high_water_frames": 2048,
+                        "max_blocks_per_request": 8,
+                    }
+                )
+                second_config = second.receive_json()
+                assert second_config["type"] == "stream_config"
+
+                revoked = first.receive_json()
+                assert revoked["type"] == "controller_revoked"
+
+                with pytest.raises(WebSocketDisconnect):
+                    first.receive_text()
 
 
 def test_bind_midi_input_normalizes_legacy_selector_to_stable_id(tmp_path: Path) -> None:

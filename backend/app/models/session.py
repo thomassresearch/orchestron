@@ -32,6 +32,9 @@ def _is_valid_pad_loop_token(token: int) -> bool:
     return token in _PAUSE_TOKENS
 
 
+SessionAudioOutputMode = Literal["local", "streaming", "browser_clock"]
+
+
 class SessionState(StrEnum):
     IDLE = "idle"
     COMPILED = "compiled"
@@ -101,6 +104,53 @@ class SessionAudioWebRtcAnswerResponse(BaseModel):
     type: Literal["answer"]
     sdp: str = Field(min_length=1)
     sample_rate: int = Field(ge=1)
+
+
+class BrowserClockClaimControllerRequest(BaseModel):
+    type: Literal["claim_controller"]
+    audio_context_sample_rate: int = Field(ge=1)
+    queue_low_water_frames: int = Field(ge=1)
+    queue_high_water_frames: int = Field(ge=1)
+    max_blocks_per_request: int = Field(ge=1)
+
+    @model_validator(mode="after")
+    def validate_queue_targets(self) -> "BrowserClockClaimControllerRequest":
+        if self.queue_high_water_frames <= self.queue_low_water_frames:
+            raise ValueError("queue_high_water_frames must be greater than queue_low_water_frames.")
+        return self
+
+
+class BrowserClockRequestRenderRequest(BaseModel):
+    type: Literal["request_render"]
+    block_count: int = Field(ge=1)
+
+
+class BrowserClockReleaseControllerRequest(BaseModel):
+    type: Literal["release_controller"]
+
+
+class BrowserClockManualMidiRequest(BaseModel):
+    type: Literal["manual_midi"]
+    midi: SessionMidiEventRequest
+
+
+class BrowserClockSequencerStartControlRequest(BaseModel):
+    type: Literal["sequencer_start"]
+    request_id: str = Field(min_length=1, max_length=128)
+    config: "SessionSequencerConfigRequest | None" = None
+    position_step: int | None = Field(default=None, ge=0)
+
+
+class BrowserClockSequencerCommandRequest(BaseModel):
+    type: Literal["sequencer_stop", "sequencer_rewind", "sequencer_forward"]
+    request_id: str = Field(min_length=1, max_length=128)
+
+
+class BrowserClockQueuePadControlRequest(BaseModel):
+    type: Literal["queue_pad"]
+    request_id: str = Field(min_length=1, max_length=128)
+    track_id: str = Field(min_length=1, max_length=256)
+    pad_index: int | None = Field(default=None, ge=0, le=7)
 
 
 class MidiInputRef(BaseModel):
