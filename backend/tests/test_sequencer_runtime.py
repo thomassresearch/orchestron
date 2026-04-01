@@ -146,3 +146,64 @@ def test_render_driven_sequencer_emits_step_hits_crossed_inside_block() -> None:
         [0x90, 62, 100],
         [0x90, 63, 100],
     ]
+
+
+def test_sequencer_step_event_carries_full_runtime_snapshot() -> None:
+    midi_service = _FakeMidiService()
+    published_events: list[tuple[str, dict[str, object]]] = []
+    runtime = SessionSequencerRuntime(
+        session_id="session-render-events",
+        midi_service=midi_service,  # type: ignore[arg-type]
+        midi_input_selector="mido:test",
+        controller_default_channels=(1,),
+        clock_mode="render_driven",
+        publish_event=lambda event_type, payload: published_events.append((event_type, payload)),
+    )
+    config = SessionSequencerConfigRequest.model_validate(
+        {
+            "timing": {
+                "tempo_bpm": 120,
+                "meter_numerator": 4,
+                "meter_denominator": 4,
+                "steps_per_beat": 4,
+                "beat_rate_numerator": 1,
+                "beat_rate_denominator": 1,
+            },
+            "step_count": 8,
+            "playback_end_step": 8,
+            "tracks": [
+                {
+                    "track_id": "lead",
+                    "midi_channel": 1,
+                    "length_beats": 1,
+                    "active_pad": 0,
+                    "enabled": True,
+                    "pads": [{"pad_index": 0, "length_beats": 1, "steps": [60, 61, 62, 63]}],
+                }
+            ],
+        }
+    )
+
+    runtime.configure(config)
+    runtime.start(position_step=0)
+    runtime.advance_render_block(sample_rate=1_000, ksmps=100)
+
+    sequencer_step_events = [payload for event_type, payload in published_events if event_type == "sequencer_step"]
+    assert sequencer_step_events
+
+    payload = sequencer_step_events[0]
+    assert payload["previous_step"] == 0
+    assert payload["current_step"] == 1
+    assert payload["cycle"] == 0
+    assert payload["running"] is True
+    assert payload["step_count"] == 8
+    assert payload["transport_subunit"] == 420
+
+    status = payload["sequencer_status"]
+    assert isinstance(status, dict)
+    assert status["current_step"] == 1
+    assert status["cycle"] == 0
+    assert status["transport_subunit"] == 420
+    assert status["running"] is True
+    assert isinstance(status["tracks"], list)
+    assert status["tracks"][0]["track_id"] == "lead"

@@ -72,6 +72,32 @@ function hasOwnRecordKey(record: Record<string, unknown>, key: string): boolean 
   return Object.prototype.hasOwnProperty.call(record, key);
 }
 
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isSessionSequencerStatus(value: unknown): value is SessionSequencerStatus {
+  return (
+    isObjectRecord(value) &&
+    typeof value.session_id === "string" &&
+    typeof value.running === "boolean" &&
+    typeof value.step_count === "number" &&
+    typeof value.current_step === "number" &&
+    typeof value.cycle === "number" &&
+    typeof value.transport_subunit === "number" &&
+    Array.isArray(value.tracks) &&
+    Array.isArray(value.controller_tracks)
+  );
+}
+
+function sequencerStatusFromSessionEvent(event: SessionEvent): SessionSequencerStatus | null {
+  if (event.type !== "sequencer_step" && event.type !== "sequencer_pad_switched") {
+    return null;
+  }
+  const candidate = event.payload.sequencer_status;
+  return isSessionSequencerStatus(candidate) ? candidate : null;
+}
+
 function mergedSequencerState(
   sequencerConfig: SequencerState,
   sequencerRuntime: SequencerRuntimeState
@@ -1273,57 +1299,6 @@ export default function App() {
     void loadBootstrap();
   }, [loadBootstrap]);
 
-  useEffect(() => {
-    if (!activeSessionId) {
-      return;
-    }
-
-    const url = `${wsBaseUrl()}/ws/sessions/${activeSessionId}`;
-    const socket = new WebSocket(url);
-    let heartbeatTimer: number | null = null;
-
-    const clearHeartbeatTimer = () => {
-      if (heartbeatTimer !== null) {
-        window.clearInterval(heartbeatTimer);
-        heartbeatTimer = null;
-      }
-    };
-
-    const sendHeartbeat = () => {
-      if (socket.readyState !== WebSocket.OPEN) {
-        return;
-      }
-      try {
-        socket.send(JSON.stringify({ type: "heartbeat", timestamp_ms: Date.now() }));
-      } catch {
-        // Ignore heartbeat send failures during shutdown/reconnect races.
-      }
-    };
-
-    socket.onopen = () => {
-      sendHeartbeat();
-      heartbeatTimer = window.setInterval(sendHeartbeat, 2000);
-    };
-
-    socket.onclose = () => {
-      clearHeartbeatTimer();
-    };
-
-    socket.onmessage = (message) => {
-      try {
-        const parsed = JSON.parse(message.data);
-        pushEvent(parsed);
-      } catch {
-        // Ignore malformed websocket payloads.
-      }
-    };
-
-    return () => {
-      clearHeartbeatTimer();
-      socket.close();
-    };
-  }, [activeSessionId, pushEvent]);
-
   const onGraphChange = useCallback(
     (graph: PatchGraph) => {
       setGraph(graph);
@@ -1481,6 +1456,11 @@ export default function App() {
     : effectiveAudioOutputMode === "streaming"
       ? "webrtc"
       : "off";
+  const effectiveAudioOutputModeRef = useRef<SessionAudioOutputMode | null>(effectiveAudioOutputMode);
+
+  useEffect(() => {
+    effectiveAudioOutputModeRef.current = effectiveAudioOutputMode;
+  }, [effectiveAudioOutputMode]);
 
   const disconnectStreamingBrowserAudio = useCallback(() => {
     browserAudioNegotiationTokenRef.current += 1;
@@ -2509,6 +2489,159 @@ export default function App() {
   );
   applySequencerStatusRef.current = applySequencerStatus;
 
+  const syncSequencerStatusFromServer = useCallback(
+    async (sessionId: string, options?: { silentError?: boolean }) => {
+      if (sequencerPollInFlightRef.current) {
+        return;
+      }
+      if (sequencerConfigSyncPendingRef.current) {
+        return;
+      }
+      sequencerPollInFlightRef.current = true;
+      try {
+        const status = await api.getSessionSequencerStatus(sessionId);
+        applySequencerStatusRef.current(status);
+      } catch (pollError) {
+        if (invalidateMissingRuntimeSession(sessionId, pollError)) {
+          return;
+        }
+        if (options?.silentError === true) {
+          return;
+        }
+        setSequencerError(
+          pollError instanceof Error
+            ? `${appCopy.errors.failedToSyncSequencerStatus}: ${pollError.message}`
+            : appCopy.errors.failedToSyncSequencerStatus
+        );
+      } finally {
+        sequencerPollInFlightRef.current = false;
+      }
+    },
+    [appCopy.errors.failedToSyncSequencerStatus, invalidateMissingRuntimeSession]
+  );
+  const syncSequencerStatusFromServerRef = useRef(syncSequencerStatusFromServer);
+
+  useEffect(() => {
+    syncSequencerStatusFromServerRef.current = syncSequencerStatusFromServer;
+  }, [syncSequencerStatusFromServer]);
+
+  useEffect(() => {
+    if (!activeSessionId) {
+      return;
+    }
+
+    const url = `${wsBaseUrl()}/ws/sessions/${activeSessionId}`;
+    let socket: WebSocket | null = null;
+    let heartbeatTimer: number | null = null;
+    let reconnectTimer: number | null = null;
+    let reconnectAttempts = 0;
+    let disposed = false;
+
+    const clearHeartbeatTimer = () => {
+      if (heartbeatTimer !== null) {
+        window.clearInterval(heartbeatTimer);
+        heartbeatTimer = null;
+      }
+    };
+
+    const clearReconnectTimer = () => {
+      if (reconnectTimer !== null) {
+        window.clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+      }
+    };
+
+    const closeSocket = () => {
+      clearHeartbeatTimer();
+      if (!socket) {
+        return;
+      }
+      socket.onopen = null;
+      socket.onclose = null;
+      socket.onmessage = null;
+      socket.onerror = null;
+      try {
+        socket.close();
+      } catch {
+        // Ignore browser-side cleanup failures.
+      }
+      socket = null;
+    };
+
+    const sendHeartbeat = () => {
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        return;
+      }
+      try {
+        socket.send(JSON.stringify({ type: "heartbeat", timestamp_ms: Date.now() }));
+      } catch {
+        // Ignore heartbeat send failures during shutdown/reconnect races.
+      }
+    };
+
+    const scheduleReconnect = () => {
+      if (disposed || reconnectTimer !== null) {
+        return;
+      }
+      const delayMs = Math.min(4_000, 500 * 2 ** Math.min(reconnectAttempts, 3));
+      reconnectAttempts += 1;
+      reconnectTimer = window.setTimeout(() => {
+        reconnectTimer = null;
+        connectSocket();
+      }, delayMs);
+    };
+
+    const connectSocket = () => {
+      if (disposed) {
+        return;
+      }
+      closeSocket();
+      const nextSocket = new WebSocket(url);
+      socket = nextSocket;
+
+      nextSocket.onopen = () => {
+        reconnectAttempts = 0;
+        sendHeartbeat();
+        heartbeatTimer = window.setInterval(sendHeartbeat, 2000);
+        if (effectiveAudioOutputModeRef.current === "browser_clock" && sequencerRef.current.isPlaying) {
+          void syncSequencerStatusFromServerRef.current(activeSessionId, { silentError: true });
+        }
+      };
+
+      nextSocket.onclose = () => {
+        clearHeartbeatTimer();
+        if (socket === nextSocket) {
+          socket = null;
+        }
+        scheduleReconnect();
+      };
+
+      nextSocket.onmessage = (message) => {
+        try {
+          const parsed = JSON.parse(message.data) as SessionEvent;
+          pushEvent(parsed);
+          if (effectiveAudioOutputModeRef.current !== "browser_clock") {
+            return;
+          }
+          const status = sequencerStatusFromSessionEvent(parsed);
+          if (status) {
+            applySequencerStatusRef.current(status);
+          }
+        } catch {
+          // Ignore malformed websocket payloads.
+        }
+      };
+    };
+
+    connectSocket();
+
+    return () => {
+      disposed = true;
+      clearReconnectTimer();
+      closeSocket();
+    };
+  }, [activeSessionId, pushEvent]);
+
   const stopSequencerTransport = useCallback(
     async (resetPlayhead: boolean) => {
       const sessionId = sequencerSessionIdRef.current ?? activeSessionId;
@@ -3331,39 +3464,42 @@ export default function App() {
     if (!sequencer.isPlaying) {
       return;
     }
-    if (effectiveAudioOutputMode === "browser_clock") {
-      return;
-    }
 
     const sessionId = sequencerSessionIdRef.current ?? activeSessionId;
     if (!sessionId) {
       return;
     }
 
-    const syncStatus = async () => {
-      if (sequencerPollInFlightRef.current) {
-        return;
-      }
-      if (sequencerConfigSyncPendingRef.current) {
-        return;
-      }
-      sequencerPollInFlightRef.current = true;
-      try {
-        const status = await api.getSessionSequencerStatus(sessionId);
-        applySequencerStatus(status);
-      } catch (pollError) {
-        if (invalidateMissingRuntimeSession(sessionId, pollError)) {
+    const syncStatus = (options?: { silentError?: boolean }) =>
+      syncSequencerStatusFromServerRef.current(sessionId, options);
+
+    if (effectiveAudioOutputMode === "browser_clock") {
+      const handleWindowFocus = () => {
+        void syncStatus({ silentError: true });
+      };
+      const handleVisibilityChange = () => {
+        if (document.visibilityState !== "visible") {
           return;
         }
-        setSequencerError(
-          pollError instanceof Error
-            ? `${appCopy.errors.failedToSyncSequencerStatus}: ${pollError.message}`
-            : appCopy.errors.failedToSyncSequencerStatus
-        );
-      } finally {
-        sequencerPollInFlightRef.current = false;
-      }
-    };
+        void syncStatus({ silentError: true });
+      };
+
+      void syncStatus({ silentError: true });
+      sequencerStatusPollRef.current = window.setInterval(() => {
+        void syncStatus({ silentError: true });
+      }, 5000);
+      window.addEventListener("focus", handleWindowFocus);
+      document.addEventListener("visibilitychange", handleVisibilityChange);
+
+      return () => {
+        if (sequencerStatusPollRef.current !== null) {
+          window.clearInterval(sequencerStatusPollRef.current);
+          sequencerStatusPollRef.current = null;
+        }
+        window.removeEventListener("focus", handleWindowFocus);
+        document.removeEventListener("visibilitychange", handleVisibilityChange);
+      };
+    }
 
     void syncStatus();
     sequencerStatusPollRef.current = window.setInterval(() => {
@@ -3378,10 +3514,7 @@ export default function App() {
     };
   }, [
     activeSessionId,
-    appCopy.errors.failedToSyncSequencerStatus,
-    applySequencerStatus,
     effectiveAudioOutputMode,
-    invalidateMissingRuntimeSession,
     sequencer.isPlaying
   ]);
 

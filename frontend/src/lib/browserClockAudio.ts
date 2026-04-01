@@ -361,7 +361,6 @@ export class BrowserClockAudioClient {
             metadata: parsed,
             estimatedFrames: this.pendingRenderEstimates.shift() ?? parsed.target_frame_count
           };
-          this.callbacks.onSequencerStatus(parsed.sequencer_status);
           return;
         case "sequencer_status":
           this.resolveSequencerRequest(parsed);

@@ -4,6 +4,7 @@ import asyncio
 from dataclasses import dataclass
 import logging
 from datetime import datetime, timezone
+from typing import Any
 from typing import Awaitable, Callable
 from uuid import uuid4
 
@@ -806,7 +807,7 @@ class SessionService:
             return [SessionInstrumentAssignment(patch_id=request.patch_id, midi_channel=1)]
         raise HTTPException(status_code=422, detail="Session requires at least one instrument patch.")
 
-    async def _publish(self, session_id: str, event_type: str, payload: dict[str, str | int | float | bool | None]) -> None:
+    async def _publish(self, session_id: str, event_type: str, payload: dict[str, Any]) -> None:
         event = SessionEvent(session_id=session_id, type=event_type, payload=payload)
         await self._event_bus.publish(event)
 
@@ -1109,7 +1110,7 @@ class SessionService:
         self,
         session_id: str,
         event_type: str,
-        payload: dict[str, str | int | float | bool | None],
+        payload: dict[str, Any],
     ) -> None:
         loop = self._loop
         if loop is None:

@@ -5,6 +5,7 @@ import logging
 import threading
 import time
 from dataclasses import dataclass, field
+from typing import Any
 from typing import Callable
 from typing import Literal
 
@@ -21,7 +22,7 @@ from backend.app.services.midi_service import MidiService
 
 logger = logging.getLogger(__name__)
 
-PublishEventFn = Callable[[str, dict[str, str | int | float | bool | None]], None]
+PublishEventFn = Callable[[str, dict[str, Any]], None]
 
 _DEFAULT_PADS = 8
 _MAX_STEPS = 128
@@ -642,18 +643,19 @@ class SessionSequencerRuntime:
 
         next_visible_step = self._absolute_subunit // _TRANSPORT_SUBUNITS_PER_STEP
         if next_visible_step != current_visible_step:
-            next_step, cycle = self._transport_position_locked(config, self._absolute_subunit)
             self._publish_event(
                 "sequencer_step",
+                self._sequencer_step_event_payload_locked(config, previous_step=current_visible_step),
+            )
+        status_snapshot_payload = self._sequencer_snapshot_payload_from_status(self._status_locked())
+        for payload in switch_payloads:
+            self._publish_event(
+                "sequencer_pad_switched",
                 {
-                    "step": current_visible_step % max(1, config.step_count),
-                    "next_step": next_step,
-                    "cycle": cycle,
-                    "track_count": sum(1 for track in config.tracks.values() if track.enabled),
+                    **payload,
+                    **status_snapshot_payload,
                 },
             )
-        for payload in switch_payloads:
-            self._publish_event("sequencer_pad_switched", payload)
 
     @staticmethod
     def _pause_beat_count_from_token(token: int) -> int | None:
@@ -1373,7 +1375,6 @@ class SessionSequencerRuntime:
         scheduled_time: float | None = None,
     ) -> float:
         switch_payloads: list[dict[str, str | int | float | bool | None]] = []
-        running_track_count = 0
         publish_step_event = False
         next_wait_subunits = 1
 
@@ -1396,7 +1397,6 @@ class SessionSequencerRuntime:
                     continue
                 if not self._local_step_boundary_reached(track, transport_subunit):
                     continue
-                running_track_count += 1
                 local_step = self._local_step_for(track, transport_subunit)
                 step_state = pad_runtime.steps[local_step]
                 notes = step_state.notes
@@ -1504,21 +1504,46 @@ class SessionSequencerRuntime:
             publish_step_event = next_visible_step != current_visible_step
 
             if publish_step_event:
-                next_step, cycle = self._transport_position_locked(config, self._absolute_subunit)
-                step_payload: dict[str, str | int | float | bool | None] = {
-                    "step": current_visible_step % max(1, config.step_count),
-                    "next_step": next_step,
-                    "cycle": cycle,
-                    "track_count": running_track_count,
-                }
+                step_payload = self._sequencer_step_event_payload_locked(config, previous_step=current_visible_step)
             else:
-                step_payload = {}
+                step_payload: dict[str, Any] = {}
 
         if publish_step_event:
             self._publish_event("sequencer_step", step_payload)
+        status_snapshot_payload = self._sequencer_snapshot_payload_from_status(self._status_locked())
         for payload in switch_payloads:
-            self._publish_event("sequencer_pad_switched", payload)
+            self._publish_event(
+                "sequencer_pad_switched",
+                {
+                    **payload,
+                    **status_snapshot_payload,
+                },
+            )
         return next_wait_subunits * config.timing.transport_subunit_duration_seconds
+
+    def _sequencer_step_event_payload_locked(
+        self,
+        config: SequencerRuntimeConfig,
+        *,
+        previous_step: int,
+    ) -> dict[str, Any]:
+        status = self._status_locked()
+        snapshot_payload = self._sequencer_snapshot_payload_from_status(status)
+        return {
+            "previous_step": previous_step % max(1, config.step_count),
+            "current_step": status.current_step,
+            "cycle": status.cycle,
+            "running": status.running,
+            "step_count": status.step_count,
+            **snapshot_payload,
+        }
+
+    @staticmethod
+    def _sequencer_snapshot_payload_from_status(status: SessionSequencerStatus) -> dict[str, Any]:
+        return {
+            "transport_subunit": status.transport_subunit,
+            "sequencer_status": status.model_dump(mode="json"),
+        }
 
     @staticmethod
     def _note_on_message(midi_channel: int, note: int, velocity: int) -> list[int]:

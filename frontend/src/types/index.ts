@@ -835,5 +835,5 @@ export interface SessionEvent {
   session_id: string;
   ts: string;
   type: string;
-  payload: Record<string, string | number | boolean | null>;
+  payload: JsonObject;
 }

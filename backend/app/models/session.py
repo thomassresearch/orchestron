@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import StrEnum
+from typing import Any
 from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
@@ -417,7 +418,7 @@ class SessionEvent(BaseModel):
     session_id: str
     ts: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     type: str
-    payload: dict[str, str | int | float | bool | None] = Field(default_factory=dict)
+    payload: dict[str, Any] = Field(default_factory=dict)
 
 
 @dataclass
