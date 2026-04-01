@@ -2463,17 +2463,51 @@ function sequencerAbsoluteTransportStepValue(sequencer: Pick<SequencerState, "pl
 }
 
 function localStepFromTransportPosition(
-  track: Pick<SequencerTrackState, "timing" | "lengthBeats" | "stepCount"> | Pick<DrummerSequencerTrackState, "timing" | "lengthBeats" | "stepCount">,
-  absoluteTransportSubunit: number
+  track:
+    | Pick<SequencerTrackState, "timing" | "lengthBeats" | "stepCount">
+    | Pick<DrummerSequencerTrackState, "timing" | "lengthBeats" | "stepCount">,
+  absoluteTransportSubunit: number,
+  runtimePadStartSubunit?: number | null
 ): number {
   const boundedStepCount = Math.max(1, Math.round(track.stepCount));
   const boundedTransportSubunitCount = Math.max(
     1,
     Math.round(sequencerTransportSubunitCount(track.timing, track.lengthBeats))
   );
-  const transportOffset = Math.max(0, Math.floor(absoluteTransportSubunit)) % boundedTransportSubunitCount;
+  const anchorSubunit =
+    typeof runtimePadStartSubunit === "number" && Number.isFinite(runtimePadStartSubunit)
+      ? Math.floor(runtimePadStartSubunit)
+      : 0;
+  const transportOffset =
+    (((Math.floor(absoluteTransportSubunit) - anchorSubunit) % boundedTransportSubunitCount) +
+      boundedTransportSubunitCount) %
+    boundedTransportSubunitCount;
   const transportSubunitsPerLocalStep = Math.max(1, Math.round(sequencerTransportSubunitsPerLocalStep(track.timing)));
   return Math.min(boundedStepCount - 1, Math.floor(transportOffset / transportSubunitsPerLocalStep));
+}
+
+function displayedLocalStepFromPlayback(
+  track:
+    | Pick<
+        SequencerTrackState,
+        "timing" | "lengthBeats" | "stepCount" | "runtimeLocalStep" | "runtimePadStartSubunit"
+      >
+    | Pick<
+        DrummerSequencerTrackState,
+        "timing" | "lengthBeats" | "stepCount" | "runtimeLocalStep" | "runtimePadStartSubunit"
+      >,
+  absoluteTransportSubunit: number,
+  isPlaying: boolean
+): number {
+  if (isPlaying && typeof track.runtimePadStartSubunit === "number" && Number.isFinite(track.runtimePadStartSubunit)) {
+    return localStepFromTransportPosition(track, absoluteTransportSubunit, track.runtimePadStartSubunit);
+  }
+  if (typeof track.runtimeLocalStep === "number" && Number.isFinite(track.runtimeLocalStep)) {
+    return ((Math.round(track.runtimeLocalStep) % Math.max(1, Math.round(track.stepCount))) +
+      Math.max(1, Math.round(track.stepCount))) %
+      Math.max(1, Math.round(track.stepCount));
+  }
+  return localStepFromTransportPosition(track, absoluteTransportSubunit);
 }
 
 function parseBeatRateValue(value: string): { numerator: number; denominator: number } | null {
@@ -4718,10 +4752,11 @@ export function SequencerPage({
                       const absoluteTransportSubunit = sequencer.isPlaying
                         ? sequencerTransportSubunit
                         : sequencerAbsoluteTransportStepValue(sequencer) * sequencerTransportSubunitsPerStep();
-                      const localPlayhead =
-                        typeof track.runtimeLocalStep === "number"
-                          ? track.runtimeLocalStep % track.stepCount
-                          : localStepFromTransportPosition(track, absoluteTransportSubunit);
+                      const localPlayhead = displayedLocalStepFromPlayback(
+                        track,
+                        absoluteTransportSubunit,
+                        sequencer.isPlaying
+                      );
                       const isActive = track.enabled && sequencer.isPlaying && localPlayhead === step;
                       const selectedNote = noteValue === null ? null : noteOptionsByNote.get(noteValue) ?? null;
                       const isInScale = selectedNote?.inScale ?? false;
@@ -5080,10 +5115,11 @@ export function SequencerPage({
                   const absoluteTransportSubunit = sequencer.isPlaying
                     ? sequencerTransportSubunit
                     : sequencerAbsoluteTransportStepValue(sequencer) * sequencerTransportSubunitsPerStep();
-                  const localPlayhead =
-                    typeof track.runtimeLocalStep === "number"
-                      ? track.runtimeLocalStep % track.stepCount
-                      : localStepFromTransportPosition(track, absoluteTransportSubunit);
+                  const localPlayhead = displayedLocalStepFromPlayback(
+                    track,
+                    absoluteTransportSubunit,
+                    sequencer.isPlaying
+                  );
 
                   return (
                     <article

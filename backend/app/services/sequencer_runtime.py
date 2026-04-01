@@ -1575,6 +1575,7 @@ class SessionSequencerRuntime:
                     "pad_loop_position": track_status.pad_loop_position,
                     "enabled": track_status.enabled,
                     "queued_enabled": track_status.queued_enabled,
+                    "runtime_pad_start_subunit": track_status.runtime_pad_start_subunit,
                 }
             )
             return enriched_payload
@@ -1732,6 +1733,7 @@ class SessionSequencerRuntime:
                 pad_loop_position=track.pad_loop_position,
                 enabled=track.enabled,
                 queued_enabled=track.queued_enabled,
+                runtime_pad_start_subunit=track.phase_offset_subunit if track.enabled else None,
                 active_notes=sorted(self._active_notes.get(track.track_id, set())),
             )
             for track in config.tracks.values()

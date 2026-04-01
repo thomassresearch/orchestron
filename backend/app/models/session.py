@@ -384,6 +384,7 @@ class SessionSequencerTrackStatus(BaseModel):
     pad_loop_position: int | None = Field(default=None, ge=0)
     enabled: bool = True
     queued_enabled: bool | None = None
+    runtime_pad_start_subunit: int | None = Field(default=None, ge=0)
     active_notes: list[int] = Field(default_factory=list)
 
 

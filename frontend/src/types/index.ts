@@ -231,6 +231,7 @@ export interface SequencerTrackState {
   pads: SequencerPadState[];
   steps: SequencerStepState[];
   runtimeLocalStep: number | null;
+  runtimePadStartSubunit: number | null;
   enabled: boolean;
   queuedEnabled: boolean | null;
 }
@@ -252,6 +253,7 @@ export interface DrummerSequencerTrackState {
   rows: DrummerSequencerRowState[];
   pads: DrummerSequencerPadState[];
   runtimeLocalStep: number | null;
+  runtimePadStartSubunit: number | null;
   enabled: boolean;
   queuedEnabled: boolean | null;
 }
@@ -618,6 +620,7 @@ export interface SessionSequencerTrackStatus {
   pad_loop_position: number | null;
   enabled: boolean;
   queued_enabled: boolean | null;
+  runtime_pad_start_subunit: number | null;
   active_notes: number[];
 }
 

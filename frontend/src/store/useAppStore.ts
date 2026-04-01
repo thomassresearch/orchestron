@@ -305,6 +305,7 @@ interface AppStore {
       trackId: string;
       stepCount?: number;
       localStep?: number;
+      runtimePadStartSubunit?: number | null;
       activePad?: number;
       queuedPad?: number | null;
       padLoopPosition?: number | null;
@@ -315,6 +316,7 @@ interface AppStore {
       trackId: string;
       stepCount?: number;
       localStep?: number;
+      runtimePadStartSubunit?: number | null;
       activePad?: number;
       queuedPad?: number | null;
       padLoopPosition?: number | null;
@@ -1065,6 +1067,7 @@ function defaultSequencerTrack(
     pads,
     steps: cloneSequencerSteps(pads[0]?.steps ?? DEFAULT_SEQUENCER_STEPS),
     runtimeLocalStep: null,
+    runtimePadStartSubunit: null,
     enabled: false,
     queuedEnabled: null
   };
@@ -1095,6 +1098,7 @@ function defaultDrummerSequencerTrack(
     rows,
     pads: defaultDrummerSequencerPads(rows, lengthBeats, timing),
     runtimeLocalStep: null,
+    runtimePadStartSubunit: null,
     enabled: false,
     queuedEnabled: null
   };
@@ -1540,6 +1544,7 @@ function normalizeSequencerTrackWithTiming(
   );
   const enabled = typeof track.enabled === "boolean" ? track.enabled : fallback.enabled;
   const queuedEnabled = typeof track.queuedEnabled === "boolean" ? track.queuedEnabled : null;
+  const rawRuntimePadStartSubunit = track.runtimePadStartSubunit ?? track.runtime_pad_start_subunit;
 
   const pads = defaultSequencerPads(scaleRoot, scaleType, mode, lengthBeats, trackTiming);
   if (Array.isArray(track.pads)) {
@@ -1591,6 +1596,10 @@ function normalizeSequencerTrackWithTiming(
     pads,
     steps: cloneSequencerSteps(activePadTheory.steps),
     runtimeLocalStep: null,
+    runtimePadStartSubunit:
+      typeof rawRuntimePadStartSubunit === "number" && Number.isFinite(rawRuntimePadStartSubunit)
+        ? Math.max(0, Math.floor(rawRuntimePadStartSubunit))
+        : null,
     enabled,
     queuedEnabled
   };
@@ -1641,6 +1650,7 @@ function normalizeDrummerSequencerTrack(
   );
   const enabled = typeof track.enabled === "boolean" ? track.enabled : fallback.enabled;
   const queuedEnabled = typeof track.queuedEnabled === "boolean" ? track.queuedEnabled : null;
+  const rawRuntimePadStartSubunit = track.runtimePadStartSubunit ?? track.runtime_pad_start_subunit;
 
   const rowsFallback = cloneDrummerSequencerRows(fallback.rows);
   const parsedRows: DrummerSequencerRowState[] = [];
@@ -1737,6 +1747,10 @@ function normalizeDrummerSequencerTrack(
     rows,
     pads: pads.map((pad) => alignDrummerPadRowsToTrackRows(pad, rows)),
     runtimeLocalStep: null,
+    runtimePadStartSubunit:
+      typeof rawRuntimePadStartSubunit === "number" && Number.isFinite(rawRuntimePadStartSubunit)
+        ? Math.max(0, Math.floor(rawRuntimePadStartSubunit))
+        : null,
     enabled,
     queuedEnabled
   };
@@ -6217,6 +6231,12 @@ export const useAppStore = create<AppStore>((set, get) => {
             : payload.queuedEnabled === null
               ? null
               : payload.queuedEnabled;
+        const nextRuntimePadStartSubunit =
+          payload.runtimePadStartSubunit === undefined
+            ? track.runtimePadStartSubunit
+            : payload.runtimePadStartSubunit === null
+              ? null
+              : Math.max(0, Math.floor(payload.runtimePadStartSubunit));
         const selectedPad = track.pads[nextActivePad] ?? track.pads[0];
         const nextScaleRoot = selectedPad?.scaleRoot ?? track.scaleRoot;
         const nextScaleType = selectedPad?.scaleType ?? track.scaleType;
@@ -6230,6 +6250,7 @@ export const useAppStore = create<AppStore>((set, get) => {
           nextStepCount === track.stepCount &&
           nextEnabled === track.enabled &&
           nextQueuedEnabled === track.queuedEnabled &&
+          nextRuntimePadStartSubunit === track.runtimePadStartSubunit &&
           nextScaleRoot === track.scaleRoot &&
           nextScaleType === track.scaleType &&
           nextMode === track.mode
@@ -6247,6 +6268,7 @@ export const useAppStore = create<AppStore>((set, get) => {
           stepCount: nextStepCount,
           enabled: nextEnabled,
           queuedEnabled: nextQueuedEnabled,
+          runtimePadStartSubunit: nextRuntimePadStartSubunit,
           scaleRoot: nextScaleRoot,
           scaleType: nextScaleType,
           mode: nextMode,
@@ -6261,6 +6283,7 @@ export const useAppStore = create<AppStore>((set, get) => {
           | {
               stepCount?: DrummerSequencerStepCount;
               localStep?: number;
+              runtimePadStartSubunit?: number | null;
               activePad?: number;
               queuedPad?: number | null;
               padLoopPosition?: number | null;
@@ -6308,6 +6331,12 @@ export const useAppStore = create<AppStore>((set, get) => {
             : payload.queuedEnabled === null
               ? null
               : payload.queuedEnabled;
+        const nextRuntimePadStartSubunit =
+          payload.runtimePadStartSubunit === undefined
+            ? track.runtimePadStartSubunit
+            : payload.runtimePadStartSubunit === null
+              ? null
+              : Math.max(0, Math.floor(payload.runtimePadStartSubunit));
 
         if (
           nextActivePad === track.activePad &&
@@ -6316,7 +6345,8 @@ export const useAppStore = create<AppStore>((set, get) => {
           nextLengthBeats === track.lengthBeats &&
           nextStepCount === track.stepCount &&
           nextEnabled === track.enabled &&
-          nextQueuedEnabled === track.queuedEnabled
+          nextQueuedEnabled === track.queuedEnabled &&
+          nextRuntimePadStartSubunit === track.runtimePadStartSubunit
         ) {
           return track;
         }
@@ -6330,7 +6360,8 @@ export const useAppStore = create<AppStore>((set, get) => {
           lengthBeats: nextLengthBeats,
           stepCount: nextStepCount,
           enabled: nextEnabled,
-          queuedEnabled: nextQueuedEnabled
+          queuedEnabled: nextQueuedEnabled,
+          runtimePadStartSubunit: nextRuntimePadStartSubunit
         };
       });
       const nextControllerSequencers = sequencer.controllerSequencers.map((controllerSequencer) =>

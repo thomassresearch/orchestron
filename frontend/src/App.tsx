@@ -262,6 +262,18 @@ function shouldLogSessionEvent(eventType: string): boolean {
   return eventType !== "sequencer_step" && eventType !== "sequencer_pad_switched";
 }
 
+function transportPositionFromTransportSubunit(transportSubunit: number, stepCount: number): {
+  playhead: number;
+  cycle: number;
+} {
+  const boundedStepCount = Math.max(1, Math.round(stepCount));
+  const absoluteStep = Math.max(0, Math.floor(transportSubunit / 420));
+  return {
+    playhead: absoluteStep % boundedStepCount,
+    cycle: Math.floor(absoluteStep / boundedStepCount)
+  };
+}
+
 function mergedSequencerState(
   sequencerConfig: SequencerState,
   sequencerRuntime: SequencerRuntimeState
@@ -819,6 +831,7 @@ function aggregateDrummerRuntimeTrackStatuses(
   trackId: string;
   stepCount?: number;
   localStep?: number;
+  runtimePadStartSubunit?: number | null;
   activePad?: number;
   queuedPad?: number | null;
   padLoopPosition?: number | null;
@@ -832,6 +845,7 @@ function aggregateDrummerRuntimeTrackStatuses(
       trackId: string;
       stepCount?: number;
       localStep?: number;
+      runtimePadStartSubunit?: number | null;
       activePad?: number;
       queuedPad?: number | null;
       padLoopPosition?: number | null;
@@ -852,6 +866,7 @@ function aggregateDrummerRuntimeTrackStatuses(
       trackId: parsed.drummerTrackId,
       stepCount: statusTrack.step_count,
       localStep: statusTrack.local_step,
+      runtimePadStartSubunit: statusTrack.runtime_pad_start_subunit,
       activePad: statusTrack.active_pad,
       queuedPad: statusTrack.queued_pad,
       padLoopPosition: statusTrack.pad_loop_position,
@@ -1561,6 +1576,7 @@ export default function App() {
   const runtimeConfigRef = useRef<RuntimeConfigResponse | null>(null);
   const runtimeConfigPromiseRef = useRef<Promise<RuntimeConfigResponse> | null>(null);
   const browserClockClientRef = useRef<BrowserClockAudioClient | null>(null);
+  const [browserClockPlaybackTransportSubunit, setBrowserClockPlaybackTransportSubunit] = useState<number | null>(null);
   const [browserAudioStatus, setBrowserAudioStatus] = useState<"off" | "connecting" | "live" | "error">("off");
   const [browserAudioError, setBrowserAudioError] = useState<string | null>(null);
   const [runtimeAudioOutputMode, setRuntimeAudioOutputMode] = useState<SessionAudioOutputMode | null>(null);
@@ -1651,6 +1667,59 @@ export default function App() {
   useEffect(() => {
     effectiveAudioOutputModeRef.current = effectiveAudioOutputMode;
   }, [effectiveAudioOutputMode]);
+
+  const displayedSequencerTransportSubunit = useMemo(() => {
+    if (effectiveAudioOutputMode !== "browser_clock" || !sequencer.isPlaying) {
+      return sequencerRuntime.transportSubunit;
+    }
+    return browserClockPlaybackTransportSubunit ?? sequencerRuntime.transportSubunit;
+  }, [
+    browserClockPlaybackTransportSubunit,
+    effectiveAudioOutputMode,
+    sequencer.isPlaying,
+    sequencerRuntime.transportSubunit
+  ]);
+
+  const displayedSequencer = useMemo(() => {
+    if (effectiveAudioOutputMode !== "browser_clock" || !sequencer.isPlaying) {
+      return sequencer;
+    }
+    const { playhead, cycle } = transportPositionFromTransportSubunit(
+      displayedSequencerTransportSubunit,
+      sequencer.stepCount
+    );
+    if (playhead === sequencer.playhead && cycle === sequencer.cycle) {
+      return sequencer;
+    }
+    return {
+      ...sequencer,
+      playhead,
+      cycle
+    };
+  }, [displayedSequencerTransportSubunit, effectiveAudioOutputMode, sequencer]);
+
+  useEffect(() => {
+    if (effectiveAudioOutputMode !== "browser_clock" || !sequencer.isPlaying) {
+      setBrowserClockPlaybackTransportSubunit(null);
+      return;
+    }
+
+    const syncPlaybackTransport = () => {
+      const transportSubunit = browserClockClientRef.current?.getPlaybackTransportSubunit();
+      setBrowserClockPlaybackTransportSubunit((previous) => {
+        if (transportSubunit === null || transportSubunit === undefined) {
+          return previous;
+        }
+        return previous !== null && Math.abs(previous - transportSubunit) < 0.25 ? previous : transportSubunit;
+      });
+    };
+
+    syncPlaybackTransport();
+    const timer = window.setInterval(syncPlaybackTransport, 30);
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [effectiveAudioOutputMode, sequencer.isPlaying]);
 
   const disconnectStreamingBrowserAudio = useCallback(() => {
     browserAudioNegotiationTokenRef.current += 1;
@@ -2659,6 +2728,7 @@ export default function App() {
           trackId: track.track_id,
           stepCount: track.step_count,
           localStep: track.local_step,
+          runtimePadStartSubunit: track.runtime_pad_start_subunit,
           activePad: track.active_pad,
           queuedPad: track.queued_pad,
           padLoopPosition: track.pad_loop_position,
@@ -2753,6 +2823,7 @@ export default function App() {
               activePad: payload.active_pad,
               queuedPad: payload.queued_pad,
               padLoopPosition: payload.pad_loop_position,
+              runtimePadStartSubunit: payload.runtime_pad_start_subunit,
               enabled: payload.enabled,
               queuedEnabled: payload.queued_enabled
             }
@@ -2774,6 +2845,7 @@ export default function App() {
             activePad: payload.active_pad,
             queuedPad: payload.queued_pad,
             padLoopPosition: payload.pad_loop_position,
+            runtimePadStartSubunit: payload.runtime_pad_start_subunit,
             enabled: payload.enabled,
             queuedEnabled: payload.queued_enabled
           }
@@ -2965,11 +3037,6 @@ export default function App() {
           }
           const stepPayload = parseSequencerStepEventPayload(parsed);
           if (stepPayload) {
-            browserClockTransportEventQueueRef.current.push({
-              kind: "step",
-              transportSubunit: stepPayload.transport_subunit,
-              payload: stepPayload
-            });
             return;
           }
           const padSwitchPayload = parseSequencerPadSwitchEventPayload(parsed);
@@ -4306,8 +4373,8 @@ export default function App() {
             guiLanguage={guiLanguage}
             patches={patches}
             instrumentBindings={sequencerInstruments}
-            sequencer={sequencer}
-            sequencerTransportSubunit={sequencerRuntime.transportSubunit}
+            sequencer={displayedSequencer}
+            sequencerTransportSubunit={displayedSequencerTransportSubunit}
             performances={performances}
             currentPerformanceId={currentPerformanceId}
             performanceName={performanceName}
