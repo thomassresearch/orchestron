@@ -76,26 +76,190 @@ function isObjectRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function isSessionSequencerStatus(value: unknown): value is SessionSequencerStatus {
-  return (
-    isObjectRecord(value) &&
-    typeof value.session_id === "string" &&
-    typeof value.running === "boolean" &&
-    typeof value.step_count === "number" &&
-    typeof value.current_step === "number" &&
-    typeof value.cycle === "number" &&
-    typeof value.transport_subunit === "number" &&
-    Array.isArray(value.tracks) &&
-    Array.isArray(value.controller_tracks)
-  );
+type SequencerRuntimeTrackDelta = {
+  track_id: string;
+  local_step: number | null;
+};
+
+type ControllerSequencerRuntimeDelta = {
+  track_id: string;
+  runtime_pad_start_subunit: number | null;
+};
+
+type SequencerStepEventPayload = {
+  previous_step: number;
+  current_step: number;
+  cycle: number;
+  running: boolean;
+  step_count: number;
+  transport_subunit: number;
+  tracks: SequencerRuntimeTrackDelta[];
+  controller_tracks: ControllerSequencerRuntimeDelta[];
+};
+
+type SequencerPadSwitchEventPayload = {
+  track_id: string;
+  track_kind?: "note" | "controller";
+  active_pad: number;
+  cycle: number;
+  current_step: number;
+  running: boolean;
+  step_count: number;
+  transport_subunit: number;
+  tracks: SequencerRuntimeTrackDelta[];
+  controller_tracks: ControllerSequencerRuntimeDelta[];
+  local_step?: number | null;
+  queued_pad?: number | null;
+  pad_loop_position?: number | null;
+  enabled?: boolean;
+  queued_enabled?: boolean | null;
+  runtime_pad_start_subunit?: number | null;
+};
+
+type BrowserClockQueuedTransportEvent =
+  | {
+      kind: "step";
+      transportSubunit: number;
+      payload: SequencerStepEventPayload;
+    }
+  | {
+      kind: "pad_switch";
+      transportSubunit: number;
+      payload: SequencerPadSwitchEventPayload;
+    };
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
 }
 
-function sequencerStatusFromSessionEvent(event: SessionEvent): SessionSequencerStatus | null {
-  if (event.type !== "sequencer_step" && event.type !== "sequencer_pad_switched") {
+function isOptionalFiniteNumber(value: unknown): value is number | null | undefined {
+  return value === undefined || value === null || isFiniteNumber(value);
+}
+
+function parseSequencerRuntimeTrackDeltas(value: unknown): SequencerRuntimeTrackDelta[] | null {
+  if (!Array.isArray(value)) {
     return null;
   }
-  const candidate = event.payload.sequencer_status;
-  return isSessionSequencerStatus(candidate) ? candidate : null;
+  const tracks: SequencerRuntimeTrackDelta[] = [];
+  for (const entry of value) {
+    if (
+      !isObjectRecord(entry) ||
+      typeof entry.track_id !== "string" ||
+      !isOptionalFiniteNumber(entry.local_step)
+    ) {
+      return null;
+    }
+    tracks.push({
+      track_id: entry.track_id,
+      local_step: entry.local_step ?? null
+    });
+  }
+  return tracks;
+}
+
+function parseControllerSequencerRuntimeDeltas(value: unknown): ControllerSequencerRuntimeDelta[] | null {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+  const tracks: ControllerSequencerRuntimeDelta[] = [];
+  for (const entry of value) {
+    if (
+      !isObjectRecord(entry) ||
+      typeof entry.track_id !== "string" ||
+      !isOptionalFiniteNumber(entry.runtime_pad_start_subunit)
+    ) {
+      return null;
+    }
+    tracks.push({
+      track_id: entry.track_id,
+      runtime_pad_start_subunit: entry.runtime_pad_start_subunit ?? null
+    });
+  }
+  return tracks;
+}
+
+function parseSequencerStepEventPayload(event: SessionEvent): SequencerStepEventPayload | null {
+  if (event.type !== "sequencer_step") {
+    return null;
+  }
+  const { payload } = event;
+  const tracks = parseSequencerRuntimeTrackDeltas(payload.tracks);
+  const controllerTracks = parseControllerSequencerRuntimeDeltas(payload.controller_tracks);
+  if (
+    !isFiniteNumber(payload.previous_step) ||
+    !isFiniteNumber(payload.current_step) ||
+    !isFiniteNumber(payload.cycle) ||
+    typeof payload.running !== "boolean" ||
+    !isFiniteNumber(payload.step_count) ||
+    !isFiniteNumber(payload.transport_subunit) ||
+    tracks === null ||
+    controllerTracks === null
+  ) {
+    return null;
+  }
+  return {
+    previous_step: payload.previous_step,
+    current_step: payload.current_step,
+    cycle: payload.cycle,
+    running: payload.running,
+    step_count: payload.step_count,
+    transport_subunit: payload.transport_subunit,
+    tracks,
+    controller_tracks: controllerTracks
+  };
+}
+
+function parseSequencerPadSwitchEventPayload(event: SessionEvent): SequencerPadSwitchEventPayload | null {
+  if (event.type !== "sequencer_pad_switched") {
+    return null;
+  }
+  const { payload } = event;
+  const tracks = parseSequencerRuntimeTrackDeltas(payload.tracks);
+  const controllerTracks = parseControllerSequencerRuntimeDeltas(payload.controller_tracks);
+  if (
+    typeof payload.track_id !== "string" ||
+    !isFiniteNumber(payload.active_pad) ||
+    !isFiniteNumber(payload.cycle) ||
+    !isFiniteNumber(payload.current_step) ||
+    typeof payload.running !== "boolean" ||
+    !isFiniteNumber(payload.step_count) ||
+    !isFiniteNumber(payload.transport_subunit) ||
+    tracks === null ||
+    controllerTracks === null ||
+    !isOptionalFiniteNumber(payload.local_step) ||
+    !isOptionalFiniteNumber(payload.queued_pad) ||
+    !isOptionalFiniteNumber(payload.pad_loop_position) ||
+    (payload.enabled !== undefined && typeof payload.enabled !== "boolean") ||
+    (payload.queued_enabled !== undefined && payload.queued_enabled !== null && typeof payload.queued_enabled !== "boolean") ||
+    !isOptionalFiniteNumber(payload.runtime_pad_start_subunit)
+  ) {
+    return null;
+  }
+
+  const trackKind =
+    payload.track_kind === "note" || payload.track_kind === "controller" ? payload.track_kind : undefined;
+  return {
+    track_id: payload.track_id,
+    track_kind: trackKind,
+    active_pad: payload.active_pad,
+    cycle: payload.cycle,
+    current_step: payload.current_step,
+    running: payload.running,
+    step_count: payload.step_count,
+    transport_subunit: payload.transport_subunit,
+    tracks,
+    controller_tracks: controllerTracks,
+    local_step: payload.local_step ?? undefined,
+    queued_pad: payload.queued_pad ?? undefined,
+    pad_loop_position: payload.pad_loop_position ?? undefined,
+    enabled: payload.enabled,
+    queued_enabled: payload.queued_enabled ?? undefined,
+    runtime_pad_start_subunit: payload.runtime_pad_start_subunit ?? undefined
+  };
+}
+
+function shouldLogSessionEvent(eventType: string): boolean {
+  return eventType !== "sequencer_step" && eventType !== "sequencer_pad_switched";
 }
 
 function mergedSequencerState(
@@ -699,6 +863,30 @@ function aggregateDrummerRuntimeTrackStatuses(
   return Array.from(byTrackId.values());
 }
 
+function aggregateDrummerRuntimeTrackLocalSteps(
+  backendTracks: SequencerRuntimeTrackDelta[],
+  drummerTracks: DrummerSequencerTrackState[]
+): Array<{
+  trackId: string;
+  localStep?: number | null;
+}> {
+  const validIds = new Set(drummerTracks.map((track) => track.id));
+  const byTrackId = new Map<string, { trackId: string; localStep?: number | null }>();
+
+  for (const statusTrack of backendTracks) {
+    const parsed = parseDrummerRowRuntimeTrackId(statusTrack.track_id);
+    if (!parsed || !validIds.has(parsed.drummerTrackId) || byTrackId.has(parsed.drummerTrackId)) {
+      continue;
+    }
+    byTrackId.set(parsed.drummerTrackId, {
+      trackId: parsed.drummerTrackId,
+      localStep: statusTrack.local_step
+    });
+  }
+
+  return Array.from(byTrackId.values());
+}
+
 function patchCompileSignatureFor(
   patch: { id?: string; name: string; description: string; schema_version: number; graph: PatchGraph },
   tabId: string
@@ -1291,6 +1479,7 @@ export default function App() {
   const setSequencerTrackStepCount = useAppStore((state) => state.setSequencerTrackStepCount);
   const setSequencerArrangerLoopSelection = useAppStore((state) => state.setSequencerArrangerLoopSelection);
   const syncSequencerRuntime = useAppStore((state) => state.syncSequencerRuntime);
+  const syncSequencerTransportRuntime = useAppStore((state) => state.syncSequencerTransportRuntime);
   const setSequencerPlayhead = useAppStore((state) => state.setSequencerPlayhead);
   const setSequencerTransportAbsoluteStep = useAppStore((state) => state.setSequencerTransportAbsoluteStep);
   const applyEngineConfig = useAppStore((state) => state.applyEngineConfig);
@@ -1357,6 +1546,7 @@ export default function App() {
   const sequencerPollInFlightRef = useRef(false);
   const sequencerConfigSyncPendingRef = useRef(false);
   const applySequencerStatusRef = useRef<(status: SessionSequencerStatus) => void>(() => undefined);
+  const browserClockTransportEventQueueRef = useRef<BrowserClockQueuedTransportEvent[]>([]);
   const pianoRollNoteSessionRef = useRef(new Map<string, string>());
   const midiControllerInitSessionRef = useRef<string | null>(null);
   const browserAudioFallbackElementRef = useRef<HTMLAudioElement | null>(null);
@@ -2454,6 +2644,9 @@ export default function App() {
 
   const applySequencerStatus = useCallback(
     (status: SessionSequencerStatus) => {
+      if (effectiveAudioOutputModeRef.current === "browser_clock") {
+        browserClockTransportEventQueueRef.current = [];
+      }
       const melodicTrackStatuses = status.tracks.filter((track) => parseDrummerRowRuntimeTrackId(track.track_id) === null);
       const drummerTrackStatuses = aggregateDrummerRuntimeTrackStatuses(status.tracks, sequencerRef.current.drummerTracks);
       syncSequencerRuntime({
@@ -2488,6 +2681,151 @@ export default function App() {
     [syncControllerSequencerRuntime, syncSequencerRuntime]
   );
   applySequencerStatusRef.current = applySequencerStatus;
+
+  const applyBrowserClockSequencerStepEvent = useCallback(
+    (payload: SequencerStepEventPayload) => {
+      const melodicTrackSteps = payload.tracks
+        .filter((track) => parseDrummerRowRuntimeTrackId(track.track_id) === null)
+        .map((track) => ({
+          trackId: track.track_id,
+          localStep: track.local_step
+        }));
+      const drummerTrackSteps = aggregateDrummerRuntimeTrackLocalSteps(
+        payload.tracks,
+        sequencerRef.current.drummerTracks
+      );
+      syncSequencerTransportRuntime({
+        isPlaying: payload.running,
+        transportStepCount: payload.step_count,
+        playhead: payload.current_step,
+        cycle: payload.cycle,
+        transportSubunit: payload.transport_subunit,
+        tracks: melodicTrackSteps,
+        drummerTracks: drummerTrackSteps,
+        controllerTracks: payload.controller_tracks.map((track) => ({
+          controllerSequencerId: track.track_id,
+          runtimePadStartSubunit: track.runtime_pad_start_subunit
+        }))
+      });
+    },
+    [syncSequencerTransportRuntime]
+  );
+
+  const applyBrowserClockPadSwitchEvent = useCallback(
+    (payload: SequencerPadSwitchEventPayload) => {
+      applyBrowserClockSequencerStepEvent({
+        previous_step: payload.current_step,
+        current_step: payload.current_step,
+        cycle: payload.cycle,
+        running: payload.running,
+        step_count: payload.step_count,
+        transport_subunit: payload.transport_subunit,
+        tracks: payload.tracks,
+        controller_tracks: payload.controller_tracks
+      });
+
+      if (payload.track_kind === "controller") {
+        syncControllerSequencerRuntime([
+          {
+            controllerSequencerId: payload.track_id,
+            activePad: payload.active_pad,
+            queuedPad: payload.queued_pad,
+            padLoopPosition: payload.pad_loop_position,
+            runtimePadStartSubunit: payload.runtime_pad_start_subunit,
+            enabled: payload.enabled
+          }
+        ]);
+        return;
+      }
+
+      const drummerTrack = parseDrummerRowRuntimeTrackId(payload.track_id);
+      if (drummerTrack) {
+        syncSequencerRuntime({
+          isPlaying: payload.running,
+          transportStepCount: payload.step_count,
+          playhead: payload.current_step,
+          cycle: payload.cycle,
+          transportSubunit: payload.transport_subunit,
+          drummerTracks: [
+            {
+              trackId: drummerTrack.drummerTrackId,
+              localStep: payload.local_step ?? undefined,
+              activePad: payload.active_pad,
+              queuedPad: payload.queued_pad,
+              padLoopPosition: payload.pad_loop_position,
+              enabled: payload.enabled,
+              queuedEnabled: payload.queued_enabled
+            }
+          ]
+        });
+        return;
+      }
+
+      syncSequencerRuntime({
+        isPlaying: payload.running,
+        transportStepCount: payload.step_count,
+        playhead: payload.current_step,
+        cycle: payload.cycle,
+        transportSubunit: payload.transport_subunit,
+        tracks: [
+          {
+            trackId: payload.track_id,
+            localStep: payload.local_step ?? undefined,
+            activePad: payload.active_pad,
+            queuedPad: payload.queued_pad,
+            padLoopPosition: payload.pad_loop_position,
+            enabled: payload.enabled,
+            queuedEnabled: payload.queued_enabled
+          }
+        ]
+      });
+    },
+    [applyBrowserClockSequencerStepEvent, syncControllerSequencerRuntime, syncSequencerRuntime]
+  );
+
+  useEffect(() => {
+    if (effectiveAudioOutputMode !== "browser_clock" || !sequencer.isPlaying) {
+      browserClockTransportEventQueueRef.current = [];
+      return;
+    }
+
+    let frameId = 0;
+    let cancelled = false;
+    const drainTransportQueue = () => {
+      if (cancelled) {
+        return;
+      }
+
+      const playbackTransportSubunit = browserClockClientRef.current?.getPlaybackTransportSubunit();
+      if (playbackTransportSubunit !== null && playbackTransportSubunit !== undefined) {
+        const queue = browserClockTransportEventQueueRef.current;
+        while (queue.length > 0 && queue[0].transportSubunit <= playbackTransportSubunit + 1) {
+          const event = queue.shift();
+          if (!event) {
+            break;
+          }
+          if (event.kind === "step") {
+            applyBrowserClockSequencerStepEvent(event.payload);
+            continue;
+          }
+          applyBrowserClockPadSwitchEvent(event.payload);
+        }
+      }
+
+      frameId = window.requestAnimationFrame(drainTransportQueue);
+    };
+
+    frameId = window.requestAnimationFrame(drainTransportQueue);
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [
+    applyBrowserClockPadSwitchEvent,
+    applyBrowserClockSequencerStepEvent,
+    effectiveAudioOutputMode,
+    sequencer.isPlaying
+  ]);
 
   const syncSequencerStatusFromServer = useCallback(
     async (sessionId: string, options?: { silentError?: boolean }) => {
@@ -2603,7 +2941,7 @@ export default function App() {
         reconnectAttempts = 0;
         sendHeartbeat();
         heartbeatTimer = window.setInterval(sendHeartbeat, 2000);
-        if (effectiveAudioOutputModeRef.current === "browser_clock" && sequencerRef.current.isPlaying) {
+        if (effectiveAudioOutputModeRef.current !== "browser_clock" && sequencerRef.current.isPlaying) {
           void syncSequencerStatusFromServerRef.current(activeSessionId, { silentError: true });
         }
       };
@@ -2619,13 +2957,28 @@ export default function App() {
       nextSocket.onmessage = (message) => {
         try {
           const parsed = JSON.parse(message.data) as SessionEvent;
-          pushEvent(parsed);
+          if (shouldLogSessionEvent(parsed.type)) {
+            pushEvent(parsed);
+          }
           if (effectiveAudioOutputModeRef.current !== "browser_clock") {
             return;
           }
-          const status = sequencerStatusFromSessionEvent(parsed);
-          if (status) {
-            applySequencerStatusRef.current(status);
+          const stepPayload = parseSequencerStepEventPayload(parsed);
+          if (stepPayload) {
+            browserClockTransportEventQueueRef.current.push({
+              kind: "step",
+              transportSubunit: stepPayload.transport_subunit,
+              payload: stepPayload
+            });
+            return;
+          }
+          const padSwitchPayload = parseSequencerPadSwitchEventPayload(parsed);
+          if (padSwitchPayload) {
+            browserClockTransportEventQueueRef.current.push({
+              kind: "pad_switch",
+              transportSubunit: padSwitchPayload.transport_subunit,
+              payload: padSwitchPayload
+            });
           }
         } catch {
           // Ignore malformed websocket payloads.
@@ -2640,7 +2993,7 @@ export default function App() {
       clearReconnectTimer();
       closeSocket();
     };
-  }, [activeSessionId, pushEvent]);
+  }, [activeSessionId, applyBrowserClockPadSwitchEvent, applyBrowserClockSequencerStepEvent, pushEvent]);
 
   const stopSequencerTransport = useCallback(
     async (resetPlayhead: boolean) => {
@@ -3474,31 +3827,7 @@ export default function App() {
       syncSequencerStatusFromServerRef.current(sessionId, options);
 
     if (effectiveAudioOutputMode === "browser_clock") {
-      const handleWindowFocus = () => {
-        void syncStatus({ silentError: true });
-      };
-      const handleVisibilityChange = () => {
-        if (document.visibilityState !== "visible") {
-          return;
-        }
-        void syncStatus({ silentError: true });
-      };
-
-      void syncStatus({ silentError: true });
-      sequencerStatusPollRef.current = window.setInterval(() => {
-        void syncStatus({ silentError: true });
-      }, 5000);
-      window.addEventListener("focus", handleWindowFocus);
-      document.addEventListener("visibilitychange", handleVisibilityChange);
-
-      return () => {
-        if (sequencerStatusPollRef.current !== null) {
-          window.clearInterval(sequencerStatusPollRef.current);
-          sequencerStatusPollRef.current = null;
-        }
-        window.removeEventListener("focus", handleWindowFocus);
-        document.removeEventListener("visibilitychange", handleVisibilityChange);
-      };
+      return;
     }
 
     void syncStatus();

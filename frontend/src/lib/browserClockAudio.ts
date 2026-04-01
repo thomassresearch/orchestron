@@ -64,6 +64,13 @@ type QueueTargets = {
   maxParallelRequests: number;
 };
 
+type PlaybackTimelineSegment = {
+  targetFrameStart: number;
+  targetFrameEnd: number;
+  transportSubunitStart: number;
+  transportSubunitEnd: number;
+};
+
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -103,6 +110,9 @@ export class BrowserClockAudioClient {
   private underrunRecoveryUntil = 0;
   private closedByClient = false;
   private unlockHandler: (() => void) | null = null;
+  private playbackTimeline: PlaybackTimelineSegment[] = [];
+  private nextChunkTransportSubunitStart: number | null = null;
+  private lastPlaybackTransportSubunit: number | null = null;
 
   constructor(callbacks: BrowserClockCallbacks) {
     this.callbacks = callbacks;
@@ -207,6 +217,7 @@ export class BrowserClockAudioClient {
     this.sampleBuffer = null;
     this.stateBuffer = null;
     this.capacityFrames = 0;
+    this.clearPlaybackTimeline();
     this.sessionId = null;
     this.callbacks.onStatusChange("off");
     this.callbacks.onErrorChange(null);
@@ -267,9 +278,38 @@ export class BrowserClockAudioClient {
     return this.sendSequencerRequest(sessionId, request);
   }
 
+  getPlaybackTransportSubunit(): number | null {
+    const stateBuffer = this.stateBuffer;
+    if (!stateBuffer) {
+      return null;
+    }
+
+    const readFrame = Atomics.load(stateBuffer, 0);
+    this.prunePlaybackTimeline(readFrame);
+
+    const activeSegment = this.playbackTimeline.find((segment) => readFrame < segment.targetFrameEnd) ?? null;
+    if (!activeSegment) {
+      return this.lastPlaybackTransportSubunit ?? this.nextChunkTransportSubunitStart;
+    }
+
+    if (readFrame <= activeSegment.targetFrameStart) {
+      this.lastPlaybackTransportSubunit = activeSegment.transportSubunitStart;
+      return activeSegment.transportSubunitStart;
+    }
+
+    const spanFrames = Math.max(1, activeSegment.targetFrameEnd - activeSegment.targetFrameStart);
+    const progress = Math.max(0, Math.min(1, (readFrame - activeSegment.targetFrameStart) / spanFrames));
+    const transportSubunit =
+      activeSegment.transportSubunitStart +
+      progress * (activeSegment.transportSubunitEnd - activeSegment.transportSubunitStart);
+    this.lastPlaybackTransportSubunit = transportSubunit;
+    return transportSubunit;
+  }
+
   private async connectInternal(sessionId: string): Promise<void> {
     await this.prepareAudioPipeline();
     this.clearRingBuffer();
+    this.clearPlaybackTimeline();
 
     const socket = new WebSocket(`${wsBaseUrl()}/ws/sessions/${sessionId}/browser-clock`);
     socket.binaryType = "arraybuffer";
@@ -349,6 +389,9 @@ export class BrowserClockAudioClient {
           this.streamConfig = parsed;
           this.pendingChunk = null;
           this.resetRenderPipelineState();
+          this.clearPlaybackTimeline();
+          this.nextChunkTransportSubunitStart = parsed.sequencer_status.transport_subunit;
+          this.lastPlaybackTransportSubunit = parsed.sequencer_status.transport_subunit;
           this.lastUnderrunCount = this.readUnderrunCount();
           this.callbacks.onSequencerStatus(parsed.sequencer_status);
           this.finishPendingConnect(null);
@@ -609,6 +652,21 @@ export class BrowserClockAudioClient {
     Atomics.store(stateBuffer, 3, 0);
   }
 
+  private clearPlaybackTimeline(): void {
+    this.playbackTimeline = [];
+    this.nextChunkTransportSubunitStart = null;
+    this.lastPlaybackTransportSubunit = null;
+  }
+
+  private prunePlaybackTimeline(readFrame: number): void {
+    while (this.playbackTimeline.length > 0 && readFrame >= this.playbackTimeline[0].targetFrameEnd) {
+      const consumed = this.playbackTimeline.shift();
+      if (consumed) {
+        this.lastPlaybackTransportSubunit = consumed.transportSubunitEnd;
+      }
+    }
+  }
+
   private buildClaimTargets(sampleRate: number): QueueTargets {
     const steadyLowWaterFrames = this.clampBufferedFrames(Math.round(sampleRate * STEADY_LOW_WATER_SECONDS));
     const steadyHighWaterFrames = this.clampBufferedFrames(
@@ -658,6 +716,14 @@ export class BrowserClockAudioClient {
     }
 
     Atomics.store(this.stateBuffer, 1, writeFrame + metadata.target_frame_count);
+    const transportSubunitStart = this.nextChunkTransportSubunitStart ?? metadata.sequencer_status.transport_subunit;
+    this.playbackTimeline.push({
+      targetFrameStart: writeFrame,
+      targetFrameEnd: writeFrame + metadata.target_frame_count,
+      transportSubunitStart,
+      transportSubunitEnd: metadata.sequencer_status.transport_subunit
+    });
+    this.nextChunkTransportSubunitStart = metadata.sequencer_status.transport_subunit;
   }
 
   private availableFrames(): number {
@@ -813,6 +879,7 @@ export class BrowserClockAudioClient {
     this.stopRefillLoop();
     this.pendingChunk = null;
     this.resetRenderPipelineState();
+    this.clearPlaybackTimeline();
     const error = new Error(message);
     this.finishPendingConnect(error);
     this.rejectPendingSequencerRequests(error);

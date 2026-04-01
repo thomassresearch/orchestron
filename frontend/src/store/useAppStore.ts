@@ -322,6 +322,25 @@ interface AppStore {
       queuedEnabled?: boolean | null;
     }>;
   }) => void;
+  syncSequencerTransportRuntime: (payload: {
+    isPlaying: boolean;
+    transportStepCount?: number;
+    playhead?: number;
+    cycle?: number;
+    transportSubunit?: number;
+    tracks?: Array<{
+      trackId: string;
+      localStep?: number | null;
+    }>;
+    drummerTracks?: Array<{
+      trackId: string;
+      localStep?: number | null;
+    }>;
+    controllerTracks?: Array<{
+      controllerSequencerId: string;
+      runtimePadStartSubunit?: number | null;
+    }>;
+  }) => void;
   setSequencerPlaying: (isPlaying: boolean) => void;
   setSequencerPlayhead: (playhead: number) => void;
   setSequencerTransportAbsoluteStep: (absoluteStep: number) => void;
@@ -6058,6 +6077,82 @@ export const useAppStore = create<AppStore>((set, get) => {
           playhead,
           cycle,
           transportSubunit: normalizedStep * sequencerTransportSubunitsPerStep()
+        }
+      });
+    },
+
+    syncSequencerTransportRuntime: ({
+      isPlaying,
+      transportStepCount,
+      playhead,
+      cycle,
+      transportSubunit,
+      tracks,
+      drummerTracks,
+      controllerTracks
+    }) => {
+      const sequencerRuntime = get().sequencerRuntime;
+      const nextIsPlaying = isPlaying === true;
+      const boundedStepCount = normalizeTransportStepCount(transportStepCount ?? sequencerRuntime.stepCount);
+      const normalizedPlayhead =
+        playhead === undefined
+          ? sequencerRuntime.playhead
+          : ((Math.round(playhead) % boundedStepCount) + boundedStepCount) % boundedStepCount;
+      const normalizedCycle = cycle === undefined ? sequencerRuntime.cycle : Math.max(0, Math.round(cycle));
+      const nextTransportSubunit =
+        transportSubunit === undefined
+          ? normalizedCycle * boundedStepCount * sequencerTransportSubunitsPerStep() +
+            normalizedPlayhead * sequencerTransportSubunitsPerStep()
+          : Math.max(0, Math.floor(transportSubunit));
+
+      const nextTrackLocalStepById = { ...sequencerRuntime.trackLocalStepById };
+      for (const track of tracks ?? []) {
+        nextTrackLocalStepById[track.trackId] =
+          !nextIsPlaying || track.localStep === undefined || track.localStep === null
+            ? null
+            : Math.max(0, Math.round(track.localStep));
+      }
+
+      const nextDrummerTrackLocalStepById = { ...sequencerRuntime.drummerTrackLocalStepById };
+      for (const track of drummerTracks ?? []) {
+        nextDrummerTrackLocalStepById[track.trackId] =
+          !nextIsPlaying || track.localStep === undefined || track.localStep === null
+            ? null
+            : Math.max(0, Math.round(track.localStep));
+      }
+
+      const nextControllerRuntimePadStartSubunitById = { ...sequencerRuntime.controllerRuntimePadStartSubunitById };
+      for (const controllerTrack of controllerTracks ?? []) {
+        const runtimePadStartSubunit = controllerTrack.runtimePadStartSubunit;
+        nextControllerRuntimePadStartSubunitById[controllerTrack.controllerSequencerId] =
+          !nextIsPlaying || runtimePadStartSubunit === undefined || runtimePadStartSubunit === null
+            ? null
+            : Math.max(0, Math.floor(runtimePadStartSubunit));
+      }
+
+      if (!nextIsPlaying) {
+        for (const trackId of Object.keys(nextTrackLocalStepById)) {
+          nextTrackLocalStepById[trackId] = null;
+        }
+        for (const trackId of Object.keys(nextDrummerTrackLocalStepById)) {
+          nextDrummerTrackLocalStepById[trackId] = null;
+        }
+        for (const controllerSequencerId of Object.keys(nextControllerRuntimePadStartSubunitById)) {
+          nextControllerRuntimePadStartSubunitById[controllerSequencerId] = null;
+        }
+      }
+
+      set({
+        sequencerRuntime: {
+          ...sequencerRuntime,
+          isPlaying: nextIsPlaying,
+          stepCount: boundedStepCount,
+          playhead: normalizedPlayhead,
+          cycle: normalizedCycle,
+          transportSubunit: nextTransportSubunit,
+          trackLocalStepById: nextTrackLocalStepById,
+          drummerTrackLocalStepById: nextDrummerTrackLocalStepById,
+          controllerRuntimePadStartSubunitById: nextControllerRuntimePadStartSubunitById
         }
       });
     },

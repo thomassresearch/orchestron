@@ -148,7 +148,7 @@ def test_render_driven_sequencer_emits_step_hits_crossed_inside_block() -> None:
     ]
 
 
-def test_sequencer_step_event_carries_full_runtime_snapshot() -> None:
+def test_sequencer_step_event_carries_lightweight_runtime_delta() -> None:
     midi_service = _FakeMidiService()
     published_events: list[tuple[str, dict[str, object]]] = []
     runtime = SessionSequencerRuntime(
@@ -198,12 +198,12 @@ def test_sequencer_step_event_carries_full_runtime_snapshot() -> None:
     assert payload["running"] is True
     assert payload["step_count"] == 8
     assert payload["transport_subunit"] == 420
+    assert "sequencer_status" not in payload
 
-    status = payload["sequencer_status"]
-    assert isinstance(status, dict)
-    assert status["current_step"] == 1
-    assert status["cycle"] == 0
-    assert status["transport_subunit"] == 420
-    assert status["running"] is True
-    assert isinstance(status["tracks"], list)
-    assert status["tracks"][0]["track_id"] == "lead"
+    tracks = payload["tracks"]
+    assert isinstance(tracks, list)
+    assert tracks == [{"track_id": "lead", "local_step": 0}]
+
+    controller_tracks = payload["controller_tracks"]
+    assert isinstance(controller_tracks, list)
+    assert controller_tracks == []

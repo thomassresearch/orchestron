@@ -647,14 +647,10 @@ class SessionSequencerRuntime:
                 "sequencer_step",
                 self._sequencer_step_event_payload_locked(config, previous_step=current_visible_step),
             )
-        status_snapshot_payload = self._sequencer_snapshot_payload_from_status(self._status_locked())
         for payload in switch_payloads:
             self._publish_event(
                 "sequencer_pad_switched",
-                {
-                    **payload,
-                    **status_snapshot_payload,
-                },
+                self._sequencer_pad_switch_event_payload_locked(config, payload),
             )
 
     @staticmethod
@@ -1510,14 +1506,10 @@ class SessionSequencerRuntime:
 
         if publish_step_event:
             self._publish_event("sequencer_step", step_payload)
-        status_snapshot_payload = self._sequencer_snapshot_payload_from_status(self._status_locked())
         for payload in switch_payloads:
             self._publish_event(
                 "sequencer_pad_switched",
-                {
-                    **payload,
-                    **status_snapshot_payload,
-                },
+                self._sequencer_pad_switch_event_payload_locked(config, payload),
             )
         return next_wait_subunits * config.timing.transport_subunit_duration_seconds
 
@@ -1528,22 +1520,80 @@ class SessionSequencerRuntime:
         previous_step: int,
     ) -> dict[str, Any]:
         status = self._status_locked()
-        snapshot_payload = self._sequencer_snapshot_payload_from_status(status)
+        runtime_payload = self._sequencer_runtime_delta_payload_from_status(status)
         return {
             "previous_step": previous_step % max(1, config.step_count),
+            **runtime_payload,
+        }
+
+    @staticmethod
+    def _sequencer_runtime_delta_payload_from_status(status: SessionSequencerStatus) -> dict[str, Any]:
+        return {
             "current_step": status.current_step,
             "cycle": status.cycle,
             "running": status.running,
             "step_count": status.step_count,
-            **snapshot_payload,
+            "transport_subunit": status.transport_subunit,
+            "tracks": [
+                {
+                    "track_id": track.track_id,
+                    "local_step": track.local_step,
+                }
+                for track in status.tracks
+            ],
+            "controller_tracks": [
+                {
+                    "track_id": track.track_id,
+                    "runtime_pad_start_subunit": track.runtime_pad_start_subunit,
+                }
+                for track in status.controller_tracks
+            ],
         }
 
-    @staticmethod
-    def _sequencer_snapshot_payload_from_status(status: SessionSequencerStatus) -> dict[str, Any]:
-        return {
-            "transport_subunit": status.transport_subunit,
-            "sequencer_status": status.model_dump(mode="json"),
+    def _sequencer_pad_switch_event_payload_locked(
+        self,
+        config: SequencerRuntimeConfig,
+        payload: dict[str, str | int | float | bool | None],
+    ) -> dict[str, Any]:
+        status = self._status_locked()
+        enriched_payload: dict[str, Any] = {
+            **payload,
+            **self._sequencer_runtime_delta_payload_from_status(status),
         }
+
+        track_id = payload.get("track_id")
+        if not isinstance(track_id, str):
+            return enriched_payload
+
+        track_status = next((track for track in status.tracks if track.track_id == track_id), None)
+        if track_status is not None:
+            enriched_payload.update(
+                {
+                    "track_kind": "note",
+                    "local_step": track_status.local_step,
+                    "queued_pad": track_status.queued_pad,
+                    "pad_loop_position": track_status.pad_loop_position,
+                    "enabled": track_status.enabled,
+                    "queued_enabled": track_status.queued_enabled,
+                }
+            )
+            return enriched_payload
+
+        controller_track_status = next(
+            (track for track in status.controller_tracks if track.track_id == track_id),
+            None,
+        )
+        if controller_track_status is not None:
+            enriched_payload.update(
+                {
+                    "track_kind": "controller",
+                    "queued_pad": controller_track_status.queued_pad,
+                    "pad_loop_position": controller_track_status.pad_loop_position,
+                    "enabled": controller_track_status.enabled,
+                    "runtime_pad_start_subunit": controller_track_status.runtime_pad_start_subunit,
+                }
+            )
+        return enriched_payload
 
     @staticmethod
     def _note_on_message(midi_channel: int, note: int, velocity: int) -> list[int]:
