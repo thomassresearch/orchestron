@@ -20,7 +20,7 @@ dependencies = [
 dev = [
   "pytest>=8.4.2",
   "httpx>=0.28.1",
-  "requests>=2.32.0",
+  "requests>=2.33.0",
   "beautifulsoup4>=4.14.0",
   "lxml>=6.0.0"
 ]
