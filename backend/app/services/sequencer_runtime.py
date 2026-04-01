@@ -28,6 +28,7 @@ _MAX_STEPS = 128
 _SCHEDULER_SLEEP_S = 0.001
 _SCHEDULER_SPIN_THRESHOLD_S = 0.0008
 _MIDI_SCHEDULE_LEAD_S = 0.100
+_RENDER_SUBUNIT_EPSILON = 1e-9
 _PAUSE_BEAT_COUNTS = frozenset({1, 2, 4, 8, 16})
 _DEFAULT_TRACK_LENGTH_BEATS = 4
 _TRANSPORT_STEPS_PER_BEAT = 8
@@ -476,7 +477,9 @@ class SessionSequencerRuntime:
             if not self._running:
                 return self._status_locked()
 
-            self._perform_render_block_events_locked(config, self._absolute_subunit)
+            if self._render_subunit_remainder <= _RENDER_SUBUNIT_EPSILON:
+                self._render_subunit_remainder = 0.0
+                self._perform_render_block_events_locked(config, self._absolute_subunit)
 
             if sample_rate > 0 and ksmps > 0:
                 block_seconds = float(ksmps) / float(sample_rate)
@@ -484,9 +487,14 @@ class SessionSequencerRuntime:
                 if subunit_duration > 0.0:
                     self._render_subunit_remainder += block_seconds / subunit_duration
 
-            while self._running and self._render_subunit_remainder >= 1.0:
+            while self._running and self._render_subunit_remainder >= (1.0 - _RENDER_SUBUNIT_EPSILON):
                 self._advance_one_render_subunit_locked(config)
-                self._render_subunit_remainder -= 1.0
+                self._render_subunit_remainder = max(0.0, self._render_subunit_remainder - 1.0)
+                if self._running and self._render_subunit_remainder > _RENDER_SUBUNIT_EPSILON:
+                    self._perform_render_block_events_locked(config, self._absolute_subunit)
+
+            if self._render_subunit_remainder <= _RENDER_SUBUNIT_EPSILON:
+                self._render_subunit_remainder = 0.0
 
             return self._status_locked()
 
