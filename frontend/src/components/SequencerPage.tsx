@@ -99,6 +99,13 @@ type SequencerStepDragPayload = {
   stepIndex: number;
 };
 
+type DrummerVelocityDragState = {
+  trackId: string;
+  rowId: string;
+  stepIndex: number;
+  velocity: number;
+};
+
 type PadLoopItemDragPayload = {
   sourceContainer: PadLoopContainerRef;
   sourceIndex: number;
@@ -231,6 +238,7 @@ type SequencerUiCopy = {
   curveEditorHint: string;
   removeCurvePoint: string;
   clickDragHint: string;
+  dragVelocity: (value: number) => string;
   playhead: (playhead: number, stepCount: number) => string;
   cycle: (cycle: number) => string;
   midiInput: (name: string) => string;
@@ -412,6 +420,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     curveEditorHint: "click to add points, drag vertically, double-click a point to remove",
     removeCurvePoint: "Remove curve point",
     clickDragHint: "click + drag up/down",
+    dragVelocity: (value) => `velocity: ${value}`,
     playhead: (playhead, stepCount) => `playhead: ${playhead + 1}/${stepCount}`,
     cycle: (cycle) => `cycle: ${cycle}`,
     midiInput: (name) => `midi input: ${name}`,
@@ -546,6 +555,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     curveEditorHint: "Klicken, um Punkte zu setzen; vertikal ziehen; Doppelklick entfernt",
     removeCurvePoint: "Kurvenpunkt entfernen",
     clickDragHint: "klicken + nach oben/unten ziehen",
+    dragVelocity: (value) => `velocity: ${value}`,
     playhead: (playhead, stepCount) => `playhead: ${playhead + 1}/${stepCount}`,
     cycle: (cycle) => `zyklus: ${cycle}`,
     midiInput: (name) => `midi eingang: ${name}`,
@@ -680,6 +690,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     curveEditorHint: "cliquer pour ajouter, glisser verticalement, double-clic pour supprimer",
     removeCurvePoint: "Supprimer point de courbe",
     clickDragHint: "cliquer + glisser haut/bas",
+    dragVelocity: (value) => `velocite: ${value}`,
     playhead: (playhead, stepCount) => `playhead: ${playhead + 1}/${stepCount}`,
     cycle: (cycle) => `cycle: ${cycle}`,
     midiInput: (name) => `entree midi: ${name}`,
@@ -814,6 +825,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     curveEditorHint: "clic para agregar, arrastrar verticalmente, doble clic para quitar",
     removeCurvePoint: "Quitar punto de curva",
     clickDragHint: "clic + arrastrar arriba/abajo",
+    dragVelocity: (value) => `velocidad: ${value}`,
     playhead: (playhead, stepCount) => `playhead: ${playhead + 1}/${stepCount}`,
     cycle: (cycle) => `ciclo: ${cycle}`,
     midiInput: (name) => `entrada midi: ${name}`,
@@ -3687,6 +3699,7 @@ export function SequencerPage({
   const [pendingStartAllPianoRolls, setPendingStartAllPianoRolls] = useState(false);
   const [deletePerformanceDialogOpen, setDeletePerformanceDialogOpen] = useState(false);
   const [linkedPadLoopStepPosition, setLinkedPadLoopStepPosition] = useState<number | null>(null);
+  const [drummerVelocityDragState, setDrummerVelocityDragState] = useState<DrummerVelocityDragState | null>(null);
   const padTransposePressRef = useRef<Record<string, { timerId: number; longPressTriggered: boolean }>>({});
   const drummerLedDragRef = useRef<{
     pointerId: number;
@@ -4013,6 +4026,7 @@ export function SequencerPage({
         startedActive: active,
         moved: false
       };
+      setDrummerVelocityDragState(null);
     },
     [onDrummerSequencerCellToggle]
   );
@@ -4028,6 +4042,12 @@ export function SequencerPage({
       const nextVelocity = Math.max(0, Math.min(127, drag.startVelocity + Math.round(deltaY)));
       if (Math.abs(deltaY) >= 2) {
         drag.moved = true;
+        setDrummerVelocityDragState({
+          trackId: drag.trackId,
+          rowId: drag.rowId,
+          stepIndex: drag.stepIndex,
+          velocity: nextVelocity
+        });
       }
       onDrummerSequencerCellVelocityChange(drag.trackId, drag.rowId, drag.stepIndex, nextVelocity);
     },
@@ -4046,12 +4066,14 @@ export function SequencerPage({
         onDrummerSequencerCellToggle(drag.trackId, drag.rowId, drag.stepIndex, false);
       }
       drummerLedDragRef.current = null;
+      setDrummerVelocityDragState(null);
     },
     [onDrummerSequencerCellToggle]
   );
 
   const cancelDrummerLedPointer = useCallback(() => {
     drummerLedDragRef.current = null;
+    setDrummerVelocityDragState(null);
   }, []);
 
   const transportStartButtonClass =
@@ -5387,7 +5409,6 @@ export function SequencerPage({
                           {track.rows.map((row, rowIndex) => {
                             const activePad = track.pads[track.activePad];
                             const padRow = activePad?.rows.find((candidate) => candidate.rowId === row.id) ?? null;
-                            const isTopKeyRow = rowIndex === 0;
                             return (
                               <Fragment key={`${track.id}-drum-row-${row.id}`}>
                                 <div className="flex h-7 items-center gap-0.5 rounded-md border border-slate-700 bg-slate-950/70 px-1">
@@ -5426,8 +5447,14 @@ export function SequencerPage({
 
                                 {stepIndices.map((step) => {
                                   const cell = padRow?.steps[step] ?? { active: false, velocity: 127 };
-                                  const isCurrentStep =
-                                    isTopKeyRow && track.enabled && sequencer.isPlaying && localPlayhead === step;
+                                  const isCurrentStep = track.enabled && sequencer.isPlaying && localPlayhead === step;
+                                  const isVelocityDragTarget =
+                                    drummerVelocityDragState?.trackId === track.id &&
+                                    drummerVelocityDragState.rowId === row.id &&
+                                    drummerVelocityDragState.stepIndex === step;
+                                  const draggedVelocity = isVelocityDragTarget
+                                    ? (drummerVelocityDragState?.velocity ?? cell.velocity)
+                                    : null;
                                   const activeAlpha = 0.14 + (Math.max(0, Math.min(127, cell.velocity)) / 127) * 0.86;
                                   const ledDotStyle: CSSProperties | undefined = cell.active
                                     ? isCurrentStep
@@ -5495,7 +5522,7 @@ export function SequencerPage({
                                           );
                                         }
                                       }}
-                                      className={`flex h-7 min-w-0 items-center justify-center rounded-md border transition ${
+                                      className={`relative flex h-7 min-w-0 items-center justify-center rounded-md border transition ${
                                         isCurrentStep
                                           ? "border-emerald-500/60 bg-emerald-950/10"
                                           : "border-slate-700 bg-slate-900/35 hover:bg-slate-800/35"
@@ -5504,6 +5531,11 @@ export function SequencerPage({
                                       aria-label={`Step ${step + 1}, drum key ${row.key}, velocity ${cell.velocity}`}
                                       title={`Step ${step + 1} | key ${row.key} | velocity ${cell.velocity} (drag up/down to change)`}
                                     >
+                                      {draggedVelocity !== null ? (
+                                        <span className="pointer-events-none absolute -top-6 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-full border border-rose-300/70 bg-slate-950/95 px-2 py-0.5 font-mono text-[10px] text-rose-100 shadow-[0_8px_20px_rgba(2,6,23,0.45)]">
+                                          {ui.dragVelocity(draggedVelocity)}
+                                        </span>
+                                      ) : null}
                                       <span className={ledDotClass} style={ledDotStyle} aria-hidden="true" />
                                       <span className="sr-only">{cell.velocity}</span>
                                     </button>

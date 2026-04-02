@@ -66,6 +66,7 @@ This keeps the `Keys` column horizontally aligned with the LED rows.
 
 - inactive step: dark LED with visible border
 - active step: red LED
+- current playing column: highlighted across every drum row
 - active step in the current playing column: flashing green LED
 
 ### Velocity (Per Hit)
@@ -74,11 +75,14 @@ Velocity is shown by LED color saturation (stronger color = higher velocity).
 
 The LED border color stays visible even at low velocities, so low-velocity active hits remain distinguishable from inactive steps.
 
+While dragging vertically on a hit, the UI also shows a live numeric `velocity: xx` readout next to the edited step.
+
 ### Editing Workflow
 
 - Click an inactive LED to activate a hit
 - Click an active LED (without dragging) to deactivate it
 - Click and drag vertically on an LED to change velocity (`0..127`)
+- While dragging, watch the live `velocity` readout for the exact value
 - Keyboard:
   - `Enter` / `Space` toggles the hit
   - `Arrow Up` / `Arrow Down` adjusts velocity
