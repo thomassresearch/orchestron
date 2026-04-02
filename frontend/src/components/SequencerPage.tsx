@@ -5522,7 +5522,7 @@ export function SequencerPage({
                                           );
                                         }
                                       }}
-                                      className={`relative flex h-7 min-w-0 items-center justify-center rounded-md border transition ${
+                                      className={`relative flex h-7 min-w-0 items-center justify-center rounded-md border ${
                                         isCurrentStep
                                           ? "border-emerald-500/60 bg-emerald-950/10"
                                           : "border-slate-700 bg-slate-900/35 hover:bg-slate-800/35"
