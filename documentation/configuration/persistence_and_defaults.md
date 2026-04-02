@@ -27,6 +27,7 @@ Persisted app state includes (current implementation):
 - performance workspace metadata (`currentPerformanceId`, name, description)
 - sequencer instrument bindings (rack assignments)
 - active MIDI input selection reference
+- browser-clock latency settings for the current workspace/runtime path
 
 ## What This Means In Practice
 

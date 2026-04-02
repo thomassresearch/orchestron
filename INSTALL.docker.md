@@ -47,7 +47,9 @@ After startup, open:
 - Backend API: `http://localhost:8000`
 - Backend-served frontend: `http://localhost:8000/client`
 
-The Compose setup runs Csound in `browser_clock` mode. The browser owns the PCM queue through `AudioContext` + `AudioWorklet`, and the backend renders Csound blocks on demand over a controller WebSocket.
+The Compose setup runs Csound in `browser_clock` mode. The browser owns the PCM queue through `AudioContext` + `AudioWorklet`, and the backend renders Csound blocks on demand over a controller WebSocket. The Config page exposes the main browser-clock latency controls whenever this runtime mode is active.
+
+For localhost and LAN browser connections, the browser-clock client uses a low-latency queue profile with smaller render chunks and an urgent render request after live note-on events. This improves realtime piano-keyboard response compared with the older conservative buffering defaults.
 
 ## 6. Stop the stack
 

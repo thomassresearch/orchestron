@@ -96,6 +96,22 @@ Lower-latency settings can improve responsiveness but increase dropout risk.
 
 For `browser_clock`, latency is primarily controlled by the browser-side queue thresholds and `ksmps` render chunk requests rather than the WebRTC frame queue.
 
+The Config page now exposes the main browser-clock latency controls directly when the backend is running in `browser_clock` mode:
+
+- steady/startup queue watermarks
+- underrun recovery boost
+- maximum render blocks per request
+- steady/startup/recovery request parallelism
+- immediate note render burst size and cooldown
+
+These map directly to the browser-clock queue manager:
+
+- queue watermarks control how much PCM is buffered in the browser
+- recovery boost temporarily increases buffering after underruns
+- max render blocks limits the size of individual backend render responses
+- parallel request limits control how aggressively the browser refills the queue
+- immediate note render settings control the urgent render burst used for live note-on events
+
 ## When To Prefer Local Mode vs Browser Modes
 
 Prefer `local` when:

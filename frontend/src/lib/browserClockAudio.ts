@@ -1,6 +1,8 @@
 import { wsBaseUrl } from "../api/client";
+import { resolveDefaultBrowserClockLatencySettings } from "./browserClockLatencyConfig";
 import type {
   BrowserClockClaimControllerRequest,
+  BrowserClockLatencySettings,
   BrowserClockEngineErrorMessage,
   BrowserClockQueuePadControlRequest,
   BrowserClockRenderChunkMessage,
@@ -22,6 +24,7 @@ type BrowserClockCallbacks = {
   onStatusChange: (status: BrowserAudioStatus) => void;
   onErrorChange: (message: string | null) => void;
   onSequencerStatus: (status: SessionSequencerStatus) => void;
+  getLatencySettings?: () => BrowserClockLatencySettings;
 };
 
 type PendingSequencerRequest = {
@@ -41,27 +44,24 @@ const RING_BUFFER_DURATION_SECONDS = 6;
 const RENDER_REFILL_INTERVAL_MS = 20;
 const SEQUENCER_REQUEST_TIMEOUT_MS = 5_000;
 const AUDIO_UNLOCK_MESSAGE = "Tap anywhere to enable browser audio.";
-const STEADY_LOW_WATER_SECONDS = 0.45;
-const STEADY_HIGH_WATER_SECONDS = 0.9;
-const STARTUP_LOW_WATER_SECONDS = 0.75;
-const STARTUP_HIGH_WATER_SECONDS = 1.5;
-const UNDERRUN_RECOVERY_BOOST_SECONDS = 0.3;
 const UNDERRUN_RECOVERY_WINDOW_MS = 5_000;
-const MAX_UNDERRUN_BOOST_SECONDS = 1.2;
-const MAX_BLOCKS_PER_REQUEST = 768;
-const STEADY_MAX_PARALLEL_REQUESTS = 3;
-const STARTUP_MAX_PARALLEL_REQUESTS = 4;
-const RECOVERY_MAX_PARALLEL_REQUESTS = 5;
 
 type PendingRenderChunk = {
   metadata: BrowserClockRenderChunkMessage;
-  estimatedFrames: number;
+  request: PendingRenderRequest;
 };
 
 type QueueTargets = {
   lowWaterFrames: number;
   highWaterFrames: number;
   maxParallelRequests: number;
+};
+
+type RenderRequestPriority = "steady" | "interactive";
+
+type PendingRenderRequest = {
+  estimatedFrames: number;
+  priority: RenderRequestPriority;
 };
 
 type PlaybackTimelineSegment = {
@@ -86,6 +86,10 @@ function nextRequestId(): string {
   return `req-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+function latencyMsToFrames(sampleRate: number, valueMs: number): number {
+  return Math.round((sampleRate * valueMs) / 1000);
+}
+
 export class BrowserClockAudioClient {
   private readonly callbacks: BrowserClockCallbacks;
   private connectPromise: Promise<void> | null = null;
@@ -102,12 +106,14 @@ export class BrowserClockAudioClient {
   private pendingChunk: PendingRenderChunk | null = null;
   private streamConfig: BrowserClockStreamConfigMessage | null = null;
   private inFlightRenderRequests = 0;
+  private inFlightImmediateRenderRequests = 0;
   private pendingRenderFrames = 0;
-  private pendingRenderEstimates: number[] = [];
+  private pendingRenderRequests: PendingRenderRequest[] = [];
   private startupPrimed = false;
   private lastUnderrunCount = 0;
   private underrunBoostFrames = 0;
   private underrunRecoveryUntil = 0;
+  private lastImmediateRenderAtMs = 0;
   private closedByClient = false;
   private unlockHandler: (() => void) | null = null;
   private playbackTimeline: PlaybackTimelineSegment[] = [];
@@ -116,6 +122,14 @@ export class BrowserClockAudioClient {
 
   constructor(callbacks: BrowserClockCallbacks) {
     this.callbacks = callbacks;
+  }
+
+  refreshLatencySettings(): void {
+    if (!this.streamConfig || this.socket?.readyState !== WebSocket.OPEN) {
+      return;
+    }
+    this.sendClaimController();
+    this.requestRefill();
   }
 
   async prime(): Promise<void> {
@@ -229,6 +243,9 @@ export class BrowserClockAudioClient {
       type: "manual_midi",
       midi
     });
+    if (midi.type === "note_on") {
+      this.requestImmediateNoteRender();
+    }
   }
 
   async startSequencer(
@@ -278,6 +295,38 @@ export class BrowserClockAudioClient {
     return this.sendSequencerRequest(sessionId, request);
   }
 
+  private currentLatencySettings(): BrowserClockLatencySettings {
+    return this.callbacks.getLatencySettings?.() ?? resolveDefaultBrowserClockLatencySettings();
+  }
+
+  private sendClaimController(): void {
+    const socket = this.socket;
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+      return;
+    }
+
+    const sampleRate = Math.max(
+      1,
+      Math.round(this.audioContext?.sampleRate ?? this.streamConfig?.target_sample_rate ?? 48_000)
+    );
+    const latencySettings = this.currentLatencySettings();
+    const claimTargets = this.buildClaimTargets(sampleRate, latencySettings);
+    const claim: BrowserClockClaimControllerRequest = {
+      type: "claim_controller",
+      audio_context_sample_rate: sampleRate,
+      queue_low_water_frames: claimTargets.lowWaterFrames,
+      queue_high_water_frames: claimTargets.highWaterFrames,
+      max_blocks_per_request: latencySettings.maxBlocksPerRequest
+    };
+
+    try {
+      socket.send(JSON.stringify(claim));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to claim browser-clock control.";
+      this.handleFatalError(message, { closeSocket: true });
+    }
+  }
+
   getPlaybackTransportSubunit(): number | null {
     const stateBuffer = this.stateBuffer;
     if (!stateBuffer) {
@@ -319,22 +368,7 @@ export class BrowserClockAudioClient {
     this.resetRenderPipelineState();
 
     socket.onopen = () => {
-      const context = this.audioContext;
-      const sampleRate = context ? Math.max(1, Math.round(context.sampleRate)) : 48_000;
-      const claimTargets = this.buildClaimTargets(sampleRate);
-      const claim: BrowserClockClaimControllerRequest = {
-        type: "claim_controller",
-        audio_context_sample_rate: sampleRate,
-        queue_low_water_frames: claimTargets.lowWaterFrames,
-        queue_high_water_frames: claimTargets.highWaterFrames,
-        max_blocks_per_request: MAX_BLOCKS_PER_REQUEST
-      };
-      try {
-        socket.send(JSON.stringify(claim));
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "Failed to claim browser-clock control.";
-        this.handleFatalError(message, { closeSocket: true });
-      }
+      this.sendClaimController();
     };
 
     socket.onmessage = (event) => {
@@ -402,7 +436,10 @@ export class BrowserClockAudioClient {
         case "render_chunk":
           this.pendingChunk = {
             metadata: parsed,
-            estimatedFrames: this.pendingRenderEstimates.shift() ?? parsed.target_frame_count
+            request: this.pendingRenderRequests.shift() ?? {
+              estimatedFrames: parsed.target_frame_count,
+              priority: "steady"
+            }
           };
           return;
         case "sequencer_status":
@@ -430,7 +467,10 @@ export class BrowserClockAudioClient {
     const arrayBuffer = payload instanceof Blob ? await payload.arrayBuffer() : payload;
     this.pendingChunk = null;
     this.inFlightRenderRequests = Math.max(0, this.inFlightRenderRequests - 1);
-    this.pendingRenderFrames = Math.max(0, this.pendingRenderFrames - metadata.estimatedFrames);
+    this.pendingRenderFrames = Math.max(0, this.pendingRenderFrames - metadata.request.estimatedFrames);
+    if (metadata.request.priority === "interactive") {
+      this.inFlightImmediateRenderRequests = Math.max(0, this.inFlightImmediateRenderRequests - 1);
+    }
 
     try {
       this.enqueuePcmChunk(metadata.metadata, arrayBuffer);
@@ -509,12 +549,37 @@ export class BrowserClockAudioClient {
     socket.send(JSON.stringify(payload));
   }
 
+  private dispatchRenderRequest(
+    streamConfig: BrowserClockStreamConfigMessage,
+    requestedBlocks: number,
+    priority: RenderRequestPriority
+  ): number | null {
+    const estimatedFrames = requestedBlocks * this.estimateFramesPerBlock(streamConfig);
+
+    try {
+      this.sendJson({
+        type: "request_render",
+        block_count: requestedBlocks
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to request browser-clock audio.";
+      this.handleFatalError(message, { closeSocket: true });
+      return null;
+    }
+
+    this.inFlightRenderRequests += 1;
+    this.pendingRenderFrames += estimatedFrames;
+    this.pendingRenderRequests.push({ estimatedFrames, priority });
+    return estimatedFrames;
+  }
+
   private requestRefill(): void {
     const streamConfig = this.streamConfig;
     if (!streamConfig) {
       return;
     }
 
+    const latencySettings = this.currentLatencySettings();
     this.observeUnderruns(streamConfig);
     this.updateStartupPrimed();
 
@@ -534,24 +599,16 @@ export class BrowserClockAudioClient {
       const deficitFrames = Math.max(0, queueTargets.highWaterFrames - projectedFrames);
       const requestedBlocks = Math.max(
         1,
-        Math.min(streamConfig.max_blocks_per_request, Math.ceil(deficitFrames / framesPerBlock))
+        Math.min(
+          streamConfig.max_blocks_per_request,
+          latencySettings.maxBlocksPerRequest,
+          Math.ceil(deficitFrames / framesPerBlock)
+        )
       );
-      const estimatedFrames = requestedBlocks * framesPerBlock;
-
-      try {
-        this.sendJson({
-          type: "request_render",
-          block_count: requestedBlocks
-        });
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "Failed to request browser-clock audio.";
-        this.handleFatalError(message, { closeSocket: true });
+      const estimatedFrames = this.dispatchRenderRequest(streamConfig, requestedBlocks, "steady");
+      if (estimatedFrames === null) {
         return;
       }
-
-      this.inFlightRenderRequests += 1;
-      this.pendingRenderFrames += estimatedFrames;
-      this.pendingRenderEstimates.push(estimatedFrames);
       projectedFrames += estimatedFrames;
     }
   }
@@ -667,21 +724,23 @@ export class BrowserClockAudioClient {
     }
   }
 
-  private buildClaimTargets(sampleRate: number): QueueTargets {
-    const steadyLowWaterFrames = this.clampBufferedFrames(Math.round(sampleRate * STEADY_LOW_WATER_SECONDS));
+  private buildClaimTargets(sampleRate: number, latencySettings: BrowserClockLatencySettings): QueueTargets {
+    const steadyLowWaterFrames = this.clampBufferedFrames(
+      latencyMsToFrames(sampleRate, latencySettings.steadyLowWaterMs)
+    );
     const steadyHighWaterFrames = this.clampBufferedFrames(
-      Math.max(steadyLowWaterFrames + 1024, Math.round(sampleRate * STEADY_HIGH_WATER_SECONDS))
+      Math.max(steadyLowWaterFrames + 1024, latencyMsToFrames(sampleRate, latencySettings.steadyHighWaterMs))
     );
     const startupLowWaterFrames = this.clampBufferedFrames(
-      Math.max(steadyLowWaterFrames + 1024, Math.round(sampleRate * STARTUP_LOW_WATER_SECONDS))
+      Math.max(steadyLowWaterFrames + 1024, latencyMsToFrames(sampleRate, latencySettings.startupLowWaterMs))
     );
     const startupHighWaterFrames = this.clampBufferedFrames(
-      Math.max(startupLowWaterFrames + 2048, Math.round(sampleRate * STARTUP_HIGH_WATER_SECONDS))
+      Math.max(startupLowWaterFrames + 2048, latencyMsToFrames(sampleRate, latencySettings.startupHighWaterMs))
     );
     return {
       lowWaterFrames: startupLowWaterFrames,
       highWaterFrames: startupHighWaterFrames,
-      maxParallelRequests: STARTUP_MAX_PARALLEL_REQUESTS
+      maxParallelRequests: latencySettings.startupMaxParallelRequests
     };
   }
 
@@ -749,10 +808,13 @@ export class BrowserClockAudioClient {
   }
 
   private currentQueueTargets(streamConfig: BrowserClockStreamConfigMessage): QueueTargets {
-    const claimTargets = this.buildClaimTargets(streamConfig.target_sample_rate);
-    const steadyLowWaterFrames = this.clampBufferedFrames(Math.round(streamConfig.target_sample_rate * STEADY_LOW_WATER_SECONDS));
+    const latencySettings = this.currentLatencySettings();
+    const claimTargets = this.buildClaimTargets(streamConfig.target_sample_rate, latencySettings);
+    const steadyLowWaterFrames = this.clampBufferedFrames(
+      latencyMsToFrames(streamConfig.target_sample_rate, latencySettings.steadyLowWaterMs)
+    );
     const steadyHighWaterFrames = this.clampBufferedFrames(
-      Math.max(steadyLowWaterFrames + 1024, Math.round(streamConfig.target_sample_rate * STEADY_HIGH_WATER_SECONDS))
+      Math.max(steadyLowWaterFrames + 1024, latencyMsToFrames(streamConfig.target_sample_rate, latencySettings.steadyHighWaterMs))
     );
     const recoveryBoostFrames = this.underrunBoostFrames;
 
@@ -761,7 +823,7 @@ export class BrowserClockAudioClient {
         lowWaterFrames: this.clampBufferedFrames(claimTargets.lowWaterFrames + recoveryBoostFrames),
         highWaterFrames: this.clampBufferedFrames(claimTargets.highWaterFrames + recoveryBoostFrames),
         maxParallelRequests:
-          recoveryBoostFrames > 0 ? RECOVERY_MAX_PARALLEL_REQUESTS : claimTargets.maxParallelRequests
+          recoveryBoostFrames > 0 ? latencySettings.recoveryMaxParallelRequests : claimTargets.maxParallelRequests
       };
     }
 
@@ -772,7 +834,8 @@ export class BrowserClockAudioClient {
     return {
       lowWaterFrames,
       highWaterFrames,
-      maxParallelRequests: recoveryBoostFrames > 0 ? RECOVERY_MAX_PARALLEL_REQUESTS : STEADY_MAX_PARALLEL_REQUESTS
+      maxParallelRequests:
+        recoveryBoostFrames > 0 ? latencySettings.recoveryMaxParallelRequests : latencySettings.steadyMaxParallelRequests
     };
   }
 
@@ -781,7 +844,10 @@ export class BrowserClockAudioClient {
       this.startupPrimed = false;
       return;
     }
-    const startupHighWaterFrames = this.buildClaimTargets(this.streamConfig.target_sample_rate).highWaterFrames;
+    const startupHighWaterFrames = this.buildClaimTargets(
+      this.streamConfig.target_sample_rate,
+      this.currentLatencySettings()
+    ).highWaterFrames;
     if (this.availableFrames() >= startupHighWaterFrames) {
       this.startupPrimed = true;
     }
@@ -795,11 +861,15 @@ export class BrowserClockAudioClient {
   }
 
   private observeUnderruns(streamConfig: BrowserClockStreamConfigMessage): void {
+    const latencySettings = this.currentLatencySettings();
     const currentUnderrunCount = this.readUnderrunCount();
     if (currentUnderrunCount > this.lastUnderrunCount) {
       const delta = currentUnderrunCount - this.lastUnderrunCount;
-      const boostFramesPerUnderrun = Math.round(streamConfig.target_sample_rate * UNDERRUN_RECOVERY_BOOST_SECONDS);
-      const maxBoostFrames = Math.round(streamConfig.target_sample_rate * MAX_UNDERRUN_BOOST_SECONDS);
+      const boostFramesPerUnderrun = latencyMsToFrames(
+        streamConfig.target_sample_rate,
+        latencySettings.underrunRecoveryBoostMs
+      );
+      const maxBoostFrames = latencyMsToFrames(streamConfig.target_sample_rate, latencySettings.maxUnderrunBoostMs);
       this.underrunBoostFrames = Math.min(
         maxBoostFrames,
         this.underrunBoostFrames + delta * boostFramesPerUnderrun
@@ -903,10 +973,40 @@ export class BrowserClockAudioClient {
 
   private resetRenderPipelineState(): void {
     this.inFlightRenderRequests = 0;
+    this.inFlightImmediateRenderRequests = 0;
     this.pendingRenderFrames = 0;
-    this.pendingRenderEstimates = [];
+    this.pendingRenderRequests = [];
     this.startupPrimed = false;
     this.underrunBoostFrames = 0;
     this.underrunRecoveryUntil = 0;
+    this.lastImmediateRenderAtMs = 0;
+  }
+
+  private requestImmediateNoteRender(): void {
+    const streamConfig = this.streamConfig;
+    if (!streamConfig) {
+      return;
+    }
+
+    const latencySettings = this.currentLatencySettings();
+    const now = Date.now();
+    if (
+      this.inFlightImmediateRenderRequests > 0 ||
+      now - this.lastImmediateRenderAtMs < latencySettings.immediateRenderCooldownMs
+    ) {
+      return;
+    }
+
+    const requestedBlocks = Math.max(
+      1,
+      Math.min(streamConfig.max_blocks_per_request, latencySettings.immediateRenderBlocks)
+    );
+    const estimatedFrames = this.dispatchRenderRequest(streamConfig, requestedBlocks, "interactive");
+    if (estimatedFrames === null) {
+      return;
+    }
+
+    this.inFlightImmediateRenderRequests += 1;
+    this.lastImmediateRenderAtMs = now;
   }
 }

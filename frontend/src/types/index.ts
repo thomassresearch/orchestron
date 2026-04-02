@@ -15,6 +15,7 @@ export type HelpDocId =
   | "sequencer_piano_rolls"
   | "sequencer_midi_controllers"
   | "config_audio_engine"
+  | "config_browser_clock_latency"
   | "config_engine_values";
 
 export type JsonPrimitive = string | number | boolean | null;
@@ -466,6 +467,21 @@ export interface InstrumentTabSnapshot {
   patch: EditablePatchSnapshot;
 }
 
+export interface BrowserClockLatencySettings {
+  steadyLowWaterMs: number;
+  steadyHighWaterMs: number;
+  startupLowWaterMs: number;
+  startupHighWaterMs: number;
+  underrunRecoveryBoostMs: number;
+  maxUnderrunBoostMs: number;
+  maxBlocksPerRequest: number;
+  steadyMaxParallelRequests: number;
+  startupMaxParallelRequests: number;
+  recoveryMaxParallelRequests: number;
+  immediateRenderBlocks: number;
+  immediateRenderCooldownMs: number;
+}
+
 export interface PersistedAppState {
   version: 1;
   activePage: AppPage;
@@ -478,6 +494,7 @@ export interface PersistedAppState {
   performanceName: string;
   performanceDescription: string;
   activeMidiInput: string | null;
+  browserClockLatencySettings: BrowserClockLatencySettings;
 }
 
 export interface AppStateResponse {

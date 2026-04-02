@@ -1345,6 +1345,8 @@ export default function App() {
   const setActivePage = useAppStore((state) => state.setActivePage);
   const guiLanguage = useAppStore((state) => state.guiLanguage);
   const setGuiLanguage = useAppStore((state) => state.setGuiLanguage);
+  const browserClockLatencySettings = useAppStore((state) => state.browserClockLatencySettings);
+  const setBrowserClockLatencySettings = useAppStore((state) => state.setBrowserClockLatencySettings);
   const appCopy = useMemo(() => APP_COPY[guiLanguage], [guiLanguage]);
   const importDialogCopy = useMemo(() => IMPORT_DIALOG_COPY[guiLanguage], [guiLanguage]);
 
@@ -1576,10 +1578,15 @@ export default function App() {
   const runtimeConfigRef = useRef<RuntimeConfigResponse | null>(null);
   const runtimeConfigPromiseRef = useRef<Promise<RuntimeConfigResponse> | null>(null);
   const browserClockClientRef = useRef<BrowserClockAudioClient | null>(null);
+  const browserClockLatencySettingsRef = useRef(browserClockLatencySettings);
   const [browserClockPlaybackTransportSubunit, setBrowserClockPlaybackTransportSubunit] = useState<number | null>(null);
   const [browserAudioStatus, setBrowserAudioStatus] = useState<"off" | "connecting" | "live" | "error">("off");
   const [browserAudioError, setBrowserAudioError] = useState<string | null>(null);
   const [runtimeAudioOutputMode, setRuntimeAudioOutputMode] = useState<SessionAudioOutputMode | null>(null);
+
+  useEffect(() => {
+    browserClockLatencySettingsRef.current = browserClockLatencySettings;
+  }, [browserClockLatencySettings]);
 
   if (browserClockClientRef.current === null) {
     browserClockClientRef.current = new BrowserClockAudioClient({
@@ -1587,9 +1594,20 @@ export default function App() {
       onErrorChange: setBrowserAudioError,
       onSequencerStatus: (status) => {
         applySequencerStatusRef.current(status);
-      }
+      },
+      getLatencySettings: () => browserClockLatencySettingsRef.current
     });
   }
+
+  const onApplyBrowserClockLatencySettings = useCallback(
+    (settings: typeof browserClockLatencySettings) => {
+      setBrowserClockLatencySettings(settings);
+      if (runtimeAudioOutputMode === "browser_clock") {
+        browserClockClientRef.current?.refreshLatencySettings();
+      }
+    },
+    [runtimeAudioOutputMode, setBrowserClockLatencySettings]
+  );
 
   const syncBrowserAudioOutput = useCallback(
     (reportPlaybackError: boolean) => {
@@ -4610,10 +4628,13 @@ export default function App() {
             ksmps={currentPatch.graph.engine_config.ksmps}
             softwareBuffer={currentPatch.graph.engine_config.software_buffer}
             hardwareBuffer={currentPatch.graph.engine_config.hardware_buffer}
+            showBrowserClockLatencyConfig={runtimeAudioOutputMode === "browser_clock"}
+            browserClockLatencySettings={browserClockLatencySettings}
             onHelpRequest={onHelpRequest}
             onApplyEngineConfig={(config) => {
               void applyEngineConfig(config);
             }}
+            onApplyBrowserClockLatencySettings={onApplyBrowserClockLatencySettings}
           />
         )}
       </div>

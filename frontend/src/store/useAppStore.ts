@@ -5,6 +5,10 @@ import {
   normalizeArrangerLoopSelection,
   transportPositionFromAbsoluteStep
 } from "../lib/arrangerTransport";
+import {
+  normalizeBrowserClockLatencySettings,
+  resolveDefaultBrowserClockLatencySettings
+} from "../lib/browserClockLatencyConfig";
 import { createUntitledPatch } from "../lib/defaultPatch";
 import { normalizeGuiLanguage } from "../lib/guiLanguage";
 import {
@@ -47,6 +51,7 @@ import {
 import type {
   ArrangerLoopSelection,
   AppPage,
+  BrowserClockLatencySettings,
   CompileResponse,
   ControllerSequencerKeypoint,
   ControllerSequencerPadLengthBeats,
@@ -115,6 +120,7 @@ interface AppStore {
 
   activePage: AppPage;
   guiLanguage: GuiLanguage;
+  browserClockLatencySettings: BrowserClockLatencySettings;
 
   opcodes: OpcodeSpec[];
   patches: PatchListItem[];
@@ -142,6 +148,7 @@ interface AppStore {
 
   setActivePage: (page: AppPage) => void;
   setGuiLanguage: (language: GuiLanguage) => void;
+  setBrowserClockLatencySettings: (settings: BrowserClockLatencySettings) => void;
 
   addInstrumentTab: () => void;
   closeInstrumentTab: (tabId: string) => void;
@@ -391,6 +398,7 @@ let bootstrapLoadInFlight: Promise<void> | null = null;
 type PersistWatchState = {
   activePage: AppPage;
   guiLanguage: GuiLanguage;
+  browserClockLatencySettings: BrowserClockLatencySettings;
   instrumentTabs: InstrumentTabState[];
   activeInstrumentTabId: string;
   sequencer: SequencerState;
@@ -2214,6 +2222,7 @@ function buildPersistedAppStateSnapshot(state: AppStore): PersistedAppState {
     version: APP_STATE_VERSION,
     activePage: normalizeAppPage(state.activePage),
     guiLanguage: normalizeGuiLanguage(state.guiLanguage),
+    browserClockLatencySettings: normalizeBrowserClockLatencySettings(state.browserClockLatencySettings),
     instrumentTabs: state.instrumentTabs.map((tab) => ({
       id: tab.id,
       patch: {
@@ -2245,6 +2254,7 @@ function capturePersistWatchState(state: AppStore): PersistWatchState {
   return {
     activePage: state.activePage,
     guiLanguage: state.guiLanguage,
+    browserClockLatencySettings: state.browserClockLatencySettings,
     instrumentTabs: state.instrumentTabs,
     activeInstrumentTabId: state.activeInstrumentTabId,
     sequencer: state.sequencer,
@@ -2263,6 +2273,7 @@ function hasPersistableStateChange(current: PersistWatchState, previous: Persist
   return (
     current.activePage !== previous.activePage ||
     current.guiLanguage !== previous.guiLanguage ||
+    current.browserClockLatencySettings !== previous.browserClockLatencySettings ||
     current.instrumentTabs !== previous.instrumentTabs ||
     current.activeInstrumentTabId !== previous.activeInstrumentTabId ||
     current.sequencer !== previous.sequencer ||
@@ -2281,6 +2292,7 @@ function isSequencerRuntimeOnlyUpdate(current: PersistWatchState, previous: Pers
   if (
     current.activePage !== previous.activePage ||
     current.guiLanguage !== previous.guiLanguage ||
+    current.browserClockLatencySettings !== previous.browserClockLatencySettings ||
     current.instrumentTabs !== previous.instrumentTabs ||
     current.activeInstrumentTabId !== previous.activeInstrumentTabId ||
     current.sequencerInstruments !== previous.sequencerInstruments ||
@@ -2879,6 +2891,7 @@ const initialPatch = defaultEditablePatch();
 const initialTab = createInstrumentTab(initialPatch);
 const initialSequencerState = defaultSequencerState();
 const initialSequencerRuntimeState = sequencerRuntimeStateFromSequencer(initialSequencerState);
+const initialBrowserClockLatencySettings = resolveDefaultBrowserClockLatencySettings();
 
 export const useAppStore = create<AppStore>((set, get) => {
   const commitCurrentPatch = (patch: EditablePatch, extra?: Partial<AppStore>) => {
@@ -2898,6 +2911,7 @@ export const useAppStore = create<AppStore>((set, get) => {
 
     activePage: "instrument",
     guiLanguage: "english",
+    browserClockLatencySettings: initialBrowserClockLatencySettings,
 
     opcodes: [],
     patches: [],
@@ -2929,6 +2943,15 @@ export const useAppStore = create<AppStore>((set, get) => {
 
     setGuiLanguage: (language) => {
       set({ guiLanguage: normalizeGuiLanguage(language) });
+    },
+
+    setBrowserClockLatencySettings: (settings) => {
+      set({
+        browserClockLatencySettings: normalizeBrowserClockLatencySettings(
+          settings,
+          resolveDefaultBrowserClockLatencySettings()
+        )
+      });
     },
 
     addInstrumentTab: () => {
@@ -3033,6 +3056,7 @@ export const useAppStore = create<AppStore>((set, get) => {
           let performanceName = "Untitled Performance";
           let performanceDescription = "";
           let guiLanguage: GuiLanguage = "english";
+          let browserClockLatencySettings = resolveDefaultBrowserClockLatencySettings();
 
           const preferredMidi = normalizeMidiInputSelection(get().activeMidiInput, midiInputs);
           let activeMidiInput = preferredMidi ?? midiInputs[0]?.id ?? null;
@@ -3054,6 +3078,10 @@ export const useAppStore = create<AppStore>((set, get) => {
 
               activePage = normalizeAppPage(payload.activePage);
               guiLanguage = normalizeGuiLanguage(payload.guiLanguage);
+              browserClockLatencySettings = normalizeBrowserClockLatencySettings(
+                payload.browserClockLatencySettings,
+                browserClockLatencySettings
+              );
               sequencer = normalizeSequencerState(payload.sequencer);
               sequencerRuntime = sequencerRuntimeStateFromSequencer(sequencer);
 
@@ -3097,6 +3125,7 @@ export const useAppStore = create<AppStore>((set, get) => {
             version: APP_STATE_VERSION,
             activePage: resolvedActivePage,
             guiLanguage: resolvedGuiLanguage,
+            browserClockLatencySettings,
             instrumentTabs: instrumentTabs.map((tab) => ({
               id: tab.id,
               patch: {
@@ -3126,6 +3155,7 @@ export const useAppStore = create<AppStore>((set, get) => {
           lastPersistWatchState = {
             activePage: resolvedActivePage,
             guiLanguage: resolvedGuiLanguage,
+            browserClockLatencySettings,
             instrumentTabs,
             activeInstrumentTabId,
             sequencer,
@@ -3144,6 +3174,7 @@ export const useAppStore = create<AppStore>((set, get) => {
             activeMidiInput,
             activePage: resolvedActivePage,
             guiLanguage: resolvedGuiLanguage,
+            browserClockLatencySettings,
             instrumentTabs,
             activeInstrumentTabId,
             currentPatch,

@@ -7,7 +7,7 @@ The Configuration chapter covers both UI-visible settings and practical runtime/
 ## What Is Covered
 
 - GUI language switching and integrated help/docs behavior
-- Config page audio engine settings (`sr`, control rate, buffers, derived `ksmps`)
+- Config page engine settings (`sr`, control rate, buffers, derived `ksmps`) plus browser-clock latency controls when relevant
 - MIDI setup and runtime input binding workflow
 - Browser audio modes (`browser_clock` PCM, `streaming` WebRTC) vs local audio mode
 - App-state persistence and default values
@@ -26,6 +26,7 @@ Orchestron has two kinds of configuration:
 
 - **Patch-level configuration** (stored with a patch, editable in the Config page)
 - **Runtime/startup configuration** (backend launch mode, especially local vs browser-clock PCM vs WebRTC streaming audio)
+- **Workspace runtime tuning** (browser-clock latency settings stored in app state)
 
 Both are important for successful use.
 
@@ -34,6 +35,6 @@ Both are important for successful use.
 <p align="center">
   <img src="../../screenshots/config.png" alt="Configuration page overview" width="1100" style="max-width: 100%; height: auto;" />
 </p>
-<p align="center"><em>Configuration page overview of audio engine settings.</em></p>
+<p align="center"><em>Configuration page overview of engine settings. A refreshed screenshot should capture the browser-clock latency section as well.</em></p>
 
 **Navigation:** [Up](../user_documentation.md) | [Prev](../performance/live_status_and_safety_controls.md) | [Next](gui_language_and_integrated_help.md)
