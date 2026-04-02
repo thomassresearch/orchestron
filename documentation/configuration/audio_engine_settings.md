@@ -74,6 +74,8 @@ Use this panel to verify what will be used at compile/start time.
 
 When the backend is running in `browser_clock` mode, the Config page shows an additional section for browser-owned audio latency tuning.
 
+See [Browser-Clock Latency](browser_clock_latency.md) for the Docker/browser-clock workflow explanation and the full UI screenshot of this section.
+
 Editable fields:
 
 - steady queue low water / high water (`ms`)
@@ -180,6 +182,6 @@ These are part of the patch model, but the current Config page focuses on the us
 </p>
 <p align="center"><em>Config page validation messages with invalid values entered.</em></p>
 
-<p align="center"><em>Please add refreshed Config page screenshots showing the browser-clock latency section.</em></p>
+<p align="center"><em>The dedicated [Browser-Clock Latency](browser_clock_latency.md) chapter shows the browser-clock tuning section in detail.</em></p>
 
 **Navigation:** [Up](configuration.md) | [Prev](gui_language_and_integrated_help.md) | [Next](midi_setup_and_inputs.md)

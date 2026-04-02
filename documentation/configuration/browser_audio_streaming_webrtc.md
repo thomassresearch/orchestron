@@ -1,6 +1,6 @@
 # Browser Audio Streaming (WebRTC)
 
-**Navigation:** [Up](configuration.md) | [Prev](midi_setup_and_inputs.md) | [Next](persistence_and_defaults.md)
+**Navigation:** [Up](configuration.md) | [Prev](midi_setup_and_inputs.md) | [Next](browser_clock_latency.md)
 
 Orchestron supports two audio output modes:
 
@@ -96,6 +96,8 @@ Lower-latency settings can improve responsiveness but increase dropout risk.
 
 For `browser_clock`, latency is primarily controlled by the browser-side queue thresholds and `ksmps` render chunk requests rather than the WebRTC frame queue.
 
+See [Browser-Clock Latency](browser_clock_latency.md) for the dedicated Config page guide and screenshot of the Docker/browser-clock tuning section.
+
 The Config page now exposes the main browser-clock latency controls directly when the backend is running in `browser_clock` mode:
 
 - steady/startup queue watermarks
@@ -138,4 +140,4 @@ Prefer `streaming` when:
 </p>
 <p align="center"><em>Browser audio streaming state in the Runtime panel (WebRTC mode). A refreshed browser-clock Runtime panel screenshot should be added separately.</em></p>
 
-**Navigation:** [Up](configuration.md) | [Prev](midi_setup_and_inputs.md) | [Next](persistence_and_defaults.md)
+**Navigation:** [Up](configuration.md) | [Prev](midi_setup_and_inputs.md) | [Next](browser_clock_latency.md)

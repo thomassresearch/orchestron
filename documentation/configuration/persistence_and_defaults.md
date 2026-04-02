@@ -1,6 +1,6 @@
 # Persistence and Defaults
 
-**Navigation:** [Up](configuration.md) | [Prev](browser_audio_streaming_webrtc.md)
+**Navigation:** [Up](configuration.md) | [Prev](browser_clock_latency.md)
 
 Orchestron persists both library data (patches/performances) and a separate app-state snapshot (workspace state).
 
@@ -62,4 +62,4 @@ The compile status badge (`compiled`, `pending changes`, `errors`) indicates com
 2. Use `Save` / `Save Performance` for intentional versions.
 3. Use `Export` bundles for backups or sharing across machines.
 
-**Navigation:** [Up](configuration.md) | [Prev](browser_audio_streaming_webrtc.md)
+**Navigation:** [Up](configuration.md) | [Prev](browser_clock_latency.md)
