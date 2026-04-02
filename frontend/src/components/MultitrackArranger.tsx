@@ -25,7 +25,7 @@ import {
   type PadLoopContainerRef,
   type PadLoopPatternClipboardState
 } from "../lib/padLoopPattern";
-import { sequencerTransportStepsPerBeat } from "../lib/sequencer";
+import { sequencerTransportStepCount, sequencerTransportStepsPerBeat } from "../lib/sequencer";
 import type {
   ArrangerLoopSelection,
   GuiLanguage,
@@ -55,8 +55,8 @@ type ArrangerTrack = {
   title: string;
   subtitle: string;
   padLoopPattern: PadLoopPatternState;
-  padStepCounts: number[];
-  defaultPadStepCount: number;
+  padTransportStepCounts: number[];
+  defaultPadTransportStepCount: number;
   enabled: boolean;
 };
 
@@ -882,8 +882,8 @@ export function MultitrackArranger({
         title: copy.melodicSequencerWithIndex(index + 1),
         subtitle: buildTrackSubtitle("sequencer", track.midiChannel, patchByChannel, null),
         padLoopPattern: track.padLoopPattern,
-        padStepCounts: track.pads.map((pad) => pad.stepCount),
-        defaultPadStepCount: track.stepCount,
+        padTransportStepCounts: track.pads.map((pad) => sequencerTransportStepCount(track.timing, pad.lengthBeats)),
+        defaultPadTransportStepCount: sequencerTransportStepCount(track.timing, track.lengthBeats),
         enabled: track.enabled
       });
     });
@@ -896,8 +896,8 @@ export function MultitrackArranger({
         title: copy.drummerSequencerWithIndex(index + 1),
         subtitle: buildTrackSubtitle("drummer", track.midiChannel, patchByChannel, null),
         padLoopPattern: track.padLoopPattern,
-        padStepCounts: track.pads.map((pad) => pad.stepCount),
-        defaultPadStepCount: track.stepCount,
+        padTransportStepCounts: track.pads.map((pad) => sequencerTransportStepCount(track.timing, pad.lengthBeats)),
+        defaultPadTransportStepCount: sequencerTransportStepCount(track.timing, track.lengthBeats),
         enabled: track.enabled
       });
     });
@@ -910,8 +910,8 @@ export function MultitrackArranger({
         title: copy.controllerSequencerWithIndex(index + 1),
         subtitle: buildTrackSubtitle("controller", null, patchByChannel, track.controllerNumber),
         padLoopPattern: track.padLoopPattern,
-        padStepCounts: track.pads.map((pad) => pad.stepCount),
-        defaultPadStepCount: track.stepCount,
+        padTransportStepCounts: track.pads.map((pad) => sequencerTransportStepCount(track.timing, pad.lengthBeats)),
+        defaultPadTransportStepCount: sequencerTransportStepCount(track.timing, track.lengthBeats),
         enabled: track.enabled
       });
     });
@@ -940,11 +940,11 @@ export function MultitrackArranger({
   const tokenStepCounter = useCallback((track: ArrangerTrack, pattern: PadLoopPatternState = track.padLoopPattern) => {
     const groupById = new Map(pattern.groups.map((group) => [group.id, group.sequence]));
     const superById = new Map(pattern.superGroups.map((group) => [group.id, group.sequence]));
-    const fallbackPadStepCount = normalizeQuantizedStepCount(track.defaultPadStepCount, stepGridQuantum);
+    const fallbackPadStepCount = normalizeQuantizedStepCount(track.defaultPadTransportStepCount, stepGridQuantum);
 
     const countFor = (item: PadLoopPatternItem, path: string[]): number => {
       if (item.type === "pad") {
-        const raw = track.padStepCounts[item.padIndex] ?? fallbackPadStepCount;
+        const raw = track.padTransportStepCounts[item.padIndex] ?? fallbackPadStepCount;
         return normalizeQuantizedStepCount(raw, stepGridQuantum);
       }
       if (item.type === "pause") {
