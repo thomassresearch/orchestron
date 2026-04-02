@@ -8,6 +8,7 @@ from pathlib import Path
 import zipfile
 
 from fastapi.testclient import TestClient
+from pydantic import ValidationError
 import pytest
 from starlette.websockets import WebSocketDisconnect
 
@@ -132,7 +133,19 @@ def test_runtime_config_exposes_browser_clock_mode(tmp_path: Path) -> None:
         assert response.status_code == 200
         assert response.json()["audio_output_mode"] == "browser_clock"
         assert response.json()["browser_clock_enabled"] is True
-        assert response.json()["browser_audio_streaming_enabled"] is False
+
+
+def test_runtime_config_maps_streaming_alias_to_browser_clock(tmp_path: Path) -> None:
+    with _client(tmp_path, audio_output_mode="streaming") as client:
+        response = client.get("/api/runtime-config")
+        assert response.status_code == 200
+        assert response.json()["audio_output_mode"] == "browser_clock"
+        assert response.json()["browser_clock_enabled"] is True
+
+
+def test_runtime_config_rejects_webrtc_audio_output_mode(tmp_path: Path) -> None:
+    with pytest.raises(ValidationError, match="VISUALCSOUND_AUDIO_OUTPUT_MODE=webrtc is no longer supported"):
+        _client(tmp_path, audio_output_mode="webrtc")
 
 
 def test_browser_clock_client_assets_include_shared_array_buffer_headers(tmp_path: Path) -> None:

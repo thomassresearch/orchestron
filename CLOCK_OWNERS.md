@@ -3,7 +3,7 @@
 This document explains which component "drives the clock" in each part of the app, in both runtime modes:
 
 - `local`: Csound outputs to the host audio device
-- `streaming`: Csound runs headless in the backend and audio is streamed to the browser via WebRTC
+- `browser_clock`: the browser owns PCM playback and requests render chunks from the backend
 
 It is based on the current implementation in `frontend/src` and `backend/app`.
 
@@ -14,7 +14,7 @@ There is not one global clock. The app uses several clocks:
 - The backend sequencer thread is the authoritative transport clock for melodic sequencer tracks, drummer tracks, and controller sequencers.
 - The frontend is the clock owner for piano-roll/direct-play interactions and manual controller gestures.
 - Csound is the clock owner for continuous sound generation once a note is active.
-- In streaming mode, WebRTC and the browser audio subsystem add an output/playback clock on top of Csound.
+- In browser-clock mode, the browser audio subsystem adds an output/playback clock on top of Csound.
 
 ## Main Components
 
@@ -22,7 +22,7 @@ There is not one global clock. The app uses several clocks:
 - Backend session service: owns runtime sessions, starts Csound, exposes sequencer and MIDI APIs.
 - Backend sequencer runtime: emits timed MIDI note and controller events for sequenced tracks.
 - Csound engine: turns MIDI and internal DSP graph logic into continuous audio.
-- WebRTC bridge: only in streaming mode, packages backend audio for browser playback.
+- Browser-clock controller: only in browser_clock mode, requests backend PCM renders and owns browser playback timing.
 
 ## 1. Session Startup
 
@@ -32,7 +32,7 @@ When instruments are started:
 2. The backend compiles the selected patch assignments into a Csound orchestra.
 3. Each assigned patch becomes its own Csound instrument number.
 4. MIDI channel routing is established with `massign`.
-5. Csound is started either in `local` or `streaming` audio mode.
+5. Csound is started either in `local` or `browser_clock` audio mode.
 
 Important consequence:
 
@@ -204,21 +204,21 @@ So in local mode the audible end of the chain is anchored to the host sound devi
 5. Csound continuously renders audio.
 6. Host audio backend pulls that audio to the speakers.
 
-## 7. Streaming Mode
+## 7. Browser-Clock Mode
 
 ## Audio path
 
-In `streaming` mode:
+In `browser_clock` mode:
 
 - Csound is started headless with no direct DAC output
+- the browser becomes the playback clock and requests PCM render chunks over a controller WebSocket
 - the backend manually advances Csound block-by-block with `performKsmps()`
-- each generated Csound output block is copied into a WebRTC frame buffer
-- the WebRTC bridge packages frames for a browser audio track
-- the browser receives and plays the stream
+- each generated Csound output block is returned to the browser as PCM bytes
+- the browser owns the final playback timing through `AudioContext` + `AudioWorklet`
 
-## MIDI path in streaming mode
+## MIDI path in browser_clock mode
 
-Streaming mode is designed so container MIDI devices are not required.
+Browser-clock mode is designed so container MIDI devices are not required.
 
 Instead:
 
@@ -228,7 +228,7 @@ Instead:
 
 In the Docker-oriented setup, `MidiService` fallback delivery and the worker's virtual sink registration let backend sequencer notes and frontend direct MIDI both arrive through this internal path.
 
-## Clock ownership in streaming mode
+## Clock ownership in browser_clock mode
 
 ### Sequencer transport
 
@@ -244,36 +244,36 @@ In the Docker-oriented setup, `MidiService` fallback delivery and the worker's v
 
 ### Csound DSP block progression
 
-- driven by backend worker's streaming perform loop
+- driven by backend worker's browser-clock render loop
 
-The streaming worker computes block duration from:
+The browser-clock worker computes block duration from:
 
 - `block_seconds = ksmps / sr`
 
 and sleeps to maintain that cadence while repeatedly calling `performKsmps()`.
 
-### WebRTC frame pacing
+### Browser PCM request pacing
 
-- driven by the backend WebRTC track's frame timestamps
+- driven by the browser controller's queue watermarks and render requests
 
-The WebRTC bridge reads from the audio frame buffer in fixed-size frames, typically 10 ms or 20 ms.
+The browser requests PCM in fixed-size render chunks, typically aligned to the current `ksmps` window.
 
 ### Final audible playback
 
 - driven by the browser / operating system audio playback clock
 
-So streaming mode introduces one more layer than local mode: browser playback timing after backend audio generation.
+So browser_clock mode introduces one more layer than local mode: browser playback timing after backend audio generation.
 
-## Streaming mode flow
+## Browser-clock flow
 
 1. Frontend starts the runtime session.
-2. Backend starts Csound in headless streaming mode.
+2. Backend starts Csound in headless browser_clock mode.
 3. Backend sequencer thread emits scheduled MIDI note and controller events.
 4. MIDI is injected into Csound through host-implemented MIDI callbacks.
-5. Backend worker advances Csound one `ksmps` block at a time.
-6. Each output block is written into a WebRTC frame buffer.
-7. Frontend negotiates a WebRTC connection.
-8. Browser receives audio frames and plays them.
+5. Backend worker advances Csound one `ksmps` block at a time when the browser requests render chunks.
+6. Each output block is returned as PCM bytes to the browser controller.
+7. The browser feeds the PCM into `AudioContext` + `AudioWorklet`.
+8. Browser playback and sequencer display are derived from the browser clock.
 
 ## 8. Csound's Role In Both Modes
 
@@ -331,11 +331,12 @@ So if someone asks "who drives the clock?" the correct answer depends on which d
 
 - owns final playback clock
 
-### WebRTC bridge in streaming mode
+### Browser-clock controller in browser_clock mode
 
-- owns transport of rendered audio frames to the browser
+- owns transport of rendered audio chunks to the browser
+- owns request pacing and playback timing on the client side
 
-### Browser audio playback in streaming mode
+### Browser audio playback in browser_clock mode
 
 - owns final playback clock on the client side
 
@@ -348,7 +349,7 @@ If you want the simplest internal model, use this:
 - The frontend decides when manual notes and manual controller events happen.
 - Csound decides how active notes evolve sample by sample.
 - Local mode ends at the host sound card.
-- Streaming mode ends at the browser audio output.
+- Browser_clock mode ends at the browser audio output.
 
 ## 12. One Current Implementation Detail
 

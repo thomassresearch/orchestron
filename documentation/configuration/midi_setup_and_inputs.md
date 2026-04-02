@@ -1,6 +1,6 @@
 # MIDI Setup and Inputs
 
-**Navigation:** [Up](configuration.md) | [Prev](audio_engine_settings.md) | [Next](browser_audio_streaming_webrtc.md)
+**Navigation:** [Up](configuration.md) | [Prev](audio_engine_settings.md) | [Next](browser_clock_latency.md)
 
 This page covers practical MIDI setup and how MIDI input selection works in Orchestron.
 
@@ -68,4 +68,4 @@ For DAW/app -> Orchestron MIDI routing on macOS:
 </p>
 <p align="center"><em>Runtime panel MIDI input dropdown expanded with available MIDI inputs.</em></p>
 
-**Navigation:** [Up](configuration.md) | [Prev](audio_engine_settings.md) | [Next](browser_audio_streaming_webrtc.md)
+**Navigation:** [Up](configuration.md) | [Prev](audio_engine_settings.md) | [Next](browser_clock_latency.md)

@@ -1129,7 +1129,7 @@ Si múltiples señales están conectadas a **la misma entrada** de un opcode:
 
 ### Audio Mode Details
 
-- In browser-streaming mode, this panel also reports browser-audio connection status and exposes the built-in audio player for the incoming stream.
+- In browser-clock mode, this panel reports browser-audio status while the browser owns the PCM queue and renders playback through AudioWorklet.
 - In local DAC mode, audio stays on the backend machine and the panel focuses on diagnostics instead of browser playback.
 - If the panel is collapsed, the graph header can show it again with \`Show runtime\`.`,
     german: `### Workflow fuer Live-Tests
@@ -1140,7 +1140,7 @@ Si múltiples señales están conectadas a **la misma entrada** de un opcode:
 
 ### Details zum Audio-Modus
 
-- Im Browser-Streaming-Modus meldet dieses Panel zusaetzlich den Status der Browser-Audio-Verbindung und zeigt den eingebauten Audio-Player fuer den eingehenden Stream.
+- Im Browser-Clock-Modus zeigt dieses Panel den Browser-Audio-Status, waehrend der Browser die PCM-Warteschlange besitzt und die Wiedergabe ueber AudioWorklet rendert.
 - Im lokalen DAC-Modus bleibt das Audio auf dem Backend-Rechner; das Panel konzentriert sich dann auf Diagnostik statt Browser-Wiedergabe.
 - Ist das Panel eingeklappt, kann es ueber \`Show runtime\` in der Kopfzeile des Graph Editors wieder eingeblendet werden.`,
     french: `### Workflow de test live
@@ -1151,7 +1151,7 @@ Si múltiples señales están conectadas a **la misma entrada** de un opcode:
 
 ### Details du mode audio
 
-- En mode de streaming navigateur, ce panneau affiche aussi l'etat de la connexion audio du navigateur et propose le lecteur audio integre pour le flux entrant.
+- En mode browser-clock, ce panneau affiche l'etat audio du navigateur pendant que le navigateur possede la file PCM et rend la lecture via AudioWorklet.
 - En mode DAC local, l'audio reste sur la machine backend ; le panneau se concentre alors sur le diagnostic plutot que sur la lecture dans le navigateur.
 - Si le panneau est replie, l'en-tete du graphe peut le rouvrir via \`Show runtime\`.`,
     spanish: `### Flujo de prueba en vivo
@@ -1162,7 +1162,7 @@ Si múltiples señales están conectadas a **la misma entrada** de un opcode:
 
 ### Detalles del modo de audio
 
-- En modo de streaming al navegador, este panel tambien informa del estado de la conexion de audio del navegador y expone el reproductor integrado para el flujo entrante.
+- En modo browser-clock, este panel informa del estado de audio del navegador mientras el navegador posee la cola PCM y renderiza la reproduccion mediante AudioWorklet.
 - En modo DAC local, el audio permanece en la maquina del backend y el panel se centra en diagnostico en lugar de reproduccion en navegador.
 - Si el panel esta colapsado, el encabezado del editor de grafos puede volver a mostrarlo con \`Show runtime\`.`
   },

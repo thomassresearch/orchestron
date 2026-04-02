@@ -1,16 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { api, isApiError, wsBaseUrl } from "./api/client";
-import { ConfigPage } from "./components/ConfigPage";
-import { HelpDocumentationModal } from "./components/HelpDocumentationModal";
 import { HelpIconButton } from "./components/HelpIconButton";
 import { OpcodeCatalog } from "./components/OpcodeCatalog";
-import { OpcodeDocumentationModal } from "./components/OpcodeDocumentationModal";
 import { PatchToolbar } from "./components/PatchToolbar";
 import { ReteNodeEditor, type EditorSelection } from "./components/ReteNodeEditor";
 import { RuntimePanel } from "./components/RuntimePanel";
-import { SequencerPage } from "./components/SequencerPage";
-import { documentationUiCopy, getHelpDocument } from "./lib/documentation";
+import { documentationUiCopy } from "./lib/documentationUi";
 import { GUI_LANGUAGE_OPTIONS } from "./lib/guiLanguage";
 import { BrowserClockAudioClient } from "./lib/browserClockAudio";
 import {
@@ -52,6 +48,19 @@ import type {
   SessionSequencerStatus
 } from "./types";
 
+const LazyConfigPage = lazy(() =>
+  import("./components/ConfigPage").then((module) => ({ default: module.ConfigPage }))
+);
+const LazyHelpDocumentationModal = lazy(() =>
+  import("./components/HelpDocumentationModal").then((module) => ({ default: module.HelpDocumentationModal }))
+);
+const LazyOpcodeDocumentationModal = lazy(() =>
+  import("./components/OpcodeDocumentationModal").then((module) => ({ default: module.OpcodeDocumentationModal }))
+);
+const LazySequencerPage = lazy(() =>
+  import("./components/SequencerPage").then((module) => ({ default: module.SequencerPage }))
+);
+
 function connectionKey(connection: Connection): string {
   return `${connection.from_node_id}|${connection.from_port_id}|${connection.to_node_id}|${connection.to_port_id}`;
 }
@@ -74,6 +83,22 @@ function hasOwnRecordKey(record: Record<string, unknown>, key: string): boolean 
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function DeferredPageFallback() {
+  return (
+    <section
+      className="min-h-[480px] rounded-2xl border border-slate-700/70 bg-slate-900/70"
+      aria-busy="true"
+      aria-live="polite"
+    />
+  );
+}
+
+function DeferredModalFallback() {
+  return (
+    <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-slate-950/70 p-4" aria-busy="true" />
+  );
 }
 
 type SequencerRuntimeTrackDelta = {
@@ -390,28 +415,6 @@ function isSessionNotFoundApiError(error: unknown): boolean {
     error.status === 404 &&
     /Session\s+['"][^'"]+['"]\s+not found/i.test(error.body)
   );
-}
-
-function waitForIceGatheringComplete(peer: RTCPeerConnection): Promise<void> {
-  if (peer.iceGatheringState === "complete") {
-    return Promise.resolve();
-  }
-
-  return new Promise((resolve) => {
-    const onStateChange = () => {
-      if (peer.iceGatheringState !== "complete") {
-        return;
-      }
-      peer.removeEventListener("icegatheringstatechange", onStateChange);
-      resolve();
-    };
-
-    peer.addEventListener("icegatheringstatechange", onStateChange);
-    window.setTimeout(() => {
-      peer.removeEventListener("icegatheringstatechange", onStateChange);
-      resolve();
-    }, 5000);
-  });
 }
 
 type ExportedPatchDefinition = {
@@ -1566,15 +1569,6 @@ export default function App() {
   const browserClockTransportEventQueueRef = useRef<BrowserClockQueuedTransportEvent[]>([]);
   const pianoRollNoteSessionRef = useRef(new Map<string, string>());
   const midiControllerInitSessionRef = useRef<string | null>(null);
-  const browserAudioFallbackElementRef = useRef<HTMLAudioElement | null>(null);
-  const browserAudioRuntimeElementRef = useRef<HTMLAudioElement | null>(null);
-  const browserAudioStreamRef = useRef<MediaStream | null>(null);
-  const browserAudioPeerRef = useRef<RTCPeerConnection | null>(null);
-  const browserAudioSessionRef = useRef<string | null>(null);
-  const browserAudioNegotiationTokenRef = useRef(0);
-  const browserAudioRtcConfigurationRef = useRef<RTCConfiguration | null>(null);
-  const browserAudioRtcConfigurationLoadedRef = useRef(false);
-  const browserAudioRtcConfigurationPromiseRef = useRef<Promise<RTCConfiguration | null> | null>(null);
   const runtimeConfigRef = useRef<RuntimeConfigResponse | null>(null);
   const runtimeConfigPromiseRef = useRef<Promise<RuntimeConfigResponse> | null>(null);
   const browserClockClientRef = useRef<BrowserClockAudioClient | null>(null);
@@ -1609,54 +1603,6 @@ export default function App() {
     [runtimeAudioOutputMode, setBrowserClockLatencySettings]
   );
 
-  const syncBrowserAudioOutput = useCallback(
-    (reportPlaybackError: boolean) => {
-      const stream = browserAudioStreamRef.current;
-      const runtimeElement = browserAudioRuntimeElementRef.current;
-      const fallbackElement = browserAudioFallbackElementRef.current;
-      const activeElement = runtimeElement ?? fallbackElement;
-
-      const applyToElement = (audioElement: HTMLAudioElement | null, shouldUseStream: boolean) => {
-        if (!audioElement) {
-          return;
-        }
-
-        if (!shouldUseStream || !stream) {
-          if (audioElement.srcObject !== null) {
-            audioElement.srcObject = null;
-          }
-          return;
-        }
-
-        if (audioElement.srcObject !== stream) {
-          audioElement.srcObject = stream;
-        }
-
-        void audioElement.play().catch((playbackError: unknown) => {
-          if (!reportPlaybackError) {
-            return;
-          }
-          setBrowserAudioStatus("error");
-          setBrowserAudioError(
-            playbackError instanceof Error ? playbackError.message : "Browser blocked autoplay for streamed audio."
-          );
-        });
-      };
-
-      applyToElement(runtimeElement, activeElement === runtimeElement);
-      applyToElement(fallbackElement, activeElement === fallbackElement);
-    },
-    [setBrowserAudioError, setBrowserAudioStatus]
-  );
-
-  const setBrowserAudioRuntimeElement = useCallback(
-    (audioElement: HTMLAudioElement | null) => {
-      browserAudioRuntimeElementRef.current = audioElement;
-      syncBrowserAudioOutput(false);
-    },
-    [syncBrowserAudioOutput]
-  );
-
   const latestStartedEvent = useMemo<SessionEvent | null>(() => {
     for (let index = events.length - 1; index >= 0; index -= 1) {
       const event = events[index];
@@ -1668,18 +1614,10 @@ export default function App() {
   }, [events]);
   const latestStartedAudioMode = useMemo<SessionAudioOutputMode | null>(() => {
     const raw = latestStartedEvent?.payload?.audio_mode;
-    return raw === "browser_clock" || raw === "streaming" || raw === "local" ? raw : null;
-  }, [latestStartedEvent]);
-  const latestStartedAudioStreamReady = useMemo<boolean | null>(() => {
-    const value = latestStartedEvent?.payload?.audio_stream_ready;
-    return typeof value === "boolean" ? value : null;
+    return raw === "browser_clock" || raw === "local" ? raw : null;
   }, [latestStartedEvent]);
   const effectiveAudioOutputMode = latestStartedAudioMode ?? runtimeAudioOutputMode;
-  const browserAudioTransport = effectiveAudioOutputMode === "browser_clock"
-    ? "browser_clock"
-    : effectiveAudioOutputMode === "streaming"
-      ? "webrtc"
-      : "off";
+  const browserAudioTransport = effectiveAudioOutputMode === "browser_clock" ? "browser_clock" : "off";
   const effectiveAudioOutputModeRef = useRef<SessionAudioOutputMode | null>(effectiveAudioOutputMode);
 
   useEffect(() => {
@@ -1739,36 +1677,6 @@ export default function App() {
     };
   }, [effectiveAudioOutputMode, sequencer.isPlaying]);
 
-  const disconnectStreamingBrowserAudio = useCallback(() => {
-    browserAudioNegotiationTokenRef.current += 1;
-
-    const peer = browserAudioPeerRef.current;
-    browserAudioPeerRef.current = null;
-    browserAudioSessionRef.current = null;
-    if (peer) {
-      try {
-        peer.ontrack = null;
-        peer.onconnectionstatechange = null;
-        peer.oniceconnectionstatechange = null;
-        peer.close();
-      } catch {
-        // Ignore browser-side cleanup failures.
-      }
-    }
-
-    browserAudioStreamRef.current = null;
-
-    const runtimeElement = browserAudioRuntimeElementRef.current;
-    if (runtimeElement) {
-      runtimeElement.srcObject = null;
-    }
-
-    const fallbackElement = browserAudioFallbackElementRef.current;
-    if (fallbackElement) {
-      fallbackElement.srcObject = null;
-    }
-  }, []);
-
   const disconnectBrowserClockAudio = useCallback(() => {
     const client = browserClockClientRef.current;
     if (!client) {
@@ -1778,9 +1686,8 @@ export default function App() {
   }, []);
 
   const disconnectBrowserAudio = useCallback(() => {
-    disconnectStreamingBrowserAudio();
     disconnectBrowserClockAudio();
-  }, [disconnectBrowserClockAudio, disconnectStreamingBrowserAudio]);
+  }, [disconnectBrowserClockAudio]);
 
   const invalidateMissingRuntimeSession = useCallback(
     (sessionId: string, error: unknown): boolean => {
@@ -1844,155 +1751,6 @@ export default function App() {
     return pending;
   }, []);
 
-  const getBrowserAudioRtcConfiguration = useCallback(async (): Promise<RTCConfiguration | null> => {
-    if (browserAudioRtcConfigurationLoadedRef.current) {
-      return browserAudioRtcConfigurationRef.current;
-    }
-    if (browserAudioRtcConfigurationPromiseRef.current) {
-      return browserAudioRtcConfigurationPromiseRef.current;
-    }
-
-    const pending = loadRuntimeConfig()
-      .then((runtimeConfig) => {
-        const iceServers: RTCIceServer[] = runtimeConfig.webrtc_browser_ice_servers
-          .filter((server) => {
-            if (typeof server.urls === "string") {
-              return server.urls.length > 0;
-            }
-            return Array.isArray(server.urls) && server.urls.some((url) => typeof url === "string" && url.length > 0);
-          })
-          .map((server) => {
-            const normalized: RTCIceServer = { urls: server.urls };
-            if (server.username) {
-              normalized.username = server.username;
-            }
-            if (server.credential) {
-              normalized.credential = server.credential;
-            }
-            return normalized;
-          });
-
-        const configuration = iceServers.length > 0 ? ({ iceServers } satisfies RTCConfiguration) : null;
-        browserAudioRtcConfigurationRef.current = configuration;
-        browserAudioRtcConfigurationLoadedRef.current = true;
-        browserAudioRtcConfigurationPromiseRef.current = null;
-        return configuration;
-      })
-      .catch((error) => {
-        browserAudioRtcConfigurationPromiseRef.current = null;
-        throw error;
-      });
-
-    browserAudioRtcConfigurationPromiseRef.current = pending;
-    return pending;
-  }, [loadRuntimeConfig]);
-
-  const ensureBrowserAudioConnection = useCallback(
-    async (sessionId: string) => {
-      const existing = browserAudioPeerRef.current;
-      if (
-        existing &&
-        browserAudioSessionRef.current === sessionId &&
-        existing.connectionState !== "closed" &&
-        existing.connectionState !== "failed"
-      ) {
-        return;
-      }
-
-      disconnectStreamingBrowserAudio();
-      setBrowserAudioStatus("connecting");
-      setBrowserAudioError(null);
-
-      const token = browserAudioNegotiationTokenRef.current;
-      const rtcConfiguration = await getBrowserAudioRtcConfiguration();
-      if (browserAudioNegotiationTokenRef.current !== token) {
-        return;
-      }
-
-      const peer = new RTCPeerConnection(rtcConfiguration ?? undefined);
-      browserAudioPeerRef.current = peer;
-      browserAudioSessionRef.current = sessionId;
-
-      peer.ontrack = (event) => {
-        const stream = event.streams[0] ?? new MediaStream([event.track]);
-        browserAudioStreamRef.current = stream;
-        syncBrowserAudioOutput(true);
-      };
-      peer.onconnectionstatechange = () => {
-        if (browserAudioPeerRef.current !== peer) {
-          return;
-        }
-        if (peer.connectionState === "connected") {
-          setBrowserAudioStatus("live");
-          setBrowserAudioError(null);
-          return;
-        }
-        if (peer.connectionState === "failed" || peer.connectionState === "disconnected") {
-          setBrowserAudioStatus("error");
-          setBrowserAudioError(`WebRTC connection ${peer.connectionState}.`);
-        }
-      };
-      peer.oniceconnectionstatechange = () => {
-        if (browserAudioPeerRef.current !== peer) {
-          return;
-        }
-        if (peer.iceConnectionState === "failed" || peer.iceConnectionState === "disconnected") {
-          setBrowserAudioStatus("error");
-          setBrowserAudioError(`ICE ${peer.iceConnectionState}.`);
-        }
-      };
-
-      try {
-        peer.addTransceiver("audio", { direction: "recvonly" });
-        const offer = await peer.createOffer();
-        await peer.setLocalDescription(offer);
-        await waitForIceGatheringComplete(peer);
-
-        if (browserAudioNegotiationTokenRef.current !== token) {
-          peer.close();
-          return;
-        }
-
-        const localDescription = peer.localDescription;
-        if (!localDescription?.sdp) {
-          throw new Error("Failed to create WebRTC offer.");
-        }
-
-        const answer = await api.negotiateSessionAudioWebRtc(sessionId, {
-          type: "offer",
-          sdp: localDescription.sdp
-        });
-
-        if (browserAudioNegotiationTokenRef.current !== token) {
-          peer.close();
-          return;
-        }
-
-        await peer.setRemoteDescription({
-          type: answer.type,
-          sdp: answer.sdp
-        });
-      } catch (error) {
-        if (invalidateMissingRuntimeSession(sessionId, error)) {
-          if (browserAudioPeerRef.current === peer) {
-            browserAudioPeerRef.current = null;
-            browserAudioSessionRef.current = null;
-          }
-          peer.close();
-          return;
-        }
-        if (browserAudioPeerRef.current === peer) {
-          peer.close();
-          browserAudioPeerRef.current = null;
-          browserAudioSessionRef.current = null;
-        }
-        setBrowserAudioStatus("error");
-        setBrowserAudioError(error instanceof Error ? error.message : "Failed to connect browser audio stream.");
-      }
-    },
-    [disconnectStreamingBrowserAudio, getBrowserAudioRtcConfiguration, invalidateMissingRuntimeSession, syncBrowserAudioOutput]
-  );
-
   const ensureBrowserClockConnection = useCallback(
     async (sessionId: string) => {
       const client = browserClockClientRef.current;
@@ -2031,38 +1789,20 @@ export default function App() {
     }
 
     if (effectiveAudioOutputMode === "browser_clock") {
-      disconnectStreamingBrowserAudio();
       void ensureBrowserClockConnection(activeSessionId);
       return;
     }
 
     disconnectBrowserClockAudio();
-
-    if (effectiveAudioOutputMode !== "streaming") {
-      disconnectStreamingBrowserAudio();
-      setBrowserAudioStatus("off");
-      setBrowserAudioError(null);
-      return;
-    }
-
-    if (latestStartedAudioStreamReady === false) {
-      disconnectStreamingBrowserAudio();
-      setBrowserAudioStatus("error");
-      setBrowserAudioError("Backend started in streaming mode, but browser audio is not available.");
-      return;
-    }
-
-    void ensureBrowserAudioConnection(activeSessionId);
+    setBrowserAudioStatus("off");
+    setBrowserAudioError(null);
   }, [
     activeSessionId,
     activeSessionState,
     disconnectBrowserClockAudio,
-    disconnectStreamingBrowserAudio,
     disconnectBrowserAudio,
     effectiveAudioOutputMode,
     ensureBrowserClockConnection,
-    ensureBrowserAudioConnection,
-    latestStartedAudioStreamReady
   ]);
 
   useEffect(() => {
@@ -2302,12 +2042,6 @@ export default function App() {
     [activeOpcodeDocumentation, opcodes]
   );
   const documentationCopy = useMemo(() => documentationUiCopy(guiLanguage), [guiLanguage]);
-  const selectedHelpDocumentation = useMemo(() => {
-    if (!activeHelpDocumentation) {
-      return null;
-    }
-    return getHelpDocument(activeHelpDocumentation, guiLanguage);
-  }, [activeHelpDocumentation, guiLanguage]);
   const importConflictValidationError = useMemo(() => {
     if (!importConflictDialog) {
       return null;
@@ -4164,7 +3898,6 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[radial-gradient(ellipse_at_top_left,_#1e293b,_#020617_60%)] px-4 py-4 text-slate-100 sm:px-6 lg:px-8">
-      <audio ref={browserAudioFallbackElementRef} className="sr-only" autoPlay playsInline preload="none" aria-hidden />
       <div className="mx-auto max-w-[1700px] space-y-3">
         <header className="relative flex items-center gap-3 rounded-2xl border-x border-y border-slate-700/70 bg-slate-900/65 px-4 py-0 pr-44">
           <div className="flex flex-1 items-center gap-3">
@@ -4374,7 +4107,6 @@ export default function App() {
                     browserAudioTransport={browserAudioTransport}
                     browserAudioStatus={browserAudioTransport !== "off" ? browserAudioStatus : "off"}
                     browserAudioError={browserAudioTransport !== "off" ? browserAudioError : null}
-                    browserAudioElementRef={browserAudioTransport === "webrtc" ? setBrowserAudioRuntimeElement : undefined}
                     onBindMidiInput={(midiInput) => {
                       void bindMidiInput(midiInput);
                     }}
@@ -4387,255 +4119,263 @@ export default function App() {
         )}
 
         {activePage === "sequencer" && (
-          <SequencerPage
-            guiLanguage={guiLanguage}
-            patches={patches}
-            instrumentBindings={sequencerInstruments}
-            sequencer={displayedSequencer}
-            sequencerTransportSubunit={displayedSequencerTransportSubunit}
-            performances={performances}
-            currentPerformanceId={currentPerformanceId}
-            performanceName={performanceName}
-            performanceDescription={performanceDescription}
-            instrumentsRunning={instrumentsRunning}
-            sessionState={activeSessionState}
-            midiInputName={activeMidiInputName}
-            transportError={sequencerError}
-            onAddInstrument={addSequencerInstrument}
-            onRemoveInstrument={removeSequencerInstrument}
-            onInstrumentPatchChange={updateSequencerInstrumentPatch}
-            onInstrumentChannelChange={updateSequencerInstrumentChannel}
-            onInstrumentLevelChange={updateSequencerInstrumentLevel}
-            onPerformanceNameChange={(name) => setCurrentPerformanceMeta(name, performanceDescription)}
-            onPerformanceDescriptionChange={(description) => setCurrentPerformanceMeta(performanceName, description)}
-            onNewPerformance={onNewCurrentPerformance}
-            onSavePerformance={() => {
-              void saveCurrentPerformance();
-            }}
-            onClonePerformance={onCloneCurrentPerformance}
-            onDeletePerformance={onDeleteCurrentPerformance}
-            onLoadPerformance={(performanceId) => {
-              void loadPerformance(performanceId);
-            }}
-            onExportConfig={onExportSequencerConfig}
-            onExportCsd={onExportPerformanceCsd}
-            onImportConfig={onImportSequencerConfig}
-            onStartInstruments={onStartInstrumentEngine}
-            onStopInstruments={onStopInstrumentEngine}
-            onStopInstrumentsAndResetTransport={onStopInstrumentEngineAndResetTransport}
-            onBpmChange={setSequencerBpm}
-            onAddSequencerTrack={addSequencerTrack}
-            onAddDrummerSequencerTrack={addDrummerSequencerTrack}
-            onAddControllerSequencer={addControllerSequencer}
-            onSequencerCycleRewind={() => {
-              void moveSequencerTransport(-sequencerTransportStepsPerBeat(sequencer.timing));
-            }}
-            onSequencerCycleForward={() => {
-              void moveSequencerTransport(sequencerTransportStepsPerBeat(sequencer.timing));
-            }}
-            onSequencerArrangerLoopSelectionChange={handleArrangerLoopSelectionChange}
-            onRemoveSequencerTrack={removeSequencerTrack}
-            onSequencerTrackEnabledChange={onSequencerTrackEnabledChange}
-            onSequencerTrackChannelChange={setSequencerTrackMidiChannel}
-            onSequencerTrackSyncTargetChange={setSequencerTrackSyncTarget}
-            onSequencerTrackScaleChange={setSequencerTrackScale}
-            onSequencerTrackModeChange={setSequencerTrackMode}
-            onSequencerTrackMeterNumeratorChange={setSequencerTrackMeterNumerator}
-            onSequencerTrackMeterDenominatorChange={setSequencerTrackMeterDenominator}
-            onSequencerTrackStepsPerBeatChange={setSequencerTrackStepsPerBeat}
-            onSequencerTrackBeatRateChange={setSequencerTrackBeatRate}
-            onSequencerTrackStepCountChange={setSequencerTrackStepCount}
-            onSequencerTrackStepNoteChange={setSequencerTrackStepNote}
-            onSequencerTrackStepChordChange={setSequencerTrackStepChord}
-            onSequencerTrackStepHoldChange={setSequencerTrackStepHold}
-            onSequencerTrackStepVelocityChange={setSequencerTrackStepVelocity}
-            onSequencerTrackStepCopy={copySequencerTrackStepSettings}
-            onSequencerTrackClearSteps={clearSequencerTrackSteps}
-            onSequencerTrackReorder={moveSequencerTrack}
-            onSequencerPadPress={(trackId, padIndex) => {
-              const track = sequencerRef.current.tracks.find((candidate) => candidate.id === trackId);
-              if (!track) {
-                return;
-              }
-              if (!sequencerRef.current.isPlaying || !track.enabled) {
-                setSequencerTrackActivePad(trackId, padIndex);
-                return;
-              }
+          <Suspense fallback={<DeferredPageFallback />}>
+            <LazySequencerPage
+              guiLanguage={guiLanguage}
+              patches={patches}
+              instrumentBindings={sequencerInstruments}
+              sequencer={displayedSequencer}
+              sequencerTransportSubunit={displayedSequencerTransportSubunit}
+              performances={performances}
+              currentPerformanceId={currentPerformanceId}
+              performanceName={performanceName}
+              performanceDescription={performanceDescription}
+              instrumentsRunning={instrumentsRunning}
+              sessionState={activeSessionState}
+              midiInputName={activeMidiInputName}
+              transportError={sequencerError}
+              onAddInstrument={addSequencerInstrument}
+              onRemoveInstrument={removeSequencerInstrument}
+              onInstrumentPatchChange={updateSequencerInstrumentPatch}
+              onInstrumentChannelChange={updateSequencerInstrumentChannel}
+              onInstrumentLevelChange={updateSequencerInstrumentLevel}
+              onPerformanceNameChange={(name) => setCurrentPerformanceMeta(name, performanceDescription)}
+              onPerformanceDescriptionChange={(description) => setCurrentPerformanceMeta(performanceName, description)}
+              onNewPerformance={onNewCurrentPerformance}
+              onSavePerformance={() => {
+                void saveCurrentPerformance();
+              }}
+              onClonePerformance={onCloneCurrentPerformance}
+              onDeletePerformance={onDeleteCurrentPerformance}
+              onLoadPerformance={(performanceId) => {
+                void loadPerformance(performanceId);
+              }}
+              onExportConfig={onExportSequencerConfig}
+              onExportCsd={onExportPerformanceCsd}
+              onImportConfig={onImportSequencerConfig}
+              onStartInstruments={onStartInstrumentEngine}
+              onStopInstruments={onStopInstrumentEngine}
+              onStopInstrumentsAndResetTransport={onStopInstrumentEngineAndResetTransport}
+              onBpmChange={setSequencerBpm}
+              onAddSequencerTrack={addSequencerTrack}
+              onAddDrummerSequencerTrack={addDrummerSequencerTrack}
+              onAddControllerSequencer={addControllerSequencer}
+              onSequencerCycleRewind={() => {
+                void moveSequencerTransport(-sequencerTransportStepsPerBeat(sequencer.timing));
+              }}
+              onSequencerCycleForward={() => {
+                void moveSequencerTransport(sequencerTransportStepsPerBeat(sequencer.timing));
+              }}
+              onSequencerArrangerLoopSelectionChange={handleArrangerLoopSelectionChange}
+              onRemoveSequencerTrack={removeSequencerTrack}
+              onSequencerTrackEnabledChange={onSequencerTrackEnabledChange}
+              onSequencerTrackChannelChange={setSequencerTrackMidiChannel}
+              onSequencerTrackSyncTargetChange={setSequencerTrackSyncTarget}
+              onSequencerTrackScaleChange={setSequencerTrackScale}
+              onSequencerTrackModeChange={setSequencerTrackMode}
+              onSequencerTrackMeterNumeratorChange={setSequencerTrackMeterNumerator}
+              onSequencerTrackMeterDenominatorChange={setSequencerTrackMeterDenominator}
+              onSequencerTrackStepsPerBeatChange={setSequencerTrackStepsPerBeat}
+              onSequencerTrackBeatRateChange={setSequencerTrackBeatRate}
+              onSequencerTrackStepCountChange={setSequencerTrackStepCount}
+              onSequencerTrackStepNoteChange={setSequencerTrackStepNote}
+              onSequencerTrackStepChordChange={setSequencerTrackStepChord}
+              onSequencerTrackStepHoldChange={setSequencerTrackStepHold}
+              onSequencerTrackStepVelocityChange={setSequencerTrackStepVelocity}
+              onSequencerTrackStepCopy={copySequencerTrackStepSettings}
+              onSequencerTrackClearSteps={clearSequencerTrackSteps}
+              onSequencerTrackReorder={moveSequencerTrack}
+              onSequencerPadPress={(trackId, padIndex) => {
+                const track = sequencerRef.current.tracks.find((candidate) => candidate.id === trackId);
+                if (!track) {
+                  return;
+                }
+                if (!sequencerRef.current.isPlaying || !track.enabled) {
+                  setSequencerTrackActivePad(trackId, padIndex);
+                  return;
+                }
 
-              const sessionId = sequencerSessionIdRef.current ?? activeSessionId;
-              if (!sessionId) {
-                setSequencerError(appCopy.errors.noActiveSessionForPadSwitching);
-                return;
-              }
+                const sessionId = sequencerSessionIdRef.current ?? activeSessionId;
+                if (!sessionId) {
+                  setSequencerError(appCopy.errors.noActiveSessionForPadSwitching);
+                  return;
+                }
 
-              void queueSequencerPadRuntime(sessionId, trackId, padIndex)
-                .then((status) => {
-                  setSequencerTrackQueuedPad(trackId, padIndex);
-                  applySequencerStatus(status);
-                })
-                .catch((queueError) => {
+                void queueSequencerPadRuntime(sessionId, trackId, padIndex)
+                  .then((status) => {
+                    setSequencerTrackQueuedPad(trackId, padIndex);
+                    applySequencerStatus(status);
+                  })
+                  .catch((queueError) => {
+                    setSequencerError(
+                      queueError instanceof Error
+                        ? `${appCopy.errors.failedToQueuePad}: ${queueError.message}`
+                        : appCopy.errors.failedToQueuePad
+                    );
+                  });
+              }}
+              onSequencerPadCopy={(trackId, sourcePadIndex, targetPadIndex) => {
+                copySequencerTrackPad(trackId, sourcePadIndex, targetPadIndex);
+              }}
+              onSequencerPadTransposeShort={(trackId, padIndex, direction) => {
+                transposeSequencerTrackPadInScale(trackId, padIndex, direction);
+              }}
+              onSequencerPadTransposeLong={(trackId, padIndex, direction) => {
+                transposeSequencerTrackPadDiatonic(trackId, padIndex, direction);
+              }}
+              onSequencerTrackPadLoopEnabledChange={setSequencerTrackPadLoopEnabled}
+              onSequencerTrackPadLoopRepeatChange={setSequencerTrackPadLoopRepeat}
+              onSequencerTrackPadLoopPatternChange={setSequencerTrackPadLoopPattern}
+              onSequencerTrackPadLoopStepAdd={addSequencerTrackPadLoopStep}
+              onSequencerTrackPadLoopStepRemove={removeSequencerTrackPadLoopStep}
+              onRemoveDrummerSequencerTrack={removeDrummerSequencerTrack}
+              onDrummerSequencerTrackEnabledChange={onDrummerSequencerTrackEnabledChange}
+              onDrummerSequencerTrackChannelChange={setDrummerSequencerTrackMidiChannel}
+              onDrummerSequencerTrackMeterNumeratorChange={setDrummerSequencerTrackMeterNumerator}
+              onDrummerSequencerTrackMeterDenominatorChange={setDrummerSequencerTrackMeterDenominator}
+              onDrummerSequencerTrackStepsPerBeatChange={setDrummerSequencerTrackStepsPerBeat}
+              onDrummerSequencerTrackBeatRateChange={setDrummerSequencerTrackBeatRate}
+              onDrummerSequencerTrackStepCountChange={setDrummerSequencerTrackStepCount}
+              onDrummerSequencerRowAdd={addDrummerSequencerRow}
+              onDrummerSequencerRowRemove={removeDrummerSequencerRow}
+              onDrummerSequencerRowKeyChange={setDrummerSequencerRowKey}
+              onDrummerSequencerRowKeyPreview={onDrummerSequencerRowKeyPreview}
+              onDrummerSequencerCellToggle={toggleDrummerSequencerCell}
+              onDrummerSequencerCellVelocityChange={setDrummerSequencerCellVelocity}
+              onDrummerSequencerTrackClearSteps={clearDrummerSequencerTrackSteps}
+              onDrummerSequencerPadPress={(trackId, padIndex) => {
+                const drummerTrack = sequencerRef.current.drummerTracks.find((track) => track.id === trackId);
+                if (!drummerTrack) {
+                  return;
+                }
+                if (!sequencerRef.current.isPlaying || !drummerTrack.enabled) {
+                  setDrummerSequencerTrackActivePad(trackId, padIndex);
+                  return;
+                }
+
+                const sessionId = sequencerSessionIdRef.current ?? activeSessionId;
+                if (!sessionId) {
+                  setSequencerError(appCopy.errors.noActiveSessionForPadSwitching);
+                  return;
+                }
+
+                void (async () => {
+                  let latestStatus: SessionSequencerStatus | null = null;
+                  for (const row of drummerTrack.rows) {
+                    latestStatus = await queueSequencerPadRuntime(
+                      sessionId,
+                      drummerRowRuntimeTrackId(trackId, row.id),
+                      padIndex
+                    );
+                  }
+                  setDrummerSequencerTrackQueuedPad(trackId, padIndex);
+                  if (latestStatus) {
+                    applySequencerStatus(latestStatus);
+                  }
+                })().catch((queueError) => {
                   setSequencerError(
                     queueError instanceof Error
                       ? `${appCopy.errors.failedToQueuePad}: ${queueError.message}`
                       : appCopy.errors.failedToQueuePad
                   );
                 });
-            }}
-            onSequencerPadCopy={(trackId, sourcePadIndex, targetPadIndex) => {
-              copySequencerTrackPad(trackId, sourcePadIndex, targetPadIndex);
-            }}
-            onSequencerPadTransposeShort={(trackId, padIndex, direction) => {
-              transposeSequencerTrackPadInScale(trackId, padIndex, direction);
-            }}
-            onSequencerPadTransposeLong={(trackId, padIndex, direction) => {
-              transposeSequencerTrackPadDiatonic(trackId, padIndex, direction);
-            }}
-            onSequencerTrackPadLoopEnabledChange={setSequencerTrackPadLoopEnabled}
-            onSequencerTrackPadLoopRepeatChange={setSequencerTrackPadLoopRepeat}
-            onSequencerTrackPadLoopPatternChange={setSequencerTrackPadLoopPattern}
-            onSequencerTrackPadLoopStepAdd={addSequencerTrackPadLoopStep}
-            onSequencerTrackPadLoopStepRemove={removeSequencerTrackPadLoopStep}
-            onRemoveDrummerSequencerTrack={removeDrummerSequencerTrack}
-            onDrummerSequencerTrackEnabledChange={onDrummerSequencerTrackEnabledChange}
-            onDrummerSequencerTrackChannelChange={setDrummerSequencerTrackMidiChannel}
-            onDrummerSequencerTrackMeterNumeratorChange={setDrummerSequencerTrackMeterNumerator}
-            onDrummerSequencerTrackMeterDenominatorChange={setDrummerSequencerTrackMeterDenominator}
-            onDrummerSequencerTrackStepsPerBeatChange={setDrummerSequencerTrackStepsPerBeat}
-            onDrummerSequencerTrackBeatRateChange={setDrummerSequencerTrackBeatRate}
-            onDrummerSequencerTrackStepCountChange={setDrummerSequencerTrackStepCount}
-            onDrummerSequencerRowAdd={addDrummerSequencerRow}
-            onDrummerSequencerRowRemove={removeDrummerSequencerRow}
-            onDrummerSequencerRowKeyChange={setDrummerSequencerRowKey}
-            onDrummerSequencerRowKeyPreview={onDrummerSequencerRowKeyPreview}
-            onDrummerSequencerCellToggle={toggleDrummerSequencerCell}
-            onDrummerSequencerCellVelocityChange={setDrummerSequencerCellVelocity}
-            onDrummerSequencerTrackClearSteps={clearDrummerSequencerTrackSteps}
-            onDrummerSequencerPadPress={(trackId, padIndex) => {
-              const drummerTrack = sequencerRef.current.drummerTracks.find((track) => track.id === trackId);
-              if (!drummerTrack) {
-                return;
-              }
-              if (!sequencerRef.current.isPlaying || !drummerTrack.enabled) {
-                setDrummerSequencerTrackActivePad(trackId, padIndex);
-                return;
-              }
-
-              const sessionId = sequencerSessionIdRef.current ?? activeSessionId;
-              if (!sessionId) {
-                setSequencerError(appCopy.errors.noActiveSessionForPadSwitching);
-                return;
-              }
-
-              void (async () => {
-                let latestStatus: SessionSequencerStatus | null = null;
-                for (const row of drummerTrack.rows) {
-                  latestStatus = await queueSequencerPadRuntime(sessionId, drummerRowRuntimeTrackId(trackId, row.id), padIndex);
-                }
-                setDrummerSequencerTrackQueuedPad(trackId, padIndex);
-                if (latestStatus) {
-                  applySequencerStatus(latestStatus);
-                }
-              })().catch((queueError) => {
-                setSequencerError(
-                  queueError instanceof Error
-                    ? `${appCopy.errors.failedToQueuePad}: ${queueError.message}`
-                    : appCopy.errors.failedToQueuePad
+              }}
+              onDrummerSequencerPadCopy={(trackId, sourcePadIndex, targetPadIndex) => {
+                copyDrummerSequencerPad(trackId, sourcePadIndex, targetPadIndex);
+              }}
+              onDrummerSequencerTrackPadLoopEnabledChange={setDrummerSequencerTrackPadLoopEnabled}
+              onDrummerSequencerTrackPadLoopRepeatChange={setDrummerSequencerTrackPadLoopRepeat}
+              onDrummerSequencerTrackPadLoopPatternChange={setDrummerSequencerTrackPadLoopPattern}
+              onDrummerSequencerTrackPadLoopStepAdd={addDrummerSequencerTrackPadLoopStep}
+              onDrummerSequencerTrackPadLoopStepRemove={removeDrummerSequencerTrackPadLoopStep}
+              onAddPianoRoll={addPianoRoll}
+              onRemovePianoRoll={removePianoRoll}
+              onPianoRollEnabledChange={onPianoRollEnabledChange}
+              onPianoRollMidiChannelChange={setPianoRollMidiChannel}
+              onPianoRollVelocityChange={setPianoRollVelocity}
+              onPianoRollScaleChange={setPianoRollScale}
+              onPianoRollModeChange={setPianoRollMode}
+              onPianoRollNoteOn={onPianoRollNoteOn}
+              onPianoRollNoteOff={onPianoRollNoteOff}
+              onAddMidiController={addMidiController}
+              onRemoveMidiController={removeMidiController}
+              onMidiControllerEnabledChange={onMidiControllerEnabledChange}
+              onMidiControllerNumberChange={onMidiControllerNumberChange}
+              onMidiControllerValueChange={onMidiControllerValueChange}
+              onRemoveControllerSequencer={removeControllerSequencer}
+              onControllerSequencerEnabledChange={setControllerSequencerEnabled}
+              onControllerSequencerNumberChange={setControllerSequencerNumber}
+              onControllerSequencerMeterNumeratorChange={setControllerSequencerMeterNumerator}
+              onControllerSequencerMeterDenominatorChange={setControllerSequencerMeterDenominator}
+              onControllerSequencerStepsPerBeatChange={setControllerSequencerStepsPerBeat}
+              onControllerSequencerBeatRateChange={setControllerSequencerBeatRate}
+              onControllerSequencerPadPress={(controllerSequencerId, padIndex) => {
+                const controllerSequencer = sequencerRef.current.controllerSequencers.find(
+                  (candidate) => candidate.id === controllerSequencerId
                 );
-              });
-            }}
-            onDrummerSequencerPadCopy={(trackId, sourcePadIndex, targetPadIndex) => {
-              copyDrummerSequencerPad(trackId, sourcePadIndex, targetPadIndex);
-            }}
-            onDrummerSequencerTrackPadLoopEnabledChange={setDrummerSequencerTrackPadLoopEnabled}
-            onDrummerSequencerTrackPadLoopRepeatChange={setDrummerSequencerTrackPadLoopRepeat}
-            onDrummerSequencerTrackPadLoopPatternChange={setDrummerSequencerTrackPadLoopPattern}
-            onDrummerSequencerTrackPadLoopStepAdd={addDrummerSequencerTrackPadLoopStep}
-            onDrummerSequencerTrackPadLoopStepRemove={removeDrummerSequencerTrackPadLoopStep}
-            onAddPianoRoll={addPianoRoll}
-            onRemovePianoRoll={removePianoRoll}
-            onPianoRollEnabledChange={onPianoRollEnabledChange}
-            onPianoRollMidiChannelChange={setPianoRollMidiChannel}
-            onPianoRollVelocityChange={setPianoRollVelocity}
-            onPianoRollScaleChange={setPianoRollScale}
-            onPianoRollModeChange={setPianoRollMode}
-            onPianoRollNoteOn={onPianoRollNoteOn}
-            onPianoRollNoteOff={onPianoRollNoteOff}
-            onAddMidiController={addMidiController}
-            onRemoveMidiController={removeMidiController}
-            onMidiControllerEnabledChange={onMidiControllerEnabledChange}
-            onMidiControllerNumberChange={onMidiControllerNumberChange}
-            onMidiControllerValueChange={onMidiControllerValueChange}
-            onRemoveControllerSequencer={removeControllerSequencer}
-            onControllerSequencerEnabledChange={setControllerSequencerEnabled}
-            onControllerSequencerNumberChange={setControllerSequencerNumber}
-            onControllerSequencerMeterNumeratorChange={setControllerSequencerMeterNumerator}
-            onControllerSequencerMeterDenominatorChange={setControllerSequencerMeterDenominator}
-            onControllerSequencerStepsPerBeatChange={setControllerSequencerStepsPerBeat}
-            onControllerSequencerBeatRateChange={setControllerSequencerBeatRate}
-            onControllerSequencerPadPress={(controllerSequencerId, padIndex) => {
-              const controllerSequencer = sequencerRef.current.controllerSequencers.find(
-                (candidate) => candidate.id === controllerSequencerId
-              );
-              if (!controllerSequencer) {
-                return;
-              }
-              if (!sequencerRef.current.isPlaying || !controllerSequencer.enabled) {
-                setControllerSequencerActivePad(controllerSequencerId, padIndex);
-                setControllerSequencerQueuedPad(controllerSequencerId, null);
-                return;
-              }
+                if (!controllerSequencer) {
+                  return;
+                }
+                if (!sequencerRef.current.isPlaying || !controllerSequencer.enabled) {
+                  setControllerSequencerActivePad(controllerSequencerId, padIndex);
+                  setControllerSequencerQueuedPad(controllerSequencerId, null);
+                  return;
+                }
 
-              const sessionId = sequencerSessionIdRef.current ?? activeSessionId;
-              if (!sessionId) {
-                setSequencerError(appCopy.errors.noActiveSessionForPadSwitching);
-                return;
-              }
+                const sessionId = sequencerSessionIdRef.current ?? activeSessionId;
+                if (!sessionId) {
+                  setSequencerError(appCopy.errors.noActiveSessionForPadSwitching);
+                  return;
+                }
 
-              const queuedPad = controllerSequencer.activePad === padIndex ? null : padIndex;
-              void queueSequencerPadRuntime(sessionId, controllerSequencerId, queuedPad)
-                .then((status) => {
-                  applySequencerStatus(status);
-                })
-                .catch((queueError) => {
-                  setSequencerError(
-                    queueError instanceof Error
-                      ? `${appCopy.errors.failedToQueuePad}: ${queueError.message}`
-                      : appCopy.errors.failedToQueuePad
-                  );
-                });
-            }}
-            onControllerSequencerPadCopy={copyControllerSequencerPad}
-            onControllerSequencerClearSteps={clearControllerSequencerSteps}
-            onControllerSequencerPadLoopEnabledChange={setControllerSequencerPadLoopEnabled}
-            onControllerSequencerPadLoopRepeatChange={setControllerSequencerPadLoopRepeat}
-            onControllerSequencerPadLoopPatternChange={setControllerSequencerPadLoopPattern}
-            onControllerSequencerPadLoopStepAdd={addControllerSequencerPadLoopStep}
-            onControllerSequencerPadLoopStepRemove={removeControllerSequencerPadLoopStep}
-            onControllerSequencerStepCountChange={setControllerSequencerStepCount}
-            onControllerSequencerKeypointAdd={addControllerSequencerKeypoint}
-            onControllerSequencerKeypointChange={setControllerSequencerKeypoint}
-            onControllerSequencerKeypointValueChange={setControllerSequencerKeypointValue}
-            onControllerSequencerKeypointRemove={removeControllerSequencerKeypoint}
-            onHelpRequest={onHelpRequest}
-          />
+                const queuedPad = controllerSequencer.activePad === padIndex ? null : padIndex;
+                void queueSequencerPadRuntime(sessionId, controllerSequencerId, queuedPad)
+                  .then((status) => {
+                    applySequencerStatus(status);
+                  })
+                  .catch((queueError) => {
+                    setSequencerError(
+                      queueError instanceof Error
+                        ? `${appCopy.errors.failedToQueuePad}: ${queueError.message}`
+                        : appCopy.errors.failedToQueuePad
+                    );
+                  });
+              }}
+              onControllerSequencerPadCopy={copyControllerSequencerPad}
+              onControllerSequencerClearSteps={clearControllerSequencerSteps}
+              onControllerSequencerPadLoopEnabledChange={setControllerSequencerPadLoopEnabled}
+              onControllerSequencerPadLoopRepeatChange={setControllerSequencerPadLoopRepeat}
+              onControllerSequencerPadLoopPatternChange={setControllerSequencerPadLoopPattern}
+              onControllerSequencerPadLoopStepAdd={addControllerSequencerPadLoopStep}
+              onControllerSequencerPadLoopStepRemove={removeControllerSequencerPadLoopStep}
+              onControllerSequencerStepCountChange={setControllerSequencerStepCount}
+              onControllerSequencerKeypointAdd={addControllerSequencerKeypoint}
+              onControllerSequencerKeypointChange={setControllerSequencerKeypoint}
+              onControllerSequencerKeypointValueChange={setControllerSequencerKeypointValue}
+              onControllerSequencerKeypointRemove={removeControllerSequencerKeypoint}
+              onHelpRequest={onHelpRequest}
+            />
+          </Suspense>
         )}
 
         {activePage === "config" && (
-          <ConfigPage
-            guiLanguage={guiLanguage}
-            audioRate={currentPatch.graph.engine_config.sr}
-            controlRate={currentPatch.graph.engine_config.control_rate}
-            ksmps={currentPatch.graph.engine_config.ksmps}
-            softwareBuffer={currentPatch.graph.engine_config.software_buffer}
-            hardwareBuffer={currentPatch.graph.engine_config.hardware_buffer}
-            showBrowserClockLatencyConfig={runtimeAudioOutputMode === "browser_clock"}
-            browserClockLatencySettings={browserClockLatencySettings}
-            onHelpRequest={onHelpRequest}
-            onApplyEngineConfig={(config) => {
-              void applyEngineConfig(config);
-            }}
-            onApplyBrowserClockLatencySettings={onApplyBrowserClockLatencySettings}
-          />
+          <Suspense fallback={<DeferredPageFallback />}>
+            <LazyConfigPage
+              guiLanguage={guiLanguage}
+              audioRate={currentPatch.graph.engine_config.sr}
+              controlRate={currentPatch.graph.engine_config.control_rate}
+              ksmps={currentPatch.graph.engine_config.ksmps}
+              softwareBuffer={currentPatch.graph.engine_config.software_buffer}
+              hardwareBuffer={currentPatch.graph.engine_config.hardware_buffer}
+              showBrowserClockLatencyConfig={runtimeAudioOutputMode === "browser_clock"}
+              browserClockLatencySettings={browserClockLatencySettings}
+              onHelpRequest={onHelpRequest}
+              onApplyEngineConfig={(config) => {
+                void applyEngineConfig(config);
+              }}
+              onApplyBrowserClockLatencySettings={onApplyBrowserClockLatencySettings}
+            />
+          </Suspense>
         )}
       </div>
 
@@ -4964,20 +4704,23 @@ export default function App() {
       )}
 
       {selectedOpcodeDocumentation && (
-        <OpcodeDocumentationModal
-          opcode={selectedOpcodeDocumentation}
-          guiLanguage={guiLanguage}
-          onClose={() => setActiveOpcodeDocumentation(null)}
-        />
+        <Suspense fallback={<DeferredModalFallback />}>
+          <LazyOpcodeDocumentationModal
+            opcode={selectedOpcodeDocumentation}
+            guiLanguage={guiLanguage}
+            onClose={() => setActiveOpcodeDocumentation(null)}
+          />
+        </Suspense>
       )}
 
-      {selectedHelpDocumentation && (
-        <HelpDocumentationModal
-          title={selectedHelpDocumentation.title}
-          markdown={selectedHelpDocumentation.markdown}
-          guiLanguage={guiLanguage}
-          onClose={() => setActiveHelpDocumentation(null)}
-        />
+      {activeHelpDocumentation && (
+        <Suspense fallback={<DeferredModalFallback />}>
+          <LazyHelpDocumentationModal
+            helpDocId={activeHelpDocumentation}
+            guiLanguage={guiLanguage}
+            onClose={() => setActiveHelpDocumentation(null)}
+          />
+        </Suspense>
       )}
     </div>
   );

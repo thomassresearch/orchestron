@@ -56,7 +56,7 @@ def test_apply_runtime_midi_options_replaces_csd_midi_flags() -> None:
     assert "</CsOptions>" in sanitized
 
 
-def test_streaming_runtime_options_disable_realtime_audio_output() -> None:
+def test_headless_runtime_options_disable_realtime_audio_output() -> None:
     csd = "\n".join(
         [
             "<CsoundSynthesizer>",
@@ -73,7 +73,7 @@ def test_streaming_runtime_options_disable_realtime_audio_output() -> None:
         ]
     )
 
-    sanitized = CsoundWorker._apply_streaming_runtime_options(
+    sanitized = CsoundWorker._apply_headless_runtime_options(
         csd,
         midi_input="1",
         rtmidi_module="alsaseq",
@@ -85,6 +85,22 @@ def test_streaming_runtime_options_disable_realtime_audio_output() -> None:
     assert "-iadc" not in sanitized
     assert "-+rtaudio=auhal" not in sanitized
     assert " -n" in sanitized or sanitized.strip().endswith("-n")
+
+
+def test_audio_output_mode_maps_streaming_to_browser_clock(monkeypatch) -> None:
+    monkeypatch.setenv("VISUALCSOUND_AUDIO_OUTPUT_MODE", "streaming")
+    monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "true")
+
+    worker = CsoundWorker()
+
+    assert worker.audio_output_mode == "browser_clock"
+
+
+def test_audio_output_mode_rejects_webrtc(monkeypatch) -> None:
+    monkeypatch.setenv("VISUALCSOUND_AUDIO_OUTPUT_MODE", "webrtc")
+
+    with pytest.raises(ValueError, match="VISUALCSOUND_AUDIO_OUTPUT_MODE=webrtc is no longer supported"):
+        CsoundWorker()
 
 
 def test_start_ctcsound_falls_back_to_supported_rtmidi_module(monkeypatch) -> None:

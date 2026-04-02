@@ -1,7 +1,8 @@
 import { useEffect } from "react";
 
 import type { GuiLanguage, OpcodeSpec } from "../types";
-import { documentationUiCopy, localizedOpcodeMarkdown } from "../lib/documentation";
+import { localizedOpcodeMarkdown } from "../lib/documentation";
+import { documentationUiCopy } from "../lib/documentationUi";
 import { MarkdownRenderer } from "./MarkdownRenderer";
 
 interface OpcodeDocumentationModalProps {

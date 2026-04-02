@@ -13,8 +13,6 @@ import type {
   RuntimeConfigResponse,
   SequencerConfigSnapshot,
   SessionActionResponse,
-  SessionAudioWebRtcAnswerResponse,
-  SessionAudioWebRtcOfferRequest,
   SessionCreateResponse,
   SessionSequencerConfigRequest,
   SessionSequencerQueuePadRequest,
@@ -180,11 +178,6 @@ export const api = {
     request<SessionActionResponse>(`/sessions/${sessionId}/panic`, { method: "POST" }),
   sendSessionMidiEvent: (sessionId: string, payload: SessionMidiEventRequest) =>
     request<SessionActionResponse>(`/sessions/${sessionId}/midi-event`, {
-      method: "POST",
-      body: JSON.stringify(payload)
-    }),
-  negotiateSessionAudioWebRtc: (sessionId: string, payload: SessionAudioWebRtcOfferRequest) =>
-    request<SessionAudioWebRtcAnswerResponse>(`/sessions/${sessionId}/audio/webrtc`, {
       method: "POST",
       body: JSON.stringify(payload)
     }),

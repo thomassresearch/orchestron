@@ -502,19 +502,11 @@ export interface AppStateResponse {
   updated_at: string;
 }
 
-export interface WebRtcIceServerConfig {
-  urls: string | string[];
-  username?: string | null;
-  credential?: string | null;
-}
-
-export type SessionAudioOutputMode = "local" | "streaming" | "browser_clock";
+export type SessionAudioOutputMode = "local" | "browser_clock";
 
 export interface RuntimeConfigResponse {
   audio_output_mode: SessionAudioOutputMode;
-  browser_audio_streaming_enabled: boolean;
   browser_clock_enabled: boolean;
-  webrtc_browser_ice_servers: WebRtcIceServerConfig[];
 }
 
 export interface GenAudioAssetUploadResponse {
@@ -717,17 +709,6 @@ export interface SessionActionResponse {
   session_id: string;
   state: SessionState;
   detail: string;
-}
-
-export interface SessionAudioWebRtcOfferRequest {
-  type: "offer";
-  sdp: string;
-}
-
-export interface SessionAudioWebRtcAnswerResponse {
-  type: "answer";
-  sdp: string;
-  sample_rate: number;
 }
 
 export interface BrowserClockClaimControllerRequest {

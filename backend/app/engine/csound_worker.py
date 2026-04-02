@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import ctypes
 import heapq
 import logging
@@ -12,10 +11,8 @@ import time
 from dataclasses import dataclass
 from typing import Any, Callable
 
-from backend.app.engine.webrtc_audio import (
-    WEBRTC_AUDIO_SAMPLE_RATE,
-    CsoundAudioFrameBuffer,
-    CsoundWebRtcAudioBridge,
+from backend.app.engine.browser_audio_pcm import (
+    DEFAULT_BROWSER_AUDIO_SAMPLE_RATE,
     csound_spout_to_pcm_block,
 )
 
@@ -30,8 +27,6 @@ class EngineStartResult:
     backend: str
     detail: str
     audio_mode: str = "local"
-    audio_stream_ready: bool = False
-    audio_stream_sample_rate: int | None = None
 
 
 @dataclass(slots=True)
@@ -50,23 +45,18 @@ class CsoundWorker:
     def __init__(
         self,
         *,
-        webrtc_ice_servers: list[dict[str, Any]] | None = None,
         gen_audio_assets_dir: str | None = None,
     ) -> None:
         self._backend = "mock"
         self._audio_output_mode = self._resolve_audio_output_mode(
             os.getenv("VISUALCSOUND_AUDIO_OUTPUT_MODE", "local")
         )
-        self._webrtc_ice_servers = [dict(server) for server in (webrtc_ice_servers or [])]
         configured_assets_dir = (gen_audio_assets_dir or os.getenv("VISUALCSOUND_GEN_AUDIO_ASSETS_DIR", "")).strip()
         self._gen_audio_assets_dir = os.path.abspath(configured_assets_dir) if configured_assets_dir else None
         self._csound: Any | None = None
         self._thread: threading.Thread | None = None
         self._running = False
         self._lock = threading.Lock()
-        self._audio_frame_buffer: CsoundAudioFrameBuffer | None = None
-        self._audio_bridge: CsoundWebRtcAudioBridge | None = None
-        self._streaming_block_seconds = 0.0
         self._runtime_sr = 0
         self._runtime_nchnls = 0
         self._runtime_ksmps = 0
@@ -107,21 +97,6 @@ class CsoundWorker:
             return self._running
 
     @property
-    def browser_audio_stream_sample_rate(self) -> int | None:
-        if self._audio_output_mode != "streaming":
-            return None
-        return WEBRTC_AUDIO_SAMPLE_RATE
-
-    @property
-    def browser_audio_streaming_ready(self) -> bool:
-        return (
-            self._audio_output_mode == "streaming"
-            and self._backend == "ctcsound"
-            and self._audio_bridge is not None
-            and self._running
-        )
-
-    @property
     def browser_clock_ready(self) -> bool:
         return (
             self._audio_output_mode == "browser_clock"
@@ -158,8 +133,6 @@ class CsoundWorker:
                     backend=self._backend,
                     detail="already running",
                     audio_mode=self._audio_output_mode,
-                    audio_stream_ready=self.browser_audio_streaming_ready,
-                    audio_stream_sample_rate=self.browser_audio_stream_sample_rate,
                 )
 
             self._running = True
@@ -186,29 +159,6 @@ class CsoundWorker:
 
             self._running = False
             return "stopped"
-
-    async def create_webrtc_audio_answer(self, *, offer_sdp: str, offer_type: str) -> tuple[str, str]:
-        if self._audio_output_mode != "streaming":
-            raise ValueError("Browser audio streaming is disabled (VISUALCSOUND_AUDIO_OUTPUT_MODE=local).")
-        if self._backend != "ctcsound":
-            raise RuntimeError("Browser audio streaming requires the ctcsound backend.")
-        if not self.is_running:
-            raise RuntimeError("Session must be running before negotiating browser audio.")
-
-        bridge = self._audio_bridge
-        if bridge is None:
-            raise RuntimeError("Browser audio stream is not ready for this session.")
-        return await bridge.create_answer(offer_sdp=offer_sdp, offer_type=offer_type)
-
-    async def close_webrtc_audio(self) -> None:
-        bridge = self._audio_bridge
-        self._audio_bridge = None
-        frame_buffer = self._audio_frame_buffer
-        self._audio_frame_buffer = None
-        if frame_buffer is not None:
-            frame_buffer.close()
-        if bridge is not None:
-            await bridge.close()
 
     def queue_midi_message(
         self,
@@ -246,8 +196,6 @@ class CsoundWorker:
             return "panic ignored (mock backend)"
 
     def _start_ctcsound(self, csd: str, midi_input: str, rtmidi_module: str) -> EngineStartResult:
-        if self._audio_output_mode == "streaming":
-            return self._start_ctcsound_streaming(csd, midi_input, rtmidi_module)
         if self._audio_output_mode == "browser_clock":
             return self._start_ctcsound_browser_clock(csd, midi_input, rtmidi_module)
         return self._start_ctcsound_local(csd, midi_input, rtmidi_module)
@@ -322,102 +270,6 @@ class CsoundWorker:
         message = "; ".join(errors) if errors else "unknown startup error"
         raise RuntimeError(f"CSound start failed for all rtmidi modules ({attempted}): {message}")
 
-    def _start_ctcsound_streaming(self, csd: str, midi_input: str, rtmidi_module: str) -> EngineStartResult:
-        assert self._ctcsound is not None
-
-        requested_module = self._normalize_rtmidi_module(rtmidi_module)
-        if sys.platform == "darwin":
-            requested_module = "coremidi"
-        attempts: list[str] = []
-        errors: list[str] = []
-
-        for module in self._streaming_rtmidi_candidates(requested_module):
-            attempts.append(module)
-            csound = self._ctcsound.Csound()
-            try:
-                software_buffer, hardware_buffer = self._extract_runtime_buffer_sizes(csd)
-                runtime_csd = self._apply_streaming_runtime_options(
-                    csd,
-                    midi_input=midi_input,
-                    rtmidi_module=module,
-                )
-
-                csound.setOption("-d")
-                csound.setOption("-n")
-                csound.setOption(f"-b{software_buffer}")
-                csound.setOption(f"-B{hardware_buffer}")
-                csound.setOption(f"-M{midi_input}")
-                csound.setOption(f"-+rtmidi={module}")
-                self._apply_gen_audio_search_dir_option(csound)
-                self._configure_host_midi_callbacks(csound)
-
-                compile_result = csound.compileCsdText(runtime_csd)
-                if compile_result != 0:
-                    raise RuntimeError(f"CSound compile failed with code {compile_result}")
-
-                start_result = csound.start()
-                if start_result != 0:
-                    raise RuntimeError(f"CSound start failed with code {start_result}")
-
-                source_sr = self._resolve_runtime_sr(csound, runtime_csd)
-                source_nchnls = self._resolve_runtime_nchnls(csound, runtime_csd)
-                source_ksmps = self._resolve_runtime_ksmps(csound, runtime_csd)
-                frame_buffer = CsoundAudioFrameBuffer(
-                    source_sample_rate=source_sr,
-                    source_channels=source_nchnls,
-                    target_sample_rate=WEBRTC_AUDIO_SAMPLE_RATE,
-                )
-                audio_bridge = CsoundWebRtcAudioBridge(frame_buffer, ice_servers=self._webrtc_ice_servers)
-            except Exception as exc:
-                errors.append(f"{module}: {exc}")
-                self._teardown_csound(csound)
-                logger.warning("CSound streaming startup failed with rtmidi=%s: %s", module, exc)
-                continue
-
-            self._csound = csound
-            self._audio_frame_buffer = frame_buffer
-            self._audio_bridge = audio_bridge
-            self._runtime_sr = source_sr
-            self._runtime_nchnls = source_nchnls
-            self._runtime_ksmps = source_ksmps
-            self._render_sample_cursor = 0
-            self._streaming_block_seconds = (
-                float(source_ksmps) / float(source_sr) if source_sr > 0 and source_ksmps > 0 else 0.0
-            )
-            self._host_midi_enabled = True
-            self._thread = threading.Thread(
-                target=self._streaming_perform_loop,
-                daemon=True,
-                name="csound-perform-ksmps",
-            )
-            self._thread.start()
-
-            if module != requested_module:
-                logger.warning(
-                    "Requested rtmidi module '%s' unavailable; fell back to '%s'.",
-                    requested_module,
-                    module,
-                )
-                return EngineStartResult(
-                    backend="ctcsound",
-                    detail=f"started with CSound browser streaming (rtmidi fallback: {module})",
-                    audio_mode=self._audio_output_mode,
-                    audio_stream_ready=True,
-                    audio_stream_sample_rate=WEBRTC_AUDIO_SAMPLE_RATE,
-                )
-
-            return EngineStartResult(
-                backend="ctcsound",
-                detail="started with CSound browser streaming",
-                audio_mode=self._audio_output_mode,
-                audio_stream_ready=True,
-                audio_stream_sample_rate=WEBRTC_AUDIO_SAMPLE_RATE,
-            )
-
-        attempted = ", ".join(attempts)
-        message = "; ".join(errors) if errors else "unknown startup error"
-        raise RuntimeError(f"CSound streaming start failed for all rtmidi modules ({attempted}): {message}")
-
     def _start_ctcsound_browser_clock(self, csd: str, midi_input: str, rtmidi_module: str) -> EngineStartResult:
         assert self._ctcsound is not None
 
@@ -427,12 +279,12 @@ class CsoundWorker:
         attempts: list[str] = []
         errors: list[str] = []
 
-        for module in self._streaming_rtmidi_candidates(requested_module):
+        for module in self._headless_rtmidi_candidates(requested_module):
             attempts.append(module)
             csound = self._ctcsound.Csound()
             try:
                 software_buffer, hardware_buffer = self._extract_runtime_buffer_sizes(csd)
-                runtime_csd = self._apply_streaming_runtime_options(
+                runtime_csd = self._apply_headless_runtime_options(
                     csd,
                     midi_input=midi_input,
                     rtmidi_module=module,
@@ -568,7 +420,7 @@ class CsoundWorker:
     def _render_mock_blocks(self, *, block_count: int, target_sample_rate: int) -> EngineRenderResult:
         import numpy as np  # type: ignore
 
-        source_sr = self._runtime_sr if self._runtime_sr > 0 else WEBRTC_AUDIO_SAMPLE_RATE
+        source_sr = self._runtime_sr if self._runtime_sr > 0 else DEFAULT_BROWSER_AUDIO_SAMPLE_RATE
         source_ksmps = self._runtime_ksmps if self._runtime_ksmps > 0 else 32
         sample_start = self._render_sample_cursor
         sample_end = sample_start + (block_count * source_ksmps)
@@ -586,63 +438,7 @@ class CsoundWorker:
             pcm_f32le=pcm.tobytes(),
         )
 
-    def _streaming_perform_loop(self) -> None:
-        next_deadline: float | None = None
-        while True:
-            with self._lock:
-                if not self._running or self._csound is None:
-                    return
-                csound = self._csound
-                bridge = self._audio_bridge
-                block_seconds = self._streaming_block_seconds
-
-            try:
-                result = csound.performKsmps()
-                if bridge is not None:
-                    bridge.push_csound_block(csound.spout())
-            except Exception:
-                logger.exception("CSound performKsmps streaming loop failed")
-                with self._lock:
-                    self._running = False
-                return
-
-            if result != 0:
-                logger.info("CSound performKsmps exited with status %s", result)
-                with self._lock:
-                    self._running = False
-                return
-
-            if block_seconds > 0.0:
-                now = time.perf_counter()
-                if next_deadline is None or (now - next_deadline) > 0.5:
-                    # Re-anchor after startup and after long stalls to avoid burst catch-up.
-                    next_deadline = now
-                next_deadline += block_seconds
-                sleep_seconds = next_deadline - now
-                if sleep_seconds > 0.0:
-                    time.sleep(sleep_seconds)
-
     def _stop_ctcsound(self) -> None:
-        bridge = self._audio_bridge
-        frame_buffer = self._audio_frame_buffer
-
-        if frame_buffer is not None:
-            frame_buffer.close()
-
-        if bridge is not None:
-            try:
-                loop = asyncio.get_running_loop()
-            except RuntimeError:
-                try:
-                    asyncio.run(bridge.close())
-                except Exception:
-                    logger.exception("Failed to close WebRTC bridge during CSound shutdown")
-            else:
-                loop.create_task(bridge.close())
-
-        self._audio_bridge = None
-        self._audio_frame_buffer = None
-        self._streaming_block_seconds = 0.0
         self._runtime_sr = 0
         self._runtime_nchnls = 0
         self._runtime_ksmps = 0
@@ -774,8 +570,16 @@ class CsoundWorker:
     @staticmethod
     def _resolve_audio_output_mode(raw_value: str) -> str:
         value = (raw_value or "").strip().lower()
-        if value in {"streaming", "browser", "webrtc"}:
-            return "streaming"
+        if value == "streaming":
+            logger.warning(
+                "VISUALCSOUND_AUDIO_OUTPUT_MODE=streaming is deprecated and now maps to browser_clock."
+            )
+            return "browser_clock"
+        if value in {"webrtc", "browser"}:
+            raise ValueError(
+                f"VISUALCSOUND_AUDIO_OUTPUT_MODE={value} is no longer supported. "
+                "Use VISUALCSOUND_AUDIO_OUTPUT_MODE=browser_clock."
+            )
         if value in {"browser_clock", "browser-clock", "pcm"}:
             return "browser_clock"
         if value and value not in {"local"}:
@@ -792,8 +596,8 @@ class CsoundWorker:
         return candidates
 
     @classmethod
-    def _streaming_rtmidi_candidates(cls, preferred: str) -> list[str]:
-        # Streaming mode uses host-implemented MIDI callbacks, so prefer the "null" backend
+    def _headless_rtmidi_candidates(cls, preferred: str) -> list[str]:
+        # Headless/browser-audio mode uses host-implemented MIDI callbacks, so prefer the "null" backend
         # to avoid depending on an OS MIDI subsystem inside the container.
         candidates: list[str] = []
         for module in ("null", preferred, *cls._platform_rtmidi_fallbacks()):
@@ -866,7 +670,7 @@ class CsoundWorker:
         return "\n".join(lines)
 
     @classmethod
-    def _apply_streaming_runtime_options(
+    def _apply_headless_runtime_options(
         cls,
         csd: str,
         midi_input: str,
@@ -969,7 +773,7 @@ class CsoundWorker:
         parsed = cls._extract_orchestra_numeric_scalar(runtime_csd, "sr")
         if parsed is not None and parsed > 0:
             return parsed
-        return WEBRTC_AUDIO_SAMPLE_RATE
+        return DEFAULT_BROWSER_AUDIO_SAMPLE_RATE
 
     @classmethod
     def _resolve_runtime_nchnls(cls, csound: object, runtime_csd: str) -> int:
@@ -1020,7 +824,7 @@ class CsoundWorker:
             return None
 
     def _start_mock(self, csd: str) -> EngineStartResult:
-        self._runtime_sr = self._extract_orchestra_numeric_scalar(csd, "sr") or WEBRTC_AUDIO_SAMPLE_RATE
+        self._runtime_sr = self._extract_orchestra_numeric_scalar(csd, "sr") or DEFAULT_BROWSER_AUDIO_SAMPLE_RATE
         self._runtime_nchnls = self._extract_orchestra_numeric_scalar(csd, "nchnls") or 2
         self._runtime_ksmps = self._extract_orchestra_numeric_scalar(csd, "ksmps") or 32
         self._render_sample_cursor = 0
@@ -1034,16 +838,11 @@ class CsoundWorker:
                 "uv pip install ctcsound"
             ),
             audio_mode=self._audio_output_mode,
-            audio_stream_ready=False,
-            audio_stream_sample_rate=self.browser_audio_stream_sample_rate,
         )
 
     def _stop_mock(self) -> None:
         # The loop checks _running; clearing it is enough.
         self._thread = None
-        self._audio_frame_buffer = None
-        self._audio_bridge = None
-        self._streaming_block_seconds = 0.0
         self._runtime_sr = 0
         self._runtime_nchnls = 0
         self._runtime_ksmps = 0

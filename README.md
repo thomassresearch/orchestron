@@ -87,7 +87,7 @@ To make sound quickly, open [http://localhost:8000/client](http://localhost:8000
 
 **Troubleshooting**: if audio output is chopped, increase the hardware and software buffer sizes in the configuration settings.
 
-Docker now defaults to `browser_clock` mode: the browser owns the PCM queue via Web Audio (`AudioContext` + `AudioWorklet`) and the backend renders Csound blocks on demand. For localhost and LAN browser connections, the browser-clock client now uses a moderated low-latency queue profile and requests a small urgent render burst after live note-on events so piano-keyboard play feels more immediate without the earlier over-aggressive underruns. The Config page also exposes browser-clock latency controls when the backend runtime mode is `browser_clock`. The older WebRTC path remains available as the separate `streaming` runtime mode.
+Docker now defaults to `browser_clock` mode: the browser owns the PCM queue via Web Audio (`AudioContext` + `AudioWorklet`) and the backend renders Csound blocks on demand. For localhost and LAN browser connections, the browser-clock client uses a moderated low-latency queue profile and requests a small urgent render burst after live note-on events so piano-keyboard play feels more immediate without the earlier over-aggressive underruns. The Config page also exposes browser-clock latency controls when the backend runtime mode is `browser_clock`.
 
 ## MIDI on macOS
 

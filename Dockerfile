@@ -13,15 +13,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     alsa-utils \
     build-essential \
     csound \
-    ffmpeg \
     libasound2 \
     libasound2-dev \
     libffi-dev \
     libjack-jackd2-0 \
     libjack-jackd2-dev \
-    libopus0 \
-    libsrtp2-1 \
-    libsrtp2-dev \
     pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
@@ -59,8 +55,8 @@ RUN pip install --no-cache-dir uv
 WORKDIR /app
 COPY pyproject.toml uv.lock README.md ./
 COPY backend ./backend
-RUN uv sync --no-dev --extra streaming
-RUN .venv/bin/python -c "import ctcsound, av, aiortc; print('ctcsound/av/aiortc import ok')"
+RUN uv sync --no-dev
+RUN .venv/bin/python -c "import ctcsound, numpy; print('ctcsound/numpy import ok')"
 
 COPY frontend ./frontend
 COPY --from=frontend-build /build/frontend/dist ./frontend/dist
@@ -68,4 +64,4 @@ COPY Makefile ./Makefile
 
 EXPOSE 8000
 
-CMD [".venv/bin/python", "-m", "backend.app.main", "--audio-output-mode", "streaming", "--host", "0.0.0.0", "--port", "8000", "--no-reload", "--log-level", "info","--debug"]
+CMD [".venv/bin/python", "-m", "backend.app.main", "--audio-output-mode", "browser_clock", "--host", "0.0.0.0", "--port", "8000", "--no-reload", "--log-level", "info","--debug"]

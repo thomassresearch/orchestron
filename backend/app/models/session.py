@@ -33,7 +33,7 @@ def _is_valid_pad_loop_token(token: int) -> bool:
     return token in _PAUSE_TOKENS
 
 
-SessionAudioOutputMode = Literal["local", "streaming", "browser_clock"]
+SessionAudioOutputMode = Literal["local", "browser_clock"]
 
 
 class SessionState(StrEnum):
@@ -94,17 +94,6 @@ class SessionActionResponse(BaseModel):
     session_id: str
     state: SessionState
     detail: str
-
-
-class SessionAudioWebRtcOfferRequest(BaseModel):
-    type: Literal["offer"]
-    sdp: str = Field(min_length=1)
-
-
-class SessionAudioWebRtcAnswerResponse(BaseModel):
-    type: Literal["answer"]
-    sdp: str = Field(min_length=1)
-    sample_rate: int = Field(ge=1)
 
 
 class BrowserClockClaimControllerRequest(BaseModel):

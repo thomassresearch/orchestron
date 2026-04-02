@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 
-import { documentationUiCopy } from "../lib/documentation";
+import { documentationUiCopy } from "../lib/documentationUi";
 import { setDraggedOpcode } from "../lib/opcodeDragDrop";
 import type { GuiLanguage, OpcodeSpec } from "../types";
 

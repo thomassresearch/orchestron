@@ -61,4 +61,4 @@ docker compose down
 
 ## 7. Additional notes
 
-For implementation details, latency tuning, and the legacy WebRTC streaming mode, see [WEBRTC_STREAMING.md](WEBRTC_STREAMING.md) and [Browser Audio Streaming (WebRTC)](documentation/configuration/browser_audio_streaming_webrtc.md).
+For implementation details and latency tuning, see [Browser-Clock Latency](documentation/configuration/browser_clock_latency.md).

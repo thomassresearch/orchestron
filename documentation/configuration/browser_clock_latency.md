@@ -1,6 +1,6 @@
 # Browser-Clock Latency
 
-**Navigation:** [Up](configuration.md) | [Prev](browser_audio_streaming_webrtc.md) | [Next](persistence_and_defaults.md)
+**Navigation:** [Up](configuration.md) | [Prev](midi_setup_and_inputs.md) | [Next](persistence_and_defaults.md)
 
 When Orchestron runs in Docker with backend audio mode `browser_clock`, the browser becomes the playback clock and requests PCM render chunks from the backend. In this setup, the most important latency and stability controls live in the Config page's `Browser-Clock Latency` section.
 
@@ -12,7 +12,7 @@ The `Browser-Clock Latency` section is shown only when the backend was started i
 - CLI argument `--audio-output-mode browser_clock`
 - environment variable `VISUALCSOUND_AUDIO_OUTPUT_MODE=browser_clock`
 
-The section is hidden in `local` mode and in legacy `streaming` (WebRTC) mode.
+The section is hidden in `local` mode.
 
 ## Why These Settings Matter In Docker
 
@@ -79,4 +79,4 @@ Keep in mind that these settings are stored in app state for the current workspa
 </p>
 <p align="center"><em>The Config page's Browser-Clock Latency section, used when Orchestron runs headless in `browser_clock` mode and the browser owns audio playback.</em></p>
 
-**Navigation:** [Up](configuration.md) | [Prev](browser_audio_streaming_webrtc.md) | [Next](persistence_and_defaults.md)
+**Navigation:** [Up](configuration.md) | [Prev](midi_setup_and_inputs.md) | [Next](persistence_and_defaults.md)

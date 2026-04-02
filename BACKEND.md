@@ -9,7 +9,7 @@ The backend is responsible for four distinct jobs:
 1. Serving the FastAPI API used by the frontend.
 2. Persisting patches, performances, and application state in SQLite.
 3. Compiling patch graphs into Csound orchestra/CSD text.
-4. Managing realtime session state, MIDI routing, and optional WebRTC audio streaming.
+4. Managing realtime session state, MIDI routing, and browser-clock PCM audio.
 
 At a high level, the code is organized like this:
 
@@ -20,7 +20,7 @@ At a high level, the code is organized like this:
 | `backend/app/core/` | Configuration, logging, dependency container. |
 | `backend/app/models/` | Pydantic request/response and domain models. |
 | `backend/app/services/` | Business logic for opcodes, persistence-backed resources, sessions, MIDI, compilation, assets, and sequencer runtime. |
-| `backend/app/engine/` | Csound worker, session runtime object, WebRTC audio bridge. |
+| `backend/app/engine/` | Csound worker, session runtime object, browser-clock PCM helpers. |
 | `backend/app/storage/` | SQLAlchemy database setup and repositories. |
 
 ## Application Lifecycle
@@ -84,9 +84,7 @@ The most important settings are:
 | `GEN_AUDIO_ASSETS_DIR` | `backend/data/assets/audio` | Filesystem directory for uploaded/imported GEN audio assets. |
 | `DEFAULT_RTMIDI_MODULE` | platform-dependent | Default rtmidi module for Csound startup (`coremidi`, `alsaseq`, or `winmme`). |
 | `DEFAULT_MIDI_DEVICE` | `0` | Preferred MIDI input selector when creating sessions. |
-| `AUDIO_OUTPUT_MODE` | `local` | `local` sends audio to the host DAC, `streaming` prepares browser/WebRTC audio. |
-| `WEBRTC_FRONTEND_ICE_SERVERS` | `[]` | ICE servers returned by `GET /api/runtime-config`. |
-| `WEBRTC_BACKEND_ICE_SERVERS` | `[]` | ICE servers used by the backend WebRTC peer; falls back to frontend ICE servers if unset. |
+| `AUDIO_OUTPUT_MODE` | `local` | `local` sends audio to the host DAC, `browser_clock` renders PCM in the browser via the controller WebSocket. |
 | `FRONTEND_DISCONNECT_GRACE_SECONDS` | `5.0` | Delay before auto-stopping a running session after the last frontend disconnects. |
 | `FRONTEND_HEARTBEAT_TIMEOUT_SECONDS` | `5.0` | Heartbeat timeout for active WebSocket clients. |
 
@@ -94,7 +92,7 @@ The most important settings are:
 
 `python -m backend.app.main` also accepts runtime flags:
 
-- `--audio-output-mode {local,streaming}`
+- `--audio-output-mode {local,browser_clock}`
 - `--host`
 - `--port`
 - `--log-level`
@@ -185,8 +183,7 @@ Fallback inputs are currently:
 - Creates `RuntimeSession` objects in memory.
 - Compiles, starts, stops, and deletes sessions.
 - Handles MIDI input binding.
-- Negotiates browser audio/WebRTC answers.
-- Creates and owns the sequencer runtime.
+- Owns the browser-clock controller lifecycle and sequencer runtime.
 - Tracks frontend WebSocket connections and heartbeat timeouts.
 - Auto-stops running sessions when the last frontend disconnects or a heartbeat times out.
 
@@ -205,7 +202,7 @@ Fallback inputs are currently:
 - Time values: UTC timestamps serialized by FastAPI/Pydantic
 - Common error styles:
   - `404` for missing saved resources or unknown sessions/opcodes/MIDI inputs
-  - `409` for runtime state conflicts such as sending MIDI to a stopped session or negotiating audio when streaming is unavailable
+  - `409` for runtime state conflicts such as sending MIDI to a stopped session or claiming browser-clock control when it is unavailable
   - `422` for request validation errors and compile/sequencer validation failures
   - `500` for engine startup failures or backend MIDI delivery failures
 
@@ -217,7 +214,7 @@ Because this is a standard FastAPI app, `/docs`, `/redoc`, and `/openapi.json` a
 
 | Method | Path | Request body | Response | Notes |
 | --- | --- | --- | --- | --- |
-| `GET` | `/api/health` | none | `{status, audio_output_mode, browser_audio_streaming_enabled, browser_audio_sample_rate}` | Lightweight process health check. `browser_audio_sample_rate` is currently hardcoded to `48000`. |
+| `GET` | `/api/health` | none | `{status, audio_output_mode, browser_clock_enabled, browser_audio_sample_rate}` | Lightweight process health check. `browser_audio_sample_rate` is currently hardcoded to `48000`. |
 | `GET` | `/api/health/realtime` | none | `{status, running_sessions}` | Counts in-memory sessions whose state is `running`. |
 | `GET` | `/client` | none | Built frontend app or `503` JSON | Served by `StaticFiles` when `frontend/dist` exists. |
 | `GET` | `/static/...` | none | Static files | Includes opcode icons and other app static files. |
@@ -304,11 +301,12 @@ Schemas:
 
 | Method | Path | Request body | Response | Notes |
 | --- | --- | --- | --- | --- |
-| `GET` | `/api/runtime-config` | none | `RuntimeConfigResponse` | Returns frontend-facing WebRTC ICE server config. |
+| `GET` | `/api/runtime-config` | none | `RuntimeConfigResponse` | Returns runtime-mode flags used by the frontend. |
 
-`RuntimeConfigResponse` currently contains one field:
+`RuntimeConfigResponse` currently contains two fields:
 
-- `webrtc_browser_ice_servers`: list of ICE server objects with `urls`, optional `username`, and optional `credential`
+- `audio_output_mode`: backend startup mode reflected to the frontend
+- `browser_clock_enabled`: boolean flag indicating whether the backend started in `browser_clock` mode
 
 ### Patches
 
@@ -416,7 +414,7 @@ Sessions are the runtime bridge between saved patch documents and a live Csound 
 | `GET` | `/api/sessions/{session_id}` | none | `SessionInfo` | `404` if missing. |
 | `POST` | `/api/sessions/{session_id}/compile` | none | `CompileResponse` | Compiles the session patches into Csound text. Returns `422` with diagnostics on compile failure. |
 | `POST` | `/api/sessions/{session_id}/start` | none | `SessionActionResponse` | Auto-compiles first if needed. Returns `500` on engine startup failure. |
-| `POST` | `/api/sessions/{session_id}/stop` | none | `SessionActionResponse` | Stops sequencer, closes WebRTC audio, then stops the worker. |
+| `POST` | `/api/sessions/{session_id}/stop` | none | `SessionActionResponse` | Stops sequencer, closes browser-clock control, then stops the worker. |
 | `POST` | `/api/sessions/{session_id}/panic` | none | `SessionActionResponse` | Best-effort panic/turnoff request to the worker. |
 | `DELETE` | `/api/sessions/{session_id}` | none | `204` | Fully tears down the worker, sequencer, event subscriptions, and frontend tracking. |
 
@@ -502,7 +500,7 @@ Worker behavior depends on the installed runtime:
 `POST /api/sessions/{session_id}/stop`:
 
 - stops the sequencer if it exists
-- closes any WebRTC bridge
+- closes any browser-clock controller session
 - stops the worker
 - returns the session to `compiled` when a compile artifact still exists, otherwise `idle`
 
@@ -527,36 +525,26 @@ Error behavior:
 - `404` if the bound MIDI input cannot be resolved
 - `500` if MIDI sending fails in the backend
 
-#### WebRTC audio negotiation
+#### Browser-clock controller WebSocket
 
 | Method | Path | Request body | Response | Notes |
 | --- | --- | --- | --- | --- |
-| `POST` | `/api/sessions/{session_id}/audio/webrtc` | `SessionAudioWebRtcOfferRequest` | `SessionAudioWebRtcAnswerResponse` | Only valid for running sessions when browser streaming is enabled and the `ctcsound` backend is active. |
+| `WS` | `/ws/sessions/{session_id}/browser-clock` | JSON control messages | JSON status messages and raw PCM render bytes | Only valid when the backend runs in `browser_clock` mode and the session is running. The browser claims controller ownership, requests render chunks, sends manual MIDI, starts/stops the sequencer, queues pads, and releases control. |
 
-Request:
+Supported message types:
 
-```json
-{
-  "type": "offer",
-  "sdp": "..."
-}
-```
-
-Response:
-
-```json
-{
-  "type": "answer",
-  "sdp": "...",
-  "sample_rate": 48000
-}
-```
+- `claim_controller` opens the controller session and returns the stream configuration.
+- `request_render` asks the backend to render PCM blocks and returns JSON metadata followed by the raw PCM bytes.
+- `manual_midi` forwards a direct MIDI event through the browser-clock controller path.
+- `sequencer_start`, `sequencer_stop`, `sequencer_rewind`, and `sequencer_forward` control the sequencer from the browser.
+- `queue_pad` queues a pad switch for the active track.
+- `release_controller` releases browser ownership of the controller session.
 
 Common `409` cases:
 
 - `VISUALCSOUND_AUDIO_OUTPUT_MODE=local`
 - session not running
-- WebRTC bridge not ready yet
+- browser-clock controller not ready yet
 - `ctcsound` backend not available
 
 Unexpected backend failures return `500`.
@@ -726,10 +714,9 @@ If the last frontend disconnects normally, the backend waits `FRONTEND_DISCONNEC
 | `compile_failed` | After compilation fails | `errors` |
 | `compiled` | After compilation succeeds | `diagnostics` |
 | `start_failed` | After engine startup fails | `error` |
-| `started` | After a session starts | `backend`, `detail`, `midi_input`, `audio_mode`, `audio_stream_ready`, `audio_stream_sample_rate` |
+| `started` | After a session starts | `backend`, `detail`, `midi_input`, `audio_mode` |
 | `stopped` | After a session stops | `detail` |
 | `panic` | After a panic request | `detail` |
-| `audio_stream_negotiated` | After WebRTC answer creation | `sample_rate`, `mode` |
 | `midi_event` | After direct MIDI delivery | `type`, `channel`, `output`, plus note/velocity/controller/value when relevant |
 | `midi_bound` | After MIDI input rebinding | `midi_input` |
 | `session_deleted` | After teardown | none |
@@ -769,7 +756,7 @@ If `ctcsound` is not importable, the backend still works for API and test flows 
 - session APIs still function
 - compile still returns generated `orc`/`csd`
 - panic may become a no-op
-- browser/WebRTC audio is unavailable
+- browser audio is unavailable
 
 ### Frontend disconnect handling
 
@@ -784,6 +771,5 @@ Backend regression coverage lives primarily in:
 - `backend/tests/test_compiler_service.py`
 - `backend/tests/test_midi_service.py`
 - `backend/tests/test_csound_worker.py`
-- `backend/tests/test_webrtc_audio.py`
 
 Those tests are the best executable reference for edge cases not obvious from the route signatures alone.

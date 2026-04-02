@@ -1,5 +1,3 @@
-import type { Ref } from "react";
-
 import type { CompileResponse, GuiLanguage, MidiInputRef, SessionEvent } from "../types";
 
 interface RuntimePanelProps {
@@ -8,10 +6,9 @@ interface RuntimePanelProps {
   selectedMidiInput?: string | null;
   compileOutput: CompileResponse | null;
   events: SessionEvent[];
-  browserAudioTransport?: "off" | "webrtc" | "browser_clock";
+  browserAudioTransport?: "off" | "browser_clock";
   browserAudioStatus?: "off" | "connecting" | "live" | "error";
   browserAudioError?: string | null;
-  browserAudioElementRef?: Ref<HTMLAudioElement>;
   onBindMidiInput: (midiInput: string) => void;
   onToggleCollapse?: () => void;
 }
@@ -28,9 +25,6 @@ const RUNTIME_PANEL_COPY: Record<
     compileOutputEmpty: string;
     browserAudio: string;
     browserAudioOff: string;
-    browserAudioWebRtcConnecting: string;
-    browserAudioWebRtcLive: string;
-    browserAudioWebRtcError: string;
     browserAudioBrowserClockConnecting: string;
     browserAudioBrowserClockLive: string;
     browserAudioBrowserClockError: string;
@@ -47,10 +41,7 @@ const RUNTIME_PANEL_COPY: Record<
     compileOutput: "Compile Output",
     compileOutputEmpty: "Compile to view generated ORC.",
     browserAudio: "Browser Audio",
-    browserAudioOff: "Local output mode",
-    browserAudioWebRtcConnecting: "Connecting WebRTC stream...",
-    browserAudioWebRtcLive: "Streaming to browser",
-    browserAudioWebRtcError: "Browser stream error",
+    browserAudioOff: "Browser-clock inactive",
     browserAudioBrowserClockConnecting: "Priming browser PCM queue...",
     browserAudioBrowserClockLive: "Browser-owned PCM runtime active",
     browserAudioBrowserClockError: "Browser PCM runtime error",
@@ -66,10 +57,7 @@ const RUNTIME_PANEL_COPY: Record<
     compileOutput: "Compile-Ausgabe",
     compileOutputEmpty: "Kompilieren, um generiertes ORC zu sehen.",
     browserAudio: "Browser-Audio",
-    browserAudioOff: "Lokaler Ausgabemodus",
-    browserAudioWebRtcConnecting: "WebRTC-Stream verbindet...",
-    browserAudioWebRtcLive: "Stream zum Browser aktiv",
-    browserAudioWebRtcError: "Browser-Stream-Fehler",
+    browserAudioOff: "Browser-Clock inaktiv",
     browserAudioBrowserClockConnecting: "PCM-Puffer im Browser wird vorbereitet...",
     browserAudioBrowserClockLive: "Browser-gesteuerte PCM-Laufzeit aktiv",
     browserAudioBrowserClockError: "Browser-PCM-Laufzeitfehler",
@@ -85,10 +73,7 @@ const RUNTIME_PANEL_COPY: Record<
     compileOutput: "Sortie de compilation",
     compileOutputEmpty: "Compilez pour voir le ORC genere.",
     browserAudio: "Audio navigateur",
-    browserAudioOff: "Mode sortie locale",
-    browserAudioWebRtcConnecting: "Connexion du flux WebRTC...",
-    browserAudioWebRtcLive: "Flux vers navigateur actif",
-    browserAudioWebRtcError: "Erreur flux navigateur",
+    browserAudioOff: "Browser-clock inactif",
     browserAudioBrowserClockConnecting: "Preparation de la file PCM navigateur...",
     browserAudioBrowserClockLive: "Runtime PCM pilote par le navigateur actif",
     browserAudioBrowserClockError: "Erreur runtime PCM navigateur",
@@ -104,10 +89,7 @@ const RUNTIME_PANEL_COPY: Record<
     compileOutput: "Salida de compilacion",
     compileOutputEmpty: "Compila para ver el ORC generado.",
     browserAudio: "Audio del navegador",
-    browserAudioOff: "Modo de salida local",
-    browserAudioWebRtcConnecting: "Conectando flujo WebRTC...",
-    browserAudioWebRtcLive: "Flujo al navegador activo",
-    browserAudioWebRtcError: "Error de flujo del navegador",
+    browserAudioOff: "Browser-clock inactivo",
     browserAudioBrowserClockConnecting: "Preparando cola PCM del navegador...",
     browserAudioBrowserClockLive: "Runtime PCM controlado por el navegador activo",
     browserAudioBrowserClockError: "Error del runtime PCM del navegador",
@@ -125,13 +107,12 @@ export function RuntimePanel({
   browserAudioTransport = "off",
   browserAudioStatus = "off",
   browserAudioError = null,
-  browserAudioElementRef,
   onBindMidiInput,
   onToggleCollapse
 }: RuntimePanelProps) {
   const copy = RUNTIME_PANEL_COPY[guiLanguage];
   const recentEvents = [...events].slice(-10).reverse();
-  const showBrowserAudio = browserAudioStatus !== "off" || browserAudioElementRef != null;
+  const showBrowserAudio = browserAudioStatus !== "off";
   const browserAudioStatusText = (() => {
     if (browserAudioTransport === "browser_clock") {
       if (browserAudioStatus === "live") {
@@ -146,15 +127,6 @@ export function RuntimePanel({
       return copy.browserAudioOff;
     }
 
-    if (browserAudioStatus === "live") {
-      return copy.browserAudioWebRtcLive;
-    }
-    if (browserAudioStatus === "connecting") {
-      return copy.browserAudioWebRtcConnecting;
-    }
-    if (browserAudioStatus === "error") {
-      return copy.browserAudioWebRtcError;
-    }
     return copy.browserAudioOff;
   })();
 
@@ -201,21 +173,11 @@ export function RuntimePanel({
 
         {showBrowserAudio ? (
           <div className="rounded-xl border border-slate-700 bg-slate-950/80 p-2">
-            <div className="text-xs uppercase tracking-[0.2em] text-slate-500">{copy.browserAudio}</div>
-            <div className="mt-2 text-[11px] text-slate-300">{browserAudioStatusText}</div>
-            {browserAudioError ? <div className="mt-1 text-[10px] text-rose-300">{browserAudioError}</div> : null}
-            {browserAudioElementRef ? (
-              <audio
-                ref={browserAudioElementRef}
-                className="mt-2 w-full"
-                controls
-                autoPlay
-                playsInline
-                preload="none"
-              />
-            ) : null}
-          </div>
-        ) : null}
+          <div className="text-xs uppercase tracking-[0.2em] text-slate-500">{copy.browserAudio}</div>
+          <div className="mt-2 text-[11px] text-slate-300">{browserAudioStatusText}</div>
+          {browserAudioError ? <div className="mt-1 text-[10px] text-rose-300">{browserAudioError}</div> : null}
+        </div>
+      ) : null}
 
         <div className="rounded-xl border border-slate-700 bg-slate-950/80 p-2">
           <div className="text-xs uppercase tracking-[0.2em] text-slate-500">{copy.sessionEvents}</div>

@@ -1,6 +1,6 @@
 import type { GuiLanguage } from "../types";
 
-import { documentationUiCopy } from "../lib/documentation";
+import { documentationUiCopy } from "../lib/documentationUi";
 
 interface HelpIconButtonProps {
   guiLanguage: GuiLanguage;

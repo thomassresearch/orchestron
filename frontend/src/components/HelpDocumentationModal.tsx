@@ -1,19 +1,20 @@
 import { useEffect } from "react";
 
-import type { GuiLanguage } from "../types";
+import type { GuiLanguage, HelpDocId } from "../types";
 
-import { documentationUiCopy } from "../lib/documentation";
+import { getHelpDocument } from "../lib/documentation";
+import { documentationUiCopy } from "../lib/documentationUi";
 import { MarkdownRenderer } from "./MarkdownRenderer";
 
 interface HelpDocumentationModalProps {
-  title: string;
-  markdown: string;
+  helpDocId: HelpDocId;
   guiLanguage: GuiLanguage;
   onClose: () => void;
 }
 
-export function HelpDocumentationModal({ title, markdown, guiLanguage, onClose }: HelpDocumentationModalProps) {
+export function HelpDocumentationModal({ helpDocId, guiLanguage, onClose }: HelpDocumentationModalProps) {
   const ui = documentationUiCopy(guiLanguage);
+  const helpDocument = getHelpDocument(helpDocId, guiLanguage);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -39,7 +40,7 @@ export function HelpDocumentationModal({ title, markdown, guiLanguage, onClose }
       >
         <header className="flex items-center justify-between gap-3 border-b border-slate-700 px-4 py-3">
           <div>
-            <h2 className="font-display text-lg font-semibold text-slate-100">{title}</h2>
+            <h2 className="font-display text-lg font-semibold text-slate-100">{helpDocument.title}</h2>
             <p className="text-xs uppercase tracking-[0.16em] text-slate-400">{ui.help}</p>
           </div>
           <button
@@ -52,7 +53,7 @@ export function HelpDocumentationModal({ title, markdown, guiLanguage, onClose }
         </header>
 
         <div className="min-h-0 overflow-y-auto px-5 py-4">
-          <MarkdownRenderer markdown={markdown} />
+          <MarkdownRenderer markdown={helpDocument.markdown} />
         </div>
       </section>
     </div>

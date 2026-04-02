@@ -148,7 +148,6 @@ def create_app() -> FastAPI:
         return {
             "status": "ok",
             "audio_output_mode": settings.audio_output_mode,
-            "browser_audio_streaming_enabled": settings.audio_output_mode == "streaming",
             "browser_clock_enabled": settings.audio_output_mode == "browser_clock",
             "browser_audio_sample_rate": 48_000,
         }
@@ -171,9 +170,11 @@ def run() -> None:
     parser = argparse.ArgumentParser(description="Run the VisualCSound backend")
     parser.add_argument(
         "--audio-output-mode",
-        choices=("local", "streaming", "browser_clock"),
         default=None,
-        help="Select local DAC output, browser WebRTC streaming, or browser-clock PCM mode.",
+        help=(
+            "Select local DAC output or browser-clock PCM mode "
+            "(streaming is accepted as a compatibility alias for browser_clock)."
+        ),
     )
     parser.add_argument("--host", default="0.0.0.0")
     parser.add_argument("--port", type=int, default=8000)
