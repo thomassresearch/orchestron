@@ -1,365 +1,238 @@
-# Clock Owners In VisualCSound
+# Clock Owners In Orchestron
 
-This document explains which component "drives the clock" in each part of the app, in both runtime modes:
+This document describes which component owns time in the current implementation.
 
-- `local`: Csound outputs to the host audio device
-- `browser_clock`: the browser owns PCM playback and requests render chunks from the backend
+The old split between `local` and `browser_clock` no longer applies at runtime. All supported platforms now run through the browser-clock path, with `local` accepted only as a compatibility alias that normalizes to `browser_clock`.
 
-It is based on the current implementation in `frontend/src` and `backend/app`.
+## Short Version
 
-## Short Summary
+There is still no single global clock, but there is one decisive rule:
 
-There is not one global clock. The app uses several clocks:
+- the render path that calls `performKsmps()` is the only authority for when MIDI enters Csound
 
-- The backend sequencer thread is the authoritative transport clock for melodic sequencer tracks, drummer tracks, and controller sequencers.
-- The frontend is the clock owner for piano-roll/direct-play interactions and manual controller gestures.
-- Csound is the clock owner for continuous sound generation once a note is active.
-- In browser-clock mode, the browser audio subsystem adds an output/playback clock on top of Csound.
+Everything else either:
 
-## Main Components
+- timestamps intent
+- maps one clock domain into another
+- or consumes already-rendered PCM
 
-- Frontend React app: edits performances, starts/stops runtime, sends direct MIDI events, mirrors runtime state.
-- Backend session service: owns runtime sessions, starts Csound, exposes sequencer and MIDI APIs.
-- Backend sequencer runtime: emits timed MIDI note and controller events for sequenced tracks.
-- Csound engine: turns MIDI and internal DSP graph logic into continuous audio.
-- Browser-clock controller: only in browser_clock mode, requests backend PCM renders and owns browser playback timing.
+## The Clock Domains
 
-## 1. Session Startup
+### 1. Browser playback clock
 
-When instruments are started:
+Owner:
 
-1. The frontend creates or reuses a backend session.
-2. The backend compiles the selected patch assignments into a Csound orchestra.
-3. Each assigned patch becomes its own Csound instrument number.
-4. MIDI channel routing is established with `massign`.
-5. Csound is started either in `local` or `browser_clock` audio mode.
+- browser `AudioContext` / `AudioWorklet`
 
-Important consequence:
+Responsibility:
 
-- The frontend does not synthesize audio.
-- The frontend does not run the main note sequencer clock.
-- The backend owns the runtime session and the Csound process.
+- final audible playback timing
+- browser PCM queue depth
+- render refill pressure
 
-## 2. How Configured Patterns Become Sound
+This is the clock the listener actually hears.
 
-### Melodic sequencer tracks
+### 2. Browser event timestamp clock
 
-The frontend stores the editable pattern state, but when playback starts it converts that state into a backend sequencer payload:
+Owner:
 
-- BPM
-- transport length
-- loop range
-- track enable state
-- active and queued pads
-- per-pad step data
-- expanded chord notes
-- MIDI channels
+- browser `performance.now()`
 
-That payload is sent to the backend sequencer API. From that point on, timed note playback is driven by the backend, not by the frontend.
+Responsibility:
 
-### Drummer sequencers
+- timestamping manual note and controller events generated in the browser
+- timestamping periodic timing reports sent to the backend
 
-Drummer tracks are also converted by the frontend into backend runtime tracks. Internally, each drum row becomes its own backend runtime track, but all rows share the same transport and pad logic from the frontend model.
+The browser does not inject those events into Csound directly. It only timestamps them.
 
-### Controller sequencers
+### 3. Host helper timestamp clock
 
-Controller sequencers are also sent to the backend sequencer:
+Owner:
 
-- The frontend sends controller timing, pad-loop state, pad lengths, controller number, and curve keypoints.
-- The backend compiles those pads into controller automation events.
-- The backend sequencer thread emits timed `control_change` MIDI messages.
+- `host-midi-helper` monotonic clock
 
-So controller sequencers are backend-clocked, not frontend-clocked.
+Responsibility:
 
-### Piano roll and direct play
+- timestamping external hardware or DAW MIDI captured on the host OS
 
-Interactive piano roll notes and manual controller changes are also frontend-driven:
+This clock exists only when the optional Rust helper is running.
 
-- user action happens in the browser
-- frontend sends `/sessions/{id}/midi-event`
-- backend forwards that MIDI into the running engine path
+### 4. Backend monotonic clock
 
-These are not scheduled by the backend sequencer transport.
+Owner:
 
-## 3. Who Drives The Sequencer Clock?
+- backend `time.perf_counter_ns()`
 
-## Melodic tracks, drummer tracks, and controller sequencers: backend
+Responsibility:
 
-The backend `SessionSequencerRuntime` owns a dedicated thread. That thread:
+- reference clock used by `ClockDomainMapping`
+- mapping browser/helper timestamps into server time
 
-- uses `time.perf_counter()`
-- advances by transport subunits and local step spans
-- waits until the next note or controller deadline
-- emits MIDI note and controller messages at those deadlines
-- advances playhead, cycle, pad switching, queueing, and sync behavior
+### 5. Engine sample clock
 
-This makes the backend sequencer thread the authoritative transport clock for:
+Owner:
 
-- melodic sequencer tracks
-- drummer tracks
-- controller sequencers
-- pad switching and queued pad activation
-- track enable/disable boundary behavior
-- transport playhead and cycle state
+- `CsoundWorker` render cursor
 
-The frontend only mirrors this state.
+Responsibility:
 
-## Controller sequencers: backend
+- target sample positions for queued MIDI
+- block boundaries for `performKsmps()`
 
-Controller sequencers use a different timing model:
+This is the most important backend timing domain.
 
-- the frontend sends controller pads and keypoints to the backend
-- the backend compiles controller pads into transport-relative automation events
-- the backend sequencer thread emits `control_change` MIDI messages
-- the frontend mirrors runtime state such as `active_pad`, `queued_pad`, and `runtime_pad_start_subunit`
+### 6. Csound DSP clock
 
-So the controller sequencer's effective playback clock is owned by the backend sequencer thread.
+Owner:
 
-## UI playhead animation: frontend, but not authoritative
+- Csound itself
 
-The frontend polls backend sequencer status roughly every 80 ms and also interpolates between updates for smoother display.
+Responsibility:
 
-That UI timing is only presentation. It does not drive melodic or drummer note playback.
+- DSP progression within each rendered block
+- note evolution after events have entered the engine
 
-## 4. Who Drives MIDI Event Delivery?
+## What Owns Sequencer Time
 
-## Backend sequencer MIDI
+### Sequencer transport: backend render path
 
-For melodic and drummer playback:
+The session sequencer is now render-driven for sessions.
 
-- backend sequencer thread decides when a step happens
-- backend sequencer thread sends MIDI messages through `MidiService`
+That means:
 
-So the backend drives MIDI timing for those devices.
+- sequencer advancement happens in `advance_render_block(...)`
+- it is called from the browser-clock render path before each backend block render
+- there is no session wall-clock transport thread driving note timing
 
-## Frontend direct MIDI
+So the backend sequencer runtime owns transport state, but it advances only when audio rendering advances.
 
-For piano roll and manual controller changes:
+## What Owns MIDI Event Timing
 
-- frontend decides when to send the event
-- backend accepts the event through the session MIDI API
-- backend injects it into the engine path
+### Internal sequencer events
 
-So these MIDI events are frontend-timed.
+Owner chain:
 
-## 5. Who Drives Continuous Sound?
+- backend sequencer runtime decides which events are due
+- events are queued into `EngineMidiScheduler`
+- render path drains them before the relevant `performKsmps()` block
 
-Once a note reaches Csound, Csound owns continuous sound generation.
+The final injection time is therefore owned by the render path, not by a sleep-based sequencer thread.
 
-That includes:
+### Browser manual MIDI
 
-- oscillator phase progression
-- envelopes
-- filters
-- feedback and delay behavior
-- audio-rate modulation
-- control-rate opcode evaluation
-- note lifetime inside the instrument
+Owner chain:
 
-The sequencer only creates discrete MIDI events. It does not generate audio samples itself.
+- browser timestamps the event with `performance.now()`
+- backend maps that timestamp into backend monotonic time
+- backend converts that to a target engine sample
+- render path performs final injection
 
-Continuous sound exists because Csound continues running its DSP engine between note events.
+So the browser owns the event timestamp, but the render path owns final execution.
 
-## 6. Local Mode
+### External host MIDI
 
-## Audio path
+Owner chain:
 
-In `local` mode:
+- helper timestamps inbound MIDI on the host
+- backend maps helper time into backend monotonic time
+- backend converts that to a target engine sample
+- render path performs final injection
 
-- Csound is started with realtime DAC output
-- compiled Csound options include `-odac`
-- Csound runs its normal realtime perform loop
-- audio goes to the machine's local sound device path
+So the helper owns the capture timestamp, but the render path owns final execution.
 
-## Clock ownership in local mode
+### Direct API MIDI
 
-### Sequencer transport
+Owner chain:
 
-- driven by backend sequencer thread
+- backend receives the event
+- backend queues it into the engine scheduler
+- render path injects it on the next appropriate block
 
-### Scheduled MIDI emission for melodic/drummer/controller tracks
+## What Owns Audible Audio Timing
 
-- driven by backend sequencer thread
+Final audible pacing is owned by:
 
-### Direct MIDI from piano roll / manual controls
+- the browser audio subsystem
 
-- driven by frontend
+The backend produces PCM on demand, but the browser decides when queued PCM is heard.
 
-### Continuous DSP and sample generation
+## Current Practical Model
 
-- driven by Csound's realtime engine clock
+If you need the shortest correct mental model, use this:
 
-### Final audible pacing
+- the browser owns playback
+- the backend render cursor owns engine time
+- the render thread owns final MIDI injection into Csound
+- Csound owns DSP between injected events
 
-- ultimately governed by the host audio device clock
+## Important Consequences
 
-So in local mode the audible end of the chain is anchored to the host sound device.
+### `midi_input` is not the internal performance bus
 
-## Local mode flow
+The session `midi_input` binding only selects an external MIDI source for the session.
 
-1. Frontend starts session and sequencer.
-2. Backend sequencer thread emits scheduled MIDI note and controller events.
-3. MIDI reaches Csound through the local runtime MIDI path.
-4. Csound instruments react using opcodes such as `cpsmidi`, `ampmidi`, `midictrl`, and `notnum`.
-5. Csound continuously renders audio.
-6. Host audio backend pulls that audio to the speakers.
+It does not control:
 
-## 7. Browser-Clock Mode
+- sequencer output
+- piano roll output
+- manual controller lanes
+- other internal app-generated MIDI
 
-## Audio path
+Those always use the engine-local path.
 
-In `browser_clock` mode:
+### `internal:loopback` is a logical endpoint
 
-- Csound is started headless with no direct DAC output
-- the browser becomes the playback clock and requests PCM render chunks over a controller WebSocket
-- the backend manually advances Csound block-by-block with `performKsmps()`
-- each generated Csound output block is returned to the browser as PCM bytes
-- the browser owns the final playback timing through `AudioContext` + `AudioWorklet`
+`internal:loopback` exists so the UI and API always have a stable input ref, even when there are no OS MIDI devices.
 
-## MIDI path in browser_clock mode
+It is not a requirement for internal playback to function.
 
-Browser-clock mode is designed so container MIDI devices are not required.
+### Browser timing reports matter
 
-Instead:
+The backend uses browser timing reports to estimate how far rendered audio is ahead of audible time.
 
-- the backend worker installs host-implemented MIDI callbacks into Csound
-- direct MIDI can be written into an in-memory buffer
-- Csound reads MIDI bytes from that buffer inside its own runtime
+That estimate lets manual browser-generated MIDI map more accurately into the engine timeline.
 
-In the Docker-oriented setup, `MidiService` fallback delivery and the worker's virtual sink registration let backend sequencer notes and frontend direct MIDI both arrive through this internal path.
+### `ksmps` still matters
 
-## Clock ownership in browser_clock mode
+Timestamped ingress improves capture and scheduling jitter, but Csound MIDI execution is still effectively quantized by the current k-period.
 
-### Sequencer transport
+That is why the runtime warns when `ksmps > 32` on a live session.
 
-- driven by backend sequencer thread
+## Per-Component Summary
 
-### Scheduled MIDI emission for melodic/drummer/controller tracks
+### Frontend
 
-- driven by backend sequencer thread
+- owns UI interaction timing
+- owns manual browser event timestamps
+- owns final playback timing
 
-### Direct MIDI from piano roll / manual controls
+### Host helper
 
-- driven by frontend
+- owns external MIDI capture timestamps
 
-### Csound DSP block progression
+### Session service
 
-- driven by backend worker's browser-clock render loop
+- owns controller leases
+- owns clock-domain mapping
+- routes timestamped events into the engine scheduler
 
-The browser-clock worker computes block duration from:
+### Engine MIDI scheduler
 
-- `block_seconds = ksmps / sr`
+- owns event ordering by target engine sample
 
-and sleeps to maintain that cadence while repeatedly calling `performKsmps()`.
+### Csound worker render path
 
-### Browser PCM request pacing
+- owns final event injection timing
+- owns engine sample cursor progression
 
-- driven by the browser controller's queue watermarks and render requests
+### Csound
 
-The browser requests PCM in fixed-size render chunks, typically aligned to the current `ksmps` window.
+- owns DSP time after event injection
 
-### Final audible playback
+## Final Answer
 
-- driven by the browser / operating system audio playback clock
+When someone asks "who owns the clock?" in the current runtime, the precise answer is:
 
-So browser_clock mode introduces one more layer than local mode: browser playback timing after backend audio generation.
-
-## Browser-clock flow
-
-1. Frontend starts the runtime session.
-2. Backend starts Csound in headless browser_clock mode.
-3. Backend sequencer thread emits scheduled MIDI note and controller events.
-4. MIDI is injected into Csound through host-implemented MIDI callbacks.
-5. Backend worker advances Csound one `ksmps` block at a time when the browser requests render chunks.
-6. Each output block is returned as PCM bytes to the browser controller.
-7. The browser feeds the PCM into `AudioContext` + `AudioWorklet`.
-8. Browser playback and sequencer display are derived from the browser clock.
-
-## 8. Csound's Role In Both Modes
-
-Regardless of mode, Csound is where note events become sustained sound.
-
-The compiled orchestra:
-
-- defines global engine settings such as `sr`, `ksmps`, `nchnls`, and `0dbfs`
-- maps MIDI channels to instrument numbers with `massign`
-- generates per-patch `instr N` bodies
-- uses MIDI opcodes inside those instrument bodies
-
-That means the app's patterns do not directly produce waveforms. They produce MIDI events that trigger Csound instruments, and those instruments then run continuously until release or stop conditions occur.
-
-## 9. Important Nuance: Controller Sequencers Share The Backend Transport
-
-The biggest architectural nuance is this:
-
-- note and drum sequencing are backend-clocked
-- controller sequencing is also backend-clocked
-- piano roll and manual controller gestures remain frontend-clocked
-
-So if someone asks "who drives the clock?" the correct answer depends on which device they mean.
-
-## 10. Final Answer By Component
-
-### Frontend sequencer editor
-
-- owns editable configuration
-- does not own melodic/drummer playback timing
-
-### Backend sequencer runtime
-
-- owns melodic/drummer/controller transport timing
-- owns step advancement and timed MIDI emission
-
-### Piano roll
-
-- frontend-owned event timing
-
-### MIDI controller widgets
-
-- frontend-owned event timing
-
-### Controller sequencers
-
-- backend-owned event timing
-
-### Csound engine
-
-- owns continuous DSP time
-- owns sample generation once notes are active
-
-### Host sound device in local mode
-
-- owns final playback clock
-
-### Browser-clock controller in browser_clock mode
-
-- owns transport of rendered audio chunks to the browser
-- owns request pacing and playback timing on the client side
-
-### Browser audio playback in browser_clock mode
-
-- owns final playback clock on the client side
-
-## 11. Practical Mental Model
-
-If you want the simplest internal model, use this:
-
-- The backend decides when notes happen.
-- The backend decides when controller curves happen.
-- The frontend decides when manual notes and manual controller events happen.
-- Csound decides how active notes evolve sample by sample.
-- Local mode ends at the host sound card.
-- Browser_clock mode ends at the browser audio output.
-
-## 12. One Current Implementation Detail
-
-The sequencer config includes `gate_ratio`, but the current backend sequencer runtime does not schedule a separate intra-step note-off based on that value.
-
-In practice, notes are released when one of these happens:
-
-- a new note replaces them
-- a non-hold rest occurs
-- a boundary action releases them
-- transport stops
-
-So the present runtime is more "step/boundary release driven" than "gate-time release driven."
+- the browser owns audible playback
+- the backend render path owns engine timing
+- the render path is the only authority for when MIDI reaches Csound

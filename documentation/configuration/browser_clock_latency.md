@@ -6,13 +6,13 @@ Orchestron now uses backend audio mode `browser_clock` on every supported platfo
 
 ## When This Section Appears
 
-The `Browser-Clock Latency` section is shown when the backend was started in `browser_clock` mode, for example:
+The `Browser-Clock Latency` section is shown when the backend is running in `browser_clock` mode, for example:
 
 - `docker compose up --build`
 - CLI argument `--audio-output-mode browser_clock`
 - environment variable `VISUALCSOUND_AUDIO_OUTPUT_MODE=browser_clock`
 
-This is the standard runtime path for macOS, Linux, Windows, and Docker.
+This is the standard runtime path for macOS, Linux, Windows, and Docker. In practice, that means this section describes the normal live-audio path of the app, not a Docker-only special case.
 
 ## Why These Settings Matter
 
@@ -27,6 +27,7 @@ That makes the browser-clock queue settings the main tradeoff between low live-p
 Lower values usually feel more immediate, but they also leave less headroom for:
 
 - backend scheduling jitter
+- network / websocket round-trip jitter between browser and backend
 - browser tab throttling or temporary main-thread stalls
 - heavier patches that take longer to render
 
@@ -71,6 +72,11 @@ These are the most direct controls for making manual keyboard or MIDI playing fe
 5. Apply the settings and test again with a realistic patch load.
 
 Keep in mind that these settings are stored in app state for the current workspace. They are not saved into the patch itself.
+
+They also work together with the engine settings from the patch:
+
+- browser-clock settings tune queueing and request behavior
+- patch engine settings such as `sr`, `ksmps`, `-b`, and `-B` tune the backend render block geometry
 
 ## Screenshot
 

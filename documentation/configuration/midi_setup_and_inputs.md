@@ -13,7 +13,7 @@ Workflow:
 1. Open Instrument Design.
 2. Use the Runtime panel `MIDI Input` dropdown.
 3. Select the desired input:
-   - `internal:loopback` for the built-in app-only loopback
+   - `internal:loopback` for the built-in app-only loopback and default fallback binding
    - a `host_bridge` input published by `host-midi-helper` for external hardware or DAW MIDI
 4. Start the instrument session and play from your hardware/DAW.
 
@@ -30,6 +30,11 @@ These features generate MIDI/control events internally and do not require an ext
 
 External MIDI input is only needed when you want to play Orchestron from outside the app. Internal MIDI is always delivered directly into the session engine and ignores the external input binding.
 
+That means:
+
+- switching the session input does not disable sequencers, piano rolls, or manual controller lanes
+- binding a helper-provided external input adds another source into the same engine scheduler
+
 ## External MIDI Bridge
 
 The backend no longer relies on direct OS MIDI enumeration for session playback. External MIDI arrives through the optional Rust host bridge in [`host-midi-helper/`](../../host-midi-helper/README.md).
@@ -41,6 +46,8 @@ General setup pattern:
 3. Bind the helper-published input in the Runtime panel.
 
 If no helper is running, `internal:loopback` remains available and internal performance tools still work.
+
+The backend still performs backend-native MIDI enumeration where available, but live session playback now uses the helper-backed `host_bridge` path for external devices.
 
 ## macOS Loopback Setup (IAC Driver)
 

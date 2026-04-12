@@ -23,10 +23,10 @@ The Configuration chapter covers both UI-visible settings and practical runtime/
 
 ## Configuration Scope Clarification
 
-Orchestron has two kinds of configuration:
+Orchestron has three kinds of configuration:
 
 - **Patch-level configuration** (stored with a patch, editable in the Config page)
-- **Runtime/startup configuration** (backend launch mode and optional host MIDI bridge token)
+- **Runtime/startup configuration** (browser-clock startup options and optional host MIDI bridge token)
 - **Workspace runtime tuning** (browser-clock latency settings stored in app state)
 
 Both are important for successful use.

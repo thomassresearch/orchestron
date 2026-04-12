@@ -1,401 +1,293 @@
-# Orchestron (formerly called VisualCSound) Architecture
+# Orchestron Architecture
 
-## 1) Purpose
-Orchestron is a 2-tier application for creating CSound instruments visually by connecting opcode nodes, then playing them in real time via MIDI.
+## 1. Purpose
+
+Orchestron is a two-tier application for designing Csound instruments visually and performing them live through a browser-clock audio runtime.
 
 Primary outcomes:
-- Visual patching experience similar to modular analog synth workflows.
-- Typed signal graph (audio, control, init, string, etc.) mapped to valid CSound instruments.
-- Fast load/save of instrument patches.
-- Real-time performance with external MIDI sources on macOS.
 
-## 2) Scope and Non-Goals
+- visual patching for Csound instruments
+- deterministic graph compilation into `.orc` / `.csd`
+- render-driven live playback with timestamped MIDI ingress
+- the same execution model on macOS, Linux, Windows, and Docker
 
-In scope:
-- Frontend graph editor (drag, drop, connect, parameter edit).
-- Backend compilation from visual graph to CSound `.orc`/`.csd`.
-- Realtime play/stop lifecycle and MIDI routing.
-- Opcode catalog with icons and typed ports.
-- Sequencers and virtual piano roll keyboards
-- Multitrack arranger for the stored sequencer patterns
+## 2. Core Runtime Model
 
-Out of scope (initial versions):
-- Collaborative multi-user patch editing.
-- Cloud rendering farms or distributed audio engines.
+The current runtime has four important rules:
 
-## 3) Technology Stack
+1. `browser_clock` is the only realtime execution path.
+2. The browser owns audible playback timing through `AudioContext` and `AudioWorklet`.
+3. The backend render path owns engine time and is the only place where MIDI enters Csound.
+4. Internal app MIDI and external host MIDI both converge into one engine-local timestamped scheduler.
+
+Compatibility note:
+
+- `local` is still accepted on the wire and in environment variables, but it is normalized to `browser_clock` at startup.
+
+## 3. Technology Stack
 
 ### Frontend
+
 - TypeScript
-- React (recommended UI runtime with Rete.js ecosystem)
+- React
 - Tailwind CSS
-- Rete.js (+ plugins for area, connection, context menu, minimap)
-- Zustand or Redux Toolkit for global state (patch/session/UI)
-- WebSocket client for runtime telemetry and parameter updates
+- Rete.js for graph editing
+- browser WebSocket controller for render requests, sequencer control, and timing telemetry
 
 ### Backend
-- Python 3.11+
+
+- Python 3.14+
 - FastAPI
-- Pydantic v2 for schema validation
-- CSound Python bindings (`ctcsound`)
-- Uvicorn / Gunicorn-Uvicorn workers
-- SQLModel or SQLAlchemy for persistence (SQLite for local, PostgreSQL optional)
+- Pydantic v2
+- SQLAlchemy / SQLite persistence
+- `ctcsound`
 
-### Audio/MIDI Integration
-- CSound realtime engine (version 6.x) in-process with backend worker isolation
-- CSound realtime MIDI input (`-M` and `-+rtmidi` runtime options)
-- macOS CoreMIDI/IAC Driver loopback (recommended default)
+### Native MIDI Bridge
 
-### Asset Pipeline (Opcode Icons)
-- Image generation pipeline for opcode icons (offline generation + curation)
-- Raster-to-SVG/vector cleanup where needed
-- Static CDN-like serving via FastAPI static files
+- Rust
+- Tokio
+- `tokio-tungstenite`
+- `midir`
 
-## 4) High-Level Architecture
+The Rust helper is optional. The app still works without it.
+
+## 4. High-Level Architecture
 
 ```mermaid
 flowchart LR
-    A["Frontend (React + Rete.js)"] -->|REST| B["FastAPI API Layer"]
-    A -->|WebSocket| C["Session Runtime Gateway"]
-    B --> D["Patch Service"]
-    B --> E["Opcode Catalog Service"]
-    C --> F["CSound Session Manager"]
-    F --> G["CSound Engine Workers"]
-    G --> H["CoreAudio Output"]
-    I["External MIDI Apps/DAWs"] --> J["macOS IAC Bus"]
-    J --> G
-    D --> K["SQLite/PostgreSQL"]
-    E --> L["Opcode Metadata + Icon Store"]
+    A["Frontend (React + Rete.js)"] -->|REST| B["FastAPI API"]
+    A -->|WS /ws/sessions/{id}| C["Session Event Bus"]
+    A -->|WS /ws/sessions/{id}/browser-clock| D["Browser-Clock Controller"]
+    B --> E["Patch Service"]
+    B --> F["Compiler Service"]
+    B --> G["Session Service"]
+    E --> H["SQLite"]
+    F --> I["Compile Artifact (.orc/.csd)"]
+    G --> J["CsoundWorker"]
+    D --> J
+    J --> K["EngineMidiScheduler"]
+    K --> L["performKsmps() Render Path"]
+    L --> M["PCM Blocks"]
+    M --> A
+    N["Internal app MIDI producers"] --> K
+    O["host-midi-helper (Rust)"] -->|WS /ws/host-midi| G
+    P["External controllers / DAWs"] --> O
 ```
 
-## 5) Logical Components
+## 5. Timing and MIDI Architecture
 
-### Frontend Components
-1. Patch Editor
-- Rete.js canvas for node placement and wiring.
-- Node inspector panel for opcode args/defaults/ranges.
-- Connection validator using opcode port types.
+### Browser audio
 
-2. Catalog Browser
-- Searchable opcode library by category (oscillators, filters, envelopes, MIDI, utilities).
-- Icon + tooltip + short opcode docs summary.
+- The browser requests render chunks from the backend.
+- Each request advances Csound block-by-block with `performKsmps()`.
+- The browser queues returned PCM and owns the final playback clock.
 
-3. Runtime Control Panel
-- Session controls: compile, start, stop, panic.
-- MIDI monitor and selected input port status.
-- Real-time parameter widgets (knobs/sliders) mapped to control channels.
+### Internal MIDI
 
-4. Persistence UX
-- Save patch, load patch, duplicate, version notes.
-- Dirty-state tracking and autosave option.
+Internal producers include:
 
-### Backend Components
-1. API Layer (FastAPI Routers)
-- Auth/session middleware (optional for local-first MVP).
-- Validation and serialization boundaries.
+- melodic sequencers
+- drummer sequencers
+- controller sequencers
+- piano roll keyboard
+- manual controller gestures
+- direct API MIDI events
 
-2. Opcode Catalog Service
-- Canonical metadata store per opcode:
-  - Name, category, in/out port schema, rate types, argument list, defaults.
-  - Icon URL and compact documentation text.
+These do not require any OS MIDI device. They are delivered through the session engine path and use the built-in `internal:loopback` input ref as a stable logical endpoint.
 
-3. Patch Service
-- CRUD for patches.
-- Patch schema versioning and migration hooks.
+### External MIDI
 
-4. Graph Compiler Service
-- Converts validated graph to CSound instrument code:
-  - Node ordering/topological resolution.
-  - Variable naming and port binding.
-  - Rate correctness checks (`a`, `k`, `i`, `S`).
-  - Emits `.orc` body and `.csd` wrapper.
+External hardware or DAW MIDI arrives through the optional Rust helper:
 
-5. CSound Session Manager
-- Creates and manages runtime engine instances.
-- Isolates each active patch in dedicated worker/thread context.
-- Handles play/stop/reload/teardown.
+- helper connects to `/ws/host-midi`
+- helper publishes device inventory
+- helper forwards inbound MIDI bytes with helper-local monotonic timestamps
+- backend maps helper timestamps into backend monotonic time
+- backend converts them into target engine sample positions
+- render path injects them into Csound immediately before the relevant block
 
-6. MIDI Service
-- Enumerates available MIDI inputs.
-- Selects and binds MIDI source by device/bus name.
-- Bridges MIDI events to active CSound sessions.
+### Engine-local scheduler
 
-7. Event Gateway (WebSocket)
-- Pushes runtime telemetry to frontend:
-  - compile status, warnings, errors
-  - CPU load, xruns/underruns (if exposed)
-  - note-on/off monitor, channel data
+`EngineMidiScheduler` is the convergence point for all MIDI sources.
 
-## 6) Core Domain Model
+Each queued event stores:
 
-### Patch
-- `id`, `name`, `description`, `schemaVersion`, `createdAt`, `updatedAt`
-- `nodes[]`, `connections[]`, `uiLayout`, `engineConfig`
+- source id
+- raw MIDI bytes
+- source timestamp
+- mapped backend monotonic timestamp
+- target engine sample
+- `late` flag
+- `sync_stale` flag
 
-### NodeInstance
-- `id`
-- `opcode` (e.g., `oscili`, `moogladder`)
-- `params` (constant values or references)
-- `ports`:
-  - `inputs[]` with `id`, `signalType`, `arity`
-  - `outputs[]` with `id`, `signalType`, `arity`
+The scheduler is drained immediately before each `performKsmps()` block.
 
-### Connection
-- `fromNodeId`, `fromPortId`, `toNodeId`, `toPortId`
-- optional `transform` metadata (gain/scale/offset helper nodes preferred over implicit transforms)
+## 6. Logical Components
 
-### Session
-- `sessionId`, `patchId`, `state` (`idle|compiled|running|error`)
-- `csoundOptions`, `midiInput`, `audioOutput`, `startedAt`
+### Frontend
 
-## 7) Signal Typing and Graph Rules
+1. Patch editor
+- node graph authoring
+- opcode catalog and parameter editing
 
-Supported signal types (initial):
-- Audio-rate: `a`
-- Control-rate: `k`
-- Init-rate: `i`
-- String: `S`
-- Function table/ref: `f` (metadata-level reference type)
+2. Performance UI
+- instrument rack
+- sequencers
+- piano rolls
+- controller panels
 
-Validation rules:
-1. Source and destination port types must be compatible.
-2. Disallow direct cycles unless a delay/feedback opcode explicitly breaks sample recursion.
-3. Required opcode inputs must be connected or have defaults.
-4. Multi-output opcodes must map each output index explicitly.
-5. Graph must have at least one audio sink path to output opcode (`outs`, `outch`, etc.) for playable sessions.
+3. Browser-clock controller
+- claims session controller ownership
+- sends `timing_report`
+- sends timestamped manual MIDI
+- requests render chunks
 
-## 8) Graph-to-CSound Compilation Pipeline
+### Backend
 
-1. Load patch + schema migrate (if needed).
-2. Validate structure and signal typing.
-3. Build dependency graph and execution order.
-4. Allocate deterministic variable symbols (stable across recompiles when possible).
-5. Emit opcode lines per node.
-6. Emit instrument wrapper(s), global settings (`sr`, `ksmps`, `nchnls`, `0dbfs`).
-7. Build full `.csd` (or `.orc` + runtime score) and compile with CSound.
-8. Return compile artifact + diagnostics to frontend.
+1. API layer
+- patch, session, runtime, MIDI, and websocket endpoints
 
-Compiler output modes:
-- Debug mode: include comments mapping generated lines back to node IDs.
-- Performance mode: compact output for faster startup.
+2. Patch service
+- patch CRUD and persistence
 
-## 9) API Surface (Initial)
+3. Compiler service
+- graph validation
+- instrument code generation
+- headless `.csd` generation with realtime MIDI options
 
-### Metadata and Catalog
+4. Session service
+- session lifecycle
+- browser-clock controller ownership
+- helper registration and clock mapping
+- sequencer control
+
+5. Csound worker
+- starts Csound headless
+- maintains render cursor
+- owns engine MIDI scheduler
+- injects host MIDI buffer per render block
+
+6. MIDI service
+- lists logical and backend MIDI inputs
+- always exposes `internal:loopback`
+- tracks helper-published host devices
+- still supports backend-native device discovery for non-session diagnostics
+
+7. Event bus
+- session runtime event fan-out to frontend listeners
+
+### Native host MIDI helper
+
+1. Device inventory
+- enumerate host MIDI inputs
+- publish stable helper device ids
+
+2. Clock sync
+- send helper monotonic timestamps to backend
+
+3. Event forwarding
+- batch inbound MIDI events
+- preserve timestamp quality metadata
+
+## 7. Session Model
+
+Each runtime session carries:
+
+- compiled Csound artifact
+- running state
+- selected external MIDI input binding
+- browser-clock controller lease
+- optional render-driven sequencer
+
+Important semantic detail:
+
+- `midi_input` is an external-input binding only
+- internal producers ignore it and always target the session engine queue
+
+## 8. Compilation Model
+
+The compiler generates a headless runtime CSD:
+
+- `-d`
+- `-n`
+- `-M<device>`
+- `-+rtmidi=<module>`
+- configured `-b` / `-B`
+
+That means session playback never depends on backend DAC output.
+
+## 9. API Surface
+
+### REST
+
 - `GET /api/opcodes`
-- `GET /api/opcodes/{opcodeName}`
-- `GET /api/opcodes/{opcodeName}/icon`
-
-### Patch Persistence
 - `POST /api/patches`
-- `GET /api/patches/{patchId}`
-- `PUT /api/patches/{patchId}`
-- `GET /api/patches`
-
-### Compile and Session Runtime
 - `POST /api/sessions`
 - `POST /api/sessions/{sessionId}/compile`
 - `POST /api/sessions/{sessionId}/start`
 - `POST /api/sessions/{sessionId}/stop`
 - `POST /api/sessions/{sessionId}/panic`
-- `DELETE /api/sessions/{sessionId}`
-
-### MIDI
 - `GET /api/midi/inputs`
 - `PUT /api/sessions/{sessionId}/midi-input`
 
-### Realtime Events
+### WebSocket
+
 - `WS /ws/sessions/{sessionId}`
+  - runtime events
+- `WS /ws/sessions/{sessionId}/browser-clock`
+  - `claim_controller`
+  - `request_render`
+  - `manual_midi`
+  - `timing_report`
+  - sequencer control
+- `WS /ws/host-midi`
+  - `register_host`
+  - `clock_sync`
+  - `device_inventory`
+  - `midi_events`
 
-## 10) macOS MIDI Loopback Strategy
+## 10. Deployment Topology
 
-Recommended solution: built-in macOS IAC Driver (CoreMIDI virtual bus).
+### Native development
 
-Why:
-- Native, low-friction, no third-party kernel/driver dependency.
-- Supported by most DAWs and MIDI software.
-- Fits CSound realtime MIDI input model.
+- backend runs locally
+- browser connects to backend directly
+- helper, if used, also runs locally on the host OS
 
-Operational setup:
-1. In macOS Audio MIDI Setup, open MIDI Studio.
-2. Open IAC Driver properties and enable `Device is online`.
-3. Create one or more named buses (for example `VisualCSound In`).
-4. In external software (Logic, Ableton, etc.), route MIDI output to that IAC bus.
-5. In backend session config, bind CSound MIDI input device to that bus name/index.
+### Docker
 
-CSound runtime notes:
-- Use realtime MIDI input option `-M <device>`.
-- On macOS, use native realtime modules: `-+rtmidi=coremidi` and `-+rtaudio=auhal`.
-- Expose discovered devices through `/api/midi/inputs` so UI can present exact names.
+- backend runs in a container
+- browser still owns playback
+- internal MIDI still works with no host MIDI devices
+- helper runs on the Docker host, not in the container
+- helper connects to the backend through the published backend port
 
-## 11) Opcode Icon Architecture
+## 11. Realtime Constraints
 
-Goal: each opcode node has a distinct, readable icon consistent with category semantics.
+Important current constraints:
 
-Pipeline:
-1. Define style guide by opcode families (oscillator/filter/envelope/mixer/io/midi).
-2. Generate draft icons in batches with an image generation model.
-3. Human curation + normalization (size, stroke weight, contrast).
-4. Export final assets (`SVG` preferred, `PNG` fallback).
-5. Serve icons from backend static path with cache headers.
+- MIDI timing is ultimately quantized by Csound `ksmps`
+- the backend emits a runtime warning when `ksmps > 32`
+- browser queue depth is the main live-latency tradeoff
+- timestamped ingress reduces jitter, but does not remove the browser queue latency floor
 
-Fallback strategy:
-- If custom icon missing, render category icon + opcode initials.
+## 12. Observability
 
-## 12) Frontend Detailed Architecture
+The runtime exposes:
 
-State domains:
-- `patchState`: nodes, edges, selection, undo/redo.
-- `catalogState`: opcode metadata and icon map.
-- `sessionState`: compile/run state, logs, MIDI binding.
-- `uiState`: panes, modals, theme, shortcuts.
+- `/api/health`
+- `/api/health/realtime`
+- session runtime events
+- helper inventory connect/disconnect events through the MIDI input list and session event stream
 
-Rete.js integration:
-- Custom node renderer (Tailwind components).
-- Port renderer with color-coded signal types (`a/k/i/S/f`).
-- Connection style encodes signal type (line style/color).
-- Context actions:
-  - add node from compatible next opcodes
-  - quick-connect helpers
-  - insert utility node between connection
+## 13. Practical Summary
 
-User feedback loops:
-- Compile warnings pinned to nodes/ports.
-- Inline validation before API compile call.
-- Live activity indicator for MIDI notes and audio engine state.
+The current architecture is:
 
-## 13) Backend Detailed Architecture
+- browser-clock everywhere
+- render-thread-owned engine timing
+- one engine-local MIDI scheduler
+- `internal:loopback` always available
+- optional host MIDI bridge for external devices
 
-Suggested module layout:
-
-```text
-backend/
-  app/main.py
-  app/api/
-    patches.py
-    opcodes.py
-    sessions.py
-    midi.py
-    ws.py
-  app/core/
-    config.py
-    logging.py
-  app/models/
-    patch.py
-    opcode.py
-    session.py
-  app/services/
-    patch_service.py
-    opcode_service.py
-    compiler_service.py
-    midi_service.py
-    session_service.py
-  app/engine/
-    csound_worker.py
-    session_runtime.py
-  app/storage/
-    db.py
-    repositories/
-```
-
-Concurrency model:
-- API requests remain non-blocking.
-- Compile/start/stop operations routed to session worker queue.
-- WebSocket broadcast from session events bus.
-
-Failure containment:
-- Engine worker crash only kills one session.
-- Supervising session manager marks session `error` and returns diagnostics.
-
-## 14) Performance and Realtime Constraints
-
-Targets (initial):
-- Compile turnaround: < 300 ms for small/medium patches.
-- Start latency after compile: < 200 ms.
-- UI response to parameter changes: < 50 ms perceived.
-
-Key strategies:
-- Keep CSound engine warm per active session.
-- Incremental recompile for local graph changes where feasible.
-- Throttle high-frequency UI parameter events before backend forwarding.
-- Use bounded queues to protect realtime thread from burst traffic.
-
-## 15) Persistence and Versioning
-
-Patch storage:
-- JSON document persisted in DB.
-- Include `schemaVersion` for forward migrations.
-- Optional immutable history snapshots for rollback.
-
-Migration approach:
-- On load, run incremental migrators (`v1 -> v2 -> v3`).
-- Preserve unknown extension fields to avoid data loss.
-
-## 16) Observability and Diagnostics
-
-Capture:
-- API request logs and latency.
-- Compile errors/warnings by opcode/node.
-- Session lifecycle events.
-- MIDI device discovery/binding changes.
-- Realtime engine telemetry if available.
-
-Expose:
-- `GET /api/health`
-- `GET /api/health/realtime`
-- structured logs for local debugging and production ops.
-
-## 17) Security and Safety Baseline
-
-- Validate all incoming patch payloads with strict schema.
-- Limit max nodes/connections per patch to prevent abuse.
-- Sanitize text fields used in generated code comments.
-- Keep CSound compile/runtime in constrained worker boundaries.
-- If multi-user mode is added later: enforce auth + patch ownership checks.
-
-## 18) Deployment Topology
-
-Development:
-- Frontend dev server (Vite) and backend FastAPI on localhost.
-- CSound engine runs in backend process context.
-
-Production options:
-1. Single-node local workstation deployment (best for low latency audio tools).
-2. LAN deployment where browser frontend accesses backend on same machine as audio engine.
-
-Note: fully remote cloud backend is generally not ideal for realtime MIDI/audio latency-sensitive workflows.
-
-## 19) Implementation Phases
-
-Phase 1: Foundations
-- Opcode catalog model, patch schema, Rete canvas basic node/edge editing.
-
-Phase 2: Compiler + Persistence
-- Graph validation, CSound code generation, save/load endpoints.
-
-Phase 3: Realtime Engine + MIDI
-- Session manager, start/stop, MIDI input binding, IAC workflow support.
-
-Phase 4: UX and Assets
-- Icon library pipeline, improved node inspectors, diagnostics overlay.
-
-Phase 5: Hardening
-- Performance tuning, crash recovery, schema migration tests, packaging.
-
-## 20) Risks and Mitigations
-
-Risk: opcode metadata incompleteness causes invalid graph constraints.  
-Mitigation: start with curated opcode subset; expand with test-backed metadata.
-
-Risk: realtime glitches under heavy UI event traffic.  
-Mitigation: event throttling, bounded queues, separate realtime worker path.
-
-Risk: MIDI device naming differences across CSound builds.  
-Mitigation: runtime device discovery endpoint + explicit user selection per session.
-
-Risk: generated icons may be visually inconsistent.  
-Mitigation: enforce icon design tokens and human curation before publish.
-
----
-
-This architecture is ready for implementation planning without committing to code yet.
+That is the model the codebase now implements.

@@ -33,12 +33,18 @@ csound --version
 ```
 
 Project requirements:
-- Python `>= 3.13,<3.14` # as 3.14 is currently ALPHA on windows, that will change, then 3.14 is fine
+- Python `>= 3.14` is the project target
 - Node + npm (Node 20+ recommended)
 - Csound runtime (for realtime synthesis via `ctcsound`)
 - Rust toolchain (`cargo`) only if you want to run `host-midi-helper` for external MIDI devices
 
-`uv python install 3.14` in section 3 installs the required Python version if it is not already available.
+Optional Rust install for the helper:
+
+```powershell
+winget install Rustlang.Rustup
+```
+
+If your current Windows toolchain still cannot build or run the project with Python 3.14, the compatibility workaround below shows how to use Python 3.13 temporarily.
 
 ## 2. Get the source
 
@@ -51,7 +57,7 @@ Set-Location Orchestron
 
 ## 3. Install backend dependencies
 
-Currently, python 3.14 is ALPHA on windows, did not work, so there is a hack required: edit pyproject.toml, and change line 6 from:
+Compatibility workaround if Python 3.14 is still problematic on your machine: edit `pyproject.toml` and change line 6 from:
 ```
 requires-python = ">=3.14"
 ```

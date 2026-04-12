@@ -23,6 +23,7 @@ services:
       - info
     environment:
       VISUALCSOUND_AUDIO_OUTPUT_MODE: browser_clock
+      VISUALCSOUND_HOST_MIDI_TOKEN: ${VISUALCSOUND_HOST_MIDI_TOKEN:-}
       # On macOS (Docker Desktop), ALSA device passthrough is not available.
       # Use a non-ALSA backend by default so `docker compose up` works.
       # In browser-clock mode the browser owns the PCM queue and CSound still receives live MIDI
@@ -32,8 +33,9 @@ services:
       VISUALCSOUND_CORS_ORIGINS: '["http://localhost:5173","http://127.0.0.1:5173","http://localhost:8000","http://127.0.0.1:8000"]'
     volumes:
       - orchestron_data:/app/backend/data
-    # Linux ALSA passthrough is provided via docker-compose.alsa.yaml for native local mode.
-    # Do not enable on macOS; /dev/snd does not exist there.
+    # Linux ALSA passthrough can still be added in a separate compose override for host-native MIDI experiments.
+    # The default runtime stays browser-clock, and host MIDI should normally arrive through host-midi-helper.
+    # Do not enable /dev/snd passthrough on macOS; /dev/snd does not exist there.
     restart: unless-stopped
 
 volumes:

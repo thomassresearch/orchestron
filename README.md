@@ -87,7 +87,7 @@ To make sound quickly, open [http://localhost:8000/client](http://localhost:8000
 
 **Troubleshooting**: if audio output is chopped, increase the hardware and software buffer sizes in the configuration settings.
 
-All runtimes now use `browser_clock` mode: the browser owns the PCM queue via Web Audio (`AudioContext` + `AudioWorklet`) and the backend renders Csound blocks on demand with `performKsmps()`. Internal app MIDI always uses an engine-local timestamped scheduler through the built-in `internal:loopback` path, so sequencers, piano rolls, and manual controller lanes work even when no OS MIDI devices exist. External hardware or DAW MIDI is optional and now arrives through the native Rust host bridge in [`host-midi-helper/`](host-midi-helper/README.md).
+All runtimes now use `browser_clock` mode: the browser owns the PCM queue via Web Audio (`AudioContext` + `AudioWorklet`) and the backend renders Csound blocks on demand with `performKsmps()`. Internal app MIDI always uses an engine-local timestamped scheduler through the built-in `internal:loopback` path, so sequencers, piano rolls, and manual controller lanes work even when no OS MIDI devices exist. The session `MIDI Input` binding is therefore for external hardware or DAW MIDI only. External MIDI is optional and arrives through the native Rust host bridge in [`host-midi-helper/`](host-midi-helper/README.md).
 
 ## MIDI on macOS
 

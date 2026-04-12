@@ -7,6 +7,7 @@ This guide runs Orchestron in Docker using the unified browser-clock runtime.
 Install:
 
 - Docker Engine with Docker Compose support, or Docker Desktop
+- Rust toolchain on the Docker host only if you want to run `host-midi-helper` for external MIDI devices
 
 Confirm Docker is available:
 
@@ -14,6 +15,12 @@ Confirm Docker is available:
 docker --version
 docker compose version
 ```
+
+Optional host-side Rust install examples:
+
+- macOS: `brew install rust`
+- Linux: `curl https://sh.rustup.rs -sSf | sh -s -- -y`
+- Windows: `winget install Rustlang.Rustup`
 
 ## 2. Get the source
 
@@ -37,6 +44,14 @@ docker volume create orchestron_data
 Run the backend in browser-clock mode with Docker Compose:
 
 ```bash
+export VISUALCSOUND_HOST_MIDI_TOKEN=dev-midi-token
+docker compose up --build
+```
+
+PowerShell equivalent:
+
+```powershell
+$env:VISUALCSOUND_HOST_MIDI_TOKEN = "dev-midi-token"
 docker compose up --build
 ```
 
@@ -51,7 +66,24 @@ The Compose setup runs Csound in `browser_clock` mode. The browser owns the PCM 
 
 For localhost and LAN browser connections, the browser-clock client uses a low-latency queue profile with smaller render chunks and an urgent render request after live note-on events. This improves realtime piano-keyboard response compared with the older conservative buffering defaults.
 
-Internal sequencers, piano rolls, and controller lanes work in Docker even when no OS MIDI devices exist. If you want external hardware or DAW MIDI, run `host-midi-helper` on the Docker host and point it at the backend websocket with the same `VISUALCSOUND_HOST_MIDI_TOKEN`.
+Internal sequencers, piano rolls, and controller lanes work in Docker even when no OS MIDI devices exist.
+
+If you want external hardware or DAW MIDI:
+
+1. Keep the backend container running with `VISUALCSOUND_HOST_MIDI_TOKEN` set.
+2. Run `host-midi-helper` on the Docker host, not in the container.
+3. Point the helper at the published backend websocket:
+
+```bash
+VISUALCSOUND_HOST_MIDI_TOKEN=dev-midi-token \
+cargo run --manifest-path host-midi-helper/Cargo.toml -- \
+  --backend-ws ws://127.0.0.1:8000/ws/host-midi
+```
+
+4. Route your DAW or MIDI device into the host OS MIDI API that the helper can see.
+5. In Orchestron, bind the helper-published input in the Runtime panel.
+
+Because the helper runs on the host, this works even when the container itself has no direct MIDI device access.
 
 ## 6. Stop the stack
 
@@ -64,3 +96,5 @@ docker compose down
 ## 7. Additional notes
 
 For implementation details and latency tuning, see [Browser-Clock Latency](documentation/configuration/browser_clock_latency.md).
+
+If you do not need external MIDI hardware or DAW routing, you can ignore Rust entirely. The internal `internal:loopback` path still supports sequencers, piano rolls, and manual controller lanes inside the containerized app.

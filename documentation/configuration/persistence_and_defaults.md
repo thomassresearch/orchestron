@@ -29,6 +29,8 @@ Persisted app state includes (current implementation):
 - active MIDI input selection reference
 - browser-clock latency settings for the current workspace/runtime path
 
+New sessions default that MIDI input reference to `internal:loopback` unless a different external input is explicitly bound.
+
 ## What This Means In Practice
 
 - You can reload the app and continue from a similar workspace state.
@@ -55,6 +57,12 @@ A new patch starts with:
 ## Compile Status vs Persistence
 
 The compile status badge (`compiled`, `pending changes`, `errors`) indicates compile state for the current patch snapshot. It does **not** indicate whether the patch has been saved to the patch library.
+
+## Runtime Defaults
+
+- runtime audio mode normalizes to `browser_clock`
+- the default session MIDI binding is `internal:loopback`
+- external host MIDI is disabled unless `VISUALCSOUND_HOST_MIDI_TOKEN` is configured and a helper connects
 
 ## Recommended Habits
 

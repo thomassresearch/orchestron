@@ -88,6 +88,8 @@ Editable fields:
 
 These values control the browser PCM queue depth and render request behavior, which are the dominant latency/stability knobs on the unified browser-clock path.
 
+The patch engine section still matters because `sr`, `ksmps`, and the configured buffers are used by the backend render worker when it compiles and starts the headless Csound session.
+
 ### Field-By-Field Meaning
 
 #### Steady Low Water / Steady High Water
@@ -169,6 +171,7 @@ These are part of the patch model, but the current Config page focuses on the us
 - Higher buffers improve stability but increase latency.
 - Use the Runtime panel and live testing to find a stable setting for your machine and patch complexity.
 - On the browser-clock path, start by adjusting browser-clock low/high water, render blocks, and parallel request limits before changing patch `-b/-B`.
+- For live MIDI sessions, prefer `ksmps <= 32`. The runtime warns when a live session starts with a larger `ksmps` because MIDI execution is still quantized to the k-period.
 
 ## Screenshots
 

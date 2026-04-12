@@ -10,6 +10,12 @@ Install required tools with Homebrew:
 brew install uv node csound
 ```
 
+Optional for external MIDI through `host-midi-helper`:
+
+```bash
+brew install rust
+```
+
 Confirm versions:
 
 ```bash

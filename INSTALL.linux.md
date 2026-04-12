@@ -19,6 +19,13 @@ sudo apt install -y --no-install-recommends \
 curl -LsSf https://astral.sh/uv/install.sh | sudo env UV_INSTALL_DIR=/usr/local/bin sh
 ```
 
+Optional for external MIDI through `host-midi-helper`:
+
+```bash
+curl https://sh.rustup.rs -sSf | sh -s -- -y
+source "$HOME/.cargo/env"
+```
+
 Confirm versions:
 
 ```bash
