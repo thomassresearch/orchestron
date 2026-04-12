@@ -33,7 +33,7 @@ csound --version
 ```
 
 Project requirements:
-- Python `>= 3.13,< 3.14` is the project target
+- Python `>= 3.13,< 3.14` is the project target (3.14 had issues on Windows because of a pre-release build)
 - Node + npm (Node 20+ recommended)
 - Csound runtime (for realtime synthesis via `ctcsound`)
 - Rust toolchain (`cargo`) only if you want to run `host-midi-helper` for external MIDI devices
