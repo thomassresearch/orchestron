@@ -14,6 +14,7 @@ from backend.app.engine.browser_audio_pcm import (
     DEFAULT_BROWSER_AUDIO_SAMPLE_RATE,
     csound_spout_to_pcm_block,
 )
+from backend.app.engine.ctcsound_loader import load_ctcsound_module
 from backend.app.engine.midi_scheduler import EngineMidiOutputAdapter, EngineMidiScheduler
 
 logger = logging.getLogger(__name__)
@@ -78,13 +79,11 @@ class CsoundWorker:
             return
 
         try:
-            import ctcsound  # type: ignore
-
-            self._ctcsound = ctcsound
+            self._ctcsound = load_ctcsound_module()
             self._backend = "ctcsound"
-        except Exception:
+        except Exception as exc:
             self._ctcsound = None
-            logger.warning("ctcsound not available; using mock realtime engine")
+            logger.warning("ctcsound not available; using mock realtime engine: %s", exc)
 
     @property
     def backend(self) -> str:

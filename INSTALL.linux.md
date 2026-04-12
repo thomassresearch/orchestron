@@ -36,10 +36,10 @@ csound --version
 ```
 
 Project requirements:
-- Python `>= 3.14`
+- Python `>= 3.13,< 3.14`
 - Node + npm (Node 20+ recommended)
 - Csound runtime (for realtime synthesis via `ctcsound`)
-- ALSA MIDI support (`python-rtmidi` defaults to `alsaseq` on Linux)
+- ALSA sequencer support (`/dev/snd/seq`) if you later choose to use native `mido` MIDI device discovery
 - Rust toolchain (`cargo`) only if you want to run `host-midi-helper` for external MIDI devices
 
 The backend can still start with a mock engine if `ctcsound` is not available, but realtime audio synthesis will be disabled.
@@ -55,10 +55,10 @@ cd Orchestron
 
 ## 3. Install backend dependencies
 
-Create a Python 3.14 environment and sync backend dependencies:
+Create a Python 3.13 environment and sync backend dependencies:
 
 ```bash
-uv python install 3.14
+uv python install 3.13
 uv sync --extra dev
 source .venv/bin/activate
 ```
@@ -156,7 +156,7 @@ Expected: JSON responses with `"status": "ok"`.
 - Reinstall Python bindings:
 
 ```bash
-uv pip install --force-reinstall ctcsound python-rtmidi mido
+uv pip install --force-reinstall ctcsound mido
 ```
 
 ### `/client` returns frontend build not found

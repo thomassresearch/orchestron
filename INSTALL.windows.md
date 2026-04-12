@@ -33,7 +33,7 @@ csound --version
 ```
 
 Project requirements:
-- Python `>= 3.14` is the project target
+- Python `>= 3.13,< 3.14` is the project target
 - Node + npm (Node 20+ recommended)
 - Csound runtime (for realtime synthesis via `ctcsound`)
 - Rust toolchain (`cargo`) only if you want to run `host-midi-helper` for external MIDI devices
@@ -43,8 +43,6 @@ Optional Rust install for the helper:
 ```powershell
 winget install Rustlang.Rustup
 ```
-
-If your current Windows toolchain still cannot build or run the project with Python 3.14, the compatibility workaround below shows how to use Python 3.13 temporarily.
 
 ## 2. Get the source
 
@@ -56,17 +54,6 @@ Set-Location Orchestron
 ```
 
 ## 3. Install backend dependencies
-
-Compatibility workaround if Python 3.14 is still problematic on your machine: edit `pyproject.toml` and change line 6 from:
-```
-requires-python = ">=3.14"
-```
-to:
-```
-requires-python = ">=3.13,<3.14"
-
-```
-
 
 Then create the Python 3.13 environment and sync backend dependencies:
 
@@ -177,7 +164,7 @@ Expected: both responses include `status` with the value `ok`.
 
 ```powershell
 .\.venv\Scripts\Activate.ps1
-uv pip install --force-reinstall ctcsound python-rtmidi mido
+uv pip install --force-reinstall ctcsound mido
 ```
 
 ### `/client` returns frontend build not found
@@ -205,6 +192,7 @@ Set-Location ..
 - Confirm at least one loopMIDI port exists.
 - Confirm the backend and helper use the same `VISUALCSOUND_HOST_MIDI_TOKEN`.
 - Restart the helper after changing Windows MIDI device or loopMIDI configuration.
+- If you specifically need the legacy native `mido` backend, install `python-rtmidi` separately after the base setup; it is no longer required for the default Python 3.13 environment.
 
 ### PowerShell blocks `Activate.ps1`
 
@@ -218,4 +206,4 @@ Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 
 - The repo's `make` shortcuts are aimed at Unix-like shells. On Windows, use the direct `npm` and `uv` commands shown above instead of installing `make`.
 - You do not need Chocolatey, `nvm-windows`, or a global `vite` install just to run this project.
-- Do not edit `pyproject.toml` to force Python 3.13 unless you are debugging a specific dependency compatibility problem on your own machine. The project currently targets Python 3.14.
+- The project now targets Python 3.13 across platforms to avoid Python 3.14 pre-release/alpha resolver issues on Windows.

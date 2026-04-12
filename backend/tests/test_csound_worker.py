@@ -7,6 +7,7 @@ import time
 import pytest
 
 from backend.app.engine.csound_worker import CsoundWorker
+from backend.app.engine.ctcsound_loader import load_ctcsound_module
 
 
 def test_rtmidi_candidates_prefer_requested_and_normalize_quotes(monkeypatch) -> None:
@@ -101,6 +102,29 @@ def test_audio_output_mode_rejects_webrtc(monkeypatch) -> None:
 
     with pytest.raises(ValueError, match="VISUALCSOUND_AUDIO_OUTPUT_MODE=webrtc is no longer supported"):
         CsoundWorker()
+
+
+def test_worker_uses_loaded_ctcsound_module(monkeypatch) -> None:
+    sentinel = object()
+    monkeypatch.setattr("backend.app.engine.csound_worker.load_ctcsound_module", lambda: sentinel)
+    monkeypatch.delenv("VISUALCSOUND_FORCE_MOCK_ENGINE", raising=False)
+
+    worker = CsoundWorker()
+
+    assert worker.backend == "ctcsound"
+    assert worker._ctcsound is sentinel
+
+
+def test_load_ctcsound_module_falls_back_to_direct_binding_on_macos(monkeypatch) -> None:
+    sentinel = object()
+    monkeypatch.setattr("backend.app.engine.ctcsound_loader.sys.platform", "darwin")
+    monkeypatch.setattr(
+        "backend.app.engine.ctcsound_loader._import_stock_ctcsound",
+        lambda: (_ for _ in ()).throw(AttributeError("csoundSetOpcodedir missing")),
+    )
+    monkeypatch.setattr("backend.app.engine.ctcsound_loader._load_direct_ctcsound_module", lambda: sentinel)
+
+    assert load_ctcsound_module() is sentinel
 
 
 def test_start_ctcsound_falls_back_to_supported_rtmidi_module(monkeypatch) -> None:

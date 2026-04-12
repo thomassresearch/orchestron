@@ -167,6 +167,7 @@ Implementation note: when compiling a multi-instrument bundle, the engine settin
 ### MidiService
 
 - Uses `mido` when available.
+- Does not require `python-rtmidi` for the base install; if the native MIDI backend is unavailable, it falls back automatically and the Rust host bridge path still works.
 - Falls back to synthetic inputs when the host MIDI backend is unavailable.
 - Generates stable MIDI input ids so the frontend can keep selections across backend reordering.
 - Can send MIDI messages to a real output or to registered virtual sinks.

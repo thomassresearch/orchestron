@@ -27,7 +27,7 @@ csound --version
 ```
 
 Project requirements:
-- Python `>= 3.14`
+- Python `>= 3.13,< 3.14`
 - Node + npm (Node 20+ recommended)
 - Csound runtime (for realtime synthesis via `ctcsound`)
 - Rust toolchain (`cargo`) only if you want to run `host-midi-helper` for external MIDI devices
@@ -43,11 +43,11 @@ cd Orchestron
 
 ## 3. Install backend dependencies
 
-Create and use a virtual environment with Python 3.14:
+Create and use a virtual environment with Python 3.13:
 
 ```bash
-uv python install 3.14
-uv venv --python 3.14
+uv python install 3.13
+uv venv --python 3.13
 source .venv/bin/activate
 ```
 
@@ -152,7 +152,7 @@ Expected: JSON responses with `"status": "ok"`.
 - Reinstall Python bindings:
 
 ```bash
-uv pip install --force-reinstall ctcsound python-rtmidi mido
+uv pip install --force-reinstall ctcsound mido
 ```
 
 ### `/client` returns frontend build not found
@@ -174,6 +174,7 @@ cd frontend && npm run build
 - Enable the IAC Driver bus in Audio MIDI Setup.
 - Confirm the backend and helper use the same `VISUALCSOUND_HOST_MIDI_TOKEN`.
 - Restart the helper after changing macOS MIDI device configuration.
+- On Python 3.13, prefer the Rust `host-midi-helper` path over `python-rtmidi`; the base install intentionally does not require the native `python-rtmidi` package.
 
 ## 10. Standalone MIDI jitter probe (macOS)
 

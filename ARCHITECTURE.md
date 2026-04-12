@@ -36,7 +36,7 @@ Compatibility note:
 
 ### Backend
 
-- Python 3.14+
+- Python 3.13
 - FastAPI
 - Pydantic v2
 - SQLAlchemy / SQLite persistence
