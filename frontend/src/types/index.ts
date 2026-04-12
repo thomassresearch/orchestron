@@ -731,6 +731,16 @@ export interface BrowserClockReleaseControllerRequest {
 export interface BrowserClockManualMidiRequest {
   type: "manual_midi";
   midi: SessionMidiEventRequest;
+  event_perf_ms?: number | null;
+}
+
+export interface BrowserClockTimingReportRequest {
+  type: "timing_report";
+  client_perf_ms: number;
+  audio_context_time_s: number;
+  queued_frames: number;
+  sample_rate: number;
+  pending_render_frames?: number;
 }
 
 export interface BrowserClockSequencerStartControlRequest {
@@ -762,6 +772,9 @@ export interface BrowserClockStreamConfigMessage {
   queue_low_water_frames: number;
   queue_high_water_frames: number;
   max_blocks_per_request: number;
+  server_monotonic_ns: number;
+  timing_report_interval_ms: number;
+  engine_ksmps_latency_frames: number;
   sequencer_status: SessionSequencerStatus;
 }
 

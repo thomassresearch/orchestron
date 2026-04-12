@@ -4,6 +4,7 @@ import type {
   BrowserClockClaimControllerRequest,
   BrowserClockLatencySettings,
   BrowserClockEngineErrorMessage,
+  BrowserClockManualMidiRequest,
   BrowserClockQueuePadControlRequest,
   BrowserClockRenderChunkMessage,
   BrowserClockReleaseControllerRequest,
@@ -13,6 +14,7 @@ import type {
   BrowserClockSequencerStatusMessage,
   BrowserClockServerMessage,
   BrowserClockStreamConfigMessage,
+  BrowserClockTimingReportRequest,
   SessionMidiEventRequest,
   SessionSequencerConfigRequest,
   SessionSequencerStatus
@@ -103,6 +105,7 @@ export class BrowserClockAudioClient {
   private stateBuffer: Int32Array | null = null;
   private capacityFrames = 0;
   private refillTimer: number | null = null;
+  private timingReportTimer: number | null = null;
   private pendingChunk: PendingRenderChunk | null = null;
   private streamConfig: BrowserClockStreamConfigMessage | null = null;
   private inFlightRenderRequests = 0;
@@ -183,6 +186,7 @@ export class BrowserClockAudioClient {
   async disconnect(): Promise<void> {
     this.closedByClient = true;
     this.stopRefillLoop();
+    this.stopTimingReportLoop();
     this.pendingChunk = null;
     this.streamConfig = null;
     this.resetRenderPipelineState();
@@ -241,8 +245,9 @@ export class BrowserClockAudioClient {
     await this.connect(sessionId);
     this.sendJson({
       type: "manual_midi",
-      midi
-    });
+      midi,
+      event_perf_ms: performance.now()
+    } satisfies BrowserClockManualMidiRequest);
     if (midi.type === "note_on") {
       this.requestImmediateNoteRender();
     }
@@ -380,6 +385,7 @@ export class BrowserClockAudioClient {
         this.socket = null;
       }
       this.stopRefillLoop();
+      this.stopTimingReportLoop();
       this.pendingChunk = null;
       this.resetRenderPipelineState();
       if (this.closedByClient) {
@@ -430,6 +436,7 @@ export class BrowserClockAudioClient {
           this.callbacks.onSequencerStatus(parsed.sequencer_status);
           this.finishPendingConnect(null);
           this.startRefillLoop();
+          this.startTimingReportLoop();
           this.syncStatusFromState();
           this.requestRefill();
           return;
@@ -537,10 +544,11 @@ export class BrowserClockAudioClient {
   private sendJson(
     payload:
       | BrowserClockRequestRenderRequest
+      | BrowserClockTimingReportRequest
       | BrowserClockSequencerStartControlRequest
       | BrowserClockSequencerCommandRequest
       | BrowserClockQueuePadControlRequest
-      | { type: "manual_midi"; midi: SessionMidiEventRequest }
+      | BrowserClockManualMidiRequest
   ): void {
     const socket = this.socket;
     if (!socket || socket.readyState !== WebSocket.OPEN) {
@@ -899,6 +907,43 @@ export class BrowserClockAudioClient {
     }
   }
 
+  private startTimingReportLoop(): void {
+    this.stopTimingReportLoop();
+    const intervalMs = Math.max(25, this.streamConfig?.timing_report_interval_ms ?? 100);
+    this.timingReportTimer = window.setInterval(() => {
+      this.sendTimingReport();
+    }, intervalMs);
+    this.sendTimingReport();
+  }
+
+  private stopTimingReportLoop(): void {
+    if (this.timingReportTimer !== null) {
+      window.clearInterval(this.timingReportTimer);
+      this.timingReportTimer = null;
+    }
+  }
+
+  private sendTimingReport(): void {
+    const streamConfig = this.streamConfig;
+    const context = this.audioContext;
+    if (!streamConfig || !context) {
+      return;
+    }
+
+    try {
+      this.sendJson({
+        type: "timing_report",
+        client_perf_ms: performance.now(),
+        audio_context_time_s: context.currentTime,
+        queued_frames: this.availableFrames(),
+        sample_rate: Math.max(1, Math.round(context.sampleRate)),
+        pending_render_frames: this.pendingRenderFrames
+      } satisfies BrowserClockTimingReportRequest);
+    } catch {
+      // Ignore timing-report send failures; socket shutdown paths already report fatal errors.
+    }
+  }
+
   private finishPendingConnect(error: Error | null): void {
     if (!this.pendingConnect) {
       return;
@@ -947,6 +992,7 @@ export class BrowserClockAudioClient {
 
   private handleFatalError(message: string, options: { closeSocket: boolean }): void {
     this.stopRefillLoop();
+    this.stopTimingReportLoop();
     this.pendingChunk = null;
     this.resetRenderPipelineState();
     this.clearPlaybackTimeline();

@@ -66,8 +66,8 @@ It is organized by chapter and subchapter so you can read it front-to-back or ju
 | Performance bundle import/export with conflict resolution | [Performance Import / Export](performance/performance_import_export.md) |
 | Offline performance render export (`.csd` + `.mid` + assets ZIP) | [Performance Import / Export](performance/performance_import_export.md) |
 | Audio engine settings (`sr`, `control_rate`, `ksmps`, buffers) | [Audio Engine Settings (Config Page)](configuration/audio_engine_settings.md) |
-| Browser audio mode (`browser_clock` Docker PCM) | [Browser-Clock Latency](configuration/browser_clock_latency.md) |
-| Browser-clock latency tuning for Docker/browser audio | [Browser-Clock Latency](configuration/browser_clock_latency.md) |
+| Browser audio mode (`browser_clock` PCM) | [Browser-Clock Latency](configuration/browser_clock_latency.md) |
+| Browser-clock latency tuning for unified browser audio | [Browser-Clock Latency](configuration/browser_clock_latency.md) |
 | App-state persistence and defaults | [Persistence and Defaults](configuration/persistence_and_defaults.md) |
 | Supported opcode catalog (137 opcodes) | [Supported Opcodes](instrument_design/supported_opcodes.md) |
 

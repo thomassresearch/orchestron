@@ -9,8 +9,8 @@ The Configuration chapter covers both UI-visible settings and practical runtime/
 - GUI language switching and integrated help/docs behavior
 - Config page engine settings (`sr`, control rate, buffers, derived `ksmps`) plus browser-clock latency controls when relevant
 - MIDI setup and runtime input binding workflow
-- Browser audio mode (`browser_clock` PCM) vs local audio mode
-- Docker/browser-clock latency tuning from the Config page
+- Unified browser-clock playback and latency tuning from the Config page
+- Internal loopback versus external host-bridge MIDI binding
 - App-state persistence and default values
 
 ## Chapter Contents
@@ -26,7 +26,7 @@ The Configuration chapter covers both UI-visible settings and practical runtime/
 Orchestron has two kinds of configuration:
 
 - **Patch-level configuration** (stored with a patch, editable in the Config page)
-- **Runtime/startup configuration** (backend launch mode, especially local vs browser-clock PCM)
+- **Runtime/startup configuration** (backend launch mode and optional host MIDI bridge token)
 - **Workspace runtime tuning** (browser-clock latency settings stored in app state)
 
 Both are important for successful use.

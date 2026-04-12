@@ -10,10 +10,13 @@ import threading
 from dataclasses import dataclass
 from typing import Any, Callable
 
-from backend.app.models.session import MidiInputRef
+from backend.app.models.session import HostMidiDeviceRef, MidiInputRef
 
 logger = logging.getLogger(__name__)
 MidiMessageSink = Callable[[list[int], float | None], bool]
+INTERNAL_LOOPBACK_ID = "internal:loopback"
+INTERNAL_LOOPBACK_SELECTOR = "internal-loopback"
+INTERNAL_LOOPBACK_NAME = "Internal Loopback"
 
 
 @dataclass(slots=True)
@@ -238,9 +241,11 @@ class MidiService:
         self._lock = threading.Lock()
         self._warned_missing_output_backend = False
         self._virtual_output_sinks: dict[str, dict[str, MidiMessageSink]] = {}
+        self._host_inputs: dict[str, dict[str, HostMidiDeviceRef]] = {}
         self._coremidi_scheduler = self._build_coremidi_scheduler()
 
     def list_inputs(self) -> list[MidiInputRef]:
+        discovered: list[MidiInputRef] = []
         if self._backend.name == "mido":
             try:
                 import mido
@@ -248,7 +253,7 @@ class MidiService:
                 names = mido.get_input_names()
                 refs = self._build_input_refs(names, backend="mido")
                 if refs:
-                    return refs
+                    discovered = refs
             except Exception:  # pragma: no cover - runtime dependent
                 if self._is_expected_linux_alsa_missing():
                     logger.info(
@@ -259,13 +264,29 @@ class MidiService:
                     logger.exception("Failed to query MIDI inputs via mido")
                 self._backend = MidiBackendInfo(name="fallback", available=False)
 
-        return self._fallback_inputs()
+        if not discovered:
+            discovered = self._fallback_inputs()
+
+        host_inputs = self._host_input_refs()
+        return [
+            MidiInputRef(
+                id=INTERNAL_LOOPBACK_ID,
+                name=INTERNAL_LOOPBACK_NAME,
+                backend="internal",
+                selector=INTERNAL_LOOPBACK_SELECTOR,
+            ),
+            *host_inputs,
+            *discovered,
+        ]
 
     def resolve_input(self, selector: str) -> str:
         return self.resolve_input_ref(selector).id
 
     def resolve_backend_selector(self, selector: str) -> str:
-        return self.resolve_input_ref(selector).selector
+        input_ref = self.resolve_input_ref(selector)
+        if input_ref.id == INTERNAL_LOOPBACK_ID:
+            return INTERNAL_LOOPBACK_SELECTOR
+        return input_ref.selector
 
     def resolve_input_ref(self, selector: str) -> MidiInputRef:
         inputs = self.list_inputs()
@@ -382,6 +403,20 @@ class MidiService:
             if not sinks:
                 self._virtual_output_sinks.pop(input_ref.id, None)
 
+    def replace_host_inputs(self, *, host_id: str, devices: list[HostMidiDeviceRef]) -> None:
+        with self._lock:
+            self._host_inputs[host_id] = {device.id: device for device in devices}
+
+    def remove_host_inputs(self, *, host_id: str) -> None:
+        with self._lock:
+            self._host_inputs.pop(host_id, None)
+
+    def is_internal_loopback(self, selector: str) -> bool:
+        try:
+            return self.resolve_input_ref(selector).id == INTERNAL_LOOPBACK_ID
+        except ValueError:
+            return False
+
     @staticmethod
     def _normalize_name(name: str) -> str:
         normalized = " ".join(name.strip().lower().split())
@@ -428,6 +463,15 @@ class MidiService:
             except Exception:
                 logger.exception("Virtual MIDI sink delivery failed (selector=%s)", selector_id)
         return delivered
+
+    def _host_input_refs(self) -> list[MidiInputRef]:
+        with self._lock:
+            devices = [
+                device
+                for host_devices in self._host_inputs.values()
+                for device in host_devices.values()
+            ]
+        return sorted(devices, key=lambda item: (item.name.lower(), item.id))
 
     def _resolve_output_name(self, input_selector: str, mido_module: Any) -> str:
         input_ref = self.resolve_input_ref(input_selector)

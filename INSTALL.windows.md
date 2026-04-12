@@ -1,6 +1,6 @@
 # Orchestron Installation Manual (Windows)
 
-This guide installs and runs Orchestron on Windows with realtime Csound + MIDI support.
+This guide installs and runs Orchestron on Windows with the unified browser-clock runtime and optional native host MIDI bridge support.
 
 All commands below assume PowerShell.
 
@@ -36,6 +36,7 @@ Project requirements:
 - Python `>= 3.13,<3.14` # as 3.14 is currently ALPHA on windows, that will change, then 3.14 is fine
 - Node + npm (Node 20+ recommended)
 - Csound runtime (for realtime synthesis via `ctcsound`)
+- Rust toolchain (`cargo`) only if you want to run `host-midi-helper` for external MIDI devices
 
 `uv python install 3.14` in section 3 installs the required Python version if it is not already available.
 
@@ -120,15 +121,29 @@ Open:
 - Frontend dev server: `http://localhost:5173`
 - Backend API: `http://localhost:8000`
 
-## 7. MIDI setup on Windows (loopMIDI)
+## 7. MIDI setup on Windows (loopMIDI + host bridge)
 
-For loopback MIDI from within Orchestron mandatory:
+Internal sequencers, piano rolls, and controller lanes work immediately through VisualCSound's built-in `internal:loopback` path and do not need any Windows MIDI device.
+
+For external DAW/app MIDI into VisualCSound:
 
 1. Install and start [loopMIDI](https://www.tobias-erichsen.de/software/loopmidi.html).
 2. Create a virtual port, for example `Orchestron Loopback`.
-3. Start Orchestron so the backend can enumerate available MIDI inputs.
-4. Route your DAW or other MIDI app output to that loopMIDI port.
-5. In Orchestron, open Instrument Design and select that input in the Runtime panel `MIDI Input` dropdown.
+3. Start the backend with a host bridge token:
+
+```powershell
+$env:VISUALCSOUND_HOST_MIDI_TOKEN = "dev-midi-token"
+uv run uvicorn backend.app.main:app --reload
+```
+
+4. In a second terminal, run the Rust host bridge against `ws://127.0.0.1:8000/ws/host-midi` with the same token:
+
+```powershell
+$env:VISUALCSOUND_HOST_MIDI_TOKEN = "dev-midi-token"
+cargo run --manifest-path host-midi-helper/Cargo.toml -- --backend-ws ws://127.0.0.1:8000/ws/host-midi
+```
+5. Route your DAW or other MIDI app output to that loopMIDI port.
+6. In Orchestron, open Instrument Design and bind that helper-provided input in the Runtime panel `MIDI Input` dropdown.
 
 ## 8. Verification checklist
 
@@ -179,9 +194,11 @@ Set-Location ..
 
 ### No MIDI inputs are available
 
-- Start loopMIDI before starting the backend.
+- Internal app MIDI still works through `internal:loopback`.
+- Start loopMIDI before starting the helper.
 - Confirm at least one loopMIDI port exists.
-- Restart the backend and browser after changing Windows MIDI device or loopMIDI configuration.
+- Confirm the backend and helper use the same `VISUALCSOUND_HOST_MIDI_TOKEN`.
+- Restart the helper after changing Windows MIDI device or loopMIDI configuration.
 
 ### PowerShell blocks `Activate.ps1`
 

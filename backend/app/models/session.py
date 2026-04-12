@@ -34,6 +34,7 @@ def _is_valid_pad_loop_token(token: int) -> bool:
 
 
 SessionAudioOutputMode = Literal["local", "browser_clock"]
+TimestampQuality = Literal["authoritative", "best_effort"]
 
 
 class SessionState(StrEnum):
@@ -122,6 +123,16 @@ class BrowserClockReleaseControllerRequest(BaseModel):
 class BrowserClockManualMidiRequest(BaseModel):
     type: Literal["manual_midi"]
     midi: SessionMidiEventRequest
+    event_perf_ms: float | None = None
+
+
+class BrowserClockTimingReportRequest(BaseModel):
+    type: Literal["timing_report"]
+    client_perf_ms: float
+    audio_context_time_s: float = Field(ge=0.0)
+    queued_frames: int = Field(ge=0)
+    sample_rate: int = Field(ge=1)
+    pending_render_frames: int = Field(default=0, ge=0)
 
 
 class BrowserClockSequencerStartControlRequest(BaseModel):
@@ -148,6 +159,46 @@ class MidiInputRef(BaseModel):
     name: str
     backend: str
     selector: str
+
+
+class HostMidiDeviceRef(MidiInputRef):
+    host_id: str
+    timestamp_quality: TimestampQuality = "best_effort"
+
+
+class HostMidiRegisterRequest(BaseModel):
+    type: Literal["register_host"]
+    host_id: str = Field(min_length=1, max_length=256)
+    host_name: str | None = Field(default=None, min_length=1, max_length=256)
+    protocol_version: int = Field(default=1, ge=1)
+
+
+class HostMidiClockSyncRequest(BaseModel):
+    type: Literal["clock_sync"]
+    client_monotonic_ns: int = Field(ge=0)
+
+
+class HostMidiDeviceInventoryRequest(BaseModel):
+    type: Literal["device_inventory"]
+    devices: list[HostMidiDeviceRef] = Field(default_factory=list)
+
+
+class HostMidiEvent(BaseModel):
+    device_id: str = Field(min_length=1, max_length=256)
+    midi: list[int] = Field(min_length=3, max_length=3)
+    timestamp_ns: int | None = Field(default=None, ge=0)
+
+    @model_validator(mode="after")
+    def validate_midi_bytes(self) -> "HostMidiEvent":
+        if len(self.midi) != 3:
+            raise ValueError("Host MIDI events must contain exactly 3 bytes.")
+        self.midi = [max(0, min(255, int(value))) for value in self.midi]
+        return self
+
+
+class HostMidiEventsRequest(BaseModel):
+    type: Literal["midi_events"]
+    events: list[HostMidiEvent] = Field(default_factory=list)
 
 
 class BindMidiInputRequest(BaseModel):

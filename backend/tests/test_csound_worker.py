@@ -105,6 +105,7 @@ def test_audio_output_mode_rejects_webrtc(monkeypatch) -> None:
 
 def test_start_ctcsound_falls_back_to_supported_rtmidi_module(monkeypatch) -> None:
     monkeypatch.setattr("backend.app.engine.csound_worker.sys.platform", "darwin")
+    monkeypatch.setattr(CsoundWorker, "_configure_host_midi_callbacks", lambda self, csound: None)
 
     class FakeCsound:
         def __init__(self, failing_modules: set[str]) -> None:
@@ -179,27 +180,20 @@ def test_start_ctcsound_falls_back_to_supported_rtmidi_module(monkeypatch) -> No
     assert "fallback" in result.detail
 
     instances = worker._ctcsound.instances
-    assert len(instances) >= 2
-    assert instances[0].selected_module == "coremidi"
-    assert instances[1].selected_module == "portmidi"
+    assert len(instances) == 1
+    assert instances[0].selected_module == "null"
     assert "-b 128" in instances[0].last_csd
     assert "-B512" in instances[0].last_csd
-    assert "-b 128" in instances[1].last_csd
-    assert "-B512" in instances[1].last_csd
-    assert "-+rtmidi=coremidi" in instances[0].last_csd
-    assert "-+rtmidi=portmidi" in instances[1].last_csd
-    assert "-+rtaudio=auhal" in instances[0].last_csd
-    assert "-+rtaudio=auhal" in instances[1].last_csd
+    assert "-+rtmidi=null" in instances[0].last_csd
+    assert "-n" in instances[0].last_csd
     assert "-b128" in instances[0].options
     assert "-B512" in instances[0].options
-    assert "-b128" in instances[1].options
-    assert "-B512" in instances[1].options
-    assert "-+rtaudio=auhal" in instances[0].options
-    assert "-+rtaudio=auhal" in instances[1].options
+    assert "-n" in instances[0].options
 
 
 def test_start_ctcsound_sets_ssdir_option_for_gen_audio_assets(monkeypatch, tmp_path) -> None:
     monkeypatch.setattr("backend.app.engine.csound_worker.sys.platform", "linux")
+    monkeypatch.setattr(CsoundWorker, "_configure_host_midi_callbacks", lambda self, csound: None)
 
     class FakeCsound:
         def __init__(self) -> None:
@@ -257,25 +251,29 @@ def test_start_ctcsound_sets_ssdir_option_for_gen_audio_assets(monkeypatch, tmp_
     assert f"--env:SSDIR={assets_dir.resolve()}" in worker._ctcsound.instance.options
 
 
-def test_queue_midi_message_honors_delivery_delay(monkeypatch) -> None:
-    current_time = {"value": 10.0}
-    monkeypatch.setattr("backend.app.engine.csound_worker.time.perf_counter", lambda: current_time["value"])
-
+def test_queue_midi_message_honors_delivery_delay() -> None:
     worker = CsoundWorker()
     worker._backend = "ctcsound"
     worker._running = True
     worker._host_midi_enabled = True
+    worker._runtime_sr = 1_000
+    worker._render_sample_cursor = 10_000
+    worker._midi_scheduler.set_engine_sample_rate(1_000)
 
     assert worker.queue_midi_message([0x90, 60, 100], delivery_delay_seconds=0.05) is True
 
     with worker._host_midi_lock:
         assert worker._host_midi_buffer == bytearray()
-        assert len(worker._host_midi_pending) == 1
-        worker._drain_due_host_midi_locked(10.04)
+    assert worker._midi_scheduler.pending_count == 1
+
+    worker._prepare_host_midi_block(block_start_sample=10_000, block_end_sample=10_050)
+    with worker._host_midi_lock:
         assert worker._host_midi_buffer == bytearray()
-        worker._drain_due_host_midi_locked(10.051)
+
+    worker._prepare_host_midi_block(block_start_sample=10_050, block_end_sample=10_051)
+    with worker._host_midi_lock:
         assert worker._host_midi_buffer == bytearray([0x90, 60, 100])
-        assert worker._host_midi_pending == []
+    assert worker._midi_scheduler.pending_count == 0
 
 
 def test_browser_clock_mock_runtime_renders_exact_block_windows(monkeypatch) -> None:

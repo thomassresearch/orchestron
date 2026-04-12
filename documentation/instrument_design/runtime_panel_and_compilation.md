@@ -2,7 +2,7 @@
 
 **Navigation:** [Up](instrument_design.md) | [Prev](gen_table_editor.md) | [Next](instrument_import_export.md)
 
-The Runtime panel supports live testing of the current patch and exposes compile/runtime diagnostics.
+The Runtime panel supports live testing of the current patch and exposes compile/runtime diagnostics for the unified browser-clock runtime.
 
 ## Runtime Panel Sections
 
@@ -16,6 +16,8 @@ The Runtime panel supports live testing of the current patch and exposes compile
 Use the `MIDI Input` dropdown to bind an external MIDI input to the active runtime session.
 
 - This is how external hardware/DAW MIDI reaches the running instrument session.
+- `internal:loopback` is always available as the built-in app-only loopback.
+- Internal sequencers, piano rolls, and manual controller lanes always go straight to the session engine and do not depend on this binding.
 - The selected input is session-specific and also reflected on the Performance page status footer.
 
 See [MIDI Setup and Inputs](../configuration/midi_setup_and_inputs.md) for OS-level MIDI setup guidance.
@@ -40,15 +42,13 @@ Typical uses:
 - Inspect runtime payloads and state transitions
 - Diagnose issues during live testing
 
-## Browser Audio (Browser Modes)
+## Browser Audio
 
-When the backend session starts in `browser_clock` audio mode, the Runtime panel can show:
+The runtime now always uses `browser_clock` audio mode, so the Runtime panel can show:
 
 - Browser PCM queue/runtime status (`connecting`, `live`, `error`)
 - Error message when the controller socket or AudioWorklet path fails
 - No `<audio>` player, because playback is owned directly by the browser `AudioContext`
-
-If the backend is running in local DAC mode, this section reports local output behavior instead.
 
 See [Browser-Clock Latency](../configuration/browser_clock_latency.md) for the browser-clock mode guide and tuning workflow.
 
@@ -79,7 +79,7 @@ This helps you avoid assuming a graph is live-valid after edits.
 4. Start or continue runtime testing with MIDI input
 5. Save only after compile is clean
 
-The integrated `?` help for this panel now focuses on session-specific MIDI binding, generated ORC inspection, runtime event feedback, and the difference between local audio and browser-clock PCM mode.
+The integrated `?` help for this panel now focuses on session-specific external MIDI binding, generated ORC inspection, runtime event feedback, and browser-clock PCM playback.
 
 ## Screenshots
 

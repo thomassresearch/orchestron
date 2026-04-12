@@ -2,7 +2,7 @@
 
 **Navigation:** [Up](configuration.md) | [Prev](gui_language_and_integrated_help.md) | [Next](midi_setup_and_inputs.md)
 
-The Config page controls both patch-level Csound engine settings and, when `browser_clock` audio is active, browser-clock latency settings for the current workspace.
+The Config page controls both patch-level Csound engine settings and browser-clock latency settings for the current workspace.
 
 ## Where These Settings Are Stored
 
@@ -15,7 +15,7 @@ That means:
 
 Browser-clock latency settings are different:
 
-- they appear only when the backend runtime mode is `browser_clock`
+- they apply to the active browser-clock session runtime
 - they are stored in app state, not in the patch
 - applying them updates the active browser-clock controller without changing patch data
 
@@ -72,9 +72,9 @@ Use this panel to verify what will be used at compile/start time.
 
 ## Browser-Clock Latency Section
 
-When the backend is running in `browser_clock` mode, the Config page shows an additional section for browser-owned audio latency tuning.
+The Config page shows an additional section for browser-owned audio latency tuning whenever a browser-clock session is active.
 
-See [Browser-Clock Latency](browser_clock_latency.md) for the Docker/browser-clock workflow explanation and the full UI screenshot of this section.
+See [Browser-Clock Latency](browser_clock_latency.md) for the unified browser-clock workflow explanation and the full UI screenshot of this section.
 
 Editable fields:
 
@@ -86,7 +86,7 @@ Editable fields:
 - immediate note render blocks
 - immediate note render cooldown (`ms`)
 
-These values control the browser PCM queue depth and render request behavior, which are the dominant latency/stability knobs on the Docker/browser-clock path.
+These values control the browser PCM queue depth and render request behavior, which are the dominant latency/stability knobs on the unified browser-clock path.
 
 ### Field-By-Field Meaning
 

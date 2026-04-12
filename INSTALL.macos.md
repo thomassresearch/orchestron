@@ -1,6 +1,6 @@
 # Orchestron Installation Manual (macOS)
 
-This guide installs and runs Orchestron on macOS with realtime CSound + MIDI support.
+This guide installs and runs Orchestron on macOS with the unified browser-clock runtime and optional native host MIDI bridge support.
 
 ## 1. Prerequisites
 
@@ -24,6 +24,7 @@ Project requirements:
 - Python `>= 3.14`
 - Node + npm (Node 20+ recommended)
 - Csound runtime (for realtime synthesis via `ctcsound`)
+- Rust toolchain (`cargo`) only if you want to run `host-midi-helper` for external MIDI devices
 
 ## 2. Get the source
 
@@ -99,9 +100,11 @@ Open:
 - Frontend dev server: `http://localhost:5173`
 - Backend API: `http://localhost:8000`
 
-## 7. MIDI setup on macOS (IAC Driver)
+## 7. MIDI setup on macOS (IAC Driver + host bridge)
 
-For loopback MIDI from DAWs/apps into Orchestron:
+Internal sequencers, piano rolls, and controller lanes work immediately through VisualCSound's built-in `internal:loopback` path and do not need any macOS MIDI device.
+
+For external DAW/app MIDI into VisualCSound:
 
 1. Open **Audio MIDI Setup**.
 2. Open **MIDI Studio** (Window -> Show MIDI Studio).
@@ -109,6 +112,21 @@ For loopback MIDI from DAWs/apps into Orchestron:
 4. Enable **Device is online**.
 5. Add/select a bus (for example `IAC Driver Bus 1`).
 6. In your DAW, route MIDI output to that IAC bus.
+7. Start the backend with a host bridge token:
+
+```bash
+VISUALCSOUND_HOST_MIDI_TOKEN=dev-midi-token uv run uvicorn backend.app.main:app --reload
+```
+
+8. In a second terminal, run the host bridge:
+
+```bash
+cargo run --manifest-path host-midi-helper/Cargo.toml -- \
+  --backend-ws ws://127.0.0.1:8000/ws/host-midi \
+  --token dev-midi-token
+```
+
+9. In the Runtime panel, bind the desired helper-provided MIDI input for the active session.
 
 ## 8. Verification checklist
 
@@ -145,9 +163,11 @@ cd frontend && npm run build
   - `VITE_WS_BASE=ws://localhost:8000`
 - Restart `npm run dev` after editing `.env.local`.
 
-### No MIDI outputs available
-- Enable IAC Driver bus in Audio MIDI Setup.
-- Restart backend and browser after changing MIDI device config.
+### No external MIDI inputs available
+- Internal app MIDI still works through `internal:loopback`.
+- Enable the IAC Driver bus in Audio MIDI Setup.
+- Confirm the backend and helper use the same `VISUALCSOUND_HOST_MIDI_TOKEN`.
+- Restart the helper after changing macOS MIDI device configuration.
 
 ## 10. Standalone MIDI jitter probe (macOS)
 

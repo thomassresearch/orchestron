@@ -54,8 +54,9 @@ class Settings(BaseSettings):
     default_0dbfs: float = 1.0
 
     default_rtmidi_module: str = Field(default_factory=_default_rtmidi_module)
-    default_midi_device: str = "0"
-    audio_output_mode: Literal["local", "browser_clock"] = "local"
+    default_midi_device: str = "internal:loopback"
+    host_midi_token: str | None = None
+    audio_output_mode: Literal["local", "browser_clock"] = "browser_clock"
     frontend_disconnect_grace_seconds: float = Field(default=5.0, gt=0.0)
     frontend_heartbeat_timeout_seconds: float = Field(default=5.0, gt=0.0)
 
@@ -64,7 +65,7 @@ class Settings(BaseSettings):
     def _normalize_audio_output_mode(cls, value: object) -> str:
         normalized = str(value or "").strip().lower()
         if normalized in {"", "local"}:
-            return "local"
+            return "browser_clock"
         if normalized == "streaming":
             return "browser_clock"
         if normalized in {"browser_clock", "browser-clock", "pcm"}:

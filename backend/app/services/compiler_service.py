@@ -1321,12 +1321,10 @@ class CompilerService:
 
         options = [
             (
-                f"-d -odac -M{midi_input} -+rtmidi={selected_rtmidi_module} "
+                f"-d -n -M{midi_input} -+rtmidi={selected_rtmidi_module} "
                 f"-b {software_buffer} -B{hardware_buffer}"
             )
         ]
-        if sys.platform == "darwin":
-            options.append("-+rtaudio=auhal")
 
         return "\n".join(
             [

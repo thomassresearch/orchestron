@@ -3,8 +3,40 @@ from __future__ import annotations
 from types import SimpleNamespace
 import sys
 
-from backend.app.models.session import MidiInputRef
-from backend.app.services.midi_service import MidiBackendInfo, MidiService
+from backend.app.models.session import HostMidiDeviceRef, MidiInputRef
+from backend.app.services.midi_service import INTERNAL_LOOPBACK_ID, MidiBackendInfo, MidiService
+
+
+def test_list_inputs_always_includes_internal_loopback() -> None:
+    service = MidiService()
+    service._backend = MidiBackendInfo(name="fallback", available=False)
+
+    inputs = service.list_inputs()
+
+    assert inputs[0].id == INTERNAL_LOOPBACK_ID
+    assert inputs[0].backend == "internal"
+
+
+def test_list_inputs_includes_host_bridge_inventory() -> None:
+    service = MidiService()
+    service._backend = MidiBackendInfo(name="fallback", available=False)
+    service.replace_host_inputs(
+        host_id="host-a",
+        devices=[
+            HostMidiDeviceRef(
+                id="host:keyboard:a",
+                name="Host Keyboard",
+                backend="host_bridge",
+                selector="keyboard-a",
+                host_id="host-a",
+                timestamp_quality="authoritative",
+            )
+        ],
+    )
+
+    inputs = service.list_inputs()
+
+    assert [item.id for item in inputs[:2]] == [INTERNAL_LOOPBACK_ID, "host:keyboard:a"]
 
 
 def test_list_inputs_uses_stable_ids_when_backend_order_changes(monkeypatch) -> None:

@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from typing import Any
 from typing import Callable
 from typing import Literal
+from typing import Protocol
 
 from backend.app.models.session import (
     SessionControllerSequencerKeypointConfig,
@@ -18,11 +19,29 @@ from backend.app.models.session import (
     SessionSequencerTimingConfig,
     SessionSequencerTrackStatus,
 )
-from backend.app.services.midi_service import MidiService
-
 logger = logging.getLogger(__name__)
 
 PublishEventFn = Callable[[str, dict[str, Any]], None]
+
+
+class SequencerMidiOutput(Protocol):
+    output_name: str
+
+    def send_scheduled_message(
+        self,
+        _selector: str,
+        message: list[int],
+        *,
+        delivery_delay_seconds: float | None,
+    ) -> str: ...
+
+    def send_scheduled_messages(
+        self,
+        _selector: str,
+        messages: list[list[int]],
+        *,
+        delivery_delay_seconds: float | None,
+    ) -> str: ...
 
 _DEFAULT_PADS = 8
 _MAX_STEPS = 128
@@ -293,7 +312,7 @@ class SessionSequencerRuntime:
     def __init__(
         self,
         session_id: str,
-        midi_service: MidiService,
+        midi_service: SequencerMidiOutput,
         midi_input_selector: str,
         controller_default_channels: tuple[int, ...],
         publish_event: PublishEventFn,

@@ -17,6 +17,11 @@ from backend.app.models.session import (
     BrowserClockRequestRenderRequest,
     BrowserClockSequencerCommandRequest,
     BrowserClockSequencerStartControlRequest,
+    BrowserClockTimingReportRequest,
+    HostMidiClockSyncRequest,
+    HostMidiDeviceInventoryRequest,
+    HostMidiEventsRequest,
+    HostMidiRegisterRequest,
 )
 
 router = APIRouter(tags=["ws"])
@@ -146,6 +151,14 @@ async def browser_clock_controller(websocket: WebSocket, session_id: str) -> Non
                     )
                     continue
 
+                if message_type == "timing_report":
+                    await container.session_service.browser_clock_timing_report(
+                        session_id,
+                        connection_id,
+                        BrowserClockTimingReportRequest.model_validate(payload),
+                    )
+                    continue
+
                 if message_type == "sequencer_start":
                     response = await container.session_service.browser_clock_start_sequencer(
                         session_id,
@@ -203,3 +216,99 @@ async def browser_clock_controller(websocket: WebSocket, session_id: str) -> Non
     finally:
         with contextlib.suppress(HTTPException):
             await container.session_service.release_browser_clock_controller(session_id, connection_id)
+
+
+@router.websocket("/ws/host-midi")
+async def host_midi_bridge(websocket: WebSocket) -> None:
+    container: AppContainer = websocket.app.state.container
+    expected_token = container.settings.host_midi_token
+    authorization_header = websocket.headers.get("authorization", "").strip()
+
+    await websocket.accept()
+
+    if not expected_token:
+        await websocket.send_json({"type": "engine_error", "detail": "Host MIDI bridge is disabled."})
+        await websocket.close(code=4403, reason="host_midi_disabled")
+        return
+    if authorization_header != f"Bearer {expected_token}":
+        await websocket.send_json({"type": "engine_error", "detail": "Host MIDI bridge authorization failed."})
+        await websocket.close(code=4403, reason="host_midi_unauthorized")
+        return
+
+    connection_id = str(uuid4())
+    send_lock = asyncio.Lock()
+
+    async def send_json(payload: dict[str, object]) -> None:
+        async with send_lock:
+            await websocket.send_json(payload)
+
+    try:
+        while True:
+            message = await websocket.receive_text()
+            try:
+                payload = json.loads(message)
+            except json.JSONDecodeError:
+                await send_json({"type": "engine_error", "detail": "Host MIDI messages must be valid JSON."})
+                continue
+
+            if not isinstance(payload, dict):
+                await send_json({"type": "engine_error", "detail": "Host MIDI messages must be JSON objects."})
+                continue
+
+            message_type = payload.get("type")
+            try:
+                if message_type == "register_host":
+                    await send_json(
+                        await container.session_service.register_host_midi_bridge(
+                            connection_id,
+                            HostMidiRegisterRequest.model_validate(payload),
+                        )
+                    )
+                    continue
+
+                if message_type == "clock_sync":
+                    await send_json(
+                        await container.session_service.host_midi_clock_sync(
+                            connection_id,
+                            HostMidiClockSyncRequest.model_validate(payload),
+                        )
+                    )
+                    continue
+
+                if message_type == "device_inventory":
+                    await send_json(
+                        await container.session_service.host_midi_device_inventory(
+                            connection_id,
+                            HostMidiDeviceInventoryRequest.model_validate(payload),
+                        )
+                    )
+                    continue
+
+                if message_type == "midi_events":
+                    await container.session_service.host_midi_events(
+                        connection_id,
+                        HostMidiEventsRequest.model_validate(payload),
+                    )
+                    continue
+
+                await send_json(
+                    {
+                        "type": "engine_error",
+                        "detail": f"Unsupported host MIDI message type: {message_type!r}",
+                    }
+                )
+            except ValidationError as exc:
+                await send_json({"type": "engine_error", "detail": str(exc)})
+            except HTTPException as exc:
+                await send_json({"type": "engine_error", "detail": _http_error_detail(exc.detail)})
+            except WebSocketDisconnect:
+                raise
+            except Exception as exc:
+                await send_json({"type": "engine_error", "detail": str(exc)})
+    except asyncio.CancelledError:
+        raise
+    except WebSocketDisconnect:
+        pass
+    finally:
+        with contextlib.suppress(HTTPException):
+            await container.session_service.release_host_midi_bridge(connection_id)

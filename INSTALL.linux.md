@@ -1,6 +1,6 @@
 # Orchestron Installation Manual (Linux)
 
-This guide installs and runs Orchestron on Linux with realtime Csound + MIDI support.
+This guide installs and runs Orchestron on Linux with the unified browser-clock runtime and optional native host MIDI bridge support.
 
 ## 1. Prerequisites
 
@@ -33,6 +33,7 @@ Project requirements:
 - Node + npm (Node 20+ recommended)
 - Csound runtime (for realtime synthesis via `ctcsound`)
 - ALSA MIDI support (`python-rtmidi` defaults to `alsaseq` on Linux)
+- Rust toolchain (`cargo`) only if you want to run `host-midi-helper` for external MIDI devices
 
 The backend can still start with a mock engine if `ctcsound` is not available, but realtime audio synthesis will be disabled.
 
@@ -104,15 +105,31 @@ Open:
 - Frontend dev server: `http://localhost:5173`
 - Backend API: `http://localhost:8000`
 
-## 7. MIDI setup on Linux (ALSA/JACK)
+## 7. MIDI setup on Linux (ALSA/JACK + host bridge)
 
-For loopback MIDI from DAWs/apps/controllers into Orchestron:
+Internal sequencers, piano rolls, and controller lanes work immediately through VisualCSound's built-in `internal:loopback` path and do not need any ALSA or JACK device.
+
+For external DAW/controller MIDI into VisualCSound:
 
 1. Confirm the ALSA sequencer device exists: `ls -l /dev/snd/seq`
 2. List available MIDI ports: `aconnect -l`
-3. Start Orchestron so Linux MIDI inputs are available for selection in the app.
-4. Route your DAW or controller output to an ALSA MIDI input that the backend can access.
-5. If you use JACK, enable the JACK/ALSA bridge before starting the backend.
+3. If you use JACK, enable the JACK/ALSA bridge before starting the helper.
+4. Start the backend with a host bridge token:
+
+```bash
+VISUALCSOUND_HOST_MIDI_TOKEN=dev-midi-token uv run uvicorn backend.app.main:app --reload
+```
+
+5. In a second terminal, run the host bridge:
+
+```bash
+cargo run --manifest-path host-midi-helper/Cargo.toml -- \
+  --backend-ws ws://127.0.0.1:8000/ws/host-midi \
+  --token dev-midi-token
+```
+
+6. Route your DAW or controller output to an ALSA MIDI input exposed by the helper.
+7. In the Runtime panel, bind the desired helper-provided MIDI input for the active session.
 
 ## 8. Verification checklist
 
@@ -150,9 +167,11 @@ cd frontend && npm run build
 - Restart `npm run dev` after editing `.env.local`.
 
 ### No MIDI inputs available on Linux
+- Internal app MIDI still works through `internal:loopback`.
 - Ensure `/dev/snd/seq` exists and is accessible.
 - Install `alsa-utils`, then confirm MIDI devices appear in `aconnect -l`.
-- Reconnect the device or recreate the virtual ALSA/JACK MIDI route, then restart the backend and browser.
+- Confirm the backend and helper use the same `VISUALCSOUND_HOST_MIDI_TOKEN`.
+- Reconnect the device or recreate the virtual ALSA/JACK MIDI route, then restart the helper.
 
 ## 10. Linux-specific notes
 

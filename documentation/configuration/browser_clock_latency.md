@@ -2,21 +2,21 @@
 
 **Navigation:** [Up](configuration.md) | [Prev](midi_setup_and_inputs.md) | [Next](persistence_and_defaults.md)
 
-When Orchestron runs in Docker with backend audio mode `browser_clock`, the browser becomes the playback clock and requests PCM render chunks from the backend. In this setup, the most important latency and stability controls live in the Config page's `Browser-Clock Latency` section.
+Orchestron now uses backend audio mode `browser_clock` on every supported platform. The browser becomes the playback clock and requests PCM render chunks from the backend, so the most important latency and stability controls live in the Config page's `Browser-Clock Latency` section.
 
 ## When This Section Appears
 
-The `Browser-Clock Latency` section is shown only when the backend was started in `browser_clock` mode, for example:
+The `Browser-Clock Latency` section is shown when the backend was started in `browser_clock` mode, for example:
 
-- `docker compose up --build` with the repository's default browser-clock Docker setup
+- `docker compose up --build`
 - CLI argument `--audio-output-mode browser_clock`
 - environment variable `VISUALCSOUND_AUDIO_OUTPUT_MODE=browser_clock`
 
-The section is hidden in `local` mode.
+This is the standard runtime path for macOS, Linux, Windows, and Docker.
 
-## Why These Settings Matter In Docker
+## Why These Settings Matter
 
-On the Docker/browser-clock path, audio is not pushed to a local DAC on the backend host. Instead:
+On the browser-clock path, audio is not pushed to a local DAC on the backend host. Instead:
 
 - the backend renders PCM blocks on demand
 - the browser keeps a target queue of decoded PCM
@@ -26,7 +26,7 @@ That makes the browser-clock queue settings the main tradeoff between low live-p
 
 Lower values usually feel more immediate, but they also leave less headroom for:
 
-- Docker scheduling jitter
+- backend scheduling jitter
 - browser tab throttling or temporary main-thread stalls
 - heavier patches that take longer to render
 

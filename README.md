@@ -76,7 +76,7 @@ Orchestron is a two-tier application with a FastAPI backend handling the service
 
 ## Quick Start
 
-Choose the installation guide that matches your environment. The platform guides cover native development setup, and the Docker guide covers the containerized browser-clock PCM workflow.
+Choose the installation guide that matches your environment. The platform guides cover native development setup, and the Docker guide covers the containerized deployment workflow. All supported runtimes now use the same browser-clock audio path.
 
 - [macOS installation](INSTALL.macos.md)
 - [Linux installation](INSTALL.linux.md)
@@ -87,11 +87,11 @@ To make sound quickly, open [http://localhost:8000/client](http://localhost:8000
 
 **Troubleshooting**: if audio output is chopped, increase the hardware and software buffer sizes in the configuration settings.
 
-Docker now defaults to `browser_clock` mode: the browser owns the PCM queue via Web Audio (`AudioContext` + `AudioWorklet`) and the backend renders Csound blocks on demand. For localhost and LAN browser connections, the browser-clock client uses a moderated low-latency queue profile and requests a small urgent render burst after live note-on events so piano-keyboard play feels more immediate without the earlier over-aggressive underruns. The Config page also exposes browser-clock latency controls when the backend runtime mode is `browser_clock`.
+All runtimes now use `browser_clock` mode: the browser owns the PCM queue via Web Audio (`AudioContext` + `AudioWorklet`) and the backend renders Csound blocks on demand with `performKsmps()`. Internal app MIDI always uses an engine-local timestamped scheduler through the built-in `internal:loopback` path, so sequencers, piano rolls, and manual controller lanes work even when no OS MIDI devices exist. External hardware or DAW MIDI is optional and now arrives through the native Rust host bridge in [`host-midi-helper/`](host-midi-helper/README.md).
 
 ## MIDI on macOS
 
-Enable the **IAC Driver** in Audio MIDI Setup and route MIDI output from your DAW/software into the selected IAC bus.
+Enable the **IAC Driver** in Audio MIDI Setup and route MIDI output from your DAW/software into the selected IAC bus. When you want that external MIDI to reach VisualCSound, run the host bridge described in [`host-midi-helper/README.md`](host-midi-helper/README.md) so the backend can receive CoreMIDI events with host timestamps.
 
 ## MIDI Pulse CLI (jitter probe)
 

@@ -4,6 +4,7 @@ from io import BytesIO
 import json
 import os
 import time
+import threading
 from pathlib import Path
 import zipfile
 
@@ -17,7 +18,12 @@ from backend.app.core.config import get_settings
 from backend.app.main import create_app
 
 
-def _client(tmp_path: Path, *, audio_output_mode: str = "local") -> TestClient:
+def _client(
+    tmp_path: Path,
+    *,
+    audio_output_mode: str = "local",
+    host_midi_token: str | None = None,
+) -> TestClient:
     db_path = tmp_path / "test.db"
     static_dir = tmp_path / "static"
     frontend_dist = tmp_path / "frontend_dist"
@@ -31,6 +37,10 @@ def _client(tmp_path: Path, *, audio_output_mode: str = "local") -> TestClient:
     os.environ["VISUALCSOUND_GEN_AUDIO_ASSETS_DIR"] = str(gen_audio_assets_dir)
     os.environ["VISUALCSOUND_FORCE_MOCK_ENGINE"] = "true"
     os.environ["VISUALCSOUND_AUDIO_OUTPUT_MODE"] = audio_output_mode
+    if host_midi_token is None:
+        os.environ.pop("VISUALCSOUND_HOST_MIDI_TOKEN", None)
+    else:
+        os.environ["VISUALCSOUND_HOST_MIDI_TOKEN"] = host_midi_token
 
     get_settings.cache_clear()
     app = create_app()
@@ -113,6 +123,91 @@ def _create_running_session(client: TestClient, *, patch_name: str = "Browser Cl
     return session_id
 
 
+class _BrowserClockRenderDriver:
+    def __init__(self, client: TestClient, session_id: str, *, block_count: int = 8) -> None:
+        self._client = client
+        self._session_id = session_id
+        self._block_count = block_count
+        self._websocket_context = None
+        self._websocket = None
+        self.stream_config: dict[str, object] | None = None
+        self._lock = threading.Lock()
+
+    def __enter__(self) -> "_BrowserClockRenderDriver":
+        start_response = self._client.post(f"/api/sessions/{self._session_id}/start")
+        assert start_response.status_code == 200
+
+        self._websocket_context = self._client.websocket_connect(
+            f"/ws/sessions/{self._session_id}/browser-clock"
+        )
+        self._websocket = self._websocket_context.__enter__()
+        self._websocket.send_json(
+            {
+                "type": "claim_controller",
+                "audio_context_sample_rate": 48_000,
+                "queue_low_water_frames": 1024,
+                "queue_high_water_frames": 2048,
+                "max_blocks_per_request": max(1, self._block_count),
+            }
+        )
+        stream_config = self._websocket.receive_json()
+        assert stream_config["type"] == "stream_config"
+        self.stream_config = stream_config
+        self._send_timing_report()
+        return self
+
+    def __exit__(self, exc_type, exc, tb) -> None:
+        websocket = self._websocket
+        websocket_context = self._websocket_context
+        self._websocket = None
+        self._websocket_context = None
+        if websocket is not None:
+            try:
+                websocket.send_json({"type": "release_controller"})
+            except Exception:
+                pass
+        if websocket_context is not None:
+            websocket_context.__exit__(exc_type, exc, tb)
+
+    def pump_once(self, *, block_count: int | None = None) -> dict[str, object]:
+        with self._lock:
+            self._send_timing_report()
+            assert self._websocket is not None
+            requested_blocks = max(1, block_count or self._block_count)
+            self._websocket.send_json({"type": "request_render", "block_count": requested_blocks})
+            metadata = self._websocket.receive_json()
+            assert metadata["type"] == "render_chunk"
+            self._websocket.receive_bytes()
+            return metadata
+
+    def pump_for(self, duration_seconds: float) -> None:
+        stream_config = self.stream_config or {}
+        engine_sample_rate = max(1, int(stream_config.get("engine_sample_rate", 48_000)))
+        ksmps = max(1, int(stream_config.get("ksmps", 64)))
+        request_duration = (ksmps * max(1, self._block_count)) / float(engine_sample_rate)
+        iterations = max(1, int(round(max(0.0, duration_seconds) / max(request_duration, 1e-6))))
+        for _ in range(iterations):
+            self.pump_once()
+
+    def _send_timing_report(self) -> None:
+        assert self._websocket is not None
+        self._websocket.send_json(
+            {
+                "type": "timing_report",
+                "client_perf_ms": time.perf_counter() * 1000.0,
+                "audio_context_time_s": 0.0,
+                "queued_frames": 0,
+                "sample_rate": 48_000,
+                "pending_render_frames": 0,
+            }
+        )
+
+
+def _runtime_midi_adapter(client: TestClient, session_id: str):
+    sessions = client.app.state.container.session_service._sessions
+    return sessions[session_id].worker.midi_output
+
+
 def test_health_endpoint(tmp_path: Path) -> None:
     with _client(tmp_path) as client:
         response = client.get("/api/health")
@@ -137,6 +232,14 @@ def test_runtime_config_exposes_browser_clock_mode(tmp_path: Path) -> None:
 
 def test_runtime_config_maps_streaming_alias_to_browser_clock(tmp_path: Path) -> None:
     with _client(tmp_path, audio_output_mode="streaming") as client:
+        response = client.get("/api/runtime-config")
+        assert response.status_code == 200
+        assert response.json()["audio_output_mode"] == "browser_clock"
+        assert response.json()["browser_clock_enabled"] is True
+
+
+def test_runtime_config_maps_local_alias_to_browser_clock(tmp_path: Path) -> None:
+    with _client(tmp_path, audio_output_mode="local") as client:
         response = client.get("/api/runtime-config")
         assert response.status_code == 200
         assert response.json()["audio_output_mode"] == "browser_clock"
@@ -176,6 +279,20 @@ def test_browser_clock_controller_websocket_streams_pcm_chunks(tmp_path: Path) -
             assert stream_config["ksmps"] == 64
             assert stream_config["channels"] == 2
             assert stream_config["target_sample_rate"] == 48_000
+            assert isinstance(stream_config["server_monotonic_ns"], int)
+            assert stream_config["timing_report_interval_ms"] == 100
+            assert stream_config["engine_ksmps_latency_frames"] == 64
+
+            websocket.send_json(
+                {
+                    "type": "timing_report",
+                    "client_perf_ms": 1234.5,
+                    "audio_context_time_s": 0.25,
+                    "queued_frames": 512,
+                    "sample_rate": 48_000,
+                    "pending_render_frames": 128,
+                }
+            )
 
             websocket.send_json({"type": "request_render", "block_count": 2})
             metadata = websocket.receive_json()
@@ -224,6 +341,96 @@ def test_browser_clock_controller_takeover_revokes_previous_browser(tmp_path: Pa
 
                 with pytest.raises(WebSocketDisconnect):
                     first.receive_text()
+
+
+def test_host_midi_bridge_inventory_and_external_event_delivery(tmp_path: Path) -> None:
+    with _client(tmp_path, audio_output_mode="browser_clock", host_midi_token="test-token") as client:
+        session_id = _create_running_session(client, patch_name="Host MIDI Bridge")
+
+        with client.websocket_connect(f"/ws/sessions/{session_id}") as session_ws:
+            with client.websocket_connect("/ws/host-midi", headers={"authorization": "Bearer test-token"}) as host_ws:
+                host_ws.send_json(
+                    {
+                        "type": "register_host",
+                        "host_id": "host-a",
+                        "host_name": "Test Host",
+                        "protocol_version": 1,
+                    }
+                )
+                registered = host_ws.receive_json()
+                assert registered["type"] == "host_registered"
+                assert registered["host_id"] == "host-a"
+
+                host_ws.send_json(
+                    {
+                        "type": "device_inventory",
+                        "devices": [
+                            {
+                                "id": "host:keyboard:a",
+                                "name": "Host Keyboard",
+                                "backend": "host_bridge",
+                                "selector": "keyboard-a",
+                                "host_id": "host-a",
+                                "timestamp_quality": "authoritative",
+                            }
+                        ],
+                    }
+                )
+                inventory_ack = host_ws.receive_json()
+                assert inventory_ack == {
+                    "type": "device_inventory_ack",
+                    "host_id": "host-a",
+                    "device_count": 1,
+                }
+
+                midi_inputs = client.get("/api/midi/inputs")
+                assert midi_inputs.status_code == 200
+                assert midi_inputs.json()[0]["id"] == "internal:loopback"
+                assert any(item["id"] == "host:keyboard:a" for item in midi_inputs.json())
+
+                bound = client.put(
+                    f"/api/sessions/{session_id}/midi-input",
+                    json={"midi_input": "host:keyboard:a"},
+                )
+                assert bound.status_code == 200
+                assert bound.json()["midi_input"] == "host:keyboard:a"
+
+                midi_bound_event = session_ws.receive_json()
+                assert midi_bound_event["type"] == "midi_bound"
+
+                host_ws.send_json(
+                    {
+                        "type": "midi_events",
+                        "events": [
+                            {
+                                "device_id": "host:keyboard:a",
+                                "midi": [0x90, 60, 100],
+                                "timestamp_ns": 123_456_789,
+                            }
+                        ],
+                    }
+                )
+
+                external_event = session_ws.receive_json()
+                assert external_event["type"] == "midi_event"
+                assert external_event["payload"]["type"] == "note_on"
+                assert external_event["payload"]["note"] == 60
+                assert external_event["payload"]["sync_stale"] is True
+
+            midi_inputs_after_disconnect = client.get("/api/midi/inputs")
+            assert midi_inputs_after_disconnect.status_code == 200
+            assert all(item["id"] != "host:keyboard:a" for item in midi_inputs_after_disconnect.json())
+
+            internal_event = client.post(
+                f"/api/sessions/{session_id}/midi-event",
+                json={"type": "note_on", "channel": 1, "note": 61, "velocity": 90},
+            )
+            assert internal_event.status_code == 200
+
+            internal_event_payload = session_ws.receive_json()
+            assert internal_event_payload["type"] == "midi_event"
+            assert internal_event_payload["payload"]["note"] == 61
+            assert "sync_stale" not in internal_event_payload["payload"]
 
 
 def test_bind_midi_input_normalizes_legacy_selector_to_stable_id(tmp_path: Path) -> None:
@@ -1027,54 +1234,54 @@ def test_session_backend_sequencer_flow_with_pad_queue(tmp_path: Path) -> None:
         create_session = client.post("/api/sessions", json={"patch_id": patch_id})
         assert create_session.status_code == 201
         session_id = create_session.json()["session_id"]
+        with _BrowserClockRenderDriver(client, session_id) as driver:
+            start_sequencer = client.post(
+                f"/api/sessions/{session_id}/sequencer/start",
+                json={
+                    "config": _sequencer_config(
+                        [
+                            {
+                                "track_id": "voice-1",
+                                "midi_channel": 1,
+                                "velocity": 100,
+                                "gate_ratio": 0.8,
+                                "active_pad": 0,
+                                "pads": [
+                                    {"pad_index": 0, "steps": [60, None, 67, None] + [None] * 12},
+                                    {"pad_index": 1, "steps": [72, None, 74, None] + [None] * 12},
+                                ],
+                            }
+                        ],
+                        tempo_bpm=300,
+                    )
+                },
+            )
+            assert start_sequencer.status_code == 200
+            assert start_sequencer.json()["running"] is True
+            assert start_sequencer.json()["tracks"][0]["active_pad"] == 0
 
-        start_sequencer = client.post(
-            f"/api/sessions/{session_id}/sequencer/start",
-            json={
-                "config": _sequencer_config(
-                    [
-                        {
-                            "track_id": "voice-1",
-                            "midi_channel": 1,
-                            "velocity": 100,
-                            "gate_ratio": 0.8,
-                            "active_pad": 0,
-                            "pads": [
-                                {"pad_index": 0, "steps": [60, None, 67, None] + [None] * 12},
-                                {"pad_index": 1, "steps": [72, None, 74, None] + [None] * 12},
-                            ],
-                        }
-                    ],
-                    tempo_bpm=300,
-                )
-            },
-        )
-        assert start_sequencer.status_code == 200
-        assert start_sequencer.json()["running"] is True
-        assert start_sequencer.json()["tracks"][0]["active_pad"] == 0
+            queue_pad = client.post(
+                f"/api/sessions/{session_id}/sequencer/tracks/voice-1/queue-pad",
+                json={"pad_index": 1},
+            )
+            assert queue_pad.status_code == 200
+            assert queue_pad.json()["tracks"][0]["queued_pad"] == 1
 
-        queue_pad = client.post(
-            f"/api/sessions/{session_id}/sequencer/tracks/voice-1/queue-pad",
-            json={"pad_index": 1},
-        )
-        assert queue_pad.status_code == 200
-        assert queue_pad.json()["tracks"][0]["queued_pad"] == 1
+            switched = False
+            for _ in range(25):
+                driver.pump_for(0.1)
+                status = client.get(f"/api/sessions/{session_id}/sequencer/status")
+                assert status.status_code == 200
+                data = status.json()
+                if data["tracks"][0]["active_pad"] == 1 and data["tracks"][0]["queued_pad"] is None:
+                    switched = True
+                    break
 
-        switched = False
-        for _ in range(25):
-            status = client.get(f"/api/sessions/{session_id}/sequencer/status")
-            assert status.status_code == 200
-            data = status.json()
-            if data["tracks"][0]["active_pad"] == 1 and data["tracks"][0]["queued_pad"] is None:
-                switched = True
-                break
-            time.sleep(0.1)
+            assert switched, "Queued pad did not switch on loop boundary in expected time."
 
-        assert switched, "Queued pad did not switch on loop boundary in expected time."
-
-        stop_sequencer = client.post(f"/api/sessions/{session_id}/sequencer/stop")
-        assert stop_sequencer.status_code == 200
-        assert stop_sequencer.json()["running"] is False
+            stop_sequencer = client.post(f"/api/sessions/{session_id}/sequencer/stop")
+            assert stop_sequencer.status_code == 200
+            assert stop_sequencer.json()["running"] is False
 
 
 def test_session_backend_sequencer_active_pad_uses_pad_specific_step_count(tmp_path: Path) -> None:
@@ -1104,54 +1311,54 @@ def test_session_backend_sequencer_active_pad_uses_pad_specific_step_count(tmp_p
         create_session = client.post("/api/sessions", json={"patch_id": patch_id})
         assert create_session.status_code == 201
         session_id = create_session.json()["session_id"]
+        with _BrowserClockRenderDriver(client, session_id) as driver:
+            start_sequencer = client.post(
+                f"/api/sessions/{session_id}/sequencer/start",
+                json={
+                    "config": _sequencer_config(
+                        [
+                            {
+                                "track_id": "voice-1",
+                                "midi_channel": 1,
+                                "active_pad": 1,
+                                "pads": [
+                                    {"pad_index": 0, "length_beats": 4, "steps": [60, None] + [None] * 14},
+                                    {"pad_index": 1, "length_beats": 2, "steps": [72, None] + [None] * 6},
+                                ],
+                            }
+                        ],
+                        tempo_bpm=300,
+                    )
+                },
+            )
+            assert start_sequencer.status_code == 200
+            started = start_sequencer.json()
+            assert started["running"] is True
+            assert started["tracks"][0]["active_pad"] == 1
+            assert started["tracks"][0]["step_count"] == 8
 
-        start_sequencer = client.post(
-            f"/api/sessions/{session_id}/sequencer/start",
-            json={
-                "config": _sequencer_config(
-                    [
-                        {
-                            "track_id": "voice-1",
-                            "midi_channel": 1,
-                            "active_pad": 1,
-                            "pads": [
-                                {"pad_index": 0, "length_beats": 4, "steps": [60, None] + [None] * 14},
-                                {"pad_index": 1, "length_beats": 2, "steps": [72, None] + [None] * 6},
-                            ],
-                        }
-                    ],
-                    tempo_bpm=300,
-                )
-            },
-        )
-        assert start_sequencer.status_code == 200
-        started = start_sequencer.json()
-        assert started["running"] is True
-        assert started["tracks"][0]["active_pad"] == 1
-        assert started["tracks"][0]["step_count"] == 8
+            queue_pad = client.post(
+                f"/api/sessions/{session_id}/sequencer/tracks/voice-1/queue-pad",
+                json={"pad_index": 0},
+            )
+            assert queue_pad.status_code == 200
+            assert queue_pad.json()["tracks"][0]["queued_pad"] == 0
 
-        queue_pad = client.post(
-            f"/api/sessions/{session_id}/sequencer/tracks/voice-1/queue-pad",
-            json={"pad_index": 0},
-        )
-        assert queue_pad.status_code == 200
-        assert queue_pad.json()["tracks"][0]["queued_pad"] == 0
+            switched = False
+            for _ in range(20):
+                driver.pump_for(0.05)
+                status = client.get(f"/api/sessions/{session_id}/sequencer/status")
+                assert status.status_code == 200
+                body = status.json()
+                if body["tracks"][0]["active_pad"] == 0 and body["tracks"][0]["step_count"] == 16:
+                    switched = True
+                    break
 
-        switched = False
-        for _ in range(20):
-            status = client.get(f"/api/sessions/{session_id}/sequencer/status")
-            assert status.status_code == 200
-            body = status.json()
-            if body["tracks"][0]["active_pad"] == 0 and body["tracks"][0]["step_count"] == 16:
-                switched = True
-                break
-            time.sleep(0.05)
+            assert switched, "Expected queued pad switch to update active pad step_count in runtime status."
 
-        assert switched, "Expected queued pad switch to update active pad step_count in runtime status."
-
-        stop_sequencer = client.post(f"/api/sessions/{session_id}/sequencer/stop")
-        assert stop_sequencer.status_code == 200
-        assert stop_sequencer.json()["running"] is False
+            stop_sequencer = client.post(f"/api/sessions/{session_id}/sequencer/stop")
+            assert stop_sequencer.status_code == 200
+            assert stop_sequencer.json()["running"] is False
 
 
 def test_session_backend_sequencer_pad_looper_sequence_stops_when_repeat_disabled(tmp_path: Path) -> None:
@@ -1181,59 +1388,57 @@ def test_session_backend_sequencer_pad_looper_sequence_stops_when_repeat_disable
         create_session = client.post("/api/sessions", json={"patch_id": patch_id})
         assert create_session.status_code == 201
         session_id = create_session.json()["session_id"]
+        with _BrowserClockRenderDriver(client, session_id) as driver:
+            start_sequencer = client.post(
+                f"/api/sessions/{session_id}/sequencer/start",
+                json={
+                    "config": _sequencer_config(
+                        [
+                            {
+                                "track_id": "voice-1",
+                                "midi_channel": 1,
+                                "enabled": True,
+                                "active_pad": 7,
+                                "pad_loop_enabled": True,
+                                "pad_loop_repeat": False,
+                                "pad_loop_sequence": [0, 1],
+                                "pads": [
+                                    {"pad_index": 0, "steps": [60, None] + [None] * 14},
+                                    {"pad_index": 1, "steps": [72, None] + [None] * 14},
+                                ],
+                            }
+                        ],
+                        tempo_bpm=300,
+                    )
+                },
+            )
+            assert start_sequencer.status_code == 200
+            assert start_sequencer.json()["running"] is True
+            track = next(item for item in start_sequencer.json()["tracks"] if item["track_id"] == "voice-1")
+            assert track["active_pad"] == 0
 
-        start_sequencer = client.post(
-            f"/api/sessions/{session_id}/sequencer/start",
-            json={
-                "config": _sequencer_config(
-                    [
-                        {
-                            "track_id": "voice-1",
-                            "midi_channel": 1,
-                            "enabled": True,
-                            "active_pad": 7,
-                            "pad_loop_enabled": True,
-                            "pad_loop_repeat": False,
-                            "pad_loop_sequence": [0, 1],
-                            "pads": [
-                                {"pad_index": 0, "steps": [60, None] + [None] * 14},
-                                {"pad_index": 1, "steps": [72, None] + [None] * 14},
-                            ],
-                        }
-                    ],
-                    tempo_bpm=300,
-                )
-            },
-        )
-        assert start_sequencer.status_code == 200
-        assert start_sequencer.json()["running"] is True
-        track = next(item for item in start_sequencer.json()["tracks"] if item["track_id"] == "voice-1")
-        # Looper start aligns the track to the first pad in the configured sequence.
-        assert track["active_pad"] == 0
+            saw_second_pad = False
+            stopped_after_sequence = False
+            for _ in range(50):
+                driver.pump_for(0.1)
+                status = client.get(f"/api/sessions/{session_id}/sequencer/status")
+                assert status.status_code == 200
+                data = status.json()
+                track = next(item for item in data["tracks"] if item["track_id"] == "voice-1")
 
-        saw_second_pad = False
-        stopped_after_sequence = False
-        for _ in range(50):
-            status = client.get(f"/api/sessions/{session_id}/sequencer/status")
-            assert status.status_code == 200
-            data = status.json()
-            track = next(item for item in data["tracks"] if item["track_id"] == "voice-1")
+                if track["enabled"] and track["active_pad"] == 1:
+                    saw_second_pad = True
 
-            if track["enabled"] and track["active_pad"] == 1:
-                saw_second_pad = True
+                if saw_second_pad and track["enabled"] is False and track["queued_enabled"] is None:
+                    stopped_after_sequence = True
+                    break
 
-            if saw_second_pad and track["enabled"] is False and track["queued_enabled"] is None:
-                stopped_after_sequence = True
-                break
+            assert saw_second_pad, "Pad looper did not advance to the second pad in the configured sequence."
+            assert stopped_after_sequence, "Pad looper did not stop the track when repeat was disabled."
 
-            time.sleep(0.1)
-
-        assert saw_second_pad, "Pad looper did not advance to the second pad in the configured sequence."
-        assert stopped_after_sequence, "Pad looper did not stop the track when repeat was disabled."
-
-        stop_sequencer = client.post(f"/api/sessions/{session_id}/sequencer/stop")
-        assert stop_sequencer.status_code == 200
-        assert stop_sequencer.json()["running"] is False
+            stop_sequencer = client.post(f"/api/sessions/{session_id}/sequencer/stop")
+            assert stop_sequencer.status_code == 200
+            assert stop_sequencer.json()["running"] is False
 
 
 def test_session_backend_disabled_pad_looper_track_preserves_selected_pad_while_transport_runs(tmp_path: Path) -> None:
@@ -1340,60 +1545,59 @@ def test_session_backend_sequencer_pad_looper_repeats_across_multiple_pause_toke
         create_session = client.post("/api/sessions", json={"patch_id": patch_id})
         assert create_session.status_code == 201
         session_id = create_session.json()["session_id"]
+        with _BrowserClockRenderDriver(client, session_id) as driver:
+            start_sequencer = client.post(
+                f"/api/sessions/{session_id}/sequencer/start",
+                json={
+                    "config": _sequencer_config(
+                        [
+                            {
+                                "track_id": "voice-1",
+                                "midi_channel": 1,
+                                "enabled": True,
+                                "active_pad": 0,
+                                "pad_loop_enabled": True,
+                                "pad_loop_repeat": True,
+                                "pad_loop_sequence": [0, -4, -8],
+                                "pads": [
+                                    {"pad_index": 0, "steps": [60, None] + [None] * 14},
+                                ],
+                            }
+                        ],
+                        tempo_bpm=300,
+                        playback_end_step=256,
+                    )
+                },
+            )
+            assert start_sequencer.status_code == 200
+            assert start_sequencer.json()["running"] is True
 
-        start_sequencer = client.post(
-            f"/api/sessions/{session_id}/sequencer/start",
-            json={
-                "config": _sequencer_config(
-                    [
-                        {
-                            "track_id": "voice-1",
-                            "midi_channel": 1,
-                            "enabled": True,
-                            "active_pad": 0,
-                            "pad_loop_enabled": True,
-                            "pad_loop_repeat": True,
-                            "pad_loop_sequence": [0, -4, -8],
-                            "pads": [
-                                {"pad_index": 0, "steps": [60, None] + [None] * 14},
-                            ],
-                        }
-                    ],
-                    tempo_bpm=300,
-                    playback_end_step=256,
-                )
-            },
-        )
-        assert start_sequencer.status_code == 200
-        assert start_sequencer.json()["running"] is True
+            saw_first_pause = False
+            saw_second_pause = False
+            wrapped_to_start = False
 
-        saw_first_pause = False
-        saw_second_pause = False
-        wrapped_to_start = False
+            for _ in range(80):
+                driver.pump_for(0.05)
+                status = client.get(f"/api/sessions/{session_id}/sequencer/status")
+                assert status.status_code == 200
+                data = status.json()
+                track = next(item for item in data["tracks"] if item["track_id"] == "voice-1")
 
-        for _ in range(80):
-            status = client.get(f"/api/sessions/{session_id}/sequencer/status")
-            assert status.status_code == 200
-            data = status.json()
-            track = next(item for item in data["tracks"] if item["track_id"] == "voice-1")
+                if track["pad_loop_position"] == 1:
+                    saw_first_pause = True
+                if track["pad_loop_position"] == 2:
+                    saw_second_pause = True
+                if saw_second_pause and track["pad_loop_position"] == 0 and data["running"] is True:
+                    wrapped_to_start = True
+                    break
 
-            if track["pad_loop_position"] == 1:
-                saw_first_pause = True
-            if track["pad_loop_position"] == 2:
-                saw_second_pause = True
-            if saw_second_pause and track["pad_loop_position"] == 0 and data["running"] is True:
-                wrapped_to_start = True
-                break
+            assert saw_first_pause, "Pad looper never entered the first pause token."
+            assert saw_second_pause, "Pad looper never entered the second pause token."
+            assert wrapped_to_start, "Pad looper did not wrap back to the first token after the second pause."
 
-            time.sleep(0.05)
-
-        assert saw_first_pause, "Pad looper never entered the first pause token."
-        assert saw_second_pause, "Pad looper never entered the second pause token."
-        assert wrapped_to_start, "Pad looper did not wrap back to the first token after the second pause."
-
-        stop_sequencer = client.post(f"/api/sessions/{session_id}/sequencer/stop")
-        assert stop_sequencer.status_code == 200
-        assert stop_sequencer.json()["running"] is False
+            stop_sequencer = client.post(f"/api/sessions/{session_id}/sequencer/stop")
+            assert stop_sequencer.status_code == 200
+            assert stop_sequencer.json()["running"] is False
 
 
 def test_session_backend_sequencer_stop_preserves_playhead_and_position_start(tmp_path: Path) -> None:
@@ -1421,52 +1625,52 @@ def test_session_backend_sequencer_stop_preserves_playhead_and_position_start(tm
         session_response = client.post("/api/sessions", json={"patch_id": patch_response.json()["id"]})
         assert session_response.status_code == 201
         session_id = session_response.json()["session_id"]
+        with _BrowserClockRenderDriver(client, session_id) as driver:
+            start_response = client.post(
+                f"/api/sessions/{session_id}/sequencer/start",
+                json={
+                    "config": _sequencer_config(
+                        [
+                            {
+                                "track_id": "voice-1",
+                                "midi_channel": 1,
+                                "pads": [{"pad_index": 0, "steps": [60, None, 67, None] + [None] * 12}],
+                            }
+                        ],
+                        tempo_bpm=300,
+                        playback_end_step=32,
+                    )
+                },
+            )
+            assert start_response.status_code == 200
 
-        start_response = client.post(
-            f"/api/sessions/{session_id}/sequencer/start",
-            json={
-                "config": _sequencer_config(
-                    [
-                        {
-                            "track_id": "voice-1",
-                            "midi_channel": 1,
-                            "pads": [{"pad_index": 0, "steps": [60, None, 67, None] + [None] * 12}],
-                        }
-                    ],
-                    tempo_bpm=300,
-                    playback_end_step=32,
-                )
-            },
-        )
-        assert start_response.status_code == 200
+            preserved_absolute_step: int | None = None
+            for _ in range(20):
+                driver.pump_for(0.05)
+                status = client.get(f"/api/sessions/{session_id}/sequencer/status")
+                assert status.status_code == 200
+                body = status.json()
+                absolute_step = body["cycle"] * body["step_count"] + body["current_step"]
+                if absolute_step >= 4:
+                    preserved_absolute_step = absolute_step
+                    break
 
-        preserved_absolute_step: int | None = None
-        for _ in range(20):
-            status = client.get(f"/api/sessions/{session_id}/sequencer/status")
-            assert status.status_code == 200
-            body = status.json()
-            absolute_step = body["cycle"] * body["step_count"] + body["current_step"]
-            if absolute_step >= 4:
-                preserved_absolute_step = absolute_step
-                break
-            time.sleep(0.05)
+            assert preserved_absolute_step is not None
 
-        assert preserved_absolute_step is not None
+            stop_response = client.post(f"/api/sessions/{session_id}/sequencer/stop")
+            assert stop_response.status_code == 200
+            stopped_absolute_step = stop_response.json()["cycle"] * stop_response.json()["step_count"] + stop_response.json()["current_step"]
+            assert stopped_absolute_step == preserved_absolute_step
 
-        stop_response = client.post(f"/api/sessions/{session_id}/sequencer/stop")
-        assert stop_response.status_code == 200
-        stopped_absolute_step = stop_response.json()["cycle"] * stop_response.json()["step_count"] + stop_response.json()["current_step"]
-        assert stopped_absolute_step == preserved_absolute_step
+            resume_response = client.post(
+                f"/api/sessions/{session_id}/sequencer/start",
+                json={"position_step": preserved_absolute_step},
+            )
+            assert resume_response.status_code == 200
+            resumed_absolute_step = resume_response.json()["cycle"] * resume_response.json()["step_count"] + resume_response.json()["current_step"]
+            assert resumed_absolute_step == preserved_absolute_step
 
-        resume_response = client.post(
-            f"/api/sessions/{session_id}/sequencer/start",
-            json={"position_step": preserved_absolute_step},
-        )
-        assert resume_response.status_code == 200
-        resumed_absolute_step = resume_response.json()["cycle"] * resume_response.json()["step_count"] + resume_response.json()["current_step"]
-        assert resumed_absolute_step == preserved_absolute_step
-
-        client.post(f"/api/sessions/{session_id}/sequencer/stop")
+            client.post(f"/api/sessions/{session_id}/sequencer/stop")
 
 
 def test_session_backend_sequencer_transport_seek_moves_in_four_step_blocks(tmp_path: Path) -> None:
@@ -1619,62 +1823,62 @@ def test_session_backend_sequencer_polyrhythm_beat_rate_advances_local_step_betw
         session_response = client.post("/api/sessions", json={"patch_id": patch_response.json()["id"]})
         assert session_response.status_code == 201
         session_id = session_response.json()["session_id"]
+        with _BrowserClockRenderDriver(client, session_id) as driver:
+            start_response = client.post(
+                f"/api/sessions/{session_id}/sequencer/start",
+                json={
+                    "config": _sequencer_config(
+                        [
+                            {
+                                "track_id": "voice-1",
+                                "midi_channel": 1,
+                                "timing": _sequencer_timing(
+                                    tempo_bpm=120,
+                                    meter_numerator=4,
+                                    meter_denominator=4,
+                                    steps_per_beat=4,
+                                    beat_rate_numerator=3,
+                                    beat_rate_denominator=2,
+                                ),
+                                "length_beats": 1,
+                                "pads": [{"pad_index": 0, "length_beats": 1, "steps": [60, None, None, None]}],
+                            }
+                        ],
+                        tempo_bpm=120,
+                    )
+                },
+            )
+            assert start_response.status_code == 200
+            started = start_response.json()
+            assert started["transport_subunit"] == 0
+            assert started["tracks"][0]["timing"] == _sequencer_timing(
+                tempo_bpm=120,
+                meter_numerator=4,
+                meter_denominator=4,
+                steps_per_beat=4,
+                beat_rate_numerator=3,
+                beat_rate_denominator=2,
+            )
 
-        start_response = client.post(
-            f"/api/sessions/{session_id}/sequencer/start",
-            json={
-                "config": _sequencer_config(
-                    [
-                        {
-                            "track_id": "voice-1",
-                            "midi_channel": 1,
-                            "timing": _sequencer_timing(
-                                tempo_bpm=120,
-                                meter_numerator=4,
-                                meter_denominator=4,
-                                steps_per_beat=4,
-                                beat_rate_numerator=3,
-                                beat_rate_denominator=2,
-                            ),
-                            "length_beats": 1,
-                            "pads": [{"pad_index": 0, "length_beats": 1, "steps": [60, None, None, None]}],
-                        }
-                    ],
-                    tempo_bpm=120,
-                )
-            },
-        )
-        assert start_response.status_code == 200
-        started = start_response.json()
-        assert started["transport_subunit"] == 0
-        assert started["tracks"][0]["timing"] == _sequencer_timing(
-            tempo_bpm=120,
-            meter_numerator=4,
-            meter_denominator=4,
-            steps_per_beat=4,
-            beat_rate_numerator=3,
-            beat_rate_denominator=2,
-        )
+            target_status: dict[str, object] | None = None
+            deadline = time.time() + 0.75
+            while time.time() < deadline:
+                driver.pump_for(0.005)
+                status_response = client.get(f"/api/sessions/{session_id}/sequencer/status")
+                assert status_response.status_code == 200
+                status = status_response.json()
+                transport_subunit = int(status["transport_subunit"])
+                if 560 <= transport_subunit < 840:
+                    target_status = status
+                    break
 
-        target_status: dict[str, object] | None = None
-        deadline = time.time() + 0.75
-        while time.time() < deadline:
-            status_response = client.get(f"/api/sessions/{session_id}/sequencer/status")
-            assert status_response.status_code == 200
-            status = status_response.json()
-            transport_subunit = int(status["transport_subunit"])
-            if 560 <= transport_subunit < 840:
-                target_status = status
-                break
-            time.sleep(0.005)
+            assert target_status is not None, "Expected to observe the 3:2 local-step window before transport step 2."
+            assert target_status["current_step"] == 1
+            assert target_status["tracks"][0]["local_step"] == 1
+            assert target_status["transport_subunit"] < 840
 
-        assert target_status is not None, "Expected to observe the 3:2 local-step window before transport step 2."
-        assert target_status["current_step"] == 1
-        assert target_status["tracks"][0]["local_step"] == 1
-        assert target_status["transport_subunit"] < 840
-
-        stop_response = client.post(f"/api/sessions/{session_id}/sequencer/stop")
-        assert stop_response.status_code == 200
+            stop_response = client.post(f"/api/sessions/{session_id}/sequencer/stop")
+            assert stop_response.status_code == 200
 
 
 def test_session_backend_sequencer_accepts_meter_aligned_three_beat_pad_lengths(tmp_path: Path) -> None:
@@ -1828,79 +2032,79 @@ def test_session_backend_sequencer_selected_range_loops_and_one_shot_ends_at_ran
         session_response = client.post("/api/sessions", json={"patch_id": patch_response.json()["id"]})
         assert session_response.status_code == 201
         session_id = session_response.json()["session_id"]
+        with _BrowserClockRenderDriver(client, session_id) as driver:
+            loop_response = client.post(
+                f"/api/sessions/{session_id}/sequencer/start",
+                json={
+                    "config": _sequencer_config(
+                        [
+                            {
+                                "track_id": "voice-1",
+                                "midi_channel": 1,
+                                "pad_loop_enabled": True,
+                                "pad_loop_repeat": True,
+                                "pad_loop_sequence": [0, 1],
+                                "pads": [
+                                    {"pad_index": 0, "steps": [60] + [None] * 15},
+                                    {"pad_index": 1, "steps": [67] + [None] * 15},
+                                ],
+                            }
+                        ],
+                        tempo_bpm=300,
+                        playback_start_step=16,
+                        playback_end_step=24,
+                        playback_loop=True,
+                    )
+                },
+            )
+            assert loop_response.status_code == 200
 
-        loop_response = client.post(
-            f"/api/sessions/{session_id}/sequencer/start",
-            json={
-                "config": _sequencer_config(
-                    [
-                        {
-                            "track_id": "voice-1",
-                            "midi_channel": 1,
-                            "pad_loop_enabled": True,
-                            "pad_loop_repeat": True,
-                            "pad_loop_sequence": [0, 1],
-                            "pads": [
-                                {"pad_index": 0, "steps": [60] + [None] * 15},
-                                {"pad_index": 1, "steps": [67] + [None] * 15},
-                            ],
-                        }
-                    ],
-                    tempo_bpm=300,
-                    playback_start_step=16,
-                    playback_end_step=24,
-                    playback_loop=True,
-                )
-            },
-        )
-        assert loop_response.status_code == 200
+            saw_range_wrap = False
+            for _ in range(30):
+                driver.pump_for(0.05)
+                status = client.get(f"/api/sessions/{session_id}/sequencer/status")
+                assert status.status_code == 200
+                absolute_step = status.json()["cycle"] * status.json()["step_count"] + status.json()["current_step"]
+                if absolute_step == 16 and status.json()["running"] is True:
+                    saw_range_wrap = True
+                    break
 
-        saw_range_wrap = False
-        for _ in range(30):
-            status = client.get(f"/api/sessions/{session_id}/sequencer/status")
-            assert status.status_code == 200
-            absolute_step = status.json()["cycle"] * status.json()["step_count"] + status.json()["current_step"]
-            if absolute_step == 16 and status.json()["running"] is True:
-                saw_range_wrap = True
-                break
-            time.sleep(0.05)
+            assert saw_range_wrap, "Expected looping playback window to wrap back to the selected range start."
 
-        assert saw_range_wrap, "Expected looping playback window to wrap back to the selected range start."
+            client.post(f"/api/sessions/{session_id}/sequencer/stop")
 
-        client.post(f"/api/sessions/{session_id}/sequencer/stop")
+            one_shot_response = client.post(
+                f"/api/sessions/{session_id}/sequencer/start",
+                json={
+                    "config": _sequencer_config(
+                        [
+                            {
+                                "track_id": "voice-1",
+                                "midi_channel": 1,
+                                "pads": [{"pad_index": 0, "steps": [60] + [None] * 15}],
+                            }
+                        ],
+                        tempo_bpm=300,
+                        playback_start_step=0,
+                        playback_end_step=8,
+                        playback_loop=False,
+                    )
+                },
+            )
+            assert one_shot_response.status_code == 200
 
-        one_shot_response = client.post(
-            f"/api/sessions/{session_id}/sequencer/start",
-            json={
-                "config": _sequencer_config(
-                    [
-                        {
-                            "track_id": "voice-1",
-                            "midi_channel": 1,
-                            "pads": [{"pad_index": 0, "steps": [60] + [None] * 15}],
-                        }
-                    ],
-                    tempo_bpm=300,
-                    playback_start_step=0,
-                    playback_end_step=8,
-                    playback_loop=False,
-                )
-            },
-        )
-        assert one_shot_response.status_code == 200
+            stopped_at_end = False
+            for _ in range(30):
+                driver.pump_for(0.05)
+                status = client.get(f"/api/sessions/{session_id}/sequencer/status")
+                assert status.status_code == 200
+                body = status.json()
+                absolute_step = body["cycle"] * body["step_count"] + body["current_step"]
+                if body["running"] is False and absolute_step == 8:
+                    stopped_at_end = True
+                    break
 
-        stopped_at_end = False
-        for _ in range(30):
-            status = client.get(f"/api/sessions/{session_id}/sequencer/status")
-            assert status.status_code == 200
-            body = status.json()
-            absolute_step = body["cycle"] * body["step_count"] + body["current_step"]
-            if body["running"] is False and absolute_step == 8:
-                stopped_at_end = True
-                break
-            time.sleep(0.05)
-
-        assert stopped_at_end, "Expected one-shot playback to stop at the configured playback_end_step."
+            assert stopped_at_end, "Expected one-shot playback to stop at the configured playback_end_step."
 
 
 def test_session_backend_sequencer_hold_steps_release_only_on_non_hold_rest(tmp_path: Path) -> None:
@@ -1930,58 +2134,58 @@ def test_session_backend_sequencer_hold_steps_release_only_on_non_hold_rest(tmp_
         create_session = client.post("/api/sessions", json={"patch_id": patch_id})
         assert create_session.status_code == 201
         session_id = create_session.json()["session_id"]
+        with _BrowserClockRenderDriver(client, session_id) as driver:
+            start_sequencer = client.post(
+                f"/api/sessions/{session_id}/sequencer/start",
+                json={
+                    "config": _sequencer_config(
+                        [
+                            {
+                                "track_id": "voice-1",
+                                "midi_channel": 1,
+                                "active_pad": 0,
+                                "pads": [
+                                    {
+                                        "pad_index": 0,
+                                        "steps": [
+                                            {"note": 60, "hold": False},
+                                            {"note": None, "hold": True},
+                                            {"note": None, "hold": True},
+                                            {"note": None, "hold": False},
+                                        ]
+                                        + [None] * 12,
+                                    }
+                                ],
+                            }
+                        ],
+                        tempo_bpm=300,
+                    )
+                },
+            )
+            assert start_sequencer.status_code == 200
+            assert start_sequencer.json()["running"] is True
 
-        start_sequencer = client.post(
-            f"/api/sessions/{session_id}/sequencer/start",
-            json={
-                "config": _sequencer_config(
-                    [
-                        {
-                            "track_id": "voice-1",
-                            "midi_channel": 1,
-                            "active_pad": 0,
-                            "pads": [
-                                {
-                                    "pad_index": 0,
-                                    "steps": [
-                                        {"note": 60, "hold": False},
-                                        {"note": None, "hold": True},
-                                        {"note": None, "hold": True},
-                                        {"note": None, "hold": False},
-                                    ]
-                                    + [None] * 12,
-                                }
-                            ],
-                        }
-                    ],
-                    tempo_bpm=300,
-                )
-            },
-        )
-        assert start_sequencer.status_code == 200
-        assert start_sequencer.json()["running"] is True
+            saw_held_note = False
+            saw_release_after_hold = False
+            for _ in range(40):
+                driver.pump_for(0.05)
+                status = client.get(f"/api/sessions/{session_id}/sequencer/status")
+                assert status.status_code == 200
+                data = status.json()
+                track = next(item for item in data["tracks"] if item["track_id"] == "voice-1")
+                active_notes = track["active_notes"]
+                if 60 in active_notes:
+                    saw_held_note = True
+                if saw_held_note and len(active_notes) == 0:
+                    saw_release_after_hold = True
+                    break
 
-        saw_held_note = False
-        saw_release_after_hold = False
-        for _ in range(40):
-            status = client.get(f"/api/sessions/{session_id}/sequencer/status")
-            assert status.status_code == 200
-            data = status.json()
-            track = next(item for item in data["tracks"] if item["track_id"] == "voice-1")
-            active_notes = track["active_notes"]
-            if 60 in active_notes:
-                saw_held_note = True
-            if saw_held_note and len(active_notes) == 0:
-                saw_release_after_hold = True
-                break
-            time.sleep(0.05)
+            assert saw_held_note, "Expected held note to remain active during hold-rest steps."
+            assert saw_release_after_hold, "Expected held note to release on first rest step with hold disabled."
 
-        assert saw_held_note, "Expected held note to remain active during hold-rest steps."
-        assert saw_release_after_hold, "Expected held note to release on first rest step with hold disabled."
-
-        stop_sequencer = client.post(f"/api/sessions/{session_id}/sequencer/stop")
-        assert stop_sequencer.status_code == 200
-        assert stop_sequencer.json()["running"] is False
+            stop_sequencer = client.post(f"/api/sessions/{session_id}/sequencer/stop")
+            assert stop_sequencer.status_code == 200
+            assert stop_sequencer.json()["running"] is False
 
 
 def test_session_backend_sequencer_uses_step_velocity_for_note_on(tmp_path: Path) -> None:
@@ -2012,85 +2216,68 @@ def test_session_backend_sequencer_uses_step_velocity_for_note_on(tmp_path: Path
         assert create_session.status_code == 201
         session_id = create_session.json()["session_id"]
 
-        midi_service = client.app.state.container.midi_service
+        midi_adapter = _runtime_midi_adapter(client, session_id)
         captured_messages: list[list[int]] = []
-        original_send_scheduled_message = midi_service.send_scheduled_message
-        original_send_scheduled_messages = midi_service.send_scheduled_messages
+        original_enqueue_message = midi_adapter._enqueue_message
 
-        def capture_send_scheduled_message(
-            input_selector: str,
-            message: list[int],
-            *,
-            delivery_delay_seconds: float | None,
-        ) -> str:
+        def capture_enqueue_message(message: list[int], delivery_delay_seconds: float | None) -> bool:
             captured_messages.append(list(message))
-            return "mock"
+            return True
 
-        def capture_send_scheduled_messages(
-            input_selector: str,
-            messages: list[list[int]],
-            *,
-            delivery_delay_seconds: float | None,
-        ) -> str:
-            for message in messages:
-                captured_messages.append(list(message))
-            return "mock"
-
-        midi_service.send_scheduled_message = capture_send_scheduled_message  # type: ignore[method-assign]
-        midi_service.send_scheduled_messages = capture_send_scheduled_messages  # type: ignore[method-assign]
+        midi_adapter._enqueue_message = capture_enqueue_message
         try:
-            start_sequencer = client.post(
-                f"/api/sessions/{session_id}/sequencer/start",
-                json={
-                    "config": _sequencer_config(
-                        [
-                            {
-                                "track_id": "voice-1",
-                                "midi_channel": 1,
-                                "velocity": 100,
-                                "active_pad": 0,
-                                "pads": [
-                                    {
-                                        "pad_index": 0,
-                                        "steps": [
-                                            {"note": 60, "hold": False, "velocity": 23},
-                                            None,
-                                            {"note": 67, "hold": False, "velocity": 91},
-                                            None,
-                                        ]
-                                        + [None] * 12,
-                                    }
-                                ],
-                            }
-                        ],
-                        tempo_bpm=300,
-                    )
-                },
-            )
-            assert start_sequencer.status_code == 200
-            assert start_sequencer.json()["running"] is True
+            with _BrowserClockRenderDriver(client, session_id) as driver:
+                start_sequencer = client.post(
+                    f"/api/sessions/{session_id}/sequencer/start",
+                    json={
+                        "config": _sequencer_config(
+                            [
+                                {
+                                    "track_id": "voice-1",
+                                    "midi_channel": 1,
+                                    "velocity": 100,
+                                    "active_pad": 0,
+                                    "pads": [
+                                        {
+                                            "pad_index": 0,
+                                            "steps": [
+                                                {"note": 60, "hold": False, "velocity": 23},
+                                                None,
+                                                {"note": 67, "hold": False, "velocity": 91},
+                                                None,
+                                            ]
+                                            + [None] * 12,
+                                        }
+                                    ],
+                                }
+                            ],
+                            tempo_bpm=300,
+                        )
+                    },
+                )
+                assert start_sequencer.status_code == 200
+                assert start_sequencer.json()["running"] is True
 
-            saw_first_velocity = False
-            saw_second_velocity = False
-            for _ in range(40):
-                note_ons = [msg for msg in captured_messages if len(msg) == 3 and (msg[0] & 0xF0) == 0x90]
-                if any(msg[1] == 60 and msg[2] == 23 for msg in note_ons):
-                    saw_first_velocity = True
-                if any(msg[1] == 67 and msg[2] == 91 for msg in note_ons):
-                    saw_second_velocity = True
-                if saw_first_velocity and saw_second_velocity:
-                    break
-                time.sleep(0.05)
+                saw_first_velocity = False
+                saw_second_velocity = False
+                for _ in range(40):
+                    note_ons = [msg for msg in captured_messages if len(msg) == 3 and (msg[0] & 0xF0) == 0x90]
+                    if any(msg[1] == 60 and msg[2] == 23 for msg in note_ons):
+                        saw_first_velocity = True
+                    if any(msg[1] == 67 and msg[2] == 91 for msg in note_ons):
+                        saw_second_velocity = True
+                    if saw_first_velocity and saw_second_velocity:
+                        break
+                    driver.pump_for(0.05)
 
-            assert saw_first_velocity, "Expected step 1 note-on to use velocity 23."
-            assert saw_second_velocity, "Expected step 3 note-on to use velocity 91."
+                assert saw_first_velocity, "Expected step 1 note-on to use velocity 23."
+                assert saw_second_velocity, "Expected step 3 note-on to use velocity 91."
 
-            stop_sequencer = client.post(f"/api/sessions/{session_id}/sequencer/stop")
-            assert stop_sequencer.status_code == 200
-            assert stop_sequencer.json()["running"] is False
+                stop_sequencer = client.post(f"/api/sessions/{session_id}/sequencer/stop")
+                assert stop_sequencer.status_code == 200
+                assert stop_sequencer.json()["running"] is False
         finally:
-            midi_service.send_scheduled_message = original_send_scheduled_message  # type: ignore[method-assign]
-            midi_service.send_scheduled_messages = original_send_scheduled_messages  # type: ignore[method-assign]
+            midi_adapter._enqueue_message = original_enqueue_message
 
 
 def test_session_backend_sequencer_schedules_pad_switch_note_events_with_positive_delay(tmp_path: Path) -> None:
@@ -2121,83 +2308,69 @@ def test_session_backend_sequencer_schedules_pad_switch_note_events_with_positiv
         assert create_session.status_code == 201
         session_id = create_session.json()["session_id"]
 
-        midi_service = client.app.state.container.midi_service
+        midi_adapter = _runtime_midi_adapter(client, session_id)
         scheduled_calls: list[tuple[list[list[int]], float | None]] = []
-        original_send_scheduled_message = midi_service.send_scheduled_message
-        original_send_scheduled_messages = midi_service.send_scheduled_messages
+        original_enqueue_message = midi_adapter._enqueue_message
 
-        def capture_send_scheduled_message(
-            input_selector: str,
-            message: list[int],
-            *,
-            delivery_delay_seconds: float | None,
-        ) -> str:
+        def capture_enqueue_message(message: list[int], delivery_delay_seconds: float | None) -> bool:
             scheduled_calls.append(([list(message)], delivery_delay_seconds))
-            return "mock"
+            return True
 
-        def capture_send_scheduled_messages(
-            input_selector: str,
-            messages: list[list[int]],
-            *,
-            delivery_delay_seconds: float | None,
-        ) -> str:
-            scheduled_calls.append(([list(message) for message in messages], delivery_delay_seconds))
-            return "mock"
-
-        midi_service.send_scheduled_message = capture_send_scheduled_message  # type: ignore[method-assign]
-        midi_service.send_scheduled_messages = capture_send_scheduled_messages  # type: ignore[method-assign]
+        midi_adapter._enqueue_message = capture_enqueue_message
         try:
-            start_sequencer = client.post(
-                f"/api/sessions/{session_id}/sequencer/start",
-                json={
-                    "config": _sequencer_config(
-                            [
-                                {
-                                    "track_id": "voice-1",
-                                    "midi_channel": 1,
-                                    "length_beats": 1,
-                                    "active_pad": 0,
-                                    "pads": [
-                                        {"pad_index": 0, "length_beats": 1, "steps": [60, None, None, None]},
-                                        {"pad_index": 1, "length_beats": 1, "steps": [67, None, None, None]},
-                                    ],
-                                }
-                            ],
-                            tempo_bpm=300,
-                            playback_end_step=16,
-                        )
-                    },
+            with _BrowserClockRenderDriver(client, session_id) as driver:
+                start_sequencer = client.post(
+                    f"/api/sessions/{session_id}/sequencer/start",
+                    json={
+                        "config": _sequencer_config(
+                                [
+                                    {
+                                        "track_id": "voice-1",
+                                        "midi_channel": 1,
+                                        "length_beats": 1,
+                                        "active_pad": 0,
+                                        "pads": [
+                                            {"pad_index": 0, "length_beats": 1, "steps": [60, None, None, None]},
+                                            {"pad_index": 1, "length_beats": 1, "steps": [67, None, None, None]},
+                                        ],
+                                    }
+                                ],
+                                tempo_bpm=300,
+                                playback_end_step=16,
+                            )
+                        },
+                    )
+                assert start_sequencer.status_code == 200
+
+                queue_pad = client.post(
+                    f"/api/sessions/{session_id}/sequencer/tracks/voice-1/queue-pad",
+                    json={"pad_index": 1},
                 )
-            assert start_sequencer.status_code == 200
+                assert queue_pad.status_code == 200
 
-            queue_pad = client.post(
-                f"/api/sessions/{session_id}/sequencer/tracks/voice-1/queue-pad",
-                json={"pad_index": 1},
-            )
-            assert queue_pad.status_code == 200
+                saw_switched_note = False
+                saw_render_driven_delivery = False
+                for _ in range(50):
+                    for messages, delivery_delay_seconds in scheduled_calls:
+                        if delivery_delay_seconds is None:
+                            saw_render_driven_delivery = True
+                        if any(len(message) == 3 and (message[0] & 0xF0) == 0x90 and message[1] == 67 for message in messages):
+                            saw_switched_note = True
+                            if delivery_delay_seconds is None:
+                                saw_render_driven_delivery = True
+                    if saw_switched_note and saw_render_driven_delivery:
+                        break
+                    driver.pump_for(0.05)
 
-            saw_switched_note = False
-            saw_positive_delay = False
-            for _ in range(50):
-                for messages, delivery_delay_seconds in scheduled_calls:
-                    if delivery_delay_seconds is not None and delivery_delay_seconds > 0:
-                        saw_positive_delay = True
-                    if any(len(message) == 3 and (message[0] & 0xF0) == 0x90 and message[1] == 67 for message in messages):
-                        saw_switched_note = True
-                        if delivery_delay_seconds is not None and delivery_delay_seconds > 0:
-                            saw_positive_delay = True
-                if saw_switched_note and saw_positive_delay:
-                    break
-                time.sleep(0.05)
+                assert saw_switched_note, "Expected queued pad switch to emit the first note from pad 1."
+                assert saw_render_driven_delivery, (
+                    "Expected sequencer note events to use render-driven engine scheduling instead of wall-clock delays."
+                )
 
-            assert saw_switched_note, "Expected queued pad switch to emit the first note from pad 1."
-            assert saw_positive_delay, "Expected sequencer note events to be queued with a positive delivery delay."
-
-            stop_sequencer = client.post(f"/api/sessions/{session_id}/sequencer/stop")
-            assert stop_sequencer.status_code == 200
+                stop_sequencer = client.post(f"/api/sessions/{session_id}/sequencer/stop")
+                assert stop_sequencer.status_code == 200
         finally:
-            midi_service.send_scheduled_message = original_send_scheduled_message  # type: ignore[method-assign]
-            midi_service.send_scheduled_messages = original_send_scheduled_messages  # type: ignore[method-assign]
+            midi_adapter._enqueue_message = original_enqueue_message
 
 
 def test_session_backend_sequencer_queued_track_enable_starts_on_loop_boundary(tmp_path: Path) -> None:
@@ -2227,54 +2400,54 @@ def test_session_backend_sequencer_queued_track_enable_starts_on_loop_boundary(t
         create_session = client.post("/api/sessions", json={"patch_id": patch_id})
         assert create_session.status_code == 201
         session_id = create_session.json()["session_id"]
+        with _BrowserClockRenderDriver(client, session_id) as driver:
+            start_sequencer = client.post(
+                f"/api/sessions/{session_id}/sequencer/start",
+                json={
+                    "config": _sequencer_config(
+                        [
+                            {
+                                "track_id": "voice-1",
+                                "midi_channel": 1,
+                                "enabled": True,
+                                "active_pad": 0,
+                                "pads": [{"pad_index": 0, "steps": [60] + [None] * 15}],
+                            },
+                            {
+                                "track_id": "voice-2",
+                                "midi_channel": 2,
+                                "enabled": False,
+                                "queued_enabled": True,
+                                "active_pad": 0,
+                                "pads": [{"pad_index": 0, "steps": [72] + [None] * 15}],
+                            },
+                        ],
+                        tempo_bpm=300,
+                    )
+                },
+            )
+            assert start_sequencer.status_code == 200
 
-        start_sequencer = client.post(
-            f"/api/sessions/{session_id}/sequencer/start",
-            json={
-                "config": _sequencer_config(
-                    [
-                        {
-                            "track_id": "voice-1",
-                            "midi_channel": 1,
-                            "enabled": True,
-                            "active_pad": 0,
-                            "pads": [{"pad_index": 0, "steps": [60] + [None] * 15}],
-                        },
-                        {
-                            "track_id": "voice-2",
-                            "midi_channel": 2,
-                            "enabled": False,
-                            "queued_enabled": True,
-                            "active_pad": 0,
-                            "pads": [{"pad_index": 0, "steps": [72] + [None] * 15}],
-                        },
-                    ],
-                    tempo_bpm=300,
-                )
-            },
-        )
-        assert start_sequencer.status_code == 200
+            track2 = next(track for track in start_sequencer.json()["tracks"] if track["track_id"] == "voice-2")
+            assert track2["enabled"] is False
+            assert track2["queued_enabled"] is True
 
-        track2 = next(track for track in start_sequencer.json()["tracks"] if track["track_id"] == "voice-2")
-        assert track2["enabled"] is False
-        assert track2["queued_enabled"] is True
+            enabled_after_boundary = False
+            for _ in range(25):
+                driver.pump_for(0.1)
+                status = client.get(f"/api/sessions/{session_id}/sequencer/status")
+                assert status.status_code == 200
+                data = status.json()
+                track = next(item for item in data["tracks"] if item["track_id"] == "voice-2")
+                if data["cycle"] >= 1 and track["enabled"] is True and track["queued_enabled"] is None:
+                    enabled_after_boundary = True
+                    break
 
-        enabled_after_boundary = False
-        for _ in range(25):
-            status = client.get(f"/api/sessions/{session_id}/sequencer/status")
-            assert status.status_code == 200
-            data = status.json()
-            track = next(item for item in data["tracks"] if item["track_id"] == "voice-2")
-            if data["cycle"] >= 1 and track["enabled"] is True and track["queued_enabled"] is None:
-                enabled_after_boundary = True
-                break
-            time.sleep(0.1)
+            assert enabled_after_boundary, "Queued track enable did not activate on step-1 boundary in expected time."
 
-        assert enabled_after_boundary, "Queued track enable did not activate on step-1 boundary in expected time."
-
-        stop_sequencer = client.post(f"/api/sessions/{session_id}/sequencer/stop")
-        assert stop_sequencer.status_code == 200
-        assert stop_sequencer.json()["running"] is False
+            stop_sequencer = client.post(f"/api/sessions/{session_id}/sequencer/stop")
+            assert stop_sequencer.status_code == 200
+            assert stop_sequencer.json()["running"] is False
 
 
 def test_session_backend_controller_sequencer_runs_without_note_tracks(tmp_path: Path) -> None:
@@ -2388,85 +2561,68 @@ def test_session_backend_controller_sequencer_sends_control_changes_on_session_c
         assert create_session.status_code == 201
         session_id = create_session.json()["session_id"]
 
-        midi_service = client.app.state.container.midi_service
+        midi_adapter = _runtime_midi_adapter(client, session_id)
         captured_messages: list[list[int]] = []
-        original_send_scheduled_message = midi_service.send_scheduled_message
-        original_send_scheduled_messages = midi_service.send_scheduled_messages
+        original_enqueue_message = midi_adapter._enqueue_message
 
-        def capture_send_scheduled_message(
-            input_selector: str,
-            message: list[int],
-            *,
-            delivery_delay_seconds: float | None,
-        ) -> str:
+        def capture_enqueue_message(message: list[int], delivery_delay_seconds: float | None) -> bool:
             captured_messages.append(list(message))
-            return "mock"
+            return True
 
-        def capture_send_scheduled_messages(
-            input_selector: str,
-            messages: list[list[int]],
-            *,
-            delivery_delay_seconds: float | None,
-        ) -> str:
-            for message in messages:
-                captured_messages.append(list(message))
-            return "mock"
-
-        midi_service.send_scheduled_message = capture_send_scheduled_message  # type: ignore[method-assign]
-        midi_service.send_scheduled_messages = capture_send_scheduled_messages  # type: ignore[method-assign]
+        midi_adapter._enqueue_message = capture_enqueue_message
         try:
-            start_sequencer = client.post(
-                f"/api/sessions/{session_id}/sequencer/start",
-                json={
-                    "config": _sequencer_config(
-                        [],
-                        tempo_bpm=300,
-                        controller_tracks=[
-                            {
-                                "track_id": "cc-1",
-                                "controller_number": 74,
-                                "active_pad": 0,
-                                "enabled": True,
-                                "pads": [
-                                    {
-                                        "pad_index": 0,
-                                        "keypoints": [
-                                            {"position": 0.0, "value": 22},
-                                            {"position": 0.5, "value": 90},
-                                            {"position": 1.0, "value": 22},
-                                        ],
-                                    }
-                                ],
-                            }
-                        ],
-                    )
-                },
-            )
-            assert start_sequencer.status_code == 200
+            with _BrowserClockRenderDriver(client, session_id) as driver:
+                start_sequencer = client.post(
+                    f"/api/sessions/{session_id}/sequencer/start",
+                    json={
+                        "config": _sequencer_config(
+                            [],
+                            tempo_bpm=300,
+                            controller_tracks=[
+                                {
+                                    "track_id": "cc-1",
+                                    "controller_number": 74,
+                                    "active_pad": 0,
+                                    "enabled": True,
+                                    "pads": [
+                                        {
+                                            "pad_index": 0,
+                                            "keypoints": [
+                                                {"position": 0.0, "value": 22},
+                                                {"position": 0.5, "value": 90},
+                                                {"position": 1.0, "value": 22},
+                                            ],
+                                        }
+                                    ],
+                                }
+                            ],
+                        )
+                    },
+                )
+                assert start_sequencer.status_code == 200
 
-            saw_channel_2 = False
-            saw_channel_5 = False
-            for _ in range(40):
-                for message in captured_messages:
-                    if len(message) != 3 or (message[0] & 0xF0) != 0xB0:
-                        continue
-                    channel = (message[0] & 0x0F) + 1
-                    if message[1] == 74 and channel == 2:
-                        saw_channel_2 = True
-                    if message[1] == 74 and channel == 5:
-                        saw_channel_5 = True
-                if saw_channel_2 and saw_channel_5:
-                    break
-                time.sleep(0.05)
+                saw_channel_2 = False
+                saw_channel_5 = False
+                for _ in range(40):
+                    for message in captured_messages:
+                        if len(message) != 3 or (message[0] & 0xF0) != 0xB0:
+                            continue
+                        channel = (message[0] & 0x0F) + 1
+                        if message[1] == 74 and channel == 2:
+                            saw_channel_2 = True
+                        if message[1] == 74 and channel == 5:
+                            saw_channel_5 = True
+                    if saw_channel_2 and saw_channel_5:
+                        break
+                    driver.pump_for(0.05)
 
-            assert saw_channel_2, "Expected controller sequencer to emit CC74 on session MIDI channel 2."
-            assert saw_channel_5, "Expected controller sequencer to emit CC74 on session MIDI channel 5."
+                assert saw_channel_2, "Expected controller sequencer to emit CC74 on session MIDI channel 2."
+                assert saw_channel_5, "Expected controller sequencer to emit CC74 on session MIDI channel 5."
 
-            stop_sequencer = client.post(f"/api/sessions/{session_id}/sequencer/stop")
-            assert stop_sequencer.status_code == 200
+                stop_sequencer = client.post(f"/api/sessions/{session_id}/sequencer/stop")
+                assert stop_sequencer.status_code == 200
         finally:
-            midi_service.send_scheduled_message = original_send_scheduled_message  # type: ignore[method-assign]
-            midi_service.send_scheduled_messages = original_send_scheduled_messages  # type: ignore[method-assign]
+            midi_adapter._enqueue_message = original_enqueue_message
 
 
 def test_session_backend_controller_sequencer_queue_pad_switches_and_clears_queue(tmp_path: Path) -> None:
@@ -2496,81 +2652,81 @@ def test_session_backend_controller_sequencer_queue_pad_switches_and_clears_queu
         create_session = client.post("/api/sessions", json={"patch_id": patch_id})
         assert create_session.status_code == 201
         session_id = create_session.json()["session_id"]
+        with _BrowserClockRenderDriver(client, session_id) as driver:
+            start_sequencer = client.post(
+                f"/api/sessions/{session_id}/sequencer/start",
+                json={
+                    "config": _sequencer_config(
+                        [],
+                        tempo_bpm=300,
+                        playback_end_step=96,
+                        controller_tracks=[
+                            {
+                                "track_id": "cc-1",
+                                "controller_number": 74,
+                                "length_beats": 4,
+                                "active_pad": 0,
+                                "enabled": True,
+                                "pads": [
+                                    {"pad_index": 0, "length_beats": 4, "keypoints": [{"position": 0.0, "value": 10}]},
+                                    {"pad_index": 1, "length_beats": 4, "keypoints": [{"position": 0.0, "value": 90}]},
+                                ],
+                            }
+                        ],
+                    )
+                },
+            )
+            assert start_sequencer.status_code == 200
 
-        start_sequencer = client.post(
-            f"/api/sessions/{session_id}/sequencer/start",
-            json={
-                "config": _sequencer_config(
-                    [],
-                    tempo_bpm=300,
-                    playback_end_step=96,
-                    controller_tracks=[
-                        {
-                            "track_id": "cc-1",
-                            "controller_number": 74,
-                            "length_beats": 4,
-                            "active_pad": 0,
-                            "enabled": True,
-                            "pads": [
-                                {"pad_index": 0, "length_beats": 4, "keypoints": [{"position": 0.0, "value": 10}]},
-                                {"pad_index": 1, "length_beats": 4, "keypoints": [{"position": 0.0, "value": 90}]},
-                            ],
-                        }
-                    ],
-                )
-            },
-        )
-        assert start_sequencer.status_code == 200
+            queue_pad = client.post(
+                f"/api/sessions/{session_id}/sequencer/tracks/cc-1/queue-pad",
+                json={"pad_index": 1},
+            )
+            assert queue_pad.status_code == 200
+            queued_track = queue_pad.json()["controller_tracks"][0]
+            assert queued_track["active_pad"] == 0
+            assert queued_track["queued_pad"] == 1
 
-        queue_pad = client.post(
-            f"/api/sessions/{session_id}/sequencer/tracks/cc-1/queue-pad",
-            json={"pad_index": 1},
-        )
-        assert queue_pad.status_code == 200
-        queued_track = queue_pad.json()["controller_tracks"][0]
-        assert queued_track["active_pad"] == 0
-        assert queued_track["queued_pad"] == 1
+            switched = False
+            for _ in range(30):
+                driver.pump_for(0.05)
+                status = client.get(f"/api/sessions/{session_id}/sequencer/status")
+                assert status.status_code == 200
+                controller_track = status.json()["controller_tracks"][0]
+                if controller_track["active_pad"] == 1 and controller_track["queued_pad"] is None:
+                    switched = True
+                    break
 
-        switched = False
-        for _ in range(30):
-            status = client.get(f"/api/sessions/{session_id}/sequencer/status")
-            assert status.status_code == 200
-            controller_track = status.json()["controller_tracks"][0]
-            if controller_track["active_pad"] == 1 and controller_track["queued_pad"] is None:
-                switched = True
-                break
-            time.sleep(0.05)
+            assert switched, "Expected queued controller pad to switch on the next loop boundary."
 
-        assert switched, "Expected queued controller pad to switch on the next loop boundary."
+            queue_second_pad = client.post(
+                f"/api/sessions/{session_id}/sequencer/tracks/cc-1/queue-pad",
+                json={"pad_index": 0},
+            )
+            assert queue_second_pad.status_code == 200
+            clear_queue = client.post(
+                f"/api/sessions/{session_id}/sequencer/tracks/cc-1/queue-pad",
+                json={"pad_index": None},
+            )
+            assert clear_queue.status_code == 200
+            cleared_track = clear_queue.json()["controller_tracks"][0]
+            assert cleared_track["queued_pad"] is None
 
-        queue_second_pad = client.post(
-            f"/api/sessions/{session_id}/sequencer/tracks/cc-1/queue-pad",
-            json={"pad_index": 0},
-        )
-        assert queue_second_pad.status_code == 200
-        clear_queue = client.post(
-            f"/api/sessions/{session_id}/sequencer/tracks/cc-1/queue-pad",
-            json={"pad_index": None},
-        )
-        assert clear_queue.status_code == 200
-        cleared_track = clear_queue.json()["controller_tracks"][0]
-        assert cleared_track["queued_pad"] is None
+            remained_on_pad_1 = True
+            for _ in range(30):
+                driver.pump_for(0.05)
+                status = client.get(f"/api/sessions/{session_id}/sequencer/status")
+                assert status.status_code == 200
+                controller_track = status.json()["controller_tracks"][0]
+                if controller_track["active_pad"] != 1:
+                    remained_on_pad_1 = False
+                    break
 
-        remained_on_pad_1 = True
-        for _ in range(30):
-            status = client.get(f"/api/sessions/{session_id}/sequencer/status")
-            assert status.status_code == 200
-            controller_track = status.json()["controller_tracks"][0]
-            if controller_track["active_pad"] != 1:
-                remained_on_pad_1 = False
-                break
-            time.sleep(0.05)
+            assert remained_on_pad_1, "Expected cleared controller queue to leave the active pad unchanged."
 
-        assert remained_on_pad_1, "Expected cleared controller queue to leave the active pad unchanged."
-
-        stop_sequencer = client.post(f"/api/sessions/{session_id}/sequencer/stop")
-        assert stop_sequencer.status_code == 200
-        assert stop_sequencer.json()["running"] is False
+            stop_sequencer = client.post(f"/api/sessions/{session_id}/sequencer/stop")
+            assert stop_sequencer.status_code == 200
+            assert stop_sequencer.json()["running"] is False
 
 
 def test_const_nodes_use_node_params_without_value_input_port(tmp_path: Path) -> None:

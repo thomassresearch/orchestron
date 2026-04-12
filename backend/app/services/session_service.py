@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import logging
 from datetime import datetime, timezone
+import time
 from typing import Any
 from typing import Awaitable, Callable
 from uuid import uuid4
@@ -12,6 +13,7 @@ from fastapi import HTTPException
 
 from backend.app.core.config import Settings
 from backend.app.engine.csound_worker import CsoundWorker
+from backend.app.engine.midi_scheduler import ClockDomainMapping
 from backend.app.engine.session_runtime import RuntimeSession
 from backend.app.models.session import (
     BrowserClockClaimControllerRequest,
@@ -21,8 +23,14 @@ from backend.app.models.session import (
     BrowserClockRequestRenderRequest,
     BrowserClockSequencerCommandRequest,
     BrowserClockSequencerStartControlRequest,
+    BrowserClockTimingReportRequest,
     BindMidiInputRequest,
     CompileResponse,
+    HostMidiClockSyncRequest,
+    HostMidiDeviceInventoryRequest,
+    HostMidiDeviceRef,
+    HostMidiEventsRequest,
+    HostMidiRegisterRequest,
     MidiInputRef,
     SessionSequencerConfigRequest,
     SessionSequencerQueuePadRequest,
@@ -39,11 +47,12 @@ from backend.app.models.session import (
 )
 from backend.app.services.compiler_service import CompilationError, CompilerService, PatchInstrumentTarget
 from backend.app.services.event_bus import SessionEventBus
-from backend.app.services.midi_service import MidiService
+from backend.app.services.midi_service import INTERNAL_LOOPBACK_ID, INTERNAL_LOOPBACK_SELECTOR, MidiService
 from backend.app.services.patch_service import PatchService
 from backend.app.services.sequencer_runtime import SessionSequencerRuntime
 
 logger = logging.getLogger(__name__)
+_BROWSER_TIMING_REPORT_INTERVAL_MS = 100
 
 BrowserClockSendJson = Callable[[dict[str, object]], Awaitable[None]]
 BrowserClockClose = Callable[[int, str], Awaitable[None]]
@@ -58,6 +67,22 @@ class BrowserClockControllerLease:
     max_blocks_per_request: int
     send_json: BrowserClockSendJson
     close: BrowserClockClose
+    timing_mapping: ClockDomainMapping = field(default_factory=ClockDomainMapping)
+    latest_client_perf_ms: float | None = None
+    latest_audio_context_time_s: float | None = None
+    latest_queued_frames: int = 0
+    latest_pending_render_frames: int = 0
+    latest_report_sample_rate: int = 0
+    last_timing_report_server_ns: int | None = None
+
+
+@dataclass(slots=True)
+class HostMidiBridgeLease:
+    connection_id: str
+    host_id: str
+    host_name: str | None = None
+    protocol_version: int = 1
+    timing_mapping: ClockDomainMapping = field(default_factory=ClockDomainMapping)
 
 
 class SessionService:
@@ -80,6 +105,7 @@ class SessionService:
         self._frontend_auto_stop_tasks: dict[str, asyncio.Task[None]] = {}
         self._browser_clock_controllers: dict[str, BrowserClockControllerLease] = {}
         self._browser_clock_auto_stop_tasks: dict[str, asyncio.Task[None]] = {}
+        self._host_midi_bridges: dict[str, HostMidiBridgeLease] = {}
         self._lock = asyncio.Lock()
         self._loop: asyncio.AbstractEventLoop | None = None
 
@@ -103,10 +129,10 @@ class SessionService:
         )
         runtime.sequencer = SessionSequencerRuntime(
             session_id=runtime.session_id,
-            midi_service=self._midi_service,
-            midi_input_selector=default_midi,
+            midi_service=runtime.worker.midi_output,
+            midi_input_selector=INTERNAL_LOOPBACK_ID,
             controller_default_channels=self._controller_default_channels_for_runtime(runtime),
-            clock_mode="render_driven" if self._settings.audio_output_mode == "browser_clock" else "wall_clock",
+            clock_mode="render_driven",
             publish_event=lambda event_type, payload, session_id=runtime.session_id: self._publish_from_thread(
                 session_id=session_id,
                 event_type=event_type,
@@ -224,7 +250,6 @@ class SessionService:
 
         runtime.state = SessionState.RUNNING
         runtime.started_at = datetime.now(timezone.utc)
-        self._sync_runtime_direct_midi_sink(runtime)
 
         await self._publish(
             runtime.session_id,
@@ -236,6 +261,12 @@ class SessionService:
                 "audio_mode": result.audio_mode,
             },
         )
+        if runtime.worker.runtime_ksmps > 32:
+            await self._publish(
+                runtime.session_id,
+                "runtime_warning",
+                {"detail": f"Runtime ksmps={runtime.worker.runtime_ksmps} may quantize live MIDI timing."},
+            )
 
         return SessionActionResponse(
             session_id=runtime.session_id,
@@ -254,7 +285,6 @@ class SessionService:
         )
         if runtime.sequencer is not None:
             runtime.sequencer.stop()
-        self._detach_runtime_direct_midi_sink(runtime)
         detail = runtime.worker.stop()
         runtime.state = SessionState.COMPILED if runtime.compile_artifact else SessionState.IDLE
 
@@ -328,6 +358,9 @@ class SessionService:
             "queue_low_water_frames": request.queue_low_water_frames,
             "queue_high_water_frames": request.queue_high_water_frames,
             "max_blocks_per_request": request.max_blocks_per_request,
+            "server_monotonic_ns": time.perf_counter_ns(),
+            "timing_report_interval_ms": _BROWSER_TIMING_REPORT_INTERVAL_MS,
+            "engine_ksmps_latency_frames": runtime.worker.runtime_ksmps,
             "sequencer_status": sequencer.status().model_dump(mode="json"),
         }
 
@@ -361,8 +394,41 @@ class SessionService:
         request: BrowserClockManualMidiRequest,
     ) -> None:
         self._remember_running_loop()
-        await self.require_browser_clock_controller(session_id, connection_id)
-        await self.send_midi_event(session_id, request.midi)
+        runtime, lease = await self.require_browser_clock_controller(session_id, connection_id)
+        target_engine_sample, mapped_backend_monotonic_ns, sync_stale = self._target_engine_sample_for_browser_event(
+            runtime=runtime,
+            lease=lease,
+            event_perf_ms=request.event_perf_ms,
+        )
+        await self._queue_session_midi_event(
+            runtime,
+            request.midi,
+            source="browser_manual",
+            target_engine_sample=target_engine_sample,
+            event_perf_ms=request.event_perf_ms,
+            mapped_backend_monotonic_ns=mapped_backend_monotonic_ns,
+            sync_stale=sync_stale,
+        )
+
+    async def browser_clock_timing_report(
+        self,
+        session_id: str,
+        connection_id: str,
+        request: BrowserClockTimingReportRequest,
+    ) -> None:
+        self._remember_running_loop()
+        _runtime, lease = await self.require_browser_clock_controller(session_id, connection_id)
+        server_now_ns = time.perf_counter_ns()
+        lease.timing_mapping.update(
+            remote_timestamp_ns=int(round(request.client_perf_ms * 1_000_000.0)),
+            server_timestamp_ns=server_now_ns,
+        )
+        lease.latest_client_perf_ms = request.client_perf_ms
+        lease.latest_audio_context_time_s = request.audio_context_time_s
+        lease.latest_queued_frames = request.queued_frames
+        lease.latest_pending_render_frames = request.pending_render_frames
+        lease.latest_report_sample_rate = request.sample_rate
+        lease.last_timing_report_server_ns = server_now_ns
 
     async def browser_clock_release_controller(
         self,
@@ -498,61 +564,159 @@ class SessionService:
             render.pcm_f32le,
         )
 
+    async def register_host_midi_bridge(
+        self,
+        connection_id: str,
+        request: HostMidiRegisterRequest,
+    ) -> dict[str, object]:
+        self._remember_running_loop()
+        replacement_host_ids: set[str] = set()
+        async with self._lock:
+            existing = self._host_midi_bridges.get(connection_id)
+            if existing is not None:
+                replacement_host_ids.add(existing.host_id)
+
+            duplicate_connection_ids = [
+                bridge_connection_id
+                for bridge_connection_id, lease in self._host_midi_bridges.items()
+                if bridge_connection_id != connection_id and lease.host_id == request.host_id
+            ]
+            for bridge_connection_id in duplicate_connection_ids:
+                removed = self._host_midi_bridges.pop(bridge_connection_id, None)
+                if removed is not None:
+                    replacement_host_ids.add(removed.host_id)
+
+            self._host_midi_bridges[connection_id] = HostMidiBridgeLease(
+                connection_id=connection_id,
+                host_id=request.host_id,
+                host_name=request.host_name,
+                protocol_version=request.protocol_version,
+            )
+
+        for host_id in replacement_host_ids:
+            self._midi_service.remove_host_inputs(host_id=host_id)
+
+        return {
+            "type": "host_registered",
+            "host_id": request.host_id,
+            "server_monotonic_ns": time.perf_counter_ns(),
+            "protocol_version": request.protocol_version,
+        }
+
+    async def host_midi_clock_sync(
+        self,
+        connection_id: str,
+        request: HostMidiClockSyncRequest,
+    ) -> dict[str, object]:
+        self._remember_running_loop()
+        lease = await self._require_host_midi_bridge(connection_id)
+        server_monotonic_ns = time.perf_counter_ns()
+        lease.timing_mapping.update(
+            remote_timestamp_ns=request.client_monotonic_ns,
+            server_timestamp_ns=server_monotonic_ns,
+        )
+        return {
+            "type": "clock_sync",
+            "host_id": lease.host_id,
+            "server_monotonic_ns": server_monotonic_ns,
+        }
+
+    async def host_midi_device_inventory(
+        self,
+        connection_id: str,
+        request: HostMidiDeviceInventoryRequest,
+    ) -> dict[str, object]:
+        self._remember_running_loop()
+        lease = await self._require_host_midi_bridge(connection_id)
+        devices = [
+            HostMidiDeviceRef(
+                id=device.id,
+                name=device.name,
+                backend="host_bridge",
+                selector=device.selector,
+                host_id=lease.host_id,
+                timestamp_quality=device.timestamp_quality,
+            )
+            for device in request.devices
+        ]
+        self._midi_service.replace_host_inputs(host_id=lease.host_id, devices=devices)
+        return {
+            "type": "device_inventory_ack",
+            "host_id": lease.host_id,
+            "device_count": len(devices),
+        }
+
+    async def host_midi_events(
+        self,
+        connection_id: str,
+        request: HostMidiEventsRequest,
+    ) -> None:
+        self._remember_running_loop()
+        if not request.events:
+            return
+
+        lease = await self._require_host_midi_bridge(connection_id)
+        async with self._lock:
+            sessions_by_device: dict[str, list[tuple[RuntimeSession, BrowserClockControllerLease | None]]] = {}
+            for runtime in self._sessions.values():
+                if not runtime.worker.is_running or not runtime.midi_input:
+                    continue
+                sessions_by_device.setdefault(runtime.midi_input, []).append(
+                    (runtime, self._browser_clock_controllers.get(runtime.session_id))
+                )
+
+        for event in request.events:
+            targets = sessions_by_device.get(event.device_id)
+            if not targets:
+                continue
+
+            now_server_ns = time.perf_counter_ns()
+            mapped_backend_monotonic_ns: int | None = None
+            sync_stale = False
+            if event.timestamp_ns is not None:
+                mapped_backend_monotonic_ns, sync_stale = lease.timing_mapping.map_to_server_time(
+                    event.timestamp_ns,
+                    now_server_ns=now_server_ns,
+                )
+                if mapped_backend_monotonic_ns is None:
+                    sync_stale = True
+
+            midi_request = self._session_midi_request_from_bytes(event.midi)
+            if midi_request is None:
+                continue
+
+            for runtime, controller_lease in targets:
+                target_engine_sample = self._target_engine_sample_for_mapped_event(
+                    runtime=runtime,
+                    lease=controller_lease,
+                    mapped_backend_monotonic_ns=mapped_backend_monotonic_ns,
+                    now_server_ns=now_server_ns,
+                )
+                await self._queue_session_midi_event(
+                    runtime,
+                    midi_request,
+                    source=f"host_bridge:{lease.host_id}",
+                    target_engine_sample=target_engine_sample,
+                    mapped_backend_monotonic_ns=mapped_backend_monotonic_ns,
+                    sync_stale=sync_stale,
+                )
+
+    async def release_host_midi_bridge(self, connection_id: str) -> None:
+        self._remember_running_loop()
+        lease: HostMidiBridgeLease | None = None
+        async with self._lock:
+            lease = self._host_midi_bridges.pop(connection_id, None)
+        if lease is None:
+            return
+        self._midi_service.remove_host_inputs(host_id=lease.host_id)
+
     async def send_midi_event(self, session_id: str, request: SessionMidiEventRequest) -> SessionActionResponse:
         self._remember_running_loop()
         runtime = await self._get_session(session_id)
         if not runtime.worker.is_running:
             raise HTTPException(status_code=409, detail="Session must be running to receive MIDI events.")
 
-        midi_input_selector = runtime.midi_input or self._settings.default_midi_device
-        channel = request.channel - 1
-
-        try:
-            if request.type == "note_on":
-                assert request.note is not None
-                output_name = self._midi_service.send_message(
-                    midi_input_selector,
-                    [0x90 + channel, request.note, request.velocity],
-                )
-                detail = f"note_on sent via {output_name}"
-            elif request.type == "note_off":
-                assert request.note is not None
-                output_name = self._midi_service.send_message(
-                    midi_input_selector,
-                    [0x80 + channel, request.note, 0],
-                )
-                detail = f"note_off sent via {output_name}"
-            elif request.type == "control_change":
-                assert request.controller is not None
-                assert request.value is not None
-                output_name = self._midi_service.send_message(
-                    midi_input_selector,
-                    [0xB0 + channel, request.controller, request.value],
-                )
-                detail = f"control_change sent via {output_name}"
-            else:
-                output_name = self._midi_service.send_message(midi_input_selector, [0xB0 + channel, 123, 0])
-                self._midi_service.send_message(midi_input_selector, [0xB0 + channel, 120, 0])
-                detail = f"all_notes_off sent via {output_name}"
-        except ValueError as exc:
-            raise HTTPException(status_code=404, detail=str(exc)) from exc
-        except RuntimeError as exc:
-            raise HTTPException(status_code=500, detail=str(exc)) from exc
-
-        payload: dict[str, str | int | float | bool | None] = {
-            "type": request.type,
-            "channel": request.channel,
-            "output": output_name,
-        }
-        if request.note is not None:
-            payload["note"] = request.note
-        if request.type == "note_on":
-            payload["velocity"] = request.velocity
-        if request.type == "control_change":
-            payload["controller"] = request.controller
-            payload["value"] = request.value
-
-        await self._publish(runtime.session_id, "midi_event", payload)
+        detail = await self._queue_session_midi_event(runtime, request, source="internal_api")
 
         return SessionActionResponse(session_id=runtime.session_id, state=runtime.state, detail=detail)
 
@@ -682,11 +846,6 @@ class SessionService:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
 
         runtime.midi_input = resolved
-        if runtime.sequencer is not None:
-            runtime.sequencer.set_midi_input(resolved)
-        self._sync_runtime_direct_midi_sink(runtime)
-        runtime.compile_artifact = None
-        runtime.state = SessionState.IDLE if not runtime.worker.is_running else runtime.state
 
         await self._publish(runtime.session_id, "midi_bound", {"midi_input": resolved})
 
@@ -703,7 +862,6 @@ class SessionService:
         )
         if runtime.sequencer is not None:
             runtime.sequencer.shutdown()
-        self._detach_runtime_direct_midi_sink(runtime)
         runtime.worker.stop()
 
         heartbeat_tasks_to_cancel: list[asyncio.Task[None]] = []
@@ -723,6 +881,111 @@ class SessionService:
             browser_clock_auto_stop_task.cancel()
 
         await self._publish(session_id, "session_deleted", {})
+
+    async def _queue_session_midi_event(
+        self,
+        runtime: RuntimeSession,
+        request: SessionMidiEventRequest,
+        *,
+        source: str,
+        target_engine_sample: int | None = None,
+        event_perf_ms: float | None = None,
+        mapped_backend_monotonic_ns: int | None = None,
+        sync_stale: bool = False,
+    ) -> str:
+        channel = request.channel - 1
+        messages: list[list[int]] = []
+        if request.type == "note_on":
+            assert request.note is not None
+            messages.append([0x90 + channel, request.note, request.velocity])
+            detail = "note_on queued via engine:internal"
+        elif request.type == "note_off":
+            assert request.note is not None
+            messages.append([0x80 + channel, request.note, 0])
+            detail = "note_off queued via engine:internal"
+        elif request.type == "control_change":
+            assert request.controller is not None
+            assert request.value is not None
+            messages.append([0xB0 + channel, request.controller, request.value])
+            detail = "control_change queued via engine:internal"
+        else:
+            messages.extend([[0xB0 + channel, 123, 0], [0xB0 + channel, 120, 0]])
+            detail = "all_notes_off queued via engine:internal"
+
+        source_timestamp_ns = (
+            None
+            if event_perf_ms is None
+            else int(round(max(0.0, event_perf_ms) * 1_000_000.0))
+        )
+        for message in messages:
+            queued = runtime.worker.enqueue_timestamped_midi(
+                message,
+                source=source,
+                target_engine_sample=target_engine_sample,
+                source_timestamp_ns=source_timestamp_ns,
+                mapped_backend_monotonic_ns=mapped_backend_monotonic_ns,
+                sync_stale=sync_stale,
+            )
+            if queued:
+                continue
+            await self._publish(
+                runtime.session_id,
+                "runtime_warning",
+                {"detail": "Engine MIDI scheduler overflowed and rejected new MIDI events."},
+            )
+            raise HTTPException(status_code=409, detail="Engine MIDI scheduler overflowed.")
+
+        payload: dict[str, str | int | float | bool | None] = {
+            "type": request.type,
+            "channel": request.channel,
+            "output": "engine:internal",
+        }
+        if request.note is not None:
+            payload["note"] = request.note
+        if request.type == "note_on":
+            payload["velocity"] = request.velocity
+        if request.type == "control_change":
+            payload["controller"] = request.controller
+            payload["value"] = request.value
+        if sync_stale:
+            payload["sync_stale"] = True
+
+        await self._publish(runtime.session_id, "midi_event", payload)
+        return detail
+
+    def _target_engine_sample_for_browser_event(
+        self,
+        *,
+        runtime: RuntimeSession,
+        lease: BrowserClockControllerLease,
+        event_perf_ms: float | None,
+    ) -> tuple[int, int | None, bool]:
+        if event_perf_ms is None:
+            return (runtime.worker.render_sample_cursor, None, False)
+
+        remote_timestamp_ns = int(round(max(0.0, event_perf_ms) * 1_000_000.0))
+        now_server_ns = time.perf_counter_ns()
+        mapped_backend_monotonic_ns, sync_stale = lease.timing_mapping.map_to_server_time(
+            remote_timestamp_ns,
+            now_server_ns=now_server_ns,
+        )
+        if mapped_backend_monotonic_ns is None:
+            return (runtime.worker.render_sample_cursor, None, True)
+        if sync_stale:
+            return (runtime.worker.render_sample_cursor, mapped_backend_monotonic_ns, True)
+        if self._browser_timing_report_is_stale(lease, now_server_ns=now_server_ns):
+            return (runtime.worker.render_sample_cursor, mapped_backend_monotonic_ns, True)
+
+        return (
+            self._target_engine_sample_for_mapped_event(
+                runtime=runtime,
+                lease=lease,
+                mapped_backend_monotonic_ns=mapped_backend_monotonic_ns,
+                now_server_ns=now_server_ns,
+            ),
+            mapped_backend_monotonic_ns,
+            False,
+        )
 
     async def _get_session(self, session_id: str) -> RuntimeSession:
         async with self._lock:
@@ -759,13 +1022,12 @@ class SessionService:
         if runtime.sequencer is not None:
             return runtime.sequencer
 
-        midi_input = runtime.midi_input or self._resolve_default_midi_input_id()
         runtime.sequencer = SessionSequencerRuntime(
             session_id=runtime.session_id,
-            midi_service=self._midi_service,
-            midi_input_selector=midi_input,
+            midi_service=runtime.worker.midi_output,
+            midi_input_selector=INTERNAL_LOOPBACK_ID,
             controller_default_channels=self._controller_default_channels_for_runtime(runtime),
-            clock_mode="render_driven" if self._settings.audio_output_mode == "browser_clock" else "wall_clock",
+            clock_mode="render_driven",
             publish_event=lambda event_type, payload, session_id=runtime.session_id: self._publish_from_thread(
                 session_id=session_id,
                 event_type=event_type,
@@ -789,15 +1051,80 @@ class SessionService:
     def _resolve_default_midi_input_id(self, midi_inputs: list[MidiInputRef] | None = None) -> str:
         inputs = midi_inputs if midi_inputs is not None else self._midi_service.list_inputs()
         if not inputs:
-            return self._settings.default_midi_device
+            return INTERNAL_LOOPBACK_ID
         try:
             return self._midi_service.resolve_input(self._settings.default_midi_device)
         except ValueError:
             return inputs[0].id
 
     def _resolve_runtime_midi_backend_selector(self, runtime: RuntimeSession) -> str:
-        selector = runtime.midi_input or self._resolve_default_midi_input_id()
-        return self._midi_service.resolve_backend_selector(selector)
+        return INTERNAL_LOOPBACK_SELECTOR
+
+    @staticmethod
+    def _browser_timing_report_is_stale(
+        lease: BrowserClockControllerLease | None,
+        *,
+        now_server_ns: int,
+    ) -> bool:
+        if lease is None or lease.last_timing_report_server_ns is None:
+            return True
+        return (now_server_ns - lease.last_timing_report_server_ns) > 1_000_000_000
+
+    def _target_engine_sample_for_mapped_event(
+        self,
+        *,
+        runtime: RuntimeSession,
+        lease: BrowserClockControllerLease | None,
+        mapped_backend_monotonic_ns: int | None,
+        now_server_ns: int,
+    ) -> int:
+        if mapped_backend_monotonic_ns is None:
+            return runtime.worker.render_sample_cursor
+        if lease is None or lease.latest_report_sample_rate <= 0:
+            return runtime.worker.render_sample_cursor
+        if self._browser_timing_report_is_stale(lease, now_server_ns=now_server_ns):
+            return runtime.worker.render_sample_cursor
+
+        engine_sample_rate = max(1, runtime.worker.runtime_sample_rate)
+        report_sample_rate = max(1, lease.latest_report_sample_rate)
+        queued_engine_frames = int(
+            round(
+                (lease.latest_queued_frames + lease.latest_pending_render_frames)
+                * (engine_sample_rate / float(report_sample_rate))
+            )
+        )
+        audible_sample_estimate = max(0, runtime.worker.render_sample_cursor - queued_engine_frames)
+        delta_ns = mapped_backend_monotonic_ns - now_server_ns
+        target_sample = audible_sample_estimate + int(round((delta_ns * engine_sample_rate) / 1_000_000_000.0))
+        return max(0, target_sample)
+
+    async def _require_host_midi_bridge(self, connection_id: str) -> HostMidiBridgeLease:
+        async with self._lock:
+            lease = self._host_midi_bridges.get(connection_id)
+        if lease is None:
+            raise HTTPException(status_code=409, detail="Host MIDI bridge must register before sending data.")
+        return lease
+
+    @staticmethod
+    def _session_midi_request_from_bytes(message: list[int]) -> SessionMidiEventRequest | None:
+        if len(message) != 3:
+            return None
+        status = int(message[0]) & 0xF0
+        channel = (int(message[0]) & 0x0F) + 1
+        data1 = int(message[1]) & 0x7F
+        data2 = int(message[2]) & 0x7F
+
+        if status == 0x90:
+            if data2 == 0:
+                return SessionMidiEventRequest(type="note_off", channel=channel, note=data1)
+            return SessionMidiEventRequest(type="note_on", channel=channel, note=data1, velocity=data2)
+        if status == 0x80:
+            return SessionMidiEventRequest(type="note_off", channel=channel, note=data1)
+        if status == 0xB0 and data1 in {120, 123}:
+            return SessionMidiEventRequest(type="all_notes_off", channel=channel)
+        if status == 0xB0:
+            return SessionMidiEventRequest(type="control_change", channel=channel, controller=data1, value=data2)
+        return None
 
     def _remember_running_loop(self) -> None:
         try:
@@ -1019,36 +1346,6 @@ class SessionService:
                 )
         except Exception:
             logger.exception("Auto-stop for session '%s' failed", session_id)
-
-    def _sync_runtime_direct_midi_sink(self, runtime: RuntimeSession) -> None:
-        selector = runtime.midi_input or self._settings.default_midi_device
-
-        if runtime.direct_midi_sink_selector and runtime.direct_midi_sink_selector != selector:
-            self._midi_service.unregister_virtual_output_sink(
-                selector=runtime.direct_midi_sink_selector,
-                sink_id=runtime.session_id,
-            )
-            runtime.direct_midi_sink_selector = None
-
-        if runtime.worker.accepts_direct_midi:
-            self._midi_service.register_virtual_output_sink(
-                selector=selector,
-                sink_id=runtime.session_id,
-                sink=runtime.worker.queue_midi_message,
-            )
-            runtime.direct_midi_sink_selector = selector
-            return
-
-        self._detach_runtime_direct_midi_sink(runtime)
-
-    def _detach_runtime_direct_midi_sink(self, runtime: RuntimeSession) -> None:
-        if not runtime.direct_midi_sink_selector:
-            return
-        self._midi_service.unregister_virtual_output_sink(
-            selector=runtime.direct_midi_sink_selector,
-            sink_id=runtime.session_id,
-        )
-        runtime.direct_midi_sink_selector = None
 
     def _publish_from_thread(
         self,

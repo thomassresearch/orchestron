@@ -10,7 +10,7 @@ At the bottom of the Perform page, Orchestron shows live status values such as:
 
 - `playhead` position (`current step / step count`)
 - `cycle` count
-- active `midi input` name (or `none`)
+- active `midi input` name (for example `internal:loopback` or a helper-provided device)
 
 This footer is useful during performance because it gives quick feedback without opening the Instrument Design runtime panel.
 
@@ -35,7 +35,7 @@ The Perform page displays an error banner for problems such as:
 
 ## MIDI Input Reference
 
-The footer's MIDI input display reflects the session's bound MIDI input (selected in the Instrument Design Runtime panel). If it shows `none`, external hardware/DAW MIDI will not reach the session until a MIDI input is bound.
+The footer's MIDI input display reflects the session's bound external MIDI input (selected in the Instrument Design Runtime panel). If it shows `internal:loopback`, internal app MIDI is still active, but external hardware/DAW MIDI will not reach the session until a helper-provided input is bound.
 
 See [Runtime Panel and Compilation Workflow](../instrument_design/runtime_panel_and_compilation.md) and [MIDI Setup and Inputs](../configuration/midi_setup_and_inputs.md).
 

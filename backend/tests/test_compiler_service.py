@@ -5,16 +5,18 @@ from backend.app.services.compiler_service import CompilerService
 from backend.app.services.opcode_service import OpcodeService
 
 
-def test_wrap_csd_uses_auhal_and_coremidi_on_macos(monkeypatch) -> None:
+def test_wrap_csd_uses_headless_coremidi_on_macos(monkeypatch) -> None:
     monkeypatch.setattr("backend.app.services.compiler_service.sys.platform", "darwin")
 
     csd = CompilerService._wrap_csd("instr 1\nendin", midi_input="0", rtmidi_module="cmidi")
 
     assert "-+rtmidi=coremidi" in csd
     assert "-+rtmidi=cmidi" not in csd
+    assert "-n" in csd
     assert "-b 128" in csd
     assert "-B512" in csd
-    assert "-+rtaudio=auhal" in csd
+    assert "-+rtaudio=" not in csd
+    assert "-odac" not in csd
 
 
 def test_wrap_csd_omits_rtaudio_on_non_macos(monkeypatch) -> None:
@@ -23,9 +25,11 @@ def test_wrap_csd_omits_rtaudio_on_non_macos(monkeypatch) -> None:
     csd = CompilerService._wrap_csd("instr 1\nendin", midi_input="0", rtmidi_module="alsaseq")
 
     assert "-+rtmidi=alsaseq" in csd
+    assert "-n" in csd
     assert "-b 128" in csd
     assert "-B512" in csd
     assert "-+rtaudio=" not in csd
+    assert "-odac" not in csd
 
 
 def test_wrap_csd_uses_explicit_buffer_sizes(monkeypatch) -> None:
@@ -41,6 +45,7 @@ def test_wrap_csd_uses_explicit_buffer_sizes(monkeypatch) -> None:
 
     assert "-M2" in csd
     assert "-+rtmidi=alsaseq" in csd
+    assert "-n" in csd
     assert "-b 256" in csd
     assert "-B1024" in csd
 

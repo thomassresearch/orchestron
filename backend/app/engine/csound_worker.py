@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import ctypes
-import heapq
 import logging
 import os
 import re
@@ -15,6 +14,7 @@ from backend.app.engine.browser_audio_pcm import (
     DEFAULT_BROWSER_AUDIO_SAMPLE_RATE,
     csound_spout_to_pcm_block,
 )
+from backend.app.engine.midi_scheduler import EngineMidiOutputAdapter, EngineMidiScheduler
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +26,7 @@ DEFAULT_CSOUND_HARDWARE_BUFFER_SAMPLES = 512
 class EngineStartResult:
     backend: str
     detail: str
-    audio_mode: str = "local"
+    audio_mode: str = "browser_clock"
 
 
 @dataclass(slots=True)
@@ -63,10 +63,13 @@ class CsoundWorker:
         self._render_sample_cursor = 0
         self._host_midi_enabled = False
         self._host_midi_buffer = bytearray()
-        self._host_midi_pending: list[tuple[float, int, bytes]] = []
-        self._host_midi_sequence = 0
         self._host_midi_lock = threading.Lock()
         self._host_midi_callbacks: dict[str, Any] = {}
+        self._midi_scheduler = EngineMidiScheduler()
+        self._midi_output = EngineMidiOutputAdapter(
+            enqueue_message=self.queue_midi_message,
+            output_name="engine:internal",
+        )
 
         force_mock = os.getenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "").strip().lower()
         if force_mock in {"1", "true", "yes", "on"}:
@@ -126,6 +129,14 @@ class CsoundWorker:
     def accepts_direct_midi(self) -> bool:
         return self._backend == "ctcsound" and self._host_midi_enabled and self._running
 
+    @property
+    def midi_output(self) -> EngineMidiOutputAdapter:
+        return self._midi_output
+
+    @property
+    def midi_overflow_count(self) -> int:
+        return self._midi_scheduler.overflow_count
+
     def start(self, csd: str, midi_input: str, rtmidi_module: str) -> EngineStartResult:
         with self._lock:
             if self._running:
@@ -169,18 +180,48 @@ class CsoundWorker:
             return False
         if not self.accepts_direct_midi:
             return False
-        due_time = time.perf_counter() + max(0.0, delivery_delay_seconds or 0.0)
-        with self._host_midi_lock:
-            self._host_midi_sequence += 1
-            heapq.heappush(
-                self._host_midi_pending,
-                (
-                    due_time,
-                    self._host_midi_sequence,
-                    bytes(int(value) & 0xFF for value in message),
-                ),
+        return self.enqueue_timestamped_midi(
+            message,
+            source="internal",
+            delivery_delay_seconds=delivery_delay_seconds,
+        )
+
+    def enqueue_timestamped_midi(
+        self,
+        message: list[int],
+        *,
+        source: str,
+        target_engine_sample: int | None = None,
+        delivery_delay_seconds: float | None = None,
+        source_timestamp_ns: int | None = None,
+        mapped_backend_monotonic_ns: int | None = None,
+        sync_stale: bool = False,
+    ) -> bool:
+        if len(message) != 3:
+            return False
+        with self._lock:
+            current_engine_sample = self._render_sample_cursor
+            runtime_sr = self._runtime_sr
+        if target_engine_sample is not None:
+            success, _ = self._midi_scheduler.enqueue(
+                message,
+                source=source,
+                target_engine_sample=max(current_engine_sample, int(target_engine_sample)),
+                source_timestamp_ns=source_timestamp_ns,
+                mapped_backend_monotonic_ns=mapped_backend_monotonic_ns,
+                late=target_engine_sample < current_engine_sample,
+                sync_stale=sync_stale,
             )
-        return True
+            return success
+        success, _ = self._midi_scheduler.enqueue_after_delay(
+            message,
+            source=source,
+            delivery_delay_seconds=delivery_delay_seconds,
+            current_engine_sample=current_engine_sample,
+            source_timestamp_ns=source_timestamp_ns,
+            mapped_backend_monotonic_ns=mapped_backend_monotonic_ns,
+        )
+        return success
 
     def panic(self) -> str:
         with self._lock:
@@ -196,9 +237,7 @@ class CsoundWorker:
             return "panic ignored (mock backend)"
 
     def _start_ctcsound(self, csd: str, midi_input: str, rtmidi_module: str) -> EngineStartResult:
-        if self._audio_output_mode == "browser_clock":
-            return self._start_ctcsound_browser_clock(csd, midi_input, rtmidi_module)
-        return self._start_ctcsound_local(csd, midi_input, rtmidi_module)
+        return self._start_ctcsound_browser_clock(csd, midi_input, rtmidi_module)
 
     def _start_ctcsound_local(self, csd: str, midi_input: str, rtmidi_module: str) -> EngineStartResult:
         assert self._ctcsound is not None
@@ -323,6 +362,8 @@ class CsoundWorker:
             self._render_sample_cursor = 0
             self._host_midi_enabled = True
             self._thread = None
+            self._midi_scheduler.reset()
+            self._midi_scheduler.set_engine_sample_rate(source_sr)
 
             if module != requested_module:
                 logger.warning(
@@ -362,7 +403,11 @@ class CsoundWorker:
             raise RuntimeError("Session must be running before rendering browser-clock audio.")
 
         if self._backend != "ctcsound" or self._csound is None:
-            return self._render_mock_blocks(block_count=requested_blocks, target_sample_rate=target_sample_rate)
+            return self._render_mock_blocks(
+                block_count=requested_blocks,
+                target_sample_rate=target_sample_rate,
+                before_block=before_block,
+            )
 
         with self._lock:
             if not self._running or self._csound is None:
@@ -380,6 +425,13 @@ class CsoundWorker:
         for block_index in range(requested_blocks):
             if before_block is not None:
                 before_block(block_index)
+
+            block_start_sample = sample_start + source_frames_rendered
+            block_end_sample = block_start_sample + source_ksmps
+            self._prepare_host_midi_block(
+                block_start_sample=block_start_sample,
+                block_end_sample=block_end_sample,
+            )
 
             result = csound.performKsmps()
             if result != 0:
@@ -417,12 +469,21 @@ class CsoundWorker:
             pcm_f32le=pcm.tobytes(),
         )
 
-    def _render_mock_blocks(self, *, block_count: int, target_sample_rate: int) -> EngineRenderResult:
+    def _render_mock_blocks(
+        self,
+        *,
+        block_count: int,
+        target_sample_rate: int,
+        before_block: Callable[[int], None] | None = None,
+    ) -> EngineRenderResult:
         import numpy as np  # type: ignore
 
         source_sr = self._runtime_sr if self._runtime_sr > 0 else DEFAULT_BROWSER_AUDIO_SAMPLE_RATE
         source_ksmps = self._runtime_ksmps if self._runtime_ksmps > 0 else 32
         sample_start = self._render_sample_cursor
+        for block_index in range(block_count):
+            if before_block is not None:
+                before_block(block_index)
         sample_end = sample_start + (block_count * source_ksmps)
         self._render_sample_cursor = sample_end
         target_frames = max(1, int(round((block_count * source_ksmps) * (target_sample_rate / source_sr))))
@@ -445,10 +506,9 @@ class CsoundWorker:
         self._render_sample_cursor = 0
         self._host_midi_enabled = False
         self._host_midi_callbacks = {}
+        self._midi_scheduler.reset()
         with self._host_midi_lock:
             self._host_midi_buffer.clear()
-            self._host_midi_pending.clear()
-            self._host_midi_sequence = 0
 
         if not self._csound:
             return
@@ -483,10 +543,9 @@ class CsoundWorker:
             return
 
         self._host_midi_enabled = False
+        self._midi_scheduler.reset()
         with self._host_midi_lock:
             self._host_midi_buffer.clear()
-            self._host_midi_pending.clear()
-            self._host_midi_sequence = 0
 
         ct = self._ctcsound
         raw_midi_read_func = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int)
@@ -521,7 +580,6 @@ class CsoundWorker:
             if count <= 0:
                 return 0
             with self._host_midi_lock:
-                self._drain_due_host_midi_locked(time.perf_counter())
                 available = len(self._host_midi_buffer)
                 if available <= 0:
                     return 0
@@ -558,10 +616,15 @@ class CsoundWorker:
         ct.libcsound.csoundSetExternalMidiWriteCallback.argtypes = [ctypes.c_void_p, raw_midi_write_func]
         ct.libcsound.csoundSetExternalMidiWriteCallback(csound.cs, callbacks["write"])
 
-    def _drain_due_host_midi_locked(self, now: float) -> None:
-        while self._host_midi_pending and self._host_midi_pending[0][0] <= now:
-            _, _, message = heapq.heappop(self._host_midi_pending)
-            self._host_midi_buffer.extend(message)
+    def _prepare_host_midi_block(self, *, block_start_sample: int, block_end_sample: int) -> None:
+        events = self._midi_scheduler.drain_block(
+            block_start_sample=block_start_sample,
+            block_end_sample=block_end_sample,
+        )
+        with self._host_midi_lock:
+            self._host_midi_buffer.clear()
+            for event in events:
+                self._host_midi_buffer.extend(event.message)
 
     @staticmethod
     def _normalize_rtmidi_module(module: str) -> str:
@@ -570,6 +633,12 @@ class CsoundWorker:
     @staticmethod
     def _resolve_audio_output_mode(raw_value: str) -> str:
         value = (raw_value or "").strip().lower()
+        if value in {"", "local"}:
+            logger.warning(
+                "VISUALCSOUND_AUDIO_OUTPUT_MODE=%s is deprecated and now maps to browser_clock.",
+                raw_value or "local",
+            )
+            return "browser_clock"
         if value == "streaming":
             logger.warning(
                 "VISUALCSOUND_AUDIO_OUTPUT_MODE=streaming is deprecated and now maps to browser_clock."
@@ -582,9 +651,9 @@ class CsoundWorker:
             )
         if value in {"browser_clock", "browser-clock", "pcm"}:
             return "browser_clock"
-        if value and value not in {"local"}:
-            logger.warning("Unknown VISUALCSOUND_AUDIO_OUTPUT_MODE '%s'; using local", raw_value)
-        return "local"
+        if value:
+            logger.warning("Unknown VISUALCSOUND_AUDIO_OUTPUT_MODE '%s'; using browser_clock", raw_value)
+        return "browser_clock"
 
     @classmethod
     def _rtmidi_candidates(cls, preferred: str) -> list[str]:
@@ -828,9 +897,8 @@ class CsoundWorker:
         self._runtime_nchnls = self._extract_orchestra_numeric_scalar(csd, "nchnls") or 2
         self._runtime_ksmps = self._extract_orchestra_numeric_scalar(csd, "ksmps") or 32
         self._render_sample_cursor = 0
-        if self._audio_output_mode != "browser_clock":
-            self._thread = threading.Thread(target=self._mock_loop, daemon=True, name="mock-csound")
-            self._thread.start()
+        self._midi_scheduler.reset()
+        self._midi_scheduler.set_engine_sample_rate(self._runtime_sr)
         return EngineStartResult(
             backend="mock",
             detail=(
