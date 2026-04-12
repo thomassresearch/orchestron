@@ -17,7 +17,7 @@ powershell -ExecutionPolicy Bypass -c "irm https://astral.sh/uv/install.ps1 | ie
 
 - Node.js + npm from [nodejs.org](https://nodejs.org/) or your preferred Windows package manager. Node 20+ is recommended.
 - Csound from [csound.com/download.html](https://csound.com/download.html). After installation, ensure the directory containing `csound.exe` is on your `PATH`.
-- Needed on Windows: Visual Studio Build Tools or Visual Studio with `Desktop development with C++` as the portaudio python package will need native compilation.
+- Visual Studio Build Tools or Visual Studio with `Desktop development with C++` is not required for the default browser-clock audio path. Install it only if a native dependency such as `ctcsound` or an optional legacy MIDI package needs to build from source on your machine.
 - Set environment variables for Csound: make sure csound.exe is in the Path, and set the path to the opcode DLL's:
   - $env:Path = $env:Path + ";C:\....\Csound-6.18.1-windows-x64-binaries\build\Release"
   - $env:OPCODE6DIR = "C:\....\Csound-6.18.1-windows-x64-binaries\build\Release" 
@@ -159,7 +159,7 @@ Expected: both responses include `status` with the value `ok`.
 ### `ctcsound not available; using mock realtime engine`
 
 - Ensure Csound is installed and `csound --version` works.
-- Install Visual Studio Build Tools with `Desktop development with C++` if native extensions need to compile.
+- Install Visual Studio Build Tools with `Desktop development with C++` only if `ctcsound` or another native extension needs to compile from source on your machine.
 - Reinstall the Python bindings from the project environment:
 
 ```powershell
