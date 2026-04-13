@@ -1,6 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Dispatch, SetStateAction } from "react";
-
 import type {
   ImportConflictDialogItem,
   ImportConflictDialogResult,
@@ -11,13 +9,23 @@ import type {
 
 interface UseImportDialogsResult {
   importSelectionDialog: ImportSelectionDialogState | null;
-  setImportSelectionDialog: Dispatch<SetStateAction<ImportSelectionDialogState | null>>;
   importConflictDialog: ImportConflictDialogState | null;
-  setImportConflictDialog: Dispatch<SetStateAction<ImportConflictDialogState | null>>;
   requestImportSelectionDialog: (patchDefinitionsAvailable: boolean) => Promise<ImportSelectionDialogResult>;
   closeImportSelectionDialog: (confirmed: boolean) => void;
   requestImportConflictDialog: (items: ImportConflictDialogItem[]) => Promise<ImportConflictDialogResult>;
   closeImportConflictDialog: (confirmed: boolean) => void;
+  setImportSelectionOption: (key: "importPerformance" | "importPatchDefinitions", value: boolean) => void;
+  setImportConflictOverwrite: (itemId: string, overwrite: boolean) => void;
+  setImportConflictSkip: (itemId: string, skip: boolean) => void;
+  setImportConflictTargetName: (itemId: string, targetName: string) => void;
+}
+
+function updateImportConflictItems(
+  items: ImportConflictDialogItem[],
+  itemId: string,
+  updater: (item: ImportConflictDialogItem) => ImportConflictDialogItem
+): ImportConflictDialogItem[] {
+  return items.map((item) => (item.id === itemId ? updater(item) : item));
 }
 
 export function useImportDialogs(): UseImportDialogsResult {
@@ -72,6 +80,52 @@ export function useImportDialogs(): UseImportDialogsResult {
     });
   }, []);
 
+  const setImportSelectionOption = useCallback(
+    (key: "importPerformance" | "importPatchDefinitions", value: boolean) => {
+      setImportSelectionDialog((state) => (state ? { ...state, [key]: value } : state));
+    },
+    []
+  );
+
+  const setImportConflictOverwrite = useCallback((itemId: string, overwrite: boolean) => {
+    setImportConflictDialog((state) =>
+      state
+        ? {
+            items: updateImportConflictItems(state.items, itemId, (item) => ({
+              ...item,
+              overwrite
+            }))
+          }
+        : state
+    );
+  }, []);
+
+  const setImportConflictSkip = useCallback((itemId: string, skip: boolean) => {
+    setImportConflictDialog((state) =>
+      state
+        ? {
+            items: updateImportConflictItems(state.items, itemId, (item) => ({
+              ...item,
+              skip
+            }))
+          }
+        : state
+    );
+  }, []);
+
+  const setImportConflictTargetName = useCallback((itemId: string, targetName: string) => {
+    setImportConflictDialog((state) =>
+      state
+        ? {
+            items: updateImportConflictItems(state.items, itemId, (item) => ({
+              ...item,
+              targetName
+            }))
+          }
+        : state
+    );
+  }, []);
+
   const closeImportConflictDialog = useCallback(
     (confirmed: boolean) => {
       const resolver = importConflictDialogResolverRef.current;
@@ -115,12 +169,14 @@ export function useImportDialogs(): UseImportDialogsResult {
 
   return {
     importSelectionDialog,
-    setImportSelectionDialog,
     importConflictDialog,
-    setImportConflictDialog,
     requestImportSelectionDialog,
     closeImportSelectionDialog,
     requestImportConflictDialog,
-    closeImportConflictDialog
+    closeImportConflictDialog,
+    setImportSelectionOption,
+    setImportConflictOverwrite,
+    setImportConflictSkip,
+    setImportConflictTargetName
   };
 }

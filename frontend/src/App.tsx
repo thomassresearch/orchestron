@@ -1,6 +1,7 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { api } from "./api/client";
+import { ConfirmationListDialog } from "./components/ConfirmationListDialog";
 import { HelpIconButton } from "./components/HelpIconButton";
 import { ImportDialogs } from "./components/ImportDialogs";
 import { OpcodeCatalog } from "./components/OpcodeCatalog";
@@ -998,13 +999,15 @@ export default function App() {
   const [deletePatchDialog, setDeletePatchDialog] = useState<DeletePatchDialogState | null>(null);
   const {
     importSelectionDialog,
-    setImportSelectionDialog,
     importConflictDialog,
-    setImportConflictDialog,
     requestImportSelectionDialog,
     closeImportSelectionDialog,
     requestImportConflictDialog,
-    closeImportConflictDialog
+    closeImportConflictDialog,
+    setImportSelectionOption,
+    setImportConflictOverwrite,
+    setImportConflictSkip,
+    setImportConflictTargetName
   } = useImportDialogs();
 
   const activeMidiInputName = useMemo(
@@ -2648,113 +2651,45 @@ export default function App() {
       </div>
 
       {deleteSelectionDialog && (
-        <div
-          className="fixed inset-0 z-[1300] flex items-center justify-center bg-slate-950/75 p-4"
-          onMouseDown={closeDeleteSelectionDialog}
-        >
-          <section
-            className="flex max-h-[86vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl"
-            onMouseDown={(event) => event.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-label={appCopy.confirmDeleteSelection(deleteSelectionDialog.itemLabels.length)}
-          >
-            <header className="border-b border-slate-700 px-4 py-3">
-              <h2 className="font-display text-lg font-semibold text-slate-100">
-                {appCopy.confirmDeleteSelection(deleteSelectionDialog.itemLabels.length)}
-              </h2>
-              <p className="mt-1 text-xs text-slate-400">{appCopy.deleteSelectionDialogListLabel}</p>
-            </header>
-
-            <div className="min-h-0 overflow-y-auto px-4 py-4">
-              <ul className="space-y-2">
-                {deleteSelectionDialog.itemLabels.map((item, index) => (
-                  <li
-                    key={`${index}:${item}`}
-                    className="rounded-lg border border-slate-700 bg-slate-950/70 px-3 py-2 font-mono text-xs text-slate-200"
-                  >
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <footer className="flex items-center justify-end gap-2 border-t border-slate-700 px-4 py-3">
-              <button
-                type="button"
-                onClick={closeDeleteSelectionDialog}
-                className="rounded-md border border-slate-600 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-slate-200 transition hover:border-slate-400"
-              >
-                {appCopy.cancel}
-              </button>
-              <button
-                type="button"
-                onClick={confirmDeleteSelectionDialog}
-                className="rounded-md border border-rose-500/70 bg-rose-500/15 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-rose-200 transition hover:bg-rose-500/25"
-              >
-                OK
-              </button>
-            </footer>
-          </section>
-        </div>
+        <ConfirmationListDialog
+          ariaLabel={appCopy.confirmDeleteSelection(deleteSelectionDialog.itemLabels.length)}
+          title={appCopy.confirmDeleteSelection(deleteSelectionDialog.itemLabels.length)}
+          description={appCopy.deleteSelectionDialogListLabel}
+          items={deleteSelectionDialog.itemLabels}
+          cancelLabel={appCopy.cancel}
+          confirmLabel="OK"
+          onCancel={closeDeleteSelectionDialog}
+          onConfirm={confirmDeleteSelectionDialog}
+        />
       )}
 
       {deletePatchDialog && (
-        <div
-          className="fixed inset-0 z-[1300] flex items-center justify-center bg-slate-950/75 p-4"
-          onMouseDown={closeDeletePatchDialog}
-        >
-          <section
-            className="flex w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl"
-            onMouseDown={(event) => event.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-label={appCopy.confirmDeletePatch}
-          >
-            <header className="border-b border-slate-700 px-4 py-3">
-              <h2 className="font-display text-lg font-semibold text-slate-100">{appCopy.confirmDeletePatch}</h2>
-              <p className="mt-1 text-xs text-slate-400">{appCopy.deletePatchDialogListLabel}</p>
-            </header>
-
-            <div className="space-y-2 px-4 py-4">
-              <div className="rounded-lg border border-slate-700 bg-slate-950/70 px-3 py-2 font-mono text-xs text-slate-200">
-                {appCopy.deletePatchDialogPatchItem(deletePatchDialog.patchName || "(unnamed)")}
-              </div>
-              <div className="rounded-lg border border-slate-700 bg-slate-950/70 px-3 py-2 font-mono text-xs text-slate-200">
-                {appCopy.deletePatchDialogIdItem(deletePatchDialog.patchId)}
-              </div>
-              <div className="rounded-lg border border-slate-700 bg-slate-950/70 px-3 py-2 font-mono text-xs text-slate-200">
-                {appCopy.deletePatchDialogGraphItem(deletePatchDialog.nodeCount, deletePatchDialog.connectionCount)}
-              </div>
-            </div>
-
-            <footer className="flex items-center justify-end gap-2 border-t border-slate-700 px-4 py-3">
-              <button
-                type="button"
-                onClick={closeDeletePatchDialog}
-                className="rounded-md border border-slate-600 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-slate-200 transition hover:border-slate-400"
-              >
-                {appCopy.cancel}
-              </button>
-              <button
-                type="button"
-                onClick={confirmDeletePatchDialog}
-                className="rounded-md border border-rose-500/70 bg-rose-500/15 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-rose-200 transition hover:bg-rose-500/25"
-              >
-                {appCopy.deleteAction}
-              </button>
-            </footer>
-          </section>
-        </div>
+        <ConfirmationListDialog
+          ariaLabel={appCopy.confirmDeletePatch}
+          title={appCopy.confirmDeletePatch}
+          description={appCopy.deletePatchDialogListLabel}
+          items={[
+            appCopy.deletePatchDialogPatchItem(deletePatchDialog.patchName || "(unnamed)"),
+            appCopy.deletePatchDialogIdItem(deletePatchDialog.patchId),
+            appCopy.deletePatchDialogGraphItem(deletePatchDialog.nodeCount, deletePatchDialog.connectionCount)
+          ]}
+          cancelLabel={appCopy.cancel}
+          confirmLabel={appCopy.deleteAction}
+          onCancel={closeDeletePatchDialog}
+          onConfirm={confirmDeletePatchDialog}
+          maxWidthClassName="max-w-xl"
+        />
       )}
 
       <ImportDialogs
         importDialogCopy={importDialogCopy}
         importSelectionDialog={importSelectionDialog}
-        setImportSelectionDialog={setImportSelectionDialog}
+        setImportSelectionOption={setImportSelectionOption}
         closeImportSelectionDialog={closeImportSelectionDialog}
         importConflictDialog={importConflictDialog}
-        setImportConflictDialog={setImportConflictDialog}
+        setImportConflictOverwrite={setImportConflictOverwrite}
+        setImportConflictSkip={setImportConflictSkip}
+        setImportConflictTargetName={setImportConflictTargetName}
         closeImportConflictDialog={closeImportConflictDialog}
         importConflictValidationError={importConflictValidationError}
       />
