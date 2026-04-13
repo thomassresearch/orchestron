@@ -17,6 +17,8 @@ MIDIINOPENFUNC = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.POINTER(
 MIDIINCLOSEFUNC = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_void_p)
 MIDIOUTOPENFUNC = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.POINTER(ctypes.c_void_p), ctypes.c_char_p)
 MIDIOUTCLOSEFUNC = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_void_p)
+_WINDOWS_DLL_DIRECTORY_HANDLES: list[Any] = []
+_WINDOWS_REGISTERED_DLL_DIRECTORIES: set[str] = set()
 
 
 class _PrefixedSymbolLibrary:
@@ -33,13 +35,22 @@ class _PrefixedSymbolLibrary:
 
 
 def load_ctcsound_module() -> Any:
+    _register_windows_csound_dll_directories()
     try:
         return _import_stock_ctcsound()
-    except Exception as exc:
-        if sys.platform != "darwin":
-            raise
-        logger.info("Stock ctcsound import failed on macOS; using direct Csound binding: %s", exc)
-        return _load_direct_ctcsound_module()
+    except Exception as stock_exc:
+        if sys.platform == "darwin":
+            logger.info("Stock ctcsound import failed on macOS; using direct Csound binding: %s", stock_exc)
+        elif _is_windows_platform():
+            logger.info("Stock ctcsound import failed on Windows; using direct Csound binding: %s", stock_exc)
+        else:
+            logger.info("Stock ctcsound import failed; using direct Csound binding: %s", stock_exc)
+        try:
+            return _load_direct_ctcsound_module()
+        except Exception as direct_exc:
+            raise RuntimeError(
+                f"ctcsound import failed ({stock_exc}); direct Csound binding failed ({direct_exc})"
+            ) from direct_exc
 
 
 def _import_stock_ctcsound() -> Any:
@@ -73,13 +84,9 @@ def _load_csound_library() -> _PrefixedSymbolLibrary:
 
 
 def _candidate_csound_library_paths() -> list[str]:
-    raw_candidates = [
-        os.getenv("VISUALCSOUND_CSOUNDLIB_PATH"),
-        ctypes.util.find_library("CsoundLib64"),
-        "/opt/homebrew/Frameworks/CsoundLib64.framework/CsoundLib64",
-        "/usr/local/Frameworks/CsoundLib64.framework/CsoundLib64",
-        "/Library/Frameworks/CsoundLib64.framework/CsoundLib64",
-    ]
+    raw_candidates: list[str | None] = [os.getenv("VISUALCSOUND_CSOUNDLIB_PATH")]
+    raw_candidates.extend(ctypes.util.find_library(name) for name in _candidate_find_library_names())
+    raw_candidates.extend(str(path) for path in _candidate_platform_library_files())
     candidates: list[str] = []
     seen: set[str] = set()
     for raw in raw_candidates:
@@ -88,11 +95,108 @@ def _candidate_csound_library_paths() -> list[str]:
         candidate = raw.strip()
         if not candidate or candidate in seen:
             continue
-        if "/" in candidate and not Path(candidate).exists():
+        path_candidate = Path(candidate)
+        if path_candidate.is_dir():
+            continue
+        if ("/" in candidate or "\\" in candidate) and not path_candidate.exists():
             continue
         seen.add(candidate)
         candidates.append(candidate)
     return candidates
+
+
+def _register_windows_csound_dll_directories() -> None:
+    if not _is_windows_platform() or not hasattr(os, "add_dll_directory"):
+        return
+    for directory in _candidate_windows_dll_directories():
+        resolved = str(directory.resolve())
+        if resolved in _WINDOWS_REGISTERED_DLL_DIRECTORIES:
+            continue
+        try:
+            handle = os.add_dll_directory(resolved)
+        except OSError:
+            continue
+        _WINDOWS_REGISTERED_DLL_DIRECTORIES.add(resolved)
+        _WINDOWS_DLL_DIRECTORY_HANDLES.append(handle)
+
+
+def _candidate_find_library_names() -> tuple[str, ...]:
+    if _is_windows_platform():
+        return ("csound64", "CsoundLib64", "csound")
+    if sys.platform == "darwin":
+        return ("CsoundLib64", "csound64", "csound")
+    return ("csound64", "csound")
+
+
+def _candidate_platform_library_files() -> list[Path]:
+    if _is_windows_platform():
+        files: list[Path] = []
+        for directory in _candidate_windows_dll_directories():
+            for name in ("csound64.dll", "CsoundLib64.dll"):
+                candidate = directory / name
+                if candidate.exists():
+                    files.append(candidate)
+        return files
+    if sys.platform == "darwin":
+        return [
+            Path("/opt/homebrew/Frameworks/CsoundLib64.framework/CsoundLib64"),
+            Path("/usr/local/Frameworks/CsoundLib64.framework/CsoundLib64"),
+            Path("/Library/Frameworks/CsoundLib64.framework/CsoundLib64"),
+        ]
+    return [
+        Path("/usr/lib/libcsound64.so"),
+        Path("/usr/local/lib/libcsound64.so"),
+        Path("/usr/lib/x86_64-linux-gnu/libcsound64.so"),
+        Path("/usr/lib64/libcsound64.so"),
+    ]
+
+
+def _candidate_windows_dll_directories() -> list[Path]:
+    candidates: list[Path] = []
+    seen: set[str] = set()
+
+    def add_dir(path_like: str | Path | None) -> None:
+        if not path_like:
+            return
+        raw = str(path_like).strip().strip('"')
+        if not raw:
+            return
+        base = Path(raw)
+        expansions = [base.parent] if base.is_file() else [base]
+        if base.is_dir():
+            expansions.extend((base / "bin", base / "build" / "Release"))
+        for candidate in expansions:
+            try:
+                resolved = candidate.resolve()
+            except OSError:
+                continue
+            if not resolved.exists() or not resolved.is_dir():
+                continue
+            key = str(resolved)
+            if key in seen:
+                continue
+            seen.add(key)
+            candidates.append(resolved)
+
+    add_dir(os.getenv("VISUALCSOUND_CSOUNDLIB_PATH"))
+    for env_name in ("OPCODE6DIR64", "OPCODE6DIR", "CSOUND_HOME", "CSOUND64_HOME"):
+        add_dir(os.getenv(env_name))
+
+    for path_entry in os.getenv("PATH", "").split(os.pathsep):
+        add_dir(path_entry)
+
+    for root_name in ("ProgramW6432", "ProgramFiles", "ProgramFiles(x86)"):
+        root = os.getenv(root_name)
+        if not root:
+            continue
+        for suffix in ("Csound6_x64", "Csound6", "Csound"):
+            add_dir(Path(root) / suffix)
+
+    return candidates
+
+
+def _is_windows_platform() -> bool:
+    return sys.platform.startswith(("win32", "cygwin"))
 
 
 def _configure_libcsound_signatures(libcsound: _PrefixedSymbolLibrary) -> None:
