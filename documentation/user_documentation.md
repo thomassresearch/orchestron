@@ -6,6 +6,8 @@ This manual documents the current Orchestron user-facing functionality as implem
 
 It is organized by chapter and subchapter so you can read it front-to-back or jump directly to a workflow.
 
+When Orchestron is served locally from the backend, opening `http://localhost:8000/` redirects to the client application at `/client`.
+
 ## Scope
 
 - Visual instrument design (opcode graph editor, formulas, GEN tables, compile/runtime testing)

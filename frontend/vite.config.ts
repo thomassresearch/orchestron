@@ -9,13 +9,23 @@ export default defineConfig(({ command }) => ({
       output: {
         manualChunks(id) {
           if (
-            id.includes("/src/lib/documentation.ts") ||
-            id.includes("/src/lib/opcodeDocDetails.json") ||
-            id.includes("/src/components/OpcodeDocumentationModal.tsx") ||
-            id.includes("/src/components/HelpDocumentationModal.tsx") ||
-            id.includes("/src/components/MarkdownRenderer.tsx")
+            id.includes("/src/components/DocumentationModalFrame.tsx") ||
+            id.includes("/src/components/MarkdownRenderer.tsx") ||
+            id.includes("/src/lib/documentationUi.ts")
           ) {
-            return "docs";
+            return "docs-shared";
+          }
+
+          if (id.includes("/src/lib/documentation.ts") || id.includes("/src/components/HelpDocumentationModal.tsx")) {
+            return "help-docs";
+          }
+
+          if (
+            id.includes("/src/lib/opcodeDocumentation.ts") ||
+            id.includes("/src/lib/opcodeDocDetails.json") ||
+            id.includes("/src/components/OpcodeDocumentationModal.tsx")
+          ) {
+            return "opcode-docs";
           }
 
           if (id.includes("node_modules/rete") || id.includes("node_modules/rete-")) {

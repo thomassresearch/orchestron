@@ -10,6 +10,7 @@ from fastapi import FastAPI
 from fastapi import Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from backend.app.api import app_state, assets, bundles, midi, opcodes, patches, performances, runtime, sessions, ws
@@ -115,6 +116,10 @@ def create_app() -> FastAPI:
 
     static_root = Path(settings.static_dir)
     app.mount("/static", StaticFiles(directory=static_root), name="static")
+
+    @app.get("/", include_in_schema=False)
+    async def root_redirect(request: Request) -> RedirectResponse:
+        return RedirectResponse(url=str(request.url.replace(path="/client")), status_code=307)
 
     frontend_dist = Path(settings.frontend_dist_dir)
     if frontend_dist.exists():

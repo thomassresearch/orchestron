@@ -131,7 +131,7 @@ Important: because this uses live manual pages and machine translation, review c
 
 ## 7) Question-Mark Documentation + Multilingual Behavior
 
-Localization rendering lives in `frontend/src/lib/documentation.ts` and is generated for **all languages including English** with the same structure:
+Integrated help text lives in `frontend/src/lib/documentation.ts`. Opcode localization rendering lives in `frontend/src/lib/opcodeDocumentation.ts` and is generated for **all languages including English** with the same structure:
 - Description
 - Category
 - Syntax

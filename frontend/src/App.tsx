@@ -1,14 +1,31 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { api, isApiError, wsBaseUrl } from "./api/client";
+import { api } from "./api/client";
 import { HelpIconButton } from "./components/HelpIconButton";
+import { ImportDialogs } from "./components/ImportDialogs";
 import { OpcodeCatalog } from "./components/OpcodeCatalog";
 import { PatchToolbar } from "./components/PatchToolbar";
 import { ReteNodeEditor, type EditorSelection } from "./components/ReteNodeEditor";
 import { RuntimePanel } from "./components/RuntimePanel";
+import {
+  buildPerformanceExportPayload,
+  collectPatchImportConflictItems,
+  collectPerformanceImportConflictItems,
+  extractImportPatchDefinitions,
+  hasResolvableImportedPerformance,
+  parsePerformanceExportPayload,
+  partitionImportConflictItems,
+  resolveImportedPerformanceConfig,
+  resolvePatchImportOperation,
+  resolvePerformanceImportOperation,
+  type ExportedPatchDefinition,
+  type PerformanceCsdExportRequestPayload
+} from "./lib/bundleImportExport";
+import { findPatchByName, findPerformanceByName, toPatchListItem } from "./lib/patchCatalog";
 import { documentationUiCopy } from "./lib/documentationUi";
 import { GUI_LANGUAGE_OPTIONS } from "./lib/guiLanguage";
-import { BrowserClockAudioClient } from "./lib/browserClockAudio";
+import type { ImportDialogCopy } from "./lib/importDialogs";
+import { validateImportConflictItems } from "./lib/importDialogs";
 import {
   absoluteTransportStep as sequencerAbsoluteTransportStep,
   arrangerTransportExtent,
@@ -21,6 +38,9 @@ import {
   resolveMidiInputName,
   sequencerTransportStepsPerBeat
 } from "./lib/sequencer";
+import { drummerRowRuntimeTrackId } from "./lib/sequencerRuntime";
+import { useImportDialogs } from "./hooks/useImportDialogs";
+import { useSequencerRuntimeController } from "./hooks/useSequencerRuntimeController";
 import { useAppStore } from "./store/useAppStore";
 import orchestronIcon from "./assets/orchestron-icon.png";
 import type {
@@ -29,23 +49,12 @@ import type {
   GuiLanguage,
   HelpDocId,
   OpcodeSpec,
-  Patch,
   PatchGraph,
-  PatchListItem,
-  Performance,
-  PerformanceListItem,
-  RuntimeConfigResponse,
   SequencerConfigSnapshot,
   SequencerInstrumentBinding,
   SequencerRuntimeState,
   SequencerState,
-  SessionAudioOutputMode,
-  SessionEvent,
-  SessionMidiEventRequest,
-  SessionSequencerConfigRequest,
-  SessionSequencerStartRequest,
-  SessionSequencerTrackStatus,
-  SessionSequencerStatus
+  SessionSequencerConfigRequest
 } from "./types";
 
 const LazyConfigPage = lazy(() =>
@@ -99,204 +108,6 @@ function DeferredModalFallback() {
   return (
     <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-slate-950/70 p-4" aria-busy="true" />
   );
-}
-
-type SequencerRuntimeTrackDelta = {
-  track_id: string;
-  local_step: number | null;
-};
-
-type ControllerSequencerRuntimeDelta = {
-  track_id: string;
-  runtime_pad_start_subunit: number | null;
-};
-
-type SequencerStepEventPayload = {
-  previous_step: number;
-  current_step: number;
-  cycle: number;
-  running: boolean;
-  step_count: number;
-  transport_subunit: number;
-  tracks: SequencerRuntimeTrackDelta[];
-  controller_tracks: ControllerSequencerRuntimeDelta[];
-};
-
-type SequencerPadSwitchEventPayload = {
-  track_id: string;
-  track_kind?: "note" | "controller";
-  active_pad: number;
-  cycle: number;
-  current_step: number;
-  running: boolean;
-  step_count: number;
-  transport_subunit: number;
-  tracks: SequencerRuntimeTrackDelta[];
-  controller_tracks: ControllerSequencerRuntimeDelta[];
-  local_step?: number | null;
-  queued_pad?: number | null;
-  pad_loop_position?: number | null;
-  enabled?: boolean;
-  queued_enabled?: boolean | null;
-  runtime_pad_start_subunit?: number | null;
-};
-
-type BrowserClockQueuedTransportEvent =
-  | {
-      kind: "step";
-      transportSubunit: number;
-      payload: SequencerStepEventPayload;
-    }
-  | {
-      kind: "pad_switch";
-      transportSubunit: number;
-      payload: SequencerPadSwitchEventPayload;
-    };
-
-function isFiniteNumber(value: unknown): value is number {
-  return typeof value === "number" && Number.isFinite(value);
-}
-
-function isOptionalFiniteNumber(value: unknown): value is number | null | undefined {
-  return value === undefined || value === null || isFiniteNumber(value);
-}
-
-function parseSequencerRuntimeTrackDeltas(value: unknown): SequencerRuntimeTrackDelta[] | null {
-  if (!Array.isArray(value)) {
-    return null;
-  }
-  const tracks: SequencerRuntimeTrackDelta[] = [];
-  for (const entry of value) {
-    if (
-      !isObjectRecord(entry) ||
-      typeof entry.track_id !== "string" ||
-      !isOptionalFiniteNumber(entry.local_step)
-    ) {
-      return null;
-    }
-    tracks.push({
-      track_id: entry.track_id,
-      local_step: entry.local_step ?? null
-    });
-  }
-  return tracks;
-}
-
-function parseControllerSequencerRuntimeDeltas(value: unknown): ControllerSequencerRuntimeDelta[] | null {
-  if (!Array.isArray(value)) {
-    return null;
-  }
-  const tracks: ControllerSequencerRuntimeDelta[] = [];
-  for (const entry of value) {
-    if (
-      !isObjectRecord(entry) ||
-      typeof entry.track_id !== "string" ||
-      !isOptionalFiniteNumber(entry.runtime_pad_start_subunit)
-    ) {
-      return null;
-    }
-    tracks.push({
-      track_id: entry.track_id,
-      runtime_pad_start_subunit: entry.runtime_pad_start_subunit ?? null
-    });
-  }
-  return tracks;
-}
-
-function parseSequencerStepEventPayload(event: SessionEvent): SequencerStepEventPayload | null {
-  if (event.type !== "sequencer_step") {
-    return null;
-  }
-  const { payload } = event;
-  const tracks = parseSequencerRuntimeTrackDeltas(payload.tracks);
-  const controllerTracks = parseControllerSequencerRuntimeDeltas(payload.controller_tracks);
-  if (
-    !isFiniteNumber(payload.previous_step) ||
-    !isFiniteNumber(payload.current_step) ||
-    !isFiniteNumber(payload.cycle) ||
-    typeof payload.running !== "boolean" ||
-    !isFiniteNumber(payload.step_count) ||
-    !isFiniteNumber(payload.transport_subunit) ||
-    tracks === null ||
-    controllerTracks === null
-  ) {
-    return null;
-  }
-  return {
-    previous_step: payload.previous_step,
-    current_step: payload.current_step,
-    cycle: payload.cycle,
-    running: payload.running,
-    step_count: payload.step_count,
-    transport_subunit: payload.transport_subunit,
-    tracks,
-    controller_tracks: controllerTracks
-  };
-}
-
-function parseSequencerPadSwitchEventPayload(event: SessionEvent): SequencerPadSwitchEventPayload | null {
-  if (event.type !== "sequencer_pad_switched") {
-    return null;
-  }
-  const { payload } = event;
-  const tracks = parseSequencerRuntimeTrackDeltas(payload.tracks);
-  const controllerTracks = parseControllerSequencerRuntimeDeltas(payload.controller_tracks);
-  if (
-    typeof payload.track_id !== "string" ||
-    !isFiniteNumber(payload.active_pad) ||
-    !isFiniteNumber(payload.cycle) ||
-    !isFiniteNumber(payload.current_step) ||
-    typeof payload.running !== "boolean" ||
-    !isFiniteNumber(payload.step_count) ||
-    !isFiniteNumber(payload.transport_subunit) ||
-    tracks === null ||
-    controllerTracks === null ||
-    !isOptionalFiniteNumber(payload.local_step) ||
-    !isOptionalFiniteNumber(payload.queued_pad) ||
-    !isOptionalFiniteNumber(payload.pad_loop_position) ||
-    (payload.enabled !== undefined && typeof payload.enabled !== "boolean") ||
-    (payload.queued_enabled !== undefined && payload.queued_enabled !== null && typeof payload.queued_enabled !== "boolean") ||
-    !isOptionalFiniteNumber(payload.runtime_pad_start_subunit)
-  ) {
-    return null;
-  }
-
-  const trackKind =
-    payload.track_kind === "note" || payload.track_kind === "controller" ? payload.track_kind : undefined;
-  return {
-    track_id: payload.track_id,
-    track_kind: trackKind,
-    active_pad: payload.active_pad,
-    cycle: payload.cycle,
-    current_step: payload.current_step,
-    running: payload.running,
-    step_count: payload.step_count,
-    transport_subunit: payload.transport_subunit,
-    tracks,
-    controller_tracks: controllerTracks,
-    local_step: payload.local_step ?? undefined,
-    queued_pad: payload.queued_pad ?? undefined,
-    pad_loop_position: payload.pad_loop_position ?? undefined,
-    enabled: payload.enabled,
-    queued_enabled: payload.queued_enabled ?? undefined,
-    runtime_pad_start_subunit: payload.runtime_pad_start_subunit ?? undefined
-  };
-}
-
-function shouldLogSessionEvent(eventType: string): boolean {
-  return eventType !== "sequencer_step" && eventType !== "sequencer_pad_switched";
-}
-
-function transportPositionFromTransportSubunit(transportSubunit: number, stepCount: number): {
-  playhead: number;
-  cycle: number;
-} {
-  const boundedStepCount = Math.max(1, Math.round(stepCount));
-  const absoluteStep = Math.max(0, Math.floor(transportSubunit / 420));
-  return {
-    playhead: absoluteStep % boundedStepCount,
-    cycle: Math.floor(absoluteStep / boundedStepCount)
-  };
 }
 
 function mergedSequencerState(
@@ -409,68 +220,6 @@ function scaleVelocityForChannel(velocity: number, channel: number, levelMap: Ma
   return normalizeMidiVelocity(Math.round((normalizedVelocity * level) / 10));
 }
 
-function isSessionNotFoundApiError(error: unknown): boolean {
-  return (
-    isApiError(error) &&
-    error.status === 404 &&
-    /Session\s+['"][^'"]+['"]\s+not found/i.test(error.body)
-  );
-}
-
-type ExportedPatchDefinition = {
-  sourcePatchId: string;
-  name: string;
-  description: string;
-  schema_version: number;
-  graph: PatchGraph;
-};
-
-type ExportedPerformanceDocument = {
-  name: string;
-  description: string;
-  config: SequencerConfigSnapshot;
-};
-
-type PerformanceExportPayload = {
-  format: "orchestron.performance";
-  version: 1;
-  exported_at: string;
-  performance: ExportedPerformanceDocument;
-  patch_definitions: ExportedPatchDefinition[];
-};
-
-type PerformanceCsdExportRequestPayload = {
-  performanceExport: PerformanceExportPayload;
-  sequencerConfig: SessionSequencerConfigRequest;
-};
-
-type ImportSelectionDialogState = {
-  patchDefinitionsAvailable: boolean;
-  importPerformance: boolean;
-  importPatchDefinitions: boolean;
-};
-
-type ImportSelectionDialogResult = {
-  confirmed: boolean;
-  importPerformance: boolean;
-  importPatchDefinitions: boolean;
-};
-
-type ImportConflictDialogItem = {
-  id: string;
-  kind: "patch" | "performance";
-  sourcePatchId?: string;
-  originalName: string;
-  overwrite: boolean;
-  targetName: string;
-  skip: boolean;
-};
-
-type ImportConflictDialogResult = {
-  confirmed: boolean;
-  items: ImportConflictDialogItem[];
-};
-
 type DeleteSelectionDialogState = {
   nodeIds: string[];
   connectionKeys: string[];
@@ -482,29 +231,6 @@ type DeletePatchDialogState = {
   patchName: string;
   nodeCount: number;
   connectionCount: number;
-};
-
-type ImportDialogCopy = {
-  optionsTitle: string;
-  optionsDescription: string;
-  performanceLabel: string;
-  patchDefinitionsLabel: string;
-  conflictsTitle: string;
-  conflictsDescription: string;
-  overwriteLabel: string;
-  skipLabel: string;
-  newNameLabel: string;
-  cancel: string;
-  import: string;
-  conflictPatchLabel: (name: string) => string;
-  conflictPerformanceLabel: (name: string) => string;
-  validation: {
-    nameRequired: (kindLabel: string, originalName: string) => string;
-    patchNameExists: (name: string) => string;
-    patchNameDuplicate: (name: string) => string;
-    performanceNameExists: (name: string) => string;
-    performanceNameDuplicate: (name: string) => string;
-  };
 };
 
 function sanitizeFileBaseName(value: string, fallback: string, extensionPatterns: RegExp[]): string {
@@ -537,195 +263,6 @@ function sanitizeInstrumentDefinitionFileBaseName(value: string): string {
   );
 }
 
-function normalizeNameKey(value: string): string {
-  return value.trim().toLocaleLowerCase();
-}
-
-function findPatchByName(patches: PatchListItem[], name: string): PatchListItem | null {
-  const target = normalizeNameKey(name);
-  if (target.length === 0) {
-    return null;
-  }
-  return patches.find((patch) => normalizeNameKey(patch.name) === target) ?? null;
-}
-
-function findPerformanceByName(performances: PerformanceListItem[], name: string): PerformanceListItem | null {
-  const target = normalizeNameKey(name);
-  if (target.length === 0) {
-    return null;
-  }
-  return performances.find((performance) => normalizeNameKey(performance.name) === target) ?? null;
-}
-
-function suggestUniqueCopyName(baseName: string, isTaken: (candidate: string) => boolean): string {
-  const seed = baseName.trim().length > 0 ? baseName.trim() : "Imported";
-  let index = 1;
-  let candidate = `${seed} Copy`;
-  while (isTaken(candidate)) {
-    index += 1;
-    candidate = `${seed} Copy ${index}`;
-  }
-  return candidate;
-}
-
-function validateImportConflictItems(
-  items: ImportConflictDialogItem[],
-  patches: PatchListItem[],
-  performances: PerformanceListItem[],
-  copy: ImportDialogCopy
-): string | null {
-  const existingPatchNames = new Set(patches.map((patch) => normalizeNameKey(patch.name)));
-  const existingPerformanceNames = new Set(performances.map((performance) => normalizeNameKey(performance.name)));
-  const plannedPatchNames = new Set<string>();
-  const plannedPerformanceNames = new Set<string>();
-
-  for (const item of items) {
-    if (item.kind === "patch" && item.skip) {
-      continue;
-    }
-    if (item.overwrite) {
-      continue;
-    }
-
-    const nextName = item.targetName.trim();
-    if (nextName.length === 0) {
-      return copy.validation.nameRequired(
-        item.kind === "patch" ? copy.patchDefinitionsLabel : copy.performanceLabel,
-        item.originalName
-      );
-    }
-
-    const key = normalizeNameKey(nextName);
-    if (item.kind === "patch") {
-      if (existingPatchNames.has(key)) {
-        return copy.validation.patchNameExists(nextName);
-      }
-      if (plannedPatchNames.has(key)) {
-        return copy.validation.patchNameDuplicate(nextName);
-      }
-      plannedPatchNames.add(key);
-    } else {
-      if (existingPerformanceNames.has(key)) {
-        return copy.validation.performanceNameExists(nextName);
-      }
-      if (plannedPerformanceNames.has(key)) {
-        return copy.validation.performanceNameDuplicate(nextName);
-      }
-      plannedPerformanceNames.add(key);
-    }
-  }
-
-  return null;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function parseExportedPatchDefinition(raw: unknown): ExportedPatchDefinition | null {
-  if (!isRecord(raw) || !isRecord(raw.graph)) {
-    return null;
-  }
-
-  const sourcePatchId = typeof raw.sourcePatchId === "string" ? raw.sourcePatchId.trim() : "";
-  const name = typeof raw.name === "string" ? raw.name.trim() : "";
-  const description = typeof raw.description === "string" ? raw.description : "";
-  const schemaVersion =
-    typeof raw.schema_version === "number" && Number.isFinite(raw.schema_version)
-      ? Math.max(1, Math.round(raw.schema_version))
-      : 1;
-
-  if (sourcePatchId.length === 0 || name.length === 0) {
-    return null;
-  }
-
-  return {
-    sourcePatchId,
-    name,
-    description,
-    schema_version: schemaVersion,
-    graph: raw.graph as unknown as PatchGraph
-  };
-}
-
-function parsePerformanceExportPayload(raw: unknown): PerformanceExportPayload | null {
-  if (!isRecord(raw)) {
-    return null;
-  }
-  if (raw.format !== "orchestron.performance" || raw.version !== 1) {
-    return null;
-  }
-  if (!isRecord(raw.performance) || !isRecord(raw.performance.config)) {
-    return null;
-  }
-  if (!Array.isArray(raw.patch_definitions)) {
-    return null;
-  }
-
-  const parsedPatchDefinitions = raw.patch_definitions
-    .map((entry) => parseExportedPatchDefinition(entry))
-    .filter((entry): entry is ExportedPatchDefinition => entry !== null);
-
-  const performanceName =
-    typeof raw.performance.name === "string" && raw.performance.name.trim().length > 0
-      ? raw.performance.name.trim()
-      : "Imported Performance";
-  const performanceDescription = typeof raw.performance.description === "string" ? raw.performance.description : "";
-
-  return {
-    format: "orchestron.performance",
-    version: 1,
-    exported_at: typeof raw.exported_at === "string" ? raw.exported_at : new Date().toISOString(),
-    performance: {
-      name: performanceName,
-      description: performanceDescription,
-      config: raw.performance.config as unknown as SequencerConfigSnapshot
-    },
-    patch_definitions: parsedPatchDefinitions
-  };
-}
-
-function remapSnapshotPatchIds(
-  snapshot: SequencerConfigSnapshot,
-  patchIdMap: Map<string, string>,
-  patches: PatchListItem[]
-): SequencerConfigSnapshot {
-  return {
-    ...snapshot,
-    instruments: snapshot.instruments.map((instrument) => {
-      const mappedById = patchIdMap.get(instrument.patchId);
-      if (mappedById) {
-        return {
-          ...instrument,
-          patchId: mappedById
-        };
-      }
-
-      if (typeof instrument.patchName === "string" && instrument.patchName.trim().length > 0) {
-        const existing = findPatchByName(patches, instrument.patchName);
-        if (existing) {
-          return {
-            ...instrument,
-            patchId: existing.id
-          };
-        }
-      }
-
-      return instrument;
-    })
-  };
-}
-
-function toPatchListItem(patch: Patch): PatchListItem {
-  return {
-    id: patch.id,
-    name: patch.name,
-    description: patch.description,
-    schema_version: patch.schema_version,
-    updated_at: patch.updated_at
-  };
-}
-
 function transportStepCountFromTracks(stepCounts: Array<{ stepCount: number }>): number {
   void stepCounts;
   return sequencerTransportStepsPerBeat();
@@ -753,24 +290,6 @@ function trackShouldRunContinuously(
   }
 ): boolean {
   return track.enabled && (!track.padLoopEnabled || track.padLoopRepeat);
-}
-
-function drummerRowRuntimeTrackId(drummerTrackId: string, rowId: string): string {
-  return `drumrow:${drummerTrackId}:${rowId}`;
-}
-
-function parseDrummerRowRuntimeTrackId(trackId: string): { drummerTrackId: string; rowId: string } | null {
-  if (!trackId.startsWith("drumrow:")) {
-    return null;
-  }
-  const parts = trackId.split(":");
-  if (parts.length !== 3 || parts[1].trim().length === 0 || parts[2].trim().length === 0) {
-    return null;
-  }
-  return {
-    drummerTrackId: parts[1],
-    rowId: parts[2]
-  };
 }
 
 function buildDrummerRowTrackConfigs(
@@ -825,84 +344,6 @@ function buildDrummerRowTrackConfigs(
       };
     })
   }));
-}
-
-function aggregateDrummerRuntimeTrackStatuses(
-  backendTracks: SessionSequencerTrackStatus[],
-  drummerTracks: DrummerSequencerTrackState[]
-): Array<{
-  trackId: string;
-  stepCount?: number;
-  localStep?: number;
-  runtimePadStartSubunit?: number | null;
-  activePad?: number;
-  queuedPad?: number | null;
-  padLoopPosition?: number | null;
-  enabled?: boolean;
-  queuedEnabled?: boolean | null;
-}> {
-  const validIds = new Set(drummerTracks.map((track) => track.id));
-  const byTrackId = new Map<
-    string,
-    {
-      trackId: string;
-      stepCount?: number;
-      localStep?: number;
-      runtimePadStartSubunit?: number | null;
-      activePad?: number;
-      queuedPad?: number | null;
-      padLoopPosition?: number | null;
-      enabled?: boolean;
-      queuedEnabled?: boolean | null;
-    }
-  >();
-
-  for (const statusTrack of backendTracks) {
-    const parsed = parseDrummerRowRuntimeTrackId(statusTrack.track_id);
-    if (!parsed || !validIds.has(parsed.drummerTrackId)) {
-      continue;
-    }
-    if (byTrackId.has(parsed.drummerTrackId)) {
-      continue;
-    }
-    byTrackId.set(parsed.drummerTrackId, {
-      trackId: parsed.drummerTrackId,
-      stepCount: statusTrack.step_count,
-      localStep: statusTrack.local_step,
-      runtimePadStartSubunit: statusTrack.runtime_pad_start_subunit,
-      activePad: statusTrack.active_pad,
-      queuedPad: statusTrack.queued_pad,
-      padLoopPosition: statusTrack.pad_loop_position,
-      enabled: statusTrack.enabled,
-      queuedEnabled: statusTrack.queued_enabled
-    });
-  }
-
-  return Array.from(byTrackId.values());
-}
-
-function aggregateDrummerRuntimeTrackLocalSteps(
-  backendTracks: SequencerRuntimeTrackDelta[],
-  drummerTracks: DrummerSequencerTrackState[]
-): Array<{
-  trackId: string;
-  localStep?: number | null;
-}> {
-  const validIds = new Set(drummerTracks.map((track) => track.id));
-  const byTrackId = new Map<string, { trackId: string; localStep?: number | null }>();
-
-  for (const statusTrack of backendTracks) {
-    const parsed = parseDrummerRowRuntimeTrackId(statusTrack.track_id);
-    if (!parsed || !validIds.has(parsed.drummerTrackId) || byTrackId.has(parsed.drummerTrackId)) {
-      continue;
-    }
-    byTrackId.set(parsed.drummerTrackId, {
-      trackId: parsed.drummerTrackId,
-      localStep: statusTrack.local_step
-    });
-  }
-
-  return Array.from(byTrackId.values());
 }
 
 function patchCompileSignatureFor(
@@ -1540,8 +981,6 @@ export default function App() {
     setActiveHelpDocumentation(helpDocId);
   }, []);
 
-  const importSelectionDialogResolverRef = useRef<((result: ImportSelectionDialogResult) => void) | null>(null);
-  const importConflictDialogResolverRef = useRef<((result: ImportConflictDialogResult) => void) | null>(null);
   const instrumentPatchImportInputRef = useRef<HTMLInputElement | null>(null);
 
   const [selection, setSelection] = useState<EditorSelection>({
@@ -1555,261 +994,233 @@ export default function App() {
   const [lastCompiledPatchSignature, setLastCompiledPatchSignature] = useState<string | null>(null);
   const [lastFailedPatchSignature, setLastFailedPatchSignature] = useState<string | null>(null);
   const [runtimePanelCollapsed, setRuntimePanelCollapsed] = useState(false);
-  const [importSelectionDialog, setImportSelectionDialog] = useState<ImportSelectionDialogState | null>(null);
-  const [importConflictDialog, setImportConflictDialog] = useState<{ items: ImportConflictDialogItem[] } | null>(null);
   const [deleteSelectionDialog, setDeleteSelectionDialog] = useState<DeleteSelectionDialogState | null>(null);
   const [deletePatchDialog, setDeletePatchDialog] = useState<DeletePatchDialogState | null>(null);
+  const {
+    importSelectionDialog,
+    setImportSelectionDialog,
+    importConflictDialog,
+    setImportConflictDialog,
+    requestImportSelectionDialog,
+    closeImportSelectionDialog,
+    requestImportConflictDialog,
+    closeImportConflictDialog
+  } = useImportDialogs();
 
-  const sequencerRef = useRef(sequencer);
-  const sequencerSessionIdRef = useRef<string | null>(null);
-  const sequencerStatusPollRef = useRef<number | null>(null);
-  const sequencerPollInFlightRef = useRef(false);
-  const sequencerConfigSyncPendingRef = useRef(false);
-  const applySequencerStatusRef = useRef<(status: SessionSequencerStatus) => void>(() => undefined);
-  const browserClockTransportEventQueueRef = useRef<BrowserClockQueuedTransportEvent[]>([]);
+  const activeMidiInputName = useMemo(
+    () => resolveMidiInputName(activeMidiInput, midiInputs),
+    [activeMidiInput, midiInputs]
+  );
+  const instrumentsRunning = activeSessionState === "running";
+  const instrumentLevelsByChannel = useMemo(
+    () => instrumentLevelByChannel(sequencerInstruments),
+    [sequencerInstruments]
+  );
+  const disableAllRuntimePianoRolls = useCallback(() => {
+    const currentSequencer = useAppStore.getState().sequencer;
+    for (const roll of currentSequencer.pianoRolls) {
+      if (roll.enabled) {
+        setPianoRollEnabled(roll.id, false);
+      }
+    }
+  }, [setPianoRollEnabled]);
+  const buildBackendSequencerConfig = useCallback(
+    (
+      state?: SequencerState,
+      mode: "runtime" | "export" = "runtime"
+    ): SessionSequencerConfigRequest => {
+      const resolvedState = state ?? useAppStore.getState().sequencer;
+      const transportStepCount = transportStepCountFromPerformanceSequencers(
+        resolvedState.timing,
+        resolvedState.tracks,
+        resolvedState.drummerTracks,
+        resolvedState.controllerSequencers
+      );
+      const { playbackStartStep, playbackEndStep, playbackLoop, selection } = arrangerPlaybackBounds(resolvedState);
+      const arrangementEndStep = arrangerTransportExtent(resolvedState);
+      const exportMode = mode === "export";
+      const hasUnboundedPlayback =
+        !exportMode &&
+        selection === null &&
+        (resolvedState.tracks.some(trackShouldRunContinuously) ||
+          resolvedState.drummerTracks.some(trackShouldRunContinuously) ||
+          resolvedState.controllerSequencers.some(trackShouldRunContinuously));
+      const resolvedPlaybackStartStep = exportMode ? 0 : playbackStartStep;
+      const resolvedPlaybackEndStep = exportMode
+        ? Math.max(sequencerTransportStepsPerBeat(resolvedState.timing), arrangementEndStep)
+        : hasUnboundedPlayback
+          ? UNBOUNDED_PLAYBACK_END_STEP
+          : playbackEndStep;
+      const resolvedPlaybackLoop = exportMode ? false : playbackLoop;
+      const useRuntimeQueues = !exportMode;
+      const melodicTracks = resolvedState.tracks.map((track) => {
+        const scaledTrackVelocity = scaleVelocityForChannel(127, track.midiChannel, instrumentLevelsByChannel);
+        const transportSequence = compileArrangerTransportSequence(track.padLoopPattern, track.activePad);
+        return {
+          track_id: track.id,
+          midi_channel: track.midiChannel,
+          timing: {
+            tempo_bpm: track.timing.tempoBPM,
+            meter_numerator: track.timing.meterNumerator,
+            meter_denominator: track.timing.meterDenominator,
+            steps_per_beat: track.timing.stepsPerBeat,
+            beat_rate_numerator: track.timing.beatRateNumerator,
+            beat_rate_denominator: track.timing.beatRateDenominator
+          },
+          length_beats: track.lengthBeats,
+          velocity: scaledTrackVelocity,
+          gate_ratio: 0.8,
+          sync_to_track_id: track.syncToTrackId,
+          active_pad: track.activePad,
+          queued_pad: useRuntimeQueues ? track.queuedPad : null,
+          pad_loop_enabled: track.padLoopEnabled,
+          pad_loop_repeat: track.padLoopRepeat,
+          pad_loop_sequence: transportSequence,
+          enabled: track.enabled,
+          queued_enabled: useRuntimeQueues ? track.queuedEnabled : null,
+          pads: track.pads.map((pad, padIndex) => ({
+            pad_index: padIndex,
+            length_beats: pad.lengthBeats,
+            steps: pad.steps.map((step) => {
+              const notes = buildSequencerStepChordMidiNotes(step.note, step.chord, pad.scaleRoot, pad.mode);
+              return {
+                note: notes.length === 0 ? null : notes.length === 1 ? notes[0] : notes,
+                hold: step.hold,
+                velocity: scaleVelocityForChannel(step.velocity, track.midiChannel, instrumentLevelsByChannel)
+              };
+            })
+          }))
+        };
+      });
+      const drummerRowTracks = resolvedState.drummerTracks.flatMap((drummerTrack) =>
+        buildDrummerRowTrackConfigs(drummerTrack, instrumentLevelsByChannel, useRuntimeQueues)
+      );
+      const controllerTracks = resolvedState.controllerSequencers.map((controllerSequencer) => {
+        const transportSequence = compileArrangerTransportSequence(
+          controllerSequencer.padLoopPattern,
+          controllerSequencer.activePad
+        );
+        return {
+          track_id: controllerSequencer.id,
+          controller_number: controllerSequencer.controllerNumber,
+          timing: {
+            tempo_bpm: controllerSequencer.timing.tempoBPM,
+            meter_numerator: controllerSequencer.timing.meterNumerator,
+            meter_denominator: controllerSequencer.timing.meterDenominator,
+            steps_per_beat: controllerSequencer.timing.stepsPerBeat,
+            beat_rate_numerator: controllerSequencer.timing.beatRateNumerator,
+            beat_rate_denominator: controllerSequencer.timing.beatRateDenominator
+          },
+          length_beats: controllerSequencer.lengthBeats,
+          active_pad: controllerSequencer.activePad,
+          queued_pad: useRuntimeQueues ? controllerSequencer.queuedPad : null,
+          pad_loop_enabled: controllerSequencer.padLoopEnabled,
+          pad_loop_repeat: controllerSequencer.padLoopRepeat,
+          pad_loop_sequence: transportSequence,
+          enabled: controllerSequencer.enabled,
+          pads: controllerSequencer.pads.map((pad, padIndex) => ({
+            pad_index: padIndex,
+            length_beats: pad.lengthBeats,
+            keypoints: pad.keypoints.map((keypoint) => ({
+              position: keypoint.position,
+              value: keypoint.value
+            }))
+          }))
+        };
+      });
+      const transportTracks: SessionSequencerConfigRequest["tracks"] =
+        melodicTracks.length + drummerRowTracks.length > 0 || controllerTracks.length > 0
+          ? [...melodicTracks, ...drummerRowTracks]
+          : [
+              {
+                track_id: "__transport__",
+                midi_channel: 1,
+                timing: {
+                  tempo_bpm: resolvedState.timing.tempoBPM,
+                  meter_numerator: resolvedState.timing.meterNumerator,
+                  meter_denominator: resolvedState.timing.meterDenominator,
+                  steps_per_beat: 8,
+                  beat_rate_numerator: 1,
+                  beat_rate_denominator: 1
+                },
+                length_beats: 4,
+                velocity: 1,
+                gate_ratio: 0.8,
+                sync_to_track_id: null,
+                active_pad: 0,
+                queued_pad: null,
+                pad_loop_enabled: true,
+                pad_loop_repeat: true,
+                pad_loop_sequence: [0],
+                enabled: false,
+                queued_enabled: null,
+                pads: [
+                  {
+                    pad_index: 0,
+                    length_beats: 4,
+                    steps: Array.from({ length: transportStepCount }, () => ({ note: null, hold: false, velocity: 1 }))
+                  }
+                ]
+              }
+            ];
+      return {
+        timing: {
+          tempo_bpm: resolvedState.timing.tempoBPM,
+          meter_numerator: resolvedState.timing.meterNumerator,
+          meter_denominator: resolvedState.timing.meterDenominator,
+          steps_per_beat: 8,
+          beat_rate_numerator: 1,
+          beat_rate_denominator: 1
+        },
+        step_count: transportStepCount,
+        playback_start_step: resolvedPlaybackStartStep,
+        playback_end_step: resolvedPlaybackEndStep,
+        playback_loop: resolvedPlaybackLoop,
+        tracks: transportTracks,
+        controller_tracks: controllerTracks
+      };
+    },
+    [instrumentLevelsByChannel]
+  );
   const pianoRollNoteSessionRef = useRef(new Map<string, string>());
   const midiControllerInitSessionRef = useRef<string | null>(null);
-  const runtimeConfigRef = useRef<RuntimeConfigResponse | null>(null);
-  const runtimeConfigPromiseRef = useRef<Promise<RuntimeConfigResponse> | null>(null);
-  const browserClockClientRef = useRef<BrowserClockAudioClient | null>(null);
-  const browserClockLatencySettingsRef = useRef(browserClockLatencySettings);
-  const [browserClockPlaybackTransportSubunit, setBrowserClockPlaybackTransportSubunit] = useState<number | null>(null);
-  const [browserAudioStatus, setBrowserAudioStatus] = useState<"off" | "connecting" | "live" | "error">("off");
-  const [browserAudioError, setBrowserAudioError] = useState<string | null>(null);
-  const [runtimeAudioOutputMode, setRuntimeAudioOutputMode] = useState<SessionAudioOutputMode | null>(null);
-
-  useEffect(() => {
-    browserClockLatencySettingsRef.current = browserClockLatencySettings;
-  }, [browserClockLatencySettings]);
-
-  if (browserClockClientRef.current === null) {
-    browserClockClientRef.current = new BrowserClockAudioClient({
-      onStatusChange: setBrowserAudioStatus,
-      onErrorChange: setBrowserAudioError,
-      onSequencerStatus: (status) => {
-        applySequencerStatusRef.current(status);
-      },
-      getLatencySettings: () => browserClockLatencySettingsRef.current
-    });
-  }
-
-  const onApplyBrowserClockLatencySettings = useCallback(
-    (settings: typeof browserClockLatencySettings) => {
-      setBrowserClockLatencySettings(settings);
-      if (runtimeAudioOutputMode === "browser_clock") {
-        browserClockClientRef.current?.refreshLatencySettings();
-      }
-    },
-    [runtimeAudioOutputMode, setBrowserClockLatencySettings]
-  );
-
-  const latestStartedEvent = useMemo<SessionEvent | null>(() => {
-    for (let index = events.length - 1; index >= 0; index -= 1) {
-      const event = events[index];
-      if (event.type === "started") {
-        return event;
-      }
-    }
-    return null;
-  }, [events]);
-  const latestStartedAudioMode = useMemo<SessionAudioOutputMode | null>(() => {
-    const raw = latestStartedEvent?.payload?.audio_mode;
-    return raw === "browser_clock" || raw === "local" ? raw : null;
-  }, [latestStartedEvent]);
-  const effectiveAudioOutputMode = latestStartedAudioMode ?? runtimeAudioOutputMode;
-  const browserAudioTransport = effectiveAudioOutputMode === "browser_clock" ? "browser_clock" : "off";
-  const effectiveAudioOutputModeRef = useRef<SessionAudioOutputMode | null>(effectiveAudioOutputMode);
-
-  useEffect(() => {
-    effectiveAudioOutputModeRef.current = effectiveAudioOutputMode;
-  }, [effectiveAudioOutputMode]);
-
-  const displayedSequencerTransportSubunit = useMemo(() => {
-    if (effectiveAudioOutputMode !== "browser_clock" || !sequencer.isPlaying) {
-      return sequencerRuntime.transportSubunit;
-    }
-    return browserClockPlaybackTransportSubunit ?? sequencerRuntime.transportSubunit;
-  }, [
-    browserClockPlaybackTransportSubunit,
-    effectiveAudioOutputMode,
-    sequencer.isPlaying,
-    sequencerRuntime.transportSubunit
-  ]);
-
-  const displayedSequencer = useMemo(() => {
-    if (effectiveAudioOutputMode !== "browser_clock" || !sequencer.isPlaying) {
-      return sequencer;
-    }
-    const { playhead, cycle } = transportPositionFromTransportSubunit(
-      displayedSequencerTransportSubunit,
-      sequencer.stepCount
-    );
-    if (playhead === sequencer.playhead && cycle === sequencer.cycle) {
-      return sequencer;
-    }
-    return {
-      ...sequencer,
-      playhead,
-      cycle
-    };
-  }, [displayedSequencerTransportSubunit, effectiveAudioOutputMode, sequencer]);
-
-  useEffect(() => {
-    if (effectiveAudioOutputMode !== "browser_clock" || !sequencer.isPlaying) {
-      setBrowserClockPlaybackTransportSubunit(null);
-      return;
-    }
-
-    const syncPlaybackTransport = () => {
-      const transportSubunit = browserClockClientRef.current?.getPlaybackTransportSubunit();
-      setBrowserClockPlaybackTransportSubunit((previous) => {
-        if (transportSubunit === null || transportSubunit === undefined) {
-          return previous;
-        }
-        return previous !== null && Math.abs(previous - transportSubunit) < 0.25 ? previous : transportSubunit;
-      });
-    };
-
-    syncPlaybackTransport();
-    const timer = window.setInterval(syncPlaybackTransport, 30);
-    return () => {
-      window.clearInterval(timer);
-    };
-  }, [effectiveAudioOutputMode, sequencer.isPlaying]);
-
-  const disconnectBrowserClockAudio = useCallback(() => {
-    const client = browserClockClientRef.current;
-    if (!client) {
-      return;
-    }
-    void client.disconnect();
-  }, []);
-
-  const disconnectBrowserAudio = useCallback(() => {
-    disconnectBrowserClockAudio();
-  }, [disconnectBrowserClockAudio]);
-
-  const invalidateMissingRuntimeSession = useCallback(
-    (sessionId: string, error: unknown): boolean => {
-      if (!isSessionNotFoundApiError(error)) {
-        return false;
-      }
-
-      const currentActiveSessionId = useAppStore.getState().activeSessionId;
-      const currentSequencerSessionId = sequencerSessionIdRef.current;
-      if (currentActiveSessionId !== sessionId && currentSequencerSessionId !== sessionId) {
-        return false;
-      }
-
-      if (sequencerStatusPollRef.current !== null) {
-        window.clearInterval(sequencerStatusPollRef.current);
-        sequencerStatusPollRef.current = null;
-      }
-      sequencerConfigSyncPendingRef.current = false;
-      sequencerSessionIdRef.current = null;
-      midiControllerInitSessionRef.current = null;
-
-      disconnectBrowserAudio();
-      syncSequencerRuntime({ isPlaying: false });
-      setSequencerPlayhead(0);
-      setSequencerError(`${appCopy.errors.noActiveRuntimeSession} Start instruments again.`);
-
-      useAppStore.setState({
-        activeSessionId: null,
-        activeSessionState: "idle",
-        activeSessionInstruments: [],
-        compileOutput: null,
-        events: []
-      });
-      return true;
-    },
-    [appCopy.errors.noActiveRuntimeSession, disconnectBrowserAudio, setSequencerPlayhead, syncSequencerRuntime]
-  );
-
-  const loadRuntimeConfig = useCallback(async (): Promise<RuntimeConfigResponse> => {
-    if (runtimeConfigRef.current) {
-      return runtimeConfigRef.current;
-    }
-    if (runtimeConfigPromiseRef.current) {
-      return runtimeConfigPromiseRef.current;
-    }
-
-    const pending = api
-      .getRuntimeConfig()
-      .then((runtimeConfig) => {
-        runtimeConfigRef.current = runtimeConfig;
-        runtimeConfigPromiseRef.current = null;
-        setRuntimeAudioOutputMode(runtimeConfig.audio_output_mode);
-        return runtimeConfig;
-      })
-      .catch((error) => {
-        runtimeConfigPromiseRef.current = null;
-        throw error;
-      });
-
-    runtimeConfigPromiseRef.current = pending;
-    return pending;
-  }, []);
-
-  const ensureBrowserClockConnection = useCallback(
-    async (sessionId: string) => {
-      const client = browserClockClientRef.current;
-      if (!client) {
-        throw new Error("Browser PCM runtime is unavailable.");
-      }
-      try {
-        await client.connect(sessionId);
-      } catch (error) {
-        if (invalidateMissingRuntimeSession(sessionId, error)) {
-          return;
-        }
-        setBrowserAudioStatus("error");
-        setBrowserAudioError(error instanceof Error ? error.message : "Failed to connect browser PCM runtime.");
-      }
-    },
-    [invalidateMissingRuntimeSession]
-  );
-
-  useEffect(() => {
-    void loadRuntimeConfig().catch(() => {
-      // Runtime mode discovery is best-effort here; the session "started" event remains authoritative.
-    });
-  }, [loadRuntimeConfig]);
-
-  useEffect(() => {
-    if (!activeSessionId || activeSessionState !== "running") {
-      disconnectBrowserAudio();
-      setBrowserAudioStatus("off");
-      setBrowserAudioError(null);
-      return;
-    }
-
-    if (effectiveAudioOutputMode === null) {
-      return;
-    }
-
-    if (effectiveAudioOutputMode === "browser_clock") {
-      void ensureBrowserClockConnection(activeSessionId);
-      return;
-    }
-
-    disconnectBrowserClockAudio();
-    setBrowserAudioStatus("off");
-    setBrowserAudioError(null);
-  }, [
+  const {
+    browserAudioError,
+    browserAudioStatus,
+    browserAudioTransport,
+    displayedSequencer,
+    displayedSequencerTransportSubunit,
+    moveSequencerTransport,
+    onApplyBrowserClockLatencySettings,
+    primeBrowserClockAudio,
+    queueSequencerPadRuntime,
+    resolveSequencerSessionId,
+    runtimeAudioOutputMode,
+    sendAllNotesOff,
+    sendDirectMidiEvent,
+    sequencerRef,
+    startSequencerTransport,
+    stopSequencerTransport
+  } = useSequencerRuntimeController({
     activeSessionId,
     activeSessionState,
-    disconnectBrowserClockAudio,
-    disconnectBrowserAudio,
-    effectiveAudioOutputMode,
-    ensureBrowserClockConnection,
-  ]);
-
-  useEffect(() => {
-    return () => {
-      disconnectBrowserAudio();
-    };
-  }, [disconnectBrowserAudio]);
+    browserClockLatencySettings,
+    buildBackendSequencerConfig,
+    disableAllPianoRolls: disableAllRuntimePianoRolls,
+    errors: appCopy.errors,
+    events,
+    pushEvent,
+    sequencer,
+    sequencerConfig,
+    sequencerRuntime,
+    setBrowserClockLatencySettings,
+    setSequencerError,
+    setSequencerPlayhead,
+    setSequencerTransportAbsoluteStep,
+    syncControllerSequencerRuntime,
+    syncSequencerRuntime,
+    syncSequencerTransportRuntime
+  });
 
   const currentPatchCompileSignature = useMemo(
     () => patchCompileSignatureFor(currentPatch, activeInstrumentTabId),
@@ -2001,20 +1412,6 @@ export default function App() {
     instrumentPatchImportInputRef.current?.click();
   }, []);
 
-  useEffect(() => {
-    sequencerRef.current = sequencer;
-  }, [sequencer]);
-
-  const activeMidiInputName = useMemo(
-    () => resolveMidiInputName(activeMidiInput, midiInputs),
-    [activeMidiInput, midiInputs]
-  );
-  const instrumentsRunning = activeSessionState === "running";
-  const instrumentLevelsByChannel = useMemo(
-    () => instrumentLevelByChannel(sequencerInstruments),
-    [sequencerInstruments]
-  );
-
   const selectedCount = selection.nodeIds.length + selection.connections.length;
   const openInstrumentPatchIds = useMemo(() => {
     const ids = new Set<string>();
@@ -2049,131 +1446,20 @@ export default function App() {
     return validateImportConflictItems(importConflictDialog.items, patches, performances, importDialogCopy);
   }, [importConflictDialog, importDialogCopy, patches, performances]);
 
-  const requestImportSelectionDialog = useCallback((patchDefinitionsAvailable: boolean) => {
-    return new Promise<ImportSelectionDialogResult>((resolve) => {
-      importSelectionDialogResolverRef.current = resolve;
-      setImportSelectionDialog({
-        patchDefinitionsAvailable,
-        importPerformance: true,
-        importPatchDefinitions: patchDefinitionsAvailable
-      });
-    });
-  }, []);
-
-  const closeImportSelectionDialog = useCallback(
-    (confirmed: boolean) => {
-      const resolver = importSelectionDialogResolverRef.current;
-      const snapshot = importSelectionDialog;
-      importSelectionDialogResolverRef.current = null;
-      setImportSelectionDialog(null);
-      if (!resolver) {
-        return;
-      }
-
-      if (!confirmed || !snapshot) {
-        resolver({
-          confirmed: false,
-          importPerformance: false,
-          importPatchDefinitions: false
-        });
-        return;
-      }
-
-      resolver({
-        confirmed: true,
-        importPerformance: snapshot.importPerformance,
-        importPatchDefinitions: snapshot.patchDefinitionsAvailable ? snapshot.importPatchDefinitions : false
-      });
-    },
-    [importSelectionDialog]
-  );
-
-  const requestImportConflictDialog = useCallback((items: ImportConflictDialogItem[]) => {
-    return new Promise<ImportConflictDialogResult>((resolve) => {
-      importConflictDialogResolverRef.current = resolve;
-      setImportConflictDialog({ items });
-    });
-  }, []);
-
-  const closeImportConflictDialog = useCallback(
-    (confirmed: boolean) => {
-      const resolver = importConflictDialogResolverRef.current;
-      const snapshot = importConflictDialog;
-      importConflictDialogResolverRef.current = null;
-      setImportConflictDialog(null);
-      if (!resolver) {
-        return;
-      }
-
-      resolver({
-        confirmed,
-        items: snapshot?.items ?? []
-      });
-    },
-    [importConflictDialog]
-  );
-
-  useEffect(() => {
-    return () => {
-      const selectionResolver = importSelectionDialogResolverRef.current;
-      if (selectionResolver) {
-        importSelectionDialogResolverRef.current = null;
-        selectionResolver({
-          confirmed: false,
-          importPerformance: false,
-          importPatchDefinitions: false
-        });
-      }
-
-      const conflictResolver = importConflictDialogResolverRef.current;
-      if (conflictResolver) {
-        importConflictDialogResolverRef.current = null;
-        conflictResolver({
-          confirmed: false,
-          items: []
-        });
-      }
-    };
-  }, []);
-
   const onImportInstrumentDefinitionFile = useCallback(
     (file: File) => {
       void (async () => {
         const parsed = await api.expandImportBundle(file);
-
-        const standalonePatchDefinition = parseExportedPatchDefinition(parsed);
-        const performanceExport = standalonePatchDefinition ? null : parsePerformanceExportPayload(parsed);
-        const patchDefinitions = standalonePatchDefinition
-          ? [standalonePatchDefinition]
-          : (performanceExport?.patch_definitions ?? []);
+        const patchDefinitions = extractImportPatchDefinitions(parsed);
 
         if (patchDefinitions.length === 0) {
           throw new Error("Import file does not contain an instrument definition.");
         }
 
         let patchCatalog = [...patches];
-        const conflictItems: ImportConflictDialogItem[] = [];
-        for (const definition of patchDefinitions) {
-          const incomingName = definition.name.trim().length > 0 ? definition.name.trim() : "Imported Patch";
-          const existing = findPatchByName(patchCatalog, incomingName);
-          if (!existing) {
-            continue;
-          }
-
-          conflictItems.push({
-            id: `patch:${definition.sourcePatchId}`,
-            kind: "patch",
-            sourcePatchId: definition.sourcePatchId,
-            originalName: incomingName,
-            overwrite: true,
-            targetName: suggestUniqueCopyName(incomingName, (candidate) => findPatchByName(patchCatalog, candidate) !== null),
-            skip: false
-          });
-        }
-
-        let conflictDecisions = conflictItems;
-        if (conflictItems.length > 0) {
-          const decision = await requestImportConflictDialog(conflictItems);
+        let conflictDecisions = collectPatchImportConflictItems(patchDefinitions, patchCatalog);
+        if (conflictDecisions.length > 0) {
+          const decision = await requestImportConflictDialog(conflictDecisions);
           if (!decision.confirmed) {
             return;
           }
@@ -2184,52 +1470,24 @@ export default function App() {
           conflictDecisions = decision.items;
         }
 
-        const patchConflictBySourceId = new Map<string, ImportConflictDialogItem>();
-        for (const item of conflictDecisions) {
-          if (item.kind === "patch" && item.sourcePatchId) {
-            patchConflictBySourceId.set(item.sourcePatchId, item);
-          }
-        }
+        const { patchConflictsBySourceId } = partitionImportConflictItems(conflictDecisions);
 
         let firstImportedPatchId: string | null = null;
         for (const definition of patchDefinitions) {
-          const incomingName = definition.name.trim().length > 0 ? definition.name.trim() : "Imported Patch";
-          const existingPatch = findPatchByName(patchCatalog, incomingName);
-          const conflictItem = patchConflictBySourceId.get(definition.sourcePatchId);
-          let importedPatch: Patch;
-
-          if (conflictItem?.skip) {
+          const operation = resolvePatchImportOperation(definition, patchCatalog, patchConflictsBySourceId);
+          if (operation.type === "skip") {
             continue;
           }
 
-          if (existingPatch) {
-            if (!conflictItem || conflictItem.overwrite) {
-              importedPatch = await api.updatePatch(existingPatch.id, {
-                name: incomingName,
-                description: definition.description,
-                schema_version: definition.schema_version,
-                graph: definition.graph
-              });
-              patchCatalog = patchCatalog.map((patch) => (patch.id === existingPatch.id ? toPatchListItem(importedPatch) : patch));
-            } else {
-              const renamed = conflictItem.targetName.trim();
-              importedPatch = await api.createPatch({
-                name: renamed,
-                description: definition.description,
-                schema_version: definition.schema_version,
-                graph: definition.graph
-              });
-              patchCatalog = [toPatchListItem(importedPatch), ...patchCatalog];
-            }
-          } else {
-            importedPatch = await api.createPatch({
-              name: incomingName,
-              description: definition.description,
-              schema_version: definition.schema_version,
-              graph: definition.graph
-            });
-            patchCatalog = [toPatchListItem(importedPatch), ...patchCatalog];
-          }
+          const importedPatch =
+            operation.type === "update"
+              ? await api.updatePatch(operation.patchId, operation.payload)
+              : await api.createPatch(operation.payload);
+          const importedPatchListItem = toPatchListItem(importedPatch);
+          patchCatalog =
+            operation.type === "update"
+              ? patchCatalog.map((patch) => (patch.id === importedPatch.id ? importedPatchListItem : patch))
+              : [importedPatchListItem, ...patchCatalog];
 
           if (!firstImportedPatchId) {
             firstImportedPatchId = importedPatch.id;
@@ -2263,636 +1521,6 @@ export default function App() {
   useEffect(() => {
     setSelection({ nodeIds: [], connections: [] });
   }, [activeInstrumentTabId, currentPatch.id]);
-
-  const sendDirectMidiEvent = useCallback(
-    async (payload: SessionMidiEventRequest, sessionIdOverride?: string) => {
-      const sessionId = sessionIdOverride ?? activeSessionId;
-      if (!sessionId) {
-        throw new Error(appCopy.errors.noActiveRuntimeSession);
-      }
-      try {
-        if (effectiveAudioOutputMode === "browser_clock") {
-          const client = browserClockClientRef.current;
-          if (!client) {
-            throw new Error("Browser PCM runtime is unavailable.");
-          }
-          await client.sendManualMidi(sessionId, payload);
-          return;
-        }
-        await api.sendSessionMidiEvent(sessionId, payload);
-      } catch (error) {
-        if (invalidateMissingRuntimeSession(sessionId, error)) {
-          throw new Error(appCopy.errors.noActiveRuntimeSession);
-        }
-        throw error;
-      }
-    },
-    [activeSessionId, appCopy.errors.noActiveRuntimeSession, effectiveAudioOutputMode, invalidateMissingRuntimeSession]
-  );
-
-  const sendAllNotesOff = useCallback(
-    (channel: number) => {
-      void sendDirectMidiEvent({ type: "all_notes_off", channel }).catch(() => {
-        // Ignore best-effort all-notes-off failures during panic.
-      });
-    },
-    [sendDirectMidiEvent]
-  );
-
-  const buildBackendSequencerConfig = useCallback(
-    (
-      state = sequencerRef.current,
-      mode: "runtime" | "export" = "runtime"
-    ): SessionSequencerConfigRequest => {
-      const transportStepCount = transportStepCountFromPerformanceSequencers(
-        state.timing,
-        state.tracks,
-        state.drummerTracks,
-        state.controllerSequencers
-      );
-      const { playbackStartStep, playbackEndStep, playbackLoop, selection } = arrangerPlaybackBounds(state);
-      const arrangementEndStep = arrangerTransportExtent(state);
-      const exportMode = mode === "export";
-      const hasUnboundedPlayback =
-        !exportMode &&
-        selection === null &&
-        (state.tracks.some(trackShouldRunContinuously) ||
-          state.drummerTracks.some(trackShouldRunContinuously) ||
-          state.controllerSequencers.some(trackShouldRunContinuously));
-      const resolvedPlaybackStartStep = exportMode ? 0 : playbackStartStep;
-      const resolvedPlaybackEndStep = exportMode
-        ? Math.max(sequencerTransportStepsPerBeat(state.timing), arrangementEndStep)
-        : hasUnboundedPlayback
-          ? UNBOUNDED_PLAYBACK_END_STEP
-          : playbackEndStep;
-      const resolvedPlaybackLoop = exportMode ? false : playbackLoop;
-      const useRuntimeQueues = !exportMode;
-      const melodicTracks = state.tracks.map((track) => {
-        const scaledTrackVelocity = scaleVelocityForChannel(127, track.midiChannel, instrumentLevelsByChannel);
-        const transportSequence = compileArrangerTransportSequence(track.padLoopPattern, track.activePad);
-        return {
-          track_id: track.id,
-          midi_channel: track.midiChannel,
-          timing: {
-            tempo_bpm: track.timing.tempoBPM,
-            meter_numerator: track.timing.meterNumerator,
-            meter_denominator: track.timing.meterDenominator,
-            steps_per_beat: track.timing.stepsPerBeat,
-            beat_rate_numerator: track.timing.beatRateNumerator,
-            beat_rate_denominator: track.timing.beatRateDenominator
-          },
-          length_beats: track.lengthBeats,
-          velocity: scaledTrackVelocity,
-          gate_ratio: 0.8,
-          sync_to_track_id: track.syncToTrackId,
-          active_pad: track.activePad,
-          queued_pad: useRuntimeQueues ? track.queuedPad : null,
-          pad_loop_enabled: track.padLoopEnabled,
-          pad_loop_repeat: track.padLoopRepeat,
-          pad_loop_sequence: transportSequence,
-          enabled: track.enabled,
-          queued_enabled: useRuntimeQueues ? track.queuedEnabled : null,
-          pads: track.pads.map((pad, padIndex) => ({
-            pad_index: padIndex,
-            length_beats: pad.lengthBeats,
-            steps: pad.steps.map((step) => {
-              const notes = buildSequencerStepChordMidiNotes(step.note, step.chord, pad.scaleRoot, pad.mode);
-              return {
-                note: notes.length === 0 ? null : notes.length === 1 ? notes[0] : notes,
-                hold: step.hold,
-                velocity: scaleVelocityForChannel(step.velocity, track.midiChannel, instrumentLevelsByChannel)
-              };
-            })
-          }))
-        };
-      });
-      const drummerRowTracks = state.drummerTracks.flatMap((drummerTrack) =>
-        buildDrummerRowTrackConfigs(drummerTrack, instrumentLevelsByChannel, useRuntimeQueues)
-      );
-      const controllerTracks = state.controllerSequencers.map((controllerSequencer) => {
-        const transportSequence = compileArrangerTransportSequence(
-          controllerSequencer.padLoopPattern,
-          controllerSequencer.activePad
-        );
-        return {
-          track_id: controllerSequencer.id,
-          controller_number: controllerSequencer.controllerNumber,
-          timing: {
-            tempo_bpm: controllerSequencer.timing.tempoBPM,
-            meter_numerator: controllerSequencer.timing.meterNumerator,
-            meter_denominator: controllerSequencer.timing.meterDenominator,
-            steps_per_beat: controllerSequencer.timing.stepsPerBeat,
-            beat_rate_numerator: controllerSequencer.timing.beatRateNumerator,
-            beat_rate_denominator: controllerSequencer.timing.beatRateDenominator
-          },
-          length_beats: controllerSequencer.lengthBeats,
-          active_pad: controllerSequencer.activePad,
-          queued_pad: useRuntimeQueues ? controllerSequencer.queuedPad : null,
-          pad_loop_enabled: controllerSequencer.padLoopEnabled,
-          pad_loop_repeat: controllerSequencer.padLoopRepeat,
-          pad_loop_sequence: transportSequence,
-          enabled: controllerSequencer.enabled,
-          pads: controllerSequencer.pads.map((pad, padIndex) => ({
-            pad_index: padIndex,
-            length_beats: pad.lengthBeats,
-            keypoints: pad.keypoints.map((keypoint) => ({
-              position: keypoint.position,
-              value: keypoint.value
-            }))
-          }))
-        };
-      });
-      const transportTracks: SessionSequencerConfigRequest["tracks"] =
-        melodicTracks.length + drummerRowTracks.length > 0 || controllerTracks.length > 0
-          ? [...melodicTracks, ...drummerRowTracks]
-          : [
-              {
-                track_id: "__transport__",
-                midi_channel: 1,
-                timing: {
-                  tempo_bpm: state.timing.tempoBPM,
-                  meter_numerator: state.timing.meterNumerator,
-                  meter_denominator: state.timing.meterDenominator,
-                  steps_per_beat: 8,
-                  beat_rate_numerator: 1,
-                  beat_rate_denominator: 1
-                },
-                length_beats: 4,
-                velocity: 1,
-                gate_ratio: 0.8,
-                sync_to_track_id: null,
-                active_pad: 0,
-                queued_pad: null,
-                pad_loop_enabled: true,
-                pad_loop_repeat: true,
-                pad_loop_sequence: [0],
-                enabled: false,
-                queued_enabled: null,
-                pads: [
-                  {
-                    pad_index: 0,
-                    length_beats: 4,
-                    steps: Array.from({ length: transportStepCount }, () => ({ note: null, hold: false, velocity: 1 }))
-                  }
-                ]
-              }
-            ];
-      return {
-        timing: {
-          tempo_bpm: state.timing.tempoBPM,
-          meter_numerator: state.timing.meterNumerator,
-          meter_denominator: state.timing.meterDenominator,
-          steps_per_beat: 8,
-          beat_rate_numerator: 1,
-          beat_rate_denominator: 1
-        },
-        step_count: transportStepCount,
-        playback_start_step: resolvedPlaybackStartStep,
-        playback_end_step: resolvedPlaybackEndStep,
-        playback_loop: resolvedPlaybackLoop,
-        tracks: transportTracks,
-        controller_tracks: controllerTracks
-      };
-    },
-    [instrumentLevelsByChannel]
-  );
-  const sequencerConfigSyncSignature = useMemo(() => {
-    if (!sequencer.isPlaying) {
-      return null;
-    }
-    return JSON.stringify(buildBackendSequencerConfig(sequencerConfig));
-  }, [buildBackendSequencerConfig, sequencer.isPlaying, sequencerConfig]);
-
-  const applySequencerStatus = useCallback(
-    (status: SessionSequencerStatus) => {
-      if (effectiveAudioOutputModeRef.current === "browser_clock") {
-        browserClockTransportEventQueueRef.current = [];
-      }
-      const melodicTrackStatuses = status.tracks.filter((track) => parseDrummerRowRuntimeTrackId(track.track_id) === null);
-      const drummerTrackStatuses = aggregateDrummerRuntimeTrackStatuses(status.tracks, sequencerRef.current.drummerTracks);
-      syncSequencerRuntime({
-        isPlaying: status.running,
-        transportStepCount: status.step_count,
-        playhead: status.current_step,
-        cycle: status.cycle,
-        transportSubunit: status.transport_subunit,
-        tracks: melodicTrackStatuses.map((track) => ({
-          trackId: track.track_id,
-          stepCount: track.step_count,
-          localStep: track.local_step,
-          runtimePadStartSubunit: track.runtime_pad_start_subunit,
-          activePad: track.active_pad,
-          queuedPad: track.queued_pad,
-          padLoopPosition: track.pad_loop_position,
-          enabled: track.enabled,
-          queuedEnabled: track.queued_enabled
-        })),
-        drummerTracks: drummerTrackStatuses
-      });
-      syncControllerSequencerRuntime(
-        status.controller_tracks.map((track) => ({
-          controllerSequencerId: track.track_id,
-          activePad: track.active_pad,
-          queuedPad: track.queued_pad,
-          padLoopPosition: track.pad_loop_position,
-          runtimePadStartSubunit: track.runtime_pad_start_subunit,
-          enabled: track.enabled
-        }))
-      );
-    },
-    [syncControllerSequencerRuntime, syncSequencerRuntime]
-  );
-  applySequencerStatusRef.current = applySequencerStatus;
-
-  const applyBrowserClockSequencerStepEvent = useCallback(
-    (payload: SequencerStepEventPayload) => {
-      const melodicTrackSteps = payload.tracks
-        .filter((track) => parseDrummerRowRuntimeTrackId(track.track_id) === null)
-        .map((track) => ({
-          trackId: track.track_id,
-          localStep: track.local_step
-        }));
-      const drummerTrackSteps = aggregateDrummerRuntimeTrackLocalSteps(
-        payload.tracks,
-        sequencerRef.current.drummerTracks
-      );
-      syncSequencerTransportRuntime({
-        isPlaying: payload.running,
-        transportStepCount: payload.step_count,
-        playhead: payload.current_step,
-        cycle: payload.cycle,
-        transportSubunit: payload.transport_subunit,
-        tracks: melodicTrackSteps,
-        drummerTracks: drummerTrackSteps,
-        controllerTracks: payload.controller_tracks.map((track) => ({
-          controllerSequencerId: track.track_id,
-          runtimePadStartSubunit: track.runtime_pad_start_subunit
-        }))
-      });
-    },
-    [syncSequencerTransportRuntime]
-  );
-
-  const applyBrowserClockPadSwitchEvent = useCallback(
-    (payload: SequencerPadSwitchEventPayload) => {
-      applyBrowserClockSequencerStepEvent({
-        previous_step: payload.current_step,
-        current_step: payload.current_step,
-        cycle: payload.cycle,
-        running: payload.running,
-        step_count: payload.step_count,
-        transport_subunit: payload.transport_subunit,
-        tracks: payload.tracks,
-        controller_tracks: payload.controller_tracks
-      });
-
-      if (payload.track_kind === "controller") {
-        syncControllerSequencerRuntime([
-          {
-            controllerSequencerId: payload.track_id,
-            activePad: payload.active_pad,
-            queuedPad: payload.queued_pad,
-            padLoopPosition: payload.pad_loop_position,
-            runtimePadStartSubunit: payload.runtime_pad_start_subunit,
-            enabled: payload.enabled
-          }
-        ]);
-        return;
-      }
-
-      const drummerTrack = parseDrummerRowRuntimeTrackId(payload.track_id);
-      if (drummerTrack) {
-        syncSequencerRuntime({
-          isPlaying: payload.running,
-          transportStepCount: payload.step_count,
-          playhead: payload.current_step,
-          cycle: payload.cycle,
-          transportSubunit: payload.transport_subunit,
-          drummerTracks: [
-            {
-              trackId: drummerTrack.drummerTrackId,
-              localStep: payload.local_step ?? undefined,
-              activePad: payload.active_pad,
-              queuedPad: payload.queued_pad,
-              padLoopPosition: payload.pad_loop_position,
-              runtimePadStartSubunit: payload.runtime_pad_start_subunit,
-              enabled: payload.enabled,
-              queuedEnabled: payload.queued_enabled
-            }
-          ]
-        });
-        return;
-      }
-
-      syncSequencerRuntime({
-        isPlaying: payload.running,
-        transportStepCount: payload.step_count,
-        playhead: payload.current_step,
-        cycle: payload.cycle,
-        transportSubunit: payload.transport_subunit,
-        tracks: [
-          {
-            trackId: payload.track_id,
-            localStep: payload.local_step ?? undefined,
-            activePad: payload.active_pad,
-            queuedPad: payload.queued_pad,
-            padLoopPosition: payload.pad_loop_position,
-            runtimePadStartSubunit: payload.runtime_pad_start_subunit,
-            enabled: payload.enabled,
-            queuedEnabled: payload.queued_enabled
-          }
-        ]
-      });
-    },
-    [applyBrowserClockSequencerStepEvent, syncControllerSequencerRuntime, syncSequencerRuntime]
-  );
-
-  useEffect(() => {
-    if (effectiveAudioOutputMode !== "browser_clock" || !sequencer.isPlaying) {
-      browserClockTransportEventQueueRef.current = [];
-      return;
-    }
-
-    let frameId = 0;
-    let cancelled = false;
-    const drainTransportQueue = () => {
-      if (cancelled) {
-        return;
-      }
-
-      const playbackTransportSubunit = browserClockClientRef.current?.getPlaybackTransportSubunit();
-      if (playbackTransportSubunit !== null && playbackTransportSubunit !== undefined) {
-        const queue = browserClockTransportEventQueueRef.current;
-        while (queue.length > 0 && queue[0].transportSubunit <= playbackTransportSubunit + 1) {
-          const event = queue.shift();
-          if (!event) {
-            break;
-          }
-          if (event.kind === "step") {
-            applyBrowserClockSequencerStepEvent(event.payload);
-            continue;
-          }
-          applyBrowserClockPadSwitchEvent(event.payload);
-        }
-      }
-
-      frameId = window.requestAnimationFrame(drainTransportQueue);
-    };
-
-    frameId = window.requestAnimationFrame(drainTransportQueue);
-    return () => {
-      cancelled = true;
-      window.cancelAnimationFrame(frameId);
-    };
-  }, [
-    applyBrowserClockPadSwitchEvent,
-    applyBrowserClockSequencerStepEvent,
-    effectiveAudioOutputMode,
-    sequencer.isPlaying
-  ]);
-
-  const syncSequencerStatusFromServer = useCallback(
-    async (sessionId: string, options?: { silentError?: boolean }) => {
-      if (sequencerPollInFlightRef.current) {
-        return;
-      }
-      if (sequencerConfigSyncPendingRef.current) {
-        return;
-      }
-      sequencerPollInFlightRef.current = true;
-      try {
-        const status = await api.getSessionSequencerStatus(sessionId);
-        applySequencerStatusRef.current(status);
-      } catch (pollError) {
-        if (invalidateMissingRuntimeSession(sessionId, pollError)) {
-          return;
-        }
-        if (options?.silentError === true) {
-          return;
-        }
-        setSequencerError(
-          pollError instanceof Error
-            ? `${appCopy.errors.failedToSyncSequencerStatus}: ${pollError.message}`
-            : appCopy.errors.failedToSyncSequencerStatus
-        );
-      } finally {
-        sequencerPollInFlightRef.current = false;
-      }
-    },
-    [appCopy.errors.failedToSyncSequencerStatus, invalidateMissingRuntimeSession]
-  );
-  const syncSequencerStatusFromServerRef = useRef(syncSequencerStatusFromServer);
-
-  useEffect(() => {
-    syncSequencerStatusFromServerRef.current = syncSequencerStatusFromServer;
-  }, [syncSequencerStatusFromServer]);
-
-  useEffect(() => {
-    if (!activeSessionId) {
-      return;
-    }
-
-    const url = `${wsBaseUrl()}/ws/sessions/${activeSessionId}`;
-    let socket: WebSocket | null = null;
-    let heartbeatTimer: number | null = null;
-    let reconnectTimer: number | null = null;
-    let reconnectAttempts = 0;
-    let disposed = false;
-
-    const clearHeartbeatTimer = () => {
-      if (heartbeatTimer !== null) {
-        window.clearInterval(heartbeatTimer);
-        heartbeatTimer = null;
-      }
-    };
-
-    const clearReconnectTimer = () => {
-      if (reconnectTimer !== null) {
-        window.clearTimeout(reconnectTimer);
-        reconnectTimer = null;
-      }
-    };
-
-    const closeSocket = () => {
-      clearHeartbeatTimer();
-      if (!socket) {
-        return;
-      }
-      socket.onopen = null;
-      socket.onclose = null;
-      socket.onmessage = null;
-      socket.onerror = null;
-      try {
-        socket.close();
-      } catch {
-        // Ignore browser-side cleanup failures.
-      }
-      socket = null;
-    };
-
-    const sendHeartbeat = () => {
-      if (!socket || socket.readyState !== WebSocket.OPEN) {
-        return;
-      }
-      try {
-        socket.send(JSON.stringify({ type: "heartbeat", timestamp_ms: Date.now() }));
-      } catch {
-        // Ignore heartbeat send failures during shutdown/reconnect races.
-      }
-    };
-
-    const scheduleReconnect = () => {
-      if (disposed || reconnectTimer !== null) {
-        return;
-      }
-      const delayMs = Math.min(4_000, 500 * 2 ** Math.min(reconnectAttempts, 3));
-      reconnectAttempts += 1;
-      reconnectTimer = window.setTimeout(() => {
-        reconnectTimer = null;
-        connectSocket();
-      }, delayMs);
-    };
-
-    const connectSocket = () => {
-      if (disposed) {
-        return;
-      }
-      closeSocket();
-      const nextSocket = new WebSocket(url);
-      socket = nextSocket;
-
-      nextSocket.onopen = () => {
-        reconnectAttempts = 0;
-        sendHeartbeat();
-        heartbeatTimer = window.setInterval(sendHeartbeat, 2000);
-        if (effectiveAudioOutputModeRef.current !== "browser_clock" && sequencerRef.current.isPlaying) {
-          void syncSequencerStatusFromServerRef.current(activeSessionId, { silentError: true });
-        }
-      };
-
-      nextSocket.onclose = () => {
-        clearHeartbeatTimer();
-        if (socket === nextSocket) {
-          socket = null;
-        }
-        scheduleReconnect();
-      };
-
-      nextSocket.onmessage = (message) => {
-        try {
-          const parsed = JSON.parse(message.data) as SessionEvent;
-          if (shouldLogSessionEvent(parsed.type)) {
-            pushEvent(parsed);
-          }
-          if (effectiveAudioOutputModeRef.current !== "browser_clock") {
-            return;
-          }
-          const stepPayload = parseSequencerStepEventPayload(parsed);
-          if (stepPayload) {
-            return;
-          }
-          const padSwitchPayload = parseSequencerPadSwitchEventPayload(parsed);
-          if (padSwitchPayload) {
-            browserClockTransportEventQueueRef.current.push({
-              kind: "pad_switch",
-              transportSubunit: padSwitchPayload.transport_subunit,
-              payload: padSwitchPayload
-            });
-          }
-        } catch {
-          // Ignore malformed websocket payloads.
-        }
-      };
-    };
-
-    connectSocket();
-
-    return () => {
-      disposed = true;
-      clearReconnectTimer();
-      closeSocket();
-    };
-  }, [activeSessionId, applyBrowserClockPadSwitchEvent, applyBrowserClockSequencerStepEvent, pushEvent]);
-
-  const stopSequencerTransport = useCallback(
-    async (resetPlayhead: boolean) => {
-      const sessionId = sequencerSessionIdRef.current ?? activeSessionId;
-      sequencerConfigSyncPendingRef.current = false;
-      if (sessionId) {
-        try {
-          const status =
-            effectiveAudioOutputMode === "browser_clock"
-              ? await browserClockClientRef.current!.stopSequencer(sessionId)
-              : await api.stopSessionSequencer(sessionId);
-          applySequencerStatus(status);
-        } catch {
-          syncSequencerRuntime({ isPlaying: false });
-        }
-      } else {
-        syncSequencerRuntime({ isPlaying: false });
-      }
-
-      sequencerSessionIdRef.current = null;
-      if (resetPlayhead) {
-        setSequencerPlayhead(0);
-      }
-    },
-    [activeSessionId, applySequencerStatus, effectiveAudioOutputMode, setSequencerPlayhead, syncSequencerRuntime]
-  );
-
-  const startSequencerTransport = useCallback(async () => {
-    setSequencerError(null);
-    if (activeSessionState !== "running") {
-      setSequencerError(appCopy.errors.startInstrumentsFirstForSequencer);
-      return;
-    }
-
-    const sessionId = activeSessionId;
-    if (!sessionId) {
-      setSequencerError(appCopy.errors.noActiveInstrumentSessionForSequencer);
-      return;
-    }
-
-    try {
-      const currentSequencerState = sequencerRef.current;
-      const payload: SessionSequencerStartRequest = {
-        config: buildBackendSequencerConfig(currentSequencerState),
-        position_step: sequencerAbsoluteTransportStep(
-          currentSequencerState.playhead,
-          currentSequencerState.cycle,
-          currentSequencerState.stepCount
-        )
-      };
-      const status =
-        effectiveAudioOutputMode === "browser_clock"
-          ? await browserClockClientRef.current!.startSequencer(sessionId, {
-              config: payload.config,
-              positionStep: payload.position_step
-            })
-          : await api.startSessionSequencer(sessionId, payload);
-      sequencerSessionIdRef.current = sessionId;
-      applySequencerStatus(status);
-    } catch (transportError) {
-      if (invalidateMissingRuntimeSession(sessionId, transportError)) {
-        return;
-      }
-      syncSequencerRuntime({ isPlaying: false });
-      setSequencerError(
-        transportError instanceof Error ? transportError.message : appCopy.errors.failedToStartSequencer
-      );
-    }
-  }, [
-    activeSessionId,
-    activeSessionState,
-    appCopy.errors.failedToStartSequencer,
-    appCopy.errors.noActiveInstrumentSessionForSequencer,
-    appCopy.errors.startInstrumentsFirstForSequencer,
-    applySequencerStatus,
-    buildBackendSequencerConfig,
-    effectiveAudioOutputMode,
-    invalidateMissingRuntimeSession,
-    syncSequencerRuntime
-  ]);
 
   const onSequencerTrackEnabledChange = useCallback(
     (trackId: string, enabled: boolean) => {
@@ -2950,13 +1578,9 @@ export default function App() {
 
   const onStartInstrumentEngine = useCallback(() => {
     setSequencerError(null);
-    if (runtimeAudioOutputMode === "browser_clock") {
-      void browserClockClientRef.current?.prime().catch(() => {
-        // Connection setup will surface the actionable error if priming fails.
-      });
-    }
+    primeBrowserClockAudio();
     void startSession();
-  }, [runtimeAudioOutputMode, startSession]);
+  }, [primeBrowserClockAudio, startSession]);
 
   const collectPerformanceChannels = useCallback(() => {
     const channels = new Set<number>();
@@ -3033,72 +1657,6 @@ export default function App() {
       setSequencerError(error instanceof Error ? error.message : appCopy.errors.failedToStopInstrumentEngine);
     });
   }, [appCopy.errors.failedToStopInstrumentEngine, stopPerformance]);
-
-  const moveSequencerTransport = useCallback(
-    async (deltaSteps: number) => {
-      const currentState = sequencerRef.current;
-      const { arrangementEndStep, selection } = arrangerPlaybackBounds(currentState);
-      const currentAbsoluteStep = sequencerAbsoluteTransportStep(
-        currentState.playhead,
-        currentState.cycle,
-        currentState.stepCount
-      );
-      const targetAbsoluteStep = clampArrangerSeekStep(
-        currentAbsoluteStep + deltaSteps,
-        selection,
-        arrangementEndStep,
-        sequencerTransportStepsPerBeat(currentState.timing)
-      );
-
-      if (!currentState.isPlaying) {
-        setSequencerTransportAbsoluteStep(targetAbsoluteStep);
-        return;
-      }
-
-      const sessionId = sequencerSessionIdRef.current ?? activeSessionId;
-      if (!sessionId) {
-        setSequencerError(appCopy.errors.noActiveInstrumentSessionForSequencer);
-        return;
-      }
-
-      setSequencerError(null);
-
-      try {
-        const status =
-          effectiveAudioOutputMode === "browser_clock"
-            ? deltaSteps < 0
-              ? await browserClockClientRef.current!.rewindSequencer(sessionId)
-              : await browserClockClientRef.current!.forwardSequencer(sessionId)
-            : deltaSteps < 0
-              ? await api.rewindSessionSequencerCycle(sessionId)
-              : await api.forwardSessionSequencerCycle(sessionId);
-        applySequencerStatus(status);
-      } catch (error) {
-        if (invalidateMissingRuntimeSession(sessionId, error)) {
-          return;
-        }
-        setSequencerError(error instanceof Error ? error.message : "Failed to move sequencer transport.");
-      }
-    },
-    [
-      activeSessionId,
-      appCopy.errors.noActiveInstrumentSessionForSequencer,
-      applySequencerStatus,
-      effectiveAudioOutputMode,
-      invalidateMissingRuntimeSession,
-      setSequencerTransportAbsoluteStep
-    ]
-  );
-
-  const queueSequencerPadRuntime = useCallback(
-    async (sessionId: string, trackId: string, padIndex: number | null) => {
-      if (effectiveAudioOutputMode === "browser_clock") {
-        return browserClockClientRef.current!.queuePad(sessionId, trackId, padIndex);
-      }
-      return api.queueSessionSequencerPad(sessionId, trackId, { pad_index: padIndex });
-    },
-    [effectiveAudioOutputMode]
-  );
 
   const handleArrangerLoopSelectionChange = useCallback(
     (selection: SequencerState["arrangerLoopSelection"]) => {
@@ -3319,47 +1877,21 @@ export default function App() {
     ]
   );
 
-  const buildPerformanceExportPayload = useCallback(async () => {
+  const buildCurrentPerformanceExport = useCallback(async () => {
     const snapshot = buildSequencerConfigSnapshot();
     const patchIds = [...new Set(snapshot.instruments.map((instrument) => instrument.patchId.trim()).filter(Boolean))];
     const selectedPatches = await Promise.all(patchIds.map((patchId) => api.getPatch(patchId)));
-    const patchDefinitions: ExportedPatchDefinition[] = selectedPatches.map((patch) => ({
-      sourcePatchId: patch.id,
-      name: patch.name,
-      description: patch.description,
-      schema_version: patch.schema_version,
-      graph: patch.graph
-    }));
-
-    const patchNameById = new Map(patchDefinitions.map((patch) => [patch.sourcePatchId, patch.name]));
-    const exportConfig: SequencerConfigSnapshot = {
-      ...snapshot,
-      instruments: snapshot.instruments.map((instrument) => ({
-        ...instrument,
-        patchName: patchNameById.get(instrument.patchId) ?? instrument.patchName
-      }))
-    };
-
-    const exportedPerformanceName =
-      performanceName.trim().length > 0 ? performanceName.trim() : "Untitled Performance";
-    const payload: PerformanceExportPayload = {
-      format: "orchestron.performance",
-      version: 1,
-      exported_at: new Date().toISOString(),
-      performance: {
-        name: exportedPerformanceName,
-        description: performanceDescription,
-        config: exportConfig
-      },
-      patch_definitions: patchDefinitions
-    };
-
-    return { exportedPerformanceName, payload };
+    return buildPerformanceExportPayload({
+      snapshot,
+      selectedPatches,
+      performanceName,
+      performanceDescription
+    });
   }, [buildSequencerConfigSnapshot, performanceDescription, performanceName]);
 
   const onExportSequencerConfig = useCallback(async () => {
     try {
-      const { exportedPerformanceName, payload } = await buildPerformanceExportPayload();
+      const { exportedPerformanceName, payload } = await buildCurrentPerformanceExport();
       const { blob, headers } = await api.exportPerformanceBundle(payload as unknown as Record<string, unknown>);
       const format = headers.get("x-orchestron-export-format") === "zip" ? "zip" : "json";
       const url = URL.createObjectURL(blob);
@@ -3375,13 +1907,13 @@ export default function App() {
       setSequencerError(error instanceof Error ? error.message : appCopy.errors.failedToSaveSequencerConfig);
     }
   }, [
-    buildPerformanceExportPayload,
     appCopy.errors.failedToSaveSequencerConfig,
+    buildCurrentPerformanceExport
   ]);
 
   const onExportPerformanceCsd = useCallback(async () => {
     try {
-      const { exportedPerformanceName, payload } = await buildPerformanceExportPayload();
+      const { exportedPerformanceName, payload } = await buildCurrentPerformanceExport();
       const exportPayload: PerformanceCsdExportRequestPayload = {
         performanceExport: payload,
         sequencerConfig: buildBackendSequencerConfig(sequencerRef.current, "export")
@@ -3402,7 +1934,7 @@ export default function App() {
   }, [
     appCopy.errors.failedToExportPerformanceCsd,
     buildBackendSequencerConfig,
-    buildPerformanceExportPayload
+    buildCurrentPerformanceExport
   ]);
 
   const onImportSequencerConfig = useCallback(
@@ -3423,48 +1955,15 @@ export default function App() {
         }
 
         let patchCatalog = [...patches];
-        const patchIdMap = new Map<string, string>();
         let performanceCatalog = [...performances];
-        const conflictItems: ImportConflictDialogItem[] = [];
-
-        if (selection.importPatchDefinitions) {
-          for (const definition of exported.patch_definitions) {
-            const incomingName = definition.name.trim().length > 0 ? definition.name.trim() : "Imported Patch";
-            const existing = findPatchByName(patchCatalog, incomingName);
-            if (!existing) {
-              continue;
-            }
-
-            conflictItems.push({
-              id: `patch:${definition.sourcePatchId}`,
-              kind: "patch",
-              sourcePatchId: definition.sourcePatchId,
-              originalName: incomingName,
-              overwrite: true,
-              targetName: suggestUniqueCopyName(incomingName, (candidate) => findPatchByName(patchCatalog, candidate) !== null),
-              skip: false
-            });
-          }
-        }
-
-        if (selection.importPerformance) {
-          const incomingPerformanceName =
-            exported.performance.name.trim().length > 0 ? exported.performance.name.trim() : "Imported Performance";
-          const existingPerformance = findPerformanceByName(performanceCatalog, incomingPerformanceName);
-          if (existingPerformance) {
-            conflictItems.push({
-              id: "performance",
-              kind: "performance",
-              originalName: incomingPerformanceName,
-              overwrite: true,
-              targetName: suggestUniqueCopyName(
-                incomingPerformanceName,
-                (candidate) => findPerformanceByName(performanceCatalog, candidate) !== null
-              ),
-              skip: false
-            });
-          }
-        }
+        const conflictItems = [
+          ...(selection.importPatchDefinitions
+            ? collectPatchImportConflictItems(exported.patch_definitions, patchCatalog)
+            : []),
+          ...(selection.importPerformance
+            ? collectPerformanceImportConflictItems(exported, performanceCatalog)
+            : [])
+        ];
 
         let conflictDecisions = conflictItems;
         if (conflictItems.length > 0) {
@@ -3484,58 +1983,25 @@ export default function App() {
           conflictDecisions = decision.items;
         }
 
-        const patchConflictBySourceId = new Map<string, ImportConflictDialogItem>();
-        let performanceConflict: ImportConflictDialogItem | null = null;
-        for (const item of conflictDecisions) {
-          if (item.kind === "patch" && item.sourcePatchId) {
-            patchConflictBySourceId.set(item.sourcePatchId, item);
-          }
-          if (item.kind === "performance") {
-            performanceConflict = item;
-          }
-        }
+        const { patchConflictsBySourceId, performanceConflict } = partitionImportConflictItems(conflictDecisions);
+        const patchIdMap = new Map<string, string>();
 
         if (selection.importPatchDefinitions) {
           for (const definition of exported.patch_definitions) {
-            const incomingName = definition.name.trim().length > 0 ? definition.name.trim() : "Imported Patch";
-            const existingPatch = findPatchByName(patchCatalog, incomingName);
-            const conflictItem = patchConflictBySourceId.get(definition.sourcePatchId);
-            let importedPatch: Patch;
-
-            if (conflictItem?.skip) {
+            const operation = resolvePatchImportOperation(definition, patchCatalog, patchConflictsBySourceId);
+            if (operation.type === "skip") {
               continue;
             }
 
-            if (existingPatch) {
-              if (!conflictItem || conflictItem.overwrite) {
-                importedPatch = await api.updatePatch(existingPatch.id, {
-                  name: incomingName,
-                  description: definition.description,
-                  schema_version: definition.schema_version,
-                  graph: definition.graph
-                });
-                patchCatalog = patchCatalog.map((patch) =>
-                  patch.id === existingPatch.id ? toPatchListItem(importedPatch) : patch
-                );
-              } else {
-                const renamed = conflictItem.targetName.trim();
-                importedPatch = await api.createPatch({
-                  name: renamed,
-                  description: definition.description,
-                  schema_version: definition.schema_version,
-                  graph: definition.graph
-                });
-                patchCatalog = [toPatchListItem(importedPatch), ...patchCatalog];
-              }
-            } else {
-              importedPatch = await api.createPatch({
-                name: incomingName,
-                description: definition.description,
-                schema_version: definition.schema_version,
-                graph: definition.graph
-              });
-              patchCatalog = [toPatchListItem(importedPatch), ...patchCatalog];
-            }
+            const importedPatch =
+              operation.type === "update"
+                ? await api.updatePatch(operation.patchId, operation.payload)
+                : await api.createPatch(operation.payload);
+            const importedPatchListItem = toPatchListItem(importedPatch);
+            patchCatalog =
+              operation.type === "update"
+                ? patchCatalog.map((patch) => (patch.id === importedPatch.id ? importedPatchListItem : patch))
+                : [importedPatchListItem, ...patchCatalog];
 
             patchIdMap.set(definition.sourcePatchId, importedPatch.id);
           }
@@ -3545,40 +2011,24 @@ export default function App() {
         }
 
         if (selection.importPerformance) {
-          const resolvedConfig = remapSnapshotPatchIds(exported.performance.config, patchIdMap, patchCatalog);
-          const knownPatchIds = new Set(patchCatalog.map((patch) => patch.id));
-          const hasResolvableInstrument = resolvedConfig.instruments.some((instrument) =>
-            knownPatchIds.has(instrument.patchId)
-          );
-          if (!hasResolvableInstrument) {
+          const resolvedConfig = resolveImportedPerformanceConfig(exported, patchIdMap, patchCatalog);
+          if (!hasResolvableImportedPerformance(resolvedConfig, patchCatalog)) {
             throw new Error(
               "No instrument assignments in this import match available patches. Import patch definitions or create matching patch names first."
             );
           }
 
           performanceCatalog = await refreshPerformances();
-          const incomingPerformanceName =
-            exported.performance.name.trim().length > 0 ? exported.performance.name.trim() : "Imported Performance";
-          const existingPerformance = findPerformanceByName(performanceCatalog, incomingPerformanceName);
-          let savedPerformance: Performance;
-
-          if (existingPerformance && (!performanceConflict || performanceConflict.overwrite)) {
-            savedPerformance = await api.updatePerformance(existingPerformance.id, {
-              name: incomingPerformanceName,
-              description: exported.performance.description,
-              config: resolvedConfig
-            });
-          } else {
-            const createName =
-              existingPerformance && performanceConflict
-                ? performanceConflict.targetName.trim()
-                : incomingPerformanceName;
-            savedPerformance = await api.createPerformance({
-              name: createName,
-              description: exported.performance.description,
-              config: resolvedConfig
-            });
-          }
+          const operation = resolvePerformanceImportOperation(
+            exported,
+            performanceCatalog,
+            performanceConflict,
+            resolvedConfig
+          );
+          const savedPerformance =
+            operation.type === "update"
+              ? await api.updatePerformance(operation.performanceId, operation.payload)
+              : await api.createPerformance(operation.payload);
 
           await refreshPerformances();
           await loadPerformance(savedPerformance.id);
@@ -3620,7 +2070,7 @@ export default function App() {
 
     void Promise.all(
       startedControllers.map((controller) =>
-        sendMidiControllerValue(controller.controllerNumber, controller.value, activeSessionId)
+      sendMidiControllerValue(controller.controllerNumber, controller.value, activeSessionId)
       )
     ).catch((error) => {
       setSequencerError(error instanceof Error ? error.message : appCopy.errors.failedToInitializeMidiControllers);
@@ -3631,176 +2081,6 @@ export default function App() {
     appCopy.errors.failedToInitializeMidiControllers,
     sendMidiControllerValue
   ]);
-
-  useEffect(() => {
-    if (!sequencer.isPlaying) {
-      return;
-    }
-
-    const sessionId = sequencerSessionIdRef.current ?? activeSessionId;
-    if (!sessionId) {
-      return;
-    }
-
-    const syncStatus = (options?: { silentError?: boolean }) =>
-      syncSequencerStatusFromServerRef.current(sessionId, options);
-
-    if (effectiveAudioOutputMode === "browser_clock") {
-      return;
-    }
-
-    void syncStatus();
-    sequencerStatusPollRef.current = window.setInterval(() => {
-      void syncStatus();
-    }, 80);
-
-    return () => {
-      if (sequencerStatusPollRef.current !== null) {
-        window.clearInterval(sequencerStatusPollRef.current);
-        sequencerStatusPollRef.current = null;
-      }
-    };
-  }, [
-    activeSessionId,
-    effectiveAudioOutputMode,
-    sequencer.isPlaying
-  ]);
-
-  useEffect(() => {
-    if (!sequencer.isPlaying) {
-      sequencerConfigSyncPendingRef.current = false;
-      return;
-    }
-
-    const sessionId = sequencerSessionIdRef.current ?? activeSessionId;
-    if (!sessionId) {
-      sequencerConfigSyncPendingRef.current = false;
-      return;
-    }
-
-    if (!sequencerConfigSyncSignature) {
-      sequencerConfigSyncPendingRef.current = false;
-      return;
-    }
-
-    const payload = JSON.parse(sequencerConfigSyncSignature) as SessionSequencerConfigRequest;
-    sequencerConfigSyncPendingRef.current = true;
-
-    const syncTimer = window.setTimeout(() => {
-      void api
-        .configureSessionSequencer(sessionId, payload)
-        .then((status) => {
-          applySequencerStatus(status);
-        })
-        .catch((syncError) => {
-          if (invalidateMissingRuntimeSession(sessionId, syncError)) {
-            return;
-          }
-          setSequencerError(
-            syncError instanceof Error
-              ? `${appCopy.errors.failedToUpdateSequencerConfig}: ${syncError.message}`
-              : appCopy.errors.failedToUpdateSequencerConfig
-          );
-        })
-        .finally(() => {
-          sequencerConfigSyncPendingRef.current = false;
-          if (
-            sequencerRef.current.isPlaying &&
-            !sequencerRef.current.tracks.some((track) => track.enabled || track.queuedEnabled === true) &&
-            !sequencerRef.current.drummerTracks.some((track) => track.enabled || track.queuedEnabled === true) &&
-            !sequencerRef.current.controllerSequencers.some((controllerSequencer) => controllerSequencer.enabled)
-          ) {
-            void stopSequencerTransport(false);
-          }
-        });
-    }, 80);
-
-    return () => {
-      window.clearTimeout(syncTimer);
-    };
-  }, [
-    activeSessionId,
-    appCopy.errors.failedToUpdateSequencerConfig,
-    applySequencerStatus,
-    invalidateMissingRuntimeSession,
-    sequencer.isPlaying,
-    sequencerConfigSyncSignature,
-    stopSequencerTransport
-  ]);
-
-  useEffect(() => {
-    if (activeSessionState !== "running") {
-      return;
-    }
-    if (sequencer.isPlaying) {
-      return;
-    }
-    if (
-      !sequencer.tracks.some((track) => track.enabled) &&
-      !sequencer.drummerTracks.some((track) => track.enabled) &&
-      !sequencer.controllerSequencers.some((controllerSequencer) => controllerSequencer.enabled)
-    ) {
-      return;
-    }
-    void startSequencerTransport();
-  }, [
-    activeSessionState,
-    sequencer.controllerSequencers,
-    sequencer.drummerTracks,
-    sequencer.isPlaying,
-    sequencer.tracks,
-    startSequencerTransport
-  ]);
-
-  useEffect(() => {
-    if (!sequencer.isPlaying) {
-      return;
-    }
-    if (sequencerConfigSyncPendingRef.current) {
-      return;
-    }
-    if (
-      sequencer.tracks.some((track) => track.enabled || track.queuedEnabled === true) ||
-      sequencer.drummerTracks.some((track) => track.enabled || track.queuedEnabled === true) ||
-      sequencer.controllerSequencers.some((controllerSequencer) => controllerSequencer.enabled)
-    ) {
-      return;
-    }
-    void stopSequencerTransport(false);
-  }, [
-    sequencer.controllerSequencers,
-    sequencer.drummerTracks,
-    sequencer.isPlaying,
-    sequencer.tracks,
-    stopSequencerTransport
-  ]);
-
-  useEffect(() => {
-    if (!sequencer.isPlaying) {
-      if (activeSessionState !== "running") {
-        disableAllPianoRolls();
-      }
-      return;
-    }
-
-    if (activeSessionState !== "running") {
-      disableAllPianoRolls();
-      void stopSequencerTransport(false);
-      setSequencerError(appCopy.errors.sessionNotRunningSequencerStopped);
-    }
-  }, [
-    activeSessionState,
-    appCopy.errors.sessionNotRunningSequencerStopped,
-    disableAllPianoRolls,
-    sequencer.isPlaying,
-    stopSequencerTransport
-  ]);
-
-  useEffect(() => {
-    return () => {
-      void stopSequencerTransport(false);
-    };
-  }, [stopSequencerTransport]);
 
   const applyDeleteSelectionPlan = useCallback(
     (plan: DeleteSelectionDialogState) => {
@@ -4195,16 +2475,15 @@ export default function App() {
                   return;
                 }
 
-                const sessionId = sequencerSessionIdRef.current ?? activeSessionId;
+                const sessionId = resolveSequencerSessionId();
                 if (!sessionId) {
                   setSequencerError(appCopy.errors.noActiveSessionForPadSwitching);
                   return;
                 }
 
                 void queueSequencerPadRuntime(sessionId, trackId, padIndex)
-                  .then((status) => {
+                  .then(() => {
                     setSequencerTrackQueuedPad(trackId, padIndex);
-                    applySequencerStatus(status);
                   })
                   .catch((queueError) => {
                     setSequencerError(
@@ -4253,25 +2532,17 @@ export default function App() {
                   return;
                 }
 
-                const sessionId = sequencerSessionIdRef.current ?? activeSessionId;
+                const sessionId = resolveSequencerSessionId();
                 if (!sessionId) {
                   setSequencerError(appCopy.errors.noActiveSessionForPadSwitching);
                   return;
                 }
 
                 void (async () => {
-                  let latestStatus: SessionSequencerStatus | null = null;
                   for (const row of drummerTrack.rows) {
-                    latestStatus = await queueSequencerPadRuntime(
-                      sessionId,
-                      drummerRowRuntimeTrackId(trackId, row.id),
-                      padIndex
-                    );
+                    await queueSequencerPadRuntime(sessionId, drummerRowRuntimeTrackId(trackId, row.id), padIndex);
                   }
                   setDrummerSequencerTrackQueuedPad(trackId, padIndex);
-                  if (latestStatus) {
-                    applySequencerStatus(latestStatus);
-                  }
                 })().catch((queueError) => {
                   setSequencerError(
                     queueError instanceof Error
@@ -4322,7 +2593,7 @@ export default function App() {
                   return;
                 }
 
-                const sessionId = sequencerSessionIdRef.current ?? activeSessionId;
+                const sessionId = resolveSequencerSessionId();
                 if (!sessionId) {
                   setSequencerError(appCopy.errors.noActiveSessionForPadSwitching);
                   return;
@@ -4330,9 +2601,6 @@ export default function App() {
 
                 const queuedPad = controllerSequencer.activePad === padIndex ? null : padIndex;
                 void queueSequencerPadRuntime(sessionId, controllerSequencerId, queuedPad)
-                  .then((status) => {
-                    applySequencerStatus(status);
-                  })
                   .catch((queueError) => {
                     setSequencerError(
                       queueError instanceof Error
@@ -4480,228 +2748,16 @@ export default function App() {
         </div>
       )}
 
-      {importSelectionDialog && (
-        <div
-          className="fixed inset-0 z-[1300] flex items-center justify-center bg-slate-950/75 p-4"
-          onMouseDown={() => closeImportSelectionDialog(false)}
-        >
-          <section
-            className="w-full max-w-xl rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl"
-            onMouseDown={(event) => event.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-label={importDialogCopy.optionsTitle}
-          >
-            <header className="border-b border-slate-700 px-4 py-3">
-              <h2 className="font-display text-lg font-semibold text-slate-100">{importDialogCopy.optionsTitle}</h2>
-              <p className="mt-1 text-xs text-slate-400">{importDialogCopy.optionsDescription}</p>
-            </header>
-
-            <div className="space-y-3 px-4 py-4 text-sm text-slate-200">
-              <label className="flex items-center gap-3 rounded-lg border border-slate-700 bg-slate-950/70 px-3 py-2">
-                <input
-                  type="checkbox"
-                  checked={importSelectionDialog.importPerformance}
-                  onChange={(event) =>
-                    setImportSelectionDialog((state) =>
-                      state
-                        ? {
-                            ...state,
-                            importPerformance: event.target.checked
-                          }
-                        : state
-                    )
-                  }
-                  className="h-4 w-4 accent-cyan-400"
-                />
-                <span>{importDialogCopy.performanceLabel}</span>
-              </label>
-
-              <label
-                className={`flex items-center gap-3 rounded-lg border px-3 py-2 ${
-                  importSelectionDialog.patchDefinitionsAvailable
-                    ? "border-slate-700 bg-slate-950/70"
-                    : "border-slate-800 bg-slate-900/50 text-slate-500"
-                }`}
-              >
-                <input
-                  type="checkbox"
-                  checked={importSelectionDialog.importPatchDefinitions}
-                  disabled={!importSelectionDialog.patchDefinitionsAvailable}
-                  onChange={(event) =>
-                    setImportSelectionDialog((state) =>
-                      state
-                        ? {
-                            ...state,
-                            importPatchDefinitions: event.target.checked
-                          }
-                        : state
-                    )
-                  }
-                  className="h-4 w-4 accent-cyan-400 disabled:opacity-50"
-                />
-                <span>{importDialogCopy.patchDefinitionsLabel}</span>
-              </label>
-            </div>
-
-            <footer className="flex items-center justify-end gap-2 border-t border-slate-700 px-4 py-3">
-              <button
-                type="button"
-                onClick={() => closeImportSelectionDialog(false)}
-                className="rounded-md border border-slate-600 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-slate-200 transition hover:border-slate-400"
-              >
-                {importDialogCopy.cancel}
-              </button>
-              <button
-                type="button"
-                disabled={!importSelectionDialog.importPerformance && !importSelectionDialog.importPatchDefinitions}
-                onClick={() => closeImportSelectionDialog(true)}
-                className="rounded-md border border-cyan-500/70 bg-cyan-500/15 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-cyan-200 transition hover:bg-cyan-500/25 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {importDialogCopy.import}
-              </button>
-            </footer>
-          </section>
-        </div>
-      )}
-
-      {importConflictDialog && (
-        <div
-          className="fixed inset-0 z-[1300] flex items-center justify-center bg-slate-950/75 p-4"
-          onMouseDown={() => closeImportConflictDialog(false)}
-        >
-          <section
-            className="flex max-h-[86vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl"
-            onMouseDown={(event) => event.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-label={importDialogCopy.conflictsTitle}
-          >
-            <header className="border-b border-slate-700 px-4 py-3">
-              <h2 className="font-display text-lg font-semibold text-slate-100">{importDialogCopy.conflictsTitle}</h2>
-              <p className="mt-1 text-xs text-slate-400">{importDialogCopy.conflictsDescription}</p>
-            </header>
-
-            <div className="min-h-0 space-y-2 overflow-y-auto px-4 py-4">
-              {importConflictDialog.items.map((item) => (
-                <article key={item.id} className="rounded-lg border border-slate-700 bg-slate-950/70 p-3">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <div className="text-sm font-semibold text-slate-100">
-                      {item.kind === "patch"
-                        ? importDialogCopy.conflictPatchLabel(item.originalName)
-                        : importDialogCopy.conflictPerformanceLabel(item.originalName)}
-                    </div>
-                    <label className="ml-auto inline-flex items-center gap-2 text-xs uppercase tracking-[0.12em] text-slate-300">
-                      <input
-                        type="checkbox"
-                        checked={item.overwrite}
-                        disabled={item.kind === "patch" && item.skip}
-                        onChange={(event) =>
-                          setImportConflictDialog((state) =>
-                            state
-                              ? {
-                                  items: state.items.map((entry) =>
-                                    entry.id === item.id
-                                      ? {
-                                          ...entry,
-                                          overwrite: event.target.checked
-                                        }
-                                      : entry
-                                  )
-                                }
-                              : state
-                          )
-                        }
-                        className="h-4 w-4 accent-cyan-400 disabled:opacity-50"
-                      />
-                      <span>{importDialogCopy.overwriteLabel}</span>
-                    </label>
-                    {item.kind === "patch" && (
-                      <label className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.12em] text-slate-300">
-                        <input
-                          type="checkbox"
-                          checked={item.skip}
-                          onChange={(event) =>
-                            setImportConflictDialog((state) =>
-                              state
-                                ? {
-                                    items: state.items.map((entry) =>
-                                      entry.id === item.id
-                                        ? {
-                                            ...entry,
-                                            skip: event.target.checked
-                                          }
-                                        : entry
-                                    )
-                                  }
-                                : state
-                            )
-                          }
-                          className="h-4 w-4 accent-cyan-400"
-                        />
-                        <span>{importDialogCopy.skipLabel}</span>
-                      </label>
-                    )}
-                  </div>
-
-                  {!item.overwrite && !(item.kind === "patch" && item.skip) && (
-                    <label className="mt-2 flex flex-col gap-1">
-                      <span className="text-[10px] uppercase tracking-[0.14em] text-slate-400">
-                        {importDialogCopy.newNameLabel}
-                      </span>
-                      <input
-                        value={item.targetName}
-                        onChange={(event) =>
-                          setImportConflictDialog((state) =>
-                            state
-                              ? {
-                                  items: state.items.map((entry) =>
-                                    entry.id === item.id
-                                      ? {
-                                          ...entry,
-                                          targetName: event.target.value
-                                        }
-                                      : entry
-                                  )
-                                }
-                              : state
-                          )
-                        }
-                        className="rounded-md border border-slate-600 bg-slate-900 px-2 py-1.5 text-xs text-slate-100 outline-none ring-cyan-400/40 transition focus:ring"
-                      />
-                    </label>
-                  )}
-                </article>
-              ))}
-            </div>
-
-            <footer className="border-t border-slate-700 px-4 py-3">
-              {importConflictValidationError && (
-                <div className="mb-2 rounded-md border border-rose-500/60 bg-rose-950/50 px-2 py-1.5 text-xs text-rose-200">
-                  {importConflictValidationError}
-                </div>
-              )}
-              <div className="flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                onClick={() => closeImportConflictDialog(false)}
-                className="rounded-md border border-slate-600 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-slate-200 transition hover:border-slate-400"
-              >
-                {importDialogCopy.cancel}
-              </button>
-              <button
-                type="button"
-                disabled={importConflictValidationError !== null}
-                onClick={() => closeImportConflictDialog(true)}
-                className="rounded-md border border-cyan-500/70 bg-cyan-500/15 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-cyan-200 transition hover:bg-cyan-500/25 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {importDialogCopy.import}
-              </button>
-              </div>
-            </footer>
-          </section>
-        </div>
-      )}
+      <ImportDialogs
+        importDialogCopy={importDialogCopy}
+        importSelectionDialog={importSelectionDialog}
+        setImportSelectionDialog={setImportSelectionDialog}
+        closeImportSelectionDialog={closeImportSelectionDialog}
+        importConflictDialog={importConflictDialog}
+        setImportConflictDialog={setImportConflictDialog}
+        closeImportConflictDialog={closeImportConflictDialog}
+        importConflictValidationError={importConflictValidationError}
+      />
 
       {selectedOpcodeDocumentation && (
         <Suspense fallback={<DeferredModalFallback />}>

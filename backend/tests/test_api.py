@@ -222,6 +222,13 @@ def test_client_static_endpoint(tmp_path: Path) -> None:
         assert "client-ok" in response.text
 
 
+def test_root_redirects_to_client(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        response = client.get("/", follow_redirects=False)
+        assert response.status_code == 307
+        assert response.headers["location"].endswith("/client")
+
+
 def test_runtime_config_exposes_browser_clock_mode(tmp_path: Path) -> None:
     with _client(tmp_path, audio_output_mode="browser_clock") as client:
         response = client.get("/api/runtime-config")

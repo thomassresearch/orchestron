@@ -26,6 +26,8 @@ const ENGINE_BUFFER_MAX = 8192;
 
 type BrowserClockLatencyFieldKey = keyof BrowserClockLatencySettings;
 type BrowserClockLatencyFormState = Record<BrowserClockLatencyFieldKey, string>;
+type EngineInputFieldKey = "audioRate" | "controlRate" | "softwareBuffer" | "hardwareBuffer";
+type EngineInputState = Record<EngineInputFieldKey, string>;
 
 type ConfigPageCopy = {
   audioEngineConfiguration: string;
@@ -297,6 +299,20 @@ function createLatencyFormState(settings: BrowserClockLatencySettings): BrowserC
   };
 }
 
+function createEngineInputState(
+  audioRate: number,
+  controlRate: number,
+  softwareBuffer: number,
+  hardwareBuffer: number
+): EngineInputState {
+  return {
+    audioRate: String(audioRate),
+    controlRate: String(controlRate),
+    softwareBuffer: String(softwareBuffer),
+    hardwareBuffer: String(hardwareBuffer)
+  };
+}
+
 export function ConfigPage({
   guiLanguage,
   audioRate,
@@ -312,38 +328,25 @@ export function ConfigPage({
 }: ConfigPageProps) {
   const copy = CONFIG_PAGE_COPY[guiLanguage];
 
-  const [audioInput, setAudioInput] = useState(String(audioRate));
-  const [controlInput, setControlInput] = useState(String(controlRate));
-  const [softwareBufferInput, setSoftwareBufferInput] = useState(String(softwareBuffer));
-  const [hardwareBufferInput, setHardwareBufferInput] = useState(String(hardwareBuffer));
+  const [engineInputs, setEngineInputs] = useState<EngineInputState>(() =>
+    createEngineInputState(audioRate, controlRate, softwareBuffer, hardwareBuffer)
+  );
   const [latencyInputs, setLatencyInputs] = useState<BrowserClockLatencyFormState>(() =>
     createLatencyFormState(browserClockLatencySettings)
   );
 
   useEffect(() => {
-    setAudioInput(String(audioRate));
-  }, [audioRate]);
-
-  useEffect(() => {
-    setControlInput(String(controlRate));
-  }, [controlRate]);
-
-  useEffect(() => {
-    setSoftwareBufferInput(String(softwareBuffer));
-  }, [softwareBuffer]);
-
-  useEffect(() => {
-    setHardwareBufferInput(String(hardwareBuffer));
-  }, [hardwareBuffer]);
+    setEngineInputs(createEngineInputState(audioRate, controlRate, softwareBuffer, hardwareBuffer));
+  }, [audioRate, controlRate, hardwareBuffer, softwareBuffer]);
 
   useEffect(() => {
     setLatencyInputs(createLatencyFormState(browserClockLatencySettings));
   }, [browserClockLatencySettings]);
 
-  const parsedAudioRate = parsePositiveInteger(audioInput);
-  const parsedControlRate = parsePositiveInteger(controlInput);
-  const parsedSoftwareBuffer = parsePositiveInteger(softwareBufferInput);
-  const parsedHardwareBuffer = parsePositiveInteger(hardwareBufferInput);
+  const parsedAudioRate = parsePositiveInteger(engineInputs.audioRate);
+  const parsedControlRate = parsePositiveInteger(engineInputs.controlRate);
+  const parsedSoftwareBuffer = parsePositiveInteger(engineInputs.softwareBuffer);
+  const parsedHardwareBuffer = parsePositiveInteger(engineInputs.hardwareBuffer);
 
   const audioError = validateRange(parsedAudioRate, AUDIO_RATE_MIN, AUDIO_RATE_MAX, copy.audioSampleRateHz, copy);
   const controlError = validateRange(
@@ -404,14 +407,13 @@ export function ConfigPage({
   );
 
   const parsedLatencyValues = useMemo(
-    () =>
-      browserClockFieldDefinitions.reduce(
-        (result, field) => ({
-          ...result,
-          [field.key]: parsePositiveInteger(latencyInputs[field.key])
-        }),
-        {} as Record<BrowserClockLatencyFieldKey, number | null>
-      ),
+    () => {
+      const result = {} as Record<BrowserClockLatencyFieldKey, number | null>;
+      for (const field of browserClockFieldDefinitions) {
+        result[field.key] = parsePositiveInteger(latencyInputs[field.key]);
+      }
+      return result;
+    },
     [browserClockFieldDefinitions, latencyInputs]
   );
 
@@ -471,6 +473,13 @@ export function ConfigPage({
     });
   };
 
+  function updateEngineInput(field: EngineInputFieldKey, value: string): void {
+    setEngineInputs((current) => ({
+      ...current,
+      [field]: value
+    }));
+  }
+
   const onApplyBrowserClockLatency = () => {
     if (!canApplyBrowserClockLatencySettings) {
       return;
@@ -519,8 +528,8 @@ export function ConfigPage({
                 min={AUDIO_RATE_MIN}
                 max={AUDIO_RATE_MAX}
                 step={1}
-                value={audioInput}
-                onChange={(event) => setAudioInput(event.target.value)}
+                value={engineInputs.audioRate}
+                onChange={(event) => updateEngineInput("audioRate", event.target.value)}
                 className="rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 font-mono text-sm text-slate-100 outline-none ring-accent/40 transition focus:ring"
               />
               <span className={`text-xs ${audioError ? "text-rose-300" : "text-slate-500"}`}>
@@ -536,8 +545,8 @@ export function ConfigPage({
                 min={CONTROL_RATE_MIN}
                 max={CONTROL_RATE_MAX}
                 step={1}
-                value={controlInput}
-                onChange={(event) => setControlInput(event.target.value)}
+                value={engineInputs.controlRate}
+                onChange={(event) => updateEngineInput("controlRate", event.target.value)}
                 className="rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 font-mono text-sm text-slate-100 outline-none ring-accent/40 transition focus:ring"
               />
               <span className={`text-xs ${controlError ? "text-rose-300" : "text-slate-500"}`}>
@@ -553,8 +562,8 @@ export function ConfigPage({
                 min={ENGINE_BUFFER_MIN}
                 max={ENGINE_BUFFER_MAX}
                 step={1}
-                value={softwareBufferInput}
-                onChange={(event) => setSoftwareBufferInput(event.target.value)}
+                value={engineInputs.softwareBuffer}
+                onChange={(event) => updateEngineInput("softwareBuffer", event.target.value)}
                 className="rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 font-mono text-sm text-slate-100 outline-none ring-accent/40 transition focus:ring"
               />
               <span className={`text-xs ${softwareBufferError ? "text-rose-300" : "text-slate-500"}`}>
@@ -570,8 +579,8 @@ export function ConfigPage({
                 min={ENGINE_BUFFER_MIN}
                 max={ENGINE_BUFFER_MAX}
                 step={1}
-                value={hardwareBufferInput}
-                onChange={(event) => setHardwareBufferInput(event.target.value)}
+                value={engineInputs.hardwareBuffer}
+                onChange={(event) => updateEngineInput("hardwareBuffer", event.target.value)}
                 className="rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 font-mono text-sm text-slate-100 outline-none ring-accent/40 transition focus:ring"
               />
               <span className={`text-xs ${hardwareBufferError ? "text-rose-300" : "text-slate-500"}`}>

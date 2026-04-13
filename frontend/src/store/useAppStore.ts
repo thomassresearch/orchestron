@@ -12,6 +12,11 @@ import {
 import { createUntitledPatch } from "../lib/defaultPatch";
 import { normalizeGuiLanguage } from "../lib/guiLanguage";
 import {
+  findPatchByName,
+  remapSnapshotPatchIds,
+  toPatchListItem
+} from "../lib/patchCatalog";
+import {
   compilePadLoopPattern,
   createEmptyPadLoopPattern,
   insertPadLoopItem,
@@ -2346,28 +2351,6 @@ type EmbeddedPerformancePatchDefinition = {
   graph: PatchGraph;
 };
 
-function toPatchListItem(patch: Patch): PatchListItem {
-  return {
-    id: patch.id,
-    name: patch.name,
-    description: patch.description,
-    schema_version: patch.schema_version,
-    updated_at: patch.updated_at
-  };
-}
-
-function normalizeNameKey(value: string): string {
-  return value.trim().toLocaleLowerCase();
-}
-
-function findPatchByName(patches: PatchListItem[], name: string): PatchListItem | null {
-  const target = normalizeNameKey(name);
-  if (target.length === 0) {
-    return null;
-  }
-  return patches.find((patch) => normalizeNameKey(patch.name) === target) ?? null;
-}
-
 function parseEmbeddedPerformancePatchDefinition(raw: unknown): EmbeddedPerformancePatchDefinition | null {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
     return null;
@@ -2425,37 +2408,6 @@ function embeddedPatchDefinitionsFromSnapshot(snapshot: unknown): EmbeddedPerfor
     }
   }
   return [...deduped.values()];
-}
-
-function remapSnapshotPatchIds(
-  snapshot: SequencerConfigSnapshot,
-  patchIdMap: Map<string, string>,
-  patches: PatchListItem[]
-): SequencerConfigSnapshot {
-  return {
-    ...snapshot,
-    instruments: snapshot.instruments.map((instrument) => {
-      const mappedPatchId = patchIdMap.get(instrument.patchId);
-      if (mappedPatchId) {
-        return {
-          ...instrument,
-          patchId: mappedPatchId
-        };
-      }
-
-      if (typeof instrument.patchName === "string" && instrument.patchName.trim().length > 0) {
-        const existing = findPatchByName(patches, instrument.patchName);
-        if (existing) {
-          return {
-            ...instrument,
-            patchId: existing.id
-          };
-        }
-      }
-
-      return instrument;
-    })
-  };
 }
 
 async function hydrateEmbeddedPerformancePatches(

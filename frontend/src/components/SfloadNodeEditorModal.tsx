@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { api } from "../api/client";
+import { AssetUploadCard } from "./AssetUploadCard";
+import { NodeEditorModalFrame } from "./NodeEditorModalFrame";
 import type { GenAudioAssetRef } from "../lib/genNodeConfig";
 import { normalizeSfloadNodeConfig, type SfloadNodeConfig } from "../lib/sfloadNodeConfig";
 import type { GuiLanguage } from "../types";
@@ -98,18 +100,17 @@ export function SfloadNodeEditorModal({
   const [draft, setDraft] = useState<SfloadNodeConfig>(() => normalizeSfloadNodeConfig(initialConfig));
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     setDraft(normalizeSfloadNodeConfig(initialConfig));
     setUploadError(null);
   }, [initialConfig]);
 
-  const setSampleAsset = (asset: GenAudioAssetRef | null) => {
+  function setSampleAsset(asset: GenAudioAssetRef | null): void {
     setDraft((current) => ({ ...current, sampleAsset: asset }));
-  };
+  }
 
-  const handleUploadFile = async (file: File) => {
+  async function handleUploadFile(file: File): Promise<void> {
     setUploadError(null);
     setUploading(true);
     try {
@@ -124,87 +125,56 @@ export function SfloadNodeEditorModal({
     } finally {
       setUploading(false);
     }
-  };
+  }
+
+  const footer = (
+    <>
+      <button
+        type="button"
+        onClick={onClose}
+        className="rounded-lg border border-slate-600 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-400"
+      >
+        {copy.close}
+      </button>
+      <button
+        type="button"
+        onClick={() => onSave(normalizeSfloadNodeConfig(draft))}
+        className="rounded-lg border border-cyan-500/60 bg-cyan-500/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-cyan-200 transition hover:bg-cyan-500/20"
+      >
+        {copy.save}
+      </button>
+    </>
+  );
 
   return (
-    <div className="fixed inset-0 z-[1260] flex items-center justify-center bg-slate-950/80 p-4" onMouseDown={onClose}>
-      <section
-        className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl"
-        onMouseDown={(event) => event.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-label={copy.configureSfloadAria(nodeId)}
-      >
-        <header className="flex items-start justify-between gap-3 border-b border-slate-700 px-4 py-3">
-          <div>
-            <h2 className="font-display text-lg font-semibold text-slate-100">{copy.title}</h2>
-            <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
-              {copy.nodeLabel} {nodeId}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg border border-slate-600 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-400"
-          >
-            {copy.close}
-          </button>
-        </header>
-
-        <div className="space-y-4 overflow-y-auto p-4">
+    <NodeEditorModalFrame
+      ariaLabel={copy.configureSfloadAria(nodeId)}
+      title={copy.title}
+      nodeId={nodeId}
+      nodeLabel={copy.nodeLabel}
+      closeLabel={copy.close}
+      onClose={onClose}
+      footer={footer}
+    >
           <div className="rounded-xl border border-slate-700 bg-slate-950/60 p-3">
             <div className="rounded-md border border-slate-700 bg-slate-900/70 px-3 py-2 text-xs text-slate-300">
               {copy.note}
             </div>
 
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-                className="rounded-md border border-cyan-500/60 bg-cyan-500/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-cyan-200 transition hover:bg-cyan-500/20 disabled:opacity-50"
-              >
-                {uploading ? copy.uploading : copy.uploadSf2File}
-              </button>
-              {draft.sampleAsset ? (
-                <button
-                  type="button"
-                  onClick={() => setSampleAsset(null)}
-                  className="rounded-md border border-rose-500/50 bg-rose-950/30 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-rose-200 transition hover:bg-rose-900/30"
-                >
-                  {copy.clearAsset}
-                </button>
-              ) : null}
+            <div className="mt-3">
+              <AssetUploadCard
+                accept=".sf2"
+                asset={draft.sampleAsset}
+                uploading={uploading}
+                uploadError={uploadError}
+                uploadLabel={copy.uploadSf2File}
+                uploadingLabel={copy.uploading}
+                clearLabel={copy.clearAsset}
+                persistedAssetLabel={copy.persistedAsset}
+                onClearAsset={() => setSampleAsset(null)}
+                onUploadFile={handleUploadFile}
+              />
             </div>
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".sf2"
-              className="hidden"
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                event.target.value = "";
-                if (file) {
-                  void handleUploadFile(file);
-                }
-              }}
-            />
-
-            {draft.sampleAsset ? (
-              <div className="mt-3 rounded-md border border-emerald-500/30 bg-emerald-950/20 px-3 py-2 text-xs text-emerald-100">
-                <div className="font-semibold">
-                  {copy.persistedAsset}: {draft.sampleAsset.original_name}
-                </div>
-                <div className="mt-1 font-mono text-[11px] text-emerald-200/90">{draft.sampleAsset.stored_name}</div>
-              </div>
-            ) : null}
-
-            {uploadError ? (
-              <div className="mt-3 rounded-md border border-rose-500/50 bg-rose-950/30 px-3 py-2 text-xs text-rose-200">
-                {uploadError}
-              </div>
-            ) : null}
           </div>
 
           <label className="flex flex-col gap-1">
@@ -217,25 +187,6 @@ export function SfloadNodeEditorModal({
               className="rounded-md border border-slate-600 bg-slate-900 px-2 py-1.5 font-mono text-xs text-slate-100 outline-none ring-cyan-400/30 transition focus:ring"
             />
           </label>
-        </div>
-
-        <footer className="flex items-center justify-end gap-2 border-t border-slate-700 px-4 py-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg border border-slate-600 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-400"
-          >
-            {copy.close}
-          </button>
-          <button
-            type="button"
-            onClick={() => onSave(normalizeSfloadNodeConfig(draft))}
-            className="rounded-lg border border-cyan-500/60 bg-cyan-500/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-cyan-200 transition hover:bg-cyan-500/20"
-          >
-            {copy.save}
-          </button>
-        </footer>
-      </section>
-    </div>
+    </NodeEditorModalFrame>
   );
 }
