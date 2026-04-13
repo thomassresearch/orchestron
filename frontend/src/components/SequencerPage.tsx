@@ -2113,7 +2113,7 @@ function areControllerSequencerCurveEditorPropsEqual(
   return previous.ui === next.ui && previous.controllerSequencer === next.controllerSequencer && playbackEqual;
 }
 
-interface SequencerPageProps {
+interface SequencerPageData {
   guiLanguage: GuiLanguage;
   patches: PatchListItem[];
   performances: PerformanceListItem[];
@@ -2127,11 +2127,20 @@ interface SequencerPageProps {
   sessionState: string;
   midiInputName: string | null;
   transportError: string | null;
+}
+
+interface SequencerPageInstrumentActions {
   onAddInstrument: () => void;
   onRemoveInstrument: (bindingId: string) => void;
   onInstrumentPatchChange: (bindingId: string, patchId: string) => void;
   onInstrumentChannelChange: (bindingId: string, channel: number) => void;
   onInstrumentLevelChange: (bindingId: string, level: number) => void;
+  onStartInstruments: () => void;
+  onStopInstruments: () => void;
+  onStopInstrumentsAndResetTransport: () => void;
+}
+
+interface SequencerPagePerformanceActions {
   onPerformanceNameChange: (value: string) => void;
   onPerformanceDescriptionChange: (value: string) => void;
   onNewPerformance: () => void;
@@ -2142,16 +2151,17 @@ interface SequencerPageProps {
   onExportConfig: () => void;
   onExportCsd: () => void;
   onImportConfig: (file: File) => void;
-  onStartInstruments: () => void;
-  onStopInstruments: () => void;
-  onStopInstrumentsAndResetTransport: () => void;
+}
+
+interface SequencerPageTransportActions {
   onBpmChange: (bpm: number) => void;
-  onAddSequencerTrack: () => void;
-  onAddDrummerSequencerTrack: () => void;
-  onAddControllerSequencer: () => void;
   onSequencerCycleRewind: () => void;
   onSequencerCycleForward: () => void;
   onSequencerArrangerLoopSelectionChange: (selection: ArrangerLoopSelection | null) => void;
+}
+
+interface SequencerPageMelodicTrackActions {
+  onAddSequencerTrack: () => void;
   onRemoveSequencerTrack: (trackId: string) => void;
   onSequencerTrackEnabledChange: (trackId: string, enabled: boolean) => void;
   onSequencerTrackChannelChange: (trackId: string, channel: number) => void;
@@ -2184,6 +2194,10 @@ interface SequencerPageProps {
   onSequencerTrackPadLoopPatternChange: (trackId: string, pattern: PadLoopPatternState) => void;
   onSequencerTrackPadLoopStepAdd: (trackId: string, padIndex: number) => void;
   onSequencerTrackPadLoopStepRemove: (trackId: string, sequenceIndex: number) => void;
+}
+
+interface SequencerPageDrummerTrackActions {
+  onAddDrummerSequencerTrack: () => void;
   onRemoveDrummerSequencerTrack: (trackId: string) => void;
   onDrummerSequencerTrackEnabledChange: (trackId: string, enabled: boolean) => void;
   onDrummerSequencerTrackChannelChange: (trackId: string, channel: number) => void;
@@ -2206,6 +2220,9 @@ interface SequencerPageProps {
   onDrummerSequencerTrackPadLoopPatternChange: (trackId: string, pattern: PadLoopPatternState) => void;
   onDrummerSequencerTrackPadLoopStepAdd: (trackId: string, padIndex: number) => void;
   onDrummerSequencerTrackPadLoopStepRemove: (trackId: string, sequenceIndex: number) => void;
+}
+
+interface SequencerPagePianoRollActions {
   onAddPianoRoll: () => void;
   onRemovePianoRoll: (rollId: string) => void;
   onPianoRollEnabledChange: (rollId: string, enabled: boolean) => void;
@@ -2215,11 +2232,18 @@ interface SequencerPageProps {
   onPianoRollModeChange: (rollId: string, mode: SequencerMode) => void;
   onPianoRollNoteOn: (note: number, channel: number, velocity: number) => void;
   onPianoRollNoteOff: (note: number, channel: number) => void;
+}
+
+interface SequencerPageMidiControllerActions {
   onAddMidiController: () => void;
   onRemoveMidiController: (controllerId: string) => void;
   onMidiControllerEnabledChange: (controllerId: string, enabled: boolean) => void;
   onMidiControllerNumberChange: (controllerId: string, controllerNumber: number) => void;
   onMidiControllerValueChange: (controllerId: string, value: number) => void;
+}
+
+interface SequencerPageControllerSequencerActions {
+  onAddControllerSequencer: () => void;
   onRemoveControllerSequencer: (controllerSequencerId: string) => void;
   onControllerSequencerEnabledChange: (controllerSequencerId: string, enabled: boolean) => void;
   onControllerSequencerNumberChange: (controllerSequencerId: string, controllerNumber: number) => void;
@@ -2256,6 +2280,18 @@ interface SequencerPageProps {
     value: number
   ) => void;
   onControllerSequencerKeypointRemove: (controllerSequencerId: string, keypointId: string) => void;
+}
+
+interface SequencerPageProps {
+  data: SequencerPageData;
+  instrumentActions: SequencerPageInstrumentActions;
+  performanceActions: SequencerPagePerformanceActions;
+  transportActions: SequencerPageTransportActions;
+  melodicTrackActions: SequencerPageMelodicTrackActions;
+  drummerTrackActions: SequencerPageDrummerTrackActions;
+  pianoRollActions: SequencerPagePianoRollActions;
+  midiControllerActions: SequencerPageMidiControllerActions;
+  controllerSequencerActions: SequencerPageControllerSequencerActions;
   onHelpRequest?: (helpDocId: HelpDocId) => void;
 }
 
@@ -3486,129 +3522,156 @@ function arePadLoopPatternEditorPropsEqual(
 }
 
 export function SequencerPage({
-  guiLanguage,
-  patches,
-  performances,
-  instrumentBindings,
-  sequencer,
-  sequencerTransportSubunit,
-  currentPerformanceId,
-  performanceName,
-  performanceDescription,
-  instrumentsRunning,
-  sessionState,
-  midiInputName,
-  transportError,
-  onAddInstrument,
-  onRemoveInstrument,
-  onInstrumentPatchChange,
-  onInstrumentChannelChange,
-  onInstrumentLevelChange,
-  onPerformanceNameChange,
-  onPerformanceDescriptionChange,
-  onNewPerformance,
-  onSavePerformance,
-  onClonePerformance,
-  onDeletePerformance,
-  onLoadPerformance,
-  onExportConfig,
-  onExportCsd,
-  onImportConfig,
-  onStartInstruments,
-  onStopInstruments,
-  onStopInstrumentsAndResetTransport,
-  onBpmChange,
-  onAddSequencerTrack,
-  onAddDrummerSequencerTrack,
-  onAddControllerSequencer,
-  onSequencerCycleRewind,
-  onSequencerCycleForward,
-  onSequencerArrangerLoopSelectionChange,
-  onRemoveSequencerTrack,
-  onSequencerTrackEnabledChange,
-  onSequencerTrackChannelChange,
-  onSequencerTrackSyncTargetChange,
-  onSequencerTrackScaleChange,
-  onSequencerTrackModeChange,
-  onSequencerTrackMeterNumeratorChange,
-  onSequencerTrackMeterDenominatorChange,
-  onSequencerTrackStepsPerBeatChange,
-  onSequencerTrackBeatRateChange,
-  onSequencerTrackStepCountChange,
-  onSequencerTrackStepNoteChange,
-  onSequencerTrackStepChordChange,
-  onSequencerTrackStepHoldChange,
-  onSequencerTrackStepVelocityChange,
-  onSequencerTrackStepCopy,
-  onSequencerTrackClearSteps,
-  onSequencerTrackReorder,
-  onSequencerPadPress,
-  onSequencerPadCopy,
-  onSequencerPadTransposeShort,
-  onSequencerPadTransposeLong,
-  onSequencerTrackPadLoopEnabledChange,
-  onSequencerTrackPadLoopRepeatChange,
-  onSequencerTrackPadLoopPatternChange,
-  onSequencerTrackPadLoopStepAdd,
-  onSequencerTrackPadLoopStepRemove,
-  onRemoveDrummerSequencerTrack,
-  onDrummerSequencerTrackEnabledChange,
-  onDrummerSequencerTrackChannelChange,
-  onDrummerSequencerTrackMeterNumeratorChange,
-  onDrummerSequencerTrackMeterDenominatorChange,
-  onDrummerSequencerTrackStepsPerBeatChange,
-  onDrummerSequencerTrackBeatRateChange,
-  onDrummerSequencerTrackStepCountChange,
-  onDrummerSequencerRowAdd,
-  onDrummerSequencerRowRemove,
-  onDrummerSequencerRowKeyChange,
-  onDrummerSequencerRowKeyPreview,
-  onDrummerSequencerCellToggle,
-  onDrummerSequencerCellVelocityChange,
-  onDrummerSequencerTrackClearSteps,
-  onDrummerSequencerPadPress,
-  onDrummerSequencerPadCopy,
-  onDrummerSequencerTrackPadLoopEnabledChange,
-  onDrummerSequencerTrackPadLoopRepeatChange,
-  onDrummerSequencerTrackPadLoopPatternChange,
-  onDrummerSequencerTrackPadLoopStepAdd,
-  onDrummerSequencerTrackPadLoopStepRemove,
-  onAddPianoRoll,
-  onRemovePianoRoll,
-  onPianoRollEnabledChange,
-  onPianoRollMidiChannelChange,
-  onPianoRollVelocityChange,
-  onPianoRollScaleChange,
-  onPianoRollModeChange,
-  onPianoRollNoteOn,
-  onPianoRollNoteOff,
-  onAddMidiController,
-  onRemoveMidiController,
-  onMidiControllerEnabledChange,
-  onMidiControllerNumberChange,
-  onMidiControllerValueChange,
-  onRemoveControllerSequencer,
-  onControllerSequencerEnabledChange,
-  onControllerSequencerNumberChange,
-  onControllerSequencerMeterNumeratorChange,
-  onControllerSequencerMeterDenominatorChange,
-  onControllerSequencerStepsPerBeatChange,
-  onControllerSequencerBeatRateChange,
-  onControllerSequencerPadPress,
-  onControllerSequencerPadCopy,
-  onControllerSequencerClearSteps,
-  onControllerSequencerPadLoopEnabledChange,
-  onControllerSequencerPadLoopRepeatChange,
-  onControllerSequencerPadLoopPatternChange,
-  onControllerSequencerPadLoopStepAdd,
-  onControllerSequencerPadLoopStepRemove,
-  onControllerSequencerStepCountChange,
-  onControllerSequencerKeypointAdd,
-  onControllerSequencerKeypointChange,
-  onControllerSequencerKeypointValueChange,
-  onControllerSequencerKeypointRemove,
+  data,
+  instrumentActions,
+  performanceActions,
+  transportActions,
+  melodicTrackActions,
+  drummerTrackActions,
+  pianoRollActions,
+  midiControllerActions,
+  controllerSequencerActions,
   onHelpRequest
 }: SequencerPageProps) {
+  const {
+    guiLanguage,
+    patches,
+    performances,
+    instrumentBindings,
+    sequencer,
+    sequencerTransportSubunit,
+    currentPerformanceId,
+    performanceName,
+    performanceDescription,
+    instrumentsRunning,
+    sessionState,
+    midiInputName,
+    transportError
+  } = data;
+  const {
+    onAddInstrument,
+    onRemoveInstrument,
+    onInstrumentPatchChange,
+    onInstrumentChannelChange,
+    onInstrumentLevelChange,
+    onStartInstruments,
+    onStopInstruments,
+    onStopInstrumentsAndResetTransport
+  } = instrumentActions;
+  const {
+    onPerformanceNameChange,
+    onPerformanceDescriptionChange,
+    onNewPerformance,
+    onSavePerformance,
+    onClonePerformance,
+    onDeletePerformance,
+    onLoadPerformance,
+    onExportConfig,
+    onExportCsd,
+    onImportConfig
+  } = performanceActions;
+  const {
+    onBpmChange,
+    onSequencerCycleRewind,
+    onSequencerCycleForward,
+    onSequencerArrangerLoopSelectionChange
+  } = transportActions;
+  const {
+    onAddSequencerTrack,
+    onRemoveSequencerTrack,
+    onSequencerTrackEnabledChange,
+    onSequencerTrackChannelChange,
+    onSequencerTrackSyncTargetChange,
+    onSequencerTrackScaleChange,
+    onSequencerTrackModeChange,
+    onSequencerTrackMeterNumeratorChange,
+    onSequencerTrackMeterDenominatorChange,
+    onSequencerTrackStepsPerBeatChange,
+    onSequencerTrackBeatRateChange,
+    onSequencerTrackStepCountChange,
+    onSequencerTrackStepNoteChange,
+    onSequencerTrackStepChordChange,
+    onSequencerTrackStepHoldChange,
+    onSequencerTrackStepVelocityChange,
+    onSequencerTrackStepCopy,
+    onSequencerTrackClearSteps,
+    onSequencerTrackReorder,
+    onSequencerPadPress,
+    onSequencerPadCopy,
+    onSequencerPadTransposeShort,
+    onSequencerPadTransposeLong,
+    onSequencerTrackPadLoopEnabledChange,
+    onSequencerTrackPadLoopRepeatChange,
+    onSequencerTrackPadLoopPatternChange,
+    onSequencerTrackPadLoopStepAdd,
+    onSequencerTrackPadLoopStepRemove
+  } = melodicTrackActions;
+  const {
+    onAddDrummerSequencerTrack,
+    onRemoveDrummerSequencerTrack,
+    onDrummerSequencerTrackEnabledChange,
+    onDrummerSequencerTrackChannelChange,
+    onDrummerSequencerTrackMeterNumeratorChange,
+    onDrummerSequencerTrackMeterDenominatorChange,
+    onDrummerSequencerTrackStepsPerBeatChange,
+    onDrummerSequencerTrackBeatRateChange,
+    onDrummerSequencerTrackStepCountChange,
+    onDrummerSequencerRowAdd,
+    onDrummerSequencerRowRemove,
+    onDrummerSequencerRowKeyChange,
+    onDrummerSequencerRowKeyPreview,
+    onDrummerSequencerCellToggle,
+    onDrummerSequencerCellVelocityChange,
+    onDrummerSequencerTrackClearSteps,
+    onDrummerSequencerPadPress,
+    onDrummerSequencerPadCopy,
+    onDrummerSequencerTrackPadLoopEnabledChange,
+    onDrummerSequencerTrackPadLoopRepeatChange,
+    onDrummerSequencerTrackPadLoopPatternChange,
+    onDrummerSequencerTrackPadLoopStepAdd,
+    onDrummerSequencerTrackPadLoopStepRemove
+  } = drummerTrackActions;
+  const {
+    onAddPianoRoll,
+    onRemovePianoRoll,
+    onPianoRollEnabledChange,
+    onPianoRollMidiChannelChange,
+    onPianoRollVelocityChange,
+    onPianoRollScaleChange,
+    onPianoRollModeChange,
+    onPianoRollNoteOn,
+    onPianoRollNoteOff
+  } = pianoRollActions;
+  const {
+    onAddMidiController,
+    onRemoveMidiController,
+    onMidiControllerEnabledChange,
+    onMidiControllerNumberChange,
+    onMidiControllerValueChange
+  } = midiControllerActions;
+  const {
+    onAddControllerSequencer,
+    onRemoveControllerSequencer,
+    onControllerSequencerEnabledChange,
+    onControllerSequencerNumberChange,
+    onControllerSequencerMeterNumeratorChange,
+    onControllerSequencerMeterDenominatorChange,
+    onControllerSequencerStepsPerBeatChange,
+    onControllerSequencerBeatRateChange,
+    onControllerSequencerPadPress,
+    onControllerSequencerPadCopy,
+    onControllerSequencerClearSteps,
+    onControllerSequencerPadLoopEnabledChange,
+    onControllerSequencerPadLoopRepeatChange,
+    onControllerSequencerPadLoopPatternChange,
+    onControllerSequencerPadLoopStepAdd,
+    onControllerSequencerPadLoopStepRemove,
+    onControllerSequencerStepCountChange,
+    onControllerSequencerKeypointAdd,
+    onControllerSequencerKeypointChange,
+    onControllerSequencerKeypointValueChange,
+    onControllerSequencerKeypointRemove
+  } = controllerSequencerActions;
   const ui = SEQUENCER_UI_COPY[guiLanguage];
   const modeLabels = MODE_LABELS[guiLanguage];
   const scaleTypeLabels = SCALE_TYPE_LABELS[guiLanguage];

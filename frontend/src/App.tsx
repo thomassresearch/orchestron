@@ -2178,6 +2178,243 @@ export default function App() {
         : appCopy.patchCompileStatusPending;
   const patchCompileBadgeClass =
     patchCompileBadge === "errors" ? "text-[11px] font-medium text-rose-300" : "text-[11px] font-medium text-orange-300";
+  const sequencerPageData = {
+    guiLanguage,
+    patches,
+    performances,
+    instrumentBindings: sequencerInstruments,
+    sequencer: displayedSequencer,
+    sequencerTransportSubunit: displayedSequencerTransportSubunit,
+    currentPerformanceId,
+    performanceName,
+    performanceDescription,
+    instrumentsRunning,
+    sessionState: activeSessionState,
+    midiInputName: activeMidiInputName,
+    transportError: sequencerError
+  };
+  const sequencerInstrumentActions = {
+    onAddInstrument: addSequencerInstrument,
+    onRemoveInstrument: removeSequencerInstrument,
+    onInstrumentPatchChange: updateSequencerInstrumentPatch,
+    onInstrumentChannelChange: updateSequencerInstrumentChannel,
+    onInstrumentLevelChange: updateSequencerInstrumentLevel,
+    onStartInstruments: onStartInstrumentEngine,
+    onStopInstruments: onStopInstrumentEngine,
+    onStopInstrumentsAndResetTransport: onStopInstrumentEngineAndResetTransport
+  };
+  const sequencerPerformanceActions = {
+    onPerformanceNameChange: (name: string) => setCurrentPerformanceMeta(name, performanceDescription),
+    onPerformanceDescriptionChange: (description: string) => setCurrentPerformanceMeta(performanceName, description),
+    onNewPerformance: onNewCurrentPerformance,
+    onSavePerformance: () => {
+      void saveCurrentPerformance();
+    },
+    onClonePerformance: onCloneCurrentPerformance,
+    onDeletePerformance: onDeleteCurrentPerformance,
+    onLoadPerformance: (performanceId: string) => {
+      void loadPerformance(performanceId);
+    },
+    onExportConfig: onExportSequencerConfig,
+    onExportCsd: onExportPerformanceCsd,
+    onImportConfig: onImportSequencerConfig
+  };
+  const sequencerTransportActions = {
+    onBpmChange: setSequencerBpm,
+    onSequencerCycleRewind: () => {
+      void moveSequencerTransport(-sequencerTransportStepsPerBeat(sequencer.timing));
+    },
+    onSequencerCycleForward: () => {
+      void moveSequencerTransport(sequencerTransportStepsPerBeat(sequencer.timing));
+    },
+    onSequencerArrangerLoopSelectionChange: handleArrangerLoopSelectionChange
+  };
+  const sequencerMelodicTrackActions = {
+    onAddSequencerTrack: addSequencerTrack,
+    onRemoveSequencerTrack: removeSequencerTrack,
+    onSequencerTrackEnabledChange,
+    onSequencerTrackChannelChange: setSequencerTrackMidiChannel,
+    onSequencerTrackSyncTargetChange: setSequencerTrackSyncTarget,
+    onSequencerTrackScaleChange: setSequencerTrackScale,
+    onSequencerTrackModeChange: setSequencerTrackMode,
+    onSequencerTrackMeterNumeratorChange: setSequencerTrackMeterNumerator,
+    onSequencerTrackMeterDenominatorChange: setSequencerTrackMeterDenominator,
+    onSequencerTrackStepsPerBeatChange: setSequencerTrackStepsPerBeat,
+    onSequencerTrackBeatRateChange: setSequencerTrackBeatRate,
+    onSequencerTrackStepCountChange: setSequencerTrackStepCount,
+    onSequencerTrackStepNoteChange: setSequencerTrackStepNote,
+    onSequencerTrackStepChordChange: setSequencerTrackStepChord,
+    onSequencerTrackStepHoldChange: setSequencerTrackStepHold,
+    onSequencerTrackStepVelocityChange: setSequencerTrackStepVelocity,
+    onSequencerTrackStepCopy: copySequencerTrackStepSettings,
+    onSequencerTrackClearSteps: clearSequencerTrackSteps,
+    onSequencerTrackReorder: moveSequencerTrack,
+    onSequencerPadPress: (trackId: string, padIndex: number) => {
+      const track = sequencerRef.current.tracks.find((candidate) => candidate.id === trackId);
+      if (!track) {
+        return;
+      }
+      if (!sequencerRef.current.isPlaying || !track.enabled) {
+        setSequencerTrackActivePad(trackId, padIndex);
+        return;
+      }
+
+      const sessionId = resolveSequencerSessionId();
+      if (!sessionId) {
+        setSequencerError(appCopy.errors.noActiveSessionForPadSwitching);
+        return;
+      }
+
+      void queueSequencerPadRuntime(sessionId, trackId, padIndex)
+        .then(() => {
+          setSequencerTrackQueuedPad(trackId, padIndex);
+        })
+        .catch((queueError) => {
+          setSequencerError(
+            queueError instanceof Error
+              ? `${appCopy.errors.failedToQueuePad}: ${queueError.message}`
+              : appCopy.errors.failedToQueuePad
+          );
+        });
+    },
+    onSequencerPadCopy: (trackId: string, sourcePadIndex: number, targetPadIndex: number) => {
+      copySequencerTrackPad(trackId, sourcePadIndex, targetPadIndex);
+    },
+    onSequencerPadTransposeShort: (trackId: string, padIndex: number, direction: -1 | 1) => {
+      transposeSequencerTrackPadInScale(trackId, padIndex, direction);
+    },
+    onSequencerPadTransposeLong: (trackId: string, padIndex: number, direction: -1 | 1) => {
+      transposeSequencerTrackPadDiatonic(trackId, padIndex, direction);
+    },
+    onSequencerTrackPadLoopEnabledChange: setSequencerTrackPadLoopEnabled,
+    onSequencerTrackPadLoopRepeatChange: setSequencerTrackPadLoopRepeat,
+    onSequencerTrackPadLoopPatternChange: setSequencerTrackPadLoopPattern,
+    onSequencerTrackPadLoopStepAdd: addSequencerTrackPadLoopStep,
+    onSequencerTrackPadLoopStepRemove: removeSequencerTrackPadLoopStep
+  };
+  const sequencerDrummerTrackActions = {
+    onAddDrummerSequencerTrack: addDrummerSequencerTrack,
+    onRemoveDrummerSequencerTrack: removeDrummerSequencerTrack,
+    onDrummerSequencerTrackEnabledChange,
+    onDrummerSequencerTrackChannelChange: setDrummerSequencerTrackMidiChannel,
+    onDrummerSequencerTrackMeterNumeratorChange: setDrummerSequencerTrackMeterNumerator,
+    onDrummerSequencerTrackMeterDenominatorChange: setDrummerSequencerTrackMeterDenominator,
+    onDrummerSequencerTrackStepsPerBeatChange: setDrummerSequencerTrackStepsPerBeat,
+    onDrummerSequencerTrackBeatRateChange: setDrummerSequencerTrackBeatRate,
+    onDrummerSequencerTrackStepCountChange: setDrummerSequencerTrackStepCount,
+    onDrummerSequencerRowAdd: addDrummerSequencerRow,
+    onDrummerSequencerRowRemove: removeDrummerSequencerRow,
+    onDrummerSequencerRowKeyChange: setDrummerSequencerRowKey,
+    onDrummerSequencerRowKeyPreview: onDrummerSequencerRowKeyPreview,
+    onDrummerSequencerCellToggle: toggleDrummerSequencerCell,
+    onDrummerSequencerCellVelocityChange: setDrummerSequencerCellVelocity,
+    onDrummerSequencerTrackClearSteps: clearDrummerSequencerTrackSteps,
+    onDrummerSequencerPadPress: (trackId: string, padIndex: number) => {
+      const drummerTrack = sequencerRef.current.drummerTracks.find((track) => track.id === trackId);
+      if (!drummerTrack) {
+        return;
+      }
+      if (!sequencerRef.current.isPlaying || !drummerTrack.enabled) {
+        setDrummerSequencerTrackActivePad(trackId, padIndex);
+        return;
+      }
+
+      const sessionId = resolveSequencerSessionId();
+      if (!sessionId) {
+        setSequencerError(appCopy.errors.noActiveSessionForPadSwitching);
+        return;
+      }
+
+      void (async () => {
+        for (const row of drummerTrack.rows) {
+          await queueSequencerPadRuntime(sessionId, drummerRowRuntimeTrackId(trackId, row.id), padIndex);
+        }
+        setDrummerSequencerTrackQueuedPad(trackId, padIndex);
+      })().catch((queueError) => {
+        setSequencerError(
+          queueError instanceof Error
+            ? `${appCopy.errors.failedToQueuePad}: ${queueError.message}`
+            : appCopy.errors.failedToQueuePad
+        );
+      });
+    },
+    onDrummerSequencerPadCopy: (trackId: string, sourcePadIndex: number, targetPadIndex: number) => {
+      copyDrummerSequencerPad(trackId, sourcePadIndex, targetPadIndex);
+    },
+    onDrummerSequencerTrackPadLoopEnabledChange: setDrummerSequencerTrackPadLoopEnabled,
+    onDrummerSequencerTrackPadLoopRepeatChange: setDrummerSequencerTrackPadLoopRepeat,
+    onDrummerSequencerTrackPadLoopPatternChange: setDrummerSequencerTrackPadLoopPattern,
+    onDrummerSequencerTrackPadLoopStepAdd: addDrummerSequencerTrackPadLoopStep,
+    onDrummerSequencerTrackPadLoopStepRemove: removeDrummerSequencerTrackPadLoopStep
+  };
+  const sequencerPianoRollActions = {
+    onAddPianoRoll: addPianoRoll,
+    onRemovePianoRoll: removePianoRoll,
+    onPianoRollEnabledChange,
+    onPianoRollMidiChannelChange: setPianoRollMidiChannel,
+    onPianoRollVelocityChange: setPianoRollVelocity,
+    onPianoRollScaleChange: setPianoRollScale,
+    onPianoRollModeChange: setPianoRollMode,
+    onPianoRollNoteOn: onPianoRollNoteOn,
+    onPianoRollNoteOff: onPianoRollNoteOff
+  };
+  const sequencerMidiControllerActions = {
+    onAddMidiController: addMidiController,
+    onRemoveMidiController: removeMidiController,
+    onMidiControllerEnabledChange,
+    onMidiControllerNumberChange: onMidiControllerNumberChange,
+    onMidiControllerValueChange: onMidiControllerValueChange
+  };
+  const sequencerControllerSequencerActions = {
+    onAddControllerSequencer: addControllerSequencer,
+    onRemoveControllerSequencer: removeControllerSequencer,
+    onControllerSequencerEnabledChange: setControllerSequencerEnabled,
+    onControllerSequencerNumberChange: setControllerSequencerNumber,
+    onControllerSequencerMeterNumeratorChange: setControllerSequencerMeterNumerator,
+    onControllerSequencerMeterDenominatorChange: setControllerSequencerMeterDenominator,
+    onControllerSequencerStepsPerBeatChange: setControllerSequencerStepsPerBeat,
+    onControllerSequencerBeatRateChange: setControllerSequencerBeatRate,
+    onControllerSequencerPadPress: (controllerSequencerId: string, padIndex: number) => {
+      const controllerSequencer = sequencerRef.current.controllerSequencers.find(
+        (candidate) => candidate.id === controllerSequencerId
+      );
+      if (!controllerSequencer) {
+        return;
+      }
+      if (!sequencerRef.current.isPlaying || !controllerSequencer.enabled) {
+        setControllerSequencerActivePad(controllerSequencerId, padIndex);
+        setControllerSequencerQueuedPad(controllerSequencerId, null);
+        return;
+      }
+
+      const sessionId = resolveSequencerSessionId();
+      if (!sessionId) {
+        setSequencerError(appCopy.errors.noActiveSessionForPadSwitching);
+        return;
+      }
+
+      const queuedPad = controllerSequencer.activePad === padIndex ? null : padIndex;
+      void queueSequencerPadRuntime(sessionId, controllerSequencerId, queuedPad).catch((queueError) => {
+        setSequencerError(
+          queueError instanceof Error
+            ? `${appCopy.errors.failedToQueuePad}: ${queueError.message}`
+            : appCopy.errors.failedToQueuePad
+        );
+      });
+    },
+    onControllerSequencerPadCopy: copyControllerSequencerPad,
+    onControllerSequencerClearSteps: clearControllerSequencerSteps,
+    onControllerSequencerPadLoopEnabledChange: setControllerSequencerPadLoopEnabled,
+    onControllerSequencerPadLoopRepeatChange: setControllerSequencerPadLoopRepeat,
+    onControllerSequencerPadLoopPatternChange: setControllerSequencerPadLoopPattern,
+    onControllerSequencerPadLoopStepAdd: addControllerSequencerPadLoopStep,
+    onControllerSequencerPadLoopStepRemove: removeControllerSequencerPadLoopStep,
+    onControllerSequencerStepCountChange: setControllerSequencerStepCount,
+    onControllerSequencerKeypointAdd: addControllerSequencerKeypoint,
+    onControllerSequencerKeypointChange: setControllerSequencerKeypoint,
+    onControllerSequencerKeypointValueChange: setControllerSequencerKeypointValue,
+    onControllerSequencerKeypointRemove: removeControllerSequencerKeypoint
+  };
 
   return (
     <div className="min-h-screen bg-[radial-gradient(ellipse_at_top_left,_#1e293b,_#020617_60%)] px-4 py-4 text-slate-100 sm:px-6 lg:px-8">
@@ -2404,226 +2641,15 @@ export default function App() {
         {activePage === "sequencer" && (
           <Suspense fallback={<DeferredPageFallback />}>
             <LazySequencerPage
-              guiLanguage={guiLanguage}
-              patches={patches}
-              instrumentBindings={sequencerInstruments}
-              sequencer={displayedSequencer}
-              sequencerTransportSubunit={displayedSequencerTransportSubunit}
-              performances={performances}
-              currentPerformanceId={currentPerformanceId}
-              performanceName={performanceName}
-              performanceDescription={performanceDescription}
-              instrumentsRunning={instrumentsRunning}
-              sessionState={activeSessionState}
-              midiInputName={activeMidiInputName}
-              transportError={sequencerError}
-              onAddInstrument={addSequencerInstrument}
-              onRemoveInstrument={removeSequencerInstrument}
-              onInstrumentPatchChange={updateSequencerInstrumentPatch}
-              onInstrumentChannelChange={updateSequencerInstrumentChannel}
-              onInstrumentLevelChange={updateSequencerInstrumentLevel}
-              onPerformanceNameChange={(name) => setCurrentPerformanceMeta(name, performanceDescription)}
-              onPerformanceDescriptionChange={(description) => setCurrentPerformanceMeta(performanceName, description)}
-              onNewPerformance={onNewCurrentPerformance}
-              onSavePerformance={() => {
-                void saveCurrentPerformance();
-              }}
-              onClonePerformance={onCloneCurrentPerformance}
-              onDeletePerformance={onDeleteCurrentPerformance}
-              onLoadPerformance={(performanceId) => {
-                void loadPerformance(performanceId);
-              }}
-              onExportConfig={onExportSequencerConfig}
-              onExportCsd={onExportPerformanceCsd}
-              onImportConfig={onImportSequencerConfig}
-              onStartInstruments={onStartInstrumentEngine}
-              onStopInstruments={onStopInstrumentEngine}
-              onStopInstrumentsAndResetTransport={onStopInstrumentEngineAndResetTransport}
-              onBpmChange={setSequencerBpm}
-              onAddSequencerTrack={addSequencerTrack}
-              onAddDrummerSequencerTrack={addDrummerSequencerTrack}
-              onAddControllerSequencer={addControllerSequencer}
-              onSequencerCycleRewind={() => {
-                void moveSequencerTransport(-sequencerTransportStepsPerBeat(sequencer.timing));
-              }}
-              onSequencerCycleForward={() => {
-                void moveSequencerTransport(sequencerTransportStepsPerBeat(sequencer.timing));
-              }}
-              onSequencerArrangerLoopSelectionChange={handleArrangerLoopSelectionChange}
-              onRemoveSequencerTrack={removeSequencerTrack}
-              onSequencerTrackEnabledChange={onSequencerTrackEnabledChange}
-              onSequencerTrackChannelChange={setSequencerTrackMidiChannel}
-              onSequencerTrackSyncTargetChange={setSequencerTrackSyncTarget}
-              onSequencerTrackScaleChange={setSequencerTrackScale}
-              onSequencerTrackModeChange={setSequencerTrackMode}
-              onSequencerTrackMeterNumeratorChange={setSequencerTrackMeterNumerator}
-              onSequencerTrackMeterDenominatorChange={setSequencerTrackMeterDenominator}
-              onSequencerTrackStepsPerBeatChange={setSequencerTrackStepsPerBeat}
-              onSequencerTrackBeatRateChange={setSequencerTrackBeatRate}
-              onSequencerTrackStepCountChange={setSequencerTrackStepCount}
-              onSequencerTrackStepNoteChange={setSequencerTrackStepNote}
-              onSequencerTrackStepChordChange={setSequencerTrackStepChord}
-              onSequencerTrackStepHoldChange={setSequencerTrackStepHold}
-              onSequencerTrackStepVelocityChange={setSequencerTrackStepVelocity}
-              onSequencerTrackStepCopy={copySequencerTrackStepSettings}
-              onSequencerTrackClearSteps={clearSequencerTrackSteps}
-              onSequencerTrackReorder={moveSequencerTrack}
-              onSequencerPadPress={(trackId, padIndex) => {
-                const track = sequencerRef.current.tracks.find((candidate) => candidate.id === trackId);
-                if (!track) {
-                  return;
-                }
-                if (!sequencerRef.current.isPlaying || !track.enabled) {
-                  setSequencerTrackActivePad(trackId, padIndex);
-                  return;
-                }
-
-                const sessionId = resolveSequencerSessionId();
-                if (!sessionId) {
-                  setSequencerError(appCopy.errors.noActiveSessionForPadSwitching);
-                  return;
-                }
-
-                void queueSequencerPadRuntime(sessionId, trackId, padIndex)
-                  .then(() => {
-                    setSequencerTrackQueuedPad(trackId, padIndex);
-                  })
-                  .catch((queueError) => {
-                    setSequencerError(
-                      queueError instanceof Error
-                        ? `${appCopy.errors.failedToQueuePad}: ${queueError.message}`
-                        : appCopy.errors.failedToQueuePad
-                    );
-                  });
-              }}
-              onSequencerPadCopy={(trackId, sourcePadIndex, targetPadIndex) => {
-                copySequencerTrackPad(trackId, sourcePadIndex, targetPadIndex);
-              }}
-              onSequencerPadTransposeShort={(trackId, padIndex, direction) => {
-                transposeSequencerTrackPadInScale(trackId, padIndex, direction);
-              }}
-              onSequencerPadTransposeLong={(trackId, padIndex, direction) => {
-                transposeSequencerTrackPadDiatonic(trackId, padIndex, direction);
-              }}
-              onSequencerTrackPadLoopEnabledChange={setSequencerTrackPadLoopEnabled}
-              onSequencerTrackPadLoopRepeatChange={setSequencerTrackPadLoopRepeat}
-              onSequencerTrackPadLoopPatternChange={setSequencerTrackPadLoopPattern}
-              onSequencerTrackPadLoopStepAdd={addSequencerTrackPadLoopStep}
-              onSequencerTrackPadLoopStepRemove={removeSequencerTrackPadLoopStep}
-              onRemoveDrummerSequencerTrack={removeDrummerSequencerTrack}
-              onDrummerSequencerTrackEnabledChange={onDrummerSequencerTrackEnabledChange}
-              onDrummerSequencerTrackChannelChange={setDrummerSequencerTrackMidiChannel}
-              onDrummerSequencerTrackMeterNumeratorChange={setDrummerSequencerTrackMeterNumerator}
-              onDrummerSequencerTrackMeterDenominatorChange={setDrummerSequencerTrackMeterDenominator}
-              onDrummerSequencerTrackStepsPerBeatChange={setDrummerSequencerTrackStepsPerBeat}
-              onDrummerSequencerTrackBeatRateChange={setDrummerSequencerTrackBeatRate}
-              onDrummerSequencerTrackStepCountChange={setDrummerSequencerTrackStepCount}
-              onDrummerSequencerRowAdd={addDrummerSequencerRow}
-              onDrummerSequencerRowRemove={removeDrummerSequencerRow}
-              onDrummerSequencerRowKeyChange={setDrummerSequencerRowKey}
-              onDrummerSequencerRowKeyPreview={onDrummerSequencerRowKeyPreview}
-              onDrummerSequencerCellToggle={toggleDrummerSequencerCell}
-              onDrummerSequencerCellVelocityChange={setDrummerSequencerCellVelocity}
-              onDrummerSequencerTrackClearSteps={clearDrummerSequencerTrackSteps}
-              onDrummerSequencerPadPress={(trackId, padIndex) => {
-                const drummerTrack = sequencerRef.current.drummerTracks.find((track) => track.id === trackId);
-                if (!drummerTrack) {
-                  return;
-                }
-                if (!sequencerRef.current.isPlaying || !drummerTrack.enabled) {
-                  setDrummerSequencerTrackActivePad(trackId, padIndex);
-                  return;
-                }
-
-                const sessionId = resolveSequencerSessionId();
-                if (!sessionId) {
-                  setSequencerError(appCopy.errors.noActiveSessionForPadSwitching);
-                  return;
-                }
-
-                void (async () => {
-                  for (const row of drummerTrack.rows) {
-                    await queueSequencerPadRuntime(sessionId, drummerRowRuntimeTrackId(trackId, row.id), padIndex);
-                  }
-                  setDrummerSequencerTrackQueuedPad(trackId, padIndex);
-                })().catch((queueError) => {
-                  setSequencerError(
-                    queueError instanceof Error
-                      ? `${appCopy.errors.failedToQueuePad}: ${queueError.message}`
-                      : appCopy.errors.failedToQueuePad
-                  );
-                });
-              }}
-              onDrummerSequencerPadCopy={(trackId, sourcePadIndex, targetPadIndex) => {
-                copyDrummerSequencerPad(trackId, sourcePadIndex, targetPadIndex);
-              }}
-              onDrummerSequencerTrackPadLoopEnabledChange={setDrummerSequencerTrackPadLoopEnabled}
-              onDrummerSequencerTrackPadLoopRepeatChange={setDrummerSequencerTrackPadLoopRepeat}
-              onDrummerSequencerTrackPadLoopPatternChange={setDrummerSequencerTrackPadLoopPattern}
-              onDrummerSequencerTrackPadLoopStepAdd={addDrummerSequencerTrackPadLoopStep}
-              onDrummerSequencerTrackPadLoopStepRemove={removeDrummerSequencerTrackPadLoopStep}
-              onAddPianoRoll={addPianoRoll}
-              onRemovePianoRoll={removePianoRoll}
-              onPianoRollEnabledChange={onPianoRollEnabledChange}
-              onPianoRollMidiChannelChange={setPianoRollMidiChannel}
-              onPianoRollVelocityChange={setPianoRollVelocity}
-              onPianoRollScaleChange={setPianoRollScale}
-              onPianoRollModeChange={setPianoRollMode}
-              onPianoRollNoteOn={onPianoRollNoteOn}
-              onPianoRollNoteOff={onPianoRollNoteOff}
-              onAddMidiController={addMidiController}
-              onRemoveMidiController={removeMidiController}
-              onMidiControllerEnabledChange={onMidiControllerEnabledChange}
-              onMidiControllerNumberChange={onMidiControllerNumberChange}
-              onMidiControllerValueChange={onMidiControllerValueChange}
-              onRemoveControllerSequencer={removeControllerSequencer}
-              onControllerSequencerEnabledChange={setControllerSequencerEnabled}
-              onControllerSequencerNumberChange={setControllerSequencerNumber}
-              onControllerSequencerMeterNumeratorChange={setControllerSequencerMeterNumerator}
-              onControllerSequencerMeterDenominatorChange={setControllerSequencerMeterDenominator}
-              onControllerSequencerStepsPerBeatChange={setControllerSequencerStepsPerBeat}
-              onControllerSequencerBeatRateChange={setControllerSequencerBeatRate}
-              onControllerSequencerPadPress={(controllerSequencerId, padIndex) => {
-                const controllerSequencer = sequencerRef.current.controllerSequencers.find(
-                  (candidate) => candidate.id === controllerSequencerId
-                );
-                if (!controllerSequencer) {
-                  return;
-                }
-                if (!sequencerRef.current.isPlaying || !controllerSequencer.enabled) {
-                  setControllerSequencerActivePad(controllerSequencerId, padIndex);
-                  setControllerSequencerQueuedPad(controllerSequencerId, null);
-                  return;
-                }
-
-                const sessionId = resolveSequencerSessionId();
-                if (!sessionId) {
-                  setSequencerError(appCopy.errors.noActiveSessionForPadSwitching);
-                  return;
-                }
-
-                const queuedPad = controllerSequencer.activePad === padIndex ? null : padIndex;
-                void queueSequencerPadRuntime(sessionId, controllerSequencerId, queuedPad)
-                  .catch((queueError) => {
-                    setSequencerError(
-                      queueError instanceof Error
-                        ? `${appCopy.errors.failedToQueuePad}: ${queueError.message}`
-                        : appCopy.errors.failedToQueuePad
-                    );
-                  });
-              }}
-              onControllerSequencerPadCopy={copyControllerSequencerPad}
-              onControllerSequencerClearSteps={clearControllerSequencerSteps}
-              onControllerSequencerPadLoopEnabledChange={setControllerSequencerPadLoopEnabled}
-              onControllerSequencerPadLoopRepeatChange={setControllerSequencerPadLoopRepeat}
-              onControllerSequencerPadLoopPatternChange={setControllerSequencerPadLoopPattern}
-              onControllerSequencerPadLoopStepAdd={addControllerSequencerPadLoopStep}
-              onControllerSequencerPadLoopStepRemove={removeControllerSequencerPadLoopStep}
-              onControllerSequencerStepCountChange={setControllerSequencerStepCount}
-              onControllerSequencerKeypointAdd={addControllerSequencerKeypoint}
-              onControllerSequencerKeypointChange={setControllerSequencerKeypoint}
-              onControllerSequencerKeypointValueChange={setControllerSequencerKeypointValue}
-              onControllerSequencerKeypointRemove={removeControllerSequencerKeypoint}
+              data={sequencerPageData}
+              instrumentActions={sequencerInstrumentActions}
+              performanceActions={sequencerPerformanceActions}
+              transportActions={sequencerTransportActions}
+              melodicTrackActions={sequencerMelodicTrackActions}
+              drummerTrackActions={sequencerDrummerTrackActions}
+              pianoRollActions={sequencerPianoRollActions}
+              midiControllerActions={sequencerMidiControllerActions}
+              controllerSequencerActions={sequencerControllerSequencerActions}
               onHelpRequest={onHelpRequest}
             />
           </Suspense>
