@@ -60,7 +60,7 @@ The compile status badge (`compiled`, `pending changes`, `errors`) indicates com
 
 ## Runtime Defaults
 
-- runtime audio mode normalizes to `browser_clock`
+- runtime audio mode is fixed to `browser_clock`
 - the default session MIDI binding is `internal:loopback`
 - external host MIDI is disabled unless `VISUALCSOUND_HOST_MIDI_TOKEN` is configured and a helper connects
 

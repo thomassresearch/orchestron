@@ -83,8 +83,8 @@ The most important settings are:
 | `ICONS_URL_PREFIX` | `/static/icons` | Prefix used when building opcode icon URLs. |
 | `GEN_AUDIO_ASSETS_DIR` | `backend/data/assets/audio` | Filesystem directory for uploaded/imported GEN audio assets. |
 | `DEFAULT_RTMIDI_MODULE` | platform-dependent | Default rtmidi module for Csound startup (`coremidi`, `alsaseq`, or `winmme`). |
-| `DEFAULT_MIDI_DEVICE` | `0` | Preferred MIDI input selector when creating sessions. |
-| `AUDIO_OUTPUT_MODE` | `local` | `local` sends audio to the host DAC, `browser_clock` renders PCM in the browser via the controller WebSocket. |
+| `DEFAULT_MIDI_DEVICE` | `internal:loopback` | Preferred MIDI input selector when creating sessions. |
+| `AUDIO_OUTPUT_MODE` | `browser_clock` | The only supported runtime audio mode. The browser renders PCM via the controller WebSocket. `streaming` is still accepted as a compatibility alias. |
 | `FRONTEND_DISCONNECT_GRACE_SECONDS` | `5.0` | Delay before auto-stopping a running session after the last frontend disconnects. |
 | `FRONTEND_HEARTBEAT_TIMEOUT_SECONDS` | `5.0` | Heartbeat timeout for active WebSocket clients. |
 
@@ -92,7 +92,7 @@ The most important settings are:
 
 `python -m backend.app.main` also accepts runtime flags:
 
-- `--audio-output-mode {local,browser_clock}`
+- `--audio-output-mode browser_clock`
 - `--host`
 - `--port`
 - `--log-level`
@@ -543,7 +543,6 @@ Supported message types:
 
 Common `409` cases:
 
-- `VISUALCSOUND_AUDIO_OUTPUT_MODE=local`
 - session not running
 - browser-clock controller not ready yet
 - `ctcsound` backend not available

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 import sys
-import time
 
 import pytest
 
@@ -95,6 +94,13 @@ def test_audio_output_mode_maps_streaming_to_browser_clock(monkeypatch) -> None:
     worker = CsoundWorker()
 
     assert worker.audio_output_mode == "browser_clock"
+
+
+def test_audio_output_mode_rejects_local(monkeypatch) -> None:
+    monkeypatch.setenv("VISUALCSOUND_AUDIO_OUTPUT_MODE", "local")
+
+    with pytest.raises(ValueError, match="VISUALCSOUND_AUDIO_OUTPUT_MODE=local is no longer supported"):
+        CsoundWorker()
 
 
 def test_audio_output_mode_rejects_webrtc(monkeypatch) -> None:
@@ -374,64 +380,3 @@ def test_browser_clock_mock_runtime_resamples_to_requested_output_rate(monkeypat
     assert len(render.pcm_f32le) == 139 * 2 * 4
 
     worker.stop()
-
-
-@pytest.mark.skipif(sys.platform != "win32", reason="Windows-only integration test")
-@pytest.mark.skipif(
-    os.getenv("VISUALCSOUND_RUN_WINDOWS_LOCAL_MIDI") != "1",
-    reason="Set VISUALCSOUND_RUN_WINDOWS_LOCAL_MIDI=1 to enable this integration test",
-)
-def test_windows_local_mode_consumes_host_midi_callbacks(monkeypatch) -> None:
-    monkeypatch.setenv("VISUALCSOUND_AUDIO_OUTPUT_MODE", "local")
-    monkeypatch.delenv("VISUALCSOUND_FORCE_MOCK_ENGINE", raising=False)
-
-    worker = CsoundWorker()
-    assert worker.backend == "ctcsound", "ctcsound is required for the Windows local MIDI integration test"
-
-    csd = "\n".join(
-        [
-            "<CsoundSynthesizer>",
-            "<CsOptions>",
-            "</CsOptions>",
-            "<CsInstruments>",
-            "sr = 48000",
-            "ksmps = 32",
-            "nchnls = 2",
-            "0dbfs = 1",
-            "",
-            "massign 0, 1",
-            "",
-            "instr 1",
-            "  iNote notnum",
-            '  chnset iNote, "last_note"',
-            "  aSilence = 0",
-            "  outs aSilence, aSilence",
-            "endin",
-            "</CsInstruments>",
-            "<CsScore>",
-            "f0 z",
-            "</CsScore>",
-            "</CsoundSynthesizer>",
-        ]
-    )
-
-    worker.start(csd=csd, midi_input="unused-host-midi", rtmidi_module="winmme")
-
-    try:
-        assert worker.accepts_direct_midi, "Windows local mode did not enable direct host MIDI injection"
-        assert worker.queue_midi_message([0x90, 60, 100], delivery_delay_seconds=0.02) is True
-
-        deadline = time.time() + 2.0
-        observed_note = None
-        observed_error = None
-        while time.time() < deadline:
-            observed_note, observed_error = worker._csound.controlChannel("last_note")
-            if observed_error == 0 and int(round(float(observed_note))) == 60:
-                break
-            time.sleep(0.01)
-
-        assert observed_error == 0, "Control channel 'last_note' was not readable"
-        assert int(round(float(observed_note))) == 60
-        assert worker.queue_midi_message([0x80, 60, 0], delivery_delay_seconds=0.0) is True
-    finally:
-        worker.stop()

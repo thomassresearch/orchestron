@@ -56,7 +56,7 @@ class Settings(BaseSettings):
     default_rtmidi_module: str = Field(default_factory=_default_rtmidi_module)
     default_midi_device: str = "internal:loopback"
     host_midi_token: str | None = None
-    audio_output_mode: Literal["local", "browser_clock"] = "browser_clock"
+    audio_output_mode: Literal["browser_clock"] = "browser_clock"
     frontend_disconnect_grace_seconds: float = Field(default=5.0, gt=0.0)
     frontend_heartbeat_timeout_seconds: float = Field(default=5.0, gt=0.0)
 
@@ -64,20 +64,20 @@ class Settings(BaseSettings):
     @classmethod
     def _normalize_audio_output_mode(cls, value: object) -> str:
         normalized = str(value or "").strip().lower()
-        if normalized in {"", "local"}:
+        if normalized == "":
             return "browser_clock"
         if normalized == "streaming":
             return "browser_clock"
         if normalized in {"browser_clock", "browser-clock", "pcm"}:
             return "browser_clock"
-        if normalized in {"webrtc", "browser"}:
+        if normalized in {"local", "webrtc", "browser"}:
             raise ValueError(
                 f"VISUALCSOUND_AUDIO_OUTPUT_MODE={normalized} is no longer supported. "
                 "Use VISUALCSOUND_AUDIO_OUTPUT_MODE=browser_clock."
             )
         raise ValueError(
             "Invalid VISUALCSOUND_AUDIO_OUTPUT_MODE value. Supported values: "
-            "local, browser_clock (or streaming as a compatibility alias)."
+            "browser_clock (or streaming as a compatibility alias)."
         )
 
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import json
+import time
 from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
@@ -121,6 +122,7 @@ async def browser_clock_controller(websocket: WebSocket, session_id: str) -> Non
                 continue
 
             message_type = payload.get("type")
+            server_received_ns = time.perf_counter_ns()
             try:
                 if message_type == "claim_controller":
                     response = await container.session_service.claim_browser_clock_controller(
@@ -138,6 +140,7 @@ async def browser_clock_controller(websocket: WebSocket, session_id: str) -> Non
                         session_id,
                         connection_id,
                         BrowserClockRequestRenderRequest.model_validate(payload),
+                        server_received_ns=server_received_ns,
                     )
                     await send_json(metadata)
                     await send_bytes(pcm)
@@ -148,6 +151,7 @@ async def browser_clock_controller(websocket: WebSocket, session_id: str) -> Non
                         session_id,
                         connection_id,
                         BrowserClockManualMidiRequest.model_validate(payload),
+                        server_received_ns=server_received_ns,
                     )
                     continue
 
@@ -156,6 +160,7 @@ async def browser_clock_controller(websocket: WebSocket, session_id: str) -> Non
                         session_id,
                         connection_id,
                         BrowserClockTimingReportRequest.model_validate(payload),
+                        server_received_ns=server_received_ns,
                     )
                     continue
 

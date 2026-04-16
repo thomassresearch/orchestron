@@ -109,7 +109,7 @@ export function useBrowserClockAudioController({
 
   const latestStartedAudioMode = useMemo<SessionAudioOutputMode | null>(() => {
     const raw = latestStartedEvent?.payload?.audio_mode;
-    return raw === "browser_clock" || raw === "local" ? raw : null;
+    return raw === "browser_clock" ? raw : null;
   }, [latestStartedEvent]);
 
   const effectiveAudioOutputMode = latestStartedAudioMode ?? runtimeAudioOutputMode;

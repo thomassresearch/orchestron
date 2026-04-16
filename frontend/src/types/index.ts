@@ -502,7 +502,7 @@ export interface AppStateResponse {
   updated_at: string;
 }
 
-export type SessionAudioOutputMode = "local" | "browser_clock";
+export type SessionAudioOutputMode = "browser_clock";
 
 export interface RuntimeConfigResponse {
   audio_output_mode: SessionAudioOutputMode;
@@ -722,6 +722,9 @@ export interface BrowserClockClaimControllerRequest {
 export interface BrowserClockRequestRenderRequest {
   type: "request_render";
   block_count: number;
+  request_id?: string | null;
+  client_perf_ms?: number | null;
+  priority?: "steady" | "interactive";
 }
 
 export interface BrowserClockReleaseControllerRequest {
@@ -741,6 +744,7 @@ export interface BrowserClockTimingReportRequest {
   queued_frames: number;
   sample_rate: number;
   pending_render_frames?: number;
+  underrun_count?: number;
 }
 
 export interface BrowserClockSequencerStartControlRequest {
@@ -778,6 +782,23 @@ export interface BrowserClockStreamConfigMessage {
   sequencer_status: SessionSequencerStatus;
 }
 
+export interface BrowserClockRenderTelemetry {
+  request_id: string | null;
+  priority: "steady" | "interactive";
+  queued_frames_at_start: number;
+  pending_render_frames_at_start: number;
+  underrun_count_at_start: number;
+  timing_report_age_ms: number | null;
+  timing_sync_stale: boolean;
+  websocket_message_wait_ms: number | null;
+  render_service_time_ms: number;
+  server_received_monotonic_ns: number;
+  server_render_started_monotonic_ns: number;
+  server_render_completed_monotonic_ns: number;
+  note_on_to_render_request_ms: number | null;
+  note_on_to_render_complete_ms: number | null;
+}
+
 export interface BrowserClockRenderChunkMessage {
   type: "render_chunk";
   chunk_id: string;
@@ -789,6 +810,7 @@ export interface BrowserClockRenderChunkMessage {
   target_frame_count: number;
   channels: number;
   sequencer_status: SessionSequencerStatus;
+  telemetry: BrowserClockRenderTelemetry;
 }
 
 export interface BrowserClockControllerRevokedMessage {

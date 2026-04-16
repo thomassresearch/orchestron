@@ -64,6 +64,8 @@ type RenderRequestPriority = "steady" | "interactive";
 type PendingRenderRequest = {
   estimatedFrames: number;
   priority: RenderRequestPriority;
+  requestId: string;
+  clientPerfMs: number;
 };
 
 type PlaybackTimelineSegment = {
@@ -445,7 +447,9 @@ export class BrowserClockAudioClient {
             metadata: parsed,
             request: this.pendingRenderRequests.shift() ?? {
               estimatedFrames: parsed.target_frame_count,
-              priority: "steady"
+              priority: "steady",
+              requestId: parsed.telemetry.request_id ?? nextRequestId(),
+              clientPerfMs: 0
             }
           };
           return;
@@ -563,11 +567,16 @@ export class BrowserClockAudioClient {
     priority: RenderRequestPriority
   ): number | null {
     const estimatedFrames = requestedBlocks * this.estimateFramesPerBlock(streamConfig);
+    const requestId = nextRequestId();
+    const clientPerfMs = performance.now();
 
     try {
       this.sendJson({
         type: "request_render",
-        block_count: requestedBlocks
+        block_count: requestedBlocks,
+        request_id: requestId,
+        client_perf_ms: clientPerfMs,
+        priority
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to request browser-clock audio.";
@@ -577,7 +586,7 @@ export class BrowserClockAudioClient {
 
     this.inFlightRenderRequests += 1;
     this.pendingRenderFrames += estimatedFrames;
-    this.pendingRenderRequests.push({ estimatedFrames, priority });
+    this.pendingRenderRequests.push({ estimatedFrames, priority, requestId, clientPerfMs });
     return estimatedFrames;
   }
 
@@ -937,7 +946,8 @@ export class BrowserClockAudioClient {
         audio_context_time_s: context.currentTime,
         queued_frames: this.availableFrames(),
         sample_rate: Math.max(1, Math.round(context.sampleRate)),
-        pending_render_frames: this.pendingRenderFrames
+        pending_render_frames: this.pendingRenderFrames,
+        underrun_count: this.readUnderrunCount()
       } satisfies BrowserClockTimingReportRequest);
     } catch {
       // Ignore timing-report send failures; socket shutdown paths already report fatal errors.

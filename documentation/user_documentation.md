@@ -12,13 +12,13 @@ When Orchestron is served locally from the backend, opening `http://localhost:80
 
 - Visual instrument design (opcode graph editor, formulas, GEN tables, compile/runtime testing)
 - Live performance workflow (instrument rack, sequencers, piano rolls, MIDI controllers, import/export)
-- Configuration and runtime behavior (audio engine settings, MIDI setup, browser audio modes, persistence)
+- Configuration and runtime behavior (audio engine settings, MIDI setup, browser-clock audio, persistence)
 
 ## Reading Order
 
 - Start with **Instrument Design** if you are creating patches.
 - Continue with **Performance** to build and perform a multi-instrument setup.
-- Use **Configuration** for audio engine tuning, MIDI setup, UI language/help, and browser audio modes.
+- Use **Configuration** for audio engine tuning, MIDI setup, UI language/help, and browser-clock audio.
 
 ## [Instrument Design](instrument_design/instrument_design.md)
 

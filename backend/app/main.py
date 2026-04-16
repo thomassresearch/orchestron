@@ -105,14 +105,13 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    if settings.audio_output_mode == "browser_clock":
-        @app.middleware("http")
-        async def browser_clock_isolation_headers(request: Request, call_next):
-            response = await call_next(request)
-            if request.url.path.startswith("/client"):
-                response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
-                response.headers["Cross-Origin-Embedder-Policy"] = "require-corp"
-            return response
+    @app.middleware("http")
+    async def browser_clock_isolation_headers(request: Request, call_next):
+        response = await call_next(request)
+        if request.url.path.startswith("/client"):
+            response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+            response.headers["Cross-Origin-Embedder-Policy"] = "require-corp"
+        return response
 
     static_root = Path(settings.static_dir)
     app.mount("/static", StaticFiles(directory=static_root), name="static")
@@ -177,7 +176,7 @@ def run() -> None:
         "--audio-output-mode",
         default=None,
         help=(
-            "Select local DAC output or browser-clock PCM mode "
+            "Select the audio runtime mode. Only browser_clock is supported "
             "(streaming is accepted as a compatibility alias for browser_clock)."
         ),
     )

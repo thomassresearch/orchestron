@@ -72,8 +72,13 @@ class BrowserClockControllerLease:
     latest_audio_context_time_s: float | None = None
     latest_queued_frames: int = 0
     latest_pending_render_frames: int = 0
+    latest_underrun_count: int = 0
     latest_report_sample_rate: int = 0
     last_timing_report_server_ns: int | None = None
+    last_note_on_client_perf_ms: float | None = None
+    last_note_on_server_received_ns: int | None = None
+    last_note_on_mapped_server_ns: int | None = None
+    last_note_on_sync_stale: bool = True
 
 
 @dataclass(slots=True)
@@ -392,14 +397,23 @@ class SessionService:
         session_id: str,
         connection_id: str,
         request: BrowserClockManualMidiRequest,
+        *,
+        server_received_ns: int | None = None,
     ) -> None:
         self._remember_running_loop()
         runtime, lease = await self.require_browser_clock_controller(session_id, connection_id)
+        event_server_received_ns = server_received_ns or time.perf_counter_ns()
         target_engine_sample, mapped_backend_monotonic_ns, sync_stale = self._target_engine_sample_for_browser_event(
             runtime=runtime,
             lease=lease,
             event_perf_ms=request.event_perf_ms,
+            now_server_ns=event_server_received_ns,
         )
+        if request.midi.type == "note_on":
+            lease.last_note_on_client_perf_ms = request.event_perf_ms
+            lease.last_note_on_server_received_ns = event_server_received_ns
+            lease.last_note_on_mapped_server_ns = mapped_backend_monotonic_ns
+            lease.last_note_on_sync_stale = sync_stale
         await self._queue_session_midi_event(
             runtime,
             request.midi,
@@ -415,10 +429,12 @@ class SessionService:
         session_id: str,
         connection_id: str,
         request: BrowserClockTimingReportRequest,
+        *,
+        server_received_ns: int | None = None,
     ) -> None:
         self._remember_running_loop()
         _runtime, lease = await self.require_browser_clock_controller(session_id, connection_id)
-        server_now_ns = time.perf_counter_ns()
+        server_now_ns = server_received_ns or time.perf_counter_ns()
         lease.timing_mapping.update(
             remote_timestamp_ns=int(round(request.client_perf_ms * 1_000_000.0)),
             server_timestamp_ns=server_now_ns,
@@ -427,6 +443,7 @@ class SessionService:
         lease.latest_audio_context_time_s = request.audio_context_time_s
         lease.latest_queued_frames = request.queued_frames
         lease.latest_pending_render_frames = request.pending_render_frames
+        lease.latest_underrun_count = request.underrun_count
         lease.latest_report_sample_rate = request.sample_rate
         lease.last_timing_report_server_ns = server_now_ns
 
@@ -518,12 +535,15 @@ class SessionService:
         session_id: str,
         connection_id: str,
         request: BrowserClockRequestRenderRequest,
+        *,
+        server_received_ns: int | None = None,
     ) -> tuple[dict[str, object], bytes]:
         self._remember_running_loop()
         runtime, lease = await self.require_browser_clock_controller(session_id, connection_id)
         if not runtime.worker.browser_clock_ready and runtime.worker.backend != "mock":
             raise HTTPException(status_code=409, detail="Browser-clock audio is not ready for this session.")
 
+        request_received_ns = server_received_ns or time.perf_counter_ns()
         block_count = max(1, min(request.block_count, lease.max_blocks_per_request))
         sequencer = self._ensure_sequencer(runtime)
         latest_status = sequencer.status()
@@ -535,6 +555,7 @@ class SessionService:
                 ksmps=runtime.worker.runtime_ksmps,
             )
 
+        render_started_ns = time.perf_counter_ns()
         try:
             render = runtime.worker.render_blocks(
                 block_count=block_count,
@@ -547,6 +568,7 @@ class SessionService:
             raise HTTPException(status_code=409, detail=str(exc)) from exc
         except Exception as exc:
             raise HTTPException(status_code=500, detail=f"Failed to render browser-clock audio: {exc}") from exc
+        render_completed_ns = time.perf_counter_ns()
 
         return (
             {
@@ -560,6 +582,13 @@ class SessionService:
                 "target_frame_count": render.target_frame_count,
                 "channels": render.channels,
                 "sequencer_status": latest_status.model_dump(mode="json"),
+                "telemetry": self._browser_clock_render_telemetry(
+                    lease=lease,
+                    request=request,
+                    server_received_ns=request_received_ns,
+                    server_render_start_ns=render_started_ns,
+                    server_render_end_ns=render_completed_ns,
+                ),
             },
             render.pcm_f32le,
         )
@@ -959,21 +988,20 @@ class SessionService:
         runtime: RuntimeSession,
         lease: BrowserClockControllerLease,
         event_perf_ms: float | None,
+        now_server_ns: int | None = None,
     ) -> tuple[int, int | None, bool]:
         if event_perf_ms is None:
             return (runtime.worker.render_sample_cursor, None, False)
 
-        remote_timestamp_ns = int(round(max(0.0, event_perf_ms) * 1_000_000.0))
-        now_server_ns = time.perf_counter_ns()
-        mapped_backend_monotonic_ns, sync_stale = lease.timing_mapping.map_to_server_time(
-            remote_timestamp_ns,
-            now_server_ns=now_server_ns,
+        effective_now_server_ns = now_server_ns or time.perf_counter_ns()
+        mapped_backend_monotonic_ns, sync_stale = self._map_browser_clock_perf_ms_to_server_ns(
+            lease,
+            event_perf_ms,
+            now_server_ns=effective_now_server_ns,
         )
         if mapped_backend_monotonic_ns is None:
             return (runtime.worker.render_sample_cursor, None, True)
         if sync_stale:
-            return (runtime.worker.render_sample_cursor, mapped_backend_monotonic_ns, True)
-        if self._browser_timing_report_is_stale(lease, now_server_ns=now_server_ns):
             return (runtime.worker.render_sample_cursor, mapped_backend_monotonic_ns, True)
 
         return (
@@ -981,7 +1009,7 @@ class SessionService:
                 runtime=runtime,
                 lease=lease,
                 mapped_backend_monotonic_ns=mapped_backend_monotonic_ns,
-                now_server_ns=now_server_ns,
+                now_server_ns=effective_now_server_ns,
             ),
             mapped_backend_monotonic_ns,
             False,
@@ -1060,6 +1088,26 @@ class SessionService:
     def _resolve_runtime_midi_backend_selector(self, runtime: RuntimeSession) -> str:
         return INTERNAL_LOOPBACK_SELECTOR
 
+    def _map_browser_clock_perf_ms_to_server_ns(
+        self,
+        lease: BrowserClockControllerLease | None,
+        perf_ms: float | None,
+        *,
+        now_server_ns: int,
+    ) -> tuple[int | None, bool]:
+        if lease is None or perf_ms is None:
+            return (None, True)
+        remote_timestamp_ns = int(round(max(0.0, perf_ms) * 1_000_000.0))
+        mapped_server_ns, sync_stale = lease.timing_mapping.map_to_server_time(
+            remote_timestamp_ns,
+            now_server_ns=now_server_ns,
+        )
+        if mapped_server_ns is None:
+            return (None, True)
+        if sync_stale or self._browser_timing_report_is_stale(lease, now_server_ns=now_server_ns):
+            return (mapped_server_ns, True)
+        return (mapped_server_ns, False)
+
     @staticmethod
     def _browser_timing_report_is_stale(
         lease: BrowserClockControllerLease | None,
@@ -1097,6 +1145,53 @@ class SessionService:
         delta_ns = mapped_backend_monotonic_ns - now_server_ns
         target_sample = audible_sample_estimate + int(round((delta_ns * engine_sample_rate) / 1_000_000_000.0))
         return max(0, target_sample)
+
+    def _browser_clock_render_telemetry(
+        self,
+        *,
+        lease: BrowserClockControllerLease | None,
+        request: BrowserClockRequestRenderRequest,
+        server_received_ns: int,
+        server_render_start_ns: int,
+        server_render_end_ns: int,
+    ) -> dict[str, object]:
+        mapped_request_server_ns, timing_sync_stale = self._map_browser_clock_perf_ms_to_server_ns(
+            lease,
+            request.client_perf_ms,
+            now_server_ns=server_received_ns,
+        )
+        websocket_message_wait_ms = None
+        if mapped_request_server_ns is not None and not timing_sync_stale:
+            websocket_message_wait_ms = max(0.0, (server_received_ns - mapped_request_server_ns) / 1_000_000.0)
+
+        timing_report_age_ms = None
+        if lease is not None and lease.last_timing_report_server_ns is not None:
+            timing_report_age_ms = max(0.0, (server_received_ns - lease.last_timing_report_server_ns) / 1_000_000.0)
+
+        note_on_to_render_request_ms = None
+        note_on_to_render_complete_ms = None
+        if lease is not None and not lease.last_note_on_sync_stale:
+            note_on_anchor_ns = lease.last_note_on_mapped_server_ns
+            if note_on_anchor_ns is not None:
+                note_on_to_render_request_ms = max(0.0, (server_received_ns - note_on_anchor_ns) / 1_000_000.0)
+                note_on_to_render_complete_ms = max(0.0, (server_render_end_ns - note_on_anchor_ns) / 1_000_000.0)
+
+        return {
+            "request_id": request.request_id,
+            "priority": request.priority,
+            "queued_frames_at_start": 0 if lease is None else lease.latest_queued_frames,
+            "pending_render_frames_at_start": 0 if lease is None else lease.latest_pending_render_frames,
+            "underrun_count_at_start": 0 if lease is None else lease.latest_underrun_count,
+            "timing_report_age_ms": timing_report_age_ms,
+            "timing_sync_stale": timing_sync_stale,
+            "websocket_message_wait_ms": websocket_message_wait_ms,
+            "render_service_time_ms": max(0.0, (server_render_end_ns - server_render_start_ns) / 1_000_000.0),
+            "server_received_monotonic_ns": server_received_ns,
+            "server_render_started_monotonic_ns": server_render_start_ns,
+            "server_render_completed_monotonic_ns": server_render_end_ns,
+            "note_on_to_render_request_ms": note_on_to_render_request_ms,
+            "note_on_to_render_complete_ms": note_on_to_render_complete_ms,
+        }
 
     async def _require_host_midi_bridge(self, connection_id: str) -> HostMidiBridgeLease:
         async with self._lock:

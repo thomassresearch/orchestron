@@ -50,7 +50,7 @@ class CsoundWorker:
     ) -> None:
         self._backend = "mock"
         self._audio_output_mode = self._resolve_audio_output_mode(
-            os.getenv("VISUALCSOUND_AUDIO_OUTPUT_MODE", "local")
+            os.getenv("VISUALCSOUND_AUDIO_OUTPUT_MODE", "browser_clock")
         )
         configured_assets_dir = (gen_audio_assets_dir or os.getenv("VISUALCSOUND_GEN_AUDIO_ASSETS_DIR", "")).strip()
         self._gen_audio_assets_dir = os.path.abspath(configured_assets_dir) if configured_assets_dir else None
@@ -237,76 +237,6 @@ class CsoundWorker:
 
     def _start_ctcsound(self, csd: str, midi_input: str, rtmidi_module: str) -> EngineStartResult:
         return self._start_ctcsound_browser_clock(csd, midi_input, rtmidi_module)
-
-    def _start_ctcsound_local(self, csd: str, midi_input: str, rtmidi_module: str) -> EngineStartResult:
-        assert self._ctcsound is not None
-
-        requested_module = self._normalize_rtmidi_module(rtmidi_module)
-        if sys.platform == "darwin":
-            requested_module = "coremidi"
-        rtaudio_option = self._platform_rtaudio_option()
-        attempts: list[str] = []
-        errors: list[str] = []
-
-        for module in self._rtmidi_candidates(requested_module):
-            attempts.append(module)
-            csound = self._ctcsound.Csound()
-            try:
-                software_buffer, hardware_buffer = self._extract_runtime_buffer_sizes(csd)
-                runtime_csd = self._apply_runtime_midi_options(
-                    csd,
-                    midi_input=midi_input,
-                    rtmidi_module=module,
-                    rtaudio_option=rtaudio_option,
-                )
-                csound.setOption("-d")
-                csound.setOption("-odac")
-                csound.setOption(f"-b{software_buffer}")
-                csound.setOption(f"-B{hardware_buffer}")
-                csound.setOption(f"-M{midi_input}")
-                csound.setOption(f"-+rtmidi={module}")
-                if rtaudio_option:
-                    csound.setOption(f"-+rtaudio={rtaudio_option}")
-                self._apply_gen_audio_search_dir_option(csound)
-
-                compile_result = csound.compileCsdText(runtime_csd)
-                if compile_result != 0:
-                    raise RuntimeError(f"CSound compile failed with code {compile_result}")
-
-                start_result = csound.start()
-                if start_result != 0:
-                    raise RuntimeError(f"CSound start failed with code {start_result}")
-            except Exception as exc:
-                errors.append(f"{module}: {exc}")
-                self._teardown_csound(csound)
-                logger.warning("CSound startup failed with rtmidi=%s: %s", module, exc)
-                continue
-
-            self._csound = csound
-            self._thread = threading.Thread(target=csound.perform, daemon=True, name="csound-perform")
-            self._thread.start()
-
-            if module != requested_module:
-                logger.warning(
-                    "Requested rtmidi module '%s' unavailable; fell back to '%s'.",
-                    requested_module,
-                    module,
-                )
-                return EngineStartResult(
-                    backend="ctcsound",
-                    detail=f"started with CSound (rtmidi fallback: {module})",
-                    audio_mode=self._audio_output_mode,
-                )
-
-            return EngineStartResult(
-                backend="ctcsound",
-                detail="started with CSound",
-                audio_mode=self._audio_output_mode,
-            )
-
-        attempted = ", ".join(attempts)
-        message = "; ".join(errors) if errors else "unknown startup error"
-        raise RuntimeError(f"CSound start failed for all rtmidi modules ({attempted}): {message}")
 
     def _start_ctcsound_browser_clock(self, csd: str, midi_input: str, rtmidi_module: str) -> EngineStartResult:
         assert self._ctcsound is not None
@@ -632,27 +562,24 @@ class CsoundWorker:
     @staticmethod
     def _resolve_audio_output_mode(raw_value: str) -> str:
         value = (raw_value or "").strip().lower()
-        if value in {"", "local"}:
-            logger.warning(
-                "VISUALCSOUND_AUDIO_OUTPUT_MODE=%s is deprecated and now maps to browser_clock.",
-                raw_value or "local",
-            )
+        if value == "":
             return "browser_clock"
         if value == "streaming":
             logger.warning(
                 "VISUALCSOUND_AUDIO_OUTPUT_MODE=streaming is deprecated and now maps to browser_clock."
             )
             return "browser_clock"
-        if value in {"webrtc", "browser"}:
+        if value in {"local", "webrtc", "browser"}:
             raise ValueError(
                 f"VISUALCSOUND_AUDIO_OUTPUT_MODE={value} is no longer supported. "
                 "Use VISUALCSOUND_AUDIO_OUTPUT_MODE=browser_clock."
             )
         if value in {"browser_clock", "browser-clock", "pcm"}:
             return "browser_clock"
-        if value:
-            logger.warning("Unknown VISUALCSOUND_AUDIO_OUTPUT_MODE '%s'; using browser_clock", raw_value)
-        return "browser_clock"
+        raise ValueError(
+            "Invalid VISUALCSOUND_AUDIO_OUTPUT_MODE value. Supported values: "
+            "browser_clock (or streaming as a compatibility alias)."
+        )
 
     @classmethod
     def _rtmidi_candidates(cls, preferred: str) -> list[str]:

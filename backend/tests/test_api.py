@@ -21,7 +21,7 @@ from backend.app.main import create_app
 def _client(
     tmp_path: Path,
     *,
-    audio_output_mode: str = "local",
+    audio_output_mode: str = "browser_clock",
     host_midi_token: str | None = None,
 ) -> TestClient:
     db_path = tmp_path / "test.db"
@@ -199,6 +199,7 @@ class _BrowserClockRenderDriver:
                 "queued_frames": 0,
                 "sample_rate": 48_000,
                 "pending_render_frames": 0,
+                "underrun_count": 0,
             }
         )
 
@@ -245,12 +246,9 @@ def test_runtime_config_maps_streaming_alias_to_browser_clock(tmp_path: Path) ->
         assert response.json()["browser_clock_enabled"] is True
 
 
-def test_runtime_config_maps_local_alias_to_browser_clock(tmp_path: Path) -> None:
-    with _client(tmp_path, audio_output_mode="local") as client:
-        response = client.get("/api/runtime-config")
-        assert response.status_code == 200
-        assert response.json()["audio_output_mode"] == "browser_clock"
-        assert response.json()["browser_clock_enabled"] is True
+def test_runtime_config_rejects_local_audio_output_mode(tmp_path: Path) -> None:
+    with pytest.raises(ValidationError, match="VISUALCSOUND_AUDIO_OUTPUT_MODE=local is no longer supported"):
+        _client(tmp_path, audio_output_mode="local")
 
 
 def test_runtime_config_rejects_webrtc_audio_output_mode(tmp_path: Path) -> None:
@@ -293,21 +291,106 @@ def test_browser_clock_controller_websocket_streams_pcm_chunks(tmp_path: Path) -
             websocket.send_json(
                 {
                     "type": "timing_report",
-                    "client_perf_ms": 1234.5,
+                    "client_perf_ms": time.perf_counter() * 1000.0,
                     "audio_context_time_s": 0.25,
                     "queued_frames": 512,
                     "sample_rate": 48_000,
                     "pending_render_frames": 128,
+                    "underrun_count": 3,
                 }
             )
 
-            websocket.send_json({"type": "request_render", "block_count": 2})
+            websocket.send_json(
+                {
+                    "type": "request_render",
+                    "block_count": 2,
+                    "request_id": "render-steady-1",
+                    "client_perf_ms": time.perf_counter() * 1000.0,
+                    "priority": "steady",
+                }
+            )
             metadata = websocket.receive_json()
             assert metadata["type"] == "render_chunk"
             assert metadata["engine_block_count"] == 2
             assert metadata["engine_sample_start"] == 0
             assert metadata["engine_sample_end"] == 128
             assert metadata["target_frame_count"] == 128
+            assert metadata["telemetry"]["request_id"] == "render-steady-1"
+            assert metadata["telemetry"]["priority"] == "steady"
+            assert metadata["telemetry"]["queued_frames_at_start"] == 512
+            assert metadata["telemetry"]["pending_render_frames_at_start"] == 128
+            assert metadata["telemetry"]["underrun_count_at_start"] == 3
+            assert metadata["telemetry"]["timing_sync_stale"] is False
+            assert metadata["telemetry"]["timing_report_age_ms"] is not None
+            assert metadata["telemetry"]["timing_report_age_ms"] >= 0.0
+            assert metadata["telemetry"]["websocket_message_wait_ms"] is not None
+            assert metadata["telemetry"]["websocket_message_wait_ms"] >= 0.0
+            assert metadata["telemetry"]["render_service_time_ms"] >= 0.0
+            assert isinstance(metadata["telemetry"]["server_received_monotonic_ns"], int)
+            assert isinstance(metadata["telemetry"]["server_render_started_monotonic_ns"], int)
+            assert isinstance(metadata["telemetry"]["server_render_completed_monotonic_ns"], int)
+            assert metadata["telemetry"]["note_on_to_render_request_ms"] is None
+            assert metadata["telemetry"]["note_on_to_render_complete_ms"] is None
+
+            pcm = websocket.receive_bytes()
+            assert len(pcm) == metadata["target_frame_count"] * metadata["channels"] * 4
+
+
+def test_browser_clock_interactive_render_reports_note_on_latency(tmp_path: Path) -> None:
+    with _client(tmp_path, audio_output_mode="browser_clock") as client:
+        session_id = _create_running_session(client, patch_name="Browser Clock Telemetry")
+
+        with client.websocket_connect(f"/ws/sessions/{session_id}/browser-clock") as websocket:
+            websocket.send_json(
+                {
+                    "type": "claim_controller",
+                    "audio_context_sample_rate": 48_000,
+                    "queue_low_water_frames": 1024,
+                    "queue_high_water_frames": 2048,
+                    "max_blocks_per_request": 8,
+                }
+            )
+            stream_config = websocket.receive_json()
+            assert stream_config["type"] == "stream_config"
+
+            websocket.send_json(
+                {
+                    "type": "timing_report",
+                    "client_perf_ms": time.perf_counter() * 1000.0,
+                    "audio_context_time_s": 0.0,
+                    "queued_frames": 96,
+                    "sample_rate": 48_000,
+                    "pending_render_frames": 32,
+                    "underrun_count": 1,
+                }
+            )
+            websocket.send_json(
+                {
+                    "type": "manual_midi",
+                    "midi": {"type": "note_on", "channel": 1, "note": 60, "velocity": 100},
+                    "event_perf_ms": time.perf_counter() * 1000.0,
+                }
+            )
+            websocket.send_json(
+                {
+                    "type": "request_render",
+                    "block_count": 1,
+                    "request_id": "render-interactive-1",
+                    "client_perf_ms": time.perf_counter() * 1000.0,
+                    "priority": "interactive",
+                }
+            )
+
+            metadata = websocket.receive_json()
+            assert metadata["type"] == "render_chunk"
+            assert metadata["telemetry"]["request_id"] == "render-interactive-1"
+            assert metadata["telemetry"]["priority"] == "interactive"
+            assert metadata["telemetry"]["note_on_to_render_request_ms"] is not None
+            assert metadata["telemetry"]["note_on_to_render_request_ms"] >= 0.0
+            assert metadata["telemetry"]["note_on_to_render_complete_ms"] is not None
+            assert metadata["telemetry"]["note_on_to_render_complete_ms"] >= metadata["telemetry"][
+                "note_on_to_render_request_ms"
+            ]
 
             pcm = websocket.receive_bytes()
             assert len(pcm) == metadata["target_frame_count"] * metadata["channels"] * 4

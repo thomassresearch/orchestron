@@ -33,8 +33,9 @@ def _is_valid_pad_loop_token(token: int) -> bool:
     return token in _PAUSE_TOKENS
 
 
-SessionAudioOutputMode = Literal["local", "browser_clock"]
+SessionAudioOutputMode = Literal["browser_clock"]
 TimestampQuality = Literal["authoritative", "best_effort"]
+BrowserClockRenderPriority = Literal["steady", "interactive"]
 
 
 class SessionState(StrEnum):
@@ -114,6 +115,9 @@ class BrowserClockClaimControllerRequest(BaseModel):
 class BrowserClockRequestRenderRequest(BaseModel):
     type: Literal["request_render"]
     block_count: int = Field(ge=1)
+    request_id: str | None = Field(default=None, min_length=1, max_length=128)
+    client_perf_ms: float | None = Field(default=None, ge=0.0)
+    priority: BrowserClockRenderPriority = "steady"
 
 
 class BrowserClockReleaseControllerRequest(BaseModel):
@@ -133,6 +137,7 @@ class BrowserClockTimingReportRequest(BaseModel):
     queued_frames: int = Field(ge=0)
     sample_rate: int = Field(ge=1)
     pending_render_frames: int = Field(default=0, ge=0)
+    underrun_count: int = Field(default=0, ge=0)
 
 
 class BrowserClockSequencerStartControlRequest(BaseModel):
