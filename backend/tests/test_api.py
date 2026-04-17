@@ -839,7 +839,8 @@ def test_add_opcodes_guide_exists_and_contains_key_references() -> None:
 
     text = docs_path.read_text(encoding="utf-8")
     assert "https://csound.com/docs/manual/PartReference.html" in text
-    assert "backend/app/services/opcode_service.py" in text
+    assert "backend/app/data/opcodes.json" in text
+    assert "backend/app/services/compiler_orchestra.py" in text
     assert "frontend/src/lib/documentation.ts" in text
 
 

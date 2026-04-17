@@ -11,9 +11,9 @@ The integrated opcode documentation in the app is generated from opcode metadata
 
 1. Find opcode details in the Csound manual.
 2. Map arguments/outputs to VisualCSound signal types (`i`, `k`, `a`, `S`, `f`).
-3. Add the opcode spec in backend metadata (`OpcodeService`).
-4. Add/update the manual URL mapping.
-5. Choose or create an icon (`backend/app/static/icons/*.svg`).
+3. Add or update the opcode entry in backend metadata (`backend/app/data/opcodes.json`).
+4. Set or update the opcode's `documentation_url`.
+5. Choose or create an icon (`backend/app/static/icons/*.svg`) and point `icon_filename` at it.
 6. Refresh localized opcode detail data from Csound manual pages.
 7. Verify question-mark documentation output (EN + localized variants).
 8. Add tests (API + compile behavior) and run them.
@@ -28,7 +28,7 @@ Use the official manual page for the opcode (from Part Reference) and capture:
 - Defaults or common defaults used by Csound examples.
 - Constraints/ranges worth enforcing in metadata defaults.
 
-Keep the original manual URL and wire it into `OPCODE_REFERENCE_URLS`.
+Keep the original manual URL and store it in the opcode entry's `documentation_url`.
 
 ## 2) Map Csound Rates To VisualCSound Types
 
@@ -42,7 +42,7 @@ VisualCSound uses `SignalType` in `backend/app/models/opcode.py`:
 Where allowed parameter types are defined/enforced:
 - **Primary type per port**: `PortSpec.signal_type`
 - **Additional accepted source types**: `PortSpec.accepted_signal_types`
-- **Compatibility rules at compile time**: `backend/app/services/compiler_service.py` in `_is_compatible_type(...)`
+- **Compatibility rules at compile time**: `backend/app/services/compiler_graph.py` in `is_compatible_type(...)`
 
 Important behavior:
 - A port with `signal_type=k` and `accepted_signal_types=[a, i]` can accept audio/control/init sources.
@@ -50,48 +50,55 @@ Important behavior:
 
 ## 3) Add Opcode Metadata In Backend
 
-Main file:
+Catalog file:
+- `backend/app/data/opcodes.json`
+
+Loader/facade:
 - `backend/app/services/opcode_service.py`
 
 Steps:
-1. Add or update the manual URL in `OPCODE_REFERENCE_URLS`.
-2. In `_load_builtin_opcodes()`, add a new `self._spec(...)` block.
-3. Define:
+1. Add or update the opcode entry in `backend/app/data/opcodes.json`.
+2. Define:
    - `name`, `category`, `description`, `tags`
-   - `inputs`: `PortSpec(...)` list (`id`, `name`, `signal_type`, `required`, `default`, `accepted_signal_types`)
-   - `outputs`: `PortSpec(...)` list
+   - `documentation_url`
+   - `inputs`: `PortSpec`-shaped data (`id`, `name`, `signal_type`, `required`, `default`, `accepted_signal_types`)
+   - `outputs`: `PortSpec`-shaped data
    - `template`: generated Csound line(s), using `{port_id}` placeholders
-   - `icon`: `self._icon("your_icon.svg")`
-4. Use stable, descriptive port IDs because these are used in graph connections and templates.
+   - `icon_filename`
+3. Use stable, descriptive port IDs because these are used in graph connections and templates.
 
 Template/literal notes:
-- Optional args are represented with `required=False`; compiler can omit optional placeholders when missing.
+- Optional args are represented with `required=false`; compiler can omit optional placeholders when missing.
 - Defaults should be conservative and musically sane.
 - Keep template order exactly aligned with Csound argument order.
+- `backend/app/services/opcode_service.py` should stay a loader/validator, not become handwritten catalog logic again.
 
 ## 4) Compiler And Type-Safety Checkpoints
 
-Main file:
-- `backend/app/services/compiler_service.py`
+Compiler modules:
+- Facade: `backend/app/services/compiler_service.py`
+- Graph validation/topology: `backend/app/services/compiler_graph.py`
+- Input formulas: `backend/app/services/compiler_formula.py`
+- Orchestra/CSD emission and special-node handling: `backend/app/services/compiler_orchestra.py`
 
 Usually no compiler changes are needed for a normal opcode addition, but verify:
-- The new port types are compatible with existing `_is_compatible_type(...)` rules.
+- The new port types are compatible with existing `is_compatible_type(...)` rules in `compiler_graph.py`.
 - Optional args in template render correctly.
-- Default values format safely through `_format_literal(...)`.
+- Default values format safely through `_format_literal(...)` in `compiler_orchestra.py`.
 
-If the opcode needs special behavior (custom rendering, multi-line expansion, special validation), implement it here and add tests.
+If the opcode needs special behavior (custom rendering, multi-line expansion, special validation), add it in the relevant helper instead of growing the facade.
 
 ## 5) Choose Or Create An Icon
 
 Files:
 - Icon assets: `backend/app/static/icons/`
-- Icon wiring: `backend/app/services/opcode_service.py`
+- Icon wiring: `backend/app/data/opcodes.json` via `icon_filename`
 
 Workflow:
 1. Reuse an existing family icon when appropriate (fast path).
 2. If needed, add a new SVG in `backend/app/static/icons/<opcode>.svg`.
 3. Keep icon style consistent with existing set (simple, high-contrast, readable at small sizes).
-4. Reference it via `self._icon("<opcode>.svg")` in the opcode spec.
+4. Reference it via `icon_filename` in the opcode entry.
 
 Tip: If a dedicated icon is not ready yet, map to a category icon first and ship functionality.
 
@@ -106,11 +113,16 @@ Data flow:
   - `frontend/src/lib/opcodeDocDetails.json`
   - generated by `tools/update_opcode_localized_docs.py`
 
-Run after adding/changing opcodes:
+Default workflow after adding/changing opcodes:
 
 ```bash
-uv sync --extra dev
-PYTHONUNBUFFERED=1 uv run python tools/update_opcode_localized_docs.py
+PYTHONUNBUFFERED=1 uv run python tools/update_opcode_localized_docs.py --opcodes "<opcode>" --output /tmp/opcodeDocDetails.changed.json
+```
+
+For multiple changed opcodes:
+
+```bash
+PYTHONUNBUFFERED=1 uv run python tools/update_opcode_localized_docs.py --opcodes "<opcode1>,<opcode2>,<opcode3>" --output /tmp/opcodeDocDetails.changed.json
 ```
 
 What the script does:
@@ -119,7 +131,15 @@ What the script does:
 3. Extracts synopsis/description/initialization/performance details.
 4. Maps extracted argument details to VisualCSound input/output ports.
 5. Translates extracted detail text to all supported GUI languages (EN/DE/FR/ES).
-6. Writes `frontend/src/lib/opcodeDocDetails.json`.
+6. Writes the requested output JSON.
+
+Merge only the changed opcode entries back into `frontend/src/lib/opcodeDocDetails.json`.
+
+Full regeneration is reserved for explicit requests:
+
+```bash
+PYTHONUNBUFFERED=1 uv run python tools/update_opcode_localized_docs.py
+```
 
 If you need a quick dry run while iterating:
 
@@ -141,25 +161,29 @@ Integrated help text lives in `frontend/src/lib/documentation.ts`. Opcode locali
 - Reference
 
 For high-quality docs in every localization:
-- Keep `description` in `OpcodeService` concise and accurate.
+- Keep `description` in `backend/app/data/opcodes.json` concise and accurate.
 - Keep port `id`/`name` stable and semantically correct.
 - Keep `documentation_url` accurate so extractor data comes from the right manual page.
 - Re-run `tools/update_opcode_localized_docs.py` whenever opcode ports, template, or docs URL change.
 
 ## 8) Tests To Update/Add
 
-Primary test file:
+Primary test files:
 - `backend/tests/test_api.py`
+- `backend/tests/test_compiler_service.py`
+- `backend/tests/test_opcode_service.py`
 
 Recommended test coverage:
 1. `GET /api/opcodes` includes your opcode.
 2. Port schema is correct (type, required, defaults, accepted types).
 3. `documentation_url` points to the right Csound page.
 4. A compile-flow test confirms generated orchestra lines are correct.
+5. Loader-level regressions are covered when changing the catalog structure.
 
 Run at least:
 - `uv run pytest backend/tests/test_api.py -k opcode`
 - `uv run pytest backend/tests/test_compiler_service.py`
+- `uv run pytest backend/tests/test_opcode_service.py`
 
 ## 9) Manual Verification Checklist
 
@@ -179,6 +203,7 @@ Run at least:
 - Icon filename typo or missing SVG asset.
 - Manual URL not set, resulting in generic fallback link.
 - Forgetting tests for optional argument omission behavior.
+- Editing `opcode_service.py` instead of the JSON catalog and wondering why the change is noisy or inconsistent.
 
 ## 11) Definition Of Done
 
