@@ -3,6 +3,7 @@ from __future__ import annotations
 from io import BytesIO
 import json
 import os
+import queue
 import time
 import threading
 from pathlib import Path
@@ -290,6 +291,21 @@ def test_browser_clock_controller_websocket_streams_pcm_chunks(tmp_path: Path) -
 
             websocket.send_json(
                 {
+                    "type": "clock_sync",
+                    "request_id": "clock-sync-1",
+                    "client_send_perf_ms": time.perf_counter() * 1000.0,
+                }
+            )
+            clock_sync = websocket.receive_json()
+            assert clock_sync["type"] == "clock_sync"
+            assert clock_sync["request_id"] == "clock-sync-1"
+            assert clock_sync["client_send_perf_ms"] >= 0.0
+            assert isinstance(clock_sync["server_received_monotonic_ns"], int)
+            assert isinstance(clock_sync["server_sent_monotonic_ns"], int)
+            assert clock_sync["server_sent_monotonic_ns"] >= clock_sync["server_received_monotonic_ns"]
+
+            websocket.send_json(
+                {
                     "type": "timing_report",
                     "client_perf_ms": time.perf_counter() * 1000.0,
                     "audio_context_time_s": 0.25,
@@ -297,6 +313,8 @@ def test_browser_clock_controller_websocket_streams_pcm_chunks(tmp_path: Path) -
                     "sample_rate": 48_000,
                     "pending_render_frames": 128,
                     "underrun_count": 3,
+                    "clock_sync_offset_ns": 2_500_000,
+                    "clock_sync_rtt_ms": 4.25,
                 }
             )
 
@@ -321,6 +339,7 @@ def test_browser_clock_controller_websocket_streams_pcm_chunks(tmp_path: Path) -
             assert metadata["telemetry"]["pending_render_frames_at_start"] == 128
             assert metadata["telemetry"]["underrun_count_at_start"] == 3
             assert metadata["telemetry"]["timing_sync_stale"] is False
+            assert metadata["telemetry"]["clock_sync_rtt_ms"] == 4.25
             assert metadata["telemetry"]["timing_report_age_ms"] is not None
             assert metadata["telemetry"]["timing_report_age_ms"] >= 0.0
             assert metadata["telemetry"]["websocket_message_wait_ms"] is not None
@@ -394,6 +413,95 @@ def test_browser_clock_interactive_render_reports_note_on_latency(tmp_path: Path
 
             pcm = websocket.receive_bytes()
             assert len(pcm) == metadata["target_frame_count"] * metadata["channels"] * 4
+
+
+def test_browser_clock_render_queue_does_not_block_manual_midi(tmp_path: Path) -> None:
+    with _client(tmp_path, audio_output_mode="browser_clock") as client:
+        session_id = _create_running_session(client, patch_name="Browser Clock Concurrent Control")
+        runtime = client.app.state.container.session_service._sessions[session_id]
+        original_render_blocks = runtime.worker.render_blocks
+        render_started = threading.Event()
+        allow_render_finish = threading.Event()
+
+        def slow_render_blocks(*, block_count: int, target_sample_rate: int, before_block=None):
+            render_started.set()
+            assert allow_render_finish.wait(timeout=1.0)
+            return original_render_blocks(
+                block_count=block_count,
+                target_sample_rate=target_sample_rate,
+                before_block=before_block,
+            )
+
+        runtime.worker.render_blocks = slow_render_blocks
+
+        try:
+            with client.websocket_connect(f"/ws/sessions/{session_id}") as session_ws:
+                with client.websocket_connect(f"/ws/sessions/{session_id}/browser-clock") as websocket:
+                    websocket.send_json(
+                        {
+                            "type": "claim_controller",
+                            "audio_context_sample_rate": 48_000,
+                            "queue_low_water_frames": 1024,
+                            "queue_high_water_frames": 2048,
+                            "max_blocks_per_request": 8,
+                        }
+                    )
+                    stream_config = websocket.receive_json()
+                    assert stream_config["type"] == "stream_config"
+
+                    websocket.send_json(
+                        {
+                            "type": "timing_report",
+                            "client_perf_ms": time.perf_counter() * 1000.0,
+                            "audio_context_time_s": 0.0,
+                            "queued_frames": 0,
+                            "sample_rate": 48_000,
+                            "pending_render_frames": 0,
+                            "underrun_count": 0,
+                        }
+                    )
+                    websocket.send_json(
+                        {
+                            "type": "request_render",
+                            "block_count": 1,
+                            "request_id": "slow-render-1",
+                            "client_perf_ms": time.perf_counter() * 1000.0,
+                            "priority": "steady",
+                        }
+                    )
+
+                    assert render_started.wait(timeout=0.5)
+
+                    event_queue: queue.Queue[dict[str, object]] = queue.Queue()
+
+                    def _receive_session_event() -> None:
+                        event_queue.put(session_ws.receive_json())
+
+                    receiver = threading.Thread(target=_receive_session_event, daemon=True)
+                    receiver.start()
+
+                    websocket.send_json(
+                        {
+                            "type": "manual_midi",
+                            "midi": {"type": "note_on", "channel": 1, "note": 60, "velocity": 100},
+                            "event_perf_ms": time.perf_counter() * 1000.0,
+                        }
+                    )
+
+                    midi_event = event_queue.get(timeout=0.2)
+                    assert midi_event["type"] == "midi_event"
+                    assert midi_event["payload"]["type"] == "note_on"
+                    assert midi_event["payload"]["note"] == 60
+
+                    allow_render_finish.set()
+                    metadata = websocket.receive_json()
+                    assert metadata["type"] == "render_chunk"
+                    assert metadata["telemetry"]["request_id"] == "slow-render-1"
+                    websocket.receive_bytes()
+                    receiver.join(timeout=1.0)
+        finally:
+            allow_render_finish.set()
+            runtime.worker.render_blocks = original_render_blocks
 
 
 def test_browser_clock_controller_takeover_revokes_previous_browser(tmp_path: Path) -> None:
@@ -827,6 +935,51 @@ def test_engine_rates_drive_compiled_sr_and_ksmps(tmp_path: Path) -> None:
 
         assert "sr = 44100" in orc
         assert "ksmps = 10" in orc
+
+
+def test_patch_defaults_compile_to_48khz_and_32_ksmps(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        patch_payload = {
+            "name": "Default Engine Patch",
+            "description": "default engine config test",
+            "schema_version": 1,
+            "graph": {
+                "nodes": [
+                    {"id": "n1", "opcode": "const_a", "params": {"value": 0.2}, "position": {"x": 50, "y": 50}},
+                    {"id": "n2", "opcode": "outs", "params": {}, "position": {"x": 240, "y": 50}},
+                ],
+                "connections": [
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "left"},
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "right"},
+                ],
+                "ui_layout": {},
+            },
+        }
+
+        create_patch = client.post("/api/patches", json=patch_payload)
+        assert create_patch.status_code == 201
+        created_graph = create_patch.json()["graph"]
+        assert created_graph["engine_config"] == {
+            "sr": 48_000,
+            "control_rate": 1_500,
+            "ksmps": 32,
+            "nchnls": 2,
+            "software_buffer": 128,
+            "hardware_buffer": 512,
+            "0dbfs": 1.0,
+        }
+        patch_id = create_patch.json()["id"]
+
+        create_session = client.post("/api/sessions", json={"patch_id": patch_id})
+        assert create_session.status_code == 201
+        session_id = create_session.json()["session_id"]
+
+        compile_response = client.post(f"/api/sessions/{session_id}/compile")
+        assert compile_response.status_code == 200
+        orc = compile_response.json()["orc"]
+
+        assert "sr = 48000" in orc
+        assert "ksmps = 32" in orc
 
 
 def test_compile_uses_input_formula_for_multi_inbound_input(tmp_path: Path) -> None:

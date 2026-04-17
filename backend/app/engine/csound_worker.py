@@ -12,7 +12,8 @@ from typing import Any, Callable
 
 from backend.app.engine.browser_audio_pcm import (
     DEFAULT_BROWSER_AUDIO_SAMPLE_RATE,
-    csound_spout_to_pcm_block,
+    normalize_csound_spout_to_stereo,
+    resample_stereo_block_linear,
 )
 from backend.app.engine.ctcsound_loader import load_ctcsound_module
 from backend.app.engine.midi_scheduler import EngineMidiOutputAdapter, EngineMidiScheduler
@@ -58,6 +59,7 @@ class CsoundWorker:
         self._thread: threading.Thread | None = None
         self._running = False
         self._lock = threading.Lock()
+        self._render_lock = threading.Lock()
         self._runtime_sr = 0
         self._runtime_nchnls = 0
         self._runtime_ksmps = 0
@@ -331,72 +333,78 @@ class CsoundWorker:
         if not self.is_running:
             raise RuntimeError("Session must be running before rendering browser-clock audio.")
 
-        if self._backend != "ctcsound" or self._csound is None:
-            return self._render_mock_blocks(
+        with self._render_lock:
+            if self._backend != "ctcsound" or self._csound is None:
+                return self._render_mock_blocks(
+                    block_count=requested_blocks,
+                    target_sample_rate=target_sample_rate,
+                    before_block=before_block,
+                )
+
+            with self._lock:
+                if not self._running or self._csound is None:
+                    raise RuntimeError("Session must be running before rendering browser-clock audio.")
+                csound = self._csound
+                source_sr = self._runtime_sr
+                source_nchnls = self._runtime_nchnls
+                source_ksmps = self._runtime_ksmps
+                sample_start = self._render_sample_cursor
+
+            import numpy as np  # type: ignore
+
+            rendered_blocks: list[Any] = []
+            source_frames_rendered = 0
+            for block_index in range(requested_blocks):
+                if before_block is not None:
+                    before_block(block_index)
+
+                block_start_sample = sample_start + source_frames_rendered
+                block_end_sample = block_start_sample + source_ksmps
+                self._prepare_host_midi_block(
+                    block_start_sample=block_start_sample,
+                    block_end_sample=block_end_sample,
+                )
+
+                result = csound.performKsmps()
+                if result != 0:
+                    with self._lock:
+                        self._running = False
+                    raise RuntimeError(f"CSound performKsmps exited with status {result}")
+
+                block = normalize_csound_spout_to_stereo(
+                    csound.spout(),
+                    source_channels=source_nchnls,
+                )
+                rendered_blocks.append(block)
+                source_frames_rendered += source_ksmps
+
+            if rendered_blocks:
+                merged = np.concatenate(rendered_blocks, axis=0)
+            else:
+                merged = np.zeros((0, 2), dtype=np.float32)
+
+            if source_sr != target_sample_rate:
+                merged = resample_stereo_block_linear(
+                    merged,
+                    source_sample_rate=source_sr,
+                    target_sample_rate=target_sample_rate,
+                )
+
+            pcm = np.ascontiguousarray(merged.astype(np.float32, copy=False))
+            with self._lock:
+                self._render_sample_cursor += source_frames_rendered
+                sample_end = self._render_sample_cursor
+
+            return EngineRenderResult(
+                engine_sample_start=sample_start,
+                engine_sample_end=sample_end,
+                engine_sample_rate=source_sr,
+                target_sample_rate=target_sample_rate,
+                channels=2,
                 block_count=requested_blocks,
-                target_sample_rate=target_sample_rate,
-                before_block=before_block,
+                target_frame_count=int(pcm.shape[0]),
+                pcm_f32le=pcm.tobytes(),
             )
-
-        with self._lock:
-            if not self._running or self._csound is None:
-                raise RuntimeError("Session must be running before rendering browser-clock audio.")
-            csound = self._csound
-            source_sr = self._runtime_sr
-            source_nchnls = self._runtime_nchnls
-            source_ksmps = self._runtime_ksmps
-            sample_start = self._render_sample_cursor
-
-        import numpy as np  # type: ignore
-
-        rendered_blocks: list[Any] = []
-        source_frames_rendered = 0
-        for block_index in range(requested_blocks):
-            if before_block is not None:
-                before_block(block_index)
-
-            block_start_sample = sample_start + source_frames_rendered
-            block_end_sample = block_start_sample + source_ksmps
-            self._prepare_host_midi_block(
-                block_start_sample=block_start_sample,
-                block_end_sample=block_end_sample,
-            )
-
-            result = csound.performKsmps()
-            if result != 0:
-                with self._lock:
-                    self._running = False
-                raise RuntimeError(f"CSound performKsmps exited with status {result}")
-
-            block = csound_spout_to_pcm_block(
-                csound.spout(),
-                source_channels=source_nchnls,
-                source_sample_rate=source_sr,
-                target_sample_rate=target_sample_rate,
-            )
-            rendered_blocks.append(block)
-            source_frames_rendered += source_ksmps
-
-        if rendered_blocks:
-            merged = np.concatenate(rendered_blocks, axis=0)
-        else:
-            merged = np.zeros((0, 2), dtype=np.float32)
-
-        pcm = np.ascontiguousarray(merged.astype(np.float32, copy=False))
-        with self._lock:
-            self._render_sample_cursor += source_frames_rendered
-            sample_end = self._render_sample_cursor
-
-        return EngineRenderResult(
-            engine_sample_start=sample_start,
-            engine_sample_end=sample_end,
-            engine_sample_rate=source_sr,
-            target_sample_rate=target_sample_rate,
-            channels=2,
-            block_count=requested_blocks,
-            target_frame_count=int(pcm.shape[0]),
-            pcm_f32le=pcm.tobytes(),
-        )
 
     def _render_mock_blocks(
         self,

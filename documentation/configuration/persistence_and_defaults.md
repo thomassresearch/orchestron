@@ -46,8 +46,8 @@ A new patch starts with:
 - Name: `Untitled Instrument`
 - Empty graph (`nodes = []`, `connections = []`)
 - Default engine config values (current defaults):
-  - `sr = 44100`
-  - `control_rate = 1378`
+  - `sr = 48000`
+  - `control_rate = 1500`
   - `ksmps = 32`
   - `nchnls = 2`
   - `software_buffer = 128`

@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import sys
 
+import numpy as np
 import pytest
 
 from backend.app.engine.csound_worker import CsoundWorker
@@ -380,3 +381,45 @@ def test_browser_clock_mock_runtime_resamples_to_requested_output_rate(monkeypat
     assert len(render.pcm_f32le) == 139 * 2 * 4
 
     worker.stop()
+
+
+def test_browser_clock_ctcsound_runtime_resamples_merged_blocks_once_per_request(monkeypatch) -> None:
+    monkeypatch.setenv("VISUALCSOUND_AUDIO_OUTPUT_MODE", "browser_clock")
+    monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "true")
+
+    class FakeCsound:
+        def __init__(self) -> None:
+            self.perform_calls = 0
+
+        def performKsmps(self) -> int:  # noqa: N802
+            self.perform_calls += 1
+            return 0
+
+        def spout(self) -> np.ndarray:
+            base = float(self.perform_calls)
+            return np.column_stack(
+                (
+                    np.linspace(base, base + 0.5, num=64, dtype=np.float32),
+                    np.linspace(-base, -(base + 0.5), num=64, dtype=np.float32),
+                )
+            )
+
+    worker = CsoundWorker()
+    worker._backend = "ctcsound"
+    worker._audio_output_mode = "browser_clock"
+    worker._csound = FakeCsound()
+    worker._running = True
+    worker._runtime_sr = 44_100
+    worker._runtime_nchnls = 2
+    worker._runtime_ksmps = 64
+
+    render = worker.render_blocks(block_count=2, target_sample_rate=48_000)
+    pcm = np.frombuffer(render.pcm_f32le, dtype=np.float32).reshape(-1, 2)
+
+    assert worker._csound.perform_calls == 2
+    assert render.engine_sample_rate == 44_100
+    assert render.target_sample_rate == 48_000
+    assert render.engine_sample_end - render.engine_sample_start == 128
+    assert render.target_frame_count == 139
+    assert pcm.shape == (139, 2)
+    assert np.isfinite(pcm).all()

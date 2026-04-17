@@ -74,6 +74,8 @@ class BrowserClockControllerLease:
     latest_pending_render_frames: int = 0
     latest_underrun_count: int = 0
     latest_report_sample_rate: int = 0
+    latest_clock_sync_offset_ns: int | None = None
+    latest_clock_sync_rtt_ms: float | None = None
     last_timing_report_server_ns: int | None = None
     last_note_on_client_perf_ms: float | None = None
     last_note_on_server_received_ns: int | None = None
@@ -445,6 +447,8 @@ class SessionService:
         lease.latest_pending_render_frames = request.pending_render_frames
         lease.latest_underrun_count = request.underrun_count
         lease.latest_report_sample_rate = request.sample_rate
+        lease.latest_clock_sync_offset_ns = request.clock_sync_offset_ns
+        lease.latest_clock_sync_rtt_ms = request.clock_sync_rtt_ms
         lease.last_timing_report_server_ns = server_now_ns
 
     async def browser_clock_release_controller(
@@ -557,7 +561,8 @@ class SessionService:
 
         render_started_ns = time.perf_counter_ns()
         try:
-            render = runtime.worker.render_blocks(
+            render = await asyncio.to_thread(
+                runtime.worker.render_blocks,
                 block_count=block_count,
                 target_sample_rate=lease.sample_rate,
                 before_block=_before_block,
@@ -1098,6 +1103,11 @@ class SessionService:
         if lease is None or perf_ms is None:
             return (None, True)
         remote_timestamp_ns = int(round(max(0.0, perf_ms) * 1_000_000.0))
+        if lease.latest_clock_sync_offset_ns is not None and not self._browser_timing_report_is_stale(
+            lease,
+            now_server_ns=now_server_ns,
+        ):
+            return (remote_timestamp_ns + int(lease.latest_clock_sync_offset_ns), False)
         mapped_server_ns, sync_stale = lease.timing_mapping.map_to_server_time(
             remote_timestamp_ns,
             now_server_ns=now_server_ns,
@@ -1184,6 +1194,7 @@ class SessionService:
             "underrun_count_at_start": 0 if lease is None else lease.latest_underrun_count,
             "timing_report_age_ms": timing_report_age_ms,
             "timing_sync_stale": timing_sync_stale,
+            "clock_sync_rtt_ms": None if lease is None else lease.latest_clock_sync_rtt_ms,
             "websocket_message_wait_ms": websocket_message_wait_ms,
             "render_service_time_ms": max(0.0, (server_render_end_ns - server_render_start_ns) / 1_000_000.0),
             "server_received_monotonic_ns": server_received_ns,

@@ -2006,8 +2006,8 @@ function normalizeSequencerState(raw: unknown): SequencerState {
 }
 
 function normalizeEngineConfig(raw: Partial<EngineConfig> | undefined): EngineConfig {
-  const sr = clampInt(typeof raw?.sr === "number" ? raw.sr : 44100, AUDIO_RATE_MIN, AUDIO_RATE_MAX);
-  let controlRate = 1378;
+  const sr = clampInt(typeof raw?.sr === "number" ? raw.sr : 48000, AUDIO_RATE_MIN, AUDIO_RATE_MAX);
+  let controlRate = 1500;
 
   if (typeof raw?.control_rate === "number" && Number.isFinite(raw.control_rate)) {
     controlRate = clampInt(raw.control_rate, CONTROL_RATE_MIN, CONTROL_RATE_MAX);

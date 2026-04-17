@@ -120,6 +120,12 @@ class BrowserClockRequestRenderRequest(BaseModel):
     priority: BrowserClockRenderPriority = "steady"
 
 
+class BrowserClockClockSyncRequest(BaseModel):
+    type: Literal["clock_sync"]
+    request_id: str = Field(min_length=1, max_length=128)
+    client_send_perf_ms: float = Field(ge=0.0)
+
+
 class BrowserClockReleaseControllerRequest(BaseModel):
     type: Literal["release_controller"]
 
@@ -138,6 +144,8 @@ class BrowserClockTimingReportRequest(BaseModel):
     sample_rate: int = Field(ge=1)
     pending_render_frames: int = Field(default=0, ge=0)
     underrun_count: int = Field(default=0, ge=0)
+    clock_sync_offset_ns: int | None = None
+    clock_sync_rtt_ms: float | None = Field(default=None, ge=0.0)
 
 
 class BrowserClockSequencerStartControlRequest(BaseModel):

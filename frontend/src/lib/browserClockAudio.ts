@@ -2,6 +2,8 @@ import { wsBaseUrl } from "../api/client";
 import { resolveDefaultBrowserClockLatencySettings } from "./browserClockLatencyConfig";
 import type {
   BrowserClockClaimControllerRequest,
+  BrowserClockClockSyncMessage,
+  BrowserClockClockSyncRequest,
   BrowserClockLatencySettings,
   BrowserClockEngineErrorMessage,
   BrowserClockManualMidiRequest,
@@ -43,7 +45,9 @@ type PendingConnect = {
 const WORKLET_MODULE_URL = new URL("../audio/browserClockProcessor.js", import.meta.url).href;
 const RING_BUFFER_CHANNELS = 2;
 const RING_BUFFER_DURATION_SECONDS = 6;
-const RENDER_REFILL_INTERVAL_MS = 20;
+const RENDER_REFILL_FALLBACK_INTERVAL_MS = 100;
+const CLOCK_SYNC_INTERVAL_MS = 500;
+const CLOCK_SYNC_MAX_AGE_MS = 2_000;
 const SEQUENCER_REQUEST_TIMEOUT_MS = 5_000;
 const AUDIO_UNLOCK_MESSAGE = "Tap anywhere to enable browser audio.";
 const UNDERRUN_RECOVERY_WINDOW_MS = 5_000;
@@ -66,6 +70,11 @@ type PendingRenderRequest = {
   priority: RenderRequestPriority;
   requestId: string;
   clientPerfMs: number;
+};
+
+type BrowserClockWorkletMessage = {
+  type: "need_refill";
+  available_frames: number;
 };
 
 type PlaybackTimelineSegment = {
@@ -108,12 +117,17 @@ export class BrowserClockAudioClient {
   private capacityFrames = 0;
   private refillTimer: number | null = null;
   private timingReportTimer: number | null = null;
+  private clockSyncTimer: number | null = null;
   private pendingChunk: PendingRenderChunk | null = null;
   private streamConfig: BrowserClockStreamConfigMessage | null = null;
   private inFlightRenderRequests = 0;
   private inFlightImmediateRenderRequests = 0;
   private pendingRenderFrames = 0;
   private pendingRenderRequests: PendingRenderRequest[] = [];
+  private pendingClockSyncRequests = new Set<string>();
+  private latestClockSyncOffsetNs: number | null = null;
+  private latestClockSyncRttMs: number | null = null;
+  private lastClockSyncAtPerfMs = 0;
   private startupPrimed = false;
   private lastUnderrunCount = 0;
   private underrunBoostFrames = 0;
@@ -135,6 +149,7 @@ export class BrowserClockAudioClient {
     }
     this.sendClaimController();
     this.requestRefill();
+    this.syncWorkletRefillThreshold();
   }
 
   async prime(): Promise<void> {
@@ -189,9 +204,12 @@ export class BrowserClockAudioClient {
     this.closedByClient = true;
     this.stopRefillLoop();
     this.stopTimingReportLoop();
+    this.stopClockSyncLoop();
     this.pendingChunk = null;
     this.streamConfig = null;
+    this.syncWorkletRefillThreshold(0);
     this.resetRenderPipelineState();
+    this.resetClockSyncState();
     this.rejectPendingSequencerRequests(new Error("Browser-clock connection closed."));
     this.finishPendingConnect(new Error("Browser-clock connection closed."));
     this.removeUnlockListeners();
@@ -218,6 +236,7 @@ export class BrowserClockAudioClient {
     this.audioNode = null;
     if (audioNode) {
       try {
+        audioNode.port.onmessage = null;
         audioNode.disconnect();
       } catch {
         // Ignore audio node disconnect failures during shutdown.
@@ -373,6 +392,7 @@ export class BrowserClockAudioClient {
     this.pendingChunk = null;
     this.streamConfig = null;
     this.resetRenderPipelineState();
+    this.resetClockSyncState();
 
     socket.onopen = () => {
       this.sendClaimController();
@@ -388,8 +408,11 @@ export class BrowserClockAudioClient {
       }
       this.stopRefillLoop();
       this.stopTimingReportLoop();
+      this.stopClockSyncLoop();
       this.pendingChunk = null;
+      this.syncWorkletRefillThreshold(0);
       this.resetRenderPipelineState();
+      this.resetClockSyncState();
       if (this.closedByClient) {
         this.finishPendingConnect(new Error("Browser-clock connection closed."));
         this.rejectPendingSequencerRequests(new Error("Browser-clock connection closed."));
@@ -437,10 +460,15 @@ export class BrowserClockAudioClient {
           this.lastUnderrunCount = this.readUnderrunCount();
           this.callbacks.onSequencerStatus(parsed.sequencer_status);
           this.finishPendingConnect(null);
+          this.syncWorkletRefillThreshold();
           this.startRefillLoop();
           this.startTimingReportLoop();
+          this.startClockSyncLoop();
           this.syncStatusFromState();
           this.requestRefill();
+          return;
+        case "clock_sync":
+          this.handleClockSyncMessage(parsed);
           return;
         case "render_chunk":
           this.pendingChunk = {
@@ -548,6 +576,7 @@ export class BrowserClockAudioClient {
   private sendJson(
     payload:
       | BrowserClockRequestRenderRequest
+      | BrowserClockClockSyncRequest
       | BrowserClockTimingReportRequest
       | BrowserClockSequencerStartControlRequest
       | BrowserClockSequencerCommandRequest
@@ -604,6 +633,7 @@ export class BrowserClockAudioClient {
     const availableFrames = this.availableFrames();
     let projectedFrames = availableFrames + this.pendingRenderFrames;
     const refillThreshold = this.startupPrimed ? queueTargets.lowWaterFrames : queueTargets.highWaterFrames;
+    this.syncWorkletRefillThreshold(refillThreshold);
     if (projectedFrames >= refillThreshold) {
       return;
     }
@@ -669,6 +699,9 @@ export class BrowserClockAudioClient {
     });
     node.onprocessorerror = () => {
       this.handleFatalError("Browser audio processor failed.", { closeSocket: true });
+    };
+    node.port.onmessage = (event: MessageEvent<BrowserClockWorkletMessage>) => {
+      this.handleWorkletMessage(event.data);
     };
     node.connect(context.destination);
 
@@ -783,12 +816,12 @@ export class BrowserClockAudioClient {
       throw new Error("Browser-clock audio ring buffer overflowed.");
     }
 
-    for (let frameIndex = 0; frameIndex < metadata.target_frame_count; frameIndex += 1) {
-      const ringFrame = (writeFrame + frameIndex) % this.capacityFrames;
-      const sampleBase = frameIndex * metadata.channels;
-      const ringBase = ringFrame * RING_BUFFER_CHANNELS;
-      this.sampleBuffer[ringBase] = source[sampleBase];
-      this.sampleBuffer[ringBase + 1] = source[sampleBase + 1];
+    const writeOffsetFrames = writeFrame % this.capacityFrames;
+    const firstChunkFrames = Math.min(metadata.target_frame_count, this.capacityFrames - writeOffsetFrames);
+    const firstChunkSamples = firstChunkFrames * RING_BUFFER_CHANNELS;
+    this.sampleBuffer.set(source.subarray(0, firstChunkSamples), writeOffsetFrames * RING_BUFFER_CHANNELS);
+    if (firstChunkFrames < metadata.target_frame_count) {
+      this.sampleBuffer.set(source.subarray(firstChunkSamples), 0);
     }
 
     Atomics.store(this.stateBuffer, 1, writeFrame + metadata.target_frame_count);
@@ -906,7 +939,7 @@ export class BrowserClockAudioClient {
     this.stopRefillLoop();
     this.refillTimer = window.setInterval(() => {
       this.requestRefill();
-    }, RENDER_REFILL_INTERVAL_MS);
+    }, RENDER_REFILL_FALLBACK_INTERVAL_MS);
   }
 
   private stopRefillLoop(): void {
@@ -914,6 +947,33 @@ export class BrowserClockAudioClient {
       window.clearInterval(this.refillTimer);
       this.refillTimer = null;
     }
+  }
+
+  private handleWorkletMessage(message: BrowserClockWorkletMessage | null | undefined): void {
+    if (!message || message.type !== "need_refill") {
+      return;
+    }
+    this.requestRefill();
+  }
+
+  private syncWorkletRefillThreshold(explicitThresholdFrames?: number): void {
+    const node = this.audioNode;
+    if (!node) {
+      return;
+    }
+
+    let lowWaterFrames = 0;
+    if (typeof explicitThresholdFrames === "number") {
+      lowWaterFrames = Math.max(0, Math.round(explicitThresholdFrames));
+    } else if (this.streamConfig) {
+      const queueTargets = this.currentQueueTargets(this.streamConfig);
+      lowWaterFrames = this.startupPrimed ? queueTargets.lowWaterFrames : queueTargets.highWaterFrames;
+    }
+
+    node.port.postMessage({
+      type: "set_refill_threshold",
+      low_water_frames: lowWaterFrames,
+    });
   }
 
   private startTimingReportLoop(): void {
@@ -932,12 +992,81 @@ export class BrowserClockAudioClient {
     }
   }
 
+  private startClockSyncLoop(): void {
+    this.stopClockSyncLoop();
+    this.requestClockSync();
+    this.clockSyncTimer = window.setInterval(() => {
+      this.requestClockSync();
+    }, CLOCK_SYNC_INTERVAL_MS);
+  }
+
+  private stopClockSyncLoop(): void {
+    if (this.clockSyncTimer !== null) {
+      window.clearInterval(this.clockSyncTimer);
+      this.clockSyncTimer = null;
+    }
+  }
+
+  private requestClockSync(): void {
+    const socket = this.socket;
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+      return;
+    }
+
+    const requestId = nextRequestId();
+    this.pendingClockSyncRequests.add(requestId);
+    try {
+      this.sendJson({
+        type: "clock_sync",
+        request_id: requestId,
+        client_send_perf_ms: performance.now(),
+      } satisfies BrowserClockClockSyncRequest);
+    } catch {
+      this.pendingClockSyncRequests.delete(requestId);
+    }
+  }
+
+  private handleClockSyncMessage(message: BrowserClockClockSyncMessage): void {
+    if (!this.pendingClockSyncRequests.delete(message.request_id)) {
+      return;
+    }
+
+    const clientReceivePerfMs = performance.now();
+    const clientSendNs = Math.round(message.client_send_perf_ms * 1_000_000.0);
+    const clientReceiveNs = Math.round(clientReceivePerfMs * 1_000_000.0);
+    const serverReceiveNs = message.server_received_monotonic_ns;
+    const serverSendNs = message.server_sent_monotonic_ns;
+    const serverProcessingNs = Math.max(0, serverSendNs - serverReceiveNs);
+    const roundTripNs = Math.max(0, clientReceiveNs - clientSendNs - serverProcessingNs);
+    const estimatedOffsetNs = Math.round(
+      ((serverReceiveNs - clientSendNs) + (serverSendNs - clientReceiveNs)) / 2
+    );
+
+    this.latestClockSyncOffsetNs = estimatedOffsetNs;
+    this.latestClockSyncRttMs = roundTripNs / 1_000_000.0;
+    this.lastClockSyncAtPerfMs = clientReceivePerfMs;
+  }
+
+  private currentClockSyncMeasurement(): { offsetNs: number | null; rttMs: number | null } {
+    if (this.latestClockSyncOffsetNs === null || this.latestClockSyncRttMs === null) {
+      return { offsetNs: null, rttMs: null };
+    }
+    if (performance.now() - this.lastClockSyncAtPerfMs > CLOCK_SYNC_MAX_AGE_MS) {
+      return { offsetNs: null, rttMs: null };
+    }
+    return {
+      offsetNs: this.latestClockSyncOffsetNs,
+      rttMs: this.latestClockSyncRttMs,
+    };
+  }
+
   private sendTimingReport(): void {
     const streamConfig = this.streamConfig;
     const context = this.audioContext;
     if (!streamConfig || !context) {
       return;
     }
+    const clockSync = this.currentClockSyncMeasurement();
 
     try {
       this.sendJson({
@@ -947,7 +1076,9 @@ export class BrowserClockAudioClient {
         queued_frames: this.availableFrames(),
         sample_rate: Math.max(1, Math.round(context.sampleRate)),
         pending_render_frames: this.pendingRenderFrames,
-        underrun_count: this.readUnderrunCount()
+        underrun_count: this.readUnderrunCount(),
+        clock_sync_offset_ns: clockSync.offsetNs,
+        clock_sync_rtt_ms: clockSync.rttMs,
       } satisfies BrowserClockTimingReportRequest);
     } catch {
       // Ignore timing-report send failures; socket shutdown paths already report fatal errors.
@@ -1003,8 +1134,11 @@ export class BrowserClockAudioClient {
   private handleFatalError(message: string, options: { closeSocket: boolean }): void {
     this.stopRefillLoop();
     this.stopTimingReportLoop();
+    this.stopClockSyncLoop();
     this.pendingChunk = null;
+    this.syncWorkletRefillThreshold(0);
     this.resetRenderPipelineState();
+    this.resetClockSyncState();
     this.clearPlaybackTimeline();
     const error = new Error(message);
     this.finishPendingConnect(error);
@@ -1036,6 +1170,13 @@ export class BrowserClockAudioClient {
     this.underrunBoostFrames = 0;
     this.underrunRecoveryUntil = 0;
     this.lastImmediateRenderAtMs = 0;
+  }
+
+  private resetClockSyncState(): void {
+    this.pendingClockSyncRequests.clear();
+    this.latestClockSyncOffsetNs = null;
+    this.latestClockSyncRttMs = null;
+    this.lastClockSyncAtPerfMs = 0;
   }
 
   private requestImmediateNoteRender(): void {

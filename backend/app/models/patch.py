@@ -42,8 +42,8 @@ class Connection(BaseModel):
 
 
 class EngineConfig(BaseModel):
-    sr: int = 44_100
-    control_rate: int = 1_378
+    sr: int = 48_000
+    control_rate: int = 1_500
     ksmps: int = 32
     nchnls: int = 2
     software_buffer: int = 128

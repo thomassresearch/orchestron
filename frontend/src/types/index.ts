@@ -727,6 +727,12 @@ export interface BrowserClockRequestRenderRequest {
   priority?: "steady" | "interactive";
 }
 
+export interface BrowserClockClockSyncRequest {
+  type: "clock_sync";
+  request_id: string;
+  client_send_perf_ms: number;
+}
+
 export interface BrowserClockReleaseControllerRequest {
   type: "release_controller";
 }
@@ -745,6 +751,8 @@ export interface BrowserClockTimingReportRequest {
   sample_rate: number;
   pending_render_frames?: number;
   underrun_count?: number;
+  clock_sync_offset_ns?: number | null;
+  clock_sync_rtt_ms?: number | null;
 }
 
 export interface BrowserClockSequencerStartControlRequest {
@@ -790,6 +798,7 @@ export interface BrowserClockRenderTelemetry {
   underrun_count_at_start: number;
   timing_report_age_ms: number | null;
   timing_sync_stale: boolean;
+  clock_sync_rtt_ms: number | null;
   websocket_message_wait_ms: number | null;
   render_service_time_ms: number;
   server_received_monotonic_ns: number;
@@ -818,6 +827,14 @@ export interface BrowserClockControllerRevokedMessage {
   reason: string;
 }
 
+export interface BrowserClockClockSyncMessage {
+  type: "clock_sync";
+  request_id: string;
+  client_send_perf_ms: number;
+  server_received_monotonic_ns: number;
+  server_sent_monotonic_ns: number;
+}
+
 export interface BrowserClockSequencerStatusMessage {
   type: "sequencer_status";
   request_id: string;
@@ -834,6 +851,7 @@ export type BrowserClockServerMessage =
   | BrowserClockStreamConfigMessage
   | BrowserClockRenderChunkMessage
   | BrowserClockControllerRevokedMessage
+  | BrowserClockClockSyncMessage
   | BrowserClockSequencerStatusMessage
   | BrowserClockEngineErrorMessage;
 

@@ -12,6 +12,7 @@ from pydantic import ValidationError
 from backend.app.core.container import AppContainer
 from backend.app.models.session import (
     BrowserClockClaimControllerRequest,
+    BrowserClockClockSyncRequest,
     BrowserClockManualMidiRequest,
     BrowserClockQueuePadControlRequest,
     BrowserClockReleaseControllerRequest,
@@ -95,6 +96,7 @@ async def browser_clock_controller(websocket: WebSocket, session_id: str) -> Non
     container: AppContainer = websocket.app.state.container
     connection_id = str(uuid4())
     send_lock = asyncio.Lock()
+    render_queue: asyncio.Queue[tuple[BrowserClockRequestRenderRequest, int] | None] = asyncio.Queue()
 
     async def send_json(payload: dict[str, object]) -> None:
         async with send_lock:
@@ -107,6 +109,43 @@ async def browser_clock_controller(websocket: WebSocket, session_id: str) -> Non
     async def close_socket(code: int, reason: str) -> None:
         async with send_lock:
             await websocket.close(code=code, reason=reason)
+
+    async def send_render_chunk(metadata: dict[str, object], pcm: bytes) -> None:
+        async with send_lock:
+            await websocket.send_json(metadata)
+            await websocket.send_bytes(pcm)
+
+    async def render_worker() -> None:
+        while True:
+            job = await render_queue.get()
+            if job is None:
+                return
+
+            request, server_received_ns = job
+            try:
+                metadata, pcm = await container.session_service.render_browser_clock_audio(
+                    session_id,
+                    connection_id,
+                    request,
+                    server_received_ns=server_received_ns,
+                )
+                try:
+                    await container.session_service.require_browser_clock_controller(session_id, connection_id)
+                except HTTPException:
+                    continue
+                await send_render_chunk(metadata, pcm)
+            except asyncio.CancelledError:
+                raise
+            except HTTPException as exc:
+                with contextlib.suppress(WebSocketDisconnect, RuntimeError):
+                    await send_json({"type": "engine_error", "detail": _http_error_detail(exc.detail)})
+            except WebSocketDisconnect:
+                raise
+            except Exception as exc:
+                with contextlib.suppress(WebSocketDisconnect, RuntimeError):
+                    await send_json({"type": "engine_error", "detail": str(exc)})
+
+    render_worker_task = asyncio.create_task(render_worker(), name=f"ws-browser-clock-render:{session_id}")
 
     try:
         while True:
@@ -136,14 +175,27 @@ async def browser_clock_controller(websocket: WebSocket, session_id: str) -> Non
                     continue
 
                 if message_type == "request_render":
-                    metadata, pcm = await container.session_service.render_browser_clock_audio(
-                        session_id,
-                        connection_id,
-                        BrowserClockRequestRenderRequest.model_validate(payload),
-                        server_received_ns=server_received_ns,
+                    await render_queue.put(
+                        (
+                            BrowserClockRequestRenderRequest.model_validate(payload),
+                            server_received_ns,
+                        )
                     )
-                    await send_json(metadata)
-                    await send_bytes(pcm)
+                    continue
+
+                if message_type == "clock_sync":
+                    await container.session_service.require_browser_clock_controller(session_id, connection_id)
+                    server_sent_ns = time.perf_counter_ns()
+                    request = BrowserClockClockSyncRequest.model_validate(payload)
+                    await send_json(
+                        {
+                            "type": "clock_sync",
+                            "request_id": request.request_id,
+                            "client_send_perf_ms": request.client_send_perf_ms,
+                            "server_received_monotonic_ns": server_received_ns,
+                            "server_sent_monotonic_ns": server_sent_ns,
+                        }
+                    )
                     continue
 
                 if message_type == "manual_midi":
@@ -219,6 +271,9 @@ async def browser_clock_controller(websocket: WebSocket, session_id: str) -> Non
     except WebSocketDisconnect:
         pass
     finally:
+        await render_queue.put(None)
+        with contextlib.suppress(asyncio.CancelledError, WebSocketDisconnect):
+            await render_worker_task
         with contextlib.suppress(HTTPException):
             await container.session_service.release_browser_clock_controller(session_id, connection_id)
 
