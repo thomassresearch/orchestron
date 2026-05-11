@@ -7,6 +7,8 @@ from backend.app.core.container import AppContainer
 from backend.app.models.session import (
     BindMidiInputRequest,
     CompileResponse,
+    SessionArpeggiatorConfigRequest,
+    SessionArpeggiatorStatus,
     SessionSequencerConfigRequest,
     SessionSequencerQueuePadRequest,
     SessionSequencerStartRequest,
@@ -75,6 +77,15 @@ async def configure_sequencer(
     container: AppContainer = Depends(get_container),
 ) -> SessionSequencerStatus:
     return await container.session_service.configure_session_sequencer(session_id, request)
+
+
+@router.put("/{session_id}/arpeggiators/config", response_model=list[SessionArpeggiatorStatus])
+async def configure_arpeggiators(
+    session_id: str,
+    request: SessionArpeggiatorConfigRequest,
+    container: AppContainer = Depends(get_container),
+) -> list[SessionArpeggiatorStatus]:
+    return await container.session_service.configure_session_arpeggiators(session_id, request)
 
 
 @router.post("/{session_id}/sequencer/start", response_model=SessionSequencerStatus)

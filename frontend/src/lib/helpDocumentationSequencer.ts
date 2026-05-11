@@ -210,7 +210,8 @@ Esta ayuda se aplica a una tarjeta individual de secuenciador melodico.
 
 Arrange melodic sequencers, drummer sequencers, and controller sequencers on one shared timeline.
 
-- Use cassette transport to rewind, stop, play, or fast-forward the whole arrangement in one-beat blocks.
+- Use cassette transport to rewind, stop, play, or fast-forward arrangement-driven sequencers in one-beat blocks.
+- Arpeggiators, piano rolls, and manual MIDI controller lanes stay individually controlled.
 - Drag root-timeline tokens to reorder pads, groups, and super-groups.
 - Use the right-click menu to insert pads, existing groups, or existing super-groups into a matching pause gap or at the end.
 - Copy and paste selected pads, groups, and super-groups from the context menu to duplicate phrases.
@@ -223,7 +224,8 @@ Arrange melodic sequencers, drummer sequencers, and controller sequencers on one
 
 Ordnet melodische Sequencer, Drummer-Sequencer und Controller-Sequencer auf einer gemeinsamen Timeline an.
 
-- Mit dem Kassetten-Transport die gesamte Performance in Beat-Bloecken zurueckspulen, stoppen, starten oder vorspulen.
+- Mit dem Kassetten-Transport arrangement-gesteuerte Sequencer in Beat-Bloecken zurueckspulen, stoppen, starten oder vorspulen.
+- Arpeggiatoren, Piano-Rolls und manuelle MIDI-Controller-Lanes bleiben einzeln gesteuert.
 - Tokens auf der Root-Timeline ziehen, um Pads, Gruppen und Super-Gruppen neu anzuordnen.
 - Mit dem Rechtsklick-Menue Pads, vorhandene Gruppen oder vorhandene Super-Gruppen in eine passende Pause oder ans Ende einfuegen.
 - Ausgewaehlte Pads, Gruppen und Super-Gruppen per Kontextmenue kopieren und einfuegen, um Phrasen zu duplizieren.
@@ -236,7 +238,8 @@ Ordnet melodische Sequencer, Drummer-Sequencer und Controller-Sequencer auf eine
 
 Organise les sequenceurs melodiques, les sequenceurs batterie et les sequenceurs controleur sur une timeline partagee.
 
-- Utiliser le transport cassette pour revenir en arriere, arreter, lancer ou avancer tout l'arrangement par blocs d'un temps.
+- Utiliser le transport cassette pour revenir en arriere, arreter, lancer ou avancer les sequenceurs de l'arrangement par blocs d'un temps.
+- Les arpegiateurs, piano rolls et lanes de controleur MIDI manuel restent controles individuellement.
 - Faire glisser les jetons de la timeline principale pour reordonner pads, groupes et super-groupes.
 - Utiliser le menu contextuel pour inserer des pads, des groupes existants ou des super-groupes existants dans une pause adaptee ou a la fin.
 - Copier et coller des pads, groupes et super-groupes selectionnes depuis le menu contextuel pour dupliquer des phrases.
@@ -249,7 +252,8 @@ Organise les sequenceurs melodiques, les sequenceurs batterie et les sequenceurs
 
 Organiza secuenciadores melodicos, secuenciadores de bateria y secuenciadores de control en una linea de tiempo compartida.
 
-- Usa el transporte tipo casete para rebobinar, detener, reproducir o adelantar todo el arreglo en bloques de un pulso.
+- Usa el transporte tipo casete para rebobinar, detener, reproducir o adelantar los secuenciadores del arreglo en bloques de un pulso.
+- Los arpegiadores, piano rolls y lanes de controlador MIDI manual siguen controlados individualmente.
 - Arrastra los tokens de la linea principal para reordenar pads, grupos y supergrupos.
 - Usa el menu contextual para insertar pads, grupos existentes o supergrupos existentes en una pausa adecuada o al final.
 - Copia y pega pads, grupos y supergrupos seleccionados desde el menu contextual para duplicar frases.
@@ -387,6 +391,7 @@ Play notes manually with scale-aware keyboard highlights.
 - Add/remove piano roll controllers.
 - Set MIDI channel, scale root/type, and mode.
 - Start/stop each piano roll independently.
+- Starting a piano roll can start the instrument engine, but it does not start the arranger transport.
 - Trigger notes with pointer interaction on the keyboard.`
     },
     german: {
@@ -398,6 +403,7 @@ Noten manuell spielen mit skalenbezogener Tastatur-Hervorhebung.
 - Piano-Roll-Controller hinzufügen/entfernen.
 - MIDI-Kanal, Grundton/Skala und Modus setzen.
 - Jede Piano Roll separat starten/stoppen.
+- Das Starten einer Piano Roll kann die Instrument-Engine starten, startet aber nicht den Arranger-Transport.
 - Noten per Pointer auf der Tastatur auslösen.`
     },
     french: {
@@ -409,6 +415,7 @@ Jouez des notes manuellement avec surbrillance selon la gamme.
 - Ajouter/supprimer des contrôleurs piano roll.
 - Définir canal MIDI, tonique/type de gamme et mode.
 - Démarrer/arrêter chaque piano roll indépendamment.
+- Demarrer un piano roll peut lancer le moteur instrument, mais ne lance pas le transport arrangeur.
 - Déclencher des notes par interaction pointeur clavier.`
     },
     spanish: {
@@ -420,6 +427,7 @@ Toca notas manualmente con resaltado según la escala.
 - Agrega/elimina controladores piano roll.
 - Ajusta canal MIDI, raíz/tipo de escala y modo.
 - Inicia/detiene cada piano roll de forma independiente.
+- Iniciar un piano roll puede iniciar el motor de instrumentos, pero no inicia el transporte del arreglador.
 - Dispara notas con interacción de puntero en el teclado.`
     }
   },
@@ -763,7 +771,7 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
   sequencer_piano_rolls: {
     english: `### Live Input Behavior
 
-- A piano roll only sends notes when its own lane is enabled and the instrument engine is already running.
+- A piano roll only sends notes when its own lane is enabled and the instrument engine is running; its Start control can bring up the engine without starting the arranger transport.
 - Use the MIDI channel to target one rack instrument or intentionally layer several instruments on the same channel.
 - The on-screen keyboard spans \`C1..B7\` and uses pointer press/release gestures for note on/off.
 
@@ -774,7 +782,7 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 - When running sequencers disagree, the UI shows a mixed state and highlights only notes common to the active theories.`,
     german: `### Live-Eingabeverhalten
 
-- Eine Piano Roll sendet nur dann Noten, wenn ihre eigene Spur aktiviert ist und die Instrument-Engine bereits laeuft.
+- Eine Piano Roll sendet nur dann Noten, wenn ihre eigene Spur aktiviert ist und die Instrument-Engine laeuft; ihr Start-Button kann die Engine starten, ohne den Arranger-Transport zu starten.
 - Ueber den MIDI-Kanal kann gezielt ein Rack-Instrument angesteuert oder bewusst ein Layer mehrerer Instrumente auf demselben Kanal gebaut werden.
 - Die Onscreen-Tastatur reicht von \`C1..B7\` und nutzt Pointer-Press/Release fuer Note On/Off.
 
@@ -785,7 +793,7 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 - Wenn laufende Sequencer unterschiedliche Theorien haben, zeigt die UI einen Mixed-Zustand und markiert nur die gemeinsamen Noten der aktiven Theorien.`,
     french: `### Comportement en entree live
 
-- Un piano roll n'envoie des notes que si sa propre voie est active et que le moteur instrument tourne deja.
+- Un piano roll n'envoie des notes que si sa propre voie est active et que le moteur instrument tourne ; son bouton Start peut lancer le moteur sans lancer le transport arrangeur.
 - Utilisez le canal MIDI pour viser un instrument du rack ou pour superposer volontairement plusieurs instruments sur le meme canal.
 - Le clavier a l'ecran couvre \`C1..B7\` et utilise des gestes de pression/relachement du pointeur pour les note on/off.
 
@@ -796,7 +804,7 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 - Quand les sequenceurs actifs divergent, l'UI affiche un etat mixte et ne surligne que les notes communes aux theories actives.`,
     spanish: `### Comportamiento de entrada en vivo
 
-- Un piano roll solo envia notas cuando su propia pista esta activada y el motor de instrumentos ya esta en marcha.
+- Un piano roll solo envia notas cuando su propia pista esta activada y el motor de instrumentos esta en marcha; su control Start puede iniciar el motor sin iniciar el transporte del arreglador.
 - Usa el canal MIDI para apuntar a un instrumento del rack o para superponer intencionalmente varios instrumentos en el mismo canal.
 - El teclado en pantalla cubre \`C1..B7\` y utiliza gestos de pulsar/soltar con el puntero para note on/off.
 

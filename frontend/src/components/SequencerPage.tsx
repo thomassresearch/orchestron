@@ -2378,7 +2378,6 @@ interface SequencerPageInstrumentActions {
   onInstrumentLevelChange: (bindingId: string, level: number) => void;
   onStartInstruments: () => void;
   onStopInstruments: () => void;
-  onStopInstrumentsAndResetTransport: () => void;
 }
 
 interface SequencerPagePerformanceActions {
@@ -2398,6 +2397,8 @@ interface SequencerPageTransportActions {
   onBpmChange: (bpm: number) => void;
   onSequencerCycleRewind: () => void;
   onSequencerCycleForward: () => void;
+  onSequencerTransportStart: () => void;
+  onSequencerTransportStop: (resetPlayhead: boolean) => void;
   onSequencerArrangerLoopSelectionChange: (selection: ArrangerLoopSelection | null) => void;
 }
 
@@ -3807,8 +3808,7 @@ export function SequencerPage({
     onInstrumentChannelChange,
     onInstrumentLevelChange,
     onStartInstruments,
-    onStopInstruments,
-    onStopInstrumentsAndResetTransport
+    onStopInstruments
   } = instrumentActions;
   const {
     onPerformanceNameChange,
@@ -3826,6 +3826,8 @@ export function SequencerPage({
     onBpmChange,
     onSequencerCycleRewind,
     onSequencerCycleForward,
+    onSequencerTransportStart,
+    onSequencerTransportStop,
     onSequencerArrangerLoopSelectionChange
   } = transportActions;
   const {
@@ -4020,7 +4022,6 @@ export function SequencerPage({
 
   const configFileInputRef = useRef<HTMLInputElement | null>(null);
   const [stepSelectPreview, setStepSelectPreview] = useState<Record<string, string>>({});
-  const [pendingStartAllPianoRolls, setPendingStartAllPianoRolls] = useState(false);
   const [deletePerformanceDialogOpen, setDeletePerformanceDialogOpen] = useState(false);
   const [linkedPadLoopStepPosition, setLinkedPadLoopStepPosition] = useState<number | null>(null);
   const [drummerVelocityDragState, setDrummerVelocityDragState] = useState<DrummerVelocityDragState | null>(null);
@@ -4073,7 +4074,7 @@ export function SequencerPage({
     setDeletePerformanceDialogOpen(false);
   }, [currentPerformanceId]);
 
-  const enableAllNonPianoRollDevices = useCallback(() => {
+  const enableAllArrangementSequencers = useCallback(() => {
     for (const track of sequencer.tracks) {
       if (!track.enabled) {
         onSequencerTrackEnabledChange(track.id, true);
@@ -4089,117 +4090,27 @@ export function SequencerPage({
         onControllerSequencerEnabledChange(controllerSequencer.id, true);
       }
     }
-    for (const arpeggiator of sequencer.arpeggiators) {
-      if (!arpeggiator.enabled) {
-        onArpeggiatorEnabledChange(arpeggiator.id, true);
-      }
-    }
-    for (const controller of sequencer.midiControllers) {
-      if (!controller.enabled) {
-        onMidiControllerEnabledChange(controller.id, true);
-      }
-    }
   }, [
     onDrummerSequencerTrackEnabledChange,
-    onArpeggiatorEnabledChange,
     onControllerSequencerEnabledChange,
-    onMidiControllerEnabledChange,
     onSequencerTrackEnabledChange,
-    sequencer.arpeggiators,
     sequencer.controllerSequencers,
     sequencer.drummerTracks,
-    sequencer.midiControllers,
-    sequencer.tracks
-  ]);
-
-  const enableAllPianoRolls = useCallback(() => {
-    for (const roll of sequencer.pianoRolls) {
-      if (!roll.enabled) {
-        onPianoRollEnabledChange(roll.id, true);
-      }
-    }
-  }, [onPianoRollEnabledChange, sequencer.pianoRolls]);
-
-  const disableAllDevices = useCallback(() => {
-    for (const track of sequencer.tracks) {
-      if (track.enabled || track.queuedEnabled === true) {
-        onSequencerTrackEnabledChange(track.id, false);
-      }
-    }
-    for (const track of sequencer.drummerTracks) {
-      if (track.enabled || track.queuedEnabled === true) {
-        onDrummerSequencerTrackEnabledChange(track.id, false);
-      }
-    }
-    for (const controllerSequencer of sequencer.controllerSequencers) {
-      if (controllerSequencer.enabled) {
-        onControllerSequencerEnabledChange(controllerSequencer.id, false);
-      }
-    }
-    for (const roll of sequencer.pianoRolls) {
-      if (roll.enabled) {
-        onPianoRollEnabledChange(roll.id, false);
-      }
-    }
-    for (const arpeggiator of sequencer.arpeggiators) {
-      if (arpeggiator.enabled) {
-        onArpeggiatorEnabledChange(arpeggiator.id, false);
-      }
-    }
-    for (const controller of sequencer.midiControllers) {
-      if (controller.enabled) {
-        onMidiControllerEnabledChange(controller.id, false);
-      }
-    }
-  }, [
-    onDrummerSequencerTrackEnabledChange,
-    onArpeggiatorEnabledChange,
-    onControllerSequencerEnabledChange,
-    onMidiControllerEnabledChange,
-    onPianoRollEnabledChange,
-    onSequencerTrackEnabledChange,
-    sequencer.arpeggiators,
-    sequencer.controllerSequencers,
-    sequencer.drummerTracks,
-    sequencer.midiControllers,
-    sequencer.pianoRolls,
     sequencer.tracks
   ]);
 
   const handleStartAll = useCallback(() => {
-    enableAllNonPianoRollDevices();
-
-    if (instrumentsRunning) {
-      enableAllPianoRolls();
-      setPendingStartAllPianoRolls(false);
-      return;
-    }
-
-    setPendingStartAllPianoRolls(sequencer.pianoRolls.some((roll) => !roll.enabled));
-    onStartInstruments();
-  }, [enableAllNonPianoRollDevices, enableAllPianoRolls, instrumentsRunning, onStartInstruments, sequencer.pianoRolls]);
+    enableAllArrangementSequencers();
+    onSequencerTransportStart();
+  }, [enableAllArrangementSequencers, onSequencerTransportStart]);
 
   const handleStopAll = useCallback(() => {
-    setPendingStartAllPianoRolls(false);
-    disableAllDevices();
-    if (instrumentsRunning) {
-      onStopInstruments();
-    }
-  }, [disableAllDevices, instrumentsRunning, onStopInstruments]);
+    onSequencerTransportStop(false);
+  }, [onSequencerTransportStop]);
 
   const handleStopAllAndResetTransport = useCallback(() => {
-    setPendingStartAllPianoRolls(false);
-    disableAllDevices();
-    onStopInstrumentsAndResetTransport();
-  }, [disableAllDevices, onStopInstrumentsAndResetTransport]);
-
-  useEffect(() => {
-    if (!pendingStartAllPianoRolls || !instrumentsRunning) {
-      return;
-    }
-    enableAllPianoRolls();
-    setPendingStartAllPianoRolls(false);
-  }, [enableAllPianoRolls, instrumentsRunning, pendingStartAllPianoRolls]);
+    onSequencerTransportStop(true);
+  }, [onSequencerTransportStop]);
 
   const arrangerCopy = useMemo(
     () => ({
@@ -6641,7 +6552,6 @@ export function SequencerPage({
                   <button
                     type="button"
                     onClick={() => onPianoRollEnabledChange(roll.id, !roll.enabled)}
-                    disabled={!instrumentsRunning && !roll.enabled}
                     className={roll.enabled ? transportStopButtonClass : transportStartButtonClass}
                   >
                     {roll.enabled ? ui.stop : ui.start}

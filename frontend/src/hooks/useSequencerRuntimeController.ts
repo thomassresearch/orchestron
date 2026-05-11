@@ -23,6 +23,8 @@ import { useAppStore } from "../store/useAppStore";
 import type {
   BrowserClockLatencySettings,
   DrummerSequencerTrackState,
+  SessionArpeggiatorConfigRequest,
+  SessionArpeggiatorStatus,
   SessionAudioOutputMode,
   SessionEvent,
   SessionMidiEventRequest,
@@ -52,11 +54,11 @@ interface UseSequencerRuntimeControllerParams {
   activeSessionId: string | null;
   activeSessionState: SessionState;
   browserClockLatencySettings: BrowserClockLatencySettings;
+  buildBackendArpeggiatorConfig: (state?: SequencerState) => SessionArpeggiatorConfigRequest;
   buildBackendSequencerConfig: (
     state?: SequencerState,
     mode?: "runtime" | "export"
   ) => SessionSequencerConfigRequest;
-  disableAllPianoRolls: () => void;
   errors: SequencerRuntimeControllerErrors;
   events: SessionEvent[];
   pushEvent: AppStoreState["pushEvent"];
@@ -96,8 +98,8 @@ export function useSequencerRuntimeController({
   activeSessionId,
   activeSessionState,
   browserClockLatencySettings,
+  buildBackendArpeggiatorConfig,
   buildBackendSequencerConfig,
-  disableAllPianoRolls,
   errors,
   events,
   pushEvent,
@@ -231,6 +233,21 @@ export function useSequencerRuntimeController({
     resetBrowserAudioState
   ]);
 
+  const applyArpeggiatorStatus = useCallback(
+    (arpeggiators: SessionArpeggiatorStatus[]) => {
+      syncArpeggiatorRuntime(
+        arpeggiators.map((arpeggiator) => ({
+          arpeggiatorId: arpeggiator.arpeggiator_id,
+          heldNotes: arpeggiator.held_notes,
+          activeNote: arpeggiator.active_note,
+          stepIndex: arpeggiator.step_index,
+          lastVelocity: arpeggiator.last_velocity
+        }))
+      );
+    },
+    [syncArpeggiatorRuntime]
+  );
+
   const applySequencerStatus = useCallback(
     (status: SessionSequencerStatus) => {
       if (effectiveAudioOutputModeRef.current === "browser_clock") {
@@ -270,17 +287,9 @@ export function useSequencerRuntimeController({
           enabled: track.enabled
         }))
       );
-      syncArpeggiatorRuntime(
-        (status.arpeggiators ?? []).map((arpeggiator) => ({
-          arpeggiatorId: arpeggiator.arpeggiator_id,
-          heldNotes: arpeggiator.held_notes,
-          activeNote: arpeggiator.active_note,
-          stepIndex: arpeggiator.step_index,
-          lastVelocity: arpeggiator.last_velocity
-        }))
-      );
+      applyArpeggiatorStatus(status.arpeggiators ?? []);
     },
-    [effectiveAudioOutputModeRef, syncArpeggiatorRuntime, syncControllerSequencerRuntime, syncSequencerRuntime]
+    [applyArpeggiatorStatus, effectiveAudioOutputModeRef, syncControllerSequencerRuntime, syncSequencerRuntime]
   );
   applySequencerStatusRef.current = applySequencerStatus;
 
@@ -647,7 +656,8 @@ export function useSequencerRuntimeController({
     }
 
     try {
-      const currentSequencerState = sequencerRef.current;
+      const currentSequencerState = useAppStore.getState().sequencer;
+      sequencerRef.current = currentSequencerState;
       const payload: SessionSequencerStartRequest = {
         config: buildBackendSequencerConfig(currentSequencerState),
         position_step: sequencerAbsoluteTransportStep(
@@ -797,12 +807,18 @@ export function useSequencerRuntimeController({
   );
 
   const sequencerConfigSyncSignature = useMemo(() => {
-    const hasEnabledArpeggiator = sequencerConfig.arpeggiators.some((arpeggiator) => arpeggiator.enabled);
-    if (!sequencer.isPlaying && (activeSessionState !== "running" || !hasEnabledArpeggiator)) {
+    if (!sequencer.isPlaying) {
       return null;
     }
     return JSON.stringify(buildBackendSequencerConfig(sequencerConfig));
-  }, [activeSessionState, buildBackendSequencerConfig, sequencer.isPlaying, sequencerConfig]);
+  }, [buildBackendSequencerConfig, sequencer.isPlaying, sequencerConfig]);
+
+  const arpeggiatorConfigSyncSignature = useMemo(() => {
+    if (activeSessionState !== "running") {
+      return null;
+    }
+    return JSON.stringify(buildBackendArpeggiatorConfig(sequencerConfig));
+  }, [activeSessionState, buildBackendArpeggiatorConfig, sequencerConfig]);
 
   const primeBrowserClockAudio = useCallback((): void => {
     if (runtimeAudioOutputMode !== "browser_clock") {
@@ -846,8 +862,7 @@ export function useSequencerRuntimeController({
   }, [effectiveAudioOutputMode, resolveSequencerSessionId, sequencer.isPlaying]);
 
   useEffect(() => {
-    const hasEnabledArpeggiator = sequencerConfig.arpeggiators.some((arpeggiator) => arpeggiator.enabled);
-    if (!sequencer.isPlaying && (activeSessionState !== "running" || !hasEnabledArpeggiator)) {
+    if (!sequencer.isPlaying) {
       sequencerConfigSyncPendingRef.current = false;
       return;
     }
@@ -897,9 +912,7 @@ export function useSequencerRuntimeController({
     applySequencerStatus,
     errors.failedToUpdateSequencerConfig,
     invalidateMissingRuntimeSession,
-    activeSessionState,
     resolveSequencerSessionId,
-    sequencerConfig.arpeggiators,
     sequencer.isPlaying,
     sequencerConfigSyncSignature,
     setSequencerError,
@@ -907,24 +920,45 @@ export function useSequencerRuntimeController({
   ]);
 
   useEffect(() => {
-    if (activeSessionState !== "running" || sequencer.isPlaying) {
+    if (activeSessionState !== "running" || !arpeggiatorConfigSyncSignature) {
       return;
     }
-    if (
-      !sequencer.tracks.some((track) => track.enabled) &&
-      !sequencer.drummerTracks.some((track) => track.enabled) &&
-      !sequencer.controllerSequencers.some((controllerSequencer) => controllerSequencer.enabled)
-    ) {
+
+    const sessionId = activeSessionId;
+    if (!sessionId) {
       return;
     }
-    void startSequencerTransport();
+
+    const payload = JSON.parse(arpeggiatorConfigSyncSignature) as SessionArpeggiatorConfigRequest;
+    const syncTimer = window.setTimeout(() => {
+      void api
+        .configureSessionArpeggiators(sessionId, payload)
+        .then((status) => {
+          applyArpeggiatorStatus(status);
+        })
+        .catch((syncError) => {
+          if (invalidateMissingRuntimeSession(sessionId, syncError)) {
+            return;
+          }
+          setSequencerError(
+            syncError instanceof Error
+              ? `${errors.failedToUpdateSequencerConfig}: ${syncError.message}`
+              : errors.failedToUpdateSequencerConfig
+          );
+        });
+    }, 80);
+
+    return () => {
+      window.clearTimeout(syncTimer);
+    };
   }, [
+    activeSessionId,
     activeSessionState,
-    sequencer.controllerSequencers,
-    sequencer.drummerTracks,
-    sequencer.isPlaying,
-    sequencer.tracks,
-    startSequencerTransport
+    applyArpeggiatorStatus,
+    arpeggiatorConfigSyncSignature,
+    errors.failedToUpdateSequencerConfig,
+    invalidateMissingRuntimeSession,
+    setSequencerError
   ]);
 
   useEffect(() => {
@@ -949,20 +983,15 @@ export function useSequencerRuntimeController({
 
   useEffect(() => {
     if (!sequencer.isPlaying) {
-      if (activeSessionState !== "running") {
-        disableAllPianoRolls();
-      }
       return;
     }
 
     if (activeSessionState !== "running") {
-      disableAllPianoRolls();
       void stopSequencerTransport(false);
       setSequencerError(errors.sessionNotRunningSequencerStopped);
     }
   }, [
     activeSessionState,
-    disableAllPianoRolls,
     errors.sessionNotRunningSequencerStopped,
     sequencer.isPlaying,
     setSequencerError,

@@ -52,9 +52,9 @@ Drummer sequencer LEDs show the current playing column across every drum row, an
 
 From the instrument rack you can now export either the native Orchestron performance bundle (`.orch.json` / `.orch.zip`) or an offline Csound render package (`.csd.zip`) that includes the compiled performance CSD, the arranger playback as MIDI, referenced sample/SF assets, and a README with the exact `csound` command line.
 
-The multitrack arranger combines melodic sequencers, drummer sequencers, and controller sequencers in one shared timeline. Cassette-style transport controls rewind or fast-forward in shared `1-beat` transport blocks, `Stop` preserves the playhead, double-clicking `Stop` resets to the selected loop start or step `0`, an optional loop selection repeats only the chosen arranger range down to a single beat, right-click menus can insert pads or existing group/super-group tokens and copy/paste selected phrase blocks into later gaps or the sequence end, and the section now exposes the same integrated `?` help flow as the other perform devices.
+The multitrack arranger combines melodic sequencers, drummer sequencers, and controller sequencers in one shared timeline. Cassette-style transport controls start/stop arrangement-driven sequencers, rewind or fast-forward in shared `1-beat` transport blocks, `Stop` preserves the playhead without stopping the rack instrument engine, double-clicking `Stop` resets to the selected loop start or step `0`, an optional loop selection repeats only the chosen arranger range down to a single beat, right-click menus can insert pads or existing group/super-group tokens and copy/paste selected phrase blocks into later gaps or the sequence end, and the section now exposes the same integrated `?` help flow as the other perform devices.
 
-The piano roll follows the active scale/mode (from the running melodic sequencer) and highlights keys by scale degree. When multiple melodic sequencers run with different scales/modes, only keys shared by both scales/modes are highlighted, which supports interactive playing with clear harmonic guidance.
+The piano roll follows the active scale/mode (from the running melodic sequencer) and highlights keys by scale degree. When multiple melodic sequencers run with different scales/modes, only keys shared by both scales/modes are highlighted, which supports interactive playing with clear harmonic guidance. Piano roll `Start` is independent from the arranger transport and can start the instrument engine without starting arrangement playback.
 
 The MIDI controller panel provides 6 controllers that can each be assigned an individual controller number and operated interactively while playing.
 
@@ -85,7 +85,7 @@ Choose the installation guide that matches your environment. The platform guides
 - [Windows installation](INSTALL.windows.md)
 - [Docker installation](INSTALL.docker.md)
 
-To make sound quickly, open [http://localhost:8000/](http://localhost:8000/) (it redirects to `/client`), then in `Instrument Design` import an instrument from [`examples/instruments/`](examples/instruments/). Switch to the `Perform` panel, add the instrument to the performance, add a piano roll keyboard if it is not already visible, set its MIDI channel to match the instrument channel, press `Start Instrument`, then go to the piano keyboards, press `Start`, and play.
+To make sound quickly, open [http://localhost:8000/](http://localhost:8000/) (it redirects to `/client`), then in `Instrument Design` import an instrument from [`examples/instruments/`](examples/instruments/). Switch to the `Perform` panel, add the instrument to the performance, add a piano roll keyboard if it is not already visible, set its MIDI channel to match the instrument channel, then go to the piano keyboards, press `Start`, and play.
 
 **Troubleshooting**: if audio output is chopped, increase the hardware and software buffer sizes in the configuration settings.
 

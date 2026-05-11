@@ -3026,6 +3026,63 @@ def test_session_backend_controller_sequencer_queue_pad_switches_and_clears_queu
             assert stop_sequencer.json()["running"] is False
 
 
+def test_session_backend_arpeggiator_config_does_not_reconfigure_sequencer_transport(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        session_id = _create_running_session(client, patch_name="Arpeggiator Config Isolation")
+
+        start_sequencer = client.post(
+            f"/api/sessions/{session_id}/sequencer/start",
+            json={
+                "config": _sequencer_config(
+                    [
+                        {
+                            "track_id": "voice-1",
+                            "midi_channel": 1,
+                            "scale_root": "C",
+                            "scale_type": "minor",
+                            "mode": "aeolian",
+                            "length_beats": 1,
+                            "active_pad": 0,
+                            "enabled": True,
+                            "pads": [{"pad_index": 0, "length_beats": 1, "steps": [60, None, None, None]}],
+                        }
+                    ],
+                    playback_end_step=8,
+                )
+            },
+        )
+        assert start_sequencer.status_code == 200
+        assert start_sequencer.json()["running"] is True
+
+        arpeggiator_config = client.put(
+            f"/api/sessions/{session_id}/arpeggiators/config",
+            json={
+                "tempo_bpm": 120,
+                "arpeggiators": [
+                    {
+                        "arpeggiator_id": "arp-1",
+                        "enabled": True,
+                        "input_channel": 2,
+                        "target_channel": 1,
+                    }
+                ],
+            },
+        )
+        assert arpeggiator_config.status_code == 200
+        assert arpeggiator_config.json()[0]["arpeggiator_id"] == "arp-1"
+        assert arpeggiator_config.json()[0]["enabled"] is True
+
+        status = client.get(f"/api/sessions/{session_id}/sequencer/status")
+        assert status.status_code == 200
+        payload = status.json()
+        assert payload["running"] is True
+        assert payload["tracks"][0]["track_id"] == "voice-1"
+        assert payload["tracks"][0]["enabled"] is True
+
+        stop_sequencer = client.post(f"/api/sessions/{session_id}/sequencer/stop")
+        assert stop_sequencer.status_code == 200
+
+
 def test_const_nodes_use_node_params_without_value_input_port(tmp_path: Path) -> None:
     with _client(tmp_path) as client:
         opcodes_response = client.get("/api/opcodes")

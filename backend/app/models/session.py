@@ -452,6 +452,33 @@ class SessionArpeggiatorConfig(BaseModel):
     restart_mode: ArpeggiatorRestartMode = "first_note"
 
 
+def _validate_arpeggiator_routes(arpeggiators: list[SessionArpeggiatorConfig]) -> None:
+    seen_arpeggiator_ids: set[str] = set()
+    seen_input_channels: set[int] = set()
+    for arpeggiator in arpeggiators:
+        if arpeggiator.arpeggiator_id in seen_arpeggiator_ids:
+            raise ValueError(f"Duplicate arpeggiator_id '{arpeggiator.arpeggiator_id}'.")
+        seen_arpeggiator_ids.add(arpeggiator.arpeggiator_id)
+        if arpeggiator.input_channel in seen_input_channels:
+            raise ValueError(f"Arpeggiator input channel '{arpeggiator.input_channel}' is assigned more than once.")
+        seen_input_channels.add(arpeggiator.input_channel)
+    for arpeggiator in arpeggiators:
+        if arpeggiator.target_channel in seen_input_channels:
+            raise ValueError(
+                f"Arpeggiator '{arpeggiator.arpeggiator_id}' target_channel cannot target another arpeggiator input."
+            )
+
+
+class SessionArpeggiatorConfigRequest(BaseModel):
+    tempo_bpm: int = Field(default=120, ge=30, le=300)
+    arpeggiators: list[SessionArpeggiatorConfig] = Field(default_factory=list, max_length=16)
+
+    @model_validator(mode="after")
+    def validate_arpeggiators(self) -> "SessionArpeggiatorConfigRequest":
+        _validate_arpeggiator_routes(self.arpeggiators)
+        return self
+
+
 class SessionSequencerConfigRequest(BaseModel):
     timing: SessionSequencerTimingConfig = Field(default_factory=SessionSequencerTimingConfig)
     step_count: int = Field(default=16, ge=1)
@@ -477,20 +504,7 @@ class SessionSequencerConfigRequest(BaseModel):
             if track.track_id in seen:
                 raise ValueError(f"Duplicate track_id '{track.track_id}'.")
             seen.add(track.track_id)
-        seen_arpeggiator_ids: set[str] = set()
-        seen_input_channels: set[int] = set()
-        for arpeggiator in self.arpeggiators:
-            if arpeggiator.arpeggiator_id in seen_arpeggiator_ids:
-                raise ValueError(f"Duplicate arpeggiator_id '{arpeggiator.arpeggiator_id}'.")
-            seen_arpeggiator_ids.add(arpeggiator.arpeggiator_id)
-            if arpeggiator.input_channel in seen_input_channels:
-                raise ValueError(f"Arpeggiator input channel '{arpeggiator.input_channel}' is assigned more than once.")
-            seen_input_channels.add(arpeggiator.input_channel)
-        for arpeggiator in self.arpeggiators:
-            if arpeggiator.target_channel in seen_input_channels:
-                raise ValueError(
-                    f"Arpeggiator '{arpeggiator.arpeggiator_id}' target_channel cannot target another arpeggiator input."
-                )
+        _validate_arpeggiator_routes(self.arpeggiators)
         for track in self.tracks:
             if track.sync_to_track_id is None:
                 continue

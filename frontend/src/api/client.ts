@@ -13,6 +13,8 @@ import type {
   RuntimeConfigResponse,
   SequencerConfigSnapshot,
   SessionActionResponse,
+  SessionArpeggiatorConfigRequest,
+  SessionArpeggiatorStatus,
   SessionCreateResponse,
   SessionSequencerConfigRequest,
   SessionSequencerQueuePadRequest,
@@ -183,6 +185,11 @@ export const api = {
     }),
   configureSessionSequencer: (sessionId: string, payload: SessionSequencerConfigRequest) =>
     request<SessionSequencerStatus>(`/sessions/${sessionId}/sequencer/config`, {
+      method: "PUT",
+      body: JSON.stringify(payload)
+    }),
+  configureSessionArpeggiators: (sessionId: string, payload: SessionArpeggiatorConfigRequest) =>
+    request<SessionArpeggiatorStatus[]>(`/sessions/${sessionId}/arpeggiators/config`, {
       method: "PUT",
       body: JSON.stringify(payload)
     }),

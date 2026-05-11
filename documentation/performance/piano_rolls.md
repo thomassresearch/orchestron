@@ -10,6 +10,8 @@ Piano Rolls are for live/manual playing on an on-screen keyboard while the instr
 
 They coexist with melodic sequencers and controller sequencers, which means you can jam manually on top of sequenced playback.
 
+Starting a piano roll is independent from the multitrack arranger transport. If the instrument engine is stopped, `Start` brings up the engine so the keyboard can play without starting arrangement playback.
+
 ## Add / Remove / Enable
 
 Each piano roll supports:
@@ -20,8 +22,8 @@ Each piano roll supports:
 
 A piano roll only sends notes when:
 
-- instruments are running
 - that piano roll is enabled
+- instruments are running
 
 ## Piano Roll Controls
 

@@ -32,6 +32,8 @@ from backend.app.models.session import (
     HostMidiEventsRequest,
     HostMidiRegisterRequest,
     MidiInputRef,
+    SessionArpeggiatorConfigRequest,
+    SessionArpeggiatorStatus,
     SessionSequencerConfigRequest,
     SessionSequencerQueuePadRequest,
     SessionSequencerStartRequest,
@@ -799,6 +801,34 @@ class SessionService:
                 "tempo_bpm": status.timing.tempo_bpm,
                 "step_count": status.step_count,
                 "tracks": len(status.tracks),
+            },
+        )
+        return status
+
+    async def configure_session_arpeggiators(
+        self,
+        session_id: str,
+        request: SessionArpeggiatorConfigRequest,
+    ) -> list[SessionArpeggiatorStatus]:
+        self._remember_running_loop()
+        runtime = await self._get_session(session_id)
+
+        try:
+            router = self._ensure_midi_router(runtime)
+            router.configure(
+                request.arpeggiators,
+                tempo_bpm=request.tempo_bpm,
+            )
+            status = router.status()
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+        await self._publish(
+            runtime.session_id,
+            "arpeggiators_configured",
+            {
+                "tempo_bpm": request.tempo_bpm,
+                "arpeggiators": len(status),
             },
         )
         return status
