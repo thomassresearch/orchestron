@@ -710,6 +710,11 @@ export interface SessionSequencerConfigRequest {
   arpeggiators?: SessionArpeggiatorConfig[];
 }
 
+export interface SessionArpeggiatorConfigRequest {
+  tempo_bpm: number;
+  arpeggiators: SessionArpeggiatorConfig[];
+}
+
 export interface SessionArpeggiatorConfig {
   arpeggiator_id: string;
   enabled: boolean;

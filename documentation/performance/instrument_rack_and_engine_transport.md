@@ -58,7 +58,7 @@ Buttons:
 
 These start/stop the underlying instrument engine session.
 
-Global arrangement transport now lives in the multitrack arranger section. There, cassette-style `Rewind`, `Stop`, `Play`, and `Fast forward` buttons start or stop all arrangement-driven sequencers together and move the shared playhead in `1-beat` transport blocks. `Stop` preserves the current playhead position, and double-clicking `Stop` resets the playhead to the selected loop start or to step `0` when no loop is selected.
+Global arrangement transport now lives in the multitrack arranger section. There, cassette-style `Rewind`, `Stop`, `Play`, and `Fast forward` buttons start or stop arrangement-driven sequencers together and move the shared playhead in `1-beat` transport blocks. The arranger `Stop` button does not stop the instrument engine; `Stop Instruments` in the rack does that. Double-clicking arranger `Stop` resets the playhead to the selected loop start or to step `0` when no loop is selected.
 
 ## Session State Badge
 

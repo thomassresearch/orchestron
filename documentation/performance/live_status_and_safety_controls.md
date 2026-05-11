@@ -28,7 +28,7 @@ This helps you understand why a track button press did not take effect immediate
 The Perform page displays an error banner for problems such as:
 
 - no active instrument session when trying to start sequencers
-- trying to use a piano roll before instruments are started
+- trying to play piano roll notes before the instrument engine is ready
 - pad queue request failures
 - controller send failures
 - sequencer config sync failures

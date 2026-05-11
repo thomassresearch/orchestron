@@ -35,12 +35,12 @@ The arranger always shows the current absolute playhead position, even while sto
 The arranger header provides cassette-style transport controls with icon buttons:
 
 - `Rewind`: move the playhead `1` beat backward
-- `Stop`: stop all instruments and sequencers while preserving the current playhead position
-- `Play`: start all instruments and sequencers from the current playhead position
+- `Stop`: stop the shared sequencer transport and arrangement-driven sequencers while preserving the current playhead position
+- `Play`: start the instrument engine if needed, then start arrangement-driven sequencers from the current playhead position
 - `Fast forward`: move the playhead `1` beat forward
 - `?`: open the integrated multilingual help modal for a concise arranger workflow summary
 
-The transport controls the full performance arrangement, including melodic sequencers, drummer sequencers, and controller sequencers.
+The transport controls the full performance arrangement, including melodic sequencers, drummer sequencers, and controller sequencers. It does not toggle arpeggiators, piano rolls, or manual MIDI controller lanes; those devices remain individually controlled.
 
 Double-click `Stop` to reset the playhead to the selected loop start. If no loop range is selected, the playhead resets to step `0`.
 

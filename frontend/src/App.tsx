@@ -55,6 +55,7 @@ import type {
   SequencerInstrumentBinding,
   SequencerRuntimeState,
   SequencerState,
+  SessionArpeggiatorConfigRequest,
   SessionSequencerConfigRequest
 } from "./types";
 
@@ -247,6 +248,36 @@ function scaleVelocityForChannel(velocity: number, channel: number, levelMap: Ma
   return normalizeMidiVelocity(Math.round((normalizedVelocity * level) / 10));
 }
 
+function buildBackendArpeggiatorConfigs(
+  state: SequencerState
+): NonNullable<SessionArpeggiatorConfigRequest["arpeggiators"]> {
+  return state.arpeggiators.map((arpeggiator) => ({
+    arpeggiator_id: arpeggiator.id,
+    enabled: arpeggiator.enabled,
+    input_channel: arpeggiator.inputChannel,
+    target_channel: arpeggiator.targetChannel,
+    rate: arpeggiator.rate,
+    gate_ratio: arpeggiator.gateRatio,
+    swing: arpeggiator.swing,
+    octaves: arpeggiator.octaves,
+    pattern: arpeggiator.pattern,
+    latch: arpeggiator.latch,
+    velocity_mode: arpeggiator.velocityMode,
+    fixed_velocity: arpeggiator.fixedVelocity,
+    accent_cycle: arpeggiator.accentCycle,
+    probability: arpeggiator.probability,
+    repeats: arpeggiator.repeats,
+    humanize_ms: arpeggiator.humanizeMs,
+    humanize_velocity: arpeggiator.humanizeVelocity,
+    transpose: arpeggiator.transpose,
+    scale_quantize: arpeggiator.scaleQuantize,
+    scale_root: arpeggiator.scaleRoot,
+    scale_type: arpeggiator.scaleType,
+    mode: arpeggiator.mode,
+    restart_mode: arpeggiator.restartMode
+  }));
+}
+
 type DeleteSelectionDialogState = {
   nodeIds: string[];
   connectionKeys: string[];
@@ -424,7 +455,6 @@ type AppCopy = {
     startInstrumentsBeforePianoRoll: string;
     noActiveInstrumentSession: string;
     failedToStartPianoRollNote: string;
-    startInstrumentsBeforePianoRollStart: string;
     failedToSendMidiControllerValue: string;
     failedToSaveSequencerConfig: string;
     failedToExportPerformanceCsd: string;
@@ -529,10 +559,9 @@ const APP_COPY: Record<GuiLanguage, AppCopy> = {
       noActiveInstrumentSessionForSequencer: "No active instrument session available. Start instruments first.",
       failedToStartSequencer: "Failed to start sequencer.",
       failedToStopInstrumentEngine: "Failed to stop instrument engine.",
-      startInstrumentsBeforePianoRoll: "Start instruments first before using the piano roll.",
+      startInstrumentsBeforePianoRoll: "The piano roll needs the instrument engine running before notes can sound.",
       noActiveInstrumentSession: "No active instrument session available.",
       failedToStartPianoRollNote: "Failed to start piano roll note.",
-      startInstrumentsBeforePianoRollStart: "Start instruments first before starting a piano roll.",
       failedToSendMidiControllerValue: "Failed to send MIDI controller value.",
       failedToSaveSequencerConfig: "Failed to save sequencer config.",
       failedToExportPerformanceCsd: "Failed to export performance CSD bundle.",
@@ -581,10 +610,9 @@ const APP_COPY: Record<GuiLanguage, AppCopy> = {
       noActiveInstrumentSessionForSequencer: "Keine aktive Instrument-Session verfuegbar. Bitte zuerst starten.",
       failedToStartSequencer: "Sequencer konnte nicht gestartet werden.",
       failedToStopInstrumentEngine: "Instrument-Engine konnte nicht gestoppt werden.",
-      startInstrumentsBeforePianoRoll: "Starte zuerst Instrumente, bevor du die Piano Roll benutzt.",
+      startInstrumentsBeforePianoRoll: "Die Piano Roll benoetigt eine laufende Instrument-Engine, bevor Noten klingen koennen.",
       noActiveInstrumentSession: "Keine aktive Instrument-Session verfuegbar.",
       failedToStartPianoRollNote: "Piano-Roll-Note konnte nicht gestartet werden.",
-      startInstrumentsBeforePianoRollStart: "Starte zuerst Instrumente, bevor du eine Piano Roll startest.",
       failedToSendMidiControllerValue: "MIDI-Controller-Wert konnte nicht gesendet werden.",
       failedToSaveSequencerConfig: "Sequencer-Konfiguration konnte nicht gespeichert werden.",
       failedToExportPerformanceCsd: "Performance-CSD-Bundle konnte nicht exportiert werden.",
@@ -635,10 +663,10 @@ const APP_COPY: Record<GuiLanguage, AppCopy> = {
         "Aucune session instrument active disponible. Demarrez d'abord les instruments.",
       failedToStartSequencer: "Echec du demarrage du sequencer.",
       failedToStopInstrumentEngine: "Echec de l'arret du moteur instrument.",
-      startInstrumentsBeforePianoRoll: "Demarrez d'abord les instruments avant d'utiliser le piano roll.",
+      startInstrumentsBeforePianoRoll:
+        "Le piano roll a besoin du moteur instrument actif avant que les notes puissent sonner.",
       noActiveInstrumentSession: "Aucune session instrument active disponible.",
       failedToStartPianoRollNote: "Echec du demarrage de la note piano roll.",
-      startInstrumentsBeforePianoRollStart: "Demarrez d'abord les instruments avant de lancer un piano roll.",
       failedToSendMidiControllerValue: "Echec de l'envoi de la valeur du controleur MIDI.",
       failedToSaveSequencerConfig: "Echec de l'enregistrement de la configuration sequencer.",
       failedToExportPerformanceCsd: "Echec de l'export du bundle CSD de performance.",
@@ -689,10 +717,10 @@ const APP_COPY: Record<GuiLanguage, AppCopy> = {
         "No hay una sesion de instrumentos activa. Inicia primero los instrumentos.",
       failedToStartSequencer: "No se pudo iniciar el secuenciador.",
       failedToStopInstrumentEngine: "No se pudo detener el motor de instrumentos.",
-      startInstrumentsBeforePianoRoll: "Inicia primero los instrumentos antes de usar el piano roll.",
+      startInstrumentsBeforePianoRoll:
+        "El piano roll necesita el motor de instrumentos en marcha antes de que las notas suenen.",
       noActiveInstrumentSession: "No hay una sesion de instrumentos activa.",
       failedToStartPianoRollNote: "No se pudo iniciar la nota del piano roll.",
-      startInstrumentsBeforePianoRollStart: "Inicia primero los instrumentos antes de iniciar un piano roll.",
       failedToSendMidiControllerValue: "No se pudo enviar el valor del controlador MIDI.",
       failedToSaveSequencerConfig: "No se pudo guardar la configuracion del secuenciador.",
       failedToExportPerformanceCsd: "No se pudo exportar el bundle CSD de la performance.",
@@ -1052,14 +1080,6 @@ export default function App() {
     () => instrumentLevelByChannel(sequencerInstruments),
     [sequencerInstruments]
   );
-  const disableAllRuntimePianoRolls = useCallback(() => {
-    const currentSequencer = useAppStore.getState().sequencer;
-    for (const roll of currentSequencer.pianoRolls) {
-      if (roll.enabled) {
-        setPianoRollEnabled(roll.id, false);
-      }
-    }
-  }, [setPianoRollEnabled]);
   const buildBackendSequencerConfig = useCallback(
     (
       state?: SequencerState,
@@ -1223,37 +1243,22 @@ export default function App() {
         playback_loop: resolvedPlaybackLoop,
         tracks: transportTracks,
         controller_tracks: controllerTracks,
-        arpeggiators: resolvedState.arpeggiators.map((arpeggiator) => ({
-          arpeggiator_id: arpeggiator.id,
-          enabled: arpeggiator.enabled,
-          input_channel: arpeggiator.inputChannel,
-          target_channel: arpeggiator.targetChannel,
-          rate: arpeggiator.rate,
-          gate_ratio: arpeggiator.gateRatio,
-          swing: arpeggiator.swing,
-          octaves: arpeggiator.octaves,
-          pattern: arpeggiator.pattern,
-          latch: arpeggiator.latch,
-          velocity_mode: arpeggiator.velocityMode,
-          fixed_velocity: arpeggiator.fixedVelocity,
-          accent_cycle: arpeggiator.accentCycle,
-          probability: arpeggiator.probability,
-          repeats: arpeggiator.repeats,
-          humanize_ms: arpeggiator.humanizeMs,
-          humanize_velocity: arpeggiator.humanizeVelocity,
-          transpose: arpeggiator.transpose,
-          scale_quantize: arpeggiator.scaleQuantize,
-          scale_root: arpeggiator.scaleRoot,
-          scale_type: arpeggiator.scaleType,
-          mode: arpeggiator.mode,
-          restart_mode: arpeggiator.restartMode
-        }))
+        arpeggiators: buildBackendArpeggiatorConfigs(resolvedState)
       };
     },
     [instrumentLevelsByChannel]
   );
+  const buildBackendArpeggiatorConfig = useCallback((state?: SequencerState): SessionArpeggiatorConfigRequest => {
+    const resolvedState = state ?? useAppStore.getState().sequencer;
+    return {
+      tempo_bpm: resolvedState.timing.tempoBPM,
+      arpeggiators: buildBackendArpeggiatorConfigs(resolvedState)
+    };
+  }, []);
   const pianoRollNoteSessionRef = useRef(new Map<string, string>());
   const midiControllerInitSessionRef = useRef<string | null>(null);
+  const pendingSequencerTransportStartRef = useRef(false);
+  const sequencerTransportStartInFlightRef = useRef(false);
   const {
     browserAudioError,
     browserAudioStatus,
@@ -1275,8 +1280,8 @@ export default function App() {
     activeSessionId,
     activeSessionState,
     browserClockLatencySettings,
+    buildBackendArpeggiatorConfig,
     buildBackendSequencerConfig,
-    disableAllPianoRolls: disableAllRuntimePianoRolls,
     errors: appCopy.errors,
     events,
     pushEvent,
@@ -1593,6 +1598,69 @@ export default function App() {
     setSelection({ nodeIds: [], connections: [] });
   }, [activeInstrumentTabId, currentPatch.id]);
 
+  const startPendingSequencerTransport = useCallback(() => {
+    if (!pendingSequencerTransportStartRef.current || activeSessionState !== "running") {
+      return;
+    }
+    if (useAppStore.getState().sequencer.isPlaying || sequencerTransportStartInFlightRef.current) {
+      pendingSequencerTransportStartRef.current = false;
+      return;
+    }
+
+    pendingSequencerTransportStartRef.current = false;
+    sequencerTransportStartInFlightRef.current = true;
+    void startSequencerTransport()
+      .catch((error) => {
+        setSequencerError(error instanceof Error ? error.message : appCopy.errors.failedToStartSequencer);
+      })
+      .finally(() => {
+        sequencerTransportStartInFlightRef.current = false;
+      });
+  }, [
+    activeSessionState,
+    appCopy.errors.failedToStartSequencer,
+    startSequencerTransport
+  ]);
+
+  const startSequencerTransportFromUserAction = useCallback(() => {
+    if (
+      useAppStore.getState().sequencer.isPlaying ||
+      pendingSequencerTransportStartRef.current ||
+      sequencerTransportStartInFlightRef.current
+    ) {
+      return;
+    }
+
+    setSequencerError(null);
+    pendingSequencerTransportStartRef.current = true;
+    if (activeSessionState !== "running") {
+      primeBrowserClockAudio();
+      void startSession().finally(() => {
+        if (useAppStore.getState().activeSessionState !== "running") {
+          pendingSequencerTransportStartRef.current = false;
+        }
+      });
+      return;
+    }
+
+    window.setTimeout(() => {
+      startPendingSequencerTransport();
+    }, 0);
+  }, [activeSessionState, primeBrowserClockAudio, startPendingSequencerTransport, startSession]);
+
+  useEffect(() => {
+    if (!pendingSequencerTransportStartRef.current || activeSessionState !== "running") {
+      return;
+    }
+    startPendingSequencerTransport();
+  }, [activeSessionState, startPendingSequencerTransport]);
+
+  useEffect(() => {
+    if (activeSessionState !== "running") {
+      pendingSequencerTransportStartRef.current = false;
+    }
+  }, [activeSessionState]);
+
   const onSequencerTrackEnabledChange = useCallback(
     (trackId: string, enabled: boolean) => {
       const sequencerState = sequencerRef.current;
@@ -1603,8 +1671,11 @@ export default function App() {
         sequencerState.isPlaying && (enabled ? hasOtherRunningTracks : true);
       setSequencerTrackEnabled(trackId, enabled, shouldQueueOnCycle);
       setSequencerError(null);
+      if (enabled) {
+        startSequencerTransportFromUserAction();
+      }
     },
-    [setSequencerTrackEnabled]
+    [setSequencerTrackEnabled, startSequencerTransportFromUserAction]
   );
 
   const onDrummerSequencerTrackEnabledChange = useCallback(
@@ -1616,8 +1687,11 @@ export default function App() {
       const shouldQueueOnCycle = sequencerState.isPlaying && (enabled ? hasOtherRunningTracks : true);
       setDrummerSequencerTrackEnabled(trackId, enabled, shouldQueueOnCycle);
       setSequencerError(null);
+      if (enabled) {
+        startSequencerTransportFromUserAction();
+      }
     },
-    [setDrummerSequencerTrackEnabled]
+    [setDrummerSequencerTrackEnabled, startSequencerTransportFromUserAction]
   );
 
   const onDrummerSequencerRowKeyPreview = useCallback(
@@ -1674,14 +1748,6 @@ export default function App() {
     return channels;
   }, [sequencerInstruments]);
 
-  const disableAllPianoRolls = useCallback(() => {
-    for (const roll of sequencerRef.current.pianoRolls) {
-      if (roll.enabled) {
-        setPianoRollEnabled(roll.id, false);
-      }
-    }
-  }, [setPianoRollEnabled]);
-
   const resetArrangerTransportToSelectionStart = useCallback(() => {
     const currentState = sequencerRef.current;
     const { selection } = arrangerPlaybackBounds(currentState);
@@ -1691,7 +1757,6 @@ export default function App() {
 
   const stopPerformance = useCallback(
     async (resetTransport: boolean) => {
-      disableAllPianoRolls();
       if (sequencerRef.current.isPlaying) {
         await stopSequencerTransport(false);
       }
@@ -1710,7 +1775,6 @@ export default function App() {
     [
       activeSessionState,
       collectPerformanceChannels,
-      disableAllPianoRolls,
       resetArrangerTransportToSelectionStart,
       sendAllNotesOff,
       stopSequencerTransport,
@@ -1722,13 +1786,6 @@ export default function App() {
   const onStopInstrumentEngine = useCallback(() => {
     setSequencerError(null);
     void stopPerformance(false).catch((error) => {
-      setSequencerError(error instanceof Error ? error.message : appCopy.errors.failedToStopInstrumentEngine);
-    });
-  }, [appCopy.errors.failedToStopInstrumentEngine, stopPerformance]);
-
-  const onStopInstrumentEngineAndResetTransport = useCallback(() => {
-    setSequencerError(null);
-    void stopPerformance(true).catch((error) => {
       setSequencerError(error instanceof Error ? error.message : appCopy.errors.failedToStopInstrumentEngine);
     });
   }, [appCopy.errors.failedToStopInstrumentEngine, stopPerformance]);
@@ -1828,11 +1885,6 @@ export default function App() {
 
   const onPianoRollEnabledChange = useCallback(
     (rollId: string, enabled: boolean) => {
-      if (enabled && activeSessionState !== "running") {
-        setSequencerError(appCopy.errors.startInstrumentsBeforePianoRollStart);
-        return;
-      }
-
       if (!enabled) {
         const roll = sequencerRef.current.pianoRolls.find((entry) => entry.id === rollId);
         if (roll) {
@@ -1843,8 +1895,12 @@ export default function App() {
 
       setPianoRollEnabled(rollId, enabled);
       setSequencerError(null);
+      if (enabled && activeSessionState !== "running") {
+        primeBrowserClockAudio();
+        void startSession();
+      }
     },
-    [activeSessionState, appCopy.errors.startInstrumentsBeforePianoRollStart, sendAllNotesOff, setPianoRollEnabled]
+    [activeSessionState, primeBrowserClockAudio, sendAllNotesOff, setPianoRollEnabled, startSession]
   );
 
   const collectMidiControllerChannels = useCallback(() => {
@@ -2141,6 +2197,17 @@ export default function App() {
     ]
   );
 
+  const onControllerSequencerEnabledChange = useCallback(
+    (controllerSequencerId: string, enabled: boolean) => {
+      setControllerSequencerEnabled(controllerSequencerId, enabled);
+      setSequencerError(null);
+      if (enabled) {
+        startSequencerTransportFromUserAction();
+      }
+    },
+    [setControllerSequencerEnabled, startSequencerTransportFromUserAction]
+  );
+
   useEffect(() => {
     if (activeSessionState !== "running" || !activeSessionId) {
       midiControllerInitSessionRef.current = null;
@@ -2285,8 +2352,7 @@ export default function App() {
     onInstrumentChannelChange: updateSequencerInstrumentChannel,
     onInstrumentLevelChange: updateSequencerInstrumentLevel,
     onStartInstruments: onStartInstrumentEngine,
-    onStopInstruments: onStopInstrumentEngine,
-    onStopInstrumentsAndResetTransport: onStopInstrumentEngineAndResetTransport
+    onStopInstruments: onStopInstrumentEngine
   };
   const sequencerPerformanceActions = {
     onPerformanceNameChange: (name: string) => setCurrentPerformanceMeta(name, performanceDescription),
@@ -2304,6 +2370,43 @@ export default function App() {
     onExportCsd: onExportPerformanceCsd,
     onImportConfig: onImportSequencerConfig
   };
+  const onStopArrangerTransport = useCallback(
+    (resetPlayhead: boolean) => {
+      setSequencerError(null);
+      const currentSequencer = sequencerRef.current;
+      for (const track of currentSequencer.tracks) {
+        if (track.enabled || track.queuedEnabled !== null) {
+          setSequencerTrackEnabled(track.id, false, false);
+        }
+      }
+      for (const track of currentSequencer.drummerTracks) {
+        if (track.enabled || track.queuedEnabled !== null) {
+          setDrummerSequencerTrackEnabled(track.id, false, false);
+        }
+      }
+      for (const controllerSequencer of currentSequencer.controllerSequencers) {
+        if (controllerSequencer.enabled) {
+          setControllerSequencerEnabled(controllerSequencer.id, false);
+        }
+      }
+      void stopSequencerTransport(false)
+        .then(() => {
+          if (resetPlayhead) {
+            resetArrangerTransportToSelectionStart();
+          }
+        })
+        .catch((error) => {
+          setSequencerError(error instanceof Error ? error.message : "Failed to stop sequencer transport.");
+        });
+    },
+    [
+      resetArrangerTransportToSelectionStart,
+      setControllerSequencerEnabled,
+      setDrummerSequencerTrackEnabled,
+      setSequencerTrackEnabled,
+      stopSequencerTransport
+    ]
+  );
   const sequencerTransportActions = {
     onBpmChange: setSequencerBpm,
     onSequencerCycleRewind: () => {
@@ -2312,6 +2415,8 @@ export default function App() {
     onSequencerCycleForward: () => {
       void moveSequencerTransport(sequencerTransportStepsPerBeat(sequencer.timing));
     },
+    onSequencerTransportStart: startSequencerTransportFromUserAction,
+    onSequencerTransportStop: onStopArrangerTransport,
     onSequencerArrangerLoopSelectionChange: handleArrangerLoopSelectionChange
   };
   const sequencerMelodicTrackActions = {
@@ -2453,7 +2558,7 @@ export default function App() {
   const sequencerControllerSequencerActions = {
     onAddControllerSequencer: addControllerSequencer,
     onRemoveControllerSequencer: removeControllerSequencer,
-    onControllerSequencerEnabledChange: setControllerSequencerEnabled,
+    onControllerSequencerEnabledChange,
     onControllerSequencerNumberChange: setControllerSequencerNumber,
     onControllerSequencerMeterNumeratorChange: setControllerSequencerMeterNumerator,
     onControllerSequencerMeterDenominatorChange: setControllerSequencerMeterDenominator,
