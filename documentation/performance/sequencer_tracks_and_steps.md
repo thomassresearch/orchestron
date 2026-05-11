@@ -26,7 +26,7 @@ The backend runs the step timing (native runtime clock), which reduces browser t
 Each melodic sequencer card provides:
 
 - sequencer state badge (running/stopped or queued start/stop state)
-- `Start` / `Stop` (sequencer enable state)
+- `Start` / `Stop` (sequencer enable state; can be used manually while the multitrack arranger is stopped)
 - `Remove`
 - `Clear Steps`
 - `MIDI Channel` (`1..16`)

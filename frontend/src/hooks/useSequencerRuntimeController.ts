@@ -92,7 +92,12 @@ interface UseSequencerRuntimeControllerResult {
   startSequencerTransport: () => Promise<void>;
   stopSequencerTransport: (resetPlayhead: boolean) => Promise<void>;
   moveSequencerTransport: (deltaSteps: number) => Promise<void>;
+  markSequencerConfigSyncPending: () => void;
 }
+
+type ApplySequencerStatusOptions = {
+  preserveLocalEnablement?: boolean;
+};
 
 export function useSequencerRuntimeController({
   activeSessionId,
@@ -120,7 +125,10 @@ export function useSequencerRuntimeController({
   const sequencerStatusPollRef = useRef<number | null>(null);
   const sequencerPollInFlightRef = useRef(false);
   const sequencerConfigSyncPendingRef = useRef(false);
-  const applySequencerStatusRef = useRef<(status: SessionSequencerStatus) => void>(() => undefined);
+  const sequencerConfigSyncVersionRef = useRef(0);
+  const applySequencerStatusRef = useRef<
+    (status: SessionSequencerStatus, options?: ApplySequencerStatusOptions) => void
+  >(() => undefined);
   const browserClockTransportEventQueueRef = useRef<BrowserClockQueuedTransportEvent[]>([]);
 
   const {
@@ -249,10 +257,12 @@ export function useSequencerRuntimeController({
   );
 
   const applySequencerStatus = useCallback(
-    (status: SessionSequencerStatus) => {
+    (status: SessionSequencerStatus, options?: ApplySequencerStatusOptions) => {
       if (effectiveAudioOutputModeRef.current === "browser_clock") {
         browserClockTransportEventQueueRef.current = [];
       }
+      const preserveLocalEnablement =
+        status.running && (options?.preserveLocalEnablement ?? sequencerConfigSyncPendingRef.current);
       const melodicTrackStatuses = status.tracks.filter((track) => parseDrummerRowRuntimeTrackId(track.track_id) === null);
       const drummerTrackStatuses = aggregateDrummerRuntimeTrackStatuses(
         status.tracks,
@@ -272,10 +282,28 @@ export function useSequencerRuntimeController({
           activePad: track.active_pad,
           queuedPad: track.queued_pad,
           padLoopPosition: track.pad_loop_position,
-          enabled: track.enabled,
-          queuedEnabled: track.queued_enabled
+          ...(preserveLocalEnablement
+            ? {}
+            : {
+                enabled: status.running && track.enabled,
+                queuedEnabled: status.running ? track.queued_enabled : null
+              })
         })),
-        drummerTracks: drummerTrackStatuses
+        drummerTracks: drummerTrackStatuses.map((track) => ({
+          trackId: track.trackId,
+          stepCount: track.stepCount,
+          localStep: track.localStep,
+          runtimePadStartSubunit: track.runtimePadStartSubunit,
+          activePad: track.activePad,
+          queuedPad: track.queuedPad,
+          padLoopPosition: track.padLoopPosition,
+          ...(preserveLocalEnablement
+            ? {}
+            : {
+                enabled: status.running && track.enabled === true,
+                queuedEnabled: status.running ? track.queuedEnabled : null
+              })
+        }))
       });
       syncControllerSequencerRuntime(
         status.controller_tracks.map((track) => ({
@@ -284,7 +312,7 @@ export function useSequencerRuntimeController({
           queuedPad: track.queued_pad,
           padLoopPosition: track.pad_loop_position,
           runtimePadStartSubunit: track.runtime_pad_start_subunit,
-          enabled: track.enabled
+          ...(preserveLocalEnablement ? {} : { enabled: status.running && track.enabled })
         }))
       );
       applyArpeggiatorStatus(status.arpeggiators ?? []);
@@ -324,6 +352,7 @@ export function useSequencerRuntimeController({
 
   const applyBrowserClockPadSwitchEvent = useCallback(
     (payload: SequencerPadSwitchEventPayload) => {
+      const preserveLocalEnablement = payload.running && sequencerConfigSyncPendingRef.current;
       applyBrowserClockSequencerStepEvent({
         previous_step: payload.current_step,
         current_step: payload.current_step,
@@ -343,7 +372,7 @@ export function useSequencerRuntimeController({
             queuedPad: payload.queued_pad,
             padLoopPosition: payload.pad_loop_position,
             runtimePadStartSubunit: payload.runtime_pad_start_subunit,
-            enabled: payload.enabled
+            ...(preserveLocalEnablement ? {} : { enabled: payload.running && payload.enabled === true })
           }
         ]);
         return;
@@ -365,8 +394,12 @@ export function useSequencerRuntimeController({
               queuedPad: payload.queued_pad,
               padLoopPosition: payload.pad_loop_position,
               runtimePadStartSubunit: payload.runtime_pad_start_subunit,
-              enabled: payload.enabled,
-              queuedEnabled: payload.queued_enabled
+              ...(preserveLocalEnablement
+                ? {}
+                : {
+                    enabled: payload.running && payload.enabled === true,
+                    queuedEnabled: payload.running ? payload.queued_enabled : null
+                  })
             }
           ]
         });
@@ -387,8 +420,12 @@ export function useSequencerRuntimeController({
             queuedPad: payload.queued_pad,
             padLoopPosition: payload.pad_loop_position,
             runtimePadStartSubunit: payload.runtime_pad_start_subunit,
-            enabled: payload.enabled,
-            queuedEnabled: payload.queued_enabled
+            ...(preserveLocalEnablement
+              ? {}
+              : {
+                  enabled: payload.running && payload.enabled === true,
+                  queuedEnabled: payload.running ? payload.queued_enabled : null
+                })
           }
         ]
       });
@@ -450,6 +487,9 @@ export function useSequencerRuntimeController({
       sequencerPollInFlightRef.current = true;
       try {
         const status = await api.getSessionSequencerStatus(sessionId);
+        if (sequencerConfigSyncPendingRef.current) {
+          return;
+        }
         applySequencerStatusRef.current(status);
       } catch (pollError) {
         if (invalidateMissingRuntimeSession(sessionId, pollError)) {
@@ -806,6 +846,13 @@ export function useSequencerRuntimeController({
     [sendDirectMidiEvent]
   );
 
+  const markSequencerConfigSyncPending = useCallback((): void => {
+    if (sequencerRef.current.isPlaying) {
+      sequencerConfigSyncVersionRef.current += 1;
+      sequencerConfigSyncPendingRef.current = true;
+    }
+  }, []);
+
   const sequencerConfigSyncSignature = useMemo(() => {
     if (!sequencer.isPlaying) {
       return null;
@@ -864,25 +911,39 @@ export function useSequencerRuntimeController({
   useEffect(() => {
     if (!sequencer.isPlaying) {
       sequencerConfigSyncPendingRef.current = false;
+      sequencerConfigSyncVersionRef.current += 1;
       return;
     }
 
     const sessionId = resolveSequencerSessionId();
     if (!sessionId || !sequencerConfigSyncSignature) {
       sequencerConfigSyncPendingRef.current = false;
+      sequencerConfigSyncVersionRef.current += 1;
       return;
     }
 
     const payload = JSON.parse(sequencerConfigSyncSignature) as SessionSequencerConfigRequest;
+    const syncVersion = sequencerConfigSyncVersionRef.current + 1;
+    sequencerConfigSyncVersionRef.current = syncVersion;
     sequencerConfigSyncPendingRef.current = true;
 
     const syncTimer = window.setTimeout(() => {
-      void api
-        .configureSessionSequencer(sessionId, payload)
+      const syncRequest =
+        effectiveAudioOutputMode === "browser_clock"
+          ? browserClockClientRef.current.startSequencer(sessionId, { config: payload, positionStep: null })
+          : api.configureSessionSequencer(sessionId, payload);
+
+      void syncRequest
         .then((status) => {
-          applySequencerStatus(status);
+          if (sequencerConfigSyncVersionRef.current !== syncVersion) {
+            return;
+          }
+          applySequencerStatus(status, { preserveLocalEnablement: false });
         })
         .catch((syncError) => {
+          if (sequencerConfigSyncVersionRef.current !== syncVersion) {
+            return;
+          }
           if (invalidateMissingRuntimeSession(sessionId, syncError)) {
             return;
           }
@@ -893,6 +954,9 @@ export function useSequencerRuntimeController({
           );
         })
         .finally(() => {
+          if (sequencerConfigSyncVersionRef.current !== syncVersion) {
+            return;
+          }
           sequencerConfigSyncPendingRef.current = false;
           if (
             sequencerRef.current.isPlaying &&
@@ -910,6 +974,8 @@ export function useSequencerRuntimeController({
     };
   }, [
     applySequencerStatus,
+    browserClockClientRef,
+    effectiveAudioOutputMode,
     errors.failedToUpdateSequencerConfig,
     invalidateMissingRuntimeSession,
     resolveSequencerSessionId,
@@ -1020,6 +1086,7 @@ export function useSequencerRuntimeController({
     sequencerRef,
     startSequencerTransport,
     stopSequencerTransport,
-    moveSequencerTransport
+    moveSequencerTransport,
+    markSequencerConfigSyncPending
   };
 }

@@ -25,7 +25,7 @@ Typical uses:
 Each controller sequencer provides:
 
 - Running/stopped state badge
-- `Start` / `Stop` enable toggle
+- `Start` / `Stop` enable toggle; can be used manually while the multitrack arranger is stopped
 - `Controller #` (`0..127`)
 - `Meter` (`2..7` over `4` or `8`)
 - `Grid` (`2`, `4`, or `8`, steps per beat)
