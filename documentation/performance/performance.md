@@ -9,6 +9,7 @@ This chapter covers the `Perform` page (labeled `Perform` / `Performance` depend
 - Assemble an instrument rack from saved patches and assign MIDI channels
 - Start/stop the instrument engine session
 - Create multiple melodic sequencers, drummer sequencers, and controller sequencers
+- Add backend-run arpeggiators that turn held notes into routed arpeggiated instrument output
 - Use pattern pads with queued switching and pad-loop sequences
 - Arrange multiple track timelines in the multitrack arranger with shared transport and loop-range playback
 - Perform live with piano rolls and manual MIDI controller knobs
@@ -24,6 +25,7 @@ This chapter covers the `Perform` page (labeled `Perform` / `Performance` depend
 - [Pattern Pads, Queued Switching, and Pad Looper](pattern_pads_and_pad_looper.md)
 - [Multitrack Arranger](multitrack_arranger.md)
 - [Controller Sequencers](controller_sequencers.md)
+- [Arpeggiators](arpeggiators.md)
 - [Piano Rolls](piano_rolls.md)
 - [MIDI Controllers](midi_controllers.md)
 - [Performance Import / Export](performance_import_export.md)

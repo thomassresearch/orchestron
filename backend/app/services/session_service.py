@@ -49,6 +49,7 @@ from backend.app.services.compiler_service import CompilationError, CompilerServ
 from backend.app.services.event_bus import SessionEventBus
 from backend.app.services.midi_service import INTERNAL_LOOPBACK_ID, INTERNAL_LOOPBACK_SELECTOR, MidiService
 from backend.app.services.patch_service import PatchService
+from backend.app.services.arpeggiator_runtime import MidiSourceContext, PerformanceMidiRouter
 from backend.app.services.sequencer_runtime import SessionSequencerRuntime
 
 logger = logging.getLogger(__name__)
@@ -134,9 +135,10 @@ class SessionService:
                 gen_audio_assets_dir=str(self._settings.gen_audio_assets_dir),
             ),
         )
+        runtime.midi_router = self._create_midi_router(runtime)
         runtime.sequencer = SessionSequencerRuntime(
             session_id=runtime.session_id,
-            midi_service=runtime.worker.midi_output,
+            midi_service=runtime.midi_router,
             midi_input_selector=INTERNAL_LOOPBACK_ID,
             controller_default_channels=self._controller_default_channels_for_runtime(runtime),
             clock_mode="render_driven",
@@ -292,6 +294,8 @@ class SessionService:
         )
         if runtime.sequencer is not None:
             runtime.sequencer.stop()
+        if runtime.midi_router is not None:
+            runtime.midi_router.shutdown()
         detail = runtime.worker.stop()
         runtime.state = SessionState.COMPILED if runtime.compile_artifact else SessionState.IDLE
 
@@ -302,6 +306,8 @@ class SessionService:
     async def panic_session(self, session_id: str) -> SessionActionResponse:
         self._remember_running_loop()
         runtime = await self._get_session(session_id)
+        if runtime.midi_router is not None:
+            runtime.midi_router.panic()
         detail = runtime.worker.panic()
 
         await self._publish(runtime.session_id, "panic", {"detail": detail})
@@ -368,7 +374,7 @@ class SessionService:
             "server_monotonic_ns": time.perf_counter_ns(),
             "timing_report_interval_ms": _BROWSER_TIMING_REPORT_INTERVAL_MS,
             "engine_ksmps_latency_frames": runtime.worker.runtime_ksmps,
-            "sequencer_status": sequencer.status().model_dump(mode="json"),
+            "sequencer_status": self._status_with_arpeggiators(runtime, sequencer.status()).model_dump(mode="json"),
         }
 
     async def release_browser_clock_controller(self, session_id: str, connection_id: str) -> None:
@@ -550,14 +556,27 @@ class SessionService:
         request_received_ns = server_received_ns or time.perf_counter_ns()
         block_count = max(1, min(request.block_count, lease.max_blocks_per_request))
         sequencer = self._ensure_sequencer(runtime)
+        router = self._ensure_midi_router(runtime)
         latest_status = sequencer.status()
 
-        def _before_block(_block_index: int) -> None:
+        def _before_block(_block_index: int, block_start_sample: int | None = None) -> None:
             nonlocal latest_status
             latest_status = sequencer.advance_render_block(
                 sample_rate=runtime.worker.runtime_sample_rate,
                 ksmps=runtime.worker.runtime_ksmps,
             )
+            start_sample = (
+                runtime.worker.render_sample_cursor
+                if block_start_sample is None
+                else max(0, int(block_start_sample))
+            )
+            router.advance_render_block(
+                block_start_sample=start_sample,
+                block_end_sample=start_sample + max(1, runtime.worker.runtime_ksmps),
+                sample_rate=max(1, runtime.worker.runtime_sample_rate),
+                tempo_bpm=latest_status.timing.tempo_bpm,
+            )
+            latest_status = self._status_with_arpeggiators(runtime, latest_status)
 
         render_started_ns = time.perf_counter_ns()
         try:
@@ -765,6 +784,11 @@ class SessionService:
 
         try:
             status = sequencer.configure(request)
+            self._ensure_midi_router(runtime).configure(
+                request.arpeggiators,
+                tempo_bpm=request.timing.tempo_bpm,
+            )
+            status = self._status_with_arpeggiators(runtime, status)
         except ValueError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
 
@@ -794,7 +818,12 @@ class SessionService:
         try:
             if request.config is not None:
                 sequencer.configure(request.config)
+                self._ensure_midi_router(runtime).configure(
+                    request.config.arpeggiators,
+                    tempo_bpm=request.config.timing.tempo_bpm,
+                )
             status = sequencer.start(request.position_step)
+            status = self._status_with_arpeggiators(runtime, status)
         except ValueError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
 
@@ -813,6 +842,7 @@ class SessionService:
         runtime = await self._get_session(session_id)
         sequencer = self._ensure_sequencer(runtime)
         status = sequencer.stop()
+        status = self._status_with_arpeggiators(runtime, status)
 
         await self._publish(runtime.session_id, "sequencer_stopped", {"cycle": status.cycle})
         return status
@@ -831,6 +861,7 @@ class SessionService:
         except ValueError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
 
+        status = self._status_with_arpeggiators(runtime, status)
         await self._publish(
             runtime.session_id,
             "sequencer_pad_queued",
@@ -843,6 +874,7 @@ class SessionService:
         runtime = await self._get_session(session_id)
         sequencer = self._ensure_sequencer(runtime)
         status = sequencer.rewind_cycle()
+        status = self._status_with_arpeggiators(runtime, status)
 
         await self._publish(
             runtime.session_id,
@@ -856,6 +888,7 @@ class SessionService:
         runtime = await self._get_session(session_id)
         sequencer = self._ensure_sequencer(runtime)
         status = sequencer.forward_cycle()
+        status = self._status_with_arpeggiators(runtime, status)
 
         await self._publish(
             runtime.session_id,
@@ -868,7 +901,7 @@ class SessionService:
         self._remember_running_loop()
         runtime = await self._get_session(session_id)
         sequencer = self._ensure_sequencer(runtime)
-        return sequencer.status()
+        return self._status_with_arpeggiators(runtime, sequencer.status())
 
     async def bind_midi_input(self, session_id: str, request: BindMidiInputRequest) -> SessionInfo:
         self._remember_running_loop()
@@ -896,6 +929,8 @@ class SessionService:
         )
         if runtime.sequencer is not None:
             runtime.sequencer.shutdown()
+        if runtime.midi_router is not None:
+            runtime.midi_router.shutdown()
         runtime.worker.stop()
 
         heartbeat_tasks_to_cancel: list[asyncio.Task[None]] = []
@@ -952,13 +987,21 @@ class SessionService:
             else int(round(max(0.0, event_perf_ms) * 1_000_000.0))
         )
         for message in messages:
-            queued = runtime.worker.enqueue_timestamped_midi(
+            router = self._ensure_midi_router(runtime)
+            source_context = MidiSourceContext(
+                source_id=request.source_id,
+                scale_root=request.source_scale_root,
+                mode=request.source_mode,
+            )
+            queued = router.route_message(
                 message,
                 source=source,
                 target_engine_sample=target_engine_sample,
+                delivery_delay_seconds=None,
                 source_timestamp_ns=source_timestamp_ns,
                 mapped_backend_monotonic_ns=mapped_backend_monotonic_ns,
                 sync_stale=sync_stale,
+                source_context=source_context,
             )
             if queued:
                 continue
@@ -1054,10 +1097,11 @@ class SessionService:
     def _ensure_sequencer(self, runtime: RuntimeSession) -> SessionSequencerRuntime:
         if runtime.sequencer is not None:
             return runtime.sequencer
+        runtime.midi_router = self._ensure_midi_router(runtime)
 
         runtime.sequencer = SessionSequencerRuntime(
             session_id=runtime.session_id,
-            midi_service=runtime.worker.midi_output,
+            midi_service=runtime.midi_router,
             midi_input_selector=INTERNAL_LOOPBACK_ID,
             controller_default_channels=self._controller_default_channels_for_runtime(runtime),
             clock_mode="render_driven",
@@ -1068,6 +1112,27 @@ class SessionService:
             ),
         )
         return runtime.sequencer
+
+    def _ensure_midi_router(self, runtime: RuntimeSession) -> PerformanceMidiRouter:
+        if runtime.midi_router is None:
+            runtime.midi_router = self._create_midi_router(runtime)
+        return runtime.midi_router
+
+    @staticmethod
+    def _create_midi_router(runtime: RuntimeSession) -> PerformanceMidiRouter:
+        return PerformanceMidiRouter(
+            enqueue_timestamped_midi=runtime.worker.enqueue_timestamped_midi,
+            current_engine_sample=lambda runtime=runtime: runtime.worker.render_sample_cursor,
+            output_name="engine:internal",
+        )
+
+    def _status_with_arpeggiators(
+        self,
+        runtime: RuntimeSession,
+        status: SessionSequencerStatus,
+    ) -> SessionSequencerStatus:
+        router = self._ensure_midi_router(runtime)
+        return status.model_copy(update={"arpeggiators": router.status()})
 
     @staticmethod
     def _controller_default_channels_for_runtime(runtime: RuntimeSession) -> tuple[int, ...]:

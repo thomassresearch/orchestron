@@ -23,7 +23,7 @@ Persisted app state includes (current implementation):
 - GUI language
 - instrument tabs (including editable patch snapshots)
 - active instrument tab
-- sequencer state (tracks, controller sequencers, piano rolls, MIDI controllers)
+- sequencer state (tracks, controller sequencers, arpeggiators, piano rolls, MIDI controllers)
 - performance workspace metadata (`currentPerformanceId`, name, description)
 - sequencer instrument bindings (rack assignments)
 - active MIDI input selection reference

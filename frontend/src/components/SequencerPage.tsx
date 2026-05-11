@@ -49,6 +49,11 @@ import { HelpIconButton } from "./HelpIconButton";
 import { MultitrackArranger } from "./MultitrackArranger";
 import type {
   ArrangerLoopSelection,
+  ArpeggiatorPattern,
+  ArpeggiatorRate,
+  ArpeggiatorRestartMode,
+  ArpeggiatorState,
+  ArpeggiatorVelocityMode,
   GuiLanguage,
   HelpDocId,
   PatchListItem,
@@ -84,6 +89,20 @@ const SEQUENCER_STEP_DRAG_MIME = "application/x-visualcsound-sequencer-step";
 const PAD_LOOP_ITEM_DRAG_MIME = "application/x-visualcsound-pad-loop-item";
 const PAD_LOOP_REF_DRAG_MIME = "application/x-visualcsound-pad-loop-ref";
 const PAD_TRANSPOSE_LONG_PRESS_MS = 350;
+const ARPEGGIATOR_RATES: readonly ArpeggiatorRate[] = ["1/1", "1/2", "1/4", "1/8", "1/16", "1/32", "1/8T", "1/16T", "1/8D", "1/16D"];
+const ARPEGGIATOR_PATTERNS: readonly ArpeggiatorPattern[] = [
+  "up",
+  "down",
+  "up_down",
+  "down_up",
+  "as_played",
+  "random",
+  "chord",
+  "inside_out",
+  "outside_in"
+];
+const ARPEGGIATOR_VELOCITY_MODES: readonly ArpeggiatorVelocityMode[] = ["input", "fixed", "accent", "random"];
+const ARPEGGIATOR_RESTART_MODES: readonly ArpeggiatorRestartMode[] = ["free", "first_note"];
 
 type SequencerPadDragPayload = {
   trackId: string;
@@ -186,6 +205,36 @@ type SequencerUiCopy = {
   addDrummerSequencer: string;
   controllerSequencers: string;
   addControllerSequencer: string;
+  arpeggiators: string;
+  addArpeggiator: string;
+  arpeggiatorWithIndex: (index: number) => string;
+  deviceName: string;
+  inputChannel: string;
+  targetChannel: string;
+  preset: string;
+  savePreset: string;
+  presetNamePlaceholder: string;
+  rate: string;
+  gate: string;
+  swing: string;
+  octaves: string;
+  pattern: string;
+  latch: string;
+  velocityMode: string;
+  fixedVelocity: string;
+  accentCycle: string;
+  probability: string;
+  repeats: string;
+  humanizeMs: string;
+  humanizeVelocity: string;
+  transpose: string;
+  scaleQuantize: string;
+  restartMode: string;
+  heldNotes: string;
+  activeNote: string;
+  arpeggiatorPatternLabels: Record<ArpeggiatorPattern, string>;
+  arpeggiatorVelocityModeLabels: Record<ArpeggiatorVelocityMode, string>;
+  arpeggiatorRestartModeLabels: Record<ArpeggiatorRestartMode, string>;
   globalSequencerClock: string;
   bpm: string;
   meter: string;
@@ -367,6 +416,54 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     addDrummerSequencer: "Add Drummer Sequencer",
     controllerSequencers: "Controller Sequencers",
     addControllerSequencer: "Add Controller Sequencer",
+    arpeggiators: "Arpeggiators",
+    addArpeggiator: "Add Arpeggiator",
+    arpeggiatorWithIndex: (index) => `Arpeggiator ${index}`,
+    deviceName: "Name",
+    inputChannel: "Input Channel",
+    targetChannel: "Target Channel",
+    preset: "Preset",
+    savePreset: "Save Preset",
+    presetNamePlaceholder: "Preset name",
+    rate: "Rate",
+    gate: "Gate",
+    swing: "Swing",
+    octaves: "Octaves",
+    pattern: "Pattern",
+    latch: "Latch",
+    velocityMode: "Velocity Mode",
+    fixedVelocity: "Fixed Velocity",
+    accentCycle: "Accent Cycle",
+    probability: "Probability",
+    repeats: "Repeats",
+    humanizeMs: "Humanize ms",
+    humanizeVelocity: "Humanize Velocity",
+    transpose: "Transpose",
+    scaleQuantize: "Scale Quantize",
+    restartMode: "Restart",
+    heldNotes: "Held Notes",
+    activeNote: "Active Note",
+    arpeggiatorPatternLabels: {
+      up: "Up",
+      down: "Down",
+      up_down: "Up/Down",
+      down_up: "Down/Up",
+      as_played: "As Played",
+      random: "Random",
+      chord: "Chord",
+      inside_out: "Inside Out",
+      outside_in: "Outside In"
+    },
+    arpeggiatorVelocityModeLabels: {
+      input: "Input",
+      fixed: "Fixed",
+      accent: "Accent",
+      random: "Random"
+    },
+    arpeggiatorRestartModeLabels: {
+      free: "Free",
+      first_note: "First Note"
+    },
     globalSequencerClock: "Global Sequencer Clock",
     bpm: "BPM",
     meter: "Meter",
@@ -502,6 +599,54 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     addDrummerSequencer: "Drummer-Sequencer hinzufuegen",
     controllerSequencers: "Controller-Sequencer",
     addControllerSequencer: "Controller-Sequencer hinzufuegen",
+    arpeggiators: "Arpeggiatoren",
+    addArpeggiator: "Arpeggiator hinzufuegen",
+    arpeggiatorWithIndex: (index) => `Arpeggiator ${index}`,
+    deviceName: "Name",
+    inputChannel: "Eingangskanal",
+    targetChannel: "Zielkanal",
+    preset: "Preset",
+    savePreset: "Preset speichern",
+    presetNamePlaceholder: "Preset-Name",
+    rate: "Rate",
+    gate: "Gate",
+    swing: "Swing",
+    octaves: "Oktaven",
+    pattern: "Pattern",
+    latch: "Latch",
+    velocityMode: "Velocity-Modus",
+    fixedVelocity: "Feste Velocity",
+    accentCycle: "Akzentfolge",
+    probability: "Wahrscheinlichkeit",
+    repeats: "Wiederholungen",
+    humanizeMs: "Humanize ms",
+    humanizeVelocity: "Humanize Velocity",
+    transpose: "Transponieren",
+    scaleQuantize: "Skalenquantisierung",
+    restartMode: "Neustart",
+    heldNotes: "Gehaltene Noten",
+    activeNote: "Aktive Note",
+    arpeggiatorPatternLabels: {
+      up: "Auf",
+      down: "Ab",
+      up_down: "Auf/Ab",
+      down_up: "Ab/Auf",
+      as_played: "Gespielt",
+      random: "Zufall",
+      chord: "Akkord",
+      inside_out: "Innen nach aussen",
+      outside_in: "Aussen nach innen"
+    },
+    arpeggiatorVelocityModeLabels: {
+      input: "Eingang",
+      fixed: "Fest",
+      accent: "Akzent",
+      random: "Zufall"
+    },
+    arpeggiatorRestartModeLabels: {
+      free: "Frei",
+      first_note: "Erste Note"
+    },
     globalSequencerClock: "Globale Sequencer-Clock",
     bpm: "BPM",
     meter: "Taktart",
@@ -637,6 +782,54 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     addDrummerSequencer: "Ajouter sequenceur batterie",
     controllerSequencers: "Sequenceurs controleur",
     addControllerSequencer: "Ajouter sequenceur controleur",
+    arpeggiators: "Arpegiateurs",
+    addArpeggiator: "Ajouter arpegiateur",
+    arpeggiatorWithIndex: (index) => `Arpegiateur ${index}`,
+    deviceName: "Nom",
+    inputChannel: "Canal entree",
+    targetChannel: "Canal cible",
+    preset: "Preset",
+    savePreset: "Enregistrer preset",
+    presetNamePlaceholder: "Nom du preset",
+    rate: "Vitesse",
+    gate: "Gate",
+    swing: "Swing",
+    octaves: "Octaves",
+    pattern: "Pattern",
+    latch: "Latch",
+    velocityMode: "Mode velocite",
+    fixedVelocity: "Velocite fixe",
+    accentCycle: "Cycle accents",
+    probability: "Probabilite",
+    repeats: "Repetitions",
+    humanizeMs: "Humanize ms",
+    humanizeVelocity: "Humanize velocite",
+    transpose: "Transposer",
+    scaleQuantize: "Quantification gamme",
+    restartMode: "Redemarrage",
+    heldNotes: "Notes tenues",
+    activeNote: "Note active",
+    arpeggiatorPatternLabels: {
+      up: "Montee",
+      down: "Descente",
+      up_down: "Montee/descente",
+      down_up: "Descente/montee",
+      as_played: "Joue",
+      random: "Aleatoire",
+      chord: "Accord",
+      inside_out: "Interieur/exterieur",
+      outside_in: "Exterieur/interieur"
+    },
+    arpeggiatorVelocityModeLabels: {
+      input: "Entree",
+      fixed: "Fixe",
+      accent: "Accent",
+      random: "Aleatoire"
+    },
+    arpeggiatorRestartModeLabels: {
+      free: "Libre",
+      first_note: "Premiere note"
+    },
     globalSequencerClock: "Horloge globale du sequenceur",
     bpm: "BPM",
     meter: "Mesure",
@@ -772,6 +965,54 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     addDrummerSequencer: "Agregar secuenciador de bateria",
     controllerSequencers: "Secuenciadores controladores",
     addControllerSequencer: "Agregar secuenciador controlador",
+    arpeggiators: "Arpegiadores",
+    addArpeggiator: "Agregar arpegiador",
+    arpeggiatorWithIndex: (index) => `Arpegiador ${index}`,
+    deviceName: "Nombre",
+    inputChannel: "Canal de entrada",
+    targetChannel: "Canal destino",
+    preset: "Preset",
+    savePreset: "Guardar preset",
+    presetNamePlaceholder: "Nombre del preset",
+    rate: "Velocidad",
+    gate: "Gate",
+    swing: "Swing",
+    octaves: "Octavas",
+    pattern: "Patron",
+    latch: "Latch",
+    velocityMode: "Modo velocity",
+    fixedVelocity: "Velocity fija",
+    accentCycle: "Ciclo de acentos",
+    probability: "Probabilidad",
+    repeats: "Repeticiones",
+    humanizeMs: "Humanize ms",
+    humanizeVelocity: "Humanize velocity",
+    transpose: "Transponer",
+    scaleQuantize: "Cuantizar escala",
+    restartMode: "Reinicio",
+    heldNotes: "Notas retenidas",
+    activeNote: "Nota activa",
+    arpeggiatorPatternLabels: {
+      up: "Arriba",
+      down: "Abajo",
+      up_down: "Arriba/abajo",
+      down_up: "Abajo/arriba",
+      as_played: "Como tocado",
+      random: "Aleatorio",
+      chord: "Acorde",
+      inside_out: "Centro hacia fuera",
+      outside_in: "Fuera hacia centro"
+    },
+    arpeggiatorVelocityModeLabels: {
+      input: "Entrada",
+      fixed: "Fija",
+      accent: "Acento",
+      random: "Aleatoria"
+    },
+    arpeggiatorRestartModeLabels: {
+      free: "Libre",
+      first_note: "Primera nota"
+    },
     globalSequencerClock: "Reloj global del secuenciador",
     bpm: "BPM",
     meter: "Compas",
@@ -1160,8 +1401,8 @@ interface PianoRollKeyboardProps {
   roll: PianoRollState;
   instrumentsRunning: boolean;
   highlightTheories: PianoRollHighlightTheory[];
-  onNoteOn: (note: number, channel: number, velocity: number) => void;
-  onNoteOff: (note: number, channel: number) => void;
+  onNoteOn: (rollId: string, note: number, channel: number, velocity: number) => void;
+  onNoteOff: (rollId: string, note: number, channel: number) => void;
 }
 
 const PianoRollKeyboard = memo(function PianoRollKeyboard({
@@ -1368,10 +1609,10 @@ const PianoRollKeyboard = memo(function PianoRollKeyboard({
       }
 
       delete pianoPointerNotesRef.current[pointerId];
-      onNoteOff(held.note, held.channel);
+      onNoteOff(roll.id, held.note, held.channel);
       setPianoNoteActive(held.note, false);
     },
-    [onNoteOff, setPianoNoteActive]
+    [onNoteOff, roll.id, setPianoNoteActive]
   );
 
   const handlePianoPointerDown = useCallback(
@@ -1388,15 +1629,15 @@ const PianoRollKeyboard = memo(function PianoRollKeyboard({
       const channel = roll.midiChannel;
       const existing = pianoPointerNotesRef.current[event.pointerId];
       if (existing) {
-        onNoteOff(existing.note, existing.channel);
+        onNoteOff(roll.id, existing.note, existing.channel);
         setPianoNoteActive(existing.note, false);
       }
 
       pianoPointerNotesRef.current[event.pointerId] = { note, channel };
-      onNoteOn(note, channel, roll.velocity);
+      onNoteOn(roll.id, note, channel, roll.velocity);
       setPianoNoteActive(note, true);
     },
-    [interactive, onNoteOff, onNoteOn, roll.midiChannel, roll.velocity, setPianoNoteActive]
+    [interactive, onNoteOff, onNoteOn, roll.id, roll.midiChannel, roll.velocity, setPianoNoteActive]
   );
 
   const handlePianoPointerUp = useCallback(
@@ -1419,20 +1660,20 @@ const PianoRollKeyboard = memo(function PianoRollKeyboard({
     }
 
     for (const held of Object.values(pianoPointerNotesRef.current)) {
-      onNoteOff(held.note, held.channel);
+      onNoteOff(roll.id, held.note, held.channel);
     }
     pianoPointerNotesRef.current = {};
     setActivePianoNotes({});
-  }, [interactive, onNoteOff]);
+  }, [interactive, onNoteOff, roll.id]);
 
   useEffect(() => {
     return () => {
       for (const held of Object.values(pianoPointerNotesRef.current)) {
-        onNoteOff(held.note, held.channel);
+        onNoteOff(roll.id, held.note, held.channel);
       }
       pianoPointerNotesRef.current = {};
     };
-  }, [onNoteOff]);
+  }, [onNoteOff, roll.id]);
 
   return (
     <div className="relative rounded-xl border border-slate-700 bg-slate-950/70 p-2.5">
@@ -2230,8 +2471,8 @@ interface SequencerPagePianoRollActions {
   onPianoRollVelocityChange: (rollId: string, velocity: number) => void;
   onPianoRollScaleChange: (rollId: string, scaleRoot: SequencerScaleRoot, scaleType: SequencerScaleType) => void;
   onPianoRollModeChange: (rollId: string, mode: SequencerMode) => void;
-  onPianoRollNoteOn: (note: number, channel: number, velocity: number) => void;
-  onPianoRollNoteOff: (note: number, channel: number) => void;
+  onPianoRollNoteOn: (rollId: string, note: number, channel: number, velocity: number) => void;
+  onPianoRollNoteOff: (rollId: string, note: number, channel: number) => void;
 }
 
 interface SequencerPageMidiControllerActions {
@@ -2282,6 +2523,15 @@ interface SequencerPageControllerSequencerActions {
   onControllerSequencerKeypointRemove: (controllerSequencerId: string, keypointId: string) => void;
 }
 
+interface SequencerPageArpeggiatorActions {
+  onAddArpeggiator: () => void;
+  onRemoveArpeggiator: (arpeggiatorId: string) => void;
+  onArpeggiatorEnabledChange: (arpeggiatorId: string, enabled: boolean) => void;
+  onArpeggiatorChange: (arpeggiatorId: string, update: Partial<ArpeggiatorState>) => void;
+  onArpeggiatorPresetApply: (arpeggiatorId: string, presetId: string) => void;
+  onArpeggiatorPresetSave: (arpeggiatorId: string, presetName: string) => void;
+}
+
 interface SequencerPageProps {
   data: SequencerPageData;
   instrumentActions: SequencerPageInstrumentActions;
@@ -2292,6 +2542,7 @@ interface SequencerPageProps {
   pianoRollActions: SequencerPagePianoRollActions;
   midiControllerActions: SequencerPageMidiControllerActions;
   controllerSequencerActions: SequencerPageControllerSequencerActions;
+  arpeggiatorActions: SequencerPageArpeggiatorActions;
   onHelpRequest?: (helpDocId: HelpDocId) => void;
 }
 
@@ -3531,6 +3782,7 @@ export function SequencerPage({
   pianoRollActions,
   midiControllerActions,
   controllerSequencerActions,
+  arpeggiatorActions,
   onHelpRequest
 }: SequencerPageProps) {
   const {
@@ -3672,6 +3924,14 @@ export function SequencerPage({
     onControllerSequencerKeypointValueChange,
     onControllerSequencerKeypointRemove
   } = controllerSequencerActions;
+  const {
+    onAddArpeggiator,
+    onRemoveArpeggiator,
+    onArpeggiatorEnabledChange,
+    onArpeggiatorChange,
+    onArpeggiatorPresetApply,
+    onArpeggiatorPresetSave
+  } = arpeggiatorActions;
   const ui = SEQUENCER_UI_COPY[guiLanguage];
   const modeLabels = MODE_LABELS[guiLanguage];
   const scaleTypeLabels = SCALE_TYPE_LABELS[guiLanguage];
@@ -3745,6 +4005,7 @@ export function SequencerPage({
     sequencer.tracks.length +
     sequencer.drummerTracks.length +
     sequencer.controllerSequencers.length +
+    sequencer.arpeggiators.length +
     sequencer.pianoRolls.length +
     sequencer.midiControllers.length;
   const canRemovePerformDevice = totalPerformDevices > 1;
@@ -3763,6 +4024,7 @@ export function SequencerPage({
   const [deletePerformanceDialogOpen, setDeletePerformanceDialogOpen] = useState(false);
   const [linkedPadLoopStepPosition, setLinkedPadLoopStepPosition] = useState<number | null>(null);
   const [drummerVelocityDragState, setDrummerVelocityDragState] = useState<DrummerVelocityDragState | null>(null);
+  const [arpeggiatorPresetDrafts, setArpeggiatorPresetDrafts] = useState<Record<string, string>>({});
   const padTransposePressRef = useRef<Record<string, { timerId: number; longPressTriggered: boolean }>>({});
   const drummerLedDragRef = useRef<{
     pointerId: number;
@@ -3827,6 +4089,11 @@ export function SequencerPage({
         onControllerSequencerEnabledChange(controllerSequencer.id, true);
       }
     }
+    for (const arpeggiator of sequencer.arpeggiators) {
+      if (!arpeggiator.enabled) {
+        onArpeggiatorEnabledChange(arpeggiator.id, true);
+      }
+    }
     for (const controller of sequencer.midiControllers) {
       if (!controller.enabled) {
         onMidiControllerEnabledChange(controller.id, true);
@@ -3834,9 +4101,11 @@ export function SequencerPage({
     }
   }, [
     onDrummerSequencerTrackEnabledChange,
+    onArpeggiatorEnabledChange,
     onControllerSequencerEnabledChange,
     onMidiControllerEnabledChange,
     onSequencerTrackEnabledChange,
+    sequencer.arpeggiators,
     sequencer.controllerSequencers,
     sequencer.drummerTracks,
     sequencer.midiControllers,
@@ -3872,6 +4141,11 @@ export function SequencerPage({
         onPianoRollEnabledChange(roll.id, false);
       }
     }
+    for (const arpeggiator of sequencer.arpeggiators) {
+      if (arpeggiator.enabled) {
+        onArpeggiatorEnabledChange(arpeggiator.id, false);
+      }
+    }
     for (const controller of sequencer.midiControllers) {
       if (controller.enabled) {
         onMidiControllerEnabledChange(controller.id, false);
@@ -3879,10 +4153,12 @@ export function SequencerPage({
     }
   }, [
     onDrummerSequencerTrackEnabledChange,
+    onArpeggiatorEnabledChange,
     onControllerSequencerEnabledChange,
     onMidiControllerEnabledChange,
     onPianoRollEnabledChange,
     onSequencerTrackEnabledChange,
+    sequencer.arpeggiators,
     sequencer.controllerSequencers,
     sequencer.drummerTracks,
     sequencer.midiControllers,
@@ -5916,6 +6192,409 @@ export function SequencerPage({
               </div>
             </div>
           ) : null}
+        </div>
+      </div>
+
+      <div className="relative mt-4 rounded-xl border border-cyan-800/45 bg-slate-950/85 p-3">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <div className="text-[11px] uppercase tracking-[0.18em] text-cyan-200">{ui.arpeggiators}</div>
+          <button
+            type="button"
+            onClick={onAddArpeggiator}
+            disabled={sequencer.arpeggiators.length >= 8}
+            className="rounded-md border border-accent/60 bg-accent/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-accent transition hover:bg-accent/25 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {ui.addArpeggiator}
+          </button>
+        </div>
+
+        <div className="grid gap-3 xl:grid-cols-2">
+          {sequencer.arpeggiators.map((arpeggiator, arpeggiatorIndex) => {
+            const presetDraft = arpeggiatorPresetDrafts[arpeggiator.id] ?? "";
+            const activeStep = ((arpeggiator.stepIndex % 16) + 16) % 16;
+            const visualizationVelocity = Math.max(18, arpeggiator.lastVelocity ?? 72);
+            const accentCycleText = arpeggiator.accentCycle.join(",");
+            return (
+              <article key={arpeggiator.id} className="rounded-xl border border-slate-700 bg-slate-900/65 p-2.5">
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <input
+                    type="text"
+                    value={arpeggiator.name || ui.arpeggiatorWithIndex(arpeggiatorIndex + 1)}
+                    onChange={(event) => onArpeggiatorChange(arpeggiator.id, { name: event.target.value })}
+                    aria-label={ui.deviceName}
+                    className={`${controlFieldClass} min-w-[180px] flex-1`}
+                  />
+                  <span className={transportStateClass}>{arpeggiator.enabled ? ui.running : ui.stopped}</span>
+                  <button
+                    type="button"
+                    onClick={() => onArpeggiatorEnabledChange(arpeggiator.id, !arpeggiator.enabled)}
+                    className={arpeggiator.enabled ? transportStopButtonClass : transportStartButtonClass}
+                  >
+                    {arpeggiator.enabled ? ui.stop : ui.start}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onRemoveArpeggiator(arpeggiator.id)}
+                    disabled={!canRemovePerformDevice}
+                    className="rounded-md border border-rose-500/60 bg-rose-500/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-rose-200 transition hover:bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {ui.remove}
+                  </button>
+                </div>
+
+                <div className="mb-3 grid gap-2 md:grid-cols-3">
+                  <label className="flex flex-col gap-1">
+                    <span className={controlLabelClass}>{ui.inputChannel}</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={16}
+                      value={arpeggiator.inputChannel}
+                      onChange={(event) => onArpeggiatorChange(arpeggiator.id, { inputChannel: Number(event.target.value) })}
+                      className={`${controlFieldClass} w-full`}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className={controlLabelClass}>{ui.targetChannel}</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={16}
+                      value={arpeggiator.targetChannel}
+                      onChange={(event) => onArpeggiatorChange(arpeggiator.id, { targetChannel: Number(event.target.value) })}
+                      className={`${controlFieldClass} w-full`}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className={controlLabelClass}>{ui.preset}</span>
+                    <select
+                      value={arpeggiator.presetId ?? ""}
+                      onChange={(event) => {
+                        if (event.target.value) {
+                          onArpeggiatorPresetApply(arpeggiator.id, event.target.value);
+                        }
+                      }}
+                      className={controlFieldClass}
+                    >
+                      <option value="" disabled>
+                        {ui.preset}
+                      </option>
+                      {sequencer.arpeggiatorPresets.map((preset) => (
+                        <option key={`${arpeggiator.id}-${preset.id}`} value={preset.id}>
+                          {preset.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+
+                <div className="mb-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                  <label className="flex flex-col gap-1">
+                    <span className={controlLabelClass}>{ui.rate}</span>
+                    <select
+                      value={arpeggiator.rate}
+                      onChange={(event) => onArpeggiatorChange(arpeggiator.id, { rate: event.target.value as ArpeggiatorRate })}
+                      className={controlFieldClass}
+                    >
+                      {ARPEGGIATOR_RATES.map((rate) => (
+                        <option key={`${arpeggiator.id}-rate-${rate}`} value={rate}>
+                          {rate}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className={controlLabelClass}>{ui.pattern}</span>
+                    <select
+                      value={arpeggiator.pattern}
+                      onChange={(event) =>
+                        onArpeggiatorChange(arpeggiator.id, { pattern: event.target.value as ArpeggiatorPattern })
+                      }
+                      className={controlFieldClass}
+                    >
+                      {ARPEGGIATOR_PATTERNS.map((pattern) => (
+                        <option key={`${arpeggiator.id}-pattern-${pattern}`} value={pattern}>
+                          {ui.arpeggiatorPatternLabels[pattern]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className={controlLabelClass}>{ui.gate}</span>
+                    <input
+                      type="number"
+                      min={5}
+                      max={100}
+                      value={Math.round(arpeggiator.gateRatio * 100)}
+                      onChange={(event) => onArpeggiatorChange(arpeggiator.id, { gateRatio: Number(event.target.value) / 100 })}
+                      className={controlFieldClass}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className={controlLabelClass}>{ui.swing}</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={75}
+                      value={Math.round(arpeggiator.swing * 100)}
+                      onChange={(event) => onArpeggiatorChange(arpeggiator.id, { swing: Number(event.target.value) / 100 })}
+                      className={controlFieldClass}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className={controlLabelClass}>{ui.octaves}</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={4}
+                      value={arpeggiator.octaves}
+                      onChange={(event) => onArpeggiatorChange(arpeggiator.id, { octaves: Number(event.target.value) })}
+                      className={controlFieldClass}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className={controlLabelClass}>{ui.repeats}</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={4}
+                      value={arpeggiator.repeats}
+                      onChange={(event) => onArpeggiatorChange(arpeggiator.id, { repeats: Number(event.target.value) })}
+                      className={controlFieldClass}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className={controlLabelClass}>{ui.transpose}</span>
+                    <input
+                      type="number"
+                      min={-24}
+                      max={24}
+                      value={arpeggiator.transpose}
+                      onChange={(event) => onArpeggiatorChange(arpeggiator.id, { transpose: Number(event.target.value) })}
+                      className={controlFieldClass}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className={controlLabelClass}>{ui.probability}</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={Math.round(arpeggiator.probability * 100)}
+                      onChange={(event) => onArpeggiatorChange(arpeggiator.id, { probability: Number(event.target.value) / 100 })}
+                      className={controlFieldClass}
+                    />
+                  </label>
+                </div>
+
+                <div className="mb-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                  <label className="flex flex-col gap-1">
+                    <span className={controlLabelClass}>{ui.velocityMode}</span>
+                    <select
+                      value={arpeggiator.velocityMode}
+                      onChange={(event) =>
+                        onArpeggiatorChange(arpeggiator.id, { velocityMode: event.target.value as ArpeggiatorVelocityMode })
+                      }
+                      className={controlFieldClass}
+                    >
+                      {ARPEGGIATOR_VELOCITY_MODES.map((mode) => (
+                        <option key={`${arpeggiator.id}-vel-${mode}`} value={mode}>
+                          {ui.arpeggiatorVelocityModeLabels[mode]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className={controlLabelClass}>{ui.fixedVelocity}</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={127}
+                      value={arpeggiator.fixedVelocity}
+                      onChange={(event) => onArpeggiatorChange(arpeggiator.id, { fixedVelocity: Number(event.target.value) })}
+                      className={controlFieldClass}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className={controlLabelClass}>{ui.humanizeMs}</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={50}
+                      value={arpeggiator.humanizeMs}
+                      onChange={(event) => onArpeggiatorChange(arpeggiator.id, { humanizeMs: Number(event.target.value) })}
+                      className={controlFieldClass}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className={controlLabelClass}>{ui.humanizeVelocity}</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={32}
+                      value={arpeggiator.humanizeVelocity}
+                      onChange={(event) =>
+                        onArpeggiatorChange(arpeggiator.id, { humanizeVelocity: Number(event.target.value) })
+                      }
+                      className={controlFieldClass}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 sm:col-span-2">
+                    <span className={controlLabelClass}>{ui.accentCycle}</span>
+                    <input
+                      type="text"
+                      value={accentCycleText}
+                      onChange={(event) =>
+                        onArpeggiatorChange(arpeggiator.id, {
+                          accentCycle: event.target.value
+                            .split(",")
+                            .map((value) => Number(value.trim()))
+                            .filter((value) => Number.isFinite(value))
+                        })
+                      }
+                      className={controlFieldClass}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className={controlLabelClass}>{ui.restartMode}</span>
+                    <select
+                      value={arpeggiator.restartMode}
+                      onChange={(event) =>
+                        onArpeggiatorChange(arpeggiator.id, { restartMode: event.target.value as ArpeggiatorRestartMode })
+                      }
+                      className={controlFieldClass}
+                    >
+                      {ARPEGGIATOR_RESTART_MODES.map((mode) => (
+                        <option key={`${arpeggiator.id}-restart-${mode}`} value={mode}>
+                          {ui.arpeggiatorRestartModeLabels[mode]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <div className="flex flex-wrap items-end gap-3">
+                    <label className="inline-flex items-center gap-2 text-xs text-slate-300">
+                      <input
+                        type="checkbox"
+                        checked={arpeggiator.latch}
+                        onChange={(event) => onArpeggiatorChange(arpeggiator.id, { latch: event.target.checked })}
+                        className="h-4 w-4 rounded border-slate-600 bg-slate-950 accent-cyan-300"
+                      />
+                      {ui.latch}
+                    </label>
+                    <label className="inline-flex items-center gap-2 text-xs text-slate-300">
+                      <input
+                        type="checkbox"
+                        checked={arpeggiator.scaleQuantize}
+                        onChange={(event) => onArpeggiatorChange(arpeggiator.id, { scaleQuantize: event.target.checked })}
+                        className="h-4 w-4 rounded border-slate-600 bg-slate-950 accent-cyan-300"
+                      />
+                      {ui.scaleQuantize}
+                    </label>
+                  </div>
+                </div>
+
+                <div className="mb-3 grid gap-2 sm:grid-cols-2">
+                  <label className="flex flex-col gap-1">
+                    <span className={controlLabelClass}>{ui.scale}</span>
+                    <select
+                      value={`${arpeggiator.scaleRoot}:${arpeggiator.scaleType}`}
+                      onChange={(event) => {
+                        const selected = parseSequencerScaleValue(event.target.value);
+                        if (selected) {
+                          onArpeggiatorChange(arpeggiator.id, {
+                            scaleRoot: selected.root,
+                            scaleType: selected.type
+                          });
+                        }
+                      }}
+                      className={controlFieldClass}
+                    >
+                      {scaleOptions.map((option) => (
+                        <option key={`${arpeggiator.id}-scale-${option.value}`} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className={controlLabelClass}>{ui.mode}</span>
+                    <select
+                      value={arpeggiator.mode}
+                      onChange={(event) => onArpeggiatorChange(arpeggiator.id, { mode: event.target.value as SequencerMode })}
+                      className={controlFieldClass}
+                    >
+                      {modeOptions.map((option) => (
+                        <option key={`${arpeggiator.id}-mode-${option.value}`} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+
+                <div className="mb-3 flex flex-wrap items-end gap-2">
+                  <label className="flex min-w-[180px] flex-1 flex-col gap-1">
+                    <span className={controlLabelClass}>{ui.savePreset}</span>
+                    <input
+                      type="text"
+                      value={presetDraft}
+                      placeholder={ui.presetNamePlaceholder}
+                      onChange={(event) =>
+                        setArpeggiatorPresetDrafts((previous) => ({
+                          ...previous,
+                          [arpeggiator.id]: event.target.value
+                        }))
+                      }
+                      className={controlFieldClass}
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onArpeggiatorPresetSave(arpeggiator.id, presetDraft);
+                      setArpeggiatorPresetDrafts((previous) => ({ ...previous, [arpeggiator.id]: "" }));
+                    }}
+                    disabled={presetDraft.trim().length === 0}
+                    className="rounded-md border border-cyan-400/55 bg-cyan-400/15 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-200 transition hover:bg-cyan-400/25 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {ui.savePreset}
+                  </button>
+                </div>
+
+                <div className="rounded-lg border border-cyan-900/55 bg-slate-950/80 p-2">
+                  <div className="mb-2 flex flex-wrap gap-2 text-[10px] uppercase tracking-[0.14em] text-slate-400">
+                    <span>
+                      {ui.heldNotes}:{" "}
+                      <span className="font-mono text-cyan-100">
+                        {arpeggiator.heldNotes.length > 0 ? arpeggiator.heldNotes.join(" ") : "-"}
+                      </span>
+                    </span>
+                    <span>
+                      {ui.activeNote}:{" "}
+                      <span className="font-mono text-cyan-100">{arpeggiator.activeNote ?? "-"}</span>
+                    </span>
+                  </div>
+                  <div className="grid h-16 grid-cols-[repeat(16,minmax(0,1fr))] items-end gap-1">
+                    {Array.from({ length: 16 }, (_, step) => {
+                      const isActive = arpeggiator.enabled && arpeggiator.heldNotes.length > 0 && step === activeStep;
+                      const height = isActive ? visualizationVelocity : 18 + ((step * 19) % 42);
+                      return (
+                        <div
+                          key={`${arpeggiator.id}-viz-${step}`}
+                          className={`rounded-sm transition-all duration-150 ${
+                            isActive
+                              ? "bg-cyan-200 shadow-[0_0_18px_rgba(103,232,249,0.65)]"
+                              : "bg-cyan-700/35"
+                          }`}
+                          style={{ height: `${Math.min(100, Math.max(12, height))}%` }}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              </article>
+            );
+          })}
         </div>
       </div>
 

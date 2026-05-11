@@ -173,6 +173,30 @@ function mergedSequencerState(
     };
   });
 
+  let arpeggiatorRuntimeChanged = false;
+  const arpeggiators = sequencerConfig.arpeggiators.map((arpeggiator) => {
+    const runtime = sequencerRuntime.arpeggiatorStatusById[arpeggiator.id];
+    if (!runtime) {
+      return arpeggiator;
+    }
+    if (
+      arpeggiator.heldNotes === runtime.heldNotes &&
+      arpeggiator.activeNote === runtime.activeNote &&
+      arpeggiator.stepIndex === runtime.stepIndex &&
+      arpeggiator.lastVelocity === runtime.lastVelocity
+    ) {
+      return arpeggiator;
+    }
+    arpeggiatorRuntimeChanged = true;
+    return {
+      ...arpeggiator,
+      heldNotes: runtime.heldNotes,
+      activeNote: runtime.activeNote,
+      stepIndex: runtime.stepIndex,
+      lastVelocity: runtime.lastVelocity
+    };
+  });
+
   if (
     sequencerConfig.isPlaying === sequencerRuntime.isPlaying &&
     sequencerConfig.stepCount === runtimeStepCount &&
@@ -180,7 +204,8 @@ function mergedSequencerState(
     sequencerConfig.cycle === runtimeCycle &&
     !trackRuntimeChanged &&
     !drummerRuntimeChanged &&
-    !controllerRuntimeChanged
+    !controllerRuntimeChanged &&
+    !arpeggiatorRuntimeChanged
   ) {
     return sequencerConfig;
   }
@@ -193,7 +218,8 @@ function mergedSequencerState(
     cycle: runtimeCycle,
     tracks: trackRuntimeChanged ? tracks : sequencerConfig.tracks,
     drummerTracks: drummerRuntimeChanged ? drummerTracks : sequencerConfig.drummerTracks,
-    controllerSequencers: controllerRuntimeChanged ? controllerSequencers : sequencerConfig.controllerSequencers
+    controllerSequencers: controllerRuntimeChanged ? controllerSequencers : sequencerConfig.controllerSequencers,
+    arpeggiators: arpeggiatorRuntimeChanged ? arpeggiators : sequencerConfig.arpeggiators
   };
 }
 
@@ -938,6 +964,13 @@ export default function App() {
   const setControllerSequencerKeypointValue = useAppStore((state) => state.setControllerSequencerKeypointValue);
   const removeControllerSequencerKeypoint = useAppStore((state) => state.removeControllerSequencerKeypoint);
   const syncControllerSequencerRuntime = useAppStore((state) => state.syncControllerSequencerRuntime);
+  const addArpeggiator = useAppStore((state) => state.addArpeggiator);
+  const removeArpeggiator = useAppStore((state) => state.removeArpeggiator);
+  const setArpeggiatorEnabled = useAppStore((state) => state.setArpeggiatorEnabled);
+  const updateArpeggiator = useAppStore((state) => state.updateArpeggiator);
+  const applyArpeggiatorPreset = useAppStore((state) => state.applyArpeggiatorPreset);
+  const saveArpeggiatorPreset = useAppStore((state) => state.saveArpeggiatorPreset);
+  const syncArpeggiatorRuntime = useAppStore((state) => state.syncArpeggiatorRuntime);
   const setSequencerTrackStepCount = useAppStore((state) => state.setSequencerTrackStepCount);
   const setSequencerArrangerLoopSelection = useAppStore((state) => state.setSequencerArrangerLoopSelection);
   const syncSequencerRuntime = useAppStore((state) => state.syncSequencerRuntime);
@@ -1070,6 +1103,9 @@ export default function App() {
             beat_rate_numerator: track.timing.beatRateNumerator,
             beat_rate_denominator: track.timing.beatRateDenominator
           },
+          scale_root: track.scaleRoot,
+          scale_type: track.scaleType,
+          mode: track.mode,
           length_beats: track.lengthBeats,
           velocity: scaledTrackVelocity,
           gate_ratio: 0.8,
@@ -1084,6 +1120,9 @@ export default function App() {
           pads: track.pads.map((pad, padIndex) => ({
             pad_index: padIndex,
             length_beats: pad.lengthBeats,
+            scale_root: pad.scaleRoot,
+            scale_type: pad.scaleType,
+            mode: pad.mode,
             steps: pad.steps.map((step) => {
               const notes = buildSequencerStepChordMidiNotes(step.note, step.chord, pad.scaleRoot, pad.mode);
               return {
@@ -1146,6 +1185,9 @@ export default function App() {
                   beat_rate_numerator: 1,
                   beat_rate_denominator: 1
                 },
+                scale_root: "C",
+                scale_type: "neutral",
+                mode: "ionian",
                 length_beats: 4,
                 velocity: 1,
                 gate_ratio: 0.8,
@@ -1180,7 +1222,32 @@ export default function App() {
         playback_end_step: resolvedPlaybackEndStep,
         playback_loop: resolvedPlaybackLoop,
         tracks: transportTracks,
-        controller_tracks: controllerTracks
+        controller_tracks: controllerTracks,
+        arpeggiators: resolvedState.arpeggiators.map((arpeggiator) => ({
+          arpeggiator_id: arpeggiator.id,
+          enabled: arpeggiator.enabled,
+          input_channel: arpeggiator.inputChannel,
+          target_channel: arpeggiator.targetChannel,
+          rate: arpeggiator.rate,
+          gate_ratio: arpeggiator.gateRatio,
+          swing: arpeggiator.swing,
+          octaves: arpeggiator.octaves,
+          pattern: arpeggiator.pattern,
+          latch: arpeggiator.latch,
+          velocity_mode: arpeggiator.velocityMode,
+          fixed_velocity: arpeggiator.fixedVelocity,
+          accent_cycle: arpeggiator.accentCycle,
+          probability: arpeggiator.probability,
+          repeats: arpeggiator.repeats,
+          humanize_ms: arpeggiator.humanizeMs,
+          humanize_velocity: arpeggiator.humanizeVelocity,
+          transpose: arpeggiator.transpose,
+          scale_quantize: arpeggiator.scaleQuantize,
+          scale_root: arpeggiator.scaleRoot,
+          scale_type: arpeggiator.scaleType,
+          mode: arpeggiator.mode,
+          restart_mode: arpeggiator.restartMode
+        }))
       };
     },
     [instrumentLevelsByChannel]
@@ -1220,6 +1287,7 @@ export default function App() {
     setSequencerError,
     setSequencerPlayhead,
     setSequencerTransportAbsoluteStep,
+    syncArpeggiatorRuntime,
     syncControllerSequencerRuntime,
     syncSequencerRuntime,
     syncSequencerTransportRuntime
@@ -1596,6 +1664,10 @@ export default function App() {
     for (const roll of sequencerRef.current.pianoRolls) {
       channels.add(roll.midiChannel);
     }
+    for (const arpeggiator of sequencerRef.current.arpeggiators) {
+      channels.add(arpeggiator.inputChannel);
+      channels.add(arpeggiator.targetChannel);
+    }
     for (const instrument of sequencerInstruments) {
       channels.add(instrument.midiChannel);
     }
@@ -1688,7 +1760,7 @@ export default function App() {
   );
 
   const onPianoRollNoteOn = useCallback(
-    (note: number, channel: number, velocity: number) => {
+    (rollId: string, note: number, channel: number, velocity: number) => {
       if (activeSessionState !== "running") {
         setSequencerError(appCopy.errors.startInstrumentsBeforePianoRoll);
         return;
@@ -1702,9 +1774,19 @@ export default function App() {
       const normalizedChannel = normalizeMidiChannel(channel);
       const normalizedNote = Math.max(0, Math.min(127, Math.round(note)));
       const scaledVelocity = scaleVelocityForChannel(velocity, normalizedChannel, instrumentLevelsByChannel);
+      const roll = sequencerRef.current.pianoRolls.find((entry) => entry.id === rollId);
       void (async () => {
         await sendDirectMidiEvent(
-          { type: "note_on", channel: normalizedChannel, note: normalizedNote, velocity: scaledVelocity },
+          {
+            type: "note_on",
+            channel: normalizedChannel,
+            note: normalizedNote,
+            velocity: scaledVelocity,
+            source_id: rollId,
+            source_scale_root: roll?.scaleRoot,
+            source_scale_type: roll?.scaleType,
+            source_mode: roll?.mode
+          },
           activeSessionId
         );
         pianoRollNoteSessionRef.current.set(pianoRollNoteKey(normalizedNote, normalizedChannel), activeSessionId);
@@ -1724,7 +1806,7 @@ export default function App() {
   );
 
   const onPianoRollNoteOff = useCallback(
-    (note: number, channel: number) => {
+    (rollId: string, note: number, channel: number) => {
       const normalizedChannel = normalizeMidiChannel(channel);
       const normalizedNote = Math.max(0, Math.min(127, Math.round(note)));
       const noteKey = pianoRollNoteKey(normalizedNote, normalizedChannel);
@@ -1734,7 +1816,10 @@ export default function App() {
         return;
       }
 
-      void sendDirectMidiEvent({ type: "note_off", channel: normalizedChannel, note: normalizedNote }, sessionId).catch(() => {
+      void sendDirectMidiEvent(
+        { type: "note_off", channel: normalizedChannel, note: normalizedNote, source_id: rollId },
+        sessionId
+      ).catch(() => {
         // Ignore transient note-off failures during release.
       });
     },
@@ -2415,6 +2500,14 @@ export default function App() {
     onControllerSequencerKeypointValueChange: setControllerSequencerKeypointValue,
     onControllerSequencerKeypointRemove: removeControllerSequencerKeypoint
   };
+  const sequencerArpeggiatorActions = {
+    onAddArpeggiator: addArpeggiator,
+    onRemoveArpeggiator: removeArpeggiator,
+    onArpeggiatorEnabledChange: setArpeggiatorEnabled,
+    onArpeggiatorChange: updateArpeggiator,
+    onArpeggiatorPresetApply: applyArpeggiatorPreset,
+    onArpeggiatorPresetSave: saveArpeggiatorPreset
+  };
 
   return (
     <div className="min-h-screen bg-[radial-gradient(ellipse_at_top_left,_#1e293b,_#020617_60%)] px-4 py-4 text-slate-100 sm:px-6 lg:px-8">
@@ -2650,6 +2743,7 @@ export default function App() {
               pianoRollActions={sequencerPianoRollActions}
               midiControllerActions={sequencerMidiControllerActions}
               controllerSequencerActions={sequencerControllerSequencerActions}
+              arpeggiatorActions={sequencerArpeggiatorActions}
               onHelpRequest={onHelpRequest}
             />
           </Suspense>

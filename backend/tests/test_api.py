@@ -205,9 +205,9 @@ class _BrowserClockRenderDriver:
         )
 
 
-def _runtime_midi_adapter(client: TestClient, session_id: str):
+def _runtime_midi_router(client: TestClient, session_id: str):
     sessions = client.app.state.container.session_service._sessions
-    return sessions[session_id].worker.midi_output
+    return sessions[session_id].midi_router
 
 
 def test_health_endpoint(tmp_path: Path) -> None:
@@ -2460,15 +2460,33 @@ def test_session_backend_sequencer_uses_step_velocity_for_note_on(tmp_path: Path
         assert create_session.status_code == 201
         session_id = create_session.json()["session_id"]
 
-        midi_adapter = _runtime_midi_adapter(client, session_id)
+        midi_router = _runtime_midi_router(client, session_id)
+        assert midi_router is not None
         captured_messages: list[list[int]] = []
-        original_enqueue_message = midi_adapter._enqueue_message
+        original_enqueue_message = midi_router._enqueue_timestamped_midi
 
-        def capture_enqueue_message(message: list[int], delivery_delay_seconds: float | None) -> bool:
+        def capture_enqueue_message(
+            message: list[int],
+            *,
+            source: str,
+            target_engine_sample: int | None = None,
+            delivery_delay_seconds: float | None = None,
+            source_timestamp_ns: int | None = None,
+            mapped_backend_monotonic_ns: int | None = None,
+            sync_stale: bool = False,
+        ) -> bool:
+            _ = (
+                source,
+                target_engine_sample,
+                delivery_delay_seconds,
+                source_timestamp_ns,
+                mapped_backend_monotonic_ns,
+                sync_stale,
+            )
             captured_messages.append(list(message))
             return True
 
-        midi_adapter._enqueue_message = capture_enqueue_message
+        midi_router._enqueue_timestamped_midi = capture_enqueue_message
         try:
             with _BrowserClockRenderDriver(client, session_id) as driver:
                 start_sequencer = client.post(
@@ -2521,7 +2539,7 @@ def test_session_backend_sequencer_uses_step_velocity_for_note_on(tmp_path: Path
                 assert stop_sequencer.status_code == 200
                 assert stop_sequencer.json()["running"] is False
         finally:
-            midi_adapter._enqueue_message = original_enqueue_message
+            midi_router._enqueue_timestamped_midi = original_enqueue_message
 
 
 def test_session_backend_sequencer_schedules_pad_switch_note_events_with_positive_delay(tmp_path: Path) -> None:
@@ -2552,15 +2570,32 @@ def test_session_backend_sequencer_schedules_pad_switch_note_events_with_positiv
         assert create_session.status_code == 201
         session_id = create_session.json()["session_id"]
 
-        midi_adapter = _runtime_midi_adapter(client, session_id)
+        midi_router = _runtime_midi_router(client, session_id)
+        assert midi_router is not None
         scheduled_calls: list[tuple[list[list[int]], float | None]] = []
-        original_enqueue_message = midi_adapter._enqueue_message
+        original_enqueue_message = midi_router._enqueue_timestamped_midi
 
-        def capture_enqueue_message(message: list[int], delivery_delay_seconds: float | None) -> bool:
+        def capture_enqueue_message(
+            message: list[int],
+            *,
+            source: str,
+            target_engine_sample: int | None = None,
+            delivery_delay_seconds: float | None = None,
+            source_timestamp_ns: int | None = None,
+            mapped_backend_monotonic_ns: int | None = None,
+            sync_stale: bool = False,
+        ) -> bool:
+            _ = (
+                source,
+                target_engine_sample,
+                source_timestamp_ns,
+                mapped_backend_monotonic_ns,
+                sync_stale,
+            )
             scheduled_calls.append(([list(message)], delivery_delay_seconds))
             return True
 
-        midi_adapter._enqueue_message = capture_enqueue_message
+        midi_router._enqueue_timestamped_midi = capture_enqueue_message
         try:
             with _BrowserClockRenderDriver(client, session_id) as driver:
                 start_sequencer = client.post(
@@ -2614,7 +2649,7 @@ def test_session_backend_sequencer_schedules_pad_switch_note_events_with_positiv
                 stop_sequencer = client.post(f"/api/sessions/{session_id}/sequencer/stop")
                 assert stop_sequencer.status_code == 200
         finally:
-            midi_adapter._enqueue_message = original_enqueue_message
+            midi_router._enqueue_timestamped_midi = original_enqueue_message
 
 
 def test_session_backend_sequencer_queued_track_enable_starts_on_loop_boundary(tmp_path: Path) -> None:
@@ -2805,15 +2840,33 @@ def test_session_backend_controller_sequencer_sends_control_changes_on_session_c
         assert create_session.status_code == 201
         session_id = create_session.json()["session_id"]
 
-        midi_adapter = _runtime_midi_adapter(client, session_id)
+        midi_router = _runtime_midi_router(client, session_id)
+        assert midi_router is not None
         captured_messages: list[list[int]] = []
-        original_enqueue_message = midi_adapter._enqueue_message
+        original_enqueue_message = midi_router._enqueue_timestamped_midi
 
-        def capture_enqueue_message(message: list[int], delivery_delay_seconds: float | None) -> bool:
+        def capture_enqueue_message(
+            message: list[int],
+            *,
+            source: str,
+            target_engine_sample: int | None = None,
+            delivery_delay_seconds: float | None = None,
+            source_timestamp_ns: int | None = None,
+            mapped_backend_monotonic_ns: int | None = None,
+            sync_stale: bool = False,
+        ) -> bool:
+            _ = (
+                source,
+                target_engine_sample,
+                delivery_delay_seconds,
+                source_timestamp_ns,
+                mapped_backend_monotonic_ns,
+                sync_stale,
+            )
             captured_messages.append(list(message))
             return True
 
-        midi_adapter._enqueue_message = capture_enqueue_message
+        midi_router._enqueue_timestamped_midi = capture_enqueue_message
         try:
             with _BrowserClockRenderDriver(client, session_id) as driver:
                 start_sequencer = client.post(
@@ -2866,7 +2919,7 @@ def test_session_backend_controller_sequencer_sends_control_changes_on_session_c
                 stop_sequencer = client.post(f"/api/sessions/{session_id}/sequencer/stop")
                 assert stop_sequencer.status_code == 200
         finally:
-            midi_adapter._enqueue_message = original_enqueue_message
+            midi_router._enqueue_timestamped_midi = original_enqueue_message
 
 
 def test_session_backend_controller_sequencer_queue_pad_switches_and_clears_queue(tmp_path: Path) -> None:

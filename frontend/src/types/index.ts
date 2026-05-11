@@ -278,6 +278,62 @@ export interface MidiControllerState {
   enabled: boolean;
 }
 
+export type ArpeggiatorPattern =
+  | "up"
+  | "down"
+  | "up_down"
+  | "down_up"
+  | "as_played"
+  | "random"
+  | "chord"
+  | "inside_out"
+  | "outside_in";
+export type ArpeggiatorRate = "1/1" | "1/2" | "1/4" | "1/8" | "1/16" | "1/32" | "1/8T" | "1/16T" | "1/8D" | "1/16D";
+export type ArpeggiatorVelocityMode = "input" | "fixed" | "accent" | "random";
+export type ArpeggiatorRestartMode = "free" | "first_note";
+
+export interface ArpeggiatorState {
+  id: string;
+  name: string;
+  enabled: boolean;
+  inputChannel: number;
+  targetChannel: number;
+  presetId: string | null;
+  rate: ArpeggiatorRate;
+  gateRatio: number;
+  swing: number;
+  octaves: number;
+  pattern: ArpeggiatorPattern;
+  latch: boolean;
+  velocityMode: ArpeggiatorVelocityMode;
+  fixedVelocity: number;
+  accentCycle: number[];
+  probability: number;
+  repeats: number;
+  humanizeMs: number;
+  humanizeVelocity: number;
+  transpose: number;
+  scaleQuantize: boolean;
+  scaleRoot: SequencerScaleRoot;
+  scaleType: SequencerScaleType;
+  mode: SequencerMode;
+  restartMode: ArpeggiatorRestartMode;
+  heldNotes: number[];
+  activeNote: number | null;
+  stepIndex: number;
+  lastVelocity: number | null;
+}
+
+export interface ArpeggiatorPresetState {
+  id: string;
+  name: string;
+  settings: Omit<
+    ArpeggiatorState,
+    "id" | "name" | "enabled" | "inputChannel" | "targetChannel" | "presetId" | "heldNotes" | "activeNote" | "stepIndex" | "lastVelocity"
+  >;
+  builtin?: boolean;
+}
+
 export interface ControllerSequencerKeypoint {
   id: string;
   position: number; // normalized 0..1
@@ -325,6 +381,8 @@ export interface SequencerState {
   tracks: SequencerTrackState[];
   drummerTracks: DrummerSequencerTrackState[];
   controllerSequencers: ControllerSequencerState[];
+  arpeggiators: ArpeggiatorState[];
+  arpeggiatorPresets: ArpeggiatorPresetState[];
   pianoRolls: PianoRollState[];
   midiControllers: MidiControllerState[];
 }
@@ -338,6 +396,15 @@ export interface SequencerRuntimeState {
   trackLocalStepById: Record<string, number | null>;
   drummerTrackLocalStepById: Record<string, number | null>;
   controllerRuntimePadStartSubunitById: Record<string, number | null>;
+  arpeggiatorStatusById: Record<
+    string,
+    {
+      heldNotes: number[];
+      activeNote: number | null;
+      stepIndex: number;
+      lastVelocity: number | null;
+    }
+  >;
 }
 
 export interface SessionInstrumentAssignment {
@@ -353,7 +420,7 @@ export interface SequencerInstrumentBinding {
 }
 
 export interface SequencerConfigSnapshot {
-  version: 1 | 2 | 3 | 4 | 5 | 6 | 7;
+  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
   instruments: Array<{
     patchId: string;
     patchName?: string;
@@ -449,6 +516,34 @@ export interface SequencerConfigSnapshot {
         value: number;
       }>;
     }>;
+    arpeggiators?: Array<{
+      id: string;
+      name: string;
+      enabled: boolean;
+      inputChannel: number;
+      targetChannel: number;
+      presetId: string | null;
+      rate: ArpeggiatorRate;
+      gateRatio: number;
+      swing: number;
+      octaves: number;
+      pattern: ArpeggiatorPattern;
+      latch: boolean;
+      velocityMode: ArpeggiatorVelocityMode;
+      fixedVelocity: number;
+      accentCycle: number[];
+      probability: number;
+      repeats: number;
+      humanizeMs: number;
+      humanizeVelocity: number;
+      transpose: number;
+      scaleQuantize: boolean;
+      scaleRoot: SequencerScaleRoot;
+      scaleType: SequencerScaleType;
+      mode: SequencerMode;
+      restartMode: ArpeggiatorRestartMode;
+    }>;
+    arpeggiatorPresets?: ArpeggiatorPresetState[];
   };
 }
 
@@ -551,6 +646,9 @@ export interface SessionSequencerTimingConfig {
 export interface SessionSequencerPadConfig {
   pad_index: number;
   length_beats?: SequencerPadLengthBeats | ControllerSequencerPadLengthBeats;
+  scale_root?: SequencerScaleRoot | null;
+  scale_type?: SequencerScaleType | null;
+  mode?: SequencerMode | null;
   steps: Array<number | Array<number> | null | SessionSequencerStepConfig>;
 }
 
@@ -569,6 +667,9 @@ export interface SessionSequencerTrackConfig {
   track_id: string;
   midi_channel: number;
   timing: SessionSequencerTimingConfig;
+  scale_root?: SequencerScaleRoot | null;
+  scale_type?: SequencerScaleType | null;
+  mode?: SequencerMode | null;
   length_beats?: SequencerPadLengthBeats;
   velocity?: number;
   gate_ratio?: number;
@@ -606,6 +707,33 @@ export interface SessionSequencerConfigRequest {
   playback_loop?: boolean;
   tracks: SessionSequencerTrackConfig[];
   controller_tracks: SessionControllerSequencerTrackConfig[];
+  arpeggiators?: SessionArpeggiatorConfig[];
+}
+
+export interface SessionArpeggiatorConfig {
+  arpeggiator_id: string;
+  enabled: boolean;
+  input_channel: number;
+  target_channel: number;
+  rate: ArpeggiatorRate;
+  gate_ratio: number;
+  swing: number;
+  octaves: number;
+  pattern: ArpeggiatorPattern;
+  latch: boolean;
+  velocity_mode: ArpeggiatorVelocityMode;
+  fixed_velocity: number;
+  accent_cycle: number[];
+  probability: number;
+  repeats: number;
+  humanize_ms: number;
+  humanize_velocity: number;
+  transpose: number;
+  scale_quantize: boolean;
+  scale_root: SequencerScaleRoot;
+  scale_type: SequencerScaleType;
+  mode: SequencerMode;
+  restart_mode: ArpeggiatorRestartMode;
 }
 
 export interface SessionSequencerStartRequest {
@@ -648,6 +776,17 @@ export interface SessionControllerSequencerTrackStatus {
   target_channels: number[];
 }
 
+export interface SessionArpeggiatorStatus {
+  arpeggiator_id: string;
+  enabled: boolean;
+  input_channel: number;
+  target_channel: number;
+  held_notes: number[];
+  active_note: number | null;
+  step_index: number;
+  last_velocity: number | null;
+}
+
 export interface SessionSequencerStatus {
   session_id: string;
   running: boolean;
@@ -658,6 +797,7 @@ export interface SessionSequencerStatus {
   transport_subunit: number;
   tracks: SessionSequencerTrackStatus[];
   controller_tracks: SessionControllerSequencerTrackStatus[];
+  arpeggiators: SessionArpeggiatorStatus[];
 }
 
 export interface Patch {
@@ -861,11 +1001,19 @@ export type SessionMidiEventRequest =
       channel: number;
       note: number;
       velocity?: number;
+      source_id?: string | null;
+      source_scale_root?: SequencerScaleRoot | null;
+      source_scale_type?: SequencerScaleType | null;
+      source_mode?: SequencerMode | null;
     }
   | {
       type: "note_off";
       channel: number;
       note: number;
+      source_id?: string | null;
+      source_scale_root?: SequencerScaleRoot | null;
+      source_scale_type?: SequencerScaleType | null;
+      source_mode?: SequencerMode | null;
     }
   | {
       type: "all_notes_off";
