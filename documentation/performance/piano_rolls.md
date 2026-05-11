@@ -1,6 +1,6 @@
 # Piano Rolls
 
-**Navigation:** [Up](performance.md) | [Prev](controller_sequencers.md) | [Next](midi_controllers.md)
+**Navigation:** [Up](performance.md) | [Prev](arpeggiators.md) | [Next](midi_controllers.md)
 
 Piano Rolls provide manual performance input with scale-aware keyboard highlighting.
 
@@ -95,4 +95,4 @@ The UI tracks held notes and clears them if the piano roll becomes inactive or t
 </p>
 <p align="center"><em>Piano roll with scale-aware key highlighting and mixed-theory display behavior.</em></p>
 
-**Navigation:** [Up](performance.md) | [Prev](controller_sequencers.md) | [Next](midi_controllers.md)
+**Navigation:** [Up](performance.md) | [Prev](arpeggiators.md) | [Next](midi_controllers.md)

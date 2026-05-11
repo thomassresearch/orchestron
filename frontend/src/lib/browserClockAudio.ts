@@ -833,6 +833,7 @@ export class BrowserClockAudioClient {
       transportSubunitEnd: metadata.sequencer_status.transport_subunit
     });
     this.nextChunkTransportSubunitStart = metadata.sequencer_status.transport_subunit;
+    this.callbacks.onSequencerStatus(metadata.sequencer_status);
   }
 
   private availableFrames(): number {

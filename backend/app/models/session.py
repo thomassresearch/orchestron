@@ -25,6 +25,42 @@ _SEQUENCER_BEAT_RATE_OPTIONS: tuple[tuple[int, int], ...] = (
 
 SequencerPadLengthBeats = Literal[1, 2, 3, 4, 5, 6, 7, 8]
 ControllerSequencerPadLengthBeats = Literal[1, 2, 3, 4, 5, 6, 7, 8, 16]
+SequencerScaleRoot = Literal[
+    "C",
+    "C#",
+    "Db",
+    "D",
+    "D#",
+    "Eb",
+    "E",
+    "F",
+    "F#",
+    "Gb",
+    "G",
+    "G#",
+    "Ab",
+    "A",
+    "A#",
+    "Bb",
+    "B",
+    "Cb",
+]
+SequencerScaleType = Literal["major", "neutral", "minor"]
+SequencerMode = Literal["ionian", "dorian", "phrygian", "lydian", "mixolydian", "aeolian", "locrian"]
+ArpeggiatorPattern = Literal[
+    "up",
+    "down",
+    "up_down",
+    "down_up",
+    "as_played",
+    "random",
+    "chord",
+    "inside_out",
+    "outside_in",
+]
+ArpeggiatorRate = Literal["1/1", "1/2", "1/4", "1/8", "1/16", "1/32", "1/8T", "1/16T", "1/8D", "1/16D"]
+ArpeggiatorVelocityMode = Literal["input", "fixed", "accent", "random"]
+ArpeggiatorRestartMode = Literal["free", "first_note"]
 
 
 def _is_valid_pad_loop_token(token: int) -> bool:
@@ -228,6 +264,10 @@ class SessionMidiEventRequest(BaseModel):
     velocity: int = Field(default=100, ge=0, le=127)
     controller: int | None = Field(default=None, ge=0, le=127)
     value: int | None = Field(default=None, ge=0, le=127)
+    source_id: str | None = Field(default=None, min_length=1, max_length=256)
+    source_scale_root: SequencerScaleRoot | None = None
+    source_scale_type: SequencerScaleType | None = None
+    source_mode: SequencerMode | None = None
 
     @model_validator(mode="after")
     def validate_note_requirements(self) -> "SessionMidiEventRequest":
@@ -288,6 +328,9 @@ class SessionSequencerTimingConfig(BaseModel):
 class SessionSequencerPadConfig(BaseModel):
     pad_index: int = Field(ge=0, le=7)
     length_beats: SequencerPadLengthBeats | None = None
+    scale_root: SequencerScaleRoot | None = None
+    scale_type: SequencerScaleType | None = None
+    mode: SequencerMode | None = None
     steps: list[SequencerStepConfig] = Field(default_factory=list, max_length=128)
 
 
@@ -306,6 +349,9 @@ class SessionSequencerTrackConfig(BaseModel):
     track_id: str = Field(min_length=1, max_length=256)
     midi_channel: int = Field(default=1, ge=1, le=16)
     timing: SessionSequencerTimingConfig = Field(default_factory=SessionSequencerTimingConfig)
+    scale_root: SequencerScaleRoot | None = None
+    scale_type: SequencerScaleType | None = None
+    mode: SequencerMode | None = None
     length_beats: SequencerPadLengthBeats = 4
     velocity: int = Field(default=100, ge=1, le=127)
     gate_ratio: float = Field(default=0.8, gt=0.0, le=1.0)
@@ -380,6 +426,32 @@ class SessionControllerSequencerTrackConfig(BaseModel):
         return self
 
 
+class SessionArpeggiatorConfig(BaseModel):
+    arpeggiator_id: str = Field(min_length=1, max_length=256)
+    enabled: bool = False
+    input_channel: int = Field(ge=1, le=16)
+    target_channel: int = Field(ge=1, le=16)
+    rate: ArpeggiatorRate = "1/16"
+    gate_ratio: float = Field(default=0.72, ge=0.05, le=1.0)
+    swing: float = Field(default=0.0, ge=0.0, le=0.75)
+    octaves: int = Field(default=1, ge=1, le=4)
+    pattern: ArpeggiatorPattern = "up"
+    latch: bool = False
+    velocity_mode: ArpeggiatorVelocityMode = "input"
+    fixed_velocity: int = Field(default=100, ge=1, le=127)
+    accent_cycle: list[int] = Field(default_factory=list, max_length=32)
+    probability: float = Field(default=1.0, ge=0.0, le=1.0)
+    repeats: int = Field(default=1, ge=1, le=4)
+    humanize_ms: float = Field(default=0.0, ge=0.0, le=50.0)
+    humanize_velocity: int = Field(default=0, ge=0, le=32)
+    transpose: int = Field(default=0, ge=-24, le=24)
+    scale_quantize: bool = False
+    scale_root: SequencerScaleRoot = "C"
+    scale_type: SequencerScaleType = "minor"
+    mode: SequencerMode = "aeolian"
+    restart_mode: ArpeggiatorRestartMode = "first_note"
+
+
 class SessionSequencerConfigRequest(BaseModel):
     timing: SessionSequencerTimingConfig = Field(default_factory=SessionSequencerTimingConfig)
     step_count: int = Field(default=16, ge=1)
@@ -388,6 +460,7 @@ class SessionSequencerConfigRequest(BaseModel):
     playback_loop: bool = False
     tracks: list[SessionSequencerTrackConfig] = Field(default_factory=list, max_length=128)
     controller_tracks: list[SessionControllerSequencerTrackConfig] = Field(default_factory=list, max_length=128)
+    arpeggiators: list[SessionArpeggiatorConfig] = Field(default_factory=list, max_length=16)
 
     @model_validator(mode="after")
     def validate_unique_track_ids(self) -> "SessionSequencerConfigRequest":
@@ -404,6 +477,20 @@ class SessionSequencerConfigRequest(BaseModel):
             if track.track_id in seen:
                 raise ValueError(f"Duplicate track_id '{track.track_id}'.")
             seen.add(track.track_id)
+        seen_arpeggiator_ids: set[str] = set()
+        seen_input_channels: set[int] = set()
+        for arpeggiator in self.arpeggiators:
+            if arpeggiator.arpeggiator_id in seen_arpeggiator_ids:
+                raise ValueError(f"Duplicate arpeggiator_id '{arpeggiator.arpeggiator_id}'.")
+            seen_arpeggiator_ids.add(arpeggiator.arpeggiator_id)
+            if arpeggiator.input_channel in seen_input_channels:
+                raise ValueError(f"Arpeggiator input channel '{arpeggiator.input_channel}' is assigned more than once.")
+            seen_input_channels.add(arpeggiator.input_channel)
+        for arpeggiator in self.arpeggiators:
+            if arpeggiator.target_channel in seen_input_channels:
+                raise ValueError(
+                    f"Arpeggiator '{arpeggiator.arpeggiator_id}' target_channel cannot target another arpeggiator input."
+                )
         for track in self.tracks:
             if track.sync_to_track_id is None:
                 continue
@@ -456,6 +543,17 @@ class SessionControllerSequencerTrackStatus(BaseModel):
     target_channels: list[int] = Field(default_factory=list)
 
 
+class SessionArpeggiatorStatus(BaseModel):
+    arpeggiator_id: str
+    enabled: bool
+    input_channel: int = Field(ge=1, le=16)
+    target_channel: int = Field(ge=1, le=16)
+    held_notes: list[int] = Field(default_factory=list)
+    active_note: int | None = Field(default=None, ge=0, le=127)
+    step_index: int = Field(default=0, ge=0)
+    last_velocity: int | None = Field(default=None, ge=0, le=127)
+
+
 class SessionSequencerStatus(BaseModel):
     session_id: str
     running: bool
@@ -466,6 +564,7 @@ class SessionSequencerStatus(BaseModel):
     transport_subunit: int = Field(ge=0)
     tracks: list[SessionSequencerTrackStatus] = Field(default_factory=list)
     controller_tracks: list[SessionControllerSequencerTrackStatus] = Field(default_factory=list)
+    arpeggiators: list[SessionArpeggiatorStatus] = Field(default_factory=list)
 
 
 class SessionEvent(BaseModel):

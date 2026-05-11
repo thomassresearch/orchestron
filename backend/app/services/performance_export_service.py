@@ -16,6 +16,7 @@ from backend.app.models.export import (
 from backend.app.models.patch import EngineConfig, PatchDocument, PatchGraph
 from backend.app.services.compiler_service import CompilerService, PatchInstrumentTarget
 from backend.app.services.gen_asset_service import GenAssetService
+from backend.app.services.arpeggiator_runtime import PerformanceMidiRouter
 from backend.app.services.sequencer_runtime import SessionSequencerRuntime
 
 OFFLINE_RENDER_SR = 48_000
@@ -40,6 +41,8 @@ class CapturedMidiEvent:
 class _MidiCaptureService:
     def __init__(self) -> None:
         self.events: list[CapturedMidiEvent] = []
+        self.current_time_seconds = 0.0
+        self.current_sample = 0
 
     def send_scheduled_message(
         self,
@@ -55,6 +58,30 @@ class _MidiCaptureService:
             )
         )
         return "offline-export"
+
+    def enqueue_timestamped_midi(
+        self,
+        message: list[int],
+        *,
+        source: str,
+        target_engine_sample: int | None = None,
+        delivery_delay_seconds: float | None = None,
+        source_timestamp_ns: int | None = None,
+        mapped_backend_monotonic_ns: int | None = None,
+        sync_stale: bool = False,
+    ) -> bool:
+        _ = (source, source_timestamp_ns, mapped_backend_monotonic_ns, sync_stale)
+        if target_engine_sample is not None:
+            event_time = max(0.0, int(target_engine_sample) / float(OFFLINE_RENDER_SR))
+        else:
+            event_time = self.current_time_seconds + max(0.0, float(delivery_delay_seconds or 0.0))
+        self.events.append(
+            CapturedMidiEvent(
+                time_seconds=event_time,
+                message=bytes(int(value) & 0xFF for value in message),
+            )
+        )
+        return True
 
     def send_scheduled_messages(
         self,
@@ -289,14 +316,23 @@ class PerformanceExportService:
         track_name: str,
     ) -> bytes:
         capture = _MidiCaptureService()
+        router = PerformanceMidiRouter(
+            enqueue_timestamped_midi=capture.enqueue_timestamped_midi,
+            current_engine_sample=lambda: capture.current_sample,
+            output_name="offline-export",
+        )
         runtime = SessionSequencerRuntime(
             session_id="performance-export",
-            midi_service=capture,  # type: ignore[arg-type]
+            midi_service=router,  # type: ignore[arg-type]
             midi_input_selector="offline-export",
             controller_default_channels=controller_default_channels,
             publish_event=lambda _event_type, _payload: None,
         )
         runtime.configure(request.sequencer_config)
+        router.configure(
+            request.sequencer_config.arpeggiators,
+            tempo_bpm=request.sequencer_config.timing.tempo_bpm,
+        )
 
         scheduled_time = 0.0
         with runtime._lock:
@@ -311,11 +347,24 @@ class PerformanceExportService:
                     current_subunit = runtime._absolute_subunit
                 if config is None:
                     break
+                capture.current_time_seconds = scheduled_time
+                capture.current_sample = int(round(scheduled_time * OFFLINE_RENDER_SR))
+                block_start_sample = capture.current_sample
                 scheduled_time += runtime._perform_subunit_event(
                     config,
                     current_subunit,
                     scheduled_time=scheduled_time,
                 )
+                capture.current_time_seconds = scheduled_time
+                capture.current_sample = int(round(scheduled_time * OFFLINE_RENDER_SR))
+                router.advance_render_block(
+                    block_start_sample=block_start_sample,
+                    block_end_sample=max(block_start_sample + 1, capture.current_sample),
+                    sample_rate=OFFLINE_RENDER_SR,
+                    tempo_bpm=request.sequencer_config.timing.tempo_bpm,
+                )
+
+        router.shutdown()
 
         with runtime._lock:
             config = runtime._config

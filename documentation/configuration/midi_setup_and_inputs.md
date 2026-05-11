@@ -25,6 +25,7 @@ These features generate MIDI/control events internally and do not require an ext
 
 - melodic sequencers
 - controller sequencers
+- arpeggiators
 - piano rolls (on-screen keyboard)
 - manual MIDI controller knob lanes
 
@@ -32,7 +33,7 @@ External MIDI input is only needed when you want to play Orchestron from outside
 
 That means:
 
-- switching the session input does not disable sequencers, piano rolls, or manual controller lanes
+- switching the session input does not disable sequencers, arpeggiators, piano rolls, or manual controller lanes
 - binding a helper-provided external input adds another source into the same engine scheduler
 
 ## External MIDI Bridge

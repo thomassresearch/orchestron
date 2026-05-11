@@ -56,6 +56,12 @@ import {
 import type {
   ArrangerLoopSelection,
   AppPage,
+  ArpeggiatorPattern,
+  ArpeggiatorPresetState,
+  ArpeggiatorRate,
+  ArpeggiatorRestartMode,
+  ArpeggiatorState,
+  ArpeggiatorVelocityMode,
   BrowserClockLatencySettings,
   CompileResponse,
   ControllerSequencerKeypoint,
@@ -302,6 +308,22 @@ interface AppStore {
     }>
   ) => void;
 
+  addArpeggiator: () => void;
+  removeArpeggiator: (arpeggiatorId: string) => void;
+  setArpeggiatorEnabled: (arpeggiatorId: string, enabled: boolean) => void;
+  updateArpeggiator: (arpeggiatorId: string, update: Partial<ArpeggiatorState>) => void;
+  applyArpeggiatorPreset: (arpeggiatorId: string, presetId: string) => void;
+  saveArpeggiatorPreset: (arpeggiatorId: string, presetName: string) => void;
+  syncArpeggiatorRuntime: (
+    updates: Array<{
+      arpeggiatorId: string;
+      heldNotes?: number[];
+      activeNote?: number | null;
+      stepIndex?: number;
+      lastVelocity?: number | null;
+    }>
+  ) => void;
+
   setSequencerBpm: (bpm: number) => void;
   setSequencerMeterNumerator: (numerator: number) => void;
   setSequencerMeterDenominator: (denominator: number) => void;
@@ -383,6 +405,7 @@ const OPCODE_PARAM_DEFAULTS: Record<string, Record<string, string | number | boo
 
 const DEFAULT_PAD_COUNT = 8;
 const MAX_MIDI_CONTROLLERS = 6;
+const MAX_ARPEGGIATORS = 8;
 const DEFAULT_DRUMMER_ROW_KEYS = [36, 38, 42, 46] as const;
 const APP_STATE_VERSION = 1 as const;
 const APP_STATE_PERSIST_DEBOUNCE_MS = 400;
@@ -392,6 +415,125 @@ const CONTROL_RATE_MIN = 25;
 const CONTROL_RATE_MAX = 48000;
 const ENGINE_BUFFER_MIN = 32;
 const ENGINE_BUFFER_MAX = 8192;
+const ARPEGGIATOR_RATES: readonly ArpeggiatorRate[] = ["1/1", "1/2", "1/4", "1/8", "1/16", "1/32", "1/8T", "1/16T", "1/8D", "1/16D"];
+const ARPEGGIATOR_PATTERNS: readonly ArpeggiatorPattern[] = [
+  "up",
+  "down",
+  "up_down",
+  "down_up",
+  "as_played",
+  "random",
+  "chord",
+  "inside_out",
+  "outside_in"
+];
+const ARPEGGIATOR_VELOCITY_MODES: readonly ArpeggiatorVelocityMode[] = ["input", "fixed", "accent", "random"];
+const ARPEGGIATOR_RESTART_MODES: readonly ArpeggiatorRestartMode[] = ["free", "first_note"];
+
+type ArpeggiatorPresetSettings = ArpeggiatorPresetState["settings"];
+
+const DEFAULT_ARPEGGIATOR_SETTINGS: ArpeggiatorPresetSettings = {
+  rate: "1/16",
+  gateRatio: 0.72,
+  swing: 0,
+  octaves: 1,
+  pattern: "up",
+  latch: false,
+  velocityMode: "input",
+  fixedVelocity: 100,
+  accentCycle: [127, 96, 112, 96],
+  probability: 1,
+  repeats: 1,
+  humanizeMs: 0,
+  humanizeVelocity: 0,
+  transpose: 0,
+  scaleQuantize: false,
+  scaleRoot: "C",
+  scaleType: "minor",
+  mode: "aeolian",
+  restartMode: "first_note"
+};
+
+const BUILTIN_ARPEGGIATOR_PRESETS: ArpeggiatorPresetState[] = [
+  {
+    id: "builtin-classic-up",
+    name: "Classic Up",
+    builtin: true,
+    settings: { ...DEFAULT_ARPEGGIATOR_SETTINGS }
+  },
+  {
+    id: "builtin-down-octaves",
+    name: "Down Octaves",
+    builtin: true,
+    settings: { ...DEFAULT_ARPEGGIATOR_SETTINGS, pattern: "down", octaves: 2, rate: "1/8" }
+  },
+  {
+    id: "builtin-up-down-swing",
+    name: "Up Down Swing",
+    builtin: true,
+    settings: { ...DEFAULT_ARPEGGIATOR_SETTINGS, pattern: "up_down", swing: 0.34, gateRatio: 0.62 }
+  },
+  {
+    id: "builtin-trance-gate",
+    name: "Trance Gate",
+    builtin: true,
+    settings: {
+      ...DEFAULT_ARPEGGIATOR_SETTINGS,
+      rate: "1/16",
+      gateRatio: 0.42,
+      octaves: 3,
+      pattern: "up_down",
+      velocityMode: "accent",
+      accentCycle: [127, 72, 96, 72, 116, 72, 96, 72]
+    }
+  },
+  {
+    id: "builtin-random-spark",
+    name: "Random Spark",
+    builtin: true,
+    settings: {
+      ...DEFAULT_ARPEGGIATOR_SETTINGS,
+      pattern: "random",
+      rate: "1/16T",
+      octaves: 2,
+      probability: 0.82,
+      humanizeMs: 8,
+      humanizeVelocity: 10
+    }
+  },
+  {
+    id: "builtin-inside-out",
+    name: "Inside Out",
+    builtin: true,
+    settings: { ...DEFAULT_ARPEGGIATOR_SETTINGS, pattern: "inside_out", rate: "1/8D", gateRatio: 0.7 }
+  },
+  {
+    id: "builtin-chord-pulse",
+    name: "Chord Pulse",
+    builtin: true,
+    settings: {
+      ...DEFAULT_ARPEGGIATOR_SETTINGS,
+      pattern: "chord",
+      rate: "1/8",
+      gateRatio: 0.86,
+      velocityMode: "fixed",
+      fixedVelocity: 112
+    }
+  },
+  {
+    id: "builtin-scale-lock",
+    name: "Scale Lock",
+    builtin: true,
+    settings: {
+      ...DEFAULT_ARPEGGIATOR_SETTINGS,
+      scaleQuantize: true,
+      scaleRoot: "C",
+      scaleType: "minor",
+      mode: "aeolian",
+      transpose: 12
+    }
+  }
+];
 
 let persistTimer: ReturnType<typeof setTimeout> | null = null;
 let persistInFlight = false;
@@ -590,6 +732,93 @@ function normalizeStepVelocity(value: unknown): number {
     return 127;
   }
   return clampInt(value, 0, 127);
+}
+
+function normalizeArpeggiatorRate(value: unknown): ArpeggiatorRate {
+  return typeof value === "string" && ARPEGGIATOR_RATES.includes(value as ArpeggiatorRate)
+    ? (value as ArpeggiatorRate)
+    : DEFAULT_ARPEGGIATOR_SETTINGS.rate;
+}
+
+function normalizeArpeggiatorPattern(value: unknown): ArpeggiatorPattern {
+  return typeof value === "string" && ARPEGGIATOR_PATTERNS.includes(value as ArpeggiatorPattern)
+    ? (value as ArpeggiatorPattern)
+    : DEFAULT_ARPEGGIATOR_SETTINGS.pattern;
+}
+
+function normalizeArpeggiatorVelocityMode(value: unknown): ArpeggiatorVelocityMode {
+  return typeof value === "string" && ARPEGGIATOR_VELOCITY_MODES.includes(value as ArpeggiatorVelocityMode)
+    ? (value as ArpeggiatorVelocityMode)
+    : DEFAULT_ARPEGGIATOR_SETTINGS.velocityMode;
+}
+
+function normalizeArpeggiatorRestartMode(value: unknown): ArpeggiatorRestartMode {
+  return typeof value === "string" && ARPEGGIATOR_RESTART_MODES.includes(value as ArpeggiatorRestartMode)
+    ? (value as ArpeggiatorRestartMode)
+    : DEFAULT_ARPEGGIATOR_SETTINGS.restartMode;
+}
+
+function normalizeArpeggiatorSettings(raw: unknown): ArpeggiatorPresetSettings {
+  const source = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
+  const scaleType = normalizeSequencerScaleType(source.scaleType ?? source.scale_type ?? DEFAULT_ARPEGGIATOR_SETTINGS.scaleType);
+  const mode =
+    source.mode === undefined
+      ? defaultModeForScaleType(scaleType)
+      : normalizeSequencerMode(source.mode);
+  const accentRaw = Array.isArray(source.accentCycle ?? source.accent_cycle)
+    ? ((source.accentCycle ?? source.accent_cycle) as unknown[])
+    : DEFAULT_ARPEGGIATOR_SETTINGS.accentCycle;
+  return {
+    rate: normalizeArpeggiatorRate(source.rate),
+    gateRatio: typeof source.gateRatio === "number" ? Math.max(0.05, Math.min(1, source.gateRatio)) : typeof source.gate_ratio === "number" ? Math.max(0.05, Math.min(1, source.gate_ratio)) : DEFAULT_ARPEGGIATOR_SETTINGS.gateRatio,
+    swing: typeof source.swing === "number" ? Math.max(0, Math.min(0.75, source.swing)) : DEFAULT_ARPEGGIATOR_SETTINGS.swing,
+    octaves: typeof source.octaves === "number" ? clampInt(source.octaves, 1, 4) : DEFAULT_ARPEGGIATOR_SETTINGS.octaves,
+    pattern: normalizeArpeggiatorPattern(source.pattern),
+    latch: source.latch === true,
+    velocityMode: normalizeArpeggiatorVelocityMode(source.velocityMode ?? source.velocity_mode),
+    fixedVelocity: normalizeStepVelocity(source.fixedVelocity ?? source.fixed_velocity ?? DEFAULT_ARPEGGIATOR_SETTINGS.fixedVelocity),
+    accentCycle: accentRaw.slice(0, 32).map((value) => normalizeStepVelocity(value)),
+    probability:
+      typeof source.probability === "number" && Number.isFinite(source.probability)
+        ? Math.max(0, Math.min(1, source.probability))
+        : DEFAULT_ARPEGGIATOR_SETTINGS.probability,
+    repeats: typeof source.repeats === "number" ? clampInt(source.repeats, 1, 4) : DEFAULT_ARPEGGIATOR_SETTINGS.repeats,
+    humanizeMs:
+      typeof source.humanizeMs === "number"
+        ? Math.max(0, Math.min(50, source.humanizeMs))
+        : typeof source.humanize_ms === "number"
+          ? Math.max(0, Math.min(50, source.humanize_ms))
+          : DEFAULT_ARPEGGIATOR_SETTINGS.humanizeMs,
+    humanizeVelocity:
+      typeof source.humanizeVelocity === "number"
+        ? clampInt(source.humanizeVelocity, 0, 32)
+        : typeof source.humanize_velocity === "number"
+          ? clampInt(source.humanize_velocity, 0, 32)
+          : DEFAULT_ARPEGGIATOR_SETTINGS.humanizeVelocity,
+    transpose: typeof source.transpose === "number" ? clampInt(source.transpose, -24, 24) : DEFAULT_ARPEGGIATOR_SETTINGS.transpose,
+    scaleQuantize: (source.scaleQuantize ?? source.scale_quantize) === true,
+    scaleRoot: normalizeSequencerScaleRoot(source.scaleRoot ?? source.scale_root ?? DEFAULT_ARPEGGIATOR_SETTINGS.scaleRoot),
+    scaleType,
+    mode,
+    restartMode: normalizeArpeggiatorRestartMode(source.restartMode ?? source.restart_mode)
+  };
+}
+
+function normalizeArpeggiatorPreset(raw: unknown, index: number): ArpeggiatorPresetState | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return null;
+  }
+  const source = raw as Record<string, unknown>;
+  const id =
+    typeof source.id === "string" && source.id.trim().length > 0 ? source.id : `user-arp-preset-${index + 1}`;
+  const name =
+    typeof source.name === "string" && source.name.trim().length > 0 ? source.name.trim() : `Arp Preset ${index + 1}`;
+  return {
+    id,
+    name,
+    builtin: source.builtin === true,
+    settings: normalizeArpeggiatorSettings(source.settings ?? source)
+  };
 }
 
 function createEmptyDrummerSequencerCell(): DrummerSequencerCellState {
@@ -1184,6 +1413,89 @@ function defaultControllerSequencer(
   };
 }
 
+function defaultArpeggiator(
+  index = 1,
+  inputChannel = 3,
+  targetChannel = 1
+): ArpeggiatorState {
+  const preset = BUILTIN_ARPEGGIATOR_PRESETS[0];
+  const settings = normalizeArpeggiatorSettings(preset?.settings ?? DEFAULT_ARPEGGIATOR_SETTINGS);
+  return {
+    id: `arp-${index}`,
+    name: `Arpeggiator ${index}`,
+    enabled: false,
+    inputChannel: clampInt(inputChannel, 1, 16),
+    targetChannel: clampInt(targetChannel, 1, 16),
+    presetId: preset?.id ?? null,
+    ...settings,
+    heldNotes: [],
+    activeNote: null,
+    stepIndex: 0,
+    lastVelocity: null
+  };
+}
+
+function normalizeArpeggiatorState(raw: unknown, index: number): ArpeggiatorState {
+  const fallback = defaultArpeggiator(index, index + 2, 1);
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return fallback;
+  }
+  const source = raw as Record<string, unknown>;
+  const settings = normalizeArpeggiatorSettings(source);
+  const heldNotesRaw = Array.isArray(source.heldNotes ?? source.held_notes) ? ((source.heldNotes ?? source.held_notes) as unknown[]) : [];
+  return {
+    id: typeof source.id === "string" && source.id.trim().length > 0 ? source.id : fallback.id,
+    name: typeof source.name === "string" && source.name.trim().length > 0 ? source.name.trim() : fallback.name,
+    enabled: source.enabled === true,
+    inputChannel:
+      typeof source.inputChannel === "number"
+        ? clampInt(source.inputChannel, 1, 16)
+        : typeof source.input_channel === "number"
+          ? clampInt(source.input_channel, 1, 16)
+          : fallback.inputChannel,
+    targetChannel:
+      typeof source.targetChannel === "number"
+        ? clampInt(source.targetChannel, 1, 16)
+        : typeof source.target_channel === "number"
+          ? clampInt(source.target_channel, 1, 16)
+          : fallback.targetChannel,
+    presetId: typeof source.presetId === "string" ? source.presetId : typeof source.preset_id === "string" ? source.preset_id : null,
+    ...settings,
+    heldNotes: heldNotesRaw.map((value) => normalizeStepNote(value)).filter((value): value is number => value !== null),
+    activeNote: normalizeStepNote(source.activeNote ?? source.active_note),
+    stepIndex: typeof source.stepIndex === "number" ? Math.max(0, Math.round(source.stepIndex)) : typeof source.step_index === "number" ? Math.max(0, Math.round(source.step_index)) : 0,
+    lastVelocity:
+      typeof source.lastVelocity === "number"
+        ? normalizeStepVelocity(source.lastVelocity)
+        : typeof source.last_velocity === "number"
+          ? normalizeStepVelocity(source.last_velocity)
+          : null
+  };
+}
+
+function normalizeArpeggiatorPresets(raw: unknown): ArpeggiatorPresetState[] {
+  const userPresets = Array.isArray(raw)
+    ? raw
+        .map((entry, index) => normalizeArpeggiatorPreset(entry, index))
+        .filter((entry): entry is ArpeggiatorPresetState => entry !== null && entry.builtin !== true)
+    : [];
+  const seen = new Set(BUILTIN_ARPEGGIATOR_PRESETS.map((preset) => preset.id));
+  const uniqueUserPresets = userPresets.filter((preset) => {
+    if (seen.has(preset.id)) {
+      return false;
+    }
+    seen.add(preset.id);
+    return true;
+  });
+  return [
+    ...BUILTIN_ARPEGGIATOR_PRESETS.map((preset) => ({
+      ...preset,
+      settings: normalizeArpeggiatorSettings(preset.settings)
+    })),
+    ...uniqueUserPresets
+  ];
+}
+
 function normalizeControllerSequencerState(
   raw: unknown,
   index: number,
@@ -1298,6 +1610,8 @@ function defaultSequencerState(): SequencerState {
     tracks: [defaultSequencerTrack(1, 1, timing)],
     drummerTracks: [],
     controllerSequencers: [],
+    arpeggiators: [],
+    arpeggiatorPresets: normalizeArpeggiatorPresets([]),
     pianoRolls: [defaultPianoRoll(1, 2)],
     midiControllers: defaultMidiControllers()
   };
@@ -1328,6 +1642,16 @@ function sequencerRuntimeStateFromSequencer(sequencer: SequencerState): Sequence
         : null;
   }
 
+  const arpeggiatorStatusById: SequencerRuntimeState["arpeggiatorStatusById"] = {};
+  for (const arpeggiator of sequencer.arpeggiators) {
+    arpeggiatorStatusById[arpeggiator.id] = {
+      heldNotes: arpeggiator.heldNotes,
+      activeNote: arpeggiator.activeNote,
+      stepIndex: arpeggiator.stepIndex,
+      lastVelocity: arpeggiator.lastVelocity
+    };
+  }
+
   const stepCount = normalizeTransportStepCount(sequencer.stepCount);
   return {
     isPlaying: sequencer.isPlaying === true,
@@ -1339,7 +1663,8 @@ function sequencerRuntimeStateFromSequencer(sequencer: SequencerState): Sequence
       (Math.max(0, Math.round(sequencer.playhead)) % stepCount) * sequencerTransportSubunitsPerStep(),
     trackLocalStepById,
     drummerTrackLocalStepById,
-    controllerRuntimePadStartSubunitById
+    controllerRuntimePadStartSubunitById,
+    arpeggiatorStatusById
   };
 }
 
@@ -1486,6 +1811,7 @@ function emptyPerformanceSequencerState(): SequencerState {
     tracks: [],
     drummerTracks: [],
     controllerSequencers: [],
+    arpeggiators: [],
     pianoRolls: [],
     midiControllers: []
   };
@@ -1496,6 +1822,7 @@ function performanceDeviceCount(sequencer: SequencerState): number {
     sequencer.tracks.length +
     sequencer.drummerTracks.length +
     sequencer.controllerSequencers.length +
+    sequencer.arpeggiators.length +
     sequencer.pianoRolls.length +
     sequencer.midiControllers.length
   );
@@ -1908,6 +2235,14 @@ function normalizeSequencerState(raw: unknown): SequencerState {
     }
   }
 
+  const arpeggiators: ArpeggiatorState[] = [];
+  if (Array.isArray(sequencer.arpeggiators)) {
+    for (let index = 0; index < Math.min(MAX_ARPEGGIATORS, sequencer.arpeggiators.length); index += 1) {
+      arpeggiators.push(normalizeArpeggiatorState(sequencer.arpeggiators[index], index + 1));
+    }
+  }
+  const arpeggiatorPresets = normalizeArpeggiatorPresets(sequencer.arpeggiatorPresets ?? sequencer.arpeggiator_presets);
+
   const trackList = hasTracks ? tracks : defaults.tracks;
   const seenTrackIds = new Set<string>();
   const normalizedTracks = trackList.map((track, index) => {
@@ -1965,6 +2300,19 @@ function normalizeSequencerState(raw: unknown): SequencerState {
     };
   });
 
+  const seenArpeggiatorIds = new Set<string>();
+  const normalizedArpeggiators = arpeggiators.map((arpeggiator, index) => {
+    let nextId = arpeggiator.id.trim().length > 0 ? arpeggiator.id : `arp-${index + 1}`;
+    if (seenArpeggiatorIds.has(nextId)) {
+      nextId = `${nextId}-${index + 1}`;
+    }
+    seenArpeggiatorIds.add(nextId);
+    return {
+      ...arpeggiator,
+      id: nextId
+    };
+  });
+
   const seenDrummerTrackIds = new Set<string>();
   const normalizedDrummerTracks = drummerTracks.map((track, index) => {
     let nextId = track.id.trim().length > 0 ? track.id : `drum-${index + 1}`;
@@ -2000,6 +2348,8 @@ function normalizeSequencerState(raw: unknown): SequencerState {
     tracks: normalizedTracks,
     drummerTracks: normalizedDrummerTracks,
     controllerSequencers: normalizedControllerSequencers,
+    arpeggiators: normalizedArpeggiators,
+    arpeggiatorPresets,
     pianoRolls: normalizedRolls,
     midiControllers: normalizedControllers
   };
@@ -2218,6 +2568,13 @@ function sequencerSnapshotForPersistence(sequencer: SequencerState): SequencerSt
       runtimePadStartSubunit: null,
       pads: controllerSequencer.pads.map((pad) => cloneControllerSequencerPad(pad)),
       keypoints: normalizeControllerCurveKeypoints(controllerSequencer.keypoints)
+    })),
+    arpeggiators: sequencer.arpeggiators.map((arpeggiator) => ({
+      ...arpeggiator,
+      heldNotes: [],
+      activeNote: null,
+      stepIndex: 0,
+      lastVelocity: null
     }))
   };
 }
@@ -2511,6 +2868,9 @@ function nextAvailablePerformanceChannel(sequencer: SequencerState): number {
   for (const roll of sequencer.pianoRolls) {
     occupied.add(clampInt(roll.midiChannel, 1, 16));
   }
+  for (const arpeggiator of sequencer.arpeggiators) {
+    occupied.add(clampInt(arpeggiator.inputChannel, 1, 16));
+  }
 
   for (let channel = 1; channel <= 16; channel += 1) {
     if (!occupied.has(channel)) {
@@ -2518,6 +2878,57 @@ function nextAvailablePerformanceChannel(sequencer: SequencerState): number {
     }
   }
   return 1;
+}
+
+function nextAvailableArpeggiatorInputChannel(sequencer: SequencerState, instruments: SequencerInstrumentBinding[]): number {
+  const occupied = new Set<number>();
+  for (const instrument of instruments) {
+    occupied.add(clampInt(instrument.midiChannel, 1, 16));
+  }
+  if (instruments.length === 0) {
+    occupied.add(1);
+  }
+  for (const arpeggiator of sequencer.arpeggiators) {
+    occupied.add(clampInt(arpeggiator.inputChannel, 1, 16));
+  }
+  for (let channel = 1; channel <= 16; channel += 1) {
+    if (!occupied.has(channel)) {
+      return channel;
+    }
+  }
+  return 16;
+}
+
+function defaultArpeggiatorTargetChannel(instruments: SequencerInstrumentBinding[]): number {
+  return clampInt(instruments[0]?.midiChannel ?? 1, 1, 16);
+}
+
+function arpeggiatorTargetChannelAvoidingInputs(
+  requestedChannel: number,
+  inputChannels: Set<number>,
+  instruments: SequencerInstrumentBinding[],
+  fallbackChannel = 1
+): number {
+  const normalizedRequested = clampInt(requestedChannel, 1, 16);
+  if (!inputChannels.has(normalizedRequested)) {
+    return normalizedRequested;
+  }
+  for (const instrument of instruments) {
+    const channel = clampInt(instrument.midiChannel, 1, 16);
+    if (!inputChannels.has(channel)) {
+      return channel;
+    }
+  }
+  const normalizedFallback = clampInt(fallbackChannel, 1, 16);
+  if (!inputChannels.has(normalizedFallback)) {
+    return normalizedFallback;
+  }
+  for (let channel = 1; channel <= 16; channel += 1) {
+    if (!inputChannels.has(channel)) {
+      return channel;
+    }
+  }
+  return normalizedRequested;
 }
 
 function nextAvailableControllerNumber(controllers: MidiControllerState[]): number {
@@ -2553,7 +2964,7 @@ function buildSequencerConfigSnapshot(
     timing
   );
   return {
-    version: 7,
+    version: 8,
     instruments: instruments
       .filter((instrument) => instrument.patchId.length > 0)
       .map((instrument) => ({
@@ -2707,7 +3118,23 @@ function buildSequencerConfigSnapshot(
           position: clampControllerCurvePosition(keypoint.position),
           value: clampControllerCurveValue(keypoint.value)
         }))
-      }))
+      })),
+      arpeggiators: sequencer.arpeggiators.slice(0, MAX_ARPEGGIATORS).map((arpeggiator, index) => ({
+        id: arpeggiator.id.length > 0 ? arpeggiator.id : `arp-${index + 1}`,
+        name: arpeggiator.name.trim().length > 0 ? arpeggiator.name : `Arpeggiator ${index + 1}`,
+        enabled: arpeggiator.enabled === true,
+        inputChannel: clampInt(arpeggiator.inputChannel, 1, 16),
+        targetChannel: clampInt(arpeggiator.targetChannel, 1, 16),
+        presetId: arpeggiator.presetId,
+        ...normalizeArpeggiatorSettings(arpeggiator)
+      })),
+      arpeggiatorPresets: sequencer.arpeggiatorPresets
+        .filter((preset) => preset.builtin !== true)
+        .map((preset, index) => ({
+          id: preset.id.trim().length > 0 ? preset.id : `user-arp-preset-${index + 1}`,
+          name: preset.name.trim().length > 0 ? preset.name : `Arp Preset ${index + 1}`,
+          settings: normalizeArpeggiatorSettings(preset.settings)
+        }))
     }
   };
 }
@@ -2729,7 +3156,8 @@ function parseSequencerConfigSnapshot(
     payload.version !== 4 &&
     payload.version !== 5 &&
     payload.version !== 6 &&
-    payload.version !== 7
+    payload.version !== 7 &&
+    payload.version !== 8
   ) {
     throw new Error("Unsupported sequencer config version.");
   }
@@ -5929,6 +6357,232 @@ export const useAppStore = create<AppStore>((set, get) => {
               }
             }
           : {})
+      });
+    },
+
+    addArpeggiator: () => {
+      const sequencer = get().sequencer;
+      const instruments = get().sequencerInstruments;
+      if (sequencer.arpeggiators.length >= MAX_ARPEGGIATORS) {
+        set({ error: "A maximum of 8 arpeggiators is supported." });
+        return;
+      }
+
+      const nextIndex = sequencer.arpeggiators.length + 1;
+      const inputChannel = nextAvailableArpeggiatorInputChannel(sequencer, instruments);
+      const targetChannel = arpeggiatorTargetChannelAvoidingInputs(
+        defaultArpeggiatorTargetChannel(instruments),
+        new Set([...sequencer.arpeggiators.map((arpeggiator) => clampInt(arpeggiator.inputChannel, 1, 16)), inputChannel]),
+        instruments
+      );
+      const arpeggiator = defaultArpeggiator(nextIndex, inputChannel, targetChannel);
+      arpeggiator.id = crypto.randomUUID();
+      arpeggiator.name = `Arpeggiator ${nextIndex}`;
+
+      const nextSequencer = {
+        ...sequencer,
+        arpeggiators: [...sequencer.arpeggiators, arpeggiator]
+      };
+
+      set({
+        sequencer: nextSequencer,
+        sequencerRuntime: sequencerRuntimeStateFromSequencer(nextSequencer),
+        error: null
+      });
+    },
+
+    removeArpeggiator: (arpeggiatorId) => {
+      const sequencer = get().sequencer;
+      if (!sequencer.arpeggiators.some((arpeggiator) => arpeggiator.id === arpeggiatorId)) {
+        return;
+      }
+      if (performanceDeviceCount(sequencer) <= 1) {
+        set({ error: "At least one performance device is required." });
+        return;
+      }
+      const nextSequencer = {
+        ...sequencer,
+        arpeggiators: sequencer.arpeggiators.filter((arpeggiator) => arpeggiator.id !== arpeggiatorId)
+      };
+      set({
+        sequencer: nextSequencer,
+        sequencerRuntime: sequencerRuntimeStateFromSequencer(nextSequencer),
+        error: null
+      });
+    },
+
+    setArpeggiatorEnabled: (arpeggiatorId, enabled) => {
+      const sequencer = get().sequencer;
+      const nextSequencer = {
+        ...sequencer,
+        arpeggiators: sequencer.arpeggiators.map((arpeggiator) =>
+          arpeggiator.id === arpeggiatorId ? { ...arpeggiator, enabled: enabled === true } : arpeggiator
+        )
+      };
+      set({
+        sequencer: nextSequencer,
+        sequencerRuntime: {
+          ...get().sequencerRuntime,
+          arpeggiatorStatusById: sequencerRuntimeStateFromSequencer(nextSequencer).arpeggiatorStatusById
+        },
+        error: null
+      });
+    },
+
+    updateArpeggiator: (arpeggiatorId, update) => {
+      const sequencer = get().sequencer;
+      const instruments = get().sequencerInstruments;
+      const existing = sequencer.arpeggiators.find((arpeggiator) => arpeggiator.id === arpeggiatorId);
+      if (!existing) {
+        return;
+      }
+
+      const otherArpeggiatorInputChannels = new Set(
+        sequencer.arpeggiators
+          .filter((arpeggiator) => arpeggiator.id !== arpeggiatorId)
+          .map((arpeggiator) => clampInt(arpeggiator.inputChannel, 1, 16))
+      );
+      const unavailableInputChannels = new Set(otherArpeggiatorInputChannels);
+      for (const instrument of instruments) {
+        const channel = clampInt(instrument.midiChannel, 1, 16);
+        if (channel !== existing.inputChannel) {
+          unavailableInputChannels.add(channel);
+        }
+      }
+      const requestedInput =
+        typeof update.inputChannel === "number" ? clampInt(update.inputChannel, 1, 16) : existing.inputChannel;
+      const nextInputChannel = unavailableInputChannels.has(requestedInput) ? existing.inputChannel : requestedInput;
+      const arpeggiatorInputChannels = new Set([...otherArpeggiatorInputChannels, nextInputChannel]);
+      const requestedTarget =
+        typeof update.targetChannel === "number" ? clampInt(update.targetChannel, 1, 16) : existing.targetChannel;
+      const nextTargetChannel = arpeggiatorTargetChannelAvoidingInputs(
+        requestedTarget,
+        arpeggiatorInputChannels,
+        instruments,
+        existing.targetChannel
+      );
+
+      const nextSequencer = {
+        ...sequencer,
+        arpeggiators: sequencer.arpeggiators.map((arpeggiator, index) => {
+          if (arpeggiator.id !== arpeggiatorId) {
+            return arpeggiator;
+          }
+          return {
+            ...normalizeArpeggiatorState(
+              {
+                ...arpeggiator,
+                ...update,
+                id: arpeggiator.id,
+                inputChannel: nextInputChannel,
+                targetChannel: nextTargetChannel
+              },
+              index + 1
+            ),
+            heldNotes: arpeggiator.heldNotes,
+            activeNote: arpeggiator.activeNote,
+            stepIndex: arpeggiator.stepIndex,
+            lastVelocity: arpeggiator.lastVelocity
+          };
+        })
+      };
+
+      set({
+        sequencer: nextSequencer,
+        error: null
+      });
+    },
+
+    applyArpeggiatorPreset: (arpeggiatorId, presetId) => {
+      const sequencer = get().sequencer;
+      const preset = sequencer.arpeggiatorPresets.find((entry) => entry.id === presetId);
+      if (!preset) {
+        return;
+      }
+      const settings = normalizeArpeggiatorSettings(preset.settings);
+      set({
+        sequencer: {
+          ...sequencer,
+          arpeggiators: sequencer.arpeggiators.map((arpeggiator) =>
+            arpeggiator.id === arpeggiatorId
+              ? {
+                  ...arpeggiator,
+                  ...settings,
+                  presetId: preset.id
+                }
+              : arpeggiator
+          )
+        },
+        error: null
+      });
+    },
+
+    saveArpeggiatorPreset: (arpeggiatorId, presetName) => {
+      const sequencer = get().sequencer;
+      const arpeggiator = sequencer.arpeggiators.find((entry) => entry.id === arpeggiatorId);
+      const name = presetName.trim();
+      if (!arpeggiator || name.length === 0) {
+        return;
+      }
+      const preset: ArpeggiatorPresetState = {
+        id: crypto.randomUUID(),
+        name,
+        builtin: false,
+        settings: normalizeArpeggiatorSettings(arpeggiator)
+      };
+      set({
+        sequencer: {
+          ...sequencer,
+          arpeggiators: sequencer.arpeggiators.map((entry) =>
+            entry.id === arpeggiatorId ? { ...entry, presetId: preset.id } : entry
+          ),
+          arpeggiatorPresets: normalizeArpeggiatorPresets([...sequencer.arpeggiatorPresets, preset])
+        },
+        error: null
+      });
+    },
+
+    syncArpeggiatorRuntime: (updates) => {
+      const sequencer = get().sequencer;
+      const sequencerRuntime = get().sequencerRuntime;
+      if (updates.length === 0) {
+        return;
+      }
+
+      const byId = new Map(updates.map((update) => [update.arpeggiatorId, update]));
+      const nextStatusById = { ...sequencerRuntime.arpeggiatorStatusById };
+      for (const arpeggiator of sequencer.arpeggiators) {
+        const update = byId.get(arpeggiator.id);
+        if (!update) {
+          continue;
+        }
+
+        const nextHeldNotes =
+          update.heldNotes === undefined
+            ? arpeggiator.heldNotes
+            : update.heldNotes.map((value) => normalizeStepNote(value)).filter((value): value is number => value !== null);
+        const nextActiveNote = update.activeNote === undefined ? arpeggiator.activeNote : normalizeStepNote(update.activeNote);
+        const nextStepIndex =
+          update.stepIndex === undefined ? arpeggiator.stepIndex : Math.max(0, Math.round(update.stepIndex));
+        const nextLastVelocity =
+          update.lastVelocity === undefined
+            ? arpeggiator.lastVelocity
+            : update.lastVelocity === null
+              ? null
+              : normalizeStepVelocity(update.lastVelocity);
+        nextStatusById[arpeggiator.id] = {
+          heldNotes: nextHeldNotes,
+          activeNote: nextActiveNote,
+          stepIndex: nextStepIndex,
+          lastVelocity: nextLastVelocity
+        };
+      }
+
+      set({
+        sequencerRuntime: {
+          ...sequencerRuntime,
+          arpeggiatorStatusById: nextStatusById
+        }
       });
     },
 

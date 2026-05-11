@@ -67,6 +67,7 @@ interface UseSequencerRuntimeControllerParams {
   setSequencerError: (error: string | null) => void;
   setSequencerPlayhead: AppStoreState["setSequencerPlayhead"];
   setSequencerTransportAbsoluteStep: AppStoreState["setSequencerTransportAbsoluteStep"];
+  syncArpeggiatorRuntime: AppStoreState["syncArpeggiatorRuntime"];
   syncControllerSequencerRuntime: AppStoreState["syncControllerSequencerRuntime"];
   syncSequencerRuntime: AppStoreState["syncSequencerRuntime"];
   syncSequencerTransportRuntime: AppStoreState["syncSequencerTransportRuntime"];
@@ -107,6 +108,7 @@ export function useSequencerRuntimeController({
   setSequencerError,
   setSequencerPlayhead,
   setSequencerTransportAbsoluteStep,
+  syncArpeggiatorRuntime,
   syncControllerSequencerRuntime,
   syncSequencerRuntime,
   syncSequencerTransportRuntime
@@ -268,8 +270,17 @@ export function useSequencerRuntimeController({
           enabled: track.enabled
         }))
       );
+      syncArpeggiatorRuntime(
+        (status.arpeggiators ?? []).map((arpeggiator) => ({
+          arpeggiatorId: arpeggiator.arpeggiator_id,
+          heldNotes: arpeggiator.held_notes,
+          activeNote: arpeggiator.active_note,
+          stepIndex: arpeggiator.step_index,
+          lastVelocity: arpeggiator.last_velocity
+        }))
+      );
     },
-    [effectiveAudioOutputModeRef, syncControllerSequencerRuntime, syncSequencerRuntime]
+    [effectiveAudioOutputModeRef, syncArpeggiatorRuntime, syncControllerSequencerRuntime, syncSequencerRuntime]
   );
   applySequencerStatusRef.current = applySequencerStatus;
 
@@ -786,11 +797,12 @@ export function useSequencerRuntimeController({
   );
 
   const sequencerConfigSyncSignature = useMemo(() => {
-    if (!sequencer.isPlaying) {
+    const hasEnabledArpeggiator = sequencerConfig.arpeggiators.some((arpeggiator) => arpeggiator.enabled);
+    if (!sequencer.isPlaying && (activeSessionState !== "running" || !hasEnabledArpeggiator)) {
       return null;
     }
     return JSON.stringify(buildBackendSequencerConfig(sequencerConfig));
-  }, [buildBackendSequencerConfig, sequencer.isPlaying, sequencerConfig]);
+  }, [activeSessionState, buildBackendSequencerConfig, sequencer.isPlaying, sequencerConfig]);
 
   const primeBrowserClockAudio = useCallback((): void => {
     if (runtimeAudioOutputMode !== "browser_clock") {
@@ -834,7 +846,8 @@ export function useSequencerRuntimeController({
   }, [effectiveAudioOutputMode, resolveSequencerSessionId, sequencer.isPlaying]);
 
   useEffect(() => {
-    if (!sequencer.isPlaying) {
+    const hasEnabledArpeggiator = sequencerConfig.arpeggiators.some((arpeggiator) => arpeggiator.enabled);
+    if (!sequencer.isPlaying && (activeSessionState !== "running" || !hasEnabledArpeggiator)) {
       sequencerConfigSyncPendingRef.current = false;
       return;
     }
@@ -884,7 +897,9 @@ export function useSequencerRuntimeController({
     applySequencerStatus,
     errors.failedToUpdateSequencerConfig,
     invalidateMissingRuntimeSession,
+    activeSessionState,
     resolveSequencerSessionId,
+    sequencerConfig.arpeggiators,
     sequencer.isPlaying,
     sequencerConfigSyncSignature,
     setSequencerError,

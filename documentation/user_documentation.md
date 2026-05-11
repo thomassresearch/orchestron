@@ -2,7 +2,7 @@
 
 **Navigation:** [Next](instrument_design/instrument_design.md)
 
-This manual documents the current Orchestron user-facing functionality as implemented in the repository (frontend, backend API behavior visible to users, and feature history from the git log) as of **2026-02-24**.
+This manual documents the current Orchestron user-facing functionality as implemented in the repository (frontend, backend API behavior visible to users, and feature history from the git log) as of **2026-05-11**.
 
 It is organized by chapter and subchapter so you can read it front-to-back or jump directly to a workflow.
 
@@ -37,6 +37,7 @@ When Orchestron is served locally from the backend, opening `http://localhost:80
 - [Melodic Sequencers and Step Editing](performance/sequencer_tracks_and_steps.md)
 - [Pattern Pads, Queued Switching, and Pad Looper](performance/pattern_pads_and_pad_looper.md)
 - [Controller Sequencers](performance/controller_sequencers.md)
+- [Arpeggiators](performance/arpeggiators.md)
 - [Piano Rolls](performance/piano_rolls.md)
 - [MIDI Controllers](performance/midi_controllers.md)
 - [Performance Import / Export](performance/performance_import_export.md)
@@ -63,6 +64,7 @@ When Orchestron is served locally from the backend, opening `http://localhost:80
 | Performance rack, multi-instrument assignments, engine transport | [Instrument Rack and Engine Transport](performance/instrument_rack_and_engine_transport.md) |
 | Melodic sequencers, pattern pads, pad looper, transposition | [Melodic Sequencers and Step Editing](performance/sequencer_tracks_and_steps.md), [Pattern Pads, Queued Switching, and Pad Looper](performance/pattern_pads_and_pad_looper.md) |
 | Controller sequencers and CC curve editor | [Controller Sequencers](performance/controller_sequencers.md) |
+| Backend arpeggiator virtual instruments and presets | [Arpeggiators](performance/arpeggiators.md) |
 | Piano rolls, scale/mode following, mixed-mode highlighting | [Piano Rolls](performance/piano_rolls.md) |
 | Manual MIDI controller panel (up to 6 knobs) | [MIDI Controllers](performance/midi_controllers.md) |
 | Performance bundle import/export with conflict resolution | [Performance Import / Export](performance/performance_import_export.md) |

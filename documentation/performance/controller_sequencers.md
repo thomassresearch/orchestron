@@ -1,6 +1,6 @@
 # Controller Sequencers
 
-**Navigation:** [Up](performance.md) | [Prev](multitrack_arranger.md) | [Next](piano_rolls.md)
+**Navigation:** [Up](performance.md) | [Prev](multitrack_arranger.md) | [Next](arpeggiators.md)
 
 Controller Sequencers automate MIDI CC values using editable curves.
 
@@ -74,4 +74,4 @@ This makes it easy to understand exactly what value is being sent at each transp
 </p>
 <p align="center"><em>Controller sequencer with curve editor, CC configuration, and playback indicator.</em></p>
 
-**Navigation:** [Up](performance.md) | [Prev](multitrack_arranger.md) | [Next](piano_rolls.md)
+**Navigation:** [Up](performance.md) | [Prev](multitrack_arranger.md) | [Next](arpeggiators.md)

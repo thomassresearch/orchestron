@@ -19,6 +19,7 @@ from backend.app.models.session import (
     SessionSequencerTimingConfig,
     SessionSequencerTrackStatus,
 )
+from backend.app.services.arpeggiator_runtime import MidiSourceContext
 logger = logging.getLogger(__name__)
 
 PublishEventFn = Callable[[str, dict[str, Any]], None]
@@ -194,6 +195,8 @@ class SequencerPadRuntime:
     step_count: int
     transport_subunit_count: int
     steps: tuple[SequencerStepRuntime, ...]
+    scale_root: str | None = None
+    mode: str | None = None
 
 
 @dataclass(slots=True)
@@ -216,6 +219,8 @@ class SequencerTrackRuntime:
     track_id: str
     midi_channel: int
     timing: SequencerTimingRuntime
+    scale_root: str | None
+    mode: str | None
     length_beats: int
     step_count: int
     transport_subunit_count: int
@@ -584,7 +589,8 @@ class SessionSequencerRuntime:
             if notes:
                 self._release_track_notes_locked(track_id, track.midi_channel)
                 self._send_messages_locked(
-                    [self._note_on_message(track.midi_channel, note, step_state.velocity) for note in notes]
+                    [self._note_on_message(track.midi_channel, note, step_state.velocity) for note in notes],
+                    source_context=self._source_context_for_track(track),
                 )
                 for note in notes:
                     active_notes.add(note)
@@ -1424,6 +1430,7 @@ class SessionSequencerRuntime:
                     self._send_messages_locked(
                         [self._note_on_message(track.midi_channel, note, step_state.velocity) for note in notes],
                         delivery_delay_seconds=event_delivery_delay_seconds,
+                        source_context=self._source_context_for_track(track),
                     )
                     for note in notes:
                         active_notes.add(note)
@@ -1680,8 +1687,18 @@ class SessionSequencerRuntime:
         message: list[int],
         *,
         delivery_delay_seconds: float | None = None,
+        source_context: MidiSourceContext | None = None,
     ) -> None:
         try:
+            contextual_send = getattr(self._midi_service, "send_scheduled_message_with_context", None)
+            if callable(contextual_send) and source_context is not None:
+                contextual_send(
+                    self._midi_input_selector,
+                    message,
+                    delivery_delay_seconds=delivery_delay_seconds,
+                    source_context=source_context,
+                )
+                return
             self._midi_service.send_scheduled_message(
                 self._midi_input_selector,
                 message,
@@ -1695,10 +1712,29 @@ class SessionSequencerRuntime:
         messages: list[list[int]],
         *,
         delivery_delay_seconds: float | None = None,
+        source_context: MidiSourceContext | None = None,
     ) -> None:
         if not messages:
             return
         try:
+            contextual_send_many = getattr(self._midi_service, "send_scheduled_messages_with_context", None)
+            contextual_send_one = getattr(self._midi_service, "send_scheduled_message_with_context", None)
+            if source_context is not None and len(messages) > 1 and callable(contextual_send_many):
+                contextual_send_many(
+                    self._midi_input_selector,
+                    messages,
+                    delivery_delay_seconds=delivery_delay_seconds,
+                    source_context=source_context,
+                )
+                return
+            if source_context is not None and len(messages) == 1 and callable(contextual_send_one):
+                contextual_send_one(
+                    self._midi_input_selector,
+                    messages[0],
+                    delivery_delay_seconds=delivery_delay_seconds,
+                    source_context=source_context,
+                )
+                return
             if len(messages) == 1:
                 self._midi_service.send_scheduled_message(
                     self._midi_input_selector,
@@ -1949,6 +1985,8 @@ class SessionSequencerRuntime:
                     step_count=track_step_count,
                     transport_subunit_count=track_transport_subunit_count,
                     steps=tuple(SequencerStepRuntime(notes=(), hold=False) for _ in range(track_step_count)),
+                    scale_root=track_request.scale_root,
+                    mode=track_request.mode,
                 )
                 for index in range(_DEFAULT_PADS)
             }
@@ -1965,6 +2003,8 @@ class SessionSequencerRuntime:
                         pad_step_count,
                         track_request.velocity,
                     ),
+                    scale_root=pad.scale_root or track_request.scale_root,
+                    mode=pad.mode or track_request.mode,
                 )
 
             active_pad = track_request.active_pad if track_request.active_pad in pads else 0
@@ -1974,6 +2014,8 @@ class SessionSequencerRuntime:
                 track_id=track_request.track_id,
                 midi_channel=track_request.midi_channel,
                 timing=track_timing,
+                scale_root=track_request.scale_root,
+                mode=track_request.mode,
                 length_beats=track_length_beats,
                 step_count=track_step_count,
                 transport_subunit_count=track_transport_subunit_count,
@@ -2067,4 +2109,17 @@ class SessionSequencerRuntime:
             playback_loop=request.playback_loop,
             tracks=tracks,
             controller_tracks=controller_tracks,
+        )
+
+    @staticmethod
+    def _source_context_for_track(track: SequencerTrackRuntime) -> MidiSourceContext | None:
+        pad = track.pads.get(track.active_pad)
+        scale_root = pad.scale_root if pad and pad.scale_root is not None else track.scale_root
+        mode = pad.mode if pad and pad.mode is not None else track.mode
+        if scale_root is None and mode is None:
+            return None
+        return MidiSourceContext(
+            source_id=track.track_id,
+            scale_root=scale_root,  # type: ignore[arg-type]
+            mode=mode,  # type: ignore[arg-type]
         )

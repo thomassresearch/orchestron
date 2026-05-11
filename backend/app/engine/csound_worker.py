@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ctypes
+import inspect
 import logging
 import os
 import re
@@ -323,7 +324,7 @@ class CsoundWorker:
         *,
         block_count: int,
         target_sample_rate: int,
-        before_block: Callable[[int], None] | None = None,
+        before_block: Callable[..., None] | None = None,
     ) -> EngineRenderResult:
         requested_blocks = max(1, int(block_count))
         if target_sample_rate < 1:
@@ -354,12 +355,15 @@ class CsoundWorker:
 
             rendered_blocks: list[Any] = []
             source_frames_rendered = 0
+            before_block_arity = self._callback_arity(before_block)
             for block_index in range(requested_blocks):
-                if before_block is not None:
-                    before_block(block_index)
-
                 block_start_sample = sample_start + source_frames_rendered
                 block_end_sample = block_start_sample + source_ksmps
+                if before_block is not None:
+                    if before_block_arity >= 2:
+                        before_block(block_index, block_start_sample)
+                    else:
+                        before_block(block_index)
                 self._prepare_host_midi_block(
                     block_start_sample=block_start_sample,
                     block_end_sample=block_end_sample,
@@ -411,16 +415,21 @@ class CsoundWorker:
         *,
         block_count: int,
         target_sample_rate: int,
-        before_block: Callable[[int], None] | None = None,
+        before_block: Callable[..., None] | None = None,
     ) -> EngineRenderResult:
         import numpy as np  # type: ignore
 
         source_sr = self._runtime_sr if self._runtime_sr > 0 else DEFAULT_BROWSER_AUDIO_SAMPLE_RATE
         source_ksmps = self._runtime_ksmps if self._runtime_ksmps > 0 else 32
         sample_start = self._render_sample_cursor
+        before_block_arity = self._callback_arity(before_block)
         for block_index in range(block_count):
             if before_block is not None:
-                before_block(block_index)
+                block_start_sample = sample_start + (block_index * source_ksmps)
+                if before_block_arity >= 2:
+                    before_block(block_index, block_start_sample)
+                else:
+                    before_block(block_index)
         sample_end = sample_start + (block_count * source_ksmps)
         self._render_sample_cursor = sample_end
         target_frames = max(1, int(round((block_count * source_ksmps) * (target_sample_rate / source_sr))))
@@ -562,6 +571,28 @@ class CsoundWorker:
             self._host_midi_buffer.clear()
             for event in events:
                 self._host_midi_buffer.extend(event.message)
+
+    @staticmethod
+    def _callback_arity(callback: Callable[..., None] | None) -> int:
+        if callback is None:
+            return 0
+        try:
+            signature = inspect.signature(callback)
+        except (TypeError, ValueError):
+            return 1
+        positional = [
+            parameter
+            for parameter in signature.parameters.values()
+            if parameter.kind
+            in {
+                inspect.Parameter.POSITIONAL_ONLY,
+                inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                inspect.Parameter.VAR_POSITIONAL,
+            }
+        ]
+        if any(parameter.kind == inspect.Parameter.VAR_POSITIONAL for parameter in signature.parameters.values()):
+            return 2
+        return len(positional)
 
     @staticmethod
     def _normalize_rtmidi_module(module: str) -> str:

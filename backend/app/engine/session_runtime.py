@@ -18,6 +18,7 @@ class RuntimeSession:
     started_at: datetime | None = None
     compile_artifact: CompileArtifact | None = None
     worker: CsoundWorker = field(default_factory=CsoundWorker)
+    midi_router: Any = None
     sequencer: Any = None
 
     @property
