@@ -140,7 +140,7 @@ Programa patrones melódicos o rítmicos por pasos.
 
 This help applies to one melodic sequencer card.
 
-- Start/stop the sequencer independently (instrument transport must be running to start).
+- Start/stop the sequencer independently while the arranger is stopped (instrument transport must be running to start).
 - Set MIDI channel, \`Sync To\` target, scale root/type, and mode for note generation.
 - Use this sequencer's meter/grid timing, beat ratio, and pattern-pad length in beats (\`1..8\`), including the current meter numerator when needed.
 - Drag the sequencer \`::\` handle in the header to reorder melodic sequencers in the panel.
@@ -157,7 +157,7 @@ This help applies to one melodic sequencer card.
 
 Diese Hilfe gilt fuer eine einzelne Karte eines melodischen Sequencers.
 
-- Sequencer separat starten/stoppen (zum Starten muss der Instrument-Transport laufen).
+- Sequencer separat starten/stoppen, waehrend der Arranger gestoppt ist (zum Starten muss der Instrument-Transport laufen).
 - MIDI-Kanal, \`Sync zu\`-Ziel, Skalen-Grundton/-Typ und Modus für die Notenerzeugung setzen.
 - Die Takt-/Raster-Zeitbasis, das Beat-Verhaeltnis und die Pattern-Pad-Laenge in Beats dieses melodischen Sequencers nutzen (\`1..8\`), bei Bedarf direkt inklusive des aktuellen Taktzaehlers.
 - Das \`::\`-Handle in der Kopfzeile ziehen, um melodische Sequencer im Panel umzusortieren.
@@ -174,7 +174,7 @@ Diese Hilfe gilt fuer eine einzelne Karte eines melodischen Sequencers.
 
 Cette aide s'applique a une carte individuelle de sequenceur melodique.
 
-- Demarrer/arreter le sequenceur independamment (le transport instrument doit etre actif pour demarrer).
+- Demarrer/arreter le sequenceur independamment pendant que l'arrangeur est arrete (le transport instrument doit etre actif pour demarrer).
 - Régler canal MIDI, cible \`Sync vers\`, tonique/type de gamme et mode pour la génération de notes.
 - Utiliser la mesure/grille, le ratio de temps et la longueur du pad en temps de ce sequenceur (\`1..8\`), avec le numerateur courant propose si besoin.
 - Glisser la poignee \`::\` de l'en-tete pour reordonner les sequenceurs melodiques dans le panneau.
@@ -191,7 +191,7 @@ Cette aide s'applique a une carte individuelle de sequenceur melodique.
 
 Esta ayuda se aplica a una tarjeta individual de secuenciador melodico.
 
-- Inicia/detiene el secuenciador de forma independiente (el transporte de instrumentos debe estar activo para iniciar).
+- Inicia/detiene el secuenciador de forma independiente mientras el arreglador esta detenido (el transporte de instrumentos debe estar activo para iniciar).
 - Ajusta canal MIDI, destino \`Sync con\`, raíz/tipo de escala y modo para la generación de notas.
 - Usa la metrica/cuadricula, la relacion de pulso y la longitud del pad de este secuenciador en pulsos (\`1..8\`), con el numerador actual disponible cuando haga falta.
 - Arrastra el asa \`::\` del encabezado para reordenar los secuenciadores melodicos en el panel.
@@ -210,7 +210,9 @@ Esta ayuda se aplica a una tarjeta individual de secuenciador melodico.
 
 Arrange melodic sequencers, drummer sequencers, and controller sequencers on one shared timeline.
 
-- Use cassette transport to rewind, stop, play, or fast-forward arrangement-driven sequencers in one-beat blocks.
+- Use cassette transport to rewind, stop, play, or fast-forward pad-loop-driven sequencers in one-beat blocks.
+- \`Play\` starts sequencers whose \`Pad Looper\` is on and stops sequencers whose \`Pad Looper\` is off so arranger playback stays synchronized.
+- \`Stop\` stops pad-loop-driven sequencers while manually started non-pad-loop sequencers can keep running.
 - Arpeggiators, piano rolls, and manual MIDI controller lanes stay individually controlled.
 - Drag root-timeline tokens to reorder pads, groups, and super-groups.
 - Use the right-click menu to insert pads, existing groups, or existing super-groups into a matching pause gap or at the end.
@@ -224,7 +226,9 @@ Arrange melodic sequencers, drummer sequencers, and controller sequencers on one
 
 Ordnet melodische Sequencer, Drummer-Sequencer und Controller-Sequencer auf einer gemeinsamen Timeline an.
 
-- Mit dem Kassetten-Transport arrangement-gesteuerte Sequencer in Beat-Bloecken zurueckspulen, stoppen, starten oder vorspulen.
+- Mit dem Kassetten-Transport Pad-Loop-gesteuerte Sequencer in Beat-Bloecken zurueckspulen, stoppen, starten oder vorspulen.
+- \`Play\` startet Sequencer mit aktivem \`Pad Looper\` und stoppt Sequencer mit ausgeschaltetem \`Pad Looper\`, damit der Arranger synchron bleibt.
+- \`Stop\` stoppt Pad-Loop-gesteuerte Sequencer; manuell gestartete Sequencer ohne Pad-Loop koennen weiterlaufen.
 - Arpeggiatoren, Piano-Rolls und manuelle MIDI-Controller-Lanes bleiben einzeln gesteuert.
 - Tokens auf der Root-Timeline ziehen, um Pads, Gruppen und Super-Gruppen neu anzuordnen.
 - Mit dem Rechtsklick-Menue Pads, vorhandene Gruppen oder vorhandene Super-Gruppen in eine passende Pause oder ans Ende einfuegen.
@@ -238,7 +242,9 @@ Ordnet melodische Sequencer, Drummer-Sequencer und Controller-Sequencer auf eine
 
 Organise les sequenceurs melodiques, les sequenceurs batterie et les sequenceurs controleur sur une timeline partagee.
 
-- Utiliser le transport cassette pour revenir en arriere, arreter, lancer ou avancer les sequenceurs de l'arrangement par blocs d'un temps.
+- Utiliser le transport cassette pour revenir en arriere, arreter, lancer ou avancer les sequenceurs pilotes par pad looper par blocs d'un temps.
+- \`Play\` demarre les sequenceurs dont le \`Pad Looper\` est actif et arrete ceux dont le \`Pad Looper\` est inactif pour garder l'arrangeur synchronise.
+- \`Stop\` arrete les sequenceurs pilotes par pad looper ; les sequenceurs sans pad looper lances manuellement peuvent continuer.
 - Les arpegiateurs, piano rolls et lanes de controleur MIDI manuel restent controles individuellement.
 - Faire glisser les jetons de la timeline principale pour reordonner pads, groupes et super-groupes.
 - Utiliser le menu contextuel pour inserer des pads, des groupes existants ou des super-groupes existants dans une pause adaptee ou a la fin.
@@ -252,7 +258,9 @@ Organise les sequenceurs melodiques, les sequenceurs batterie et les sequenceurs
 
 Organiza secuenciadores melodicos, secuenciadores de bateria y secuenciadores de control en una linea de tiempo compartida.
 
-- Usa el transporte tipo casete para rebobinar, detener, reproducir o adelantar los secuenciadores del arreglo en bloques de un pulso.
+- Usa el transporte tipo casete para rebobinar, detener, reproducir o adelantar secuenciadores guiados por pad looper en bloques de un pulso.
+- \`Play\` inicia los secuenciadores con \`Pad Looper\` activo y detiene los que tienen \`Pad Looper\` apagado para mantener sincronizado el arreglador.
+- \`Stop\` detiene los secuenciadores guiados por pad looper; los secuenciadores sin pad looper iniciados manualmente pueden seguir sonando.
 - Los arpegiadores, piano rolls y lanes de controlador MIDI manual siguen controlados individualmente.
 - Arrastra los tokens de la linea principal para reordenar pads, grupos y supergrupos.
 - Usa el menu contextual para insertar pads, grupos existentes o supergrupos existentes en una pausa adecuada o al final.
@@ -330,7 +338,7 @@ Secuenciador por pasos estilo caja de ritmos para teclas MIDI fijas.
 
 Automate a MIDI CC value over time with a curve.
 
-- Start/stop this controller sequencer independently (instrument transport must be running to start).
+- Start/stop this controller sequencer independently while the arranger is stopped (instrument transport must be running to start).
 - Set the MIDI controller number (\`0..127\`).
 - Choose the repeating curve length in beats (\`1..8\`, plus \`16\` for longer controller loops) and set the beat ratio.
 - Use the curve editor to add, move, and shape key points.
@@ -344,7 +352,7 @@ Automate a MIDI CC value over time with a curve.
 
 Automatisiert einen MIDI-CC-Wert über die Zeit mit einer Kurve.
 
-- Diesen Controller-Sequencer separat starten/stoppen (zum Starten muss der Instrument-Transport laufen).
+- Diesen Controller-Sequencer separat starten/stoppen, waehrend der Arranger gestoppt ist (zum Starten muss der Instrument-Transport laufen).
 - MIDI-Controller-Nummer (\`0..127\`) festlegen.
 - Die wiederholte Kurvenlaenge in Beats waehlen (\`1..8\`, plus \`16\` fuer laengere Controller-Loops) und das Beat-Verhaeltnis setzen.
 - Im Kurveneditor Keypoints hinzufügen, verschieben und formen.
@@ -358,7 +366,7 @@ Automatisiert einen MIDI-CC-Wert über die Zeit mit einer Kurve.
 
 Automatise une valeur MIDI CC dans le temps avec une courbe.
 
-- Démarrer/arrêter ce séquenceur contrôleur indépendamment (le transport instrument doit être actif pour démarrer).
+- Démarrer/arrêter ce séquenceur contrôleur indépendamment pendant que l'arrangeur est arrêté (le transport instrument doit être actif pour démarrer).
 - Définir le numéro de contrôleur MIDI (\`0..127\`).
 - Choisir la longueur repetee de la courbe en temps (\`1..8\`, plus \`16\` pour les boucles controleur plus longues) et regler le ratio de temps.
 - Utiliser l'éditeur de courbe pour ajouter, déplacer et façonner des points-clés.
@@ -372,7 +380,7 @@ Automatise une valeur MIDI CC dans le temps avec une courbe.
 
 Automatiza un valor MIDI CC en el tiempo mediante una curva.
 
-- Inicia/detiene este secuenciador controlador de forma independiente (el transporte de instrumentos debe estar activo para iniciar).
+- Inicia/detiene este secuenciador controlador de forma independiente mientras el arreglador está detenido (el transporte de instrumentos debe estar activo para iniciar).
 - Define el número de controlador MIDI (\`0..127\`).
 - Elige la longitud repetida de la curva en pulsos (\`1..8\`, mas \`16\` para bucles de controlador mas largos) y ajusta la relacion de pulso.
 - Usa el editor de curva para agregar, mover y dar forma a puntos clave.
@@ -639,7 +647,7 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 
 ### Playback And Editing
 
-- \`Play\` starts all enabled perform tracks from the current playhead. \`Stop\` preserves position, and double-click \`Stop\` resets to the loop start or beat \`0\`.
+- \`Play\` starts tracks whose \`Pad Looper\` is on and stops tracks whose \`Pad Looper\` is off. \`Stop\` stops pad-loop tracks, and double-click \`Stop\` resets to the loop start or beat \`0\` when no manually running track keeps transport active.
 - Right-click menus insert pads/groups into a gap or the sequence end, and \`Copy\` / \`Paste\` duplicate whole phrase blocks.
 - Loop range selection constrains playback to the highlighted beat span without rewriting the stored arrangement.`,
     german: `### Aufbau der Timeline
@@ -650,7 +658,7 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 
 ### Wiedergabe und Bearbeitung
 
-- \`Play\` startet alle aktivierten Perform-Spuren ab der aktuellen Playhead-Position. \`Stop\` behaelt die Position bei; Doppelklick auf \`Stop\` setzt auf Loop-Start oder Beat \`0\` zurueck.
+- \`Play\` startet Spuren mit aktivem \`Pad Looper\` und stoppt Spuren mit ausgeschaltetem \`Pad Looper\`. \`Stop\` stoppt Pad-Loop-Spuren; Doppelklick auf \`Stop\` setzt auf Loop-Start oder Beat \`0\` zurueck, wenn keine manuell laufende Spur den Transport aktiv haelt.
 - Rechtsklick-Menues fuegen Pads/Gruppen in eine Luecke oder ans Sequenzende ein, und \`Copy\` / \`Paste\` duplizieren ganze Phrasenbloecke.
 - Die Loop-Bereichsauswahl begrenzt die Wiedergabe auf den markierten Beat-Bereich, ohne das gespeicherte Arrangement umzuschreiben.`,
     french: `### Structure de la timeline
@@ -661,7 +669,7 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 
 ### Lecture et edition
 
-- \`Play\` lance toutes les pistes Perform actives depuis la position courante du playhead. \`Stop\` conserve la position ; un double-clic sur \`Stop\` revient au debut de boucle ou au temps \`0\`.
+- \`Play\` lance les pistes dont le \`Pad Looper\` est actif et arrete celles dont le \`Pad Looper\` est inactif. \`Stop\` arrete les pistes pad-loop ; un double-clic sur \`Stop\` revient au debut de boucle ou au temps \`0\` si aucune piste lancee manuellement ne garde le transport actif.
 - Les menus clic droit inserent pads/groupes dans un vide ou en fin de sequence, et \`Copy\` / \`Paste\` dupliquent des blocs de phrase entiers.
 - La selection de boucle limite la lecture a la plage de temps surlignee sans reecrire l'arrangement stocke.`,
     spanish: `### Estructura de la linea de tiempo
@@ -672,7 +680,7 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 
 ### Reproduccion y edicion
 
-- \`Play\` inicia todas las pistas activas de Perform desde la posicion actual del playhead. \`Stop\` conserva la posicion y el doble clic en \`Stop\` vuelve al inicio del bucle o al pulso \`0\`.
+- \`Play\` inicia las pistas con \`Pad Looper\` activo y detiene las que tienen \`Pad Looper\` apagado. \`Stop\` detiene las pistas con pad looper; el doble clic en \`Stop\` vuelve al inicio del bucle o al pulso \`0\` si ninguna pista iniciada manualmente mantiene activo el transporte.
 - Los menus de clic derecho insertan pads/grupos en un hueco o al final de la secuencia, y \`Copy\` / \`Paste\` duplican bloques completos de frase.
 - La seleccion de rango de bucle limita la reproduccion al tramo resaltado sin reescribir el arreglo guardado.`
   },

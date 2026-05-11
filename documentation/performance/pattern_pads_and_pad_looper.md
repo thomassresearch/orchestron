@@ -187,7 +187,8 @@ Nested pad-sequence tokens are color-coded by hierarchy:
 ### Repeat Toggle
 
 - `Repeat: On` loops the pad sequence continuously
-- `Repeat: Off` runs through the programmed sequence without repeating behavior (per runtime handling)
+- `Repeat: Off` runs through the programmed pad sequence once and then stops that sequencer
+- `Pad Looper: Off` leaves the sequencer on its current pad instead of stepping through the pad sequence
 
 ## When To Use Pad Looper vs Manual Pad Presses
 

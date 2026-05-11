@@ -26,7 +26,7 @@ Compared to melodic sequencers, drummer sequencers:
 Each drummer sequencer card provides:
 
 - sequencer state badge (running/stopped or queued start/stop state)
-- `Start` / `Stop` (sequencer enable state)
+- `Start` / `Stop` (sequencer enable state; can be used manually while the multitrack arranger is stopped)
 - `Remove`
 - `Clear Steps`
 - `+ Key` (add another drum row)

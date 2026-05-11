@@ -2549,15 +2549,16 @@ interface SequencerPageProps {
 
 function trackStateLabel(
   track: Pick<SequencerTrackState, "enabled" | "queuedEnabled">,
+  isPlaying: boolean,
   ui: Pick<SequencerUiCopy, "trackQueuedStart" | "trackQueuedStop" | "running" | "stopped">
 ): string {
-  if (track.queuedEnabled === true) {
+  if (isPlaying && track.queuedEnabled === true) {
     return ui.trackQueuedStart;
   }
-  if (track.queuedEnabled === false) {
+  if (isPlaying && track.queuedEnabled === false) {
     return ui.trackQueuedStop;
   }
-  return track.enabled ? ui.running : ui.stopped;
+  return isPlaying && track.enabled ? ui.running : ui.stopped;
 }
 
 function previousNonRestNote(steps: SequencerStepState[], fromIndex: number): number | null {
@@ -4074,35 +4075,9 @@ export function SequencerPage({
     setDeletePerformanceDialogOpen(false);
   }, [currentPerformanceId]);
 
-  const enableAllArrangementSequencers = useCallback(() => {
-    for (const track of sequencer.tracks) {
-      if (!track.enabled) {
-        onSequencerTrackEnabledChange(track.id, true);
-      }
-    }
-    for (const track of sequencer.drummerTracks) {
-      if (!track.enabled) {
-        onDrummerSequencerTrackEnabledChange(track.id, true);
-      }
-    }
-    for (const controllerSequencer of sequencer.controllerSequencers) {
-      if (!controllerSequencer.enabled) {
-        onControllerSequencerEnabledChange(controllerSequencer.id, true);
-      }
-    }
-  }, [
-    onDrummerSequencerTrackEnabledChange,
-    onControllerSequencerEnabledChange,
-    onSequencerTrackEnabledChange,
-    sequencer.controllerSequencers,
-    sequencer.drummerTracks,
-    sequencer.tracks
-  ]);
-
   const handleStartAll = useCallback(() => {
-    enableAllArrangementSequencers();
     onSequencerTransportStart();
-  }, [enableAllArrangementSequencers, onSequencerTransportStart]);
+  }, [onSequencerTransportStart]);
 
   const handleStopAll = useCallback(() => {
     onSequencerTransportStop(false);
@@ -4629,6 +4604,7 @@ export function SequencerPage({
             const stepIndices = Array.from({ length: track.stepCount }, (_, index) => index);
             const trackDisplayLabel = ui.sequencerWithIndex(trackIndex + 1);
             const syncTargetValue = track.syncToTrackId ?? "";
+            const trackIsRunning = sequencer.isPlaying && track.enabled;
 
             return (
               <article
@@ -4678,14 +4654,14 @@ export function SequencerPage({
                   <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-200">
                     {trackDisplayLabel}
                   </div>
-                  <span className={transportStateClass}>{trackStateLabel(track, ui)}</span>
+                  <span className={transportStateClass}>{trackStateLabel(track, sequencer.isPlaying, ui)}</span>
                   <button
                     type="button"
-                    onClick={() => onSequencerTrackEnabledChange(track.id, !track.enabled)}
-                    disabled={!instrumentsRunning && !track.enabled}
-                    className={track.enabled ? transportStopButtonClass : transportStartButtonClass}
+                    onClick={() => onSequencerTrackEnabledChange(track.id, !trackIsRunning)}
+                    disabled={!instrumentsRunning && !trackIsRunning}
+                    className={trackIsRunning ? transportStopButtonClass : transportStartButtonClass}
                   >
-                    {track.enabled ? ui.stop : ui.start}
+                    {trackIsRunning ? ui.stop : ui.start}
                   </button>
                   <button
                     type="button"
@@ -5392,6 +5368,7 @@ export function SequencerPage({
                     absoluteTransportSubunit,
                     sequencer.isPlaying
                   );
+                  const trackIsRunning = sequencer.isPlaying && track.enabled;
 
                   return (
                     <article
@@ -5410,14 +5387,14 @@ export function SequencerPage({
                         <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-200">
                           {ui.drummerSequencerWithIndex(trackIndex + 1)}
                         </div>
-                        <span className={transportStateClass}>{trackStateLabel(track, ui)}</span>
+                        <span className={transportStateClass}>{trackStateLabel(track, sequencer.isPlaying, ui)}</span>
                         <button
                           type="button"
-                          onClick={() => onDrummerSequencerTrackEnabledChange(track.id, !track.enabled)}
-                          disabled={!instrumentsRunning && !track.enabled}
-                          className={track.enabled ? transportStopButtonClass : transportStartButtonClass}
+                          onClick={() => onDrummerSequencerTrackEnabledChange(track.id, !trackIsRunning)}
+                          disabled={!instrumentsRunning && !trackIsRunning}
+                          className={trackIsRunning ? transportStopButtonClass : transportStartButtonClass}
                         >
-                          {track.enabled ? ui.stop : ui.start}
+                          {trackIsRunning ? ui.stop : ui.start}
                         </button>
                         <button
                           type="button"
@@ -5807,11 +5784,14 @@ export function SequencerPage({
             <div className="rounded-xl border border-teal-800/45 bg-slate-900/45 p-2.5">
               <div className="mb-2 text-xs uppercase tracking-[0.2em] text-teal-200">{ui.controllerSequencers}</div>
               <div className="space-y-3">
-                {sequencer.controllerSequencers.map((controllerSequencer, controllerSequencerIndex) => (
-                  <article
-                    key={controllerSequencer.id}
-                    className="relative rounded-xl border border-slate-700 bg-slate-900/70 p-2.5 pr-10"
-                  >
+                {sequencer.controllerSequencers.map((controllerSequencer, controllerSequencerIndex) => {
+                  const controllerSequencerIsRunning = sequencer.isPlaying && controllerSequencer.enabled;
+
+                  return (
+                    <article
+                      key={controllerSequencer.id}
+                      className="relative rounded-xl border border-slate-700 bg-slate-900/70 p-2.5 pr-10"
+                    >
                     {onHelpRequest ? (
                       <HelpIconButton
                         guiLanguage={guiLanguage}
@@ -5824,19 +5804,19 @@ export function SequencerPage({
                         {controllerSequencer.name || ui.controllerSequencerWithIndex(controllerSequencerIndex + 1)}
                       </div>
                       <span className={transportStateClass}>
-                        {controllerSequencer.enabled ? ui.running : ui.stopped}
+                        {controllerSequencerIsRunning ? ui.running : ui.stopped}
                       </span>
                       <button
                         type="button"
                         onClick={() =>
-                          onControllerSequencerEnabledChange(controllerSequencer.id, !controllerSequencer.enabled)
+                          onControllerSequencerEnabledChange(controllerSequencer.id, !controllerSequencerIsRunning)
                         }
-                        disabled={!instrumentsRunning && !controllerSequencer.enabled}
+                        disabled={!instrumentsRunning && !controllerSequencerIsRunning}
                         className={
-                          controllerSequencer.enabled ? transportStopButtonClass : transportStartButtonClass
+                          controllerSequencerIsRunning ? transportStopButtonClass : transportStartButtonClass
                         }
                       >
-                        {controllerSequencer.enabled ? ui.stop : ui.start}
+                        {controllerSequencerIsRunning ? ui.stop : ui.start}
                       </button>
                       <button
                         type="button"
@@ -6098,8 +6078,9 @@ export function SequencerPage({
                         onControllerSequencerKeypointRemove(controllerSequencer.id, keypointId)
                       }
                     />
-                  </article>
-                ))}
+                    </article>
+                  );
+                })}
               </div>
             </div>
           ) : null}

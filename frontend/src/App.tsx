@@ -350,6 +350,14 @@ function trackShouldRunContinuously(
   return track.enabled && (!track.padLoopEnabled || track.padLoopRepeat);
 }
 
+function hasEnabledPerformanceSequencer(state: SequencerState): boolean {
+  return (
+    state.tracks.some((track) => track.enabled || track.queuedEnabled === true) ||
+    state.drummerTracks.some((track) => track.enabled || track.queuedEnabled === true) ||
+    state.controllerSequencers.some((controllerSequencer) => controllerSequencer.enabled)
+  );
+}
+
 function buildDrummerRowTrackConfigs(
   drummerTrack: DrummerSequencerTrackState,
   levelMap: Map<number, number>,
@@ -1259,6 +1267,7 @@ export default function App() {
   const midiControllerInitSessionRef = useRef<string | null>(null);
   const pendingSequencerTransportStartRef = useRef(false);
   const sequencerTransportStartInFlightRef = useRef(false);
+  const arrangerTransportActiveRef = useRef(false);
   const {
     browserAudioError,
     browserAudioStatus,
@@ -1275,7 +1284,8 @@ export default function App() {
     sendDirectMidiEvent,
     sequencerRef,
     startSequencerTransport,
-    stopSequencerTransport
+    stopSequencerTransport,
+    markSequencerConfigSyncPending
   } = useSequencerRuntimeController({
     activeSessionId,
     activeSessionState,
@@ -1661,21 +1671,29 @@ export default function App() {
     }
   }, [activeSessionState]);
 
+  useEffect(() => {
+    if (!sequencer.isPlaying) {
+      arrangerTransportActiveRef.current = false;
+    }
+  }, [sequencer.isPlaying]);
+
   const onSequencerTrackEnabledChange = useCallback(
     (trackId: string, enabled: boolean) => {
       const sequencerState = sequencerRef.current;
       const hasOtherRunningTracks = sequencerState.tracks.some((track) => track.id !== trackId && track.enabled);
-      // Start is queued only when aligning with other running tracks.
-      // Stop is always queued while transport is running so the current loop can finish.
+      // Only arranger-driven playback queues track state changes for loop-boundary sync.
+      // Manual sequencer controls stay immediate so patterns can be composed freely while
+      // the multitrack arranger is stopped.
       const shouldQueueOnCycle =
-        sequencerState.isPlaying && (enabled ? hasOtherRunningTracks : true);
+        arrangerTransportActiveRef.current && sequencerState.isPlaying && (enabled ? hasOtherRunningTracks : true);
+      markSequencerConfigSyncPending();
       setSequencerTrackEnabled(trackId, enabled, shouldQueueOnCycle);
       setSequencerError(null);
       if (enabled) {
         startSequencerTransportFromUserAction();
       }
     },
-    [setSequencerTrackEnabled, startSequencerTransportFromUserAction]
+    [markSequencerConfigSyncPending, setSequencerTrackEnabled, startSequencerTransportFromUserAction]
   );
 
   const onDrummerSequencerTrackEnabledChange = useCallback(
@@ -1684,15 +1702,104 @@ export default function App() {
       const hasOtherRunningTracks =
         sequencerState.tracks.some((track) => track.enabled) ||
         sequencerState.drummerTracks.some((track) => track.id !== trackId && track.enabled);
-      const shouldQueueOnCycle = sequencerState.isPlaying && (enabled ? hasOtherRunningTracks : true);
+      const shouldQueueOnCycle =
+        arrangerTransportActiveRef.current && sequencerState.isPlaying && (enabled ? hasOtherRunningTracks : true);
+      markSequencerConfigSyncPending();
       setDrummerSequencerTrackEnabled(trackId, enabled, shouldQueueOnCycle);
       setSequencerError(null);
       if (enabled) {
         startSequencerTransportFromUserAction();
       }
     },
-    [setDrummerSequencerTrackEnabled, startSequencerTransportFromUserAction]
+    [markSequencerConfigSyncPending, setDrummerSequencerTrackEnabled, startSequencerTransportFromUserAction]
   );
+
+  const applyArrangerTransportTrackStates = useCallback((): boolean => {
+    const currentSequencer = useAppStore.getState().sequencer;
+    let hasArrangerTrack = false;
+
+    for (const track of currentSequencer.tracks) {
+      const shouldEnable = track.padLoopEnabled;
+      hasArrangerTrack = hasArrangerTrack || shouldEnable;
+      if (track.enabled !== shouldEnable || track.queuedEnabled !== null) {
+        markSequencerConfigSyncPending();
+        setSequencerTrackEnabled(track.id, shouldEnable, false);
+      }
+    }
+
+    for (const track of currentSequencer.drummerTracks) {
+      const shouldEnable = track.padLoopEnabled;
+      hasArrangerTrack = hasArrangerTrack || shouldEnable;
+      if (track.enabled !== shouldEnable || track.queuedEnabled !== null) {
+        markSequencerConfigSyncPending();
+        setDrummerSequencerTrackEnabled(track.id, shouldEnable, false);
+      }
+    }
+
+    for (const controllerSequencer of currentSequencer.controllerSequencers) {
+      const shouldEnable = controllerSequencer.padLoopEnabled;
+      hasArrangerTrack = hasArrangerTrack || shouldEnable;
+      if (controllerSequencer.enabled !== shouldEnable) {
+        markSequencerConfigSyncPending();
+        setControllerSequencerEnabled(controllerSequencer.id, shouldEnable);
+      }
+    }
+
+    return hasArrangerTrack;
+  }, [
+    markSequencerConfigSyncPending,
+    setControllerSequencerEnabled,
+    setDrummerSequencerTrackEnabled,
+    setSequencerTrackEnabled
+  ]);
+
+  const stopArrangerPadLoopTracks = useCallback(() => {
+    const currentSequencer = useAppStore.getState().sequencer;
+    for (const track of currentSequencer.tracks) {
+      if (track.padLoopEnabled && (track.enabled || track.queuedEnabled !== null)) {
+        markSequencerConfigSyncPending();
+        setSequencerTrackEnabled(track.id, false, false);
+      }
+    }
+    for (const track of currentSequencer.drummerTracks) {
+      if (track.padLoopEnabled && (track.enabled || track.queuedEnabled !== null)) {
+        markSequencerConfigSyncPending();
+        setDrummerSequencerTrackEnabled(track.id, false, false);
+      }
+    }
+    for (const controllerSequencer of currentSequencer.controllerSequencers) {
+      if (controllerSequencer.padLoopEnabled && controllerSequencer.enabled) {
+        markSequencerConfigSyncPending();
+        setControllerSequencerEnabled(controllerSequencer.id, false);
+      }
+    }
+  }, [
+    markSequencerConfigSyncPending,
+    setControllerSequencerEnabled,
+    setDrummerSequencerTrackEnabled,
+    setSequencerTrackEnabled
+  ]);
+
+  const startArrangerTransportFromUserAction = useCallback(() => {
+    setSequencerError(null);
+    const hasArrangerTrack = applyArrangerTransportTrackStates();
+    arrangerTransportActiveRef.current = hasArrangerTrack;
+    if (!hasArrangerTrack) {
+      pendingSequencerTransportStartRef.current = false;
+      if (useAppStore.getState().sequencer.isPlaying) {
+        void stopSequencerTransport(false)
+          .then(() => {
+            applyArrangerTransportTrackStates();
+          })
+          .catch((error) => {
+            setSequencerError(error instanceof Error ? error.message : "Failed to stop sequencer transport.");
+          });
+      }
+      return;
+    }
+
+    startSequencerTransportFromUserAction();
+  }, [applyArrangerTransportTrackStates, startSequencerTransportFromUserAction, stopSequencerTransport]);
 
   const onDrummerSequencerRowKeyPreview = useCallback(
     (note: number, channel: number) => {
@@ -1757,6 +1864,7 @@ export default function App() {
 
   const stopPerformance = useCallback(
     async (resetTransport: boolean) => {
+      arrangerTransportActiveRef.current = false;
       if (sequencerRef.current.isPlaying) {
         await stopSequencerTransport(false);
       }
@@ -2199,13 +2307,14 @@ export default function App() {
 
   const onControllerSequencerEnabledChange = useCallback(
     (controllerSequencerId: string, enabled: boolean) => {
+      markSequencerConfigSyncPending();
       setControllerSequencerEnabled(controllerSequencerId, enabled);
       setSequencerError(null);
       if (enabled) {
         startSequencerTransportFromUserAction();
       }
     },
-    [setControllerSequencerEnabled, startSequencerTransportFromUserAction]
+    [markSequencerConfigSyncPending, setControllerSequencerEnabled, startSequencerTransportFromUserAction]
   );
 
   useEffect(() => {
@@ -2373,24 +2482,20 @@ export default function App() {
   const onStopArrangerTransport = useCallback(
     (resetPlayhead: boolean) => {
       setSequencerError(null);
-      const currentSequencer = sequencerRef.current;
-      for (const track of currentSequencer.tracks) {
-        if (track.enabled || track.queuedEnabled !== null) {
-          setSequencerTrackEnabled(track.id, false, false);
+      arrangerTransportActiveRef.current = false;
+      stopArrangerPadLoopTracks();
+
+      const nextSequencer = useAppStore.getState().sequencer;
+      if (hasEnabledPerformanceSequencer(nextSequencer)) {
+        if (resetPlayhead && !nextSequencer.isPlaying) {
+          resetArrangerTransportToSelectionStart();
         }
+        return;
       }
-      for (const track of currentSequencer.drummerTracks) {
-        if (track.enabled || track.queuedEnabled !== null) {
-          setDrummerSequencerTrackEnabled(track.id, false, false);
-        }
-      }
-      for (const controllerSequencer of currentSequencer.controllerSequencers) {
-        if (controllerSequencer.enabled) {
-          setControllerSequencerEnabled(controllerSequencer.id, false);
-        }
-      }
+
       void stopSequencerTransport(false)
         .then(() => {
+          stopArrangerPadLoopTracks();
           if (resetPlayhead) {
             resetArrangerTransportToSelectionStart();
           }
@@ -2401,9 +2506,7 @@ export default function App() {
     },
     [
       resetArrangerTransportToSelectionStart,
-      setControllerSequencerEnabled,
-      setDrummerSequencerTrackEnabled,
-      setSequencerTrackEnabled,
+      stopArrangerPadLoopTracks,
       stopSequencerTransport
     ]
   );
@@ -2415,7 +2518,7 @@ export default function App() {
     onSequencerCycleForward: () => {
       void moveSequencerTransport(sequencerTransportStepsPerBeat(sequencer.timing));
     },
-    onSequencerTransportStart: startSequencerTransportFromUserAction,
+    onSequencerTransportStart: startArrangerTransportFromUserAction,
     onSequencerTransportStop: onStopArrangerTransport,
     onSequencerArrangerLoopSelectionChange: handleArrangerLoopSelectionChange
   };
