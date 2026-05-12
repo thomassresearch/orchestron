@@ -389,6 +389,68 @@ Automatiza un valor MIDI CC en el tiempo mediante una curva.
 - La insignia \`CC n\` muestra el controlador destino que se está enviando.`
     }
   },
+  sequencer_arpeggiator: {
+    english: {
+      title: "Arpeggiator",
+      markdown: `## Arpeggiator
+
+Route held notes through a backend-run arpeggiator.
+
+- Start/stop each arpeggiator independently from the arranger transport.
+- \`Input Channel\` is the virtual channel that melodic sequencers, piano rolls, drummer/external note sources, or other note senders play into.
+- \`Target Channel\` is the rack instrument channel that receives the generated arpeggiated notes.
+- Choose rate, gate, swing, octave range, repeats, pattern, probability, transpose, and restart behavior.
+- Use latch, scale quantize, scale root/type, and mode to shape how incoming notes are held and corrected.
+- Velocity modes can follow input velocity, use a fixed value, apply an accent cycle, or randomize output.
+- Built-in presets and user-saved presets are stored with the performance.
+- Held notes, active note, and the 16-step activity display reflect backend runtime state.`
+    },
+    german: {
+      title: "Arpeggiator",
+      markdown: `## Arpeggiator
+
+Leitet gehaltene Noten durch einen backend-gesteuerten Arpeggiator.
+
+- Jeden Arpeggiator unabhaengig vom Arranger-Transport starten/stoppen.
+- \`Eingangskanal\` ist der virtuelle Kanal, in den melodische Sequencer, Piano Rolls, Drummer-/externe Notenquellen oder andere Noten-Sender spielen.
+- \`Zielkanal\` ist der Rack-Instrumentkanal, der die erzeugten Arpeggio-Noten empfaengt.
+- Rate, Gate, Swing, Oktavbereich, Wiederholungen, Pattern, Wahrscheinlichkeit, Transposition und Neustart-Verhalten waehlen.
+- Latch, Skalenquantisierung, Grundton/Skalentyp und Modus formen, wie eingehende Noten gehalten und korrigiert werden.
+- Velocity-Modi koennen Eingangs-Velocity folgen, einen festen Wert nutzen, eine Akzentfolge anwenden oder Ausgaben zufaellig variieren.
+- Eingebaute Presets und benutzerdefinierte Presets werden mit der Performance gespeichert.
+- Gehaltene Noten, aktive Note und die 16-Step-Aktivitaetsanzeige spiegeln den Backend-Runtime-Zustand.`
+    },
+    french: {
+      title: "Arpegiateur",
+      markdown: `## Arpegiateur
+
+Fait passer les notes tenues par un arpegiateur execute cote backend.
+
+- Demarrer/arreter chaque arpegiateur independamment du transport arrangeur.
+- \`Canal entree\` est le canal virtuel joue par les sequenceurs melodiques, piano rolls, sources de notes batterie/externes ou autres emetteurs de notes.
+- \`Canal cible\` est le canal d'instrument du rack qui recoit les notes arpegiees generees.
+- Choisir vitesse, gate, swing, plage d'octaves, repetitions, pattern, probabilite, transposition et redemarrage.
+- Utiliser latch, quantification de gamme, tonique/type de gamme et mode pour definir comment les notes entrantes sont maintenues et corrigees.
+- Les modes velocite peuvent suivre la velocite d'entree, utiliser une valeur fixe, appliquer un cycle d'accents ou randomiser la sortie.
+- Les presets integres et les presets utilisateur sont stockes avec la performance.
+- Notes tenues, note active et affichage d'activite sur 16 pas refletent l'etat runtime backend.`
+    },
+    spanish: {
+      title: "Arpegiador",
+      markdown: `## Arpegiador
+
+Enruta notas retenidas por un arpegiador ejecutado en el backend.
+
+- Inicia/detiene cada arpegiador independientemente del transporte del arreglador.
+- \`Canal de entrada\` es el canal virtual que recibe notas de secuenciadores melodicos, piano rolls, fuentes de notas de bateria/externas u otros emisores de notas.
+- \`Canal destino\` es el canal de instrumento del rack que recibe las notas arpegiadas generadas.
+- Elige velocidad, gate, swing, rango de octavas, repeticiones, patron, probabilidad, transposicion y comportamiento de reinicio.
+- Usa latch, cuantizacion de escala, raiz/tipo de escala y modo para definir como se retienen y corrigen las notas entrantes.
+- Los modos de velocity pueden seguir la entrada, usar un valor fijo, aplicar un ciclo de acentos o aleatorizar la salida.
+- Los presets integrados y los presets de usuario se guardan con la performance.
+- Notas retenidas, nota activa y visualizacion de actividad de 16 pasos reflejan el estado runtime del backend.`
+    }
+  },
   sequencer_piano_rolls: {
     english: {
       title: "Piano Rolls",
@@ -775,6 +837,52 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 - Haz clic en el fondo para agregar un punto interior, arrastra puntos para remodelar la curva y haz doble clic en un punto interior para eliminarlo.
 - El primer y el ultimo punto actuan como anclas de borde, de modo que el bucle siempre tiene un inicio y un final definidos.
 - Si el mismo CC esta controlado por varias fuentes, en el receptor prevalece el ultimo valor transmitido.`
+  },
+  sequencer_arpeggiator: {
+    english: `### Routing Notes
+
+- Arpeggiator input channels must stay unique so each virtual instrument receives only its intended note stream.
+- The target channel cannot be another arpeggiator input channel, so arpeggiators do not chain into one another.
+- When an arpeggiator is stopped, notes on its input channel are consumed without producing arpeggiated output.
+
+### Runtime Notes
+
+- Arpeggiators run on the backend while the instrument session is active.
+- They do not follow arranger Play/Stop; each arpeggiator has its own Start/Stop control.
+- Saved performances restore arpeggiator routing, enabled state, settings, and user presets, but not transient held-note state.`,
+    german: `### Routing-Hinweise
+
+- Arpeggiator-Eingangskanaele muessen eindeutig bleiben, damit jedes virtuelle Instrument nur seinen vorgesehenen Notenstrom empfaengt.
+- Der Zielkanal darf kein anderer Arpeggiator-Eingangskanal sein; Arpeggiatoren werden daher nicht ineinander verkettet.
+- Wenn ein Arpeggiator gestoppt ist, werden Noten auf seinem Eingangskanal verbraucht, ohne Arpeggio-Ausgabe zu erzeugen.
+
+### Runtime-Hinweise
+
+- Arpeggiatoren laufen im Backend, solange die Instrument-Session aktiv ist.
+- Sie folgen nicht dem Arranger-Play/Stop; jeder Arpeggiator hat eine eigene Start/Stop-Steuerung.
+- Gespeicherte Performances stellen Routing, Aktiv-Zustand, Einstellungen und Benutzer-Presets wieder her, aber keine transient gehaltenen Noten.`,
+    french: `### Notes de routage
+
+- Les canaux d'entree des arpegiateurs doivent rester uniques afin que chaque instrument virtuel recoive seulement son flux de notes.
+- Le canal cible ne peut pas etre un autre canal d'entree d'arpegiateur ; les arpegiateurs ne sont donc pas chaines entre eux.
+- Quand un arpegiateur est arrete, les notes de son canal d'entree sont consommees sans produire de sortie arpegiee.
+
+### Notes runtime
+
+- Les arpegiateurs tournent cote backend tant que la session instrument est active.
+- Ils ne suivent pas Play/Stop de l'arrangeur ; chaque arpegiateur possede son propre controle Start/Stop.
+- Les performances sauvegardees restaurent routage, etat actif, reglages et presets utilisateur, mais pas les notes tenues transitoires.`,
+    spanish: `### Notas de ruteo
+
+- Los canales de entrada de arpegiador deben ser unicos para que cada instrumento virtual reciba solo su flujo de notas previsto.
+- El canal destino no puede ser otro canal de entrada de arpegiador, asi que los arpegiadores no se encadenan entre si.
+- Cuando un arpegiador esta detenido, las notas de su canal de entrada se consumen sin producir salida arpegiada.
+
+### Notas runtime
+
+- Los arpegiadores corren en el backend mientras la sesion de instrumentos esta activa.
+- No siguen Play/Stop del arreglador; cada arpegiador tiene su propio control Start/Stop.
+- Las performances guardadas restauran ruteo, estado activo, ajustes y presets de usuario, pero no el estado transitorio de notas retenidas.`
   },
   sequencer_piano_rolls: {
     english: `### Live Input Behavior

@@ -208,7 +208,6 @@ type SequencerUiCopy = {
   arpeggiators: string;
   addArpeggiator: string;
   arpeggiatorWithIndex: (index: number) => string;
-  deviceName: string;
   inputChannel: string;
   targetChannel: string;
   preset: string;
@@ -419,7 +418,6 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     arpeggiators: "Arpeggiators",
     addArpeggiator: "Add Arpeggiator",
     arpeggiatorWithIndex: (index) => `Arpeggiator ${index}`,
-    deviceName: "Name",
     inputChannel: "Input Channel",
     targetChannel: "Target Channel",
     preset: "Preset",
@@ -602,7 +600,6 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     arpeggiators: "Arpeggiatoren",
     addArpeggiator: "Arpeggiator hinzufuegen",
     arpeggiatorWithIndex: (index) => `Arpeggiator ${index}`,
-    deviceName: "Name",
     inputChannel: "Eingangskanal",
     targetChannel: "Zielkanal",
     preset: "Preset",
@@ -785,7 +782,6 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     arpeggiators: "Arpegiateurs",
     addArpeggiator: "Ajouter arpegiateur",
     arpeggiatorWithIndex: (index) => `Arpegiateur ${index}`,
-    deviceName: "Nom",
     inputChannel: "Canal entree",
     targetChannel: "Canal cible",
     preset: "Preset",
@@ -968,7 +964,6 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     arpeggiators: "Arpegiadores",
     addArpeggiator: "Agregar arpegiador",
     arpeggiatorWithIndex: (index) => `Arpegiador ${index}`,
-    deviceName: "Nombre",
     inputChannel: "Canal de entrada",
     targetChannel: "Canal destino",
     preset: "Preset",
@@ -6107,15 +6102,21 @@ export function SequencerPage({
             const visualizationVelocity = Math.max(18, arpeggiator.lastVelocity ?? 72);
             const accentCycleText = arpeggiator.accentCycle.join(",");
             return (
-              <article key={arpeggiator.id} className="rounded-xl border border-slate-700 bg-slate-900/65 p-2.5">
-                <div className="mb-2 flex flex-wrap items-center gap-2">
-                  <input
-                    type="text"
-                    value={arpeggiator.name || ui.arpeggiatorWithIndex(arpeggiatorIndex + 1)}
-                    onChange={(event) => onArpeggiatorChange(arpeggiator.id, { name: event.target.value })}
-                    aria-label={ui.deviceName}
-                    className={`${controlFieldClass} min-w-[180px] flex-1`}
+              <article
+                key={arpeggiator.id}
+                className="relative rounded-xl border border-slate-700 bg-slate-900/65 p-2.5 pr-10"
+              >
+                {onHelpRequest ? (
+                  <HelpIconButton
+                    guiLanguage={guiLanguage}
+                    onClick={() => onHelpRequest("sequencer_arpeggiator")}
+                    className="absolute right-2 top-2 z-10 inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-500 bg-slate-950/90 text-xs font-bold text-slate-100 transition hover:border-accent hover:text-accent"
                   />
+                ) : null}
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-200">
+                    {arpeggiator.name || ui.arpeggiatorWithIndex(arpeggiatorIndex + 1)}
+                  </div>
                   <span className={transportStateClass}>{arpeggiator.enabled ? ui.running : ui.stopped}</span>
                   <button
                     type="button"
@@ -6128,7 +6129,7 @@ export function SequencerPage({
                     type="button"
                     onClick={() => onRemoveArpeggiator(arpeggiator.id)}
                     disabled={!canRemovePerformDevice}
-                    className="rounded-md border border-rose-500/60 bg-rose-500/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-rose-200 transition hover:bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="ml-auto rounded-md border border-rose-500/60 bg-rose-500/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-rose-200 transition hover:bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {ui.remove}
                   </button>
