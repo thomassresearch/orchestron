@@ -61,4 +61,11 @@ The visualization follows backend runtime status, so it reflects the actual arpe
 
 Saving a performance stores arpeggiator routing, enabled state, settings, and user presets. Transient runtime state such as currently held notes and active step is not persisted.
 
+## Screenshots
+
+<p align="center">
+  <img src="../../screenshots/perform_arpeggiator.png" alt="Performance arpeggiator panel" width="1100" style="max-width: 100%; height: auto;" />
+</p>
+<p align="center"><em>Arpeggiator panel with routing, preset controls, timing settings, and live activity display.</em></p>
+
 **Navigation:** [Up](performance.md) | [Prev](controller_sequencers.md) | [Next](piano_rolls.md)
