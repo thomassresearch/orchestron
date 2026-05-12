@@ -62,6 +62,8 @@ The MIDI controller panel provides 6 controllers that can each be assigned an in
 
 ![Perform: Melodic, Drummer, and Controller Sequencers](screenshots/perform_sequencer_types.png)
 
+![Perform: Arpeggiator](screenshots/perform_arpeggiator.png)
+
 ![Perform: Keyboard and Controller Panel](screenshots/perform_keyboard_and_controller_panel.png)
 
 ### Configuration
