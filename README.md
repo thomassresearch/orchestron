@@ -14,7 +14,7 @@ Read the complete user documentation in [user_documentation.md](documentation/us
 
 ## Built With Codex
 
-This application was built using the Codex App with `GPT-5.3-Codex`, `GPT-5.4` and `GPT-5.r5` using **Extra High** reasoning effort.
+This application was built using the Codex App with `GPT-5.3-Codex`, `GPT-5.4` and `GPT-5.5` using **Extra High** reasoning effort.
 
 ## Features
 
