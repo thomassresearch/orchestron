@@ -12,6 +12,7 @@ export type HelpDocId =
   | "sequencer_multitrack_arranger"
   | "sequencer_drummer_sequencer"
   | "sequencer_controller_sequencer"
+  | "sequencer_arpeggiator"
   | "sequencer_piano_rolls"
   | "sequencer_midi_controllers"
   | "config_audio_engine"

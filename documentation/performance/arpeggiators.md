@@ -22,6 +22,10 @@ Input channels must be unique across arpeggiators. The target channel cannot be 
 
 When an arpeggiator is stopped, notes on its input channel are still consumed but no arpeggiated notes are emitted. This keeps the virtual-channel routing predictable.
 
+## Panel Header and Help
+
+Each arpeggiator card uses a static device label such as `Arpeggiator 1` in the same header style as the other perform devices. The status badge plus `Start`/`Stop` and `Remove` controls sit in the card header, and the `?` button opens the arpeggiator-specific integrated help page in the current GUI language.
+
 ## Running Behavior
 
 Arpeggiators run on the backend while the instrument engine session is running. They are not tied to the multitrack arranger transport.
