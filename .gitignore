@@ -19,3 +19,4 @@ coverage.xml
 .DS_Store
 
 tools/midi_pulse
+security_analysis/
