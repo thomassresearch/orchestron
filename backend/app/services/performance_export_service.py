@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from io import BytesIO
-import os
 from pathlib import Path, PurePosixPath
 import re
 from unittest.mock import patch
@@ -222,7 +221,15 @@ class PerformanceExportService:
                 if not isinstance(raw_node_config, dict):
                     continue
                 updated = dict(raw_node_config)
-                archive_path = self._resolve_bundled_archive_path(updated, bundle_index)
+                archive_path = self._resolve_bundled_archive_path(
+                    updated,
+                    bundle_index,
+                    raw_path_error=(
+                        f"GEN node '{node_id}' uses samplePath. Upload the audio file before exporting a performance CSD."
+                    )
+                    if self._is_gen01_node_config(updated)
+                    else None,
+                )
                 if archive_path is None:
                     continue
                 updated["samplePath"] = archive_path
@@ -235,17 +242,38 @@ class PerformanceExportService:
                 if not isinstance(raw_node_config, dict):
                     continue
                 updated = dict(raw_node_config)
-                archive_path = self._resolve_bundled_archive_path(updated, bundle_index)
+                archive_path = self._resolve_bundled_archive_path(
+                    updated,
+                    bundle_index,
+                    raw_path_error=(
+                        f"sfload node '{node_id}' uses samplePath. Upload the SoundFont file before exporting a performance CSD."
+                    ),
+                )
                 if archive_path is None:
                     continue
                 updated["samplePath"] = archive_path
                 updated.pop("sampleAsset", None)
                 sfload_nodes[node_id] = updated
 
+        for node in graph.nodes:
+            if node.opcode != "sfload":
+                continue
+            raw_config = sfload_nodes.get(node.id) if isinstance(sfload_nodes, dict) else None
+            if isinstance(raw_config, dict) and self._has_exportable_sample_reference(raw_config):
+                continue
+            raw_filename = node.params.get("filename")
+            if isinstance(raw_filename, str) and raw_filename.strip():
+                raise ValueError(
+                    f"sfload node '{node.id}' uses a raw filename parameter. "
+                    "Upload the SoundFont file before exporting a performance CSD."
+                )
+
     def _resolve_bundled_archive_path(
         self,
         raw_node_config: dict[str, object],
         bundle_index: "_AssetBundleIndex",
+        *,
+        raw_path_error: str | None,
     ) -> str | None:
         sample_asset = raw_node_config.get("sampleAsset")
         if isinstance(sample_asset, dict):
@@ -255,9 +283,40 @@ class PerformanceExportService:
 
         sample_path = raw_node_config.get("samplePath")
         if isinstance(sample_path, str) and sample_path.strip():
-            return bundle_index.add_path_asset(sample_path.strip()).archive_path
+            if raw_path_error is not None:
+                raise ValueError(raw_path_error)
 
         return None
+
+    @staticmethod
+    def _has_exportable_sample_reference(raw_node_config: dict[str, object]) -> bool:
+        sample_asset = raw_node_config.get("sampleAsset")
+        if isinstance(sample_asset, dict):
+            stored_name = sample_asset.get("stored_name")
+            if isinstance(stored_name, str) and stored_name.strip():
+                return True
+        sample_path = raw_node_config.get("samplePath")
+        return isinstance(sample_path, str) and sample_path.strip().startswith("assets/")
+
+    @staticmethod
+    def _is_gen01_node_config(raw_node_config: dict[str, object]) -> bool:
+        routine_name = raw_node_config.get("routineName")
+        if isinstance(routine_name, str):
+            normalized = routine_name.strip().lower()
+            if normalized:
+                return normalized in {"1", "gen1", "gen01"}
+
+        routine_number = raw_node_config.get("routineNumber")
+        if isinstance(routine_number, bool):
+            return int(routine_number) == 1
+        if isinstance(routine_number, int | float):
+            return abs(round(routine_number)) == 1
+        if isinstance(routine_number, str):
+            try:
+                return abs(round(float(routine_number.strip()))) == 1
+            except ValueError:
+                return False
+        return False
 
     @staticmethod
     def _offline_engine_config(engine_config: EngineConfig) -> EngineConfig:
@@ -525,10 +584,13 @@ class _AssetBundleIndex:
         self._gen_asset_service = gen_asset_service
         self.assets: list[BundledAsset] = []
         self._archive_path_by_source: dict[str, BundledAsset] = {}
-        self._used_archive_paths: set[str] = set()
 
     def add_stored_asset(self, stored_name: str) -> BundledAsset:
         source_path = self._gen_asset_service.resolve_audio_path(stored_name)
+        if not source_path.exists():
+            raise ValueError(f"Referenced audio asset '{stored_name}' does not exist on the backend.")
+        if not source_path.is_file():
+            raise ValueError(f"Referenced audio asset '{stored_name}' is not a file.")
         source_key = str(source_path.resolve())
         existing = self._archive_path_by_source.get(source_key)
         if existing is not None:
@@ -537,46 +599,4 @@ class _AssetBundleIndex:
         bundled = BundledAsset(source_path=source_path, archive_path=str(archive_path))
         self._archive_path_by_source[source_key] = bundled
         self.assets.append(bundled)
-        self._used_archive_paths.add(str(archive_path))
         return bundled
-
-    def add_path_asset(self, sample_path: str) -> BundledAsset:
-        source_path = self._resolve_sample_path(sample_path)
-        source_key = str(source_path.resolve())
-        existing = self._archive_path_by_source.get(source_key)
-        if existing is not None:
-            return existing
-
-        archive_path = self._unique_archive_path(source_path.name)
-        bundled = BundledAsset(source_path=source_path, archive_path=archive_path)
-        self._archive_path_by_source[source_key] = bundled
-        self.assets.append(bundled)
-        return bundled
-
-    def _resolve_sample_path(self, sample_path: str) -> Path:
-        expanded = Path(sample_path).expanduser()
-        candidate = expanded if expanded.is_absolute() else (Path.cwd() / expanded)
-        resolved = candidate.resolve()
-        if not resolved.exists():
-            raise ValueError(f"Referenced sample file '{sample_path}' does not exist on the backend.")
-        if not resolved.is_file():
-            raise ValueError(f"Referenced sample path '{sample_path}' is not a file.")
-        return resolved
-
-    def _unique_archive_path(self, filename: str) -> str:
-        basename = self._sanitize_filename(filename)
-        stem, suffix = os.path.splitext(basename)
-        candidate = str(PurePosixPath("assets") / basename)
-        index = 2
-        while candidate in self._used_archive_paths:
-            next_name = f"{stem}_{index}{suffix}"
-            candidate = str(PurePosixPath("assets") / next_name)
-            index += 1
-        self._used_archive_paths.add(candidate)
-        return candidate
-
-    @staticmethod
-    def _sanitize_filename(filename: str) -> str:
-        safe = re.sub(r"[^A-Za-z0-9._-]+", "_", Path(filename).name)
-        safe = safe.strip("._")
-        return safe or "asset.bin"

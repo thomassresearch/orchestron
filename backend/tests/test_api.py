@@ -3673,20 +3673,33 @@ def test_patch_bundle_export_uses_zip_when_sfload_asset_is_referenced(tmp_path: 
             assert archive.read(f"audio/{stored_name}") == audio_bytes
 
 
-def test_performance_csd_export_bundle_includes_csd_midi_readme_and_assets(tmp_path: Path) -> None:
-    asset_dir = tmp_path / "gen_audio_assets"
-    asset_dir.mkdir(parents=True, exist_ok=True)
-    stored_name = "sample.aiff"
-    uploaded_sample_bytes = b"FORMoffline"
-    (asset_dir / stored_name).write_bytes(uploaded_sample_bytes)
+def _performance_csd_export_payload(
+    *,
+    gen_node_config: dict[str, object] | None = None,
+    sfload_node_config: dict[str, object] | None = None,
+    sfload_params: dict[str, object] | None = None,
+) -> dict[str, object]:
+    nodes = [
+        {"id": "a1", "opcode": "const_a", "params": {"value": 0.1}, "position": {"x": 20, "y": 20}},
+        {"id": "o1", "opcode": "outs", "params": {}, "position": {"x": 200, "y": 20}},
+    ]
+    ui_layout: dict[str, object] = {}
+    if gen_node_config is not None:
+        nodes.append({"id": "g1", "opcode": "GEN", "params": {}, "position": {"x": 20, "y": 140}})
+        ui_layout["gen_nodes"] = {"g1": gen_node_config}
+    if sfload_node_config is not None or sfload_params is not None:
+        nodes.append(
+            {
+                "id": "s1",
+                "opcode": "sfload",
+                "params": sfload_params or {},
+                "position": {"x": 20, "y": 260},
+            }
+        )
+        if sfload_node_config is not None:
+            ui_layout["sfload_nodes"] = {"s1": sfload_node_config}
 
-    external_asset_dir = tmp_path / "external_assets"
-    external_asset_dir.mkdir(parents=True, exist_ok=True)
-    external_soundfont_path = external_asset_dir / "lead.sf2"
-    external_soundfont_bytes = b"sfbkoffline"
-    external_soundfont_path.write_bytes(external_soundfont_bytes)
-
-    payload = {
+    return {
         "performanceExport": {
             "format": "orchestron.performance",
             "version": 1,
@@ -3706,39 +3719,12 @@ def test_performance_csd_export_bundle_includes_csd_midi_readme_and_assets(tmp_p
                     "description": "includes bundled assets",
                     "schema_version": 1,
                     "graph": {
-                        "nodes": [
-                            {"id": "a1", "opcode": "const_a", "params": {"value": 0.1}, "position": {"x": 20, "y": 20}},
-                            {"id": "o1", "opcode": "outs", "params": {}, "position": {"x": 200, "y": 20}},
-                            {"id": "g1", "opcode": "GEN", "params": {}, "position": {"x": 20, "y": 140}},
-                            {"id": "s1", "opcode": "sfload", "params": {}, "position": {"x": 20, "y": 260}},
-                        ],
+                        "nodes": nodes,
                         "connections": [
                             {"from_node_id": "a1", "from_port_id": "aout", "to_node_id": "o1", "to_port_id": "left"},
                             {"from_node_id": "a1", "from_port_id": "aout", "to_node_id": "o1", "to_port_id": "right"},
                         ],
-                        "ui_layout": {
-                            "gen_nodes": {
-                                "g1": {
-                                    "mode": "ftgen",
-                                    "tableNumber": 5,
-                                    "startTime": 0,
-                                    "tableSize": 16384,
-                                    "routineNumber": 1,
-                                    "normalize": True,
-                                    "sampleAsset": {
-                                        "asset_id": "asset-1",
-                                        "original_name": "demo.aiff",
-                                        "stored_name": stored_name,
-                                        "content_type": "audio/aiff",
-                                        "size_bytes": len(uploaded_sample_bytes),
-                                    },
-                                    "sampleSkipTime": 0,
-                                    "sampleFormat": 0,
-                                    "sampleChannel": 0,
-                                }
-                            },
-                            "sfload_nodes": {"s1": {"samplePath": str(external_soundfont_path)}},
-                        },
+                        "ui_layout": ui_layout,
                         "engine_config": {"sr": 44100, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
                     },
                 }
@@ -3799,11 +3785,61 @@ def test_performance_csd_export_bundle_includes_csd_midi_readme_and_assets(tmp_p
         },
     }
 
+
+def test_performance_csd_export_bundle_includes_csd_midi_readme_and_assets(tmp_path: Path) -> None:
+    asset_dir = tmp_path / "gen_audio_assets"
+    asset_dir.mkdir(parents=True, exist_ok=True)
+    stored_name = "sample.aiff"
+    uploaded_sample_bytes = b"FORMoffline"
+    (asset_dir / stored_name).write_bytes(uploaded_sample_bytes)
+
+    soundfont_stored_name = "lead.sf2"
+    soundfont_bytes = b"sfbkoffline"
+    (asset_dir / soundfont_stored_name).write_bytes(soundfont_bytes)
+
+    payload = _performance_csd_export_payload(
+        gen_node_config={
+            "mode": "ftgen",
+            "tableNumber": 5,
+            "startTime": 0,
+            "tableSize": 16384,
+            "routineNumber": 1,
+            "normalize": True,
+            "sampleAsset": {
+                "asset_id": "asset-1",
+                "original_name": "demo.aiff",
+                "stored_name": stored_name,
+                "content_type": "audio/aiff",
+                "size_bytes": len(uploaded_sample_bytes),
+            },
+            "sampleSkipTime": 0,
+            "sampleFormat": 0,
+            "sampleChannel": 0,
+        },
+        sfload_node_config={
+            "sampleAsset": {
+                "asset_id": "asset-2",
+                "original_name": "lead.sf2",
+                "stored_name": soundfont_stored_name,
+                "content_type": "audio/sf2",
+                "size_bytes": len(soundfont_bytes),
+            },
+            "samplePath": "",
+        },
+    )
+
+    external_secret_path = tmp_path / "outside-secret.sf2"
+    external_secret_bytes = b"outside-secret-soundfont"
+    external_secret_path.write_bytes(external_secret_bytes)
+
     with _client(tmp_path) as client:
         response = client.post("/api/bundles/export/performance-csd", json=payload)
         assert response.status_code == 200
         assert response.headers["x-orchestron-export-format"] == "zip"
         assert response.headers["content-type"].startswith("application/zip")
+
+        assert external_secret_bytes not in response.content
+        assert str(external_secret_path).encode("utf-8") not in response.content
 
         with zipfile.ZipFile(BytesIO(response.content), "r") as archive:
             bundle_root = "Offline_Export"
@@ -3812,16 +3848,16 @@ def test_performance_csd_export_bundle_includes_csd_midi_readme_and_assets(tmp_p
             assert f"{bundle_root}/Offline_Export.mid" in entries
             assert f"{bundle_root}/README.txt" in entries
             assert f"{bundle_root}/assets/{stored_name}" in entries
-            assert f"{bundle_root}/assets/lead.sf2" in entries
+            assert f"{bundle_root}/assets/{soundfont_stored_name}" in entries
             assert archive.read(f"{bundle_root}/assets/{stored_name}") == uploaded_sample_bytes
-            assert archive.read(f"{bundle_root}/assets/lead.sf2") == external_soundfont_bytes
+            assert archive.read(f"{bundle_root}/assets/{soundfont_stored_name}") == soundfont_bytes
 
             csd = archive.read(f"{bundle_root}/Offline_Export.csd").decode("utf-8")
             assert "sr = 48000" in csd
             assert "ksmps = 1" in csd
             assert f'"assets/{stored_name}"' in csd
-            assert '"assets/lead.sf2"' in csd
-            assert str(external_soundfont_path) not in csd
+            assert f'"assets/{soundfont_stored_name}"' in csd
+            assert str(tmp_path) not in csd
             assert "-F Offline_Export.mid" in csd
             assert "f 0 " in csd
 
@@ -3834,6 +3870,137 @@ def test_performance_csd_export_bundle_includes_csd_midi_readme_and_assets(tmp_p
             assert b"\xFF\x51\x03" in midi_bytes
             assert b"\x90\x3C\x64" in midi_bytes
             assert b"\xB0\x01" in midi_bytes
+
+
+@pytest.mark.parametrize(
+    ("node_kind", "sample_path"),
+    [
+        ("gen", "absolute"),
+        ("gen", "../secret.wav"),
+        ("sfload", "absolute"),
+        ("sfload", "../secret.sf2"),
+    ],
+)
+def test_performance_csd_export_rejects_raw_sample_paths(
+    tmp_path: Path,
+    node_kind: str,
+    sample_path: str,
+) -> None:
+    secret_path = tmp_path / "outside-secret.bin"
+    secret_bytes = b"raw-sample-path-secret"
+    secret_path.write_bytes(secret_bytes)
+    resolved_sample_path = str(secret_path) if sample_path == "absolute" else sample_path
+
+    gen_node_config = None
+    sfload_node_config = None
+    expected_message = "samplePath. Upload"
+    if node_kind == "gen":
+        gen_node_config = {
+            "mode": "ftgen",
+            "tableNumber": 5,
+            "startTime": 0,
+            "tableSize": 16384,
+            "routineNumber": 1,
+            "normalize": True,
+            "sampleAsset": None,
+            "samplePath": resolved_sample_path,
+            "sampleSkipTime": 0,
+            "sampleFormat": 0,
+            "sampleChannel": 0,
+        }
+    else:
+        sfload_node_config = {"sampleAsset": None, "samplePath": resolved_sample_path}
+
+    payload = _performance_csd_export_payload(
+        gen_node_config=gen_node_config,
+        sfload_node_config=sfload_node_config,
+    )
+
+    with _client(tmp_path) as client:
+        response = client.post("/api/bundles/export/performance-csd", json=payload)
+
+    assert response.status_code == 400
+    assert expected_message in response.text
+    assert secret_bytes not in response.content
+    assert str(secret_path).encode("utf-8") not in response.content
+
+
+def test_performance_csd_export_rejects_sfload_legacy_filename_param(tmp_path: Path) -> None:
+    secret_path = tmp_path / "legacy-secret.sf2"
+    secret_bytes = b"legacy-filename-secret"
+    secret_path.write_bytes(secret_bytes)
+    payload = _performance_csd_export_payload(sfload_params={"filename": str(secret_path)})
+
+    with _client(tmp_path) as client:
+        response = client.post("/api/bundles/export/performance-csd", json=payload)
+
+    assert response.status_code == 400
+    assert "raw filename parameter" in response.text
+    assert secret_bytes not in response.content
+    assert str(secret_path).encode("utf-8") not in response.content
+
+
+def test_performance_csd_export_rejects_stored_asset_symlink_escape(tmp_path: Path) -> None:
+    asset_dir = tmp_path / "gen_audio_assets"
+    asset_dir.mkdir(parents=True, exist_ok=True)
+    secret_path = tmp_path / "outside-secret.wav"
+    secret_bytes = b"stored-asset-symlink-secret"
+    secret_path.write_bytes(secret_bytes)
+    stored_name = "linked.wav"
+    try:
+        (asset_dir / stored_name).symlink_to(secret_path)
+    except OSError as err:
+        pytest.skip(f"symlink creation is unavailable: {err}")
+
+    payload = _performance_csd_export_payload(
+        gen_node_config={
+            "mode": "ftgen",
+            "tableNumber": 5,
+            "startTime": 0,
+            "tableSize": 16384,
+            "routineNumber": 1,
+            "normalize": True,
+            "sampleAsset": {
+                "asset_id": "asset-1",
+                "original_name": "linked.wav",
+                "stored_name": stored_name,
+                "content_type": "audio/wav",
+                "size_bytes": len(secret_bytes),
+            },
+            "sampleSkipTime": 0,
+            "sampleFormat": 0,
+            "sampleChannel": 0,
+        }
+    )
+
+    with _client(tmp_path) as client:
+        response = client.post("/api/bundles/export/performance-csd", json=payload)
+
+    assert response.status_code == 400
+    assert "escapes configured asset directory" in response.text
+    assert secret_bytes not in response.content
+    assert str(secret_path).encode("utf-8") not in response.content
+
+
+def test_performance_csd_export_rejects_missing_stored_asset(tmp_path: Path) -> None:
+    payload = _performance_csd_export_payload(
+        sfload_node_config={
+            "sampleAsset": {
+                "asset_id": "asset-1",
+                "original_name": "missing.sf2",
+                "stored_name": "missing.sf2",
+                "content_type": "audio/sf2",
+                "size_bytes": 1,
+            },
+            "samplePath": "",
+        }
+    )
+
+    with _client(tmp_path) as client:
+        response = client.post("/api/bundles/export/performance-csd", json=payload)
+
+    assert response.status_code == 400
+    assert "does not exist on the backend" in response.text
 
 
 def test_patch_bundle_export_uses_zip_when_gen01_named_routine_is_referenced(tmp_path: Path) -> None:

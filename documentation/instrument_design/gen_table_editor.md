@@ -107,6 +107,7 @@ Benefits:
 
 - Enter an absolute path manually (advanced/local use)
 - This is less portable across machines
+- Offline performance CSD export does not bundle fallback paths; upload the file first when you need a portable render ZIP
 
 ### Additional GEN01 Parameters
 

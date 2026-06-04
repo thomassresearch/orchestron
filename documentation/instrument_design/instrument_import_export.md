@@ -19,8 +19,8 @@ File extensions:
 
 Orchestron chooses the format automatically:
 
-- JSON export when no referenced uploaded GEN01 audio assets are present
-- ZIP export when the instrument references uploaded GEN01 assets (so audio dependencies can be included)
+- JSON export when no referenced uploaded GEN01 or `sfload` assets are present
+- ZIP export when the instrument references uploaded GEN01 audio assets or `sfload` SoundFont assets (so audio dependencies can be included)
 
 ### 2. Csound CSD Export (`Export CSD` button)
 
@@ -37,7 +37,7 @@ An instrument bundle contains:
 - schema version
 - full patch graph (`nodes`, `connections`, `ui_layout`, `engine_config`)
 
-If a ZIP bundle is required, it also contains referenced GEN audio assets under an `audio/` folder in the archive.
+If a ZIP bundle is required, it also contains referenced uploaded audio/SoundFont assets under an `audio/` folder in the archive.
 
 ## Instrument Import (`Import` button)
 
@@ -61,9 +61,9 @@ Per patch, you can choose:
 
 The dialog validates name collisions before proceeding.
 
-## GEN01 Audio Dependency Handling
+## Audio Dependency Handling
 
-For ZIP imports that include referenced GEN01 audio assets:
+For ZIP imports that include referenced GEN01 audio or `sfload` SoundFont assets:
 
 - Orchestron validates the archive structure
 - Imports the audio files into backend storage automatically

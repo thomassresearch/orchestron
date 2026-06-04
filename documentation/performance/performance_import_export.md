@@ -29,7 +29,7 @@ A performance export includes:
 - Referenced patch definitions for the instruments currently assigned in the performance rack
 - Patch names (included in the snapshot for easier remapping on import)
 
-If any referenced patch contains uploaded GEN01 audio assets, export is automatically produced as a ZIP and includes those assets.
+If any referenced patch contains uploaded GEN01 audio assets or `sfload` SoundFont assets, export is automatically produced as a ZIP and includes those assets.
 
 ## Offline Render Export (`Export CSD`)
 
@@ -46,8 +46,10 @@ This ZIP contains:
 - Offline render settings forced to `sr = 48000` and `ksmps = 1`
 - A finite `f 0 ...` score duration sized for the exported arranger playback
 - The arranger playback rendered as a `.mid` file from beginning to arrangement end
-- Referenced bundled sample audio / SoundFont files used by the exported instruments
+- Uploaded bundled sample audio / SoundFont files used by the exported instruments
 - A `README.txt` with the exact Csound command line needed to render the package
+
+Only assets stored through Orchestron's upload flow are bundled. If a GEN01 or `sfload` node uses a manual local `samplePath`, upload that file first; offline performance CSD export rejects raw filesystem paths instead of reading arbitrary backend files.
 
 ZIP layout:
 

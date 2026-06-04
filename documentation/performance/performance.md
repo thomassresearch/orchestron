@@ -15,7 +15,7 @@ This chapter covers the `Perform` page (labeled `Perform` / `Performance` depend
 - Perform live with piano rolls and manual MIDI controller knobs
 - Save/load/clone/delete performances
 - Import/export performance bundles (with optional patch definitions)
-- Export an offline Csound render ZIP with `.csd`, `.mid`, assets, and render instructions
+- Export an offline Csound render ZIP with `.csd`, `.mid`, uploaded assets, and render instructions
 
 ## Chapter Contents
 
