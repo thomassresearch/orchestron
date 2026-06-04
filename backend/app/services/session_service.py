@@ -16,6 +16,10 @@ from backend.app.engine.csound_worker import CsoundWorker
 from backend.app.engine.midi_scheduler import ClockDomainMapping
 from backend.app.engine.session_runtime import RuntimeSession
 from backend.app.models.session import (
+    BROWSER_CLOCK_MAX_BLOCKS_PER_REQUEST,
+    BROWSER_CLOCK_MAX_QUEUE_WATERMARK_MS,
+    BROWSER_CLOCK_MAX_REPORTED_FRAMES,
+    BROWSER_CLOCK_MAX_SAMPLE_RATE,
     BrowserClockClaimControllerRequest,
     BrowserClockManualMidiRequest,
     BrowserClockQueuePadControlRequest,
@@ -330,6 +334,7 @@ class SessionService:
         self._assert_browser_clock_mode(runtime)
         if not runtime.worker.is_running:
             raise HTTPException(status_code=409, detail="Session must be running before claiming browser-clock control.")
+        self._validate_browser_clock_claim_budget(request)
 
         previous: BrowserClockControllerLease | None = None
         lease = BrowserClockControllerLease(
@@ -444,6 +449,7 @@ class SessionService:
     ) -> None:
         self._remember_running_loop()
         _runtime, lease = await self.require_browser_clock_controller(session_id, connection_id)
+        self._validate_browser_clock_timing_budget(lease, request)
         server_now_ns = server_received_ns or time.perf_counter_ns()
         lease.timing_mapping.update(
             remote_timestamp_ns=int(round(request.client_perf_ms * 1_000_000.0)),
@@ -542,6 +548,50 @@ class SessionService:
             raise HTTPException(status_code=409, detail="This browser is not the active controller for the session.")
         return runtime, lease
 
+    @staticmethod
+    def _validate_browser_clock_claim_budget(request: BrowserClockClaimControllerRequest) -> None:
+        max_queue_frames = int(
+            round(request.audio_context_sample_rate * (BROWSER_CLOCK_MAX_QUEUE_WATERMARK_MS / 1000.0))
+        )
+        if request.audio_context_sample_rate > BROWSER_CLOCK_MAX_SAMPLE_RATE:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Browser-clock sample rate must be <= {BROWSER_CLOCK_MAX_SAMPLE_RATE}.",
+            )
+        if request.max_blocks_per_request > BROWSER_CLOCK_MAX_BLOCKS_PER_REQUEST:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Browser-clock max_blocks_per_request must be <= {BROWSER_CLOCK_MAX_BLOCKS_PER_REQUEST}.",
+            )
+        if request.queue_high_water_frames > max_queue_frames:
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    "Browser-clock queue_high_water_frames exceeds the server queue watermark budget "
+                    f"({max_queue_frames} frames)."
+                ),
+            )
+
+    @staticmethod
+    def _validate_browser_clock_timing_budget(
+        lease: BrowserClockControllerLease,
+        request: BrowserClockTimingReportRequest,
+    ) -> None:
+        max_reported_frames = max(
+            BROWSER_CLOCK_MAX_REPORTED_FRAMES,
+            lease.queue_high_water_frames + (lease.max_blocks_per_request * 2),
+        )
+        if request.sample_rate > BROWSER_CLOCK_MAX_SAMPLE_RATE:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Browser-clock timing report sample_rate must be <= {BROWSER_CLOCK_MAX_SAMPLE_RATE}.",
+            )
+        if request.queued_frames > max_reported_frames or request.pending_render_frames > max_reported_frames:
+            raise HTTPException(
+                status_code=422,
+                detail="Browser-clock timing report frame counts exceed the server budget.",
+            )
+
     async def render_browser_clock_audio(
         self,
         session_id: str,
@@ -556,7 +606,15 @@ class SessionService:
             raise HTTPException(status_code=409, detail="Browser-clock audio is not ready for this session.")
 
         request_received_ns = server_received_ns or time.perf_counter_ns()
-        block_count = max(1, min(request.block_count, lease.max_blocks_per_request))
+        if request.block_count > lease.max_blocks_per_request:
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    "Browser-clock render request exceeds the active controller block budget "
+                    f"({lease.max_blocks_per_request})."
+                ),
+            )
+        block_count = request.block_count
         sequencer = self._ensure_sequencer(runtime)
         router = self._ensure_midi_router(runtime)
         latest_status = sequencer.status()

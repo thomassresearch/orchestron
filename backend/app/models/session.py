@@ -73,6 +73,12 @@ SessionAudioOutputMode = Literal["browser_clock"]
 TimestampQuality = Literal["authoritative", "best_effort"]
 BrowserClockRenderPriority = Literal["steady", "interactive"]
 
+BROWSER_CLOCK_MAX_SAMPLE_RATE = 192_000
+BROWSER_CLOCK_MAX_QUEUE_WATERMARK_MS = 2_000
+BROWSER_CLOCK_MAX_BLOCKS_PER_REQUEST = 512
+BROWSER_CLOCK_RENDER_QUEUE_MAXSIZE = 8
+BROWSER_CLOCK_MAX_REPORTED_FRAMES = 6 * BROWSER_CLOCK_MAX_SAMPLE_RATE
+
 
 class SessionState(StrEnum):
     IDLE = "idle"
@@ -136,21 +142,29 @@ class SessionActionResponse(BaseModel):
 
 class BrowserClockClaimControllerRequest(BaseModel):
     type: Literal["claim_controller"]
-    audio_context_sample_rate: int = Field(ge=1)
+    audio_context_sample_rate: int = Field(ge=1, le=BROWSER_CLOCK_MAX_SAMPLE_RATE)
     queue_low_water_frames: int = Field(ge=1)
     queue_high_water_frames: int = Field(ge=1)
-    max_blocks_per_request: int = Field(ge=1)
+    max_blocks_per_request: int = Field(ge=1, le=BROWSER_CLOCK_MAX_BLOCKS_PER_REQUEST)
 
     @model_validator(mode="after")
     def validate_queue_targets(self) -> "BrowserClockClaimControllerRequest":
         if self.queue_high_water_frames <= self.queue_low_water_frames:
             raise ValueError("queue_high_water_frames must be greater than queue_low_water_frames.")
+        max_queue_frames = int(
+            round(self.audio_context_sample_rate * (BROWSER_CLOCK_MAX_QUEUE_WATERMARK_MS / 1000.0))
+        )
+        if self.queue_high_water_frames > max_queue_frames:
+            raise ValueError(
+                "queue_high_water_frames exceeds the server browser-clock queue watermark budget "
+                f"({max_queue_frames} frames)."
+            )
         return self
 
 
 class BrowserClockRequestRenderRequest(BaseModel):
     type: Literal["request_render"]
-    block_count: int = Field(ge=1)
+    block_count: int = Field(ge=1, le=BROWSER_CLOCK_MAX_BLOCKS_PER_REQUEST)
     request_id: str | None = Field(default=None, min_length=1, max_length=128)
     client_perf_ms: float | None = Field(default=None, ge=0.0)
     priority: BrowserClockRenderPriority = "steady"
@@ -176,9 +190,9 @@ class BrowserClockTimingReportRequest(BaseModel):
     type: Literal["timing_report"]
     client_perf_ms: float
     audio_context_time_s: float = Field(ge=0.0)
-    queued_frames: int = Field(ge=0)
-    sample_rate: int = Field(ge=1)
-    pending_render_frames: int = Field(default=0, ge=0)
+    queued_frames: int = Field(ge=0, le=BROWSER_CLOCK_MAX_REPORTED_FRAMES)
+    sample_rate: int = Field(ge=1, le=BROWSER_CLOCK_MAX_SAMPLE_RATE)
+    pending_render_frames: int = Field(default=0, ge=0, le=BROWSER_CLOCK_MAX_REPORTED_FRAMES)
     underrun_count: int = Field(default=0, ge=0)
     clock_sync_offset_ns: int | None = None
     clock_sync_rtt_ms: float | None = Field(default=None, ge=0.0)

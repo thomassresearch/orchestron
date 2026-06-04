@@ -15,7 +15,7 @@ from pydantic import ValidationError
 import pytest
 from starlette.websockets import WebSocketDisconnect
 
-from backend.app.models.session import MidiInputRef
+from backend.app.models.session import BROWSER_CLOCK_MAX_SAMPLE_RATE, MidiInputRef
 from backend.app.core.config import get_settings
 from backend.app.main import create_app
 
@@ -527,6 +527,151 @@ def test_browser_clock_render_queue_does_not_block_manual_midi(tmp_path: Path) -
                     assert metadata["telemetry"]["request_id"] == "slow-render-1"
                     websocket.receive_bytes()
                     receiver.join(timeout=1.0)
+        finally:
+            allow_render_finish.set()
+            runtime.worker.render_blocks = original_render_blocks
+
+
+def test_browser_clock_rejects_oversized_claim_budget(tmp_path: Path) -> None:
+    with _client(tmp_path, audio_output_mode="browser_clock") as client:
+        session_id = _create_running_session(client, patch_name="Browser Clock Oversized Claim")
+
+        with client.websocket_connect(f"/ws/sessions/{session_id}/browser-clock") as websocket:
+            websocket.send_json(
+                {
+                    "type": "claim_controller",
+                    "audio_context_sample_rate": BROWSER_CLOCK_MAX_SAMPLE_RATE + 1,
+                    "queue_low_water_frames": 1024,
+                    "queue_high_water_frames": 2048,
+                    "max_blocks_per_request": 8,
+                }
+            )
+
+            message = websocket.receive_json()
+            assert message["type"] == "engine_error"
+            assert "audio_context_sample_rate" in message["detail"]
+            with pytest.raises(WebSocketDisconnect):
+                websocket.receive_text()
+
+
+def test_browser_clock_rejects_render_above_controller_budget(tmp_path: Path) -> None:
+    with _client(tmp_path, audio_output_mode="browser_clock") as client:
+        session_id = _create_running_session(client, patch_name="Browser Clock Oversized Render")
+        runtime = client.app.state.container.session_service._sessions[session_id]
+        original_render_blocks = runtime.worker.render_blocks
+        render_called = threading.Event()
+
+        def capture_render_blocks(*, block_count: int, target_sample_rate: int, before_block=None):
+            render_called.set()
+            return original_render_blocks(
+                block_count=block_count,
+                target_sample_rate=target_sample_rate,
+                before_block=before_block,
+            )
+
+        runtime.worker.render_blocks = capture_render_blocks
+
+        try:
+            with client.websocket_connect(f"/ws/sessions/{session_id}/browser-clock") as websocket:
+                websocket.send_json(
+                    {
+                        "type": "claim_controller",
+                        "audio_context_sample_rate": 48_000,
+                        "queue_low_water_frames": 1024,
+                        "queue_high_water_frames": 2048,
+                        "max_blocks_per_request": 4,
+                    }
+                )
+                assert websocket.receive_json()["type"] == "stream_config"
+
+                websocket.send_json(
+                    {
+                        "type": "request_render",
+                        "block_count": 5,
+                        "request_id": "oversized-render",
+                        "client_perf_ms": time.perf_counter() * 1000.0,
+                        "priority": "steady",
+                    }
+                )
+
+                message = websocket.receive_json()
+                assert message["type"] == "engine_error"
+                assert "block budget" in message["detail"]
+                with pytest.raises(WebSocketDisconnect):
+                    websocket.receive_text()
+            assert not render_called.is_set()
+        finally:
+            runtime.worker.render_blocks = original_render_blocks
+
+
+def test_browser_clock_coalesces_steady_render_queue_when_full(tmp_path: Path) -> None:
+    with _client(tmp_path, audio_output_mode="browser_clock") as client:
+        session_id = _create_running_session(client, patch_name="Browser Clock Render Queue Budget")
+        runtime = client.app.state.container.session_service._sessions[session_id]
+        original_render_blocks = runtime.worker.render_blocks
+        render_started = threading.Event()
+        allow_render_finish = threading.Event()
+        rendered_block_counts: list[int] = []
+
+        def slow_first_render_blocks(*, block_count: int, target_sample_rate: int, before_block=None):
+            rendered_block_counts.append(block_count)
+            render_started.set()
+            assert allow_render_finish.wait(timeout=1.0)
+            return original_render_blocks(
+                block_count=block_count,
+                target_sample_rate=target_sample_rate,
+                before_block=before_block,
+            )
+
+        runtime.worker.render_blocks = slow_first_render_blocks
+
+        try:
+            with client.websocket_connect(f"/ws/sessions/{session_id}/browser-clock") as websocket:
+                websocket.send_json(
+                    {
+                        "type": "claim_controller",
+                        "audio_context_sample_rate": 48_000,
+                        "queue_low_water_frames": 1024,
+                        "queue_high_water_frames": 2048,
+                        "max_blocks_per_request": 8,
+                    }
+                )
+                assert websocket.receive_json()["type"] == "stream_config"
+
+                websocket.send_json(
+                    {
+                        "type": "request_render",
+                        "block_count": 1,
+                        "request_id": "active-render",
+                        "client_perf_ms": time.perf_counter() * 1000.0,
+                        "priority": "steady",
+                    }
+                )
+                assert render_started.wait(timeout=0.5)
+
+                for index in range(9):
+                    websocket.send_json(
+                        {
+                            "type": "request_render",
+                            "block_count": 1,
+                            "request_id": f"queued-render-{index}",
+                            "client_perf_ms": time.perf_counter() * 1000.0,
+                            "priority": "steady",
+                        }
+                    )
+
+                allow_render_finish.set()
+                first = websocket.receive_json()
+                assert first["type"] == "render_chunk"
+                assert first["engine_block_count"] == 1
+                websocket.receive_bytes()
+
+                second = websocket.receive_json()
+                assert second["type"] == "render_chunk"
+                assert second["engine_block_count"] == 8
+                websocket.receive_bytes()
+
+            assert rendered_block_counts == [1, 8]
         finally:
             allow_render_finish.set()
             runtime.worker.render_blocks = original_render_blocks

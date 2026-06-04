@@ -11,6 +11,7 @@ from pydantic import ValidationError
 
 from backend.app.core.container import AppContainer
 from backend.app.models.session import (
+    BROWSER_CLOCK_RENDER_QUEUE_MAXSIZE,
     BrowserClockClaimControllerRequest,
     BrowserClockClockSyncRequest,
     BrowserClockManualMidiRequest,
@@ -27,6 +28,8 @@ from backend.app.models.session import (
 )
 
 router = APIRouter(tags=["ws"])
+BrowserClockRenderJob = tuple[BrowserClockRequestRenderRequest, int]
+_BROWSER_CLOCK_POLICY_VIOLATION_CLOSE_CODE = 1008
 
 
 def _http_error_detail(detail: object) -> str:
@@ -96,7 +99,9 @@ async def browser_clock_controller(websocket: WebSocket, session_id: str) -> Non
     container: AppContainer = websocket.app.state.container
     connection_id = str(uuid4())
     send_lock = asyncio.Lock()
-    render_queue: asyncio.Queue[tuple[BrowserClockRequestRenderRequest, int] | None] = asyncio.Queue()
+    render_queue: asyncio.Queue[BrowserClockRenderJob | None] = asyncio.Queue(
+        maxsize=BROWSER_CLOCK_RENDER_QUEUE_MAXSIZE
+    )
 
     async def send_json(payload: dict[str, object]) -> None:
         async with send_lock:
@@ -114,6 +119,59 @@ async def browser_clock_controller(websocket: WebSocket, session_id: str) -> Non
         async with send_lock:
             await websocket.send_json(metadata)
             await websocket.send_bytes(pcm)
+
+    async def reject_policy_violation(detail: str) -> None:
+        await send_json({"type": "engine_error", "detail": detail})
+        await close_socket(_BROWSER_CLOCK_POLICY_VIOLATION_CLOSE_CODE, "browser_clock_policy_violation")
+
+    def coalesce_steady_render_work(
+        request: BrowserClockRequestRenderRequest,
+        server_received_ns: int,
+        *,
+        max_blocks_per_request: int,
+    ) -> bool:
+        if request.priority != "steady":
+            return False
+
+        retained: list[BrowserClockRenderJob | None] = []
+        total_blocks = request.block_count
+        oldest_received_ns = server_received_ns
+
+        while True:
+            try:
+                job = render_queue.get_nowait()
+            except asyncio.QueueEmpty:
+                break
+
+            if job is None:
+                retained.append(job)
+                continue
+
+            queued_request, queued_received_ns = job
+            if queued_request.priority == "steady":
+                total_blocks += queued_request.block_count
+                oldest_received_ns = min(oldest_received_ns, queued_received_ns)
+            else:
+                retained.append(job)
+
+        try:
+            for job in retained:
+                render_queue.put_nowait(job)
+
+            if render_queue.full():
+                return False
+
+            render_queue.put_nowait(
+                (
+                    request.model_copy(
+                        update={"block_count": max(1, min(total_blocks, max_blocks_per_request))}
+                    ),
+                    oldest_received_ns,
+                )
+            )
+        except asyncio.QueueFull:
+            return False
+        return True
 
     async def render_worker() -> None:
         while True:
@@ -175,12 +233,28 @@ async def browser_clock_controller(websocket: WebSocket, session_id: str) -> Non
                     continue
 
                 if message_type == "request_render":
-                    await render_queue.put(
-                        (
-                            BrowserClockRequestRenderRequest.model_validate(payload),
-                            server_received_ns,
-                        )
+                    request = BrowserClockRequestRenderRequest.model_validate(payload)
+                    _runtime, lease = await container.session_service.require_browser_clock_controller(
+                        session_id,
+                        connection_id,
                     )
+                    if request.block_count > lease.max_blocks_per_request:
+                        await reject_policy_violation(
+                            "Browser-clock render request exceeds the active controller block budget "
+                            f"({lease.max_blocks_per_request})."
+                        )
+                        return
+
+                    try:
+                        render_queue.put_nowait((request, server_received_ns))
+                    except asyncio.QueueFull:
+                        if not coalesce_steady_render_work(
+                            request,
+                            server_received_ns,
+                            max_blocks_per_request=lease.max_blocks_per_request,
+                        ):
+                            await reject_policy_violation("Browser-clock render queue budget exceeded.")
+                            return
                     continue
 
                 if message_type == "clock_sync":
@@ -260,8 +334,14 @@ async def browser_clock_controller(websocket: WebSocket, session_id: str) -> Non
                 )
             except ValidationError as exc:
                 await send_json({"type": "engine_error", "detail": str(exc)})
+                if message_type in {"claim_controller", "request_render", "timing_report"}:
+                    await close_socket(_BROWSER_CLOCK_POLICY_VIOLATION_CLOSE_CODE, "browser_clock_policy_violation")
+                    return
             except HTTPException as exc:
                 await send_json({"type": "engine_error", "detail": _http_error_detail(exc.detail)})
+                if exc.status_code == 422 and message_type in {"claim_controller", "request_render", "timing_report"}:
+                    await close_socket(_BROWSER_CLOCK_POLICY_VIOLATION_CLOSE_CODE, "browser_clock_policy_violation")
+                    return
             except WebSocketDisconnect:
                 raise
             except Exception as exc:
@@ -271,7 +351,10 @@ async def browser_clock_controller(websocket: WebSocket, session_id: str) -> Non
     except WebSocketDisconnect:
         pass
     finally:
-        await render_queue.put(None)
+        try:
+            render_queue.put_nowait(None)
+        except asyncio.QueueFull:
+            render_worker_task.cancel()
         with contextlib.suppress(asyncio.CancelledError, WebSocketDisconnect):
             await render_worker_task
         with contextlib.suppress(HTTPException):
