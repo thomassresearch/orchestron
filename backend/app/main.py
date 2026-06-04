@@ -44,7 +44,10 @@ def _build_container(settings: Settings) -> AppContainer:
     app_state_repository = AppStateRepository(database.session)
     performance_repository = PerformanceRepository(database.session)
     opcode_service = OpcodeService(icon_prefix=settings.icons_url_prefix)
-    gen_asset_service = GenAssetService(audio_dir=settings.gen_audio_assets_dir)
+    gen_asset_service = GenAssetService(
+        audio_dir=settings.gen_audio_assets_dir,
+        max_audio_asset_bytes=settings.gen_audio_asset_max_bytes,
+    )
     patch_service = PatchService(repository=patch_repository)
     app_state_service = AppStateService(repository=app_state_repository)
     performance_service = PerformanceService(repository=performance_repository)

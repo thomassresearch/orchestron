@@ -117,7 +117,9 @@ Benefits:
 
 ### Upload Limits and Notes
 
-- Backend upload limit for GEN audio assets: **64 MiB** per file
+- Default backend upload limit for GEN audio assets is 64 MiB per file (`VISUALCSOUND_GEN_AUDIO_ASSET_MAX_BYTES`)
+- The backend streams GEN audio uploads and rejects requests once they exceed the configured cap
+- Deployments should set a matching maximum request size at the ASGI server, reverse proxy, or load balancer
 - The preview/note panel explains that uploaded assets take precedence when present
 
 ## Preview Panel

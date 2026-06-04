@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import AsyncIterable
 from dataclasses import dataclass
 import hashlib
 import os
@@ -23,14 +24,28 @@ class StoredGenAudioAsset:
     size_bytes: int
 
 
+class GenAudioAssetTooLargeError(ValueError):
+    pass
+
+
 class GenAssetService:
-    def __init__(self, audio_dir: Path) -> None:
+    def __init__(
+        self,
+        audio_dir: Path,
+        *,
+        max_audio_asset_bytes: int = MAX_GEN_AUDIO_ASSET_BYTES,
+    ) -> None:
         self._audio_dir = Path(audio_dir)
         self._audio_dir.mkdir(parents=True, exist_ok=True)
+        self._max_audio_asset_bytes = max(1, int(max_audio_asset_bytes))
 
     @property
     def audio_dir(self) -> Path:
         return self._audio_dir
+
+    @property
+    def max_audio_asset_bytes(self) -> int:
+        return self._max_audio_asset_bytes
 
     def store_audio_bytes(
         self,
@@ -42,10 +57,7 @@ class GenAssetService:
         size = len(payload)
         if size <= 0:
             raise ValueError("Audio upload is empty.")
-        if size > MAX_GEN_AUDIO_ASSET_BYTES:
-            raise ValueError(
-                f"Audio upload exceeds maximum size ({MAX_GEN_AUDIO_ASSET_BYTES} bytes)."
-            )
+        self._raise_if_upload_exceeds_max(size)
 
         original_name = self._sanitize_original_name(filename or "upload.bin")
         extension = self._safe_extension(original_name)
@@ -54,15 +66,55 @@ class GenAssetService:
         target_path = self._audio_dir / stored_name
         target_path.write_bytes(payload)
 
-        normalized_content_type = (content_type or "application/octet-stream").strip()
-        if not normalized_content_type:
-            normalized_content_type = "application/octet-stream"
+        return StoredGenAudioAsset(
+            asset_id=asset_id,
+            original_name=original_name,
+            stored_name=stored_name,
+            content_type=self._normalize_content_type(content_type),
+            size_bytes=size,
+        )
+
+    async def store_audio_stream(
+        self,
+        *,
+        filename: str | None,
+        content_type: str | None,
+        chunks: AsyncIterable[bytes],
+    ) -> StoredGenAudioAsset:
+        original_name = self._sanitize_original_name(filename or "upload.bin")
+        extension = self._safe_extension(original_name)
+        asset_id = str(uuid4())
+        stored_name = f"{asset_id}{extension}"
+        target_path = self._audio_dir / stored_name
+        temp_path = self._audio_dir / f".{stored_name}.upload"
+        size = 0
+
+        try:
+            with temp_path.open("wb") as output:
+                async for chunk in chunks:
+                    if not chunk:
+                        continue
+                    next_size = size + len(chunk)
+                    self._raise_if_upload_exceeds_max(next_size)
+                    output.write(chunk)
+                    size = next_size
+
+            if size <= 0:
+                raise ValueError("Audio upload is empty.")
+
+            os.replace(temp_path, target_path)
+        except Exception:
+            try:
+                temp_path.unlink(missing_ok=True)
+            except OSError:
+                pass
+            raise
 
         return StoredGenAudioAsset(
             asset_id=asset_id,
             original_name=original_name,
             stored_name=stored_name,
-            content_type=normalized_content_type,
+            content_type=self._normalize_content_type(content_type),
             size_bytes=size,
         )
 
@@ -87,9 +139,9 @@ class GenAssetService:
         size = len(payload)
         if size <= 0:
             raise ValueError("Audio import payload is empty.")
-        if size > MAX_GEN_AUDIO_ASSET_BYTES:
+        if size > self._max_audio_asset_bytes:
             raise ValueError(
-                f"Audio import payload exceeds maximum size ({MAX_GEN_AUDIO_ASSET_BYTES} bytes)."
+                f"Audio import payload exceeds maximum size ({self._max_audio_asset_bytes} bytes)."
             )
 
         validated_stored_name = self._validate_stored_name(stored_name)
@@ -182,3 +234,13 @@ class GenAssetService:
         if not re.fullmatch(r"[A-Za-z0-9._-]{1,255}", candidate):
             raise ValueError("Invalid stored audio asset name.")
         return candidate
+
+    def _raise_if_upload_exceeds_max(self, size: int) -> None:
+        if size > self._max_audio_asset_bytes:
+            raise GenAudioAssetTooLargeError(
+                f"Audio upload exceeds maximum size ({self._max_audio_asset_bytes} bytes)."
+            )
+
+    @staticmethod
+    def _normalize_content_type(content_type: str | None) -> str:
+        return (content_type or "application/octet-stream").strip() or "application/octet-stream"

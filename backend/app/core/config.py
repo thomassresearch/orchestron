@@ -42,6 +42,7 @@ class Settings(BaseSettings):
     gen_audio_assets_dir: Path = Field(
         default_factory=lambda: Path(__file__).resolve().parents[3] / "backend" / "data" / "assets" / "audio"
     )
+    gen_audio_asset_max_bytes: int = Field(default=64 * 1024 * 1024, gt=0)
 
     cors_origins: list[str] = [
         "http://localhost:5173",
