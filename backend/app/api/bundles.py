@@ -3,6 +3,8 @@ from __future__ import annotations
 from io import BytesIO
 import json
 from pathlib import PurePosixPath
+from tempfile import SpooledTemporaryFile
+from typing import BinaryIO
 import zipfile
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
@@ -15,6 +17,13 @@ from backend.app.services.compiler_service import CompilationError
 from backend.app.services.performance_export_service import PerformanceExportService
 
 router = APIRouter(prefix="/bundles", tags=["bundles"])
+
+_IMPORT_READ_CHUNK_BYTES = 1024 * 1024
+_ZIP_MAGIC_PREFIXES = (b"PK\x03\x04", b"PK\x05\x06", b"PK\x07\x08")
+
+
+class ImportBundleTooLargeError(ValueError):
+    pass
 
 
 @router.post("/export/patch")
@@ -70,18 +79,29 @@ async def expand_import_bundle(
     x_file_name: str | None = Header(default=None, alias="X-File-Name"),
     container: AppContainer = Depends(get_container),
 ) -> JSONResponse:
-    payload = await request.body()
-    if not payload:
-        raise HTTPException(status_code=400, detail="Import file is empty.")
+    _reject_declared_oversized_import(
+        content_length=request.headers.get("content-length"),
+        max_size=container.settings.bundle_import_max_bytes,
+    )
 
+    payload_file: BinaryIO | None = None
     try:
+        payload_file = await _read_limited_import_body(
+            request=request,
+            max_size=container.settings.bundle_import_max_bytes,
+        )
         parsed = _expand_import_payload(
-            payload=payload,
+            payload_file=payload_file,
             filename=x_file_name,
             container=container,
         )
+    except ImportBundleTooLargeError as err:
+        raise HTTPException(status_code=413, detail=str(err)) from err
     except ValueError as err:
         raise HTTPException(status_code=400, detail=str(err)) from err
+    finally:
+        if payload_file is not None:
+            payload_file.close()
 
     return JSONResponse(content=parsed)
 
@@ -122,14 +142,25 @@ def _build_export_response(
 
 def _expand_import_payload(
     *,
-    payload: bytes,
+    payload_file: BinaryIO,
     filename: str | None,
     container: AppContainer,
 ) -> object:
-    if _looks_like_zip(payload=payload, filename=filename):
-        return _expand_zip_import_payload(payload=payload, container=container)
+    payload_file.seek(0)
+    prefix = payload_file.read(4)
+    payload_file.seek(0)
+    if _looks_like_zip(prefix=prefix, filename=filename):
+        return _expand_zip_import_payload(payload_file=payload_file, container=container)
 
     try:
+        payload = _read_limited_file_bytes(
+            payload_file,
+            max_size=container.settings.bundle_import_json_max_bytes,
+            too_large_message=(
+                "Import JSON exceeds maximum size "
+                f"({container.settings.bundle_import_json_max_bytes} bytes)."
+            ),
+        )
         decoded = payload.decode("utf-8")
     except UnicodeDecodeError as err:
         raise ValueError("Import file is neither valid UTF-8 JSON nor a ZIP archive.") from err
@@ -139,20 +170,34 @@ def _expand_import_payload(
         raise ValueError(f"Import JSON could not be parsed: {err.msg}") from err
 
 
-def _expand_zip_import_payload(*, payload: bytes, container: AppContainer) -> object:
+def _expand_zip_import_payload(*, payload_file: BinaryIO, container: AppContainer) -> object:
+    payload_file.seek(0)
     try:
-        archive = zipfile.ZipFile(BytesIO(payload))
+        archive = zipfile.ZipFile(payload_file)
     except zipfile.BadZipFile as err:
         raise ValueError("Import ZIP archive is invalid.") from err
 
     with archive:
-        members = [item for item in archive.infolist() if not item.is_dir()]
-        json_entries = [item for item in members if _is_root_json_entry(item.filename)]
+        member_by_normalized_name = _validate_zip_import_metadata(archive=archive, container=container)
+        json_entries = [
+            member
+            for normalized_name, member in member_by_normalized_name.items()
+            if _is_root_json_entry(normalized_name)
+        ]
         if len(json_entries) != 1:
             raise ValueError("Import ZIP must contain exactly one JSON file at the archive root.")
 
         try:
-            parsed = json.loads(archive.read(json_entries[0]).decode("utf-8"))
+            json_payload = _read_zip_member_bytes(
+                archive=archive,
+                member=json_entries[0],
+                max_size=container.settings.bundle_import_json_max_bytes,
+                too_large_message=(
+                    "Import ZIP JSON file exceeds maximum size "
+                    f"({container.settings.bundle_import_json_max_bytes} bytes)."
+                ),
+            )
+            parsed = json.loads(json_payload.decode("utf-8"))
         except UnicodeDecodeError as err:
             raise ValueError("Import ZIP JSON file must be UTF-8 encoded.") from err
         except json.JSONDecodeError as err:
@@ -162,9 +207,6 @@ def _expand_zip_import_payload(*, payload: bytes, container: AppContainer) -> ob
         if not referenced_names:
             return parsed
 
-        member_by_normalized_name = {
-            _normalize_zip_member_name(member.filename): member for member in members
-        }
         for stored_name in sorted(referenced_names):
             expected_member_name = f"audio/{stored_name}"
             member = member_by_normalized_name.get(expected_member_name)
@@ -172,13 +214,173 @@ def _expand_zip_import_payload(*, payload: bytes, container: AppContainer) -> ob
                 raise ValueError(
                     f"Import ZIP is missing referenced GEN audio asset 'audio/{stored_name}'."
                 )
-            container.gen_asset_service.import_audio_bytes_with_stored_name(
+            container.gen_asset_service.import_audio_chunks_with_stored_name(
                 stored_name=stored_name,
-                payload=archive.read(member),
+                chunks=_iter_zip_member_chunks(
+                    archive=archive,
+                    member=member,
+                    max_size=container.gen_asset_service.max_audio_asset_bytes,
+                    too_large_message=(
+                        "Audio import payload exceeds maximum size "
+                        f"({container.gen_asset_service.max_audio_asset_bytes} bytes)."
+                    ),
+                ),
                 original_name=stored_name,
             )
 
         return parsed
+
+
+def _reject_declared_oversized_import(*, content_length: str | None, max_size: int) -> None:
+    if content_length is None:
+        return
+    try:
+        declared_size = int(content_length)
+    except ValueError:
+        return
+    if declared_size > max_size:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Bundle import exceeds maximum request size ({max_size} bytes).",
+        )
+
+
+async def _read_limited_import_body(*, request: Request, max_size: int) -> BinaryIO:
+    payload_file = SpooledTemporaryFile(max_size=min(max_size, _IMPORT_READ_CHUNK_BYTES), mode="w+b")
+    size = 0
+    try:
+        async for chunk in request.stream():
+            if not chunk:
+                continue
+            next_size = size + len(chunk)
+            if next_size > max_size:
+                raise ImportBundleTooLargeError(
+                    f"Bundle import exceeds maximum request size ({max_size} bytes)."
+                )
+            payload_file.write(chunk)
+            size = next_size
+        if size <= 0:
+            raise ValueError("Import file is empty.")
+        payload_file.seek(0)
+        return payload_file
+    except Exception:
+        payload_file.close()
+        raise
+
+
+def _validate_zip_import_metadata(
+    *,
+    archive: zipfile.ZipFile,
+    container: AppContainer,
+) -> dict[str, zipfile.ZipInfo]:
+    entries = archive.infolist()
+    if len(entries) > container.settings.bundle_import_zip_max_members:
+        raise ImportBundleTooLargeError(
+            "Import ZIP contains too many members "
+            f"({container.settings.bundle_import_zip_max_members} maximum)."
+        )
+
+    total_uncompressed_size = 0
+    member_by_normalized_name: dict[str, zipfile.ZipInfo] = {}
+    for member in entries:
+        normalized_name = _normalize_zip_member_name(member.filename)
+        if not normalized_name:
+            raise ValueError("Import ZIP contains an invalid member path.")
+        if member.flag_bits & 0x1:
+            raise ValueError("Import ZIP contains encrypted members, which are not supported.")
+
+        total_uncompressed_size += member.file_size
+        if total_uncompressed_size > container.settings.bundle_import_zip_max_uncompressed_bytes:
+            raise ImportBundleTooLargeError(
+                "Import ZIP exceeds maximum total uncompressed size "
+                f"({container.settings.bundle_import_zip_max_uncompressed_bytes} bytes)."
+            )
+
+        if member.is_dir():
+            continue
+        if normalized_name in member_by_normalized_name:
+            raise ValueError("Import ZIP contains duplicate member paths.")
+        if (
+            _is_root_json_entry(normalized_name)
+            and member.file_size > container.settings.bundle_import_json_max_bytes
+        ):
+            raise ImportBundleTooLargeError(
+                "Import ZIP JSON file exceeds maximum size "
+                f"({container.settings.bundle_import_json_max_bytes} bytes)."
+            )
+        if (
+            normalized_name.startswith("audio/")
+            and member.file_size > container.gen_asset_service.max_audio_asset_bytes
+        ):
+            raise ImportBundleTooLargeError(
+                "Audio import payload exceeds maximum size "
+                f"({container.gen_asset_service.max_audio_asset_bytes} bytes)."
+            )
+        member_by_normalized_name[normalized_name] = member
+
+    return member_by_normalized_name
+
+
+def _read_limited_file_bytes(
+    file_obj: BinaryIO,
+    *,
+    max_size: int,
+    too_large_message: str,
+) -> bytes:
+    chunks: list[bytes] = []
+    size = 0
+    while True:
+        chunk = file_obj.read(_IMPORT_READ_CHUNK_BYTES)
+        if not chunk:
+            break
+        size += len(chunk)
+        if size > max_size:
+            raise ImportBundleTooLargeError(too_large_message)
+        chunks.append(chunk)
+    return b"".join(chunks)
+
+
+def _read_zip_member_bytes(
+    *,
+    archive: zipfile.ZipFile,
+    member: zipfile.ZipInfo,
+    max_size: int,
+    too_large_message: str,
+) -> bytes:
+    return b"".join(
+        _iter_zip_member_chunks(
+            archive=archive,
+            member=member,
+            max_size=max_size,
+            too_large_message=too_large_message,
+        )
+    )
+
+
+def _iter_zip_member_chunks(
+    *,
+    archive: zipfile.ZipFile,
+    member: zipfile.ZipInfo,
+    max_size: int,
+    too_large_message: str,
+):
+    size = 0
+    try:
+        with archive.open(member, "r") as source:
+            while True:
+                chunk = source.read(_IMPORT_READ_CHUNK_BYTES)
+                if not chunk:
+                    break
+                size += len(chunk)
+                if size > max_size:
+                    raise ImportBundleTooLargeError(too_large_message)
+                yield chunk
+    except NotImplementedError as err:
+        raise ValueError("Import ZIP uses an unsupported compression method.") from err
+    except RuntimeError as err:
+        raise ValueError("Import ZIP member could not be read.") from err
+    except zipfile.BadZipFile as err:
+        raise ValueError("Import ZIP member is invalid.") from err
 
 
 def _collect_referenced_gen_audio_stored_names_from_payload(raw: object) -> set[str]:
@@ -248,8 +450,8 @@ def _add_sample_asset_stored_name(names: set[str], sample_asset: object) -> None
         names.add(trimmed)
 
 
-def _looks_like_zip(*, payload: bytes, filename: str | None) -> bool:
-    if payload.startswith(b"PK\x03\x04") or payload.startswith(b"PK\x05\x06") or payload.startswith(b"PK\x07\x08"):
+def _looks_like_zip(*, prefix: bytes, filename: str | None) -> bool:
+    if any(prefix.startswith(candidate) for candidate in _ZIP_MAGIC_PREFIXES):
         return True
     if isinstance(filename, str) and filename.strip().lower().endswith(".zip"):
         return True
@@ -264,7 +466,10 @@ def _is_root_json_entry(member_name: str) -> bool:
 
 
 def _normalize_zip_member_name(member_name: str) -> str:
-    normalized = member_name.replace("\\", "/").strip("/")
+    raw = member_name.replace("\\", "/")
+    if raw.startswith("/"):
+        return ""
+    normalized = raw.strip("/")
     if not normalized:
         return ""
     path = PurePosixPath(normalized)

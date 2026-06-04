@@ -68,11 +68,15 @@ For ZIP imports that include referenced GEN01 audio or `sfload` SoundFont assets
 - Orchestron validates the archive structure
 - Imports the audio files into backend storage automatically
 - Restores the patch graph with the asset references intact
+- Rejects archives that exceed backend bundle limits before unpacking large members
 
 ## Advanced Format Notes (for power users)
 
 - Instrument ZIP exports contain exactly one root JSON file plus optional `audio/...` entries
 - Missing referenced audio assets in a ZIP import cause import failure (prevents broken GEN01 references)
+- Default import limits are 256 MiB compressed request body, 8 MiB root JSON, 512 ZIP entries, and 256 MiB total uncompressed ZIP content
+- Deployments can tune these with `VISUALCSOUND_BUNDLE_IMPORT_MAX_BYTES`, `VISUALCSOUND_BUNDLE_IMPORT_JSON_MAX_BYTES`, `VISUALCSOUND_BUNDLE_IMPORT_ZIP_MAX_MEMBERS`, and `VISUALCSOUND_BUNDLE_IMPORT_ZIP_MAX_UNCOMPRESSED_BYTES`
+- Individual imported audio/SoundFont assets are still limited by `VISUALCSOUND_GEN_AUDIO_ASSET_MAX_BYTES`
 
 ## Instrument Bundle vs Performance Bundle
 

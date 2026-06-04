@@ -26,6 +26,10 @@ def _client(
     audio_output_mode: str = "browser_clock",
     host_midi_token: str | None = None,
     gen_audio_asset_max_bytes: int | None = None,
+    bundle_import_max_bytes: int | None = None,
+    bundle_import_json_max_bytes: int | None = None,
+    bundle_import_zip_max_members: int | None = None,
+    bundle_import_zip_max_uncompressed_bytes: int | None = None,
 ) -> TestClient:
     db_path = tmp_path / "test.db"
     static_dir = tmp_path / "static"
@@ -44,6 +48,24 @@ def _client(
         os.environ.pop("VISUALCSOUND_GEN_AUDIO_ASSET_MAX_BYTES", None)
     else:
         os.environ["VISUALCSOUND_GEN_AUDIO_ASSET_MAX_BYTES"] = str(gen_audio_asset_max_bytes)
+    if bundle_import_max_bytes is None:
+        os.environ.pop("VISUALCSOUND_BUNDLE_IMPORT_MAX_BYTES", None)
+    else:
+        os.environ["VISUALCSOUND_BUNDLE_IMPORT_MAX_BYTES"] = str(bundle_import_max_bytes)
+    if bundle_import_json_max_bytes is None:
+        os.environ.pop("VISUALCSOUND_BUNDLE_IMPORT_JSON_MAX_BYTES", None)
+    else:
+        os.environ["VISUALCSOUND_BUNDLE_IMPORT_JSON_MAX_BYTES"] = str(bundle_import_json_max_bytes)
+    if bundle_import_zip_max_members is None:
+        os.environ.pop("VISUALCSOUND_BUNDLE_IMPORT_ZIP_MAX_MEMBERS", None)
+    else:
+        os.environ["VISUALCSOUND_BUNDLE_IMPORT_ZIP_MAX_MEMBERS"] = str(bundle_import_zip_max_members)
+    if bundle_import_zip_max_uncompressed_bytes is None:
+        os.environ.pop("VISUALCSOUND_BUNDLE_IMPORT_ZIP_MAX_UNCOMPRESSED_BYTES", None)
+    else:
+        os.environ["VISUALCSOUND_BUNDLE_IMPORT_ZIP_MAX_UNCOMPRESSED_BYTES"] = str(
+            bundle_import_zip_max_uncompressed_bytes
+        )
     if host_midi_token is None:
         os.environ.pop("VISUALCSOUND_HOST_MIDI_TOKEN", None)
     else:
@@ -3551,6 +3573,52 @@ def _post_gen_audio_upload_asgi(
     return status, body
 
 
+def _post_bundle_import_asgi(
+    client: TestClient,
+    *,
+    headers: dict[str, str],
+    receive,
+) -> tuple[int, bytes]:
+    sent: list[dict[str, object]] = []
+    scope = {
+        "type": "http",
+        "asgi": {"version": "3.0"},
+        "http_version": "1.1",
+        "method": "POST",
+        "scheme": "http",
+        "path": "/api/bundles/import/expand",
+        "raw_path": b"/api/bundles/import/expand",
+        "query_string": b"",
+        "root_path": "",
+        "headers": [
+            (name.lower().encode("ascii"), value.encode("utf-8"))
+            for name, value in headers.items()
+        ],
+        "client": ("testclient", 50000),
+        "server": ("testserver", 80),
+    }
+
+    async def send(message: dict[str, object]) -> None:
+        sent.append(message)
+
+    async def run_request() -> None:
+        await client.app(scope, receive, send)
+
+    asyncio.run(run_request())
+
+    status = next(
+        int(message["status"])
+        for message in sent
+        if message["type"] == "http.response.start"
+    )
+    body = b"".join(
+        message.get("body", b"")
+        for message in sent
+        if message["type"] == "http.response.body"
+    )
+    return status, body
+
+
 def test_gen_audio_asset_upload_rejects_empty_stream(tmp_path: Path) -> None:
     with _client(tmp_path) as client:
         response = client.post(
@@ -4232,6 +4300,152 @@ def test_bundle_import_expand_restores_audio_files_with_identical_filename(tmp_p
         stored_path = tmp_path / "gen_audio_assets" / stored_name
         assert stored_path.exists()
         assert stored_path.read_bytes() == audio_bytes
+
+
+def test_bundle_import_rejects_declared_oversize_before_reading_body(tmp_path: Path) -> None:
+    receive_calls = 0
+
+    async def receive() -> dict[str, object]:
+        nonlocal receive_calls
+        receive_calls += 1
+        raise AssertionError("Oversized bundle import body should not be read.")
+
+    with _client(tmp_path, bundle_import_max_bytes=5) as client:
+        status, body = _post_bundle_import_asgi(
+            client,
+            headers={
+                "X-File-Name": "too-large.orch.zip",
+                "Content-Type": "application/zip",
+                "Content-Length": "6",
+            },
+            receive=receive,
+        )
+
+        assert status == 413
+        assert b"Bundle import exceeds maximum request size (5 bytes)." in body
+        assert receive_calls == 0
+        assert list((tmp_path / "gen_audio_assets").iterdir()) == []
+
+
+def test_bundle_import_rejects_stream_oversize_before_later_chunks(tmp_path: Path) -> None:
+    chunks = [b"abc", b"def", b"this chunk must not be read"]
+    chunk_index = 0
+
+    async def receive() -> dict[str, object]:
+        nonlocal chunk_index
+        if chunk_index >= 2:
+            raise AssertionError("Bundle import consumed beyond the oversized chunk.")
+        body = chunks[chunk_index]
+        chunk_index += 1
+        return {"type": "http.request", "body": body, "more_body": True}
+
+    with _client(tmp_path, bundle_import_max_bytes=5) as client:
+        status, body = _post_bundle_import_asgi(
+            client,
+            headers={"X-File-Name": "stream.orch.zip", "Content-Type": "application/zip"},
+            receive=receive,
+        )
+
+        assert status == 413
+        assert b"Bundle import exceeds maximum request size (5 bytes)." in body
+        assert chunk_index == 2
+        assert list((tmp_path / "gen_audio_assets").iterdir()) == []
+
+
+def test_bundle_import_rejects_zip_with_too_many_members(tmp_path: Path) -> None:
+    archive_bytes = BytesIO()
+    with zipfile.ZipFile(archive_bytes, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("patch.orch.instrument.json", b'{"name":"Small"}')
+        archive.writestr("extra.txt", b"extra")
+
+    with _client(tmp_path, bundle_import_zip_max_members=1) as client:
+        response = client.post(
+            "/api/bundles/import/expand",
+            content=archive_bytes.getvalue(),
+            headers={
+                "X-File-Name": "bundle.orch.instrument.zip",
+                "Content-Type": "application/zip",
+            },
+        )
+
+        assert response.status_code == 413
+        assert "Import ZIP contains too many members" in response.text
+        assert list((tmp_path / "gen_audio_assets").iterdir()) == []
+
+
+def test_bundle_import_rejects_zip_total_uncompressed_size_limit(tmp_path: Path) -> None:
+    archive_bytes = BytesIO()
+    with zipfile.ZipFile(archive_bytes, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("patch.orch.instrument.json", b'{"name":"Small"}')
+        archive.writestr("extra.txt", b"x" * 128)
+
+    with _client(tmp_path, bundle_import_zip_max_uncompressed_bytes=64) as client:
+        response = client.post(
+            "/api/bundles/import/expand",
+            content=archive_bytes.getvalue(),
+            headers={
+                "X-File-Name": "bundle.orch.instrument.zip",
+                "Content-Type": "application/zip",
+            },
+        )
+
+        assert response.status_code == 413
+        assert "Import ZIP exceeds maximum total uncompressed size" in response.text
+        assert list((tmp_path / "gen_audio_assets").iterdir()) == []
+
+
+def test_bundle_import_rejects_zip_bomb_style_oversized_audio_member(tmp_path: Path) -> None:
+    stored_name = "sample.wav"
+    payload = {
+        "sourcePatchId": "patch-1",
+        "name": "Oversized Audio",
+        "description": "",
+        "schema_version": 1,
+        "graph": {
+            "nodes": [{"id": "g1", "opcode": "GEN", "params": {}, "position": {"x": 0, "y": 0}}],
+            "connections": [],
+            "ui_layout": {
+                "gen_nodes": {
+                    "g1": {
+                        "routineNumber": 1,
+                        "sampleAsset": {
+                            "asset_id": "asset-1",
+                            "original_name": "sample.wav",
+                            "stored_name": stored_name,
+                            "content_type": "audio/wav",
+                            "size_bytes": 128,
+                        },
+                    }
+                }
+            },
+            "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+        },
+    }
+    archive_bytes = BytesIO()
+    with zipfile.ZipFile(archive_bytes, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("patch.orch.instrument.json", json.dumps(payload).encode("utf-8"))
+        archive.writestr(f"audio/{stored_name}", b"x" * 128)
+
+    assert len(archive_bytes.getvalue()) < 1024
+
+    with _client(
+        tmp_path,
+        gen_audio_asset_max_bytes=64,
+        bundle_import_max_bytes=1024,
+        bundle_import_zip_max_uncompressed_bytes=4096,
+    ) as client:
+        response = client.post(
+            "/api/bundles/import/expand",
+            content=archive_bytes.getvalue(),
+            headers={
+                "X-File-Name": "bundle.orch.instrument.zip",
+                "Content-Type": "application/zip",
+            },
+        )
+
+        assert response.status_code == 413
+        assert "Audio import payload exceeds maximum size (64 bytes)." in response.text
+        assert list((tmp_path / "gen_audio_assets").iterdir()) == []
 
 
 def test_bundle_import_expand_restores_sfload_audio_asset(tmp_path: Path) -> None:

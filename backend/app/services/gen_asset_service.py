@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import AsyncIterable
+from collections.abc import AsyncIterable, Iterable
 from dataclasses import dataclass
+import filecmp
 import hashlib
 import os
 from pathlib import Path
@@ -154,6 +155,61 @@ class GenAssetService:
                 )
         else:
             target_path.write_bytes(payload)
+
+        normalized_content_type = (content_type or "application/octet-stream").strip() or "application/octet-stream"
+        normalized_original_name = self._sanitize_original_name(original_name or validated_stored_name)
+        inferred_asset_id = Path(validated_stored_name).stem or str(uuid4())
+        return StoredGenAudioAsset(
+            asset_id=inferred_asset_id,
+            original_name=normalized_original_name,
+            stored_name=validated_stored_name,
+            content_type=normalized_content_type,
+            size_bytes=size,
+        )
+
+    def import_audio_chunks_with_stored_name(
+        self,
+        *,
+        stored_name: str,
+        chunks: Iterable[bytes],
+        content_type: str | None = None,
+        original_name: str | None = None,
+    ) -> StoredGenAudioAsset:
+        validated_stored_name = self._validate_stored_name(stored_name)
+        target_path = self._audio_dir / validated_stored_name
+        temp_path = self._audio_dir / f".{validated_stored_name}.{uuid4()}.import"
+        size = 0
+
+        try:
+            with temp_path.open("wb") as output:
+                for chunk in chunks:
+                    if not chunk:
+                        continue
+                    next_size = size + len(chunk)
+                    if next_size > self._max_audio_asset_bytes:
+                        raise ValueError(
+                            f"Audio import payload exceeds maximum size ({self._max_audio_asset_bytes} bytes)."
+                        )
+                    output.write(chunk)
+                    size = next_size
+
+            if size <= 0:
+                raise ValueError("Audio import payload is empty.")
+
+            if target_path.exists():
+                if not filecmp.cmp(target_path, temp_path, shallow=False):
+                    raise ValueError(
+                        f"Audio asset '{validated_stored_name}' already exists with different content."
+                    )
+                temp_path.unlink(missing_ok=True)
+            else:
+                os.replace(temp_path, target_path)
+        except Exception:
+            try:
+                temp_path.unlink(missing_ok=True)
+            except OSError:
+                pass
+            raise
 
         normalized_content_type = (content_type or "application/octet-stream").strip() or "application/octet-stream"
         normalized_original_name = self._sanitize_original_name(original_name or validated_stored_name)
