@@ -16,6 +16,7 @@ dependencies = [
   "pyopenssl==26.0.0",
   "urllib3>=2.7.0",
   "pytest>=9.0.3",
+  "idna>=3.18",
 ]
 
 [project.optional-dependencies]
