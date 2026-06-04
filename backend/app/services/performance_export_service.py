@@ -4,11 +4,14 @@ from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path, PurePosixPath
 import re
+from time import perf_counter as _monotonic_seconds
 from unittest.mock import patch
 import zipfile
 
 from backend.app.models.export import (
     ExportedPatchDefinition,
+    OFFLINE_CSD_EXPORT_MAX_MIDI_EVENTS,
+    OFFLINE_CSD_EXPORT_MAX_WALL_SECONDS,
     PerformanceCsdExportRequest,
     PerformanceExportPayload,
 )
@@ -37,11 +40,39 @@ class CapturedMidiEvent:
     message: bytes
 
 
+class OfflineMidiExportBudgetExceededError(ValueError):
+    pass
+
+
+class OfflineMidiExportTimeoutError(ValueError):
+    pass
+
+
 class _MidiCaptureService:
-    def __init__(self) -> None:
+    def __init__(self, *, max_events: int) -> None:
+        self._max_events = max(1, int(max_events))
         self.events: list[CapturedMidiEvent] = []
         self.current_time_seconds = 0.0
         self.current_sample = 0
+        self.event_budget_exceeded = False
+
+    def _append_event(self, *, time_seconds: float, message: list[int]) -> None:
+        if len(self.events) >= self._max_events:
+            self.event_budget_exceeded = True
+            return
+        self.events.append(
+            CapturedMidiEvent(
+                time_seconds=max(0.0, float(time_seconds)),
+                message=bytes(int(value) & 0xFF for value in message),
+            )
+        )
+
+    def raise_if_event_budget_exceeded(self) -> None:
+        if self.event_budget_exceeded or len(self.events) > self._max_events:
+            raise OfflineMidiExportBudgetExceededError(
+                "Offline performance CSD export generated too many MIDI events "
+                f"(limit {self._max_events})."
+            )
 
     def send_scheduled_message(
         self,
@@ -50,11 +81,9 @@ class _MidiCaptureService:
         *,
         delivery_delay_seconds: float | None = None,
     ) -> str:
-        self.events.append(
-            CapturedMidiEvent(
-                time_seconds=max(0.0, 0.0 if delivery_delay_seconds is None else delivery_delay_seconds),
-                message=bytes(int(value) & 0xFF for value in message),
-            )
+        self._append_event(
+            time_seconds=0.0 if delivery_delay_seconds is None else delivery_delay_seconds,
+            message=message,
         )
         return "offline-export"
 
@@ -74,13 +103,8 @@ class _MidiCaptureService:
             event_time = max(0.0, int(target_engine_sample) / float(OFFLINE_RENDER_SR))
         else:
             event_time = self.current_time_seconds + max(0.0, float(delivery_delay_seconds or 0.0))
-        self.events.append(
-            CapturedMidiEvent(
-                time_seconds=event_time,
-                message=bytes(int(value) & 0xFF for value in message),
-            )
-        )
-        return True
+        self._append_event(time_seconds=event_time, message=message)
+        return not self.event_budget_exceeded
 
     def send_scheduled_messages(
         self,
@@ -374,7 +398,7 @@ class PerformanceExportService:
         controller_default_channels: tuple[int, ...],
         track_name: str,
     ) -> bytes:
-        capture = _MidiCaptureService()
+        capture = _MidiCaptureService(max_events=OFFLINE_CSD_EXPORT_MAX_MIDI_EVENTS)
         router = PerformanceMidiRouter(
             enqueue_timestamped_midi=capture.enqueue_timestamped_midi,
             current_engine_sample=lambda: capture.current_sample,
@@ -394,36 +418,45 @@ class PerformanceExportService:
         )
 
         scheduled_time = 0.0
+        deadline = _monotonic_seconds() + OFFLINE_CSD_EXPORT_MAX_WALL_SECONDS
         with runtime._lock:
             runtime._running = True
 
-        with patch("backend.app.services.sequencer_runtime.time.perf_counter", return_value=0.0):
-            while True:
-                with runtime._lock:
-                    if not runtime._running:
+        try:
+            with patch("backend.app.services.sequencer_runtime.time.perf_counter", return_value=0.0):
+                while True:
+                    if _monotonic_seconds() > deadline:
+                        raise OfflineMidiExportTimeoutError(
+                            "Offline performance CSD export MIDI generation exceeded "
+                            f"{OFFLINE_CSD_EXPORT_MAX_WALL_SECONDS:.1f} seconds."
+                        )
+                    with runtime._lock:
+                        if not runtime._running:
+                            break
+                        config = runtime._config
+                        current_subunit = runtime._absolute_subunit
+                    if config is None:
                         break
-                    config = runtime._config
-                    current_subunit = runtime._absolute_subunit
-                if config is None:
-                    break
-                capture.current_time_seconds = scheduled_time
-                capture.current_sample = int(round(scheduled_time * OFFLINE_RENDER_SR))
-                block_start_sample = capture.current_sample
-                scheduled_time += runtime._perform_subunit_event(
-                    config,
-                    current_subunit,
-                    scheduled_time=scheduled_time,
-                )
-                capture.current_time_seconds = scheduled_time
-                capture.current_sample = int(round(scheduled_time * OFFLINE_RENDER_SR))
-                router.advance_render_block(
-                    block_start_sample=block_start_sample,
-                    block_end_sample=max(block_start_sample + 1, capture.current_sample),
-                    sample_rate=OFFLINE_RENDER_SR,
-                    tempo_bpm=request.sequencer_config.timing.tempo_bpm,
-                )
-
-        router.shutdown()
+                    capture.current_time_seconds = scheduled_time
+                    capture.current_sample = int(round(scheduled_time * OFFLINE_RENDER_SR))
+                    block_start_sample = capture.current_sample
+                    scheduled_time += runtime._perform_subunit_event(
+                        config,
+                        current_subunit,
+                        scheduled_time=scheduled_time,
+                    )
+                    capture.current_time_seconds = scheduled_time
+                    capture.current_sample = int(round(scheduled_time * OFFLINE_RENDER_SR))
+                    router.advance_render_block(
+                        block_start_sample=block_start_sample,
+                        block_end_sample=max(block_start_sample + 1, capture.current_sample),
+                        sample_rate=OFFLINE_RENDER_SR,
+                        tempo_bpm=request.sequencer_config.timing.tempo_bpm,
+                    )
+                    capture.raise_if_event_budget_exceeded()
+        finally:
+            router.shutdown()
+        capture.raise_if_event_budget_exceeded()
 
         with runtime._lock:
             config = runtime._config
@@ -435,12 +468,11 @@ class PerformanceExportService:
                     if track is None:
                         continue
                     for note in sorted(active_notes):
-                        capture.events.append(
-                            CapturedMidiEvent(
-                                time_seconds=scheduled_time,
-                                message=bytes(runtime._note_off_message(track.midi_channel, note)),
-                            )
+                        capture._append_event(
+                            time_seconds=scheduled_time,
+                            message=runtime._note_off_message(track.midi_channel, note),
                         )
+                        capture.raise_if_event_budget_exceeded()
 
         return self._encode_midi_file(
             tempo_bpm=request.sequencer_config.timing.tempo_bpm,

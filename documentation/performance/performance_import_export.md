@@ -51,6 +51,8 @@ This ZIP contains:
 
 Only assets stored through Orchestron's upload flow are bundled. If a GEN01 or `sfload` node uses a manual local `samplePath`, upload that file first; offline performance CSD export rejects raw filesystem paths instead of reading arbitrary backend files.
 
+Offline performance CSD export is bounded before synthesis starts: looping playback is rejected, playback ranges are limited to 65,536 transport steps, a single step can carry at most 16 notes, and the estimated MIDI event budget is limited to 200,000 events. MIDI generation also stops if it exceeds the event budget or takes more than 5 seconds.
+
 ZIP layout:
 
 - The ZIP contains a single top-level directory

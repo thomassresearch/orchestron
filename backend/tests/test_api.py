@@ -15,9 +15,20 @@ from pydantic import ValidationError
 import pytest
 from starlette.websockets import WebSocketDisconnect
 
+from backend.app.models.export import (
+    OFFLINE_CSD_EXPORT_MAX_MIDI_EVENTS,
+    OFFLINE_CSD_EXPORT_MAX_PLAYBACK_STEPS,
+    PerformanceCsdExportRequest,
+)
 from backend.app.models.session import BROWSER_CLOCK_MAX_SAMPLE_RATE, MidiInputRef
 from backend.app.core.config import get_settings
 from backend.app.main import create_app
+from backend.app.services import performance_export_service
+from backend.app.services.performance_export_service import (
+    OfflineMidiExportBudgetExceededError,
+    OfflineMidiExportTimeoutError,
+    PerformanceExportService,
+)
 
 
 def _client(
@@ -4202,6 +4213,129 @@ def test_performance_csd_export_bundle_includes_csd_midi_readme_and_assets(tmp_p
             assert b"\xFF\x51\x03" in midi_bytes
             assert b"\x90\x3C\x64" in midi_bytes
             assert b"\xB0\x01" in midi_bytes
+
+
+def test_performance_csd_export_rejects_huge_playback_range_before_export_work(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fail_if_export_starts(*_args: object, **_kwargs: object) -> bytes:
+        raise AssertionError("performance CSD export work should not start for oversized playback range")
+
+    monkeypatch.setattr(PerformanceExportService, "build_performance_csd_archive", fail_if_export_starts)
+    payload = _performance_csd_export_payload()
+    payload["sequencerConfig"]["playback_end_step"] = OFFLINE_CSD_EXPORT_MAX_PLAYBACK_STEPS + 1
+
+    with _client(tmp_path) as client:
+        response = client.post("/api/bundles/export/performance-csd", json=payload)
+
+    assert response.status_code == 422
+    assert "playback range exceeds" in response.text
+
+
+def test_performance_csd_export_rejects_event_count_before_export_work(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fail_if_export_starts(*_args: object, **_kwargs: object) -> bytes:
+        raise AssertionError("performance CSD export work should not start for oversized MIDI event count")
+
+    monkeypatch.setattr(PerformanceExportService, "build_performance_csd_archive", fail_if_export_starts)
+    payload = _performance_csd_export_payload()
+    note_burst = list(range(16))
+    base_track = payload["sequencerConfig"]["tracks"][0]
+    payload["sequencerConfig"]["playback_end_step"] = 1024
+    payload["sequencerConfig"]["tracks"] = [
+        {
+            **base_track,
+            "track_id": f"voice-{index}",
+            "midi_channel": (index % 16) + 1,
+            "pads": [
+                {
+                    "pad_index": 0,
+                    "length_beats": 1,
+                    "steps": [{"note": note_burst, "hold": False, "velocity": 100}],
+                }
+            ],
+        }
+        for index in range(128)
+    ]
+    assert 1024 * 128 * len(note_burst) * 2 > OFFLINE_CSD_EXPORT_MAX_MIDI_EVENTS
+
+    with _client(tmp_path) as client:
+        response = client.post("/api/bundles/export/performance-csd", json=payload)
+
+    assert response.status_code == 422
+    assert "too many MIDI events" in response.text
+
+
+def test_performance_csd_export_rejects_oversized_step_note_list_before_export_work(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fail_if_export_starts(*_args: object, **_kwargs: object) -> bytes:
+        raise AssertionError("performance CSD export work should not start for oversized step note list")
+
+    monkeypatch.setattr(PerformanceExportService, "build_performance_csd_archive", fail_if_export_starts)
+    payload = _performance_csd_export_payload()
+    payload["sequencerConfig"]["tracks"][0]["pads"][0]["steps"] = [
+        {"note": list(range(17)), "hold": False, "velocity": 100}
+    ]
+
+    with _client(tmp_path) as client:
+        response = client.post("/api/bundles/export/performance-csd", json=payload)
+
+    assert response.status_code == 422
+    assert "step note lists cannot exceed" in response.text
+
+
+def test_performance_csd_export_rejects_looping_playback_before_export_work(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fail_if_export_starts(*_args: object, **_kwargs: object) -> bytes:
+        raise AssertionError("performance CSD export work should not start for looping playback")
+
+    monkeypatch.setattr(PerformanceExportService, "build_performance_csd_archive", fail_if_export_starts)
+    payload = _performance_csd_export_payload()
+    payload["sequencerConfig"]["playback_loop"] = True
+
+    with _client(tmp_path) as client:
+        response = client.post("/api/bundles/export/performance-csd", json=payload)
+
+    assert response.status_code == 422
+    assert "does not support looping playback" in response.text
+
+
+def test_performance_csd_export_midi_generation_enforces_event_budget(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    request = PerformanceCsdExportRequest.model_validate(_performance_csd_export_payload())
+    exporter = PerformanceExportService(compiler_service=None, gen_asset_service=None)  # type: ignore[arg-type]
+    monkeypatch.setattr(performance_export_service, "OFFLINE_CSD_EXPORT_MAX_MIDI_EVENTS", 1)
+
+    with pytest.raises(OfflineMidiExportBudgetExceededError, match="too many MIDI events"):
+        exporter._build_midi_file(
+            request=request,
+            controller_default_channels=(1,),
+            track_name="budget",
+        )
+
+
+def test_performance_csd_export_midi_generation_enforces_wall_clock_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    request = PerformanceCsdExportRequest.model_validate(_performance_csd_export_payload())
+    exporter = PerformanceExportService(compiler_service=None, gen_asset_service=None)  # type: ignore[arg-type]
+    timer_values = iter([0.0, 10.0])
+    monkeypatch.setattr(performance_export_service, "_monotonic_seconds", lambda: next(timer_values))
+
+    with pytest.raises(OfflineMidiExportTimeoutError, match="exceeded"):
+        exporter._build_midi_file(
+            request=request,
+            controller_default_channels=(1,),
+            track_name="timeout",
+        )
 
 
 @pytest.mark.parametrize(

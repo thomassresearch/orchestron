@@ -265,6 +265,7 @@ Each `PortSpec` includes `id`, `name`, `signal_type`, `accepted_signal_types`, `
 | --- | --- | --- | --- | --- |
 | `POST` | `/api/bundles/export/patch` | arbitrary JSON object | `application/json` or `application/zip` | Exports a patch payload. |
 | `POST` | `/api/bundles/export/performance` | arbitrary JSON object | `application/json` or `application/zip` | Exports a performance payload. |
+| `POST` | `/api/bundles/export/performance-csd` | `PerformanceCsdExportRequest` | `application/zip` | Exports an offline Csound render package. |
 | `POST` | `/api/bundles/import/expand` | raw JSON bytes or ZIP bytes | expanded JSON payload | Optional `X-File-Name` header helps ZIP detection. Returns `400` for malformed imports. |
 
 Bundle behavior:
@@ -274,6 +275,7 @@ Bundle behavior:
 - Patch exports place the JSON at `instrument.orch.instrument.json`.
 - Performance exports place the JSON at `performance.orch.json`.
 - Referenced audio files are stored under `audio/<stored_name>` inside the ZIP.
+- Offline performance CSD exports reject looping playback, playback ranges above 65,536 transport steps, step note lists above 16 notes, and estimated MIDI event counts above 200,000 before export work starts. MIDI synthesis also has an event-count fuse and a 5 second wall-clock fuse.
 
 Import behavior:
 
