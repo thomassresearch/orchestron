@@ -14,7 +14,6 @@ type SfloadEditorCopy = {
   uploading: string;
   clearAsset: string;
   persistedAsset: string;
-  fallbackSamplePath: string;
   note: string;
   close: string;
   save: string;
@@ -30,8 +29,7 @@ const SFLOAD_EDITOR_COPY: Record<GuiLanguage, SfloadEditorCopy> = {
     uploading: "Uploading...",
     clearAsset: "Clear Asset",
     persistedAsset: "Uploaded asset",
-    fallbackSamplePath: "Fallback SoundFont Path",
-    note: "Uploaded asset takes precedence over fallback path. The backend compiler resolves the stored file path.",
+    note: "sfload requires an uploaded SF2 asset. The backend compiler resolves it to contained asset storage.",
     close: "Close",
     save: "Save",
     uploadFailed: "Failed to upload SF2 file.",
@@ -44,8 +42,7 @@ const SFLOAD_EDITOR_COPY: Record<GuiLanguage, SfloadEditorCopy> = {
     uploading: "Lade hoch...",
     clearAsset: "Asset entfernen",
     persistedAsset: "Hochgeladenes Asset",
-    fallbackSamplePath: "Fallback-SoundFont-Pfad",
-    note: "Das hochgeladene Asset hat Vorrang vor dem Fallback-Pfad. Der Backend-Compiler loest den gespeicherten Dateipfad auf.",
+    note: "sfload erfordert ein hochgeladenes SF2-Asset. Der Backend-Compiler loest es in den geschuetzten Asset-Speicher auf.",
     close: "Schliessen",
     save: "Speichern",
     uploadFailed: "SF2-Datei konnte nicht hochgeladen werden.",
@@ -58,8 +55,7 @@ const SFLOAD_EDITOR_COPY: Record<GuiLanguage, SfloadEditorCopy> = {
     uploading: "Televersement...",
     clearAsset: "Retirer l'asset",
     persistedAsset: "Asset televerse",
-    fallbackSamplePath: "Chemin SoundFont de secours",
-    note: "L'asset televerse est prioritaire sur le chemin de secours. Le compilateur backend resolve le chemin stocke.",
+    note: "sfload requiert un asset SF2 televerse. Le compilateur backend le resout vers le stockage d'assets protege.",
     close: "Fermer",
     save: "Enregistrer",
     uploadFailed: "Echec du televersement du fichier SF2.",
@@ -72,8 +68,7 @@ const SFLOAD_EDITOR_COPY: Record<GuiLanguage, SfloadEditorCopy> = {
     uploading: "Subiendo...",
     clearAsset: "Quitar asset",
     persistedAsset: "Asset subido",
-    fallbackSamplePath: "Ruta SoundFont alternativa",
-    note: "El asset subido tiene prioridad sobre la ruta alternativa. El compilador backend resuelve la ruta almacenada.",
+    note: "sfload requiere un asset SF2 subido. El compilador backend lo resuelve al almacenamiento de assets protegido.",
     close: "Cerrar",
     save: "Guardar",
     uploadFailed: "No se pudo subir el archivo SF2.",
@@ -177,16 +172,6 @@ export function SfloadNodeEditorModal({
             </div>
           </div>
 
-          <label className="flex flex-col gap-1">
-            <span className="text-[11px] uppercase tracking-[0.14em] text-slate-400">{copy.fallbackSamplePath}</span>
-            <input
-              type="text"
-              value={draft.samplePath}
-              onChange={(event) => setDraft((current) => ({ ...current, samplePath: event.target.value }))}
-              placeholder="/absolute/path/file.sf2"
-              className="rounded-md border border-slate-600 bg-slate-900 px-2 py-1.5 font-mono text-xs text-slate-100 outline-none ring-cyan-400/30 transition focus:ring"
-            />
-          </label>
     </NodeEditorModalFrame>
   );
 }

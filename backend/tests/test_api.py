@@ -4435,6 +4435,8 @@ def test_performance_csd_export_midi_generation_enforces_wall_clock_timeout(
     [
         ("gen", "absolute"),
         ("gen", "../secret.wav"),
+        ("gen_named", "absolute"),
+        ("gen_named", "../secret.wav"),
         ("sfload", "absolute"),
         ("sfload", "../secret.sf2"),
     ],
@@ -4452,7 +4454,7 @@ def test_performance_csd_export_rejects_raw_sample_paths(
     gen_node_config = None
     sfload_node_config = None
     expected_message = "samplePath. Upload"
-    if node_kind == "gen":
+    if node_kind in {"gen", "gen_named"}:
         gen_node_config = {
             "mode": "ftgen",
             "tableNumber": 5,
@@ -5120,6 +5122,177 @@ def test_gen01_uploaded_asset_uses_numeric_filecode_alias(tmp_path: Path) -> Non
         alias_path = asset_dir / f"soundin.{filecode}"
         assert alias_path.exists()
         assert alias_path.samefile(asset_dir / stored_name)
+
+
+@pytest.mark.parametrize(
+    ("node_kind", "sample_path"),
+    [
+        ("gen", "absolute"),
+        ("gen", "../secret.wav"),
+        ("sfload", "absolute"),
+        ("sfload", "../secret.sf2"),
+    ],
+)
+def test_session_compile_rejects_raw_sample_paths(
+    tmp_path: Path,
+    node_kind: str,
+    sample_path: str,
+) -> None:
+    secret_path = tmp_path / "outside-secret.bin"
+    secret_bytes = b"session-raw-sample-path-secret"
+    secret_path.write_bytes(secret_bytes)
+    resolved_sample_path = str(secret_path) if sample_path == "absolute" else sample_path
+
+    nodes = [
+        {"id": "a1", "opcode": "const_a", "params": {"value": 0.05}, "position": {"x": 20, "y": 20}},
+        {"id": "o1", "opcode": "outs", "params": {}, "position": {"x": 200, "y": 20}},
+    ]
+    connections = [
+        {"from_node_id": "a1", "from_port_id": "aout", "to_node_id": "o1", "to_port_id": "left"},
+        {"from_node_id": "a1", "from_port_id": "aout", "to_node_id": "o1", "to_port_id": "right"},
+    ]
+    ui_layout: dict[str, object] = {}
+    if node_kind == "gen":
+        nodes.extend(
+            [
+                {"id": "g1", "opcode": "GEN", "params": {}, "position": {"x": 40, "y": 120}},
+                {"id": "v1", "opcode": "vco", "params": {"amp": 0.2, "freq": 220, "iwave": 1}, "position": {"x": 280, "y": 120}},
+            ]
+        )
+        connections.append({"from_node_id": "g1", "from_port_id": "ift", "to_node_id": "v1", "to_port_id": "ifn"})
+        ui_layout["gen_nodes"] = {
+            "g1": {
+                "mode": "ftgen",
+                "tableNumber": 5,
+                "startTime": 0,
+                "tableSize": 16384,
+                "routineNumber": 1,
+                "routineName": "GEN01" if node_kind == "gen_named" else "",
+                "normalize": True,
+                "sampleAsset": None,
+                "samplePath": resolved_sample_path,
+                "sampleSkipTime": 0,
+                "sampleFormat": 0,
+                "sampleChannel": 0,
+            }
+        }
+    else:
+        nodes.append({"id": "s1", "opcode": "sfload", "params": {}, "position": {"x": 40, "y": 120}})
+        ui_layout["sfload_nodes"] = {"s1": {"sampleAsset": None, "samplePath": resolved_sample_path}}
+
+    patch_payload = {
+        "name": "Raw samplePath compile rejection",
+        "description": "raw sample paths must not reach Csound",
+        "schema_version": 1,
+        "graph": {
+            "nodes": nodes,
+            "connections": connections,
+            "ui_layout": ui_layout,
+            "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+        },
+    }
+
+    with _client(tmp_path) as client:
+        create_patch = client.post("/api/patches", json=patch_payload)
+        assert create_patch.status_code == 201
+        patch_id = create_patch.json()["id"]
+        create_session = client.post("/api/sessions", json={"patch_id": patch_id})
+        assert create_session.status_code == 201
+
+        compile_response = client.post(f"/api/sessions/{create_session.json()['session_id']}/compile")
+
+    assert compile_response.status_code == 422
+    diagnostics = compile_response.json()["detail"]["diagnostics"]
+    assert any("uses samplePath" in item for item in diagnostics)
+    assert secret_bytes not in compile_response.content
+    assert str(secret_path).encode("utf-8") not in compile_response.content
+
+
+def test_session_compile_rejects_sfload_legacy_filename_param(tmp_path: Path) -> None:
+    secret_path = tmp_path / "legacy-secret.sf2"
+    secret_bytes = b"session-legacy-filename-secret"
+    secret_path.write_bytes(secret_bytes)
+
+    patch_payload = {
+        "name": "Legacy sfload filename rejection",
+        "description": "raw sfload filename params must not reach Csound",
+        "schema_version": 1,
+        "graph": {
+            "nodes": [
+                {"id": "a1", "opcode": "const_a", "params": {"value": 0.05}, "position": {"x": 20, "y": 20}},
+                {"id": "o1", "opcode": "outs", "params": {}, "position": {"x": 200, "y": 20}},
+                {"id": "s1", "opcode": "sfload", "params": {"filename": str(secret_path)}, "position": {"x": 40, "y": 120}},
+            ],
+            "connections": [
+                {"from_node_id": "a1", "from_port_id": "aout", "to_node_id": "o1", "to_port_id": "left"},
+                {"from_node_id": "a1", "from_port_id": "aout", "to_node_id": "o1", "to_port_id": "right"},
+            ],
+            "ui_layout": {},
+            "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+        },
+    }
+
+    with _client(tmp_path) as client:
+        create_patch = client.post("/api/patches", json=patch_payload)
+        assert create_patch.status_code == 201
+        patch_id = create_patch.json()["id"]
+        create_session = client.post("/api/sessions", json={"patch_id": patch_id})
+        assert create_session.status_code == 201
+
+        compile_response = client.post(f"/api/sessions/{create_session.json()['session_id']}/compile")
+
+    assert compile_response.status_code == 422
+    diagnostics = compile_response.json()["detail"]["diagnostics"]
+    assert any("raw filename parameter" in item for item in diagnostics)
+    assert secret_bytes not in compile_response.content
+    assert str(secret_path).encode("utf-8") not in compile_response.content
+
+
+def test_session_start_rejects_raw_sample_path_before_csound_start(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fail_if_csound_starts(*_args: object, **_kwargs: object) -> object:
+        raise AssertionError("CsoundWorker.start should not be called for raw samplePath patches")
+
+    monkeypatch.setattr("backend.app.engine.csound_worker.CsoundWorker.start", fail_if_csound_starts)
+    secret_path = tmp_path / "runtime-secret.sf2"
+    secret_bytes = b"runtime-raw-sample-path-secret"
+    secret_path.write_bytes(secret_bytes)
+
+    patch_payload = {
+        "name": "Runtime raw samplePath rejection",
+        "description": "start must fail before Csound sees raw paths",
+        "schema_version": 1,
+        "graph": {
+            "nodes": [
+                {"id": "a1", "opcode": "const_a", "params": {"value": 0.05}, "position": {"x": 20, "y": 20}},
+                {"id": "o1", "opcode": "outs", "params": {}, "position": {"x": 200, "y": 20}},
+                {"id": "s1", "opcode": "sfload", "params": {}, "position": {"x": 40, "y": 120}},
+            ],
+            "connections": [
+                {"from_node_id": "a1", "from_port_id": "aout", "to_node_id": "o1", "to_port_id": "left"},
+                {"from_node_id": "a1", "from_port_id": "aout", "to_node_id": "o1", "to_port_id": "right"},
+            ],
+            "ui_layout": {"sfload_nodes": {"s1": {"sampleAsset": None, "samplePath": str(secret_path)}}},
+            "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+        },
+    }
+
+    with _client(tmp_path) as client:
+        create_patch = client.post("/api/patches", json=patch_payload)
+        assert create_patch.status_code == 201
+        patch_id = create_patch.json()["id"]
+        create_session = client.post("/api/sessions", json={"patch_id": patch_id})
+        assert create_session.status_code == 201
+
+        start_response = client.post(f"/api/sessions/{create_session.json()['session_id']}/start")
+
+    assert start_response.status_code == 422
+    diagnostics = start_response.json()["detail"]["diagnostics"]
+    assert any("uses samplePath" in item for item in diagnostics)
+    assert secret_bytes not in start_response.content
+    assert str(secret_path).encode("utf-8") not in start_response.content
 
 
 def test_gen01_ftgenonce_mode_is_coerced_to_ftgen(tmp_path: Path) -> None:
@@ -6092,10 +6265,26 @@ def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
                     {"from_node_id": "n1", "from_port_id": "asig", "to_node_id": "n2", "to_port_id": "left"},
                     {"from_node_id": "n1", "from_port_id": "asig", "to_node_id": "n2", "to_port_id": "right"},
                 ],
-                "ui_layout": {"sfload_nodes": {"n65": {"samplePath": "/tmp/test.sf2"}}},
+                "ui_layout": {
+                    "sfload_nodes": {
+                        "n65": {
+                            "sampleAsset": {
+                                "asset_id": "sfload-asset-1",
+                                "original_name": "test.sf2",
+                                "stored_name": "test.sf2",
+                                "content_type": "audio/sf2",
+                                "size_bytes": 8,
+                            }
+                        }
+                    }
+                },
                 "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
             },
         }
+
+        asset_dir = tmp_path / "gen_audio_assets"
+        asset_dir.mkdir(parents=True, exist_ok=True)
+        (asset_dir / "test.sf2").write_bytes(b"sfbkfake")
 
         create_patch = client.post("/api/patches", json=patch_payload)
         assert create_patch.status_code == 201
@@ -6239,7 +6428,7 @@ def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
         assert ", a(" in flanger_line
         vdelayxs_line = next(line.strip() for line in compiled_orc.splitlines() if " vdelayxs " in line)
         assert ", a(" in vdelayxs_line
-        sfload_line = next(line for line in compiled_orc.splitlines() if ' sfload "/tmp/test.sf2"' in line)
+        sfload_line = next(line for line in compiled_orc.splitlines() if ' sfload "test.sf2"' in line)
         maxalloc_line = next(line for line in compiled_orc.splitlines() if line.strip().startswith("maxalloc "))
         instr_line_index = compiled_orc.splitlines().index("instr 1")
         sfload_line_index = compiled_orc.splitlines().index(sfload_line)
@@ -6680,6 +6869,11 @@ def test_multi_instrument_session_compiles_distinct_channel_mappings(tmp_path: P
 
 
 def test_multi_instrument_compile_deduplicates_sfload_for_same_file(tmp_path: Path) -> None:
+    asset_dir = tmp_path / "gen_audio_assets"
+    asset_dir.mkdir(parents=True, exist_ok=True)
+    stored_name = "shared.sf2"
+    (asset_dir / stored_name).write_bytes(b"sfbkshared")
+
     with _client(tmp_path) as client:
         patch_payload = {
             "name": "Shared SoundFont",
@@ -6695,7 +6889,19 @@ def test_multi_instrument_compile_deduplicates_sfload_for_same_file(tmp_path: Pa
                     {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "left"},
                     {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "right"},
                 ],
-                "ui_layout": {"sfload_nodes": {"n3": {"samplePath": "/tmp/shared.sf2"}}},
+                "ui_layout": {
+                    "sfload_nodes": {
+                        "n3": {
+                            "sampleAsset": {
+                                "asset_id": "sfload-asset-1",
+                                "original_name": "shared.sf2",
+                                "stored_name": stored_name,
+                                "content_type": "audio/sf2",
+                                "size_bytes": 10,
+                            }
+                        }
+                    }
+                },
                 "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
             },
         }
@@ -6720,7 +6926,7 @@ def test_multi_instrument_compile_deduplicates_sfload_for_same_file(tmp_path: Pa
         assert compile_response.status_code == 200
         compiled_orc = compile_response.json()["orc"]
 
-        sfload_calls = [line for line in compiled_orc.splitlines() if ' sfload "/tmp/shared.sf2"' in line]
+        sfload_calls = [line for line in compiled_orc.splitlines() if f' sfload "{stored_name}"' in line]
         assert len(sfload_calls) == 1
         assert "opcode:sfload (alias)" in compiled_orc
 

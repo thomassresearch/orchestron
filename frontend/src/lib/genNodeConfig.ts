@@ -114,7 +114,7 @@ export const GEN_ROUTINE_OPTIONS: GenRoutineOption[] = [
     value: 1,
     label: "GEN01 - Audio File",
     kind: "gen1",
-    description: "Load a sound file into a function table (uploaded asset or custom path)."
+    description: "Load an uploaded sound file into a function table."
   }
 ];
 
@@ -463,7 +463,7 @@ function previewArgsForConfig(config: GenNodeConfig): string[] {
     return args;
   }
   if (routineNumber === 1) {
-    const fileArg = config.sampleAsset?.original_name || config.samplePath.trim() || "<audio-file>";
+    const fileArg = config.sampleAsset?.original_name || "<uploaded-audio-file>";
     return [
       JSON.stringify(fileArg),
       String(config.sampleSkipTime),

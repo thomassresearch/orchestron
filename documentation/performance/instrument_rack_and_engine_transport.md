@@ -21,7 +21,7 @@ The rack includes fields and actions for the current performance:
 These actions operate on the performance configuration (instrument rack + sequencers + controllers + piano rolls), not on individual patch definitions.
 
 - `Export` writes an Orchestron `.orch.json` / `.orch.zip` performance bundle for backup, sharing, and re-import.
-- `Export CSD` writes an offline-render ZIP with a compiled `.csd`, the arranger performance as `.mid`, bundled uploaded sample/SF assets, and a `README.txt` with the render command. Manual local `samplePath` files must be uploaded before they can be included.
+- `Export CSD` writes an offline-render ZIP with a compiled `.csd`, the arranger performance as `.mid`, bundled uploaded sample/SF assets, and a `README.txt` with the render command. GEN01 and `sfload` sample files must be uploaded/imported assets; raw local `samplePath` values are rejected before compilation.
 
 ## Instrument Assignments (Rack Slots)
 

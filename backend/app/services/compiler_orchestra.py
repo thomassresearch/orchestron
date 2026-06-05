@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 
 from collections import defaultdict
+from pathlib import PurePosixPath
 
 from backend.app.models.opcode import PortSpec, SignalType
 from backend.app.models.patch import NodeInstance, PatchDocument
@@ -38,6 +39,7 @@ class OrchestraEmitter:
         graph_context: CompiledGraphContext,
         instrument_number: int,
         global_scope_key: str,
+        allow_packaged_asset_paths: bool = False,
     ) -> CompiledInstrumentLines:
         diagnostics: list[str] = []
         ui_layout = patch.graph.ui_layout
@@ -128,12 +130,24 @@ class OrchestraEmitter:
                 raise CompilationError(diagnostics)
 
             if compiled.spec.name == "GEN":
-                rendered = self._render_gen_node(compiled.node, ui_layout, env)
+                rendered = self._render_gen_node(
+                    compiled.node,
+                    ui_layout,
+                    env,
+                    allow_packaged_asset_paths=allow_packaged_asset_paths,
+                )
                 instrument_lines.extend([f"; node:{compiled.node.id} opcode:{compiled.spec.name}", *rendered.splitlines()])
                 continue
 
             if compiled.spec.name == "sfload":
-                sfload_global_requests.append(self._render_sfload_global_request(compiled.node, ui_layout, env))
+                sfload_global_requests.append(
+                    self._render_sfload_global_request(
+                        compiled.node,
+                        ui_layout,
+                        env,
+                        allow_packaged_asset_paths=allow_packaged_asset_paths,
+                    )
+                )
                 continue
 
             if compiled.spec.name == "maxalloc":
@@ -249,6 +263,8 @@ class OrchestraEmitter:
         node: NodeInstance,
         ui_layout: dict[str, object],
         env: dict[str, str],
+        *,
+        allow_packaged_asset_paths: bool = False,
     ) -> str:
         if "ift" not in env:
             raise CompilationError([f"GEN node '{node.id}' is missing output variable binding."])
@@ -263,22 +279,24 @@ class OrchestraEmitter:
         routine_number = abs(self._gen_int(raw_config.get("routineNumber"), default=10))
         if routine_number == 0:
             routine_number = 10
-        if table_size == 0 and (routine_name is not None or routine_number != 1):
+        is_gen01_routine = routine_number == 1 or routine_name in {"gen1", "gen01"}
+        if table_size == 0 and not is_gen01_routine:
             routine_label = f"GEN{routine_name}" if routine_name is not None else f"GEN{routine_number}"
             raise CompilationError([f"GEN node '{node.id}' tableSize cannot be 0 for {routine_label}."])
         normalize = self._gen_bool(raw_config.get("normalize"), default=True)
         igen = routine_number if normalize else -routine_number
         generator = routine_name if routine_name is not None else igen
-        effective_mode = "ftgen" if routine_name is None and routine_number == 1 else mode
+        effective_mode = "ftgen" if is_gen01_routine else mode
 
         args = self._flatten_gen_node_args(
             node_id=node.id,
             raw_config=raw_config,
-            routine_number=0 if routine_name is not None else routine_number,
+            routine_number=1 if is_gen01_routine else 0 if routine_name is not None else routine_number,
             table_size=table_size,
+            allow_packaged_asset_paths=allow_packaged_asset_paths,
         )
         prelude_lines: list[str] = []
-        if routine_name is None and routine_number == 1 and args and isinstance(args[0], str) and not args[0].startswith("expr:"):
+        if is_gen01_routine and args and isinstance(args[0], str) and not args[0].startswith("expr:"):
             string_var = self._allocate_string_temp_name(node.id, "gen01_file")
             prelude_lines.append(f"{string_var} init {self._format_gen_argument(args[0])}")
             args = [f"expr:{string_var}", *args[1:]]
@@ -306,6 +324,7 @@ class OrchestraEmitter:
         raw_config: dict[str, object],
         routine_number: int,
         table_size: int,
+        allow_packaged_asset_paths: bool = False,
     ) -> list[str | int | float | bool]:
         if routine_number == 10:
             partials = self._gen_number_list(raw_config.get("harmonicAmplitudes"))
@@ -384,12 +403,23 @@ class OrchestraEmitter:
                             raise CompilationError([str(err)]) from err
                     else:
                         sample_path = self._resolve_gen_audio_asset_path(normalized_stored_name)
-            if sample_path is None:
-                raw_sample_path = raw_config.get("samplePath")
-                if isinstance(raw_sample_path, str) and raw_sample_path.strip():
-                    sample_path = raw_sample_path.strip()
+            raw_sample_path = raw_config.get("samplePath")
+            if sample_path is None and isinstance(raw_sample_path, str) and raw_sample_path.strip():
+                if allow_packaged_asset_paths:
+                    sample_path = self._resolve_packaged_asset_path(
+                        raw_sample_path.strip(),
+                        node_id=node_id,
+                        opcode="GEN01",
+                    )
+                else:
+                    raise CompilationError(
+                        [
+                            f"GEN node '{node_id}' GEN01 uses samplePath. "
+                            "Upload the audio file before compiling or starting a session."
+                        ]
+                    )
             if sample_path is None and sample_filecode is None:
-                raise CompilationError([f"GEN node '{node_id}' GEN01 requires an uploaded audio asset or samplePath."])
+                raise CompilationError([f"GEN node '{node_id}' GEN01 requires an uploaded audio asset."])
 
             skip_time = self._gen_number(raw_config.get("sampleSkipTime"), default=0)
             file_format = self._gen_int(raw_config.get("sampleFormat"), default=0)
@@ -428,14 +458,21 @@ class OrchestraEmitter:
         node: NodeInstance,
         ui_layout: dict[str, object],
         env: dict[str, str],
+        *,
+        allow_packaged_asset_paths: bool = False,
     ) -> SfloadGlobalRequest:
         output_name = env.get("ifilhandle")
         if not output_name:
             raise CompilationError([f"sfload node '{node.id}' is missing output variable binding."])
 
-        filename = self._resolve_sfload_filename(ui_layout, node.id, legacy_params=node.params)
+        filename = self._resolve_sfload_filename(
+            ui_layout,
+            node.id,
+            legacy_params=node.params,
+            allow_packaged_asset_paths=allow_packaged_asset_paths,
+        )
         if filename is None:
-            raise CompilationError([f"sfload node '{node.id}' requires an uploaded SF2 asset or samplePath."])
+            raise CompilationError([f"sfload node '{node.id}' requires an uploaded SF2 asset."])
 
         return SfloadGlobalRequest(node_id=node.id, var_name=output_name, filename=filename)
 
@@ -494,6 +531,8 @@ class OrchestraEmitter:
         ui_layout: dict[str, object],
         node_id: str,
         legacy_params: dict[str, object] | None = None,
+        *,
+        allow_packaged_asset_paths: bool = False,
     ) -> str | None:
         raw_config = self._lookup_sfload_node_config(ui_layout, node_id)
         if not raw_config:
@@ -507,14 +546,51 @@ class OrchestraEmitter:
 
         raw_sample_path = raw_config.get("samplePath")
         if isinstance(raw_sample_path, str) and raw_sample_path.strip():
-            return raw_sample_path.strip()
+            if allow_packaged_asset_paths:
+                return self._resolve_packaged_asset_path(
+                    raw_sample_path.strip(),
+                    node_id=node_id,
+                    opcode="sfload",
+                )
+            raise CompilationError(
+                [
+                    f"sfload node '{node_id}' uses samplePath. "
+                    "Upload the SoundFont file before compiling or starting a session."
+                ]
+            )
 
         if legacy_params is not None:
             raw_filename = legacy_params.get("filename")
             if isinstance(raw_filename, str) and raw_filename.strip():
-                return raw_filename.strip()
+                raise CompilationError(
+                    [
+                        f"sfload node '{node_id}' uses a raw filename parameter. "
+                        "Upload the SoundFont file before compiling or starting a session."
+                    ]
+                )
 
         return None
+
+    @staticmethod
+    def _resolve_packaged_asset_path(raw_path: str, *, node_id: str, opcode: str) -> str:
+        normalized = raw_path.strip()
+        path = PurePosixPath(normalized)
+        if (
+            "\\" in normalized
+            or path.is_absolute()
+            or len(path.parts) != 2
+            or path.parts[0] != "assets"
+            or any(part in {"", ".", ".."} for part in path.parts)
+            or not re.fullmatch(r"[A-Za-z0-9._-]{1,255}", path.parts[1])
+            or re.fullmatch(r"soundin\.\d+", path.parts[1])
+        ):
+            raise CompilationError(
+                [
+                    f"{opcode} node '{node_id}' has an invalid packaged asset path. "
+                    "Only exporter-generated assets/<stored_name> paths are supported."
+                ]
+            )
+        return "/".join(path.parts)
 
     @staticmethod
     def _lookup_gen_node_config(ui_layout: dict[str, object], node_id: str) -> dict[str, object]:

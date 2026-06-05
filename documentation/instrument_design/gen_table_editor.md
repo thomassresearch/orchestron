@@ -63,7 +63,7 @@ You can choose from structured editors for common routines and a named routine o
 | `GEN08` | Cubic spline segments | Start value + repeated length/value rows |
 | `GEN17` | Step table from x/y pairs | x/y pairs (editable list) |
 | `GEN20` | Window / distribution | window type, max, optional parameter (for selected windows) |
-| `GEN01` | Load audio file into table | uploaded asset or fallback path, skip time, format, channel |
+| `GEN01` | Load audio file into table | uploaded asset, skip time, format, channel |
 
 ## `GENpadsynth` (Named Routine)
 
@@ -90,9 +90,9 @@ Examples:
 
 ## GEN01 Audio File Workflow (Important)
 
-The `GEN01` editor supports two ways to specify the sound file:
+The `GEN01` editor loads sound files through uploaded backend assets:
 
-### 1. Uploaded Asset (Recommended for Portability)
+### Uploaded Asset
 
 - Click `Upload Audio File`
 - Select an audio file (UI accepts common formats such as WAV/AIFF/FLAC/MP3/OGG and `audio/*`)
@@ -102,12 +102,8 @@ Benefits:
 
 - Instrument/performance exports can include the audio file automatically
 - Imports can restore the asset automatically when using ZIP bundles
-
-### 2. Fallback Sample Path
-
-- Enter an absolute path manually (advanced/local use)
-- This is less portable across machines
-- Offline performance CSD export does not bundle fallback paths; upload the file first when you need a portable render ZIP
+- Runtime compilation resolves the asset inside the configured backend asset directory
+- Raw absolute paths and parent-traversal paths are rejected before Csound starts
 
 ### Additional GEN01 Parameters
 
@@ -123,7 +119,7 @@ Benefits:
 - The backend streams GEN audio uploads and rejects requests once they exceed the configured cap
 - ZIP bundle imports also enforce request, member-count, JSON, and total-uncompressed-size caps before importing bundled assets
 - Deployments should set a matching maximum request size at the ASGI server, reverse proxy, or load balancer
-- The preview/note panel explains that uploaded assets take precedence when present
+- The preview/note panel explains that uploaded assets are required for GEN01 sample loading
 
 ## Preview Panel
 
@@ -138,7 +134,7 @@ Use this to verify the exact Csound line before compile.
 ## Editor Notes Worth Knowing
 
 - `ftgenonce` behavior differs from `ftgen` and the editor shows notes about the differences.
-- `GEN01` asset-backed generation is resolved by the backend compiler to stored asset paths.
+- `GEN01` asset-backed generation is resolved by the backend compiler to contained stored asset paths.
 - `GEN01` asset dependencies are automatically bundled in ZIP exports when referenced.
 
 ## Save Behavior

@@ -150,6 +150,7 @@ Important consequence: sessions are **not persisted**. Restarting the backend dr
 - Resolves stored names safely to avoid path traversal.
 - Can import assets from bundle ZIP files while preserving an existing stored name.
 - Can create numeric `soundin.<filecode>` aliases for GEN01 workflows.
+- Provides the containment boundary for GEN01 and `sfload` runtime sample loading; backend filesystem paths supplied in patch JSON are not trusted.
 
 ### CompilerService
 
@@ -161,6 +162,8 @@ Important consequence: sessions are **not persisted**. Restarting the backend dr
 - Topologically sorts nodes before rendering.
 - Emits both `orc` and full `csd` strings.
 - Supports multi-instrument session compilation by assigning MIDI channels with `massign`.
+- Requires GEN01 and `sfload` runtime sample loading to use uploaded/imported assets. Raw `samplePath` values and legacy `sfload` `filename` parameters are rejected for live session compile/start.
+- Offline performance CSD export may compile only exporter-generated `assets/<stored_name>` paths after the export service has copied referenced assets into the ZIP.
 
 Implementation note: when compiling a multi-instrument bundle, the engine settings are taken from the first target patch in the session.
 
@@ -276,6 +279,7 @@ Bundle behavior:
 - Performance exports place the JSON at `performance.orch.json`.
 - Referenced audio files are stored under `audio/<stored_name>` inside the ZIP.
 - Offline performance CSD exports reject looping playback, playback ranges above 65,536 transport steps, step note lists above 16 notes, and estimated MIDI event counts above 200,000 before export work starts. MIDI synthesis also has an event-count fuse and a 5 second wall-clock fuse.
+- Offline performance CSD exports reject raw GEN01/`sfload` `samplePath` values and legacy `sfload` `filename` parameters. Only uploaded/imported assets are rewritten to archive-local `assets/<stored_name>` references.
 
 Import behavior:
 

@@ -150,6 +150,7 @@ class PerformanceExportService:
             targets=targets,
             midi_input="0",
             rtmidi_module="virtual",
+            allow_packaged_asset_paths=True,
         )
 
         playback_duration_seconds = self._playback_duration_seconds(request)

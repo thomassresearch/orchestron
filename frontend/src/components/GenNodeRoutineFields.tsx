@@ -26,7 +26,6 @@ export type GenRoutineFieldsCopy = {
   uploading: string;
   clearAsset: string;
   persistedAsset: string;
-  fallbackSamplePath: string;
   skipTime: string;
   format: string;
   channel: string;
@@ -482,17 +481,6 @@ function Gen1RoutineFields({
         onClearAsset={onClearSampleAsset}
         onUploadFile={onUploadSampleFile}
       />
-
-      <label className="flex flex-col gap-1">
-        <span className="text-[11px] uppercase tracking-[0.14em] text-slate-400">{copy.fallbackSamplePath}</span>
-        <input
-          type="text"
-          value={draft.samplePath}
-          onChange={(event) => setDraft((current) => ({ ...current, samplePath: event.target.value }))}
-          placeholder="/absolute/path/file.wav"
-          className="rounded-md border border-slate-600 bg-slate-900 px-2 py-1.5 font-mono text-xs text-slate-100 outline-none ring-cyan-400/30 transition focus:ring"
-        />
-      </label>
 
       <div className="grid gap-3 sm:grid-cols-3">
         <label className="flex flex-col gap-1">

@@ -44,6 +44,8 @@ class CompilerService:
         targets: list[PatchInstrumentTarget],
         midi_input: str,
         rtmidi_module: str,
+        *,
+        allow_packaged_asset_paths: bool = False,
     ) -> CompileArtifact:
         if not targets:
             raise CompilationError(["At least one patch must be provided for compilation."])
@@ -72,6 +74,7 @@ class CompilerService:
                 graph_context=graph_context,
                 instrument_number=instrument_number,
                 global_scope_key=f"{instrument_number}_{target.patch.id}",
+                allow_packaged_asset_paths=allow_packaged_asset_paths,
             )
             compiled_instruments.append((instrument_number, target, compiled_lines))
             global_header_lines.extend(compiled_lines.global_header_lines)

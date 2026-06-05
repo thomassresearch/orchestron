@@ -50,7 +50,6 @@ type GenEditorCopy = {
   uploading: string;
   clearAsset: string;
   persistedAsset: string;
-  fallbackSamplePath: string;
   skipTime: string;
   format: string;
   channel: string;
@@ -120,7 +119,6 @@ const GEN_EDITOR_COPY: Record<GuiLanguage, GenEditorCopy> = {
     uploading: "Uploading...",
     clearAsset: "Clear Asset",
     persistedAsset: "Persisted asset",
-    fallbackSamplePath: "Fallback Sample Path (optional)",
     skipTime: "Skip Time",
     format: "Format",
     channel: "Channel",
@@ -134,7 +132,7 @@ const GEN_EDITOR_COPY: Record<GuiLanguage, GenEditorCopy> = {
     renderedLine: "Rendered Line",
     none: "(none)",
     notes: "Notes",
-    gen01Note: "GEN01 uses the uploaded asset if present. The backend compiler resolves it to the stored file path.",
+    gen01Note: "GEN01 requires an uploaded asset. The backend compiler resolves it to contained asset storage.",
     ftgenonceNote: "`ftgenonce` ignores Start Time and uses the same table parameter as the `ftgenonce` first argument.",
     cancel: "Cancel",
     saveGen: "Save GEN",
@@ -165,7 +163,7 @@ const GEN_EDITOR_COPY: Record<GuiLanguage, GenEditorCopy> = {
       20: "GEN20 - Window / Distribution Function"
     },
     routineDescriptions: {
-      1: "Load a sound file into a function table (uploaded asset or custom path).",
+      1: "Load an uploaded sound file into a function table.",
       2: "Enter literal values copied into the table.",
       7: "Define a start value and line segments using length/value pairs.",
       8: "Define a start value and cubic spline segments using length/value pairs.",
@@ -226,7 +224,6 @@ const GEN_EDITOR_COPY: Record<GuiLanguage, GenEditorCopy> = {
     uploading: "Lade hoch...",
     clearAsset: "Asset entfernen",
     persistedAsset: "Persistiertes Asset",
-    fallbackSamplePath: "Fallback-Samplepfad (optional)",
     skipTime: "Startoffset",
     format: "Format",
     channel: "Kanal",
@@ -241,7 +238,7 @@ const GEN_EDITOR_COPY: Record<GuiLanguage, GenEditorCopy> = {
     none: "(keine)",
     notes: "Hinweise",
     gen01Note:
-      "GEN01 verwendet das hochgeladene Asset, falls vorhanden. Der Backend-Compiler loest es zum gespeicherten Dateipfad auf.",
+      "GEN01 erfordert ein hochgeladenes Asset. Der Backend-Compiler loest es in den geschuetzten Asset-Speicher auf.",
     ftgenonceNote:
       "`ftgenonce` ignoriert Startzeit und verwendet denselben Tabellenparameter wie das erste `ftgenonce`-Argument.",
     cancel: "Abbrechen",
@@ -273,7 +270,7 @@ const GEN_EDITOR_COPY: Record<GuiLanguage, GenEditorCopy> = {
       20: "GEN20 - Fenster / Verteilungsfunktion"
     },
     routineDescriptions: {
-      1: "Laedt eine Audiodatei in eine Funktionstabelle (Upload-Asset oder benutzerdefinierter Pfad).",
+      1: "Laedt eine hochgeladene Audiodatei in eine Funktionstabelle.",
       2: "Trage Literalwerte ein, die in die Tabelle kopiert werden.",
       7: "Definiere Startwert und Liniensegmente ueber Laenge/Wert-Paare.",
       8: "Definiere Startwert und kubische Spline-Segmente ueber Laenge/Wert-Paare.",
@@ -334,7 +331,6 @@ const GEN_EDITOR_COPY: Record<GuiLanguage, GenEditorCopy> = {
     uploading: "Televersement...",
     clearAsset: "Effacer asset",
     persistedAsset: "Asset persiste",
-    fallbackSamplePath: "Chemin sample de secours (optionnel)",
     skipTime: "Temps de saut",
     format: "Format",
     channel: "Canal",
@@ -349,7 +345,7 @@ const GEN_EDITOR_COPY: Record<GuiLanguage, GenEditorCopy> = {
     none: "(aucun)",
     notes: "Notes",
     gen01Note:
-      "GEN01 utilise l'asset televerse s'il est present. Le compilateur backend le resolut vers le chemin de fichier stocke.",
+      "GEN01 requiert un asset televerse. Le compilateur backend le resout vers le stockage d'assets protege.",
     ftgenonceNote:
       "`ftgenonce` ignore le temps de depart et utilise le meme parametre de table que le premier argument `ftgenonce`.",
     cancel: "Annuler",
@@ -381,7 +377,7 @@ const GEN_EDITOR_COPY: Record<GuiLanguage, GenEditorCopy> = {
       20: "GEN20 - Fonction fenetre / distribution"
     },
     routineDescriptions: {
-      1: "Charge un fichier audio dans une table de fonction (asset televerse ou chemin personnalise).",
+      1: "Charge un fichier audio televerse dans une table de fonction.",
       2: "Saisissez des valeurs litterales copiees dans la table.",
       7: "Definissez une valeur initiale et des segments par paires longueur/valeur.",
       8: "Definissez une valeur initiale et des segments spline cubique par paires longueur/valeur.",
@@ -442,7 +438,6 @@ const GEN_EDITOR_COPY: Record<GuiLanguage, GenEditorCopy> = {
     uploading: "Subiendo...",
     clearAsset: "Limpiar asset",
     persistedAsset: "Asset persistido",
-    fallbackSamplePath: "Ruta de sample alternativa (opcional)",
     skipTime: "Tiempo de salto",
     format: "Formato",
     channel: "Canal",
@@ -457,7 +452,7 @@ const GEN_EDITOR_COPY: Record<GuiLanguage, GenEditorCopy> = {
     none: "(ninguno)",
     notes: "Notas",
     gen01Note:
-      "GEN01 usa el asset subido si existe. El compilador backend lo resuelve a la ruta del archivo almacenado.",
+      "GEN01 requiere un asset subido. El compilador backend lo resuelve al almacenamiento de assets protegido.",
     ftgenonceNote:
       "`ftgenonce` ignora Start Time y usa el mismo parametro de tabla que el primer argumento de `ftgenonce`.",
     cancel: "Cancelar",
@@ -489,7 +484,7 @@ const GEN_EDITOR_COPY: Record<GuiLanguage, GenEditorCopy> = {
       20: "GEN20 - Funcion de ventana / distribucion"
     },
     routineDescriptions: {
-      1: "Carga un archivo de audio en una tabla de funcion (asset subido o ruta personalizada).",
+      1: "Carga un archivo de audio subido en una tabla de funcion.",
       2: "Introduce valores literales copiados a la tabla.",
       7: "Define un valor inicial y segmentos con pares longitud/valor.",
       8: "Define un valor inicial y segmentos spline cubica con pares longitud/valor.",
