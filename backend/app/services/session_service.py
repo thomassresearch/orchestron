@@ -4,6 +4,7 @@ import asyncio
 from dataclasses import dataclass, field
 import logging
 from datetime import datetime, timezone
+import math
 import time
 from typing import Any
 from typing import Awaitable, Callable
@@ -88,6 +89,8 @@ class BrowserClockControllerLease:
     last_note_on_server_received_ns: int | None = None
     last_note_on_mapped_server_ns: int | None = None
     last_note_on_sync_stale: bool = True
+    manual_midi_tokens: float = 0.0
+    manual_midi_last_refill_ns: int | None = None
 
 
 @dataclass(slots=True)
@@ -418,12 +421,16 @@ class SessionService:
         self._remember_running_loop()
         runtime, lease = await self.require_browser_clock_controller(session_id, connection_id)
         event_server_received_ns = server_received_ns or time.perf_counter_ns()
+        self._validate_browser_clock_manual_midi_rate(lease, now_server_ns=event_server_received_ns)
+        if request.event_perf_ms is not None and not math.isfinite(request.event_perf_ms):
+            raise HTTPException(status_code=422, detail="Browser-clock manual MIDI event_perf_ms must be finite.")
         target_engine_sample, mapped_backend_monotonic_ns, sync_stale = self._target_engine_sample_for_browser_event(
             runtime=runtime,
             lease=lease,
             event_perf_ms=request.event_perf_ms,
             now_server_ns=event_server_received_ns,
         )
+        self._validate_browser_clock_manual_midi_horizon(runtime, target_engine_sample)
         if request.midi.type == "note_on":
             lease.last_note_on_client_perf_ms = request.event_perf_ms
             lease.last_note_on_server_received_ns = event_server_received_ns
@@ -591,6 +598,36 @@ class SessionService:
                 status_code=422,
                 detail="Browser-clock timing report frame counts exceed the server budget.",
             )
+
+    def _validate_browser_clock_manual_midi_rate(
+        self,
+        lease: BrowserClockControllerLease,
+        *,
+        now_server_ns: int,
+    ) -> None:
+        burst = max(1, int(self._settings.browser_clock_manual_midi_burst))
+        rate_per_second = max(0.001, float(self._settings.browser_clock_manual_midi_rate_per_second))
+        if lease.manual_midi_last_refill_ns is None:
+            lease.manual_midi_tokens = float(burst)
+            lease.manual_midi_last_refill_ns = now_server_ns
+        else:
+            elapsed_seconds = max(0.0, (now_server_ns - lease.manual_midi_last_refill_ns) / 1_000_000_000.0)
+            lease.manual_midi_tokens = min(float(burst), lease.manual_midi_tokens + (elapsed_seconds * rate_per_second))
+            lease.manual_midi_last_refill_ns = now_server_ns
+
+        if lease.manual_midi_tokens < 1.0:
+            raise HTTPException(status_code=429, detail="Browser-clock manual MIDI rate limit exceeded.")
+        lease.manual_midi_tokens -= 1.0
+
+    def _validate_browser_clock_manual_midi_horizon(
+        self,
+        runtime: RuntimeSession,
+        target_engine_sample: int,
+    ) -> None:
+        current_sample = max(0, int(runtime.worker.render_sample_cursor))
+        max_future_samples = self._browser_clock_manual_midi_max_future_samples(runtime)
+        if int(target_engine_sample) > current_sample + max_future_samples:
+            raise HTTPException(status_code=422, detail="Browser-clock manual MIDI event is too far in the future.")
 
     async def render_browser_clock_audio(
         self,
@@ -1096,9 +1133,9 @@ class SessionService:
             await self._publish(
                 runtime.session_id,
                 "runtime_warning",
-                {"detail": "Engine MIDI scheduler overflowed and rejected new MIDI events."},
+                {"detail": "Engine MIDI input queue rejected new MIDI events."},
             )
-            raise HTTPException(status_code=409, detail="Engine MIDI scheduler overflowed.")
+            raise HTTPException(status_code=409, detail="Engine MIDI input queue rejected new MIDI events.")
 
         payload: dict[str, str | int | float | bool | None] = {
             "type": request.type,
@@ -1206,13 +1243,18 @@ class SessionService:
             runtime.midi_router = self._create_midi_router(runtime)
         return runtime.midi_router
 
-    @staticmethod
-    def _create_midi_router(runtime: RuntimeSession) -> PerformanceMidiRouter:
+    def _create_midi_router(self, runtime: RuntimeSession) -> PerformanceMidiRouter:
         return PerformanceMidiRouter(
             enqueue_timestamped_midi=runtime.worker.enqueue_timestamped_midi,
             current_engine_sample=lambda runtime=runtime: runtime.worker.render_sample_cursor,
             output_name="engine:internal",
+            max_pending_inputs=self._settings.arpeggiator_pending_input_max_events,
+            max_future_samples=lambda runtime=runtime: self._browser_clock_manual_midi_max_future_samples(runtime),
         )
+
+    def _browser_clock_manual_midi_max_future_samples(self, runtime: RuntimeSession) -> int:
+        sample_rate = max(1, int(runtime.worker.runtime_sample_rate or self._settings.default_sr))
+        return max(1, int(round(sample_rate * (self._settings.browser_clock_manual_midi_max_future_ms / 1000.0))))
 
     def _status_with_arpeggiators(
         self,

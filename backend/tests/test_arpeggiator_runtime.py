@@ -38,10 +38,17 @@ class _CaptureMidi:
         return True
 
 
-def _router(capture: _CaptureMidi) -> PerformanceMidiRouter:
+def _router(
+    capture: _CaptureMidi,
+    *,
+    max_pending_inputs: int = 16_384,
+    max_future_samples: int | None = None,
+) -> PerformanceMidiRouter:
     return PerformanceMidiRouter(
         enqueue_timestamped_midi=capture.enqueue_timestamped_midi,
         current_engine_sample=lambda: capture.current_sample,
+        max_pending_inputs=max_pending_inputs,
+        max_future_samples=max_future_samples,
     )
 
 
@@ -96,6 +103,33 @@ def test_disabled_arpeggiator_consumes_input_without_output() -> None:
     assert queued is True
     assert capture.messages == []
     assert router.status()[0].held_notes == []
+
+
+def test_arpeggiator_rejects_pending_input_above_cap() -> None:
+    capture = _CaptureMidi()
+    router = _router(capture, max_pending_inputs=1)
+    router.configure([_arp_config()], tempo_bpm=120)
+
+    assert router.route_message([0x91, 60, 100], source="test", target_engine_sample=1_000) is True
+    assert router.route_message([0x91, 62, 100], source="test", target_engine_sample=1_001) is False
+
+    _advance_router(router, start=1_000, end=1_064)
+
+    assert router.status()[0].held_notes == [60]
+
+
+def test_arpeggiator_rejects_pending_input_beyond_future_horizon() -> None:
+    capture = _CaptureMidi()
+    capture.current_sample = 10_000
+    router = _router(capture, max_future_samples=4_800)
+    router.configure([_arp_config()], tempo_bpm=120)
+
+    assert router.route_message([0x91, 60, 100], source="test", target_engine_sample=14_800) is True
+    assert router.route_message([0x91, 62, 100], source="test", target_engine_sample=14_801) is False
+
+    _advance_router(router, start=14_800, end=14_864)
+
+    assert router.status()[0].held_notes == [60]
 
 
 def test_arpeggiator_input_channels_must_be_unique() -> None:

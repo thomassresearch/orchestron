@@ -67,6 +67,10 @@ class Settings(BaseSettings):
     audio_output_mode: Literal["browser_clock"] = "browser_clock"
     frontend_disconnect_grace_seconds: float = Field(default=5.0, gt=0.0)
     frontend_heartbeat_timeout_seconds: float = Field(default=5.0, gt=0.0)
+    arpeggiator_pending_input_max_events: int = Field(default=16_384, gt=0)
+    browser_clock_manual_midi_max_future_ms: float = Field(default=2_000.0, gt=0.0)
+    browser_clock_manual_midi_rate_per_second: float = Field(default=240.0, gt=0.0)
+    browser_clock_manual_midi_burst: int = Field(default=480, gt=0)
 
     @field_validator("audio_output_mode", mode="before")
     @classmethod

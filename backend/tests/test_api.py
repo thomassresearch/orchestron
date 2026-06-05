@@ -45,6 +45,10 @@ def _client(
     bundle_import_json_max_bytes: int | None = None,
     bundle_import_zip_max_members: int | None = None,
     bundle_import_zip_max_uncompressed_bytes: int | None = None,
+    arpeggiator_pending_input_max_events: int | None = None,
+    browser_clock_manual_midi_max_future_ms: float | None = None,
+    browser_clock_manual_midi_rate_per_second: float | None = None,
+    browser_clock_manual_midi_burst: int | None = None,
 ) -> TestClient:
     db_path = tmp_path / "test.db"
     static_dir = tmp_path / "static"
@@ -93,6 +97,26 @@ def _client(
         os.environ["VISUALCSOUND_BUNDLE_IMPORT_ZIP_MAX_UNCOMPRESSED_BYTES"] = str(
             bundle_import_zip_max_uncompressed_bytes
         )
+    if arpeggiator_pending_input_max_events is None:
+        os.environ.pop("VISUALCSOUND_ARPEGGIATOR_PENDING_INPUT_MAX_EVENTS", None)
+    else:
+        os.environ["VISUALCSOUND_ARPEGGIATOR_PENDING_INPUT_MAX_EVENTS"] = str(arpeggiator_pending_input_max_events)
+    if browser_clock_manual_midi_max_future_ms is None:
+        os.environ.pop("VISUALCSOUND_BROWSER_CLOCK_MANUAL_MIDI_MAX_FUTURE_MS", None)
+    else:
+        os.environ["VISUALCSOUND_BROWSER_CLOCK_MANUAL_MIDI_MAX_FUTURE_MS"] = str(
+            browser_clock_manual_midi_max_future_ms
+        )
+    if browser_clock_manual_midi_rate_per_second is None:
+        os.environ.pop("VISUALCSOUND_BROWSER_CLOCK_MANUAL_MIDI_RATE_PER_SECOND", None)
+    else:
+        os.environ["VISUALCSOUND_BROWSER_CLOCK_MANUAL_MIDI_RATE_PER_SECOND"] = str(
+            browser_clock_manual_midi_rate_per_second
+        )
+    if browser_clock_manual_midi_burst is None:
+        os.environ.pop("VISUALCSOUND_BROWSER_CLOCK_MANUAL_MIDI_BURST", None)
+    else:
+        os.environ["VISUALCSOUND_BROWSER_CLOCK_MANUAL_MIDI_BURST"] = str(browser_clock_manual_midi_burst)
     if host_midi_token is None:
         os.environ.pop("VISUALCSOUND_HOST_MIDI_TOKEN", None)
     else:
@@ -629,6 +653,103 @@ def test_browser_clock_rejects_render_above_controller_budget(tmp_path: Path) ->
             assert not render_called.is_set()
         finally:
             runtime.worker.render_blocks = original_render_blocks
+
+
+def test_browser_clock_rejects_manual_midi_beyond_future_horizon(tmp_path: Path) -> None:
+    with _client(
+        tmp_path,
+        audio_output_mode="browser_clock",
+        browser_clock_manual_midi_max_future_ms=10.0,
+    ) as client:
+        session_id = _create_running_session(client, patch_name="Browser Clock Manual MIDI Horizon")
+        arpeggiator_config = client.put(
+            f"/api/sessions/{session_id}/arpeggiators/config",
+            json={
+                "tempo_bpm": 120,
+                "arpeggiators": [
+                    {
+                        "arpeggiator_id": "arp-1",
+                        "enabled": True,
+                        "input_channel": 1,
+                        "target_channel": 2,
+                    }
+                ],
+            },
+        )
+        assert arpeggiator_config.status_code == 200
+
+        with client.websocket_connect(f"/ws/sessions/{session_id}/browser-clock") as websocket:
+            websocket.send_json(
+                {
+                    "type": "claim_controller",
+                    "audio_context_sample_rate": 48_000,
+                    "queue_low_water_frames": 1024,
+                    "queue_high_water_frames": 2048,
+                    "max_blocks_per_request": 8,
+                }
+            )
+            assert websocket.receive_json()["type"] == "stream_config"
+
+            now_client_perf_ms = time.perf_counter() * 1000.0
+            websocket.send_json(
+                {
+                    "type": "timing_report",
+                    "client_perf_ms": now_client_perf_ms,
+                    "audio_context_time_s": 0.0,
+                    "queued_frames": 0,
+                    "sample_rate": 48_000,
+                    "pending_render_frames": 0,
+                    "underrun_count": 0,
+                }
+            )
+            websocket.send_json(
+                {
+                    "type": "manual_midi",
+                    "midi": {"type": "note_on", "channel": 1, "note": 60, "velocity": 100},
+                    "event_perf_ms": now_client_perf_ms + 100.0,
+                }
+            )
+
+            message = websocket.receive_json()
+            assert message["type"] == "engine_error"
+            assert "too far in the future" in message["detail"]
+            with pytest.raises(WebSocketDisconnect):
+                websocket.receive_text()
+
+
+def test_browser_clock_rate_limits_manual_midi(tmp_path: Path) -> None:
+    with _client(
+        tmp_path,
+        audio_output_mode="browser_clock",
+        browser_clock_manual_midi_rate_per_second=0.001,
+        browser_clock_manual_midi_burst=1,
+    ) as client:
+        session_id = _create_running_session(client, patch_name="Browser Clock Manual MIDI Rate Limit")
+
+        with client.websocket_connect(f"/ws/sessions/{session_id}/browser-clock") as websocket:
+            websocket.send_json(
+                {
+                    "type": "claim_controller",
+                    "audio_context_sample_rate": 48_000,
+                    "queue_low_water_frames": 1024,
+                    "queue_high_water_frames": 2048,
+                    "max_blocks_per_request": 8,
+                }
+            )
+            assert websocket.receive_json()["type"] == "stream_config"
+
+            manual_midi = {
+                "type": "manual_midi",
+                "midi": {"type": "note_on", "channel": 1, "note": 60, "velocity": 100},
+            }
+            websocket.send_json(manual_midi)
+            websocket.send_json(manual_midi)
+
+            message = websocket.receive_json()
+            assert message["type"] == "engine_error"
+            assert "rate limit" in message["detail"]
+            with pytest.raises(WebSocketDisconnect):
+                websocket.receive_text()
 
 
 def test_browser_clock_coalesces_steady_render_queue_when_full(tmp_path: Path) -> None:

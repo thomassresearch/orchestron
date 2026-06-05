@@ -334,12 +334,15 @@ async def browser_clock_controller(websocket: WebSocket, session_id: str) -> Non
                 )
             except ValidationError as exc:
                 await send_json({"type": "engine_error", "detail": str(exc)})
-                if message_type in {"claim_controller", "request_render", "timing_report"}:
+                if message_type in {"claim_controller", "request_render", "timing_report", "manual_midi"}:
                     await close_socket(_BROWSER_CLOCK_POLICY_VIOLATION_CLOSE_CODE, "browser_clock_policy_violation")
                     return
             except HTTPException as exc:
                 await send_json({"type": "engine_error", "detail": _http_error_detail(exc.detail)})
-                if exc.status_code == 422 and message_type in {"claim_controller", "request_render", "timing_report"}:
+                if (
+                    exc.status_code in {422, 429}
+                    and message_type in {"claim_controller", "request_render", "timing_report", "manual_midi"}
+                ):
                     await close_socket(_BROWSER_CLOCK_POLICY_VIOLATION_CLOSE_CODE, "browser_clock_policy_violation")
                     return
             except WebSocketDisconnect:

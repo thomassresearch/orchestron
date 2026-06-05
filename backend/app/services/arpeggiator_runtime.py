@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import bisect
 from dataclasses import dataclass, field
 import random
 import threading
@@ -141,10 +142,14 @@ class PerformanceMidiRouter:
         enqueue_timestamped_midi: TimestampedMidiEnqueue,
         current_engine_sample: Callable[[], int],
         output_name: str = "engine:internal",
+        max_pending_inputs: int = 16_384,
+        max_future_samples: int | Callable[[], int] | None = None,
     ) -> None:
         self._enqueue_timestamped_midi = enqueue_timestamped_midi
         self._current_engine_sample = current_engine_sample
         self._output_name = output_name
+        self._max_pending_inputs = max(1, int(max_pending_inputs))
+        self._max_future_samples = max_future_samples
         self._lock = threading.RLock()
         self._states: dict[str, ArpeggiatorRuntimeState] = {}
         self._state_order: list[str] = []
@@ -297,13 +302,21 @@ class PerformanceMidiRouter:
                 if state is None:
                     return True
                 if state.config.enabled:
-                    self._pending_sequence += 1
                     event_sample = (
                         max(0, int(target_engine_sample))
                         if target_engine_sample is not None
                         else max(0, int(self._current_engine_sample()))
                     )
-                    self._pending_inputs.append(
+                    if len(self._pending_inputs) >= self._max_pending_inputs:
+                        return False
+                    max_future_samples = self._max_future_sample_horizon()
+                    if max_future_samples is not None:
+                        current_sample = max(0, int(self._current_engine_sample()))
+                        if event_sample > current_sample + max_future_samples:
+                            return False
+                    self._pending_sequence += 1
+                    bisect.insort(
+                        self._pending_inputs,
                         PendingInputEvent(
                             target_sample=event_sample,
                             sequence=self._pending_sequence,
@@ -312,7 +325,6 @@ class PerformanceMidiRouter:
                             source_context=source_context,
                         )
                     )
-                    self._pending_inputs.sort()
                 return True
 
         return self._enqueue_timestamped_midi(
@@ -324,6 +336,14 @@ class PerformanceMidiRouter:
             mapped_backend_monotonic_ns=mapped_backend_monotonic_ns,
             sync_stale=sync_stale,
         )
+
+    def _max_future_sample_horizon(self) -> int | None:
+        max_future_samples = self._max_future_samples
+        if max_future_samples is None:
+            return None
+        if callable(max_future_samples):
+            max_future_samples = max_future_samples()
+        return max(0, int(max_future_samples))
 
     def advance_render_block(
         self,
