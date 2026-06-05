@@ -24,6 +24,7 @@ from backend.app.models.session import BROWSER_CLOCK_MAX_SAMPLE_RATE, MidiInputR
 from backend.app.core.config import get_settings
 from backend.app.main import create_app
 from backend.app.services import performance_export_service
+from backend.app.services.gen_asset_service import GenAssetService
 from backend.app.services.performance_export_service import (
     OfflineMidiExportBudgetExceededError,
     OfflineMidiExportTimeoutError,
@@ -37,6 +38,9 @@ def _client(
     audio_output_mode: str = "browser_clock",
     host_midi_token: str | None = None,
     gen_audio_asset_max_bytes: int | None = None,
+    gen_audio_assets_max_total_bytes: int | None = None,
+    gen_audio_assets_max_count: int | None = None,
+    gen_audio_asset_gc_min_age_seconds: float | None = None,
     bundle_import_max_bytes: int | None = None,
     bundle_import_json_max_bytes: int | None = None,
     bundle_import_zip_max_members: int | None = None,
@@ -59,6 +63,18 @@ def _client(
         os.environ.pop("VISUALCSOUND_GEN_AUDIO_ASSET_MAX_BYTES", None)
     else:
         os.environ["VISUALCSOUND_GEN_AUDIO_ASSET_MAX_BYTES"] = str(gen_audio_asset_max_bytes)
+    if gen_audio_assets_max_total_bytes is None:
+        os.environ.pop("VISUALCSOUND_GEN_AUDIO_ASSETS_MAX_TOTAL_BYTES", None)
+    else:
+        os.environ["VISUALCSOUND_GEN_AUDIO_ASSETS_MAX_TOTAL_BYTES"] = str(gen_audio_assets_max_total_bytes)
+    if gen_audio_assets_max_count is None:
+        os.environ.pop("VISUALCSOUND_GEN_AUDIO_ASSETS_MAX_COUNT", None)
+    else:
+        os.environ["VISUALCSOUND_GEN_AUDIO_ASSETS_MAX_COUNT"] = str(gen_audio_assets_max_count)
+    if gen_audio_asset_gc_min_age_seconds is None:
+        os.environ.pop("VISUALCSOUND_GEN_AUDIO_ASSET_GC_MIN_AGE_SECONDS", None)
+    else:
+        os.environ["VISUALCSOUND_GEN_AUDIO_ASSET_GC_MIN_AGE_SECONDS"] = str(gen_audio_asset_gc_min_age_seconds)
     if bundle_import_max_bytes is None:
         os.environ.pop("VISUALCSOUND_BUNDLE_IMPORT_MAX_BYTES", None)
     else:
@@ -3842,6 +3858,82 @@ def test_gen_audio_asset_upload_rejects_stream_oversize_before_later_chunks(
         assert list((tmp_path / "gen_audio_assets").iterdir()) == []
 
 
+def test_gen_audio_asset_upload_rejects_repeated_valid_uploads_after_byte_quota(
+    tmp_path: Path,
+) -> None:
+    with _client(tmp_path, gen_audio_assets_max_total_bytes=10) as client:
+        first = client.post(
+            "/api/assets/gen-audio",
+            content=b"abcdef",
+            headers={"X-File-Name": "first.wav", "Content-Type": "audio/wav"},
+        )
+        assert first.status_code == 201
+
+        second = client.post(
+            "/api/assets/gen-audio",
+            content=b"ghijk",
+            headers={"X-File-Name": "second.wav", "Content-Type": "audio/wav"},
+        )
+
+        assert second.status_code == 413
+        assert "generated audio asset storage quota" in second.text
+        stored_files = [path for path in (tmp_path / "gen_audio_assets").iterdir() if not path.name.startswith(".")]
+        assert len(stored_files) == 1
+        assert stored_files[0].read_bytes() == b"abcdef"
+
+
+def test_gen_audio_asset_upload_rejects_repeated_valid_uploads_after_count_quota(
+    tmp_path: Path,
+) -> None:
+    with _client(tmp_path, gen_audio_assets_max_count=1) as client:
+        first = client.post(
+            "/api/assets/gen-audio",
+            content=b"abcd",
+            headers={"X-File-Name": "first.wav", "Content-Type": "audio/wav"},
+        )
+        assert first.status_code == 201
+
+        second = client.post(
+            "/api/assets/gen-audio",
+            content=b"efgh",
+            headers={"X-File-Name": "second.wav", "Content-Type": "audio/wav"},
+        )
+
+        assert second.status_code == 413
+        assert "generated audio asset count quota" in second.text
+        assert len(list((tmp_path / "gen_audio_assets").iterdir())) == 1
+
+
+def test_gen_audio_asset_upload_rejects_declared_quota_overflow_before_reading_body(
+    tmp_path: Path,
+) -> None:
+    asset_dir = tmp_path / "gen_audio_assets"
+    asset_dir.mkdir(parents=True, exist_ok=True)
+    (asset_dir / "existing.wav").write_bytes(b"abcd")
+    receive_calls = 0
+
+    async def receive() -> dict[str, object]:
+        nonlocal receive_calls
+        receive_calls += 1
+        raise AssertionError("Quota-rejected upload body should not be read.")
+
+    with _client(tmp_path, gen_audio_assets_max_total_bytes=5) as client:
+        status, body = _post_gen_audio_upload_asgi(
+            client,
+            headers={
+                "X-File-Name": "quota.wav",
+                "Content-Type": "audio/wav",
+                "Content-Length": "2",
+            },
+            receive=receive,
+        )
+
+        assert status == 413
+        assert b"generated audio asset storage quota" in body
+        assert receive_calls == 0
+        assert sorted(path.name for path in asset_dir.iterdir()) == ["existing.wav"]
+
+
 def test_patch_bundle_export_uses_zip_when_gen_audio_is_referenced(tmp_path: Path) -> None:
     asset_dir = tmp_path / "gen_audio_assets"
     asset_dir.mkdir(parents=True, exist_ok=True)
@@ -4727,6 +4819,151 @@ def test_bundle_import_rejects_zip_bomb_style_oversized_audio_member(tmp_path: P
         assert list((tmp_path / "gen_audio_assets").iterdir()) == []
 
 
+def test_bundle_import_rejects_repeated_valid_imports_after_byte_quota(tmp_path: Path) -> None:
+    first_archive = _build_gen_asset_import_archive(stored_name="first.wav", audio_bytes=b"abcdef")
+    second_archive = _build_gen_asset_import_archive(stored_name="second.wav", audio_bytes=b"ghijk")
+
+    with _client(
+        tmp_path,
+        gen_audio_assets_max_total_bytes=10,
+        bundle_import_max_bytes=4096,
+    ) as client:
+        first = client.post(
+            "/api/bundles/import/expand",
+            content=first_archive,
+            headers={
+                "X-File-Name": "first.orch.instrument.zip",
+                "Content-Type": "application/zip",
+            },
+        )
+        assert first.status_code == 200
+
+        second = client.post(
+            "/api/bundles/import/expand",
+            content=second_archive,
+            headers={
+                "X-File-Name": "second.orch.instrument.zip",
+                "Content-Type": "application/zip",
+            },
+        )
+
+        assert second.status_code == 413
+        assert "generated audio asset storage quota" in second.text
+        stored_files = sorted(path.name for path in (tmp_path / "gen_audio_assets").iterdir())
+        assert stored_files == ["first.wav"]
+
+
+def test_bundle_import_rejects_over_quota_batch_without_partial_asset_writes(tmp_path: Path) -> None:
+    payload = {
+        "sourcePatchId": "patch-1",
+        "name": "Two Assets",
+        "description": "",
+        "schema_version": 1,
+        "graph": {
+            "nodes": [
+                {"id": "g1", "opcode": "GEN", "params": {}, "position": {"x": 0, "y": 0}},
+                {"id": "s1", "opcode": "sfload", "params": {}, "position": {"x": 0, "y": 0}},
+            ],
+            "connections": [],
+            "ui_layout": {
+                "gen_nodes": {
+                    "g1": {
+                        "routineNumber": 1,
+                        "sampleAsset": {
+                            "asset_id": "asset-1",
+                            "original_name": "first.wav",
+                            "stored_name": "first.wav",
+                            "content_type": "audio/wav",
+                            "size_bytes": 6,
+                        },
+                    }
+                },
+                "sfload_nodes": {
+                    "s1": {
+                        "sampleAsset": {
+                            "asset_id": "asset-2",
+                            "original_name": "second.sf2",
+                            "stored_name": "second.sf2",
+                            "content_type": "audio/sf2",
+                            "size_bytes": 6,
+                        },
+                        "samplePath": "",
+                    }
+                },
+            },
+            "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+        },
+    }
+    archive_bytes = BytesIO()
+    with zipfile.ZipFile(archive_bytes, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("two.orch.instrument.json", json.dumps(payload).encode("utf-8"))
+        archive.writestr("audio/first.wav", b"abcdef")
+        archive.writestr("audio/second.sf2", b"ghijkl")
+
+    with _client(
+        tmp_path,
+        gen_audio_assets_max_total_bytes=10,
+        bundle_import_max_bytes=4096,
+    ) as client:
+        response = client.post(
+            "/api/bundles/import/expand",
+            content=archive_bytes.getvalue(),
+            headers={
+                "X-File-Name": "two.orch.instrument.zip",
+                "Content-Type": "application/zip",
+            },
+        )
+
+        assert response.status_code == 413
+        assert "generated audio asset storage quota" in response.text
+        assert list((tmp_path / "gen_audio_assets").iterdir()) == []
+
+
+def test_bundle_import_rejects_reserved_gen01_alias_stored_name(tmp_path: Path) -> None:
+    archive_bytes = _build_gen_asset_import_archive(stored_name="soundin.1234", audio_bytes=b"abcdef")
+
+    with _client(tmp_path, bundle_import_max_bytes=4096) as client:
+        response = client.post(
+            "/api/bundles/import/expand",
+            content=archive_bytes,
+            headers={
+                "X-File-Name": "reserved.orch.instrument.zip",
+                "Content-Type": "application/zip",
+            },
+        )
+
+        assert response.status_code == 400
+        assert "Invalid stored audio asset name" in response.text
+        assert list((tmp_path / "gen_audio_assets").iterdir()) == []
+
+
+def test_gen_asset_gc_removes_only_unreferenced_expired_assets_and_derived_files(tmp_path: Path) -> None:
+    asset_dir = tmp_path / "gen_audio_assets"
+    asset_dir.mkdir(parents=True, exist_ok=True)
+    referenced = asset_dir / "referenced.wav"
+    unreferenced = asset_dir / "unreferenced.wav"
+    recent = asset_dir / "recent.wav"
+    alias = asset_dir / "soundin.1234"
+    temp = asset_dir / ".orphan.wav.import"
+    referenced.write_bytes(b"ref")
+    unreferenced.write_bytes(b"old")
+    recent.write_bytes(b"new")
+    alias.write_bytes(b"alias")
+    temp.write_bytes(b"temp")
+    for path in [referenced, unreferenced, alias, temp]:
+        os.utime(path, (0, 0))
+
+    service = GenAssetService(audio_dir=asset_dir, gc_min_age_seconds=60)
+    removed_count = service.garbage_collect_unreferenced_assets(referenced_stored_names={"referenced.wav"})
+
+    assert removed_count == 3
+    assert referenced.exists()
+    assert recent.exists()
+    assert not unreferenced.exists()
+    assert not alias.exists()
+    assert not temp.exists()
+
+
 def test_bundle_import_expand_restores_sfload_audio_asset(tmp_path: Path) -> None:
     stored_name = "piano.sf2"
     audio_bytes = b"RIFFfakeSF2"
@@ -4776,6 +5013,39 @@ def test_bundle_import_expand_restores_sfload_audio_asset(tmp_path: Path) -> Non
         stored_path = tmp_path / "gen_audio_assets" / stored_name
         assert stored_path.exists()
         assert stored_path.read_bytes() == audio_bytes
+
+
+def _build_gen_asset_import_archive(*, stored_name: str, audio_bytes: bytes) -> bytes:
+    payload = {
+        "sourcePatchId": "patch-1",
+        "name": "Imported Patch",
+        "description": "",
+        "schema_version": 1,
+        "graph": {
+            "nodes": [{"id": "g1", "opcode": "GEN", "params": {}, "position": {"x": 0, "y": 0}}],
+            "connections": [],
+            "ui_layout": {
+                "gen_nodes": {
+                    "g1": {
+                        "routineNumber": 1,
+                        "sampleAsset": {
+                            "asset_id": "asset-1",
+                            "original_name": stored_name,
+                            "stored_name": stored_name,
+                            "content_type": "audio/wav",
+                            "size_bytes": len(audio_bytes),
+                        },
+                    }
+                }
+            },
+            "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+        },
+    }
+    archive_bytes = BytesIO()
+    with zipfile.ZipFile(archive_bytes, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("patch.orch.instrument.json", json.dumps(payload).encode("utf-8"))
+        archive.writestr(f"audio/{stored_name}", audio_bytes)
+    return archive_bytes.getvalue()
 
 
 def test_gen01_uploaded_asset_uses_numeric_filecode_alias(tmp_path: Path) -> None:

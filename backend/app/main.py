@@ -20,6 +20,7 @@ from backend.app.core.logging import configure_logging
 from backend.app.services.compiler_service import CompilerService
 from backend.app.services.app_state_service import AppStateService
 from backend.app.services.event_bus import SessionEventBus
+from backend.app.services.gen_asset_references import collect_persisted_gen_audio_stored_names
 from backend.app.services.gen_asset_service import GenAssetService
 from backend.app.services.midi_service import MidiService
 from backend.app.services.opcode_service import OpcodeService
@@ -47,6 +48,9 @@ def _build_container(settings: Settings) -> AppContainer:
     gen_asset_service = GenAssetService(
         audio_dir=settings.gen_audio_assets_dir,
         max_audio_asset_bytes=settings.gen_audio_asset_max_bytes,
+        max_audio_assets_total_bytes=settings.gen_audio_assets_max_total_bytes,
+        max_audio_assets_count=settings.gen_audio_assets_max_count,
+        gc_min_age_seconds=settings.gen_audio_asset_gc_min_age_seconds,
     )
     patch_service = PatchService(repository=patch_repository)
     app_state_service = AppStateService(repository=app_state_repository)
@@ -62,7 +66,7 @@ def _build_container(settings: Settings) -> AppContainer:
         event_bus=event_bus,
     )
 
-    return AppContainer(
+    container = AppContainer(
         settings=settings,
         database=database,
         patch_repository=patch_repository,
@@ -78,6 +82,12 @@ def _build_container(settings: Settings) -> AppContainer:
         event_bus=event_bus,
         session_service=session_service,
     )
+    referenced_assets = collect_persisted_gen_audio_stored_names(
+        patch_documents=patch_repository.list(),
+        performance_documents=performance_repository.list(),
+    )
+    gen_asset_service.garbage_collect_unreferenced_assets(referenced_stored_names=referenced_assets)
+    return container
 
 
 @asynccontextmanager

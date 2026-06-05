@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import AsyncIterable, Iterable
+from collections.abc import AsyncIterable, Callable, Iterable
 from dataclasses import dataclass
 import filecmp
 import hashlib
@@ -8,10 +8,15 @@ import os
 from pathlib import Path
 import re
 import shutil
+import threading
+import time
 from uuid import uuid4
 
 
 MAX_GEN_AUDIO_ASSET_BYTES = 64 * 1024 * 1024
+MAX_GEN_AUDIO_ASSETS_TOTAL_BYTES = 1024 * 1024 * 1024
+MAX_GEN_AUDIO_ASSETS_COUNT = 1024
+GEN_AUDIO_ASSET_GC_MIN_AGE_SECONDS = 24 * 60 * 60
 GEN01_NUMERIC_FILECODE_MIN = 1000
 GEN01_NUMERIC_FILECODE_RANGE = 2_000_000_000
 
@@ -29,16 +34,33 @@ class GenAudioAssetTooLargeError(ValueError):
     pass
 
 
+class GenAudioAssetQuotaExceededError(ValueError):
+    pass
+
+
+@dataclass(slots=True)
+class GenAudioAssetStorageStats:
+    primary_asset_count: int
+    total_bytes: int
+
+
 class GenAssetService:
     def __init__(
         self,
         audio_dir: Path,
         *,
         max_audio_asset_bytes: int = MAX_GEN_AUDIO_ASSET_BYTES,
+        max_audio_assets_total_bytes: int = MAX_GEN_AUDIO_ASSETS_TOTAL_BYTES,
+        max_audio_assets_count: int = MAX_GEN_AUDIO_ASSETS_COUNT,
+        gc_min_age_seconds: float = GEN_AUDIO_ASSET_GC_MIN_AGE_SECONDS,
     ) -> None:
         self._audio_dir = Path(audio_dir)
         self._audio_dir.mkdir(parents=True, exist_ok=True)
         self._max_audio_asset_bytes = max(1, int(max_audio_asset_bytes))
+        self._max_audio_assets_total_bytes = max(1, int(max_audio_assets_total_bytes))
+        self._max_audio_assets_count = max(1, int(max_audio_assets_count))
+        self._gc_min_age_seconds = max(0.0, float(gc_min_age_seconds))
+        self._quota_lock = threading.RLock()
 
     @property
     def audio_dir(self) -> Path:
@@ -47,6 +69,41 @@ class GenAssetService:
     @property
     def max_audio_asset_bytes(self) -> int:
         return self._max_audio_asset_bytes
+
+    @property
+    def max_audio_assets_total_bytes(self) -> int:
+        return self._max_audio_assets_total_bytes
+
+    @property
+    def max_audio_assets_count(self) -> int:
+        return self._max_audio_assets_count
+
+    @property
+    def gc_min_age_seconds(self) -> float:
+        return self._gc_min_age_seconds
+
+    def storage_stats(self) -> GenAudioAssetStorageStats:
+        with self._quota_lock:
+            return self._storage_stats_unlocked()
+
+    def assert_upload_can_fit_declared_size(self, size: int) -> None:
+        if size <= 0:
+            return
+        self._raise_if_upload_exceeds_max(size)
+        with self._quota_lock:
+            self._raise_if_new_assets_exceed_quota_unlocked(1, size, action="Audio upload")
+
+    def assert_new_audio_assets_can_fit(
+        self,
+        *,
+        asset_count: int,
+        total_bytes: int,
+        action: str,
+    ) -> None:
+        if asset_count <= 0 and total_bytes <= 0:
+            return
+        with self._quota_lock:
+            self._raise_if_new_assets_exceed_quota_unlocked(asset_count, total_bytes, action=action)
 
     def store_audio_bytes(
         self,
@@ -65,7 +122,9 @@ class GenAssetService:
         asset_id = str(uuid4())
         stored_name = f"{asset_id}{extension}"
         target_path = self._audio_dir / stored_name
-        target_path.write_bytes(payload)
+        with self._quota_lock:
+            self._raise_if_new_assets_exceed_quota_unlocked(1, size, action="Audio upload")
+            target_path.write_bytes(payload)
 
         return StoredGenAudioAsset(
             asset_id=asset_id,
@@ -81,6 +140,7 @@ class GenAssetService:
         filename: str | None,
         content_type: str | None,
         chunks: AsyncIterable[bytes],
+        quota_retry: Callable[[], None] | None = None,
     ) -> StoredGenAudioAsset:
         original_name = self._sanitize_original_name(filename or "upload.bin")
         extension = self._safe_extension(original_name)
@@ -103,7 +163,15 @@ class GenAssetService:
             if size <= 0:
                 raise ValueError("Audio upload is empty.")
 
-            os.replace(temp_path, target_path)
+            with self._quota_lock:
+                try:
+                    self._raise_if_new_assets_exceed_quota_unlocked(1, size, action="Audio upload")
+                except GenAudioAssetQuotaExceededError:
+                    if quota_retry is None:
+                        raise
+                    quota_retry()
+                    self._raise_if_new_assets_exceed_quota_unlocked(1, size, action="Audio upload")
+                os.replace(temp_path, target_path)
         except Exception:
             try:
                 temp_path.unlink(missing_ok=True)
@@ -147,14 +215,16 @@ class GenAssetService:
 
         validated_stored_name = self._validate_stored_name(stored_name)
         target_path = self._audio_dir / validated_stored_name
-        if target_path.exists():
-            existing = target_path.read_bytes()
-            if existing != payload:
-                raise ValueError(
-                    f"Audio asset '{validated_stored_name}' already exists with different content."
-                )
-        else:
-            target_path.write_bytes(payload)
+        with self._quota_lock:
+            if target_path.exists():
+                existing = target_path.read_bytes()
+                if existing != payload:
+                    raise ValueError(
+                        f"Audio asset '{validated_stored_name}' already exists with different content."
+                    )
+            else:
+                self._raise_if_new_assets_exceed_quota_unlocked(1, size, action="Audio import")
+                target_path.write_bytes(payload)
 
         normalized_content_type = (content_type or "application/octet-stream").strip() or "application/octet-stream"
         normalized_original_name = self._sanitize_original_name(original_name or validated_stored_name)
@@ -196,14 +266,16 @@ class GenAssetService:
             if size <= 0:
                 raise ValueError("Audio import payload is empty.")
 
-            if target_path.exists():
-                if not filecmp.cmp(target_path, temp_path, shallow=False):
-                    raise ValueError(
-                        f"Audio asset '{validated_stored_name}' already exists with different content."
-                    )
-                temp_path.unlink(missing_ok=True)
-            else:
-                os.replace(temp_path, target_path)
+            with self._quota_lock:
+                if target_path.exists():
+                    if not filecmp.cmp(target_path, temp_path, shallow=False):
+                        raise ValueError(
+                            f"Audio asset '{validated_stored_name}' already exists with different content."
+                        )
+                    temp_path.unlink(missing_ok=True)
+                else:
+                    self._raise_if_new_assets_exceed_quota_unlocked(1, size, action="Audio import")
+                    os.replace(temp_path, target_path)
         except Exception:
             try:
                 temp_path.unlink(missing_ok=True)
@@ -240,6 +312,34 @@ class GenAssetService:
             return filecode
 
         raise ValueError("Unable to allocate a GEN01 numeric alias for uploaded audio asset.")
+
+    def garbage_collect_unreferenced_assets(
+        self,
+        *,
+        referenced_stored_names: Iterable[str],
+        min_age_seconds: float | None = None,
+    ) -> int:
+        referenced = {
+            self._validate_stored_name(stored_name)
+            for stored_name in referenced_stored_names
+            if stored_name and stored_name.strip()
+        }
+        cutoff = time.time() - (self._gc_min_age_seconds if min_age_seconds is None else max(0.0, min_age_seconds))
+        removed = 0
+        with self._quota_lock:
+            for path in self._iter_audio_dir_entries():
+                if self._is_temp_asset_path(path):
+                    if self._path_mtime(path) <= cutoff:
+                        removed += self._unlink_path(path)
+                    continue
+                if self._is_gen01_alias_name(path.name):
+                    removed += self._unlink_path(path)
+                    continue
+                if path.name in referenced:
+                    continue
+                if self._path_mtime(path) <= cutoff:
+                    removed += self._unlink_path(path)
+        return removed
 
     @staticmethod
     def _stable_gen01_numeric_filecode(stored_name: str) -> int:
@@ -289,6 +389,8 @@ class GenAssetService:
             raise ValueError("Invalid stored audio asset name.")
         if not re.fullmatch(r"[A-Za-z0-9._-]{1,255}", candidate):
             raise ValueError("Invalid stored audio asset name.")
+        if re.fullmatch(r"soundin\.\d+", candidate):
+            raise ValueError("Invalid stored audio asset name.")
         return candidate
 
     def _raise_if_upload_exceeds_max(self, size: int) -> None:
@@ -296,6 +398,75 @@ class GenAssetService:
             raise GenAudioAssetTooLargeError(
                 f"Audio upload exceeds maximum size ({self._max_audio_asset_bytes} bytes)."
             )
+
+    def _raise_if_new_assets_exceed_quota_unlocked(
+        self,
+        asset_count: int,
+        total_bytes: int,
+        *,
+        action: str,
+    ) -> None:
+        stats = self._storage_stats_unlocked()
+        if stats.primary_asset_count + asset_count > self._max_audio_assets_count:
+            raise GenAudioAssetQuotaExceededError(
+                f"{action} would exceed generated audio asset count quota "
+                f"({self._max_audio_assets_count} assets)."
+            )
+        if stats.total_bytes + total_bytes > self._max_audio_assets_total_bytes:
+            raise GenAudioAssetQuotaExceededError(
+                f"{action} would exceed generated audio asset storage quota "
+                f"({self._max_audio_assets_total_bytes} bytes)."
+            )
+
+    def _storage_stats_unlocked(self) -> GenAudioAssetStorageStats:
+        primary_count = 0
+        total_bytes = 0
+        counted_inodes: set[tuple[int, int]] = set()
+        for path in self._iter_audio_dir_entries():
+            if self._is_temp_asset_path(path):
+                continue
+            try:
+                stat_result = path.stat(follow_symlinks=False)
+            except OSError:
+                continue
+            if not self._is_gen01_alias_name(path.name):
+                primary_count += 1
+            inode_key = (stat_result.st_dev, stat_result.st_ino)
+            if inode_key in counted_inodes:
+                continue
+            counted_inodes.add(inode_key)
+            total_bytes += stat_result.st_size
+        return GenAudioAssetStorageStats(primary_asset_count=primary_count, total_bytes=total_bytes)
+
+    def _iter_audio_dir_entries(self) -> list[Path]:
+        try:
+            return [path for path in self._audio_dir.iterdir() if not path.is_dir()]
+        except FileNotFoundError:
+            self._audio_dir.mkdir(parents=True, exist_ok=True)
+            return []
+
+    @staticmethod
+    def _is_temp_asset_path(path: Path) -> bool:
+        return path.name.startswith(".") and (path.name.endswith(".upload") or ".import" in path.name)
+
+    @staticmethod
+    def _is_gen01_alias_name(name: str) -> bool:
+        return re.fullmatch(r"soundin\.\d+", name) is not None
+
+    @staticmethod
+    def _path_mtime(path: Path) -> float:
+        try:
+            return path.stat(follow_symlinks=False).st_mtime
+        except OSError:
+            return 0.0
+
+    @staticmethod
+    def _unlink_path(path: Path) -> int:
+        try:
+            path.unlink(missing_ok=True)
+            return 1
+        except OSError:
+            return 0
 
     @staticmethod
     def _normalize_content_type(content_type: str | None) -> str:

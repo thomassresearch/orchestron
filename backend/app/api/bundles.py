@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from io import BytesIO
 import json
-from pathlib import PurePosixPath
 from tempfile import SpooledTemporaryFile
 from typing import BinaryIO
 import zipfile
@@ -14,6 +13,13 @@ from backend.app.api.deps import get_container
 from backend.app.core.container import AppContainer
 from backend.app.models.export import PerformanceCsdExportRequest
 from backend.app.services.compiler_service import CompilationError
+from backend.app.services.gen_asset_references import (
+    collect_persisted_gen_audio_stored_names,
+    collect_referenced_gen_audio_stored_names_from_payload,
+    is_root_json_entry,
+    normalize_zip_member_name,
+)
+from backend.app.services.gen_asset_service import GenAudioAssetQuotaExceededError
 from backend.app.services.performance_export_service import PerformanceExportService
 
 router = APIRouter(prefix="/bundles", tags=["bundles"])
@@ -97,6 +103,8 @@ async def expand_import_bundle(
         )
     except ImportBundleTooLargeError as err:
         raise HTTPException(status_code=413, detail=str(err)) from err
+    except GenAudioAssetQuotaExceededError as err:
+        raise HTTPException(status_code=413, detail=str(err)) from err
     except ValueError as err:
         raise HTTPException(status_code=400, detail=str(err)) from err
     finally:
@@ -113,7 +121,7 @@ def _build_export_response(
     container: AppContainer,
 ) -> Response:
     json_bytes = json.dumps(payload, ensure_ascii=True, indent=2).encode("utf-8")
-    stored_names = sorted(_collect_referenced_gen_audio_stored_names_from_payload(payload))
+    stored_names = sorted(collect_referenced_gen_audio_stored_names_from_payload(payload))
     if not stored_names:
         return Response(
             content=json_bytes,
@@ -182,7 +190,7 @@ def _expand_zip_import_payload(*, payload_file: BinaryIO, container: AppContaine
         json_entries = [
             member
             for normalized_name, member in member_by_normalized_name.items()
-            if _is_root_json_entry(normalized_name)
+            if is_root_json_entry(normalized_name)
         ]
         if len(json_entries) != 1:
             raise ValueError("Import ZIP must contain exactly one JSON file at the archive root.")
@@ -203,7 +211,7 @@ def _expand_zip_import_payload(*, payload_file: BinaryIO, container: AppContaine
         except json.JSONDecodeError as err:
             raise ValueError(f"Import ZIP JSON could not be parsed: {err.msg}") from err
 
-        referenced_names = _collect_referenced_gen_audio_stored_names_from_payload(parsed)
+        referenced_names = collect_referenced_gen_audio_stored_names_from_payload(parsed)
         if not referenced_names:
             return parsed
 
@@ -214,19 +222,15 @@ def _expand_zip_import_payload(*, payload_file: BinaryIO, container: AppContaine
                 raise ValueError(
                     f"Import ZIP is missing referenced GEN audio asset 'audio/{stored_name}'."
                 )
-            container.gen_asset_service.import_audio_chunks_with_stored_name(
-                stored_name=stored_name,
-                chunks=_iter_zip_member_chunks(
-                    archive=archive,
-                    member=member,
-                    max_size=container.gen_asset_service.max_audio_asset_bytes,
-                    too_large_message=(
-                        "Audio import payload exceeds maximum size "
-                        f"({container.gen_asset_service.max_audio_asset_bytes} bytes)."
-                    ),
-                ),
-                original_name=stored_name,
-            )
+        _assert_zip_audio_members_fit_quota(
+            container=container,
+            member_by_normalized_name=member_by_normalized_name,
+            referenced_names=referenced_names,
+        )
+
+        for stored_name in sorted(referenced_names):
+            member = member_by_normalized_name[f"audio/{stored_name}"]
+            _import_zip_audio_member(container=container, archive=archive, member=member, stored_name=stored_name)
 
         return parsed
 
@@ -283,7 +287,7 @@ def _validate_zip_import_metadata(
     total_uncompressed_size = 0
     member_by_normalized_name: dict[str, zipfile.ZipInfo] = {}
     for member in entries:
-        normalized_name = _normalize_zip_member_name(member.filename)
+        normalized_name = normalize_zip_member_name(member.filename)
         if not normalized_name:
             raise ValueError("Import ZIP contains an invalid member path.")
         if member.flag_bits & 0x1:
@@ -301,7 +305,7 @@ def _validate_zip_import_metadata(
         if normalized_name in member_by_normalized_name:
             raise ValueError("Import ZIP contains duplicate member paths.")
         if (
-            _is_root_json_entry(normalized_name)
+            is_root_json_entry(normalized_name)
             and member.file_size > container.settings.bundle_import_json_max_bytes
         ):
             raise ImportBundleTooLargeError(
@@ -319,6 +323,83 @@ def _validate_zip_import_metadata(
         member_by_normalized_name[normalized_name] = member
 
     return member_by_normalized_name
+
+
+def _import_zip_audio_member(
+    *,
+    container: AppContainer,
+    archive: zipfile.ZipFile,
+    member: zipfile.ZipInfo,
+    stored_name: str,
+) -> None:
+    try:
+        container.gen_asset_service.import_audio_chunks_with_stored_name(
+            stored_name=stored_name,
+            chunks=_iter_zip_member_chunks(
+                archive=archive,
+                member=member,
+                max_size=container.gen_asset_service.max_audio_asset_bytes,
+                too_large_message=(
+                    "Audio import payload exceeds maximum size "
+                    f"({container.gen_asset_service.max_audio_asset_bytes} bytes)."
+                ),
+            ),
+            original_name=stored_name,
+        )
+    except GenAudioAssetQuotaExceededError:
+        _run_asset_gc(container=container)
+        container.gen_asset_service.import_audio_chunks_with_stored_name(
+            stored_name=stored_name,
+            chunks=_iter_zip_member_chunks(
+                archive=archive,
+                member=member,
+                max_size=container.gen_asset_service.max_audio_asset_bytes,
+                too_large_message=(
+                    "Audio import payload exceeds maximum size "
+                    f"({container.gen_asset_service.max_audio_asset_bytes} bytes)."
+                ),
+            ),
+            original_name=stored_name,
+        )
+
+
+def _assert_zip_audio_members_fit_quota(
+    *,
+    container: AppContainer,
+    member_by_normalized_name: dict[str, zipfile.ZipInfo],
+    referenced_names: set[str],
+) -> None:
+    new_asset_count = 0
+    new_total_bytes = 0
+    for stored_name in referenced_names:
+        target_path = container.gen_asset_service.resolve_audio_path(stored_name)
+        if target_path.exists():
+            continue
+        member = member_by_normalized_name[f"audio/{stored_name}"]
+        new_asset_count += 1
+        new_total_bytes += member.file_size
+
+    try:
+        container.gen_asset_service.assert_new_audio_assets_can_fit(
+            asset_count=new_asset_count,
+            total_bytes=new_total_bytes,
+            action="Audio import",
+        )
+    except GenAudioAssetQuotaExceededError:
+        _run_asset_gc(container=container)
+        container.gen_asset_service.assert_new_audio_assets_can_fit(
+            asset_count=new_asset_count,
+            total_bytes=new_total_bytes,
+            action="Audio import",
+        )
+
+
+def _run_asset_gc(*, container: AppContainer) -> None:
+    referenced = collect_persisted_gen_audio_stored_names(
+        patch_documents=container.patch_repository.list(),
+        performance_documents=container.performance_repository.list(),
+    )
+    container.gen_asset_service.garbage_collect_unreferenced_assets(referenced_stored_names=referenced)
 
 
 def _read_limited_file_bytes(
@@ -383,111 +464,9 @@ def _iter_zip_member_chunks(
         raise ValueError("Import ZIP member is invalid.") from err
 
 
-def _collect_referenced_gen_audio_stored_names_from_payload(raw: object) -> set[str]:
-    names: set[str] = set()
-    if not isinstance(raw, dict):
-        return names
-
-    if isinstance(raw.get("graph"), dict):
-        names.update(_collect_referenced_gen_audio_stored_names_from_graph(raw.get("graph")))
-
-    patch_definitions = raw.get("patch_definitions")
-    if isinstance(patch_definitions, list):
-        for entry in patch_definitions:
-            if not isinstance(entry, dict):
-                continue
-            graph = entry.get("graph")
-            if isinstance(graph, dict):
-                names.update(_collect_referenced_gen_audio_stored_names_from_graph(graph))
-
-    return names
-
-
-def _collect_referenced_gen_audio_stored_names_from_graph(graph: object) -> set[str]:
-    names: set[str] = set()
-    if not isinstance(graph, dict):
-        return names
-    ui_layout = graph.get("ui_layout")
-    if not isinstance(ui_layout, dict):
-        return names
-    gen_nodes = ui_layout.get("gen_nodes")
-    if isinstance(gen_nodes, dict):
-        for raw_node_config in gen_nodes.values():
-            if not isinstance(raw_node_config, dict):
-                continue
-            if not _is_gen01_node_config(raw_node_config):
-                continue
-            _add_sample_asset_stored_name(names, raw_node_config.get("sampleAsset"))
-
-    sfload_nodes = ui_layout.get("sfload_nodes")
-    if isinstance(sfload_nodes, dict):
-        for raw_node_config in sfload_nodes.values():
-            if not isinstance(raw_node_config, dict):
-                continue
-            _add_sample_asset_stored_name(names, raw_node_config.get("sampleAsset"))
-    return names
-
-
-def _is_gen01_node_config(raw_node_config: dict[str, object]) -> bool:
-    routine_name = raw_node_config.get("routineName")
-    if isinstance(routine_name, str):
-        normalized = routine_name.strip().lower()
-        if normalized:
-            return normalized in {"1", "gen1", "gen01"}
-
-    routine_number = _coerce_int(raw_node_config.get("routineNumber"), default=10)
-    return abs(routine_number) == 1
-
-
-def _add_sample_asset_stored_name(names: set[str], sample_asset: object) -> None:
-    if not isinstance(sample_asset, dict):
-        return
-    stored_name = sample_asset.get("stored_name")
-    if not isinstance(stored_name, str):
-        return
-    trimmed = stored_name.strip()
-    if trimmed:
-        names.add(trimmed)
-
-
 def _looks_like_zip(*, prefix: bytes, filename: str | None) -> bool:
     if any(prefix.startswith(candidate) for candidate in _ZIP_MAGIC_PREFIXES):
         return True
     if isinstance(filename, str) and filename.strip().lower().endswith(".zip"):
         return True
     return False
-
-
-def _is_root_json_entry(member_name: str) -> bool:
-    normalized = _normalize_zip_member_name(member_name)
-    if not normalized or normalized.startswith("audio/"):
-        return False
-    return "/" not in normalized and normalized.lower().endswith(".json")
-
-
-def _normalize_zip_member_name(member_name: str) -> str:
-    raw = member_name.replace("\\", "/")
-    if raw.startswith("/"):
-        return ""
-    normalized = raw.strip("/")
-    if not normalized:
-        return ""
-    path = PurePosixPath(normalized)
-    if any(part in {"", ".", ".."} for part in path.parts):
-        return ""
-    return "/".join(path.parts)
-
-
-def _coerce_int(value: object, *, default: int) -> int:
-    if isinstance(value, bool):
-        return int(value)
-    if isinstance(value, int):
-        return value
-    if isinstance(value, float):
-        return int(value)
-    if isinstance(value, str):
-        try:
-            return int(float(value.strip()))
-        except ValueError:
-            return default
-    return default

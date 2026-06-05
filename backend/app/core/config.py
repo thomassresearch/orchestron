@@ -43,6 +43,9 @@ class Settings(BaseSettings):
         default_factory=lambda: Path(__file__).resolve().parents[3] / "backend" / "data" / "assets" / "audio"
     )
     gen_audio_asset_max_bytes: int = Field(default=64 * 1024 * 1024, gt=0)
+    gen_audio_assets_max_total_bytes: int = Field(default=1024 * 1024 * 1024, gt=0)
+    gen_audio_assets_max_count: int = Field(default=1024, gt=0)
+    gen_audio_asset_gc_min_age_seconds: float = Field(default=24 * 60 * 60, ge=0.0)
     bundle_import_max_bytes: int = Field(default=256 * 1024 * 1024, gt=0)
     bundle_import_json_max_bytes: int = Field(default=8 * 1024 * 1024, gt=0)
     bundle_import_zip_max_members: int = Field(default=512, gt=0)
