@@ -7,6 +7,7 @@ from typing import Sequence
 from sqlalchemy import desc, select
 
 from backend.app.models.performance import PerformanceDocument
+from backend.app.services.persisted_json_limits import dump_compact_json
 from backend.app.storage.db import PerformanceRecord
 
 
@@ -20,7 +21,7 @@ class PerformanceRepository:
                 id=document.id,
                 name=document.name,
                 description=document.description,
-                config_json=json.dumps(document.config),
+                config_json=dump_compact_json(document.config),
                 created_at=document.created_at,
                 updated_at=document.updated_at,
             )
@@ -47,7 +48,7 @@ class PerformanceRepository:
 
             record.name = document.name
             record.description = document.description
-            record.config_json = json.dumps(document.config)
+            record.config_json = dump_compact_json(document.config)
             record.updated_at = document.updated_at
             db.add(record)
             return self._to_document(record)

@@ -4,6 +4,8 @@
 
 Orchestron persists both library data (patches/performances) and a separate app-state snapshot (workspace state).
 
+Persistent JSON documents are bounded before storage so direct API clients cannot grow request memory or the SQLite database without limit. Defaults are 8 MiB for app state (`VISUALCSOUND_APP_STATE_MAX_BYTES`), 4 MiB for saved patch graphs (`VISUALCSOUND_PATCH_GRAPH_MAX_BYTES`), 1 MiB for patch UI layout metadata (`VISUALCSOUND_PATCH_UI_LAYOUT_MAX_BYTES`), 8 MiB for performance configs (`VISUALCSOUND_PERFORMANCE_CONFIG_MAX_BYTES`), and 64 KiB for any single nested JSON string (`VISUALCSOUND_PERSISTED_JSON_STRING_MAX_BYTES`).
+
 ## Two Persistence Layers (Important)
 
 ### 1. Library Data (Explicit Save)

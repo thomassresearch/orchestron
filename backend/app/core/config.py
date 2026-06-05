@@ -8,6 +8,14 @@ from typing import Literal
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from backend.app.services.persisted_json_limits import (
+    DEFAULT_APP_STATE_MAX_BYTES,
+    DEFAULT_PATCH_GRAPH_MAX_BYTES,
+    DEFAULT_PATCH_UI_LAYOUT_MAX_BYTES,
+    DEFAULT_PERFORMANCE_CONFIG_MAX_BYTES,
+    DEFAULT_PERSISTED_JSON_STRING_MAX_BYTES,
+)
+
 
 def _default_rtmidi_module() -> str:
     if sys.platform == "darwin":
@@ -50,6 +58,11 @@ class Settings(BaseSettings):
     bundle_import_json_max_bytes: int = Field(default=8 * 1024 * 1024, gt=0)
     bundle_import_zip_max_members: int = Field(default=512, gt=0)
     bundle_import_zip_max_uncompressed_bytes: int = Field(default=256 * 1024 * 1024, gt=0)
+    app_state_max_bytes: int = Field(default=DEFAULT_APP_STATE_MAX_BYTES, gt=0)
+    patch_graph_max_bytes: int = Field(default=DEFAULT_PATCH_GRAPH_MAX_BYTES, gt=0)
+    patch_ui_layout_max_bytes: int = Field(default=DEFAULT_PATCH_UI_LAYOUT_MAX_BYTES, gt=0)
+    performance_config_max_bytes: int = Field(default=DEFAULT_PERFORMANCE_CONFIG_MAX_BYTES, gt=0)
+    persisted_json_string_max_bytes: int = Field(default=DEFAULT_PERSISTED_JSON_STRING_MAX_BYTES, gt=0)
 
     cors_origins: list[str] = [
         "http://localhost:5173",

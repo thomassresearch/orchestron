@@ -4,6 +4,7 @@ import json
 from datetime import timezone
 
 from backend.app.models.app_state import AppStateDocument
+from backend.app.services.persisted_json_limits import dump_compact_json
 from backend.app.storage.db import AppStateRecord
 
 
@@ -24,12 +25,12 @@ class AppStateRepository:
             if not record:
                 record = AppStateRecord(
                     id=document.id,
-                    state_json=json.dumps(document.state),
+                    state_json=dump_compact_json(document.state),
                     created_at=document.created_at,
                     updated_at=document.updated_at,
                 )
             else:
-                record.state_json = json.dumps(document.state)
+                record.state_json = dump_compact_json(document.state)
                 record.updated_at = document.updated_at
             db.add(record)
             return self._to_document(record)

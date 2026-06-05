@@ -12,15 +12,30 @@ from backend.app.models.performance import (
     PerformanceResponse,
     PerformanceUpdateRequest,
 )
+from backend.app.services.persisted_json_limits import (
+    DEFAULT_PERFORMANCE_CONFIG_MAX_BYTES,
+    DEFAULT_PERSISTED_JSON_STRING_MAX_BYTES,
+    PersistedJsonLimitError,
+    assert_persisted_json_limits,
+)
 from backend.app.storage.repositories.performance_repository import PerformanceRepository
 
 
 class PerformanceService:
-    def __init__(self, repository: PerformanceRepository):
+    def __init__(
+        self,
+        repository: PerformanceRepository,
+        *,
+        max_config_bytes: int = DEFAULT_PERFORMANCE_CONFIG_MAX_BYTES,
+        max_string_bytes: int = DEFAULT_PERSISTED_JSON_STRING_MAX_BYTES,
+    ):
         self._repository = repository
+        self._max_config_bytes = max_config_bytes
+        self._max_string_bytes = max_string_bytes
 
     def create_performance(self, request: PerformanceCreateRequest) -> PerformanceResponse:
         now = datetime.now(timezone.utc)
+        self._validate_config(request.config)
         document = PerformanceDocument(
             id=str(uuid4()),
             name=request.name,
@@ -64,6 +79,7 @@ class PerformanceService:
             updated_at=datetime.now(timezone.utc),
         )
 
+        self._validate_config(updated.config)
         persisted = self._repository.update(performance_id, updated)
         if not persisted:
             raise HTTPException(status_code=404, detail=f"Performance '{performance_id}' not found")
@@ -74,3 +90,16 @@ class PerformanceService:
         deleted = self._repository.delete(performance_id)
         if not deleted:
             raise HTTPException(status_code=404, detail=f"Performance '{performance_id}' not found")
+
+    def _validate_config(self, config: dict) -> None:
+        try:
+            assert_persisted_json_limits(
+                value=config,
+                field_name="config",
+                max_document_bytes=self._max_config_bytes,
+                max_string_bytes=self._max_string_bytes,
+            )
+        except PersistedJsonLimitError as err:
+            raise HTTPException(status_code=422, detail=str(err)) from err
+        except ValueError as err:
+            raise HTTPException(status_code=422, detail="config must be serializable as JSON.") from err

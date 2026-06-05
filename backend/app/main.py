@@ -14,6 +14,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from backend.app.api import app_state, assets, bundles, midi, opcodes, patches, performances, runtime, sessions, ws
+from backend.app.api.persisted_json_request_limits import PersistedJsonRequestLimitMiddleware
 from backend.app.core.config import Settings, get_settings
 from backend.app.core.container import AppContainer
 from backend.app.core.logging import configure_logging
@@ -52,9 +53,22 @@ def _build_container(settings: Settings) -> AppContainer:
         max_audio_assets_count=settings.gen_audio_assets_max_count,
         gc_min_age_seconds=settings.gen_audio_asset_gc_min_age_seconds,
     )
-    patch_service = PatchService(repository=patch_repository)
-    app_state_service = AppStateService(repository=app_state_repository)
-    performance_service = PerformanceService(repository=performance_repository)
+    patch_service = PatchService(
+        repository=patch_repository,
+        max_graph_bytes=settings.patch_graph_max_bytes,
+        max_ui_layout_bytes=settings.patch_ui_layout_max_bytes,
+        max_string_bytes=settings.persisted_json_string_max_bytes,
+    )
+    app_state_service = AppStateService(
+        repository=app_state_repository,
+        max_state_bytes=settings.app_state_max_bytes,
+        max_string_bytes=settings.persisted_json_string_max_bytes,
+    )
+    performance_service = PerformanceService(
+        repository=performance_repository,
+        max_config_bytes=settings.performance_config_max_bytes,
+        max_string_bytes=settings.persisted_json_string_max_bytes,
+    )
     compiler_service = CompilerService(opcode_service=opcode_service, gen_asset_service=gen_asset_service)
     midi_service = MidiService()
     event_bus = SessionEventBus()
@@ -109,6 +123,12 @@ def create_app() -> FastAPI:
     (settings.static_dir / "icons").mkdir(parents=True, exist_ok=True)
     settings.gen_audio_assets_dir.mkdir(parents=True, exist_ok=True)
     app = FastAPI(title=settings.app_name, version=settings.app_version, lifespan=lifespan)
+
+    app.add_middleware(
+        PersistedJsonRequestLimitMiddleware,
+        settings=settings,
+        api_prefix=settings.api_prefix,
+    )
 
     app.add_middleware(
         CORSMiddleware,

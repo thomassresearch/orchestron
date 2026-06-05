@@ -7,6 +7,7 @@ from typing import Sequence
 from sqlalchemy import desc, select
 
 from backend.app.models.patch import PatchDocument, PatchGraph
+from backend.app.services.persisted_json_limits import dump_compact_json
 from backend.app.storage.db import PatchRecord
 
 
@@ -21,7 +22,7 @@ class PatchRepository:
                 name=document.name,
                 description=document.description,
                 schema_version=document.schema_version,
-                graph_json=document.graph.model_dump_json(),
+                graph_json=dump_compact_json(document.graph.model_dump(mode="json")),
                 created_at=document.created_at,
                 updated_at=document.updated_at,
             )
@@ -49,7 +50,7 @@ class PatchRepository:
             record.name = document.name
             record.description = document.description
             record.schema_version = document.schema_version
-            record.graph_json = document.graph.model_dump_json()
+            record.graph_json = dump_compact_json(document.graph.model_dump(mode="json"))
             record.updated_at = document.updated_at
             db.add(record)
 

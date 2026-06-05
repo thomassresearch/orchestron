@@ -25,6 +25,7 @@ from backend.app.core.config import get_settings
 from backend.app.main import create_app
 from backend.app.services import performance_export_service
 from backend.app.services.gen_asset_service import GenAssetService
+from backend.app.services.persisted_json_limits import PERSISTED_JSON_REQUEST_OVERHEAD_BYTES
 from backend.app.services.performance_export_service import (
     OfflineMidiExportBudgetExceededError,
     OfflineMidiExportTimeoutError,
@@ -49,6 +50,11 @@ def _client(
     browser_clock_manual_midi_max_future_ms: float | None = None,
     browser_clock_manual_midi_rate_per_second: float | None = None,
     browser_clock_manual_midi_burst: int | None = None,
+    app_state_max_bytes: int | None = None,
+    patch_graph_max_bytes: int | None = None,
+    patch_ui_layout_max_bytes: int | None = None,
+    performance_config_max_bytes: int | None = None,
+    persisted_json_string_max_bytes: int | None = None,
 ) -> TestClient:
     db_path = tmp_path / "test.db"
     static_dir = tmp_path / "static"
@@ -117,6 +123,26 @@ def _client(
         os.environ.pop("VISUALCSOUND_BROWSER_CLOCK_MANUAL_MIDI_BURST", None)
     else:
         os.environ["VISUALCSOUND_BROWSER_CLOCK_MANUAL_MIDI_BURST"] = str(browser_clock_manual_midi_burst)
+    if app_state_max_bytes is None:
+        os.environ.pop("VISUALCSOUND_APP_STATE_MAX_BYTES", None)
+    else:
+        os.environ["VISUALCSOUND_APP_STATE_MAX_BYTES"] = str(app_state_max_bytes)
+    if patch_graph_max_bytes is None:
+        os.environ.pop("VISUALCSOUND_PATCH_GRAPH_MAX_BYTES", None)
+    else:
+        os.environ["VISUALCSOUND_PATCH_GRAPH_MAX_BYTES"] = str(patch_graph_max_bytes)
+    if patch_ui_layout_max_bytes is None:
+        os.environ.pop("VISUALCSOUND_PATCH_UI_LAYOUT_MAX_BYTES", None)
+    else:
+        os.environ["VISUALCSOUND_PATCH_UI_LAYOUT_MAX_BYTES"] = str(patch_ui_layout_max_bytes)
+    if performance_config_max_bytes is None:
+        os.environ.pop("VISUALCSOUND_PERFORMANCE_CONFIG_MAX_BYTES", None)
+    else:
+        os.environ["VISUALCSOUND_PERFORMANCE_CONFIG_MAX_BYTES"] = str(performance_config_max_bytes)
+    if persisted_json_string_max_bytes is None:
+        os.environ.pop("VISUALCSOUND_PERSISTED_JSON_STRING_MAX_BYTES", None)
+    else:
+        os.environ["VISUALCSOUND_PERSISTED_JSON_STRING_MAX_BYTES"] = str(persisted_json_string_max_bytes)
     if host_midi_token is None:
         os.environ.pop("VISUALCSOUND_HOST_MIDI_TOKEN", None)
     else:
@@ -1020,6 +1046,37 @@ def test_app_state_round_trip(tmp_path: Path) -> None:
         assert updated_body["updated_at"] >= first_updated_at
 
 
+def test_app_state_rejects_oversized_persisted_document_without_overwriting(tmp_path: Path) -> None:
+    with _client(tmp_path, app_state_max_bytes=64, persisted_json_string_max_bytes=1024) as client:
+        initial = {"state": {"version": 1, "activePage": "instrument"}}
+        assert client.put("/api/app-state", json=initial).status_code == 200
+
+        response = client.put("/api/app-state", json={"state": {"version": 1, "blob": "x" * 80}})
+
+        assert response.status_code == 422
+        assert "state exceeds maximum persisted JSON size" in response.text
+        loaded = client.get("/api/app-state")
+        assert loaded.status_code == 200
+        assert loaded.json()["state"] == initial["state"]
+
+
+def test_app_state_rejects_oversized_nested_string(tmp_path: Path) -> None:
+    with _client(tmp_path, app_state_max_bytes=1024, persisted_json_string_max_bytes=8) as client:
+        response = client.put("/api/app-state", json={"state": {"nested": {"blob": "x" * 9}}})
+
+        assert response.status_code == 422
+        assert "state.nested.blob exceeds maximum persisted JSON string size" in response.text
+
+
+def test_app_state_rejects_oversized_request_before_json_parsing(tmp_path: Path) -> None:
+    body_limit = 64 + PERSISTED_JSON_REQUEST_OVERHEAD_BYTES
+    with _client(tmp_path, app_state_max_bytes=64, persisted_json_string_max_bytes=body_limit * 2) as client:
+        response = client.put("/api/app-state", json={"state": {"blob": "x" * body_limit}})
+
+        assert response.status_code == 413
+        assert "Persistent JSON request exceeds maximum size" in response.text
+
+
 def test_patch_ui_layout_supports_nested_sequencer_payload(tmp_path: Path) -> None:
     with _client(tmp_path) as client:
         patch_payload = {
@@ -1054,6 +1111,98 @@ def test_patch_ui_layout_supports_nested_sequencer_payload(tmp_path: Path) -> No
         assert len(sequencer["steps"]) == 32
         assert sequencer["steps"][0] == 60
         assert sequencer["steps"][1] is None
+
+
+def test_patch_create_rejects_oversized_graph_document(tmp_path: Path) -> None:
+    with _client(
+        tmp_path,
+        patch_graph_max_bytes=128,
+        patch_ui_layout_max_bytes=1024,
+        persisted_json_string_max_bytes=1024,
+    ) as client:
+        response = client.post(
+            "/api/patches",
+            json={
+                "name": "Oversized Patch",
+                "description": "",
+                "schema_version": 1,
+                "graph": {
+                    "nodes": [],
+                    "connections": [],
+                    "ui_layout": {"blob": "x" * 160},
+                    "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+                },
+            },
+        )
+
+        assert response.status_code == 422
+        assert "graph exceeds maximum persisted JSON size" in response.text
+        assert client.get("/api/patches").json() == []
+
+
+def test_patch_update_rejects_oversized_ui_layout_without_overwriting(tmp_path: Path) -> None:
+    with _client(
+        tmp_path,
+        patch_graph_max_bytes=4096,
+        patch_ui_layout_max_bytes=128,
+        persisted_json_string_max_bytes=1024,
+    ) as client:
+        payload = {
+            "name": "Limited Layout Patch",
+            "description": "",
+            "schema_version": 1,
+            "graph": {
+                "nodes": [],
+                "connections": [],
+                "ui_layout": {"label": "ok"},
+                "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+            },
+        }
+        created = client.post("/api/patches", json=payload)
+        assert created.status_code == 201
+        patch_id = created.json()["id"]
+
+        response = client.put(
+            f"/api/patches/{patch_id}",
+            json={
+                "graph": {
+                    **payload["graph"],
+                    "ui_layout": {"blob": "x" * 180},
+                }
+            },
+        )
+
+        assert response.status_code == 422
+        assert "graph.ui_layout exceeds maximum persisted JSON size" in response.text
+        loaded = client.get(f"/api/patches/{patch_id}")
+        assert loaded.status_code == 200
+        assert loaded.json()["graph"]["ui_layout"] == payload["graph"]["ui_layout"]
+
+
+def test_patch_rejects_oversized_nested_ui_layout_string(tmp_path: Path) -> None:
+    with _client(
+        tmp_path,
+        patch_graph_max_bytes=4096,
+        patch_ui_layout_max_bytes=1024,
+        persisted_json_string_max_bytes=8,
+    ) as client:
+        response = client.post(
+            "/api/patches",
+            json={
+                "name": "Nested String Patch",
+                "description": "",
+                "schema_version": 1,
+                "graph": {
+                    "nodes": [],
+                    "connections": [],
+                    "ui_layout": {"nested": {"blob": "x" * 9}},
+                    "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+                },
+            },
+        )
+
+        assert response.status_code == 422
+        assert "graph.ui_layout.nested.blob exceeds maximum persisted JSON string size" in response.text
 
 
 def test_performance_crud_round_trips_config_payload(tmp_path: Path) -> None:
@@ -1138,6 +1287,51 @@ def test_performance_crud_round_trips_config_payload(tmp_path: Path) -> None:
 
         missing_response = client.get(f"/api/performances/{performance_id}")
         assert missing_response.status_code == 404
+
+
+def test_performance_create_rejects_oversized_config_document(tmp_path: Path) -> None:
+    with _client(
+        tmp_path,
+        performance_config_max_bytes=64,
+        persisted_json_string_max_bytes=1024,
+    ) as client:
+        response = client.post(
+            "/api/performances",
+            json={
+                "name": "Oversized Performance",
+                "description": "",
+                "config": {"version": 2, "blob": "x" * 80},
+            },
+        )
+
+        assert response.status_code == 422
+        assert "config exceeds maximum persisted JSON size" in response.text
+        assert client.get("/api/performances").json() == []
+
+
+def test_performance_update_rejects_oversized_nested_config_string_without_overwriting(tmp_path: Path) -> None:
+    with _client(
+        tmp_path,
+        performance_config_max_bytes=1024,
+        persisted_json_string_max_bytes=8,
+    ) as client:
+        created = client.post(
+            "/api/performances",
+            json={"name": "Limited Performance", "description": "", "config": {"version": 2, "label": "ok"}},
+        )
+        assert created.status_code == 201
+        performance_id = created.json()["id"]
+
+        response = client.put(
+            f"/api/performances/{performance_id}",
+            json={"config": {"version": 2, "nested": {"blob": "x" * 9}}},
+        )
+
+        assert response.status_code == 422
+        assert "config.nested.blob exceeds maximum persisted JSON string size" in response.text
+        loaded = client.get(f"/api/performances/{performance_id}")
+        assert loaded.status_code == 200
+        assert loaded.json()["config"] == {"version": 2, "label": "ok"}
 
 
 def test_opcodes_include_markdown_documentation(tmp_path: Path) -> None:

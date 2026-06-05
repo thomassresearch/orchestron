@@ -8,19 +8,38 @@ from fastapi import HTTPException
 from backend.app.models.patch import (
     PatchCreateRequest,
     PatchDocument,
+    PatchGraph,
     PatchListItem,
     PatchResponse,
     PatchUpdateRequest,
+)
+from backend.app.services.persisted_json_limits import (
+    DEFAULT_PATCH_GRAPH_MAX_BYTES,
+    DEFAULT_PATCH_UI_LAYOUT_MAX_BYTES,
+    DEFAULT_PERSISTED_JSON_STRING_MAX_BYTES,
+    PersistedJsonLimitError,
+    assert_persisted_json_limits,
 )
 from backend.app.storage.repositories.patch_repository import PatchRepository
 
 
 class PatchService:
-    def __init__(self, repository: PatchRepository):
+    def __init__(
+        self,
+        repository: PatchRepository,
+        *,
+        max_graph_bytes: int = DEFAULT_PATCH_GRAPH_MAX_BYTES,
+        max_ui_layout_bytes: int = DEFAULT_PATCH_UI_LAYOUT_MAX_BYTES,
+        max_string_bytes: int = DEFAULT_PERSISTED_JSON_STRING_MAX_BYTES,
+    ):
         self._repository = repository
+        self._max_graph_bytes = max_graph_bytes
+        self._max_ui_layout_bytes = max_ui_layout_bytes
+        self._max_string_bytes = max_string_bytes
 
     def create_patch(self, request: PatchCreateRequest) -> PatchResponse:
         now = datetime.now(timezone.utc)
+        self._validate_graph(request.graph)
         document = PatchDocument(
             id=str(uuid4()),
             name=request.name,
@@ -73,6 +92,7 @@ class PatchService:
             updated_at=datetime.now(timezone.utc),
         )
 
+        self._validate_graph(updated.graph)
         persisted = self._repository.update(patch_id, updated)
         if not persisted:
             raise HTTPException(status_code=404, detail=f"Patch '{patch_id}' not found")
@@ -83,3 +103,22 @@ class PatchService:
         deleted = self._repository.delete(patch_id)
         if not deleted:
             raise HTTPException(status_code=404, detail=f"Patch '{patch_id}' not found")
+
+    def _validate_graph(self, graph: PatchGraph) -> None:
+        try:
+            assert_persisted_json_limits(
+                value=graph.ui_layout,
+                field_name="graph.ui_layout",
+                max_document_bytes=self._max_ui_layout_bytes,
+                max_string_bytes=self._max_string_bytes,
+            )
+            assert_persisted_json_limits(
+                value=graph.model_dump(mode="json"),
+                field_name="graph",
+                max_document_bytes=self._max_graph_bytes,
+                max_string_bytes=self._max_string_bytes,
+            )
+        except PersistedJsonLimitError as err:
+            raise HTTPException(status_code=422, detail=str(err)) from err
+        except ValueError as err:
+            raise HTTPException(status_code=422, detail="graph must be serializable as JSON.") from err
