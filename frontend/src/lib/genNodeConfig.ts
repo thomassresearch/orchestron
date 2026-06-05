@@ -1,6 +1,9 @@
 import type { JsonObject, JsonValue } from "../types";
 
 export const GEN_NODES_LAYOUT_KEY = "gen_nodes";
+export const MAX_GEN_TABLE_SIZE = 4194304;
+export const MAX_GEN_ARGUMENT_COUNT = 512;
+export const MAX_GEN_RAW_ARGS_TEXT_LENGTH = 8192;
 
 export type GenNodeMode = "ftgen" | "ftgenonce";
 
@@ -142,6 +145,10 @@ function toInt(value: unknown, fallback: number): number {
   return Math.round(toNumber(value, fallback));
 }
 
+function clampGenTableSize(value: number): number {
+  return Math.max(0, Math.min(MAX_GEN_TABLE_SIZE, Math.round(value)));
+}
+
 function toBool(value: unknown, fallback: boolean): boolean {
   if (typeof value === "boolean") {
     return value;
@@ -168,6 +175,7 @@ function toNumberList(value: unknown, fallback: number[]): number[] {
   const result = value
     .map((entry) => toNumber(entry, Number.NaN))
     .filter((entry) => Number.isFinite(entry))
+    .slice(0, MAX_GEN_ARGUMENT_COUNT)
     .map((entry) => Number(entry));
   return result.length > 0 ? result : [...fallback];
 }
@@ -187,6 +195,9 @@ function parseSegmentList(value: unknown, fallback: GenSegmentPoint[]): GenSegme
       continue;
     }
     result.push({ length: Number(length), value: Number(pointValue) });
+    if (result.length >= MAX_GEN_ARGUMENT_COUNT) {
+      break;
+    }
   }
   return result.length > 0 ? result : fallback.map((entry) => ({ ...entry }));
 }
@@ -206,6 +217,9 @@ function parseXYPointList(value: unknown, fallback: GenXYPoint[]): GenXYPoint[] 
       continue;
     }
     result.push({ x: Number(x), y: Number(y) });
+    if (result.length >= MAX_GEN_ARGUMENT_COUNT) {
+      break;
+    }
   }
   return result.length > 0 ? result : fallback.map((entry) => ({ ...entry }));
 }
@@ -287,7 +301,7 @@ export function normalizeGenNodeConfig(raw: unknown): GenNodeConfig {
     mode,
     tableNumber: toInt(raw.tableNumber, defaults.tableNumber),
     startTime: toNumber(raw.startTime, defaults.startTime),
-    tableSize: toInt(raw.tableSize, defaults.tableSize),
+    tableSize: clampGenTableSize(toInt(raw.tableSize, defaults.tableSize)),
     routineNumber,
     routineName,
     normalize: toBool(raw.normalize, defaults.normalize),
@@ -307,7 +321,7 @@ export function normalizeGenNodeConfig(raw: unknown): GenNodeConfig {
     sampleSkipTime: toNumber(raw.sampleSkipTime, defaults.sampleSkipTime),
     sampleFormat: toInt(raw.sampleFormat, defaults.sampleFormat),
     sampleChannel: toInt(raw.sampleChannel, defaults.sampleChannel),
-    rawArgsText: typeof raw.rawArgsText === "string" ? raw.rawArgsText : ""
+    rawArgsText: typeof raw.rawArgsText === "string" ? raw.rawArgsText.slice(0, MAX_GEN_RAW_ARGS_TEXT_LENGTH) : ""
   };
 }
 

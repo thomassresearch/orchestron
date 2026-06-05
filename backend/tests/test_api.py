@@ -20,6 +20,11 @@ from backend.app.models.export import (
     OFFLINE_CSD_EXPORT_MAX_PLAYBACK_STEPS,
     PerformanceCsdExportRequest,
 )
+from backend.app.models.patch import (
+    MAX_GEN_ARGUMENT_COUNT,
+    MAX_GEN_RAW_ARG_TOKEN_LENGTH,
+    MAX_GEN_TABLE_SIZE,
+)
 from backend.app.models.session import BROWSER_CLOCK_MAX_SAMPLE_RATE, MidiInputRef
 from backend.app.core.config import get_settings
 from backend.app.main import create_app
@@ -4063,6 +4068,85 @@ def test_gen_meta_opcode_renders_ftgen_line(tmp_path: Path) -> None:
 
         gen_line = next(line.strip() for line in compiled_orc.splitlines() if " ftgen " in line)
         assert gen_line.endswith("ftgen 0, 0, 4096, 10, 1, 0.5, 0.25")
+
+
+def _gen_meta_patch_payload(gen_node_config: dict[str, object]) -> dict[str, object]:
+    return {
+        "name": "GEN Limit Patch",
+        "description": "GEN config validation",
+        "schema_version": 1,
+        "graph": {
+            "nodes": [
+                {"id": "g1", "opcode": "GEN", "params": {}, "position": {"x": 40, "y": 60}},
+                {"id": "v1", "opcode": "vco", "params": {"amp": 0.2, "freq": 220, "iwave": 1}, "position": {"x": 280, "y": 40}},
+                {"id": "o1", "opcode": "outs", "params": {}, "position": {"x": 520, "y": 40}},
+            ],
+            "connections": [
+                {"from_node_id": "g1", "from_port_id": "ift", "to_node_id": "v1", "to_port_id": "ifn"},
+                {"from_node_id": "v1", "from_port_id": "asig", "to_node_id": "o1", "to_port_id": "left"},
+                {"from_node_id": "v1", "from_port_id": "asig", "to_node_id": "o1", "to_port_id": "right"},
+            ],
+            "ui_layout": {"gen_nodes": {"g1": gen_node_config}},
+            "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+        },
+    }
+
+
+def _gen10_config(**overrides: object) -> dict[str, object]:
+    config: dict[str, object] = {
+        "mode": "ftgen",
+        "tableNumber": 0,
+        "startTime": 0,
+        "tableSize": 4096,
+        "routineNumber": 10,
+        "normalize": True,
+        "harmonicAmplitudes": [1],
+    }
+    config.update(overrides)
+    return config
+
+
+def test_gen_meta_opcode_allows_max_table_size(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        create_patch = client.post(
+            "/api/patches",
+            json=_gen_meta_patch_payload(_gen10_config(tableSize=MAX_GEN_TABLE_SIZE)),
+        )
+        assert create_patch.status_code == 201
+
+        create_session = client.post("/api/sessions", json={"patch_id": create_patch.json()["id"]})
+        assert create_session.status_code == 201
+
+        compile_response = client.post(f"/api/sessions/{create_session.json()['session_id']}/compile")
+        assert compile_response.status_code == 200
+        gen_line = next(line.strip() for line in compile_response.json()["orc"].splitlines() if " ftgen " in line)
+        assert gen_line.endswith(f"ftgen 0, 0, {MAX_GEN_TABLE_SIZE}, 10, 1")
+
+
+@pytest.mark.parametrize(
+    ("field_overrides", "expected_text"),
+    [
+        ({"tableSize": MAX_GEN_TABLE_SIZE + 1}, "GEN tableSize cannot exceed"),
+        ({"tableSize": -1}, "GEN tableSize cannot be negative"),
+        ({"tableSize": 0}, "GEN tableSize cannot be 0"),
+        ({"rawArgs": [0] * (MAX_GEN_ARGUMENT_COUNT + 1)}, "GEN rawArgs cannot exceed"),
+        ({"rawArgsText": ",".join(["1"] * (MAX_GEN_ARGUMENT_COUNT + 1))}, "GEN raw argument text cannot exceed"),
+        ({"rawArgsText": "x" * (MAX_GEN_RAW_ARG_TOKEN_LENGTH + 1)}, "GEN raw argument tokens cannot exceed"),
+    ],
+)
+def test_patch_create_rejects_oversized_gen_node_config(
+    tmp_path: Path,
+    field_overrides: dict[str, object],
+    expected_text: str,
+) -> None:
+    with _client(tmp_path) as client:
+        response = client.post(
+            "/api/patches",
+            json=_gen_meta_patch_payload(_gen10_config(**field_overrides)),
+        )
+
+    assert response.status_code == 422
+    assert expected_text in response.text
 
 
 def test_gen_audio_asset_upload_persists_file(tmp_path: Path) -> None:

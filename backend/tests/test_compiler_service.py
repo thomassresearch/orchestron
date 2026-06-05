@@ -1,7 +1,17 @@
 from __future__ import annotations
 
-from backend.app.models.patch import Connection, EngineConfig, NodeInstance, NodePosition, PatchDocument, PatchGraph
-from backend.app.services.compiler_common import SfloadGlobalRequest
+import pytest
+
+from backend.app.models.patch import (
+    Connection,
+    EngineConfig,
+    MAX_GEN_TABLE_SIZE,
+    NodeInstance,
+    NodePosition,
+    PatchDocument,
+    PatchGraph,
+)
+from backend.app.services.compiler_common import CompilationError, SfloadGlobalRequest
 from backend.app.services.compiler_orchestra import OrchestraEmitter
 from backend.app.services.compiler_service import CompilerService
 from backend.app.services.opcode_service import OpcodeService
@@ -123,6 +133,71 @@ def test_sfload_global_request_escapes_legacy_node_metadata_comment() -> None:
     assert lines[0] == '; node:"sf\\ninstr 42\\nendin" opcode:sfload'
     assert all(line.strip() != "instr 42" for line in lines)
     assert all(line.strip() != "endin" for line in lines)
+
+
+def test_compile_rejects_legacy_constructed_gen_table_size_over_limit() -> None:
+    compiler = CompilerService(OpcodeService(icon_prefix="/static/icons"))
+    patch = PatchDocument.model_construct(
+        id="patch-1",
+        name="Legacy GEN table",
+        description="model_construct bypasses request validation",
+        schema_version=1,
+        graph=PatchGraph.model_construct(
+            nodes=[
+                NodeInstance.model_construct(
+                    id="g1",
+                    opcode="GEN",
+                    params={},
+                    position=NodePosition(),
+                ),
+                NodeInstance.model_construct(
+                    id="a1",
+                    opcode="const_a",
+                    params={"value": 0.1},
+                    position=NodePosition(),
+                ),
+                NodeInstance.model_construct(
+                    id="o1",
+                    opcode="outs",
+                    params={},
+                    position=NodePosition(),
+                ),
+            ],
+            connections=[
+                Connection.model_construct(
+                    from_node_id="a1",
+                    from_port_id="aout",
+                    to_node_id="o1",
+                    to_port_id="left",
+                ),
+                Connection.model_construct(
+                    from_node_id="a1",
+                    from_port_id="aout",
+                    to_node_id="o1",
+                    to_port_id="right",
+                ),
+            ],
+            ui_layout={
+                "gen_nodes": {
+                    "g1": {
+                        "mode": "ftgen",
+                        "tableNumber": 0,
+                        "startTime": 0,
+                        "tableSize": MAX_GEN_TABLE_SIZE + 1,
+                        "routineNumber": 10,
+                        "normalize": True,
+                        "harmonicAmplitudes": [1],
+                    }
+                }
+            },
+            engine_config=EngineConfig(),
+        ),
+    )
+
+    with pytest.raises(CompilationError) as err:
+        compiler.compile_patch(patch, midi_input="0", rtmidi_module="alsaseq")
+
+    assert any("GEN tableSize cannot exceed" in diagnostic for diagnostic in err.value.diagnostics)
 
 
 def test_grain3_compile_uses_correct_argument_order_and_omits_optional_tail() -> None:

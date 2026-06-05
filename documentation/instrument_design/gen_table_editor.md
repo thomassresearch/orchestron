@@ -52,6 +52,8 @@ You can choose from structured editors for common routines and a named routine o
 - `Start Time` (disabled for `ftgenonce` UI mode)
 - `Normalize table` (positive GEN number vs negative GEN number behavior)
 
+The backend validates GEN table settings before storage and again before Csound orchestra emission. `Table Size` can be `0` only for `GEN01`; other routines require a positive size. The maximum table size is `4194304` samples, and raw or structured GEN argument lists are capped at 512 entries. Raw argument text is limited to 8192 characters, with each token limited to 512 characters.
+
 ## Supported Routine Editors (Structured UI)
 
 | Routine | Purpose | Main Parameters In Editor |
@@ -81,6 +83,7 @@ For routines without a dedicated structured editor:
 - Separate tokens by commas or new lines.
 - Quote string literals manually (for example `"file.wav"`).
 - Prefix an argument with `expr:` to force raw Csound expression rendering without quotes.
+- Keep raw argument lists within the backend validation limits: 512 tokens total, 512 characters per token, and 8192 characters for the raw text field.
 
 Examples:
 

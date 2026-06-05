@@ -5,6 +5,7 @@ import { NodeEditorModalFrame } from "./NodeEditorModalFrame";
 import { GenNodeRoutineFields } from "./GenNodeRoutineFields";
 import {
   GEN_ROUTINE_OPTIONS,
+  MAX_GEN_TABLE_SIZE,
   buildGenNodePreview,
   genRoutineKindForNumber,
   normalizeGenNodeConfig,
@@ -714,7 +715,10 @@ export function GenNodeEditorModal({ nodeId, guiLanguage, initialConfig, onClose
                     onChange={(event) =>
                       setDraft((current) => ({
                         ...current,
-                        tableSize: Math.max(1, parseIntegerInput(event.target.value, current.tableSize))
+                        tableSize: Math.max(
+                          1,
+                          Math.min(MAX_GEN_TABLE_SIZE, parseIntegerInput(event.target.value, current.tableSize))
+                        )
                       }))
                     }
                     className="rounded-md border border-slate-600 bg-slate-900 px-2 py-1.5 font-mono text-xs text-slate-100 outline-none ring-cyan-400/30 transition focus:ring"

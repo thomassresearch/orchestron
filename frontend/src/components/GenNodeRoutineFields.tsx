@@ -1,7 +1,12 @@
 import type { Dispatch, JSX, SetStateAction } from "react";
 
 import { AssetUploadCard } from "./AssetUploadCard";
-import type { GenNodeConfig, GenRoutineEditorKind } from "../lib/genNodeConfig";
+import {
+  MAX_GEN_ARGUMENT_COUNT,
+  MAX_GEN_RAW_ARGS_TEXT_LENGTH,
+  type GenNodeConfig,
+  type GenRoutineEditorKind
+} from "../lib/genNodeConfig";
 
 export type GenRoutineFieldsCopy = {
   routineParameters: string;
@@ -89,7 +94,8 @@ function NumberListEditor({
         <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">{label}</div>
         <button
           type="button"
-          onClick={() => onChange([...values, 0])}
+          onClick={() => onChange([...values, 0].slice(0, MAX_GEN_ARGUMENT_COUNT))}
+          disabled={values.length >= MAX_GEN_ARGUMENT_COUNT}
           className="rounded-md border border-slate-600 bg-slate-900 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-cyan-400/70 hover:text-cyan-200"
         >
           {addLabel}
@@ -294,7 +300,10 @@ function Gen7RoutineFields({
         onAddRow={() =>
           setDraft((current) => ({
             ...current,
-            segments: [...current.segments, { length: Math.max(1, current.tableSize), value: 0 }]
+            segments:
+              current.segments.length >= MAX_GEN_ARGUMENT_COUNT
+                ? current.segments
+                : [...current.segments, { length: Math.max(1, current.tableSize), value: 0 }]
           }))
         }
         onChangeRow={(index, row) =>
@@ -342,7 +351,10 @@ function Gen17RoutineFields({
         onAddRow={() =>
           setDraft((current) => ({
             ...current,
-            gen17Pairs: [...current.gen17Pairs, { x: current.gen17Pairs.length * 16, y: 0 }]
+            gen17Pairs:
+              current.gen17Pairs.length >= MAX_GEN_ARGUMENT_COUNT
+                ? current.gen17Pairs
+                : [...current.gen17Pairs, { x: current.gen17Pairs.length * 16, y: 0 }]
           }))
         }
         onChangeRow={(index, row) =>
@@ -545,7 +557,12 @@ function RawArgumentsRoutineFields({
         <span className="text-[11px] uppercase tracking-[0.14em] text-slate-400">{copy.rawArguments}</span>
         <textarea
           value={draft.rawArgsText}
-          onChange={(event) => setDraft((current) => ({ ...current, rawArgsText: event.target.value }))}
+          onChange={(event) =>
+            setDraft((current) => ({
+              ...current,
+              rawArgsText: event.target.value.slice(0, MAX_GEN_RAW_ARGS_TEXT_LENGTH)
+            }))
+          }
           placeholder={'Example: 1, 0.5, expr:1024*2, "file.wav"'}
           className="min-h-[120px] rounded-md border border-slate-600 bg-slate-900 px-2 py-1.5 font-mono text-xs text-slate-100 outline-none ring-cyan-400/30 transition focus:ring"
         />
@@ -580,7 +597,9 @@ export function GenNodeRoutineFields({
         <NumberListEditor
           label={copy.harmonicAmplitudes}
           values={draft.harmonicAmplitudes}
-          onChange={(values) => setDraft((current) => ({ ...current, harmonicAmplitudes: values }))}
+          onChange={(values) =>
+            setDraft((current) => ({ ...current, harmonicAmplitudes: values.slice(0, MAX_GEN_ARGUMENT_COUNT) }))
+          }
           addLabel={copy.add}
           deleteLabel={copy.deleteShort}
           keepOneTitle={copy.keepAtLeastOneEntry}
@@ -594,7 +613,9 @@ export function GenNodeRoutineFields({
         <NumberListEditor
           label={copy.valueList}
           values={draft.valueList}
-          onChange={(values) => setDraft((current) => ({ ...current, valueList: values }))}
+          onChange={(values) =>
+            setDraft((current) => ({ ...current, valueList: values.slice(0, MAX_GEN_ARGUMENT_COUNT) }))
+          }
           addLabel={copy.add}
           deleteLabel={copy.deleteShort}
           keepOneTitle={copy.keepAtLeastOneEntry}

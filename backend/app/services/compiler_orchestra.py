@@ -6,7 +6,13 @@ from collections import defaultdict
 from pathlib import PurePosixPath
 
 from backend.app.models.opcode import PortSpec, SignalType
-from backend.app.models.patch import NodeInstance, PatchDocument
+from backend.app.models.patch import (
+    MAX_GEN_ARGUMENT_COUNT,
+    GenNodeConfig,
+    NodeInstance,
+    PatchDocument,
+    validate_gen_node_layout_config,
+)
 from backend.app.services.compiler_common import (
     CompiledGraphContext,
     CompiledInstrumentLines,
@@ -274,32 +280,25 @@ class OrchestraEmitter:
         if "ift" not in env:
             raise CompilationError([f"GEN node '{node.id}' is missing output variable binding."])
 
-        raw_config = self._lookup_gen_node_config(ui_layout, node.id)
+        config = self._gen_node_config(node.id, ui_layout)
 
-        mode = self._gen_mode(raw_config.get("mode"))
-        table_number = self._gen_int(raw_config.get("tableNumber"), default=0)
-        start_time = self._gen_number(raw_config.get("startTime"), default=0)
-        table_size = self._gen_int(raw_config.get("tableSize"), default=16384)
-        routine_name = self._gen_routine_name(raw_config.get("routineName"))
-        routine_number = abs(self._gen_int(raw_config.get("routineNumber"), default=10))
-        if routine_number == 0:
-            routine_number = 10
-        is_gen01_routine = routine_number == 1 or routine_name in {"gen1", "gen01"}
-        if table_size == 0 and not is_gen01_routine:
-            routine_label = f"GEN{routine_name}" if routine_name is not None else f"GEN{routine_number}"
-            raise CompilationError([f"GEN node '{node.id}' tableSize cannot be 0 for {routine_label}."])
-        normalize = self._gen_bool(raw_config.get("normalize"), default=True)
-        igen = routine_number if normalize else -routine_number
+        routine_name = config.routine_name or None
+        routine_number = config.routine_number
+        is_gen01_routine = config.is_gen01_routine
+        igen = routine_number if config.normalize else -routine_number
         generator = routine_name if routine_name is not None else igen
-        effective_mode = "ftgen" if is_gen01_routine else mode
+        effective_mode = "ftgen" if is_gen01_routine else config.mode
 
         args = self._flatten_gen_node_args(
             node_id=node.id,
-            raw_config=raw_config,
+            config=config,
             routine_number=1 if is_gen01_routine else 0 if routine_name is not None else routine_number,
-            table_size=table_size,
             allow_packaged_asset_paths=allow_packaged_asset_paths,
         )
+        if len(args) > MAX_GEN_ARGUMENT_COUNT:
+            raise CompilationError(
+                [f"GEN node '{node.id}' has too many arguments ({len(args)} > {MAX_GEN_ARGUMENT_COUNT})."]
+            )
         prelude_lines: list[str] = []
         if is_gen01_routine and args and isinstance(args[0], str) and not args[0].startswith("expr:"):
             string_var = self._allocate_string_temp_name(node.id, "gen01_file")
@@ -309,11 +308,11 @@ class OrchestraEmitter:
         rendered_generator = self._format_gen_argument(generator)
 
         if effective_mode == "ftgenonce":
-            line = f"{env['ift']} ftgenonce {table_number}, 0, {table_size}, {rendered_generator}"
+            line = f"{env['ift']} ftgenonce {config.table_number}, 0, {config.table_size}, {rendered_generator}"
         else:
             line = (
-                f"{env['ift']} ftgen {table_number}, {self._format_gen_argument(start_time)}, "
-                f"{table_size}, {rendered_generator}"
+                f"{env['ift']} ftgen {config.table_number}, {self._format_gen_argument(config.start_time)}, "
+                f"{config.table_size}, {rendered_generator}"
             )
 
         if rendered_args:
@@ -326,73 +325,54 @@ class OrchestraEmitter:
         self,
         *,
         node_id: str,
-        raw_config: dict[str, object],
+        config: GenNodeConfig,
         routine_number: int,
-        table_size: int,
         allow_packaged_asset_paths: bool = False,
     ) -> list[str | int | float | bool]:
         if routine_number == 10:
-            partials = self._gen_number_list(raw_config.get("harmonicAmplitudes"))
+            partials = config.harmonic_amplitudes
             if not partials:
-                partials = self._gen_number_list(raw_config.get("partials"))
+                partials = config.partials
             return partials or [1]
 
         if routine_number == 11:
-            nh = max(1, self._gen_int(raw_config.get("gen11HarmonicCount", raw_config.get("nh")), default=8))
-            lh = max(1, self._gen_int(raw_config.get("gen11LowestHarmonic", raw_config.get("lh")), default=1))
-            multiplier = self._gen_number(raw_config.get("gen11Multiplier", raw_config.get("r")), default=1)
-            return [nh, lh, 1 if multiplier is None else multiplier]
+            return [config.gen11_harmonic_count, config.gen11_lowest_harmonic, config.gen11_multiplier]
 
         if routine_number == 2:
-            values = self._gen_number_list(raw_config.get("valueList"))
+            values = config.value_list
             if not values:
-                values = self._gen_number_list(raw_config.get("values"))
+                values = config.values
             return values or [1]
 
         if routine_number in (7, 8):
-            start_value = self._gen_number(raw_config.get("segmentStartValue"), default=0)
-            segment_rows = raw_config.get("segments")
-            points: list[str | int | float | bool] = [start_value]
-            if isinstance(segment_rows, list):
-                for entry in segment_rows:
-                    if not isinstance(entry, dict):
-                        continue
-                    length = self._gen_number(entry.get("length"), default=None)
-                    value = self._gen_number(entry.get("value"), default=None)
-                    if length is None or value is None:
-                        continue
-                    points.extend([length, value])
+            points: list[str | int | float | bool] = [config.segment_start_value]
+            for entry in config.segments:
+                points.extend([entry.length, entry.value])
             if len(points) == 1:
-                points.extend([max(1, table_size), 1])
+                points.extend([max(1, config.table_size), 1])
             return points
 
         if routine_number == 17:
-            pair_rows = raw_config.get("gen17Pairs", raw_config.get("pairs"))
             points: list[str | int | float | bool] = []
-            if isinstance(pair_rows, list):
-                for entry in pair_rows:
-                    if not isinstance(entry, dict):
-                        continue
-                    x_value = self._gen_number(entry.get("x"), default=None)
-                    y_value = self._gen_number(entry.get("y"), default=None)
-                    if x_value is None or y_value is None:
-                        continue
-                    points.extend([x_value, y_value])
+            pair_rows = config.gen17_pairs or config.pairs
+            for entry in pair_rows:
+                points.extend([entry.x, entry.y])
             if not points:
-                return [0, 0, max(1, table_size - 1), 1]
+                return [0, 0, max(1, config.table_size - 1), 1]
             return points
 
         if routine_number == 20:
-            window_type = max(1, self._gen_int(raw_config.get("gen20WindowType", raw_config.get("windowType")), default=1))
-            max_value = self._gen_number(raw_config.get("gen20Max", raw_config.get("max")), default=1)
-            args: list[str | int | float | bool] = [window_type, 1 if max_value is None else max_value]
+            fields = config.model_fields_set
+            window_type = config.gen20_window_type if "gen20_window_type" in fields else config.window_type
+            max_value = config.gen20_max if "gen20_max" in fields else config.max_value
+            args: list[str | int | float | bool] = [window_type, max_value]
             if self._gen20_requires_opt(window_type):
-                opt_value = self._gen_number(raw_config.get("gen20Opt", raw_config.get("opt")), default=0.5)
-                args.append(0.5 if opt_value is None else opt_value)
+                opt_value = config.gen20_opt if "gen20_opt" in fields else config.opt
+                args.append(opt_value)
             return args
 
         if routine_number == 1:
-            sample_asset = raw_config.get("sampleAsset")
+            sample_asset = config.sample_asset
             sample_path: str | None = None
             sample_filecode: int | None = None
             if isinstance(sample_asset, dict):
@@ -408,7 +388,7 @@ class OrchestraEmitter:
                             raise CompilationError([str(err)]) from err
                     else:
                         sample_path = self._resolve_gen_audio_asset_path(normalized_stored_name)
-            raw_sample_path = raw_config.get("samplePath")
+            raw_sample_path = config.sample_path
             if sample_path is None and isinstance(raw_sample_path, str) and raw_sample_path.strip():
                 if allow_packaged_asset_paths:
                     sample_path = self._resolve_packaged_asset_path(
@@ -426,24 +406,19 @@ class OrchestraEmitter:
             if sample_path is None and sample_filecode is None:
                 raise CompilationError([f"GEN node '{node_id}' GEN01 requires an uploaded audio asset."])
 
-            skip_time = self._gen_number(raw_config.get("sampleSkipTime"), default=0)
-            file_format = self._gen_int(raw_config.get("sampleFormat"), default=0)
-            channel = self._gen_int(raw_config.get("sampleChannel"), default=0)
             return [
                 sample_filecode if sample_filecode is not None else sample_path,
-                0 if skip_time is None else skip_time,
-                file_format,
-                channel,
+                config.sample_skip_time,
+                config.sample_format,
+                config.sample_channel,
             ]
 
-        raw_args = raw_config.get("rawArgs")
-        if isinstance(raw_args, list):
-            return [self._gen_parse_raw_arg(value) for value in raw_args]
+        if config.raw_args:
+            return [self._gen_parse_raw_arg(value) for value in config.raw_args]
 
-        raw_args_text = raw_config.get("rawArgsText")
-        if isinstance(raw_args_text, str) and raw_args_text.strip():
-            tokens = re.split(r"[\n,]+", raw_args_text)
-            return [self._gen_parse_raw_arg(token.strip()) for token in tokens if token.strip()]
+        raw_args_text = config.raw_args_text
+        if raw_args_text.strip():
+            return [self._gen_parse_raw_arg(token) for token in config.raw_arg_tokens]
 
         return []
 
@@ -611,6 +586,13 @@ class OrchestraEmitter:
         if not isinstance(raw_config, dict):
             return {}
         return raw_config
+
+    def _gen_node_config(self, node_id: str, ui_layout: dict[str, object]) -> GenNodeConfig:
+        raw_config = self._lookup_gen_node_config(ui_layout, node_id)
+        try:
+            return validate_gen_node_layout_config(raw_config)
+        except ValueError as err:
+            raise CompilationError([f"Invalid GEN node config for '{node_id}': {err}"]) from err
 
     @staticmethod
     def _lookup_sfload_node_config(ui_layout: dict[str, object], node_id: str) -> dict[str, object]:
