@@ -95,6 +95,8 @@ To make sound quickly, open [http://localhost:8000/](http://localhost:8000/) (it
 
 All runtimes now use `browser_clock` mode: the browser owns the PCM queue via Web Audio (`AudioContext` + `AudioWorklet`) and the backend renders Csound blocks on demand with `performKsmps()`. Internal app MIDI always uses an engine-local timestamped scheduler through the built-in `internal:loopback` path, so sequencers, piano rolls, and manual controller lanes work even when no OS MIDI devices exist. The session `MIDI Input` binding is therefore for external hardware or DAW MIDI only. External MIDI is optional and arrives through the native Rust host bridge in [`host-midi-helper/`](host-midi-helper/README.md).
 
+Runtime session creation is bounded to protect Csound worker resources. Deployments can tune the global active-session cap with `VISUALCSOUND_SESSION_MAX_ACTIVE`, the per-client cap with `VISUALCSOUND_SESSION_MAX_ACTIVE_PER_CLIENT`, the create-rate token bucket with `VISUALCSOUND_SESSION_CREATE_RATE_PER_MINUTE` and `VISUALCSOUND_SESSION_CREATE_RATE_BURST`, and idle cleanup with `VISUALCSOUND_SESSION_IDLE_TIMEOUT_SECONDS`.
+
 ## MIDI on macOS
 
 Enable the **IAC Driver** in Audio MIDI Setup and route MIDI output from your DAW/software into the selected IAC bus. When you want that external MIDI to reach VisualCSound, run the host bridge described in [`host-midi-helper/README.md`](host-midi-helper/README.md) so the backend can receive CoreMIDI events with host timestamps.

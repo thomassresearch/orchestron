@@ -55,6 +55,11 @@ def _client(
     browser_clock_manual_midi_max_future_ms: float | None = None,
     browser_clock_manual_midi_rate_per_second: float | None = None,
     browser_clock_manual_midi_burst: int | None = None,
+    session_max_active: int | None = None,
+    session_max_active_per_client: int | None = None,
+    session_create_rate_per_minute: float | None = None,
+    session_create_rate_burst: int | None = None,
+    session_idle_timeout_seconds: float | None = None,
     app_state_max_bytes: int | None = None,
     patch_graph_max_bytes: int | None = None,
     patch_ui_layout_max_bytes: int | None = None,
@@ -128,6 +133,26 @@ def _client(
         os.environ.pop("VISUALCSOUND_BROWSER_CLOCK_MANUAL_MIDI_BURST", None)
     else:
         os.environ["VISUALCSOUND_BROWSER_CLOCK_MANUAL_MIDI_BURST"] = str(browser_clock_manual_midi_burst)
+    if session_max_active is None:
+        os.environ.pop("VISUALCSOUND_SESSION_MAX_ACTIVE", None)
+    else:
+        os.environ["VISUALCSOUND_SESSION_MAX_ACTIVE"] = str(session_max_active)
+    if session_max_active_per_client is None:
+        os.environ.pop("VISUALCSOUND_SESSION_MAX_ACTIVE_PER_CLIENT", None)
+    else:
+        os.environ["VISUALCSOUND_SESSION_MAX_ACTIVE_PER_CLIENT"] = str(session_max_active_per_client)
+    if session_create_rate_per_minute is None:
+        os.environ.pop("VISUALCSOUND_SESSION_CREATE_RATE_PER_MINUTE", None)
+    else:
+        os.environ["VISUALCSOUND_SESSION_CREATE_RATE_PER_MINUTE"] = str(session_create_rate_per_minute)
+    if session_create_rate_burst is None:
+        os.environ.pop("VISUALCSOUND_SESSION_CREATE_RATE_BURST", None)
+    else:
+        os.environ["VISUALCSOUND_SESSION_CREATE_RATE_BURST"] = str(session_create_rate_burst)
+    if session_idle_timeout_seconds is None:
+        os.environ.pop("VISUALCSOUND_SESSION_IDLE_TIMEOUT_SECONDS", None)
+    else:
+        os.environ["VISUALCSOUND_SESSION_IDLE_TIMEOUT_SECONDS"] = str(session_idle_timeout_seconds)
     if app_state_max_bytes is None:
         os.environ.pop("VISUALCSOUND_APP_STATE_MAX_BYTES", None)
     else:
@@ -199,6 +224,29 @@ def _sequencer_config(
     }
     config.update(extra)
     return config
+
+
+def _create_basic_patch(client: TestClient, *, name: str = "Quota Patch") -> str:
+    patch_payload = {
+        "name": name,
+        "description": "session quota regression patch",
+        "schema_version": 1,
+        "graph": {
+            "nodes": [
+                {"id": "n1", "opcode": "const_a", "params": {"value": 0.2}, "position": {"x": 50, "y": 50}},
+                {"id": "n2", "opcode": "outs", "params": {}, "position": {"x": 240, "y": 50}},
+            ],
+            "connections": [
+                {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "left"},
+                {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "right"},
+            ],
+            "ui_layout": {},
+            "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+        },
+    }
+    patch_response = client.post("/api/patches", json=patch_payload)
+    assert patch_response.status_code == 201
+    return patch_response.json()["id"]
 
 
 def _create_running_session(client: TestClient, *, patch_name: str = "Browser Clock Patch") -> str:
@@ -339,6 +387,108 @@ def test_root_redirects_to_client(tmp_path: Path) -> None:
         response = client.get("/", follow_redirects=False)
         assert response.status_code == 307
         assert response.headers["location"].endswith("/client")
+
+
+def test_session_creation_rejects_when_global_quota_reached(tmp_path: Path) -> None:
+    with _client(tmp_path, session_max_active=1, session_max_active_per_client=10) as client:
+        patch_id = _create_basic_patch(client)
+
+        first = client.post("/api/sessions", json={"patch_id": patch_id})
+        assert first.status_code == 201
+
+        second = client.post("/api/sessions", json={"patch_id": patch_id})
+        assert second.status_code == 429
+        assert "Active session capacity reached" in second.text
+        assert len(client.app.state.container.session_service._sessions) == 1
+
+
+def test_session_creation_rejects_when_client_quota_reached(tmp_path: Path) -> None:
+    with _client(tmp_path, session_max_active=10, session_max_active_per_client=1) as client:
+        patch_id = _create_basic_patch(client)
+
+        first = client.post("/api/sessions", json={"patch_id": patch_id})
+        assert first.status_code == 201
+
+        second = client.post("/api/sessions", json={"patch_id": patch_id})
+        assert second.status_code == 429
+        assert "Client active session quota reached" in second.text
+        assert len(client.app.state.container.session_service._sessions) == 1
+
+
+def test_session_creation_is_rate_limited_per_client(tmp_path: Path) -> None:
+    with _client(
+        tmp_path,
+        session_max_active=10,
+        session_max_active_per_client=10,
+        session_create_rate_per_minute=0.001,
+        session_create_rate_burst=1,
+    ) as client:
+        patch_id = _create_basic_patch(client)
+
+        first = client.post("/api/sessions", json={"patch_id": patch_id})
+        assert first.status_code == 201
+
+        second = client.post("/api/sessions", json={"patch_id": patch_id})
+        assert second.status_code == 429
+        assert "Session creation rate limit exceeded" in second.text
+        assert int(second.headers["Retry-After"]) > 0
+        assert len(client.app.state.container.session_service._sessions) == 1
+
+
+def test_session_delete_frees_quota_capacity(tmp_path: Path) -> None:
+    with _client(tmp_path, session_max_active=1, session_max_active_per_client=1) as client:
+        patch_id = _create_basic_patch(client)
+
+        first = client.post("/api/sessions", json={"patch_id": patch_id})
+        assert first.status_code == 201
+        session_id = first.json()["session_id"]
+
+        delete = client.delete(f"/api/sessions/{session_id}")
+        assert delete.status_code == 204
+
+        second = client.post("/api/sessions", json={"patch_id": patch_id})
+        assert second.status_code == 201
+        assert len(client.app.state.container.session_service._sessions) == 1
+
+
+def test_idle_session_expiration_frees_quota_capacity(tmp_path: Path) -> None:
+    with _client(
+        tmp_path,
+        session_max_active=1,
+        session_max_active_per_client=1,
+        session_idle_timeout_seconds=0.01,
+    ) as client:
+        patch_id = _create_basic_patch(client)
+
+        first = client.post("/api/sessions", json={"patch_id": patch_id})
+        assert first.status_code == 201
+
+        deadline = time.monotonic() + 1.0
+        while time.monotonic() < deadline:
+            if not client.app.state.container.session_service._sessions:
+                break
+            time.sleep(0.02)
+
+        assert client.app.state.container.session_service._sessions == {}
+        second = client.post("/api/sessions", json={"patch_id": patch_id})
+        assert second.status_code == 201
+
+
+def test_quota_rejection_happens_before_worker_allocation(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    with _client(tmp_path, session_max_active=1, session_max_active_per_client=10) as client:
+        patch_id = _create_basic_patch(client)
+
+        first = client.post("/api/sessions", json={"patch_id": patch_id})
+        assert first.status_code == 201
+
+        def fail_worker_allocation(*_args, **_kwargs):
+            raise AssertionError("CsoundWorker should not be allocated after quota rejection.")
+
+        monkeypatch.setattr("backend.app.services.session_service.CsoundWorker.__init__", fail_worker_allocation)
+
+        second = client.post("/api/sessions", json={"patch_id": patch_id})
+        assert second.status_code == 429
+        assert len(client.app.state.container.session_service._sessions) == 1
 
 
 def test_runtime_config_exposes_browser_clock_mode(tmp_path: Path) -> None:

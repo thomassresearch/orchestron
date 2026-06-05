@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, Request, Response
 
 from backend.app.api.deps import get_container
 from backend.app.core.container import AppContainer
@@ -25,10 +25,12 @@ router = APIRouter(prefix="/sessions", tags=["sessions"])
 
 @router.post("", response_model=SessionCreateResponse, status_code=201)
 async def create_session(
-    request: SessionCreateRequest,
+    request_body: SessionCreateRequest,
+    request: Request,
     container: AppContainer = Depends(get_container),
 ) -> SessionCreateResponse:
-    return await container.session_service.create_session(request)
+    client_key = request.client.host if request.client is not None else "unknown"
+    return await container.session_service.create_session(request_body, client_key=client_key)
 
 
 @router.get("", response_model=list[SessionInfo])

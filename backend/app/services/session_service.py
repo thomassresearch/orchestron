@@ -102,6 +102,12 @@ class HostMidiBridgeLease:
     timing_mapping: ClockDomainMapping = field(default_factory=ClockDomainMapping)
 
 
+@dataclass(slots=True)
+class SessionCreateRateBucket:
+    tokens: float
+    updated_at: float
+
+
 class SessionService:
     def __init__(
         self,
@@ -123,43 +129,67 @@ class SessionService:
         self._browser_clock_controllers: dict[str, BrowserClockControllerLease] = {}
         self._browser_clock_auto_stop_tasks: dict[str, asyncio.Task[None]] = {}
         self._host_midi_bridges: dict[str, HostMidiBridgeLease] = {}
+        self._session_clients: dict[str, str] = {}
+        self._session_last_activity: dict[str, float] = {}
+        self._session_idle_tasks: dict[str, asyncio.Task[None]] = {}
+        self._session_create_rate_buckets: dict[str, SessionCreateRateBucket] = {}
+        self._pending_session_creates = 0
+        self._pending_session_creates_by_client: dict[str, int] = {}
         self._lock = asyncio.Lock()
         self._loop: asyncio.AbstractEventLoop | None = None
 
-    async def create_session(self, request: SessionCreateRequest) -> SessionCreateResponse:
+    async def create_session(
+        self,
+        request: SessionCreateRequest,
+        *,
+        client_key: str = "unknown",
+    ) -> SessionCreateResponse:
         self._remember_running_loop()
+        client_key = self._normalize_client_key(client_key)
+        await self._reserve_session_create(client_key)
+        committed = False
         instruments = self._resolve_session_instruments(request)
-        # Verify patches exist before creating runtime.
-        for assignment in instruments:
-            self._patch_service.get_patch_document(assignment.patch_id)
 
-        midi_inputs = self._midi_service.list_inputs()
-        default_midi = self._resolve_default_midi_input_id(midi_inputs)
+        try:
+            # Verify patches exist before creating runtime.
+            for assignment in instruments:
+                self._patch_service.get_patch_document(assignment.patch_id)
 
-        runtime = RuntimeSession(
-            session_id=str(uuid4()),
-            instruments=instruments,
-            midi_input=default_midi,
-            worker=CsoundWorker(
-                gen_audio_assets_dir=str(self._settings.gen_audio_assets_dir),
-            ),
-        )
-        runtime.midi_router = self._create_midi_router(runtime)
-        runtime.sequencer = SessionSequencerRuntime(
-            session_id=runtime.session_id,
-            midi_service=runtime.midi_router,
-            midi_input_selector=INTERNAL_LOOPBACK_ID,
-            controller_default_channels=self._controller_default_channels_for_runtime(runtime),
-            clock_mode="render_driven",
-            publish_event=lambda event_type, payload, session_id=runtime.session_id: self._publish_from_thread(
-                session_id=session_id,
-                event_type=event_type,
-                payload=payload,
-            ),
-        )
+            midi_inputs = self._midi_service.list_inputs()
+            default_midi = self._resolve_default_midi_input_id(midi_inputs)
 
-        async with self._lock:
-            self._sessions[runtime.session_id] = runtime
+            runtime = RuntimeSession(
+                session_id=str(uuid4()),
+                instruments=instruments,
+                midi_input=default_midi,
+                worker=CsoundWorker(
+                    gen_audio_assets_dir=str(self._settings.gen_audio_assets_dir),
+                ),
+            )
+            runtime.midi_router = self._create_midi_router(runtime)
+            runtime.sequencer = SessionSequencerRuntime(
+                session_id=runtime.session_id,
+                midi_service=runtime.midi_router,
+                midi_input_selector=INTERNAL_LOOPBACK_ID,
+                controller_default_channels=self._controller_default_channels_for_runtime(runtime),
+                clock_mode="render_driven",
+                publish_event=lambda event_type, payload, session_id=runtime.session_id: self._publish_from_thread(
+                    session_id=session_id,
+                    event_type=event_type,
+                    payload=payload,
+                ),
+            )
+
+            async with self._lock:
+                self._sessions[runtime.session_id] = runtime
+                self._session_clients[runtime.session_id] = client_key
+                self._session_last_activity[runtime.session_id] = time.monotonic()
+                self._release_session_create_reservation_unlocked(client_key)
+                self._schedule_session_idle_expiry_unlocked(runtime.session_id)
+                committed = True
+        finally:
+            if not committed:
+                await self._release_session_create_reservation(client_key)
 
         await self._publish(
             runtime.session_id,
@@ -190,6 +220,7 @@ class SessionService:
         async with self._lock:
             if session_id not in self._sessions:
                 return
+            self._touch_session_activity_unlocked(session_id)
             self._cancel_frontend_auto_stop_task_unlocked(session_id)
             connections = self._frontend_connections.setdefault(session_id, set())
             connections.add(connection_id)
@@ -203,6 +234,7 @@ class SessionService:
             connections = self._frontend_connections.get(session_id)
             if not connections or connection_id not in connections:
                 return
+            self._touch_session_activity_unlocked(session_id)
             self._reset_frontend_heartbeat_watchdog_unlocked(session_id, connection_id)
 
     async def frontend_disconnected(self, session_id: str, connection_id: str) -> None:
@@ -1045,12 +1077,37 @@ class SessionService:
 
     async def delete_session(self, session_id: str) -> None:
         self._remember_running_loop()
-        runtime = await self._get_session(session_id)
-        await self._disconnect_browser_clock_controller(
+        await self._delete_session_resources(
             session_id,
             detail="Session deleted.",
             close_code=4004,
             close_reason="session_deleted",
+            event_type="session_deleted",
+            missing_ok=False,
+        )
+
+    async def _delete_session_resources(
+        self,
+        session_id: str,
+        *,
+        detail: str,
+        close_code: int,
+        close_reason: str,
+        event_type: str,
+        missing_ok: bool,
+    ) -> None:
+        async with self._lock:
+            runtime = self._sessions.get(session_id)
+        if runtime is None:
+            if missing_ok:
+                return
+            raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found")
+
+        await self._disconnect_browser_clock_controller(
+            session_id,
+            detail=detail,
+            close_code=close_code,
+            close_reason=close_reason,
         )
         if runtime.sequencer is not None:
             runtime.sequencer.shutdown()
@@ -1060,21 +1117,27 @@ class SessionService:
 
         heartbeat_tasks_to_cancel: list[asyncio.Task[None]] = []
         auto_stop_task_to_cancel: asyncio.Task[None] | None = None
+        idle_task_to_cancel: asyncio.Task[None] | None = None
         async with self._lock:
             self._sessions.pop(session_id, None)
+            self._session_clients.pop(session_id, None)
+            self._session_last_activity.pop(session_id, None)
             heartbeat_tasks = self._frontend_heartbeat_watchdogs.pop(session_id, {})
             heartbeat_tasks_to_cancel = list(heartbeat_tasks.values())
             self._frontend_connections.pop(session_id, None)
             auto_stop_task_to_cancel = self._frontend_auto_stop_tasks.pop(session_id, None)
             browser_clock_auto_stop_task = self._browser_clock_auto_stop_tasks.pop(session_id, None)
+            idle_task_to_cancel = self._session_idle_tasks.pop(session_id, None)
         for task in heartbeat_tasks_to_cancel:
             task.cancel()
         if auto_stop_task_to_cancel is not None:
             auto_stop_task_to_cancel.cancel()
         if browser_clock_auto_stop_task is not None:
             browser_clock_auto_stop_task.cancel()
+        if idle_task_to_cancel is not None and idle_task_to_cancel is not asyncio.current_task():
+            idle_task_to_cancel.cancel()
 
-        await self._publish(session_id, "session_deleted", {})
+        await self._publish(session_id, event_type, {})
 
     async def _queue_session_midi_event(
         self,
@@ -1191,6 +1254,8 @@ class SessionService:
     async def _get_session(self, session_id: str) -> RuntimeSession:
         async with self._lock:
             runtime = self._sessions.get(session_id)
+            if runtime is not None:
+                self._touch_session_activity_unlocked(session_id)
         if not runtime:
             raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found")
         return runtime
@@ -1218,6 +1283,138 @@ class SessionService:
     async def _publish(self, session_id: str, event_type: str, payload: dict[str, Any]) -> None:
         event = SessionEvent(session_id=session_id, type=event_type, payload=payload)
         await self._event_bus.publish(event)
+
+    @staticmethod
+    def _normalize_client_key(client_key: str) -> str:
+        normalized = client_key.strip()
+        return normalized if normalized else "unknown"
+
+    async def _reserve_session_create(self, client_key: str) -> None:
+        async with self._lock:
+            now = time.monotonic()
+            active_total = len(self._sessions) + self._pending_session_creates
+            if active_total >= self._settings.session_max_active:
+                raise HTTPException(
+                    status_code=429,
+                    detail=(
+                        "Active session capacity reached "
+                        f"({self._settings.session_max_active} sessions). Delete or wait for idle sessions."
+                    ),
+                )
+
+            active_for_client = self._session_count_for_client_unlocked(client_key)
+            active_for_client += self._pending_session_creates_by_client.get(client_key, 0)
+            if active_for_client >= self._settings.session_max_active_per_client:
+                raise HTTPException(
+                    status_code=429,
+                    detail=(
+                        "Client active session quota reached "
+                        f"({self._settings.session_max_active_per_client} sessions)."
+                    ),
+                )
+
+            bucket = self._refill_session_create_bucket_unlocked(client_key, now)
+            if bucket.tokens < 1.0:
+                rate_per_second = self._settings.session_create_rate_per_minute / 60.0
+                retry_after = max(1, int(math.ceil((1.0 - bucket.tokens) / rate_per_second)))
+                raise HTTPException(
+                    status_code=429,
+                    detail="Session creation rate limit exceeded.",
+                    headers={"Retry-After": str(retry_after)},
+                )
+
+            bucket.tokens -= 1.0
+            self._pending_session_creates += 1
+            self._pending_session_creates_by_client[client_key] = (
+                self._pending_session_creates_by_client.get(client_key, 0) + 1
+            )
+
+    async def _release_session_create_reservation(self, client_key: str) -> None:
+        async with self._lock:
+            self._release_session_create_reservation_unlocked(client_key)
+
+    def _release_session_create_reservation_unlocked(self, client_key: str) -> None:
+        if self._pending_session_creates > 0:
+            self._pending_session_creates -= 1
+        pending_for_client = self._pending_session_creates_by_client.get(client_key, 0)
+        if pending_for_client <= 1:
+            self._pending_session_creates_by_client.pop(client_key, None)
+        else:
+            self._pending_session_creates_by_client[client_key] = pending_for_client - 1
+
+    def _refill_session_create_bucket_unlocked(self, client_key: str, now: float) -> SessionCreateRateBucket:
+        burst = float(self._settings.session_create_rate_burst)
+        bucket = self._session_create_rate_buckets.get(client_key)
+        if bucket is None:
+            bucket = SessionCreateRateBucket(tokens=burst, updated_at=now)
+            self._session_create_rate_buckets[client_key] = bucket
+            return bucket
+
+        elapsed_seconds = max(0.0, now - bucket.updated_at)
+        refill = elapsed_seconds * (self._settings.session_create_rate_per_minute / 60.0)
+        bucket.tokens = min(burst, bucket.tokens + refill)
+        bucket.updated_at = now
+        return bucket
+
+    def _session_count_for_client_unlocked(self, client_key: str) -> int:
+        return sum(1 for owner in self._session_clients.values() if owner == client_key)
+
+    def _touch_session_activity_unlocked(self, session_id: str) -> None:
+        if session_id not in self._sessions:
+            return
+        self._session_last_activity[session_id] = time.monotonic()
+        self._schedule_session_idle_expiry_unlocked(session_id)
+
+    def _schedule_session_idle_expiry_unlocked(self, session_id: str) -> None:
+        self._cancel_session_idle_task_unlocked(session_id)
+        self._session_idle_tasks[session_id] = asyncio.create_task(
+            self._expire_session_after_idle_timeout(session_id),
+            name=f"session-idle-expiry:{session_id}",
+        )
+
+    def _cancel_session_idle_task_unlocked(self, session_id: str) -> None:
+        task = self._session_idle_tasks.pop(session_id, None)
+        if task is not None and task is not asyncio.current_task():
+            task.cancel()
+
+    async def _expire_session_after_idle_timeout(self, session_id: str) -> None:
+        try:
+            await asyncio.sleep(self._settings.session_idle_timeout_seconds)
+
+            async with self._lock:
+                runtime = self._sessions.get(session_id)
+                if runtime is None:
+                    self._session_idle_tasks.pop(session_id, None)
+                    return
+                if runtime.worker.is_running:
+                    self._schedule_session_idle_expiry_unlocked(session_id)
+                    return
+                if self._frontend_connections.get(session_id) or self._browser_clock_controllers.get(session_id):
+                    self._schedule_session_idle_expiry_unlocked(session_id)
+                    return
+                current = self._session_idle_tasks.get(session_id)
+                if current is not asyncio.current_task():
+                    return
+                last_activity = self._session_last_activity.get(session_id, 0.0)
+                idle_for = time.monotonic() - last_activity
+                if idle_for < self._settings.session_idle_timeout_seconds:
+                    self._schedule_session_idle_expiry_unlocked(session_id)
+                    return
+                self._session_idle_tasks.pop(session_id, None)
+
+            logger.info("Deleting idle session '%s' after timeout.", session_id)
+            await self._delete_session_resources(
+                session_id,
+                detail="Session expired after being idle.",
+                close_code=4004,
+                close_reason="session_idle_expired",
+                event_type="session_idle_expired",
+                missing_ok=True,
+            )
+        except asyncio.CancelledError:
+            return
+        except Exception:
+            logger.exception("Failed during idle cleanup for session '%s'", session_id)
 
     def _ensure_sequencer(self, runtime: RuntimeSession) -> SessionSequencerRuntime:
         if runtime.sequencer is not None:

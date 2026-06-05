@@ -65,6 +65,7 @@ The compile status badge (`compiled`, `pending changes`, `errors`) indicates com
 - runtime audio mode is fixed to `browser_clock`
 - the default session MIDI binding is `internal:loopback`
 - external host MIDI is disabled unless `VISUALCSOUND_HOST_MIDI_TOKEN` is configured and a helper connects
+- runtime session creation is bounded by `VISUALCSOUND_SESSION_MAX_ACTIVE`, `VISUALCSOUND_SESSION_MAX_ACTIVE_PER_CLIENT`, `VISUALCSOUND_SESSION_CREATE_RATE_PER_MINUTE`, and `VISUALCSOUND_SESSION_CREATE_RATE_BURST`; stopped idle sessions are deleted after `VISUALCSOUND_SESSION_IDLE_TIMEOUT_SECONDS`
 
 ## Recommended Habits
 
