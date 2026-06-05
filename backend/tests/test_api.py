@@ -13,6 +13,7 @@ import zipfile
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 import pytest
+from starlette.testclient import WebSocketDenialResponse
 from starlette.websockets import WebSocketDisconnect
 
 from backend.app.models.export import (
@@ -59,6 +60,10 @@ def _client(
     session_max_active_per_client: int | None = None,
     session_create_rate_per_minute: float | None = None,
     session_create_rate_burst: int | None = None,
+    session_event_ws_max_subscriptions_total: int | None = None,
+    session_event_ws_max_subscriptions_per_session: int | None = None,
+    session_event_ws_connect_rate_per_minute: float | None = None,
+    session_event_ws_connect_rate_burst: int | None = None,
     session_idle_timeout_seconds: float | None = None,
     app_state_max_bytes: int | None = None,
     patch_graph_max_bytes: int | None = None,
@@ -149,6 +154,30 @@ def _client(
         os.environ.pop("VISUALCSOUND_SESSION_CREATE_RATE_BURST", None)
     else:
         os.environ["VISUALCSOUND_SESSION_CREATE_RATE_BURST"] = str(session_create_rate_burst)
+    if session_event_ws_max_subscriptions_total is None:
+        os.environ.pop("VISUALCSOUND_SESSION_EVENT_WS_MAX_SUBSCRIPTIONS_TOTAL", None)
+    else:
+        os.environ["VISUALCSOUND_SESSION_EVENT_WS_MAX_SUBSCRIPTIONS_TOTAL"] = str(
+            session_event_ws_max_subscriptions_total
+        )
+    if session_event_ws_max_subscriptions_per_session is None:
+        os.environ.pop("VISUALCSOUND_SESSION_EVENT_WS_MAX_SUBSCRIPTIONS_PER_SESSION", None)
+    else:
+        os.environ["VISUALCSOUND_SESSION_EVENT_WS_MAX_SUBSCRIPTIONS_PER_SESSION"] = str(
+            session_event_ws_max_subscriptions_per_session
+        )
+    if session_event_ws_connect_rate_per_minute is None:
+        os.environ.pop("VISUALCSOUND_SESSION_EVENT_WS_CONNECT_RATE_PER_MINUTE", None)
+    else:
+        os.environ["VISUALCSOUND_SESSION_EVENT_WS_CONNECT_RATE_PER_MINUTE"] = str(
+            session_event_ws_connect_rate_per_minute
+        )
+    if session_event_ws_connect_rate_burst is None:
+        os.environ.pop("VISUALCSOUND_SESSION_EVENT_WS_CONNECT_RATE_BURST", None)
+    else:
+        os.environ["VISUALCSOUND_SESSION_EVENT_WS_CONNECT_RATE_BURST"] = str(
+            session_event_ws_connect_rate_burst
+        )
     if session_idle_timeout_seconds is None:
         os.environ.pop("VISUALCSOUND_SESSION_IDLE_TIMEOUT_SECONDS", None)
     else:
@@ -280,6 +309,94 @@ def _create_running_session(client: TestClient, *, patch_name: str = "Browser Cl
     start_response = client.post(f"/api/sessions/{session_id}/start")
     assert start_response.status_code == 200
     return session_id
+
+
+def _event_bus_subscription_count(client: TestClient) -> int:
+    return asyncio.run(client.app.state.container.event_bus.stats()).subscription_count
+
+
+def test_session_event_websocket_rejects_missing_session_without_event_bus_allocation(tmp_path: Path) -> None:
+    with _client(tmp_path, audio_output_mode="browser_clock") as client:
+        with pytest.raises(WebSocketDenialResponse) as exc_info:
+            with client.websocket_connect("/ws/sessions/missing-session"):
+                pass
+
+        assert exc_info.value.status_code == 404
+        assert _event_bus_subscription_count(client) == 0
+
+
+def test_session_event_websocket_subscribes_only_for_existing_session(tmp_path: Path) -> None:
+    with _client(tmp_path, audio_output_mode="browser_clock") as client:
+        session_id = _create_running_session(client, patch_name="Session Event WebSocket")
+
+        assert _event_bus_subscription_count(client) == 0
+        with client.websocket_connect(f"/ws/sessions/{session_id}"):
+            assert _event_bus_subscription_count(client) == 1
+
+        assert _event_bus_subscription_count(client) == 0
+
+
+def test_session_event_websocket_subscription_cap_rejects_without_extra_allocation(tmp_path: Path) -> None:
+    with _client(
+        tmp_path,
+        audio_output_mode="browser_clock",
+        session_event_ws_max_subscriptions_per_session=1,
+    ) as client:
+        session_id = _create_running_session(client, patch_name="Session Event WebSocket Cap")
+
+        with client.websocket_connect(f"/ws/sessions/{session_id}"):
+            assert _event_bus_subscription_count(client) == 1
+
+            with pytest.raises(WebSocketDenialResponse) as exc_info:
+                with client.websocket_connect(f"/ws/sessions/{session_id}"):
+                    pass
+
+            assert exc_info.value.status_code == 429
+            assert _event_bus_subscription_count(client) == 1
+
+        assert _event_bus_subscription_count(client) == 0
+
+
+def test_session_event_websocket_total_subscription_cap_rejects_without_extra_allocation(tmp_path: Path) -> None:
+    with _client(
+        tmp_path,
+        audio_output_mode="browser_clock",
+        session_event_ws_max_subscriptions_total=1,
+    ) as client:
+        first_session_id = _create_running_session(client, patch_name="Session Event WebSocket Total Cap A")
+        second_session_id = _create_running_session(client, patch_name="Session Event WebSocket Total Cap B")
+
+        with client.websocket_connect(f"/ws/sessions/{first_session_id}"):
+            assert _event_bus_subscription_count(client) == 1
+
+            with pytest.raises(WebSocketDenialResponse) as exc_info:
+                with client.websocket_connect(f"/ws/sessions/{second_session_id}"):
+                    pass
+
+            assert exc_info.value.status_code == 429
+            assert _event_bus_subscription_count(client) == 1
+
+        assert _event_bus_subscription_count(client) == 0
+
+
+def test_session_event_websocket_rate_limit_rejects_without_event_bus_allocation(tmp_path: Path) -> None:
+    with _client(
+        tmp_path,
+        audio_output_mode="browser_clock",
+        session_event_ws_connect_rate_per_minute=1.0,
+        session_event_ws_connect_rate_burst=1,
+    ) as client:
+        with pytest.raises(WebSocketDenialResponse) as first_exc_info:
+            with client.websocket_connect("/ws/sessions/missing-session-a"):
+                pass
+        assert first_exc_info.value.status_code == 404
+
+        with pytest.raises(WebSocketDenialResponse) as second_exc_info:
+            with client.websocket_connect("/ws/sessions/missing-session-b"):
+                pass
+
+        assert second_exc_info.value.status_code == 429
+        assert _event_bus_subscription_count(client) == 0
 
 
 class _BrowserClockRenderDriver:

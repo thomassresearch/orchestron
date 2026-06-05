@@ -108,6 +108,12 @@ class SessionCreateRateBucket:
     updated_at: float
 
 
+@dataclass(slots=True)
+class SessionEventWsConnectRateBucket:
+    tokens: float
+    updated_at: float
+
+
 class SessionService:
     def __init__(
         self,
@@ -133,6 +139,7 @@ class SessionService:
         self._session_last_activity: dict[str, float] = {}
         self._session_idle_tasks: dict[str, asyncio.Task[None]] = {}
         self._session_create_rate_buckets: dict[str, SessionCreateRateBucket] = {}
+        self._session_event_ws_connect_rate_buckets: dict[str, SessionEventWsConnectRateBucket] = {}
         self._pending_session_creates = 0
         self._pending_session_creates_by_client: dict[str, int] = {}
         self._lock = asyncio.Lock()
@@ -214,6 +221,14 @@ class SessionService:
         self._remember_running_loop()
         runtime = await self._get_session(session_id)
         return self._session_info(runtime)
+
+    async def validate_session_event_ws_connect(self, session_id: str, *, client_key: str = "unknown") -> None:
+        self._remember_running_loop()
+        client_key = self._normalize_client_key(client_key)
+        async with self._lock:
+            self._validate_session_event_ws_connect_rate_unlocked(client_key, time.monotonic())
+            if session_id not in self._sessions:
+                raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found")
 
     async def frontend_connected(self, session_id: str, connection_id: str) -> None:
         self._remember_running_loop()
@@ -1358,6 +1373,36 @@ class SessionService:
 
     def _session_count_for_client_unlocked(self, client_key: str) -> int:
         return sum(1 for owner in self._session_clients.values() if owner == client_key)
+
+    def _validate_session_event_ws_connect_rate_unlocked(self, client_key: str, now: float) -> None:
+        bucket = self._refill_session_event_ws_connect_bucket_unlocked(client_key, now)
+        if bucket.tokens < 1.0:
+            rate_per_second = self._settings.session_event_ws_connect_rate_per_minute / 60.0
+            retry_after = max(1, int(math.ceil((1.0 - bucket.tokens) / rate_per_second)))
+            raise HTTPException(
+                status_code=429,
+                detail="Session event WebSocket connection rate limit exceeded.",
+                headers={"Retry-After": str(retry_after)},
+            )
+        bucket.tokens -= 1.0
+
+    def _refill_session_event_ws_connect_bucket_unlocked(
+        self,
+        client_key: str,
+        now: float,
+    ) -> SessionEventWsConnectRateBucket:
+        burst = float(self._settings.session_event_ws_connect_rate_burst)
+        bucket = self._session_event_ws_connect_rate_buckets.get(client_key)
+        if bucket is None:
+            bucket = SessionEventWsConnectRateBucket(tokens=burst, updated_at=now)
+            self._session_event_ws_connect_rate_buckets[client_key] = bucket
+            return bucket
+
+        elapsed_seconds = max(0.0, now - bucket.updated_at)
+        refill = elapsed_seconds * (self._settings.session_event_ws_connect_rate_per_minute / 60.0)
+        bucket.tokens = min(burst, bucket.tokens + refill)
+        bucket.updated_at = now
+        return bucket
 
     def _touch_session_activity_unlocked(self, session_id: str) -> None:
         if session_id not in self._sessions:

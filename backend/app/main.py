@@ -71,7 +71,10 @@ def _build_container(settings: Settings) -> AppContainer:
     )
     compiler_service = CompilerService(opcode_service=opcode_service, gen_asset_service=gen_asset_service)
     midi_service = MidiService()
-    event_bus = SessionEventBus()
+    event_bus = SessionEventBus(
+        max_subscriptions_total=settings.session_event_ws_max_subscriptions_total,
+        max_subscriptions_per_session=settings.session_event_ws_max_subscriptions_per_session,
+    )
     session_service = SessionService(
         settings=settings,
         patch_service=patch_service,

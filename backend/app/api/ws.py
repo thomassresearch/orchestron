@@ -7,6 +7,7 @@ import time
 from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 
 from backend.app.core.container import AppContainer
@@ -26,10 +27,12 @@ from backend.app.models.session import (
     HostMidiEventsRequest,
     HostMidiRegisterRequest,
 )
+from backend.app.services.event_bus import SessionEventSubscriptionLimitExceededError
 
 router = APIRouter(tags=["ws"])
 BrowserClockRenderJob = tuple[BrowserClockRequestRenderRequest, int]
 _BROWSER_CLOCK_POLICY_VIOLATION_CLOSE_CODE = 1008
+_SESSION_EVENT_POLICY_VIOLATION_CLOSE_CODE = 1008
 
 
 def _http_error_detail(detail: object) -> str:
@@ -41,12 +44,37 @@ def _http_error_detail(detail: object) -> str:
         return str(detail)
 
 
+async def _deny_websocket(websocket: WebSocket, *, status_code: int, detail: object) -> None:
+    try:
+        await websocket.send_denial_response(
+            JSONResponse(
+                {"detail": detail},
+                status_code=status_code,
+            )
+        )
+    except RuntimeError:
+        await websocket.close(code=_SESSION_EVENT_POLICY_VIOLATION_CLOSE_CODE, reason="websocket_denied")
+
+
 @router.websocket("/ws/sessions/{session_id}")
 async def session_events(websocket: WebSocket, session_id: str) -> None:
-    await websocket.accept()
-
     container: AppContainer = websocket.app.state.container
-    queue = await container.event_bus.subscribe(session_id)
+    client_key = websocket.client.host if websocket.client is not None else "unknown"
+    try:
+        await container.session_service.validate_session_event_ws_connect(session_id, client_key=client_key)
+        queue = await container.event_bus.subscribe(session_id)
+    except HTTPException as exc:
+        await _deny_websocket(websocket, status_code=exc.status_code, detail=exc.detail)
+        return
+    except SessionEventSubscriptionLimitExceededError as exc:
+        await _deny_websocket(websocket, status_code=429, detail=str(exc))
+        return
+
+    try:
+        await websocket.accept()
+    except Exception:
+        await container.event_bus.unsubscribe(session_id, queue)
+        raise
     connection_id = str(uuid4())
     await container.session_service.frontend_connected(session_id, connection_id)
 
