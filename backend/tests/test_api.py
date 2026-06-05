@@ -1417,6 +1417,76 @@ def test_patch_compile_and_runtime_flow(tmp_path: Path) -> None:
         assert stop_response.json()["state"] in {"compiled", "idle"}
 
 
+def test_patch_create_rejects_control_characters_in_patch_name(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        patch_payload = {
+            "name": "Bad Patch\ninstr 99",
+            "description": "test",
+            "schema_version": 1,
+            "graph": {
+                "nodes": [{"id": "n1", "opcode": "outs", "params": {}, "position": {"x": 10, "y": 10}}],
+                "connections": [],
+                "ui_layout": {},
+                "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+            },
+        }
+
+        response = client.post("/api/patches", json=patch_payload)
+
+        assert response.status_code == 422
+        assert "control characters" in response.text
+
+
+def test_patch_create_rejects_control_characters_in_node_identifiers(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        patch_payload = {
+            "name": "Bad Node Patch",
+            "description": "test",
+            "schema_version": 1,
+            "graph": {
+                "nodes": [
+                    {"id": "n1\ninstr 99", "opcode": "const_a", "params": {"value": 0.2}, "position": {"x": 10, "y": 10}},
+                    {"id": "out", "opcode": "outs", "params": {}, "position": {"x": 100, "y": 10}},
+                ],
+                "connections": [
+                    {"from_node_id": "n1\ninstr 99", "from_port_id": "aout", "to_node_id": "out", "to_port_id": "left"}
+                ],
+                "ui_layout": {},
+                "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+            },
+        }
+
+        response = client.post("/api/patches", json=patch_payload)
+
+        assert response.status_code == 422
+        assert "control characters" in response.text
+
+
+def test_patch_update_rejects_control_characters_in_patch_name(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        patch_payload = {
+            "name": "Runtime Patch",
+            "description": "test",
+            "schema_version": 1,
+            "graph": {
+                "nodes": [{"id": "n1", "opcode": "outs", "params": {}, "position": {"x": 10, "y": 10}}],
+                "connections": [],
+                "ui_layout": {},
+                "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+            },
+        }
+        create_patch = client.post("/api/patches", json=patch_payload)
+        assert create_patch.status_code == 201
+
+        response = client.put(
+            f"/api/patches/{create_patch.json()['id']}",
+            json={"name": "Updated\ninstr 99"},
+        )
+
+        assert response.status_code == 422
+        assert "control characters" in response.text
+
+
 def test_engine_rates_drive_compiled_sr_and_ksmps(tmp_path: Path) -> None:
     with _client(tmp_path) as client:
         patch_payload = {
@@ -4620,6 +4690,32 @@ def test_performance_csd_export_bundle_includes_csd_midi_readme_and_assets(tmp_p
             assert b"\xFF\x51\x03" in midi_bytes
             assert b"\x90\x3C\x64" in midi_bytes
             assert b"\xB0\x01" in midi_bytes
+
+
+@pytest.mark.parametrize(
+    ("field_name", "malicious_value"),
+    [
+        ("sourcePatchId", "patch-1\ninstr 99"),
+        ("name", "Offline Instrument\ninstr 99"),
+        ("node_id", "a1\ninstr 99"),
+    ],
+)
+def test_performance_csd_export_request_rejects_control_characters_in_orc_metadata(
+    field_name: str,
+    malicious_value: str,
+) -> None:
+    payload = _performance_csd_export_payload()
+    definition = payload["performanceExport"]["patch_definitions"][0]  # type: ignore[index]
+    if field_name == "node_id":
+        graph = definition["graph"]
+        graph["nodes"][0]["id"] = malicious_value
+        graph["connections"][0]["from_node_id"] = malicious_value
+        graph["connections"][1]["from_node_id"] = malicious_value
+    else:
+        definition[field_name] = malicious_value
+
+    with pytest.raises(ValidationError, match="control characters"):
+        PerformanceCsdExportRequest.model_validate(payload)
 
 
 def test_performance_csd_export_rejects_huge_playback_range_before_export_work(

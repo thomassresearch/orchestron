@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from backend.app.models.patch import Connection, NodeInstance, PatchDocument, PatchGraph
+from backend.app.models.patch import Connection, EngineConfig, NodeInstance, NodePosition, PatchDocument, PatchGraph
+from backend.app.services.compiler_common import SfloadGlobalRequest
+from backend.app.services.compiler_orchestra import OrchestraEmitter
 from backend.app.services.compiler_service import CompilerService
 from backend.app.services.opcode_service import OpcodeService
 
@@ -48,6 +50,79 @@ def test_wrap_csd_uses_explicit_buffer_sizes(monkeypatch) -> None:
     assert "-n" in csd
     assert "-b 256" in csd
     assert "-B1024" in csd
+
+
+def test_compile_escapes_legacy_patch_and_node_metadata_in_orc_comments() -> None:
+    compiler = CompilerService(OpcodeService(icon_prefix="/static/icons"))
+    malicious_node_id = "n1\ninstr 99\nendin"
+    malicious_header_node_id = "limit\ninstr 55\nendin"
+    patch = PatchDocument.model_construct(
+        id="patch-1\ninstr 77",
+        name="Injected Patch\ninstr 88",
+        description="legacy document bypasses request validation",
+        schema_version=1,
+        graph=PatchGraph.model_construct(
+            nodes=[
+                NodeInstance.model_construct(
+                    id=malicious_node_id,
+                    opcode="const_a",
+                    params={"value": 0.2},
+                    position=NodePosition(),
+                ),
+                NodeInstance.model_construct(
+                    id=malicious_header_node_id,
+                    opcode="maxalloc",
+                    params={"icount": 4},
+                    position=NodePosition(),
+                ),
+                NodeInstance(id="out", opcode="outs"),
+            ],
+            connections=[
+                Connection.model_construct(
+                    from_node_id=malicious_node_id,
+                    from_port_id="aout",
+                    to_node_id="out",
+                    to_port_id="left",
+                ),
+                Connection.model_construct(
+                    from_node_id=malicious_node_id,
+                    from_port_id="aout",
+                    to_node_id="out",
+                    to_port_id="right",
+                ),
+            ],
+            ui_layout={},
+            engine_config=EngineConfig(),
+        ),
+    )
+
+    artifact = compiler.compile_patch(patch, midi_input="0", rtmidi_module="alsaseq")
+    lines = [line.strip() for line in artifact.orc.splitlines()]
+
+    assert '; patch:"patch-1\\ninstr 77" name:"Injected Patch\\ninstr 88" channel:0' in artifact.orc
+    assert '; node:"n1\\ninstr 99\\nendin" opcode:const_a' in artifact.orc
+    assert '; node:"limit\\ninstr 55\\nendin" opcode:maxalloc' in artifact.orc
+    assert "instr 99" not in lines
+    assert "instr 88" not in lines
+    assert "instr 77" not in lines
+    assert "instr 55" not in lines
+    assert lines.count("endin") == 1
+
+
+def test_sfload_global_request_escapes_legacy_node_metadata_comment() -> None:
+    lines = OrchestraEmitter.render_sfload_global_requests(
+        [
+            SfloadGlobalRequest(
+                node_id="sf\ninstr 42\nendin",
+                var_name="gi_patch_sfload_ifilhandle",
+                filename="test.sf2",
+            )
+        ]
+    )
+
+    assert lines[0] == '; node:"sf\\ninstr 42\\nendin" opcode:sfload'
+    assert all(line.strip() != "instr 42" for line in lines)
+    assert all(line.strip() != "endin" for line in lines)
 
 
 def test_grain3_compile_uses_correct_argument_order_and_omits_optional_tail() -> None:

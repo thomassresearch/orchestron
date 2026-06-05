@@ -26,6 +26,7 @@ from backend.app.services.compiler_formula import (
 )
 from backend.app.services.compiler_graph import find_port
 from backend.app.services.gen_asset_service import GenAssetService
+from backend.app.services.orc_metadata import format_orc_comment_value
 
 
 class OrchestraEmitter:
@@ -136,7 +137,9 @@ class OrchestraEmitter:
                     env,
                     allow_packaged_asset_paths=allow_packaged_asset_paths,
                 )
-                instrument_lines.extend([f"; node:{compiled.node.id} opcode:{compiled.spec.name}", *rendered.splitlines()])
+                instrument_lines.extend(
+                    [self._node_comment(compiled.node.id, compiled.spec.name), *rendered.splitlines()]
+                )
                 continue
 
             if compiled.spec.name == "sfload":
@@ -194,7 +197,7 @@ class OrchestraEmitter:
                         raise CompilationError([f"maxalloc node '{compiled.node.id}' requires icount."])
 
                 rendered = f"maxalloc {instrument_number}, {icount}"
-                global_header_lines.extend([f"; node:{compiled.node.id} opcode:{compiled.spec.name}", rendered])
+                global_header_lines.extend([self._node_comment(compiled.node.id, compiled.spec.name), rendered])
                 continue
 
             if compiled.spec.name == "flanger" and "adel" in env:
@@ -250,7 +253,9 @@ class OrchestraEmitter:
                 raise CompilationError([f"Template value missing for node '{compiled.node.id}': {err}"]) from err
 
             rendered = self._cleanup_optional_placeholders(rendered)
-            instrument_lines.extend([f"; node:{compiled.node.id} opcode:{compiled.spec.name}", *rendered.splitlines()])
+            instrument_lines.extend(
+                [self._node_comment(compiled.node.id, compiled.spec.name), *rendered.splitlines()]
+            )
 
         return CompiledInstrumentLines(
             instrument_lines=instrument_lines,
@@ -489,7 +494,7 @@ class OrchestraEmitter:
                 first_var_by_filename[request.filename] = request.var_name
                 lines.extend(
                     [
-                        f"; node:{request.node_id} opcode:sfload",
+                        OrchestraEmitter._node_comment(request.node_id, "sfload"),
                         f"{request.var_name} sfload {OrchestraEmitter._format_literal(request.filename, SignalType.STRING)}",
                     ]
                 )
@@ -500,12 +505,17 @@ class OrchestraEmitter:
 
             lines.extend(
                 [
-                    f"; node:{request.node_id} opcode:sfload (alias)",
+                    OrchestraEmitter._node_comment(request.node_id, "sfload", suffix="(alias)"),
                     f"{request.var_name} init {existing_var}",
                 ]
             )
 
         return lines
+
+    @staticmethod
+    def _node_comment(node_id: str, opcode: str, *, suffix: str | None = None) -> str:
+        suffix_text = f" {suffix}" if suffix else ""
+        return f"; node:{format_orc_comment_value(node_id)} opcode:{format_orc_comment_value(opcode)}{suffix_text}"
 
     @staticmethod
     def massign_lines(targets: list[PatchInstrumentTarget]) -> list[str]:

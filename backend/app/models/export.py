@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from backend.app.models.patch import PatchGraph
 from backend.app.models.session import SessionSequencerConfigRequest, SessionSequencerStepConfig
+from backend.app.models.source_text import reject_control_characters
 
 OFFLINE_CSD_EXPORT_MAX_PLAYBACK_STEPS = 65_536
 OFFLINE_CSD_EXPORT_MAX_MIDI_EVENTS = 200_000
@@ -38,6 +39,16 @@ class ExportedPatchDefinition(BaseModel):
     graph: PatchGraph
 
     model_config = ConfigDict(populate_by_name=True)
+
+    @field_validator("source_patch_id")
+    @classmethod
+    def validate_source_patch_id_text(cls, value: str) -> str:
+        return reject_control_characters(value, field_name="Source patch ID")
+
+    @field_validator("name")
+    @classmethod
+    def validate_name_text(cls, value: str) -> str:
+        return reject_control_characters(value, field_name="Patch name")
 
 
 class ExportedPerformanceDocument(BaseModel):

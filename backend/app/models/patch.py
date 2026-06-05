@@ -6,6 +6,7 @@ from uuid import uuid4
 from pydantic import BaseModel, Field, JsonValue, field_validator, model_validator
 
 from backend.app.models.opcode import SignalType
+from backend.app.models.source_text import reject_control_characters
 
 PatchParam = str | int | float | bool
 
@@ -33,12 +34,22 @@ class NodeInstance(BaseModel):
     params: dict[str, PatchParam] = Field(default_factory=dict)
     position: NodePosition = Field(default_factory=NodePosition)
 
+    @field_validator("id")
+    @classmethod
+    def validate_id_text(cls, value: str) -> str:
+        return reject_control_characters(value, field_name="Node ID")
+
 
 class Connection(BaseModel):
     from_node_id: str = Field(min_length=1)
     from_port_id: str = Field(min_length=1)
     to_node_id: str = Field(min_length=1)
     to_port_id: str = Field(min_length=1)
+
+    @field_validator("from_node_id", "to_node_id")
+    @classmethod
+    def validate_node_ref_text(cls, value: str) -> str:
+        return reject_control_characters(value, field_name="Connection node ID")
 
 
 class EngineConfig(BaseModel):
@@ -128,6 +139,11 @@ class PatchBase(BaseModel):
     schema_version: int = 1
     graph: PatchGraph
 
+    @field_validator("name")
+    @classmethod
+    def validate_name_text(cls, value: str) -> str:
+        return reject_control_characters(value, field_name="Patch name")
+
 
 class PatchCreateRequest(PatchBase):
     pass
@@ -138,6 +154,13 @@ class PatchUpdateRequest(BaseModel):
     description: str | None = Field(default=None, max_length=2_048)
     graph: PatchGraph | None = None
     schema_version: int | None = None
+
+    @field_validator("name")
+    @classmethod
+    def validate_name_text(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return reject_control_characters(value, field_name="Patch name")
 
 
 class PatchResponse(PatchBase):

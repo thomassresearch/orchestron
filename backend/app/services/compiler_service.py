@@ -16,6 +16,7 @@ from backend.app.services.compiler_graph import compile_graph_context, resolve_s
 from backend.app.services.compiler_orchestra import OrchestraEmitter, wrap_csd
 from backend.app.services.gen_asset_service import GenAssetService
 from backend.app.services.opcode_service import OpcodeService
+from backend.app.services.orc_metadata import format_orc_comment_value
 
 
 class CompilerService:
@@ -90,7 +91,10 @@ class CompilerService:
         for instrument_number, target, compiled_lines in compiled_instruments:
             orc_lines.extend(
                 [
-                    f"; patch:{target.patch.id} name:{target.patch.name} channel:{target.midi_channel}",
+                    (
+                        f"; patch:{format_orc_comment_value(target.patch.id)} "
+                        f"name:{format_orc_comment_value(target.patch.name)} channel:{target.midi_channel}"
+                    ),
                     f"instr {instrument_number}",
                     *[f"  {line}" if line else "" for line in compiled_lines.instrument_lines],
                     "endin",
