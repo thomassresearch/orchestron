@@ -39,7 +39,7 @@ tracks:
 Apply it:
 
 ```bash
-uv run python -m integrations.cli --json edit apply-score path/to/score.yaml
+uv run orchestron_cli --json edit apply-score path/to/score.yaml
 ```
 
 Melodic explicit events:
@@ -82,4 +82,3 @@ tracks:
 ```
 
 The current implementation supports explicit events, Roman numeral progressions, drummer grooves, controller curves, and arpeggiator tracks. If validation fails, inspect `error.path` and `error.retry`.
-

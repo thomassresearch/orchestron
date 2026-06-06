@@ -1,24 +1,36 @@
 ---
 name: orchestron-performance-creator
-description: Use when creating, editing, importing, validating, committing, or live-testing Orchestron performances through the integrations/cli backend-only command-line utility, including multitrack score specs, melodic chord patterns, General MIDI drum grooves, controller sequencers, manual MIDI controllers, arpeggiators, and patch/performance bundle imports.
+description: Use when creating, editing, importing, validating, committing, or live-testing Orchestron performances through the skill-local orchestron_cli backend-only command-line utility, including multitrack score specs, melodic chord patterns, General MIDI drum grooves, controller sequencers, manual MIDI controllers, arpeggiators, and patch/performance bundle imports.
 ---
 
 # Orchestron Performance Creator
 
-Use this skill to create or edit Orchestron performances through the repository CLI in `integrations/cli/`. The CLI talks only to the running FastAPI backend; never edit SQLite directly.
+Use this skill to create or edit Orchestron performances through the skill-local `orchestron_cli` command. The CLI talks only to the running FastAPI backend; never edit SQLite directly.
 
 ## CLI Entry Point
 
-From the repository root:
+From `integrations/skills/orchestron-performance-creator/`:
 
 ```bash
-uv run python -m integrations.cli --api-url http://localhost:8000/api -h
+uv run orchestron_cli --api-url http://localhost:8000/api -h
+```
+
+From the repository root, either use the skill project explicitly:
+
+```bash
+uv run --project integrations/skills/orchestron-performance-creator orchestron_cli --json health
+```
+
+or use the thin wrapper:
+
+```bash
+uv run python integrations/skills/orchestron-performance-creator/scripts/orchestron_cli.py --json health
 ```
 
 Use `--json` for agent-readable output and retry hints:
 
 ```bash
-uv run python -m integrations.cli --json health
+uv run orchestron_cli --json health
 ```
 
 If the backend is not running, ask the user whether to start it with `make run` or use the correct `--api-url`.
@@ -38,14 +50,14 @@ If the backend is not running, ask the user whether to start it with `make run` 
 ## Core Commands
 
 ```bash
-uv run python -m integrations.cli --json patches list
-uv run python -m integrations.cli --json performances list
-uv run python -m integrations.cli --json edit begin --new --name "Agent Sketch"
-uv run python -m integrations.cli --json edit add-instrument --patch "TB303" --channel 2
-uv run python -m integrations.cli --json edit add-melodic --channel 2 --steps "s0=C3:min7/4s s4=F3:dom7/4s"
-uv run python -m integrations.cli --json edit add-drummer --channel 10 --groove backbeat
-uv run python -m integrations.cli --json edit validate
-uv run python -m integrations.cli --json edit commit
+uv run orchestron_cli --json patches list
+uv run orchestron_cli --json performances list
+uv run orchestron_cli --json edit begin --new --name "Agent Sketch"
+uv run orchestron_cli --json edit add-instrument --patch "TB303" --channel 2
+uv run orchestron_cli --json edit add-melodic --channel 2 --steps "s0=C3:min7/4s s4=F3:dom7/4s"
+uv run orchestron_cli --json edit add-drummer --channel 10 --groove backbeat
+uv run orchestron_cli --json edit validate
+uv run orchestron_cli --json edit commit
 ```
 
 ## References
@@ -56,4 +68,3 @@ uv run python -m integrations.cli --json edit commit
 ## Error Handling
 
 When a command fails, read the structured `error.retry` field and adjust the next command. Do not commit after a failed validation. Use `--debug` only when backend response details are needed.
-

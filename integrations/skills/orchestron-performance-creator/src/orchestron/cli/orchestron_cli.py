@@ -247,7 +247,7 @@ class ApiClient:
                 retry=[
                     "Start the backend with `make run`.",
                     "Pass --api-url http://HOST:PORT/api if the backend is not on localhost:8000.",
-                    "Run `orchestron health` to check connectivity.",
+                    "Run `orchestron_cli health` to check connectivity.",
                 ],
             ) from exc
         except json.JSONDecodeError as exc:
@@ -307,8 +307,8 @@ def load_edit_session(path: Path) -> dict[str, Any]:
             "edit_session_missing",
             f"No active edit session found at {path}.",
             retry=[
-                "Run `orchestron edit begin --performance PERFORMANCE_ID`.",
-                "Run `orchestron edit begin --new --name NAME`.",
+                "Run `orchestron_cli edit begin --performance PERFORMANCE_ID`.",
+                "Run `orchestron_cli edit begin --new --name NAME`.",
                 "Pass --session-file PATH if the edit session was stored elsewhere.",
             ],
         )
@@ -318,7 +318,7 @@ def load_edit_session(path: Path) -> dict[str, Any]:
         raise OrchestronCliError(
             "edit_session_invalid",
             f"Edit session file {path} is not valid JSON.",
-            retry=["Delete the stale session file or run `orchestron edit abort` if it can be parsed."],
+            retry=["Delete the stale session file or run `orchestron_cli edit abort` if it can be parsed."],
         ) from exc
 
 
@@ -456,7 +456,7 @@ def find_by_id_or_name(items: list[dict[str, Any]], value: str, *, kind: str) ->
         raise OrchestronCliError(
             f"{kind}_not_found",
             f"No {kind} found for '{value}'.",
-            retry=[f"Run `orchestron {kind}s list` and retry with an exact ID or name."],
+            retry=[f"Run `orchestron_cli {kind}s list` and retry with an exact ID or name."],
             data={"lookup": value},
         )
     raise OrchestronCliError(
@@ -1483,7 +1483,7 @@ def validate_edit_session(session: dict[str, Any], client: ApiClient) -> dict[st
         raise OrchestronCliError(
             "performance_has_no_instruments",
             "Performance has no instrument assignments.",
-            retry=["Run `orchestron edit add-instrument --patch PATCH --channel 1` before commit."],
+            retry=["Run `orchestron_cli edit add-instrument --patch PATCH --channel 1` before commit."],
             path="config.instruments",
         )
     patches = client.get("/patches")
@@ -1897,7 +1897,7 @@ def command_edit_push_runtime(args: argparse.Namespace, ctx: CliContext) -> None
         raise OrchestronCliError(
             "runtime_session_missing",
             "No runtime session ID supplied or attached to the edit session.",
-            retry=["Run `orchestron edit push-runtime --session-id SESSION_ID` or begin with --attach-live SESSION_ID."],
+            retry=["Run `orchestron_cli edit push-runtime --session-id SESSION_ID` or begin with --attach-live SESSION_ID."],
         )
     runtime_config = build_runtime_config(copy.deepcopy(session["config"]))
     client = ApiClient(ctx.api_url, timeout=ctx.timeout)
@@ -1947,7 +1947,7 @@ def add_global_options(parser: argparse.ArgumentParser) -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="orchestron",
+        prog="orchestron_cli",
         description="Backend-only CLI for Orchestron performance creation, editing, import, and live-session control.",
         epilog="Every command supports -h/--help. Start the backend with `make run` before using backend commands.",
     )

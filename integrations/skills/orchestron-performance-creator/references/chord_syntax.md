@@ -24,7 +24,7 @@ C3:7    -> C3:dom7
 Prefer explicit colon form in generated commands:
 
 ```bash
-uv run python -m integrations.cli edit add-melodic \
+uv run orchestron_cli edit add-melodic \
   --channel 2 \
   --steps "s0=C3:min7/4s s4=F3:dom7/4s s8=Bb2:maj7/4s s12=G2:dom7/4s"
 ```
@@ -40,10 +40,9 @@ Token rules:
 Grid example:
 
 ```bash
-uv run python -m integrations.cli edit add-melodic \
+uv run orchestron_cli edit add-melodic \
   --channel 2 \
   --grid-pattern "C3:min7 _ _ _ F3:dom7 _ _ _ Bb2:maj7 _ _ _ G2:dom7 _ _ _"
 ```
 
 Avoid arbitrary MIDI note arrays unless the implementation later extends the persisted model. Raw voicings do not round-trip cleanly through the current GUI chord selector.
-

@@ -348,7 +348,7 @@ Example lock error:
     "lock_id": "lock-123",
     "retry": [
       "Close or unload the performance in the frontend.",
-      "Run `orchestron edit begin --performance abc --force-lock` if you intentionally want to take over."
+      "Run `orchestron_cli edit begin --performance abc --force-lock` if you intentionally want to take over."
     ]
   }
 }
@@ -375,9 +375,9 @@ Global options:
 ### Patch Commands
 
 ```text
-orchestron patches list
-orchestron patches get PATCH_ID
-orchestron patches import FILE
+orchestron_cli patches list
+orchestron_cli patches get PATCH_ID
+orchestron_cli patches import FILE
 ```
 
 Import options:
@@ -404,11 +404,11 @@ Agent/non-TTY default:
 ### Performance Commands
 
 ```text
-orchestron performances list
-orchestron performances get PERFORMANCE_ID
-orchestron performances copy SOURCE_PERFORMANCE_ID --name NAME
-orchestron performances import FILE
-orchestron performances export PERFORMANCE_ID --output FILE
+orchestron_cli performances list
+orchestron_cli performances get PERFORMANCE_ID
+orchestron_cli performances copy SOURCE_PERFORMANCE_ID --name NAME
+orchestron_cli performances import FILE
+orchestron_cli performances export PERFORMANCE_ID --output FILE
 ```
 
 Copy behavior:
@@ -421,13 +421,13 @@ Copy behavior:
 ### Edit Session Commands
 
 ```text
-orchestron edit begin --performance PERFORMANCE_ID
-orchestron edit begin --new --name NAME
-orchestron edit status
-orchestron edit validate
-orchestron edit diff
-orchestron edit commit
-orchestron edit abort
+orchestron_cli edit begin --performance PERFORMANCE_ID
+orchestron_cli edit begin --new --name NAME
+orchestron_cli edit status
+orchestron_cli edit validate
+orchestron_cli edit diff
+orchestron_cli edit commit
+orchestron_cli edit abort
 ```
 
 Options:
@@ -450,9 +450,9 @@ That file should contain only connection/edit metadata, not the authoritative pe
 ### Instrument Commands
 
 ```text
-orchestron edit add-instrument --patch PATCH_ID --channel 1 --level 10
-orchestron edit remove-instrument --channel 1
-orchestron edit set-instrument-level --channel 1 --level 7
+orchestron_cli edit add-instrument --patch PATCH_ID --channel 1 --level 10
+orchestron_cli edit remove-instrument --channel 1
+orchestron_cli edit set-instrument-level --channel 1 --level 7
 ```
 
 Patch references should accept:
@@ -468,13 +468,13 @@ Ambiguous names should fail with candidate IDs and retry instructions.
 Simple:
 
 ```text
-orchestron edit add-melodic --channel 2 --name Bass --key C --mode dorian
+orchestron_cli edit add-melodic --channel 2 --name Bass --key C --mode dorian
 ```
 
 Explicit steps:
 
 ```text
-orchestron edit add-melodic \
+orchestron_cli edit add-melodic \
   --channel 2 \
   --length-beats 4 \
   --steps "s0=C3:min7/4s s4=F3:dom7/4s s8=Bb2:maj7/4s s12=G2:dom7/4s"
@@ -483,7 +483,7 @@ orchestron edit add-melodic \
 Grid pattern:
 
 ```text
-orchestron edit add-melodic \
+orchestron_cli edit add-melodic \
   --channel 2 \
   --grid-pattern "C3:min7 _ _ _ F3:dom7 _ _ _ Bb2:maj7 _ _ _ G2:dom7 _ _ _"
 ```
@@ -556,8 +556,8 @@ Runtime conversion:
 ### Drummer Sequencer Commands
 
 ```text
-orchestron edit add-drummer --channel 10 --groove backbeat
-orchestron edit add-drummer --channel 10 --grid-pattern "kick . snare . kick kick snare ."
+orchestron_cli edit add-drummer --channel 10 --groove backbeat
+orchestron_cli edit add-drummer --channel 10 --grid-pattern "kick . snare . kick kick snare ."
 ```
 
 General MIDI drum defaults:
@@ -596,13 +596,13 @@ Velocity templates:
 Manual MIDI controller lanes:
 
 ```text
-orchestron edit add-midi-controller --cc 74 --name Filter --value 32
+orchestron_cli edit add-midi-controller --cc 74 --name Filter --value 32
 ```
 
 Controller sequencer:
 
 ```text
-orchestron edit add-controller-sequencer \
+orchestron_cli edit add-controller-sequencer \
   --cc 74 \
   --length-beats 8 \
   --curve "0:24,0.5:96,1:48"
@@ -633,7 +633,7 @@ Where:
 ### Arpeggiator Commands
 
 ```text
-orchestron edit add-arpeggiator \
+orchestron_cli edit add-arpeggiator \
   --input-channel 3 \
   --target-channel 2 \
   --pattern up \
@@ -826,8 +826,8 @@ Lock age: 12s
 
 Retry:
   1. Close or unload the performance in the frontend.
-  2. Run `orchestron edit begin --performance abc --force-lock` to take over.
-  3. Run `orchestron performances copy abc --name "Demo Performance CLI Copy"` to work on a copy.
+  2. Run `orchestron_cli edit begin --performance abc --force-lock` to take over.
+  3. Run `orchestron_cli performances copy abc --name "Demo Performance CLI Copy"` to work on a copy.
 ```
 
 JSON mode:
@@ -843,11 +843,11 @@ JSON mode:
     "performance_id": "abc",
     "retry": [
       {
-        "command": "orchestron edit begin --performance abc --force-lock",
+        "command": "orchestron_cli edit begin --performance abc --force-lock",
         "description": "Take over the lock if this is intentional."
       },
       {
-        "command": "orchestron performances copy abc --name \"Demo Performance CLI Copy\"",
+        "command": "orchestron_cli performances copy abc --name \"Demo Performance CLI Copy\"",
         "description": "Work on a copy without disturbing the open frontend."
       }
     ]
@@ -897,14 +897,14 @@ Every command must include:
 Example:
 
 ```text
-orchestron edit add-melodic --help
+orchestron_cli edit add-melodic --help
 
 Usage:
-  orchestron edit add-melodic [OPTIONS]
+  orchestron_cli edit add-melodic [OPTIONS]
 
 Examples:
-  orchestron edit add-melodic --channel 2 --grid-pattern "C3:min7 _ _ _ F3:dom7 _ _ _"
-  orchestron edit add-melodic --channel 3 --steps "s0=C4:maj7/8s s8=G3:dom7/8s"
+  orchestron_cli edit add-melodic --channel 2 --grid-pattern "C3:min7 _ _ _ F3:dom7 _ _ _"
+  orchestron_cli edit add-melodic --channel 3 --steps "s0=C4:maj7/8s s8=G3:dom7/8s"
 
 Chord labels:
   none, maj, min, dim, aug, sus2, sus4, maj7, min7, dom7, m7b5, dim7, minmaj7
@@ -969,36 +969,56 @@ When workspace sync is added:
 
 ## Documentation Plan
 
-When implementation starts:
+As implementation evolves:
 
 - Update `README.md` with CLI overview.
 - Add user docs for CLI performance creation.
 - Add score spec examples under `examples/performances/`.
-- Add a future Codex skill once the CLI is stable.
+- Keep the bundled Codex skill launch instructions aligned with the packaged CLI entry point.
 - Ask the user for new screenshots if frontend lock/sync UI changes are made.
 
-## Future Codex Skill
+## Codex Skill Package
 
-Create a skill after the CLI stabilizes.
+The agent-facing CLI lives inside the skill package so Codex can run it without relying on a repository-level module path.
 
 Skill contents:
 
 ```text
-orchestron-performance-creator/
+integrations/skills/orchestron-performance-creator/
+  pyproject.toml
   SKILL.md
+  uv.lock
+  src/
+    orchestron/
+      cli/
+        orchestron_cli.py
+        __main__.py
   references/
     score_spec.md
     chord_syntax.md
-    examples.md
   scripts/
-    validate_score_spec.py
+    orchestron_cli.py
 ```
+
+Preferred launch from the skill folder:
+
+```bash
+uv run orchestron_cli --json health
+```
+
+Preferred launch from the repository root:
+
+```bash
+uv run --project integrations/skills/orchestron-performance-creator orchestron_cli --json health
+```
+
+The `scripts/orchestron_cli.py` wrapper is intentionally thin and imports `orchestron.cli.orchestron_cli:main`.
 
 Skill behavior:
 
 - prefer score specs for multitrack work
 - use CLI flags for simple edits
-- always run `orchestron edit validate` before commit
+- always run `edit validate` before commit
 - use `--json` for agent-readable output
 - retry based on structured error hints
 - commit only after validation succeeds
@@ -1069,4 +1089,4 @@ Skill behavior:
 - Exact edit-session expiry and heartbeat timings.
 - Whether raw arbitrary voicings should be supported before the GUI model can display them cleanly.
 - Whether score-spec generated material should default to creating new tracks or updating existing named tracks.
-- Whether CLI command names should be a single `orchestron` executable or multiple narrower utilities.
+- Whether CLI command names should remain a single `orchestron_cli` executable or split into multiple narrower utilities.
