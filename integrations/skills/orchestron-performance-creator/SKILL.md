@@ -1,6 +1,6 @@
 ---
 name: orchestron-performance-creator
-description: Use when creating, editing, importing, validating, committing, or live-testing Orchestron performances through the skill-local orchestron_cli backend-only command-line utility, including multitrack score specs, melodic chord patterns, General MIDI drum grooves, controller sequencers, manual MIDI controllers, arpeggiators, and patch/performance bundle imports.
+description: Use when creating, editing, importing, validating, committing, or live-testing Orchestron performances through the skill-local orchestron_cli backend-only command-line utility, including genre-aware electronic music structure, multitrack score specs, melodic chord patterns, General MIDI drum grooves, controller sequencers, manual MIDI controllers, arpeggiators, and patch/performance bundle imports.
 ---
 
 # Orchestron Performance Creator
@@ -39,13 +39,14 @@ If the backend is not running, ask the user whether to start it with `make run` 
 
 1. Check backend health.
 2. List/import patches as needed.
-3. Start an edit session from an existing performance or a new draft.
-4. Add instruments first, then sequencers/controllers/arpeggiators.
-5. Use explicit CLI flags for small edits.
-6. Use a YAML/JSON score spec for multitrack or harmonic generation.
-7. Run `edit validate`.
-8. Commit only after validation succeeds.
-9. For live testing, attach or pass a runtime session ID and run `edit push-runtime`.
+3. If composing new material, choose the musical brief before writing notes: ambient state, techno process, trance wave, or Goa/psy rise.
+4. Start an edit session from an existing performance or a new draft.
+5. Add instruments first, then sequencers/controllers/arpeggiators.
+6. Use explicit CLI flags for small edits.
+7. Use a YAML/JSON score spec for multitrack or harmonic generation.
+8. Run `edit validate`.
+9. Commit only after validation succeeds.
+10. For live testing, attach or pass a runtime session ID and run `edit push-runtime`.
 
 ## Core Commands
 
@@ -70,8 +71,17 @@ Pattern-pad and pad-loop CLI syntax:
 
 ## References
 
+CLI and data formats:
+
 - For melodic step/chord syntax, read `references/chord_syntax.md`.
 - For YAML/JSON score specs, read `references/score_spec.md`.
+
+Composition and genre guidance:
+
+- For the end-to-end pattern-based writing process, read `references/composition_workflow.md`.
+- For groove, syncopation, phrase lengths, pad-loop hierarchy, and layer roles, read `references/rhythm_layering.md`.
+- For chord color, voicing, bass relationships, and arpeggiator use, read `references/harmony_arpeggiation.md`.
+- For ambient, techno, trance, Goa trance, and psytrance blueprints, read `references/genre_blueprints.md`.
 
 ## Error Handling
 
