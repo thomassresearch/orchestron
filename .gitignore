@@ -20,3 +20,4 @@ coverage.xml
 
 tools/midi_pulse
 security_analysis/
+.orchestron/
