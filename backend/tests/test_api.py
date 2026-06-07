@@ -212,6 +212,20 @@ def _client(
     return TestClient(app)
 
 
+def _minimal_patch_payload(*, name: str = "Test Patch", description: str = ""):
+    return {
+        "name": name,
+        "description": description,
+        "schema_version": 1,
+        "graph": {
+            "nodes": [],
+            "connections": [],
+            "ui_layout": {},
+            "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+        },
+    }
+
+
 def _sequencer_timing(
     *,
     tempo_bpm: int = 120,
@@ -1383,6 +1397,35 @@ def test_patch_ui_layout_supports_nested_sequencer_payload(tmp_path: Path) -> No
         assert len(sequencer["steps"]) == 32
         assert sequencer["steps"][0] == 60
         assert sequencer["steps"][1] is None
+
+
+def test_patch_description_length_limit_is_2048_characters(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        allowed_description = "a" * 2048
+        created = client.post(
+            "/api/patches",
+            json=_minimal_patch_payload(name="Description Limit Patch", description=allowed_description),
+        )
+
+        assert created.status_code == 201
+        patch_id = created.json()["id"]
+        assert created.json()["description"] == allowed_description
+        assert client.get("/api/patches").json()[0]["description"] == allowed_description
+
+        rejected_create = client.post(
+            "/api/patches",
+            json=_minimal_patch_payload(name="Oversized Description Patch", description="b" * 2049),
+        )
+        assert rejected_create.status_code == 422
+        assert "2048" in rejected_create.text
+
+        rejected_update = client.put(f"/api/patches/{patch_id}", json={"description": "c" * 2049})
+        assert rejected_update.status_code == 422
+        assert "2048" in rejected_update.text
+
+        loaded = client.get(f"/api/patches/{patch_id}")
+        assert loaded.status_code == 200
+        assert loaded.json()["description"] == allowed_description
 
 
 def test_patch_create_rejects_oversized_graph_document(tmp_path: Path) -> None:

@@ -26,9 +26,9 @@ The application includes multilingual UI/help content and integrated help pages,
 
 ### Instrument Design
 
-The instrument design area combines an opcode catalog with a visual graph editor. You build an instrument by selecting Csound opcodes and connecting them into a signal/control graph.
+The instrument design area combines patch metadata, an opcode catalog, and a visual graph editor. You build an instrument by selecting Csound opcodes and connecting them into a signal/control graph.
 
-Designed instruments can be exported for reuse, including export to a `.csd` file.
+Designed instruments can be documented with patch descriptions up to 2048 characters and exported for reuse, including export to a `.csd` file.
 
 ![Instrument Design](screenshots/instrument_design.png)
 

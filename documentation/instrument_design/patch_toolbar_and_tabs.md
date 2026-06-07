@@ -24,7 +24,7 @@ The toolbar includes:
 ## Patch Metadata
 
 - `Patch Name` is the display name used in the patch library and performance rack dropdowns.
-- `Description` is a short user label for the patch.
+- `Description` is a three-line patch note field and accepts up to 2048 characters.
 - Metadata updates affect the current tab immediately, but they are not stored in the patch library until you save.
 
 ## Patch Library Loading

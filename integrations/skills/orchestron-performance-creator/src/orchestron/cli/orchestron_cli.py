@@ -9,7 +9,9 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import sys
+import textwrap
 from typing import Any
 from urllib import error, parse, request
 
@@ -290,7 +292,33 @@ def print_payload(payload: Any, ctx: CliContext) -> None:
     print(json.dumps(payload, ensure_ascii=True, indent=2))
 
 
-def print_table(rows: list[dict[str, Any]], columns: list[tuple[str, str]], ctx: CliContext) -> None:
+def detail_lines(value: Any, width: int) -> list[str]:
+    text = "" if value is None else str(value)
+    wrapped: list[str] = []
+    paragraphs = text.splitlines() or [""]
+    for paragraph in paragraphs:
+        paragraph = paragraph.strip()
+        if not paragraph:
+            wrapped.append("")
+            continue
+        wrapped.extend(
+            textwrap.wrap(
+                paragraph,
+                width=width,
+                break_long_words=True,
+                break_on_hyphens=False,
+            )
+        )
+    return wrapped or [""]
+
+
+def print_table(
+    rows: list[dict[str, Any]],
+    columns: list[tuple[str, str]],
+    ctx: CliContext,
+    *,
+    detail_columns: list[tuple[str, str]] | None = None,
+) -> None:
     if ctx.json_output:
         print_payload(rows, ctx)
         return
@@ -305,6 +333,16 @@ def print_table(rows: list[dict[str, Any]], columns: list[tuple[str, str]], ctx:
     print("  ".join("-" * width for width in widths))
     for row in rows:
         print("  ".join(str(row.get(key, "")).ljust(width) for (key, _), width in zip(columns, widths, strict=True)))
+        if detail_columns is None:
+            continue
+        for key, label in detail_columns:
+            prefix = f"  {label}: "
+            continuation = " " * len(prefix)
+            width = max(24, shutil.get_terminal_size((100, 24)).columns - len(prefix))
+            lines = detail_lines(row.get(key, ""), width)
+            print(prefix + lines[0])
+            for line in lines[1:]:
+                print(continuation + line)
 
 
 def load_edit_session(path: Path) -> dict[str, Any]:
@@ -2348,7 +2386,12 @@ def command_health(args: argparse.Namespace, ctx: CliContext) -> None:
 
 def command_patches_list(args: argparse.Namespace, ctx: CliContext) -> None:
     rows = ApiClient(ctx.api_url, timeout=ctx.timeout).get("/patches")
-    print_table(rows, [("id", "ID"), ("name", "Name"), ("schema_version", "Schema"), ("updated_at", "Updated")], ctx)
+    print_table(
+        rows,
+        [("id", "ID"), ("name", "Name"), ("schema_version", "Schema"), ("updated_at", "Updated")],
+        ctx,
+        detail_columns=[("description", "Description")],
+    )
 
 
 def command_patches_get(args: argparse.Namespace, ctx: CliContext) -> None:

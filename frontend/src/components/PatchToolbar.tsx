@@ -124,6 +124,8 @@ const PATCH_TOOLBAR_COPY: Record<GuiLanguage, PatchToolbarCopy> = {
   }
 };
 
+const PATCH_DESCRIPTION_MAX_LENGTH = 2048;
+
 export function PatchToolbar(props: PatchToolbarProps) {
   const copy = PATCH_TOOLBAR_COPY[props.guiLanguage];
   const loadPatchSelectValue =
@@ -182,11 +184,15 @@ export function PatchToolbar(props: PatchToolbarProps) {
 
         <label className="flex flex-col gap-1 lg:col-span-2">
           <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-slate-400">{copy.description}</span>
-          <input
-            className="rounded-lg border border-slate-600 bg-slate-950 px-3 py-1.5 font-body text-sm text-slate-100 outline-none ring-accent/40 transition focus:ring"
+          <textarea
+            className="h-[4.5rem] resize-none rounded-lg border border-slate-600 bg-slate-950 px-3 py-1.5 font-body text-sm leading-5 text-slate-100 outline-none ring-accent/40 transition focus:ring"
             value={props.patchDescription}
-            onChange={(event) => props.onPatchDescriptionChange(event.target.value)}
+            onChange={(event) =>
+              props.onPatchDescriptionChange(event.target.value.slice(0, PATCH_DESCRIPTION_MAX_LENGTH))
+            }
+            maxLength={PATCH_DESCRIPTION_MAX_LENGTH}
             placeholder={copy.descriptionPlaceholder}
+            rows={3}
           />
         </label>
 
