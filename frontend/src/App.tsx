@@ -350,6 +350,16 @@ function trackShouldRunContinuously(
   return track.enabled && (!track.padLoopEnabled || track.padLoopRepeat);
 }
 
+function enabledForSequencerConfigExport(
+  track: {
+    enabled: boolean;
+    padLoopEnabled: boolean;
+  },
+  exportMode: boolean
+): boolean {
+  return exportMode && track.padLoopEnabled ? true : track.enabled;
+}
+
 function hasEnabledPerformanceSequencer(state: SequencerState): boolean {
   return (
     state.tracks.some((track) => track.enabled || track.queuedEnabled === true) ||
@@ -361,10 +371,12 @@ function hasEnabledPerformanceSequencer(state: SequencerState): boolean {
 function buildDrummerRowTrackConfigs(
   drummerTrack: DrummerSequencerTrackState,
   levelMap: Map<number, number>,
-  queueRuntimeState = true
+  queueRuntimeState = true,
+  exportMode = false
 ): SessionSequencerConfigRequest["tracks"] {
   const scaledTrackVelocity = scaleVelocityForChannel(127, drummerTrack.midiChannel, levelMap);
   const transportSequence = compileArrangerTransportSequence(drummerTrack.padLoopPattern, drummerTrack.activePad);
+  const enabled = enabledForSequencerConfigExport(drummerTrack, exportMode);
   return drummerTrack.rows.map((row) => ({
     track_id: drummerRowRuntimeTrackId(drummerTrack.id, row.id),
     midi_channel: drummerTrack.midiChannel,
@@ -385,7 +397,7 @@ function buildDrummerRowTrackConfigs(
     pad_loop_enabled: drummerTrack.padLoopEnabled,
     pad_loop_repeat: drummerTrack.padLoopRepeat,
     pad_loop_sequence: transportSequence,
-    enabled: drummerTrack.enabled,
+    enabled,
     queued_enabled: queueRuntimeState ? drummerTrack.queuedEnabled : null,
     pads: drummerTrack.pads.map((pad, padIndex) => {
       const padRow = pad.rows.find((candidate) => candidate.rowId === row.id);
@@ -1120,6 +1132,7 @@ export default function App() {
       const melodicTracks = resolvedState.tracks.map((track) => {
         const scaledTrackVelocity = scaleVelocityForChannel(127, track.midiChannel, instrumentLevelsByChannel);
         const transportSequence = compileArrangerTransportSequence(track.padLoopPattern, track.activePad);
+        const enabled = enabledForSequencerConfigExport(track, exportMode);
         return {
           track_id: track.id,
           midi_channel: track.midiChannel,
@@ -1143,7 +1156,7 @@ export default function App() {
           pad_loop_enabled: track.padLoopEnabled,
           pad_loop_repeat: track.padLoopRepeat,
           pad_loop_sequence: transportSequence,
-          enabled: track.enabled,
+          enabled,
           queued_enabled: useRuntimeQueues ? track.queuedEnabled : null,
           pads: track.pads.map((pad, padIndex) => ({
             pad_index: padIndex,
@@ -1163,13 +1176,14 @@ export default function App() {
         };
       });
       const drummerRowTracks = resolvedState.drummerTracks.flatMap((drummerTrack) =>
-        buildDrummerRowTrackConfigs(drummerTrack, instrumentLevelsByChannel, useRuntimeQueues)
+        buildDrummerRowTrackConfigs(drummerTrack, instrumentLevelsByChannel, useRuntimeQueues, exportMode)
       );
       const controllerTracks = resolvedState.controllerSequencers.map((controllerSequencer) => {
         const transportSequence = compileArrangerTransportSequence(
           controllerSequencer.padLoopPattern,
           controllerSequencer.activePad
         );
+        const enabled = enabledForSequencerConfigExport(controllerSequencer, exportMode);
         return {
           track_id: controllerSequencer.id,
           controller_number: controllerSequencer.controllerNumber,
@@ -1187,7 +1201,7 @@ export default function App() {
           pad_loop_enabled: controllerSequencer.padLoopEnabled,
           pad_loop_repeat: controllerSequencer.padLoopRepeat,
           pad_loop_sequence: transportSequence,
-          enabled: controllerSequencer.enabled,
+          enabled,
           pads: controllerSequencer.pads.map((pad, padIndex) => ({
             pad_index: padIndex,
             length_beats: pad.lengthBeats,
