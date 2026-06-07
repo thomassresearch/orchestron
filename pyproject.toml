@@ -17,6 +17,7 @@ dependencies = [
   "urllib3>=2.7.0",
   "pytest>=9.0.3",
   "idna>=3.18",
+  "ruff>=0.15.16",
 ]
 
 [project.optional-dependencies]

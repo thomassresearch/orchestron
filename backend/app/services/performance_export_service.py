@@ -48,6 +48,10 @@ class OfflineMidiExportTimeoutError(ValueError):
     pass
 
 
+class OfflineMidiExportNoNoteEventsError(ValueError):
+    pass
+
+
 class _MidiCaptureService:
     def __init__(self, *, max_events: int) -> None:
         self._max_events = max(1, int(max_events))
@@ -475,10 +479,25 @@ class PerformanceExportService:
                         )
                         capture.raise_if_event_budget_exceeded()
 
+        if not self._has_note_on_events(capture.events):
+            raise OfflineMidiExportNoNoteEventsError(
+                "Offline performance CSD export generated no MIDI note-on events. "
+                "Enable at least one sequencer or arranger track before exporting."
+            )
+
         return self._encode_midi_file(
             tempo_bpm=request.sequencer_config.timing.tempo_bpm,
             track_name=track_name,
             events=capture.events,
+        )
+
+    @staticmethod
+    def _has_note_on_events(events: list[CapturedMidiEvent]) -> bool:
+        return any(
+            len(event.message) >= 3
+            and (event.message[0] & 0xF0) == 0x90
+            and event.message[2] > 0
+            for event in events
         )
 
     @staticmethod

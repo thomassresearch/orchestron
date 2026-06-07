@@ -5086,6 +5086,18 @@ def test_performance_csd_export_bundle_includes_csd_midi_readme_and_assets(tmp_p
             assert b"\xB0\x01" in midi_bytes
 
 
+def test_performance_csd_export_rejects_empty_midi_performance(tmp_path: Path) -> None:
+    payload = _performance_csd_export_payload()
+    payload["sequencerConfig"]["tracks"][0]["enabled"] = False
+    payload["sequencerConfig"]["controller_tracks"][0]["enabled"] = False
+
+    with _client(tmp_path) as client:
+        response = client.post("/api/bundles/export/performance-csd", json=payload)
+
+    assert response.status_code == 400
+    assert "generated no MIDI note-on events" in response.text
+
+
 @pytest.mark.parametrize(
     ("field_name", "malicious_value"),
     [
@@ -5164,6 +5176,107 @@ def test_performance_csd_export_rejects_event_count_before_export_work(
 
     assert response.status_code == 422
     assert "too many MIDI events" in response.text
+
+
+def test_performance_csd_export_event_budget_is_arrangement_aware_for_finite_pad_loops() -> None:
+    payload = _performance_csd_export_payload()
+    payload["performanceExport"]["performance"]["config"]["instruments"] = [  # type: ignore[index]
+        {"patchId": "patch-1", "midiChannel": channel}
+        for channel in range(1, 8)
+    ]
+    sequencer_config = payload["sequencerConfig"]  # type: ignore[index]
+    sequencer_config["timing"] = _sequencer_timing(tempo_bpm=147, steps_per_beat=8)  # type: ignore[index]
+    sequencer_config["step_count"] = 8  # type: ignore[index]
+    sequencer_config["playback_start_step"] = 0  # type: ignore[index]
+    sequencer_config["playback_end_step"] = 4096  # type: ignore[index]
+    finite_pad_loop = [0] * 64
+    track_timing = _sequencer_timing(tempo_bpm=147, steps_per_beat=4)
+
+    sequencer_config["tracks"] = [  # type: ignore[index]
+        {
+            "track_id": "voice-1",
+            "midi_channel": 6,
+            "timing": track_timing,
+            "length_beats": 8,
+            "velocity": 100,
+            "gate_ratio": 0.8,
+            "sync_to_track_id": None,
+            "active_pad": 0,
+            "queued_pad": None,
+            "pad_loop_enabled": True,
+            "pad_loop_repeat": False,
+            "pad_loop_sequence": finite_pad_loop,
+            "enabled": True,
+            "queued_enabled": None,
+            "pads": [
+                {
+                    "pad_index": 0,
+                    "length_beats": 8,
+                    "steps": [{"note": 60, "hold": False, "velocity": 100}],
+                }
+            ],
+        }
+    ]
+    sequencer_config["controller_tracks"] = [  # type: ignore[index]
+        {
+            "track_id": f"cc-{index}",
+            "controller_number": controller_number,
+            "timing": track_timing,
+            "length_beats": 8,
+            "active_pad": 0,
+            "queued_pad": None,
+            "pad_loop_enabled": True,
+            "pad_loop_repeat": False,
+            "pad_loop_sequence": finite_pad_loop,
+            "enabled": True,
+            "pads": [
+                {
+                    "pad_index": 0,
+                    "length_beats": 8,
+                    "keypoints": [{"position": 0.0, "value": 64}, {"position": 1.0, "value": 64}],
+                }
+            ],
+        }
+        for index, controller_number in enumerate((10, 11, 74), start=1)
+    ]
+    sequencer_config["arpeggiators"] = [  # type: ignore[index]
+        {
+            "arpeggiator_id": "arp-1",
+            "enabled": True,
+            "input_channel": 6,
+            "target_channel": 4,
+            "rate": "1/16",
+            "gate_ratio": 0.72,
+            "swing": 0.0,
+            "octaves": 2,
+            "pattern": "up_down",
+            "latch": False,
+            "velocity_mode": "input",
+            "fixed_velocity": 100,
+            "accent_cycle": [],
+            "probability": 1.0,
+            "repeats": 1,
+            "humanize_ms": 0.0,
+            "humanize_velocity": 0,
+            "transpose": 0,
+            "scale_quantize": False,
+            "scale_root": "C",
+            "scale_type": "minor",
+            "mode": "aeolian",
+            "restart_mode": "first_note",
+        }
+    ]
+
+    old_worst_case_estimate = (
+        4096 * 1 * 2
+        + 4096 * 3 * 15 * 7
+        + 4096 * 16 * 4 * 2
+    )
+    assert old_worst_case_estimate > OFFLINE_CSD_EXPORT_MAX_MIDI_EVENTS
+
+    request = PerformanceCsdExportRequest.model_validate(payload)
+
+    assert request.sequencer_config.playback_end_step == 4096
 
 
 def test_performance_csd_export_rejects_oversized_step_note_list_before_export_work(
