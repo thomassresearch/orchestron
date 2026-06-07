@@ -45,4 +45,16 @@ uv run orchestron_cli edit add-melodic \
   --grid-pattern "C3:min7 _ _ _ F3:dom7 _ _ _ Bb2:maj7 _ _ _ G2:dom7 _ _ _"
 ```
 
+Pattern-pad example:
+
+```bash
+uv run orchestron_cli edit add-melodic \
+  --channel 2 \
+  --pad 1 \
+  --grid-pattern "C3 . . ." \
+  --pad-grid-pattern "2=F3 . . ." \
+  --pad-loop "A P4 A" \
+  --pad-loop-group "A=1 2"
+```
+
 Avoid arbitrary MIDI note arrays unless the implementation later extends the persisted model. Raw voicings do not round-trip cleanly through the current GUI chord selector.

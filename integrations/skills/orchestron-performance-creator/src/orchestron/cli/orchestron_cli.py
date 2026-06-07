@@ -20,6 +20,8 @@ SESSION_FILE = SESSION_DIR / "edit-session.json"
 CURRENT_CONFIG_VERSION = 8
 DEFAULT_PAD_COUNT = 8
 MAX_STEPS_PER_PAD = 128
+PAD_LOOP_PAUSE_BEATS = {1, 2, 4, 8, 16}
+MAX_PAD_LOOP_DEFINITIONS = 256
 
 SCALE_ROOTS = {
     "C": (0, False),
@@ -120,6 +122,10 @@ GM_DRUMS = {
     "ride": 51,
     "crash": 49,
 }
+PAD_REF_RE = re.compile(r"^(?:p|pad)?([1-8])$", re.IGNORECASE)
+PAD_LOOP_PAUSE_RE = re.compile(r"^P(1|2|4|8|16)$", re.IGNORECASE)
+PAD_LOOP_GROUP_ID_RE = re.compile(r"^[A-Z]+$")
+PAD_LOOP_SUPER_GROUP_ID_RE = re.compile(r"^[IVXLCDM]+$")
 
 
 class OrchestronCliError(Exception):
@@ -344,6 +350,483 @@ def default_step() -> dict[str, Any]:
 
 def empty_pad_loop_pattern() -> dict[str, Any]:
     return {"rootSequence": [], "groups": [], "superGroups": []}
+
+
+def parse_int_range(value: Any, low: int, high: int, *, field: str) -> int:
+    if isinstance(value, bool):
+        raise OrchestronCliError("invalid_number", f"{field} must be an integer.", path=field)
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError) as exc:
+        raise OrchestronCliError("invalid_number", f"{field} must be an integer.", path=field) from exc
+    if parsed < low or parsed > high:
+        raise OrchestronCliError("number_out_of_range", f"{field} must be in {low}..{high}.", path=field)
+    return parsed
+
+
+def parse_user_pad_index(value: Any, *, field: str) -> int:
+    if isinstance(value, str):
+        match = PAD_REF_RE.match(value.strip())
+        if not match:
+            raise OrchestronCliError(
+                "invalid_pad",
+                f"{field} must be a pad 1..8 or P1..P8.",
+                path=field,
+                retry=["Use pad numbers as displayed in the performance UI, for example 1, 2, or P4."],
+            )
+        return int(match.group(1)) - 1
+    return parse_int_range(value, 1, DEFAULT_PAD_COUNT, field=field) - 1
+
+
+def parse_internal_pad_index(value: Any, *, field: str) -> int:
+    return parse_int_range(value, 0, DEFAULT_PAD_COUNT - 1, field=field)
+
+
+def parse_score_pad_index(spec: dict[str, Any], *, fallback: int, field: str) -> int:
+    if "pad" in spec:
+        return parse_user_pad_index(spec["pad"], field=f"{field}.pad")
+    if "padLabel" in spec:
+        return parse_user_pad_index(spec["padLabel"], field=f"{field}.padLabel")
+    if "pad_label" in spec:
+        return parse_user_pad_index(spec["pad_label"], field=f"{field}.pad_label")
+    if "padIndex" in spec:
+        return parse_internal_pad_index(spec["padIndex"], field=f"{field}.padIndex")
+    if "pad_index" in spec:
+        return parse_internal_pad_index(spec["pad_index"], field=f"{field}.pad_index")
+    return fallback
+
+
+def split_assignment(value: str, *, field: str, left_label: str) -> tuple[str, str]:
+    if "=" not in value:
+        raise OrchestronCliError(
+            "invalid_assignment",
+            f"{field} must use {left_label}=VALUE syntax.",
+            path=field,
+            retry=[f"Example: {left_label}=1 2 P4 3."],
+        )
+    left, right = value.split("=", 1)
+    left = left.strip()
+    right = right.strip()
+    if not left or not right:
+        raise OrchestronCliError("invalid_assignment", f"{field} must include both sides of {left_label}=VALUE.", path=field)
+    return left, right
+
+
+def parse_pad_assignment(value: str, *, field: str) -> tuple[int, str]:
+    pad_text, payload = split_assignment(value, field=field, left_label="PAD")
+    return parse_user_pad_index(pad_text, field=f"{field}.pad"), payload
+
+
+def normalize_pad_loop_group_id(value: Any, *, field: str) -> str:
+    if not isinstance(value, str):
+        raise OrchestronCliError("invalid_pad_loop_group", f"{field} must be a group label.", path=field)
+    group_id = value.strip().upper()
+    if not PAD_LOOP_GROUP_ID_RE.match(group_id):
+        raise OrchestronCliError(
+            "invalid_pad_loop_group",
+            f"{field} must be a capital-letter group label such as A or B.",
+            path=field,
+        )
+    return group_id
+
+
+def normalize_pad_loop_super_group_id(value: Any, *, field: str) -> str:
+    if not isinstance(value, str):
+        raise OrchestronCliError("invalid_pad_loop_super_group", f"{field} must be a super-group label.", path=field)
+    super_group_id = value.strip().upper()
+    if not PAD_LOOP_SUPER_GROUP_ID_RE.match(super_group_id):
+        raise OrchestronCliError(
+            "invalid_pad_loop_super_group",
+            f"{field} must be a roman-numeral super-group label such as I or II.",
+            path=field,
+        )
+    return super_group_id
+
+
+def parse_optional_bool(value: Any, *, field: str) -> bool | None:
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        lowered = value.strip().lower()
+        if lowered in {"1", "true", "yes", "on"}:
+            return True
+        if lowered in {"0", "false", "no", "off"}:
+            return False
+    raise OrchestronCliError("invalid_boolean", f"{field} must be true or false.", path=field)
+
+
+def sequence_entries(raw: Any, *, field: str) -> list[Any]:
+    if raw is None:
+        return []
+    if isinstance(raw, str):
+        text = raw.strip()
+        return [token for token in re.split(r"[\s,]+", text) if token] if text else []
+    if isinstance(raw, list):
+        return raw
+    raise OrchestronCliError(
+        "invalid_pad_loop_sequence",
+        f"{field} must be a sequence string or a list.",
+        path=field,
+        retry=["Use tokens like `1 2 P4 3`, or a YAML list such as `[1, 2, P4, 3]`."],
+    )
+
+
+def pad_loop_item_level(item: dict[str, Any]) -> int:
+    if item["type"] in {"pad", "pause"}:
+        return 0
+    if item["type"] == "group":
+        return 1
+    return 2
+
+
+def pad_loop_container_level(context: str) -> int:
+    return {"group": 1, "super": 2, "root": 3}[context]
+
+
+def assert_pad_loop_item_allowed(item: dict[str, Any], *, context: str, field: str) -> None:
+    if pad_loop_item_level(item) < pad_loop_container_level(context):
+        return
+    raise OrchestronCliError(
+        "invalid_pad_loop_hierarchy",
+        f"{field} cannot contain {item['type']} references in a {context} sequence.",
+        path=field,
+        retry=[
+            "Groups may contain only pads and pauses.",
+            "Super-groups may contain pads, pauses, and groups.",
+            "Root sequences may contain pads, pauses, groups, and super-groups.",
+        ],
+    )
+
+
+def pad_loop_pause_item(length_beats: Any, *, field: str) -> dict[str, Any]:
+    length = parse_int_range(length_beats, 1, 16, field=field)
+    if length not in PAD_LOOP_PAUSE_BEATS:
+        raise OrchestronCliError(
+            "invalid_pad_loop_pause",
+            f"{field} must be one of P1, P2, P4, P8, or P16.",
+            path=field,
+        )
+    return {"type": "pause", "lengthBeats": length}
+
+
+def parse_structured_pad_loop_item(
+    raw: dict[str, Any],
+    *,
+    context: str,
+    group_ids: set[str],
+    super_group_ids: set[str],
+    field: str,
+) -> dict[str, Any]:
+    item_type = str(raw.get("type", "")).strip().lower()
+    if item_type == "pad":
+        if "pad" in raw:
+            return {"type": "pad", "padIndex": parse_user_pad_index(raw["pad"], field=f"{field}.pad")}
+        if "padIndex" in raw:
+            return {"type": "pad", "padIndex": parse_internal_pad_index(raw["padIndex"], field=f"{field}.padIndex")}
+        if "pad_index" in raw:
+            return {"type": "pad", "padIndex": parse_internal_pad_index(raw["pad_index"], field=f"{field}.pad_index")}
+        raise OrchestronCliError("invalid_pad_loop_item", f"{field} pad item needs pad or padIndex.", path=field)
+    if item_type == "pause":
+        length = raw.get("lengthBeats", raw.get("length_beats", raw.get("beats", raw.get("length"))))
+        return pad_loop_pause_item(length, field=f"{field}.lengthBeats")
+    if item_type == "group":
+        group_id = normalize_pad_loop_group_id(raw.get("groupId", raw.get("group_id", raw.get("id"))), field=f"{field}.groupId")
+        if group_id not in group_ids:
+            raise OrchestronCliError("unknown_pad_loop_group", f"{field} references unknown group '{group_id}'.", path=field)
+        return {"type": "group", "groupId": group_id}
+    if item_type in {"super", "super_group", "supergroup"}:
+        super_group_id = normalize_pad_loop_super_group_id(
+            raw.get("superGroupId", raw.get("super_group_id", raw.get("id"))),
+            field=f"{field}.superGroupId",
+        )
+        if super_group_id not in super_group_ids:
+            raise OrchestronCliError("unknown_pad_loop_super_group", f"{field} references unknown super-group '{super_group_id}'.", path=field)
+        return {"type": "super", "superGroupId": super_group_id}
+    raise OrchestronCliError(
+        "invalid_pad_loop_item",
+        f"{field} must be a pad, pause, group, or super item.",
+        path=field,
+    )
+
+
+def prefixed_pad_loop_item(
+    prefix: str,
+    value: str,
+    *,
+    group_ids: set[str],
+    super_group_ids: set[str],
+    field: str,
+) -> dict[str, Any] | None:
+    normalized_prefix = prefix.strip().lower().replace("-", "_")
+    if normalized_prefix in {"pad", "p"}:
+        return {"type": "pad", "padIndex": parse_user_pad_index(value, field=field)}
+    if normalized_prefix in {"pause", "rest"}:
+        return pad_loop_pause_item(value, field=field)
+    if normalized_prefix in {"group", "g"}:
+        group_id = normalize_pad_loop_group_id(value, field=field)
+        if group_id not in group_ids:
+            raise OrchestronCliError("unknown_pad_loop_group", f"{field} references unknown group '{group_id}'.", path=field)
+        return {"type": "group", "groupId": group_id}
+    if normalized_prefix in {"super", "super_group", "supergroup", "sg", "s"}:
+        super_group_id = normalize_pad_loop_super_group_id(value, field=field)
+        if super_group_id not in super_group_ids:
+            raise OrchestronCliError("unknown_pad_loop_super_group", f"{field} references unknown super-group '{super_group_id}'.", path=field)
+        return {"type": "super", "superGroupId": super_group_id}
+    return None
+
+
+def parse_string_pad_loop_item(
+    token: str,
+    *,
+    context: str,
+    group_ids: set[str],
+    super_group_ids: set[str],
+    field: str,
+) -> dict[str, Any]:
+    token = token.strip()
+    if not token:
+        raise OrchestronCliError("invalid_pad_loop_item", f"{field} contains an empty token.", path=field)
+    if ":" in token:
+        prefix, value = token.split(":", 1)
+        item = prefixed_pad_loop_item(prefix, value, group_ids=group_ids, super_group_ids=super_group_ids, field=field)
+        if item is not None:
+            return item
+    pause_match = PAD_LOOP_PAUSE_RE.match(token)
+    if pause_match:
+        return {"type": "pause", "lengthBeats": int(pause_match.group(1))}
+    pad_match = PAD_REF_RE.match(token)
+    if pad_match:
+        return {"type": "pad", "padIndex": int(pad_match.group(1)) - 1}
+    label = token.upper()
+    if context == "super" and PAD_LOOP_GROUP_ID_RE.match(label):
+        if label not in group_ids:
+            raise OrchestronCliError("unknown_pad_loop_group", f"{field} references unknown group '{label}'.", path=field)
+        return {"type": "group", "groupId": label}
+    if context == "root" and PAD_LOOP_GROUP_ID_RE.match(label):
+        is_group = label in group_ids
+        is_super = label in super_group_ids
+        if is_group and is_super:
+            raise OrchestronCliError(
+                "ambiguous_pad_loop_reference",
+                f"{field} token '{label}' matches both a group and a super-group.",
+                path=field,
+                retry=[f"Use group:{label} or super:{label} to disambiguate."],
+            )
+        if is_group:
+            return {"type": "group", "groupId": label}
+        if is_super:
+            return {"type": "super", "superGroupId": label}
+    raise OrchestronCliError(
+        "invalid_pad_loop_item",
+        f"Unsupported pad-loop token '{token}' in {field}.",
+        path=field,
+        retry=[
+            "Use pads 1..8, pauses P1/P2/P4/P8/P16, group labels like A, or super-group labels like I.",
+            "Use prefixes such as group:A or super:I when a token is ambiguous.",
+        ],
+    )
+
+
+def parse_pad_loop_sequence(
+    raw: Any,
+    *,
+    context: str,
+    group_ids: set[str],
+    super_group_ids: set[str],
+    field: str,
+) -> list[dict[str, Any]]:
+    items: list[dict[str, Any]] = []
+    for index, entry in enumerate(sequence_entries(raw, field=field)):
+        item_field = f"{field}[{index}]"
+        if isinstance(entry, int) and not isinstance(entry, bool):
+            item = {"type": "pad", "padIndex": parse_user_pad_index(entry, field=item_field)}
+        elif isinstance(entry, str):
+            item = parse_string_pad_loop_item(
+                entry,
+                context=context,
+                group_ids=group_ids,
+                super_group_ids=super_group_ids,
+                field=item_field,
+            )
+        elif isinstance(entry, dict):
+            item = parse_structured_pad_loop_item(
+                entry,
+                context=context,
+                group_ids=group_ids,
+                super_group_ids=super_group_ids,
+                field=item_field,
+            )
+        else:
+            raise OrchestronCliError("invalid_pad_loop_item", f"{item_field} is not a valid pad-loop item.", path=item_field)
+        assert_pad_loop_item_allowed(item, context=context, field=item_field)
+        items.append(item)
+        if len(items) > 256:
+            raise OrchestronCliError("pad_loop_sequence_too_long", f"{field} may contain at most 256 items.", path=field)
+    return items
+
+
+def definition_records_from_assignments(assignments: list[str] | None, *, field: str) -> list[dict[str, Any]]:
+    records = []
+    for index, assignment in enumerate(assignments or []):
+        item_field = f"{field}[{index}]"
+        definition_id, sequence = split_assignment(assignment, field=item_field, left_label="ID")
+        records.append({"id": definition_id, "sequence": sequence})
+    return records
+
+
+def definition_records_from_raw(raw: Any, *, field: str) -> list[dict[str, Any]]:
+    if raw is None:
+        return []
+    if isinstance(raw, dict):
+        return [{"id": key, "sequence": value} for key, value in raw.items()]
+    if isinstance(raw, list):
+        records = []
+        for index, entry in enumerate(raw):
+            item_field = f"{field}[{index}]"
+            if isinstance(entry, str):
+                definition_id, sequence = split_assignment(entry, field=item_field, left_label="ID")
+                records.append({"id": definition_id, "sequence": sequence})
+                continue
+            if isinstance(entry, dict):
+                records.append(dict(entry))
+                continue
+            raise OrchestronCliError("invalid_pad_loop_definition", f"{item_field} must be an object or ID=SEQUENCE string.", path=item_field)
+        return records
+    raise OrchestronCliError("invalid_pad_loop_definition", f"{field} must be a mapping or list.", path=field)
+
+
+def parse_pad_loop_group_definitions(
+    raw: Any,
+    *,
+    kind: str,
+    field: str,
+    group_ids: set[str] | None = None,
+) -> list[dict[str, Any]]:
+    definitions = []
+    seen: set[str] = set()
+    for index, record in enumerate(definition_records_from_raw(raw, field=field)):
+        item_field = f"{field}[{index}]"
+        raw_id = record.get("id", record.get("label", record.get("name")))
+        if kind == "group":
+            definition_id = normalize_pad_loop_group_id(raw_id, field=f"{item_field}.id")
+            context = "group"
+            known_group_ids: set[str] = set()
+        else:
+            definition_id = normalize_pad_loop_super_group_id(raw_id, field=f"{item_field}.id")
+            context = "super"
+            known_group_ids = group_ids or set()
+        if definition_id in seen:
+            raise OrchestronCliError("duplicate_pad_loop_definition", f"Duplicate pad-loop {kind} '{definition_id}'.", path=item_field)
+        seen.add(definition_id)
+        sequence = record.get("sequence", record.get("items", record.get("rootSequence", record.get("root_sequence"))))
+        definitions.append(
+            {
+                "id": definition_id,
+                "sequence": parse_pad_loop_sequence(
+                    sequence,
+                    context=context,
+                    group_ids=known_group_ids,
+                    super_group_ids=set(),
+                    field=f"{item_field}.sequence",
+                ),
+            }
+        )
+        if len(definitions) > MAX_PAD_LOOP_DEFINITIONS:
+            raise OrchestronCliError("too_many_pad_loop_definitions", f"{field} may contain at most {MAX_PAD_LOOP_DEFINITIONS} definitions.", path=field)
+    return definitions
+
+
+def parse_pad_loop_pattern(raw: Any, *, field: str = "pad_loop") -> dict[str, Any]:
+    if raw is None:
+        return empty_pad_loop_pattern()
+    if isinstance(raw, dict):
+        groups_raw = raw.get("groups")
+        groups = parse_pad_loop_group_definitions(groups_raw, kind="group", field=f"{field}.groups")
+        group_ids = {group["id"] for group in groups}
+        super_raw = raw.get("superGroups", raw.get("super_groups", raw.get("supers")))
+        super_groups = parse_pad_loop_group_definitions(
+            super_raw,
+            kind="super",
+            field=f"{field}.super_groups",
+            group_ids=group_ids,
+        )
+        super_group_ids = {group["id"] for group in super_groups}
+        root_raw = raw.get("rootSequence", raw.get("root_sequence", raw.get("root", raw.get("sequence", raw.get("items")))))
+        root_sequence = parse_pad_loop_sequence(
+            root_raw,
+            context="root",
+            group_ids=group_ids,
+            super_group_ids=super_group_ids,
+            field=f"{field}.root",
+        )
+    else:
+        groups = []
+        super_groups = []
+        root_sequence = parse_pad_loop_sequence(raw, context="root", group_ids=set(), super_group_ids=set(), field=field)
+    if (groups or super_groups) and not root_sequence:
+        raise OrchestronCliError(
+            "pad_loop_root_missing",
+            f"{field} defines groups but no root sequence references them.",
+            path=field,
+            retry=["Add a root sequence such as `A B` or `I P4 I`."],
+        )
+    return {"rootSequence": root_sequence, "groups": groups, "superGroups": super_groups}
+
+
+def parse_pad_loop_pattern_from_cli(
+    *,
+    root_sequence: str | None,
+    group_assignments: list[str] | None,
+    super_group_assignments: list[str] | None,
+) -> dict[str, Any] | None:
+    if root_sequence is None and not group_assignments and not super_group_assignments:
+        return None
+    groups = parse_pad_loop_group_definitions(
+        definition_records_from_assignments(group_assignments, field="pad_loop_group"),
+        kind="group",
+        field="pad_loop_group",
+    )
+    group_ids = {group["id"] for group in groups}
+    super_groups = parse_pad_loop_group_definitions(
+        definition_records_from_assignments(super_group_assignments, field="pad_loop_super_group"),
+        kind="super",
+        field="pad_loop_super_group",
+        group_ids=group_ids,
+    )
+    super_group_ids = {group["id"] for group in super_groups}
+    root = parse_pad_loop_sequence(
+        root_sequence,
+        context="root",
+        group_ids=group_ids,
+        super_group_ids=super_group_ids,
+        field="pad_loop",
+    )
+    if (groups or super_groups) and not root:
+        raise OrchestronCliError(
+            "pad_loop_root_missing",
+            "Pad-loop groups require --pad-loop to reference them.",
+            retry=["Add --pad-loop \"A B\" or --pad-loop \"I I\"."],
+        )
+    return {"rootSequence": root, "groups": groups, "superGroups": super_groups}
+
+
+def apply_pad_loop_settings(
+    track: dict[str, Any],
+    *,
+    pattern: dict[str, Any] | None,
+    enabled: bool | None,
+    repeat: bool,
+) -> None:
+    if pattern is not None:
+        track["padLoopPattern"] = pattern
+        track["padLoopSequence"] = compile_pad_loop_items(pattern, pattern.get("rootSequence", []), depth=0)[:256]
+    if enabled is not None:
+        track["padLoopEnabled"] = enabled
+    elif pattern is not None and track.get("padLoopSequence"):
+        track["padLoopEnabled"] = True
+    track["padLoopRepeat"] = repeat
 
 
 def resolved_pad_steps(length_beats: int, timing: dict[str, Any]) -> int:
@@ -703,6 +1186,63 @@ def next_track_id(existing: list[dict[str, Any]], prefix: str) -> str:
     return candidate
 
 
+def validate_melodic_theory(*, scale_root: str, scale_type: str, mode: str) -> None:
+    if scale_root not in SCALE_ROOTS:
+        raise OrchestronCliError("invalid_scale_root", f"Unsupported scale root '{scale_root}'.")
+    if scale_type not in SCALE_TYPES:
+        raise OrchestronCliError("invalid_scale_type", f"Unsupported scale type '{scale_type}'.")
+    if mode not in MODE_INTERVALS:
+        raise OrchestronCliError("invalid_mode", f"Unsupported mode '{mode}'.")
+
+
+def merge_pad_definitions(
+    definitions: list[dict[str, Any]],
+    *,
+    base: dict[str, Any],
+    pattern_fields: tuple[str, ...],
+) -> dict[int, dict[str, Any]]:
+    merged: dict[int, dict[str, Any]] = {}
+    defined_pattern_fields: dict[int, set[str]] = {}
+    for definition_index, definition in enumerate(definitions):
+        pad_index = parse_internal_pad_index(definition.get("pad_index", base.get("pad_index", 0)), field=f"pad_definitions[{definition_index}].pad_index")
+        current = merged.setdefault(pad_index, {**base, "pad_index": pad_index})
+        provided = defined_pattern_fields.setdefault(pad_index, set())
+        for key, value in definition.items():
+            if key == "pad_index" or value is None:
+                continue
+            if key in pattern_fields and key in provided:
+                raise OrchestronCliError(
+                    "duplicate_pad_pattern",
+                    f"Pad {pad_index + 1} defines {key} more than once.",
+                    path=f"pad_definitions[{definition_index}].{key}",
+                )
+            if key in pattern_fields:
+                provided.add(key)
+            current[key] = value
+    return merged
+
+
+def configured_melodic_pad(definition: dict[str, Any], *, timing: dict[str, Any]) -> dict[str, Any]:
+    length_beats = parse_int_range(definition.get("length_beats", 4), 1, 8, field="length_beats")
+    scale_root = str(definition.get("scale_root", "C"))
+    scale_type = str(definition.get("scale_type", "minor"))
+    mode = str(definition.get("mode", "aeolian"))
+    validate_melodic_theory(scale_root=scale_root, scale_type=scale_type, mode=mode)
+    pad = default_melodic_pad(
+        length_beats=length_beats,
+        timing=timing,
+        scale_root=scale_root,
+        scale_type=scale_type,
+        mode=mode,
+    )
+    velocity = parse_int_range(definition.get("velocity", 100), 1, 127, field="velocity")
+    if definition.get("steps_pattern"):
+        apply_explicit_steps(pad["steps"], str(definition["steps_pattern"]), velocity=velocity)
+    if definition.get("grid_pattern"):
+        apply_grid_pattern(pad["steps"], str(definition["grid_pattern"]), velocity=velocity)
+    return pad
+
+
 def add_melodic_track_to_config(
     config: dict[str, Any],
     *,
@@ -716,28 +1256,18 @@ def add_melodic_track_to_config(
     steps_pattern: str | None,
     grid_pattern: str | None,
     velocity: int,
+    active_pad: int = 0,
+    pad_definitions: list[dict[str, Any]] | None = None,
+    pad_loop_pattern: dict[str, Any] | None = None,
+    pad_loop_enabled: bool | None = None,
+    pad_loop_repeat: bool = True,
 ) -> dict[str, Any]:
-    if scale_root not in SCALE_ROOTS:
-        raise OrchestronCliError("invalid_scale_root", f"Unsupported scale root '{scale_root}'.")
-    if scale_type not in SCALE_TYPES:
-        raise OrchestronCliError("invalid_scale_type", f"Unsupported scale type '{scale_type}'.")
-    if mode not in MODE_INTERVALS:
-        raise OrchestronCliError("invalid_mode", f"Unsupported mode '{mode}'.")
+    validate_melodic_theory(scale_root=scale_root, scale_type=scale_type, mode=mode)
+    active_pad = parse_internal_pad_index(active_pad, field="active_pad")
     sequencer = ensure_sequencer(config)
     timing = sequencer.get("timing") or default_timing()
     tracks = sequencer.setdefault("tracks", [])
     track_id = next_track_id(tracks, "voice")
-    pad = default_melodic_pad(
-        length_beats=length_beats,
-        timing=timing,
-        scale_root=scale_root,
-        scale_type=scale_type,
-        mode=mode,
-    )
-    if steps_pattern:
-        apply_explicit_steps(pad["steps"], steps_pattern, velocity=velocity)
-    if grid_pattern:
-        apply_grid_pattern(pad["steps"], grid_pattern, velocity=velocity)
     pads = [
         default_melodic_pad(
             length_beats=length_beats,
@@ -748,19 +1278,50 @@ def add_melodic_track_to_config(
         )
         for _ in range(DEFAULT_PAD_COUNT)
     ]
-    pads[0] = pad
+    definitions = []
+    if steps_pattern or grid_pattern:
+        definitions.append(
+            {
+                "pad_index": active_pad,
+                "length_beats": length_beats,
+                "scale_root": scale_root,
+                "scale_type": scale_type,
+                "mode": mode,
+                "steps_pattern": steps_pattern,
+                "grid_pattern": grid_pattern,
+                "velocity": velocity,
+            }
+        )
+    definitions.extend(pad_definitions or [])
+    merged = merge_pad_definitions(
+        definitions,
+        base={
+            "pad_index": active_pad,
+            "length_beats": length_beats,
+            "scale_root": scale_root,
+            "scale_type": scale_type,
+            "mode": mode,
+            "velocity": velocity,
+            "steps_pattern": None,
+            "grid_pattern": None,
+        },
+        pattern_fields=("steps_pattern", "grid_pattern"),
+    )
+    for pad_index, definition in merged.items():
+        pads[pad_index] = configured_melodic_pad(definition, timing=timing)
+    active_pad_state = pads[active_pad]
     track = {
         "id": track_id,
         "name": name or f"Melodic Sequencer {len(tracks) + 1}",
         "midiChannel": channel,
         "timing": timing,
-        "lengthBeats": length_beats,
-        "stepCount": pad["stepCount"],
+        "lengthBeats": active_pad_state["lengthBeats"],
+        "stepCount": active_pad_state["stepCount"],
         "syncToTrackId": None,
-        "scaleRoot": scale_root,
-        "scaleType": scale_type,
-        "mode": mode,
-        "activePad": 0,
+        "scaleRoot": active_pad_state["scaleRoot"],
+        "scaleType": active_pad_state["scaleType"],
+        "mode": active_pad_state["mode"],
+        "activePad": active_pad,
         "queuedPad": None,
         "padLoopEnabled": False,
         "padLoopRepeat": True,
@@ -770,6 +1331,7 @@ def add_melodic_track_to_config(
         "enabled": enabled,
         "queuedEnabled": None,
     }
+    apply_pad_loop_settings(track, pattern=pad_loop_pattern, enabled=pad_loop_enabled, repeat=pad_loop_repeat)
     tracks.append(track)
     return track
 
@@ -828,6 +1390,26 @@ def drum_groove_hits(groove: str, step_count: int) -> dict[str, list[tuple[int, 
     )
 
 
+def configured_drummer_pad(rows: list[dict[str, Any]], definition: dict[str, Any], *, timing: dict[str, Any]) -> dict[str, Any]:
+    length_beats = parse_int_range(definition.get("length_beats", 4), 1, 8, field="length_beats")
+    step_count = resolved_pad_steps(length_beats, timing)
+    row_steps = {row["id"]: [empty_drum_cell() for _ in range(MAX_STEPS_PER_PAD)] for row in rows}
+    name_by_key = {key: name for name, key in GM_DRUMS.items()}
+    row_id_by_name = {name_by_key[row["key"]]: row["id"] for row in rows if row["key"] in name_by_key}
+    for drum_name, hits in drum_groove_hits(str(definition.get("groove", "backbeat")), step_count).items():
+        row_id = row_id_by_name.get(drum_name)
+        if row_id is None:
+            continue
+        for step_index, hit_velocity in hits:
+            if 0 <= step_index < MAX_STEPS_PER_PAD:
+                row_steps[row_id][step_index] = {"active": True, "velocity": hit_velocity}
+    return {
+        "lengthBeats": length_beats,
+        "stepCount": step_count,
+        "rows": [{"rowId": row["id"], "steps": row_steps[row["id"]]} for row in rows],
+    }
+
+
 def add_drummer_track_to_config(
     config: dict[str, Any],
     *,
@@ -836,40 +1418,45 @@ def add_drummer_track_to_config(
     length_beats: int,
     groove: str,
     enabled: bool,
+    active_pad: int = 0,
+    pad_definitions: list[dict[str, Any]] | None = None,
+    pad_loop_pattern: dict[str, Any] | None = None,
+    pad_loop_enabled: bool | None = None,
+    pad_loop_repeat: bool = True,
+    include_primary_pad: bool = True,
 ) -> dict[str, Any]:
+    active_pad = parse_internal_pad_index(active_pad, field="active_pad")
     sequencer = ensure_sequencer(config)
     timing = sequencer.get("timing") or default_timing()
     tracks = sequencer.setdefault("drummerTracks", [])
     rows = default_drum_rows()
-    step_count = resolved_pad_steps(length_beats, timing)
-    row_steps = {
-        row["id"]: [empty_drum_cell() for _ in range(MAX_STEPS_PER_PAD)]
-        for row in rows
-    }
-    name_by_key = {key: name for name, key in GM_DRUMS.items()}
-    row_id_by_name = {name_by_key[row["key"]]: row["id"] for row in rows if row["key"] in name_by_key}
-    for drum_name, hits in drum_groove_hits(groove, step_count).items():
-        row_id = row_id_by_name.get(drum_name)
-        if row_id is None:
-            continue
-        for step_index, velocity in hits:
-            if 0 <= step_index < MAX_STEPS_PER_PAD:
-                row_steps[row_id][step_index] = {"active": True, "velocity": velocity}
-    pad = {
-        "lengthBeats": length_beats,
-        "stepCount": step_count,
-        "rows": [{"rowId": row["id"], "steps": row_steps[row["id"]]} for row in rows],
-    }
     pads = [default_drummer_pad(rows, length_beats=length_beats, timing=timing) for _ in range(DEFAULT_PAD_COUNT)]
-    pads[0] = pad
+    definitions = []
+    if include_primary_pad:
+        definitions.append(
+            {
+                "pad_index": active_pad,
+                "length_beats": length_beats,
+                "groove": groove,
+            }
+        )
+    definitions.extend(pad_definitions or [])
+    merged = merge_pad_definitions(
+        definitions,
+        base={"pad_index": active_pad, "length_beats": length_beats, "groove": groove},
+        pattern_fields=("groove",),
+    )
+    for pad_index, definition in merged.items():
+        pads[pad_index] = configured_drummer_pad(rows, definition, timing=timing)
+    active_pad_state = pads[active_pad]
     track = {
         "id": next_track_id(tracks, "drum"),
         "name": name or f"Drummer Sequencer {len(tracks) + 1}",
         "midiChannel": channel,
         "timing": timing,
-        "lengthBeats": length_beats,
-        "stepCount": step_count,
-        "activePad": 0,
+        "lengthBeats": active_pad_state["lengthBeats"],
+        "stepCount": active_pad_state["stepCount"],
+        "activePad": active_pad,
         "queuedPad": None,
         "padLoopEnabled": False,
         "padLoopRepeat": True,
@@ -880,6 +1467,7 @@ def add_drummer_track_to_config(
         "enabled": enabled,
         "queuedEnabled": None,
     }
+    apply_pad_loop_settings(track, pattern=pad_loop_pattern, enabled=pad_loop_enabled, repeat=pad_loop_repeat)
     tracks.append(track)
     return track
 
@@ -923,6 +1511,16 @@ def parse_curve(value: str) -> list[dict[str, Any]]:
     return sorted(result, key=lambda item: item["position"])
 
 
+def configured_controller_pad(definition: dict[str, Any], *, timing: dict[str, Any]) -> dict[str, Any]:
+    length_beats = parse_int_range(definition.get("length_beats", 8), 1, 16, field="length_beats")
+    step_count = max(1, min(MAX_STEPS_PER_PAD, length_beats * int(timing.get("stepsPerBeat", 4))))
+    return {
+        "lengthBeats": length_beats,
+        "stepCount": step_count,
+        "keypoints": parse_curve(str(definition.get("curve", "slow_sweep"))),
+    }
+
+
 def add_controller_sequencer_to_config(
     config: dict[str, Any],
     *,
@@ -931,23 +1529,44 @@ def add_controller_sequencer_to_config(
     length_beats: int,
     curve: str,
     enabled: bool,
+    active_pad: int = 0,
+    pad_definitions: list[dict[str, Any]] | None = None,
+    pad_loop_pattern: dict[str, Any] | None = None,
+    pad_loop_enabled: bool | None = None,
+    pad_loop_repeat: bool = True,
+    include_primary_pad: bool = True,
 ) -> dict[str, Any]:
+    active_pad = parse_internal_pad_index(active_pad, field="active_pad")
     sequencer = ensure_sequencer(config)
     timing = sequencer.get("timing") or default_timing()
     tracks = sequencer.setdefault("controllerSequencers", [])
-    step_count = max(1, min(MAX_STEPS_PER_PAD, length_beats * int(timing.get("stepsPerBeat", 4))))
-    keypoints = parse_curve(curve)
-    pad = {"lengthBeats": length_beats, "stepCount": step_count, "keypoints": keypoints}
     pads = [default_controller_pad(length_beats=length_beats, timing=timing) for _ in range(DEFAULT_PAD_COUNT)]
-    pads[0] = pad
+    definitions = []
+    if include_primary_pad:
+        definitions.append(
+            {
+                "pad_index": active_pad,
+                "length_beats": length_beats,
+                "curve": curve,
+            }
+        )
+    definitions.extend(pad_definitions or [])
+    merged = merge_pad_definitions(
+        definitions,
+        base={"pad_index": active_pad, "length_beats": length_beats, "curve": curve},
+        pattern_fields=("curve",),
+    )
+    for pad_index, definition in merged.items():
+        pads[pad_index] = configured_controller_pad(definition, timing=timing)
+    active_pad_state = pads[active_pad]
     track = {
         "id": next_track_id(tracks, "cc-seq"),
         "name": name or f"Controller Sequencer {len(tracks) + 1}",
         "controllerNumber": controller_number,
         "timing": timing,
-        "lengthBeats": length_beats,
-        "stepCount": step_count,
-        "activePad": 0,
+        "lengthBeats": active_pad_state["lengthBeats"],
+        "stepCount": active_pad_state["stepCount"],
+        "activePad": active_pad,
         "queuedPad": None,
         "padLoopEnabled": False,
         "padLoopRepeat": True,
@@ -955,8 +1574,9 @@ def add_controller_sequencer_to_config(
         "padLoopPattern": empty_pad_loop_pattern(),
         "enabled": enabled,
         "pads": pads,
-        "keypoints": keypoints,
+        "keypoints": active_pad_state["keypoints"],
     }
+    apply_pad_loop_settings(track, pattern=pad_loop_pattern, enabled=pad_loop_enabled, repeat=pad_loop_repeat)
     tracks.append(track)
     return track
 
@@ -1112,6 +1732,242 @@ def load_score_spec(path: Path) -> dict[str, Any]:
     return parsed
 
 
+def first_mapping_value(mapping: dict[str, Any], *keys: str, default: Any = None) -> Any:
+    for key in keys:
+        if key in mapping:
+            return mapping[key]
+    return default
+
+
+def has_pad_loop_pattern_content(raw: Any) -> bool:
+    if raw is None:
+        return False
+    if isinstance(raw, str):
+        return bool(raw.strip())
+    if isinstance(raw, list):
+        return bool(raw)
+    if isinstance(raw, dict):
+        if "pattern" in raw:
+            return has_pad_loop_pattern_content(raw["pattern"])
+        return any(key in raw for key in ("rootSequence", "root_sequence", "root", "sequence", "items", "groups", "superGroups", "super_groups", "supers"))
+    return False
+
+
+def score_pad_loop_settings(track_spec: dict[str, Any], *, field: str) -> tuple[dict[str, Any] | None, bool | None, bool]:
+    enabled = parse_optional_bool(first_mapping_value(track_spec, "pad_loop_enabled", "padLoopEnabled"), field=f"{field}.pad_loop_enabled")
+    repeat_raw = first_mapping_value(track_spec, "pad_loop_repeat", "padLoopRepeat", default=True)
+    repeat = parse_optional_bool(repeat_raw, field=f"{field}.pad_loop_repeat")
+    repeat = True if repeat is None else repeat
+    raw_loop = first_mapping_value(track_spec, "pad_loop", "padLoop", "pad_loop_pattern", "padLoopPattern")
+    if isinstance(raw_loop, dict):
+        enabled = parse_optional_bool(
+            first_mapping_value(raw_loop, "enabled", "pad_loop_enabled", "padLoopEnabled", default=enabled),
+            field=f"{field}.pad_loop.enabled",
+        )
+        nested_repeat = parse_optional_bool(
+            first_mapping_value(raw_loop, "repeat", "pad_loop_repeat", "padLoopRepeat", default=repeat),
+            field=f"{field}.pad_loop.repeat",
+        )
+        repeat = repeat if nested_repeat is None else nested_repeat
+        raw_pattern = raw_loop.get("pattern", raw_loop)
+        pattern = parse_pad_loop_pattern(raw_pattern, field=f"{field}.pad_loop") if has_pad_loop_pattern_content(raw_pattern) else None
+    elif raw_loop is not None:
+        pattern = parse_pad_loop_pattern(raw_loop, field=f"{field}.pad_loop")
+    elif "pad_loop_sequence" in track_spec or "padLoopSequence" in track_spec:
+        raw_sequence = first_mapping_value(track_spec, "pad_loop_sequence", "padLoopSequence")
+        pattern = parse_pad_loop_pattern(raw_sequence, field=f"{field}.pad_loop_sequence")
+    else:
+        pattern = None
+    return pattern, enabled, repeat
+
+
+def score_pads(track_spec: dict[str, Any], *, field: str) -> list[dict[str, Any]]:
+    raw_pads = track_spec.get("pads")
+    if raw_pads is None:
+        return []
+    if not isinstance(raw_pads, list):
+        raise OrchestronCliError("invalid_score_spec", f"{field}.pads must be a list.", path=f"{field}.pads")
+    pads = []
+    for index, entry in enumerate(raw_pads):
+        if not isinstance(entry, dict):
+            raise OrchestronCliError("invalid_score_spec", "Pad entries must be objects.", path=f"{field}.pads[{index}]")
+        pads.append(entry)
+    return pads
+
+
+def has_melodic_material(spec: dict[str, Any]) -> bool:
+    return any(key in spec for key in ("steps", "events", "progression", "grid_pattern", "gridPattern"))
+
+
+def melodic_pad_definition_from_score(
+    spec: dict[str, Any],
+    *,
+    field: str,
+    fallback_pad_index: int,
+    key: str,
+    mode: str,
+    default_length_beats: int,
+    default_scale_type: str,
+    default_velocity: int,
+    require_pattern: bool,
+) -> dict[str, Any] | None:
+    if not has_melodic_material(spec):
+        if require_pattern:
+            raise OrchestronCliError(
+                "unsupported_score_track",
+                "Melodic score tracks need events, progression, steps, grid_pattern, or pads.",
+                path=field,
+                retry=["Add explicit events, a progression, a steps string, a grid_pattern, or pad definitions."],
+            )
+        return None
+    pad_index = parse_score_pad_index(spec, fallback=fallback_pad_index, field=field)
+    length_beats = clamp_int(spec.get("length_beats", default_length_beats), 1, 8, field=f"{field}.length_beats")
+    local_key = str(first_mapping_value(spec, "key", "scale_root", default=key))
+    local_mode = str(spec.get("mode", mode))
+    scale_root = str(spec.get("scale_root", local_key))
+    scale_type = str(spec.get("scale_type", default_scale_type))
+    velocity = clamp_int(spec.get("velocity", default_velocity), 1, 127, field=f"{field}.velocity")
+    steps_value = spec.get("steps")
+    steps_pattern: str | None = None
+    grid_pattern: str | None = None
+    if isinstance(steps_value, str):
+        steps_pattern = steps_value
+    elif isinstance(steps_value, list):
+        steps_pattern = " ".join(str(item) for item in steps_value)
+    else:
+        events = spec.get("events")
+        progression = spec.get("progression")
+        step_tokens = []
+        if isinstance(events, list):
+            for event_index, entry in enumerate(events):
+                if not isinstance(entry, dict):
+                    raise OrchestronCliError("invalid_score_spec", "event entries must be objects.", path=f"{field}.events[{event_index}]")
+                note = entry.get("root")
+                if not isinstance(note, str):
+                    raise OrchestronCliError("invalid_score_spec", "event.root is required.", path=f"{field}.events[{event_index}].root")
+                chord = normalize_chord_label(str(entry.get("chord", "none")))
+                at = clamp_int(entry.get("at_step", 0), 0, MAX_STEPS_PER_PAD - 1, field=f"{field}.events[{event_index}].at_step")
+                duration = clamp_int(entry.get("duration_steps", 1), 1, MAX_STEPS_PER_PAD, field=f"{field}.events[{event_index}].duration_steps")
+                step_tokens.append(f"s{at}={note}:{chord}/{duration}s")
+        elif isinstance(progression, list):
+            cursor = 0
+            for prog_index, entry in enumerate(progression):
+                if isinstance(entry, str):
+                    roman = entry
+                    duration = length_beats
+                    at = cursor
+                elif isinstance(entry, dict):
+                    roman = str(entry.get("roman", ""))
+                    duration = clamp_int(entry.get("duration_steps", length_beats), 1, MAX_STEPS_PER_PAD, field=f"{field}.progression[{prog_index}].duration_steps")
+                    at = clamp_int(entry.get("at_step", cursor), 0, MAX_STEPS_PER_PAD - 1, field=f"{field}.progression[{prog_index}].at_step")
+                else:
+                    raise OrchestronCliError("invalid_score_spec", "progression entries must be strings or objects.", path=f"{field}.progression[{prog_index}]")
+                note, chord = roman_to_note_chord(roman, key=local_key, mode=local_mode, octave=int(spec.get("octave", 3)))
+                root = midi_to_note_name(note, prefer_flats=key_pitch_class(local_key)[1])
+                step_tokens.append(f"s{at}={root}:{chord}/{duration}s")
+                cursor = at + duration
+        if step_tokens:
+            steps_pattern = " ".join(step_tokens)
+        else:
+            raw_grid = first_mapping_value(spec, "grid_pattern", "gridPattern")
+            if isinstance(raw_grid, str):
+                grid_pattern = raw_grid
+    if steps_pattern is None and grid_pattern is None and require_pattern:
+        raise OrchestronCliError(
+            "unsupported_score_track",
+            "Melodic score tracks need events, progression, steps, grid_pattern, or pads.",
+            path=field,
+            retry=["Add explicit events, a progression, a steps string, a grid_pattern, or pad definitions."],
+        )
+    return {
+        "pad_index": pad_index,
+        "length_beats": length_beats,
+        "scale_root": scale_root,
+        "scale_type": scale_type,
+        "mode": local_mode,
+        "steps_pattern": steps_pattern,
+        "grid_pattern": grid_pattern,
+        "velocity": velocity,
+    }
+
+
+def melodic_pad_definitions_from_score(
+    track_spec: dict[str, Any],
+    *,
+    field: str,
+    key: str,
+    mode: str,
+) -> tuple[int, list[dict[str, Any]]]:
+    active_pad = parse_score_pad_index(track_spec, fallback=0, field=field)
+    length_beats = clamp_int(track_spec.get("length_beats", 4), 1, 8, field=f"{field}.length_beats")
+    scale_type = str(track_spec.get("scale_type", "minor"))
+    velocity = clamp_int(track_spec.get("velocity", 100), 1, 127, field=f"{field}.velocity")
+    pads = score_pads(track_spec, field=field)
+    definitions = []
+    primary = melodic_pad_definition_from_score(
+        track_spec,
+        field=field,
+        fallback_pad_index=active_pad,
+        key=key,
+        mode=mode,
+        default_length_beats=length_beats,
+        default_scale_type=scale_type,
+        default_velocity=velocity,
+        require_pattern=not pads,
+    )
+    if primary is not None:
+        definitions.append(primary)
+    for pad_list_index, pad_spec in enumerate(pads):
+        definitions.append(
+            melodic_pad_definition_from_score(
+                pad_spec,
+                field=f"{field}.pads[{pad_list_index}]",
+                fallback_pad_index=pad_list_index,
+                key=str(track_spec.get("key", key)),
+                mode=str(track_spec.get("mode", mode)),
+                default_length_beats=length_beats,
+                default_scale_type=scale_type,
+                default_velocity=velocity,
+                require_pattern=True,
+            )
+        )
+    return active_pad, definitions
+
+
+def drummer_pad_definitions_from_score(track_spec: dict[str, Any], *, field: str) -> tuple[int, bool, list[dict[str, Any]]]:
+    active_pad = parse_score_pad_index(track_spec, fallback=0, field=field)
+    length_beats = clamp_int(track_spec.get("length_beats", 4), 1, 8, field=f"{field}.length_beats")
+    pads = score_pads(track_spec, field=field)
+    definitions = []
+    include_primary = not pads or "groove" in track_spec
+    for pad_list_index, pad_spec in enumerate(pads):
+        definitions.append(
+            {
+                "pad_index": parse_score_pad_index(pad_spec, fallback=pad_list_index, field=f"{field}.pads[{pad_list_index}]"),
+                "length_beats": clamp_int(pad_spec.get("length_beats", length_beats), 1, 8, field=f"{field}.pads[{pad_list_index}].length_beats"),
+                "groove": str(pad_spec.get("groove", "backbeat")),
+            }
+        )
+    return active_pad, include_primary, definitions
+
+
+def controller_pad_definitions_from_score(track_spec: dict[str, Any], *, field: str) -> tuple[int, bool, list[dict[str, Any]]]:
+    active_pad = parse_score_pad_index(track_spec, fallback=0, field=field)
+    length_beats = clamp_int(track_spec.get("length_beats", 8), 1, 16, field=f"{field}.length_beats")
+    pads = score_pads(track_spec, field=field)
+    definitions = []
+    include_primary = not pads or "curve" in track_spec
+    for pad_list_index, pad_spec in enumerate(pads):
+        definitions.append(
+            {
+                "pad_index": parse_score_pad_index(pad_spec, fallback=pad_list_index, field=f"{field}.pads[{pad_list_index}]"),
+                "length_beats": clamp_int(pad_spec.get("length_beats", length_beats), 1, 16, field=f"{field}.pads[{pad_list_index}].length_beats"),
+                "curve": str(pad_spec.get("curve", "slow_sweep")),
+            }
+        )
+    return active_pad, include_primary, definitions
+
+
 def apply_score_spec_to_config(config: dict[str, Any], spec: dict[str, Any]) -> list[dict[str, Any]]:
     created: list[dict[str, Any]] = []
     sequencer = ensure_sequencer(config)
@@ -1131,98 +1987,71 @@ def apply_score_spec_to_config(config: dict[str, Any], spec: dict[str, Any]) -> 
             raise OrchestronCliError("invalid_score_spec", "track entries must be objects.", path=f"tracks[{index}]")
         track_type = str(track_spec.get("type", "melodic"))
         if track_type == "melodic":
-            channel = clamp_int(track_spec.get("channel", default_channel), 1, 16, field=f"tracks[{index}].channel")
-            length_beats = clamp_int(track_spec.get("length_beats", 4), 1, 8, field=f"tracks[{index}].length_beats")
-            events = track_spec.get("events")
-            progression = track_spec.get("progression")
-            step_tokens = []
-            if isinstance(events, list):
-                for event_index, entry in enumerate(events):
-                    if not isinstance(entry, dict):
-                        raise OrchestronCliError("invalid_score_spec", "event entries must be objects.", path=f"tracks[{index}].events[{event_index}]")
-                    note = entry.get("root")
-                    if not isinstance(note, str):
-                        raise OrchestronCliError("invalid_score_spec", "event.root is required.", path=f"tracks[{index}].events[{event_index}].root")
-                    chord = normalize_chord_label(str(entry.get("chord", "none")))
-                    at = clamp_int(entry.get("at_step", 0), 0, MAX_STEPS_PER_PAD - 1, field=f"tracks[{index}].events[{event_index}].at_step")
-                    duration = clamp_int(entry.get("duration_steps", 1), 1, MAX_STEPS_PER_PAD, field=f"tracks[{index}].events[{event_index}].duration_steps")
-                    step_tokens.append(f"s{at}={note}:{chord}/{duration}s")
-            elif isinstance(progression, list):
-                cursor = 0
-                for prog_index, entry in enumerate(progression):
-                    if isinstance(entry, str):
-                        roman = entry
-                        duration = length_beats
-                        at = cursor
-                    elif isinstance(entry, dict):
-                        roman = str(entry.get("roman", ""))
-                        duration = clamp_int(entry.get("duration_steps", length_beats), 1, MAX_STEPS_PER_PAD, field=f"tracks[{index}].progression[{prog_index}].duration_steps")
-                        at = clamp_int(entry.get("at_step", cursor), 0, MAX_STEPS_PER_PAD - 1, field=f"tracks[{index}].progression[{prog_index}].at_step")
-                    else:
-                        raise OrchestronCliError("invalid_score_spec", "progression entries must be strings or objects.", path=f"tracks[{index}].progression[{prog_index}]")
-                    note, chord = roman_to_note_chord(roman, key=key, mode=mode, octave=int(track_spec.get("octave", 3)))
-                    root = midi_to_note_name(note, prefer_flats=key_pitch_class(key)[1])
-                    step_tokens.append(f"s{at}={root}:{chord}/{duration}s")
-                    cursor = at + duration
-            elif isinstance(track_spec.get("grid_pattern"), str):
-                created.append(
-                    add_melodic_track_to_config(
-                        config,
-                        channel=channel,
-                        name=track_spec.get("name") if isinstance(track_spec.get("name"), str) else None,
-                        length_beats=length_beats,
-                        scale_root=key,
-                        scale_type=str(track_spec.get("scale_type", "minor")),
-                        mode=mode,
-                        enabled=bool(track_spec.get("enabled", True)),
-                        steps_pattern=None,
-                        grid_pattern=str(track_spec["grid_pattern"]),
-                        velocity=clamp_int(track_spec.get("velocity", 100), 1, 127, field=f"tracks[{index}].velocity"),
-                    )
-                )
-                continue
-            else:
-                raise OrchestronCliError(
-                    "unsupported_score_track",
-                    "Melodic score tracks need events, progression, or grid_pattern.",
-                    path=f"tracks[{index}]",
-                    retry=["Add explicit events or a progression to the score spec."],
-                )
+            field = f"tracks[{index}]"
+            channel = clamp_int(track_spec.get("channel", default_channel), 1, 16, field=f"{field}.channel")
+            length_beats = clamp_int(track_spec.get("length_beats", 4), 1, 8, field=f"{field}.length_beats")
+            track_key = str(track_spec.get("key", key))
+            track_mode = str(track_spec.get("mode", mode))
+            active_pad, pad_definitions = melodic_pad_definitions_from_score(track_spec, field=field, key=track_key, mode=track_mode)
+            pad_loop_pattern, pad_loop_enabled, pad_loop_repeat = score_pad_loop_settings(track_spec, field=field)
             created.append(
                 add_melodic_track_to_config(
                     config,
                     channel=channel,
                     name=track_spec.get("name") if isinstance(track_spec.get("name"), str) else None,
                     length_beats=length_beats,
-                    scale_root=key,
+                    scale_root=str(track_spec.get("scale_root", track_key)),
                     scale_type=str(track_spec.get("scale_type", "minor")),
-                    mode=mode,
+                    mode=track_mode,
                     enabled=bool(track_spec.get("enabled", True)),
-                    steps_pattern=" ".join(step_tokens),
+                    steps_pattern=None,
                     grid_pattern=None,
-                    velocity=clamp_int(track_spec.get("velocity", 100), 1, 127, field=f"tracks[{index}].velocity"),
+                    velocity=clamp_int(track_spec.get("velocity", 100), 1, 127, field=f"{field}.velocity"),
+                    active_pad=active_pad,
+                    pad_definitions=pad_definitions,
+                    pad_loop_pattern=pad_loop_pattern,
+                    pad_loop_enabled=pad_loop_enabled,
+                    pad_loop_repeat=pad_loop_repeat,
                 )
             )
         elif track_type == "drummer":
+            field = f"tracks[{index}]"
+            active_pad, include_primary_pad, pad_definitions = drummer_pad_definitions_from_score(track_spec, field=field)
+            pad_loop_pattern, pad_loop_enabled, pad_loop_repeat = score_pad_loop_settings(track_spec, field=field)
             created.append(
                 add_drummer_track_to_config(
                     config,
-                    channel=clamp_int(track_spec.get("channel", 10), 1, 16, field=f"tracks[{index}].channel"),
+                    channel=clamp_int(track_spec.get("channel", 10), 1, 16, field=f"{field}.channel"),
                     name=track_spec.get("name") if isinstance(track_spec.get("name"), str) else None,
-                    length_beats=clamp_int(track_spec.get("length_beats", 4), 1, 8, field=f"tracks[{index}].length_beats"),
+                    length_beats=clamp_int(track_spec.get("length_beats", 4), 1, 8, field=f"{field}.length_beats"),
                     groove=str(track_spec.get("groove", "backbeat")),
                     enabled=bool(track_spec.get("enabled", True)),
+                    active_pad=active_pad,
+                    pad_definitions=pad_definitions,
+                    pad_loop_pattern=pad_loop_pattern,
+                    pad_loop_enabled=pad_loop_enabled,
+                    pad_loop_repeat=pad_loop_repeat,
+                    include_primary_pad=include_primary_pad,
                 )
             )
         elif track_type == "controller":
+            field = f"tracks[{index}]"
+            active_pad, include_primary_pad, pad_definitions = controller_pad_definitions_from_score(track_spec, field=field)
+            pad_loop_pattern, pad_loop_enabled, pad_loop_repeat = score_pad_loop_settings(track_spec, field=field)
             created.append(
                 add_controller_sequencer_to_config(
                     config,
-                    controller_number=clamp_int(track_spec.get("cc", track_spec.get("controller_number", 74)), 0, 127, field=f"tracks[{index}].cc"),
+                    controller_number=clamp_int(track_spec.get("cc", track_spec.get("controller_number", 74)), 0, 127, field=f"{field}.cc"),
                     name=track_spec.get("name") if isinstance(track_spec.get("name"), str) else None,
-                    length_beats=clamp_int(track_spec.get("length_beats", 8), 1, 16, field=f"tracks[{index}].length_beats"),
+                    length_beats=clamp_int(track_spec.get("length_beats", 8), 1, 16, field=f"{field}.length_beats"),
                     curve=str(track_spec.get("curve", "slow_sweep")),
                     enabled=bool(track_spec.get("enabled", True)),
+                    active_pad=active_pad,
+                    pad_definitions=pad_definitions,
+                    pad_loop_pattern=pad_loop_pattern,
+                    pad_loop_enabled=pad_loop_enabled,
+                    pad_loop_repeat=pad_loop_repeat,
+                    include_primary_pad=include_primary_pad,
                 )
             )
         elif track_type == "arpeggiator":
@@ -1747,7 +2576,45 @@ def command_edit_add_instrument(args: argparse.Namespace, ctx: CliContext) -> No
     print_payload(update_session_config(ctx, mutate), ctx)
 
 
+def pad_loop_args(args: argparse.Namespace) -> tuple[dict[str, Any] | None, bool | None, bool]:
+    pattern = parse_pad_loop_pattern_from_cli(
+        root_sequence=getattr(args, "pad_loop", None),
+        group_assignments=getattr(args, "pad_loop_group", None),
+        super_group_assignments=getattr(args, "pad_loop_super_group", None),
+    )
+    return pattern, getattr(args, "pad_loop_enabled", None), bool(getattr(args, "pad_loop_repeat", True))
+
+
+def melodic_pad_definitions_from_args(args: argparse.Namespace) -> list[dict[str, Any]]:
+    definitions = []
+    for index, assignment in enumerate(args.pad_steps or []):
+        pad_index, pattern = parse_pad_assignment(assignment, field=f"pad_steps[{index}]")
+        definitions.append({"pad_index": pad_index, "steps_pattern": pattern})
+    for index, assignment in enumerate(args.pad_grid_pattern or []):
+        pad_index, pattern = parse_pad_assignment(assignment, field=f"pad_grid_pattern[{index}]")
+        definitions.append({"pad_index": pad_index, "grid_pattern": pattern})
+    return definitions
+
+
+def drummer_pad_definitions_from_args(args: argparse.Namespace) -> list[dict[str, Any]]:
+    definitions = []
+    for index, assignment in enumerate(args.pad_groove or []):
+        pad_index, groove = parse_pad_assignment(assignment, field=f"pad_groove[{index}]")
+        definitions.append({"pad_index": pad_index, "groove": groove})
+    return definitions
+
+
+def controller_pad_definitions_from_args(args: argparse.Namespace) -> list[dict[str, Any]]:
+    definitions = []
+    for index, assignment in enumerate(args.pad_curve or []):
+        pad_index, curve = parse_pad_assignment(assignment, field=f"pad_curve[{index}]")
+        definitions.append({"pad_index": pad_index, "curve": curve})
+    return definitions
+
+
 def command_edit_add_melodic(args: argparse.Namespace, ctx: CliContext) -> None:
+    pad_loop_pattern, pad_loop_enabled, pad_loop_repeat = pad_loop_args(args)
+
     def mutate(config: dict[str, Any]) -> dict[str, Any]:
         return add_melodic_track_to_config(
             config,
@@ -1761,12 +2628,19 @@ def command_edit_add_melodic(args: argparse.Namespace, ctx: CliContext) -> None:
             steps_pattern=args.steps,
             grid_pattern=args.grid_pattern,
             velocity=clamp_int(args.velocity, 1, 127, field="velocity"),
+            active_pad=parse_user_pad_index(args.pad, field="pad"),
+            pad_definitions=melodic_pad_definitions_from_args(args),
+            pad_loop_pattern=pad_loop_pattern,
+            pad_loop_enabled=pad_loop_enabled,
+            pad_loop_repeat=pad_loop_repeat,
         )
 
     print_payload(summarize_device(update_session_config(ctx, mutate)), ctx)
 
 
 def command_edit_add_drummer(args: argparse.Namespace, ctx: CliContext) -> None:
+    pad_loop_pattern, pad_loop_enabled, pad_loop_repeat = pad_loop_args(args)
+
     def mutate(config: dict[str, Any]) -> dict[str, Any]:
         return add_drummer_track_to_config(
             config,
@@ -1775,12 +2649,19 @@ def command_edit_add_drummer(args: argparse.Namespace, ctx: CliContext) -> None:
             length_beats=clamp_int(args.length_beats, 1, 8, field="length_beats"),
             groove=args.groove,
             enabled=args.enabled,
+            active_pad=parse_user_pad_index(args.pad, field="pad"),
+            pad_definitions=drummer_pad_definitions_from_args(args),
+            pad_loop_pattern=pad_loop_pattern,
+            pad_loop_enabled=pad_loop_enabled,
+            pad_loop_repeat=pad_loop_repeat,
         )
 
     print_payload(summarize_device(update_session_config(ctx, mutate)), ctx)
 
 
 def command_edit_add_controller_sequencer(args: argparse.Namespace, ctx: CliContext) -> None:
+    pad_loop_pattern, pad_loop_enabled, pad_loop_repeat = pad_loop_args(args)
+
     def mutate(config: dict[str, Any]) -> dict[str, Any]:
         return add_controller_sequencer_to_config(
             config,
@@ -1789,6 +2670,11 @@ def command_edit_add_controller_sequencer(args: argparse.Namespace, ctx: CliCont
             length_beats=clamp_int(args.length_beats, 1, 16, field="length_beats"),
             curve=args.curve,
             enabled=args.enabled,
+            active_pad=parse_user_pad_index(args.pad, field="pad"),
+            pad_definitions=controller_pad_definitions_from_args(args),
+            pad_loop_pattern=pad_loop_pattern,
+            pad_loop_enabled=pad_loop_enabled,
+            pad_loop_repeat=pad_loop_repeat,
         )
 
     print_payload(summarize_device(update_session_config(ctx, mutate)), ctx)
@@ -1945,6 +2831,14 @@ def add_global_options(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--session-file", default=str(SESSION_FILE), help=f"Edit-session metadata file. Default: {SESSION_FILE}")
 
 
+def add_pad_loop_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--pad-loop", help="Root pad-loop sequence, for example: '1 2 P4 3' or 'I I P8 II'.")
+    parser.add_argument("--pad-loop-group", action="append", default=[], metavar="ID=SEQUENCE", help="Reusable group definition; may repeat. Example: A='1 2 P4 2'.")
+    parser.add_argument("--pad-loop-super-group", action="append", default=[], metavar="ID=SEQUENCE", help="Reusable super-group definition; may repeat. Example: I='A B B A'.")
+    parser.add_argument("--pad-loop-enabled", action=argparse.BooleanOptionalAction, default=None, help="Enable pad looper. Defaults on when --pad-loop compiles to a sequence.")
+    parser.add_argument("--pad-loop-repeat", action=argparse.BooleanOptionalAction, default=True, help="Repeat pad-loop sequence. Default: on.")
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="orchestron_cli",
@@ -2015,23 +2909,33 @@ def build_parser() -> argparse.ArgumentParser:
     add_mel.add_argument("--scale-type", default="minor", choices=sorted(SCALE_TYPES), help="Scale type.")
     add_mel.add_argument("--mode", default="aeolian", choices=sorted(MODE_INTERVALS.keys()), help="Mode.")
     add_mel.add_argument("--velocity", type=int, default=100, help="Default velocity 1..127.")
+    add_mel.add_argument("--pad", default="1", help="Pattern pad for --steps/--grid-pattern, 1..8 or P1..P8. Default: 1.")
     add_mel.add_argument("--steps", help="Explicit tokens, for example: s0=C3:min7/4s s4=F3:dom7/4s.")
     add_mel.add_argument("--grid-pattern", help="One token per step; . rest, _ hold, C3:min7 attack.")
+    add_mel.add_argument("--pad-steps", action="append", default=[], metavar="PAD=STEPS", help="Additional pad explicit-step pattern; may repeat. Example: 2=s0=F3:min7/4s.")
+    add_mel.add_argument("--pad-grid-pattern", action="append", default=[], metavar="PAD=PATTERN", help="Additional pad grid pattern; may repeat. Example: 3='C3 . G3 .'.")
     add_mel.add_argument("--enabled", action=argparse.BooleanOptionalAction, default=True, help="Enable this sequencer track.")
+    add_pad_loop_arguments(add_mel)
     add_mel.set_defaults(func=command_edit_add_melodic)
     add_drum = edit_sub.add_parser("add-drummer", help="Add a General MIDI drummer sequencer groove.")
     add_drum.add_argument("--channel", type=int, default=10, help="MIDI channel 1..16. Default: 10.")
     add_drum.add_argument("--name", help="Track name.")
     add_drum.add_argument("--length-beats", type=int, default=4)
+    add_drum.add_argument("--pad", default="1", help="Pattern pad for --groove, 1..8 or P1..P8. Default: 1.")
     add_drum.add_argument("--groove", default="backbeat", choices=["backbeat", "four_on_floor", "half_time", "breakbeat", "electro", "sparse"])
+    add_drum.add_argument("--pad-groove", action="append", default=[], metavar="PAD=GROOVE", help="Additional pad groove; may repeat. Example: 2=breakbeat.")
     add_drum.add_argument("--enabled", action=argparse.BooleanOptionalAction, default=True)
+    add_pad_loop_arguments(add_drum)
     add_drum.set_defaults(func=command_edit_add_drummer)
     add_cc_seq = edit_sub.add_parser("add-controller-sequencer", help="Add a controller sequencer curve.")
     add_cc_seq.add_argument("--cc", required=True, type=int, help="Controller number 0..127.")
     add_cc_seq.add_argument("--name", help="Track name.")
     add_cc_seq.add_argument("--length-beats", type=int, default=8, help="Curve length, 1..16 beats.")
+    add_cc_seq.add_argument("--pad", default="1", help="Pattern pad for --curve, 1..8 or P1..P8. Default: 1.")
     add_cc_seq.add_argument("--curve", default="slow_sweep", help="Curve preset or position:value pairs, for example 0:24,0.5:96,1:48.")
+    add_cc_seq.add_argument("--pad-curve", action="append", default=[], metavar="PAD=CURVE", help="Additional pad controller curve; may repeat. Example: 2=triangle.")
     add_cc_seq.add_argument("--enabled", action=argparse.BooleanOptionalAction, default=True)
+    add_pad_loop_arguments(add_cc_seq)
     add_cc_seq.set_defaults(func=command_edit_add_controller_sequencer)
     add_cc = edit_sub.add_parser("add-midi-controller", help="Add a manual MIDI controller lane.")
     add_cc.add_argument("--cc", required=True, type=int, help="Controller number 0..127.")

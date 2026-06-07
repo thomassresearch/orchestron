@@ -1,0 +1,32 @@
+/orchestron-performance-creator what instruments (patches) are currently configured?
+
+	Currently configured patches:
+	
+	PAD with VCOs and LFOs
+	Vocoder Welcome Message
+	FM Organ
+	Synth Pad
+	Roland TR808
+	TB303 using VCO
+	Bass
+	Bass Drum
+	FM Metal
+	Backend health is OK, using browser_clock audio mode at 48 kHz.
+
+Create a new performance, a techno style 4/4 beat (use Roland TR808), with a bassline (use TB303 using VCO) and a synth pad (using PAD with VCOs and LFOs).
+The performance should start with an short, drum only intro, then the bassline should evolve, and finally the synth pad harmonies should set in. The performance should end with a part only using the synth pad.
+Make sure the harmonies between bassline and synthpad match, make it interesting while still being techno.
+Save the performance as "AI generated Nr1".
+
+
+	Created and saved the new performance as AI generated Nr1.
+	
+	Performance ID: 655349d8-4ff4-479b-9c72-1faf644dd80b
+	
+	It uses:
+	
+	Channel 10: Roland TR808
+	Channel 2: TB303 using VCO
+	Channel 3: PAD with VCOs and LFOs
+	Arrangement: 132 BPM, 4/4 techno form with a short drum-only intro, evolving TB303 bassline, matching 
+        C Dorian/minor pad harmonies, and a final pad-only ending. Validation passed before commit.

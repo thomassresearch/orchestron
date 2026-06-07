@@ -55,10 +55,18 @@ uv run orchestron_cli --json performances list
 uv run orchestron_cli --json edit begin --new --name "Agent Sketch"
 uv run orchestron_cli --json edit add-instrument --patch "TB303" --channel 2
 uv run orchestron_cli --json edit add-melodic --channel 2 --steps "s0=C3:min7/4s s4=F3:dom7/4s"
+uv run orchestron_cli --json edit add-melodic --channel 2 --grid-pattern "C3 . . ." --pad-grid-pattern "2=F3 . . ." --pad-loop "A P4 A" --pad-loop-group "A=1 2"
 uv run orchestron_cli --json edit add-drummer --channel 10 --groove backbeat
 uv run orchestron_cli --json edit validate
 uv run orchestron_cli --json edit commit
 ```
+
+Pattern-pad and pad-loop CLI syntax:
+
+- `--pad 1..8` assigns the primary `--steps`, `--grid-pattern`, `--groove`, or `--curve` to that pad.
+- Repeat `--pad-steps`, `--pad-grid-pattern`, `--pad-groove`, or `--pad-curve` as `PAD=VALUE` to define additional pads.
+- Use `--pad-loop "1 2 P4 1"` for root pad-loop sequences. Pad tokens are `1..8`; pause tokens are `P1`, `P2`, `P4`, `P8`, and `P16`.
+- Use repeated `--pad-loop-group "A=1 2"` and `--pad-loop-super-group "I=A A"` for nested sequences.
 
 ## References
 
