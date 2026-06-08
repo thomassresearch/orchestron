@@ -428,7 +428,10 @@ class PerformanceExportService:
             runtime._running = True
 
         try:
-            with patch("backend.app.services.sequencer_runtime.time.perf_counter", return_value=0.0):
+            with patch(
+                "backend.app.services.sequencer_runtime.time.perf_counter",
+                side_effect=lambda: capture.current_time_seconds,
+            ):
                 while True:
                     if _monotonic_seconds() > deadline:
                         raise OfflineMidiExportTimeoutError(

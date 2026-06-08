@@ -134,13 +134,18 @@ class PerformanceCsdExportRequest(BaseModel):
         ) * _OFFLINE_TRANSPORT_SUBUNITS_PER_STEP
         event_count = 0
         note_activity_events: dict[int, list[tuple[int, str, tuple[int, ...]]]] = {}
+        arpeggiator_input_channels = {
+            arpeggiator.input_channel
+            for arpeggiator in self.sequencer_config.arpeggiators
+        }
         for track in self.sequencer_config.tracks:
             track_event_count, track_activity_events = _estimate_note_track_events(
                 track,
                 playback_start_subunit=playback_start_subunit,
                 playback_end_subunit=playback_end_subunit,
             )
-            event_count += track_event_count
+            if track.midi_channel not in arpeggiator_input_channels:
+                event_count += track_event_count
             if track_activity_events:
                 note_activity_events.setdefault(track.midi_channel, []).extend(track_activity_events)
             if event_count > OFFLINE_CSD_EXPORT_MAX_MIDI_EVENTS:
@@ -155,6 +160,7 @@ class PerformanceCsdExportRequest(BaseModel):
             event_count += _estimate_controller_track_events(
                 track,
                 fallback_channels=fallback_channels,
+                consumed_input_channels=arpeggiator_input_channels,
                 playback_start_subunit=playback_start_subunit,
                 playback_end_subunit=playback_end_subunit,
             )
@@ -515,12 +521,20 @@ def _estimate_controller_track_events(
     track: SessionControllerSequencerTrackConfig,
     *,
     fallback_channels: set[int],
+    consumed_input_channels: set[int],
     playback_start_subunit: int,
     playback_end_subunit: int,
 ) -> int:
     if not track.enabled:
         return 0
-    target_channels = sorted({max(1, min(16, int(channel))) for channel in track.target_channels}) or sorted(fallback_channels)
+    target_channels = [
+        channel
+        for channel in (
+            sorted({max(1, min(16, int(channel))) for channel in track.target_channels})
+            or sorted(fallback_channels)
+        )
+        if channel not in consumed_input_channels
+    ]
     if not target_channels:
         return 0
 

@@ -11,6 +11,7 @@ from pathlib import Path
 import zipfile
 
 from fastapi.testclient import TestClient
+import mido
 from pydantic import ValidationError
 import pytest
 from starlette.testclient import WebSocketDenialResponse
@@ -5000,6 +5001,15 @@ def _performance_csd_export_payload(
     }
 
 
+def _midi_messages_with_absolute_ticks(midi_bytes: bytes):
+    midi_file = mido.MidiFile(file=BytesIO(midi_bytes))
+    for track in midi_file.tracks:
+        absolute_tick = 0
+        for message in track:
+            absolute_tick += message.time
+            yield absolute_tick, message
+
+
 def test_performance_csd_export_bundle_includes_csd_midi_readme_and_assets(tmp_path: Path) -> None:
     asset_dir = tmp_path / "gen_audio_assets"
     asset_dir.mkdir(parents=True, exist_ok=True)
@@ -5279,6 +5289,102 @@ def test_performance_csd_export_event_budget_is_arrangement_aware_for_finite_pad
     assert request.sequencer_config.playback_end_step == 4096
 
 
+def test_performance_csd_export_event_budget_excludes_consumed_arpeggiator_input_notes() -> None:
+    payload = _performance_csd_export_payload()
+    payload["performanceExport"]["performance"]["config"]["instruments"] = [  # type: ignore[index]
+        {"patchId": "patch-1", "midiChannel": 5},
+        {"patchId": "patch-1", "midiChannel": 6},
+    ]
+    sequencer_config = payload["sequencerConfig"]  # type: ignore[index]
+    sequencer_config["timing"] = _sequencer_timing(tempo_bpm=147, steps_per_beat=8)  # type: ignore[index]
+    sequencer_config["playback_start_step"] = 0  # type: ignore[index]
+    sequencer_config["playback_end_step"] = 4096  # type: ignore[index]
+    input_note_burst = list(range(48, 64))
+    track_timing = _sequencer_timing(tempo_bpm=147, steps_per_beat=4)
+    arp_input_track = {
+        "midi_channel": 6,
+        "timing": track_timing,
+        "length_beats": 1,
+        "velocity": 100,
+        "gate_ratio": 0.8,
+        "sync_to_track_id": None,
+        "active_pad": 0,
+        "queued_pad": None,
+        "pad_loop_enabled": False,
+        "pad_loop_repeat": True,
+        "pad_loop_sequence": [0],
+        "enabled": True,
+        "queued_enabled": None,
+        "pads": [
+            {
+                "pad_index": 0,
+                "length_beats": 1,
+                "steps": [{"note": input_note_burst, "hold": False, "velocity": 100}],
+            }
+        ],
+    }
+    sequencer_config["tracks"] = [  # type: ignore[index]
+        {**arp_input_track, "track_id": f"arp-input-{index}"}
+        for index in range(4)
+    ]
+    sequencer_config["controller_tracks"] = [  # type: ignore[index]
+        {
+            "track_id": "cc-arp-input",
+            "controller_number": 74,
+            "timing": track_timing,
+            "length_beats": 1,
+            "active_pad": 0,
+            "queued_pad": None,
+            "pad_loop_enabled": False,
+            "pad_loop_repeat": True,
+            "pad_loop_sequence": [0],
+            "enabled": True,
+            "target_channels": [6],
+            "pads": [
+                {
+                    "pad_index": 0,
+                    "length_beats": 1,
+                    "keypoints": [{"position": 0.0, "value": 0}, {"position": 0.5, "value": 127}],
+                }
+            ],
+        }
+    ]
+    sequencer_config["arpeggiators"] = [  # type: ignore[index]
+        {
+            "arpeggiator_id": "arp-1",
+            "enabled": True,
+            "input_channel": 6,
+            "target_channel": 5,
+            "rate": "1/1",
+            "gate_ratio": 0.72,
+            "swing": 0.0,
+            "octaves": 1,
+            "pattern": "up",
+            "latch": False,
+            "velocity_mode": "input",
+            "fixed_velocity": 100,
+            "accent_cycle": [],
+            "probability": 1.0,
+            "repeats": 1,
+            "humanize_ms": 0.0,
+            "humanize_velocity": 0,
+            "transpose": 0,
+            "scale_quantize": False,
+            "scale_root": "C",
+            "scale_type": "minor",
+            "mode": "aeolian",
+            "restart_mode": "first_note",
+        }
+    ]
+
+    consumed_input_note_events = 4 * 4096 * len(input_note_burst) * 2
+    assert consumed_input_note_events > OFFLINE_CSD_EXPORT_MAX_MIDI_EVENTS
+
+    request = PerformanceCsdExportRequest.model_validate(payload)
+
+    assert request.sequencer_config.arpeggiators[0].input_channel == 6
+
+
 def test_performance_csd_export_rejects_oversized_step_note_list_before_export_work(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -5330,6 +5436,107 @@ def test_performance_csd_export_midi_generation_enforces_event_budget(
             controller_default_channels=(1,),
             track_name="budget",
         )
+
+
+def test_performance_csd_export_midi_generation_uses_offline_clock_for_event_ticks() -> None:
+    request = PerformanceCsdExportRequest.model_validate(_performance_csd_export_payload())
+    exporter = PerformanceExportService(compiler_service=None, gen_asset_service=None)  # type: ignore[arg-type]
+
+    midi_bytes = exporter._build_midi_file(
+        request=request,
+        controller_default_channels=(1,),
+        track_name="clock",
+    )
+    note_events = [
+        (tick, message.type, message.channel, message.note, message.velocity)
+        for tick, message in _midi_messages_with_absolute_ticks(midi_bytes)
+        if message.type in {"note_on", "note_off"} and message.channel == 0 and message.note == 60
+    ]
+
+    assert note_events[:2] == [
+        (0, "note_on", 0, 60, 100),
+        (120, "note_off", 0, 60, 0),
+    ]
+
+
+def test_performance_csd_export_midi_generation_includes_arpeggiator_output_notes() -> None:
+    payload = _performance_csd_export_payload()
+    sequencer_config = payload["sequencerConfig"]  # type: ignore[index]
+    sequencer_config["playback_end_step"] = 16  # type: ignore[index]
+    sequencer_config["controller_tracks"] = []  # type: ignore[index]
+    sequencer_config["tracks"] = [  # type: ignore[index]
+        {
+            "track_id": "arp-input",
+            "midi_channel": 6,
+            "timing": _sequencer_timing(tempo_bpm=120, steps_per_beat=4),
+            "length_beats": 1,
+            "velocity": 100,
+            "gate_ratio": 0.8,
+            "sync_to_track_id": None,
+            "active_pad": 0,
+            "queued_pad": None,
+            "pad_loop_enabled": False,
+            "pad_loop_repeat": True,
+            "pad_loop_sequence": [0],
+            "enabled": True,
+            "queued_enabled": None,
+            "pads": [
+                {
+                    "pad_index": 0,
+                    "length_beats": 1,
+                    "steps": [
+                        {"note": 64, "hold": True, "velocity": 100},
+                        {"note": None, "hold": True, "velocity": 100},
+                        {"note": None, "hold": True, "velocity": 100},
+                        {"note": None, "hold": False, "velocity": 100},
+                    ],
+                }
+            ],
+        }
+    ]
+    sequencer_config["arpeggiators"] = [  # type: ignore[index]
+        {
+            "arpeggiator_id": "arp-1",
+            "enabled": True,
+            "input_channel": 6,
+            "target_channel": 5,
+            "rate": "1/16",
+            "gate_ratio": 0.5,
+            "swing": 0.0,
+            "octaves": 1,
+            "pattern": "up",
+            "latch": False,
+            "velocity_mode": "input",
+            "fixed_velocity": 100,
+            "accent_cycle": [],
+            "probability": 1.0,
+            "repeats": 1,
+            "humanize_ms": 0.0,
+            "humanize_velocity": 0,
+            "transpose": 0,
+            "scale_quantize": False,
+            "scale_root": "C",
+            "scale_type": "minor",
+            "mode": "aeolian",
+            "restart_mode": "first_note",
+        }
+    ]
+    request = PerformanceCsdExportRequest.model_validate(payload)
+    exporter = PerformanceExportService(compiler_service=None, gen_asset_service=None)  # type: ignore[arg-type]
+
+    midi_bytes = exporter._build_midi_file(
+        request=request,
+        controller_default_channels=(5, 6),
+        track_name="arp",
+    )
+    note_on_events = [
+        (tick, message.channel, message.note, message.velocity)
+        for tick, message in _midi_messages_with_absolute_ticks(midi_bytes)
+        if message.type == "note_on" and message.velocity > 0
+    ]
+
+    assert any(channel == 4 and note == 64 and velocity == 100 for _tick, channel, note, velocity in note_on_events)
+    assert not any(channel == 5 and note == 64 for _tick, channel, note, _velocity in note_on_events)
 
 
 def test_performance_csd_export_midi_generation_enforces_wall_clock_timeout(
