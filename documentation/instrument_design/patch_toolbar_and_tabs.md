@@ -23,14 +23,15 @@ The toolbar includes:
 
 ## Patch Metadata
 
-- `Patch Name` is the display name used in the patch library and performance rack dropdowns.
+- `Patch Name` is the display name used in the patch library and performance rack dropdowns for normal patches.
 - `Description` is a three-line patch note field and accepts up to 2048 characters.
+- `Template?` marks the patch as a reusable starter graph. Template patches show a `TEMPLATE` token beside their name and are excluded from Perform rack instrument choices.
 - Metadata updates affect the current tab immediately, but they are not stored in the patch library until you save.
 
 ## Patch Library Loading
 
 - `Load Patch` loads an existing saved patch from the backend patch library into the active tab.
-- The dropdown shows saved patch names.
+- The dropdown shows saved patch names, including template patches marked with `TEMPLATE`.
 - Loading a patch replaces the active tab contents with that saved patch snapshot.
 
 ## Actions
@@ -40,9 +41,16 @@ The toolbar includes:
 - Creates a fresh draft (empty graph) with default engine settings and the default name `Untitled Instrument`.
 - This draft is not yet stored in the patch library until `Save` is used.
 
+### New from Template
+
+- Opens a template chooser when saved templates are available.
+- Creates a new unsaved normal patch with the chosen template's graph and description.
+- Shows `no templates available yet` if no saved template patch exists.
+
 ### Clone
 
 - Creates a new saved patch by duplicating the current patch graph and metadata.
+- Preserves the `Template?` flag from the source patch.
 - If the name already exists, Orchestron generates a `(... copy)` style name.
 - The cloned patch is loaded automatically after creation.
 
@@ -60,9 +68,10 @@ The toolbar includes:
 
 ### Save
 
-- Performs compile validation first.
+- Performs compile validation first for normal patches.
 - If compile succeeds, persists the patch to the backend patch library.
 - If compile fails, save is blocked and the patch remains unsaved.
+- Template patches skip compile validation so incomplete starter graphs can be saved.
 
 ### Export / Import
 

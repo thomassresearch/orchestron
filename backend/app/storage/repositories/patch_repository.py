@@ -21,6 +21,7 @@ class PatchRepository:
                 id=document.id,
                 name=document.name,
                 description=document.description,
+                is_template=document.is_template,
                 schema_version=document.schema_version,
                 graph_json=dump_compact_json(document.graph.model_dump(mode="json")),
                 created_at=document.created_at,
@@ -49,6 +50,7 @@ class PatchRepository:
 
             record.name = document.name
             record.description = document.description
+            record.is_template = document.is_template
             record.schema_version = document.schema_version
             record.graph_json = dump_compact_json(document.graph.model_dump(mode="json"))
             record.updated_at = document.updated_at
@@ -78,6 +80,7 @@ class PatchRepository:
             id=record.id,
             name=record.name,
             description=record.description,
+            is_template=bool(record.is_template),
             schema_version=record.schema_version,
             graph=PatchGraph.model_validate(json.loads(record.graph_json)),
             created_at=created_at,

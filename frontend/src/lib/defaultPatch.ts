@@ -21,6 +21,7 @@ export function createUntitledPatch() {
   return {
     name: "Untitled Instrument",
     description: "",
+    is_template: false,
     schema_version: 1,
     graph: defaultGraph()
   };

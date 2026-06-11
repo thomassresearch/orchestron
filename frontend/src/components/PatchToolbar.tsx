@@ -9,6 +9,7 @@ interface PatchToolbarProps {
   guiLanguage: GuiLanguage;
   patchName: string;
   patchDescription: string;
+  patchIsTemplate: boolean;
   patches: PatchListItem[];
   currentPatchId?: string;
   loading: boolean;
@@ -19,8 +20,10 @@ interface PatchToolbarProps {
   onCloseTab: (tabId: string) => void;
   onPatchNameChange: (value: string) => void;
   onPatchDescriptionChange: (value: string) => void;
+  onPatchTemplateChange: (value: boolean) => void;
   onSelectPatch: (patchId: string) => void;
   onNewPatch: () => void;
+  onNewFromTemplate: () => void;
   onClonePatch: () => void;
   onDeletePatch: () => void;
   onSavePatch: () => void;
@@ -37,9 +40,12 @@ type PatchToolbarCopy = {
   patchNamePlaceholder: string;
   description: string;
   descriptionPlaceholder: string;
+  template: string;
+  templateToken: string;
   loadPatch: string;
   currentPatch: string;
   newPatch: string;
+  newFromTemplate: string;
   clonePatch: string;
   deletePatch: string;
   savePatch: string;
@@ -57,9 +63,12 @@ const PATCH_TOOLBAR_COPY: Record<GuiLanguage, PatchToolbarCopy> = {
     patchNamePlaceholder: "Bassline Mono",
     description: "Description",
     descriptionPlaceholder: "Warm filter-swept lead",
+    template: "Template?",
+    templateToken: "TEMPLATE",
     loadPatch: "Load Patch",
     currentPatch: "Current",
     newPatch: "New",
+    newFromTemplate: "New from template",
     clonePatch: "Clone",
     deletePatch: "Delete",
     savePatch: "Save",
@@ -75,9 +84,12 @@ const PATCH_TOOLBAR_COPY: Record<GuiLanguage, PatchToolbarCopy> = {
     patchNamePlaceholder: "Bassline Mono",
     description: "Beschreibung",
     descriptionPlaceholder: "Warmer Filter-Sweep-Lead",
+    template: "Template?",
+    templateToken: "TEMPLATE",
     loadPatch: "Patch laden",
     currentPatch: "Aktuell",
     newPatch: "Neu",
+    newFromTemplate: "Neu aus Template",
     clonePatch: "Klonen",
     deletePatch: "Loeschen",
     savePatch: "Speichern",
@@ -93,9 +105,12 @@ const PATCH_TOOLBAR_COPY: Record<GuiLanguage, PatchToolbarCopy> = {
     patchNamePlaceholder: "Bassline Mono",
     description: "Description",
     descriptionPlaceholder: "Lead chaud avec sweep de filtre",
+    template: "Template ?",
+    templateToken: "TEMPLATE",
     loadPatch: "Charger patch",
     currentPatch: "Actuel",
     newPatch: "Nouveau",
+    newFromTemplate: "Nouveau depuis template",
     clonePatch: "Cloner",
     deletePatch: "Supprimer",
     savePatch: "Enregistrer",
@@ -111,9 +126,12 @@ const PATCH_TOOLBAR_COPY: Record<GuiLanguage, PatchToolbarCopy> = {
     patchNamePlaceholder: "Bassline Mono",
     description: "Descripcion",
     descriptionPlaceholder: "Lead calido con barrido de filtro",
+    template: "Template?",
+    templateToken: "TEMPLATE",
     loadPatch: "Cargar patch",
     currentPatch: "Actual",
     newPatch: "Nuevo",
+    newFromTemplate: "Nuevo desde template",
     clonePatch: "Clonar",
     deletePatch: "Eliminar",
     savePatch: "Guardar",
@@ -171,7 +189,7 @@ export function PatchToolbar(props: PatchToolbarProps) {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 gap-2 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-2 lg:grid-cols-6">
         <label className="flex flex-col gap-1 lg:col-span-2">
           <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-slate-400">{copy.patchName}</span>
           <input
@@ -196,6 +214,16 @@ export function PatchToolbar(props: PatchToolbarProps) {
           />
         </label>
 
+        <label className="flex min-h-[4.5rem] flex-col justify-end gap-2 rounded-lg border border-slate-700 bg-slate-950/70 px-3 py-2">
+          <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-slate-400">{copy.template}</span>
+          <input
+            type="checkbox"
+            checked={props.patchIsTemplate}
+            onChange={(event) => props.onPatchTemplateChange(event.target.checked)}
+            className="h-4 w-4 rounded border-slate-500 bg-slate-950 accent-accent"
+          />
+        </label>
+
         <label className="flex flex-col gap-1">
           <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-slate-400">{copy.loadPatch}</span>
           <select
@@ -211,6 +239,7 @@ export function PatchToolbar(props: PatchToolbarProps) {
             {props.patches.map((patch) => (
               <option key={patch.id} value={patch.id}>
                 {patch.name}
+                {patch.is_template ? ` ${copy.templateToken}` : ""}
               </option>
             ))}
           </select>
@@ -224,6 +253,14 @@ export function PatchToolbar(props: PatchToolbarProps) {
           type="button"
         >
           {copy.newPatch}
+        </button>
+        <button
+          className="rounded-lg border border-slate-500 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-slate-200 transition hover:border-slate-300 hover:text-white"
+          onClick={props.onNewFromTemplate}
+          type="button"
+          disabled={props.loading}
+        >
+          {copy.newFromTemplate}
         </button>
         <button
           className="rounded-lg border border-slate-500 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-slate-200 transition hover:border-slate-300 hover:text-white"

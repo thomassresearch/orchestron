@@ -39,6 +39,7 @@ export function toPatchListItem(patch: Patch): PatchListItem {
     id: patch.id,
     name: patch.name,
     description: patch.description,
+    is_template: patch.is_template,
     schema_version: patch.schema_version,
     updated_at: patch.updated_at
   };
@@ -61,7 +62,10 @@ export function remapSnapshotPatchIds(
       }
 
       if (typeof instrument.patchName === "string" && instrument.patchName.trim().length > 0) {
-        const existing = findPatchByName(patches, instrument.patchName);
+        const existing = findPatchByName(
+          patches.filter((patch) => patch.is_template !== true),
+          instrument.patchName
+        );
         if (existing) {
           return {
             ...instrument,

@@ -37,6 +37,7 @@ interface ReteNodeEditorProps {
   guiLanguage: GuiLanguage;
   graph: PatchGraph;
   graphLabel?: string;
+  graphBadgeLabel?: string;
   opcodes: OpcodeSpec[];
   viewportKey: string;
   onGraphChange: (graph: PatchGraph) => void;
@@ -460,6 +461,7 @@ export function ReteNodeEditor({
   guiLanguage,
   graph,
   graphLabel,
+  graphBadgeLabel,
   opcodes,
   viewportKey,
   onGraphChange,
@@ -473,6 +475,7 @@ export function ReteNodeEditor({
 }: ReteNodeEditorProps) {
   const copy = RETE_EDITOR_COPY[guiLanguage];
   const resolvedGraphLabel = typeof graphLabel === "string" ? graphLabel.trim() : "";
+  const resolvedGraphBadgeLabel = typeof graphBadgeLabel === "string" ? graphBadgeLabel.trim() : "";
   const resolvedOpcodeHelpLabel = opcodeHelpLabel ?? copy.showDocumentation;
   const resolvedDeleteSelectionLabel = deleteSelectionLabel ?? copy.deleteSelectedElements;
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -1571,7 +1574,14 @@ export function ReteNodeEditor({
         <div ref={containerRef} className="h-full w-full" />
         {resolvedGraphLabel ? (
           <div className="pointer-events-none absolute left-3 top-3 z-10 max-w-[70%] rounded-md border border-slate-700/90 bg-slate-950/90 px-2.5 py-1.5 shadow-lg shadow-black/30">
-            <div className="truncate text-xs font-semibold text-slate-100">{resolvedGraphLabel}</div>
+            <div className="flex min-w-0 items-center gap-2">
+              <div className="truncate text-xs font-semibold text-slate-100">{resolvedGraphLabel}</div>
+              {resolvedGraphBadgeLabel ? (
+                <span className="shrink-0 rounded border border-amber-400/60 bg-amber-400/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-amber-200">
+                  {resolvedGraphBadgeLabel}
+                </span>
+              ) : null}
+            </div>
           </div>
         ) : null}
         {onDeleteSelection ? (

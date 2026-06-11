@@ -3,7 +3,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, DateTime, Integer, String, Text, create_engine
+from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text, create_engine, inspect
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 
@@ -17,6 +17,7 @@ class PatchRecord(Base):
     id = Column(String(64), primary_key=True)
     name = Column(String(128), nullable=False)
     description = Column(Text, nullable=False, default="")
+    is_template = Column(Boolean, nullable=False, default=False)
     schema_version = Column(Integer, nullable=False, default=1)
     graph_json = Column(Text, nullable=False)
     created_at = Column(DateTime(timezone=True), nullable=False)
@@ -50,6 +51,17 @@ class Database:
 
     def create_all(self) -> None:
         Base.metadata.create_all(self.engine)
+        self._ensure_patch_template_column()
+
+    def _ensure_patch_template_column(self) -> None:
+        inspector = inspect(self.engine)
+        if "patches" not in inspector.get_table_names():
+            return
+        column_names = {column["name"] for column in inspector.get_columns("patches")}
+        if "is_template" in column_names:
+            return
+        with self.engine.begin() as connection:
+            connection.exec_driver_sql("ALTER TABLE patches ADD COLUMN is_template BOOLEAN NOT NULL DEFAULT 0")
 
     @contextmanager
     def session(self) -> Session:

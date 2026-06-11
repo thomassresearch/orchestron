@@ -63,6 +63,7 @@ class ExportedPatchDefinition(BaseModel):
     source_patch_id: str = Field(alias="sourcePatchId", min_length=1)
     name: str = Field(min_length=1, max_length=128)
     description: str = Field(default="", max_length=2_048)
+    is_template: bool = Field(default=False, alias="isTemplate")
     schema_version: int = 1
     graph: PatchGraph
 

@@ -1429,6 +1429,48 @@ def test_patch_description_length_limit_is_2048_characters(tmp_path: Path) -> No
         assert loaded.json()["description"] == allowed_description
 
 
+def test_patch_template_flag_defaults_and_updates(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        regular = client.post("/api/patches", json=_minimal_patch_payload(name="Regular Patch"))
+        assert regular.status_code == 201
+        assert regular.json()["is_template"] is False
+        assert client.get("/api/patches").json()[0]["is_template"] is False
+
+        template_payload = _minimal_patch_payload(name="Template Patch")
+        template_payload["is_template"] = True
+        template = client.post("/api/patches", json=template_payload)
+        assert template.status_code == 201
+        patch_id = template.json()["id"]
+        assert template.json()["is_template"] is True
+
+        listed = client.get("/api/patches").json()
+        assert listed[0]["id"] == patch_id
+        assert listed[0]["is_template"] is True
+
+        updated = client.put(f"/api/patches/{patch_id}", json={"is_template": False})
+        assert updated.status_code == 200
+        assert updated.json()["is_template"] is False
+        loaded = client.get(f"/api/patches/{patch_id}")
+        assert loaded.status_code == 200
+        assert loaded.json()["is_template"] is False
+
+
+def test_template_patch_cannot_create_runtime_session(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        patch_payload = _minimal_patch_payload(name="Draft Template")
+        patch_payload["is_template"] = True
+        patch_payload["graph"]["nodes"] = [  # type: ignore[index]
+            {"id": "n1", "opcode": "const_a", "params": {"value": 0.2}, "position": {"x": 50, "y": 50}}
+        ]
+
+        created = client.post("/api/patches", json=patch_payload)
+        assert created.status_code == 201
+
+        response = client.post("/api/sessions", json={"patch_id": created.json()["id"]})
+        assert response.status_code == 422
+        assert "template" in response.text
+
+
 def test_patch_create_rejects_oversized_graph_document(tmp_path: Path) -> None:
     with _client(
         tmp_path,
@@ -5106,6 +5148,18 @@ def test_performance_csd_export_rejects_empty_midi_performance(tmp_path: Path) -
 
     assert response.status_code == 400
     assert "generated no MIDI note-on events" in response.text
+
+
+def test_performance_csd_export_rejects_template_patch_definition(tmp_path: Path) -> None:
+    payload = _performance_csd_export_payload()
+    definition = payload["performanceExport"]["patch_definitions"][0]  # type: ignore[index]
+    definition["isTemplate"] = True
+
+    with _client(tmp_path) as client:
+        response = client.post("/api/bundles/export/performance-csd", json=payload)
+
+    assert response.status_code == 400
+    assert "template" in response.text
 
 
 @pytest.mark.parametrize(

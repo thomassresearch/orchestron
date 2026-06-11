@@ -113,6 +113,7 @@ interface EditablePatch {
   id?: string;
   name: string;
   description: string;
+  is_template: boolean;
   schema_version: number;
   graph: PatchGraph;
   created_at?: string;
@@ -170,7 +171,9 @@ interface AppStore {
   refreshPatches: () => Promise<PatchListItem[]>;
   refreshPerformances: () => Promise<PerformanceListItem[]>;
   newPatch: () => void;
+  newPatchFromTemplate: (template: Patch) => void;
   setCurrentPatchMeta: (name: string, description: string) => void;
+  setCurrentPatchTemplate: (isTemplate: boolean) => void;
   setGraph: (graph: PatchGraph) => void;
   addNodeFromOpcode: (opcode: OpcodeSpec, position?: NodePosition) => void;
   removeNode: (nodeId: string) => void;
@@ -2447,6 +2450,7 @@ function normalizePersistedPatch(raw: unknown): EditablePatch {
   const name =
     typeof patch.name === "string" && patch.name.trim().length > 0 ? patch.name : fallback.name;
   const description = typeof patch.description === "string" ? patch.description : "";
+  const isTemplate = patch.is_template === true;
   const schemaVersion =
     typeof patch.schema_version === "number" && Number.isFinite(patch.schema_version)
       ? Math.max(1, Math.round(patch.schema_version))
@@ -2462,6 +2466,7 @@ function normalizePersistedPatch(raw: unknown): EditablePatch {
     id,
     name,
     description,
+    is_template: isTemplate,
     schema_version: schemaVersion,
     graph,
     created_at: createdAt,
@@ -2591,6 +2596,7 @@ function buildPersistedAppStateSnapshot(state: AppStore): PersistedAppState {
         id: tab.patch.id,
         name: tab.patch.name,
         description: tab.patch.description,
+        is_template: tab.patch.is_template,
         schema_version: tab.patch.schema_version,
         graph: withNormalizedEngineConfig(tab.patch.graph),
         created_at: tab.patch.created_at,
@@ -2693,6 +2699,7 @@ function normalizePatch(patch: Patch): EditablePatch {
     id: patch.id,
     name: patch.name,
     description: patch.description,
+    is_template: patch.is_template === true,
     schema_version: patch.schema_version,
     graph: withNormalizedEngineConfig(patch.graph),
     created_at: patch.created_at,
@@ -2704,6 +2711,7 @@ type EmbeddedPerformancePatchDefinition = {
   sourcePatchId: string;
   name: string;
   description: string;
+  is_template: boolean;
   schema_version: number;
   graph: PatchGraph;
 };
@@ -2717,6 +2725,7 @@ function parseEmbeddedPerformancePatchDefinition(raw: unknown): EmbeddedPerforma
   const sourcePatchId = typeof record.sourcePatchId === "string" ? record.sourcePatchId.trim() : "";
   const name = typeof record.name === "string" ? record.name.trim() : "";
   const description = typeof record.description === "string" ? record.description : "";
+  const isTemplate = record.isTemplate === true || record.is_template === true;
   const schemaVersion =
     typeof record.schema_version === "number" && Number.isFinite(record.schema_version)
       ? Math.max(1, Math.round(record.schema_version))
@@ -2736,6 +2745,7 @@ function parseEmbeddedPerformancePatchDefinition(raw: unknown): EmbeddedPerforma
     sourcePatchId,
     name,
     description,
+    is_template: isTemplate,
     schema_version: schemaVersion,
     graph: withNormalizedEngineConfig(record.graph as PatchGraph)
   };
@@ -2801,6 +2811,7 @@ async function hydrateEmbeddedPerformancePatches(
     const importedPatch = await api.createPatch({
       name: definition.name,
       description: definition.description,
+      is_template: definition.is_template,
       schema_version: definition.schema_version,
       graph: definition.graph
     });
@@ -2832,8 +2843,13 @@ async function hydrateEmbeddedPerformancePatches(
   };
 }
 
-function defaultSequencerInstruments(patches: PatchListItem[], currentPatchId?: string): SequencerInstrumentBinding[] {
-  const patchId = patches[0]?.id ?? currentPatchId;
+function performablePatches(patches: PatchListItem[]): PatchListItem[] {
+  return patches.filter((patch) => patch.is_template !== true);
+}
+
+function defaultSequencerInstruments(patches: PatchListItem[], currentPatch?: EditablePatch): SequencerInstrumentBinding[] {
+  const availablePatches = performablePatches(patches);
+  const patchId = availablePatches[0]?.id ?? (currentPatch?.is_template === true ? undefined : currentPatch?.id);
   if (!patchId) {
     return [];
   }
@@ -2845,6 +2861,14 @@ function defaultSequencerInstruments(patches: PatchListItem[], currentPatchId?: 
       level: 10
     }
   ];
+}
+
+function sequencerInstrumentsForPerformablePatches(
+  bindings: SequencerInstrumentBinding[],
+  patches: PatchListItem[]
+): SequencerInstrumentBinding[] {
+  const availablePatchIds = new Set(performablePatches(patches).map((patch) => patch.id));
+  return bindings.filter((binding) => availablePatchIds.has(binding.patchId));
 }
 
 function nextAvailableMidiChannel(bindings: SequencerInstrumentBinding[]): number {
@@ -3431,7 +3455,7 @@ export const useAppStore = create<AppStore>((set, get) => {
           let activeInstrumentTabId = instrumentTabs[0].id;
           let sequencer = defaultSequencerState();
           let sequencerRuntime = sequencerRuntimeStateFromSequencer(sequencer);
-          let sequencerInstruments = defaultSequencerInstruments(patches, currentPatch.id);
+          let sequencerInstruments = defaultSequencerInstruments(patches, currentPatch);
           let currentPerformanceId: string | null = null;
           let performanceName = "Untitled Performance";
           let performanceDescription = "";
@@ -3465,8 +3489,9 @@ export const useAppStore = create<AppStore>((set, get) => {
               sequencer = normalizeSequencerState(payload.sequencer);
               sequencerRuntime = sequencerRuntimeStateFromSequencer(sequencer);
 
-              const availablePatchIds = new Set<string>(patches.map((patch) => patch.id));
-              const fallbackPatchId = patches[0]?.id ?? null;
+              const availableInstrumentPatches = performablePatches(patches);
+              const availablePatchIds = new Set<string>(availableInstrumentPatches.map((patch) => patch.id));
+              const fallbackPatchId = availableInstrumentPatches[0]?.id ?? null;
               sequencerInstruments = normalizePersistedSequencerInstruments(
                 payload.sequencerInstruments,
                 availablePatchIds,
@@ -3512,6 +3537,7 @@ export const useAppStore = create<AppStore>((set, get) => {
                 id: tab.patch.id,
                 name: tab.patch.name,
                 description: tab.patch.description,
+                is_template: tab.patch.is_template,
                 schema_version: tab.patch.schema_version,
                 graph: withNormalizedEngineConfig(tab.patch.graph),
                 created_at: tab.patch.created_at,
@@ -3608,7 +3634,10 @@ export const useAppStore = create<AppStore>((set, get) => {
 
     refreshPatches: async () => {
       const patches = await api.listPatches();
-      set({ patches });
+      set((state) => ({
+        patches,
+        sequencerInstruments: sequencerInstrumentsForPerformablePatches(state.sequencerInstruments, patches)
+      }));
       return patches;
     },
 
@@ -3624,11 +3653,13 @@ export const useAppStore = create<AppStore>((set, get) => {
         const performance = await api.getPerformance(performanceId);
         const state = get();
         const hydrated = await hydrateEmbeddedPerformancePatches(performance.config, state.patches);
-        const availablePatchIds = new Set(hydrated.patches.map((patch) => patch.id));
-        if (state.currentPatch.id) {
+        const availableInstrumentPatches = performablePatches(hydrated.patches);
+        const availablePatchIds = new Set(availableInstrumentPatches.map((patch) => patch.id));
+        if (state.currentPatch.id && state.currentPatch.is_template !== true) {
           availablePatchIds.add(state.currentPatch.id);
         }
-        const fallbackPatchId = hydrated.patches[0]?.id ?? state.currentPatch.id ?? null;
+        const fallbackPatchId =
+          availableInstrumentPatches[0]?.id ?? (state.currentPatch.is_template === true ? null : state.currentPatch.id ?? null);
         const parsed = parseSequencerConfigSnapshot(hydrated.snapshot, availablePatchIds, fallbackPatchId);
 
         set({
@@ -3654,12 +3685,30 @@ export const useAppStore = create<AppStore>((set, get) => {
       commitCurrentPatch(defaultEditablePatch());
     },
 
+    newPatchFromTemplate: (template) => {
+      const draft = defaultEditablePatch();
+      commitCurrentPatch({
+        ...draft,
+        description: template.description,
+        is_template: false,
+        graph: withNormalizedEngineConfig(JSON.parse(JSON.stringify(template.graph)) as PatchGraph)
+      });
+    },
+
     setCurrentPatchMeta: (name, description) => {
       const current = get().currentPatch;
       commitCurrentPatch({
         ...current,
         name,
         description
+      });
+    },
+
+    setCurrentPatchTemplate: (isTemplate) => {
+      const current = get().currentPatch;
+      commitCurrentPatch({
+        ...current,
+        is_template: isTemplate
       });
     },
 
@@ -3753,6 +3802,7 @@ export const useAppStore = create<AppStore>((set, get) => {
         const payload = {
           name: current.name,
           description: current.description,
+          is_template: current.is_template,
           schema_version: current.schema_version,
           graph: current.graph
         };
@@ -3770,8 +3820,8 @@ export const useAppStore = create<AppStore>((set, get) => {
 
         const hasKnownBindings = state.sequencerInstruments.length > 0;
         const sequencerInstruments = hasKnownBindings
-          ? state.sequencerInstruments
-          : defaultSequencerInstruments(patches, normalizedPatch.id);
+          ? sequencerInstrumentsForPerformablePatches(state.sequencerInstruments, patches)
+          : defaultSequencerInstruments(patches, normalizedPatch);
 
         commitCurrentPatch(normalizedPatch, {
           patches,
@@ -3813,6 +3863,7 @@ export const useAppStore = create<AppStore>((set, get) => {
             sourcePatchId: patch.id,
             name: patch.name,
             description: patch.description,
+            isTemplate: patch.is_template,
             schema_version: patch.schema_version,
             graph: patch.graph
           }))
@@ -3847,7 +3898,9 @@ export const useAppStore = create<AppStore>((set, get) => {
 
     addSequencerInstrument: () => {
       const state = get();
-      const patchId = state.patches[0]?.id ?? state.currentPatch.id;
+      const availableInstrumentPatches = performablePatches(state.patches);
+      const patchId =
+        availableInstrumentPatches[0]?.id ?? (state.currentPatch.is_template === true ? undefined : state.currentPatch.id);
       if (!patchId) {
         set({ error: "Save at least one instrument patch before adding it to the sequencer." });
         return;
@@ -3921,11 +3974,13 @@ export const useAppStore = create<AppStore>((set, get) => {
     applySequencerConfigSnapshot: (snapshot) => {
       try {
         const state = get();
-        const availablePatchIds = new Set(state.patches.map((patch) => patch.id));
-        if (state.currentPatch.id) {
+        const availableInstrumentPatches = performablePatches(state.patches);
+        const availablePatchIds = new Set(availableInstrumentPatches.map((patch) => patch.id));
+        if (state.currentPatch.id && state.currentPatch.is_template !== true) {
           availablePatchIds.add(state.currentPatch.id);
         }
-        const fallbackPatchId = state.patches[0]?.id ?? state.currentPatch.id ?? null;
+        const fallbackPatchId =
+          availableInstrumentPatches[0]?.id ?? (state.currentPatch.is_template === true ? null : state.currentPatch.id ?? null);
         const parsed = parseSequencerConfigSnapshot(snapshot, availablePatchIds, fallbackPatchId);
 
         set({
@@ -7122,6 +7177,7 @@ export const useAppStore = create<AppStore>((set, get) => {
           persisted = await api.createPatch({
             name: nextPatch.name,
             description: nextPatch.description,
+            is_template: nextPatch.is_template,
             schema_version: nextPatch.schema_version,
             graph: normalizedGraph
           });
@@ -7141,8 +7197,8 @@ export const useAppStore = create<AppStore>((set, get) => {
         const state = get();
         const hasKnownBindings = state.sequencerInstruments.length > 0;
         const sequencerInstruments = hasKnownBindings
-          ? state.sequencerInstruments
-          : defaultSequencerInstruments(patches, resolvedPatch.id);
+          ? sequencerInstrumentsForPerformablePatches(state.sequencerInstruments, patches)
+          : defaultSequencerInstruments(patches, resolvedPatch);
 
         commitCurrentPatch(resolvedPatch, {
           patches,
@@ -7242,6 +7298,7 @@ export const useAppStore = create<AppStore>((set, get) => {
         const temporaryPatch = await api.createPatch({
           name: patchName,
           description: current.description,
+          is_template: false,
           schema_version: current.schema_version,
           graph: current.graph
         });

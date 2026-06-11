@@ -16,6 +16,7 @@ from backend.app.core.config import Settings
 from backend.app.engine.csound_worker import CsoundWorker
 from backend.app.engine.midi_scheduler import ClockDomainMapping
 from backend.app.engine.session_runtime import RuntimeSession
+from backend.app.models.patch import PatchDocument
 from backend.app.models.session import (
     BROWSER_CLOCK_MAX_BLOCKS_PER_REQUEST,
     BROWSER_CLOCK_MAX_QUEUE_WATERMARK_MS,
@@ -158,9 +159,9 @@ class SessionService:
         instruments = self._resolve_session_instruments(request)
 
         try:
-            # Verify patches exist before creating runtime.
+            # Verify patches exist and are playable before creating runtime.
             for assignment in instruments:
-                self._patch_service.get_patch_document(assignment.patch_id)
+                self._validate_runtime_patch(self._patch_service.get_patch_document(assignment.patch_id))
 
             midi_inputs = self._midi_service.list_inputs()
             default_midi = self._resolve_default_midi_input_id(midi_inputs)
@@ -261,7 +262,7 @@ class SessionService:
         runtime = await self._get_session(session_id)
         targets = [
             PatchInstrumentTarget(
-                patch=self._patch_service.get_patch_document(assignment.patch_id),
+                patch=self._validate_runtime_patch(self._patch_service.get_patch_document(assignment.patch_id)),
                 midi_channel=assignment.midi_channel,
             )
             for assignment in runtime.instruments
@@ -1286,6 +1287,15 @@ class SessionService:
             created_at=runtime.created_at,
             started_at=runtime.started_at,
         )
+
+    @staticmethod
+    def _validate_runtime_patch(patch: PatchDocument) -> PatchDocument:
+        if patch.is_template:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Patch '{patch.name}' is a template and cannot be used as a performance instrument.",
+            )
+        return patch
 
     @staticmethod
     def _resolve_session_instruments(request: SessionCreateRequest) -> list[SessionInstrumentAssignment]:

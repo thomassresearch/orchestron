@@ -425,13 +425,14 @@ function buildDrummerRowTrackConfigs(
 }
 
 function patchCompileSignatureFor(
-  patch: { id?: string; name: string; description: string; schema_version: number; graph: PatchGraph },
+  patch: { id?: string; name: string; description: string; is_template: boolean; schema_version: number; graph: PatchGraph },
   tabId: string
 ): string {
   return JSON.stringify({
     patchKey: patch.id ?? `draft:${tabId}`,
     name: patch.name,
     description: patch.description,
+    is_template: patch.is_template,
     schema_version: patch.schema_version,
     graph: patch.graph
   });
@@ -453,6 +454,11 @@ type AppCopy = {
   patchCompileStatusCompiled: string;
   patchCompileStatusPending: string;
   patchCompileStatusErrors: string;
+  templateToken: string;
+  newFromTemplateDialogTitle: string;
+  newFromTemplateDialogDescription: string;
+  templateSelectLabel: string;
+  createFromTemplate: string;
   instrumentTabTitle: (index: number) => string;
   confirmDeleteSelection: (count: number) => string;
   deleteSelectionDialogListLabel: string;
@@ -559,6 +565,11 @@ const APP_COPY: Record<GuiLanguage, AppCopy> = {
     patchCompileStatusCompiled: "(compiled)",
     patchCompileStatusPending: "(pending changes)",
     patchCompileStatusErrors: "(errors)",
+    templateToken: "TEMPLATE",
+    newFromTemplateDialogTitle: "New from template",
+    newFromTemplateDialogDescription: "Choose a saved template to seed a new instrument draft.",
+    templateSelectLabel: "Template",
+    createFromTemplate: "Create",
     instrumentTabTitle: (index) => `Instrument ${index}`,
     confirmDeleteSelection: (count) => `Delete ${count} elements?`,
     deleteSelectionDialogListLabel: "The following elements will be deleted:",
@@ -610,6 +621,11 @@ const APP_COPY: Record<GuiLanguage, AppCopy> = {
     patchCompileStatusCompiled: "(kompiliert)",
     patchCompileStatusPending: "(aenderungen offen)",
     patchCompileStatusErrors: "(fehler)",
+    templateToken: "TEMPLATE",
+    newFromTemplateDialogTitle: "Neu aus Template",
+    newFromTemplateDialogDescription: "Waehle ein gespeichertes Template als Basis fuer einen neuen Instrument-Entwurf.",
+    templateSelectLabel: "Template",
+    createFromTemplate: "Erstellen",
     instrumentTabTitle: (index) => `Instrument ${index}`,
     confirmDeleteSelection: (count) => `${count} Elemente loeschen?`,
     deleteSelectionDialogListLabel: "Die folgenden Elemente werden geloescht:",
@@ -662,6 +678,11 @@ const APP_COPY: Record<GuiLanguage, AppCopy> = {
     patchCompileStatusCompiled: "(compile)",
     patchCompileStatusPending: "(modifications en attente)",
     patchCompileStatusErrors: "(erreurs)",
+    templateToken: "TEMPLATE",
+    newFromTemplateDialogTitle: "Nouveau depuis template",
+    newFromTemplateDialogDescription: "Choisissez un template enregistre comme base pour un nouveau brouillon.",
+    templateSelectLabel: "Template",
+    createFromTemplate: "Creer",
     instrumentTabTitle: (index) => `Instrument ${index}`,
     confirmDeleteSelection: (count) => `Supprimer ${count} elements ?`,
     deleteSelectionDialogListLabel: "Les elements suivants seront supprimes :",
@@ -716,6 +737,11 @@ const APP_COPY: Record<GuiLanguage, AppCopy> = {
     patchCompileStatusCompiled: "(compilado)",
     patchCompileStatusPending: "(cambios pendientes)",
     patchCompileStatusErrors: "(errores)",
+    templateToken: "TEMPLATE",
+    newFromTemplateDialogTitle: "Nuevo desde template",
+    newFromTemplateDialogDescription: "Elige un template guardado como base para un nuevo borrador de instrumento.",
+    templateSelectLabel: "Template",
+    createFromTemplate: "Crear",
     instrumentTabTitle: (index) => `Instrumento ${index}`,
     confirmDeleteSelection: (count) => `Eliminar ${count} elementos?`,
     deleteSelectionDialogListLabel: "Se eliminaran los siguientes elementos:",
@@ -906,7 +932,9 @@ export default function App() {
   const closeInstrumentTab = useAppStore((state) => state.closeInstrumentTab);
   const setActiveInstrumentTab = useAppStore((state) => state.setActiveInstrumentTab);
   const newPatch = useAppStore((state) => state.newPatch);
+  const newPatchFromTemplate = useAppStore((state) => state.newPatchFromTemplate);
   const setCurrentPatchMeta = useAppStore((state) => state.setCurrentPatchMeta);
+  const setCurrentPatchTemplate = useAppStore((state) => state.setCurrentPatchTemplate);
   const setCurrentPerformanceMeta = useAppStore((state) => state.setCurrentPerformanceMeta);
   const setGraph = useAppStore((state) => state.setGraph);
   const addNodeFromOpcode = useAppStore((state) => state.addNodeFromOpcode);
@@ -1073,6 +1101,8 @@ export default function App() {
   const [activeOpcodeDocumentation, setActiveOpcodeDocumentation] = useState<string | null>(null);
   const [sequencerError, setSequencerError] = useState<string | null>(null);
   const [instrumentPatchIoError, setInstrumentPatchIoError] = useState<string | null>(null);
+  const [newFromTemplateDialogOpen, setNewFromTemplateDialogOpen] = useState(false);
+  const [selectedTemplatePatchId, setSelectedTemplatePatchId] = useState("");
   const [lastCompiledPatchSignature, setLastCompiledPatchSignature] = useState<string | null>(null);
   const [lastFailedPatchSignature, setLastFailedPatchSignature] = useState<string | null>(null);
   const [runtimePanelCollapsed, setRuntimePanelCollapsed] = useState(false);
@@ -1355,6 +1385,11 @@ export default function App() {
 
   const onSavePatchWithCompileValidation = useCallback(() => {
     void (async () => {
+      if (currentPatch.is_template) {
+        await saveCurrentPatch();
+        return;
+      }
+
       const compileArtifact = await compileCurrentPatchWithStatus();
       if (!compileArtifact) {
         return;
@@ -1371,7 +1406,7 @@ export default function App() {
         patchCompileSignatureFor(latestState.currentPatch, latestState.activeInstrumentTabId)
       );
     })();
-  }, [compileCurrentPatchWithStatus, saveCurrentPatch]);
+  }, [compileCurrentPatchWithStatus, currentPatch.is_template, saveCurrentPatch]);
 
   const onCloneCurrentPatch = useCallback(() => {
     void (async () => {
@@ -1387,6 +1422,7 @@ export default function App() {
         const cloned = await api.createPatch({
           name: cloneName,
           description: currentPatch.description,
+          is_template: currentPatch.is_template,
           schema_version: currentPatch.schema_version,
           graph: currentPatch.graph
         });
@@ -1487,6 +1523,7 @@ export default function App() {
         sourcePatchId: currentPatch.id ?? activeInstrumentTabId,
         name: exportedPatchName,
         description: currentPatch.description,
+        isTemplate: currentPatch.is_template,
         schema_version: currentPatch.schema_version,
         graph: currentPatch.graph
       };
@@ -1526,11 +1563,45 @@ export default function App() {
     () => patches.filter((patch) => !openInstrumentPatchIds.has(patch.id)),
     [openInstrumentPatchIds, patches]
   );
+  const templatePatches = useMemo(() => patches.filter((patch) => patch.is_template === true), [patches]);
+  const openNewFromTemplateDialog = useCallback(() => {
+    if (templatePatches.length === 0) {
+      setInstrumentPatchIoError("no templates available yet");
+      return;
+    }
+    setSelectedTemplatePatchId(templatePatches[0].id);
+    setNewFromTemplateDialogOpen(true);
+    setInstrumentPatchIoError(null);
+  }, [templatePatches]);
+
+  const closeNewFromTemplateDialog = useCallback(() => {
+    setNewFromTemplateDialogOpen(false);
+  }, []);
+
+  const confirmNewFromTemplate = useCallback(() => {
+    void (async () => {
+      const templateId = selectedTemplatePatchId || templatePatches[0]?.id;
+      if (!templateId) {
+        setNewFromTemplateDialogOpen(false);
+        setInstrumentPatchIoError("no templates available yet");
+        return;
+      }
+
+      const template = await api.getPatch(templateId);
+      newPatchFromTemplate(template);
+      setNewFromTemplateDialogOpen(false);
+      setInstrumentPatchIoError(null);
+    })().catch((error) => {
+      setInstrumentPatchIoError(error instanceof Error ? error.message : "Failed to create patch from template.");
+    });
+  }, [newPatchFromTemplate, selectedTemplatePatchId, templatePatches]);
   const instrumentTabItems = useMemo(
     () =>
       instrumentTabs.map((tab, index) => ({
         id: tab.id,
-        title: tab.patch.name.trim().length > 0 ? tab.patch.name : appCopy.instrumentTabTitle(index + 1)
+        title:
+          (tab.patch.name.trim().length > 0 ? tab.patch.name : appCopy.instrumentTabTitle(index + 1)) +
+          (tab.patch.is_template ? ` ${appCopy.templateToken}` : "")
       })),
     [appCopy, instrumentTabs]
   );
@@ -2453,9 +2524,10 @@ export default function App() {
         : appCopy.patchCompileStatusPending;
   const patchCompileBadgeClass =
     patchCompileBadge === "errors" ? "text-[11px] font-medium text-rose-300" : "text-[11px] font-medium text-orange-300";
+  const performableInstrumentPatches = useMemo(() => patches.filter((patch) => patch.is_template !== true), [patches]);
   const sequencerPageData = {
     guiLanguage,
-    patches,
+    patches: performableInstrumentPatches,
     performances,
     instrumentBindings: sequencerInstruments,
     sequencer: displayedSequencer,
@@ -2821,6 +2893,7 @@ export default function App() {
                 guiLanguage={guiLanguage}
                 patchName={currentPatch.name}
                 patchDescription={currentPatch.description}
+                patchIsTemplate={currentPatch.is_template}
                 patches={loadableInstrumentPatches}
                 currentPatchId={currentPatch.id}
                 loading={loading}
@@ -2831,10 +2904,12 @@ export default function App() {
                 onCloseTab={closeInstrumentTab}
                 onPatchNameChange={(name) => setCurrentPatchMeta(name, currentPatch.description)}
                 onPatchDescriptionChange={(description) => setCurrentPatchMeta(currentPatch.name, description)}
+                onPatchTemplateChange={setCurrentPatchTemplate}
                 onSelectPatch={(patchId) => {
                   void loadPatch(patchId);
                 }}
                 onNewPatch={newPatch}
+                onNewFromTemplate={openNewFromTemplateDialog}
                 onClonePatch={onCloneCurrentPatch}
                 onDeletePatch={onDeleteCurrentPatch}
                 onSavePatch={() => {
@@ -2917,6 +2992,7 @@ export default function App() {
                     guiLanguage={guiLanguage}
                     graph={currentPatch.graph}
                     graphLabel={currentPatch.name.trim().length > 0 ? currentPatch.name.trim() : "Untitled Patch"}
+                    graphBadgeLabel={currentPatch.is_template ? appCopy.templateToken : undefined}
                     opcodes={opcodes}
                     viewportKey={`${activeInstrumentTabId}:${currentPatch.id ?? "draft"}`}
                     onGraphChange={onGraphChange}
@@ -2991,6 +3067,62 @@ export default function App() {
           </Suspense>
         )}
       </div>
+
+      {newFromTemplateDialogOpen && (
+        <div
+          className="fixed inset-0 z-[1300] flex items-center justify-center bg-slate-950/75 p-4"
+          onMouseDown={closeNewFromTemplateDialog}
+        >
+          <section
+            className="w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 p-4 shadow-2xl"
+            role="dialog"
+            aria-modal="true"
+            aria-label={appCopy.newFromTemplateDialogTitle}
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <h2 className="font-display text-lg font-semibold text-slate-100">
+              {appCopy.newFromTemplateDialogTitle}
+            </h2>
+            <p className="mt-1 text-sm text-slate-300">{appCopy.newFromTemplateDialogDescription}</p>
+            <label className="mt-4 flex flex-col gap-1">
+              <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-slate-400">
+                {appCopy.templateSelectLabel}
+              </span>
+              <select
+                className="rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 font-body text-sm text-slate-100 outline-none ring-accent/40 transition focus:ring"
+                value={
+                  selectedTemplatePatchId && templatePatches.some((patch) => patch.id === selectedTemplatePatchId)
+                    ? selectedTemplatePatchId
+                    : templatePatches[0]?.id ?? ""
+                }
+                onChange={(event) => setSelectedTemplatePatchId(event.target.value)}
+              >
+                {templatePatches.map((patch) => (
+                  <option key={`template-${patch.id}`} value={patch.id}>
+                    {patch.name} {appCopy.templateToken}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeNewFromTemplateDialog}
+                className="rounded-md border border-slate-500 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-300 hover:text-white"
+              >
+                {appCopy.cancel}
+              </button>
+              <button
+                type="button"
+                onClick={confirmNewFromTemplate}
+                className="rounded-md border border-accent/60 bg-accent/15 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-accent transition hover:bg-accent/25"
+              >
+                {appCopy.createFromTemplate}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
 
       {deleteSelectionDialog && (
         <ConfirmationListDialog

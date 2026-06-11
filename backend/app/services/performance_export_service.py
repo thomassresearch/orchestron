@@ -221,12 +221,17 @@ class PerformanceExportService:
                 raise ValueError(
                     f"Performance instrument references missing patch definition '{instrument.patch_id}'."
                 )
+            if definition.is_template:
+                raise ValueError(
+                    f"Patch definition '{definition.name}' is a template and cannot be exported as a performance instrument."
+                )
             targets.append(
                 PatchInstrumentTarget(
                     patch=PatchDocument(
                         id=definition.source_patch_id,
                         name=definition.name,
                         description=definition.description,
+                        is_template=definition.is_template,
                         schema_version=definition.schema_version,
                         graph=definition.graph.model_copy(deep=True),
                     ),

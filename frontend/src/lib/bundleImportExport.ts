@@ -23,6 +23,8 @@ export interface ExportedPatchDefinition {
   sourcePatchId: string;
   name: string;
   description: string;
+  isTemplate?: boolean;
+  is_template?: boolean;
   schema_version: number;
   graph: PatchGraph;
 }
@@ -49,6 +51,7 @@ export interface PerformanceCsdExportRequestPayload {
 type PatchWritePayload = {
   name: string;
   description: string;
+  is_template: boolean;
   schema_version: number;
   graph: PatchGraph;
 };
@@ -106,6 +109,7 @@ export function parseExportedPatchDefinition(raw: unknown): ExportedPatchDefinit
   const sourcePatchId = typeof raw.sourcePatchId === "string" ? raw.sourcePatchId.trim() : "";
   const name = typeof raw.name === "string" ? raw.name.trim() : "";
   const description = typeof raw.description === "string" ? raw.description : "";
+  const isTemplate = raw.isTemplate === true || raw.is_template === true;
   const schemaVersion =
     typeof raw.schema_version === "number" && Number.isFinite(raw.schema_version)
       ? Math.max(1, Math.round(raw.schema_version))
@@ -119,6 +123,7 @@ export function parseExportedPatchDefinition(raw: unknown): ExportedPatchDefinit
     sourcePatchId,
     name,
     description,
+    isTemplate,
     schema_version: schemaVersion,
     graph: raw.graph as unknown as PatchGraph
   };
@@ -182,6 +187,7 @@ export function buildPerformanceExportPayload(params: {
     sourcePatchId: patch.id,
     name: patch.name,
     description: patch.description,
+    isTemplate: patch.is_template,
     schema_version: patch.schema_version,
     graph: patch.graph
   }));
@@ -302,6 +308,7 @@ export function resolvePatchImportOperation(
   const payload: PatchWritePayload = {
     name: incomingName,
     description: definition.description,
+    is_template: definition.isTemplate === true || definition.is_template === true,
     schema_version: definition.schema_version,
     graph: definition.graph
   };
@@ -342,7 +349,7 @@ export function hasResolvableImportedPerformance(
   config: SequencerConfigSnapshot,
   patches: PatchListItem[]
 ): boolean {
-  const knownPatchIds = new Set(patches.map((patch) => patch.id));
+  const knownPatchIds = new Set(patches.filter((patch) => patch.is_template !== true).map((patch) => patch.id));
   return config.instruments.some((instrument) => knownPatchIds.has(instrument.patchId));
 }
 

@@ -432,6 +432,8 @@ export interface SequencerConfigSnapshot {
     sourcePatchId: string;
     name: string;
     description: string;
+    isTemplate?: boolean;
+    is_template?: boolean;
     schema_version: number;
     graph: PatchGraph;
   }>;
@@ -552,6 +554,7 @@ export interface EditablePatchSnapshot {
   id?: string;
   name: string;
   description: string;
+  is_template: boolean;
   schema_version: number;
   graph: PatchGraph;
   created_at?: string;
@@ -810,6 +813,7 @@ export interface Patch {
   id: string;
   name: string;
   description: string;
+  is_template: boolean;
   schema_version: number;
   graph: PatchGraph;
   created_at: string;
@@ -820,6 +824,7 @@ export interface PatchListItem {
   id: string;
   name: string;
   description: string;
+  is_template: boolean;
   schema_version: number;
   updated_at: string;
 }

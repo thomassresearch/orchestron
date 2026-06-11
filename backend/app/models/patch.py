@@ -427,6 +427,7 @@ class PatchGraph(BaseModel):
 class PatchBase(BaseModel):
     name: str = Field(min_length=1, max_length=128)
     description: str = Field(default="", max_length=2_048)
+    is_template: bool = False
     schema_version: int = 1
     graph: PatchGraph
 
@@ -443,6 +444,7 @@ class PatchCreateRequest(PatchBase):
 class PatchUpdateRequest(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=128)
     description: str | None = Field(default=None, max_length=2_048)
+    is_template: bool | None = None
     graph: PatchGraph | None = None
     schema_version: int | None = None
 
@@ -464,6 +466,7 @@ class PatchListItem(BaseModel):
     id: str
     name: str
     description: str
+    is_template: bool = False
     schema_version: int
     updated_at: datetime
 

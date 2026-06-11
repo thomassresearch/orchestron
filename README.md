@@ -28,7 +28,7 @@ The application includes multilingual UI/help content and integrated help pages,
 
 The instrument design area combines patch metadata, an opcode catalog, and a visual graph editor. You build an instrument by selecting Csound opcodes and connecting them into a signal/control graph.
 
-Designed instruments can be documented with patch descriptions up to 2048 characters and exported for reuse, including export to a `.csd` file.
+Designed instruments can be documented with patch descriptions up to 2048 characters and exported for reuse, including export to a `.csd` file. Patches can also be marked as templates so incomplete starter graphs can be saved without compile validation, then reused through `New from template`; template patches remain editable in Instrument Design but are hidden from the Perform instrument rack.
 
 ![Instrument Design](screenshots/instrument_design.png)
 

@@ -144,6 +144,7 @@ export const api = {
   createPatch: (payload: {
     name: string;
     description: string;
+    is_template: boolean;
     schema_version: number;
     graph: PatchGraph;
   }) => request<Patch>("/patches", { method: "POST", body: JSON.stringify(payload) }),
@@ -156,6 +157,7 @@ export const api = {
     payload: {
       name?: string;
       description?: string;
+      is_template?: boolean;
       schema_version?: number;
       graph?: PatchGraph;
     }
