@@ -190,17 +190,29 @@ export function PatchToolbar(props: PatchToolbarProps) {
       </div>
 
       <div className="grid grid-cols-1 gap-2 lg:grid-cols-6">
-        <label className="flex flex-col gap-1 lg:col-span-2">
-          <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-slate-400">{copy.patchName}</span>
-          <input
-            className="rounded-lg border border-slate-600 bg-slate-950 px-3 py-1.5 font-body text-sm text-slate-100 outline-none ring-accent/40 transition focus:ring"
-            value={props.patchName}
-            onChange={(event) => props.onPatchNameChange(event.target.value)}
-            placeholder={copy.patchNamePlaceholder}
-          />
-        </label>
+        <div className="flex h-full flex-col gap-2 lg:col-span-2">
+          <label className="flex flex-col gap-1">
+            <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-slate-400">{copy.patchName}</span>
+            <input
+              className="rounded-lg border border-slate-600 bg-slate-950 px-3 py-1.5 font-body text-sm text-slate-100 outline-none ring-accent/40 transition focus:ring"
+              value={props.patchName}
+              onChange={(event) => props.onPatchNameChange(event.target.value)}
+              placeholder={copy.patchNamePlaceholder}
+            />
+          </label>
 
-        <label className="flex flex-col gap-1 lg:col-span-2">
+          <label className="mt-auto flex h-7 items-end gap-2">
+            <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-slate-400">{copy.template}</span>
+            <input
+              type="checkbox"
+              checked={props.patchIsTemplate}
+              onChange={(event) => props.onPatchTemplateChange(event.target.checked)}
+              className="h-4 w-4 rounded border-slate-500 bg-slate-950 accent-accent"
+            />
+          </label>
+        </div>
+
+        <label className="flex flex-col gap-1 lg:col-span-3">
           <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-slate-400">{copy.description}</span>
           <textarea
             className="h-[4.5rem] resize-none rounded-lg border border-slate-600 bg-slate-950 px-3 py-1.5 font-body text-sm leading-5 text-slate-100 outline-none ring-accent/40 transition focus:ring"
@@ -211,16 +223,6 @@ export function PatchToolbar(props: PatchToolbarProps) {
             maxLength={PATCH_DESCRIPTION_MAX_LENGTH}
             placeholder={copy.descriptionPlaceholder}
             rows={3}
-          />
-        </label>
-
-        <label className="flex min-h-[4.5rem] flex-col justify-end gap-2 rounded-lg border border-slate-700 bg-slate-950/70 px-3 py-2">
-          <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-slate-400">{copy.template}</span>
-          <input
-            type="checkbox"
-            checked={props.patchIsTemplate}
-            onChange={(event) => props.onPatchTemplateChange(event.target.checked)}
-            className="h-4 w-4 rounded border-slate-500 bg-slate-950 accent-accent"
           />
         </label>
 
