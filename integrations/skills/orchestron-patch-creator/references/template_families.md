@@ -1,6 +1,6 @@
 # Template Families
 
-Choose a small family first. Add detail only when the description requires it.
+Choose a small family first. Add detail only when the description requires it. For original, detailed Csound opcode documentation, start at https://csound.com/docs/manual/PartReference.html.
 
 ## simple_osc
 
@@ -42,6 +42,8 @@ Use `vco2.mode` values from Csound `vco2` conventions. Common values: `0` sawtoo
 ## fm_pad
 
 Use for FM, phase modulation, glass, bells, metallic tones, evolving harmonic pads, and synth recipes with carrier/modulator language.
+
+`foscili` is suitable only for a single carrier/modulator pair. If the recipe has more than one modulator/operator affecting the carrier or operators modulating each other, do not approximate it with multiple audible `foscili` layers. Build an explicit `oscil3` FM graph instead, using audio-rate frequency modulation and modulation depth computed as `mod_index * modulator_frequency`.
 
 Default sources:
 

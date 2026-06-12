@@ -1,6 +1,6 @@
 # Core Opcode Reference
 
-Use these opcodes for the required patch spine.
+Use these opcodes for the required patch spine. For original, detailed Csound opcode documentation, start at https://csound.com/docs/manual/PartReference.html.
 
 ## cpsmidi
 
@@ -62,7 +62,7 @@ Outputs:
 
 Usage note: Use longer attack/release for pads; short attack and decay for plucks and basses.
 
-Required connections: connect `iatt`, `idec`, `islev`, and `irel` from separate `const_i.iout` sources. Attack, decay, and release are seconds; sustain is normalized from `0` to `1`.
+Required connections: connect `iatt`, `idec`, `islev`, and `irel` from separate `const_i.iout` sources because all four are i-rate inputs. Attack, decay, and release are seconds; sustain is normalized from `0` to `1`.
 
 ## k_mul
 

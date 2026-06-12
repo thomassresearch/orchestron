@@ -38,6 +38,7 @@ Use `--json` for agent-readable output and retry hints. If the backend is not ru
    - `references/opcodes_core.md` for required MIDI/envelope/gain/pan/output nodes.
    - `references/opcodes_synthesis.md` for source and synthesis opcodes.
    - `references/opcodes_effects.md` for filters, distortion, delay, and reverb.
+   - Use the original Csound opcode reference at https://csound.com/docs/manual/PartReference.html for detailed opcode semantics when the local reference is not enough.
 5. Write a structured patch spec.
 6. Run `spec validate`.
 7. Run `graph render` if you need to inspect graph JSON.
@@ -63,7 +64,9 @@ The CLI enforces these defaults in generated graphs:
 - Use `ampmidi` for played MIDI velocity.
 - Connect `ampmidi.iscal` from a `const_i` node with value `1.0`.
 - Use `madsr` for the main amplitude envelope.
-- Connect `madsr.iatt`, `madsr.idec`, `madsr.islev`, and `madsr.irel` from `const_i` nodes.
+- Connect `madsr.iatt`, `madsr.idec`, `madsr.islev`, and `madsr.irel` from `const_i` nodes because these are i-rate inputs.
+- Use `foscili` only for one carrier plus one modulator. It derives carrier and modulator frequencies from `kcps`, `xcar`, and `xmod`, with `kndx` as the modulation index.
+- For more than one FM modulator/operator, do not stack multiple audible `foscili` layers as a substitute. Build the FM graph explicitly with `oscil3`: convert or provide the carrier base frequency at audio rate, generate each modulator with `oscil3`, scale each modulator by its frequency deviation (`mod_index * modulator_frequency`, equivalent to max frequency deviation), sum the modulators, and feed the result into the carrier `oscil3.freq`.
 - Scale source amplitude with velocity and envelope before sound generation.
 - Use `pan2` to distribute mono signals to left/right.
 - End every generated graph with exactly one `outs` node.

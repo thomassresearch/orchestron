@@ -1,6 +1,6 @@
 # Patch Spec
 
-Use YAML or JSON. YAML is easier for authoring; JSON works without PyYAML. The CLI accepts either.
+Use YAML or JSON. YAML is easier for authoring; JSON works without PyYAML. The CLI accepts either. For original, detailed Csound opcode documentation, start at https://csound.com/docs/manual/PartReference.html.
 
 ## Top-Level Fields
 
@@ -16,7 +16,7 @@ Use YAML or JSON. YAML is easier for authoring; JSON works without PyYAML. The C
 
 ## Envelope
 
-The CLI always creates one `madsr` node and feeds its required ADSR inputs from explicit `const_i` nodes:
+The CLI always creates one `madsr` node and feeds its required i-rate ADSR inputs from explicit `const_i` nodes:
 
 ```yaml
 envelope:
@@ -41,9 +41,11 @@ The CLI also creates an `ampmidi` node and connects its required `iscal` input f
 
 ## Layers
 
-Supported source opcodes are `oscili`, `vco2`, `foscili`, `noise`, and `pinker`.
+Supported simple layer source opcodes are `oscili`, `vco2`, `foscili`, `noise`, and `pinker`.
 
 All pitch-aware layers receive `cpsmidi.kfreq`. All amplitude-aware layers receive velocity/envelope-scaled control amplitude.
+
+`foscili` layers are only appropriate for a two-oscillator FM pair: one carrier and one modulator. Do not use several audible `foscili` layers to imitate more than one FM modulator/operator. For multi-operator FM, update the graph explicitly with `oscil3` operators: audio-rate carrier base frequency, one `oscil3` per modulator, modulator amplitudes scaled to `mod_index * modulator_frequency`, summed modulation, and an audio-rate frequency input into the carrier `oscil3`.
 
 Layer examples:
 
@@ -72,6 +74,7 @@ Each layer can include `params` for exact Orchestron port IDs. Named aliases are
 - `foscili.mod_ratio` -> `xmod`
 - `foscili.mod_index` -> `kndx`
 - `foscili.table` -> `ifn`
+- `oscil3` explicit FM graphs use exact port IDs: `amp`, `freq`, `ifn`, and `iphs`.
 - `noise.color` -> `beta`
 
 ## Effects

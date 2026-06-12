@@ -1,6 +1,6 @@
 # Effects And Filter Opcode Reference
 
-Use these opcodes in the `effects` list. Effects run in listed order.
+Use these opcodes in the `effects` list. Effects run in listed order. For original, detailed Csound opcode documentation, start at https://csound.com/docs/manual/PartReference.html.
 
 ## butterlp
 

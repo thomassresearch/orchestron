@@ -2,6 +2,8 @@
 
 The CLI generates Orchestron patch graph JSON compatible with `backend/app/models/patch.py`.
 
+For original, detailed Csound opcode documentation, start at https://csound.com/docs/manual/PartReference.html.
+
 ## Required Spine
 
 Every generated patch includes:
@@ -28,6 +30,7 @@ Every generated patch includes:
 - Pitch-aware sources must receive `cpsmidi.kfreq`.
 - `ampmidi.iscal` must be connected from `const_i.iout` with value `1.0`.
 - `madsr.iatt`, `madsr.idec`, `madsr.islev`, and `madsr.irel` must each be connected from `const_i.iout`.
+- `foscili` represents exactly one carrier/modulator FM pair. Multi-operator FM graphs must use explicit `oscil3` operators and audio-rate frequency modulation instead of multiple audible `foscili` layers.
 
 ## Node IDs
 
