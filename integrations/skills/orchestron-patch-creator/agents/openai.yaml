@@ -1,0 +1,4 @@
+interface:
+  display_name: "Orchestron Patch Creator"
+  short_description: "Create Orchestron instrument patches."
+  default_prompt: "Use $orchestron-patch-creator to create an Orchestron instrument patch from this sound description."

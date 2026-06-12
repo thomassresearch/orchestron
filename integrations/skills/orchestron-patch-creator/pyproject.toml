@@ -1,0 +1,18 @@
+[project]
+name = "orchestron-patch-creator"
+version = "0.1.0"
+description = "CLI utilities for agentic Orchestron Instrument Design patch creation."
+requires-python = ">=3.13,<3.14"
+dependencies = [
+  "PyYAML>=6.0.3",
+]
+
+[project.scripts]
+orchestron_patch_cli = "orchestron_patch.cli.orchestron_patch_cli:main"
+
+[build-system]
+requires = ["hatchling>=1.25.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/orchestron_patch"]
