@@ -1,0 +1,1019 @@
+{
+  "sourcePatchId": "73dc1190-baaa-4566-90ec-bf714f500d12",
+  "name": "Lillian Frances Evolving FM Pad",
+  "description": "Playable evolving FM pad inspired by the Kilohearts/Lillian Frances tutorial: soft sine-carrier FM, slowly opening harmonic motion, chorus-like width, filtered highs, light saturation, and a long spacious tail. \nWorks best in Octaves 3-5: a deep, low drone sound at octave 3, getting brighter and powerful in octave 4 to 5. \n",
+  "isTemplate": false,
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "pitch_cpsmidi",
+        "opcode": "cpsmidi",
+        "params": {},
+        "position": {
+          "x": -133.043751502424,
+          "y": -83.29114615639783
+        }
+      },
+      {
+        "id": "velocity_ampmidi",
+        "opcode": "ampmidi",
+        "params": {
+          "iscal": 1
+        },
+        "position": {
+          "x": -103.33250779658553,
+          "y": 29.314549677073984
+        }
+      },
+      {
+        "id": "amp_madsr",
+        "opcode": "madsr",
+        "params": {
+          "iatt": 1.7,
+          "idec": 2.8,
+          "islev": 0.78,
+          "irel": 5,
+          "idel": 0,
+          "ireltim": -1
+        },
+        "position": {
+          "x": -124.48773529380557,
+          "y": 256.917483843863
+        }
+      },
+      {
+        "id": "amp_velocity_envelope",
+        "opcode": "k_mul",
+        "params": {},
+        "position": {
+          "x": 153.90278350561857,
+          "y": 180.7908496260643
+        }
+      },
+      {
+        "id": "fm_core_gain",
+        "opcode": "const_k",
+        "params": {
+          "value": 0.46
+        },
+        "position": {
+          "x": 164.6241880953312,
+          "y": -106.47792588919398
+        }
+      },
+      {
+        "id": "fm_core_amp",
+        "opcode": "k_mul",
+        "params": {},
+        "position": {
+          "x": 425.2549022436142,
+          "y": -1.8178031966089918
+        }
+      },
+      {
+        "id": "fm_sweep_gain",
+        "opcode": "const_k",
+        "params": {
+          "value": 0.3
+        },
+        "position": {
+          "x": 106.28105431795123,
+          "y": 399.14378494024277
+        }
+      },
+      {
+        "id": "fm_sweep_amp",
+        "opcode": "k_mul",
+        "params": {},
+        "position": {
+          "x": 430.04999148728444,
+          "y": 297.4040545799688
+        }
+      },
+      {
+        "id": "fm_shimmer_gain",
+        "opcode": "const_k",
+        "params": {
+          "value": 0.16
+        },
+        "position": {
+          "x": 116.41830861568454,
+          "y": 563.289208933711
+        }
+      },
+      {
+        "id": "fm_shimmer_amp",
+        "opcode": "k_mul",
+        "params": {},
+        "position": {
+          "x": 369.5368077035424,
+          "y": 556.4206424332936
+        }
+      },
+      {
+        "id": "effect_1_moogladder2",
+        "opcode": "moogladder2",
+        "params": {
+          "xcf": 5200,
+          "xres": 0.22
+        },
+        "position": {
+          "x": 1329.6575576792818,
+          "y": 121.49903472421673
+        }
+      },
+      {
+        "id": "effect_2_butterlp",
+        "opcode": "butterlp",
+        "params": {
+          "xfreq": 8200
+        },
+        "position": {
+          "x": 1436.1241707205772,
+          "y": -131.0432850942015
+        }
+      },
+      {
+        "id": "effect_3_distort1",
+        "opcode": "distort1",
+        "params": {
+          "kpregain": 1.18,
+          "kpostgain": 0.82,
+          "kshape1": 0.08,
+          "kshape2": 0.04,
+          "imode": 1
+        },
+        "position": {
+          "x": 1586.977686679674,
+          "y": 218.53164343775975
+        }
+      },
+      {
+        "id": "effect_4_flanger",
+        "opcode": "flanger",
+        "params": {
+          "adel": 0.0042,
+          "kfeedback": 0.24,
+          "imaxd": 0.022
+        },
+        "position": {
+          "x": 1808.8886680289593,
+          "y": 542.5900324319138
+        }
+      },
+      {
+        "id": "effect_5_reverb2",
+        "opcode": "reverb2",
+        "params": {
+          "krvt": 4.6,
+          "khf": 5800
+        },
+        "position": {
+          "x": 2044.0756910319496,
+          "y": -55.96183903420287
+        }
+      },
+      {
+        "id": "output_pan2",
+        "opcode": "pan2",
+        "params": {
+          "xp": 0.5,
+          "imode": 0
+        },
+        "position": {
+          "x": 2230.3716630646695,
+          "y": 219.49582488821974
+        }
+      },
+      {
+        "id": "output_outs",
+        "opcode": "outs",
+        "params": {},
+        "position": {
+          "x": 2445.6220250003894,
+          "y": 180.28102509284224
+        }
+      },
+      {
+        "id": "ampmidi_scale_const_i",
+        "opcode": "const_i",
+        "params": {
+          "value": 1
+        },
+        "position": {
+          "x": -401.15145502248566,
+          "y": -39.920473824227244
+        }
+      },
+      {
+        "id": "madsr_attack_const_i",
+        "opcode": "const_i",
+        "params": {
+          "value": 1.7
+        },
+        "position": {
+          "x": -468.2440605669435,
+          "y": 112.82381463376647
+        }
+      },
+      {
+        "id": "madsr_decay_const_i",
+        "opcode": "const_i",
+        "params": {
+          "value": 2.8
+        },
+        "position": {
+          "x": -522.4430192302491,
+          "y": 228.3550783344448
+        }
+      },
+      {
+        "id": "madsr_sustain_const_i",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.78
+        },
+        "position": {
+          "x": -536.5941343042674,
+          "y": 357.24188755872086
+        }
+      },
+      {
+        "id": "madsr_release_const_i",
+        "opcode": "const_i",
+        "params": {
+          "value": 5
+        },
+        "position": {
+          "x": -480.7163359597592,
+          "y": 482.9150969454708
+        }
+      },
+      {
+        "id": "8d838e7b-9300-4311-842a-80820578c278",
+        "opcode": "const_i",
+        "params": {
+          "value": "750"
+        },
+        "position": {
+          "x": 1074.6785772976648,
+          "y": -63.02154984746292
+        }
+      },
+      {
+        "id": "4a8e2531-012f-4e10-83e7-fdb44c99b186",
+        "opcode": "const_i",
+        "params": {
+          "value": ".87"
+        },
+        "position": {
+          "x": 1021.4780778351583,
+          "y": 286.8588043837319
+        }
+      },
+      {
+        "id": "23d7a483-8fae-47c2-a01f-72e3fc75785a",
+        "opcode": "const_i",
+        "params": {
+          "value": "2"
+        },
+        "position": {
+          "x": 1230.3407767680433,
+          "y": 688.076430882506
+        }
+      },
+      {
+        "id": "c61ff1f1-fec7-4e98-a8a6-fe41c49d193a",
+        "opcode": "const_i",
+        "params": {
+          "value": "10"
+        },
+        "position": {
+          "x": 1304.8211244037984,
+          "y": 836.4207294415709
+        }
+      },
+      {
+        "id": "e2ca3051-ff3b-42fb-85b7-aa71d81d9f77",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.22"
+        },
+        "position": {
+          "x": 1331.6211658093596,
+          "y": 548.041158548193
+        }
+      },
+      {
+        "id": "f334c21c-dc3b-435c-8399-74eb212ee23a",
+        "opcode": "const_i",
+        "params": {
+          "value": "2.2"
+        },
+        "position": {
+          "x": 1669.6793381128116,
+          "y": -121.19572739275017
+        }
+      },
+      {
+        "id": "dc99b789-d499-4caa-bf66-e05f25679323",
+        "opcode": "GEN",
+        "params": {},
+        "position": {
+          "x": 467.33977319710914,
+          "y": -127.28964716015078
+        }
+      },
+      {
+        "id": "2f3f48fe-fdaf-441b-8028-bbdb8a83b643",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.2"
+        },
+        "position": {
+          "x": 1857.8745994685135,
+          "y": 269.5629912288252
+        }
+      },
+      {
+        "id": "1cd52c22-828c-4dcf-8f1e-69948f26ae44",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.5"
+        },
+        "position": {
+          "x": 2128.45850212561,
+          "y": 544.5925020817853
+        }
+      },
+      {
+        "id": "fm_base_freq_audio",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 146.5438239857451,
+          "y": 47.84164876507019
+        }
+      },
+      {
+        "id": "fm_mod1_depth_audio",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 429.96486362069845,
+          "y": 247.54738207161427
+        }
+      },
+      {
+        "id": "fm_mod2_depth_audio",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 566.2711752072752,
+          "y": 744.7035679669012
+        }
+      },
+      {
+        "id": "fm_mod1_depth_hz",
+        "opcode": "a_mul",
+        "params": {},
+        "position": {
+          "x": 667.6607008686728,
+          "y": 185.62836828771145
+        }
+      },
+      {
+        "id": "fm_mod2_depth_hz",
+        "opcode": "a_mul",
+        "params": {},
+        "position": {
+          "x": 783.4289820282144,
+          "y": 613.4561783024701
+        }
+      },
+      {
+        "id": "fm_mod1_oscil3",
+        "opcode": "oscil3",
+        "params": {
+          "iphs": 0
+        },
+        "position": {
+          "x": 846.0279171501131,
+          "y": 369.4425504366423
+        }
+      },
+      {
+        "id": "fm_mod2_oscil3",
+        "opcode": "oscil3",
+        "params": {
+          "iphs": 0.25
+        },
+        "position": {
+          "x": 985.9676525215692,
+          "y": 798.9161574401219
+        }
+      },
+      {
+        "id": "fm_mod_sum",
+        "opcode": "mix2",
+        "params": {},
+        "position": {
+          "x": 1098.6843410470226,
+          "y": 475.3394238384391
+        }
+      },
+      {
+        "id": "fm_carrier_freq",
+        "opcode": "mix2",
+        "params": {},
+        "position": {
+          "x": 973.8743451802649,
+          "y": 117.35016093253624
+        }
+      },
+      {
+        "id": "fm_carrier_oscil3",
+        "opcode": "oscil3",
+        "params": {
+          "iphs": 0
+        },
+        "position": {
+          "x": 790.343998649287,
+          "y": -133.36813548555375
+        }
+      },
+      {
+        "id": "37969888-d64e-4402-bb8b-af2b1f9adcd7",
+        "opcode": "lfo",
+        "params": {
+          "kamp": 0.5,
+          "kcps": 5,
+          "itype": 0
+        },
+        "position": {
+          "x": 1588.5266130099374,
+          "y": 897.4116549226928
+        }
+      },
+      {
+        "id": "6c67945e-8d32-4267-9ea2-fae94cd865a2",
+        "opcode": "const_i",
+        "params": {
+          "value": "1"
+        },
+        "position": {
+          "x": 1208.4159132853138,
+          "y": 985.749949245301
+        }
+      },
+      {
+        "id": "fe94cc05-1c0e-4ae1-8f4a-b9f04f36dd49",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.342"
+        },
+        "position": {
+          "x": 1024.8016737443168,
+          "y": 1127.4503437405322
+        }
+      },
+      {
+        "id": "f5f311ec-3ef6-49ac-8444-ddeb0b0d68e5",
+        "opcode": "const_i",
+        "params": {
+          "value": 0
+        },
+        "position": {
+          "x": 1351.1651821859255,
+          "y": 1169.7583276954706
+        }
+      },
+      {
+        "id": "3b84fa2f-98c9-44b6-94c3-6f04c3053516",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.6"
+        },
+        "position": {
+          "x": 1560.3402844805996,
+          "y": 738.2380775602912
+        }
+      },
+      {
+        "id": "78d0939f-22f4-4fb4-8a37-45f597f51495",
+        "opcode": "xtratim",
+        "params": {
+          "iextradur": 0.2
+        },
+        "position": {
+          "x": -165.38242281089714,
+          "y": 648.9420688640763
+        }
+      },
+      {
+        "id": "5a7aa66b-81ad-4b3a-a54a-be846a3ad4e7",
+        "opcode": "const_i",
+        "params": {
+          "value": "4"
+        },
+        "position": {
+          "x": -526.5115617893913,
+          "y": 697.2179345475965
+        }
+      },
+      {
+        "id": "7ccd7150-e2b3-4664-85bc-9f5484400d9c",
+        "opcode": "upsamp",
+        "params": {
+          "ksig": 0
+        },
+        "position": {
+          "x": 1771.7628352297834,
+          "y": 62.69174979988744
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "velocity_ampmidi",
+        "from_port_id": "iamp",
+        "to_node_id": "amp_velocity_envelope",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "amp_madsr",
+        "from_port_id": "kenv",
+        "to_node_id": "amp_velocity_envelope",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "fm_core_amp",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "fm_core_gain",
+        "from_port_id": "kout",
+        "to_node_id": "fm_core_amp",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "fm_sweep_amp",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "fm_sweep_gain",
+        "from_port_id": "kout",
+        "to_node_id": "fm_sweep_amp",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "fm_shimmer_amp",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "fm_shimmer_gain",
+        "from_port_id": "kout",
+        "to_node_id": "fm_shimmer_amp",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "effect_1_moogladder2",
+        "from_port_id": "aout",
+        "to_node_id": "effect_2_butterlp",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "effect_2_butterlp",
+        "from_port_id": "aout",
+        "to_node_id": "effect_3_distort1",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "effect_3_distort1",
+        "from_port_id": "aout",
+        "to_node_id": "effect_4_flanger",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "effect_4_flanger",
+        "from_port_id": "aout",
+        "to_node_id": "effect_5_reverb2",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "effect_5_reverb2",
+        "from_port_id": "aout",
+        "to_node_id": "output_pan2",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "ampmidi_scale_const_i",
+        "from_port_id": "iout",
+        "to_node_id": "velocity_ampmidi",
+        "to_port_id": "iscal"
+      },
+      {
+        "from_node_id": "madsr_attack_const_i",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "iatt"
+      },
+      {
+        "from_node_id": "madsr_decay_const_i",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "idec"
+      },
+      {
+        "from_node_id": "madsr_sustain_const_i",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "islev"
+      },
+      {
+        "from_node_id": "madsr_release_const_i",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "irel"
+      },
+      {
+        "from_node_id": "8d838e7b-9300-4311-842a-80820578c278",
+        "from_port_id": "iout",
+        "to_node_id": "effect_1_moogladder2",
+        "to_port_id": "xcf"
+      },
+      {
+        "from_node_id": "4a8e2531-012f-4e10-83e7-fdb44c99b186",
+        "from_port_id": "iout",
+        "to_node_id": "effect_1_moogladder2",
+        "to_port_id": "xres"
+      },
+      {
+        "from_node_id": "8d838e7b-9300-4311-842a-80820578c278",
+        "from_port_id": "iout",
+        "to_node_id": "effect_2_butterlp",
+        "to_port_id": "xfreq"
+      },
+      {
+        "from_node_id": "23d7a483-8fae-47c2-a01f-72e3fc75785a",
+        "from_port_id": "iout",
+        "to_node_id": "effect_3_distort1",
+        "to_port_id": "kpregain"
+      },
+      {
+        "from_node_id": "c61ff1f1-fec7-4e98-a8a6-fe41c49d193a",
+        "from_port_id": "iout",
+        "to_node_id": "effect_3_distort1",
+        "to_port_id": "kpostgain"
+      },
+      {
+        "from_node_id": "e2ca3051-ff3b-42fb-85b7-aa71d81d9f77",
+        "from_port_id": "iout",
+        "to_node_id": "effect_3_distort1",
+        "to_port_id": "kshape1"
+      },
+      {
+        "from_node_id": "e2ca3051-ff3b-42fb-85b7-aa71d81d9f77",
+        "from_port_id": "iout",
+        "to_node_id": "effect_3_distort1",
+        "to_port_id": "kshape2"
+      },
+      {
+        "from_node_id": "f334c21c-dc3b-435c-8399-74eb212ee23a",
+        "from_port_id": "iout",
+        "to_node_id": "effect_5_reverb2",
+        "to_port_id": "krvt"
+      },
+      {
+        "from_node_id": "2f3f48fe-fdaf-441b-8028-bbdb8a83b643",
+        "from_port_id": "iout",
+        "to_node_id": "effect_5_reverb2",
+        "to_port_id": "khf"
+      },
+      {
+        "from_node_id": "output_pan2",
+        "from_port_id": "aleft",
+        "to_node_id": "output_outs",
+        "to_port_id": "left"
+      },
+      {
+        "from_node_id": "output_pan2",
+        "from_port_id": "aright",
+        "to_node_id": "output_outs",
+        "to_port_id": "right"
+      },
+      {
+        "from_node_id": "1cd52c22-828c-4dcf-8f1e-69948f26ae44",
+        "from_port_id": "iout",
+        "to_node_id": "output_pan2",
+        "to_port_id": "xp"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "fm_base_freq_audio",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "fm_sweep_amp",
+        "from_port_id": "kout",
+        "to_node_id": "fm_mod1_depth_audio",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "fm_base_freq_audio",
+        "from_port_id": "aout",
+        "to_node_id": "fm_mod1_depth_hz",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "fm_mod1_depth_audio",
+        "from_port_id": "aout",
+        "to_node_id": "fm_mod1_depth_hz",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "fm_mod1_depth_hz",
+        "from_port_id": "aout",
+        "to_node_id": "fm_mod1_oscil3",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "fm_base_freq_audio",
+        "from_port_id": "aout",
+        "to_node_id": "fm_mod1_oscil3",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "dc99b789-d499-4caa-bf66-e05f25679323",
+        "from_port_id": "ift",
+        "to_node_id": "fm_mod1_oscil3",
+        "to_port_id": "ifn"
+      },
+      {
+        "from_node_id": "fm_shimmer_amp",
+        "from_port_id": "kout",
+        "to_node_id": "fm_mod2_depth_audio",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "fm_base_freq_audio",
+        "from_port_id": "aout",
+        "to_node_id": "fm_mod2_depth_hz",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "fm_mod2_depth_audio",
+        "from_port_id": "aout",
+        "to_node_id": "fm_mod2_depth_hz",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "fm_mod2_depth_hz",
+        "from_port_id": "aout",
+        "to_node_id": "fm_mod2_oscil3",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "fm_base_freq_audio",
+        "from_port_id": "aout",
+        "to_node_id": "fm_mod2_oscil3",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "dc99b789-d499-4caa-bf66-e05f25679323",
+        "from_port_id": "ift",
+        "to_node_id": "fm_mod2_oscil3",
+        "to_port_id": "ifn"
+      },
+      {
+        "from_node_id": "fm_mod1_oscil3",
+        "from_port_id": "asig",
+        "to_node_id": "fm_mod_sum",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "fm_mod2_oscil3",
+        "from_port_id": "asig",
+        "to_node_id": "fm_mod_sum",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "fm_base_freq_audio",
+        "from_port_id": "aout",
+        "to_node_id": "fm_carrier_freq",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "fm_mod_sum",
+        "from_port_id": "aout",
+        "to_node_id": "fm_carrier_freq",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "fm_core_amp",
+        "from_port_id": "kout",
+        "to_node_id": "fm_carrier_oscil3",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "fm_carrier_freq",
+        "from_port_id": "aout",
+        "to_node_id": "fm_carrier_oscil3",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "dc99b789-d499-4caa-bf66-e05f25679323",
+        "from_port_id": "ift",
+        "to_node_id": "fm_carrier_oscil3",
+        "to_port_id": "ifn"
+      },
+      {
+        "from_node_id": "fm_carrier_oscil3",
+        "from_port_id": "asig",
+        "to_node_id": "effect_1_moogladder2",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "amp_madsr",
+        "from_port_id": "kenv",
+        "to_node_id": "effect_1_moogladder2",
+        "to_port_id": "xcf"
+      },
+      {
+        "from_node_id": "37969888-d64e-4402-bb8b-af2b1f9adcd7",
+        "from_port_id": "kout",
+        "to_node_id": "effect_4_flanger",
+        "to_port_id": "adel"
+      },
+      {
+        "from_node_id": "6c67945e-8d32-4267-9ea2-fae94cd865a2",
+        "from_port_id": "iout",
+        "to_node_id": "37969888-d64e-4402-bb8b-af2b1f9adcd7",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "fe94cc05-1c0e-4ae1-8f4a-b9f04f36dd49",
+        "from_port_id": "iout",
+        "to_node_id": "37969888-d64e-4402-bb8b-af2b1f9adcd7",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "f5f311ec-3ef6-49ac-8444-ddeb0b0d68e5",
+        "from_port_id": "iout",
+        "to_node_id": "37969888-d64e-4402-bb8b-af2b1f9adcd7",
+        "to_port_id": "itype"
+      },
+      {
+        "from_node_id": "3b84fa2f-98c9-44b6-94c3-6f04c3053516",
+        "from_port_id": "iout",
+        "to_node_id": "effect_4_flanger",
+        "to_port_id": "kfeedback"
+      },
+      {
+        "from_node_id": "5a7aa66b-81ad-4b3a-a54a-be846a3ad4e7",
+        "from_port_id": "iout",
+        "to_node_id": "78d0939f-22f4-4fb4-8a37-45f597f51495",
+        "to_port_id": "iextradur"
+      },
+      {
+        "from_node_id": "amp_madsr",
+        "from_port_id": "kenv",
+        "to_node_id": "7ccd7150-e2b3-4664-85bc-9f5484400d9c",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "7ccd7150-e2b3-4664-85bc-9f5484400d9c",
+        "from_port_id": "aout",
+        "to_node_id": "output_pan2",
+        "to_port_id": "asig"
+      }
+    ],
+    "ui_layout": {
+      "gen_nodes": {
+        "dc99b789-d499-4caa-bf66-e05f25679323": {
+          "mode": "ftgen",
+          "tableNumber": 1,
+          "startTime": 0,
+          "tableSize": 16384,
+          "routineNumber": 10,
+          "routineName": "",
+          "normalize": true,
+          "harmonicAmplitudes": [
+            1
+          ],
+          "gen11HarmonicCount": 8,
+          "gen11LowestHarmonic": 1,
+          "gen11Multiplier": 1,
+          "valueList": [
+            1
+          ],
+          "segmentStartValue": 0,
+          "segments": [
+            {
+              "length": 16384,
+              "value": 1
+            }
+          ],
+          "gen17Pairs": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 127,
+              "y": 127
+            }
+          ],
+          "gen20WindowType": 1,
+          "gen20Max": 1,
+          "gen20Opt": 0.5,
+          "sampleAsset": null,
+          "samplePath": "",
+          "sampleSkipTime": 0,
+          "sampleFormat": 0,
+          "sampleChannel": 0,
+          "rawArgsText": ""
+        }
+      },
+      "input_formulas": {
+        "fm_mod1_oscil3::freq": {
+          "expression": "in1*0.5032",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "fm_base_freq_audio",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "fm_mod2_oscil3::freq": {
+          "expression": "in1 * 0.256432",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "fm_base_freq_audio",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "effect_1_moogladder2::xcf": {
+          "expression": "in1 * (0.5*in2 + 0.5)",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "8d838e7b-9300-4311-842a-80820578c278",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "in2",
+              "from_node_id": "amp_madsr",
+              "from_port_id": "kenv"
+            }
+          ]
+        },
+        "effect_4_flanger::adel": {
+          "expression": "0.005 * (0.5*in1 + 0.5)",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "37969888-d64e-4402-bb8b-af2b1f9adcd7",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "output_pan2::asig": {
+          "expression": "in1 * in2",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "effect_5_reverb2",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "in2",
+              "from_node_id": "7ccd7150-e2b3-4664-85bc-9f5484400d9c",
+              "from_port_id": "aout"
+            }
+          ]
+        }
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 750,
+      "ksmps": 64,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1
+    }
+  }
+}
