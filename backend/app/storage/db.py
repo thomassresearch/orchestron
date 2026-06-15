@@ -18,6 +18,7 @@ class PatchRecord(Base):
     name = Column(String(128), nullable=False)
     description = Column(Text, nullable=False, default="")
     is_template = Column(Boolean, nullable=False, default=False)
+    always_on = Column(Boolean, nullable=False, default=False)
     schema_version = Column(Integer, nullable=False, default=1)
     graph_json = Column(Text, nullable=False)
     created_at = Column(DateTime(timezone=True), nullable=False)
@@ -52,16 +53,23 @@ class Database:
     def create_all(self) -> None:
         Base.metadata.create_all(self.engine)
         self._ensure_patch_template_column()
+        self._ensure_patch_always_on_column()
 
     def _ensure_patch_template_column(self) -> None:
+        self._ensure_patch_boolean_column("is_template")
+
+    def _ensure_patch_always_on_column(self) -> None:
+        self._ensure_patch_boolean_column("always_on")
+
+    def _ensure_patch_boolean_column(self, column_name: str) -> None:
         inspector = inspect(self.engine)
         if "patches" not in inspector.get_table_names():
             return
         column_names = {column["name"] for column in inspector.get_columns("patches")}
-        if "is_template" in column_names:
+        if column_name in column_names:
             return
         with self.engine.begin() as connection:
-            connection.exec_driver_sql("ALTER TABLE patches ADD COLUMN is_template BOOLEAN NOT NULL DEFAULT 0")
+            connection.exec_driver_sql(f"ALTER TABLE patches ADD COLUMN {column_name} BOOLEAN NOT NULL DEFAULT 0")
 
     @contextmanager
     def session(self) -> Session:

@@ -231,6 +231,9 @@ function normalizeInstrumentLevel(level: number): number {
 function instrumentLevelByChannel(bindings: SequencerInstrumentBinding[]): Map<number, number> {
   const levelMap = new Map<number, number>();
   for (const binding of bindings) {
+    if (binding.midiChannel <= 0) {
+      continue;
+    }
     const channel = normalizeMidiChannel(binding.midiChannel);
     levelMap.set(channel, normalizeInstrumentLevel(binding.level));
   }
@@ -425,7 +428,15 @@ function buildDrummerRowTrackConfigs(
 }
 
 function patchCompileSignatureFor(
-  patch: { id?: string; name: string; description: string; is_template: boolean; schema_version: number; graph: PatchGraph },
+  patch: {
+    id?: string;
+    name: string;
+    description: string;
+    is_template: boolean;
+    always_on: boolean;
+    schema_version: number;
+    graph: PatchGraph;
+  },
   tabId: string
 ): string {
   return JSON.stringify({
@@ -433,6 +444,7 @@ function patchCompileSignatureFor(
     name: patch.name,
     description: patch.description,
     is_template: patch.is_template,
+    always_on: patch.always_on,
     schema_version: patch.schema_version,
     graph: patch.graph
   });
@@ -935,6 +947,7 @@ export default function App() {
   const newPatchFromTemplate = useAppStore((state) => state.newPatchFromTemplate);
   const setCurrentPatchMeta = useAppStore((state) => state.setCurrentPatchMeta);
   const setCurrentPatchTemplate = useAppStore((state) => state.setCurrentPatchTemplate);
+  const setCurrentPatchAlwaysOn = useAppStore((state) => state.setCurrentPatchAlwaysOn);
   const setCurrentPerformanceMeta = useAppStore((state) => state.setCurrentPerformanceMeta);
   const setGraph = useAppStore((state) => state.setGraph);
   const addNodeFromOpcode = useAppStore((state) => state.addNodeFromOpcode);
@@ -949,6 +962,7 @@ export default function App() {
   const updateSequencerInstrumentPatch = useAppStore((state) => state.updateSequencerInstrumentPatch);
   const updateSequencerInstrumentChannel = useAppStore((state) => state.updateSequencerInstrumentChannel);
   const updateSequencerInstrumentLevel = useAppStore((state) => state.updateSequencerInstrumentLevel);
+  const updateSequencerInstrumentEffectRoute = useAppStore((state) => state.updateSequencerInstrumentEffectRoute);
   const buildSequencerConfigSnapshot = useAppStore((state) => state.buildSequencerConfigSnapshot);
   const applySequencerConfigSnapshot = useAppStore((state) => state.applySequencerConfigSnapshot);
   const pushEvent = useAppStore((state) => state.pushEvent);
@@ -1423,6 +1437,7 @@ export default function App() {
           name: cloneName,
           description: currentPatch.description,
           is_template: currentPatch.is_template,
+          always_on: currentPatch.always_on,
           schema_version: currentPatch.schema_version,
           graph: currentPatch.graph
         });
@@ -1524,6 +1539,7 @@ export default function App() {
         name: exportedPatchName,
         description: currentPatch.description,
         isTemplate: currentPatch.is_template,
+        alwaysOn: currentPatch.always_on,
         schema_version: currentPatch.schema_version,
         graph: currentPatch.graph
       };
@@ -2101,11 +2117,15 @@ export default function App() {
 
     if (activeSessionInstruments.length > 0) {
       for (const instrument of activeSessionInstruments) {
-        channels.add(Math.max(1, Math.min(16, Math.round(instrument.midi_channel))));
+        if (instrument.midi_channel > 0) {
+          channels.add(Math.max(1, Math.min(16, Math.round(instrument.midi_channel))));
+        }
       }
     } else {
       for (const instrument of sequencerInstruments) {
-        channels.add(Math.max(1, Math.min(16, Math.round(instrument.midiChannel))));
+        if (instrument.midiChannel > 0) {
+          channels.add(Math.max(1, Math.min(16, Math.round(instrument.midiChannel))));
+        }
       }
     }
 
@@ -2546,6 +2566,7 @@ export default function App() {
     onInstrumentPatchChange: updateSequencerInstrumentPatch,
     onInstrumentChannelChange: updateSequencerInstrumentChannel,
     onInstrumentLevelChange: updateSequencerInstrumentLevel,
+    onInstrumentEffectRouteChange: updateSequencerInstrumentEffectRoute,
     onStartInstruments: onStartInstrumentEngine,
     onStopInstruments: onStopInstrumentEngine
   };
@@ -2894,6 +2915,7 @@ export default function App() {
                 patchName={currentPatch.name}
                 patchDescription={currentPatch.description}
                 patchIsTemplate={currentPatch.is_template}
+                patchAlwaysOn={currentPatch.always_on}
                 patches={loadableInstrumentPatches}
                 currentPatchId={currentPatch.id}
                 loading={loading}
@@ -2905,6 +2927,7 @@ export default function App() {
                 onPatchNameChange={(name) => setCurrentPatchMeta(name, currentPatch.description)}
                 onPatchDescriptionChange={(description) => setCurrentPatchMeta(currentPatch.name, description)}
                 onPatchTemplateChange={setCurrentPatchTemplate}
+                onPatchAlwaysOnChange={setCurrentPatchAlwaysOn}
                 onSelectPatch={(patchId) => {
                   void loadPatch(patchId);
                 }}

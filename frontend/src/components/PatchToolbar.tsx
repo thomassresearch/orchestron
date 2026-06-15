@@ -10,6 +10,7 @@ interface PatchToolbarProps {
   patchName: string;
   patchDescription: string;
   patchIsTemplate: boolean;
+  patchAlwaysOn: boolean;
   patches: PatchListItem[];
   currentPatchId?: string;
   loading: boolean;
@@ -21,6 +22,7 @@ interface PatchToolbarProps {
   onPatchNameChange: (value: string) => void;
   onPatchDescriptionChange: (value: string) => void;
   onPatchTemplateChange: (value: boolean) => void;
+  onPatchAlwaysOnChange: (value: boolean) => void;
   onSelectPatch: (patchId: string) => void;
   onNewPatch: () => void;
   onNewFromTemplate: () => void;
@@ -42,6 +44,8 @@ type PatchToolbarCopy = {
   descriptionPlaceholder: string;
   template: string;
   templateToken: string;
+  alwaysOn: string;
+  alwaysOnToken: string;
   loadPatch: string;
   currentPatch: string;
   newPatch: string;
@@ -65,6 +69,8 @@ const PATCH_TOOLBAR_COPY: Record<GuiLanguage, PatchToolbarCopy> = {
     descriptionPlaceholder: "Warm filter-swept lead",
     template: "Template?",
     templateToken: "TEMPLATE",
+    alwaysOn: "Always On?",
+    alwaysOnToken: "ALWAYS ON",
     loadPatch: "Load Patch",
     currentPatch: "Current",
     newPatch: "New",
@@ -86,6 +92,8 @@ const PATCH_TOOLBAR_COPY: Record<GuiLanguage, PatchToolbarCopy> = {
     descriptionPlaceholder: "Warmer Filter-Sweep-Lead",
     template: "Template?",
     templateToken: "TEMPLATE",
+    alwaysOn: "Immer an?",
+    alwaysOnToken: "IMMER AN",
     loadPatch: "Patch laden",
     currentPatch: "Aktuell",
     newPatch: "Neu",
@@ -107,6 +115,8 @@ const PATCH_TOOLBAR_COPY: Record<GuiLanguage, PatchToolbarCopy> = {
     descriptionPlaceholder: "Lead chaud avec sweep de filtre",
     template: "Template ?",
     templateToken: "TEMPLATE",
+    alwaysOn: "Toujours actif ?",
+    alwaysOnToken: "TOUJOURS ACTIF",
     loadPatch: "Charger patch",
     currentPatch: "Actuel",
     newPatch: "Nouveau",
@@ -128,6 +138,8 @@ const PATCH_TOOLBAR_COPY: Record<GuiLanguage, PatchToolbarCopy> = {
     descriptionPlaceholder: "Lead calido con barrido de filtro",
     template: "Template?",
     templateToken: "TEMPLATE",
+    alwaysOn: "Siempre activo?",
+    alwaysOnToken: "SIEMPRE ACTIVO",
     loadPatch: "Cargar patch",
     currentPatch: "Actual",
     newPatch: "Nuevo",
@@ -201,15 +213,26 @@ export function PatchToolbar(props: PatchToolbarProps) {
             />
           </label>
 
-          <label className="mt-auto flex h-7 items-end gap-2">
-            <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-slate-400">{copy.template}</span>
-            <input
-              type="checkbox"
-              checked={props.patchIsTemplate}
-              onChange={(event) => props.onPatchTemplateChange(event.target.checked)}
-              className="h-4 w-4 rounded border-slate-500 bg-slate-950 accent-accent"
-            />
-          </label>
+          <div className="mt-auto flex flex-wrap items-end gap-x-4 gap-y-1">
+            <label className="flex h-7 items-end gap-2">
+              <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-slate-400">{copy.template}</span>
+              <input
+                type="checkbox"
+                checked={props.patchIsTemplate}
+                onChange={(event) => props.onPatchTemplateChange(event.target.checked)}
+                className="h-4 w-4 rounded border-slate-500 bg-slate-950 accent-accent"
+              />
+            </label>
+            <label className="flex h-7 items-end gap-2">
+              <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-slate-400">{copy.alwaysOn}</span>
+              <input
+                type="checkbox"
+                checked={props.patchAlwaysOn}
+                onChange={(event) => props.onPatchAlwaysOnChange(event.target.checked)}
+                className="h-4 w-4 rounded border-slate-500 bg-slate-950 accent-accent"
+              />
+            </label>
+          </div>
         </div>
 
         <label className="flex flex-col gap-1 lg:col-span-3">
@@ -242,6 +265,7 @@ export function PatchToolbar(props: PatchToolbarProps) {
               <option key={patch.id} value={patch.id}>
                 {patch.name}
                 {patch.is_template ? ` ${copy.templateToken}` : ""}
+                {patch.always_on ? ` ${copy.alwaysOnToken}` : ""}
               </option>
             ))}
           </select>

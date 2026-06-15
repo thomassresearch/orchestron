@@ -428,6 +428,7 @@ class PatchBase(BaseModel):
     name: str = Field(min_length=1, max_length=128)
     description: str = Field(default="", max_length=2_048)
     is_template: bool = False
+    always_on: bool = False
     schema_version: int = 1
     graph: PatchGraph
 
@@ -445,6 +446,7 @@ class PatchUpdateRequest(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=128)
     description: str | None = Field(default=None, max_length=2_048)
     is_template: bool | None = None
+    always_on: bool | None = None
     graph: PatchGraph | None = None
     schema_version: int | None = None
 
@@ -467,6 +469,9 @@ class PatchListItem(BaseModel):
     name: str
     description: str
     is_template: bool = False
+    always_on: bool = False
+    audio_inlet_names: list[str] = Field(default_factory=list)
+    audio_outlet_names: list[str] = Field(default_factory=list)
     schema_version: int
     updated_at: datetime
 

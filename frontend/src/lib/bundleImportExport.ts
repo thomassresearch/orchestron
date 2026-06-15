@@ -25,6 +25,8 @@ export interface ExportedPatchDefinition {
   description: string;
   isTemplate?: boolean;
   is_template?: boolean;
+  alwaysOn?: boolean;
+  always_on?: boolean;
   schema_version: number;
   graph: PatchGraph;
 }
@@ -52,6 +54,7 @@ type PatchWritePayload = {
   name: string;
   description: string;
   is_template: boolean;
+  always_on: boolean;
   schema_version: number;
   graph: PatchGraph;
 };
@@ -110,6 +113,7 @@ export function parseExportedPatchDefinition(raw: unknown): ExportedPatchDefinit
   const name = typeof raw.name === "string" ? raw.name.trim() : "";
   const description = typeof raw.description === "string" ? raw.description : "";
   const isTemplate = raw.isTemplate === true || raw.is_template === true;
+  const alwaysOn = raw.alwaysOn === true || raw.always_on === true;
   const schemaVersion =
     typeof raw.schema_version === "number" && Number.isFinite(raw.schema_version)
       ? Math.max(1, Math.round(raw.schema_version))
@@ -124,6 +128,7 @@ export function parseExportedPatchDefinition(raw: unknown): ExportedPatchDefinit
     name,
     description,
     isTemplate,
+    alwaysOn,
     schema_version: schemaVersion,
     graph: raw.graph as unknown as PatchGraph
   };
@@ -188,6 +193,7 @@ export function buildPerformanceExportPayload(params: {
     name: patch.name,
     description: patch.description,
     isTemplate: patch.is_template,
+    alwaysOn: patch.always_on,
     schema_version: patch.schema_version,
     graph: patch.graph
   }));
@@ -309,6 +315,7 @@ export function resolvePatchImportOperation(
     name: incomingName,
     description: definition.description,
     is_template: definition.isTemplate === true || definition.is_template === true,
+    always_on: definition.alwaysOn === true || definition.always_on === true,
     schema_version: definition.schema_version,
     graph: definition.graph
   };

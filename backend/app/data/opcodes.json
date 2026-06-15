@@ -188,6 +188,31 @@
     "icon_filename": "const_k.svg"
   },
   {
+    "name": "const_s",
+    "category": "constants",
+    "description": "String constant value.",
+    "documentation_markdown": "### `const_s`\n\nString constant value. The value must use only lowercase letters (`a-z`), digits (`0-9`), and underscores, must begin with a lowercase letter, and may be at most 50 characters long.\n\n**Reference**\n- [Csound opcode overview](https://csound.com/docs/manual/PartOpcodesOverview.html)",
+    "documentation_url": "https://csound.com/docs/manual/PartOpcodesOverview.html",
+    "inputs": [],
+    "outputs": [
+      {
+        "id": "sout",
+        "name": "sOut",
+        "signal_type": "S",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": ""
+      }
+    ],
+    "template": "{sout} = {value}",
+    "tags": [
+      "source",
+      "string"
+    ],
+    "icon_filename": "const_s.svg"
+  },
+  {
     "name": "comb",
     "category": "delay",
     "description": "Comb filter / feedback delay.",

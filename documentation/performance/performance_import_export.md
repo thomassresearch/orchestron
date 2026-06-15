@@ -44,7 +44,8 @@ This ZIP contains:
 
 - A compiled `.csd` with every non-template instrument currently used in the performance rack
 - Offline render settings forced to `sr = 48000` and `ksmps = 1`
-- A finite `f 0 ...` score duration sized for the exported arranger playback
+- Always-on effect instruments started with Csound `alwayson`
+- A finite `f 0 ...` score duration sized for the exported arranger playback plus a release-tail buffer
 - The arranger playback rendered as a `.mid` file from beginning to arrangement end
 - Uploaded bundled sample audio / SoundFont files used by the exported instruments
 - A `README.txt` with the exact Csound command line needed to render the package

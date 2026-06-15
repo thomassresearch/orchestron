@@ -87,9 +87,17 @@ class SessionState(StrEnum):
     ERROR = "error"
 
 
+class SessionEffectRoute(BaseModel):
+    source_id: str = Field(min_length=1, max_length=128)
+    channel: str = Field(min_length=1, max_length=128)
+
+
 class SessionInstrumentAssignment(BaseModel):
+    id: str | None = Field(default=None, min_length=1, max_length=128)
     patch_id: str = Field(min_length=1)
-    midi_channel: int = Field(default=1, ge=1, le=16)
+    midi_channel: int = Field(default=1, ge=0, le=16)
+    effect_source_ids: list[str] = Field(default_factory=list, max_length=16)
+    effect_routes: list[SessionEffectRoute] = Field(default_factory=list, max_length=64)
 
 
 class SessionCreateRequest(BaseModel):
@@ -100,12 +108,6 @@ class SessionCreateRequest(BaseModel):
     def validate_instrument_selection(self) -> "SessionCreateRequest":
         if not self.instruments and not self.patch_id:
             raise ValueError("Either patch_id or instruments must be provided when creating a session.")
-
-        seen_channels: set[int] = set()
-        for assignment in self.instruments:
-            if assignment.midi_channel in seen_channels:
-                raise ValueError(f"MIDI channel '{assignment.midi_channel}' is assigned more than once.")
-            seen_channels.add(assignment.midi_channel)
         return self
 
 

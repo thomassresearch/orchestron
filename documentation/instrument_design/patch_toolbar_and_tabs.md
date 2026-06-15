@@ -26,6 +26,7 @@ The toolbar includes:
 - `Patch Name` is the display name used in the patch library and performance rack dropdowns for normal patches.
 - `Description` is a three-line patch note field and accepts up to 2048 characters.
 - `Template?` marks the patch as a reusable starter graph. Template patches show a `TEMPLATE` token beside their name and are excluded from Perform rack instrument choices.
+- `Always On?` marks the patch as an effect-style instrument. It will run continuously when explicitly added to the Perform rack instead of waiting for MIDI note events.
 - Metadata updates affect the current tab immediately, but they are not stored in the patch library until you save.
 
 ## Patch Library Loading
@@ -50,7 +51,7 @@ The toolbar includes:
 ### Clone
 
 - Creates a new saved patch by duplicating the current patch graph and metadata.
-- Preserves the `Template?` flag from the source patch.
+- Preserves the `Template?` and `Always On?` flags from the source patch.
 - If the name already exists, Orchestron generates a `(... copy)` style name.
 - The cloned patch is loaded automatically after creation.
 
@@ -72,6 +73,7 @@ The toolbar includes:
 - If compile succeeds, persists the patch to the backend patch library.
 - If compile fails, save is blocked and the patch remains unsaved.
 - Template patches skip compile validation so incomplete starter graphs can be saved.
+- Always-on patches still save as normal patch definitions; they become continuous effects only after they are added to the Perform rack.
 
 ### Export / Import
 

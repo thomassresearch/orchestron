@@ -35,6 +35,7 @@ An instrument bundle contains:
 - patch name
 - patch description
 - template flag
+- always-on flag
 - schema version
 - full patch graph (`nodes`, `connections`, `ui_layout`, `engine_config`)
 

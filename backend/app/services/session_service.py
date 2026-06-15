@@ -159,9 +159,7 @@ class SessionService:
         instruments = self._resolve_session_instruments(request)
 
         try:
-            # Verify patches exist and are playable before creating runtime.
-            for assignment in instruments:
-                self._validate_runtime_patch(self._patch_service.get_patch_document(assignment.patch_id))
+            instruments = self._normalize_session_instruments_for_runtime(instruments)
 
             midi_inputs = self._midi_service.list_inputs()
             default_midi = self._resolve_default_midi_input_id(midi_inputs)
@@ -261,10 +259,7 @@ class SessionService:
         self._remember_running_loop()
         runtime = await self._get_session(session_id)
         targets = [
-            PatchInstrumentTarget(
-                patch=self._validate_runtime_patch(self._patch_service.get_patch_document(assignment.patch_id)),
-                midi_channel=assignment.midi_channel,
-            )
+            self._compile_target_for_assignment(assignment)
             for assignment in runtime.instruments
         ]
 
@@ -1305,6 +1300,92 @@ class SessionService:
             return [SessionInstrumentAssignment(patch_id=request.patch_id, midi_channel=1)]
         raise HTTPException(status_code=422, detail="Session requires at least one instrument patch.")
 
+    def _normalize_session_instruments_for_runtime(
+        self,
+        instruments: list[SessionInstrumentAssignment],
+    ) -> list[SessionInstrumentAssignment]:
+        normalized: list[SessionInstrumentAssignment] = []
+        seen_channels: set[int] = set()
+
+        for index, assignment in enumerate(instruments):
+            patch = self._validate_runtime_patch(self._patch_service.get_patch_document(assignment.patch_id))
+            assignment_id = assignment.id or f"rack-{index + 1}"
+            if patch.always_on:
+                source_ids = self._unique_effect_source_ids(assignment.effect_source_ids, assignment_id=assignment_id)
+                effect_routes = self._unique_effect_routes(assignment.effect_routes, assignment_id=assignment_id)
+                normalized.append(
+                    SessionInstrumentAssignment(
+                        id=assignment_id,
+                        patch_id=assignment.patch_id,
+                        midi_channel=0,
+                        effect_source_ids=source_ids,
+                        effect_routes=effect_routes,
+                    )
+                )
+                continue
+
+            midi_channel = int(assignment.midi_channel)
+            if midi_channel < 1 or midi_channel > 16:
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"Patch '{patch.name}' is not always-on and requires a MIDI channel from 1 to 16.",
+                )
+            if midi_channel in seen_channels:
+                raise HTTPException(status_code=422, detail=f"MIDI channel '{midi_channel}' is assigned more than once.")
+            seen_channels.add(midi_channel)
+            normalized.append(
+                SessionInstrumentAssignment(
+                    id=assignment_id,
+                    patch_id=assignment.patch_id,
+                    midi_channel=midi_channel,
+                    effect_source_ids=[],
+                    effect_routes=[],
+                )
+            )
+
+        if not normalized:
+            raise HTTPException(status_code=422, detail="Session requires at least one instrument patch.")
+        return normalized
+
+    @staticmethod
+    def _unique_effect_source_ids(source_ids: list[str], *, assignment_id: str) -> list[str]:
+        result: list[str] = []
+        seen: set[str] = set()
+        for source_id in source_ids:
+            normalized = source_id.strip()
+            if not normalized or normalized == assignment_id or normalized in seen:
+                continue
+            seen.add(normalized)
+            result.append(normalized)
+        return result
+
+    @staticmethod
+    def _unique_effect_routes(effect_routes: list[Any], *, assignment_id: str) -> list[Any]:
+        result: list[Any] = []
+        seen: set[tuple[str, str]] = set()
+        for route in effect_routes:
+            source_id = route.source_id.strip()
+            channel = route.channel.strip()
+            key = (source_id, channel)
+            if not source_id or not channel or source_id == assignment_id or key in seen:
+                continue
+            seen.add(key)
+            result.append(route.model_copy(update={"source_id": source_id, "channel": channel}))
+        return result
+
+    def _compile_target_for_assignment(self, assignment: SessionInstrumentAssignment) -> PatchInstrumentTarget:
+        patch = self._validate_runtime_patch(self._patch_service.get_patch_document(assignment.patch_id))
+        return PatchInstrumentTarget(
+            patch=patch,
+            midi_channel=0 if patch.always_on else assignment.midi_channel,
+            assignment_id=assignment.id,
+            always_on=patch.always_on,
+            effect_source_ids=tuple(assignment.effect_source_ids if patch.always_on else []),
+            effect_routes=tuple(
+                (route.source_id, route.channel) for route in assignment.effect_routes if patch.always_on
+            ),
+        )
+
     async def _publish(self, session_id: str, event_type: str, payload: dict[str, Any]) -> None:
         event = SessionEvent(session_id=session_id, type=event_type, payload=payload)
         await self._event_bus.publish(event)
@@ -1523,6 +1604,7 @@ class SessionService:
                 {
                     max(1, min(16, int(assignment.midi_channel)))
                     for assignment in runtime.instruments
+                    if int(assignment.midi_channel) > 0
                 }
             )
         )

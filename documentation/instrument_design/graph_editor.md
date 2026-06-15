@@ -13,7 +13,7 @@ The graph editor is the central visual patching surface for instrument design.
 - Deletion of selected nodes/connections via explicit delete action
 - Zoom controls and fit-to-graph navigation
 - Node category color coding
-- Inline constant value editing for `const_a`, `const_i`, `const_k`
+- Inline constant value editing for `const_a`, `const_i`, `const_k`, `const_s`
 
 ## Canvas Navigation
 
@@ -93,7 +93,7 @@ Deletion flow:
 
 ### Constant Nodes
 
-The constant opcodes (`const_a`, `const_i`, `const_k`) provide inline editable values directly on the node.
+The constant opcodes (`const_a`, `const_i`, `const_k`, `const_s`) provide inline editable values directly on the node. `const_s` accepts lowercase letters, digits, and underscores, must begin with a lowercase letter, and is limited to 50 characters.
 
 ### Documentation Button (`?`)
 

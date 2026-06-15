@@ -75,6 +75,7 @@ import type {
   DrummerSequencerStepCount,
   DrummerSequencerTrackState,
   EngineConfig,
+  EffectRouteSelection,
   GuiLanguage,
   MidiInputRef,
   NodeInstance,
@@ -114,6 +115,7 @@ interface EditablePatch {
   name: string;
   description: string;
   is_template: boolean;
+  always_on: boolean;
   schema_version: number;
   graph: PatchGraph;
   created_at?: string;
@@ -174,6 +176,7 @@ interface AppStore {
   newPatchFromTemplate: (template: Patch) => void;
   setCurrentPatchMeta: (name: string, description: string) => void;
   setCurrentPatchTemplate: (isTemplate: boolean) => void;
+  setCurrentPatchAlwaysOn: (alwaysOn: boolean) => void;
   setGraph: (graph: PatchGraph) => void;
   addNodeFromOpcode: (opcode: OpcodeSpec, position?: NodePosition) => void;
   removeNode: (nodeId: string) => void;
@@ -190,6 +193,12 @@ interface AppStore {
   updateSequencerInstrumentPatch: (bindingId: string, patchId: string) => void;
   updateSequencerInstrumentChannel: (bindingId: string, channel: number) => void;
   updateSequencerInstrumentLevel: (bindingId: string, level: number) => void;
+  updateSequencerInstrumentEffectRoute: (
+    bindingId: string,
+    sourceBindingId: string,
+    channel: string,
+    enabled: boolean
+  ) => void;
   buildSequencerConfigSnapshot: () => SequencerConfigSnapshot;
   applySequencerConfigSnapshot: (snapshot: unknown) => void;
 
@@ -403,7 +412,8 @@ interface AppStore {
 const OPCODE_PARAM_DEFAULTS: Record<string, Record<string, string | number | boolean>> = {
   const_a: { value: 0 },
   const_i: { value: 0 },
-  const_k: { value: 0 }
+  const_k: { value: 0 },
+  const_s: { value: "string" }
 };
 
 const DEFAULT_PAD_COUNT = 8;
@@ -568,6 +578,54 @@ function normalizeInstrumentLevel(value: unknown): number {
     return 10;
   }
   return clampInt(value, 1, 10);
+}
+
+function normalizeEffectSourceIds(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const result: string[] = [];
+  const seen = new Set<string>();
+  for (const entry of value) {
+    if (typeof entry !== "string") {
+      continue;
+    }
+    const sourceId = entry.trim();
+    if (!sourceId || seen.has(sourceId)) {
+      continue;
+    }
+    seen.add(sourceId);
+    result.push(sourceId);
+  }
+  return result.slice(0, 16);
+}
+
+function normalizeEffectRouteSelections(value: unknown): EffectRouteSelection[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const result: EffectRouteSelection[] = [];
+  const seen = new Set<string>();
+  for (const entry of value) {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      continue;
+    }
+    const record = entry as Record<string, unknown>;
+    const sourceId =
+      typeof record.sourceId === "string"
+        ? record.sourceId.trim()
+        : typeof record.source_id === "string"
+          ? record.source_id.trim()
+          : "";
+    const channel = typeof record.channel === "string" ? record.channel.trim() : "";
+    const key = `${sourceId}\u0000${channel}`;
+    if (!sourceId || !channel || seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    result.push({ sourceId, channel });
+  }
+  return result.slice(0, 64);
 }
 
 function normalizeSequencerTiming(value: unknown): SequencerTimingConfig {
@@ -2451,6 +2509,7 @@ function normalizePersistedPatch(raw: unknown): EditablePatch {
     typeof patch.name === "string" && patch.name.trim().length > 0 ? patch.name : fallback.name;
   const description = typeof patch.description === "string" ? patch.description : "";
   const isTemplate = patch.is_template === true;
+  const alwaysOn = patch.always_on === true;
   const schemaVersion =
     typeof patch.schema_version === "number" && Number.isFinite(patch.schema_version)
       ? Math.max(1, Math.round(patch.schema_version))
@@ -2467,6 +2526,7 @@ function normalizePersistedPatch(raw: unknown): EditablePatch {
     name,
     description,
     is_template: isTemplate,
+    always_on: alwaysOn,
     schema_version: schemaVersion,
     graph,
     created_at: createdAt,
@@ -2504,11 +2564,12 @@ function normalizePersistedInstrumentTabs(raw: unknown): InstrumentTabState[] {
 
 function normalizePersistedSequencerInstruments(
   raw: unknown,
-  availablePatchIds: Set<string>,
+  patches: PatchListItem[],
   fallbackPatchId: string | null
 ): SequencerInstrumentBinding[] {
   const bindings: SequencerInstrumentBinding[] = [];
   const seenChannels = new Set<number>();
+  const patchById = new Map(patches.map((patch) => [patch.id, patch]));
 
   if (Array.isArray(raw)) {
     for (const entry of raw) {
@@ -2517,31 +2578,45 @@ function normalizePersistedSequencerInstruments(
       }
 
       const candidate = entry as Record<string, unknown>;
-      if (typeof candidate.patchId !== "string" || !availablePatchIds.has(candidate.patchId)) {
+      if (typeof candidate.patchId !== "string" || !patchById.has(candidate.patchId)) {
         continue;
       }
 
+      const patch = patchById.get(candidate.patchId);
+      const isAlwaysOn = patch?.always_on === true;
       const midiChannel =
-        typeof candidate.midiChannel === "number" ? clampInt(candidate.midiChannel, 1, 16) : 1;
-      if (seenChannels.has(midiChannel)) {
-        continue;
+        isAlwaysOn ? 0 : typeof candidate.midiChannel === "number" ? clampInt(candidate.midiChannel, 1, 16) : 1;
+      if (!isAlwaysOn) {
+        if (seenChannels.has(midiChannel)) {
+          continue;
+        }
+        seenChannels.add(midiChannel);
       }
-      seenChannels.add(midiChannel);
 
       bindings.push({
         id: typeof candidate.id === "string" && candidate.id.length > 0 ? candidate.id : crypto.randomUUID(),
         patchId: candidate.patchId,
         midiChannel,
-        level: normalizeInstrumentLevel(candidate.level)
+        level: normalizeInstrumentLevel(candidate.level),
+        effectSourceIds: isAlwaysOn ? normalizeEffectSourceIds(candidate.effectSourceIds) : [],
+        effectRoutes: isAlwaysOn ? normalizeEffectRouteSelections(candidate.effectRoutes) : []
       });
     }
   }
 
-  if (bindings.length === 0 && fallbackPatchId && availablePatchIds.has(fallbackPatchId)) {
-    bindings.push({ id: crypto.randomUUID(), patchId: fallbackPatchId, midiChannel: 1, level: 10 });
+  if (bindings.length === 0 && fallbackPatchId && patchById.has(fallbackPatchId)) {
+    const fallbackPatch = patchById.get(fallbackPatchId);
+    bindings.push({
+      id: crypto.randomUUID(),
+      patchId: fallbackPatchId,
+      midiChannel: fallbackPatch?.always_on === true ? 0 : 1,
+      level: 10,
+      effectSourceIds: [],
+      effectRoutes: []
+    });
   }
 
-  return bindings;
+  return normalizeEffectRoutesForBindings(bindings, patches);
 }
 
 function sequencerSnapshotForPersistence(sequencer: SequencerState): SequencerState {
@@ -2597,6 +2672,7 @@ function buildPersistedAppStateSnapshot(state: AppStore): PersistedAppState {
         name: tab.patch.name,
         description: tab.patch.description,
         is_template: tab.patch.is_template,
+        always_on: tab.patch.always_on,
         schema_version: tab.patch.schema_version,
         graph: withNormalizedEngineConfig(tab.patch.graph),
         created_at: tab.patch.created_at,
@@ -2608,8 +2684,10 @@ function buildPersistedAppStateSnapshot(state: AppStore): PersistedAppState {
     sequencerInstruments: state.sequencerInstruments.map((binding) => ({
       id: binding.id,
       patchId: binding.patchId,
-      midiChannel: clampInt(binding.midiChannel, 1, 16),
-      level: normalizeInstrumentLevel(binding.level)
+      midiChannel: clampInt(binding.midiChannel, 0, 16),
+      level: normalizeInstrumentLevel(binding.level),
+      effectSourceIds: normalizeEffectSourceIds(binding.effectSourceIds),
+      effectRoutes: normalizeEffectRouteSelections(binding.effectRoutes)
     })),
     currentPerformanceId: state.currentPerformanceId,
     performanceName: state.performanceName,
@@ -2700,6 +2778,7 @@ function normalizePatch(patch: Patch): EditablePatch {
     name: patch.name,
     description: patch.description,
     is_template: patch.is_template === true,
+    always_on: patch.always_on === true,
     schema_version: patch.schema_version,
     graph: withNormalizedEngineConfig(patch.graph),
     created_at: patch.created_at,
@@ -2712,6 +2791,7 @@ type EmbeddedPerformancePatchDefinition = {
   name: string;
   description: string;
   is_template: boolean;
+  always_on: boolean;
   schema_version: number;
   graph: PatchGraph;
 };
@@ -2726,6 +2806,7 @@ function parseEmbeddedPerformancePatchDefinition(raw: unknown): EmbeddedPerforma
   const name = typeof record.name === "string" ? record.name.trim() : "";
   const description = typeof record.description === "string" ? record.description : "";
   const isTemplate = record.isTemplate === true || record.is_template === true;
+  const alwaysOn = record.alwaysOn === true || record.always_on === true;
   const schemaVersion =
     typeof record.schema_version === "number" && Number.isFinite(record.schema_version)
       ? Math.max(1, Math.round(record.schema_version))
@@ -2746,6 +2827,7 @@ function parseEmbeddedPerformancePatchDefinition(raw: unknown): EmbeddedPerforma
     name,
     description,
     is_template: isTemplate,
+    always_on: alwaysOn,
     schema_version: schemaVersion,
     graph: withNormalizedEngineConfig(record.graph as PatchGraph)
   };
@@ -2812,6 +2894,7 @@ async function hydrateEmbeddedPerformancePatches(
       name: definition.name,
       description: definition.description,
       is_template: definition.is_template,
+      always_on: definition.always_on,
       schema_version: definition.schema_version,
       graph: definition.graph
     });
@@ -2847,18 +2930,117 @@ function performablePatches(patches: PatchListItem[]): PatchListItem[] {
   return patches.filter((patch) => patch.is_template !== true);
 }
 
+function patchHasAudioOutlets(patch: PatchListItem | undefined): boolean {
+  return Array.isArray(patch?.audio_outlet_names) && patch.audio_outlet_names.length > 0;
+}
+
+function effectRouteKey(sourceId: string, channel: string): string {
+  return `${sourceId}\u0000${channel}`;
+}
+
+function sourceIdsFromEffectRoutes(routes: EffectRouteSelection[]): string[] {
+  const result: string[] = [];
+  const seen = new Set<string>();
+  for (const route of routes) {
+    if (seen.has(route.sourceId)) {
+      continue;
+    }
+    seen.add(route.sourceId);
+    result.push(route.sourceId);
+  }
+  return result.slice(0, 16);
+}
+
+function availableEffectRoutesForBinding(
+  binding: SequencerInstrumentBinding,
+  bindings: SequencerInstrumentBinding[],
+  patchById: Map<string, PatchListItem>
+): EffectRouteSelection[] {
+  const effectPatch = patchById.get(binding.patchId);
+  if (effectPatch?.always_on !== true) {
+    return [];
+  }
+
+  const effectInletNames = new Set(effectPatch.audio_inlet_names ?? []);
+  if (effectInletNames.size === 0) {
+    return [];
+  }
+
+  const routes: EffectRouteSelection[] = [];
+  for (const sourceBinding of bindings) {
+    if (sourceBinding.id === binding.id) {
+      continue;
+    }
+    const sourcePatch = patchById.get(sourceBinding.patchId);
+    if (!sourcePatch || sourcePatch.always_on === true || !patchHasAudioOutlets(sourcePatch)) {
+      continue;
+    }
+    for (const channel of sourcePatch.audio_outlet_names ?? []) {
+      if (effectInletNames.has(channel)) {
+        routes.push({ sourceId: sourceBinding.id, channel });
+      }
+    }
+  }
+  return routes;
+}
+
+function normalizeEffectRoutesForBindings(
+  bindings: SequencerInstrumentBinding[],
+  patches: PatchListItem[]
+): SequencerInstrumentBinding[] {
+  const patchById = new Map(patches.map((patch) => [patch.id, patch]));
+  const normalized = bindings.map((binding) => {
+    const patch = patchById.get(binding.patchId);
+    const isAlwaysOn = patch?.always_on === true;
+    return {
+      ...binding,
+      midiChannel: isAlwaysOn ? 0 : clampInt(binding.midiChannel || 1, 1, 16),
+      effectSourceIds: isAlwaysOn ? normalizeEffectSourceIds(binding.effectSourceIds) : [],
+      effectRoutes: isAlwaysOn ? normalizeEffectRouteSelections(binding.effectRoutes) : []
+    };
+  });
+  return normalized.map((binding) => {
+    const patch = patchById.get(binding.patchId);
+    if (patch?.always_on !== true) {
+      return { ...binding, effectSourceIds: [], effectRoutes: [] };
+    }
+    const availableRoutes = availableEffectRoutesForBinding(binding, normalized, patchById);
+    const availableKeys = new Set(availableRoutes.map((route) => effectRouteKey(route.sourceId, route.channel)));
+    const expandedRoutes = [...binding.effectRoutes];
+    if (binding.effectRoutes.length === 0) {
+      const selectedSourceIds = new Set(binding.effectSourceIds);
+      for (const route of availableRoutes) {
+        if (selectedSourceIds.has(route.sourceId)) {
+          expandedRoutes.push(route);
+        }
+      }
+    }
+    const effectRoutes = normalizeEffectRouteSelections(expandedRoutes).filter((route) =>
+      availableKeys.has(effectRouteKey(route.sourceId, route.channel))
+    );
+    return {
+      ...binding,
+      effectRoutes,
+      effectSourceIds: sourceIdsFromEffectRoutes(effectRoutes)
+    };
+  });
+}
+
 function defaultSequencerInstruments(patches: PatchListItem[], currentPatch?: EditablePatch): SequencerInstrumentBinding[] {
   const availablePatches = performablePatches(patches);
   const patchId = availablePatches[0]?.id ?? (currentPatch?.is_template === true ? undefined : currentPatch?.id);
   if (!patchId) {
     return [];
   }
+  const patch = availablePatches.find((candidate) => candidate.id === patchId);
   return [
     {
       id: crypto.randomUUID(),
       patchId,
-      midiChannel: 1,
-      level: 10
+      midiChannel: patch?.always_on === true ? 0 : 1,
+      level: 10,
+      effectSourceIds: [],
+      effectRoutes: []
     }
   ];
 }
@@ -2868,11 +3050,18 @@ function sequencerInstrumentsForPerformablePatches(
   patches: PatchListItem[]
 ): SequencerInstrumentBinding[] {
   const availablePatchIds = new Set(performablePatches(patches).map((patch) => patch.id));
-  return bindings.filter((binding) => availablePatchIds.has(binding.patchId));
+  return normalizeEffectRoutesForBindings(
+    bindings.filter((binding) => availablePatchIds.has(binding.patchId)),
+    performablePatches(patches)
+  );
 }
 
 function nextAvailableMidiChannel(bindings: SequencerInstrumentBinding[]): number {
-  const occupied = new Set(bindings.map((binding) => clampInt(binding.midiChannel, 1, 16)));
+  const occupied = new Set(
+    bindings
+      .filter((binding) => binding.midiChannel > 0)
+      .map((binding) => clampInt(binding.midiChannel, 1, 16))
+  );
   for (let channel = 1; channel <= 16; channel += 1) {
     if (!occupied.has(channel)) {
       return channel;
@@ -2907,6 +3096,9 @@ function nextAvailablePerformanceChannel(sequencer: SequencerState): number {
 function nextAvailableArpeggiatorInputChannel(sequencer: SequencerState, instruments: SequencerInstrumentBinding[]): number {
   const occupied = new Set<number>();
   for (const instrument of instruments) {
+    if (instrument.midiChannel <= 0) {
+      continue;
+    }
     occupied.add(clampInt(instrument.midiChannel, 1, 16));
   }
   if (instruments.length === 0) {
@@ -2924,7 +3116,7 @@ function nextAvailableArpeggiatorInputChannel(sequencer: SequencerState, instrum
 }
 
 function defaultArpeggiatorTargetChannel(instruments: SequencerInstrumentBinding[]): number {
-  return clampInt(instruments[0]?.midiChannel ?? 1, 1, 16);
+  return clampInt(instruments.find((instrument) => instrument.midiChannel > 0)?.midiChannel ?? 1, 1, 16);
 }
 
 function arpeggiatorTargetChannelAvoidingInputs(
@@ -2938,6 +3130,9 @@ function arpeggiatorTargetChannelAvoidingInputs(
     return normalizedRequested;
   }
   for (const instrument of instruments) {
+    if (instrument.midiChannel <= 0) {
+      continue;
+    }
     const channel = clampInt(instrument.midiChannel, 1, 16);
     if (!inputChannels.has(channel)) {
       return channel;
@@ -2988,13 +3183,16 @@ function buildSequencerConfigSnapshot(
     timing
   );
   return {
-    version: 8,
+    version: 10,
     instruments: instruments
       .filter((instrument) => instrument.patchId.length > 0)
       .map((instrument) => ({
         patchId: instrument.patchId,
-        midiChannel: clampInt(instrument.midiChannel, 1, 16),
-        level: normalizeInstrumentLevel(instrument.level)
+        id: instrument.id,
+        midiChannel: clampInt(instrument.midiChannel, 0, 16),
+        level: normalizeInstrumentLevel(instrument.level),
+        effectSourceIds: normalizeEffectSourceIds(instrument.effectSourceIds),
+        effectRoutes: normalizeEffectRouteSelections(instrument.effectRoutes)
       })),
     sequencer: {
       timing,
@@ -3165,7 +3363,7 @@ function buildSequencerConfigSnapshot(
 
 function parseSequencerConfigSnapshot(
   snapshot: unknown,
-  availablePatchIds: Set<string>,
+  availablePatches: PatchListItem[],
   fallbackPatchId: string | null
 ): { sequencer: SequencerState; instruments: SequencerInstrumentBinding[] } {
   if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) {
@@ -3181,13 +3379,16 @@ function parseSequencerConfigSnapshot(
     payload.version !== 5 &&
     payload.version !== 6 &&
     payload.version !== 7 &&
-    payload.version !== 8
+    payload.version !== 8 &&
+    payload.version !== 9 &&
+    payload.version !== 10
   ) {
     throw new Error("Unsupported sequencer config version.");
   }
 
   const sequencer = normalizeSequencerState(payload.sequencer);
   const instrumentsRaw = Array.isArray(payload.instruments) ? payload.instruments : [];
+  const patchById = new Map(availablePatches.map((patch) => [patch.id, patch]));
 
   const instruments: SequencerInstrumentBinding[] = [];
   const seenChannels = new Set<number>();
@@ -3200,27 +3401,41 @@ function parseSequencerConfigSnapshot(
     if (typeof record.patchId !== "string" || record.patchId.length === 0) {
       continue;
     }
-    if (!availablePatchIds.has(record.patchId)) {
+    if (!patchById.has(record.patchId)) {
       continue;
     }
 
+    const patch = patchById.get(record.patchId);
+    const isAlwaysOn = patch?.always_on === true;
     const midiChannel =
-      typeof record.midiChannel === "number" ? clampInt(record.midiChannel, 1, 16) : 1;
-    if (seenChannels.has(midiChannel)) {
-      continue;
+      isAlwaysOn ? 0 : typeof record.midiChannel === "number" ? clampInt(record.midiChannel, 1, 16) : 1;
+    if (!isAlwaysOn) {
+      if (seenChannels.has(midiChannel)) {
+        continue;
+      }
+      seenChannels.add(midiChannel);
     }
-    seenChannels.add(midiChannel);
 
     instruments.push({
-      id: crypto.randomUUID(),
+      id: typeof record.id === "string" && record.id.length > 0 ? record.id : crypto.randomUUID(),
       patchId: record.patchId,
       midiChannel,
-      level: normalizeInstrumentLevel(record.level)
+      level: normalizeInstrumentLevel(record.level),
+      effectSourceIds: isAlwaysOn ? normalizeEffectSourceIds(record.effectSourceIds) : [],
+      effectRoutes: isAlwaysOn ? normalizeEffectRouteSelections(record.effectRoutes) : []
     });
   }
 
   if (instruments.length === 0 && fallbackPatchId) {
-    instruments.push({ id: crypto.randomUUID(), patchId: fallbackPatchId, midiChannel: 1, level: 10 });
+    const fallbackPatch = patchById.get(fallbackPatchId);
+    instruments.push({
+      id: crypto.randomUUID(),
+      patchId: fallbackPatchId,
+      midiChannel: fallbackPatch?.always_on === true ? 0 : 1,
+      level: 10,
+      effectSourceIds: [],
+      effectRoutes: []
+    });
   }
 
   if (instruments.length === 0) {
@@ -3229,7 +3444,7 @@ function parseSequencerConfigSnapshot(
 
   return {
     sequencer,
-    instruments
+    instruments: normalizeEffectRoutesForBindings(instruments, availablePatches)
   };
 }
 
@@ -3244,15 +3459,23 @@ function normalizeSessionInstrumentAssignments(
       continue;
     }
 
-    const midiChannel = clampInt(binding.midiChannel, 1, 16);
-    if (seenChannels.has(midiChannel)) {
-      throw new Error(`MIDI channel ${midiChannel} is assigned more than once.`);
+    const midiChannel = clampInt(binding.midiChannel, 0, 16);
+    if (midiChannel > 0) {
+      if (seenChannels.has(midiChannel)) {
+        throw new Error(`MIDI channel ${midiChannel} is assigned more than once.`);
+      }
+      seenChannels.add(midiChannel);
     }
 
-    seenChannels.add(midiChannel);
     assignments.push({
+      id: binding.id,
       patch_id: binding.patchId,
-      midi_channel: midiChannel
+      midi_channel: midiChannel,
+      effect_source_ids: sourceIdsFromEffectRoutes(normalizeEffectRouteSelections(binding.effectRoutes)),
+      effect_routes: normalizeEffectRouteSelections(binding.effectRoutes).map((route) => ({
+        source_id: route.sourceId,
+        channel: route.channel
+      }))
     });
   }
 
@@ -3267,6 +3490,10 @@ function sortedAssignments(assignments: SessionInstrumentAssignment[]): SessionI
   return [...assignments].sort((a, b) => {
     if (a.midi_channel !== b.midi_channel) {
       return a.midi_channel - b.midi_channel;
+    }
+    const idCompare = (a.id ?? "").localeCompare(b.id ?? "");
+    if (idCompare !== 0) {
+      return idCompare;
     }
     return a.patch_id.localeCompare(b.patch_id);
   });
@@ -3285,6 +3512,33 @@ function sameAssignments(a: SessionInstrumentAssignment[], b: SessionInstrumentA
     }
     if (aSorted[index].patch_id !== bSorted[index].patch_id) {
       return false;
+    }
+    if ((aSorted[index].id ?? "") !== (bSorted[index].id ?? "")) {
+      return false;
+    }
+    const aSources = normalizeEffectSourceIds(aSorted[index].effect_source_ids).sort();
+    const bSources = normalizeEffectSourceIds(bSorted[index].effect_source_ids).sort();
+    if (aSources.length !== bSources.length) {
+      return false;
+    }
+    for (let sourceIndex = 0; sourceIndex < aSources.length; sourceIndex += 1) {
+      if (aSources[sourceIndex] !== bSources[sourceIndex]) {
+        return false;
+      }
+    }
+    const aRoutes = normalizeEffectRouteSelections(aSorted[index].effect_routes)
+      .map((route) => effectRouteKey(route.sourceId, route.channel))
+      .sort();
+    const bRoutes = normalizeEffectRouteSelections(bSorted[index].effect_routes)
+      .map((route) => effectRouteKey(route.sourceId, route.channel))
+      .sort();
+    if (aRoutes.length !== bRoutes.length) {
+      return false;
+    }
+    for (let routeIndex = 0; routeIndex < aRoutes.length; routeIndex += 1) {
+      if (aRoutes[routeIndex] !== bRoutes[routeIndex]) {
+        return false;
+      }
     }
   }
 
@@ -3490,11 +3744,10 @@ export const useAppStore = create<AppStore>((set, get) => {
               sequencerRuntime = sequencerRuntimeStateFromSequencer(sequencer);
 
               const availableInstrumentPatches = performablePatches(patches);
-              const availablePatchIds = new Set<string>(availableInstrumentPatches.map((patch) => patch.id));
               const fallbackPatchId = availableInstrumentPatches[0]?.id ?? null;
               sequencerInstruments = normalizePersistedSequencerInstruments(
                 payload.sequencerInstruments,
-                availablePatchIds,
+                availableInstrumentPatches,
                 fallbackPatchId
               );
 
@@ -3538,6 +3791,7 @@ export const useAppStore = create<AppStore>((set, get) => {
                 name: tab.patch.name,
                 description: tab.patch.description,
                 is_template: tab.patch.is_template,
+                always_on: tab.patch.always_on,
                 schema_version: tab.patch.schema_version,
                 graph: withNormalizedEngineConfig(tab.patch.graph),
                 created_at: tab.patch.created_at,
@@ -3549,8 +3803,10 @@ export const useAppStore = create<AppStore>((set, get) => {
             sequencerInstruments: sequencerInstruments.map((binding) => ({
               id: binding.id,
               patchId: binding.patchId,
-              midiChannel: clampInt(binding.midiChannel, 1, 16),
-              level: normalizeInstrumentLevel(binding.level)
+              midiChannel: clampInt(binding.midiChannel, 0, 16),
+              level: normalizeInstrumentLevel(binding.level),
+              effectSourceIds: normalizeEffectSourceIds(binding.effectSourceIds),
+              effectRoutes: normalizeEffectRouteSelections(binding.effectRoutes)
             })),
             currentPerformanceId,
             performanceName,
@@ -3654,13 +3910,9 @@ export const useAppStore = create<AppStore>((set, get) => {
         const state = get();
         const hydrated = await hydrateEmbeddedPerformancePatches(performance.config, state.patches);
         const availableInstrumentPatches = performablePatches(hydrated.patches);
-        const availablePatchIds = new Set(availableInstrumentPatches.map((patch) => patch.id));
-        if (state.currentPatch.id && state.currentPatch.is_template !== true) {
-          availablePatchIds.add(state.currentPatch.id);
-        }
         const fallbackPatchId =
           availableInstrumentPatches[0]?.id ?? (state.currentPatch.is_template === true ? null : state.currentPatch.id ?? null);
-        const parsed = parseSequencerConfigSnapshot(hydrated.snapshot, availablePatchIds, fallbackPatchId);
+        const parsed = parseSequencerConfigSnapshot(hydrated.snapshot, availableInstrumentPatches, fallbackPatchId);
 
         set({
           patches: hydrated.patches,
@@ -3691,6 +3943,7 @@ export const useAppStore = create<AppStore>((set, get) => {
         ...draft,
         description: template.description,
         is_template: false,
+        always_on: template.always_on === true,
         graph: withNormalizedEngineConfig(JSON.parse(JSON.stringify(template.graph)) as PatchGraph)
       });
     },
@@ -3709,6 +3962,14 @@ export const useAppStore = create<AppStore>((set, get) => {
       commitCurrentPatch({
         ...current,
         is_template: isTemplate
+      });
+    },
+
+    setCurrentPatchAlwaysOn: (alwaysOn) => {
+      const current = get().currentPatch;
+      commitCurrentPatch({
+        ...current,
+        always_on: alwaysOn
       });
     },
 
@@ -3803,6 +4064,7 @@ export const useAppStore = create<AppStore>((set, get) => {
           name: current.name,
           description: current.description,
           is_template: current.is_template,
+          always_on: current.always_on,
           schema_version: current.schema_version,
           graph: current.graph
         };
@@ -3864,6 +4126,7 @@ export const useAppStore = create<AppStore>((set, get) => {
             name: patch.name,
             description: patch.description,
             isTemplate: patch.is_template,
+            alwaysOn: patch.always_on,
             schema_version: patch.schema_version,
             graph: patch.graph
           }))
@@ -3905,16 +4168,22 @@ export const useAppStore = create<AppStore>((set, get) => {
         set({ error: "Save at least one instrument patch before adding it to the sequencer." });
         return;
       }
+      const selectedPatch = availableInstrumentPatches.find((patch) => patch.id === patchId);
 
       const binding: SequencerInstrumentBinding = {
         id: crypto.randomUUID(),
         patchId,
-        midiChannel: nextAvailableMidiChannel(state.sequencerInstruments),
-        level: 10
+        midiChannel: selectedPatch?.always_on === true ? 0 : nextAvailableMidiChannel(state.sequencerInstruments),
+        level: 10,
+        effectSourceIds: [],
+        effectRoutes: []
       };
 
       set({
-        sequencerInstruments: [...state.sequencerInstruments, binding],
+        sequencerInstruments: normalizeEffectRoutesForBindings(
+          [...state.sequencerInstruments, binding],
+          availableInstrumentPatches
+        ),
         error: null
       });
     },
@@ -3922,15 +4191,36 @@ export const useAppStore = create<AppStore>((set, get) => {
     removeSequencerInstrument: (bindingId) => {
       const state = get();
       set({
-        sequencerInstruments: state.sequencerInstruments.filter((binding) => binding.id !== bindingId)
+        sequencerInstruments: normalizeEffectRoutesForBindings(
+          state.sequencerInstruments.filter((binding) => binding.id !== bindingId),
+          performablePatches(state.patches)
+        )
       });
     },
 
     updateSequencerInstrumentPatch: (bindingId, patchId) => {
       const state = get();
+      const availablePatches = performablePatches(state.patches);
+      const patch = availablePatches.find((candidate) => candidate.id === patchId);
       set({
-        sequencerInstruments: state.sequencerInstruments.map((binding) =>
-          binding.id === bindingId ? { ...binding, patchId } : binding
+        sequencerInstruments: normalizeEffectRoutesForBindings(
+          state.sequencerInstruments.map((binding) =>
+            binding.id === bindingId
+              ? {
+                  ...binding,
+                  patchId,
+                  midiChannel:
+                    patch?.always_on === true
+                      ? 0
+                      : binding.midiChannel > 0
+                        ? binding.midiChannel
+                        : nextAvailableMidiChannel(state.sequencerInstruments),
+                  effectSourceIds: patch?.always_on === true ? binding.effectSourceIds : [],
+                  effectRoutes: patch?.always_on === true ? binding.effectRoutes : []
+                }
+              : binding
+          ),
+          availablePatches
         )
       });
     },
@@ -3938,9 +4228,14 @@ export const useAppStore = create<AppStore>((set, get) => {
     updateSequencerInstrumentChannel: (bindingId, channel) => {
       const normalizedChannel = clampInt(channel, 1, 16);
       const state = get();
+      const currentBinding = state.sequencerInstruments.find((binding) => binding.id === bindingId);
+      const currentPatch = state.patches.find((patch) => patch.id === currentBinding?.patchId);
+      if (currentPatch?.always_on === true) {
+        return;
+      }
 
       const duplicate = state.sequencerInstruments.some(
-        (binding) => binding.id !== bindingId && clampInt(binding.midiChannel, 1, 16) === normalizedChannel
+        (binding) => binding.id !== bindingId && binding.midiChannel > 0 && clampInt(binding.midiChannel, 1, 16) === normalizedChannel
       );
       if (duplicate) {
         set({ error: `MIDI channel ${normalizedChannel} is already assigned.` });
@@ -3966,6 +4261,43 @@ export const useAppStore = create<AppStore>((set, get) => {
       });
     },
 
+    updateSequencerInstrumentEffectRoute: (bindingId, sourceBindingId, channel, enabled) => {
+      const state = get();
+      const availablePatches = performablePatches(state.patches);
+      const normalizedChannel = channel.trim();
+      if (!normalizedChannel) {
+        return;
+      }
+      set({
+        sequencerInstruments: normalizeEffectRoutesForBindings(
+          state.sequencerInstruments.map((binding) => {
+            if (binding.id !== bindingId) {
+              return binding;
+            }
+            const routes = normalizeEffectRouteSelections(binding.effectRoutes);
+            const routeKeyValue = effectRouteKey(sourceBindingId, normalizedChannel);
+            if (enabled) {
+              if (!routes.some((route) => effectRouteKey(route.sourceId, route.channel) === routeKeyValue)) {
+                routes.push({ sourceId: sourceBindingId, channel: normalizedChannel });
+              }
+            } else {
+              const index = routes.findIndex((route) => effectRouteKey(route.sourceId, route.channel) === routeKeyValue);
+              if (index >= 0) {
+                routes.splice(index, 1);
+              }
+            }
+            return {
+              ...binding,
+              effectRoutes: routes,
+              effectSourceIds: sourceIdsFromEffectRoutes(routes)
+            };
+          }),
+          availablePatches
+        ),
+        error: null
+      });
+    },
+
     buildSequencerConfigSnapshot: () => {
       const state = get();
       return buildSequencerConfigSnapshot(state.sequencer, state.sequencerInstruments);
@@ -3975,13 +4307,9 @@ export const useAppStore = create<AppStore>((set, get) => {
       try {
         const state = get();
         const availableInstrumentPatches = performablePatches(state.patches);
-        const availablePatchIds = new Set(availableInstrumentPatches.map((patch) => patch.id));
-        if (state.currentPatch.id && state.currentPatch.is_template !== true) {
-          availablePatchIds.add(state.currentPatch.id);
-        }
         const fallbackPatchId =
           availableInstrumentPatches[0]?.id ?? (state.currentPatch.is_template === true ? null : state.currentPatch.id ?? null);
-        const parsed = parseSequencerConfigSnapshot(snapshot, availablePatchIds, fallbackPatchId);
+        const parsed = parseSequencerConfigSnapshot(snapshot, availableInstrumentPatches, fallbackPatchId);
 
         set({
           sequencer: parsed.sequencer,
@@ -6499,6 +6827,9 @@ export const useAppStore = create<AppStore>((set, get) => {
       );
       const unavailableInputChannels = new Set(otherArpeggiatorInputChannels);
       for (const instrument of instruments) {
+        if (instrument.midiChannel <= 0) {
+          continue;
+        }
         const channel = clampInt(instrument.midiChannel, 1, 16);
         if (channel !== existing.inputChannel) {
           unavailableInputChannels.add(channel);
@@ -7178,6 +7509,7 @@ export const useAppStore = create<AppStore>((set, get) => {
             name: nextPatch.name,
             description: nextPatch.description,
             is_template: nextPatch.is_template,
+            always_on: nextPatch.always_on,
             schema_version: nextPatch.schema_version,
             graph: normalizedGraph
           });
@@ -7299,6 +7631,7 @@ export const useAppStore = create<AppStore>((set, get) => {
           name: patchName,
           description: current.description,
           is_template: false,
+          always_on: current.always_on,
           schema_version: current.schema_version,
           graph: current.graph
         });

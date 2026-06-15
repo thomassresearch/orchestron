@@ -232,10 +232,17 @@ class PerformanceExportService:
                         name=definition.name,
                         description=definition.description,
                         is_template=definition.is_template,
+                        always_on=definition.always_on,
                         schema_version=definition.schema_version,
                         graph=definition.graph.model_copy(deep=True),
                     ),
-                    midi_channel=instrument.midi_channel,
+                    midi_channel=0 if definition.always_on else instrument.midi_channel,
+                    assignment_id=instrument.id,
+                    always_on=definition.always_on,
+                    effect_source_ids=tuple(instrument.effect_source_ids if definition.always_on else []),
+                    effect_routes=tuple(
+                        (route.source_id, route.channel) for route in instrument.effect_routes if definition.always_on
+                    ),
                 )
             )
 

@@ -2,7 +2,7 @@
 
 **Navigation:** [Up](instrument_design.md) | [Prev](instrument_import_export.md) | [Next](../performance/performance.md)
 
-This appendix is generated from `backend/app/data/opcodes.json` and currently lists **137** user-selectable opcodes in the Instrument Design opcode catalog.
+This appendix is generated from `backend/app/data/opcodes.json` and currently lists **138** user-selectable opcodes in the Instrument Design opcode catalog.
 
 ## How To Use This Appendix
 
@@ -16,7 +16,7 @@ This appendix is generated from `backend/app/data/opcodes.json` and currently li
 | Category | Count |
 | --- | --- |
 | analysis | 2 |
-| constants | 3 |
+| constants | 4 |
 | delay | 11 |
 | distortion | 4 |
 | dynamics | 2 |
@@ -54,6 +54,7 @@ This appendix is generated from `backend/app/data/opcodes.json` and currently li
 | const_a | - | 1 (a) | Audio-rate constant value. |
 | const_i | - | 1 (i) | Init-rate constant value. |
 | const_k | - | 1 (k) | Control-rate constant value. |
+| const_s | - | 1 (S) | String constant value. |
 
 ### delay
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from backend.app.models.patch import Connection, NodeInstance, PatchDocument
 from backend.app.models.opcode import OpcodeSpec
@@ -37,6 +37,10 @@ class FormulaToken:
 class PatchInstrumentTarget:
     patch: PatchDocument
     midi_channel: int
+    assignment_id: str | None = None
+    always_on: bool = False
+    effect_source_ids: tuple[str, ...] = field(default_factory=tuple)
+    effect_routes: tuple[tuple[str, str], ...] = field(default_factory=tuple)
 
 
 @dataclass(slots=True)

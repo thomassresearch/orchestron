@@ -165,6 +165,9 @@ type SequencerUiCopy = {
   noInstrumentHint: string;
   patch: (index: number) => string;
   channel: string;
+  effect: string;
+  audioSources: string;
+  noAudioSources: string;
   remove: string;
   clearSteps: string;
   rackTransport: string;
@@ -375,6 +378,9 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     noInstrumentHint: "Add at least one saved instrument to start the engine.",
     patch: (index) => `Patch ${index}`,
     channel: "Channel",
+    effect: "Effect",
+    audioSources: "Audio Sources",
+    noAudioSources: "No audio sources",
     remove: "Remove",
     clearSteps: "Clear Steps",
     rackTransport: "Rack Transport",
@@ -556,6 +562,9 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     noInstrumentHint: "Fuege mindestens ein gespeichertes Instrument hinzu, um die Engine zu starten.",
     patch: (index) => `Patch ${index}`,
     channel: "Kanal",
+    effect: "Effekt",
+    audioSources: "Audio-Quellen",
+    noAudioSources: "Keine Audio-Quellen",
     remove: "Entfernen",
     clearSteps: "Steps loeschen",
     rackTransport: "Rack-Transport",
@@ -738,6 +747,9 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     noInstrumentHint: "Ajoutez au moins un instrument sauvegarde pour demarrer le moteur.",
     patch: (index) => `Patch ${index}`,
     channel: "Canal",
+    effect: "Effet",
+    audioSources: "Sources audio",
+    noAudioSources: "Aucune source audio",
     remove: "Supprimer",
     clearSteps: "Effacer pas",
     rackTransport: "Transport du rack",
@@ -920,6 +932,9 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     noInstrumentHint: "Agrega al menos un instrumento guardado para iniciar el motor.",
     patch: (index) => `Patch ${index}`,
     channel: "Canal",
+    effect: "Efecto",
+    audioSources: "Fuentes de audio",
+    noAudioSources: "Sin fuentes de audio",
     remove: "Eliminar",
     clearSteps: "Limpiar pasos",
     rackTransport: "Transporte del rack",
@@ -2371,6 +2386,12 @@ interface SequencerPageInstrumentActions {
   onInstrumentPatchChange: (bindingId: string, patchId: string) => void;
   onInstrumentChannelChange: (bindingId: string, channel: number) => void;
   onInstrumentLevelChange: (bindingId: string, level: number) => void;
+  onInstrumentEffectRouteChange: (
+    bindingId: string,
+    sourceBindingId: string,
+    channel: string,
+    enabled: boolean
+  ) => void;
   onStartInstruments: () => void;
   onStopInstruments: () => void;
 }
@@ -3803,6 +3824,7 @@ export function SequencerPage({
     onInstrumentPatchChange,
     onInstrumentChannelChange,
     onInstrumentLevelChange,
+    onInstrumentEffectRouteChange,
     onStartInstruments,
     onStopInstruments
   } = instrumentActions;
@@ -3999,6 +4021,15 @@ export function SequencerPage({
     }
     return sessionState;
   }, [sessionState, ui.running, ui.stopped]);
+  const patchById = useMemo(() => new Map(patches.map((patch) => [patch.id, patch])), [patches]);
+  const audioSourceBindings = useMemo(
+    () =>
+      instrumentBindings.filter((binding) => {
+        const patch = patchById.get(binding.patchId);
+        return patch?.always_on !== true && (patch?.audio_outlet_names?.length ?? 0) > 0;
+      }),
+    [instrumentBindings, patchById]
+  );
   const totalPerformDevices =
     sequencer.tracks.length +
     sequencer.drummerTracks.length +
@@ -4443,59 +4474,133 @@ export function SequencerPage({
               {ui.noInstrumentHint}
             </div>
           ) : (
-            instrumentBindings.map((binding, index) => (
-              <div
-                key={binding.id}
-                className="grid grid-cols-[minmax(0,_1fr)_74px_74px_auto] items-end gap-2 rounded-lg border border-slate-600/80 bg-slate-800/75 px-2 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
-              >
-                <label className="flex min-w-0 flex-col gap-1">
-                  <span className="text-[10px] uppercase tracking-[0.16em] text-slate-400">{ui.patch(index + 1)}</span>
-                  <select
-                    value={binding.patchId}
-                    onChange={(event) => onInstrumentPatchChange(binding.id, event.target.value)}
-                    disabled={instrumentsRunning}
-                    className={rackAssignmentSelectClass}
-                  >
-                    {patches.map((patch) => (
-                      <option key={`rack-${binding.id}-${patch.id}`} value={patch.id}>
-                        {patch.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="flex flex-col gap-1">
-                  <span className="text-[10px] uppercase tracking-[0.16em] text-slate-400">{ui.channel}</span>
-                  <input
-                    type="number"
-                    min={1}
-                    max={16}
-                    value={binding.midiChannel}
-                    onChange={(event) => onInstrumentChannelChange(binding.id, Number(event.target.value))}
-                    disabled={instrumentsRunning}
-                    className={rackAssignmentNumberInputClass}
-                  />
-                </label>
-                <label className="flex flex-col gap-1">
-                  <span className="text-[10px] uppercase tracking-[0.16em] text-slate-400">LEVEL</span>
-                  <input
-                    type="number"
-                    min={1}
-                    max={10}
-                    value={binding.level}
-                    onChange={(event) => onInstrumentLevelChange(binding.id, Number(event.target.value))}
-                    className="w-full rounded-md border border-slate-600 bg-slate-950 px-2 py-1 text-xs text-slate-100 outline-none ring-accent/40 transition focus:ring"
-                  />
-                </label>
-                <button
-                  type="button"
-                  onClick={() => onRemoveInstrument(binding.id)}
-                  disabled={instrumentsRunning}
-                  className={`${rackAssignmentButtonClass} justify-self-end border-rose-500/60 bg-rose-500/15 px-2 text-rose-200 hover:bg-rose-500/25`}
+            instrumentBindings.map((binding, index) => {
+              const selectedPatch = patchById.get(binding.patchId);
+              const isAlwaysOn = selectedPatch?.always_on === true;
+              const effectInletNames = new Set(selectedPatch?.audio_inlet_names ?? []);
+              const effectRouteCells = audioSourceBindings.flatMap((sourceBinding) => {
+                if (sourceBinding.id === binding.id || effectInletNames.size === 0) {
+                  return [];
+                }
+                const sourcePatch = patchById.get(sourceBinding.patchId);
+                const matchingChannels = (sourcePatch?.audio_outlet_names ?? []).filter((name) =>
+                  effectInletNames.has(name)
+                );
+                if (matchingChannels.length === 0) {
+                  return [];
+                }
+                return matchingChannels.map((channel) => ({ sourceBinding, sourcePatch, channel }));
+              });
+              const selectedRouteKeys = new Set(
+                binding.effectRoutes.map((route) => `${route.sourceId}\u0000${route.channel}`)
+              );
+              return (
+                <div
+                  key={binding.id}
+                  className="rounded-lg border border-slate-600/80 bg-slate-800/75 px-2 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
                 >
-                  {ui.remove}
-                </button>
-              </div>
-            ))
+                  <div className="grid grid-cols-[minmax(0,_1fr)_74px_74px_auto] items-end gap-2">
+                    <label className="flex min-w-0 flex-col gap-1">
+                      <span className="text-[10px] uppercase tracking-[0.16em] text-slate-400">{ui.patch(index + 1)}</span>
+                      <select
+                        value={binding.patchId}
+                        onChange={(event) => onInstrumentPatchChange(binding.id, event.target.value)}
+                        disabled={instrumentsRunning}
+                        className={rackAssignmentSelectClass}
+                      >
+                        {patches.map((patch) => (
+                          <option key={`rack-${binding.id}-${patch.id}`} value={patch.id}>
+                            {patch.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    {isAlwaysOn ? (
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[10px] uppercase tracking-[0.16em] text-slate-400">{ui.channel}</span>
+                        <span className="rounded-md border border-cyan-500/50 bg-cyan-500/10 px-2 py-1 text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-200">
+                          {ui.effect}
+                        </span>
+                      </div>
+                    ) : (
+                      <label className="flex flex-col gap-1">
+                        <span className="text-[10px] uppercase tracking-[0.16em] text-slate-400">{ui.channel}</span>
+                        <input
+                          type="number"
+                          min={1}
+                          max={16}
+                          value={binding.midiChannel}
+                          onChange={(event) => onInstrumentChannelChange(binding.id, Number(event.target.value))}
+                          disabled={instrumentsRunning}
+                          className={rackAssignmentNumberInputClass}
+                        />
+                      </label>
+                    )}
+                    <label className="flex flex-col gap-1">
+                      <span className="text-[10px] uppercase tracking-[0.16em] text-slate-400">LEVEL</span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={10}
+                        value={binding.level}
+                        onChange={(event) => onInstrumentLevelChange(binding.id, Number(event.target.value))}
+                        className="w-full rounded-md border border-slate-600 bg-slate-950 px-2 py-1 text-xs text-slate-100 outline-none ring-accent/40 transition focus:ring"
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => onRemoveInstrument(binding.id)}
+                      disabled={instrumentsRunning}
+                      className={`${rackAssignmentButtonClass} justify-self-end border-rose-500/60 bg-rose-500/15 px-2 text-rose-200 hover:bg-rose-500/25`}
+                    >
+                      {ui.remove}
+                    </button>
+                  </div>
+                  {isAlwaysOn ? (
+                    <div className="mt-2 rounded-md border border-slate-700 bg-slate-950/70 p-2">
+                      <div className="mb-1 text-[10px] uppercase tracking-[0.16em] text-slate-400">{ui.audioSources}</div>
+                      {effectRouteCells.length === 0 ? (
+                        <div className="text-xs text-slate-500">{ui.noAudioSources}</div>
+                      ) : (
+                        <div className="grid gap-1">
+                          {effectRouteCells.map(({ sourceBinding, sourcePatch, channel }) => {
+                            const routeKey = `${sourceBinding.id}\u0000${channel}`;
+                            return (
+                              <label
+                                key={`${binding.id}-source-${sourceBinding.id}-${channel}`}
+                                className="flex items-center gap-2 rounded border border-slate-700 bg-slate-900/80 px-2 py-1 text-xs text-slate-200"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={selectedRouteKeys.has(routeKey)}
+                                  onChange={(event) =>
+                                    onInstrumentEffectRouteChange(
+                                      binding.id,
+                                      sourceBinding.id,
+                                      channel,
+                                      event.target.checked
+                                    )
+                                  }
+                                  disabled={instrumentsRunning}
+                                  className="h-4 w-4 rounded border-slate-500 bg-slate-950 accent-accent"
+                                />
+                                <span className="w-20 shrink-0 truncate font-mono text-[10px] uppercase text-cyan-200">
+                                  {channel}
+                                </span>
+                                <span className="min-w-0 truncate">{sourcePatch?.name ?? sourceBinding.patchId}</span>
+                                <span className="ml-auto shrink-0 font-mono text-[10px] uppercase text-slate-500">
+                                  {ui.channel} {sourceBinding.midiChannel}
+                                </span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })
           )}
         </div>
 

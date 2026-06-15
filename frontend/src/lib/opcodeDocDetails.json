@@ -50,6 +50,23 @@
       }
     }
   },
+  "const_s": {
+    "description": {
+      "english": "String constant value. The value must begin with a lowercase letter and may contain only lowercase letters, digits, and underscores.",
+      "german": "String-Konstante. Der Wert muss mit einem Kleinbuchstaben beginnen und darf nur Kleinbuchstaben, Ziffern und Unterstriche enthalten.",
+      "french": "Valeur constante de chaîne. La valeur doit commencer par une lettre minuscule et ne peut contenir que des lettres minuscules, des chiffres et des traits de soulignement.",
+      "spanish": "Valor constante de cadena. El valor debe empezar con una letra minuscula y solo puede contener letras minusculas, digitos y guiones bajos."
+    },
+    "inputs": {},
+    "outputs": {
+      "sout": {
+        "english": "sOut string output.",
+        "german": "sOut String-Ausgabe.",
+        "french": "Sortie de chaîne sOut.",
+        "spanish": "Salida de cadena sOut."
+      }
+    }
+  },
   "comb": {
     "description": {
       "english": "Reverberates an input signal with a “ colored ” frequency response.",

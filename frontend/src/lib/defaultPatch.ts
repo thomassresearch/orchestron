@@ -22,6 +22,7 @@ export function createUntitledPatch() {
     name: "Untitled Instrument",
     description: "",
     is_template: false,
+    always_on: false,
     schema_version: 1,
     graph: defaultGraph()
   };

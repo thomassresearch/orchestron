@@ -44,10 +44,22 @@ _ARPEGGIATOR_RATE_BEATS: dict[str, float] = {
 }
 
 
+class ExportPerformanceEffectRoute(BaseModel):
+    source_id: str = Field(alias="sourceId", min_length=1, max_length=128)
+    channel: str = Field(min_length=1, max_length=128)
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class ExportPerformanceInstrumentAssignment(BaseModel):
+    id: str | None = Field(default=None, min_length=1, max_length=128)
     patch_id: str = Field(alias="patchId", min_length=1)
     patch_name: str | None = Field(default=None, alias="patchName")
-    midi_channel: int = Field(alias="midiChannel", ge=1, le=16)
+    midi_channel: int = Field(default=1, alias="midiChannel", ge=0, le=16)
+    effect_source_ids: list[str] = Field(default_factory=list, alias="effectSourceIds", max_length=16)
+    effect_routes: list[ExportPerformanceEffectRoute] = Field(
+        default_factory=list, alias="effectRoutes", max_length=64
+    )
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -64,6 +76,7 @@ class ExportedPatchDefinition(BaseModel):
     name: str = Field(min_length=1, max_length=128)
     description: str = Field(default="", max_length=2_048)
     is_template: bool = Field(default=False, alias="isTemplate")
+    always_on: bool = Field(default=False, alias="alwaysOn")
     schema_version: int = 1
     graph: PatchGraph
 

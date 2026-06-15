@@ -145,6 +145,7 @@ export const api = {
     name: string;
     description: string;
     is_template: boolean;
+    always_on: boolean;
     schema_version: number;
     graph: PatchGraph;
   }) => request<Patch>("/patches", { method: "POST", body: JSON.stringify(payload) }),
@@ -158,6 +159,7 @@ export const api = {
       name?: string;
       description?: string;
       is_template?: boolean;
+      always_on?: boolean;
       schema_version?: number;
       graph?: PatchGraph;
     }
@@ -166,7 +168,15 @@ export const api = {
     performanceId: string,
     payload: { name?: string; description?: string; config?: SequencerConfigSnapshot }
   ) => request<Performance>(`/performances/${performanceId}`, { method: "PUT", body: JSON.stringify(payload) }),
-  createSession: (instruments: Array<{ patch_id: string; midi_channel: number }>) =>
+  createSession: (
+    instruments: Array<{
+      id?: string;
+      patch_id: string;
+      midi_channel: number;
+      effect_source_ids?: string[];
+      effect_routes?: Array<{ source_id: string; channel: string }>;
+    }>
+  ) =>
     request<SessionCreateResponse>("/sessions", {
       method: "POST",
       body: JSON.stringify({ instruments })

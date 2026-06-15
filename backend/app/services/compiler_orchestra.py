@@ -35,6 +35,10 @@ from backend.app.services.gen_asset_service import GenAssetService
 from backend.app.services.orc_metadata import format_orc_comment_value
 
 
+CONST_S_VALUE_RE = re.compile(r"[a-z][a-z0-9_]{0,49}")
+CONST_S_DEFAULT_VALUE = "string"
+
+
 class OrchestraEmitter:
     def __init__(self, gen_asset_service: GenAssetService | None = None) -> None:
         self._gen_asset_service = gen_asset_service
@@ -45,6 +49,7 @@ class OrchestraEmitter:
         *,
         graph_context: CompiledGraphContext,
         instrument_number: int,
+        instrument_name: str | None = None,
         global_scope_key: str,
         allow_packaged_asset_paths: bool = False,
     ) -> CompiledInstrumentLines:
@@ -202,7 +207,12 @@ class OrchestraEmitter:
                     if not found or not icount or icount == OPTIONAL_OMIT_MARKER:
                         raise CompilationError([f"maxalloc node '{compiled.node.id}' requires icount."])
 
-                rendered = f"maxalloc {instrument_number}, {icount}"
+                instrument_ref = (
+                    self._format_csound_string(instrument_name)
+                    if instrument_name is not None
+                    else str(instrument_number)
+                )
+                rendered = f"maxalloc {instrument_ref}, {icount}"
                 global_header_lines.extend([self._node_comment(compiled.node.id, compiled.spec.name), rendered])
                 continue
 
@@ -236,6 +246,12 @@ class OrchestraEmitter:
                     and not aexcite2.startswith("a_")
                 ):
                     env["aexcite2"] = OPTIONAL_OMIT_MARKER
+
+            if compiled.spec.name == "const_s":
+                env["value"] = self._format_const_s_literal(
+                    compiled.node.params.get("value", CONST_S_DEFAULT_VALUE),
+                    compiled.node.id,
+                )
 
             for param_key, param_value in compiled.node.params.items():
                 if param_key in env:
@@ -493,7 +509,20 @@ class OrchestraEmitter:
         return f"; node:{format_orc_comment_value(node_id)} opcode:{format_orc_comment_value(opcode)}{suffix_text}"
 
     @staticmethod
-    def massign_lines(targets: list[PatchInstrumentTarget]) -> list[str]:
+    def massign_lines(
+        targets: list[PatchInstrumentTarget],
+        instrument_names: list[str] | None = None,
+    ) -> list[str]:
+        if instrument_names is not None:
+            lines = ["massign 0, 0"]
+            for target, instrument_name in zip(targets, instrument_names, strict=True):
+                if target.always_on or target.midi_channel <= 0:
+                    continue
+                lines.append(
+                    f"massign {target.midi_channel}, {OrchestraEmitter._format_csound_string(instrument_name)}"
+                )
+            return lines
+
         if all(target.midi_channel > 0 for target in targets):
             lines = ["massign 0, 0"]
             for instrument_number, target in enumerate(targets, start=1):
@@ -711,6 +740,22 @@ class OrchestraEmitter:
 
         escaped = value.replace("\\", "\\\\").replace('"', '\\"')
         return f'"{escaped}"'
+
+    @staticmethod
+    def _format_csound_string(value: str) -> str:
+        escaped = value.replace("\\", "\\\\").replace('"', '\\"')
+        return f'"{escaped}"'
+
+    @staticmethod
+    def _format_const_s_literal(value: object, node_id: str) -> str:
+        if not isinstance(value, str) or not CONST_S_VALUE_RE.fullmatch(value):
+            raise CompilationError(
+                [
+                    f"const_s node '{node_id}' value must match [a-z][a-z0-9_]{{0,49}} "
+                    "using only lowercase letters, digits, and underscores."
+                ]
+            )
+        return OrchestraEmitter._format_literal(value, SignalType.STRING)
 
     @staticmethod
     def _resolve_literal_value(node: NodeInstance, input_port: PortSpec) -> tuple[str, bool]:

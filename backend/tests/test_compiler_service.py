@@ -135,6 +135,58 @@ def test_sfload_global_request_escapes_legacy_node_metadata_comment() -> None:
     assert all(line.strip() != "endin" for line in lines)
 
 
+def test_const_s_compile_quotes_valid_value_and_feeds_string_ports() -> None:
+    compiler = CompilerService(OpcodeService(icon_prefix="/static/icons"))
+    patch = PatchDocument(
+        name="const_s compile test",
+        description="const_s renders a restricted string literal",
+        graph=PatchGraph(
+            nodes=[
+                NodeInstance(id="sig", opcode="const_a", params={"value": 0.1}),
+                NodeInstance(id="label", opcode="const_s", params={"value": "left_bus"}),
+                NodeInstance(id="send", opcode="outleta"),
+                NodeInstance(id="out", opcode="outs"),
+            ],
+            connections=[
+                Connection(from_node_id="sig", from_port_id="aout", to_node_id="send", to_port_id="asignal"),
+                Connection(from_node_id="label", from_port_id="sout", to_node_id="send", to_port_id="sname"),
+                Connection(from_node_id="sig", from_port_id="aout", to_node_id="out", to_port_id="left"),
+                Connection(from_node_id="sig", from_port_id="aout", to_node_id="out", to_port_id="right"),
+            ],
+        ),
+    )
+
+    artifact = compiler.compile_patch(patch, midi_input="0", rtmidi_module="alsaseq")
+
+    assert 'S_label_sout_1 = "left_bus"' in artifact.orc
+    assert "outleta S_label_sout_1, a_sig_aout_1" in artifact.orc
+
+
+@pytest.mark.parametrize("value", ["", "1bad", "_bad", "Bad", "bad-name", "a" * 51, 7])
+def test_const_s_rejects_invalid_values(value: object) -> None:
+    compiler = CompilerService(OpcodeService(icon_prefix="/static/icons"))
+    patch = PatchDocument(
+        name="const_s invalid test",
+        description="const_s validates literal payloads",
+        graph=PatchGraph(
+            nodes=[
+                NodeInstance(id="label", opcode="const_s", params={"value": value}),
+                NodeInstance(id="sig", opcode="const_a", params={"value": 0.1}),
+                NodeInstance(id="out", opcode="outs"),
+            ],
+            connections=[
+                Connection(from_node_id="sig", from_port_id="aout", to_node_id="out", to_port_id="left"),
+                Connection(from_node_id="sig", from_port_id="aout", to_node_id="out", to_port_id="right"),
+            ],
+        ),
+    )
+
+    with pytest.raises(CompilationError) as err:
+        compiler.compile_patch(patch, midi_input="0", rtmidi_module="alsaseq")
+
+    assert any("const_s node 'label' value must match" in diagnostic for diagnostic in err.value.diagnostics)
+
+
 def test_compile_rejects_legacy_constructed_gen_table_size_over_limit() -> None:
     compiler = CompilerService(OpcodeService(icon_prefix="/static/icons"))
     patch = PatchDocument.model_construct(

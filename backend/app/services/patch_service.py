@@ -20,6 +20,7 @@ from backend.app.services.persisted_json_limits import (
     PersistedJsonLimitError,
     assert_persisted_json_limits,
 )
+from backend.app.services.audio_port_names import audio_port_names
 from backend.app.storage.repositories.patch_repository import PatchRepository
 
 
@@ -45,6 +46,7 @@ class PatchService:
             name=request.name,
             description=request.description,
             is_template=request.is_template,
+            always_on=request.always_on,
             schema_version=request.schema_version,
             graph=request.graph,
             created_at=now,
@@ -73,6 +75,9 @@ class PatchService:
                 name=document.name,
                 description=document.description,
                 is_template=document.is_template,
+                always_on=document.always_on,
+                audio_inlet_names=audio_port_names(document.graph, opcode="inleta"),
+                audio_outlet_names=audio_port_names(document.graph, opcode="outleta"),
                 schema_version=document.schema_version,
                 updated_at=document.updated_at,
             )
@@ -89,6 +94,7 @@ class PatchService:
             name=request.name if request.name is not None else existing.name,
             description=request.description if request.description is not None else existing.description,
             is_template=request.is_template if request.is_template is not None else existing.is_template,
+            always_on=request.always_on if request.always_on is not None else existing.always_on,
             schema_version=request.schema_version if request.schema_version is not None else existing.schema_version,
             graph=request.graph if request.graph is not None else existing.graph,
             created_at=existing.created_at,

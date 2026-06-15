@@ -26,9 +26,9 @@ The application includes multilingual UI/help content and integrated help pages,
 
 ### Instrument Design
 
-The instrument design area combines patch metadata, an opcode catalog, and a visual graph editor. You build an instrument by selecting Csound opcodes and connecting them into a signal/control graph.
+The instrument design area combines patch metadata, an opcode catalog, and a visual graph editor. You build an instrument by selecting Csound opcodes and connecting them into a signal/control graph, including numeric and string constant nodes for reusable literal values.
 
-Designed instruments can be documented with patch descriptions up to 2048 characters and exported for reuse, including export to a `.csd` file. Patches can also be marked as templates so incomplete starter graphs can be saved without compile validation, then reused through `New from template`; template patches remain editable in Instrument Design but are hidden from the Perform instrument rack.
+Designed instruments can be documented with patch descriptions up to 2048 characters and exported for reuse, including export to a `.csd` file. Patches can also be marked as templates so incomplete starter graphs can be saved without compile validation, then reused through `New from template`; template patches remain editable in Instrument Design but are hidden from the Perform instrument rack. Patches can also be marked `Always On?` for effect-style instruments that run continuously when explicitly added to the Perform rack.
 
 ![Instrument Design](screenshots/instrument_design.png)
 
@@ -42,7 +42,7 @@ Designed instruments can be documented with patch descriptions up to 2048 charac
 
 The live performance area provides an instrument rack where instruments can be selected and assigned to MIDI channels. A melodic sequencer can then drive those instruments, with scale and mode selection and note entry that supports choosing notes both in-scale and out-of-scale. `tempoBPM` stays global, while every melodic sequencer, drummer sequencer, and controller sequencer now has its own meter (`2..7` over `4` or `8`), grid in steps per beat (`2`, `4`, or `8`), and beat ratio (`1:1`, `2:1`, `3:2`, `4:3`, `3:4`, `5:4`, `4:5`, `7:4`). That makes polymeter and true per-sequencer polyrhythm possible inside one performance.
 
-When the rack transport has started instruments, rack assignment edits are intentionally locked: adding/removing instruments and changing patch or MIDI channel assignments stay disabled until `Stop Instruments` is pressed, while per-instrument `Level` stays live for mix adjustments.
+When the rack transport has started instruments, rack assignment edits are intentionally locked: adding/removing instruments and changing patch or MIDI channel assignments stay disabled until `Stop Instruments` is pressed, while per-instrument `Level` stays live for mix adjustments. Always-on rack instruments show an audio route matrix instead of a MIDI channel; checked `outleta` channel labels from normal rack instruments are connected to matching `inleta` labels on the effect.
 
 A controller sequencer lets you define a curve that is sent to the backend sequencer and emitted there as timed MIDI Control Change messages for a selected controller number. Melodic and drummer pads are sized in beats (`1..8`), which makes one-bar pads possible in odd meters such as `3/4`, `5/4`, or `7/8`, while controller pads extend to `16` beats for longer repeating automation. Beat ratios change how quickly each sequencer advances across the shared transport without introducing float drift in the backend runtime clock, and running controller sequencers now queue pad changes on loop boundaries the same way the note sequencers do.
 
@@ -50,7 +50,9 @@ Arpeggiator devices act as backend-run virtual instruments. Each arpeggiator own
 
 Drummer sequencer LEDs show the current playing column across every drum row, and vertical velocity drags now display a live numeric readout in addition to the existing saturation-based feedback.
 
-From the instrument rack you can now export either the native Orchestron performance bundle (`.orch.json` / `.orch.zip`) or an offline Csound render package (`.csd.zip`) that includes the compiled performance CSD, the arranger playback as MIDI, uploaded sample/SF assets, and a README with the exact `csound` command line. GEN01 and `sfload` sample loading require uploaded or imported assets; raw backend filesystem paths are rejected before compile/start.
+From the instrument rack you can now export either the native Orchestron performance bundle (`.orch.json` / `.orch.zip`) or an offline Csound render package (`.csd.zip`) that includes the compiled performance CSD, the arranger playback as MIDI, uploaded sample/SF assets, and a README with the exact `csound` command line. Always-on effect instruments are exported with `alwayson` and a finite score duration extended by the release tail buffer. GEN01 and `sfload` sample loading require uploaded or imported assets; raw backend filesystem paths are rejected before compile/start.
+
+Implementation details for always-on effect instruments are documented in [EFFECT_INSTRUMENTS.md](EFFECT_INSTRUMENTS.md).
 
 The multitrack arranger combines melodic sequencers, drummer sequencers, and controller sequencers in one shared timeline. Cassette-style transport controls start only sequencers with `Pad Looper` enabled and stop arranger-driven pad-loop sequencers without stopping manually started non-pad-loop sequencers or the rack instrument engine; `Play` also stops sequencers whose `Pad Looper` is off so arranger playback stays synchronized. Rewind/fast-forward move in shared `1-beat` transport blocks, double-clicking `Stop` resets to the selected loop start or step `0`, an optional loop selection repeats only the chosen arranger range down to a single beat, right-click menus can insert pads or existing group/super-group tokens and copy/paste selected phrase blocks into later gaps or the sequence end, and the section now exposes the same integrated `?` help flow as the other perform devices.
 

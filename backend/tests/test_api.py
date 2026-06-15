@@ -227,6 +227,86 @@ def _minimal_patch_payload(*, name: str = "Test Patch", description: str = ""):
     }
 
 
+def _audio_source_patch_payload(*, name: str = "Audio Source", connected_snames: bool = False):
+    payload = _minimal_patch_payload(name=name)
+    payload["graph"]["nodes"] = [
+        {"id": "sig", "opcode": "const_a", "params": {"value": 0.05}, "position": {"x": 20, "y": 20}},
+        {
+            "id": "out_l",
+            "opcode": "outleta",
+            "params": {} if connected_snames else {"sname": "left"},
+            "position": {"x": 200, "y": 20},
+        },
+        {
+            "id": "out_r",
+            "opcode": "outleta",
+            "params": {} if connected_snames else {"sname": "right"},
+            "position": {"x": 200, "y": 100},
+        },
+        {"id": "outs", "opcode": "outs", "params": {}, "position": {"x": 380, "y": 20}},
+    ]
+    if connected_snames:
+        payload["graph"]["nodes"].extend(
+            [
+                {"id": "name_l", "opcode": "const_s", "params": {"value": "left"}, "position": {"x": 20, "y": 140}},
+                {"id": "name_r", "opcode": "const_s", "params": {"value": "right"}, "position": {"x": 20, "y": 200}},
+            ]
+        )
+    payload["graph"]["connections"] = [
+        {"from_node_id": "sig", "from_port_id": "aout", "to_node_id": "out_l", "to_port_id": "asignal"},
+        {"from_node_id": "sig", "from_port_id": "aout", "to_node_id": "out_r", "to_port_id": "asignal"},
+        {"from_node_id": "sig", "from_port_id": "aout", "to_node_id": "outs", "to_port_id": "left"},
+        {"from_node_id": "sig", "from_port_id": "aout", "to_node_id": "outs", "to_port_id": "right"},
+    ]
+    if connected_snames:
+        payload["graph"]["connections"].extend(
+            [
+                {"from_node_id": "name_l", "from_port_id": "sout", "to_node_id": "out_l", "to_port_id": "sname"},
+                {"from_node_id": "name_r", "from_port_id": "sout", "to_node_id": "out_r", "to_port_id": "sname"},
+            ]
+        )
+    return payload
+
+
+def _always_on_effect_patch_payload(*, name: str = "Always-On Effect", connected_snames: bool = False):
+    payload = _minimal_patch_payload(name=name)
+    payload["always_on"] = True
+    payload["graph"]["nodes"] = [
+        {
+            "id": "in_l",
+            "opcode": "inleta",
+            "params": {} if connected_snames else {"sname": "left"},
+            "position": {"x": 20, "y": 20},
+        },
+        {
+            "id": "in_r",
+            "opcode": "inleta",
+            "params": {} if connected_snames else {"sname": "right"},
+            "position": {"x": 20, "y": 100},
+        },
+        {"id": "outs", "opcode": "outs", "params": {}, "position": {"x": 260, "y": 20}},
+    ]
+    if connected_snames:
+        payload["graph"]["nodes"].extend(
+            [
+                {"id": "name_l", "opcode": "const_s", "params": {"value": "left"}, "position": {"x": 20, "y": 180}},
+                {"id": "name_r", "opcode": "const_s", "params": {"value": "right"}, "position": {"x": 20, "y": 240}},
+            ]
+        )
+    payload["graph"]["connections"] = [
+        {"from_node_id": "in_l", "from_port_id": "asignal", "to_node_id": "outs", "to_port_id": "left"},
+        {"from_node_id": "in_r", "from_port_id": "asignal", "to_node_id": "outs", "to_port_id": "right"},
+    ]
+    if connected_snames:
+        payload["graph"]["connections"].extend(
+            [
+                {"from_node_id": "name_l", "from_port_id": "sout", "to_node_id": "in_l", "to_port_id": "sname"},
+                {"from_node_id": "name_r", "from_port_id": "sout", "to_node_id": "in_r", "to_port_id": "sname"},
+            ]
+        )
+    return payload
+
+
 def _sequencer_timing(
     *,
     tempo_bpm: int = 120,
@@ -1453,6 +1533,55 @@ def test_patch_template_flag_defaults_and_updates(tmp_path: Path) -> None:
         loaded = client.get(f"/api/patches/{patch_id}")
         assert loaded.status_code == 200
         assert loaded.json()["is_template"] is False
+
+
+def test_patch_always_on_flag_and_audio_port_summaries(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        regular = client.post("/api/patches", json=_minimal_patch_payload(name="Regular Patch"))
+        assert regular.status_code == 201
+        assert regular.json()["always_on"] is False
+
+        effect = client.post("/api/patches", json=_always_on_effect_patch_payload(name="Stereo Effect"))
+        assert effect.status_code == 201
+        patch_id = effect.json()["id"]
+        assert effect.json()["always_on"] is True
+
+        listed = client.get("/api/patches").json()
+        listed_effect = next(patch for patch in listed if patch["id"] == patch_id)
+        assert listed_effect["always_on"] is True
+        assert listed_effect["audio_inlet_names"] == ["left", "right"]
+        assert listed_effect["audio_outlet_names"] == []
+
+        source = client.post("/api/patches", json=_audio_source_patch_payload(name="Stereo Source"))
+        assert source.status_code == 201
+        listed = client.get("/api/patches").json()
+        listed_source = next(patch for patch in listed if patch["id"] == source.json()["id"])
+        assert listed_source["always_on"] is False
+        assert listed_source["audio_inlet_names"] == []
+        assert listed_source["audio_outlet_names"] == ["left", "right"]
+
+        connected_effect = client.post(
+            "/api/patches",
+            json=_always_on_effect_patch_payload(name="Connected Stereo Effect", connected_snames=True),
+        )
+        connected_source = client.post(
+            "/api/patches",
+            json=_audio_source_patch_payload(name="Connected Stereo Source", connected_snames=True),
+        )
+        assert connected_effect.status_code == 201
+        assert connected_source.status_code == 201
+        listed = client.get("/api/patches").json()
+        listed_connected_effect = next(patch for patch in listed if patch["id"] == connected_effect.json()["id"])
+        listed_connected_source = next(patch for patch in listed if patch["id"] == connected_source.json()["id"])
+        assert listed_connected_effect["audio_inlet_names"] == ["left", "right"]
+        assert listed_connected_source["audio_outlet_names"] == ["left", "right"]
+
+        updated = client.put(f"/api/patches/{patch_id}", json={"always_on": False})
+        assert updated.status_code == 200
+        assert updated.json()["always_on"] is False
+        loaded = client.get(f"/api/patches/{patch_id}")
+        assert loaded.status_code == 200
+        assert loaded.json()["always_on"] is False
 
 
 def test_template_patch_cannot_create_runtime_session(tmp_path: Path) -> None:
@@ -4034,6 +4163,10 @@ def test_const_nodes_use_node_params_without_value_input_port(tmp_path: Path) ->
         assert opcodes_by_name["const_a"]["inputs"] == []
         assert opcodes_by_name["const_i"]["inputs"] == []
         assert opcodes_by_name["const_k"]["inputs"] == []
+        assert opcodes_by_name["const_s"]["inputs"] == []
+        const_s_outputs = {item["id"]: item for item in opcodes_by_name["const_s"]["outputs"]}
+        assert const_s_outputs["sout"]["signal_type"] == "S"
+        assert opcodes_by_name["const_s"]["documentation_url"] == "https://csound.com/docs/manual/PartOpcodesOverview.html"
 
         patch_payload = {
             "name": "Const Patch",
@@ -4043,10 +4176,14 @@ def test_const_nodes_use_node_params_without_value_input_port(tmp_path: Path) ->
                 "nodes": [
                     {"id": "n1", "opcode": "const_a", "params": {"value": 0.25}, "position": {"x": 50, "y": 50}},
                     {"id": "n2", "opcode": "outs", "params": {}, "position": {"x": 220, "y": 50}},
+                    {"id": "n3", "opcode": "const_s", "params": {"value": "left_bus"}, "position": {"x": 50, "y": 150}},
+                    {"id": "n4", "opcode": "outleta", "params": {}, "position": {"x": 220, "y": 150}},
                 ],
                 "connections": [
                     {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "left"},
                     {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n2", "to_port_id": "right"},
+                    {"from_node_id": "n1", "from_port_id": "aout", "to_node_id": "n4", "to_port_id": "asignal"},
+                    {"from_node_id": "n3", "from_port_id": "sout", "to_node_id": "n4", "to_port_id": "sname"},
                 ],
                 "ui_layout": {},
                 "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
@@ -4063,6 +4200,9 @@ def test_const_nodes_use_node_params_without_value_input_port(tmp_path: Path) ->
 
         compile_response = client.post(f"/api/sessions/{session_id}/compile")
         assert compile_response.status_code == 200
+        compiled_orc = compile_response.json()["orc"]
+        assert 'S_n3_sout_1 = "left_bus"' in compiled_orc
+        assert "outleta S_n3_sout_1, a_n1_aout_1" in compiled_orc
         assert " = 0.25" in compile_response.json()["orc"]
 
 
@@ -5136,6 +5276,65 @@ def test_performance_csd_export_bundle_includes_csd_midi_readme_and_assets(tmp_p
             assert b"\xFF\x51\x03" in midi_bytes
             assert b"\x90\x3C\x64" in midi_bytes
             assert b"\xB0\x01" in midi_bytes
+
+
+def test_performance_csd_export_runs_always_on_effect_for_score_duration(tmp_path: Path) -> None:
+    source_payload = _audio_source_patch_payload(name="Export Source")
+    effect_payload = _always_on_effect_patch_payload(name="Export Effect")
+    base_sequencer_config = _performance_csd_export_payload()["sequencerConfig"]
+    payload = {
+        "performanceExport": {
+            "format": "orchestron.performance",
+            "version": 1,
+            "exported_at": "2026-03-16T12:00:00.000Z",
+            "performance": {
+                "name": "Effect Export",
+                "description": "routes through always-on effect",
+                "config": {
+                    "version": 10,
+                    "instruments": [
+                        {"id": "src", "patchId": "patch-source", "midiChannel": 1},
+                        {
+                            "id": "fx",
+                            "patchId": "patch-fx",
+                            "midiChannel": 0,
+                            "effectRoutes": [{"sourceId": "src", "channel": "right"}],
+                        },
+                    ],
+                },
+            },
+            "patch_definitions": [
+                {
+                    "sourcePatchId": "patch-source",
+                    "name": "Export Source",
+                    "description": "",
+                    "schema_version": 1,
+                    "graph": source_payload["graph"],
+                },
+                {
+                    "sourcePatchId": "patch-fx",
+                    "name": "Export Effect",
+                    "description": "",
+                    "alwaysOn": True,
+                    "schema_version": 1,
+                    "graph": effect_payload["graph"],
+                },
+            ],
+        },
+        "sequencerConfig": base_sequencer_config,
+    }
+
+    with _client(tmp_path) as client:
+        response = client.post("/api/bundles/export/performance-csd", json=payload)
+        assert response.status_code == 200
+
+        with zipfile.ZipFile(BytesIO(response.content), "r") as archive:
+            csd = archive.read("Effect_Export/Effect_Export.csd").decode("utf-8")
+            assert 'massign 1, "vcs_instr_1"' in csd
+            assert 'connect "vcs_instr_1", "right", "vcs_instr_2", "right"' in csd
+            assert 'connect "vcs_instr_1", "left", "vcs_instr_2", "left"' not in csd
+            assert 'alwayson "vcs_instr_2"' in csd
+            assert "f 0 2.5" in csd
 
 
 def test_performance_csd_export_rejects_empty_midi_performance(tmp_path: Path) -> None:
@@ -8045,6 +8244,83 @@ def test_multi_instrument_session_compiles_distinct_channel_mappings(tmp_path: P
         assert "massign 2, 2" in compiled_orc
         assert "instr 1" in compiled_orc
         assert "instr 2" in compiled_orc
+
+
+def test_always_on_effect_session_compiles_audio_route_matrix(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        source = client.post("/api/patches", json=_audio_source_patch_payload(name="Dry Source"))
+        effect = client.post("/api/patches", json=_always_on_effect_patch_payload(name="Stereo Effect"))
+        assert source.status_code == 201
+        assert effect.status_code == 201
+
+        create_session = client.post(
+            "/api/sessions",
+            json={
+                "instruments": [
+                    {"id": "src", "patch_id": source.json()["id"], "midi_channel": 1},
+                    {
+                        "id": "fx",
+                        "patch_id": effect.json()["id"],
+                        "midi_channel": 0,
+                        "effect_routes": [{"source_id": "src", "channel": "left"}],
+                    },
+                ]
+            },
+        )
+        assert create_session.status_code == 201
+        session_body = create_session.json()
+        assert session_body["instruments"][0]["midi_channel"] == 1
+        assert session_body["instruments"][1]["midi_channel"] == 0
+        assert session_body["instruments"][1]["effect_routes"] == [{"source_id": "src", "channel": "left"}]
+
+        compile_response = client.post(f"/api/sessions/{session_body['session_id']}/compile")
+        assert compile_response.status_code == 200
+
+        compiled_orc = compile_response.json()["orc"]
+        assert 'instr vcs_instr_1' in compiled_orc
+        assert 'instr vcs_instr_2' in compiled_orc
+        assert 'massign 1, "vcs_instr_1"' in compiled_orc
+        assert 'massign 0, "vcs_instr_2"' not in compiled_orc
+        assert 'connect "vcs_instr_1", "left", "vcs_instr_2", "left"' in compiled_orc
+        assert 'connect "vcs_instr_1", "right", "vcs_instr_2", "right"' not in compiled_orc
+        assert 'alwayson "vcs_instr_2"' in compiled_orc
+
+
+def test_always_on_effect_session_routes_connected_const_s_port_names(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        source = client.post(
+            "/api/patches",
+            json=_audio_source_patch_payload(name="Connected Dry Source", connected_snames=True),
+        )
+        effect = client.post(
+            "/api/patches",
+            json=_always_on_effect_patch_payload(name="Connected Stereo Effect", connected_snames=True),
+        )
+        assert source.status_code == 201
+        assert effect.status_code == 201
+
+        create_session = client.post(
+            "/api/sessions",
+            json={
+                "instruments": [
+                    {"id": "src", "patch_id": source.json()["id"], "midi_channel": 1},
+                    {
+                        "id": "fx",
+                        "patch_id": effect.json()["id"],
+                        "midi_channel": 0,
+                        "effect_routes": [{"source_id": "src", "channel": "right"}],
+                    },
+                ]
+            },
+        )
+        assert create_session.status_code == 201
+
+        compile_response = client.post(f"/api/sessions/{create_session.json()['session_id']}/compile")
+        assert compile_response.status_code == 200
+
+        compiled_orc = compile_response.json()["orc"]
+        assert 'connect "vcs_instr_1", "right", "vcs_instr_2", "right"' in compiled_orc
+        assert 'alwayson "vcs_instr_2"' in compiled_orc
 
 
 def test_multi_instrument_compile_deduplicates_sfload_for_same_file(tmp_path: Path) -> None:

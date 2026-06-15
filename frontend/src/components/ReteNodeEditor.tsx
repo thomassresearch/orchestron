@@ -222,7 +222,9 @@ const RETE_EDITOR_COPY: Record<GuiLanguage, ReteEditorCopy> = {
   }
 };
 
-const CONSTANT_OPCODES = new Set(["const_a", "const_i", "const_k"]);
+const CONSTANT_OPCODES = new Set(["const_a", "const_i", "const_k", "const_s"]);
+const CONST_S_DEFAULT_VALUE = "string";
+const CONST_S_MAX_LENGTH = 50;
 const GENERATOR_CATEGORIES = new Set(["oscillator", "envelope"]);
 const MIN_ZOOM = 0.2;
 const MAX_ZOOM = 2;
@@ -362,6 +364,23 @@ function paletteForCategory(category: string | undefined): NodePalette {
     return CATEGORY_NODE_PALETTES.constant;
   }
   return CATEGORY_NODE_PALETTES.default;
+}
+
+function normalizeConstStringValue(value: string): string {
+  const sanitized = value
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, "")
+    .replace(/^[0-9_]+/, "")
+    .slice(0, CONST_S_MAX_LENGTH);
+  return sanitized.length > 0 ? sanitized : CONST_S_DEFAULT_VALUE;
+}
+
+function normalizeConstantControlValue(opcode: string, value: string): string {
+  if (opcode === "const_s") {
+    return normalizeConstStringValue(value);
+  }
+  const trimmed = value.trim();
+  return trimmed.length === 0 ? "0" : trimmed;
 }
 
 function nodeCssForCategory(category: string | undefined, selected: boolean): string {
@@ -1292,7 +1311,10 @@ export function ReteNodeEditor({
         }
 
         if (isConstantOpcode) {
-          const initialValue = String(node.params.value ?? 0);
+          const initialValue =
+            node.opcode === "const_s"
+              ? normalizeConstStringValue(String(node.params.value ?? CONST_S_DEFAULT_VALUE))
+              : String(node.params.value ?? 0);
           visualNode.addControl(
             "value",
             new ClassicPreset.InputControl("text", {
@@ -1309,7 +1331,7 @@ export function ReteNodeEditor({
                           ...graphNode,
                           params: {
                             ...graphNode.params,
-                            value: nextValue.trim().length === 0 ? "0" : nextValue.trim()
+                            value: normalizeConstantControlValue(node.opcode, nextValue)
                           }
                         }
                       : graphNode

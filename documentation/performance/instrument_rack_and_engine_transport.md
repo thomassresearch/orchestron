@@ -32,6 +32,16 @@ Each rack entry lets you choose:
 - A level value (`1..10`)
 - Remove action
 
+If the selected patch is marked `Always On?`, the rack slot becomes an effect slot:
+
+- The MIDI channel field is replaced with an `Effect` badge.
+- The slot runs continuously when `Start Instruments` starts the rack session.
+- The slot shows an audio source matrix with checkboxes for compatible `outleta` channel labels from normal rack instruments.
+- A source row appears only when a normal rack instrument has an `outleta` label that matches an `inleta` label on the always-on effect patch.
+- Checked rows are connected when the session compiles; unchecked rows are not routed.
+
+If no normal rack instrument exposes a matching `outleta`, the matrix is empty. Add or edit normal source patches with `outleta` nodes and add matching `inleta` nodes to the effect patch to make routes available.
+
 While instruments are running, rack assignment changes are locked:
 
 - `Add Instrument` is disabled
@@ -43,6 +53,7 @@ While instruments are running, rack assignment changes are locked:
 
 - Use `Add Instrument` to create another rack slot.
 - This enables multi-instrument performances driven by different MIDI channels.
+- Always-on effect patches are included only when they are explicitly added as rack slots.
 - The button is unavailable while the engine is running; stop instruments before changing rack assignments.
 
 ## Rack Transport (Instrument Engine Control)
@@ -77,6 +88,7 @@ If engine start/stop or transport actions fail, the Perform page shows an error 
 
 - Save the performance after significant changes (rack assignments, sequencers, piano rolls, controller mappings).
 - Use distinct MIDI channels per instrument unless you intentionally want multiple instruments layered on the same channel.
+- Use the same `sname` label on source `outleta` nodes and effect `inleta` nodes when you want a matrix route to appear. The label can be stored directly on the node or supplied by a direct `const_s` connection.
 
 ## Screenshots
 

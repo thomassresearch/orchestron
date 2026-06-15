@@ -408,9 +408,22 @@ export interface SequencerRuntimeState {
   >;
 }
 
+export interface EffectRouteSelection {
+  sourceId: string;
+  channel: string;
+}
+
+export interface SessionEffectRoute {
+  source_id: string;
+  channel: string;
+}
+
 export interface SessionInstrumentAssignment {
+  id?: string;
   patch_id: string;
   midi_channel: number;
+  effect_source_ids?: string[];
+  effect_routes?: SessionEffectRoute[];
 }
 
 export interface SequencerInstrumentBinding {
@@ -418,15 +431,20 @@ export interface SequencerInstrumentBinding {
   patchId: string;
   midiChannel: number;
   level: number;
+  effectSourceIds: string[];
+  effectRoutes: EffectRouteSelection[];
 }
 
 export interface SequencerConfigSnapshot {
-  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
   instruments: Array<{
+    id?: string;
     patchId: string;
     patchName?: string;
     midiChannel: number;
     level?: number;
+    effectSourceIds?: string[];
+    effectRoutes?: EffectRouteSelection[];
   }>;
   patchDefinitions?: Array<{
     sourcePatchId: string;
@@ -434,6 +452,8 @@ export interface SequencerConfigSnapshot {
     description: string;
     isTemplate?: boolean;
     is_template?: boolean;
+    alwaysOn?: boolean;
+    always_on?: boolean;
     schema_version: number;
     graph: PatchGraph;
   }>;
@@ -555,6 +575,7 @@ export interface EditablePatchSnapshot {
   name: string;
   description: string;
   is_template: boolean;
+  always_on: boolean;
   schema_version: number;
   graph: PatchGraph;
   created_at?: string;
@@ -814,6 +835,7 @@ export interface Patch {
   name: string;
   description: string;
   is_template: boolean;
+  always_on: boolean;
   schema_version: number;
   graph: PatchGraph;
   created_at: string;
@@ -825,6 +847,9 @@ export interface PatchListItem {
   name: string;
   description: string;
   is_template: boolean;
+  always_on: boolean;
+  audio_inlet_names: string[];
+  audio_outlet_names: string[];
   schema_version: number;
   updated_at: string;
 }
