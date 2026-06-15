@@ -247,6 +247,16 @@ class OrchestraEmitter:
                 ):
                     env["aexcite2"] = OPTIONAL_OMIT_MARKER
 
+            if compiled.spec.name == "tanh" and "xin" in env:
+                xin = env["xin"].strip()
+                if (
+                    xin
+                    and xin != OPTIONAL_OMIT_MARKER
+                    and not input_is_audio.get("xin", False)
+                    and not re.fullmatch(r"a\s*\(.+\)", xin)
+                ):
+                    env["xin"] = f"a({xin})"
+
             if compiled.spec.name == "const_s":
                 env["value"] = self._format_const_s_literal(
                     compiled.node.params.get("value", CONST_S_DEFAULT_VALUE),

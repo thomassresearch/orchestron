@@ -2,7 +2,7 @@
 
 **Navigation:** [Up](instrument_design.md) | [Prev](instrument_import_export.md) | [Next](../performance/performance.md)
 
-This appendix is generated from `backend/app/data/opcodes.json` and currently lists **138** user-selectable opcodes in the Instrument Design opcode catalog.
+This appendix is generated from `backend/app/data/opcodes.json` and currently lists **142** user-selectable opcodes in the Instrument Design opcode catalog.
 
 ## How To Use This Appendix
 
@@ -22,8 +22,8 @@ This appendix is generated from `backend/app/data/opcodes.json` and currently li
 | dynamics | 2 |
 | envelope | 12 |
 | filter | 16 |
-| fm | 7 |
-| math | 2 |
+| fm | 10 |
+| math | 3 |
 | midi | 7 |
 | mixer | 3 |
 | modulation | 10 |
@@ -130,6 +130,9 @@ This appendix is generated from `backend/app/data/opcodes.json` and currently li
 
 | Opcode | Inputs | Outputs | Short Description |
 | --- | --- | --- | --- |
+| crossfmi | 9 (k, k, k, k, k, i, i, i, i) | 2 (a, a) | Interpolating crossed frequency-modulation oscillator pair. |
+| crossfmpmi | 9 (k, k, k, k, k, i, i, i, i) | 2 (a, a) | Interpolating crossed frequency/phase-modulation oscillator pair. |
+| crosspmi | 9 (k, k, k, k, k, i, i, i, i) | 2 (a, a) | Interpolating crossed phase-modulation oscillator pair. |
 | fmb3 | 10 (k, k, k, k, k, i, i, i, i, i) | 1 (a) | B3 organ FM model. |
 | fmbell | 12 (k, k, k, k, k, k, i, i, i, i, i, i) | 1 (a) | Bell FM model. |
 | fmmetal | 11 (k, k, k, k, k, k, i, i, i, i, i) | 1 (a) | Metallic FM model. |
@@ -144,6 +147,7 @@ This appendix is generated from `backend/app/data/opcodes.json` and currently li
 | --- | --- | --- | --- |
 | a_mul | 2 (a, a) | 1 (a) | Multiply two audio signals. |
 | k_mul | 2 (k, k) | 1 (k) | Multiply two control signals. |
+| tanh | 1 (a) | 1 (a) | Hyperbolic tangent function for audio waveshaping and limiting. |
 
 ### midi
 

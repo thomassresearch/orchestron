@@ -3464,6 +3464,421 @@
     "icon_filename": "moogladder.svg"
   },
   {
+    "name": "crossfmi",
+    "category": "fm",
+    "description": "Interpolating crossed frequency-modulation oscillator pair.",
+    "documentation_markdown": "### `crossfmi`\n\nInterpolating crossed frequency-modulation oscillator pair.\n\n**Reference**\n- [Csound opcode overview](https://csound.com/docs/manual/crossfm.html)",
+    "documentation_url": "https://csound.com/docs/manual/crossfm.html",
+    "inputs": [
+      {
+        "id": "xfrq1",
+        "name": "Osc1FreqFactor",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "a",
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": 1,
+        "description": "Frequency factor for oscillator 1, multiplied by BaseFrequency."
+      },
+      {
+        "id": "xfrq2",
+        "name": "Osc2FreqFactor",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "a",
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": 1.5,
+        "description": "Frequency factor for oscillator 2, multiplied by BaseFrequency."
+      },
+      {
+        "id": "xndx1",
+        "name": "ModOsc2By1",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "a",
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": 2,
+        "description": "Modulation index for oscillator 2 by oscillator 1."
+      },
+      {
+        "id": "xndx2",
+        "name": "ModOsc1By2",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "a",
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": 2,
+        "description": "Modulation index for oscillator 1 by oscillator 2."
+      },
+      {
+        "id": "kcps",
+        "name": "BaseFrequency",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": 220,
+        "description": "Common base frequency in cycles per second."
+      },
+      {
+        "id": "ifn1",
+        "name": "WaveTable1",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 1,
+        "description": "Function table for oscillator 1."
+      },
+      {
+        "id": "ifn2",
+        "name": "WaveTable2",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 1,
+        "description": "Function table for oscillator 2."
+      },
+      {
+        "id": "iphs1",
+        "name": "Phase1",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": false,
+        "default": 0,
+        "description": "Initial phase for oscillator 1."
+      },
+      {
+        "id": "iphs2",
+        "name": "Phase2",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": false,
+        "default": 0,
+        "description": "Initial phase for oscillator 2."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "a1",
+        "name": "aOsc1",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Audio output from oscillator 1."
+      },
+      {
+        "id": "a2",
+        "name": "aOsc2",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Audio output from oscillator 2."
+      }
+    ],
+    "template": "{a1}, {a2} crossfmi {xfrq1}, {xfrq2}, {xndx1}, {xndx2}, {kcps}, {ifn1}, {ifn2}, {iphs1}, {iphs2}",
+    "tags": [
+      "sound",
+      "fm",
+      "source",
+      "cross-modulation",
+      "interpolated"
+    ],
+    "icon_filename": "vco.svg"
+  },
+  {
+    "name": "crossfmpmi",
+    "category": "fm",
+    "description": "Interpolating crossed frequency/phase-modulation oscillator pair.",
+    "documentation_markdown": "### `crossfmpmi`\n\nInterpolating crossed frequency/phase-modulation oscillator pair.\n\n**Reference**\n- [Csound opcode overview](https://csound.com/docs/manual/crossfm.html)",
+    "documentation_url": "https://csound.com/docs/manual/crossfm.html",
+    "inputs": [
+      {
+        "id": "xfrq1",
+        "name": "Osc1FreqFactor",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "a",
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": 1,
+        "description": "Frequency factor for oscillator 1, multiplied by BaseFrequency."
+      },
+      {
+        "id": "xfrq2",
+        "name": "Osc2FreqFactor",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "a",
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": 1.5,
+        "description": "Frequency factor for oscillator 2, multiplied by BaseFrequency."
+      },
+      {
+        "id": "xndx1",
+        "name": "ModOsc2By1",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "a",
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": 2,
+        "description": "Modulation index for oscillator 2 by oscillator 1."
+      },
+      {
+        "id": "xndx2",
+        "name": "ModOsc1By2",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "a",
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": 2,
+        "description": "Modulation index for oscillator 1 by oscillator 2."
+      },
+      {
+        "id": "kcps",
+        "name": "BaseFrequency",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": 220,
+        "description": "Common base frequency in cycles per second."
+      },
+      {
+        "id": "ifn1",
+        "name": "WaveTable1",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 1,
+        "description": "Function table for oscillator 1."
+      },
+      {
+        "id": "ifn2",
+        "name": "WaveTable2",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 1,
+        "description": "Function table for oscillator 2."
+      },
+      {
+        "id": "iphs1",
+        "name": "Phase1",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": false,
+        "default": 0,
+        "description": "Initial phase for oscillator 1."
+      },
+      {
+        "id": "iphs2",
+        "name": "Phase2",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": false,
+        "default": 0,
+        "description": "Initial phase for oscillator 2."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "a1",
+        "name": "aOsc1",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Audio output from oscillator 1."
+      },
+      {
+        "id": "a2",
+        "name": "aOsc2",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Audio output from oscillator 2."
+      }
+    ],
+    "template": "{a1}, {a2} crossfmpmi {xfrq1}, {xfrq2}, {xndx1}, {xndx2}, {kcps}, {ifn1}, {ifn2}, {iphs1}, {iphs2}",
+    "tags": [
+      "sound",
+      "fm",
+      "phase-modulation",
+      "source",
+      "cross-modulation",
+      "interpolated"
+    ],
+    "icon_filename": "vco.svg"
+  },
+  {
+    "name": "crosspmi",
+    "category": "fm",
+    "description": "Interpolating crossed phase-modulation oscillator pair.",
+    "documentation_markdown": "### `crosspmi`\n\nInterpolating crossed phase-modulation oscillator pair.\n\n**Reference**\n- [Csound opcode overview](https://csound.com/docs/manual/crossfm.html)",
+    "documentation_url": "https://csound.com/docs/manual/crossfm.html",
+    "inputs": [
+      {
+        "id": "xfrq1",
+        "name": "Osc1FreqFactor",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "a",
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": 1,
+        "description": "Frequency factor for oscillator 1, multiplied by BaseFrequency."
+      },
+      {
+        "id": "xfrq2",
+        "name": "Osc2FreqFactor",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "a",
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": 1.5,
+        "description": "Frequency factor for oscillator 2, multiplied by BaseFrequency."
+      },
+      {
+        "id": "xndx1",
+        "name": "ModOsc2By1",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "a",
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": 2,
+        "description": "Modulation index for oscillator 2 by oscillator 1."
+      },
+      {
+        "id": "xndx2",
+        "name": "ModOsc1By2",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "a",
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": 2,
+        "description": "Modulation index for oscillator 1 by oscillator 2."
+      },
+      {
+        "id": "kcps",
+        "name": "BaseFrequency",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": 220,
+        "description": "Common base frequency in cycles per second."
+      },
+      {
+        "id": "ifn1",
+        "name": "WaveTable1",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 1,
+        "description": "Function table for oscillator 1."
+      },
+      {
+        "id": "ifn2",
+        "name": "WaveTable2",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 1,
+        "description": "Function table for oscillator 2."
+      },
+      {
+        "id": "iphs1",
+        "name": "Phase1",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": false,
+        "default": 0,
+        "description": "Initial phase for oscillator 1."
+      },
+      {
+        "id": "iphs2",
+        "name": "Phase2",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": false,
+        "default": 0,
+        "description": "Initial phase for oscillator 2."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "a1",
+        "name": "aOsc1",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Audio output from oscillator 1."
+      },
+      {
+        "id": "a2",
+        "name": "aOsc2",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Audio output from oscillator 2."
+      }
+    ],
+    "template": "{a1}, {a2} crosspmi {xfrq1}, {xfrq2}, {xndx1}, {xndx2}, {kcps}, {ifn1}, {ifn2}, {iphs1}, {iphs2}",
+    "tags": [
+      "sound",
+      "phase-modulation",
+      "source",
+      "cross-modulation",
+      "interpolated"
+    ],
+    "icon_filename": "vco.svg"
+  },
+  {
     "name": "fmb3",
     "category": "fm",
     "description": "B3 organ FM model.",
@@ -4458,6 +4873,47 @@
       "utility"
     ],
     "icon_filename": "k_mul.svg"
+  },
+  {
+    "name": "tanh",
+    "category": "math",
+    "description": "Hyperbolic tangent function for audio waveshaping and limiting.",
+    "documentation_markdown": "### `tanh`\n\nHyperbolic tangent function for audio waveshaping and limiting.\n\n**Reference**\n- [Csound opcode overview](https://csound.com/docs/manual/tanh.html)",
+    "documentation_url": "https://csound.com/docs/manual/tanh.html",
+    "inputs": [
+      {
+        "id": "xin",
+        "name": "Input",
+        "signal_type": "a",
+        "accepted_signal_types": [
+          "a",
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": 0,
+        "description": "Input value or signal."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "aout",
+        "name": "aOut",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Audio-rate hyperbolic tangent output."
+      }
+    ],
+    "template": "{aout} = tanh({xin})",
+    "tags": [
+      "math",
+      "function",
+      "saturation",
+      "waveshaper"
+    ],
+    "icon_filename": "a_mul.svg"
   },
   {
     "name": "ampmidi",

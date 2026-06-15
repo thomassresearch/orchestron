@@ -4835,5 +4835,263 @@
         "spanish": "Salida de audio de grain3."
       }
     }
+  },
+  "tanh": {
+    "description": {
+      "english": "Performs a hyperbolic tangent function. Returns the hyperbolic tangent of x.",
+      "german": "Führt eine hyperbolische Tangensfunktion aus. Gibt den hyperbolischen Tangens von x zurück.",
+      "french": "Effectue une fonction tangente hyperbolique. Renvoie la tangente hyperbolique de x.",
+      "spanish": "Realiza una función tangente hiperbólica. Devuelve la tangente hiperbólica de x."
+    },
+    "inputs": {
+      "xin": {
+        "english": "Input parameter at audio-rate.",
+        "german": "Eingabeparameter bei Audiorate.",
+        "french": "Paramètre d’entrée au débit audio.",
+        "spanish": "Parámetro de entrada a velocidad de audio."
+      }
+    },
+    "outputs": {
+      "aout": {
+        "english": "aOut audio-rate output.",
+        "german": "aOut Audio-Rate-Ausgabe.",
+        "french": "aOut sortie de débit audio.",
+        "spanish": "aSalida de salida de velocidad de audio."
+      }
+    }
+  },
+  "crossfmi": {
+    "description": {
+      "english": "Two mutually frequency and/or phase modulated oscillators. Two oscillators, mutually frequency and/or phase modulated by each other.",
+      "german": "Zwei gegenseitig frequenz- und/oder phasenmodulierte Oszillatoren. Zwei Oszillatoren, die sich gegenseitig in ihrer Frequenz und/oder Phase modulieren.",
+      "french": "Deux oscillateurs mutuellement modulés en fréquence et/ou en phase. Deux oscillateurs, modulés mutuellement en fréquence et/ou en phase l'un par l'autre.",
+      "spanish": "Dos osciladores modulados mutuamente en frecuencia y/o fase. Dos osciladores, modulados mutuamente en frecuencia y/o fase."
+    },
+    "inputs": {
+      "xfrq1": {
+        "english": "a factor that, when multipled by the kcps parameter, gives the frequency of oscillator #1.",
+        "german": "ein Faktor, der, multipliziert mit dem kcps-Parameter, die Frequenz von Oszillator Nr. 1 ergibt.",
+        "french": "un facteur qui, multiplié par le paramètre kcps, donne la fréquence de l'oscillateur n°1.",
+        "spanish": "un factor que, cuando se multiplica por el parámetro kcps, da la frecuencia del oscilador n.° 1."
+      },
+      "xfrq2": {
+        "english": "a factor that, when multipled by the kcps parameter, gives the frequency of oscillator #2.",
+        "german": "ein Faktor, der, multipliziert mit dem kcps-Parameter, die Frequenz von Oszillator Nr. 2 ergibt.",
+        "french": "un facteur qui, multiplié par le paramètre kcps, donne la fréquence de l'oscillateur n°2.",
+        "spanish": "un factor que, cuando se multiplica por el parámetro kcps, da la frecuencia del oscilador n.° 2."
+      },
+      "xndx1": {
+        "english": "the index of the modulation of oscillator #2 by oscillator #1.",
+        "german": "der Index der Modulation von Oszillator Nr. 2 durch Oszillator Nr. 1.",
+        "french": "l'indice de modulation de l'oscillateur #2 par l'oscillateur #1.",
+        "spanish": "el índice de la modulación del oscilador n.° 2 por el oscilador n.° 1."
+      },
+      "xndx2": {
+        "english": "the index of the modulation of oscillator #1 by oscillator #2.",
+        "german": "der Index der Modulation von Oszillator Nr. 1 durch Oszillator Nr. 2.",
+        "french": "l'indice de modulation de l'oscillateur #1 par l'oscillateur #2.",
+        "spanish": "el índice de la modulación del oscilador n.° 1 por el oscilador n.° 2."
+      },
+      "kcps": {
+        "english": "a common denominator, in cycles per second, for both oscillators frequencies.",
+        "german": "ein gemeinsamer Nenner in Zyklen pro Sekunde für die Frequenzen beider Oszillatoren.",
+        "french": "un dénominateur commun, en cycles par seconde, pour les fréquences des deux oscillateurs.",
+        "spanish": "un denominador común, en ciclos por segundo, para las frecuencias de ambos osciladores."
+      },
+      "ifn1": {
+        "english": "function table number for oscillator #1. Requires a wrap-around guard point.",
+        "german": "Funktionstabellennummer für Oszillator Nr. 1. Erfordert einen umlaufenden Schutzpunkt.",
+        "french": "numéro de table de fonctions pour l’oscillateur n°1. Nécessite un point de garde enveloppant.",
+        "spanish": "número de tabla de funciones para el oscilador n.° 1. Requiere un punto de guardia envolvente."
+      },
+      "ifn2": {
+        "english": "function table number for oscillator #2. Requires a wrap-around guard point.",
+        "german": "Funktionstabellennummer für Oszillator Nr. 2. Erfordert einen umlaufenden Schutzpunkt.",
+        "french": "numéro de table de fonctions pour l’oscillateur n°2. Nécessite un point de garde enveloppant.",
+        "spanish": "número de tabla de funciones para el oscilador n.° 2. Requiere un punto de guardia envolvente."
+      },
+      "iphs1": {
+        "english": "initial phase of waveform in table ifn1, expressed as a fraction of a cycle (0 to 1). A negative value will cause phase initialization to be skipped.",
+        "german": "Anfangsphase der Wellenform in Tabelle ifn1, ausgedrückt als Bruchteil eines Zyklus (0 bis 1). Ein negativer Wert führt dazu, dass die Phaseninitialisierung übersprungen wird.",
+        "french": "phase initiale de la forme d'onde dans le tableau ifn1, exprimée en fraction de cycle (0 à 1). Une valeur négative entraînera le saut de l'initialisation de la phase.",
+        "spanish": "fase inicial de la forma de onda en la tabla ifn1, expresada como una fracción de un ciclo (0 a 1). Un valor negativo hará que se omita la inicialización de fase."
+      },
+      "iphs2": {
+        "english": "initial phase of waveform in table ifn2, expressed as a fraction of a cycle (0 to 1). A negative value will cause phase initialization to be skipped.",
+        "german": "Anfangsphase der Wellenform in Tabelle ifn2, ausgedrückt als Bruchteil eines Zyklus (0 bis 1). Ein negativer Wert führt dazu, dass die Phaseninitialisierung übersprungen wird.",
+        "french": "phase initiale de la forme d'onde dans le tableau ifn2, exprimée en fraction de cycle (0 à 1). Une valeur négative entraînera le saut de l'initialisation de la phase.",
+        "spanish": "fase inicial de la forma de onda en la tabla ifn2, expresada como una fracción de un ciclo (0 a 1). Un valor negativo hará que se omita la inicialización de fase."
+      }
+    },
+    "outputs": {
+      "a1": {
+        "english": "Output variable `a1` from crossfmi.",
+        "german": "Ausgabevariable „a1“ von crossfmi.",
+        "french": "Variable de sortie `a1` de crossfmi.",
+        "spanish": "Variable de salida `a1` de crossfmi."
+      },
+      "a2": {
+        "english": "Output variable `a2` from crossfmi.",
+        "german": "Ausgabevariable „a2“ von crossfmi.",
+        "french": "Variable de sortie `a2` de crossfmi.",
+        "spanish": "Variable de salida `a2` de crossfmi."
+      }
+    }
+  },
+  "crosspmi": {
+    "description": {
+      "english": "Two mutually frequency and/or phase modulated oscillators. Two oscillators, mutually frequency and/or phase modulated by each other.",
+      "german": "Zwei gegenseitig frequenz- und/oder phasenmodulierte Oszillatoren. Zwei Oszillatoren, die sich gegenseitig in ihrer Frequenz und/oder Phase modulieren.",
+      "french": "Deux oscillateurs mutuellement modulés en fréquence et/ou en phase. Deux oscillateurs, modulés mutuellement en fréquence et/ou en phase l'un par l'autre.",
+      "spanish": "Dos osciladores modulados mutuamente en frecuencia y/o fase. Dos osciladores, modulados mutuamente en frecuencia y/o fase."
+    },
+    "inputs": {
+      "xfrq1": {
+        "english": "a factor that, when multipled by the kcps parameter, gives the frequency of oscillator #1.",
+        "german": "ein Faktor, der, multipliziert mit dem kcps-Parameter, die Frequenz von Oszillator Nr. 1 ergibt.",
+        "french": "un facteur qui, multiplié par le paramètre kcps, donne la fréquence de l'oscillateur n°1.",
+        "spanish": "un factor que, cuando se multiplica por el parámetro kcps, da la frecuencia del oscilador n.° 1."
+      },
+      "xfrq2": {
+        "english": "a factor that, when multipled by the kcps parameter, gives the frequency of oscillator #2.",
+        "german": "ein Faktor, der, multipliziert mit dem kcps-Parameter, die Frequenz von Oszillator Nr. 2 ergibt.",
+        "french": "un facteur qui, multiplié par le paramètre kcps, donne la fréquence de l'oscillateur n°2.",
+        "spanish": "un factor que, cuando se multiplica por el parámetro kcps, da la frecuencia del oscilador n.° 2."
+      },
+      "xndx1": {
+        "english": "the index of the modulation of oscillator #2 by oscillator #1.",
+        "german": "der Index der Modulation von Oszillator Nr. 2 durch Oszillator Nr. 1.",
+        "french": "l'indice de modulation de l'oscillateur #2 par l'oscillateur #1.",
+        "spanish": "el índice de la modulación del oscilador n.° 2 por el oscilador n.° 1."
+      },
+      "xndx2": {
+        "english": "the index of the modulation of oscillator #1 by oscillator #2.",
+        "german": "der Index der Modulation von Oszillator Nr. 1 durch Oszillator Nr. 2.",
+        "french": "l'indice de modulation de l'oscillateur #1 par l'oscillateur #2.",
+        "spanish": "el índice de la modulación del oscilador n.° 1 por el oscilador n.° 2."
+      },
+      "kcps": {
+        "english": "a common denominator, in cycles per second, for both oscillators frequencies.",
+        "german": "ein gemeinsamer Nenner in Zyklen pro Sekunde für die Frequenzen beider Oszillatoren.",
+        "french": "un dénominateur commun, en cycles par seconde, pour les fréquences des deux oscillateurs.",
+        "spanish": "un denominador común, en ciclos por segundo, para las frecuencias de ambos osciladores."
+      },
+      "ifn1": {
+        "english": "function table number for oscillator #1. Requires a wrap-around guard point.",
+        "german": "Funktionstabellennummer für Oszillator Nr. 1. Erfordert einen umlaufenden Schutzpunkt.",
+        "french": "numéro de table de fonctions pour l’oscillateur n°1. Nécessite un point de garde enveloppant.",
+        "spanish": "número de tabla de funciones para el oscilador n.° 1. Requiere un punto de guardia envolvente."
+      },
+      "ifn2": {
+        "english": "function table number for oscillator #2. Requires a wrap-around guard point.",
+        "german": "Funktionstabellennummer für Oszillator Nr. 2. Erfordert einen umlaufenden Schutzpunkt.",
+        "french": "numéro de table de fonctions pour l’oscillateur n°2. Nécessite un point de garde enveloppant.",
+        "spanish": "número de tabla de funciones para el oscilador n.° 2. Requiere un punto de guardia envolvente."
+      },
+      "iphs1": {
+        "english": "initial phase of waveform in table ifn1, expressed as a fraction of a cycle (0 to 1). A negative value will cause phase initialization to be skipped.",
+        "german": "Anfangsphase der Wellenform in Tabelle ifn1, ausgedrückt als Bruchteil eines Zyklus (0 bis 1). Ein negativer Wert führt dazu, dass die Phaseninitialisierung übersprungen wird.",
+        "french": "phase initiale de la forme d'onde dans le tableau ifn1, exprimée en fraction de cycle (0 à 1). Une valeur négative entraînera le saut de l'initialisation de la phase.",
+        "spanish": "fase inicial de la forma de onda en la tabla ifn1, expresada como una fracción de un ciclo (0 a 1). Un valor negativo hará que se omita la inicialización de fase."
+      },
+      "iphs2": {
+        "english": "initial phase of waveform in table ifn2, expressed as a fraction of a cycle (0 to 1). A negative value will cause phase initialization to be skipped.",
+        "german": "Anfangsphase der Wellenform in Tabelle ifn2, ausgedrückt als Bruchteil eines Zyklus (0 bis 1). Ein negativer Wert führt dazu, dass die Phaseninitialisierung übersprungen wird.",
+        "french": "phase initiale de la forme d'onde dans le tableau ifn2, exprimée en fraction de cycle (0 à 1). Une valeur négative entraînera le saut de l'initialisation de la phase.",
+        "spanish": "fase inicial de la forma de onda en la tabla ifn2, expresada como una fracción de un ciclo (0 a 1). Un valor negativo hará que se omita la inicialización de fase."
+      }
+    },
+    "outputs": {
+      "a1": {
+        "english": "Output variable `a1` from crosspmi.",
+        "german": "Ausgabevariable „a1“ von crosspmi.",
+        "french": "Variable de sortie `a1` de crosspmi.",
+        "spanish": "Variable de salida `a1` de crosspmi."
+      },
+      "a2": {
+        "english": "Output variable `a2` from crosspmi.",
+        "german": "Ausgabevariable „a2“ von crosspmi.",
+        "french": "Variable de sortie `a2` de crosspmi.",
+        "spanish": "Variable de salida `a2` de crosspmi."
+      }
+    }
+  },
+  "crossfmpmi": {
+    "description": {
+      "english": "Two mutually frequency and/or phase modulated oscillators. Two oscillators, mutually frequency and/or phase modulated by each other.",
+      "german": "Zwei gegenseitig frequenz- und/oder phasenmodulierte Oszillatoren. Zwei Oszillatoren, die sich gegenseitig in ihrer Frequenz und/oder Phase modulieren.",
+      "french": "Deux oscillateurs mutuellement modulés en fréquence et/ou en phase. Deux oscillateurs, modulés mutuellement en fréquence et/ou en phase l'un par l'autre.",
+      "spanish": "Dos osciladores modulados mutuamente en frecuencia y/o fase. Dos osciladores, modulados mutuamente en frecuencia y/o fase."
+    },
+    "inputs": {
+      "xfrq1": {
+        "english": "a factor that, when multipled by the kcps parameter, gives the frequency of oscillator #1.",
+        "german": "ein Faktor, der, multipliziert mit dem kcps-Parameter, die Frequenz von Oszillator Nr. 1 ergibt.",
+        "french": "un facteur qui, multiplié par le paramètre kcps, donne la fréquence de l'oscillateur n°1.",
+        "spanish": "un factor que, cuando se multiplica por el parámetro kcps, da la frecuencia del oscilador n.° 1."
+      },
+      "xfrq2": {
+        "english": "a factor that, when multipled by the kcps parameter, gives the frequency of oscillator #2.",
+        "german": "ein Faktor, der, multipliziert mit dem kcps-Parameter, die Frequenz von Oszillator Nr. 2 ergibt.",
+        "french": "un facteur qui, multiplié par le paramètre kcps, donne la fréquence de l'oscillateur n°2.",
+        "spanish": "un factor que, cuando se multiplica por el parámetro kcps, da la frecuencia del oscilador n.° 2."
+      },
+      "xndx1": {
+        "english": "the index of the modulation of oscillator #2 by oscillator #1.",
+        "german": "der Index der Modulation von Oszillator Nr. 2 durch Oszillator Nr. 1.",
+        "french": "l'indice de modulation de l'oscillateur #2 par l'oscillateur #1.",
+        "spanish": "el índice de la modulación del oscilador n.° 2 por el oscilador n.° 1."
+      },
+      "xndx2": {
+        "english": "the index of the modulation of oscillator #1 by oscillator #2.",
+        "german": "der Index der Modulation von Oszillator Nr. 1 durch Oszillator Nr. 2.",
+        "french": "l'indice de modulation de l'oscillateur #1 par l'oscillateur #2.",
+        "spanish": "el índice de la modulación del oscilador n.° 1 por el oscilador n.° 2."
+      },
+      "kcps": {
+        "english": "a common denominator, in cycles per second, for both oscillators frequencies.",
+        "german": "ein gemeinsamer Nenner in Zyklen pro Sekunde für die Frequenzen beider Oszillatoren.",
+        "french": "un dénominateur commun, en cycles par seconde, pour les fréquences des deux oscillateurs.",
+        "spanish": "un denominador común, en ciclos por segundo, para las frecuencias de ambos osciladores."
+      },
+      "ifn1": {
+        "english": "function table number for oscillator #1. Requires a wrap-around guard point.",
+        "german": "Funktionstabellennummer für Oszillator Nr. 1. Erfordert einen umlaufenden Schutzpunkt.",
+        "french": "numéro de table de fonctions pour l’oscillateur n°1. Nécessite un point de garde enveloppant.",
+        "spanish": "número de tabla de funciones para el oscilador n.° 1. Requiere un punto de guardia envolvente."
+      },
+      "ifn2": {
+        "english": "function table number for oscillator #2. Requires a wrap-around guard point.",
+        "german": "Funktionstabellennummer für Oszillator Nr. 2. Erfordert einen umlaufenden Schutzpunkt.",
+        "french": "numéro de table de fonctions pour l’oscillateur n°2. Nécessite un point de garde enveloppant.",
+        "spanish": "número de tabla de funciones para el oscilador n.° 2. Requiere un punto de guardia envolvente."
+      },
+      "iphs1": {
+        "english": "initial phase of waveform in table ifn1, expressed as a fraction of a cycle (0 to 1). A negative value will cause phase initialization to be skipped.",
+        "german": "Anfangsphase der Wellenform in Tabelle ifn1, ausgedrückt als Bruchteil eines Zyklus (0 bis 1). Ein negativer Wert führt dazu, dass die Phaseninitialisierung übersprungen wird.",
+        "french": "phase initiale de la forme d'onde dans le tableau ifn1, exprimée en fraction de cycle (0 à 1). Une valeur négative entraînera le saut de l'initialisation de la phase.",
+        "spanish": "fase inicial de la forma de onda en la tabla ifn1, expresada como una fracción de un ciclo (0 a 1). Un valor negativo hará que se omita la inicialización de fase."
+      },
+      "iphs2": {
+        "english": "initial phase of waveform in table ifn2, expressed as a fraction of a cycle (0 to 1). A negative value will cause phase initialization to be skipped.",
+        "german": "Anfangsphase der Wellenform in Tabelle ifn2, ausgedrückt als Bruchteil eines Zyklus (0 bis 1). Ein negativer Wert führt dazu, dass die Phaseninitialisierung übersprungen wird.",
+        "french": "phase initiale de la forme d'onde dans le tableau ifn2, exprimée en fraction de cycle (0 à 1). Une valeur négative entraînera le saut de l'initialisation de la phase.",
+        "spanish": "fase inicial de la forma de onda en la tabla ifn2, expresada como una fracción de un ciclo (0 a 1). Un valor negativo hará que se omita la inicialización de fase."
+      }
+    },
+    "outputs": {
+      "a1": {
+        "english": "Output variable `a1` from crossfmpmi.",
+        "german": "Ausgabevariable „a1“ von crossfmpmi.",
+        "french": "Variable de sortie `a1` de crossfmpmi.",
+        "spanish": "Variable de salida `a1` de crossfmpmi."
+      },
+      "a2": {
+        "english": "Output variable `a2` from crossfmpmi.",
+        "german": "Ausgabevariable „a2“ von crossfmpmi.",
+        "french": "Variable de sortie `a2` de crossfmpmi.",
+        "spanish": "Variable de salida `a2` de crossfmpmi."
+      }
+    }
   }
 }

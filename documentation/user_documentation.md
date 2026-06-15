@@ -73,7 +73,7 @@ When Orchestron is served locally from the backend, opening `http://localhost:80
 | Browser audio mode (`browser_clock` PCM) | [Browser-Clock Latency](configuration/browser_clock_latency.md) |
 | Browser-clock latency tuning for unified browser audio | [Browser-Clock Latency](configuration/browser_clock_latency.md) |
 | App-state persistence and defaults | [Persistence and Defaults](configuration/persistence_and_defaults.md) |
-| Supported opcode catalog (138 opcodes) | [Supported Opcodes](instrument_design/supported_opcodes.md) |
+| Supported opcode catalog (142 opcodes) | [Supported Opcodes](instrument_design/supported_opcodes.md) |
 
 ## File Format Quick Reference
 

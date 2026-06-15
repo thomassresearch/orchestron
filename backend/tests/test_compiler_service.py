@@ -325,3 +325,68 @@ def test_grain2_compile_uses_manual_argument_order() -> None:
 
     assert "__VS_OPTIONAL_OMIT__" not in artifact.orc
     assert grain2_line == "a_grain_asig_1 grain2 220, 0.25, 0.04, 64, 1, 2, 0, 0, 0"
+
+
+def test_tanh_compile_accepts_control_input_for_audio_output() -> None:
+    compiler = CompilerService(OpcodeService(icon_prefix="/static/icons"))
+    patch = PatchDocument(
+        name="tanh compile test",
+        description="tanh renders as an audio-rate function node",
+        graph=PatchGraph(
+            nodes=[
+                NodeInstance(id="drive", opcode="const_k", params={"value": 0.8}),
+                NodeInstance(id="shape", opcode="tanh"),
+                NodeInstance(id="out", opcode="outs"),
+            ],
+            connections=[
+                Connection(from_node_id="drive", from_port_id="kout", to_node_id="shape", to_port_id="xin"),
+                Connection(from_node_id="shape", from_port_id="aout", to_node_id="out", to_port_id="left"),
+                Connection(from_node_id="shape", from_port_id="aout", to_node_id="out", to_port_id="right"),
+            ],
+        ),
+    )
+
+    artifact = compiler.compile_patch(patch, midi_input="0", rtmidi_module="alsaseq")
+    tanh_line = next(line.strip() for line in artifact.orc.splitlines() if "tanh(" in line)
+
+    assert tanh_line == "a_shape_aout_1 = tanh(a(k_drive_kout_1))"
+
+
+@pytest.mark.parametrize("opcode_name", ["crossfmi", "crosspmi", "crossfmpmi"])
+def test_cross_modulation_variants_compile_with_manual_argument_order(opcode_name: str) -> None:
+    compiler = CompilerService(OpcodeService(icon_prefix="/static/icons"))
+    patch = PatchDocument(
+        name=f"{opcode_name} compile test",
+        description=f"{opcode_name} renders the crossfm-family syntax",
+        graph=PatchGraph(
+            nodes=[
+                NodeInstance(
+                    id="cross",
+                    opcode=opcode_name,
+                    params={
+                        "xfrq1": 1,
+                        "xfrq2": 1.5,
+                        "xndx1": 2,
+                        "xndx2": 3,
+                        "kcps": 220,
+                        "ifn1": 1,
+                        "ifn2": 1,
+                    },
+                ),
+                NodeInstance(id="out", opcode="outs"),
+            ],
+            connections=[
+                Connection(from_node_id="cross", from_port_id="a1", to_node_id="out", to_port_id="left"),
+                Connection(from_node_id="cross", from_port_id="a2", to_node_id="out", to_port_id="right"),
+            ],
+        ),
+    )
+
+    artifact = compiler.compile_patch(patch, midi_input="0", rtmidi_module="alsaseq")
+    cross_line = next(line.strip() for line in artifact.orc.splitlines() if f" {opcode_name} " in line)
+
+    assert "__VS_OPTIONAL_OMIT__" not in artifact.orc
+    assert (
+        cross_line
+        == f"a_cross_a1_1, a_cross_a2_2 {opcode_name} 1, 1.5, 2, 3, 220, 1, 1, 0, 0"
+    )

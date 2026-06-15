@@ -1873,6 +1873,47 @@ def test_opcodes_include_markdown_documentation(tmp_path: Path) -> None:
         assert oscili["documentation_url"].startswith("https://csound.com/docs/manual/")
 
 
+def test_opcodes_include_cross_modulation_and_tanh_metadata(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        response = client.get("/api/opcodes")
+        assert response.status_code == 200
+
+        opcodes_by_name = {item["name"]: item for item in response.json()}
+
+    tanh = opcodes_by_name["tanh"]
+    assert tanh["category"] == "math"
+    assert tanh["documentation_url"] == "https://csound.com/docs/manual/tanh.html"
+    assert tanh["template"] == "{aout} = tanh({xin})"
+    assert tanh["inputs"][0]["id"] == "xin"
+    assert tanh["inputs"][0]["signal_type"] == "a"
+    assert tanh["inputs"][0]["accepted_signal_types"] == ["a", "k", "i"]
+    assert tanh["outputs"][0]["signal_type"] == "a"
+
+    for opcode_name in ("crossfmi", "crosspmi", "crossfmpmi"):
+        opcode = opcodes_by_name[opcode_name]
+        assert opcode["category"] == "fm"
+        assert opcode["documentation_url"] == "https://csound.com/docs/manual/crossfm.html"
+        assert opcode["icon"] == "/static/icons/vco.svg"
+        assert [output["id"] for output in opcode["outputs"]] == ["a1", "a2"]
+        assert [output["signal_type"] for output in opcode["outputs"]] == ["a", "a"]
+        assert [input_port["id"] for input_port in opcode["inputs"]] == [
+            "xfrq1",
+            "xfrq2",
+            "xndx1",
+            "xndx2",
+            "kcps",
+            "ifn1",
+            "ifn2",
+            "iphs1",
+            "iphs2",
+        ]
+        assert opcode["inputs"][0]["accepted_signal_types"] == ["a", "k", "i"]
+        assert opcode["inputs"][4]["accepted_signal_types"] == ["k", "i"]
+        assert opcode["inputs"][-2]["required"] is False
+        assert opcode["inputs"][-1]["required"] is False
+        assert opcode["template"].startswith(f"{{a1}}, {{a2}} {opcode_name} ")
+
+
 def test_add_opcodes_guide_exists_and_contains_key_references() -> None:
     docs_path = Path(__file__).resolve().parents[2] / "ADD_OPCODES.md"
     assert docs_path.exists()
