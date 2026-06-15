@@ -10,6 +10,7 @@ import {
   resolveDefaultBrowserClockLatencySettings
 } from "../lib/browserClockLatencyConfig";
 import { createUntitledPatch } from "../lib/defaultPatch";
+import { effectRouteKey, effectRouteWouldCreateLoop } from "../lib/effectRouting";
 import { normalizeGuiLanguage } from "../lib/guiLanguage";
 import {
   findPatchByName,
@@ -416,6 +417,8 @@ const OPCODE_PARAM_DEFAULTS: Record<string, Record<string, string | number | boo
   const_s: { value: "string" }
 };
 
+export const ALWAYS_ON_REQUIRES_INLETA_MESSAGE = 'always on instruments require at least one "inleta" instance';
+
 const DEFAULT_PAD_COUNT = 8;
 const MAX_MIDI_CONTROLLERS = 6;
 const MAX_ARPEGGIATORS = 8;
@@ -578,6 +581,10 @@ function normalizeInstrumentLevel(value: unknown): number {
     return 10;
   }
   return clampInt(value, 1, 10);
+}
+
+function patchGraphHasOpcode(graph: PatchGraph, opcode: string): boolean {
+  return graph.nodes.some((node) => node.opcode === opcode);
 }
 
 function normalizeEffectSourceIds(value: unknown): string[] {
@@ -2934,10 +2941,6 @@ function patchHasAudioOutlets(patch: PatchListItem | undefined): boolean {
   return Array.isArray(patch?.audio_outlet_names) && patch.audio_outlet_names.length > 0;
 }
 
-function effectRouteKey(sourceId: string, channel: string): string {
-  return `${sourceId}\u0000${channel}`;
-}
-
 function sourceIdsFromEffectRoutes(routes: EffectRouteSelection[]): string[] {
   const result: string[] = [];
   const seen = new Set<string>();
@@ -2972,7 +2975,10 @@ function availableEffectRoutesForBinding(
       continue;
     }
     const sourcePatch = patchById.get(sourceBinding.patchId);
-    if (!sourcePatch || sourcePatch.always_on === true || !patchHasAudioOutlets(sourcePatch)) {
+    if (!sourcePatch || !patchHasAudioOutlets(sourcePatch)) {
+      continue;
+    }
+    if (effectRouteWouldCreateLoop(bindings, binding.id, sourceBinding.id)) {
       continue;
     }
     for (const channel of sourcePatch.audio_outlet_names ?? []) {
@@ -4057,6 +4063,11 @@ export const useAppStore = create<AppStore>((set, get) => {
         graph: withNormalizedEngineConfig(get().currentPatch.graph)
       };
 
+      if (current.always_on && !patchGraphHasOpcode(current.graph, "inleta")) {
+        commitCurrentPatch(current, { loading: false, error: ALWAYS_ON_REQUIRES_INLETA_MESSAGE });
+        return;
+      }
+
       commitCurrentPatch(current, { loading: true, error: null });
 
       try {
@@ -4278,6 +4289,9 @@ export const useAppStore = create<AppStore>((set, get) => {
             const routeKeyValue = effectRouteKey(sourceBindingId, normalizedChannel);
             if (enabled) {
               if (!routes.some((route) => effectRouteKey(route.sourceId, route.channel) === routeKeyValue)) {
+                if (effectRouteWouldCreateLoop(state.sequencerInstruments, bindingId, sourceBindingId)) {
+                  return binding;
+                }
                 routes.push({ sourceId: sourceBindingId, channel: normalizedChannel });
               }
             } else {

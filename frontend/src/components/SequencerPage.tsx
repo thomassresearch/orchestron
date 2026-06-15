@@ -26,6 +26,7 @@ import {
   ungroupPadLoopItemsInContainer,
   type PadLoopContainerRef
 } from "../lib/padLoopPattern";
+import { effectRouteKey, effectRouteWouldCreateLoop } from "../lib/effectRouting";
 import {
   buildControllerCurvePath,
   buildSequencerChordOptions,
@@ -168,6 +169,7 @@ type SequencerUiCopy = {
   effect: string;
   audioSources: string;
   noAudioSources: string;
+  effectRouteLoop: string;
   remove: string;
   clearSteps: string;
   rackTransport: string;
@@ -381,6 +383,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     effect: "Effect",
     audioSources: "Audio Sources",
     noAudioSources: "No audio sources",
+    effectRouteLoop: "Would create an effect routing loop",
     remove: "Remove",
     clearSteps: "Clear Steps",
     rackTransport: "Rack Transport",
@@ -565,6 +568,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     effect: "Effekt",
     audioSources: "Audio-Quellen",
     noAudioSources: "Keine Audio-Quellen",
+    effectRouteLoop: "Wuerde eine Effekt-Routing-Schleife erzeugen",
     remove: "Entfernen",
     clearSteps: "Steps loeschen",
     rackTransport: "Rack-Transport",
@@ -750,6 +754,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     effect: "Effet",
     audioSources: "Sources audio",
     noAudioSources: "Aucune source audio",
+    effectRouteLoop: "Creerait une boucle de routage d'effet",
     remove: "Supprimer",
     clearSteps: "Effacer pas",
     rackTransport: "Transport du rack",
@@ -935,6 +940,7 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     effect: "Efecto",
     audioSources: "Fuentes de audio",
     noAudioSources: "Sin fuentes de audio",
+    effectRouteLoop: "Crearia un bucle de ruta de efecto",
     remove: "Eliminar",
     clearSteps: "Limpiar pasos",
     rackTransport: "Transporte del rack",
@@ -4026,7 +4032,7 @@ export function SequencerPage({
     () =>
       instrumentBindings.filter((binding) => {
         const patch = patchById.get(binding.patchId);
-        return patch?.always_on !== true && (patch?.audio_outlet_names?.length ?? 0) > 0;
+        return (patch?.audio_outlet_names?.length ?? 0) > 0;
       }),
     [instrumentBindings, patchById]
   );
@@ -4492,7 +4498,7 @@ export function SequencerPage({
                 return matchingChannels.map((channel) => ({ sourceBinding, sourcePatch, channel }));
               });
               const selectedRouteKeys = new Set(
-                binding.effectRoutes.map((route) => `${route.sourceId}\u0000${route.channel}`)
+                binding.effectRoutes.map((route) => effectRouteKey(route.sourceId, route.channel))
               );
               return (
                 <div
@@ -4564,15 +4570,22 @@ export function SequencerPage({
                       ) : (
                         <div className="grid gap-1">
                           {effectRouteCells.map(({ sourceBinding, sourcePatch, channel }) => {
-                            const routeKey = `${sourceBinding.id}\u0000${channel}`;
+                            const routeKey = effectRouteKey(sourceBinding.id, channel);
+                            const selected = selectedRouteKeys.has(routeKey);
+                            const loopBlocked =
+                              !selected &&
+                              effectRouteWouldCreateLoop(instrumentBindings, binding.id, sourceBinding.id);
                             return (
                               <label
                                 key={`${binding.id}-source-${sourceBinding.id}-${channel}`}
-                                className="flex items-center gap-2 rounded border border-slate-700 bg-slate-900/80 px-2 py-1 text-xs text-slate-200"
+                                title={loopBlocked ? ui.effectRouteLoop : undefined}
+                                className={`flex items-center gap-2 rounded border border-slate-700 bg-slate-900/80 px-2 py-1 text-xs text-slate-200 ${
+                                  loopBlocked ? "opacity-55" : ""
+                                }`}
                               >
                                 <input
                                   type="checkbox"
-                                  checked={selectedRouteKeys.has(routeKey)}
+                                  checked={selected}
                                   onChange={(event) =>
                                     onInstrumentEffectRouteChange(
                                       binding.id,
@@ -4581,7 +4594,7 @@ export function SequencerPage({
                                       event.target.checked
                                     )
                                   }
-                                  disabled={instrumentsRunning}
+                                  disabled={instrumentsRunning || loopBlocked}
                                   className="h-4 w-4 rounded border-slate-500 bg-slate-950 accent-accent"
                                 />
                                 <span className="w-20 shrink-0 truncate font-mono text-[10px] uppercase text-cyan-200">
@@ -4589,7 +4602,7 @@ export function SequencerPage({
                                 </span>
                                 <span className="min-w-0 truncate">{sourcePatch?.name ?? sourceBinding.patchId}</span>
                                 <span className="ml-auto shrink-0 font-mono text-[10px] uppercase text-slate-500">
-                                  {ui.channel} {sourceBinding.midiChannel}
+                                  {sourcePatch?.always_on === true ? ui.effect : `${ui.channel} ${sourceBinding.midiChannel}`}
                                 </span>
                               </label>
                             );

@@ -154,6 +154,7 @@ class CompilerService:
                 source_by_assignment_id[target.assignment_id] = (target, instrument_name)
 
         lines: list[str] = []
+        route_edges: list[tuple[str, str]] = []
         for sink_target, sink_name in zip(targets, instrument_names, strict=True):
             if not sink_target.always_on or not (sink_target.effect_routes or sink_target.effect_source_ids):
                 continue
@@ -166,11 +167,10 @@ class CompilerService:
                 if source_entry is None:
                     continue
                 source_target, source_name = source_entry
-                if source_target.always_on:
-                    continue
 
                 if port_name not in set(audio_port_names(source_target.patch.graph, opcode="outleta")):
                     continue
+                route_edges.append((source_id, sink_target.assignment_id or sink_name))
                 lines.append(
                     "connect "
                     f"{OrchestraEmitter._format_csound_string(source_name)}, "
@@ -178,6 +178,7 @@ class CompilerService:
                     f"{OrchestraEmitter._format_csound_string(sink_name)}, "
                     f"{OrchestraEmitter._format_csound_string(port_name)}"
                 )
+        self._validate_audio_route_graph(route_edges)
         return lines
 
     def _effect_route_pairs(
@@ -204,8 +205,6 @@ class CompilerService:
             if source_entry is None:
                 continue
             source_target, _source_name = source_entry
-            if source_target.always_on:
-                continue
             for port_name in sorted(set(audio_port_names(source_target.patch.graph, opcode="outleta")) & sink_inlets):
                 key = (normalized_source_id, port_name)
                 if key in seen:
@@ -214,6 +213,36 @@ class CompilerService:
                 pairs.append(key)
 
         return pairs
+
+    @staticmethod
+    def _validate_audio_route_graph(route_edges: list[tuple[str, str]]) -> None:
+        adjacency: dict[str, set[str]] = {}
+        for source_id, sink_id in route_edges:
+            source = source_id.strip()
+            sink = sink_id.strip()
+            if not source or not sink:
+                continue
+            if source == sink:
+                raise CompilationError(["Effect routing would create an audio feedback loop."])
+            adjacency.setdefault(source, set()).add(sink)
+            adjacency.setdefault(sink, set())
+
+        visiting: set[str] = set()
+        visited: set[str] = set()
+
+        def visit(node_id: str) -> None:
+            if node_id in visited:
+                return
+            if node_id in visiting:
+                raise CompilationError(["Effect routing would create an audio feedback loop."])
+            visiting.add(node_id)
+            for next_id in adjacency.get(node_id, set()):
+                visit(next_id)
+            visiting.remove(node_id)
+            visited.add(node_id)
+
+        for node_id in adjacency:
+            visit(node_id)
 
     @staticmethod
     def _always_on_lines(

@@ -36,11 +36,12 @@ If the selected patch is marked `Always On?`, the rack slot becomes an effect sl
 
 - The MIDI channel field is replaced with an `Effect` badge.
 - The slot runs continuously when `Start Instruments` starts the rack session.
-- The slot shows an audio source matrix with checkboxes for compatible `outleta` channel labels from normal rack instruments.
-- A source row appears only when a normal rack instrument has an `outleta` label that matches an `inleta` label on the always-on effect patch.
+- The slot shows an audio source matrix with checkboxes for compatible `outleta` channel labels from normal rack instruments and other always-on effect slots.
+- A source row appears only when a rack instrument has an `outleta` label that matches an `inleta` label on the always-on effect patch.
+- Routes that would feed an effect back into itself through the current effect chain are shown disabled, so cascaded effects can be built without creating feedback loops.
 - Checked rows are connected when the session compiles; unchecked rows are not routed.
 
-If no normal rack instrument exposes a matching `outleta`, the matrix is empty. Add or edit normal source patches with `outleta` nodes and add matching `inleta` nodes to the effect patch to make routes available.
+If no rack instrument exposes a matching `outleta`, the matrix is empty. Add or edit source patches with `outleta` nodes and add matching `inleta` nodes to the effect patch to make routes available.
 
 While instruments are running, rack assignment changes are locked:
 

@@ -307,6 +307,33 @@ def _always_on_effect_patch_payload(*, name: str = "Always-On Effect", connected
     return payload
 
 
+def _always_on_effect_with_outlets_patch_payload(*, name: str = "Routable Always-On Effect"):
+    payload = _always_on_effect_patch_payload(name=name)
+    payload["graph"]["nodes"].extend(
+        [
+            {
+                "id": "out_l",
+                "opcode": "outleta",
+                "params": {"sname": "left"},
+                "position": {"x": 450, "y": 20},
+            },
+            {
+                "id": "out_r",
+                "opcode": "outleta",
+                "params": {"sname": "right"},
+                "position": {"x": 450, "y": 100},
+            },
+        ]
+    )
+    payload["graph"]["connections"].extend(
+        [
+            {"from_node_id": "in_l", "from_port_id": "asignal", "to_node_id": "out_l", "to_port_id": "asignal"},
+            {"from_node_id": "in_r", "from_port_id": "asignal", "to_node_id": "out_r", "to_port_id": "asignal"},
+        ]
+    )
+    return payload
+
+
 def _sequencer_timing(
     *,
     tempo_bpm: int = 120,
@@ -1540,6 +1567,17 @@ def test_patch_always_on_flag_and_audio_port_summaries(tmp_path: Path) -> None:
         regular = client.post("/api/patches", json=_minimal_patch_payload(name="Regular Patch"))
         assert regular.status_code == 201
         assert regular.json()["always_on"] is False
+
+        missing_inleta_message = 'always on instruments require at least one "inleta" instance'
+        rejected_create_payload = _minimal_patch_payload(name="Invalid Always-On Patch")
+        rejected_create_payload["always_on"] = True
+        rejected_create = client.post("/api/patches", json=rejected_create_payload)
+        assert rejected_create.status_code == 422
+        assert rejected_create.json()["detail"] == missing_inleta_message
+
+        rejected_update = client.put(f"/api/patches/{regular.json()['id']}", json={"always_on": True})
+        assert rejected_update.status_code == 422
+        assert rejected_update.json()["detail"] == missing_inleta_message
 
         effect = client.post("/api/patches", json=_always_on_effect_patch_payload(name="Stereo Effect"))
         assert effect.status_code == 201
@@ -5337,6 +5375,64 @@ def test_performance_csd_export_runs_always_on_effect_for_score_duration(tmp_pat
             assert "f 0 2.5" in csd
 
 
+def test_performance_csd_export_rejects_always_on_effect_route_loop(tmp_path: Path) -> None:
+    effect_a_payload = _always_on_effect_with_outlets_patch_payload(name="Export Effect A")
+    effect_b_payload = _always_on_effect_with_outlets_patch_payload(name="Export Effect B")
+    payload = {
+        "performanceExport": {
+            "format": "orchestron.performance",
+            "version": 1,
+            "exported_at": "2026-03-16T12:00:00.000Z",
+            "performance": {
+                "name": "Cyclic Effect Export",
+                "description": "contains an invalid feedback route",
+                "config": {
+                    "version": 10,
+                    "instruments": [
+                        {
+                            "id": "fx-a",
+                            "patchId": "patch-fx-a",
+                            "midiChannel": 0,
+                            "effectRoutes": [{"sourceId": "fx-b", "channel": "left"}],
+                        },
+                        {
+                            "id": "fx-b",
+                            "patchId": "patch-fx-b",
+                            "midiChannel": 0,
+                            "effectRoutes": [{"sourceId": "fx-a", "channel": "left"}],
+                        },
+                    ],
+                },
+            },
+            "patch_definitions": [
+                {
+                    "sourcePatchId": "patch-fx-a",
+                    "name": "Export Effect A",
+                    "description": "",
+                    "alwaysOn": True,
+                    "schema_version": 1,
+                    "graph": effect_a_payload["graph"],
+                },
+                {
+                    "sourcePatchId": "patch-fx-b",
+                    "name": "Export Effect B",
+                    "description": "",
+                    "alwaysOn": True,
+                    "schema_version": 1,
+                    "graph": effect_b_payload["graph"],
+                },
+            ],
+        },
+        "sequencerConfig": _performance_csd_export_payload()["sequencerConfig"],
+    }
+
+    with _client(tmp_path) as client:
+        response = client.post("/api/bundles/export/performance-csd", json=payload)
+        assert response.status_code == 422
+        diagnostics = response.json()["detail"]["diagnostics"]
+        assert "Effect routing would create an audio feedback loop." in diagnostics
+
+
 def test_performance_csd_export_rejects_empty_midi_performance(tmp_path: Path) -> None:
     payload = _performance_csd_export_payload()
     payload["sequencerConfig"]["tracks"][0]["enabled"] = False
@@ -8321,6 +8417,129 @@ def test_always_on_effect_session_routes_connected_const_s_port_names(tmp_path: 
         compiled_orc = compile_response.json()["orc"]
         assert 'connect "vcs_instr_1", "right", "vcs_instr_2", "right"' in compiled_orc
         assert 'alwayson "vcs_instr_2"' in compiled_orc
+
+
+def test_always_on_effect_session_compiles_cascaded_audio_routes(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        source = client.post("/api/patches", json=_audio_source_patch_payload(name="Dry Source"))
+        reverb = client.post("/api/patches", json=_always_on_effect_with_outlets_patch_payload(name="Routable Reverb"))
+        compressor = client.post("/api/patches", json=_always_on_effect_patch_payload(name="Final Compressor"))
+        assert source.status_code == 201
+        assert reverb.status_code == 201
+        assert compressor.status_code == 201
+
+        create_session = client.post(
+            "/api/sessions",
+            json={
+                "instruments": [
+                    {"id": "src", "patch_id": source.json()["id"], "midi_channel": 1},
+                    {
+                        "id": "rvb",
+                        "patch_id": reverb.json()["id"],
+                        "midi_channel": 0,
+                        "effect_routes": [{"source_id": "src", "channel": "left"}],
+                    },
+                    {
+                        "id": "cmp",
+                        "patch_id": compressor.json()["id"],
+                        "midi_channel": 0,
+                        "effect_routes": [{"source_id": "rvb", "channel": "left"}],
+                    },
+                ]
+            },
+        )
+        assert create_session.status_code == 201
+
+        compile_response = client.post(f"/api/sessions/{create_session.json()['session_id']}/compile")
+        assert compile_response.status_code == 200
+
+        compiled_orc = compile_response.json()["orc"]
+        assert 'connect "vcs_instr_1", "left", "vcs_instr_2", "left"' in compiled_orc
+        assert 'connect "vcs_instr_2", "left", "vcs_instr_3", "left"' in compiled_orc
+        assert 'alwayson "vcs_instr_2"' in compiled_orc
+        assert 'alwayson "vcs_instr_3"' in compiled_orc
+
+
+def test_always_on_effect_session_rejects_audio_route_loop(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        effect_a = client.post(
+            "/api/patches",
+            json=_always_on_effect_with_outlets_patch_payload(name="Effect A"),
+        )
+        effect_b = client.post(
+            "/api/patches",
+            json=_always_on_effect_with_outlets_patch_payload(name="Effect B"),
+        )
+        assert effect_a.status_code == 201
+        assert effect_b.status_code == 201
+
+        create_session = client.post(
+            "/api/sessions",
+            json={
+                "instruments": [
+                    {
+                        "id": "fx-a",
+                        "patch_id": effect_a.json()["id"],
+                        "midi_channel": 0,
+                        "effect_routes": [{"source_id": "fx-b", "channel": "left"}],
+                    },
+                    {
+                        "id": "fx-b",
+                        "patch_id": effect_b.json()["id"],
+                        "midi_channel": 0,
+                        "effect_routes": [{"source_id": "fx-a", "channel": "left"}],
+                    },
+                ]
+            },
+        )
+        assert create_session.status_code == 201
+
+        compile_response = client.post(f"/api/sessions/{create_session.json()['session_id']}/compile")
+        assert compile_response.status_code == 422
+        diagnostics = compile_response.json()["detail"]["diagnostics"]
+        assert "Effect routing would create an audio feedback loop." in diagnostics
+
+
+def test_always_on_effect_session_rejects_indirect_audio_route_loop(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        effect_a = client.post("/api/patches", json=_always_on_effect_with_outlets_patch_payload(name="Effect A"))
+        effect_b = client.post("/api/patches", json=_always_on_effect_with_outlets_patch_payload(name="Effect B"))
+        effect_c = client.post("/api/patches", json=_always_on_effect_with_outlets_patch_payload(name="Effect C"))
+        assert effect_a.status_code == 201
+        assert effect_b.status_code == 201
+        assert effect_c.status_code == 201
+
+        create_session = client.post(
+            "/api/sessions",
+            json={
+                "instruments": [
+                    {
+                        "id": "fx-a",
+                        "patch_id": effect_a.json()["id"],
+                        "midi_channel": 0,
+                        "effect_routes": [{"source_id": "fx-c", "channel": "left"}],
+                    },
+                    {
+                        "id": "fx-b",
+                        "patch_id": effect_b.json()["id"],
+                        "midi_channel": 0,
+                        "effect_routes": [{"source_id": "fx-a", "channel": "left"}],
+                    },
+                    {
+                        "id": "fx-c",
+                        "patch_id": effect_c.json()["id"],
+                        "midi_channel": 0,
+                        "effect_routes": [{"source_id": "fx-b", "channel": "left"}],
+                    },
+                ]
+            },
+        )
+        assert create_session.status_code == 201
+
+        compile_response = client.post(f"/api/sessions/{create_session.json()['session_id']}/compile")
+        assert compile_response.status_code == 422
+        diagnostics = compile_response.json()["detail"]["diagnostics"]
+        assert "Effect routing would create an audio feedback loop." in diagnostics
 
 
 def test_multi_instrument_compile_deduplicates_sfload_for_same_file(tmp_path: Path) -> None:

@@ -42,7 +42,7 @@ import {
 import { drummerRowRuntimeTrackId } from "./lib/sequencerRuntime";
 import { useImportDialogs } from "./hooks/useImportDialogs";
 import { useSequencerRuntimeController } from "./hooks/useSequencerRuntimeController";
-import { useAppStore } from "./store/useAppStore";
+import { ALWAYS_ON_REQUIRES_INLETA_MESSAGE, useAppStore } from "./store/useAppStore";
 import orchestronIcon from "./assets/orchestron-icon.png";
 import type {
   Connection,
@@ -448,6 +448,10 @@ function patchCompileSignatureFor(
     schema_version: patch.schema_version,
     graph: patch.graph
   });
+}
+
+function patchGraphHasOpcode(graph: PatchGraph, opcode: string): boolean {
+  return graph.nodes.some((node) => node.opcode === opcode);
 }
 
 type AppCopy = {
@@ -1399,6 +1403,11 @@ export default function App() {
 
   const onSavePatchWithCompileValidation = useCallback(() => {
     void (async () => {
+      if (currentPatch.always_on && !patchGraphHasOpcode(currentPatch.graph, "inleta")) {
+        useAppStore.setState({ loading: false, error: ALWAYS_ON_REQUIRES_INLETA_MESSAGE });
+        return;
+      }
+
       if (currentPatch.is_template) {
         await saveCurrentPatch();
         return;
@@ -1420,7 +1429,7 @@ export default function App() {
         patchCompileSignatureFor(latestState.currentPatch, latestState.activeInstrumentTabId)
       );
     })();
-  }, [compileCurrentPatchWithStatus, currentPatch.is_template, saveCurrentPatch]);
+  }, [compileCurrentPatchWithStatus, currentPatch.always_on, currentPatch.graph, currentPatch.is_template, saveCurrentPatch]);
 
   const onCloneCurrentPatch = useCallback(() => {
     void (async () => {

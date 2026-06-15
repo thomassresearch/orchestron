@@ -26,7 +26,7 @@ The toolbar includes:
 - `Patch Name` is the display name used in the patch library and performance rack dropdowns for normal patches.
 - `Description` is a three-line patch note field and accepts up to 2048 characters.
 - `Template?` marks the patch as a reusable starter graph. Template patches show a `TEMPLATE` token beside their name and are excluded from Perform rack instrument choices.
-- `Always On?` marks the patch as an effect-style instrument. It will run continuously when explicitly added to the Perform rack instead of waiting for MIDI note events.
+- `Always On?` marks the patch as an effect-style instrument. It will run continuously when explicitly added to the Perform rack instead of waiting for MIDI note events. Saving an always-on patch requires at least one `inleta` node; otherwise Orchestron shows `always on instruments require at least one "inleta" instance`.
 - Metadata updates affect the current tab immediately, but they are not stored in the patch library until you save.
 
 ## Patch Library Loading

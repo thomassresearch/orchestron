@@ -23,6 +23,8 @@ from backend.app.services.persisted_json_limits import (
 from backend.app.services.audio_port_names import audio_port_names
 from backend.app.storage.repositories.patch_repository import PatchRepository
 
+ALWAYS_ON_REQUIRES_INLETA_MESSAGE = 'always on instruments require at least one "inleta" instance'
+
 
 class PatchService:
     def __init__(
@@ -41,6 +43,7 @@ class PatchService:
     def create_patch(self, request: PatchCreateRequest) -> PatchResponse:
         now = datetime.now(timezone.utc)
         self._validate_graph(request.graph)
+        self._validate_always_on_requirements(always_on=request.always_on, graph=request.graph)
         document = PatchDocument(
             id=str(uuid4()),
             name=request.name,
@@ -102,6 +105,7 @@ class PatchService:
         )
 
         self._validate_graph(updated.graph)
+        self._validate_always_on_requirements(always_on=updated.always_on, graph=updated.graph)
         persisted = self._repository.update(patch_id, updated)
         if not persisted:
             raise HTTPException(status_code=404, detail=f"Patch '{patch_id}' not found")
@@ -131,3 +135,8 @@ class PatchService:
             raise HTTPException(status_code=422, detail=str(err)) from err
         except ValueError as err:
             raise HTTPException(status_code=422, detail="graph must be serializable as JSON.") from err
+
+    @staticmethod
+    def _validate_always_on_requirements(*, always_on: bool, graph: PatchGraph) -> None:
+        if always_on and not any(node.opcode == "inleta" for node in graph.nodes):
+            raise HTTPException(status_code=422, detail=ALWAYS_ON_REQUIRES_INLETA_MESSAGE)
