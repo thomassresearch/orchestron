@@ -5375,6 +5375,7 @@ def test_performance_csd_export_bundle_includes_csd_midi_readme_and_assets(tmp_p
             assert f"change into the bundled '{bundle_root}/' directory" in readme
             assert "csound -d -W -f -o Offline_Export.wav -F Offline_Export.mid Offline_Export.csd" in readme
             assert "32-bit float" in readme
+            assert "MIDI Controller lane values" in readme
 
             midi_bytes = archive.read(f"{bundle_root}/Offline_Export.mid")
             assert midi_bytes.startswith(b"MThd")
@@ -5438,6 +5439,116 @@ def test_performance_csd_score_export_inlines_score_and_rewrites_midi_opcodes(tm
 
             warnings = archive.read("Offline_Export/WARNINGS.txt").decode("utf-8")
             assert "approximates ampmidi node 'amp'" in warnings
+
+
+def test_performance_csd_midi_export_seeds_enabled_midi_controller_values(tmp_path: Path) -> None:
+    payload = _performance_csd_export_payload()
+    payload["midiControllers"] = [
+        {"controllerNumber": 10, "value": 91, "enabled": True},
+        {"controllerNumber": 11, "value": 37, "enabled": True},
+        {"controllerNumber": 12, "value": 99, "enabled": False},
+    ]
+    performance = payload["performanceExport"]["performance"]  # type: ignore[index]
+    performance["config"]["instruments"] = [  # type: ignore[index]
+        {"patchId": "patch-1", "midiChannel": 1},
+        {"patchId": "patch-1", "midiChannel": 4},
+    ]
+
+    with _client(tmp_path) as client:
+        response = client.post("/api/bundles/export/performance-csd", json=payload)
+        assert response.status_code == 200
+
+        with zipfile.ZipFile(BytesIO(response.content), "r") as archive:
+            midi_bytes = archive.read("Offline_Export/Offline_Export.mid")
+
+    tick_zero_messages = [
+        message
+        for tick, message in _midi_messages_with_absolute_ticks(midi_bytes)
+        if tick == 0 and not getattr(message, "is_meta", False)
+    ]
+    seeded_controllers = [
+        (message.channel, message.control, message.value)
+        for message in tick_zero_messages
+        if message.type == "control_change"
+    ]
+    first_note_on_index = next(
+        index
+        for index, message in enumerate(tick_zero_messages)
+        if message.type == "note_on" and message.velocity > 0
+    )
+    last_seeded_controller_index = max(
+        index
+        for index, message in enumerate(tick_zero_messages)
+        if message.type == "control_change" and message.control in {10, 11}
+    )
+
+    assert seeded_controllers[:4] == [
+        (0, 10, 91),
+        (3, 10, 91),
+        (0, 11, 37),
+        (3, 11, 37),
+    ]
+    assert (0, 12, 99) not in seeded_controllers
+    assert (3, 12, 99) not in seeded_controllers
+    assert last_seeded_controller_index < first_note_on_index
+
+
+def test_performance_csd_score_export_seeds_enabled_midi_controller_values(tmp_path: Path) -> None:
+    payload = _performance_csd_export_payload()
+    payload["eventSource"] = "score"
+    payload["midiControllers"] = [
+        {"controllerNumber": 10, "value": 91, "enabled": True},
+        {"controllerNumber": 11, "value": 37, "enabled": True},
+        {"controllerNumber": 12, "value": 99, "enabled": False},
+    ]
+    performance = payload["performanceExport"]["performance"]  # type: ignore[index]
+    performance["config"]["instruments"] = [  # type: ignore[index]
+        {"patchId": "patch-1", "midiChannel": 1},
+        {"patchId": "patch-1", "midiChannel": 4},
+    ]
+    graph = payload["performanceExport"]["patch_definitions"][0]["graph"]  # type: ignore[index]
+    graph["nodes"].extend(  # type: ignore[index]
+        [
+            {
+                "id": "cutoff",
+                "opcode": "midictrl",
+                "params": {"inum": 10, "imin": 100, "imax": 8000},
+                "position": {"x": 20, "y": 120},
+            },
+            {
+                "id": "resonance",
+                "opcode": "midictrl",
+                "params": {"inum": 11, "imin": 0, "imax": 1},
+                "position": {"x": 20, "y": 180},
+            },
+        ]
+    )
+
+    with _client(tmp_path) as client:
+        response = client.post("/api/bundles/export/performance-csd", json=payload)
+        assert response.status_code == 200
+
+        with zipfile.ZipFile(BytesIO(response.content), "r") as archive:
+            csd = archive.read("Offline_Export/Offline_Export.csd").decode("utf-8")
+            readme = archive.read("Offline_Export/README.txt").decode("utf-8")
+
+    assert "i 9000 0 0.000021 10 91" in csd
+    assert "i 9000 0 0.000021 11 37" in csd
+    assert "i 9000 0 0.000021 394 91" in csd
+    assert "i 9000 0 0.000021 395 37" in csd
+    assert "i 9000 0 0.000021 12 99" not in csd
+    assert "i 9000 0 0.000021 396 99" not in csd
+    assert "gk_vcs_score_cc[10] init 91" in csd
+    assert "gk_vcs_score_cc[11] init 37" in csd
+    assert "gk_vcs_score_cc[394] init 91" in csd
+    assert "gk_vcs_score_cc[395] init 37" in csd
+    assert "gk_vcs_score_cc[12] init 99" not in csd
+    assert "gk_vcs_score_cc[396] init 99" not in csd
+    assert "gk_vcs_score_cc[10]" in csd
+    assert "gk_vcs_score_cc[11]" in csd
+    assert " midictrl " not in csd
+    assert csd.index("i 9000 0 0.000021 10 91") < csd.index("i 1 0 0.125 60 100")
+    assert "MIDI Controller lane values" in readme
 
 
 def test_performance_csd_export_runs_always_on_effect_for_score_duration(tmp_path: Path) -> None:

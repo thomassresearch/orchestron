@@ -37,6 +37,7 @@ The Performance page provides two offline Csound render exports:
 
 - `Export CSD (MIDI)` creates the traditional ZIP with a compiled CSD and a separate MIDI file.
 - `Export CSD (SCORE)` creates a ZIP with the performance notes and controller sweeps embedded as Csound score events.
+- Both CSD export modes seed enabled manual MIDI Controller lane values at time 0 on every assigned instrument channel.
 
 This export is different from the normal `Export` bundle:
 
@@ -51,10 +52,11 @@ The MIDI ZIP contains:
 - Always-on effect instruments started with Csound `alwayson`
 - A finite `f 0 ...` score duration sized for the exported arranger playback plus a release-tail buffer
 - The arranger playback rendered as a `.mid` file from beginning to arrangement end
+- Enabled manual MIDI Controller lane values written into the MIDI file at tick 0 on every assigned instrument channel
 - Uploaded bundled sample audio / SoundFont files used by the exported instruments
 - A `README.txt` with the exact Csound command line needed to render the package
 
-The SCORE ZIP contains the same compiled instruments and bundled assets, but omits the `.mid` file. Instead, it embeds note events as score `i` statements, embeds controller sequencer sweeps as score-controlled CC setter events, and rewrites supported MIDI opcodes such as `cpsmidi`, `ampmidi`, `midi_note`, `notnum`, and `midictrl` for score playback. If export-time approximations are needed, such as best-effort `ampmidi` function-table mapping, the ZIP includes `WARNINGS.txt` and the README lists the warnings.
+The SCORE ZIP contains the same compiled instruments and bundled assets, but omits the `.mid` file. Instead, it embeds note events as score `i` statements, embeds controller sequencer sweeps and enabled manual MIDI Controller lane values as score-controlled CC setter events, and rewrites supported MIDI opcodes such as `cpsmidi`, `ampmidi`, `midi_note`, `notnum`, and `midictrl` for score playback. If export-time approximations are needed, such as best-effort `ampmidi` function-table mapping, the ZIP includes `WARNINGS.txt` and the README lists the warnings.
 
 Only assets stored through Orchestron's upload/import flow are bundled. GEN01 and `sfload` nodes must reference uploaded assets; compile, session start, and offline performance CSD export reject raw filesystem `samplePath` values instead of passing them to Csound.
 

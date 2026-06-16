@@ -17,7 +17,7 @@ from backend.app.models.export import (
 )
 from backend.app.models.patch import EngineConfig, PatchDocument, PatchGraph
 from backend.app.services.compiler_service import CompilerService, PatchInstrumentTarget
-from backend.app.services.compiler_orchestra import OrchestraEmitter
+from backend.app.services.compiler_orchestra import OrchestraEmitter, SCORE_CONTROLLER_ARRAY_NAME
 from backend.app.services.gen_asset_service import GenAssetService
 from backend.app.services.arpeggiator_runtime import PerformanceMidiRouter
 from backend.app.services.sequencer_runtime import SessionSequencerRuntime
@@ -39,6 +39,7 @@ class BundledAsset:
 class CapturedMidiEvent:
     time_seconds: float
     message: bytes
+    sequence: int
 
 
 @dataclass(slots=True)
@@ -57,6 +58,7 @@ class ScoreControllerEvent:
     midi_channel: int
     controller_number: int
     value: int
+    sequence: int
 
 
 class OfflineMidiExportBudgetExceededError(ValueError):
@@ -78,15 +80,19 @@ class _MidiCaptureService:
         self.current_time_seconds = 0.0
         self.current_sample = 0
         self.event_budget_exceeded = False
+        self._sequence = 0
 
     def _append_event(self, *, time_seconds: float, message: list[int]) -> None:
         if len(self.events) >= self._max_events:
             self.event_budget_exceeded = True
             return
+        sequence = self._sequence
+        self._sequence += 1
         self.events.append(
             CapturedMidiEvent(
                 time_seconds=max(0.0, float(time_seconds)),
                 message=bytes(int(value) & 0xFF for value in message),
+                sequence=sequence,
             )
         )
 
@@ -199,6 +205,7 @@ class PerformanceExportService:
                 orc=self._rewrite_orc_for_offline_render(compile_artifact.orc),
                 output_wave_name=output_wave_name,
                 score_lines=score_lines,
+                score_controller_initializer_lines=self._score_controller_initializer_lines(captured_events),
             )
             readme = self._build_score_readme(
                 bundle_directory_name=base_name,
@@ -464,6 +471,7 @@ class PerformanceExportService:
         orc: str,
         output_wave_name: str,
         score_lines: list[str],
+        score_controller_initializer_lines: list[str] | None = None,
     ) -> str:
         return "\n".join(
             [
@@ -473,6 +481,7 @@ class PerformanceExportService:
                 "</CsOptions>",
                 "<CsInstruments>",
                 orc,
+                *(score_controller_initializer_lines or []),
                 "</CsInstruments>",
                 "<CsScore>",
                 *score_lines,
@@ -506,6 +515,11 @@ class PerformanceExportService:
         controller_default_channels: tuple[int, ...],
     ) -> list[CapturedMidiEvent]:
         capture = _MidiCaptureService(max_events=OFFLINE_CSD_EXPORT_MAX_MIDI_EVENTS)
+        self._append_initial_midi_controller_events(
+            capture=capture,
+            request=request,
+            target_channels=controller_default_channels,
+        )
         router = PerformanceMidiRouter(
             enqueue_timestamped_midi=capture.enqueue_timestamped_midi,
             current_engine_sample=lambda: capture.current_sample,
@@ -585,6 +599,34 @@ class PerformanceExportService:
                         capture.raise_if_event_budget_exceeded()
 
         return capture.events
+
+    @staticmethod
+    def _append_initial_midi_controller_events(
+        *,
+        capture: _MidiCaptureService,
+        request: PerformanceCsdExportRequest,
+        target_channels: tuple[int, ...],
+    ) -> None:
+        controller_values: dict[int, int] = {}
+        for controller in request.midi_controllers:
+            if not controller.enabled:
+                continue
+            controller_values[int(controller.controller_number)] = int(controller.value)
+
+        if not controller_values:
+            return
+
+        channels = tuple(sorted({max(1, min(16, int(channel))) for channel in target_channels})) or (1,)
+        for controller_number, value in controller_values.items():
+            for channel in channels:
+                capture._append_event(
+                    time_seconds=0.0,
+                    message=[
+                        0xB0 + ((channel - 1) & 0x0F),
+                        controller_number,
+                        value,
+                    ],
+                )
 
     def _raise_if_no_note_on_events(self, events: list[CapturedMidiEvent]) -> None:
         if not self._has_note_on_events(events):
@@ -726,12 +768,40 @@ class PerformanceExportService:
                     midi_channel=(message[0] & 0x0F) + 1,
                     controller_number=controller_number,
                     value=int(message[2]),
+                    sequence=event.sequence,
                 )
             )
         return sorted(
             controller_events,
-            key=lambda item: (item.time_seconds, item.midi_channel, item.controller_number, item.value),
+            key=lambda item: (item.time_seconds, item.sequence),
         )
+
+    @staticmethod
+    def _score_controller_initializer_lines(events: list[CapturedMidiEvent]) -> list[str]:
+        initial_values: dict[int, int] = {}
+        for event in sorted(events, key=lambda item: item.sequence):
+            if event.time_seconds > 0:
+                continue
+            message = event.message
+            if len(message) < 3 or (message[0] & 0xF0) != 0xB0:
+                continue
+            controller_number = int(message[1])
+            if controller_number in {120, 123}:
+                continue
+            midi_channel = (message[0] & 0x0F) + 1
+            index = OrchestraEmitter.score_controller_index(midi_channel, controller_number)
+            initial_values[index] = int(message[2])
+
+        if not initial_values:
+            return []
+
+        return [
+            "; score controller initial state",
+            *[
+                f"{SCORE_CONTROLLER_ARRAY_NAME}[{index}] init {value}"
+                for index, value in sorted(initial_values.items())
+            ],
+        ]
 
     @staticmethod
     def _score_instrument_ref_by_channel(targets: list[PatchInstrumentTarget]) -> dict[int, str]:
@@ -783,17 +853,20 @@ class PerformanceExportService:
             ]
         )
 
-        midi_events: list[tuple[int, bytes]] = []
+        midi_events: list[tuple[int, int, bytes]] = []
         for event in events:
             tick = max(
                 0,
                 round((event.time_seconds * max(1, tempo_bpm) * MIDI_TICKS_PER_QUARTER) / 60.0),
             )
-            midi_events.append((tick, event.message))
+            midi_events.append((tick, event.sequence, event.message))
 
-        midi_events.sort(key=lambda item: (item[0], PerformanceExportService._message_priority(item[1]), item[1]))
+        midi_events.sort(key=lambda item: (item[0], PerformanceExportService._message_priority(item[2]), item[1]))
         performance_track = PerformanceExportService._encode_track(
-            [(0, PerformanceExportService._track_name_meta(track_name)), *midi_events]
+            [
+                (0, PerformanceExportService._track_name_meta(track_name)),
+                *((tick, message) for tick, _sequence, message in midi_events),
+            ]
         )
         return header + tempo_track + performance_track
 
@@ -831,11 +904,13 @@ class PerformanceExportService:
         status = message[0] & 0xF0
         if status == 0x80:
             return 0
+        if status == 0x90 and len(message) >= 3 and message[2] == 0:
+            return 0
         if status == 0xB0 and len(message) >= 2 and message[1] in {120, 123}:
             return 1
-        if status == 0x90:
-            return 2
         if status == 0xB0:
+            return 2
+        if status == 0x90:
             return 3
         return 4
 
@@ -876,6 +951,7 @@ class PerformanceExportService:
                 f"csound {csd_file_name}",
                 "",
                 "The WAV is written as 32-bit float to preserve the same headroom as live browser-clock audio.",
+                "Enabled MIDI Controller lane values are written at time 0 on each assigned instrument channel.",
                 "",
                 "If you need a longer release tail, increase the final 'f 0 ...' duration line in the CSD.",
                 "",
@@ -913,6 +989,7 @@ class PerformanceExportService:
                 f"csound {csd_file_name}",
                 "",
                 "The WAV is written as 32-bit float to preserve the same headroom as live browser-clock audio.",
+                "Enabled MIDI Controller lane values are written at time 0 on each assigned instrument channel.",
                 "",
                 "If you need a longer release tail, increase the final 'f 0 ...' duration line in the CSD.",
                 "",

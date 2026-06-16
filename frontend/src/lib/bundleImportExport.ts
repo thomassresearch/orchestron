@@ -49,6 +49,11 @@ export interface PerformanceCsdExportRequestPayload {
   performanceExport: PerformanceExportPayload;
   sequencerConfig: SessionSequencerConfigRequest;
   eventSource?: "midiFile" | "score";
+  midiControllers?: Array<{
+    controllerNumber: number;
+    value: number;
+    enabled: boolean;
+  }>;
 }
 
 type PatchWritePayload = {

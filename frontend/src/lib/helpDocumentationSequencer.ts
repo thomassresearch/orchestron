@@ -511,7 +511,8 @@ Send MIDI CC messages from the sequencer page.
 - Add up to 6 controller lanes.
 - Set controller number (\`0..127\`).
 - Adjust controller value with the knob.
-- Start/stop each controller lane independently.`
+- Start/stop each controller lane independently.
+- Enabled lanes seed both CSD export modes at render start.`
     },
     german: {
       title: "MIDI Controller",
@@ -522,7 +523,8 @@ Sendet MIDI-CC-Nachrichten von der Sequencer-Seite.
 - Bis zu 6 Controller-Spuren hinzufügen.
 - Controller-Nummer (\`0..127\`) festlegen.
 - Controller-Wert mit dem Drehregler einstellen.
-- Jede Controller-Spur separat starten/stoppen.`
+- Jede Controller-Spur separat starten/stoppen.
+- Aktivierte Spuren initialisieren beide CSD-Exportmodi beim Renderstart.`
     },
     french: {
       title: "Contrôleurs MIDI",
@@ -533,7 +535,8 @@ Envoi de messages MIDI CC depuis la page séquenceur.
 - Ajouter jusqu'à 6 pistes de contrôleur.
 - Définir le numéro de contrôleur (\`0..127\`).
 - Ajuster la valeur avec le potentiomètre.
-- Démarrer/arrêter chaque piste indépendamment.`
+- Démarrer/arrêter chaque piste indépendamment.
+- Les voies activees initialisent les deux modes d'export CSD au debut du rendu.`
     },
     spanish: {
       title: "Controladores MIDI",
@@ -544,7 +547,8 @@ Envía mensajes MIDI CC desde la página del secuenciador.
 - Agrega hasta 6 pistas de control.
 - Define número de controlador (\`0..127\`).
 - Ajusta el valor con la perilla.
-- Inicia/detiene cada pista de forma independiente.`
+- Inicia/detiene cada pista de forma independiente.
+- Las pistas activadas inicializan ambos modos de export CSD al empezar el render.`
     }
   },
 };
@@ -563,7 +567,7 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 - Starting instruments builds the current rack into a live backend session.
 - The state badge reflects the backend instrument engine, not only the arranger transport.
 - Import/export writes the perform configuration as JSON/ZIP so a live setup can be moved to another machine.
-- \`Export CSD (MIDI)\` writes a separate offline render ZIP with the compiled performance CSD, arranger MIDI file, bundled assets, and exact Csound render instructions. \`Export CSD (SCORE)\` embeds notes and controller sweeps directly in the Csound score and omits the MIDI file. Both CSD render modes write 32-bit float WAV output to preserve headroom.`,
+- \`Export CSD (MIDI)\` writes a separate offline render ZIP with the compiled performance CSD, arranger MIDI file, bundled assets, and exact Csound render instructions. \`Export CSD (SCORE)\` embeds notes and controller sweeps directly in the Csound score and omits the MIDI file. Both CSD render modes seed enabled manual MIDI Controller lane values at render start and write 32-bit float WAV output to preserve headroom.`,
     german: `### Rack-Verhalten
 
 - Das Speichern oder Laden einer Performance stellt den kompletten Zustand der Perform-Seite wieder her: Rack-Zuordnungen, Sequencer, Controller-Spuren, Piano Rolls und Arranger-Daten.
@@ -576,7 +580,7 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 - Das Starten der Instrumente baut das aktuelle Rack als Live-Session im Backend auf.
 - Das Status-Badge zeigt den Zustand der Backend-Instrument-Engine, nicht nur den Arranger-Transport.
 - Import/Export schreibt die Perform-Konfiguration als JSON/ZIP, damit ein Live-Setup auf einen anderen Rechner uebertragen werden kann.
-- \`Export CSD (MIDI)\` schreibt ein separates Offline-Render-ZIP mit der kompilierten Performance-CSD, der Arranger-MIDI-Datei, gebuendelten Assets und dem exakten Csound-Renderkommando. \`Export CSD (SCORE)\` bettet Noten und Controller-Sweeps direkt in die Csound-Score ein und laesst die MIDI-Datei weg. Beide CSD-Render-Modi schreiben 32-bit-Float-WAV-Ausgabe, um Headroom zu erhalten.`,
+- \`Export CSD (MIDI)\` schreibt ein separates Offline-Render-ZIP mit der kompilierten Performance-CSD, der Arranger-MIDI-Datei, gebuendelten Assets und dem exakten Csound-Renderkommando. \`Export CSD (SCORE)\` bettet Noten und Controller-Sweeps direkt in die Csound-Score ein und laesst die MIDI-Datei weg. Beide CSD-Render-Modi initialisieren aktivierte manuelle MIDI-Controller-Spuren beim Renderstart und schreiben 32-bit-Float-WAV-Ausgabe, um Headroom zu erhalten.`,
     french: `### Comportement du rack
 
 - Enregistrer ou charger une performance restaure tout l'etat de la page Perform : affectations du rack, sequenceurs, lanes de controle, piano rolls et donnees d'arrangeur.
@@ -589,7 +593,7 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 - Le demarrage des instruments construit le rack courant comme session live cote backend.
 - Le badge d'etat reflete l'etat reel du moteur instrument backend, pas seulement le transport de l'arrangeur.
 - L'import/export ecrit la configuration Perform en JSON/ZIP pour deplacer facilement un setup live vers une autre machine.
-- \`Export CSD (MIDI)\` ecrit un ZIP de rendu hors ligne distinct avec la CSD compilee de la performance, le fichier MIDI de l'arrangeur, les assets inclus et la commande Csound exacte. \`Export CSD (SCORE)\` integre les notes et sweeps de controle directement dans la score Csound et omet le fichier MIDI. Les deux modes CSD ecrivent une sortie WAV float 32 bits pour conserver le headroom.`,
+- \`Export CSD (MIDI)\` ecrit un ZIP de rendu hors ligne distinct avec la CSD compilee de la performance, le fichier MIDI de l'arrangeur, les assets inclus et la commande Csound exacte. \`Export CSD (SCORE)\` integre les notes et sweeps de controle directement dans la score Csound et omet le fichier MIDI. Les deux modes CSD initialisent les voies MIDI Controller manuelles activees au debut du rendu et ecrivent une sortie WAV float 32 bits pour conserver le headroom.`,
     spanish: `### Comportamiento del rack
 
 - Guardar o cargar una performance restaura todo el estado de la pagina Perform: asignaciones del rack, secuenciadores, pistas de control, piano rolls y datos del arreglador.
@@ -602,7 +606,7 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 - Iniciar los instrumentos construye el rack actual como una sesion en vivo en el backend.
 - La insignia de estado refleja el motor de instrumentos del backend, no solo el transporte del arreglador.
 - Importar/exportar escribe la configuracion Perform como JSON/ZIP para mover un setup en vivo a otra maquina.
-- \`Export CSD (MIDI)\` escribe un ZIP de render offline separado con la CSD compilada de la performance, el archivo MIDI del arreglador, los assets incluidos y el comando exacto de Csound. \`Export CSD (SCORE)\` incrusta notas y barridos de control directamente en la partitura Csound y omite el archivo MIDI. Ambos modos CSD escriben salida WAV float de 32 bits para conservar headroom.`
+- \`Export CSD (MIDI)\` escribe un ZIP de render offline separado con la CSD compilada de la performance, el archivo MIDI del arreglador, los assets incluidos y el comando exacto de Csound. \`Export CSD (SCORE)\` incrusta notas y barridos de control directamente en la partitura Csound y omite el archivo MIDI. Ambos modos CSD inicializan las pistas manuales MIDI Controller activadas al empezar el render y escriben salida WAV float de 32 bits para conservar headroom.`
   },
   sequencer_tracks: {
     english: `### Timing Model
@@ -941,7 +945,8 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 
 - CC messages are sent immediately when the instrument session is running and the lane is enabled.
 - Up to six lanes can coexist, which is useful for filter, resonance, mix, or macro controls in one performance.
-- If multiple destinations listen to the same CC mapping, all of them react to the transmitted value.`,
+- If multiple destinations listen to the same CC mapping, all of them react to the transmitted value.
+- Both CSD exports include enabled lane values at render start so \`midictrl\` patches start from the same manual CC state.`,
     german: `### Manuelle CC-Spuren
 
 - Dieses Panel ist fuer direkte CC-Steuerung gedacht, nicht fuer wiederholte Automation. Fuer transport-synchrone Kurven sind Controller-Sequencer gedacht.
@@ -952,7 +957,8 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 
 - CC-Nachrichten werden sofort gesendet, wenn die Instrument-Session laeuft und die Spur aktiviert ist.
 - Bis zu sechs Spuren koennen parallel existieren; das ist praktisch fuer Filter-, Resonanz-, Mix- oder Macro-Steuerungen in einer Performance.
-- Wenn mehrere Ziele auf dieselbe CC-Zuordnung hoeren, reagieren alle auf den gesendeten Wert.`,
+- Wenn mehrere Ziele auf dieselbe CC-Zuordnung hoeren, reagieren alle auf den gesendeten Wert.
+- Beide CSD-Exporte uebernehmen aktivierte Spurwerte beim Renderstart, damit \`midictrl\`-Patches mit demselben manuellen CC-Zustand starten.`,
     french: `### Voies CC manuelles
 
 - Ce panneau sert au controle CC direct, pas a l'automation repetee. Utilisez les sequenceurs controleur quand vous avez besoin de courbes synchronisees au transport.
@@ -963,7 +969,8 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 
 - Les messages CC partent immediatement quand la session instrument tourne et que la voie est activee.
 - Jusqu'a six voies peuvent coexister, utile pour des controles de filtre, resonance, mix ou macro dans une meme performance.
-- Si plusieurs destinations ecoutent le meme mapping CC, elles reagissent toutes a la valeur transmise.`,
+- Si plusieurs destinations ecoutent le meme mapping CC, elles reagissent toutes a la valeur transmise.
+- Les deux exports CSD incluent les valeurs des voies activees au debut du rendu afin que les patches \`midictrl\` partent du meme etat CC manuel.`,
     spanish: `### Pistas CC manuales
 
 - Este panel sirve para control CC directo, no para automatizacion repetitiva. Usa secuenciadores controladores cuando necesites curvas sincronizadas al transporte.
@@ -974,6 +981,7 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 
 - Los mensajes CC se envian inmediatamente cuando la sesion de instrumentos esta en marcha y la pista esta activada.
 - Pueden coexistir hasta seis pistas, lo que resulta util para controles de filtro, resonancia, mezcla o macros dentro de una misma performance.
-- Si varios destinos escuchan el mismo mapeo CC, todos reaccionan al valor transmitido.`
+- Si varios destinos escuchan el mismo mapeo CC, todos reaccionan al valor transmitido.
+- Ambos exports CSD incluyen los valores de las pistas activadas al empezar el render para que los patches \`midictrl\` arranquen con el mismo estado CC manual.`
   },
 };

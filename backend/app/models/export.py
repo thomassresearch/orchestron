@@ -107,10 +107,23 @@ class PerformanceExportPayload(BaseModel):
     patch_definitions: list[ExportedPatchDefinition] = Field(default_factory=list)
 
 
+class PerformanceCsdMidiControllerState(BaseModel):
+    controller_number: int = Field(alias="controllerNumber", ge=0, le=127)
+    value: int = Field(ge=0, le=127)
+    enabled: bool = True
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class PerformanceCsdExportRequest(BaseModel):
     performance_export: PerformanceExportPayload = Field(alias="performanceExport")
     sequencer_config: SessionSequencerConfigRequest = Field(alias="sequencerConfig")
     event_source: Literal["midiFile", "score"] = Field(default="midiFile", alias="eventSource")
+    midi_controllers: list[PerformanceCsdMidiControllerState] = Field(
+        default_factory=list,
+        alias="midiControllers",
+        max_length=32,
+    )
 
     @model_validator(mode="after")
     def validate_offline_export_budget(self) -> "PerformanceCsdExportRequest":

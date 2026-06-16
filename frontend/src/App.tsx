@@ -2283,7 +2283,14 @@ export default function App() {
       const exportPayload: PerformanceCsdExportRequestPayload = {
         performanceExport: payload,
         sequencerConfig: buildBackendSequencerConfig(sequencerRef.current, "export"),
-        eventSource
+        eventSource,
+        midiControllers: sequencerRef.current.midiControllers
+          .filter((controller) => controller.enabled)
+          .map((controller) => ({
+            controllerNumber: controller.controllerNumber,
+            value: controller.value,
+            enabled: controller.enabled
+          }))
       };
       const { blob } = await api.exportPerformanceCsdBundle(exportPayload as unknown as Record<string, unknown>);
       const url = URL.createObjectURL(blob);
