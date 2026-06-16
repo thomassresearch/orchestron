@@ -8763,6 +8763,85 @@ def test_always_on_effect_session_routes_unmatched_source_outlet_names_to_stereo
         assert 'connect "vcs_instr_1", "dryr", "vcs_instr_2", "right"' in compiled_orc
 
 
+def test_always_on_effect_session_preserves_outleta_input_formulas(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        source_payload = _audio_source_patch_payload_with_outlet_names(
+            name="Wet Send Source",
+            left_name="sendl",
+            right_name="sendr",
+        )
+        source_payload["graph"]["nodes"].extend(
+            [
+                {
+                    "id": "dry_l",
+                    "opcode": "outleta",
+                    "params": {"sname": "dryl"},
+                    "position": {"x": 200, "y": 180},
+                },
+                {
+                    "id": "dry_r",
+                    "opcode": "outleta",
+                    "params": {"sname": "dryr"},
+                    "position": {"x": 200, "y": 260},
+                },
+            ]
+        )
+        source_payload["graph"]["connections"].extend(
+            [
+                {"from_node_id": "sig", "from_port_id": "aout", "to_node_id": "dry_l", "to_port_id": "asignal"},
+                {"from_node_id": "sig", "from_port_id": "aout", "to_node_id": "dry_r", "to_port_id": "asignal"},
+            ]
+        )
+        source_payload["graph"]["ui_layout"] = {
+            "input_formulas": {
+                "out_l::asignal": {
+                    "expression": "0.00005*in1",
+                    "inputs": [{"token": "in1", "from_node_id": "sig", "from_port_id": "aout"}],
+                },
+                "out_r::asignal": {
+                    "expression": "0.00005*in1",
+                    "inputs": [{"token": "in1", "from_node_id": "sig", "from_port_id": "aout"}],
+                },
+            }
+        }
+
+        source = client.post("/api/patches", json=source_payload)
+        effect = client.post("/api/patches", json=_always_on_effect_patch_payload(name="Stereo Reverb"))
+        assert source.status_code == 201
+        assert effect.status_code == 201
+
+        create_session = client.post(
+            "/api/sessions",
+            json={
+                "instruments": [
+                    {"id": "src", "patch_id": source.json()["id"], "midi_channel": 1},
+                    {
+                        "id": "fx",
+                        "patch_id": effect.json()["id"],
+                        "midi_channel": 0,
+                        "effect_source_ids": ["src"],
+                        "effect_routes": [
+                            {"source_id": "src", "channel": "sendl"},
+                            {"source_id": "src", "channel": "sendr"},
+                        ],
+                    },
+                ]
+            },
+        )
+        assert create_session.status_code == 201
+
+        compile_response = client.post(f"/api/sessions/{create_session.json()['session_id']}/compile")
+        assert compile_response.status_code == 200
+
+        compiled_orc = compile_response.json()["orc"]
+        assert 'connect "vcs_instr_1", "sendl", "vcs_instr_2", "left"' in compiled_orc
+        assert 'connect "vcs_instr_1", "sendr", "vcs_instr_2", "right"' in compiled_orc
+        assert 'connect "vcs_instr_1", "dryl", "vcs_instr_2", "left"' not in compiled_orc
+        assert 'connect "vcs_instr_1", "dryr", "vcs_instr_2", "right"' not in compiled_orc
+        assert "outleta \"sendl\", (0.00005 * a_sig_aout_1)" in compiled_orc
+        assert "outleta \"sendr\", (0.00005 * a_sig_aout_1)" in compiled_orc
+
+
 def test_always_on_effect_session_compiles_cascaded_audio_routes(tmp_path: Path) -> None:
     with _client(tmp_path) as client:
         source = client.post("/api/patches", json=_audio_outlet_only_source_patch_payload(name="Dry Source"))

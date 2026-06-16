@@ -205,6 +205,7 @@ class CompilerService:
     ) -> list[tuple[str, str, str]]:
         pairs: list[tuple[str, str, str]] = []
         seen: set[tuple[str, str]] = set()
+        explicitly_routed_sources: set[str] = set()
 
         for source_id, port_name in sink_target.effect_routes:
             normalized_source_id = source_id.strip()
@@ -212,6 +213,7 @@ class CompilerService:
             source_entry = source_by_assignment_id.get(normalized_source_id)
             if source_entry is None:
                 continue
+            explicitly_routed_sources.add(normalized_source_id)
             source_target, _source_name = source_entry
             source_outlets = audio_port_names(source_target.patch.graph, opcode="outleta")
             sink_port_name = self._resolve_sink_inlet_name(normalized_port_name, source_outlets, sink_inlets)
@@ -223,6 +225,8 @@ class CompilerService:
 
         for source_id in sink_target.effect_source_ids:
             normalized_source_id = source_id.strip()
+            if normalized_source_id in explicitly_routed_sources:
+                continue
             source_entry = source_by_assignment_id.get(normalized_source_id)
             if source_entry is None:
                 continue
