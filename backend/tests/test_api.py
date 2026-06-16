@@ -5367,12 +5367,14 @@ def test_performance_csd_export_bundle_includes_csd_midi_readme_and_assets(tmp_p
             assert f'"assets/{stored_name}"' in csd
             assert f'"assets/{soundfont_stored_name}"' in csd
             assert str(tmp_path) not in csd
+            assert "-d -W -f -o Offline_Export.wav -F Offline_Export.mid" in csd
             assert "-F Offline_Export.mid" in csd
             assert "f 0 " in csd
 
             readme = archive.read(f"{bundle_root}/README.txt").decode("utf-8")
             assert f"change into the bundled '{bundle_root}/' directory" in readme
-            assert "csound -d -W -o Offline_Export.wav -F Offline_Export.mid Offline_Export.csd" in readme
+            assert "csound -d -W -f -o Offline_Export.wav -F Offline_Export.mid Offline_Export.csd" in readme
+            assert "32-bit float" in readme
 
             midi_bytes = archive.read(f"{bundle_root}/Offline_Export.mid")
             assert midi_bytes.startswith(b"MThd")
@@ -5411,11 +5413,12 @@ def test_performance_csd_score_export_inlines_score_and_rewrites_midi_opcodes(tm
             assert "Offline_Export/WARNINGS.txt" in entries
 
             csd = archive.read("Offline_Export/Offline_Export.csd").decode("utf-8")
+            assert "-d -W -f -o Offline_Export.wav" in csd
             assert "-F Offline_Export.mid" not in csd
             assert "csound -d -W -o Offline_Export.wav" not in csd
             assert "massign" not in csd
             assert "cpsmidinn(p4)" in csd
-            assert "tablei(p5 / 127, 1, 1)" in csd
+            assert "tablei(p5 / 128, 1, 1)" in csd
             assert "gk_vcs_score_cc[] init 2048" in csd
             assert "instr 9000" in csd
             assert "gk_vcs_score_cc[1]" in csd
@@ -5428,8 +5431,9 @@ def test_performance_csd_score_export_inlines_score_and_rewrites_midi_opcodes(tm
             assert "i 1 0 0.125 60 100" in csd
 
             readme = archive.read("Offline_Export/README.txt").decode("utf-8")
-            assert "csound -d -W -o Offline_Export.wav Offline_Export.csd" in readme
+            assert "csound -d -W -f -o Offline_Export.wav Offline_Export.csd" in readme
             assert "-F Offline_Export.mid" not in readme
+            assert "32-bit float" in readme
             assert "WARNINGS.txt" in readme
 
             warnings = archive.read("Offline_Export/WARNINGS.txt").decode("utf-8")

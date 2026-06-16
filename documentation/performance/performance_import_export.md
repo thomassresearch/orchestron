@@ -47,6 +47,7 @@ The MIDI ZIP contains:
 
 - A compiled `.csd` with every non-template instrument currently used in the performance rack
 - Offline render settings forced to `sr = 48000` and `ksmps = 1`
+- WAV output written as 32-bit float (`-f`) so exported files preserve headroom instead of baking clipping into 16-bit samples
 - Always-on effect instruments started with Csound `alwayson`
 - A finite `f 0 ...` score duration sized for the exported arranger playback plus a release-tail buffer
 - The arranger playback rendered as a `.mid` file from beginning to arrangement end
@@ -100,13 +101,13 @@ Rendering workflow:
 4. Run the command from `README.txt`, for example the MIDI export command:
 
 ```bash
-csound -d -W -o Offline_Export.wav -F Offline_Export.mid Offline_Export.csd
+csound -d -W -f -o Offline_Export.wav -F Offline_Export.mid Offline_Export.csd
 ```
 
 For SCORE exports the command omits `-F`:
 
 ```bash
-csound -d -W -o Offline_Export.wav Offline_Export.csd
+csound -d -W -f -o Offline_Export.wav Offline_Export.csd
 ```
 
 The exported `.csd` already includes matching `CsOptions`, so `csound Offline_Export.csd` also works after you change into that directory.

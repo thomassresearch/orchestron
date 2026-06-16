@@ -348,7 +348,7 @@ class OrchestraEmitter:
             return "\n".join(
                 [
                     f"{env['kfreq']} = cpsmidinn(p4)",
-                    f"{env['kamp']} = ((p5 / 127) * ({gain}))",
+                    f"{env['kamp']} = ((p5 / 128) * ({gain}))",
                 ]
             )
         if opcode == "ampmidi":
@@ -360,8 +360,8 @@ class OrchestraEmitter:
                     f"'{compiled.node.id}' with a function table input; rendered velocity-table "
                     "mapping may differ from MIDI-file rendering."
                 )
-                return f"{env['iamp']} = (tablei(p5 / 127, {ifn}, 1) * ({iscal}))"
-            return f"{env['iamp']} = ((p5 / 127) * ({iscal}))"
+                return f"{env['iamp']} = (tablei(p5 / 128, {ifn}, 1) * ({iscal}))"
+            return f"{env['iamp']} = ((p5 / 128) * ({iscal}))"
         if opcode == "midictrl":
             if score_midi_channel <= 0:
                 raise CompilationError(
