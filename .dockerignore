@@ -1,0 +1,22 @@
+.git
+.gitignore
+
+# Python artifacts
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+__pycache__/
+*.py[cod]
+
+# Frontend artifacts must not overwrite npm ci output in Docker.
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Local/editor files
+.DS_Store
+.env
+.env.*
+.idea/
+.vscode/
