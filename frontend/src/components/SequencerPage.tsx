@@ -161,7 +161,8 @@ type SequencerUiCopy = {
   deletePerformanceDialogTitle: string;
   deletePerformanceDialogMessage: (name: string) => string;
   export: string;
-  exportCsd: string;
+  exportCsdMidi: string;
+  exportCsdScore: string;
   import: string;
   noInstrumentHint: string;
   patch: (index: number) => string;
@@ -375,7 +376,8 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     deletePerformanceDialogMessage: (name) =>
       `This will permanently delete the performance "${name}".`,
     export: "Export",
-    exportCsd: "Export CSD",
+    exportCsdMidi: "Export CSD (MIDI)",
+    exportCsdScore: "Export CSD (SCORE)",
     import: "Import",
     noInstrumentHint: "Add at least one saved instrument to start the engine.",
     patch: (index) => `Patch ${index}`,
@@ -560,7 +562,8 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     deletePerformanceDialogMessage: (name) =>
       `Die Performance "${name}" wird dauerhaft geloescht.`,
     export: "Export",
-    exportCsd: "CSD exportieren",
+    exportCsdMidi: "CSD exportieren (MIDI)",
+    exportCsdScore: "CSD exportieren (SCORE)",
     import: "Import",
     noInstrumentHint: "Fuege mindestens ein gespeichertes Instrument hinzu, um die Engine zu starten.",
     patch: (index) => `Patch ${index}`,
@@ -746,7 +749,8 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     deletePerformanceDialogMessage: (name) =>
       `La performance "${name}" sera supprimee definitivement.`,
     export: "Exporter",
-    exportCsd: "Exporter CSD",
+    exportCsdMidi: "Exporter CSD (MIDI)",
+    exportCsdScore: "Exporter CSD (SCORE)",
     import: "Importer",
     noInstrumentHint: "Ajoutez au moins un instrument sauvegarde pour demarrer le moteur.",
     patch: (index) => `Patch ${index}`,
@@ -932,7 +936,8 @@ const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     deletePerformanceDialogMessage: (name) =>
       `La performance "${name}" se eliminara permanentemente.`,
     export: "Exportar",
-    exportCsd: "Exportar CSD",
+    exportCsdMidi: "Exportar CSD (MIDI)",
+    exportCsdScore: "Exportar CSD (SCORE)",
     import: "Importar",
     noInstrumentHint: "Agrega al menos un instrumento guardado para iniciar el motor.",
     patch: (index) => `Patch ${index}`,
@@ -2411,7 +2416,8 @@ interface SequencerPagePerformanceActions {
   onDeletePerformance: () => void;
   onLoadPerformance: (performanceId: string) => void;
   onExportConfig: () => void;
-  onExportCsd: () => void;
+  onExportCsdMidi: () => void;
+  onExportCsdScore: () => void;
   onImportConfig: (file: File) => void;
 }
 
@@ -3843,7 +3849,8 @@ export function SequencerPage({
     onDeletePerformance,
     onLoadPerformance,
     onExportConfig,
-    onExportCsd,
+    onExportCsdMidi,
+    onExportCsdScore,
     onImportConfig
   } = performanceActions;
   const {
@@ -4452,10 +4459,17 @@ export function SequencerPage({
           </button>
           <button
             type="button"
-            onClick={onExportCsd}
+            onClick={onExportCsdMidi}
             className="rounded-md border border-slate-500 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-300 hover:text-white"
           >
-            {ui.exportCsd}
+            {ui.exportCsdMidi}
+          </button>
+          <button
+            type="button"
+            onClick={onExportCsdScore}
+            className="rounded-md border border-slate-500 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-300 hover:text-white"
+          >
+            {ui.exportCsdScore}
           </button>
           <button
             type="button"
@@ -4483,19 +4497,16 @@ export function SequencerPage({
             instrumentBindings.map((binding, index) => {
               const selectedPatch = patchById.get(binding.patchId);
               const isAlwaysOn = selectedPatch?.always_on === true;
-              const effectInletNames = new Set(selectedPatch?.audio_inlet_names ?? []);
-              const effectRouteCells = audioSourceBindings.flatMap((sourceBinding) => {
-                if (sourceBinding.id === binding.id || effectInletNames.size === 0) {
+              const effectSourceRows = audioSourceBindings.flatMap((sourceBinding) => {
+                if (sourceBinding.id === binding.id || (selectedPatch?.audio_inlet_names?.length ?? 0) === 0) {
                   return [];
                 }
                 const sourcePatch = patchById.get(sourceBinding.patchId);
-                const matchingChannels = (sourcePatch?.audio_outlet_names ?? []).filter((name) =>
-                  effectInletNames.has(name)
-                );
-                if (matchingChannels.length === 0) {
+                const channels = sourcePatch?.audio_outlet_names ?? [];
+                if (channels.length === 0) {
                   return [];
                 }
-                return matchingChannels.map((channel) => ({ sourceBinding, sourcePatch, channel }));
+                return [{ sourceBinding, sourcePatch, channels }];
               });
               const selectedRouteKeys = new Set(
                 binding.effectRoutes.map((route) => effectRouteKey(route.sourceId, route.channel))
@@ -4565,46 +4576,60 @@ export function SequencerPage({
                   {isAlwaysOn ? (
                     <div className="mt-2 rounded-md border border-slate-700 bg-slate-950/70 p-2">
                       <div className="mb-1 text-[10px] uppercase tracking-[0.16em] text-slate-400">{ui.audioSources}</div>
-                      {effectRouteCells.length === 0 ? (
+                      {effectSourceRows.length === 0 ? (
                         <div className="text-xs text-slate-500">{ui.noAudioSources}</div>
                       ) : (
                         <div className="grid gap-1">
-                          {effectRouteCells.map(({ sourceBinding, sourcePatch, channel }) => {
-                            const routeKey = effectRouteKey(sourceBinding.id, channel);
-                            const selected = selectedRouteKeys.has(routeKey);
-                            const loopBlocked =
-                              !selected &&
-                              effectRouteWouldCreateLoop(instrumentBindings, binding.id, sourceBinding.id);
+                          {effectSourceRows.map(({ sourceBinding, sourcePatch, channels }) => {
+                            const loopBlocked = effectRouteWouldCreateLoop(
+                              instrumentBindings,
+                              binding.id,
+                              sourceBinding.id
+                            );
                             return (
-                              <label
-                                key={`${binding.id}-source-${sourceBinding.id}-${channel}`}
-                                title={loopBlocked ? ui.effectRouteLoop : undefined}
-                                className={`flex items-center gap-2 rounded border border-slate-700 bg-slate-900/80 px-2 py-1 text-xs text-slate-200 ${
-                                  loopBlocked ? "opacity-55" : ""
-                                }`}
+                              <div
+                                key={`${binding.id}-source-${sourceBinding.id}`}
+                                className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded border border-slate-700 bg-slate-900/80 px-2 py-1.5 text-xs text-slate-200"
                               >
-                                <input
-                                  type="checkbox"
-                                  checked={selected}
-                                  onChange={(event) =>
-                                    onInstrumentEffectRouteChange(
-                                      binding.id,
-                                      sourceBinding.id,
-                                      channel,
-                                      event.target.checked
-                                    )
-                                  }
-                                  disabled={instrumentsRunning || loopBlocked}
-                                  className="h-4 w-4 rounded border-slate-500 bg-slate-950 accent-accent"
-                                />
-                                <span className="w-20 shrink-0 truncate font-mono text-[10px] uppercase text-cyan-200">
-                                  {channel}
+                                <span className="min-w-[8rem] flex-1 truncate">
+                                  {sourcePatch?.name ?? sourceBinding.patchId}
                                 </span>
-                                <span className="min-w-0 truncate">{sourcePatch?.name ?? sourceBinding.patchId}</span>
-                                <span className="ml-auto shrink-0 font-mono text-[10px] uppercase text-slate-500">
+                                <span className="shrink-0 font-mono text-[10px] uppercase text-slate-500">
                                   {sourcePatch?.always_on === true ? ui.effect : `${ui.channel} ${sourceBinding.midiChannel}`}
                                 </span>
-                              </label>
+                                <span className="flex flex-wrap items-center gap-1">
+                                  {channels.map((channel) => {
+                                    const routeKey = effectRouteKey(sourceBinding.id, channel);
+                                    const selected = selectedRouteKeys.has(routeKey);
+                                    const disabled = instrumentsRunning || (!selected && loopBlocked);
+                                    return (
+                                      <label
+                                        key={`${binding.id}-source-${sourceBinding.id}-${channel}`}
+                                        title={disabled && loopBlocked ? ui.effectRouteLoop : undefined}
+                                        className={`inline-flex h-6 items-center gap-1 rounded border border-slate-600 bg-slate-950 px-1.5 font-mono text-[10px] uppercase text-cyan-200 ${
+                                          disabled && loopBlocked ? "opacity-55" : ""
+                                        }`}
+                                      >
+                                        <input
+                                          type="checkbox"
+                                          checked={selected}
+                                          onChange={(event) =>
+                                            onInstrumentEffectRouteChange(
+                                              binding.id,
+                                              sourceBinding.id,
+                                              channel,
+                                              event.target.checked
+                                            )
+                                          }
+                                          disabled={disabled}
+                                          className="h-3.5 w-3.5 rounded border-slate-500 bg-slate-950 accent-accent"
+                                        />
+                                        <span>{channel}</span>
+                                      </label>
+                                    );
+                                  })}
+                                </span>
+                              </div>
                             );
                           })}
                         </div>

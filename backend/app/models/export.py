@@ -110,6 +110,7 @@ class PerformanceExportPayload(BaseModel):
 class PerformanceCsdExportRequest(BaseModel):
     performance_export: PerformanceExportPayload = Field(alias="performanceExport")
     sequencer_config: SessionSequencerConfigRequest = Field(alias="sequencerConfig")
+    event_source: Literal["midiFile", "score"] = Field(default="midiFile", alias="eventSource")
 
     @model_validator(mode="after")
     def validate_offline_export_budget(self) -> "PerformanceCsdExportRequest":

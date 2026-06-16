@@ -15,13 +15,14 @@ The rack includes fields and actions for the current performance:
 - `Clone`
 - `Delete`
 - `Export`
-- `Export CSD`
+- `Export CSD (MIDI)`
+- `Export CSD (SCORE)`
 - `Import`
 
 These actions operate on the performance configuration (instrument rack + sequencers + controllers + piano rolls), not on individual patch definitions.
 
 - `Export` writes an Orchestron `.orch.json` / `.orch.zip` performance bundle for backup, sharing, and re-import.
-- `Export CSD` writes an offline-render ZIP with a compiled `.csd`, the arranger performance as `.mid`, bundled uploaded sample/SF assets, and a `README.txt` with the render command. GEN01 and `sfload` sample files must be uploaded/imported assets; raw local `samplePath` values are rejected before compilation.
+- `Export CSD (MIDI)` writes an offline-render ZIP with a compiled `.csd`, the arranger performance as `.mid`, bundled uploaded sample/SF assets, and a `README.txt` with the render command. `Export CSD (SCORE)` embeds notes and controller sweeps directly in the Csound score, omits the `.mid`, rewrites supported MIDI opcodes for score playback, and writes a matching no-`-F` render command. GEN01 and `sfload` sample files must be uploaded/imported assets; raw local `samplePath` values are rejected before compilation.
 
 ## Instrument Assignments (Rack Slots)
 
@@ -36,12 +37,12 @@ If the selected patch is marked `Always On?`, the rack slot becomes an effect sl
 
 - The MIDI channel field is replaced with an `Effect` badge.
 - The slot runs continuously when `Start Instruments` starts the rack session.
-- The slot shows an audio source matrix with checkboxes for compatible `outleta` channel labels from normal rack instruments and other always-on effect slots.
-- A source row appears only when a rack instrument has an `outleta` label that matches an `inleta` label on the always-on effect patch.
+- The slot shows an audio source matrix with one row per normal rack instrument or always-on effect slot that exposes `outleta` channel labels.
+- Each source row contains checkboxes for all of that instrument's resolved `outleta` channel labels.
 - Routes that would feed an effect back into itself through the current effect chain are shown disabled, so cascaded effects can be built without creating feedback loops.
-- Checked rows are connected when the session compiles; unchecked rows are not routed.
+- Checked channel boxes are connected when the session compiles; unchecked channel boxes are not routed.
 
-If no rack instrument exposes a matching `outleta`, the matrix is empty. Add or edit source patches with `outleta` nodes and add matching `inleta` nodes to the effect patch to make routes available.
+If no other rack instrument exposes `outleta`, the matrix is empty. Add or edit source patches with `outleta` nodes and add at least one `inleta` node to the effect patch to make routes available. Source outlet labels do not need to match effect inlet labels; exact matches are used when available, and stereo-style labels such as `dryl`/`dryr` are mapped to `left`/`right` inlets.
 
 While instruments are running, rack assignment changes are locked:
 
@@ -89,7 +90,7 @@ If engine start/stop or transport actions fail, the Perform page shows an error 
 
 - Save the performance after significant changes (rack assignments, sequencers, piano rolls, controller mappings).
 - Use distinct MIDI channels per instrument unless you intentionally want multiple instruments layered on the same channel.
-- Use the same `sname` label on source `outleta` nodes and effect `inleta` nodes when you want a matrix route to appear. The label can be stored directly on the node or supplied by a direct `const_s` connection.
+- Use `sname` labels on source `outleta` nodes to name the available matrix channels. The label can be stored directly on the node or supplied by a direct `const_s` connection.
 
 ## Screenshots
 

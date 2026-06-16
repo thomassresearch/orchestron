@@ -7,6 +7,7 @@ from pathlib import PurePosixPath
 
 from backend.app.models.opcode import PortSpec, SignalType
 from backend.app.models.patch import (
+    Connection,
     MAX_GEN_ARGUMENT_COUNT,
     GenNodeConfig,
     NodeInstance,
@@ -37,6 +38,8 @@ from backend.app.services.orc_metadata import format_orc_comment_value
 
 CONST_S_VALUE_RE = re.compile(r"[a-z][a-z0-9_]{0,49}")
 CONST_S_DEFAULT_VALUE = "string"
+SCORE_CONTROLLER_ARRAY_NAME = "gk_vcs_score_cc"
+SCORE_CONTROLLER_INSTRUMENT_REF = "9000"
 
 
 class OrchestraEmitter:
@@ -52,8 +55,11 @@ class OrchestraEmitter:
         instrument_name: str | None = None,
         global_scope_key: str,
         allow_packaged_asset_paths: bool = False,
+        performance_input_mode: str = "midi",
+        score_midi_channel: int = 0,
     ) -> CompiledInstrumentLines:
         diagnostics: list[str] = []
+        warnings: list[str] = []
         ui_layout = patch.graph.ui_layout
         compiled_nodes = graph_context.compiled_nodes
         inbound_index = graph_context.inbound_index
@@ -64,6 +70,14 @@ class OrchestraEmitter:
         instrument_lines: list[str] = []
         global_header_lines: list[str] = []
         sfload_global_requests: list[SfloadGlobalRequest] = []
+
+        if performance_input_mode == "score" and score_midi_channel > 0:
+            instrument_lines.extend(
+                [
+                    "i_vcs_internal_score_note_p4 = p4",
+                    "i_vcs_internal_score_velocity_p5 = p5",
+                ]
+            )
 
         for node_id, compiled in compiled_nodes.items():
             for output in compiled.spec.outputs:
@@ -279,6 +293,24 @@ class OrchestraEmitter:
             if compiled.spec.name in {"const_a", "const_i", "const_k"} and "value" not in env:
                 env["value"] = "0"
 
+            if performance_input_mode == "score":
+                rendered_score_opcode = self._render_score_midi_opcode(
+                    compiled,
+                    env,
+                    inbound_index=inbound_index,
+                    compiled_nodes=compiled_nodes,
+                    score_midi_channel=score_midi_channel,
+                    warnings=warnings,
+                )
+                if rendered_score_opcode is not None:
+                    instrument_lines.extend(
+                        [
+                            self._node_comment(compiled.node.id, compiled.spec.name),
+                            *rendered_score_opcode.splitlines(),
+                        ]
+                    )
+                    continue
+
             try:
                 rendered = compiled.spec.template.format(**env)
             except KeyError as err:
@@ -293,7 +325,129 @@ class OrchestraEmitter:
             instrument_lines=instrument_lines,
             sfload_global_requests=sfload_global_requests,
             global_header_lines=global_header_lines,
+            diagnostics=warnings,
         )
+
+    def _render_score_midi_opcode(
+        self,
+        compiled: CompiledNode,
+        env: dict[str, str],
+        *,
+        inbound_index: dict[tuple[str, str], list[Connection]],
+        compiled_nodes: dict[str, CompiledNode],
+        score_midi_channel: int,
+        warnings: list[str],
+    ) -> str | None:
+        opcode = compiled.spec.name
+        if opcode == "cpsmidi":
+            return f"{env['kfreq']} = cpsmidinn(p4)"
+        if opcode == "notnum":
+            return f"{env['inote']} = p4"
+        if opcode == "midi_note":
+            gain = self._score_env_value(env, "gain", "1")
+            return "\n".join(
+                [
+                    f"{env['kfreq']} = cpsmidinn(p4)",
+                    f"{env['kamp']} = ((p5 / 127) * ({gain}))",
+                ]
+            )
+        if opcode == "ampmidi":
+            iscal = self._score_env_value(env, "iscal", "1")
+            ifn = env.get("ifn", OPTIONAL_OMIT_MARKER)
+            if ifn and ifn != OPTIONAL_OMIT_MARKER:
+                warnings.append(
+                    "Score CSD export approximates ampmidi node "
+                    f"'{compiled.node.id}' with a function table input; rendered velocity-table "
+                    "mapping may differ from MIDI-file rendering."
+                )
+                return f"{env['iamp']} = (tablei(p5 / 127, {ifn}, 1) * ({iscal}))"
+            return f"{env['iamp']} = ((p5 / 127) * ({iscal}))"
+        if opcode == "midictrl":
+            if score_midi_channel <= 0:
+                raise CompilationError(
+                    [
+                        "Score CSD export cannot rewrite midictrl node "
+                        f"'{compiled.node.id}' in an always-on or MIDI-unassigned instrument."
+                    ]
+                )
+            controller = self._resolve_static_controller_number(
+                compiled.node,
+                inbound_index=inbound_index,
+                compiled_nodes=compiled_nodes,
+            )
+            if controller is None:
+                raise CompilationError(
+                    [
+                        f"Score CSD export requires a static controller number for midictrl node '{compiled.node.id}'. "
+                        "Use a literal value or a direct const_i connection for the Controller input."
+                    ]
+                )
+            index = self.score_controller_index(score_midi_channel, controller)
+            imin = self._score_env_value(env, "imin", "0")
+            imax = self._score_env_value(env, "imax", "127")
+            return (
+                f"{env['kval']} = ({imin}) + "
+                f"(({SCORE_CONTROLLER_ARRAY_NAME}[{index}] / 127) * (({imax}) - ({imin})))"
+            )
+        return None
+
+    @staticmethod
+    def _score_env_value(env: dict[str, str], key: str, fallback: str) -> str:
+        value = env.get(key)
+        if not value or value == OPTIONAL_OMIT_MARKER:
+            return fallback
+        return value
+
+    @staticmethod
+    def _resolve_static_controller_number(
+        node: NodeInstance,
+        *,
+        inbound_index: dict[tuple[str, str], list[Connection]],
+        compiled_nodes: dict[str, CompiledNode],
+    ) -> int | None:
+        inbound_connections = inbound_index.get((node.id, "inum"), [])
+        if inbound_connections:
+            if len(inbound_connections) != 1:
+                return None
+            source_connection = inbound_connections[0]
+            source_node = compiled_nodes.get(source_connection.from_node_id)
+            if (
+                source_node is None
+                or source_node.spec.name != "const_i"
+                or source_connection.from_port_id != "iout"
+            ):
+                return None
+            return OrchestraEmitter._score_controller_number_from_value(
+                source_node.node.params.get("value", 1)
+            )
+        return OrchestraEmitter._score_controller_number_from_value(node.params.get("inum", 1))
+
+    @staticmethod
+    def _score_controller_number_from_value(value: object) -> int | None:
+        number = OrchestraEmitter._gen_number(value, default=None)
+        if number is None:
+            return None
+        return max(0, min(127, int(round(number))))
+
+    @staticmethod
+    def score_controller_index(midi_channel: int, controller_number: int) -> int:
+        channel = max(1, min(16, int(midi_channel)))
+        controller = max(0, min(127, int(controller_number)))
+        return ((channel - 1) * 128) + controller
+
+    @staticmethod
+    def score_controller_header_lines() -> list[str]:
+        return [
+            f"{SCORE_CONTROLLER_ARRAY_NAME}[] init 2048",
+            f"instr {SCORE_CONTROLLER_INSTRUMENT_REF}",
+            "  iindex = int(p4)",
+            f"  {SCORE_CONTROLLER_ARRAY_NAME}[iindex] = p5",
+            "endin",
+        ]
+
+    @staticmethod
+    def score_controller_instrument_ref() -> str:
+        return SCORE_CONTROLLER_INSTRUMENT_REF
 
     def _render_gen_node(
         self,

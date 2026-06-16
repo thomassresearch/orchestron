@@ -162,6 +162,49 @@ def test_const_s_compile_quotes_valid_value_and_feeds_string_ports() -> None:
     assert "outleta S_label_sout_1, a_sig_aout_1" in artifact.orc
 
 
+def test_compile_accepts_outleta_without_direct_outs() -> None:
+    compiler = CompilerService(OpcodeService(icon_prefix="/static/icons"))
+    patch = PatchDocument(
+        name="outleta-only compile test",
+        description="source patch routes only to a named audio outlet",
+        graph=PatchGraph(
+            nodes=[
+                NodeInstance(id="sig", opcode="const_a", params={"value": 0.1}),
+                NodeInstance(id="label", opcode="const_s", params={"value": "left_bus"}),
+                NodeInstance(id="send", opcode="outleta"),
+            ],
+            connections=[
+                Connection(from_node_id="sig", from_port_id="aout", to_node_id="send", to_port_id="asignal"),
+                Connection(from_node_id="label", from_port_id="sout", to_node_id="send", to_port_id="sname"),
+            ],
+        ),
+    )
+
+    artifact = compiler.compile_patch(patch, midi_input="0", rtmidi_module="alsaseq")
+
+    assert 'S_label_sout_1 = "left_bus"' in artifact.orc
+    assert "outleta S_label_sout_1, a_sig_aout_1" in artifact.orc
+    assert "outs " not in artifact.orc
+
+
+def test_compile_rejects_patch_without_outs_or_outleta() -> None:
+    compiler = CompilerService(OpcodeService(icon_prefix="/static/icons"))
+    patch = PatchDocument(
+        name="missing output compile test",
+        description="patch has no direct output or named audio outlet",
+        graph=PatchGraph(
+            nodes=[
+                NodeInstance(id="sig", opcode="const_a", params={"value": 0.1}),
+            ],
+        ),
+    )
+
+    with pytest.raises(CompilationError) as error:
+        compiler.compile_patch(patch, midi_input="0", rtmidi_module="alsaseq")
+
+    assert error.value.diagnostics == ["Patch must include at least one 'outs' or 'outleta' output node."]
+
+
 @pytest.mark.parametrize("value", ["", "1bad", "_bad", "Bad", "bad-name", "a" * 51, 7])
 def test_const_s_rejects_invalid_values(value: object) -> None:
     compiler = CompilerService(OpcodeService(icon_prefix="/static/icons"))

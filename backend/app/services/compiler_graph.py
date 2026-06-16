@@ -42,8 +42,8 @@ def compile_graph_context(graph: PatchGraph, opcode_service: OpcodeService) -> C
     if diagnostics:
         raise CompilationError(diagnostics)
 
-    if not any(item.spec.name == "outs" for item in compiled_nodes.values()):
-        raise CompilationError(["Patch must include at least one 'outs' output node."])
+    if not any(item.spec.name in {"outs", "outleta"} for item in compiled_nodes.values()):
+        raise CompilationError(["Patch must include at least one 'outs' or 'outleta' output node."])
 
     inbound_index = build_inbound_index(graph.connections, compiled_nodes)
     errors = validate_connections(graph.connections, compiled_nodes)

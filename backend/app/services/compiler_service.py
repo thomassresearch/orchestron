@@ -54,6 +54,7 @@ class CompilerService:
         rtmidi_module: str,
         *,
         allow_packaged_asset_paths: bool = False,
+        performance_input_mode: str = "midi",
     ) -> CompileArtifact:
         if not targets:
             raise CompilationError(["At least one patch must be provided for compilation."])
@@ -69,13 +70,21 @@ class CompilerService:
             f"nchnls = {engine.nchnls}",
             f"0dbfs = {engine.zero_dbfs}",
             "",
-            *self._orchestra_emitter.massign_lines(targets, instrument_names=instrument_names),
-            "",
         ]
+        if performance_input_mode == "score":
+            orc_lines.extend([*self._orchestra_emitter.score_controller_header_lines(), ""])
+        else:
+            orc_lines.extend(
+                [
+                    *self._orchestra_emitter.massign_lines(targets, instrument_names=instrument_names),
+                    "",
+                ]
+            )
 
         compiled_instruments: list[tuple[int, PatchInstrumentTarget, CompiledInstrumentLines]] = []
         global_header_lines: list[str] = []
         sfload_global_requests: list[SfloadGlobalRequest] = []
+        diagnostics: list[str] = []
 
         for instrument_number, target in enumerate(targets, start=1):
             graph_context = compile_graph_context(target.patch.graph, self._opcode_service)
@@ -86,10 +95,13 @@ class CompilerService:
                 instrument_name=instrument_names[instrument_number - 1] if instrument_names is not None else None,
                 global_scope_key=f"{instrument_number}_{target.patch.id}",
                 allow_packaged_asset_paths=allow_packaged_asset_paths,
+                performance_input_mode=performance_input_mode,
+                score_midi_channel=target.midi_channel,
             )
             compiled_instruments.append((instrument_number, target, compiled_lines))
             global_header_lines.extend(compiled_lines.global_header_lines)
             sfload_global_requests.extend(compiled_lines.sfload_global_requests)
+            diagnostics.extend(compiled_lines.diagnostics)
 
         if global_header_lines:
             orc_lines.extend([*global_header_lines, ""])
@@ -132,7 +144,7 @@ class CompilerService:
             software_buffer=engine.software_buffer,
             hardware_buffer=engine.hardware_buffer,
         )
-        return CompileArtifact(orc=orc, csd=csd, diagnostics=[])
+        return CompileArtifact(orc=orc, csd=csd, diagnostics=diagnostics)
 
     @staticmethod
     def _instrument_names(targets: list[PatchInstrumentTarget]) -> list[str] | None:
@@ -158,25 +170,29 @@ class CompilerService:
         for sink_target, sink_name in zip(targets, instrument_names, strict=True):
             if not sink_target.always_on or not (sink_target.effect_routes or sink_target.effect_source_ids):
                 continue
-            sink_inlets = set(audio_port_names(sink_target.patch.graph, opcode="inleta"))
+            sink_inlets = audio_port_names(sink_target.patch.graph, opcode="inleta")
             if not sink_inlets:
                 continue
 
-            for source_id, port_name in self._effect_route_pairs(sink_target, source_by_assignment_id, sink_inlets):
+            for source_id, source_port_name, sink_port_name in self._effect_route_pairs(
+                sink_target,
+                source_by_assignment_id,
+                sink_inlets,
+            ):
                 source_entry = source_by_assignment_id.get(source_id)
                 if source_entry is None:
                     continue
                 source_target, source_name = source_entry
 
-                if port_name not in set(audio_port_names(source_target.patch.graph, opcode="outleta")):
+                if source_port_name not in set(audio_port_names(source_target.patch.graph, opcode="outleta")):
                     continue
                 route_edges.append((source_id, sink_target.assignment_id or sink_name))
                 lines.append(
                     "connect "
                     f"{OrchestraEmitter._format_csound_string(source_name)}, "
-                    f"{OrchestraEmitter._format_csound_string(port_name)}, "
+                    f"{OrchestraEmitter._format_csound_string(source_port_name)}, "
                     f"{OrchestraEmitter._format_csound_string(sink_name)}, "
-                    f"{OrchestraEmitter._format_csound_string(port_name)}"
+                    f"{OrchestraEmitter._format_csound_string(sink_port_name)}"
                 )
         self._validate_audio_route_graph(route_edges)
         return lines
@@ -185,19 +201,25 @@ class CompilerService:
         self,
         sink_target: PatchInstrumentTarget,
         source_by_assignment_id: dict[str, tuple[PatchInstrumentTarget, str]],
-        sink_inlets: set[str],
-    ) -> list[tuple[str, str]]:
-        pairs: list[tuple[str, str]] = []
+        sink_inlets: list[str],
+    ) -> list[tuple[str, str, str]]:
+        pairs: list[tuple[str, str, str]] = []
         seen: set[tuple[str, str]] = set()
 
         for source_id, port_name in sink_target.effect_routes:
             normalized_source_id = source_id.strip()
             normalized_port_name = port_name.strip()
+            source_entry = source_by_assignment_id.get(normalized_source_id)
+            if source_entry is None:
+                continue
+            source_target, _source_name = source_entry
+            source_outlets = audio_port_names(source_target.patch.graph, opcode="outleta")
+            sink_port_name = self._resolve_sink_inlet_name(normalized_port_name, source_outlets, sink_inlets)
             key = (normalized_source_id, normalized_port_name)
-            if not normalized_source_id or normalized_port_name not in sink_inlets or key in seen:
+            if not normalized_source_id or not sink_port_name or key in seen:
                 continue
             seen.add(key)
-            pairs.append(key)
+            pairs.append((normalized_source_id, normalized_port_name, sink_port_name))
 
         for source_id in sink_target.effect_source_ids:
             normalized_source_id = source_id.strip()
@@ -205,14 +227,53 @@ class CompilerService:
             if source_entry is None:
                 continue
             source_target, _source_name = source_entry
-            for port_name in sorted(set(audio_port_names(source_target.patch.graph, opcode="outleta")) & sink_inlets):
+            source_outlets = audio_port_names(source_target.patch.graph, opcode="outleta")
+            for port_name in source_outlets:
+                sink_port_name = self._resolve_sink_inlet_name(port_name, source_outlets, sink_inlets)
                 key = (normalized_source_id, port_name)
-                if key in seen:
+                if not sink_port_name or key in seen:
                     continue
                 seen.add(key)
-                pairs.append(key)
+                pairs.append((normalized_source_id, port_name, sink_port_name))
 
         return pairs
+
+    @staticmethod
+    def _resolve_sink_inlet_name(source_port_name: str, source_outlets: list[str], sink_inlets: list[str]) -> str | None:
+        if not sink_inlets:
+            return None
+        if source_port_name in sink_inlets:
+            return source_port_name
+
+        sink_by_lower = {name.lower(): name for name in sink_inlets}
+        source_by_lower = {name.lower(): name for name in source_outlets}
+        source_lower = source_port_name.lower()
+        side = CompilerService._stereo_side_for_source_port(source_lower, source_by_lower)
+        if side:
+            for candidate in ("left", "l") if side == "left" else ("right", "r"):
+                sink_name = sink_by_lower.get(candidate)
+                if sink_name:
+                    return sink_name
+
+        if len(source_outlets) == len(sink_inlets):
+            source_index_by_name = {name: index for index, name in enumerate(source_outlets)}
+            source_index = source_index_by_name.get(source_port_name)
+            if source_index is not None and source_index < len(sink_inlets):
+                return sink_inlets[source_index]
+
+        return sink_inlets[0]
+
+    @staticmethod
+    def _stereo_side_for_source_port(source_lower: str, source_by_lower: dict[str, str]) -> str | None:
+        if source_lower in {"left", "l"} or source_lower.endswith("left"):
+            return "left"
+        if source_lower in {"right", "r"} or source_lower.endswith("right"):
+            return "right"
+        if source_lower.endswith("l") and f"{source_lower[:-1]}r" in source_by_lower:
+            return "left"
+        if source_lower.endswith("r") and f"{source_lower[:-1]}l" in source_by_lower:
+            return "right"
+        return None
 
     @staticmethod
     def _validate_audio_route_graph(route_edges: list[tuple[str, str]]) -> None:

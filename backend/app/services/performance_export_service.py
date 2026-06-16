@@ -17,6 +17,7 @@ from backend.app.models.export import (
 )
 from backend.app.models.patch import EngineConfig, PatchDocument, PatchGraph
 from backend.app.services.compiler_service import CompilerService, PatchInstrumentTarget
+from backend.app.services.compiler_orchestra import OrchestraEmitter
 from backend.app.services.gen_asset_service import GenAssetService
 from backend.app.services.arpeggiator_runtime import PerformanceMidiRouter
 from backend.app.services.sequencer_runtime import SessionSequencerRuntime
@@ -38,6 +39,24 @@ class BundledAsset:
 class CapturedMidiEvent:
     time_seconds: float
     message: bytes
+
+
+@dataclass(slots=True)
+class ScoreNoteEvent:
+    instrument_ref: str
+    start_seconds: float
+    duration_seconds: float
+    midi_channel: int
+    note: int
+    velocity: int
+
+
+@dataclass(slots=True)
+class ScoreControllerEvent:
+    time_seconds: float
+    midi_channel: int
+    controller_number: int
+    value: int
 
 
 class OfflineMidiExportBudgetExceededError(ValueError):
@@ -155,35 +174,66 @@ class PerformanceExportService:
             midi_input="0",
             rtmidi_module="virtual",
             allow_packaged_asset_paths=True,
+            performance_input_mode="score" if request.event_source == "score" else "midi",
         )
 
         playback_duration_seconds = self._playback_duration_seconds(request)
-        csd = self._build_offline_csd(
-            orc=self._rewrite_orc_for_offline_render(compile_artifact.orc),
-            midi_file_name=midi_file_name,
-            output_wave_name=output_wave_name,
-            duration_seconds=playback_duration_seconds + OFFLINE_RENDER_RELEASE_TAIL_SECONDS,
-        )
-        midi_bytes = self._build_midi_file(
+        captured_events = self._capture_offline_midi_events(
             request=request,
             controller_default_channels=tuple(
                 sorted({target.midi_channel for target in targets if 1 <= target.midi_channel <= 16})
             )
             or (1,),
-            track_name=base_name,
         )
-        readme = self._build_readme(
-            bundle_directory_name=base_name,
-            csd_file_name=csd_file_name,
-            midi_file_name=midi_file_name,
-            output_wave_name=output_wave_name,
-        )
+        self._raise_if_no_note_on_events(captured_events)
+
+        warnings = list(compile_artifact.diagnostics)
+        if request.event_source == "score":
+            score_lines, score_warnings = self._build_score_lines(
+                events=captured_events,
+                targets=targets,
+                duration_seconds=playback_duration_seconds + OFFLINE_RENDER_RELEASE_TAIL_SECONDS,
+            )
+            warnings.extend(score_warnings)
+            csd = self._build_offline_score_csd(
+                orc=self._rewrite_orc_for_offline_render(compile_artifact.orc),
+                output_wave_name=output_wave_name,
+                score_lines=score_lines,
+            )
+            readme = self._build_score_readme(
+                bundle_directory_name=base_name,
+                csd_file_name=csd_file_name,
+                output_wave_name=output_wave_name,
+                warnings=warnings,
+            )
+            midi_bytes = None
+        else:
+            csd = self._build_offline_midi_csd(
+                orc=self._rewrite_orc_for_offline_render(compile_artifact.orc),
+                midi_file_name=midi_file_name,
+                output_wave_name=output_wave_name,
+                duration_seconds=playback_duration_seconds + OFFLINE_RENDER_RELEASE_TAIL_SECONDS,
+            )
+            midi_bytes = self._encode_midi_file(
+                tempo_bpm=request.sequencer_config.timing.tempo_bpm,
+                track_name=base_name,
+                events=captured_events,
+            )
+            readme = self._build_readme(
+                bundle_directory_name=base_name,
+                csd_file_name=csd_file_name,
+                midi_file_name=midi_file_name,
+                output_wave_name=output_wave_name,
+            )
 
         archive_buffer = BytesIO()
         with zipfile.ZipFile(archive_buffer, mode="w", compression=zipfile.ZIP_DEFLATED) as archive:
             archive.writestr(str(bundle_root / csd_file_name), csd.encode("utf-8"))
-            archive.writestr(str(bundle_root / midi_file_name), midi_bytes)
+            if midi_bytes is not None:
+                archive.writestr(str(bundle_root / midi_file_name), midi_bytes)
             archive.writestr(str(bundle_root / "README.txt"), readme.encode("utf-8"))
+            if warnings:
+                archive.writestr(str(bundle_root / "WARNINGS.txt"), "\n".join(warnings).encode("utf-8"))
             for asset in bundled_assets:
                 archive.writestr(str(bundle_root / asset.archive_path), asset.source_path.read_bytes())
 
@@ -384,7 +434,7 @@ class PerformanceExportService:
         return rewritten
 
     @staticmethod
-    def _build_offline_csd(
+    def _build_offline_midi_csd(
         *,
         orc: str,
         midi_file_name: str,
@@ -408,6 +458,29 @@ class PerformanceExportService:
             ]
         )
 
+    @staticmethod
+    def _build_offline_score_csd(
+        *,
+        orc: str,
+        output_wave_name: str,
+        score_lines: list[str],
+    ) -> str:
+        return "\n".join(
+            [
+                "<CsoundSynthesizer>",
+                "<CsOptions>",
+                f"-d -W -o {output_wave_name}",
+                "</CsOptions>",
+                "<CsInstruments>",
+                orc,
+                "</CsInstruments>",
+                "<CsScore>",
+                *score_lines,
+                "</CsScore>",
+                "</CsoundSynthesizer>",
+            ]
+        )
+
     def _build_midi_file(
         self,
         *,
@@ -415,6 +488,23 @@ class PerformanceExportService:
         controller_default_channels: tuple[int, ...],
         track_name: str,
     ) -> bytes:
+        captured_events = self._capture_offline_midi_events(
+            request=request,
+            controller_default_channels=controller_default_channels,
+        )
+        self._raise_if_no_note_on_events(captured_events)
+        return self._encode_midi_file(
+            tempo_bpm=request.sequencer_config.timing.tempo_bpm,
+            track_name=track_name,
+            events=captured_events,
+        )
+
+    def _capture_offline_midi_events(
+        self,
+        *,
+        request: PerformanceCsdExportRequest,
+        controller_default_channels: tuple[int, ...],
+    ) -> list[CapturedMidiEvent]:
         capture = _MidiCaptureService(max_events=OFFLINE_CSD_EXPORT_MAX_MIDI_EVENTS)
         router = PerformanceMidiRouter(
             enqueue_timestamped_midi=capture.enqueue_timestamped_midi,
@@ -494,17 +584,172 @@ class PerformanceExportService:
                         )
                         capture.raise_if_event_budget_exceeded()
 
-        if not self._has_note_on_events(capture.events):
+        return capture.events
+
+    def _raise_if_no_note_on_events(self, events: list[CapturedMidiEvent]) -> None:
+        if not self._has_note_on_events(events):
             raise OfflineMidiExportNoNoteEventsError(
                 "Offline performance CSD export generated no MIDI note-on events. "
                 "Enable at least one sequencer or arranger track before exporting."
             )
 
-        return self._encode_midi_file(
-            tempo_bpm=request.sequencer_config.timing.tempo_bpm,
-            track_name=track_name,
-            events=capture.events,
+    def _build_score_lines(
+        self,
+        *,
+        events: list[CapturedMidiEvent],
+        targets: list[PatchInstrumentTarget],
+        duration_seconds: float,
+    ) -> tuple[list[str], list[str]]:
+        warnings: list[str] = []
+        note_events = self._score_note_events(events, targets=targets, warnings=warnings)
+        if not note_events:
+            raise OfflineMidiExportNoNoteEventsError(
+                "Offline performance CSD score export generated no playable score note events. "
+                "Enable at least one sequencer or arranger track targeting an assigned instrument."
+            )
+
+        controller_events = self._score_controller_events(events)
+        setter_duration = 1.0 / float(OFFLINE_RENDER_SR)
+        lines = ["f 1 0 16384 10 1"]
+
+        for event in controller_events:
+            index = OrchestraEmitter.score_controller_index(event.midi_channel, event.controller_number)
+            lines.append(
+                "i "
+                f"{self._format_score_instrument_ref(OrchestraEmitter.score_controller_instrument_ref())} "
+                f"{self._format_score_number(event.time_seconds)} "
+                f"{self._format_score_number(setter_duration)} "
+                f"{index} {event.value}"
+            )
+
+        for event in note_events:
+            lines.append(
+                "i "
+                f"{self._format_score_instrument_ref(event.instrument_ref)} "
+                f"{self._format_score_number(event.start_seconds)} "
+                f"{self._format_score_number(event.duration_seconds)} "
+                f"{event.note} {event.velocity}"
+            )
+
+        lines.append(f"f 0 {self._format_duration(duration_seconds)}")
+        return lines, warnings
+
+    def _score_note_events(
+        self,
+        events: list[CapturedMidiEvent],
+        *,
+        targets: list[PatchInstrumentTarget],
+        warnings: list[str],
+    ) -> list[ScoreNoteEvent]:
+        channel_to_instrument_ref = self._score_instrument_ref_by_channel(targets)
+        open_notes: dict[tuple[int, int], list[tuple[float, int]]] = {}
+        score_events: list[ScoreNoteEvent] = []
+        skipped_channels: set[int] = set()
+        end_time = max((event.time_seconds for event in events), default=0.0)
+
+        def close_note(channel: int, note: int, time_seconds: float) -> None:
+            queue = open_notes.get((channel, note))
+            if not queue:
+                return
+            start_seconds, velocity = queue.pop(0)
+            if not queue:
+                open_notes.pop((channel, note), None)
+            instrument_ref = channel_to_instrument_ref.get(channel)
+            if instrument_ref is None:
+                skipped_channels.add(channel)
+                return
+            score_events.append(
+                ScoreNoteEvent(
+                    instrument_ref=instrument_ref,
+                    start_seconds=start_seconds,
+                    duration_seconds=max(1.0 / float(OFFLINE_RENDER_SR), time_seconds - start_seconds),
+                    midi_channel=channel,
+                    note=note,
+                    velocity=velocity,
+                )
+            )
+
+        def close_channel_notes(channel: int, time_seconds: float) -> None:
+            channel_keys = sorted(key for key in open_notes if key[0] == channel)
+            for _channel, note in channel_keys:
+                while open_notes.get((channel, note)):
+                    close_note(channel, note, time_seconds)
+
+        for event in sorted(events, key=lambda item: (item.time_seconds, self._message_priority(item.message))):
+            message = event.message
+            if len(message) < 3:
+                continue
+            status = message[0] & 0xF0
+            channel = (message[0] & 0x0F) + 1
+            data_1 = int(message[1])
+            data_2 = int(message[2])
+            if status == 0x90 and data_2 > 0:
+                open_notes.setdefault((channel, data_1), []).append((event.time_seconds, data_2))
+            elif status in {0x80, 0x90}:
+                close_note(channel, data_1, event.time_seconds)
+            elif status == 0xB0 and data_1 in {120, 123}:
+                close_channel_notes(channel, event.time_seconds)
+
+        for channel, note in sorted(list(open_notes)):
+            while open_notes.get((channel, note)):
+                close_note(channel, note, end_time)
+
+        if skipped_channels:
+            warnings.append(
+                "Score CSD export skipped note events on unassigned MIDI channel(s): "
+                + ", ".join(str(channel) for channel in sorted(skipped_channels))
+                + "."
+            )
+        return sorted(
+            score_events,
+            key=lambda item: (
+                item.start_seconds,
+                self._format_score_instrument_ref(item.instrument_ref),
+                item.note,
+                item.velocity,
+            ),
         )
+
+    @staticmethod
+    def _score_controller_events(events: list[CapturedMidiEvent]) -> list[ScoreControllerEvent]:
+        controller_events: list[ScoreControllerEvent] = []
+        for event in events:
+            message = event.message
+            if len(message) < 3 or (message[0] & 0xF0) != 0xB0:
+                continue
+            controller_number = int(message[1])
+            if controller_number in {120, 123}:
+                continue
+            controller_events.append(
+                ScoreControllerEvent(
+                    time_seconds=event.time_seconds,
+                    midi_channel=(message[0] & 0x0F) + 1,
+                    controller_number=controller_number,
+                    value=int(message[2]),
+                )
+            )
+        return sorted(
+            controller_events,
+            key=lambda item: (item.time_seconds, item.midi_channel, item.controller_number, item.value),
+        )
+
+    @staticmethod
+    def _score_instrument_ref_by_channel(targets: list[PatchInstrumentTarget]) -> dict[int, str]:
+        mapping: dict[int, str] = {}
+        for instrument_number, target in enumerate(targets, start=1):
+            if target.midi_channel <= 0:
+                continue
+            # Named instruments are still assigned stable numeric ids by Csound in
+            # declaration order; numeric score events are compatible with older
+            # Csound versions that reject quoted instrument names in CsScore.
+            mapping[target.midi_channel] = str(instrument_number)
+        return mapping
+
+    @staticmethod
+    def _format_score_instrument_ref(value: str) -> str:
+        if re.fullmatch(r"\d+", value):
+            return value
+        return OrchestraEmitter._format_csound_string(value)
 
     @staticmethod
     def _has_note_on_events(events: list[CapturedMidiEvent]) -> bool:
@@ -636,8 +881,50 @@ class PerformanceExportService:
         )
 
     @staticmethod
+    def _build_score_readme(
+        *,
+        bundle_directory_name: str,
+        csd_file_name: str,
+        output_wave_name: str,
+        warnings: list[str],
+    ) -> str:
+        lines = [
+            "Orchestron offline score render export",
+            "",
+            "Contents:",
+            f"- {csd_file_name}: compiled offline-render Csound document with inline score events",
+            "- assets/: referenced sample audio and SoundFont files bundled for the CSD",
+        ]
+        if warnings:
+            lines.append("- WARNINGS.txt: export-time approximations or skipped events")
+        lines.extend(
+            [
+                "",
+                "Render steps:",
+                f"1. Extract the ZIP and change into the bundled '{bundle_directory_name}/' directory.",
+                "2. Render with Csound using the inline score embedded in the CSD.",
+                "",
+                "Exact command line:",
+                f"csound -d -W -o {output_wave_name} {csd_file_name}",
+                "",
+                "Equivalent short form (uses the embedded CsOptions in the CSD):",
+                f"csound {csd_file_name}",
+                "",
+                "If you need a longer release tail, increase the final 'f 0 ...' duration line in the CSD.",
+                "",
+            ]
+        )
+        if warnings:
+            lines.extend(["Warnings:", *[f"- {warning}" for warning in warnings], ""])
+        return "\n".join(lines)
+
+    @staticmethod
     def _format_duration(value: float) -> str:
         return f"{max(0.01, value):.6f}".rstrip("0").rstrip(".")
+
+    @staticmethod
+    def _format_score_number(value: float) -> str:
+        return f"{max(0.0, value):.6f}".rstrip("0").rstrip(".") or "0"
 
     @staticmethod
     def _sanitize_file_base_name(value: str) -> str:

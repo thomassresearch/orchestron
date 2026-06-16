@@ -68,7 +68,7 @@ When Orchestron is served locally from the backend, opening `http://localhost:80
 | Piano rolls, scale/mode following, mixed-mode highlighting | [Piano Rolls](performance/piano_rolls.md) |
 | Manual MIDI controller panel (up to 6 knobs) | [MIDI Controllers](performance/midi_controllers.md) |
 | Performance bundle import/export with conflict resolution | [Performance Import / Export](performance/performance_import_export.md) |
-| Offline performance render export (`.csd` + `.mid` + assets ZIP) | [Performance Import / Export](performance/performance_import_export.md) |
+| Offline performance render export (`.csd` + `.mid` ZIP or inline-score `.csd` ZIP) | [Performance Import / Export](performance/performance_import_export.md) |
 | Audio engine settings (`sr`, `control_rate`, `ksmps`, buffers) | [Audio Engine Settings (Config Page)](configuration/audio_engine_settings.md) |
 | Browser audio mode (`browser_clock` PCM) | [Browser-Clock Latency](configuration/browser_clock_latency.md) |
 | Browser-clock latency tuning for unified browser audio | [Browser-Clock Latency](configuration/browser_clock_latency.md) |
@@ -79,7 +79,7 @@ When Orchestron is served locally from the backend, opening `http://localhost:80
 
 - Instrument definition export: `.orch.instrument.json` or `.orch.instrument.zip`
 - Performance export: `.orch.json` or `.orch.zip`
-- Offline performance Csound export: `.csd.zip`
+- Offline performance Csound export: `.csd.zip` (`Export CSD (MIDI)` includes a `.mid`; `Export CSD (SCORE)` embeds notes and controller sweeps in the score)
 - Csound export from Instrument Design: `.csd`
 - ZIP exports are used automatically when referenced GEN01 audio assets are included.
 

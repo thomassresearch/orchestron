@@ -32,6 +32,8 @@ This is useful for:
 - Understanding how formulas/GEN/meta-opcodes are rendered
 - Debugging compile issues with concrete generated code
 
+A compilable patch must contain at least one audio output sink: either `outs` for direct stereo output or `outleta` for named audio routing into another instrument. This allows source instruments to feed always-on effects without also writing directly to the final stereo output.
+
 ## Session Events
 
 The event list shows recent session events (most recent first, limited window in the UI).

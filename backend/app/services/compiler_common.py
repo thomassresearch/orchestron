@@ -55,6 +55,7 @@ class CompiledInstrumentLines:
     instrument_lines: list[str]
     sfload_global_requests: list[SfloadGlobalRequest]
     global_header_lines: list[str]
+    diagnostics: list[str] = field(default_factory=list)
 
 
 @dataclass(slots=True)

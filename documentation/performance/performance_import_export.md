@@ -31,16 +31,19 @@ A performance export includes:
 
 If any referenced patch contains uploaded GEN01 audio assets or `sfload` SoundFont assets, export is automatically produced as a ZIP and includes those assets.
 
-## Offline Render Export (`Export CSD`)
+## Offline Render Export (`Export CSD (MIDI)` / `Export CSD (SCORE)`)
 
-The Performance page `Export CSD` button creates a separate offline-render ZIP for Csound.
+The Performance page provides two offline Csound render exports:
+
+- `Export CSD (MIDI)` creates the traditional ZIP with a compiled CSD and a separate MIDI file.
+- `Export CSD (SCORE)` creates a ZIP with the performance notes and controller sweeps embedded as Csound score events.
 
 This export is different from the normal `Export` bundle:
 
 - `Export` is for Orchestron import/export workflows
-- `Export CSD` is for rendering outside Orchestron with standard Csound tools
+- `Export CSD (MIDI)` and `Export CSD (SCORE)` are for rendering outside Orchestron with standard Csound tools
 
-This ZIP contains:
+The MIDI ZIP contains:
 
 - A compiled `.csd` with every non-template instrument currently used in the performance rack
 - Offline render settings forced to `sr = 48000` and `ksmps = 1`
@@ -50,6 +53,8 @@ This ZIP contains:
 - Uploaded bundled sample audio / SoundFont files used by the exported instruments
 - A `README.txt` with the exact Csound command line needed to render the package
 
+The SCORE ZIP contains the same compiled instruments and bundled assets, but omits the `.mid` file. Instead, it embeds note events as score `i` statements, embeds controller sequencer sweeps as score-controlled CC setter events, and rewrites supported MIDI opcodes such as `cpsmidi`, `ampmidi`, `midi_note`, `notnum`, and `midictrl` for score playback. If export-time approximations are needed, such as best-effort `ampmidi` function-table mapping, the ZIP includes `WARNINGS.txt` and the README lists the warnings.
+
 Only assets stored through Orchestron's upload/import flow are bundled. GEN01 and `sfload` nodes must reference uploaded assets; compile, session start, and offline performance CSD export reject raw filesystem `samplePath` values instead of passing them to Csound.
 
 Offline performance CSD export is bounded before synthesis starts: looping playback is rejected, playback ranges are limited to 65,536 transport steps, a single step can carry at most 16 notes, and the estimated MIDI event budget is limited to 200,000 events. MIDI generation also stops if it exceeds the event budget or takes more than 5 seconds.
@@ -58,7 +63,8 @@ ZIP layout:
 
 - The ZIP contains a single top-level directory
 - That directory has the same basename as the exported performance `.csd`
-- Inside that directory you will find the `.csd`, `.mid`, `README.txt`, and `assets/` subdirectory
+- Inside the MIDI export directory you will find the `.csd`, `.mid`, `README.txt`, and `assets/` subdirectory
+- Inside the SCORE export directory you will find the `.csd`, `README.txt`, optional `WARNINGS.txt`, and `assets/` subdirectory
 
 Typical extracted structure:
 
@@ -70,21 +76,37 @@ Offline_Export/
   assets/
 ```
 
+Typical SCORE structure:
+
+```text
+Offline_Export/
+  Offline_Export.csd
+  README.txt
+  WARNINGS.txt
+  assets/
+```
+
 Typical use:
 
 - Share a performance as a portable offline render package
 - Render the arrangement outside Orchestron with stock Csound
-- Archive a self-contained `.csd` + `.mid` + assets bundle for later mastering or batch rendering
+- Archive a self-contained `.csd` + `.mid` + assets bundle, or a single inline-score `.csd` + assets bundle, for later mastering or batch rendering
 
 Rendering workflow:
 
-1. Click `Export CSD` on the Performance page.
+1. Click `Export CSD (MIDI)` or `Export CSD (SCORE)` on the Performance page.
 2. Extract the downloaded ZIP.
 3. Change into the bundled directory inside the extracted archive.
-4. Run the command from `README.txt`, for example:
+4. Run the command from `README.txt`, for example the MIDI export command:
 
 ```bash
 csound -d -W -o Offline_Export.wav -F Offline_Export.mid Offline_Export.csd
+```
+
+For SCORE exports the command omits `-F`:
+
+```bash
+csound -d -W -o Offline_Export.wav Offline_Export.csd
 ```
 
 The exported `.csd` already includes matching `CsOptions`, so `csound Offline_Export.csd` also works after you change into that directory.

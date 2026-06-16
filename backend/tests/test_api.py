@@ -268,6 +268,30 @@ def _audio_source_patch_payload(*, name: str = "Audio Source", connected_snames:
     return payload
 
 
+def _audio_source_patch_payload_with_outlet_names(
+    *,
+    name: str = "Named Audio Source",
+    left_name: str = "left",
+    right_name: str = "right",
+):
+    payload = _audio_source_patch_payload(name=name)
+    for node in payload["graph"]["nodes"]:
+        if node["id"] == "out_l":
+            node["params"] = {"sname": left_name}
+        if node["id"] == "out_r":
+            node["params"] = {"sname": right_name}
+    return payload
+
+
+def _audio_outlet_only_source_patch_payload(*, name: str = "Audio Outlet Source"):
+    payload = _audio_source_patch_payload(name=name)
+    payload["graph"]["nodes"] = [node for node in payload["graph"]["nodes"] if node["id"] != "outs"]
+    payload["graph"]["connections"] = [
+        connection for connection in payload["graph"]["connections"] if connection["to_node_id"] != "outs"
+    ]
+    return payload
+
+
 def _always_on_effect_patch_payload(*, name: str = "Always-On Effect", connected_snames: bool = False):
     payload = _minimal_patch_payload(name=name)
     payload["always_on"] = True
@@ -5357,6 +5381,61 @@ def test_performance_csd_export_bundle_includes_csd_midi_readme_and_assets(tmp_p
             assert b"\xB0\x01" in midi_bytes
 
 
+def test_performance_csd_score_export_inlines_score_and_rewrites_midi_opcodes(tmp_path: Path) -> None:
+    payload = _performance_csd_export_payload()
+    payload["eventSource"] = "score"
+    graph = payload["performanceExport"]["patch_definitions"][0]["graph"]  # type: ignore[index]
+    graph["nodes"].extend(
+        [
+            {"id": "pitch", "opcode": "cpsmidi", "params": {}, "position": {"x": 20, "y": 120}},
+            {"id": "note", "opcode": "notnum", "params": {}, "position": {"x": 20, "y": 180}},
+            {"id": "amp", "opcode": "ampmidi", "params": {"iscal": 1, "ifn": 1}, "position": {"x": 20, "y": 240}},
+            {"id": "combo", "opcode": "midi_note", "params": {"gain": 0.5}, "position": {"x": 20, "y": 300}},
+            {
+                "id": "cutoff",
+                "opcode": "midictrl",
+                "params": {"inum": 1, "imin": 0, "imax": 127},
+                "position": {"x": 20, "y": 360},
+            },
+        ]
+    )
+
+    with _client(tmp_path) as client:
+        response = client.post("/api/bundles/export/performance-csd", json=payload)
+        assert response.status_code == 200
+
+        with zipfile.ZipFile(BytesIO(response.content), "r") as archive:
+            entries = set(archive.namelist())
+            assert "Offline_Export/Offline_Export.csd" in entries
+            assert "Offline_Export/Offline_Export.mid" not in entries
+            assert "Offline_Export/WARNINGS.txt" in entries
+
+            csd = archive.read("Offline_Export/Offline_Export.csd").decode("utf-8")
+            assert "-F Offline_Export.mid" not in csd
+            assert "csound -d -W -o Offline_Export.wav" not in csd
+            assert "massign" not in csd
+            assert "cpsmidinn(p4)" in csd
+            assert "tablei(p5 / 127, 1, 1)" in csd
+            assert "gk_vcs_score_cc[] init 2048" in csd
+            assert "instr 9000" in csd
+            assert "gk_vcs_score_cc[1]" in csd
+            assert "i_vcs_internal_score_note_p4 = p4" in csd
+            assert "i_vcs_internal_score_velocity_p5 = p5" in csd
+            assert " cpsmidi\n" not in csd
+            assert " ampmidi " not in csd
+            assert " midictrl " not in csd
+            assert "i 9000 0 " in csd
+            assert "i 1 0 0.125 60 100" in csd
+
+            readme = archive.read("Offline_Export/README.txt").decode("utf-8")
+            assert "csound -d -W -o Offline_Export.wav Offline_Export.csd" in readme
+            assert "-F Offline_Export.mid" not in readme
+            assert "WARNINGS.txt" in readme
+
+            warnings = archive.read("Offline_Export/WARNINGS.txt").decode("utf-8")
+            assert "approximates ampmidi node 'amp'" in warnings
+
+
 def test_performance_csd_export_runs_always_on_effect_for_score_duration(tmp_path: Path) -> None:
     source_payload = _audio_source_patch_payload(name="Export Source")
     effect_payload = _always_on_effect_patch_payload(name="Export Effect")
@@ -5413,6 +5492,70 @@ def test_performance_csd_export_runs_always_on_effect_for_score_duration(tmp_pat
             assert 'connect "vcs_instr_1", "right", "vcs_instr_2", "right"' in csd
             assert 'connect "vcs_instr_1", "left", "vcs_instr_2", "left"' not in csd
             assert 'alwayson "vcs_instr_2"' in csd
+            assert "f 0 2.5" in csd
+
+
+def test_performance_csd_score_export_calls_routed_instruments_by_number(tmp_path: Path) -> None:
+    source_payload = _audio_source_patch_payload(name="Export Source")
+    effect_payload = _always_on_effect_patch_payload(name="Export Effect")
+    base_sequencer_config = _performance_csd_export_payload()["sequencerConfig"]
+    payload = {
+        "eventSource": "score",
+        "performanceExport": {
+            "format": "orchestron.performance",
+            "version": 1,
+            "exported_at": "2026-03-16T12:00:00.000Z",
+            "performance": {
+                "name": "Effect Score Export",
+                "description": "routes score notes through always-on effect",
+                "config": {
+                    "version": 10,
+                    "instruments": [
+                        {"id": "src", "patchId": "patch-source", "midiChannel": 1},
+                        {
+                            "id": "fx",
+                            "patchId": "patch-fx",
+                            "midiChannel": 0,
+                            "effectRoutes": [{"sourceId": "src", "channel": "right"}],
+                        },
+                    ],
+                },
+            },
+            "patch_definitions": [
+                {
+                    "sourcePatchId": "patch-source",
+                    "name": "Export Source",
+                    "description": "",
+                    "schema_version": 1,
+                    "graph": source_payload["graph"],
+                },
+                {
+                    "sourcePatchId": "patch-fx",
+                    "name": "Export Effect",
+                    "description": "",
+                    "alwaysOn": True,
+                    "schema_version": 1,
+                    "graph": effect_payload["graph"],
+                },
+            ],
+        },
+        "sequencerConfig": base_sequencer_config,
+    }
+
+    with _client(tmp_path) as client:
+        response = client.post("/api/bundles/export/performance-csd", json=payload)
+        assert response.status_code == 200
+
+        with zipfile.ZipFile(BytesIO(response.content), "r") as archive:
+            csd = archive.read("Effect_Score_Export/Effect_Score_Export.csd").decode("utf-8")
+            assert 'instr "vcs_instr_1"' not in csd
+            assert "instr vcs_instr_1" in csd
+            assert 'connect "vcs_instr_1", "right", "vcs_instr_2", "right"' in csd
+            assert 'alwayson "vcs_instr_2"' in csd
+            assert "i_vcs_internal_score_note_p4 = p4" in csd
+            assert "i_vcs_internal_score_velocity_p5 = p5" in csd
+            assert "\ni 1 0 0.125 60 100\n" in csd
+            assert '\ni "vcs_instr_1" ' not in csd
             assert "f 0 2.5" in csd
 
 
@@ -8460,9 +8603,54 @@ def test_always_on_effect_session_routes_connected_const_s_port_names(tmp_path: 
         assert 'alwayson "vcs_instr_2"' in compiled_orc
 
 
+def test_always_on_effect_session_routes_unmatched_source_outlet_names_to_stereo_inlets(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        source = client.post(
+            "/api/patches",
+            json=_audio_source_patch_payload_with_outlet_names(
+                name="Dry Lillian-Style Source",
+                left_name="dryl",
+                right_name="dryr",
+            ),
+        )
+        effect = client.post("/api/patches", json=_always_on_effect_patch_payload(name="Stereo Effect"))
+        assert source.status_code == 201
+        assert effect.status_code == 201
+
+        listed = client.get("/api/patches").json()
+        listed_source = next(patch for patch in listed if patch["id"] == source.json()["id"])
+        assert listed_source["audio_outlet_names"] == ["dryl", "dryr"]
+
+        create_session = client.post(
+            "/api/sessions",
+            json={
+                "instruments": [
+                    {"id": "src", "patch_id": source.json()["id"], "midi_channel": 1},
+                    {
+                        "id": "fx",
+                        "patch_id": effect.json()["id"],
+                        "midi_channel": 0,
+                        "effect_routes": [
+                            {"source_id": "src", "channel": "dryl"},
+                            {"source_id": "src", "channel": "dryr"},
+                        ],
+                    },
+                ]
+            },
+        )
+        assert create_session.status_code == 201
+
+        compile_response = client.post(f"/api/sessions/{create_session.json()['session_id']}/compile")
+        assert compile_response.status_code == 200
+
+        compiled_orc = compile_response.json()["orc"]
+        assert 'connect "vcs_instr_1", "dryl", "vcs_instr_2", "left"' in compiled_orc
+        assert 'connect "vcs_instr_1", "dryr", "vcs_instr_2", "right"' in compiled_orc
+
+
 def test_always_on_effect_session_compiles_cascaded_audio_routes(tmp_path: Path) -> None:
     with _client(tmp_path) as client:
-        source = client.post("/api/patches", json=_audio_source_patch_payload(name="Dry Source"))
+        source = client.post("/api/patches", json=_audio_outlet_only_source_patch_payload(name="Dry Source"))
         reverb = client.post("/api/patches", json=_always_on_effect_with_outlets_patch_payload(name="Routable Reverb"))
         compressor = client.post("/api/patches", json=_always_on_effect_patch_payload(name="Final Compressor"))
         assert source.status_code == 201

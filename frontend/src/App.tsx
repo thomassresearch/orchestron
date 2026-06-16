@@ -2277,12 +2277,13 @@ export default function App() {
     buildCurrentPerformanceExport
   ]);
 
-  const onExportPerformanceCsd = useCallback(async () => {
+  const onExportPerformanceCsd = useCallback(async (eventSource: "midiFile" | "score" = "midiFile") => {
     try {
       const { exportedPerformanceName, payload } = await buildCurrentPerformanceExport();
       const exportPayload: PerformanceCsdExportRequestPayload = {
         performanceExport: payload,
-        sequencerConfig: buildBackendSequencerConfig(sequencerRef.current, "export")
+        sequencerConfig: buildBackendSequencerConfig(sequencerRef.current, "export"),
+        eventSource
       };
       const { blob } = await api.exportPerformanceCsdBundle(exportPayload as unknown as Record<string, unknown>);
       const url = URL.createObjectURL(blob);
@@ -2592,7 +2593,8 @@ export default function App() {
       void loadPerformance(performanceId);
     },
     onExportConfig: onExportSequencerConfig,
-    onExportCsd: onExportPerformanceCsd,
+    onExportCsdMidi: () => onExportPerformanceCsd("midiFile"),
+    onExportCsdScore: () => onExportPerformanceCsd("score"),
     onImportConfig: onImportSequencerConfig
   };
   const onStopArrangerTransport = useCallback(

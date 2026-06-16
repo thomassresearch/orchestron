@@ -2964,8 +2964,7 @@ function availableEffectRoutesForBinding(
     return [];
   }
 
-  const effectInletNames = new Set(effectPatch.audio_inlet_names ?? []);
-  if (effectInletNames.size === 0) {
+  if ((effectPatch.audio_inlet_names ?? []).length === 0) {
     return [];
   }
 
@@ -2982,9 +2981,7 @@ function availableEffectRoutesForBinding(
       continue;
     }
     for (const channel of sourcePatch.audio_outlet_names ?? []) {
-      if (effectInletNames.has(channel)) {
-        routes.push({ sourceId: sourceBinding.id, channel });
-      }
+      routes.push({ sourceId: sourceBinding.id, channel });
     }
   }
   return routes;

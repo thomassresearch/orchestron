@@ -15,7 +15,7 @@ This chapter covers the `Perform` page (labeled `Perform` / `Performance` depend
 - Perform live with piano rolls and manual MIDI controller knobs
 - Save/load/clone/delete performances
 - Import/export performance bundles (with optional patch definitions)
-- Export an offline Csound render ZIP with `.csd`, `.mid`, uploaded assets, and render instructions
+- Export offline Csound render ZIPs either with `.csd` + `.mid` playback or with inline Csound score playback
 
 ## Chapter Contents
 
@@ -43,7 +43,7 @@ This chapter covers the `Perform` page (labeled `Perform` / `Performance` depend
 3. Start instruments (engine session).
 4. Build melodic sequencers / drummer sequencers / controller sequencers / piano rolls.
 5. Save the performance.
-6. Export the performance bundle for backup/sharing, or use `Export CSD` when you need an offline Csound render package.
+6. Export the performance bundle for backup/sharing, or use `Export CSD (MIDI)` / `Export CSD (SCORE)` when you need an offline Csound render package.
 
 ## Screenshots
 
