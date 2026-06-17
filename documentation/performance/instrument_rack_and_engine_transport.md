@@ -35,6 +35,7 @@ Each rack entry lets you choose:
 
 If the selected patch is marked `Always On?`, the rack slot becomes an effect slot:
 
+- Always-on slots are grouped onto their own rack row and use a very dark blue card color, so their taller route matrix stays visually separate from standard instrument slots.
 - The MIDI channel field is replaced with an `Effect` badge.
 - The slot runs continuously when `Start Instruments` starts the rack session.
 - The slot shows an audio source matrix with one row per normal rack instrument or always-on effect slot that exposes `outleta` channel labels.

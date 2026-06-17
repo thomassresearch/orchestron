@@ -39,3 +39,42 @@ def test_opcode_service_loads_cross_modulation_and_tanh_entries() -> None:
     assert crossfmpmi.icon == "/static/icons/vco.svg"
     assert crossfmpmi.documentation_url == "https://csound.com/docs/manual/crossfm.html"
     assert [port.id for port in crossfmpmi.outputs] == ["a1", "a2"]
+
+
+def test_opcode_service_loads_stereo_reverb_entries() -> None:
+    service = OpcodeService(icon_prefix="/static/icons")
+
+    freeverb = service.get_opcode("freeverb")
+    assert freeverb is not None
+    assert freeverb.category == "reverb"
+    assert freeverb.icon == "/static/icons/reverb.svg"
+    assert freeverb.documentation_url == "https://csound.com/docs/manual/freeverb.html"
+    assert [port.id for port in freeverb.outputs] == ["aout_l", "aout_r"]
+    assert [port.id for port in freeverb.inputs] == [
+        "ain_l",
+        "ain_r",
+        "kroomsize",
+        "khfdamp",
+        "israte",
+        "iskip",
+    ]
+    assert freeverb.inputs[4].default == "sr"
+    assert freeverb.inputs[4].required is False
+
+    reverbsc = service.get_opcode("reverbsc")
+    assert reverbsc is not None
+    assert reverbsc.category == "reverb"
+    assert reverbsc.icon == "/static/icons/reverb.svg"
+    assert reverbsc.documentation_url == "https://csound.com/docs/manual/reverbsc.html"
+    assert [port.id for port in reverbsc.outputs] == ["aout_l", "aout_r"]
+    assert [port.id for port in reverbsc.inputs] == [
+        "ain_l",
+        "ain_r",
+        "kfblvl",
+        "kfco",
+        "israte",
+        "ipitchm",
+        "iskip",
+    ]
+    assert reverbsc.inputs[5].default == 1
+    assert reverbsc.inputs[5].required is False

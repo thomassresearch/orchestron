@@ -5093,5 +5093,131 @@
         "spanish": "Variable de salida `a2` de crossfmpmi."
       }
     }
+  },
+  "freeverb": {
+    "description": {
+      "english": "Opcode version of Jezar's Freeverb freeverb is a stereo reverb unit based on Jezar's public domain C++ sources, composed of eight parallel comb filters on both channels, followed by four allpass units in series. The filters on the right channel are slightly detuned compared to the left channel in order to create a stereo effect.",
+      "german": "Opcode-Version von Jezars Freeverb freeverb ist eine Stereo-Reverb-Einheit, die auf Jezars Public-Domain-C++-Quellen basiert und aus acht parallelen Kammfiltern auf beiden Kanälen besteht, gefolgt von vier Allpass-Einheiten in Reihe. Die Filter des rechten Kanals sind im Vergleich zum linken Kanal leicht verstimmt, um einen Stereoeffekt zu erzeugen.",
+      "french": "La version Opcode du freeverb Freeverb de Jezar est une unité de réverbération stéréo basée sur les sources C++ du domaine public de Jezar, composée de huit filtres en peigne parallèles sur les deux canaux, suivis de quatre unités passe-tout en série. Les filtres du canal droit sont légèrement désaccordés par rapport au canal gauche afin de créer un effet stéréo.",
+      "spanish": "La versión de código de operación de Freeverb freeverb de Jezar es una unidad de reverberación estéreo basada en fuentes C++ de dominio público de Jezar, compuesta por ocho filtros de peine paralelos en ambos canales, seguidos de cuatro unidades allpass en serie. Los filtros del canal derecho están ligeramente desafinados en comparación con el canal izquierdo para crear un efecto estéreo."
+    },
+    "inputs": {
+      "ain_l": {
+        "english": "input signals; usually both are the same, but different inputs can be used for special effect",
+        "german": "Eingangssignale; Normalerweise sind beide gleich, es können jedoch unterschiedliche Eingaben für Spezialeffekte verwendet werden",
+        "french": "signaux d'entrée; généralement les deux sont identiques, mais différentes entrées peuvent être utilisées pour des effets spéciaux",
+        "spanish": "señales de entrada; Por lo general, ambos son iguales, pero se pueden usar diferentes entradas para efectos especiales."
+      },
+      "ain_r": {
+        "english": "input signals; usually both are the same, but different inputs can be used for special effect",
+        "german": "Eingangssignale; Normalerweise sind beide gleich, es können jedoch unterschiedliche Eingaben für Spezialeffekte verwendet werden",
+        "french": "signaux d'entrée; généralement les deux sont identiques, mais différentes entrées peuvent être utilisées pour des effets spéciaux",
+        "spanish": "señales de entrada; Por lo general, ambos son iguales, pero se pueden usar diferentes entradas para efectos especiales."
+      },
+      "kroomsize": {
+        "english": "controls the length of the reverb, a higher value means longer reverb. Settings above 1 may make the opcode unstable.",
+        "german": "steuert die Länge des Halls, ein höherer Wert bedeutet längeren Hall. Einstellungen über 1 können den Opcode instabil machen.",
+        "french": "contrôle la durée de la réverbération, une valeur plus élevée signifie une réverbération plus longue. Les paramètres supérieurs à 1 peuvent rendre l'opcode instable.",
+        "spanish": "controla la duración de la reverberación; un valor más alto significa una reverberación más larga. Las configuraciones superiores a 1 pueden hacer que el código de operación sea inestable."
+      },
+      "khfdamp": {
+        "english": "HighFreqDamp parameter at control-rate.",
+        "german": "HighFreqDamp-Parameter bei Kontrollrate.",
+        "french": "Paramètre HighFreqDamp au taux de contrôle.",
+        "spanish": "Parámetro HighFreqDamp a velocidad de control."
+      },
+      "israte": {
+        "english": "SampleRate parameter at init-rate.",
+        "german": "SampleRate-Parameter bei Init-Rate.",
+        "french": "Paramètre SampleRate au taux d'initialisation.",
+        "spanish": "Parámetro SampleRate a velocidad inicial."
+      },
+      "iskip": {
+        "english": "SkipInit parameter at init-rate.",
+        "german": "SkipInit-Parameter bei Init-Rate.",
+        "french": "Paramètre SkipInit au taux d'initialisation.",
+        "spanish": "Parámetro SkipInit a velocidad inicial."
+      }
+    },
+    "outputs": {
+      "aout_l": {
+        "english": "Output variable `aoutL` from freeverb.",
+        "german": "Ausgabevariable „aoutL“ von Freeverb.",
+        "french": "Variable de sortie `aoutL` de freeverb.",
+        "spanish": "Variable de salida `aoutL` de freeverb."
+      },
+      "aout_r": {
+        "english": "Output variable `aoutR` from freeverb.",
+        "german": "Ausgabevariable „aoutR“ von Freeverb.",
+        "french": "Variable de sortie `aoutR` de freeverb.",
+        "spanish": "Variable de salida `aoutR` de freeverb."
+      }
+    }
+  },
+  "reverbsc": {
+    "description": {
+      "english": "8 delay line stereo FDN reverb, based on work by Sean Costello 8 delay line stereo FDN reverb, with feedback matrix based upon physical modeling scattering junction of 8 lossless waveguides of equal characteristic impedance. Based on Csound orchestra version by Sean Costello.",
+      "german": "8-Delay-Line-Stereo-FDN-Reverb, basierend auf der Arbeit von Sean Costello 8-Delay-Line-Stereo-FDN-Reverb, mit Rückkopplungsmatrix basierend auf der physikalischen Modellierung der Streuverbindung von 8 verlustfreien Wellenleitern mit gleicher charakteristischer Impedanz. Basierend auf der Csound-Orchesterversion von Sean Costello.",
+      "french": "Réverbération FDN stéréo à 8 lignes à retard, basée sur le travail de Sean Costello Réverbération FDN stéréo à 8 lignes à retard, avec matrice de rétroaction basée sur la jonction de diffusion de modélisation physique de 8 guides d'ondes sans perte d'impédance caractéristique égale. Basé sur la version orchestre Csound de Sean Costello.",
+      "spanish": "Reverberación FDN estéreo de 8 líneas de retardo, basada en el trabajo de Sean Costello Reverberación FDN estéreo de 8 líneas de retardo, con matriz de retroalimentación basada en la unión de dispersión de modelado físico de 8 guías de onda sin pérdidas de igual impedancia característica. Basado en la versión para orquesta Csound de Sean Costello."
+    },
+    "inputs": {
+      "ain_l": {
+        "english": "left and right channel input. Note that having an input signal on either the left or right channel only will still result in having reverb output on both channels, making this unit more suitable for reverberating stereo input than the freeverb opcode.",
+        "german": "linker und rechter Kanaleingang. Beachten Sie, dass ein Eingangssignal nur auf dem linken oder rechten Kanal immer noch zu einer Hall-Ausgabe auf beiden Kanälen führt, wodurch dieses Gerät besser für die Hall-Stereo-Eingabe geeignet ist als der Freeverb-Opcode.",
+        "french": "Entrée des canaux gauche et droit. Notez qu'avoir un signal d'entrée sur le canal gauche ou droit uniquement entraînera toujours une sortie de réverbération sur les deux canaux, ce qui rend cette unité plus adaptée à la réverbération d'une entrée stéréo que l'opcode freeverb.",
+        "spanish": "Entrada de canal izquierdo y derecho. Tenga en cuenta que tener una señal de entrada solo en el canal izquierdo o derecho dará como resultado una salida de reverberación en ambos canales, lo que hace que esta unidad sea más adecuada para una entrada estéreo con reverberación que el código de operación freeverb."
+      },
+      "ain_r": {
+        "english": "left and right channel input. Note that having an input signal on either the left or right channel only will still result in having reverb output on both channels, making this unit more suitable for reverberating stereo input than the freeverb opcode.",
+        "german": "linker und rechter Kanaleingang. Beachten Sie, dass ein Eingangssignal nur auf dem linken oder rechten Kanal immer noch zu einer Hall-Ausgabe auf beiden Kanälen führt, wodurch dieses Gerät besser für die Hall-Stereo-Eingabe geeignet ist als der Freeverb-Opcode.",
+        "french": "Entrée des canaux gauche et droit. Notez qu'avoir un signal d'entrée sur le canal gauche ou droit uniquement entraînera toujours une sortie de réverbération sur les deux canaux, ce qui rend cette unité plus adaptée à la réverbération d'une entrée stéréo que l'opcode freeverb.",
+        "spanish": "Entrada de canal izquierdo y derecho. Tenga en cuenta que tener una señal de entrada solo en el canal izquierdo o derecho dará como resultado una salida de reverberación en ambos canales, lo que hace que esta unidad sea más adecuada para una entrada estéreo con reverberación que el código de operación freeverb."
+      },
+      "kfblvl": {
+        "english": "feedback level, in the range 0 to 1. 0.6 gives a good small \"live\" room sound, 0.8 a small hall, and 0.9 a large hall. A setting of exactly 1 means infinite length, while higher values will make the opcode unstable.",
+        "german": "Rückkopplungspegel im Bereich von 0 bis 1. 0,6 ergibt einen guten kleinen „Live“-Raumklang, 0,8 einen kleinen Saal und 0,9 einen großen Saal. Eine Einstellung von genau 1 bedeutet unendliche Länge, während höhere Werte den Opcode instabil machen.",
+        "french": "niveau de feedback, compris entre 0 et 1. 0,6 donne un bon son de petite pièce \"live\", 0,8 une petite salle et 0,9 une grande salle. Un réglage d'exactement 1 signifie une longueur infinie, tandis que des valeurs plus élevées rendront l'opcode instable.",
+        "spanish": "nivel de retroalimentación, en el rango de 0 a 1. 0,6 proporciona un buen sonido de sala pequeña \"en vivo\", 0,8 una sala pequeña y 0,9 una sala grande. Una configuración de exactamente 1 significa longitud infinita, mientras que valores más altos harán que el código de operación sea inestable."
+      },
+      "kfco": {
+        "english": "cutoff frequency of simple first order lowpass filters in the feedback loop of delay lines, in Hz. Should be in the range 0 to israte/2 (not sr/2). A lower value means faster decay in the high frequency range.",
+        "german": "Grenzfrequenz einfacher Tiefpassfilter erster Ordnung in der Rückkopplungsschleife von Verzögerungsleitungen, in Hz. Sollte im Bereich von 0 bis israte/2 liegen (nicht sr/2). Ein niedrigerer Wert bedeutet ein schnelleres Abklingen im Hochfrequenzbereich.",
+        "french": "fréquence de coupure des filtres passe-bas simples du premier ordre dans la boucle de rétroaction des lignes à retard, en Hz. Doit être compris entre 0 et israte/2 (pas sr/2). Une valeur inférieure signifie une décroissance plus rapide dans la plage des hautes fréquences.",
+        "spanish": "Frecuencia de corte de filtros de paso bajo simples de primer orden en el bucle de retroalimentación de líneas de retardo, en Hz. Debe estar en el rango de 0 a israte/2 (no sr/2). Un valor más bajo significa una caída más rápida en el rango de alta frecuencia."
+      },
+      "israte": {
+        "english": "assume a sample rate of israte. This is normally set to sr, but a different setting can be useful for special effects.",
+        "german": "Gehen Sie von einer Abtastrate von israte aus. Normalerweise ist dies auf sr eingestellt, für Spezialeffekte kann jedoch eine andere Einstellung nützlich sein.",
+        "french": "supposons un taux d'échantillonnage d'israte. Ceci est normalement réglé sur sr, mais un réglage différent peut être utile pour les effets spéciaux.",
+        "spanish": "suponga una tasa de muestreo de israte. Normalmente está configurado en sr, pero una configuración diferente puede resultar útil para efectos especiales."
+      },
+      "ipitchm": {
+        "english": "depth of random variation added to delay times, in the range 0 to 10. The default is 1, but this may be too high and may need to be reduced for held pitches such as piano tones.",
+        "german": "Tiefe der zufälligen Variation, die zu den Verzögerungszeiten hinzugefügt wird, im Bereich von 0 bis 10. Der Standardwert ist 1, aber dieser ist möglicherweise zu hoch und muss möglicherweise für gehaltene Tonhöhen wie Klaviertöne reduziert werden.",
+        "french": "profondeur de variation aléatoire ajoutée aux temps de retard, dans la plage de 0 à 10. La valeur par défaut est 1, mais elle peut être trop élevée et devra peut-être être réduite pour les hauteurs maintenues telles que les sons de piano.",
+        "spanish": "profundidad de variación aleatoria agregada a los tiempos de retardo, en el rango de 0 a 10. El valor predeterminado es 1, pero puede ser demasiado alto y puede ser necesario reducirlo para tonos sostenidos, como los tonos de piano."
+      },
+      "iskip": {
+        "english": "if non-zero, initialization of the opcode is skipped, whenever possible.",
+        "german": "Wenn dieser Wert ungleich Null ist, wird die Initialisierung des Opcodes nach Möglichkeit übersprungen.",
+        "french": "s'il est différent de zéro, l'initialisation de l'opcode est ignorée, autant que possible.",
+        "spanish": "si es distinto de cero, se omite la inicialización del código de operación, siempre que sea posible."
+      }
+    },
+    "outputs": {
+      "aout_l": {
+        "english": "Output variable `aoutL` from reverbsc.",
+        "german": "Ausgabevariable „aoutL“ von reverbsc.",
+        "french": "Variable de sortie `aoutL` de reverbsc.",
+        "spanish": "Variable de salida `aoutL` de reverbsc."
+      },
+      "aout_r": {
+        "english": "Output variable `aoutR` from reverbsc.",
+        "german": "Ausgabevariable „aoutR“ von reverbsc.",
+        "french": "Variable de sortie `aoutR` de reverbsc.",
+        "spanish": "Variable de salida `aoutR` de reverbsc."
+      }
+    }
   }
 }

@@ -433,3 +433,41 @@ def test_cross_modulation_variants_compile_with_manual_argument_order(opcode_nam
         cross_line
         == f"a_cross_a1_1, a_cross_a2_2 {opcode_name} 1, 1.5, 2, 3, 220, 1, 1, 0, 0"
     )
+
+
+@pytest.mark.parametrize(
+    ("opcode_name", "expected_tail"),
+    [
+        ("freeverb", "0.8, 0.35, sr, 0"),
+        ("reverbsc", "0.85, 12000, sr, 1, 0"),
+    ],
+)
+def test_stereo_reverbs_compile_with_manual_argument_order(opcode_name: str, expected_tail: str) -> None:
+    compiler = CompilerService(OpcodeService(icon_prefix="/static/icons"))
+    patch = PatchDocument(
+        name=f"{opcode_name} compile test",
+        description=f"{opcode_name} renders stereo reverb syntax",
+        graph=PatchGraph(
+            nodes=[
+                NodeInstance(id="left", opcode="const_a", params={"value": 0.05}),
+                NodeInstance(id="right", opcode="const_a", params={"value": 0.025}),
+                NodeInstance(id="rvb", opcode=opcode_name),
+                NodeInstance(id="out", opcode="outs"),
+            ],
+            connections=[
+                Connection(from_node_id="left", from_port_id="aout", to_node_id="rvb", to_port_id="ain_l"),
+                Connection(from_node_id="right", from_port_id="aout", to_node_id="rvb", to_port_id="ain_r"),
+                Connection(from_node_id="rvb", from_port_id="aout_l", to_node_id="out", to_port_id="left"),
+                Connection(from_node_id="rvb", from_port_id="aout_r", to_node_id="out", to_port_id="right"),
+            ],
+        ),
+    )
+
+    artifact = compiler.compile_patch(patch, midi_input="0", rtmidi_module="alsaseq")
+    reverb_line = next(line.strip() for line in artifact.orc.splitlines() if f" {opcode_name} " in line)
+
+    assert "__VS_OPTIONAL_OMIT__" not in artifact.orc
+    assert (
+        reverb_line
+        == f"a_rvb_aout_l_3, a_rvb_aout_r_4 {opcode_name} a_left_aout_1, a_right_aout_2, {expected_tail}"
+    )

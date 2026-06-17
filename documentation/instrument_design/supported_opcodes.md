@@ -2,7 +2,7 @@
 
 **Navigation:** [Up](instrument_design.md) | [Prev](instrument_import_export.md) | [Next](../performance/performance.md)
 
-This appendix is generated from `backend/app/data/opcodes.json` and currently lists **142** user-selectable opcodes in the Instrument Design opcode catalog.
+This appendix is generated from `backend/app/data/opcodes.json` and currently lists **144** user-selectable opcodes in the Instrument Design opcode catalog.
 
 ## How To Use This Appendix
 
@@ -31,7 +31,7 @@ This appendix is generated from `backend/app/data/opcodes.json` and currently li
 | oscillator | 17 |
 | output | 1 |
 | physical_modeling | 11 |
-| reverb | 2 |
+| reverb | 4 |
 | routing | 4 |
 | soundfont | 3 |
 | spectral | 8 |
@@ -240,8 +240,10 @@ This appendix is generated from `backend/app/data/opcodes.json` and currently li
 
 | Opcode | Inputs | Outputs | Short Description |
 | --- | --- | --- | --- |
+| freeverb | 6 (a, a, k, k, i, i) | 2 (a, a) | Stereo Freeverb processor with room size and high-frequency damping controls. |
 | platerev | 9 (i, i, k, i, i, i, i, a, a) | 2 (a, a) | Physical-model plate reverb with stereo output taps. |
 | reverb2 | 4 (a, k, k, i) | 1 (a) | Schroeder reverb processor. |
+| reverbsc | 7 (a, a, k, k, i, i, i) | 2 (a, a) | 8-delay-line stereo FDN reverb based on Sean Costello's design. |
 
 ### routing
 

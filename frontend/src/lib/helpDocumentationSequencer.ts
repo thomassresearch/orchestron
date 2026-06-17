@@ -11,6 +11,7 @@ Manage performance-level instrument assignments.
 - Set performance name and description.
 - Load and save performance presets.
 - Assign saved patches to MIDI channels.
+- Always-on effect slots are grouped on their own dark-blue rack row and show audio routing instead of a MIDI channel.
 - Start and stop instrument engine transport.
 - Import/export sequencer configuration JSON.`
     },
@@ -23,6 +24,7 @@ Verwaltet Instrument-Zuordnungen auf Performance-Ebene.
 - Performance-Name und Beschreibung setzen.
 - Performance-Presets laden und speichern.
 - Gespeicherte Patches MIDI-Kanälen zuweisen.
+- Always-on-Effekt-Slots stehen in einer eigenen dunkelblauen Rack-Zeile und zeigen Audio-Routing statt MIDI-Kanal.
 - Instrument-Engine starten/stoppen.
 - Sequencer-Konfiguration als JSON importieren/exportieren.`
     },
@@ -35,6 +37,7 @@ Gestion des affectations d'instruments au niveau performance.
 - Définir nom et description de performance.
 - Charger et enregistrer des presets de performance.
 - Affecter des patches sauvegardés à des canaux MIDI.
+- Les slots d'effet toujours actifs sont regroupés sur leur propre ligne bleu très foncé et affichent le routage audio au lieu d'un canal MIDI.
 - Démarrer/arrêter le moteur instrument.
 - Import/export JSON de configuration séquenceur.`
     },
@@ -47,6 +50,7 @@ Gestiona asignaciones de instrumentos a nivel de performance.
 - Define nombre y descripción de performance.
 - Carga y guarda presets de performance.
 - Asigna patches guardados a canales MIDI.
+- Los slots de efecto siempre activos se agrupan en su propia fila azul muy oscura y muestran ruteo de audio en lugar de canal MIDI.
 - Inicia y detiene el motor de instrumentos.
 - Importa/exporta JSON de configuración del secuenciador.`
     }

@@ -9304,6 +9304,97 @@
     "icon_filename": "vco.svg"
   },
   {
+    "name": "freeverb",
+    "category": "reverb",
+    "description": "Stereo Freeverb processor with room size and high-frequency damping controls.",
+    "documentation_markdown": "### `freeverb`\n\nStereo Freeverb processor with room size and high-frequency damping controls.\n\n**Reference**\n- [Csound opcode overview](https://csound.com/docs/manual/freeverb.html)",
+    "documentation_url": "https://csound.com/docs/manual/freeverb.html",
+    "inputs": [
+      {
+        "id": "ain_l",
+        "name": "aInL",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": ""
+      },
+      {
+        "id": "ain_r",
+        "name": "aInR",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": ""
+      },
+      {
+        "id": "kroomsize",
+        "name": "RoomSize",
+        "signal_type": "k",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 0.8,
+        "description": ""
+      },
+      {
+        "id": "khfdamp",
+        "name": "HighFreqDamp",
+        "signal_type": "k",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 0.35,
+        "description": ""
+      },
+      {
+        "id": "israte",
+        "name": "SampleRate",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": false,
+        "default": "sr",
+        "description": ""
+      },
+      {
+        "id": "iskip",
+        "name": "SkipInit",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": false,
+        "default": 0,
+        "description": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "aout_l",
+        "name": "aOutL",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": ""
+      },
+      {
+        "id": "aout_r",
+        "name": "aOutR",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": ""
+      }
+    ],
+    "template": "{aout_l}, {aout_r} freeverb {ain_l}, {ain_r}, {kroomsize}, {khfdamp}, {israte}, {iskip}",
+    "tags": [
+      "reverb",
+      "effect",
+      "stereo",
+      "freeverb"
+    ],
+    "icon_filename": "reverb.svg"
+  },
+  {
     "name": "platerev",
     "category": "reverb",
     "description": "Physical-model plate reverb with stereo output taps.",
@@ -9483,6 +9574,106 @@
       "effect"
     ],
     "icon_filename": "moogladder.svg"
+  },
+  {
+    "name": "reverbsc",
+    "category": "reverb",
+    "description": "8-delay-line stereo FDN reverb based on Sean Costello's design.",
+    "documentation_markdown": "### `reverbsc`\n\n8-delay-line stereo FDN reverb based on Sean Costello's design.\n\n**Reference**\n- [Csound opcode overview](https://csound.com/docs/manual/reverbsc.html)",
+    "documentation_url": "https://csound.com/docs/manual/reverbsc.html",
+    "inputs": [
+      {
+        "id": "ain_l",
+        "name": "aInL",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": ""
+      },
+      {
+        "id": "ain_r",
+        "name": "aInR",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": ""
+      },
+      {
+        "id": "kfblvl",
+        "name": "Feedback",
+        "signal_type": "k",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 0.85,
+        "description": ""
+      },
+      {
+        "id": "kfco",
+        "name": "Cutoff",
+        "signal_type": "k",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 12000,
+        "description": ""
+      },
+      {
+        "id": "israte",
+        "name": "SampleRate",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": false,
+        "default": "sr",
+        "description": ""
+      },
+      {
+        "id": "ipitchm",
+        "name": "PitchMod",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": false,
+        "default": 1,
+        "description": ""
+      },
+      {
+        "id": "iskip",
+        "name": "SkipInit",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": false,
+        "default": 0,
+        "description": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "aout_l",
+        "name": "aOutL",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": ""
+      },
+      {
+        "id": "aout_r",
+        "name": "aOutR",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": ""
+      }
+    ],
+    "template": "{aout_l}, {aout_r} reverbsc {ain_l}, {ain_r}, {kfblvl}, {kfco}, {israte}, {ipitchm}, {iskip}",
+    "tags": [
+      "reverb",
+      "effect",
+      "stereo",
+      "fdn"
+    ],
+    "icon_filename": "reverb.svg"
   },
   {
     "name": "inleta",

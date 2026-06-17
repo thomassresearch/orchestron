@@ -1938,6 +1938,65 @@ def test_opcodes_include_cross_modulation_and_tanh_metadata(tmp_path: Path) -> N
         assert opcode["template"].startswith(f"{{a1}}, {{a2}} {opcode_name} ")
 
 
+def test_opcodes_include_stereo_reverb_metadata(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        response = client.get("/api/opcodes")
+        assert response.status_code == 200
+
+        opcodes_by_name = {item["name"]: item for item in response.json()}
+
+    freeverb = opcodes_by_name["freeverb"]
+    assert freeverb["category"] == "reverb"
+    assert freeverb["documentation_url"] == "https://csound.com/docs/manual/freeverb.html"
+    assert freeverb["icon"] == "/static/icons/reverb.svg"
+    assert [output["id"] for output in freeverb["outputs"]] == ["aout_l", "aout_r"]
+    assert [output["signal_type"] for output in freeverb["outputs"]] == ["a", "a"]
+    assert [input_port["id"] for input_port in freeverb["inputs"]] == [
+        "ain_l",
+        "ain_r",
+        "kroomsize",
+        "khfdamp",
+        "israte",
+        "iskip",
+    ]
+    freeverb_inputs = {input_port["id"]: input_port for input_port in freeverb["inputs"]}
+    assert freeverb_inputs["kroomsize"]["signal_type"] == "k"
+    assert freeverb_inputs["kroomsize"]["default"] == 0.8
+    assert freeverb_inputs["khfdamp"]["default"] == 0.35
+    assert freeverb_inputs["israte"]["required"] is False
+    assert freeverb_inputs["israte"]["default"] == "sr"
+    assert freeverb_inputs["iskip"]["required"] is False
+    assert freeverb["template"] == (
+        "{aout_l}, {aout_r} freeverb {ain_l}, {ain_r}, {kroomsize}, {khfdamp}, {israte}, {iskip}"
+    )
+
+    reverbsc = opcodes_by_name["reverbsc"]
+    assert reverbsc["category"] == "reverb"
+    assert reverbsc["documentation_url"] == "https://csound.com/docs/manual/reverbsc.html"
+    assert reverbsc["icon"] == "/static/icons/reverb.svg"
+    assert [output["id"] for output in reverbsc["outputs"]] == ["aout_l", "aout_r"]
+    assert [output["signal_type"] for output in reverbsc["outputs"]] == ["a", "a"]
+    assert [input_port["id"] for input_port in reverbsc["inputs"]] == [
+        "ain_l",
+        "ain_r",
+        "kfblvl",
+        "kfco",
+        "israte",
+        "ipitchm",
+        "iskip",
+    ]
+    reverbsc_inputs = {input_port["id"]: input_port for input_port in reverbsc["inputs"]}
+    assert reverbsc_inputs["kfblvl"]["signal_type"] == "k"
+    assert reverbsc_inputs["kfblvl"]["default"] == 0.85
+    assert reverbsc_inputs["kfco"]["default"] == 12000
+    assert reverbsc_inputs["israte"]["required"] is False
+    assert reverbsc_inputs["ipitchm"]["required"] is False
+    assert reverbsc_inputs["iskip"]["required"] is False
+    assert reverbsc["template"] == (
+        "{aout_l}, {aout_r} reverbsc {ain_l}, {ain_r}, {kfblvl}, {kfco}, {israte}, {ipitchm}, {iskip}"
+    )
+
+
 def test_add_opcodes_guide_exists_and_contains_key_references() -> None:
     docs_path = Path(__file__).resolve().parents[2] / "ADD_OPCODES.md"
     assert docs_path.exists()
@@ -7907,6 +7966,18 @@ def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
                     {"id": "n22", "opcode": "flanger", "params": {"asig": 0}, "position": {"x": 20, "y": 1070}},
                     {"id": "n23", "opcode": "comb", "params": {"asig": 0}, "position": {"x": 20, "y": 1120}},
                     {"id": "n24", "opcode": "reverb2", "params": {"asig": 0}, "position": {"x": 20, "y": 1170}},
+                    {
+                        "id": "n24a",
+                        "opcode": "freeverb",
+                        "params": {"ain_l": 0, "ain_r": 0},
+                        "position": {"x": 20, "y": 1195},
+                    },
+                    {
+                        "id": "n24b",
+                        "opcode": "reverbsc",
+                        "params": {"ain_l": 0, "ain_r": 0},
+                        "position": {"x": 20, "y": 1220},
+                    },
                     {"id": "n25", "opcode": "limit", "params": {"xin": 0}, "position": {"x": 20, "y": 1220}},
                     {"id": "n26", "opcode": "exciter", "params": {"asig": 0}, "position": {"x": 20, "y": 1270}},
                     {"id": "n27", "opcode": "delay", "params": {"asig": 0}, "position": {"x": 20, "y": 1320}},
@@ -8107,6 +8178,8 @@ def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
             "flanger",
             "comb",
             "reverb2",
+            "freeverb",
+            "reverbsc",
             "limit",
             "dam",
             "exciter",

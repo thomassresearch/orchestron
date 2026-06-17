@@ -135,6 +135,11 @@ type PadLoopReferenceDragPayload = {
   item: PadLoopPatternItem;
 };
 
+type RackInstrumentBindingRow = {
+  binding: SequencerInstrumentBinding;
+  index: number;
+};
+
 type SequencerUiCopy = {
   keyboardInfo: string;
   scrollKeyboardLeft: string;
@@ -4043,6 +4048,22 @@ export function SequencerPage({
       }),
     [instrumentBindings, patchById]
   );
+  const rackInstrumentRows = useMemo(() => {
+    const standard: RackInstrumentBindingRow[] = [];
+    const alwaysOn: RackInstrumentBindingRow[] = [];
+
+    instrumentBindings.forEach((binding, index) => {
+      const row = { binding, index };
+      const patch = patchById.get(binding.patchId);
+      if (patch?.always_on === true) {
+        alwaysOn.push(row);
+      } else {
+        standard.push(row);
+      }
+    });
+
+    return { standard, alwaysOn };
+  }, [instrumentBindings, patchById]);
   const totalPerformDevices =
     sequencer.tracks.length +
     sequencer.drummerTracks.length +
@@ -4356,6 +4377,151 @@ export function SequencerPage({
   const rackAssignmentNumberInputClass =
     "w-full rounded-md border border-slate-600 bg-slate-950 px-2 py-1 text-xs text-slate-100 outline-none ring-accent/40 transition focus:ring disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-slate-900 disabled:text-slate-500";
 
+  const renderRackInstrumentRow = ({ binding, index }: RackInstrumentBindingRow) => {
+    const selectedPatch = patchById.get(binding.patchId);
+    const isAlwaysOn = selectedPatch?.always_on === true;
+    const effectSourceRows = audioSourceBindings.flatMap((sourceBinding) => {
+      if (sourceBinding.id === binding.id || (selectedPatch?.audio_inlet_names?.length ?? 0) === 0) {
+        return [];
+      }
+      const sourcePatch = patchById.get(sourceBinding.patchId);
+      const channels = sourcePatch?.audio_outlet_names ?? [];
+      if (channels.length === 0) {
+        return [];
+      }
+      return [{ sourceBinding, sourcePatch, channels }];
+    });
+    const selectedRouteKeys = new Set(
+      binding.effectRoutes.map((route) => effectRouteKey(route.sourceId, route.channel))
+    );
+    const cardClassName = isAlwaysOn
+      ? "rounded-lg border border-blue-800/80 bg-[#020817] px-2 py-2 shadow-[inset_0_1px_0_rgba(59,130,246,0.16)]"
+      : "rounded-lg border border-slate-600/80 bg-slate-800/75 px-2 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]";
+
+    return (
+      <div key={binding.id} className={cardClassName}>
+        <div className="grid grid-cols-[minmax(0,_1fr)_74px_74px_auto] items-end gap-2">
+          <label className="flex min-w-0 flex-col gap-1">
+            <span className="text-[10px] uppercase tracking-[0.16em] text-slate-400">{ui.patch(index + 1)}</span>
+            <select
+              value={binding.patchId}
+              onChange={(event) => onInstrumentPatchChange(binding.id, event.target.value)}
+              disabled={instrumentsRunning}
+              className={rackAssignmentSelectClass}
+            >
+              {patches.map((patch) => (
+                <option key={`rack-${binding.id}-${patch.id}`} value={patch.id}>
+                  {patch.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          {isAlwaysOn ? (
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] uppercase tracking-[0.16em] text-slate-400">{ui.channel}</span>
+              <span className="rounded-md border border-cyan-500/50 bg-cyan-500/10 px-2 py-1 text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-200">
+                {ui.effect}
+              </span>
+            </div>
+          ) : (
+            <label className="flex flex-col gap-1">
+              <span className="text-[10px] uppercase tracking-[0.16em] text-slate-400">{ui.channel}</span>
+              <input
+                type="number"
+                min={1}
+                max={16}
+                value={binding.midiChannel}
+                onChange={(event) => onInstrumentChannelChange(binding.id, Number(event.target.value))}
+                disabled={instrumentsRunning}
+                className={rackAssignmentNumberInputClass}
+              />
+            </label>
+          )}
+          <label className="flex flex-col gap-1">
+            <span className="text-[10px] uppercase tracking-[0.16em] text-slate-400">LEVEL</span>
+            <input
+              type="number"
+              min={1}
+              max={10}
+              value={binding.level}
+              onChange={(event) => onInstrumentLevelChange(binding.id, Number(event.target.value))}
+              className="w-full rounded-md border border-slate-600 bg-slate-950 px-2 py-1 text-xs text-slate-100 outline-none ring-accent/40 transition focus:ring"
+            />
+          </label>
+          <button
+            type="button"
+            onClick={() => onRemoveInstrument(binding.id)}
+            disabled={instrumentsRunning}
+            className={`${rackAssignmentButtonClass} justify-self-end border-rose-500/60 bg-rose-500/15 px-2 text-rose-200 hover:bg-rose-500/25`}
+          >
+            {ui.remove}
+          </button>
+        </div>
+        {isAlwaysOn ? (
+          <div className="mt-2 rounded-md border border-blue-900/70 bg-slate-950/75 p-2">
+            <div className="mb-1 text-[10px] uppercase tracking-[0.16em] text-slate-400">{ui.audioSources}</div>
+            {effectSourceRows.length === 0 ? (
+              <div className="text-xs text-slate-500">{ui.noAudioSources}</div>
+            ) : (
+              <div className="grid gap-1">
+                {effectSourceRows.map(({ sourceBinding, sourcePatch, channels }) => {
+                  const loopBlocked = effectRouteWouldCreateLoop(
+                    instrumentBindings,
+                    binding.id,
+                    sourceBinding.id
+                  );
+                  return (
+                    <div
+                      key={`${binding.id}-source-${sourceBinding.id}`}
+                      className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded border border-slate-700 bg-slate-900/80 px-2 py-1.5 text-xs text-slate-200"
+                    >
+                      <span className="min-w-[8rem] flex-1 truncate">{sourcePatch?.name ?? sourceBinding.patchId}</span>
+                      <span className="shrink-0 font-mono text-[10px] uppercase text-slate-500">
+                        {sourcePatch?.always_on === true ? ui.effect : `${ui.channel} ${sourceBinding.midiChannel}`}
+                      </span>
+                      <span className="flex flex-wrap items-center gap-1">
+                        {channels.map((channel) => {
+                          const routeKey = effectRouteKey(sourceBinding.id, channel);
+                          const selected = selectedRouteKeys.has(routeKey);
+                          const disabled = instrumentsRunning || (!selected && loopBlocked);
+                          return (
+                            <label
+                              key={`${binding.id}-source-${sourceBinding.id}-${channel}`}
+                              title={disabled && loopBlocked ? ui.effectRouteLoop : undefined}
+                              className={`inline-flex h-6 items-center gap-1 rounded border border-slate-600 bg-slate-950 px-1.5 font-mono text-[10px] uppercase text-cyan-200 ${
+                                disabled && loopBlocked ? "opacity-55" : ""
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selected}
+                                onChange={(event) =>
+                                  onInstrumentEffectRouteChange(
+                                    binding.id,
+                                    sourceBinding.id,
+                                    channel,
+                                    event.target.checked
+                                  )
+                                }
+                                disabled={disabled}
+                                className="h-3.5 w-3.5 rounded border-slate-500 bg-slate-950 accent-accent"
+                              />
+                              <span>{channel}</span>
+                            </label>
+                          );
+                        })}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        ) : null}
+      </div>
+    );
+  };
+
   return (
     <>
       <section className="rounded-2xl border border-slate-700/70 bg-slate-900/70 p-3 shadow-glow">
@@ -4488,157 +4654,24 @@ export function SequencerPage({
           </button>
         </div>
 
-        <div className="mt-3 grid gap-2 lg:grid-cols-2 2xl:grid-cols-3">
+        <div className="mt-3 space-y-2">
           {instrumentBindings.length === 0 ? (
             <div className="rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-xs text-slate-400">
               {ui.noInstrumentHint}
             </div>
           ) : (
-            instrumentBindings.map((binding, index) => {
-              const selectedPatch = patchById.get(binding.patchId);
-              const isAlwaysOn = selectedPatch?.always_on === true;
-              const effectSourceRows = audioSourceBindings.flatMap((sourceBinding) => {
-                if (sourceBinding.id === binding.id || (selectedPatch?.audio_inlet_names?.length ?? 0) === 0) {
-                  return [];
-                }
-                const sourcePatch = patchById.get(sourceBinding.patchId);
-                const channels = sourcePatch?.audio_outlet_names ?? [];
-                if (channels.length === 0) {
-                  return [];
-                }
-                return [{ sourceBinding, sourcePatch, channels }];
-              });
-              const selectedRouteKeys = new Set(
-                binding.effectRoutes.map((route) => effectRouteKey(route.sourceId, route.channel))
-              );
-              return (
-                <div
-                  key={binding.id}
-                  className="rounded-lg border border-slate-600/80 bg-slate-800/75 px-2 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
-                >
-                  <div className="grid grid-cols-[minmax(0,_1fr)_74px_74px_auto] items-end gap-2">
-                    <label className="flex min-w-0 flex-col gap-1">
-                      <span className="text-[10px] uppercase tracking-[0.16em] text-slate-400">{ui.patch(index + 1)}</span>
-                      <select
-                        value={binding.patchId}
-                        onChange={(event) => onInstrumentPatchChange(binding.id, event.target.value)}
-                        disabled={instrumentsRunning}
-                        className={rackAssignmentSelectClass}
-                      >
-                        {patches.map((patch) => (
-                          <option key={`rack-${binding.id}-${patch.id}`} value={patch.id}>
-                            {patch.name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    {isAlwaysOn ? (
-                      <div className="flex flex-col gap-1">
-                        <span className="text-[10px] uppercase tracking-[0.16em] text-slate-400">{ui.channel}</span>
-                        <span className="rounded-md border border-cyan-500/50 bg-cyan-500/10 px-2 py-1 text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-200">
-                          {ui.effect}
-                        </span>
-                      </div>
-                    ) : (
-                      <label className="flex flex-col gap-1">
-                        <span className="text-[10px] uppercase tracking-[0.16em] text-slate-400">{ui.channel}</span>
-                        <input
-                          type="number"
-                          min={1}
-                          max={16}
-                          value={binding.midiChannel}
-                          onChange={(event) => onInstrumentChannelChange(binding.id, Number(event.target.value))}
-                          disabled={instrumentsRunning}
-                          className={rackAssignmentNumberInputClass}
-                        />
-                      </label>
-                    )}
-                    <label className="flex flex-col gap-1">
-                      <span className="text-[10px] uppercase tracking-[0.16em] text-slate-400">LEVEL</span>
-                      <input
-                        type="number"
-                        min={1}
-                        max={10}
-                        value={binding.level}
-                        onChange={(event) => onInstrumentLevelChange(binding.id, Number(event.target.value))}
-                        className="w-full rounded-md border border-slate-600 bg-slate-950 px-2 py-1 text-xs text-slate-100 outline-none ring-accent/40 transition focus:ring"
-                      />
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => onRemoveInstrument(binding.id)}
-                      disabled={instrumentsRunning}
-                      className={`${rackAssignmentButtonClass} justify-self-end border-rose-500/60 bg-rose-500/15 px-2 text-rose-200 hover:bg-rose-500/25`}
-                    >
-                      {ui.remove}
-                    </button>
-                  </div>
-                  {isAlwaysOn ? (
-                    <div className="mt-2 rounded-md border border-slate-700 bg-slate-950/70 p-2">
-                      <div className="mb-1 text-[10px] uppercase tracking-[0.16em] text-slate-400">{ui.audioSources}</div>
-                      {effectSourceRows.length === 0 ? (
-                        <div className="text-xs text-slate-500">{ui.noAudioSources}</div>
-                      ) : (
-                        <div className="grid gap-1">
-                          {effectSourceRows.map(({ sourceBinding, sourcePatch, channels }) => {
-                            const loopBlocked = effectRouteWouldCreateLoop(
-                              instrumentBindings,
-                              binding.id,
-                              sourceBinding.id
-                            );
-                            return (
-                              <div
-                                key={`${binding.id}-source-${sourceBinding.id}`}
-                                className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded border border-slate-700 bg-slate-900/80 px-2 py-1.5 text-xs text-slate-200"
-                              >
-                                <span className="min-w-[8rem] flex-1 truncate">
-                                  {sourcePatch?.name ?? sourceBinding.patchId}
-                                </span>
-                                <span className="shrink-0 font-mono text-[10px] uppercase text-slate-500">
-                                  {sourcePatch?.always_on === true ? ui.effect : `${ui.channel} ${sourceBinding.midiChannel}`}
-                                </span>
-                                <span className="flex flex-wrap items-center gap-1">
-                                  {channels.map((channel) => {
-                                    const routeKey = effectRouteKey(sourceBinding.id, channel);
-                                    const selected = selectedRouteKeys.has(routeKey);
-                                    const disabled = instrumentsRunning || (!selected && loopBlocked);
-                                    return (
-                                      <label
-                                        key={`${binding.id}-source-${sourceBinding.id}-${channel}`}
-                                        title={disabled && loopBlocked ? ui.effectRouteLoop : undefined}
-                                        className={`inline-flex h-6 items-center gap-1 rounded border border-slate-600 bg-slate-950 px-1.5 font-mono text-[10px] uppercase text-cyan-200 ${
-                                          disabled && loopBlocked ? "opacity-55" : ""
-                                        }`}
-                                      >
-                                        <input
-                                          type="checkbox"
-                                          checked={selected}
-                                          onChange={(event) =>
-                                            onInstrumentEffectRouteChange(
-                                              binding.id,
-                                              sourceBinding.id,
-                                              channel,
-                                              event.target.checked
-                                            )
-                                          }
-                                          disabled={disabled}
-                                          className="h-3.5 w-3.5 rounded border-slate-500 bg-slate-950 accent-accent"
-                                        />
-                                        <span>{channel}</span>
-                                      </label>
-                                    );
-                                  })}
-                                </span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  ) : null}
+            <>
+              {rackInstrumentRows.standard.length > 0 ? (
+                <div className="grid items-start gap-2 lg:grid-cols-2 2xl:grid-cols-3">
+                  {rackInstrumentRows.standard.map(renderRackInstrumentRow)}
                 </div>
-              );
-            })
+              ) : null}
+              {rackInstrumentRows.alwaysOn.length > 0 ? (
+                <div className="grid items-start gap-2 lg:grid-cols-2 2xl:grid-cols-3">
+                  {rackInstrumentRows.alwaysOn.map(renderRackInstrumentRow)}
+                </div>
+              ) : null}
+            </>
           )}
         </div>
 
