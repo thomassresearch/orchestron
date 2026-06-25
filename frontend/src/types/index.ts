@@ -108,6 +108,7 @@ export type SequencerScaleRoot =
 
 export type SequencerChord =
   | "none"
+  | "5"
   | "maj"
   | "min"
   | "dim"

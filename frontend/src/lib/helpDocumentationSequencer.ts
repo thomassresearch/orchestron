@@ -73,6 +73,7 @@ Program step-based melodic or rhythmic patterns.
 - Short click: transpose the stored notes to the previous/next degree within the current scale (scale root and mode stay the same), and update configured step chords to matching diatonic chord types for the transposed step when available.
 - Long press: move the pad tonic to the previous/next degree (key-step transpose), keep the mode, and update the pad scale root.
 - Set per-step notes or rests.
+- Choose per-step chords, including the standard \`5\` power chord (root + perfect fifth), with diatonic/chromatic status based on the current mode.
 - Drag a step \`::\` handle onto another step (including steps in other melodic sequencers) to copy step note/chord/velocity settings.
 - Control global BPM and running state.`
     },
@@ -93,6 +94,7 @@ Programmiert schrittbasierte melodische oder rhythmische Patterns.
 - Kurzer Klick: gespeicherte Noten zur vorherigen/nächsten Stufe innerhalb der aktuellen Skala verschieben (Grundton und Modus bleiben gleich) und konfigurierte Step-Akkorde auf passende diatonische Akkordtypen für den transponierten Schritt aktualisieren (falls verfügbar).
 - Langer Klick: Tonika zur vorherigen/nächsten Stufe verschieben (Key-Step-Transpose), Modus beibehalten und Pad-Grundton der Skala aktualisieren.
 - Pro Schritt Noten oder Pausen setzen.
+- Pro Schritt Akkorde waehlen, inklusive des standardmaessigen \`5\`-Powerchords (Grundton + reine Quinte); der diatonisch/chromatisch-Status richtet sich nach dem aktuellen Modus.
 - Einen Schritt am \`::\`-Handle auf einen anderen Schritt ziehen (auch in anderen melodischen Sequencern), um Noten-/Akkord-/Velocity-Einstellungen zu kopieren.
 - Globales BPM und Laufstatus steuern.`
     },
@@ -113,6 +115,7 @@ Programme des patterns mélodiques ou rythmiques par pas.
 - Clic court : transpose les notes stockées vers le degré précédent/suivant dans la gamme actuelle (tonique et mode inchangés) et met à jour les accords de pas configurés vers des types d'accords diatoniques correspondants pour le pas transposé quand c'est possible.
 - Appui long : déplace la tonique du pad vers le degré précédent/suivant (transposition par degré), conserve le mode et met à jour la tonique de la gamme du pad.
 - Définir note ou silence par pas.
+- Choisir des accords par pas, y compris le power chord standard \`5\` (fondamentale + quinte juste), avec statut diatonique/chromatique selon le mode actuel.
 - Glisser la poignee \`::\` d'un pas sur un autre pas (y compris dans un autre sequenceur melodique) pour copier les reglages note/accord/velocite du pas.
 - Contrôler BPM global et état de lecture.`
     },
@@ -133,6 +136,7 @@ Programa patrones melódicos o rítmicos por pasos.
 - Clic corto: transpone las notas guardadas al grado anterior/siguiente dentro de la escala actual (la raíz y el modo no cambian) y actualiza los acordes configurados del paso a tipos de acorde diatónicos correspondientes para el paso transpuesto cuando sea posible.
 - Pulsación larga: mueve la tónica del pad al grado anterior/siguiente (transposición por grado), mantiene el modo y actualiza la raíz de la escala del pad.
 - Define nota o silencio por paso.
+- Elige acordes por paso, incluido el power chord estandar \`5\` (raiz + quinta justa), con estado diatonico/cromatico segun el modo actual.
 - Arrastra el asa \`::\` de un paso sobre otro paso (incluyendo pasos de otros secuenciadores melodicos) para copiar ajustes de nota/acorde/velocidad.
 - Controla BPM global y estado de reproducción.`
     }
@@ -153,6 +157,7 @@ This help applies to one melodic sequencer card.
 - \`Beat Ratio\` changes playback speed against the shared transport while keeping the stored pad length, meter, and grid unchanged.
 - Use pad transpose buttons for short-click degree transpose (also remaps configured step chords to matching diatonic chord types when available) and long-press tonic/key-step transpose.
 - Edit each step note, hold state, and velocity.
+- Set a per-step chord; the \`5\` option emits the root and perfect fifth and is marked diatonic only when both notes fit the current mode.
 - Drag a step \`::\` handle onto another step (same sequencer or another melodic sequencer) to copy step note/chord/velocity settings.`
     },
     german: {
@@ -170,6 +175,7 @@ Diese Hilfe gilt fuer eine einzelne Karte eines melodischen Sequencers.
 - Das Beat-Verhaeltnis aendert nur die Abspielgeschwindigkeit gegenueber dem gemeinsamen Transport; gespeicherte Pad-Laenge, Taktart und Raster bleiben gleich.
 - Pad-Transpositionsknöpfe für kurzen Klick (Stufentransposition; aktualisiert konfigurierte Step-Akkorde wenn möglich auf passende diatonische Akkordtypen) und langen Druck (Tonika/Key-Step-Transpose) nutzen.
 - Pro Schritt Note, Hold-Zustand und Velocity bearbeiten.
+- Pro Schritt einen Akkord setzen; die Option \`5\` sendet Grundton und reine Quinte und wird nur dann als diatonisch markiert, wenn beide Noten in den aktuellen Modus passen.
 - Einen Schritt am \`::\`-Handle auf einen anderen Schritt ziehen (gleicher oder anderer melodischer Sequencer), um Noten-/Akkord-/Velocity-Einstellungen zu kopieren.`
     },
     french: {
@@ -187,6 +193,7 @@ Cette aide s'applique a une carte individuelle de sequenceur melodique.
 - Le ratio de temps change seulement la vitesse de lecture face au transport partage ; la longueur stockee du pad, la mesure et la grille restent identiques.
 - Utiliser les boutons de transposition de pad pour clic court (transposition par degré; met aussi à jour les accords de pas configurés vers des types diatoniques correspondants quand c'est possible) et appui long (tonique / transposition par degré de tonalité).
 - Modifier note, état hold et vélocité pour chaque pas.
+- Definir un accord par pas ; l'option \`5\` envoie la fondamentale et la quinte juste, et n'est marquee diatonique que lorsque les deux notes correspondent au mode actuel.
 - Glisser la poignee \`::\` d'un pas sur un autre pas (meme sequenceur ou autre sequenceur melodique) pour copier les reglages note/accord/velocite du pas.`
     },
     spanish: {
@@ -204,6 +211,7 @@ Esta ayuda se aplica a una tarjeta individual de secuenciador melodico.
 - La relacion de pulso solo cambia la velocidad frente al transporte compartido; la longitud guardada del pad, el compas y la cuadricula siguen iguales.
 - Usa los botones de transposición del pad para clic corto (transposición por grado; también actualiza los acordes configurados del paso a tipos diatónicos correspondientes cuando sea posible) y pulsación larga (tónica / transposición por grado tonal).
 - Edita nota, estado hold y velocidad de cada paso.
+- Define un acorde por paso; la opcion \`5\` emite raiz y quinta justa, y solo se marca como diatonica cuando ambas notas encajan en el modo actual.
 - Arrastra el asa \`::\` de un paso sobre otro paso (mismo secuenciador u otro secuenciador melodico) para copiar ajustes de nota/acorde/velocidad.`
     }
   },
@@ -624,6 +632,7 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 
 - Pitch class and octave are edited separately to make note entry faster.
 - In-scale notes are highlighted with degree labels, but chromatic notes stay available for borrowed tones and passing notes.
+- Per-step chords include \`5\` for power chords; it is diatonic only when the root and perfect fifth both fit the current mode.
 - \`HOLD\` sustains the previous note instead of sending a fresh note trigger on that step.`,
     german: `### Timing-Modell
 
@@ -636,6 +645,7 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 
 - Tonklasse und Oktave werden getrennt bearbeitet, damit die Noteneingabe schneller geht.
 - Skaleninterne Noten sind mit Stufen markiert; chromatische Noten bleiben fuer Borrowed Tones und Durchgangsnoten verfuegbar.
+- Step-Akkorde enthalten \`5\` fuer Powerchords; dieser Akkord ist nur diatonisch, wenn Grundton und reine Quinte beide in den aktuellen Modus passen.
 - \`HOLD\` verlaengert die vorherige Note, statt in diesem Schritt einen neuen Note-Trigger zu senden.`,
     french: `### Modele temporel
 
@@ -648,6 +658,7 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 
 - La hauteur (classe) et l'octave se reglent separement, ce qui accelere la saisie des notes.
 - Les notes dans la gamme sont surlignees avec leurs degres, mais les notes chromatiques restent disponibles pour les emprunts et notes de passage.
+- Les accords par pas incluent \`5\` pour les power chords ; il est diatonique seulement si la fondamentale et la quinte juste correspondent toutes deux au mode actuel.
 - \`HOLD\` prolonge la note precedente au lieu d'envoyer un nouveau declenchement sur ce pas.`,
     spanish: `### Modelo temporal
 
@@ -660,6 +671,7 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 
 - La clase de nota y la octava se editan por separado para agilizar la entrada.
 - Las notas de la escala se resaltan con grados, pero las cromaticas siguen disponibles para notas prestadas y de paso.
+- Los acordes por paso incluyen \`5\` para power chords; es diatonico solo cuando la raiz y la quinta justa encajan ambas en el modo actual.
 - \`HOLD\` prolonga la nota anterior en vez de disparar una nota nueva en ese paso.`
   },
   sequencer_track_editor: {

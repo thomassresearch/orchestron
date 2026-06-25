@@ -64,7 +64,7 @@ interface SequencerModeDefinition {
   label: string;
 }
 
-type SequencerChordFamily = "tertian" | "sus";
+type SequencerChordFamily = "tertian" | "sus" | "power";
 
 interface SequencerChordDefinition {
   value: Exclude<SequencerChord, "none">;
@@ -172,6 +172,7 @@ export const SEQUENCER_MODE_OPTIONS: SequencerModeDefinition[] = [
 ];
 
 export const SEQUENCER_CHORD_OPTIONS: readonly SequencerChordDefinition[] = [
+  { value: "5", label: "5", family: "power", intervals: [0, 7] },
   { value: "maj", label: "maj", family: "tertian", intervals: [0, 4, 7] },
   { value: "min", label: "min", family: "tertian", intervals: [0, 3, 7] },
   { value: "dim", label: "dim", family: "tertian", intervals: [0, 3, 6] },
@@ -860,7 +861,7 @@ export function resolveDiatonicSequencerChordVariant(
 
   // Sus voicings can become non-diatonic on some degrees (for example a Locrian tonic with b5).
   // In that case, fall back to the diatonic tertian chord with the same tone count.
-  if (definition.family !== "tertian") {
+  if (definition.family === "sus") {
     for (const option of SEQUENCER_CHORD_OPTIONS) {
       if (option.family === "tertian" && option.intervals.length === definition.intervals.length) {
         pushCandidate(option.value);

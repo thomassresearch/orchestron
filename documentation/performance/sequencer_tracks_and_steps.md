@@ -74,6 +74,7 @@ This supports guided note entry and better readability in the sequencer step edi
 Each step cell supports:
 
 - Rest or note selection
+- Chord selection, including the standard `5` power chord (root + perfect fifth)
 - Hold toggle (`HOLD`)
 - Octave field (separate from pitch class)
 - In-scale/out-of-scale status display
@@ -97,6 +98,7 @@ This split note/octave design makes pattern entry faster than selecting full MID
 - In-scale notes show degree labels (`1..7`)
 - Out-of-scale notes remain selectable (for chromatic writing)
 - Enharmonic note labels are available where relevant (for example sharps/flats)
+- Chord choices are grouped as none, diatonic, or chromatic for the selected step root and mode. A `5` power chord is diatonic only when both the root and perfect fifth are in the current mode.
 
 ### Hold Toggle
 
