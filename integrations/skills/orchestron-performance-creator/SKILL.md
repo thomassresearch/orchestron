@@ -1,6 +1,6 @@
 ---
 name: orchestron-performance-creator
-description: Use when creating, editing, importing, validating, committing, or live-testing Orchestron performances through the skill-local orchestron_cli backend-only command-line utility, including genre-aware electronic music structure, multitrack score specs, melodic chord patterns, General MIDI drum grooves, controller sequencers, manual MIDI controllers, arpeggiators, and patch/performance bundle imports.
+description: Use when creating, editing, importing, validating, committing, or live-testing Orchestron performances through the skill-local orchestron_cli backend-only command-line utility, including genre-aware electronic music structure, multitrack score specs, melodic chord patterns, General MIDI drum grooves, controller sequencers, manual MIDI controllers, arpeggiators, patch input formulas, and patch/performance bundle imports.
 ---
 
 # Orchestron Performance Creator
@@ -52,6 +52,7 @@ If the backend is not running, ask the user whether to start it with `make run` 
 
 ```bash
 uv run orchestron_cli --json patches list
+uv run orchestron_cli --json patches formulas set "Lead Patch" --target filter.xcf --expression "0.1 * in1"
 uv run orchestron_cli --json performances list
 uv run orchestron_cli --json edit begin --new --name "Agent Sketch"
 uv run orchestron_cli --json edit add-instrument --patch "TB303" --channel 2
@@ -75,6 +76,7 @@ CLI and data formats:
 
 - For melodic step/chord syntax, read `references/chord_syntax.md`.
 - For YAML/JSON score specs, read `references/score_spec.md`.
+- For patch graph input formulas such as `0.1 * in1`, read `references/patch_formulas.md`.
 
 Composition and genre guidance:
 

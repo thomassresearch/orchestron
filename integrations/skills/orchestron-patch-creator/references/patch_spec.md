@@ -12,6 +12,7 @@ Use YAML or JSON. YAML is easier for authoring; JSON works without PyYAML. The C
 - `layers`: Source layers. Omit to use family defaults.
 - `effects`: Optional mono effect chain.
 - `output`: Output pan configuration.
+- `formulas`: Optional opcode input formulas stored in `graph.ui_layout.input_formulas`.
 - `is_template`: Optional boolean. Use only for intentionally incomplete or starter patches.
 
 ## Envelope
@@ -98,6 +99,56 @@ effects:
 ```
 
 Use `params` when an exact port ID is needed and no alias exists.
+
+## Input Formulas
+
+Use `formulas` when an opcode input should scale or combine existing input connections without inserting helper opcodes such as `a_mul` or `k_mul`.
+
+The CLI stores formulas in the same shape used by the GUI:
+
+```text
+graph.ui_layout.input_formulas["TARGET_NODE::TARGET_PORT"]
+```
+
+Supported formula elements:
+
+- input tokens: `in1`, `in2`, or explicit names such as `amp`, `dry`, `wet`
+- decimal numbers: `0.1`, `.5`, `1`, `2.0`
+- operators: `+`, `-`, `*`, `/`
+- unary signs: `+in1`, `-in1`
+- parentheses
+- functions: `abs`, `ceil`, `floor`, `ampdb`, `dbamp`
+- literal: `sr`
+
+When `inputs` is omitted, current inbound connections to the target are bound as `in1`, `in2`, and so on in graph order:
+
+```yaml
+formulas:
+  - target: osc_vco2.kamp
+    expression: "0.1 * in1"
+```
+
+Use explicit bindings when token names matter:
+
+```yaml
+formulas:
+  - target: osc_vco2.kamp
+    inputs:
+      - token: amp
+        source: osc_amp.kout
+    expression: "amp * 0.25"
+```
+
+The source side of each binding must already be connected to the target input in the generated graph. Formula metadata does not create new graph connections.
+
+Constant formulas are valid and do not need inputs:
+
+```yaml
+formulas:
+  - target: effect_1_moogladder2.xcf
+    inputs: []
+    expression: "sr / 24"
+```
 
 ## Output
 

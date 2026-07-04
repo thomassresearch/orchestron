@@ -19,6 +19,8 @@ Start with the smallest family that explains the target sound. Add effects after
 
 Use `references/patch_spec.md`. Keep the spec explicit and readable. Include `name`, `description`, `family`, `envelope`, `layers`, optional `effects`, and `output`.
 
+Add `formulas` only when an opcode input should scale or combine existing generated graph connections. If you are not sure about node IDs, render the graph first, inspect `graph.nodes[].id` and `graph.connections`, then add formula targets such as `osc_vco2.kamp`.
+
 ## 4. Validate Before Backend Writes
 
 Run:
@@ -38,6 +40,8 @@ uv run orchestron_patch_cli --json graph render patch.yaml --out patch.graph.jso
 ```
 
 Inspect node IDs and connections if the resulting patch might be complex or if compile diagnostics mention missing ports.
+
+This is also the safest way to author input formulas: render once, identify the target input and source connection, then add `formulas:` to the spec and validate again.
 
 ## 6. Create Or Update Through The Backend
 

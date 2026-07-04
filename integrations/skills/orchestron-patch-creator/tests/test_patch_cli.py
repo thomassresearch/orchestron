@@ -13,7 +13,7 @@ SRC = ROOT / "src"
 SCRIPT = ROOT / "scripts" / "orchestron_patch_cli.py"
 sys.path.insert(0, str(SRC))
 
-from orchestron_patch.cli.orchestron_patch_cli import build_patch_payload
+from orchestron_patch.cli.orchestron_patch_cli import PatchCliError, build_patch_payload
 
 
 class PatchCliTests(unittest.TestCase):
@@ -28,6 +28,7 @@ class PatchCliTests(unittest.TestCase):
 
         self.assertIn("Create Orchestron Instrument Design patches", result.stdout)
         self.assertIn("cpsmidi", result.stdout)
+        self.assertIn("input formulas", result.stdout)
         self.assertIn("patch create", result.stdout)
 
     def test_fm_pad_graph_has_required_spine_and_final_outs(self) -> None:
@@ -104,6 +105,77 @@ class PatchCliTests(unittest.TestCase):
         self.assertEqual(payload["data"]["family"], "subtractive")
         self.assertEqual(payload["data"]["last_opcode"], "outs")
         self.assertGreater(payload["data"]["node_count"], 0)
+
+    def test_patch_spec_formulas_are_written_to_ui_layout(self) -> None:
+        payload = build_patch_payload(
+            {
+                "name": "Scaled Subtractive",
+                "family": "subtractive",
+                "layers": [{"id": "osc", "opcode": "vco2", "gain": 0.45}],
+                "formulas": [
+                    {
+                        "target": "osc_vco2.kamp",
+                        "expression": "0.1 * in1",
+                    }
+                ],
+            }
+        )
+
+        formulas = payload["graph"]["ui_layout"]["input_formulas"]
+        self.assertEqual(
+            formulas["osc_vco2::kamp"],
+            {
+                "expression": "0.1 * in1",
+                "inputs": [{"token": "in1", "from_node_id": "osc_amp", "from_port_id": "kout"}],
+            },
+        )
+
+    def test_patch_spec_formulas_accept_explicit_bindings(self) -> None:
+        payload = build_patch_payload(
+            {
+                "name": "Named Formula Binding",
+                "family": "subtractive",
+                "layers": [{"id": "osc", "opcode": "vco2", "gain": 0.45}],
+                "formulas": {
+                    "osc_vco2.kamp": {
+                        "expression": "amp * 0.25",
+                        "inputs": [{"token": "amp", "source": "osc_amp.kout"}],
+                    }
+                },
+            }
+        )
+
+        formula = payload["graph"]["ui_layout"]["input_formulas"]["osc_vco2::kamp"]
+        self.assertEqual(formula["expression"], "amp * 0.25")
+        self.assertEqual(formula["inputs"], [{"token": "amp", "from_node_id": "osc_amp", "from_port_id": "kout"}])
+
+    def test_patch_spec_formulas_reject_unknown_tokens(self) -> None:
+        with self.assertRaises(PatchCliError) as context:
+            build_patch_payload(
+                {
+                    "name": "Broken Formula",
+                    "family": "subtractive",
+                    "layers": [{"id": "osc", "opcode": "vco2", "gain": 0.45}],
+                    "formulas": [{"target": "osc_vco2.kamp", "expression": "in1 + in9"}],
+                }
+            )
+
+        self.assertEqual(context.exception.code, "invalid_formula")
+        self.assertIn("in9", context.exception.message)
+
+    def test_patch_spec_formulas_reject_unknown_target_ports(self) -> None:
+        with self.assertRaises(PatchCliError) as context:
+            build_patch_payload(
+                {
+                    "name": "Broken Formula Target",
+                    "family": "subtractive",
+                    "layers": [{"id": "osc", "opcode": "vco2", "gain": 0.45}],
+                    "formulas": [{"target": "osc_vco2.nope", "inputs": [], "expression": "0.1"}],
+                }
+            )
+
+        self.assertEqual(context.exception.code, "formula_target_input_not_found")
+        self.assertIn("osc_vco2.nope", context.exception.message)
 
 
 if __name__ == "__main__":

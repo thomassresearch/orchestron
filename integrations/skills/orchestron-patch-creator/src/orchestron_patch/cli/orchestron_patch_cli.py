@@ -29,6 +29,12 @@ DEFAULT_ENGINE_CONFIG = {
 }
 SUPPORTED_FAMILIES = {"simple_osc", "subtractive", "fm_pad", "noise_texture"}
 SOURCE_OPCODES = {"oscili", "vco2", "foscili", "noise", "pinker"}
+INPUT_FORMULAS_LAYOUT_KEY = "input_formulas"
+FORMULA_TARGET_KEY_SEPARATOR = "::"
+FORMULA_IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+FORMULA_UNARY_FUNCTIONS = frozenset({"abs", "ceil", "floor", "ampdb", "dbamp"})
+FORMULA_LITERAL_IDENTIFIERS = frozenset({"sr"})
+FORMULA_OPERATORS = ("+", "-", "*", "/")
 MONO_EFFECT_OUTPUTS = {
     "butterlp": ("asig", "aout"),
     "butterhp": ("asig", "aout"),
@@ -38,6 +44,32 @@ MONO_EFFECT_OUTPUTS = {
     "distort1": ("asig", "aout"),
     "flanger": ("asig", "aout"),
     "reverb2": ("asig", "aout"),
+}
+KNOWN_OPCODE_INPUTS = {
+    "a_mul": {"a", "b"},
+    "ampmidi": {"iscal"},
+    "butterhp": {"asig", "xfreq", "iskip"},
+    "butterlp": {"asig", "xfreq", "iskip"},
+    "const_i": set(),
+    "const_k": set(),
+    "cpsmidi": set(),
+    "diode_ladder": {"ain", "xcf", "xk", "inlp", "isaturation", "istor"},
+    "distort1": {"asig", "kpregain", "kpostgain", "kshape1", "kshape2", "imode"},
+    "flanger": {"asig", "adel", "kfeedback", "imaxd"},
+    "foscili": {"xamp", "kcps", "xcar", "xmod", "kndx", "ifn", "iphs"},
+    "k_mul": {"a", "b"},
+    "k_to_a": {"kin"},
+    "madsr": {"iatt", "idec", "islev", "irel", "idel", "ireltim", "idrss"},
+    "mix2": {"a", "b"},
+    "moogladder": {"ain", "kcf", "kres"},
+    "moogladder2": {"ain", "xcf", "xres"},
+    "noise": {"amp", "beta", "iseed", "iskip"},
+    "oscili": {"amp", "freq", "ifn"},
+    "outs": {"left", "right"},
+    "pan2": {"asig", "xp", "imode"},
+    "pinker": set(),
+    "reverb2": {"asig", "krvt", "khf", "iskip"},
+    "vco2": {"kamp", "kcps", "imode", "kpw", "kphs", "inyx"},
 }
 OPCODE_PARAM_ALIASES = {
     "oscili": {"table": "ifn"},
@@ -77,6 +109,13 @@ OPCODE_PARAM_ALIASES = {
     "reverb2": {"time": "krvt", "damping": "khf", "skip_init": "iskip"},
 }
 PASSTHROUGH_KEYS = {"params", "id", "opcode", "gain", "name", "description"}
+
+
+@dataclass(frozen=True)
+class GraphFormulaToken:
+    kind: str
+    value: str
+    position: int
 
 
 class PatchCliError(Exception):
@@ -291,6 +330,362 @@ def _compact_params(params: dict[str, Any]) -> dict[str, Any]:
     return compact
 
 
+def is_valid_formula_identifier(value: str) -> bool:
+    return bool(FORMULA_IDENTIFIER_RE.fullmatch(value))
+
+
+def formula_target_key(to_node_id: str, to_port_id: str) -> str:
+    return f"{to_node_id}{FORMULA_TARGET_KEY_SEPARATOR}{to_port_id}"
+
+
+def parse_port_ref(value: Any, *, field: str) -> tuple[str, str]:
+    if not isinstance(value, str):
+        raise PatchCliError("invalid_formula_ref", f"{field} must be a NODE.PORT string.", path=field)
+    text = value.strip()
+    if FORMULA_TARGET_KEY_SEPARATOR in text:
+        node_id, port_id = text.split(FORMULA_TARGET_KEY_SEPARATOR, 1)
+    elif "." in text:
+        node_id, port_id = text.rsplit(".", 1)
+    else:
+        raise PatchCliError(
+            "invalid_formula_ref",
+            f"{field} must use NODE.PORT or NODE::PORT syntax.",
+            path=field,
+            retry=["Example: target: fm_a_foscili.xamp"],
+        )
+    node_id = node_id.strip()
+    port_id = port_id.strip()
+    if not node_id or not port_id:
+        raise PatchCliError("invalid_formula_ref", f"{field} must include both node ID and port ID.", path=field)
+    return node_id, port_id
+
+
+def tokenize_formula_expression(expression: str, *, field: str) -> list[GraphFormulaToken]:
+    tokens: list[GraphFormulaToken] = []
+    index = 0
+    while index < len(expression):
+        char = expression[index]
+        if char.isspace():
+            index += 1
+            continue
+        if char in FORMULA_OPERATORS:
+            tokens.append(GraphFormulaToken(kind="operator", value=char, position=index))
+            index += 1
+            continue
+        if char == "(":
+            tokens.append(GraphFormulaToken(kind="lparen", value=char, position=index))
+            index += 1
+            continue
+        if char == ")":
+            tokens.append(GraphFormulaToken(kind="rparen", value=char, position=index))
+            index += 1
+            continue
+        if char.isalpha() or char == "_":
+            start = index
+            index += 1
+            while index < len(expression) and (expression[index].isalnum() or expression[index] == "_"):
+                index += 1
+            tokens.append(GraphFormulaToken(kind="identifier", value=expression[start:index], position=start))
+            continue
+        if char.isdigit() or char == ".":
+            start = index
+            saw_digit = False
+            saw_dot = False
+            while index < len(expression):
+                current = expression[index]
+                if current.isdigit():
+                    saw_digit = True
+                    index += 1
+                    continue
+                if current == ".":
+                    if saw_dot:
+                        break
+                    saw_dot = True
+                    index += 1
+                    continue
+                break
+            literal = expression[start:index]
+            if not saw_digit or literal == ".":
+                raise PatchCliError(
+                    "invalid_formula",
+                    f"Invalid formula number near '{literal}'.",
+                    path=field,
+                    retry=["Use decimal numbers such as 0.1, .5, or 2."],
+                )
+            tokens.append(GraphFormulaToken(kind="number", value=literal, position=start))
+            continue
+        raise PatchCliError(
+            "invalid_formula",
+            f"Unsupported formula character '{char}' at position {index + 1}.",
+            path=field,
+            retry=["Use numbers, input tokens, sr, +, -, *, /, parentheses, or supported unary functions."],
+        )
+    return tokens
+
+
+def validate_formula_expression(expression: str, allowed_identifiers: set[str], *, field: str) -> None:
+    if not expression.strip():
+        raise PatchCliError("invalid_formula", "Formula is empty.", path=field)
+    tokens = tokenize_formula_expression(expression, field=field)
+    if not tokens:
+        raise PatchCliError("invalid_formula", "Formula is empty.", path=field)
+    index = 0
+
+    def current() -> GraphFormulaToken | None:
+        return tokens[index] if index < len(tokens) else None
+
+    def consume() -> GraphFormulaToken:
+        nonlocal index
+        token = tokens[index]
+        index += 1
+        return token
+
+    def parse_expression() -> None:
+        parse_term()
+        while current() and current().kind == "operator" and current().value in {"+", "-"}:
+            consume()
+            parse_term()
+
+    def parse_term() -> None:
+        parse_factor()
+        while current() and current().kind == "operator" and current().value in {"*", "/"}:
+            consume()
+            parse_factor()
+
+    def parse_factor() -> None:
+        token = current()
+        if token is None:
+            raise PatchCliError("invalid_formula", "Unexpected end of formula.", path=field)
+        if token.kind == "operator" and token.value in {"+", "-"}:
+            consume()
+            parse_factor()
+            return
+        if token.kind == "number":
+            consume()
+            return
+        if token.kind == "identifier":
+            name = consume().value
+            if current() and current().kind == "lparen":
+                if name not in FORMULA_UNARY_FUNCTIONS:
+                    raise PatchCliError(
+                        "invalid_formula",
+                        f"Unknown formula function '{name}'.",
+                        path=field,
+                        retry=[f"Supported functions: {', '.join(sorted(FORMULA_UNARY_FUNCTIONS))}."],
+                    )
+                consume()
+                parse_expression()
+                if not current() or current().kind != "rparen":
+                    raise PatchCliError("invalid_formula", f"Missing closing ')' for '{name}(...)'.", path=field)
+                consume()
+                return
+            if name not in allowed_identifiers and name not in FORMULA_LITERAL_IDENTIFIERS:
+                raise PatchCliError(
+                    "invalid_formula",
+                    f"Unknown formula input token '{name}'.",
+                    path=field,
+                    retry=["Bind the token in formulas[].inputs or use an auto-bound token like in1."],
+                )
+            return
+        if token.kind == "lparen":
+            consume()
+            parse_expression()
+            if not current() or current().kind != "rparen":
+                raise PatchCliError("invalid_formula", "Missing closing ')'.", path=field)
+            consume()
+            return
+        raise PatchCliError("invalid_formula", f"Unexpected formula token '{token.value}'.", path=field)
+
+    parse_expression()
+    if index < len(tokens):
+        token = tokens[index]
+        raise PatchCliError(
+            "invalid_formula",
+            f"Unexpected formula token '{token.value}' at position {token.position + 1}.",
+            path=field,
+        )
+
+
+def normalize_formula_specs(raw_formulas: Any) -> list[dict[str, Any]]:
+    if raw_formulas is None:
+        return []
+    normalized: list[dict[str, Any]] = []
+    if isinstance(raw_formulas, dict):
+        for target, raw_config in raw_formulas.items():
+            if isinstance(raw_config, str):
+                normalized.append({"target": str(target), "expression": raw_config, "inputs": []})
+            elif isinstance(raw_config, dict):
+                normalized.append({"target": str(target), **raw_config})
+            else:
+                raise PatchCliError("invalid_formulas", "Formula map values must be strings or mappings.", path=f"formulas.{target}")
+        return normalized
+    if isinstance(raw_formulas, list):
+        for index, entry in enumerate(raw_formulas):
+            if not isinstance(entry, dict):
+                raise PatchCliError("invalid_formulas", "Each formula entry must be a mapping/object.", path=f"formulas[{index}]")
+            normalized.append(entry)
+        return normalized
+    raise PatchCliError("invalid_formulas", "formulas must be a list or mapping when provided.", path="formulas")
+
+
+def normalize_formula_input(raw_input: Any, *, field: str) -> dict[str, str]:
+    if isinstance(raw_input, str):
+        if "=" not in raw_input:
+            raise PatchCliError(
+                "invalid_formula_input",
+                f"{field} must use TOKEN=NODE.PORT syntax.",
+                path=field,
+                retry=["Example: in1=fm_a_foscili.asig"],
+            )
+        token, source = raw_input.split("=", 1)
+        from_node_id, from_port_id = parse_port_ref(source, field=f"{field}.source")
+    elif isinstance(raw_input, dict):
+        token = raw_input.get("token")
+        if not isinstance(token, str):
+            raise PatchCliError("invalid_formula_input", f"{field}.token must be a string.", path=f"{field}.token")
+        if "source" in raw_input:
+            from_node_id, from_port_id = parse_port_ref(raw_input["source"], field=f"{field}.source")
+        else:
+            from_node_id = raw_input.get("from_node_id")
+            from_port_id = raw_input.get("from_port_id")
+            if not isinstance(from_node_id, str) or not isinstance(from_port_id, str):
+                raise PatchCliError(
+                    "invalid_formula_input",
+                    f"{field} must include source or from_node_id/from_port_id.",
+                    path=field,
+                )
+            from_node_id = from_node_id.strip()
+            from_port_id = from_port_id.strip()
+    else:
+        raise PatchCliError("invalid_formula_input", f"{field} must be a string or mapping.", path=field)
+
+    token = token.strip()
+    if not is_valid_formula_identifier(token):
+        raise PatchCliError(
+            "invalid_formula_input",
+            f"{field}.token '{token}' is not a valid formula identifier.",
+            path=f"{field}.token",
+            retry=["Use identifiers such as in1, in2, dry, wet, or mod_a."],
+        )
+    if not from_node_id or not from_port_id:
+        raise PatchCliError("invalid_formula_input", f"{field} source must include node and port IDs.", path=field)
+    return {"token": token, "from_node_id": from_node_id, "from_port_id": from_port_id}
+
+
+def inbound_connections_for_target(graph: dict[str, Any], target_node_id: str, target_port_id: str) -> list[dict[str, str]]:
+    return [
+        connection
+        for connection in graph.get("connections", [])
+        if isinstance(connection, dict)
+        and connection.get("to_node_id") == target_node_id
+        and connection.get("to_port_id") == target_port_id
+        and isinstance(connection.get("from_node_id"), str)
+        and isinstance(connection.get("from_port_id"), str)
+    ]
+
+
+def auto_formula_bindings(inbound_connections: list[dict[str, str]]) -> list[dict[str, str]]:
+    bindings: list[dict[str, str]] = []
+    seen_sources: set[tuple[str, str]] = set()
+    for connection in inbound_connections:
+        source = (connection["from_node_id"], connection["from_port_id"])
+        if source in seen_sources:
+            continue
+        seen_sources.add(source)
+        bindings.append({"token": f"in{len(bindings) + 1}", "from_node_id": source[0], "from_port_id": source[1]})
+    return bindings
+
+
+def normalize_formula_bindings(
+    graph: dict[str, Any],
+    raw_inputs: Any,
+    *,
+    target_node_id: str,
+    target_port_id: str,
+    field: str,
+) -> list[dict[str, str]]:
+    inbound = inbound_connections_for_target(graph, target_node_id, target_port_id)
+    inbound_sources = {(connection["from_node_id"], connection["from_port_id"]) for connection in inbound}
+    if raw_inputs is None:
+        return auto_formula_bindings(inbound)
+    if not isinstance(raw_inputs, list):
+        raise PatchCliError("invalid_formula_input", f"{field} must be a list when provided.", path=field)
+    bindings: list[dict[str, str]] = []
+    seen_tokens: set[str] = set()
+    seen_sources: set[tuple[str, str]] = set()
+    for index, raw_input in enumerate(raw_inputs):
+        binding = normalize_formula_input(raw_input, field=f"{field}[{index}]")
+        source = (binding["from_node_id"], binding["from_port_id"])
+        if binding["token"] in seen_tokens:
+            raise PatchCliError("duplicate_formula_token", f"Formula token '{binding['token']}' is used more than once.", path=f"{field}[{index}]")
+        if source in seen_sources:
+            raise PatchCliError("duplicate_formula_source", f"Formula source '{source[0]}.{source[1]}' is used more than once.", path=f"{field}[{index}]")
+        if source not in inbound_sources:
+            raise PatchCliError(
+                "formula_source_not_connected",
+                f"Formula source '{source[0]}.{source[1]}' is not connected to target '{target_node_id}.{target_port_id}'.",
+                path=f"{field}[{index}]",
+                retry=["Use a source that is already connected to the target input, or add that connection to the generated graph first."],
+            )
+        seen_tokens.add(binding["token"])
+        seen_sources.add(source)
+        bindings.append(binding)
+    return bindings
+
+
+def apply_input_formulas(graph: dict[str, Any], raw_formulas: Any) -> dict[str, Any]:
+    formulas = normalize_formula_specs(raw_formulas)
+    if not formulas:
+        return graph
+    next_graph = {
+        **graph,
+        "ui_layout": dict(graph.get("ui_layout") if isinstance(graph.get("ui_layout"), dict) else {}),
+    }
+    nodes_by_id = {
+        str(node.get("id")): node
+        for node in next_graph.get("nodes", [])
+        if isinstance(node, dict) and isinstance(node.get("id"), str)
+    }
+    formula_map: dict[str, dict[str, Any]] = {}
+    for index, formula in enumerate(formulas):
+        field = f"formulas[{index}]"
+        target_node_id, target_port_id = parse_port_ref(formula.get("target"), field=f"{field}.target")
+        target_node = nodes_by_id.get(target_node_id)
+        if not target_node:
+            raise PatchCliError(
+                "formula_target_not_found",
+                f"Formula target node '{target_node_id}' does not exist in the generated graph.",
+                path=f"{field}.target",
+                retry=["Render the graph and use one of graph.nodes[].id."],
+            )
+        opcode = str(target_node.get("opcode", ""))
+        known_inputs = KNOWN_OPCODE_INPUTS.get(opcode)
+        if known_inputs is not None and target_port_id not in known_inputs:
+            raise PatchCliError(
+                "formula_target_input_not_found",
+                f"Formula target '{target_node_id}.{target_port_id}' is not an input on opcode '{opcode}'.",
+                path=f"{field}.target",
+                retry=[f"Use one of: {', '.join(sorted(known_inputs))}." if known_inputs else "Choose a node with input ports."],
+            )
+        expression = formula.get("expression")
+        if not isinstance(expression, str):
+            raise PatchCliError("invalid_formula", f"{field}.expression must be a string.", path=f"{field}.expression")
+        bindings = normalize_formula_bindings(
+            next_graph,
+            formula.get("inputs"),
+            target_node_id=target_node_id,
+            target_port_id=target_port_id,
+            field=f"{field}.inputs",
+        )
+        validate_formula_expression(expression, {binding["token"] for binding in bindings}, field=f"{field}.expression")
+        formula_map[formula_target_key(target_node_id, target_port_id)] = {
+            "expression": expression.strip(),
+            "inputs": bindings,
+        }
+    next_graph["ui_layout"][INPUT_FORMULAS_LAYOUT_KEY] = formula_map
+    return next_graph
+
+
 def load_spec(path: Path) -> dict[str, Any]:
     try:
         text = path.read_text(encoding="utf-8")
@@ -449,12 +844,15 @@ def build_patch_payload(
     builder.connect(pan, "aleft", outs, "left")
     builder.connect(pan, "aright", outs, "right")
 
+    graph = builder.graph(engine_config=spec.get("engine") if isinstance(spec.get("engine"), dict) else None)
+    graph = apply_input_formulas(graph, spec.get("formulas"))
+
     payload = {
         "name": name or str(spec.get("name") or "Agent Patch"),
         "description": description if description is not None else str(spec.get("description") or ""),
         "is_template": _as_bool(is_template, default=_as_bool(spec.get("is_template"), default=False)) if is_template is not None else _as_bool(spec.get("is_template"), default=False),
         "schema_version": int(spec.get("schema_version", 1)),
-        "graph": builder.graph(engine_config=spec.get("engine") if isinstance(spec.get("engine"), dict) else None),
+        "graph": graph,
     }
     validate_graph_invariants(payload["graph"])
     return payload
@@ -675,6 +1073,7 @@ def command_spec_validate(args: argparse.Namespace, ctx: CliContext) -> None:
             "family": normalized["family"],
             "node_count": len(payload["graph"]["nodes"]),
             "connection_count": len(payload["graph"]["connections"]),
+            "formula_count": len((payload["graph"].get("ui_layout", {}).get(INPUT_FORMULAS_LAYOUT_KEY, {}) or {})),
             "last_opcode": payload["graph"]["nodes"][-1]["opcode"],
         },
         ctx,
@@ -809,7 +1208,8 @@ def build_parser() -> argparse.ArgumentParser:
             "  orchestron_patch_cli --json patch update PATCH_ID fm_pad.yaml --compile\n\n"
             "Spec principle: generated patches always use cpsmidi for pitch, ampmidi for velocity "
             "with const_i scale 1.0, madsr with const_i ADSR inputs, pan2 for mono-to-stereo, "
-            "and outs as the final node."
+            "and outs as the final node. Use top-level formulas: entries to store GUI-compatible "
+            "input formulas in graph.ui_layout.input_formulas."
         ),
     )
     add_global_options(parser)

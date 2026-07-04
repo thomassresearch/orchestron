@@ -24,6 +24,11 @@ DEFAULT_PAD_COUNT = 8
 MAX_STEPS_PER_PAD = 128
 PAD_LOOP_PAUSE_BEATS = {1, 2, 4, 8, 16}
 MAX_PAD_LOOP_DEFINITIONS = 256
+INPUT_FORMULAS_LAYOUT_KEY = "input_formulas"
+FORMULA_TARGET_KEY_SEPARATOR = "::"
+FORMULA_UNARY_FUNCTIONS = frozenset({"abs", "ceil", "floor", "ampdb", "dbamp"})
+FORMULA_LITERAL_IDENTIFIERS = frozenset({"sr"})
+FORMULA_OPERATORS = ("+", "-", "*", "/")
 
 SCALE_ROOTS = {
     "C": (0, False),
@@ -128,6 +133,14 @@ PAD_REF_RE = re.compile(r"^(?:p|pad)?([1-8])$", re.IGNORECASE)
 PAD_LOOP_PAUSE_RE = re.compile(r"^P(1|2|4|8|16)$", re.IGNORECASE)
 PAD_LOOP_GROUP_ID_RE = re.compile(r"^[A-Z]+$")
 PAD_LOOP_SUPER_GROUP_ID_RE = re.compile(r"^[IVXLCDM]+$")
+FORMULA_IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
+@dataclass(frozen=True)
+class GraphFormulaToken:
+    kind: str
+    value: str
+    position: int
 
 
 class OrchestronCliError(Exception):
@@ -448,6 +461,511 @@ def split_assignment(value: str, *, field: str, left_label: str) -> tuple[str, s
     if not left or not right:
         raise OrchestronCliError("invalid_assignment", f"{field} must include both sides of {left_label}=VALUE.", path=field)
     return left, right
+
+
+def is_valid_formula_identifier(value: str) -> bool:
+    return bool(FORMULA_IDENTIFIER_RE.fullmatch(value))
+
+
+def formula_target_key(to_node_id: str, to_port_id: str) -> str:
+    return f"{to_node_id}{FORMULA_TARGET_KEY_SEPARATOR}{to_port_id}"
+
+
+def parse_target_port_ref(value: str, *, field: str) -> tuple[str, str]:
+    text = value.strip()
+    if FORMULA_TARGET_KEY_SEPARATOR in text:
+        left, right = text.split(FORMULA_TARGET_KEY_SEPARATOR, 1)
+    elif "." in text:
+        left, right = text.rsplit(".", 1)
+    else:
+        raise OrchestronCliError(
+            "invalid_port_ref",
+            f"{field} must use NODE.PORT or NODE::PORT syntax.",
+            path=field,
+            retry=["Example: --target filter.xcf or --target filter::xcf."],
+        )
+    node_id = left.strip()
+    port_id = right.strip()
+    if not node_id or not port_id:
+        raise OrchestronCliError("invalid_port_ref", f"{field} must include both node ID and port ID.", path=field)
+    return node_id, port_id
+
+
+def parse_source_port_ref(value: str, *, field: str) -> tuple[str, str]:
+    text = value.strip()
+    if "." not in text:
+        raise OrchestronCliError(
+            "invalid_port_ref",
+            f"{field} must use NODE.PORT syntax.",
+            path=field,
+            retry=["Example: --input in1=osc.aout."],
+        )
+    node_id, port_id = text.rsplit(".", 1)
+    node_id = node_id.strip()
+    port_id = port_id.strip()
+    if not node_id or not port_id:
+        raise OrchestronCliError("invalid_port_ref", f"{field} must include both node ID and port ID.", path=field)
+    return node_id, port_id
+
+
+def parse_formula_input_assignment(value: str, *, field: str) -> dict[str, str]:
+    token, source = split_assignment(value, field=field, left_label="TOKEN")
+    if not is_valid_formula_identifier(token):
+        raise OrchestronCliError(
+            "invalid_formula_token",
+            f"{field} token '{token}' is not a valid formula identifier.",
+            path=field,
+            retry=["Use tokens such as in1, in2, dry, wet, or mod_a."],
+        )
+    from_node_id, from_port_id = parse_source_port_ref(source, field=f"{field}.source")
+    return {"token": token, "from_node_id": from_node_id, "from_port_id": from_port_id}
+
+
+def tokenize_formula_expression(expression: str, *, field: str) -> list[GraphFormulaToken]:
+    tokens: list[GraphFormulaToken] = []
+    index = 0
+    while index < len(expression):
+        char = expression[index]
+        if char.isspace():
+            index += 1
+            continue
+        if char in FORMULA_OPERATORS:
+            tokens.append(GraphFormulaToken(kind="operator", value=char, position=index))
+            index += 1
+            continue
+        if char == "(":
+            tokens.append(GraphFormulaToken(kind="lparen", value=char, position=index))
+            index += 1
+            continue
+        if char == ")":
+            tokens.append(GraphFormulaToken(kind="rparen", value=char, position=index))
+            index += 1
+            continue
+        if char.isalpha() or char == "_":
+            start = index
+            index += 1
+            while index < len(expression) and (expression[index].isalnum() or expression[index] == "_"):
+                index += 1
+            tokens.append(GraphFormulaToken(kind="identifier", value=expression[start:index], position=start))
+            continue
+        if char.isdigit() or char == ".":
+            start = index
+            saw_digit = False
+            saw_dot = False
+            while index < len(expression):
+                current = expression[index]
+                if current.isdigit():
+                    saw_digit = True
+                    index += 1
+                    continue
+                if current == ".":
+                    if saw_dot:
+                        break
+                    saw_dot = True
+                    index += 1
+                    continue
+                break
+            literal = expression[start:index]
+            if not saw_digit or literal == ".":
+                raise OrchestronCliError(
+                    "invalid_formula",
+                    f"Invalid formula number near '{literal}'.",
+                    path=field,
+                    retry=["Use decimal numbers such as 0.1, .5, or 2."],
+                )
+            tokens.append(GraphFormulaToken(kind="number", value=literal, position=start))
+            continue
+        raise OrchestronCliError(
+            "invalid_formula",
+            f"Unsupported formula character '{char}' at position {index + 1}.",
+            path=field,
+            retry=["Use numbers, input tokens, sr, +, -, *, /, parentheses, or supported unary functions."],
+        )
+    return tokens
+
+
+def validate_formula_expression(expression: str, allowed_identifiers: set[str], *, field: str = "expression") -> None:
+    if not expression.strip():
+        raise OrchestronCliError("invalid_formula", "Formula is empty.", path=field)
+    tokens = tokenize_formula_expression(expression, field=field)
+    if not tokens:
+        raise OrchestronCliError("invalid_formula", "Formula is empty.", path=field)
+    index = 0
+
+    def current() -> GraphFormulaToken | None:
+        return tokens[index] if index < len(tokens) else None
+
+    def consume() -> GraphFormulaToken:
+        nonlocal index
+        token = tokens[index]
+        index += 1
+        return token
+
+    def parse_expression() -> None:
+        parse_term()
+        while current() and current().kind == "operator" and current().value in {"+", "-"}:
+            consume()
+            parse_term()
+
+    def parse_term() -> None:
+        parse_factor()
+        while current() and current().kind == "operator" and current().value in {"*", "/"}:
+            consume()
+            parse_factor()
+
+    def parse_factor() -> None:
+        token = current()
+        if token is None:
+            raise OrchestronCliError("invalid_formula", "Unexpected end of formula.", path=field)
+        if token.kind == "operator" and token.value in {"+", "-"}:
+            consume()
+            parse_factor()
+            return
+        if token.kind == "number":
+            consume()
+            return
+        if token.kind == "identifier":
+            name = consume().value
+            if current() and current().kind == "lparen":
+                if name not in FORMULA_UNARY_FUNCTIONS:
+                    raise OrchestronCliError(
+                        "invalid_formula",
+                        f"Unknown formula function '{name}'.",
+                        path=field,
+                        retry=[f"Supported functions: {', '.join(sorted(FORMULA_UNARY_FUNCTIONS))}."],
+                    )
+                consume()
+                parse_expression()
+                if not current() or current().kind != "rparen":
+                    raise OrchestronCliError(
+                        "invalid_formula",
+                        f"Missing closing ')' for '{name}(...)'.",
+                        path=field,
+                    )
+                consume()
+                return
+            if name not in allowed_identifiers and name not in FORMULA_LITERAL_IDENTIFIERS:
+                raise OrchestronCliError(
+                    "invalid_formula",
+                    f"Unknown formula input token '{name}'.",
+                    path=field,
+                    retry=["Bind the token with --input TOKEN=SOURCE_NODE.SOURCE_PORT, or use an existing auto token like in1."],
+                )
+            return
+        if token.kind == "lparen":
+            consume()
+            parse_expression()
+            if not current() or current().kind != "rparen":
+                raise OrchestronCliError("invalid_formula", "Missing closing ')'.", path=field)
+            consume()
+            return
+        raise OrchestronCliError("invalid_formula", f"Unexpected formula token '{token.value}'.", path=field)
+
+    parse_expression()
+    if index < len(tokens):
+        token = tokens[index]
+        raise OrchestronCliError(
+            "invalid_formula",
+            f"Unexpected formula token '{token.value}' at position {token.position + 1}.",
+            path=field,
+        )
+
+
+def read_input_formula_map(ui_layout: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    raw_formulas = ui_layout.get(INPUT_FORMULAS_LAYOUT_KEY)
+    if not isinstance(raw_formulas, dict):
+        return {}
+    formulas: dict[str, dict[str, Any]] = {}
+    for target_key, raw_config in raw_formulas.items():
+        if not isinstance(target_key, str) or FORMULA_TARGET_KEY_SEPARATOR not in target_key:
+            continue
+        if not isinstance(raw_config, dict) or not isinstance(raw_config.get("expression"), str):
+            continue
+        inputs = []
+        raw_inputs = raw_config.get("inputs")
+        if isinstance(raw_inputs, list):
+            for raw_input in raw_inputs:
+                if not isinstance(raw_input, dict):
+                    continue
+                token = raw_input.get("token")
+                from_node_id = raw_input.get("from_node_id")
+                from_port_id = raw_input.get("from_port_id")
+                if not isinstance(token, str) or not is_valid_formula_identifier(token):
+                    continue
+                if not isinstance(from_node_id, str) or not from_node_id.strip():
+                    continue
+                if not isinstance(from_port_id, str) or not from_port_id.strip():
+                    continue
+                inputs.append(
+                    {
+                        "token": token.strip(),
+                        "from_node_id": from_node_id.strip(),
+                        "from_port_id": from_port_id.strip(),
+                    }
+                )
+        formulas[target_key] = {"expression": raw_config["expression"], "inputs": inputs}
+    return formulas
+
+
+def write_input_formula_map(ui_layout: dict[str, Any], formulas: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    next_layout = copy.deepcopy(ui_layout)
+    if not formulas:
+        next_layout.pop(INPUT_FORMULAS_LAYOUT_KEY, None)
+        return next_layout
+    next_layout[INPUT_FORMULAS_LAYOUT_KEY] = {
+        target_key: {
+            "expression": config["expression"],
+            "inputs": [
+                {
+                    "token": binding["token"],
+                    "from_node_id": binding["from_node_id"],
+                    "from_port_id": binding["from_port_id"],
+                }
+                for binding in config.get("inputs", [])
+            ],
+        }
+        for target_key, config in sorted(formulas.items())
+    }
+    return next_layout
+
+
+def describe_formula_operands() -> dict[str, Any]:
+    return {
+        "operators": list(FORMULA_OPERATORS),
+        "grouping": ["(", ")"],
+        "unary": ["+", "-"],
+        "functions": sorted(FORMULA_UNARY_FUNCTIONS),
+        "literals": sorted(FORMULA_LITERAL_IDENTIFIERS),
+        "numbers": "Decimal literals such as 0.1, .5, 1, or 2.0.",
+        "inputs": "Input tokens bound to existing source connections, usually in1, in2, ...",
+        "examples": ["0.1 * in1", "in1 + (in2 * 0.5)", "ampdb(dbamp(in1) - 6)", "sr / 2"],
+    }
+
+
+def require_patch_graph(patch: dict[str, Any]) -> dict[str, Any]:
+    graph = patch.get("graph")
+    if not isinstance(graph, dict):
+        raise OrchestronCliError("invalid_patch_graph", "Patch response does not include a valid graph object.")
+    return graph
+
+
+def patch_update_payload(patch: dict[str, Any], graph: dict[str, Any]) -> dict[str, Any]:
+    payload = {
+        "name": patch.get("name", "Untitled Patch"),
+        "description": patch.get("description", ""),
+        "schema_version": patch.get("schema_version", 1),
+        "graph": graph,
+    }
+    if "is_template" in patch:
+        payload["is_template"] = bool(patch["is_template"])
+    if "always_on" in patch:
+        payload["always_on"] = bool(patch["always_on"])
+    return payload
+
+
+def patch_node_by_id(graph: dict[str, Any], node_id: str, *, field: str = "target") -> dict[str, Any]:
+    nodes = graph.get("nodes")
+    if not isinstance(nodes, list):
+        raise OrchestronCliError("invalid_patch_graph", "Patch graph has no valid nodes list.", path="graph.nodes")
+    for node in nodes:
+        if isinstance(node, dict) and node.get("id") == node_id:
+            return node
+    raise OrchestronCliError(
+        "formula_target_not_found",
+        f"Patch graph has no node '{node_id}'.",
+        path=field,
+        retry=["Run `orchestron_cli patches get PATCH` and inspect graph.nodes[].id."],
+    )
+
+
+def validate_formula_target_input(
+    graph: dict[str, Any],
+    *,
+    target_node_id: str,
+    target_port_id: str,
+    target_opcode_spec: dict[str, Any] | None,
+) -> dict[str, Any]:
+    node = patch_node_by_id(graph, target_node_id)
+    if not target_opcode_spec:
+        return node
+    inputs = target_opcode_spec.get("inputs")
+    if not isinstance(inputs, list):
+        return node
+    input_ids = [item.get("id") for item in inputs if isinstance(item, dict) and isinstance(item.get("id"), str)]
+    if target_port_id not in input_ids:
+        opcode = node.get("opcode", target_opcode_spec.get("name", "unknown"))
+        raise OrchestronCliError(
+            "formula_target_input_not_found",
+            f"Opcode '{opcode}' has no input port '{target_port_id}'.",
+            path="target",
+            retry=[f"Use one of: {', '.join(input_ids)}." if input_ids else "Inspect the opcode inputs and retry."],
+        )
+    return node
+
+
+def inbound_connections_for_target(graph: dict[str, Any], target_node_id: str, target_port_id: str) -> list[dict[str, Any]]:
+    connections = graph.get("connections")
+    if not isinstance(connections, list):
+        raise OrchestronCliError("invalid_patch_graph", "Patch graph has no valid connections list.", path="graph.connections")
+    return [
+        connection
+        for connection in connections
+        if isinstance(connection, dict)
+        and connection.get("to_node_id") == target_node_id
+        and connection.get("to_port_id") == target_port_id
+        and isinstance(connection.get("from_node_id"), str)
+        and isinstance(connection.get("from_port_id"), str)
+    ]
+
+
+def next_auto_formula_token(used_tokens: set[str], start_index: int) -> str:
+    index = max(1, start_index)
+    while f"in{index}" in used_tokens:
+        index += 1
+    return f"in{index}"
+
+
+def source_binding_key(node_id: str, port_id: str) -> tuple[str, str]:
+    return node_id, port_id
+
+
+def build_formula_input_bindings(
+    graph: dict[str, Any],
+    *,
+    target_node_id: str,
+    target_port_id: str,
+    assignments: list[str],
+) -> list[dict[str, str]]:
+    inbound_connections = inbound_connections_for_target(graph, target_node_id, target_port_id)
+    inbound_sources = {
+        source_binding_key(str(connection["from_node_id"]), str(connection["from_port_id"]))
+        for connection in inbound_connections
+    }
+    if assignments:
+        bindings: list[dict[str, str]] = []
+        seen_tokens: set[str] = set()
+        seen_sources: set[tuple[str, str]] = set()
+        for index, assignment in enumerate(assignments):
+            binding = parse_formula_input_assignment(assignment, field=f"input[{index}]")
+            source_key = source_binding_key(binding["from_node_id"], binding["from_port_id"])
+            if binding["token"] in seen_tokens:
+                raise OrchestronCliError(
+                    "duplicate_formula_token",
+                    f"Formula token '{binding['token']}' is bound more than once.",
+                    path=f"input[{index}]",
+                )
+            if source_key in seen_sources:
+                raise OrchestronCliError(
+                    "duplicate_formula_source",
+                    f"Source '{binding['from_node_id']}.{binding['from_port_id']}' is bound more than once.",
+                    path=f"input[{index}]",
+                )
+            if source_key not in inbound_sources:
+                raise OrchestronCliError(
+                    "formula_source_not_connected",
+                    (
+                        f"Source '{binding['from_node_id']}.{binding['from_port_id']}' is not connected "
+                        f"to target '{target_node_id}.{target_port_id}'."
+                    ),
+                    path=f"input[{index}]",
+                    retry=[
+                        "Choose one of the current inbound connections for this target input.",
+                        "Formula bindings cannot create graph connections; create/import the connection first.",
+                    ],
+                )
+            seen_tokens.add(binding["token"])
+            seen_sources.add(source_key)
+            bindings.append(binding)
+        return bindings
+
+    bindings = []
+    used_sources: set[tuple[str, str]] = set()
+    used_tokens: set[str] = set()
+    next_index = 1
+    for connection in inbound_connections:
+        source_key = source_binding_key(str(connection["from_node_id"]), str(connection["from_port_id"]))
+        if source_key in used_sources:
+            continue
+        token = next_auto_formula_token(used_tokens, next_index)
+        next_index += 1
+        used_sources.add(source_key)
+        used_tokens.add(token)
+        bindings.append({"token": token, "from_node_id": source_key[0], "from_port_id": source_key[1]})
+    return bindings
+
+
+def input_formula_rows(graph: dict[str, Any]) -> list[dict[str, Any]]:
+    ui_layout = graph.get("ui_layout") if isinstance(graph.get("ui_layout"), dict) else {}
+    formulas = read_input_formula_map(ui_layout)
+    rows: list[dict[str, Any]] = []
+    for target_key, config in sorted(formulas.items()):
+        target = parse_target_port_ref(target_key, field="target")
+        inputs = [
+            f"{binding['token']}={binding['from_node_id']}.{binding['from_port_id']}"
+            for binding in config.get("inputs", [])
+        ]
+        rows.append(
+            {
+                "target": f"{target[0]}.{target[1]}",
+                "target_key": target_key,
+                "expression": config.get("expression", ""),
+                "input_count": len(inputs),
+                "inputs": ", ".join(inputs),
+            }
+        )
+    return rows
+
+
+def graph_with_input_formula(
+    graph: dict[str, Any],
+    *,
+    target_node_id: str,
+    target_port_id: str,
+    expression: str,
+    assignments: list[str],
+    target_opcode_spec: dict[str, Any] | None = None,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    next_graph = copy.deepcopy(graph)
+    validate_formula_target_input(
+        next_graph,
+        target_node_id=target_node_id,
+        target_port_id=target_port_id,
+        target_opcode_spec=target_opcode_spec,
+    )
+    bindings = build_formula_input_bindings(
+        next_graph,
+        target_node_id=target_node_id,
+        target_port_id=target_port_id,
+        assignments=assignments,
+    )
+    validate_formula_expression(expression, {binding["token"] for binding in bindings})
+    ui_layout = next_graph.get("ui_layout")
+    if not isinstance(ui_layout, dict):
+        ui_layout = {}
+    formulas = read_input_formula_map(ui_layout)
+    target_key = formula_target_key(target_node_id, target_port_id)
+    formula_config = {"expression": expression.strip(), "inputs": bindings}
+    formulas[target_key] = formula_config
+    next_graph["ui_layout"] = write_input_formula_map(ui_layout, formulas)
+    return next_graph, formula_config
+
+
+def graph_without_input_formula(
+    graph: dict[str, Any],
+    *,
+    target_node_id: str,
+    target_port_id: str,
+) -> tuple[dict[str, Any], bool]:
+    next_graph = copy.deepcopy(graph)
+    ui_layout = next_graph.get("ui_layout")
+    if not isinstance(ui_layout, dict):
+        ui_layout = {}
+    formulas = read_input_formula_map(ui_layout)
+    target_key = formula_target_key(target_node_id, target_port_id)
+    existed = target_key in formulas
+    formulas.pop(target_key, None)
+    next_graph["ui_layout"] = write_input_formula_map(ui_layout, formulas)
+    return next_graph, existed
 
 
 def parse_pad_assignment(value: str, *, field: str) -> tuple[int, str]:
@@ -2394,11 +2912,90 @@ def command_patches_list(args: argparse.Namespace, ctx: CliContext) -> None:
     )
 
 
-def command_patches_get(args: argparse.Namespace, ctx: CliContext) -> None:
-    client = ApiClient(ctx.api_url, timeout=ctx.timeout)
+def fetch_patch_by_ref(client: ApiClient, patch_ref: str) -> dict[str, Any]:
     patches = client.get("/patches")
-    patch = find_by_id_or_name(patches, args.patch, kind="patch")
-    print_payload(client.get(f"/patches/{parse.quote(str(patch['id']))}"), ctx)
+    patch = find_by_id_or_name(patches, patch_ref, kind="patch")
+    return client.get(f"/patches/{parse.quote(str(patch['id']))}")
+
+
+def command_patches_get(args: argparse.Namespace, ctx: CliContext) -> None:
+    print_payload(fetch_patch_by_ref(ApiClient(ctx.api_url, timeout=ctx.timeout), args.patch), ctx)
+
+
+def command_patches_formula_operands(args: argparse.Namespace, ctx: CliContext) -> None:
+    print_payload(describe_formula_operands(), ctx)
+
+
+def command_patches_formulas_list(args: argparse.Namespace, ctx: CliContext) -> None:
+    client = ApiClient(ctx.api_url, timeout=ctx.timeout)
+    patch = fetch_patch_by_ref(client, args.patch)
+    rows = input_formula_rows(require_patch_graph(patch))
+    print_table(
+        rows,
+        [("target", "Target"), ("expression", "Expression"), ("input_count", "Inputs")],
+        ctx,
+        detail_columns=[("inputs", "Bindings")],
+    )
+
+
+def command_patches_formula_set(args: argparse.Namespace, ctx: CliContext) -> None:
+    client = ApiClient(ctx.api_url, timeout=ctx.timeout)
+    patch = fetch_patch_by_ref(client, args.patch)
+    graph = require_patch_graph(patch)
+    target_node_id, target_port_id = parse_target_port_ref(args.target, field="target")
+    target_node = patch_node_by_id(graph, target_node_id)
+    opcode_name = target_node.get("opcode")
+    if not isinstance(opcode_name, str) or not opcode_name.strip():
+        raise OrchestronCliError(
+            "invalid_patch_graph",
+            f"Target node '{target_node_id}' has no valid opcode name.",
+            path="graph.nodes",
+        )
+    opcode_spec = client.get(f"/opcodes/{parse.quote(opcode_name)}")
+    next_graph, formula_config = graph_with_input_formula(
+        graph,
+        target_node_id=target_node_id,
+        target_port_id=target_port_id,
+        expression=args.expression,
+        assignments=args.input or [],
+        target_opcode_spec=opcode_spec,
+    )
+    saved = client.put(f"/patches/{parse.quote(str(patch['id']))}", patch_update_payload(patch, next_graph))
+    print_payload(
+        {
+            "action": "set",
+            "patchId": saved["id"],
+            "patchName": saved["name"],
+            "target": f"{target_node_id}.{target_port_id}",
+            "targetKey": formula_target_key(target_node_id, target_port_id),
+            "expression": formula_config["expression"],
+            "inputs": formula_config["inputs"],
+        },
+        ctx,
+    )
+
+
+def command_patches_formula_clear(args: argparse.Namespace, ctx: CliContext) -> None:
+    client = ApiClient(ctx.api_url, timeout=ctx.timeout)
+    patch = fetch_patch_by_ref(client, args.patch)
+    target_node_id, target_port_id = parse_target_port_ref(args.target, field="target")
+    next_graph, existed = graph_without_input_formula(
+        require_patch_graph(patch),
+        target_node_id=target_node_id,
+        target_port_id=target_port_id,
+    )
+    saved = client.put(f"/patches/{parse.quote(str(patch['id']))}", patch_update_payload(patch, next_graph))
+    print_payload(
+        {
+            "action": "clear",
+            "patchId": saved["id"],
+            "patchName": saved["name"],
+            "target": f"{target_node_id}.{target_port_id}",
+            "targetKey": formula_target_key(target_node_id, target_port_id),
+            "existed": existed,
+        },
+        ctx,
+    )
 
 
 def import_bundle(args: argparse.Namespace, ctx: CliContext) -> None:
@@ -2901,6 +3498,35 @@ def build_parser() -> argparse.ArgumentParser:
     patches_get = patches_sub.add_parser("get", help="Get a patch by ID or exact name.")
     patches_get.add_argument("patch", help="Patch ID or exact patch name.")
     patches_get.set_defaults(func=command_patches_get)
+    formulas = patches_sub.add_parser("formulas", help="List, set, clear, and inspect opcode input formulas on patch graphs.")
+    formulas_sub = formulas.add_subparsers(dest="formulas_command", required=True)
+    formula_operands = formulas_sub.add_parser("operands", help="Show supported formula operators, literals, and functions.")
+    formula_operands.set_defaults(func=command_patches_formula_operands)
+    formula_list = formulas_sub.add_parser("list", help="List configured input formulas for a patch.")
+    formula_list.add_argument("patch", help="Patch ID or exact patch name.")
+    formula_list.set_defaults(func=command_patches_formulas_list)
+    formula_set = formulas_sub.add_parser(
+        "set",
+        help="Set a formula for a target opcode input, for example --expression '0.1 * in1'.",
+    )
+    formula_set.add_argument("patch", help="Patch ID or exact patch name.")
+    formula_set.add_argument("--target", required=True, help="Target input as NODE.PORT or NODE::PORT, for example filter.xcf.")
+    formula_set.add_argument("--expression", required=True, help="Formula using bound inputs, numbers, sr, operators, parentheses, and supported functions.")
+    formula_set.add_argument(
+        "--input",
+        action="append",
+        default=[],
+        metavar="TOKEN=NODE.PORT",
+        help=(
+            "Explicit source binding; may repeat. The source must already be connected to --target. "
+            "If omitted, current inbound connections are auto-bound as in1, in2, ..."
+        ),
+    )
+    formula_set.set_defaults(func=command_patches_formula_set)
+    formula_clear = formulas_sub.add_parser("clear", help="Clear a formula from a target opcode input.")
+    formula_clear.add_argument("patch", help="Patch ID or exact patch name.")
+    formula_clear.add_argument("--target", required=True, help="Target input as NODE.PORT or NODE::PORT.")
+    formula_clear.set_defaults(func=command_patches_formula_clear)
     patches_import = patches_sub.add_parser("import", help="Import patch or performance bundles with GUI-like conflicts.")
     patches_import.add_argument("file", help="Bundle file: .orch.instrument.json, .orch.instrument.zip, .orch.json, or .orch.zip.")
     patches_import.add_argument("--on-conflict", choices=["prompt", "overwrite", "skip", "rename", "fail"], default="prompt", help="Conflict handling. Default: prompt in TTY, error in non-TTY.")

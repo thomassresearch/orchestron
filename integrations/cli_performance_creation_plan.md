@@ -10,6 +10,7 @@ This document describes the proposed command-line tooling for creating, editing,
 - Support live Orchestron runtime sessions where possible.
 - Keep performance JSON compatible with the current frontend snapshot model.
 - Support patch bundle import from `.orch.instrument.json`, `.orch.instrument.zip`, `.orch.json`, and `.orch.zip`.
+- Support patch graph input formulas for scaling or combining existing opcode connections without adding helper opcodes.
 - Match GUI import conflict behavior: overwrite, skip, or rename.
 - Support simple edits with CLI flags and complex multitrack composition with YAML/JSON score specs.
 - Generate musically meaningful multitrack material using keys, modes, scales, chord progressions, rhythm templates, drum grooves, controller curves, and arpeggiator settings.
@@ -377,8 +378,15 @@ Global options:
 ```text
 orchestron_cli patches list
 orchestron_cli patches get PATCH_ID
+orchestron_cli patches formulas operands
+orchestron_cli patches formulas list PATCH_ID
+orchestron_cli patches formulas set PATCH_ID --target NODE.PORT --expression "0.1 * in1"
+orchestron_cli patches formulas set PATCH_ID --target NODE.PORT --input wet=delay.aout --expression "wet * 0.35"
+orchestron_cli patches formulas clear PATCH_ID --target NODE.PORT
 orchestron_cli patches import FILE
 ```
+
+Patch input formulas are stored in `graph.ui_layout.input_formulas` with target keys such as `filter::xcf`. The CLI should validate target input ports through the opcode catalog, validate that explicit `--input TOKEN=NODE.PORT` bindings refer to existing inbound connections, and use the same expression grammar as the GUI/compiler: input tokens, decimal numbers, `sr`, `+`, `-`, `*`, `/`, parentheses, unary signs, and `abs`, `ceil`, `floor`, `ampdb`, `dbamp`.
 
 Import options:
 
