@@ -99,9 +99,9 @@ All runtimes now use `browser_clock` mode: the browser owns the PCM queue via We
 
 Runtime session creation is bounded to protect Csound worker resources. Deployments can tune the global active-session cap with `VISUALCSOUND_SESSION_MAX_ACTIVE`, the per-client cap with `VISUALCSOUND_SESSION_MAX_ACTIVE_PER_CLIENT`, the create-rate token bucket with `VISUALCSOUND_SESSION_CREATE_RATE_PER_MINUTE` and `VISUALCSOUND_SESSION_CREATE_RATE_BURST`, idle cleanup with `VISUALCSOUND_SESSION_IDLE_TIMEOUT_SECONDS`, and session event WebSocket observer capacity/rate with `VISUALCSOUND_SESSION_EVENT_WS_MAX_SUBSCRIPTIONS_TOTAL`, `VISUALCSOUND_SESSION_EVENT_WS_MAX_SUBSCRIPTIONS_PER_SESSION`, `VISUALCSOUND_SESSION_EVENT_WS_CONNECT_RATE_PER_MINUTE`, and `VISUALCSOUND_SESSION_EVENT_WS_CONNECT_RATE_BURST`.
 
-## Orchestron Performance Creator CLI
+## Orchestron Agent CLI Skills
 
-The agent-facing CLI lives in [`integrations/skills/orchestron-performance-creator/`](integrations/skills/orchestron-performance-creator/). It can stage performances through the backend, add melodic/drummer/controller sequencers, assign patterns to pads `1..8`, and create nested pad-loop arrangements with pause, group, and super-group tokens. See [`references/score_spec.md`](integrations/skills/orchestron-performance-creator/references/score_spec.md) for YAML/JSON score specs.
+The agent-facing patch CLI lives in [`integrations/skills/orchestron-patch-creator/`](integrations/skills/orchestron-patch-creator/) and creates Instrument Design patches from structured specs, including patch graph input formulas such as `0.1 * in1`. The performance CLI lives in [`integrations/skills/orchestron-performance-creator/`](integrations/skills/orchestron-performance-creator/) and stages songs/performances through the backend, including instrument assignments, sequencers, pad loops, arranger material, and patch formula edits on existing patches. See the skill-local references for patch specs, score specs, and formula commands.
 
 ## MIDI on macOS
 
