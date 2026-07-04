@@ -57,6 +57,7 @@ While instruments are running, rack assignment changes are locked:
 - Use `Add Instrument` to create another rack slot.
 - This enables multi-instrument performances driven by different MIDI channels.
 - Always-on effect patches are included only when they are explicitly added as rack slots.
+- In the `orchestron-performance-creator` CLI, run `edit add-standard-effects` after adding playable instruments to add the standard reverb, compressor, and speaker-output effect slots and route send/dry outlets.
 - The button is unavailable while the engine is running; stop instruments before changing rack assignments.
 
 ## Rack Transport (Instrument Engine Control)

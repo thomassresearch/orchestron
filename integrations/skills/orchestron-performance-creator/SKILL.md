@@ -56,6 +56,7 @@ uv run orchestron_cli --json patches formulas set "Lead Patch" --target filter.x
 uv run orchestron_cli --json performances list
 uv run orchestron_cli --json edit begin --new --name "Agent Sketch"
 uv run orchestron_cli --json edit add-instrument --patch "TB303" --channel 2
+uv run orchestron_cli --json edit add-standard-effects
 uv run orchestron_cli --json edit add-melodic --channel 2 --steps "s0=C3:min7/4s s4=F3:dom7/4s"
 uv run orchestron_cli --json edit add-melodic --channel 2 --grid-pattern "C3 . . ." --pad-grid-pattern "2=F3 . . ." --pad-loop "A P4 A" --pad-loop-group "A=1 2"
 uv run orchestron_cli --json edit add-drummer --channel 10 --groove backbeat
@@ -77,6 +78,7 @@ CLI and data formats:
 - For melodic step/chord syntax, read `references/chord_syntax.md`.
 - For YAML/JSON score specs, read `references/score_spec.md`.
 - For patch graph input formulas such as `0.1 * in1`, read `references/patch_formulas.md`.
+- For the standard always-on effect matrix, read `references/standard_effect_patching.md`.
 
 Composition and genre guidance:
 

@@ -14,10 +14,15 @@ sys.path.insert(0, str(PROJECT_ROOT / "src"))
 from orchestron.cli import orchestron_cli  # noqa: E402
 from orchestron.cli.orchestron_cli import (  # noqa: E402
     CliContext,
+    DIRECT_OUT_SEND_GAIN_EXPRESSION,
     OrchestronCliError,
+    ensure_standard_effect_matrix,
+    graph_audio_port_names,
     graph_with_input_formula,
+    graph_with_direct_outs_replaced_by_outletas,
     graph_without_input_formula,
     input_formula_rows,
+    read_input_formula_map,
     print_table,
 )
 
@@ -113,6 +118,36 @@ def _k_mul_spec() -> dict[str, object]:
     }
 
 
+def _direct_outs_graph() -> dict[str, object]:
+    return {
+        "nodes": [
+            {"id": "left_src", "opcode": "oscili", "params": {}, "position": {"x": 10, "y": 10}},
+            {"id": "right_src", "opcode": "oscili", "params": {}, "position": {"x": 10, "y": 80}},
+            {"id": "outs_1", "opcode": "outs", "params": {}, "position": {"x": 220, "y": 40}},
+        ],
+        "connections": [
+            {"from_node_id": "left_src", "from_port_id": "aout", "to_node_id": "outs_1", "to_port_id": "left"},
+            {"from_node_id": "right_src", "from_port_id": "aout", "to_node_id": "outs_1", "to_port_id": "right"},
+        ],
+        "ui_layout": {},
+        "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+    }
+
+
+def _routing_graph(*, inlets: tuple[str, ...] = (), outlets: tuple[str, ...] = ()) -> dict[str, object]:
+    nodes = []
+    for index, label in enumerate(inlets):
+        nodes.append({"id": f"in_{label}", "opcode": "inleta", "params": {"sname": label}, "position": {"x": 0, "y": index * 80}})
+    for index, label in enumerate(outlets):
+        nodes.append({"id": f"out_{label}", "opcode": "outleta", "params": {"sname": label}, "position": {"x": 260, "y": index * 80}})
+    return {
+        "nodes": nodes,
+        "connections": [],
+        "ui_layout": {},
+        "engine_config": {"sr": 48000, "ksmps": 64, "nchnls": 2, "0dbfs": 1.0},
+    }
+
+
 def test_graph_input_formula_auto_binds_inbound_connections_for_scaling() -> None:
     graph, formula = graph_with_input_formula(
         _formula_graph(),
@@ -131,6 +166,107 @@ def test_graph_input_formula_auto_binds_inbound_connections_for_scaling() -> Non
         ],
     }
     assert graph["ui_layout"]["input_formulas"]["m1::a"] == formula
+
+
+def test_direct_outs_graph_is_replaced_by_dry_and_send_outletas() -> None:
+    graph, converted = graph_with_direct_outs_replaced_by_outletas(_direct_outs_graph())
+
+    assert converted is True
+    assert "outs" not in {node["opcode"] for node in graph["nodes"]}
+    assert graph_audio_port_names(graph, opcode="outleta") == ["dryl", "dryr", "sendl", "sendr"]
+
+    outleta_by_label = {node["params"]["sname"]: node["id"] for node in graph["nodes"] if node["opcode"] == "outleta"}
+    formulas = read_input_formula_map(graph["ui_layout"])
+    for label in ("sendl", "sendr"):
+        formula = formulas[f"{outleta_by_label[label]}::asignal"]
+        assert formula["expression"] == DIRECT_OUT_SEND_GAIN_EXPRESSION
+        assert formula["inputs"][0]["token"] == "in1"
+    assert formulas[f"{outleta_by_label['sendl']}::asignal"]["inputs"][0]["from_node_id"] == "left_src"
+    assert formulas[f"{outleta_by_label['sendr']}::asignal"]["inputs"][0]["from_node_id"] == "right_src"
+
+
+def test_standard_effect_matrix_converts_direct_outputs_and_routes_chain() -> None:
+    patches = {
+        "lead": {
+            "id": "lead",
+            "name": "Lead",
+            "description": "",
+            "schema_version": 1,
+            "graph": _direct_outs_graph(),
+            "always_on": False,
+        },
+        "reverb": {
+            "id": "reverb",
+            "name": "reverb effect",
+            "description": "",
+            "schema_version": 1,
+            "graph": _routing_graph(inlets=("left", "right"), outlets=("left", "right")),
+            "always_on": True,
+        },
+        "compressor": {
+            "id": "compressor",
+            "name": "compressor effect",
+            "description": "",
+            "schema_version": 1,
+            "graph": _routing_graph(inlets=("left", "right"), outlets=("left", "right")),
+            "always_on": True,
+        },
+        "speaker": {
+            "id": "speaker",
+            "name": "speaker output",
+            "description": "",
+            "schema_version": 1,
+            "graph": _routing_graph(inlets=("left", "right")),
+            "always_on": True,
+        },
+    }
+
+    class FakeApiClient:
+        def get(self, path: str) -> object:
+            if path == "/patches":
+                return [
+                    {"id": patch["id"], "name": patch["name"], "always_on": patch["always_on"]}
+                    for patch in patches.values()
+                ]
+            if path.startswith("/patches/"):
+                return patches[path.removeprefix("/patches/")]
+            raise AssertionError(f"Unexpected GET {path}")
+
+        def post(self, path: str, payload: object) -> object:
+            assert path == "/patches"
+            assert isinstance(payload, dict)
+            patch_id = "lead-new"
+            patches[patch_id] = {"id": patch_id, **payload}
+            return patches[patch_id]
+
+    config = {
+        "version": 8,
+        "instruments": [{"patchId": "lead", "patchName": "Lead", "midiChannel": 1, "level": 10}],
+        "sequencer": {},
+    }
+
+    result = ensure_standard_effect_matrix(config, FakeApiClient())
+
+    assert result["convertedSources"] == [{"fromPatchId": "lead", "toPatchId": "lead-new", "name": "Lead_new"}]
+    source, reverb, compressor, speaker = config["instruments"]
+    assert source["id"] == "instrument-1"
+    assert source["patchId"] == "lead-new"
+    assert reverb["patchId"] == "reverb"
+    assert reverb["midiChannel"] == 0
+    assert reverb["effectRoutes"] == [
+        {"sourceId": "instrument-1", "channel": "sendl"},
+        {"sourceId": "instrument-1", "channel": "sendr"},
+    ]
+    assert compressor["effectRoutes"] == [
+        {"sourceId": "instrument-1", "channel": "dryl"},
+        {"sourceId": "instrument-1", "channel": "dryr"},
+        {"sourceId": "standard-reverb-effect", "channel": "left"},
+        {"sourceId": "standard-reverb-effect", "channel": "right"},
+    ]
+    assert speaker["effectRoutes"] == [
+        {"sourceId": "standard-compressor-effect", "channel": "left"},
+        {"sourceId": "standard-compressor-effect", "channel": "right"},
+    ]
 
 
 def test_graph_input_formula_accepts_explicit_connection_bindings() -> None:

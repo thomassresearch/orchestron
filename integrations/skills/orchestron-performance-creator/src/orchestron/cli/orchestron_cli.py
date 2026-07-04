@@ -29,6 +29,13 @@ FORMULA_TARGET_KEY_SEPARATOR = "::"
 FORMULA_UNARY_FUNCTIONS = frozenset({"abs", "ceil", "floor", "ampdb", "dbamp"})
 FORMULA_LITERAL_IDENTIFIERS = frozenset({"sr"})
 FORMULA_OPERATORS = ("+", "-", "*", "/")
+STANDARD_REVERB_PATCH_NAME = "reverb effect"
+STANDARD_COMPRESSOR_PATCH_NAME = "compressor effect"
+STANDARD_SPEAKER_PATCH_NAME = "speaker output"
+STANDARD_REVERB_BINDING_ID = "standard-reverb-effect"
+STANDARD_COMPRESSOR_BINDING_ID = "standard-compressor-effect"
+STANDARD_SPEAKER_BINDING_ID = "standard-speaker-output"
+DIRECT_OUT_SEND_GAIN_EXPRESSION = "0.1 * in1"
 
 SCALE_ROOTS = {
     "C": (0, False),
@@ -1506,6 +1513,512 @@ def find_by_id_or_name(items: list[dict[str, Any]], value: str, *, kind: str) ->
     )
 
 
+def find_by_first_id_or_name(items: list[dict[str, Any]], values: list[str], *, kind: str) -> dict[str, Any]:
+    errors: list[str] = []
+    for value in values:
+        if not value or not value.strip():
+            continue
+        try:
+            return find_by_id_or_name(items, value, kind=kind)
+        except OrchestronCliError as exc:
+            errors.append(exc.message)
+    label = ", ".join(repr(value) for value in values if value and value.strip())
+    raise OrchestronCliError(
+        f"{kind}_not_found",
+        f"No {kind} found for any of: {label}.",
+        retry=[f"Run `orchestron_cli {kind}s list` and retry with an exact ID or name."],
+        data={"lookup": values, "errors": errors},
+    )
+
+
+def patch_is_always_on(patch: dict[str, Any]) -> bool:
+    return bool(patch.get("always_on") is True or patch.get("alwaysOn") is True)
+
+
+def graph_nodes(graph: dict[str, Any]) -> list[dict[str, Any]]:
+    nodes = graph.get("nodes")
+    if not isinstance(nodes, list):
+        raise OrchestronCliError("invalid_patch_graph", "Patch graph has no valid nodes list.", path="graph.nodes")
+    return [node for node in nodes if isinstance(node, dict)]
+
+
+def graph_connections(graph: dict[str, Any]) -> list[dict[str, Any]]:
+    connections = graph.get("connections")
+    if not isinstance(connections, list):
+        raise OrchestronCliError("invalid_patch_graph", "Patch graph has no valid connections list.", path="graph.connections")
+    return [connection for connection in connections if isinstance(connection, dict)]
+
+
+def graph_audio_port_names(graph: dict[str, Any], *, opcode: str) -> list[str]:
+    names: set[str] = set()
+    nodes = graph_nodes(graph)
+    nodes_by_id = {str(node.get("id")): node for node in nodes if isinstance(node.get("id"), str)}
+    connections_by_target: dict[str, list[tuple[str, str]]] = {}
+    for connection in graph_connections(graph):
+        if connection.get("to_port_id") != "sname":
+            continue
+        to_node_id = connection.get("to_node_id")
+        from_node_id = connection.get("from_node_id")
+        from_port_id = connection.get("from_port_id")
+        if isinstance(to_node_id, str) and isinstance(from_node_id, str) and isinstance(from_port_id, str):
+            connections_by_target.setdefault(to_node_id, []).append((from_node_id, from_port_id))
+
+    for node in nodes:
+        if node.get("opcode") != opcode:
+            continue
+        node_id = node.get("id")
+        if not isinstance(node_id, str):
+            continue
+
+        connected_names: set[str] = set()
+        for source_node_id, source_port_id in connections_by_target.get(node_id, []):
+            source_node = nodes_by_id.get(source_node_id)
+            if source_port_id == "sout" and source_node and source_node.get("opcode") == "const_s":
+                params = source_node.get("params") if isinstance(source_node.get("params"), dict) else {}
+                raw_value = params.get("value")
+                if isinstance(raw_value, str) and raw_value.strip():
+                    connected_names.add(raw_value.strip())
+
+        if connected_names:
+            names.update(connected_names)
+            continue
+
+        if node_id in connections_by_target:
+            continue
+
+        params = node.get("params") if isinstance(node.get("params"), dict) else {}
+        raw_name = params.get("sname")
+        if isinstance(raw_name, str) and raw_name.strip():
+            names.add(raw_name.strip())
+    return sorted(names)
+
+
+def next_graph_node_id(used_ids: set[str], seed: str) -> str:
+    clean_seed = re.sub(r"[^A-Za-z0-9_:-]+", "_", seed).strip("_") or "node"
+    candidate = clean_seed
+    index = 2
+    while candidate in used_ids:
+        candidate = f"{clean_seed}_{index}"
+        index += 1
+    used_ids.add(candidate)
+    return candidate
+
+
+def graph_with_direct_outs_replaced_by_outletas(graph: dict[str, Any]) -> tuple[dict[str, Any], bool]:
+    next_graph = copy.deepcopy(graph)
+    nodes = graph_nodes(next_graph)
+    connections = graph_connections(next_graph)
+    outs_nodes = [node for node in nodes if node.get("opcode") == "outs"]
+    if not outs_nodes:
+        return next_graph, False
+
+    used_ids = {str(node.get("id")) for node in nodes if isinstance(node.get("id"), str)}
+    removed_node_ids = {str(node.get("id")) for node in outs_nodes if isinstance(node.get("id"), str)}
+    formulas = read_input_formula_map(next_graph.get("ui_layout", {}) if isinstance(next_graph.get("ui_layout"), dict) else {})
+
+    for target_key in list(formulas):
+        target_node_id, _target_port_id = parse_target_port_ref(target_key, field="target")
+        if target_node_id in removed_node_ids:
+            formulas.pop(target_key, None)
+
+    def inbound_source(outs_node: dict[str, Any], port_id: str) -> dict[str, str]:
+        outs_node_id = outs_node.get("id")
+        matches = [
+            connection
+            for connection in connections
+            if connection.get("to_node_id") == outs_node_id
+            and connection.get("to_port_id") == port_id
+            and isinstance(connection.get("from_node_id"), str)
+            and isinstance(connection.get("from_port_id"), str)
+        ]
+        if not matches:
+            raise OrchestronCliError(
+                "direct_outs_missing_input",
+                f"Cannot replace outs node '{outs_node_id}': input '{port_id}' has no source connection.",
+                path="graph.connections",
+                retry=["Connect both outs inputs before converting the patch for the standard effect matrix."],
+            )
+        source = matches[0]
+        return {"from_node_id": source["from_node_id"], "from_port_id": source["from_port_id"]}
+
+    def node_position(node: dict[str, Any], y_offset: int) -> dict[str, float]:
+        raw_position = node.get("position") if isinstance(node.get("position"), dict) else {}
+        x = float(raw_position.get("x", 0)) + 180.0
+        y = float(raw_position.get("y", 0)) + float(y_offset)
+        return {"x": x, "y": y}
+
+    new_nodes: list[dict[str, Any]] = []
+    new_connections: list[dict[str, Any]] = []
+    for outs_node in outs_nodes:
+        left_source = inbound_source(outs_node, "left")
+        right_source = inbound_source(outs_node, "right")
+        specs = [
+            ("dryl", left_source, -90, False),
+            ("sendl", left_source, -30, True),
+            ("dryr", right_source, 30, False),
+            ("sendr", right_source, 90, True),
+        ]
+        for label, source, y_offset, scale_send in specs:
+            outleta_id = next_graph_node_id(used_ids, f"{outs_node.get('id', 'outs')}_{label}")
+            new_nodes.append(
+                {
+                    "id": outleta_id,
+                    "opcode": "outleta",
+                    "params": {"sname": label},
+                    "position": node_position(outs_node, y_offset),
+                }
+            )
+            new_connections.append(
+                {
+                    "from_node_id": source["from_node_id"],
+                    "from_port_id": source["from_port_id"],
+                    "to_node_id": outleta_id,
+                    "to_port_id": "asignal",
+                }
+            )
+            if scale_send:
+                formulas[formula_target_key(outleta_id, "asignal")] = {
+                    "expression": DIRECT_OUT_SEND_GAIN_EXPRESSION,
+                    "inputs": [
+                        {
+                            "token": "in1",
+                            "from_node_id": source["from_node_id"],
+                            "from_port_id": source["from_port_id"],
+                        }
+                    ],
+                }
+
+    next_graph["nodes"] = [node for node in nodes if node.get("id") not in removed_node_ids] + new_nodes
+    next_graph["connections"] = [
+        connection for connection in connections if connection.get("to_node_id") not in removed_node_ids
+    ] + new_connections
+    ui_layout = next_graph.get("ui_layout")
+    if not isinstance(ui_layout, dict):
+        ui_layout = {}
+    next_graph["ui_layout"] = write_input_formula_map(ui_layout, formulas)
+    return next_graph, True
+
+
+def unique_patch_copy_name(base_name: str, taken_names: set[str]) -> str:
+    seed = f"{(base_name.strip() or 'Instrument')}_new"
+    candidate = seed
+    index = 2
+    while normalize_name_key(candidate) in taken_names:
+        candidate = f"{seed}_{index}"
+        index += 1
+    taken_names.add(normalize_name_key(candidate))
+    return candidate
+
+
+def label_key(label: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "", label.lower())
+
+
+def label_is_send(label: str) -> bool:
+    key = label_key(label)
+    return any(token in key for token in ("send", "aux", "fx", "wet", "effect", "verb", "reverb"))
+
+
+def label_is_dry(label: str) -> bool:
+    key = label_key(label)
+    if "dry" in key:
+        return True
+    return key in {"l", "r", "left", "right", "outl", "outr", "mainl", "mainr", "outputl", "outputr"}
+
+
+def stereo_side_for_label(label: str, labels: list[str]) -> str | None:
+    lower = label.lower()
+    labels_by_lower = {item.lower(): item for item in labels}
+    if lower in {"left", "l"} or lower.endswith("left"):
+        return "left"
+    if lower in {"right", "r"} or lower.endswith("right"):
+        return "right"
+    if lower.endswith("l") and f"{lower[:-1]}r" in labels_by_lower:
+        return "left"
+    if lower.endswith("r") and f"{lower[:-1]}l" in labels_by_lower:
+        return "right"
+    return None
+
+
+def stereo_order(labels: list[str]) -> list[str]:
+    def sort_key(label: str) -> tuple[int, str]:
+        side = stereo_side_for_label(label, labels)
+        if side == "left":
+            return 0, label.lower()
+        if side == "right":
+            return 1, label.lower()
+        return 2, label.lower()
+
+    return sorted(dict.fromkeys(labels), key=sort_key)
+
+
+def source_labels_for_role(labels: list[str], *, role: str) -> list[str]:
+    if role == "send":
+        return stereo_order([label for label in labels if label_is_send(label)])
+    if role == "dry":
+        explicit = [label for label in labels if label_is_dry(label)]
+        if explicit:
+            return stereo_order(explicit)
+        return stereo_order([label for label in labels if not label_is_send(label)])
+    return stereo_order(labels)
+
+
+def source_ids_from_routes(routes: list[dict[str, str]]) -> list[str]:
+    result: list[str] = []
+    seen: set[str] = set()
+    for route in routes:
+        source_id = route["sourceId"]
+        if source_id in seen:
+            continue
+        seen.add(source_id)
+        result.append(source_id)
+    return result[:16]
+
+
+def ensure_binding_id(binding: dict[str, Any], *, seed: str, used_ids: set[str]) -> str:
+    raw_id = binding.get("id")
+    if isinstance(raw_id, str) and raw_id.strip() and raw_id not in used_ids:
+        used_ids.add(raw_id)
+        return raw_id
+    candidate = seed
+    index = 2
+    while candidate in used_ids:
+        candidate = f"{seed}-{index}"
+        index += 1
+    binding["id"] = candidate
+    used_ids.add(candidate)
+    return candidate
+
+
+def ensure_standard_effect_binding(
+    instruments: list[dict[str, Any]],
+    *,
+    binding_id: str,
+    patch: dict[str, Any],
+) -> dict[str, Any]:
+    for instrument in instruments:
+        if instrument.get("id") == binding_id or instrument.get("patchId") == patch.get("id"):
+            instrument["id"] = binding_id
+            instrument["patchId"] = patch["id"]
+            instrument["patchName"] = patch["name"]
+            instrument["midiChannel"] = 0
+            instrument["level"] = clamp_int(instrument.get("level", 10), 1, 10, field="level")
+            instrument.setdefault("effectSourceIds", [])
+            instrument.setdefault("effectRoutes", [])
+            return instrument
+    binding = {
+        "id": binding_id,
+        "patchId": patch["id"],
+        "patchName": patch["name"],
+        "midiChannel": 0,
+        "level": 10,
+        "effectSourceIds": [],
+        "effectRoutes": [],
+    }
+    instruments.append(binding)
+    return binding
+
+
+def require_audio_ports(patch: dict[str, Any], *, opcode: str, role: str) -> list[str]:
+    graph = require_patch_graph(patch)
+    ports = graph_audio_port_names(graph, opcode=opcode)
+    if not ports:
+        raise OrchestronCliError(
+            "missing_audio_route_ports",
+            f"Standard {role} patch '{patch.get('name')}' has no {opcode} labels.",
+            path="graph.nodes",
+            retry=[f"Edit the patch so it exposes named {opcode} ports before building the standard effect matrix."],
+        )
+    return ports
+
+
+def resolve_standard_patch(
+    client: ApiClient,
+    patches: list[dict[str, Any]],
+    refs: list[str],
+    *,
+    role: str,
+) -> dict[str, Any]:
+    ref = find_by_first_id_or_name(patches, refs, kind="patch")
+    patch = client.get(f"/patches/{parse.quote(str(ref['id']))}")
+    if not patch_is_always_on(patch):
+        raise OrchestronCliError(
+            "standard_patch_not_always_on",
+            f"Standard {role} patch '{patch.get('name')}' is not marked always_on.",
+            path="patch.always_on",
+            retry=["Use an always-on patch, or mark the selected patch as Always On in Orchestron."],
+        )
+    return patch
+
+
+def route_entries(source_id: str, labels: list[str]) -> list[dict[str, str]]:
+    return [{"sourceId": source_id, "channel": label} for label in labels]
+
+
+def standard_effect_routes_for_sources(
+    source_bindings: list[dict[str, Any]],
+    source_patches_by_binding_id: dict[str, dict[str, Any]],
+    *,
+    reverb_binding_id: str,
+    reverb_patch: dict[str, Any],
+    compressor_binding_id: str,
+    compressor_patch: dict[str, Any],
+) -> tuple[list[dict[str, str]], list[dict[str, str]], list[str]]:
+    warnings: list[str] = []
+    reverb_routes: list[dict[str, str]] = []
+    compressor_routes: list[dict[str, str]] = []
+
+    for binding in source_bindings:
+        binding_id = str(binding["id"])
+        patch = source_patches_by_binding_id[binding_id]
+        outlet_labels = graph_audio_port_names(require_patch_graph(patch), opcode="outleta")
+        send_labels = source_labels_for_role(outlet_labels, role="send")
+        dry_labels = source_labels_for_role(outlet_labels, role="dry")
+        if send_labels:
+            reverb_routes.extend(route_entries(binding_id, send_labels))
+        else:
+            warnings.append(f"Instrument '{binding.get('patchName', binding.get('patchId'))}' has no send outleta labels.")
+        if dry_labels:
+            compressor_routes.extend(route_entries(binding_id, dry_labels))
+        else:
+            warnings.append(f"Instrument '{binding.get('patchName', binding.get('patchId'))}' has no dry outleta labels.")
+
+    reverb_outlets = graph_audio_port_names(require_patch_graph(reverb_patch), opcode="outleta")
+    if reverb_outlets:
+        compressor_routes.extend(route_entries(reverb_binding_id, source_labels_for_role(reverb_outlets, role="all")))
+    else:
+        warnings.append(f"Reverb patch '{reverb_patch.get('name')}' has no outleta labels for the compressor input.")
+
+    compressor_outlets = graph_audio_port_names(require_patch_graph(compressor_patch), opcode="outleta")
+    speaker_routes = route_entries(compressor_binding_id, source_labels_for_role(compressor_outlets, role="all"))
+    if not speaker_routes:
+        warnings.append(f"Compressor patch '{compressor_patch.get('name')}' has no outleta labels for the speaker input.")
+    return reverb_routes, compressor_routes, warnings
+
+
+def ensure_standard_effect_matrix(
+    config: dict[str, Any],
+    client: ApiClient,
+    *,
+    reverb_patch_ref: str = STANDARD_REVERB_PATCH_NAME,
+    compressor_patch_ref: str = STANDARD_COMPRESSOR_PATCH_NAME,
+    speaker_patch_ref: str = STANDARD_SPEAKER_PATCH_NAME,
+) -> dict[str, Any]:
+    raw_instruments = config.setdefault("instruments", [])
+    if not isinstance(raw_instruments, list):
+        raise OrchestronCliError("invalid_instruments", "config.instruments must be a list.", path="config.instruments")
+    instruments = [instrument for instrument in raw_instruments if isinstance(instrument, dict)]
+    config["instruments"] = instruments
+
+    patches = client.get("/patches")
+    taken_names = {normalize_name_key(str(patch.get("name", ""))) for patch in patches}
+    used_binding_ids: set[str] = set()
+    source_bindings: list[dict[str, Any]] = []
+    source_patches_by_binding_id: dict[str, dict[str, Any]] = {}
+    converted_sources: list[dict[str, str]] = []
+
+    for index, instrument in enumerate(instruments):
+        patch_id = instrument.get("patchId")
+        if not isinstance(patch_id, str) or not patch_id.strip():
+            continue
+        midi_channel = clamp_int(instrument.get("midiChannel", 1), 0, 16, field=f"config.instruments[{index}].midiChannel")
+        if midi_channel <= 0:
+            continue
+        binding_id = ensure_binding_id(instrument, seed=f"instrument-{midi_channel}", used_ids=used_binding_ids)
+        patch = client.get(f"/patches/{parse.quote(patch_id)}")
+        graph = require_patch_graph(patch)
+        converted_graph, converted = graph_with_direct_outs_replaced_by_outletas(graph)
+        if converted:
+            new_name = unique_patch_copy_name(str(patch.get("name", "Instrument")), taken_names)
+            payload = {
+                "name": new_name,
+                "description": patch.get("description", ""),
+                "schema_version": patch.get("schema_version", 1),
+                "graph": converted_graph,
+                "is_template": False,
+                "always_on": False,
+            }
+            saved = client.post("/patches", payload)
+            patch = {**payload, **saved, "graph": saved.get("graph", converted_graph)}
+            patches.append({"id": patch["id"], "name": patch["name"]})
+            instrument["patchId"] = patch["id"]
+            instrument["patchName"] = patch["name"]
+            converted_sources.append({"fromPatchId": patch_id, "toPatchId": patch["id"], "name": patch["name"]})
+        else:
+            instrument["patchName"] = patch.get("name", instrument.get("patchName"))
+        source_bindings.append(instrument)
+        source_patches_by_binding_id[binding_id] = patch
+
+    for instrument in instruments:
+        if isinstance(instrument, dict) and isinstance(instrument.get("id"), str):
+            used_binding_ids.add(instrument["id"])
+
+    reverb_patch = resolve_standard_patch(client, patches, [reverb_patch_ref], role="reverb effect")
+    compressor_patch = resolve_standard_patch(client, patches, [compressor_patch_ref], role="compressor effect")
+    speaker_refs = [speaker_patch_ref]
+    if normalize_name_key(speaker_patch_ref) == normalize_name_key(STANDARD_SPEAKER_PATCH_NAME):
+        speaker_refs.append("speaker ouput")
+    speaker_patch = resolve_standard_patch(client, patches, speaker_refs, role="speaker output")
+
+    require_audio_ports(reverb_patch, opcode="inleta", role="reverb effect")
+    require_audio_ports(reverb_patch, opcode="outleta", role="reverb effect")
+    require_audio_ports(compressor_patch, opcode="inleta", role="compressor effect")
+    require_audio_ports(speaker_patch, opcode="inleta", role="speaker output")
+    require_audio_ports(compressor_patch, opcode="outleta", role="compressor effect")
+
+    reverb_binding = ensure_standard_effect_binding(
+        instruments,
+        binding_id=STANDARD_REVERB_BINDING_ID,
+        patch=reverb_patch,
+    )
+    compressor_binding = ensure_standard_effect_binding(
+        instruments,
+        binding_id=STANDARD_COMPRESSOR_BINDING_ID,
+        patch=compressor_patch,
+    )
+    speaker_binding = ensure_standard_effect_binding(
+        instruments,
+        binding_id=STANDARD_SPEAKER_BINDING_ID,
+        patch=speaker_patch,
+    )
+
+    reverb_routes, compressor_routes, warnings = standard_effect_routes_for_sources(
+        source_bindings,
+        source_patches_by_binding_id,
+        reverb_binding_id=STANDARD_REVERB_BINDING_ID,
+        reverb_patch=reverb_patch,
+        compressor_binding_id=STANDARD_COMPRESSOR_BINDING_ID,
+        compressor_patch=compressor_patch,
+    )
+    speaker_routes = route_entries(
+        STANDARD_COMPRESSOR_BINDING_ID,
+        source_labels_for_role(graph_audio_port_names(require_patch_graph(compressor_patch), opcode="outleta"), role="all"),
+    )
+
+    reverb_binding["effectRoutes"] = reverb_routes
+    reverb_binding["effectSourceIds"] = source_ids_from_routes(reverb_routes)
+    compressor_binding["effectRoutes"] = compressor_routes
+    compressor_binding["effectSourceIds"] = source_ids_from_routes(compressor_routes)
+    speaker_binding["effectRoutes"] = speaker_routes
+    speaker_binding["effectSourceIds"] = source_ids_from_routes(speaker_routes)
+
+    return {
+        "sourceInstruments": len(source_bindings),
+        "convertedSources": converted_sources,
+        "standardEffects": [
+            {"role": "reverb", "bindingId": STANDARD_REVERB_BINDING_ID, "patchId": reverb_patch["id"], "routes": len(reverb_routes)},
+            {
+                "role": "compressor",
+                "bindingId": STANDARD_COMPRESSOR_BINDING_ID,
+                "patchId": compressor_patch["id"],
+                "routes": len(compressor_routes),
+            },
+            {"role": "speaker", "bindingId": STANDARD_SPEAKER_BINDING_ID, "patchId": speaker_patch["id"], "routes": len(speaker_routes)},
+        ],
+        "warnings": warnings,
+    }
+
+
 def suggest_unique_name(base_name: str, taken: set[str]) -> str:
     seed = base_name.strip() or "Imported"
     candidate = f"{seed} Copy"
@@ -2874,6 +3387,7 @@ def validate_edit_session(session: dict[str, Any], client: ApiClient) -> dict[st
     patches = client.get("/patches")
     patch_ids = {patch.get("id") for patch in patches}
     seen_channels: set[int] = set()
+    always_on_count = 0
     for index, instrument in enumerate(instruments):
         if not isinstance(instrument, dict):
             raise OrchestronCliError("invalid_instrument", "Instrument entries must be objects.", path=f"config.instruments[{index}]")
@@ -2885,16 +3399,20 @@ def validate_edit_session(session: dict[str, Any], client: ApiClient) -> dict[st
                 path=f"config.instruments[{index}].patchId",
                 retry=["Import or create the referenced patch, or change the instrument assignment."],
             )
-        channel = int(instrument.get("midiChannel", 1))
-        if channel in seen_channels:
+        patch_ref = next((patch for patch in patches if patch.get("id") == patch_id), {})
+        if patch_is_always_on(patch_ref):
+            always_on_count += 1
+        channel = clamp_int(instrument.get("midiChannel", 1), 0, 16, field=f"config.instruments[{index}].midiChannel")
+        if channel > 0 and channel in seen_channels:
             raise OrchestronCliError(
                 "duplicate_midi_channel",
                 f"MIDI channel {channel} is assigned more than once.",
                 path=f"config.instruments[{index}].midiChannel",
                 retry=["Use unique MIDI channels 1..16 for instrument assignments."],
             )
-        seen_channels.add(channel)
-    return {"valid": True, "instrument_count": len(instruments)}
+        if channel > 0:
+            seen_channels.add(channel)
+    return {"valid": True, "instrument_count": len(instruments), "always_on_count": always_on_count}
 
 
 def command_health(args: argparse.Namespace, ctx: CliContext) -> None:
@@ -3033,6 +3551,8 @@ def import_bundle(args: argparse.Namespace, ctx: CliContext) -> None:
                 "description": definition.get("description", ""),
                 "schema_version": int(definition.get("schema_version", 1)),
                 "graph": definition["graph"],
+                "is_template": bool(definition.get("isTemplate", definition.get("is_template", False))),
+                "always_on": bool(definition.get("alwaysOn", definition.get("always_on", False))),
             }
             if action == "update" and existing:
                 saved = client.put(f"/patches/{parse.quote(str(existing['id']))}", payload)
@@ -3194,24 +3714,59 @@ def command_edit_status(args: argparse.Namespace, ctx: CliContext) -> None:
 def command_edit_add_instrument(args: argparse.Namespace, ctx: CliContext) -> None:
     client = ApiClient(ctx.api_url, timeout=ctx.timeout)
     patch_ref = find_by_id_or_name(client.get("/patches"), args.patch, kind="patch")
+    is_always_on = patch_is_always_on(patch_ref)
 
     def mutate(config: dict[str, Any]) -> dict[str, Any]:
         instruments = config.setdefault("instruments", [])
-        channel = clamp_int(args.channel, 1, 16, field="channel")
-        if any(isinstance(item, dict) and int(item.get("midiChannel", -1)) == channel for item in instruments):
+        if is_always_on:
+            channel = 0
+        elif args.channel is None:
+            raise OrchestronCliError(
+                "missing_midi_channel",
+                "Non-always-on instruments require --channel 1..16.",
+                retry=["Pass --channel with a MIDI channel that is not already assigned."],
+            )
+        else:
+            channel = clamp_int(args.channel, 1, 16, field="channel")
+        if channel > 0 and any(isinstance(item, dict) and int(item.get("midiChannel", -1)) == channel for item in instruments):
             raise OrchestronCliError(
                 "duplicate_midi_channel",
                 f"MIDI channel {channel} already has an instrument assignment.",
                 retry=["Use a different --channel or remove the existing assignment first."],
             )
+        used_ids = {str(item.get("id")) for item in instruments if isinstance(item, dict) and isinstance(item.get("id"), str)}
+        id_seed = f"instrument-{channel}" if channel > 0 else f"always-on-{normalize_name_key(str(patch_ref['name'])).replace(' ', '-')}"
+        binding_id = id_seed
+        suffix = 2
+        while binding_id in used_ids:
+            binding_id = f"{id_seed}-{suffix}"
+            suffix += 1
         binding = {
+            "id": binding_id,
             "patchId": patch_ref["id"],
             "patchName": patch_ref["name"],
             "midiChannel": channel,
             "level": clamp_int(args.level, 1, 10, field="level"),
+            "effectSourceIds": [],
+            "effectRoutes": [],
         }
         instruments.append(binding)
         return binding
+
+    print_payload(update_session_config(ctx, mutate), ctx)
+
+
+def command_edit_add_standard_effects(args: argparse.Namespace, ctx: CliContext) -> None:
+    client = ApiClient(ctx.api_url, timeout=ctx.timeout)
+
+    def mutate(config: dict[str, Any]) -> dict[str, Any]:
+        return ensure_standard_effect_matrix(
+            config,
+            client,
+            reverb_patch_ref=args.reverb_patch,
+            compressor_patch_ref=args.compressor_patch,
+            speaker_patch_ref=args.speaker_patch,
+        )
 
     print_payload(update_session_config(ctx, mutate), ctx)
 
@@ -3388,6 +3943,8 @@ def command_edit_commit(args: argparse.Namespace, ctx: CliContext) -> None:
             "sourcePatchId": patch["id"],
             "name": patch["name"],
             "description": patch.get("description", ""),
+            "isTemplate": bool(patch.get("is_template", patch.get("isTemplate", False))),
+            "alwaysOn": patch_is_always_on(patch),
             "schema_version": patch.get("schema_version", 1),
             "graph": patch["graph"],
         }
@@ -3567,9 +4124,21 @@ def build_parser() -> argparse.ArgumentParser:
     status.set_defaults(func=command_edit_status)
     add_inst = edit_sub.add_parser("add-instrument", help="Add an instrument assignment to the staged performance.")
     add_inst.add_argument("--patch", required=True, help="Patch ID or exact name.")
-    add_inst.add_argument("--channel", required=True, type=int, help="MIDI channel 1..16.")
+    add_inst.add_argument("--channel", type=int, help="MIDI channel 1..16. Always-on patches use channel 0.")
     add_inst.add_argument("--level", type=int, default=10, help="Instrument level 1..10.")
     add_inst.set_defaults(func=command_edit_add_instrument)
+    add_fx = edit_sub.add_parser(
+        "add-standard-effects",
+        help="Add the standard always-on reverb, compressor, and speaker-output routing matrix.",
+    )
+    add_fx.add_argument("--reverb-patch", default=STANDARD_REVERB_PATCH_NAME, help="Reverb always-on patch ID or exact name.")
+    add_fx.add_argument(
+        "--compressor-patch",
+        default=STANDARD_COMPRESSOR_PATCH_NAME,
+        help="Compressor always-on patch ID or exact name.",
+    )
+    add_fx.add_argument("--speaker-patch", default=STANDARD_SPEAKER_PATCH_NAME, help="Speaker-output always-on patch ID or exact name.")
+    add_fx.set_defaults(func=command_edit_add_standard_effects)
     add_mel = edit_sub.add_parser("add-melodic", help="Add a melodic sequencer with explicit step/chord patterns.")
     add_mel.add_argument("--channel", required=True, type=int, help="MIDI channel 1..16.")
     add_mel.add_argument("--name", help="Track name.")
