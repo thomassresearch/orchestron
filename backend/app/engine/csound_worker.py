@@ -203,7 +203,6 @@ class CsoundWorker:
             return False
         with self._lock:
             current_engine_sample = self._render_sample_cursor
-            runtime_sr = self._runtime_sr
         if target_engine_sample is not None:
             success, _ = self._midi_scheduler.enqueue(
                 message,
@@ -381,6 +380,11 @@ class CsoundWorker:
                 )
                 rendered_blocks.append(block)
                 source_frames_rendered += source_ksmps
+                # The next block (and MIDI received while this request is still
+                # rendering) must see the actual end of completed engine audio,
+                # not the cursor captured when the request began.
+                with self._lock:
+                    self._render_sample_cursor = block_end_sample
 
             if rendered_blocks:
                 merged = np.concatenate(rendered_blocks, axis=0)
@@ -396,7 +400,6 @@ class CsoundWorker:
 
             pcm = np.ascontiguousarray(merged.astype(np.float32, copy=False))
             with self._lock:
-                self._render_sample_cursor += source_frames_rendered
                 sample_end = self._render_sample_cursor
 
             return EngineRenderResult(
@@ -424,14 +427,15 @@ class CsoundWorker:
         sample_start = self._render_sample_cursor
         before_block_arity = self._callback_arity(before_block)
         for block_index in range(block_count):
+            block_start_sample = sample_start + (block_index * source_ksmps)
             if before_block is not None:
-                block_start_sample = sample_start + (block_index * source_ksmps)
                 if before_block_arity >= 2:
                     before_block(block_index, block_start_sample)
                 else:
                     before_block(block_index)
-        sample_end = sample_start + (block_count * source_ksmps)
-        self._render_sample_cursor = sample_end
+            with self._lock:
+                self._render_sample_cursor = block_start_sample + source_ksmps
+        sample_end = self._render_sample_cursor
         target_frames = max(1, int(round((block_count * source_ksmps) * (target_sample_rate / source_sr))))
         pcm = np.zeros((target_frames, 2), dtype=np.float32)
         return EngineRenderResult(

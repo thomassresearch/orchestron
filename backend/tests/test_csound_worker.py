@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import os
-import sys
-
 import numpy as np
 import pytest
 
@@ -334,7 +331,16 @@ def test_browser_clock_mock_runtime_renders_exact_block_windows(monkeypatch) -> 
     assert worker.is_running is True
     assert worker._thread is None
 
-    first = worker.render_blocks(block_count=3, target_sample_rate=48_000)
+    observed_cursors: list[tuple[int, int]] = []
+
+    def before_block(_block_index: int, block_start_sample: int) -> None:
+        observed_cursors.append((block_start_sample, worker.render_sample_cursor))
+
+    first = worker.render_blocks(
+        block_count=3,
+        target_sample_rate=48_000,
+        before_block=before_block,
+    )
     second = worker.render_blocks(block_count=1, target_sample_rate=48_000)
 
     assert first.engine_sample_start == 0
@@ -342,6 +348,7 @@ def test_browser_clock_mock_runtime_renders_exact_block_windows(monkeypatch) -> 
     assert first.block_count == 3
     assert first.target_frame_count == 192
     assert len(first.pcm_f32le) == 192 * 2 * 4
+    assert observed_cursors == [(0, 0), (64, 64), (128, 128)]
     assert second.engine_sample_start == 192
     assert second.engine_sample_end == 256
     assert worker.render_sample_cursor == 256
@@ -423,3 +430,58 @@ def test_browser_clock_ctcsound_runtime_resamples_merged_blocks_once_per_request
     assert render.target_frame_count == 139
     assert pcm.shape == (139, 2)
     assert np.isfinite(pcm).all()
+
+
+def test_browser_clock_ctcsound_cursor_tracks_each_completed_block_for_internal_midi() -> None:
+    class FakeCsound:
+        def performKsmps(self) -> int:  # noqa: N802
+            return 0
+
+        def spout(self) -> np.ndarray:
+            return np.zeros((64, 2), dtype=np.float32)
+
+    worker = CsoundWorker()
+    worker._backend = "ctcsound"
+    worker._audio_output_mode = "browser_clock"
+    worker._csound = FakeCsound()
+    worker._running = True
+    worker._host_midi_enabled = True
+    worker._runtime_sr = 48_000
+    worker._runtime_nchnls = 2
+    worker._runtime_ksmps = 64
+    worker._midi_scheduler.set_engine_sample_rate(48_000)
+
+    observed_cursors: list[tuple[int, int]] = []
+    drained_events = []
+    original_drain_block = worker._midi_scheduler.drain_block
+
+    def capture_drain_block(*, block_start_sample: int, block_end_sample: int):
+        events = original_drain_block(
+            block_start_sample=block_start_sample,
+            block_end_sample=block_end_sample,
+        )
+        drained_events.extend(events)
+        return events
+
+    worker._midi_scheduler.drain_block = capture_drain_block  # type: ignore[method-assign]
+
+    def before_block(_block_index: int, block_start_sample: int) -> None:
+        observed_cursors.append((block_start_sample, worker.render_sample_cursor))
+        assert worker.midi_output.send_scheduled_message(
+            "internal:loopback",
+            [0x90, 60, 100],
+            delivery_delay_seconds=None,
+        ) == "engine:internal"
+
+    render = worker.render_blocks(
+        block_count=3,
+        target_sample_rate=48_000,
+        before_block=before_block,
+    )
+
+    assert observed_cursors == [(0, 0), (64, 64), (128, 128)]
+    assert [event.target_engine_sample for event in drained_events] == [0, 64, 128]
+    assert all(event.late is False for event in drained_events)
+    assert render.engine_sample_start == 0
+    assert render.engine_sample_end == 192
+    assert worker.render_sample_cursor == 192

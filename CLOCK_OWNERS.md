@@ -18,6 +18,16 @@ Everything else either:
 
 ## The Clock Domains
 
+```mermaid
+flowchart LR
+  B["Browser PCM queue"] -->|"low water"| R["request_render"]
+  R --> S["Sequencer advances one Csound k-block"]
+  S --> M["MIDI scheduler / router"]
+  M --> C["Csound performKsmps()"]
+  C --> P["PCM chunk"]
+  P --> B
+```
+
 ### 1. Browser playback clock
 
 Owner:
@@ -78,6 +88,7 @@ Responsibility:
 
 - target sample positions for queued MIDI
 - block boundaries for `performKsmps()`
+- advancing the cursor after every successfully rendered k-block
 
 This is the most important backend timing domain.
 
@@ -105,6 +116,8 @@ That means:
 - there is no session wall-clock transport thread driving note timing
 
 So the backend sequencer runtime owns transport state, but it advances only when audio rendering advances.
+It does not maintain a separate, lower-rate look-ahead event buffer: each render block advances
+transport state and queues events for that block before Csound renders it.
 
 ## What Owns MIDI Event Timing
 
