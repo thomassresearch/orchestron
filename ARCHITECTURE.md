@@ -82,6 +82,17 @@ flowchart LR
 - Each request advances Csound block-by-block with `performKsmps()`.
 - The browser queues returned PCM and owns the final playback clock.
 
+```mermaid
+flowchart LR
+  UI["React GUI"] -->|"commands only"| AW["Dedicated audio worker"]
+  AW -->|"render requests"| BE["Backend render worker"]
+  BE -->|"PCM + timed transport markers"| AW
+  AW --> SAB["Shared PCM ring buffer"]
+  SAB --> WK["AudioWorklet"]
+  WK --> OUT["Audio output"]
+  UI -->|"request current visual snapshot"| AW
+```
+
 ### Internal MIDI
 
 Internal producers include:
