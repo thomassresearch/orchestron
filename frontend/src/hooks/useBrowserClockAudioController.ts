@@ -3,6 +3,11 @@ import type { MutableRefObject } from "react";
 
 import { api } from "../api/client";
 import { BrowserClockAudioClient } from "../lib/browserClockAudio";
+import { sequencerTransportSubunitsPerLocalStep } from "../lib/sequencer";
+import type {
+  AudibleBrowserClockTransportEvent,
+  BrowserClockWorkerDiagnostics
+} from "../audio/browserClockWorkerProtocol";
 import type {
   BrowserClockLatencySettings,
   RuntimeConfigResponse,
@@ -16,17 +21,20 @@ import type {
 type BrowserAudioStatus = "off" | "connecting" | "live" | "error";
 
 interface UseBrowserClockAudioControllerParams {
+  applyBrowserClockTransportEventsRef: MutableRefObject<(events: AudibleBrowserClockTransportEvent[]) => void>;
   applySequencerStatusRef: MutableRefObject<(status: SessionSequencerStatus) => void>;
   browserClockLatencySettings: BrowserClockLatencySettings;
   events: SessionEvent[];
   sequencer: SequencerState;
   sequencerRuntime: SequencerRuntimeState;
   setBrowserClockLatencySettings: (settings: BrowserClockLatencySettings) => void;
+  visualUpdatesEnabled: boolean;
 }
 
 interface UseBrowserClockAudioControllerResult {
   browserClockClientRef: MutableRefObject<BrowserClockAudioClient>;
   browserAudioError: string | null;
+  browserAudioDiagnostics: BrowserClockWorkerDiagnostics | null;
   browserAudioStatus: BrowserAudioStatus;
   browserAudioTransport: "browser_clock" | "off";
   disconnectBrowserAudio: () => void;
@@ -54,12 +62,14 @@ function transportPositionFromTransportSubunit(transportSubunit: number, stepCou
 }
 
 export function useBrowserClockAudioController({
+  applyBrowserClockTransportEventsRef,
   applySequencerStatusRef,
   browserClockLatencySettings,
   events,
   sequencer,
   sequencerRuntime,
-  setBrowserClockLatencySettings
+  setBrowserClockLatencySettings,
+  visualUpdatesEnabled
 }: UseBrowserClockAudioControllerParams): UseBrowserClockAudioControllerResult {
   const runtimeConfigRef = useRef<RuntimeConfigResponse | null>(null);
   const runtimeConfigPromiseRef = useRef<Promise<RuntimeConfigResponse> | null>(null);
@@ -67,6 +77,7 @@ export function useBrowserClockAudioController({
   const [browserClockPlaybackTransportSubunit, setBrowserClockPlaybackTransportSubunit] = useState<number | null>(null);
   const [browserAudioStatus, setBrowserAudioStatus] = useState<BrowserAudioStatus>("off");
   const [browserAudioError, setBrowserAudioError] = useState<string | null>(null);
+  const [browserAudioDiagnostics, setBrowserAudioDiagnostics] = useState<BrowserClockWorkerDiagnostics | null>(null);
   const [runtimeAudioOutputMode, setRuntimeAudioOutputMode] = useState<SessionAudioOutputMode | null>(null);
 
   useEffect(() => {
@@ -81,9 +92,13 @@ export function useBrowserClockAudioController({
         onSequencerStatus: (status) => {
           applySequencerStatusRef.current(status);
         },
+        onTransportEvents: (transportEvents) => {
+          applyBrowserClockTransportEventsRef.current(transportEvents);
+        },
+        onDiagnostics: setBrowserAudioDiagnostics,
         getLatencySettings: () => browserClockLatencySettingsRef.current
       }),
-    [applySequencerStatusRef]
+    [applyBrowserClockTransportEventsRef, applySequencerStatusRef]
   );
   const browserClockClientRef = useRef(browserClockClient);
 
@@ -153,27 +168,54 @@ export function useBrowserClockAudioController({
   }, [displayedSequencerTransportSubunit, effectiveAudioOutputMode, sequencer]);
 
   useEffect(() => {
-    if (effectiveAudioOutputMode !== "browser_clock" || !sequencer.isPlaying) {
+    if (effectiveAudioOutputMode !== "browser_clock" || !sequencer.isPlaying || !visualUpdatesEnabled) {
       setBrowserClockPlaybackTransportSubunit(null);
       return;
     }
 
+    let frameId = 0;
+    let previousSignature: number | null = null;
+    let cancelled = false;
+    const visualTracks = [...sequencer.tracks, ...sequencer.drummerTracks].map((track) => ({
+      anchor: typeof track.runtimePadStartSubunit === "number" ? track.runtimePadStartSubunit : 0,
+      span: Math.max(1, Math.round(sequencerTransportSubunitsPerLocalStep(track.timing))),
+      stepCount: Math.max(1, track.stepCount)
+    }));
+    const visualSignature = (transportSubunit: number): number => {
+      let signature = Math.floor(transportSubunit / 420) >>> 0;
+      for (let index = 0; index < visualTracks.length; index += 1) {
+        const track = visualTracks[index];
+        const localStep = Math.floor(Math.max(0, transportSubunit - track.anchor) / track.span) % track.stepCount;
+        signature = Math.imul(signature ^ localStep ^ (index + 1), 16_777_619) >>> 0;
+      }
+      return signature;
+    };
+
     const syncPlaybackTransport = () => {
+      if (cancelled) {
+        return;
+      }
+      if (document.visibilityState !== "visible") {
+        frameId = window.requestAnimationFrame(syncPlaybackTransport);
+        return;
+      }
       const transportSubunit = browserClockClientRef.current.getPlaybackTransportSubunit();
-      setBrowserClockPlaybackTransportSubunit((previous) => {
-        if (transportSubunit === null || transportSubunit === undefined) {
-          return previous;
+      if (transportSubunit !== null && transportSubunit !== undefined) {
+        const signature = visualSignature(transportSubunit);
+        if (signature !== previousSignature) {
+          previousSignature = signature;
+          setBrowserClockPlaybackTransportSubunit(transportSubunit);
         }
-        return previous !== null && Math.abs(previous - transportSubunit) < 0.25 ? previous : transportSubunit;
-      });
+      }
+      frameId = window.requestAnimationFrame(syncPlaybackTransport);
     };
 
     syncPlaybackTransport();
-    const timer = window.setInterval(syncPlaybackTransport, 30);
     return () => {
-      window.clearInterval(timer);
+      cancelled = true;
+      window.cancelAnimationFrame(frameId);
     };
-  }, [effectiveAudioOutputMode, sequencer.isPlaying]);
+  }, [effectiveAudioOutputMode, sequencer, visualUpdatesEnabled]);
 
   const disconnectBrowserClockAudio = useCallback(() => {
     void browserClockClientRef.current.disconnect();
@@ -186,6 +228,7 @@ export function useBrowserClockAudioController({
   const resetBrowserAudioState = useCallback(() => {
     setBrowserAudioStatus("off");
     setBrowserAudioError(null);
+    setBrowserAudioDiagnostics(null);
   }, []);
 
   const reportBrowserAudioConnectionError = useCallback((error: unknown) => {
@@ -233,6 +276,7 @@ export function useBrowserClockAudioController({
   return {
     browserClockClientRef,
     browserAudioError,
+    browserAudioDiagnostics,
     browserAudioStatus,
     browserAudioTransport,
     disconnectBrowserAudio,

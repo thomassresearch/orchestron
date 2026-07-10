@@ -4,6 +4,18 @@
 
 The Perform page includes several status for live operation.
 
+## Browser Audio Health
+
+The Runtime panel shows queued PCM and pending-render milliseconds, underrun and overrun counters, and
+the latest backend render-time/audio-time percentage while a browser-clock session is active.
+
+Audio refills and PCM writes run in a Dedicated Worker. Sequencer step and pad updates are carried with
+the rendered PCM and applied only when their target frame becomes audible. If the Perform page is hidden,
+visual animation pauses and resumes from the current audible snapshot instead of replaying missed steps.
+
+Performances are limited to 128 flattened backend note tracks. Each drummer row becomes one backend note
+track, so the total includes melodic sequencers plus all drummer rows.
+
 ## Footer Status Bar
 
 At the bottom of the Perform page, Orchestron shows live status values such as:

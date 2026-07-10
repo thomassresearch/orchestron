@@ -10,18 +10,18 @@ import { sequencerTransportStepsPerBeat } from "../lib/sequencer";
 import {
   aggregateDrummerRuntimeTrackLocalSteps,
   aggregateDrummerRuntimeTrackStatuses,
-  type BrowserClockQueuedTransportEvent,
   isSessionNotFoundApiError,
   parseDrummerRowRuntimeTrackId,
-  parseSequencerPadSwitchEventPayload,
+  parseSequencerPadSwitchesEventPayload,
   parseSequencerStepEventPayload,
   shouldLogSessionEvent,
-  type SequencerPadSwitchEventPayload,
+  type SequencerPadSwitchesEventPayload,
   type SequencerStepEventPayload
 } from "../lib/sequencerRuntime";
 import { useAppStore } from "../store/useAppStore";
 import type {
   BrowserClockLatencySettings,
+  AppPage,
   DrummerSequencerTrackState,
   SessionArpeggiatorConfigRequest,
   SessionArpeggiatorStatus,
@@ -37,6 +37,7 @@ import type {
 } from "../types";
 
 import { useBrowserClockAudioController } from "./useBrowserClockAudioController";
+import type { AudibleBrowserClockTransportEvent } from "../audio/browserClockWorkerProtocol";
 
 type AppStoreState = ReturnType<typeof useAppStore.getState>;
 
@@ -51,6 +52,7 @@ type SequencerRuntimeControllerErrors = {
 };
 
 interface UseSequencerRuntimeControllerParams {
+  activePage: AppPage;
   activeSessionId: string | null;
   activeSessionState: SessionState;
   browserClockLatencySettings: BrowserClockLatencySettings;
@@ -77,6 +79,7 @@ interface UseSequencerRuntimeControllerParams {
 
 interface UseSequencerRuntimeControllerResult {
   browserAudioError: string | null;
+  browserAudioDiagnostics: import("../audio/browserClockWorkerProtocol").BrowserClockWorkerDiagnostics | null;
   browserAudioStatus: "off" | "connecting" | "live" | "error";
   browserAudioTransport: "browser_clock" | "off";
   displayedSequencer: SequencerState;
@@ -100,6 +103,7 @@ type ApplySequencerStatusOptions = {
 };
 
 export function useSequencerRuntimeController({
+  activePage,
   activeSessionId,
   activeSessionState,
   browserClockLatencySettings,
@@ -129,11 +133,14 @@ export function useSequencerRuntimeController({
   const applySequencerStatusRef = useRef<
     (status: SessionSequencerStatus, options?: ApplySequencerStatusOptions) => void
   >(() => undefined);
-  const browserClockTransportEventQueueRef = useRef<BrowserClockQueuedTransportEvent[]>([]);
+  const applyBrowserClockTransportEventsRef = useRef<(events: AudibleBrowserClockTransportEvent[]) => void>(
+    () => undefined
+  );
 
   const {
     browserClockClientRef,
     browserAudioError,
+    browserAudioDiagnostics,
     browserAudioStatus,
     browserAudioTransport,
     disconnectBrowserAudio,
@@ -147,12 +154,14 @@ export function useSequencerRuntimeController({
     resetBrowserAudioState,
     runtimeAudioOutputMode
   } = useBrowserClockAudioController({
+    applyBrowserClockTransportEventsRef,
     applySequencerStatusRef,
     browserClockLatencySettings,
     events,
     sequencer,
     sequencerRuntime,
-    setBrowserClockLatencySettings
+    setBrowserClockLatencySettings,
+    visualUpdatesEnabled: activePage === "sequencer"
   });
 
   useEffect(() => {
@@ -258,9 +267,6 @@ export function useSequencerRuntimeController({
 
   const applySequencerStatus = useCallback(
     (status: SessionSequencerStatus, options?: ApplySequencerStatusOptions) => {
-      if (effectiveAudioOutputModeRef.current === "browser_clock") {
-        browserClockTransportEventQueueRef.current = [];
-      }
       const preserveLocalEnablement =
         status.running && (options?.preserveLocalEnablement ?? sequencerConfigSyncPendingRef.current);
       const melodicTrackStatuses = status.tracks.filter((track) => parseDrummerRowRuntimeTrackId(track.track_id) === null);
@@ -350,8 +356,8 @@ export function useSequencerRuntimeController({
     [syncSequencerTransportRuntime]
   );
 
-  const applyBrowserClockPadSwitchEvent = useCallback(
-    (payload: SequencerPadSwitchEventPayload) => {
+  const applyBrowserClockPadSwitchesEvent = useCallback(
+    (payload: SequencerPadSwitchesEventPayload) => {
       const preserveLocalEnablement = payload.running && sequencerConfigSyncPendingRef.current;
       applyBrowserClockSequencerStepEvent({
         previous_step: payload.current_step,
@@ -364,119 +370,111 @@ export function useSequencerRuntimeController({
         controller_tracks: payload.controller_tracks
       });
 
-      if (payload.track_kind === "controller") {
-        syncControllerSequencerRuntime([
-          {
-            controllerSequencerId: payload.track_id,
-            activePad: payload.active_pad,
-            queuedPad: payload.queued_pad,
-            padLoopPosition: payload.pad_loop_position,
-            runtimePadStartSubunit: payload.runtime_pad_start_subunit,
-            ...(preserveLocalEnablement ? {} : { enabled: payload.running && payload.enabled === true })
-          }
-        ]);
-        return;
+      const controllerUpdates: Array<{
+        controllerSequencerId: string;
+        activePad?: number;
+        queuedPad?: number | null;
+        padLoopPosition?: number | null;
+        runtimePadStartSubunit?: number | null;
+        enabled?: boolean;
+      }> = [];
+      const melodicUpdates: Array<{
+        trackId: string;
+        localStep?: number;
+        runtimePadStartSubunit?: number | null;
+        activePad?: number;
+        queuedPad?: number | null;
+        padLoopPosition?: number | null;
+        enabled?: boolean;
+        queuedEnabled?: boolean | null;
+      }> = [];
+      const drummerUpdates: typeof melodicUpdates = [];
+
+      for (const switched of payload.switches) {
+        if (switched.track_kind === "controller") {
+          controllerUpdates.push({
+            controllerSequencerId: switched.track_id,
+            activePad: switched.active_pad,
+            queuedPad: switched.queued_pad,
+            padLoopPosition: switched.pad_loop_position,
+            runtimePadStartSubunit: switched.runtime_pad_start_subunit,
+            ...(preserveLocalEnablement ? {} : { enabled: payload.running && switched.enabled === true })
+          });
+          continue;
+        }
+
+        const update = {
+          trackId: switched.track_id,
+          localStep: switched.local_step ?? undefined,
+          activePad: switched.active_pad,
+          queuedPad: switched.queued_pad,
+          padLoopPosition: switched.pad_loop_position,
+          runtimePadStartSubunit: switched.runtime_pad_start_subunit,
+          ...(preserveLocalEnablement
+            ? {}
+            : {
+                enabled: payload.running && switched.enabled === true,
+                queuedEnabled: payload.running ? switched.queued_enabled : null
+              })
+        };
+        const drummerTrack = parseDrummerRowRuntimeTrackId(switched.track_id);
+        if (drummerTrack) {
+          drummerUpdates.push({ ...update, trackId: drummerTrack.drummerTrackId });
+        } else {
+          melodicUpdates.push(update);
+        }
       }
 
-      const drummerTrack = parseDrummerRowRuntimeTrackId(payload.track_id);
-      if (drummerTrack) {
+      if (controllerUpdates.length > 0) {
+        syncControllerSequencerRuntime(controllerUpdates);
+      }
+      if (melodicUpdates.length > 0 || drummerUpdates.length > 0) {
         syncSequencerRuntime({
           isPlaying: payload.running,
           transportStepCount: payload.step_count,
           playhead: payload.current_step,
           cycle: payload.cycle,
           transportSubunit: payload.transport_subunit,
-          drummerTracks: [
-            {
-              trackId: drummerTrack.drummerTrackId,
-              localStep: payload.local_step ?? undefined,
-              activePad: payload.active_pad,
-              queuedPad: payload.queued_pad,
-              padLoopPosition: payload.pad_loop_position,
-              runtimePadStartSubunit: payload.runtime_pad_start_subunit,
-              ...(preserveLocalEnablement
-                ? {}
-                : {
-                    enabled: payload.running && payload.enabled === true,
-                    queuedEnabled: payload.running ? payload.queued_enabled : null
-                  })
-            }
-          ]
+          tracks: melodicUpdates,
+          drummerTracks: drummerUpdates
         });
-        return;
       }
-
-      syncSequencerRuntime({
-        isPlaying: payload.running,
-        transportStepCount: payload.step_count,
-        playhead: payload.current_step,
-        cycle: payload.cycle,
-        transportSubunit: payload.transport_subunit,
-        tracks: [
-          {
-            trackId: payload.track_id,
-            localStep: payload.local_step ?? undefined,
-            activePad: payload.active_pad,
-            queuedPad: payload.queued_pad,
-            padLoopPosition: payload.pad_loop_position,
-            runtimePadStartSubunit: payload.runtime_pad_start_subunit,
-            ...(preserveLocalEnablement
-              ? {}
-              : {
-                  enabled: payload.running && payload.enabled === true,
-                  queuedEnabled: payload.running ? payload.queued_enabled : null
-                })
-          }
-        ]
-      });
     },
     [applyBrowserClockSequencerStepEvent, syncControllerSequencerRuntime, syncSequencerRuntime]
   );
 
-  useEffect(() => {
-    if (effectiveAudioOutputMode !== "browser_clock" || !sequencer.isPlaying) {
-      browserClockTransportEventQueueRef.current = [];
-      return;
-    }
-
-    let frameId = 0;
-    let cancelled = false;
-    function drainTransportQueue(): void {
-      if (cancelled) {
-        return;
+  applyBrowserClockTransportEventsRef.current = (transportEvents) => {
+    const visualTrackingEnabled = activePage === "sequencer" && document.visibilityState === "visible";
+    for (const transportEvent of transportEvents) {
+      if (transportEvent.kind === "stopped") {
+        syncSequencerTransportRuntime({ isPlaying: false });
+        continue;
       }
-
-      const playbackTransportSubunit = browserClockClientRef.current.getPlaybackTransportSubunit();
-      if (playbackTransportSubunit !== null && playbackTransportSubunit !== undefined) {
-        const queue = browserClockTransportEventQueueRef.current;
-        while (queue.length > 0 && queue[0].transportSubunit <= playbackTransportSubunit + 1) {
-          const event = queue.shift();
-          if (!event) {
-            break;
-          }
-          if (event.kind === "step") {
-            applyBrowserClockSequencerStepEvent(event.payload);
-            continue;
-          }
-          applyBrowserClockPadSwitchEvent(event.payload);
+      if (transportEvent.kind === "loop") {
+        continue;
+      }
+      if (transportEvent.kind === "step" && !visualTrackingEnabled) {
+        continue;
+      }
+      const event: SessionEvent = {
+        session_id: resolveSequencerSessionId() ?? "browser-clock",
+        ts: new Date().toISOString(),
+        type: transportEvent.kind === "step" ? "sequencer_step" : "sequencer_pad_switches",
+        payload: transportEvent.payload as SessionEvent["payload"]
+      };
+      if (transportEvent.kind === "step") {
+        const parsed = parseSequencerStepEventPayload(event);
+        if (parsed) {
+          applyBrowserClockSequencerStepEvent(parsed);
         }
+        continue;
       }
-
-      frameId = window.requestAnimationFrame(drainTransportQueue);
+      const parsed = parseSequencerPadSwitchesEventPayload(event);
+      if (parsed) {
+        applyBrowserClockPadSwitchesEvent(parsed);
+      }
     }
-
-    frameId = window.requestAnimationFrame(drainTransportQueue);
-    return () => {
-      cancelled = true;
-      window.cancelAnimationFrame(frameId);
-    };
-  }, [
-    applyBrowserClockPadSwitchEvent,
-    applyBrowserClockSequencerStepEvent,
-    browserClockClientRef,
-    effectiveAudioOutputMode,
-    sequencer.isPlaying
-  ]);
+  };
 
   const syncSequencerStatusFromServer = useCallback(
     async (sessionId: string, options?: { silentError?: boolean }): Promise<void> => {
@@ -614,26 +612,8 @@ export function useSequencerRuntimeController({
           if (shouldLogSessionEvent(parsed.type)) {
             pushEvent(parsed);
           }
-          if (effectiveAudioOutputModeRef.current !== "browser_clock") {
-            return;
-          }
-          const stepPayload = parseSequencerStepEventPayload(parsed);
-          if (stepPayload) {
-            browserClockTransportEventQueueRef.current.push({
-              kind: "step",
-              transportSubunit: stepPayload.transport_subunit,
-              payload: stepPayload
-            });
-            return;
-          }
-          const padSwitchPayload = parseSequencerPadSwitchEventPayload(parsed);
-          if (padSwitchPayload) {
-            browserClockTransportEventQueueRef.current.push({
-              kind: "pad_switch",
-              transportSubunit: padSwitchPayload.transport_subunit,
-              payload: padSwitchPayload
-            });
-          }
+          // Browser-clock transport deltas arrive with PCM and are released by
+          // the audio worker only when their target frame becomes audible.
         } catch {
           // Ignore malformed websocket payloads.
         }
@@ -1072,6 +1052,7 @@ export function useSequencerRuntimeController({
 
   return {
     browserAudioError,
+    browserAudioDiagnostics,
     browserAudioStatus,
     browserAudioTransport,
     displayedSequencer,

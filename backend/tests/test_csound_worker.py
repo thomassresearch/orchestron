@@ -279,6 +279,126 @@ def test_start_ctcsound_sets_ssdir_option_for_gen_audio_assets(monkeypatch, tmp_
     assert f"--env:SSDIR={assets_dir.resolve()}" in worker._ctcsound.instance.options
 
 
+def test_headless_runtime_suppresses_csound_messages_after_start(monkeypatch) -> None:
+    monkeypatch.setattr("backend.app.engine.csound_worker.sys.platform", "linux")
+    monkeypatch.setattr(CsoundWorker, "_configure_host_midi_callbacks", lambda self, csound: None)
+
+    class FakeCsound:
+        def __init__(self) -> None:
+            self.lifecycle: list[str] = []
+            self.message_levels: list[int] = []
+
+        def setOption(self, _option: str) -> None:  # noqa: N802
+            return None
+
+        def compileCsdText(self, _csd: str) -> int:  # noqa: N802
+            self.lifecycle.append("compile")
+            return 0
+
+        def start(self) -> int:
+            self.lifecycle.append("start")
+            return 0
+
+        def setMessageLevel(self, level: int) -> None:  # noqa: N802
+            self.lifecycle.append("message-level")
+            self.message_levels.append(level)
+
+        def perform(self) -> int:
+            return 0
+
+        def stop(self) -> None:
+            return None
+
+        def cleanup(self) -> None:
+            return None
+
+        def reset(self) -> None:
+            return None
+
+    class FakeCtcsound:
+        def __init__(self) -> None:
+            self.instance = FakeCsound()
+
+        def Csound(self) -> FakeCsound:  # noqa: N802
+            return self.instance
+
+    csd = "\n".join(
+        [
+            "<CsoundSynthesizer>",
+            "<CsOptions>",
+            "</CsOptions>",
+            "<CsInstruments>",
+            "sr = 48000",
+            "ksmps = 32",
+            "nchnls = 2",
+            "instr 1",
+            "endin",
+            "</CsInstruments>",
+            "</CsoundSynthesizer>",
+        ]
+    )
+
+    worker = CsoundWorker(csound_performance_logging=False)
+    worker._backend = "ctcsound"
+    worker._ctcsound = FakeCtcsound()
+    worker.start(csd=csd, midi_input="0", rtmidi_module="null")
+
+    assert worker._ctcsound.instance.lifecycle == ["compile", "start", "message-level"]
+    assert worker._ctcsound.instance.message_levels == [0]
+
+
+def test_headless_runtime_can_keep_csound_performance_messages_for_diagnostics(monkeypatch) -> None:
+    monkeypatch.setattr("backend.app.engine.csound_worker.sys.platform", "linux")
+    monkeypatch.setattr(CsoundWorker, "_configure_host_midi_callbacks", lambda self, csound: None)
+
+    class FakeCsound:
+        def __init__(self) -> None:
+            self.message_levels: list[int] = []
+
+        def setOption(self, _option: str) -> None:  # noqa: N802
+            return None
+
+        def compileCsdText(self, _csd: str) -> int:  # noqa: N802
+            return 0
+
+        def start(self) -> int:
+            return 0
+
+        def setMessageLevel(self, level: int) -> None:  # noqa: N802
+            self.message_levels.append(level)
+
+        def stop(self) -> None:
+            return None
+
+        def cleanup(self) -> None:
+            return None
+
+        def reset(self) -> None:
+            return None
+
+    class FakeCtcsound:
+        def __init__(self) -> None:
+            self.instance = FakeCsound()
+
+        def Csound(self) -> FakeCsound:  # noqa: N802
+            return self.instance
+
+    worker = CsoundWorker(csound_performance_logging=True)
+    worker._backend = "ctcsound"
+    worker._ctcsound = FakeCtcsound()
+    worker.start(
+        csd=(
+            "<CsoundSynthesizer>\n<CsOptions>\n</CsOptions>\n<CsInstruments>\n"
+            "sr = 48000\nksmps = 32\nnchnls = 2\ninstr 1\nendin\n"
+            "</CsInstruments>\n</CsoundSynthesizer>"
+        ),
+        midi_input="0",
+        rtmidi_module="null",
+    )
+
+    assert worker._ctcsound.instance.message_levels == []
+
+
 def test_queue_midi_message_honors_delivery_delay() -> None:
     worker = CsoundWorker()
     worker._backend = "ctcsound"

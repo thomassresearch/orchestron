@@ -1,4 +1,5 @@
 import type { CompileResponse, GuiLanguage, MidiInputRef, SessionEvent } from "../types";
+import type { BrowserClockWorkerDiagnostics } from "../audio/browserClockWorkerProtocol";
 
 interface RuntimePanelProps {
   guiLanguage: GuiLanguage;
@@ -9,6 +10,7 @@ interface RuntimePanelProps {
   browserAudioTransport?: "off" | "browser_clock";
   browserAudioStatus?: "off" | "connecting" | "live" | "error";
   browserAudioError?: string | null;
+  browserAudioDiagnostics?: BrowserClockWorkerDiagnostics | null;
   onBindMidiInput: (midiInput: string) => void;
   onToggleCollapse?: () => void;
 }
@@ -28,6 +30,11 @@ const RUNTIME_PANEL_COPY: Record<
     browserAudioBrowserClockConnecting: string;
     browserAudioBrowserClockLive: string;
     browserAudioBrowserClockError: string;
+    audioQueue: string;
+    pendingRender: string;
+    underruns: string;
+    overruns: string;
+    renderRatio: string;
     sessionEvents: string;
     noEvents: string;
   }
@@ -45,6 +52,11 @@ const RUNTIME_PANEL_COPY: Record<
     browserAudioBrowserClockConnecting: "Priming browser PCM queue...",
     browserAudioBrowserClockLive: "Browser-owned PCM runtime active",
     browserAudioBrowserClockError: "Browser PCM runtime error",
+    audioQueue: "PCM queue",
+    pendingRender: "Pending render",
+    underruns: "Underruns",
+    overruns: "Overruns",
+    renderRatio: "Render/audio ratio",
     sessionEvents: "Session Events",
     noEvents: "No events yet."
   },
@@ -61,6 +73,11 @@ const RUNTIME_PANEL_COPY: Record<
     browserAudioBrowserClockConnecting: "PCM-Puffer im Browser wird vorbereitet...",
     browserAudioBrowserClockLive: "Browser-gesteuerte PCM-Laufzeit aktiv",
     browserAudioBrowserClockError: "Browser-PCM-Laufzeitfehler",
+    audioQueue: "PCM-Puffer",
+    pendingRender: "Ausstehendes Rendering",
+    underruns: "Underruns",
+    overruns: "Overruns",
+    renderRatio: "Render-/Audio-Verhaeltnis",
     sessionEvents: "Session-Events",
     noEvents: "Noch keine Events."
   },
@@ -77,6 +94,11 @@ const RUNTIME_PANEL_COPY: Record<
     browserAudioBrowserClockConnecting: "Preparation de la file PCM navigateur...",
     browserAudioBrowserClockLive: "Runtime PCM pilote par le navigateur actif",
     browserAudioBrowserClockError: "Erreur runtime PCM navigateur",
+    audioQueue: "File PCM",
+    pendingRender: "Rendu en attente",
+    underruns: "Sous-alimentations",
+    overruns: "Depassements",
+    renderRatio: "Ratio rendu/audio",
     sessionEvents: "Evenements de session",
     noEvents: "Pas encore d'evenements."
   },
@@ -93,6 +115,11 @@ const RUNTIME_PANEL_COPY: Record<
     browserAudioBrowserClockConnecting: "Preparando cola PCM del navegador...",
     browserAudioBrowserClockLive: "Runtime PCM controlado por el navegador activo",
     browserAudioBrowserClockError: "Error del runtime PCM del navegador",
+    audioQueue: "Cola PCM",
+    pendingRender: "Render pendiente",
+    underruns: "Subdesbordamientos",
+    overruns: "Desbordamientos",
+    renderRatio: "Relacion render/audio",
     sessionEvents: "Eventos de sesion",
     noEvents: "Aun no hay eventos."
   }
@@ -107,6 +134,7 @@ export function RuntimePanel({
   browserAudioTransport = "off",
   browserAudioStatus = "off",
   browserAudioError = null,
+  browserAudioDiagnostics = null,
   onBindMidiInput,
   onToggleCollapse
 }: RuntimePanelProps) {
@@ -176,6 +204,28 @@ export function RuntimePanel({
           <div className="text-xs uppercase tracking-[0.2em] text-slate-500">{copy.browserAudio}</div>
           <div className="mt-2 text-[11px] text-slate-300">{browserAudioStatusText}</div>
           {browserAudioError ? <div className="mt-1 text-[10px] text-rose-300">{browserAudioError}</div> : null}
+          {browserAudioDiagnostics ? (
+            <dl className="mt-2 grid grid-cols-2 gap-x-2 gap-y-1 font-mono text-[10px] text-slate-400">
+              <dt>{copy.audioQueue}</dt>
+              <dd className="text-right text-slate-200">
+                {Math.round((browserAudioDiagnostics.queuedFrames * 1000) / Math.max(1, browserAudioDiagnostics.sampleRate))} ms
+              </dd>
+              <dt>{copy.pendingRender}</dt>
+              <dd className="text-right text-slate-200">
+                {Math.round((browserAudioDiagnostics.pendingRenderFrames * 1000) / Math.max(1, browserAudioDiagnostics.sampleRate))} ms
+              </dd>
+              <dt>{copy.underruns}</dt>
+              <dd className="text-right text-slate-200">{browserAudioDiagnostics.underrunCount}</dd>
+              <dt>{copy.overruns}</dt>
+              <dd className="text-right text-slate-200">{browserAudioDiagnostics.overrunCount}</dd>
+              <dt>{copy.renderRatio}</dt>
+              <dd className="text-right text-slate-200">
+                {browserAudioDiagnostics.renderTimeRatio === null
+                  ? "-"
+                  : `${Math.round(browserAudioDiagnostics.renderTimeRatio * 100)}%`}
+              </dd>
+            </dl>
+          ) : null}
         </div>
       ) : null}
 

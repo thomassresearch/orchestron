@@ -170,6 +170,7 @@ class SessionService:
                 midi_input=default_midi,
                 worker=CsoundWorker(
                     gen_audio_assets_dir=str(self._settings.gen_audio_assets_dir),
+                    csound_performance_logging=self._settings.csound_performance_logging,
                 ),
             )
             runtime.midi_router = self._create_midi_router(runtime)
@@ -697,13 +698,13 @@ class SessionService:
         block_count = request.block_count
         sequencer = self._ensure_sequencer(runtime)
         router = self._ensure_midi_router(runtime)
-        latest_status = sequencer.status()
+        initial_transport_subunit, _initial_running = sequencer.render_transport_state()
 
         def _before_block(_block_index: int, block_start_sample: int | None = None) -> None:
-            nonlocal latest_status
-            latest_status = sequencer.advance_render_block(
+            tempo_bpm = sequencer.advance_render_block(
                 sample_rate=runtime.worker.runtime_sample_rate,
                 ksmps=runtime.worker.runtime_ksmps,
+                block_start_sample=block_start_sample,
             )
             start_sample = (
                 runtime.worker.render_sample_cursor
@@ -714,9 +715,8 @@ class SessionService:
                 block_start_sample=start_sample,
                 block_end_sample=start_sample + max(1, runtime.worker.runtime_ksmps),
                 sample_rate=max(1, runtime.worker.runtime_sample_rate),
-                tempo_bpm=latest_status.timing.tempo_bpm,
+                tempo_bpm=tempo_bpm,
             )
-            latest_status = self._status_with_arpeggiators(runtime, latest_status)
 
         render_started_ns = time.perf_counter_ns()
         try:
@@ -733,6 +733,20 @@ class SessionService:
         except Exception as exc:
             raise HTTPException(status_code=500, detail=f"Failed to render browser-clock audio: {exc}") from exc
         render_completed_ns = time.perf_counter_ns()
+        final_transport_subunit, _final_running = sequencer.render_transport_state()
+        transport_events = sequencer.drain_render_transport_events(
+            engine_sample_start=render.engine_sample_start,
+            engine_sample_end=render.engine_sample_end,
+        )
+        timeline_segments, serialized_transport_events = self._browser_clock_transport_timeline(
+            engine_sample_start=render.engine_sample_start,
+            engine_sample_end=render.engine_sample_end,
+            engine_sample_rate=render.engine_sample_rate,
+            target_frame_count=render.target_frame_count,
+            initial_transport_subunit=initial_transport_subunit,
+            final_transport_subunit=final_transport_subunit,
+            transport_events=transport_events,
+        )
 
         return (
             {
@@ -745,7 +759,8 @@ class SessionService:
                 "target_sample_rate": render.target_sample_rate,
                 "target_frame_count": render.target_frame_count,
                 "channels": render.channels,
-                "sequencer_status": latest_status.model_dump(mode="json"),
+                "timeline_segments": timeline_segments,
+                "transport_events": serialized_transport_events,
                 "telemetry": self._browser_clock_render_telemetry(
                     lease=lease,
                     request=request,
@@ -756,6 +771,89 @@ class SessionService:
             },
             render.pcm_f32le,
         )
+
+    @staticmethod
+    def _browser_clock_transport_timeline(
+        *,
+        engine_sample_start: int,
+        engine_sample_end: int,
+        engine_sample_rate: int,
+        target_frame_count: int,
+        initial_transport_subunit: int,
+        final_transport_subunit: int,
+        transport_events: list[Any],
+    ) -> tuple[list[dict[str, int]], list[dict[str, object]]]:
+        source_frames = max(1, int(engine_sample_end) - int(engine_sample_start))
+        target_frames = max(1, int(target_frame_count))
+
+        def target_offset(engine_sample: int) -> int:
+            source_offset = max(0, min(source_frames, int(engine_sample) - int(engine_sample_start)))
+            return max(0, min(target_frames, int(round(source_offset * target_frames / source_frames))))
+
+        ordered_events = sorted(transport_events, key=lambda event: int(event.engine_sample))
+        serialized_events: list[dict[str, object]] = []
+        segments: list[dict[str, int]] = []
+        segment_frame_start = 0
+        segment_subunit_start = max(0, int(initial_transport_subunit))
+
+        for event in ordered_events:
+            frame_offset = target_offset(event.engine_sample)
+            serialized_events.append(
+                {
+                    "target_frame_offset": frame_offset,
+                    "kind": event.kind,
+                    "payload": event.payload,
+                }
+            )
+            if event.kind == "loop":
+                previous_subunit = max(
+                    segment_subunit_start,
+                    int(event.payload.get("previous_transport_subunit", segment_subunit_start)),
+                )
+                if frame_offset > segment_frame_start:
+                    segments.append(
+                        {
+                            "target_frame_start": segment_frame_start,
+                            "target_frame_end": frame_offset,
+                            "transport_subunit_start": segment_subunit_start,
+                            "transport_subunit_end": previous_subunit,
+                        }
+                    )
+                segment_frame_start = frame_offset
+                segment_subunit_start = max(0, int(event.payload.get("transport_subunit", 0)))
+            elif event.kind == "stopped":
+                stopped_subunit = max(0, int(event.payload.get("transport_subunit", final_transport_subunit)))
+                if frame_offset > segment_frame_start:
+                    segments.append(
+                        {
+                            "target_frame_start": segment_frame_start,
+                            "target_frame_end": frame_offset,
+                            "transport_subunit_start": segment_subunit_start,
+                            "transport_subunit_end": stopped_subunit,
+                        }
+                    )
+                segment_frame_start = frame_offset
+                segment_subunit_start = stopped_subunit
+
+        if target_frames > segment_frame_start:
+            segments.append(
+                {
+                    "target_frame_start": segment_frame_start,
+                    "target_frame_end": target_frames,
+                    "transport_subunit_start": segment_subunit_start,
+                    "transport_subunit_end": max(0, int(final_transport_subunit)),
+                }
+            )
+        elif not segments:
+            segments.append(
+                {
+                    "target_frame_start": 0,
+                    "target_frame_end": target_frames,
+                    "transport_subunit_start": segment_subunit_start,
+                    "transport_subunit_end": max(0, int(final_transport_subunit)),
+                }
+            )
+        return segments, serialized_events
 
     async def register_host_midi_bridge(
         self,

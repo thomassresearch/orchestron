@@ -313,6 +313,13 @@ class SequencerRuntimeConfig:
     controller_tracks: dict[str, ControllerSequencerTrackRuntime] = field(default_factory=dict)
 
 
+@dataclass(slots=True)
+class RenderTransportEvent:
+    engine_sample: int
+    kind: Literal["step", "pad_switches", "loop", "stopped"]
+    payload: dict[str, Any]
+
+
 class SessionSequencerRuntime:
     def __init__(
         self,
@@ -342,6 +349,9 @@ class SessionSequencerRuntime:
         self._scheduled_visible_until_time: float | None = None
         self._active_notes: dict[str, set[int]] = {}
         self._render_subunit_remainder = 0.0
+        self._next_render_event_subunit: int | None = None
+        self._render_block_start_sample: int | None = None
+        self._render_transport_events: list[RenderTransportEvent] = []
 
     def set_midi_input(self, midi_input_selector: str) -> None:
         with self._lock:
@@ -355,6 +365,7 @@ class SessionSequencerRuntime:
             self._config = next_config
             self._absolute_subunit = self._normalize_stopped_absolute_subunit_locked(self._absolute_subunit, next_config)
             self._apply_absolute_subunit_locked(next_config, self._absolute_subunit)
+            self._reset_render_event_cursor_locked(next_config)
             next_active_notes: dict[str, set[int]] = {}
             for track_id in next_config.tracks:
                 next_active_notes[track_id] = set(self._active_notes.get(track_id, set()))
@@ -445,10 +456,12 @@ class SessionSequencerRuntime:
             requested_subunit = max(0, int(round(requested_position_step))) * _TRANSPORT_SUBUNITS_PER_STEP
             self._absolute_subunit = self._normalize_start_absolute_subunit_locked(requested_subunit, config)
             self._apply_absolute_subunit_locked(config, self._absolute_subunit)
+            self._reset_render_event_cursor_locked(config)
 
             self._stop_event.clear()
             self._running = True
             self._render_subunit_remainder = 0.0
+            self._reset_render_event_cursor_locked(config)
             if self._clock_mode == "render_driven":
                 return self._status_locked()
             self._thread = threading.Thread(
@@ -475,6 +488,7 @@ class SessionSequencerRuntime:
             self._stop_event.set()
             self._scheduled_visible_until_time = None
             self._render_subunit_remainder = 0.0
+            self._next_render_event_subunit = None
             thread = self._thread
 
         if thread and thread.is_alive():
@@ -493,14 +507,35 @@ class SessionSequencerRuntime:
         with self._lock:
             return self._status_locked()
 
-    def advance_render_block(self, *, sample_rate: int, ksmps: int) -> SessionSequencerStatus:
+    def render_transport_state(self) -> tuple[int, bool]:
+        with self._lock:
+            return (self._visible_absolute_subunit_locked(), self._running)
+
+    def advance_render_block(
+        self,
+        *,
+        sample_rate: int,
+        ksmps: int,
+        block_start_sample: int | None = None,
+    ) -> int:
+        """Advance render-driven transport by one Csound k-block.
+
+        This method runs inside the audio render deadline.  It deliberately
+        returns only the tempo needed by the arpeggiator router rather than a
+        full status snapshot; callers must request that snapshot once the
+        render request has completed.
+        """
         with self._lock:
             if self._clock_mode != "render_driven":
                 raise RuntimeError("Render-driven advancement is only available in render_driven mode.")
 
             config = self._ensure_config()
             if not self._running:
-                return self._status_locked()
+                return config.timing.tempo_bpm
+
+            self._render_block_start_sample = (
+                None if block_start_sample is None else max(0, int(block_start_sample))
+            )
 
             if self._render_subunit_remainder <= _RENDER_SUBUNIT_EPSILON:
                 self._render_subunit_remainder = 0.0
@@ -512,16 +547,78 @@ class SessionSequencerRuntime:
                 if subunit_duration > 0.0:
                     self._render_subunit_remainder += block_seconds / subunit_duration
 
-            while self._running and self._render_subunit_remainder >= (1.0 - _RENDER_SUBUNIT_EPSILON):
-                self._advance_one_render_subunit_locked(config)
-                self._render_subunit_remainder = max(0.0, self._render_subunit_remainder - 1.0)
-                if self._running and self._render_subunit_remainder > _RENDER_SUBUNIT_EPSILON:
-                    self._perform_render_block_events_locked(config, self._absolute_subunit)
+            subunits_to_advance = int(self._render_subunit_remainder + _RENDER_SUBUNIT_EPSILON)
+            while self._running and subunits_to_advance > 0:
+                next_event_subunit = self._next_render_event_subunit
+                if next_event_subunit is None or next_event_subunit <= self._absolute_subunit:
+                    next_event_subunit = self._next_event_subunit_locked(config, self._absolute_subunit)
+                    self._next_render_event_subunit = next_event_subunit
+
+                distance_to_event = max(1, next_event_subunit - self._absolute_subunit)
+                if distance_to_event > subunits_to_advance:
+                    self._absolute_subunit += subunits_to_advance
+                    self._render_subunit_remainder = max(
+                        0.0,
+                        self._render_subunit_remainder - float(subunits_to_advance),
+                    )
+                    subunits_to_advance = 0
+                    break
+
+                self._advance_render_to_event_locked(config, next_event_subunit)
+                self._render_subunit_remainder = max(
+                    0.0,
+                    self._render_subunit_remainder - float(distance_to_event),
+                )
+                subunits_to_advance -= distance_to_event
+                if self._running:
+                    self._next_render_event_subunit = self._next_event_subunit_locked(
+                        config,
+                        self._absolute_subunit,
+                    )
+                    if self._render_subunit_remainder > _RENDER_SUBUNIT_EPSILON:
+                        self._perform_render_block_events_locked(config, self._absolute_subunit)
 
             if self._render_subunit_remainder <= _RENDER_SUBUNIT_EPSILON:
                 self._render_subunit_remainder = 0.0
 
-            return self._status_locked()
+            return config.timing.tempo_bpm
+
+    def drain_render_transport_events(
+        self,
+        *,
+        engine_sample_start: int,
+        engine_sample_end: int,
+    ) -> list[RenderTransportEvent]:
+        with self._lock:
+            lower = max(0, int(engine_sample_start))
+            upper = max(lower, int(engine_sample_end))
+            drained: list[RenderTransportEvent] = []
+            retained: list[RenderTransportEvent] = []
+            for event in self._render_transport_events:
+                if lower <= event.engine_sample <= upper:
+                    drained.append(event)
+                else:
+                    retained.append(event)
+            self._render_transport_events = retained
+            return drained
+
+    def _emit_render_transport_event_locked(
+        self,
+        kind: Literal["step", "pad_switches", "loop", "stopped"],
+        payload: dict[str, Any],
+    ) -> None:
+        if self._clock_mode != "render_driven" or self._render_block_start_sample is None:
+            event_type = "sequencer_step" if kind == "step" else "sequencer_pad_switches"
+            if kind in {"step", "pad_switches"}:
+                self._publish_event(event_type, payload)
+            return
+        self._render_transport_events.append(
+            RenderTransportEvent(
+                engine_sample=self._render_block_start_sample,
+                kind=kind,
+                payload=payload,
+            )
+        )
 
     def _run(self) -> None:
         next_event_time = time.perf_counter() + 0.01
@@ -608,13 +705,28 @@ class SessionSequencerRuntime:
         if controller_messages:
             self._send_messages_locked(controller_messages)
 
-    def _advance_one_render_subunit_locked(self, config: SequencerRuntimeConfig) -> None:
+    def _reset_render_event_cursor_locked(self, config: SequencerRuntimeConfig) -> None:
+        if self._clock_mode != "render_driven":
+            self._next_render_event_subunit = None
+            return
+        if self._absolute_subunit >= config.playback_end_subunit and not config.playback_loop:
+            self._next_render_event_subunit = None
+            return
+        self._next_render_event_subunit = self._next_event_subunit_locked(config, self._absolute_subunit)
+
+    def _advance_render_to_event_locked(
+        self,
+        config: SequencerRuntimeConfig,
+        next_subunit: int,
+    ) -> None:
         transport_subunit = self._absolute_subunit
-        next_subunit = transport_subunit + 1
+        if next_subunit <= transport_subunit:
+            return
         switch_payloads: list[dict[str, str | int | float | bool | None]] = []
         current_visible_step = transport_subunit // _TRANSPORT_SUBUNITS_PER_STEP
 
         if config.playback_loop and next_subunit >= config.playback_end_subunit:
+            loop_from_subunit = config.playback_end_subunit
             previous_active_pads = {
                 track_id: track.active_pad
                 for track_id, track in config.tracks.items()
@@ -626,6 +738,13 @@ class SessionSequencerRuntime:
                 if track.enabled
             }
             self._apply_absolute_subunit_locked(config, config.playback_start_subunit)
+            self._emit_render_transport_event_locked(
+                "loop",
+                {
+                    "previous_transport_subunit": loop_from_subunit,
+                    "transport_subunit": self._absolute_subunit,
+                },
+            )
             for track_id, previous_active_pad in previous_active_pads.items():
                 track = config.tracks.get(track_id)
                 if track and track.enabled and track.active_pad != previous_active_pad:
@@ -660,6 +779,10 @@ class SessionSequencerRuntime:
                 self._absolute_subunit = config.playback_end_subunit
                 self._running = False
                 self._stop_event.set()
+                self._emit_render_transport_event_locked(
+                    "stopped",
+                    {"transport_subunit": self._absolute_subunit},
+                )
                 self._send_all_notes_off_locked()
                 for notes in self._active_notes.values():
                     notes.clear()
@@ -667,15 +790,15 @@ class SessionSequencerRuntime:
                 self._absolute_subunit = next_subunit
 
         next_visible_step = self._absolute_subunit // _TRANSPORT_SUBUNITS_PER_STEP
-        if next_visible_step != current_visible_step:
-            self._publish_event(
-                "sequencer_step",
+        if next_visible_step != current_visible_step and not switch_payloads:
+            self._emit_render_transport_event_locked(
+                "step",
                 self._sequencer_step_event_payload_locked(config, previous_step=current_visible_step),
             )
-        for payload in switch_payloads:
-            self._publish_event(
-                "sequencer_pad_switched",
-                self._sequencer_pad_switch_event_payload_locked(config, payload),
+        if switch_payloads:
+            self._emit_render_transport_event_locked(
+                "pad_switches",
+                self._sequencer_pad_switches_event_payload_locked(config, switch_payloads),
             )
 
     @staticmethod
@@ -1375,10 +1498,10 @@ class SessionSequencerRuntime:
                 notes.clear()
 
         self._apply_absolute_subunit_locked(config, normalized_target)
+        self._reset_render_event_cursor_locked(config)
         return self._status_locked()
 
     def _seek_transport_cycle_locked(self, direction: int) -> SessionSequencerStatus:
-        config = self._ensure_config()
         current_step = max(0, self._absolute_subunit // _TRANSPORT_SUBUNITS_PER_STEP)
         cycle_steps = max(1, _TRANSPORT_STEPS_PER_BEAT)
         if direction < 0:
@@ -1397,6 +1520,7 @@ class SessionSequencerRuntime:
     ) -> float:
         switch_payloads: list[dict[str, str | int | float | bool | None]] = []
         publish_step_event = False
+        pad_switches_payload: dict[str, Any] | None = None
         next_wait_subunits = 1
 
         with self._lock:
@@ -1523,20 +1647,21 @@ class SessionSequencerRuntime:
                     self._absolute_subunit = next_subunit
 
             next_visible_step = self._absolute_subunit // _TRANSPORT_SUBUNITS_PER_STEP
-            publish_step_event = next_visible_step != current_visible_step
+            # The batched pad event carries the same shared transport delta,
+            # so avoid a second WebSocket submission at that same boundary.
+            publish_step_event = next_visible_step != current_visible_step and not switch_payloads
 
             if publish_step_event:
                 step_payload = self._sequencer_step_event_payload_locked(config, previous_step=current_visible_step)
             else:
                 step_payload: dict[str, Any] = {}
+            if switch_payloads:
+                pad_switches_payload = self._sequencer_pad_switches_event_payload_locked(config, switch_payloads)
 
         if publish_step_event:
             self._publish_event("sequencer_step", step_payload)
-        for payload in switch_payloads:
-            self._publish_event(
-                "sequencer_pad_switched",
-                self._sequencer_pad_switch_event_payload_locked(config, payload),
-            )
+        if pad_switches_payload is not None:
+            self._publish_event("sequencer_pad_switches", pad_switches_payload)
         return next_wait_subunits * config.timing.transport_subunit_duration_seconds
 
     def _sequencer_step_event_payload_locked(
@@ -1545,82 +1670,89 @@ class SessionSequencerRuntime:
         *,
         previous_step: int,
     ) -> dict[str, Any]:
-        status = self._status_locked()
-        runtime_payload = self._sequencer_runtime_delta_payload_from_status(status)
         return {
             "previous_step": previous_step % max(1, config.step_count),
-            **runtime_payload,
+            **self._sequencer_runtime_delta_payload_locked(config),
         }
 
-    @staticmethod
-    def _sequencer_runtime_delta_payload_from_status(status: SessionSequencerStatus) -> dict[str, Any]:
+    def _sequencer_runtime_delta_payload_locked(self, config: SequencerRuntimeConfig) -> dict[str, Any]:
+        """Build the WebSocket transport delta without constructing Pydantic status models."""
+        visible_absolute_subunit = self._visible_absolute_subunit_locked()
+        current_step, cycle = self._transport_position_locked(config, visible_absolute_subunit)
         return {
-            "current_step": status.current_step,
-            "cycle": status.cycle,
-            "running": status.running,
-            "step_count": status.step_count,
-            "transport_subunit": status.transport_subunit,
+            "current_step": current_step,
+            "cycle": cycle,
+            "running": self._running,
+            "step_count": max(1, config.step_count),
+            "transport_subunit": visible_absolute_subunit,
             "tracks": [
                 {
                     "track_id": track.track_id,
-                    "local_step": track.local_step,
+                    "local_step": self._local_step_for(track, visible_absolute_subunit),
                 }
-                for track in status.tracks
+                for track in config.tracks.values()
             ],
             "controller_tracks": [
                 {
                     "track_id": track.track_id,
-                    "runtime_pad_start_subunit": track.runtime_pad_start_subunit,
+                    "runtime_pad_start_subunit": track.phase_offset_subunit if track.enabled else None,
                 }
-                for track in status.controller_tracks
+                for track in config.controller_tracks.values()
             ],
         }
 
-    def _sequencer_pad_switch_event_payload_locked(
+    def _sequencer_pad_switches_event_payload_locked(
         self,
         config: SequencerRuntimeConfig,
-        payload: dict[str, str | int | float | bool | None],
+        payloads: list[dict[str, str | int | float | bool | None]],
     ) -> dict[str, Any]:
-        status = self._status_locked()
-        enriched_payload: dict[str, Any] = {
-            **payload,
-            **self._sequencer_runtime_delta_payload_from_status(status),
+        """Publish one shared delta for every pad that switched at this boundary."""
+        visible_absolute_subunit = self._visible_absolute_subunit_locked()
+        switches: list[dict[str, Any]] = []
+        for payload in payloads:
+            track_id = payload.get("track_id")
+            if not isinstance(track_id, str):
+                continue
+
+            note_track = config.tracks.get(track_id)
+            if note_track is not None:
+                switches.append(
+                    {
+                        "track_id": note_track.track_id,
+                        "track_kind": "note",
+                        "active_pad": note_track.active_pad,
+                        "local_step": self._local_step_for(note_track, visible_absolute_subunit),
+                        "queued_pad": note_track.queued_pad,
+                        "pad_loop_position": note_track.pad_loop_position,
+                        "enabled": note_track.enabled,
+                        "queued_enabled": note_track.queued_enabled,
+                        "runtime_pad_start_subunit": (
+                            note_track.phase_offset_subunit if note_track.enabled else None
+                        ),
+                    }
+                )
+                continue
+
+            controller_track = config.controller_tracks.get(track_id)
+            if controller_track is not None:
+                switches.append(
+                    {
+                        "track_id": controller_track.track_id,
+                        "track_kind": "controller",
+                        "active_pad": controller_track.active_pad,
+                        "queued_pad": controller_track.queued_pad,
+                        "pad_loop_position": controller_track.pad_loop_position,
+                        "enabled": controller_track.enabled,
+                        "runtime_pad_start_subunit": (
+                            controller_track.phase_offset_subunit if controller_track.enabled else None
+                        ),
+                    }
+                )
+
+        return {
+            "switches": switches,
+            **self._sequencer_runtime_delta_payload_locked(config),
         }
-
-        track_id = payload.get("track_id")
-        if not isinstance(track_id, str):
-            return enriched_payload
-
-        track_status = next((track for track in status.tracks if track.track_id == track_id), None)
-        if track_status is not None:
-            enriched_payload.update(
-                {
-                    "track_kind": "note",
-                    "local_step": track_status.local_step,
-                    "queued_pad": track_status.queued_pad,
-                    "pad_loop_position": track_status.pad_loop_position,
-                    "enabled": track_status.enabled,
-                    "queued_enabled": track_status.queued_enabled,
-                    "runtime_pad_start_subunit": track_status.runtime_pad_start_subunit,
-                }
-            )
-            return enriched_payload
-
-        controller_track_status = next(
-            (track for track in status.controller_tracks if track.track_id == track_id),
-            None,
-        )
-        if controller_track_status is not None:
-            enriched_payload.update(
-                {
-                    "track_kind": "controller",
-                    "queued_pad": controller_track_status.queued_pad,
-                    "pad_loop_position": controller_track_status.pad_loop_position,
-                    "enabled": controller_track_status.enabled,
-                    "runtime_pad_start_subunit": controller_track_status.runtime_pad_start_subunit,
-                }
-            )
-        return enriched_payload
 
     @staticmethod
     def _note_on_message(midi_channel: int, note: int, velocity: int) -> list[int]:

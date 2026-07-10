@@ -206,6 +206,11 @@ def _configure_libcsound_signatures(libcsound: _PrefixedSymbolLibrary) -> None:
 
     libcsound.csoundSetOption.restype = ctypes.c_int
     libcsound.csoundSetOption.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
+    try:
+        libcsound.csoundSetMessageLevel.restype = None
+        libcsound.csoundSetMessageLevel.argtypes = [ctypes.c_void_p, ctypes.c_int]
+    except AttributeError:
+        logger.warning("CSound runtime does not expose csoundSetMessageLevel.")
     libcsound.csoundCompileCsdText.restype = ctypes.c_int
     libcsound.csoundCompileCsdText.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
     libcsound.csoundStart.restype = ctypes.c_int
@@ -272,6 +277,12 @@ def _build_direct_csound_class(libcsound: _PrefixedSymbolLibrary) -> type:
 
         def setOption(self, option: str) -> int:  # noqa: N802
             return int(libcsound.csoundSetOption(self.cs, self._cstring(option)))
+
+        def setMessageLevel(self, message_level: int) -> None:  # noqa: N802
+            setter = getattr(libcsound, "csoundSetMessageLevel", None)
+            if setter is None:
+                raise AttributeError("csoundSetMessageLevel is unavailable in this Csound runtime.")
+            setter(self.cs, int(message_level))
 
         def compileCsdText(self, csd: str) -> int:  # noqa: N802
             return int(libcsound.csoundCompileCsdText(self.cs, self._cstring(csd)))

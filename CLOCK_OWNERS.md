@@ -33,12 +33,14 @@ flowchart LR
 Owner:
 
 - browser `AudioContext` / `AudioWorklet`
+- dedicated browser-clock worker for queue production and audible transport snapshots
 
 Responsibility:
 
 - final audible playback timing
 - browser PCM queue depth
 - render refill pressure
+- PCM WebSocket ownership and SharedArrayBuffer writes
 
 This is the clock the listener actually hears.
 
@@ -118,6 +120,18 @@ That means:
 So the backend sequencer runtime owns transport state, but it advances only when audio rendering advances.
 It does not maintain a separate, lower-rate look-ahead event buffer: each render block advances
 transport state and queues events for that block before Csound renders it.
+
+The render-block hot path does not build a complete UI status model. It returns only the tempo needed
+by the MIDI router; the session service constructs one full sequencer status after the render request
+finishes. When multiple tracks change pads at one transport boundary, the sequencer publishes one
+batched `sequencer_pad_switches` update with one shared transport delta rather than one full status
+snapshot and WebSocket message per track.
+
+The current browser-clock protocol does not attach a full status snapshot to every PCM chunk.
+Instead, each chunk includes compact timeline segments and transport events located at target-frame
+offsets. The browser audio worker releases those events only after the AudioWorklet read cursor reaches
+the corresponding frame. This keeps render-head state separate from audible state and handles transport
+loop discontinuities without interpolating backwards across an entire chunk.
 
 ## What Owns MIDI Event Timing
 
@@ -218,6 +232,8 @@ That is why the runtime warns when `ksmps > 32` on a live session.
 - owns UI interaction timing
 - owns manual browser event timestamps
 - owns final playback timing
+- keeps PCM production in a Dedicated Worker, outside the React main-thread render path
+- gates AudioWorklet consumption until startup high water is available
 
 ### Host helper
 
@@ -237,6 +253,9 @@ That is why the runtime warns when `ksmps > 32` on a live session.
 
 - owns final event injection timing
 - owns engine sample cursor progression
+- runs Csound in headless mode with performance-time messages suppressed by default, so container
+  logging cannot block `performKsmps()`; set `VISUALCSOUND_CSOUND_PERFORMANCE_LOGGING=true` only for
+  temporary diagnostics
 
 ### Csound
 

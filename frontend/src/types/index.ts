@@ -985,6 +985,19 @@ export interface BrowserClockRenderTelemetry {
   note_on_to_render_complete_ms: number | null;
 }
 
+export interface BrowserClockTimelineSegment {
+  target_frame_start: number;
+  target_frame_end: number;
+  transport_subunit_start: number;
+  transport_subunit_end: number;
+}
+
+export interface BrowserClockTransportEvent {
+  target_frame_offset: number;
+  kind: "step" | "pad_switches" | "loop" | "stopped";
+  payload: Record<string, unknown>;
+}
+
 export interface BrowserClockRenderChunkMessage {
   type: "render_chunk";
   chunk_id: string;
@@ -995,7 +1008,8 @@ export interface BrowserClockRenderChunkMessage {
   target_sample_rate: number;
   target_frame_count: number;
   channels: number;
-  sequencer_status: SessionSequencerStatus;
+  timeline_segments: BrowserClockTimelineSegment[];
+  transport_events: BrowserClockTransportEvent[];
   telemetry: BrowserClockRenderTelemetry;
 }
 

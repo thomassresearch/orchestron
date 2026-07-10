@@ -4776,6 +4776,14 @@ export function SequencerPage({
             const trackDisplayLabel = ui.sequencerWithIndex(trackIndex + 1);
             const syncTargetValue = track.syncToTrackId ?? "";
             const trackIsRunning = sequencer.isPlaying && track.enabled;
+            const absoluteTransportSubunit = sequencer.isPlaying
+              ? sequencerTransportSubunit
+              : sequencerAbsoluteTransportStepValue(sequencer) * sequencerTransportSubunitsPerStep();
+            const localPlayhead = displayedLocalStepFromPlayback(
+              track,
+              absoluteTransportSubunit,
+              sequencer.isPlaying
+            );
 
             return (
               <article
@@ -5168,14 +5176,6 @@ export function SequencerPage({
                       const noteValue = stepState?.note ?? null;
                       const holdActive = stepState?.hold === true;
                       const stepVelocity = stepState?.velocity ?? 127;
-                      const absoluteTransportSubunit = sequencer.isPlaying
-                        ? sequencerTransportSubunit
-                        : sequencerAbsoluteTransportStepValue(sequencer) * sequencerTransportSubunitsPerStep();
-                      const localPlayhead = displayedLocalStepFromPlayback(
-                        track,
-                        absoluteTransportSubunit,
-                        sequencer.isPlaying
-                      );
                       const isActive = track.enabled && sequencer.isPlaying && localPlayhead === step;
                       const selectedNote = noteValue === null ? null : noteOptionsByNote.get(noteValue) ?? null;
                       const isInScale = selectedNote?.inScale ?? false;

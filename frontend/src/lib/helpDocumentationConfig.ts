@@ -70,6 +70,8 @@ El idioma de GUI controla la ayuda integrada y docs de opcodes.`
 
 These settings are shown only when the backend runtime mode is \`browser_clock\`.
 
+A dedicated browser worker owns render requests and PCM queue refills, so delayed React rendering cannot block audio production.
+
 - \`steady low/high water\`: the normal browser PCM queue target. Lower values reduce latency, higher values reduce underruns.
 - \`startup low/high water\`: the larger queue target used while the browser is still priming the stream.
 - \`underrun recovery boost\`: extra buffer added after an underrun is detected.
@@ -86,6 +88,8 @@ These values are stored in app state for the current workspace and runtime path,
       markdown: `## Browser-Clock-Latenz
 
 Diese Einstellungen erscheinen nur, wenn der Backend-Runtime-Modus \`browser_clock\` ist.
+
+Ein dedizierter Browser-Worker steuert Render-Anfragen und PCM-Refills, sodass verzoegertes React-Rendering die Audio-Produktion nicht blockieren kann.
 
 - \`steady low/high water\`: normales Ziel fuer die browserseitige PCM-Warteschlange. Niedrigere Werte reduzieren Latenz, hoehere Werte reduzieren Underruns.
 - \`startup low/high water\`: groesseres Queue-Ziel, solange der Browser den Stream noch auffuellt.
@@ -104,6 +108,8 @@ Diese Werte werden fuer aktuellen Workspace und Runtime-Pfad im App-State gespei
 
 Ces reglages apparaissent uniquement lorsque le mode runtime du backend est \`browser_clock\`.
 
+Un worker navigateur dedie gere les requetes de rendu et le remplissage PCM ; un rendu React retarde ne peut donc pas bloquer la production audio.
+
 - \`steady low/high water\` : cible normale de file PCM cote navigateur. Des valeurs plus faibles reduisent la latence, des valeurs plus hautes reduisent les underruns.
 - \`startup low/high water\` : cible de file plus grande pendant l'amorcage du flux.
 - \`underrun recovery boost\` : buffer supplementaire ajoute apres detection d'un underrun.
@@ -120,6 +126,8 @@ Ces valeurs sont stockees dans l'etat applicatif pour le workspace et le chemin 
       markdown: `## Latencia browser-clock
 
 Estos ajustes solo aparecen cuando el modo runtime del backend es \`browser_clock\`.
+
+Un worker dedicado del navegador gestiona las solicitudes de render y el rellenado PCM, por lo que un renderizado React retrasado no puede bloquear la produccion de audio.
 
 - \`steady low/high water\`: objetivo normal de la cola PCM del navegador. Valores mas bajos reducen latencia, valores mas altos reducen underruns.
 - \`startup low/high water\`: objetivo de cola mas grande mientras el navegador sigue cebando el flujo.

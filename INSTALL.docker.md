@@ -68,6 +68,11 @@ For localhost and LAN browser connections, the browser-clock client uses a low-l
 
 Internal sequencers, piano rolls, and controller lanes work in Docker even when no OS MIDI devices exist.
 
+Csound performance-time messages are disabled by default in the Docker runtime. This prevents high-volume
+instrument lifecycle output from blocking the audio render path through Docker's logging driver. To inspect
+those messages temporarily, start Compose with `VISUALCSOUND_CSOUND_PERFORMANCE_LOGGING=true`; normal backend
+and Csound startup errors remain visible with the default setting.
+
 If you want external hardware or DAW MIDI:
 
 1. Keep the backend container running with `VISUALCSOUND_HOST_MIDI_TOKEN` set.

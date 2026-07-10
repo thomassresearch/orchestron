@@ -46,6 +46,23 @@ export type SequencerPadSwitchEventPayload = {
   runtime_pad_start_subunit?: number | null;
 };
 
+export type SequencerPadSwitch = Pick<
+  SequencerPadSwitchEventPayload,
+  | "track_id"
+  | "track_kind"
+  | "active_pad"
+  | "local_step"
+  | "queued_pad"
+  | "pad_loop_position"
+  | "enabled"
+  | "queued_enabled"
+  | "runtime_pad_start_subunit"
+>;
+
+export type SequencerPadSwitchesEventPayload = Omit<SequencerStepEventPayload, "previous_step"> & {
+  switches: SequencerPadSwitch[];
+};
+
 export type BrowserClockQueuedTransportEvent =
   | {
       kind: "step";
@@ -56,6 +73,11 @@ export type BrowserClockQueuedTransportEvent =
       kind: "pad_switch";
       transportSubunit: number;
       payload: SequencerPadSwitchEventPayload;
+    }
+  | {
+      kind: "pad_switches";
+      transportSubunit: number;
+      payload: SequencerPadSwitchesEventPayload;
     };
 
 export type DrummerRuntimeTrackStatusUpdate = {
@@ -170,59 +192,112 @@ export function parseSequencerStepEventPayload(event: SessionEvent): SequencerSt
   };
 }
 
-export function parseSequencerPadSwitchEventPayload(event: SessionEvent): SequencerPadSwitchEventPayload | null {
-  if (event.type !== "sequencer_pad_switched") {
+function parseSequencerPadSwitch(value: unknown): SequencerPadSwitch | null {
+  if (!isObjectRecord(value)) {
+    return null;
+  }
+  if (
+    typeof value.track_id !== "string" ||
+    !isFiniteNumber(value.active_pad) ||
+    !isOptionalFiniteNumber(value.local_step) ||
+    !isOptionalFiniteNumber(value.queued_pad) ||
+    !isOptionalFiniteNumber(value.pad_loop_position) ||
+    !isOptionalBoolean(value.enabled) ||
+    !isOptionalBoolean(value.queued_enabled) ||
+    !isOptionalFiniteNumber(value.runtime_pad_start_subunit)
+  ) {
     return null;
   }
 
-  const { payload } = event;
+  return {
+    track_id: value.track_id,
+    track_kind: value.track_kind === "controller" ? "controller" : value.track_kind === "note" ? "note" : undefined,
+    active_pad: value.active_pad,
+    local_step: value.local_step ?? undefined,
+    queued_pad: value.queued_pad ?? undefined,
+    pad_loop_position: value.pad_loop_position ?? undefined,
+    enabled: typeof value.enabled === "boolean" ? value.enabled : undefined,
+    queued_enabled:
+      typeof value.queued_enabled === "boolean" || value.queued_enabled === null
+        ? value.queued_enabled
+        : undefined,
+    runtime_pad_start_subunit: value.runtime_pad_start_subunit ?? undefined
+  };
+}
+
+function parseSequencerRuntimeDelta(
+  payload: Record<string, unknown>
+): Omit<SequencerStepEventPayload, "previous_step"> | null {
   const tracks = parseSequencerRuntimeTrackDeltas(payload.tracks);
   const controllerTracks = parseControllerSequencerRuntimeDeltas(payload.controller_tracks);
   if (
-    typeof payload.track_id !== "string" ||
-    !isFiniteNumber(payload.active_pad) ||
     !isFiniteNumber(payload.cycle) ||
     !isFiniteNumber(payload.current_step) ||
     typeof payload.running !== "boolean" ||
     !isFiniteNumber(payload.step_count) ||
     !isFiniteNumber(payload.transport_subunit) ||
     tracks === null ||
-    controllerTracks === null ||
-    !isOptionalFiniteNumber(payload.local_step) ||
-    !isOptionalFiniteNumber(payload.queued_pad) ||
-    !isOptionalFiniteNumber(payload.pad_loop_position) ||
-    !isOptionalBoolean(payload.enabled) ||
-    !isOptionalBoolean(payload.queued_enabled) ||
-    !isOptionalFiniteNumber(payload.runtime_pad_start_subunit)
+    controllerTracks === null
   ) {
     return null;
   }
 
   return {
-    track_id: payload.track_id,
-    track_kind: payload.track_kind === "controller" ? "controller" : payload.track_kind === "note" ? "note" : undefined,
-    active_pad: payload.active_pad,
     cycle: payload.cycle,
     current_step: payload.current_step,
     running: payload.running,
     step_count: payload.step_count,
     transport_subunit: payload.transport_subunit,
     tracks,
-    controller_tracks: controllerTracks,
-    local_step: payload.local_step ?? undefined,
-    queued_pad: payload.queued_pad ?? undefined,
-    pad_loop_position: payload.pad_loop_position ?? undefined,
-    enabled: typeof payload.enabled === "boolean" ? payload.enabled : undefined,
-    queued_enabled:
-      typeof payload.queued_enabled === "boolean" || payload.queued_enabled === null
-        ? payload.queued_enabled
-        : undefined,
-    runtime_pad_start_subunit: payload.runtime_pad_start_subunit ?? undefined
+    controller_tracks: controllerTracks
   };
 }
 
+export function parseSequencerPadSwitchEventPayload(event: SessionEvent): SequencerPadSwitchEventPayload | null {
+  if (event.type !== "sequencer_pad_switched") {
+    return null;
+  }
+
+  const delta = parseSequencerRuntimeDelta(event.payload);
+  const switchPayload = parseSequencerPadSwitch(event.payload);
+  if (delta === null || switchPayload === null) {
+    return null;
+  }
+
+  return {
+    ...switchPayload,
+    ...delta
+  };
+}
+
+export function parseSequencerPadSwitchesEventPayload(event: SessionEvent): SequencerPadSwitchesEventPayload | null {
+  if (event.type !== "sequencer_pad_switches") {
+    return null;
+  }
+
+  const delta = parseSequencerRuntimeDelta(event.payload);
+  if (delta === null || !Array.isArray(event.payload.switches)) {
+    return null;
+  }
+
+  const switches: SequencerPadSwitch[] = [];
+  for (const entry of event.payload.switches) {
+    const parsed = parseSequencerPadSwitch(entry);
+    if (parsed === null) {
+      return null;
+    }
+    switches.push(parsed);
+  }
+
+  return { ...delta, switches };
+}
+
 export function shouldLogSessionEvent(eventType: string): boolean {
-  return eventType !== "sequencer_step" && eventType !== "sequencer_pad_switched";
+  return (
+    eventType !== "sequencer_step" &&
+    eventType !== "sequencer_pad_switched" &&
+    eventType !== "sequencer_pad_switches"
+  );
 }
 
 export function isSessionNotFoundApiError(error: unknown): boolean {

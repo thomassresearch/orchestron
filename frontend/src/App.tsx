@@ -342,6 +342,7 @@ function transportStepCountFromPerformanceSequencers(
 }
 
 const UNBOUNDED_PLAYBACK_END_STEP = 1_000_000_000;
+const MAX_BACKEND_SEQUENCER_NOTE_TRACKS = 128;
 
 function trackShouldRunContinuously(
   track: {
@@ -504,6 +505,7 @@ type AppCopy = {
     failedToInitializeMidiControllers: string;
     failedToSyncSequencerStatus: string;
     failedToUpdateSequencerConfig: string;
+    tooManySequencerTracks: (count: number, maximum: number) => string;
     sessionNotRunningSequencerStopped: string;
     noActiveSessionForPadSwitching: string;
     failedToQueuePad: string;
@@ -616,6 +618,8 @@ const APP_COPY: Record<GuiLanguage, AppCopy> = {
       failedToInitializeMidiControllers: "Failed to initialize MIDI controllers.",
       failedToSyncSequencerStatus: "Failed to sync sequencer status.",
       failedToUpdateSequencerConfig: "Failed to update sequencer config.",
+      tooManySequencerTracks: (count, maximum) =>
+        `This performance creates ${count} backend note tracks; the supported maximum is ${maximum}. Reduce melodic sequencers or drummer rows.`,
       sessionNotRunningSequencerStopped: "Session is no longer running. Sequencer transport stopped.",
       noActiveSessionForPadSwitching: "No active session available for pad switching.",
       failedToQueuePad: "Failed to queue pad."
@@ -672,6 +676,8 @@ const APP_COPY: Record<GuiLanguage, AppCopy> = {
       failedToInitializeMidiControllers: "MIDI-Controller konnten nicht initialisiert werden.",
       failedToSyncSequencerStatus: "Sequencer-Status konnte nicht synchronisiert werden.",
       failedToUpdateSequencerConfig: "Sequencer-Konfiguration konnte nicht aktualisiert werden.",
+      tooManySequencerTracks: (count, maximum) =>
+        `Diese Performance erzeugt ${count} Backend-Notenspuren; maximal ${maximum} werden unterstuetzt. Melodische Sequencer oder Drum-Zeilen reduzieren.`,
       sessionNotRunningSequencerStopped: "Session laeuft nicht mehr. Sequencer-Transport wurde gestoppt.",
       noActiveSessionForPadSwitching: "Keine aktive Session fuer Pad-Wechsel verfuegbar.",
       failedToQueuePad: "Pad konnte nicht in die Warteschlange gesetzt werden."
@@ -731,6 +737,8 @@ const APP_COPY: Record<GuiLanguage, AppCopy> = {
       failedToInitializeMidiControllers: "Echec de l'initialisation des controleurs MIDI.",
       failedToSyncSequencerStatus: "Echec de synchronisation du statut sequencer.",
       failedToUpdateSequencerConfig: "Echec de mise a jour de la configuration sequencer.",
+      tooManySequencerTracks: (count, maximum) =>
+        `Cette performance cree ${count} pistes de notes backend ; le maximum pris en charge est ${maximum}. Reduisez les sequenceurs melodiques ou les lignes de batterie.`,
       sessionNotRunningSequencerStopped: "La session ne tourne plus. Le transport sequencer est arrete.",
       noActiveSessionForPadSwitching: "Aucune session active pour le changement de pad.",
       failedToQueuePad: "Echec de mise en file du pad."
@@ -790,6 +798,8 @@ const APP_COPY: Record<GuiLanguage, AppCopy> = {
       failedToInitializeMidiControllers: "No se pudieron inicializar los controladores MIDI.",
       failedToSyncSequencerStatus: "No se pudo sincronizar el estado del secuenciador.",
       failedToUpdateSequencerConfig: "No se pudo actualizar la configuracion del secuenciador.",
+      tooManySequencerTracks: (count, maximum) =>
+        `Esta performance crea ${count} pistas de notas backend; el maximo admitido es ${maximum}. Reduce los secuenciadores melodicos o las filas de bateria.`,
       sessionNotRunningSequencerStopped: "La sesion ya no esta en ejecucion. El transporte del secuenciador se detuvo.",
       noActiveSessionForPadSwitching: "No hay una sesion activa para cambiar pads.",
       failedToQueuePad: "No se pudo poner en cola el pad."
@@ -1298,6 +1308,14 @@ export default function App() {
                 ]
               }
             ];
+      if (transportTracks.length > MAX_BACKEND_SEQUENCER_NOTE_TRACKS) {
+        throw new Error(
+          appCopy.errors.tooManySequencerTracks(
+            transportTracks.length,
+            MAX_BACKEND_SEQUENCER_NOTE_TRACKS
+          )
+        );
+      }
       return {
         timing: {
           tempo_bpm: resolvedState.timing.tempoBPM,
@@ -1316,7 +1334,7 @@ export default function App() {
         arpeggiators: buildBackendArpeggiatorConfigs(resolvedState)
       };
     },
-    [instrumentLevelsByChannel]
+    [appCopy.errors, instrumentLevelsByChannel]
   );
   const buildBackendArpeggiatorConfig = useCallback((state?: SequencerState): SessionArpeggiatorConfigRequest => {
     const resolvedState = state ?? useAppStore.getState().sequencer;
@@ -1332,6 +1350,7 @@ export default function App() {
   const arrangerTransportActiveRef = useRef(false);
   const {
     browserAudioError,
+    browserAudioDiagnostics,
     browserAudioStatus,
     browserAudioTransport,
     displayedSequencer,
@@ -1349,6 +1368,7 @@ export default function App() {
     stopSequencerTransport,
     markSequencerConfigSyncPending
   } = useSequencerRuntimeController({
+    activePage,
     activeSessionId,
     activeSessionState,
     browserClockLatencySettings,
@@ -3059,6 +3079,7 @@ export default function App() {
                     browserAudioTransport={browserAudioTransport}
                     browserAudioStatus={browserAudioTransport !== "off" ? browserAudioStatus : "off"}
                     browserAudioError={browserAudioTransport !== "off" ? browserAudioError : null}
+                    browserAudioDiagnostics={browserAudioTransport !== "off" ? browserAudioDiagnostics : null}
                     onBindMidiInput={(midiInput) => {
                       void bindMidiInput(midiInput);
                     }}

@@ -49,6 +49,7 @@ class CsoundWorker:
         self,
         *,
         gen_audio_assets_dir: str | None = None,
+        csound_performance_logging: bool = False,
     ) -> None:
         self._backend = "mock"
         self._audio_output_mode = self._resolve_audio_output_mode(
@@ -56,6 +57,7 @@ class CsoundWorker:
         )
         configured_assets_dir = (gen_audio_assets_dir or os.getenv("VISUALCSOUND_GEN_AUDIO_ASSETS_DIR", "")).strip()
         self._gen_audio_assets_dir = os.path.abspath(configured_assets_dir) if configured_assets_dir else None
+        self._csound_performance_logging = bool(csound_performance_logging)
         self._csound: Any | None = None
         self._thread: threading.Thread | None = None
         self._running = False
@@ -266,6 +268,11 @@ class CsoundWorker:
                 csound.setOption(f"-B{hardware_buffer}")
                 csound.setOption(f"-M{midi_input}")
                 csound.setOption(f"-+rtmidi={module}")
+                if not self._csound_performance_logging and not callable(getattr(csound, "setMessageLevel", None)):
+                    # Direct Csound bindings supplied by supported runtimes expose
+                    # setMessageLevel.  Keep this fallback for older bindings,
+                    # where command-line suppression is the only available path.
+                    csound.setOption("-m0")
                 self._apply_gen_audio_search_dir_option(csound)
                 self._configure_host_midi_callbacks(csound)
 
@@ -276,6 +283,9 @@ class CsoundWorker:
                 start_result = csound.start()
                 if start_result != 0:
                     raise RuntimeError(f"CSound start failed with code {start_result}")
+
+                if not self._csound_performance_logging:
+                    self._suppress_csound_performance_messages(csound)
 
                 source_sr = self._resolve_runtime_sr(csound, runtime_csd)
                 source_nchnls = self._resolve_runtime_nchnls(csound, runtime_csd)
@@ -475,6 +485,20 @@ class CsoundWorker:
         if not self._gen_audio_assets_dir:
             return
         csound.setOption(f"--env:SSDIR={self._gen_audio_assets_dir}")
+
+    @staticmethod
+    def _suppress_csound_performance_messages(csound: Any) -> None:
+        """Silence performance-time Csound output without hiding startup diagnostics."""
+        set_message_level = getattr(csound, "setMessageLevel", None)
+        if not callable(set_message_level):
+            logger.warning(
+                "CSound binding lacks setMessageLevel; requested -m0 before compile as a compatibility fallback."
+            )
+            return
+        try:
+            set_message_level(0)
+        except Exception as exc:  # pragma: no cover - binding/runtime dependent
+            logger.warning("Failed to suppress Csound performance messages: %s", exc)
 
     @staticmethod
     def _teardown_csound(csound: object) -> None:

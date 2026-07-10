@@ -176,6 +176,7 @@ Monitor and control runtime session behavior.
 
 - Bind the active MIDI input for the current session.
 - Inspect generated ORC output after compile.
+- Monitor PCM queue depth, pending render work, underruns, overruns, and render/audio ratio.
 - Review recent session events from WebSocket updates.
 
 Use this panel while testing patches live.`
@@ -188,6 +189,7 @@ Use this panel while testing patches live.`
 
 - Aktiven MIDI-Eingang für die Session binden.
 - Generierten ORC-Output nach der Kompilierung prüfen.
+- PCM-Puffer, ausstehendes Rendering, Underruns, Overruns und Render-/Audio-Verhältnis überwachen.
 - Letzte Session-Events aus WebSocket-Updates ansehen.
 
 Dieses Panel während Live-Tests verwenden.`
@@ -200,6 +202,7 @@ Surveillance et contrôle de la session runtime.
 
 - Associer l'entrée MIDI active à la session courante.
 - Inspecter la sortie ORC après compilation.
+- Surveiller la file PCM, le rendu en attente, les sous-alimentations, les dépassements et le ratio rendu/audio.
 - Consulter les événements récents de session (WebSocket).
 
 Utilisez ce panneau pendant les tests en direct.`
@@ -212,6 +215,7 @@ Monitorea y controla el comportamiento de la sesión runtime.
 
 - Vincula la entrada MIDI activa para la sesión actual.
 - Revisa la salida ORC generada tras compilar.
+- Supervisa la cola PCM, el render pendiente, los subdesbordamientos, los desbordamientos y la relación render/audio.
 - Consulta eventos recientes de sesión via WebSocket.
 
 Usa este panel durante pruebas en vivo.`
@@ -423,7 +427,7 @@ Si múltiples señales están conectadas a **la misma entrada** de un opcode:
 
 ### Audio Mode Details
 
-- Runtime audio always uses browser-clock mode, so this panel reports browser-audio status while the browser owns the PCM queue and renders playback through AudioWorklet.
+- Runtime audio always uses browser-clock mode. A dedicated worker owns the PCM socket and refill loop, AudioWorklet consumes the shared queue, and the panel reports queue depth, pending render work, underruns, overruns, and render/audio ratio.
 - If the panel is collapsed, the graph header can show it again with \`Show runtime\`.`,
     german: `### Workflow fuer Live-Tests
 
@@ -433,7 +437,7 @@ Si múltiples señales están conectadas a **la misma entrada** de un opcode:
 
 ### Details zum Audio-Modus
 
-- Die Runtime nutzt jetzt immer den Browser-Clock-Modus. Dieses Panel zeigt daher den Browser-Audio-Status, waehrend der Browser die PCM-Warteschlange besitzt und die Wiedergabe ueber AudioWorklet rendert.
+- Die Runtime nutzt immer den Browser-Clock-Modus. Ein dedizierter Worker besitzt PCM-Socket und Refill-Schleife, AudioWorklet verbraucht die gemeinsame Queue, und das Panel zeigt Queue-Tiefe, ausstehendes Rendering, Underruns, Overruns und Render-/Audio-Verhaeltnis.
 - Ist das Panel eingeklappt, kann es ueber \`Show runtime\` in der Kopfzeile des Graph Editors wieder eingeblendet werden.`,
     french: `### Workflow de test live
 
@@ -443,7 +447,7 @@ Si múltiples señales están conectadas a **la misma entrada** de un opcode:
 
 ### Details du mode audio
 
-- L'audio runtime utilise maintenant toujours le mode browser-clock. Ce panneau affiche donc l'etat audio du navigateur pendant que le navigateur possede la file PCM et rend la lecture via AudioWorklet.
+- L'audio runtime utilise toujours le mode browser-clock. Un worker dedie gere le socket PCM et le remplissage, AudioWorklet consomme la file partagee, et le panneau affiche la profondeur de file, le rendu en attente, les sous-alimentations, les depassements et le ratio rendu/audio.
 - Si le panneau est replie, l'en-tete du graphe peut le rouvrir via \`Show runtime\`.`,
     spanish: `### Flujo de prueba en vivo
 
@@ -453,7 +457,7 @@ Si múltiples señales están conectadas a **la misma entrada** de un opcode:
 
 ### Detalles del modo de audio
 
-- El audio runtime ahora usa siempre el modo browser-clock. Por eso este panel informa del estado de audio del navegador mientras el navegador posee la cola PCM y renderiza la reproduccion mediante AudioWorklet.
+- El audio runtime usa siempre el modo browser-clock. Un worker dedicado gestiona el socket PCM y el rellenado, AudioWorklet consume la cola compartida y el panel muestra profundidad de cola, render pendiente, subdesbordamientos, desbordamientos y relacion render/audio.
 - Si el panel esta colapsado, el encabezado del editor de grafos puede volver a mostrarlo con \`Show runtime\`.`
   },
 };

@@ -5,7 +5,7 @@ class BrowserClockProcessor extends AudioWorkletProcessor {
     this.channels = Math.max(1, Number(processorOptions.channels) || 2);
     this.capacityFrames = Math.max(1, Number(processorOptions.capacityFrames) || 1);
     this.sampleBuffer = new Float32Array(processorOptions.sampleBuffer);
-    this.stateBuffer = new Int32Array(processorOptions.stateBuffer);
+    this.stateBuffer = new Uint32Array(processorOptions.stateBuffer);
     this.lowWaterFrames = 0;
     this.refillRequested = false;
     this.port.onmessage = (event) => {
@@ -26,16 +26,22 @@ class BrowserClockProcessor extends AudioWorkletProcessor {
       return true;
     }
 
-    const readFrame = Atomics.load(this.stateBuffer, 0);
-    const writeFrame = Atomics.load(this.stateBuffer, 1);
-    const availableFrames = Math.max(0, writeFrame - readFrame);
     const outputFrameCount = output[0]?.length ?? 0;
-    const framesToConsume = Math.min(availableFrames, outputFrameCount);
     const channelCount = output.length;
 
     for (let channelIndex = 0; channelIndex < channelCount; channelIndex += 1) {
       output[channelIndex].fill(0);
     }
+
+    if (Atomics.load(this.stateBuffer, 4) === 0) {
+      return true;
+    }
+
+    const readFrame = Atomics.load(this.stateBuffer, 0) >>> 0;
+    const writeFrame = Atomics.load(this.stateBuffer, 1) >>> 0;
+    const rawAvailableFrames = (writeFrame - readFrame) >>> 0;
+    const availableFrames = rawAvailableFrames <= this.capacityFrames ? rawAvailableFrames : 0;
+    const framesToConsume = Math.min(availableFrames, outputFrameCount);
 
     if (framesToConsume > 0) {
       let remainingFrames = framesToConsume;
@@ -77,7 +83,7 @@ class BrowserClockProcessor extends AudioWorkletProcessor {
       }
     }
 
-    Atomics.store(this.stateBuffer, 0, readFrame + framesToConsume);
+    Atomics.store(this.stateBuffer, 0, (readFrame + framesToConsume) >>> 0);
     const availableAfterConsume = Math.max(0, availableFrames - framesToConsume);
     if (framesToConsume < outputFrameCount) {
       Atomics.add(this.stateBuffer, 2, 1);
@@ -88,6 +94,7 @@ class BrowserClockProcessor extends AudioWorkletProcessor {
         this.refillRequested = false;
       } else if (!this.refillRequested) {
         this.refillRequested = true;
+        Atomics.add(this.stateBuffer, 3, 1);
         this.port.postMessage({
           type: "need_refill",
           available_frames: availableAfterConsume,

@@ -78,6 +78,7 @@ class Settings(BaseSettings):
     default_midi_device: str = "internal:loopback"
     host_midi_token: str | None = None
     audio_output_mode: Literal["browser_clock"] = "browser_clock"
+    csound_performance_logging: bool = False
     frontend_disconnect_grace_seconds: float = Field(default=5.0, gt=0.0)
     frontend_heartbeat_timeout_seconds: float = Field(default=5.0, gt=0.0)
     session_max_active: int = Field(default=32, gt=0)

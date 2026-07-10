@@ -8,6 +8,7 @@ import queue
 import time
 import threading
 from pathlib import Path
+from types import SimpleNamespace
 import zipfile
 
 from fastapi.testclient import TestClient
@@ -38,6 +39,53 @@ from backend.app.services.performance_export_service import (
     OfflineMidiExportTimeoutError,
     PerformanceExportService,
 )
+from backend.app.services.session_service import SessionService
+
+
+def test_browser_clock_transport_timeline_splits_at_loop_discontinuity() -> None:
+    segments, events = SessionService._browser_clock_transport_timeline(
+        engine_sample_start=1_000,
+        engine_sample_end=1_100,
+        engine_sample_rate=48_000,
+        target_frame_count=200,
+        initial_transport_subunit=1_260,
+        final_transport_subunit=840,
+        transport_events=[
+            SimpleNamespace(
+                engine_sample=1_050,
+                kind="loop",
+                payload={
+                    "previous_transport_subunit": 1_680,
+                    "transport_subunit": 420,
+                },
+            )
+        ],
+    )
+
+    assert segments == [
+        {
+            "target_frame_start": 0,
+            "target_frame_end": 100,
+            "transport_subunit_start": 1_260,
+            "transport_subunit_end": 1_680,
+        },
+        {
+            "target_frame_start": 100,
+            "target_frame_end": 200,
+            "transport_subunit_start": 420,
+            "transport_subunit_end": 840,
+        },
+    ]
+    assert events == [
+        {
+            "target_frame_offset": 100,
+            "kind": "loop",
+            "payload": {
+                "previous_transport_subunit": 1_680,
+                "transport_subunit": 420,
+            },
+        }
+    ]
 
 
 def _client(
@@ -856,6 +904,9 @@ def test_browser_clock_controller_websocket_streams_pcm_chunks(tmp_path: Path) -
             assert metadata["engine_sample_start"] == 0
             assert metadata["engine_sample_end"] == 128
             assert metadata["target_frame_count"] == 128
+            assert "sequencer_status" not in metadata
+            assert metadata["timeline_segments"]
+            assert isinstance(metadata["transport_events"], list)
             assert metadata["telemetry"]["request_id"] == "render-steady-1"
             assert metadata["telemetry"]["priority"] == "steady"
             assert metadata["telemetry"]["queued_frames_at_start"] == 512

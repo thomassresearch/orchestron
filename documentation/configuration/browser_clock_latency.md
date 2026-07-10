@@ -19,10 +19,20 @@ This is the standard runtime path for macOS, Linux, Windows, and Docker. In prac
 On the browser-clock path, audio is not pushed to a local DAC on the backend host. Instead:
 
 - the backend renders PCM blocks on demand
-- the browser keeps a target queue of decoded PCM
-- the browser decides when to request more audio
+- a dedicated browser audio worker keeps the target queue of decoded PCM and requests more audio
+- the AudioWorklet consumes that queue independently of React rendering
 
 That makes the browser-clock queue settings the main tradeoff between low live-play latency and glitch resistance.
+
+The queue producer no longer runs on the React/main thread. Main-thread stalls can delay visual updates,
+but they do not stop the worker from requesting or buffering PCM. Playback starts only after the startup
+high-water target is reached. The Runtime panel reports current queued and pending-render milliseconds,
+underrun/overrun counts, and the latest backend render-time/audio-time ratio.
+
+The backend suppresses Csound performance-time logging by default in headless browser-clock sessions. This
+prevents stdout or Docker logging I/O from delaying `performKsmps()`. To diagnose Csound's own runtime messages,
+start the backend with `VISUALCSOUND_CSOUND_PERFORMANCE_LOGGING=true`; this is intended as a temporary diagnostic
+setting rather than a latency control.
 
 Lower values usually feel more immediate, but they also leave less headroom for:
 

@@ -23,6 +23,9 @@ services:
       - info
     environment:
       VISUALCSOUND_AUDIO_OUTPUT_MODE: browser_clock
+      # Avoid synchronous container-log writes on Csound's render path. Set to
+      # true temporarily when Csound performance diagnostics are required.
+      VISUALCSOUND_CSOUND_PERFORMANCE_LOGGING: "false"
       VISUALCSOUND_HOST_MIDI_TOKEN: ${VISUALCSOUND_HOST_MIDI_TOKEN:-}
       # On macOS (Docker Desktop), ALSA device passthrough is not available.
       # Use a non-ALSA backend by default so `docker compose up` works.
