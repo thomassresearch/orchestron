@@ -57,8 +57,10 @@ While instruments are running, rack assignment changes are locked:
 - Use `Add Instrument` to create another rack slot.
 - This enables multi-instrument performances driven by different MIDI channels.
 - Always-on effect patches are included only when they are explicitly added as rack slots.
-- In the `orchestron-performance-creator` CLI, run `edit add-standard-effects` after adding playable instruments to add the standard reverb, compressor, and speaker-output effect slots and route send/dry outlets.
+- In the `orchestron-performance-creator` CLI, use `edit instruments list` to discover stable rack binding IDs and audio ports. Build arbitrary chains with `edit routes add/remove/clear/list`, or run `edit add-standard-effects` to add the standard reverb, compressor, and speaker-output send/dry matrix.
 - The button is unavailable while the engine is running; stop instruments before changing rack assignments.
+
+The CLI validates its staged rack through the same backend route resolver used by session creation and compilation. Run `edit validate`, then `edit create-runtime --start` to create a CLI-owned engine session. Because instrument assignments and Csound audio connections are fixed at compile time, use `edit rebuild-runtime` after changing the rack or its routes; `edit push-runtime` is only for sequencer and arpeggiator changes when the compiled rack still matches.
 
 ## Rack Transport (Instrument Engine Control)
 

@@ -19,7 +19,7 @@ from urllib import error, parse, request
 DEFAULT_API_URL = os.environ.get("ORCHESTRON_API_URL", "http://localhost:8000/api")
 SESSION_DIR = Path(".orchestron")
 SESSION_FILE = SESSION_DIR / "edit-session.json"
-CURRENT_CONFIG_VERSION = 8
+CURRENT_CONFIG_VERSION = 10
 DEFAULT_PAD_COUNT = 8
 MAX_STEPS_PER_PAD = 128
 PAD_LOOP_PAUSE_BEATS = {1, 2, 4, 8, 16}
@@ -262,6 +262,20 @@ class ApiClient:
                 retry.append("Refresh the edit session or retry after stopping conflicting live activity.")
             if exc.code == 422:
                 retry.append("Fix the validation error shown by the backend and retry.")
+                try:
+                    parsed_body = json.loads(body)
+                except json.JSONDecodeError:
+                    parsed_body = None
+                detail = parsed_body.get("detail") if isinstance(parsed_body, dict) else None
+                diagnostics = detail.get("diagnostics") if isinstance(detail, dict) else None
+                if isinstance(diagnostics, list) and diagnostics:
+                    raise OrchestronCliError(
+                        "backend_validation_error",
+                        "Backend validation failed: " + " | ".join(str(item) for item in diagnostics),
+                        retry=retry,
+                        data={"diagnostics": diagnostics},
+                        backend={"status": exc.code, "reason": exc.reason, "body": body},
+                    ) from exc
             raise OrchestronCliError(
                 "backend_http_error",
                 f"Backend rejected {operation}: HTTP {exc.code} {exc.reason}: {body}",
@@ -1593,6 +1607,277 @@ def graph_audio_port_names(graph: dict[str, Any], *, opcode: str) -> list[str]:
     return sorted(names)
 
 
+def patch_audio_port_names(patch: dict[str, Any], *, opcode: str) -> list[str]:
+    list_key = "audio_inlet_names" if opcode == "inleta" else "audio_outlet_names"
+    listed = patch.get(list_key)
+    if isinstance(listed, list):
+        return sorted({str(value).strip() for value in listed if isinstance(value, str) and value.strip()})
+    graph = patch.get("graph")
+    if isinstance(graph, dict):
+        return graph_audio_port_names(graph, opcode=opcode)
+    return []
+
+
+def normalize_effect_route_rows(value: Any) -> list[dict[str, str]]:
+    if not isinstance(value, list):
+        return []
+    result: list[dict[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        source_id = item.get("sourceId", item.get("source_id"))
+        channel = item.get("channel", item.get("outlet"))
+        if not isinstance(source_id, str) or not isinstance(channel, str):
+            continue
+        key = (source_id.strip(), channel.strip())
+        if not key[0] or not key[1] or key in seen:
+            continue
+        seen.add(key)
+        result.append({"sourceId": key[0], "channel": key[1]})
+    return result[:64]
+
+
+def normalize_effect_source_id_rows(value: Any) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    result: list[str] = []
+    seen: set[str] = set()
+    for item in value:
+        if not isinstance(item, str):
+            continue
+        source_id = item.strip()
+        if not source_id or source_id in seen:
+            continue
+        seen.add(source_id)
+        result.append(source_id)
+    return result[:16]
+
+
+def config_instruments(config: dict[str, Any]) -> list[dict[str, Any]]:
+    instruments = config.get("instruments")
+    if not isinstance(instruments, list):
+        raise OrchestronCliError("invalid_instruments", "config.instruments must be a list.", path="config.instruments")
+    return [instrument for instrument in instruments if isinstance(instrument, dict)]
+
+
+def normalize_performance_config(
+    config: dict[str, Any],
+    patches: list[dict[str, Any]],
+) -> dict[str, Any]:
+    config["version"] = CURRENT_CONFIG_VERSION
+    instruments = config_instruments(config)
+    config["instruments"] = instruments
+    patches_by_id = {str(patch.get("id")): patch for patch in patches if isinstance(patch.get("id"), str)}
+    used_ids: set[str] = set()
+
+    for index, instrument in enumerate(instruments):
+        patch = patches_by_id.get(str(instrument.get("patchId", "")))
+        always_on = patch_is_always_on(patch or {})
+        channel = 0 if always_on else clamp_int(
+            instrument.get("midiChannel", 1),
+            1,
+            16,
+            field=f"config.instruments[{index}].midiChannel",
+        )
+        instrument["midiChannel"] = channel
+        instrument["level"] = clamp_int(
+            instrument.get("level", 10),
+            1,
+            10,
+            field=f"config.instruments[{index}].level",
+        )
+        raw_id = instrument.get("id")
+        assignment_id = raw_id.strip() if isinstance(raw_id, str) else ""
+        if not assignment_id or assignment_id in used_ids:
+            patch_name = str((patch or {}).get("name") or instrument.get("patchName") or f"rack-{index + 1}")
+            if always_on:
+                seed = f"always-on-{normalize_name_key(patch_name).replace(' ', '-')}"
+            else:
+                seed = f"instrument-{channel}"
+            assignment_id = seed
+            suffix = 2
+            while assignment_id in used_ids:
+                assignment_id = f"{seed}-{suffix}"
+                suffix += 1
+        instrument["id"] = assignment_id
+        used_ids.add(assignment_id)
+        if patch is not None:
+            instrument["patchName"] = patch.get("name", instrument.get("patchName"))
+
+    instruments_by_id = {
+        str(instrument["id"]): instrument
+        for instrument in instruments
+        if isinstance(instrument.get("id"), str)
+    }
+    for instrument in instruments:
+        patch = patches_by_id.get(str(instrument.get("patchId", "")))
+        if not patch_is_always_on(patch or {}):
+            instrument["effectSourceIds"] = []
+            instrument["effectRoutes"] = []
+            continue
+        routes = normalize_effect_route_rows(instrument.get("effectRoutes"))
+        legacy_source_ids = normalize_effect_source_id_rows(instrument.get("effectSourceIds"))
+        if not routes and legacy_source_ids:
+            for source_id in legacy_source_ids:
+                source = instruments_by_id.get(source_id)
+                if source is None:
+                    continue
+                source_patch = patches_by_id.get(str(source.get("patchId", "")))
+                for channel in patch_audio_port_names(source_patch or {}, opcode="outleta"):
+                    routes.append({"sourceId": source_id, "channel": channel})
+        routes = normalize_effect_route_rows(routes)
+        instrument["effectRoutes"] = routes
+        instrument["effectSourceIds"] = source_ids_from_routes(routes)
+    ensure_sequencer(config)
+    return config
+
+
+def instrument_by_binding_id(config: dict[str, Any], binding_id: str) -> dict[str, Any]:
+    matches = [instrument for instrument in config_instruments(config) if instrument.get("id") == binding_id]
+    if len(matches) == 1:
+        return matches[0]
+    if not matches:
+        raise OrchestronCliError(
+            "instrument_binding_not_found",
+            f"No rack instrument assignment found for binding id '{binding_id}'.",
+            retry=["Run `orchestron_cli edit instruments list` and retry with an exact bindingId."],
+        )
+    raise OrchestronCliError(
+        "instrument_binding_ambiguous",
+        f"Rack instrument assignment id '{binding_id}' is not unique.",
+        retry=["Run `orchestron_cli edit validate` and fix duplicate assignment ids."],
+    )
+
+
+def effect_route_would_create_loop(
+    instruments: list[dict[str, Any]],
+    *,
+    target_id: str,
+    source_id: str,
+) -> bool:
+    if target_id == source_id:
+        return True
+    adjacency: dict[str, set[str]] = {}
+    for instrument in instruments:
+        route_target_id = instrument.get("id")
+        if not isinstance(route_target_id, str):
+            continue
+        for route in normalize_effect_route_rows(instrument.get("effectRoutes")):
+            adjacency.setdefault(route["sourceId"], set()).add(route_target_id)
+    pending = [target_id]
+    visited: set[str] = set()
+    while pending:
+        current = pending.pop()
+        if current == source_id:
+            return True
+        if current in visited:
+            continue
+        visited.add(current)
+        pending.extend(adjacency.get(current, set()))
+    return False
+
+
+def add_effect_route_to_config(
+    config: dict[str, Any],
+    patches_by_id: dict[str, dict[str, Any]],
+    *,
+    source_id: str,
+    channel: str,
+    target_id: str,
+) -> dict[str, str]:
+    source = instrument_by_binding_id(config, source_id)
+    target = instrument_by_binding_id(config, target_id)
+    source_patch = patches_by_id.get(str(source.get("patchId", "")))
+    target_patch = patches_by_id.get(str(target.get("patchId", "")))
+    if source_patch is None:
+        raise OrchestronCliError("unknown_patch", f"Source binding '{source_id}' references an unknown patch.")
+    if target_patch is None:
+        raise OrchestronCliError("unknown_patch", f"Target binding '{target_id}' references an unknown patch.")
+    if not patch_is_always_on(target_patch):
+        raise OrchestronCliError(
+            "effect_target_not_always_on",
+            f"Target binding '{target_id}' patch '{target_patch.get('name')}' is not always-on.",
+            retry=["Choose an always-on target from `orchestron_cli edit instruments list`."],
+        )
+    if not patch_audio_port_names(target_patch, opcode="inleta"):
+        raise OrchestronCliError(
+            "effect_target_has_no_inlets",
+            f"Target binding '{target_id}' patch '{target_patch.get('name')}' has no inleta ports.",
+        )
+    normalized_channel = channel.strip()
+    source_outlets = patch_audio_port_names(source_patch, opcode="outleta")
+    if normalized_channel not in source_outlets:
+        raise OrchestronCliError(
+            "effect_source_outlet_not_found",
+            f"Source binding '{source_id}' has no outleta channel named '{normalized_channel}'.",
+            retry=[f"Use one of: {', '.join(source_outlets) or '(none)'}."],
+        )
+    routes = normalize_effect_route_rows(target.get("effectRoutes"))
+    route = {"sourceId": source_id, "channel": normalized_channel}
+    if route in routes:
+        return route
+    if len(routes) >= 64:
+        raise OrchestronCliError("too_many_effect_routes", f"Target binding '{target_id}' already has 64 routes.")
+    if effect_route_would_create_loop(config_instruments(config), target_id=target_id, source_id=source_id):
+        raise OrchestronCliError(
+            "effect_route_loop",
+            "Effect routing would create an audio feedback loop.",
+            retry=["Remove an existing downstream route or choose a different target."],
+        )
+    routes.append(route)
+    target["effectRoutes"] = normalize_effect_route_rows(routes)
+    target["effectSourceIds"] = source_ids_from_routes(target["effectRoutes"])
+    return route
+
+
+def remove_effect_route_from_config(
+    config: dict[str, Any],
+    *,
+    source_id: str,
+    channel: str,
+    target_id: str,
+) -> bool:
+    target = instrument_by_binding_id(config, target_id)
+    routes = normalize_effect_route_rows(target.get("effectRoutes"))
+    next_routes = [
+        route
+        for route in routes
+        if not (route["sourceId"] == source_id and route["channel"] == channel.strip())
+    ]
+    changed = len(next_routes) != len(routes)
+    target["effectRoutes"] = next_routes
+    target["effectSourceIds"] = source_ids_from_routes(next_routes)
+    return changed
+
+
+def clear_effect_routes_for_target(config: dict[str, Any], *, target_id: str) -> int:
+    target = instrument_by_binding_id(config, target_id)
+    routes = normalize_effect_route_rows(target.get("effectRoutes"))
+    target["effectRoutes"] = []
+    target["effectSourceIds"] = []
+    return len(routes)
+
+
+def session_assignments_from_config(config: dict[str, Any]) -> list[dict[str, Any]]:
+    assignments: list[dict[str, Any]] = []
+    for instrument in config_instruments(config):
+        routes = normalize_effect_route_rows(instrument.get("effectRoutes"))
+        assignments.append(
+            {
+                "id": instrument.get("id"),
+                "patch_id": instrument.get("patchId"),
+                "midi_channel": int(instrument.get("midiChannel", 1)),
+                "effect_source_ids": source_ids_from_routes(routes),
+                "effect_routes": [
+                    {"source_id": route["sourceId"], "channel": route["channel"]}
+                    for route in routes
+                ],
+            }
+        )
+    return assignments
+
+
 def next_graph_node_id(used_ids: set[str], seed: str) -> str:
     clean_seed = re.sub(r"[^A-Za-z0-9_:-]+", "_", seed).strip("_") or "node"
     candidate = clean_seed
@@ -1903,6 +2188,7 @@ def ensure_standard_effect_matrix(
     reverb_patch_ref: str = STANDARD_REVERB_PATCH_NAME,
     compressor_patch_ref: str = STANDARD_COMPRESSOR_PATCH_NAME,
     speaker_patch_ref: str = STANDARD_SPEAKER_PATCH_NAME,
+    merge: bool = False,
 ) -> dict[str, Any]:
     raw_instruments = config.setdefault("instruments", [])
     if not isinstance(raw_instruments, list):
@@ -1995,12 +2281,47 @@ def ensure_standard_effect_matrix(
         source_labels_for_role(graph_audio_port_names(require_patch_graph(compressor_patch), opcode="outleta"), role="all"),
     )
 
-    reverb_binding["effectRoutes"] = reverb_routes
-    reverb_binding["effectSourceIds"] = source_ids_from_routes(reverb_routes)
-    compressor_binding["effectRoutes"] = compressor_routes
-    compressor_binding["effectSourceIds"] = source_ids_from_routes(compressor_routes)
-    speaker_binding["effectRoutes"] = speaker_routes
-    speaker_binding["effectSourceIds"] = source_ids_from_routes(speaker_routes)
+    patch_details_by_id = {
+        str(patch["id"]): patch
+        for patch in [
+            *source_patches_by_binding_id.values(),
+            reverb_patch,
+            compressor_patch,
+            speaker_patch,
+        ]
+    }
+    if not merge:
+        clear_effect_routes_for_target(config, target_id=STANDARD_REVERB_BINDING_ID)
+        clear_effect_routes_for_target(config, target_id=STANDARD_COMPRESSOR_BINDING_ID)
+        clear_effect_routes_for_target(config, target_id=STANDARD_SPEAKER_BINDING_ID)
+    for route in reverb_routes:
+        add_effect_route_to_config(
+            config,
+            patch_details_by_id,
+            source_id=route["sourceId"],
+            channel=route["channel"],
+            target_id=STANDARD_REVERB_BINDING_ID,
+        )
+    for route in compressor_routes:
+        add_effect_route_to_config(
+            config,
+            patch_details_by_id,
+            source_id=route["sourceId"],
+            channel=route["channel"],
+            target_id=STANDARD_COMPRESSOR_BINDING_ID,
+        )
+    for route in speaker_routes:
+        add_effect_route_to_config(
+            config,
+            patch_details_by_id,
+            source_id=route["sourceId"],
+            channel=route["channel"],
+            target_id=STANDARD_SPEAKER_BINDING_ID,
+        )
+
+    reverb_routes = normalize_effect_route_rows(reverb_binding.get("effectRoutes"))
+    compressor_routes = normalize_effect_route_rows(compressor_binding.get("effectRoutes"))
+    speaker_routes = normalize_effect_route_rows(speaker_binding.get("effectRoutes"))
 
     return {
         "sourceInstruments": len(source_bindings),
@@ -2072,7 +2393,7 @@ def conflict_action(
             retry=[
                 f"Retry with --on-conflict overwrite to replace the existing {kind}.",
                 f"Retry with --on-conflict skip to keep the existing {kind}.",
-                f"Retry with --on-conflict rename to import as a copy.",
+                "Retry with --on-conflict rename to import as a copy.",
             ],
             data={"existing": existing},
         )
@@ -3319,11 +3640,40 @@ def build_runtime_config(config: dict[str, Any]) -> dict[str, Any]:
                 ],
             }
         )
-    if not tracks and not controller_tracks:
+    arpeggiators = [
+        {
+            "arpeggiator_id": arp.get("id", "arp-1"),
+            "enabled": bool(arp.get("enabled", False)),
+            "input_channel": int(arp.get("inputChannel", 3)),
+            "target_channel": int(arp.get("targetChannel", 1)),
+            "rate": arp.get("rate", "1/16"),
+            "gate_ratio": float(arp.get("gateRatio", 0.72)),
+            "swing": float(arp.get("swing", 0.0)),
+            "octaves": int(arp.get("octaves", 1)),
+            "pattern": arp.get("pattern", "up"),
+            "latch": bool(arp.get("latch", False)),
+            "velocity_mode": arp.get("velocityMode", "input"),
+            "fixed_velocity": int(arp.get("fixedVelocity", 100)),
+            "accent_cycle": arp.get("accentCycle", []),
+            "probability": float(arp.get("probability", 1.0)),
+            "repeats": int(arp.get("repeats", 1)),
+            "humanize_ms": float(arp.get("humanizeMs", 0.0)),
+            "humanize_velocity": int(arp.get("humanizeVelocity", 0)),
+            "transpose": int(arp.get("transpose", 0)),
+            "scale_quantize": bool(arp.get("scaleQuantize", False)),
+            "scale_root": arp.get("scaleRoot", "C"),
+            "scale_type": arp.get("scaleType", "minor"),
+            "mode": arp.get("mode", "aeolian"),
+            "restart_mode": arp.get("restartMode", "first_note"),
+        }
+        for arp in sequencer.get("arpeggiators", [])
+        if isinstance(arp, dict)
+    ]
+    if not tracks and not controller_tracks and not arpeggiators:
         raise OrchestronCliError(
             "runtime_config_empty",
-            "Cannot push runtime config: no sequencer or controller tracks exist.",
-            retry=["Add a melodic, drummer, or controller sequencer before pushing runtime config."],
+            "Cannot push runtime config: no sequencer, controller, or arpeggiator tracks exist.",
+            retry=["Add a melodic, drummer, controller, or arpeggiator device before pushing runtime config."],
         )
     return {
         "timing": {
@@ -3340,35 +3690,71 @@ def build_runtime_config(config: dict[str, Any]) -> dict[str, Any]:
         "playback_loop": False,
         "tracks": tracks,
         "controller_tracks": controller_tracks,
-        "arpeggiators": [
+        "arpeggiators": arpeggiators,
+    }
+
+
+def canonical_runtime_assignments(assignments: Any) -> list[dict[str, Any]]:
+    if not isinstance(assignments, list):
+        return []
+    rows: list[dict[str, Any]] = []
+    for assignment in assignments:
+        if not isinstance(assignment, dict):
+            continue
+        routes = normalize_effect_route_rows(assignment.get("effect_routes", assignment.get("effectRoutes")))
+        rows.append(
             {
-                "arpeggiator_id": arp.get("id", "arp-1"),
-                "enabled": bool(arp.get("enabled", False)),
-                "input_channel": int(arp.get("inputChannel", 3)),
-                "target_channel": int(arp.get("targetChannel", 1)),
-                "rate": arp.get("rate", "1/16"),
-                "gate_ratio": float(arp.get("gateRatio", 0.72)),
-                "swing": float(arp.get("swing", 0.0)),
-                "octaves": int(arp.get("octaves", 1)),
-                "pattern": arp.get("pattern", "up"),
-                "latch": bool(arp.get("latch", False)),
-                "velocity_mode": arp.get("velocityMode", "input"),
-                "fixed_velocity": int(arp.get("fixedVelocity", 100)),
-                "accent_cycle": arp.get("accentCycle", []),
-                "probability": float(arp.get("probability", 1.0)),
-                "repeats": int(arp.get("repeats", 1)),
-                "humanize_ms": float(arp.get("humanizeMs", 0.0)),
-                "humanize_velocity": int(arp.get("humanizeVelocity", 0)),
-                "transpose": int(arp.get("transpose", 0)),
-                "scale_quantize": bool(arp.get("scaleQuantize", False)),
-                "scale_root": arp.get("scaleRoot", "C"),
-                "scale_type": arp.get("scaleType", "minor"),
-                "mode": arp.get("mode", "aeolian"),
-                "restart_mode": arp.get("restartMode", "first_note"),
+                "id": assignment.get("id"),
+                "patch_id": assignment.get("patch_id", assignment.get("patchId")),
+                "midi_channel": int(assignment.get("midi_channel", assignment.get("midiChannel", 1))),
+                "effect_routes": sorted(
+                    (route["sourceId"], route["channel"])
+                    for route in routes
+                ),
             }
-            for arp in sequencer.get("arpeggiators", [])
-            if isinstance(arp, dict)
-        ],
+        )
+    return sorted(rows, key=lambda row: str(row.get("id", "")))
+
+
+def runtime_assignments_match(config: dict[str, Any], session_info: dict[str, Any]) -> bool:
+    return canonical_runtime_assignments(session_assignments_from_config(config)) == canonical_runtime_assignments(
+        session_info.get("instruments")
+    )
+
+
+def configure_runtime_if_present(
+    client: ApiClient,
+    session_id: str,
+    config: dict[str, Any],
+) -> dict[str, Any] | None:
+    try:
+        runtime_config = build_runtime_config(copy.deepcopy(config))
+    except OrchestronCliError as exc:
+        if exc.code == "runtime_config_empty":
+            return None
+        raise
+    return client.put(f"/sessions/{parse.quote(session_id)}/sequencer/config", runtime_config)
+
+
+def create_compiled_runtime(
+    client: ApiClient,
+    config: dict[str, Any],
+) -> dict[str, Any]:
+    created = client.post("/sessions", {"instruments": session_assignments_from_config(config)})
+    session_id = str(created["session_id"])
+    try:
+        sequencer_status = configure_runtime_if_present(client, session_id, config)
+        compiled = client.post(f"/sessions/{parse.quote(session_id)}/compile")
+    except Exception:
+        try:
+            client.delete(f"/sessions/{parse.quote(session_id)}")
+        except OrchestronCliError:
+            pass
+        raise
+    return {
+        "session": created,
+        "compiled": compiled,
+        "sequencerStatus": sequencer_status,
     }
 
 
@@ -3376,6 +3762,8 @@ def validate_edit_session(session: dict[str, Any], client: ApiClient) -> dict[st
     config = session.get("config")
     if not isinstance(config, dict):
         raise OrchestronCliError("invalid_edit_session", "Edit session has no valid config object.")
+    patches = client.get("/patches")
+    normalize_performance_config(config, patches)
     instruments = config.get("instruments", [])
     if not isinstance(instruments, list) or not instruments:
         raise OrchestronCliError(
@@ -3384,7 +3772,6 @@ def validate_edit_session(session: dict[str, Any], client: ApiClient) -> dict[st
             retry=["Run `orchestron_cli edit add-instrument --patch PATCH --channel 1` before commit."],
             path="config.instruments",
         )
-    patches = client.get("/patches")
     patch_ids = {patch.get("id") for patch in patches}
     seen_channels: set[int] = set()
     always_on_count = 0
@@ -3412,7 +3799,19 @@ def validate_edit_session(session: dict[str, Any], client: ApiClient) -> dict[st
             )
         if channel > 0:
             seen_channels.add(channel)
-    return {"valid": True, "instrument_count": len(instruments), "always_on_count": always_on_count}
+    validation = client.post(
+        "/sessions/validate-instruments",
+        {"instruments": session_assignments_from_config(config)},
+    )
+    return {
+        "valid": True,
+        "config_version": config.get("version"),
+        "instrument_count": len(instruments),
+        "always_on_count": always_on_count,
+        "resolved_route_count": len(validation.get("resolved_routes", [])),
+        "instruments": validation.get("instruments", []),
+        "resolved_routes": validation.get("resolved_routes", []),
+    }
 
 
 def command_health(args: argparse.Namespace, ctx: CliContext) -> None:
@@ -3640,6 +4039,7 @@ def command_performances_copy(args: argparse.Namespace, ctx: CliContext) -> None
 
 def command_edit_begin(args: argparse.Namespace, ctx: CliContext) -> None:
     client = ApiClient(ctx.api_url, timeout=ctx.timeout)
+    patches = client.get("/patches")
     if args.performance and args.new:
         raise OrchestronCliError("invalid_edit_begin", "Use either --performance or --new, not both.")
     if args.performance:
@@ -3653,8 +4053,9 @@ def command_edit_begin(args: argparse.Namespace, ctx: CliContext) -> None:
             "performanceId": full["id"],
             "name": full["name"],
             "description": full.get("description", ""),
-            "config": full.get("config", {}),
+            "config": normalize_performance_config(copy.deepcopy(full.get("config", {})), patches),
             "attachedSessionId": args.attach_live,
+            "runtimeOwnedByCli": False,
             "dirty": False,
         }
     elif args.new:
@@ -3667,8 +4068,9 @@ def command_edit_begin(args: argparse.Namespace, ctx: CliContext) -> None:
             "performanceId": None,
             "name": args.name,
             "description": args.description or "",
-            "config": empty_performance_config(tempo=args.tempo),
+            "config": normalize_performance_config(empty_performance_config(tempo=args.tempo), patches),
             "attachedSessionId": args.attach_live,
+            "runtimeOwnedByCli": False,
             "dirty": True,
         }
     else:
@@ -3701,6 +4103,8 @@ def command_edit_status(args: argparse.Namespace, ctx: CliContext) -> None:
             "name": session.get("name"),
             "dirty": session.get("dirty"),
             "attachedSessionId": session.get("attachedSessionId"),
+            "runtimeOwnedByCli": session.get("runtimeOwnedByCli", False),
+            "configVersion": config.get("version") if isinstance(config, dict) else None,
             "instruments": len(config.get("instruments", [])) if isinstance(config, dict) else 0,
             "melodicTracks": len(sequencer.get("tracks", [])),
             "drummerTracks": len(sequencer.get("drummerTracks", [])),
@@ -3708,6 +4112,55 @@ def command_edit_status(args: argparse.Namespace, ctx: CliContext) -> None:
             "arpeggiators": len(sequencer.get("arpeggiators", [])),
         },
         ctx,
+    )
+
+
+def command_edit_instruments_list(args: argparse.Namespace, ctx: CliContext) -> None:
+    session = load_edit_session(ctx.session_file)
+    config = session.get("config")
+    if not isinstance(config, dict):
+        raise OrchestronCliError("invalid_edit_session", "Edit session has no valid config.")
+    patches = ApiClient(ctx.api_url, timeout=ctx.timeout).get("/patches")
+    normalize_performance_config(config, patches)
+    patches_by_id = {str(patch.get("id")): patch for patch in patches}
+    outgoing_counts: dict[str, int] = {}
+    incoming_counts: dict[str, int] = {}
+    for target in config_instruments(config):
+        target_id = str(target.get("id", ""))
+        routes = normalize_effect_route_rows(target.get("effectRoutes"))
+        incoming_counts[target_id] = len(routes)
+        for route in routes:
+            outgoing_counts[route["sourceId"]] = outgoing_counts.get(route["sourceId"], 0) + 1
+    rows: list[dict[str, Any]] = []
+    for instrument in config_instruments(config):
+        binding_id = str(instrument.get("id", ""))
+        patch = patches_by_id.get(str(instrument.get("patchId", "")), {})
+        rows.append(
+            {
+                "bindingId": binding_id,
+                "patchId": instrument.get("patchId"),
+                "patchName": patch.get("name", instrument.get("patchName")),
+                "alwaysOn": patch_is_always_on(patch),
+                "midiChannel": instrument.get("midiChannel"),
+                "level": instrument.get("level", 10),
+                "audioInlets": patch_audio_port_names(patch, opcode="inleta"),
+                "audioOutlets": patch_audio_port_names(patch, opcode="outleta"),
+                "incomingRoutes": incoming_counts.get(binding_id, 0),
+                "outgoingRoutes": outgoing_counts.get(binding_id, 0),
+            }
+        )
+    print_table(
+        rows,
+        [
+            ("bindingId", "Binding"),
+            ("patchName", "Patch"),
+            ("alwaysOn", "Always On"),
+            ("midiChannel", "MIDI"),
+            ("incomingRoutes", "In"),
+            ("outgoingRoutes", "Out"),
+        ],
+        ctx,
+        detail_columns=[("audioInlets", "Audio inlets"), ("audioOutlets", "Audio outlets")],
     )
 
 
@@ -3735,7 +4188,21 @@ def command_edit_add_instrument(args: argparse.Namespace, ctx: CliContext) -> No
                 retry=["Use a different --channel or remove the existing assignment first."],
             )
         used_ids = {str(item.get("id")) for item in instruments if isinstance(item, dict) and isinstance(item.get("id"), str)}
-        id_seed = f"instrument-{channel}" if channel > 0 else f"always-on-{normalize_name_key(str(patch_ref['name'])).replace(' ', '-')}"
+        id_seed = (
+            args.binding_id.strip()
+            if isinstance(args.binding_id, str) and args.binding_id.strip()
+            else (
+                f"instrument-{channel}"
+                if channel > 0
+                else f"always-on-{normalize_name_key(str(patch_ref['name'])).replace(' ', '-')}"
+            )
+        )
+        if args.binding_id and id_seed in used_ids:
+            raise OrchestronCliError(
+                "duplicate_instrument_binding",
+                f"Rack instrument assignment id '{id_seed}' already exists.",
+                retry=["Choose another --binding-id or omit it to generate a unique id."],
+            )
         binding_id = id_seed
         suffix = 2
         while binding_id in used_ids:
@@ -3766,7 +4233,111 @@ def command_edit_add_standard_effects(args: argparse.Namespace, ctx: CliContext)
             reverb_patch_ref=args.reverb_patch,
             compressor_patch_ref=args.compressor_patch,
             speaker_patch_ref=args.speaker_patch,
+            merge=args.merge,
         )
+
+    print_payload(update_session_config(ctx, mutate), ctx)
+
+
+def command_edit_routes_list(args: argparse.Namespace, ctx: CliContext) -> None:
+    session = load_edit_session(ctx.session_file)
+    config = session.get("config")
+    if not isinstance(config, dict):
+        raise OrchestronCliError("invalid_edit_session", "Edit session has no valid config.")
+    client = ApiClient(ctx.api_url, timeout=ctx.timeout)
+    patches = client.get("/patches")
+    normalize_performance_config(config, patches)
+    validation = client.post(
+        "/sessions/validate-instruments",
+        {"instruments": session_assignments_from_config(config)},
+    )
+    resolved_by_key = {
+        (route.get("source_id"), route.get("source_outlet"), route.get("target_id")): route.get("target_inlet")
+        for route in validation.get("resolved_routes", [])
+        if isinstance(route, dict)
+    }
+    rows: list[dict[str, Any]] = []
+    for target in config_instruments(config):
+        target_id = str(target.get("id", ""))
+        if args.target and args.target != target_id:
+            continue
+        for route in normalize_effect_route_rows(target.get("effectRoutes")):
+            rows.append(
+                {
+                    "sourceId": route["sourceId"],
+                    "sourceOutlet": route["channel"],
+                    "targetId": target_id,
+                    "targetInlet": resolved_by_key.get((route["sourceId"], route["channel"], target_id), ""),
+                }
+            )
+    print_table(
+        rows,
+        [
+            ("sourceId", "Source"),
+            ("sourceOutlet", "Outlet"),
+            ("targetId", "Target"),
+            ("targetInlet", "Inlet"),
+        ],
+        ctx,
+    )
+
+
+def command_edit_routes_add(args: argparse.Namespace, ctx: CliContext) -> None:
+    client = ApiClient(ctx.api_url, timeout=ctx.timeout)
+    patches = client.get("/patches")
+    patches_by_id = {str(patch.get("id")): patch for patch in patches}
+
+    def mutate(config: dict[str, Any]) -> dict[str, Any]:
+        normalize_performance_config(config, patches)
+        route = add_effect_route_to_config(
+            config,
+            patches_by_id,
+            source_id=args.source,
+            channel=args.outlet,
+            target_id=args.target,
+        )
+        validation = client.post(
+            "/sessions/validate-instruments",
+            {"instruments": session_assignments_from_config(config)},
+        )
+        target_inlet = next(
+            (
+                item.get("target_inlet")
+                for item in validation.get("resolved_routes", [])
+                if isinstance(item, dict)
+                and item.get("source_id") == args.source
+                and item.get("source_outlet") == args.outlet
+                and item.get("target_id") == args.target
+            ),
+            None,
+        )
+        return {**route, "targetId": args.target, "targetInlet": target_inlet}
+
+    print_payload(update_session_config(ctx, mutate), ctx)
+
+
+def command_edit_routes_remove(args: argparse.Namespace, ctx: CliContext) -> None:
+    def mutate(config: dict[str, Any]) -> dict[str, Any]:
+        changed = remove_effect_route_from_config(
+            config,
+            source_id=args.source,
+            channel=args.outlet,
+            target_id=args.target,
+        )
+        return {
+            "removed": changed,
+            "sourceId": args.source,
+            "channel": args.outlet,
+            "targetId": args.target,
+        }
+
+    print_payload(update_session_config(ctx, mutate), ctx)
+
+
+def command_edit_routes_clear(args: argparse.Namespace, ctx: CliContext) -> None:
+    def mutate(config: dict[str, Any]) -> dict[str, Any]:
+        removed = clear_effect_routes_for_target(config, target_id=args.target)
+        return {"targetId": args.target, "removed": removed}
 
     print_payload(update_session_config(ctx, mutate), ctx)
 
@@ -3917,7 +4488,13 @@ def command_edit_apply_score(args: argparse.Namespace, ctx: CliContext) -> None:
 def command_edit_validate(args: argparse.Namespace, ctx: CliContext) -> None:
     session = load_edit_session(ctx.session_file)
     client = ApiClient(ctx.api_url, timeout=ctx.timeout)
-    print_payload(validate_edit_session(session, client), ctx)
+    before = copy.deepcopy(session.get("config"))
+    result = validate_edit_session(session, client)
+    if session.get("config") != before:
+        session["dirty"] = True
+        session["updatedAt"] = now_iso()
+        save_edit_session(ctx.session_file, session)
+    print_payload(result, ctx)
 
 
 def command_edit_commit(args: argparse.Namespace, ctx: CliContext) -> None:
@@ -3926,6 +4503,7 @@ def command_edit_commit(args: argparse.Namespace, ctx: CliContext) -> None:
     if not args.skip_validate:
         validate_edit_session(session, client)
     config = copy.deepcopy(session["config"])
+    normalize_performance_config(config, client.get("/patches"))
     selected_patch_ids = []
     for instrument in config.get("instruments", []):
         if isinstance(instrument, dict) and instrument.get("patchId") and instrument["patchId"] not in selected_patch_ids:
@@ -3973,6 +4551,107 @@ def command_edit_abort(args: argparse.Namespace, ctx: CliContext) -> None:
     print_payload({"action": "abort", "editSessionFile": str(ctx.session_file)}, ctx)
 
 
+def command_edit_create_runtime(args: argparse.Namespace, ctx: CliContext) -> None:
+    session = load_edit_session(ctx.session_file)
+    config = session.get("config")
+    if not isinstance(config, dict):
+        raise OrchestronCliError("invalid_edit_session", "Edit session has no valid config.")
+    client = ApiClient(ctx.api_url, timeout=ctx.timeout)
+    validation = validate_edit_session(session, client)
+    previous_session_id = session.get("attachedSessionId")
+    created = create_compiled_runtime(client, config)
+    runtime_session = created["session"]
+    session_id = str(runtime_session["session_id"])
+    started = None
+    if args.start:
+        try:
+            started = client.post(f"/sessions/{parse.quote(session_id)}/start")
+        except Exception:
+            try:
+                client.delete(f"/sessions/{parse.quote(session_id)}")
+            except OrchestronCliError:
+                pass
+            raise
+    session["attachedSessionId"] = session_id
+    session["runtimeOwnedByCli"] = True
+    session["updatedAt"] = now_iso()
+    save_edit_session(ctx.session_file, session)
+    print_payload(
+        {
+            "action": "create-runtime",
+            "sessionId": session_id,
+            "state": (started or created["compiled"]).get("state"),
+            "previousAttachedSessionId": previous_session_id,
+            "instrumentCount": validation["instrument_count"],
+            "resolvedRouteCount": validation["resolved_route_count"],
+            "sequencerConfigured": created["sequencerStatus"] is not None,
+        },
+        ctx,
+    )
+
+
+def command_edit_rebuild_runtime(args: argparse.Namespace, ctx: CliContext) -> None:
+    session = load_edit_session(ctx.session_file)
+    config = session.get("config")
+    if not isinstance(config, dict):
+        raise OrchestronCliError("invalid_edit_session", "Edit session has no valid config.")
+    previous_session_id = session.get("attachedSessionId")
+    if not isinstance(previous_session_id, str) or not previous_session_id:
+        raise OrchestronCliError(
+            "runtime_session_missing",
+            "No runtime session is attached to this edit session.",
+            retry=["Run `orchestron_cli edit create-runtime --start` first."],
+        )
+    if not session.get("runtimeOwnedByCli", False) and not args.replace_external:
+        raise OrchestronCliError(
+            "runtime_session_not_owned",
+            "The attached runtime session is not marked as CLI-owned.",
+            retry=[
+                "Run `orchestron_cli edit create-runtime --start` to create a separate CLI-owned session.",
+                "Pass --replace-external only if replacing the attached frontend/external session is intentional.",
+            ],
+        )
+    client = ApiClient(ctx.api_url, timeout=ctx.timeout)
+    previous_info = client.get(f"/sessions/{parse.quote(previous_session_id)}")
+    validation = validate_edit_session(session, client)
+    replacement = create_compiled_runtime(client, config)
+    replacement_id = str(replacement["session"]["session_id"])
+    should_start = args.start if args.start is not None else previous_info.get("state") == "running"
+    previous_was_running = previous_info.get("state") == "running"
+    try:
+        if previous_was_running:
+            client.post(f"/sessions/{parse.quote(previous_session_id)}/stop")
+        started = client.post(f"/sessions/{parse.quote(replacement_id)}/start") if should_start else None
+        client.delete(f"/sessions/{parse.quote(previous_session_id)}")
+    except Exception:
+        if previous_was_running:
+            try:
+                client.post(f"/sessions/{parse.quote(previous_session_id)}/start")
+            except OrchestronCliError:
+                pass
+        try:
+            client.delete(f"/sessions/{parse.quote(replacement_id)}")
+        except OrchestronCliError:
+            pass
+        raise
+    session["attachedSessionId"] = replacement_id
+    session["runtimeOwnedByCli"] = True
+    session["updatedAt"] = now_iso()
+    save_edit_session(ctx.session_file, session)
+    print_payload(
+        {
+            "action": "rebuild-runtime",
+            "replacedSessionId": previous_session_id,
+            "sessionId": replacement_id,
+            "state": (started or replacement["compiled"]).get("state"),
+            "instrumentCount": validation["instrument_count"],
+            "resolvedRouteCount": validation["resolved_route_count"],
+            "sequencerConfigured": replacement["sequencerStatus"] is not None,
+        },
+        ctx,
+    )
+
+
 def command_edit_push_runtime(args: argparse.Namespace, ctx: CliContext) -> None:
     session = load_edit_session(ctx.session_file)
     session_id = args.session_id or session.get("attachedSessionId")
@@ -3982,10 +4661,35 @@ def command_edit_push_runtime(args: argparse.Namespace, ctx: CliContext) -> None
             "No runtime session ID supplied or attached to the edit session.",
             retry=["Run `orchestron_cli edit push-runtime --session-id SESSION_ID` or begin with --attach-live SESSION_ID."],
         )
-    runtime_config = build_runtime_config(copy.deepcopy(session["config"]))
+    config = session.get("config")
+    if not isinstance(config, dict):
+        raise OrchestronCliError("invalid_edit_session", "Edit session has no valid config.")
     client = ApiClient(ctx.api_url, timeout=ctx.timeout)
-    status = client.put(f"/sessions/{parse.quote(str(session_id))}/sequencer/config", runtime_config)
-    print_payload({"sessionId": session_id, "sequencerStatus": status}, ctx)
+    validate_edit_session(session, client)
+    session_info = client.get(f"/sessions/{parse.quote(str(session_id))}")
+    if not runtime_assignments_match(config, session_info):
+        raise OrchestronCliError(
+            "runtime_instruments_changed",
+            "The staged rack assignments or effect routes differ from the attached runtime session.",
+            retry=[
+                "Run `orchestron_cli edit rebuild-runtime --start` for a CLI-owned session.",
+                "Run `orchestron_cli edit create-runtime --start` to leave an external session untouched.",
+            ],
+        )
+    status = configure_runtime_if_present(client, str(session_id), config)
+    if args.session_id and args.session_id != session.get("attachedSessionId"):
+        session["attachedSessionId"] = args.session_id
+        session["runtimeOwnedByCli"] = False
+        session["updatedAt"] = now_iso()
+        save_edit_session(ctx.session_file, session)
+    print_payload(
+        {
+            "sessionId": session_id,
+            "sequencerConfigured": status is not None,
+            "sequencerStatus": status,
+        },
+        ctx,
+    )
 
 
 def command_sessions_list(args: argparse.Namespace, ctx: CliContext) -> None:
@@ -4122,11 +4826,34 @@ def build_parser() -> argparse.ArgumentParser:
     begin.set_defaults(func=command_edit_begin)
     status = edit_sub.add_parser("status", help="Show the active staged edit session summary.")
     status.set_defaults(func=command_edit_status)
+    instruments = edit_sub.add_parser("instruments", help="Inspect staged rack instrument assignments and audio ports.")
+    instruments_sub = instruments.add_subparsers(dest="instruments_command", required=True)
+    instruments_list = instruments_sub.add_parser("list", help="List rack binding IDs, patches, channels, and audio ports.")
+    instruments_list.set_defaults(func=command_edit_instruments_list)
     add_inst = edit_sub.add_parser("add-instrument", help="Add an instrument assignment to the staged performance.")
     add_inst.add_argument("--patch", required=True, help="Patch ID or exact name.")
     add_inst.add_argument("--channel", type=int, help="MIDI channel 1..16. Always-on patches use channel 0.")
     add_inst.add_argument("--level", type=int, default=10, help="Instrument level 1..10.")
+    add_inst.add_argument("--binding-id", help="Stable rack binding ID used by effect routes. Generated when omitted.")
     add_inst.set_defaults(func=command_edit_add_instrument)
+    routes = edit_sub.add_parser("routes", help="List, add, remove, and clear staged always-on audio routes.")
+    routes_sub = routes.add_subparsers(dest="routes_command", required=True)
+    routes_list = routes_sub.add_parser("list", help="List routes with backend-resolved target inlet labels.")
+    routes_list.add_argument("--target", help="Optional target rack binding ID filter.")
+    routes_list.set_defaults(func=command_edit_routes_list)
+    routes_add = routes_sub.add_parser("add", help="Route one source outleta channel to an always-on rack target.")
+    routes_add.add_argument("--source", required=True, help="Source rack binding ID.")
+    routes_add.add_argument("--outlet", required=True, help="Exact source outleta channel label.")
+    routes_add.add_argument("--target", required=True, help="Always-on target rack binding ID.")
+    routes_add.set_defaults(func=command_edit_routes_add)
+    routes_remove = routes_sub.add_parser("remove", help="Remove one source outlet route from an always-on target.")
+    routes_remove.add_argument("--source", required=True, help="Source rack binding ID.")
+    routes_remove.add_argument("--outlet", required=True, help="Exact source outleta channel label.")
+    routes_remove.add_argument("--target", required=True, help="Always-on target rack binding ID.")
+    routes_remove.set_defaults(func=command_edit_routes_remove)
+    routes_clear = routes_sub.add_parser("clear", help="Clear all incoming routes from one always-on target.")
+    routes_clear.add_argument("--target", required=True, help="Always-on target rack binding ID.")
+    routes_clear.set_defaults(func=command_edit_routes_clear)
     add_fx = edit_sub.add_parser(
         "add-standard-effects",
         help="Add the standard always-on reverb, compressor, and speaker-output routing matrix.",
@@ -4138,6 +4865,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Compressor always-on patch ID or exact name.",
     )
     add_fx.add_argument("--speaker-patch", default=STANDARD_SPEAKER_PATCH_NAME, help="Speaker-output always-on patch ID or exact name.")
+    add_fx.add_argument(
+        "--merge",
+        action="store_true",
+        help="Preserve additional routes already configured on the three standard effect targets.",
+    )
     add_fx.set_defaults(func=command_edit_add_standard_effects)
     add_mel = edit_sub.add_parser("add-melodic", help="Add a melodic sequencer with explicit step/chord patterns.")
     add_mel.add_argument("--channel", required=True, type=int, help="MIDI channel 1..16.")
@@ -4200,6 +4932,33 @@ def build_parser() -> argparse.ArgumentParser:
     commit.set_defaults(func=command_edit_commit)
     abort = edit_sub.add_parser("abort", help="Abort the staged edit session and remove the local session file.")
     abort.set_defaults(func=command_edit_abort)
+    create_runtime = edit_sub.add_parser(
+        "create-runtime",
+        help="Create and compile a new CLI-owned runtime session from the staged rack.",
+    )
+    create_runtime.add_argument(
+        "--start",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Start the new runtime after it compiles. Default: off.",
+    )
+    create_runtime.set_defaults(func=command_edit_create_runtime)
+    rebuild_runtime = edit_sub.add_parser(
+        "rebuild-runtime",
+        help="Safely replace the attached runtime after rack assignments or routes change.",
+    )
+    rebuild_runtime.add_argument(
+        "--start",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Start the replacement. Defaults to preserving the old session's running state.",
+    )
+    rebuild_runtime.add_argument(
+        "--replace-external",
+        action="store_true",
+        help="Allow replacement of an attached session that is not marked CLI-owned.",
+    )
+    rebuild_runtime.set_defaults(func=command_edit_rebuild_runtime)
     push_runtime = edit_sub.add_parser("push-runtime", help="Push staged sequencer/arpeggiator config to a live runtime session.")
     push_runtime.add_argument("--session-id", help="Runtime session ID. Defaults to edit begin --attach-live value.")
     push_runtime.set_defaults(func=command_edit_push_runtime)

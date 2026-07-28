@@ -41,12 +41,12 @@ If the backend is not running, ask the user whether to start it with `make run` 
 2. List/import patches as needed.
 3. If composing new material, choose the musical brief before writing notes: ambient state, techno process, trance wave, or Goa/psy rise.
 4. Start an edit session from an existing performance or a new draft.
-5. Add instruments first, then sequencers/controllers/arpeggiators.
-6. Use explicit CLI flags for small edits.
-7. Use a YAML/JSON score spec for multitrack or harmonic generation.
-8. Run `edit validate`.
+5. Add instruments first, then run `edit instruments list` to discover their stable binding IDs and audio ports.
+6. Add arbitrary instrument-to-always-on or always-on-to-always-on routes with `edit routes`; use `edit add-standard-effects` only for the standard convenience matrix.
+7. Add sequencers/controllers/arpeggiators with explicit flags or a YAML/JSON score spec.
+8. Run `edit validate`; this asks the backend to resolve every source outlet to its target inlet and rejects missing ports, invalid targets, and feedback loops.
 9. Commit only after validation succeeds.
-10. For live testing, attach or pass a runtime session ID and run `edit push-runtime`.
+10. For live testing, use `edit create-runtime --start`. After rack or route changes, use `edit rebuild-runtime`; use `edit push-runtime` only when the runtime rack is unchanged.
 
 ## Core Commands
 
@@ -55,13 +55,18 @@ uv run orchestron_cli --json patches list
 uv run orchestron_cli --json patches formulas set "Lead Patch" --target filter.xcf --expression "0.1 * in1"
 uv run orchestron_cli --json performances list
 uv run orchestron_cli --json edit begin --new --name "Agent Sketch"
-uv run orchestron_cli --json edit add-instrument --patch "TB303" --channel 2
+uv run orchestron_cli --json edit add-instrument --patch "TB303" --channel 2 --binding-id bass
+uv run orchestron_cli --json edit add-instrument --patch "reverb effect" --binding-id reverb
+uv run orchestron_cli --json edit instruments list
+uv run orchestron_cli --json edit routes add --source bass --outlet sendl --target reverb
+uv run orchestron_cli --json edit routes list
 uv run orchestron_cli --json edit add-standard-effects
 uv run orchestron_cli --json edit add-melodic --channel 2 --steps "s0=C3:min7/4s s4=F3:dom7/4s"
 uv run orchestron_cli --json edit add-melodic --channel 2 --grid-pattern "C3 . . ." --pad-grid-pattern "2=F3 . . ." --pad-loop "A P4 A" --pad-loop-group "A=1 2"
 uv run orchestron_cli --json edit add-drummer --channel 10 --groove backbeat
 uv run orchestron_cli --json edit validate
 uv run orchestron_cli --json edit commit
+uv run orchestron_cli --json edit create-runtime --start
 ```
 
 Pattern-pad and pad-loop CLI syntax:
@@ -78,6 +83,7 @@ CLI and data formats:
 - For melodic step/chord syntax, read `references/chord_syntax.md`.
 - For YAML/JSON score specs, read `references/score_spec.md`.
 - For patch graph input formulas such as `0.1 * in1`, read `references/patch_formulas.md`.
+- For arbitrary always-on effect routing, port discovery, validation, and runtime replacement, read `references/effect_routing.md`.
 - For the standard always-on effect matrix, read `references/standard_effect_patching.md`.
 
 Composition and genre guidance:

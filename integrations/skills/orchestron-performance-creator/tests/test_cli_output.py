@@ -16,13 +16,19 @@ from orchestron.cli.orchestron_cli import (  # noqa: E402
     CliContext,
     DIRECT_OUT_SEND_GAIN_EXPRESSION,
     OrchestronCliError,
+    add_effect_route_to_config,
+    canonical_runtime_assignments,
+    clear_effect_routes_for_target,
+    command_edit_rebuild_runtime,
     ensure_standard_effect_matrix,
     graph_audio_port_names,
     graph_with_input_formula,
     graph_with_direct_outs_replaced_by_outletas,
     graph_without_input_formula,
     input_formula_rows,
+    normalize_performance_config,
     read_input_formula_map,
+    remove_effect_route_from_config,
     print_table,
 )
 
@@ -267,6 +273,318 @@ def test_standard_effect_matrix_converts_direct_outputs_and_routes_chain() -> No
         {"sourceId": "standard-compressor-effect", "channel": "left"},
         {"sourceId": "standard-compressor-effect", "channel": "right"},
     ]
+
+    second_result = ensure_standard_effect_matrix(config, FakeApiClient())
+    assert second_result["convertedSources"] == []
+    assert config["instruments"][1]["effectRoutes"] == reverb["effectRoutes"]
+    assert config["instruments"][2]["effectRoutes"] == compressor["effectRoutes"]
+    assert config["instruments"][3]["effectRoutes"] == speaker["effectRoutes"]
+
+
+def test_version_ten_normalization_expands_legacy_effect_sources() -> None:
+    patches = [
+        {
+            "id": "lead",
+            "name": "Lead",
+            "always_on": False,
+            "audio_inlet_names": [],
+            "audio_outlet_names": ["left", "right"],
+        },
+        {
+            "id": "effect",
+            "name": "Effect",
+            "always_on": True,
+            "audio_inlet_names": ["left", "right"],
+            "audio_outlet_names": ["left", "right"],
+        },
+    ]
+    config = {
+        "version": 8,
+        "instruments": [
+            {"patchId": "lead", "midiChannel": 1},
+            {"id": "effect-a", "patchId": "effect", "midiChannel": 9, "effectSourceIds": ["instrument-1"]},
+        ],
+        "sequencer": {},
+    }
+
+    normalize_performance_config(config, patches)
+
+    assert config["version"] == 10
+    assert config["instruments"][0]["id"] == "instrument-1"
+    assert config["instruments"][1]["midiChannel"] == 0
+    assert config["instruments"][1]["effectRoutes"] == [
+        {"sourceId": "instrument-1", "channel": "left"},
+        {"sourceId": "instrument-1", "channel": "right"},
+    ]
+
+
+def test_general_effect_routes_support_chains_and_reject_cycles() -> None:
+    patches = {
+        "source": {
+            "id": "source",
+            "name": "Source",
+            "always_on": False,
+            "graph": _routing_graph(outlets=("left", "right")),
+        },
+        "effect-a": {
+            "id": "effect-a",
+            "name": "Effect A",
+            "always_on": True,
+            "graph": _routing_graph(inlets=("left", "right"), outlets=("left", "right")),
+        },
+        "effect-b": {
+            "id": "effect-b",
+            "name": "Effect B",
+            "always_on": True,
+            "graph": _routing_graph(inlets=("left", "right"), outlets=("left", "right")),
+        },
+    }
+    config = {
+        "version": 10,
+        "instruments": [
+            {"id": "source", "patchId": "source", "midiChannel": 1, "effectRoutes": []},
+            {"id": "fx-a", "patchId": "effect-a", "midiChannel": 0, "effectRoutes": []},
+            {"id": "fx-b", "patchId": "effect-b", "midiChannel": 0, "effectRoutes": []},
+        ],
+        "sequencer": {},
+    }
+
+    add_effect_route_to_config(
+        config,
+        patches,
+        source_id="source",
+        channel="left",
+        target_id="fx-a",
+    )
+    add_effect_route_to_config(
+        config,
+        patches,
+        source_id="fx-a",
+        channel="right",
+        target_id="fx-b",
+    )
+
+    assert config["instruments"][1]["effectSourceIds"] == ["source"]
+    assert config["instruments"][2]["effectRoutes"] == [{"sourceId": "fx-a", "channel": "right"}]
+    with pytest.raises(OrchestronCliError) as exc_info:
+        add_effect_route_to_config(
+            config,
+            patches,
+            source_id="fx-b",
+            channel="left",
+            target_id="fx-a",
+        )
+    assert exc_info.value.code == "effect_route_loop"
+
+    assert remove_effect_route_from_config(
+        config,
+        source_id="fx-a",
+        channel="right",
+        target_id="fx-b",
+    )
+    assert clear_effect_routes_for_target(config, target_id="fx-a") == 1
+
+
+def test_runtime_assignment_comparison_ignores_route_order() -> None:
+    left = [
+        {
+            "id": "fx",
+            "patch_id": "effect",
+            "midi_channel": 0,
+            "effect_routes": [
+                {"source_id": "lead", "channel": "right"},
+                {"source_id": "lead", "channel": "left"},
+            ],
+        }
+    ]
+    right = [
+        {
+            "id": "fx",
+            "patchId": "effect",
+            "midiChannel": 0,
+            "effectRoutes": [
+                {"sourceId": "lead", "channel": "left"},
+                {"sourceId": "lead", "channel": "right"},
+            ],
+        }
+    ]
+
+    assert canonical_runtime_assignments(left) == canonical_runtime_assignments(right)
+
+
+def test_rebuild_runtime_compiles_replacement_before_switching(tmp_path: Path, monkeypatch, capsys) -> None:
+    session_file = tmp_path / "edit-session.json"
+    session_file.write_text(
+        json.dumps(
+            {
+                "name": "Runtime Test",
+                "config": {
+                    "version": 10,
+                    "instruments": [
+                        {
+                            "id": "lead",
+                            "patchId": "patch-1",
+                            "patchName": "Lead",
+                            "midiChannel": 1,
+                            "level": 10,
+                            "effectSourceIds": [],
+                            "effectRoutes": [],
+                        }
+                    ],
+                    "sequencer": {},
+                },
+                "attachedSessionId": "old-session",
+                "runtimeOwnedByCli": True,
+            }
+        ),
+        encoding="utf-8",
+    )
+    calls: list[tuple[str, str]] = []
+
+    class FakeApiClient:
+        def __init__(self, api_url: str, *, timeout: float = 20.0) -> None:
+            self.api_url = api_url
+            self.timeout = timeout
+
+        def get(self, path: str) -> object:
+            calls.append(("GET", path))
+            if path == "/sessions/old-session":
+                return {"session_id": "old-session", "state": "running", "instruments": []}
+            if path == "/patches":
+                return [{"id": "patch-1", "name": "Lead", "always_on": False}]
+            raise AssertionError(f"Unexpected GET {path}")
+
+        def post(self, path: str, payload: object | None = None) -> object:
+            calls.append(("POST", path))
+            if path == "/sessions/validate-instruments":
+                return {"valid": True, "instruments": payload["instruments"], "resolved_routes": []}
+            if path == "/sessions":
+                return {"session_id": "new-session", "state": "idle"}
+            if path == "/sessions/new-session/compile":
+                return {"session_id": "new-session", "state": "compiled"}
+            if path == "/sessions/old-session/stop":
+                return {"session_id": "old-session", "state": "idle"}
+            if path == "/sessions/new-session/start":
+                return {"session_id": "new-session", "state": "running"}
+            raise AssertionError(f"Unexpected POST {path}")
+
+        def put(self, path: str, payload: object) -> object:
+            raise AssertionError(f"Unexpected PUT {path}")
+
+        def delete(self, path: str) -> object:
+            calls.append(("DELETE", path))
+            assert path == "/sessions/old-session"
+            return None
+
+    monkeypatch.setattr(orchestron_cli, "ApiClient", FakeApiClient)
+
+    command_edit_rebuild_runtime(
+        argparse.Namespace(start=None, replace_external=False),
+        CliContext(
+            api_url="http://localhost:8000/api",
+            json_output=True,
+            debug=False,
+            timeout=20.0,
+            session_file=session_file,
+        ),
+    )
+
+    assert calls.index(("POST", "/sessions/new-session/compile")) < calls.index(
+        ("POST", "/sessions/old-session/stop")
+    )
+    assert calls.index(("POST", "/sessions/old-session/stop")) < calls.index(
+        ("POST", "/sessions/new-session/start")
+    )
+    assert calls[-1] == ("DELETE", "/sessions/old-session")
+    saved = json.loads(session_file.read_text(encoding="utf-8"))
+    assert saved["attachedSessionId"] == "new-session"
+    assert saved["runtimeOwnedByCli"] is True
+    assert json.loads(capsys.readouterr().out)["result"]["state"] == "running"
+
+
+def test_rebuild_runtime_restores_old_session_when_replacement_start_fails(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    session_file = tmp_path / "edit-session.json"
+    original = {
+        "name": "Runtime Rollback",
+        "config": {
+            "version": 10,
+            "instruments": [
+                {
+                    "id": "lead",
+                    "patchId": "patch-1",
+                    "patchName": "Lead",
+                    "midiChannel": 1,
+                    "level": 10,
+                    "effectSourceIds": [],
+                    "effectRoutes": [],
+                }
+            ],
+            "sequencer": {},
+        },
+        "attachedSessionId": "old-session",
+        "runtimeOwnedByCli": True,
+    }
+    session_file.write_text(json.dumps(original), encoding="utf-8")
+    calls: list[tuple[str, str]] = []
+
+    class FakeApiClient:
+        def __init__(self, api_url: str, *, timeout: float = 20.0) -> None:
+            self.api_url = api_url
+            self.timeout = timeout
+
+        def get(self, path: str) -> object:
+            if path == "/sessions/old-session":
+                return {"session_id": "old-session", "state": "running", "instruments": []}
+            if path == "/patches":
+                return [{"id": "patch-1", "name": "Lead", "always_on": False}]
+            raise AssertionError(f"Unexpected GET {path}")
+
+        def post(self, path: str, payload: object | None = None) -> object:
+            calls.append(("POST", path))
+            if path == "/sessions/validate-instruments":
+                return {"valid": True, "instruments": payload["instruments"], "resolved_routes": []}
+            if path == "/sessions":
+                return {"session_id": "new-session", "state": "idle"}
+            if path == "/sessions/new-session/compile":
+                return {"session_id": "new-session", "state": "compiled"}
+            if path == "/sessions/old-session/stop":
+                return {"session_id": "old-session", "state": "idle"}
+            if path == "/sessions/new-session/start":
+                raise OrchestronCliError("runtime_start_failed", "replacement failed")
+            if path == "/sessions/old-session/start":
+                return {"session_id": "old-session", "state": "running"}
+            raise AssertionError(f"Unexpected POST {path}")
+
+        def put(self, path: str, payload: object) -> object:
+            raise AssertionError(f"Unexpected PUT {path}")
+
+        def delete(self, path: str) -> object:
+            calls.append(("DELETE", path))
+            assert path == "/sessions/new-session"
+            return None
+
+    monkeypatch.setattr(orchestron_cli, "ApiClient", FakeApiClient)
+
+    with pytest.raises(OrchestronCliError) as exc_info:
+        command_edit_rebuild_runtime(
+            argparse.Namespace(start=None, replace_external=False),
+            CliContext(
+                api_url="http://localhost:8000/api",
+                json_output=True,
+                debug=False,
+                timeout=20.0,
+                session_file=session_file,
+            ),
+        )
+
+    assert exc_info.value.code == "runtime_start_failed"
+    assert ("POST", "/sessions/old-session/start") in calls
+    assert calls[-1] == ("DELETE", "/sessions/new-session")
+    saved = json.loads(session_file.read_text(encoding="utf-8"))
+    assert saved["attachedSessionId"] == "old-session"
 
 
 def test_graph_input_formula_accepts_explicit_connection_bindings() -> None:

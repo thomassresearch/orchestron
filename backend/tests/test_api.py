@@ -9039,12 +9039,10 @@ def test_always_on_effect_session_rejects_audio_route_loop(tmp_path: Path) -> No
                 ]
             },
         )
-        assert create_session.status_code == 201
-
-        compile_response = client.post(f"/api/sessions/{create_session.json()['session_id']}/compile")
-        assert compile_response.status_code == 422
-        diagnostics = compile_response.json()["detail"]["diagnostics"]
+        assert create_session.status_code == 422
+        diagnostics = create_session.json()["detail"]["diagnostics"]
         assert "Effect routing would create an audio feedback loop." in diagnostics
+        assert client.get("/api/sessions").json() == []
 
 
 def test_always_on_effect_session_rejects_indirect_audio_route_loop(tmp_path: Path) -> None:
@@ -9081,12 +9079,128 @@ def test_always_on_effect_session_rejects_indirect_audio_route_loop(tmp_path: Pa
                 ]
             },
         )
-        assert create_session.status_code == 201
-
-        compile_response = client.post(f"/api/sessions/{create_session.json()['session_id']}/compile")
-        assert compile_response.status_code == 422
-        diagnostics = compile_response.json()["detail"]["diagnostics"]
+        assert create_session.status_code == 422
+        diagnostics = create_session.json()["detail"]["diagnostics"]
         assert "Effect routing would create an audio feedback loop." in diagnostics
+        assert client.get("/api/sessions").json() == []
+
+
+def test_validate_session_instruments_resolves_audio_route_ports(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        source = client.post(
+            "/api/patches",
+            json=_audio_outlet_only_source_patch_payload(name="Stereo Source"),
+        )
+        effect = client.post(
+            "/api/patches",
+            json=_always_on_effect_with_outlets_patch_payload(name="Stereo Effect"),
+        )
+        assert source.status_code == 201
+        assert effect.status_code == 201
+
+        validation = client.post(
+            "/api/sessions/validate-instruments",
+            json={
+                "instruments": [
+                    {
+                        "id": "source",
+                        "patch_id": source.json()["id"],
+                        "midi_channel": 1,
+                    },
+                    {
+                        "id": "effect",
+                        "patch_id": effect.json()["id"],
+                        "midi_channel": 12,
+                        "effect_routes": [
+                            {"source_id": "source", "channel": "right"},
+                        ],
+                    },
+                ]
+            },
+        )
+
+        assert validation.status_code == 200
+        payload = validation.json()
+        assert payload["valid"] is True
+        assert payload["instruments"][1]["midi_channel"] == 0
+        assert payload["instruments"][1]["effect_source_ids"] == ["source"]
+        assert payload["resolved_routes"] == [
+            {
+                "source_id": "source",
+                "source_outlet": "right",
+                "target_id": "effect",
+                "target_inlet": "right",
+            }
+        ]
+
+
+def test_validate_session_instruments_rejects_unknown_source_outlet(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        source = client.post(
+            "/api/patches",
+            json=_audio_outlet_only_source_patch_payload(name="Stereo Source"),
+        )
+        effect = client.post(
+            "/api/patches",
+            json=_always_on_effect_with_outlets_patch_payload(name="Stereo Effect"),
+        )
+        assert source.status_code == 201
+        assert effect.status_code == 201
+
+        validation = client.post(
+            "/api/sessions/validate-instruments",
+            json={
+                "instruments": [
+                    {
+                        "id": "source",
+                        "patch_id": source.json()["id"],
+                        "midi_channel": 1,
+                    },
+                    {
+                        "id": "effect",
+                        "patch_id": effect.json()["id"],
+                        "midi_channel": 0,
+                        "effect_routes": [
+                            {"source_id": "source", "channel": "missing"},
+                        ],
+                    },
+                ]
+            },
+        )
+
+        assert validation.status_code == 422
+        diagnostics = validation.json()["detail"]["diagnostics"]
+        assert any("has no outleta port named 'missing'" in diagnostic for diagnostic in diagnostics)
+
+
+def test_validate_session_instruments_rejects_blank_route_fields(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        effect = client.post(
+            "/api/patches",
+            json=_always_on_effect_with_outlets_patch_payload(name="Stereo Effect"),
+        )
+        assert effect.status_code == 201
+
+        validation = client.post(
+            "/api/sessions/validate-instruments",
+            json={
+                "instruments": [
+                    {
+                        "id": "effect",
+                        "patch_id": effect.json()["id"],
+                        "midi_channel": 0,
+                        "effect_routes": [
+                            {"source_id": " ", "channel": "left"},
+                        ],
+                    },
+                ]
+            },
+        )
+
+        assert validation.status_code == 422
+        assert validation.json()["detail"]["diagnostics"] == [
+            "Effect route target 'effect' contains an empty source assignment id."
+        ]
 
 
 def test_multi_instrument_compile_deduplicates_sfload_for_same_file(tmp_path: Path) -> None:

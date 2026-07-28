@@ -18,6 +18,8 @@ from backend.app.models.session import (
     SessionCreateRequest,
     SessionCreateResponse,
     SessionInfo,
+    SessionInstrumentValidationRequest,
+    SessionInstrumentValidationResponse,
 )
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
@@ -31,6 +33,14 @@ async def create_session(
 ) -> SessionCreateResponse:
     client_key = request.client.host if request.client is not None else "unknown"
     return await container.session_service.create_session(request_body, client_key=client_key)
+
+
+@router.post("/validate-instruments", response_model=SessionInstrumentValidationResponse)
+async def validate_instruments(
+    request_body: SessionInstrumentValidationRequest,
+    container: AppContainer = Depends(get_container),
+) -> SessionInstrumentValidationResponse:
+    return await container.session_service.validate_session_instruments(request_body)
 
 
 @router.get("", response_model=list[SessionInfo])

@@ -6,7 +6,7 @@ Every Orchestron performance should include these always-on patches:
 - `compressor effect`
 - `speaker output`
 
-Use `orchestron_cli edit add-standard-effects` after adding playable instruments. The command adds the three effect patches and creates this matrix:
+Use `orchestron_cli edit add-standard-effects` after adding playable instruments. The command is an idempotent convenience preset built on the same generic route operations documented in `effect_routing.md`. It adds the three effect patches and creates this matrix:
 
 1. Instrument effect-send outlets, normally `sendl` and `sendr`, route to the `reverb effect` inputs.
 2. Instrument dry outlets, normally `dryl` and `dryr`, plus reverb outputs route to the `compressor effect` inputs.
@@ -22,3 +22,11 @@ If a playable instrument still outputs directly through `outs`, duplicate the pa
 - Former `outs.right` source -> `sendr` with input formula `0.1 * in1`
 
 The CLI performs this conversion automatically when building the standard effect matrix, updates the instrument assignment to the `_new` patch, and embeds all selected patch definitions when the performance is committed.
+
+By default, rerunning the command rebuilds incoming routes on the three standard targets while preserving unrelated effect assignments. Pass `--merge` to preserve additional custom routes already attached to those standard targets. Inspect the result with:
+
+```bash
+orchestron_cli --json edit instruments list
+orchestron_cli --json edit routes list
+orchestron_cli --json edit validate
+```

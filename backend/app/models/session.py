@@ -111,6 +111,23 @@ class SessionCreateRequest(BaseModel):
         return self
 
 
+class SessionInstrumentValidationRequest(BaseModel):
+    instruments: list[SessionInstrumentAssignment] = Field(min_length=1, max_length=16)
+
+
+class SessionResolvedEffectRoute(BaseModel):
+    source_id: str
+    source_outlet: str
+    target_id: str
+    target_inlet: str
+
+
+class SessionInstrumentValidationResponse(BaseModel):
+    valid: bool = True
+    instruments: list[SessionInstrumentAssignment]
+    resolved_routes: list[SessionResolvedEffectRoute] = Field(default_factory=list)
+
+
 class SessionCreateResponse(BaseModel):
     session_id: str
     patch_id: str

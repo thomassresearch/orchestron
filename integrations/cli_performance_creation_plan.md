@@ -1,8 +1,20 @@
 # Orchestron CLI Performance Creation Plan
 
-**Status:** implementation plan
+**Status:** implemented baseline; config-v10 always-on routing extension completed
 
 This document describes the proposed command-line tooling for creating, editing, importing, and performing Orchestron performances through the running FastAPI backend. The goal is to make performance creation usable by humans and by Codex skills/agents while keeping the saved performance format compatible with the existing GUI.
+
+## Implemented UI-Parity Extension (Items 1–7)
+
+The always-on routing gap identified after the initial CLI implementation is now covered:
+
+1. Performance snapshots normalize to version 10 with stable rack assignment IDs, explicit `effectRoutes`, derived legacy `effectSourceIds`, and always-on MIDI channel 0.
+2. `edit instruments list` exposes binding IDs, patch metadata, `inleta`/`outleta` labels, and route counts.
+3. `edit routes list/add/remove/clear` supports arbitrary instrument-to-effect and effect-to-effect routing with local cycle checks.
+4. `POST /api/sessions/validate-instruments` is the authoritative backend validator and route-to-inlet resolver used before session allocation; compilation uses the same routing service.
+5. `edit add-standard-effects` is an idempotent convenience preset built from the generic route operations, with optional `--merge`.
+6. `edit create-runtime` and `edit rebuild-runtime` support compiled CLI-owned sessions; rebuild compiles a replacement before stopping the previous runtime and attempts rollback on startup failure. `edit push-runtime` refuses rack/route changes that require recompilation.
+7. Backend/CLI regression tests and the README, user guide, skill instructions, and routing references cover normalization, arbitrary chains, cycle rejection, standard-effect idempotence, port resolution, and runtime replacement order/rollback.
 
 ## Goals
 
@@ -178,7 +190,7 @@ Responsibilities:
 - normalize defaults
 - preserve GUI-compatible fields
 
-Important: this model should not immediately reject older performance versions that the frontend currently accepts. It should have a normalization layer for versions `1..8`.
+Important: this model should not immediately reject older performance versions that the frontend currently accepts. The implemented CLI normalization layer accepts older snapshots and upgrades them to version 10.
 
 #### `performance_runtime_adapter.py`
 
@@ -453,12 +465,19 @@ The CLI should store the active edit session ID in a local session file, for exa
 .orchestron/edit-session.json
 ```
 
-That file should contain only connection/edit metadata, not the authoritative performance snapshot.
+The implemented local file contains the staged normalized performance snapshot plus connection/edit metadata. The backend remains authoritative for saved performances, patches, session validation, and runtime sessions; the file is not a database bypass.
 
 ### Instrument Commands
 
 ```text
 orchestron_cli edit add-instrument --patch PATCH_ID --channel 1 --level 10
+orchestron_cli edit add-instrument --patch EFFECT_PATCH_ID --binding-id reverb
+orchestron_cli edit instruments list
+orchestron_cli edit routes add --source instrument-1 --outlet sendl --target reverb
+orchestron_cli edit routes list
+orchestron_cli edit routes remove --source instrument-1 --outlet sendl --target reverb
+orchestron_cli edit routes clear --target reverb
+orchestron_cli edit add-standard-effects
 orchestron_cli edit remove-instrument --channel 1
 orchestron_cli edit set-instrument-level --channel 1 --level 7
 ```
@@ -798,6 +817,8 @@ The CLI should be able to interact with live Orchestron sessions.
 Runtime operations:
 
 - attach edit session to live runtime session
+- create and compile a new CLI-owned runtime from the staged rack
+- safely rebuild a CLI-owned runtime when rack assignments or routes change
 - push updated sequencer config
 - configure arpeggiators
 - start/stop sequencer transport
@@ -808,6 +829,9 @@ Runtime operations:
 Existing endpoints already cover much of this:
 
 ```text
+POST /api/sessions/validate-instruments
+POST /api/sessions
+POST /api/sessions/{session_id}/compile
 PUT  /api/sessions/{session_id}/sequencer/config
 PUT  /api/sessions/{session_id}/arpeggiators/config
 POST /api/sessions/{session_id}/sequencer/start

@@ -187,6 +187,31 @@ def test_compile_accepts_outleta_without_direct_outs() -> None:
     assert "outs " not in artifact.orc
 
 
+def test_compile_accepts_standalone_always_on_patch_without_assignment_id() -> None:
+    compiler = CompilerService(OpcodeService(icon_prefix="/static/icons"))
+    patch = PatchDocument(
+        name="standalone always-on compile test",
+        description="standalone patch compilation does not need a rack routing id",
+        always_on=True,
+        graph=PatchGraph(
+            nodes=[
+                NodeInstance(id="left", opcode="inleta", params={"sname": "left"}),
+                NodeInstance(id="right", opcode="inleta", params={"sname": "right"}),
+                NodeInstance(id="out", opcode="outs"),
+            ],
+            connections=[
+                Connection(from_node_id="left", from_port_id="asignal", to_node_id="out", to_port_id="left"),
+                Connection(from_node_id="right", from_port_id="asignal", to_node_id="out", to_port_id="right"),
+            ],
+        ),
+    )
+
+    artifact = compiler.compile_patch(patch, midi_input="0", rtmidi_module="alsaseq")
+
+    assert 'inleta "left"' in artifact.orc
+    assert 'inleta "right"' in artifact.orc
+
+
 def test_compile_rejects_patch_without_outs_or_outleta() -> None:
     compiler = CompilerService(OpcodeService(icon_prefix="/static/icons"))
     patch = PatchDocument(
