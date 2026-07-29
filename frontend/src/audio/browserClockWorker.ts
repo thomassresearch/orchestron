@@ -22,7 +22,12 @@ import {
   type BrowserClockWorkerDiagnostics,
   type BrowserClockWorkerToMainMessage
 } from "./browserClockWorkerProtocol";
-import { availableRingFrames, coalesceAudibleTransportEvents, unsignedCounterDistance } from "./browserClockShared";
+import {
+  availableRingFrames,
+  coalesceAudibleTransportEvents,
+  translateEpochTimestampToPerformanceTime,
+  unsignedCounterDistance
+} from "./browserClockShared";
 
 const CHANNELS = 2;
 const REFILL_INTERVAL_MS = 20;
@@ -124,7 +129,7 @@ class BrowserClockWorkerRuntime {
         this.sendJson({
           type: "manual_midi",
           midi: message.midi,
-          event_perf_ms: message.eventPerfMs
+          event_perf_ms: translateEpochTimestampToPerformanceTime(message.eventEpochMs, performance.timeOrigin)
         });
         if (message.midi.type === "note_on") {
           this.requestImmediateRender();

@@ -175,7 +175,7 @@ export class BrowserClockAudioClient {
     this.postWorker({
       type: "manual_midi",
       midi,
-      eventPerfMs: performance.now()
+      eventEpochMs: performance.timeOrigin + performance.now()
     });
   }
 

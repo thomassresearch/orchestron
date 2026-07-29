@@ -5,6 +5,7 @@ import {
   availableRingFrames,
   coalesceAudibleTransportEvents,
   mapSourceSampleToTargetFrame,
+  translateEpochTimestampToPerformanceTime,
   unsignedCounterDistance
 } from "./browserClockShared";
 
@@ -21,6 +22,15 @@ describe("browser clock shared math", () => {
   it("maps engine samples into resampled target-frame offsets", () => {
     expect(mapSourceSampleToTargetFrame(150, 100, 200, 200)).toBe(100);
     expect(mapSourceSampleToTargetFrame(250, 100, 200, 200)).toBe(200);
+  });
+
+  it("translates a window event timestamp into the worker performance clock domain", () => {
+    const windowTimeOriginMs = 1_700_000_000_000;
+    const workerTimeOriginMs = windowTimeOriginMs + 5_000;
+    const windowEventPerfMs = 7_200;
+    const eventEpochMs = windowTimeOriginMs + windowEventPerfMs;
+
+    expect(translateEpochTimestampToPerformanceTime(eventEpochMs, workerTimeOriginMs)).toBe(2_200);
   });
 
   it("keeps state events and only the newest delayed step", () => {

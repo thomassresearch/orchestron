@@ -49,7 +49,7 @@ export type BrowserClockMainToWorkerMessage =
   | { type: "disconnect" }
   | { type: "latency_settings"; latencySettings: BrowserClockLatencySettings }
   | { type: "sequencer_request"; request: BrowserClockWorkerSequencerRequest }
-  | { type: "manual_midi"; midi: SessionMidiEventRequest; eventPerfMs: number }
+  | { type: "manual_midi"; midi: SessionMidiEventRequest; eventEpochMs: number }
   | { type: "visual_ack" };
 
 export type AudibleBrowserClockTransportEvent = BrowserClockTransportEvent & {

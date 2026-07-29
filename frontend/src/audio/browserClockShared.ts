@@ -21,6 +21,13 @@ export function mapSourceSampleToTargetFrame(
   return Math.max(0, Math.min(targetFrames, Math.round((sourceOffset * targetFrames) / sourceFrames)));
 }
 
+export function translateEpochTimestampToPerformanceTime(
+  epochTimestampMs: number,
+  targetTimeOriginMs: number
+): number {
+  return epochTimestampMs - targetTimeOriginMs;
+}
+
 export function coalesceAudibleTransportEvents(
   events: AudibleBrowserClockTransportEvent[]
 ): AudibleBrowserClockTransportEvent[] {
