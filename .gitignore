@@ -23,3 +23,5 @@ security_analysis/
 .orchestron/
 
 tmp/
+graphify-out/
+.gitattributes
