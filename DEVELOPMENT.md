@@ -55,6 +55,27 @@ longer rescans every track for synchronization when no sync relationships are
 configured. Treat the measured 7–12% median improvement as indicative until it
 has been repeated across machines.
 
+After the second refactoring tranche on the same machine:
+
+- Backend tests: 269 passing.
+- Frontend tests: 17 passing across four test files.
+- `App.tsx` decreased from 3,128 to 2,728 lines after its localized copy catalog
+  was extracted.
+- `SequencerPage.tsx` decreased from 6,970 to 4,738 lines after localized copy,
+  controller controls, curve editing, piano-roll rendering, and related pure
+  helpers were extracted.
+- `SessionService` decreased from 2,036 to 1,949 lines after browser-clock lease
+  state and validation policies were extracted.
+- Browser-clock median render/audio ratios for 16, 64, and 128 tracks:
+  `0.002`, `0.005`, and `0.009`.
+- Simultaneous pad-boundary medians for 16, 64, and 128 tracks:
+  `0.057 ms`, `0.215 ms`, and `0.435 ms`.
+- Highest observed 128-track boundary sample: `0.450 ms`.
+
+This tranche is primarily structural. The benchmark results remain within the
+expected run-to-run range while the production frontend bundle remains
+effectively unchanged.
+
 ## Refactoring rules
 
 - Preserve REST, WebSocket, persisted-state, and export contracts unless a

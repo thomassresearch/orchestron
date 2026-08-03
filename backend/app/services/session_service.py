@@ -7,7 +7,6 @@ from datetime import datetime, timezone
 import math
 import time
 from typing import Any
-from typing import Awaitable, Callable
 from uuid import uuid4
 
 from fastapi import HTTPException
@@ -17,10 +16,6 @@ from backend.app.engine.csound_worker import CsoundWorker
 from backend.app.engine.midi_scheduler import ClockDomainMapping
 from backend.app.engine.session_runtime import RuntimeSession
 from backend.app.models.session import (
-    BROWSER_CLOCK_MAX_BLOCKS_PER_REQUEST,
-    BROWSER_CLOCK_MAX_QUEUE_WATERMARK_MS,
-    BROWSER_CLOCK_MAX_REPORTED_FRAMES,
-    BROWSER_CLOCK_MAX_SAMPLE_RATE,
     BrowserClockClaimControllerRequest,
     BrowserClockManualMidiRequest,
     BrowserClockQueuePadControlRequest,
@@ -60,41 +55,21 @@ from backend.app.services.event_bus import SessionEventBus
 from backend.app.services.midi_service import INTERNAL_LOOPBACK_ID, INTERNAL_LOOPBACK_SELECTOR, MidiService
 from backend.app.services.patch_service import PatchService
 from backend.app.services.arpeggiator_runtime import MidiSourceContext, PerformanceMidiRouter
+from backend.app.services.browser_clock_policy import (
+    BROWSER_TIMING_REPORT_INTERVAL_MS,
+    BrowserClockClose,
+    BrowserClockControllerLease,
+    BrowserClockSendJson,
+    browser_clock_manual_midi_max_future_samples,
+    consume_browser_clock_manual_midi_token,
+    validate_browser_clock_claim_budget,
+    validate_browser_clock_manual_midi_horizon,
+    validate_browser_clock_timing_budget,
+)
 from backend.app.services.sequencer_runtime import SessionSequencerRuntime
 from backend.app.services.session_instrument_resolver import SessionInstrumentResolver
 
 logger = logging.getLogger(__name__)
-_BROWSER_TIMING_REPORT_INTERVAL_MS = 100
-
-BrowserClockSendJson = Callable[[dict[str, object]], Awaitable[None]]
-BrowserClockClose = Callable[[int, str], Awaitable[None]]
-
-
-@dataclass(slots=True)
-class BrowserClockControllerLease:
-    connection_id: str
-    sample_rate: int
-    queue_low_water_frames: int
-    queue_high_water_frames: int
-    max_blocks_per_request: int
-    send_json: BrowserClockSendJson
-    close: BrowserClockClose
-    timing_mapping: ClockDomainMapping = field(default_factory=ClockDomainMapping)
-    latest_client_perf_ms: float | None = None
-    latest_audio_context_time_s: float | None = None
-    latest_queued_frames: int = 0
-    latest_pending_render_frames: int = 0
-    latest_underrun_count: int = 0
-    latest_report_sample_rate: int = 0
-    latest_clock_sync_offset_ns: int | None = None
-    latest_clock_sync_rtt_ms: float | None = None
-    last_timing_report_server_ns: int | None = None
-    last_note_on_client_perf_ms: float | None = None
-    last_note_on_server_received_ns: int | None = None
-    last_note_on_mapped_server_ns: int | None = None
-    last_note_on_sync_stale: bool = True
-    manual_midi_tokens: float = 0.0
-    manual_midi_last_refill_ns: int | None = None
 
 
 @dataclass(slots=True)
@@ -405,7 +380,7 @@ class SessionService:
         self._assert_browser_clock_mode(runtime)
         if not runtime.worker.is_running:
             raise HTTPException(status_code=409, detail="Session must be running before claiming browser-clock control.")
-        self._validate_browser_clock_claim_budget(request)
+        validate_browser_clock_claim_budget(request)
 
         previous: BrowserClockControllerLease | None = None
         lease = BrowserClockControllerLease(
@@ -450,7 +425,7 @@ class SessionService:
             "queue_high_water_frames": request.queue_high_water_frames,
             "max_blocks_per_request": request.max_blocks_per_request,
             "server_monotonic_ns": time.perf_counter_ns(),
-            "timing_report_interval_ms": _BROWSER_TIMING_REPORT_INTERVAL_MS,
+            "timing_report_interval_ms": BROWSER_TIMING_REPORT_INTERVAL_MS,
             "engine_ksmps_latency_frames": runtime.worker.runtime_ksmps,
             "sequencer_status": self._status_with_arpeggiators(runtime, sequencer.status()).model_dump(mode="json"),
         }
@@ -489,7 +464,12 @@ class SessionService:
         self._remember_running_loop()
         runtime, lease = await self.require_browser_clock_controller(session_id, connection_id)
         event_server_received_ns = server_received_ns or time.perf_counter_ns()
-        self._validate_browser_clock_manual_midi_rate(lease, now_server_ns=event_server_received_ns)
+        consume_browser_clock_manual_midi_token(
+            lease,
+            now_server_ns=event_server_received_ns,
+            burst=self._settings.browser_clock_manual_midi_burst,
+            rate_per_second=self._settings.browser_clock_manual_midi_rate_per_second,
+        )
         if request.event_perf_ms is not None and not math.isfinite(request.event_perf_ms):
             raise HTTPException(status_code=422, detail="Browser-clock manual MIDI event_perf_ms must be finite.")
         target_engine_sample, mapped_backend_monotonic_ns, sync_stale = self._target_engine_sample_for_browser_event(
@@ -498,7 +478,11 @@ class SessionService:
             event_perf_ms=request.event_perf_ms,
             now_server_ns=event_server_received_ns,
         )
-        self._validate_browser_clock_manual_midi_horizon(runtime, target_engine_sample)
+        validate_browser_clock_manual_midi_horizon(
+            current_sample=runtime.worker.render_sample_cursor,
+            target_engine_sample=target_engine_sample,
+            max_future_samples=self._browser_clock_manual_midi_max_future_samples(runtime),
+        )
         if request.midi.type == "note_on":
             lease.last_note_on_client_perf_ms = request.event_perf_ms
             lease.last_note_on_server_received_ns = event_server_received_ns
@@ -524,7 +508,7 @@ class SessionService:
     ) -> None:
         self._remember_running_loop()
         _runtime, lease = await self.require_browser_clock_controller(session_id, connection_id)
-        self._validate_browser_clock_timing_budget(lease, request)
+        validate_browser_clock_timing_budget(lease, request)
         server_now_ns = server_received_ns or time.perf_counter_ns()
         lease.timing_mapping.update(
             remote_timestamp_ns=int(round(request.client_perf_ms * 1_000_000.0)),
@@ -622,80 +606,6 @@ class SessionService:
         if lease is None or lease.connection_id != connection_id:
             raise HTTPException(status_code=409, detail="This browser is not the active controller for the session.")
         return runtime, lease
-
-    @staticmethod
-    def _validate_browser_clock_claim_budget(request: BrowserClockClaimControllerRequest) -> None:
-        max_queue_frames = int(
-            round(request.audio_context_sample_rate * (BROWSER_CLOCK_MAX_QUEUE_WATERMARK_MS / 1000.0))
-        )
-        if request.audio_context_sample_rate > BROWSER_CLOCK_MAX_SAMPLE_RATE:
-            raise HTTPException(
-                status_code=422,
-                detail=f"Browser-clock sample rate must be <= {BROWSER_CLOCK_MAX_SAMPLE_RATE}.",
-            )
-        if request.max_blocks_per_request > BROWSER_CLOCK_MAX_BLOCKS_PER_REQUEST:
-            raise HTTPException(
-                status_code=422,
-                detail=f"Browser-clock max_blocks_per_request must be <= {BROWSER_CLOCK_MAX_BLOCKS_PER_REQUEST}.",
-            )
-        if request.queue_high_water_frames > max_queue_frames:
-            raise HTTPException(
-                status_code=422,
-                detail=(
-                    "Browser-clock queue_high_water_frames exceeds the server queue watermark budget "
-                    f"({max_queue_frames} frames)."
-                ),
-            )
-
-    @staticmethod
-    def _validate_browser_clock_timing_budget(
-        lease: BrowserClockControllerLease,
-        request: BrowserClockTimingReportRequest,
-    ) -> None:
-        max_reported_frames = max(
-            BROWSER_CLOCK_MAX_REPORTED_FRAMES,
-            lease.queue_high_water_frames + (lease.max_blocks_per_request * 2),
-        )
-        if request.sample_rate > BROWSER_CLOCK_MAX_SAMPLE_RATE:
-            raise HTTPException(
-                status_code=422,
-                detail=f"Browser-clock timing report sample_rate must be <= {BROWSER_CLOCK_MAX_SAMPLE_RATE}.",
-            )
-        if request.queued_frames > max_reported_frames or request.pending_render_frames > max_reported_frames:
-            raise HTTPException(
-                status_code=422,
-                detail="Browser-clock timing report frame counts exceed the server budget.",
-            )
-
-    def _validate_browser_clock_manual_midi_rate(
-        self,
-        lease: BrowserClockControllerLease,
-        *,
-        now_server_ns: int,
-    ) -> None:
-        burst = max(1, int(self._settings.browser_clock_manual_midi_burst))
-        rate_per_second = max(0.001, float(self._settings.browser_clock_manual_midi_rate_per_second))
-        if lease.manual_midi_last_refill_ns is None:
-            lease.manual_midi_tokens = float(burst)
-            lease.manual_midi_last_refill_ns = now_server_ns
-        else:
-            elapsed_seconds = max(0.0, (now_server_ns - lease.manual_midi_last_refill_ns) / 1_000_000_000.0)
-            lease.manual_midi_tokens = min(float(burst), lease.manual_midi_tokens + (elapsed_seconds * rate_per_second))
-            lease.manual_midi_last_refill_ns = now_server_ns
-
-        if lease.manual_midi_tokens < 1.0:
-            raise HTTPException(status_code=429, detail="Browser-clock manual MIDI rate limit exceeded.")
-        lease.manual_midi_tokens -= 1.0
-
-    def _validate_browser_clock_manual_midi_horizon(
-        self,
-        runtime: RuntimeSession,
-        target_engine_sample: int,
-    ) -> None:
-        current_sample = max(0, int(runtime.worker.render_sample_cursor))
-        max_future_samples = self._browser_clock_manual_midi_max_future_samples(runtime)
-        if int(target_engine_sample) > current_sample + max_future_samples:
-            raise HTTPException(status_code=422, detail="Browser-clock manual MIDI event is too far in the future.")
 
     async def render_browser_clock_audio(
         self,
@@ -1606,7 +1516,10 @@ class SessionService:
 
     def _browser_clock_manual_midi_max_future_samples(self, runtime: RuntimeSession) -> int:
         sample_rate = max(1, int(runtime.worker.runtime_sample_rate or self._settings.default_sr))
-        return max(1, int(round(sample_rate * (self._settings.browser_clock_manual_midi_max_future_ms / 1000.0))))
+        return browser_clock_manual_midi_max_future_samples(
+            sample_rate=sample_rate,
+            max_future_ms=self._settings.browser_clock_manual_midi_max_future_ms,
+        )
 
     def _status_with_arpeggiators(
         self,
