@@ -21,7 +21,6 @@ import {
   itemColorKind,
   itemDisplayLabel,
   movePadLoopItemWithinContainer,
-  padLoopContainerLevel,
   removePadLoopItemsFromContainer,
   ungroupPadLoopItemsInContainer,
   type PadLoopContainerRef
@@ -3892,9 +3891,7 @@ export function SequencerPage({
     onSequencerPadTransposeLong,
     onSequencerTrackPadLoopEnabledChange,
     onSequencerTrackPadLoopRepeatChange,
-    onSequencerTrackPadLoopPatternChange,
-    onSequencerTrackPadLoopStepAdd,
-    onSequencerTrackPadLoopStepRemove
+    onSequencerTrackPadLoopPatternChange
   } = melodicTrackActions;
   const {
     onAddDrummerSequencerTrack,
@@ -3917,9 +3914,7 @@ export function SequencerPage({
     onDrummerSequencerPadCopy,
     onDrummerSequencerTrackPadLoopEnabledChange,
     onDrummerSequencerTrackPadLoopRepeatChange,
-    onDrummerSequencerTrackPadLoopPatternChange,
-    onDrummerSequencerTrackPadLoopStepAdd,
-    onDrummerSequencerTrackPadLoopStepRemove
+    onDrummerSequencerTrackPadLoopPatternChange
   } = drummerTrackActions;
   const {
     onAddPianoRoll,
@@ -3954,12 +3949,9 @@ export function SequencerPage({
     onControllerSequencerPadLoopEnabledChange,
     onControllerSequencerPadLoopRepeatChange,
     onControllerSequencerPadLoopPatternChange,
-    onControllerSequencerPadLoopStepAdd,
-    onControllerSequencerPadLoopStepRemove,
     onControllerSequencerStepCountChange,
     onControllerSequencerKeypointAdd,
     onControllerSequencerKeypointChange,
-    onControllerSequencerKeypointValueChange,
     onControllerSequencerKeypointRemove
   } = controllerSequencerActions;
   const {

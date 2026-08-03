@@ -1,15 +1,15 @@
 from __future__ import annotations
 
 import json
-from datetime import timezone
 
 from backend.app.models.app_state import AppStateDocument
 from backend.app.services.persisted_json_limits import dump_compact_json
 from backend.app.storage.db import AppStateRecord
+from backend.app.storage.repositories.contracts import DbSessionFactory, ensure_utc
 
 
 class AppStateRepository:
-    def __init__(self, db_session_factory):
+    def __init__(self, db_session_factory: DbSessionFactory) -> None:
         self._db_session_factory = db_session_factory
 
     def get(self, state_id: str = "last") -> AppStateDocument | None:
@@ -37,17 +37,9 @@ class AppStateRepository:
 
     @staticmethod
     def _to_document(record: AppStateRecord) -> AppStateDocument:
-        created_at = record.created_at
-        updated_at = record.updated_at
-
-        if created_at.tzinfo is None:
-            created_at = created_at.replace(tzinfo=timezone.utc)
-        if updated_at.tzinfo is None:
-            updated_at = updated_at.replace(tzinfo=timezone.utc)
-
         return AppStateDocument(
             id=record.id,
             state=json.loads(record.state_json),
-            created_at=created_at,
-            updated_at=updated_at,
+            created_at=ensure_utc(record.created_at),
+            updated_at=ensure_utc(record.updated_at),
         )

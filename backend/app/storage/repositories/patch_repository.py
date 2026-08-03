@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
 from typing import Sequence
 
 from sqlalchemy import desc, select
@@ -9,10 +8,11 @@ from sqlalchemy import desc, select
 from backend.app.models.patch import PatchDocument, PatchGraph
 from backend.app.services.persisted_json_limits import dump_compact_json
 from backend.app.storage.db import PatchRecord
+from backend.app.storage.repositories.contracts import DbSessionFactory, ensure_utc
 
 
 class PatchRepository:
-    def __init__(self, db_session_factory):
+    def __init__(self, db_session_factory: DbSessionFactory) -> None:
         self._db_session_factory = db_session_factory
 
     def create(self, document: PatchDocument) -> PatchDocument:
@@ -70,14 +70,6 @@ class PatchRepository:
 
     @staticmethod
     def _to_document(record: PatchRecord) -> PatchDocument:
-        created_at = record.created_at
-        updated_at = record.updated_at
-
-        if created_at.tzinfo is None:
-            created_at = created_at.replace(tzinfo=timezone.utc)
-        if updated_at.tzinfo is None:
-            updated_at = updated_at.replace(tzinfo=timezone.utc)
-
         return PatchDocument(
             id=record.id,
             name=record.name,
@@ -86,6 +78,6 @@ class PatchRepository:
             always_on=bool(record.always_on),
             schema_version=record.schema_version,
             graph=PatchGraph.model_validate(json.loads(record.graph_json)),
-            created_at=created_at,
-            updated_at=updated_at,
+            created_at=ensure_utc(record.created_at),
+            updated_at=ensure_utc(record.updated_at),
         )

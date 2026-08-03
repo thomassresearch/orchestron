@@ -2,7 +2,6 @@ import { isApiError } from "../api/client";
 import type {
   DrummerSequencerTrackState,
   SessionEvent,
-  SessionSequencerStatus,
   SessionSequencerTrackStatus
 } from "../types";
 

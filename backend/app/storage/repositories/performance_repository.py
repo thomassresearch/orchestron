@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from datetime import timezone
 from typing import Sequence
 
 from sqlalchemy import desc, select
@@ -9,10 +8,11 @@ from sqlalchemy import desc, select
 from backend.app.models.performance import PerformanceDocument
 from backend.app.services.persisted_json_limits import dump_compact_json
 from backend.app.storage.db import PerformanceRecord
+from backend.app.storage.repositories.contracts import DbSessionFactory, ensure_utc
 
 
 class PerformanceRepository:
-    def __init__(self, db_session_factory):
+    def __init__(self, db_session_factory: DbSessionFactory) -> None:
         self._db_session_factory = db_session_factory
 
     def create(self, document: PerformanceDocument) -> PerformanceDocument:
@@ -63,19 +63,11 @@ class PerformanceRepository:
 
     @staticmethod
     def _to_document(record: PerformanceRecord) -> PerformanceDocument:
-        created_at = record.created_at
-        updated_at = record.updated_at
-
-        if created_at.tzinfo is None:
-            created_at = created_at.replace(tzinfo=timezone.utc)
-        if updated_at.tzinfo is None:
-            updated_at = updated_at.replace(tzinfo=timezone.utc)
-
         return PerformanceDocument(
             id=record.id,
             name=record.name,
             description=record.description,
             config=json.loads(record.config_json),
-            created_at=created_at,
-            updated_at=updated_at,
+            created_at=ensure_utc(record.created_at),
+            updated_at=ensure_utc(record.updated_at),
         )

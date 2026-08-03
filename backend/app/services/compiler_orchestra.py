@@ -17,6 +17,7 @@ from backend.app.models.patch import (
 from backend.app.services.compiler_common import (
     CompiledGraphContext,
     CompiledInstrumentLines,
+    CompiledNode,
     DEFAULT_CSOUND_HARDWARE_BUFFER_SAMPLES,
     DEFAULT_CSOUND_SOFTWARE_BUFFER_SAMPLES,
     GEN_NODES_LAYOUT_KEY,

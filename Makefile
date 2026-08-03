@@ -8,7 +8,7 @@ MIDI_PULSE_LDFLAGS := -framework CoreMIDI -framework CoreFoundation
 MIDI_STATS_BIN := tools/midi_stats
 MIDI_STATS_SRC := tools/midi_stats.c
 
-.PHONY: frontend-install frontend-build build test run run-debug midi-pulse-build midi-pulse midi-stats-build midi-stats
+.PHONY: frontend-install frontend-build frontend-test frontend-check backend-test backend-check check benchmark-runtime build test run run-debug midi-pulse-build midi-pulse midi-stats-build midi-stats
 
 frontend-install:
 	cd frontend && npm install
@@ -16,10 +16,27 @@ frontend-install:
 frontend-build:
 	cd frontend && npm run build
 
+frontend-test:
+	cd frontend && npm test
+
+frontend-check:
+	cd frontend && npm run check
+
+backend-test:
+	uv run --extra dev pytest backend/tests
+
+backend-check:
+	uv run --extra dev ruff check backend/app backend/tests backend/tools
+
+check: backend-check backend-test frontend-check
+
+benchmark-runtime:
+	uv run --extra dev python -m backend.tools.benchmark_browser_clock_render
+	uv run --extra dev python -m backend.tools.benchmark_sequencer_boundary
+
 build: frontend-build
 
-test:
-	uv run pytest backend/tests
+test: backend-test frontend-test
 
 run:
 	uv run uvicorn backend.app.main:app --reload --log-level error --no-access-log

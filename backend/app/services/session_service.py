@@ -16,7 +16,6 @@ from backend.app.core.config import Settings
 from backend.app.engine.csound_worker import CsoundWorker
 from backend.app.engine.midi_scheduler import ClockDomainMapping
 from backend.app.engine.session_runtime import RuntimeSession
-from backend.app.models.patch import PatchDocument
 from backend.app.models.session import (
     BROWSER_CLOCK_MAX_BLOCKS_PER_REQUEST,
     BROWSER_CLOCK_MAX_QUEUE_WATERMARK_MS,
@@ -52,18 +51,17 @@ from backend.app.models.session import (
     SessionInfo,
     SessionInstrumentValidationRequest,
     SessionInstrumentValidationResponse,
-    SessionInstrumentAssignment,
     SessionResolvedEffectRoute,
     SessionState,
 )
-from backend.app.services.audio_routing_service import ResolvedAudioRoute, resolve_audio_routes
-from backend.app.services.compiler_common import CompilationError, PatchInstrumentTarget
+from backend.app.services.compiler_common import CompilationError
 from backend.app.services.compiler_service import CompilerService
 from backend.app.services.event_bus import SessionEventBus
 from backend.app.services.midi_service import INTERNAL_LOOPBACK_ID, INTERNAL_LOOPBACK_SELECTOR, MidiService
 from backend.app.services.patch_service import PatchService
 from backend.app.services.arpeggiator_runtime import MidiSourceContext, PerformanceMidiRouter
 from backend.app.services.sequencer_runtime import SessionSequencerRuntime
+from backend.app.services.session_instrument_resolver import SessionInstrumentResolver
 
 logger = logging.getLogger(__name__)
 _BROWSER_TIMING_REPORT_INTERVAL_MS = 100
@@ -130,8 +128,8 @@ class SessionService:
         event_bus: SessionEventBus,
     ) -> None:
         self._settings = settings
-        self._patch_service = patch_service
         self._compiler_service = compiler_service
+        self._instrument_resolver = SessionInstrumentResolver(patch_service)
         self._midi_service = midi_service
         self._event_bus = event_bus
         self._sessions: dict[str, RuntimeSession] = {}
@@ -161,11 +159,11 @@ class SessionService:
         client_key = self._normalize_client_key(client_key)
         await self._reserve_session_create(client_key)
         committed = False
-        instruments = self._resolve_session_instruments(request)
+        instruments = self._instrument_resolver.resolve_request(request)
 
         try:
-            instruments = self._normalize_session_instruments_for_runtime(instruments)
-            self._resolve_session_audio_routes(instruments)
+            instruments = self._instrument_resolver.normalize(instruments)
+            self._instrument_resolver.resolve_audio_routes(instruments)
 
             midi_inputs = self._midi_service.list_inputs()
             default_midi = self._resolve_default_midi_input_id(midi_inputs)
@@ -222,8 +220,8 @@ class SessionService:
         request: SessionInstrumentValidationRequest,
     ) -> SessionInstrumentValidationResponse:
         self._remember_running_loop()
-        instruments = self._normalize_session_instruments_for_runtime(list(request.instruments))
-        resolved_routes = self._resolve_session_audio_routes(instruments)
+        instruments = self._instrument_resolver.normalize(list(request.instruments))
+        resolved_routes = self._instrument_resolver.resolve_audio_routes(instruments)
         return SessionInstrumentValidationResponse(
             instruments=instruments,
             resolved_routes=[
@@ -286,7 +284,7 @@ class SessionService:
         self._remember_running_loop()
         runtime = await self._get_session(session_id)
         targets = [
-            self._compile_target_for_assignment(assignment)
+            self._instrument_resolver.compile_target(assignment)
             for assignment in runtime.instruments
         ]
 
@@ -1406,158 +1404,6 @@ class SessionService:
             created_at=runtime.created_at,
             started_at=runtime.started_at,
         )
-
-    @staticmethod
-    def _validate_runtime_patch(patch: PatchDocument) -> PatchDocument:
-        if patch.is_template:
-            raise HTTPException(
-                status_code=422,
-                detail=f"Patch '{patch.name}' is a template and cannot be used as a performance instrument.",
-            )
-        return patch
-
-    @staticmethod
-    def _resolve_session_instruments(request: SessionCreateRequest) -> list[SessionInstrumentAssignment]:
-        if request.instruments:
-            return list(request.instruments)
-        if request.patch_id:
-            return [SessionInstrumentAssignment(patch_id=request.patch_id, midi_channel=1)]
-        raise HTTPException(status_code=422, detail="Session requires at least one instrument patch.")
-
-    def _normalize_session_instruments_for_runtime(
-        self,
-        instruments: list[SessionInstrumentAssignment],
-    ) -> list[SessionInstrumentAssignment]:
-        normalized: list[SessionInstrumentAssignment] = []
-        seen_channels: set[int] = set()
-
-        for index, assignment in enumerate(instruments):
-            patch = self._validate_runtime_patch(self._patch_service.get_patch_document(assignment.patch_id))
-            assignment_id = assignment.id or f"rack-{index + 1}"
-            if patch.always_on:
-                effect_routes = self._unique_effect_routes(assignment.effect_routes, assignment_id=assignment_id)
-                source_ids = self._unique_effect_source_ids(
-                    [
-                        *assignment.effect_source_ids,
-                        *(route.source_id for route in effect_routes),
-                    ],
-                    assignment_id=assignment_id,
-                )
-                normalized.append(
-                    SessionInstrumentAssignment(
-                        id=assignment_id,
-                        patch_id=assignment.patch_id,
-                        midi_channel=0,
-                        effect_source_ids=source_ids,
-                        effect_routes=effect_routes,
-                    )
-                )
-                continue
-
-            if assignment.effect_source_ids or assignment.effect_routes:
-                raise HTTPException(
-                    status_code=422,
-                    detail=f"Patch '{patch.name}' is not always-on and cannot receive effect routes.",
-                )
-            midi_channel = int(assignment.midi_channel)
-            if midi_channel < 1 or midi_channel > 16:
-                raise HTTPException(
-                    status_code=422,
-                    detail=f"Patch '{patch.name}' is not always-on and requires a MIDI channel from 1 to 16.",
-                )
-            if midi_channel in seen_channels:
-                raise HTTPException(status_code=422, detail=f"MIDI channel '{midi_channel}' is assigned more than once.")
-            seen_channels.add(midi_channel)
-            normalized.append(
-                SessionInstrumentAssignment(
-                    id=assignment_id,
-                    patch_id=assignment.patch_id,
-                    midi_channel=midi_channel,
-                    effect_source_ids=[],
-                    effect_routes=[],
-                )
-            )
-
-        if not normalized:
-            raise HTTPException(status_code=422, detail="Session requires at least one instrument patch.")
-        return normalized
-
-    @staticmethod
-    def _unique_effect_source_ids(source_ids: list[str], *, assignment_id: str) -> list[str]:
-        result: list[str] = []
-        seen: set[str] = set()
-        for source_id in source_ids:
-            normalized = source_id.strip()
-            if not normalized:
-                raise HTTPException(
-                    status_code=422,
-                    detail={
-                        "diagnostics": [
-                            f"Effect route target '{assignment_id}' contains an empty source assignment id."
-                        ]
-                    },
-                )
-            if normalized in seen:
-                continue
-            seen.add(normalized)
-            result.append(normalized)
-        return result
-
-    @staticmethod
-    def _unique_effect_routes(effect_routes: list[Any], *, assignment_id: str) -> list[Any]:
-        result: list[Any] = []
-        seen: set[tuple[str, str]] = set()
-        for route in effect_routes:
-            source_id = route.source_id.strip()
-            channel = route.channel.strip()
-            if not source_id:
-                raise HTTPException(
-                    status_code=422,
-                    detail={
-                        "diagnostics": [
-                            f"Effect route target '{assignment_id}' contains an empty source assignment id."
-                        ]
-                    },
-                )
-            if not channel:
-                raise HTTPException(
-                    status_code=422,
-                    detail={
-                        "diagnostics": [
-                            f"Effect route from source assignment '{source_id}' to target "
-                            f"'{assignment_id}' contains an empty outlet label."
-                        ]
-                    },
-                )
-            key = (source_id, channel)
-            if key in seen:
-                continue
-            seen.add(key)
-            result.append(route.model_copy(update={"source_id": source_id, "channel": channel}))
-        return result
-
-    def _compile_target_for_assignment(self, assignment: SessionInstrumentAssignment) -> PatchInstrumentTarget:
-        patch = self._validate_runtime_patch(self._patch_service.get_patch_document(assignment.patch_id))
-        return PatchInstrumentTarget(
-            patch=patch,
-            midi_channel=0 if patch.always_on else assignment.midi_channel,
-            assignment_id=assignment.id,
-            always_on=patch.always_on,
-            effect_source_ids=tuple(assignment.effect_source_ids if patch.always_on else []),
-            effect_routes=tuple(
-                (route.source_id, route.channel) for route in assignment.effect_routes if patch.always_on
-            ),
-        )
-
-    def _resolve_session_audio_routes(
-        self,
-        instruments: list[SessionInstrumentAssignment],
-    ) -> list[ResolvedAudioRoute]:
-        targets = [self._compile_target_for_assignment(assignment) for assignment in instruments]
-        try:
-            return resolve_audio_routes(targets)
-        except CompilationError as error:
-            raise HTTPException(status_code=422, detail={"diagnostics": error.diagnostics}) from error
 
     async def _publish(self, session_id: str, event_type: str, payload: dict[str, Any]) -> None:
         event = SessionEvent(session_id=session_id, type=event_type, payload=payload)
