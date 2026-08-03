@@ -12,10 +12,15 @@ This document reflects the code in:
 - `frontend/src/App.tsx`
 - `frontend/src/components/SequencerPage.tsx`
 - `frontend/src/components/MultitrackArranger.tsx`
+- `frontend/src/components/sequencer/PadLoopPatternEditor.tsx`
 - `frontend/src/lib/padLoopPattern.ts`
 - `frontend/src/store/useAppStore.ts`
+- `frontend/src/store/appStoreSequencerTracksSlice.ts`
+- `frontend/src/store/appStorePerformanceControlsSlice.ts`
+- `frontend/src/store/appStoreTransportSlice.ts`
 - `backend/app/models/session.py`
 - `backend/app/services/sequencer_runtime.py`
+- `backend/app/services/session_performance_runtime.py`
 - `backend/app/api/sessions.py`
 
 ## 2. Sequencer Page Architecture

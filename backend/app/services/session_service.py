@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass, field
 import logging
 from datetime import datetime, timezone
 import math
@@ -13,7 +12,6 @@ from fastapi import HTTPException
 
 from backend.app.core.config import Settings
 from backend.app.engine.csound_worker import CsoundWorker
-from backend.app.engine.midi_scheduler import ClockDomainMapping
 from backend.app.engine.session_runtime import RuntimeSession
 from backend.app.models.session import (
     BrowserClockClaimControllerRequest,
@@ -52,6 +50,11 @@ from backend.app.models.session import (
 from backend.app.services.compiler_common import CompilationError
 from backend.app.services.compiler_service import CompilerService
 from backend.app.services.event_bus import SessionEventBus
+from backend.app.services.host_midi_bridge_registry import (
+    HostMidiBridgeLease,
+    HostMidiBridgeRegistry,
+    session_midi_request_from_bytes,
+)
 from backend.app.services.midi_service import INTERNAL_LOOPBACK_ID, INTERNAL_LOOPBACK_SELECTOR, MidiService
 from backend.app.services.patch_service import PatchService
 from backend.app.services.arpeggiator_runtime import MidiSourceContext, PerformanceMidiRouter
@@ -60,37 +63,19 @@ from backend.app.services.browser_clock_policy import (
     BrowserClockClose,
     BrowserClockControllerLease,
     BrowserClockSendJson,
-    browser_clock_manual_midi_max_future_samples,
     consume_browser_clock_manual_midi_token,
     validate_browser_clock_claim_budget,
     validate_browser_clock_manual_midi_horizon,
     validate_browser_clock_timing_budget,
 )
+from backend.app.services.browser_clock_runtime import BrowserClockRuntimeCoordinator
 from backend.app.services.sequencer_runtime import SessionSequencerRuntime
+from backend.app.services.session_admission import SessionAdmissionController
+from backend.app.services.session_connection_registry import SessionConnectionRegistry
 from backend.app.services.session_instrument_resolver import SessionInstrumentResolver
+from backend.app.services.session_performance_runtime import SessionPerformanceRuntimeCoordinator
 
 logger = logging.getLogger(__name__)
-
-
-@dataclass(slots=True)
-class HostMidiBridgeLease:
-    connection_id: str
-    host_id: str
-    host_name: str | None = None
-    protocol_version: int = 1
-    timing_mapping: ClockDomainMapping = field(default_factory=ClockDomainMapping)
-
-
-@dataclass(slots=True)
-class SessionCreateRateBucket:
-    tokens: float
-    updated_at: float
-
-
-@dataclass(slots=True)
-class SessionEventWsConnectRateBucket:
-    tokens: float
-    updated_at: float
 
 
 class SessionService:
@@ -107,20 +92,17 @@ class SessionService:
         self._instrument_resolver = SessionInstrumentResolver(patch_service)
         self._midi_service = midi_service
         self._event_bus = event_bus
+        self._admission = SessionAdmissionController(settings)
+        self._browser_clock_runtime = BrowserClockRuntimeCoordinator()
+        self._performance_runtime = SessionPerformanceRuntimeCoordinator(settings, self._publish_from_thread)
         self._sessions: dict[str, RuntimeSession] = {}
-        self._frontend_connections: dict[str, set[str]] = {}
+        self._connections = SessionConnectionRegistry()
         self._frontend_heartbeat_watchdogs: dict[str, dict[str, asyncio.Task[None]]] = {}
         self._frontend_auto_stop_tasks: dict[str, asyncio.Task[None]] = {}
-        self._browser_clock_controllers: dict[str, BrowserClockControllerLease] = {}
         self._browser_clock_auto_stop_tasks: dict[str, asyncio.Task[None]] = {}
-        self._host_midi_bridges: dict[str, HostMidiBridgeLease] = {}
-        self._session_clients: dict[str, str] = {}
+        self._host_midi_bridges = HostMidiBridgeRegistry()
         self._session_last_activity: dict[str, float] = {}
         self._session_idle_tasks: dict[str, asyncio.Task[None]] = {}
-        self._session_create_rate_buckets: dict[str, SessionCreateRateBucket] = {}
-        self._session_event_ws_connect_rate_buckets: dict[str, SessionEventWsConnectRateBucket] = {}
-        self._pending_session_creates = 0
-        self._pending_session_creates_by_client: dict[str, int] = {}
         self._lock = asyncio.Lock()
         self._loop: asyncio.AbstractEventLoop | None = None
 
@@ -131,7 +113,7 @@ class SessionService:
         client_key: str = "unknown",
     ) -> SessionCreateResponse:
         self._remember_running_loop()
-        client_key = self._normalize_client_key(client_key)
+        client_key = self._admission.normalize_client_key(client_key)
         await self._reserve_session_create(client_key)
         committed = False
         instruments = self._instrument_resolver.resolve_request(request)
@@ -152,25 +134,12 @@ class SessionService:
                     csound_performance_logging=self._settings.csound_performance_logging,
                 ),
             )
-            runtime.midi_router = self._create_midi_router(runtime)
-            runtime.sequencer = SessionSequencerRuntime(
-                session_id=runtime.session_id,
-                midi_service=runtime.midi_router,
-                midi_input_selector=INTERNAL_LOOPBACK_ID,
-                controller_default_channels=self._controller_default_channels_for_runtime(runtime),
-                clock_mode="render_driven",
-                publish_event=lambda event_type, payload, session_id=runtime.session_id: self._publish_from_thread(
-                    session_id=session_id,
-                    event_type=event_type,
-                    payload=payload,
-                ),
-            )
+            self._performance_runtime.initialize(runtime)
 
             async with self._lock:
                 self._sessions[runtime.session_id] = runtime
-                self._session_clients[runtime.session_id] = client_key
+                self._admission.commit_session(runtime.session_id, client_key)
                 self._session_last_activity[runtime.session_id] = time.monotonic()
-                self._release_session_create_reservation_unlocked(client_key)
                 self._schedule_session_idle_expiry_unlocked(runtime.session_id)
                 committed = True
         finally:
@@ -223,9 +192,9 @@ class SessionService:
 
     async def validate_session_event_ws_connect(self, session_id: str, *, client_key: str = "unknown") -> None:
         self._remember_running_loop()
-        client_key = self._normalize_client_key(client_key)
+        client_key = self._admission.normalize_client_key(client_key)
         async with self._lock:
-            self._validate_session_event_ws_connect_rate_unlocked(client_key, time.monotonic())
+            self._admission.validate_event_ws_connect(client_key, now=time.monotonic())
             if session_id not in self._sessions:
                 raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found")
 
@@ -236,8 +205,7 @@ class SessionService:
                 return
             self._touch_session_activity_unlocked(session_id)
             self._cancel_frontend_auto_stop_task_unlocked(session_id)
-            connections = self._frontend_connections.setdefault(session_id, set())
-            connections.add(connection_id)
+            self._connections.add_frontend(session_id, connection_id)
             self._reset_frontend_heartbeat_watchdog_unlocked(session_id, connection_id)
 
     async def frontend_heartbeat(self, session_id: str, connection_id: str) -> None:
@@ -245,8 +213,7 @@ class SessionService:
         async with self._lock:
             if session_id not in self._sessions:
                 return
-            connections = self._frontend_connections.get(session_id)
-            if not connections or connection_id not in connections:
+            if not self._connections.contains_frontend(session_id, connection_id):
                 return
             self._touch_session_activity_unlocked(session_id)
             self._reset_frontend_heartbeat_watchdog_unlocked(session_id, connection_id)
@@ -394,9 +361,8 @@ class SessionService:
         )
 
         async with self._lock:
-            previous = self._browser_clock_controllers.get(session_id)
             self._cancel_browser_clock_auto_stop_task_unlocked(session_id)
-            self._browser_clock_controllers[session_id] = lease
+            previous = self._connections.replace_browser_controller(session_id, lease)
 
         if previous is not None and previous.connection_id != connection_id:
             try:
@@ -437,10 +403,12 @@ class SessionService:
 
         should_schedule_auto_stop = False
         async with self._lock:
-            lease = self._browser_clock_controllers.get(session_id)
-            if lease is None or lease.connection_id != connection_id:
+            lease = self._connections.remove_browser_controller(
+                session_id,
+                connection_id=connection_id,
+            )
+            if lease is None:
                 return
-            self._browser_clock_controllers.pop(session_id, None)
             self._schedule_browser_clock_auto_stop_task_unlocked(
                 session_id=session_id,
                 delay_seconds=self._settings.frontend_disconnect_grace_seconds,
@@ -602,7 +570,7 @@ class SessionService:
         self._assert_browser_clock_mode(runtime)
 
         async with self._lock:
-            lease = self._browser_clock_controllers.get(session_id)
+            lease = self._connections.browser_controller(session_id)
         if lease is None or lease.connection_id != connection_id:
             raise HTTPException(status_code=409, detail="This browser is not the active controller for the session.")
         return runtime, lease
@@ -717,77 +685,15 @@ class SessionService:
         final_transport_subunit: int,
         transport_events: list[Any],
     ) -> tuple[list[dict[str, int]], list[dict[str, object]]]:
-        source_frames = max(1, int(engine_sample_end) - int(engine_sample_start))
-        target_frames = max(1, int(target_frame_count))
-
-        def target_offset(engine_sample: int) -> int:
-            source_offset = max(0, min(source_frames, int(engine_sample) - int(engine_sample_start)))
-            return max(0, min(target_frames, int(round(source_offset * target_frames / source_frames))))
-
-        ordered_events = sorted(transport_events, key=lambda event: int(event.engine_sample))
-        serialized_events: list[dict[str, object]] = []
-        segments: list[dict[str, int]] = []
-        segment_frame_start = 0
-        segment_subunit_start = max(0, int(initial_transport_subunit))
-
-        for event in ordered_events:
-            frame_offset = target_offset(event.engine_sample)
-            serialized_events.append(
-                {
-                    "target_frame_offset": frame_offset,
-                    "kind": event.kind,
-                    "payload": event.payload,
-                }
-            )
-            if event.kind == "loop":
-                previous_subunit = max(
-                    segment_subunit_start,
-                    int(event.payload.get("previous_transport_subunit", segment_subunit_start)),
-                )
-                if frame_offset > segment_frame_start:
-                    segments.append(
-                        {
-                            "target_frame_start": segment_frame_start,
-                            "target_frame_end": frame_offset,
-                            "transport_subunit_start": segment_subunit_start,
-                            "transport_subunit_end": previous_subunit,
-                        }
-                    )
-                segment_frame_start = frame_offset
-                segment_subunit_start = max(0, int(event.payload.get("transport_subunit", 0)))
-            elif event.kind == "stopped":
-                stopped_subunit = max(0, int(event.payload.get("transport_subunit", final_transport_subunit)))
-                if frame_offset > segment_frame_start:
-                    segments.append(
-                        {
-                            "target_frame_start": segment_frame_start,
-                            "target_frame_end": frame_offset,
-                            "transport_subunit_start": segment_subunit_start,
-                            "transport_subunit_end": stopped_subunit,
-                        }
-                    )
-                segment_frame_start = frame_offset
-                segment_subunit_start = stopped_subunit
-
-        if target_frames > segment_frame_start:
-            segments.append(
-                {
-                    "target_frame_start": segment_frame_start,
-                    "target_frame_end": target_frames,
-                    "transport_subunit_start": segment_subunit_start,
-                    "transport_subunit_end": max(0, int(final_transport_subunit)),
-                }
-            )
-        elif not segments:
-            segments.append(
-                {
-                    "target_frame_start": 0,
-                    "target_frame_end": target_frames,
-                    "transport_subunit_start": segment_subunit_start,
-                    "transport_subunit_end": max(0, int(final_transport_subunit)),
-                }
-            )
-        return segments, serialized_events
+        return BrowserClockRuntimeCoordinator.transport_timeline(
+            engine_sample_start=engine_sample_start,
+            engine_sample_end=engine_sample_end,
+            engine_sample_rate=engine_sample_rate,
+            target_frame_count=target_frame_count,
+            initial_transport_subunit=initial_transport_subunit,
+            final_transport_subunit=final_transport_subunit,
+            transport_events=transport_events,
+        )
 
     async def register_host_midi_bridge(
         self,
@@ -795,28 +701,8 @@ class SessionService:
         request: HostMidiRegisterRequest,
     ) -> dict[str, object]:
         self._remember_running_loop()
-        replacement_host_ids: set[str] = set()
         async with self._lock:
-            existing = self._host_midi_bridges.get(connection_id)
-            if existing is not None:
-                replacement_host_ids.add(existing.host_id)
-
-            duplicate_connection_ids = [
-                bridge_connection_id
-                for bridge_connection_id, lease in self._host_midi_bridges.items()
-                if bridge_connection_id != connection_id and lease.host_id == request.host_id
-            ]
-            for bridge_connection_id in duplicate_connection_ids:
-                removed = self._host_midi_bridges.pop(bridge_connection_id, None)
-                if removed is not None:
-                    replacement_host_ids.add(removed.host_id)
-
-            self._host_midi_bridges[connection_id] = HostMidiBridgeLease(
-                connection_id=connection_id,
-                host_id=request.host_id,
-                host_name=request.host_name,
-                protocol_version=request.protocol_version,
-            )
+            replacement_host_ids = self._host_midi_bridges.register(connection_id, request)
 
         for host_id in replacement_host_ids:
             self._midi_service.remove_host_inputs(host_id=host_id)
@@ -887,7 +773,7 @@ class SessionService:
                 if not runtime.worker.is_running or not runtime.midi_input:
                     continue
                 sessions_by_device.setdefault(runtime.midi_input, []).append(
-                    (runtime, self._browser_clock_controllers.get(runtime.session_id))
+                    (runtime, self._connections.browser_controller(runtime.session_id))
                 )
 
         for event in request.events:
@@ -928,9 +814,8 @@ class SessionService:
 
     async def release_host_midi_bridge(self, connection_id: str) -> None:
         self._remember_running_loop()
-        lease: HostMidiBridgeLease | None = None
         async with self._lock:
-            lease = self._host_midi_bridges.pop(connection_id, None)
+            lease = self._host_midi_bridges.release(connection_id)
         if lease is None:
             return
         self._midi_service.remove_host_inputs(host_id=lease.host_id)
@@ -1163,11 +1048,11 @@ class SessionService:
         idle_task_to_cancel: asyncio.Task[None] | None = None
         async with self._lock:
             self._sessions.pop(session_id, None)
-            self._session_clients.pop(session_id, None)
+            self._admission.remove_session(session_id)
             self._session_last_activity.pop(session_id, None)
             heartbeat_tasks = self._frontend_heartbeat_watchdogs.pop(session_id, {})
             heartbeat_tasks_to_cancel = list(heartbeat_tasks.values())
-            self._frontend_connections.pop(session_id, None)
+            self._connections.clear_frontend(session_id)
             auto_stop_task_to_cancel = self._frontend_auto_stop_tasks.pop(session_id, None)
             browser_clock_auto_stop_task = self._browser_clock_auto_stop_tasks.pop(session_id, None)
             idle_task_to_cancel = self._session_idle_tasks.pop(session_id, None)
@@ -1269,29 +1154,11 @@ class SessionService:
         event_perf_ms: float | None,
         now_server_ns: int | None = None,
     ) -> tuple[int, int | None, bool]:
-        if event_perf_ms is None:
-            return (runtime.worker.render_sample_cursor, None, False)
-
-        effective_now_server_ns = now_server_ns or time.perf_counter_ns()
-        mapped_backend_monotonic_ns, sync_stale = self._map_browser_clock_perf_ms_to_server_ns(
-            lease,
-            event_perf_ms,
-            now_server_ns=effective_now_server_ns,
-        )
-        if mapped_backend_monotonic_ns is None:
-            return (runtime.worker.render_sample_cursor, None, True)
-        if sync_stale:
-            return (runtime.worker.render_sample_cursor, mapped_backend_monotonic_ns, True)
-
-        return (
-            self._target_engine_sample_for_mapped_event(
-                runtime=runtime,
-                lease=lease,
-                mapped_backend_monotonic_ns=mapped_backend_monotonic_ns,
-                now_server_ns=effective_now_server_ns,
-            ),
-            mapped_backend_monotonic_ns,
-            False,
+        return self._browser_clock_runtime.target_engine_sample_for_browser_event(
+            runtime=runtime,
+            lease=lease,
+            event_perf_ms=event_perf_ms,
+            now_server_ns=now_server_ns or time.perf_counter_ns(),
         )
 
     async def _get_session(self, session_id: str) -> RuntimeSession:
@@ -1319,111 +1186,17 @@ class SessionService:
         event = SessionEvent(session_id=session_id, type=event_type, payload=payload)
         await self._event_bus.publish(event)
 
-    @staticmethod
-    def _normalize_client_key(client_key: str) -> str:
-        normalized = client_key.strip()
-        return normalized if normalized else "unknown"
-
     async def _reserve_session_create(self, client_key: str) -> None:
         async with self._lock:
-            now = time.monotonic()
-            active_total = len(self._sessions) + self._pending_session_creates
-            if active_total >= self._settings.session_max_active:
-                raise HTTPException(
-                    status_code=429,
-                    detail=(
-                        "Active session capacity reached "
-                        f"({self._settings.session_max_active} sessions). Delete or wait for idle sessions."
-                    ),
-                )
-
-            active_for_client = self._session_count_for_client_unlocked(client_key)
-            active_for_client += self._pending_session_creates_by_client.get(client_key, 0)
-            if active_for_client >= self._settings.session_max_active_per_client:
-                raise HTTPException(
-                    status_code=429,
-                    detail=(
-                        "Client active session quota reached "
-                        f"({self._settings.session_max_active_per_client} sessions)."
-                    ),
-                )
-
-            bucket = self._refill_session_create_bucket_unlocked(client_key, now)
-            if bucket.tokens < 1.0:
-                rate_per_second = self._settings.session_create_rate_per_minute / 60.0
-                retry_after = max(1, int(math.ceil((1.0 - bucket.tokens) / rate_per_second)))
-                raise HTTPException(
-                    status_code=429,
-                    detail="Session creation rate limit exceeded.",
-                    headers={"Retry-After": str(retry_after)},
-                )
-
-            bucket.tokens -= 1.0
-            self._pending_session_creates += 1
-            self._pending_session_creates_by_client[client_key] = (
-                self._pending_session_creates_by_client.get(client_key, 0) + 1
+            self._admission.reserve_session_create(
+                client_key,
+                active_session_count=len(self._sessions),
+                now=time.monotonic(),
             )
 
     async def _release_session_create_reservation(self, client_key: str) -> None:
         async with self._lock:
-            self._release_session_create_reservation_unlocked(client_key)
-
-    def _release_session_create_reservation_unlocked(self, client_key: str) -> None:
-        if self._pending_session_creates > 0:
-            self._pending_session_creates -= 1
-        pending_for_client = self._pending_session_creates_by_client.get(client_key, 0)
-        if pending_for_client <= 1:
-            self._pending_session_creates_by_client.pop(client_key, None)
-        else:
-            self._pending_session_creates_by_client[client_key] = pending_for_client - 1
-
-    def _refill_session_create_bucket_unlocked(self, client_key: str, now: float) -> SessionCreateRateBucket:
-        burst = float(self._settings.session_create_rate_burst)
-        bucket = self._session_create_rate_buckets.get(client_key)
-        if bucket is None:
-            bucket = SessionCreateRateBucket(tokens=burst, updated_at=now)
-            self._session_create_rate_buckets[client_key] = bucket
-            return bucket
-
-        elapsed_seconds = max(0.0, now - bucket.updated_at)
-        refill = elapsed_seconds * (self._settings.session_create_rate_per_minute / 60.0)
-        bucket.tokens = min(burst, bucket.tokens + refill)
-        bucket.updated_at = now
-        return bucket
-
-    def _session_count_for_client_unlocked(self, client_key: str) -> int:
-        return sum(1 for owner in self._session_clients.values() if owner == client_key)
-
-    def _validate_session_event_ws_connect_rate_unlocked(self, client_key: str, now: float) -> None:
-        bucket = self._refill_session_event_ws_connect_bucket_unlocked(client_key, now)
-        if bucket.tokens < 1.0:
-            rate_per_second = self._settings.session_event_ws_connect_rate_per_minute / 60.0
-            retry_after = max(1, int(math.ceil((1.0 - bucket.tokens) / rate_per_second)))
-            raise HTTPException(
-                status_code=429,
-                detail="Session event WebSocket connection rate limit exceeded.",
-                headers={"Retry-After": str(retry_after)},
-            )
-        bucket.tokens -= 1.0
-
-    def _refill_session_event_ws_connect_bucket_unlocked(
-        self,
-        client_key: str,
-        now: float,
-    ) -> SessionEventWsConnectRateBucket:
-        burst = float(self._settings.session_event_ws_connect_rate_burst)
-        bucket = self._session_event_ws_connect_rate_buckets.get(client_key)
-        if bucket is None:
-            bucket = SessionEventWsConnectRateBucket(tokens=burst, updated_at=now)
-            self._session_event_ws_connect_rate_buckets[client_key] = bucket
-            return bucket
-
-        elapsed_seconds = max(0.0, now - bucket.updated_at)
-        refill = elapsed_seconds * (self._settings.session_event_ws_connect_rate_per_minute / 60.0)
-        bucket.tokens = min(burst, bucket.tokens + refill)
-        bucket.updated_at = now
-        return bucket
-
+            self._admission.release_session_create_reservation(client_key)
     def _touch_session_activity_unlocked(self, session_id: str) -> None:
         if session_id not in self._sessions:
             return
@@ -1454,7 +1227,7 @@ class SessionService:
                 if runtime.worker.is_running:
                     self._schedule_session_idle_expiry_unlocked(session_id)
                     return
-                if self._frontend_connections.get(session_id) or self._browser_clock_controllers.get(session_id):
+                if self._connections.has_frontend(session_id) or self._connections.has_browser_controller(session_id):
                     self._schedule_session_idle_expiry_unlocked(session_id)
                     return
                 current = self._session_idle_tasks.get(session_id)
@@ -1482,66 +1255,27 @@ class SessionService:
             logger.exception("Failed during idle cleanup for session '%s'", session_id)
 
     def _ensure_sequencer(self, runtime: RuntimeSession) -> SessionSequencerRuntime:
-        if runtime.sequencer is not None:
-            return runtime.sequencer
-        runtime.midi_router = self._ensure_midi_router(runtime)
-
-        runtime.sequencer = SessionSequencerRuntime(
-            session_id=runtime.session_id,
-            midi_service=runtime.midi_router,
-            midi_input_selector=INTERNAL_LOOPBACK_ID,
-            controller_default_channels=self._controller_default_channels_for_runtime(runtime),
-            clock_mode="render_driven",
-            publish_event=lambda event_type, payload, session_id=runtime.session_id: self._publish_from_thread(
-                session_id=session_id,
-                event_type=event_type,
-                payload=payload,
-            ),
-        )
-        return runtime.sequencer
+        return self._performance_runtime.ensure_sequencer(runtime)
 
     def _ensure_midi_router(self, runtime: RuntimeSession) -> PerformanceMidiRouter:
-        if runtime.midi_router is None:
-            runtime.midi_router = self._create_midi_router(runtime)
-        return runtime.midi_router
+        return self._performance_runtime.ensure_midi_router(runtime)
 
     def _create_midi_router(self, runtime: RuntimeSession) -> PerformanceMidiRouter:
-        return PerformanceMidiRouter(
-            enqueue_timestamped_midi=runtime.worker.enqueue_timestamped_midi,
-            current_engine_sample=lambda runtime=runtime: runtime.worker.render_sample_cursor,
-            output_name="engine:internal",
-            max_pending_inputs=self._settings.arpeggiator_pending_input_max_events,
-            max_future_samples=lambda runtime=runtime: self._browser_clock_manual_midi_max_future_samples(runtime),
-        )
+        return self._performance_runtime.create_midi_router(runtime)
 
     def _browser_clock_manual_midi_max_future_samples(self, runtime: RuntimeSession) -> int:
-        sample_rate = max(1, int(runtime.worker.runtime_sample_rate or self._settings.default_sr))
-        return browser_clock_manual_midi_max_future_samples(
-            sample_rate=sample_rate,
-            max_future_ms=self._settings.browser_clock_manual_midi_max_future_ms,
-        )
+        return self._performance_runtime.manual_midi_max_future_samples(runtime)
 
     def _status_with_arpeggiators(
         self,
         runtime: RuntimeSession,
         status: SessionSequencerStatus,
     ) -> SessionSequencerStatus:
-        router = self._ensure_midi_router(runtime)
-        return status.model_copy(update={"arpeggiators": router.status()})
+        return self._performance_runtime.status_with_arpeggiators(runtime, status)
 
     @staticmethod
     def _controller_default_channels_for_runtime(runtime: RuntimeSession) -> tuple[int, ...]:
-        channels = tuple(
-            sorted(
-                {
-                    max(1, min(16, int(assignment.midi_channel)))
-                    for assignment in runtime.instruments
-                    if int(assignment.midi_channel) > 0
-                }
-            )
-        )
-        return channels if channels else (1,)
-
+        return SessionPerformanceRuntimeCoordinator.controller_default_channels(runtime)
     def _resolve_default_midi_input_id(self, midi_inputs: list[MidiInputRef] | None = None) -> str:
         inputs = midi_inputs if midi_inputs is not None else self._midi_service.list_inputs()
         if not inputs:
@@ -1561,23 +1295,11 @@ class SessionService:
         *,
         now_server_ns: int,
     ) -> tuple[int | None, bool]:
-        if lease is None or perf_ms is None:
-            return (None, True)
-        remote_timestamp_ns = int(round(max(0.0, perf_ms) * 1_000_000.0))
-        if lease.latest_clock_sync_offset_ns is not None and not self._browser_timing_report_is_stale(
+        return self._browser_clock_runtime.map_perf_ms_to_server_ns(
             lease,
-            now_server_ns=now_server_ns,
-        ):
-            return (remote_timestamp_ns + int(lease.latest_clock_sync_offset_ns), False)
-        mapped_server_ns, sync_stale = lease.timing_mapping.map_to_server_time(
-            remote_timestamp_ns,
+            perf_ms,
             now_server_ns=now_server_ns,
         )
-        if mapped_server_ns is None:
-            return (None, True)
-        if sync_stale or self._browser_timing_report_is_stale(lease, now_server_ns=now_server_ns):
-            return (mapped_server_ns, True)
-        return (mapped_server_ns, False)
 
     @staticmethod
     def _browser_timing_report_is_stale(
@@ -1585,9 +1307,10 @@ class SessionService:
         *,
         now_server_ns: int,
     ) -> bool:
-        if lease is None or lease.last_timing_report_server_ns is None:
-            return True
-        return (now_server_ns - lease.last_timing_report_server_ns) > 1_000_000_000
+        return BrowserClockRuntimeCoordinator.timing_report_is_stale(
+            lease,
+            now_server_ns=now_server_ns,
+        )
 
     def _target_engine_sample_for_mapped_event(
         self,
@@ -1597,25 +1320,12 @@ class SessionService:
         mapped_backend_monotonic_ns: int | None,
         now_server_ns: int,
     ) -> int:
-        if mapped_backend_monotonic_ns is None:
-            return runtime.worker.render_sample_cursor
-        if lease is None or lease.latest_report_sample_rate <= 0:
-            return runtime.worker.render_sample_cursor
-        if self._browser_timing_report_is_stale(lease, now_server_ns=now_server_ns):
-            return runtime.worker.render_sample_cursor
-
-        engine_sample_rate = max(1, runtime.worker.runtime_sample_rate)
-        report_sample_rate = max(1, lease.latest_report_sample_rate)
-        queued_engine_frames = int(
-            round(
-                (lease.latest_queued_frames + lease.latest_pending_render_frames)
-                * (engine_sample_rate / float(report_sample_rate))
-            )
+        return self._browser_clock_runtime.target_engine_sample_for_mapped_event(
+            runtime=runtime,
+            lease=lease,
+            mapped_backend_monotonic_ns=mapped_backend_monotonic_ns,
+            now_server_ns=now_server_ns,
         )
-        audible_sample_estimate = max(0, runtime.worker.render_sample_cursor - queued_engine_frames)
-        delta_ns = mapped_backend_monotonic_ns - now_server_ns
-        target_sample = audible_sample_estimate + int(round((delta_ns * engine_sample_rate) / 1_000_000_000.0))
-        return max(0, target_sample)
 
     def _browser_clock_render_telemetry(
         self,
@@ -1626,72 +1336,21 @@ class SessionService:
         server_render_start_ns: int,
         server_render_end_ns: int,
     ) -> dict[str, object]:
-        mapped_request_server_ns, timing_sync_stale = self._map_browser_clock_perf_ms_to_server_ns(
-            lease,
-            request.client_perf_ms,
-            now_server_ns=server_received_ns,
+        return self._browser_clock_runtime.render_telemetry(
+            lease=lease,
+            request=request,
+            server_received_ns=server_received_ns,
+            server_render_start_ns=server_render_start_ns,
+            server_render_end_ns=server_render_end_ns,
         )
-        websocket_message_wait_ms = None
-        if mapped_request_server_ns is not None and not timing_sync_stale:
-            websocket_message_wait_ms = max(0.0, (server_received_ns - mapped_request_server_ns) / 1_000_000.0)
-
-        timing_report_age_ms = None
-        if lease is not None and lease.last_timing_report_server_ns is not None:
-            timing_report_age_ms = max(0.0, (server_received_ns - lease.last_timing_report_server_ns) / 1_000_000.0)
-
-        note_on_to_render_request_ms = None
-        note_on_to_render_complete_ms = None
-        if lease is not None and not lease.last_note_on_sync_stale:
-            note_on_anchor_ns = lease.last_note_on_mapped_server_ns
-            if note_on_anchor_ns is not None:
-                note_on_to_render_request_ms = max(0.0, (server_received_ns - note_on_anchor_ns) / 1_000_000.0)
-                note_on_to_render_complete_ms = max(0.0, (server_render_end_ns - note_on_anchor_ns) / 1_000_000.0)
-
-        return {
-            "request_id": request.request_id,
-            "priority": request.priority,
-            "queued_frames_at_start": 0 if lease is None else lease.latest_queued_frames,
-            "pending_render_frames_at_start": 0 if lease is None else lease.latest_pending_render_frames,
-            "underrun_count_at_start": 0 if lease is None else lease.latest_underrun_count,
-            "timing_report_age_ms": timing_report_age_ms,
-            "timing_sync_stale": timing_sync_stale,
-            "clock_sync_rtt_ms": None if lease is None else lease.latest_clock_sync_rtt_ms,
-            "websocket_message_wait_ms": websocket_message_wait_ms,
-            "render_service_time_ms": max(0.0, (server_render_end_ns - server_render_start_ns) / 1_000_000.0),
-            "server_received_monotonic_ns": server_received_ns,
-            "server_render_started_monotonic_ns": server_render_start_ns,
-            "server_render_completed_monotonic_ns": server_render_end_ns,
-            "note_on_to_render_request_ms": note_on_to_render_request_ms,
-            "note_on_to_render_complete_ms": note_on_to_render_complete_ms,
-        }
 
     async def _require_host_midi_bridge(self, connection_id: str) -> HostMidiBridgeLease:
         async with self._lock:
-            lease = self._host_midi_bridges.get(connection_id)
-        if lease is None:
-            raise HTTPException(status_code=409, detail="Host MIDI bridge must register before sending data.")
-        return lease
+            return self._host_midi_bridges.require(connection_id)
 
     @staticmethod
     def _session_midi_request_from_bytes(message: list[int]) -> SessionMidiEventRequest | None:
-        if len(message) != 3:
-            return None
-        status = int(message[0]) & 0xF0
-        channel = (int(message[0]) & 0x0F) + 1
-        data1 = int(message[1]) & 0x7F
-        data2 = int(message[2]) & 0x7F
-
-        if status == 0x90:
-            if data2 == 0:
-                return SessionMidiEventRequest(type="note_off", channel=channel, note=data1)
-            return SessionMidiEventRequest(type="note_on", channel=channel, note=data1, velocity=data2)
-        if status == 0x80:
-            return SessionMidiEventRequest(type="note_off", channel=channel, note=data1)
-        if status == 0xB0 and data1 in {120, 123}:
-            return SessionMidiEventRequest(type="all_notes_off", channel=channel)
-        if status == 0xB0:
-            return SessionMidiEventRequest(type="control_change", channel=channel, controller=data1, value=data2)
-        return None
+        return session_midi_request_from_bytes(message)
 
     def _remember_running_loop(self) -> None:
         try:
@@ -1731,7 +1390,7 @@ class SessionService:
     ) -> None:
         lease: BrowserClockControllerLease | None = None
         async with self._lock:
-            lease = self._browser_clock_controllers.pop(session_id, None)
+            lease = self._connections.remove_browser_controller(session_id)
             self._cancel_browser_clock_auto_stop_task_unlocked(session_id)
         if lease is None:
             return
@@ -1757,18 +1416,13 @@ class SessionService:
         async with self._lock:
             self._cancel_frontend_heartbeat_watchdog_unlocked(session_id, connection_id)
 
-            connections = self._frontend_connections.get(session_id)
-            if not connections or connection_id not in connections:
+            if not self._connections.remove_frontend(session_id, connection_id):
                 return
-
-            connections.discard(connection_id)
-            if not connections:
-                self._frontend_connections.pop(session_id, None)
 
             if session_id not in self._sessions:
                 return
 
-            if self._frontend_connections.get(session_id):
+            if self._connections.has_frontend(session_id):
                 return
 
             if immediate_stop:
@@ -1846,7 +1500,7 @@ class SessionService:
             await asyncio.sleep(delay_seconds)
 
             async with self._lock:
-                if self._frontend_connections.get(session_id):
+                if self._connections.has_frontend(session_id):
                     return
                 current = self._frontend_auto_stop_tasks.get(session_id)
                 if current is not asyncio.current_task():
@@ -1876,7 +1530,7 @@ class SessionService:
             await asyncio.sleep(delay_seconds)
 
             async with self._lock:
-                if self._browser_clock_controllers.get(session_id) is not None:
+                if self._connections.has_browser_controller(session_id):
                     return
                 current = self._browser_clock_auto_stop_tasks.get(session_id)
                 if current is not asyncio.current_task():

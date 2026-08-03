@@ -76,6 +76,35 @@ This tranche is primarily structural. The benchmark results remain within the
 expected run-to-run range while the production frontend bundle remains
 effectively unchanged.
 
+After the third refactoring tranche on the same machine:
+
+- Backend tests: 284 passing.
+- Frontend tests: 22 passing across six test files.
+- `useAppStore.ts` decreased from 7,439 to 1,067 lines. Persisted-state/model
+  helpers and the sequencer, performance-control, and transport action groups
+  now live in focused store modules behind the unchanged Zustand hook.
+- `App.tsx` decreased from 2,728 to 2,442 lines after pure application
+  orchestration helpers were extracted.
+- `SequencerPage.tsx` decreased from 4,738 to 3,457 lines after the pad-loop
+  editor and page contracts were extracted.
+- `SessionService` decreased from 1,949 to 1,603 lines. Admission control,
+  connection ownership, Host MIDI bridge state/decoding, browser-clock
+  calculations, and performance runtime construction now live behind focused
+  coordinators while `SessionService` remains the locking and side-effect
+  facade.
+- `backend/tests/test_api.py` decreased from 9,333 to 6,202 lines after session
+  lifecycle and sequencer API coverage moved to dedicated test modules with
+  shared API test support.
+- Browser-clock median render/audio ratios for 16, 64, and 128 tracks:
+  `0.002`, `0.005`, and `0.009`.
+- Simultaneous pad-boundary medians for 16, 64, and 128 tracks:
+  `0.062 ms`, `0.220 ms`, and `0.441 ms`.
+- Highest observed 128-track boundary sample: `0.574 ms`.
+
+This tranche changes module ownership without changing REST, WebSocket,
+persisted-state, or UI contracts. Runtime measurements and production bundle
+sizes remain in the range recorded before the structural split.
+
 ## Refactoring rules
 
 - Preserve REST, WebSocket, persisted-state, and export contracts unless a

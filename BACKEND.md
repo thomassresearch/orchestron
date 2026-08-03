@@ -112,7 +112,7 @@ The backend uses both SQLite and in-memory process state.
 | SQLite table `performances` | `PerformanceRepository` | Saved performance configs. |
 | SQLite table `app_state` | `AppStateRepository` | The last persisted frontend/application state under the fixed key `last`. |
 | Filesystem `backend/data/assets/audio` | `GenAssetService` | Uploaded/imported audio files referenced by GEN or `sfload` nodes. |
-| In-memory `SessionService._sessions` | Python dict | Active session runtimes, compile artifacts, sequencer state, frontend heartbeat bookkeeping. |
+| In-memory `SessionService` facade and coordinators | Python dicts | Active session runtimes, compile artifacts, sequencer state, admission leases, connection membership, and frontend heartbeat bookkeeping. |
 | In-memory `SessionEventBus` | async queues | Per-session WebSocket subscriptions. |
 
 Important consequence: sessions are **not persisted**. Restarting the backend drops all session state, compile artifacts, and realtime event subscriptions.
@@ -183,13 +183,22 @@ Fallback inputs are currently:
 
 ### SessionService
 
-- Owns the lifetime of all sessions.
+- Is the facade and locking boundary for the lifetime of all sessions.
 - Creates `RuntimeSession` objects in memory.
 - Compiles, starts, stops, and deletes sessions.
 - Handles MIDI input binding.
-- Owns the browser-clock controller lifecycle and sequencer runtime.
-- Tracks frontend WebSocket connections and heartbeat timeouts.
+- Delegates admission quotas, connection membership, Host MIDI bridge leases,
+  browser-clock calculations, and performance runtime construction to focused
+  service modules.
+- Coordinates the browser-clock controller lifecycle and sequencer runtime.
+- Tracks frontend heartbeat and auto-stop tasks; connection membership itself
+  is held by `SessionConnectionRegistry`.
 - Auto-stops running sessions when the last frontend disconnects or a heartbeat times out.
+
+The extracted collaborators are deliberately state-focused or calculation-only.
+`SessionService` retains the shared `asyncio.Lock`, task scheduling, engine
+side effects, WebSocket notifications, and event publication so those ordering
+guarantees remain centralized.
 
 ### SessionEventBus
 
