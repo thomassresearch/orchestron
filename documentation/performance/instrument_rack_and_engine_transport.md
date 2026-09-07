@@ -1,6 +1,6 @@
 # Instrument Rack and Engine Transport
 
-**Navigation:** [Up](performance.md) | [Prev](performance.md) | [Next](sequencer_tracks_and_steps.md)
+**Navigation:** [Up](performance.md) | [Prev](performance.md) | [Next](audio_mixer_and_routing.md)
 
 The Instrument Rack is the top section of the Perform page and controls the live session, instrument assignments, and performance metadata.
 
@@ -19,7 +19,7 @@ The rack includes fields and actions for the current performance:
 - `Export CSD (SCORE)`
 - `Import`
 
-These actions operate on the performance configuration (instrument rack + sequencers + controllers + piano rolls), not on individual patch definitions.
+These actions operate on the performance configuration (instrument rack + audio routing/mixer + sequencers + controllers + piano rolls), not on individual patch definitions.
 
 - `Export` writes an Orchestron `.orch.json` / `.orch.zip` performance bundle for backup, sharing, and re-import.
 - `Export CSD (MIDI)` writes an offline-render ZIP with a compiled `.csd`, the arranger performance as `.mid`, bundled uploaded sample/SF assets, and a `README.txt` with the render command. `Export CSD (SCORE)` embeds notes and controller sweeps directly in the Csound score, omits the `.mid`, rewrites supported MIDI opcodes for score playback, and writes a matching no-`-F` render command. Both modes seed enabled manual MIDI Controller lane values at time 0 on each assigned instrument channel and use 32-bit float WAV output (`-f`) to preserve headroom. GEN01 and `sfload` sample files must be uploaded/imported assets; raw local `samplePath` values are rejected before compilation.
@@ -36,7 +36,7 @@ While instruments run, adding/removing assignments, changing patch/channel assig
 
 - Use `Add Instrument` to create another rack slot.
 - This enables multi-instrument performances driven by different MIDI channels.
-- Always-on effect patches are included only when they are explicitly added as rack slots.
+- Continuous effects run as explicit rack instances. Adding an insert creates a dedicated instance automatically; simply saving an effect in the library does not start it.
 - In the `orchestron-performance-creator` CLI, use `edit instruments list` to discover stable rack binding IDs and audio ports. Build arbitrary chains with `edit routes add/remove/clear/list`, or run `edit add-standard-effects` to add the standard reverb, compressor, and speaker-output send/dry matrix.
 - The button is unavailable while the engine is running; stop instruments before changing rack assignments.
 
@@ -83,4 +83,4 @@ If engine start/stop or transport actions fail, the Perform page shows an error 
 </p>
 <p align="center"><em>Instrument rack detail with performance metadata, assignments, and transport controls.</em></p>
 
-**Navigation:** [Up](performance.md) | [Prev](performance.md) | [Next](sequencer_tracks_and_steps.md)
+**Navigation:** [Up](performance.md) | [Prev](performance.md) | [Next](audio_mixer_and_routing.md)

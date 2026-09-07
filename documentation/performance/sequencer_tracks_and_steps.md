@@ -1,6 +1,6 @@
 # Melodic Sequencers and Step Editing
 
-**Navigation:** [Up](performance.md) | [Prev](instrument_rack_and_engine_transport.md) | [Next](drummer_sequencers.md)
+**Navigation:** [Up](performance.md) | [Prev](audio_mixer_and_routing.md) | [Next](drummer_sequencers.md)
 
 Melodic sequencers are step-based pattern sequencers used for note playback.
 
@@ -130,4 +130,4 @@ Step cells visually indicate:
 </p>
 <p align="center"><em>Melodic sequencer detail showing step editing, note selection, octave, and hold controls.</em></p>
 
-**Navigation:** [Up](performance.md) | [Prev](instrument_rack_and_engine_transport.md) | [Next](drummer_sequencers.md)
+**Navigation:** [Up](performance.md) | [Prev](audio_mixer_and_routing.md) | [Next](drummer_sequencers.md)

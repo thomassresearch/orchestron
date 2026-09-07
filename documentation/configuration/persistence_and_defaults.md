@@ -27,7 +27,8 @@ Persisted app state includes (current implementation):
 - active instrument tab
 - sequencer state (tracks, controller sequencers, arpeggiators, piano rolls, MIDI controllers)
 - performance workspace metadata (`currentPerformanceId`, name, description)
-- sequencer instrument bindings (rack assignments)
+- sequencer instrument bindings (stable rack instance IDs)
+- explicit audio routes, Master selection, insert ownership and mixer strip/send values (app-state version 2)
 - active MIDI input selection reference
 - browser-clock latency settings for the current workspace/runtime path
 
@@ -43,18 +44,21 @@ Always use explicit save actions when you want stable, shareable library entries
 
 ## Default New Patch Values
 
-A new patch starts with:
+New opens the [built-in/template chooser](../instrument_design/patch_toolbar_and_tabs.md#built-in-creation-choices). The selected starter supplies its name, graph, Activation and audio interface. Choose Empty patch for an empty graph (`nodes = []`, `connections = []`). All starters use these default engine settings:
 
-- Name: `Untitled Instrument`
-- Empty graph (`nodes = []`, `connections = []`)
-- Default engine config values (current defaults):
-  - `sr = 48000`
-  - `control_rate = 1500`
-  - `ksmps = 32`
-  - `nchnls = 2`
-  - `software_buffer = 128`
-  - `hardware_buffer = 512`
-  - `0dbfs = 1`
+- `sr = 48000`
+- `control_rate = 1500`
+- `ksmps = 32`
+- `nchnls = 2`
+- `software_buffer = 128`
+- `hardware_buffer = 512`
+- `0dbfs = 1`
+
+## Saved mixes and older performances
+
+Save Performance, Load Performance, Clone and native performance bundles retain version 11 audio routing and mixer settings, including Master, dedicated inserts, sends and pre/post selection. App-state restore also retains the current mix. These are snapshots; recording mixer automation is not included.
+
+Opening versions 1–10 converts the old Level values to audio gain in dB and resolves legacy connections into explicit routes. Missing Level means 0 dB. The migration notice explains that Level no longer scales MIDI velocity, so velocity-sensitive instruments may change timbre. Check the mix and save the migrated performance. See [Mixer persistence and compatibility](../performance/audio_mixer_and_routing.md#persistence-and-compatibility).
 
 ## Compile Status vs Persistence
 

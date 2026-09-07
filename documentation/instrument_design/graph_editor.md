@@ -119,6 +119,25 @@ The `GEN` meta-opcode node shows a `GEN` button that opens the specialized GEN t
 
 The graph editor `?` help now concentrates on graph-specific behavior: persisted layout, deliberate deletion, constant-node inline editing, and the Input Formula Assistant workflow for combining multiple signals on one input.
 
+## Stereo blocks and audio interfaces
+
+Stereo Input and Stereo Output are collapsible views of ordinary paired inleta/outleta nodes. Expand them to edit the underlying opcodes and connections. Exact port names and input formulas survive collapsing, expansion, saving and export. Direct Audio Output (outs) stays distinct.
+
+The interface panel describes musical role, stable group IDs, display names, mono/stereo/custom layouts, exact member ports, sidechain purpose and designated main input/output. Collapse/layout state is separate from these semantics. Legacy stereo suggestions show the resolved labels before applying metadata and do not rename ports.
+
+### Define and inspect a stereo interface
+
+1. Expand **Stereo Input / Stereo Output · Exact channel mapping** above the canvas.
+2. Use **+ Stereo Input · inleta** or **+ Stereo Output · outleta** to add a paired block when needed.
+3. Set Role and review each group's display name, Layout, comma-separated exact port names and purpose (main, aux, sidechain or custom). Select the designated Main input/Main output groups used by guided routing and inserts.
+4. Use **Show underlying nodes** to inspect the paired opcodes; **Collapse** returns to the grouped view. Group metadata must refer to the actual inlet/outlet names: editing a display name does not rename Csound ports.
+5. Compile and save the patch before assigning it in Perform. Choose and verify the performance connections in [Audio Mixer and Routing](../performance/audio_mixer_and_routing.md).
+
+<p align="center">
+  <img src="../../screenshots/instrument_stereo_audio_interface.png" alt="Stereo effect interface metadata and collapsed input/output blocks" width="900" style="max-width: 100%; height: auto;" />
+</p>
+<p align="center"><em>A continuous pass-through effect with explicit left/right groups and collapsed Stereo Input and Stereo Output blocks.</em></p>
+
 ## Screenshots
 
 <p align="center">
@@ -132,9 +151,3 @@ The graph editor `?` help now concentrates on graph-specific behavior: persisted
 <p align="center"><em>Delete-selection confirmation dialog listing selected graph items.</em></p>
 
 **Navigation:** [Up](instrument_design.md) | [Prev](opcode_catalog_and_documentation.md) | [Next](input_formula_assistant.md)
-
-## Stereo blocks and audio interfaces
-
-Stereo Input and Stereo Output are collapsible views of ordinary paired inleta/outleta nodes. Expand them to edit the underlying opcodes and connections. Exact port names and input formulas survive collapsing, expansion, saving and export. Direct Audio Output (outs) stays distinct.
-
-The interface panel describes musical role, stable group IDs, display names, mono/stereo/custom layouts, exact member ports, sidechain purpose and designated main input/output. Collapse/layout state is separate from these semantics. Legacy stereo suggestions show the resolved labels before applying metadata and do not rename ports.

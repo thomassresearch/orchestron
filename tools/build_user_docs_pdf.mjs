@@ -1148,7 +1148,7 @@ function runWkhtmltopdfPage({ inputPath, headerPath, footerPath, outputPath, tit
   }
 }
 
-function runWkhtmltopdfDocument({ coverPath, mainPath, headerPath, footerPath, outputPath, title }) {
+function runWkhtmltopdfDocument({ coverPath, mainPath, headerPath, footerPath, outputPath, title, outlinePath }) {
   const args = [
     "--enable-local-file-access",
     "--encoding",
@@ -1174,6 +1174,8 @@ function runWkhtmltopdfDocument({ coverPath, mainPath, headerPath, footerPath, o
     title,
     "--outline-depth",
     "2",
+    "--dump-outline",
+    outlinePath,
     "--javascript-delay",
     "200",
     "cover",
@@ -1312,29 +1314,60 @@ function main() {
     tocPageCount = measuredPages;
   }
 
-  const tocEntries = fileInfos.map((info) => ({
+  let tocEntries = fileInfos.map((info) => ({
     title: info.title,
     level: info.tocLevel,
     anchor: info.anchor,
     page: info.contentStartPage + 1 + tocPageCount
   }));
   const contentPath = path.join(tempDir, "main.html");
-  const finalMainHtml = buildMainHtml({
-    title: args.title,
-    tocHtml: buildTocMarkup(tocEntries, true),
-    sectionsHtml: sections.join("\n")
-  });
-  fs.writeFileSync(contentPath, finalMainHtml, "utf8");
-
+  const outlinePath = path.join(tempDir, "outline.xml");
   fs.mkdirSync(path.dirname(outputFile), { recursive: true });
-  runWkhtmltopdfDocument({
-    coverPath,
-    mainPath: contentPath,
-    headerPath,
-    footerPath,
-    outputPath: outputFile,
-    title: args.title
-  });
+  // Separate section renders estimate pagination. In the assembled document,
+  // margin collapsing and image placement can change a section's page count.
+  // Reconcile against wkhtmltopdf's actual outline before publishing the TOC.
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    fs.writeFileSync(contentPath, buildMainHtml({
+      title: args.title,
+      tocHtml: buildTocMarkup(tocEntries, true),
+      sectionsHtml: sections.join("\n")
+    }), "utf8");
+    runWkhtmltopdfDocument({
+      coverPath,
+      mainPath: contentPath,
+      headerPath,
+      footerPath,
+      outputPath: outputFile,
+      title: args.title,
+      outlinePath
+    });
+    const outline = fs.readFileSync(outlinePath, "utf8");
+    const items = [];
+    let depth = 0;
+    for (const [tag] of outline.matchAll(/<item\b[^>]*>|<\/item>/g)) {
+      if (tag === "</item>") { depth -= 1; continue; }
+      depth += 1;
+      // Depth 1 is a document object; depth 2 is its h1 chapter.
+      // Deeper headings can repeat chapter names in the manual's index.
+      if (depth === 2) {
+        const title = /\btitle="([^"]*)"/.exec(tag)?.[1];
+        const page = Number(/\bpage="(\d+)"/.exec(tag)?.[1]);
+        if (title !== undefined && Number.isFinite(page)) items.push({ title, page });
+      }
+      if (tag.endsWith("/>")) depth -= 1;
+    }
+    let cursor = 0;
+    const measuredEntries = tocEntries.map((entry) => {
+      const title = escapeHtml(entry.title).replaceAll("&#39;", "'");
+      const index = items.findIndex((item, i) => i >= cursor && item.title === title && item.page > 1 + tocPageCount);
+      if (index < 0) throw new Error(`PDF outline is missing chapter: ${entry.title}`);
+      cursor = index + 1;
+      return { ...entry, page: items[index].page };
+    });
+    if (measuredEntries.every((entry, index) => entry.page === tocEntries[index].page)) break;
+    if (attempt === 2) throw new Error("PDF table-of-contents pagination did not stabilize.");
+    tocEntries = measuredEntries;
+  }
 
   if (!args.keepTemp) {
     fs.rmSync(tempDir, { recursive: true, force: true });

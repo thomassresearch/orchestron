@@ -78,24 +78,44 @@ This helps you avoid assuming a graph is live-valid after edits.
 1. Edit the graph
 2. Compile
 3. Read compile output / diagnostics
-4. Start or continue runtime testing with MIDI input
-5. Save only after compile is clean
+4. Open Audition, choose a preview context, then Prepare audition
+5. Use Stop and audition to hear the draft; close the preview when finished
+6. Save only after compile is clean
 
 The integrated `?` help for this panel now focuses on session-specific external MIDI binding, generated ORC inspection, runtime event feedback, and browser-clock PCM playback.
-
-## Screenshots
-
-<p align="center">
-  <img src="../../screenshots/instrument_runtime_panel_compile_output_events.png" alt="Runtime panel compile output and events" width="560" style="max-width: 100%; height: auto;" />
-</p>
-<p align="center"><em>Runtime panel showing MIDI input selection, generated ORC output, and recent session events.</em></p>
-
-<p align="center"><em>A refreshed Runtime panel screenshot for `browser_clock` mode should be added after capturing the new AudioWorklet/PCM status UI.</em></p>
-
-**Navigation:** [Up](instrument_design.md) | [Prev](gen_table_editor.md) | [Next](instrument_import_export.md)
 
 ## Audition a draft
 
 Compile validates the graph without starting audio. Audition offers Isolated and In current performance. An isolated effect receives the built-in test instrument or a selected saved source. Current-performance audition replaces one selected rack instance in a temporary snapshot; choose the instance explicitly when a patch appears more than once.
 
 Prepare compiles the temporary preview before interrupting the performance. Stop and audition explicitly stops the original performance and starts the preview. Closing deletes the temporary session and restores the original performance state and playhead with transport stopped. Draft patches, test sources and preview routes are never saved into the library.
+
+### Preview step by step
+
+1. Click **Audition** in the graph header with the draft you want to hear.
+2. Choose **Isolated** to test only this patch. For an effect, select **Test source**: the built-in Playable instrument or a saved source with suitable outputs. Isolated preview needs a stereo main output; source outputs must match the effect input count.
+3. Alternatively choose **In current performance** and select the rack instance in **Source**. The short ID distinguishes instances of the same patch, including a return and a separate insert. The draft replaces only that selected instance in the temporary performance snapshot.
+4. Click **Prepare audition**. Compilation errors appear in the dialog; fix the draft and prepare again. Preparation does not interrupt the original performance.
+5. Click **Stop and audition** to stop the original engine and start the compiled preview. Note-triggered preview sources receive a test note (MIDI 60, velocity 96); current-performance mode also uses the performance sequencer configuration.
+6. Click **Close audition · transport stays stopped**. The preview session is deleted and the original performance state/playhead is restored with transport stopped. Restart the performance explicitly when ready.
+
+If you edit the draft after preparing, prepare again before listening. Preview is temporary: use Save separately to update the library patch.
+
+<p align="center">
+  <img src="../../screenshots/instrument_audition_isolated_effect.png" alt="Prepared isolated effect audition with built-in test source" width="600" style="max-width: 100%; height: auto;" />
+</p>
+<p align="center"><em>Isolated effect preview after successful preparation, ready for Stop and audition.</em></p>
+
+<p align="center">
+  <img src="../../screenshots/instrument_audition_performance_instance.png" alt="Prepared audition replacing one selected performance instance" width="600" style="max-width: 100%; height: auto;" />
+</p>
+<p align="center"><em>Current-performance preview targets one explicitly selected rack instance.</em></p>
+
+## Screenshots
+
+<p align="center">
+  <img src="../../screenshots/instrument_runtime_panel_browser_clock_active.png" alt="Runtime panel with active browser-clock PCM status, queue diagnostics and session events" width="560" style="max-width: 100%; height: auto;" />
+</p>
+<p align="center"><em>Runtime panel showing MIDI input selection, generated ORC, active browser-owned PCM runtime, queue diagnostics and recent session events.</em></p>
+
+**Navigation:** [Up](instrument_design.md) | [Prev](gen_table_editor.md) | [Next](instrument_import_export.md)

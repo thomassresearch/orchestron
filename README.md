@@ -9,6 +9,8 @@ Orchestron is a visual instrument workshop built on the power of Csound — not 
 
 Read the complete user documentation in [user_documentation.md](documentation/user_documentation.md).
 
+The [Audio Mixer and Routing guide](documentation/performance/audio_mixer_and_routing.md) covers Master, inserts, pre/post sends and routing repair with current screenshots. [Draft audition](documentation/instrument_design/runtime_panel_and_compilation.md#audition-a-draft) explains isolated and current-performance previews.
+
 - Backend: FastAPI + CSound Python integration
 - Frontend: React + TypeScript + Tailwind + Rete.js
 
