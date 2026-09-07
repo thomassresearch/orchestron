@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from backend.app.models.audio import AudioInterface
+
 from datetime import datetime, timezone
 import re
 from typing import Any, Literal
@@ -395,11 +397,14 @@ class EngineConfig(BaseModel):
         return self
 
 
+
+
 class PatchGraph(BaseModel):
     nodes: list[NodeInstance] = Field(default_factory=list)
     connections: list[Connection] = Field(default_factory=list)
     ui_layout: dict[str, JsonValue] = Field(default_factory=dict)
     engine_config: EngineConfig = Field(default_factory=EngineConfig)
+    audio_interface: AudioInterface | None = None
 
     @field_validator("nodes")
     @classmethod
@@ -465,6 +470,8 @@ class PatchResponse(PatchBase):
 
 
 class PatchListItem(BaseModel):
+    audio_interface: AudioInterface | None = None
+    has_direct_output: bool = False
     id: str
     name: str
     description: str

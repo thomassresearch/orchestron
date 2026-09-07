@@ -1,3 +1,4 @@
+import { audioCopy } from "../lib/audioCopy";
 import { useMemo, useState } from "react";
 
 import { documentationUiCopy } from "../lib/documentationUi";
@@ -48,7 +49,8 @@ export function OpcodeCatalog({ guiLanguage, opcodes, onAddOpcode, onOpcodeHelpR
       return opcodes;
     }
 
-    return opcodes.filter((opcode) => opcode.name.toLowerCase().includes(q));
+    const aliases: Record<string, string> = { outs: "speakers audio output lautsprecher audioausgang haut-parleurs sortie audio altavoces salida audio", inleta: "audio input stereo bus audioeingang entrée audio entrada audio", outleta: "send bus stereo output senden sortie audio envío salida audio" };
+    return opcodes.filter((opcode) => [opcode.name, opcode.description, ...opcode.tags, aliases[opcode.name] ?? ""].join(" ").toLowerCase().includes(q));
   }, [opcodes, query]);
 
   return (
@@ -79,7 +81,7 @@ export function OpcodeCatalog({ guiLanguage, opcodes, onAddOpcode, onOpcodeHelpR
                 className="h-8 w-8 rounded-md border border-slate-700 bg-slate-800"
               />
               <div className="min-w-0 flex-1">
-                <div className="truncate font-mono text-xs text-slate-200">{opcode.name}</div>
+                <div className="truncate font-mono text-xs text-slate-200">{opcode.name === "outs" ? `${audioCopy(guiLanguage)("direct")} · outs` : opcode.name}</div>
                 <div className="truncate text-[11px] uppercase tracking-[0.16em] text-slate-500">{opcode.category}</div>
               </div>
               <span className="text-[10px] font-semibold uppercase tracking-wider text-accent opacity-0 transition group-hover:opacity-100">

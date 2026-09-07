@@ -1,21 +1,17 @@
 # Always-On Effect Routing
 
-Performance config version 10 gives every rack assignment a stable `id` and stores incoming audio routes on always-on targets:
+Performance configuration version 11 stores stable rack instance IDs, one authoritative `audioGraph.routes` list, and mixer values keyed by instance/route ID:
 
 ```json
 {
-  "id": "reverb",
-  "patchId": "reverb-patch-id",
-  "midiChannel": 0,
-  "effectSourceIds": ["lead"],
-  "effectRoutes": [
-    {"sourceId": "lead", "channel": "sendl"},
-    {"sourceId": "lead", "channel": "sendr"}
-  ]
+  "version": 11,
+  "instruments": [{"id":"lead","patchId":"lead-patch","midiChannel":1},{"id":"reverb","patchId":"reverb-patch","midiChannel":0}],
+  "audioGraph": {"masterId":null,"insertOwners":{},"routes":[{"id":"send-left","sourceId":"lead","sourcePort":"sendl","targetId":"reverb","targetPort":"left","kind":"send","sourceStage":"strip","targetStage":"input"}]},
+  "mixer": {"strips":{"lead":{"gainDb":-6,"balance":0,"mute":false,"solo":false}},"sends":{"send-left":{"gainDb":-12,"tap":"post"}}}
 }
 ```
 
-`effectRoutes` is authoritative. `effectSourceIds` is retained as derived compatibility metadata. Opening or validating an older staged performance upgrades it to version 10, generates stable assignment IDs, forces always-on assignments to MIDI channel 0, and expands legacy source-only routing into one explicit route per available source `outleta` label.
+Versions 1–10 are upgraded once. Old Level values become audio dB, including effect slots, and implicit inlet mappings become exact routes. New snapshots omit `level`, `effectRoutes` and `effectSourceIds`. The deprecated `--level` option converts to audio gain and never scales MIDI velocity. Explicit graph, Master, insert ownership and mixer fields survive CLI editing and runtime rebuilds.
 
 ## Discover Rack IDs and Ports
 
@@ -23,7 +19,7 @@ Performance config version 10 gives every rack assignment a stable `id` and stor
 orchestron_cli --json edit instruments list
 ```
 
-The result includes each `bindingId`, patch, always-on state, MIDI channel, level, available `audioInlets`/`audioOutlets`, and incoming/outgoing route counts. Route commands use binding IDs, not patch IDs or MIDI channels.
+The result includes each `bindingId`, patch, always-on state, MIDI channel, audio gain, available `audioInlets`/`audioOutlets`, and incoming/outgoing route counts. Route commands use binding IDs, not patch IDs or MIDI channels.
 
 ## Edit Routes
 
@@ -31,7 +27,7 @@ The result includes each `bindingId`, patch, always-on state, MIDI channel, leve
 orchestron_cli --json edit routes add \
   --source lead \
   --outlet sendl \
-  --target reverb
+  --target reverb --inlet left
 
 orchestron_cli --json edit routes list
 orchestron_cli --json edit routes list --target reverb
@@ -44,14 +40,9 @@ orchestron_cli --json edit routes remove \
 orchestron_cli --json edit routes clear --target reverb
 ```
 
-Sources can be playable instruments or always-on effects, so chains such as `lead -> reverb -> compressor -> speaker` are supported. A target must be an always-on patch with at least one `inleta` port. The selected outlet must exist on the source patch. Self-routes and indirect cycles are rejected locally and by the backend.
+Sources can be playable instruments or always-on effects, so chains such as `lead -> reverb -> compressor -> speaker` are supported. A target must expose the selected `inleta` port; activation is independent. The selected outlet must exist on the source patch. Self-routes and indirect cycles are rejected locally and by the backend.
 
-`edit routes list` calls the backend validation endpoint and shows the resolved target inlet for every source outlet. Inlet selection uses this order:
-
-1. Exact label match.
-2. Stereo-style matching (`left`/`right`, `l`/`r`, and paired suffixes such as `sendl`/`sendr`).
-3. Positional matching when the source and target expose the same number of ports.
-4. The first target inlet as a mono fallback.
+`edit routes list` calls the backend validation endpoint and shows the resolved target inlet for every source outlet. New routes require an explicit `--inlet` when source and destination names differ. An exact existing name can be inferred safely. Legacy stereo/positional/first-inlet fallback is used only during migration, never to choose an ambiguous new route.
 
 ## Validate and Run
 
@@ -62,7 +53,7 @@ orchestron_cli --json edit create-runtime --start
 
 Validation sends the complete rack to `POST /api/sessions/validate-instruments`. Backend diagnostics cover unknown assignments, duplicate IDs, invalid target types, missing `inleta`/`outleta` ports, unknown outlet labels, and feedback loops.
 
-Rack assignments and Csound `connect` statements are fixed when a runtime session compiles. `edit push-runtime` therefore updates only sequencer/arpeggiator state and refuses to continue if rack assignments or routes differ. Rebuild a CLI-owned runtime after rack or route edits:
+Rack assignments and Csound `connect` statements are fixed when a runtime session compiles. `edit push-runtime` therefore updates mixer and sequencer/arpeggiator state and refuses to continue if rack assignments or routes differ. Rebuild a CLI-owned runtime after rack or route edits:
 
 ```bash
 orchestron_cli --json edit rebuild-runtime

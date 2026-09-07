@@ -203,16 +203,15 @@ def test_patch_always_on_flag_and_audio_port_summaries(tmp_path: Path) -> None:
         assert regular.status_code == 201
         assert regular.json()["always_on"] is False
 
-        missing_inleta_message = 'always on instruments require at least one "inleta" instance'
         rejected_create_payload = _minimal_patch_payload(name="Invalid Always-On Patch")
         rejected_create_payload["always_on"] = True
         rejected_create = client.post("/api/patches", json=rejected_create_payload)
-        assert rejected_create.status_code == 422
-        assert rejected_create.json()["detail"] == missing_inleta_message
+        assert rejected_create.status_code == 201
+        assert rejected_create.json()["always_on"] is True
 
         rejected_update = client.put(f"/api/patches/{regular.json()['id']}", json={"always_on": True})
-        assert rejected_update.status_code == 422
-        assert rejected_update.json()["detail"] == missing_inleta_message
+        assert rejected_update.status_code == 200
+        assert rejected_update.json()["always_on"] is True
 
         effect = client.post("/api/patches", json=_always_on_effect_patch_payload(name="Stereo Effect"))
         assert effect.status_code == 201

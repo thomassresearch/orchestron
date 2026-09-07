@@ -1,3 +1,5 @@
+import { PerformMixer } from "./PerformMixer";
+import { audioCopy } from "../lib/audioCopy";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   ChangeEvent,
@@ -6,7 +8,6 @@ import type {
   PointerEvent as ReactPointerEvent
 } from "react";
 
-import { effectRouteKey, effectRouteWouldCreateLoop } from "../lib/effectRouting";
 import {
   buildSequencerChordOptions,
   buildSequencerNoteOptions,
@@ -326,8 +327,6 @@ export function SequencerPage({
     onRemoveInstrument,
     onInstrumentPatchChange,
     onInstrumentChannelChange,
-    onInstrumentLevelChange,
-    onInstrumentEffectRouteChange,
     onStartInstruments,
     onStopInstruments
   } = instrumentActions;
@@ -519,14 +518,7 @@ export function SequencerPage({
     return sessionState;
   }, [sessionState, ui.running, ui.stopped]);
   const patchById = useMemo(() => new Map(patches.map((patch) => [patch.id, patch])), [patches]);
-  const audioSourceBindings = useMemo(
-    () =>
-      instrumentBindings.filter((binding) => {
-        const patch = patchById.get(binding.patchId);
-        return (patch?.audio_outlet_names?.length ?? 0) > 0;
-      }),
-    [instrumentBindings, patchById]
-  );
+
   const rackInstrumentRows = useMemo(() => {
     const standard: RackInstrumentBindingRow[] = [];
     const alwaysOn: RackInstrumentBindingRow[] = [];
@@ -859,27 +851,13 @@ export function SequencerPage({
   const renderRackInstrumentRow = ({ binding, index }: RackInstrumentBindingRow) => {
     const selectedPatch = patchById.get(binding.patchId);
     const isAlwaysOn = selectedPatch?.always_on === true;
-    const effectSourceRows = audioSourceBindings.flatMap((sourceBinding) => {
-      if (sourceBinding.id === binding.id || (selectedPatch?.audio_inlet_names?.length ?? 0) === 0) {
-        return [];
-      }
-      const sourcePatch = patchById.get(sourceBinding.patchId);
-      const channels = sourcePatch?.audio_outlet_names ?? [];
-      if (channels.length === 0) {
-        return [];
-      }
-      return [{ sourceBinding, sourcePatch, channels }];
-    });
-    const selectedRouteKeys = new Set(
-      binding.effectRoutes.map((route) => effectRouteKey(route.sourceId, route.channel))
-    );
     const cardClassName = isAlwaysOn
       ? "rounded-lg border border-blue-800/80 bg-[#020817] px-2 py-2 shadow-[inset_0_1px_0_rgba(59,130,246,0.16)]"
       : "rounded-lg border border-slate-600/80 bg-slate-800/75 px-2 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]";
 
     return (
       <div key={binding.id} className={cardClassName}>
-        <div className="grid grid-cols-[minmax(0,_1fr)_74px_74px_auto] items-end gap-2">
+        <div className="grid grid-cols-[minmax(0,_1fr)_110px_auto] items-end gap-2">
           <label className="flex min-w-0 flex-col gap-1">
             <span className="text-[10px] uppercase tracking-[0.16em] text-slate-400">{ui.patch(index + 1)}</span>
             <select
@@ -899,7 +877,7 @@ export function SequencerPage({
             <div className="flex flex-col gap-1">
               <span className="text-[10px] uppercase tracking-[0.16em] text-slate-400">{ui.channel}</span>
               <span className="rounded-md border border-cyan-500/50 bg-cyan-500/10 px-2 py-1 text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-200">
-                {ui.effect}
+                {audioCopy(guiLanguage)("continuous")}
               </span>
             </div>
           ) : (
@@ -916,17 +894,6 @@ export function SequencerPage({
               />
             </label>
           )}
-          <label className="flex flex-col gap-1">
-            <span className="text-[10px] uppercase tracking-[0.16em] text-slate-400">LEVEL</span>
-            <input
-              type="number"
-              min={1}
-              max={10}
-              value={binding.level}
-              onChange={(event) => onInstrumentLevelChange(binding.id, Number(event.target.value))}
-              className="w-full rounded-md border border-slate-600 bg-slate-950 px-2 py-1 text-xs text-slate-100 outline-none ring-accent/40 transition focus:ring"
-            />
-          </label>
           <button
             type="button"
             onClick={() => onRemoveInstrument(binding.id)}
@@ -936,67 +903,7 @@ export function SequencerPage({
             {ui.remove}
           </button>
         </div>
-        {isAlwaysOn ? (
-          <div className="mt-2 rounded-md border border-blue-900/70 bg-slate-950/75 p-2">
-            <div className="mb-1 text-[10px] uppercase tracking-[0.16em] text-slate-400">{ui.audioSources}</div>
-            {effectSourceRows.length === 0 ? (
-              <div className="text-xs text-slate-500">{ui.noAudioSources}</div>
-            ) : (
-              <div className="grid gap-1">
-                {effectSourceRows.map(({ sourceBinding, sourcePatch, channels }) => {
-                  const loopBlocked = effectRouteWouldCreateLoop(
-                    instrumentBindings,
-                    binding.id,
-                    sourceBinding.id
-                  );
-                  return (
-                    <div
-                      key={`${binding.id}-source-${sourceBinding.id}`}
-                      className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded border border-slate-700 bg-slate-900/80 px-2 py-1.5 text-xs text-slate-200"
-                    >
-                      <span className="min-w-[8rem] flex-1 truncate">{sourcePatch?.name ?? sourceBinding.patchId}</span>
-                      <span className="shrink-0 font-mono text-[10px] uppercase text-slate-500">
-                        {sourcePatch?.always_on === true ? ui.effect : `${ui.channel} ${sourceBinding.midiChannel}`}
-                      </span>
-                      <span className="flex flex-wrap items-center gap-1">
-                        {channels.map((channel) => {
-                          const routeKey = effectRouteKey(sourceBinding.id, channel);
-                          const selected = selectedRouteKeys.has(routeKey);
-                          const disabled = instrumentsRunning || (!selected && loopBlocked);
-                          return (
-                            <label
-                              key={`${binding.id}-source-${sourceBinding.id}-${channel}`}
-                              title={disabled && loopBlocked ? ui.effectRouteLoop : undefined}
-                              className={`inline-flex h-6 items-center gap-1 rounded border border-slate-600 bg-slate-950 px-1.5 font-mono text-[10px] uppercase text-cyan-200 ${
-                                disabled && loopBlocked ? "opacity-55" : ""
-                              }`}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={selected}
-                                onChange={(event) =>
-                                  onInstrumentEffectRouteChange(
-                                    binding.id,
-                                    sourceBinding.id,
-                                    channel,
-                                    event.target.checked
-                                  )
-                                }
-                                disabled={disabled}
-                                className="h-3.5 w-3.5 rounded border-slate-500 bg-slate-950 accent-accent"
-                              />
-                              <span>{channel}</span>
-                            </label>
-                          );
-                        })}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        ) : null}
+
       </div>
     );
   };
@@ -1048,6 +955,7 @@ export function SequencerPage({
             <span className="text-[10px] uppercase tracking-[0.18em] text-slate-400">{ui.loadPerformance}</span>
             <select
               value={currentPerformanceId ?? ""}
+              disabled={instrumentsRunning}
               onChange={(event) => {
                 if (event.target.value.length > 0) {
                   onLoadPerformance(event.target.value);
@@ -1069,6 +977,7 @@ export function SequencerPage({
           <button
             type="button"
             onClick={onNewPerformance}
+            disabled={instrumentsRunning}
             className="rounded-md border border-slate-500 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-300 hover:text-white"
           >
             {ui.newPerformance}
@@ -1076,6 +985,7 @@ export function SequencerPage({
           <button
             type="button"
             onClick={onClonePerformance}
+            disabled={instrumentsRunning}
             className="rounded-md border border-slate-500 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-300 hover:text-white"
           >
             {ui.clonePerformance}
@@ -1119,6 +1029,7 @@ export function SequencerPage({
           <button
             type="button"
             onClick={triggerConfigLoad}
+            disabled={instrumentsRunning}
             className="rounded-md border border-slate-500 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-300 hover:text-white"
           >
             {ui.import}
@@ -1177,6 +1088,8 @@ export function SequencerPage({
           </div>
         </div>
       </div>
+
+      <PerformMixer onStop={onStopInstruments} />
 
       {transportError && (
         <div className="mt-3 rounded-xl border border-rose-500/60 bg-rose-950/50 px-3 py-2 font-mono text-xs text-rose-200">

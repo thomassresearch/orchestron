@@ -259,26 +259,29 @@ def test_standard_effect_matrix_converts_direct_outputs_and_routes_chain() -> No
     assert source["patchId"] == "lead-new"
     assert reverb["patchId"] == "reverb"
     assert reverb["midiChannel"] == 0
-    assert reverb["effectRoutes"] == [
+    def incoming(identity):
+        return [{"sourceId": r["sourceId"], "channel": r["sourcePort"]} for r in config["audioGraph"]["routes"] if r["targetId"] == identity]
+
+    assert incoming(reverb["id"]) == [
         {"sourceId": "instrument-1", "channel": "sendl"},
         {"sourceId": "instrument-1", "channel": "sendr"},
     ]
-    assert compressor["effectRoutes"] == [
+    assert incoming(compressor["id"]) == [
         {"sourceId": "instrument-1", "channel": "dryl"},
         {"sourceId": "instrument-1", "channel": "dryr"},
         {"sourceId": "standard-reverb-effect", "channel": "left"},
         {"sourceId": "standard-reverb-effect", "channel": "right"},
     ]
-    assert speaker["effectRoutes"] == [
+    assert incoming(speaker["id"]) == [
         {"sourceId": "standard-compressor-effect", "channel": "left"},
         {"sourceId": "standard-compressor-effect", "channel": "right"},
     ]
 
+    before = list(config["audioGraph"]["routes"])
     second_result = ensure_standard_effect_matrix(config, FakeApiClient())
     assert second_result["convertedSources"] == []
-    assert config["instruments"][1]["effectRoutes"] == reverb["effectRoutes"]
-    assert config["instruments"][2]["effectRoutes"] == compressor["effectRoutes"]
-    assert config["instruments"][3]["effectRoutes"] == speaker["effectRoutes"]
+    assert config["audioGraph"]["routes"] == before
+    assert all("level" not in b and "effectRoutes" not in b for b in config["instruments"])
 
 
 def test_version_ten_normalization_expands_legacy_effect_sources() -> None:
@@ -309,10 +312,10 @@ def test_version_ten_normalization_expands_legacy_effect_sources() -> None:
 
     normalize_performance_config(config, patches)
 
-    assert config["version"] == 10
+    assert config["version"] == 11
     assert config["instruments"][0]["id"] == "instrument-1"
     assert config["instruments"][1]["midiChannel"] == 0
-    assert config["instruments"][1]["effectRoutes"] == [
+    assert [{"sourceId": r["sourceId"], "channel": r["sourcePort"]} for r in config["audioGraph"]["routes"]] == [
         {"sourceId": "instrument-1", "channel": "left"},
         {"sourceId": "instrument-1", "channel": "right"},
     ]
@@ -364,8 +367,7 @@ def test_general_effect_routes_support_chains_and_reject_cycles() -> None:
         target_id="fx-b",
     )
 
-    assert config["instruments"][1]["effectSourceIds"] == ["source"]
-    assert config["instruments"][2]["effectRoutes"] == [{"sourceId": "fx-a", "channel": "right"}]
+    assert [(r["sourceId"], r["sourcePort"], r["targetId"], r["targetPort"]) for r in config["audioGraph"]["routes"]] == [("source", "left", "fx-a", "left"), ("fx-a", "right", "fx-b", "right")]
     with pytest.raises(OrchestronCliError) as exc_info:
         add_effect_route_to_config(
             config,

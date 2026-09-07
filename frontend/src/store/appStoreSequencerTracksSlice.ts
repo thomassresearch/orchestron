@@ -1,6 +1,6 @@
+import { legacyGainDb, newRoute, mainPorts } from "../lib/audioRouting";
 import type { StoreApi } from "zustand";
 
-import { effectRouteKey, effectRouteWouldCreateLoop } from "../lib/effectRouting";
 import { insertPadLoopItem, removePadLoopItemsFromContainer } from "../lib/padLoopPattern";
 import {
   STEP_CAPACITY,
@@ -47,9 +47,7 @@ import {
   nextAvailablePerformanceChannel,
   normalizeDrummerSequencerKey,
   normalizeDrummerSequencerStepCount,
-  normalizeEffectRouteSelections,
   normalizeEffectRoutesForBindings,
-  normalizeInstrumentLevel,
   normalizePadIndex,
   normalizePadLoopPatternForState,
   normalizeSequencerPadLengthBeats,
@@ -61,7 +59,6 @@ import {
   performanceDeviceCount,
   resolvedSequencerPadStepCount,
   sequencerRuntimeStateFromSequencer,
-  sourceIdsFromEffectRoutes,
   transportStepCountForPerformanceTracks,
   updateDrummerTrackTimingState,
   updateSequencerTrackTimingState
@@ -140,6 +137,7 @@ export function createSequencerTrackStoreActions(
 ): SequencerTrackStoreActions {
   return {
     addSequencerInstrument: () => {
+      if (get().activeSessionState === "running") return;
       const state = get();
       const availableInstrumentPatches = performablePatches(state.patches);
       const patchId =
@@ -150,6 +148,7 @@ export function createSequencerTrackStoreActions(
       }
       const selectedPatch = availableInstrumentPatches.find((patch) => patch.id === patchId);
 
+      if (state.sequencerInstruments.length >= 64) { set({ error: "A maximum of 64 patch instances is supported." }); return; }
       const binding: SequencerInstrumentBinding = {
         id: crypto.randomUUID(),
         patchId,
@@ -166,10 +165,24 @@ export function createSequencerTrackStoreActions(
         ),
         error: null
       });
+      if (selectedPatch?.audio_interface?.guided && selectedPatch.audio_interface.role === "instrument") {
+        void get().ensureMaster().then((masterId) => {
+          const current = get();
+          if (current.audioGraph.routes.some((r) => r.sourceId === binding.id)) return;
+          const ports = mainPorts(selectedPatch, "output");
+          const masterPatchId = current.sequencerInstruments.find((b) => b.id === masterId)?.patchId;
+          const inputs = mainPorts(current.patches.find((p) => p.id === masterPatchId), "input");
+          if (ports.length === 2 && inputs.length === 2) current.setAudioGraph({ ...current.audioGraph, routes: [...current.audioGraph.routes, ...ports.map((sourcePort, i) => newRoute({ sourceId: binding.id, sourcePort, targetId: masterId, targetPort: inputs[i], kind: "main", sourceStage: "strip", targetStage: "input" }))] });
+        }).catch((e: unknown) => set({ error: e instanceof Error ? e.message : "Master creation failed" }));
+      }
     },
 
     removeSequencerInstrument: (bindingId) => {
+      if (get().activeSessionState === "running") return;
       const state = get();
+      const strips = { ...state.mixer.strips };
+      delete strips[bindingId];
+      set({ mixer: { ...state.mixer, strips } });
       set({
         sequencerInstruments: normalizeEffectRoutesForBindings(
           state.sequencerInstruments.filter((binding) => binding.id !== bindingId),
@@ -179,6 +192,7 @@ export function createSequencerTrackStoreActions(
     },
 
     updateSequencerInstrumentPatch: (bindingId, patchId) => {
+      if (get().activeSessionState === "running") return;
       const state = get();
       const availablePatches = performablePatches(state.patches);
       const patch = availablePatches.find((candidate) => candidate.id === patchId);
@@ -203,9 +217,18 @@ export function createSequencerTrackStoreActions(
           availablePatches
         )
       });
+      if (patch?.audio_interface?.guided && patch.audio_interface.role === "instrument" && !get().audioGraph.routes.some((r) => r.sourceId === bindingId)) {
+        void get().ensureMaster().then((masterId) => {
+          const current = get(); const ports = mainPorts(patch, "output");
+          const masterPatchId = current.sequencerInstruments.find((b) => b.id === masterId)?.patchId;
+          const inputs = mainPorts(current.patches.find((p) => p.id === masterPatchId), "input");
+          if (ports.length === 2 && inputs.length === 2 && !current.audioGraph.routes.some((r) => r.sourceId === bindingId)) current.setAudioGraph({ ...current.audioGraph, routes: [...current.audioGraph.routes, ...ports.map((sourcePort, i) => newRoute({ sourceId: bindingId, sourcePort, targetId: masterId, targetPort: inputs[i], kind: "main", sourceStage: "strip", targetStage: "input" }))] });
+        }).catch((e: unknown) => set({ error: String(e) }));
+      }
     },
 
     updateSequencerInstrumentChannel: (bindingId, channel) => {
+      if (get().activeSessionState === "running") return;
       const normalizedChannel = clampInt(channel, 1, 16);
       const state = get();
       const currentBinding = state.sequencerInstruments.find((binding) => binding.id === bindingId);
@@ -230,63 +253,28 @@ export function createSequencerTrackStoreActions(
       });
     },
 
-    updateSequencerInstrumentLevel: (bindingId, level) => {
-      const normalizedLevel = normalizeInstrumentLevel(level);
-      const state = get();
-      set({
-        sequencerInstruments: state.sequencerInstruments.map((binding) =>
-          binding.id === bindingId ? { ...binding, level: normalizedLevel } : binding
-        ),
-        error: null
-      });
-    },
+    updateSequencerInstrumentLevel: (bindingId, level) => get().setMixerStrip(bindingId, { gainDb: legacyGainDb(level) }),
 
     updateSequencerInstrumentEffectRoute: (bindingId, sourceBindingId, channel, enabled) => {
       const state = get();
-      const availablePatches = performablePatches(state.patches);
-      const normalizedChannel = channel.trim();
-      if (!normalizedChannel) {
-        return;
-      }
-      set({
-        sequencerInstruments: normalizeEffectRoutesForBindings(
-          state.sequencerInstruments.map((binding) => {
-            if (binding.id !== bindingId) {
-              return binding;
-            }
-            const routes = normalizeEffectRouteSelections(binding.effectRoutes);
-            const routeKeyValue = effectRouteKey(sourceBindingId, normalizedChannel);
-            if (enabled) {
-              if (!routes.some((route) => effectRouteKey(route.sourceId, route.channel) === routeKeyValue)) {
-                if (effectRouteWouldCreateLoop(state.sequencerInstruments, bindingId, sourceBindingId)) {
-                  return binding;
-                }
-                routes.push({ sourceId: sourceBindingId, channel: normalizedChannel });
-              }
-            } else {
-              const index = routes.findIndex((route) => effectRouteKey(route.sourceId, route.channel) === routeKeyValue);
-              if (index >= 0) {
-                routes.splice(index, 1);
-              }
-            }
-            return {
-              ...binding,
-              effectRoutes: routes,
-              effectSourceIds: sourceIdsFromEffectRoutes(routes)
-            };
-          }),
-          availablePatches
-        ),
-        error: null
-      });
+      if (state.activeSessionState === "running") return;
+      const matching = state.audioGraph.routes.filter((r) => r.sourceId === sourceBindingId && r.targetId === bindingId && r.sourcePort === channel);
+      if (!enabled) { state.setAudioGraph({ ...state.audioGraph, routes: state.audioGraph.routes.filter((r) => !matching.includes(r)) }); return; }
+      if (matching.length) return;
+      const patch = state.patches.find((p) => p.id === state.sequencerInstruments.find((b) => b.id === bindingId)?.patchId);
+      const inlets = patch?.audio_inlet_names ?? [];
+      // Only an exact name is safe here. The routing editor handles explicit custom mappings.
+      if (!inlets.includes(channel)) { set({ error: "Select an exact destination port in the mixer routing editor." }); return; }
+      state.setAudioGraph({ ...state.audioGraph, routes: [...state.audioGraph.routes, newRoute({ sourceId: sourceBindingId, sourcePort: channel, targetId: bindingId, targetPort: channel, kind: "custom", sourceStage: "strip", targetStage: "input" })] });
     },
 
     buildSequencerConfigSnapshot: () => {
       const state = get();
-      return buildSequencerConfigSnapshot(state.sequencer, state.sequencerInstruments);
+      return buildSequencerConfigSnapshot(state.sequencer, state.sequencerInstruments, state.audioGraph, state.mixer);
     },
 
     applySequencerConfigSnapshot: (snapshot) => {
+      if (get().activeSessionState === "running") { set({ error: "Stop to edit routing" }); return; }
       try {
         const state = get();
         const availableInstrumentPatches = performablePatches(state.patches);
@@ -298,6 +286,7 @@ export function createSequencerTrackStoreActions(
           sequencer: parsed.sequencer,
           sequencerRuntime: sequencerRuntimeStateFromSequencer(parsed.sequencer),
           sequencerInstruments: parsed.instruments,
+          audioGraph: parsed.audioGraph, mixer: parsed.mixer, migrationNotice: parsed.migrationNotice,
           error: null
         });
       } catch (error) {

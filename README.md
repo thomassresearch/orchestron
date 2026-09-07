@@ -14,7 +14,7 @@ Read the complete user documentation in [user_documentation.md](documentation/us
 
 ## Built With Codex
 
-This application was built using the Codex App with `GPT-5.3-Codex`, `GPT-5.4` and `GPT-5.5` using **Extra High** reasoning effort.
+This application was built using the Codex App with `GPT-5.3-Codex`, `GPT-5.4`, `GPT-5.5`, `GPT-5.6-Sol` and `GPT-6-Astra` using **Extra High** reasoning effort. I started development and expected to hit a limit at some point where things fell apart, but that never happened up to now, given me a good intuition on how powerful today's coding agents have become...
 
 ## Features
 
@@ -28,7 +28,7 @@ The application includes multilingual UI/help content and integrated help pages,
 
 The instrument design area combines patch metadata, an opcode catalog, and a visual graph editor. You build an instrument by selecting Csound opcodes and connecting them into a signal/control graph, including numeric and string constant nodes for reusable literal values.
 
-Designed instruments can be documented with patch descriptions up to 2048 characters and exported for reuse, including export to a `.csd` file. Patches can also be marked as templates so incomplete starter graphs can be saved without compile validation, then reused through `New from template`; template patches remain editable in Instrument Design but are hidden from the Perform instrument rack. Patches can also be marked `Always On?` for effect-style instruments that run continuously when explicitly added to the Perform rack, and saving an always-on patch requires at least one `inleta` node.
+Designed instruments can be documented with patch descriptions up to 2048 characters and exported for reuse, including export to a `.csd` file. Patches can also be marked as templates so incomplete starter graphs can be saved without compile validation, then reused through `New from template`; template patches remain editable in Instrument Design but are hidden from the Perform instrument rack. Built-in playable instrument, audio effect, output/Master and empty templates are available even in an empty library. `Activation: MIDI notes / Continuous` controls scheduling independently of musical role; continuous sources do not require an inlet. Collapsible Stereo Input/Output blocks expose their ordinary `inleta`/`outleta` nodes, while `outs` remains identifiable as Direct Audio Output.
 
 ![Instrument Design](screenshots/instrument_design.png)
 
@@ -42,7 +42,9 @@ Designed instruments can be documented with patch descriptions up to 2048 charac
 
 The live performance area provides an instrument rack where instruments can be selected and assigned to MIDI channels. A melodic sequencer can then drive those instruments, with scale and mode selection, note entry that supports choosing notes both in-scale and out-of-scale, and per-step chord choices including the standard `5` power-chord voicing (root + perfect fifth). `tempoBPM` stays global, while every melodic sequencer, drummer sequencer, and controller sequencer now has its own meter (`2..7` over `4` or `8`), grid in steps per beat (`2`, `4`, or `8`), and beat ratio (`1:1`, `2:1`, `3:2`, `4:3`, `3:4`, `5:4`, `4:5`, `7:4`). That makes polymeter and true per-sequencer polyrhythm possible inside one performance.
 
-When the rack transport has started instruments, rack assignment edits are intentionally locked: adding/removing instruments and changing patch or MIDI channel assignments stay disabled until `Stop Instruments` is pressed, while per-instrument `Level` stays live for mix adjustments. Always-on rack instruments are shown in their own dark-blue row so their taller audio routing matrix does not resize standard instrument slots. They show an audio route matrix instead of a MIDI channel; each source instrument appears on one row with checkboxes for all of its `outleta` channel labels, and routes that would create feedback loops are disabled. Instruments that only feed effect routing can compile with `outleta` and without a direct `outs` node.
+The Perform page includes a collapsible mixer below the rack with instrument and return strips, a pinned Master, real audio faders, pan/balance knobs, mute/solo, pre/post sends, inserts and peak/RMS meters. Source routing, a stereo destination matrix and an expandable routing diagram share explicit connections. Rack/topology edits lock while instruments run; mixer controls stay live. Direct output bypasses Master and retains its own strip controls. See [Audio mixer and routing](documentation/performance/audio_mixer_and_routing.md).
+
+Mixer settings persist in performance version 11 and app-state version 2, including native JSON/ZIP and both performance CSD modes. Legacy Level values migrate to dB and no longer scale MIDI velocity. Offline exports retain 48 kHz, `ksmps=1` and float WAV output. Instrument Design also offers temporary isolated/current-performance auditioning: prepare first, then explicitly stop and audition; closing restores the original state and playhead with transport stopped.
 
 The `orchestron-performance-creator` CLI has parity with the rack's always-on routing workflow. `edit instruments list` discovers stable rack binding IDs and `inleta`/`outleta` labels; `edit routes add/remove/clear/list` builds arbitrary instrument-to-effect and effect-to-effect chains with backend validation and feedback-loop rejection. `edit add-standard-effects` remains an idempotent shortcut for the reverb, compressor, and speaker-output send/dry matrix. Use `edit create-runtime --start` for a new CLI-owned engine session and `edit rebuild-runtime` after rack or route changes.
 

@@ -6,6 +6,8 @@ import copy
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import json
+import math
+from uuid import uuid4
 import os
 from pathlib import Path
 import re
@@ -19,7 +21,7 @@ from urllib import error, parse, request
 DEFAULT_API_URL = os.environ.get("ORCHESTRON_API_URL", "http://localhost:8000/api")
 SESSION_DIR = Path(".orchestron")
 SESSION_FILE = SESSION_DIR / "edit-session.json"
-CURRENT_CONFIG_VERSION = 10
+CURRENT_CONFIG_VERSION = 11
 DEFAULT_PAD_COUNT = 8
 MAX_STEPS_PER_PAD = 128
 PAD_LOOP_PAUSE_BEATS = {1, 2, 4, 8, 16}
@@ -1466,6 +1468,8 @@ def empty_performance_config(*, tempo: int = 120) -> dict[str, Any]:
     timing = default_timing(tempo)
     return {
         "version": CURRENT_CONFIG_VERSION,
+        "audioGraph": {"routes": [], "masterId": None, "insertOwners": {}},
+        "mixer": {"strips": {}, "sends": {}},
         "instruments": [],
         "sequencer": {
             "timing": timing,
@@ -1665,8 +1669,14 @@ def normalize_performance_config(
     config: dict[str, Any],
     patches: list[dict[str, Any]],
 ) -> dict[str, Any]:
+    if config.get("version", 1) not in range(1, CURRENT_CONFIG_VERSION + 1):
+        raise OrchestronCliError("unsupported_version", "Unsupported performance version.")
     config["version"] = CURRENT_CONFIG_VERSION
+    graph = config.setdefault("audioGraph", {"routes": [], "masterId": None, "insertOwners": {}})
+    mixer = config.setdefault("mixer", {"strips": {}, "sends": {}})
     instruments = config_instruments(config)
+    if len(instruments) > 64 or len(graph["routes"]) > 1024:
+        raise OrchestronCliError("audio_graph_limit", "Maximum: 64 patch instances and 1,024 channel connections.")
     config["instruments"] = instruments
     patches_by_id = {str(patch.get("id")): patch for patch in patches if isinstance(patch.get("id"), str)}
     used_ids: set[str] = set()
@@ -1681,12 +1691,6 @@ def normalize_performance_config(
             field=f"config.instruments[{index}].midiChannel",
         )
         instrument["midiChannel"] = channel
-        instrument["level"] = clamp_int(
-            instrument.get("level", 10),
-            1,
-            10,
-            field=f"config.instruments[{index}].level",
-        )
         raw_id = instrument.get("id")
         assignment_id = raw_id.strip() if isinstance(raw_id, str) else ""
         if not assignment_id or assignment_id in used_ids:
@@ -1701,6 +1705,8 @@ def normalize_performance_config(
                 assignment_id = f"{seed}-{suffix}"
                 suffix += 1
         instrument["id"] = assignment_id
+        mixer["strips"].setdefault(assignment_id, {"gainDb": 20 * math.log10(clamp_int(instrument.get("level", 10), 1, 10, field="level") / 10), "balance": 0, "mute": False, "solo": False})
+        instrument.pop("level", None)
         used_ids.add(assignment_id)
         if patch is not None:
             instrument["patchName"] = patch.get("name", instrument.get("patchName"))
@@ -1712,10 +1718,6 @@ def normalize_performance_config(
     }
     for instrument in instruments:
         patch = patches_by_id.get(str(instrument.get("patchId", "")))
-        if not patch_is_always_on(patch or {}):
-            instrument["effectSourceIds"] = []
-            instrument["effectRoutes"] = []
-            continue
         routes = normalize_effect_route_rows(instrument.get("effectRoutes"))
         legacy_source_ids = normalize_effect_source_id_rows(instrument.get("effectSourceIds"))
         if not routes and legacy_source_ids:
@@ -1727,10 +1729,40 @@ def normalize_performance_config(
                 for channel in patch_audio_port_names(source_patch or {}, opcode="outleta"):
                     routes.append({"sourceId": source_id, "channel": channel})
         routes = normalize_effect_route_rows(routes)
-        instrument["effectRoutes"] = routes
-        instrument["effectSourceIds"] = source_ids_from_routes(routes)
+        for legacy in routes:
+            source = instruments_by_id.get(legacy["sourceId"], {})
+            outlets = patch_audio_port_names(patches_by_id.get(str(source.get("patchId", "")), {}), opcode="outleta")
+            inlets = patch_audio_port_names(patch or {}, opcode="inleta")
+            source_port = legacy["channel"]
+            target_port = legacy_audio_inlet(source_port, outlets, inlets)
+            if not any(r["sourceId"] == legacy["sourceId"] and r["sourcePort"] == source_port and r["targetId"] == instrument["id"] for r in graph["routes"]):
+                row = {"id": str(uuid4()), "sourceId": legacy["sourceId"], "sourcePort": source_port, "targetId": instrument["id"], "targetPort": target_port, "kind": "custom", "sourceStage": "strip", "targetStage": "input"}
+                graph["routes"].append(row)
+                mixer["sends"][row["id"]] = {"gainDb": 0, "tap": "post"}
+        instrument.pop("effectRoutes", None)
+        instrument.pop("effectSourceIds", None)
     ensure_sequencer(config)
     return config
+
+
+def legacy_audio_inlet(source: str, outlets: list[str], inlets: list[str]) -> str:
+    if source in inlets:
+        return source
+    n = source.lower()
+    lower = {p.lower(): p for p in inlets}
+    side = "left" if n == "l" or n.endswith("left") or (n.endswith("l") and n[:-1] + "r" in [p.lower() for p in outlets]) else "right" if n == "r" or n.endswith("right") or (n.endswith("r") and n[:-1] + "l" in [p.lower() for p in outlets]) else None
+    if side and (side in lower or side[0] in lower):
+        return lower.get(side, lower.get(side[0], ""))
+    if len(outlets) == len(inlets) and source in outlets:
+        return inlets[outlets.index(source)]
+    return inlets[0] if inlets else "$missing"
+
+
+def session_audio_request(config: dict[str, Any]) -> dict[str, Any]:
+    body = {"instruments": session_assignments_from_config(config)}
+    if "audioGraph" in config:
+        body.update(audio_graph=config["audioGraph"], mixer=config.get("mixer", {"strips": {}, "sends": {}}))
+    return body
 
 
 def instrument_by_binding_id(config: dict[str, Any], binding_id: str) -> dict[str, Any]:
@@ -1785,6 +1817,7 @@ def add_effect_route_to_config(
     source_id: str,
     channel: str,
     target_id: str,
+    target_port: str | None = None,
 ) -> dict[str, str]:
     source = instrument_by_binding_id(config, source_id)
     target = instrument_by_binding_id(config, target_id)
@@ -1794,12 +1827,6 @@ def add_effect_route_to_config(
         raise OrchestronCliError("unknown_patch", f"Source binding '{source_id}' references an unknown patch.")
     if target_patch is None:
         raise OrchestronCliError("unknown_patch", f"Target binding '{target_id}' references an unknown patch.")
-    if not patch_is_always_on(target_patch):
-        raise OrchestronCliError(
-            "effect_target_not_always_on",
-            f"Target binding '{target_id}' patch '{target_patch.get('name')}' is not always-on.",
-            retry=["Choose an always-on target from `orchestron_cli edit instruments list`."],
-        )
     if not patch_audio_port_names(target_patch, opcode="inleta"):
         raise OrchestronCliError(
             "effect_target_has_no_inlets",
@@ -1813,22 +1840,44 @@ def add_effect_route_to_config(
             f"Source binding '{source_id}' has no outleta channel named '{normalized_channel}'.",
             retry=[f"Use one of: {', '.join(source_outlets) or '(none)'}."],
         )
-    routes = normalize_effect_route_rows(target.get("effectRoutes"))
-    route = {"sourceId": source_id, "channel": normalized_channel}
-    if route in routes:
-        return route
-    if len(routes) >= 64:
-        raise OrchestronCliError("too_many_effect_routes", f"Target binding '{target_id}' already has 64 routes.")
-    if effect_route_would_create_loop(config_instruments(config), target_id=target_id, source_id=source_id):
-        raise OrchestronCliError(
-            "effect_route_loop",
-            "Effect routing would create an audio feedback loop.",
-            retry=["Remove an existing downstream route or choose a different target."],
-        )
-    routes.append(route)
-    target["effectRoutes"] = normalize_effect_route_rows(routes)
-    target["effectSourceIds"] = source_ids_from_routes(target["effectRoutes"])
-    return route
+    inlets = patch_audio_port_names(target_patch, opcode="inleta")
+    inlet = target_port or (normalized_channel if normalized_channel in inlets else None)
+    if inlet not in inlets:
+        raise OrchestronCliError("explicit_inlet_required", "Choose an exact destination with --inlet.", retry=[f"Inlets: {', '.join(inlets)}"])
+    if "audioGraph" not in config:
+        normalize_performance_config(config, list(patches_by_id.values()))
+    graph = config["audioGraph"]
+    for row in graph["routes"]:
+        if (row["sourceId"], row["sourcePort"], row["targetId"], row["targetPort"]) == (source_id, normalized_channel, target_id, inlet):
+            return row
+    if len(graph["routes"]) >= 1024:
+        raise OrchestronCliError("too_many_effect_routes", "Maximum: 1,024 channel connections.")
+    row = {"id": str(uuid4()), "sourceId": source_id, "sourcePort": normalized_channel, "targetId": target_id, "targetPort": inlet, "kind": "custom", "sourceStage": "strip", "targetStage": "input"}
+    edges = []
+    replaced = {r["targetId"] for r in graph["routes"] if r.get("targetStage") == "strip"}
+    for instrument in config_instruments(config):
+        if instrument["id"] not in replaced:
+            edges.append(("patch:" + instrument["id"], "strip:" + instrument["id"]))
+    for r in [*graph["routes"], row]:
+        edges.append((("patch:" if r.get("sourceStage") == "raw" else "strip:") + r["sourceId"], ("strip:" if r.get("targetStage") == "strip" else "patch:") + r["targetId"]))
+    adjacency = {}
+    for a, b in edges:
+        adjacency.setdefault(a, set()).add(b)
+    visiting, visited = set(), set()
+    def visit(node):
+        if node in visiting:
+            raise OrchestronCliError("effect_route_loop", "Effect routing would create an audio feedback loop.")
+        if node in visited:
+            return
+        visiting.add(node)
+        for dest in adjacency.get(node, set()):
+            visit(dest)
+        visiting.remove(node)
+        visited.add(node)
+    for node in adjacency:
+        visit(node)
+    graph["routes"].append(row)
+    return row
 
 
 def remove_effect_route_from_config(
@@ -1838,28 +1887,36 @@ def remove_effect_route_from_config(
     channel: str,
     target_id: str,
 ) -> bool:
+    if "audioGraph" in config:
+        graph = config["audioGraph"]
+        removed = [r for r in graph["routes"] if r["sourceId"] == source_id and r["sourcePort"] == channel.strip() and r["targetId"] == target_id]
+        graph["routes"] = [r for r in graph["routes"] if r not in removed]
+        for row in removed:
+            config.get("mixer", {}).get("sends", {}).pop(row["id"], None)
+        return bool(removed)
     target = instrument_by_binding_id(config, target_id)
     routes = normalize_effect_route_rows(target.get("effectRoutes"))
-    next_routes = [
-        route
-        for route in routes
-        if not (route["sourceId"] == source_id and route["channel"] == channel.strip())
-    ]
-    changed = len(next_routes) != len(routes)
-    target["effectRoutes"] = next_routes
-    target["effectSourceIds"] = source_ids_from_routes(next_routes)
-    return changed
+    target["effectRoutes"] = [r for r in routes if (r["sourceId"], r["channel"]) != (source_id, channel.strip())]
+    target["effectSourceIds"] = source_ids_from_routes(target["effectRoutes"])
+    return len(routes) != len(target["effectRoutes"])
 
 
 def clear_effect_routes_for_target(config: dict[str, Any], *, target_id: str) -> int:
+    if "audioGraph" in config:
+        rows = [r for r in config["audioGraph"]["routes"] if r["targetId"] == target_id]
+        for row in rows:
+            remove_effect_route_from_config(config, source_id=row["sourceId"], channel=row["sourcePort"], target_id=target_id)
+        return len(rows)
     target = instrument_by_binding_id(config, target_id)
-    routes = normalize_effect_route_rows(target.get("effectRoutes"))
+    count = len(target.get("effectRoutes", []))
     target["effectRoutes"] = []
     target["effectSourceIds"] = []
-    return len(routes)
+    return count
 
 
 def session_assignments_from_config(config: dict[str, Any]) -> list[dict[str, Any]]:
+    if "audioGraph" in config:
+        return [{"id": i.get("id"), "patch_id": i.get("patchId"), "midi_channel": int(i.get("midiChannel", 1))} for i in config_instruments(config)]
     assignments: list[dict[str, Any]] = []
     for instrument in config_instruments(config):
         routes = normalize_effect_route_rows(instrument.get("effectRoutes"))
@@ -2193,6 +2250,8 @@ def ensure_standard_effect_matrix(
     raw_instruments = config.setdefault("instruments", [])
     if not isinstance(raw_instruments, list):
         raise OrchestronCliError("invalid_instruments", "config.instruments must be a list.", path="config.instruments")
+    previous_routes = copy.deepcopy(config.get("audioGraph", {}).get("routes", []))
+    previous_sends = copy.deepcopy(config.get("mixer", {}).get("sends", {}))
     instruments = [instrument for instrument in raw_instruments if isinstance(instrument, dict)]
     config["instruments"] = instruments
 
@@ -2301,6 +2360,7 @@ def ensure_standard_effect_matrix(
             source_id=route["sourceId"],
             channel=route["channel"],
             target_id=STANDARD_REVERB_BINDING_ID,
+            target_port=legacy_audio_inlet(route["channel"], patch_audio_port_names(patch_details_by_id[str(instrument_by_binding_id(config, route["sourceId"])["patchId"])], opcode="outleta"), patch_audio_port_names(reverb_patch, opcode="inleta")),
         )
     for route in compressor_routes:
         add_effect_route_to_config(
@@ -2309,6 +2369,7 @@ def ensure_standard_effect_matrix(
             source_id=route["sourceId"],
             channel=route["channel"],
             target_id=STANDARD_COMPRESSOR_BINDING_ID,
+            target_port=legacy_audio_inlet(route["channel"], patch_audio_port_names(patch_details_by_id[str(instrument_by_binding_id(config, route["sourceId"])["patchId"])], opcode="outleta"), patch_audio_port_names(compressor_patch, opcode="inleta")),
         )
     for route in speaker_routes:
         add_effect_route_to_config(
@@ -2317,11 +2378,25 @@ def ensure_standard_effect_matrix(
             source_id=route["sourceId"],
             channel=route["channel"],
             target_id=STANDARD_SPEAKER_BINDING_ID,
+            target_port=legacy_audio_inlet(route["channel"], patch_audio_port_names(patch_details_by_id[str(instrument_by_binding_id(config, route["sourceId"])["patchId"])], opcode="outleta"), patch_audio_port_names(speaker_patch, opcode="inleta")),
         )
 
-    reverb_routes = normalize_effect_route_rows(reverb_binding.get("effectRoutes"))
-    compressor_routes = normalize_effect_route_rows(compressor_binding.get("effectRoutes"))
-    speaker_routes = normalize_effect_route_rows(speaker_binding.get("effectRoutes"))
+    route_key = lambda r: tuple(r.get(k) for k in ("sourceId", "sourcePort", "targetId", "targetPort", "kind", "sourceStage", "targetStage"))
+    previous_by_key = {route_key(r): r for r in previous_routes}
+    for route in config["audioGraph"]["routes"]:
+        old = previous_by_key.get(route_key(route))
+        if old:
+            config["mixer"]["sends"].pop(route["id"], None)
+            route["id"] = old["id"]
+            if old["id"] in previous_sends:
+                config["mixer"]["sends"][old["id"]] = previous_sends[old["id"]]
+    for binding in config_instruments(config):
+        for key in ("level", "effectRoutes", "effectSourceIds"):
+            binding.pop(key, None)
+
+    reverb_routes = [r for r in config["audioGraph"]["routes"] if r["targetId"] == reverb_binding["id"]]
+    compressor_routes = [r for r in config["audioGraph"]["routes"] if r["targetId"] == compressor_binding["id"]]
+    speaker_routes = [r for r in config["audioGraph"]["routes"] if r["targetId"] == speaker_binding["id"]]
 
     return {
         "sourceInstruments": len(source_bindings),
@@ -3719,14 +3794,17 @@ def canonical_runtime_assignments(assignments: Any) -> list[dict[str, Any]]:
 def runtime_assignments_match(config: dict[str, Any], session_info: dict[str, Any]) -> bool:
     return canonical_runtime_assignments(session_assignments_from_config(config)) == canonical_runtime_assignments(
         session_info.get("instruments")
-    )
+    ) and ("audioGraph" not in config or config["audioGraph"] == session_info.get("audio_graph"))
 
 
 def configure_runtime_if_present(
     client: ApiClient,
     session_id: str,
     config: dict[str, Any],
+    *, seed_mixer: bool = True,
 ) -> dict[str, Any] | None:
+    if seed_mixer and "audioGraph" in config:
+        client.put(f"/sessions/{parse.quote(session_id)}/mixer", config.get("mixer", {"strips": {}, "sends": {}}))
     try:
         runtime_config = build_runtime_config(copy.deepcopy(config))
     except OrchestronCliError as exc:
@@ -3740,10 +3818,10 @@ def create_compiled_runtime(
     client: ApiClient,
     config: dict[str, Any],
 ) -> dict[str, Any]:
-    created = client.post("/sessions", {"instruments": session_assignments_from_config(config)})
+    created = client.post("/sessions", session_audio_request(config))
     session_id = str(created["session_id"])
     try:
-        sequencer_status = configure_runtime_if_present(client, session_id, config)
+        sequencer_status = configure_runtime_if_present(client, session_id, config, seed_mixer=False)
         compiled = client.post(f"/sessions/{parse.quote(session_id)}/compile")
     except Exception:
         try:
@@ -3801,7 +3879,7 @@ def validate_edit_session(session: dict[str, Any], client: ApiClient) -> dict[st
             seen_channels.add(channel)
     validation = client.post(
         "/sessions/validate-instruments",
-        {"instruments": session_assignments_from_config(config)},
+        session_audio_request(config),
     )
     return {
         "valid": True,
@@ -4125,12 +4203,9 @@ def command_edit_instruments_list(args: argparse.Namespace, ctx: CliContext) -> 
     patches_by_id = {str(patch.get("id")): patch for patch in patches}
     outgoing_counts: dict[str, int] = {}
     incoming_counts: dict[str, int] = {}
-    for target in config_instruments(config):
-        target_id = str(target.get("id", ""))
-        routes = normalize_effect_route_rows(target.get("effectRoutes"))
-        incoming_counts[target_id] = len(routes)
-        for route in routes:
-            outgoing_counts[route["sourceId"]] = outgoing_counts.get(route["sourceId"], 0) + 1
+    for route in config["audioGraph"]["routes"]:
+        incoming_counts[route["targetId"]] = incoming_counts.get(route["targetId"], 0) + 1
+        outgoing_counts[route["sourceId"]] = outgoing_counts.get(route["sourceId"], 0) + 1
     rows: list[dict[str, Any]] = []
     for instrument in config_instruments(config):
         binding_id = str(instrument.get("id", ""))
@@ -4142,7 +4217,7 @@ def command_edit_instruments_list(args: argparse.Namespace, ctx: CliContext) -> 
                 "patchName": patch.get("name", instrument.get("patchName")),
                 "alwaysOn": patch_is_always_on(patch),
                 "midiChannel": instrument.get("midiChannel"),
-                "level": instrument.get("level", 10),
+                "gainDb": config["mixer"]["strips"].get(binding_id, {}).get("gainDb", 0),
                 "audioInlets": patch_audio_port_names(patch, opcode="inleta"),
                 "audioOutlets": patch_audio_port_names(patch, opcode="outleta"),
                 "incomingRoutes": incoming_counts.get(binding_id, 0),
@@ -4213,11 +4288,10 @@ def command_edit_add_instrument(args: argparse.Namespace, ctx: CliContext) -> No
             "patchId": patch_ref["id"],
             "patchName": patch_ref["name"],
             "midiChannel": channel,
-            "level": clamp_int(args.level, 1, 10, field="level"),
-            "effectSourceIds": [],
-            "effectRoutes": [],
+
         }
         instruments.append(binding)
+        config.setdefault("mixer", {"strips": {}, "sends": {}})["strips"][binding_id] = {"gainDb": 20 * math.log10(clamp_int(args.level, 1, 10, field="level") / 10), "balance": 0, "mute": False, "solo": False}
         return binding
 
     print_payload(update_session_config(ctx, mutate), ctx)
@@ -4247,29 +4321,11 @@ def command_edit_routes_list(args: argparse.Namespace, ctx: CliContext) -> None:
     client = ApiClient(ctx.api_url, timeout=ctx.timeout)
     patches = client.get("/patches")
     normalize_performance_config(config, patches)
-    validation = client.post(
+    client.post(
         "/sessions/validate-instruments",
-        {"instruments": session_assignments_from_config(config)},
+        session_audio_request(config),
     )
-    resolved_by_key = {
-        (route.get("source_id"), route.get("source_outlet"), route.get("target_id")): route.get("target_inlet")
-        for route in validation.get("resolved_routes", [])
-        if isinstance(route, dict)
-    }
-    rows: list[dict[str, Any]] = []
-    for target in config_instruments(config):
-        target_id = str(target.get("id", ""))
-        if args.target and args.target != target_id:
-            continue
-        for route in normalize_effect_route_rows(target.get("effectRoutes")):
-            rows.append(
-                {
-                    "sourceId": route["sourceId"],
-                    "sourceOutlet": route["channel"],
-                    "targetId": target_id,
-                    "targetInlet": resolved_by_key.get((route["sourceId"], route["channel"], target_id), ""),
-                }
-            )
+    rows = [{"sourceId": r["sourceId"], "sourceOutlet": r["sourcePort"], "targetId": r["targetId"], "targetInlet": r["targetPort"], "id": r["id"]} for r in config["audioGraph"]["routes"] if not args.target or args.target == r["targetId"]]
     print_table(
         rows,
         [
@@ -4295,10 +4351,11 @@ def command_edit_routes_add(args: argparse.Namespace, ctx: CliContext) -> None:
             source_id=args.source,
             channel=args.outlet,
             target_id=args.target,
+            target_port=getattr(args, "inlet", None),
         )
         validation = client.post(
             "/sessions/validate-instruments",
-            {"instruments": session_assignments_from_config(config)},
+            session_audio_request(config),
         )
         target_inlet = next(
             (
@@ -4833,7 +4890,7 @@ def build_parser() -> argparse.ArgumentParser:
     add_inst = edit_sub.add_parser("add-instrument", help="Add an instrument assignment to the staged performance.")
     add_inst.add_argument("--patch", required=True, help="Patch ID or exact name.")
     add_inst.add_argument("--channel", type=int, help="MIDI channel 1..16. Always-on patches use channel 0.")
-    add_inst.add_argument("--level", type=int, default=10, help="Instrument level 1..10.")
+    add_inst.add_argument("--level", type=int, default=10, help="Deprecated: converts Level 1..10 to audio gain dB; never scales MIDI velocity.")
     add_inst.add_argument("--binding-id", help="Stable rack binding ID used by effect routes. Generated when omitted.")
     add_inst.set_defaults(func=command_edit_add_instrument)
     routes = edit_sub.add_parser("routes", help="List, add, remove, and clear staged always-on audio routes.")
@@ -4844,6 +4901,7 @@ def build_parser() -> argparse.ArgumentParser:
     routes_add = routes_sub.add_parser("add", help="Route one source outleta channel to an always-on rack target.")
     routes_add.add_argument("--source", required=True, help="Source rack binding ID.")
     routes_add.add_argument("--outlet", required=True, help="Exact source outleta channel label.")
+    routes_add.add_argument("--inlet", help="Exact target inlet; required when outlet names do not match.")
     routes_add.add_argument("--target", required=True, help="Always-on target rack binding ID.")
     routes_add.set_defaults(func=command_edit_routes_add)
     routes_remove = routes_sub.add_parser("remove", help="Remove one source outlet route from an always-on target.")

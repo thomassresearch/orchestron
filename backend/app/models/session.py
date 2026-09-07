@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from backend.app.models.audio import AudioGraph, MixerState, AudioDiagnostic
+
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import StrEnum
@@ -93,6 +95,7 @@ class SessionEffectRoute(BaseModel):
 
 
 class SessionInstrumentAssignment(BaseModel):
+    level: float | None = Field(default=None, ge=1, le=10, exclude=True)
     id: str | None = Field(default=None, min_length=1, max_length=128)
     patch_id: str = Field(min_length=1)
     midi_channel: int = Field(default=1, ge=0, le=16)
@@ -100,9 +103,13 @@ class SessionInstrumentAssignment(BaseModel):
     effect_routes: list[SessionEffectRoute] = Field(default_factory=list, max_length=64)
 
 
+
+
 class SessionCreateRequest(BaseModel):
+    audio_graph: AudioGraph | None = None
+    mixer: MixerState = Field(default_factory=MixerState)
     patch_id: str | None = Field(default=None, min_length=1)
-    instruments: list[SessionInstrumentAssignment] = Field(default_factory=list, min_length=0, max_length=16)
+    instruments: list[SessionInstrumentAssignment] = Field(default_factory=list, min_length=0, max_length=64)
 
     @model_validator(mode="after")
     def validate_instrument_selection(self) -> "SessionCreateRequest":
@@ -112,7 +119,9 @@ class SessionCreateRequest(BaseModel):
 
 
 class SessionInstrumentValidationRequest(BaseModel):
-    instruments: list[SessionInstrumentAssignment] = Field(min_length=1, max_length=16)
+    audio_graph: AudioGraph | None = None
+    mixer: MixerState = Field(default_factory=MixerState)
+    instruments: list[SessionInstrumentAssignment] = Field(min_length=1, max_length=64)
 
 
 class SessionResolvedEffectRoute(BaseModel):
@@ -123,6 +132,8 @@ class SessionResolvedEffectRoute(BaseModel):
 
 
 class SessionInstrumentValidationResponse(BaseModel):
+    audio_graph: AudioGraph | None = None
+    diagnostics: list[AudioDiagnostic] = Field(default_factory=list)
     valid: bool = True
     instruments: list[SessionInstrumentAssignment]
     resolved_routes: list[SessionResolvedEffectRoute] = Field(default_factory=list)
@@ -136,6 +147,9 @@ class SessionCreateResponse(BaseModel):
 
 
 class SessionInfo(BaseModel):
+    audio_graph: AudioGraph | None = None
+    mixer: MixerState = Field(default_factory=MixerState)
+    mixer_revision: int = 0
     session_id: str
     patch_id: str
     instruments: list[SessionInstrumentAssignment] = Field(default_factory=list)
@@ -146,6 +160,7 @@ class SessionInfo(BaseModel):
 
 
 class CompileResponse(BaseModel):
+    manifest: dict[str, Any] = Field(default_factory=dict)
     session_id: str
     state: SessionState
     orc: str
@@ -623,6 +638,8 @@ class SessionEvent(BaseModel):
 
 @dataclass
 class CompileArtifact:
+    # Populated for version-11 performance compilation; standalone patches remain independent.
     orc: str
     csd: str
     diagnostics: list[str] = field(default_factory=list)
+    manifest: dict[str, Any] = field(default_factory=dict)

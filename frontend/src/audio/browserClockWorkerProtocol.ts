@@ -1,3 +1,5 @@
+import type { MixerState, MixerResponse } from "../types";
+import type { MeterValue } from "../lib/mixerRuntime";
 import type {
   BrowserClockLatencySettings,
   BrowserClockTransportEvent,
@@ -46,6 +48,7 @@ export type BrowserClockMainToWorkerMessage =
       stateBuffer: SharedArrayBuffer;
       latencySettings: BrowserClockLatencySettings;
     }
+  | { type: "mixer_request"; requestId: string; mixer: MixerState; revision?: number }
   | { type: "disconnect" }
   | { type: "latency_settings"; latencySettings: BrowserClockLatencySettings }
   | { type: "sequencer_request"; request: BrowserClockWorkerSequencerRequest }
@@ -66,6 +69,9 @@ export type BrowserClockWorkerDiagnostics = {
 };
 
 export type BrowserClockWorkerToMainMessage =
+  | { type: "mixer_ack"; requestId: string; result: MixerResponse }
+  | { type: "mixer_error"; requestId: string; detail: string }
+  | { type: "mixer_meters"; levels: Record<string, MeterValue> }
   | { type: "status"; status: "off" | "connecting" | "primed" | "error"; error?: string | null }
   | { type: "connected"; sessionId: string; sequencerStatus: SessionSequencerStatus }
   | { type: "sequencer_status"; requestId: string; sequencerStatus: SessionSequencerStatus }

@@ -63,6 +63,11 @@ class CsoundWorker:
         self._running = False
         self._lock = threading.Lock()
         self._render_lock = threading.Lock()
+        self._mixer_lock = threading.Lock()
+        self._mixer_pending: dict[str, float] = {}
+        self._mixer_meters: dict[str, dict[str, str]] = {}
+        self._mixer_meter_frames: list[dict] = []
+        self._mixer_next_meter_sample = 0
         self._runtime_sr = 0
         self._runtime_nchnls = 0
         self._runtime_ksmps = 0
@@ -328,6 +333,39 @@ class CsoundWorker:
         message = "; ".join(errors) if errors else "unknown startup error"
         raise RuntimeError(f"CSound browser-clock start failed for all rtmidi modules ({attempted}): {message}")
 
+    def configure_mixer(self, manifest: dict, controls: dict[str, float]) -> None:
+        with self._mixer_lock:
+            self._mixer_pending = dict(controls)
+            self._mixer_meters = manifest.get("meters", {})
+            self._mixer_meter_frames = []
+            self._mixer_next_meter_sample = 0
+
+    def queue_mixer_controls(self, controls: dict[str, float]) -> None:
+        with self._mixer_lock:
+            self._mixer_pending.update(controls)
+
+    def drain_mixer_meters(self) -> list[dict]:
+        with self._mixer_lock:
+            frames, self._mixer_meter_frames = self._mixer_meter_frames, []
+            return frames
+
+    def _apply_mixer_controls(self, csound) -> None:
+        with self._mixer_lock:
+            pending, self._mixer_pending = self._mixer_pending, {}
+        for name, value in pending.items():
+            csound.setControlChannel(name, value)
+
+    def _capture_mixer_meters(self, csound, sample: int, sample_rate: int) -> None:
+        if not self._mixer_meters or sample < self._mixer_next_meter_sample:
+            return
+        levels = {}
+        for identity, channels in self._mixer_meters.items():
+            levels[identity] = {key: max(0.0, float(csound.controlChannel(name)[0])) for key, name in channels.items()}
+        with self._mixer_lock:
+            self._mixer_meter_frames.append({"engineSample": sample, "levels": levels})
+            self._mixer_meter_frames = self._mixer_meter_frames[-32:]
+        self._mixer_next_meter_sample = sample + max(1, sample_rate // 15)
+
     def render_blocks(
         self,
         *,
@@ -378,6 +416,7 @@ class CsoundWorker:
                     block_end_sample=block_end_sample,
                 )
 
+                self._apply_mixer_controls(csound)
                 result = csound.performKsmps()
                 if result != 0:
                     with self._lock:
@@ -390,6 +429,7 @@ class CsoundWorker:
                 )
                 rendered_blocks.append(block)
                 source_frames_rendered += source_ksmps
+                self._capture_mixer_meters(csound, block_end_sample, source_sr)
                 # The next block (and MIDI received while this request is still
                 # rendering) must see the actual end of completed engine audio,
                 # not the cursor captured when the request began.

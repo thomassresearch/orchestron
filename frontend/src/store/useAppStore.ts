@@ -1,3 +1,5 @@
+import { createMixerActions, initialMixerState } from "./appStoreMixer";
+import { emptyAudioGraph, emptyMixer, migrateAudio, cleanBindings } from "../lib/audioRouting";
 import { create } from "zustand";
 
 import { api, isApiError } from "../api/client";
@@ -19,7 +21,6 @@ import type {
 } from "../types";
 import type { AppStore, EditablePatch, InstrumentTabState } from "./appStoreTypes";
 import {
-  ALWAYS_ON_REQUIRES_INLETA_MESSAGE,
   APP_STATE_PERSIST_DEBOUNCE_MS,
   APP_STATE_VERSION,
   AUDIO_RATE_MAX,
@@ -48,10 +49,7 @@ import {
   initialTab,
   isSequencerRuntimeOnlyUpdate,
   normalizeAppPage,
-  normalizeEffectRouteSelections,
-  normalizeEffectSourceIds,
   normalizeEngineConfig,
-  normalizeInstrumentLevel,
   normalizeMidiInputSelection,
   normalizePatch,
   normalizePersistedInstrumentTabs,
@@ -59,7 +57,6 @@ import {
   normalizeSequencerState,
   normalizeSessionInstrumentAssignments,
   parseSequencerConfigSnapshot,
-  patchGraphHasOpcode,
   performablePatches,
   randomPosition,
   sameAssignments,
@@ -93,6 +90,8 @@ export const useAppStore = create<AppStore>((set, get) => {
   };
 
   return {
+    ...initialMixerState(),
+    ...createMixerActions(set, get),
     loading: false,
     error: null,
     hasLoadedBootstrap: false,
@@ -247,11 +246,14 @@ export const useAppStore = create<AppStore>((set, get) => {
           let browserClockLatencySettings = resolveDefaultBrowserClockLatencySettings();
 
           const preferredMidi = normalizeMidiInputSelection(get().activeMidiInput, midiInputs);
+          let audioGraph = emptyAudioGraph();
+          let mixer = emptyMixer();
+          let migrationNotice = false;
           let activeMidiInput = preferredMidi ?? midiInputs[0]?.id ?? null;
 
           if (persistedState && typeof persistedState === "object" && !Array.isArray(persistedState)) {
             const payload = persistedState as Partial<PersistedAppState>;
-            if (payload.version === APP_STATE_VERSION) {
+            if (payload.version === APP_STATE_VERSION || payload.version === 1) {
               const restoredTabs = normalizePersistedInstrumentTabs(payload.instrumentTabs);
               if (restoredTabs.length > 0) {
                 instrumentTabs = restoredTabs;
@@ -280,6 +282,8 @@ export const useAppStore = create<AppStore>((set, get) => {
                 availableInstrumentPatches,
                 fallbackPatchId
               );
+
+              ({ audioGraph, mixer, migrationNotice } = migrateAudio(sequencerInstruments, patches, payload.version === 2 ? payload.audioGraph : undefined, payload.mixer));
 
               currentPerformanceId =
                 typeof payload.currentPerformanceId === "string" &&
@@ -330,19 +334,14 @@ export const useAppStore = create<AppStore>((set, get) => {
             })),
             activeInstrumentTabId,
             sequencer: sequencerSnapshotForPersistence(sequencer),
-            sequencerInstruments: sequencerInstruments.map((binding) => ({
-              id: binding.id,
-              patchId: binding.patchId,
-              midiChannel: clampInt(binding.midiChannel, 0, 16),
-              level: normalizeInstrumentLevel(binding.level),
-              effectSourceIds: normalizeEffectSourceIds(binding.effectSourceIds),
-              effectRoutes: normalizeEffectRouteSelections(binding.effectRoutes)
-            })),
+            sequencerInstruments: cleanBindings(sequencerInstruments),
+            audioGraph, mixer,
             currentPerformanceId,
             performanceName,
             performanceDescription,
             activeMidiInput
           };
+          if (migrationNotice) await api.saveAppState(baselineSnapshot);
           lastPersistedSignature = JSON.stringify(baselineSnapshot);
           lastPersistWatchState = {
             activePage: resolvedActivePage,
@@ -352,6 +351,7 @@ export const useAppStore = create<AppStore>((set, get) => {
             activeInstrumentTabId,
             sequencer,
             sequencerInstruments,
+            audioGraph, mixer,
             currentPerformanceId,
             performanceName,
             performanceDescription,
@@ -373,6 +373,7 @@ export const useAppStore = create<AppStore>((set, get) => {
             sequencer,
             sequencerRuntime,
             sequencerInstruments,
+            audioGraph, mixer, migrationNotice,
             currentPerformanceId,
             performanceName,
             performanceDescription,
@@ -434,6 +435,7 @@ export const useAppStore = create<AppStore>((set, get) => {
     },
 
     loadPerformance: async (performanceId) => {
+      if (get().activeSessionState === "running") { set({ error: "Stop to edit routing" }); return; }
       set({ loading: true, error: null });
       try {
         const performance = await api.getPerformance(performanceId);
@@ -449,6 +451,7 @@ export const useAppStore = create<AppStore>((set, get) => {
           sequencer: parsed.sequencer,
           sequencerRuntime: sequencerRuntimeStateFromSequencer(parsed.sequencer),
           sequencerInstruments: parsed.instruments,
+          audioGraph: parsed.audioGraph, mixer: parsed.mixer, migrationNotice: parsed.migrationNotice,
           currentPerformanceId: performance.id,
           performanceName: performance.name,
           performanceDescription: performance.description,
@@ -515,11 +518,13 @@ export const useAppStore = create<AppStore>((set, get) => {
     },
 
     newPerformanceWorkspace: async () => {
+      if (get().activeSessionState === "running") { set({ error: "Stop to edit routing" }); return; }
       const nextSequencer = emptyPerformanceSequencerState();
       set({
         sequencer: nextSequencer,
         sequencerRuntime: sequencerRuntimeStateFromSequencer(nextSequencer),
         sequencerInstruments: [],
+        ...initialMixerState(),
         currentPerformanceId: null,
         performanceName: "new performance",
         performanceDescription: "new performance",
@@ -587,10 +592,7 @@ export const useAppStore = create<AppStore>((set, get) => {
         graph: withNormalizedEngineConfig(get().currentPatch.graph)
       };
 
-      if (current.always_on && !patchGraphHasOpcode(current.graph, "inleta")) {
-        commitCurrentPatch(current, { loading: false, error: ALWAYS_ON_REQUIRES_INLETA_MESSAGE });
-        return;
-      }
+
 
       commitCurrentPatch(current, { loading: true, error: null });
 
@@ -626,6 +628,7 @@ export const useAppStore = create<AppStore>((set, get) => {
           loading: false,
           error: null
         });
+        if (!hasKnownBindings && normalizedPatch.graph.audio_interface?.guided && normalizedPatch.graph.audio_interface.role === "instrument") await get().ensureMaster();
       } catch (error) {
         set({
           loading: false,
@@ -644,7 +647,7 @@ export const useAppStore = create<AppStore>((set, get) => {
 
       set({ loading: true, error: null });
       try {
-        const snapshot = buildSequencerConfigSnapshot(state.sequencer, state.sequencerInstruments);
+        const snapshot = buildSequencerConfigSnapshot(state.sequencer, state.sequencerInstruments, state.audioGraph, state.mixer);
         const selectedPatchIds = [
           ...new Set(snapshot.instruments.map((instrument) => instrument.patchId.trim()).filter((patchId) => patchId.length > 0))
         ];
@@ -769,11 +772,14 @@ export const useAppStore = create<AppStore>((set, get) => {
 
     ensureSession: async () => {
       const requestedAssignments = normalizeSessionInstrumentAssignments(get().sequencerInstruments);
+      const audioSignature = JSON.stringify({ graph: get().audioGraph, patches: get().patches.map((p) => [p.id, p.updated_at]) });
+      const sameAudio = get().activeSessionAudioSignature === audioSignature;
       let sessionId = get().activeSessionId;
 
-      if (sessionId && sameAssignments(requestedAssignments, get().activeSessionInstruments)) {
+      if (sessionId && sameAudio && sameAssignments(requestedAssignments, get().activeSessionInstruments)) {
         try {
           await api.getSession(sessionId);
+          await get().flushMixer();
           return sessionId;
         } catch (error) {
           if (!isApiError(error) || error.status !== 404) {
@@ -791,7 +797,7 @@ export const useAppStore = create<AppStore>((set, get) => {
         }
       }
 
-      if (sessionId && !sameAssignments(requestedAssignments, get().activeSessionInstruments)) {
+      if (sessionId && (!sameAudio || !sameAssignments(requestedAssignments, get().activeSessionInstruments))) {
         try {
           await api.stopSession(sessionId);
         } catch {
@@ -817,7 +823,7 @@ export const useAppStore = create<AppStore>((set, get) => {
         return sessionId;
       }
 
-      const session = await api.createSession(requestedAssignments);
+      const session = await api.createSession(requestedAssignments, get().audioGraph, get().mixer);
       sessionId = session.session_id;
 
       const midiInput = get().activeMidiInput;
@@ -833,6 +839,7 @@ export const useAppStore = create<AppStore>((set, get) => {
 
       set({
         activeSessionId: sessionId,
+        activeSessionAudioSignature: audioSignature,
         activeSessionState: session.state,
         activeMidiInput: boundMidiInput,
         activeSessionInstruments: session.instruments.length > 0 ? session.instruments : requestedAssignments

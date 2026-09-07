@@ -53,9 +53,19 @@ class CompilerService:
         *,
         allow_packaged_asset_paths: bool = False,
         performance_input_mode: str = "midi",
+        audio_graph=None,
+        mixer=None,
     ) -> CompileArtifact:
         if not targets:
             raise CompilationError(["At least one patch must be provided for compilation."])
+
+        if audio_graph is not None:
+            from backend.app.models.audio import MixerState
+            from backend.app.services.compiler_mixer import compile_mixer_bundle
+            return compile_mixer_bundle(self, targets, audio_graph, mixer or MixerState(),
+                midi_input=midi_input, rtmidi_module=rtmidi_module,
+                allow_packaged_asset_paths=allow_packaged_asset_paths,
+                performance_input_mode=performance_input_mode)
 
         validate_target_channels(targets)
         engine = resolve_shared_engine(targets)

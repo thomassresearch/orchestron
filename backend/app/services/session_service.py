@@ -13,6 +13,8 @@ from fastapi import HTTPException
 from backend.app.core.config import Settings
 from backend.app.engine.csound_worker import CsoundWorker
 from backend.app.engine.session_runtime import RuntimeSession
+from backend.app.models.audio import MixerState, MixerUpdate, MixerStrip, MixerSend
+from backend.app.services.compiler_mixer import ResolvedMixerGraph, mixer_control_values, legacy_audio_graph, normalize_audio_inputs
 from backend.app.models.session import (
     BrowserClockClaimControllerRequest,
     BrowserClockManualMidiRequest,
@@ -111,6 +113,7 @@ class SessionService:
         request: SessionCreateRequest,
         *,
         client_key: str = "unknown",
+        preview_patches: dict | None = None,
     ) -> SessionCreateResponse:
         self._remember_running_loop()
         client_key = self._admission.normalize_client_key(client_key)
@@ -119,8 +122,26 @@ class SessionService:
         instruments = self._instrument_resolver.resolve_request(request)
 
         try:
-            instruments = self._instrument_resolver.normalize(instruments)
-            self._instrument_resolver.resolve_audio_routes(instruments)
+            resolver = self._resolver_for_patches(preview_patches or {})
+            levels = [i.level for i in instruments]
+            instruments = resolver.normalize(instruments)
+            try:
+                graph, mixer = normalize_audio_inputs([resolver.compile_target(i) for i in instruments], request.audio_graph, request.mixer, levels)
+                request = request.model_copy(update={"audio_graph": graph, "mixer": mixer})
+                if graph is not None:
+                    instruments = [i.model_copy(update={"effect_routes": [], "effect_source_ids": []}) for i in instruments]
+            except CompilationError as exc:
+                raise HTTPException(status_code=422, detail={"diagnostics": exc.diagnostics}) from exc
+            if request.audio_graph is not None:
+                if any(i.effect_routes or i.effect_source_ids for i in instruments):
+                    raise HTTPException(status_code=422, detail="Do not combine legacy and explicit audio routing.")
+                try:
+                    resolved = ResolvedMixerGraph([resolver.compile_target(i) for i in instruments], request.audio_graph)
+                    self._validate_mixer_keys(resolved.manifest(), request.mixer)
+                except CompilationError as exc:
+                    raise HTTPException(status_code=422, detail={"diagnostics": exc.diagnostics}) from exc
+            else:
+                resolver.resolve_audio_routes(instruments)
 
             midi_inputs = self._midi_service.list_inputs()
             default_midi = self._resolve_default_midi_input_id(midi_inputs)
@@ -128,6 +149,9 @@ class SessionService:
             runtime = RuntimeSession(
                 session_id=str(uuid4()),
                 instruments=instruments,
+                audio_graph=request.audio_graph,
+                mixer=request.mixer,
+                preview_patches=preview_patches or {},
                 midi_input=default_midi,
                 worker=CsoundWorker(
                     gen_audio_assets_dir=str(self._settings.gen_audio_assets_dir),
@@ -165,8 +189,28 @@ class SessionService:
     ) -> SessionInstrumentValidationResponse:
         self._remember_running_loop()
         instruments = self._instrument_resolver.normalize(list(request.instruments))
+        try:
+            graph, mixer = normalize_audio_inputs([self._instrument_resolver.compile_target(i) for i in instruments], request.audio_graph, request.mixer, [i.level for i in request.instruments])
+            request = request.model_copy(update={"audio_graph": graph, "mixer": mixer})
+            if graph is not None:
+                instruments = [i.model_copy(update={"effect_routes": [], "effect_source_ids": []}) for i in instruments]
+        except CompilationError as exc:
+            raise HTTPException(status_code=422, detail={"diagnostics": exc.diagnostics}) from exc
+        if request.audio_graph is not None:
+            if any(i.effect_routes or i.effect_source_ids for i in instruments):
+                raise HTTPException(status_code=422, detail="Do not combine legacy and explicit audio routing.")
+            try:
+                resolved = ResolvedMixerGraph([self._instrument_resolver.compile_target(i) for i in instruments], request.audio_graph)
+                self._validate_mixer_keys(resolved.manifest(), request.mixer)
+            except CompilationError as exc:
+                raise HTTPException(status_code=422, detail={"diagnostics": exc.diagnostics}) from exc
+            return SessionInstrumentValidationResponse(instruments=instruments,
+                audio_graph=request.audio_graph, diagnostics=resolved.diagnostics,
+                resolved_routes=[SessionResolvedEffectRoute(source_id=r.source_id, source_outlet=r.source_port,
+                    target_id=r.target_id, target_inlet=r.target_port) for r in resolved.routes])
         resolved_routes = self._instrument_resolver.resolve_audio_routes(instruments)
         return SessionInstrumentValidationResponse(
+            audio_graph=legacy_audio_graph([self._instrument_resolver.compile_target(i) for i in instruments]),
             instruments=instruments,
             resolved_routes=[
                 SessionResolvedEffectRoute(
@@ -222,11 +266,52 @@ class SessionService:
         self._remember_running_loop()
         await self._drop_frontend_connection(session_id, connection_id, immediate_stop=False, reason="disconnect")
 
+    def _resolver_for_patches(self, patches: dict):
+        if not patches:
+            return self._instrument_resolver
+        from backend.app.services.session_instrument_resolver import SessionInstrumentResolver
+        parent = self._instrument_resolver._patch_service
+        class PreviewLookup:
+            def get_patch_document(self, patch_id):
+                return patches[patch_id] if patch_id in patches else parent.get_patch_document(patch_id)
+        return SessionInstrumentResolver(PreviewLookup())
+
+    @staticmethod
+    def _validate_mixer_keys(manifest, mixer):
+        if set(mixer.strips) - set(manifest["instanceIds"]) or set(mixer.sends) - set(manifest["routeIds"]):
+            raise HTTPException(status_code=422, detail="Mixer controls reference an unknown instance or route.")
+
+    async def get_mixer(self, session_id: str) -> dict:
+        runtime = await self._get_session(session_id)
+        return {"mixer": runtime.mixer.model_dump(by_alias=True), "revision": runtime.mixer_revision}
+
+    async def update_mixer(self, session_id: str, update: MixerUpdate) -> dict:
+        runtime = await self._get_session(session_id)
+        if runtime.audio_graph is None:
+            raise HTTPException(status_code=409, detail="This session has no performance mixer.")
+        manifest = (runtime.compile_artifact.manifest if runtime.compile_artifact else
+            ResolvedMixerGraph([self._resolver_for_patches(runtime.preview_patches).compile_target(i)
+                               for i in runtime.instruments], runtime.audio_graph).manifest())
+        async with self._lock:
+            if update.revision is not None and update.revision != runtime.mixer_revision:
+                raise HTTPException(status_code=409, detail="Mixer revision is stale.")
+            strips, sends = dict(runtime.mixer.strips), dict(runtime.mixer.sends)
+            for identity, changes in update.strips.items():
+                strips[identity] = MixerStrip.model_validate({**strips.get(identity, MixerStrip()).model_dump(), **changes.model_dump(exclude_unset=True)})
+            for identity, changes in update.sends.items():
+                sends[identity] = MixerSend.model_validate({**sends.get(identity, MixerSend() if any(r["id"] == identity and r["kind"] == "send" for r in manifest["routes"]) else MixerSend(gainDb=0)).model_dump(), **changes.model_dump(exclude_unset=True)})
+            state = MixerState(strips=strips, sends=sends)
+            self._validate_mixer_keys(manifest, state)
+            runtime.mixer = state
+            runtime.mixer_revision += 1
+            runtime.worker.queue_mixer_controls(mixer_control_values(manifest, state))
+        return await self.get_mixer(session_id)
+
     async def compile_session(self, session_id: str) -> CompileResponse:
         self._remember_running_loop()
         runtime = await self._get_session(session_id)
         targets = [
-            self._instrument_resolver.compile_target(assignment)
+            self._resolver_for_patches(runtime.preview_patches).compile_target(assignment)
             for assignment in runtime.instruments
         ]
 
@@ -237,6 +322,8 @@ class SessionService:
                 targets=targets,
                 midi_input=midi_device,
                 rtmidi_module=self._settings.default_rtmidi_module,
+                audio_graph=runtime.audio_graph,
+                mixer=runtime.mixer,
             )
         except CompilationError as error:
             runtime.state = SessionState.ERROR
@@ -254,13 +341,14 @@ class SessionService:
             orc=artifact.orc,
             csd=artifact.csd,
             diagnostics=artifact.diagnostics,
+            manifest=artifact.manifest,
         )
 
     async def start_session(self, session_id: str) -> SessionActionResponse:
         self._remember_running_loop()
         runtime = await self._get_session(session_id)
 
-        if not runtime.compile_artifact:
+        if not runtime.compile_artifact or (runtime.audio_graph is not None and runtime.state != SessionState.RUNNING):
             await self.compile_session(session_id)
 
         assert runtime.compile_artifact is not None
@@ -277,6 +365,9 @@ class SessionService:
             raise HTTPException(status_code=500, detail=f"Failed to start session: {exc}") from exc
 
         runtime.state = SessionState.RUNNING
+        if runtime.compile_artifact.manifest:
+            runtime.worker.configure_mixer(runtime.compile_artifact.manifest,
+                mixer_control_values(runtime.compile_artifact.manifest, runtime.mixer))
         runtime.started_at = datetime.now(timezone.utc)
 
         await self._publish(
@@ -663,6 +754,7 @@ class SessionService:
                 "channels": render.channels,
                 "timeline_segments": timeline_segments,
                 "transport_events": serialized_transport_events,
+                "mixer_meters": runtime.worker.drain_mixer_meters(),
                 "telemetry": self._browser_clock_render_telemetry(
                     lease=lease,
                     request=request,
@@ -1177,6 +1269,9 @@ class SessionService:
             patch_id=runtime.patch_id,
             instruments=runtime.instruments,
             state=runtime.state,
+            audio_graph=runtime.audio_graph,
+            mixer=runtime.mixer,
+            mixer_revision=runtime.mixer_revision,
             midi_input=runtime.midi_input,
             created_at=runtime.created_at,
             started_at=runtime.started_at,

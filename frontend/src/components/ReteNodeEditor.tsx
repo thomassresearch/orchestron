@@ -33,7 +33,7 @@ export interface EditorSelection {
   connections: Connection[];
 }
 
-interface ReteNodeEditorProps {
+export interface ReteNodeEditorProps {
   guiLanguage: GuiLanguage;
   graph: PatchGraph;
   graphLabel?: string;

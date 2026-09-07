@@ -1,3 +1,4 @@
+import { audioRoutingHelp } from "./helpDocumentationAudio";
 import type { HelpDocumentAppendixSet, HelpDocumentSet, SequencerHelpDocId } from "./helpDocumentationTypes";
 
 export const sequencerHelpDocuments: HelpDocumentSet<SequencerHelpDocId> = {
@@ -11,7 +12,6 @@ Manage performance-level instrument assignments.
 - Set performance name and description.
 - Load and save performance presets.
 - Assign saved patches to MIDI channels.
-- Always-on effect slots are grouped on their own dark-blue rack row and show audio routing instead of a MIDI channel.
 - Start and stop instrument engine transport.
 - Import/export sequencer configuration JSON.`
     },
@@ -24,7 +24,6 @@ Verwaltet Instrument-Zuordnungen auf Performance-Ebene.
 - Performance-Name und Beschreibung setzen.
 - Performance-Presets laden und speichern.
 - Gespeicherte Patches MIDI-Kanälen zuweisen.
-- Always-on-Effekt-Slots stehen in einer eigenen dunkelblauen Rack-Zeile und zeigen Audio-Routing statt MIDI-Kanal.
 - Instrument-Engine starten/stoppen.
 - Sequencer-Konfiguration als JSON importieren/exportieren.`
     },
@@ -37,7 +36,6 @@ Gestion des affectations d'instruments au niveau performance.
 - Définir nom et description de performance.
 - Charger et enregistrer des presets de performance.
 - Affecter des patches sauvegardés à des canaux MIDI.
-- Les slots d'effet toujours actifs sont regroupés sur leur propre ligne bleu très foncé et affichent le routage audio au lieu d'un canal MIDI.
 - Démarrer/arrêter le moteur instrument.
 - Import/export JSON de configuration séquenceur.`
     },
@@ -50,7 +48,6 @@ Gestiona asignaciones de instrumentos a nivel de performance.
 - Define nombre y descripción de performance.
 - Carga y guarda presets de performance.
 - Asigna patches guardados a canales MIDI.
-- Los slots de efecto siempre activos se agrupan en su propia fila azul muy oscura y muestran ruteo de audio en lugar de canal MIDI.
 - Inicia y detiene el motor de instrumentos.
 - Importa/exporta JSON de configuración del secuenciador.`
     }
@@ -570,8 +567,6 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
     english: `### Rack Behavior
 
 - Saving or loading a performance restores the full Perform-page state: rack assignments, sequencers, controller lanes, piano rolls, and arranger data.
-- Each rack slot routes one saved patch to one MIDI channel. Reusing the same channel on multiple slots layers instruments on the same notes and CC messages.
-- \`Level\` remains editable while instruments are running so you can rebalance the live mix without rebuilding the rack.
 - Patch/channel add/remove controls lock while the engine is running because changing the rack would invalidate the active runtime session.
 
 ### Transport And Session State
@@ -583,8 +578,6 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
     german: `### Rack-Verhalten
 
 - Das Speichern oder Laden einer Performance stellt den kompletten Zustand der Perform-Seite wieder her: Rack-Zuordnungen, Sequencer, Controller-Spuren, Piano Rolls und Arranger-Daten.
-- Jeder Rack-Slot routet einen gespeicherten Patch auf genau einen MIDI-Kanal. Derselbe Kanal auf mehreren Slots layert Instrumente auf denselben Noten- und CC-Daten.
-- \`Level\` bleibt waehrend laufender Instrumente editierbar, damit der Live-Mix ohne Neubau des Racks angepasst werden kann.
 - Patch-/Kanal-, Add- und Remove-Steuerungen sperren waehrend die Engine laeuft, weil Rack-Aenderungen die aktive Runtime-Session ungueltig machen wuerden.
 
 ### Transport und Session-Status
@@ -596,8 +589,6 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
     french: `### Comportement du rack
 
 - Enregistrer ou charger une performance restaure tout l'etat de la page Perform : affectations du rack, sequenceurs, lanes de controle, piano rolls et donnees d'arrangeur.
-- Chaque slot du rack route un patch sauvegarde vers un seul canal MIDI. Reutiliser le meme canal sur plusieurs slots superpose les instruments sur les memes notes et messages CC.
-- \`Level\` reste editable pendant que les instruments jouent afin de reequilibrer le mix live sans reconstruire le rack.
 - Les controles d'ajout/suppression et de patch/canal se verrouillent pendant l'execution, car modifier le rack invaliderait la session runtime active.
 
 ### Transport et etat de session
@@ -609,8 +600,6 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
     spanish: `### Comportamiento del rack
 
 - Guardar o cargar una performance restaura todo el estado de la pagina Perform: asignaciones del rack, secuenciadores, pistas de control, piano rolls y datos del arreglador.
-- Cada slot del rack enruta un patch guardado a un solo canal MIDI. Reutilizar el mismo canal en varios slots superpone instrumentos sobre las mismas notas y mensajes CC.
-- \`Level\` sigue editable mientras los instrumentos estan en marcha para reequilibrar la mezcla en vivo sin reconstruir el rack.
 - Los controles de patch/canal y de agregar/eliminar se bloquean mientras el motor esta ejecutandose porque un cambio del rack invalidaria la sesion runtime activa.
 
 ### Transporte y estado de sesion
@@ -1001,3 +990,8 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 - Ambos exports CSD incluyen los valores de las pistas activadas al empezar el render para que los patches \`midictrl\` arranquen con el mismo estado CC manual.`
   },
 };
+
+for (const language of ["english", "german", "french", "spanish"] as const) {
+  const appendix = sequencerHelpAppendices.sequencer_instrument_rack;
+  if (appendix) appendix[language] = (appendix[language] ?? "") + "\n\n" + audioRoutingHelp[language];
+}

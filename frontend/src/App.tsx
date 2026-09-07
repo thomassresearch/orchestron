@@ -1,3 +1,7 @@
+import { AuditionPanel } from "./components/AuditionPanel";
+import { AudioGraphEditor } from "./components/AudioGraphEditor";
+import { audioTemplate, type BuiltinTemplate } from "./lib/audioTemplates";
+import { audioCopy } from "./lib/audioCopy";
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { api } from "./api/client";
@@ -6,7 +10,7 @@ import { HelpIconButton } from "./components/HelpIconButton";
 import { ImportDialogs } from "./components/ImportDialogs";
 import { OpcodeCatalog } from "./components/OpcodeCatalog";
 import { PatchToolbar } from "./components/PatchToolbar";
-import { ReteNodeEditor, type EditorSelection } from "./components/ReteNodeEditor";
+import { type EditorSelection } from "./components/ReteNodeEditor";
 import { RuntimePanel } from "./components/RuntimePanel";
 import {
   buildPerformanceExportPayload,
@@ -47,7 +51,7 @@ import {
 import { drummerRowRuntimeTrackId } from "./lib/sequencerRuntime";
 import { useImportDialogs } from "./hooks/useImportDialogs";
 import { useSequencerRuntimeController } from "./hooks/useSequencerRuntimeController";
-import { ALWAYS_ON_REQUIRES_INLETA_MESSAGE, useAppStore } from "./store/useAppStore";
+import { useAppStore } from "./store/useAppStore";
 import orchestronIcon from "./assets/orchestron-icon.png";
 import {
   MAX_BACKEND_SEQUENCER_NOTE_TRACKS,
@@ -62,15 +66,13 @@ import {
   connectionKey,
   enabledForSequencerConfigExport,
   hasEnabledPerformanceSequencer,
-  instrumentLevelByChannel,
   normalizeMidiChannel,
+  normalizeMidiVelocity,
   patchCompileSignatureFor,
-  patchGraphHasOpcode,
   pianoRollNoteKey,
   sanitizeCsdFileBaseName,
   sanitizeInstrumentDefinitionFileBaseName,
   sanitizePerformanceFileBaseName,
-  scaleVelocityForChannel,
   trackShouldRunContinuously,
   transportStepCountFromPerformanceSequencers,
 } from "./appOrchestration";
@@ -342,10 +344,6 @@ export default function App() {
     [activeMidiInput, midiInputs]
   );
   const instrumentsRunning = activeSessionState === "running";
-  const instrumentLevelsByChannel = useMemo(
-    () => instrumentLevelByChannel(sequencerInstruments),
-    [sequencerInstruments]
-  );
   const buildBackendSequencerConfig = useCallback(
     (
       state?: SequencerState,
@@ -376,7 +374,7 @@ export default function App() {
       const resolvedPlaybackLoop = exportMode ? false : playbackLoop;
       const useRuntimeQueues = !exportMode;
       const melodicTracks = resolvedState.tracks.map((track) => {
-        const scaledTrackVelocity = scaleVelocityForChannel(127, track.midiChannel, instrumentLevelsByChannel);
+        const trackVelocity = 127;
         const transportSequence = compileArrangerTransportSequence(track.padLoopPattern, track.activePad);
         const enabled = enabledForSequencerConfigExport(track, exportMode);
         return {
@@ -394,7 +392,7 @@ export default function App() {
           scale_type: track.scaleType,
           mode: track.mode,
           length_beats: track.lengthBeats,
-          velocity: scaledTrackVelocity,
+          velocity: trackVelocity,
           gate_ratio: 0.8,
           sync_to_track_id: track.syncToTrackId,
           active_pad: track.activePad,
@@ -415,14 +413,14 @@ export default function App() {
               return {
                 note: notes.length === 0 ? null : notes.length === 1 ? notes[0] : notes,
                 hold: step.hold,
-                velocity: scaleVelocityForChannel(step.velocity, track.midiChannel, instrumentLevelsByChannel)
+                velocity: normalizeMidiVelocity(step.velocity)
               };
             })
           }))
         };
       });
       const drummerRowTracks = resolvedState.drummerTracks.flatMap((drummerTrack) =>
-        buildDrummerRowTrackConfigs(drummerTrack, instrumentLevelsByChannel, useRuntimeQueues, exportMode)
+        buildDrummerRowTrackConfigs(drummerTrack, useRuntimeQueues, exportMode)
       );
       const controllerTracks = resolvedState.controllerSequencers.map((controllerSequencer) => {
         const transportSequence = compileArrangerTransportSequence(
@@ -522,7 +520,7 @@ export default function App() {
         arpeggiators: buildBackendArpeggiatorConfigs(resolvedState)
       };
     },
-    [appCopy.errors, instrumentLevelsByChannel]
+    [appCopy.errors]
   );
   const buildBackendArpeggiatorConfig = useCallback((state?: SequencerState): SessionArpeggiatorConfigRequest => {
     const resolvedState = state ?? useAppStore.getState().sequencer;
@@ -611,10 +609,7 @@ export default function App() {
 
   const onSavePatchWithCompileValidation = useCallback(() => {
     void (async () => {
-      if (currentPatch.always_on && !patchGraphHasOpcode(currentPatch.graph, "inleta")) {
-        useAppStore.setState({ loading: false, error: ALWAYS_ON_REQUIRES_INLETA_MESSAGE });
-        return;
-      }
+
 
       if (currentPatch.is_template) {
         await saveCurrentPatch();
@@ -796,7 +791,7 @@ export default function App() {
     () => patches.filter((patch) => !openInstrumentPatchIds.has(patch.id)),
     [openInstrumentPatchIds, patches]
   );
-  const templatePatches = useMemo(() => patches.filter((patch) => patch.is_template === true), [patches]);
+  const templatePatches = useMemo(() => [...(["instrument", "effect", "output", "empty"] as const).map((kind) => ({ ...audioTemplate(kind), name: audioCopy(guiLanguage)(kind) })), ...patches.filter((patch) => patch.is_template === true)], [patches, guiLanguage]);
   const openNewFromTemplateDialog = useCallback(() => {
     if (templatePatches.length === 0) {
       setInstrumentPatchIoError("no templates available yet");
@@ -820,7 +815,7 @@ export default function App() {
         return;
       }
 
-      const template = await api.getPatch(templateId);
+      const template = templateId.startsWith("builtin-") ? audioTemplate(templateId.slice(8) as BuiltinTemplate) : await api.getPatch(templateId);
       newPatchFromTemplate(template);
       setNewFromTemplateDialogOpen(false);
       setInstrumentPatchIoError(null);
@@ -1128,9 +1123,9 @@ export default function App() {
 
       const normalizedNote = Math.max(0, Math.min(127, Math.round(note)));
       const normalizedChannel = normalizeMidiChannel(channel);
-      const scaledVelocity = scaleVelocityForChannel(110, normalizedChannel, instrumentLevelsByChannel);
+      const noteVelocity = 110;
       void sendDirectMidiEvent(
-        { type: "note_on", channel: normalizedChannel, note: normalizedNote, velocity: scaledVelocity },
+        { type: "note_on", channel: normalizedChannel, note: normalizedNote, velocity: noteVelocity },
         sessionId
       )
         .then(() => {
@@ -1143,7 +1138,7 @@ export default function App() {
         })
         .catch(() => undefined);
     },
-    [activeSessionId, activeSessionState, instrumentLevelsByChannel, sendDirectMidiEvent]
+    [activeSessionId, activeSessionState, sendDirectMidiEvent]
   );
 
   const onStartInstrumentEngine = useCallback(() => {
@@ -1256,7 +1251,7 @@ export default function App() {
       setSequencerError(null);
       const normalizedChannel = normalizeMidiChannel(channel);
       const normalizedNote = Math.max(0, Math.min(127, Math.round(note)));
-      const scaledVelocity = scaleVelocityForChannel(velocity, normalizedChannel, instrumentLevelsByChannel);
+      const noteVelocity = normalizeMidiVelocity(velocity);
       const roll = sequencerRef.current.pianoRolls.find((entry) => entry.id === rollId);
       void (async () => {
         await sendDirectMidiEvent(
@@ -1264,7 +1259,7 @@ export default function App() {
             type: "note_on",
             channel: normalizedChannel,
             note: normalizedNote,
-            velocity: scaledVelocity,
+            velocity: noteVelocity,
             source_id: rollId,
             source_scale_root: roll?.scaleRoot,
             source_scale_type: roll?.scaleType,
@@ -1283,7 +1278,6 @@ export default function App() {
       appCopy.errors.failedToStartPianoRollNote,
       appCopy.errors.noActiveInstrumentSession,
       appCopy.errors.startInstrumentsBeforePianoRoll,
-      instrumentLevelsByChannel,
       sendDirectMidiEvent
     ]
   );
@@ -1452,15 +1446,18 @@ export default function App() {
   );
 
   const buildCurrentPerformanceExport = useCallback(async () => {
-    const snapshot = buildSequencerConfigSnapshot();
+    await useAppStore.getState().flushMixer();
+    const exportState = structuredClone(sequencerRef.current);
+    const snapshot = structuredClone(buildSequencerConfigSnapshot());
+    await api.validateAudio(snapshot.instruments.map((b) => ({ id: b.id, patch_id: b.patchId, midi_channel: b.midiChannel })), snapshot.audioGraph!, snapshot.mixer!);
     const patchIds = [...new Set(snapshot.instruments.map((instrument) => instrument.patchId.trim()).filter(Boolean))];
     const selectedPatches = await Promise.all(patchIds.map((patchId) => api.getPatch(patchId)));
-    return buildPerformanceExportPayload({
+    return { exportState, ...buildPerformanceExportPayload({
       snapshot,
       selectedPatches,
       performanceName,
       performanceDescription
-    });
+    }) };
   }, [buildSequencerConfigSnapshot, performanceDescription, performanceName]);
 
   const onExportSequencerConfig = useCallback(async () => {
@@ -1487,12 +1484,12 @@ export default function App() {
 
   const onExportPerformanceCsd = useCallback(async (eventSource: "midiFile" | "score" = "midiFile") => {
     try {
-      const { exportedPerformanceName, payload } = await buildCurrentPerformanceExport();
+      const { exportedPerformanceName, payload, exportState } = await buildCurrentPerformanceExport();
       const exportPayload: PerformanceCsdExportRequestPayload = {
         performanceExport: payload,
-        sequencerConfig: buildBackendSequencerConfig(sequencerRef.current, "export"),
+        sequencerConfig: buildBackendSequencerConfig(exportState, "export"),
         eventSource,
-        midiControllers: sequencerRef.current.midiControllers
+        midiControllers: exportState.midiControllers
           .filter((controller) => controller.enabled)
           .map((controller) => ({
             controllerNumber: controller.controllerNumber,
@@ -2157,7 +2154,7 @@ export default function App() {
                 onSelectPatch={(patchId) => {
                   void loadPatch(patchId);
                 }}
-                onNewPatch={newPatch}
+                onNewPatch={openNewFromTemplateDialog}
                 onNewFromTemplate={openNewFromTemplateDialog}
                 onClonePatch={onCloneCurrentPatch}
                 onDeletePatch={onDeleteCurrentPatch}
@@ -2207,6 +2204,7 @@ export default function App() {
               <section className="relative flex h-full min-h-[440px] flex-col gap-2">
                 <div className="rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2">
                   <div className="flex flex-wrap items-center justify-between gap-2">
+                    <AuditionPanel stopPerformance={() => stopPerformance(false)} buildConfig={(state) => buildBackendSequencerConfig(state)} />
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                       <div className="text-xs uppercase tracking-[0.16em] text-slate-400">
                         {appCopy.graphStats(currentPatch.graph.nodes.length, currentPatch.graph.connections.length)}
@@ -2237,7 +2235,7 @@ export default function App() {
                   </div>
                 </div>
                 <div className="min-h-0 flex-1">
-                  <ReteNodeEditor
+                  <AudioGraphEditor
                     guiLanguage={guiLanguage}
                     graph={currentPatch.graph}
                     graphLabel={currentPatch.name.trim().length > 0 ? currentPatch.name.trim() : "Untitled Patch"}

@@ -41,6 +41,8 @@ export function toPatchListItem(patch: Patch): PatchListItem {
     description: patch.description,
     is_template: patch.is_template,
     always_on: patch.always_on,
+    audio_interface: patch.graph.audio_interface,
+    has_direct_output: patch.graph.nodes.some((n) => n.opcode === "outs"),
     audio_inlet_names: literalAudioPortNames(patch, "inleta"),
     audio_outlet_names: literalAudioPortNames(patch, "outleta"),
     schema_version: patch.schema_version,

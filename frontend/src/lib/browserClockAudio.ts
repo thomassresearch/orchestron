@@ -1,3 +1,5 @@
+import { publishMeters, releaseMixerTransport, setMixerTransport } from "./mixerRuntime";
+import type { MixerState, MixerResponse } from "../types";
 import { wsBaseUrl } from "../api/client";
 import {
   BROWSER_CLOCK_STATE_LENGTH,
@@ -61,6 +63,7 @@ export class BrowserClockAudioClient {
   private connectedSessionId: string | null = null;
   private pendingConnect: { resolve: () => void; reject: (error: Error) => void } | null = null;
   private connectPromise: Promise<void> | null = null;
+  private pendingMixerRequests = new Map<string, { resolve: (result: MixerResponse) => void; reject: (error: Error) => void; timeoutId: number }>();
   private pendingSequencerRequests = new Map<string, PendingSequencerRequest>();
   private workerPrimed = false;
   private fatalError: string | null = null;
@@ -124,6 +127,7 @@ export class BrowserClockAudioClient {
   }
 
   async disconnect(): Promise<void> {
+    releaseMixerTransport(this.connectedSessionId);
     this.postWorker({ type: "disconnect" }, true);
     this.worker?.terminate();
     this.worker = null;
@@ -288,8 +292,19 @@ export class BrowserClockAudioClient {
 
   private handleWorkerMessage(message: BrowserClockWorkerToMainMessage): void {
     switch (message.type) {
+      case "mixer_meters": publishMeters(message.levels); return;
+      case "mixer_ack":
+      case "mixer_error": {
+        const pending = this.pendingMixerRequests.get(message.requestId);
+        if (pending) {
+          window.clearTimeout(pending.timeoutId); this.pendingMixerRequests.delete(message.requestId);
+          if (message.type === "mixer_ack") pending.resolve(message.result); else pending.reject(new Error(message.detail));
+        }
+        return;
+      }
       case "connected":
         this.connectedSessionId = message.sessionId;
+        setMixerTransport({ id: message.sessionId, send: (mixer, revision) => this.sendMixer(mixer, revision) });
         this.callbacks.onSequencerStatus(message.sequencerStatus);
         this.finishConnect(null);
         this.syncStatus();
@@ -378,7 +393,19 @@ export class BrowserClockAudioClient {
     }
   }
 
+  private sendMixer(mixer: MixerState, revision?: number): Promise<MixerResponse> {
+    const requestId = nextRequestId();
+    return new Promise((resolve, reject) => {
+      const timeoutId = window.setTimeout(() => { this.pendingMixerRequests.delete(requestId); reject(new Error("Mixer acknowledgment timed out")); }, 5000);
+      this.pendingMixerRequests.set(requestId, { resolve, reject, timeoutId });
+      this.postWorker({ type: "mixer_request", requestId, mixer, revision });
+    });
+  }
+
   private rejectPending(error: Error): void {
+    releaseMixerTransport(this.connectedSessionId);
+    for (const pending of this.pendingMixerRequests.values()) { window.clearTimeout(pending.timeoutId); pending.reject(error); }
+    this.pendingMixerRequests.clear();
     for (const [requestId, pending] of this.pendingSequencerRequests) {
       window.clearTimeout(pending.timeoutId);
       pending.reject(error);

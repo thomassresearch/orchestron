@@ -4,6 +4,9 @@ from fastapi import APIRouter, Depends, Request, Response
 
 from backend.app.api.deps import get_container
 from backend.app.core.container import AppContainer
+from backend.app.models.audio import MixerUpdate
+from backend.app.models.patch import PatchDocument
+from pydantic import BaseModel, Field, model_validator
 from backend.app.models.session import (
     BindMidiInputRequest,
     CompileResponse,
@@ -23,6 +26,35 @@ from backend.app.models.session import (
 )
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
+
+
+class PreviewSessionRequest(BaseModel):
+    session: SessionCreateRequest
+    patches: list[PatchDocument] = Field(min_length=1, max_length=64)
+
+    @model_validator(mode="after")
+    def unique_patch_ids(self):
+        if len({p.id for p in self.patches}) != len(self.patches):
+            raise ValueError("Preview patch IDs must be unique")
+        return self
+
+
+@router.post("/preview", response_model=SessionCreateResponse, status_code=201)
+async def preview_session(request_body: PreviewSessionRequest, request: Request,
+                          container: AppContainer = Depends(get_container)):
+    return await container.session_service.create_session(request_body.session,
+        client_key=request.client.host if request.client else "unknown",
+        preview_patches={p.id: p for p in request_body.patches})
+
+
+@router.get("/{session_id}/mixer")
+async def get_mixer(session_id: str, container: AppContainer = Depends(get_container)):
+    return await container.session_service.get_mixer(session_id)
+
+
+@router.put("/{session_id}/mixer")
+async def update_mixer(session_id: str, request_body: MixerUpdate, container: AppContainer = Depends(get_container)):
+    return await container.session_service.update_mixer(session_id, request_body)
 
 
 @router.post("", response_model=SessionCreateResponse, status_code=201)

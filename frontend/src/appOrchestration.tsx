@@ -10,7 +10,6 @@ import type {
   DrummerSequencerTrackState,
   OpcodeSpec,
   PatchGraph,
-  SequencerInstrumentBinding,
   SequencerState,
   SessionArpeggiatorConfigRequest,
   SessionSequencerConfigRequest
@@ -46,33 +45,6 @@ export function DeferredModalFallback() {
   return (
     <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-slate-950/70 p-4" aria-busy="true" />
   );
-}
-
-export function normalizeInstrumentLevel(level: number): number {
-  return Math.max(1, Math.min(10, Math.round(level)));
-}
-
-export function instrumentLevelByChannel(bindings: SequencerInstrumentBinding[]): Map<number, number> {
-  const levelMap = new Map<number, number>();
-  for (const binding of bindings) {
-    if (binding.midiChannel <= 0) {
-      continue;
-    }
-    const channel = normalizeMidiChannel(binding.midiChannel);
-    levelMap.set(channel, normalizeInstrumentLevel(binding.level));
-  }
-  return levelMap;
-}
-
-export function levelForChannel(channel: number, levelMap: Map<number, number>): number {
-  const level = levelMap.get(normalizeMidiChannel(channel));
-  return level === undefined ? 10 : normalizeInstrumentLevel(level);
-}
-
-export function scaleVelocityForChannel(velocity: number, channel: number, levelMap: Map<number, number>): number {
-  const normalizedVelocity = normalizeMidiVelocity(velocity);
-  const level = levelForChannel(channel, levelMap);
-  return normalizeMidiVelocity(Math.round((normalizedVelocity * level) / 10));
 }
 
 export function buildBackendArpeggiatorConfigs(
@@ -193,11 +165,10 @@ export function hasEnabledPerformanceSequencer(state: SequencerState): boolean {
 
 export function buildDrummerRowTrackConfigs(
   drummerTrack: DrummerSequencerTrackState,
-  levelMap: Map<number, number>,
   queueRuntimeState = true,
   exportMode = false
 ): SessionSequencerConfigRequest["tracks"] {
-  const scaledTrackVelocity = scaleVelocityForChannel(127, drummerTrack.midiChannel, levelMap);
+  const trackVelocity = 127;
   const transportSequence = compileArrangerTransportSequence(drummerTrack.padLoopPattern, drummerTrack.activePad);
   const enabled = enabledForSequencerConfigExport(drummerTrack, exportMode);
   return drummerTrack.rows.map((row) => ({
@@ -212,7 +183,7 @@ export function buildDrummerRowTrackConfigs(
       beat_rate_denominator: drummerTrack.timing.beatRateDenominator
     },
     length_beats: drummerTrack.lengthBeats,
-    velocity: scaledTrackVelocity,
+    velocity: trackVelocity,
     gate_ratio: 0.8,
     sync_to_track_id: null,
     active_pad: drummerTrack.activePad,
@@ -233,13 +204,13 @@ export function buildDrummerRowTrackConfigs(
             return {
               note: null,
               hold: false,
-              velocity: scaleVelocityForChannel(cell?.velocity ?? 127, drummerTrack.midiChannel, levelMap)
+              velocity: normalizeMidiVelocity(cell?.velocity ?? 127)
             };
           }
           return {
             note: row.key,
             hold: false,
-            velocity: scaleVelocityForChannel(cell.velocity, drummerTrack.midiChannel, levelMap)
+            velocity: normalizeMidiVelocity(cell.velocity)
           };
         })
       };

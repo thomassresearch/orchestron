@@ -175,12 +175,19 @@ class PerformanceExportService:
             patch_definitions=patch_definitions,
         )
 
+        config = request.performance_export.performance.config
+        from backend.app.services.compiler_mixer import normalize_audio_inputs
+        graph, mixer = normalize_audio_inputs(targets, config.audio_graph, config.mixer, [b.level for b in config.instruments])
+        config = config.model_copy(update={"audio_graph": graph, "mixer": mixer})
+
         compile_artifact = self._compiler_service.compile_patch_bundle(
             targets=targets,
             midi_input="0",
             rtmidi_module="virtual",
             allow_packaged_asset_paths=True,
             performance_input_mode="score" if request.event_source == "score" else "midi",
+            audio_graph=config.audio_graph,
+            mixer=config.mixer,
         )
 
         playback_duration_seconds = self._playback_duration_seconds(request)
@@ -191,11 +198,22 @@ class PerformanceExportService:
             )
             or (1,),
         )
-        self._raise_if_no_note_on_events(captured_events)
+        from backend.app.services.audio_port_names import audio_port_names
+        from backend.app.services.compiler_mixer import ResolvedMixerGraph, _reachable, OUTPUT
+        graph = config.audio_graph
+        continuous_source = False
+        if graph is not None:
+            resolved = ResolvedMixerGraph(targets, graph)
+            continuous_source = any(t.always_on and not audio_port_names(t.patch.graph, opcode="inleta")
+                and OUTPUT in _reachable("patch:"+t.assignment_id, resolved.adjacency) for t in targets)
+        if not continuous_source:
+            self._raise_if_no_note_on_events(captured_events)
 
         warnings = list(compile_artifact.diagnostics)
         if request.event_source == "score":
             score_lines, score_warnings = self._build_score_lines(
+                manifest=compile_artifact.manifest,
+                allow_continuous=continuous_source,
                 events=captured_events,
                 targets=targets,
                 duration_seconds=playback_duration_seconds + OFFLINE_RENDER_RELEASE_TAIL_SECONDS,
@@ -641,10 +659,12 @@ class PerformanceExportService:
         events: list[CapturedMidiEvent],
         targets: list[PatchInstrumentTarget],
         duration_seconds: float,
+        manifest: dict | None = None,
+        allow_continuous: bool = False,
     ) -> tuple[list[str], list[str]]:
         warnings: list[str] = []
-        note_events = self._score_note_events(events, targets=targets, warnings=warnings)
-        if not note_events:
+        note_events = self._score_note_events(events, targets=targets, warnings=warnings, manifest=manifest)
+        if not note_events and not allow_continuous:
             raise OfflineMidiExportNoNoteEventsError(
                 "Offline performance CSD score export generated no playable score note events. "
                 "Enable at least one sequencer or arranger track targeting an assigned instrument."
@@ -682,8 +702,12 @@ class PerformanceExportService:
         *,
         targets: list[PatchInstrumentTarget],
         warnings: list[str],
+        manifest: dict | None = None,
     ) -> list[ScoreNoteEvent]:
         channel_to_instrument_ref = self._score_instrument_ref_by_channel(targets)
+        if manifest and manifest.get("instrumentReferences"):
+            channel_to_instrument_ref = {t.midi_channel: manifest["instrumentReferences"][t.assignment_id]
+                                         for t in targets if t.midi_channel > 0}
         open_notes: dict[tuple[int, int], list[tuple[float, int]]] = {}
         score_events: list[ScoreNoteEvent] = []
         skipped_channels: set[int] = set()

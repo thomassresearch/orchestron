@@ -26,7 +26,7 @@ The toolbar includes:
 - `Patch Name` is the display name used in the patch library and performance rack dropdowns for normal patches.
 - `Description` is a three-line patch note field and accepts up to 2048 characters.
 - `Template?` marks the patch as a reusable starter graph. Template patches show a `TEMPLATE` token beside their name and are excluded from Perform rack instrument choices.
-- `Always On?` marks the patch as an effect-style instrument. It will run continuously when explicitly added to the Perform rack instead of waiting for MIDI note events. Saving an always-on patch requires at least one `inleta` node; otherwise Orchestron shows `always on instruments require at least one "inleta" instance`.
+- `Activation: MIDI notes / Continuous` controls scheduling. Continuous patches run when added to the Perform rack and started. They may generate audio without an inlet. Receiving audio requires an actual inlet, independently of activation. Musical role is separate interface metadata.
 - Metadata updates affect the current tab immediately, but they are not stored in the patch library until you save.
 
 ## Patch Library Loading
@@ -51,7 +51,7 @@ The toolbar includes:
 ### Clone
 
 - Creates a new saved patch by duplicating the current patch graph and metadata.
-- Preserves the `Template?` and `Always On?` flags from the source patch.
+- Preserves the `Template?` and `Activation` flags from the source patch.
 - If the name already exists, Orchestron generates a `(... copy)` style name.
 - The cloned patch is loaded automatically after creation.
 
@@ -102,3 +102,7 @@ The toolbar includes:
 <p align="center"><em>Patch toolbar with multiple instrument tabs, metadata fields, and patch actions.</em></p>
 
 **Navigation:** [Up](instrument_design.md) | [Prev](instrument_design.md) | [Next](opcode_catalog_and_documentation.md)
+
+## Built-in creation choices
+
+New and New from template offer Playable instrument (MIDI pitch/velocity, sine oscillator and madsr), Audio effect (stereo pass-through), Output / Master processor (stereo input to direct output), and Empty patch. These choices work without saved templates. Guided instruments connect to an ordinary neutral Master when added to a performance.

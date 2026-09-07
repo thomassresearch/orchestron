@@ -132,3 +132,9 @@ The graph editor `?` help now concentrates on graph-specific behavior: persisted
 <p align="center"><em>Delete-selection confirmation dialog listing selected graph items.</em></p>
 
 **Navigation:** [Up](instrument_design.md) | [Prev](opcode_catalog_and_documentation.md) | [Next](input_formula_assistant.md)
+
+## Stereo blocks and audio interfaces
+
+Stereo Input and Stereo Output are collapsible views of ordinary paired inleta/outleta nodes. Expand them to edit the underlying opcodes and connections. Exact port names and input formulas survive collapsing, expansion, saving and export. Direct Audio Output (outs) stays distinct.
+
+The interface panel describes musical role, stable group IDs, display names, mono/stereo/custom layouts, exact member ports, sidechain purpose and designated main input/output. Collapse/layout state is separate from these semantics. Legacy stereo suggestions show the resolved labels before applying metadata and do not rename ports.

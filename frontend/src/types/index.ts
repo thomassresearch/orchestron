@@ -77,7 +77,27 @@ export interface EngineConfig {
   "0dbfs": number;
 }
 
+export interface AudioPortGroup {
+  id: string; name: string; direction: "input" | "output"; layout: "mono" | "stereo" | "custom";
+  ports: string[]; purpose: "main" | "aux" | "sidechain" | "custom";
+}
+export interface AudioInterface {
+  role: "instrument" | "effect" | "output" | "custom"; groups: AudioPortGroup[];
+  mainInput?: string | null; mainOutput?: string | null; guided?: boolean;
+}
+export interface AudioRoute {
+  id: string; sourceId: string; sourcePort: string; targetId: string; targetPort: string;
+  kind: "main" | "send" | "insert" | "custom"; sourceStage: "raw" | "strip"; targetStage: "input" | "strip";
+}
+export interface AudioGraph { routes: AudioRoute[]; masterId: string | null; insertOwners: Record<string, string>; }
+export interface MixerStrip { gainDb: number | null; balance: number; mute: boolean; solo: boolean; }
+export interface MixerSend { gainDb: number | null; tap: "pre" | "post"; }
+export interface MixerState { strips: Record<string, MixerStrip>; sends: Record<string, MixerSend>; }
+export interface MixerResponse { mixer: MixerState; revision: number; }
+export interface AudioDiagnostic { code: string; message: string; severity: "warning" | "error"; instanceId?: string; routeId?: string; }
+
 export interface PatchGraph {
+  audio_interface?: AudioInterface | null;
   nodes: NodeInstance[];
   connections: Connection[];
   ui_layout: JsonObject;
@@ -437,7 +457,9 @@ export interface SequencerInstrumentBinding {
 }
 
 export interface SequencerConfigSnapshot {
-  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11;
+  audioGraph?: AudioGraph;
+  mixer?: MixerState;
   instruments: Array<{
     id?: string;
     patchId: string;
@@ -604,13 +626,15 @@ export interface BrowserClockLatencySettings {
 }
 
 export interface PersistedAppState {
-  version: 1;
+  version: 1 | 2;
+  audioGraph?: AudioGraph;
+  mixer?: MixerState;
   activePage: AppPage;
   guiLanguage: GuiLanguage;
   instrumentTabs: InstrumentTabSnapshot[];
   activeInstrumentTabId: string;
   sequencer: SequencerState;
-  sequencerInstruments: SequencerInstrumentBinding[];
+  sequencerInstruments: Array<Pick<SequencerInstrumentBinding, "id" | "patchId" | "midiChannel"> & Partial<SequencerInstrumentBinding>>;
   currentPerformanceId: string | null;
   performanceName: string;
   performanceDescription: string;
@@ -844,6 +868,8 @@ export interface Patch {
 }
 
 export interface PatchListItem {
+  audio_interface?: AudioInterface | null;
+  has_direct_output?: boolean;
   id: string;
   name: string;
   description: string;
@@ -858,6 +884,9 @@ export interface PatchListItem {
 export type SessionState = "idle" | "compiled" | "running" | "error";
 
 export interface SessionInfo {
+  audio_graph?: AudioGraph;
+  mixer?: MixerState;
+  mixer_revision?: number;
   session_id: string;
   patch_id: string;
   instruments: SessionInstrumentAssignment[];
@@ -875,6 +904,7 @@ export interface SessionCreateResponse {
 }
 
 export interface CompileResponse {
+  manifest?: { instrumentReferences: Record<string, string>; [key: string]: unknown };
   session_id: string;
   state: SessionState;
   orc: string;
@@ -999,6 +1029,7 @@ export interface BrowserClockTransportEvent {
 }
 
 export interface BrowserClockRenderChunkMessage {
+  mixer_meters?: Array<{ engineSample: number; levels: Record<string, import("../lib/mixerRuntime").MeterValue> }>;
   type: "render_chunk";
   chunk_id: string;
   engine_block_count: number;
@@ -1039,6 +1070,8 @@ export interface BrowserClockEngineErrorMessage {
 }
 
 export type BrowserClockServerMessage =
+  | ({ type: "mixer_ack"; request_id: string } & MixerResponse)
+  | { type: "mixer_error"; request_id: string; detail: string }
   | BrowserClockStreamConfigMessage
   | BrowserClockRenderChunkMessage
   | BrowserClockControllerRevokedMessage

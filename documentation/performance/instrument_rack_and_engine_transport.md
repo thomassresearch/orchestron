@@ -26,31 +26,11 @@ These actions operate on the performance configuration (instrument rack + sequen
 
 ## Instrument Assignments (Rack Slots)
 
-Each rack entry lets you choose:
+Each rack entry selects a saved patch and a MIDI channel (1–16), or displays Continuous activation. Up to 64 user patch instances are supported, including processors. Generated mixer stages do not occupy rack slots or MIDI channels. Use distinct MIDI channels for note-triggered instances.
 
-- A saved patch (`Patch N` dropdown)
-- A MIDI channel (`1..16`)
-- A level value (`1..10`)
-- Remove action
+The separate [audio mixer](audio_mixer_and_routing.md) below the rack provides audio faders, pan/balance knobs, mute/solo, pre/post sends, inserts and meters. The old numeric Level field has been removed. Mixer gain affects held notes and external MIDI audio without changing note velocity.
 
-If the selected patch is marked `Always On?`, the rack slot becomes an effect slot:
-
-- Always-on slots are grouped onto their own rack row and use a very dark blue card color, so their taller route matrix stays visually separate from standard instrument slots.
-- The MIDI channel field is replaced with an `Effect` badge.
-- The slot runs continuously when `Start Instruments` starts the rack session.
-- The slot shows an audio source matrix with one row per normal rack instrument or always-on effect slot that exposes `outleta` channel labels.
-- Each source row contains checkboxes for all of that instrument's resolved `outleta` channel labels.
-- Routes that would feed an effect back into itself through the current effect chain are shown disabled, so cascaded effects can be built without creating feedback loops.
-- Checked channel boxes are connected when the session compiles; unchecked channel boxes are not routed.
-
-If no other rack instrument exposes `outleta`, the matrix is empty. Add or edit source patches with `outleta` nodes and add at least one `inleta` node to the effect patch to make routes available. Source outlet labels do not need to match effect inlet labels; exact matches are used when available, and stereo-style labels such as `dryl`/`dryr` are mapped to `left`/`right` inlets.
-
-While instruments are running, rack assignment changes are locked:
-
-- `Add Instrument` is disabled
-- Rack-slot `Remove` is disabled
-- Patch and MIDI channel selectors are disabled
-- `Level` remains active so you can rebalance the live mix without stopping the engine
+While instruments run, adding/removing assignments, changing patch/channel assignments, and changing routing topology are locked. Existing mixer controls stay live. Use **Stop to edit routing** before changing connections or insert order.
 
 ### Add Instrument
 
@@ -60,7 +40,7 @@ While instruments are running, rack assignment changes are locked:
 - In the `orchestron-performance-creator` CLI, use `edit instruments list` to discover stable rack binding IDs and audio ports. Build arbitrary chains with `edit routes add/remove/clear/list`, or run `edit add-standard-effects` to add the standard reverb, compressor, and speaker-output send/dry matrix.
 - The button is unavailable while the engine is running; stop instruments before changing rack assignments.
 
-The CLI validates its staged rack through the same backend route resolver used by session creation and compilation. Run `edit validate`, then `edit create-runtime --start` to create a CLI-owned engine session. Because instrument assignments and Csound audio connections are fixed at compile time, use `edit rebuild-runtime` after changing the rack or its routes; `edit push-runtime` is only for sequencer and arpeggiator changes when the compiled rack still matches.
+The CLI validates its staged rack through the same backend route resolver used by session creation and compilation. Run `edit validate`, then `edit create-runtime --start` to create a CLI-owned engine session. Because instrument assignments and Csound audio connections are fixed at compile time, use `edit rebuild-runtime` after changing the rack or its routes; `edit push-runtime` updates mixer, sequencer and arpeggiator settings when the compiled rack still matches.
 
 ## Rack Transport (Instrument Engine Control)
 
@@ -93,7 +73,7 @@ If engine start/stop or transport actions fail, the Perform page shows an error 
 ## Tips
 
 - Save the performance after significant changes (rack assignments, sequencers, piano rolls, controller mappings).
-- Use distinct MIDI channels per instrument unless you intentionally want multiple instruments layered on the same channel.
+- Use distinct MIDI channels for note-triggered rack instances.
 - Use `sname` labels on source `outleta` nodes to name the available matrix channels. The label can be stored directly on the node or supplied by a direct `const_s` connection.
 
 ## Screenshots

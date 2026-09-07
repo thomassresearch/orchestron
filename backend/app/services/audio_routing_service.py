@@ -41,12 +41,6 @@ def resolve_audio_routes(targets: list[PatchInstrumentTarget]) -> list[ResolvedA
             continue
 
         target_id = (target.assignment_id or "").strip()
-        if not target.always_on:
-            diagnostics.append(
-                f"Instrument assignment '{target_id}' is not always-on and cannot receive effect routes."
-            )
-            continue
-
         target_inlets = audio_port_names(target.patch.graph, opcode="inleta")
         if not target_inlets:
             diagnostics.append(

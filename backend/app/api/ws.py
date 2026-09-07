@@ -300,6 +300,18 @@ async def browser_clock_controller(websocket: WebSocket, session_id: str) -> Non
                     )
                     continue
 
+                if message_type == "mixer_update":
+                    try:
+                        await container.session_service.require_browser_clock_controller(session_id, connection_id)
+                        from backend.app.models.audio import MixerUpdate
+                        result = await container.session_service.update_mixer(session_id,
+                            MixerUpdate.model_validate(payload.get("controls", {})))
+                        await send_json({"type": "mixer_ack", "request_id": payload.get("request_id"), **result})
+                    except (HTTPException, ValueError) as exc:
+                        await send_json({"type": "mixer_error", "request_id": payload.get("request_id"),
+                                         "detail": str(getattr(exc, "detail", exc))})
+                    continue
+
                 if message_type == "manual_midi":
                     await container.session_service.browser_clock_manual_midi(
                         session_id,

@@ -84,3 +84,5 @@ When Orchestron is served locally from the backend, opening `http://localhost:80
 - ZIP exports are used automatically when referenced GEN01 audio assets are included.
 
 **Navigation:** [Next](instrument_design/instrument_design.md)
+
+- [Audio mixer and routing](performance/audio_mixer_and_routing.md) — faders, sends, Master, inserts, diagnostics and migration.

@@ -1,3 +1,4 @@
+import type { AudioGraph, MixerState, MixerStrip, MixerSend } from "../types";
 import type {
   AppPage,
   ArpeggiatorState,
@@ -66,6 +67,17 @@ export interface AppStore {
   sequencer: SequencerState;
   sequencerRuntime: SequencerRuntimeState;
   sequencerInstruments: SequencerInstrumentBinding[];
+  audioGraph: AudioGraph;
+  mixer: MixerState;
+  migrationNotice: boolean;
+  activeSessionAudioSignature: string;
+  mixerSyncError: string | null;
+  setAudioGraph: (graph: AudioGraph) => void;
+  setMixerStrip: (id: string, update: Partial<MixerStrip>) => void;
+  setMixerSend: (ids: string[], update: Partial<MixerSend>) => void;
+  flushMixer: () => Promise<void>;
+  ensureMaster: () => Promise<string>;
+
   currentPerformanceId: string | null;
   performanceName: string;
   performanceDescription: string;

@@ -93,3 +93,9 @@ The integrated `?` help for this panel now focuses on session-specific external 
 <p align="center"><em>A refreshed Runtime panel screenshot for `browser_clock` mode should be added after capturing the new AudioWorklet/PCM status UI.</em></p>
 
 **Navigation:** [Up](instrument_design.md) | [Prev](gen_table_editor.md) | [Next](instrument_import_export.md)
+
+## Audition a draft
+
+Compile validates the graph without starting audio. Audition offers Isolated and In current performance. An isolated effect receives the built-in test instrument or a selected saved source. Current-performance audition replaces one selected rack instance in a temporary snapshot; choose the instance explicitly when a patch appears more than once.
+
+Prepare compiles the temporary preview before interrupting the performance. Stop and audition explicitly stops the original performance and starts the preview. Closing deletes the temporary session and restores the original performance state and playhead with transport stopped. Draft patches, test sources and preview routes are never saved into the library.

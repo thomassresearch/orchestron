@@ -1,3 +1,5 @@
+import type { SessionInstrumentAssignment } from "../types";
+import type { AudioGraph, MixerState, MixerResponse } from "../types";
 import type {
   AppStateResponse,
   CompileResponse,
@@ -175,12 +177,16 @@ export const api = {
       midi_channel: number;
       effect_source_ids?: string[];
       effect_routes?: Array<{ source_id: string; channel: string }>;
-    }>
+    }>, audio_graph?: AudioGraph, mixer?: MixerState
   ) =>
     request<SessionCreateResponse>("/sessions", {
       method: "POST",
-      body: JSON.stringify({ instruments })
+      body: JSON.stringify({ instruments, audio_graph, mixer })
     }),
+  createPreview: (payload: { patches: Patch[]; session: { instruments: SessionInstrumentAssignment[]; audio_graph: AudioGraph; mixer: MixerState } }) => request<SessionCreateResponse>("/sessions/preview", { method: "POST", body: JSON.stringify(payload) }),
+  getMixer: (id: string) => request<MixerResponse>(`/sessions/${id}/mixer`),
+  updateMixer: (id: string, mixer: MixerState, revision?: number) => request<MixerResponse>(`/sessions/${id}/mixer`, { method: "PUT", body: JSON.stringify({ ...mixer, revision }) }),
+  validateAudio: (instruments: SessionInstrumentAssignment[], audio_graph: AudioGraph, mixer: MixerState) => request<{ diagnostics: import("../types").AudioDiagnostic[] }>("/sessions/validate-instruments", { method: "POST", body: JSON.stringify({ instruments, audio_graph, mixer }) }),
   getSession: (sessionId: string) => request<SessionInfo>(`/sessions/${sessionId}`),
   compileSession: (sessionId: string) =>
     request<CompileResponse>(`/sessions/${sessionId}/compile`, { method: "POST" }),

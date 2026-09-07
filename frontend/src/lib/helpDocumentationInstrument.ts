@@ -1,3 +1,4 @@
+import { audioDesignHelp } from "./helpDocumentationAudio";
 import type { HelpDocumentAppendixSet, HelpDocumentSet, InstrumentHelpDocId } from "./helpDocumentationTypes";
 
 export const instrumentHelpDocuments: HelpDocumentSet<InstrumentHelpDocId> = {
@@ -461,3 +462,10 @@ Si múltiples señales están conectadas a **la misma entrada** de un opcode:
 - Si el panel esta colapsado, el encabezado del editor de grafos puede volver a mostrarlo con \`Show runtime\`.`
   },
 };
+
+for (const language of ["english", "german", "french", "spanish"] as const) {
+  for (const id of ["instrument_patch_toolbar", "instrument_graph_editor", "instrument_runtime_panel"] as const) {
+    const appendix = instrumentHelpAppendices[id];
+    if (appendix) appendix[language] = (appendix[language] ?? "") + "\n\n" + audioDesignHelp[language];
+  }
+}

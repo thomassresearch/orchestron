@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from backend.app.engine.csound_worker import CsoundWorker
+from backend.app.models.audio import AudioGraph, MixerState
 from backend.app.models.session import CompileArtifact, SessionInstrumentAssignment, SessionState
 
 
@@ -17,6 +18,10 @@ class RuntimeSession:
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     started_at: datetime | None = None
     compile_artifact: CompileArtifact | None = None
+    audio_graph: AudioGraph | None = None
+    mixer: MixerState = field(default_factory=MixerState)
+    mixer_revision: int = 0
+    preview_patches: dict = field(default_factory=dict)
     worker: CsoundWorker = field(default_factory=CsoundWorker)
     midi_router: Any = None
     sequencer: Any = None

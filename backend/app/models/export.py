@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from backend.app.models.audio import AudioGraph, MixerState
+
 import math
 from typing import Literal
 
@@ -56,6 +58,7 @@ class ExportPerformanceInstrumentAssignment(BaseModel):
     patch_id: str = Field(alias="patchId", min_length=1)
     patch_name: str | None = Field(default=None, alias="patchName")
     midi_channel: int = Field(default=1, alias="midiChannel", ge=0, le=16)
+    level: float | None = Field(default=None, ge=1, le=10, exclude=True)
     effect_source_ids: list[str] = Field(default_factory=list, alias="effectSourceIds", max_length=16)
     effect_routes: list[ExportPerformanceEffectRoute] = Field(
         default_factory=list, alias="effectRoutes", max_length=64
@@ -64,9 +67,19 @@ class ExportPerformanceInstrumentAssignment(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+
+
 class ExportPerformanceConfig(BaseModel):
-    version: int = 1
-    instruments: list[ExportPerformanceInstrumentAssignment] = Field(default_factory=list)
+    audio_graph: AudioGraph | None = Field(default=None, alias="audioGraph")
+    mixer: MixerState = Field(default_factory=MixerState)
+    version: int = Field(default=1, ge=1, le=11)
+    instruments: list[ExportPerformanceInstrumentAssignment] = Field(default_factory=list, max_length=64)
+
+    @model_validator(mode="after")
+    def reject_conflicting_routing(self):
+        if self.audio_graph is not None and any(b.effect_routes or b.effect_source_ids or b.level is not None for b in self.instruments):
+            raise ValueError("Do not combine legacy Level/routing and the explicit audio graph")
+        return self
 
     model_config = ConfigDict(populate_by_name=True, extra="allow")
 

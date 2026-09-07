@@ -1,3 +1,5 @@
+import type { AudioGraph, MixerState } from "../types";
+import { emptyAudioGraph, emptyMixer, cleanBindings, migrateAudio } from "../lib/audioRouting";
 import { api } from "../api/client";
 import {
   normalizeArrangerLoopSelection,
@@ -99,7 +101,7 @@ export const DEFAULT_PAD_COUNT = 8;
 export const MAX_MIDI_CONTROLLERS = 6;
 export const MAX_ARPEGGIATORS = 8;
 export const DEFAULT_DRUMMER_ROW_KEYS = [36, 38, 42, 46] as const;
-export const APP_STATE_VERSION = 1 as const;
+export const APP_STATE_VERSION = 2 as const;
 export const APP_STATE_PERSIST_DEBOUNCE_MS = 400;
 export const AUDIO_RATE_MIN = 22000;
 export const AUDIO_RATE_MAX = 48000;
@@ -235,6 +237,8 @@ export type PersistWatchState = {
   activeInstrumentTabId: string;
   sequencer: SequencerState;
   sequencerInstruments: SequencerInstrumentBinding[];
+  audioGraph: AudioGraph;
+  mixer: MixerState;
   currentPerformanceId: string | null;
   performanceName: string;
   performanceDescription: string;
@@ -2218,7 +2222,6 @@ export function normalizePersistedSequencerInstruments(
   fallbackPatchId: string | null
 ): SequencerInstrumentBinding[] {
   const bindings: SequencerInstrumentBinding[] = [];
-  const seenChannels = new Set<number>();
   const patchById = new Map(patches.map((patch) => [patch.id, patch]));
 
   if (Array.isArray(raw)) {
@@ -2228,28 +2231,22 @@ export function normalizePersistedSequencerInstruments(
       }
 
       const candidate = entry as Record<string, unknown>;
-      if (typeof candidate.patchId !== "string" || !patchById.has(candidate.patchId)) {
+      if (typeof candidate.patchId !== "string") {
         continue;
       }
 
       const patch = patchById.get(candidate.patchId);
       const isAlwaysOn = patch?.always_on === true;
       const midiChannel =
-        isAlwaysOn ? 0 : typeof candidate.midiChannel === "number" ? clampInt(candidate.midiChannel, 1, 16) : 1;
-      if (!isAlwaysOn) {
-        if (seenChannels.has(midiChannel)) {
-          continue;
-        }
-        seenChannels.add(midiChannel);
-      }
+        isAlwaysOn ? 0 : typeof candidate.midiChannel === "number" ? clampInt(candidate.midiChannel, patch ? 1 : 0, 16) : 1;
 
       bindings.push({
         id: typeof candidate.id === "string" && candidate.id.length > 0 ? candidate.id : crypto.randomUUID(),
         patchId: candidate.patchId,
         midiChannel,
         level: normalizeInstrumentLevel(candidate.level),
-        effectSourceIds: isAlwaysOn ? normalizeEffectSourceIds(candidate.effectSourceIds) : [],
-        effectRoutes: isAlwaysOn ? normalizeEffectRouteSelections(candidate.effectRoutes) : []
+        effectSourceIds: normalizeEffectSourceIds(candidate.effectSourceIds),
+        effectRoutes: normalizeEffectRouteSelections(candidate.effectRoutes)
       });
     }
   }
@@ -2266,7 +2263,7 @@ export function normalizePersistedSequencerInstruments(
     });
   }
 
-  return normalizeEffectRoutesForBindings(bindings, patches);
+  return bindings;
 }
 
 export function sequencerSnapshotForPersistence(sequencer: SequencerState): SequencerState {
@@ -2331,14 +2328,9 @@ export function buildPersistedAppStateSnapshot(state: AppStore): PersistedAppSta
     })),
     activeInstrumentTabId: state.activeInstrumentTabId,
     sequencer: sequencerSnapshotForPersistence(state.sequencer),
-    sequencerInstruments: state.sequencerInstruments.map((binding) => ({
-      id: binding.id,
-      patchId: binding.patchId,
-      midiChannel: clampInt(binding.midiChannel, 0, 16),
-      level: normalizeInstrumentLevel(binding.level),
-      effectSourceIds: normalizeEffectSourceIds(binding.effectSourceIds),
-      effectRoutes: normalizeEffectRouteSelections(binding.effectRoutes)
-    })),
+    sequencerInstruments: cleanBindings(state.sequencerInstruments),
+    audioGraph: state.audioGraph,
+    mixer: state.mixer,
     currentPerformanceId: state.currentPerformanceId,
     performanceName: state.performanceName,
     performanceDescription: state.performanceDescription,
@@ -2355,6 +2347,8 @@ export function capturePersistWatchState(state: AppStore): PersistWatchState {
     activeInstrumentTabId: state.activeInstrumentTabId,
     sequencer: state.sequencer,
     sequencerInstruments: state.sequencerInstruments,
+    audioGraph: state.audioGraph,
+    mixer: state.mixer,
     currentPerformanceId: state.currentPerformanceId,
     performanceName: state.performanceName,
     performanceDescription: state.performanceDescription,
@@ -2374,6 +2368,8 @@ export function hasPersistableStateChange(current: PersistWatchState, previous: 
     current.activeInstrumentTabId !== previous.activeInstrumentTabId ||
     current.sequencer !== previous.sequencer ||
     current.sequencerInstruments !== previous.sequencerInstruments ||
+    current.audioGraph !== previous.audioGraph ||
+    current.mixer !== previous.mixer ||
     current.currentPerformanceId !== previous.currentPerformanceId ||
     current.performanceName !== previous.performanceName ||
     current.performanceDescription !== previous.performanceDescription ||
@@ -2392,6 +2388,8 @@ export function isSequencerRuntimeOnlyUpdate(current: PersistWatchState, previou
     current.instrumentTabs !== previous.instrumentTabs ||
     current.activeInstrumentTabId !== previous.activeInstrumentTabId ||
     current.sequencerInstruments !== previous.sequencerInstruments ||
+    current.audioGraph !== previous.audioGraph ||
+    current.mixer !== previous.mixer ||
     current.currentPerformanceId !== previous.currentPerformanceId ||
     current.performanceName !== previous.performanceName ||
     current.performanceDescription !== previous.performanceDescription ||
@@ -2691,15 +2689,9 @@ export function defaultSequencerInstruments(patches: PatchListItem[], currentPat
   ];
 }
 
-export function sequencerInstrumentsForPerformablePatches(
-  bindings: SequencerInstrumentBinding[],
-  patches: PatchListItem[]
-): SequencerInstrumentBinding[] {
-  const availablePatchIds = new Set(performablePatches(patches).map((patch) => patch.id));
-  return normalizeEffectRoutesForBindings(
-    bindings.filter((binding) => availablePatchIds.has(binding.patchId)),
-    performablePatches(patches)
-  );
+export function sequencerInstrumentsForPerformablePatches(bindings: SequencerInstrumentBinding[], patches: PatchListItem[]): SequencerInstrumentBinding[] {
+  const byId = new Map(patches.map((p) => [p.id, p]));
+  return bindings.map((b) => ({ ...b, midiChannel: byId.get(b.patchId)?.always_on ? 0 : b.midiChannel }));
 }
 
 export function nextAvailableMidiChannel(bindings: SequencerInstrumentBinding[]): number {
@@ -2820,7 +2812,9 @@ export function nextAvailableControllerSequencerNumber(controllerSequencers: Con
 
 export function buildSequencerConfigSnapshot(
   sequencer: SequencerState,
-  instruments: SequencerInstrumentBinding[]
+  instruments: SequencerInstrumentBinding[],
+  audioGraph: AudioGraph = emptyAudioGraph(),
+  mixer: MixerState = emptyMixer()
 ): SequencerConfigSnapshot {
   const timing = normalizeSequencerTiming(sequencer.timing);
   const transportStepCount = transportStepCountForPerformanceTracks(
@@ -2829,16 +2823,15 @@ export function buildSequencerConfigSnapshot(
     timing
   );
   return {
-    version: 10,
+    version: 11,
+    audioGraph: structuredClone(audioGraph),
+    mixer: structuredClone(mixer),
     instruments: instruments
       .filter((instrument) => instrument.patchId.length > 0)
       .map((instrument) => ({
         patchId: instrument.patchId,
         id: instrument.id,
-        midiChannel: clampInt(instrument.midiChannel, 0, 16),
-        level: normalizeInstrumentLevel(instrument.level),
-        effectSourceIds: normalizeEffectSourceIds(instrument.effectSourceIds),
-        effectRoutes: normalizeEffectRouteSelections(instrument.effectRoutes)
+        midiChannel: clampInt(instrument.midiChannel, 0, 16)
       })),
     sequencer: {
       timing,
@@ -3011,7 +3004,7 @@ export function parseSequencerConfigSnapshot(
   snapshot: unknown,
   availablePatches: PatchListItem[],
   fallbackPatchId: string | null
-): { sequencer: SequencerState; instruments: SequencerInstrumentBinding[] } {
+): { sequencer: SequencerState; instruments: SequencerInstrumentBinding[]; audioGraph: AudioGraph; mixer: MixerState; migrationNotice: boolean } {
   if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) {
     throw new Error("Invalid sequencer config file.");
   }
@@ -3027,7 +3020,8 @@ export function parseSequencerConfigSnapshot(
     payload.version !== 7 &&
     payload.version !== 8 &&
     payload.version !== 9 &&
-    payload.version !== 10
+    payload.version !== 10 &&
+    payload.version !== 11
   ) {
     throw new Error("Unsupported sequencer config version.");
   }
@@ -3037,7 +3031,6 @@ export function parseSequencerConfigSnapshot(
   const patchById = new Map(availablePatches.map((patch) => [patch.id, patch]));
 
   const instruments: SequencerInstrumentBinding[] = [];
-  const seenChannels = new Set<number>();
   for (const entry of instrumentsRaw) {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
       continue;
@@ -3047,32 +3040,23 @@ export function parseSequencerConfigSnapshot(
     if (typeof record.patchId !== "string" || record.patchId.length === 0) {
       continue;
     }
-    if (!patchById.has(record.patchId)) {
-      continue;
-    }
 
     const patch = patchById.get(record.patchId);
     const isAlwaysOn = patch?.always_on === true;
     const midiChannel =
-      isAlwaysOn ? 0 : typeof record.midiChannel === "number" ? clampInt(record.midiChannel, 1, 16) : 1;
-    if (!isAlwaysOn) {
-      if (seenChannels.has(midiChannel)) {
-        continue;
-      }
-      seenChannels.add(midiChannel);
-    }
+      isAlwaysOn ? 0 : typeof record.midiChannel === "number" ? clampInt(record.midiChannel, patch ? 1 : 0, 16) : 1;
 
     instruments.push({
       id: typeof record.id === "string" && record.id.length > 0 ? record.id : crypto.randomUUID(),
       patchId: record.patchId,
       midiChannel,
       level: normalizeInstrumentLevel(record.level),
-      effectSourceIds: isAlwaysOn ? normalizeEffectSourceIds(record.effectSourceIds) : [],
-      effectRoutes: isAlwaysOn ? normalizeEffectRouteSelections(record.effectRoutes) : []
+      effectSourceIds: normalizeEffectSourceIds(record.effectSourceIds),
+      effectRoutes: normalizeEffectRouteSelections(record.effectRoutes)
     });
   }
 
-  if (instruments.length === 0 && fallbackPatchId) {
+  if (payload.version !== 11 && instruments.length === 0 && fallbackPatchId) {
     const fallbackPatch = patchById.get(fallbackPatchId);
     instruments.push({
       id: crypto.randomUUID(),
@@ -3084,13 +3068,14 @@ export function parseSequencerConfigSnapshot(
     });
   }
 
-  if (instruments.length === 0) {
+  if (payload.version !== 11 && instruments.length === 0) {
     throw new Error("No valid instrument assignments found in config.");
   }
 
   return {
     sequencer,
-    instruments: normalizeEffectRoutesForBindings(instruments, availablePatches)
+    instruments,
+    ...migrateAudio(instruments, availablePatches, payload.version === 11 ? payload.audioGraph as AudioGraph : undefined, payload.mixer as MixerState | undefined)
   };
 }
 
@@ -3117,11 +3102,7 @@ export function normalizeSessionInstrumentAssignments(
       id: binding.id,
       patch_id: binding.patchId,
       midi_channel: midiChannel,
-      effect_source_ids: sourceIdsFromEffectRoutes(normalizeEffectRouteSelections(binding.effectRoutes)),
-      effect_routes: normalizeEffectRouteSelections(binding.effectRoutes).map((route) => ({
-        source_id: route.sourceId,
-        channel: route.channel
-      }))
+
     });
   }
 

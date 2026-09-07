@@ -4,14 +4,14 @@ import {
   enabledForSequencerConfigExport,
   sanitizeCsdFileBaseName,
   sanitizePerformanceFileBaseName,
-  scaleVelocityForChannel,
+  normalizeMidiVelocity,
   trackShouldRunContinuously
 } from "./appOrchestration";
 
 describe("application orchestration helpers", () => {
-  it("scales MIDI velocity with the configured instrument level", () => {
-    expect(scaleVelocityForChannel(127, 2, new Map([[2, 5]]))).toBe(64);
-    expect(scaleVelocityForChannel(127, 3, new Map([[2, 5]]))).toBe(127);
+  it("preserves authored MIDI velocity regardless of legacy rack Level", () => {
+    expect(normalizeMidiVelocity(127)).toBe(127);
+    expect(normalizeMidiVelocity(110)).toBe(110);
   });
 
   it("normalizes exported file names without duplicating extensions", () => {

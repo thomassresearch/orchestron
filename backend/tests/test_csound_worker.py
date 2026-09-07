@@ -605,3 +605,37 @@ def test_browser_clock_ctcsound_cursor_tracks_each_completed_block_for_internal_
     assert render.engine_sample_start == 0
     assert render.engine_sample_end == 192
     assert worker.render_sample_cursor == 192
+
+
+def test_mixer_queue_applies_only_on_render_thread_before_block_and_timestamps_meters(monkeypatch):
+    import threading
+    monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "true")
+    worker = CsoundWorker()
+    calls = []
+    class FakeCsound:
+        def setControlChannel(self, name, value):
+            calls.append(("set", name, value, threading.get_ident()))
+        def performKsmps(self):
+            calls.append(("render",threading.get_ident()))
+            return 0
+        def controlChannel(self,name):
+            calls.append(("meter",threading.get_ident()))
+            return (.5,0)
+        def spout(self):
+            return np.zeros((64,2))
+    worker._backend = "ctcsound"
+    worker._audio_output_mode = "browser_clock"
+    worker._csound = FakeCsound()
+    worker._running = True
+    worker._runtime_sr = 48000
+    worker._runtime_nchnls = 2
+    worker._runtime_ksmps = 64
+    worker.configure_mixer({"meters":{"one":{"peakL":"peak"}}},{"gain":1})
+    for value in range(100): worker.queue_mixer_controls({"gain":value/100})
+    assert calls == []
+    thread = threading.Thread(target=lambda: worker.render_blocks(block_count=2,target_sample_rate=48000))
+    thread.start();thread.join()
+    assert calls[0] == ("set","gain",.99,thread.ident)
+    assert [c[0] for c in calls] == ["set","render","meter","render"]
+    assert worker.drain_mixer_meters() == [{"engineSample":64,"levels":{"one":{"peakL":.5}}}]
+    assert worker.drain_mixer_meters() == []

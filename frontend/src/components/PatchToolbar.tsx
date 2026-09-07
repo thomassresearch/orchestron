@@ -1,3 +1,4 @@
+import { audioCopy } from "../lib/audioCopy";
 import type { GuiLanguage, PatchListItem } from "../types";
 
 interface InstrumentTabItem {
@@ -224,13 +225,10 @@ export function PatchToolbar(props: PatchToolbarProps) {
               />
             </label>
             <label className="flex h-7 items-end gap-2">
-              <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-slate-400">{copy.alwaysOn}</span>
-              <input
-                type="checkbox"
-                checked={props.patchAlwaysOn}
-                onChange={(event) => props.onPatchAlwaysOnChange(event.target.checked)}
-                className="h-4 w-4 rounded border-slate-500 bg-slate-950 accent-accent"
-              />
+              <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-slate-400">{audioCopy(props.guiLanguage)("activation")}</span>
+              <select value={props.patchAlwaysOn ? "continuous" : "midi"} onChange={(event) => props.onPatchAlwaysOnChange(event.target.value === "continuous")} className="rounded border border-slate-600 bg-slate-950 px-2 py-1 text-xs">
+                <option value="midi">{audioCopy(props.guiLanguage)("midi")}</option><option value="continuous">{audioCopy(props.guiLanguage)("continuous")}</option>
+              </select>
             </label>
           </div>
         </div>
@@ -265,7 +263,7 @@ export function PatchToolbar(props: PatchToolbarProps) {
               <option key={patch.id} value={patch.id}>
                 {patch.name}
                 {patch.is_template ? ` ${copy.templateToken}` : ""}
-                {patch.always_on ? ` ${copy.alwaysOnToken}` : ""}
+                {patch.always_on ? ` ${audioCopy(props.guiLanguage)("continuous")}` : ""}
               </option>
             ))}
           </select>

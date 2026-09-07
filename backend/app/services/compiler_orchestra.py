@@ -58,7 +58,9 @@ class OrchestraEmitter:
         allow_packaged_asset_paths: bool = False,
         performance_input_mode: str = "midi",
         score_midi_channel: int = 0,
+        direct_output_ports: dict[str, tuple[str, str]] | None = None,
     ) -> CompiledInstrumentLines:
+        deferred_audio_outlets: list[str] = []
         diagnostics: list[str] = []
         warnings: list[str] = []
         ui_layout = patch.graph.ui_layout
@@ -155,6 +157,15 @@ class OrchestraEmitter:
 
             if diagnostics:
                 raise CompilationError(diagnostics)
+
+            if compiled.spec.name == "outs" and direct_output_ports is not None:
+                left, right = direct_output_ports[compiled.node.id]
+                deferred_audio_outlets.extend([
+                    self._node_comment(compiled.node.id, "outs"),
+                    f"outleta {self._format_csound_string(left)}, {env['left']}",
+                    f"outleta {self._format_csound_string(right)}, {env['right']}",
+                ])
+                continue
 
             if compiled.spec.name == "GEN":
                 rendered = self._render_gen_node(
@@ -318,10 +329,10 @@ class OrchestraEmitter:
                 raise CompilationError([f"Template value missing for node '{compiled.node.id}': {err}"]) from err
 
             rendered = self._cleanup_optional_placeholders(rendered)
-            instrument_lines.extend(
-                [self._node_comment(compiled.node.id, compiled.spec.name), *rendered.splitlines()]
-            )
+            destination = deferred_audio_outlets if direct_output_ports is not None and compiled.spec.name == "outleta" else instrument_lines
+            destination.extend([self._node_comment(compiled.node.id, compiled.spec.name), *rendered.splitlines()])
 
+        instrument_lines.extend(deferred_audio_outlets)
         return CompiledInstrumentLines(
             instrument_lines=instrument_lines,
             sfload_global_requests=sfload_global_requests,

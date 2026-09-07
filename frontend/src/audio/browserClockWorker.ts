@@ -96,6 +96,8 @@ class BrowserClockWorkerRuntime {
   private diagnosticTimer: number | null = null;
   private lastRefillEpoch = 0;
   private writeFrameTotal = 0;
+  private pendingMeters: Array<{ target: number; levels: Record<string, import("../lib/mixerRuntime").MeterValue> }> = [];
+  private lastMeterPost = 0;
   private readFrameTotal = 0;
   private lastReadCounter = 0;
   private timeline: AbsoluteTimelineSegment[] = [];
@@ -111,6 +113,10 @@ class BrowserClockWorkerRuntime {
 
   handleMessage(message: BrowserClockMainToWorkerMessage): void {
     switch (message.type) {
+      case "mixer_request":
+        if (this.socket?.readyState === WebSocket.OPEN) this.socket.send(JSON.stringify({ type: "mixer_update", request_id: message.requestId, controls: { ...message.mixer, revision: message.revision } }));
+        else this.post({ type: "mixer_error", requestId: message.requestId, detail: "Browser controller disconnected" });
+        return;
       case "connect":
         this.connect(message);
         return;
@@ -217,6 +223,7 @@ class BrowserClockWorkerRuntime {
     this.underrunRecoveryUntil = 0;
     this.lastRefillEpoch = 0;
     this.writeFrameTotal = 0;
+    this.pendingMeters = [];
     this.readFrameTotal = 0;
     this.lastReadCounter = 0;
     this.timeline = [];
@@ -273,6 +280,12 @@ class BrowserClockWorkerRuntime {
 
   private handleServerMessage(message: BrowserClockServerMessage): void {
     switch (message.type) {
+      case "mixer_ack":
+        this.post({ type: "mixer_ack", requestId: message.request_id, result: { mixer: message.mixer, revision: message.revision } });
+        return;
+      case "mixer_error":
+        this.post({ type: "mixer_error", requestId: message.request_id, detail: message.detail });
+        return;
       case "stream_config":
         this.streamConfig = message;
         this.lastUnderrunCount = this.underrunCount();
@@ -370,6 +383,9 @@ class BrowserClockWorkerRuntime {
       (writeCounter + metadata.target_frame_count) >>> 0
     );
 
+    for (const meter of metadata.mixer_meters ?? []) {
+      this.pendingMeters.push({ target: absoluteWriteStart + Math.max(0, Math.round((meter.engineSample - metadata.engine_sample_start) * metadata.target_sample_rate / metadata.engine_sample_rate)), levels: meter.levels });
+    }
     for (const segment of metadata.timeline_segments ?? []) {
       const start = Math.max(0, Math.min(metadata.target_frame_count, Math.round(segment.target_frame_start)));
       const end = Math.max(start, Math.min(metadata.target_frame_count, Math.round(segment.target_frame_end)));
@@ -530,6 +546,11 @@ class BrowserClockWorkerRuntime {
     this.updateReadFrameTotal();
     this.updatePlaybackTransport();
     this.drainAudibleEvents();
+    if (performance.now() - this.lastMeterPost >= 1000 / 15) {
+      let latest: typeof this.pendingMeters[number] | undefined;
+      while (this.pendingMeters[0]?.target <= this.readFrameTotal) latest = this.pendingMeters.shift();
+      if (latest) { this.post({ type: "mixer_meters", levels: latest.levels }); this.lastMeterPost = performance.now(); }
+    }
     this.requestRefill();
   }
 

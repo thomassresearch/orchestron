@@ -53,3 +53,5 @@ This chapter covers the `Perform` page (labeled `Perform` / `Performance` depend
 <p align="center"><em>Performance page overview with instrument rack plus melodic, drummer, and controller sequencer sections.</em></p>
 
 **Navigation:** [Up](../user_documentation.md) | [Prev](../instrument_design/supported_opcodes.md) | [Next](instrument_rack_and_engine_transport.md)
+
+- [Audio mixer and routing](audio_mixer_and_routing.md) — faders, sends, Master, inserts, diagnostics and migration.
