@@ -6199,3 +6199,46 @@ def test_multi_instrument_compile_uses_first_instrument_engine_config(tmp_path: 
         assert "0dbfs = 1.0" in compiled_orc
         assert "instr 1" in compiled_orc
         assert "instr 2" in compiled_orc
+
+
+def test_stereo_mapping_opcode_round_trip_and_compile(tmp_path: Path) -> None:
+    """Editor stereo blocks persist ordinary channels, including remapped formulas."""
+    payload = _audio_outlet_only_source_patch_payload(name="Stereo editor round trip")
+    ports = [node["params"]["sname"] for node in payload["graph"]["nodes"] if node["opcode"] == "outleta"]
+    payload["graph"]["audio_interface"] = {
+        "role": "instrument",
+        "guided": True,
+        "groups": [{"id": "main-output", "name": "Stereo Output", "direction": "output", "layout": "stereo", "ports": ports, "purpose": "main"}],
+        "mainInput": None,
+        "mainOutput": "main-output",
+    }
+    payload["graph"]["ui_layout"] = {
+        "audio_blocks": {"main-output": True},
+        "input_formulas": {"out_l::asignal": {"expression": "0.5*in1", "inputs": [{"token": "in1", "from_node_id": "sig", "from_port_id": "aout"}]}},
+    }
+    with _client(tmp_path) as client:
+        saved = client.post("/api/patches", json=payload)
+        assert saved.status_code == 201, saved.text
+        identity = saved.json()["id"]
+        loaded = client.get(f"/api/patches/{identity}").json()
+        assert loaded["graph"]["audio_interface"] == payload["graph"]["audio_interface"]
+        assert loaded["graph"]["ui_layout"] == payload["graph"]["ui_layout"]
+        assert all(not node["opcode"].startswith("__") for node in loaded["graph"]["nodes"])
+        session = client.post("/api/sessions", json={"patch_id": identity, "midi_channel": 1})
+        assert session.status_code == 201, session.text
+        compiled = client.post(f"/api/sessions/{session.json()['session_id']}/compile")
+        assert compiled.status_code == 200, compiled.text
+        assert f'outleta "{ports[0]}", (0.5 * a_sig_aout_1)' in compiled.json()["orc"]
+        assert "__stereo" not in compiled.json()["orc"]
+
+        # The editor's atomic delete payload clears both members and main references.
+        payload["is_template"] = True
+        payload["graph"]["nodes"] = [node for node in payload["graph"]["nodes"] if node["opcode"] != "outleta"]
+        payload["graph"]["connections"] = []
+        payload["graph"]["audio_interface"].update(groups=[], mainOutput=None)
+        payload["graph"]["ui_layout"] = {"audio_blocks": {}}
+        deleted = client.put(f"/api/patches/{identity}", json=payload)
+        assert deleted.status_code == 200, deleted.text
+        reloaded = client.get(f"/api/patches/{identity}").json()
+        assert reloaded["graph"]["audio_interface"]["groups"] == []
+        assert reloaded["graph"]["audio_interface"]["mainOutput"] is None

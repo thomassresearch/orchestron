@@ -1,3 +1,5 @@
+import { executeStereoCommand, reconcileAudioGraph, deleteAudioGraphItems } from "../lib/audioBlocks";
+import { stereoOpcodeDirection } from "../lib/stereoCatalog";
 import { createMixerActions, initialMixerState } from "./appStoreMixer";
 import { emptyAudioGraph, emptyMixer, migrateAudio, cleanBindings } from "../lib/audioRouting";
 import { create } from "zustand";
@@ -537,12 +539,17 @@ export const useAppStore = create<AppStore>((set, get) => {
       const current = get().currentPatch;
       commitCurrentPatch({
         ...current,
-        graph: withNormalizedEngineConfig(graph)
+        graph: withNormalizedEngineConfig(reconcileAudioGraph(current.graph, graph))
       });
     },
 
     addNodeFromOpcode: (opcode, position) => {
       const current = get().currentPatch;
+      const direction = stereoOpcodeDirection(opcode.name);
+      if (direction) {
+        commitCurrentPatch({ ...current, graph: executeStereoCommand(current.graph, { kind: "create", direction, position }) });
+        return;
+      }
       const index = current.graph.nodes.length;
 
       const node: NodeInstance = {
@@ -565,13 +572,7 @@ export const useAppStore = create<AppStore>((set, get) => {
       const current = get().currentPatch;
       commitCurrentPatch({
         ...current,
-        graph: {
-          ...current.graph,
-          nodes: current.graph.nodes.filter((node) => node.id !== nodeId),
-          connections: current.graph.connections.filter(
-            (connection) => connection.from_node_id !== nodeId && connection.to_node_id !== nodeId
-          )
-        }
+        graph: deleteAudioGraphItems(current.graph, [nodeId])
       });
     },
 

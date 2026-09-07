@@ -1,3 +1,4 @@
+import { stereoOpcodeDirection, stereoOpcodeLabel } from "../lib/stereoCatalog";
 import type { JSX } from "react";
 import type { GuiLanguage, OpcodeSpec } from "../types";
 import { localizedOpcodeMarkdown } from "../lib/opcodeDocumentation";
@@ -13,12 +14,12 @@ interface OpcodeDocumentationModalProps {
 
 export function OpcodeDocumentationModal({ opcode, guiLanguage, onClose }: OpcodeDocumentationModalProps): JSX.Element {
   const ui = documentationUiCopy(guiLanguage);
-  const markdown = localizedOpcodeMarkdown(opcode, guiLanguage);
+  const markdown = stereoOpcodeDirection(opcode.name) ? opcode.documentation_markdown : localizedOpcodeMarkdown(opcode, guiLanguage);
 
   return (
     <DocumentationModalFrame
       ariaLabel={`${opcode.name} ${ui.opcodeDocumentation}`}
-      title={opcode.name}
+      title={stereoOpcodeLabel(opcode.name, guiLanguage)}
       subtitle={ui.opcodeDocumentation}
       closeLabel={ui.close}
       onClose={onClose}

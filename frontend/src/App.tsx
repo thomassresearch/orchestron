@@ -1,3 +1,4 @@
+import { stereoCatalogEntries } from "./lib/stereoCatalog";
 import { AuditionPanel } from "./components/AuditionPanel";
 import { AudioGraphEditor } from "./components/AudioGraphEditor";
 import { audioTemplate, type BuiltinTemplate } from "./lib/audioTemplates";
@@ -63,7 +64,7 @@ import {
   buildBackendArpeggiatorConfigs,
   buildDrummerRowTrackConfigs,
   buildGraphSelectionDeletePlan,
-  connectionKey,
+  applyGraphSelectionDeletePlan,
   enabledForSequencerConfigExport,
   hasEnabledPerformanceSequencer,
   normalizeMidiChannel,
@@ -833,9 +834,10 @@ export default function App() {
       })),
     [appCopy, instrumentTabs]
   );
+  const editorOpcodes = useMemo(() => [...opcodes, ...stereoCatalogEntries(opcodes, guiLanguage)], [opcodes, guiLanguage]);
   const selectedOpcodeDocumentation = useMemo(
-    () => opcodes.find((opcode) => opcode.name === activeOpcodeDocumentation) ?? null,
-    [activeOpcodeDocumentation, opcodes]
+    () => editorOpcodes.find((opcode) => opcode.name === activeOpcodeDocumentation) ?? null,
+    [activeOpcodeDocumentation, editorOpcodes]
   );
   const documentationCopy = useMemo(() => documentationUiCopy(guiLanguage), [guiLanguage]);
   const importConflictValidationError = useMemo(() => {
@@ -1675,23 +1677,7 @@ export default function App() {
 
   const applyDeleteSelectionPlan = useCallback(
     (plan: DeleteSelectionDialogState) => {
-      if (plan.nodeIds.length === 0 && plan.connectionKeys.length === 0) {
-        return;
-      }
-
-      const nodeIdsToRemove = new Set(plan.nodeIds);
-      const connectionsToRemove = new Set(plan.connectionKeys);
-
-      setGraph({
-        ...currentPatch.graph,
-        nodes: currentPatch.graph.nodes.filter((node) => !nodeIdsToRemove.has(node.id)),
-        connections: currentPatch.graph.connections.filter((connection) => {
-          if (nodeIdsToRemove.has(connection.from_node_id) || nodeIdsToRemove.has(connection.to_node_id)) {
-            return false;
-          }
-          return !connectionsToRemove.has(connectionKey(connection));
-        })
-      });
+      setGraph(applyGraphSelectionDeletePlan(currentPatch.graph, plan));
     },
     [currentPatch.graph, setGraph]
   );
@@ -1742,7 +1728,7 @@ export default function App() {
       return;
     }
 
-    const plan = buildGraphSelectionDeletePlan(currentPatch.graph, selection, opcodes, appCopy);
+    const plan = buildGraphSelectionDeletePlan(currentPatch.graph, selection, opcodes, appCopy, guiLanguage);
     if (plan.itemLabels.length === 0) {
       return;
     }
@@ -1753,7 +1739,7 @@ export default function App() {
     }
 
     applyDeleteSelectionPlan(plan);
-  }, [appCopy, applyDeleteSelectionPlan, currentPatch.graph, opcodes, selectedCount, selection]);
+  }, [appCopy, applyDeleteSelectionPlan, currentPatch.graph, opcodes, selectedCount, selection, guiLanguage]);
 
   const instrumentLayoutClassName = runtimePanelCollapsed
     ? "grid h-[68vh] grid-cols-1 gap-3 xl:grid-cols-[280px_1fr]"
@@ -2195,7 +2181,7 @@ export default function App() {
                 <HelpIconButton guiLanguage={guiLanguage} onClick={() => onHelpRequest("instrument_opcode_catalog")} />
                 <OpcodeCatalog
                   guiLanguage={guiLanguage}
-                  opcodes={opcodes}
+                  opcodes={editorOpcodes}
                   onAddOpcode={addNodeFromOpcode}
                   onOpcodeHelpRequest={onOpcodeHelpRequest}
                 />
@@ -2236,11 +2222,13 @@ export default function App() {
                 </div>
                 <div className="min-h-0 flex-1">
                   <AudioGraphEditor
+                    patchId={currentPatch.id}
+                    onDeleteAudioGroup={(groupId) => setDeleteSelectionDialog(buildGraphSelectionDeletePlan(currentPatch.graph, { nodeIds: [], connections: [] }, opcodes, appCopy, guiLanguage, [groupId]))}
                     guiLanguage={guiLanguage}
                     graph={currentPatch.graph}
                     graphLabel={currentPatch.name.trim().length > 0 ? currentPatch.name.trim() : "Untitled Patch"}
                     graphBadgeLabel={currentPatch.is_template ? appCopy.templateToken : undefined}
-                    opcodes={opcodes}
+                    opcodes={editorOpcodes}
                     viewportKey={`${activeInstrumentTabId}:${currentPatch.id ?? "draft"}`}
                     onGraphChange={onGraphChange}
                     onSelectionChange={setSelection}

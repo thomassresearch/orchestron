@@ -1,3 +1,7 @@
+import { deleteAudioGraphItems, resolveStereoMembers } from "./lib/audioBlocks";
+import { readInputFormulaMap } from "./lib/graphFormula";
+import { audioCopy } from "./lib/audioCopy";
+import { stereoCopy } from "./lib/stereoCopy";
 import type { EditorSelection } from "./components/ReteNodeEditor";
 import {
   compileArrangerTransportSequence
@@ -7,6 +11,7 @@ import { sequencerTransportStepsPerBeat } from "./lib/sequencer";
 import { drummerRowRuntimeTrackId } from "./lib/sequencerRuntime";
 import type {
   Connection,
+  GuiLanguage,
   DrummerSequencerTrackState,
   OpcodeSpec,
   PatchGraph,
@@ -78,6 +83,7 @@ export function buildBackendArpeggiatorConfigs(
 }
 
 export type DeleteSelectionDialogState = {
+  groupIds: string[];
   nodeIds: string[];
   connectionKeys: string[];
   itemLabels: string[];
@@ -250,9 +256,12 @@ export function buildGraphSelectionDeletePlan(
   graph: PatchGraph,
   selection: EditorSelection,
   opcodes: OpcodeSpec[],
-  copy: Pick<AppCopy, "deleteSelectionDialogOpcodeItem" | "deleteSelectionDialogConnectionItem">
+  copy: Pick<AppCopy, "deleteSelectionDialogOpcodeItem" | "deleteSelectionDialogConnectionItem">,
+  language: GuiLanguage = "english",
+  requestedGroupIds: string[] = []
 ): DeleteSelectionDialogState {
-  const nodeIds = Array.from(new Set(selection.nodeIds));
+  const groupNodes = (graph.audio_interface?.groups ?? []).filter((g) => requestedGroupIds.includes(g.id)).flatMap((g) => resolveStereoMembers(graph, g).nodes.map((n) => n.id));
+  const nodeIds = Array.from(new Set([...selection.nodeIds, ...groupNodes]));
   const nodeIdSet = new Set(nodeIds);
   const selectedConnectionKeySet = new Set(selection.connections.map((connection) => connectionKey(connection)));
   const nodeById = new Map(graph.nodes.map((node) => [node.id, node]));
@@ -286,11 +295,19 @@ export function buildGraphSelectionDeletePlan(
     );
   }
 
-  return {
-    nodeIds,
-    connectionKeys,
-    itemLabels
-  };
+  const next = deleteAudioGraphItems(graph, nodeIds, selection.connections, requestedGroupIds);
+  const groupIds = (graph.audio_interface?.groups ?? []).filter((g) => !next.audio_interface?.groups.some((other) => other.id === g.id)).map((g) => g.id);
+  for (const group of graph.audio_interface?.groups ?? []) {
+    if (groupIds.includes(group.id)) itemLabels.push(`${audioCopy(language)("mapping")}: ${group.name} (${group.ports.join(" / ")})`);
+  }
+  const nextFormulas = readInputFormulaMap(next.ui_layout);
+  for (const key of Object.keys(readInputFormulaMap(graph.ui_layout))) {
+    if (!nextFormulas[key]) itemLabels.push(`${stereoCopy(language)("formula")}: ${key}`);
+  }
+  return { groupIds, nodeIds, connectionKeys, itemLabels };
 }
 
 
+export function applyGraphSelectionDeletePlan(graph: PatchGraph, plan: DeleteSelectionDialogState): PatchGraph {
+  return deleteAudioGraphItems(graph, plan.nodeIds, graph.connections.filter((c) => plan.connectionKeys.includes(connectionKey(c))), plan.groupIds);
+}

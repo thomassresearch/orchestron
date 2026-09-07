@@ -1,3 +1,4 @@
+import { stereoOpcodeLabel } from "../lib/stereoCatalog";
 import { audioCopy } from "../lib/audioCopy";
 import { useMemo, useState } from "react";
 
@@ -77,11 +78,11 @@ export function OpcodeCatalog({ guiLanguage, opcodes, onAddOpcode, onOpcodeHelpR
             >
               <img
                 src={new URL(opcode.icon, iconBase).toString()}
-                alt={opcode.name}
+                alt={stereoOpcodeLabel(opcode.name, guiLanguage)}
                 className="h-8 w-8 rounded-md border border-slate-700 bg-slate-800"
               />
               <div className="min-w-0 flex-1">
-                <div className="truncate font-mono text-xs text-slate-200">{opcode.name === "outs" ? `${audioCopy(guiLanguage)("direct")} · outs` : opcode.name}</div>
+                <div className="truncate font-mono text-xs text-slate-200">{opcode.name === "outs" ? `${audioCopy(guiLanguage)("direct")} · outs` : stereoOpcodeLabel(opcode.name, guiLanguage)}</div>
                 <div className="truncate text-[11px] uppercase tracking-[0.16em] text-slate-500">{opcode.category}</div>
               </div>
               <span className="text-[10px] font-semibold uppercase tracking-wider text-accent opacity-0 transition group-hover:opacity-100">
@@ -91,8 +92,8 @@ export function OpcodeCatalog({ guiLanguage, opcodes, onAddOpcode, onOpcodeHelpR
             {onOpcodeHelpRequest ? (
               <button
                 type="button"
-                aria-label={`${documentationCopy.showDocumentation}: ${opcode.name}`}
-                title={`${documentationCopy.showDocumentation}: ${opcode.name}`}
+                aria-label={`${documentationCopy.showDocumentation}: ${stereoOpcodeLabel(opcode.name, guiLanguage)}`}
+                title={`${documentationCopy.showDocumentation}: ${stereoOpcodeLabel(opcode.name, guiLanguage)}`}
                 onClick={(event) => {
                   event.preventDefault();
                   event.stopPropagation();

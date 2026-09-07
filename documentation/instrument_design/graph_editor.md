@@ -123,15 +123,23 @@ The graph editor `?` help now concentrates on graph-specific behavior: persisted
 
 Stereo Input and Stereo Output are collapsible views of ordinary paired inleta/outleta nodes. Expand them to edit the underlying opcodes and connections. Exact port names and input formulas survive collapsing, expansion, saving and export. Direct Audio Output (outs) stays distinct.
 
-The interface panel describes musical role, stable group IDs, display names, mono/stereo/custom layouts, exact member ports, sidechain purpose and designated main input/output. Collapse/layout state is separate from these semantics. Legacy stereo suggestions show the resolved labels before applying metadata and do not rename ports.
+The interface panel describes musical role, stable group IDs, display names, exact member ports, purpose and designated main input/output. Stereo blocks and their mappings share the same creation and deletion operations. Advanced mono/custom groups remain metadata views; changing a stereo group to another layout exposes the ordinary nodes without deleting them.
 
-### Define and inspect a stereo interface
+### Create, rename and remove a stereo interface
 
-1. Expand **Stereo Input / Stereo Output · Exact channel mapping** above the canvas.
-2. Use **+ Stereo Input · inleta** or **+ Stereo Output · outleta** to add a paired block when needed.
-3. Set Role and review each group's display name, Layout, comma-separated exact port names and purpose (main, aux, sidechain or custom). Select the designated Main input/Main output groups used by guided routing and inserts.
-4. Use **Show underlying nodes** to inspect the paired opcodes; **Collapse** returns to the grouped view. Group metadata must refer to the actual inlet/outlet names: editing a display name does not rename Csound ports.
-5. Compile and save the patch before assigning it in Perform. Choose and verify the performance connections in [Audio Mixer and Routing](../performance/audio_mixer_and_routing.md).
+1. Click **Stereo Input** or **Stereo Output** in the opcode catalog, drag either onto the canvas, or expand **Stereo Input / Stereo Output · Exact channel mapping** and use its matching add button. Each action creates two channels and their mapping. Connect the new audio ports as needed.
+2. Set Role and review the group's display name, purpose and designated Main input/Main output. New pairs use `left`/`right` or an available `busN.left`/`busN.right` pair. Channel names are unique within each direction.
+3. Edit **Left** and **Right**, then choose **Apply** to review and confirm the rename. **Cancel** discards the draft. Renaming changes the mapping and underlying opcode names together. A string constant supplying an old name remains available to its other connections.
+4. **Show underlying nodes** exposes the pair; **Collapse** returns to its grouped view. Delete a collapsed block or choose **Remove** on its mapping to remove both channels, attached connections and affected input formulas. The confirmation lists all affected elements. Deleting only one expanded channel removes the mapping and leaves the other as an ordinary opcode. Deleting a connection alone retains the mapping.
+5. Deleting the designated main group clears its selection without promoting another group. Select a remaining group explicitly when needed.
+6. Compile and save before assigning the patch in Perform. Check [Audio Mixer and Routing](../performance/audio_mixer_and_routing.md) after any external port changes.
+
+### Upgrade or repair an existing instrument
+
+- **Group existing channels:** choose Stereo Input or Stereo Output, select the existing Left/Right nodes and review the change. This preserves their exact names, IDs, positions, wiring and formulas. Channels already used by another mapping, duplicate names and unresolved expressions must be repaired first.
+- **Convert Direct Audio Output:** select one `outs` node and review its replacement with a named stereo outlet pair. Each side retains its incoming wires, literal value and input formula. Missing inputs remain unconnected. Other direct outputs are left intact. This changes the destination model: connect the named ports in the performance mixer to hear them.
+- Old patches are not converted automatically. Stale mappings show a reason and **Repair** / **Remove mapping**. Repair can bind a chosen existing pair or explicitly **Create missing channels**. Removing an unresolved mapping removes only metadata, preserving existing nodes.
+- Conversion and renaming preserve role and activation. Previews list affected current-performance routes for explicit repair in the mixer after saving; other saved performances remain unchanged.
 
 <p align="center">
   <img src="../../screenshots/instrument_stereo_audio_interface.png" alt="Stereo effect interface metadata and collapsed input/output blocks" width="900" style="max-width: 100%; height: auto;" />
