@@ -13,11 +13,11 @@ dependencies = [
   "mido>=1.3.3",
   "ctcsound>=6.17.1",
   "numpy>=2.0.0",
-  "pyopenssl==26.2.0",
+  "pyopenssl==26.4.0",
   "urllib3>=2.7.0",
   "idna>=3.18",
   "starlette>=1.3.1",
-  "cryptography>=48.0.1",
+  "cryptography>=50.0.0",
 ]
 
 [project.optional-dependencies]
