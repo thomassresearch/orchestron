@@ -1,3 +1,4 @@
+import { normalizeStereoChannelNames } from "../lib/audioBlocks";
 import type { AudioGraph, MixerState } from "../types";
 import { emptyAudioGraph, emptyMixer, cleanBindings, migrateAudio } from "../lib/audioRouting";
 import { api } from "../api/client";
@@ -2106,9 +2107,9 @@ export function normalizeEngineConfig(raw: Partial<EngineConfig> | undefined): E
   };
 }
 
-export function withNormalizedEngineConfig(graph: PatchGraph): PatchGraph {
+export function normalizePatchGraph(graph: PatchGraph): PatchGraph {
   return {
-    ...graph,
+    ...normalizeStereoChannelNames(graph),
     engine_config: normalizeEngineConfig(graph.engine_config)
   };
 }
@@ -2117,7 +2118,7 @@ export function defaultEditablePatch(): EditablePatch {
   const patch = createUntitledPatch();
   return {
     ...patch,
-    graph: withNormalizedEngineConfig(patch.graph)
+    graph: normalizePatchGraph(patch.graph)
   };
 }
 
@@ -2170,7 +2171,7 @@ export function normalizePersistedPatch(raw: unknown): EditablePatch {
       : 1;
   const graph =
     patch.graph && typeof patch.graph === "object" && !Array.isArray(patch.graph)
-      ? withNormalizedEngineConfig(patch.graph as PatchGraph)
+      ? normalizePatchGraph(patch.graph as PatchGraph)
       : fallback.graph;
   const createdAt = typeof patch.created_at === "string" ? patch.created_at : undefined;
   const updatedAt = typeof patch.updated_at === "string" ? patch.updated_at : undefined;
@@ -2321,7 +2322,7 @@ export function buildPersistedAppStateSnapshot(state: AppStore): PersistedAppSta
         is_template: tab.patch.is_template,
         always_on: tab.patch.always_on,
         schema_version: tab.patch.schema_version,
-        graph: withNormalizedEngineConfig(tab.patch.graph),
+        graph: normalizePatchGraph(tab.patch.graph),
         created_at: tab.patch.created_at,
         updated_at: tab.patch.updated_at
       }
@@ -2428,7 +2429,7 @@ export function normalizePatch(patch: Patch): EditablePatch {
     is_template: patch.is_template === true,
     always_on: patch.always_on === true,
     schema_version: patch.schema_version,
-    graph: withNormalizedEngineConfig(patch.graph),
+    graph: normalizePatchGraph(patch.graph),
     created_at: patch.created_at,
     updated_at: patch.updated_at
   };
@@ -2477,7 +2478,7 @@ export function parseEmbeddedPerformancePatchDefinition(raw: unknown): EmbeddedP
     is_template: isTemplate,
     always_on: alwaysOn,
     schema_version: schemaVersion,
-    graph: withNormalizedEngineConfig(record.graph as PatchGraph)
+    graph: normalizePatchGraph(record.graph as PatchGraph)
   };
 }
 

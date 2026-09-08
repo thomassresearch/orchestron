@@ -66,7 +66,7 @@ import {
   sequencerRuntimeStateFromSequencer,
   sequencerSnapshotForPersistence,
   updatePatchInTabs,
-  withNormalizedEngineConfig
+  normalizePatchGraph
 } from "./appStoreModel";
 import { createSequencerStoreActions } from "./appStoreSequencerActions";
 
@@ -329,7 +329,7 @@ export const useAppStore = create<AppStore>((set, get) => {
                 is_template: tab.patch.is_template,
                 always_on: tab.patch.always_on,
                 schema_version: tab.patch.schema_version,
-                graph: withNormalizedEngineConfig(tab.patch.graph),
+                graph: normalizePatchGraph(tab.patch.graph),
                 created_at: tab.patch.created_at,
                 updated_at: tab.patch.updated_at
               }
@@ -479,7 +479,7 @@ export const useAppStore = create<AppStore>((set, get) => {
         description: template.description,
         is_template: false,
         always_on: template.always_on === true,
-        graph: withNormalizedEngineConfig(JSON.parse(JSON.stringify(template.graph)) as PatchGraph)
+        graph: normalizePatchGraph(JSON.parse(JSON.stringify(template.graph)) as PatchGraph)
       });
     },
 
@@ -539,7 +539,7 @@ export const useAppStore = create<AppStore>((set, get) => {
       const current = get().currentPatch;
       commitCurrentPatch({
         ...current,
-        graph: withNormalizedEngineConfig(reconcileAudioGraph(current.graph, graph))
+        graph: normalizePatchGraph(reconcileAudioGraph(current.graph, graph))
       });
     },
 
@@ -590,7 +590,7 @@ export const useAppStore = create<AppStore>((set, get) => {
     saveCurrentPatch: async () => {
       const current = {
         ...get().currentPatch,
-        graph: withNormalizedEngineConfig(get().currentPatch.graph)
+        graph: normalizePatchGraph(get().currentPatch.graph)
       };
 
 
@@ -725,7 +725,7 @@ export const useAppStore = create<AppStore>((set, get) => {
 
       commitCurrentPatch(nextPatch, { error: null });
 
-      const normalizedGraph = withNormalizedEngineConfig(nextPatch.graph);
+      const normalizedGraph = normalizePatchGraph(nextPatch.graph);
 
       try {
         let persisted: Patch;
@@ -854,7 +854,7 @@ export const useAppStore = create<AppStore>((set, get) => {
       try {
         const current = {
           ...get().currentPatch,
-          graph: withNormalizedEngineConfig(get().currentPatch.graph)
+          graph: normalizePatchGraph(get().currentPatch.graph)
         };
 
         const patchName = current.name.trim().length > 0 ? current.name.trim() : "Untitled Patch";

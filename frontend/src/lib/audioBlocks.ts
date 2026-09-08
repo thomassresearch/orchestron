@@ -15,11 +15,13 @@ const opcodeFor = (direction: AudioDirection) => direction === "input" ? "inleta
 
 /** Never infer a literal from a parameter when a connected expression overrides it. */
 export function audioPortName(graph: PatchGraph, node: NodeInstance): string | null {
-  if (readInputFormulaMap(graph.ui_layout)[`${node.id}::sname`]) return null;
+  const formulas = readInputFormulaMap(graph.ui_layout);
+  if (formulas[`${node.id}::sname`]) return null;
   const links = graph.connections.filter((c) => c.to_node_id === node.id && c.to_port_id === "sname");
   if (!links.length) return typeof node.params.sname === "string" ? node.params.sname : null;
-  if (links.length !== 1) return null;
+  if (links.length !== 1 || links[0].from_port_id !== "sout") return null;
   const literal = graph.nodes.find((n) => n.id === links[0].from_node_id && n.opcode === "const_s");
+  if (literal && formulas[`${literal.id}::value`]) return null;
   return typeof literal?.params.value === "string" ? literal.params.value : null;
 }
 export function audioPorts(graph: PatchGraph, direction: AudioDirection): string[] {
@@ -41,6 +43,37 @@ export function resolveStereoMembers(graph: PatchGraph, group: AudioPortGroup): 
   if (graph.audio_interface?.groups.some((other) => other.id !== group.id && other.direction === group.direction && other.ports.some((p) => group.ports.includes(p)))) return { nodes: [], issue: "overlappingMembers" };
   return { nodes: matches.map((m) => m[0]) };
 }
+
+/** Store grouped channel names on the channels, independently of legacy naming nodes. */
+export function normalizeStereoChannelNames(graph: PatchGraph): PatchGraph {
+  const names = new Map<string, string>();
+  for (const group of graph.audio_interface?.groups ?? []) {
+    const resolution = resolveStereoMembers(graph, group);
+    if (!resolution.issue) resolution.nodes.forEach((node, i) => names.set(node.id, group.ports[i]));
+  }
+  if (!names.size) return graph;
+  const nameConnections = graph.connections.filter((c) => names.has(c.to_node_id) && c.to_port_id === "sname");
+  if (!nameConnections.length) return graph;
+
+  const detached = new Set(nameConnections);
+  const connections = graph.connections.filter((c) => !detached.has(c));
+  const candidates = new Set(nameConnections.map((c) => c.from_node_id));
+  const channels = new Set(nameConnections.map((c) => c.to_node_id));
+  // Shared constants may still drive other ports or be referenced only by a formula.
+  const referenced = new Set(connections.flatMap((c) => [c.from_node_id, c.to_node_id]));
+  for (const [key, formula] of Object.entries(readInputFormulaMap(graph.ui_layout))) {
+    referenced.add(parseFormulaTargetKey(key)!.toNodeId);
+    formula.inputs.forEach((input) => referenced.add(input.from_node_id));
+  }
+  return {
+    ...graph,
+    nodes: graph.nodes
+      .filter((node) => !candidates.has(node.id) || referenced.has(node.id))
+      .map((node) => channels.has(node.id) ? { ...node, params: { ...node.params, sname: names.get(node.id)! } } : node),
+    connections
+  };
+}
+
 function availableStereoPorts(graph: PatchGraph, direction: AudioDirection): [string, string] {
   const used = new Set([...audioPorts(graph, direction), ...(graph.audio_interface?.groups.filter((g) => g.direction === direction).flatMap((g) => g.ports) ?? [])]);
   let index = 0;
@@ -54,7 +87,7 @@ function availableStereoPorts(graph: PatchGraph, direction: AudioDirection): [st
 function withGroup(graph: PatchGraph, group: AudioPortGroup): PatchGraph {
   const info = graph.audio_interface;
   const main = group.direction === "input" ? "mainInput" : "mainOutput";
-  return {
+  return normalizeStereoChannelNames({
     ...graph,
     audio_interface: {
       ...info,
@@ -66,7 +99,7 @@ function withGroup(graph: PatchGraph, group: AudioPortGroup): PatchGraph {
       ...graph.ui_layout,
       audio_blocks: { ...(graph.ui_layout.audio_blocks as Record<string, boolean> ?? {}), [group.id]: true }
     }
-  };
+  });
 }
 
 export function addStereoBlock(graph: PatchGraph, direction: AudioDirection, position?: NodePosition): PatchGraph {
@@ -145,6 +178,7 @@ function requireGroup(graph: PatchGraph, id: string): AudioPortGroup {
   return group;
 }
 export function renameStereoBlock(graph: PatchGraph, groupId: string, names: [string, string]): PatchGraph {
+  graph = normalizeStereoChannelNames(graph);
   const group = requireGroup(graph, groupId);
   const members = resolveStereoMembers(graph, group);
   if (members.issue) throw new AudioBlockError(members.issue);

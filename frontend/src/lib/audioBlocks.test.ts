@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { addStereoBlock, audioPortName, audioPorts, convertDirectOutput, deleteAudioGraphItems, executeStereoCommand, groupStereoNodes, projectAudioBlocks, reconcileAudioGraph, renameStereoBlock, repairStereoBlock, resolveStereoMembers } from "./audioBlocks";
+import { addStereoBlock, audioPortName, audioPorts, convertDirectOutput, deleteAudioGraphItems, executeStereoCommand, groupStereoNodes, normalizeStereoChannelNames, projectAudioBlocks, reconcileAudioGraph, renameStereoBlock, repairStereoBlock, resolveStereoMembers } from "./audioBlocks";
 import { audioTemplate } from "./audioTemplates";
 import { readInputFormulaMap, writeInputFormulaMap } from "./graphFormula";
 import { APP_COPY } from "./appUiCopy";
 import { applyGraphSelectionDeletePlan, buildGraphSelectionDeletePlan } from "../appOrchestration";
 import { stereoCatalogEntries } from "./stereoCatalog";
 import { useAppStore } from "../store/useAppStore";
+import { normalizePatch, normalizePersistedInstrumentTabs } from "../store/appStoreModel";
 import { audioGraphDiagnostics } from "./audioRouting";
 import type { AudioPortGroup, PatchGraph, PatchListItem } from "../types";
 const labels = { input: "Stereo Input", output: "Stereo Output" };
@@ -96,20 +97,125 @@ describe("stereo lifecycle", () => {
 });
 
 describe("legacy grouping, names and repair", () => {
-  it("groups literal and shared-constant channels without changing nodes or wiring", () => {
+  const legacyGraph = (direction: "input" | "output", grouped = false) => {
+    const graph = audioTemplate("effect").graph;
+    graph.audio_interface = grouped ? {
+      ...graph.audio_interface!,
+      groups: graph.audio_interface!.groups.filter((g) => g.direction === direction).map((g) => ({ ...g, ports: ["legacy_left", "legacy_right"] }))
+    } : null;
+    for (const side of ["left", "right"]) {
+      graph.nodes.find((n) => n.id === `${direction}-${side}`)!.params.sname = `stale_${side}`;
+      graph.nodes.push({ id: `name-${side}`, opcode: "const_s", params: { value: `legacy_${side}` }, position: { x: 100, y: 100 } });
+      graph.connections.push({ from_node_id: `name-${side}`, from_port_id: "sout", to_node_id: `${direction}-${side}`, to_port_id: "sname" });
+    }
+    graph.ui_layout = writeInputFormulaMap(graph.ui_layout, { "output-left::asignal": { expression: "0.5 * in1", inputs: [{ token: "in1", from_node_id: "input-left", from_port_id: "asignal" }] } });
+    return graph;
+  };
+  it.each(["input", "output"] as const)("owns legacy %s names through grouping, editing, expansion and deletion", (direction) => {
+    const graph = legacyGraph(direction);
+    graph.nodes.push({ id: "unrelated", opcode: "const_s", params: { value: "keep_me" }, position: { x: 0, y: 0 } });
+    const snapshot = JSON.stringify(graph);
+    const next = groupStereoNodes(graph, direction, [`${direction}-left`, `${direction}-right`]);
+    const mapping = group(next);
+    expect(mapping.ports).toEqual(["legacy_left", "legacy_right"]);
+    expect(next.nodes.filter((n) => n.opcode === "const_s").map((n) => n.id)).toEqual(["unrelated"]);
+    expect(next.connections).toEqual(graph.connections.filter((c) => c.to_port_id !== "sname"));
+    expect(next.ui_layout.input_formulas).toEqual(graph.ui_layout.input_formulas);
+    for (const side of ["left", "right"]) {
+      const original = graph.nodes.find((n) => n.id === `${direction}-${side}`)!;
+      expect(next.nodes.find((n) => n.id === original.id)).toEqual({ ...original, params: { ...original.params, sname: `legacy_${side}` } });
+    }
+    expect(JSON.stringify(graph)).toBe(snapshot); // Cancelling the preview leaves the legacy graph intact.
+    const projection = projectAudioBlocks(next, labels, []);
+    expect(projection.members.size).toBe(1);
+    const restored = projection.restore(projection.graph);
+    expect({ ...restored, nodes: next.nodes }).toEqual(next);
+    expect(restored.nodes).toEqual(expect.arrayContaining(next.nodes));
+    expect(restored.nodes).toHaveLength(next.nodes.length);
+    const blockId = `__audio_block_${mapping.id}`;
+    const moved = projection.restore({ ...projection.graph, nodes: projection.graph.nodes.map((n) => n.id === blockId ? { ...n, position: { x: n.position.x + 50, y: n.position.y + 20 } } : n) });
+    expect(audioPorts(moved, direction)).toEqual(mapping.ports);
+    expect(moved.nodes.some((n) => n.id === "name-left")).toBe(false);
+    const renamed = renameStereoBlock(moved, mapping.id, ["renamed_left", "legacy_right"]);
+    expect(audioPorts(renamed, direction)).toEqual(["renamed_left", "legacy_right"]);
+    expect(projectAudioBlocks(JSON.parse(JSON.stringify(renamed)), labels, []).members.size).toBe(1);
+    const expanded = projectAudioBlocks({ ...renamed, ui_layout: { ...renamed.ui_layout, audio_blocks: { [mapping.id]: false } } }, labels, []);
+    expect(expanded.graph.nodes).toEqual(renamed.nodes);
+    expect(expanded.restore(expanded.graph)).toEqual(expanded.graph);
+    const removed = applyGraphSelectionDeletePlan(renamed, deleteGroup(renamed, mapping.id));
+    expect(removed.nodes.some((n) => n.id.startsWith(`${direction}-`))).toBe(false);
+    expect(removed.audio_interface!.groups).toEqual([]);
+    const survivor = deleteAudioGraphItems(renamed, [`${direction}-left`]);
+    expect(survivor.audio_interface!.groups).toEqual([]);
+    expect(audioPortName(survivor, survivor.nodes.find((n) => n.id === `${direction}-right`)!)).toBe("legacy_right");
+  });
+  it.each(["input", "output"] as const)("normalizes previously saved %s groups on load and workspace restore", (direction) => {
+    const graph = legacyGraph(direction, true);
+    const snapshot = JSON.stringify(graph);
+    const patch = { ...audioTemplate("effect"), graph };
+    const loaded = normalizePatch(patch);
+    const restored = normalizePersistedInstrumentTabs([{ id: "legacy-tab", patch }]);
+    expect(restored[0].patch.graph).toEqual(loaded.graph);
+    expect(loaded.graph.nodes.some((n) => n.opcode === "const_s")).toBe(false);
+    expect(loaded.graph.audio_interface).toEqual(graph.audio_interface);
+    expect(loaded.graph.ui_layout).toEqual(graph.ui_layout);
+    expect(normalizeStereoChannelNames(loaded.graph)).toBe(loaded.graph);
+    expect(projectAudioBlocks(loaded.graph, labels, []).members.size).toBe(1);
+    useAppStore.setState({ currentPatch: normalizePatch(audioTemplate("empty")) });
+    useAppStore.getState().setGraph(graph);
+    expect(useAppStore.getState().currentPatch.graph).toEqual(loaded.graph);
+    expect(JSON.stringify(graph)).toBe(snapshot);
+  });
+  it("detaches shared naming constants while preserving other consumers", () => {
     const graph = audioTemplate("effect").graph;
     graph.audio_interface = null;
     graph.nodes.push({ id: "name", opcode: "const_s", params: { value: "left" }, position: { x: 0, y: 0 } });
     graph.connections.push(...["input-left", "output-left"].map((id) => ({ from_node_id: "name", from_port_id: "sout", to_node_id: id, to_port_id: "sname" })));
     const next = groupStereoNodes(graph, "output", ["output-left", "output-right"]);
     expect(next.nodes).toEqual(graph.nodes);
-    expect(next.connections).toEqual(graph.connections);
+    expect(next.connections).toEqual(graph.connections.filter((c) => !(c.to_node_id === "output-left" && c.to_port_id === "sname")));
+    const deleted = deleteAudioGraphItems(next, ["name"]);
+    expect(resolveStereoMembers(deleted, group(deleted)).issue).toBeUndefined();
+    expect(projectAudioBlocks(deleted, labels, []).members.size).toBe(1);
     const renamed = renameStereoBlock(next, group(next).id, ["dryL", "dryR"]);
     expect(audioPorts(renamed, "output")).toEqual(["dryL", "dryR"]);
     expect(renamed.nodes.find((n) => n.id === "name")!.params.value).toBe("left");
     expect(renamed.connections.some((c) => c.to_node_id === "input-left" && c.from_node_id === "name")).toBe(true);
     expect(renamed.connections.some((c) => c.to_node_id === "output-left" && c.to_port_id === "sname")).toBe(false);
     expect(graph.nodes.find((n) => n.id === "output-left")!.params.sname).toBe("left");
+    const both = groupStereoNodes(next, "input", ["input-left", "input-right"]);
+    expect(both.nodes.some((n) => n.id === "name")).toBe(false);
+    expect(projectAudioBlocks(both, labels, []).members.size).toBe(2);
+  });
+  it("keeps constants referenced only by formulas", () => {
+    const graph = legacyGraph("output");
+    graph.ui_layout = writeInputFormulaMap(graph.ui_layout, { "output-left::asignal": { expression: "in1", inputs: [{ token: "in1", from_node_id: "name-left", from_port_id: "sout" }] } });
+    const next = groupStereoNodes(graph, "output", ["output-left", "output-right"]);
+    expect(next.nodes.some((n) => n.id === "name-left")).toBe(true);
+    expect(next.nodes.some((n) => n.id === "name-right")).toBe(false);
+    expect(next.ui_layout.input_formulas).toEqual(graph.ui_layout.input_formulas);
+  });
+  it.each(["rename", "repair"] as const)("internalizes legacy names during %s", (operation) => {
+    const graph = legacyGraph("output", true);
+    const next = operation === "rename" ? renameStereoBlock(graph, "main-output", ["renamed_left", "legacy_right"]) : repairStereoBlock(graph, "main-output");
+    expect(next.nodes.some((n) => n.opcode === "const_s")).toBe(false);
+    expect(resolveStereoMembers(next, group(next)).issue).toBeUndefined();
+  });
+  it("leaves ungrouped, ambiguous and unresolved legacy names untouched", () => {
+    const graph = legacyGraph("output");
+    expect(normalizeStereoChannelNames(graph)).toBe(graph);
+    graph.audio_interface = legacyGraph("output", true).audio_interface;
+    graph.nodes.push({ ...graph.nodes.find((n) => n.id === "output-left")!, id: "duplicate", params: { sname: "legacy_left" } });
+    expect(normalizeStereoChannelNames(graph)).toBe(graph);
+    graph.nodes.pop();
+    const link = graph.connections.find((c) => c.to_port_id === "sname")!;
+    link.from_port_id = "invalid";
+    expect(normalizeStereoChannelNames(graph)).toBe(graph);
+    expect(() => groupStereoNodes(graph, "output", ["output-left", "output-right"], "main-output")).toThrow("dynamicMembers");
+    link.from_port_id = "sout";
+    graph.ui_layout = writeInputFormulaMap(graph.ui_layout, { "name-left::value": { expression: "in1", inputs: [{ token: "in1", from_node_id: "name-right", from_port_id: "sout" }] } });
+    expect(normalizeStereoChannelNames(graph)).toBe(graph);
+    expect(() => groupStereoNodes(graph, "output", ["output-left", "output-right"], "main-output")).toThrow("dynamicMembers");
   });
   it("rejects duplicate, empty, reserved and colliding names without mutating the graph", () => {
     const graph = addStereoBlock(audioTemplate("instrument").graph, "output");
