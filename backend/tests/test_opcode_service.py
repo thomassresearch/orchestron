@@ -1,6 +1,37 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
+import pytest
+
 from backend.app.services.opcode_service import OpcodeService
+from backend.tests.stk_test_support import STK_CONTROLLERS
+
+
+@pytest.mark.parametrize("name", STK_CONTROLLERS)
+def test_stk_catalog_has_icons_and_complete_localized_help(name: str) -> None:
+    root = Path(__file__).resolve().parents[2]
+    service = OpcodeService(icon_prefix="/static/icons")
+    opcode = service.get_opcode(name)
+    assert opcode is not None
+    assert (root / "backend/app" / opcode.icon.lstrip("/")).is_file()
+    expected_inputs = ["ifrequency", "iamplitude"]
+    for index, (controller, _) in enumerate(STK_CONTROLLERS[name], start=1):
+        expected_inputs.extend([controller, f"kv{index}"])
+    assert [port.id for port in opcode.inputs] == expected_inputs
+    assert opcode.template == "{asignal} " + name + " " + ", ".join("{" + port + "}" for port in expected_inputs)
+    details = json.loads((root / "frontend/src/lib/opcodeDocDetails.json").read_text())[name]
+    assert set(details["inputs"]) == set(expected_inputs)
+    assert set(details["outputs"]) == {"asignal"}
+    for index, (_, number) in enumerate(STK_CONTROLLERS[name], start=1):
+        value_help = details["inputs"][f"kv{index}"]["english"]
+        assert f"(controller {number})" in value_help
+        assert "Leave unset" in value_help
+    for text in [details["description"], *details["inputs"].values(), *details["outputs"].values()]:
+        assert set(text) == {"english", "german", "french", "spanish"}
+        assert all(value.strip() for value in text.values())
+        assert all(text[lang] != text["english"] for lang in ("german", "french", "spanish"))
 
 
 def test_opcode_service_loads_catalog_from_data_file() -> None:

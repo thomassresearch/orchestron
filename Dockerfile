@@ -7,18 +7,21 @@ RUN npm run build
 
 FROM python:3.13-slim-bookworm AS app
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    RAWWAVE_PATH=/usr/share/stk/rawwaves
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     alsa-utils \
     build-essential \
     csound \
+    csound-plugins \
     libasound2 \
     libasound2-dev \
     libffi-dev \
     libjack-jackd2-0 \
     libjack-jackd2-dev \
     pkg-config \
+    stk \
     && rm -rf /var/lib/apt/lists/*
 
 RUN set -eux; \

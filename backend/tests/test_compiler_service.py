@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import pytest
 
+from backend.tests.stk_test_support import STK_CONTROLLERS
+
 from backend.app.models.patch import (
     Connection,
     EngineConfig,
@@ -496,3 +498,102 @@ def test_stereo_reverbs_compile_with_manual_argument_order(opcode_name: str, exp
         reverb_line
         == f"a_rvb_aout_l_3, a_rvb_aout_r_4 {opcode_name} a_left_aout_1, a_right_aout_2, {expected_tail}"
     )
+
+
+def _stk_patch(name: str, params: dict | None = None) -> PatchDocument:
+    return PatchDocument(
+        name=f"{name} compile test",
+        graph=PatchGraph(
+            nodes=[NodeInstance(id="stk", opcode=name, params=params or {}), NodeInstance(id="out", opcode="outs")],
+            connections=[
+                Connection(from_node_id="stk", from_port_id="asignal", to_node_id="out", to_port_id="left"),
+                Connection(from_node_id="stk", from_port_id="asignal", to_node_id="out", to_port_id="right"),
+            ],
+        ),
+    )
+
+
+@pytest.mark.parametrize("name", STK_CONTROLLERS)
+def test_stk_compile_defaults_preserve_instrument_controls(name: str) -> None:
+    service = OpcodeService(icon_prefix="/static/icons")
+    opcode = service.get_opcode(name)
+    assert opcode is not None
+    # The frontend copies every non-null default into the new node's params.
+    params = {port.id: port.default for port in opcode.inputs if port.default is not None}
+    artifact = CompilerService(service).compile_patch(_stk_patch(name, params), midi_input="0", rtmidi_module="alsaseq")
+    line = next(line.strip() for line in artifact.orc.splitlines() if f" {name} " in line)
+    assert line == f"a_stk_asignal_1 {name} {60 if name == 'STKDrummer' else 440}, 0.2"
+    assert "__VS_OPTIONAL_OMIT__" not in artifact.orc
+
+
+@pytest.mark.parametrize("name", [name for name, controllers in STK_CONTROLLERS.items() if controllers])
+@pytest.mark.parametrize("selection", ["first", "last", "all"])
+def test_stk_compile_independent_controller_pairs_in_manual_order(name: str, selection: str) -> None:
+    controllers = STK_CONTROLLERS[name]
+    pairs = list(enumerate(controllers, start=1))
+    if selection == "first":
+        pairs = pairs[:1]
+    elif selection == "last":
+        pairs = pairs[-1:]
+    params = {"ifrequency": 220, "iamplitude": 0.125}
+    expected = ["220", "0.125"]
+    for index, (_, number) in pairs:
+        # Include zero: it is an explicitly enabled control, not an omitted value.
+        params[f"kv{index}"] = index - 1
+        expected.extend([str(number), str(index - 1)])
+    artifact = CompilerService(OpcodeService(icon_prefix="/static/icons")).compile_patch(
+        _stk_patch(name, params), midi_input="0", rtmidi_module="alsaseq",
+    )
+    line = next(line.strip() for line in artifact.orc.splitlines() if f" {name} " in line)
+    assert line == f"a_stk_asignal_1 {name} " + ", ".join(expected)
+    assert "__VS_OPTIONAL_OMIT__" not in artifact.orc
+
+
+@pytest.mark.parametrize(
+    ("source_opcode", "source_port", "target_port", "valid"),
+    [
+        ("const_i", "iout", "ifrequency", True),
+        ("const_k", "kout", "ifrequency", False),
+        ("const_a", "aout", "iamplitude", False),
+        ("const_i", "iout", "kv7", True),
+        ("const_k", "kout", "kv7", True),
+        ("const_a", "aout", "kv7", False),
+        ("const_i", "iout", "kinstr", True),
+        ("const_k", "kout", "kinstr", True),
+        ("const_a", "aout", "kinstr", False),
+    ],
+)
+def test_stk_connected_inputs_enforce_init_and_control_rates(
+    source_opcode: str, source_port: str, target_port: str, valid: bool,
+) -> None:
+    patch = _stk_patch("STKBandedWG", {"kv7": 3})
+    patch.graph.nodes.insert(0, NodeInstance(id="control", opcode=source_opcode, params={"value": 16}))
+    patch.graph.connections.append(Connection(
+        from_node_id="control", from_port_id=source_port, to_node_id="stk", to_port_id=target_port,
+    ))
+    compiler = CompilerService(OpcodeService(icon_prefix="/static/icons"))
+    if not valid:
+        with pytest.raises(CompilationError) as error:
+            compiler.compile_patch(patch, midi_input="0", rtmidi_module="alsaseq")
+        assert any("Signal type mismatch" in diagnostic for diagnostic in error.value.diagnostics)
+        return
+    artifact = compiler.compile_patch(patch, midi_input="0", rtmidi_module="alsaseq")
+    line = next(line.strip() for line in artifact.orc.splitlines() if " STKBandedWG " in line)
+    source_var = f"{source_port[0]}_control_{source_port}_1"
+    assert source_var in line
+    if target_port == "kv7":
+        assert line.endswith(f", 16, {source_var}")
+    elif target_port == "kinstr":
+        assert line.endswith(f", {source_var}, 3")
+    else:
+        assert f" STKBandedWG {source_var}, 0.2, 16, 3" in line
+
+
+def test_stk_controller_formula_and_override_skip_middle_pairs() -> None:
+    patch = _stk_patch("STKBandedWG", {"kpress": 4, "kv1": 0})
+    patch.graph.ui_layout = {"input_formulas": {"stk::kv7": {"expression": "1 + 2", "inputs": []}}}
+    artifact = CompilerService(OpcodeService(icon_prefix="/static/icons")).compile_patch(
+        patch, midi_input="0", rtmidi_module="alsaseq",
+    )
+    line = next(line.strip() for line in artifact.orc.splitlines() if " STKBandedWG " in line)
+    assert line == "a_stk_asignal_1 STKBandedWG 440, 0.2, 4, 0, 16, (1 + 2)"

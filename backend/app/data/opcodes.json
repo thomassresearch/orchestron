@@ -11298,5 +11298,4172 @@
       "release"
     ],
     "icon_filename": "const_i.svg"
+  },
+  {
+    "name": "STKBeeThree",
+    "category": "fm",
+    "description": "STK four-operator FM organ inspired by Hammond organs.",
+    "documentation_markdown": "### `STKBeeThree`\n\nSTK four-operator FM organ inspired by Hammond organs.\n\nRequires the Csound stkopd plugin and its STK rawwave data. Set RAWWAVE_PATH to the rawwaves directory before starting the backend. Frequency and amplitude are init-rate. Optional controller numbers are prefilled; set a controller value to send that pair. Unset values preserve the STK instrument defaults.\n\n**Reference**\n- [Csound opcode manual](https://csound.com/docs/manual/STKBeeThree.html)",
+    "documentation_url": "https://csound.com/docs/manual/STKBeeThree.html",
+    "inputs": [
+      {
+        "id": "ifrequency",
+        "name": "Frequency",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 440,
+        "description": "Note frequency in Hz, fixed at note initialization."
+      },
+      {
+        "id": "iamplitude",
+        "name": "Amplitude",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 0.2,
+        "description": "Note amplitude at initialization, from 0 to 1."
+      },
+      {
+        "id": "kop4",
+        "name": "Gain of feedback of operator 4 CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 2,
+        "description": "Controller number for gain of feedback of operator 4. Defaults to 2; the pair is sent only when kv1 is set."
+      },
+      {
+        "id": "kv1",
+        "name": "Gain of feedback of operator 4",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for gain of feedback of operator 4 (controller 2), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kop3",
+        "name": "Gain of operator 3 CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 4,
+        "description": "Controller number for gain of operator 3. Defaults to 4; the pair is sent only when kv2 is set."
+      },
+      {
+        "id": "kv2",
+        "name": "Gain of operator 3",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for gain of operator 3 (controller 4), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "klfo",
+        "name": "Speed of low-frequency oscillator CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 11,
+        "description": "Controller number for speed of low-frequency oscillator. Defaults to 11; the pair is sent only when kv3 is set."
+      },
+      {
+        "id": "kv3",
+        "name": "Speed of low-frequency oscillator",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for speed of low-frequency oscillator (controller 11), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "klfodepth",
+        "name": "Depth of low-frequency oscillator CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 1,
+        "description": "Controller number for depth of low-frequency oscillator. Defaults to 1; the pair is sent only when kv4 is set."
+      },
+      {
+        "id": "kv4",
+        "name": "Depth of low-frequency oscillator",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for depth of low-frequency oscillator (controller 1), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kadsr",
+        "name": "Adsr 2 and 4 target CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 128,
+        "description": "Controller number for ADSR 2 and 4 target. Defaults to 128; the pair is sent only when kv5 is set."
+      },
+      {
+        "id": "kv5",
+        "name": "Adsr 2 and 4 target",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for ADSR 2 and 4 target (controller 128), range 0-127. Leave unset to retain the STK instrument default."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "asignal",
+        "name": "aOut",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Mono audio output."
+      }
+    ],
+    "template": "{asignal} STKBeeThree {ifrequency}, {iamplitude}, {kop4}, {kv1}, {kop3}, {kv2}, {klfo}, {kv3}, {klfodepth}, {kv4}, {kadsr}, {kv5}",
+    "tags": [
+      "stk",
+      "synthesis",
+      "fm"
+    ],
+    "icon_filename": "vco.svg"
+  },
+  {
+    "name": "STKFMVoices",
+    "category": "fm",
+    "description": "STK FM singing-voice instrument with vowel and spectral-tilt controls.",
+    "documentation_markdown": "### `STKFMVoices`\n\nSTK FM singing-voice instrument with vowel and spectral-tilt controls.\n\nRequires the Csound stkopd plugin and its STK rawwave data. Set RAWWAVE_PATH to the rawwaves directory before starting the backend. Frequency and amplitude are init-rate. Optional controller numbers are prefilled; set a controller value to send that pair. Unset values preserve the STK instrument defaults.\n\n**Reference**\n- [Csound opcode manual](https://csound.com/docs/manual/STKFMVoices.html)",
+    "documentation_url": "https://csound.com/docs/manual/STKFMVoices.html",
+    "inputs": [
+      {
+        "id": "ifrequency",
+        "name": "Frequency",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 440,
+        "description": "Note frequency in Hz, fixed at note initialization."
+      },
+      {
+        "id": "iamplitude",
+        "name": "Amplitude",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 0.2,
+        "description": "Note amplitude at initialization, from 0 to 1."
+      },
+      {
+        "id": "kvowel",
+        "name": "Vowel CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 2,
+        "description": "Controller number for vowel. Defaults to 2; the pair is sent only when kv1 is set."
+      },
+      {
+        "id": "kv1",
+        "name": "Vowel",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for vowel (controller 2), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kspec",
+        "name": "Spectral tilt CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 4,
+        "description": "Controller number for spectral tilt. Defaults to 4; the pair is sent only when kv2 is set."
+      },
+      {
+        "id": "kv2",
+        "name": "Spectral tilt",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for spectral tilt (controller 4), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "klfo",
+        "name": "Speed of low-frequency oscillator CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 11,
+        "description": "Controller number for speed of low-frequency oscillator. Defaults to 11; the pair is sent only when kv3 is set."
+      },
+      {
+        "id": "kv3",
+        "name": "Speed of low-frequency oscillator",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for speed of low-frequency oscillator (controller 11), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "klfodepth",
+        "name": "Depth of low-frequency oscillator CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 1,
+        "description": "Controller number for depth of low-frequency oscillator. Defaults to 1; the pair is sent only when kv4 is set."
+      },
+      {
+        "id": "kv4",
+        "name": "Depth of low-frequency oscillator",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for depth of low-frequency oscillator (controller 1), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kadsr",
+        "name": "Adsr 2 and 4 target CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 128,
+        "description": "Controller number for ADSR 2 and 4 Target. Defaults to 128; the pair is sent only when kv5 is set."
+      },
+      {
+        "id": "kv5",
+        "name": "Adsr 2 and 4 target",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for ADSR 2 and 4 Target (controller 128), range 0-127. Leave unset to retain the STK instrument default."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "asignal",
+        "name": "aOut",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Mono audio output."
+      }
+    ],
+    "template": "{asignal} STKFMVoices {ifrequency}, {iamplitude}, {kvowel}, {kv1}, {kspec}, {kv2}, {klfo}, {kv3}, {klfodepth}, {kv4}, {kadsr}, {kv5}",
+    "tags": [
+      "stk",
+      "synthesis",
+      "fm"
+    ],
+    "icon_filename": "vco.svg"
+  },
+  {
+    "name": "STKHevyMetl",
+    "category": "fm",
+    "description": "STK four-operator FM instrument for metallic timbres.",
+    "documentation_markdown": "### `STKHevyMetl`\n\nSTK four-operator FM instrument for metallic timbres.\n\nRequires the Csound stkopd plugin and its STK rawwave data. Set RAWWAVE_PATH to the rawwaves directory before starting the backend. Frequency and amplitude are init-rate. Optional controller numbers are prefilled; set a controller value to send that pair. Unset values preserve the STK instrument defaults.\n\n**Reference**\n- [Csound opcode manual](https://csound.com/docs/manual/STKHevyMetl.html)",
+    "documentation_url": "https://csound.com/docs/manual/STKHevyMetl.html",
+    "inputs": [
+      {
+        "id": "ifrequency",
+        "name": "Frequency",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 440,
+        "description": "Note frequency in Hz, fixed at note initialization."
+      },
+      {
+        "id": "iamplitude",
+        "name": "Amplitude",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 0.2,
+        "description": "Note amplitude at initialization, from 0 to 1."
+      },
+      {
+        "id": "kmod",
+        "name": "Total modulator index CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 2,
+        "description": "Controller number for total modulator index. Defaults to 2; the pair is sent only when kv1 is set."
+      },
+      {
+        "id": "kv1",
+        "name": "Total modulator index",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for total modulator index (controller 2), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kcross",
+        "name": "Crossfade of modulator CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 4,
+        "description": "Controller number for crossfade of modulator. Defaults to 4; the pair is sent only when kv2 is set."
+      },
+      {
+        "id": "kv2",
+        "name": "Crossfade of modulator",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for crossfade of modulator (controller 4), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "klfo",
+        "name": "Speed of low-frequency oscillator CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 11,
+        "description": "Controller number for speed of low-frequency oscillator. Defaults to 11; the pair is sent only when kv3 is set."
+      },
+      {
+        "id": "kv3",
+        "name": "Speed of low-frequency oscillator",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for speed of low-frequency oscillator (controller 11), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "klfodepth",
+        "name": "Depth of low-frequency oscillator CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 1,
+        "description": "Controller number for depth of low-frequency oscillator. Defaults to 1; the pair is sent only when kv4 is set."
+      },
+      {
+        "id": "kv4",
+        "name": "Depth of low-frequency oscillator",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for depth of low-frequency oscillator (controller 1), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kadsr",
+        "name": "Adsr 2 and 4 target CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 128,
+        "description": "Controller number for ADSR 2 and 4 target. Defaults to 128; the pair is sent only when kv5 is set."
+      },
+      {
+        "id": "kv5",
+        "name": "Adsr 2 and 4 target",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for ADSR 2 and 4 target (controller 128), range 0-127. Leave unset to retain the STK instrument default."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "asignal",
+        "name": "aOut",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Mono audio output."
+      }
+    ],
+    "template": "{asignal} STKHevyMetl {ifrequency}, {iamplitude}, {kmod}, {kv1}, {kcross}, {kv2}, {klfo}, {kv3}, {klfodepth}, {kv4}, {kadsr}, {kv5}",
+    "tags": [
+      "stk",
+      "synthesis",
+      "fm"
+    ],
+    "icon_filename": "vco.svg"
+  },
+  {
+    "name": "STKPercFlut",
+    "category": "fm",
+    "description": "STK four-operator FM percussive flute instrument.",
+    "documentation_markdown": "### `STKPercFlut`\n\nSTK four-operator FM percussive flute instrument.\n\nRequires the Csound stkopd plugin and its STK rawwave data. Set RAWWAVE_PATH to the rawwaves directory before starting the backend. Frequency and amplitude are init-rate. Optional controller numbers are prefilled; set a controller value to send that pair. Unset values preserve the STK instrument defaults.\n\n**Reference**\n- [Csound opcode manual](https://csound.com/docs/manual/STKPercFlut.html)",
+    "documentation_url": "https://csound.com/docs/manual/STKPercFlut.html",
+    "inputs": [
+      {
+        "id": "ifrequency",
+        "name": "Frequency",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 440,
+        "description": "Note frequency in Hz, fixed at note initialization."
+      },
+      {
+        "id": "iamplitude",
+        "name": "Amplitude",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 0.2,
+        "description": "Note amplitude at initialization, from 0 to 1."
+      },
+      {
+        "id": "kmod",
+        "name": "Total modulator index CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 2,
+        "description": "Controller number for total modulator index. Defaults to 2; the pair is sent only when kv1 is set."
+      },
+      {
+        "id": "kv1",
+        "name": "Total modulator index",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for total modulator index (controller 2), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kcross",
+        "name": "Crossfade of modulator CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 4,
+        "description": "Controller number for crossfade of modulator. Defaults to 4; the pair is sent only when kv2 is set."
+      },
+      {
+        "id": "kv2",
+        "name": "Crossfade of modulator",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for crossfade of modulator (controller 4), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "klfo",
+        "name": "Speed of low-frequency oscillator CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 11,
+        "description": "Controller number for speed of low-frequency oscillator. Defaults to 11; the pair is sent only when kv3 is set."
+      },
+      {
+        "id": "kv3",
+        "name": "Speed of low-frequency oscillator",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for speed of low-frequency oscillator (controller 11), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "klfodepth",
+        "name": "Depth of low-frequency oscillator CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 1,
+        "description": "Controller number for depth of low-frequency oscillator. Defaults to 1; the pair is sent only when kv4 is set."
+      },
+      {
+        "id": "kv4",
+        "name": "Depth of low-frequency oscillator",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for depth of low-frequency oscillator (controller 1), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kadsr",
+        "name": "Adsr 2 and 4 target CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 128,
+        "description": "Controller number for ADSR 2 and 4 target. Defaults to 128; the pair is sent only when kv5 is set."
+      },
+      {
+        "id": "kv5",
+        "name": "Adsr 2 and 4 target",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for ADSR 2 and 4 target (controller 128), range 0-127. Leave unset to retain the STK instrument default."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "asignal",
+        "name": "aOut",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Mono audio output."
+      }
+    ],
+    "template": "{asignal} STKPercFlut {ifrequency}, {iamplitude}, {kmod}, {kv1}, {kcross}, {kv2}, {klfo}, {kv3}, {klfodepth}, {kv4}, {kadsr}, {kv5}",
+    "tags": [
+      "stk",
+      "synthesis",
+      "fm"
+    ],
+    "icon_filename": "vco.svg"
+  },
+  {
+    "name": "STKRhodey",
+    "category": "fm",
+    "description": "STK four-operator FM electric piano inspired by Rhodes pianos.",
+    "documentation_markdown": "### `STKRhodey`\n\nSTK four-operator FM electric piano inspired by Rhodes pianos.\n\nRequires the Csound stkopd plugin and its STK rawwave data. Set RAWWAVE_PATH to the rawwaves directory before starting the backend. Frequency and amplitude are init-rate. Optional controller numbers are prefilled; set a controller value to send that pair. Unset values preserve the STK instrument defaults.\n\n**Reference**\n- [Csound opcode manual](https://csound.com/docs/manual/STKRhodey.html)",
+    "documentation_url": "https://csound.com/docs/manual/STKRhodey.html",
+    "inputs": [
+      {
+        "id": "ifrequency",
+        "name": "Frequency",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 440,
+        "description": "Note frequency in Hz, fixed at note initialization."
+      },
+      {
+        "id": "iamplitude",
+        "name": "Amplitude",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 0.2,
+        "description": "Note amplitude at initialization, from 0 to 1."
+      },
+      {
+        "id": "kmod",
+        "name": "Modulator index 1 CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 2,
+        "description": "Controller number for modulator index 1. Defaults to 2; the pair is sent only when kv1 is set."
+      },
+      {
+        "id": "kv1",
+        "name": "Modulator index 1",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for modulator index 1 (controller 2), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kcross",
+        "name": "Crossfade of outputs CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 4,
+        "description": "Controller number for crossfade of outputs. Defaults to 4; the pair is sent only when kv2 is set."
+      },
+      {
+        "id": "kv2",
+        "name": "Crossfade of outputs",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for crossfade of outputs (controller 4), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "klfo",
+        "name": "Speed of low-frequency oscillator CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 11,
+        "description": "Controller number for speed of low-frequency oscillator. Defaults to 11; the pair is sent only when kv3 is set."
+      },
+      {
+        "id": "kv3",
+        "name": "Speed of low-frequency oscillator",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for speed of low-frequency oscillator (controller 11), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "klfodepth",
+        "name": "Depth of low-frequency oscillator CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 1,
+        "description": "Controller number for depth of low-frequency oscillator. Defaults to 1; the pair is sent only when kv4 is set."
+      },
+      {
+        "id": "kv4",
+        "name": "Depth of low-frequency oscillator",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for depth of low-frequency oscillator (controller 1), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kadsr",
+        "name": "Adsr 2 and 4 target CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 128,
+        "description": "Controller number for ADSR 2 and 4 target. Defaults to 128; the pair is sent only when kv5 is set."
+      },
+      {
+        "id": "kv5",
+        "name": "Adsr 2 and 4 target",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for ADSR 2 and 4 target (controller 128), range 0-127. Leave unset to retain the STK instrument default."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "asignal",
+        "name": "aOut",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Mono audio output."
+      }
+    ],
+    "template": "{asignal} STKRhodey {ifrequency}, {iamplitude}, {kmod}, {kv1}, {kcross}, {kv2}, {klfo}, {kv3}, {klfodepth}, {kv4}, {kadsr}, {kv5}",
+    "tags": [
+      "stk",
+      "synthesis",
+      "fm"
+    ],
+    "icon_filename": "vco.svg"
+  },
+  {
+    "name": "STKTubeBell",
+    "category": "fm",
+    "description": "STK four-operator FM tubular-bell instrument.",
+    "documentation_markdown": "### `STKTubeBell`\n\nSTK four-operator FM tubular-bell instrument.\n\nRequires the Csound stkopd plugin and its STK rawwave data. Set RAWWAVE_PATH to the rawwaves directory before starting the backend. Frequency and amplitude are init-rate. Optional controller numbers are prefilled; set a controller value to send that pair. Unset values preserve the STK instrument defaults.\n\n**Reference**\n- [Csound opcode manual](https://csound.com/docs/manual/STKTubeBell.html)",
+    "documentation_url": "https://csound.com/docs/manual/STKTubeBell.html",
+    "inputs": [
+      {
+        "id": "ifrequency",
+        "name": "Frequency",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 440,
+        "description": "Note frequency in Hz, fixed at note initialization."
+      },
+      {
+        "id": "iamplitude",
+        "name": "Amplitude",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 0.2,
+        "description": "Note amplitude at initialization, from 0 to 1."
+      },
+      {
+        "id": "kmod",
+        "name": "Modulator index 1 CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 2,
+        "description": "Controller number for modulator index 1. Defaults to 2; the pair is sent only when kv1 is set."
+      },
+      {
+        "id": "kv1",
+        "name": "Modulator index 1",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for modulator index 1 (controller 2), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kcross",
+        "name": "Crossfade of outputs CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 4,
+        "description": "Controller number for crossfade of outputs. Defaults to 4; the pair is sent only when kv2 is set."
+      },
+      {
+        "id": "kv2",
+        "name": "Crossfade of outputs",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for crossfade of outputs (controller 4), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "klfo",
+        "name": "Speed of low-frequency oscillator CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 11,
+        "description": "Controller number for speed of low-frequency oscillator. Defaults to 11; the pair is sent only when kv3 is set."
+      },
+      {
+        "id": "kv3",
+        "name": "Speed of low-frequency oscillator",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for speed of low-frequency oscillator (controller 11), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "klfodepth",
+        "name": "Depth of low-frequency oscillator CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 1,
+        "description": "Controller number for depth of low-frequency oscillator. Defaults to 1; the pair is sent only when kv4 is set."
+      },
+      {
+        "id": "kv4",
+        "name": "Depth of low-frequency oscillator",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for depth of low-frequency oscillator (controller 1), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kadsr",
+        "name": "Adsr 2 and 4 target CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 128,
+        "description": "Controller number for ADSR 2 and 4 target. Defaults to 128; the pair is sent only when kv5 is set."
+      },
+      {
+        "id": "kv5",
+        "name": "Adsr 2 and 4 target",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for ADSR 2 and 4 target (controller 128), range 0-127. Leave unset to retain the STK instrument default."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "asignal",
+        "name": "aOut",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Mono audio output."
+      }
+    ],
+    "template": "{asignal} STKTubeBell {ifrequency}, {iamplitude}, {kmod}, {kv1}, {kcross}, {kv2}, {klfo}, {kv3}, {klfodepth}, {kv4}, {kadsr}, {kv5}",
+    "tags": [
+      "stk",
+      "synthesis",
+      "fm"
+    ],
+    "icon_filename": "vco.svg"
+  },
+  {
+    "name": "STKWurley",
+    "category": "fm",
+    "description": "STK four-operator FM electric piano inspired by Wurlitzer pianos.",
+    "documentation_markdown": "### `STKWurley`\n\nSTK four-operator FM electric piano inspired by Wurlitzer pianos.\n\nRequires the Csound stkopd plugin and its STK rawwave data. Set RAWWAVE_PATH to the rawwaves directory before starting the backend. Frequency and amplitude are init-rate. Optional controller numbers are prefilled; set a controller value to send that pair. Unset values preserve the STK instrument defaults.\n\n**Reference**\n- [Csound opcode manual](https://csound.com/docs/manual/STKWurley.html)",
+    "documentation_url": "https://csound.com/docs/manual/STKWurley.html",
+    "inputs": [
+      {
+        "id": "ifrequency",
+        "name": "Frequency",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 440,
+        "description": "Note frequency in Hz, fixed at note initialization."
+      },
+      {
+        "id": "iamplitude",
+        "name": "Amplitude",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 0.2,
+        "description": "Note amplitude at initialization, from 0 to 1."
+      },
+      {
+        "id": "kmod",
+        "name": "Modulator index 1 CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 2,
+        "description": "Controller number for modulator index 1. Defaults to 2; the pair is sent only when kv1 is set."
+      },
+      {
+        "id": "kv1",
+        "name": "Modulator index 1",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for modulator index 1 (controller 2), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kcross",
+        "name": "Crossfade of outputs CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 4,
+        "description": "Controller number for crossfade of outputs. Defaults to 4; the pair is sent only when kv2 is set."
+      },
+      {
+        "id": "kv2",
+        "name": "Crossfade of outputs",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for crossfade of outputs (controller 4), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "klfo",
+        "name": "Speed of low-frequency oscillator CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 11,
+        "description": "Controller number for speed of low-frequency oscillator. Defaults to 11; the pair is sent only when kv3 is set."
+      },
+      {
+        "id": "kv3",
+        "name": "Speed of low-frequency oscillator",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for speed of low-frequency oscillator (controller 11), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "klfodepth",
+        "name": "Depth of low-frequency oscillator CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 1,
+        "description": "Controller number for depth of low-frequency oscillator. Defaults to 1; the pair is sent only when kv4 is set."
+      },
+      {
+        "id": "kv4",
+        "name": "Depth of low-frequency oscillator",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for depth of low-frequency oscillator (controller 1), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kadsr",
+        "name": "Adsr 2 and 4 target CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 128,
+        "description": "Controller number for ADSR 2 and 4 target. Defaults to 128; the pair is sent only when kv5 is set."
+      },
+      {
+        "id": "kv5",
+        "name": "Adsr 2 and 4 target",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for ADSR 2 and 4 target (controller 128), range 0-127. Leave unset to retain the STK instrument default."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "asignal",
+        "name": "aOut",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Mono audio output."
+      }
+    ],
+    "template": "{asignal} STKWurley {ifrequency}, {iamplitude}, {kmod}, {kv1}, {kcross}, {kv2}, {klfo}, {kv3}, {klfodepth}, {kv4}, {kadsr}, {kv5}",
+    "tags": [
+      "stk",
+      "synthesis",
+      "fm"
+    ],
+    "icon_filename": "vco.svg"
+  },
+  {
+    "name": "STKMoog",
+    "category": "oscillator",
+    "description": "STK sampled-wave synthesizer with swept formant filters.",
+    "documentation_markdown": "### `STKMoog`\n\nSTK sampled-wave synthesizer with swept formant filters.\n\nRequires the Csound stkopd plugin and its STK rawwave data. Set RAWWAVE_PATH to the rawwaves directory before starting the backend. Frequency and amplitude are init-rate. Optional controller numbers are prefilled; set a controller value to send that pair. Unset values preserve the STK instrument defaults.\n\n**Reference**\n- [Csound opcode manual](https://csound.com/docs/manual/STKMoog.html)",
+    "documentation_url": "https://csound.com/docs/manual/STKMoog.html",
+    "inputs": [
+      {
+        "id": "ifrequency",
+        "name": "Frequency",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 440,
+        "description": "Note frequency in Hz, fixed at note initialization."
+      },
+      {
+        "id": "iamplitude",
+        "name": "Amplitude",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 0.2,
+        "description": "Note amplitude at initialization, from 0 to 1."
+      },
+      {
+        "id": "kq",
+        "name": "Q filter CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 2,
+        "description": "Controller number for Q filter. Defaults to 2; the pair is sent only when kv1 is set."
+      },
+      {
+        "id": "kv1",
+        "name": "Q filter",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for Q filter (controller 2), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "krate",
+        "name": "Rate of filter sweep CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 4,
+        "description": "Controller number for rate of filter sweep. Defaults to 4; the pair is sent only when kv2 is set."
+      },
+      {
+        "id": "kv2",
+        "name": "Rate of filter sweep",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for rate of filter sweep (controller 4), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "klfo",
+        "name": "Speed of low-frequency oscillator CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 11,
+        "description": "Controller number for speed of low-frequency oscillator. Defaults to 11; the pair is sent only when kv3 is set."
+      },
+      {
+        "id": "kv3",
+        "name": "Speed of low-frequency oscillator",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for speed of low-frequency oscillator (controller 11), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "klfodepth",
+        "name": "Depth of low-frequency oscillator CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 1,
+        "description": "Controller number for depth of low-frequency oscillator. Defaults to 1; the pair is sent only when kv4 is set."
+      },
+      {
+        "id": "kv4",
+        "name": "Depth of low-frequency oscillator",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for depth of low-frequency oscillator (controller 1), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kvol",
+        "name": "Volume CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 128,
+        "description": "Controller number for volume. Defaults to 128; the pair is sent only when kv5 is set."
+      },
+      {
+        "id": "kv5",
+        "name": "Volume",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for volume (controller 128), range 0-127. Leave unset to retain the STK instrument default."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "asignal",
+        "name": "aOut",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Mono audio output."
+      }
+    ],
+    "template": "{asignal} STKMoog {ifrequency}, {iamplitude}, {kq}, {kv1}, {krate}, {kv2}, {klfo}, {kv3}, {klfodepth}, {kv4}, {kvol}, {kv5}",
+    "tags": [
+      "stk",
+      "synthesis",
+      "oscillator"
+    ],
+    "icon_filename": "vco.svg"
+  },
+  {
+    "name": "STKSimple",
+    "category": "oscillator",
+    "description": "STK wavetable and noise synthesizer with filters and an ADSR envelope.",
+    "documentation_markdown": "### `STKSimple`\n\nSTK wavetable and noise synthesizer with filters and an ADSR envelope.\n\nRequires the Csound stkopd plugin and its STK rawwave data. Set RAWWAVE_PATH to the rawwaves directory before starting the backend. Frequency and amplitude are init-rate. Optional controller numbers are prefilled; set a controller value to send that pair. Unset values preserve the STK instrument defaults.\n\n**Reference**\n- [Csound opcode manual](https://csound.com/docs/manual/STKSimple.html)",
+    "documentation_url": "https://csound.com/docs/manual/STKSimple.html",
+    "inputs": [
+      {
+        "id": "ifrequency",
+        "name": "Frequency",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 440,
+        "description": "Note frequency in Hz, fixed at note initialization."
+      },
+      {
+        "id": "iamplitude",
+        "name": "Amplitude",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 0.2,
+        "description": "Note amplitude at initialization, from 0 to 1."
+      },
+      {
+        "id": "kpos",
+        "name": "Position of filter pole CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 2,
+        "description": "Controller number for position of filter pole. Defaults to 2; the pair is sent only when kv1 is set."
+      },
+      {
+        "id": "kv1",
+        "name": "Position of filter pole",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for position of filter pole (controller 2), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kcross",
+        "name": "Noise/pitched cross-fade CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 4,
+        "description": "Controller number for noise/pitched cross-fade. Defaults to 4; the pair is sent only when kv2 is set."
+      },
+      {
+        "id": "kv2",
+        "name": "Noise/pitched cross-fade",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for noise/pitched cross-fade (controller 4), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kenv",
+        "name": "Rate of envelope CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 11,
+        "description": "Controller number for rate of envelope. Defaults to 11; the pair is sent only when kv3 is set."
+      },
+      {
+        "id": "kv3",
+        "name": "Rate of envelope",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for rate of envelope (controller 11), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kgain",
+        "name": "Gain CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 128,
+        "description": "Controller number for gain. Defaults to 128; the pair is sent only when kv4 is set."
+      },
+      {
+        "id": "kv4",
+        "name": "Gain",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for gain (controller 128), range 0-127. Leave unset to retain the STK instrument default."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "asignal",
+        "name": "aOut",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Mono audio output."
+      }
+    ],
+    "template": "{asignal} STKSimple {ifrequency}, {iamplitude}, {kpos}, {kv1}, {kcross}, {kv2}, {kenv}, {kv3}, {kgain}, {kv4}",
+    "tags": [
+      "stk",
+      "synthesis",
+      "oscillator"
+    ],
+    "icon_filename": "vco.svg"
+  },
+  {
+    "name": "STKBandedWG",
+    "category": "physical_modeling",
+    "description": "STK banded waveguide model of bowed bars, glasses, and bowls.",
+    "documentation_markdown": "### `STKBandedWG`\n\nSTK banded waveguide model of bowed bars, glasses, and bowls.\n\nRequires the Csound stkopd plugin and its STK rawwave data. Set RAWWAVE_PATH to the rawwaves directory before starting the backend. Frequency and amplitude are init-rate. Optional controller numbers are prefilled; set a controller value to send that pair. Unset values preserve the STK instrument defaults.\n\n**Reference**\n- [Csound opcode manual](https://csound.com/docs/manual/STKBandedWG.html)",
+    "documentation_url": "https://csound.com/docs/manual/STKBandedWG.html",
+    "inputs": [
+      {
+        "id": "ifrequency",
+        "name": "Frequency",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 440,
+        "description": "Note frequency in Hz, fixed at note initialization."
+      },
+      {
+        "id": "iamplitude",
+        "name": "Amplitude",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 0.2,
+        "description": "Note amplitude at initialization, from 0 to 1."
+      },
+      {
+        "id": "kpress",
+        "name": "Pressure of bow CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 2,
+        "description": "Controller number for pressure of bow. Defaults to 2; the pair is sent only when kv1 is set."
+      },
+      {
+        "id": "kv1",
+        "name": "Pressure of bow",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for pressure of bow (controller 2), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kmot",
+        "name": "Motion of bow CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 4,
+        "description": "Controller number for motion of bow. Defaults to 4; the pair is sent only when kv2 is set."
+      },
+      {
+        "id": "kv2",
+        "name": "Motion of bow",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for motion of bow (controller 4), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "klfo",
+        "name": "Speed of low-frequency oscillator CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 11,
+        "description": "Controller number for speed of low-frequency oscillator. Defaults to 11; the pair is sent only when kv3 is set."
+      },
+      {
+        "id": "kv3",
+        "name": "Speed of low-frequency oscillator",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for speed of low-frequency oscillator (controller 11), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "klfodepth",
+        "name": "Depth of low-frequency oscillator CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 1,
+        "description": "Controller number for depth of low-frequency oscillator. Defaults to 1; the pair is sent only when kv4 is set."
+      },
+      {
+        "id": "kv4",
+        "name": "Depth of low-frequency oscillator",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for depth of low-frequency oscillator (controller 1), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kvel",
+        "name": "Velocity of bow CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 128,
+        "description": "Controller number for velocity of bow. Defaults to 128; the pair is sent only when kv5 is set."
+      },
+      {
+        "id": "kv5",
+        "name": "Velocity of bow",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for velocity of bow (controller 128), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kstrk",
+        "name": "Striking of bow CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 64,
+        "description": "Controller number for striking of bow. Defaults to 64; the pair is sent only when kv6 is set."
+      },
+      {
+        "id": "kv6",
+        "name": "Striking of bow",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for striking of bow (controller 64), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kinstr",
+        "name": "Instrument presets CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 16,
+        "description": "Controller number for instrument presets (0 = uniform bar, 1 = tuned bar, 2 = glass harmonica, 3 = Tibetan bowl). Defaults to 16; the pair is sent only when kv7 is set."
+      },
+      {
+        "id": "kv7",
+        "name": "Instrument presets",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for instrument presets (0 = uniform bar, 1 = tuned bar, 2 = glass harmonica, 3 = Tibetan bowl) (controller 16), range 0-3. Leave unset to retain the STK instrument default."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "asignal",
+        "name": "aOut",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Mono audio output."
+      }
+    ],
+    "template": "{asignal} STKBandedWG {ifrequency}, {iamplitude}, {kpress}, {kv1}, {kmot}, {kv2}, {klfo}, {kv3}, {klfodepth}, {kv4}, {kvel}, {kv5}, {kstrk}, {kv6}, {kinstr}, {kv7}",
+    "tags": [
+      "stk",
+      "synthesis",
+      "physical_modeling"
+    ],
+    "icon_filename": "vco.svg"
+  },
+  {
+    "name": "STKBlowBotl",
+    "category": "physical_modeling",
+    "description": "STK blown-bottle model with a Helmholtz resonator and jet excitation.",
+    "documentation_markdown": "### `STKBlowBotl`\n\nSTK blown-bottle model with a Helmholtz resonator and jet excitation.\n\nRequires the Csound stkopd plugin and its STK rawwave data. Set RAWWAVE_PATH to the rawwaves directory before starting the backend. Frequency and amplitude are init-rate. Optional controller numbers are prefilled; set a controller value to send that pair. Unset values preserve the STK instrument defaults.\n\n**Reference**\n- [Csound opcode manual](https://csound.com/docs/manual/STKBlowBotl.html)",
+    "documentation_url": "https://csound.com/docs/manual/STKBlowBotl.html",
+    "inputs": [
+      {
+        "id": "ifrequency",
+        "name": "Frequency",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 440,
+        "description": "Note frequency in Hz, fixed at note initialization."
+      },
+      {
+        "id": "iamplitude",
+        "name": "Amplitude",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 0.2,
+        "description": "Note amplitude at initialization, from 0 to 1."
+      },
+      {
+        "id": "knoise",
+        "name": "Gain of noise CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 4,
+        "description": "Controller number for gain of noise. Defaults to 4; the pair is sent only when kv1 is set."
+      },
+      {
+        "id": "kv1",
+        "name": "Gain of noise",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for gain of noise (controller 4), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "klfo",
+        "name": "Speed of low-frequency oscillator CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 11,
+        "description": "Controller number for speed of low-frequency oscillator. Defaults to 11; the pair is sent only when kv2 is set."
+      },
+      {
+        "id": "kv2",
+        "name": "Speed of low-frequency oscillator",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for speed of low-frequency oscillator (controller 11), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "klfodepth",
+        "name": "Depth of low-frequency oscillator CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 1,
+        "description": "Controller number for depth of low-frequency oscillator. Defaults to 1; the pair is sent only when kv3 is set."
+      },
+      {
+        "id": "kv3",
+        "name": "Depth of low-frequency oscillator",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for depth of low-frequency oscillator (controller 1), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kvol",
+        "name": "Volume CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 128,
+        "description": "Controller number for volume. Defaults to 128; the pair is sent only when kv4 is set."
+      },
+      {
+        "id": "kv4",
+        "name": "Volume",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for volume (controller 128), range 0-127. Leave unset to retain the STK instrument default."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "asignal",
+        "name": "aOut",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Mono audio output."
+      }
+    ],
+    "template": "{asignal} STKBlowBotl {ifrequency}, {iamplitude}, {knoise}, {kv1}, {klfo}, {kv2}, {klfodepth}, {kv3}, {kvol}, {kv4}",
+    "tags": [
+      "stk",
+      "synthesis",
+      "physical_modeling"
+    ],
+    "icon_filename": "vco.svg"
+  },
+  {
+    "name": "STKBlowHole",
+    "category": "physical_modeling",
+    "description": "STK clarinet model with register and tone holes.",
+    "documentation_markdown": "### `STKBlowHole`\n\nSTK clarinet model with register and tone holes.\n\nRequires the Csound stkopd plugin and its STK rawwave data. Set RAWWAVE_PATH to the rawwaves directory before starting the backend. Frequency and amplitude are init-rate. Optional controller numbers are prefilled; set a controller value to send that pair. Unset values preserve the STK instrument defaults.\n\n**Reference**\n- [Csound opcode manual](https://csound.com/docs/manual/STKBlowHole.html)",
+    "documentation_url": "https://csound.com/docs/manual/STKBlowHole.html",
+    "inputs": [
+      {
+        "id": "ifrequency",
+        "name": "Frequency",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 440,
+        "description": "Note frequency in Hz, fixed at note initialization."
+      },
+      {
+        "id": "iamplitude",
+        "name": "Amplitude",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 0.2,
+        "description": "Note amplitude at initialization, from 0 to 1."
+      },
+      {
+        "id": "kreed",
+        "name": "Stiffness of reed CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 2,
+        "description": "Controller number for stiffness of reed. Defaults to 2; the pair is sent only when kv1 is set."
+      },
+      {
+        "id": "kv1",
+        "name": "Stiffness of reed",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for stiffness of reed (controller 2), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "knoise",
+        "name": "Gain of noise CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 4,
+        "description": "Controller number for gain of noise. Defaults to 4; the pair is sent only when kv2 is set."
+      },
+      {
+        "id": "kv2",
+        "name": "Gain of noise",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for gain of noise (controller 4), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "khole",
+        "name": "State of tonehole CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 11,
+        "description": "Controller number for state of tonehole. Defaults to 11; the pair is sent only when kv3 is set."
+      },
+      {
+        "id": "kv3",
+        "name": "State of tonehole",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for state of tonehole (controller 11), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kreg",
+        "name": "State of register CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 1,
+        "description": "Controller number for state of register. Defaults to 1; the pair is sent only when kv4 is set."
+      },
+      {
+        "id": "kv4",
+        "name": "State of register",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for state of register (controller 1), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kbreath",
+        "name": "Breath pressure CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 128,
+        "description": "Controller number for breath pressure. Defaults to 128; the pair is sent only when kv5 is set."
+      },
+      {
+        "id": "kv5",
+        "name": "Breath pressure",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for breath pressure (controller 128), range 0-127. Leave unset to retain the STK instrument default."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "asignal",
+        "name": "aOut",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Mono audio output."
+      }
+    ],
+    "template": "{asignal} STKBlowHole {ifrequency}, {iamplitude}, {kreed}, {kv1}, {knoise}, {kv2}, {khole}, {kv3}, {kreg}, {kv4}, {kbreath}, {kv5}",
+    "tags": [
+      "stk",
+      "synthesis",
+      "physical_modeling"
+    ],
+    "icon_filename": "vco.svg"
+  },
+  {
+    "name": "STKBowed",
+    "category": "physical_modeling",
+    "description": "STK bowed-string waveguide instrument.",
+    "documentation_markdown": "### `STKBowed`\n\nSTK bowed-string waveguide instrument.\n\nRequires the Csound stkopd plugin and its STK rawwave data. Set RAWWAVE_PATH to the rawwaves directory before starting the backend. Frequency and amplitude are init-rate. Optional controller numbers are prefilled; set a controller value to send that pair. Unset values preserve the STK instrument defaults.\n\n**Reference**\n- [Csound opcode manual](https://csound.com/docs/manual/STKBowed.html)",
+    "documentation_url": "https://csound.com/docs/manual/STKBowed.html",
+    "inputs": [
+      {
+        "id": "ifrequency",
+        "name": "Frequency",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 440,
+        "description": "Note frequency in Hz, fixed at note initialization."
+      },
+      {
+        "id": "iamplitude",
+        "name": "Amplitude",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 0.2,
+        "description": "Note amplitude at initialization, from 0 to 1."
+      },
+      {
+        "id": "kpress",
+        "name": "Bow pressure CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 2,
+        "description": "Controller number for bow pressure. Defaults to 2; the pair is sent only when kv1 is set."
+      },
+      {
+        "id": "kv1",
+        "name": "Bow pressure",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for bow pressure (controller 2), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kpos",
+        "name": "Position on bow CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 4,
+        "description": "Controller number for position on bow. Defaults to 4; the pair is sent only when kv2 is set."
+      },
+      {
+        "id": "kv2",
+        "name": "Position on bow",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for position on bow (controller 4), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "klfo",
+        "name": "Speed of low-frequency oscillator CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 11,
+        "description": "Controller number for speed of low-frequency oscillator. Defaults to 11; the pair is sent only when kv3 is set."
+      },
+      {
+        "id": "kv3",
+        "name": "Speed of low-frequency oscillator",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for speed of low-frequency oscillator (controller 11), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "klfodepth",
+        "name": "Depth of low-frequency oscillator CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 1,
+        "description": "Controller number for depth of low-frequency oscillator. Defaults to 1; the pair is sent only when kv4 is set."
+      },
+      {
+        "id": "kv4",
+        "name": "Depth of low-frequency oscillator",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for depth of low-frequency oscillator (controller 1), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kvol",
+        "name": "Volume CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 128,
+        "description": "Controller number for volume. Defaults to 128; the pair is sent only when kv5 is set."
+      },
+      {
+        "id": "kv5",
+        "name": "Volume",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for volume (controller 128), range 0-127. Leave unset to retain the STK instrument default."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "asignal",
+        "name": "aOut",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Mono audio output."
+      }
+    ],
+    "template": "{asignal} STKBowed {ifrequency}, {iamplitude}, {kpress}, {kv1}, {kpos}, {kv2}, {klfo}, {kv3}, {klfodepth}, {kv4}, {kvol}, {kv5}",
+    "tags": [
+      "stk",
+      "synthesis",
+      "physical_modeling"
+    ],
+    "icon_filename": "vco.svg"
+  },
+  {
+    "name": "STKBrass",
+    "category": "physical_modeling",
+    "description": "STK brass waveguide instrument with lip and slide controls.",
+    "documentation_markdown": "### `STKBrass`\n\nSTK brass waveguide instrument with lip and slide controls.\n\nRequires the Csound stkopd plugin and its STK rawwave data. Set RAWWAVE_PATH to the rawwaves directory before starting the backend. Frequency and amplitude are init-rate. Optional controller numbers are prefilled; set a controller value to send that pair. Unset values preserve the STK instrument defaults.\n\n**Reference**\n- [Csound opcode manual](https://csound.com/docs/manual/STKBrass.html)",
+    "documentation_url": "https://csound.com/docs/manual/STKBrass.html",
+    "inputs": [
+      {
+        "id": "ifrequency",
+        "name": "Frequency",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 440,
+        "description": "Note frequency in Hz, fixed at note initialization."
+      },
+      {
+        "id": "iamplitude",
+        "name": "Amplitude",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 0.2,
+        "description": "Note amplitude at initialization, from 0 to 1."
+      },
+      {
+        "id": "klip",
+        "name": "Lip tension CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 2,
+        "description": "Controller number for lip tension. Defaults to 2; the pair is sent only when kv1 is set."
+      },
+      {
+        "id": "kv1",
+        "name": "Lip tension",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for lip tension (controller 2), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kslide",
+        "name": "Slide length CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 4,
+        "description": "Controller number for slide length. Defaults to 4; the pair is sent only when kv2 is set."
+      },
+      {
+        "id": "kv2",
+        "name": "Slide length",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for slide length (controller 4), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "klfo",
+        "name": "Speed of low-frequency oscillator CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 11,
+        "description": "Controller number for speed of low-frequency oscillator. Defaults to 11; the pair is sent only when kv3 is set."
+      },
+      {
+        "id": "kv3",
+        "name": "Speed of low-frequency oscillator",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for speed of low-frequency oscillator (controller 11), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "klfodepth",
+        "name": "Depth of low-frequency oscillator CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 1,
+        "description": "Controller number for depth of low-frequency oscillator. Defaults to 1; the pair is sent only when kv4 is set."
+      },
+      {
+        "id": "kv4",
+        "name": "Depth of low-frequency oscillator",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for depth of low-frequency oscillator (controller 1), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kvol",
+        "name": "Volume CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 128,
+        "description": "Controller number for volume. Defaults to 128; the pair is sent only when kv5 is set."
+      },
+      {
+        "id": "kv5",
+        "name": "Volume",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for volume (controller 128), range 0-127. Leave unset to retain the STK instrument default."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "asignal",
+        "name": "aOut",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Mono audio output."
+      }
+    ],
+    "template": "{asignal} STKBrass {ifrequency}, {iamplitude}, {klip}, {kv1}, {kslide}, {kv2}, {klfo}, {kv3}, {klfodepth}, {kv4}, {kvol}, {kv5}",
+    "tags": [
+      "stk",
+      "synthesis",
+      "physical_modeling"
+    ],
+    "icon_filename": "vco.svg"
+  },
+  {
+    "name": "STKClarinet",
+    "category": "physical_modeling",
+    "description": "STK single-reed clarinet waveguide instrument.",
+    "documentation_markdown": "### `STKClarinet`\n\nSTK single-reed clarinet waveguide instrument.\n\nRequires the Csound stkopd plugin and its STK rawwave data. Set RAWWAVE_PATH to the rawwaves directory before starting the backend. Frequency and amplitude are init-rate. Optional controller numbers are prefilled; set a controller value to send that pair. Unset values preserve the STK instrument defaults.\n\n**Reference**\n- [Csound opcode manual](https://csound.com/docs/manual/STKClarinet.html)",
+    "documentation_url": "https://csound.com/docs/manual/STKClarinet.html",
+    "inputs": [
+      {
+        "id": "ifrequency",
+        "name": "Frequency",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 440,
+        "description": "Note frequency in Hz, fixed at note initialization."
+      },
+      {
+        "id": "iamplitude",
+        "name": "Amplitude",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 0.2,
+        "description": "Note amplitude at initialization, from 0 to 1."
+      },
+      {
+        "id": "kstiff",
+        "name": "Reed stiffness CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 2,
+        "description": "Controller number for reed stiffness. Defaults to 2; the pair is sent only when kv1 is set."
+      },
+      {
+        "id": "kv1",
+        "name": "Reed stiffness",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for reed stiffness (controller 2), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "knoise",
+        "name": "Gain of noise CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 4,
+        "description": "Controller number for gain of noise. Defaults to 4; the pair is sent only when kv2 is set."
+      },
+      {
+        "id": "kv2",
+        "name": "Gain of noise",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for gain of noise (controller 4), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "klfo",
+        "name": "Speed of low-frequency oscillator CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 11,
+        "description": "Controller number for speed of low-frequency oscillator. Defaults to 11; the pair is sent only when kv3 is set."
+      },
+      {
+        "id": "kv3",
+        "name": "Speed of low-frequency oscillator",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for speed of low-frequency oscillator (controller 11), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "klfodepth",
+        "name": "Depth of low-frequency oscillator CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 1,
+        "description": "Controller number for depth of low-frequency oscillator. Defaults to 1; the pair is sent only when kv4 is set."
+      },
+      {
+        "id": "kv4",
+        "name": "Depth of low-frequency oscillator",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for depth of low-frequency oscillator (controller 1), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kbreath",
+        "name": "Breath pressure CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 128,
+        "description": "Controller number for breath pressure. Defaults to 128; the pair is sent only when kv5 is set."
+      },
+      {
+        "id": "kv5",
+        "name": "Breath pressure",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for breath pressure (controller 128), range 0-127. Leave unset to retain the STK instrument default."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "asignal",
+        "name": "aOut",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Mono audio output."
+      }
+    ],
+    "template": "{asignal} STKClarinet {ifrequency}, {iamplitude}, {kstiff}, {kv1}, {knoise}, {kv2}, {klfo}, {kv3}, {klfodepth}, {kv4}, {kbreath}, {kv5}",
+    "tags": [
+      "stk",
+      "synthesis",
+      "physical_modeling"
+    ],
+    "icon_filename": "vco.svg"
+  },
+  {
+    "name": "STKDrummer",
+    "category": "physical_modeling",
+    "description": "STK drum synthesizer using sampled raw waves and one-pole filters.",
+    "documentation_markdown": "### `STKDrummer`\n\nSTK drum synthesizer using sampled raw waves and one-pole filters.\n\nRequires the Csound stkopd plugin and its STK rawwave data. Set RAWWAVE_PATH to the rawwaves directory before starting the backend. Frequency and amplitude are init-rate. Optional controller numbers are prefilled; set a controller value to send that pair. Unset values preserve the STK instrument defaults.\n\n**Reference**\n- [Csound opcode manual](https://csound.com/docs/manual/STKDrummer.html)",
+    "documentation_url": "https://csound.com/docs/manual/STKDrummer.html",
+    "inputs": [
+      {
+        "id": "ifrequency",
+        "name": "Frequency",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 60,
+        "description": "Frequency in Hz used to select a drum sample; connect cpsmidi for MIDI drum notes."
+      },
+      {
+        "id": "iamplitude",
+        "name": "Amplitude",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 0.2,
+        "description": "Note amplitude at initialization, from 0 to 1."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "asignal",
+        "name": "aOut",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Mono audio output."
+      }
+    ],
+    "template": "{asignal} STKDrummer {ifrequency}, {iamplitude}",
+    "tags": [
+      "stk",
+      "synthesis",
+      "physical_modeling"
+    ],
+    "icon_filename": "vco.svg"
+  },
+  {
+    "name": "STKFlute",
+    "category": "physical_modeling",
+    "description": "STK flute waveguide instrument with jet and breath controls.",
+    "documentation_markdown": "### `STKFlute`\n\nSTK flute waveguide instrument with jet and breath controls.\n\nRequires the Csound stkopd plugin and its STK rawwave data. Set RAWWAVE_PATH to the rawwaves directory before starting the backend. Frequency and amplitude are init-rate. Optional controller numbers are prefilled; set a controller value to send that pair. Unset values preserve the STK instrument defaults.\n\n**Reference**\n- [Csound opcode manual](https://csound.com/docs/manual/STKFlute.html)",
+    "documentation_url": "https://csound.com/docs/manual/STKFlute.html",
+    "inputs": [
+      {
+        "id": "ifrequency",
+        "name": "Frequency",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 440,
+        "description": "Note frequency in Hz, fixed at note initialization."
+      },
+      {
+        "id": "iamplitude",
+        "name": "Amplitude",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 0.2,
+        "description": "Note amplitude at initialization, from 0 to 1."
+      },
+      {
+        "id": "kjet",
+        "name": "Jet delay CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 2,
+        "description": "Controller number for jet delay. Defaults to 2; the pair is sent only when kv1 is set."
+      },
+      {
+        "id": "kv1",
+        "name": "Jet delay",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for jet delay (controller 2), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "knoise",
+        "name": "Gain of noise CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 4,
+        "description": "Controller number for gain of noise. Defaults to 4; the pair is sent only when kv2 is set."
+      },
+      {
+        "id": "kv2",
+        "name": "Gain of noise",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for gain of noise (controller 4), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "klfo",
+        "name": "Speed of low-frequency oscillator CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 11,
+        "description": "Controller number for speed of low-frequency oscillator. Defaults to 11; the pair is sent only when kv3 is set."
+      },
+      {
+        "id": "kv3",
+        "name": "Speed of low-frequency oscillator",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for speed of low-frequency oscillator (controller 11), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "klfodepth",
+        "name": "Depth of low-frequency oscillator CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 1,
+        "description": "Controller number for depth of low-frequency oscillator. Defaults to 1; the pair is sent only when kv4 is set."
+      },
+      {
+        "id": "kv4",
+        "name": "Depth of low-frequency oscillator",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for depth of low-frequency oscillator (controller 1), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kbreath",
+        "name": "Breath pressure CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 128,
+        "description": "Controller number for breath pressure. Defaults to 128; the pair is sent only when kv5 is set."
+      },
+      {
+        "id": "kv5",
+        "name": "Breath pressure",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for breath pressure (controller 128), range 0-127. Leave unset to retain the STK instrument default."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "asignal",
+        "name": "aOut",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Mono audio output."
+      }
+    ],
+    "template": "{asignal} STKFlute {ifrequency}, {iamplitude}, {kjet}, {kv1}, {knoise}, {kv2}, {klfo}, {kv3}, {klfodepth}, {kv4}, {kbreath}, {kv5}",
+    "tags": [
+      "stk",
+      "synthesis",
+      "physical_modeling"
+    ],
+    "icon_filename": "vco.svg"
+  },
+  {
+    "name": "STKMandolin",
+    "category": "physical_modeling",
+    "description": "STK mandolin model with paired strings and sampled body responses.",
+    "documentation_markdown": "### `STKMandolin`\n\nSTK mandolin model with paired strings and sampled body responses.\n\nRequires the Csound stkopd plugin and its STK rawwave data. Set RAWWAVE_PATH to the rawwaves directory before starting the backend. Frequency and amplitude are init-rate. Optional controller numbers are prefilled; set a controller value to send that pair. Unset values preserve the STK instrument defaults.\n\n**Reference**\n- [Csound opcode manual](https://csound.com/docs/manual/STKMandolin.html)",
+    "documentation_url": "https://csound.com/docs/manual/STKMandolin.html",
+    "inputs": [
+      {
+        "id": "ifrequency",
+        "name": "Frequency",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 440,
+        "description": "Note frequency in Hz, fixed at note initialization."
+      },
+      {
+        "id": "iamplitude",
+        "name": "Amplitude",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 0.2,
+        "description": "Note amplitude at initialization, from 0 to 1."
+      },
+      {
+        "id": "kbody",
+        "name": "Size of body CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 2,
+        "description": "Controller number for size of body. Defaults to 2; the pair is sent only when kv1 is set."
+      },
+      {
+        "id": "kv1",
+        "name": "Size of body",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for size of body (controller 2), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kpos",
+        "name": "Pluck position CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 4,
+        "description": "Controller number for pluck position. Defaults to 4; the pair is sent only when kv2 is set."
+      },
+      {
+        "id": "kv2",
+        "name": "Pluck position",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for pluck position (controller 4), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "ksus",
+        "name": "String sustain CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 11,
+        "description": "Controller number for string sustain. Defaults to 11; the pair is sent only when kv3 is set."
+      },
+      {
+        "id": "kv3",
+        "name": "String sustain",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for string sustain (controller 11), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kdetune",
+        "name": "String detuning CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 1,
+        "description": "Controller number for string detuning. Defaults to 1; the pair is sent only when kv4 is set."
+      },
+      {
+        "id": "kv4",
+        "name": "String detuning",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for string detuning (controller 1), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kmic",
+        "name": "Position of microphone CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 128,
+        "description": "Controller number for position of microphone. Defaults to 128; the pair is sent only when kv5 is set."
+      },
+      {
+        "id": "kv5",
+        "name": "Position of microphone",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for position of microphone (controller 128), range 0-127. Leave unset to retain the STK instrument default."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "asignal",
+        "name": "aOut",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Mono audio output."
+      }
+    ],
+    "template": "{asignal} STKMandolin {ifrequency}, {iamplitude}, {kbody}, {kv1}, {kpos}, {kv2}, {ksus}, {kv3}, {kdetune}, {kv4}, {kmic}, {kv5}",
+    "tags": [
+      "stk",
+      "synthesis",
+      "physical_modeling"
+    ],
+    "icon_filename": "vco.svg"
+  },
+  {
+    "name": "STKModalBar",
+    "category": "physical_modeling",
+    "description": "STK modal percussion instrument with bar and bell presets.",
+    "documentation_markdown": "### `STKModalBar`\n\nSTK modal percussion instrument with bar and bell presets.\n\nRequires the Csound stkopd plugin and its STK rawwave data. Set RAWWAVE_PATH to the rawwaves directory before starting the backend. Frequency and amplitude are init-rate. Optional controller numbers are prefilled; set a controller value to send that pair. Unset values preserve the STK instrument defaults.\n\n**Reference**\n- [Csound opcode manual](https://csound.com/docs/manual/STKModalBar.html)",
+    "documentation_url": "https://csound.com/docs/manual/STKModalBar.html",
+    "inputs": [
+      {
+        "id": "ifrequency",
+        "name": "Frequency",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 440,
+        "description": "Note frequency in Hz, fixed at note initialization."
+      },
+      {
+        "id": "iamplitude",
+        "name": "Amplitude",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 0.2,
+        "description": "Note amplitude at initialization, from 0 to 1."
+      },
+      {
+        "id": "khard",
+        "name": "Hardness of the stick CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 2,
+        "description": "Controller number for hardness of the stick. Defaults to 2; the pair is sent only when kv1 is set."
+      },
+      {
+        "id": "kv1",
+        "name": "Hardness of the stick",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for hardness of the stick (controller 2), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kpos",
+        "name": "Stick position CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 4,
+        "description": "Controller number for stick position. Defaults to 4; the pair is sent only when kv2 is set."
+      },
+      {
+        "id": "kv2",
+        "name": "Stick position",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for stick position (controller 4), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "klfo",
+        "name": "Speed of low-frequency oscillator CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 11,
+        "description": "Controller number for speed of low-frequency oscillator. Defaults to 11; the pair is sent only when kv3 is set."
+      },
+      {
+        "id": "kv3",
+        "name": "Speed of low-frequency oscillator",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for speed of low-frequency oscillator (controller 11), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "klfodepth",
+        "name": "Depth of low-frequency oscillator CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 1,
+        "description": "Controller number for depth of low-frequency oscillator. Defaults to 1; the pair is sent only when kv4 is set."
+      },
+      {
+        "id": "kv4",
+        "name": "Depth of low-frequency oscillator",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for depth of low-frequency oscillator (controller 1), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kmix",
+        "name": "Direct stick mix CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 8,
+        "description": "Controller number for direct stick mix. Defaults to 8; the pair is sent only when kv5 is set."
+      },
+      {
+        "id": "kv5",
+        "name": "Direct stick mix",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for direct stick mix (controller 8), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kvol",
+        "name": "Volume CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 128,
+        "description": "Controller number for volume. Defaults to 128; the pair is sent only when kv6 is set."
+      },
+      {
+        "id": "kv6",
+        "name": "Volume",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for volume (controller 128), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kinstr",
+        "name": "Instrument presets CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 16,
+        "description": "Controller number for instrument presets (0 = marimba, 1 = vibraphone, 2 = agogo, 3 = wood1, 4 = reso, 5 = wood2, 6 = beats, 7 = two fixed, 8 = clump). Defaults to 16; the pair is sent only when kv7 is set."
+      },
+      {
+        "id": "kv7",
+        "name": "Instrument presets",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for instrument presets (0 = marimba, 1 = vibraphone, 2 = agogo, 3 = wood1, 4 = reso, 5 = wood2, 6 = beats, 7 = two fixed, 8 = clump) (controller 16), range 0-16. Leave unset to retain the STK instrument default."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "asignal",
+        "name": "aOut",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Mono audio output."
+      }
+    ],
+    "template": "{asignal} STKModalBar {ifrequency}, {iamplitude}, {khard}, {kv1}, {kpos}, {kv2}, {klfo}, {kv3}, {klfodepth}, {kv4}, {kmix}, {kv5}, {kvol}, {kv6}, {kinstr}, {kv7}",
+    "tags": [
+      "stk",
+      "synthesis",
+      "physical_modeling"
+    ],
+    "icon_filename": "vco.svg"
+  },
+  {
+    "name": "STKPlucked",
+    "category": "physical_modeling",
+    "description": "STK Karplus-Strong plucked-string instrument.",
+    "documentation_markdown": "### `STKPlucked`\n\nSTK Karplus-Strong plucked-string instrument.\n\nRequires the Csound stkopd plugin and its STK rawwave data. Set RAWWAVE_PATH to the rawwaves directory before starting the backend. Frequency and amplitude are init-rate. Optional controller numbers are prefilled; set a controller value to send that pair. Unset values preserve the STK instrument defaults.\n\n**Reference**\n- [Csound opcode manual](https://csound.com/docs/manual/STKPlucked.html)",
+    "documentation_url": "https://csound.com/docs/manual/STKPlucked.html",
+    "inputs": [
+      {
+        "id": "ifrequency",
+        "name": "Frequency",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 440,
+        "description": "Note frequency in Hz, fixed at note initialization."
+      },
+      {
+        "id": "iamplitude",
+        "name": "Amplitude",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 0.2,
+        "description": "Note amplitude at initialization, from 0 to 1."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "asignal",
+        "name": "aOut",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Mono audio output."
+      }
+    ],
+    "template": "{asignal} STKPlucked {ifrequency}, {iamplitude}",
+    "tags": [
+      "stk",
+      "synthesis",
+      "physical_modeling"
+    ],
+    "icon_filename": "vco.svg"
+  },
+  {
+    "name": "STKResonate",
+    "category": "physical_modeling",
+    "description": "STK noise-driven resonator with pole and zero controls.",
+    "documentation_markdown": "### `STKResonate`\n\nSTK noise-driven resonator with pole and zero controls.\n\nRequires the Csound stkopd plugin and its STK rawwave data. Set RAWWAVE_PATH to the rawwaves directory before starting the backend. Frequency and amplitude are init-rate. Optional controller numbers are prefilled; set a controller value to send that pair. Unset values preserve the STK instrument defaults.\n\n**Reference**\n- [Csound opcode manual](https://csound.com/docs/manual/STKResonate.html)",
+    "documentation_url": "https://csound.com/docs/manual/STKResonate.html",
+    "inputs": [
+      {
+        "id": "ifrequency",
+        "name": "Frequency",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 440,
+        "description": "Note frequency in Hz, fixed at note initialization."
+      },
+      {
+        "id": "iamplitude",
+        "name": "Amplitude",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 0.2,
+        "description": "Note amplitude at initialization, from 0 to 1."
+      },
+      {
+        "id": "kfreq",
+        "name": "Frequency of resonance CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 2,
+        "description": "Controller number for frequency of resonance. Defaults to 2; the pair is sent only when kv1 is set."
+      },
+      {
+        "id": "kv1",
+        "name": "Frequency of resonance",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for frequency of resonance (controller 2), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kpole",
+        "name": "Pole radii CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 4,
+        "description": "Controller number for pole radii. Defaults to 4; the pair is sent only when kv2 is set."
+      },
+      {
+        "id": "kv2",
+        "name": "Pole radii",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for pole radii (controller 4), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "knotch",
+        "name": "Notch frequency CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 11,
+        "description": "Controller number for notch frequency. Defaults to 11; the pair is sent only when kv3 is set."
+      },
+      {
+        "id": "kv3",
+        "name": "Notch frequency",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for notch frequency (controller 11), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kzero",
+        "name": "Zero radii CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 1,
+        "description": "Controller number for zero radii. Defaults to 1; the pair is sent only when kv4 is set."
+      },
+      {
+        "id": "kv4",
+        "name": "Zero radii",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for zero radii (controller 1), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kenv",
+        "name": "Gain of envelope CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 128,
+        "description": "Controller number for gain of envelope. Defaults to 128; the pair is sent only when kv5 is set."
+      },
+      {
+        "id": "kv5",
+        "name": "Gain of envelope",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for gain of envelope (controller 128), range 0-127. Leave unset to retain the STK instrument default."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "asignal",
+        "name": "aOut",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Mono audio output."
+      }
+    ],
+    "template": "{asignal} STKResonate {ifrequency}, {iamplitude}, {kfreq}, {kv1}, {kpole}, {kv2}, {knotch}, {kv3}, {kzero}, {kv4}, {kenv}, {kv5}",
+    "tags": [
+      "stk",
+      "synthesis",
+      "physical_modeling"
+    ],
+    "icon_filename": "vco.svg"
+  },
+  {
+    "name": "STKSaxofony",
+    "category": "physical_modeling",
+    "description": "STK saxophone-like reed waveguide instrument.",
+    "documentation_markdown": "### `STKSaxofony`\n\nSTK saxophone-like reed waveguide instrument.\n\nRequires the Csound stkopd plugin and its STK rawwave data. Set RAWWAVE_PATH to the rawwaves directory before starting the backend. Frequency and amplitude are init-rate. Optional controller numbers are prefilled; set a controller value to send that pair. Unset values preserve the STK instrument defaults.\n\n**Reference**\n- [Csound opcode manual](https://csound.com/docs/manual/STKSaxofony.html)",
+    "documentation_url": "https://csound.com/docs/manual/STKSaxofony.html",
+    "inputs": [
+      {
+        "id": "ifrequency",
+        "name": "Frequency",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 440,
+        "description": "Note frequency in Hz, fixed at note initialization."
+      },
+      {
+        "id": "iamplitude",
+        "name": "Amplitude",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 0.2,
+        "description": "Note amplitude at initialization, from 0 to 1."
+      },
+      {
+        "id": "kstiff",
+        "name": "Stiffness of reed CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 2,
+        "description": "Controller number for stiffness of reed. Defaults to 2; the pair is sent only when kv1 is set."
+      },
+      {
+        "id": "kv1",
+        "name": "Stiffness of reed",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for stiffness of reed (controller 2), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kapert",
+        "name": "Reed aperture CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 26,
+        "description": "Controller number for reed aperture. Defaults to 26; the pair is sent only when kv2 is set."
+      },
+      {
+        "id": "kv2",
+        "name": "Reed aperture",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for reed aperture (controller 26), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kblow",
+        "name": "Blow position CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 11,
+        "description": "Controller number for blow position. Defaults to 11; the pair is sent only when kv3 is set."
+      },
+      {
+        "id": "kv3",
+        "name": "Blow position",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for blow position (controller 11), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "knoise",
+        "name": "Noise gain CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 4,
+        "description": "Controller number for noise gain. Defaults to 4; the pair is sent only when kv4 is set."
+      },
+      {
+        "id": "kv4",
+        "name": "Noise gain",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for noise gain (controller 4), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "klfo",
+        "name": "Speed of low-frequency oscillator CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 29,
+        "description": "Controller number for speed of low-frequency oscillator. Defaults to 29; the pair is sent only when kv5 is set."
+      },
+      {
+        "id": "kv5",
+        "name": "Speed of low-frequency oscillator",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for speed of low-frequency oscillator (controller 29), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "klfodepth",
+        "name": "Depth of low-frequency oscillator CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 1,
+        "description": "Controller number for depth of low-frequency oscillator. Defaults to 1; the pair is sent only when kv6 is set."
+      },
+      {
+        "id": "kv6",
+        "name": "Depth of low-frequency oscillator",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for depth of low-frequency oscillator (controller 1), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kbreath",
+        "name": "Breath pressure CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 128,
+        "description": "Controller number for breath pressure. Defaults to 128; the pair is sent only when kv7 is set."
+      },
+      {
+        "id": "kv7",
+        "name": "Breath pressure",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for breath pressure (controller 128), range 0-127. Leave unset to retain the STK instrument default."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "asignal",
+        "name": "aOut",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Mono audio output."
+      }
+    ],
+    "template": "{asignal} STKSaxofony {ifrequency}, {iamplitude}, {kstiff}, {kv1}, {kapert}, {kv2}, {kblow}, {kv3}, {knoise}, {kv4}, {klfo}, {kv5}, {klfodepth}, {kv6}, {kbreath}, {kv7}",
+    "tags": [
+      "stk",
+      "synthesis",
+      "physical_modeling"
+    ],
+    "icon_filename": "vco.svg"
+  },
+  {
+    "name": "STKShakers",
+    "category": "physical_modeling",
+    "description": "STK stochastic percussion and environmental-sound models.",
+    "documentation_markdown": "### `STKShakers`\n\nSTK stochastic percussion and environmental-sound models.\n\nRequires the Csound stkopd plugin and its STK rawwave data. Set RAWWAVE_PATH to the rawwaves directory before starting the backend. Frequency and amplitude are init-rate. Optional controller numbers are prefilled; set a controller value to send that pair. Unset values preserve the STK instrument defaults.\n\n**Reference**\n- [Csound opcode manual](https://csound.com/docs/manual/STKShakers.html)",
+    "documentation_url": "https://csound.com/docs/manual/STKShakers.html",
+    "inputs": [
+      {
+        "id": "ifrequency",
+        "name": "Frequency",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 440,
+        "description": "Note frequency in Hz, fixed at note initialization."
+      },
+      {
+        "id": "iamplitude",
+        "name": "Amplitude",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 0.2,
+        "description": "Note amplitude at initialization, from 0 to 1."
+      },
+      {
+        "id": "kenerg",
+        "name": "Shake energy CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 2,
+        "description": "Controller number for shake energy. Defaults to 2; the pair is sent only when kv1 is set."
+      },
+      {
+        "id": "kv1",
+        "name": "Shake energy",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for shake energy (controller 2), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kdecay",
+        "name": "System decay CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 4,
+        "description": "Controller number for system decay. Defaults to 4; the pair is sent only when kv2 is set."
+      },
+      {
+        "id": "kv2",
+        "name": "System decay",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for system decay (controller 4), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kshake",
+        "name": "Shake energy CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 128,
+        "description": "Controller number for shake energy. Defaults to 128; the pair is sent only when kv3 is set."
+      },
+      {
+        "id": "kv3",
+        "name": "Shake energy",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for shake energy (controller 128), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "knum",
+        "name": "Number of objects CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 11,
+        "description": "Controller number for number of objects. Defaults to 11; the pair is sent only when kv4 is set."
+      },
+      {
+        "id": "kv4",
+        "name": "Number of objects",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for number of objects (controller 11), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kres",
+        "name": "Resonance frequency CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 1,
+        "description": "Controller number for resonance frequency. Defaults to 1; the pair is sent only when kv5 is set."
+      },
+      {
+        "id": "kv5",
+        "name": "Resonance frequency",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for resonance frequency (controller 1), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kinstr",
+        "name": "Instrument selection CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 1071,
+        "description": "Controller number for instrument selection (Maraca = 0, Cabasa = 1, Sekere = 2, Guiro = 3, Water Drops = 4, Bamboo Chimes = 5, Tambourine = 6, Sleigh Bells = 7, Sticks = 8, Crunch = 9, Wrench = 10, Sand Paper = 11, Coke Can = 12, Next Mug = 13, Penny + Mug = 14, Nickle + Mug = 15, Dime + Mug = 16, Quarter + Mug = 17, Franc + Mug = 18, Peso + Mug = 19, Big Rocks = 20, Little Rocks = 21, Tuned Bamboo Chimes = 22). Defaults to 1071; the pair is sent only when kv6 is set."
+      },
+      {
+        "id": "kv6",
+        "name": "Instrument selection",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for instrument selection (Maraca = 0, Cabasa = 1, Sekere = 2, Guiro = 3, Water Drops = 4, Bamboo Chimes = 5, Tambourine = 6, Sleigh Bells = 7, Sticks = 8, Crunch = 9, Wrench = 10, Sand Paper = 11, Coke Can = 12, Next Mug = 13, Penny + Mug = 14, Nickle + Mug = 15, Dime + Mug = 16, Quarter + Mug = 17, Franc + Mug = 18, Peso + Mug = 19, Big Rocks = 20, Little Rocks = 21, Tuned Bamboo Chimes = 22) (controller 1071), range 0-22. Leave unset to retain the STK instrument default."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "asignal",
+        "name": "aOut",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Mono audio output."
+      }
+    ],
+    "template": "{asignal} STKShakers {ifrequency}, {iamplitude}, {kenerg}, {kv1}, {kdecay}, {kv2}, {kshake}, {kv3}, {knum}, {kv4}, {kres}, {kv5}, {kinstr}, {kv6}",
+    "tags": [
+      "stk",
+      "synthesis",
+      "physical_modeling"
+    ],
+    "icon_filename": "vco.svg"
+  },
+  {
+    "name": "STKSitar",
+    "category": "physical_modeling",
+    "description": "STK plucked-string sitar model.",
+    "documentation_markdown": "### `STKSitar`\n\nSTK plucked-string sitar model.\n\nRequires the Csound stkopd plugin and its STK rawwave data. Set RAWWAVE_PATH to the rawwaves directory before starting the backend. Frequency and amplitude are init-rate. Optional controller numbers are prefilled; set a controller value to send that pair. Unset values preserve the STK instrument defaults.\n\n**Reference**\n- [Csound opcode manual](https://csound.com/docs/manual/STKSitar.html)",
+    "documentation_url": "https://csound.com/docs/manual/STKSitar.html",
+    "inputs": [
+      {
+        "id": "ifrequency",
+        "name": "Frequency",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 440,
+        "description": "Note frequency in Hz, fixed at note initialization."
+      },
+      {
+        "id": "iamplitude",
+        "name": "Amplitude",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 0.2,
+        "description": "Note amplitude at initialization, from 0 to 1."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "asignal",
+        "name": "aOut",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Mono audio output."
+      }
+    ],
+    "template": "{asignal} STKSitar {ifrequency}, {iamplitude}",
+    "tags": [
+      "stk",
+      "synthesis",
+      "physical_modeling"
+    ],
+    "icon_filename": "vco.svg"
+  },
+  {
+    "name": "STKStifKarp",
+    "category": "physical_modeling",
+    "description": "STK stiff-string model with pickup, sustain, and stretch controls.",
+    "documentation_markdown": "### `STKStifKarp`\n\nSTK stiff-string model with pickup, sustain, and stretch controls.\n\nRequires the Csound stkopd plugin and its STK rawwave data. Set RAWWAVE_PATH to the rawwaves directory before starting the backend. Frequency and amplitude are init-rate. Optional controller numbers are prefilled; set a controller value to send that pair. Unset values preserve the STK instrument defaults.\n\n**Reference**\n- [Csound opcode manual](https://csound.com/docs/manual/STKStifKarp.html)",
+    "documentation_url": "https://csound.com/docs/manual/STKStifKarp.html",
+    "inputs": [
+      {
+        "id": "ifrequency",
+        "name": "Frequency",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 440,
+        "description": "Note frequency in Hz, fixed at note initialization."
+      },
+      {
+        "id": "iamplitude",
+        "name": "Amplitude",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 0.2,
+        "description": "Note amplitude at initialization, from 0 to 1."
+      },
+      {
+        "id": "kpos",
+        "name": "Pickup position CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 4,
+        "description": "Controller number for pickup position. Defaults to 4; the pair is sent only when kv1 is set."
+      },
+      {
+        "id": "kv1",
+        "name": "Pickup position",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for pickup position (controller 4), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "ksus",
+        "name": "String sustain CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 11,
+        "description": "Controller number for string sustain. Defaults to 11; the pair is sent only when kv2 is set."
+      },
+      {
+        "id": "kv2",
+        "name": "String sustain",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for string sustain (controller 11), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kstretch",
+        "name": "String stretch CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 1,
+        "description": "Controller number for string stretch. Defaults to 1; the pair is sent only when kv3 is set."
+      },
+      {
+        "id": "kv3",
+        "name": "String stretch",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for string stretch (controller 1), range 0-127. Leave unset to retain the STK instrument default."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "asignal",
+        "name": "aOut",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Mono audio output."
+      }
+    ],
+    "template": "{asignal} STKStifKarp {ifrequency}, {iamplitude}, {kpos}, {kv1}, {ksus}, {kv2}, {kstretch}, {kv3}",
+    "tags": [
+      "stk",
+      "synthesis",
+      "physical_modeling"
+    ],
+    "icon_filename": "vco.svg"
+  },
+  {
+    "name": "STKVoicForm",
+    "category": "physical_modeling",
+    "description": "STK four-formant voice synthesizer with voiced and unvoiced excitation.",
+    "documentation_markdown": "### `STKVoicForm`\n\nSTK four-formant voice synthesizer with voiced and unvoiced excitation.\n\nRequires the Csound stkopd plugin and its STK rawwave data. Set RAWWAVE_PATH to the rawwaves directory before starting the backend. Frequency and amplitude are init-rate. Optional controller numbers are prefilled; set a controller value to send that pair. Unset values preserve the STK instrument defaults.\n\n**Reference**\n- [Csound opcode manual](https://csound.com/docs/manual/STKVoicForm.html)",
+    "documentation_url": "https://csound.com/docs/manual/STKVoicForm.html",
+    "inputs": [
+      {
+        "id": "ifrequency",
+        "name": "Frequency",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 440,
+        "description": "Note frequency in Hz, fixed at note initialization."
+      },
+      {
+        "id": "iamplitude",
+        "name": "Amplitude",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 0.2,
+        "description": "Note amplitude at initialization, from 0 to 1."
+      },
+      {
+        "id": "kmix",
+        "name": "Voiced/unvoiced mix CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 2,
+        "description": "Controller number for voiced/unvoiced mix. Defaults to 2; the pair is sent only when kv1 is set."
+      },
+      {
+        "id": "kv1",
+        "name": "Voiced/unvoiced mix",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for voiced/unvoiced mix (controller 2), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "ksel",
+        "name": "Vowel/phoneme selection CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 4,
+        "description": "Controller number for vowel/phoneme selection. Defaults to 4; the pair is sent only when kv2 is set."
+      },
+      {
+        "id": "kv2",
+        "name": "Vowel/phoneme selection",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for vowel/phoneme selection (controller 4), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "klfo",
+        "name": "Speed of low-frequency oscillator CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 11,
+        "description": "Controller number for speed of low-frequency oscillator. Defaults to 11; the pair is sent only when kv3 is set."
+      },
+      {
+        "id": "kv3",
+        "name": "Speed of low-frequency oscillator",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for speed of low-frequency oscillator (controller 11), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "klfodepth",
+        "name": "Depth of low-frequency oscillator CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 1,
+        "description": "Controller number for depth of low-frequency oscillator. Defaults to 1; the pair is sent only when kv4 is set."
+      },
+      {
+        "id": "kv4",
+        "name": "Depth of low-frequency oscillator",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for depth of low-frequency oscillator (controller 1), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kloud",
+        "name": "Loudness CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 128,
+        "description": "Controller number for loudness (spectral tilt). Defaults to 128; the pair is sent only when kv5 is set."
+      },
+      {
+        "id": "kv5",
+        "name": "Loudness",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for loudness (spectral tilt) (controller 128), range 0-127. Leave unset to retain the STK instrument default."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "asignal",
+        "name": "aOut",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Mono audio output."
+      }
+    ],
+    "template": "{asignal} STKVoicForm {ifrequency}, {iamplitude}, {kmix}, {kv1}, {ksel}, {kv2}, {klfo}, {kv3}, {klfodepth}, {kv4}, {kloud}, {kv5}",
+    "tags": [
+      "stk",
+      "synthesis",
+      "physical_modeling"
+    ],
+    "icon_filename": "vco.svg"
+  },
+  {
+    "name": "STKWhistle",
+    "category": "physical_modeling",
+    "description": "STK whistle model with a pea and fipple modulation.",
+    "documentation_markdown": "### `STKWhistle`\n\nSTK whistle model with a pea and fipple modulation.\n\nRequires the Csound stkopd plugin and its STK rawwave data. Set RAWWAVE_PATH to the rawwaves directory before starting the backend. Frequency and amplitude are init-rate. Optional controller numbers are prefilled; set a controller value to send that pair. Unset values preserve the STK instrument defaults.\n\n**Reference**\n- [Csound opcode manual](https://csound.com/docs/manual/STKWhistle.html)",
+    "documentation_url": "https://csound.com/docs/manual/STKWhistle.html",
+    "inputs": [
+      {
+        "id": "ifrequency",
+        "name": "Frequency",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 440,
+        "description": "Note frequency in Hz, fixed at note initialization."
+      },
+      {
+        "id": "iamplitude",
+        "name": "Amplitude",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 0.2,
+        "description": "Note amplitude at initialization, from 0 to 1."
+      },
+      {
+        "id": "kmod",
+        "name": "Blowing frequency modulation CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 2,
+        "description": "Controller number for blowing frequency modulation. Defaults to 2; the pair is sent only when kv1 is set."
+      },
+      {
+        "id": "kv1",
+        "name": "Blowing frequency modulation",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for blowing frequency modulation (controller 2), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "knoise",
+        "name": "Noise gain CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 4,
+        "description": "Controller number for noise gain. Defaults to 4; the pair is sent only when kv2 is set."
+      },
+      {
+        "id": "kv2",
+        "name": "Noise gain",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for noise gain (controller 4), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kfipfreq",
+        "name": "Fipple modulation frequency CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 11,
+        "description": "Controller number for fipple modulation frequency. Defaults to 11; the pair is sent only when kv3 is set."
+      },
+      {
+        "id": "kv3",
+        "name": "Fipple modulation frequency",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for fipple modulation frequency (controller 11), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kfipgain",
+        "name": "Fipple modulation gain CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 1,
+        "description": "Controller number for fipple modulation gain. Defaults to 1; the pair is sent only when kv4 is set."
+      },
+      {
+        "id": "kv4",
+        "name": "Fipple modulation gain",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for fipple modulation gain (controller 1), range 0-127. Leave unset to retain the STK instrument default."
+      },
+      {
+        "id": "kvol",
+        "name": "Volume CC",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 128,
+        "description": "Controller number for volume. Defaults to 128; the pair is sent only when kv5 is set."
+      },
+      {
+        "id": "kv5",
+        "name": "Volume",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": null,
+        "description": "Value for volume (controller 128), range 0-127. Leave unset to retain the STK instrument default."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "asignal",
+        "name": "aOut",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Mono audio output."
+      }
+    ],
+    "template": "{asignal} STKWhistle {ifrequency}, {iamplitude}, {kmod}, {kv1}, {knoise}, {kv2}, {kfipfreq}, {kv3}, {kfipgain}, {kv4}, {kvol}, {kv5}",
+    "tags": [
+      "stk",
+      "synthesis",
+      "physical_modeling"
+    ],
+    "icon_filename": "vco.svg"
   }
 ]

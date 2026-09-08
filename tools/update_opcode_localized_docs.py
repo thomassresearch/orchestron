@@ -355,7 +355,7 @@ def build_dataset(
         for port in opcode.inputs:
             detail = best_param_match(port.id, port.name, input_candidates)
             if not detail:
-                detail = generic_port_detail(port.name, port.signal_type.value, is_output=False)
+                detail = port.description or generic_port_detail(port.name, port.signal_type.value, is_output=False)
             inputs[port.id] = detail
             all_strings.add(detail)
 

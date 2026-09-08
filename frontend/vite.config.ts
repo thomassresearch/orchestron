@@ -1,5 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { opcodeDocsChunkName, opcodeDocsChunks } from "./build/opcodeDocsChunks.mjs";
 
 const DOCS_SHARED_PATTERNS = [
   "/src/components/DocumentationModalFrame.tsx",
@@ -27,6 +28,9 @@ function matchesAnyPattern(id: string, patterns: string[]): boolean {
 }
 
 function manualChunkName(id: string): string | undefined {
+  const opcodeDataChunk = opcodeDocsChunkName(id);
+  if (opcodeDataChunk) return opcodeDataChunk;
+
   if (matchesAnyPattern(id, DOCS_SHARED_PATTERNS)) {
     return "docs-shared";
   }
@@ -53,7 +57,7 @@ function manualChunkName(id: string): string | undefined {
 
 export default defineConfig(({ command }) => ({
   base: command === "build" ? "/client/" : "/",
-  plugins: [react()],
+  plugins: [react(), opcodeDocsChunks()],
   build: {
     rollupOptions: {
       output: {

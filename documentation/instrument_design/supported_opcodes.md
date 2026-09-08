@@ -2,7 +2,7 @@
 
 **Navigation:** [Up](instrument_design.md) | [Prev](instrument_import_export.md) | [Next](../performance/performance.md)
 
-This appendix is generated from `backend/app/data/opcodes.json` and currently lists **144** user-selectable opcodes in the Instrument Design opcode catalog.
+This appendix is generated from `backend/app/data/opcodes.json` and currently lists **171** user-selectable opcodes in the Instrument Design opcode catalog.
 
 ## How To Use This Appendix
 
@@ -22,15 +22,15 @@ This appendix is generated from `backend/app/data/opcodes.json` and currently li
 | dynamics | 2 |
 | envelope | 12 |
 | filter | 16 |
-| fm | 10 |
+| fm | 17 |
 | math | 3 |
 | midi | 7 |
 | mixer | 3 |
 | modulation | 10 |
 | noise | 3 |
-| oscillator | 17 |
+| oscillator | 19 |
 | output | 1 |
-| physical_modeling | 11 |
+| physical_modeling | 29 |
 | reverb | 4 |
 | routing | 4 |
 | soundfont | 3 |
@@ -130,6 +130,13 @@ This appendix is generated from `backend/app/data/opcodes.json` and currently li
 
 | Opcode | Inputs | Outputs | Short Description |
 | --- | --- | --- | --- |
+| STKBeeThree | 12 (i, i, k, k, k, k, k, k, k, k, k, k) | 1 (a) | STK four-operator FM organ inspired by Hammond organs. |
+| STKFMVoices | 12 (i, i, k, k, k, k, k, k, k, k, k, k) | 1 (a) | STK FM singing-voice instrument with vowel and spectral-tilt controls. |
+| STKHevyMetl | 12 (i, i, k, k, k, k, k, k, k, k, k, k) | 1 (a) | STK four-operator FM instrument for metallic timbres. |
+| STKPercFlut | 12 (i, i, k, k, k, k, k, k, k, k, k, k) | 1 (a) | STK four-operator FM percussive flute instrument. |
+| STKRhodey | 12 (i, i, k, k, k, k, k, k, k, k, k, k) | 1 (a) | STK four-operator FM electric piano inspired by Rhodes pianos. |
+| STKTubeBell | 12 (i, i, k, k, k, k, k, k, k, k, k, k) | 1 (a) | STK four-operator FM tubular-bell instrument. |
+| STKWurley | 12 (i, i, k, k, k, k, k, k, k, k, k, k) | 1 (a) | STK four-operator FM electric piano inspired by Wurlitzer pianos. |
 | crossfmi | 9 (k, k, k, k, k, i, i, i, i) | 2 (a, a) | Interpolating crossed frequency-modulation oscillator pair. |
 | crossfmpmi | 9 (k, k, k, k, k, i, i, i, i) | 2 (a, a) | Interpolating crossed frequency/phase-modulation oscillator pair. |
 | crosspmi | 9 (k, k, k, k, k, i, i, i, i) | 2 (a, a) | Interpolating crossed phase-modulation oscillator pair. |
@@ -196,13 +203,15 @@ This appendix is generated from `backend/app/data/opcodes.json` and currently li
 
 | Opcode | Inputs | Outputs | Short Description |
 | --- | --- | --- | --- |
+| STKMoog | 12 (i, i, k, k, k, k, k, k, k, k, k, k) | 1 (a) | STK sampled-wave synthesizer with swept formant filters. |
+| STKSimple | 10 (i, i, k, k, k, k, k, k, k, k) | 1 (a) | STK wavetable and noise synthesizer with filters and an ADSR envelope. |
 | fof | 15 (k, k, k, k, k, k, k, k, i, i, i, i, i, i, i) | 1 (a) | Formant/granular source using sinusoid bursts. |
 | fof2 | 15 (k, k, k, k, k, k, k, k, i, i, i, i, k, k, i) | 1 (a) | FOF source with per-grain phase indexing and glissando. |
 | foscili | 7 (k, k, k, k, k, i, i) | 1 (a) | Audio-rate FM oscillator with harmonic ratios. |
 | gbuzz | 7 (k, k, k, k, k, i, i) | 1 (a) | Generalized buzz oscillator with controllable harmonics. |
 | grain | 10 (k, k, k, k, k, k, i, i, i, i) | 1 (a) | Classic granular synthesis oscillator with table-based grains. |
 | grain2 | 9 (k, k, k, i, k, i, i, i, i) | 1 (a) | Easy-to-use granular synthesis texture generator. |
-| grain3 | 11 (k, k, k, k, k, k, i, k, i, i, i) | 1 (a) | Granular oscillator with independent pitch and frequency modulation. |
+| grain3 | 13 (k, k, k, k, k, k, i, k, i, k, k, i, i) | 1 (a) | Granular oscillator with independent frequency and phase modulation controls. |
 | granule | 22 (k, i, i, i, i, i, i, i, i, i, k, i, k, i, i, i, i, i, i, i, i, i) | 1 (a) | Multi-voice granular processor with independent gap and grain-size controls. |
 | moog | 9 (k, k, k, k, k, k, i, i, i) | 1 (a) | Mini-Moog style synthesizer model source. |
 | oscil3 | 4 (k, k, i, i) | 1 (a) | Cubic-interpolating oscillator with low distortion. |
@@ -224,6 +233,24 @@ This appendix is generated from `backend/app/data/opcodes.json` and currently li
 
 | Opcode | Inputs | Outputs | Short Description |
 | --- | --- | --- | --- |
+| STKBandedWG | 16 (i, i, k, k, k, k, k, k, k, k, k, k, k, k, k, k) | 1 (a) | STK banded waveguide model of bowed bars, glasses, and bowls. |
+| STKBlowBotl | 10 (i, i, k, k, k, k, k, k, k, k) | 1 (a) | STK blown-bottle model with a Helmholtz resonator and jet excitation. |
+| STKBlowHole | 12 (i, i, k, k, k, k, k, k, k, k, k, k) | 1 (a) | STK clarinet model with register and tone holes. |
+| STKBowed | 12 (i, i, k, k, k, k, k, k, k, k, k, k) | 1 (a) | STK bowed-string waveguide instrument. |
+| STKBrass | 12 (i, i, k, k, k, k, k, k, k, k, k, k) | 1 (a) | STK brass waveguide instrument with lip and slide controls. |
+| STKClarinet | 12 (i, i, k, k, k, k, k, k, k, k, k, k) | 1 (a) | STK single-reed clarinet waveguide instrument. |
+| STKDrummer | 2 (i, i) | 1 (a) | STK drum synthesizer using sampled raw waves and one-pole filters. |
+| STKFlute | 12 (i, i, k, k, k, k, k, k, k, k, k, k) | 1 (a) | STK flute waveguide instrument with jet and breath controls. |
+| STKMandolin | 12 (i, i, k, k, k, k, k, k, k, k, k, k) | 1 (a) | STK mandolin model with paired strings and sampled body responses. |
+| STKModalBar | 16 (i, i, k, k, k, k, k, k, k, k, k, k, k, k, k, k) | 1 (a) | STK modal percussion instrument with bar and bell presets. |
+| STKPlucked | 2 (i, i) | 1 (a) | STK Karplus-Strong plucked-string instrument. |
+| STKResonate | 12 (i, i, k, k, k, k, k, k, k, k, k, k) | 1 (a) | STK noise-driven resonator with pole and zero controls. |
+| STKSaxofony | 16 (i, i, k, k, k, k, k, k, k, k, k, k, k, k, k, k) | 1 (a) | STK saxophone-like reed waveguide instrument. |
+| STKShakers | 14 (i, i, k, k, k, k, k, k, k, k, k, k, k, k) | 1 (a) | STK stochastic percussion and environmental-sound models. |
+| STKSitar | 2 (i, i) | 1 (a) | STK plucked-string sitar model. |
+| STKStifKarp | 8 (i, i, k, k, k, k, k, k) | 1 (a) | STK stiff-string model with pickup, sustain, and stretch controls. |
+| STKVoicForm | 12 (i, i, k, k, k, k, k, k, k, k, k, k) | 1 (a) | STK four-formant voice synthesizer with voiced and unvoiced excitation. |
+| STKWhistle | 12 (i, i, k, k, k, k, k, k, k, k, k, k) | 1 (a) | STK whistle model with a pea and fipple modulation. |
 | dripwater | 8 (k, i, i, i, i, i, i, i) | 1 (a) | Stochastic dripping-water physical model source. |
 | marimba | 11 (k, k, i, i, i, k, k, i, i, i, i) | 1 (a) | Physical model of a marimba bar and resonator. |
 | pluck | 6 (k, k, i, i, i, i) | 1 (a) | Karplus-Strong plucked-string model. |

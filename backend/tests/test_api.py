@@ -40,6 +40,39 @@ from backend.tests.api_test_support import (
     _minimal_patch_payload,
     _sequencer_timing,
 )
+from backend.tests.stk_test_support import STK_CONTROLLERS
+
+
+def test_opcodes_include_all_stk_instruments_and_manual_controller_pairs(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        response = client.get("/api/opcodes")
+        assert response.status_code == 200
+        by_name = {item["name"]: item for item in response.json()}
+
+    for name, controllers in STK_CONTROLLERS.items():
+        opcode = by_name[name]
+        assert opcode["documentation_url"] == f"https://csound.com/docs/manual/{name}.html"
+        assert "stkopd" in opcode["documentation_markdown"]
+        assert "stk" in opcode["tags"]
+        assert opcode["icon"] == "/static/icons/vco.svg"
+        assert [(p["id"], p["signal_type"]) for p in opcode["outputs"]] == [("asignal", "a")]
+        inputs = opcode["inputs"]
+        assert [(p["id"], p["signal_type"], p["required"]) for p in inputs[:2]] == [
+            ("ifrequency", "i", True), ("iamplitude", "i", True),
+        ]
+        assert inputs[0]["default"] == (60 if name == "STKDrummer" else 440)
+        assert inputs[1]["default"] == 0.2
+        assert len(inputs) == 2 + 2 * len(controllers)
+        for index, (controller_id, number) in enumerate(controllers, start=1):
+            controller, value = inputs[2 * index:2 * index + 2]
+            assert controller["id"] == controller_id
+            assert controller["default"] == number
+            assert value["id"] == f"kv{index}"
+            assert value["default"] is None
+            for port in (controller, value):
+                assert port["signal_type"] == "k"
+                assert port["accepted_signal_types"] == ["k", "i"]
+                assert port["required"] is False
 
 
 def test_app_state_round_trip(tmp_path: Path) -> None:

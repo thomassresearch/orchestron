@@ -324,7 +324,15 @@ class OrchestraEmitter:
                     continue
 
             try:
-                rendered = compiled.spec.template.format(**env)
+                template = compiled.spec.template
+                if compiled.spec.name.startswith("STK"):
+                    # STK controls are independent number/value pairs. A default
+                    # controller number must not send a value or leave a gap when
+                    # that pair's optional value is unset.
+                    for controller, value in zip(compiled.spec.inputs[2::2], compiled.spec.inputs[3::2]):
+                        if env[value.id] == OPTIONAL_OMIT_MARKER:
+                            template = template.replace(f", {{{controller.id}}}, {{{value.id}}}", "")
+                rendered = template.format(**env)
             except KeyError as err:
                 raise CompilationError([f"Template value missing for node '{compiled.node.id}': {err}"]) from err
 
