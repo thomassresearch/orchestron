@@ -1,4 +1,6 @@
 import { executeStereoCommand, reconcileAudioGraph, deleteAudioGraphItems } from "../lib/audioBlocks";
+import { addControlFlowBlock, BRANCH_OPCODES, patchSchemaVersion } from "../lib/controlFlow";
+import { controlFlowCopy } from "../lib/controlFlowCopy";
 import { stereoOpcodeDirection } from "../lib/stereoCatalog";
 import { createMixerActions, initialMixerState } from "./appStoreMixer";
 import { emptyAudioGraph, emptyMixer, migrateAudio, cleanBindings } from "../lib/audioRouting";
@@ -82,6 +84,7 @@ let bootstrapLoadInFlight: Promise<void> | null = null;
 
 export const useAppStore = create<AppStore>((set, get) => {
   const commitCurrentPatch = (patch: EditablePatch, extra?: Partial<AppStore>) => {
+    patch = { ...patch, schema_version: patchSchemaVersion(patch.schema_version, patch.graph) };
     const state = get();
     const instrumentTabs = updatePatchInTabs(state.instrumentTabs, state.activeInstrumentTabId, patch);
     set({
@@ -545,6 +548,12 @@ export const useAppStore = create<AppStore>((set, get) => {
 
     addNodeFromOpcode: (opcode, position) => {
       const current = get().currentPatch;
+      if (BRANCH_OPCODES.has(opcode.name)) {
+        const copy = controlFlowCopy(get().guiLanguage);
+        commitCurrentPatch({ ...current, graph: addControlFlowBlock(current.graph, opcode.name === "If" ? "if" : "switch", position,
+          [copy("true"), copy("false"), copy("default")]) });
+        return;
+      }
       const direction = stereoOpcodeDirection(opcode.name);
       if (direction) {
         commitCurrentPatch({ ...current, graph: executeStereoCommand(current.graph, { kind: "create", direction, position }) });

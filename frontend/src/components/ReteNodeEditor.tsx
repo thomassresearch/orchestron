@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 
 import { ClassicPreset, NodeEditor } from "rete";
@@ -20,6 +20,7 @@ import {
 import { getGenNodeConfig, setGenNodeConfig, type GenNodeConfig } from "../lib/genNodeConfig";
 import { getSfloadNodeConfig, setSfloadNodeConfig, type SfloadNodeConfig } from "../lib/sfloadNodeConfig";
 import { getDraggedOpcodeName, hasDraggedOpcode } from "../lib/opcodeDragDrop";
+import { readGraphEditorState, writeGraphEditorState, type GraphSelection, type GraphViewport } from "../lib/graphEditorState";
 import { GenNodeEditorModal } from "./GenNodeEditorModal";
 import { SfloadNodeEditorModal } from "./SfloadNodeEditorModal";
 import type { Connection, GuiLanguage, NodePosition, OpcodeSpec, PatchGraph, SignalType } from "../types";
@@ -28,12 +29,15 @@ type EditorHandle = {
   destroy: () => void;
 };
 
-export interface EditorSelection {
-  nodeIds: string[];
-  connections: Connection[];
-}
+export type EditorSelection = GraphSelection;
 
 export interface ReteNodeEditorProps {
+  nodeTitles?: Record<string, string>;
+  renderNodeActions?: (id: string) => ReactNode;
+  selectionMapping?: { canonical: (selection: EditorSelection) => EditorSelection; display: (selection: EditorSelection) => EditorSelection };
+  regions?: { id: string; title: string; nodeIds: string[]; anchor: NodePosition }[];
+  readOnlyInputs?: Set<string>;
+  readOnlyInputLabel?: string;
   guiLanguage: GuiLanguage;
   graph: PatchGraph;
   graphLabel?: string;
@@ -237,11 +241,7 @@ type NodePalette = {
   selectedBorder: string;
 };
 
-type ViewportTransform = {
-  x: number;
-  y: number;
-  k: number;
-};
+type ViewportTransform = GraphViewport;
 
 const CATEGORY_NODE_PALETTES: Record<string, NodePalette> = {
   generator: {
@@ -354,6 +354,7 @@ function paletteForCategory(category: string | undefined): NodePalette {
   if (GENERATOR_CATEGORIES.has(category)) {
     return CATEGORY_NODE_PALETTES.generator;
   }
+  if (category === "control_flow") return { background: "#ddd6fe", border: "#8b5cf6", hover: "#ede9fe", selectedBackground: "#f5f3ff", selectedBorder: "#a78bfa" };
   if (category === "midi") {
     return CATEGORY_NODE_PALETTES.midi;
   }
@@ -409,7 +410,7 @@ function graphStructureKey(graph: PatchGraph): string {
         `${connection.from_node_id}.${connection.from_port_id}>${connection.to_node_id}.${connection.to_port_id}`
     )
     .join(";");
-  return `${nodePart}|${connectionPart}`;
+  return `${nodePart}|${connectionPart}|${JSON.stringify(graph.control_flow ?? {})}|${JSON.stringify(graph.ui_layout.control_flow_blocks ?? {})}`;
 }
 
 function sourceBindingKey(fromNodeId: string, fromPortId: string): string {
@@ -490,7 +491,13 @@ export function ReteNodeEditor({
   opcodeHelpLabel,
   onDeleteSelection,
   canDeleteSelection = false,
-  deleteSelectionLabel
+  deleteSelectionLabel,
+  nodeTitles,
+  renderNodeActions,
+  regions,
+  readOnlyInputs,
+  readOnlyInputLabel,
+  selectionMapping
 }: ReteNodeEditorProps) {
   const copy = RETE_EDITOR_COPY[guiLanguage];
   const resolvedGraphLabel = typeof graphLabel === "string" ? graphLabel.trim() : "";
@@ -500,9 +507,12 @@ export function ReteNodeEditor({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const initializingRef = useRef(false);
   const graphRef = useRef(graph);
+  const presentationRef = useRef({ nodeTitles, renderNodeActions, regions, readOnlyInputs, readOnlyInputLabel, selectionMapping });
+  presentationRef.current = { nodeTitles, renderNodeActions, regions, readOnlyInputs, readOnlyInputLabel, selectionMapping };
   const areaRef = useRef<AreaPlugin<any, any> | null>(null);
   const editorRef = useRef<NodeEditor<any> | null>(null);
   const reteToPatchRef = useRef<Map<string, string>>(new Map());
+  const selectionByKeyRef = useRef<Map<string, EditorSelection>>(new Map());
   const viewportByKeyRef = useRef<Map<string, ViewportTransform>>(new Map());
   const formulaEditorTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [zoomPercent, setZoomPercent] = useState(100);
@@ -512,11 +522,11 @@ export function ReteNodeEditor({
   const [genEditor, setGenEditor] = useState<GenEditorState | null>(null);
   const [sfloadEditor, setSfloadEditor] = useState<SfloadEditorState | null>(null);
 
-  const opcodeByName = useMemo(() => new Map(opcodes.map((opcode) => [opcode.name, opcode])), [opcodes]);
-  const configuredFormulaTargetKeys = useMemo(
-    () => Object.keys(readInputFormulaMap(graph.ui_layout)).sort(),
-    [graph.ui_layout]
-  );
+  // Graph projections recreate arrays during drags. Rebuild Rete only when port metadata changes.
+  const opcodeKey = JSON.stringify(opcodes);
+  const opcodeByName = useMemo(() => new Map((JSON.parse(opcodeKey) as OpcodeSpec[]).map((opcode) => [opcode.name, opcode])), [opcodeKey]);
+  const formulaKeysJson = JSON.stringify(Object.keys(readInputFormulaMap(graph.ui_layout)).sort());
+  const configuredFormulaTargetKeys = useMemo<string[]>(() => JSON.parse(formulaKeysJson), [formulaKeysJson]);
   const configuredFormulaTargetKeySet = useMemo(
     () => new Set(configuredFormulaTargetKeys),
     [configuredFormulaTargetKeys]
@@ -927,8 +937,9 @@ export function ReteNodeEditor({
 
   const restoreViewport = useCallback(
     async (area: AreaPlugin<any, any>, viewport: ViewportTransform) => {
-      const boundedZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, viewport.k));
-      await area.area.zoom(boundedZoom, 0, 0);
+      // Fit may zoom beyond the toolbar limits for large expanded graphs.
+      const savedZoom = Number.isFinite(viewport.k) && viewport.k > 0 ? viewport.k : 1;
+      await area.area.zoom(savedZoom, 0, 0);
       await area.area.translate(viewport.x, viewport.y);
       syncZoomPercent();
     },
@@ -1049,8 +1060,10 @@ export function ReteNodeEditor({
                   <div style={{ position: "relative" }}>
                     <ReactPresets.classic.Node
                       {...props}
-                      styles={(styleProps: any) => nodeCssForCategory(opcodeCategory, Boolean(styleProps.selected))}
+                      data={{ ...props.data, label: presentationRef.current.nodeTitles?.[patchNodeId ?? ""] ?? props.data.label, width: opcodeName.startsWith("__branch_") ? 320 : props.data.width }}
+                      styles={(styleProps: any) => nodeCssForCategory(opcodeCategory, Boolean(styleProps.selected)) + (opcodeName.startsWith("__branch_") ? "width: 320px; .title { white-space: pre-line; }" : "")}
                     />
+                    {patchNodeId && <div className="absolute -bottom-7 left-0">{presentationRef.current.renderNodeActions?.(patchNodeId)}</div>}
                     {isGenNode || isSfloadNode ? (
                       <button
                         type="button"
@@ -1151,12 +1164,13 @@ export function ReteNodeEditor({
               const optionalPorts = optionalInputPortsByReteNode.get(String(context.nodeId));
               const isOptionalInput = context.side === "input" && Boolean(optionalPorts?.has(context.key));
               const patchNodeId = reteToPatchRef.current.get(String(context.nodeId));
-              const hasFormulaAssistant = Boolean(patchNodeId && context.side === "input");
+              const readOnly = presentationRef.current.readOnlyInputs?.has(`${patchNodeId}::${context.key}`);
+              const hasFormulaAssistant = Boolean(patchNodeId && context.side === "input" && !readOnly);
               const hasConfiguredFormula =
                 context.side === "input" && patchNodeId
                   ? configuredFormulaTargetKeySet.has(formulaTargetKey(patchNodeId, context.key))
                   : false;
-              const socketTitle = hasFormulaAssistant
+              const socketTitle = readOnly ? presentationRef.current.readOnlyInputLabel : hasFormulaAssistant
                 ? isOptionalInput
                   ? copy.optionalInputWithFormula
                   : copy.inputWithFormula
@@ -1193,9 +1207,20 @@ export function ReteNodeEditor({
       area.use(render);
 
       AreaExtensions.simpleNodesOrder(area);
+      // Rete listens for pointer-up on window. Toolbar clicks must not clear a
+      // selection restored after collapse/reload (its selector starts unpicked).
+      let canvasGesture = false;
+      area.addPipe((context: any) => {
+        if (context.type === "pointerdown" || context.type === "nodepicked") canvasGesture = true;
+        if (context.type === "pointerup") {
+          if (!canvasGesture) return;
+          canvasGesture = false;
+        }
+        return context;
+      });
       const selection = AreaExtensions.selector();
       const accumulating = AreaExtensions.accumulateOnCtrl();
-      AreaExtensions.selectableNodes(area, selection, { accumulating });
+      const selectable = AreaExtensions.selectableNodes(area, selection, { accumulating });
 
       const patchToRete = new Map<string, any>();
       const reteToPatch = new Map<string, string>();
@@ -1204,6 +1229,30 @@ export function ReteNodeEditor({
       const connectionByKey = new Map<string, Connection>();
       const selectedConnectionKeys = new Set<string>();
       const connectionHandlers = new Map<string, (event: PointerEvent) => void>();
+      const regionResizeObserver: { current?: ResizeObserver } = {};
+      handle = {
+        destroy: () => {
+          for (const [reteConnectionId, handler] of connectionHandlers) {
+            const view = area.connectionViews.get(reteConnectionId);
+            if (view) {
+              view.element.removeEventListener("pointerdown", handler);
+            }
+          }
+          regionResizeObserver.current?.disconnect();
+          accumulating.destroy();
+          area.destroy();
+        }
+      };
+
+      const persistPresentation = () => {
+        if (initializingRef.current || !Object.keys(graphRef.current.control_flow ?? {}).length) return;
+        const state = {
+          selection: selectionByKeyRef.current.get(viewportKey),
+          viewport: snapshotViewport(area)
+        };
+        if (JSON.stringify(graphRef.current.ui_layout.editor_state) === JSON.stringify(state)) return;
+        updateGraph((current) => ({ ...current, ui_layout: writeGraphEditorState(current.ui_layout, state) }));
+      };
 
       const emitSelection = () => {
         const nodeIds = Array.from(selection.entities.values())
@@ -1214,7 +1263,10 @@ export function ReteNodeEditor({
           .map((key) => connectionByKey.get(key))
           .filter((connection): connection is Connection => Boolean(connection));
 
-        onSelectionChange({ nodeIds, connections });
+        const next = { nodeIds, connections };
+        selectionByKeyRef.current.set(viewportKey, presentationRef.current.selectionMapping?.canonical(next) ?? next);
+        onSelectionChange(next);
+        persistPresentation();
       };
 
       const updateConnectionClasses = () => {
@@ -1290,6 +1342,7 @@ export function ReteNodeEditor({
       };
 
       for (const node of initialGraph.nodes) {
+        if (cancelled) return;
         const spec = opcodeByName.get(node.opcode);
         const visualNode = new ClassicPreset.Node(spec ? spec.name : node.opcode);
         const isConstantOpcode = CONSTANT_OPCODES.has(node.opcode);
@@ -1355,10 +1408,12 @@ export function ReteNodeEditor({
         reteToPatch.set(String(visualNode.id), node.id);
 
         await editor.addNode(visualNode);
+        if (cancelled) return;
         await area.translate(visualNode.id, { x: node.position.x, y: node.position.y });
       }
 
       for (const connectionDef of initialGraph.connections) {
+        if (cancelled) return;
         const source = patchToRete.get(connectionDef.from_node_id);
         const target = patchToRete.get(connectionDef.to_node_id);
         if (!source || !target) {
@@ -1383,6 +1438,33 @@ export function ReteNodeEditor({
           // Ignore stale/invalid persisted edges while still rendering the remaining graph.
         }
       }
+
+      if (cancelled) return;
+      const regionElements = new Map<string, HTMLDivElement>();
+      const updateRegions = () => {
+        for (const region of presentationRef.current.regions ?? []) {
+          let element = regionElements.get(region.id);
+          if (!element) {
+            element = document.createElement("div");
+            element.className = "vs-case-region";
+            Object.assign(element.style, { position: "absolute", pointerEvents: "none", border: "1px solid #a855f780", borderRadius: "14px", background: "#a855f709", color: "#d8b4fe", padding: "12px", fontSize: "13px", fontWeight: "600" });
+            area.area.content.holder.prepend(element); regionElements.set(region.id, element);
+          }
+          const boxes = region.nodeIds.flatMap((id) => {
+            const node = patchToRete.get(id); const view = node && area.nodeViews.get(node.id);
+            return view ? [{ x: view.position.x, y: view.position.y, width: view.element.offsetWidth || 220, height: view.element.offsetHeight || 160 }] : [];
+          });
+          const x = Math.min(region.anchor.x, ...boxes.map((b) => b.x)) - 25;
+          const y = Math.min(region.anchor.y, ...boxes.map((b) => b.y)) - 55;
+          const right = Math.max(region.anchor.x + 1000, ...boxes.map((b) => b.x + b.width));
+          const bottom = Math.max(region.anchor.y + 180, ...boxes.map((b) => b.y + b.height));
+          element.textContent = region.title;
+          Object.assign(element.style, { left: `${x}px`, top: `${y}px`, width: `${right - x + 25}px`, height: `${bottom - y + 30}px` });
+        }
+      };
+      updateRegions();
+      regionResizeObserver.current = new ResizeObserver(updateRegions);
+      for (const view of area.nodeViews.values()) regionResizeObserver.current.observe(view.element);
 
       editor.addPipe((context: any) => {
         if (initializingRef.current) {
@@ -1471,8 +1553,11 @@ export function ReteNodeEditor({
 
         if (context.type === "zoomed") {
           setZoomPercent(Math.round(context.data.zoom * 100));
+          persistPresentation();
           return context;
         }
+
+        if (context.type === "translated") persistPresentation();
 
         if (context.type === "nodepicked") {
           if (!accumulating.active()) {
@@ -1498,11 +1583,22 @@ export function ReteNodeEditor({
           return context;
         }
 
+        if (context.type === "nodetranslate") {
+          const id = reteToPatch.get(String(context.data.id));
+          const node = graphRef.current.nodes.find((n) => n.id === id);
+          const parentId = Object.entries(graphRef.current.control_flow ?? {}).find(([, block]) => block.cases.some((item) => item.node_ids.includes(id ?? "")))?.[0];
+          const parentSelected = parentId && patchToRete.get(parentId)?.selected;
+          if (node && (node.opcode.startsWith("__result_") || parentSelected) &&
+            (node.position.x !== context.data.position.x || node.position.y !== context.data.position.y)) return;
+        }
+
         if (context.type === "nodetranslated") {
+          updateRegions();
           const translated = context.data;
           const patchNodeId = reteToPatch.get(String(translated.id));
 
-          if (patchNodeId) {
+          const previous = graphRef.current.nodes.find((node) => node.id === patchNodeId)?.position;
+          if (patchNodeId && (previous?.x !== translated.position.x || previous?.y !== translated.position.y)) {
             updateGraph((currentGraph) => ({
               ...currentGraph,
               nodes: currentGraph.nodes.map((node) =>
@@ -1523,28 +1619,36 @@ export function ReteNodeEditor({
         return context;
       });
 
-      const savedViewport = viewportByKeyRef.current.get(viewportKey);
+      const persistedPresentation = readGraphEditorState(initialGraph.ui_layout);
+      const savedViewport = viewportByKeyRef.current.get(viewportKey) ?? persistedPresentation.viewport;
       if (savedViewport) {
         await restoreViewport(area, savedViewport);
       } else {
         await AreaExtensions.zoomAt(area, editor.getNodes());
         syncZoomPercent();
       }
-      initializingRef.current = false;
-      emitSelection();
-
-      handle = {
-        destroy: () => {
-          for (const [reteConnectionId, handler] of connectionHandlers) {
-            const view = area.connectionViews.get(reteConnectionId);
-            if (view) {
-              view.element.removeEventListener("pointerdown", handler);
-            }
-          }
-          accumulating.destroy();
-          area.destroy();
+      if (cancelled) return;
+      const canonicalSelection = selectionByKeyRef.current.get(viewportKey) ?? persistedPresentation.selection;
+      const savedSelection = canonicalSelection && (presentationRef.current.selectionMapping?.display(canonicalSelection) ?? canonicalSelection);
+      if (savedSelection) {
+        for (const id of savedSelection.nodeIds) {
+          const node = patchToRete.get(id);
+          if (node) await selectable.select(node.id, true);
         }
-      };
+        for (const link of savedSelection.connections) {
+          const key = connectionKey(link);
+          if (connectionByKey.has(key)) selectedConnectionKeys.add(key);
+        }
+        updateConnectionClasses();
+        // Preserve hidden case selections through collapse/expand; real selection gestures replace them.
+        const owned = new Set(Object.values(initialGraph.control_flow ?? {}).flatMap((b) => b.cases.flatMap((c) => c.node_ids)));
+        const retained = { nodeIds: savedSelection.nodeIds.filter((id) => patchToRete.has(id) || owned.has(id)), connections: savedSelection.connections };
+        selectionByKeyRef.current.set(viewportKey, presentationRef.current.selectionMapping?.canonical(retained) ?? retained);
+        onSelectionChange(retained);
+      } else emitSelection();
+      initializingRef.current = false;
+
+
     };
 
     void setup();
@@ -1582,6 +1686,27 @@ export function ReteNodeEditor({
     configuredFormulaTargetKeySet,
     updateGraph
   ]);
+
+  const nodeTitlesKey = JSON.stringify(nodeTitles ?? {});
+  useEffect(() => {
+    const area = areaRef.current;
+    if (!area || initializingRef.current) return;
+    for (const [reteId, patchId] of reteToPatchRef.current) {
+      if (presentationRef.current.nodeTitles?.[patchId]) void area.update("node", reteId);
+    }
+  }, [nodeTitlesKey]);
+
+  useEffect(() => {
+    const area = areaRef.current;
+    if (!area || initializingRef.current) return;
+    for (const [reteId, patchId] of reteToPatchRef.current) {
+      const position = graph.nodes.find((node) => node.id === patchId)?.position;
+      const view = area.nodeViews.get(reteId);
+      if (position && view && (view.position.x !== position.x || view.position.y !== position.y)) {
+        void area.translate(reteId, position);
+      }
+    }
+  }, [graph.nodes]);
 
   return (
     <>

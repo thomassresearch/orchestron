@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field, JsonValue, field_validator, m
 
 from backend.app.models.opcode import SignalType
 from backend.app.models.source_text import reject_control_characters
+from backend.app.models.control_flow import ControlFlowBlock, validate_control_flow
 
 PatchParam = str | int | float | bool
 
@@ -405,6 +406,7 @@ class PatchGraph(BaseModel):
     ui_layout: dict[str, JsonValue] = Field(default_factory=dict)
     engine_config: EngineConfig = Field(default_factory=EngineConfig)
     audio_interface: AudioInterface | None = None
+    control_flow: dict[str, ControlFlowBlock] = Field(default_factory=dict)
 
     @field_validator("nodes")
     @classmethod
@@ -426,6 +428,7 @@ class PatchGraph(BaseModel):
         if len(ids) != len(set(ids)):
             raise ValueError("Node IDs must be unique")
         validate_gen_node_layout_map(self.ui_layout)
+        validate_control_flow(self.nodes, self.control_flow)
         return self
 
 
@@ -434,8 +437,14 @@ class PatchBase(BaseModel):
     description: str = Field(default="", max_length=2_048)
     is_template: bool = False
     always_on: bool = False
-    schema_version: int = 1
+    schema_version: Literal[1, 2] = 1
     graph: PatchGraph
+
+    @model_validator(mode="after")
+    def promote_control_flow_schema(self) -> "PatchBase":
+        if self.graph.control_flow:
+            self.schema_version = 2
+        return self
 
     @field_validator("name")
     @classmethod
@@ -453,7 +462,7 @@ class PatchUpdateRequest(BaseModel):
     is_template: bool | None = None
     always_on: bool | None = None
     graph: PatchGraph | None = None
-    schema_version: int | None = None
+    schema_version: Literal[1, 2] | None = None
 
     @field_validator("name")
     @classmethod

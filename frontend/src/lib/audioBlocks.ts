@@ -1,5 +1,6 @@
 import { readInputFormulaMap, writeInputFormulaMap, parseFormulaTargetKey, type InputFormulaMap } from "./graphFormula";
 import type { AudioPortGroup, Connection, NodeInstance, NodePosition, OpcodeSpec, PatchGraph } from "../types";
+import { expandControlFlowDeletion, reconcileControlFlow } from "./controlFlow";
 
 export type AudioDirection = "input" | "output";
 export type StereoCommand =
@@ -141,6 +142,7 @@ export function removeAudioGroups(graph: PatchGraph, groupIds: string[]): PatchG
 
 /** Reconcile deliberate node removals only. Loading a legacy patch never erases metadata. */
 export function reconcileAudioGraph(before: PatchGraph, next: PatchGraph): PatchGraph {
+  next = reconcileControlFlow(before, next);
   const removed = new Set(before.nodes.filter((n) => !next.nodes.some((m) => m.id === n.id)).map((n) => n.id));
   if (!removed.size) return next;
   const groups = (before.audio_interface?.groups ?? []).filter((g) => {
@@ -162,7 +164,7 @@ export function reconcileAudioGraph(before: PatchGraph, next: PatchGraph): Patch
 }
 
 export function deleteAudioGraphItems(graph: PatchGraph, nodeIds: string[], connections: Connection[] = [], groupIds: string[] = []): PatchGraph {
-  const removed = new Set(nodeIds);
+  const removed = new Set(expandControlFlowDeletion(graph, nodeIds));
   const key = (c: Connection) => JSON.stringify([c.from_node_id, c.from_port_id, c.to_node_id, c.to_port_id]);
   const wires = new Set(connections.map(key));
   const next = reconcileAudioGraph(graph, {
@@ -301,7 +303,7 @@ export function projectAudioBlocks(graph: PatchGraph, labels: { input: string; o
     return writeInputFormulaMap(layout, result);
   };
   const display = { ...graph, ui_layout: mapFormulas(graph.ui_layout, projectConnection), nodes: [...graph.nodes.filter((n) => !hidden.has(n.id)), ...synthetic], connections: graph.connections.filter(visible).map(projectConnection) };
-  return { graph: display, opcodes: [...opcodes, ...specs], members, restoreConnection,
+  return { graph: display, opcodes: [...opcodes, ...specs], members, projectConnection, restoreConnection,
     restore(next: PatchGraph): PatchGraph {
       const nodes = next.nodes.flatMap((n) => {
         const pair = members.get(n.id); if (!pair) return [n];

@@ -1,0 +1,622 @@
+{
+  "id": "builtin-drumset",
+  "name": "Drumset",
+  "description": "36 Kick \u00b7 38 Snare \u00b7 42 Hi-hat. One synthesis case per note, with a common stereo output.",
+  "is_template": false,
+  "always_on": false,
+  "schema_version": 2,
+  "graph": {
+    "nodes": [
+      {
+        "id": "note",
+        "opcode": "notnum",
+        "params": {},
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "id": "velocity",
+        "opcode": "ampmidi",
+        "params": {
+          "iscal": 0.18
+        },
+        "position": {
+          "x": 0,
+          "y": 220
+        }
+      },
+      {
+        "id": "kit",
+        "opcode": "Switch",
+        "params": {
+          "selector": 36
+        },
+        "position": {
+          "x": 300,
+          "y": 0
+        }
+      },
+      {
+        "id": "kick_env",
+        "opcode": "linseg",
+        "params": {
+          "ia": 0,
+          "idur1": 0.002,
+          "ib": 1,
+          "idur2": 0.35,
+          "ic": 0
+        },
+        "position": {
+          "x": 350,
+          "y": 300
+        }
+      },
+      {
+        "id": "kick_tail",
+        "opcode": "xtratim",
+        "params": {
+          "iextradur": 0.37
+        },
+        "position": {
+          "x": 350,
+          "y": 540
+        }
+      },
+      {
+        "id": "kick_pitch",
+        "opcode": "expseg",
+        "params": {
+          "ia": 150,
+          "idur1": 0.08,
+          "ib": 52,
+          "idur2": 0.3,
+          "ic": 45
+        },
+        "position": {
+          "x": 600,
+          "y": 550
+        }
+      },
+      {
+        "id": "kick_tone",
+        "opcode": "oscili",
+        "params": {
+          "ifn": -1
+        },
+        "position": {
+          "x": 850,
+          "y": 300
+        }
+      },
+      {
+        "id": "kick_pan",
+        "opcode": "pan2",
+        "params": {
+          "xp": 0.5
+        },
+        "position": {
+          "x": 1360,
+          "y": 300
+        }
+      },
+      {
+        "id": "kick_result",
+        "opcode": "CaseResult",
+        "params": {},
+        "position": {
+          "x": 1580,
+          "y": 300
+        }
+      },
+      {
+        "id": "snare_env",
+        "opcode": "linseg",
+        "params": {
+          "ia": 0,
+          "idur1": 0.002,
+          "ib": 1,
+          "idur2": 0.22,
+          "ic": 0
+        },
+        "position": {
+          "x": 350,
+          "y": 1000
+        }
+      },
+      {
+        "id": "snare_tail",
+        "opcode": "xtratim",
+        "params": {
+          "iextradur": 0.24
+        },
+        "position": {
+          "x": 350,
+          "y": 1240
+        }
+      },
+      {
+        "id": "snare_noise",
+        "opcode": "noise",
+        "params": {
+          "beta": 0
+        },
+        "position": {
+          "x": 620,
+          "y": 1000
+        }
+      },
+      {
+        "id": "snare_filter",
+        "opcode": "butterbp",
+        "params": {
+          "xfreq": 1800,
+          "xband": 2500
+        },
+        "position": {
+          "x": 880,
+          "y": 1000
+        }
+      },
+      {
+        "id": "snare_body",
+        "opcode": "oscili",
+        "params": {
+          "freq": 180,
+          "ifn": -1
+        },
+        "position": {
+          "x": 620,
+          "y": 1260
+        }
+      },
+      {
+        "id": "snare_mix",
+        "opcode": "mix2",
+        "params": {},
+        "position": {
+          "x": 1110,
+          "y": 1000
+        }
+      },
+      {
+        "id": "snare_pan",
+        "opcode": "pan2",
+        "params": {
+          "xp": 0.45
+        },
+        "position": {
+          "x": 1360,
+          "y": 1000
+        }
+      },
+      {
+        "id": "snare_result",
+        "opcode": "CaseResult",
+        "params": {},
+        "position": {
+          "x": 1580,
+          "y": 1000
+        }
+      },
+      {
+        "id": "hihat_env",
+        "opcode": "linseg",
+        "params": {
+          "ia": 0,
+          "idur1": 0.002,
+          "ib": 1,
+          "idur2": 0.09,
+          "ic": 0
+        },
+        "position": {
+          "x": 350,
+          "y": 1700
+        }
+      },
+      {
+        "id": "hihat_tail",
+        "opcode": "xtratim",
+        "params": {
+          "iextradur": 0.11
+        },
+        "position": {
+          "x": 350,
+          "y": 1940
+        }
+      },
+      {
+        "id": "hihat_noise",
+        "opcode": "noise",
+        "params": {
+          "beta": 0
+        },
+        "position": {
+          "x": 620,
+          "y": 1700
+        }
+      },
+      {
+        "id": "hihat_filter",
+        "opcode": "butterhp",
+        "params": {
+          "xfreq": 6500
+        },
+        "position": {
+          "x": 880,
+          "y": 1700
+        }
+      },
+      {
+        "id": "hihat_pan",
+        "opcode": "pan2",
+        "params": {
+          "xp": 0.6
+        },
+        "position": {
+          "x": 1360,
+          "y": 1700
+        }
+      },
+      {
+        "id": "hihat_result",
+        "opcode": "CaseResult",
+        "params": {},
+        "position": {
+          "x": 1580,
+          "y": 1700
+        }
+      },
+      {
+        "id": "default_result",
+        "opcode": "CaseResult",
+        "params": {},
+        "position": {
+          "x": 1580,
+          "y": 2400
+        }
+      },
+      {
+        "id": "output_left",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 1100,
+          "y": 0
+        }
+      },
+      {
+        "id": "output_right",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 1100,
+          "y": 180
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "note",
+        "from_port_id": "inote",
+        "to_node_id": "kit",
+        "to_port_id": "selector"
+      },
+      {
+        "from_node_id": "kick_env",
+        "from_port_id": "kenv",
+        "to_node_id": "kick_tone",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "velocity",
+        "from_port_id": "iamp",
+        "to_node_id": "kick_tone",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "kick_pitch",
+        "from_port_id": "kenv",
+        "to_node_id": "kick_tone",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "kick_tone",
+        "from_port_id": "asig",
+        "to_node_id": "kick_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "kick_pan",
+        "from_port_id": "aleft",
+        "to_node_id": "kick_result",
+        "to_port_id": "left"
+      },
+      {
+        "from_node_id": "kick_pan",
+        "from_port_id": "aright",
+        "to_node_id": "kick_result",
+        "to_port_id": "right"
+      },
+      {
+        "from_node_id": "snare_env",
+        "from_port_id": "kenv",
+        "to_node_id": "snare_noise",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "velocity",
+        "from_port_id": "iamp",
+        "to_node_id": "snare_noise",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "snare_noise",
+        "from_port_id": "aout",
+        "to_node_id": "snare_filter",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "snare_env",
+        "from_port_id": "kenv",
+        "to_node_id": "snare_body",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "velocity",
+        "from_port_id": "iamp",
+        "to_node_id": "snare_body",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "snare_filter",
+        "from_port_id": "aout",
+        "to_node_id": "snare_mix",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "snare_body",
+        "from_port_id": "asig",
+        "to_node_id": "snare_mix",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "snare_mix",
+        "from_port_id": "aout",
+        "to_node_id": "snare_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "snare_pan",
+        "from_port_id": "aleft",
+        "to_node_id": "snare_result",
+        "to_port_id": "left"
+      },
+      {
+        "from_node_id": "snare_pan",
+        "from_port_id": "aright",
+        "to_node_id": "snare_result",
+        "to_port_id": "right"
+      },
+      {
+        "from_node_id": "hihat_env",
+        "from_port_id": "kenv",
+        "to_node_id": "hihat_noise",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "velocity",
+        "from_port_id": "iamp",
+        "to_node_id": "hihat_noise",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "hihat_noise",
+        "from_port_id": "aout",
+        "to_node_id": "hihat_filter",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "hihat_filter",
+        "from_port_id": "aout",
+        "to_node_id": "hihat_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "hihat_pan",
+        "from_port_id": "aleft",
+        "to_node_id": "hihat_result",
+        "to_port_id": "left"
+      },
+      {
+        "from_node_id": "hihat_pan",
+        "from_port_id": "aright",
+        "to_node_id": "hihat_result",
+        "to_port_id": "right"
+      },
+      {
+        "from_node_id": "kit",
+        "from_port_id": "left",
+        "to_node_id": "output_left",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "kit",
+        "from_port_id": "right",
+        "to_node_id": "output_right",
+        "to_port_id": "asignal"
+      }
+    ],
+    "ui_layout": {
+      "input_formulas": {
+        "kick_tone::amp": {
+          "expression": "in1 * in2 * 1",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "kick_env",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "in2",
+              "from_node_id": "velocity",
+              "from_port_id": "iamp"
+            }
+          ]
+        },
+        "snare_noise::amp": {
+          "expression": "in1 * in2 * 1",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "snare_env",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "in2",
+              "from_node_id": "velocity",
+              "from_port_id": "iamp"
+            }
+          ]
+        },
+        "snare_body::amp": {
+          "expression": "in1 * in2 * 0.25",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "snare_env",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "in2",
+              "from_node_id": "velocity",
+              "from_port_id": "iamp"
+            }
+          ]
+        },
+        "hihat_noise::amp": {
+          "expression": "in1 * in2 * 1",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "hihat_env",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "in2",
+              "from_node_id": "velocity",
+              "from_port_id": "iamp"
+            }
+          ]
+        }
+      },
+      "control_flow_blocks": {
+        "kit": true
+      },
+      "audio_blocks": {
+        "main-output": true
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 1500,
+      "ksmps": 32,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1
+    },
+    "control_flow": {
+      "kit": {
+        "kind": "switch",
+        "operator": "==",
+        "output_format": "stereo",
+        "cases": [
+          {
+            "id": "kick",
+            "name": "Kick",
+            "value": 36,
+            "node_ids": [
+              "kick_env",
+              "kick_tail",
+              "kick_pitch",
+              "kick_tone",
+              "kick_pan",
+              "kick_result"
+            ],
+            "result_node_id": "kick_result",
+            "silence": false
+          },
+          {
+            "id": "snare",
+            "name": "Snare",
+            "value": 38,
+            "node_ids": [
+              "snare_env",
+              "snare_tail",
+              "snare_noise",
+              "snare_filter",
+              "snare_body",
+              "snare_mix",
+              "snare_pan",
+              "snare_result"
+            ],
+            "result_node_id": "snare_result",
+            "silence": false
+          },
+          {
+            "id": "hihat",
+            "name": "Hi-hat",
+            "value": 42,
+            "node_ids": [
+              "hihat_env",
+              "hihat_tail",
+              "hihat_noise",
+              "hihat_filter",
+              "hihat_pan",
+              "hihat_result"
+            ],
+            "result_node_id": "hihat_result",
+            "silence": false
+          },
+          {
+            "id": "default",
+            "name": "Default",
+            "value": null,
+            "node_ids": [
+              "default_result"
+            ],
+            "result_node_id": "default_result",
+            "silence": true
+          }
+        ]
+      }
+    },
+    "audio_interface": {
+      "role": "instrument",
+      "groups": [
+        {
+          "id": "main-output",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainInput": null,
+      "mainOutput": "main-output",
+      "guided": true
+    }
+  },
+  "created_at": "2026-09-08T00:00:00Z",
+  "updated_at": "2026-09-08T00:00:00Z"
+}

@@ -1,3 +1,4 @@
+import { controlFlowIssues, patchSchemaVersion } from "../lib/controlFlow";
 import { normalizeStereoChannelNames } from "../lib/audioBlocks";
 import type { AudioGraph, MixerState } from "../types";
 import { emptyAudioGraph, emptyMixer, cleanBindings, migrateAudio } from "../lib/audioRouting";
@@ -2108,6 +2109,8 @@ export function normalizeEngineConfig(raw: Partial<EngineConfig> | undefined): E
 }
 
 export function normalizePatchGraph(graph: PatchGraph): PatchGraph {
+  const issues = controlFlowIssues(graph, false);
+  if (issues.length) throw new Error(issues.join("\n"));
   return {
     ...normalizeStereoChannelNames(graph),
     engine_config: normalizeEngineConfig(graph.engine_config)
@@ -2167,7 +2170,7 @@ export function normalizePersistedPatch(raw: unknown): EditablePatch {
   const alwaysOn = patch.always_on === true;
   const schemaVersion =
     typeof patch.schema_version === "number" && Number.isFinite(patch.schema_version)
-      ? Math.max(1, Math.round(patch.schema_version))
+      ? patch.schema_version
       : 1;
   const graph =
     patch.graph && typeof patch.graph === "object" && !Array.isArray(patch.graph)
@@ -2182,7 +2185,7 @@ export function normalizePersistedPatch(raw: unknown): EditablePatch {
     description,
     is_template: isTemplate,
     always_on: alwaysOn,
-    schema_version: schemaVersion,
+    schema_version: patchSchemaVersion(schemaVersion, graph),
     graph,
     created_at: createdAt,
     updated_at: updatedAt
@@ -2428,7 +2431,7 @@ export function normalizePatch(patch: Patch): EditablePatch {
     description: patch.description,
     is_template: patch.is_template === true,
     always_on: patch.always_on === true,
-    schema_version: patch.schema_version,
+    schema_version: patchSchemaVersion(patch.schema_version, patch.graph),
     graph: normalizePatchGraph(patch.graph),
     created_at: patch.created_at,
     updated_at: patch.updated_at
@@ -2458,7 +2461,7 @@ export function parseEmbeddedPerformancePatchDefinition(raw: unknown): EmbeddedP
   const alwaysOn = record.alwaysOn === true || record.always_on === true;
   const schemaVersion =
     typeof record.schema_version === "number" && Number.isFinite(record.schema_version)
-      ? Math.max(1, Math.round(record.schema_version))
+      ? record.schema_version
       : 1;
 
   if (
@@ -2477,7 +2480,7 @@ export function parseEmbeddedPerformancePatchDefinition(raw: unknown): EmbeddedP
     description,
     is_template: isTemplate,
     always_on: alwaysOn,
-    schema_version: schemaVersion,
+    schema_version: patchSchemaVersion(schemaVersion, record.graph as PatchGraph),
     graph: normalizePatchGraph(record.graph as PatchGraph)
   };
 }

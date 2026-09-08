@@ -792,7 +792,7 @@ export default function App() {
     () => patches.filter((patch) => !openInstrumentPatchIds.has(patch.id)),
     [openInstrumentPatchIds, patches]
   );
-  const templatePatches = useMemo(() => [...(["instrument", "effect", "output", "empty"] as const).map((kind) => ({ ...audioTemplate(kind), name: audioCopy(guiLanguage)(kind) })), ...patches.filter((patch) => patch.is_template === true)], [patches, guiLanguage]);
+  const templatePatches = useMemo(() => [...(["instrument", "drumset", "effect", "output", "empty"] as const).map((kind) => ({ ...audioTemplate(kind), name: audioCopy(guiLanguage)(kind) })), ...patches.filter((patch) => patch.is_template === true)], [patches, guiLanguage]);
   const openNewFromTemplateDialog = useCallback(() => {
     if (templatePatches.length === 0) {
       setInstrumentPatchIoError("no templates available yet");

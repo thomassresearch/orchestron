@@ -90,10 +90,16 @@ class ExportedPatchDefinition(BaseModel):
     description: str = Field(default="", max_length=2_048)
     is_template: bool = Field(default=False, alias="isTemplate")
     always_on: bool = Field(default=False, alias="alwaysOn")
-    schema_version: int = 1
+    schema_version: Literal[1, 2] = 1
     graph: PatchGraph
 
     model_config = ConfigDict(populate_by_name=True)
+
+    @model_validator(mode="after")
+    def promote_control_flow_schema(self) -> "ExportedPatchDefinition":
+        if self.graph.control_flow:
+            self.schema_version = 2
+        return self
 
     @field_validator("source_patch_id")
     @classmethod

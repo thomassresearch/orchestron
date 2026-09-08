@@ -2,7 +2,7 @@
 
 **Navigation:** [Up](instrument_design.md) | [Prev](instrument_import_export.md) | [Next](../performance/performance.md)
 
-This appendix is generated from `backend/app/data/opcodes.json` and currently lists **171** user-selectable opcodes in the Instrument Design opcode catalog.
+This appendix is generated from `backend/app/data/opcodes.json` and currently lists **173** user-selectable opcodes and editor constructs in the Instrument Design opcode catalog.
 
 ## How To Use This Appendix
 
@@ -17,6 +17,7 @@ This appendix is generated from `backend/app/data/opcodes.json` and currently li
 | --- | --- |
 | analysis | 2 |
 | constants | 4 |
+| control_flow | 2 |
 | delay | 11 |
 | distortion | 4 |
 | dynamics | 2 |
@@ -55,6 +56,15 @@ This appendix is generated from `backend/app/data/opcodes.json` and currently li
 | const_i | - | 1 (i) | Init-rate constant value. |
 | const_k | - | 1 (k) | Control-rate constant value. |
 | const_s | - | 1 (S) | String constant value. |
+
+### control_flow — editor constructs
+
+These nodes generate structured Csound conditionals; they are not ordinary opcode calls. [If, Switch and Drumset (EN/DE/FR/ES)](control_flow.md) documents note-start selection and the managed Case Result boundary.
+
+| Construct | Inputs | Outputs | Short Description |
+| --- | --- | --- | --- |
+| If | 2 (i, i) | 1 or 2 (a) | Select True/False by an init-rate comparison for each voice. |
+| Switch | 1 (i) | 1 or 2 (a) | Select a named numeric case or mandatory Default for each voice. |
 
 ### delay
 

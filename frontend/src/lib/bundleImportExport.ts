@@ -1,3 +1,4 @@
+import { patchSchemaVersion, controlFlowIssues } from "./controlFlow";
 import type {
   Patch,
   PatchGraph,
@@ -122,8 +123,12 @@ export function parseExportedPatchDefinition(raw: unknown): ExportedPatchDefinit
   const alwaysOn = raw.alwaysOn === true || raw.always_on === true;
   const schemaVersion =
     typeof raw.schema_version === "number" && Number.isFinite(raw.schema_version)
-      ? Math.max(1, Math.round(raw.schema_version))
+      ? raw.schema_version
       : 1;
+
+  patchSchemaVersion(schemaVersion, raw.graph as unknown as PatchGraph);
+  const issues = controlFlowIssues(raw.graph as unknown as PatchGraph, false);
+  if (issues.length) throw new Error(issues.join("\n"));
 
   if (sourcePatchId.length === 0 || name.length === 0) {
     return null;
@@ -135,7 +140,7 @@ export function parseExportedPatchDefinition(raw: unknown): ExportedPatchDefinit
     description,
     isTemplate,
     alwaysOn,
-    schema_version: schemaVersion,
+    schema_version: patchSchemaVersion(schemaVersion, raw.graph as unknown as PatchGraph),
     graph: raw.graph as unknown as PatchGraph
   };
 }

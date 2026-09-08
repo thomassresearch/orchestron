@@ -98,7 +98,7 @@ class PatchService:
             description=request.description if request.description is not None else existing.description,
             is_template=request.is_template if request.is_template is not None else existing.is_template,
             always_on=request.always_on if request.always_on is not None else existing.always_on,
-            schema_version=request.schema_version if request.schema_version is not None else existing.schema_version,
+            schema_version=max(existing.schema_version, request.schema_version or 1),
             graph=request.graph if request.graph is not None else existing.graph,
             created_at=existing.created_at,
             updated_at=datetime.now(timezone.utc),

@@ -7,6 +7,9 @@ from backend.app.models.opcode import PortSpec, SignalType
 from backend.app.models.patch import Connection, EngineConfig, NodeInstance, PatchGraph
 from backend.app.services.compiler_common import CompiledGraphContext, CompiledNode, CompilationError, PatchInstrumentTarget
 from backend.app.services.opcode_service import OpcodeService
+from backend.app.services.compiler_control_flow import (
+    control_flow_owners, resolve_control_flow_spec, validate_control_flow_connections,
+)
 
 
 def resolve_shared_engine(targets: list[PatchInstrumentTarget]) -> EngineConfig:
@@ -33,7 +36,7 @@ def compile_graph_context(graph: PatchGraph, opcode_service: OpcodeService) -> C
     diagnostics: list[str] = []
     compiled_nodes: dict[str, CompiledNode] = {}
     for node in graph.nodes:
-        spec = opcode_service.get_opcode(node.opcode)
+        spec = resolve_control_flow_spec(graph, node.id, opcode_service.get_opcode(node.opcode))
         if not spec:
             diagnostics.append(f"Node '{node.id}' references unknown opcode '{node.opcode}'.")
             continue
@@ -47,13 +50,33 @@ def compile_graph_context(graph: PatchGraph, opcode_service: OpcodeService) -> C
 
     inbound_index = build_inbound_index(graph.connections, compiled_nodes)
     errors = validate_connections(graph.connections, compiled_nodes)
+    errors.extend(validate_control_flow_connections(graph))
     if errors:
         raise CompilationError(errors)
 
+    owners = control_flow_owners(graph)
+    root_nodes = [node for node in graph.nodes if node.id not in owners]
+    root_links: list[Connection] = []
+    for link in graph.connections:
+        if link.from_node_id in owners:
+            continue
+        target = owners.get(link.to_node_id, (link.to_node_id, ""))[0]
+        root_links.append(link.model_copy(update={"to_node_id": target}))
+    root_order = topological_sort(root_nodes, root_links)
+    case_orders = {}
+    for block_id, block in graph.control_flow.items():
+        for case in block.cases:
+            members = set(case.node_ids)
+            case_orders[(block_id, case.id)] = topological_sort(
+                [node for node in graph.nodes if node.id in members],
+                [link for link in graph.connections if link.from_node_id in members and link.to_node_id in members],
+            )
     return CompiledGraphContext(
         compiled_nodes=compiled_nodes,
         inbound_index=inbound_index,
-        ordered_ids=topological_sort(graph.nodes, graph.connections),
+        ordered_ids=[*root_order, *(node_id for order in case_orders.values() for node_id in order)],
+        root_order=root_order,
+        case_orders=case_orders,
     )
 
 

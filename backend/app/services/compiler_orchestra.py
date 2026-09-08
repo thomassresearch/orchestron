@@ -6,6 +6,7 @@ from collections import defaultdict
 from pathlib import PurePosixPath
 
 from backend.app.models.opcode import PortSpec, SignalType
+from backend.app.models.control_flow import BRANCH_OPCODES, CASE_RESULT
 from backend.app.models.patch import (
     Connection,
     MAX_GEN_ARGUMENT_COUNT,
@@ -90,13 +91,25 @@ class OrchestraEmitter:
                     output_vars[(node_id, output.id)] = self._allocate_var_name(rate_counters, node_id, output)
                 output_signal_types[(node_id, output.id)] = output.signal_type
 
+        prefix_lines = instrument_lines
+        node_lines: dict[str, list[str]] = {}
+        block_conditions: dict[str, str] = {}
+        result_owners = {case.result_node_id: (block_id, block, case)
+                         for block_id, block in patch.graph.control_flow.items() for case in block.cases}
         for node_id in graph_context.ordered_ids:
+            instrument_lines = node_lines[node_id] = []
             compiled = compiled_nodes[node_id]
             env: dict[str, str] = {}
             input_is_audio: dict[str, bool] = {}
 
             for output in compiled.spec.outputs:
                 env[output.id] = output_vars[(compiled.node.id, output.id)]
+
+            result_owner = result_owners.get(node_id)
+            if result_owner and result_owner[2].silence:
+                block_id, block, _case = result_owner
+                instrument_lines.extend(f"{output_vars[(block_id, channel)]} = 0" for channel in block.channels)
+                continue
 
             for input_port in compiled.spec.inputs:
                 inbound_connections = inbound_index.get((compiled.node.id, input_port.id), [])
@@ -157,6 +170,18 @@ class OrchestraEmitter:
 
             if diagnostics:
                 raise CompilationError(diagnostics)
+
+            if compiled.spec.name in BRANCH_OPCODES:
+                block = patch.graph.control_flow[node_id]
+                block_conditions[node_id] = (
+                    f"({env['lhs']}) {block.operator} ({env['rhs']})" if block.kind == "if" else env["selector"]
+                )
+                continue
+
+            if compiled.spec.name == CASE_RESULT:
+                block_id, block, _case = result_owners[node_id]
+                instrument_lines.extend(f"{output_vars[(block_id, channel)]} = {env[channel]}" for channel in block.channels)
+                continue
 
             if compiled.spec.name == "outs" and direct_output_ports is not None:
                 left, right = direct_output_ports[compiled.node.id]
@@ -340,6 +365,27 @@ class OrchestraEmitter:
             destination = deferred_audio_outlets if direct_output_ports is not None and compiled.spec.name == "outleta" else instrument_lines
             destination.extend([self._node_comment(compiled.node.id, compiled.spec.name), *rendered.splitlines()])
 
+        instrument_lines = list(prefix_lines)
+        for node_id in graph_context.root_order or graph_context.ordered_ids:
+            block = patch.graph.control_flow.get(node_id)
+            if block is None:
+                instrument_lines.extend(node_lines[node_id])
+                continue
+            instrument_lines.append(self._node_comment(node_id, compiled_nodes[node_id].spec.name))
+            for index, case in enumerate(block.cases):
+                if index == len(block.cases) - 1:
+                    instrument_lines.append("else")
+                else:
+                    condition = block_conditions[node_id]
+                    if block.kind == "switch":
+                        condition = f"({condition}) == {case.value!r}"
+                    instrument_lines.append(f"{'if' if index == 0 else 'elseif'} {condition} then")
+                instrument_lines.append(f"  ; case:{format_orc_comment_value(case.id)} {format_orc_comment_value(case.name)}")
+                # Result assignments are emitted last even when they have no incoming wires.
+                order = graph_context.case_orders[(node_id, case.id)]
+                for member_id in [*(item for item in order if item != case.result_node_id), case.result_node_id]:
+                    instrument_lines.extend(f"  {line}" for line in node_lines[member_id])
+            instrument_lines.append("endif")
         instrument_lines.extend(deferred_audio_outlets)
         return CompiledInstrumentLines(
             instrument_lines=instrument_lines,

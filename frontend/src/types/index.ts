@@ -97,11 +97,27 @@ export interface MixerResponse { mixer: MixerState; revision: number; }
 export interface AudioDiagnostic { code: string; message: string; severity: "warning" | "error"; instanceId?: string; routeId?: string; }
 
 export interface PatchGraph {
+  control_flow?: Record<string, ControlFlowBlock>;
   audio_interface?: AudioInterface | null;
   nodes: NodeInstance[];
   connections: Connection[];
   ui_layout: JsonObject;
   engine_config: EngineConfig;
+}
+
+export interface ControlFlowCase {
+  id: string;
+  name: string;
+  value: number | null;
+  node_ids: string[];
+  result_node_id: string;
+  silence: boolean;
+}
+export interface ControlFlowBlock {
+  kind: "if" | "switch";
+  output_format: "mono" | "stereo";
+  operator: "==" | "!=" | "<" | "<=" | ">" | ">=";
+  cases: ControlFlowCase[];
 }
 
 export type SequencerScaleType = "major" | "neutral" | "minor";

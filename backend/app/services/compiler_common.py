@@ -63,3 +63,5 @@ class CompiledGraphContext:
     compiled_nodes: dict[str, CompiledNode]
     inbound_index: dict[tuple[str, str], list[Connection]]
     ordered_ids: list[str]
+    root_order: list[str] = field(default_factory=list)
+    case_orders: dict[tuple[str, str], list[str]] = field(default_factory=dict)

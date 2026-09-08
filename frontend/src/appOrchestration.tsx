@@ -1,3 +1,4 @@
+import { expandControlFlowDeletion } from "./lib/controlFlow";
 import { deleteAudioGraphItems, resolveStereoMembers } from "./lib/audioBlocks";
 import { readInputFormulaMap } from "./lib/graphFormula";
 import { audioCopy } from "./lib/audioCopy";
@@ -261,7 +262,7 @@ export function buildGraphSelectionDeletePlan(
   requestedGroupIds: string[] = []
 ): DeleteSelectionDialogState {
   const groupNodes = (graph.audio_interface?.groups ?? []).filter((g) => requestedGroupIds.includes(g.id)).flatMap((g) => resolveStereoMembers(graph, g).nodes.map((n) => n.id));
-  const nodeIds = Array.from(new Set([...selection.nodeIds, ...groupNodes]));
+  const nodeIds = expandControlFlowDeletion(graph, [...selection.nodeIds, ...groupNodes]);
   const nodeIdSet = new Set(nodeIds);
   const selectedConnectionKeySet = new Set(selection.connections.map((connection) => connectionKey(connection)));
   const nodeById = new Map(graph.nodes.map((node) => [node.id, node]));

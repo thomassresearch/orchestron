@@ -15465,5 +15465,96 @@
       "physical_modeling"
     ],
     "icon_filename": "vco.svg"
+  },
+  {
+    "name": "If",
+    "category": "control_flow",
+    "description": "Select one synthesis case at note initialization and return its audio. Editor construct compiled to Csound if/elseif/else.",
+    "documentation_markdown": "### If\n\nSelect a synthesis path once per note. Cases return mono or stereo audio. Edit case membership explicitly; canvas positions do not affect execution. This editor construct generates Csound if/elseif/else/endif.",
+    "documentation_url": "https://csound.com/docs/manual/if.html",
+    "inputs": [
+      {
+        "id": "lhs",
+        "name": "Lhs",
+        "signal_type": "i",
+        "required": true,
+        "default": 0
+      },
+      {
+        "id": "rhs",
+        "name": "Rhs",
+        "signal_type": "i",
+        "required": true,
+        "default": 0
+      }
+    ],
+    "outputs": [
+      {
+        "id": "left",
+        "name": "Left",
+        "signal_type": "a",
+        "required": true,
+        "default": null
+      },
+      {
+        "id": "right",
+        "name": "Right",
+        "signal_type": "a",
+        "required": true,
+        "default": null
+      }
+    ],
+    "template": "",
+    "tags": [
+      "branch",
+      "conditional",
+      "note",
+      "drums",
+      "if",
+      "switch"
+    ],
+    "icon_filename": "branch.svg"
+  },
+  {
+    "name": "Switch",
+    "category": "control_flow",
+    "description": "Select one synthesis case at note initialization and return its audio. Editor construct compiled to Csound if/elseif/else.",
+    "documentation_markdown": "### Switch\n\nSelect a synthesis path once per note. Cases return mono or stereo audio. Edit case membership explicitly; canvas positions do not affect execution. This editor construct generates Csound if/elseif/else/endif.",
+    "documentation_url": "https://csound.com/docs/manual/if.html",
+    "inputs": [
+      {
+        "id": "selector",
+        "name": "Selector",
+        "signal_type": "i",
+        "required": true,
+        "default": 0
+      }
+    ],
+    "outputs": [
+      {
+        "id": "left",
+        "name": "Left",
+        "signal_type": "a",
+        "required": true,
+        "default": null
+      },
+      {
+        "id": "right",
+        "name": "Right",
+        "signal_type": "a",
+        "required": true,
+        "default": null
+      }
+    ],
+    "template": "",
+    "tags": [
+      "branch",
+      "conditional",
+      "note",
+      "drums",
+      "if",
+      "switch"
+    ],
+    "icon_filename": "branch.svg"
   }
 ]

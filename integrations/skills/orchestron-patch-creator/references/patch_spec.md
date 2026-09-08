@@ -200,3 +200,7 @@ effects:
 output:
   pan: 0.5
 ```
+
+## Structured If / Switch graphs
+
+The high-level layer syntax does not generate branching. When editing a full graph, preserve `graph.control_flow` and `schema_version: 2`, including stable case IDs, exclusive `node_ids` membership, result markers, Silence and `ui_layout` formulas/collapse state. Existing formula transformations preserve unknown graph fields. See the [EN/DE/FR/ES patch/API format](../../../../documentation/instrument_design/control_flow.md#patchapi-format) and [complete drumset fixture](../../../../examples/drumset.patch.json). Do not lower the schema version when removing the last block.

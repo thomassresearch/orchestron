@@ -342,7 +342,7 @@ Schemas:
 | --- | --- |
 | `name` | Required patch name, max 128 chars. |
 | `description` | Optional description, max 2048 chars. |
-| `schema_version` | Patch schema version, currently default `1`. |
+| `schema_version` | Patch schema version `1` or `2`; branching promotes to `2`, retained on later updates. |
 | `graph` | `PatchGraph` payload. |
 
 `PatchGraph` contains:
@@ -351,8 +351,11 @@ Schemas:
 | --- | --- |
 | `nodes` | Up to 500 `NodeInstance` entries. Node ids must be unique. |
 | `connections` | Up to 2000 `Connection` entries. |
+| `control_flow` | Typed If/Switch map keyed by structural node ID; ordered cases own flat nodes and managed CaseResult boundaries. |
 | `ui_layout` | Arbitrary JSON used by the frontend for layout and editor-side metadata. |
 | `engine_config` | Audio/runtime parameters used during compilation. |
+
+See [the EN/DE/FR/ES branching format](documentation/instrument_design/control_flow.md#patchapi-format) for exact fields, ports, ownership, Silence and schema validation. Existing create/update/compile endpoints and bundle formats retain the field; no additional endpoints or storage tables are needed.
 
 `NodeInstance` contains `id`, `opcode`, `params`, and `position`.
 

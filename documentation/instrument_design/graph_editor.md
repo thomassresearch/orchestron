@@ -119,6 +119,12 @@ The `GEN` meta-opcode node shows a `GEN` button that opens the specialized GEN t
 
 The graph editor `?` help now concentrates on graph-specific behavior: persisted layout, deliberate deletion, constant-node inline editing, and the Input Formula Assistant workflow for combining multiple signals on one input.
 
+## If and Switch at note start
+
+Add **If** or **Switch** from **Control flow**. Expand cases on the canvas, assign nodes explicitly, and patch each case into its managed **Case Result**. The common output carries only the selected case. Collapse preserves shared input wiring and formulas. Use **Configure branches** for cases, membership, Silence and reviewed mono/stereo changes. The built-in **Drumset** template demonstrates overlapping voices.
+
+See [If, Switch and Drumset](control_flow.md) for the complete EN/DE/FR/ES workflow, scope rules and version-2 patch/API format.
+
 ## Stereo blocks and audio interfaces
 
 Stereo Input and Stereo Output are collapsible views of ordinary paired inleta/outleta nodes. Expand them to edit the underlying opcodes and connections. Exact port names and input formulas survive collapsing, expansion, saving and export. Direct Audio Output (outs) stays distinct.

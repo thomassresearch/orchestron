@@ -1,5 +1,6 @@
 import { stereoOpcodeLabel } from "../lib/stereoCatalog";
 import { audioCopy } from "../lib/audioCopy";
+import { controlFlowCopy } from "../lib/controlFlowCopy";
 import { useMemo, useState } from "react";
 
 import { documentationUiCopy } from "../lib/documentationUi";
@@ -83,7 +84,7 @@ export function OpcodeCatalog({ guiLanguage, opcodes, onAddOpcode, onOpcodeHelpR
               />
               <div className="min-w-0 flex-1">
                 <div className="truncate font-mono text-xs text-slate-200">{opcode.name === "outs" ? `${audioCopy(guiLanguage)("direct")} · outs` : stereoOpcodeLabel(opcode.name, guiLanguage)}</div>
-                <div className="truncate text-[11px] uppercase tracking-[0.16em] text-slate-500">{opcode.category}</div>
+                <div className="truncate text-[11px] uppercase tracking-[0.16em] text-slate-500">{opcode.category === "control_flow" ? controlFlowCopy(guiLanguage)("title") : opcode.category}</div>
               </div>
               <span className="text-[10px] font-semibold uppercase tracking-wider text-accent opacity-0 transition group-hover:opacity-100">
                 {copy.add}

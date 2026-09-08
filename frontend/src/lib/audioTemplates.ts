@@ -1,8 +1,10 @@
 import { defaultGraph } from "./defaultPatch";
 import type { Patch, NodeInstance, Connection, AudioPortGroup } from "../types";
+import drumset from "../../../examples/drumset.patch.json";
 
-export type BuiltinTemplate = "instrument" | "effect" | "output" | "empty";
+export type BuiltinTemplate = "instrument" | "effect" | "output" | "empty" | "drumset";
 export function audioTemplate(kind: BuiltinTemplate): Patch {
+  if (kind === "drumset") return structuredClone(drumset) as unknown as Patch;
   const graph = defaultGraph();
   const node = (id: string, opcode: string, params: NodeInstance["params"], x: number, y: number) => graph.nodes.push({ id, opcode, params, position: { x, y } });
   const wire = (from: string, fromPort: string, to: string, toPort: string) => graph.connections.push({ from_node_id: from, from_port_id: fromPort, to_node_id: to, to_port_id: toPort } as Connection);

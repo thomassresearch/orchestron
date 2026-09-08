@@ -3,6 +3,9 @@ WORKDIR /build/frontend
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
 COPY frontend/ ./
+# Keep the repository-relative JSON imports available to Vite and TypeScript.
+COPY examples/drumset.patch.json ../examples/
+COPY backend/app/data/opcodes.json ../backend/app/data/
 RUN npm run build
 
 FROM python:3.13-slim-bookworm AS app

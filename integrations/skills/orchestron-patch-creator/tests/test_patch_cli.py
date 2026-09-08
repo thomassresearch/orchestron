@@ -13,10 +13,18 @@ SRC = ROOT / "src"
 SCRIPT = ROOT / "scripts" / "orchestron_patch_cli.py"
 sys.path.insert(0, str(SRC))
 
-from orchestron_patch.cli.orchestron_patch_cli import PatchCliError, build_patch_payload
+from orchestron_patch.cli.orchestron_patch_cli import PatchCliError, build_patch_payload, apply_input_formulas
 
 
 class PatchCliTests(unittest.TestCase):
+    def test_formula_edit_preserves_branch_ownership_and_layout(self) -> None:
+        fixture = ROOT.parents[2] / "examples" / "drumset.patch.json"
+        graph = json.loads(fixture.read_text())["graph"]
+        edited = apply_input_formulas(graph, [{"target":"kick_result.left", "expression":"in1 * 0.5"}])
+        self.assertEqual(edited["control_flow"], graph["control_flow"])
+        self.assertEqual(edited["nodes"], graph["nodes"])
+        self.assertEqual(edited["ui_layout"]["control_flow_blocks"], graph["ui_layout"]["control_flow_blocks"])
+
     def test_help_mentions_core_workflow(self) -> None:
         result = subprocess.run(
             [sys.executable, str(SCRIPT), "-h"],

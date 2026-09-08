@@ -4,6 +4,7 @@ import { audioPorts } from "../lib/audioBlocks";
 import { audioCopy } from "../lib/audioCopy";
 import { emptyAudioGraph, emptyMixer, newRoute } from "../lib/audioRouting";
 import { audioTemplate } from "../lib/audioTemplates";
+import { defaultAuditionNote } from "../lib/controlFlow";
 import { BrowserClockAudioClient } from "../lib/browserClockAudio";
 import { normalizeSessionInstrumentAssignments } from "../store/appStoreModel";
 import { useAppStore } from "../store/useAppStore";
@@ -21,6 +22,7 @@ export function AuditionPanel({ stopPerformance, buildConfig }: { stopPerformanc
   const [prepared, setPrepared] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [testNote, setTestNote] = useState(60);
   const [error, setError] = useState<string | null>(null);
   const preview = useRef<{ id: string; midi: number[]; signature: string; config?: SessionSequencerConfigRequest; controllers: SessionMidiEventRequest[] } | null>(null);
   const original = useRef<{ sequencer: SequencerState; runtime: SequencerRuntimeState } | null>(null);
@@ -94,18 +96,20 @@ export function AuditionPanel({ stopPerformance, buildConfig }: { stopPerformanc
       await api.startSession(current.id); await client.connect(current.id);
       for (const controller of current.controllers) await client.sendManualMidi(current.id, controller);
       if (current.config) await client.startSequencer(current.id, { config: current.config, positionStep: original.current.runtime.playhead });
-      for (const channel of current.midi) await client.sendManualMidi(current.id, { type: "note_on", channel, note: 60, velocity: 96 });
+      for (const channel of current.midi) await client.sendManualMidi(current.id, { type: "note_on", channel, note: testNote, velocity: 96 });
       setPlaying(true);
     } catch (e) { setError(e instanceof Error ? e.message : String(e)); await cleanup().catch(() => undefined); setPrepared(false); }
     finally { setBusy(false); }
   };
   const field = "rounded border border-slate-600 bg-slate-950 px-3 py-2 text-sm disabled:opacity-40";
-  return <><button className="rounded border border-cyan-500/60 bg-cyan-950 px-3 py-1 text-xs text-cyan-100" onClick={() => { setOpen(true); const matching = bindings.filter((b) => b.patchId === draft.id); setInstance(matching.length === 1 ? matching[0].id : ""); }}>{t("audition")}</button>
+  return <><button className="rounded border border-cyan-500/60 bg-cyan-950 px-3 py-1 text-xs text-cyan-100" onClick={() => { setTestNote(defaultAuditionNote(draft.graph)); setOpen(true); const matching = bindings.filter((b) => b.patchId === draft.id); setInstance(matching.length === 1 ? matching[0].id : ""); }}>{t("audition")}</button>
     {open && <div className="fixed inset-0 z-[1300] flex items-center justify-center bg-slate-950/80 p-4"><div role="dialog" aria-modal="true" aria-label={t("audition")} className="w-full max-w-xl rounded-xl border border-cyan-700 bg-slate-900 p-5 text-slate-100">
       <p className="mb-3 text-lg">{t("audition")} · {draft.name}</p>
       <div className="flex flex-wrap gap-2"><select className={field} disabled={playing || busy} value={mode} onChange={(e) => { setMode(e.target.value as typeof mode); setPrepared(false); }}><option value="isolated">{t("isolated")}</option><option value="performance">{t("inPerformance")}</option></select>
       {mode === "performance" ? <select className={field} aria-label={t("source")} disabled={playing || busy} value={instance} onChange={(e) => { setInstance(e.target.value); setPrepared(false); }}><option value="">—</option>{bindings.map((b) => <option key={b.id} value={b.id}>{patches.find((p) => p.id === b.patchId)?.name} · {b.id.slice(0, 4)}</option>)}</select> : audioPorts(draft.graph, "input").length > 0 && <label className="text-xs">{t("testSource")}<select className={field} disabled={playing || busy} value={sourceId} onChange={(e) => { setSourceId(e.target.value); setPrepared(false); }}><option value="builtin-instrument">{t("instrument")}</option>{patches.filter((p) => !p.audio_inlet_names.length && (p.audio_outlet_names.length || p.has_direct_output)).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>}</div>
       {error && <p role="alert" className="my-3 text-sm text-rose-300">{error}</p>}
+      <label className="mt-3 flex items-center gap-2 text-xs">{t("testNote")}<input className={`${field} w-24`} type="number" min={0} max={127} step={1} disabled={playing || busy} value={testNote}
+        onChange={(e) => { if (Number.isFinite(e.target.valueAsNumber)) setTestNote(Math.max(0, Math.min(127, Math.round(e.target.valueAsNumber)))); }} /></label>
       <div className="mt-4 flex flex-wrap gap-2">{!playing && <button className={field} disabled={busy} onClick={() => void (prepared ? start() : prepare())}>{prepared ? t("stopAudition") : t("prepare")}</button>}
       <button className={field} disabled={busy} onClick={() => { setBusy(true); void cleanup().catch((e: unknown) => setError(String(e))).finally(() => { setOpen(false); setPlaying(false); setPrepared(false); setBusy(false); }); }}>{t("closeAudition")}</button></div>
     </div></div>}

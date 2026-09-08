@@ -7505,5 +7505,71 @@
         "spanish": "Salida de audio mono a tasa de audio."
       }
     }
+  },
+  "If": {
+    "description": {
+      "english": "Editor construct: choose one synthesis case at note start, generating Csound if/elseif/else/endif. Selection is fixed for each voice. If compares two init-rate operands; Switch matches unique numeric values and has a mandatory Default. Connect each synthesis case to Case Result, then use the common mono/stereo output. Silence assigns zero. Move nodes explicitly between cases; dragging changes only positions. Main-graph sources can be shared; effects after the block run per voice. Use the performance mixer for whole-kit effects.",
+      "german": "Editor-Konstrukt: Wählt beim Notenstart einen Synthesezweig und erzeugt Csound if/elseif/else/endif. Die Auswahl bleibt pro Stimme fest. If vergleicht zwei Operanden mit i-Rate; Switch nutzt eindeutige Zahlenwerte und einen obligatorischen Standardzweig. Jeden Synthesezweig mit dem Zweigergebnis verbinden, dann den gemeinsamen Mono-/Stereoausgang nutzen. Stille setzt null. Knoten ausdrücklich zwischen Zweigen verschieben; Ziehen ändert nur die Position. Hauptgraph-Quellen sind gemeinsam nutzbar. Effekte nach dem Block wirken pro Stimme; gemeinsame Effekte gehören in den Mixer.",
+      "french": "Construction de l’éditeur : choisit un cas de synthèse au début de la note et génère Csound if/elseif/else/endif. Le choix reste fixe par voix. If compare deux opérandes de taux i ; Switch utilise des valeurs numériques uniques et un cas Par défaut obligatoire. Reliez chaque cas au Résultat du cas, puis utilisez la sortie mono/stéréo commune. Silence affecte zéro. Déplacez explicitement les nœuds entre cas ; glisser ne change que leur position. Les sources du graphe principal peuvent être partagées. Les effets après le bloc traitent chaque voix ; le mixeur traite toute la batterie.",
+      "spanish": "Construcción del editor: elige un caso de síntesis al inicio de la nota y genera Csound if/elseif/else/endif. La selección queda fija por voz. If compara dos operandos de tasa i; Switch usa valores numéricos únicos y un caso Por defecto obligatorio. Conecta cada caso al Resultado del caso y usa la salida mono/estéreo común. Silencio asigna cero. Mueve los nodos explícitamente entre casos; arrastrar solo cambia la posición. Las fuentes del grafo principal pueden compartirse. Los efectos posteriores al bloque procesan cada voz; el mezclador procesa toda la batería."
+    },
+    "inputs": {
+      "lhs": {
+        "english": "Left init-rate operand.",
+        "german": "Linker Operand mit i-Rate.",
+        "french": "Opérande gauche de taux i.",
+        "spanish": "Operando izquierdo de tasa i."
+      },
+      "rhs": {
+        "english": "Right init-rate operand.",
+        "german": "Rechter Operand mit i-Rate.",
+        "french": "Opérande droit de taux i.",
+        "spanish": "Operando derecho de tasa i."
+      }
+    },
+    "outputs": {
+      "left": {
+        "english": "Selected case audio; mono result or stereo left.",
+        "german": "Audio des gewählten Zweigs; Mono oder links.",
+        "french": "Audio du cas choisi ; mono ou gauche.",
+        "spanish": "Audio del caso elegido; mono o izquierdo."
+      },
+      "right": {
+        "english": "Selected case stereo right; absent in mono.",
+        "german": "Rechter Stereokanal; bei Mono nicht vorhanden.",
+        "french": "Canal stéréo droit ; absent en mono.",
+        "spanish": "Canal estéreo derecho; ausente en mono."
+      }
+    }
+  },
+  "Switch": {
+    "description": {
+      "english": "Editor construct: choose one synthesis case at note start, generating Csound if/elseif/else/endif. Selection is fixed for each voice. If compares two init-rate operands; Switch matches unique numeric values and has a mandatory Default. Connect each synthesis case to Case Result, then use the common mono/stereo output. Silence assigns zero. Move nodes explicitly between cases; dragging changes only positions. Main-graph sources can be shared; effects after the block run per voice. Use the performance mixer for whole-kit effects.",
+      "german": "Editor-Konstrukt: Wählt beim Notenstart einen Synthesezweig und erzeugt Csound if/elseif/else/endif. Die Auswahl bleibt pro Stimme fest. If vergleicht zwei Operanden mit i-Rate; Switch nutzt eindeutige Zahlenwerte und einen obligatorischen Standardzweig. Jeden Synthesezweig mit dem Zweigergebnis verbinden, dann den gemeinsamen Mono-/Stereoausgang nutzen. Stille setzt null. Knoten ausdrücklich zwischen Zweigen verschieben; Ziehen ändert nur die Position. Hauptgraph-Quellen sind gemeinsam nutzbar. Effekte nach dem Block wirken pro Stimme; gemeinsame Effekte gehören in den Mixer.",
+      "french": "Construction de l’éditeur : choisit un cas de synthèse au début de la note et génère Csound if/elseif/else/endif. Le choix reste fixe par voix. If compare deux opérandes de taux i ; Switch utilise des valeurs numériques uniques et un cas Par défaut obligatoire. Reliez chaque cas au Résultat du cas, puis utilisez la sortie mono/stéréo commune. Silence affecte zéro. Déplacez explicitement les nœuds entre cas ; glisser ne change que leur position. Les sources du graphe principal peuvent être partagées. Les effets après le bloc traitent chaque voix ; le mixeur traite toute la batterie.",
+      "spanish": "Construcción del editor: elige un caso de síntesis al inicio de la nota y genera Csound if/elseif/else/endif. La selección queda fija por voz. If compara dos operandos de tasa i; Switch usa valores numéricos únicos y un caso Por defecto obligatorio. Conecta cada caso al Resultado del caso y usa la salida mono/estéreo común. Silencio asigna cero. Mueve los nodos explícitamente entre casos; arrastrar solo cambia la posición. Las fuentes del grafo principal pueden compartirse. Los efectos posteriores al bloque procesan cada voz; el mezclador procesa toda la batería."
+    },
+    "inputs": {
+      "selector": {
+        "english": "Init-rate selector, for example notnum.inote.",
+        "german": "Auswahlwert mit i-Rate, z. B. notnum.inote.",
+        "french": "Sélecteur de taux i, par exemple notnum.inote.",
+        "spanish": "Selector de tasa i, por ejemplo notnum.inote."
+      }
+    },
+    "outputs": {
+      "left": {
+        "english": "Selected case audio; mono result or stereo left.",
+        "german": "Audio des gewählten Zweigs; Mono oder links.",
+        "french": "Audio du cas choisi ; mono ou gauche.",
+        "spanish": "Audio del caso elegido; mono o izquierdo."
+      },
+      "right": {
+        "english": "Selected case stereo right; absent in mono.",
+        "german": "Rechter Stereokanal; bei Mono nicht vorhanden.",
+        "french": "Canal stéréo droit ; absent en mono.",
+        "spanish": "Canal estéreo derecho; ausente en mono."
+      }
+    }
   }
 }
