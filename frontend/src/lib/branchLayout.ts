@@ -1,9 +1,11 @@
 import type { NodePosition, PatchGraph } from "../types";
 import { branchCollapsed, controlFlowOwners } from "./controlFlow";
+import { readCaseSizes, writeCaseSizes } from "./branchCaseSizes";
 
 export interface NodeSize { width: number; height: number }
 export interface BranchTarget { blockId: string; caseId: string }
 export interface BranchRect extends NodePosition, NodeSize, BranchTarget { resultNodeId: string }
+export interface BranchResize extends BranchTarget { size: NodeSize }
 export interface BranchLayout {
   frames: BranchRect[];
   positions: Record<string, NodePosition>;
@@ -18,9 +20,10 @@ export const containsPoint = (rect: NodePosition & NodeSize, point: NodePosition
   point.x >= rect.x && point.x <= rect.x + rect.width && point.y >= rect.y && point.y <= rect.y + rect.height;
 
 /** Full node sizes are measured by the view. Results never determine content bounds. */
-export function layoutBranches(graph: PatchGraph, sizes: Record<string, NodeSize>, previous?: BranchLayout): BranchLayout {
+export function layoutBranches(graph: PatchGraph, sizes: Record<string, NodeSize>, previous?: BranchLayout, resize?: BranchResize): BranchLayout {
   const positions = Object.fromEntries(graph.nodes.map((n) => [n.id, { ...n.position }]));
   const frames: BranchRect[] = []; const blocks: Record<string, NodePosition> = {};
+  const retained = readCaseSizes(graph);
   const size = (id: string) => sizes[id] ?? { width: 180, height: 160 };
   for (const [blockId, block] of Object.entries(graph.control_flow ?? {})) {
     const origin = positions[blockId]; if (!origin) continue;
@@ -42,10 +45,15 @@ export function layoutBranches(graph: PatchGraph, sizes: Record<string, NodeSize
       const dy = Math.max(0, top + BRANCH_CONTENT_TOP - Math.min(Infinity, ...members.map((id) => positions[id].y)));
       for (const id of members) positions[id] = { x: positions[id].x + dx, y: positions[id].y + dy };
       const resultSize = size(item.result_node_id);
-      const right = Math.max(origin.x + Math.max(size(blockId).width, 240 + 2 * BRANCH_PADDING, resultSize.width + 2 * BRANCH_PADDING),
+      const minimumRight = Math.max(origin.x + Math.max(size(blockId).width, 240 + 2 * BRANCH_PADDING, resultSize.width + 2 * BRANCH_PADDING),
         ...members.map((id) => positions[id].x + size(id).width + BRANCH_PADDING));
       const contentBottom = Math.max(top + BRANCH_CONTENT_TOP + 160, ...members.map((id) => positions[id].y + size(id).height));
-      const bottom = contentBottom + BRANCH_PADDING + resultSize.height + BRANCH_PADDING;
+      // Only a result resize can lower the retained dimensions. Its position is
+      // always an output of layout, never an input to the content bounding box.
+      const requested = resize?.blockId === blockId && resize.caseId === item.id ? resize.size
+        : retained[blockId]?.[item.id] ?? old ?? { width: 0, height: 0 };
+      const right = Math.max(minimumRight, origin.x + requested.width);
+      const bottom = Math.max(contentBottom + BRANCH_PADDING + resultSize.height + BRANCH_PADDING, top + requested.height);
       positions[item.result_node_id] = { x: right - BRANCH_PADDING - resultSize.width, y: bottom - BRANCH_PADDING - resultSize.height };
       frames.push({ blockId, caseId: item.id, resultNodeId: item.result_node_id, x: origin.x, y: top, width: right - origin.x, height: bottom - top });
       top = bottom + BRANCH_GAP;
@@ -56,6 +64,13 @@ export function layoutBranches(graph: PatchGraph, sizes: Record<string, NodeSize
 
 export function applyNodePositions(graph: PatchGraph, positions: Record<string, NodePosition>): PatchGraph {
   return { ...graph, nodes: graph.nodes.map((n) => positions[n.id] ? { ...n, position: { ...positions[n.id] } } : n) };
+}
+
+/** Commit visible dimensions and managed positions together; retain hidden cases. */
+export function applyBranchLayout(graph: PatchGraph, layout: BranchLayout): PatchGraph {
+  const sizes = readCaseSizes(graph);
+  for (const frame of layout.frames) (sizes[frame.blockId] ??= {})[frame.caseId] = { width: frame.width, height: frame.height };
+  return { ...applyNodePositions(graph, layout.positions), ui_layout: writeCaseSizes(graph.ui_layout, sizes) };
 }
 
 /** Correct a newly dropped group without shifting existing destination members. */

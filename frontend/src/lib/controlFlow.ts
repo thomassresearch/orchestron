@@ -1,6 +1,7 @@
 import { parseFormulaTargetKey, readInputFormulaMap, writeInputFormulaMap } from "./graphFormula";
 import { transferBranchNodes } from "./branchTransfer";
 import { readGraphEditorState, writeGraphEditorState } from "./graphEditorState";
+import { pruneCaseSizes } from "./branchCaseSizes";
 import type { Connection, ControlFlowBlock, ControlFlowCase, NodeInstance, NodePosition, OpcodeSpec, PatchGraph, PortSpec } from "../types";
 
 export const BRANCH_OPCODES = new Set(["If", "Switch"]);
@@ -122,7 +123,7 @@ export function removeGraphNodes(graph: PatchGraph, removed: Set<string>): Patch
   const formulas = Object.fromEntries(Object.entries(readInputFormulaMap(graph.ui_layout)).filter(([key, formula]) =>
     !removed.has(parseFormulaTargetKey(key)!.toNodeId) && !formula.inputs.some((input) => removed.has(input.from_node_id))));
   let layout = writeInputFormulaMap(graph.ui_layout, formulas);
-  for (const key of ["gen_nodes", "sfload_nodes", "control_flow_blocks"]) {
+  for (const key of ["gen_nodes", "sfload_nodes", "control_flow_blocks", "control_flow_case_sizes"]) {
     const map = layout[key];
     if (map && typeof map === "object" && !Array.isArray(map)) layout = { ...layout, [key]: Object.fromEntries(Object.entries(map).filter(([id]) => !removed.has(id))) };
   }
@@ -159,7 +160,7 @@ export function deleteControlFlowCase(graph: PatchGraph, blockId: string, caseId
   const block = graph.control_flow![blockId]; const item = block.cases.find((c) => c.id === caseId)!;
   if (block.kind !== "switch" || block.cases[block.cases.length - 1] === item || block.cases.length <= 2) throw new Error("A Switch needs one numeric case and Default.");
   const next = removeGraphNodes(graph, new Set(item.node_ids));
-  return updateControlFlowBlock(next, blockId, { cases: block.cases.filter((c) => c.id !== caseId) });
+  return pruneCaseSizes(updateControlFlowBlock(next, blockId, { cases: block.cases.filter((c) => c.id !== caseId) }));
 }
 
 export function silenceControlFlowCase(graph: PatchGraph, blockId: string, caseId: string, silence: boolean): PatchGraph {

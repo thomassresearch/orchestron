@@ -20,6 +20,7 @@ function fire(target: EventTarget, type: string, values: Record<string, unknown>
   const event = new Event(type, { cancelable: true });
   for (const [key, value] of Object.entries(values)) Object.defineProperty(event, key, { value });
   target.dispatchEvent(event);
+  return event;
 }
 function fixture({ member = false, connected = false, zoom = 1 } = {}) {
   const win = new EventTarget(); const container = new ElementStub(); const frames: ElementStub[] = [];
@@ -55,12 +56,12 @@ function fixture({ member = false, connected = false, zoom = 1 } = {}) {
   const down = (id = "a", alt = false) => {
     const p = views.get(id)!.position;
     pointer = { x: p.x + 5, y: p.y + 5 };
-    fire(container, "pointerdown", { target: views.get(id)!.element, button: 0, altKey: alt, clientX: (p.x + 5) * zoom, clientY: (p.y + 5) * zoom });
+    return fire(container, "pointerdown", { target: views.get(id)!.element, button: 0, altKey: alt, clientX: (p.x + 5) * zoom, clientY: (p.y + 5) * zoom });
   };
   const move = (p: NodePosition, altKey = false) => { pointer = p; fire(win, "pointermove", { clientX: p.x * zoom, clientY: p.y * zoom, altKey }); };
   const up = () => fire(win, "pointerup", { clientX: pointer.x * zoom, clientY: pointer.y * zoom });
   const destination = (index = 0) => ({ x: cache!.frames[index].x + 100, y: cache!.frames[index].y + 100 });
-  return { controller, views, frames, down, move, up, win, commit, message, expand, destination, target, silent,
+  return { controller, views, frames, area, down, move, up, win, commit, message, expand, destination, target, silent,
     graph: () => graph, cache: () => cache!, select: (ids: string[]) => { selected = ids; } };
 }
 afterEach(() => vi.unstubAllGlobals());
@@ -86,7 +87,8 @@ describe("branch drag transactions", () => {
     expect(controlFlowOwners(f.graph()).get("a")).toEqual(f.silent);
     expect(controlFlowOwners(f.graph()).get("b")).toEqual(f.silent);
     expect(f.graph().control_flow![f.target.blockId].cases[1].silence).toBe(false);
-    expect(f.graph().connections).toEqual(before.connections); expect(f.graph().ui_layout).toEqual(before.ui_layout);
+    expect(f.graph().connections).toEqual(before.connections); expect(f.graph().ui_layout.editor_state).toEqual(before.ui_layout.editor_state);
+    expect(f.graph().ui_layout.input_formulas).toEqual(before.ui_layout.input_formulas);
     expect(f.views.get("b")!.position.x - f.views.get("a")!.position.x).toBe(220);
     f.controller.destroy();
   });
@@ -133,5 +135,74 @@ describe("branch drag transactions", () => {
     Object.assign(f.graph(), setBranchCollapsed(f.graph(), f.target.blockId, true)); await f.controller.refreshNow(); add.mockClear();
     f.controller.catalogDrop({ name: "oscili" } as OpcodeSpec, 80, 80, add);
     expect(add).not.toHaveBeenCalled(); expect(f.expand).toHaveBeenCalledWith(f.target.blockId); f.controller.destroy();
+  });
+  it("retains the largest ordinary drag preview even when the pointer returns inward", async () => {
+    const f = fixture({ member: true }); await f.controller.refreshNow(); f.commit.mockClear();
+    const before = structuredClone(f.graph()); const initial = f.cache().frames[0];
+    const start = { ...f.views.get("a")!.position }; f.down();
+    f.move({ x: start.x + 505, y: start.y + 305 }); await f.controller.refreshNow();
+    f.move({ x: start.x + 5, y: start.y + 5 }); await f.controller.refreshNow();
+    expect(f.graph()).toEqual(before); expect(f.commit).not.toHaveBeenCalled();
+    f.up(); await f.controller.refreshNow();
+    expect(f.cache().frames[0]).toMatchObject({ width: initial.width + 500, height: initial.height + 300 });
+    expect(f.views.get("a")!.position).toEqual(start);
+    f.controller.destroy();
+  });
+  it.each([0.25, 1, 2])("resizes only the result's case, preserves selection and clamps at zoom %s", async (zoom) => {
+    const f = fixture({ member: true, connected: true, zoom }); await f.controller.refreshNow();
+    const initial = structuredClone(f.cache()); const before = structuredClone(f.graph()); const result = initial.frames[0].resultNodeId;
+    const start = { ...f.views.get(result)!.position };
+    // a and b remain selected. Alt must not turn a result resize into a transfer.
+    expect(f.down(result, true).defaultPrevented).toBe(true);
+    expect(f.controller.preserveSelection()).toBe(true);
+    f.move({ x: start.x + 205, y: start.y + 305 }); await f.controller.refreshNow();
+    expect(f.graph()).toEqual(before);
+    expect(f.views.get(result)!.position).toEqual({ x: start.x + 200, y: start.y + 300 });
+    for (const id of ["a", "b"]) expect(f.views.get(id)!.position).toEqual(initial.positions[id]);
+    f.up(); await f.controller.refreshNow();
+    expect(f.cache().frames[0]).toMatchObject({ width: initial.frames[0].width + 200, height: initial.frames[0].height + 300 });
+    expect(f.cache().frames[1].y).toBe(initial.frames[1].y + 300);
+    expect(f.graph().ui_layout.editor_state).toEqual(before.ui_layout.editor_state);
+    expect(f.graph().connections).toEqual(before.connections); expect(f.graph().control_flow).toEqual(before.control_flow);
+    f.down(result); f.move({ x: -9000, y: -9000 }); f.up(); await f.controller.refreshNow();
+    expect(f.cache()).toEqual(initial); expect(f.graph()).toEqual(before);
+    f.controller.destroy();
+  });
+  it("resizes a Silence marker without activating synthesis", async () => {
+    const f = fixture(); await f.controller.refreshNow(); const initial = structuredClone(f.cache());
+    const result = initial.frames[1].resultNodeId; const start = f.views.get(result)!.position;
+    f.down(result); f.move({ x: start.x + 405, y: start.y + 205 }); f.up(); await f.controller.refreshNow();
+    expect(f.cache().frames[1]).toMatchObject({ width: initial.frames[1].width + 400, height: initial.frames[1].height + 200 });
+    expect(f.graph().control_flow![f.silent.blockId].cases[1].silence).toBe(true);
+    expect(f.cache().frames[0]).toEqual(initial.frames[0]); f.controller.destroy();
+  });
+  it.each(["Escape", "pointercancel", "blur"])("restores dimensions, reflow and positions after cancelled resize or growth: %s", async (reason) => {
+    for (const resize of [true, false]) {
+      const f = fixture({ member: true }); await f.controller.refreshNow(); f.commit.mockClear();
+      const before = structuredClone(f.graph()); const initial = structuredClone(f.cache());
+      const id = resize ? initial.frames[0].resultNodeId : "a"; const start = f.views.get(id)!.position;
+      f.down(id); f.move({ x: start.x + 805, y: start.y + 605 }); await f.controller.refreshNow();
+      fire(f.win, reason === "Escape" ? "keydown" : reason, { key: reason }); await f.controller.refreshNow();
+      f.up(); await f.controller.refreshNow();
+      expect(f.graph()).toEqual(before); expect(f.cache()).toEqual(initial); expect(f.commit).not.toHaveBeenCalled();
+      for (const n of before.nodes) expect(f.views.get(n.id)!.position).toEqual(n.position);
+      f.controller.destroy();
+    }
+  });
+  it("keeps opaque borders at two screen pixels and hover at three without changing geometry", async () => {
+    const f = fixture(); await f.controller.refreshNow(); const before = structuredClone(f.graph());
+    const frame = f.frames[0]; const width = frame.style.width; const height = frame.style.height;
+    for (const zoom of [0.1, 0.25, 1, 2]) {
+      f.area.area.transform.k = zoom; f.controller.updateBorders();
+      expect(frame.style.outline).toBe(`${2 / zoom}px solid #c084fc`);
+      const p = f.destination(); f.controller.catalogHover("oscili", p.x * zoom, p.y * zoom);
+      expect(frame.style.outline).toBe(`${3 / zoom}px solid #67e8f9`);
+      f.controller.catalogHover("outs", p.x * zoom, p.y * zoom);
+      expect(frame.style.outline).toBe(`${3 / zoom}px solid #fb7185`);
+      f.controller.clearHover();
+      expect(frame.style.width).toBe(width); expect(frame.style.height).toBe(height);
+      expect(f.graph()).toEqual(before);
+    }
+    f.controller.destroy();
   });
 });

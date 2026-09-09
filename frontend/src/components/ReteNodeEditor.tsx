@@ -1070,11 +1070,11 @@ export function ReteNodeEditor({
               return function ColoredNode(props: any) {
                 const patchNodeId = reteToPatchRef.current.get(String((context.payload as { id?: unknown }).id ?? ""));
                 return (
-                  <div style={{ position: "relative" }} data-patch-node={patchNodeId}>
+                  <div style={{ position: "relative" }} data-patch-node={patchNodeId} title={opcodeName.startsWith("__result_") ? flowCopy("resizeHelp") : undefined}>
                     <ReactPresets.classic.Node
                       {...props}
                       data={{ ...props.data, label: presentationRef.current.nodeTitles?.[patchNodeId ?? ""] ?? props.data.label, width: opcodeName.startsWith("__branch_") ? 320 : props.data.width }}
-                      styles={(styleProps: any) => nodeCssForCategory(opcodeCategory, Boolean(styleProps.selected)) + (opcodeName.startsWith("__branch_") ? "width: 320px; .title { white-space: pre-line; }" : "")}
+                      styles={(styleProps: any) => nodeCssForCategory(opcodeCategory, Boolean(styleProps.selected)) + (opcodeName.startsWith("__branch_") ? "width: 320px; .title { white-space: pre-line; }" : "") + (opcodeName.startsWith("__result_") ? "cursor: nwse-resize; .title { cursor: nwse-resize; }" : "")}
                     />
                     {patchNodeId && <div data-node-actions className="absolute -bottom-7 left-0">{presentationRef.current.renderNodeActions?.(patchNodeId)}</div>}
                     {isGenNode || isSfloadNode ? (
@@ -1562,6 +1562,7 @@ export function ReteNodeEditor({
 
         if (context.type === "zoomed") {
           setZoomPercent(Math.round(context.data.zoom * 100));
+          branchController?.updateBorders();
           persistPresentation();
           return context;
         }

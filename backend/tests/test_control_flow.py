@@ -301,6 +301,7 @@ def test_sequential_blocks_and_per_voice_processing_then_mixer():
 def test_branch_api_persistence_copy_and_bundles(tmp_path):
     from backend.tests.api_test_support import _client
     patch = branch_patch().model_dump(mode="json")
+    patch["graph"]["ui_layout"]["control_flow_case_sizes"] = {"branch": {"first": {"width": 1400, "height": 900}}}
     with _client(tmp_path) as client:
         saved = client.post("/api/patches", json=patch)
         assert saved.status_code == 201, saved.text
@@ -380,6 +381,7 @@ def test_drumset_performance_bundle_and_exported_csd_execute(tmp_path, event_sou
 
     payload = _performance_csd_export_payload()
     definition = {**example().model_dump(mode="json"), "sourcePatchId":"patch-1"}
+    definition["graph"]["ui_layout"]["control_flow_case_sizes"] = {"kit": {"kick": {"width": 1800, "height": 1200}}}
     payload["performanceExport"]["patch_definitions"] = [definition]
     config = payload["performanceExport"]["performance"]["config"]
     config["instruments"][0]["id"] = "kit"
@@ -413,3 +415,16 @@ def test_drumset_performance_bundle_and_exported_csd_execute(tmp_path, event_sou
     assert np.isfinite(rendered).all()
     assert abs(rendered[240:2400]).max() > .01
     assert abs(rendered[12000:12480]).max() > .00001
+
+
+@pytest.mark.parametrize("mode", ["score", "midi"])
+def test_branch_presentation_sizes_leave_drumset_compilation_unchanged(mode):
+    original = example()
+    resized = original.model_copy(deep=True)
+    resized.graph.ui_layout["control_flow_case_sizes"] = {
+        "kit": {"kick": {"width": 1800, "height": 1200}, "default": {"width": 500, "height": 600}}
+    }
+    for node in resized.graph.nodes:
+        node.position.x += 250
+        node.position.y += 300
+    assert compile_patch(resized, mode) == compile_patch(original, mode)

@@ -13,6 +13,7 @@ import { parseExportedPatchDefinition } from "./bundleImportExport";
 import { useAppStore } from "../store/useAppStore";
 import { buildGraphSelectionDeletePlan } from "../appOrchestration";
 import { APP_COPY } from "./appUiCopy";
+import { readCaseSizes } from "./branchCaseSizes";
 
 const catalog = catalogData.map((s) => ({ ...s, icon: `/static/icons/${s.icon_filename}` })) as OpcodeSpec[];
 const firstId = (graph: PatchGraph) => Object.keys(graph.control_flow!)[0];
@@ -23,6 +24,7 @@ function playable() {
   graph = { ...graph, nodes: [...graph.nodes, { id: "tone", opcode: "const_a", params: { value: .2 }, position: { x: 0, y: 0 } }] };
   graph = moveNodesToCase(graph, ["tone"], { blockId: firstId(graph), caseId: firstCase(graph).id });
   graph.connections = ["left", "right"].map((port) => ({ from_node_id: "tone", from_port_id: "aout", to_node_id: firstCase(graph).result_node_id, to_port_id: port }));
+  graph.ui_layout.control_flow_case_sizes = { [firstId(graph)]: Object.fromEntries(graph.control_flow![firstId(graph)].cases.map((c) => [c.id, { width: 1000, height: 800 }])) };
   return graph;
 }
 
@@ -72,6 +74,8 @@ describe("structured branches", () => {
     const next = deleteControlFlowCase(graph, id, item.id);
     expect(next.nodes.some((n) => n.id === "tone")).toBe(false);
     expect(readInputFormulaMap(next.ui_layout)).toEqual({});
+    expect(readCaseSizes(next)[id][item.id]).toBeUndefined();
+    expect(readCaseSizes(next)[id][next.control_flow![id].cases[1].id]).toEqual({ width: 1000, height: 800 });
     expect(() => deleteControlFlowCase(next, id, next.control_flow![id].cases[1].id)).toThrow();
   });
   it("deletes whole blocks with an accurate node/connection preview", () => {
@@ -81,6 +85,7 @@ describe("structured branches", () => {
     expect(plan.connectionKeys).toHaveLength(2);
     const next = deleteAudioGraphItems(graph, [id]);
     expect(next.nodes).toEqual([]); expect(next.control_flow).toEqual({});
+    expect(readCaseSizes(next)).toEqual({}); expect(next.ui_layout.control_flow_case_sizes).toEqual({});
     expect(deleteAudioGraphItems(graph, [firstCase(graph).result_node_id]).nodes).toEqual(graph.nodes);
   });
   it("turns synthesis into Silence only by clearing its owned content", () => {
@@ -104,6 +109,7 @@ describe("projection and persistence", () => {
     expect([...restored.nodes].sort((a, b) => a.id.localeCompare(b.id))).toEqual([...graph.nodes].sort((a, b) => a.id.localeCompare(b.id)));
     expect([...restored.connections].sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)))).toEqual([...graph.connections].sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b))));
     expect(readInputFormulaMap(restored.ui_layout)).toEqual(readInputFormulaMap(graph.ui_layout));
+    expect(readCaseSizes(restored)).toEqual(readCaseSizes(graph));
     if (collapsed) expect(view.readOnlyInputs.size).toBe(1);
   });
   it("moves all case members with the block", () => {
@@ -114,15 +120,18 @@ describe("projection and persistence", () => {
   });
   it("preserves the drumset through stereo projections, store edits, and export/import", () => {
     const patch = audioTemplate("drumset");
+    patch.graph.ui_layout.control_flow_case_sizes = { kit: { kick: { width: 1500, height: 1200 }, snare: { width: 1800, height: 900 } } };
     expect(controlFlowIssues(patch.graph)).toEqual([]);
     const audio = projectAudioBlocks(patch.graph, { input: "Input", output: "Output" }, catalog);
     const branch = projectControlFlow(audio.graph, audio.opcodes);
     const restored = audio.restore(branch.restore(branch.graph));
     expect(restored.control_flow).toEqual(patch.graph.control_flow);
     expect(readInputFormulaMap(restored.ui_layout)).toEqual(readInputFormulaMap(patch.graph.ui_layout));
+    expect(readCaseSizes(restored)).toEqual(readCaseSizes(patch.graph));
     useAppStore.setState({ currentPatch: normalizePatch(patch) });
     useAppStore.getState().setGraph(restored);
     expect(useAppStore.getState().currentPatch.schema_version).toBe(2);
+    expect(readCaseSizes(useAppStore.getState().currentPatch.graph)).toEqual(readCaseSizes(patch.graph));
     const imported = parseExportedPatchDefinition({ ...patch, sourcePatchId: patch.id });
     expect(imported!.graph).toEqual(patch.graph);
     expect(normalizePersistedPatch(patch).graph).toEqual(patch.graph);

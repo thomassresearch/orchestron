@@ -2,7 +2,8 @@ import type { AreaPlugin } from "rete-area-plugin";
 import type { NodePosition, OpcodeSpec, PatchGraph } from "../types";
 import { branchCollapsed, controlFlowOwners } from "../lib/controlFlow";
 import { branchOpcodeAllowed } from "../lib/branchTransfer";
-import { applyNodePositions, BRANCH_CONTENT_TOP, BRANCH_PADDING, clampNodesToBranch, containsPoint, layoutBranches, previewNodeDrag, type BranchLayout, type BranchRect, type BranchTarget, type NodeSize } from "../lib/branchLayout";
+import { applyBranchLayout, applyNodePositions, BRANCH_CONTENT_TOP, BRANCH_PADDING, clampNodesToBranch, containsPoint, layoutBranches, previewNodeDrag, type BranchLayout, type BranchRect, type BranchTarget, type NodeSize } from "../lib/branchLayout";
+import { readCaseSizes, writeCaseSizes } from "../lib/branchCaseSizes";
 
 export interface BranchRegionLabel extends BranchTarget { title: string }
 export interface BranchEditorActions {
@@ -38,6 +39,7 @@ interface Gesture {
   transfer: boolean;
   ending: boolean;
   preserveSelection: boolean;
+  resize?: BranchRect;
 }
 
 /** Owns temporary branch drag previews. Only completed gestures reach the store. */
@@ -77,6 +79,14 @@ export function createReteBranchController(options: Options) {
     sizes = Object.fromEntries(Object.entries(next).map(([id, size]) => [id, { width: Math.round(size.width * 100) / 100, height: Math.round(size.height * 100) / 100 }]));
     return patchToRete.size === Object.keys(next).length;
   };
+  const updateBorders = () => {
+    for (const element of frames.values()) {
+      const state = element.dataset.dropState;
+      const color = state === "invalid" ? "#fb7185" : state === "valid" ? "#67e8f9" : "#c084fc";
+      // Outlines do not consume layout space. Keep their screen width constant.
+      element.style.outline = `${(state === "none" ? 2 : 3) / area.area.transform.k}px solid ${color}`;
+    }
+  };
   const drawFrames = (value: BranchLayout, hover?: { frame: BranchRect; error: string }) => {
     const present = new Set(value.frames.map(key));
     for (const [id, element] of frames) if (!present.has(id)) { element.remove(); frames.delete(id); }
@@ -85,16 +95,15 @@ export function createReteBranchController(options: Options) {
       if (!element) {
         element = document.createElement("div"); element.className = "vs-case-region";
         element.dataset.branchId = rect.blockId; element.dataset.caseId = rect.caseId;
-        Object.assign(element.style, { position: "absolute", pointerEvents: "none", boxSizing: "border-box", border: "1px solid #a855f780", borderRadius: "14px", background: "#a855f709", color: "#d8b4fe", padding: "12px 24px", fontSize: "13px", fontWeight: "600", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" });
+        Object.assign(element.style, { position: "absolute", pointerEvents: "none", boxSizing: "border-box", borderRadius: "14px", background: "#a855f709", color: "#d8b4fe", padding: "12px 24px", fontSize: "13px", fontWeight: "600", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" });
         area.area.content.holder.prepend(element); frames.set(id, element);
       }
       const active = hover && key(hover.frame) === id;
       element.dataset.dropState = active ? hover.error ? "invalid" : "valid" : "none";
-      element.style.borderColor = active ? hover.error ? "#fb7185" : "#67e8f9" : "#a855f780";
-      element.style.boxShadow = active ? `inset 0 0 0 2px ${hover.error ? "#fb7185" : "#67e8f9"}` : "none";
       element.textContent = options.labels().find((r) => key(r) === id)?.title ?? "";
       Object.assign(element.style, { left: `${rect.x}px`, top: `${rect.y}px`, width: `${rect.width}px`, height: `${rect.height}px` });
     }
+    updateBorders();
   };
   const drawPositions = async (positions: Record<string, NodePosition>) => {
     painting = true;
@@ -128,7 +137,8 @@ export function createReteBranchController(options: Options) {
     drawFrames(layout); await drawPositions(layout.positions);
     if (disposed || gesture) return;
     remember(layout, graph);
-    if (positionsChanged(graph, layout)) options.commit(applyNodePositions(options.getGraph(), layout.positions));
+    const next = applyBranchLayout(options.getGraph(), layout);
+    if (positionsChanged(graph, layout) || JSON.stringify(graph.ui_layout.control_flow_case_sizes) !== JSON.stringify(next.ui_layout.control_flow_case_sizes)) options.commit(next);
   };
   const schedule = () => {
     if (disposed || scheduled) return;
@@ -152,16 +162,25 @@ export function createReteBranchController(options: Options) {
     const primary = element.closest<HTMLElement>('[data-patch-node]')?.dataset.patchNode;
     if (!primary) return;
     const before = options.getGraph();
-    if (Object.values(before.control_flow ?? {}).some((b) => b.cases.some((c) => c.result_node_id === primary))) return;
+    const resize = layout.frames.find((r) => r.resultNodeId === primary);
+    if (resize) { event.preventDefault(); event.stopPropagation(); }
     const start = point(event.clientX, event.clientY);
     gesture = { before, layout, primary, selected: [], start, pointer: start, alt: event.altKey, moved: false, preview: before, previewLayout: layout, transfer: false, ending: false,
-      preserveSelection: options.selected().includes(primary) };
+      preserveSelection: Boolean(resize) || options.selected().includes(primary), resize };
     options.message("");
   };
   const updateGesture = async (active: Gesture) => {
     if (disposed || gesture !== active) return;
     const delta = { x: active.pointer.x - active.start.x, y: active.pointer.y - active.start.y };
     if (!active.moved && Math.hypot(delta.x, delta.y) * area.area.transform.k < 3) return;
+    if (active.resize) {
+      active.moved = true;
+      active.previewLayout = layoutBranches(active.before, sizes, active.layout, { ...active.resize,
+        size: { width: active.resize.width + delta.x, height: active.resize.height + delta.y } });
+      active.preview = applyBranchLayout(active.before, active.previewLayout);
+      drawFrames(active.previewLayout); await drawPositions(active.previewLayout.positions);
+      return;
+    }
     if (!active.moved) {
       const selected = options.selected(); active.selected = selected.includes(active.primary) ? selected : [active.primary];
       const owners = controlFlowOwners(active.before);
@@ -170,9 +189,12 @@ export function createReteBranchController(options: Options) {
       active.transfer = !hasBlock && (active.alt || !hasMembers);
       active.moved = true;
     }
-    active.preview = previewNodeDrag(active.before, active.selected, delta, active.layout, active.transfer);
+    // Rebuild positions from the drag origin, but retain the largest frame sizes
+    // already previewed. This also avoids applying case reflow more than once.
+    const before = { ...active.before, ui_layout: writeCaseSizes(active.before.ui_layout, readCaseSizes(active.preview)) };
+    active.preview = previewNodeDrag(before, active.selected, delta, active.layout, active.transfer);
     active.previewLayout = active.transfer ? active.layout : layoutBranches(active.preview, sizes, active.layout);
-    if (!active.transfer) active.preview = applyNodePositions(active.preview, active.previewLayout.positions);
+    if (!active.transfer) active.preview = applyBranchLayout(active.preview, active.previewLayout);
     if (active.transfer) hoverTransfer(active.selected, active.pointer, active.layout); else drawFrames(active.previewLayout);
     await drawPositions(Object.fromEntries(active.preview.nodes.map((n) => [n.id, n.position])));
   };
@@ -196,7 +218,8 @@ export function createReteBranchController(options: Options) {
       gesture = null;
       drawFrames(layout);
       if (cancel || !active.moved) { options.message(""); await drawPositions(Object.fromEntries(options.getGraph().nodes.map((n) => [n.id, n.position]))); return; }
-      const next = applyNodePositions(options.getGraph(), Object.fromEntries(active.preview.nodes.map((n) => [n.id, n.position])));
+      const next = active.transfer ? applyNodePositions(options.getGraph(), Object.fromEntries(active.preview.nodes.map((n) => [n.id, n.position])))
+        : applyBranchLayout(options.getGraph(), active.previewLayout);
       if (active.transfer) {
         const collapsed = collapsedAt(active.pointer);
         if (collapsed) {
@@ -228,6 +251,7 @@ export function createReteBranchController(options: Options) {
     painting: () => painting,
     dragging: () => gesture !== null || cancelledDrag,
     preserveSelection: () => gesture?.preserveSelection ?? false,
+    updateBorders,
     refresh: schedule,
     refreshNow: () => { queue = queue.then(refresh); return queue; },
     clearHover: () => { drawFrames(layout); options.message(""); },
