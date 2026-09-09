@@ -29,7 +29,7 @@ Run:
 uv run orchestron_patch_cli --json spec validate patch.yaml
 ```
 
-This checks supported families/opcodes and local graph invariants: `cpsmidi`, `ampmidi` with `const_i` scale `1.0`, `madsr` with `const_i` ADSR inputs, mono-to-stereo `pan2`, and final `outs`.
+This checks supported families/opcodes and local graph invariants: `cpsmidi`, `ampmidi` with `const_i` scale `1.0`, `madsr` with `const_i` ADSR inputs, mono-to-stereo `pan2`, and a final Stereo Output block with two connected, named outlets and the main stereo mapping.
 
 ## 5. Inspect The Graph When Needed
 
@@ -53,6 +53,10 @@ uv run orchestron_patch_cli --json patch update PATCH_ID patch.yaml --compile
 ```
 
 Compile preflight creates a temporary patch, compiles it through a temporary session, cleans it up, and only then writes the final patch. If the backend is not running, ask the user whether to start it with `make run`.
+
+The generated Stereo Output exposes `left` and `right` ports. In Perform, route its stereo group through the mixer to Master to deliver audio. Compile success alone does not establish that performance route.
+
+For shared output gain, apply the formula to `output_pan2.asig` before the stereo split. On Csound 6.18, applying matching scaling formulas directly to both outlet inputs can silence the right channel at runtime even though compilation succeeds. Verify both channels when using per-outlet formulas.
 
 ## 7. Iterate
 

@@ -71,7 +71,9 @@ The CLI enforces these defaults in generated graphs:
 - Use patch spec `formulas:` for simple scaling or combination at an opcode input, for example `0.1 * in1`; formulas are stored in `graph.ui_layout.input_formulas` and compiled like GUI-edited formulas.
 - Scale source amplitude with velocity and envelope before sound generation.
 - Use `pan2` to distribute mono signals to left/right.
-- End every generated graph with exactly one `outs` node.
+- End every generated graph with one **Stereo Output** block: two `outleta` nodes named `left` and `right`, grouped in `graph.audio_interface` as the main stereo output and collapsed via `graph.ui_layout.audio_blocks`. Connect `pan2.aleft`/`aright` to their respective `asignal` inputs. See `references/graph_rules.md` for the saved representation.
+- Stereo Output is an editor construct, not a backend opcode named `__stereo_output`. Do not serialize that catalog command, generate direct `outs`, or leave the output channels ungrouped. Store channel names directly in `params.sname`.
+- In Perform, route the Stereo Output through the mixer to Master for playback.
 
 ## Error Handling
 

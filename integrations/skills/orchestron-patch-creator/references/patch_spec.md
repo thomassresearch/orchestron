@@ -152,7 +152,9 @@ formulas:
 
 ## Output
 
-Generated graphs are mono internally unless an explicit stereo source is added in a later CLI version. The current CLI always inserts `pan2` before `outs`.
+Generated graphs are mono internally. The CLI inserts `pan2` before a **Stereo Output** block with named `left`/`right` channels and the main stereo mapping. The saved graph uses paired `outleta` nodes and `audio_interface` metadata; see `graph_rules.md`. In Perform, route the group through the mixer to Master.
+
+For output input formulas, use `output_left.asignal` and `output_right.asignal`. These replace the old `output_outs.left`/`output_outs.right` targets. Channel names are fixed literal parameters, so do not apply formulas to `sname`.
 
 ```yaml
 output:

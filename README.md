@@ -117,7 +117,7 @@ Runtime session creation is bounded to protect Csound worker resources. Deployme
 
 ## Orchestron Agent CLI Skills
 
-The agent-facing patch CLI lives in [`integrations/skills/orchestron-patch-creator/`](integrations/skills/orchestron-patch-creator/) and creates Instrument Design patches from structured specs, including patch graph input formulas such as `0.1 * in1`. The performance CLI lives in [`integrations/skills/orchestron-performance-creator/`](integrations/skills/orchestron-performance-creator/) and stages songs/performances through the backend, including stable rack assignments, arbitrary always-on audio routing, sequencers, pad loops, arranger material, runtime creation/rebuild, and patch formula edits on existing patches. See the skill-local references for effect routes, patch specs, score specs, and formula commands.
+The agent-facing patch CLI lives in [`integrations/skills/orchestron-patch-creator/`](integrations/skills/orchestron-patch-creator/) and creates Instrument Design patches from structured specs, including patch graph input formulas such as `0.1 * in1`. Generated patches end in a mapped **Stereo Output** block with named `left`/`right` channels; route this group through the performance mixer to Master. The performance CLI lives in [`integrations/skills/orchestron-performance-creator/`](integrations/skills/orchestron-performance-creator/) and stages songs/performances through the backend, including stable rack assignments, arbitrary always-on audio routing, sequencers, pad loops, arranger material, runtime creation/rebuild, and patch formula edits on existing patches. See the skill-local references for effect routes, patch specs, score specs, and formula commands.
 
 ## MIDI on macOS
 

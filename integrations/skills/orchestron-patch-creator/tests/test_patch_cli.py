@@ -13,13 +13,20 @@ SRC = ROOT / "src"
 SCRIPT = ROOT / "scripts" / "orchestron_patch_cli.py"
 sys.path.insert(0, str(SRC))
 
-from orchestron_patch.cli.orchestron_patch_cli import PatchCliError, build_patch_payload, apply_input_formulas
+from orchestron_patch.cli.orchestron_patch_cli import (  # noqa: E402
+    PatchCliError, SUPPORTED_FAMILIES, apply_input_formulas, build_patch_payload, validate_graph_invariants,
+)
 
 
 class PatchCliTests(unittest.TestCase):
     def test_formula_edit_preserves_branch_ownership_and_layout(self) -> None:
-        fixture = ROOT.parents[2] / "examples" / "drumset.patch.json"
-        graph = json.loads(fixture.read_text())["graph"]
+        # Keep the skill tests portable when deployed outside the repository.
+        graph = {
+            "nodes": [{"id": "kick", "opcode": "oscili"}, {"id": "kick_result", "opcode": "CaseResult"}],
+            "connections": [{"from_node_id": "kick", "from_port_id": "asig", "to_node_id": "kick_result", "to_port_id": "left"}],
+            "control_flow": {"blocks": [{"id": "drums", "cases": [{"id": "kick_case", "node_ids": ["kick", "kick_result"]}]}]},
+            "ui_layout": {"control_flow_blocks": {"drums": {"collapsed": True}}},
+        }
         edited = apply_input_formulas(graph, [{"target":"kick_result.left", "expression":"in1 * 0.5"}])
         self.assertEqual(edited["control_flow"], graph["control_flow"])
         self.assertEqual(edited["nodes"], graph["nodes"])
@@ -39,7 +46,7 @@ class PatchCliTests(unittest.TestCase):
         self.assertIn("input formulas", result.stdout)
         self.assertIn("patch create", result.stdout)
 
-    def test_fm_pad_graph_has_required_spine_and_final_outs(self) -> None:
+    def test_fm_pad_graph_has_required_spine_and_stereo_output(self) -> None:
         payload = build_patch_payload(
             {
                 "name": "Unit FM Pad",
@@ -54,12 +61,13 @@ class PatchCliTests(unittest.TestCase):
         graph = payload["graph"]
         opcodes = [node["opcode"] for node in graph["nodes"]]
 
-        self.assertEqual(graph["nodes"][-1]["opcode"], "outs")
         self.assertIn("cpsmidi", opcodes)
         self.assertIn("ampmidi", opcodes)
         self.assertIn("madsr", opcodes)
         self.assertIn("pan2", opcodes)
-        self.assertEqual(opcodes.count("outs"), 1)
+        self.assertNotIn("outs", opcodes)
+        self.assertNotIn("__stereo_output", opcodes)
+        self.assertEqual(opcodes.count("outleta"), 2)
 
         nodes_by_id = {node["id"]: node for node in graph["nodes"]}
         self.assertEqual(nodes_by_id["velocity_ampmidi"]["params"], {})
@@ -85,10 +93,73 @@ class PatchCliTests(unittest.TestCase):
             {"iatt": "const_i", "idec": "const_i", "islev": "const_i", "irel": "const_i"},
         )
 
-        outs_id = graph["nodes"][-1]["id"]
-        outs_ports = {conn["to_port_id"] for conn in graph["connections"] if conn["to_node_id"] == outs_id}
-        self.assertEqual(outs_ports, {"left", "right"})
-        self.assertFalse([conn for conn in graph["connections"] if conn["from_node_id"] == outs_id])
+        self.assert_stereo_output(graph)
+
+    def assert_stereo_output(self, graph: dict) -> None:
+        interface = graph["audio_interface"]
+        self.assertEqual(interface["role"], "instrument")
+        self.assertEqual(len(interface["groups"]), 1)
+        group = interface["groups"][0]
+        self.assertEqual(group["id"], interface["mainOutput"])
+        self.assertEqual(group["direction"], "output")
+        self.assertEqual(group["layout"], "stereo")
+        self.assertEqual(group["ports"], ["left", "right"])
+        self.assertTrue(graph["ui_layout"]["audio_blocks"][group["id"]])
+        outlets = [node for node in graph["nodes"] if node["opcode"] == "outleta"]
+        self.assertEqual(len(outlets), 2)
+        self.assertEqual(graph["nodes"][-2:], outlets)
+        for outlet, side in zip(outlets, group["ports"]):
+            self.assertEqual(outlet["params"], {"sname": side})
+            inbound = [conn for conn in graph["connections"] if conn["to_node_id"] == outlet["id"]]
+            self.assertEqual(inbound, [{
+                "from_node_id": "output_pan2", "from_port_id": f"a{side}",
+                "to_node_id": outlet["id"], "to_port_id": "asignal",
+            }])
+            self.assertFalse([conn for conn in graph["connections"] if conn["from_node_id"] == outlet["id"]])
+
+    def test_all_template_families_generate_mapped_stereo_output(self) -> None:
+        for family in sorted(SUPPORTED_FAMILIES):
+            with self.subTest(family=family):
+                graph = build_patch_payload({"family": family})["graph"]
+                self.assert_stereo_output(graph)
+                self.assertNotIn("outs", [node["opcode"] for node in graph["nodes"]])
+
+    def test_stereo_output_rejects_incomplete_or_legacy_graphs(self) -> None:
+        mutations = {
+            "direct outs": lambda g: g["nodes"].append({"id": "legacy", "opcode": "outs"}),
+            "catalog command": lambda g: g["nodes"].append({"id": "synthetic", "opcode": "__stereo_output"}),
+            "ungrouped outlets": lambda g: g.pop("audio_interface"),
+            "missing main mapping": lambda g: g["audio_interface"].pop("mainOutput"),
+            "reversed mapping": lambda g: g["audio_interface"]["groups"][0]["ports"].reverse(),
+            "missing outlet": lambda g: g["nodes"].pop(),
+            "missing audio": lambda g: g["connections"].pop(),
+            "mismatched name": lambda g: g["nodes"][-1]["params"].update(sname="left"),
+            "connected name": lambda g: g["connections"].append({"from_node_id": "name", "from_port_id": "sout", "to_node_id": "output_left", "to_port_id": "sname"}),
+            "downstream node": lambda g: g["connections"].append({"from_node_id": "output_left", "from_port_id": "asignal", "to_node_id": "output_pan2", "to_port_id": "asig"}),
+        }
+        for label, mutate in mutations.items():
+            with self.subTest(case=label):
+                graph = build_patch_payload({"family": "simple_osc"})["graph"]
+                mutate(graph)
+                with self.assertRaises(PatchCliError) as error:
+                    validate_graph_invariants(graph)
+                self.assertEqual(error.exception.code, "invalid_graph")
+
+    def test_output_formulas_preserve_stereo_mapping(self) -> None:
+        graph = build_patch_payload({
+            "family": "simple_osc",
+            "formulas": [{"target": f"output_{side}.asignal", "expression": "0.5 * in1"} for side in ("left", "right")],
+        })["graph"]
+        self.assert_stereo_output(graph)
+        for side in ("left", "right"):
+            formula = graph["ui_layout"]["input_formulas"][f"output_{side}::asignal"]
+            self.assertEqual(formula["expression"], "0.5 * in1")
+            self.assertEqual(formula["inputs"], [{"token": "in1", "from_node_id": "output_pan2", "from_port_id": f"a{side}"}])
+
+    def test_output_channel_name_formulas_are_rejected(self) -> None:
+        with self.assertRaises(PatchCliError) as error:
+            build_patch_payload({"family": "simple_osc", "formulas": [{"target": "output_left.sname", "expression": "1", "inputs": []}]})
+        self.assertEqual(error.exception.code, "invalid_graph")
 
     def test_json_spec_validate_command(self) -> None:
         spec = {
@@ -111,7 +182,7 @@ class PatchCliTests(unittest.TestCase):
         payload = json.loads(result.stdout)
         self.assertTrue(payload["ok"])
         self.assertEqual(payload["data"]["family"], "subtractive")
-        self.assertEqual(payload["data"]["last_opcode"], "outs")
+        self.assertEqual(payload["data"]["last_opcode"], "outleta")
         self.assertGreater(payload["data"]["node_count"], 0)
 
     def test_patch_spec_formulas_are_written_to_ui_layout(self) -> None:

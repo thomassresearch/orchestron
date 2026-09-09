@@ -133,6 +133,8 @@ See [If, Switch and Drumset](control_flow.md) for the complete EN/DE/FR/ES workf
 
 Stereo Input and Stereo Output are collapsible views of ordinary paired inleta/outleta nodes. Expand them to edit the underlying opcodes and connections. Exact port names and input formulas survive collapsing, expansion, saving and export. Direct Audio Output (outs) stays distinct.
 
+The Orchestron Patch Creator CLI generates a collapsed Stereo Output block with named `left`/`right` channels and a main stereo mapping. Route this group through the performance mixer to Master for playback. In patch specs, output formulas target `output_left.asignal` and `output_right.asignal`.
+
 The interface panel describes musical role, stable group IDs, display names, exact member ports, purpose and designated main input/output. Stereo blocks and their mappings share the same creation and deletion operations. Advanced mono/custom groups remain metadata views; changing a stereo group to another layout exposes the ordinary nodes without deleting them.
 
 ### Create, rename and remove a stereo interface

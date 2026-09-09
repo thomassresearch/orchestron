@@ -65,6 +65,7 @@ KNOWN_OPCODE_INPUTS = {
     "moogladder2": {"ain", "xcf", "xres"},
     "noise": {"amp", "beta", "iseed", "iskip"},
     "oscili": {"amp", "freq", "ifn"},
+    "outleta": {"sname", "asignal"},
     "outs": {"left", "right"},
     "pan2": {"asig", "xp", "imode"},
     "pinker": set(),
@@ -839,12 +840,28 @@ def build_patch_payload(
 
     output = dict(spec.get("output") or {})
     pan = builder.add("pan2", node_id="output_pan2", params={"xp": _number(output.get("pan", 0.5), default=0.5), "imode": output.get("mode", 0)}, x=1300, y=130)
-    outs = builder.add("outs", node_id="output_outs", x=1500, y=130)
     builder.connect(signal_node, signal_port, pan, "asig")
-    builder.connect(pan, "aleft", outs, "left")
-    builder.connect(pan, "aright", outs, "right")
+    for index, side in enumerate(("left", "right")):
+        outlet = builder.add("outleta", node_id=f"output_{side}", params={"sname": side}, x=1500, y=130 + index * 180)
+        builder.connect(pan, f"a{side}", outlet, "asignal")
 
     graph = builder.graph(engine_config=spec.get("engine") if isinstance(spec.get("engine"), dict) else None)
+    # Stereo Output is an editor block backed by ordinary named outlet nodes.
+    # The catalog's __stereo_output creation command must never be serialized.
+    graph["audio_interface"] = {
+        "role": "instrument",
+        "groups": [{
+            "id": "main-output",
+            "name": "Stereo Output",
+            "direction": "output",
+            "layout": "stereo",
+            "ports": ["left", "right"],
+            "purpose": "main",
+        }],
+        "mainOutput": "main-output",
+        "guided": True,
+    }
+    graph["ui_layout"]["audio_blocks"] = {"main-output": True}
     graph = apply_input_formulas(graph, spec.get("formulas"))
 
     payload = {
@@ -944,15 +961,7 @@ def validate_graph_invariants(graph: dict[str, Any]) -> None:
         raise PatchCliError("invalid_graph", "Generated graph has no nodes.")
     if not isinstance(connections, list):
         raise PatchCliError("invalid_graph", "Generated graph connections are missing.")
-    if nodes[-1].get("opcode") != "outs":
-        raise PatchCliError("invalid_graph", "The last node in the generated graph must be outs.")
-    outs_nodes = [node for node in nodes if node.get("opcode") == "outs"]
-    if len(outs_nodes) != 1:
-        raise PatchCliError("invalid_graph", "Generated graph must contain exactly one outs node.")
-    outs_id = outs_nodes[0]["id"]
-    target_ports = {item["to_port_id"] for item in connections if item["to_node_id"] == outs_id}
-    if target_ports != {"left", "right"}:
-        raise PatchCliError("invalid_graph", "outs node must have left and right inputs connected.")
+    validate_stereo_output(graph)
     required_opcodes = {"cpsmidi", "ampmidi", "madsr"}
     present = {str(node.get("opcode")) for node in nodes}
     missing = sorted(required_opcodes - present)
@@ -980,9 +989,40 @@ def validate_graph_invariants(graph: dict[str, Any]) -> None:
             expected_value=None,
             label=label,
         )
-    downstream_from_outs = [item for item in connections if item["from_node_id"] == outs_id]
-    if downstream_from_outs:
-        raise PatchCliError("invalid_graph", "outs node must not feed downstream nodes.")
+
+
+def validate_stereo_output(graph: dict[str, Any]) -> None:
+    nodes = graph["nodes"]
+    connections = graph["connections"]
+    if any(node.get("opcode") in {"outs", "__stereo_output"} for node in nodes):
+        raise PatchCliError("invalid_graph", "Generated graphs must use a mapped Stereo Output block, not direct outs or a serialized __stereo_output node.")
+    interface = graph.get("audio_interface") or {}
+    groups = interface.get("groups") or []
+    if len(groups) != 1:
+        raise PatchCliError("invalid_graph", "Generated graph must contain exactly one Stereo Output mapping.")
+    group = groups[0]
+    ports = group.get("ports")
+    if (
+        not group.get("id")
+        or interface.get("mainOutput") != group["id"]
+        or group.get("direction") != "output"
+        or group.get("layout") != "stereo"
+        or ports != ["left", "right"]
+    ):
+        raise PatchCliError("invalid_graph", "Stereo Output must be the main stereo mapping with ordered left/right ports.")
+    outlets = [node for node in nodes if node.get("opcode") == "outleta"]
+    if len(outlets) != 2 or nodes[-2:] != outlets:
+        raise PatchCliError("invalid_graph", "The final two graph nodes must be the Stereo Output outlet pair.")
+    formulas = (graph.get("ui_layout") or {}).get(INPUT_FORMULAS_LAYOUT_KEY) or {}
+    for outlet, port in zip(outlets, ports):
+        outlet_id = outlet["id"]
+        if (outlet.get("params") or {}).get("sname") != port or f"{outlet_id}::sname" in formulas:
+            raise PatchCliError("invalid_graph", "Stereo Output channel names must be literal values matching the mapping.")
+        target_ports = {item["to_port_id"] for item in connections if item["to_node_id"] == outlet_id}
+        if target_ports != {"asignal"}:
+            raise PatchCliError("invalid_graph", "Both Stereo Output audio inputs must be connected, with channel names stored directly in params.sname.")
+        if any(item["from_node_id"] == outlet_id for item in connections):
+            raise PatchCliError("invalid_graph", "Stereo Output must not feed downstream nodes.")
 
 
 def require_const_i_connection(
@@ -1208,7 +1248,8 @@ def build_parser() -> argparse.ArgumentParser:
             "  orchestron_patch_cli --json patch update PATCH_ID fm_pad.yaml --compile\n\n"
             "Spec principle: generated patches always use cpsmidi for pitch, ampmidi for velocity "
             "with const_i scale 1.0, madsr with const_i ADSR inputs, pan2 for mono-to-stereo, "
-            "and outs as the final node. Use top-level formulas: entries to store GUI-compatible "
+            "and a final Stereo Output block (paired outleta nodes with a stereo mapping). "
+            "Use top-level formulas: entries to store GUI-compatible "
             "input formulas in graph.ui_layout.input_formulas."
         ),
     )

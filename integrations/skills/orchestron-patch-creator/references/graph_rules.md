@@ -18,14 +18,15 @@ Every generated patch includes:
 8. Optional `mix2` nodes when there is more than one layer.
 9. Optional mono effect chain.
 10. `pan2`: converts mono to left/right audio.
-11. `outs`: final stereo output.
+11. **Stereo Output**: final mapped pair of `outleta` nodes.
 
 ## Required Invariants
 
-- The generated graph must contain exactly one `outs` node.
-- The final node in `graph.nodes` must be `outs`.
-- `outs.left` and `outs.right` must both be connected.
-- `outs` must not feed any downstream node.
+- The generated graph must contain exactly one Stereo Output group and no direct `outs` node.
+- The final two nodes in `graph.nodes` must be its `outleta` members, with literal `params.sname` values `left` and `right` in that order.
+- Connect `pan2.aleft` to `output_left.asignal` and `pan2.aright` to `output_right.asignal`.
+- Both audio inputs must be connected; neither outlet may feed a downstream node.
+- Channel names belong directly on the outlets. Do not add `const_s` naming nodes, `sname` connections or formulas.
 - Source amplitudes must be scaled by `ampmidi` and `madsr`.
 - Pitch-aware sources must receive `cpsmidi.kfreq`.
 - `ampmidi.iscal` must be connected from `const_i.iout` with value `1.0`.
@@ -46,9 +47,37 @@ The CLI uses stable, readable node IDs such as:
 - `amp_madsr`
 - `amp_velocity_envelope`
 - `output_pan2`
-- `output_outs`
+- `output_left`
+- `output_right`
 
 Layer IDs from the spec are slugified and used as node ID prefixes.
+
+## Stereo Output Representation
+
+Stereo Output is the editor's unified view of two ordinary `outleta` nodes. The catalog name `__stereo_output` is a creation command and must never appear in saved `graph.nodes`. Add this metadata alongside the outlet nodes and their connections:
+
+```json
+{
+  "audio_interface": {
+    "role": "instrument",
+    "groups": [{
+      "id": "main-output",
+      "name": "Stereo Output",
+      "direction": "output",
+      "layout": "stereo",
+      "ports": ["left", "right"],
+      "purpose": "main"
+    }],
+    "mainOutput": "main-output",
+    "guided": true
+  },
+  "ui_layout": {
+    "audio_blocks": {"main-output": true}
+  }
+}
+```
+
+Group ports are exact channel names, not node IDs. Preserve other `ui_layout` fields such as `input_formulas`. In Perform, route this named stereo output through the mixer to Master.
 
 ## Layout
 
