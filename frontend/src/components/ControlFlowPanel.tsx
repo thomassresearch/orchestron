@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { addControlFlowCase, arrangeControlFlowCases, branchCollapsed, changeControlFlowFormat, connectionText,
-  deleteControlFlowCase, moveNodesToCase, ROOT_ONLY_OPCODES, setBranchCollapsed, silenceControlFlowCase, updateControlFlowBlock } from "../lib/controlFlow";
+import { addControlFlowCase, branchCollapsed, changeControlFlowFormat, connectionText,
+  deleteControlFlowCase, moveNodesToCase, setBranchCollapsed, silenceControlFlowCase, updateControlFlowBlock } from "../lib/controlFlow";
 import { controlFlowCopy } from "../lib/controlFlowCopy";
 import { readInputFormulaMap } from "../lib/graphFormula";
-import type { ControlFlowBlock, GuiLanguage, OpcodeSpec, PatchGraph } from "../types";
+import type { ControlFlowBlock, GuiLanguage, PatchGraph } from "../types";
 import { ConfirmationListDialog } from "./ConfirmationListDialog";
 
 const field = "rounded border border-slate-600 bg-slate-950 px-2 py-1 text-xs text-slate-100";
@@ -12,7 +12,6 @@ const button = "rounded border border-purple-500/50 px-2 py-1 text-xs text-purpl
 interface Props {
   graph: PatchGraph;
   language: GuiLanguage;
-  opcodes: OpcodeSpec[];
   selectedNodeIds: string[];
   activeBlockId: string;
   open: boolean;
@@ -21,7 +20,7 @@ interface Props {
   onChange: (graph: PatchGraph) => void;
 }
 
-export function ControlFlowPanel({ graph, language, opcodes, selectedNodeIds, activeBlockId, open, onOpenChange, onActiveBlock, onChange }: Props) {
+export function ControlFlowPanel({ graph, language, selectedNodeIds, activeBlockId, open, onOpenChange, onActiveBlock, onChange }: Props) {
   const t = controlFlowCopy(language);
   const [error, setError] = useState("");
   const [pending, setPending] = useState<{ graph: PatchGraph; items: string[] } | null>(null);
@@ -70,7 +69,7 @@ export function ControlFlowPanel({ graph, language, opcodes, selectedNodeIds, ac
       <label className="text-xs">{t("move")} <select aria-label={t("move")} className={field} value="" disabled={!selectedNodeIds.length}
         onChange={(e) => change(() => moveNodesToCase(graph, selectedNodeIds, e.target.value === "main" ? null : { blockId, caseId: e.target.value }))}>
         <option value="">—</option><option value="main">{t("mainGraph")}</option>
-        {block.cases.filter((c) => !c.silence).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+        {block.cases.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
       </select></label>
     </div>
     <div className="mt-2 max-h-52 space-y-2 overflow-y-auto">
@@ -86,19 +85,11 @@ export function ControlFlowPanel({ graph, language, opcodes, selectedNodeIds, ac
             : change(() => silenceControlFlowCase(graph, blockId, item.id, false))}>
           <option value="synthesis">{t("synthesis")}</option><option value="silence">{t("silence")}</option>
         </select>
-        {!item.silence && <select className={`${field} max-w-44`} aria-label={`${t("addNode")} ${item.name}`} value="" onChange={(e) => change(() => {
-          const spec = opcodes.find((s) => s.name === e.target.value)!;
-          const id = crypto.randomUUID(); const result = graph.nodes.find((n) => n.id === item.result_node_id)!;
-          const next = { ...graph, nodes: [...graph.nodes, { id, opcode: spec.name, params: Object.fromEntries(spec.inputs.filter((p) => p.default != null).map((p) => [p.id, p.default!])), position: { x: result.position.x - 500, y: result.position.y } }] };
-          return moveNodesToCase(next, [id], { blockId, caseId: item.id });
-        })}>
-          <option value="">{t("addNode")}</option>{opcodes.filter((s) => !ROOT_ONLY_OPCODES.has(s.name) && !s.name.startsWith("__")).map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}
-        </select>}
         {block.kind === "switch" && index < block.cases.length - 1 && <>
           {([-1, 1] as const).map((direction) => <button key={direction} className={button} aria-label={`${t(direction < 0 ? "up" : "down")} ${item.name}`}
             disabled={index + direction < 0 || index + direction >= block.cases.length - 1} onClick={() => change(() => {
               const cases = [...block.cases]; [cases[index], cases[index + direction]] = [cases[index + direction], cases[index]];
-              return arrangeControlFlowCases(updateControlFlowBlock(graph, blockId, { cases }), blockId);
+              return updateControlFlowBlock(graph, blockId, { cases });
             })}>{direction < 0 ? "↑" : "↓"}</button>)}
           <button className={button} disabled={block.cases.length <= 2} onClick={() => review(() => deleteControlFlowCase(graph, blockId, item.id), `${t("remove")}: ${item.name}`)}>{t("remove")}</button>
         </>}

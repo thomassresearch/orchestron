@@ -4,7 +4,7 @@ import { controlFlowCopy } from "../lib/controlFlowCopy";
 import { useMemo, useState } from "react";
 
 import { documentationUiCopy } from "../lib/documentationUi";
-import { setDraggedOpcode } from "../lib/opcodeDragDrop";
+import { setDraggedOpcode, clearDraggedOpcode } from "../lib/opcodeDragDrop";
 import type { GuiLanguage, OpcodeSpec } from "../types";
 
 interface OpcodeCatalogProps {
@@ -72,6 +72,7 @@ export function OpcodeCatalog({ guiLanguage, opcodes, onAddOpcode, onOpcodeHelpR
               type="button"
               onClick={() => onAddOpcode(opcode)}
               draggable
+              onDragEnd={clearDraggedOpcode}
               onDragStart={(event) => {
                 setDraggedOpcode(event.dataTransfer, opcode.name);
               }}

@@ -57,13 +57,13 @@ export function projectControlFlow(graph: PatchGraph, catalog: OpcodeSpec[]) {
     graph: { ...graph, nodes: graph.nodes.filter((n) => !hidden.has(n.id)).map((n) => ({ ...n, opcode: opcodes.get(n.id) ?? n.opcode })),
       connections: graph.connections.filter((c) => !hidden.has(c.from_node_id)).map(project), ui_layout: mapFormulas(graph.ui_layout, project) },
     opcodes: specs, projectConnection: project, restoreConnection, readOnlyInputs,
-    restore(next: PatchGraph): PatchGraph {
+    restore(next: PatchGraph, positionedMembers = false): PatchGraph {
       const visible = new Map(next.nodes.map((n) => [n.id, n]));
       const originals = new Map(graph.nodes.map((n) => [n.id, n]));
       const restored = next.nodes.map((n) => ({ ...n, opcode: opcodes.has(n.id) ? originals.get(n.id)!.opcode : n.opcode }));
       restored.push(...graph.nodes.filter((n) => hidden.has(n.id) && visible.has(hidden.get(n.id)!)));
       const nodes = restored.map((n) => {
-        const owner = owners.get(n.id); if (!owner) return n;
+        const owner = owners.get(n.id); if (!owner || (positionedMembers && !hidden.has(n.id))) return n;
         const originalBlock = originals.get(owner.blockId); const movedBlock = visible.get(owner.blockId);
         if (!originalBlock || !movedBlock) return n;
         return { ...n, position: { x: n.position.x + movedBlock.position.x - originalBlock.position.x,

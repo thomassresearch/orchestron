@@ -1,4 +1,5 @@
 import { parseFormulaTargetKey, readInputFormulaMap, writeInputFormulaMap } from "./graphFormula";
+import { transferBranchNodes } from "./branchTransfer";
 import { readGraphEditorState, writeGraphEditorState } from "./graphEditorState";
 import type { Connection, ControlFlowBlock, ControlFlowCase, NodeInstance, NodePosition, OpcodeSpec, PatchGraph, PortSpec } from "../types";
 
@@ -109,21 +110,7 @@ export function addControlFlowCase(graph: PatchGraph, blockId: string): PatchGra
   while (values.has(value)) value++;
   const { item, result } = createCase(String(value), value, false, { x: origin.x + 760, y: origin.y + 220 + (block.cases.length - 1) * 350 });
   const cases = [...block.cases.slice(0, -1), item, block.cases[block.cases.length - 1]];
-  return arrangeControlFlowCases(updateControlFlowBlock({ ...graph, nodes: [...graph.nodes, result] }, blockId, { cases }), blockId);
-}
-
-export function arrangeControlFlowCases(graph: PatchGraph, blockId: string): PatchGraph {
-  const block = graph.control_flow![blockId];
-  let top = graph.nodes.find((n) => n.id === blockId)!.position.y + 220;
-  const offsets = new Map<string, number>();
-  for (const item of block.cases) {
-    const members = graph.nodes.filter((n) => item.node_ids.includes(n.id));
-    const minY = Math.min(...members.map((n) => n.position.y));
-    const maxY = Math.max(...members.map((n) => n.position.y));
-    members.forEach((n) => offsets.set(n.id, top - minY));
-    top += Math.max(350, maxY - minY + 320);
-  }
-  return { ...graph, nodes: graph.nodes.map((n) => offsets.has(n.id) ? { ...n, position: { ...n.position, y: n.position.y + offsets.get(n.id)! } } : n) };
+  return updateControlFlowBlock({ ...graph, nodes: [...graph.nodes, result] }, blockId, { cases });
 }
 
 export function setBranchCollapsed(graph: PatchGraph, id: string, collapsed: boolean): PatchGraph {
@@ -201,20 +188,17 @@ export function changeControlFlowFormat(graph: PatchGraph, blockId: string, outp
 
 export function moveNodesToCase(graph: PatchGraph, nodeIds: string[], target: { blockId: string; caseId: string } | null): PatchGraph {
   const selected = new Set(nodeIds);
-  if (!selected.size) return graph;
-  if (graph.nodes.some((n) => selected.has(n.id) && ROOT_ONLY_OPCODES.has(n.opcode))) throw new Error("Structural and interface nodes must remain in their scope.");
   const destination = target && graph.control_flow?.[target.blockId]?.cases.find((c) => c.id === target.caseId);
-  if (target && (!destination || destination.silence)) throw new Error("Select a synthesis case first.");
-  const blocks = Object.fromEntries(Object.entries(graph.control_flow ?? {}).map(([id, block]) => [id, { ...block, cases: block.cases.map((c) => ({ ...c,
-    node_ids: [...c.node_ids.filter((n) => !selected.has(n)), ...(target?.blockId === id && target.caseId === c.id ? [...selected] : [])] })) }]));
-  let next = assertControlFlow({ ...graph, control_flow: blocks });
+  let next = transferBranchNodes(graph, nodeIds, target);
+  if (!selected.size || next === graph) return next;
   if (target) {
     const result = graph.nodes.find((n) => n.id === destination!.result_node_id)!;
     const chosen = graph.nodes.filter((n) => selected.has(n.id));
     const existing = graph.nodes.filter((n) => destination!.node_ids.includes(n.id) && n.id !== destination!.result_node_id && !selected.has(n.id));
-    const targetY = Math.max(result.position.y, ...existing.map((n) => n.position.y + 320));
+    const origin = graph.nodes.find((n) => n.id === target.blockId)!.position;
+    const targetY = Math.min(result.position.y, ...existing.map((n) => n.position.y));
     const minX = Math.min(...chosen.map((n) => n.position.x)); const minY = Math.min(...chosen.map((n) => n.position.y));
-    next = arrangeControlFlowCases({ ...next, nodes: next.nodes.map((n) => selected.has(n.id) ? { ...n, position: { x: result.position.x - 540 + n.position.x - minX, y: targetY + n.position.y - minY } } : n) }, target.blockId);
+    next = { ...next, nodes: next.nodes.map((n) => selected.has(n.id) ? { ...n, position: { x: origin.x + 24 + n.position.x - minX, y: targetY + n.position.y - minY } } : n) };
   }
   return next;
 }

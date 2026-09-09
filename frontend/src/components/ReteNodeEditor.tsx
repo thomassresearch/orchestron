@@ -19,8 +19,11 @@ import {
 } from "../lib/graphFormula";
 import { getGenNodeConfig, setGenNodeConfig, type GenNodeConfig } from "../lib/genNodeConfig";
 import { getSfloadNodeConfig, setSfloadNodeConfig, type SfloadNodeConfig } from "../lib/sfloadNodeConfig";
-import { getDraggedOpcodeName, hasDraggedOpcode } from "../lib/opcodeDragDrop";
+import { getDraggedOpcodeName, hasDraggedOpcode, getActiveDraggedOpcode, clearDraggedOpcode } from "../lib/opcodeDragDrop";
 import { readGraphEditorState, writeGraphEditorState, type GraphSelection, type GraphViewport } from "../lib/graphEditorState";
+import { controlFlowCopy } from "../lib/controlFlowCopy";
+import type { BranchLayout, BranchTarget } from "../lib/branchLayout";
+import { createReteBranchController, type ReteBranchController, type BranchRegionLabel, type BranchEditorActions } from "./reteBranchController";
 import { GenNodeEditorModal } from "./GenNodeEditorModal";
 import { SfloadNodeEditorModal } from "./SfloadNodeEditorModal";
 import type { Connection, GuiLanguage, NodePosition, OpcodeSpec, PatchGraph, SignalType } from "../types";
@@ -35,7 +38,8 @@ export interface ReteNodeEditorProps {
   nodeTitles?: Record<string, string>;
   renderNodeActions?: (id: string) => ReactNode;
   selectionMapping?: { canonical: (selection: EditorSelection) => EditorSelection; display: (selection: EditorSelection) => EditorSelection };
-  regions?: { id: string; title: string; nodeIds: string[]; anchor: NodePosition }[];
+  regions?: BranchRegionLabel[];
+  branchActions?: BranchEditorActions;
   readOnlyInputs?: Set<string>;
   readOnlyInputLabel?: string;
   guiLanguage: GuiLanguage;
@@ -44,9 +48,9 @@ export interface ReteNodeEditorProps {
   graphBadgeLabel?: string;
   opcodes: OpcodeSpec[];
   viewportKey: string;
-  onGraphChange: (graph: PatchGraph) => void;
+  onGraphChange: (graph: PatchGraph, options?: { positionedMembers: boolean }) => void;
   onSelectionChange: (selection: EditorSelection) => void;
-  onAddOpcodeAtPosition?: (opcode: OpcodeSpec, position: NodePosition) => void;
+  onAddOpcodeAtPosition?: (opcode: OpcodeSpec, position: NodePosition, target?: BranchTarget) => void;
   onOpcodeHelpRequest?: (opcodeName: string) => void;
   opcodeHelpLabel?: string;
   onDeleteSelection?: () => void;
@@ -497,9 +501,11 @@ export function ReteNodeEditor({
   regions,
   readOnlyInputs,
   readOnlyInputLabel,
-  selectionMapping
+  selectionMapping,
+  branchActions
 }: ReteNodeEditorProps) {
   const copy = RETE_EDITOR_COPY[guiLanguage];
+  const flowCopy = controlFlowCopy(guiLanguage);
   const resolvedGraphLabel = typeof graphLabel === "string" ? graphLabel.trim() : "";
   const resolvedGraphBadgeLabel = typeof graphBadgeLabel === "string" ? graphBadgeLabel.trim() : "";
   const resolvedOpcodeHelpLabel = opcodeHelpLabel ?? copy.showDocumentation;
@@ -507,8 +513,11 @@ export function ReteNodeEditor({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const initializingRef = useRef(false);
   const graphRef = useRef(graph);
-  const presentationRef = useRef({ nodeTitles, renderNodeActions, regions, readOnlyInputs, readOnlyInputLabel, selectionMapping });
-  presentationRef.current = { nodeTitles, renderNodeActions, regions, readOnlyInputs, readOnlyInputLabel, selectionMapping };
+  const presentationRef = useRef({ nodeTitles, renderNodeActions, regions, readOnlyInputs, readOnlyInputLabel, selectionMapping, branchActions });
+  presentationRef.current = { nodeTitles, renderNodeActions, regions, readOnlyInputs, readOnlyInputLabel, selectionMapping, branchActions };
+  const branchControllerRef = useRef<ReteBranchController | null>(null);
+  const branchLayoutsRef = useRef(new Map<string, BranchLayout>());
+  const [dropMessage, setDropMessage] = useState("");
   const areaRef = useRef<AreaPlugin<any, any> | null>(null);
   const editorRef = useRef<NodeEditor<any> | null>(null);
   const reteToPatchRef = useRef<Map<string, string>>(new Map());
@@ -974,6 +983,7 @@ export function ReteNodeEditor({
       }
       event.preventDefault();
       event.dataTransfer.dropEffect = "copy";
+      branchControllerRef.current?.catalogHover(getActiveDraggedOpcode(), event.clientX, event.clientY);
       if (!isOpcodeDragOver) {
         setIsOpcodeDragOver(true);
       }
@@ -1003,7 +1013,10 @@ export function ReteNodeEditor({
       if (!position) {
         return;
       }
-      onAddOpcodeAtPosition(opcode, position);
+      if (branchControllerRef.current) branchControllerRef.current.catalogDrop(opcode, event.clientX, event.clientY,
+        (dropPosition, target) => onAddOpcodeAtPosition(opcode, dropPosition, target));
+      else onAddOpcodeAtPosition(opcode, position);
+      clearDraggedOpcode();
     },
     [onAddOpcodeAtPosition, opcodes, resolveGraphPositionFromClient]
   );
@@ -1057,13 +1070,13 @@ export function ReteNodeEditor({
               return function ColoredNode(props: any) {
                 const patchNodeId = reteToPatchRef.current.get(String((context.payload as { id?: unknown }).id ?? ""));
                 return (
-                  <div style={{ position: "relative" }}>
+                  <div style={{ position: "relative" }} data-patch-node={patchNodeId}>
                     <ReactPresets.classic.Node
                       {...props}
                       data={{ ...props.data, label: presentationRef.current.nodeTitles?.[patchNodeId ?? ""] ?? props.data.label, width: opcodeName.startsWith("__branch_") ? 320 : props.data.width }}
                       styles={(styleProps: any) => nodeCssForCategory(opcodeCategory, Boolean(styleProps.selected)) + (opcodeName.startsWith("__branch_") ? "width: 320px; .title { white-space: pre-line; }" : "")}
                     />
-                    {patchNodeId && <div className="absolute -bottom-7 left-0">{presentationRef.current.renderNodeActions?.(patchNodeId)}</div>}
+                    {patchNodeId && <div data-node-actions className="absolute -bottom-7 left-0">{presentationRef.current.renderNodeActions?.(patchNodeId)}</div>}
                     {isGenNode || isSfloadNode ? (
                       <button
                         type="button"
@@ -1210,7 +1223,10 @@ export function ReteNodeEditor({
       // Rete listens for pointer-up on window. Toolbar clicks must not clear a
       // selection restored after collapse/reload (its selector starts unpicked).
       let canvasGesture = false;
+      let branchController: ReteBranchController | null = null;
       area.addPipe((context: any) => {
+        if (context.type === "nodetranslate" && branchController?.dragging() && !branchController.painting()) return;
+        if (context.type === "nodetranslated" && branchController?.painting()) return;
         if (context.type === "pointerdown" || context.type === "nodepicked") canvasGesture = true;
         if (context.type === "pointerup") {
           if (!canvasGesture) return;
@@ -1220,7 +1236,9 @@ export function ReteNodeEditor({
       });
       const selection = AreaExtensions.selector();
       const accumulating = AreaExtensions.accumulateOnCtrl();
-      const selectable = AreaExtensions.selectableNodes(area, selection, { accumulating });
+      const selectable = AreaExtensions.selectableNodes(area, selection, {
+        accumulating: { active: () => accumulating.active() || branchController?.preserveSelection() === true }
+      });
 
       const patchToRete = new Map<string, any>();
       const reteToPatch = new Map<string, string>();
@@ -1229,7 +1247,6 @@ export function ReteNodeEditor({
       const connectionByKey = new Map<string, Connection>();
       const selectedConnectionKeys = new Set<string>();
       const connectionHandlers = new Map<string, (event: PointerEvent) => void>();
-      const regionResizeObserver: { current?: ResizeObserver } = {};
       handle = {
         destroy: () => {
           for (const [reteConnectionId, handler] of connectionHandlers) {
@@ -1238,14 +1255,14 @@ export function ReteNodeEditor({
               view.element.removeEventListener("pointerdown", handler);
             }
           }
-          regionResizeObserver.current?.disconnect();
+          branchController?.destroy();
           accumulating.destroy();
           area.destroy();
         }
       };
 
       const persistPresentation = () => {
-        if (initializingRef.current || !Object.keys(graphRef.current.control_flow ?? {}).length) return;
+        if (initializingRef.current || branchController?.dragging() || !Object.keys(graphRef.current.control_flow ?? {}).length) return;
         const state = {
           selection: selectionByKeyRef.current.get(viewportKey),
           viewport: snapshotViewport(area)
@@ -1440,31 +1457,23 @@ export function ReteNodeEditor({
       }
 
       if (cancelled) return;
-      const regionElements = new Map<string, HTMLDivElement>();
-      const updateRegions = () => {
-        for (const region of presentationRef.current.regions ?? []) {
-          let element = regionElements.get(region.id);
-          if (!element) {
-            element = document.createElement("div");
-            element.className = "vs-case-region";
-            Object.assign(element.style, { position: "absolute", pointerEvents: "none", border: "1px solid #a855f780", borderRadius: "14px", background: "#a855f709", color: "#d8b4fe", padding: "12px", fontSize: "13px", fontWeight: "600" });
-            area.area.content.holder.prepend(element); regionElements.set(region.id, element);
-          }
-          const boxes = region.nodeIds.flatMap((id) => {
-            const node = patchToRete.get(id); const view = node && area.nodeViews.get(node.id);
-            return view ? [{ x: view.position.x, y: view.position.y, width: view.element.offsetWidth || 220, height: view.element.offsetHeight || 160 }] : [];
-          });
-          const x = Math.min(region.anchor.x, ...boxes.map((b) => b.x)) - 25;
-          const y = Math.min(region.anchor.y, ...boxes.map((b) => b.y)) - 55;
-          const right = Math.max(region.anchor.x + 1000, ...boxes.map((b) => b.x + b.width));
-          const bottom = Math.max(region.anchor.y + 180, ...boxes.map((b) => b.y + b.height));
-          element.textContent = region.title;
-          Object.assign(element.style, { left: `${x}px`, top: `${y}px`, width: `${right - x + 25}px`, height: `${bottom - y + 30}px` });
-        }
-      };
-      updateRegions();
-      regionResizeObserver.current = new ResizeObserver(updateRegions);
-      for (const view of area.nodeViews.values()) regionResizeObserver.current.observe(view.element);
+      const withPresentation = (next: PatchGraph): PatchGraph => ({ ...next, ui_layout: writeGraphEditorState(next.ui_layout, {
+        selection: selectionByKeyRef.current.get(viewportKey), viewport: snapshotViewport(area)
+      }) });
+      branchController = createReteBranchController({
+        area, container: containerRef.current!, patchToRete,
+        getGraph: () => graphRef.current, ready: () => !initializingRef.current && !cancelled,
+        selected: () => editor.getNodes().filter((node) => node.selected).map((node) => reteToPatch.get(String(node.id))!).filter(Boolean),
+        commit: (next) => { const value = withPresentation(next); graphRef.current = value; onGraphChange(value, { positionedMembers: true }); },
+        actions: () => {
+          const actions = presentationRef.current.branchActions;
+          return actions && { ...actions, transfer: (next, ids, target) => actions.transfer(withPresentation(next), ids, target) };
+        },
+        labels: () => presentationRef.current.regions ?? [],
+        message: setDropMessage, copy: (key) => controlFlowCopy(guiLanguage)(key),
+        cache: { get: () => branchLayoutsRef.current.get(viewportKey), set: (value) => branchLayoutsRef.current.set(viewportKey, value) }
+      });
+      branchControllerRef.current = branchController;
 
       editor.addPipe((context: any) => {
         if (initializingRef.current) {
@@ -1583,7 +1592,7 @@ export function ReteNodeEditor({
           return context;
         }
 
-        if (context.type === "nodetranslate") {
+        if (context.type === "nodetranslate" && !branchController?.painting()) {
           const id = reteToPatch.get(String(context.data.id));
           const node = graphRef.current.nodes.find((n) => n.id === id);
           const parentId = Object.entries(graphRef.current.control_flow ?? {}).find(([, block]) => block.cases.some((item) => item.node_ids.includes(id ?? "")))?.[0];
@@ -1593,7 +1602,6 @@ export function ReteNodeEditor({
         }
 
         if (context.type === "nodetranslated") {
-          updateRegions();
           const translated = context.data;
           const patchNodeId = reteToPatch.get(String(translated.id));
 
@@ -1647,8 +1655,8 @@ export function ReteNodeEditor({
         onSelectionChange(retained);
       } else emitSelection();
       initializingRef.current = false;
-
-
+      await branchController.refreshNow();
+      if (!savedViewport && !cancelled) { await AreaExtensions.zoomAt(area, editor.getNodes()); syncZoomPercent(); }
     };
 
     void setup();
@@ -1661,6 +1669,7 @@ export function ReteNodeEditor({
         viewportByKeyRef.current.set(viewportKey, snapshotViewport(liveArea));
       }
       handle?.destroy();
+      branchControllerRef.current = null;
       areaRef.current = null;
       editorRef.current = null;
       reteToPatchRef.current = new Map();
@@ -1670,6 +1679,8 @@ export function ReteNodeEditor({
     };
   }, [
     copy,
+    onGraphChange,
+    guiLanguage,
     onOpcodeHelpRequest,
     onSelectionChange,
     resolvedOpcodeHelpLabel,
@@ -1699,6 +1710,9 @@ export function ReteNodeEditor({
   useEffect(() => {
     const area = areaRef.current;
     if (!area || initializingRef.current) return;
+    if (Object.keys(graph.control_flow ?? {}).length && branchControllerRef.current) {
+      branchControllerRef.current.refresh(); return;
+    }
     for (const [reteId, patchId] of reteToPatchRef.current) {
       const position = graph.nodes.find((node) => node.id === patchId)?.position;
       const view = area.nodeViews.get(reteId);
@@ -1716,9 +1730,14 @@ export function ReteNodeEditor({
         }`}
         onDragOver={onOpcodeDragOver}
         onDrop={onOpcodeDrop}
-        onDragLeave={() => setIsOpcodeDragOver(false)}
+        onDragLeave={(event) => {
+          if (event.relatedTarget instanceof Node && event.currentTarget.contains(event.relatedTarget)) return;
+          setIsOpcodeDragOver(false); branchControllerRef.current?.clearHover();
+        }}
       >
         <div ref={containerRef} className="h-full w-full" />
+        {dropMessage && <div role="status" aria-live="polite" className="pointer-events-none absolute bottom-12 left-3 z-20 max-h-32 max-w-[80%] overflow-auto whitespace-pre-wrap rounded border border-purple-600 bg-slate-950/95 p-2 text-xs text-purple-100">{dropMessage}</div>}
+        {Object.keys(graph.control_flow ?? {}).length > 0 && <div className="pointer-events-none absolute bottom-2 left-3 max-w-[70%] text-[10px] text-slate-400">{flowCopy("dragHint")}</div>}
         {resolvedGraphLabel ? (
           <div className="pointer-events-none absolute left-3 top-3 z-10 max-w-[70%] rounded-md border border-slate-700/90 bg-slate-950/90 px-2.5 py-1.5 shadow-lg shadow-black/30">
             <div className="flex min-w-0 items-center gap-2">

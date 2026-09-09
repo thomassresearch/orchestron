@@ -1,5 +1,6 @@
 import { executeStereoCommand, reconcileAudioGraph, deleteAudioGraphItems } from "../lib/audioBlocks";
 import { addControlFlowBlock, BRANCH_OPCODES, patchSchemaVersion } from "../lib/controlFlow";
+import { addBranchNode, branchOpcodeAllowed } from "../lib/branchTransfer";
 import { controlFlowCopy } from "../lib/controlFlowCopy";
 import { stereoOpcodeDirection } from "../lib/stereoCatalog";
 import { createMixerActions, initialMixerState } from "./appStoreMixer";
@@ -546,7 +547,8 @@ export const useAppStore = create<AppStore>((set, get) => {
       });
     },
 
-    addNodeFromOpcode: (opcode, position) => {
+    addNodeFromOpcode: (opcode, position, target) => {
+      if (target && !branchOpcodeAllowed(opcode.name)) throw new Error(`${opcode.name} must remain in the main graph.`);
       const current = get().currentPatch;
       if (BRANCH_OPCODES.has(opcode.name)) {
         const copy = controlFlowCopy(get().guiLanguage);
@@ -570,10 +572,7 @@ export const useAppStore = create<AppStore>((set, get) => {
 
       commitCurrentPatch({
         ...current,
-        graph: {
-          ...current.graph,
-          nodes: [...current.graph.nodes, node]
-        }
+        graph: addBranchNode(current.graph, node, target)
       });
     },
 

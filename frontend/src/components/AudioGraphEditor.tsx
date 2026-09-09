@@ -7,6 +7,7 @@ import { StereoInterfacePanel } from "./StereoInterfacePanel";
 import { ControlFlowPanel } from "./ControlFlowPanel";
 import { projectControlFlow } from "../lib/controlFlowProjection";
 import { branchCollapsed, controlFlowConditionLabel, controlFlowIssues, setBranchCollapsed } from "../lib/controlFlow";
+import { branchTransferIssues, transferBranchNodes } from "../lib/branchTransfer";
 import { controlFlowCopy } from "../lib/controlFlowCopy";
 
 export function AudioGraphEditor(props: ReteNodeEditorProps & { patchId?: string | null; onDeleteAudioGroup: (id: string) => void }) {
@@ -20,8 +21,8 @@ export function AudioGraphEditor(props: ReteNodeEditorProps & { patchId?: string
   const projection = useMemo(() => projectControlFlow(audioProjection.graph, audioProjection.opcodes), [audioProjection]);
   const latest = useRef({ projection, audioProjection, graph, onGraphChange, onSelectionChange: props.onSelectionChange, onOpcodeHelpRequest: props.onOpcodeHelpRequest });
   latest.current = { projection, audioProjection, graph, onGraphChange, onSelectionChange: props.onSelectionChange, onOpcodeHelpRequest: props.onOpcodeHelpRequest };
-  const restoreGraph = useCallback<ReteNodeEditorProps["onGraphChange"]>((next) => {
-    const value = latest.current.audioProjection.restore(latest.current.projection.restore(next));
+  const restoreGraph = useCallback<ReteNodeEditorProps["onGraphChange"]>((next, options) => {
+    const value = latest.current.audioProjection.restore(latest.current.projection.restore(next, options?.positionedMembers));
     // Wiring errors remain visible and compilable to diagnostics; explicit scope moves validate before applying.
     latest.current.onGraphChange(value);
   }, []);
@@ -58,21 +59,27 @@ export function AudioGraphEditor(props: ReteNodeEditorProps & { patchId?: string
   const regions: NonNullable<ReteNodeEditorProps["regions"]> = [];
   for (const [id, block] of Object.entries(graph.control_flow ?? {})) {
     nodeTitles[id] = `${controlFlowConditionLabel(graph, id)}\n${flowCopy("noteStart")}\n${block.cases.map((c) => `${c.value !== null ? `${c.value} ` : ""}${c.name}`).join(" / ")}`;
-    const origin = graph.nodes.find((n) => n.id === id)!.position;
-    block.cases.forEach((item, index) => {
+    block.cases.forEach((item) => {
       nodeTitles[item.result_node_id] = `${flowCopy(item.silence ? "silence" : "result")} · ${item.name}`;
-      if (!branchCollapsed(graph, id)) regions.push({ id: `${id}:${item.id}`,
-        title: `${item.name}${block.kind === "switch" && item.value !== null ? ` · ${item.value}` : ""} · ${flowCopy(item.silence ? "silence" : "synthesis")}`,
-        nodeIds: item.node_ids,
-        anchor: { x: origin.x + 20, y: graph.nodes.find((n) => n.id === item.result_node_id)?.position.y ?? origin.y + 220 + index * 350 } });
+      if (!branchCollapsed(graph, id)) regions.push({ blockId: id, caseId: item.id,
+        title: `${item.name}${block.kind === "switch" && item.value !== null ? ` · ${item.value}` : ""} · ${flowCopy(item.silence ? "silence" : "synthesis")}` });
     });
   }
   return <div className="flex h-full flex-col gap-2">
     <StereoInterfacePanel key={`stereo:${props.viewportKey}`} graph={graph} guiLanguage={props.guiLanguage} patchId={props.patchId} onGraphChange={onGraphChange} onDeleteAudioGroup={props.onDeleteAudioGroup} />
-    <ControlFlowPanel key={`flow:${props.viewportKey}`} graph={graph} language={props.guiLanguage} opcodes={props.opcodes} selectedNodeIds={selectedNodeIds}
+    <ControlFlowPanel key={`flow:${props.viewportKey}`} graph={graph} language={props.guiLanguage} selectedNodeIds={selectedNodeIds}
       activeBlockId={activeBlockId} open={panelOpen} onOpenChange={setPanelOpen} onActiveBlock={setActiveBlockId} onChange={onGraphChange} />
     {error && <p role="alert" className="max-h-16 overflow-auto whitespace-pre-wrap text-xs text-rose-300">{flowCopy("invalid")} {error}</p>}
     <div className="min-h-0 flex-1"><ReteNodeEditor {...props} graph={projection.graph} opcodes={projection.opcodes} onGraphChange={restoreGraph} onSelectionChange={restoreSelection} onOpcodeHelpRequest={help}
+      branchActions={{
+        validate: (ids, target) => branchTransferIssues(latest.current.graph, canonicalSelection({ nodeIds: ids, connections: [] }).nodeIds, target),
+        transfer: (next, ids, target) => {
+          const current = latest.current;
+          const restored = current.audioProjection.restore(current.projection.restore(next, true));
+          current.onGraphChange(transferBranchNodes(restored, canonicalSelection({ nodeIds: ids, connections: [] }).nodeIds, target));
+        },
+        expand: (id) => latest.current.onGraphChange(setBranchCollapsed(latest.current.graph, id, false))
+      }}
       nodeTitles={nodeTitles} regions={regions} selectionMapping={{ canonical: canonicalSelection, display: displaySelection }} readOnlyInputs={projection.readOnlyInputs} readOnlyInputLabel={flowCopy("expandToEdit")}
       renderNodeActions={(id) => graph.control_flow?.[id] ? <div className="flex gap-1" onPointerDownCapture={(e) => e.stopPropagation()}>
         <button className="rounded border border-purple-400 bg-slate-900 px-1 py-0.5 text-[10px] text-purple-100" onClick={() => {

@@ -121,7 +121,11 @@ The graph editor `?` help now concentrates on graph-specific behavior: persisted
 
 ## If and Switch at note start
 
-Add **If** or **Switch** from **Control flow**. Expand cases on the canvas, assign nodes explicitly, and patch each case into its managed **Case Result**. The common output carries only the selected case. Collapse preserves shared input wiring and formulas. Use **Configure branches** for cases, membership, Silence and reviewed mono/stereo changes. The built-in **Drumset** template demonstrates overlapping voices.
+Add **If** or **Switch** from **Control flow**. Drag catalog nodes directly into expanded cases, then patch each case into its managed **Case Result**. Frames measure the complete node bodies, grow or shrink to the right and bottom, and keep the result in a separate bottom-right row. The block remains above the first case; top and left movement limits keep members clear of the header.
+
+Ordinary main-graph drags into a case transfer the selection. Ordinary case-member drags rearrange the current case; hold **Alt/Option at drag start** to transfer to another case or the main graph. The cyan/red border shows whether a drop is allowed. Every connection and formula binding must lead to another moved node or an endpoint already in the destination scope. Invalid drops list the connections and restore the whole group; Escape cancels. Existing shared main-graph inputs remain valid and can be wired after placement. A valid drop into Silence activates Synthesis. Dropping onto a collapsed block expands it without choosing a case.
+
+The common output carries only the selected case. Collapse preserves selection, positions, viewport, shared input wiring and formulas. **Configure branches** retains **Move selected nodes** with the same transfer validation, plus case editing, Silence and reviewed mono/stereo changes. The built-in **Drumset** template demonstrates overlapping voices.
 
 See [If, Switch and Drumset](control_flow.md) for the complete EN/DE/FR/ES workflow, scope rules and version-2 patch/API format.
 

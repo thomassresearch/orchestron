@@ -50,15 +50,6 @@ describe("structured branches", () => {
     const moved = { ...graph, nodes: graph.nodes.map((n) => ({ ...n, position: { x: 9000, y: -9000 } })) };
     expect(moved.control_flow).toEqual(graph.control_flow);
   });
-  it("keeps later case regions below nodes explicitly added to a case", () => {
-    const graph = playable();
-    const extended = { ...graph, nodes: [...graph.nodes, { id: "extra", opcode: "const_a", params: { value: 0 }, position: { x: 0, y: 0 } }] };
-    const moved = moveNodesToCase(extended, ["extra"], { blockId: firstId(graph), caseId: firstCase(graph).id });
-    const cases = moved.control_flow![firstId(graph)].cases;
-    const last = cases[cases.length - 1];
-    expect(moved.nodes.find((n) => n.id === last.result_node_id)!.position.y).toBeGreaterThan(
-      moved.nodes.find((n) => n.id === "extra")!.position.y + 300);
-  });
   it("blocks scope escapes and structural node moves", () => {
     const graph = playable();
     expect(() => moveNodesToCase(graph, [firstId(graph)], { blockId: firstId(graph), caseId: firstCase(graph).id })).toThrow();

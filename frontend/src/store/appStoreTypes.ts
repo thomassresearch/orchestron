@@ -1,3 +1,4 @@
+import type { BranchTarget } from "../lib/branchLayout";
 import type { AudioGraph, MixerState, MixerStrip, MixerSend } from "../types";
 import type {
   AppPage,
@@ -108,7 +109,7 @@ export interface AppStore {
   setCurrentPatchTemplate: (isTemplate: boolean) => void;
   setCurrentPatchAlwaysOn: (alwaysOn: boolean) => void;
   setGraph: (graph: PatchGraph) => void;
-  addNodeFromOpcode: (opcode: OpcodeSpec, position?: NodePosition) => void;
+  addNodeFromOpcode: (opcode: OpcodeSpec, position?: NodePosition, target?: BranchTarget) => void;
   removeNode: (nodeId: string) => void;
   removeConnection: (connectionIndex: number) => void;
   saveCurrentPatch: () => Promise<void>;

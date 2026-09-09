@@ -1,6 +1,11 @@
 export const OPCODE_DRAG_MIME = "application/x-visualcsound-opcode";
 
+let activeOpcode: string | null = null;
+export const getActiveDraggedOpcode = () => activeOpcode;
+export const clearDraggedOpcode = () => { activeOpcode = null; };
+
 export function setDraggedOpcode(dataTransfer: DataTransfer, opcodeName: string): void {
+  activeOpcode = opcodeName;
   dataTransfer.setData(OPCODE_DRAG_MIME, opcodeName);
   dataTransfer.setData("text/plain", opcodeName);
   dataTransfer.effectAllowed = "copy";
