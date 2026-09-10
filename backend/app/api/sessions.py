@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, Request, Response
 from backend.app.api.deps import get_container
 from backend.app.core.container import AppContainer
 from backend.app.models.audio import MixerUpdate
+from backend.app.models.performance_controller import PerformanceControllerUpdate
 from backend.app.models.patch import PatchDocument
 from pydantic import BaseModel, Field, model_validator
 from backend.app.models.session import (
@@ -55,6 +56,12 @@ async def get_mixer(session_id: str, container: AppContainer = Depends(get_conta
 @router.put("/{session_id}/mixer")
 async def update_mixer(session_id: str, request_body: MixerUpdate, container: AppContainer = Depends(get_container)):
     return await container.session_service.update_mixer(session_id, request_body)
+
+
+@router.put("/{session_id}/instruments/{assignment_id}/performance-controllers", response_model=PerformanceControllerUpdate)
+async def update_performance_controllers(session_id: str, assignment_id: str,
+        request_body: PerformanceControllerUpdate, container: AppContainer = Depends(get_container)):
+    return await container.session_service.update_performance_controllers(session_id, assignment_id, request_body.values)
 
 
 @router.post("", response_model=SessionCreateResponse, status_code=201)

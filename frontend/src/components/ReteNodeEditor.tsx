@@ -24,6 +24,8 @@ import { readGraphEditorState, writeGraphEditorState, type GraphSelection, type 
 import { controlFlowCopy } from "../lib/controlFlowCopy";
 import type { BranchLayout, BranchTarget } from "../lib/branchLayout";
 import { createReteBranchController, type ReteBranchController, type BranchRegionLabel, type BranchEditorActions } from "./reteBranchController";
+import { PerformanceControllerEditor } from "./PerformanceControllerEditor";
+import { performanceControllerCopy } from "../lib/performanceControllerCopy";
 import { GenNodeEditorModal } from "./GenNodeEditorModal";
 import { SfloadNodeEditorModal } from "./SfloadNodeEditorModal";
 import type { Connection, GuiLanguage, NodePosition, OpcodeSpec, PatchGraph, SignalType } from "../types";
@@ -528,6 +530,8 @@ export function ReteNodeEditor({
   const [isOpcodeDragOver, setIsOpcodeDragOver] = useState(false);
   const [formulaEditor, setFormulaEditor] = useState<FormulaEditorState | null>(null);
   const [formulaNumberDraft, setFormulaNumberDraft] = useState("1");
+  const [performanceControllerEditorId, setPerformanceControllerEditorId] = useState<string | null>(null);
+  const performanceControllerEditorNode = graph.nodes.find((node) => node.id === performanceControllerEditorId && node.opcode === "perf_controller");
   const [genEditor, setGenEditor] = useState<GenEditorState | null>(null);
   const [sfloadEditor, setSfloadEditor] = useState<SfloadEditorState | null>(null);
 
@@ -1066,6 +1070,7 @@ export function ReteNodeEditor({
               const hasDocumentation = Boolean(spec?.documentation_markdown?.trim().length);
               const isGenNode = opcodeName === "GEN";
               const isSfloadNode = opcodeName === "sfload";
+              const isPerformanceController = opcodeName === "perf_controller";
 
               return function ColoredNode(props: any) {
                 const patchNodeId = reteToPatchRef.current.get(String((context.payload as { id?: unknown }).id ?? ""));
@@ -1073,19 +1078,19 @@ export function ReteNodeEditor({
                   <div style={{ position: "relative" }} data-patch-node={patchNodeId} title={opcodeName.startsWith("__result_") ? flowCopy("resizeHelp") : undefined}>
                     <ReactPresets.classic.Node
                       {...props}
-                      data={{ ...props.data, label: presentationRef.current.nodeTitles?.[patchNodeId ?? ""] ?? props.data.label, width: opcodeName.startsWith("__branch_") ? 320 : props.data.width }}
-                      styles={(styleProps: any) => nodeCssForCategory(opcodeCategory, Boolean(styleProps.selected)) + (opcodeName.startsWith("__branch_") ? "width: 320px; .title { white-space: pre-line; }" : "") + (opcodeName.startsWith("__result_") ? "cursor: nwse-resize; .title { cursor: nwse-resize; }" : "")}
+                      data={{ ...props.data, label: presentationRef.current.nodeTitles?.[patchNodeId ?? ""] ?? props.data.label, width: opcodeName.startsWith("__branch_") ? 320 : isPerformanceController ? 240 : props.data.width }}
+                      styles={(styleProps: any) => nodeCssForCategory(opcodeCategory, Boolean(styleProps.selected)) + (opcodeName.startsWith("__branch_") ? "width: 320px; .title { white-space: pre-line; }" : "") + (isPerformanceController ? "width: 240px;" : "") + (opcodeName.startsWith("__result_") ? "cursor: nwse-resize; .title { cursor: nwse-resize; }" : "")}
                     />
                     {patchNodeId && <div data-node-actions className="absolute -bottom-7 left-0">{presentationRef.current.renderNodeActions?.(patchNodeId)}</div>}
-                    {isGenNode || isSfloadNode ? (
+                    {isGenNode || isSfloadNode || isPerformanceController ? (
                       <button
                         type="button"
                         aria-label={
-                          isGenNode
+                          isPerformanceController ? performanceControllerCopy(guiLanguage).configure : isGenNode
                             ? `Configure GEN node ${patchNodeId ?? ""}`.trim()
                             : `Configure sfload node ${patchNodeId ?? ""}`.trim()
                         }
-                        title={isGenNode ? "Configure GEN routine" : "Configure SoundFont file"}
+                        title={isPerformanceController ? performanceControllerCopy(guiLanguage).configure : isGenNode ? "Configure GEN routine" : "Configure SoundFont file"}
                         onPointerDown={(event) => {
                           event.preventDefault();
                           event.stopPropagation();
@@ -1096,6 +1101,7 @@ export function ReteNodeEditor({
                           if (!patchNodeId) {
                             return;
                           }
+                          if (isPerformanceController) { setPerformanceControllerEditorId(patchNodeId); return; }
                           if (isGenNode) {
                             openGenEditor(patchNodeId);
                             return;
@@ -1122,7 +1128,7 @@ export function ReteNodeEditor({
                           justifyContent: "center"
                         }}
                       >
-                        {isGenNode ? "GEN" : "SF2"}
+                        {isPerformanceController ? "⚙" : isGenNode ? "GEN" : "SF2"}
                       </button>
                     ) : null}
                     {hasDocumentation && onOpcodeHelpRequest ? (
@@ -1804,6 +1810,10 @@ export function ReteNodeEditor({
           </div>
         </div>
       </div>
+
+      {performanceControllerEditorNode && <PerformanceControllerEditor key={performanceControllerEditorNode.id} node={performanceControllerEditorNode} language={guiLanguage}
+        onClose={() => setPerformanceControllerEditorId(null)} onSave={(params) => updateGraph((current) => ({ ...current, nodes: current.nodes.map((node) =>
+          node.id === performanceControllerEditorNode.id ? { ...node, params: { ...node.params, ...params } } : node) }))} />}
 
       {genEditor && (
         <GenNodeEditorModal

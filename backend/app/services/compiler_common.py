@@ -39,6 +39,7 @@ class PatchInstrumentTarget:
     midi_channel: int
     assignment_id: str | None = None
     always_on: bool = False
+    performance_controller_values: dict[str, float] = field(default_factory=dict)
     effect_source_ids: tuple[str, ...] = field(default_factory=tuple)
     effect_routes: tuple[tuple[str, str], ...] = field(default_factory=tuple)
 

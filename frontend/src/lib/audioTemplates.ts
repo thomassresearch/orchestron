@@ -1,6 +1,6 @@
 import { defaultGraph } from "./defaultPatch";
 import type { Patch, NodeInstance, Connection, AudioPortGroup } from "../types";
-import drumset from "../../../examples/drumset.patch.json";
+import drumset from "../../../examples/analog_drumkit.patch.json";
 
 export type BuiltinTemplate = "instrument" | "effect" | "output" | "empty" | "drumset";
 export function audioTemplate(kind: BuiltinTemplate): Patch {

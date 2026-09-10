@@ -1,3 +1,4 @@
+import { PerformanceControllerRack, PerformanceControllerSyncStatus } from "./sequencer/PerformanceControllerRack";
 import { PerformMixer } from "./PerformMixer";
 import { audioCopy } from "../lib/audioCopy";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -903,7 +904,7 @@ export function SequencerPage({
             {ui.remove}
           </button>
         </div>
-
+        <PerformanceControllerRack binding={binding} patch={selectedPatch} language={guiLanguage} />
       </div>
     );
   };
@@ -930,6 +931,7 @@ export function SequencerPage({
           </div>
         </div>
 
+        <PerformanceControllerSyncStatus language={guiLanguage} />
         <div className="mt-3 grid grid-cols-1 gap-2 lg:grid-cols-5">
           <label className="flex flex-col gap-1 lg:col-span-2">
             <span className="text-[10px] uppercase tracking-[0.18em] text-slate-400">{ui.performanceName}</span>

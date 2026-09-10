@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from backend.app.models.performance_controller import ControllerNumber
+
 from backend.app.models.audio import AudioGraph, MixerState, AudioDiagnostic
 
 from dataclasses import dataclass, field
@@ -95,6 +97,7 @@ class SessionEffectRoute(BaseModel):
 
 
 class SessionInstrumentAssignment(BaseModel):
+    performance_controller_values: dict[str, ControllerNumber] = Field(default_factory=dict)
     level: float | None = Field(default=None, ge=1, le=10, exclude=True)
     id: str | None = Field(default=None, min_length=1, max_length=128)
     patch_id: str = Field(min_length=1)

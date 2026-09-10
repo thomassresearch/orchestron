@@ -142,7 +142,7 @@ describe("projection and persistence", () => {
 describe("branch authoring details", () => {
   it("shows the actual wired or formula condition and picks a useful audition note", () => {
     const graph = audioTemplate("drumset").graph;
-    expect(defaultAuditionNote(graph)).toBe(36);
+    expect(defaultAuditionNote(graph)).toBe(35);
     expect(defaultAuditionNote(audioTemplate("empty").graph)).toBe(60);
     expect(controlFlowConditionLabel(graph, "kit")).toBe("Switch: notnum.inote");
     graph.ui_layout = writeInputFormulaMap(graph.ui_layout, { "kit::selector": {
@@ -160,8 +160,8 @@ describe("branch authoring details", () => {
   });
   it("blocks moves that would turn a shared source into a sibling dependency", () => {
     const graph = audioTemplate("drumset").graph;
-    expect(() => moveNodesToCase(graph, ["velocity"], { blockId: "kit", caseId: "kick" })).toThrow(/velocity.iamp/);
-    expect(() => moveNodesToCase(graph, ["kick_tone"], null)).toThrow(/kick_env.kenv/);
+    expect(() => moveNodesToCase(graph, ["velocity"], { blockId: "kit", caseId: "bass_drum" })).toThrow(/velocity.iamp/);
+    expect(() => moveNodesToCase(graph, ["bass_drum_tone"], null)).toThrow(/bass_drum_.*\./);
   });
   it("keeps first-channel formulas and previews the loss of right-channel dependencies", () => {
     const graph = audioTemplate("drumset").graph;

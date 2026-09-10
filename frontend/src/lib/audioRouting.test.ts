@@ -17,7 +17,7 @@ describe("performance audio persistence", () => {
     expect(parsed.audioGraph.routes.map((r) => [r.sourcePort,r.targetPort])).toEqual([["dryl","left"],["dryr","right"]]);
     const state = { strips: { ...parsed.mixer.strips, one: { ...defaultStrip(), gainDb: null, solo: true } }, sends: { [parsed.audioGraph.routes[0].id]: { gainDb: -3, tap: "pre" as const } } };
     const snapshot = buildSequencerConfigSnapshot(parsed.sequencer, parsed.instruments, parsed.audioGraph, state);
-    expect(snapshot.version).toBe(11);
+    expect(snapshot.version).toBe(12);
     expect(snapshot.instruments.every((b) => !("level" in b) && !("effectRoutes" in b) && !("effectSourceIds" in b))).toBe(true);
     const reloaded = parseSequencerConfigSnapshot(snapshot,[source,effect],null);
     expect(reloaded.mixer).toEqual(state); expect(reloaded.audioGraph).toEqual(parsed.audioGraph); expect(reloaded.migrationNotice).toBe(false);

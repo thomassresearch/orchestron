@@ -631,11 +631,35 @@ def test_mixer_queue_applies_only_on_render_thread_before_block_and_timestamps_m
     worker._runtime_nchnls = 2
     worker._runtime_ksmps = 64
     worker.configure_mixer({"meters":{"one":{"peakL":"peak"}}},{"gain":1})
-    for value in range(100): worker.queue_mixer_controls({"gain":value/100})
+    for value in range(100):
+        worker.queue_mixer_controls({"gain":value/100})
     assert calls == []
     thread = threading.Thread(target=lambda: worker.render_blocks(block_count=2,target_sample_rate=48000))
-    thread.start();thread.join()
+    thread.start()
+    thread.join()
     assert calls[0] == ("set","gain",.99,thread.ident)
     assert [c[0] for c in calls] == ["set","render","meter","render"]
     assert worker.drain_mixer_meters() == [{"engineSample":64,"levels":{"one":{"peakL":.5}}}]
     assert worker.drain_mixer_meters() == []
+
+
+def test_performance_and_mixer_controls_share_render_queue_without_losing_pending_updates(monkeypatch):
+    monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "true")
+    worker = CsoundWorker()
+    worker.start("", "0", "none")
+    worker.queue_mixer_controls({"mixer": 0.5})
+    worker.queue_control_channels({"performance": 0.2})
+    worker.queue_control_channels({"performance": 0.7})
+    worker.start("", "0", "none")  # Starting an already-running engine must preserve pending writes.
+    observed = {}
+    class Channels:
+        def setControlChannel(self, name, value):
+            observed[name] = value
+    worker._apply_control_channels(Channels())
+    assert observed == {"mixer": 0.5, "performance": 0.7}
+    worker.queue_control_channels({"stale": 0.9})
+    worker.stop()
+    worker.start("", "0", "none")
+    worker._apply_control_channels(Channels())
+    assert "stale" not in observed
+    worker.stop()

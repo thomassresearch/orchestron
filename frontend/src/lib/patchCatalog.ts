@@ -1,3 +1,4 @@
+import { performanceControllersForGraph } from "./performanceControllers";
 import type { Patch, PatchListItem, PerformanceListItem, SequencerConfigSnapshot } from "../types";
 
 export function normalizeNameKey(value: string): string {
@@ -42,6 +43,7 @@ export function toPatchListItem(patch: Patch): PatchListItem {
     is_template: patch.is_template,
     always_on: patch.always_on,
     audio_interface: patch.graph.audio_interface,
+    performance_controllers: performanceControllersForGraph(patch.graph),
     has_direct_output: patch.graph.nodes.some((n) => n.opcode === "outs"),
     audio_inlet_names: literalAudioPortNames(patch, "inleta"),
     audio_outlet_names: literalAudioPortNames(patch, "outleta"),

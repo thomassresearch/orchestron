@@ -77,6 +77,9 @@ export interface AppStore {
   setMixerStrip: (id: string, update: Partial<MixerStrip>) => void;
   setMixerSend: (ids: string[], update: Partial<MixerSend>) => void;
   flushMixer: () => Promise<void>;
+  performanceControllerSyncError: string | null;
+  setPerformanceControllerValue: (bindingId: string, nodeId: string, value: number | null) => void;
+  flushPerformanceControllers: () => Promise<void>;
   ensureMaster: () => Promise<string>;
 
   currentPerformanceId: string | null;

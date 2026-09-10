@@ -64,7 +64,7 @@ class CsoundWorker:
         self._lock = threading.Lock()
         self._render_lock = threading.Lock()
         self._mixer_lock = threading.Lock()
-        self._mixer_pending: dict[str, float] = {}
+        self._control_pending: dict[str, float] = {}
         self._mixer_meters: dict[str, dict[str, str]] = {}
         self._mixer_meter_frames: list[dict] = []
         self._mixer_next_meter_sample = 0
@@ -155,6 +155,8 @@ class CsoundWorker:
                     audio_mode=self._audio_output_mode,
                 )
 
+            with self._mixer_lock:
+                self._control_pending.clear()
             self._running = True
             try:
                 if self._backend == "ctcsound":
@@ -335,23 +337,27 @@ class CsoundWorker:
 
     def configure_mixer(self, manifest: dict, controls: dict[str, float]) -> None:
         with self._mixer_lock:
-            self._mixer_pending = dict(controls)
+            self._control_pending = dict(controls)
             self._mixer_meters = manifest.get("meters", {})
             self._mixer_meter_frames = []
             self._mixer_next_meter_sample = 0
 
     def queue_mixer_controls(self, controls: dict[str, float]) -> None:
+        self.queue_control_channels(controls)
+
+    def queue_control_channels(self, controls: dict[str, float]) -> None:
+        """Coalesce host channel writes; apply on the render thread before the next block."""
         with self._mixer_lock:
-            self._mixer_pending.update(controls)
+            self._control_pending.update(controls)
 
     def drain_mixer_meters(self) -> list[dict]:
         with self._mixer_lock:
             frames, self._mixer_meter_frames = self._mixer_meter_frames, []
             return frames
 
-    def _apply_mixer_controls(self, csound) -> None:
+    def _apply_control_channels(self, csound) -> None:
         with self._mixer_lock:
-            pending, self._mixer_pending = self._mixer_pending, {}
+            pending, self._control_pending = self._control_pending, {}
         for name, value in pending.items():
             csound.setControlChannel(name, value)
 
@@ -416,7 +422,7 @@ class CsoundWorker:
                     block_end_sample=block_end_sample,
                 )
 
-                self._apply_mixer_controls(csound)
+                self._apply_control_channels(csound)
                 result = csound.performKsmps()
                 if result != 0:
                     with self._lock:

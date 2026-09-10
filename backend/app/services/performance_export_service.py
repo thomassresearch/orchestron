@@ -313,6 +313,7 @@ class PerformanceExportService:
                     ),
                     midi_channel=0 if definition.always_on else instrument.midi_channel,
                     assignment_id=instrument.id,
+                    performance_controller_values=instrument.performance_controller_values,
                     always_on=definition.always_on,
                     effect_source_ids=tuple(instrument.effect_source_ids if definition.always_on else []),
                     effect_routes=tuple(

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from backend.app.models.performance_controller import ControllerNumber
+
 from backend.app.models.audio import AudioGraph, MixerState
 
 import math
@@ -54,6 +56,7 @@ class ExportPerformanceEffectRoute(BaseModel):
 
 
 class ExportPerformanceInstrumentAssignment(BaseModel):
+    performance_controller_values: dict[str, ControllerNumber] = Field(default_factory=dict, alias="performanceControllerValues")
     id: str | None = Field(default=None, min_length=1, max_length=128)
     patch_id: str = Field(alias="patchId", min_length=1)
     patch_name: str | None = Field(default=None, alias="patchName")
@@ -72,7 +75,7 @@ class ExportPerformanceInstrumentAssignment(BaseModel):
 class ExportPerformanceConfig(BaseModel):
     audio_graph: AudioGraph | None = Field(default=None, alias="audioGraph")
     mixer: MixerState = Field(default_factory=MixerState)
-    version: int = Field(default=1, ge=1, le=11)
+    version: int = Field(default=1, ge=1, le=12)
     instruments: list[ExportPerformanceInstrumentAssignment] = Field(default_factory=list, max_length=64)
 
     @model_validator(mode="after")

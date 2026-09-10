@@ -109,3 +109,15 @@ def test_opcode_service_loads_stereo_reverb_entries() -> None:
     ]
     assert reverbsc.inputs[5].default == 1
     assert reverbsc.inputs[5].required is False
+
+
+def test_perf_controller_has_localized_virtual_opcode_help_and_icon():
+    root = Path(__file__).resolve().parents[2]
+    opcode = OpcodeService(icon_prefix="/static/icons").get_opcode("perf_controller")
+    assert (root / "backend/app" / opcode.icon.lstrip("/")).is_file()
+    details = json.loads((root / "frontend/src/lib/opcodeDocDetails.json").read_text())["perf_controller"]
+    assert details["inputs"] == {}
+    for text in [details["description"], details["outputs"]["iout"]]:
+        assert set(text) == {"english", "german", "french", "spanish"}
+        assert all(value.strip() for value in text.values())
+    assert "virtual" in details["description"]["english"].lower()

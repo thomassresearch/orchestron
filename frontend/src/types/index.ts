@@ -456,6 +456,7 @@ export interface SessionEffectRoute {
 }
 
 export interface SessionInstrumentAssignment {
+  performance_controller_values?: Record<string, number>;
   id?: string;
   patch_id: string;
   midi_channel: number;
@@ -463,7 +464,19 @@ export interface SessionInstrumentAssignment {
   effect_routes?: SessionEffectRoute[];
 }
 
+export interface PerformanceControllerDefinition {
+  node_id: string;
+  min: number;
+  max: number;
+  default: number;
+  scale: "linear" | "logarithmic";
+  label: string;
+  error?: string | null;
+}
+
 export interface SequencerInstrumentBinding {
+  performanceControllerValues?: Record<string, number>;
+  performanceControllerNotice?: boolean;
   id: string;
   patchId: string;
   midiChannel: number;
@@ -473,10 +486,11 @@ export interface SequencerInstrumentBinding {
 }
 
 export interface SequencerConfigSnapshot {
-  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11;
+  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
   audioGraph?: AudioGraph;
   mixer?: MixerState;
   instruments: Array<{
+    performanceControllerValues?: Record<string, number>;
     id?: string;
     patchId: string;
     patchName?: string;
@@ -884,6 +898,7 @@ export interface Patch {
 }
 
 export interface PatchListItem {
+  performance_controllers?: PerformanceControllerDefinition[];
   audio_interface?: AudioInterface | null;
   has_direct_output?: boolean;
   id: string;

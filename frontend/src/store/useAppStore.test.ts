@@ -91,7 +91,7 @@ describe("app store sequencer behavior", () => {
     );
   });
 
-  it("round-trips a version 11 sequencer configuration and rebuilds runtime state", () => {
+  it("round-trips a version 12 sequencer configuration and rebuilds runtime state", () => {
     useAppStore.setState({
       patches: [performablePatch],
       sequencerInstruments: [instrumentBinding]
@@ -99,7 +99,7 @@ describe("app store sequencer behavior", () => {
     useAppStore.getState().setSequencerBpm(137);
     const snapshot = useAppStore.getState().buildSequencerConfigSnapshot();
 
-    expect(snapshot.version).toBe(11);
+    expect(snapshot.version).toBe(12);
     expect(snapshot.instruments).toEqual([
       expect.objectContaining({
         id: instrumentBinding.id,
@@ -117,7 +117,7 @@ describe("app store sequencer behavior", () => {
     const state = useAppStore.getState();
     expect(state.error).toBeNull();
     expect(state.sequencer.timing.tempoBPM).toBe(137);
-    expect(state.sequencerInstruments).toEqual([{ ...instrumentBinding, level: 10 }]);
+    expect(state.sequencerInstruments).toEqual([{ ...instrumentBinding, level: 10, performanceControllerValues: {} }]);
     expect(snapshot.instruments[0]).not.toHaveProperty("level");
     expect(state.sequencerRuntime.isPlaying).toBe(false);
     expect(state.sequencerRuntime.playhead).toBe(0);

@@ -1,3 +1,4 @@
+import { performanceControllerHelp } from "./helpDocumentationPerformanceControllers";
 import { controlFlowHelp } from "./helpDocumentationControlFlow";
 import { audioDesignHelp } from "./helpDocumentationAudio";
 import type { HelpDocumentAppendixSet, HelpDocumentSet, InstrumentHelpDocId } from "./helpDocumentationTypes";
@@ -476,4 +477,9 @@ for (const language of ["english", "german", "french", "spanish"] as const) {
     const appendix = instrumentHelpAppendices[id] ?? (instrumentHelpAppendices[id] = { english: "", german: "", french: "", spanish: "" });
     appendix[language] = (appendix[language] ?? "") + "\n\n" + controlFlowHelp[language];
   }
+}
+
+for (const language of ["english", "german", "french", "spanish"] as const) {
+  instrumentHelpAppendices.instrument_graph_editor![language] += "\n\n" + performanceControllerHelp[language];
+  instrumentHelpAppendices.instrument_opcode_catalog![language] += "\n\n" + performanceControllerHelp[language];
 }

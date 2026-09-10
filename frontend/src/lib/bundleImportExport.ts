@@ -367,7 +367,7 @@ export function hasResolvableImportedPerformance(
   config: SequencerConfigSnapshot,
   patches: PatchListItem[]
 ): boolean {
-  if (config.version === 11) return true; // Preserve unresolved references for repair.
+  if (Number(config.version) >= 11) return true; // Preserve unresolved references for repair.
   const knownPatchIds = new Set(patches.filter((patch) => patch.is_template !== true).map((patch) => patch.id));
   return config.instruments.some((instrument) => knownPatchIds.has(instrument.patchId));
 }

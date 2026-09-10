@@ -1449,9 +1449,10 @@ export default function App() {
 
   const buildCurrentPerformanceExport = useCallback(async () => {
     await useAppStore.getState().flushMixer();
+    await useAppStore.getState().flushPerformanceControllers();
     const exportState = structuredClone(sequencerRef.current);
     const snapshot = structuredClone(buildSequencerConfigSnapshot());
-    await api.validateAudio(snapshot.instruments.map((b) => ({ id: b.id, patch_id: b.patchId, midi_channel: b.midiChannel })), snapshot.audioGraph!, snapshot.mixer!);
+    await api.validateAudio(snapshot.instruments.map((b) => ({ id: b.id, patch_id: b.patchId, midi_channel: b.midiChannel, performance_controller_values: b.performanceControllerValues })), snapshot.audioGraph!, snapshot.mixer!);
     const patchIds = [...new Set(snapshot.instruments.map((instrument) => instrument.patchId.trim()).filter(Boolean))];
     const selectedPatches = await Promise.all(patchIds.map((patchId) => api.getPatch(patchId)));
     return { exportState, ...buildPerformanceExportPayload({

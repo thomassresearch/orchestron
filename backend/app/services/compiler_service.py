@@ -15,6 +15,7 @@ from backend.app.services.compiler_graph import compile_graph_context, resolve_s
 from backend.app.services.compiler_orchestra import OrchestraEmitter, wrap_csd
 from backend.app.services.gen_asset_service import GenAssetService
 from backend.app.services.opcode_service import OpcodeService
+from backend.app.services.performance_controller_service import controller_bindings
 from backend.app.services.orc_metadata import format_orc_comment_value
 
 
@@ -59,13 +60,22 @@ class CompilerService:
         if not targets:
             raise CompilationError(["At least one patch must be provided for compilation."])
 
+        controller_manifest = {
+            target.assignment_id or f"instrument-{index}": controller_bindings(target, f"instrument-{index}")
+            for index, target in enumerate(targets, start=1)
+        }
+        controller_manifest = {key: value for key, value in controller_manifest.items() if value}
+
         if audio_graph is not None:
             from backend.app.models.audio import MixerState
             from backend.app.services.compiler_mixer import compile_mixer_bundle
-            return compile_mixer_bundle(self, targets, audio_graph, mixer or MixerState(),
+            artifact = compile_mixer_bundle(self, targets, audio_graph, mixer or MixerState(),
                 midi_input=midi_input, rtmidi_module=rtmidi_module,
                 allow_packaged_asset_paths=allow_packaged_asset_paths,
                 performance_input_mode=performance_input_mode)
+            if controller_manifest:
+                artifact.manifest["performanceControllers"] = controller_manifest
+            return artifact
 
         validate_target_channels(targets)
         engine = resolve_shared_engine(targets)
@@ -105,6 +115,7 @@ class CompilerService:
                 allow_packaged_asset_paths=allow_packaged_asset_paths,
                 performance_input_mode=performance_input_mode,
                 score_midi_channel=target.midi_channel,
+                performance_controllers=controller_manifest.get(target.assignment_id or f"instrument-{instrument_number}", {}),
             )
             compiled_instruments.append((instrument_number, target, compiled_lines))
             global_header_lines.extend(compiled_lines.global_header_lines)
@@ -152,7 +163,8 @@ class CompilerService:
             software_buffer=engine.software_buffer,
             hardware_buffer=engine.hardware_buffer,
         )
-        return CompileArtifact(orc=orc, csd=csd, diagnostics=diagnostics)
+        return CompileArtifact(orc=orc, csd=csd, diagnostics=diagnostics,
+            manifest={"performanceControllers": controller_manifest} if controller_manifest else {})
 
     @staticmethod
     def _instrument_names(targets: list[PatchInstrumentTarget]) -> list[str] | None:

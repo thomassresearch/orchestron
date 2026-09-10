@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from backend.app.models.performance_controller import PerformanceControllerDefinition
+
 from backend.app.models.audio import AudioInterface
 
 from datetime import datetime, timezone
@@ -479,6 +481,7 @@ class PatchResponse(PatchBase):
 
 
 class PatchListItem(BaseModel):
+    performance_controllers: list[PerformanceControllerDefinition] = Field(default_factory=list)
     audio_interface: AudioInterface | None = None
     has_direct_output: bool = False
     id: str

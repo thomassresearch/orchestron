@@ -3,6 +3,7 @@ import { addControlFlowBlock, BRANCH_OPCODES, patchSchemaVersion } from "../lib/
 import { addBranchNode, branchOpcodeAllowed } from "../lib/branchTransfer";
 import { controlFlowCopy } from "../lib/controlFlowCopy";
 import { stereoOpcodeDirection } from "../lib/stereoCatalog";
+import { createPerformanceControllerActions } from "./appStorePerformanceControllers";
 import { createMixerActions, initialMixerState } from "./appStoreMixer";
 import { emptyAudioGraph, emptyMixer, migrateAudio, cleanBindings } from "../lib/audioRouting";
 import { create } from "zustand";
@@ -98,6 +99,8 @@ export const useAppStore = create<AppStore>((set, get) => {
   return {
     ...initialMixerState(),
     ...createMixerActions(set, get),
+    ...createPerformanceControllerActions(set, get),
+    performanceControllerSyncError: null,
     loading: false,
     error: null,
     hasLoadedBootstrap: false,
@@ -789,6 +792,7 @@ export const useAppStore = create<AppStore>((set, get) => {
         try {
           await api.getSession(sessionId);
           await get().flushMixer();
+          await get().flushPerformanceControllers();
           return sessionId;
         } catch (error) {
           if (!isApiError(error) || error.status !== 404) {

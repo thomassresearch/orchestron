@@ -26,6 +26,7 @@ from backend.app.services.audio_port_names import audio_port_names
 from backend.app.services.audio_routing_service import resolve_audio_routes
 from backend.app.services.compiler_common import CompilationError
 from backend.app.services.compiler_graph import compile_graph_context, resolve_shared_engine, validate_target_channels
+from backend.app.services.performance_controller_service import controller_bindings
 
 
 OUTPUT = "$output"
@@ -483,6 +484,7 @@ def compile_mixer_bundle(
             performance_input_mode=performance_input_mode,
             score_midi_channel=target.midi_channel,
             direct_output_ports=resolved.direct_ports[identity],
+            performance_controllers=controller_bindings(target, identity),
         )
         bodies[stage] = compiled.instrument_lines
         header += compiled.global_header_lines

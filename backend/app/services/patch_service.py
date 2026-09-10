@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from backend.app.services.performance_controller_service import controller_definitions
+
 from datetime import datetime, timezone
 from uuid import uuid4
 
@@ -72,6 +74,7 @@ class PatchService:
         documents = self._repository.list()
         return [
             PatchListItem(
+                performance_controllers=controller_definitions(document.graph, strict=False),
                 id=document.id,
                 name=document.name,
                 description=document.description,

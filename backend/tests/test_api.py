@@ -6275,3 +6275,12 @@ def test_stereo_mapping_opcode_round_trip_and_compile(tmp_path: Path) -> None:
         reloaded = client.get(f"/api/patches/{identity}").json()
         assert reloaded["graph"]["audio_interface"]["groups"] == []
         assert reloaded["graph"]["audio_interface"]["mainOutput"] is None
+
+
+def test_perf_controller_opcode_metadata(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        opcode = next(item for item in client.get("/api/opcodes").json() if item["name"] == "perf_controller")
+        assert opcode["inputs"] == []
+        assert opcode["outputs"][0]["signal_type"] == "i"
+        assert opcode["documentation_url"] == "https://csound.com/docs/manual/chnget.html"
+        assert "virtual" in opcode["documentation_markdown"].lower()

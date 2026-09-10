@@ -2,7 +2,7 @@
 
 **Navigation:** [Up](instrument_design.md) | [Prev](instrument_import_export.md) | [Next](../performance/performance.md)
 
-This appendix is generated from `backend/app/data/opcodes.json` and currently lists **173** user-selectable opcodes and editor constructs in the Instrument Design opcode catalog.
+This appendix is generated from `backend/app/data/opcodes.json` and currently lists **174** user-selectable opcodes and editor constructs in the Instrument Design opcode catalog.
 
 ## How To Use This Appendix
 
@@ -16,7 +16,7 @@ This appendix is generated from `backend/app/data/opcodes.json` and currently li
 | Category | Count |
 | --- | --- |
 | analysis | 2 |
-| constants | 4 |
+| constants | 5 |
 | control_flow | 2 |
 | delay | 11 |
 | distortion | 4 |
@@ -56,6 +56,7 @@ This appendix is generated from `backend/app/data/opcodes.json` and currently li
 | const_i | - | 1 (i) | Init-rate constant value. |
 | const_k | - | 1 (k) | Control-rate constant value. |
 | const_s | - | 1 (S) | String constant value. |
+| perf_controller | - | 1 (i) | Virtual per-instance performance setting with a labeled rack knob. |
 
 ### control_flow — editor constructs
 

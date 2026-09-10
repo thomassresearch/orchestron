@@ -1,3 +1,4 @@
+import { normalizeControllerValues, performanceControllerDefaults, reconcileControllerValues } from "../lib/performanceControllers";
 import { controlFlowIssues, patchSchemaVersion } from "../lib/controlFlow";
 import { normalizeStereoChannelNames } from "../lib/audioBlocks";
 import type { AudioGraph, MixerState } from "../types";
@@ -2247,6 +2248,7 @@ export function normalizePersistedSequencerInstruments(
       bindings.push({
         id: typeof candidate.id === "string" && candidate.id.length > 0 ? candidate.id : crypto.randomUUID(),
         patchId: candidate.patchId,
+        performanceControllerValues: normalizeControllerValues(candidate.performanceControllerValues),
         midiChannel,
         level: normalizeInstrumentLevel(candidate.level),
         effectSourceIds: normalizeEffectSourceIds(candidate.effectSourceIds),
@@ -2267,7 +2269,7 @@ export function normalizePersistedSequencerInstruments(
     });
   }
 
-  return bindings;
+  return sequencerInstrumentsForPerformablePatches(bindings, patches);
 }
 
 export function sequencerSnapshotForPersistence(sequencer: SequencerState): SequencerState {
@@ -2405,6 +2407,7 @@ export function isSequencerRuntimeOnlyUpdate(current: PersistWatchState, previou
 }
 
 export function defaultParams(opcode: OpcodeSpec): Record<string, string | number | boolean> {
+  if (opcode.name === "perf_controller") return { ...performanceControllerDefaults };
   const params: Record<string, string | number | boolean> = {};
   for (const input of opcode.inputs) {
     if (input.default !== undefined && input.default !== null) {
@@ -2695,7 +2698,7 @@ export function defaultSequencerInstruments(patches: PatchListItem[], currentPat
 
 export function sequencerInstrumentsForPerformablePatches(bindings: SequencerInstrumentBinding[], patches: PatchListItem[]): SequencerInstrumentBinding[] {
   const byId = new Map(patches.map((p) => [p.id, p]));
-  return bindings.map((b) => ({ ...b, midiChannel: byId.get(b.patchId)?.always_on ? 0 : b.midiChannel }));
+  return bindings.map((b) => reconcileControllerValues({ ...b, midiChannel: byId.get(b.patchId)?.always_on ? 0 : b.midiChannel }, byId.get(b.patchId)?.performance_controllers));
 }
 
 export function nextAvailableMidiChannel(bindings: SequencerInstrumentBinding[]): number {
@@ -2827,7 +2830,7 @@ export function buildSequencerConfigSnapshot(
     timing
   );
   return {
-    version: 11,
+    version: 12,
     audioGraph: structuredClone(audioGraph),
     mixer: structuredClone(mixer),
     instruments: instruments
@@ -2835,7 +2838,8 @@ export function buildSequencerConfigSnapshot(
       .map((instrument) => ({
         patchId: instrument.patchId,
         id: instrument.id,
-        midiChannel: clampInt(instrument.midiChannel, 0, 16)
+        midiChannel: clampInt(instrument.midiChannel, 0, 16),
+        performanceControllerValues: normalizeControllerValues(instrument.performanceControllerValues)
       })),
     sequencer: {
       timing,
@@ -3025,7 +3029,8 @@ export function parseSequencerConfigSnapshot(
     payload.version !== 8 &&
     payload.version !== 9 &&
     payload.version !== 10 &&
-    payload.version !== 11
+    payload.version !== 11 &&
+    payload.version !== 12
   ) {
     throw new Error("Unsupported sequencer config version.");
   }
@@ -3053,6 +3058,7 @@ export function parseSequencerConfigSnapshot(
     instruments.push({
       id: typeof record.id === "string" && record.id.length > 0 ? record.id : crypto.randomUUID(),
       patchId: record.patchId,
+      performanceControllerValues: normalizeControllerValues(record.performanceControllerValues),
       midiChannel,
       level: normalizeInstrumentLevel(record.level),
       effectSourceIds: normalizeEffectSourceIds(record.effectSourceIds),
@@ -3060,7 +3066,7 @@ export function parseSequencerConfigSnapshot(
     });
   }
 
-  if (payload.version !== 11 && instruments.length === 0 && fallbackPatchId) {
+  if (Number(payload.version) < 11 && instruments.length === 0 && fallbackPatchId) {
     const fallbackPatch = patchById.get(fallbackPatchId);
     instruments.push({
       id: crypto.randomUUID(),
@@ -3072,14 +3078,14 @@ export function parseSequencerConfigSnapshot(
     });
   }
 
-  if (payload.version !== 11 && instruments.length === 0) {
+  if (Number(payload.version) < 11 && instruments.length === 0) {
     throw new Error("No valid instrument assignments found in config.");
   }
 
   return {
     sequencer,
-    instruments,
-    ...migrateAudio(instruments, availablePatches, payload.version === 11 ? payload.audioGraph as AudioGraph : undefined, payload.mixer as MixerState | undefined)
+    instruments: sequencerInstrumentsForPerformablePatches(instruments, availablePatches),
+    ...migrateAudio(instruments, availablePatches, Number(payload.version) >= 11 ? payload.audioGraph as AudioGraph : undefined, payload.mixer as MixerState | undefined)
   };
 }
 
@@ -3105,6 +3111,7 @@ export function normalizeSessionInstrumentAssignments(
     assignments.push({
       id: binding.id,
       patch_id: binding.patchId,
+      performance_controller_values: normalizeControllerValues(binding.performanceControllerValues),
       midi_channel: midiChannel,
 
     });

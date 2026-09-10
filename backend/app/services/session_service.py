@@ -15,6 +15,7 @@ from backend.app.engine.csound_worker import CsoundWorker
 from backend.app.engine.session_runtime import RuntimeSession
 from backend.app.models.audio import MixerState, MixerUpdate, MixerStrip, MixerSend
 from backend.app.services.compiler_mixer import ResolvedMixerGraph, mixer_control_values, legacy_audio_graph, normalize_audio_inputs
+from backend.app.services.performance_controller_service import controller_definitions, validate_controller_values
 from backend.app.models.session import (
     BrowserClockClaimControllerRequest,
     BrowserClockManualMidiRequest,
@@ -307,6 +308,37 @@ class SessionService:
             runtime.worker.queue_mixer_controls(mixer_control_values(manifest, state))
         return await self.get_mixer(session_id)
 
+    async def update_performance_controllers(self, session_id: str, assignment_id: str, values: dict[str, float]) -> dict:
+        runtime = await self._get_session(session_id)
+        async with self._lock:
+            assignment = next((item for item in runtime.instruments if item.id == assignment_id), None)
+            if assignment is None:
+                raise HTTPException(status_code=404, detail="Unknown rack instrument.")
+            target = self._resolver_for_patches(runtime.preview_patches).compile_target(assignment)
+            try:
+                definitions = controller_definitions(target.patch.graph)
+                normalized = validate_controller_values(definitions, values)
+            except CompilationError as error:
+                raise HTTPException(status_code=422, detail={"diagnostics": error.diagnostics}) from error
+            if assignment.performance_controller_values == normalized:
+                return {"values": normalized}
+            if runtime.state == SessionState.RUNNING:
+                bindings = runtime.compile_artifact.manifest.get("performanceControllers", {}).get(assignment_id, {})
+                if set(bindings) != {d.node_id for d in definitions} or any(
+                    bindings[d.node_id].get(key) != getattr(d, key)
+                    for d in definitions for key in ("min", "max", "default", "scale")
+                ):
+                    raise HTTPException(status_code=409, detail="Controller definitions changed; restart the rack.")
+                runtime.worker.queue_control_channels({
+                    binding["channel"]: normalized.get(node_id, binding["default"])
+                    for node_id, binding in bindings.items()
+                })
+            else:
+                runtime.compile_artifact = None
+                runtime.state = SessionState.IDLE
+            assignment.performance_controller_values = normalized
+        return {"values": normalized}
+
     async def compile_session(self, session_id: str) -> CompileResponse:
         self._remember_running_loop()
         runtime = await self._get_session(session_id)
@@ -348,10 +380,12 @@ class SessionService:
         self._remember_running_loop()
         runtime = await self._get_session(session_id)
 
-        if not runtime.compile_artifact or (runtime.audio_graph is not None and runtime.state != SessionState.RUNNING):
+        if not runtime.compile_artifact or (runtime.state != SessionState.RUNNING and
+                (runtime.audio_graph is not None or runtime.compile_artifact.manifest.get("performanceControllers"))):
             await self.compile_session(session_id)
 
         assert runtime.compile_artifact is not None
+        was_running = runtime.state == SessionState.RUNNING
 
         try:
             result = runtime.worker.start(
@@ -365,7 +399,7 @@ class SessionService:
             raise HTTPException(status_code=500, detail=f"Failed to start session: {exc}") from exc
 
         runtime.state = SessionState.RUNNING
-        if runtime.compile_artifact.manifest:
+        if runtime.audio_graph is not None and not was_running:
             runtime.worker.configure_mixer(runtime.compile_artifact.manifest,
                 mixer_control_values(runtime.compile_artifact.manifest, runtime.mixer))
         runtime.started_at = datetime.now(timezone.utc)

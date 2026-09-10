@@ -209,3 +209,9 @@ Offline rendering remains 48 kHz with ksmps=1, float WAV output, packaged assets
 <p align="center"><em>Conflict dialog for imported patch/performance name collisions.</em></p>
 
 **Navigation:** [Up](performance.md) | [Prev](midi_controllers.md) | [Next](live_status_and_safety_controls.md)
+
+## Performance controller settings (version 12)
+
+Native JSON/ZIP bundles and both CSD export modes preserve each rack instance’s `performanceControllerValues`, keyed by the `perf_controller` node ID. Unchanged controls use patch defaults; reset removes the override. Version 12 adds these values while preserving version 11 routing and mixer data; versions 1–11 still load. Patch-ID remapping during import preserves node identities and their settings.
+
+CSD (MIDI) and CSD (SCORE) initialize values in the Csound orchestra before notes and continuous instruments start. No additional MIDI CC messages or external control client are required. Export waits for outstanding live controller updates and reports synchronization failures. Standalone patch exports use defaults. See [Performance controllers](performance_controllers.md).

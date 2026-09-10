@@ -15556,5 +15556,28 @@
       "switch"
     ],
     "icon_filename": "branch.svg"
+  },
+  {
+    "name": "perf_controller",
+    "category": "constants",
+    "description": "Performance-specific instrument setting, sampled at note initialization.",
+    "documentation_markdown": "### `perf_controller`\n\nOrchestron virtual opcode. Configure fixed min, max, default, linear/logarithmic scale and label. Each rack instance has an independent knob. Its I-rate output is sampled when a note starts; held notes retain their value. Continuous instruments adopt changes after rack restart. Save Performance stores overrides; reset restores the patch default. Logarithmic ranges require a positive minimum.\n\nLowered to Csound software channels, not MIDI CC.\n\n[Csound chnget implementation reference](https://csound.com/docs/manual/chnget.html)",
+    "documentation_url": "https://csound.com/docs/manual/chnget.html",
+    "inputs": [],
+    "outputs": [
+      {
+        "id": "iout",
+        "name": "iOut",
+        "signal_type": "i"
+      }
+    ],
+    "template": "{iout} chnget {channel}",
+    "tags": [
+      "source",
+      "performance",
+      "controller",
+      "virtual"
+    ],
+    "icon_filename": "midictrl.svg"
   }
 ]

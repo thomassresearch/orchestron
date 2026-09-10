@@ -1,3 +1,4 @@
+import { performanceControllersForGraph, reconcileControllerValues } from "../lib/performanceControllers";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api/client";
 import { audioPorts } from "../lib/audioBlocks";
@@ -8,7 +9,7 @@ import { defaultAuditionNote } from "../lib/controlFlow";
 import { BrowserClockAudioClient } from "../lib/browserClockAudio";
 import { normalizeSessionInstrumentAssignments } from "../store/appStoreModel";
 import { useAppStore } from "../store/useAppStore";
-import type { Patch, SequencerState, SequencerRuntimeState, SessionSequencerConfigRequest, SessionMidiEventRequest } from "../types";
+import type { SessionInstrumentAssignment, Patch, SequencerState, SequencerRuntimeState, SessionSequencerConfigRequest, SessionMidiEventRequest } from "../types";
 
 export function AuditionPanel({ stopPerformance, buildConfig }: { stopPerformance: () => Promise<void>; buildConfig: (state: SequencerState) => SessionSequencerConfigRequest }) {
   const draft = useAppStore((s) => s.currentPatch);
@@ -46,14 +47,16 @@ export function AuditionPanel({ stopPerformance, buildConfig }: { stopPerformanc
       const inline = [patch]; let graph = emptyAudioGraph(); let mixer = emptyMixer();
       const midi: number[] = [];
       const controllers: SessionMidiEventRequest[] = [];
-      let assignments = [{ id: "preview", patch_id: patch.id, midi_channel: patch.always_on ? 0 : 1 }];
+      let assignments: SessionInstrumentAssignment[] = [{ id: "preview", patch_id: patch.id, midi_channel: patch.always_on ? 0 : 1 }];
       let config: SessionSequencerConfigRequest | undefined;
       if (mode === "performance") {
         const matching = bindings.filter((b) => b.patchId === draft.id);
         const chosen = instance || (matching.length === 1 ? matching[0].id : "");
         if (!chosen) throw new Error(t("inPerformance") + ": " + t("source"));
         const row = bindings.find((b) => b.id === chosen); if (!row) throw new Error(t("missing"));
-        assignments = normalizeSessionInstrumentAssignments(bindings).map((b) => ({ id: b.id!, patch_id: b.id === chosen ? patch.id : b.patch_id, midi_channel: b.id === chosen ? patch.always_on ? 0 : row.midiChannel || 1 : b.midi_channel }));
+        const previewBindings = bindings.map((binding) => binding.id === chosen
+          ? reconcileControllerValues({ ...binding, performanceControllerValues: binding.patchId === draft.id ? binding.performanceControllerValues : {} }, performanceControllersForGraph(patch.graph)) : binding);
+        assignments = normalizeSessionInstrumentAssignments(previewBindings).map((b) => ({ ...b, id: b.id!, patch_id: b.id === chosen ? patch.id : b.patch_id, midi_channel: b.id === chosen ? patch.always_on ? 0 : row.midiChannel || 1 : b.midi_channel }));
         graph = structuredClone(state.audioGraph); mixer = structuredClone(state.mixer); config = buildConfig(structuredClone(state.sequencer));
         for (const controller of state.sequencer.midiControllers.filter((c) => c.enabled)) {
           for (const channel of new Set(assignments.map((b) => b.midi_channel).filter((c) => c > 0))) controllers.push({ type: "control_change", channel, controller: controller.controllerNumber, value: controller.value });

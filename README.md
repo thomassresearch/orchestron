@@ -74,6 +74,8 @@ The multitrack arranger combines melodic sequencers, drummer sequencers, and con
 
 The piano roll follows the active scale/mode (from the running melodic sequencer) and highlights keys by scale degree. When multiple melodic sequencers run with different scales/modes, only keys shared by both scales/modes are highlighted, which supports interactive playing with clear harmonic guidance. Piano roll `Start` is independent from the arranger transport and can start the instrument engine without starting arrangement playback.
 
+The [`perf_controller` virtual opcode](documentation/performance/performance_controllers.md) adds independent I-rate knobs to each rack instrument for ADSR times, distortion, and other performance settings. Controls support linear/logarithmic scales, precise entry, and reset to patch defaults. New notes use changed values; continuous instruments require a rack restart. Save Performance, native bundles, and both Csound exports preserve the settings.
+
 The MIDI controller panel provides 6 controllers that can each be assigned an individual controller number and operated interactively while playing.
 
 ![Perform: Instruments and Melodic Sequencer](screenshots/perform_instruments_and_sequencer.png)

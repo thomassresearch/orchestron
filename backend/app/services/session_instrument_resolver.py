@@ -57,6 +57,7 @@ class SessionInstrumentResolver:
                 normalized.append(
                     SessionInstrumentAssignment(
                         id=assignment_id,
+                        performance_controller_values=assignment.performance_controller_values,
                         patch_id=assignment.patch_id,
                         midi_channel=0,
                         effect_source_ids=source_ids,
@@ -86,6 +87,7 @@ class SessionInstrumentResolver:
                 SessionInstrumentAssignment(
                     id=assignment_id,
                     patch_id=assignment.patch_id,
+                    performance_controller_values=assignment.performance_controller_values,
                     midi_channel=midi_channel,
                     effect_source_ids=[],
                     effect_routes=[],
@@ -102,6 +104,7 @@ class SessionInstrumentResolver:
             patch=patch,
             midi_channel=0 if patch.always_on else assignment.midi_channel,
             assignment_id=assignment.id,
+            performance_controller_values=assignment.performance_controller_values,
             always_on=patch.always_on,
             effect_source_ids=tuple(assignment.effect_source_ids if patch.always_on else []),
             effect_routes=tuple(

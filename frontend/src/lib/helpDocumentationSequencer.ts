@@ -1,3 +1,4 @@
+import { performanceControllerHelp } from "./helpDocumentationPerformanceControllers";
 import { audioRoutingHelp } from "./helpDocumentationAudio";
 import type { HelpDocumentAppendixSet, HelpDocumentSet, SequencerHelpDocId } from "./helpDocumentationTypes";
 
@@ -994,4 +995,8 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 for (const language of ["english", "german", "french", "spanish"] as const) {
   const appendix = sequencerHelpAppendices.sequencer_instrument_rack;
   if (appendix) appendix[language] = (appendix[language] ?? "") + "\n\n" + audioRoutingHelp[language];
+}
+
+for (const language of ["english", "german", "french", "spanish"] as const) {
+  sequencerHelpAppendices.sequencer_instrument_rack![language] += "\n\n" + performanceControllerHelp[language];
 }

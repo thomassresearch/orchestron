@@ -60,6 +60,7 @@ class OrchestraEmitter:
         performance_input_mode: str = "midi",
         score_midi_channel: int = 0,
         direct_output_ports: dict[str, tuple[str, str]] | None = None,
+        performance_controllers: dict | None = None,
     ) -> CompiledInstrumentLines:
         deferred_audio_outlets: list[str] = []
         diagnostics: list[str] = []
@@ -104,6 +105,15 @@ class OrchestraEmitter:
 
             for output in compiled.spec.outputs:
                 env[output.id] = output_vars[(compiled.node.id, output.id)]
+
+            if compiled.spec.name == "perf_controller":
+                controller = (performance_controllers or {}).get(node_id)
+                if controller is None:
+                    raise CompilationError([f"Missing performance controller definition for {node_id}."])
+                channel = self._format_csound_string(controller["channel"])
+                global_header_lines.append(f"chnset {controller['value']:.17g}, {channel}")
+                instrument_lines.append(f"{env['iout']} chnget {channel}")
+                continue
 
             result_owner = result_owners.get(node_id)
             if result_owner and result_owner[2].silence:

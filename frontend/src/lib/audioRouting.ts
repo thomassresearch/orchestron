@@ -65,7 +65,7 @@ export function migrateAudio(bindings: SequencerInstrumentBinding[], patches: Pa
   return { audioGraph, mixer: result, migrationNotice: bindings.length > 0 };
 }
 export function cleanBindings(bindings: SequencerInstrumentBinding[]) {
-  return bindings.map((b) => ({ id: b.id, patchId: b.patchId, midiChannel: b.midiChannel }));
+  return bindings.map((b) => ({ id: b.id, patchId: b.patchId, midiChannel: b.midiChannel, performanceControllerValues: { ...b.performanceControllerValues } }));
 }
 /** Display projection only. Editors always write the explicit graph. */
 export function bindingsWithIncomingRoutes(bindings: SequencerInstrumentBinding[], graph: AudioGraph) {
