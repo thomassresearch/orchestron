@@ -1,0 +1,37 @@
+{
+  "name": "Orbit FM Bleeps",
+  "description": "Short FM chirps with six fading echoes and an orbiting pan. Chirp sets the upward pitch excursion at the onset. MIDI 48–84. Built-in filtered echoes and reverb; no global FX needed. Velocity-sensitive, polyphonic, three per-instance controls read on new notes. Route Stereo Output through the mixer to Master.",
+  "family": "fm_pad",
+  "envelope": {
+    "attack": 0.0015,
+    "decay": 0.075,
+    "sustain": 0,
+    "release": 0.025,
+    "release_time": 0.025
+  },
+  "layers": [
+    {
+      "id": "voice",
+      "opcode": "foscili",
+      "gain": 0.24,
+      "carrier_ratio": 1,
+      "mod_ratio": 1.414,
+      "mod_index": 1.8,
+      "table": 1,
+      "phase": 0
+    }
+  ],
+  "effects": [
+    {
+      "opcode": "butterhp",
+      "cutoff": 170
+    },
+    {
+      "opcode": "butterlp",
+      "cutoff": 9000
+    }
+  ],
+  "output": {
+    "pan": 0.5
+  }
+}

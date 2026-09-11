@@ -1,0 +1,134 @@
+{
+  "979b006c-d2a5-47c1-836c-9f3f30453ddf": {
+    "name": "Analog Drumkit",
+    "sha256": "6e0ef4dc348dba8920f5aeefe1148ab83c5686f08d4ebe635b05e41dcb53067d"
+  },
+  "edec9fff-768b-4de1-b892-53eb4249b2bf": {
+    "name": "Reverb Effect",
+    "sha256": "3919e400cdfd8d5d196f3713dfff29e8556283e092dfe3ed8d34a3ea7f808f04"
+  },
+  "e3c1fa8d-f3c6-441d-b443-707ce7ef924e": {
+    "name": "Compressor Effect",
+    "sha256": "f06ff80827e5696a0e72eea549ff1304718a160bef12b36912b5d3b25c70e6b9"
+  },
+  "f981a13d-f489-4515-812c-37ac6788869d": {
+    "name": "Psy Rotor Bass",
+    "sha256": "64b47e2446aa05af47b2cbafdc95292ef7a5179d9b775b5ce76cec69cf43049c"
+  },
+  "006e4f9e-8822-4dc6-bec3-9d806c689672": {
+    "name": "Undertow Motion Pad",
+    "sha256": "0af955f80e95df8cbacd83d6305c9b6548480b8c2dffe9e4bc65d8f0d4dc827f"
+  },
+  "43a682c7-0ba3-4a7a-81a4-175bc89d1495": {
+    "name": "Master",
+    "sha256": "41b04736f56b50f6b904ca0da4ef0291763f0472fb17e0f26baa907615eca0fc"
+  },
+  "88b66cd1-70b3-481c-8f13-c0e4d1010339": {
+    "name": "Alloy Sequence Voice",
+    "sha256": "7bafa60afb118a6a0079bafe19c8b77c60414c20baf62be40c325c82860d7552"
+  },
+  "12edeed5-ce05-43a1-9ec8-34878753dec2": {
+    "name": "Furnace Techno Stab",
+    "sha256": "6f7c2e43e8af4f4493c17261c271856a85baee23c2bbfe1766eab90b74c90808"
+  },
+  "1d1ae919-b144-484b-b780-fb197bdb4aba": {
+    "name": "Prism FM Pluck",
+    "sha256": "271f38a54590ad2daa3d4f03cb0cda6550ef5499186c52a697940fba4f95d029"
+  },
+  "f3922374-6038-4c76-bf75-f8bf1c2f8a30": {
+    "name": "Rubber Core FM Bass",
+    "sha256": "0e6a50f76a0fdb5792c0710122e96cb470662f653cc5fc46889e8a0015b84265"
+  },
+  "6608a9eb-48f3-4b1c-93a5-04bc4813333b": {
+    "name": "JP-8000 Supersaw",
+    "sha256": "abd73cebbaa2ba7bd9fa4f2d5ddf08af63981b762c03af98e5954bb9d85c5bf9"
+  },
+  "059b5011-dc99-45bf-ac98-54d33eabe5db": {
+    "name": "Saxophone",
+    "sha256": "5e5245c2011b0eb3b29383ed001b019e65caff6ad60ed0e5c13d1c709c5901ab"
+  },
+  "1f9f9724-4aaf-4a02-8ccf-fbb02a723e33": {
+    "name": "Test Switch Instrument",
+    "sha256": "168a382c67e764eb26b77a10d195dd48b7fb8fade2b5610bef1fc0b2adb0bfcc"
+  },
+  "48f1a6b6-ae6a-4053-a6a8-09e9dc426ec7": {
+    "name": "Goa Ray Lead",
+    "sha256": "12dcaf82e2e2ecf36e9b403c8f4782b548bee005de7ae1496d6c14bc3f0cafa7"
+  },
+  "29c1a7c7-d301-4d42-9434-7b1e0d9e8af3": {
+    "name": "FM Metal",
+    "sha256": "4e2e450161b8d02aaee01644e74c16ed680f9cdb357f13e15435ebe0e99209c2"
+  },
+  "dbf3c476-06d2-4475-bda4-bf0db7b8379a": {
+    "name": "Bass Drum",
+    "sha256": "2423ce3d7c5e8e677c7ab08d2377b9e3d7e750d789f7b74d1304e8447f46bf0f"
+  },
+  "2a24c93b-3606-47ea-8f88-5e71282cc747": {
+    "name": "Bass",
+    "sha256": "d9552eb4d786d6e629f3b4bd1b7c0a36f34e5e06b9cbecc0d5ad3f1467755ad3"
+  },
+  "7123b434-89e2-4979-830a-9aa349772943": {
+    "name": "Moog",
+    "sha256": "44e175c00fa3e2f5984d2890326d909b666466d156da49d12c975f510a29c137"
+  },
+  "c168b1ae-b3c5-4224-8f14-d3b17509ce4b": {
+    "name": "TB303",
+    "sha256": "814e0030326ad86095a1275e84ed8fd1af279e595fd9da4e515bd96e122864f0"
+  },
+  "65f81d74-2108-4972-8682-5b1f26ec5fee": {
+    "name": "Test Soundfont",
+    "sha256": "fe5dbbaa36ae0b593fccc5b640a6a1a035459ab16195c0446e6581d2b8e4faf6"
+  },
+  "b0d377e0-4df9-4581-944d-2d22823f1f08": {
+    "name": "Synth Pad",
+    "sha256": "81f9df1c991d106fb92b64a1655993125225fb9f41155fd5e15a643ddaf49775"
+  },
+  "5dd79cc5-f428-4b12-9d1e-8c467d826d8e": {
+    "name": "Vocoder Welcome Message",
+    "sha256": "539da3ba588f2eaa8fdb4d5aa30d5dd3c320d8ba0c6af052640ca29bbe195469"
+  },
+  "68ea16d2-1c29-472c-b007-4cddc913ade5": {
+    "name": "PAD with VCOs and LFOs",
+    "sha256": "601d878bab670f7cce744bac93c3e3043423e702264b59033a96a1faf194ee97"
+  },
+  "41017d7b-ff76-4d3a-a993-888b7350259b": {
+    "name": "FM Organ",
+    "sha256": "4c78a15d5dadc43c6b797b434ec1844c899517f14463d86d54c85dbf9282a1b5"
+  },
+  "131a96cd-320a-421c-87ff-c227864a3ae7": {
+    "name": "Basic ADSR midi instrument",
+    "sha256": "849d15230997be4c36307c8c26313525ca0ec2926f8e400b797fca37ec310779"
+  },
+  "ace32f7f-3bdf-4bb2-9d4f-aca80be6150f": {
+    "name": "Psychdelic Bleep",
+    "sha256": "05c59eb160ff6be5ca9526354a50144999b35a08943788223595839fc6b2b955"
+  },
+  "05f85851-b94a-4d6d-8fe1-e9e896db9ade": {
+    "name": "FM PAD",
+    "sha256": "86278e4146dd07500d6d61ef47579a2d71d1826236ae7c3aa352fd500b3d2ad6"
+  },
+  "4f26c433-7427-40dc-bb96-b8e19d55ae7b": {
+    "name": "Bleep",
+    "sha256": "c1cff239a259cb9cb1e76fdae785164f43bcf0b2be6cc4750babf5f179d5bbec"
+  },
+  "6992ba9f-c510-4bc8-94a8-338f8b381abf": {
+    "name": "FM bell",
+    "sha256": "139688f7168f33b571c3f189c92bc004b6bc5659aff0577ca568c14b67f46656"
+  },
+  "90600ab5-3ad1-4b93-a5ea-13b2e51a2404": {
+    "name": "Roland TR808",
+    "sha256": "8fe6fae38a1be87835cc9b7d80bbe9aa264ef330bf9cd461d5a782b0ab95726f"
+  },
+  "ce45cfb6-18c1-41bb-988d-14102f2658ab": {
+    "name": "TB303 using VCO",
+    "sha256": "dbb8e3760ff55e1bdf4ad7e1b9625e1f8ff2d8026269307c4e0540ca88885c86"
+  },
+  "73dc1190-baaa-4566-90ec-bf714f500d12": {
+    "name": "Lillian Frances Evolving FM Pad",
+    "sha256": "6162bae8271dd5123511bd692895a5a7c465b8208ccdcaf8d090878615c202b5"
+  },
+  "d83412e0-ef35-4a46-810e-7ad9a3f4a102": {
+    "name": "Distorted BD",
+    "sha256": "d105c8db84be00ae870aabcccdd4979d1d0d34f0b5f7e0632c725125d63bb755"
+  }
+}

@@ -1,0 +1,188 @@
+{
+  "mandala_acid_lead": {
+    "patch_id": "1e76a9d4-e0e9-47b8-9822-c1d5a8facb7b",
+    "name": "Mandala Acid Lead",
+    "payload_sha256": "bbba47f18dd4874e33569b2190a222f06d98da0a2946a953567cb744bf65faca",
+    "controllers": [
+      {
+        "node_id": "mandala_squelch",
+        "min": 180,
+        "max": 3600,
+        "default": 750,
+        "scale": "logarithmic",
+        "label": "Squelch (Hz)"
+      },
+      {
+        "node_id": "mandala_tempo",
+        "min": 110,
+        "max": 175,
+        "default": 145,
+        "scale": "linear",
+        "label": "Echo BPM"
+      },
+      {
+        "node_id": "mandala_space",
+        "min": 0,
+        "max": 1,
+        "default": 0.35,
+        "scale": "linear",
+        "label": "Space"
+      }
+    ]
+  },
+  "orbit_fm_bleeps": {
+    "patch_id": "3cad3121-5176-47fc-8dd7-fcbb8b65b4e9",
+    "name": "Orbit FM Bleeps",
+    "payload_sha256": "9532300f269f20051481cb1a168cfdaed70f3c335fd3f2f0351f57ab69fd00f1",
+    "controllers": [
+      {
+        "node_id": "orbit_chirp",
+        "min": 0,
+        "max": 3,
+        "default": 0.8,
+        "scale": "linear",
+        "label": "Chirp"
+      },
+      {
+        "node_id": "orbit_delay",
+        "min": 90,
+        "max": 480,
+        "default": 210,
+        "scale": "logarithmic",
+        "label": "Echo (ms)"
+      },
+      {
+        "node_id": "orbit_space",
+        "min": 0,
+        "max": 1,
+        "default": 0.65,
+        "scale": "linear",
+        "label": "Space"
+      }
+    ]
+  },
+  "chakra_vowel_talker": {
+    "patch_id": "ead6d2fe-f289-4395-a939-088926ee6262",
+    "name": "Chakra Vowel Talker",
+    "payload_sha256": "2767ec20ac3506bdda438e6b6def496c95151c6cf2ebf028e70205b226ee0052",
+    "controllers": [
+      {
+        "node_id": "chakra_vowel",
+        "min": 0,
+        "max": 1,
+        "default": 0.35,
+        "scale": "linear",
+        "label": "Vowel"
+      },
+      {
+        "node_id": "chakra_talk",
+        "min": 1,
+        "max": 14,
+        "default": 4.7,
+        "scale": "logarithmic",
+        "label": "Talk (Hz)"
+      },
+      {
+        "node_id": "chakra_space",
+        "min": 0,
+        "max": 1,
+        "default": 0.42,
+        "scale": "linear",
+        "label": "Space"
+      }
+    ]
+  },
+  "astral_laser_zaps": {
+    "patch_id": "e05c92da-9cd5-4082-9bb8-09cc8dbf5f3a",
+    "name": "Astral Laser Zaps",
+    "payload_sha256": "93204260d8dfbe6878bdf65e35e04c8e57c8b4600fd4cca8eeb202235766b7f8",
+    "controllers": [
+      {
+        "node_id": "astral_sweep",
+        "min": 1,
+        "max": 24,
+        "default": 8,
+        "scale": "logarithmic",
+        "label": "Sweep"
+      },
+      {
+        "node_id": "astral_decay",
+        "min": 0.04,
+        "max": 0.45,
+        "default": 0.12,
+        "scale": "logarithmic",
+        "label": "Decay (s)"
+      },
+      {
+        "node_id": "astral_space",
+        "min": 0,
+        "max": 1,
+        "default": 0.65,
+        "scale": "linear",
+        "label": "Space"
+      }
+    ]
+  },
+  "mycelium_stepped_bubbles": {
+    "patch_id": "85e7b068-2337-4992-a6c9-dd1513ba9739",
+    "name": "Mycelium Stepped Bubbles",
+    "payload_sha256": "c4a84f81a8ead9de42f45aae1dc3061d10a0f29ca26d61e7f7f59b61ff00057f",
+    "controllers": [
+      {
+        "node_id": "mycelium_rate",
+        "min": 2,
+        "max": 24,
+        "default": 7,
+        "scale": "logarithmic",
+        "label": "Steps (Hz)"
+      },
+      {
+        "node_id": "mycelium_mutation",
+        "min": 0,
+        "max": 1,
+        "default": 0.55,
+        "scale": "linear",
+        "label": "Mutation"
+      },
+      {
+        "node_id": "mycelium_space",
+        "min": 0,
+        "max": 1,
+        "default": 0.5,
+        "scale": "linear",
+        "label": "Space"
+      }
+    ]
+  },
+  "event_horizon_riser": {
+    "patch_id": "73925e06-205f-4b24-9167-95421d557893",
+    "name": "Event Horizon Riser",
+    "payload_sha256": "58884c2aed9c490f5ae2e94ab3c046121be827e4da352fd6fcee0dc2fd174717",
+    "controllers": [
+      {
+        "node_id": "horizon_rise",
+        "min": 0.3,
+        "max": 6,
+        "default": 2.4,
+        "scale": "logarithmic",
+        "label": "Rise (s)"
+      },
+      {
+        "node_id": "horizon_tension",
+        "min": 0,
+        "max": 1,
+        "default": 0.6,
+        "scale": "linear",
+        "label": "Tension"
+      },
+      {
+        "node_id": "horizon_space",
+        "min": 0,
+        "max": 1,
+        "default": 0.72,
+        "scale": "linear",
+        "label": "Space"
+      }
+    ]
+  }
+}

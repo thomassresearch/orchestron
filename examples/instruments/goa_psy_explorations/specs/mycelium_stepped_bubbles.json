@@ -1,0 +1,38 @@
+{
+  "name": "Mycelium Stepped Bubbles",
+  "description": "Deterministic stepped pitch/filter motion makes burbling alien sequences from held notes. Two unsynchronized LFOs produce the step pattern; repeatable, not random. MIDI 36–76. Built-in filtered echoes and reverb; no global FX needed. Velocity-sensitive, polyphonic, three per-instance controls read on new notes. Route Stereo Output through the mixer to Master.",
+  "family": "fm_pad",
+  "envelope": {
+    "attack": 0.008,
+    "decay": 0.18,
+    "sustain": 0.7,
+    "release": 0.075,
+    "release_time": 0.075
+  },
+  "layers": [
+    {
+      "id": "voice",
+      "opcode": "foscili",
+      "gain": 0.22,
+      "carrier_ratio": 1,
+      "mod_ratio": 2.71,
+      "mod_index": 2.2,
+      "table": 1,
+      "phase": 0
+    }
+  ],
+  "effects": [
+    {
+      "opcode": "moogladder2",
+      "cutoff": 2200,
+      "resonance": 0.28
+    },
+    {
+      "opcode": "butterhp",
+      "cutoff": 100
+    }
+  ],
+  "output": {
+    "pan": 0.5
+  }
+}

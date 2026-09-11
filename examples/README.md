@@ -9,6 +9,10 @@ The [EDM, techno and psy trance pack](instruments/edm_techno_psy/README.md) incl
 six customizable synth instruments, native exports, MIDI-driven WAV auditions,
 and reproducible patch-generation code.
 
+The [Goa / Psy Explorations pack](instruments/goa_psy_explorations/README.md) adds
+six more instruments with built-in echoes and reverb: acid lead, FM bleeps,
+vowel talker, laser zaps, stepped bubbles, and a rising noise/FM effect.
+
 ## Import an instrument (Instrument Design -> Import)
 
 1. Open the **Instrument Design** tab.
