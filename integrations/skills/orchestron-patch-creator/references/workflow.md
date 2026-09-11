@@ -63,3 +63,11 @@ For shared output gain, apply the formula to `output_pan2.asig` before the stere
 ## 7. Iterate
 
 If compile succeeds but the sound is not close enough, change source ratios, envelope times, filter cutoff/resonance, gain balance, and effects first. Change template family only when the source family is clearly wrong.
+
+## 8. Finish With Audio And Spectrogram Validation
+
+For a completed playable instrument, render a representative MIDI audition, including note-off and enough time for release and built-in effects to decay. Complete numerical checks for finite samples, clipping, both channels and velocity response, plus relevant controller minimum/default/maximum auditions. Include retriggers or chords when the instrument is intended for them.
+
+As the last test, generate and open both Mel and log-frequency STFT images using [audio validation](audio_validation.md). Inspect harmonic/pitch evolution, modulation, channel balance, attacks and effect tails against the intended sound. Use identical analysis settings and matching MIDI timings/render durations for comparisons. Fix unexpected behavior and repeat the checks after the final sound change.
+
+Generating PNGs is not visual inspection. Report separately what was rendered, numerically checked, visually inspected and actually listened to; spectrograms cannot establish subjective sound quality. An intentionally incomplete template does not need a playable audition.

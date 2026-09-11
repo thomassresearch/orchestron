@@ -45,6 +45,9 @@ Use `--json` for agent-readable output and retry hints. If the backend is not ru
 7. Run `spec validate`.
 8. Run `graph render` if you need to inspect graph JSON.
 9. Run `patch create` or `patch update`; use `--compile` unless the patch is intentionally incomplete and saved as a template.
+10. For a completed playable instrument, finish with [audio and spectrogram validation](references/audio_validation.md): render representative notes and tails, complete numerical and controller checks, then generate and **open both Mel and log-STFT spectrograms** as the last test. Inspect the images before reporting verification; repeat after any sound correction.
+
+The optional audio utility runs from the skill directory with `uv run --extra audio python scripts/render_spectrograms.py audition.wav --out-dir spectrograms`. It analyzes an existing recording without requiring the backend. See the validation reference for repository/global commands, analysis settings, and interpretation.
 
 ## Core Commands
 

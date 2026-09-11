@@ -1,5 +1,15 @@
 # Examples
 
+## Final Spectrogram Check
+
+After creating an instrument from any example below, render a representative audition with its complete release/effect tail and complete the numerical audio checks. From the skill directory, run:
+
+```bash
+uv run --extra audio python scripts/render_spectrograms.py audition.wav --out-dir spectrograms
+```
+
+Open `spectrograms/audition.mel.png` and `spectrograms/audition.stft.png` as the last verification step. For bass harmonic detail, repeat with `--n-fft 4096`; keep the same settings when comparing renders. See [audio validation](audio_validation.md) for interpretation and repository/global invocation.
+
 ## Warm Subtractive Lead
 
 ```yaml

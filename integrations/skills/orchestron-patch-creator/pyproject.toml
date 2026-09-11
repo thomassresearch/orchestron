@@ -7,6 +7,14 @@ dependencies = [
   "PyYAML>=6.0.3",
 ]
 
+[project.optional-dependencies]
+audio = [
+  "numpy>=2.2",
+  "soundfile>=0.13.1",
+  "librosa>=0.11",
+  "matplotlib>=3.10",
+]
+
 [project.scripts]
 orchestron_patch_cli = "orchestron_patch.cli.orchestron_patch_cli:main"
 
