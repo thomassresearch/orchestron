@@ -5,6 +5,10 @@ This folder contains example exports for Orchestron in two subfolders:
 - `instruments/` contains exported instrument files (`*.orch.instrument.json`, `*.orch.instrument.zip`)
 - `performances/` contains exported performance files (`*.orch.json`, `*.orch.zip`)
 
+The [EDM, techno and psy trance pack](instruments/edm_techno_psy/README.md) includes
+six customizable synth instruments, native exports, MIDI-driven WAV auditions,
+and reproducible patch-generation code.
+
 ## Import an instrument (Instrument Design -> Import)
 
 1. Open the **Instrument Design** tab.

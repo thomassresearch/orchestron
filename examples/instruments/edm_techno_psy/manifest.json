@@ -1,0 +1,188 @@
+{
+  "psy_rotor_bass": {
+    "patch_id": "f981a13d-f489-4515-812c-37ac6788869d",
+    "name": "Psy Rotor Bass",
+    "payload_sha256": "3ffb48c4f18999bc60e8f37df9fdd1de904db4602dd9d76bb253be89c3a937fe",
+    "controllers": [
+      {
+        "node_id": "rotor_decay",
+        "min": 0.04,
+        "max": 0.25,
+        "default": 0.1,
+        "scale": "logarithmic",
+        "label": "Decay (s)"
+      },
+      {
+        "node_id": "rotor_tone",
+        "min": 100,
+        "max": 1800,
+        "default": 350,
+        "scale": "logarithmic",
+        "label": "Tone (Hz)"
+      },
+      {
+        "node_id": "rotor_drive",
+        "min": 1,
+        "max": 5,
+        "default": 1.8,
+        "scale": "logarithmic",
+        "label": "Drive"
+      }
+    ]
+  },
+  "rubber_core_fm_bass": {
+    "patch_id": "f3922374-6038-4c76-bf75-f8bf1c2f8a30",
+    "name": "Rubber Core FM Bass",
+    "payload_sha256": "e0f28870c3d5f3a36f5b4e7b989ee5e5957aa2bf4b6a822e4bce3e857eb78ef0",
+    "controllers": [
+      {
+        "node_id": "rubber_growl",
+        "min": 0.3,
+        "max": 6,
+        "default": 2,
+        "scale": "logarithmic",
+        "label": "Growl"
+      },
+      {
+        "node_id": "rubber_tone",
+        "min": 150,
+        "max": 3500,
+        "default": 900,
+        "scale": "logarithmic",
+        "label": "Tone (Hz)"
+      },
+      {
+        "node_id": "rubber_decay",
+        "min": 0.08,
+        "max": 1.2,
+        "default": 0.25,
+        "scale": "logarithmic",
+        "label": "Decay (s)"
+      }
+    ]
+  },
+  "prism_fm_pluck": {
+    "patch_id": "1d1ae919-b144-484b-b780-fb197bdb4aba",
+    "name": "Prism FM Pluck",
+    "payload_sha256": "a51beaa0b821c6d6190c4297ca1e0624ae4164b2d7a86948053c0458875536f4",
+    "controllers": [
+      {
+        "node_id": "prism_color",
+        "min": 0.15,
+        "max": 5,
+        "default": 1.2,
+        "scale": "logarithmic",
+        "label": "Color"
+      },
+      {
+        "node_id": "prism_decay",
+        "min": 0.08,
+        "max": 1.8,
+        "default": 0.35,
+        "scale": "logarithmic",
+        "label": "Decay (s)"
+      },
+      {
+        "node_id": "prism_release",
+        "min": 0.03,
+        "max": 1.2,
+        "default": 0.15,
+        "scale": "logarithmic",
+        "label": "Release (s)"
+      }
+    ]
+  },
+  "furnace_techno_stab": {
+    "patch_id": "12edeed5-ce05-43a1-9ec8-34878753dec2",
+    "name": "Furnace Techno Stab",
+    "payload_sha256": "969eb0d0b4bdf423d27423981faa1b29d99b41d5926d4289557cfca6068c4ea7",
+    "controllers": [
+      {
+        "node_id": "furnace_tone",
+        "min": 200,
+        "max": 6000,
+        "default": 1100,
+        "scale": "logarithmic",
+        "label": "Tone (Hz)"
+      },
+      {
+        "node_id": "furnace_decay",
+        "min": 0.06,
+        "max": 1,
+        "default": 0.22,
+        "scale": "logarithmic",
+        "label": "Decay (s)"
+      },
+      {
+        "node_id": "furnace_drive",
+        "min": 1,
+        "max": 8,
+        "default": 2,
+        "scale": "logarithmic",
+        "label": "Drive"
+      }
+    ]
+  },
+  "alloy_sequence_voice": {
+    "patch_id": "88b66cd1-70b3-481c-8f13-c0e4d1010339",
+    "name": "Alloy Sequence Voice",
+    "payload_sha256": "9e222bbb320b997be00ecaa98abf881cc8abf12ea2aad3e13d82ae028f6f7328",
+    "controllers": [
+      {
+        "node_id": "alloy_clang",
+        "min": 0.2,
+        "max": 8,
+        "default": 3,
+        "scale": "logarithmic",
+        "label": "Clang"
+      },
+      {
+        "node_id": "alloy_ratio",
+        "min": 1,
+        "max": 4,
+        "default": 2.414,
+        "scale": "linear",
+        "label": "Ratio"
+      },
+      {
+        "node_id": "alloy_decay",
+        "min": 0.03,
+        "max": 0.7,
+        "default": 0.14,
+        "scale": "logarithmic",
+        "label": "Decay (s)"
+      }
+    ]
+  },
+  "undertow_motion_pad": {
+    "patch_id": "006e4f9e-8822-4dc6-bec3-9d806c689672",
+    "name": "Undertow Motion Pad",
+    "payload_sha256": "833930640b62d5c3c5f604e035810f0a24c6e4ab86a2c283244ab38d7cb18c68",
+    "controllers": [
+      {
+        "node_id": "undertow_tone",
+        "min": 200,
+        "max": 6000,
+        "default": 1400,
+        "scale": "logarithmic",
+        "label": "Tone (Hz)"
+      },
+      {
+        "node_id": "undertow_motion",
+        "min": 0.02,
+        "max": 1.5,
+        "default": 0.13,
+        "scale": "logarithmic",
+        "label": "Motion (Hz)"
+      },
+      {
+        "node_id": "undertow_release",
+        "min": 0.2,
+        "max": 6,
+        "default": 2.5,
+        "scale": "logarithmic",
+        "label": "Release (s)"
+      }
+    ]
+  }
+}

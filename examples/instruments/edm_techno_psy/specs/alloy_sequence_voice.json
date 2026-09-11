@@ -1,0 +1,65 @@
+{
+  "name": "Alloy Sequence Voice",
+  "description": "Short metallic FM sequence voice. Ratio sets the modulator/carrier relationship; non-integer values are inharmonic. High-pass filtered to leave bass space. Suggested MIDI notes 48–84. Dry, velocity-sensitive, polyphonic. Three per-instance controls read on new notes. Route Stereo Output through the performance mixer to Master.",
+  "family": "fm_pad",
+  "envelope": {
+    "attack": 0.001,
+    "decay": 0.14,
+    "sustain": 0,
+    "release": 0.04
+  },
+  "layers": [
+    {
+      "id": "fm",
+      "opcode": "foscili",
+      "gain": 0.24,
+      "carrier_ratio": 1,
+      "mod_ratio": 2.414,
+      "mod_index": 3,
+      "table": 1,
+      "phase": 0
+    }
+  ],
+  "effects": [
+    {
+      "opcode": "butterhp",
+      "cutoff": 220
+    },
+    {
+      "opcode": "butterlp",
+      "cutoff": 9000
+    }
+  ],
+  "output": {
+    "pan": 0.5
+  },
+  "performance_controllers": [
+    {
+      "id": "alloy_clang",
+      "target": "fm_foscili.kndx",
+      "label": "Clang",
+      "min": 0.2,
+      "max": 8,
+      "default": 3,
+      "scale": "logarithmic"
+    },
+    {
+      "id": "alloy_ratio",
+      "target": "fm_foscili.xmod",
+      "label": "Ratio",
+      "min": 1,
+      "max": 4,
+      "default": 2.414,
+      "scale": "linear"
+    },
+    {
+      "id": "alloy_decay",
+      "target": "amp_madsr.idec",
+      "label": "Decay (s)",
+      "min": 0.03,
+      "max": 0.7,
+      "default": 0.14,
+      "scale": "logarithmic"
+    }
+  ]
+}

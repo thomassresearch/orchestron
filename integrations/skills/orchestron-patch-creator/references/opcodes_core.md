@@ -24,7 +24,15 @@ Outputs:
 
 - `iout` (`i`): Init-rate constant.
 
-Usage note: Generated patches use `const_i` nodes for required init-rate values instead of storing those values directly on consuming nodes. Use `const_i.iout` for `ampmidi.iscal` and the required `madsr` ADSR inputs.
+Usage note: Generated patches use `const_i` nodes for fixed init-rate values. Keep `const_i.iout` for `ampmidi.iscal`; use it or `perf_controller.iout` for the required `madsr` ADSR inputs.
+
+## perf_controller (Orchestron virtual opcode)
+
+Purpose: Expose an instrument setting as a rack knob, independently configurable per performance instance. Examples: attack/release times, sustain, distortion gain.
+
+Inputs: none. Fixed node parameters: `min=0`, `max=1`, `default=0.5`, `scale="linear"`, `label="Parameter"`. `scale` also accepts `"logarithmic"`, which requires a positive minimum. Require finite numbers, `min < max`, and default within range.
+
+Output: `iout` (`i`). Read at note initialization; held notes retain their value. Always-on instruments take changes after rack restart. This is an editor construct compiled to initialized Csound software channels and I-rate `chnget`, not a native Csound opcode or MIDI CC source. See [authoring and identity rules](performance_controllers.md).
 
 ## ampmidi
 
@@ -62,7 +70,7 @@ Outputs:
 
 Usage note: Use longer attack/release for pads; short attack and decay for plucks and basses.
 
-Required connections: connect `iatt`, `idec`, `islev`, and `irel` from separate `const_i.iout` sources because all four are i-rate inputs. Attack, decay, and release are seconds; sustain is normalized from `0` to `1`.
+Required connections: connect `iatt`, `idec`, `islev`, and `irel` from separate `const_i.iout` or `perf_controller.iout` sources because all four are i-rate inputs. Attack, decay, and release are seconds; sustain is normalized from `0` to `1`.
 
 ## k_mul
 

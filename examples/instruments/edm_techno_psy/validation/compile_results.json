@@ -1,0 +1,32 @@
+{
+  "psy_rotor_bass": {
+    "state": "compiled",
+    "diagnostics": [],
+    "payload_sha256": "3ffb48c4f18999bc60e8f37df9fdd1de904db4602dd9d76bb253be89c3a937fe"
+  },
+  "rubber_core_fm_bass": {
+    "state": "compiled",
+    "diagnostics": [],
+    "payload_sha256": "e0f28870c3d5f3a36f5b4e7b989ee5e5957aa2bf4b6a822e4bce3e857eb78ef0"
+  },
+  "prism_fm_pluck": {
+    "state": "compiled",
+    "diagnostics": [],
+    "payload_sha256": "a51beaa0b821c6d6190c4297ca1e0624ae4164b2d7a86948053c0458875536f4"
+  },
+  "furnace_techno_stab": {
+    "state": "compiled",
+    "diagnostics": [],
+    "payload_sha256": "969eb0d0b4bdf423d27423981faa1b29d99b41d5926d4289557cfca6068c4ea7"
+  },
+  "alloy_sequence_voice": {
+    "state": "compiled",
+    "diagnostics": [],
+    "payload_sha256": "9e222bbb320b997be00ecaa98abf881cc8abf12ea2aad3e13d82ae028f6f7328"
+  },
+  "undertow_motion_pad": {
+    "state": "compiled",
+    "diagnostics": [],
+    "payload_sha256": "833930640b62d5c3c5f604e035810f0a24c6e4ab86a2c283244ab38d7cb18c68"
+  }
+}

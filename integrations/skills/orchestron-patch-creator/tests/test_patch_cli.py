@@ -19,6 +19,35 @@ from orchestron_patch.cli.orchestron_patch_cli import (  # noqa: E402
 
 
 class PatchCliTests(unittest.TestCase):
+    def test_performance_controllers_replace_inputs_and_preserve_graph_spine(self) -> None:
+        graph = build_patch_payload({"family": "simple_osc", "performance_controllers": [
+            {"id": "attack", "target": "amp_madsr.iatt", "min": 0.001, "max": 5, "default": 0.01, "scale": "logarithmic", "label": "Time"},
+            {"id": "release", "target": "amp_madsr.irel", "min": 0.001, "max": 10, "default": 0.3, "scale": "logarithmic", "label": "Time"},
+        ]})["graph"]
+        controllers = [n for n in graph["nodes"] if n["opcode"] == "perf_controller"]
+        self.assertEqual([n["id"] for n in controllers], ["attack", "release"])
+        self.assertEqual([n["params"]["default"] for n in controllers], [0.01, 0.3])
+        for node_id, target in (("attack", "iatt"), ("release", "irel")):
+            inbound = [c for c in graph["connections"] if c["to_node_id"] == "amp_madsr" and c["to_port_id"] == target]
+            self.assertEqual([(c["from_node_id"], c["from_port_id"]) for c in inbound], [(node_id, "iout")])
+            self.assertFalse([c for c in graph["connections"] if c["to_node_id"] == node_id])
+        self.assert_stereo_output(graph)
+
+    def test_performance_controller_defaults_and_target_formulas(self) -> None:
+        graph = build_patch_payload({"performance_controllers": [{"id": "sustain", "target": "amp_madsr.islev"}],
+                                     "formulas": [{"target": "amp_madsr.islev", "expression": "0.5 * in1"}]})["graph"]
+        node = next(n for n in graph["nodes"] if n["id"] == "sustain")
+        self.assertEqual(node["params"], {"min": 0, "max": 1, "default": 0.5, "scale": "linear", "label": "Parameter"})
+        self.assertIn("amp_madsr::islev", graph["ui_layout"]["input_formulas"])
+
+    def test_invalid_performance_controllers_are_rejected_before_backend_writes(self) -> None:
+        invalid = [{"min": 1, "max": 1}, {"default": 2}, {"min": float("nan")}, {"max": float("inf")},
+                   {"default": True}, {"scale": "logarithmic"}, {"scale": "log"}, {"label": " "},
+                   {"label": "x" * 129}, {"id": "amp_madsr"}, {"target": "missing.input"}, {"minimum": 0}]
+        for change in invalid:
+            with self.subTest(change=change), self.assertRaises(PatchCliError):
+                build_patch_payload({"performance_controllers": [{"id": "attack", "target": "amp_madsr.iatt", **change}]})
+
     def test_formula_edit_preserves_branch_ownership_and_layout(self) -> None:
         # Keep the skill tests portable when deployed outside the repository.
         graph = {

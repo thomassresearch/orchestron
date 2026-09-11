@@ -1,6 +1,6 @@
 ---
 name: orchestron-patch-creator
-description: Use when creating, editing, validating, compiling, or importing Orchestron Instrument Design patches from natural-language sound descriptions, synth recipes, or structured patch specs through the skill-local orchestron_patch_cli backend utility, including oscillator, subtractive, FM, noise, filter, modulation, effect, velocity, envelope, pan, output graph generation, and opcode input formulas.
+description: Use when creating, editing, validating, compiling, or importing Orchestron Instrument Design patches from sound descriptions or structured specs through orchestron_patch_cli, including synthesis, effects, envelopes, opcode input formulas, and perf_controller knobs for per-performance instrument customization.
 ---
 
 # Orchestron Patch Creator
@@ -38,6 +38,7 @@ Use `--json` for agent-readable output and retry hints. If the backend is not ru
    - `references/opcodes_core.md` for required MIDI/envelope/gain/pan/output nodes.
    - `references/opcodes_synthesis.md` for source and synthesis opcodes.
    - `references/opcodes_effects.md` for filters, distortion, delay, and reverb.
+   - `references/performance_controllers.md` for authoring `perf_controller` knobs for per-performance ADSR, distortion, or other instrument settings.
    - Use the original Csound opcode reference at https://csound.com/docs/manual/PartReference.html for detailed opcode semantics when the local reference is not enough.
 5. Write a structured patch spec.
 6. Use `formulas:` in the spec when an opcode input should scale or combine existing connections without helper opcodes.
@@ -65,7 +66,7 @@ The CLI enforces these defaults in generated graphs:
 - Use `ampmidi` for played MIDI velocity.
 - Connect `ampmidi.iscal` from a `const_i` node with value `1.0`.
 - Use `madsr` for the main amplitude envelope.
-- Connect `madsr.iatt`, `madsr.idec`, `madsr.islev`, and `madsr.irel` from `const_i` nodes because these are i-rate inputs.
+- Connect `madsr.iatt`, `madsr.idec`, `madsr.islev`, and `madsr.irel` from I-rate sources: generated `const_i` defaults, or `perf_controller.iout` when the user wants rack customization.
 - Use `foscili` only for one carrier plus one modulator. It derives carrier and modulator frequencies from `kcps`, `xcar`, and `xmod`, with `kndx` as the modulation index.
 - For more than one FM modulator/operator, do not stack multiple audible `foscili` layers as a substitute. Build the FM graph explicitly with `oscil3`: convert or provide the carrier base frequency at audio rate, generate each modulator with `oscil3`, scale each modulator by its frequency deviation (`mod_index * modulator_frequency`, equivalent to max frequency deviation), sum the modulators, and feed the result into the carrier `oscil3.freq`.
 - Use patch spec `formulas:` for simple scaling or combination at an opcode input, for example `0.1 * in1`; formulas are stored in `graph.ui_layout.input_formulas` and compiled like GUI-edited formulas.
@@ -74,6 +75,12 @@ The CLI enforces these defaults in generated graphs:
 - End every generated graph with one **Stereo Output** block: two `outleta` nodes named `left` and `right`, grouped in `graph.audio_interface` as the main stereo output and collapsed via `graph.ui_layout.audio_blocks`. Connect `pan2.aleft`/`aright` to their respective `asignal` inputs. See `references/graph_rules.md` for the saved representation.
 - Stereo Output is an editor construct, not a backend opcode named `__stereo_output`. Do not serialize that catalog command, generate direct `outs`, or leave the output channels ungrouped. Store channel names directly in `params.sname`.
 - In Perform, route the Stereo Output through the mixer to Master for playback.
+
+## Performance Customization
+
+Use the Orchestron virtual opcode `perf_controller` for settings that vary between performances or rack instances. Its fixed fields are `min`, `max`, `default`, `scale` (`linear` or `logarithmic`), and `label`; its only output is I-rate `iout`, and it has no input sockets. Add definitions through the patch spec's `performance_controllers` list; see [the schema and working example](references/performance_controllers.md).
+
+Keep node IDs stable when editing a patch: performance overrides refer to those IDs, not labels. Set useful patch defaults, then store instance choices in the performance rather than changing the shared patch. These knobs do not send MIDI CC. New notes read updated values; held notes retain theirs, and always-on instruments need a rack restart. Standalone compilation and isolated audition use defaults.
 
 ## Error Handling
 

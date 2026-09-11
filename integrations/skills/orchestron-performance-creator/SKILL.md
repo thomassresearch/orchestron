@@ -1,6 +1,6 @@
 ---
 name: orchestron-performance-creator
-description: Use when creating, editing, importing, validating, committing, or live-testing Orchestron performances through the skill-local orchestron_cli backend-only command-line utility, including genre-aware electronic music structure, multitrack score specs, melodic chord patterns, General MIDI drum grooves, controller sequencers, manual MIDI controllers, arpeggiators, patch input formulas, and patch/performance bundle imports.
+description: Use when creating, editing, importing, validating, committing, or live-testing Orchestron performances through orchestron_cli, including musical structure, score specs, MIDI automation, arpeggiators, patch formulas, bundle imports, and per-instance instrument customization with perf_controller settings.
 ---
 
 # Orchestron Performance Creator
@@ -42,11 +42,12 @@ If the backend is not running, ask the user whether to start it with `make run` 
 3. If composing new material, choose the musical brief before writing notes: ambient state, techno process, trance wave, or Goa/psy rise.
 4. Start an edit session from an existing performance or a new draft.
 5. Add instruments first, then run `edit instruments list` to discover their stable binding IDs and audio ports.
+   For per-performance sound customization, read `references/performance_controllers.md`, discover the patch's controller node IDs, and stage overrides using `edit performance-controllers set`.
 6. Add arbitrary instrument-to-always-on or always-on-to-always-on routes with `edit routes`; use `edit add-standard-effects` only for the standard convenience matrix.
 7. Add sequencers/controllers/arpeggiators with explicit flags or a YAML/JSON score spec.
 8. Run `edit validate`; this asks the backend to resolve every source outlet to its target inlet and rejects missing ports, invalid targets, and feedback loops.
 9. Commit only after validation succeeds.
-10. For live testing, use `edit create-runtime --start`. After rack or route changes, use `edit rebuild-runtime`; use `edit push-runtime` only when the runtime rack is unchanged.
+10. For live testing, use `edit create-runtime --start`. After rack, patch-definition, or route changes, use `edit rebuild-runtime`; use `edit push-runtime` when only sequencer, mixer, or performance-controller values changed. Always-on instruments need a rack restart to adopt controller changes.
 
 ## Core Commands
 
@@ -58,6 +59,10 @@ uv run orchestron_cli --json edit begin --new --name "Agent Sketch"
 uv run orchestron_cli --json edit add-instrument --patch "TB303" --channel 2 --binding-id bass
 uv run orchestron_cli --json edit add-instrument --patch "reverb effect" --binding-id reverb
 uv run orchestron_cli --json edit instruments list
+uv run orchestron_cli --json edit performance-controllers list --binding bass
+# Use an actual node ID reported by the preceding command:
+uv run orchestron_cli --json edit performance-controllers set --binding bass --node attack --value 0.04
+uv run orchestron_cli --json edit performance-controllers reset --binding bass --node attack
 uv run orchestron_cli --json edit routes add --source bass --outlet sendl --target reverb
 uv run orchestron_cli --json edit routes list
 uv run orchestron_cli --json edit add-standard-effects
@@ -82,6 +87,7 @@ CLI and data formats:
 
 - For melodic step/chord syntax, read `references/chord_syntax.md`.
 - For YAML/JSON score specs, read `references/score_spec.md`.
+- For `perf_controller` discovery, per-instance overrides, reset, persistence, exports, and live updates, read `references/performance_controllers.md`. These I-rate instrument settings are separate from MIDI CC controllers and controller sequencers.
 - For patch graph input formulas such as `0.1 * in1`, read `references/patch_formulas.md`.
 - For arbitrary always-on effect routing, port discovery, validation, and runtime replacement, read `references/effect_routing.md`.
 - For the standard always-on effect matrix, read `references/standard_effect_patching.md`.

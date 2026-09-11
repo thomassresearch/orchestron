@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 from pathlib import Path
 import sys
@@ -41,6 +42,79 @@ def _ctx(*, json_output: bool = False) -> CliContext:
         timeout=20.0,
         session_file=Path("edit-session.json"),
     )
+
+
+def _controller_fixture():
+    definition = {"node_id": "attack", "min": 0.001, "max": 5, "default": 0.01, "scale": "logarithmic", "label": "Time"}
+    patches = [{"id": "patch", "name": "Lead", "performance_controllers": [definition]}]
+    config = orchestron_cli.empty_performance_config()
+    config["instruments"] = [{"id": "bass", "patchId": "patch", "midiChannel": 1, "performanceControllerValues": {"attack": 0.04}},
+                             {"id": "pad", "patchId": "patch", "midiChannel": 2, "performanceControllerValues": {"attack": 1.2}}]
+    return config, patches
+
+
+@pytest.mark.parametrize("version", range(1, 13))
+def test_controller_values_survive_normalization_runtime_and_patch_id_remap(version):
+    config, patches = _controller_fixture()
+    config["version"] = version
+    restored = normalize_performance_config(json.loads(json.dumps(config)), patches)
+    assert restored["version"] == 12
+    assignments = orchestron_cli.session_assignments_from_config(restored)
+    assert [a["performance_controller_values"] for a in assignments] == [{"attack": 0.04}, {"attack": 1.2}]
+    remapped = orchestron_cli.remap_snapshot_patch_ids(restored, {"patch": "copy"}, [{**patches[0], "id": "copy"}])
+    assert [(a["patchId"], a["performanceControllerValues"]) for a in remapped["instruments"]] == [("copy", {"attack": 0.04}), ("copy", {"attack": 1.2})]
+
+
+def test_controller_commands_discover_set_reset_and_validate_without_losing_other_instances(tmp_path, monkeypatch, capsys):
+    config, patches = _controller_fixture()
+    ctx = _ctx(json_output=True)
+    ctx.session_file = tmp_path / "edit.json"
+    orchestron_cli.save_edit_session(ctx.session_file, {"config": config})
+    monkeypatch.setattr(orchestron_cli.ApiClient, "get", lambda self, path: patches)
+
+    def run(operation, **options):
+        args = argparse.Namespace(controller_command=operation, binding="bass", node="attack", **options)
+        orchestron_cli.command_edit_performance_controllers(args, ctx)
+        return json.loads(capsys.readouterr().out)["result"]
+
+    assert run("list")["controllers"][0]["value"] == 0.04
+    assert run("set", value=0.01)["controllers"][0]["overridden"] is True
+    assert run("reset")["performanceControllerValues"] == {}
+    assert run("list")["controllers"][0]["overridden"] is False
+    for invalid in (float("nan"), float("inf"), True, 6, 0):
+        with pytest.raises(OrchestronCliError):
+            run("set", value=invalid)
+    saved = orchestron_cli.load_edit_session(ctx.session_file)["config"]
+    assert saved["instruments"][0]["performanceControllerValues"] == {}
+    assert saved["instruments"][1]["performanceControllerValues"] == {"attack": 1.2}
+    saved["instruments"][0]["performanceControllerValues"] = {"removed": 1}
+    orchestron_cli.save_edit_session(ctx.session_file, {"config": saved})
+    orchestron_cli.command_edit_performance_controllers(argparse.Namespace(controller_command="reset", binding="bass", node="removed"), ctx)
+    capsys.readouterr()
+    assert orchestron_cli.load_edit_session(ctx.session_file)["config"]["instruments"][0]["performanceControllerValues"] == {}
+
+
+def test_controller_runtime_push_keeps_topology_and_sends_complete_maps_and_resets():
+    config, _ = _controller_fixture()
+    active = {"instruments": orchestron_cli.session_assignments_from_config(copy.deepcopy(config)), "audio_graph": config["audioGraph"]}
+    config["instruments"][0]["performanceControllerValues"] = {}
+    assert orchestron_cli.runtime_assignments_match(config, active)
+    calls = []
+    client = argparse.Namespace(put=lambda path, body: calls.append((path, body)))
+    orchestron_cli.push_performance_controllers(client, "runtime", config, active)
+    assert calls == [("/sessions/runtime/instruments/bass/performance-controllers", {"values": {}})]
+
+
+def test_controller_runtime_push_failure_keeps_latest_staged_values():
+    config, _ = _controller_fixture()
+    before = copy.deepcopy(config)
+
+    def fail(path, body):
+        raise OrchestronCliError("backend_error", "Temporary failure")
+
+    with pytest.raises(OrchestronCliError):
+        orchestron_cli.push_performance_controllers(argparse.Namespace(put=fail), "runtime", config, {"instruments": []})
+    assert config == before
 
 
 def test_print_table_wraps_patch_description_detail(capsys, monkeypatch) -> None:
@@ -312,7 +386,7 @@ def test_version_ten_normalization_expands_legacy_effect_sources() -> None:
 
     normalize_performance_config(config, patches)
 
-    assert config["version"] == 11
+    assert config["version"] == 12
     assert config["instruments"][0]["id"] == "instrument-1"
     assert config["instruments"][1]["midiChannel"] == 0
     assert [{"sourceId": r["sourceId"], "channel": r["sourcePort"]} for r in config["audioGraph"]["routes"]] == [

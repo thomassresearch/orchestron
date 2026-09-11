@@ -2,6 +2,8 @@
 
 Use YAML or JSON score specs for multitrack performance generation.
 
+Score tracks with `type: controller` are MIDI CC automation. For fixed instrument customization using `perf_controller` (ADSR times, distortion, etc.), use the separate staged `edit performance-controllers` commands described in [performance controllers](performance_controllers.md). Do not put these values in a CC curve or invent a `perf_controller` score-track type.
+
 Minimal YAML example:
 
 ```yaml

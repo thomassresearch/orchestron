@@ -1,10 +1,10 @@
 # Always-On Effect Routing
 
-Performance configuration version 11 stores stable rack instance IDs, one authoritative `audioGraph.routes` list, and mixer values keyed by instance/route ID:
+Performance configuration version 12 retains the version-11 routing model: stable rack instance IDs, one authoritative `audioGraph.routes` list, and mixer values keyed by instance/route ID. It additionally stores per-instrument `performanceControllerValues`; see [performance controllers](performance_controllers.md).
 
 ```json
 {
-  "version": 11,
+  "version": 12,
   "instruments": [{"id":"lead","patchId":"lead-patch","midiChannel":1},{"id":"reverb","patchId":"reverb-patch","midiChannel":0}],
   "audioGraph": {"masterId":null,"insertOwners":{},"routes":[{"id":"send-left","sourceId":"lead","sourcePort":"sendl","targetId":"reverb","targetPort":"left","kind":"send","sourceStage":"strip","targetStage":"input"}]},
   "mixer": {"strips":{"lead":{"gainDb":-6,"balance":0,"mute":false,"solo":false}},"sends":{"send-left":{"gainDb":-12,"tap":"post"}}}
@@ -53,7 +53,7 @@ orchestron_cli --json edit create-runtime --start
 
 Validation sends the complete rack to `POST /api/sessions/validate-instruments`. Backend diagnostics cover unknown assignments, duplicate IDs, invalid target types, missing `inleta`/`outleta` ports, unknown outlet labels, and feedback loops.
 
-Rack assignments and Csound `connect` statements are fixed when a runtime session compiles. `edit push-runtime` therefore updates mixer and sequencer/arpeggiator state and refuses to continue if rack assignments or routes differ. Rebuild a CLI-owned runtime after rack or route edits:
+Rack assignments and Csound `connect` statements are fixed when a runtime session compiles. `edit push-runtime` updates mixer, performance-controller, and sequencer/arpeggiator state and refuses to continue if rack assignments or routes differ. Rebuild a CLI-owned runtime after rack, patch-definition, or route edits:
 
 ```bash
 orchestron_cli --json edit rebuild-runtime

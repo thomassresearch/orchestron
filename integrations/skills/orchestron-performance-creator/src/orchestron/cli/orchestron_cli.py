@@ -21,7 +21,7 @@ from urllib import error, parse, request
 DEFAULT_API_URL = os.environ.get("ORCHESTRON_API_URL", "http://localhost:8000/api")
 SESSION_DIR = Path(".orchestron")
 SESSION_FILE = SESSION_DIR / "edit-session.json"
-CURRENT_CONFIG_VERSION = 11
+CURRENT_CONFIG_VERSION = 12
 DEFAULT_PAD_COUNT = 8
 MAX_STEPS_PER_PAD = 128
 PAD_LOOP_PAUSE_BEATS = {1, 2, 4, 8, 16}
@@ -1682,6 +1682,7 @@ def normalize_performance_config(
     used_ids: set[str] = set()
 
     for index, instrument in enumerate(instruments):
+        instrument["performanceControllerValues"] = performance_controller_values(instrument.get("performanceControllerValues", {}))
         patch = patches_by_id.get(str(instrument.get("patchId", "")))
         always_on = patch_is_always_on(patch or {})
         channel = 0 if always_on else clamp_int(
@@ -1916,7 +1917,8 @@ def clear_effect_routes_for_target(config: dict[str, Any], *, target_id: str) ->
 
 def session_assignments_from_config(config: dict[str, Any]) -> list[dict[str, Any]]:
     if "audioGraph" in config:
-        return [{"id": i.get("id"), "patch_id": i.get("patchId"), "midi_channel": int(i.get("midiChannel", 1))} for i in config_instruments(config)]
+        return [{"id": i.get("id"), "patch_id": i.get("patchId"), "midi_channel": int(i.get("midiChannel", 1)),
+                 "performance_controller_values": performance_controller_values(i.get("performanceControllerValues", {}))} for i in config_instruments(config)]
     assignments: list[dict[str, Any]] = []
     for instrument in config_instruments(config):
         routes = normalize_effect_route_rows(instrument.get("effectRoutes"))
@@ -1925,6 +1927,7 @@ def session_assignments_from_config(config: dict[str, Any]) -> list[dict[str, An
                 "id": instrument.get("id"),
                 "patch_id": instrument.get("patchId"),
                 "midi_channel": int(instrument.get("midiChannel", 1)),
+                "performance_controller_values": performance_controller_values(instrument.get("performanceControllerValues", {})),
                 "effect_source_ids": source_ids_from_routes(routes),
                 "effect_routes": [
                     {"source_id": route["sourceId"], "channel": route["channel"]}
@@ -2140,6 +2143,8 @@ def ensure_standard_effect_binding(
 ) -> dict[str, Any]:
     for instrument in instruments:
         if instrument.get("id") == binding_id or instrument.get("patchId") == patch.get("id"):
+            if instrument.get("patchId") != patch["id"]:
+                instrument["performanceControllerValues"] = {}
             instrument["id"] = binding_id
             instrument["patchId"] = patch["id"]
             instrument["patchName"] = patch["name"]
@@ -2381,7 +2386,8 @@ def ensure_standard_effect_matrix(
             target_port=legacy_audio_inlet(route["channel"], patch_audio_port_names(patch_details_by_id[str(instrument_by_binding_id(config, route["sourceId"])["patchId"])], opcode="outleta"), patch_audio_port_names(speaker_patch, opcode="inleta")),
         )
 
-    route_key = lambda r: tuple(r.get(k) for k in ("sourceId", "sourcePort", "targetId", "targetPort", "kind", "sourceStage", "targetStage"))
+    def route_key(route):
+        return tuple(route.get(key) for key in ("sourceId", "sourcePort", "targetId", "targetPort", "kind", "sourceStage", "targetStage"))
     previous_by_key = {route_key(r): r for r in previous_routes}
     for route in config["audioGraph"]["routes"]:
         old = previous_by_key.get(route_key(route))
@@ -4217,6 +4223,8 @@ def command_edit_instruments_list(args: argparse.Namespace, ctx: CliContext) -> 
                 "patchName": patch.get("name", instrument.get("patchName")),
                 "alwaysOn": patch_is_always_on(patch),
                 "midiChannel": instrument.get("midiChannel"),
+                "performanceControllers": patch.get("performance_controllers", []),
+                "performanceControllerValues": instrument.get("performanceControllerValues", {}),
                 "gainDb": config["mixer"]["strips"].get(binding_id, {}).get("gainDb", 0),
                 "audioInlets": patch_audio_port_names(patch, opcode="inleta"),
                 "audioOutlets": patch_audio_port_names(patch, opcode="outleta"),
@@ -4237,6 +4245,57 @@ def command_edit_instruments_list(args: argparse.Namespace, ctx: CliContext) -> 
         ctx,
         detail_columns=[("audioInlets", "Audio inlets"), ("audioOutlets", "Audio outlets")],
     )
+
+
+def performance_controller_values(raw: Any) -> dict[str, float]:
+    if not isinstance(raw, dict) or any(
+        not isinstance(node_id, str) or not node_id.strip() or
+        not isinstance(value, (int, float)) or isinstance(value, bool) or not math.isfinite(value)
+        for node_id, value in raw.items()
+    ):
+        raise OrchestronCliError("invalid_performance_controller", "Controller overrides must map node IDs to finite numbers.")
+    return dict(raw)
+
+
+def command_edit_performance_controllers(args: argparse.Namespace, ctx: CliContext) -> None:
+    patches = ApiClient(ctx.api_url, timeout=ctx.timeout).get("/patches")
+    patches_by_id = {patch["id"]: patch for patch in patches}
+
+    def apply(config: dict[str, Any]) -> dict[str, Any]:
+        normalize_performance_config(config, patches)
+        binding = instrument_by_binding_id(config, args.binding)
+        patch = patches_by_id.get(binding["patchId"])
+        if patch is None:
+            raise OrchestronCliError("unknown_patch", "The rack binding references an unknown patch.")
+        definitions = patch.get("performance_controllers", [])
+        values = performance_controller_values(binding.get("performanceControllerValues", {}))
+        if args.controller_command != "list":
+            definition = next((item for item in definitions if item["node_id"] == args.node), None)
+            if definition is None and not (args.controller_command == "reset" and args.node in values):
+                raise OrchestronCliError("unknown_performance_controller", f"Unknown controller node '{args.node}'.",
+                    retry=["Run `edit performance-controllers list --binding BINDING_ID` to discover node IDs."])
+            if args.controller_command == "reset":
+                values.pop(args.node, None)
+            else:
+                value = performance_controller_values({args.node: args.value})[args.node]
+                if definition.get("error") or not definition["min"] <= value <= definition["max"]:
+                    raise OrchestronCliError("invalid_performance_controller", "Correct the patch configuration or choose a value within the controller range.")
+                values[args.node] = value
+            binding["performanceControllerValues"] = values
+        return {"bindingId": binding["id"], "performanceControllerValues": values,
+                "controllers": [{**item, "value": values.get(item["node_id"], item["default"]),
+                                 "overridden": item["node_id"] in values} for item in definitions]}
+
+    result = apply(load_edit_session(ctx.session_file)["config"]) if args.controller_command == "list" else update_session_config(ctx, apply)
+    print_payload(result, ctx)
+
+
+def push_performance_controllers(client: ApiClient, session_id: str, config: dict[str, Any], session_info: dict[str, Any]) -> None:
+    active = {item["id"]: item for item in session_info.get("instruments", [])}
+    for instrument in config_instruments(config):
+        values = performance_controller_values(instrument.get("performanceControllerValues", {}))
+        if values != active.get(instrument["id"], {}).get("performance_controller_values", {}):
+            client.put(f"/sessions/{parse.quote(session_id, safe='')}/instruments/{parse.quote(instrument['id'], safe='')}/performance-controllers", {"values": values})
 
 
 def command_edit_add_instrument(args: argparse.Namespace, ctx: CliContext) -> None:
@@ -4288,7 +4347,7 @@ def command_edit_add_instrument(args: argparse.Namespace, ctx: CliContext) -> No
             "patchId": patch_ref["id"],
             "patchName": patch_ref["name"],
             "midiChannel": channel,
-
+            "performanceControllerValues": {},
         }
         instruments.append(binding)
         config.setdefault("mixer", {"strips": {}, "sends": {}})["strips"][binding_id] = {"gainDb": 20 * math.log10(clamp_int(args.level, 1, 10, field="level") / 10), "balance": 0, "mute": False, "solo": False}
@@ -4733,6 +4792,7 @@ def command_edit_push_runtime(args: argparse.Namespace, ctx: CliContext) -> None
                 "Run `orchestron_cli edit create-runtime --start` to leave an external session untouched.",
             ],
         )
+    push_performance_controllers(client, str(session_id), config, session_info)
     status = configure_runtime_if_present(client, str(session_id), config)
     if args.session_id and args.session_id != session.get("attachedSessionId"):
         session["attachedSessionId"] = args.session_id
@@ -4893,6 +4953,16 @@ def build_parser() -> argparse.ArgumentParser:
     add_inst.add_argument("--level", type=int, default=10, help="Deprecated: converts Level 1..10 to audio gain dB; never scales MIDI velocity.")
     add_inst.add_argument("--binding-id", help="Stable rack binding ID used by effect routes. Generated when omitted.")
     add_inst.set_defaults(func=command_edit_add_instrument)
+    perf_controllers = edit_sub.add_parser("performance-controllers", help="List, set or reset per-instance I-rate settings (not MIDI CC).")
+    perf_sub = perf_controllers.add_subparsers(dest="controller_command", required=True)
+    for operation in ("list", "set", "reset"):
+        command = perf_sub.add_parser(operation)
+        command.add_argument("--binding", required=True, help="Stable rack binding ID.")
+        if operation != "list":
+            command.add_argument("--node", required=True, help="Controller node ID from the patch, not its label.")
+        if operation == "set":
+            command.add_argument("--value", required=True, type=float, help="Finite value within the patch controller range.")
+        command.set_defaults(func=command_edit_performance_controllers)
     routes = edit_sub.add_parser("routes", help="List, add, remove, and clear staged always-on audio routes.")
     routes_sub = routes.add_subparsers(dest="routes_command", required=True)
     routes_list = routes_sub.add_parser("list", help="List routes with backend-resolved target inlet labels.")
@@ -5017,7 +5087,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Allow replacement of an attached session that is not marked CLI-owned.",
     )
     rebuild_runtime.set_defaults(func=command_edit_rebuild_runtime)
-    push_runtime = edit_sub.add_parser("push-runtime", help="Push staged sequencer/arpeggiator config to a live runtime session.")
+    push_runtime = edit_sub.add_parser("push-runtime", help="Push staged controller, mixer and sequencer/arpeggiator settings to a live runtime session.")
     push_runtime.add_argument("--session-id", help="Runtime session ID. Defaults to edit begin --attach-live value.")
     push_runtime.set_defaults(func=command_edit_push_runtime)
 

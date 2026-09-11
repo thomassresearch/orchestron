@@ -11,7 +11,7 @@ Every generated patch includes:
 1. `cpsmidi`: reads the played MIDI note pitch.
 2. `const_i` with value `1.0`: feeds `ampmidi.iscal`.
 3. `ampmidi`: reads played MIDI velocity.
-4. `const_i` nodes for attack, decay, sustain, and release: feed the required `madsr` ADSR inputs.
+4. I-rate sources for attack, decay, sustain, and release: generated `const_i` defaults or explicitly requested `perf_controller` nodes feed the required `madsr` ADSR inputs.
 5. `madsr`: generates the main amplitude envelope.
 6. `k_mul`: combines velocity amplitude and envelope.
 7. Source layer opcodes.
@@ -30,7 +30,8 @@ Every generated patch includes:
 - Source amplitudes must be scaled by `ampmidi` and `madsr`.
 - Pitch-aware sources must receive `cpsmidi.kfreq`.
 - `ampmidi.iscal` must be connected from `const_i.iout` with value `1.0`.
-- `madsr.iatt`, `madsr.idec`, `madsr.islev`, and `madsr.irel` must each be connected from `const_i.iout`.
+- `madsr.iatt`, `madsr.idec`, `madsr.islev`, and `madsr.irel` must each be connected from `const_i.iout` or `perf_controller.iout`. A K-rate MIDI controller is not a substitute for these initialization inputs.
+- `perf_controller` has no input connections. Its fixed configuration must be valid; see [performance controllers](performance_controllers.md). Keep controller node IDs stable so saved instance overrides continue to match.
 - `foscili` represents exactly one carrier/modulator FM pair. Multi-operator FM graphs must use explicit `oscil3` operators and audio-rate frequency modulation instead of multiple audible `foscili` layers.
 
 ## Node IDs

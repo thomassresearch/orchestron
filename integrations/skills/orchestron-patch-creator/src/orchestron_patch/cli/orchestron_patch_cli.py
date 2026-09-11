@@ -2,8 +2,10 @@
 from __future__ import annotations
 
 import argparse
+import copy
 from dataclasses import dataclass
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -862,6 +864,7 @@ def build_patch_payload(
         "guided": True,
     }
     graph["ui_layout"]["audio_blocks"] = {"main-output": True}
+    graph = apply_performance_controllers(graph, spec.get("performance_controllers"))
     graph = apply_input_formulas(graph, spec.get("formulas"))
 
     payload = {
@@ -873,6 +876,48 @@ def build_patch_payload(
     }
     validate_graph_invariants(payload["graph"])
     return payload
+
+
+def performance_controller_params(raw: dict[str, Any]) -> dict[str, Any]:
+    params = {"min": 0, "max": 1, "default": 0.5, "scale": "linear", "label": "Parameter", **raw}
+    numbers = [params[key] for key in ("min", "max", "default")]
+    if not all(isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) for value in numbers):
+        raise PatchCliError("invalid_performance_controller", "Minimum, maximum and default must be finite numbers.")
+    if not params["min"] < params["max"] or not params["min"] <= params["default"] <= params["max"]:
+        raise PatchCliError("invalid_performance_controller", "Require min < max and default within the range.")
+    if params["scale"] not in ("linear", "logarithmic") or (params["scale"] == "logarithmic" and params["min"] <= 0):
+        raise PatchCliError("invalid_performance_controller", "Use linear or logarithmic scale; logarithmic minimum must be positive.")
+    if not isinstance(params["label"], str) or not params["label"].strip() or len(params["label"]) > 128:
+        raise PatchCliError("invalid_performance_controller", "Controller label must contain 1–128 characters.")
+    return params
+
+
+def apply_performance_controllers(graph: dict[str, Any], definitions: Any) -> dict[str, Any]:
+    if definitions is None:
+        return graph
+    if not isinstance(definitions, list):
+        raise PatchCliError("invalid_performance_controller", "performance_controllers must be a list.")
+    graph = copy.deepcopy(graph)
+    nodes_by_id = {node["id"]: node for node in graph["nodes"]}
+    targets = set()
+    for index, definition in enumerate(definitions):
+        if not isinstance(definition, dict) or set(definition) - {"id", "target", "min", "max", "default", "scale", "label"}:
+            raise PatchCliError("invalid_performance_controller", "Use id, target, min, max, default, scale and label fields.")
+        node_id = definition.get("id")
+        if not isinstance(node_id, str) or not node_id.strip() or node_id in nodes_by_id:
+            raise PatchCliError("invalid_performance_controller", "Each controller needs a unique, nonempty node id.")
+        target = parse_port_ref(definition.get("target"), field=f"performance_controllers[{index}].target")
+        if target[0] not in nodes_by_id or target in targets:
+            raise PatchCliError("invalid_performance_controller", "Controller target must exist and be assigned only once.")
+        targets.add(target)
+        params = performance_controller_params({key: value for key, value in definition.items() if key not in ("id", "target")})
+        node = {"id": node_id, "opcode": "perf_controller", "params": params, "position": {"x": 40 + index * 260, "y": 650}}
+        graph["nodes"].insert(len(graph["nodes"]) - 2, node)
+        nodes_by_id[node_id] = node
+        graph["connections"] = [c for c in graph["connections"] if (c["to_node_id"], c["to_port_id"]) != target]
+        nodes_by_id[target[0]].get("params", {}).pop(target[1], None)
+        graph["connections"].append({"from_node_id": node_id, "from_port_id": "iout", "to_node_id": target[0], "to_port_id": target[1]})
+    return graph
 
 
 def source_params(layer: dict[str, Any]) -> dict[str, Any]:
@@ -962,6 +1007,11 @@ def validate_graph_invariants(graph: dict[str, Any]) -> None:
     if not isinstance(connections, list):
         raise PatchCliError("invalid_graph", "Generated graph connections are missing.")
     validate_stereo_output(graph)
+    for node in nodes:
+        if node.get("opcode") == "perf_controller":
+            performance_controller_params(node.get("params") or {})
+            if any(connection.get("to_node_id") == node["id"] for connection in connections):
+                raise PatchCliError("invalid_graph", "perf_controller has fixed configuration fields and no input sockets.")
     required_opcodes = {"cpsmidi", "ampmidi", "madsr"}
     present = {str(node.get("opcode")) for node in nodes}
     missing = sorted(required_opcodes - present)
@@ -988,6 +1038,7 @@ def validate_graph_invariants(graph: dict[str, Any]) -> None:
             target_port_id=target_port_id,
             expected_value=None,
             label=label,
+            allow_performance_controller=True,
         )
 
 
@@ -1033,6 +1084,7 @@ def require_const_i_connection(
     target_port_id: str,
     expected_value: float | None,
     label: str,
+    allow_performance_controller: bool = False,
 ) -> None:
     nodes_by_id = {str(node.get("id")): node for node in nodes}
     inbound = [
@@ -1040,11 +1092,13 @@ def require_const_i_connection(
         for connection in connections
         if connection.get("to_node_id") == target_node_id and connection.get("to_port_id") == target_port_id
     ]
+    allowed = {"const_i", "perf_controller"} if allow_performance_controller else {"const_i"}
+    source_description = "const_i.iout or perf_controller.iout" if allow_performance_controller else "const_i.iout"
     if len(inbound) != 1:
-        raise PatchCliError("invalid_graph", f"{label} must have exactly one const_i source connection.")
+        raise PatchCliError("invalid_graph", f"{label} must have exactly one I-rate source connection.")
     source = nodes_by_id.get(inbound[0].get("from_node_id", ""))
-    if not source or source.get("opcode") != "const_i" or inbound[0].get("from_port_id") != "iout":
-        raise PatchCliError("invalid_graph", f"{label} must be connected from const_i.iout.")
+    if not source or source.get("opcode") not in allowed or inbound[0].get("from_port_id") != "iout":
+        raise PatchCliError("invalid_graph", f"{label} must be connected from {source_description}.")
     if expected_value is not None:
         actual = _number((source.get("params") or {}).get("value"), default=float("nan"))
         if actual != expected_value:
@@ -1247,7 +1301,7 @@ def build_parser() -> argparse.ArgumentParser:
             "  orchestron_patch_cli --json patch create fm_pad.yaml --name \"Evolving FM Pad\" --compile\n"
             "  orchestron_patch_cli --json patch update PATCH_ID fm_pad.yaml --compile\n\n"
             "Spec principle: generated patches always use cpsmidi for pitch, ampmidi for velocity "
-            "with const_i scale 1.0, madsr with const_i ADSR inputs, pan2 for mono-to-stereo, "
+            "with const_i scale 1.0, madsr with I-rate constant/controller ADSR inputs, pan2 for mono-to-stereo, "
             "and a final Stereo Output block (paired outleta nodes with a stereo mapping). "
             "Use top-level formulas: entries to store GUI-compatible "
             "input formulas in graph.ui_layout.input_formulas."

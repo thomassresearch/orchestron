@@ -13,11 +13,12 @@ Use YAML or JSON. YAML is easier for authoring; JSON works without PyYAML. The C
 - `effects`: Optional mono effect chain.
 - `output`: Output pan configuration.
 - `formulas`: Optional opcode input formulas stored in `graph.ui_layout.input_formulas`.
+- `performance_controllers`: Optional ordered list of rack knob definitions; each has `id`, `target` (`NODE.PORT`), `min`, `max`, `default`, `scale`, and `label`. See [performance controllers](performance_controllers.md) for the schema, validation, and an executable example.
 - `is_template`: Optional boolean. Use only for intentionally incomplete or starter patches.
 
 ## Envelope
 
-The CLI always creates one `madsr` node and feeds its required i-rate ADSR inputs from explicit `const_i` nodes:
+The CLI creates one `madsr` node and initially feeds its required I-rate ADSR inputs from explicit `const_i` nodes. A `performance_controllers` entry targeting an ADSR port replaces that connection with `perf_controller.iout`:
 
 ```yaml
 envelope:

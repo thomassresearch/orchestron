@@ -21,6 +21,8 @@ Use `references/patch_spec.md`. Keep the spec explicit and readable. Include `na
 
 Add `formulas` only when an opcode input should scale or combine existing generated graph connections. If you are not sure about node IDs, render the graph first, inspect `graph.nodes[].id` and `graph.connections`, then add formula targets such as `osc_vco2.kamp`.
 
+For settings the user wants to tune per performance, add `performance_controllers` with stable IDs, useful ranges and defaults. See [performance controllers](performance_controllers.md). Render first when the target input ID is uncertain. Preserve an existing controller ID when changing its label or range.
+
 ## 4. Validate Before Backend Writes
 
 Run:
@@ -29,7 +31,7 @@ Run:
 uv run orchestron_patch_cli --json spec validate patch.yaml
 ```
 
-This checks supported families/opcodes and local graph invariants: `cpsmidi`, `ampmidi` with `const_i` scale `1.0`, `madsr` with `const_i` ADSR inputs, mono-to-stereo `pan2`, and a final Stereo Output block with two connected, named outlets and the main stereo mapping.
+This checks supported families/opcodes and local graph invariants: `cpsmidi`, `ampmidi` with `const_i` scale `1.0`, `madsr` with I-rate constant/controller ADSR inputs, valid controller configurations, mono-to-stereo `pan2`, and a final Stereo Output block with two connected, named outlets and the main stereo mapping. Backend compile preflight also checks controller target ports and signal compatibility.
 
 ## 5. Inspect The Graph When Needed
 

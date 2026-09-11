@@ -1,0 +1,65 @@
+{
+  "name": "Prism FM Pluck",
+  "description": "A harmonic 1:3 FM pair with a bright onset that softens into a glassy pluck. Release controls the tail after key-up; decay controls held notes. Suggested MIDI notes 48–84. Dry, velocity-sensitive, polyphonic. Three per-instance controls read on new notes. Route Stereo Output through the performance mixer to Master.",
+  "family": "fm_pad",
+  "envelope": {
+    "attack": 0.002,
+    "decay": 0.35,
+    "sustain": 0,
+    "release": 0.15
+  },
+  "layers": [
+    {
+      "id": "fm",
+      "opcode": "foscili",
+      "gain": 0.25,
+      "carrier_ratio": 1,
+      "mod_ratio": 3,
+      "mod_index": 1.2,
+      "table": 1,
+      "phase": 0
+    }
+  ],
+  "effects": [
+    {
+      "opcode": "butterhp",
+      "cutoff": 100
+    },
+    {
+      "opcode": "butterlp",
+      "cutoff": 10000
+    }
+  ],
+  "output": {
+    "pan": 0.5
+  },
+  "performance_controllers": [
+    {
+      "id": "prism_color",
+      "target": "fm_foscili.kndx",
+      "label": "Color",
+      "min": 0.15,
+      "max": 5,
+      "default": 1.2,
+      "scale": "logarithmic"
+    },
+    {
+      "id": "prism_decay",
+      "target": "amp_madsr.idec",
+      "label": "Decay (s)",
+      "min": 0.08,
+      "max": 1.8,
+      "default": 0.35,
+      "scale": "logarithmic"
+    },
+    {
+      "id": "prism_release",
+      "target": "amp_madsr.irel",
+      "label": "Release (s)",
+      "min": 0.03,
+      "max": 1.2,
+      "default": 0.15,
+      "scale": "logarithmic"
+    }
+  ]
+}

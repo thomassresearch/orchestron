@@ -1,0 +1,401 @@
+{
+  "name": "Psy Rotor Bass",
+  "description": "Phase-reset saw for rolling psy bass. Tone is the floor of a 3500 Hz envelope sweep; mild saturation precedes the ladder filter. Suggested MIDI notes 28–52. Dry, velocity-sensitive, polyphonic. Three per-instance controls read on new notes. Route Stereo Output through the performance mixer to Master.",
+  "is_template": false,
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "pitch_cpsmidi",
+        "opcode": "cpsmidi",
+        "params": {},
+        "position": {
+          "x": 40,
+          "y": 40
+        }
+      },
+      {
+        "id": "velocity_scale_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 1.0
+        },
+        "position": {
+          "x": 40,
+          "y": 270
+        }
+      },
+      {
+        "id": "velocity_ampmidi",
+        "opcode": "ampmidi",
+        "params": {},
+        "position": {
+          "x": 340,
+          "y": 40
+        }
+      },
+      {
+        "id": "env_attack_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.002
+        },
+        "position": {
+          "x": 40,
+          "y": 500
+        }
+      },
+      {
+        "id": "env_sustain_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.0
+        },
+        "position": {
+          "x": 40,
+          "y": 730
+        }
+      },
+      {
+        "id": "env_release_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.012
+        },
+        "position": {
+          "x": 40,
+          "y": 960
+        }
+      },
+      {
+        "id": "amp_madsr",
+        "opcode": "madsr",
+        "params": {},
+        "position": {
+          "x": 340,
+          "y": 270
+        }
+      },
+      {
+        "id": "amp_velocity_envelope",
+        "opcode": "k_mul",
+        "params": {},
+        "position": {
+          "x": 640,
+          "y": 40
+        }
+      },
+      {
+        "id": "saw_gain",
+        "opcode": "const_k",
+        "params": {
+          "value": 0.65
+        },
+        "position": {
+          "x": 40,
+          "y": 1190
+        }
+      },
+      {
+        "id": "saw_amp",
+        "opcode": "k_mul",
+        "params": {},
+        "position": {
+          "x": 940,
+          "y": 40
+        }
+      },
+      {
+        "id": "saw_vco2",
+        "opcode": "vco2",
+        "params": {
+          "imode": 0,
+          "kphs": 0
+        },
+        "position": {
+          "x": 1240,
+          "y": 40
+        }
+      },
+      {
+        "id": "effect_1_distort1",
+        "opcode": "distort1",
+        "params": {
+          "kpostgain": 0.42,
+          "kshape1": 0,
+          "kshape2": 0,
+          "imode": 1
+        },
+        "position": {
+          "x": 1540,
+          "y": 40
+        }
+      },
+      {
+        "id": "effect_2_moogladder2",
+        "opcode": "moogladder2",
+        "params": {
+          "xres": 0.16
+        },
+        "position": {
+          "x": 1840,
+          "y": 40
+        }
+      },
+      {
+        "id": "output_pan2",
+        "opcode": "pan2",
+        "params": {
+          "xp": 0.5,
+          "imode": 0
+        },
+        "position": {
+          "x": 2140,
+          "y": 40
+        }
+      },
+      {
+        "id": "rotor_decay",
+        "opcode": "perf_controller",
+        "params": {
+          "min": 0.04,
+          "max": 0.25,
+          "default": 0.1,
+          "scale": "logarithmic",
+          "label": "Decay (s)"
+        },
+        "position": {
+          "x": 40,
+          "y": 1420
+        }
+      },
+      {
+        "id": "rotor_tone",
+        "opcode": "perf_controller",
+        "params": {
+          "min": 100,
+          "max": 1800,
+          "default": 350,
+          "scale": "logarithmic",
+          "label": "Tone (Hz)"
+        },
+        "position": {
+          "x": 40,
+          "y": 1650
+        }
+      },
+      {
+        "id": "rotor_drive",
+        "opcode": "perf_controller",
+        "params": {
+          "min": 1,
+          "max": 5,
+          "default": 1.8,
+          "scale": "logarithmic",
+          "label": "Drive"
+        },
+        "position": {
+          "x": 40,
+          "y": 1880
+        }
+      },
+      {
+        "id": "output_left",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 2440,
+          "y": 40
+        }
+      },
+      {
+        "id": "output_right",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 2440,
+          "y": 270
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "velocity_scale_const",
+        "from_port_id": "iout",
+        "to_node_id": "velocity_ampmidi",
+        "to_port_id": "iscal"
+      },
+      {
+        "from_node_id": "env_attack_const",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "iatt"
+      },
+      {
+        "from_node_id": "env_sustain_const",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "islev"
+      },
+      {
+        "from_node_id": "env_release_const",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "irel"
+      },
+      {
+        "from_node_id": "velocity_ampmidi",
+        "from_port_id": "iamp",
+        "to_node_id": "amp_velocity_envelope",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "amp_madsr",
+        "from_port_id": "kenv",
+        "to_node_id": "amp_velocity_envelope",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "saw_amp",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "saw_gain",
+        "from_port_id": "kout",
+        "to_node_id": "saw_amp",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "saw_amp",
+        "from_port_id": "kout",
+        "to_node_id": "saw_vco2",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "saw_vco2",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "saw_vco2",
+        "from_port_id": "asig",
+        "to_node_id": "effect_1_distort1",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "effect_1_distort1",
+        "from_port_id": "aout",
+        "to_node_id": "effect_2_moogladder2",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "output_pan2",
+        "from_port_id": "aleft",
+        "to_node_id": "output_left",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "output_pan2",
+        "from_port_id": "aright",
+        "to_node_id": "output_right",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "rotor_decay",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "idec"
+      },
+      {
+        "from_node_id": "rotor_drive",
+        "from_port_id": "iout",
+        "to_node_id": "effect_1_distort1",
+        "to_port_id": "kpregain"
+      },
+      {
+        "from_node_id": "rotor_tone",
+        "from_port_id": "iout",
+        "to_node_id": "effect_2_moogladder2",
+        "to_port_id": "xcf"
+      },
+      {
+        "from_node_id": "amp_madsr",
+        "from_port_id": "kenv",
+        "to_node_id": "effect_2_moogladder2",
+        "to_port_id": "xcf"
+      },
+      {
+        "from_node_id": "effect_2_moogladder2",
+        "from_port_id": "aout",
+        "to_node_id": "output_pan2",
+        "to_port_id": "asig"
+      }
+    ],
+    "ui_layout": {
+      "audio_blocks": {
+        "main-output": true
+      },
+      "input_formulas": {
+        "effect_2_moogladder2::xcf": {
+          "expression": "tone + 3500 * env * env",
+          "inputs": [
+            {
+              "token": "tone",
+              "from_node_id": "rotor_tone",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "env",
+              "from_node_id": "amp_madsr",
+              "from_port_id": "kenv"
+            }
+          ]
+        },
+        "output_pan2::asig": {
+          "expression": "signal * 0.85",
+          "inputs": [
+            {
+              "token": "signal",
+              "from_node_id": "effect_2_moogladder2",
+              "from_port_id": "aout"
+            }
+          ]
+        }
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 750,
+      "ksmps": 64,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1.0
+    },
+    "audio_interface": {
+      "role": "instrument",
+      "groups": [
+        {
+          "id": "main-output",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainOutput": "main-output",
+      "guided": true
+    }
+  }
+}
