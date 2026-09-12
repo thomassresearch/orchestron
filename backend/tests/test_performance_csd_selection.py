@@ -205,6 +205,9 @@ def test_csd_descriptions_are_readable_safe_comments_and_compile(tmp_path, mode,
     payload = _performance_csd_export_payload()
     payload["eventSource"] = mode
     payload["performanceExport"]["performance"]["name"] = "Dreams & Drones <Live>"
+    payload["performanceExport"]["performance"]["description"] = (
+        "A visual & routed <journey>\r\nSecond movement\n-- encore --"
+    )
     payload["performanceExport"]["exported_at"] = "2026-09-12T17:55:00+02:00 -- Zürich"
     config = payload["performanceExport"]["performance"]["config"]
     if mixer:
@@ -216,9 +219,13 @@ def test_csd_descriptions_are_readable_safe_comments_and_compile(tmp_path, mode,
         csd, files = read_export(client, payload)
     assert csd.startswith(
         "<!--\n"
-        "This CSD was created with Orchestron.\n"
         "Performance: Dreams &amp; Drones &lt;Live&gt;\n"
+        "Description: A visual &amp; routed &lt;journey&gt;\n"
+        "  Second movement\n"
+        "  - - encore - -\n"
         "Created: 2026-09-12T17:55:00+02:00 - - Zürich\n"
+        "\n"
+        "This CSD was created with Orchestron.\n"
     )
     assert "Design instruments visually and hear ideas take shape." in csd
     assert "Build expressive performances with sequencers, arpeggiators, live controls, and flexible audio routing." in csd

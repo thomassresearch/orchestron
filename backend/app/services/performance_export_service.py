@@ -227,6 +227,7 @@ class PerformanceExportService:
             csd = self._build_offline_score_csd(
                 orc=self._rewrite_orc_for_offline_render(compile_artifact.orc),
                 performance_title=request.performance_export.performance.name,
+                performance_description=request.performance_export.performance.description,
                 created_at=request.performance_export.exported_at,
                 output_wave_name=output_wave_name,
                 score_lines=score_lines,
@@ -243,6 +244,7 @@ class PerformanceExportService:
             csd = self._build_offline_midi_csd(
                 orc=self._rewrite_orc_for_offline_render(compile_artifact.orc),
                 performance_title=request.performance_export.performance.name,
+                performance_description=request.performance_export.performance.description,
                 created_at=request.performance_export.exported_at,
                 midi_file_name=midi_file_name,
                 output_wave_name=output_wave_name,
@@ -473,6 +475,7 @@ class PerformanceExportService:
         *,
         orc: str,
         performance_title: str,
+        performance_description: str,
         created_at: str,
         midi_file_name: str,
         output_wave_name: str,
@@ -482,6 +485,7 @@ class PerformanceExportService:
             [
                 PerformanceExportService._build_csd_header(
                     performance_title=performance_title,
+                    performance_description=performance_description,
                     created_at=created_at,
                 ),
                 "<CsoundSynthesizer>",
@@ -504,6 +508,7 @@ class PerformanceExportService:
         *,
         orc: str,
         performance_title: str,
+        performance_description: str,
         created_at: str,
         output_wave_name: str,
         score_lines: list[str],
@@ -513,6 +518,7 @@ class PerformanceExportService:
             [
                 PerformanceExportService._build_csd_header(
                     performance_title=performance_title,
+                    performance_description=performance_description,
                     created_at=created_at,
                 ),
                 "<CsoundSynthesizer>",
@@ -531,7 +537,12 @@ class PerformanceExportService:
         )
 
     @staticmethod
-    def _build_csd_header(*, performance_title: str, created_at: str) -> str:
+    def _build_csd_header(
+        *,
+        performance_title: str,
+        performance_description: str,
+        created_at: str,
+    ) -> str:
         def xml_comment_value(value: str) -> str:
             escaped = "".join(
                 character if ord(character) >= 32 and character not in "\x7f" else f"\\x{ord(character):02x}"
@@ -539,15 +550,18 @@ class PerformanceExportService:
             )
             escaped = escaped.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
             escaped = escaped.replace("--", "- -")
-            return escaped + (" " if escaped.endswith("-") else "")
+            return escaped
 
+        description_lines = performance_description.splitlines() or [""]
         return "\n".join(
             [
                 "<!--",
-                "This CSD was created with Orchestron.",
                 f"Performance: {xml_comment_value(performance_title)}",
+                f"Description: {xml_comment_value(description_lines[0])}",
+                *(f"  {xml_comment_value(line)}" for line in description_lines[1:]),
                 f"Created: {xml_comment_value(created_at)}",
                 "",
+                "This CSD was created with Orchestron.",
                 "Design instruments visually and hear ideas take shape.",
                 "Build expressive performances with sequencers, arpeggiators, live controls, and flexible audio routing.",
                 "Export portable Csound projects for rendering, sharing, and further sound design.",
