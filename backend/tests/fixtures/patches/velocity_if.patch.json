@@ -1,0 +1,289 @@
+{
+  "name": "Velocity timbres",
+  "description": "Soft notes: sine. Velocity >= 0.65: saw. If selects one timbre at note start; each voice retains its decay.",
+  "is_template": false,
+  "always_on": false,
+  "schema_version": 2,
+  "graph": {
+    "nodes": [
+      {
+        "id": "velocity",
+        "opcode": "ampmidi",
+        "params": {
+          "iscal": 1
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "branch",
+        "opcode": "If",
+        "params": {
+          "rhs": 0.65
+        },
+        "position": {
+          "x": 320.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "first_env",
+        "opcode": "linseg",
+        "params": {
+          "ia": 0,
+          "idur1": 0.002,
+          "ib": 1,
+          "idur2": 0.3,
+          "ic": 0
+        },
+        "position": {
+          "x": 320.0,
+          "y": 280.0
+        }
+      },
+      {
+        "id": "first_tail",
+        "opcode": "xtratim",
+        "params": {
+          "iextradur": 0.32
+        },
+        "position": {
+          "x": 570.0,
+          "y": 520.0
+        }
+      },
+      {
+        "id": "first_osc",
+        "opcode": "vco2",
+        "params": {
+          "kcps": 220,
+          "imode": 0
+        },
+        "position": {
+          "x": 900.0,
+          "y": 280.0
+        }
+      },
+      {
+        "id": "result",
+        "opcode": "CaseResult",
+        "params": {},
+        "position": {
+          "x": 1300.0,
+          "y": 280.0
+        }
+      },
+      {
+        "id": "default_env",
+        "opcode": "linseg",
+        "params": {
+          "ia": 0,
+          "idur1": 0.002,
+          "ib": 1,
+          "idur2": 0.3,
+          "ic": 0
+        },
+        "position": {
+          "x": 320.0,
+          "y": 830.0
+        }
+      },
+      {
+        "id": "default_tail",
+        "opcode": "xtratim",
+        "params": {
+          "iextradur": 0.32
+        },
+        "position": {
+          "x": 570.0,
+          "y": 1070.0
+        }
+      },
+      {
+        "id": "default_osc",
+        "opcode": "oscili",
+        "params": {
+          "freq": 220,
+          "ifn": -1
+        },
+        "position": {
+          "x": 900.0,
+          "y": 830.0
+        }
+      },
+      {
+        "id": "fallback",
+        "opcode": "CaseResult",
+        "params": {},
+        "position": {
+          "x": 1300.0,
+          "y": 830.0
+        }
+      },
+      {
+        "id": "out",
+        "opcode": "outs",
+        "params": {},
+        "position": {
+          "x": 1050.0,
+          "y": 0.0
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "velocity",
+        "from_port_id": "iamp",
+        "to_node_id": "branch",
+        "to_port_id": "lhs"
+      },
+      {
+        "from_node_id": "first_env",
+        "from_port_id": "kenv",
+        "to_node_id": "first_osc",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "velocity",
+        "from_port_id": "iamp",
+        "to_node_id": "first_osc",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "first_osc",
+        "from_port_id": "asig",
+        "to_node_id": "result",
+        "to_port_id": "left"
+      },
+      {
+        "from_node_id": "first_osc",
+        "from_port_id": "asig",
+        "to_node_id": "result",
+        "to_port_id": "right"
+      },
+      {
+        "from_node_id": "default_env",
+        "from_port_id": "kenv",
+        "to_node_id": "default_osc",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "velocity",
+        "from_port_id": "iamp",
+        "to_node_id": "default_osc",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "default_osc",
+        "from_port_id": "asig",
+        "to_node_id": "fallback",
+        "to_port_id": "left"
+      },
+      {
+        "from_node_id": "default_osc",
+        "from_port_id": "asig",
+        "to_node_id": "fallback",
+        "to_port_id": "right"
+      },
+      {
+        "from_node_id": "branch",
+        "from_port_id": "left",
+        "to_node_id": "out",
+        "to_port_id": "left"
+      },
+      {
+        "from_node_id": "branch",
+        "from_port_id": "right",
+        "to_node_id": "out",
+        "to_port_id": "right"
+      }
+    ],
+    "ui_layout": {
+      "input_formulas": {
+        "first_osc::kamp": {
+          "expression": "in1 * in2 * 0.12",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "first_env",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "in2",
+              "from_node_id": "velocity",
+              "from_port_id": "iamp"
+            }
+          ]
+        },
+        "default_osc::amp": {
+          "expression": "in1 * in2 * 0.12",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "default_env",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "in2",
+              "from_node_id": "velocity",
+              "from_port_id": "iamp"
+            }
+          ]
+        }
+      },
+      "control_flow_blocks": {
+        "branch": false
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 1500,
+      "ksmps": 32,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "zero_dbfs": 1.0
+    },
+    "audio_interface": null,
+    "control_flow": {
+      "branch": {
+        "kind": "if",
+        "output_format": "stereo",
+        "operator": ">=",
+        "cases": [
+          {
+            "id": "first",
+            "name": "Bright",
+            "value": null,
+            "node_ids": [
+              "first_env",
+              "first_tail",
+              "first_osc",
+              "result"
+            ],
+            "result_node_id": "result",
+            "silence": false
+          },
+          {
+            "id": "default",
+            "name": "Soft",
+            "value": null,
+            "node_ids": [
+              "default_env",
+              "default_tail",
+              "default_osc",
+              "fallback"
+            ],
+            "result_node_id": "fallback",
+            "silence": false
+          }
+        ]
+      }
+    }
+  },
+  "id": "example-velocity-if",
+  "created_at": "2026-09-08T19:47:47.350682Z",
+  "updated_at": "2026-09-08T19:47:47.350760Z"
+}

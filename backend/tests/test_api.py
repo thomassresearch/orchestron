@@ -23,6 +23,7 @@ from backend.app.models.patch import (
     MAX_GEN_TABLE_SIZE,
 )
 from backend.app.services import performance_export_service
+from backend.tests.csound_test_support import orc_code_lines
 from backend.app.services.gen_asset_service import GenAssetService
 from backend.app.services.persisted_json_limits import PERSISTED_JSON_REQUEST_OVERHEAD_BYTES
 from backend.app.services.performance_export_service import (
@@ -1387,10 +1388,10 @@ def test_midi_opcodes_and_vco_compile_flow(tmp_path: Path) -> None:
         compiled_csd = compile_response.json()["csd"]
         assert "cpsmidi" in compiled_orc
         assert "f 1 0 16384 10 1" in compiled_csd
-        cpsmidi_line = next(line.strip() for line in compiled_orc.splitlines() if " cpsmidi" in line)
+        cpsmidi_line = next(line.strip() for line in orc_code_lines(compiled_orc) if " cpsmidi" in line)
         assert cpsmidi_line.startswith("i_")
         assert "midictrl" in compiled_orc
-        vco_line = next(line.strip() for line in compiled_orc.splitlines() if " vco " in line)
+        vco_line = next(line.strip() for line in orc_code_lines(compiled_orc) if " vco " in line)
         assert vco_line.endswith(", 0.5")
         assert not vco_line.endswith(", 0.5, 0")
 
@@ -1433,7 +1434,7 @@ def test_vco_accepts_audio_rate_frequency_input(tmp_path: Path) -> None:
         assert compile_response.status_code == 200
         compiled_orc = compile_response.json()["orc"]
         assert " oscili " in compiled_orc
-        vco_line = next(line.strip() for line in compiled_orc.splitlines() if " vco " in line)
+        vco_line = next(line.strip() for line in orc_code_lines(compiled_orc) if " vco " in line)
         assert vco_line.endswith(", 0.5")
         assert not vco_line.endswith(", 0.5, 0")
 
@@ -1474,7 +1475,7 @@ def test_vco_with_explicit_ifn_keeps_function_table_argument(tmp_path: Path) -> 
         compile_response = client.post(f"/api/sessions/{session_id}/compile")
         assert compile_response.status_code == 200
         compiled_orc = compile_response.json()["orc"]
-        vco_line = next(line.strip() for line in compiled_orc.splitlines() if " vco " in line)
+        vco_line = next(line.strip() for line in orc_code_lines(compiled_orc) if " vco " in line)
         assert vco_line.endswith(", 0.5, i_n2_iout_1")
 
 
@@ -1512,7 +1513,7 @@ def test_syncphasor_compile_flow(tmp_path: Path) -> None:
         assert compile_response.status_code == 200
         compiled_orc = compile_response.json()["orc"]
 
-        syncphasor_line = next(line.strip() for line in compiled_orc.splitlines() if " syncphasor " in line)
+        syncphasor_line = next(line.strip() for line in orc_code_lines(compiled_orc) if " syncphasor " in line)
         outputs_fragment = syncphasor_line.split(" syncphasor ", 1)[0]
         assert "," in outputs_fragment
         assert syncphasor_line.endswith(", 0.25")
@@ -1558,7 +1559,7 @@ def test_platerev_compile_flow(tmp_path: Path) -> None:
         compiled_orc = compile_response.json()["orc"]
         assert "__VS_OPTIONAL_OMIT__" not in compiled_orc
 
-        platerev_line = next(line.strip() for line in compiled_orc.splitlines() if " platerev " in line)
+        platerev_line = next(line.strip() for line in orc_code_lines(compiled_orc) if " platerev " in line)
         outputs_fragment = platerev_line.split(" platerev ", 1)[0]
         assert "," in outputs_fragment
         assert "platerev 1, 1, 0.9" in platerev_line
@@ -1610,10 +1611,10 @@ def test_ftgen_output_connects_to_vco_ifn(tmp_path: Path) -> None:
         assert compile_response.status_code == 200
         compiled_orc = compile_response.json()["orc"]
 
-        ftgen_line = next(line.strip() for line in compiled_orc.splitlines() if " ftgen " in line)
+        ftgen_line = next(line.strip() for line in orc_code_lines(compiled_orc) if " ftgen " in line)
         assert ftgen_line.endswith("ftgen 7, 0, 8192, 10, 1")
 
-        vco_line = next(line.strip() for line in compiled_orc.splitlines() if " vco " in line)
+        vco_line = next(line.strip() for line in orc_code_lines(compiled_orc) if " vco " in line)
         assert vco_line.endswith(", 0.5, i_n1_ift_1")
 
 
@@ -1673,7 +1674,7 @@ def test_gen_meta_opcode_renders_ftgen_line(tmp_path: Path) -> None:
         assert compile_response.status_code == 200
         compiled_orc = compile_response.json()["orc"]
 
-        gen_line = next(line.strip() for line in compiled_orc.splitlines() if " ftgen " in line)
+        gen_line = next(line.strip() for line in orc_code_lines(compiled_orc) if " ftgen " in line)
         assert gen_line.endswith("ftgen 0, 0, 4096, 10, 1, 0.5, 0.25")
 
 
@@ -1726,7 +1727,7 @@ def test_gen_meta_opcode_allows_max_table_size(tmp_path: Path) -> None:
 
         compile_response = client.post(f"/api/sessions/{create_session.json()['session_id']}/compile")
         assert compile_response.status_code == 200
-        gen_line = next(line.strip() for line in compile_response.json()["orc"].splitlines() if " ftgen " in line)
+        gen_line = next(line.strip() for line in orc_code_lines(compile_response.json()["orc"]) if " ftgen " in line)
         assert gen_line.endswith(f"ftgen 0, 0, {MAX_GEN_TABLE_SIZE}, 10, 1")
 
 
@@ -2454,6 +2455,9 @@ def test_performance_csd_score_export_inlines_score_and_rewrites_midi_opcodes(tm
 
 def test_performance_csd_midi_export_seeds_enabled_midi_controller_values(tmp_path: Path) -> None:
     payload = _performance_csd_export_payload()
+    payload["performanceExport"]["performance"]["config"]["sequencer"] = {
+        "pianoRolls": [{"midiChannel": 4, "enabled": True}]
+    }
     payload["midiControllers"] = [
         {"controllerNumber": 10, "value": 91, "enabled": True},
         {"controllerNumber": 11, "value": 37, "enabled": True},
@@ -2506,6 +2510,9 @@ def test_performance_csd_midi_export_seeds_enabled_midi_controller_values(tmp_pa
 
 def test_performance_csd_score_export_seeds_enabled_midi_controller_values(tmp_path: Path) -> None:
     payload = _performance_csd_export_payload()
+    payload["performanceExport"]["performance"]["config"]["sequencer"] = {
+        "pianoRolls": [{"midiChannel": 4, "enabled": True}]
+    }
     payload["eventSource"] = "score"
     payload["midiControllers"] = [
         {"controllerNumber": 10, "value": 91, "enabled": True},
@@ -3894,7 +3901,7 @@ def test_gen01_uploaded_asset_uses_numeric_filecode_alias(tmp_path: Path) -> Non
         assert compile_response.status_code == 200
         compiled_orc = compile_response.json()["orc"]
 
-        gen01_line = next(line.strip() for line in compiled_orc.splitlines() if " ftgen 5, 0, 0, 1," in line)
+        gen01_line = next(line.strip() for line in orc_code_lines(compiled_orc) if " ftgen 5, 0, 0, 1," in line)
         assert "ftgenonce" not in gen01_line
         assert '"sample.aiff"' not in gen01_line
         assert "S_g1_gen01_file" not in gen01_line
@@ -4139,7 +4146,7 @@ def test_gen01_ftgenonce_mode_is_coerced_to_ftgen(tmp_path: Path) -> None:
         assert compile_response.status_code == 200
         compiled_orc = compile_response.json()["orc"]
 
-        gen01_line = next(line.strip() for line in compiled_orc.splitlines() if " ftgen 5, " in line)
+        gen01_line = next(line.strip() for line in orc_code_lines(compiled_orc) if " ftgen 5, " in line)
         assert " ftgenonce " not in gen01_line
         assert "S_g1_gen01_file" not in gen01_line
 
@@ -4231,16 +4238,16 @@ def test_gen_meta_opcode_supports_gen08_gen11_gen17_gen20(tmp_path: Path) -> Non
         assert compile_response.status_code == 200
         compiled_orc = compile_response.json()["orc"]
 
-        gen08_line = next(line.strip() for line in compiled_orc.splitlines() if " ftgen 8, 0, 512, 8," in line)
+        gen08_line = next(line.strip() for line in orc_code_lines(compiled_orc) if " ftgen 8, 0, 512, 8," in line)
         assert gen08_line.endswith("ftgen 8, 0, 512, 8, 1, 0.3, 0.5, 0.7, 0.125")
 
-        gen11_line = next(line.strip() for line in compiled_orc.splitlines() if " ftgen 11, 0, 2048, 11," in line)
+        gen11_line = next(line.strip() for line in orc_code_lines(compiled_orc) if " ftgen 11, 0, 2048, 11," in line)
         assert gen11_line.endswith("ftgen 11, 0, 2048, 11, 8, 2, 0.5")
 
-        gen17_line = next(line.strip() for line in compiled_orc.splitlines() if " ftgen 17, 0, 128, -17," in line)
+        gen17_line = next(line.strip() for line in orc_code_lines(compiled_orc) if " ftgen 17, 0, 128, -17," in line)
         assert gen17_line.endswith("ftgen 17, 0, 128, -17, 0, 60, 12, 62, 24, 67")
 
-        gen20_line = next(line.strip() for line in compiled_orc.splitlines() if " ftgenonce 20, 0, 1024, 20," in line)
+        gen20_line = next(line.strip() for line in orc_code_lines(compiled_orc) if " ftgenonce 20, 0, 1024, 20," in line)
         assert gen20_line.endswith("ftgenonce 20, 0, 1024, 20, 7, 1, 6.8")
 
 
@@ -4290,7 +4297,7 @@ def test_gen_meta_opcode_supports_genpadsynth_named_routine(tmp_path: Path) -> N
         assert compile_response.status_code == 200
         compiled_orc = compile_response.json()["orc"]
 
-        padsynth_line = next(line.strip() for line in compiled_orc.splitlines() if ' ftgenonce 21, 0, 262144, "padsynth",' in line)
+        padsynth_line = next(line.strip() for line in orc_code_lines(compiled_orc) if ' ftgenonce 21, 0, 262144, "padsynth",' in line)
         assert padsynth_line.endswith('ftgenonce 21, 0, 262144, "padsynth", 261.625565, 55, 0, 1, 1, 1, 1, 0.5, 0.25')
 
 
@@ -5220,14 +5227,14 @@ def test_compile_supports_additional_opcodes(tmp_path: Path) -> None:
         ]:
             assert opcode in compiled_orc
         assert any(" voice " in line for line in compiled_orc.splitlines())
-        mxadsr_line = next(line.strip() for line in compiled_orc.splitlines() if " mxadsr " in line)
+        mxadsr_line = next(line.strip() for line in orc_code_lines(compiled_orc) if " mxadsr " in line)
         assert mxadsr_line.count(",") == 5
-        flanger_line = next(line.strip() for line in compiled_orc.splitlines() if " flanger " in line)
+        flanger_line = next(line.strip() for line in orc_code_lines(compiled_orc) if " flanger " in line)
         assert ", a(" in flanger_line
-        vdelayxs_line = next(line.strip() for line in compiled_orc.splitlines() if " vdelayxs " in line)
+        vdelayxs_line = next(line.strip() for line in orc_code_lines(compiled_orc) if " vdelayxs " in line)
         assert ", a(" in vdelayxs_line
-        sfload_line = next(line for line in compiled_orc.splitlines() if ' sfload "test.sf2"' in line)
-        maxalloc_line = next(line for line in compiled_orc.splitlines() if line.strip().startswith("maxalloc "))
+        sfload_line = next(line for line in orc_code_lines(compiled_orc) if ' sfload "test.sf2"' in line)
+        maxalloc_line = next(line for line in orc_code_lines(compiled_orc) if line.strip().startswith("maxalloc "))
         instr_line_index = compiled_orc.splitlines().index("instr 1")
         sfload_line_index = compiled_orc.splitlines().index(sfload_line)
         maxalloc_line_index = compiled_orc.splitlines().index(maxalloc_line)
@@ -5411,7 +5418,7 @@ def test_mxadsr_supports_legacy_idrss_param_key(tmp_path: Path) -> None:
         assert compile_response.status_code == 200
         compiled_orc = compile_response.json()["orc"]
 
-        mxadsr_line = next(line.strip() for line in compiled_orc.splitlines() if " mxadsr " in line)
+        mxadsr_line = next(line.strip() for line in orc_code_lines(compiled_orc) if " mxadsr " in line)
         assert mxadsr_line.endswith(", 0, 0.75")
 
 
@@ -5466,7 +5473,7 @@ def test_flanger_accepts_audio_delay_input_without_forced_cast(tmp_path: Path) -
         assert compile_response.status_code == 200
         compiled_orc = compile_response.json()["orc"]
 
-        flanger_line = next(line.strip() for line in compiled_orc.splitlines() if " flanger " in line)
+        flanger_line = next(line.strip() for line in orc_code_lines(compiled_orc) if " flanger " in line)
         assert "a(a_" not in flanger_line
 
 
@@ -5516,7 +5523,7 @@ def test_vdelayxs_accepts_init_delay_input_with_audio_cast(tmp_path: Path) -> No
         assert compile_response.status_code == 200
         compiled_orc = compile_response.json()["orc"]
 
-        vdelayxs_line = next(line.strip() for line in compiled_orc.splitlines() if " vdelayxs " in line)
+        vdelayxs_line = next(line.strip() for line in orc_code_lines(compiled_orc) if " vdelayxs " in line)
         assert "a(i_" in vdelayxs_line
 
 
@@ -5552,7 +5559,7 @@ def test_reverb2_compiles_with_iskip_without_optional_gap(tmp_path: Path) -> Non
         assert compile_response.status_code == 200
         compiled_orc = compile_response.json()["orc"]
 
-        reverb2_line = next(line.strip() for line in compiled_orc.splitlines() if " reverb2 " in line)
+        reverb2_line = next(line.strip() for line in orc_code_lines(compiled_orc) if " reverb2 " in line)
         assert reverb2_line.endswith("reverb2 0, 1.5, 0.5, 1")
 
 
@@ -5606,7 +5613,7 @@ def test_sfload_uploaded_asset_uses_relative_stored_name(tmp_path: Path) -> None
         assert compile_response.status_code == 200
         compiled_orc = compile_response.json()["orc"]
 
-        sfload_line = next(line for line in compiled_orc.splitlines() if ' sfload "' in line)
+        sfload_line = next(line for line in orc_code_lines(compiled_orc) if ' sfload "' in line)
         assert f' sfload "{stored_name}"' in sfload_line
         assert str(asset_dir) not in compiled_orc
 

@@ -575,6 +575,9 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 - Starting instruments builds the current rack into a live backend session.
 - The state badge reflects the backend instrument engine, not only the arranger transport.
 - Import/export writes the perform configuration as JSON/ZIP so a live setup can be moved to another machine.
+- Both CSD modes include instruments assigned to melodic/drummer sequencers, piano-roll keyboards and arpeggiator output channels, even for stopped or empty devices, plus continuous instruments referenced by mixer routing, Master or inserts (including continuous generators with implicit direct output). Unused rack instances and their exclusive assets are omitted. Native Export keeps the complete rack.
+- CSD comments contain instrument descriptions and instance references, routing endpoints and ports, Master/insert roles, direct-output bypasses, pre/post-fader taps and initial mixer settings.
+- Each CSD starts with an Orchestron header containing the performance title, creation timestamp, a short feature introduction and the project GitHub link.
 - \`Export CSD (MIDI)\` writes a separate offline render ZIP with the compiled performance CSD, arranger MIDI file, bundled assets, and exact Csound render instructions. \`Export CSD (SCORE)\` embeds notes and controller sweeps directly in the Csound score and omits the MIDI file. Both CSD render modes seed enabled manual MIDI Controller lane values at render start and write 32-bit float WAV output to preserve headroom.`,
     german: `### Rack-Verhalten
 
@@ -586,6 +589,9 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 - Das Starten der Instrumente baut das aktuelle Rack als Live-Session im Backend auf.
 - Das Status-Badge zeigt den Zustand der Backend-Instrument-Engine, nicht nur den Arranger-Transport.
 - Import/Export schreibt die Perform-Konfiguration als JSON/ZIP, damit ein Live-Setup auf einen anderen Rechner uebertragen werden kann.
+- Beide CSD-Modi enthalten Instrumente, die Melodie-/Drum-Sequencern, Piano-Roll-Keyboards oder Arpeggiator-Ausgangskanaelen zugeordnet sind, auch bei gestoppten oder leeren Geraeten, sowie kontinuierliche Instrumente im Mixer-Routing, Master oder Inserts (einschliesslich kontinuierlicher Generatoren mit implizitem Direktausgang). Unbenutzte Rack-Instanzen und ihre exklusiven Assets entfallen. Der native Export behaelt das gesamte Rack.
+- CSD-Kommentare enthalten Instrumentbeschreibungen und Instanzreferenzen, Routing-Endpunkte und Ports, Master-/Insert-Rollen, Direktausgaenge am Master vorbei, Pre-/Post-Fader-Abgriffe und anfaengliche Mixer-Einstellungen.
+- Jede CSD beginnt mit einem Orchestron-Header mit Performance-Titel, Erstellungszeitpunkt, einer kurzen Funktionsbeschreibung und dem GitHub-Link des Projekts.
 - \`Export CSD (MIDI)\` schreibt ein separates Offline-Render-ZIP mit der kompilierten Performance-CSD, der Arranger-MIDI-Datei, gebuendelten Assets und dem exakten Csound-Renderkommando. \`Export CSD (SCORE)\` bettet Noten und Controller-Sweeps direkt in die Csound-Score ein und laesst die MIDI-Datei weg. Beide CSD-Render-Modi initialisieren aktivierte manuelle MIDI-Controller-Spuren beim Renderstart und schreiben 32-bit-Float-WAV-Ausgabe, um Headroom zu erhalten.`,
     french: `### Comportement du rack
 
@@ -597,6 +603,9 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 - Le demarrage des instruments construit le rack courant comme session live cote backend.
 - Le badge d'etat reflete l'etat reel du moteur instrument backend, pas seulement le transport de l'arrangeur.
 - L'import/export ecrit la configuration Perform en JSON/ZIP pour deplacer facilement un setup live vers une autre machine.
+- Les deux modes CSD incluent les instruments affectes aux sequenceurs melodiques/de batterie, claviers piano-roll et canaux de sortie des arpegiateurs, meme pour des appareils arretes ou vides, ainsi que les instruments continus references par le routage du mixeur, le Master ou les inserts (y compris les generateurs continus avec sortie directe implicite). Les instances inutilisees et leurs assets exclusifs sont omis. L'export natif conserve tout le rack.
+- Les commentaires CSD contiennent les descriptions et references des instruments, les extremites et ports du routage, les roles Master/insert, les sorties contournant le Master, les prises pre/post-fader et les reglages initiaux du mixeur.
+- Chaque CSD commence par un en-tete Orchestron contenant le titre de la performance, l'horodatage de creation, une breve presentation des fonctions et le lien GitHub du projet.
 - \`Export CSD (MIDI)\` ecrit un ZIP de rendu hors ligne distinct avec la CSD compilee de la performance, le fichier MIDI de l'arrangeur, les assets inclus et la commande Csound exacte. \`Export CSD (SCORE)\` integre les notes et sweeps de controle directement dans la score Csound et omet le fichier MIDI. Les deux modes CSD initialisent les voies MIDI Controller manuelles activees au debut du rendu et ecrivent une sortie WAV float 32 bits pour conserver le headroom.`,
     spanish: `### Comportamiento del rack
 
@@ -608,6 +617,9 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 - Iniciar los instrumentos construye el rack actual como una sesion en vivo en el backend.
 - La insignia de estado refleja el motor de instrumentos del backend, no solo el transporte del arreglador.
 - Importar/exportar escribe la configuracion Perform como JSON/ZIP para mover un setup en vivo a otra maquina.
+- Ambos modos CSD incluyen instrumentos asignados a secuenciadores melodicos/de bateria, teclados piano-roll y canales de salida de arpegiadores, incluso con dispositivos detenidos o vacios, ademas de instrumentos continuos referenciados en el ruteo del mezclador, Master o inserts (incluidos generadores continuos con salida directa implicita). Se omiten las instancias sin usar y sus assets exclusivos. El export nativo conserva todo el rack.
+- Los comentarios CSD contienen descripciones y referencias de instrumentos, extremos y puertos del ruteo, funciones Master/insert, salidas que evitan el Master, tomas pre/post-fader y ajustes iniciales del mezclador.
+- Cada CSD empieza con un encabezado de Orchestron que incluye el titulo de la performance, la fecha y hora de creacion, una breve presentacion de funciones y el enlace GitHub del proyecto.
 - \`Export CSD (MIDI)\` escribe un ZIP de render offline separado con la CSD compilada de la performance, el archivo MIDI del arreglador, los assets incluidos y el comando exacto de Csound. \`Export CSD (SCORE)\` incrusta notas y barridos de control directamente en la partitura Csound y omite el archivo MIDI. Ambos modos CSD inicializan las pistas manuales MIDI Controller activadas al empezar el render y escriben salida WAV float de 32 bits para conservar headroom.`
   },
   sequencer_tracks: {

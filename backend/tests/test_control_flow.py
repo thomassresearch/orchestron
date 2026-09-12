@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
-from pathlib import Path
 
 import mido
 
@@ -14,6 +13,7 @@ from backend.app.models.patch import NodeInstance, PatchDocument, PatchGraph
 from backend.app.services.compiler_common import CompilationError, PatchInstrumentTarget
 from backend.app.services.compiler_service import CompilerService
 from backend.app.services.opcode_service import OpcodeService
+from backend.tests.csound_test_support import load_patch_fixture
 
 
 def wire(source, source_port, target, target_port):
@@ -169,13 +169,6 @@ def test_midi_and_score_lowering():
     assert "endif" in compile_patch(patch).orc
 
 
-EXAMPLES = Path(__file__).resolve().parents[2] / "examples"
-
-
-def example(name="drumset"):
-    return PatchDocument.model_validate_json((EXAMPLES / f"{name}.patch.json").read_text())
-
-
 def routed_compile(patch, mode="score", mixer=None):
     from backend.app.models.audio import AudioGraph, AudioRoute, MixerState
     return CompilerService(OpcodeService("/static/icons")).compile_patch_bundle(
@@ -221,7 +214,7 @@ def test_outlet_formulas_are_materialized_after_switch_results(direct, note, exp
 
 @pytest.mark.parametrize("note", [35, 36, 38, 42, 46])
 def test_analog_drumkit_stereo_output_formulas(note):
-    patch = example("analog_drumkit")
+    patch = load_patch_fixture("analog_drumkit")
     for side in ["left", "right"]:
         patch.graph.ui_layout["input_formulas"][f"output_{side}::asignal"] = {
             "expression": "in1 * 3",
@@ -252,7 +245,7 @@ def write_midi(path, notes, duration=.005):
 def test_drumset_real_midi_noteoff_retains_decay(tmp_path, note, tail):
     path = tmp_path / "short.mid"
     write_midi(path, [note])
-    patch = example()
+    patch = load_patch_fixture("drumset")
     with sound(routed_compile(patch, "midi").orc, "f 0 1", path) as cs:
         rendered = samples(cs, 750)  # 0.5 seconds at 48 kHz / ksmps 32
     assert np.isfinite(rendered).all()
@@ -265,7 +258,7 @@ def test_drumset_real_midi_noteoff_retains_decay(tmp_path, note, tail):
 
 
 def test_drumset_overlapping_notes_and_repeated_instances(tmp_path):
-    patch = example()
+    patch = load_patch_fixture("drumset")
     artifact = routed_compile(patch, "midi")
     def render(notes):
         path = tmp_path / "overlap.mid"
@@ -283,7 +276,7 @@ def test_drumset_overlapping_notes_and_repeated_instances(tmp_path):
 
 @pytest.mark.parametrize("note", [36,38,42,99])
 def test_drumset_score_and_midi_choose_equivalent_cases(tmp_path, note):
-    patch = example()
+    patch = load_patch_fixture("drumset")
     path = tmp_path / "kit.mid"
     write_midi(path, [note])
     with sound(routed_compile(patch, "midi").orc, "f 0 1", path) as cs:
@@ -374,8 +367,8 @@ def test_branch_api_persistence_copy_and_bundles(tmp_path):
 
 
 @pytest.mark.parametrize("velocity", [30,110])
-def test_velocity_if_example_is_playable(velocity):
-    patch = example("velocity_if")
+def test_velocity_if_fixture_is_playable(velocity):
+    patch = load_patch_fixture("velocity_if")
     with sound(compile_patch(patch).orc, f"i 1 0 .005 60 {velocity}\nf 0 1") as cs:
         rendered = samples(cs, 600)
     assert np.isfinite(rendered).all()
@@ -429,7 +422,7 @@ def test_drumset_performance_bundle_and_exported_csd_execute(tmp_path, event_sou
     from backend.tests.test_api import _performance_csd_export_payload
 
     payload = _performance_csd_export_payload()
-    definition = {**example().model_dump(mode="json"), "sourcePatchId":"patch-1"}
+    definition = {**load_patch_fixture("drumset").model_dump(mode="json"), "sourcePatchId":"patch-1"}
     definition["graph"]["ui_layout"]["control_flow_case_sizes"] = {"kit": {"kick": {"width": 1800, "height": 1200}}}
     payload["performanceExport"]["patch_definitions"] = [definition]
     config = payload["performanceExport"]["performance"]["config"]
@@ -468,7 +461,7 @@ def test_drumset_performance_bundle_and_exported_csd_execute(tmp_path, event_sou
 
 @pytest.mark.parametrize("mode", ["score", "midi"])
 def test_branch_presentation_sizes_leave_drumset_compilation_unchanged(mode):
-    original = example()
+    original = load_patch_fixture("drumset")
     resized = original.model_copy(deep=True)
     resized.graph.ui_layout["control_flow_case_sizes"] = {
         "kit": {"kick": {"width": 1800, "height": 1200}, "default": {"width": 500, "height": 600}}

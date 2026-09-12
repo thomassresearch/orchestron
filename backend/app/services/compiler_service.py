@@ -16,7 +16,7 @@ from backend.app.services.compiler_orchestra import OrchestraEmitter, wrap_csd
 from backend.app.services.gen_asset_service import GenAssetService
 from backend.app.services.opcode_service import OpcodeService
 from backend.app.services.performance_controller_service import controller_bindings
-from backend.app.services.orc_metadata import format_orc_comment_value
+from backend.app.services.orc_metadata import format_csd_comment_value, instrument_metadata_comments
 
 
 class CompilerService:
@@ -143,11 +143,7 @@ class CompilerService:
             )
             orc_lines.extend(
                 [
-                    (
-                        f"; patch:{format_orc_comment_value(target.patch.id)} "
-                        f"name:{format_orc_comment_value(target.patch.name)} channel:{target.midi_channel} "
-                        f"always_on:{'true' if target.always_on else 'false'}"
-                    ),
+                    *instrument_metadata_comments(target, instrument_ref),
                     f"instr {instrument_ref}",
                     *[f"  {line}" if line else "" for line in compiled_lines.instrument_lines],
                     "endin",
@@ -186,9 +182,19 @@ class CompilerService:
                 instrument_name_by_assignment_id[target.assignment_id] = instrument_name
 
         lines: list[str] = []
+        target_by_id = {target.assignment_id: target for target in targets}
         for route in resolve_audio_routes(targets):
             source_name = instrument_name_by_assignment_id[route.source_assignment_id]
             target_name = instrument_name_by_assignment_id[route.target_assignment_id]
+            source_label = target_by_id[route.source_assignment_id].patch.name
+            target_label = target_by_id[route.target_assignment_id].patch.name
+            lines.append(
+                "; audio route: " + format_csd_comment_value(
+                    f"{source_label} [{route.source_assignment_id}] output {route.source_port_name}"
+                ) + " -> " + format_csd_comment_value(
+                    f"{target_label} [{route.target_assignment_id}] input {route.target_port_name}"
+                )
+            )
             lines.append(
                 "connect "
                 f"{OrchestraEmitter._format_csound_string(source_name)}, "

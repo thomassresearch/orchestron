@@ -21,6 +21,7 @@ from backend.app.services.compiler_orchestra import OrchestraEmitter, SCORE_CONT
 from backend.app.services.gen_asset_service import GenAssetService
 from backend.app.services.arpeggiator_runtime import PerformanceMidiRouter
 from backend.app.services.sequencer_runtime import SessionSequencerRuntime
+from backend.app.services.performance_export_selection import select_performance_csd_instruments
 
 OFFLINE_RENDER_SR = 48_000
 OFFLINE_RENDER_KSMPS = 1
@@ -161,6 +162,7 @@ class PerformanceExportService:
         self._gen_asset_service = gen_asset_service
 
     def build_performance_csd_archive(self, request: PerformanceCsdExportRequest) -> bytes:
+        request = request.model_copy(update={"performance_export": select_performance_csd_instruments(request)})
         base_name = self._sanitize_file_base_name(request.performance_export.performance.name)
         bundle_root = PurePosixPath(base_name)
         midi_file_name = f"{base_name}.mid"
@@ -206,6 +208,9 @@ class PerformanceExportService:
             resolved = ResolvedMixerGraph(targets, graph)
             continuous_source = any(t.always_on and not audio_port_names(t.patch.graph, opcode="inleta")
                 and OUTPUT in _reachable("patch:"+t.assignment_id, resolved.adjacency) for t in targets)
+        else:
+            continuous_source = any(t.always_on and not audio_port_names(t.patch.graph, opcode="inleta")
+                and any(node.opcode == "outs" for node in t.patch.graph.nodes) for t in targets)
         if not continuous_source:
             self._raise_if_no_note_on_events(captured_events)
 
@@ -221,6 +226,8 @@ class PerformanceExportService:
             warnings.extend(score_warnings)
             csd = self._build_offline_score_csd(
                 orc=self._rewrite_orc_for_offline_render(compile_artifact.orc),
+                performance_title=request.performance_export.performance.name,
+                created_at=request.performance_export.exported_at,
                 output_wave_name=output_wave_name,
                 score_lines=score_lines,
                 score_controller_initializer_lines=self._score_controller_initializer_lines(captured_events),
@@ -235,6 +242,8 @@ class PerformanceExportService:
         else:
             csd = self._build_offline_midi_csd(
                 orc=self._rewrite_orc_for_offline_render(compile_artifact.orc),
+                performance_title=request.performance_export.performance.name,
+                created_at=request.performance_export.exported_at,
                 midi_file_name=midi_file_name,
                 output_wave_name=output_wave_name,
                 duration_seconds=playback_duration_seconds + OFFLINE_RENDER_RELEASE_TAIL_SECONDS,
@@ -463,12 +472,18 @@ class PerformanceExportService:
     def _build_offline_midi_csd(
         *,
         orc: str,
+        performance_title: str,
+        created_at: str,
         midi_file_name: str,
         output_wave_name: str,
         duration_seconds: float,
     ) -> str:
         return "\n".join(
             [
+                PerformanceExportService._build_csd_header(
+                    performance_title=performance_title,
+                    created_at=created_at,
+                ),
                 "<CsoundSynthesizer>",
                 "<CsOptions>",
                 f"-d -W -f -o {output_wave_name} -F {midi_file_name}",
@@ -488,12 +503,18 @@ class PerformanceExportService:
     def _build_offline_score_csd(
         *,
         orc: str,
+        performance_title: str,
+        created_at: str,
         output_wave_name: str,
         score_lines: list[str],
         score_controller_initializer_lines: list[str] | None = None,
     ) -> str:
         return "\n".join(
             [
+                PerformanceExportService._build_csd_header(
+                    performance_title=performance_title,
+                    created_at=created_at,
+                ),
                 "<CsoundSynthesizer>",
                 "<CsOptions>",
                 f"-d -W -f -o {output_wave_name}",
@@ -506,6 +527,33 @@ class PerformanceExportService:
                 *score_lines,
                 "</CsScore>",
                 "</CsoundSynthesizer>",
+            ]
+        )
+
+    @staticmethod
+    def _build_csd_header(*, performance_title: str, created_at: str) -> str:
+        def xml_comment_value(value: str) -> str:
+            escaped = "".join(
+                character if ord(character) >= 32 and character not in "\x7f" else f"\\x{ord(character):02x}"
+                for character in value
+            )
+            escaped = escaped.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+            escaped = escaped.replace("--", "- -")
+            return escaped + (" " if escaped.endswith("-") else "")
+
+        return "\n".join(
+            [
+                "<!--",
+                "This CSD was created with Orchestron.",
+                f"Performance: {xml_comment_value(performance_title)}",
+                f"Created: {xml_comment_value(created_at)}",
+                "",
+                "Design instruments visually and hear ideas take shape.",
+                "Build expressive performances with sequencers, arpeggiators, live controls, and flexible audio routing.",
+                "Export portable Csound projects for rendering, sharing, and further sound design.",
+                "",
+                "GitHub: https://github.com/thomassresearch/orchestron",
+                "-->",
             ]
         )
 

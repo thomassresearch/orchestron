@@ -38,7 +38,16 @@ The Performance page provides two offline Csound render exports:
 
 - `Export CSD (MIDI)` creates the traditional ZIP with a compiled CSD and a separate MIDI file.
 - `Export CSD (SCORE)` creates a ZIP with the performance notes and controller sweeps embedded as Csound score events.
-- Both CSD export modes seed enabled manual MIDI Controller lane values at time 0 on every assigned instrument channel.
+- Both CSD export modes seed enabled manual MIDI Controller lane values at time 0 on every exported instrument channel.
+
+Both modes select instruments by device assignment and mixer routing:
+
+- Include rack instances whose MIDI channel is assigned to a melodic sequencer, drummer sequencer, piano-roll keyboard or arpeggiator output. An arpeggiator input alone is not an instrument assignment.
+- Device assignments count even when the device is stopped, disabled or has an empty pattern. Selection does not depend on whether a note happens during the exported arrangement.
+- Include continuous (`always on`) instruments referenced by mixer routes, Master selection or insert ownership. Continuous generators with implicit direct audio output are also included.
+- Omit other rack instances, routes and mixer controls belonging to those omitted instances, and assets used exclusively by omitted patches. Native `Export` still preserves the complete rack.
+
+Each CSD starts with a comment header identifying Orchestron, the performance title and creation timestamp, followed by a short summary of Orchestron's visual instrument design, performance devices, audio routing and portable Csound export features, plus the project GitHub link. Each exported instrument also has CSD comments containing its name, description, rack instance ID and Csound reference. Multiline descriptions remain comments on every line. Routing comments identify source/destination instruments and ports, raw/strip stages, insert ownership, Master processing, direct paths that bypass Master, pre/post-fader taps, and initial gain, balance, mute and solo settings. Mixer instruments are emitted in signal-flow order.
 
 This export is different from the normal `Export` bundle:
 
@@ -47,13 +56,13 @@ This export is different from the normal `Export` bundle:
 
 The MIDI ZIP contains:
 
-- A compiled `.csd` with every non-template instrument currently used in the performance rack
+- A compiled `.csd` with the selected non-template device instruments and routed continuous instruments
 - Offline render settings forced to `sr = 48000` and `ksmps = 1`
 - WAV output written as 32-bit float (`-f`) so exported files preserve headroom instead of baking clipping into 16-bit samples
 - Always-on effect instruments started with Csound `alwayson`
 - A finite `f 0 ...` score duration sized for the exported arranger playback plus a release-tail buffer
 - The arranger playback rendered as a `.mid` file from beginning to arrangement end
-- Enabled manual MIDI Controller lane values written into the MIDI file at tick 0 on every assigned instrument channel
+- Enabled manual MIDI Controller lane values written into the MIDI file at tick 0 on every exported instrument channel
 - Uploaded bundled sample audio / SoundFont files used by the exported instruments
 - A `README.txt` with the exact Csound command line needed to render the package
 

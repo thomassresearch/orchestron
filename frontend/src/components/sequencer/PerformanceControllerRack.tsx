@@ -11,7 +11,7 @@ export function PerformanceControllerRack({ binding, patch, language }: {
   const definitions = patch?.performance_controllers ?? [];
   if (!definitions.length && !binding.performanceControllerNotice) return null;
   return <div className="mt-3 min-w-0 border-t border-slate-600/50 pt-2">
-    <div className="flex max-w-full flex-wrap items-start gap-x-3 gap-y-4" aria-label={copy.title}>
+    <div className="flex max-w-full flex-wrap items-start gap-x-2 gap-y-4" aria-label={copy.title}>
       {definitions.map((definition) => <PerformanceControllerKnob key={definition.node_id} definition={definition}
         value={binding.performanceControllerValues?.[definition.node_id] ?? definition.default} language={language}
         onChange={(value) => setValue(binding.id, definition.node_id, value)} onReset={() => setValue(binding.id, definition.node_id, null)} />)}

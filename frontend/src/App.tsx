@@ -1447,12 +1447,16 @@ export default function App() {
     ]
   );
 
-  const buildCurrentPerformanceExport = useCallback(async () => {
+  const buildCurrentPerformanceExport = useCallback(async (purpose: "native" | "csd" = "native") => {
     await useAppStore.getState().flushMixer();
     await useAppStore.getState().flushPerformanceControllers();
     const exportState = structuredClone(sequencerRef.current);
     const snapshot = structuredClone(buildSequencerConfigSnapshot());
-    await api.validateAudio(snapshot.instruments.map((b) => ({ id: b.id, patch_id: b.patchId, midi_channel: b.midiChannel, performance_controller_values: b.performanceControllerValues })), snapshot.audioGraph!, snapshot.mixer!);
+    // CSD export validates routing after the backend selects device/routing
+    // instruments. Native exports still validate the complete saved rack.
+    if (purpose === "native") {
+      await api.validateAudio(snapshot.instruments.map((b) => ({ id: b.id, patch_id: b.patchId, midi_channel: b.midiChannel, performance_controller_values: b.performanceControllerValues })), snapshot.audioGraph!, snapshot.mixer!);
+    }
     const patchIds = [...new Set(snapshot.instruments.map((instrument) => instrument.patchId.trim()).filter(Boolean))];
     const selectedPatches = await Promise.all(patchIds.map((patchId) => api.getPatch(patchId)));
     return { exportState, ...buildPerformanceExportPayload({
@@ -1487,7 +1491,7 @@ export default function App() {
 
   const onExportPerformanceCsd = useCallback(async (eventSource: "midiFile" | "score" = "midiFile") => {
     try {
-      const { exportedPerformanceName, payload, exportState } = await buildCurrentPerformanceExport();
+      const { exportedPerformanceName, payload, exportState } = await buildCurrentPerformanceExport("csd");
       const exportPayload: PerformanceCsdExportRequestPayload = {
         performanceExport: payload,
         sequencerConfig: buildBackendSequencerConfig(exportState, "export"),

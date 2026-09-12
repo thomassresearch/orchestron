@@ -20,7 +20,7 @@ The fields are fixed values, without input sockets or formulas. Numbers must be 
 
 ## Tune a Rack Instrument
 
-Controllers appear in patch-node order beneath patch and channel, wrapping within the instrument card. Each shows a caption, scale dashes, endpoints, LIN/LOG indicator, and current value. Linear ticks are equally spaced; logarithmic ticks follow ratios and mark decade boundaries.
+Controllers appear in patch-node order beneath patch and channel. Their compact rack layout fits five controls across a standard instrument card before wrapping onto another row. Each shows a caption, scale dashes, endpoints, LIN/LOG indicator, and current value. Linear ticks are equally spaced; logarithmic ticks follow ratios and mark decade boundaries.
 
 - Drag vertically, or use arrow keys. Hold Shift for fine adjustment.
 - Enter an exact number below the knob; Enter or leaving the field applies it. Escape cancels.

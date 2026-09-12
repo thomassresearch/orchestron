@@ -27,6 +27,7 @@ from backend.app.services.audio_routing_service import resolve_audio_routes
 from backend.app.services.compiler_common import CompilationError
 from backend.app.services.compiler_graph import compile_graph_context, resolve_shared_engine, validate_target_channels
 from backend.app.services.performance_controller_service import controller_bindings
+from backend.app.services.orc_metadata import format_csd_comment_value, instrument_metadata_comments
 
 
 OUTPUT = "$output"
@@ -408,6 +409,56 @@ RAMP_OPCODE = """opcode vcs_mixer_ramp, a, ki
 endop"""
 
 
+def _mixer_stage_comments(stage, resolved, mixer, names, manifest, routes_by_id):
+    text = format_csd_comment_value
+
+    def label(identity):
+        if identity == OUTPUT:
+            return "Audio Output"
+        return f"{resolved.by_id[identity].patch.name} [{identity}]"
+
+    def gain(value):
+        return "silence" if value is None else f"{value:g} dB"
+
+    if stage.startswith("patch:"):
+        identity = stage[6:]
+        target = resolved.by_id[identity]
+        comments = instrument_metadata_comments(target, names[stage])
+        trigger = "continuous (alwayson)" if target.always_on else f"MIDI channel {target.midi_channel} / score notes"
+        comments.append(f"; trigger: {trigger}; score instrument number: {manifest['instrumentReferences'][identity]}")
+        if identity == resolved.graph.master_id:
+            comments.append("; role: Master processor; only audio explicitly routed here passes through Master.")
+        if identity in resolved.graph.insert_owners:
+            comments.append("; insert for: " + text(label(resolved.graph.insert_owners[identity])))
+        return comments
+    if stage.startswith("strip:"):
+        identity = stage[6:]
+        strip = mixer.strips.get(identity, MixerStrip())
+        return [
+            "; mixer strip: " + text(label(identity)),
+            f"; initial gain: {gain(strip.gain_db)}; balance/pan: {strip.balance:g}; "
+            f"mute: {str(strip.mute).lower()}; solo: {str(strip.solo).lower()}",
+            "; Voices and insert returns sum before the strip; pre taps precede balance/fader, post taps follow them.",
+        ]
+    if stage.startswith("route:"):
+        route = routes_by_id[stage[6:]]
+        send = mixer.sends.get(route.id, MixerSend() if route.kind == "send" else MixerSend(gainDb=0))
+        source = f"{label(route.source_id)} port:{route.source_port} stage:{route.source_stage}"
+        destination = f"{label(route.target_id)} port:{route.target_port} stage:{route.target_stage}"
+        tap = "raw (before strip)" if route.source_stage == "raw" else f"{send.tap}-fader"
+        comments = [
+            f"; audio route:{text(route.id)} kind:{route.kind}",
+            "; from: " + text(source) + " -> " + text(destination),
+            f"; tap: {tap}; initial route gain: {gain(send.gain_db)}; source mute and mixer solo gate this route.",
+        ]
+        if route.id in resolved.sidechain_routes:
+            comments.append("; sidechain input: retained as a processing dependency when soloing downstream audio.")
+        if route.target_id == OUTPUT and route.source_id != resolved.graph.master_id:
+            comments.append("; Direct Audio Output: this path bypasses Master processing and gain.")
+        return comments
+    return ["; Final Audio Output: sums all routed paths, including direct paths that bypass Master."]
+
+
 def compile_mixer_bundle(
     service,
     targets,
@@ -436,6 +487,7 @@ def compile_mixer_bundle(
         f"nchnls = {engine.nchnls}",
         f"0dbfs = {engine.zero_dbfs}",
         RAMP_OPCODE,
+        "; Mixer routing: patch, strip and route instruments execute in signal-flow order.",
     ]
     header += [f"chnset {value:.17g}, {quote(name)}" for name, value in controls.items()]
     if performance_input_mode == "score":
@@ -562,12 +614,15 @@ def compile_mixer_bundle(
     meters(output, OUTPUT, "a_left", "a_right")
     bodies[OUTPUT] = output
     header += emitter.render_sfload_global_requests(sfloads)
+    header.append("; Continuous patches and mixer stages start with alwayson; note instruments start from MIDI/score events.")
     for stage in resolved.order:
         if not stage.startswith("patch:") or resolved.by_id[stage[6:]].always_on:
             header.append(f"alwayson {quote(names[stage])}")
+    routes_by_id = {route.id: route for route in resolved.routes}
     for stage in resolved.order:
         header += [
-            f"; mixer stage {stage.replace(chr(10), ' ')}",
+            f"; mixer stage {format_csd_comment_value(stage)}",
+            *_mixer_stage_comments(stage, resolved, mixer, names, manifest, routes_by_id),
             f"instr {names[stage]}",
             *[" " + line for line in bodies[stage]],
             "endin",

@@ -1,7 +1,7 @@
 {
   "sourcePatchId": "979b006c-d2a5-47c1-836c-9f3f30453ddf",
   "name": "Analog Drumkit",
-  "description": "Five velocity-sensitive analog synthesis voices selected by MIDI notnum through Switch. 35: Bass drum (pitch-swept sine + click); 36: Bass drum distorted (saturated sine + click); 46: Hi-hat open (700 ms); 42: Hi-hat closed (85 ms); 38: Snare (two sine resonances + filtered noise). Hats use six inharmonic square oscillators plus noise. One-shot decays survive short MIDI note-offs. Silent default; stereo output; no samples. GM bass-drum slot 36 is used for the distorted variation.",
+  "description": "Five velocity-sensitive analog synthesis voices selected by MIDI notnum through Switch. MIDI notenum 35: Bass drum (pitch-swept sine + click); 36: Bass drum distorted (saturated sine + click); 46: Hi-hat open (700 ms); 42: Hi-hat closed (85 ms); 38: Snare (two sine resonances + filtered noise). Hats use six inharmonic square oscillators plus noise. One-shot decays survive short MIDI note-offs. Silent default; stereo output; no samples. GM bass-drum slot 36 is used for the distorted variation.",
   "isTemplate": false,
   "alwaysOn": false,
   "schema_version": 2,
@@ -998,14 +998,65 @@
         }
       },
       {
+        "id": "5b7fed54-7681-4360-b66c-adb35c4e855c",
+        "opcode": "perf_controller",
+        "params": {
+          "min": 1e-05,
+          "max": 1,
+          "default": 0.25,
+          "scale": "logarithmic",
+          "label": "Send"
+        },
+        "position": {
+          "x": 598.073666522896,
+          "y": -121.2332530826007
+        }
+      },
+      {
+        "id": "d91b590c-81f8-4a7a-a872-7a9a3e981b6a",
+        "opcode": "a_mul",
+        "params": {},
+        "position": {
+          "x": 1337.4438395080465,
+          "y": -106.0860316532109
+        }
+      },
+      {
+        "id": "bb47ded9-b743-43ea-bafd-aba8f157825c",
+        "opcode": "a_mul",
+        "params": {},
+        "position": {
+          "x": 1549.7545386649094,
+          "y": 94.94985908434644
+        }
+      },
+      {
+        "id": "b7278745-f502-42bd-b3d2-5d6a264c0503",
+        "opcode": "k_to_a",
+        "params": {},
+        "position": {
+          "x": 953.6881830051508,
+          "y": -115.72198485433057
+        }
+      },
+      {
+        "id": "7c1f7813-51ec-48dd-b0a2-a2354e9ddfd2",
+        "opcode": "k_to_a",
+        "params": {},
+        "position": {
+          "x": 1288.4011003603002,
+          "y": 89.67117817908237
+        }
+      },
+      {
         "id": "output_left",
         "opcode": "outleta",
         "params": {
           "sname": "left"
         },
         "position": {
-          "x": 1100,
-          "y": 0
+          "x": 937.4241251390363,
+          "y": 118.69791787266011
         }
       },
       {
@@ -1015,8 +1066,30 @@
           "sname": "right"
         },
         "position": {
-          "x": 1100,
-          "y": 230
+          "x": 937.4241251390363,
+          "y": 348.6979178726601
+        }
+      },
+      {
+        "id": "5e9ece98-2150-49a6-8abb-abb709c2a4d0",
+        "opcode": "outleta",
+        "params": {
+          "sname": "effect_left"
+        },
+        "position": {
+          "x": 1787.8818440822179,
+          "y": -80.59588484690644
+        }
+      },
+      {
+        "id": "1995b484-ea76-490a-98f7-b78e3de2a50d",
+        "opcode": "outleta",
+        "params": {
+          "sname": "effect_right"
+        },
+        "position": {
+          "x": 1787.8818440822179,
+          "y": 99.40411515309357
         }
       }
     ],
@@ -1500,6 +1573,54 @@
         "from_port_id": "iout",
         "to_node_id": "bass_drum_distorted_tone",
         "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "kit",
+        "from_port_id": "left",
+        "to_node_id": "d91b590c-81f8-4a7a-a872-7a9a3e981b6a",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "d91b590c-81f8-4a7a-a872-7a9a3e981b6a",
+        "from_port_id": "aout",
+        "to_node_id": "5e9ece98-2150-49a6-8abb-abb709c2a4d0",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "kit",
+        "from_port_id": "right",
+        "to_node_id": "bb47ded9-b743-43ea-bafd-aba8f157825c",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "bb47ded9-b743-43ea-bafd-aba8f157825c",
+        "from_port_id": "aout",
+        "to_node_id": "1995b484-ea76-490a-98f7-b78e3de2a50d",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "5b7fed54-7681-4360-b66c-adb35c4e855c",
+        "from_port_id": "iout",
+        "to_node_id": "b7278745-f502-42bd-b3d2-5d6a264c0503",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "b7278745-f502-42bd-b3d2-5d6a264c0503",
+        "from_port_id": "aout",
+        "to_node_id": "d91b590c-81f8-4a7a-a872-7a9a3e981b6a",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "5b7fed54-7681-4360-b66c-adb35c4e855c",
+        "from_port_id": "iout",
+        "to_node_id": "7c1f7813-51ec-48dd-b0a2-a2354e9ddfd2",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "7c1f7813-51ec-48dd-b0a2-a2354e9ddfd2",
+        "from_port_id": "aout",
+        "to_node_id": "bb47ded9-b743-43ea-bafd-aba8f157825c",
+        "to_port_id": "a"
       }
     ],
     "ui_layout": {
@@ -1869,19 +1990,21 @@
         "kit": false
       },
       "audio_blocks": {
-        "main-output": true
+        "main-output": true,
+        "9d92106f-84ca-4876-817a-ecfd640249cd": true
       },
       "editor_state": {
         "selection": {
           "nodeIds": [
-            "460f9e29-fa38-4055-8f7b-c9f7d7ebe7aa"
+            "output_left",
+            "output_right"
           ],
           "connections": []
         },
         "viewport": {
-          "x": -193.06861565933264,
-          "y": 87.43256316953057,
-          "k": 0.6904542428786204
+          "x": -315.9903114921753,
+          "y": 122.22338460124959,
+          "k": 0.8019904314886249
         }
       },
       "control_flow_case_sizes": {
@@ -1933,6 +2056,17 @@
           "ports": [
             "left",
             "right"
+          ],
+          "purpose": "main"
+        },
+        {
+          "id": "9d92106f-84ca-4876-817a-ecfd640249cd",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "effect_left",
+            "effect_right"
           ],
           "purpose": "main"
         }

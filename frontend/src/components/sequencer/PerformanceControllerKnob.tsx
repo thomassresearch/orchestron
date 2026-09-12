@@ -21,11 +21,11 @@ export function PerformanceControllerKnob({ definition, value, language, onChang
     cancelEntry.current = false;
     setDraft(null);
   };
-  return <div className="flex w-24 min-w-0 max-w-full flex-none flex-col items-center gap-1" data-performance-controller={definition.node_id}>
+  return <div className="flex w-20 min-w-0 max-w-full flex-none flex-col items-center gap-1" data-performance-controller={definition.node_id}>
     <span className="line-clamp-2 h-8 w-full break-words text-center text-xs text-slate-200" title={definition.label}>{definition.label}</span>
     <button type="button" role="slider" disabled={invalid} aria-label={definition.label} aria-valuemin={definition.min} aria-valuemax={definition.max}
       aria-valuenow={value} aria-valuetext={`${display(value)} · ${copy[definition.scale]}`} title={invalid ? copy.invalid : copy.help}
-      className="h-20 w-20 touch-none rounded-full outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:opacity-40"
+      className="h-[4.5rem] w-[4.5rem] touch-none rounded-full outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:opacity-40"
       onDoubleClick={onReset}
       onPointerDown={(event) => {
         if (event.button !== 0) return;

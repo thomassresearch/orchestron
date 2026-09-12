@@ -98,6 +98,21 @@
         }
       },
       {
+        "id": "0f32b615-df59-4c8b-9a61-70252193be29",
+        "opcode": "perf_controller",
+        "params": {
+          "min": 0.2,
+          "max": 0.9,
+          "default": 0.5,
+          "scale": "logarithmic",
+          "label": "Threshold"
+        },
+        "position": {
+          "x": -706.540204934439,
+          "y": -100.67416949341653
+        }
+      },
+      {
         "id": "51da89f7-3991-413d-845d-124ee69506d8",
         "opcode": "outleta",
         "params": {
@@ -214,6 +229,12 @@
         "from_port_id": "iout",
         "to_node_id": "2f4e1891-c4bc-4e1f-bf58-30a7f41be013",
         "to_port_id": "iftime"
+      },
+      {
+        "from_node_id": "0f32b615-df59-4c8b-9a61-70252193be29",
+        "from_port_id": "iout",
+        "to_node_id": "aedd1b94-405b-441a-8d8e-ebc2f2898488",
+        "to_port_id": "kthreshold"
       }
     ],
     "ui_layout": {

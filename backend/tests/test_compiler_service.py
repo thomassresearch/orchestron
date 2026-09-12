@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 
 from backend.tests.stk_test_support import STK_CONTROLLERS
+from backend.tests.csound_test_support import orc_code_lines
 
 from backend.app.models.patch import (
     Connection,
@@ -356,7 +357,7 @@ def test_grain3_compile_uses_correct_argument_order_and_omits_optional_tail() ->
     )
 
     artifact = compiler.compile_patch(patch, midi_input="0", rtmidi_module="alsaseq")
-    grain3_line = next(line.strip() for line in artifact.orc.splitlines() if " grain3 " in line)
+    grain3_line = next(line.strip() for line in orc_code_lines(artifact.orc) if " grain3 " in line)
 
     assert "__VS_OPTIONAL_OMIT__" not in artifact.orc
     assert grain3_line == "a_grain_asig_1 grain3 220, 0.5, 0.25, 0.125, 0.04, 24, 64, 1, 2, 0, 0, 0, 0"
@@ -391,7 +392,7 @@ def test_grain2_compile_uses_manual_argument_order() -> None:
     )
 
     artifact = compiler.compile_patch(patch, midi_input="0", rtmidi_module="alsaseq")
-    grain2_line = next(line.strip() for line in artifact.orc.splitlines() if " grain2 " in line)
+    grain2_line = next(line.strip() for line in orc_code_lines(artifact.orc) if " grain2 " in line)
 
     assert "__VS_OPTIONAL_OMIT__" not in artifact.orc
     assert grain2_line == "a_grain_asig_1 grain2 220, 0.25, 0.04, 64, 1, 2, 0, 0, 0"
@@ -417,7 +418,7 @@ def test_tanh_compile_accepts_control_input_for_audio_output() -> None:
     )
 
     artifact = compiler.compile_patch(patch, midi_input="0", rtmidi_module="alsaseq")
-    tanh_line = next(line.strip() for line in artifact.orc.splitlines() if "tanh(" in line)
+    tanh_line = next(line.strip() for line in orc_code_lines(artifact.orc) if "tanh(" in line)
 
     assert tanh_line == "a_shape_aout_1 = tanh(a(k_drive_kout_1))"
 
@@ -453,7 +454,7 @@ def test_cross_modulation_variants_compile_with_manual_argument_order(opcode_nam
     )
 
     artifact = compiler.compile_patch(patch, midi_input="0", rtmidi_module="alsaseq")
-    cross_line = next(line.strip() for line in artifact.orc.splitlines() if f" {opcode_name} " in line)
+    cross_line = next(line.strip() for line in orc_code_lines(artifact.orc) if f" {opcode_name} " in line)
 
     assert "__VS_OPTIONAL_OMIT__" not in artifact.orc
     assert (
@@ -491,7 +492,7 @@ def test_stereo_reverbs_compile_with_manual_argument_order(opcode_name: str, exp
     )
 
     artifact = compiler.compile_patch(patch, midi_input="0", rtmidi_module="alsaseq")
-    reverb_line = next(line.strip() for line in artifact.orc.splitlines() if f" {opcode_name} " in line)
+    reverb_line = next(line.strip() for line in orc_code_lines(artifact.orc) if f" {opcode_name} " in line)
 
     assert "__VS_OPTIONAL_OMIT__" not in artifact.orc
     assert (
@@ -521,7 +522,7 @@ def test_stk_compile_defaults_preserve_instrument_controls(name: str) -> None:
     # The frontend copies every non-null default into the new node's params.
     params = {port.id: port.default for port in opcode.inputs if port.default is not None}
     artifact = CompilerService(service).compile_patch(_stk_patch(name, params), midi_input="0", rtmidi_module="alsaseq")
-    line = next(line.strip() for line in artifact.orc.splitlines() if f" {name} " in line)
+    line = next(line.strip() for line in orc_code_lines(artifact.orc) if f" {name} " in line)
     assert line == f"a_stk_asignal_1 {name} {60 if name == 'STKDrummer' else 440}, 0.2"
     assert "__VS_OPTIONAL_OMIT__" not in artifact.orc
 
@@ -544,7 +545,7 @@ def test_stk_compile_independent_controller_pairs_in_manual_order(name: str, sel
     artifact = CompilerService(OpcodeService(icon_prefix="/static/icons")).compile_patch(
         _stk_patch(name, params), midi_input="0", rtmidi_module="alsaseq",
     )
-    line = next(line.strip() for line in artifact.orc.splitlines() if f" {name} " in line)
+    line = next(line.strip() for line in orc_code_lines(artifact.orc) if f" {name} " in line)
     assert line == f"a_stk_asignal_1 {name} " + ", ".join(expected)
     assert "__VS_OPTIONAL_OMIT__" not in artifact.orc
 
@@ -578,7 +579,7 @@ def test_stk_connected_inputs_enforce_init_and_control_rates(
         assert any("Signal type mismatch" in diagnostic for diagnostic in error.value.diagnostics)
         return
     artifact = compiler.compile_patch(patch, midi_input="0", rtmidi_module="alsaseq")
-    line = next(line.strip() for line in artifact.orc.splitlines() if " STKBandedWG " in line)
+    line = next(line.strip() for line in orc_code_lines(artifact.orc) if " STKBandedWG " in line)
     source_var = f"{source_port[0]}_control_{source_port}_1"
     assert source_var in line
     if target_port == "kv7":
@@ -595,5 +596,5 @@ def test_stk_controller_formula_and_override_skip_middle_pairs() -> None:
     artifact = CompilerService(OpcodeService(icon_prefix="/static/icons")).compile_patch(
         patch, midi_input="0", rtmidi_module="alsaseq",
     )
-    line = next(line.strip() for line in artifact.orc.splitlines() if " STKBandedWG " in line)
+    line = next(line.strip() for line in orc_code_lines(artifact.orc) if " STKBandedWG " in line)
     assert line == "a_stk_asignal_1 STKBandedWG 440, 0.2, 4, 0, 16, (1 + 2)"
