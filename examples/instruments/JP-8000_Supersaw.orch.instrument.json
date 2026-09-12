@@ -1,0 +1,2230 @@
+{
+  "sourcePatchId": "6608a9eb-48f3-4b1c-93a5-04bc4813333b",
+  "name": "JP-8000 Supersaw",
+  "description": "JP-8000-inspired emotional trance lead (not a hardware emulation). Seven band-limited saws at -18/-11/-5/0/+6/+12/+19 cents with staggered phases and a stronger centered voice. Stereo spread -> resonant 24 dB low-pass with velocity-sensitive filter envelope -> dam compression -> subtle stereo chorus -> three dark rhythmic echoes per side. No reverb. Amp ADSR: 8 ms / 320 ms / 80% / 280 ms. Default delay tempo 138 BPM: left dotted eighth, right quarter. Edit delay_tempo_bpm to match your song (manual, not host synced); 138 gives 326/435 ms. Controls: detune_amount (0..1.5), stereo_width (0..1), filter_base_hz (default 3200), filter_sweep_hz (5800), filter_resonance (0.12), chorus_mix (0.22), delay_mix (0.28), output_level (1.25). Finite echo taps and a reserved tail let echoes finish after MIDI note-off. Polyphonic, velocity-sensitive; add global reverb to taste.",
+  "isTemplate": false,
+  "alwaysOn": false,
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "pitch_cpsmidi",
+        "opcode": "cpsmidi",
+        "params": {},
+        "position": {
+          "x": -780,
+          "y": 0
+        }
+      },
+      {
+        "id": "velocity_scale_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 1
+        },
+        "position": {
+          "x": -780,
+          "y": 180
+        }
+      },
+      {
+        "id": "velocity_ampmidi",
+        "opcode": "ampmidi",
+        "params": {},
+        "position": {
+          "x": -400,
+          "y": 100
+        }
+      },
+      {
+        "id": "env_attack_const",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.001"
+        },
+        "position": {
+          "x": -780,
+          "y": 400
+        }
+      },
+      {
+        "id": "env_decay_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.32
+        },
+        "position": {
+          "x": -780,
+          "y": 560
+        }
+      },
+      {
+        "id": "env_sustain_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.8
+        },
+        "position": {
+          "x": -780,
+          "y": 720
+        }
+      },
+      {
+        "id": "env_release_const",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.25"
+        },
+        "position": {
+          "x": -780,
+          "y": 880
+        }
+      },
+      {
+        "id": "amp_madsr",
+        "opcode": "madsr",
+        "params": {},
+        "position": {
+          "x": -394.7328074974999,
+          "y": 552.781451168463
+        }
+      },
+      {
+        "id": "env_release_time_const",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.25"
+        },
+        "position": {
+          "x": -780,
+          "y": 1040
+        }
+      },
+      {
+        "id": "amp_velocity_envelope",
+        "opcode": "k_mul",
+        "params": {},
+        "position": {
+          "x": 20,
+          "y": 470
+        }
+      },
+      {
+        "id": "saw_1_gain",
+        "opcode": "const_k",
+        "params": {
+          "value": 0.05
+        },
+        "position": {
+          "x": 380,
+          "y": 0
+        }
+      },
+      {
+        "id": "saw_1_amp",
+        "opcode": "k_mul",
+        "params": {},
+        "position": {
+          "x": 680,
+          "y": 0
+        }
+      },
+      {
+        "id": "saw_1_vco2",
+        "opcode": "vco2",
+        "params": {
+          "imode": 0,
+          "kphs": 0.13
+        },
+        "position": {
+          "x": 1000,
+          "y": 0
+        }
+      },
+      {
+        "id": "saw_2_gain",
+        "opcode": "const_k",
+        "params": {
+          "value": 0.05
+        },
+        "position": {
+          "x": 380,
+          "y": 350
+        }
+      },
+      {
+        "id": "saw_2_amp",
+        "opcode": "k_mul",
+        "params": {},
+        "position": {
+          "x": 680,
+          "y": 350
+        }
+      },
+      {
+        "id": "saw_2_vco2",
+        "opcode": "vco2",
+        "params": {
+          "imode": 0,
+          "kphs": 0.71
+        },
+        "position": {
+          "x": 1000,
+          "y": 350
+        }
+      },
+      {
+        "id": "saw_3_gain",
+        "opcode": "const_k",
+        "params": {
+          "value": 0.05
+        },
+        "position": {
+          "x": 380,
+          "y": 700
+        }
+      },
+      {
+        "id": "saw_3_amp",
+        "opcode": "k_mul",
+        "params": {},
+        "position": {
+          "x": 680,
+          "y": 700
+        }
+      },
+      {
+        "id": "saw_3_vco2",
+        "opcode": "vco2",
+        "params": {
+          "imode": 0,
+          "kphs": 0.34
+        },
+        "position": {
+          "x": 1000,
+          "y": 700
+        }
+      },
+      {
+        "id": "saw_4_gain",
+        "opcode": "const_k",
+        "params": {
+          "value": 0.075
+        },
+        "position": {
+          "x": 380,
+          "y": 1050
+        }
+      },
+      {
+        "id": "saw_4_amp",
+        "opcode": "k_mul",
+        "params": {},
+        "position": {
+          "x": 680,
+          "y": 1050
+        }
+      },
+      {
+        "id": "saw_4_vco2",
+        "opcode": "vco2",
+        "params": {
+          "imode": 0,
+          "kphs": 0
+        },
+        "position": {
+          "x": 1000,
+          "y": 1050
+        }
+      },
+      {
+        "id": "saw_5_gain",
+        "opcode": "const_k",
+        "params": {
+          "value": 0.05
+        },
+        "position": {
+          "x": 380,
+          "y": 1400
+        }
+      },
+      {
+        "id": "saw_5_amp",
+        "opcode": "k_mul",
+        "params": {},
+        "position": {
+          "x": 680,
+          "y": 1400
+        }
+      },
+      {
+        "id": "saw_5_vco2",
+        "opcode": "vco2",
+        "params": {
+          "imode": 0,
+          "kphs": 0.87
+        },
+        "position": {
+          "x": 1000,
+          "y": 1400
+        }
+      },
+      {
+        "id": "saw_6_gain",
+        "opcode": "const_k",
+        "params": {
+          "value": 0.05
+        },
+        "position": {
+          "x": 380,
+          "y": 1750
+        }
+      },
+      {
+        "id": "saw_6_amp",
+        "opcode": "k_mul",
+        "params": {},
+        "position": {
+          "x": 680,
+          "y": 1750
+        }
+      },
+      {
+        "id": "saw_6_vco2",
+        "opcode": "vco2",
+        "params": {
+          "imode": 0,
+          "kphs": 0.52
+        },
+        "position": {
+          "x": 1000,
+          "y": 1750
+        }
+      },
+      {
+        "id": "saw_7_gain",
+        "opcode": "const_k",
+        "params": {
+          "value": 0.05
+        },
+        "position": {
+          "x": 380,
+          "y": 2100
+        }
+      },
+      {
+        "id": "saw_7_amp",
+        "opcode": "k_mul",
+        "params": {},
+        "position": {
+          "x": 680,
+          "y": 2100
+        }
+      },
+      {
+        "id": "saw_7_vco2",
+        "opcode": "vco2",
+        "params": {
+          "imode": 0,
+          "kphs": 0.23
+        },
+        "position": {
+          "x": 1000,
+          "y": 2100
+        }
+      },
+      {
+        "id": "detune_amount",
+        "opcode": "const_k",
+        "params": {
+          "value": 1
+        },
+        "position": {
+          "x": 20,
+          "y": 1200
+        }
+      },
+      {
+        "id": "stereo_width",
+        "opcode": "const_k",
+        "params": {
+          "value": 1
+        },
+        "position": {
+          "x": 20,
+          "y": 1360
+        }
+      },
+      {
+        "id": "delay_tempo_bpm",
+        "opcode": "const_i",
+        "params": {
+          "value": 138
+        },
+        "position": {
+          "x": 20,
+          "y": 1520
+        }
+      },
+      {
+        "id": "filter_base_hz",
+        "opcode": "const_k",
+        "params": {
+          "value": 3200
+        },
+        "position": {
+          "x": 20,
+          "y": 1680
+        }
+      },
+      {
+        "id": "filter_sweep_hz",
+        "opcode": "const_k",
+        "params": {
+          "value": 5800
+        },
+        "position": {
+          "x": 20,
+          "y": 1840
+        }
+      },
+      {
+        "id": "filter_resonance",
+        "opcode": "const_k",
+        "params": {
+          "value": 0.12
+        },
+        "position": {
+          "x": 20,
+          "y": 2000
+        }
+      },
+      {
+        "id": "chorus_mix",
+        "opcode": "const_k",
+        "params": {
+          "value": 0.22
+        },
+        "position": {
+          "x": 20,
+          "y": 2160
+        }
+      },
+      {
+        "id": "delay_mix",
+        "opcode": "const_k",
+        "params": {
+          "value": 0.28
+        },
+        "position": {
+          "x": 20,
+          "y": 2320
+        }
+      },
+      {
+        "id": "output_level",
+        "opcode": "const_k",
+        "params": {
+          "value": 1.25
+        },
+        "position": {
+          "x": 20,
+          "y": 2480
+        }
+      },
+      {
+        "id": "chorus_mix_audio",
+        "opcode": "k_to_a",
+        "params": {},
+        "position": {
+          "x": 380,
+          "y": 2350
+        }
+      },
+      {
+        "id": "delay_mix_audio",
+        "opcode": "k_to_a",
+        "params": {},
+        "position": {
+          "x": 380,
+          "y": 2520
+        }
+      },
+      {
+        "id": "output_level_audio",
+        "opcode": "k_to_a",
+        "params": {},
+        "position": {
+          "x": 380,
+          "y": 2690
+        }
+      },
+      {
+        "id": "saw_1_pan",
+        "opcode": "pan2",
+        "params": {
+          "imode": 0
+        },
+        "position": {
+          "x": 1330,
+          "y": 0
+        }
+      },
+      {
+        "id": "saw_2_pan",
+        "opcode": "pan2",
+        "params": {
+          "imode": 0
+        },
+        "position": {
+          "x": 1330,
+          "y": 350
+        }
+      },
+      {
+        "id": "saw_3_pan",
+        "opcode": "pan2",
+        "params": {
+          "imode": 0
+        },
+        "position": {
+          "x": 1330,
+          "y": 700
+        }
+      },
+      {
+        "id": "saw_4_pan",
+        "opcode": "pan2",
+        "params": {
+          "imode": 0
+        },
+        "position": {
+          "x": 1330,
+          "y": 1050
+        }
+      },
+      {
+        "id": "saw_5_pan",
+        "opcode": "pan2",
+        "params": {
+          "imode": 0
+        },
+        "position": {
+          "x": 1314.2376407035877,
+          "y": 1404.0721949353112
+        }
+      },
+      {
+        "id": "saw_6_pan",
+        "opcode": "pan2",
+        "params": {
+          "imode": 0
+        },
+        "position": {
+          "x": 1330,
+          "y": 1750
+        }
+      },
+      {
+        "id": "saw_7_pan",
+        "opcode": "pan2",
+        "params": {
+          "imode": 0
+        },
+        "position": {
+          "x": 1330,
+          "y": 2100
+        }
+      },
+      {
+        "id": "filter_envelope",
+        "opcode": "madsr",
+        "params": {
+          "ireltim": 0.25
+        },
+        "position": {
+          "x": 1690,
+          "y": 1900
+        }
+      },
+      {
+        "id": "filter_iatt",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.006
+        },
+        "position": {
+          "x": 1330,
+          "y": 2520
+        }
+      },
+      {
+        "id": "filter_idec",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.6
+        },
+        "position": {
+          "x": 1330,
+          "y": 2675
+        }
+      },
+      {
+        "id": "filter_islev",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.42
+        },
+        "position": {
+          "x": 1330,
+          "y": 2830
+        }
+      },
+      {
+        "id": "filter_irel",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.25
+        },
+        "position": {
+          "x": 1330,
+          "y": 2985
+        }
+      },
+      {
+        "id": "let_echoes_finish",
+        "opcode": "xtratim",
+        "params": {},
+        "position": {
+          "x": 2821.956707479983,
+          "y": 1839.9162065861453
+        }
+      },
+      {
+        "id": "lowpass_left",
+        "opcode": "moogladder2",
+        "params": {},
+        "position": {
+          "x": 1708.6529282069816,
+          "y": 150.16839778968762
+        }
+      },
+      {
+        "id": "compressor_left",
+        "opcode": "dam",
+        "params": {
+          "kthreshold": 0.02,
+          "icomp1": 0.6,
+          "icomp2": 1,
+          "irtime": 0.12,
+          "iftime": 0.008
+        },
+        "position": {
+          "x": 2020,
+          "y": 0
+        }
+      },
+      {
+        "id": "chorus_lfo_left",
+        "opcode": "lfo",
+        "params": {
+          "kamp": 3,
+          "kcps": 0.23,
+          "itype": 0
+        },
+        "position": {
+          "x": 2020,
+          "y": 420
+        }
+      },
+      {
+        "id": "chorus_time_left",
+        "opcode": "k_to_a",
+        "params": {},
+        "position": {
+          "x": 2310.74667927544,
+          "y": 188.98307329908195
+        }
+      },
+      {
+        "id": "chorus_delay_left",
+        "opcode": "vdelay3",
+        "params": {
+          "imd": 35
+        },
+        "position": {
+          "x": 2680,
+          "y": 0
+        }
+      },
+      {
+        "id": "chorus_blend_left",
+        "opcode": "mix2",
+        "params": {},
+        "position": {
+          "x": 3010,
+          "y": 0
+        }
+      },
+      {
+        "id": "echo_highpass_left",
+        "opcode": "butterhp",
+        "params": {
+          "xfreq": 180
+        },
+        "position": {
+          "x": 3350,
+          "y": 0
+        }
+      },
+      {
+        "id": "echo_lowpass_left",
+        "opcode": "butterlp",
+        "params": {
+          "xfreq": 4300
+        },
+        "position": {
+          "x": 3680,
+          "y": 0
+        }
+      },
+      {
+        "id": "echo_left_1",
+        "opcode": "delay",
+        "params": {},
+        "position": {
+          "x": 4010,
+          "y": 0
+        }
+      },
+      {
+        "id": "echo_left_2",
+        "opcode": "delay",
+        "params": {},
+        "position": {
+          "x": 4340,
+          "y": 0
+        }
+      },
+      {
+        "id": "echo_left_3",
+        "opcode": "delay",
+        "params": {},
+        "position": {
+          "x": 4670,
+          "y": 0
+        }
+      },
+      {
+        "id": "lowpass_right",
+        "opcode": "moogladder2",
+        "params": {},
+        "position": {
+          "x": 1739.5273715092908,
+          "y": 771.900829728668
+        }
+      },
+      {
+        "id": "compressor_right",
+        "opcode": "dam",
+        "params": {
+          "kthreshold": 0.02,
+          "icomp1": 0.6,
+          "icomp2": 1,
+          "irtime": 0.12,
+          "iftime": 0.008
+        },
+        "position": {
+          "x": 2020,
+          "y": 920
+        }
+      },
+      {
+        "id": "chorus_lfo_right",
+        "opcode": "lfo",
+        "params": {
+          "kamp": 3.6,
+          "kcps": 0.31,
+          "itype": 0
+        },
+        "position": {
+          "x": 2020,
+          "y": 1340
+        }
+      },
+      {
+        "id": "chorus_time_right",
+        "opcode": "k_to_a",
+        "params": {},
+        "position": {
+          "x": 2350,
+          "y": 1340
+        }
+      },
+      {
+        "id": "chorus_delay_right",
+        "opcode": "vdelay3",
+        "params": {
+          "imd": 35
+        },
+        "position": {
+          "x": 2704.4624525428126,
+          "y": 1095.7894683400705
+        }
+      },
+      {
+        "id": "chorus_blend_right",
+        "opcode": "mix2",
+        "params": {},
+        "position": {
+          "x": 3010,
+          "y": 920
+        }
+      },
+      {
+        "id": "echo_highpass_right",
+        "opcode": "butterhp",
+        "params": {
+          "xfreq": 180
+        },
+        "position": {
+          "x": 3350,
+          "y": 920
+        }
+      },
+      {
+        "id": "echo_lowpass_right",
+        "opcode": "butterlp",
+        "params": {
+          "xfreq": 4300
+        },
+        "position": {
+          "x": 3680,
+          "y": 920
+        }
+      },
+      {
+        "id": "echo_right_1",
+        "opcode": "delay",
+        "params": {},
+        "position": {
+          "x": 4010,
+          "y": 920
+        }
+      },
+      {
+        "id": "echo_right_2",
+        "opcode": "delay",
+        "params": {},
+        "position": {
+          "x": 4340,
+          "y": 920
+        }
+      },
+      {
+        "id": "echo_right_3",
+        "opcode": "delay",
+        "params": {},
+        "position": {
+          "x": 4670,
+          "y": 920
+        }
+      },
+      {
+        "id": "c5734d71-1fae-4fb0-9ade-c581a8d7aad7",
+        "opcode": "perf_controller",
+        "params": {
+          "min": 0.1,
+          "max": 5,
+          "default": 1,
+          "scale": "linear",
+          "label": "Detune"
+        },
+        "position": {
+          "x": -203.50178785045574,
+          "y": 1073.6620006071778
+        }
+      },
+      {
+        "id": "8cf688b8-07ed-4a75-9c84-6798d59c3812",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 5014.169865386899,
+          "y": 441.4042505422616
+        }
+      },
+      {
+        "id": "80f14efd-407a-473a-884d-eb7f2a5da6f4",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 5014.169865386899,
+          "y": 621.4042505422614
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "velocity_scale_const",
+        "from_port_id": "iout",
+        "to_node_id": "velocity_ampmidi",
+        "to_port_id": "iscal"
+      },
+      {
+        "from_node_id": "env_attack_const",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "iatt"
+      },
+      {
+        "from_node_id": "env_decay_const",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "idec"
+      },
+      {
+        "from_node_id": "env_sustain_const",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "islev"
+      },
+      {
+        "from_node_id": "env_release_const",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "irel"
+      },
+      {
+        "from_node_id": "env_release_time_const",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "ireltim"
+      },
+      {
+        "from_node_id": "velocity_ampmidi",
+        "from_port_id": "iamp",
+        "to_node_id": "amp_velocity_envelope",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "amp_madsr",
+        "from_port_id": "kenv",
+        "to_node_id": "amp_velocity_envelope",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "saw_1_amp",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "saw_1_gain",
+        "from_port_id": "kout",
+        "to_node_id": "saw_1_amp",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "saw_1_amp",
+        "from_port_id": "kout",
+        "to_node_id": "saw_1_vco2",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "saw_1_vco2",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "saw_2_amp",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "saw_2_gain",
+        "from_port_id": "kout",
+        "to_node_id": "saw_2_amp",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "saw_2_amp",
+        "from_port_id": "kout",
+        "to_node_id": "saw_2_vco2",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "saw_2_vco2",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "saw_3_amp",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "saw_3_gain",
+        "from_port_id": "kout",
+        "to_node_id": "saw_3_amp",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "saw_3_amp",
+        "from_port_id": "kout",
+        "to_node_id": "saw_3_vco2",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "saw_3_vco2",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "saw_4_amp",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "saw_4_gain",
+        "from_port_id": "kout",
+        "to_node_id": "saw_4_amp",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "saw_4_amp",
+        "from_port_id": "kout",
+        "to_node_id": "saw_4_vco2",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "saw_4_vco2",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "saw_5_amp",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "saw_5_gain",
+        "from_port_id": "kout",
+        "to_node_id": "saw_5_amp",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "saw_5_amp",
+        "from_port_id": "kout",
+        "to_node_id": "saw_5_vco2",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "saw_5_vco2",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "saw_6_amp",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "saw_6_gain",
+        "from_port_id": "kout",
+        "to_node_id": "saw_6_amp",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "saw_6_amp",
+        "from_port_id": "kout",
+        "to_node_id": "saw_6_vco2",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "saw_6_vco2",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "saw_7_amp",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "saw_7_gain",
+        "from_port_id": "kout",
+        "to_node_id": "saw_7_amp",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "saw_7_amp",
+        "from_port_id": "kout",
+        "to_node_id": "saw_7_vco2",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "saw_7_vco2",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "chorus_mix",
+        "from_port_id": "kout",
+        "to_node_id": "chorus_mix_audio",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "delay_mix",
+        "from_port_id": "kout",
+        "to_node_id": "delay_mix_audio",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "output_level",
+        "from_port_id": "kout",
+        "to_node_id": "output_level_audio",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "detune_amount",
+        "from_port_id": "kout",
+        "to_node_id": "saw_1_vco2",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "saw_1_vco2",
+        "from_port_id": "asig",
+        "to_node_id": "saw_1_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "stereo_width",
+        "from_port_id": "kout",
+        "to_node_id": "saw_1_pan",
+        "to_port_id": "xp"
+      },
+      {
+        "from_node_id": "detune_amount",
+        "from_port_id": "kout",
+        "to_node_id": "saw_2_vco2",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "saw_2_vco2",
+        "from_port_id": "asig",
+        "to_node_id": "saw_2_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "stereo_width",
+        "from_port_id": "kout",
+        "to_node_id": "saw_2_pan",
+        "to_port_id": "xp"
+      },
+      {
+        "from_node_id": "detune_amount",
+        "from_port_id": "kout",
+        "to_node_id": "saw_3_vco2",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "saw_3_vco2",
+        "from_port_id": "asig",
+        "to_node_id": "saw_3_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "stereo_width",
+        "from_port_id": "kout",
+        "to_node_id": "saw_3_pan",
+        "to_port_id": "xp"
+      },
+      {
+        "from_node_id": "detune_amount",
+        "from_port_id": "kout",
+        "to_node_id": "saw_4_vco2",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "saw_4_vco2",
+        "from_port_id": "asig",
+        "to_node_id": "saw_4_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "stereo_width",
+        "from_port_id": "kout",
+        "to_node_id": "saw_4_pan",
+        "to_port_id": "xp"
+      },
+      {
+        "from_node_id": "detune_amount",
+        "from_port_id": "kout",
+        "to_node_id": "saw_5_vco2",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "saw_5_vco2",
+        "from_port_id": "asig",
+        "to_node_id": "saw_5_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "stereo_width",
+        "from_port_id": "kout",
+        "to_node_id": "saw_5_pan",
+        "to_port_id": "xp"
+      },
+      {
+        "from_node_id": "detune_amount",
+        "from_port_id": "kout",
+        "to_node_id": "saw_6_vco2",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "saw_6_vco2",
+        "from_port_id": "asig",
+        "to_node_id": "saw_6_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "stereo_width",
+        "from_port_id": "kout",
+        "to_node_id": "saw_6_pan",
+        "to_port_id": "xp"
+      },
+      {
+        "from_node_id": "detune_amount",
+        "from_port_id": "kout",
+        "to_node_id": "saw_7_vco2",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "saw_7_vco2",
+        "from_port_id": "asig",
+        "to_node_id": "saw_7_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "stereo_width",
+        "from_port_id": "kout",
+        "to_node_id": "saw_7_pan",
+        "to_port_id": "xp"
+      },
+      {
+        "from_node_id": "filter_iatt",
+        "from_port_id": "iout",
+        "to_node_id": "filter_envelope",
+        "to_port_id": "iatt"
+      },
+      {
+        "from_node_id": "filter_idec",
+        "from_port_id": "iout",
+        "to_node_id": "filter_envelope",
+        "to_port_id": "idec"
+      },
+      {
+        "from_node_id": "filter_islev",
+        "from_port_id": "iout",
+        "to_node_id": "filter_envelope",
+        "to_port_id": "islev"
+      },
+      {
+        "from_node_id": "filter_irel",
+        "from_port_id": "iout",
+        "to_node_id": "filter_envelope",
+        "to_port_id": "irel"
+      },
+      {
+        "from_node_id": "env_release_const",
+        "from_port_id": "iout",
+        "to_node_id": "let_echoes_finish",
+        "to_port_id": "iextradur"
+      },
+      {
+        "from_node_id": "delay_tempo_bpm",
+        "from_port_id": "iout",
+        "to_node_id": "let_echoes_finish",
+        "to_port_id": "iextradur"
+      },
+      {
+        "from_node_id": "saw_1_pan",
+        "from_port_id": "aleft",
+        "to_node_id": "lowpass_left",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "saw_2_pan",
+        "from_port_id": "aleft",
+        "to_node_id": "lowpass_left",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "saw_3_pan",
+        "from_port_id": "aleft",
+        "to_node_id": "lowpass_left",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "saw_4_pan",
+        "from_port_id": "aleft",
+        "to_node_id": "lowpass_left",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "saw_5_pan",
+        "from_port_id": "aleft",
+        "to_node_id": "lowpass_left",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "saw_6_pan",
+        "from_port_id": "aleft",
+        "to_node_id": "lowpass_left",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "saw_7_pan",
+        "from_port_id": "aleft",
+        "to_node_id": "lowpass_left",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "filter_base_hz",
+        "from_port_id": "kout",
+        "to_node_id": "lowpass_left",
+        "to_port_id": "xcf"
+      },
+      {
+        "from_node_id": "filter_sweep_hz",
+        "from_port_id": "kout",
+        "to_node_id": "lowpass_left",
+        "to_port_id": "xcf"
+      },
+      {
+        "from_node_id": "filter_envelope",
+        "from_port_id": "kenv",
+        "to_node_id": "lowpass_left",
+        "to_port_id": "xcf"
+      },
+      {
+        "from_node_id": "velocity_ampmidi",
+        "from_port_id": "iamp",
+        "to_node_id": "lowpass_left",
+        "to_port_id": "xcf"
+      },
+      {
+        "from_node_id": "filter_resonance",
+        "from_port_id": "kout",
+        "to_node_id": "lowpass_left",
+        "to_port_id": "xres"
+      },
+      {
+        "from_node_id": "lowpass_left",
+        "from_port_id": "aout",
+        "to_node_id": "compressor_left",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "chorus_lfo_left",
+        "from_port_id": "kout",
+        "to_node_id": "chorus_time_left",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "compressor_left",
+        "from_port_id": "aout",
+        "to_node_id": "chorus_delay_left",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "chorus_time_left",
+        "from_port_id": "aout",
+        "to_node_id": "chorus_delay_left",
+        "to_port_id": "adel"
+      },
+      {
+        "from_node_id": "compressor_left",
+        "from_port_id": "aout",
+        "to_node_id": "chorus_blend_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "chorus_mix_audio",
+        "from_port_id": "aout",
+        "to_node_id": "chorus_blend_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "chorus_delay_left",
+        "from_port_id": "aout",
+        "to_node_id": "chorus_blend_left",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "chorus_mix_audio",
+        "from_port_id": "aout",
+        "to_node_id": "chorus_blend_left",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "chorus_blend_left",
+        "from_port_id": "aout",
+        "to_node_id": "echo_highpass_left",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "echo_highpass_left",
+        "from_port_id": "aout",
+        "to_node_id": "echo_lowpass_left",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "echo_lowpass_left",
+        "from_port_id": "aout",
+        "to_node_id": "echo_left_1",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "delay_tempo_bpm",
+        "from_port_id": "iout",
+        "to_node_id": "echo_left_1",
+        "to_port_id": "idlt"
+      },
+      {
+        "from_node_id": "echo_left_1",
+        "from_port_id": "aout",
+        "to_node_id": "echo_left_2",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "delay_tempo_bpm",
+        "from_port_id": "iout",
+        "to_node_id": "echo_left_2",
+        "to_port_id": "idlt"
+      },
+      {
+        "from_node_id": "echo_left_2",
+        "from_port_id": "aout",
+        "to_node_id": "echo_left_3",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "delay_tempo_bpm",
+        "from_port_id": "iout",
+        "to_node_id": "echo_left_3",
+        "to_port_id": "idlt"
+      },
+      {
+        "from_node_id": "saw_1_pan",
+        "from_port_id": "aright",
+        "to_node_id": "lowpass_right",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "saw_2_pan",
+        "from_port_id": "aright",
+        "to_node_id": "lowpass_right",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "saw_3_pan",
+        "from_port_id": "aright",
+        "to_node_id": "lowpass_right",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "saw_4_pan",
+        "from_port_id": "aright",
+        "to_node_id": "lowpass_right",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "saw_5_pan",
+        "from_port_id": "aright",
+        "to_node_id": "lowpass_right",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "saw_6_pan",
+        "from_port_id": "aright",
+        "to_node_id": "lowpass_right",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "saw_7_pan",
+        "from_port_id": "aright",
+        "to_node_id": "lowpass_right",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "filter_base_hz",
+        "from_port_id": "kout",
+        "to_node_id": "lowpass_right",
+        "to_port_id": "xcf"
+      },
+      {
+        "from_node_id": "filter_sweep_hz",
+        "from_port_id": "kout",
+        "to_node_id": "lowpass_right",
+        "to_port_id": "xcf"
+      },
+      {
+        "from_node_id": "filter_envelope",
+        "from_port_id": "kenv",
+        "to_node_id": "lowpass_right",
+        "to_port_id": "xcf"
+      },
+      {
+        "from_node_id": "velocity_ampmidi",
+        "from_port_id": "iamp",
+        "to_node_id": "lowpass_right",
+        "to_port_id": "xcf"
+      },
+      {
+        "from_node_id": "filter_resonance",
+        "from_port_id": "kout",
+        "to_node_id": "lowpass_right",
+        "to_port_id": "xres"
+      },
+      {
+        "from_node_id": "lowpass_right",
+        "from_port_id": "aout",
+        "to_node_id": "compressor_right",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "chorus_lfo_right",
+        "from_port_id": "kout",
+        "to_node_id": "chorus_time_right",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "compressor_right",
+        "from_port_id": "aout",
+        "to_node_id": "chorus_delay_right",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "chorus_time_right",
+        "from_port_id": "aout",
+        "to_node_id": "chorus_delay_right",
+        "to_port_id": "adel"
+      },
+      {
+        "from_node_id": "compressor_right",
+        "from_port_id": "aout",
+        "to_node_id": "chorus_blend_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "chorus_mix_audio",
+        "from_port_id": "aout",
+        "to_node_id": "chorus_blend_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "chorus_delay_right",
+        "from_port_id": "aout",
+        "to_node_id": "chorus_blend_right",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "chorus_mix_audio",
+        "from_port_id": "aout",
+        "to_node_id": "chorus_blend_right",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "chorus_blend_right",
+        "from_port_id": "aout",
+        "to_node_id": "echo_highpass_right",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "echo_highpass_right",
+        "from_port_id": "aout",
+        "to_node_id": "echo_lowpass_right",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "echo_lowpass_right",
+        "from_port_id": "aout",
+        "to_node_id": "echo_right_1",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "delay_tempo_bpm",
+        "from_port_id": "iout",
+        "to_node_id": "echo_right_1",
+        "to_port_id": "idlt"
+      },
+      {
+        "from_node_id": "echo_right_1",
+        "from_port_id": "aout",
+        "to_node_id": "echo_right_2",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "delay_tempo_bpm",
+        "from_port_id": "iout",
+        "to_node_id": "echo_right_2",
+        "to_port_id": "idlt"
+      },
+      {
+        "from_node_id": "echo_right_2",
+        "from_port_id": "aout",
+        "to_node_id": "echo_right_3",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "delay_tempo_bpm",
+        "from_port_id": "iout",
+        "to_node_id": "echo_right_3",
+        "to_port_id": "idlt"
+      },
+      {
+        "from_node_id": "output_level_audio",
+        "from_port_id": "aout",
+        "to_node_id": "8cf688b8-07ed-4a75-9c84-6798d59c3812",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "chorus_blend_left",
+        "from_port_id": "aout",
+        "to_node_id": "8cf688b8-07ed-4a75-9c84-6798d59c3812",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "delay_mix_audio",
+        "from_port_id": "aout",
+        "to_node_id": "8cf688b8-07ed-4a75-9c84-6798d59c3812",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "echo_left_1",
+        "from_port_id": "aout",
+        "to_node_id": "8cf688b8-07ed-4a75-9c84-6798d59c3812",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "echo_left_2",
+        "from_port_id": "aout",
+        "to_node_id": "8cf688b8-07ed-4a75-9c84-6798d59c3812",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "echo_left_3",
+        "from_port_id": "aout",
+        "to_node_id": "8cf688b8-07ed-4a75-9c84-6798d59c3812",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "output_level_audio",
+        "from_port_id": "aout",
+        "to_node_id": "80f14efd-407a-473a-884d-eb7f2a5da6f4",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "chorus_blend_right",
+        "from_port_id": "aout",
+        "to_node_id": "80f14efd-407a-473a-884d-eb7f2a5da6f4",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "delay_mix_audio",
+        "from_port_id": "aout",
+        "to_node_id": "80f14efd-407a-473a-884d-eb7f2a5da6f4",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "echo_right_1",
+        "from_port_id": "aout",
+        "to_node_id": "80f14efd-407a-473a-884d-eb7f2a5da6f4",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "echo_right_2",
+        "from_port_id": "aout",
+        "to_node_id": "80f14efd-407a-473a-884d-eb7f2a5da6f4",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "echo_right_3",
+        "from_port_id": "aout",
+        "to_node_id": "80f14efd-407a-473a-884d-eb7f2a5da6f4",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "c5734d71-1fae-4fb0-9ade-c581a8d7aad7",
+        "from_port_id": "iout",
+        "to_node_id": "saw_1_vco2",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "c5734d71-1fae-4fb0-9ade-c581a8d7aad7",
+        "from_port_id": "iout",
+        "to_node_id": "saw_2_vco2",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "c5734d71-1fae-4fb0-9ade-c581a8d7aad7",
+        "from_port_id": "iout",
+        "to_node_id": "saw_3_vco2",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "c5734d71-1fae-4fb0-9ade-c581a8d7aad7",
+        "from_port_id": "iout",
+        "to_node_id": "saw_5_vco2",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "c5734d71-1fae-4fb0-9ade-c581a8d7aad7",
+        "from_port_id": "iout",
+        "to_node_id": "saw_6_vco2",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "c5734d71-1fae-4fb0-9ade-c581a8d7aad7",
+        "from_port_id": "iout",
+        "to_node_id": "saw_7_vco2",
+        "to_port_id": "kcps"
+      }
+    ],
+    "ui_layout": {
+      "input_formulas": {
+        "saw_1_vco2::kcps": {
+          "expression": "pitch * (1 + detune * in1 * -0.010343343585)",
+          "inputs": [
+            {
+              "token": "pitch",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "detune",
+              "from_node_id": "detune_amount",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "in1",
+              "from_node_id": "c5734d71-1fae-4fb0-9ade-c581a8d7aad7",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "saw_1_pan::xp": {
+          "expression": "0.5 + width * -0.460",
+          "inputs": [
+            {
+              "token": "width",
+              "from_node_id": "stereo_width",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "saw_2_vco2::kcps": {
+          "expression": "pitch * (1 + detune * in1 * -0.006333706140)",
+          "inputs": [
+            {
+              "token": "pitch",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "detune",
+              "from_node_id": "detune_amount",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "in1",
+              "from_node_id": "c5734d71-1fae-4fb0-9ade-c581a8d7aad7",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "saw_2_pan::xp": {
+          "expression": "0.5 + width * 0.280",
+          "inputs": [
+            {
+              "token": "width",
+              "from_node_id": "stereo_width",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "saw_3_vco2::kcps": {
+          "expression": "pitch * (1 + detune * in1 * -0.002883946665)",
+          "inputs": [
+            {
+              "token": "pitch",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "detune",
+              "from_node_id": "detune_amount",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "in1",
+              "from_node_id": "c5734d71-1fae-4fb0-9ade-c581a8d7aad7",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "saw_3_pan::xp": {
+          "expression": "0.5 + width * -0.200",
+          "inputs": [
+            {
+              "token": "width",
+              "from_node_id": "stereo_width",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "saw_4_vco2::kcps": {
+          "expression": "pitch * (1 + detune * 0.000000000000)",
+          "inputs": [
+            {
+              "token": "pitch",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "detune",
+              "from_node_id": "detune_amount",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "saw_4_pan::xp": {
+          "expression": "0.5 + width * 0.000",
+          "inputs": [
+            {
+              "token": "width",
+              "from_node_id": "stereo_width",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "saw_5_vco2::kcps": {
+          "expression": "pitch * (1 + detune * in1 * 0.003471748510)",
+          "inputs": [
+            {
+              "token": "pitch",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "detune",
+              "from_node_id": "detune_amount",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "in1",
+              "from_node_id": "c5734d71-1fae-4fb0-9ade-c581a8d7aad7",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "saw_5_pan::xp": {
+          "expression": "0.5 + width * 0.200",
+          "inputs": [
+            {
+              "token": "width",
+              "from_node_id": "stereo_width",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "saw_6_vco2::kcps": {
+          "expression": "pitch * (1 + detune * in1 * 0.006955550057)",
+          "inputs": [
+            {
+              "token": "pitch",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "detune",
+              "from_node_id": "detune_amount",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "in1",
+              "from_node_id": "c5734d71-1fae-4fb0-9ade-c581a8d7aad7",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "saw_6_pan::xp": {
+          "expression": "0.5 + width * -0.280",
+          "inputs": [
+            {
+              "token": "width",
+              "from_node_id": "stereo_width",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "saw_7_vco2::kcps": {
+          "expression": "pitch * (1 + detune * in1 * 0.011035274729)",
+          "inputs": [
+            {
+              "token": "pitch",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "detune",
+              "from_node_id": "detune_amount",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "in1",
+              "from_node_id": "c5734d71-1fae-4fb0-9ade-c581a8d7aad7",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "saw_7_pan::xp": {
+          "expression": "0.5 + width * 0.460",
+          "inputs": [
+            {
+              "token": "width",
+              "from_node_id": "stereo_width",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "let_echoes_finish::iextradur": {
+          "expression": "release + 180 / bpm + 0.15",
+          "inputs": [
+            {
+              "token": "release",
+              "from_node_id": "env_release_const",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "bpm",
+              "from_node_id": "delay_tempo_bpm",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "lowpass_left::xcf": {
+          "expression": "base + sweep * env * (0.65 + 0.35 * velocity)",
+          "inputs": [
+            {
+              "token": "base",
+              "from_node_id": "filter_base_hz",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "sweep",
+              "from_node_id": "filter_sweep_hz",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "env",
+              "from_node_id": "filter_envelope",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "velocity",
+              "from_node_id": "velocity_ampmidi",
+              "from_port_id": "iamp"
+            }
+          ]
+        },
+        "chorus_time_left::kin": {
+          "expression": "18 + motion",
+          "inputs": [
+            {
+              "token": "motion",
+              "from_node_id": "chorus_lfo_left",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "chorus_blend_left::a": {
+          "expression": "dry * (1 - wet)",
+          "inputs": [
+            {
+              "token": "dry",
+              "from_node_id": "compressor_left",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "wet",
+              "from_node_id": "chorus_mix_audio",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "chorus_blend_left::b": {
+          "expression": "signal * wet",
+          "inputs": [
+            {
+              "token": "signal",
+              "from_node_id": "chorus_delay_left",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "wet",
+              "from_node_id": "chorus_mix_audio",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "echo_left_1::idlt": {
+          "expression": "45 / bpm",
+          "inputs": [
+            {
+              "token": "bpm",
+              "from_node_id": "delay_tempo_bpm",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "echo_left_2::idlt": {
+          "expression": "45 / bpm",
+          "inputs": [
+            {
+              "token": "bpm",
+              "from_node_id": "delay_tempo_bpm",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "echo_left_3::idlt": {
+          "expression": "45 / bpm",
+          "inputs": [
+            {
+              "token": "bpm",
+              "from_node_id": "delay_tempo_bpm",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "lowpass_right::xcf": {
+          "expression": "base + sweep * env * (0.65 + 0.35 * velocity)",
+          "inputs": [
+            {
+              "token": "base",
+              "from_node_id": "filter_base_hz",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "sweep",
+              "from_node_id": "filter_sweep_hz",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "env",
+              "from_node_id": "filter_envelope",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "velocity",
+              "from_node_id": "velocity_ampmidi",
+              "from_port_id": "iamp"
+            }
+          ]
+        },
+        "chorus_time_right::kin": {
+          "expression": "22 + motion",
+          "inputs": [
+            {
+              "token": "motion",
+              "from_node_id": "chorus_lfo_right",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "chorus_blend_right::a": {
+          "expression": "dry * (1 - wet)",
+          "inputs": [
+            {
+              "token": "dry",
+              "from_node_id": "compressor_right",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "wet",
+              "from_node_id": "chorus_mix_audio",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "chorus_blend_right::b": {
+          "expression": "signal * wet",
+          "inputs": [
+            {
+              "token": "signal",
+              "from_node_id": "chorus_delay_right",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "wet",
+              "from_node_id": "chorus_mix_audio",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "echo_right_1::idlt": {
+          "expression": "60 / bpm",
+          "inputs": [
+            {
+              "token": "bpm",
+              "from_node_id": "delay_tempo_bpm",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "echo_right_2::idlt": {
+          "expression": "60 / bpm",
+          "inputs": [
+            {
+              "token": "bpm",
+              "from_node_id": "delay_tempo_bpm",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "echo_right_3::idlt": {
+          "expression": "60 / bpm",
+          "inputs": [
+            {
+              "token": "bpm",
+              "from_node_id": "delay_tempo_bpm",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "8cf688b8-07ed-4a75-9c84-6798d59c3812::asignal": {
+          "expression": "25 * level * (dry + wet * (tap1 + 0.43 * tap2 + 0.18 * tap3))",
+          "inputs": [
+            {
+              "token": "level",
+              "from_node_id": "output_level_audio",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "dry",
+              "from_node_id": "chorus_blend_left",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "wet",
+              "from_node_id": "delay_mix_audio",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "tap1",
+              "from_node_id": "echo_left_1",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "tap2",
+              "from_node_id": "echo_left_2",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "tap3",
+              "from_node_id": "echo_left_3",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "80f14efd-407a-473a-884d-eb7f2a5da6f4::asignal": {
+          "expression": "25*level * (dry + wet * (tap1 + 0.43 * tap2 + 0.18 * tap3))",
+          "inputs": [
+            {
+              "token": "level",
+              "from_node_id": "output_level_audio",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "dry",
+              "from_node_id": "chorus_blend_right",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "wet",
+              "from_node_id": "delay_mix_audio",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "tap1",
+              "from_node_id": "echo_right_1",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "tap2",
+              "from_node_id": "echo_right_2",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "tap3",
+              "from_node_id": "echo_right_3",
+              "from_port_id": "aout"
+            }
+          ]
+        }
+      },
+      "audio_blocks": {
+        "0141c186-5782-441c-aef3-d4bf372cb961": true
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 750,
+      "ksmps": 64,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1
+    },
+    "audio_interface": {
+      "role": "custom",
+      "groups": [
+        {
+          "id": "0141c186-5782-441c-aef3-d4bf372cb961",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainInput": null,
+      "mainOutput": "0141c186-5782-441c-aef3-d4bf372cb961",
+      "guided": false
+    },
+    "control_flow": {}
+  }
+}

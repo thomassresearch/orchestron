@@ -1,0 +1,266 @@
+{
+  "sourcePatchId": "e3c1fa8d-f3c6-441d-b443-707ce7ef924e",
+  "name": "Compressor Effect",
+  "description": "Dynamic ompression of audio signal",
+  "isTemplate": false,
+  "alwaysOn": true,
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "aedd1b94-405b-441a-8d8e-ebc2f2898488",
+        "opcode": "dam",
+        "params": {
+          "kthreshold": 0.5,
+          "icomp1": 0.1,
+          "icomp2": 0.9,
+          "irtime": 0.01,
+          "iftime": 0.1
+        },
+        "position": {
+          "x": -66.08200169167691,
+          "y": -118.35234154336786
+        }
+      },
+      {
+        "id": "2f4e1891-c4bc-4e1f-bf58-30a7f41be013",
+        "opcode": "dam",
+        "params": {
+          "kthreshold": 0.5,
+          "icomp1": 0.1,
+          "icomp2": 0.9,
+          "irtime": 0.01,
+          "iftime": 0.1
+        },
+        "position": {
+          "x": -43.71857752214379,
+          "y": 317.51919957690654
+        }
+      },
+      {
+        "id": "19053c50-a059-412c-9e4a-280db42edca9",
+        "opcode": "perf_controller",
+        "params": {
+          "min": 0.05,
+          "max": 0.6,
+          "default": 0.2,
+          "scale": "linear",
+          "label": "Upper"
+        },
+        "position": {
+          "x": -519.1289262991045,
+          "y": 67.11282675535115
+        }
+      },
+      {
+        "id": "9eabdf3c-9d00-4f37-bf9b-c819ceb1c2a3",
+        "opcode": "perf_controller",
+        "params": {
+          "min": 0.4,
+          "max": 1,
+          "default": 0.9,
+          "scale": "logarithmic",
+          "label": "Lower"
+        },
+        "position": {
+          "x": -734.8411399293734,
+          "y": 237.28380186057066
+        }
+      },
+      {
+        "id": "a84d4364-5f74-4351-9e29-8e4c6d8a730f",
+        "opcode": "perf_controller",
+        "params": {
+          "min": 0.01,
+          "max": 0.5,
+          "default": 0.1,
+          "scale": "logarithmic",
+          "label": "Rise"
+        },
+        "position": {
+          "x": -656.6385079907191,
+          "y": 379.46016314724
+        }
+      },
+      {
+        "id": "364ce489-892d-463e-a519-4e51effe56f7",
+        "opcode": "perf_controller",
+        "params": {
+          "min": 0.001,
+          "max": 0.5,
+          "default": 0.01,
+          "scale": "logarithmic",
+          "label": "Fall"
+        },
+        "position": {
+          "x": -573.7142896307788,
+          "y": 531.819239681581
+        }
+      },
+      {
+        "id": "51da89f7-3991-413d-845d-124ee69506d8",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 307.37260678803966,
+          "y": 12.585940235139294
+        }
+      },
+      {
+        "id": "4deac1a0-cd9d-4588-b89b-7378e1829ee4",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 363.2719972138667,
+          "y": 335.66437475102686
+        }
+      },
+      {
+        "id": "b6119c91-33ca-4d57-99f6-ccd1a34c13fb",
+        "opcode": "inleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": -971.9243148521678,
+          "y": -64.03297623155562
+        }
+      },
+      {
+        "id": "6e51293d-34b8-4876-ab2a-1c97fce32d75",
+        "opcode": "inleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": -999.7279032405495,
+          "y": 378.2528180188093
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "b6119c91-33ca-4d57-99f6-ccd1a34c13fb",
+        "from_port_id": "asignal",
+        "to_node_id": "aedd1b94-405b-441a-8d8e-ebc2f2898488",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "6e51293d-34b8-4876-ab2a-1c97fce32d75",
+        "from_port_id": "asignal",
+        "to_node_id": "2f4e1891-c4bc-4e1f-bf58-30a7f41be013",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "aedd1b94-405b-441a-8d8e-ebc2f2898488",
+        "from_port_id": "aout",
+        "to_node_id": "51da89f7-3991-413d-845d-124ee69506d8",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "2f4e1891-c4bc-4e1f-bf58-30a7f41be013",
+        "from_port_id": "aout",
+        "to_node_id": "4deac1a0-cd9d-4588-b89b-7378e1829ee4",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "19053c50-a059-412c-9e4a-280db42edca9",
+        "from_port_id": "iout",
+        "to_node_id": "aedd1b94-405b-441a-8d8e-ebc2f2898488",
+        "to_port_id": "icomp1"
+      },
+      {
+        "from_node_id": "19053c50-a059-412c-9e4a-280db42edca9",
+        "from_port_id": "iout",
+        "to_node_id": "2f4e1891-c4bc-4e1f-bf58-30a7f41be013",
+        "to_port_id": "icomp1"
+      },
+      {
+        "from_node_id": "9eabdf3c-9d00-4f37-bf9b-c819ceb1c2a3",
+        "from_port_id": "iout",
+        "to_node_id": "aedd1b94-405b-441a-8d8e-ebc2f2898488",
+        "to_port_id": "icomp2"
+      },
+      {
+        "from_node_id": "9eabdf3c-9d00-4f37-bf9b-c819ceb1c2a3",
+        "from_port_id": "iout",
+        "to_node_id": "2f4e1891-c4bc-4e1f-bf58-30a7f41be013",
+        "to_port_id": "icomp2"
+      },
+      {
+        "from_node_id": "a84d4364-5f74-4351-9e29-8e4c6d8a730f",
+        "from_port_id": "iout",
+        "to_node_id": "aedd1b94-405b-441a-8d8e-ebc2f2898488",
+        "to_port_id": "irtime"
+      },
+      {
+        "from_node_id": "a84d4364-5f74-4351-9e29-8e4c6d8a730f",
+        "from_port_id": "iout",
+        "to_node_id": "2f4e1891-c4bc-4e1f-bf58-30a7f41be013",
+        "to_port_id": "irtime"
+      },
+      {
+        "from_node_id": "364ce489-892d-463e-a519-4e51effe56f7",
+        "from_port_id": "iout",
+        "to_node_id": "aedd1b94-405b-441a-8d8e-ebc2f2898488",
+        "to_port_id": "iftime"
+      },
+      {
+        "from_node_id": "364ce489-892d-463e-a519-4e51effe56f7",
+        "from_port_id": "iout",
+        "to_node_id": "2f4e1891-c4bc-4e1f-bf58-30a7f41be013",
+        "to_port_id": "iftime"
+      }
+    ],
+    "ui_layout": {
+      "audio_blocks": {
+        "af3e745a-af39-4ff5-a7b4-ea61ed407c0d": true,
+        "9c701866-65d3-410f-a958-308d38800c51": true
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 1500,
+      "ksmps": 32,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1
+    },
+    "audio_interface": {
+      "role": "custom",
+      "groups": [
+        {
+          "id": "af3e745a-af39-4ff5-a7b4-ea61ed407c0d",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        },
+        {
+          "id": "9c701866-65d3-410f-a958-308d38800c51",
+          "name": "Stereo Input",
+          "direction": "input",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainInput": "9c701866-65d3-410f-a958-308d38800c51",
+      "mainOutput": "af3e745a-af39-4ff5-a7b4-ea61ed407c0d",
+      "guided": false
+    },
+    "control_flow": {}
+  }
+}

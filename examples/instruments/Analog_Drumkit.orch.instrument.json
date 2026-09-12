@@ -1,0 +1,2084 @@
+{
+  "sourcePatchId": "979b006c-d2a5-47c1-836c-9f3f30453ddf",
+  "name": "Analog Drumkit",
+  "description": "Five velocity-sensitive analog synthesis voices selected by MIDI notnum through Switch. 35: Bass drum (pitch-swept sine + click); 36: Bass drum distorted (saturated sine + click); 46: Hi-hat open (700 ms); 42: Hi-hat closed (85 ms); 38: Snare (two sine resonances + filtered noise). Hats use six inharmonic square oscillators plus noise. One-shot decays survive short MIDI note-offs. Silent default; stereo output; no samples. GM bass-drum slot 36 is used for the distorted variation.",
+  "isTemplate": false,
+  "alwaysOn": false,
+  "schema_version": 2,
+  "graph": {
+    "nodes": [
+      {
+        "id": "note",
+        "opcode": "notnum",
+        "params": {},
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "id": "velocity_scale",
+        "opcode": "const_i",
+        "params": {
+          "value": 1
+        },
+        "position": {
+          "x": -453.91729062480925,
+          "y": 4005.5633885921525
+        }
+      },
+      {
+        "id": "velocity",
+        "opcode": "ampmidi",
+        "params": {},
+        "position": {
+          "x": -521.3258300898052,
+          "y": 4899.483535847721
+        }
+      },
+      {
+        "id": "kit",
+        "opcode": "Switch",
+        "params": {
+          "selector": 0
+        },
+        "position": {
+          "x": 400,
+          "y": 0
+        }
+      },
+      {
+        "id": "bass_drum_tail",
+        "opcode": "xtratim",
+        "params": {
+          "iextradur": 0.455
+        },
+        "position": {
+          "x": 450,
+          "y": 1600
+        }
+      },
+      {
+        "id": "bass_drum_gate",
+        "opcode": "linseg",
+        "params": {
+          "ia": 0,
+          "idur1": 0.001,
+          "ib": 1,
+          "idur2": 0.421,
+          "ic": 1,
+          "idur3": 0.008,
+          "id": 0
+        },
+        "position": {
+          "x": 450,
+          "y": 1940
+        }
+      },
+      {
+        "id": "bass_drum_decay",
+        "opcode": "expseg",
+        "params": {
+          "ia": 1,
+          "idur1": 0.129,
+          "ib": 0.16,
+          "idur2": 0.301,
+          "ic": 0.0001
+        },
+        "position": {
+          "x": 445.5895531667337,
+          "y": 2320.906144302553
+        }
+      },
+      {
+        "id": "bass_drum_pitch",
+        "opcode": "expseg",
+        "params": {
+          "ia": 165,
+          "idur1": 0.026,
+          "ib": 57,
+          "idur2": 0.2,
+          "ic": 46
+        },
+        "position": {
+          "x": 671.6489811783968,
+          "y": 1463.3902604307725
+        }
+      },
+      {
+        "id": "bass_drum_tone",
+        "opcode": "oscili",
+        "params": {
+          "amp": 1,
+          "ifn": -1
+        },
+        "position": {
+          "x": 1050.9559716904664,
+          "y": 2299.838538237288
+        }
+      },
+      {
+        "id": "bass_drum_click_env",
+        "opcode": "expseg",
+        "params": {
+          "ia": 1,
+          "idur1": 0.012,
+          "ib": 0.0001
+        },
+        "position": {
+          "x": 667.7946321969434,
+          "y": 2040.9657828528398
+        }
+      },
+      {
+        "id": "bass_drum_click",
+        "opcode": "noise",
+        "params": {
+          "beta": 0
+        },
+        "position": {
+          "x": 1002.1583132844457,
+          "y": 1988.400327606624
+        }
+      },
+      {
+        "id": "bass_drum_click_filter",
+        "opcode": "butterbp",
+        "params": {
+          "xfreq": 2200,
+          "xband": 2500
+        },
+        "position": {
+          "x": 1252.2383705750512,
+          "y": 1954.8656517489496
+        }
+      },
+      {
+        "id": "bass_drum_mix",
+        "opcode": "mix2",
+        "params": {},
+        "position": {
+          "x": 1513.3882548699826,
+          "y": 2164.1703158747214
+        }
+      },
+      {
+        "id": "bass_drum_amplitude",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 1271.7129504231928,
+          "y": 1617.3597587600536
+        }
+      },
+      {
+        "id": "bass_drum_pan",
+        "opcode": "pan2",
+        "params": {
+          "xp": 0.5
+        },
+        "position": {
+          "x": 1770.5614842700102,
+          "y": 2060.9409082097404
+        }
+      },
+      {
+        "id": "bass_drum_result",
+        "opcode": "CaseResult",
+        "params": {},
+        "position": {
+          "x": 2075.868194032939,
+          "y": 2758.5061443025534
+        }
+      },
+      {
+        "id": "bass_drum_distorted_tail",
+        "opcode": "xtratim",
+        "params": {
+          "iextradur": 0.385
+        },
+        "position": {
+          "x": 450,
+          "y": 3019.7561443025534
+        }
+      },
+      {
+        "id": "bass_drum_distorted_gate",
+        "opcode": "linseg",
+        "params": {
+          "ia": 0,
+          "idur1": 0.001,
+          "ib": 1,
+          "idur2": 0.351,
+          "ic": 1,
+          "idur3": 0.008,
+          "id": 0
+        },
+        "position": {
+          "x": 450,
+          "y": 3359.7561443025534
+        }
+      },
+      {
+        "id": "bass_drum_distorted_decay",
+        "opcode": "expseg",
+        "params": {
+          "ia": 1,
+          "idur1": 0.108,
+          "ib": 0.16,
+          "idur2": 0.252,
+          "ic": 0.0001
+        },
+        "position": {
+          "x": 450,
+          "y": 3699.7561443025534
+        }
+      },
+      {
+        "id": "bass_drum_distorted_pitch",
+        "opcode": "expseg",
+        "params": {
+          "ia": 190,
+          "idur1": 0.026,
+          "ib": 57,
+          "idur2": 0.2,
+          "ic": 49
+        },
+        "position": {
+          "x": 780,
+          "y": 3019.7561443025534
+        }
+      },
+      {
+        "id": "bass_drum_distorted_tone",
+        "opcode": "oscili",
+        "params": {
+          "amp": 1,
+          "ifn": -1
+        },
+        "position": {
+          "x": 889.2845405946014,
+          "y": 3496.4001550420103
+        }
+      },
+      {
+        "id": "bass_drum_distorted_click_env",
+        "opcode": "expseg",
+        "params": {
+          "ia": 1,
+          "idur1": 0.012,
+          "ib": 0.0001
+        },
+        "position": {
+          "x": 823.2100423061574,
+          "y": 3885.5952680287123
+        }
+      },
+      {
+        "id": "bass_drum_distorted_click",
+        "opcode": "noise",
+        "params": {
+          "beta": 0
+        },
+        "position": {
+          "x": 1030.34230032038,
+          "y": 3019.7561443025534
+        }
+      },
+      {
+        "id": "bass_drum_distorted_click_filter",
+        "opcode": "butterbp",
+        "params": {
+          "xfreq": 2200,
+          "xband": 2500
+        },
+        "position": {
+          "x": 1231.6364022096473,
+          "y": 3481.2128374637923
+        }
+      },
+      {
+        "id": "bass_drum_distorted_mix",
+        "opcode": "mix2",
+        "params": {},
+        "position": {
+          "x": 1299.8459699165942,
+          "y": 3738.1806012085062
+        }
+      },
+      {
+        "id": "bass_drum_distorted_drive",
+        "opcode": "distort1",
+        "params": {
+          "kpregain": 5.5,
+          "kpostgain": 0.95,
+          "kshape1": 0,
+          "kshape2": 0,
+          "imode": 1
+        },
+        "position": {
+          "x": 1428.5291767725564,
+          "y": 3043.6352733202148
+        }
+      },
+      {
+        "id": "bass_drum_distorted_lowpass",
+        "opcode": "butterlp",
+        "params": {
+          "xfreq": 3800
+        },
+        "position": {
+          "x": 1567.2872533984835,
+          "y": 3408.9764558943643
+        }
+      },
+      {
+        "id": "bass_drum_distorted_dc_filter",
+        "opcode": "butterhp",
+        "params": {
+          "xfreq": 22
+        },
+        "position": {
+          "x": 1551.8988341421934,
+          "y": 3682.8901173149065
+        }
+      },
+      {
+        "id": "bass_drum_distorted_amplitude",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 1771.0074920806692,
+          "y": 3262.6898127543004
+        }
+      },
+      {
+        "id": "bass_drum_distorted_pan",
+        "opcode": "pan2",
+        "params": {
+          "xp": 0.5
+        },
+        "position": {
+          "x": 1805.265572842321,
+          "y": 3674.1699983469807
+        }
+      },
+      {
+        "id": "bass_drum_distorted_result",
+        "opcode": "CaseResult",
+        "params": {},
+        "position": {
+          "x": 2104.4918881996778,
+          "y": 4324.273522319162
+        }
+      },
+      {
+        "id": "hihat_open_tail",
+        "opcode": "xtratim",
+        "params": {
+          "iextradur": 0.725
+        },
+        "position": {
+          "x": 450,
+          "y": 4606.703522319162
+        }
+      },
+      {
+        "id": "hihat_open_gate",
+        "opcode": "linseg",
+        "params": {
+          "ia": 0,
+          "idur1": 0.001,
+          "ib": 1,
+          "idur2": 0.691,
+          "ic": 1,
+          "idur3": 0.008,
+          "id": 0
+        },
+        "position": {
+          "x": 450,
+          "y": 4946.703522319162
+        }
+      },
+      {
+        "id": "hihat_open_decay",
+        "opcode": "expseg",
+        "params": {
+          "ia": 1,
+          "idur1": 0.21,
+          "ib": 0.16,
+          "idur2": 0.48999999999999994,
+          "ic": 0.0001
+        },
+        "position": {
+          "x": 450,
+          "y": 5286.703522319162
+        }
+      },
+      {
+        "id": "hihat_open_metal_1",
+        "opcode": "vco2",
+        "params": {
+          "kamp": 0.16,
+          "kcps": 205.3,
+          "imode": 2,
+          "kpw": 0.5,
+          "kphs": 0.137
+        },
+        "position": {
+          "x": 780,
+          "y": 4606.703522319162
+        }
+      },
+      {
+        "id": "hihat_open_metal_2",
+        "opcode": "vco2",
+        "params": {
+          "kamp": 0.16,
+          "kcps": 304.4,
+          "imode": 2,
+          "kpw": 0.5,
+          "kphs": 0.274
+        },
+        "position": {
+          "x": 780,
+          "y": 4946.703522319162
+        }
+      },
+      {
+        "id": "hihat_open_metal_3",
+        "opcode": "vco2",
+        "params": {
+          "kamp": 0.16,
+          "kcps": 369.6,
+          "imode": 2,
+          "kpw": 0.5,
+          "kphs": 0.41100000000000003
+        },
+        "position": {
+          "x": 780,
+          "y": 5286.703522319162
+        }
+      },
+      {
+        "id": "hihat_open_metal_4",
+        "opcode": "vco2",
+        "params": {
+          "kamp": 0.16,
+          "kcps": 522.7,
+          "imode": 2,
+          "kpw": 0.5,
+          "kphs": 0.548
+        },
+        "position": {
+          "x": 1110,
+          "y": 4606.703522319162
+        }
+      },
+      {
+        "id": "hihat_open_metal_5",
+        "opcode": "vco2",
+        "params": {
+          "kamp": 0.16,
+          "kcps": 540.5,
+          "imode": 2,
+          "kpw": 0.5,
+          "kphs": 0.685
+        },
+        "position": {
+          "x": 1110,
+          "y": 4946.703522319162
+        }
+      },
+      {
+        "id": "hihat_open_metal_6",
+        "opcode": "vco2",
+        "params": {
+          "kamp": 0.16,
+          "kcps": 800,
+          "imode": 2,
+          "kpw": 0.5,
+          "kphs": 0.8220000000000001
+        },
+        "position": {
+          "x": 1110,
+          "y": 5286.703522319162
+        }
+      },
+      {
+        "id": "hihat_open_air",
+        "opcode": "noise",
+        "params": {
+          "amp": 0.24,
+          "beta": 0
+        },
+        "position": {
+          "x": 1440,
+          "y": 4606.703522319162
+        }
+      },
+      {
+        "id": "hihat_open_highpass",
+        "opcode": "butterhp",
+        "params": {
+          "xfreq": 6500
+        },
+        "position": {
+          "x": 1440,
+          "y": 4946.703522319162
+        }
+      },
+      {
+        "id": "hihat_open_lowpass",
+        "opcode": "butterlp",
+        "params": {
+          "xfreq": 12500
+        },
+        "position": {
+          "x": 1440,
+          "y": 5286.703522319162
+        }
+      },
+      {
+        "id": "hihat_open_amplitude",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 1770,
+          "y": 4606.703522319162
+        }
+      },
+      {
+        "id": "hihat_open_pan",
+        "opcode": "pan2",
+        "params": {
+          "xp": 0.55
+        },
+        "position": {
+          "x": 1829.2019979006873,
+          "y": 4946.349486450914
+        }
+      },
+      {
+        "id": "hihat_open_result",
+        "opcode": "CaseResult",
+        "params": {},
+        "position": {
+          "x": 2138.0832914277385,
+          "y": 5724.303522319163
+        }
+      },
+      {
+        "id": "hihat_closed_tail",
+        "opcode": "xtratim",
+        "params": {
+          "iextradur": 0.11000000000000001
+        },
+        "position": {
+          "x": 450,
+          "y": 5985.553522319163
+        }
+      },
+      {
+        "id": "hihat_closed_gate",
+        "opcode": "linseg",
+        "params": {
+          "ia": 0,
+          "idur1": 0.001,
+          "ib": 1,
+          "idur2": 0.07600000000000001,
+          "ic": 1,
+          "idur3": 0.008,
+          "id": 0
+        },
+        "position": {
+          "x": 450,
+          "y": 6325.553522319163
+        }
+      },
+      {
+        "id": "hihat_closed_decay",
+        "opcode": "expseg",
+        "params": {
+          "ia": 1,
+          "idur1": 0.025500000000000002,
+          "ib": 0.16,
+          "idur2": 0.0595,
+          "ic": 0.0001
+        },
+        "position": {
+          "x": 450,
+          "y": 6665.553522319163
+        }
+      },
+      {
+        "id": "hihat_closed_metal_1",
+        "opcode": "vco2",
+        "params": {
+          "kamp": 0.16,
+          "kcps": 205.3,
+          "imode": 2,
+          "kpw": 0.5,
+          "kphs": 0.137
+        },
+        "position": {
+          "x": 780,
+          "y": 5985.553522319163
+        }
+      },
+      {
+        "id": "hihat_closed_metal_2",
+        "opcode": "vco2",
+        "params": {
+          "kamp": 0.16,
+          "kcps": 304.4,
+          "imode": 2,
+          "kpw": 0.5,
+          "kphs": 0.274
+        },
+        "position": {
+          "x": 780,
+          "y": 6325.553522319163
+        }
+      },
+      {
+        "id": "hihat_closed_metal_3",
+        "opcode": "vco2",
+        "params": {
+          "kamp": 0.16,
+          "kcps": 369.6,
+          "imode": 2,
+          "kpw": 0.5,
+          "kphs": 0.41100000000000003
+        },
+        "position": {
+          "x": 780,
+          "y": 6665.553522319163
+        }
+      },
+      {
+        "id": "hihat_closed_metal_4",
+        "opcode": "vco2",
+        "params": {
+          "kamp": 0.16,
+          "kcps": 522.7,
+          "imode": 2,
+          "kpw": 0.5,
+          "kphs": 0.548
+        },
+        "position": {
+          "x": 1110,
+          "y": 5985.553522319163
+        }
+      },
+      {
+        "id": "hihat_closed_metal_5",
+        "opcode": "vco2",
+        "params": {
+          "kamp": 0.16,
+          "kcps": 540.5,
+          "imode": 2,
+          "kpw": 0.5,
+          "kphs": 0.685
+        },
+        "position": {
+          "x": 1110,
+          "y": 6325.553522319163
+        }
+      },
+      {
+        "id": "hihat_closed_metal_6",
+        "opcode": "vco2",
+        "params": {
+          "kamp": 0.16,
+          "kcps": 800,
+          "imode": 2,
+          "kpw": 0.5,
+          "kphs": 0.8220000000000001
+        },
+        "position": {
+          "x": 1110,
+          "y": 6665.553522319163
+        }
+      },
+      {
+        "id": "hihat_closed_air",
+        "opcode": "noise",
+        "params": {
+          "amp": 0.24,
+          "beta": 0
+        },
+        "position": {
+          "x": 1347.6506438585466,
+          "y": 5985.553522319163
+        }
+      },
+      {
+        "id": "hihat_closed_highpass",
+        "opcode": "butterhp",
+        "params": {
+          "xfreq": 6500
+        },
+        "position": {
+          "x": 1440,
+          "y": 6325.553522319163
+        }
+      },
+      {
+        "id": "hihat_closed_lowpass",
+        "opcode": "butterlp",
+        "params": {
+          "xfreq": 12500
+        },
+        "position": {
+          "x": 1710.7954349546144,
+          "y": 6357.908354027013
+        }
+      },
+      {
+        "id": "hihat_closed_amplitude",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 1739.4509049957023,
+          "y": 6167.251930633862
+        }
+      },
+      {
+        "id": "hihat_closed_pan",
+        "opcode": "pan2",
+        "params": {
+          "xp": 0.55
+        },
+        "position": {
+          "x": 2011.9025077407678,
+          "y": 6459.415084164748
+        }
+      },
+      {
+        "id": "hihat_closed_result",
+        "opcode": "CaseResult",
+        "params": {},
+        "position": {
+          "x": 2240.945712673794,
+          "y": 7103.153522319163
+        }
+      },
+      {
+        "id": "snare_tail",
+        "opcode": "xtratim",
+        "params": {
+          "iextradur": 0.275
+        },
+        "position": {
+          "x": 450,
+          "y": 7364.403522319163
+        }
+      },
+      {
+        "id": "snare_gate",
+        "opcode": "linseg",
+        "params": {
+          "ia": 0,
+          "idur1": 0.001,
+          "ib": 1,
+          "idur2": 0.241,
+          "ic": 1,
+          "idur3": 0.008,
+          "id": 0
+        },
+        "position": {
+          "x": 465.2475447664349,
+          "y": 7549.887867956432
+        }
+      },
+      {
+        "id": "snare_decay",
+        "opcode": "expseg",
+        "params": {
+          "ia": 1,
+          "idur1": 0.075,
+          "ib": 0.16,
+          "idur2": 0.175,
+          "ic": 0.0001
+        },
+        "position": {
+          "x": 469.08793384574165,
+          "y": 7933.566293125609
+        }
+      },
+      {
+        "id": "snare_body_decay",
+        "opcode": "expseg",
+        "params": {
+          "ia": 1,
+          "idur1": 0.1,
+          "ib": 0.0001
+        },
+        "position": {
+          "x": 780,
+          "y": 7364.403522319163
+        }
+      },
+      {
+        "id": "snare_pitch",
+        "opcode": "expseg",
+        "params": {
+          "ia": 250,
+          "idur1": 0.018,
+          "ib": 185
+        },
+        "position": {
+          "x": 728.7608088309375,
+          "y": 7802.987510106554
+        }
+      },
+      {
+        "id": "snare_body",
+        "opcode": "oscili",
+        "params": {
+          "ifn": -1
+        },
+        "position": {
+          "x": 1358.6686263483475,
+          "y": 7505.488923549577
+        }
+      },
+      {
+        "id": "snare_overtone",
+        "opcode": "oscili",
+        "params": {
+          "freq": 330,
+          "ifn": -1
+        },
+        "position": {
+          "x": 1110,
+          "y": 7364.403522319163
+        }
+      },
+      {
+        "id": "snare_wires",
+        "opcode": "noise",
+        "params": {
+          "amp": 1,
+          "beta": 0
+        },
+        "position": {
+          "x": 1022.9911849219573,
+          "y": 7885.285847954509
+        }
+      },
+      {
+        "id": "snare_highpass",
+        "opcode": "butterhp",
+        "params": {
+          "xfreq": 1100
+        },
+        "position": {
+          "x": 1286.1118423258947,
+          "y": 7706.983337446514
+        }
+      },
+      {
+        "id": "snare_lowpass",
+        "opcode": "butterlp",
+        "params": {
+          "xfreq": 8500
+        },
+        "position": {
+          "x": 1603.7865936244946,
+          "y": 7815.241197798025
+        }
+      },
+      {
+        "id": "snare_mix",
+        "opcode": "mix2",
+        "params": {},
+        "position": {
+          "x": 1794.4439095882635,
+          "y": 7488.261624449432
+        }
+      },
+      {
+        "id": "snare_amplitude",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 1647.681040679383,
+          "y": 8033.896457822498
+        }
+      },
+      {
+        "id": "snare_pan",
+        "opcode": "pan2",
+        "params": {
+          "xp": 0.5
+        },
+        "position": {
+          "x": 2129.964468889767,
+          "y": 7817.317408144025
+        }
+      },
+      {
+        "id": "snare_result",
+        "opcode": "CaseResult",
+        "params": {},
+        "position": {
+          "x": 2409.9948394585263,
+          "y": 8371.166293125612
+        }
+      },
+      {
+        "id": "default_result",
+        "opcode": "CaseResult",
+        "params": {},
+        "position": {
+          "x": 2411.2080082061143,
+          "y": 8820.424699227138
+        }
+      },
+      {
+        "id": "ddccf62d-f9e6-49f3-a0dc-f438c7783415",
+        "opcode": "perf_controller",
+        "params": {
+          "min": 1,
+          "max": 4,
+          "default": 2,
+          "scale": "linear",
+          "label": "Distort Pre"
+        },
+        "position": {
+          "x": 1014.6782822247765,
+          "y": 3269.984114789523
+        }
+      },
+      {
+        "id": "460f9e29-fa38-4055-8f7b-c9f7d7ebe7aa",
+        "opcode": "perf_controller",
+        "params": {
+          "min": 0.2,
+          "max": 0.8,
+          "default": 0.5,
+          "scale": "linear",
+          "label": "Distort Post"
+        },
+        "position": {
+          "x": 1012.9557663767985,
+          "y": 3362.7765555287574
+        }
+      },
+      {
+        "id": "9da04da0-dadc-4020-888b-dec37077e0bc",
+        "opcode": "perf_controller",
+        "params": {
+          "min": 0.2,
+          "max": 2,
+          "default": 1,
+          "scale": "logarithmic",
+          "label": "BD pitch"
+        },
+        "position": {
+          "x": 744.9832728335882,
+          "y": 2597.2213954256636
+        }
+      },
+      {
+        "id": "1a9be505-b7fe-4d12-a783-60346b810c6a",
+        "opcode": "perf_controller",
+        "params": {
+          "min": 0.2,
+          "max": 4,
+          "default": 1,
+          "scale": "logarithmic",
+          "label": "Dist BD pitch"
+        },
+        "position": {
+          "x": 649.3257139392845,
+          "y": 3736.0904415322425
+        }
+      },
+      {
+        "id": "output_left",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 1100,
+          "y": 0
+        }
+      },
+      {
+        "id": "output_right",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 1100,
+          "y": 230
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "bass_drum_pitch",
+        "from_port_id": "kenv",
+        "to_node_id": "bass_drum_tone",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "bass_drum_click_env",
+        "from_port_id": "kenv",
+        "to_node_id": "bass_drum_click",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "bass_drum_click",
+        "from_port_id": "aout",
+        "to_node_id": "bass_drum_click_filter",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "bass_drum_tone",
+        "from_port_id": "asig",
+        "to_node_id": "bass_drum_mix",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "bass_drum_click_filter",
+        "from_port_id": "aout",
+        "to_node_id": "bass_drum_mix",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "bass_drum_decay",
+        "from_port_id": "kenv",
+        "to_node_id": "bass_drum_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "bass_drum_gate",
+        "from_port_id": "kenv",
+        "to_node_id": "bass_drum_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "bass_drum_mix",
+        "from_port_id": "aout",
+        "to_node_id": "bass_drum_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "bass_drum_amplitude",
+        "from_port_id": "aout",
+        "to_node_id": "bass_drum_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "bass_drum_pan",
+        "from_port_id": "aleft",
+        "to_node_id": "bass_drum_result",
+        "to_port_id": "left"
+      },
+      {
+        "from_node_id": "bass_drum_pan",
+        "from_port_id": "aright",
+        "to_node_id": "bass_drum_result",
+        "to_port_id": "right"
+      },
+      {
+        "from_node_id": "bass_drum_distorted_pitch",
+        "from_port_id": "kenv",
+        "to_node_id": "bass_drum_distorted_tone",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "bass_drum_distorted_click_env",
+        "from_port_id": "kenv",
+        "to_node_id": "bass_drum_distorted_click",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "bass_drum_distorted_click",
+        "from_port_id": "aout",
+        "to_node_id": "bass_drum_distorted_click_filter",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "bass_drum_distorted_tone",
+        "from_port_id": "asig",
+        "to_node_id": "bass_drum_distorted_mix",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "bass_drum_distorted_click_filter",
+        "from_port_id": "aout",
+        "to_node_id": "bass_drum_distorted_mix",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "bass_drum_distorted_mix",
+        "from_port_id": "aout",
+        "to_node_id": "bass_drum_distorted_drive",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "bass_drum_distorted_drive",
+        "from_port_id": "aout",
+        "to_node_id": "bass_drum_distorted_lowpass",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "bass_drum_distorted_lowpass",
+        "from_port_id": "aout",
+        "to_node_id": "bass_drum_distorted_dc_filter",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "bass_drum_distorted_decay",
+        "from_port_id": "kenv",
+        "to_node_id": "bass_drum_distorted_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "bass_drum_distorted_gate",
+        "from_port_id": "kenv",
+        "to_node_id": "bass_drum_distorted_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "bass_drum_distorted_dc_filter",
+        "from_port_id": "aout",
+        "to_node_id": "bass_drum_distorted_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "bass_drum_distorted_amplitude",
+        "from_port_id": "aout",
+        "to_node_id": "bass_drum_distorted_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "bass_drum_distorted_pan",
+        "from_port_id": "aleft",
+        "to_node_id": "bass_drum_distorted_result",
+        "to_port_id": "left"
+      },
+      {
+        "from_node_id": "bass_drum_distorted_pan",
+        "from_port_id": "aright",
+        "to_node_id": "bass_drum_distorted_result",
+        "to_port_id": "right"
+      },
+      {
+        "from_node_id": "hihat_open_metal_1",
+        "from_port_id": "asig",
+        "to_node_id": "hihat_open_highpass",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "hihat_open_metal_2",
+        "from_port_id": "asig",
+        "to_node_id": "hihat_open_highpass",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "hihat_open_metal_3",
+        "from_port_id": "asig",
+        "to_node_id": "hihat_open_highpass",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "hihat_open_metal_4",
+        "from_port_id": "asig",
+        "to_node_id": "hihat_open_highpass",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "hihat_open_metal_5",
+        "from_port_id": "asig",
+        "to_node_id": "hihat_open_highpass",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "hihat_open_metal_6",
+        "from_port_id": "asig",
+        "to_node_id": "hihat_open_highpass",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "hihat_open_air",
+        "from_port_id": "aout",
+        "to_node_id": "hihat_open_highpass",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "hihat_open_highpass",
+        "from_port_id": "aout",
+        "to_node_id": "hihat_open_lowpass",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "hihat_open_decay",
+        "from_port_id": "kenv",
+        "to_node_id": "hihat_open_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "hihat_open_gate",
+        "from_port_id": "kenv",
+        "to_node_id": "hihat_open_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "hihat_open_lowpass",
+        "from_port_id": "aout",
+        "to_node_id": "hihat_open_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "hihat_open_amplitude",
+        "from_port_id": "aout",
+        "to_node_id": "hihat_open_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "hihat_open_pan",
+        "from_port_id": "aleft",
+        "to_node_id": "hihat_open_result",
+        "to_port_id": "left"
+      },
+      {
+        "from_node_id": "hihat_open_pan",
+        "from_port_id": "aright",
+        "to_node_id": "hihat_open_result",
+        "to_port_id": "right"
+      },
+      {
+        "from_node_id": "hihat_closed_metal_1",
+        "from_port_id": "asig",
+        "to_node_id": "hihat_closed_highpass",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "hihat_closed_metal_2",
+        "from_port_id": "asig",
+        "to_node_id": "hihat_closed_highpass",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "hihat_closed_metal_3",
+        "from_port_id": "asig",
+        "to_node_id": "hihat_closed_highpass",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "hihat_closed_metal_4",
+        "from_port_id": "asig",
+        "to_node_id": "hihat_closed_highpass",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "hihat_closed_metal_5",
+        "from_port_id": "asig",
+        "to_node_id": "hihat_closed_highpass",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "hihat_closed_metal_6",
+        "from_port_id": "asig",
+        "to_node_id": "hihat_closed_highpass",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "hihat_closed_air",
+        "from_port_id": "aout",
+        "to_node_id": "hihat_closed_highpass",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "hihat_closed_highpass",
+        "from_port_id": "aout",
+        "to_node_id": "hihat_closed_lowpass",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "hihat_closed_decay",
+        "from_port_id": "kenv",
+        "to_node_id": "hihat_closed_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "hihat_closed_gate",
+        "from_port_id": "kenv",
+        "to_node_id": "hihat_closed_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "hihat_closed_lowpass",
+        "from_port_id": "aout",
+        "to_node_id": "hihat_closed_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "hihat_closed_amplitude",
+        "from_port_id": "aout",
+        "to_node_id": "hihat_closed_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "hihat_closed_pan",
+        "from_port_id": "aleft",
+        "to_node_id": "hihat_closed_result",
+        "to_port_id": "left"
+      },
+      {
+        "from_node_id": "hihat_closed_pan",
+        "from_port_id": "aright",
+        "to_node_id": "hihat_closed_result",
+        "to_port_id": "right"
+      },
+      {
+        "from_node_id": "snare_pitch",
+        "from_port_id": "kenv",
+        "to_node_id": "snare_body",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "snare_body_decay",
+        "from_port_id": "kenv",
+        "to_node_id": "snare_body",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "snare_body_decay",
+        "from_port_id": "kenv",
+        "to_node_id": "snare_overtone",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "snare_wires",
+        "from_port_id": "aout",
+        "to_node_id": "snare_highpass",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "snare_highpass",
+        "from_port_id": "aout",
+        "to_node_id": "snare_lowpass",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "snare_body",
+        "from_port_id": "asig",
+        "to_node_id": "snare_mix",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "snare_overtone",
+        "from_port_id": "asig",
+        "to_node_id": "snare_mix",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "snare_lowpass",
+        "from_port_id": "aout",
+        "to_node_id": "snare_mix",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "snare_decay",
+        "from_port_id": "kenv",
+        "to_node_id": "snare_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "snare_gate",
+        "from_port_id": "kenv",
+        "to_node_id": "snare_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "snare_mix",
+        "from_port_id": "aout",
+        "to_node_id": "snare_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "snare_amplitude",
+        "from_port_id": "aout",
+        "to_node_id": "snare_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "snare_pan",
+        "from_port_id": "aleft",
+        "to_node_id": "snare_result",
+        "to_port_id": "left"
+      },
+      {
+        "from_node_id": "snare_pan",
+        "from_port_id": "aright",
+        "to_node_id": "snare_result",
+        "to_port_id": "right"
+      },
+      {
+        "from_node_id": "velocity_scale",
+        "from_port_id": "iout",
+        "to_node_id": "velocity",
+        "to_port_id": "iscal"
+      },
+      {
+        "from_node_id": "note",
+        "from_port_id": "inote",
+        "to_node_id": "kit",
+        "to_port_id": "selector"
+      },
+      {
+        "from_node_id": "velocity",
+        "from_port_id": "iamp",
+        "to_node_id": "bass_drum_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "velocity",
+        "from_port_id": "iamp",
+        "to_node_id": "bass_drum_distorted_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "velocity",
+        "from_port_id": "iamp",
+        "to_node_id": "hihat_open_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "velocity",
+        "from_port_id": "iamp",
+        "to_node_id": "hihat_closed_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "velocity",
+        "from_port_id": "iamp",
+        "to_node_id": "snare_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "kit",
+        "from_port_id": "left",
+        "to_node_id": "output_left",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "kit",
+        "from_port_id": "right",
+        "to_node_id": "output_right",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "ddccf62d-f9e6-49f3-a0dc-f438c7783415",
+        "from_port_id": "iout",
+        "to_node_id": "bass_drum_distorted_drive",
+        "to_port_id": "kpregain"
+      },
+      {
+        "from_node_id": "460f9e29-fa38-4055-8f7b-c9f7d7ebe7aa",
+        "from_port_id": "iout",
+        "to_node_id": "bass_drum_distorted_drive",
+        "to_port_id": "kpostgain"
+      },
+      {
+        "from_node_id": "9da04da0-dadc-4020-888b-dec37077e0bc",
+        "from_port_id": "iout",
+        "to_node_id": "bass_drum_tone",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "1a9be505-b7fe-4d12-a783-60346b810c6a",
+        "from_port_id": "iout",
+        "to_node_id": "bass_drum_distorted_tone",
+        "to_port_id": "freq"
+      }
+    ],
+    "ui_layout": {
+      "input_formulas": {
+        "bass_drum_click::amp": {
+          "expression": "click * 0.14",
+          "inputs": [
+            {
+              "token": "click",
+              "from_node_id": "bass_drum_click_env",
+              "from_port_id": "kenv"
+            }
+          ]
+        },
+        "bass_drum_amplitude::ksig": {
+          "expression": "decay * gate * velocity * 0.52",
+          "inputs": [
+            {
+              "token": "decay",
+              "from_node_id": "bass_drum_decay",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "gate",
+              "from_node_id": "bass_drum_gate",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "velocity",
+              "from_node_id": "velocity",
+              "from_port_id": "iamp"
+            }
+          ]
+        },
+        "bass_drum_pan::asig": {
+          "expression": "audio * amplitude",
+          "inputs": [
+            {
+              "token": "audio",
+              "from_node_id": "bass_drum_mix",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "amplitude",
+              "from_node_id": "bass_drum_amplitude",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "bass_drum_distorted_click::amp": {
+          "expression": "click * 0.14",
+          "inputs": [
+            {
+              "token": "click",
+              "from_node_id": "bass_drum_distorted_click_env",
+              "from_port_id": "kenv"
+            }
+          ]
+        },
+        "bass_drum_distorted_amplitude::ksig": {
+          "expression": "decay * gate * velocity * 0.47",
+          "inputs": [
+            {
+              "token": "decay",
+              "from_node_id": "bass_drum_distorted_decay",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "gate",
+              "from_node_id": "bass_drum_distorted_gate",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "velocity",
+              "from_node_id": "velocity",
+              "from_port_id": "iamp"
+            }
+          ]
+        },
+        "bass_drum_distorted_pan::asig": {
+          "expression": "audio * amplitude",
+          "inputs": [
+            {
+              "token": "audio",
+              "from_node_id": "bass_drum_distorted_dc_filter",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "amplitude",
+              "from_node_id": "bass_drum_distorted_amplitude",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "hihat_open_highpass::asig": {
+          "expression": "metal1 + metal2 + metal3 + metal4 + metal5 + metal6 + air",
+          "inputs": [
+            {
+              "token": "metal1",
+              "from_node_id": "hihat_open_metal_1",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "metal2",
+              "from_node_id": "hihat_open_metal_2",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "metal3",
+              "from_node_id": "hihat_open_metal_3",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "metal4",
+              "from_node_id": "hihat_open_metal_4",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "metal5",
+              "from_node_id": "hihat_open_metal_5",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "metal6",
+              "from_node_id": "hihat_open_metal_6",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "air",
+              "from_node_id": "hihat_open_air",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "hihat_open_amplitude::ksig": {
+          "expression": "decay * gate * velocity * 0.75",
+          "inputs": [
+            {
+              "token": "decay",
+              "from_node_id": "hihat_open_decay",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "gate",
+              "from_node_id": "hihat_open_gate",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "velocity",
+              "from_node_id": "velocity",
+              "from_port_id": "iamp"
+            }
+          ]
+        },
+        "hihat_open_pan::asig": {
+          "expression": "audio * amplitude",
+          "inputs": [
+            {
+              "token": "audio",
+              "from_node_id": "hihat_open_lowpass",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "amplitude",
+              "from_node_id": "hihat_open_amplitude",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "hihat_closed_highpass::asig": {
+          "expression": "metal1 + metal2 + metal3 + metal4 + metal5 + metal6 + air",
+          "inputs": [
+            {
+              "token": "metal1",
+              "from_node_id": "hihat_closed_metal_1",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "metal2",
+              "from_node_id": "hihat_closed_metal_2",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "metal3",
+              "from_node_id": "hihat_closed_metal_3",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "metal4",
+              "from_node_id": "hihat_closed_metal_4",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "metal5",
+              "from_node_id": "hihat_closed_metal_5",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "metal6",
+              "from_node_id": "hihat_closed_metal_6",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "air",
+              "from_node_id": "hihat_closed_air",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "hihat_closed_amplitude::ksig": {
+          "expression": "decay * gate * velocity * 0.75",
+          "inputs": [
+            {
+              "token": "decay",
+              "from_node_id": "hihat_closed_decay",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "gate",
+              "from_node_id": "hihat_closed_gate",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "velocity",
+              "from_node_id": "velocity",
+              "from_port_id": "iamp"
+            }
+          ]
+        },
+        "hihat_closed_pan::asig": {
+          "expression": "audio * amplitude",
+          "inputs": [
+            {
+              "token": "audio",
+              "from_node_id": "hihat_closed_lowpass",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "amplitude",
+              "from_node_id": "hihat_closed_amplitude",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "snare_body::amp": {
+          "expression": "decay * 0.7",
+          "inputs": [
+            {
+              "token": "decay",
+              "from_node_id": "snare_body_decay",
+              "from_port_id": "kenv"
+            }
+          ]
+        },
+        "snare_overtone::amp": {
+          "expression": "decay * 0.28",
+          "inputs": [
+            {
+              "token": "decay",
+              "from_node_id": "snare_body_decay",
+              "from_port_id": "kenv"
+            }
+          ]
+        },
+        "snare_mix::a": {
+          "expression": "body + overtone",
+          "inputs": [
+            {
+              "token": "body",
+              "from_node_id": "snare_body",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "overtone",
+              "from_node_id": "snare_overtone",
+              "from_port_id": "asig"
+            }
+          ]
+        },
+        "snare_amplitude::ksig": {
+          "expression": "decay * gate * velocity * 0.42",
+          "inputs": [
+            {
+              "token": "decay",
+              "from_node_id": "snare_decay",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "gate",
+              "from_node_id": "snare_gate",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "velocity",
+              "from_node_id": "velocity",
+              "from_port_id": "iamp"
+            }
+          ]
+        },
+        "snare_pan::asig": {
+          "expression": "audio * amplitude",
+          "inputs": [
+            {
+              "token": "audio",
+              "from_node_id": "snare_mix",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "amplitude",
+              "from_node_id": "snare_amplitude",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "bass_drum_tone::freq": {
+          "expression": "in1 * in2",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "bass_drum_pitch",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "in2",
+              "from_node_id": "9da04da0-dadc-4020-888b-dec37077e0bc",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "bass_drum_distorted_tone::freq": {
+          "expression": "in1 * in2",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "bass_drum_distorted_pitch",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "in2",
+              "from_node_id": "1a9be505-b7fe-4d12-a783-60346b810c6a",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "output_left::asignal": {
+          "expression": "in1 * 3",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "kit",
+              "from_port_id": "left"
+            }
+          ]
+        },
+        "output_right::asignal": {
+          "expression": "in1 * 3",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "kit",
+              "from_port_id": "right"
+            }
+          ]
+        }
+      },
+      "control_flow_blocks": {
+        "kit": false
+      },
+      "audio_blocks": {
+        "main-output": true
+      },
+      "editor_state": {
+        "selection": {
+          "nodeIds": [
+            "460f9e29-fa38-4055-8f7b-c9f7d7ebe7aa"
+          ],
+          "connections": []
+        },
+        "viewport": {
+          "x": -193.06861565933264,
+          "y": 87.43256316953057,
+          "k": 0.6904542428786204
+        }
+      },
+      "control_flow_case_sizes": {
+        "kit": {
+          "bass_drum": {
+            "width": 1879.8681940329388,
+            "height": 2630.286144302553
+          },
+          "bass_drum_distorted": {
+            "width": 1908.4918881996778,
+            "height": 1554.947378016609
+          },
+          "hihat_open": {
+            "width": 1942.0832914277385,
+            "height": 1346.8500000000004
+          },
+          "hihat_closed": {
+            "width": 2044.9457126737939,
+            "height": 1346.8500000000004
+          },
+          "snare": {
+            "width": 2213.9948394585263,
+            "height": 1236.0127708064492
+          },
+          "default": {
+            "width": 2215.2080082061143,
+            "height": 322.6984061015264
+          }
+        }
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 1500,
+      "ksmps": 32,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1
+    },
+    "audio_interface": {
+      "role": "instrument",
+      "groups": [
+        {
+          "id": "main-output",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainInput": null,
+      "mainOutput": "main-output",
+      "guided": true
+    },
+    "control_flow": {
+      "kit": {
+        "kind": "switch",
+        "output_format": "stereo",
+        "operator": "==",
+        "cases": [
+          {
+            "id": "bass_drum",
+            "name": "Bass drum",
+            "value": 35,
+            "node_ids": [
+              "bass_drum_tail",
+              "bass_drum_gate",
+              "bass_drum_decay",
+              "bass_drum_pitch",
+              "bass_drum_tone",
+              "bass_drum_click_env",
+              "bass_drum_click",
+              "bass_drum_click_filter",
+              "bass_drum_mix",
+              "bass_drum_amplitude",
+              "bass_drum_pan",
+              "bass_drum_result",
+              "9da04da0-dadc-4020-888b-dec37077e0bc"
+            ],
+            "result_node_id": "bass_drum_result",
+            "silence": false
+          },
+          {
+            "id": "bass_drum_distorted",
+            "name": "Bass drum distorted",
+            "value": 36,
+            "node_ids": [
+              "bass_drum_distorted_tail",
+              "bass_drum_distorted_gate",
+              "bass_drum_distorted_decay",
+              "bass_drum_distorted_pitch",
+              "bass_drum_distorted_tone",
+              "bass_drum_distorted_click_env",
+              "bass_drum_distorted_click",
+              "bass_drum_distorted_click_filter",
+              "bass_drum_distorted_mix",
+              "bass_drum_distorted_drive",
+              "bass_drum_distorted_lowpass",
+              "bass_drum_distorted_dc_filter",
+              "bass_drum_distorted_amplitude",
+              "bass_drum_distorted_pan",
+              "bass_drum_distorted_result",
+              "ddccf62d-f9e6-49f3-a0dc-f438c7783415",
+              "460f9e29-fa38-4055-8f7b-c9f7d7ebe7aa",
+              "1a9be505-b7fe-4d12-a783-60346b810c6a"
+            ],
+            "result_node_id": "bass_drum_distorted_result",
+            "silence": false
+          },
+          {
+            "id": "hihat_open",
+            "name": "Hi-hat open",
+            "value": 46,
+            "node_ids": [
+              "hihat_open_tail",
+              "hihat_open_gate",
+              "hihat_open_decay",
+              "hihat_open_metal_1",
+              "hihat_open_metal_2",
+              "hihat_open_metal_3",
+              "hihat_open_metal_4",
+              "hihat_open_metal_5",
+              "hihat_open_metal_6",
+              "hihat_open_air",
+              "hihat_open_highpass",
+              "hihat_open_lowpass",
+              "hihat_open_amplitude",
+              "hihat_open_pan",
+              "hihat_open_result"
+            ],
+            "result_node_id": "hihat_open_result",
+            "silence": false
+          },
+          {
+            "id": "hihat_closed",
+            "name": "Hi-hat closed",
+            "value": 42,
+            "node_ids": [
+              "hihat_closed_tail",
+              "hihat_closed_gate",
+              "hihat_closed_decay",
+              "hihat_closed_metal_1",
+              "hihat_closed_metal_2",
+              "hihat_closed_metal_3",
+              "hihat_closed_metal_4",
+              "hihat_closed_metal_5",
+              "hihat_closed_metal_6",
+              "hihat_closed_air",
+              "hihat_closed_highpass",
+              "hihat_closed_lowpass",
+              "hihat_closed_amplitude",
+              "hihat_closed_pan",
+              "hihat_closed_result"
+            ],
+            "result_node_id": "hihat_closed_result",
+            "silence": false
+          },
+          {
+            "id": "snare",
+            "name": "Snare",
+            "value": 38,
+            "node_ids": [
+              "snare_tail",
+              "snare_gate",
+              "snare_decay",
+              "snare_body_decay",
+              "snare_pitch",
+              "snare_body",
+              "snare_overtone",
+              "snare_wires",
+              "snare_highpass",
+              "snare_lowpass",
+              "snare_mix",
+              "snare_amplitude",
+              "snare_pan",
+              "snare_result"
+            ],
+            "result_node_id": "snare_result",
+            "silence": false
+          },
+          {
+            "id": "default",
+            "name": "Default",
+            "value": null,
+            "node_ids": [
+              "default_result"
+            ],
+            "result_node_id": "default_result",
+            "silence": true
+          }
+        ]
+      }
+    }
+  }
+}

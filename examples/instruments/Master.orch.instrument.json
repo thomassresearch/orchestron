@@ -1,0 +1,98 @@
+{
+  "sourcePatchId": "43a682c7-0ba3-4a7a-81a4-175bc89d1495",
+  "name": "Master",
+  "description": "",
+  "isTemplate": false,
+  "alwaysOn": true,
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "input-left",
+        "opcode": "inleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "id": "input-right",
+        "opcode": "inleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 0,
+          "y": 180
+        }
+      },
+      {
+        "id": "output",
+        "opcode": "outs",
+        "params": {},
+        "position": {
+          "x": 500,
+          "y": 0
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "input-left",
+        "from_port_id": "asignal",
+        "to_node_id": "output",
+        "to_port_id": "left"
+      },
+      {
+        "from_node_id": "input-right",
+        "from_port_id": "asignal",
+        "to_node_id": "output",
+        "to_port_id": "right"
+      }
+    ],
+    "ui_layout": {},
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 1500,
+      "ksmps": 32,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1
+    },
+    "audio_interface": {
+      "role": "output",
+      "groups": [
+        {
+          "id": "main-input",
+          "name": "Stereo Input",
+          "direction": "input",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        },
+        {
+          "id": "main-output",
+          "name": "Direct Audio Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "$direct.left",
+            "$direct.right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainInput": "main-input",
+      "mainOutput": "main-output",
+      "guided": true
+    },
+    "control_flow": {}
+  }
+}

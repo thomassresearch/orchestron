@@ -1,0 +1,191 @@
+{
+  "sourcePatchId": "131a96cd-320a-421c-87ff-c227864a3ae7",
+  "name": "Basic ADSR midi instrument",
+  "description": "MADSR, cpsmidi and cpsamp, template to speed up instrument design",
+  "isTemplate": true,
+  "alwaysOn": false,
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "f1a46887-dec2-4e1b-a44b-d984dad2675d",
+        "opcode": "madsr",
+        "params": {
+          "iatt": 0.01,
+          "idec": 0.15,
+          "islev": 0.7,
+          "irel": 0.2,
+          "idel": 0,
+          "ireltim": -1
+        },
+        "position": {
+          "x": 113.86056277905834,
+          "y": -108.3260576387348
+        }
+      },
+      {
+        "id": "711d7eda-cd4d-439e-b552-8947ae67ac6f",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.1"
+        },
+        "position": {
+          "x": -309.06174612961854,
+          "y": -235.3575968010509
+        }
+      },
+      {
+        "id": "4a908391-f6a0-4cae-a92d-3f7bf347b756",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.12"
+        },
+        "position": {
+          "x": -346.64703369140625,
+          "y": -48.03073593452509
+        }
+      },
+      {
+        "id": "c874083c-4770-434d-a903-c8e61ad5e0b5",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.8"
+        },
+        "position": {
+          "x": -481.821799422207,
+          "y": 137.4739110597321
+        }
+      },
+      {
+        "id": "098d5934-09fd-43c1-9dd6-f3b5b063330a",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.5"
+        },
+        "position": {
+          "x": -362.98486155379214,
+          "y": 310.7204101010075
+        }
+      },
+      {
+        "id": "176ebf54-819d-4d31-a647-884b1f7ba986",
+        "opcode": "cpsmidi",
+        "params": {},
+        "position": {
+          "x": 234.40898178149743,
+          "y": -257.01030872326976
+        }
+      },
+      {
+        "id": "c8a28926-b991-484e-a477-6e3e1d367d67",
+        "opcode": "ampmidi",
+        "params": {
+          "iscal": 1
+        },
+        "position": {
+          "x": 263.85694769481023,
+          "y": 315.67167139898027
+        }
+      },
+      {
+        "id": "4ec17fa7-1626-467f-b2a8-1bd3cedb273f",
+        "opcode": "const_i",
+        "params": {
+          "value": "1"
+        },
+        "position": {
+          "x": -32.31664608814124,
+          "y": 501.68292736113125
+        }
+      },
+      {
+        "id": "ffcdb3a7-c1fa-4133-afe4-a1488132b88a",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 1059.6037895120817,
+          "y": 8.93531028457334
+        }
+      },
+      {
+        "id": "4d1dce3b-2f17-4be0-95b4-0d512426eed2",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 1059.6037895120817,
+          "y": 188.9353102845734
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "711d7eda-cd4d-439e-b552-8947ae67ac6f",
+        "from_port_id": "iout",
+        "to_node_id": "f1a46887-dec2-4e1b-a44b-d984dad2675d",
+        "to_port_id": "iatt"
+      },
+      {
+        "from_node_id": "4a908391-f6a0-4cae-a92d-3f7bf347b756",
+        "from_port_id": "iout",
+        "to_node_id": "f1a46887-dec2-4e1b-a44b-d984dad2675d",
+        "to_port_id": "idec"
+      },
+      {
+        "from_node_id": "c874083c-4770-434d-a903-c8e61ad5e0b5",
+        "from_port_id": "iout",
+        "to_node_id": "f1a46887-dec2-4e1b-a44b-d984dad2675d",
+        "to_port_id": "islev"
+      },
+      {
+        "from_node_id": "098d5934-09fd-43c1-9dd6-f3b5b063330a",
+        "from_port_id": "iout",
+        "to_node_id": "f1a46887-dec2-4e1b-a44b-d984dad2675d",
+        "to_port_id": "irel"
+      },
+      {
+        "from_node_id": "4ec17fa7-1626-467f-b2a8-1bd3cedb273f",
+        "from_port_id": "iout",
+        "to_node_id": "c8a28926-b991-484e-a477-6e3e1d367d67",
+        "to_port_id": "iscal"
+      }
+    ],
+    "ui_layout": {
+      "audio_blocks": {
+        "b7258498-32d0-4e99-be56-0dff4c1ab367": true
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 1500,
+      "ksmps": 32,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1
+    },
+    "audio_interface": {
+      "role": "custom",
+      "groups": [
+        {
+          "id": "b7258498-32d0-4e99-be56-0dff4c1ab367",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainInput": null,
+      "mainOutput": "b7258498-32d0-4e99-be56-0dff4c1ab367",
+      "guided": false
+    },
+    "control_flow": {}
+  }
+}

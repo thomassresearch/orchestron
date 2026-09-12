@@ -1,0 +1,398 @@
+{
+  "sourcePatchId": "1d1ae919-b144-484b-b780-fb197bdb4aba",
+  "name": "Prism FM Pluck",
+  "description": "A harmonic 1:3 FM pair with a bright onset that softens into a glassy pluck. Release controls the tail after key-up; decay controls held notes. Suggested MIDI notes 48\u201384. Dry, velocity-sensitive, polyphonic. Three per-instance controls read on new notes. Route Stereo Output through the performance mixer to Master.",
+  "isTemplate": false,
+  "alwaysOn": false,
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "pitch_cpsmidi",
+        "opcode": "cpsmidi",
+        "params": {},
+        "position": {
+          "x": 40,
+          "y": 40
+        }
+      },
+      {
+        "id": "velocity_scale_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 1
+        },
+        "position": {
+          "x": 40,
+          "y": 270
+        }
+      },
+      {
+        "id": "velocity_ampmidi",
+        "opcode": "ampmidi",
+        "params": {},
+        "position": {
+          "x": 340,
+          "y": 40
+        }
+      },
+      {
+        "id": "env_attack_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.002
+        },
+        "position": {
+          "x": 40,
+          "y": 500
+        }
+      },
+      {
+        "id": "env_sustain_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 0
+        },
+        "position": {
+          "x": 40,
+          "y": 730
+        }
+      },
+      {
+        "id": "amp_madsr",
+        "opcode": "madsr",
+        "params": {},
+        "position": {
+          "x": 340,
+          "y": 270
+        }
+      },
+      {
+        "id": "amp_velocity_envelope",
+        "opcode": "k_mul",
+        "params": {},
+        "position": {
+          "x": 640,
+          "y": 40
+        }
+      },
+      {
+        "id": "fm_gain",
+        "opcode": "const_k",
+        "params": {
+          "value": 0.25
+        },
+        "position": {
+          "x": 40,
+          "y": 960
+        }
+      },
+      {
+        "id": "fm_amp",
+        "opcode": "k_mul",
+        "params": {},
+        "position": {
+          "x": 940,
+          "y": 40
+        }
+      },
+      {
+        "id": "fm_foscili",
+        "opcode": "foscili",
+        "params": {
+          "xcar": 1,
+          "xmod": 3,
+          "ifn": 1,
+          "iphs": 0
+        },
+        "position": {
+          "x": 1240,
+          "y": 40
+        }
+      },
+      {
+        "id": "effect_1_butterhp",
+        "opcode": "butterhp",
+        "params": {
+          "xfreq": 100
+        },
+        "position": {
+          "x": 1540,
+          "y": 40
+        }
+      },
+      {
+        "id": "effect_2_butterlp",
+        "opcode": "butterlp",
+        "params": {
+          "xfreq": 10000
+        },
+        "position": {
+          "x": 1840,
+          "y": 40
+        }
+      },
+      {
+        "id": "output_pan2",
+        "opcode": "pan2",
+        "params": {
+          "xp": 0.5,
+          "imode": 0
+        },
+        "position": {
+          "x": 2140,
+          "y": 40
+        }
+      },
+      {
+        "id": "prism_color",
+        "opcode": "perf_controller",
+        "params": {
+          "min": 0.15,
+          "max": 5,
+          "default": 1.2,
+          "scale": "logarithmic",
+          "label": "Color"
+        },
+        "position": {
+          "x": 40,
+          "y": 1190
+        }
+      },
+      {
+        "id": "prism_decay",
+        "opcode": "perf_controller",
+        "params": {
+          "min": 0.08,
+          "max": 1.8,
+          "default": 0.35,
+          "scale": "logarithmic",
+          "label": "Decay (s)"
+        },
+        "position": {
+          "x": 40,
+          "y": 1420
+        }
+      },
+      {
+        "id": "prism_release",
+        "opcode": "perf_controller",
+        "params": {
+          "min": 0.03,
+          "max": 1.2,
+          "default": 0.15,
+          "scale": "logarithmic",
+          "label": "Release (s)"
+        },
+        "position": {
+          "x": 40,
+          "y": 1650
+        }
+      },
+      {
+        "id": "output_left",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 2440,
+          "y": 40
+        }
+      },
+      {
+        "id": "output_right",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 2440,
+          "y": 270
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "velocity_scale_const",
+        "from_port_id": "iout",
+        "to_node_id": "velocity_ampmidi",
+        "to_port_id": "iscal"
+      },
+      {
+        "from_node_id": "env_attack_const",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "iatt"
+      },
+      {
+        "from_node_id": "env_sustain_const",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "islev"
+      },
+      {
+        "from_node_id": "velocity_ampmidi",
+        "from_port_id": "iamp",
+        "to_node_id": "amp_velocity_envelope",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "amp_madsr",
+        "from_port_id": "kenv",
+        "to_node_id": "amp_velocity_envelope",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "fm_amp",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "fm_gain",
+        "from_port_id": "kout",
+        "to_node_id": "fm_amp",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "fm_amp",
+        "from_port_id": "kout",
+        "to_node_id": "fm_foscili",
+        "to_port_id": "xamp"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "fm_foscili",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "fm_foscili",
+        "from_port_id": "asig",
+        "to_node_id": "effect_1_butterhp",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "effect_1_butterhp",
+        "from_port_id": "aout",
+        "to_node_id": "effect_2_butterlp",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "output_pan2",
+        "from_port_id": "aleft",
+        "to_node_id": "output_left",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "output_pan2",
+        "from_port_id": "aright",
+        "to_node_id": "output_right",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "prism_decay",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "idec"
+      },
+      {
+        "from_node_id": "prism_release",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "irel"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "fm_foscili",
+        "to_port_id": "kndx"
+      },
+      {
+        "from_node_id": "prism_color",
+        "from_port_id": "iout",
+        "to_node_id": "fm_foscili",
+        "to_port_id": "kndx"
+      },
+      {
+        "from_node_id": "amp_madsr",
+        "from_port_id": "kenv",
+        "to_node_id": "fm_foscili",
+        "to_port_id": "kndx"
+      },
+      {
+        "from_node_id": "effect_2_butterlp",
+        "from_port_id": "aout",
+        "to_node_id": "output_pan2",
+        "to_port_id": "asig"
+      }
+    ],
+    "ui_layout": {
+      "audio_blocks": {
+        "main-output": true
+      },
+      "input_formulas": {
+        "fm_foscili::kndx": {
+          "expression": "0.5 * ((color * (0.12 + 0.88 * env)) + (0.5 * (((0.42 * sr / pitch - 1) / 3 - 1) + abs(((0.42 * sr / pitch - 1) / 3 - 1)))) - abs((color * (0.12 + 0.88 * env)) - (0.5 * (((0.42 * sr / pitch - 1) / 3 - 1) + abs(((0.42 * sr / pitch - 1) / 3 - 1))))))",
+          "inputs": [
+            {
+              "token": "pitch",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "color",
+              "from_node_id": "prism_color",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "env",
+              "from_node_id": "amp_madsr",
+              "from_port_id": "kenv"
+            }
+          ]
+        },
+        "output_pan2::asig": {
+          "expression": "signal * 0.85 * 10",
+          "inputs": [
+            {
+              "token": "signal",
+              "from_node_id": "effect_2_butterlp",
+              "from_port_id": "aout"
+            }
+          ]
+        }
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 750,
+      "ksmps": 64,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1
+    },
+    "audio_interface": {
+      "role": "instrument",
+      "groups": [
+        {
+          "id": "main-output",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainInput": null,
+      "mainOutput": "main-output",
+      "guided": true
+    },
+    "control_flow": {}
+  }
+}

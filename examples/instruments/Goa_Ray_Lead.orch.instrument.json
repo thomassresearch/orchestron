@@ -1,0 +1,1057 @@
+{
+  "sourcePatchId": "48f1a6b6-ae6a-4053-a6a8-09e9dc426ec7",
+  "name": "Goa Ray Lead",
+  "description": "Goa psytrance melody lead: saw + hollow square + single-pair FM bite, high-passed, saturated, resonant ladder filter, subtle flanger. Outputs: outleta left/right (full) and sendl/sendr (10% effect send).",
+  "isTemplate": false,
+  "alwaysOn": false,
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "pitch_cpsmidi",
+        "opcode": "cpsmidi",
+        "params": {},
+        "position": {
+          "x": -121.08646225349747,
+          "y": -57.28874116471253
+        }
+      },
+      {
+        "id": "velocity_scale_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 1
+        },
+        "position": {
+          "x": -344.65707859491215,
+          "y": 109.66042373375026
+        }
+      },
+      {
+        "id": "velocity_ampmidi",
+        "opcode": "ampmidi",
+        "params": {},
+        "position": {
+          "x": -103.82659600747937,
+          "y": 185.58068973760894
+        }
+      },
+      {
+        "id": "env_attack_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.004
+        },
+        "position": {
+          "x": -413.0916002110092,
+          "y": 262.6091326587324
+        }
+      },
+      {
+        "id": "env_decay_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.18
+        },
+        "position": {
+          "x": -483.99532464980035,
+          "y": 454.9632341549708
+        }
+      },
+      {
+        "id": "env_sustain_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.6
+        },
+        "position": {
+          "x": -455.3515329074277,
+          "y": 626.536591993311
+        }
+      },
+      {
+        "id": "env_release_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.12
+        },
+        "position": {
+          "x": -386.65754312996796,
+          "y": 832.8167020799145
+        }
+      },
+      {
+        "id": "amp_madsr",
+        "opcode": "madsr",
+        "params": {},
+        "position": {
+          "x": -62.88567659146162,
+          "y": 425.43878264277583
+        }
+      },
+      {
+        "id": "amp_velocity_envelope",
+        "opcode": "k_mul",
+        "params": {},
+        "position": {
+          "x": 309.34607957201587,
+          "y": 278.11162291220086
+        }
+      },
+      {
+        "id": "main_saw_gain",
+        "opcode": "const_k",
+        "params": {
+          "value": 0.4
+        },
+        "position": {
+          "x": 71.9898839847306,
+          "y": 141.72745082566018
+        }
+      },
+      {
+        "id": "main_saw_amp",
+        "opcode": "k_mul",
+        "params": {},
+        "position": {
+          "x": 345.9495643107788,
+          "y": -91.05577678167668
+        }
+      },
+      {
+        "id": "main_saw_vco2",
+        "opcode": "vco2",
+        "params": {
+          "imode": 0
+        },
+        "position": {
+          "x": 651.3307066819251,
+          "y": -48.43066393622784
+        }
+      },
+      {
+        "id": "hard_square_gain",
+        "opcode": "const_k",
+        "params": {
+          "value": 0.22
+        },
+        "position": {
+          "x": 140.44160985800283,
+          "y": 556.2152107670365
+        }
+      },
+      {
+        "id": "hard_square_amp",
+        "opcode": "k_mul",
+        "params": {},
+        "position": {
+          "x": 412.1486970251632,
+          "y": 518.4755154587108
+        }
+      },
+      {
+        "id": "hard_square_vco2",
+        "opcode": "vco2",
+        "params": {
+          "imode": 2,
+          "kpw": 0.35
+        },
+        "position": {
+          "x": 747.7377655197918,
+          "y": 424.31659818202644
+        }
+      },
+      {
+        "id": "fm_metal_gain",
+        "opcode": "const_k",
+        "params": {
+          "value": 0.16
+        },
+        "position": {
+          "x": 107.26481414152036,
+          "y": 816.9504962283968
+        }
+      },
+      {
+        "id": "fm_metal_amp",
+        "opcode": "k_mul",
+        "params": {},
+        "position": {
+          "x": 441.6795478921702,
+          "y": 985.7956007973446
+        }
+      },
+      {
+        "id": "fm_metal_foscili",
+        "opcode": "foscili",
+        "params": {
+          "ifn": 1,
+          "kndx": 2.2,
+          "xcar": 1,
+          "xmod": 2
+        },
+        "position": {
+          "x": 893.0174797662537,
+          "y": 841.2288950459912
+        }
+      },
+      {
+        "id": "layer_mix_1",
+        "opcode": "mix2",
+        "params": {},
+        "position": {
+          "x": 890.3245234075721,
+          "y": 92.97491116314325
+        }
+      },
+      {
+        "id": "layer_mix_2",
+        "opcode": "mix2",
+        "params": {},
+        "position": {
+          "x": 989.753619681019,
+          "y": 481.7433962092385
+        }
+      },
+      {
+        "id": "effect_1_butterhp",
+        "opcode": "butterhp",
+        "params": {
+          "xfreq": 120
+        },
+        "position": {
+          "x": 1197.7957285448,
+          "y": 90.18474641856687
+        }
+      },
+      {
+        "id": "effect_2_distort1",
+        "opcode": "distort1",
+        "params": {
+          "kpostgain": 0.55,
+          "kpregain": 1.8,
+          "kshape1": 0.12,
+          "kshape2": 0.12
+        },
+        "position": {
+          "x": 1347.4212980723632,
+          "y": 424.11619554383645
+        }
+      },
+      {
+        "id": "effect_3_moogladder2",
+        "opcode": "moogladder2",
+        "params": {
+          "xcf": 3400,
+          "xres": 0.42
+        },
+        "position": {
+          "x": 1523.6050798881472,
+          "y": 138.20670454753218
+        }
+      },
+      {
+        "id": "effect_4_flanger",
+        "opcode": "flanger",
+        "params": {
+          "adel": 0.0045,
+          "imaxd": 0.02,
+          "kfeedback": 0.25
+        },
+        "position": {
+          "x": 1832.97315407581,
+          "y": 439.44897806798156
+        }
+      },
+      {
+        "id": "063e9526-e2bd-4b85-adce-0a9e2bf3c33f",
+        "opcode": "const_i",
+        "params": {
+          "value": "900"
+        },
+        "position": {
+          "x": 1081.2423816917787,
+          "y": -60.70802371009942
+        }
+      },
+      {
+        "id": "c019a356-69aa-4470-9d38-1b740e1dec56",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.7"
+        },
+        "position": {
+          "x": 1109.939427881302,
+          "y": 328.10520660692475
+        }
+      },
+      {
+        "id": "61c422e3-a830-4ac6-9ca2-7223fd380909",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.0012323"
+        },
+        "position": {
+          "x": 1358.0875657652305,
+          "y": 800.3777959389861
+        }
+      },
+      {
+        "id": "19871f98-4155-4614-a3a5-e51041d3608d",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.7"
+        },
+        "position": {
+          "x": 1605.057085413782,
+          "y": 1019.3153158219282
+        }
+      },
+      {
+        "id": "0c5c8279-1996-4eb3-a419-a69ed2ae6cea",
+        "opcode": "lfo",
+        "params": {
+          "kamp": 0.5,
+          "kcps": 5,
+          "itype": 0
+        },
+        "position": {
+          "x": 1335.2773718512765,
+          "y": 974.1150411850003
+        }
+      },
+      {
+        "id": "21b24d47-2e80-40c1-9092-185bf846a50a",
+        "opcode": "const_i",
+        "params": {
+          "value": "1"
+        },
+        "position": {
+          "x": 984.7293538241129,
+          "y": 1247.2104900890492
+        }
+      },
+      {
+        "id": "6f10c95a-dd3e-4048-9e4b-536a0844e666",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.5556"
+        },
+        "position": {
+          "x": 1296.4583289124591,
+          "y": 1247.7222381515217
+        }
+      },
+      {
+        "id": "f849b0f4-83f3-4df6-b0b1-d9d46b9184d7",
+        "opcode": "const_i",
+        "params": {
+          "value": 0
+        },
+        "position": {
+          "x": 80,
+          "y": 1580
+        }
+      },
+      {
+        "id": "149651e0-c40c-4996-9966-407254393b09",
+        "opcode": "const_i",
+        "params": {
+          "value": "2.01232"
+        },
+        "position": {
+          "x": 416.7489043405978,
+          "y": 1202.9830481409101
+        }
+      },
+      {
+        "id": "73ee2805-cad4-4b97-af96-89e3b24bca48",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.3"
+        },
+        "position": {
+          "x": 656.341566211545,
+          "y": 1338.0110976967637
+        }
+      },
+      {
+        "id": "69e67874-368a-4e56-b7d6-b508fb8bac98",
+        "opcode": "lfo",
+        "params": {
+          "kamp": 0.5,
+          "kcps": 5,
+          "itype": 0
+        },
+        "position": {
+          "x": 378.88210845739883,
+          "y": 1399.5133181457363
+        }
+      },
+      {
+        "id": "c301c9e3-cf6a-4e18-999b-b3cc7d855704",
+        "opcode": "const_i",
+        "params": {
+          "value": "2.31"
+        },
+        "position": {
+          "x": 68.04987778318299,
+          "y": 1416.372348475322
+        }
+      },
+      {
+        "id": "2691609c-db5f-4cb3-b31a-b73cc07f3f2b",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.2"
+        },
+        "position": {
+          "x": 104.22011853092941,
+          "y": 1268.7898161222488
+        }
+      },
+      {
+        "id": "229006e9-b4b0-4135-9e82-feb0bc43c49b",
+        "opcode": "const_i",
+        "params": {
+          "value": "4"
+        },
+        "position": {
+          "x": 349.02602337295485,
+          "y": 770.0885651975046
+        }
+      },
+      {
+        "id": "d554e287-199a-4c89-9e2e-54d92aa93d3c",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.01"
+        },
+        "position": {
+          "x": 414.8059127454518,
+          "y": -239.09472569503794
+        }
+      },
+      {
+        "id": "74d710f0-2295-4dae-b82a-48053d610bdf",
+        "opcode": "const_i",
+        "params": {
+          "value": "2"
+        },
+        "position": {
+          "x": 1023.6000071606355,
+          "y": 666.2801289687286
+        }
+      },
+      {
+        "id": "3913361b-61a4-4a60-af01-7724039e3d64",
+        "opcode": "const_i",
+        "params": {
+          "value": "5.5"
+        },
+        "position": {
+          "x": 1113.4757281286697,
+          "y": 825.7610906020092
+        }
+      },
+      {
+        "id": "f42da3ba-cace-4541-9a5a-2cd5e9132e59",
+        "opcode": "expon",
+        "params": {
+          "ia": 0.001,
+          "idur": 0.1,
+          "ib": 1
+        },
+        "position": {
+          "x": 1315.2602239585485,
+          "y": -282.8149162559664
+        }
+      },
+      {
+        "id": "b507b571-240d-4fab-86d7-0d95a2aa31b3",
+        "opcode": "const_i",
+        "params": {
+          "value": "6"
+        },
+        "position": {
+          "x": 934.0195922212328,
+          "y": -338.3033790997566
+        }
+      },
+      {
+        "id": "3e2ddfdd-3093-4c4a-a728-7349f6137c66",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.05"
+        },
+        "position": {
+          "x": 739.6221008488526,
+          "y": -211.12537978233388
+        }
+      },
+      {
+        "id": "f0380239-ea6b-4dba-b046-38a2bf8ad64c",
+        "opcode": "const_i",
+        "params": {
+          "value": "1"
+        },
+        "position": {
+          "x": 959.3870268546062,
+          "y": -152.16146626703875
+        }
+      },
+      {
+        "id": "216a8f7b-889c-4176-8306-656644165320",
+        "opcode": "xtratim",
+        "params": {
+          "iextradur": 0.2
+        },
+        "position": {
+          "x": -531.314726754106,
+          "y": -205.54409983647918
+        }
+      },
+      {
+        "id": "a18abe1d-60d3-47a9-9aa2-c93511d1efff",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.15"
+        },
+        "position": {
+          "x": -966.2408137362359,
+          "y": 102.67123739495145
+        }
+      },
+      {
+        "id": "28f2f10b-b5ae-43d4-b6ca-f8ba72c5b38b",
+        "opcode": "pan2",
+        "params": {
+          "xp": 0.5,
+          "imode": 0
+        },
+        "position": {
+          "x": 2138.5554268651535,
+          "y": 220.44562847191148
+        }
+      },
+      {
+        "id": "8273dc0e-a85f-44f2-9499-adb494bb9339",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.5"
+        },
+        "position": {
+          "x": 1905.8989102193857,
+          "y": 740.1556383882806
+        }
+      },
+      {
+        "id": "508d8a26-4b27-44e8-97f3-6e0e4fc02bb1",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 2466.0452292117857,
+          "y": 327.15923877387513
+        }
+      },
+      {
+        "id": "932e62fa-3181-424e-82ea-02454020d908",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 2466.0452292117857,
+          "y": 507.1592387738749
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "velocity_scale_const",
+        "from_port_id": "iout",
+        "to_node_id": "velocity_ampmidi",
+        "to_port_id": "iscal"
+      },
+      {
+        "from_node_id": "env_attack_const",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "iatt"
+      },
+      {
+        "from_node_id": "env_decay_const",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "idec"
+      },
+      {
+        "from_node_id": "env_sustain_const",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "islev"
+      },
+      {
+        "from_node_id": "env_release_const",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "irel"
+      },
+      {
+        "from_node_id": "velocity_ampmidi",
+        "from_port_id": "iamp",
+        "to_node_id": "amp_velocity_envelope",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "amp_madsr",
+        "from_port_id": "kenv",
+        "to_node_id": "amp_velocity_envelope",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "main_saw_amp",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "main_saw_gain",
+        "from_port_id": "kout",
+        "to_node_id": "main_saw_amp",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "main_saw_amp",
+        "from_port_id": "kout",
+        "to_node_id": "main_saw_vco2",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "main_saw_vco2",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "hard_square_amp",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "hard_square_gain",
+        "from_port_id": "kout",
+        "to_node_id": "hard_square_amp",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "hard_square_amp",
+        "from_port_id": "kout",
+        "to_node_id": "hard_square_vco2",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "hard_square_vco2",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "fm_metal_amp",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "fm_metal_gain",
+        "from_port_id": "kout",
+        "to_node_id": "fm_metal_amp",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "fm_metal_amp",
+        "from_port_id": "kout",
+        "to_node_id": "fm_metal_foscili",
+        "to_port_id": "xamp"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "fm_metal_foscili",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "main_saw_vco2",
+        "from_port_id": "asig",
+        "to_node_id": "layer_mix_1",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "hard_square_vco2",
+        "from_port_id": "asig",
+        "to_node_id": "layer_mix_1",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "layer_mix_1",
+        "from_port_id": "aout",
+        "to_node_id": "layer_mix_2",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "fm_metal_foscili",
+        "from_port_id": "asig",
+        "to_node_id": "layer_mix_2",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "layer_mix_2",
+        "from_port_id": "aout",
+        "to_node_id": "effect_1_butterhp",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "effect_1_butterhp",
+        "from_port_id": "aout",
+        "to_node_id": "effect_2_distort1",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "effect_2_distort1",
+        "from_port_id": "aout",
+        "to_node_id": "effect_3_moogladder2",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "effect_3_moogladder2",
+        "from_port_id": "aout",
+        "to_node_id": "effect_4_flanger",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "063e9526-e2bd-4b85-adce-0a9e2bf3c33f",
+        "from_port_id": "iout",
+        "to_node_id": "effect_3_moogladder2",
+        "to_port_id": "xcf"
+      },
+      {
+        "from_node_id": "c019a356-69aa-4470-9d38-1b740e1dec56",
+        "from_port_id": "iout",
+        "to_node_id": "effect_3_moogladder2",
+        "to_port_id": "xres"
+      },
+      {
+        "from_node_id": "19871f98-4155-4614-a3a5-e51041d3608d",
+        "from_port_id": "iout",
+        "to_node_id": "effect_4_flanger",
+        "to_port_id": "kfeedback"
+      },
+      {
+        "from_node_id": "0c5c8279-1996-4eb3-a419-a69ed2ae6cea",
+        "from_port_id": "kout",
+        "to_node_id": "effect_4_flanger",
+        "to_port_id": "adel"
+      },
+      {
+        "from_node_id": "61c422e3-a830-4ac6-9ca2-7223fd380909",
+        "from_port_id": "iout",
+        "to_node_id": "effect_4_flanger",
+        "to_port_id": "adel"
+      },
+      {
+        "from_node_id": "21b24d47-2e80-40c1-9092-185bf846a50a",
+        "from_port_id": "iout",
+        "to_node_id": "0c5c8279-1996-4eb3-a419-a69ed2ae6cea",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "6f10c95a-dd3e-4048-9e4b-536a0844e666",
+        "from_port_id": "iout",
+        "to_node_id": "0c5c8279-1996-4eb3-a419-a69ed2ae6cea",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "149651e0-c40c-4996-9966-407254393b09",
+        "from_port_id": "iout",
+        "to_node_id": "fm_metal_foscili",
+        "to_port_id": "xmod"
+      },
+      {
+        "from_node_id": "73ee2805-cad4-4b97-af96-89e3b24bca48",
+        "from_port_id": "iout",
+        "to_node_id": "fm_metal_foscili",
+        "to_port_id": "kndx"
+      },
+      {
+        "from_node_id": "c301c9e3-cf6a-4e18-999b-b3cc7d855704",
+        "from_port_id": "iout",
+        "to_node_id": "69e67874-368a-4e56-b7d6-b508fb8bac98",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "2691609c-db5f-4cb3-b31a-b73cc07f3f2b",
+        "from_port_id": "iout",
+        "to_node_id": "69e67874-368a-4e56-b7d6-b508fb8bac98",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "69e67874-368a-4e56-b7d6-b508fb8bac98",
+        "from_port_id": "kout",
+        "to_node_id": "fm_metal_foscili",
+        "to_port_id": "kndx"
+      },
+      {
+        "from_node_id": "229006e9-b4b0-4135-9e82-feb0bc43c49b",
+        "from_port_id": "iout",
+        "to_node_id": "hard_square_vco2",
+        "to_port_id": "imode"
+      },
+      {
+        "from_node_id": "69e67874-368a-4e56-b7d6-b508fb8bac98",
+        "from_port_id": "kout",
+        "to_node_id": "hard_square_vco2",
+        "to_port_id": "kpw"
+      },
+      {
+        "from_node_id": "73ee2805-cad4-4b97-af96-89e3b24bca48",
+        "from_port_id": "iout",
+        "to_node_id": "hard_square_vco2",
+        "to_port_id": "kpw"
+      },
+      {
+        "from_node_id": "229006e9-b4b0-4135-9e82-feb0bc43c49b",
+        "from_port_id": "iout",
+        "to_node_id": "main_saw_vco2",
+        "to_port_id": "imode"
+      },
+      {
+        "from_node_id": "d554e287-199a-4c89-9e2e-54d92aa93d3c",
+        "from_port_id": "iout",
+        "to_node_id": "main_saw_vco2",
+        "to_port_id": "kpw"
+      },
+      {
+        "from_node_id": "74d710f0-2295-4dae-b82a-48053d610bdf",
+        "from_port_id": "iout",
+        "to_node_id": "effect_2_distort1",
+        "to_port_id": "kpregain"
+      },
+      {
+        "from_node_id": "3913361b-61a4-4a60-af01-7724039e3d64",
+        "from_port_id": "iout",
+        "to_node_id": "effect_2_distort1",
+        "to_port_id": "kpostgain"
+      },
+      {
+        "from_node_id": "amp_madsr",
+        "from_port_id": "kenv",
+        "to_node_id": "effect_3_moogladder2",
+        "to_port_id": "xcf"
+      },
+      {
+        "from_node_id": "063e9526-e2bd-4b85-adce-0a9e2bf3c33f",
+        "from_port_id": "iout",
+        "to_node_id": "effect_1_butterhp",
+        "to_port_id": "xfreq"
+      },
+      {
+        "from_node_id": "b507b571-240d-4fab-86d7-0d95a2aa31b3",
+        "from_port_id": "iout",
+        "to_node_id": "f42da3ba-cace-4541-9a5a-2cd5e9132e59",
+        "to_port_id": "ia"
+      },
+      {
+        "from_node_id": "3e2ddfdd-3093-4c4a-a728-7349f6137c66",
+        "from_port_id": "iout",
+        "to_node_id": "f42da3ba-cace-4541-9a5a-2cd5e9132e59",
+        "to_port_id": "idur"
+      },
+      {
+        "from_node_id": "f0380239-ea6b-4dba-b046-38a2bf8ad64c",
+        "from_port_id": "iout",
+        "to_node_id": "f42da3ba-cace-4541-9a5a-2cd5e9132e59",
+        "to_port_id": "ib"
+      },
+      {
+        "from_node_id": "f42da3ba-cace-4541-9a5a-2cd5e9132e59",
+        "from_port_id": "kenv",
+        "to_node_id": "effect_1_butterhp",
+        "to_port_id": "xfreq"
+      },
+      {
+        "from_node_id": "a18abe1d-60d3-47a9-9aa2-c93511d1efff",
+        "from_port_id": "iout",
+        "to_node_id": "216a8f7b-889c-4176-8306-656644165320",
+        "to_port_id": "iextradur"
+      },
+      {
+        "from_node_id": "effect_4_flanger",
+        "from_port_id": "aout",
+        "to_node_id": "28f2f10b-b5ae-43d4-b6ca-f8ba72c5b38b",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "8273dc0e-a85f-44f2-9499-adb494bb9339",
+        "from_port_id": "iout",
+        "to_node_id": "28f2f10b-b5ae-43d4-b6ca-f8ba72c5b38b",
+        "to_port_id": "xp"
+      },
+      {
+        "from_node_id": "28f2f10b-b5ae-43d4-b6ca-f8ba72c5b38b",
+        "from_port_id": "aleft",
+        "to_node_id": "508d8a26-4b27-44e8-97f3-6e0e4fc02bb1",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "28f2f10b-b5ae-43d4-b6ca-f8ba72c5b38b",
+        "from_port_id": "aright",
+        "to_node_id": "932e62fa-3181-424e-82ea-02454020d908",
+        "to_port_id": "asignal"
+      }
+    ],
+    "ui_layout": {
+      "input_formulas": {
+        "out_sendl::asignal": {
+          "expression": "0.1*in1",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "output_pan2",
+              "from_port_id": "aleft"
+            }
+          ]
+        },
+        "out_right::asignal": {
+          "expression": "0.1*in1",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "output_pan2",
+              "from_port_id": "aright"
+            }
+          ]
+        },
+        "effect_4_flanger::adel": {
+          "expression": "in2 * (0.7 + 0.3*in1)",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "0c5c8279-1996-4eb3-a419-a69ed2ae6cea",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "in2",
+              "from_node_id": "61c422e3-a830-4ac6-9ca2-7223fd380909",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "fm_metal_foscili::kndx": {
+          "expression": "in1 + in2",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "73ee2805-cad4-4b97-af96-89e3b24bca48",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "in2",
+              "from_node_id": "69e67874-368a-4e56-b7d6-b508fb8bac98",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "hard_square_vco2::kpw": {
+          "expression": "in1 + in2",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "69e67874-368a-4e56-b7d6-b508fb8bac98",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "in2",
+              "from_node_id": "73ee2805-cad4-4b97-af96-89e3b24bca48",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "effect_3_moogladder2::xcf": {
+          "expression": "in1 * (5*in2 + 0.1)",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "063e9526-e2bd-4b85-adce-0a9e2bf3c33f",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "in2",
+              "from_node_id": "amp_madsr",
+              "from_port_id": "kenv"
+            }
+          ]
+        },
+        "effect_1_butterhp::xfreq": {
+          "expression": "in1*0.3*in2",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "063e9526-e2bd-4b85-adce-0a9e2bf3c33f",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "in2",
+              "from_node_id": "f42da3ba-cace-4541-9a5a-2cd5e9132e59",
+              "from_port_id": "kenv"
+            }
+          ]
+        },
+        "28f2f10b-b5ae-43d4-b6ca-f8ba72c5b38b::asig": {
+          "expression": "in1 * 0.3",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "effect_4_flanger",
+              "from_port_id": "aout"
+            }
+          ]
+        }
+      },
+      "audio_blocks": {
+        "0645a096-9e6c-497a-8144-b2fc542df666": true
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 750,
+      "ksmps": 64,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1
+    },
+    "audio_interface": {
+      "role": "custom",
+      "groups": [
+        {
+          "id": "0645a096-9e6c-497a-8144-b2fc542df666",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainInput": null,
+      "mainOutput": "0645a096-9e6c-497a-8144-b2fc542df666",
+      "guided": false
+    },
+    "control_flow": {}
+  }
+}

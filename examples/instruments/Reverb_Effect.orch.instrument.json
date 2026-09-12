@@ -1,0 +1,185 @@
+{
+  "sourcePatchId": "edec9fff-768b-4de1-b892-53eb4249b2bf",
+  "name": "Reverb Effect",
+  "description": "Stereo reverb effect, uses inleta channel names \"left\" and \"right\".",
+  "isTemplate": false,
+  "alwaysOn": true,
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "a5e612c4-b021-465a-a2c6-f6edb0b620bd",
+        "opcode": "reverbsc",
+        "params": {
+          "kfblvl": 0.85,
+          "kfco": 12000,
+          "israte": "sr",
+          "ipitchm": 1,
+          "iskip": 0
+        },
+        "position": {
+          "x": -102.32094456237,
+          "y": -193.81387758520953
+        }
+      },
+      {
+        "id": "708a8f43-1c17-4713-a35d-b0b12cee6abe",
+        "opcode": "perf_controller",
+        "params": {
+          "min": 0.1,
+          "max": 0.95,
+          "default": 0.8,
+          "scale": "linear",
+          "label": "Feedback"
+        },
+        "position": {
+          "x": -524.2104276623094,
+          "y": -10.129472038877898
+        }
+      },
+      {
+        "id": "a08d04b8-b407-498d-8186-8ec08a404e5c",
+        "opcode": "perf_controller",
+        "params": {
+          "min": 500,
+          "max": 19000,
+          "default": 12000,
+          "scale": "logarithmic",
+          "label": "Cutoff"
+        },
+        "position": {
+          "x": -524.483142315547,
+          "y": 103.27692191463694
+        }
+      },
+      {
+        "id": "848adfb2-56f2-41d2-92da-582a363d3926",
+        "opcode": "inleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": -632.2637373946475,
+          "y": -220.37763073996862
+        }
+      },
+      {
+        "id": "bd65fc9a-7053-4c0c-b7fc-63dc926b8d92",
+        "opcode": "inleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": -632.2637373946475,
+          "y": -40.37763073996891
+        }
+      },
+      {
+        "id": "17300219-eb5e-42d1-9b33-5bddb8b0689e",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 241.29148241556453,
+          "y": -218.336274068805
+        }
+      },
+      {
+        "id": "1bfdd7bf-0969-4ac0-83df-2b69f8ff6b9a",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 241.29148241556453,
+          "y": -38.33627406880552
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "848adfb2-56f2-41d2-92da-582a363d3926",
+        "from_port_id": "asignal",
+        "to_node_id": "a5e612c4-b021-465a-a2c6-f6edb0b620bd",
+        "to_port_id": "ain_l"
+      },
+      {
+        "from_node_id": "bd65fc9a-7053-4c0c-b7fc-63dc926b8d92",
+        "from_port_id": "asignal",
+        "to_node_id": "a5e612c4-b021-465a-a2c6-f6edb0b620bd",
+        "to_port_id": "ain_r"
+      },
+      {
+        "from_node_id": "a5e612c4-b021-465a-a2c6-f6edb0b620bd",
+        "from_port_id": "aout_l",
+        "to_node_id": "17300219-eb5e-42d1-9b33-5bddb8b0689e",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "a5e612c4-b021-465a-a2c6-f6edb0b620bd",
+        "from_port_id": "aout_r",
+        "to_node_id": "1bfdd7bf-0969-4ac0-83df-2b69f8ff6b9a",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "708a8f43-1c17-4713-a35d-b0b12cee6abe",
+        "from_port_id": "iout",
+        "to_node_id": "a5e612c4-b021-465a-a2c6-f6edb0b620bd",
+        "to_port_id": "kfblvl"
+      },
+      {
+        "from_node_id": "a08d04b8-b407-498d-8186-8ec08a404e5c",
+        "from_port_id": "iout",
+        "to_node_id": "a5e612c4-b021-465a-a2c6-f6edb0b620bd",
+        "to_port_id": "kfco"
+      }
+    ],
+    "ui_layout": {
+      "audio_blocks": {
+        "a4ed012a-184a-46cd-8693-96ccc1fdf4da": true,
+        "cc263a00-de8c-41c8-8999-7fc8090356fc": true
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 1500,
+      "ksmps": 32,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1
+    },
+    "audio_interface": {
+      "role": "effect",
+      "groups": [
+        {
+          "id": "a4ed012a-184a-46cd-8693-96ccc1fdf4da",
+          "name": "Stereo Input",
+          "direction": "input",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        },
+        {
+          "id": "cc263a00-de8c-41c8-8999-7fc8090356fc",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainInput": "a4ed012a-184a-46cd-8693-96ccc1fdf4da",
+      "mainOutput": "cc263a00-de8c-41c8-8999-7fc8090356fc",
+      "guided": false
+    },
+    "control_flow": {}
+  }
+}

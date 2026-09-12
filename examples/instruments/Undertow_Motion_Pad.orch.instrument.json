@@ -1,0 +1,507 @@
+{
+  "sourcePatchId": "006e4f9e-8822-4dc6-bec3-9d806c689672",
+  "name": "Undertow Motion Pad",
+  "description": "Dark triangle and PWM pulse pad. Sine LFO moves pulse width from 0.32 to 0.68 and filter cutoff from 70% to 130% of Tone. Motion is Hz, not tempo sync. Suggested MIDI notes 43\u201379. Dry, velocity-sensitive, polyphonic. Three per-instance controls read on new notes. Route Stereo Output through the performance mixer to Master.",
+  "isTemplate": false,
+  "alwaysOn": false,
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "pitch_cpsmidi",
+        "opcode": "cpsmidi",
+        "params": {},
+        "position": {
+          "x": 672.5239413398422,
+          "y": -192.70398647228453
+        }
+      },
+      {
+        "id": "velocity_scale_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 1
+        },
+        "position": {
+          "x": 40,
+          "y": 270
+        }
+      },
+      {
+        "id": "velocity_ampmidi",
+        "opcode": "ampmidi",
+        "params": {},
+        "position": {
+          "x": 340,
+          "y": 40
+        }
+      },
+      {
+        "id": "env_attack_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.6
+        },
+        "position": {
+          "x": 40,
+          "y": 500
+        }
+      },
+      {
+        "id": "env_decay_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 1.5
+        },
+        "position": {
+          "x": 40,
+          "y": 730
+        }
+      },
+      {
+        "id": "env_sustain_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.7
+        },
+        "position": {
+          "x": 40,
+          "y": 960
+        }
+      },
+      {
+        "id": "amp_madsr",
+        "opcode": "madsr",
+        "params": {},
+        "position": {
+          "x": 377.1850952480338,
+          "y": 333.76743883224464
+        }
+      },
+      {
+        "id": "amp_velocity_envelope",
+        "opcode": "k_mul",
+        "params": {},
+        "position": {
+          "x": 640,
+          "y": 40
+        }
+      },
+      {
+        "id": "triangle_gain",
+        "opcode": "const_k",
+        "params": {
+          "value": 0.14
+        },
+        "position": {
+          "x": 40,
+          "y": 1190
+        }
+      },
+      {
+        "id": "triangle_amp",
+        "opcode": "k_mul",
+        "params": {},
+        "position": {
+          "x": 956.0927885573683,
+          "y": 21.96400250780299
+        }
+      },
+      {
+        "id": "triangle_vco2",
+        "opcode": "vco2",
+        "params": {
+          "imode": 12,
+          "kphs": 0
+        },
+        "position": {
+          "x": 1259.8377106308003,
+          "y": -101.50522927847663
+        }
+      },
+      {
+        "id": "pulse_gain",
+        "opcode": "const_k",
+        "params": {
+          "value": 0.09
+        },
+        "position": {
+          "x": 40,
+          "y": 1420
+        }
+      },
+      {
+        "id": "pulse_amp",
+        "opcode": "k_mul",
+        "params": {},
+        "position": {
+          "x": 940,
+          "y": 270
+        }
+      },
+      {
+        "id": "pulse_vco2",
+        "opcode": "vco2",
+        "params": {
+          "imode": 2,
+          "kphs": 0.25
+        },
+        "position": {
+          "x": 1279.4112957753134,
+          "y": 358.3499751631366
+        }
+      },
+      {
+        "id": "layer_mix_1",
+        "opcode": "mix2",
+        "params": {},
+        "position": {
+          "x": 1576.505915426152,
+          "y": 207.66308547401133
+        }
+      },
+      {
+        "id": "effect_1_butterhp",
+        "opcode": "butterhp",
+        "params": {
+          "xfreq": 70
+        },
+        "position": {
+          "x": 1832.840312710995,
+          "y": 21.20935826126755
+        }
+      },
+      {
+        "id": "effect_2_moogladder2",
+        "opcode": "moogladder2",
+        "params": {
+          "xres": 0.18
+        },
+        "position": {
+          "x": 2140,
+          "y": 40
+        }
+      },
+      {
+        "id": "output_pan2",
+        "opcode": "pan2",
+        "params": {
+          "xp": 0.5,
+          "imode": 0
+        },
+        "position": {
+          "x": 2440,
+          "y": 40
+        }
+      },
+      {
+        "id": "undertow_tone",
+        "opcode": "perf_controller",
+        "params": {
+          "min": 200,
+          "max": 6000,
+          "default": 1400,
+          "scale": "logarithmic",
+          "label": "Tone (Hz)"
+        },
+        "position": {
+          "x": 40,
+          "y": 1650
+        }
+      },
+      {
+        "id": "undertow_motion",
+        "opcode": "perf_controller",
+        "params": {
+          "min": 0.02,
+          "max": 1.5,
+          "default": 0.13,
+          "scale": "logarithmic",
+          "label": "Motion (Hz)"
+        },
+        "position": {
+          "x": 40,
+          "y": 1880
+        }
+      },
+      {
+        "id": "undertow_release",
+        "opcode": "perf_controller",
+        "params": {
+          "min": 0.2,
+          "max": 6,
+          "default": 2.5,
+          "scale": "logarithmic",
+          "label": "Release (s)"
+        },
+        "position": {
+          "x": 40,
+          "y": 2110
+        }
+      },
+      {
+        "id": "undertow_lfo",
+        "opcode": "lfo",
+        "params": {
+          "kamp": 1,
+          "itype": 0
+        },
+        "position": {
+          "x": 912.8787467042974,
+          "y": 677.2753665642565
+        }
+      },
+      {
+        "id": "output_left",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 2807.276534578634,
+          "y": 1.5980409044278119
+        }
+      },
+      {
+        "id": "output_right",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 2807.276534578634,
+          "y": 231.59804090442765
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "velocity_scale_const",
+        "from_port_id": "iout",
+        "to_node_id": "velocity_ampmidi",
+        "to_port_id": "iscal"
+      },
+      {
+        "from_node_id": "env_attack_const",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "iatt"
+      },
+      {
+        "from_node_id": "env_decay_const",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "idec"
+      },
+      {
+        "from_node_id": "env_sustain_const",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "islev"
+      },
+      {
+        "from_node_id": "velocity_ampmidi",
+        "from_port_id": "iamp",
+        "to_node_id": "amp_velocity_envelope",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "amp_madsr",
+        "from_port_id": "kenv",
+        "to_node_id": "amp_velocity_envelope",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "triangle_amp",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "triangle_gain",
+        "from_port_id": "kout",
+        "to_node_id": "triangle_amp",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "triangle_amp",
+        "from_port_id": "kout",
+        "to_node_id": "triangle_vco2",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "triangle_vco2",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "pulse_amp",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "pulse_gain",
+        "from_port_id": "kout",
+        "to_node_id": "pulse_amp",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "pulse_amp",
+        "from_port_id": "kout",
+        "to_node_id": "pulse_vco2",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "pulse_vco2",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "triangle_vco2",
+        "from_port_id": "asig",
+        "to_node_id": "layer_mix_1",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "pulse_vco2",
+        "from_port_id": "asig",
+        "to_node_id": "layer_mix_1",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "layer_mix_1",
+        "from_port_id": "aout",
+        "to_node_id": "effect_1_butterhp",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "effect_1_butterhp",
+        "from_port_id": "aout",
+        "to_node_id": "effect_2_moogladder2",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "output_pan2",
+        "from_port_id": "aleft",
+        "to_node_id": "output_left",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "output_pan2",
+        "from_port_id": "aright",
+        "to_node_id": "output_right",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "undertow_release",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "irel"
+      },
+      {
+        "from_node_id": "undertow_motion",
+        "from_port_id": "iout",
+        "to_node_id": "undertow_lfo",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "undertow_lfo",
+        "from_port_id": "kout",
+        "to_node_id": "pulse_vco2",
+        "to_port_id": "kpw"
+      },
+      {
+        "from_node_id": "undertow_tone",
+        "from_port_id": "iout",
+        "to_node_id": "effect_2_moogladder2",
+        "to_port_id": "xcf"
+      },
+      {
+        "from_node_id": "undertow_lfo",
+        "from_port_id": "kout",
+        "to_node_id": "effect_2_moogladder2",
+        "to_port_id": "xcf"
+      },
+      {
+        "from_node_id": "effect_2_moogladder2",
+        "from_port_id": "aout",
+        "to_node_id": "output_pan2",
+        "to_port_id": "asig"
+      }
+    ],
+    "ui_layout": {
+      "audio_blocks": {
+        "main-output": true
+      },
+      "input_formulas": {
+        "pulse_vco2::kpw": {
+          "expression": "0.5 + 0.18 * motion",
+          "inputs": [
+            {
+              "token": "motion",
+              "from_node_id": "undertow_lfo",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "effect_2_moogladder2::xcf": {
+          "expression": "tone * (1 + 0.3 * motion)",
+          "inputs": [
+            {
+              "token": "tone",
+              "from_node_id": "undertow_tone",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "motion",
+              "from_node_id": "undertow_lfo",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "output_pan2::asig": {
+          "expression": "signal * 0.85 * 25",
+          "inputs": [
+            {
+              "token": "signal",
+              "from_node_id": "effect_2_moogladder2",
+              "from_port_id": "aout"
+            }
+          ]
+        }
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 750,
+      "ksmps": 64,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1
+    },
+    "audio_interface": {
+      "role": "instrument",
+      "groups": [
+        {
+          "id": "main-output",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainInput": null,
+      "mainOutput": "main-output",
+      "guided": true
+    },
+    "control_flow": {}
+  }
+}
