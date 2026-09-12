@@ -19,6 +19,7 @@ The backend runs the step timing (native runtime clock), which reduces browser t
 
 - `Add Melodic Sequencer` creates a new melodic sequencer card
 - `Add Drummer Sequencer` creates a drummer sequencer card (documented separately in [Drummer Sequencers](drummer_sequencers.md))
+- A performance can contain up to 16 melodic sequencers
 - Each melodic sequencer has its own `Remove` button
 
 ## Per-Sequencer Controls

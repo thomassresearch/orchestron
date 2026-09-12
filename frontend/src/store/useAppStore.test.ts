@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { sequencerTransportSubunitsPerStep } from "../lib/sequencer";
+import { MAX_SEQUENCERS_PER_TYPE, sequencerTransportSubunitsPerStep } from "../lib/sequencer";
 import type { PatchListItem, SequencerInstrumentBinding } from "../types";
 import { useAppStore } from "./useAppStore";
 
@@ -134,15 +134,35 @@ describe("app store sequencer behavior", () => {
     expect(state.error).toBe("Invalid sequencer config file.");
   });
 
-  it("caps melodic sequencers at eight tracks", () => {
-    for (let index = 1; index < 8; index += 1) {
+  it("caps each sequencer type independently at sixteen", () => {
+    while (useAppStore.getState().sequencer.tracks.length < MAX_SEQUENCERS_PER_TYPE) {
       useAppStore.getState().addSequencerTrack();
     }
-    expect(useAppStore.getState().sequencer.tracks).toHaveLength(8);
+    while (useAppStore.getState().sequencer.drummerTracks.length < MAX_SEQUENCERS_PER_TYPE) {
+      useAppStore.getState().addDrummerSequencerTrack();
+    }
+    while (useAppStore.getState().sequencer.controllerSequencers.length < MAX_SEQUENCERS_PER_TYPE) {
+      useAppStore.getState().addControllerSequencer();
+    }
+
+    expect(useAppStore.getState().sequencer.tracks).toHaveLength(MAX_SEQUENCERS_PER_TYPE);
+    expect(useAppStore.getState().sequencer.drummerTracks).toHaveLength(MAX_SEQUENCERS_PER_TYPE);
+    expect(useAppStore.getState().sequencer.controllerSequencers).toHaveLength(MAX_SEQUENCERS_PER_TYPE);
+    const snapshot = useAppStore.getState().buildSequencerConfigSnapshot();
+    expect(snapshot.sequencer.tracks).toHaveLength(MAX_SEQUENCERS_PER_TYPE);
+    expect(snapshot.sequencer.drummerTracks).toHaveLength(MAX_SEQUENCERS_PER_TYPE);
+    expect(snapshot.sequencer.controllerSequencers).toHaveLength(MAX_SEQUENCERS_PER_TYPE);
 
     useAppStore.getState().addSequencerTrack();
+    expect(useAppStore.getState().sequencer.tracks).toHaveLength(MAX_SEQUENCERS_PER_TYPE);
+    expect(useAppStore.getState().error).toBe("A maximum of 16 sequencers is supported.");
 
-    expect(useAppStore.getState().sequencer.tracks).toHaveLength(8);
-    expect(useAppStore.getState().error).toBe("A maximum of 8 sequencers is supported.");
+    useAppStore.getState().addDrummerSequencerTrack();
+    expect(useAppStore.getState().sequencer.drummerTracks).toHaveLength(MAX_SEQUENCERS_PER_TYPE);
+    expect(useAppStore.getState().error).toBe("A maximum of 16 drummer sequencers is supported.");
+
+    useAppStore.getState().addControllerSequencer();
+    expect(useAppStore.getState().sequencer.controllerSequencers).toHaveLength(MAX_SEQUENCERS_PER_TYPE);
+    expect(useAppStore.getState().error).toBe("A maximum of 16 controller sequencers is supported.");
   });
 });

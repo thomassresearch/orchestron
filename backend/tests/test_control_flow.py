@@ -186,6 +186,55 @@ def routed_compile(patch, mode="score", mixer=None):
     )
 
 
+@pytest.mark.parametrize("direct", [False, True])
+@pytest.mark.parametrize("note,expected", [(36, [.6, .4]), (99, [0, 0])])
+def test_outlet_formulas_are_materialized_after_switch_results(direct, note, expected):
+    from backend.app.models.audio import AudioGraph
+
+    patch = branch_patch()
+    if direct:
+        outlets = [("out", side, side) for side in ["left", "right"]]
+    else:
+        patch.graph.nodes = [node for node in patch.graph.nodes if node.id != "out"]
+        patch.graph.nodes += [NodeInstance(id=side, opcode="outleta", params={"sname": side})
+                              for side in ["left", "right"]]
+        for connection in patch.graph.connections:
+            if connection.to_node_id == "out":
+                connection.to_node_id = connection.to_port_id
+                connection.to_port_id = "asignal"
+        outlets = [(side, "asignal", side) for side in ["left", "right"]]
+    patch.graph.ui_layout["input_formulas"] = {
+        f"{node}::{port}": {"expression": f"in1 * {gain}", "inputs": [
+            dict(token="in1", from_node_id="branch", from_port_id=side),
+        ]}
+        for (node, port, side), gain in zip(outlets, [3, 2])
+    }
+    artifact = (CompilerService(OpcodeService("/static/icons")).compile_patch_bundle(
+        [PatchInstrumentTarget(patch=patch, midi_channel=1, assignment_id="kit")],
+        audio_graph=AudioGraph(), midi_input="0", rtmidi_module="none", performance_input_mode="score",
+    ) if direct else routed_compile(patch))
+    ref = artifact.manifest["instrumentReferences"]["kit"]
+    with sound(artifact.orc, f"i {ref} 0 1 {note} 100\nf 0 2") as cs:
+        rendered = samples(cs)
+        np.testing.assert_allclose(rendered, np.broadcast_to(expected, rendered.shape), atol=1e-9)
+
+
+@pytest.mark.parametrize("note", [35, 36, 38, 42, 46])
+def test_analog_drumkit_stereo_output_formulas(note):
+    patch = example("analog_drumkit")
+    for side in ["left", "right"]:
+        patch.graph.ui_layout["input_formulas"][f"output_{side}::asignal"] = {
+            "expression": "in1 * 3",
+            "inputs": [dict(token="in1", from_node_id="kit", from_port_id=side)],
+        }
+    artifact = routed_compile(patch)
+    ref = artifact.manifest["instrumentReferences"]["kit"]
+    with sound(artifact.orc, f"i {ref} 0 .1 {note} 100\nf 0 1") as cs:
+        rendered = samples(cs, 150)
+        assert np.isfinite(rendered).all()
+        assert (np.sqrt(np.mean(rendered ** 2, axis=0)) > .001).all()
+
+
 def write_midi(path, notes, duration=.005):
     midi = mido.MidiFile(ticks_per_beat=1000)
     track = mido.MidiTrack()

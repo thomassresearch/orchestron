@@ -549,7 +549,7 @@ def compile_mixer_bundle(
                 "a_signal = a_pre * (1 - a_post) + a_post_signal * a_post * a_pan",
             ]
         ramp(lines, route.id, "route", "gain", "send")
-        lines += ['outleta "out", a_signal * a_send']
+        lines += ['a_route_output = a_signal * a_send', 'outleta "out", a_route_output']
         dest = (
             OUTPUT
             if route.target_id == OUTPUT

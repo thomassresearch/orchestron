@@ -2,6 +2,7 @@ import type { StoreApi } from "zustand";
 
 import { insertPadLoopItem, removePadLoopItemsFromContainer } from "../lib/padLoopPattern";
 import {
+  MAX_SEQUENCERS_PER_TYPE,
   clampControllerCurvePosition,
   clampControllerCurveValue,
   normalizeSequencerBeatRate,
@@ -306,8 +307,8 @@ export function createPerformanceControlStoreActions(
 
     addControllerSequencer: () => {
       const sequencer = get().sequencer;
-      if (sequencer.controllerSequencers.length >= 8) {
-        set({ error: "A maximum of 8 controller sequencers is supported." });
+      if (sequencer.controllerSequencers.length >= MAX_SEQUENCERS_PER_TYPE) {
+        set({ error: `A maximum of ${MAX_SEQUENCERS_PER_TYPE} controller sequencers is supported.` });
         return;
       }
 

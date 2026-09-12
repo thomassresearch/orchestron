@@ -17,6 +17,7 @@ import type {
 
 export const MAX_STEPS_PER_PAD = 128;
 export const STEP_CAPACITY = MAX_STEPS_PER_PAD;
+export const MAX_SEQUENCERS_PER_TYPE = 16;
 export const SEQUENCER_METER_NUMERATOR_OPTIONS = [2, 3, 4, 5, 6, 7] as const;
 export const SEQUENCER_METER_DENOMINATOR_OPTIONS = [4, 8] as const;
 export const SEQUENCER_STEPS_PER_BEAT_OPTIONS = [2, 4, 8] as const;

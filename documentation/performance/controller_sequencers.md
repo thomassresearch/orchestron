@@ -18,6 +18,7 @@ Typical uses:
 ## Adding / Removing Controller Sequencers
 
 - `Add Controller Sequencer` creates a new controller sequencer card
+- A performance can contain up to 16 controller sequencers
 - Each controller sequencer has a `Remove` button
 
 ## Per-Controller-Sequencer Controls

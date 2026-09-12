@@ -3,6 +3,7 @@ import type { StoreApi } from "zustand";
 
 import { insertPadLoopItem, removePadLoopItemsFromContainer } from "../lib/padLoopPattern";
 import {
+  MAX_SEQUENCERS_PER_TYPE,
   STEP_CAPACITY,
   normalizeSequencerBeatRate,
   clampSequencerMeterDenominator,
@@ -300,8 +301,8 @@ export function createSequencerTrackStoreActions(
 
     addSequencerTrack: () => {
       const sequencer = get().sequencer;
-      if (sequencer.tracks.length >= 8) {
-        set({ error: "A maximum of 8 sequencers is supported." });
+      if (sequencer.tracks.length >= MAX_SEQUENCERS_PER_TYPE) {
+        set({ error: `A maximum of ${MAX_SEQUENCERS_PER_TYPE} sequencers is supported.` });
         return;
       }
 
@@ -1243,8 +1244,8 @@ export function createSequencerTrackStoreActions(
 
     addDrummerSequencerTrack: () => {
       const sequencer = get().sequencer;
-      if (sequencer.drummerTracks.length >= 8) {
-        set({ error: "A maximum of 8 drummer sequencers is supported." });
+      if (sequencer.drummerTracks.length >= MAX_SEQUENCERS_PER_TYPE) {
+        set({ error: `A maximum of ${MAX_SEQUENCERS_PER_TYPE} drummer sequencers is supported.` });
         return;
       }
 

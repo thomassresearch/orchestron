@@ -27,6 +27,7 @@ import {
 } from "../lib/padLoopPattern";
 import {
   DEFAULT_SEQUENCER_TIMING_CONFIG,
+  MAX_SEQUENCERS_PER_TYPE,
   STEP_CAPACITY,
   clampControllerCurvePosition,
   clampControllerCurveValue,
@@ -2853,7 +2854,7 @@ export function buildSequencerConfigSnapshot(
         Number.MAX_SAFE_INTEGER,
         sequencerTransportStepsPerBeat(timing)
       ),
-      tracks: sequencer.tracks.slice(0, 8).map((track, index) => ({
+      tracks: sequencer.tracks.slice(0, MAX_SEQUENCERS_PER_TYPE).map((track, index) => ({
         id: track.id.length > 0 ? track.id : `voice-${index + 1}`,
         name: track.name.trim().length > 0 ? track.name : `Melodic Sequencer ${index + 1}`,
         midiChannel: clampInt(track.midiChannel, 1, 16),
@@ -2890,7 +2891,7 @@ export function buildSequencerConfigSnapshot(
         queuedEnabled:
           track.queuedEnabled === null || typeof track.queuedEnabled === "boolean" ? track.queuedEnabled : null
       })),
-      drummerTracks: sequencer.drummerTracks.slice(0, 8).map((track, index) => {
+      drummerTracks: sequencer.drummerTracks.slice(0, MAX_SEQUENCERS_PER_TYPE).map((track, index) => {
         const rows = cloneDrummerSequencerRows(track.rows).slice(0, 64);
         const pads = cloneDrummerSequencerPads(track.pads)
           .map((pad) => alignDrummerPadRowsToTrackRows(pad, rows))
@@ -2945,7 +2946,7 @@ export function buildSequencerConfigSnapshot(
         value: normalizeControllerValue(controller.value),
         enabled: controller.enabled === true
       })),
-      controllerSequencers: sequencer.controllerSequencers.slice(0, 8).map((controllerSequencer, index) => ({
+      controllerSequencers: sequencer.controllerSequencers.slice(0, MAX_SEQUENCERS_PER_TYPE).map((controllerSequencer, index) => ({
         id: controllerSequencer.id.length > 0 ? controllerSequencer.id : `cc-seq-${index + 1}`,
         name:
           controllerSequencer.name.trim().length > 0
@@ -3188,4 +3189,3 @@ export const initialTab = createInstrumentTab(initialPatch);
 export const initialSequencerState = defaultSequencerState();
 export const initialSequencerRuntimeState = sequencerRuntimeStateFromSequencer(initialSequencerState);
 export const initialBrowserClockLatencySettings = resolveDefaultBrowserClockLatencySettings();
-

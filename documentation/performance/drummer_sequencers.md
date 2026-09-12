@@ -19,6 +19,7 @@ Compared to melodic sequencers, drummer sequencers:
 ## Adding / Removing Drummer Sequencers
 
 - Use the `Add Drummer Sequencer` button in the sequencer section header to add a drummer sequencer card
+- A performance can contain up to 16 drummer sequencers
 - Each drummer sequencer card has its own `Remove` button
 
 ## Per-Drummer-Sequencer Controls

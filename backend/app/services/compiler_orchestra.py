@@ -62,6 +62,7 @@ class OrchestraEmitter:
         direct_output_ports: dict[str, tuple[str, str]] | None = None,
         performance_controllers: dict | None = None,
     ) -> CompiledInstrumentLines:
+        deferred_audio_outlet_inputs: list[str] = []
         deferred_audio_outlets: list[str] = []
         diagnostics: list[str] = []
         warnings: list[str] = []
@@ -92,6 +93,7 @@ class OrchestraEmitter:
                     output_vars[(node_id, output.id)] = self._allocate_var_name(rate_counters, node_id, output)
                 output_signal_types[(node_id, output.id)] = output.signal_type
 
+        audio_output_vars = {var for key, var in output_vars.items() if output_signal_types[key] == SignalType.AUDIO}
         prefix_lines = instrument_lines
         node_lines: dict[str, list[str]] = {}
         block_conditions: dict[str, str] = {}
@@ -193,13 +195,25 @@ class OrchestraEmitter:
                 instrument_lines.extend(f"{output_vars[(block_id, channel)]} = {env[channel]}" for channel in block.channels)
                 continue
 
-            if compiled.spec.name == "outs" and direct_output_ports is not None:
-                left, right = direct_output_ports[compiled.node.id]
-                deferred_audio_outlets.extend([
-                    self._node_comment(compiled.node.id, "outs"),
-                    f"outleta {self._format_csound_string(left)}, {env['left']}",
-                    f"outleta {self._format_csound_string(right)}, {env['right']}",
-                ])
+            if compiled.spec.name == "outleta" or (compiled.spec.name == "outs" and direct_output_ports is not None):
+                if compiled.spec.name == "outleta":
+                    outlet_names = {"asignal": env["sname"]}
+                else:
+                    left, right = direct_output_ports[compiled.node.id]
+                    outlet_names = {"left": self._format_csound_string(left), "right": self._format_csound_string(right)}
+                deferred_audio_outlets.append(self._node_comment(compiled.node.id, compiled.spec.name))
+                for input_port in compiled.spec.inputs:
+                    if input_port.id not in outlet_names:
+                        continue
+                    signal = env[input_port.id]
+                    if signal not in audio_output_vars:
+                        # Csound can reuse expression buffers across outleta calls,
+                        # leaving later channels silent. Give each expression its
+                        # own audio variable, including implicit sums and constants.
+                        temporary = self._allocate_var_name(rate_counters, compiled.node.id, input_port)
+                        deferred_audio_outlet_inputs.append(f"{temporary} = {signal}")
+                        signal = temporary
+                    deferred_audio_outlets.append(f"outleta {outlet_names[input_port.id]}, {signal}")
                 continue
 
             if compiled.spec.name == "GEN":
@@ -372,8 +386,7 @@ class OrchestraEmitter:
                 raise CompilationError([f"Template value missing for node '{compiled.node.id}': {err}"]) from err
 
             rendered = self._cleanup_optional_placeholders(rendered)
-            destination = deferred_audio_outlets if direct_output_ports is not None and compiled.spec.name == "outleta" else instrument_lines
-            destination.extend([self._node_comment(compiled.node.id, compiled.spec.name), *rendered.splitlines()])
+            instrument_lines.extend([self._node_comment(compiled.node.id, compiled.spec.name), *rendered.splitlines()])
 
         instrument_lines = list(prefix_lines)
         for node_id in graph_context.root_order or graph_context.ordered_ids:
@@ -396,6 +409,10 @@ class OrchestraEmitter:
                 for member_id in [*(item for item in order if item != case.result_node_id), case.result_node_id]:
                     instrument_lines.extend(f"  {line}" for line in node_lines[member_id])
             instrument_lines.append("endif")
+        # Resolve all outlet expressions after branch results, before any outleta
+        # consumes them. Interleaving assignments and outlets allows Csound to
+        # reuse the first expression's buffer even with explicit variable names.
+        instrument_lines.extend(deferred_audio_outlet_inputs)
         instrument_lines.extend(deferred_audio_outlets)
         return CompiledInstrumentLines(
             instrument_lines=instrument_lines,

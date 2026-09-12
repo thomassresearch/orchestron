@@ -299,6 +299,64 @@ def test_outs_formulas_keep_multiple_resolved_inputs_and_additive_outputs():
         np.testing.assert_allclose(render(cs)[-1], [0.25, 0.4], atol=1e-9)
 
 
+@pytest.mark.parametrize("ksmps", [1, 32, 1920])
+@pytest.mark.parametrize("output_mode", ["direct", "named", "legacy_named"])
+@pytest.mark.parametrize("expression_kind", ["formula", "sum", "constant"])
+def test_stereo_outlet_expressions_have_independent_audio_buffers(ksmps, output_mode, expression_kind):
+    direct = output_mode == "direct"
+    target = source(ksmps=ksmps, direct=direct, copies=1 if direct else 2)
+    if not direct:
+        target.patch.graph.nodes[-1].params["sname"] = "right"
+    inputs = [("out0", "left"), ("out0", "right")] if direct else [("out0", "asignal"), ("out1", "asignal")]
+    formulas = target.patch.graph.ui_layout.setdefault("input_formulas", {})
+    expected = [0.6, 0.4]
+    for (node, port), gain in zip(inputs, [3, 2]):
+        if expression_kind == "formula":
+            formulas[f"{node}::{port}"] = {
+                "expression": f"in1 * {gain}",
+                "inputs": [{"token": "in1", "from_node_id": "signal", "from_port_id": "aout"}],
+            }
+        elif expression_kind == "constant":
+            formulas[f"{node}::{port}"] = {"expression": f"0.2 * {gain}", "inputs": []}
+        else:
+            target.patch.graph.connections.append(
+                Connection(from_node_id="extra", from_port_id="aout", to_node_id=node, to_port_id=port)
+            )
+    if expression_kind == "constant":
+        target.patch.graph.connections = []
+    elif expression_kind == "sum":
+        target.patch.graph.nodes.append(NodeInstance(id="extra", opcode="const_a", params={"value": 0.1}))
+        expected = [0.3, 0.3]
+
+    if output_mode == "legacy_named":
+        receiver = PatchInstrumentTarget(
+            patch=PatchDocument(name="Receiver", always_on=True, graph=PatchGraph(
+                nodes=[NodeInstance(id=side, opcode="inleta", params={"sname": side}) for side in ["left", "right"]]
+                + [NodeInstance(id="out", opcode="outs")],
+                connections=[Connection(from_node_id=side, from_port_id="asignal", to_node_id="out", to_port_id=side)
+                             for side in ["left", "right"]],
+                engine_config=EngineConfig(sr=48000, ksmps=ksmps),
+            )),
+            midi_channel=0, assignment_id="receiver", always_on=True, effect_source_ids=("source",),
+        )
+        artifact = CompilerService(OpcodeService("/static/icons")).compile_patch_bundle(
+            [target, receiver], midi_input="0", rtmidi_module="none",
+        )
+    else:
+        routes = [] if direct else [
+            AudioRoute(id=side, sourceId="source", sourcePort=side, targetId="$output", targetPort=side)
+            for side in ["left", "right"]
+        ]
+        artifact = compile_audio([target], AudioGraph(routes=routes))
+    for line in artifact.orc.splitlines():
+        if line.strip().startswith("outleta "):
+            signal = line.rsplit(",", 1)[-1].strip()
+            assert signal.startswith("a") and signal.isidentifier(), line
+    with engine(artifact) as cs:
+        rendered = render(cs, max(2, 1920 // ksmps))
+        np.testing.assert_allclose(rendered, np.broadcast_to(expected, rendered.shape), atol=1e-9)
+
+
 def test_independent_instances_of_one_patch_keep_separate_controls():
     from dataclasses import replace
 

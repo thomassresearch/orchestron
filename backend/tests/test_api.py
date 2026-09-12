@@ -5863,8 +5863,10 @@ def test_always_on_effect_session_preserves_outleta_input_formulas(tmp_path: Pat
         assert 'connect "vcs_instr_1", "sendr", "vcs_instr_2", "right"' in compiled_orc
         assert 'connect "vcs_instr_1", "dryl", "vcs_instr_2", "left"' not in compiled_orc
         assert 'connect "vcs_instr_1", "dryr", "vcs_instr_2", "right"' not in compiled_orc
-        assert "outleta \"sendl\", (0.00005 * a_sig_aout_1)" in compiled_orc
-        assert "outleta \"sendr\", (0.00005 * a_sig_aout_1)" in compiled_orc
+        assert "a_out_l_asignal_2 = (0.00005 * a_sig_aout_1)" in compiled_orc
+        assert "a_out_r_asignal_3 = (0.00005 * a_sig_aout_1)" in compiled_orc
+        assert 'outleta "sendl", a_out_l_asignal_2' in compiled_orc
+        assert 'outleta "sendr", a_out_r_asignal_3' in compiled_orc
 
 
 def test_always_on_effect_session_compiles_cascaded_audio_routes(tmp_path: Path) -> None:
@@ -6261,7 +6263,8 @@ def test_stereo_mapping_opcode_round_trip_and_compile(tmp_path: Path) -> None:
         assert session.status_code == 201, session.text
         compiled = client.post(f"/api/sessions/{session.json()['session_id']}/compile")
         assert compiled.status_code == 200, compiled.text
-        assert f'outleta "{ports[0]}", (0.5 * a_sig_aout_1)' in compiled.json()["orc"]
+        assert 'a_out_l_asignal_2 = (0.5 * a_sig_aout_1)' in compiled.json()["orc"]
+        assert f'outleta "{ports[0]}", a_out_l_asignal_2' in compiled.json()["orc"]
         assert "__stereo" not in compiled.json()["orc"]
 
         # The editor's atomic delete payload clears both members and main references.
