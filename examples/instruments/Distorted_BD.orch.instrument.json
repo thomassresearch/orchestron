@@ -229,83 +229,25 @@
         }
       },
       {
-        "id": "6f49d1f1-211b-4705-be7a-a18b21b10b5e",
+        "id": "8411203d-283d-4715-8301-e72ef4f58d08",
         "opcode": "outleta",
-        "params": {},
-        "position": {
-          "x": 1129.1475336893352,
-          "y": 78.01484168263215
-        }
-      },
-      {
-        "id": "1752983d-5d1d-4a93-8121-6f374ed466cb",
-        "opcode": "outleta",
-        "params": {},
-        "position": {
-          "x": 1070.802887596517,
-          "y": 632.6870094798949
-        }
-      },
-      {
-        "id": "6f474f85-416c-45f3-b688-feefa7f5cda5",
-        "opcode": "const_s",
         "params": {
-          "value": "sendl"
+          "sname": "left"
         },
         "position": {
-          "x": 781.9006921933849,
-          "y": 18.754679477911946
+          "x": 1065.883539298713,
+          "y": 241.5399351056378
         }
       },
       {
-        "id": "587c1a12-8dd9-4c91-bbe9-f7636545aec9",
-        "opcode": "const_s",
-        "params": {
-          "value": "sendr"
-        },
-        "position": {
-          "x": 676.0582579506607,
-          "y": 723.7408932732001
-        }
-      },
-      {
-        "id": "029010b8-f837-47a3-98df-abff2f0fe4fd",
+        "id": "2046b9cd-865e-4712-b07e-54b3b7d9a5b3",
         "opcode": "outleta",
-        "params": {},
-        "position": {
-          "x": 1377.866922972018,
-          "y": 270.6029775014524
-        }
-      },
-      {
-        "id": "92ee3428-d44f-4362-a9b7-8a5aebb108dd",
-        "opcode": "outleta",
-        "params": {},
-        "position": {
-          "x": 1370.66460792305,
-          "y": 447.1066324080322
-        }
-      },
-      {
-        "id": "db4fcdc4-8c7f-46c8-9305-bdd609d7a881",
-        "opcode": "const_s",
         "params": {
-          "value": "dryl"
+          "sname": "right"
         },
         "position": {
-          "x": 1053.786990438805,
-          "y": 244.16447478225837
-        }
-      },
-      {
-        "id": "bfdbadfe-233c-4207-8f54-dc5abb78932a",
-        "opcode": "const_s",
-        "params": {
-          "value": "dryr"
-        },
-        "position": {
-          "x": 1009.8070312355004,
-          "y": 487.0772347051293
+          "x": 1065.883539298713,
+          "y": 421.5399351056384
         }
       }
     ],
@@ -415,50 +357,14 @@
       {
         "from_node_id": "4dc2c7cc-49a9-46f0-a275-1b4c58a8ca55",
         "from_port_id": "aleft",
-        "to_node_id": "6f49d1f1-211b-4705-be7a-a18b21b10b5e",
+        "to_node_id": "8411203d-283d-4715-8301-e72ef4f58d08",
         "to_port_id": "asignal"
       },
       {
         "from_node_id": "4dc2c7cc-49a9-46f0-a275-1b4c58a8ca55",
         "from_port_id": "aright",
-        "to_node_id": "1752983d-5d1d-4a93-8121-6f374ed466cb",
+        "to_node_id": "2046b9cd-865e-4712-b07e-54b3b7d9a5b3",
         "to_port_id": "asignal"
-      },
-      {
-        "from_node_id": "587c1a12-8dd9-4c91-bbe9-f7636545aec9",
-        "from_port_id": "sout",
-        "to_node_id": "1752983d-5d1d-4a93-8121-6f374ed466cb",
-        "to_port_id": "sname"
-      },
-      {
-        "from_node_id": "6f474f85-416c-45f3-b688-feefa7f5cda5",
-        "from_port_id": "sout",
-        "to_node_id": "6f49d1f1-211b-4705-be7a-a18b21b10b5e",
-        "to_port_id": "sname"
-      },
-      {
-        "from_node_id": "4dc2c7cc-49a9-46f0-a275-1b4c58a8ca55",
-        "from_port_id": "aleft",
-        "to_node_id": "029010b8-f837-47a3-98df-abff2f0fe4fd",
-        "to_port_id": "asignal"
-      },
-      {
-        "from_node_id": "4dc2c7cc-49a9-46f0-a275-1b4c58a8ca55",
-        "from_port_id": "aright",
-        "to_node_id": "92ee3428-d44f-4362-a9b7-8a5aebb108dd",
-        "to_port_id": "asignal"
-      },
-      {
-        "from_node_id": "db4fcdc4-8c7f-46c8-9305-bdd609d7a881",
-        "from_port_id": "sout",
-        "to_node_id": "029010b8-f837-47a3-98df-abff2f0fe4fd",
-        "to_port_id": "sname"
-      },
-      {
-        "from_node_id": "bfdbadfe-233c-4207-8f54-dc5abb78932a",
-        "from_port_id": "sout",
-        "to_node_id": "92ee3428-d44f-4362-a9b7-8a5aebb108dd",
-        "to_port_id": "sname"
       }
     ],
     "ui_layout": {
@@ -596,27 +502,10 @@
               "from_port_id": "aout"
             }
           ]
-        },
-        "6f49d1f1-211b-4705-be7a-a18b21b10b5e::asignal": {
-          "expression": "0.05*in1",
-          "inputs": [
-            {
-              "token": "in1",
-              "from_node_id": "4dc2c7cc-49a9-46f0-a275-1b4c58a8ca55",
-              "from_port_id": "aleft"
-            }
-          ]
-        },
-        "1752983d-5d1d-4a93-8121-6f374ed466cb::asignal": {
-          "expression": "0.05*in1",
-          "inputs": [
-            {
-              "token": "in1",
-              "from_node_id": "4dc2c7cc-49a9-46f0-a275-1b4c58a8ca55",
-              "from_port_id": "aright"
-            }
-          ]
         }
+      },
+      "audio_blocks": {
+        "bf0d3f80-93cd-4acc-aae3-fd824c3a4266": true
       }
     },
     "engine_config": {
@@ -628,7 +517,25 @@
       "hardware_buffer": 512,
       "0dbfs": 1
     },
-    "audio_interface": null,
+    "audio_interface": {
+      "role": "custom",
+      "groups": [
+        {
+          "id": "bf0d3f80-93cd-4acc-aae3-fd824c3a4266",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainInput": null,
+      "mainOutput": "bf0d3f80-93cd-4acc-aae3-fd824c3a4266",
+      "guided": false
+    },
     "control_flow": {}
   }
 }
