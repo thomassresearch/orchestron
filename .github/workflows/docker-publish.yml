@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - '**'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing Git tag to publish (for example, 2.0.0)
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -22,24 +28,39 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
-      - name: Check out the tagged source
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        with:
-          persist-credentials: false
-
-      - name: Resolve the image name
+      - name: Resolve the release tag and image name
         id: image
         env:
           REPOSITORY: ${{ github.repository }}
-        run: echo "name=ghcr.io/${REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          git check-ref-format "refs/tags/$RELEASE_TAG"
+          image_tag=$(printf '%s' "$RELEASE_TAG" | sed -E 's/[^a-zA-Z0-9_.-]+/-/g')
+          if [[ ! "$image_tag" =~ ^[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,127}$ ]]; then
+            echo '::error::The release tag must produce a valid Docker tag of at most 128 characters.'
+            exit 1
+          fi
+          image_name=$(printf '%s' "$REPOSITORY" | tr '[:upper:]' '[:lower:]')
+          echo "name=ghcr.io/$image_name" >> "$GITHUB_OUTPUT"
+          echo "ref=refs/tags/$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+          echo "tag=$image_tag" >> "$GITHUB_OUTPUT"
+
+      - name: Check out the tagged source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          # Automatic runs build the push's exact commit. Manual runs resolve
+          # only refs/tags/, so a branch with the same name cannot be published.
+          ref: ${{ github.event_name == 'push' && github.sha || steps.image.outputs.ref }}
+          persist-credentials: false
 
       - name: Generate image tags and labels
         id: metadata
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6
         with:
+          context: git
           images: ${{ steps.image.outputs.name }}
           tags: |
-            type=ref,event=tag
+            type=raw,value=${{ steps.image.outputs.tag }},priority=600
             type=raw,value=latest
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}

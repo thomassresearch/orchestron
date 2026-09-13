@@ -9,18 +9,29 @@ Merge both workflow files into the default branch before publishing the first ta
 Push a new tag that contains the workflows, for example:
 
 ```bash
+git push origin main
 git tag v1.2.3
 git push origin v1.2.3
 ```
+
+Push the branch containing the workflows before the release tag, and push one release tag at a time. Avoid `git push --tags` for releases: if more than three tags are pushed together, GitHub does not generate the tag events needed to start these workflows.
 
 The [Publish Docker image workflow](../.github/workflows/docker-publish.yml) builds both platforms with QEMU and Docker Buildx, then publishes:
 
 - `ghcr.io/thomassresearch/orchestron:v1.2.3`
 - `ghcr.io/thomassresearch/orchestron:latest`
 
-Every pushed Git tag is eligible, including prerelease tags. `latest` follows the last successfully published build, including prereleases; it does not select the highest semantic version. Tag names are preserved when valid Docker tags; Docker's metadata action replaces unsupported characters such as `/` with `-`. Prefer Docker-compatible release tags such as `v1.2.3` to avoid naming collisions. Tag deletion does not publish an image.
+Every pushed Git tag is eligible, including prerelease tags. `latest` follows the last successfully published build, including prereleases; it does not select the highest semantic version. Tag names are preserved when valid Docker tags; the workflow replaces unsupported characters such as `/` with `-` and rejects names that still do not meet Docker's tag format or 128-character limit. Prefer Docker-compatible release tags such as `v1.2.3` to avoid naming collisions. Tag deletion does not publish an image.
 
 The image namespace is derived from the lowercase GitHub repository name, so a fork publishes to its own GHCR package. Both workflows use the built-in `GITHUB_TOKEN`; no Docker Hub account or registry password secret is needed.
+
+## Publish an Existing Tag or Recover a Missed Run
+
+If a tag already exists but no image build ran, first ensure the latest workflows are pushed to `main`. Open **Actions → Publish Docker image → Run workflow**, leave the workflow branch set to `main`, enter the existing tag (for example, `2.0.0`), and start the run.
+
+The manual workflow uses the workflow definition from `main` and checks out exactly `refs/tags/2.0.0`. It publishes `:2.0.0` and `:latest` with revision metadata from the checked-out tag, then triggers the usual cleanup after success. The tag itself does not need to contain the manual trigger. A missing tag fails at checkout; a branch with the same name is not used as a fallback.
+
+Refresh the Actions page if newly added workflows are not yet listed. Pushing an unchanged tag again returns `Everything up-to-date` and does not create another push event. Use the manual trigger to recover an existing release without moving or deleting its tag.
 
 ## Pull and Run
 
@@ -62,3 +73,4 @@ If cleanup fails with a permission error, check that package access before rerun
 - [GHCR cleanup action and retention rules](https://github.com/dataaxiom/ghcr-cleanup-action)
 - [GitHub package deletion permissions](https://docs.github.com/en/packages/learn-github-packages/deleting-and-restoring-a-package)
 - [GitHub workflow concurrency queues](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency)
+- [GitHub workflow triggers and tag-push limits](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows)
