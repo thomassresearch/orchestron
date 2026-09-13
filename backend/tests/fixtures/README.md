@@ -23,5 +23,6 @@ as part of a test run. Update fixtures deliberately alongside their tests.
 
 Frontend tests use `frontend/vitest.config.ts` to resolve the production
 drumkit-template import to this fixture. Its load guard rejects other module
-dependencies on the developer examples. Production Vite builds retain their
-existing template source.
+dependencies on the developer examples. Production Vite builds use
+`examples/instruments/template/analog_drumkit.patch.json`; tests do not need
+that file or the `examples/` directory to exist.

@@ -4,7 +4,7 @@ COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
 COPY frontend/ ./
 # Keep the repository-relative JSON imports available to Vite and TypeScript.
-COPY examples/analog_drumkit.patch.json ../examples/
+COPY examples/instruments/template/analog_drumkit.patch.json ../examples/instruments/template/
 COPY backend/app/data/opcodes.json ../backend/app/data/
 RUN npm run build
 

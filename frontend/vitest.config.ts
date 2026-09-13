@@ -7,10 +7,10 @@ const examplesDirectory = fileURLToPath(new URL("../examples/", import.meta.url)
 
 export default defineConfig((environment) => mergeConfig(viteConfig(environment), {
   resolve: {
-    // The production template loader imports the developer's example patch.
+    // The production template loader imports the checked-in template patch.
     // Tests always resolve that import to their own fixed snapshot instead.
     alias: [{
-      find: /^(?:\.\.\/)+examples\/analog_drumkit\.patch\.json$/,
+      find: /^(?:\.\.\/)+examples\/instruments\/template\/analog_drumkit\.patch\.json$/,
       replacement: fileURLToPath(new URL("analog_drumkit.patch.json", patchFixtures))
     }]
   },
