@@ -31,6 +31,8 @@ If a tag already exists but no image build ran, first ensure the latest workflow
 
 The manual workflow uses the workflow definition from `main` and checks out exactly `refs/tags/2.0.0`. It publishes `:2.0.0` and `:latest` with revision metadata from the checked-out tag, then triggers the usual cleanup after success. The tag itself does not need to contain the manual trigger. A missing tag fails at checkout; a branch with the same name is not used as a fallback.
 
+Tag and commit checkouts normally have a detached HEAD. Metadata uses workflow context with an explicit revision label from the checkout action's `commit` output, so it does not need to infer a branch name. After pushing a workflow fix to `main`, start a new manual run on `main` for the existing tag; rerunning an old failed job reuses its original workflow definition.
+
 Refresh the Actions page if newly added workflows are not yet listed. Pushing an unchanged tag again returns `Everything up-to-date` and does not create another push event. Use the manual trigger to recover an existing release without moving or deleting its tag.
 
 ## Pull and Run

@@ -46,6 +46,7 @@ jobs:
           echo "tag=$image_tag" >> "$GITHUB_OUTPUT"
 
       - name: Check out the tagged source
+        id: source
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           # Automatic runs build the push's exact commit. Manual runs resolve
@@ -57,13 +58,16 @@ jobs:
         id: metadata
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6
         with:
-          context: git
+          # Detached checkouts may have no local tag ref for Git context to
+          # infer. Supply the checked-out source revision explicitly.
+          context: workflow
           images: ${{ steps.image.outputs.name }}
           tags: |
             type=raw,value=${{ steps.image.outputs.tag }},priority=600
             type=raw,value=latest
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ steps.source.outputs.commit }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@1f40c72289eff860ee54a304f1438e3cff362e0a # v4
