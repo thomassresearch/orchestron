@@ -4,6 +4,14 @@
 
 This chapter covers the `Perform` page (labeled `Perform` / `Performance` depending language), where you build a playable multi-instrument setup and perform it live.
 
+## Collapsible Panels
+
+Click a panel title or focus it and press Enter or Space to collapse or expand its contents. Header actions, status and help remain available. Panels collapse independently, start expanded and remember your choices across view switches until browser reload. Adding a device opens its group. Collapsing preserves edits and does not stop playback. The shared tempo stays outside the sequencer groups; Mixer keeps its existing behavior.
+
+Instrument Rack, Melodic Sequencers, Drummer Sequencers, Controller Sequencers, Arpeggiators, Piano Rolls (keyboards), MIDI Controllers, and Multitrack Arranger each have their own toggle. Empty drummer/controller groups keep their Add buttons. The arranger appears when at least one melodic, drummer, or controller sequencer exists. These layout choices are not saved into performances or exports.
+
+The collapsed rack shows channel and patch name in one horizontally scrolling row. See [Compact Rack](instrument_rack_and_engine_transport.md#compact-rack) for continuous instruments, long names, and keyboard scrolling.
+
 ## What You Can Do Here
 
 - Assemble an instrument rack from saved patches and assign MIDI channels

@@ -1,3 +1,4 @@
+import { CollapsiblePanel } from "./CollapsiblePanel";
 import { PerformanceControllerRack, PerformanceControllerSyncStatus } from "./sequencer/PerformanceControllerRack";
 import { PerformMixer } from "./PerformMixer";
 import { audioCopy } from "../lib/audioCopy";
@@ -296,6 +297,8 @@ function scaleLabelFor(
 
 
 export function SequencerPage({
+  collapsedPanels,
+  onPanelCollapsedChange,
   data,
   instrumentActions,
   performanceActions,
@@ -623,6 +626,7 @@ export function SequencerPage({
     () => ({
       title: ui.multitrackArrangerTitle,
       deviceSummary: ui.multitrackArrangerDeviceSummary,
+      zoomFit: ui.zoomFit,
       zoomOut: ui.zoomOut,
       zoomIn: ui.zoomIn,
       instrumentColumn: ui.multitrackArrangerInstrumentColumn,
@@ -920,17 +924,66 @@ export function SequencerPage({
         onChange={handleConfigFileChange}
       />
 
-      <div className="relative rounded-xl border border-cyan-800/45 bg-slate-950/85 p-3">
-        {onHelpRequest ? (
-          <HelpIconButton guiLanguage={guiLanguage} onClick={() => onHelpRequest("sequencer_instrument_rack")} />
-        ) : null}
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="text-[11px] uppercase tracking-[0.18em] text-cyan-200">{ui.instrumentRack}</div>
-          <div className="ml-auto mr-10 rounded-full border border-slate-700 bg-slate-950 px-3 py-1 font-mono text-xs text-slate-300">
-            {ui.state}: {localizedSessionState}
+      <CollapsiblePanel
+        title={ui.instrumentRack}
+        collapsed={collapsedPanels.rack}
+        onCollapsedChange={(collapsed) => onPanelCollapsedChange("rack", collapsed)}
+        className="rounded-xl border border-cyan-800/45 bg-slate-950/85 p-3"
+        titleClassName="text-cyan-200"
+        help={onHelpRequest ? <HelpIconButton guiLanguage={guiLanguage} onClick={() => onHelpRequest("sequencer_instrument_rack")} /> : null}
+        actions={<>
+          <span className={transportStateClass}>{ui.state}: {localizedSessionState}</span>
+          <button
+            type="button"
+            onClick={() => { onPanelCollapsedChange("rack", false); onAddInstrument(); }}
+            disabled={instrumentsRunning}
+            className={`${rackAssignmentButtonClass} border-accent/60 bg-accent/15 text-accent hover:bg-accent/25`}
+          >
+            {ui.addInstrument}
+          </button>
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={onStartInstruments}
+              disabled={instrumentsRunning}
+              className={transportStartButtonClass}
+            >
+              {ui.startInstruments}
+            </button>
+            <button
+              type="button"
+              onClick={onStopInstruments}
+              disabled={!instrumentsRunning}
+              className={transportStopButtonClass}
+            >
+              {ui.stopInstruments}
+            </button>
           </div>
-        </div>
-
+        </>}
+        collapsedSummary={instrumentBindings.length === 0 ? (
+          <div className="text-xs text-slate-400">{ui.noInstrumentHint}</div>
+        ) : (
+          <div
+            tabIndex={0}
+            role="region"
+            aria-label={ui.instrumentRack}
+            className="flex min-w-0 flex-nowrap gap-2 overflow-x-auto whitespace-nowrap pb-1 text-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+          >
+            {[...rackInstrumentRows.standard, ...rackInstrumentRows.alwaysOn].map(({ binding }) => {
+              const patch = patchById.get(binding.patchId);
+              const name = patch?.name ?? `${audioCopy(guiLanguage)("missing")}: ${binding.patchId}`;
+              const channel = patch?.always_on ? audioCopy(guiLanguage)("continuous") : `${ui.channel} ${binding.midiChannel}`;
+              return (
+                <span key={binding.id} title={`${channel} · ${name}`} className="inline-flex shrink-0 items-center gap-1.5 rounded border border-slate-700 bg-slate-900 px-2 py-1">
+                  <span className="text-cyan-200">{channel}</span>
+                  <span aria-hidden="true" className="text-slate-500">·</span>
+                  <span className="max-w-56 truncate text-slate-200">{name}</span>
+                </span>
+              );
+            })}
+          </div>
+        )}
+      >
         <PerformanceControllerSyncStatus language={guiLanguage} />
         <div className="mt-3 grid grid-cols-1 gap-2 lg:grid-cols-5">
           <label className="flex flex-col gap-1 lg:col-span-2">
@@ -992,14 +1045,7 @@ export function SequencerPage({
           >
             {ui.clonePerformance}
           </button>
-          <button
-            type="button"
-            onClick={onAddInstrument}
-            disabled={instrumentsRunning}
-            className={`${rackAssignmentButtonClass} border-accent/60 bg-accent/15 text-accent hover:bg-accent/25`}
-          >
-            {ui.addInstrument}
-          </button>
+
           <button
             type="button"
             onClick={onSavePerformance}
@@ -1067,29 +1113,7 @@ export function SequencerPage({
           )}
         </div>
 
-        <div className="mt-3 rounded-lg border border-cyan-900/55 bg-slate-900/65 p-2.5">
-          <div className="mb-2 text-xs uppercase tracking-[0.2em] text-slate-400">{ui.rackTransport}</div>
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={onStartInstruments}
-              disabled={instrumentsRunning}
-              className={transportStartButtonClass}
-            >
-              {ui.startInstruments}
-            </button>
-            <button
-              type="button"
-              onClick={onStopInstruments}
-              disabled={!instrumentsRunning}
-              className={transportStopButtonClass}
-            >
-              {ui.stopInstruments}
-            </button>
-            <span className={transportStateClass}>{instrumentsRunning ? ui.running : ui.stopped}</span>
-          </div>
-        </div>
-      </div>
+      </CollapsiblePanel>
 
       <PerformMixer onStop={onStopInstruments} />
 
@@ -1099,36 +1123,7 @@ export function SequencerPage({
         </div>
       )}
 
-      <div className="relative mt-4 rounded-xl border border-sky-800/45 bg-slate-950/85 p-3">
-        {onHelpRequest ? (
-          <HelpIconButton guiLanguage={guiLanguage} onClick={() => onHelpRequest("sequencer_tracks")} />
-        ) : null}
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <div className="text-[11px] uppercase tracking-[0.18em] text-sky-200">{ui.sequencers}</div>
-          <button
-            type="button"
-            onClick={onAddSequencerTrack}
-            className="rounded-md border border-accent/60 bg-accent/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-accent transition hover:bg-accent/25"
-          >
-            {ui.addSequencer}
-          </button>
-          <button
-            type="button"
-            onClick={onAddDrummerSequencerTrack}
-            className="rounded-md border border-accent/60 bg-accent/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-accent transition hover:bg-accent/25"
-          >
-            {ui.addDrummerSequencer}
-          </button>
-          <button
-            type="button"
-            onClick={onAddControllerSequencer}
-            className="rounded-md border border-accent/60 bg-accent/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-accent transition hover:bg-accent/25"
-          >
-            {ui.addControllerSequencer}
-          </button>
-        </div>
-
-        <div className="mb-3 rounded-lg border border-sky-900/55 bg-slate-900/65 p-2.5">
+        <div className="mt-4 rounded-lg border border-sky-900/55 bg-slate-900/65 p-2.5">
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <div className="text-xs uppercase tracking-[0.2em] text-slate-400">{ui.globalSequencerClock}</div>
             <span className={transportStateClass}>{sequencer.isPlaying ? ui.running : ui.stopped}</span>
@@ -1149,6 +1144,21 @@ export function SequencerPage({
           </div>
         </div>
 
+      <CollapsiblePanel
+        title={ui.sequencers}
+        collapsed={collapsedPanels.melodic}
+        onCollapsedChange={(collapsed) => onPanelCollapsedChange("melodic", collapsed)}
+        className="mt-4 rounded-xl border border-sky-800/45 bg-slate-950/85 p-3"
+        titleClassName="text-sky-200"
+        help={onHelpRequest ? <HelpIconButton guiLanguage={guiLanguage} onClick={() => onHelpRequest("sequencer_tracks")} /> : null}
+        actions={<button
+            type="button"
+            onClick={() => { onPanelCollapsedChange("melodic", false); onAddSequencerTrack(); }}
+            className="rounded-md border border-accent/60 bg-accent/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-accent transition hover:bg-accent/25"
+          >
+            {ui.addSequencer}
+          </button>}
+      >
         <div className="space-y-3">
           {sequencer.tracks.map((track, trackIndex) => {
             const noteOptions = buildSequencerNoteOptions(track.scaleRoot, track.mode);
@@ -1919,9 +1929,24 @@ export function SequencerPage({
             );
           })}
 
-          {sequencer.drummerTracks.length > 0 ? (
-            <div className="rounded-xl border border-rose-800/45 bg-slate-900/45 p-2.5">
-              <div className="mb-2 text-xs uppercase tracking-[0.2em] text-rose-200">{ui.drummerSequencers}</div>
+        </div>
+      </CollapsiblePanel>
+
+      <CollapsiblePanel
+        title={ui.drummerSequencers}
+        collapsed={collapsedPanels.drummer}
+        onCollapsedChange={(collapsed) => onPanelCollapsedChange("drummer", collapsed)}
+        className="mt-4 rounded-xl border border-rose-800/45 bg-slate-950/85 p-3"
+        titleClassName="text-rose-200"
+        help={onHelpRequest ? <HelpIconButton guiLanguage={guiLanguage} onClick={() => onHelpRequest("sequencer_drummer_sequencer")} /> : null}
+        actions={<button
+            type="button"
+            onClick={() => { onPanelCollapsedChange("drummer", false); onAddDrummerSequencerTrack(); }}
+            className="rounded-md border border-accent/60 bg-accent/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-accent transition hover:bg-accent/25"
+          >
+            {ui.addDrummerSequencer}
+          </button>}
+      >
               <div className="space-y-3">
                 {sequencer.drummerTracks.map((track, trackIndex) => {
                   const stepIndices = Array.from({ length: track.stepCount }, (_, index) => index);
@@ -2342,12 +2367,23 @@ export function SequencerPage({
                   );
                 })}
               </div>
-            </div>
-          ) : null}
+      </CollapsiblePanel>
 
-          {sequencer.controllerSequencers.length > 0 ? (
-            <div className="rounded-xl border border-teal-800/45 bg-slate-900/45 p-2.5">
-              <div className="mb-2 text-xs uppercase tracking-[0.2em] text-teal-200">{ui.controllerSequencers}</div>
+      <CollapsiblePanel
+        title={ui.controllerSequencers}
+        collapsed={collapsedPanels.controller}
+        onCollapsedChange={(collapsed) => onPanelCollapsedChange("controller", collapsed)}
+        className="mt-4 rounded-xl border border-teal-800/45 bg-slate-950/85 p-3"
+        titleClassName="text-teal-200"
+        help={onHelpRequest ? <HelpIconButton guiLanguage={guiLanguage} onClick={() => onHelpRequest("sequencer_controller_sequencer")} /> : null}
+        actions={<button
+            type="button"
+            onClick={() => { onPanelCollapsedChange("controller", false); onAddControllerSequencer(); }}
+            className="rounded-md border border-accent/60 bg-accent/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-accent transition hover:bg-accent/25"
+          >
+            {ui.addControllerSequencer}
+          </button>}
+      >
               <div className="space-y-3">
                 {sequencer.controllerSequencers.map((controllerSequencer, controllerSequencerIndex) => {
                   const controllerSequencerIsRunning = sequencer.isPlaying && controllerSequencer.enabled;
@@ -2647,24 +2683,24 @@ export function SequencerPage({
                   );
                 })}
               </div>
-            </div>
-          ) : null}
-        </div>
-      </div>
+      </CollapsiblePanel>
 
-      <div className="relative mt-4 rounded-xl border border-cyan-800/45 bg-slate-950/85 p-3">
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <div className="text-[11px] uppercase tracking-[0.18em] text-cyan-200">{ui.arpeggiators}</div>
-          <button
+      <CollapsiblePanel
+        title={ui.arpeggiators}
+        collapsed={collapsedPanels.arpeggiators}
+        onCollapsedChange={(collapsed) => onPanelCollapsedChange("arpeggiators", collapsed)}
+        className="mt-4 rounded-xl border border-cyan-800/45 bg-slate-950/85 p-3"
+        titleClassName="text-cyan-200"
+        help={onHelpRequest ? <HelpIconButton guiLanguage={guiLanguage} onClick={() => onHelpRequest("sequencer_arpeggiator")} /> : null}
+        actions={<button
             type="button"
-            onClick={onAddArpeggiator}
+            onClick={() => { onPanelCollapsedChange("arpeggiators", false); onAddArpeggiator(); }}
             disabled={sequencer.arpeggiators.length >= 8}
             className="rounded-md border border-accent/60 bg-accent/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-accent transition hover:bg-accent/25 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {ui.addArpeggiator}
-          </button>
-        </div>
-
+          </button>}
+      >
         <div className="grid gap-3 xl:grid-cols-2">
           {sequencer.arpeggiators.map((arpeggiator, arpeggiatorIndex) => {
             const presetDraft = arpeggiatorPresetDrafts[arpeggiator.id] ?? "";
@@ -3059,23 +3095,23 @@ export function SequencerPage({
             );
           })}
         </div>
-      </div>
+      </CollapsiblePanel>
 
-      <div className="relative mt-4 rounded-xl border border-emerald-800/45 bg-slate-950/85 p-3">
-        {onHelpRequest ? (
-          <HelpIconButton guiLanguage={guiLanguage} onClick={() => onHelpRequest("sequencer_piano_rolls")} />
-        ) : null}
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <div className="text-[11px] uppercase tracking-[0.18em] text-emerald-200">{ui.pianoRolls}</div>
-          <button
+      <CollapsiblePanel
+        title={ui.pianoRolls}
+        collapsed={collapsedPanels.piano}
+        onCollapsedChange={(collapsed) => onPanelCollapsedChange("piano", collapsed)}
+        className="mt-4 rounded-xl border border-emerald-800/45 bg-slate-950/85 p-3"
+        titleClassName="text-emerald-200"
+        help={onHelpRequest ? <HelpIconButton guiLanguage={guiLanguage} onClick={() => onHelpRequest("sequencer_piano_rolls")} /> : null}
+        actions={<button
             type="button"
-            onClick={onAddPianoRoll}
+            onClick={() => { onPanelCollapsedChange("piano", false); onAddPianoRoll(); }}
             className="rounded-md border border-accent/60 bg-accent/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-accent transition hover:bg-accent/25"
           >
             {ui.addPianoRoll}
-          </button>
-        </div>
-
+          </button>}
+      >
         <div className="space-y-3">
           {sequencer.pianoRolls.map((roll, rollIndex) => {
             const followSummary = instrumentsRunning && roll.enabled ? runningSequencerSummary : null;
@@ -3206,26 +3242,24 @@ export function SequencerPage({
             );
           })}
         </div>
-      </div>
+      </CollapsiblePanel>
 
-      <div className="relative mt-4 rounded-xl border border-violet-800/45 bg-slate-950/85 p-3">
-        {onHelpRequest ? (
-          <HelpIconButton guiLanguage={guiLanguage} onClick={() => onHelpRequest("sequencer_midi_controllers")} />
-        ) : null}
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <div className="text-[11px] uppercase tracking-[0.18em] text-violet-200">
-            {ui.midiControllers(sequencer.midiControllers.length)}
-          </div>
-          <button
+      <CollapsiblePanel
+        title={ui.midiControllers(sequencer.midiControllers.length)}
+        collapsed={collapsedPanels.midi}
+        onCollapsedChange={(collapsed) => onPanelCollapsedChange("midi", collapsed)}
+        className="mt-4 rounded-xl border border-violet-800/45 bg-slate-950/85 p-3"
+        titleClassName="text-violet-200"
+        help={onHelpRequest ? <HelpIconButton guiLanguage={guiLanguage} onClick={() => onHelpRequest("sequencer_midi_controllers")} /> : null}
+        actions={<button
             type="button"
-            onClick={onAddMidiController}
+            onClick={() => { onPanelCollapsedChange("midi", false); onAddMidiController(); }}
             disabled={sequencer.midiControllers.length >= 6}
             className="rounded-md border border-accent/60 bg-accent/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-accent transition hover:bg-accent/25 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {ui.addController}
-          </button>
-        </div>
-
+          </button>}
+      >
         {sequencer.midiControllers.length === 0 ? (
           <div className="rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-xs text-slate-400">
             {ui.noControllersHint}
@@ -3289,10 +3323,12 @@ export function SequencerPage({
             ))}
           </div>
         )}
-      </div>
+      </CollapsiblePanel>
 
       {sequencer.tracks.length + sequencer.drummerTracks.length + sequencer.controllerSequencers.length > 0 ? (
         <MultitrackArranger
+          collapsed={collapsedPanels.arranger}
+          onCollapsedChange={(collapsed) => onPanelCollapsedChange("arranger", collapsed)}
           guiLanguage={guiLanguage}
           copy={arrangerCopy}
           sequencer={sequencer}

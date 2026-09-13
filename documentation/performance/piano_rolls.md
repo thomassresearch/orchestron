@@ -4,6 +4,10 @@
 
 Piano Rolls provide manual performance input with scale-aware keyboard highlighting.
 
+## Collapse the Panel
+
+Collapse the Piano Rolls header to hide the keyboards and their settings. Add and help remain available; adding a keyboard expands the group. Panels start expanded and remember your choice across view switches until browser reload. Collapsing does not stop playback or discard edits.
+
 ## Purpose
 
 Piano Rolls are for live/manual playing on an on-screen keyboard while the instrument engine is running.

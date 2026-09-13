@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
+import { createReteViewportScrollbars } from "./reteViewportScrollbars";
 
 import { ClassicPreset, NodeEditor } from "rete";
 import { AreaExtensions, AreaPlugin } from "rete-area-plugin";
@@ -69,6 +70,8 @@ type ReteEditorCopy = {
   selectElementsToDelete: string;
   zoomOut: string;
   zoomIn: string;
+  scrollGraphHorizontally: string;
+  scrollGraphVertically: string;
   fitFullGraphInView: string;
   fit: string;
   inputCombineFormula: string;
@@ -96,6 +99,8 @@ type ReteEditorCopy = {
 
 const RETE_EDITOR_COPY: Record<GuiLanguage, ReteEditorCopy> = {
   english: {
+    scrollGraphHorizontally: "Scroll graph horizontally",
+    scrollGraphVertically: "Scroll graph vertically",
     showDocumentation: "Show documentation",
     optionalInput: "Optional input",
     optionalInputWithFormula: "Optional input. Double-click to edit combine formula.",
@@ -129,6 +134,8 @@ const RETE_EDITOR_COPY: Record<GuiLanguage, ReteEditorCopy> = {
     portIdPrefix: "Port id"
   },
   german: {
+    scrollGraphHorizontally: "Graph horizontal scrollen",
+    scrollGraphVertically: "Graph vertikal scrollen",
     showDocumentation: "Dokumentation anzeigen",
     optionalInput: "Optionaler Eingang",
     optionalInputWithFormula: "Optionaler Eingang. Doppelklick zum Bearbeiten der Kombinationsformel.",
@@ -163,6 +170,8 @@ const RETE_EDITOR_COPY: Record<GuiLanguage, ReteEditorCopy> = {
     portIdPrefix: "Port-ID"
   },
   french: {
+    scrollGraphHorizontally: "Faire défiler le graphe horizontalement",
+    scrollGraphVertically: "Faire défiler le graphe verticalement",
     showDocumentation: "Afficher la documentation",
     optionalInput: "Entree optionnelle",
     optionalInputWithFormula: "Entree optionnelle. Double-clic pour editer la formule de combinaison.",
@@ -197,6 +206,8 @@ const RETE_EDITOR_COPY: Record<GuiLanguage, ReteEditorCopy> = {
     portIdPrefix: "ID port"
   },
   spanish: {
+    scrollGraphHorizontally: "Desplazar el grafo horizontalmente",
+    scrollGraphVertically: "Desplazar el grafo verticalmente",
     showDocumentation: "Mostrar documentacion",
     optionalInput: "Entrada opcional",
     optionalInputWithFormula: "Entrada opcional. Doble clic para editar la formula de combinacion.",
@@ -513,6 +524,8 @@ export function ReteNodeEditor({
   const resolvedOpcodeHelpLabel = opcodeHelpLabel ?? copy.showDocumentation;
   const resolvedDeleteSelectionLabel = deleteSelectionLabel ?? copy.deleteSelectedElements;
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const horizontalScrollbarRef = useRef<HTMLDivElement | null>(null);
+  const verticalScrollbarRef = useRef<HTMLDivElement | null>(null);
   const initializingRef = useRef(false);
   const graphRef = useRef(graph);
   const presentationRef = useRef({ nodeTitles, renderNodeActions, regions, readOnlyInputs, readOnlyInputLabel, selectionMapping, branchActions });
@@ -1225,6 +1238,7 @@ export function ReteNodeEditor({
       area.use(connection);
       area.use(render);
 
+      let scrollbars: ReturnType<typeof createReteViewportScrollbars> | undefined;
       AreaExtensions.simpleNodesOrder(area);
       // Rete listens for pointer-up on window. Toolbar clicks must not clear a
       // selection restored after collapse/reload (its selector starts unpicked).
@@ -1261,6 +1275,7 @@ export function ReteNodeEditor({
               view.element.removeEventListener("pointerdown", handler);
             }
           }
+          scrollbars?.destroy();
           branchController?.destroy();
           accumulating.destroy();
           area.destroy();
@@ -1664,6 +1679,12 @@ export function ReteNodeEditor({
       initializingRef.current = false;
       await branchController.refreshNow();
       if (!savedViewport && !cancelled) { await AreaExtensions.zoomAt(area, editor.getNodes()); syncZoomPercent(); }
+      // Start navigation after the initial layout and saved viewport are restored.
+      if (!cancelled) {
+        scrollbars = createReteViewportScrollbars(
+          area.area, containerRef.current!, horizontalScrollbarRef.current!, verticalScrollbarRef.current!
+        );
+      }
     };
 
     void setup();
@@ -1732,7 +1753,7 @@ export function ReteNodeEditor({
   return (
     <>
       <div
-        className={`relative h-full w-full rounded-2xl border bg-slate-950/75 ${
+        className={`relative grid h-full min-h-0 w-full min-w-0 grid-cols-[minmax(0,1fr)_14px] grid-rows-[minmax(0,1fr)_14px] overflow-hidden rounded-2xl border bg-slate-950/75 ${
           isOpcodeDragOver ? "border-accent/80 ring-2 ring-accent/50" : "border-slate-700/70"
         }`}
         onDragOver={onOpcodeDragOver}
@@ -1742,6 +1763,7 @@ export function ReteNodeEditor({
           setIsOpcodeDragOver(false); branchControllerRef.current?.clearHover();
         }}
       >
+        <div className="relative min-h-0 min-w-0">
         <div ref={containerRef} className="h-full w-full" />
         {dropMessage && <div role="status" aria-live="polite" className="pointer-events-none absolute bottom-12 left-3 z-20 max-h-32 max-w-[80%] overflow-auto whitespace-pre-wrap rounded border border-purple-600 bg-slate-950/95 p-2 text-xs text-purple-100">{dropMessage}</div>}
         {Object.keys(graph.control_flow ?? {}).length > 0 && <div className="pointer-events-none absolute bottom-2 left-3 max-w-[70%] text-[10px] text-slate-400">{flowCopy("dragHint")}</div>}
@@ -1809,6 +1831,16 @@ export function ReteNodeEditor({
             </button>
           </div>
         </div>
+        </div>
+        <div ref={verticalScrollbarRef} tabIndex={0} role="region" aria-label={copy.scrollGraphVertically}
+          className="graph-scrollbar min-h-0 overflow-x-hidden overflow-y-scroll border-l border-slate-700 bg-slate-900/80">
+          <div className="w-px" />
+        </div>
+        <div ref={horizontalScrollbarRef} tabIndex={0} role="region" aria-label={copy.scrollGraphHorizontally}
+          className="graph-scrollbar min-w-0 overflow-x-scroll overflow-y-hidden border-t border-slate-700 bg-slate-900/80">
+          <div className="h-px" />
+        </div>
+        <div className="border-l border-t border-slate-700 bg-slate-900/80" />
       </div>
 
       {performanceControllerEditorNode && <PerformanceControllerEditor key={performanceControllerEditorNode.id} node={performanceControllerEditorNode} language={guiLanguage}

@@ -75,6 +75,7 @@ export type SequencerUiCopy = {
   multitrackArrangerContextMenuNoSuperGroups: string;
   multitrackArrangerContextMenuPasteDisabled: string;
   multitrackArrangerContextMenuInsertHint: string;
+  zoomFit: string;
   zoomOut: string;
   zoomIn: string;
   sequencers: string;
@@ -290,6 +291,7 @@ export const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     multitrackArrangerContextMenuNoSuperGroups: "No super-groups available",
     multitrackArrangerContextMenuPasteDisabled: "Copy pads/groups/super-groups first",
     multitrackArrangerContextMenuInsertHint: "Insert into a pause gap at the clicked beat, or append at the end.",
+    zoomFit: "Fit",
     zoomOut: "Zoom -",
     zoomIn: "Zoom +",
     sequencers: "Melodic Sequencers",
@@ -477,6 +479,7 @@ export const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     multitrackArrangerContextMenuPasteDisabled: "Zuerst Pads/Gruppen/Super-Gruppen kopieren",
     multitrackArrangerContextMenuInsertHint:
       "In eine passende Pause an der angeklickten Beat-Position einfuegen oder am Ende anhaengen.",
+    zoomFit: "Einpassen",
     zoomOut: "Zoom -",
     zoomIn: "Zoom +",
     sequencers: "Melodische Sequencer",
@@ -664,6 +667,7 @@ export const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     multitrackArrangerContextMenuPasteDisabled: "Copier d'abord des pads/groupes/super-groupes",
     multitrackArrangerContextMenuInsertHint:
       "Inserer dans une pause assez grande au temps clique, sinon a la fin.",
+    zoomFit: "Ajuster",
     zoomOut: "Zoom -",
     zoomIn: "Zoom +",
     sequencers: "Sequenceurs melodiques",
@@ -851,6 +855,7 @@ export const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     multitrackArrangerContextMenuPasteDisabled: "Primero copia pads/grupos/supergrupos",
     multitrackArrangerContextMenuInsertHint:
       "Inserta en una pausa suficientemente grande en la posicion marcada o al final.",
+    zoomFit: "Ajustar",
     zoomOut: "Zoom -",
     zoomIn: "Zoom +",
     sequencers: "Secuenciadores melodicos",

@@ -1,3 +1,4 @@
+import { collapsiblePanelHelp } from "./helpDocumentationPanels";
 import { performanceControllerHelp } from "./helpDocumentationPerformanceControllers";
 import { audioRoutingHelp } from "./helpDocumentationAudio";
 import type { HelpDocumentAppendixSet, HelpDocumentSet, SequencerHelpDocId } from "./helpDocumentationTypes";
@@ -228,6 +229,7 @@ Arrange melodic sequencers, drummer sequencers, and controller sequencers on one
 - Use the right-click menu to insert pads, existing groups, or existing super-groups into a matching pause gap or at the end.
 - Copy and paste selected pads, groups, and super-groups from the context menu to duplicate phrases.
 - Click a group or super-group token to open its nested editor and build longer phrases.
+- Click \`Fit\` to show the full length of the longest track without horizontal scrolling and return the view to the start.
 - Use the loop ruler and zoom controls to focus playback on a selected arranger range, down to a single beat.`
     },
     german: {
@@ -244,6 +246,7 @@ Ordnet melodische Sequencer, Drummer-Sequencer und Controller-Sequencer auf eine
 - Mit dem Rechtsklick-Menue Pads, vorhandene Gruppen oder vorhandene Super-Gruppen in eine passende Pause oder ans Ende einfuegen.
 - Ausgewaehlte Pads, Gruppen und Super-Gruppen per Kontextmenue kopieren und einfuegen, um Phrasen zu duplizieren.
 - Auf ein Gruppen- oder Super-Gruppen-Token klicken, um den verschachtelten Editor fuer laengere Phrasen zu oeffnen.
+- Mit \`Einpassen\` die gesamte Laenge der laengsten Spur ohne horizontales Scrollen anzeigen und die Ansicht an den Anfang setzen.
 - Mit Loop-Lineal und Zoom die Wiedergabe auf einen ausgewaehlten Arranger-Bereich bis hin zu einem einzelnen Beat fokussieren.`
     },
     french: {
@@ -260,6 +263,7 @@ Organise les sequenceurs melodiques, les sequenceurs batterie et les sequenceurs
 - Utiliser le menu contextuel pour inserer des pads, des groupes existants ou des super-groupes existants dans une pause adaptee ou a la fin.
 - Copier et coller des pads, groupes et super-groupes selectionnes depuis le menu contextuel pour dupliquer des phrases.
 - Cliquer sur un jeton de groupe ou de super-groupe pour ouvrir son editeur imbrique et construire des phrases plus longues.
+- Cliquer sur \`Ajuster\` pour afficher toute la longueur de la piste la plus longue sans defilement horizontal et revenir au debut.
 - Utiliser la regle de boucle et le zoom pour concentrer la lecture sur une plage choisie de l'arrangeur, jusqu'a un seul temps.`
     },
     spanish: {
@@ -276,6 +280,7 @@ Organiza secuenciadores melodicos, secuenciadores de bateria y secuenciadores de
 - Usa el menu contextual para insertar pads, grupos existentes o supergrupos existentes en una pausa adecuada o al final.
 - Copia y pega pads, grupos y supergrupos seleccionados desde el menu contextual para duplicar frases.
 - Haz clic en un token de grupo o supergrupo para abrir su editor anidado y construir frases mas largas.
+- Haz clic en \`Ajustar\` para mostrar toda la longitud de la pista mas larga sin desplazamiento horizontal y volver al inicio.
 - Usa la regla de bucle y el zoom para centrar la reproduccion en un rango concreto del arreglador, incluso de un solo pulso.`
     }
   },
@@ -1011,4 +1016,11 @@ for (const language of ["english", "german", "french", "spanish"] as const) {
 
 for (const language of ["english", "german", "french", "spanish"] as const) {
   sequencerHelpAppendices.sequencer_instrument_rack![language] += "\n\n" + performanceControllerHelp[language];
+}
+
+for (const language of ["english", "german", "french", "spanish"] as const) {
+  for (const id of ["sequencer_instrument_rack", "sequencer_tracks", "sequencer_drummer_sequencer", "sequencer_controller_sequencer", "sequencer_arpeggiator", "sequencer_piano_rolls", "sequencer_midi_controllers", "sequencer_multitrack_arranger"] as const) {
+    sequencerHelpDocuments[id][language].markdown += "\n\n" + collapsiblePanelHelp[language].perform;
+  }
+  sequencerHelpDocuments.sequencer_instrument_rack[language].markdown += "\n\n" + collapsiblePanelHelp[language].rack;
 }

@@ -26,6 +26,8 @@ The graph editor supports pan/zoom navigation and includes a zoom HUD in the low
 
 If the graph is empty, `Fit` resets toward a centered default view.
 
+Horizontal and vertical scrollbars along the canvas edges let you reach every part of a large patch, including expanded If/Switch case frames. They remain available when **Patch controls** is collapsed and adjust when Runtime or the browser window changes the canvas size. Drag a scrollbar, or focus it with **Tab** and use the arrow keys for that direction. Scrolling moves the view without moving nodes or clearing selection. The scrollbars stay synchronized with background panning, zoom, and `Fit`.
+
 ## Node Appearance and Visual Cues
 
 ### Category Coloring

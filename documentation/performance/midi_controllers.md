@@ -4,6 +4,10 @@
 
 The MIDI Controllers panel provides manual CC control lanes with interactive knobs.
 
+## Collapse the Panel
+
+Collapse the MIDI Controllers header to hide the knobs and their settings. The count, Add button and help remain available; adding a controller expands the group. Panels start expanded and remember your choice across view switches until browser reload. Collapsing does not stop playback or discard edits.
+
 ## Overview
 
 This panel is for manual MIDI Control Change performance (hands-on CC control), separate from controller sequencer automation.

@@ -4,6 +4,12 @@
 
 The Instrument Rack is the top section of the Perform page and controls the live session, instrument assignments, and performance metadata.
 
+## Compact Rack
+
+When collapsed, the rack keeps Add Instrument and Start/Stop available. A single horizontally scrolling row shows MIDI channel and patch name for every instance, including duplicates; continuous instruments show Continuous instead of a channel. Long names have full-name tooltips. Focus the row and use the arrow keys to scroll. Metadata, file actions and detailed controls return when expanded.
+
+The header contains rack status, Add Instrument, Start/Stop, and help in both views. Collapse choices survive view switches until browser reload.
+
 ## Performance Metadata and Library Actions
 
 The rack includes fields and actions for the current performance:

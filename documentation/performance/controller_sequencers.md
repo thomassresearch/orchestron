@@ -4,6 +4,10 @@
 
 Controller Sequencers automate MIDI CC values using editable curves.
 
+## Collapse the Panel
+
+The controller group collapses independently of melodic and drummer sequencers. Its header and Add button remain available even when empty; adding a controller sequencer expands the group. Panels start expanded and remember your choice across view switches until browser reload. Collapsing does not stop playback or discard edits.
+
 ## What A Controller Sequencer Does
 
 A controller sequencer sends its programmed CC curve to the backend sequencer, which samples that curve over a repeating length and emits timed MIDI Control Change messages during playback.

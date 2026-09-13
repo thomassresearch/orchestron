@@ -4,6 +4,10 @@
 
 The patch toolbar is the main control surface for patch metadata, patch library operations, and instrument-level file actions.
 
+## Collapse Patch Controls
+
+Use Patch controls to collapse metadata and load/save/compile/import/export actions. Instrument tabs, including add and close, stay visible. Controls start expanded; your choice survives view switches until browser reload.
+
 ## Patch Toolbar Layout
 
 The toolbar includes:

@@ -1,7 +1,7 @@
 {
   "format": "orchestron.performance",
   "version": 1,
-  "exported_at": "2026-09-12T16:27:11.813Z",
+  "exported_at": "2026-09-13T11:30:44.410Z",
   "performance": {
     "name": "Hardtrance Demo",
     "description": "146 BPM \u00b7 E minor \u00b7 256 bars / 7:01. Slow atmospheric buildup, rolling hard-trance bass, acid call, supersaw theme, breakdown at 3:30, main arrival at 5:16, final crest and fading outro. One-shot arrangement.",
@@ -656,8 +656,8 @@
       "mixer": {
         "strips": {
           "f5b3e51b-b01d-4673-9cd6-6e907fd988ad": {
-            "gainDb": -4.7,
-            "balance": 0,
+            "gainDb": -8.4,
+            "balance": 0.54,
             "mute": false,
             "solo": false
           },
@@ -675,37 +675,37 @@
           },
           "fe0b527f-4fbe-4dbc-8b20-adbd64ad47d9": {
             "gainDb": 0,
-            "balance": 0,
+            "balance": 0.43,
             "mute": false,
             "solo": false
           },
           "2f97744d-6693-44e7-b2e2-08d84a51da6d": {
             "gainDb": 0,
-            "balance": 0,
+            "balance": -0.38,
             "mute": false,
             "solo": false
           },
           "f7c7c61b-3518-4ab6-a326-8cdde9f87f98": {
             "gainDb": -8,
-            "balance": 0,
+            "balance": -0.36,
             "mute": false,
             "solo": false
           },
           "b300f7fe-3b85-42c0-bac2-8f8bdfa84a34": {
             "gainDb": -1.6,
-            "balance": 0,
+            "balance": 0.56,
             "mute": false,
             "solo": false
           },
           "05624905-6283-4138-ab16-f4161548d16b": {
             "gainDb": -4,
-            "balance": 0,
+            "balance": -0.53,
             "mute": false,
             "solo": false
           },
           "051948ac-ebf9-43ec-8bf3-df399a268365": {
             "gainDb": -2.5,
-            "balance": 0,
+            "balance": 0.29,
             "mute": false,
             "solo": false
           },
@@ -723,31 +723,31 @@
           },
           "22da2642-cc40-4022-b247-6744a601b60f": {
             "gainDb": 0,
-            "balance": 0,
+            "balance": 0.65,
             "mute": false,
             "solo": false
           },
           "d6227a7a-dd8a-4906-938d-59502461e0f1": {
             "gainDb": 0,
-            "balance": 0,
+            "balance": 0.3,
             "mute": false,
             "solo": false
           },
           "bad0b25f-7b9b-4854-8062-2c9298451447": {
             "gainDb": 0,
-            "balance": 0,
+            "balance": -0.38,
             "mute": false,
             "solo": false
           },
           "7b8e116d-cb38-4667-bde8-284e4e332aa8": {
             "gainDb": 0,
-            "balance": 0,
+            "balance": -0.15,
             "mute": false,
             "solo": false
           },
           "cc004901-9dcf-4375-982d-851284b67dd2": {
             "gainDb": 0,
-            "balance": 0,
+            "balance": 0.29,
             "mute": false,
             "solo": false
           },
@@ -759,13 +759,13 @@
           },
           "e5317d66-5579-44ee-80f0-fc4128c2ae0d": {
             "gainDb": 0,
-            "balance": 0,
+            "balance": -0.18,
             "mute": false,
             "solo": false
           },
           "10663596-a11f-4ab9-a028-b61242369c74": {
             "gainDb": 0,
-            "balance": 0,
+            "balance": 0.33,
             "mute": false,
             "solo": false
           }
@@ -915,10 +915,10 @@
           "id": "e6868d20-5ec4-444c-9d43-fe4115692097",
           "midiChannel": 0,
           "performanceControllerValues": {
-            "19053c50-a059-412c-9e4a-280db42edca9": 0.6,
+            "19053c50-a059-412c-9e4a-280db42edca9": 0.5652205903083086,
             "364ce489-892d-463e-a519-4e51effe56f7": 0.31384320804945265,
-            "9eabdf3c-9d00-4f37-bf9b-c819ceb1c2a3": 0.9981699374347565,
-            "a84d4364-5f74-4351-9e29-8e4c6d8a730f": 0.04161542039558621
+            "9eabdf3c-9d00-4f37-bf9b-c819ceb1c2a3": 0.8991701147725994,
+            "a84d4364-5f74-4351-9e29-8e4c6d8a730f": 0.04650354117692435
           },
           "patchName": "Compressor Effect"
         },
@@ -974,7 +974,7 @@
             "scaleRoot": "E",
             "scaleType": "minor",
             "mode": "aeolian",
-            "activePad": 4,
+            "activePad": 0,
             "queuedPad": null,
             "padLoopEnabled": true,
             "padLoopRepeat": false,
@@ -8026,7 +8026,7 @@
                 "mode": "aeolian"
               }
             ],
-            "enabled": false,
+            "enabled": true,
             "queuedEnabled": null
           },
           {
@@ -8047,7 +8047,7 @@
             "scaleRoot": "E",
             "scaleType": "minor",
             "mode": "aeolian",
-            "activePad": 4,
+            "activePad": 0,
             "queuedPad": null,
             "padLoopEnabled": true,
             "padLoopRepeat": false,
@@ -15099,7 +15099,7 @@
                 "mode": "aeolian"
               }
             ],
-            "enabled": false,
+            "enabled": true,
             "queuedEnabled": null
           },
           {
@@ -22172,7 +22172,7 @@
                 "mode": "aeolian"
               }
             ],
-            "enabled": false,
+            "enabled": true,
             "queuedEnabled": null
           },
           {
@@ -29245,7 +29245,7 @@
                 "mode": "aeolian"
               }
             ],
-            "enabled": false,
+            "enabled": true,
             "queuedEnabled": null
           },
           {
@@ -36318,7 +36318,7 @@
                 "mode": "aeolian"
               }
             ],
-            "enabled": false,
+            "enabled": true,
             "queuedEnabled": null
           },
           {
@@ -43391,7 +43391,7 @@
                 "mode": "aeolian"
               }
             ],
-            "enabled": false,
+            "enabled": true,
             "queuedEnabled": null
           },
           {
@@ -50464,7 +50464,7 @@
                 "mode": "aeolian"
               }
             ],
-            "enabled": false,
+            "enabled": true,
             "queuedEnabled": null
           },
           {
@@ -57537,7 +57537,7 @@
                 "mode": "aeolian"
               }
             ],
-            "enabled": false,
+            "enabled": true,
             "queuedEnabled": null
           }
         ],
@@ -57556,7 +57556,7 @@
             },
             "lengthBeats": 8,
             "stepCount": 32,
-            "activePad": 1,
+            "activePad": 4,
             "queuedPad": null,
             "padLoopEnabled": true,
             "padLoopRepeat": false,
@@ -66722,7 +66722,7 @@
                 ]
               }
             ],
-            "enabled": false,
+            "enabled": true,
             "queuedEnabled": null
           },
           {
@@ -71765,7 +71765,7 @@
                 ]
               }
             ],
-            "enabled": false,
+            "enabled": true,
             "queuedEnabled": null
           },
           {
@@ -71782,7 +71782,7 @@
             },
             "lengthBeats": 8,
             "stepCount": 32,
-            "activePad": 1,
+            "activePad": 0,
             "queuedPad": null,
             "padLoopEnabled": true,
             "padLoopRepeat": false,
@@ -76808,7 +76808,7 @@
                 ]
               }
             ],
-            "enabled": false,
+            "enabled": true,
             "queuedEnabled": null
           },
           {
@@ -81851,7 +81851,7 @@
                 ]
               }
             ],
-            "enabled": false,
+            "enabled": true,
             "queuedEnabled": null
           },
           {
@@ -124154,7 +124154,7 @@
                 ]
               }
             ],
-            "enabled": false,
+            "enabled": true,
             "queuedEnabled": null
           },
           {
@@ -158177,7 +158177,7 @@
                 ]
               }
             ],
-            "enabled": false,
+            "enabled": true,
             "queuedEnabled": null
           },
           {
@@ -171500,7 +171500,7 @@
                 ]
               }
             ],
-            "enabled": false,
+            "enabled": true,
             "queuedEnabled": null
           },
           {
@@ -180683,7 +180683,7 @@
                 ]
               }
             ],
-            "enabled": false,
+            "enabled": true,
             "queuedEnabled": null
           }
         ],

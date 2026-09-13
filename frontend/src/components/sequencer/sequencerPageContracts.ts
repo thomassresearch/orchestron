@@ -1,3 +1,4 @@
+import type { PanelCollapseState, PerformPanelId } from "../CollapsiblePanel";
 import type {
   ArrangerLoopSelection,
   ArpeggiatorState,
@@ -202,6 +203,8 @@ export interface SequencerPageArpeggiatorActions {
 }
 
 export interface SequencerPageProps {
+  collapsedPanels: PanelCollapseState;
+  onPanelCollapsedChange: (panel: PerformPanelId, collapsed: boolean) => void;
   data: SequencerPageData;
   instrumentActions: SequencerPageInstrumentActions;
   performanceActions: SequencerPagePerformanceActions;

@@ -65,7 +65,7 @@ export function AudioGraphEditor(props: ReteNodeEditorProps & { patchId?: string
         title: `${item.name}${block.kind === "switch" && item.value !== null ? ` · ${item.value}` : ""} · ${flowCopy(item.silence ? "silence" : "synthesis")}` });
     });
   }
-  return <div className="flex h-full flex-col gap-2">
+  return <div className="flex h-full min-h-0 min-w-0 flex-col gap-2">
     <StereoInterfacePanel key={`stereo:${props.viewportKey}`} graph={graph} guiLanguage={props.guiLanguage} patchId={props.patchId} onGraphChange={onGraphChange} onDeleteAudioGroup={props.onDeleteAudioGroup} />
     <ControlFlowPanel key={`flow:${props.viewportKey}`} graph={graph} language={props.guiLanguage} selectedNodeIds={selectedNodeIds}
       activeBlockId={activeBlockId} open={panelOpen} onOpenChange={setPanelOpen} onActiveBlock={setActiveBlockId} onChange={onGraphChange} />

@@ -4,6 +4,10 @@
 
 The **Multitrack Arranger** is a shared timeline view for pad-loop arrangements across all sequencer types. It appears on the Perform page when at least one melodic sequencer, drummer sequencer, or controller sequencer exists.
 
+## Collapse the Panel
+
+Collapse the Multitrack Arranger header to hide its timelines. Device summary, transport, zoom controls and help remain available. Reopening preserves zoom, horizontal scroll and editing state, and adapts the timeline to the current viewport. Panels start expanded and remember your choice across view switches until browser reload. Collapsing does not stop playback or discard edits.
+
 ## What It Arranges
 
 The arranger shows one row per track:
@@ -93,10 +97,17 @@ The editor also shows `Total steps` for the opened container, resolved from beat
 Arranger timeline controls:
 
 - cassette-style transport buttons
+- `Fit`, immediately left of `Zoom -`, adjusts zoom to show the full length of the longest track without horizontal scrolling and returns the view to the start
 - `Zoom -` / `Zoom +`
 - live zoom percent readout
 - horizontal scroll via mouse wheel (and `Shift + wheel` support)
 - bottom scrollbar for long timelines
+
+**DE:** `Einpassen` links neben `Zoom -` passt den Zoom an die gesamte Laenge der laengsten Spur an und setzt die Ansicht an den Anfang, ohne horizontales Scrollen.
+
+**FR :** `Ajuster`, a gauche de `Zoom -`, adapte le zoom a toute la longueur de la piste la plus longue et revient au debut, sans defilement horizontal.
+
+**ES:** `Ajustar`, a la izquierda de `Zoom -`, adapta el zoom a toda la longitud de la pista mas larga y vuelve al inicio, sin desplazamiento horizontal.
 
 ## Loop Range Selection
 

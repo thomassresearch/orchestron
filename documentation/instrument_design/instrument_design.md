@@ -39,7 +39,7 @@ This chapter covers the complete **Instrument Design** workflow on the `Instrume
 ## Important Behavior
 
 - The compile status badge is per active instrument tab/patch snapshot (`compiled`, `pending changes`, `errors`).
-- The runtime panel can be collapsed to give more graph space and reopened with the `Show runtime` button.
+- Runtime starts collapsed to give more graph space; open it with `Show runtime`. Collapse `Patch controls` to hide metadata and file actions while keeping instrument tabs visible. Both choices survive view switches until browser reload.
 - Saving a normal patch performs compile validation first; a failing compile prevents a bad save.
 - Saving a patch marked `Template?` skips compile validation so incomplete starter graphs can be stored and reused. Template patches remain loadable in Instrument Design but are not selectable as Perform rack instruments.
 

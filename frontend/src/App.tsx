@@ -1,3 +1,4 @@
+import { INITIAL_PANEL_COLLAPSE_STATE, type PanelId } from "./components/CollapsiblePanel";
 import { stereoCatalogEntries } from "./lib/stereoCatalog";
 import { AuditionPanel } from "./components/AuditionPanel";
 import { AudioGraphEditor } from "./components/AudioGraphEditor";
@@ -324,7 +325,11 @@ export default function App() {
   const [selectedTemplatePatchId, setSelectedTemplatePatchId] = useState("");
   const [lastCompiledPatchSignature, setLastCompiledPatchSignature] = useState<string | null>(null);
   const [lastFailedPatchSignature, setLastFailedPatchSignature] = useState<string | null>(null);
-  const [runtimePanelCollapsed, setRuntimePanelCollapsed] = useState(false);
+  const [runtimePanelCollapsed, setRuntimePanelCollapsed] = useState(true);
+  const [collapsedPanels, setCollapsedPanels] = useState(INITIAL_PANEL_COLLAPSE_STATE);
+  const setPanelCollapsed = useCallback((panel: PanelId, collapsed: boolean) => {
+    setCollapsedPanels((previous) => previous[panel] === collapsed ? previous : { ...previous, [panel]: collapsed });
+  }, []);
   const [deleteSelectionDialog, setDeleteSelectionDialog] = useState<DeleteSelectionDialogState | null>(null);
   const [deletePatchDialog, setDeletePatchDialog] = useState<DeletePatchDialogState | null>(null);
   const {
@@ -2125,6 +2130,8 @@ export default function App() {
             <div className="relative">
               <HelpIconButton guiLanguage={guiLanguage} onClick={() => onHelpRequest("instrument_patch_toolbar")} />
               <PatchToolbar
+                collapsed={collapsedPanels.patchControls}
+                onCollapsedChange={(collapsed) => setPanelCollapsed("patchControls", collapsed)}
                 guiLanguage={guiLanguage}
                 patchName={currentPatch.name}
                 patchDescription={currentPatch.description}
@@ -2273,6 +2280,8 @@ export default function App() {
         {activePage === "sequencer" && (
           <Suspense fallback={<DeferredPageFallback />}>
             <LazySequencerPage
+              collapsedPanels={collapsedPanels}
+              onPanelCollapsedChange={setPanelCollapsed}
               data={sequencerPageData}
               instrumentActions={sequencerInstrumentActions}
               performanceActions={sequencerPerformanceActions}

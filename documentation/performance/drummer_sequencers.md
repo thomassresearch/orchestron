@@ -6,6 +6,10 @@ Drummer sequencers are drum-machine style step sequencers for fixed MIDI drum ke
 
 They are optimized for per-step drum hit programming instead of melodic note/chord entry.
 
+## Collapse the Panel
+
+The drummer group collapses independently of melodic and controller sequencers. Its header and Add button remain available even when empty; adding a drummer sequencer expands the group. Panels start expanded and remember your choice across view switches until browser reload. Collapsing does not stop playback or discard edits.
+
 ## What Makes Them Different
 
 Compared to melodic sequencers, drummer sequencers:

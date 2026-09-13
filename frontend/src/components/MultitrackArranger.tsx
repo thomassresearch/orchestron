@@ -1,3 +1,4 @@
+import { CollapsiblePanel } from "./CollapsiblePanel";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   KeyboardEvent as ReactKeyboardEvent,
@@ -40,7 +41,6 @@ import { HelpIconButton } from "./HelpIconButton";
 
 const DEFAULT_STEP_GRID_QUANTUM = 4;
 const DEFAULT_STEP_PIXEL_WIDTH = 9;
-const ABSOLUTE_MIN_STEP_PIXEL_WIDTH = 0.05;
 const MAX_STEP_PIXEL_WIDTH = 24;
 const TOKEN_REORDER_DRAG_MIME = "application/x-visualcsound-arranger-token";
 const SELECTION_DRAG_THRESHOLD_PX = 4;
@@ -120,10 +120,13 @@ type ArrangerTokenDragPayload = {
 };
 
 type MultitrackArrangerProps = {
+  collapsed: boolean;
+  onCollapsedChange: (collapsed: boolean) => void;
   guiLanguage: GuiLanguage;
   copy: {
     title: string;
     deviceSummary: string;
+    zoomFit: string;
     zoomOut: string;
     zoomIn: string;
     instrumentColumn: string;
@@ -819,6 +822,8 @@ function isAdditiveSelection(event: ReactMouseEvent): boolean {
 }
 
 export function MultitrackArranger({
+  collapsed,
+  onCollapsedChange,
   guiLanguage,
   copy,
   sequencer,
@@ -1088,7 +1093,7 @@ export function MultitrackArranger({
       }
       const rect = ruler.getBoundingClientRect();
       const localX = clientX - rect.left + timelineScrollLeft;
-      return Math.max(0, Math.min(maxRootSteps, localX / Math.max(ABSOLUTE_MIN_STEP_PIXEL_WIDTH, stepPixelWidth)));
+      return Math.max(0, Math.min(maxRootSteps, localX / Math.max(Number.EPSILON, stepPixelWidth)));
     },
     [maxRootSteps, stepPixelWidth, timelineScrollLeft]
   );
@@ -1622,9 +1627,10 @@ export function MultitrackArranger({
     },
     [appendPadToken, commitTrackPattern, getSelection, setSelection]
   );
+  // Reserve the timeline's left and right borders so the final token stays inside the viewport.
   const fitStepPixelWidth =
-    timelineViewportWidth > 0 ? timelineViewportWidth / Math.max(1, maxRootSteps) : DEFAULT_STEP_PIXEL_WIDTH;
-  const minStepPixelWidth = Math.max(ABSOLUTE_MIN_STEP_PIXEL_WIDTH, Math.min(DEFAULT_STEP_PIXEL_WIDTH, fitStepPixelWidth));
+    timelineViewportWidth > 0 ? Math.max(1, timelineViewportWidth - 2) / Math.max(1, maxRootSteps) : DEFAULT_STEP_PIXEL_WIDTH;
+  const minStepPixelWidth = Math.min(DEFAULT_STEP_PIXEL_WIDTH, fitStepPixelWidth);
   const timelineContentWidth = maxRootSteps * stepPixelWidth;
   const timelineWidth = Math.max(timelineContentWidth, timelineViewportWidth);
   const maxTimelineScrollLeft = Math.max(0, timelineWidth - timelineViewportWidth);
@@ -1655,51 +1661,51 @@ export function MultitrackArranger({
 
   useEffect(() => {
     const viewport = timelineViewportRef.current;
-    if (!viewport) {
+    if (!viewport || collapsed) {
       return;
     }
     const updateWidth = () => {
-      setTimelineViewportWidth(viewport.clientWidth);
+      // Hidden panels measure zero; retain the last visible size and zoom.
+      if (viewport.clientWidth > 0) setTimelineViewportWidth(viewport.clientWidth);
     };
     updateWidth();
     const observer = new ResizeObserver(updateWidth);
     observer.observe(viewport);
     return () => observer.disconnect();
-  }, [arrangerTracks.length]);
+  }, [arrangerTracks.length, collapsed]);
 
   useEffect(() => {
-    setTimelineScrollLeft((previous) => Math.min(previous, maxTimelineScrollLeft));
-  }, [maxTimelineScrollLeft]);
+    if (!collapsed) setTimelineScrollLeft((previous) => Math.min(previous, maxTimelineScrollLeft));
+  }, [maxTimelineScrollLeft, collapsed]);
 
   useEffect(() => {
     const scrollbar = timelineScrollbarRef.current;
-    if (!scrollbar) {
+    if (!scrollbar || collapsed) {
       return;
     }
     if (Math.abs(scrollbar.scrollLeft - timelineScrollLeft) <= 1) {
       return;
     }
     scrollbar.scrollLeft = timelineScrollLeft;
-  }, [timelineScrollLeft]);
+  }, [timelineScrollLeft, collapsed]);
 
   if (arrangerTracks.length === 0) {
     return null;
   }
 
   return (
-    <div className="relative mt-4 overscroll-x-none rounded-xl border border-amber-700/45 bg-slate-950/85 p-3">
-      {onHelpRequest ? (
-        <HelpIconButton
-          guiLanguage={guiLanguage}
-          onClick={() => onHelpRequest("sequencer_multitrack_arranger")}
-        />
-      ) : null}
-      <div className="mb-2 flex items-center gap-2 pr-10">
-        <div className="text-[11px] uppercase tracking-[0.18em] text-amber-200">{copy.title}</div>
+    <CollapsiblePanel
+      title={copy.title}
+      collapsed={collapsed}
+      onCollapsedChange={onCollapsedChange}
+      className="mt-4 overscroll-x-none rounded-xl border border-amber-700/45 bg-slate-950/85 p-3"
+      titleClassName="text-amber-200"
+      help={onHelpRequest ? <HelpIconButton guiLanguage={guiLanguage} onClick={() => onHelpRequest("sequencer_multitrack_arranger")} /> : null}
+      actions={<>
         <span className="rounded-md border border-slate-700 bg-slate-900 px-2 py-0.5 font-mono text-[10px] text-slate-300">
           {copy.deviceSummary}
         </span>
-        <div className="ml-auto flex items-center gap-1.5">
+        <div className="ml-auto flex flex-wrap items-center gap-1.5">
           <button
             type="button"
             onClick={onTransportRewind}
@@ -1739,6 +1745,17 @@ export function MultitrackArranger({
           </button>
           <button
             type="button"
+            onClick={() => {
+              setStepPixelWidth(Math.min(MAX_STEP_PIXEL_WIDTH, fitStepPixelWidth));
+              setTimelineScrollLeft(0);
+            }}
+            disabled={timelineViewportWidth <= 0}
+            className="rounded border border-slate-700 bg-slate-900 px-2 py-0.5 text-[10px] text-slate-200 transition hover:border-slate-500 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {copy.zoomFit}
+          </button>
+          <button
+            type="button"
             onClick={() =>
               setStepPixelWidth((value) => Math.max(minStepPixelWidth, value * 0.85))
             }
@@ -1759,7 +1776,8 @@ export function MultitrackArranger({
             {zoomPercent}%
           </span>
         </div>
-      </div>
+      </>}
+    >
       <div className="mb-2 grid grid-cols-[280px_minmax(0,1fr)] gap-2 text-[10px] uppercase tracking-[0.14em] text-slate-500">
         <div>{copy.instrumentColumn}</div>
         <div>{copy.timelineColumn}</div>
@@ -2046,7 +2064,9 @@ export function MultitrackArranger({
           ref={timelineScrollbarRef}
           className="h-4 overflow-x-auto overflow-y-hidden overscroll-x-none rounded border border-slate-700 bg-slate-900/60"
           onScroll={(event) => {
-            setTimelineScrollLeft(event.currentTarget.scrollLeft);
+            if (!collapsed && event.currentTarget.clientWidth > 0) {
+              setTimelineScrollLeft(event.currentTarget.scrollLeft);
+            }
           }}
         >
           <div style={{ width: `${timelineWidth}px`, height: "1px" }} />
@@ -2068,7 +2088,7 @@ export function MultitrackArranger({
           close={() => setContextMenu(null)}
         />
       ) : null}
-    </div>
+    </CollapsiblePanel>
   );
 }
 

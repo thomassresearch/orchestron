@@ -1,3 +1,4 @@
+import { CollapsiblePanel } from "./CollapsiblePanel";
 import { audioCopy } from "../lib/audioCopy";
 import type { GuiLanguage, PatchListItem } from "../types";
 
@@ -7,6 +8,8 @@ interface InstrumentTabItem {
 }
 
 interface PatchToolbarProps {
+  collapsed: boolean;
+  onCollapsedChange: (collapsed: boolean) => void;
   guiLanguage: GuiLanguage;
   patchName: string;
   patchDescription: string;
@@ -37,6 +40,7 @@ interface PatchToolbarProps {
 }
 
 type PatchToolbarCopy = {
+  patchControls: string;
   closeTabAria: string;
   addInstrumentTab: string;
   patchName: string;
@@ -62,6 +66,7 @@ type PatchToolbarCopy = {
 
 const PATCH_TOOLBAR_COPY: Record<GuiLanguage, PatchToolbarCopy> = {
   english: {
+    patchControls: "Patch controls",
     closeTabAria: "Close tab",
     addInstrumentTab: "Add instrument tab",
     patchName: "Patch Name",
@@ -85,6 +90,7 @@ const PATCH_TOOLBAR_COPY: Record<GuiLanguage, PatchToolbarCopy> = {
     importPatch: "Import"
   },
   german: {
+    patchControls: "Patch-Steuerung",
     closeTabAria: "Tab schliessen",
     addInstrumentTab: "Instrument-Tab hinzufuegen",
     patchName: "Patch-Name",
@@ -108,6 +114,7 @@ const PATCH_TOOLBAR_COPY: Record<GuiLanguage, PatchToolbarCopy> = {
     importPatch: "Importieren"
   },
   french: {
+    patchControls: "Commandes du patch",
     closeTabAria: "Fermer onglet",
     addInstrumentTab: "Ajouter onglet instrument",
     patchName: "Nom du patch",
@@ -131,6 +138,7 @@ const PATCH_TOOLBAR_COPY: Record<GuiLanguage, PatchToolbarCopy> = {
     importPatch: "Importer"
   },
   spanish: {
+    patchControls: "Controles del patch",
     closeTabAria: "Cerrar pestana",
     addInstrumentTab: "Agregar pestana de instrumento",
     patchName: "Nombre del patch",
@@ -202,6 +210,12 @@ export function PatchToolbar(props: PatchToolbarProps) {
         </button>
       </div>
 
+      <CollapsiblePanel
+        title={copy.patchControls}
+        collapsed={props.collapsed}
+        onCollapsedChange={props.onCollapsedChange}
+        titleClassName="text-slate-200"
+      >
       <div className="grid grid-cols-1 gap-2 lg:grid-cols-6">
         <div className="flex h-full flex-col gap-2 lg:col-span-2">
           <label className="flex flex-col gap-1">
@@ -343,6 +357,7 @@ export function PatchToolbar(props: PatchToolbarProps) {
           {copy.deletePatch}
         </button>
       </div>
+      </CollapsiblePanel>
     </section>
   );
 }

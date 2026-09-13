@@ -56,6 +56,8 @@ See [Browser-Clock Latency](../configuration/browser_clock_latency.md) for the b
 
 ## Runtime Panel Collapse / Show
 
+Runtime starts collapsed. Open it with Show runtime in the graph header and close it with Hide. Your choice survives view switches until browser reload; compilation and playback continue while it is hidden.
+
 To maximize graph editor space:
 
 - Click `Hide` in the Runtime panel to collapse it

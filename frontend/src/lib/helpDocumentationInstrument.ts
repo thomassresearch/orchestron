@@ -1,3 +1,4 @@
+import { collapsiblePanelHelp } from "./helpDocumentationPanels";
 import { performanceControllerHelp } from "./helpDocumentationPerformanceControllers";
 import { controlFlowHelp } from "./helpDocumentationControlFlow";
 import { audioDesignHelp } from "./helpDocumentationAudio";
@@ -326,6 +327,7 @@ export const instrumentHelpAppendices: HelpDocumentAppendixSet<InstrumentHelpDoc
   instrument_graph_editor: {
     english: `### Working In The Graph
 
+- Use the horizontal and vertical canvas scrollbars to navigate large patches, including expanded branch frames, even with Patch controls collapsed. Drag a scrollbar or focus it with Tab and use the arrow keys. Scrolling preserves node positions and selection and stays synchronized with pan, zoom, and Fit.
 - The canvas stores node positions, input-formula metadata, and other UI layout details with the patch, so reopening a saved patch restores the last arranged view.
 - Connections should follow compatible port types, but the backend compiler remains the final source of truth for missing inputs, invalid formulas, and compile errors.
 - The delete action only removes explicitly selected nodes or cables; casual socket interaction is intentionally prevented from tearing down existing wiring.
@@ -350,6 +352,7 @@ If multiple signals are connected to the **same input** of an opcode:
 | \`abs()\`, \`ceil()\`, \`floor()\`, \`ampdb()\`, \`dbamp()\` | Unary functions |`,
     german: `### Arbeiten im Graph Editor
 
+- Mit den horizontalen und vertikalen Scrollleisten erreichst du alle Bereiche großer Patches, einschließlich aufgeklappter Zweigrahmen, auch bei eingeklappten Patch-Steuerelementen. Ziehe eine Scrollleiste oder fokussiere sie mit Tab und nutze die Pfeiltasten. Scrollen erhält Node-Positionen und Auswahl und bleibt mit Verschieben, Zoom und Einpassen synchron.
 - Die Canvas speichert Node-Positionen, Input-Formula-Metadaten und weitere UI-Layout-Details zusammen mit dem Patch, sodass ein gespeicherter Patch wieder in der zuletzt angeordneten Ansicht oeffnet.
 - Verbindungen sollten kompatiblen Port-Typen folgen, aber der Backend-Compiler bleibt die letzte Instanz fuer fehlende Eingänge, ungueltige Formeln und Compile-Fehler.
 - Die Delete-Aktion entfernt nur explizit ausgewaehlte Nodes oder Kabel; lockere Socket-Interaktionen sollen bestehendes Wiring bewusst nicht versehentlich zerreissen.
@@ -374,6 +377,7 @@ Wenn mehrere Signale mit **demselben Eingang** eines Opcodes verbunden sind:
 | \`abs()\`, \`ceil()\`, \`floor()\`, \`ampdb()\`, \`dbamp()\` | Unäre Funktionen |`,
     french: `### Travailler dans l'editeur de graphe
 
+- Les barres de défilement horizontale et verticale permettent de parcourir les grands patchs, y compris les cadres de branches dépliés, même lorsque les commandes du patch sont repliées. Faites glisser une barre ou sélectionnez-la avec Tab, puis utilisez les touches fléchées. Le défilement conserve les positions des nœuds et la sélection et reste synchronisé avec le déplacement, le zoom et l’ajustement du graphe.
 - Le canevas stocke les positions des nœuds, les metadonnees de formule d'entree et d'autres details de mise en page UI avec le patch ; rouvrir un patch sauvegarde restaure donc la derniere vue organisee.
 - Les connexions doivent suivre des types de ports compatibles, mais le compilateur backend reste l'autorite finale pour les entrees manquantes, les formules invalides et les erreurs de compilation.
 - L'action de suppression ne retire que les nœuds ou cables explicitement selectionnes ; une interaction normale avec les sockets ne doit pas casser le cablage existant par accident.
@@ -398,6 +402,7 @@ Si plusieurs signaux sont connectés à **la même entrée** d'un opcode :
 | \`abs()\`, \`ceil()\`, \`floor()\`, \`ampdb()\`, \`dbamp()\` | Fonctions unaires |`,
     spanish: `### Trabajo en el editor de grafos
 
+- Las barras de desplazamiento horizontal y vertical permiten recorrer los patches grandes, incluidos los marcos de ramas expandidos, incluso con los controles del patch contraídos. Arrastra una barra o enfócala con Tab y usa las teclas de flecha. El desplazamiento conserva las posiciones de los nodos y la selección y se sincroniza con el movimiento del lienzo, el zoom y el ajuste del grafo.
 - El lienzo guarda posiciones de nodos, metadatos de formulas de entrada y otros detalles de layout de la UI junto con el patch, asi que al reabrir un patch guardado se recupera la ultima disposicion.
 - Las conexiones deben seguir tipos de puerto compatibles, pero el compilador del backend sigue siendo la referencia final para entradas faltantes, formulas invalidas y errores de compilacion.
 - La accion de borrar solo elimina nodos o cables seleccionados de forma explicita; una interaccion casual con sockets no debe romper el cableado existente por accidente.
@@ -482,4 +487,9 @@ for (const language of ["english", "german", "french", "spanish"] as const) {
 for (const language of ["english", "german", "french", "spanish"] as const) {
   instrumentHelpAppendices.instrument_graph_editor![language] += "\n\n" + performanceControllerHelp[language];
   instrumentHelpAppendices.instrument_opcode_catalog![language] += "\n\n" + performanceControllerHelp[language];
+}
+
+for (const language of ["english", "german", "french", "spanish"] as const) {
+  instrumentHelpDocuments.instrument_patch_toolbar[language].markdown += "\n\n" + collapsiblePanelHelp[language].design;
+  instrumentHelpDocuments.instrument_runtime_panel[language].markdown += "\n\n" + collapsiblePanelHelp[language].runtime;
 }
