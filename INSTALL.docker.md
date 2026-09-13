@@ -2,6 +2,8 @@
 
 This guide runs Orchestron in Docker using the unified browser-clock runtime.
 
+Prebuilt release images are also published to `ghcr.io/thomassresearch/orchestron` for Linux AMD64 and ARM64. See [Docker image publishing and retention](documentation/docker_images.md) for pull/run commands and the two-image retention policy. The Compose instructions below build from your local source checkout.
+
 ## 1. Prerequisites
 
 Install:

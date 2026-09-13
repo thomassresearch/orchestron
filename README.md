@@ -111,6 +111,8 @@ Choose the installation guide that matches your environment. The platform guides
 - [Windows installation](INSTALL.windows.md)
 - [Docker installation](INSTALL.docker.md)
 
+Pushing a Git tag publishes `ghcr.io/thomassresearch/orchestron:<tag>` and `:latest` for Linux AMD64 and ARM64. A second GitHub Actions workflow keeps the two newest tagged images and removes older images while preserving the retained images' platform manifests. See [Docker image publishing and retention](documentation/docker_images.md) for setup, permissions, and manual cleanup.
+
 To make sound quickly, open [http://localhost:8000/](http://localhost:8000/) (it redirects to `/client`), then in `Instrument Design` import an instrument from [`examples/instruments/`](examples/instruments/). Switch to the `Perform` panel, add the instrument to the performance, add a piano roll keyboard if it is not already visible, set its MIDI channel to match the instrument channel, then go to the piano keyboards, press `Start`, and play.
 
 The built-in Drumset patch is stored in [`examples/instruments/template/`](examples/instruments/template/). Patches saved with `Template?` are stored in the backend patch library. Tests use independent snapshots in [`backend/tests/fixtures/patches/`](backend/tests/fixtures/patches/).

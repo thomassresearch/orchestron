@@ -1,0 +1,54 @@
+name: Clean up Docker images
+
+on:
+  workflow_run:
+    workflows: ['Publish Docker image']
+    types: [completed]
+  schedule:
+    - cron: '23 3 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Preview deletions without removing images
+        type: boolean
+        default: true
+
+permissions:
+  packages: write
+
+# Must match docker-publish.yml, including the queue policy.
+concurrency:
+  group: ghcr-images-${{ github.repository }}
+  queue: max
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Resolve the package name
+        id: package
+        env:
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          package="${REPOSITORY#*/}"
+          echo "name=${package,,}" >> "$GITHUB_OUTPUT"
+
+      # Keep release indices plus their platform/attestation manifests.
+      # A generic package-version count can delete manifests still in use.
+      - name: Keep the two newest images
+        uses: dataaxiom/ghcr-cleanup-action@d52806a0dc70b430571a37da1fde39733ffd640f # v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          owner: ${{ github.repository_owner }}
+          package: ${{ steps.package.outputs.name }}
+          keep-n-tagged: '2'
+          delete-untagged: 'true'
+          validate: 'true'
+          dry-run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
