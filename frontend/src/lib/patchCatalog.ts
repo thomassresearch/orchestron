@@ -42,6 +42,7 @@ export function toPatchListItem(patch: Patch): PatchListItem {
     description: patch.description,
     is_template: patch.is_template,
     always_on: patch.always_on,
+    instrument_type: patch.instrument_type,
     audio_interface: patch.graph.audio_interface,
     performance_controllers: performanceControllersForGraph(patch.graph),
     has_direct_output: patch.graph.nodes.some((n) => n.opcode === "outs"),

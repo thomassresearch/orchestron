@@ -319,6 +319,7 @@ class PerformanceExportService:
                         description=definition.description,
                         is_template=definition.is_template,
                         always_on=definition.always_on,
+                        instrument_type=definition.instrument_type,
                         schema_version=definition.schema_version,
                         graph=definition.graph.model_copy(deep=True),
                     ),

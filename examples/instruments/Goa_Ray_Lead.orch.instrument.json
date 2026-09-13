@@ -4,6 +4,7 @@
   "description": "Goa psytrance melody lead: saw + hollow square + single-pair FM bite, high-passed, saturated, resonant ladder filter, subtle flanger. Outputs: outleta left/right (full) and sendl/sendr (10% effect send).",
   "isTemplate": false,
   "alwaysOn": false,
+  "instrumentType": "melody",
   "schema_version": 1,
   "graph": {
     "nodes": [

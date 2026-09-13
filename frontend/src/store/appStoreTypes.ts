@@ -1,5 +1,5 @@
 import type { BranchTarget } from "../lib/branchLayout";
-import type { AudioGraph, MixerState, MixerStrip, MixerSend } from "../types";
+import type { AudioGraph, MixerState, MixerStrip, MixerSend, InstrumentType } from "../types";
 import type {
   AppPage,
   ArpeggiatorState,
@@ -36,6 +36,7 @@ export interface EditablePatch {
   description: string;
   is_template: boolean;
   always_on: boolean;
+  instrument_type: InstrumentType;
   schema_version: number;
   graph: PatchGraph;
   created_at?: string;
@@ -110,7 +111,7 @@ export interface AppStore {
   newPatchFromTemplate: (template: Patch) => void;
   setCurrentPatchMeta: (name: string, description: string) => void;
   setCurrentPatchTemplate: (isTemplate: boolean) => void;
-  setCurrentPatchAlwaysOn: (alwaysOn: boolean) => void;
+  setCurrentPatchType: (instrumentType: InstrumentType) => void;
   setGraph: (graph: PatchGraph) => void;
   addNodeFromOpcode: (opcode: OpcodeSpec, position?: NodePosition, target?: BranchTarget) => void;
   removeNode: (nodeId: string) => void;

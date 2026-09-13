@@ -4,6 +4,7 @@
   "description": "One 1:2 FM pair plus a sine at the played fundamental. Growl fades with the envelope to a sustained rubbery body. Suggested MIDI notes 28\u201355. Dry, velocity-sensitive, polyphonic. Three per-instance controls read on new notes. Route Stereo Output through the performance mixer to Master.",
   "isTemplate": false,
   "alwaysOn": false,
+  "instrumentType": "bass",
   "schema_version": 1,
   "graph": {
     "nodes": [

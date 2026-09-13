@@ -4,6 +4,7 @@
   "description": "Phase-reset saw for rolling psy bass. Tone is the floor of a 3500 Hz envelope sweep; mild saturation precedes the ladder filter. Suggested MIDI notes 28\u201352. Dry, velocity-sensitive, polyphonic. Three per-instance controls read on new notes. Route Stereo Output through the performance mixer to Master.",
   "isTemplate": false,
   "alwaysOn": false,
+  "instrumentType": "bass",
   "schema_version": 1,
   "graph": {
     "nodes": [

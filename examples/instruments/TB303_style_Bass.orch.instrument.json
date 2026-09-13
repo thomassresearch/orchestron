@@ -4,6 +4,7 @@
   "description": "TB303 style bass with perf_controller settings for cutoff and resonance",
   "isTemplate": false,
   "alwaysOn": false,
+  "instrumentType": "bass",
   "schema_version": 1,
   "graph": {
     "nodes": [

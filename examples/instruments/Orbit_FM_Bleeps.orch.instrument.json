@@ -4,6 +4,7 @@
   "description": "Short FM chirps with six fading echoes and an orbiting pan. Chirp sets the upward pitch excursion at the onset. MIDI 48\u201384. Built-in filtered echoes and reverb; no global FX needed. Velocity-sensitive, polyphonic, three per-instance controls read on new notes. Route Stereo Output through the mixer to Master.",
   "isTemplate": false,
   "alwaysOn": false,
+  "instrumentType": "effects_noise",
   "schema_version": 1,
   "graph": {
     "nodes": [

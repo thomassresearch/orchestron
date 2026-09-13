@@ -23,6 +23,7 @@ export function createUntitledPatch() {
     description: "",
     is_template: false,
     always_on: false,
+    instrument_type: "melody" as const,
     schema_version: 1,
     graph: defaultGraph()
   };

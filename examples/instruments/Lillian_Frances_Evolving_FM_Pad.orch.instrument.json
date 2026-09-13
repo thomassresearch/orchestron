@@ -4,6 +4,7 @@
   "description": "Playable evolving FM pad inspired by the Kilohearts/Lillian Frances tutorial: soft sine-carrier FM, slowly opening harmonic motion, chorus-like width, filtered highs, light saturation, and a long spacious tail. \nWorks best in Octaves 3-5: a deep, low drone sound at octave 3, getting brighter and powerful in octave 4 to 5. \n",
   "isTemplate": false,
   "alwaysOn": false,
+  "instrumentType": "melody",
   "schema_version": 1,
   "graph": {
     "nodes": [

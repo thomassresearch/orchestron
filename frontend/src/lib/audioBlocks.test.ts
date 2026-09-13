@@ -305,7 +305,7 @@ describe("direct output conversion", () => {
     const route = { id: "route", sourceId: "instance", sourcePort: "$direct.left", targetId: "$output", targetPort: "left", kind: "main" as const, sourceStage: "strip" as const, targetStage: "input" as const };
     const routing = { routes: [route], masterId: null, insertOwners: {} };
     const graph = convertDirectOutput(audioTemplate("output").graph, "output");
-    const patch: PatchListItem = { id: "patch", name: "Patch", description: "", schema_version: 1, is_template: false, always_on: false, updated_at: "", audio_inlet_names: audioPorts(graph, "input"), audio_outlet_names: audioPorts(graph, "output"), has_direct_output: false };
+    const patch: PatchListItem = { id: "patch", name: "Patch", description: "", schema_version: 1, is_template: false, always_on: false, instrument_type: "melody", updated_at: "", audio_inlet_names: audioPorts(graph, "input"), audio_outlet_names: audioPorts(graph, "output"), has_direct_output: false };
     expect(audioGraphDiagnostics([{ id: "instance", patchId: "patch", midiChannel: 1, level: 10, effectSourceIds: [], effectRoutes: [] }], [patch], routing).some((d) => d.code === "broken_route" && d.routeId === "route")).toBe(true);
     expect(routing.routes).toEqual([route]);
   });

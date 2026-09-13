@@ -1,3 +1,4 @@
+import { instrumentMetadata } from "../lib/instrumentTypes";
 import { normalizeControllerValues, performanceControllerDefaults, reconcileControllerValues } from "../lib/performanceControllers";
 import { controlFlowIssues, patchSchemaVersion } from "../lib/controlFlow";
 import { normalizeStereoChannelNames } from "../lib/audioBlocks";
@@ -67,6 +68,7 @@ import type {
   EngineConfig,
   EffectRouteSelection,
   GuiLanguage,
+  InstrumentType,
   MidiInputRef,
   OpcodeSpec,
   PadLoopPatternState,
@@ -2169,7 +2171,7 @@ export function normalizePersistedPatch(raw: unknown): EditablePatch {
     typeof patch.name === "string" && patch.name.trim().length > 0 ? patch.name : fallback.name;
   const description = typeof patch.description === "string" ? patch.description : "";
   const isTemplate = patch.is_template === true;
-  const alwaysOn = patch.always_on === true;
+  const metadata = instrumentMetadata(patch);
   const schemaVersion =
     typeof patch.schema_version === "number" && Number.isFinite(patch.schema_version)
       ? patch.schema_version
@@ -2186,7 +2188,7 @@ export function normalizePersistedPatch(raw: unknown): EditablePatch {
     name,
     description,
     is_template: isTemplate,
-    always_on: alwaysOn,
+    ...metadata,
     schema_version: patchSchemaVersion(schemaVersion, graph),
     graph,
     created_at: createdAt,
@@ -2327,6 +2329,7 @@ export function buildPersistedAppStateSnapshot(state: AppStore): PersistedAppSta
         description: tab.patch.description,
         is_template: tab.patch.is_template,
         always_on: tab.patch.always_on,
+        instrument_type: tab.patch.instrument_type,
         schema_version: tab.patch.schema_version,
         graph: normalizePatchGraph(tab.patch.graph),
         created_at: tab.patch.created_at,
@@ -2434,7 +2437,7 @@ export function normalizePatch(patch: Patch): EditablePatch {
     name: patch.name,
     description: patch.description,
     is_template: patch.is_template === true,
-    always_on: patch.always_on === true,
+    ...instrumentMetadata(patch),
     schema_version: patchSchemaVersion(patch.schema_version, patch.graph),
     graph: normalizePatchGraph(patch.graph),
     created_at: patch.created_at,
@@ -2448,6 +2451,7 @@ export type EmbeddedPerformancePatchDefinition = {
   description: string;
   is_template: boolean;
   always_on: boolean;
+  instrument_type: InstrumentType;
   schema_version: number;
   graph: PatchGraph;
 };
@@ -2462,7 +2466,7 @@ export function parseEmbeddedPerformancePatchDefinition(raw: unknown): EmbeddedP
   const name = typeof record.name === "string" ? record.name.trim() : "";
   const description = typeof record.description === "string" ? record.description : "";
   const isTemplate = record.isTemplate === true || record.is_template === true;
-  const alwaysOn = record.alwaysOn === true || record.always_on === true;
+  const metadata = instrumentMetadata(record);
   const schemaVersion =
     typeof record.schema_version === "number" && Number.isFinite(record.schema_version)
       ? record.schema_version
@@ -2483,7 +2487,7 @@ export function parseEmbeddedPerformancePatchDefinition(raw: unknown): EmbeddedP
     name,
     description,
     is_template: isTemplate,
-    always_on: alwaysOn,
+    ...metadata,
     schema_version: patchSchemaVersion(schemaVersion, record.graph as PatchGraph),
     graph: normalizePatchGraph(record.graph as PatchGraph)
   };
@@ -2551,6 +2555,7 @@ export async function hydrateEmbeddedPerformancePatches(
       description: definition.description,
       is_template: definition.is_template,
       always_on: definition.always_on,
+      instrument_type: definition.instrument_type,
       schema_version: definition.schema_version,
       graph: definition.graph
     });

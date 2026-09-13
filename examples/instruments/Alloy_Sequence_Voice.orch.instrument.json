@@ -4,6 +4,7 @@
   "description": "Short metallic FM sequence voice. Ratio sets the modulator/carrier relationship; non-integer values are inharmonic. High-pass filtered to leave bass space. Suggested MIDI notes 48\u201384. Dry, velocity-sensitive, polyphonic. Three per-instance controls read on new notes. Route Stereo Output through the performance mixer to Master.",
   "isTemplate": false,
   "alwaysOn": false,
+  "instrumentType": "melody",
   "schema_version": 1,
   "graph": {
     "nodes": [

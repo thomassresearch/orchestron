@@ -14,7 +14,8 @@ The toolbar includes:
 
 - Instrument tabs (multiple editable patch workspaces)
 - Patch metadata fields (`Patch Name`, `Description`)
-- Patch picker (`Load Patch`)
+- Instrument Type selector
+- Grouped, searchable patch picker (`Load Patch`)
 - Action buttons (`New`, `Clone`, `Delete`, `Save`, `Compile`, `Export`, `Import`, `Export CSD`)
 
 ## Instrument Tabs
@@ -30,33 +31,34 @@ The toolbar includes:
 - `Patch Name` is the display name used in the patch library and performance rack dropdowns for normal patches.
 - `Description` is a three-line patch note field and accepts up to 2048 characters.
 - `Template?` marks the patch as a reusable starter graph. Template patches show a `TEMPLATE` token beside their name and are excluded from Perform rack instrument choices.
-- `Activation: MIDI notes / Continuous` controls scheduling. Continuous patches run when added to the Perform rack and started. They may generate audio without an inlet. Receiving audio requires an actual inlet, independently of activation. Musical role is separate interface metadata.
+- `Instrument Type` offers Percussion, Melody, Bass, Effects / Noise, and Continuous (always-on). Choosing Continuous enables always-on scheduling; every other type uses MIDI activation. Continuous patches run when added to the Perform rack and started. They may generate audio without an inlet. Receiving audio requires an actual inlet, independently of activation. Musical role is separate interface metadata.
 - Metadata updates affect the current tab immediately, but they are not stored in the patch library until you save.
 
 ## Patch Library Loading
 
-- `Load Patch` loads an existing saved patch from the backend patch library into the active tab.
-- The dropdown shows saved patch names, including template patches marked with `TEMPLATE`.
-- Loading a patch replaces the active tab contents with that saved patch snapshot.
+- `Load Patch` opens collapsed type groups with counts. Expand a group to see patch names in alphabetical order; template patches retain their marker. Patches already open in instrument tabs are excluded.
+- Search matches names and descriptions across all groups, ignoring case and surrounding spaces. Enter at least **four characters**; results update after **500 ms without typing**. Matching groups expand automatically. Shortening the search below four characters restores browsing immediately.
+- Use Tab or Up/Down to move through controls and Enter to expand a group or load a patch. Enter in an active search loads its first result. Escape or clicking outside closes the picker; closing resets search and group expansion.
+- Loading replaces the active tab with the selected saved patch.
 
 ## Actions
 
 ### New
 
-- Opens the built-in creation chooser: Playable instrument, Audio effect, Output / Master processor, or Empty patch.
+- Opens the built-in creation chooser: Playable instrument, Drumset, Audio effect, Output / Master processor, or Empty patch.
 - Creates an unsaved draft with the selected starter graph and default engine settings.
 - This draft is not yet stored in the patch library until `Save` is used.
 
 ### New from Template
 
-- Opens the same chooser with the four built-in starters plus any saved templates.
+- Opens the same chooser with the five built-in starters plus any saved templates.
 - Creates a new unsaved normal patch with the chosen template's graph and description.
 - Built-in choices remain available when the library has no saved templates.
 
 ### Clone
 
 - Creates a new saved patch by duplicating the current patch graph and metadata.
-- Preserves the `Template?` and `Activation` flags from the source patch.
+- Preserves the `Template?` flag and Instrument Type from the source patch.
 - If the name already exists, Orchestron generates a `(... copy)` style name.
 - The cloned patch is loaded automatically after creation.
 
@@ -105,25 +107,32 @@ New and New from template offer Playable instrument (MIDI pitch/velocity, sine o
 
 ### Choose a starter
 
-| Choice | Activation and audio interface | Next step |
+| Choice | Type, activation and audio interface | Next step |
 | --- | --- | --- |
-| Playable instrument | MIDI notes; named stereo output; pitch, velocity, sine oscillator and envelope | Save, add to Perform, and play its MIDI channel. |
+| Playable instrument | Melody; MIDI notes; named stereo output; pitch, velocity, sine oscillator and envelope | Save, add to Perform, and play its MIDI channel. |
+| Drumset | Percussion; MIDI notes; named stereo output; analog drum voices | Save, add to Perform, and sequence its drum notes. |
 | Audio effect | Continuous; named stereo input and output, initially pass-through | Add processing between the input and output before using it as an effect. |
 | Output / Master processor | Continuous; stereo input to Direct Audio Output (`outs`) | Save for use as a Master/output processor. |
-| Empty patch | Empty graph for custom design | Build and compile the required signal path. |
+| Empty patch | Melody; empty graph for custom design | Build and compile the required signal path. |
 
-Role describes the patch's audio interface; Activation determines when it runs. Naming a patch “Master” alone does not select it as the performance's Master. Use the Mixer Master selector or Create neutral Master.
+Role describes the patch's audio interface; Instrument Type determines whether it runs continuously or on MIDI notes. Audio effect and Master starters use Continuous; use Effects / Noise for MIDI-triggered sound effects. Naming a patch “Master” alone does not select it as the performance's Master. Use the Mixer Master selector or Create neutral Master.
 
 <p align="center">
   <img src="../../screenshots/instrument_builtin_patch_chooser.png" alt="Built-in patch creation chooser" width="600" style="max-width: 100%; height: auto;" />
 </p>
 <p align="center"><em>New opens the starter chooser even when no saved templates exist.</em></p>
 
+## Older patches and saved metadata
+
+Existing always-on patches become Continuous without changing playback. Other older patches are classified from their names first, then descriptions: drum/percussion terms precede bass terms, followed by melodic and sound-effect terms. Unmatched patches default to Melody. Review the inferred Instrument Type and change it when needed; later name or description edits do not reclassify a patch.
+
+Types are saved with the patch and retained in clones, templates, restored tabs, and instrument/performance JSON or ZIP bundles. New playable and empty patches default to Melody, drumsets to Percussion, and effect/Master starters to Continuous.
+
 ## Screenshots
 
 <p align="center">
   <img src="../../screenshots/instrument_patch_toolbar_tabs_actions.png" alt="Patch toolbar and instrument tabs" width="900" style="max-width: 100%; height: auto;" />
 </p>
-<p align="center"><em>Patch toolbar with a continuous stereo-effect draft, Activation selection and library actions.</em></p>
+<p align="center"><em>Earlier toolbar with a continuous stereo-effect draft and library actions. Instrument Type now replaces Activation; an updated screenshot is pending.</em></p>
 
 **Navigation:** [Up](instrument_design.md) | [Prev](instrument_design.md) | [Next](opcode_catalog_and_documentation.md)

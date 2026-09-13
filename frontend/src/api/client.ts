@@ -1,3 +1,4 @@
+import type { InstrumentType } from "../types";
 import type { SessionInstrumentAssignment } from "../types";
 import type { AudioGraph, MixerState, MixerResponse } from "../types";
 import type {
@@ -148,6 +149,7 @@ export const api = {
     description: string;
     is_template: boolean;
     always_on: boolean;
+    instrument_type: InstrumentType;
     schema_version: number;
     graph: PatchGraph;
   }) => request<Patch>("/patches", { method: "POST", body: JSON.stringify(payload) }),
@@ -162,6 +164,7 @@ export const api = {
       description?: string;
       is_template?: boolean;
       always_on?: boolean;
+      instrument_type?: InstrumentType;
       schema_version?: number;
       graph?: PatchGraph;
     }

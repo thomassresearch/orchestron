@@ -6,7 +6,7 @@ import { insertChain, wireInsertChain } from "./insertRouting";
 import { buildSequencerConfigSnapshot, parseSequencerConfigSnapshot, normalizePersistedSequencerInstruments } from "../store/appStoreModel";
 import { useAppStore } from "../store/useAppStore";
 import type { PatchListItem, SequencerInstrumentBinding } from "../types";
-const source: PatchListItem = { id: "source", name: "Source", description: "", always_on: false, is_template: false, schema_version: 1, updated_at: "", audio_inlet_names: [], audio_outlet_names: ["dryl", "dryr"] };
+const source: PatchListItem = { id: "source", name: "Source", description: "", always_on: false, instrument_type: "melody", is_template: false, schema_version: 1, updated_at: "", audio_inlet_names: [], audio_outlet_names: ["dryl", "dryr"] };
 const effect: PatchListItem = { ...source, id: "fx", always_on: true, audio_inlet_names: ["left", "right"], audio_outlet_names: ["left", "right"] };
 const bindings: SequencerInstrumentBinding[] = [{ id: "one", patchId: "source", midiChannel: 1, level: 5, effectSourceIds: [], effectRoutes: [] }, { id: "two", patchId: "fx", midiChannel: 0, level: 8, effectSourceIds: ["one"], effectRoutes: [] }];
 describe("performance audio persistence", () => {

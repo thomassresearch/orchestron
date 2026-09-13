@@ -1,7 +1,7 @@
 {
   "format": "orchestron.performance",
   "version": 1,
-  "exported_at": "2026-09-13T11:30:44.410Z",
+  "exported_at": "2026-09-13T12:52:26.645Z",
   "performance": {
     "name": "Hardtrance Demo",
     "description": "146 BPM \u00b7 E minor \u00b7 256 bars / 7:01. Slow atmospheric buildup, rolling hard-trance bass, acid call, supersaw theme, breakdown at 3:30, main arrival at 5:16, final crest and fading outro. One-shot arrangement.",
@@ -974,7 +974,7 @@
             "scaleRoot": "E",
             "scaleType": "minor",
             "mode": "aeolian",
-            "activePad": 0,
+            "activePad": 4,
             "queuedPad": null,
             "padLoopEnabled": true,
             "padLoopRepeat": false,
@@ -8026,7 +8026,7 @@
                 "mode": "aeolian"
               }
             ],
-            "enabled": true,
+            "enabled": false,
             "queuedEnabled": null
           },
           {
@@ -8047,7 +8047,7 @@
             "scaleRoot": "E",
             "scaleType": "minor",
             "mode": "aeolian",
-            "activePad": 0,
+            "activePad": 4,
             "queuedPad": null,
             "padLoopEnabled": true,
             "padLoopRepeat": false,
@@ -15099,7 +15099,7 @@
                 "mode": "aeolian"
               }
             ],
-            "enabled": true,
+            "enabled": false,
             "queuedEnabled": null
           },
           {
@@ -22172,7 +22172,7 @@
                 "mode": "aeolian"
               }
             ],
-            "enabled": true,
+            "enabled": false,
             "queuedEnabled": null
           },
           {
@@ -29245,7 +29245,7 @@
                 "mode": "aeolian"
               }
             ],
-            "enabled": true,
+            "enabled": false,
             "queuedEnabled": null
           },
           {
@@ -36318,7 +36318,7 @@
                 "mode": "aeolian"
               }
             ],
-            "enabled": true,
+            "enabled": false,
             "queuedEnabled": null
           },
           {
@@ -43391,7 +43391,7 @@
                 "mode": "aeolian"
               }
             ],
-            "enabled": true,
+            "enabled": false,
             "queuedEnabled": null
           },
           {
@@ -50464,7 +50464,7 @@
                 "mode": "aeolian"
               }
             ],
-            "enabled": true,
+            "enabled": false,
             "queuedEnabled": null
           },
           {
@@ -57537,7 +57537,7 @@
                 "mode": "aeolian"
               }
             ],
-            "enabled": true,
+            "enabled": false,
             "queuedEnabled": null
           }
         ],
@@ -57556,7 +57556,7 @@
             },
             "lengthBeats": 8,
             "stepCount": 32,
-            "activePad": 4,
+            "activePad": 1,
             "queuedPad": null,
             "padLoopEnabled": true,
             "padLoopRepeat": false,
@@ -66722,7 +66722,7 @@
                 ]
               }
             ],
-            "enabled": true,
+            "enabled": false,
             "queuedEnabled": null
           },
           {
@@ -71765,7 +71765,7 @@
                 ]
               }
             ],
-            "enabled": true,
+            "enabled": false,
             "queuedEnabled": null
           },
           {
@@ -71782,7 +71782,7 @@
             },
             "lengthBeats": 8,
             "stepCount": 32,
-            "activePad": 0,
+            "activePad": 1,
             "queuedPad": null,
             "padLoopEnabled": true,
             "padLoopRepeat": false,
@@ -76808,7 +76808,7 @@
                 ]
               }
             ],
-            "enabled": true,
+            "enabled": false,
             "queuedEnabled": null
           },
           {
@@ -81851,7 +81851,7 @@
                 ]
               }
             ],
-            "enabled": true,
+            "enabled": false,
             "queuedEnabled": null
           },
           {
@@ -124154,7 +124154,7 @@
                 ]
               }
             ],
-            "enabled": true,
+            "enabled": false,
             "queuedEnabled": null
           },
           {
@@ -158177,7 +158177,7 @@
                 ]
               }
             ],
-            "enabled": true,
+            "enabled": false,
             "queuedEnabled": null
           },
           {
@@ -171500,7 +171500,7 @@
                 ]
               }
             ],
-            "enabled": true,
+            "enabled": false,
             "queuedEnabled": null
           },
           {
@@ -180683,7 +180683,7 @@
                 ]
               }
             ],
-            "enabled": true,
+            "enabled": false,
             "queuedEnabled": null
           }
         ],
@@ -180713,6 +180713,7 @@
       "description": "Dark triangle and PWM pulse pad. Sine LFO moves pulse width from 0.32 to 0.68 and filter cutoff from 70% to 130% of Tone. Motion is Hz, not tempo sync. Suggested MIDI notes 43\u201379. Dry, velocity-sensitive, polyphonic. Three per-instance controls read on new notes. Route Stereo Output through the performance mixer to Master.",
       "isTemplate": false,
       "alwaysOn": false,
+      "instrumentType": "melody",
       "schema_version": 1,
       "graph": {
         "nodes": [
@@ -181220,6 +181221,7 @@
       "description": "",
       "isTemplate": false,
       "alwaysOn": true,
+      "instrumentType": "continuous",
       "schema_version": 1,
       "graph": {
         "nodes": [
@@ -181318,6 +181320,7 @@
       "description": "Stereo reverb effect, uses inleta channel names \"left\" and \"right\".",
       "isTemplate": false,
       "alwaysOn": true,
+      "instrumentType": "continuous",
       "schema_version": 1,
       "graph": {
         "nodes": [
@@ -181503,6 +181506,7 @@
       "description": "Talking pulse voice with two animated formant bands, a little fundamental, filtered dotted-eighth repeats and a chamber tail. MIDI 43\u201376. Built-in filtered echoes and reverb; no global FX needed. Velocity-sensitive, polyphonic, three per-instance controls read on new notes. Route Stereo Output through the mixer to Master.",
       "isTemplate": false,
       "alwaysOn": false,
+      "instrumentType": "melody",
       "schema_version": 1,
       "graph": {
         "nodes": [
@@ -182389,6 +182393,7 @@
       "description": "Short metallic FM sequence voice. Ratio sets the modulator/carrier relationship; non-integer values are inharmonic. High-pass filtered to leave bass space. Suggested MIDI notes 48\u201384. Dry, velocity-sensitive, polyphonic. Three per-instance controls read on new notes. Route Stereo Output through the performance mixer to Master.",
       "isTemplate": false,
       "alwaysOn": false,
+      "instrumentType": "melody",
       "schema_version": 1,
       "graph": {
         "nodes": [
@@ -182814,6 +182819,7 @@
       "description": "Saw and square at one played pitch, saturated into an envelope-swept resonant filter. Play your own chords; no fixed chord or unison. Suggested MIDI notes 43\u201379. Dry, velocity-sensitive, polyphonic. Three per-instance controls read on new notes. Route Stereo Output through the performance mixer to Master.",
       "isTemplate": false,
       "alwaysOn": false,
+      "instrumentType": "melody",
       "schema_version": 1,
       "graph": {
         "nodes": [
@@ -183314,6 +183320,7 @@
       "description": "A harmonic 1:3 FM pair with a bright onset that softens into a glassy pluck. Release controls the tail after key-up; decay controls held notes. Suggested MIDI notes 48\u201384. Dry, velocity-sensitive, polyphonic. Three per-instance controls read on new notes. Route Stereo Output through the performance mixer to Master.",
       "isTemplate": false,
       "alwaysOn": false,
+      "instrumentType": "melody",
       "schema_version": 1,
       "graph": {
         "nodes": [
@@ -183712,6 +183719,7 @@
       "description": "One 1:2 FM pair plus a sine at the played fundamental. Growl fades with the envelope to a sustained rubbery body. Suggested MIDI notes 28\u201355. Dry, velocity-sensitive, polyphonic. Three per-instance controls read on new notes. Route Stereo Output through the performance mixer to Master.",
       "isTemplate": false,
       "alwaysOn": false,
+      "instrumentType": "bass",
       "schema_version": 1,
       "graph": {
         "nodes": [
@@ -184207,6 +184215,7 @@
       "description": "Phase-reset saw for rolling psy bass. Tone is the floor of a 3500 Hz envelope sweep; mild saturation precedes the ladder filter. Suggested MIDI notes 28\u201352. Dry, velocity-sensitive, polyphonic. Three per-instance controls read on new notes. Route Stereo Output through the performance mixer to Master.",
       "isTemplate": false,
       "alwaysOn": false,
+      "instrumentType": "bass",
       "schema_version": 1,
       "graph": {
         "nodes": [
@@ -184612,6 +184621,7 @@
       "description": "JP-8000-inspired emotional trance lead (not a hardware emulation). Seven band-limited saws at -18/-11/-5/0/+6/+12/+19 cents with staggered phases and a stronger centered voice. Stereo spread -> resonant 24 dB low-pass with velocity-sensitive filter envelope -> dam compression -> subtle stereo chorus -> three dark rhythmic echoes per side. No reverb. Amp ADSR: 8 ms / 320 ms / 80% / 280 ms. Default delay tempo 138 BPM: left dotted eighth, right quarter. Edit delay_tempo_bpm to match your song (manual, not host synced); 138 gives 326/435 ms. Controls: detune_amount (0..1.5), stereo_width (0..1), filter_base_hz (default 3200), filter_sweep_hz (5800), filter_resonance (0.12), chorus_mix (0.22), delay_mix (0.28), output_level (1.25). Finite echo taps and a reserved tail let echoes finish after MIDI note-off. Polyphonic, velocity-sensitive; add global reverb to taste.",
       "isTemplate": false,
       "alwaysOn": false,
+      "instrumentType": "melody",
       "schema_version": 1,
       "graph": {
         "nodes": [
@@ -186842,6 +186852,7 @@
       "description": "Five velocity-sensitive analog synthesis voices selected by MIDI notnum through Switch. MIDI notenum 35: Bass drum (pitch-swept sine + click); 36: Bass drum distorted (saturated sine + click); 46: Hi-hat open (700 ms); 42: Hi-hat closed (85 ms); 38: Snare (two sine resonances + filtered noise). Hats use six inharmonic square oscillators plus noise. One-shot decays survive short MIDI note-offs. Silent default; stereo output; no samples. GM bass-drum slot 36 is used for the distorted variation.",
       "isTemplate": false,
       "alwaysOn": false,
+      "instrumentType": "percussion",
       "schema_version": 2,
       "graph": {
         "nodes": [
@@ -189060,6 +189071,7 @@
       "description": "Hold a note for a rising FM/noise swell; release it into a diffuse echo and reverb cloud. Rise controls time to peak. MIDI 36\u201372. Built-in filtered echoes and reverb; no global FX needed. Velocity-sensitive, polyphonic, three per-instance controls read on new notes. Route Stereo Output through the mixer to Master.",
       "isTemplate": false,
       "alwaysOn": false,
+      "instrumentType": "effects_noise",
       "schema_version": 1,
       "graph": {
         "nodes": [
@@ -190039,6 +190051,7 @@
       "description": "Deterministic stepped pitch/filter motion makes burbling alien sequences from held notes. Two unsynchronized LFOs produce the step pattern; repeatable, not random. MIDI 36\u201376. Built-in filtered echoes and reverb; no global FX needed. Velocity-sensitive, polyphonic, three per-instance controls read on new notes. Route Stereo Output through the mixer to Master.",
       "isTemplate": false,
       "alwaysOn": false,
+      "instrumentType": "effects_noise",
       "schema_version": 1,
       "graph": {
         "nodes": [
@@ -190995,6 +191008,7 @@
       "description": "Descending FM laser with an exponential pitch sweep, clustered 75 ms echoes and a bright room tail. Sweep is the starting pitch multiplier. MIDI 36\u201376. Built-in filtered echoes and reverb; no global FX needed. Velocity-sensitive, polyphonic, three per-instance controls read on new notes. Route Stereo Output through the mixer to Master.",
       "isTemplate": false,
       "alwaysOn": false,
+      "instrumentType": "effects_noise",
       "schema_version": 1,
       "graph": {
         "nodes": [
@@ -191963,6 +191977,7 @@
       "description": "Short FM chirps with six fading echoes and an orbiting pan. Chirp sets the upward pitch excursion at the onset. MIDI 48\u201384. Built-in filtered echoes and reverb; no global FX needed. Velocity-sensitive, polyphonic, three per-instance controls read on new notes. Route Stereo Output through the mixer to Master.",
       "isTemplate": false,
       "alwaysOn": false,
+      "instrumentType": "effects_noise",
       "schema_version": 1,
       "graph": {
         "nodes": [
@@ -192946,6 +192961,7 @@
       "description": "Goa acid lead: driven saw, resonant envelope sweep, dotted-eighth echoes. Echo BPM is manual tempo, not host sync. MIDI 43\u201379. Built-in filtered echoes and reverb; no global FX needed. Velocity-sensitive, polyphonic, three per-instance controls read on new notes. Route Stereo Output through the mixer to Master.",
       "isTemplate": false,
       "alwaysOn": false,
+      "instrumentType": "melody",
       "schema_version": 1,
       "graph": {
         "nodes": [
@@ -193801,6 +193817,7 @@
       "description": "Dynamic ompression of audio signal",
       "isTemplate": false,
       "alwaysOn": true,
+      "instrumentType": "continuous",
       "schema_version": 1,
       "graph": {
         "nodes": [
@@ -194088,6 +194105,7 @@
       "description": "Goa psytrance melody lead: saw + hollow square + single-pair FM bite, high-passed, saturated, resonant ladder filter, subtle flanger. Outputs: outleta left/right (full) and sendl/sendr (10% effect send).",
       "isTemplate": false,
       "alwaysOn": false,
+      "instrumentType": "melody",
       "schema_version": 1,
       "graph": {
         "nodes": [
@@ -195145,6 +195163,7 @@
       "description": "TB303 style bass with perf_controller settings for cutoff and resonance",
       "isTemplate": false,
       "alwaysOn": false,
+      "instrumentType": "bass",
       "schema_version": 1,
       "graph": {
         "nodes": [

@@ -4,6 +4,7 @@
   "description": "Saw and square at one played pitch, saturated into an envelope-swept resonant filter. Play your own chords; no fixed chord or unison. Suggested MIDI notes 43\u201379. Dry, velocity-sensitive, polyphonic. Three per-instance controls read on new notes. Route Stereo Output through the performance mixer to Master.",
   "isTemplate": false,
   "alwaysOn": false,
+  "instrumentType": "melody",
   "schema_version": 1,
   "graph": {
     "nodes": [

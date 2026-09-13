@@ -4,6 +4,8 @@
 
 This chapter covers the complete **Instrument Design** workflow on the `Instrument Design` page.
 
+Patches have an editable Instrument Type. Load Patch browses collapsed type groups and searches names and descriptions after four characters and a 500 ms pause. Type is retained when saving and importing/exporting instruments.
+
 ## What You Can Do Here
 
 - Build instruments visually from Csound opcodes using the graph editor.

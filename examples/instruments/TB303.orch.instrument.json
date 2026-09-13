@@ -4,6 +4,7 @@
   "description": "TB303 emulation",
   "isTemplate": false,
   "alwaysOn": false,
+  "instrumentType": "bass",
   "schema_version": 1,
   "graph": {
     "nodes": [

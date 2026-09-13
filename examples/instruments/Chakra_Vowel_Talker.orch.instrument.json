@@ -4,6 +4,7 @@
   "description": "Talking pulse voice with two animated formant bands, a little fundamental, filtered dotted-eighth repeats and a chamber tail. MIDI 43\u201376. Built-in filtered echoes and reverb; no global FX needed. Velocity-sensitive, polyphonic, three per-instance controls read on new notes. Route Stereo Output through the mixer to Master.",
   "isTemplate": false,
   "alwaysOn": false,
+  "instrumentType": "melody",
   "schema_version": 1,
   "graph": {
     "nodes": [

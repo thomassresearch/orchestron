@@ -35,7 +35,8 @@ An instrument bundle contains:
 - patch name
 - patch description
 - template flag
-- always-on flag
+- instrument type (Percussion, Melody, Bass, Effects / Noise, or Continuous)
+- synchronized always-on flag for compatibility
 - schema version
 - full patch graph (`nodes`, `connections`, `ui_layout`, `engine_config`)
 
@@ -49,7 +50,7 @@ The import button accepts:
 - standalone instrument bundle ZIP
 - performance bundle JSON/ZIP (to extract included patch definitions)
 
-This means you can import patches directly from a performance export without manually splitting files.
+This means you can import patches directly from a performance export without manually splitting files. Instrument Type is preserved for both new and overwritten patches, including imports renamed during conflict resolution. Older bundles without a type receive an inferred type; always-on patches become Continuous and unmatched MIDI patches default to Melody.
 
 ## Conflict Resolution (Patch Name Already Exists)
 
@@ -74,6 +75,7 @@ For ZIP imports that include referenced GEN01 audio or `sfload` SoundFont assets
 
 ## Advanced Format Notes (for power users)
 
+- Type metadata is exported as `instrumentType`; imports also accept `instrument_type`. Supported values are `percussion`, `melody`, `bass`, `effects_noise`, and `continuous`. An explicit type determines activation even if an older `alwaysOn` / `always_on` flag conflicts. Existing graph schema and bundle version numbers are unchanged.
 - Instrument ZIP exports contain exactly one root JSON file plus optional `audio/...` entries
 - Missing referenced audio assets in a ZIP import cause import failure (prevents broken GEN01 references)
 - Default import limits are 256 MiB compressed request body, 8 MiB root JSON, 512 ZIP entries, and 256 MiB total uncompressed ZIP content

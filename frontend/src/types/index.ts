@@ -507,6 +507,8 @@ export interface SequencerConfigSnapshot {
     is_template?: boolean;
     alwaysOn?: boolean;
     always_on?: boolean;
+    instrumentType?: InstrumentType;
+    instrument_type?: InstrumentType;
     schema_version: number;
     graph: PatchGraph;
   }>;
@@ -629,6 +631,7 @@ export interface EditablePatchSnapshot {
   description: string;
   is_template: boolean;
   always_on: boolean;
+  instrument_type: InstrumentType;
   schema_version: number;
   graph: PatchGraph;
   created_at?: string;
@@ -885,12 +888,15 @@ export interface SessionSequencerStatus {
   arpeggiators: SessionArpeggiatorStatus[];
 }
 
+export type InstrumentType = "percussion" | "melody" | "bass" | "effects_noise" | "continuous";
+
 export interface Patch {
   id: string;
   name: string;
   description: string;
   is_template: boolean;
   always_on: boolean;
+  instrument_type: InstrumentType;
   schema_version: number;
   graph: PatchGraph;
   created_at: string;
@@ -906,6 +912,7 @@ export interface PatchListItem {
   description: string;
   is_template: boolean;
   always_on: boolean;
+  instrument_type: InstrumentType;
   audio_inlet_names: string[];
   audio_outlet_names: string[];
   schema_version: number;

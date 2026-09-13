@@ -4,6 +4,7 @@
   "description": "Stereo reverb effect, uses inleta channel names \"left\" and \"right\".",
   "isTemplate": false,
   "alwaysOn": true,
+  "instrumentType": "continuous",
   "schema_version": 1,
   "graph": {
     "nodes": [

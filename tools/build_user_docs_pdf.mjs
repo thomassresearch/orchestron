@@ -841,6 +841,7 @@ function buildMainHtml({ title, tocHtml, sectionsHtml }) {
         line-height: 1.2;
         margin-top: 1.25em;
         margin-bottom: 0.45em;
+        page-break-after: avoid;
       }
       h1 {
         font-size: 22pt;

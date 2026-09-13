@@ -153,7 +153,7 @@ export default function App() {
   const newPatchFromTemplate = useAppStore((state) => state.newPatchFromTemplate);
   const setCurrentPatchMeta = useAppStore((state) => state.setCurrentPatchMeta);
   const setCurrentPatchTemplate = useAppStore((state) => state.setCurrentPatchTemplate);
-  const setCurrentPatchAlwaysOn = useAppStore((state) => state.setCurrentPatchAlwaysOn);
+  const setCurrentPatchType = useAppStore((state) => state.setCurrentPatchType);
   const setCurrentPerformanceMeta = useAppStore((state) => state.setCurrentPerformanceMeta);
   const setGraph = useAppStore((state) => state.setGraph);
   const addNodeFromOpcode = useAppStore((state) => state.addNodeFromOpcode);
@@ -656,6 +656,7 @@ export default function App() {
           description: currentPatch.description,
           is_template: currentPatch.is_template,
           always_on: currentPatch.always_on,
+          instrument_type: currentPatch.instrument_type,
           schema_version: currentPatch.schema_version,
           graph: currentPatch.graph
         });
@@ -758,6 +759,7 @@ export default function App() {
         description: currentPatch.description,
         isTemplate: currentPatch.is_template,
         alwaysOn: currentPatch.always_on,
+        instrumentType: currentPatch.instrument_type,
         schema_version: currentPatch.schema_version,
         graph: currentPatch.graph
       };
@@ -2136,7 +2138,7 @@ export default function App() {
                 patchName={currentPatch.name}
                 patchDescription={currentPatch.description}
                 patchIsTemplate={currentPatch.is_template}
-                patchAlwaysOn={currentPatch.always_on}
+                patchInstrumentType={currentPatch.instrument_type}
                 patches={loadableInstrumentPatches}
                 currentPatchId={currentPatch.id}
                 loading={loading}
@@ -2148,7 +2150,7 @@ export default function App() {
                 onPatchNameChange={(name) => setCurrentPatchMeta(name, currentPatch.description)}
                 onPatchDescriptionChange={(description) => setCurrentPatchMeta(currentPatch.name, description)}
                 onPatchTemplateChange={setCurrentPatchTemplate}
-                onPatchAlwaysOnChange={setCurrentPatchAlwaysOn}
+                onPatchTypeChange={setCurrentPatchType}
                 onSelectPatch={(patchId) => {
                   void loadPatch(patchId);
                 }}

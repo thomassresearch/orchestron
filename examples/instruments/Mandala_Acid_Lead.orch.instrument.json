@@ -4,6 +4,7 @@
   "description": "Goa acid lead: driven saw, resonant envelope sweep, dotted-eighth echoes. Echo BPM is manual tempo, not host sync. MIDI 43\u201379. Built-in filtered echoes and reverb; no global FX needed. Velocity-sensitive, polyphonic, three per-instance controls read on new notes. Route Stereo Output through the mixer to Master.",
   "isTemplate": false,
   "alwaysOn": false,
+  "instrumentType": "melody",
   "schema_version": 1,
   "graph": {
     "nodes": [

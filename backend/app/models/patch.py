@@ -11,6 +11,7 @@ from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, field_validator, model_validator
 
+from backend.app.models.instrument_type import InstrumentType, infer_instrument_type
 from backend.app.models.opcode import SignalType
 from backend.app.models.source_text import reject_control_characters
 from backend.app.models.control_flow import ControlFlowBlock, validate_control_flow
@@ -439,11 +440,15 @@ class PatchBase(BaseModel):
     description: str = Field(default="", max_length=2_048)
     is_template: bool = False
     always_on: bool = False
+    instrument_type: InstrumentType = "melody"
     schema_version: Literal[1, 2] = 1
     graph: PatchGraph
 
     @model_validator(mode="after")
     def promote_control_flow_schema(self) -> "PatchBase":
+        if "instrument_type" not in self.model_fields_set:
+            self.instrument_type = infer_instrument_type(self.name, self.description, self.always_on)
+        self.always_on = self.instrument_type == "continuous"
         if self.graph.control_flow:
             self.schema_version = 2
         return self
@@ -463,6 +468,7 @@ class PatchUpdateRequest(BaseModel):
     description: str | None = Field(default=None, max_length=2_048)
     is_template: bool | None = None
     always_on: bool | None = None
+    instrument_type: InstrumentType | None = None
     graph: PatchGraph | None = None
     schema_version: Literal[1, 2] | None = None
 
@@ -489,6 +495,7 @@ class PatchListItem(BaseModel):
     description: str
     is_template: bool = False
     always_on: bool = False
+    instrument_type: InstrumentType = "melody"
     audio_inlet_names: list[str] = Field(default_factory=list)
     audio_outlet_names: list[str] = Field(default_factory=list)
     schema_version: int

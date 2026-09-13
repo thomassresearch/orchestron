@@ -4,6 +4,7 @@
   "description": "A harmonic 1:3 FM pair with a bright onset that softens into a glassy pluck. Release controls the tail after key-up; decay controls held notes. Suggested MIDI notes 48\u201384. Dry, velocity-sensitive, polyphonic. Three per-instance controls read on new notes. Route Stereo Output through the performance mixer to Master.",
   "isTemplate": false,
   "alwaysOn": false,
+  "instrumentType": "melody",
   "schema_version": 1,
   "graph": {
     "nodes": [

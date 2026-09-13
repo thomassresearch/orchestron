@@ -4,6 +4,7 @@
   "description": "Psychedelic Bleep using LFO and Sample&Hold to drive filter cutoff",
   "isTemplate": false,
   "alwaysOn": false,
+  "instrumentType": "effects_noise",
   "schema_version": 1,
   "graph": {
     "nodes": [

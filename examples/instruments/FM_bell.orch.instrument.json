@@ -4,6 +4,7 @@
   "description": "Demo of fmbell opcode",
   "isTemplate": false,
   "alwaysOn": false,
+  "instrumentType": "melody",
   "schema_version": 1,
   "graph": {
     "nodes": [

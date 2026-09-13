@@ -4,7 +4,7 @@ import drumset from "../../../examples/instruments/template/analog_drumkit.patch
 
 export type BuiltinTemplate = "instrument" | "effect" | "output" | "empty" | "drumset";
 export function audioTemplate(kind: BuiltinTemplate): Patch {
-  if (kind === "drumset") return structuredClone(drumset) as unknown as Patch;
+  if (kind === "drumset") return { ...structuredClone(drumset), instrument_type: "percussion", always_on: false } as unknown as Patch;
   const graph = defaultGraph();
   const node = (id: string, opcode: string, params: NodeInstance["params"], x: number, y: number) => graph.nodes.push({ id, opcode, params, position: { x, y } });
   const wire = (from: string, fromPort: string, to: string, toPort: string) => graph.connections.push({ from_node_id: from, from_port_id: fromPort, to_node_id: to, to_port_id: toPort } as Connection);
@@ -38,5 +38,5 @@ export function audioTemplate(kind: BuiltinTemplate): Patch {
     graph.audio_interface = { role: kind, groups, mainInput: kind === "instrument" ? null : "main-input", mainOutput: "main-output", guided: true };
   }
   const names = { instrument: "Playable instrument", effect: "Audio effect", output: "Master", empty: "Empty patch" };
-  return { id: `builtin-${kind}`, name: names[kind], description: "", is_template: false, always_on: kind === "effect" || kind === "output", schema_version: 1, graph, created_at: "", updated_at: "" };
+  return { id: `builtin-${kind}`, name: names[kind], description: "", is_template: false, instrument_type: kind === "effect" || kind === "output" ? "continuous" : "melody", always_on: kind === "effect" || kind === "output", schema_version: 1, graph, created_at: "", updated_at: "" };
 }

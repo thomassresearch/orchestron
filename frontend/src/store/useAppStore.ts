@@ -1,3 +1,4 @@
+import { instrumentMetadata } from "../lib/instrumentTypes";
 import { executeStereoCommand, reconcileAudioGraph, deleteAudioGraphItems } from "../lib/audioBlocks";
 import { addControlFlowBlock, BRANCH_OPCODES, patchSchemaVersion } from "../lib/controlFlow";
 import { addBranchNode, branchOpcodeAllowed } from "../lib/branchTransfer";
@@ -86,7 +87,7 @@ let bootstrapLoadInFlight: Promise<void> | null = null;
 
 export const useAppStore = create<AppStore>((set, get) => {
   const commitCurrentPatch = (patch: EditablePatch, extra?: Partial<AppStore>) => {
-    patch = { ...patch, schema_version: patchSchemaVersion(patch.schema_version, patch.graph) };
+    patch = { ...patch, ...instrumentMetadata(patch), schema_version: patchSchemaVersion(patch.schema_version, patch.graph) };
     const state = get();
     const instrumentTabs = updatePatchInTabs(state.instrumentTabs, state.activeInstrumentTabId, patch);
     set({
@@ -335,6 +336,7 @@ export const useAppStore = create<AppStore>((set, get) => {
                 description: tab.patch.description,
                 is_template: tab.patch.is_template,
                 always_on: tab.patch.always_on,
+                instrument_type: tab.patch.instrument_type,
                 schema_version: tab.patch.schema_version,
                 graph: normalizePatchGraph(tab.patch.graph),
                 created_at: tab.patch.created_at,
@@ -486,6 +488,7 @@ export const useAppStore = create<AppStore>((set, get) => {
         description: template.description,
         is_template: false,
         always_on: template.always_on === true,
+        instrument_type: template.instrument_type,
         graph: normalizePatchGraph(JSON.parse(JSON.stringify(template.graph)) as PatchGraph)
       });
     },
@@ -507,11 +510,12 @@ export const useAppStore = create<AppStore>((set, get) => {
       });
     },
 
-    setCurrentPatchAlwaysOn: (alwaysOn) => {
+    setCurrentPatchType: (instrumentType) => {
       const current = get().currentPatch;
       commitCurrentPatch({
         ...current,
-        always_on: alwaysOn
+        instrument_type: instrumentType,
+        always_on: instrumentType === "continuous"
       });
     },
 
@@ -614,6 +618,7 @@ export const useAppStore = create<AppStore>((set, get) => {
           description: current.description,
           is_template: current.is_template,
           always_on: current.always_on,
+          instrument_type: current.instrument_type,
           schema_version: current.schema_version,
           graph: current.graph
         };
@@ -677,6 +682,7 @@ export const useAppStore = create<AppStore>((set, get) => {
             description: patch.description,
             isTemplate: patch.is_template,
             alwaysOn: patch.always_on,
+            instrumentType: patch.instrument_type,
             schema_version: patch.schema_version,
             graph: patch.graph
           }))
@@ -748,6 +754,7 @@ export const useAppStore = create<AppStore>((set, get) => {
             description: nextPatch.description,
             is_template: nextPatch.is_template,
             always_on: nextPatch.always_on,
+            instrument_type: nextPatch.instrument_type,
             schema_version: nextPatch.schema_version,
             graph: normalizedGraph
           });
@@ -875,6 +882,7 @@ export const useAppStore = create<AppStore>((set, get) => {
           description: current.description,
           is_template: false,
           always_on: current.always_on,
+          instrument_type: current.instrument_type,
           schema_version: current.schema_version,
           graph: current.graph
         });

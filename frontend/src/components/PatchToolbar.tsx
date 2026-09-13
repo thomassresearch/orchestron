@@ -1,6 +1,7 @@
 import { CollapsiblePanel } from "./CollapsiblePanel";
-import { audioCopy } from "../lib/audioCopy";
-import type { GuiLanguage, PatchListItem } from "../types";
+import { PatchPicker } from "./PatchPicker";
+import { INSTRUMENT_TYPES, instrumentTypeCopy } from "../lib/instrumentTypes";
+import type { GuiLanguage, InstrumentType, PatchListItem } from "../types";
 
 interface InstrumentTabItem {
   id: string;
@@ -14,7 +15,7 @@ interface PatchToolbarProps {
   patchName: string;
   patchDescription: string;
   patchIsTemplate: boolean;
-  patchAlwaysOn: boolean;
+  patchInstrumentType: InstrumentType;
   patches: PatchListItem[];
   currentPatchId?: string;
   loading: boolean;
@@ -26,7 +27,7 @@ interface PatchToolbarProps {
   onPatchNameChange: (value: string) => void;
   onPatchDescriptionChange: (value: string) => void;
   onPatchTemplateChange: (value: boolean) => void;
-  onPatchAlwaysOnChange: (value: boolean) => void;
+  onPatchTypeChange: (value: InstrumentType) => void;
   onSelectPatch: (patchId: string) => void;
   onNewPatch: () => void;
   onNewFromTemplate: () => void;
@@ -167,8 +168,7 @@ const PATCH_DESCRIPTION_MAX_LENGTH = 2048;
 
 export function PatchToolbar(props: PatchToolbarProps) {
   const copy = PATCH_TOOLBAR_COPY[props.guiLanguage];
-  const loadPatchSelectValue =
-    props.currentPatchId && props.patches.some((patch) => patch.id === props.currentPatchId) ? props.currentPatchId : "";
+  const typeCopy = instrumentTypeCopy(props.guiLanguage);
 
   return (
     <section className="rounded-2xl border border-slate-700/60 bg-slate-900/70 p-3 shadow-glow">
@@ -239,9 +239,9 @@ export function PatchToolbar(props: PatchToolbarProps) {
               />
             </label>
             <label className="flex h-7 items-end gap-2">
-              <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-slate-400">{audioCopy(props.guiLanguage)("activation")}</span>
-              <select value={props.patchAlwaysOn ? "continuous" : "midi"} onChange={(event) => props.onPatchAlwaysOnChange(event.target.value === "continuous")} className="rounded border border-slate-600 bg-slate-950 px-2 py-1 text-xs">
-                <option value="midi">{audioCopy(props.guiLanguage)("midi")}</option><option value="continuous">{audioCopy(props.guiLanguage)("continuous")}</option>
+              <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-slate-400">{typeCopy.type}</span>
+              <select value={props.patchInstrumentType} onChange={(event) => props.onPatchTypeChange(event.target.value as InstrumentType)} className="min-w-0 rounded border border-slate-600 bg-slate-950 px-2 py-1 text-xs">
+                {INSTRUMENT_TYPES.map((type) => <option key={type} value={type}>{typeCopy.types[type]}</option>)}
               </select>
             </label>
           </div>
@@ -261,27 +261,11 @@ export function PatchToolbar(props: PatchToolbarProps) {
           />
         </label>
 
-        <label className="flex flex-col gap-1">
-          <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-slate-400">{copy.loadPatch}</span>
-          <select
-            className="rounded-lg border border-slate-600 bg-slate-950 px-3 py-1.5 font-body text-sm text-slate-100 outline-none ring-accent/40 transition focus:ring"
-            value={loadPatchSelectValue}
-            onChange={(event) => {
-              if (event.target.value.length > 0) {
-                props.onSelectPatch(event.target.value);
-              }
-            }}
-          >
-            <option value="">{copy.currentPatch}</option>
-            {props.patches.map((patch) => (
-              <option key={patch.id} value={patch.id}>
-                {patch.name}
-                {patch.is_template ? ` ${copy.templateToken}` : ""}
-                {patch.always_on ? ` ${audioCopy(props.guiLanguage)("continuous")}` : ""}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="flex flex-col justify-start gap-1">
+          <span aria-hidden="true" className="text-[10px] font-medium uppercase tracking-[0.2em] text-slate-400">{copy.loadPatch}</span>
+          <PatchPicker patches={props.patches} guiLanguage={props.guiLanguage} label={copy.loadPatch}
+            templateToken={copy.templateToken} onSelectPatch={props.onSelectPatch} />
+        </div>
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">

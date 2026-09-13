@@ -1,5 +1,7 @@
+import { instrumentMetadata } from "./instrumentTypes";
 import { patchSchemaVersion, controlFlowIssues } from "./controlFlow";
 import type {
+  InstrumentType,
   Patch,
   PatchGraph,
   PatchListItem,
@@ -28,6 +30,8 @@ export interface ExportedPatchDefinition {
   is_template?: boolean;
   alwaysOn?: boolean;
   always_on?: boolean;
+  instrumentType?: InstrumentType;
+  instrument_type?: InstrumentType;
   schema_version: number;
   graph: PatchGraph;
 }
@@ -62,6 +66,7 @@ type PatchWritePayload = {
   description: string;
   is_template: boolean;
   always_on: boolean;
+  instrument_type: InstrumentType;
   schema_version: number;
   graph: PatchGraph;
 };
@@ -120,7 +125,7 @@ export function parseExportedPatchDefinition(raw: unknown): ExportedPatchDefinit
   const name = typeof raw.name === "string" ? raw.name.trim() : "";
   const description = typeof raw.description === "string" ? raw.description : "";
   const isTemplate = raw.isTemplate === true || raw.is_template === true;
-  const alwaysOn = raw.alwaysOn === true || raw.always_on === true;
+  const metadata = instrumentMetadata(raw);
   const schemaVersion =
     typeof raw.schema_version === "number" && Number.isFinite(raw.schema_version)
       ? raw.schema_version
@@ -139,7 +144,8 @@ export function parseExportedPatchDefinition(raw: unknown): ExportedPatchDefinit
     name,
     description,
     isTemplate,
-    alwaysOn,
+    alwaysOn: metadata.always_on,
+    instrumentType: metadata.instrument_type,
     schema_version: patchSchemaVersion(schemaVersion, raw.graph as unknown as PatchGraph),
     graph: raw.graph as unknown as PatchGraph
   };
@@ -205,6 +211,7 @@ export function buildPerformanceExportPayload(params: {
     description: patch.description,
     isTemplate: patch.is_template,
     alwaysOn: patch.always_on,
+    instrumentType: patch.instrument_type,
     schema_version: patch.schema_version,
     graph: patch.graph
   }));
@@ -326,7 +333,7 @@ export function resolvePatchImportOperation(
     name: incomingName,
     description: definition.description,
     is_template: definition.isTemplate === true || definition.is_template === true,
-    always_on: definition.alwaysOn === true || definition.always_on === true,
+    ...instrumentMetadata(definition),
     schema_version: definition.schema_version,
     graph: definition.graph
   };

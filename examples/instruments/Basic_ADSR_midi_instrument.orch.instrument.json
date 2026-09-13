@@ -4,6 +4,7 @@
   "description": "MADSR, cpsmidi and cpsamp, template to speed up instrument design",
   "isTemplate": true,
   "alwaysOn": false,
+  "instrumentType": "melody",
   "schema_version": 1,
   "graph": {
     "nodes": [

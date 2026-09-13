@@ -4,6 +4,7 @@
   "description": "Hold a note for a rising FM/noise swell; release it into a diffuse echo and reverb cloud. Rise controls time to peak. MIDI 36\u201372. Built-in filtered echoes and reverb; no global FX needed. Velocity-sensitive, polyphonic, three per-instance controls read on new notes. Route Stereo Output through the mixer to Master.",
   "isTemplate": false,
   "alwaysOn": false,
+  "instrumentType": "effects_noise",
   "schema_version": 1,
   "graph": {
     "nodes": [

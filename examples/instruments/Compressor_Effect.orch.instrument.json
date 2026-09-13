@@ -4,6 +4,7 @@
   "description": "Dynamic ompression of audio signal",
   "isTemplate": false,
   "alwaysOn": true,
+  "instrumentType": "continuous",
   "schema_version": 1,
   "graph": {
     "nodes": [

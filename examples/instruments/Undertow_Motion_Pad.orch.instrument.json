@@ -4,6 +4,7 @@
   "description": "Dark triangle and PWM pulse pad. Sine LFO moves pulse width from 0.32 to 0.68 and filter cutoff from 70% to 130% of Tone. Motion is Hz, not tempo sync. Suggested MIDI notes 43\u201379. Dry, velocity-sensitive, polyphonic. Three per-instance controls read on new notes. Route Stereo Output through the performance mixer to Master.",
   "isTemplate": false,
   "alwaysOn": false,
+  "instrumentType": "melody",
   "schema_version": 1,
   "graph": {
     "nodes": [

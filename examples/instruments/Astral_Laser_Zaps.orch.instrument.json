@@ -4,6 +4,7 @@
   "description": "Descending FM laser with an exponential pitch sweep, clustered 75 ms echoes and a bright room tail. Sweep is the starting pitch multiplier. MIDI 36\u201376. Built-in filtered echoes and reverb; no global FX needed. Velocity-sensitive, polyphonic, three per-instance controls read on new notes. Route Stereo Output through the mixer to Master.",
   "isTemplate": false,
   "alwaysOn": false,
+  "instrumentType": "effects_noise",
   "schema_version": 1,
   "graph": {
     "nodes": [

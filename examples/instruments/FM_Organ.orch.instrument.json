@@ -4,6 +4,7 @@
   "description": "Organ using FM synthesis",
   "isTemplate": false,
   "alwaysOn": false,
+  "instrumentType": "melody",
   "schema_version": 1,
   "graph": {
     "nodes": [

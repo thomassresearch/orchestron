@@ -4,6 +4,7 @@
   "description": "JP-8000-inspired emotional trance lead (not a hardware emulation). Seven band-limited saws at -18/-11/-5/0/+6/+12/+19 cents with staggered phases and a stronger centered voice. Stereo spread -> resonant 24 dB low-pass with velocity-sensitive filter envelope -> dam compression -> subtle stereo chorus -> three dark rhythmic echoes per side. No reverb. Amp ADSR: 8 ms / 320 ms / 80% / 280 ms. Default delay tempo 138 BPM: left dotted eighth, right quarter. Edit delay_tempo_bpm to match your song (manual, not host synced); 138 gives 326/435 ms. Controls: detune_amount (0..1.5), stereo_width (0..1), filter_base_hz (default 3200), filter_sweep_hz (5800), filter_resonance (0.12), chorus_mix (0.22), delay_mix (0.28), output_level (1.25). Finite echo taps and a reserved tail let echoes finish after MIDI note-off. Polyphonic, velocity-sensitive; add global reverb to taste.",
   "isTemplate": false,
   "alwaysOn": false,
+  "instrumentType": "melody",
   "schema_version": 1,
   "graph": {
     "nodes": [

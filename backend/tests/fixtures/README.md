@@ -26,3 +26,5 @@ drumkit-template import to this fixture. Its load guard rejects other module
 dependencies on the developer examples. Production Vite builds use
 `examples/instruments/template/analog_drumkit.patch.json`; tests do not need
 that file or the `examples/` directory to exist.
+
+`instrument_types.json` defines shared legacy-classification cases for the Python backend and TypeScript frontend. Keep both inference helpers aligned with these cases; no developer examples are read by the tests.

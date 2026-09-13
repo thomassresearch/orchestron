@@ -7,6 +7,7 @@ from uuid import uuid4
 
 from fastapi import HTTPException
 
+from backend.app.models.instrument_type import infer_instrument_type
 from backend.app.models.patch import (
     PatchCreateRequest,
     PatchDocument,
@@ -50,6 +51,7 @@ class PatchService:
             description=request.description,
             is_template=request.is_template,
             always_on=request.always_on,
+            instrument_type=request.instrument_type,
             schema_version=request.schema_version,
             graph=request.graph,
             created_at=now,
@@ -80,6 +82,7 @@ class PatchService:
                 description=document.description,
                 is_template=document.is_template,
                 always_on=document.always_on,
+                instrument_type=document.instrument_type,
                 audio_interface=document.graph.audio_interface,
                 has_direct_output=any(node.opcode == "outs" for node in document.graph.nodes),
                 audio_inlet_names=audio_port_names(document.graph, opcode="inleta"),
@@ -95,7 +98,18 @@ class PatchService:
         if not existing:
             raise HTTPException(status_code=404, detail=f"Patch '{patch_id}' not found")
 
+        instrument_type = request.instrument_type or existing.instrument_type
+        if request.instrument_type is None and request.always_on is not None:
+            if request.always_on:
+                instrument_type = "continuous"
+            elif existing.instrument_type == "continuous":
+                instrument_type = infer_instrument_type(
+                    request.name if request.name is not None else existing.name,
+                    request.description if request.description is not None else existing.description,
+                )
+
         updated = PatchDocument(
+            instrument_type=instrument_type,
             id=existing.id,
             name=request.name if request.name is not None else existing.name,
             description=request.description if request.description is not None else existing.description,

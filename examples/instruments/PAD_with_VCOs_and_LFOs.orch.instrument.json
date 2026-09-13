@@ -4,6 +4,7 @@
   "description": "Stereo synth PAD using vco2 opcode and vcomb",
   "isTemplate": false,
   "alwaysOn": false,
+  "instrumentType": "melody",
   "schema_version": 1,
   "graph": {
     "nodes": [

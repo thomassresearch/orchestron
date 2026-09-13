@@ -11,7 +11,7 @@ const performablePatch: PatchListItem = {
   name: "Test Instrument",
   description: "",
   is_template: false,
-  always_on: false,
+  always_on: false, instrument_type: "melody",
   audio_inlet_names: [],
   audio_outlet_names: [],
   schema_version: 1,

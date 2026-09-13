@@ -5,6 +5,7 @@ from typing import Sequence
 
 from sqlalchemy import desc, select
 
+from backend.app.models.instrument_type import infer_instrument_type
 from backend.app.models.patch import PatchDocument, PatchGraph
 from backend.app.services.persisted_json_limits import dump_compact_json
 from backend.app.storage.db import PatchRecord
@@ -23,6 +24,7 @@ class PatchRepository:
                 description=document.description,
                 is_template=document.is_template,
                 always_on=document.always_on,
+                instrument_type=document.instrument_type,
                 schema_version=document.schema_version,
                 graph_json=dump_compact_json(document.graph.model_dump(mode="json")),
                 created_at=document.created_at,
@@ -53,6 +55,7 @@ class PatchRepository:
             record.description = document.description
             record.is_template = document.is_template
             record.always_on = document.always_on
+            record.instrument_type = document.instrument_type
             record.schema_version = document.schema_version
             record.graph_json = dump_compact_json(document.graph.model_dump(mode="json"))
             record.updated_at = document.updated_at
@@ -76,6 +79,9 @@ class PatchRepository:
             description=record.description,
             is_template=bool(record.is_template),
             always_on=bool(record.always_on),
+            instrument_type=record.instrument_type or infer_instrument_type(
+                record.name, record.description, bool(record.always_on)
+            ),
             schema_version=record.schema_version,
             graph=PatchGraph.model_validate(json.loads(record.graph_json)),
             created_at=ensure_utc(record.created_at),

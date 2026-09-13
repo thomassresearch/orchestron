@@ -9,6 +9,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from backend.app.models.instrument_type import InstrumentType, infer_instrument_type
 from backend.app.models.patch import PatchGraph
 from backend.app.models.session import (
     SessionArpeggiatorConfig,
@@ -93,6 +94,7 @@ class ExportedPatchDefinition(BaseModel):
     description: str = Field(default="", max_length=2_048)
     is_template: bool = Field(default=False, alias="isTemplate")
     always_on: bool = Field(default=False, alias="alwaysOn")
+    instrument_type: InstrumentType = Field(default="melody", alias="instrumentType")
     schema_version: Literal[1, 2] = 1
     graph: PatchGraph
 
@@ -100,6 +102,9 @@ class ExportedPatchDefinition(BaseModel):
 
     @model_validator(mode="after")
     def promote_control_flow_schema(self) -> "ExportedPatchDefinition":
+        if "instrument_type" not in self.model_fields_set:
+            self.instrument_type = infer_instrument_type(self.name, self.description, self.always_on)
+        self.always_on = self.instrument_type == "continuous"
         if self.graph.control_flow:
             self.schema_version = 2
         return self

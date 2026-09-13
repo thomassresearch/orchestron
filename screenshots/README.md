@@ -19,3 +19,7 @@ Updated 2026-09-07 for commit `b487abd` (audio routing and persistent Perform mi
 The example uses Sine Lead and the built-in pass-through Audio effect named Stereo Return. The return and insert are separate instances of that same saved patch. Mixer screenshots show stopped transport, so meters read silence. The diagnostics image temporarily mutes Sine Lead. Both audition screenshots show successful preparation; they do not claim playback is running.
 
 The Runtime panel capture shows an active browser-clock session, with no notes playing. The session was stopped after capture. Older screenshots for unrelated workflows remain in place.
+
+## Pending refresh: instrument types and patch search
+
+The Instrument Type selector replaces Activation. Request a refreshed `instrument_patch_toolbar_tabs_actions.png` plus captures of the collapsed Load Patch groups and a search with matching groups expanded. Existing toolbar captures show the earlier UI and remain until replacements are provided.

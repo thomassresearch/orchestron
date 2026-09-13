@@ -1,0 +1,511 @@
+{
+  "sourcePatchId": "4f26c433-7427-40dc-bb96-b8e19d55ae7b",
+  "name": "Bleep",
+  "description": "MADSR, cpsmidi and cpsamp, template to speed up instrument design",
+  "isTemplate": false,
+  "alwaysOn": false,
+  "instrumentType": "effects_noise",
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "f1a46887-dec2-4e1b-a44b-d984dad2675d",
+        "opcode": "madsr",
+        "params": {
+          "iatt": 0.01,
+          "idec": 0.15,
+          "islev": 0.7,
+          "irel": 0.2,
+          "idel": 0,
+          "ireltim": -1
+        },
+        "position": {
+          "x": 113.02699739575375,
+          "y": -161.37554790787772
+        }
+      },
+      {
+        "id": "711d7eda-cd4d-439e-b552-8947ae67ac6f",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.001"
+        },
+        "position": {
+          "x": -309.06174612961854,
+          "y": -235.3575968010509
+        }
+      },
+      {
+        "id": "4a908391-f6a0-4cae-a92d-3f7bf347b756",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.3"
+        },
+        "position": {
+          "x": -346.64703369140625,
+          "y": -48.03073593452509
+        }
+      },
+      {
+        "id": "c874083c-4770-434d-a903-c8e61ad5e0b5",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.001"
+        },
+        "position": {
+          "x": -481.821799422207,
+          "y": 137.4739110597321
+        }
+      },
+      {
+        "id": "098d5934-09fd-43c1-9dd6-f3b5b063330a",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.001"
+        },
+        "position": {
+          "x": -422.50900778886074,
+          "y": 310.52464853371623
+        }
+      },
+      {
+        "id": "176ebf54-819d-4d31-a647-884b1f7ba986",
+        "opcode": "cpsmidi",
+        "params": {},
+        "position": {
+          "x": 484.407291462261,
+          "y": 351.1746805428182
+        }
+      },
+      {
+        "id": "c8a28926-b991-484e-a477-6e3e1d367d67",
+        "opcode": "ampmidi",
+        "params": {
+          "iscal": 1
+        },
+        "position": {
+          "x": 318.2730228289065,
+          "y": 159.88465844919185
+        }
+      },
+      {
+        "id": "4ec17fa7-1626-467f-b2a8-1bd3cedb273f",
+        "opcode": "const_i",
+        "params": {
+          "value": "1"
+        },
+        "position": {
+          "x": 38.248585972771075,
+          "y": 263.4760617338645
+        }
+      },
+      {
+        "id": "3e749f6c-fc79-42e6-9f32-df4b245d2b3a",
+        "opcode": "vco2",
+        "params": {
+          "kamp": 0.4,
+          "kcps": 440,
+          "imode": 0,
+          "kpw": 0.5,
+          "kphs": 0,
+          "inyx": 0.5
+        },
+        "position": {
+          "x": 634.0079259966384,
+          "y": -219.0449609043145
+        }
+      },
+      {
+        "id": "755b2dfc-d8e8-4c8f-bc86-853b5300f051",
+        "opcode": "resonx",
+        "params": {
+          "xcf": 1000,
+          "xbw": 200,
+          "inumlayer": 4,
+          "iscl": 0,
+          "iskip": 0
+        },
+        "position": {
+          "x": 1081.7383317794997,
+          "y": -7.101943120175381
+        }
+      },
+      {
+        "id": "fa67aee3-0e60-4e8f-9db2-df0a6e5ec13d",
+        "opcode": "const_i",
+        "params": {
+          "value": "250"
+        },
+        "position": {
+          "x": 690.7236946416394,
+          "y": 138.42703191561003
+        }
+      },
+      {
+        "id": "3beedaaa-4dcd-4f39-a965-3a730c103657",
+        "opcode": "const_i",
+        "params": {
+          "value": "4"
+        },
+        "position": {
+          "x": 812.4580875351871,
+          "y": 468.34385355823906
+        }
+      },
+      {
+        "id": "08c51bce-c15c-4076-8001-c9ce3eca95c7",
+        "opcode": "pan2",
+        "params": {
+          "xp": 0.5,
+          "imode": 0
+        },
+        "position": {
+          "x": 1356.5380231834913,
+          "y": 222.7094371800689
+        }
+      },
+      {
+        "id": "a6703290-fbf4-479a-a832-a2f716ff1a40",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.5"
+        },
+        "position": {
+          "x": 1076.7147279000126,
+          "y": 371.0434661562285
+        }
+      },
+      {
+        "id": "db949232-f42e-41be-88e6-1b3c974a4260",
+        "opcode": "lfo",
+        "params": {
+          "kamp": 0.5,
+          "kcps": 5,
+          "itype": 0
+        },
+        "position": {
+          "x": 1058.1520027281088,
+          "y": 519.7732804032078
+        }
+      },
+      {
+        "id": "c23a42a9-57ea-4a26-a1cc-cea3ccc26617",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.3"
+        },
+        "position": {
+          "x": 500.7099060604794,
+          "y": 631.2588584048115
+        }
+      },
+      {
+        "id": "8e4b169d-b521-43f6-ba88-b29f140df2bb",
+        "opcode": "const_i",
+        "params": {
+          "value": "3.21"
+        },
+        "position": {
+          "x": 774.1624549146479,
+          "y": 695.8123611894971
+        }
+      },
+      {
+        "id": "d7892bdb-6b34-471f-852e-563e44f04434",
+        "opcode": "const_i",
+        "params": {
+          "value": 0
+        },
+        "position": {
+          "x": 793.4297623073778,
+          "y": 838.870087943938
+        }
+      },
+      {
+        "id": "a1e39248-6d32-4775-9b3b-84fabc773486",
+        "opcode": "const_i",
+        "params": {
+          "value": "1"
+        },
+        "position": {
+          "x": 471.2677451686698,
+          "y": 462.6060374733968
+        }
+      },
+      {
+        "id": "e65ee0e1-b427-42b3-85f6-fdd30bc99e07",
+        "opcode": "xtratim",
+        "params": {
+          "iextradur": 0.2
+        },
+        "position": {
+          "x": 65.26054826559823,
+          "y": 550.5286734438757
+        }
+      },
+      {
+        "id": "38004d5e-a07f-4e51-a353-8c14870a0d8b",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.75"
+        },
+        "position": {
+          "x": -420.8827865368421,
+          "y": 695.5371293067088
+        }
+      },
+      {
+        "id": "92079537-e91d-48ed-9151-ee88236e218c",
+        "opcode": "outleta",
+        "params": {
+          "sname": "dryl"
+        },
+        "position": {
+          "x": 1771.0584668265808,
+          "y": 178.45600425897254
+        }
+      },
+      {
+        "id": "522db7f4-93df-4809-9dbb-e1fc1dc7fddc",
+        "opcode": "outleta",
+        "params": {
+          "sname": "dryr"
+        },
+        "position": {
+          "x": 1794.5974390047556,
+          "y": 374.0298152054176
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "711d7eda-cd4d-439e-b552-8947ae67ac6f",
+        "from_port_id": "iout",
+        "to_node_id": "f1a46887-dec2-4e1b-a44b-d984dad2675d",
+        "to_port_id": "iatt"
+      },
+      {
+        "from_node_id": "4a908391-f6a0-4cae-a92d-3f7bf347b756",
+        "from_port_id": "iout",
+        "to_node_id": "f1a46887-dec2-4e1b-a44b-d984dad2675d",
+        "to_port_id": "idec"
+      },
+      {
+        "from_node_id": "c874083c-4770-434d-a903-c8e61ad5e0b5",
+        "from_port_id": "iout",
+        "to_node_id": "f1a46887-dec2-4e1b-a44b-d984dad2675d",
+        "to_port_id": "islev"
+      },
+      {
+        "from_node_id": "098d5934-09fd-43c1-9dd6-f3b5b063330a",
+        "from_port_id": "iout",
+        "to_node_id": "f1a46887-dec2-4e1b-a44b-d984dad2675d",
+        "to_port_id": "irel"
+      },
+      {
+        "from_node_id": "4ec17fa7-1626-467f-b2a8-1bd3cedb273f",
+        "from_port_id": "iout",
+        "to_node_id": "c8a28926-b991-484e-a477-6e3e1d367d67",
+        "to_port_id": "iscal"
+      },
+      {
+        "from_node_id": "f1a46887-dec2-4e1b-a44b-d984dad2675d",
+        "from_port_id": "kenv",
+        "to_node_id": "3e749f6c-fc79-42e6-9f32-df4b245d2b3a",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "176ebf54-819d-4d31-a647-884b1f7ba986",
+        "from_port_id": "kfreq",
+        "to_node_id": "3e749f6c-fc79-42e6-9f32-df4b245d2b3a",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "c8a28926-b991-484e-a477-6e3e1d367d67",
+        "from_port_id": "iamp",
+        "to_node_id": "3e749f6c-fc79-42e6-9f32-df4b245d2b3a",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "3e749f6c-fc79-42e6-9f32-df4b245d2b3a",
+        "from_port_id": "asig",
+        "to_node_id": "755b2dfc-d8e8-4c8f-bc86-853b5300f051",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "176ebf54-819d-4d31-a647-884b1f7ba986",
+        "from_port_id": "kfreq",
+        "to_node_id": "755b2dfc-d8e8-4c8f-bc86-853b5300f051",
+        "to_port_id": "xcf"
+      },
+      {
+        "from_node_id": "fa67aee3-0e60-4e8f-9db2-df0a6e5ec13d",
+        "from_port_id": "iout",
+        "to_node_id": "755b2dfc-d8e8-4c8f-bc86-853b5300f051",
+        "to_port_id": "xbw"
+      },
+      {
+        "from_node_id": "3beedaaa-4dcd-4f39-a965-3a730c103657",
+        "from_port_id": "iout",
+        "to_node_id": "755b2dfc-d8e8-4c8f-bc86-853b5300f051",
+        "to_port_id": "inumlayer"
+      },
+      {
+        "from_node_id": "755b2dfc-d8e8-4c8f-bc86-853b5300f051",
+        "from_port_id": "aout",
+        "to_node_id": "08c51bce-c15c-4076-8001-c9ce3eca95c7",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "db949232-f42e-41be-88e6-1b3c974a4260",
+        "from_port_id": "kout",
+        "to_node_id": "08c51bce-c15c-4076-8001-c9ce3eca95c7",
+        "to_port_id": "xp"
+      },
+      {
+        "from_node_id": "a6703290-fbf4-479a-a832-a2f716ff1a40",
+        "from_port_id": "iout",
+        "to_node_id": "08c51bce-c15c-4076-8001-c9ce3eca95c7",
+        "to_port_id": "xp"
+      },
+      {
+        "from_node_id": "c23a42a9-57ea-4a26-a1cc-cea3ccc26617",
+        "from_port_id": "iout",
+        "to_node_id": "db949232-f42e-41be-88e6-1b3c974a4260",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "8e4b169d-b521-43f6-ba88-b29f140df2bb",
+        "from_port_id": "iout",
+        "to_node_id": "db949232-f42e-41be-88e6-1b3c974a4260",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "d7892bdb-6b34-471f-852e-563e44f04434",
+        "from_port_id": "iout",
+        "to_node_id": "db949232-f42e-41be-88e6-1b3c974a4260",
+        "to_port_id": "itype"
+      },
+      {
+        "from_node_id": "a1e39248-6d32-4775-9b3b-84fabc773486",
+        "from_port_id": "iout",
+        "to_node_id": "755b2dfc-d8e8-4c8f-bc86-853b5300f051",
+        "to_port_id": "iscl"
+      },
+      {
+        "from_node_id": "38004d5e-a07f-4e51-a353-8c14870a0d8b",
+        "from_port_id": "iout",
+        "to_node_id": "e65ee0e1-b427-42b3-85f6-fdd30bc99e07",
+        "to_port_id": "iextradur"
+      },
+      {
+        "from_node_id": "08c51bce-c15c-4076-8001-c9ce3eca95c7",
+        "from_port_id": "aleft",
+        "to_node_id": "92079537-e91d-48ed-9151-ee88236e218c",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "08c51bce-c15c-4076-8001-c9ce3eca95c7",
+        "from_port_id": "aright",
+        "to_node_id": "522db7f4-93df-4809-9dbb-e1fc1dc7fddc",
+        "to_port_id": "asignal"
+      }
+    ],
+    "ui_layout": {
+      "input_formulas": {
+        "3e749f6c-fc79-42e6-9f32-df4b245d2b3a::kamp": {
+          "expression": "in1 * in2",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "f1a46887-dec2-4e1b-a44b-d984dad2675d",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "in2",
+              "from_node_id": "c8a28926-b991-484e-a477-6e3e1d367d67",
+              "from_port_id": "iamp"
+            }
+          ]
+        },
+        "08c51bce-c15c-4076-8001-c9ce3eca95c7::xp": {
+          "expression": "in2 + in1",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "db949232-f42e-41be-88e6-1b3c974a4260",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "in2",
+              "from_node_id": "a6703290-fbf4-479a-a832-a2f716ff1a40",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "755b2dfc-d8e8-4c8f-bc86-853b5300f051::asig": {
+          "expression": "in1",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "3e749f6c-fc79-42e6-9f32-df4b245d2b3a",
+              "from_port_id": "asig"
+            }
+          ]
+        },
+        "755b2dfc-d8e8-4c8f-bc86-853b5300f051::xcf": {
+          "expression": "in1*6",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "176ebf54-819d-4d31-a647-884b1f7ba986",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "08c51bce-c15c-4076-8001-c9ce3eca95c7::asig": {
+          "expression": "in1*10",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "755b2dfc-d8e8-4c8f-bc86-853b5300f051",
+              "from_port_id": "aout"
+            }
+          ]
+        }
+      },
+      "audio_blocks": {
+        "ade7fa0f-5c52-42b5-a424-2c517c4e36e7": true
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 1500,
+      "ksmps": 32,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1
+    },
+    "audio_interface": {
+      "role": "custom",
+      "groups": [
+        {
+          "id": "ade7fa0f-5c52-42b5-a424-2c517c4e36e7",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "dryl",
+            "dryr"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainInput": null,
+      "mainOutput": "ade7fa0f-5c52-42b5-a424-2c517c4e36e7",
+      "guided": false
+    },
+    "control_flow": {}
+  }
+}
