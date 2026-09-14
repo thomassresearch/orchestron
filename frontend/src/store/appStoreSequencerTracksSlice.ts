@@ -1,3 +1,4 @@
+import { nextPerformanceDeviceName } from "../lib/performanceDeviceNames";
 import { legacyGainDb, newRoute, mainPorts } from "../lib/audioRouting";
 import type { StoreApi } from "zustand";
 
@@ -309,7 +310,7 @@ export function createSequencerTrackStoreActions(
       const nextIndex = sequencer.tracks.length + 1;
       const track = defaultSequencerTrack(nextIndex, nextAvailablePerformanceChannel(sequencer));
       track.id = crypto.randomUUID();
-      track.name = `Melodic Sequencer ${nextIndex}`;
+      track.name = nextPerformanceDeviceName(sequencer, "Melodic Sequencer", nextIndex);
       const nextTracks = [...sequencer.tracks, track];
 
       set({
@@ -1252,7 +1253,7 @@ export function createSequencerTrackStoreActions(
       const nextIndex = sequencer.drummerTracks.length + 1;
       const track = defaultDrummerSequencerTrack(nextIndex, nextAvailablePerformanceChannel(sequencer));
       track.id = crypto.randomUUID();
-      track.name = `Drummer Sequencer ${nextIndex}`;
+      track.name = nextPerformanceDeviceName(sequencer, "Drummer Sequencer", nextIndex);
 
       const nextDrummerTracks = [...sequencer.drummerTracks, track];
       set({

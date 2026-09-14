@@ -1,3 +1,4 @@
+import { nextPerformanceDeviceName } from "../lib/performanceDeviceNames";
 import type { StoreApi } from "zustand";
 
 import { insertPadLoopItem, removePadLoopItemsFromContainer } from "../lib/padLoopPattern";
@@ -116,7 +117,7 @@ export function createPerformanceControlStoreActions(
       const nextIndex = sequencer.pianoRolls.length + 1;
       const roll = defaultPianoRoll(nextIndex, nextAvailablePerformanceChannel(sequencer));
       roll.id = crypto.randomUUID();
-      roll.name = `Piano Roll ${nextIndex}`;
+      roll.name = nextPerformanceDeviceName(sequencer, "Piano Roll", nextIndex);
 
       set({
         sequencer: {
@@ -237,7 +238,7 @@ export function createPerformanceControlStoreActions(
       const nextIndex = sequencer.midiControllers.length + 1;
       const controller = defaultMidiController(nextIndex);
       controller.id = crypto.randomUUID();
-      controller.name = `Controller ${nextIndex}`;
+      controller.name = nextPerformanceDeviceName(sequencer, "Controller", nextIndex);
       controller.controllerNumber = nextAvailableControllerNumber(sequencer.midiControllers);
 
       set({
@@ -315,7 +316,7 @@ export function createPerformanceControlStoreActions(
       const nextIndex = sequencer.controllerSequencers.length + 1;
       const controllerSequencer = defaultControllerSequencer(nextIndex);
       controllerSequencer.id = crypto.randomUUID();
-      controllerSequencer.name = `Controller Sequencer ${nextIndex}`;
+      controllerSequencer.name = nextPerformanceDeviceName(sequencer, "Controller Sequencer", nextIndex);
       controllerSequencer.controllerNumber = nextAvailableControllerSequencerNumber(sequencer.controllerSequencers);
 
       set({
@@ -1020,7 +1021,7 @@ export function createPerformanceControlStoreActions(
       );
       const arpeggiator = defaultArpeggiator(nextIndex, inputChannel, targetChannel);
       arpeggiator.id = crypto.randomUUID();
-      arpeggiator.name = `Arpeggiator ${nextIndex}`;
+      arpeggiator.name = nextPerformanceDeviceName(sequencer, "Arpeggiator", nextIndex);
 
       const nextSequencer = {
         ...sequencer,

@@ -512,6 +512,35 @@ def test_performance_crud_round_trips_config_payload(tmp_path: Path) -> None:
         assert missing_response.status_code == 404
 
 
+@pytest.mark.parametrize("legacy", [False, True])
+def test_performance_device_names_survive_storage_and_json_bundle(tmp_path: Path, legacy: bool) -> None:
+    fixture = json.loads((Path(__file__).parent / "fixtures/performances/device_names.json").read_text())
+    config = fixture["config"]
+    if legacy:
+        for kind, name in fixture["legacyNames"].items():
+            config["sequencer"][kind][0]["name"] = name
+    with _client(tmp_path) as client:
+        created = client.post("/api/performances", json={"name": "Named devices", "config": config})
+        assert created.status_code == 201
+        performance_id = created.json()["id"]
+        assert client.get(f"/api/performances/{performance_id}").json()["config"] == config
+        updated = client.put(f"/api/performances/{performance_id}", json={"config": config})
+        assert updated.status_code == 200
+        assert updated.json()["config"] == config
+        payload = {
+            "format": "orchestron.performance", "version": 1,
+            "performance": {"name": "Named devices", "description": "", "config": config},
+            "patch_definitions": [],
+        }
+        exported = client.post("/api/bundles/export/performance", json=payload)
+        assert exported.status_code == 200
+        assert exported.headers["x-orchestron-export-format"] == "json"
+        imported = client.post("/api/bundles/import/expand", content=exported.content,
+                               headers={"X-File-Name": "names.orch.json", "Content-Type": "application/json"})
+        assert imported.status_code == 200
+        assert imported.json()["performance"]["config"] == config
+
+
 def test_performance_create_rejects_oversized_config_document(tmp_path: Path) -> None:
     with _client(
         tmp_path,
@@ -2097,7 +2126,8 @@ def test_patch_bundle_export_uses_zip_when_gen_audio_is_referenced(tmp_path: Pat
             assert archive.read(f"audio/{stored_name}") == audio_bytes
 
 
-def test_performance_bundle_export_uses_zip_when_patch_definitions_reference_gen_audio(tmp_path: Path) -> None:
+@pytest.mark.parametrize("legacy", [False, True])
+def test_performance_bundle_export_uses_zip_when_patch_definitions_reference_gen_audio(tmp_path: Path, legacy: bool) -> None:
     asset_dir = tmp_path / "gen_audio_assets"
     asset_dir.mkdir(parents=True, exist_ok=True)
     stored_name = "sample.wav"
@@ -2155,6 +2185,12 @@ def test_performance_bundle_export_uses_zip_when_patch_definitions_reference_gen
         ],
     }
 
+    fixture = json.loads((Path(__file__).parent / "fixtures/performances/device_names.json").read_text())
+    payload["performance"]["config"] = fixture["config"]
+    if legacy:
+        for kind, name in fixture["legacyNames"].items():
+            payload["performance"]["config"]["sequencer"][kind][0]["name"] = name
+
     with _client(tmp_path) as client:
         response = client.post("/api/bundles/export/performance", json=payload)
         assert response.status_code == 200
@@ -2165,6 +2201,11 @@ def test_performance_bundle_export_uses_zip_when_patch_definitions_reference_gen
             assert f"audio/{stored_name}" in entries
             exported_json = json.loads(archive.read("performance.orch.json").decode("utf-8"))
             assert exported_json["format"] == "orchestron.performance"
+            assert exported_json["performance"]["config"] == payload["performance"]["config"]
+        imported = client.post("/api/bundles/import/expand", content=response.content,
+                               headers={"X-File-Name": "names.orch.zip", "Content-Type": "application/zip"})
+        assert imported.status_code == 200
+        assert imported.json()["performance"]["config"] == payload["performance"]["config"]
 
 
 def test_patch_bundle_export_uses_zip_when_sfload_asset_is_referenced(tmp_path: Path) -> None:

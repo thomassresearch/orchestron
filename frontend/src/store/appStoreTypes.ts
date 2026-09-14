@@ -1,3 +1,4 @@
+import type { RenamePerformanceDevice } from "../lib/performanceDeviceNames";
 import type { BranchTarget } from "../lib/branchLayout";
 import type { AudioGraph, MixerState, MixerStrip, MixerSend, InstrumentType } from "../types";
 import type {
@@ -66,6 +67,7 @@ export interface AppStore {
   activeInstrumentTabId: string;
   currentPatch: EditablePatch;
 
+  renamePerformanceDevice: RenamePerformanceDevice;
   sequencer: SequencerState;
   sequencerRuntime: SequencerRuntimeState;
   sequencerInstruments: SequencerInstrumentBinding[];

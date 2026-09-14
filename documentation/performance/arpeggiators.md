@@ -11,6 +11,8 @@ This lets any note source in a performance drive an arpeggiator:
 - drummer sequencers or external MIDI note sources
 - any external controller routed through the selected session MIDI input
 
+Use the pen beside the device name to rename it. See [Device Names](performance.md#device-names) for editing controls, validation, and import/export behavior.
+
 ## Collapse the Panel
 
 Collapse the Arpeggiators header to hide all arpeggiator editors. Add and help remain available; adding an arpeggiator expands the group. Panels start expanded and remember your choice across view switches until browser reload. Collapsing does not stop playback or discard edits.

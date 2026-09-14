@@ -24,6 +24,7 @@ File extensions:
 A performance export includes:
 
 - Performance metadata (`name`, `description`)
+- Custom names for all six performance device types, including names created through the CLI. Existing names are preserved on import; the GUI applies its name validation only when renaming a device.
 - Sequencer/drummer-sequencer/arpeggiator/piano-roll/controller/controller-sequencer configuration snapshot
 - Instrument assignments with stable instance IDs
 - Explicit audio routes, Master selection, insert ownership, strip gain/balance/mute/solo, and send level/pre-post settings

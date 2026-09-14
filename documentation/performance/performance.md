@@ -4,6 +4,18 @@
 
 This chapter covers the `Perform` page (labeled `Perform` / `Performance` depending language), where you build a playable multi-instrument setup and perform it live.
 
+## Device Names
+
+Melodic sequencers, drummer sequencers, controller sequencers, arpeggiators, piano rolls, and MIDI controllers all support custom names. Click the pen immediately to the right of a device name to edit it. The input receives focus with its current name selected.
+
+- Save or Enter applies the name. Cancel or Escape discards the draft. Clicking elsewhere does not save; switching performances or removing the device discards the draft.
+- Names must be nonempty after trimming surrounding whitespace and contain at most 65 Unicode characters. HTML and angle brackets (`<` and `>`) are rejected.
+- Names must be unique across all six device types within the performance, ignoring case and surrounding whitespace. Validation messages appear while typing, and Save is disabled until the name is valid.
+- Names retain their capitalization. Melodic synchronization choices and arranger track titles show the stored names. New devices receive an unused numbered default name.
+- Renaming preserves device IDs, synchronization, routing, patterns, and playback state. Names survive performance save/load, browser persistence, raw snapshot import, and native JSON/ZIP export/import.
+- Existing/imported names remain intact under the existing loading rules, even if they violate the new editing rules. They display as plain text and need a valid replacement only when renamed. CLI/API acceptance is unchanged.
+
+
 ## Collapsible Panels
 
 Click a panel title or focus it and press Enter or Space to collapse or expand its contents. Header actions, status and help remain available. Panels collapse independently, start expanded and remember your choices across view switches until browser reload. Adding a device opens its group. Collapsing preserves edits and does not stop playback. The shared tempo stays outside the sequencer groups; Mixer keeps its existing behavior.

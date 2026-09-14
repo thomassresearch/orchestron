@@ -63,6 +63,8 @@ Gestiona asignaciones de instrumentos a nivel de performance.
       title: "Melodic Sequencers",
       markdown: `## Melodic Sequencers
 
+Click the pen beside the device name to rename it. Save/Enter applies; Cancel/Escape discards. Clicking elsewhere does not save. Names must be nonempty, use at most 65 Unicode characters, contain no HTML or angle brackets, and be unique across all six device types in the performance (ignoring case and surrounding whitespace). Names retain their capitalization and survive save/load and JSON/ZIP export/import. Existing imported names remain intact until renamed.
+
 Program step-based melodic or rhythmic patterns.
 
 - Add/remove melodic sequencers.
@@ -83,6 +85,8 @@ Program step-based melodic or rhythmic patterns.
     german: {
       title: "Melodische Sequencer",
       markdown: `## Melodische Sequencer
+
+Zum Umbenennen auf den Stift neben dem Gerätenamen klicken. Speichern/Enter übernimmt, Abbrechen/Escape verwirft den Entwurf. Ein Klick außerhalb speichert nicht. Namen dürfen nicht leer sein, höchstens 65 Unicode-Zeichen enthalten und weder HTML noch spitze Klammern verwenden. Sie müssen über alle sechs Gerätetypen der Performance eindeutig sein; Groß-/Kleinschreibung und äußere Leerzeichen werden dabei ignoriert. Die Schreibweise bleibt erhalten, auch beim Speichern/Laden und JSON/ZIP-Export/Import. Vorhandene importierte Namen bleiben bis zum Umbenennen erhalten.
 
 Programmiert schrittbasierte melodische oder rhythmische Patterns.
 
@@ -105,6 +109,8 @@ Programmiert schrittbasierte melodische oder rhythmische Patterns.
       title: "Sequenceurs melodiques",
       markdown: `## Sequenceurs melodiques
 
+Cliquez sur le stylo à droite du nom pour le modifier. Enregistrer/Entrée applique ; Annuler/Échap abandonne. Cliquer ailleurs ne sauvegarde pas. Le nom doit être non vide, comporter au maximum 65 caractères Unicode, sans HTML ni chevrons, et être unique parmi les six types d’appareils de la performance, sans tenir compte de la casse ni des espaces aux extrémités. La casse est conservée, ainsi que les noms lors de l’enregistrement, du chargement et de l’export/import JSON/ZIP. Les noms importés existants restent intacts jusqu’à leur modification.
+
 Programme des patterns mélodiques ou rythmiques par pas.
 
 - Ajouter/supprimer des sequenceurs melodiques.
@@ -125,6 +131,8 @@ Programme des patterns mélodiques ou rythmiques par pas.
     spanish: {
       title: "Secuenciadores melodicos",
       markdown: `## Secuenciadores melodicos
+
+Haz clic en el lápiz a la derecha del nombre para editarlo. Guardar/Enter aplica; Cancelar/Escape descarta. Hacer clic fuera no guarda. El nombre no puede estar vacío, debe tener como máximo 65 caracteres Unicode, no puede contener HTML ni corchetes angulares y debe ser único entre los seis tipos de dispositivos de la performance, sin distinguir mayúsculas ni espacios en los extremos. Se conservan las mayúsculas y los nombres al guardar, cargar y exportar/importar JSON/ZIP. Los nombres importados existentes se mantienen hasta que se renombren.
 
 Programa patrones melódicos o rítmicos por pasos.
 
@@ -149,6 +157,8 @@ Programa patrones melódicos o rítmicos por pasos.
       title: "Melodic Sequencer",
       markdown: `## Melodic Sequencer
 
+Click the pen beside the device name to rename it. Save/Enter applies; Cancel/Escape discards. Clicking elsewhere does not save. Names must be nonempty, use at most 65 Unicode characters, contain no HTML or angle brackets, and be unique across all six device types in the performance (ignoring case and surrounding whitespace). Names retain their capitalization and survive save/load and JSON/ZIP export/import. Existing imported names remain intact until renamed.
+
 This help applies to one melodic sequencer card.
 
 - Start/stop the sequencer independently while the arranger is stopped (instrument transport must be running to start).
@@ -166,6 +176,8 @@ This help applies to one melodic sequencer card.
     german: {
       title: "Melodischer Sequencer",
       markdown: `## Melodischer Sequencer
+
+Zum Umbenennen auf den Stift neben dem Gerätenamen klicken. Speichern/Enter übernimmt, Abbrechen/Escape verwirft den Entwurf. Ein Klick außerhalb speichert nicht. Namen dürfen nicht leer sein, höchstens 65 Unicode-Zeichen enthalten und weder HTML noch spitze Klammern verwenden. Sie müssen über alle sechs Gerätetypen der Performance eindeutig sein; Groß-/Kleinschreibung und äußere Leerzeichen werden dabei ignoriert. Die Schreibweise bleibt erhalten, auch beim Speichern/Laden und JSON/ZIP-Export/Import. Vorhandene importierte Namen bleiben bis zum Umbenennen erhalten.
 
 Diese Hilfe gilt fuer eine einzelne Karte eines melodischen Sequencers.
 
@@ -185,6 +197,8 @@ Diese Hilfe gilt fuer eine einzelne Karte eines melodischen Sequencers.
       title: "Sequenceur melodique",
       markdown: `## Sequenceur melodique
 
+Cliquez sur le stylo à droite du nom pour le modifier. Enregistrer/Entrée applique ; Annuler/Échap abandonne. Cliquer ailleurs ne sauvegarde pas. Le nom doit être non vide, comporter au maximum 65 caractères Unicode, sans HTML ni chevrons, et être unique parmi les six types d’appareils de la performance, sans tenir compte de la casse ni des espaces aux extrémités. La casse est conservée, ainsi que les noms lors de l’enregistrement, du chargement et de l’export/import JSON/ZIP. Les noms importés existants restent intacts jusqu’à leur modification.
+
 Cette aide s'applique a une carte individuelle de sequenceur melodique.
 
 - Demarrer/arreter le sequenceur independamment pendant que l'arrangeur est arrete (le transport instrument doit etre actif pour demarrer).
@@ -202,6 +216,8 @@ Cette aide s'applique a une carte individuelle de sequenceur melodique.
     spanish: {
       title: "Secuenciador melodico",
       markdown: `## Secuenciador melodico
+
+Haz clic en el lápiz a la derecha del nombre para editarlo. Guardar/Enter aplica; Cancelar/Escape descarta. Hacer clic fuera no guarda. El nombre no puede estar vacío, debe tener como máximo 65 caracteres Unicode, no puede contener HTML ni corchetes angulares y debe ser único entre los seis tipos de dispositivos de la performance, sin distinguir mayúsculas ni espacios en los extremos. Se conservan las mayúsculas y los nombres al guardar, cargar y exportar/importar JSON/ZIP. Los nombres importados existentes se mantienen hasta que se renombren.
 
 Esta ayuda se aplica a una tarjeta individual de secuenciador melodico.
 
@@ -293,6 +309,8 @@ Organiza secuenciadores melodicos, secuenciadores de bateria y secuenciadores de
       title: "Drummer Sequencer",
       markdown: `## Drummer Sequencer
 
+Click the pen beside the device name to rename it. Save/Enter applies; Cancel/Escape discards. Clicking elsewhere does not save. Names must be nonempty, use at most 65 Unicode characters, contain no HTML or angle brackets, and be unique across all six device types in the performance (ignoring case and surrounding whitespace). Names retain their capitalization and survive save/load and JSON/ZIP export/import. Existing imported names remain intact until renamed.
+
 Drum-machine style step sequencer for fixed MIDI drum keys.
 
 - Add/remove drum rows (keys) and set each row key in the 0..127 MIDI range.
@@ -307,6 +325,8 @@ Drum-machine style step sequencer for fixed MIDI drum keys.
     german: {
       title: "Drummer-Sequencer",
       markdown: `## Drummer-Sequencer
+
+Zum Umbenennen auf den Stift neben dem Gerätenamen klicken. Speichern/Enter übernimmt, Abbrechen/Escape verwirft den Entwurf. Ein Klick außerhalb speichert nicht. Namen dürfen nicht leer sein, höchstens 65 Unicode-Zeichen enthalten und weder HTML noch spitze Klammern verwenden. Sie müssen über alle sechs Gerätetypen der Performance eindeutig sein; Groß-/Kleinschreibung und äußere Leerzeichen werden dabei ignoriert. Die Schreibweise bleibt erhalten, auch beim Speichern/Laden und JSON/ZIP-Export/Import. Vorhandene importierte Namen bleiben bis zum Umbenennen erhalten.
 
 Drum-Machine-Step-Sequencer fuer feste MIDI-Drum-Keys.
 
@@ -323,6 +343,8 @@ Drum-Machine-Step-Sequencer fuer feste MIDI-Drum-Keys.
       title: "Séquenceur batterie",
       markdown: `## Séquenceur batterie
 
+Cliquez sur le stylo à droite du nom pour le modifier. Enregistrer/Entrée applique ; Annuler/Échap abandonne. Cliquer ailleurs ne sauvegarde pas. Le nom doit être non vide, comporter au maximum 65 caractères Unicode, sans HTML ni chevrons, et être unique parmi les six types d’appareils de la performance, sans tenir compte de la casse ni des espaces aux extrémités. La casse est conservée, ainsi que les noms lors de l’enregistrement, du chargement et de l’export/import JSON/ZIP. Les noms importés existants restent intacts jusqu’à leur modification.
+
 Séquenceur pas à pas type boîte à rythmes pour des touches MIDI fixes.
 
 - Ajouter/supprimer des lignes de batterie et régler la touche MIDI (0..127).
@@ -337,6 +359,8 @@ Séquenceur pas à pas type boîte à rythmes pour des touches MIDI fixes.
     spanish: {
       title: "Secuenciador de batería",
       markdown: `## Secuenciador de batería
+
+Haz clic en el lápiz a la derecha del nombre para editarlo. Guardar/Enter aplica; Cancelar/Escape descarta. Hacer clic fuera no guarda. El nombre no puede estar vacío, debe tener como máximo 65 caracteres Unicode, no puede contener HTML ni corchetes angulares y debe ser único entre los seis tipos de dispositivos de la performance, sin distinguir mayúsculas ni espacios en los extremos. Se conservan las mayúsculas y los nombres al guardar, cargar y exportar/importar JSON/ZIP. Los nombres importados existentes se mantienen hasta que se renombren.
 
 Secuenciador por pasos estilo caja de ritmos para teclas MIDI fijas.
 
@@ -355,6 +379,8 @@ Secuenciador por pasos estilo caja de ritmos para teclas MIDI fijas.
       title: "Controller Sequencer",
       markdown: `## Controller Sequencer
 
+Click the pen beside the device name to rename it. Save/Enter applies; Cancel/Escape discards. Clicking elsewhere does not save. Names must be nonempty, use at most 65 Unicode characters, contain no HTML or angle brackets, and be unique across all six device types in the performance (ignoring case and surrounding whitespace). Names retain their capitalization and survive save/load and JSON/ZIP export/import. Existing imported names remain intact until renamed.
+
 Automate a MIDI CC value over time with a curve.
 
 - Start/stop this controller sequencer independently while the arranger is stopped (instrument transport must be running to start).
@@ -368,6 +394,8 @@ Automate a MIDI CC value over time with a curve.
     german: {
       title: "Controller-Sequencer",
       markdown: `## Controller-Sequencer
+
+Zum Umbenennen auf den Stift neben dem Gerätenamen klicken. Speichern/Enter übernimmt, Abbrechen/Escape verwirft den Entwurf. Ein Klick außerhalb speichert nicht. Namen dürfen nicht leer sein, höchstens 65 Unicode-Zeichen enthalten und weder HTML noch spitze Klammern verwenden. Sie müssen über alle sechs Gerätetypen der Performance eindeutig sein; Groß-/Kleinschreibung und äußere Leerzeichen werden dabei ignoriert. Die Schreibweise bleibt erhalten, auch beim Speichern/Laden und JSON/ZIP-Export/Import. Vorhandene importierte Namen bleiben bis zum Umbenennen erhalten.
 
 Automatisiert einen MIDI-CC-Wert über die Zeit mit einer Kurve.
 
@@ -383,6 +411,8 @@ Automatisiert einen MIDI-CC-Wert über die Zeit mit einer Kurve.
       title: "Séquenceur contrôleur",
       markdown: `## Séquenceur contrôleur
 
+Cliquez sur le stylo à droite du nom pour le modifier. Enregistrer/Entrée applique ; Annuler/Échap abandonne. Cliquer ailleurs ne sauvegarde pas. Le nom doit être non vide, comporter au maximum 65 caractères Unicode, sans HTML ni chevrons, et être unique parmi les six types d’appareils de la performance, sans tenir compte de la casse ni des espaces aux extrémités. La casse est conservée, ainsi que les noms lors de l’enregistrement, du chargement et de l’export/import JSON/ZIP. Les noms importés existants restent intacts jusqu’à leur modification.
+
 Automatise une valeur MIDI CC dans le temps avec une courbe.
 
 - Démarrer/arrêter ce séquenceur contrôleur indépendamment pendant que l'arrangeur est arrêté (le transport instrument doit être actif pour démarrer).
@@ -396,6 +426,8 @@ Automatise une valeur MIDI CC dans le temps avec une courbe.
     spanish: {
       title: "Secuenciador controlador",
       markdown: `## Secuenciador controlador
+
+Haz clic en el lápiz a la derecha del nombre para editarlo. Guardar/Enter aplica; Cancelar/Escape descarta. Hacer clic fuera no guarda. El nombre no puede estar vacío, debe tener como máximo 65 caracteres Unicode, no puede contener HTML ni corchetes angulares y debe ser único entre los seis tipos de dispositivos de la performance, sin distinguir mayúsculas ni espacios en los extremos. Se conservan las mayúsculas y los nombres al guardar, cargar y exportar/importar JSON/ZIP. Los nombres importados existentes se mantienen hasta que se renombren.
 
 Automatiza un valor MIDI CC en el tiempo mediante una curva.
 
@@ -413,6 +445,8 @@ Automatiza un valor MIDI CC en el tiempo mediante una curva.
       title: "Arpeggiator",
       markdown: `## Arpeggiator
 
+Click the pen beside the device name to rename it. Save/Enter applies; Cancel/Escape discards. Clicking elsewhere does not save. Names must be nonempty, use at most 65 Unicode characters, contain no HTML or angle brackets, and be unique across all six device types in the performance (ignoring case and surrounding whitespace). Names retain their capitalization and survive save/load and JSON/ZIP export/import. Existing imported names remain intact until renamed.
+
 Route held notes through a backend-run arpeggiator.
 
 - Start/stop each arpeggiator independently from the arranger transport.
@@ -427,6 +461,8 @@ Route held notes through a backend-run arpeggiator.
     german: {
       title: "Arpeggiator",
       markdown: `## Arpeggiator
+
+Zum Umbenennen auf den Stift neben dem Gerätenamen klicken. Speichern/Enter übernimmt, Abbrechen/Escape verwirft den Entwurf. Ein Klick außerhalb speichert nicht. Namen dürfen nicht leer sein, höchstens 65 Unicode-Zeichen enthalten und weder HTML noch spitze Klammern verwenden. Sie müssen über alle sechs Gerätetypen der Performance eindeutig sein; Groß-/Kleinschreibung und äußere Leerzeichen werden dabei ignoriert. Die Schreibweise bleibt erhalten, auch beim Speichern/Laden und JSON/ZIP-Export/Import. Vorhandene importierte Namen bleiben bis zum Umbenennen erhalten.
 
 Leitet gehaltene Noten durch einen backend-gesteuerten Arpeggiator.
 
@@ -443,6 +479,8 @@ Leitet gehaltene Noten durch einen backend-gesteuerten Arpeggiator.
       title: "Arpegiateur",
       markdown: `## Arpegiateur
 
+Cliquez sur le stylo à droite du nom pour le modifier. Enregistrer/Entrée applique ; Annuler/Échap abandonne. Cliquer ailleurs ne sauvegarde pas. Le nom doit être non vide, comporter au maximum 65 caractères Unicode, sans HTML ni chevrons, et être unique parmi les six types d’appareils de la performance, sans tenir compte de la casse ni des espaces aux extrémités. La casse est conservée, ainsi que les noms lors de l’enregistrement, du chargement et de l’export/import JSON/ZIP. Les noms importés existants restent intacts jusqu’à leur modification.
+
 Fait passer les notes tenues par un arpegiateur execute cote backend.
 
 - Demarrer/arreter chaque arpegiateur independamment du transport arrangeur.
@@ -457,6 +495,8 @@ Fait passer les notes tenues par un arpegiateur execute cote backend.
     spanish: {
       title: "Arpegiador",
       markdown: `## Arpegiador
+
+Haz clic en el lápiz a la derecha del nombre para editarlo. Guardar/Enter aplica; Cancelar/Escape descarta. Hacer clic fuera no guarda. El nombre no puede estar vacío, debe tener como máximo 65 caracteres Unicode, no puede contener HTML ni corchetes angulares y debe ser único entre los seis tipos de dispositivos de la performance, sin distinguir mayúsculas ni espacios en los extremos. Se conservan las mayúsculas y los nombres al guardar, cargar y exportar/importar JSON/ZIP. Los nombres importados existentes se mantienen hasta que se renombren.
 
 Enruta notas retenidas por un arpegiador ejecutado en el backend.
 
@@ -475,6 +515,8 @@ Enruta notas retenidas por un arpegiador ejecutado en el backend.
       title: "Piano Rolls",
       markdown: `## Piano Rolls
 
+Click the pen beside the device name to rename it. Save/Enter applies; Cancel/Escape discards. Clicking elsewhere does not save. Names must be nonempty, use at most 65 Unicode characters, contain no HTML or angle brackets, and be unique across all six device types in the performance (ignoring case and surrounding whitespace). Names retain their capitalization and survive save/load and JSON/ZIP export/import. Existing imported names remain intact until renamed.
+
 Play notes manually with scale-aware keyboard highlights.
 
 - Add/remove piano roll controllers.
@@ -486,6 +528,8 @@ Play notes manually with scale-aware keyboard highlights.
     german: {
       title: "Piano Rolls",
       markdown: `## Piano Rolls
+
+Zum Umbenennen auf den Stift neben dem Gerätenamen klicken. Speichern/Enter übernimmt, Abbrechen/Escape verwirft den Entwurf. Ein Klick außerhalb speichert nicht. Namen dürfen nicht leer sein, höchstens 65 Unicode-Zeichen enthalten und weder HTML noch spitze Klammern verwenden. Sie müssen über alle sechs Gerätetypen der Performance eindeutig sein; Groß-/Kleinschreibung und äußere Leerzeichen werden dabei ignoriert. Die Schreibweise bleibt erhalten, auch beim Speichern/Laden und JSON/ZIP-Export/Import. Vorhandene importierte Namen bleiben bis zum Umbenennen erhalten.
 
 Noten manuell spielen mit skalenbezogener Tastatur-Hervorhebung.
 
@@ -499,6 +543,8 @@ Noten manuell spielen mit skalenbezogener Tastatur-Hervorhebung.
       title: "Piano Rolls",
       markdown: `## Piano Rolls
 
+Cliquez sur le stylo à droite du nom pour le modifier. Enregistrer/Entrée applique ; Annuler/Échap abandonne. Cliquer ailleurs ne sauvegarde pas. Le nom doit être non vide, comporter au maximum 65 caractères Unicode, sans HTML ni chevrons, et être unique parmi les six types d’appareils de la performance, sans tenir compte de la casse ni des espaces aux extrémités. La casse est conservée, ainsi que les noms lors de l’enregistrement, du chargement et de l’export/import JSON/ZIP. Les noms importés existants restent intacts jusqu’à leur modification.
+
 Jouez des notes manuellement avec surbrillance selon la gamme.
 
 - Ajouter/supprimer des contrôleurs piano roll.
@@ -510,6 +556,8 @@ Jouez des notes manuellement avec surbrillance selon la gamme.
     spanish: {
       title: "Piano Rolls",
       markdown: `## Piano Rolls
+
+Haz clic en el lápiz a la derecha del nombre para editarlo. Guardar/Enter aplica; Cancelar/Escape descarta. Hacer clic fuera no guarda. El nombre no puede estar vacío, debe tener como máximo 65 caracteres Unicode, no puede contener HTML ni corchetes angulares y debe ser único entre los seis tipos de dispositivos de la performance, sin distinguir mayúsculas ni espacios en los extremos. Se conservan las mayúsculas y los nombres al guardar, cargar y exportar/importar JSON/ZIP. Los nombres importados existentes se mantienen hasta que se renombren.
 
 Toca notas manualmente con resaltado según la escala.
 
@@ -525,6 +573,8 @@ Toca notas manualmente con resaltado según la escala.
       title: "MIDI Controllers",
       markdown: `## MIDI Controllers
 
+Click the pen beside the device name to rename it. Save/Enter applies; Cancel/Escape discards. Clicking elsewhere does not save. Names must be nonempty, use at most 65 Unicode characters, contain no HTML or angle brackets, and be unique across all six device types in the performance (ignoring case and surrounding whitespace). Names retain their capitalization and survive save/load and JSON/ZIP export/import. Existing imported names remain intact until renamed.
+
 Send MIDI CC messages from the sequencer page.
 
 - Add up to 6 controller lanes.
@@ -536,6 +586,8 @@ Send MIDI CC messages from the sequencer page.
     german: {
       title: "MIDI Controller",
       markdown: `## MIDI Controller
+
+Zum Umbenennen auf den Stift neben dem Gerätenamen klicken. Speichern/Enter übernimmt, Abbrechen/Escape verwirft den Entwurf. Ein Klick außerhalb speichert nicht. Namen dürfen nicht leer sein, höchstens 65 Unicode-Zeichen enthalten und weder HTML noch spitze Klammern verwenden. Sie müssen über alle sechs Gerätetypen der Performance eindeutig sein; Groß-/Kleinschreibung und äußere Leerzeichen werden dabei ignoriert. Die Schreibweise bleibt erhalten, auch beim Speichern/Laden und JSON/ZIP-Export/Import. Vorhandene importierte Namen bleiben bis zum Umbenennen erhalten.
 
 Sendet MIDI-CC-Nachrichten von der Sequencer-Seite.
 
@@ -549,6 +601,8 @@ Sendet MIDI-CC-Nachrichten von der Sequencer-Seite.
       title: "Contrôleurs MIDI",
       markdown: `## Contrôleurs MIDI
 
+Cliquez sur le stylo à droite du nom pour le modifier. Enregistrer/Entrée applique ; Annuler/Échap abandonne. Cliquer ailleurs ne sauvegarde pas. Le nom doit être non vide, comporter au maximum 65 caractères Unicode, sans HTML ni chevrons, et être unique parmi les six types d’appareils de la performance, sans tenir compte de la casse ni des espaces aux extrémités. La casse est conservée, ainsi que les noms lors de l’enregistrement, du chargement et de l’export/import JSON/ZIP. Les noms importés existants restent intacts jusqu’à leur modification.
+
 Envoi de messages MIDI CC depuis la page séquenceur.
 
 - Ajouter jusqu'à 6 pistes de contrôleur.
@@ -560,6 +614,8 @@ Envoi de messages MIDI CC depuis la page séquenceur.
     spanish: {
       title: "Controladores MIDI",
       markdown: `## Controladores MIDI
+
+Haz clic en el lápiz a la derecha del nombre para editarlo. Guardar/Enter aplica; Cancelar/Escape descarta. Hacer clic fuera no guarda. El nombre no puede estar vacío, debe tener como máximo 65 caracteres Unicode, no puede contener HTML ni corchetes angulares y debe ser único entre los seis tipos de dispositivos de la performance, sin distinguir mayúsculas ni espacios en los extremos. Se conservan las mayúsculas y los nombres al guardar, cargar y exportar/importar JSON/ZIP. Los nombres importados existentes se mantienen hasta que se renombren.
 
 Envía mensajes MIDI CC desde la página del secuenciador.
 

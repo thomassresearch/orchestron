@@ -4,6 +4,8 @@
 
 Piano Rolls provide manual performance input with scale-aware keyboard highlighting.
 
+Use the pen beside the device name to rename it. See [Device Names](performance.md#device-names) for editing controls, validation, and import/export behavior.
+
 ## Collapse the Panel
 
 Collapse the Piano Rolls header to hide the keyboards and their settings. Add and help remain available; adding a keyboard expands the group. Panels start expanded and remember your choice across view switches until browser reload. Collapsing does not stop playback or discard edits.

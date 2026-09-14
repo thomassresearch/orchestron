@@ -7,6 +7,7 @@ COPY frontend/ ./
 COPY examples/instruments/template/analog_drumkit.patch.json ../examples/instruments/template/
 COPY backend/app/data/opcodes.json ../backend/app/data/
 COPY backend/tests/fixtures/instrument_types.json ../backend/tests/fixtures/
+COPY backend/tests/fixtures/performances/device_names.json ../backend/tests/fixtures/performances/
 RUN npm run build
 
 FROM python:3.13-slim-bookworm AS app

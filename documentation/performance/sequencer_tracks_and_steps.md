@@ -6,6 +6,8 @@ Melodic sequencers are step-based pattern sequencers used for note playback.
 
 This page covers the **melodic sequencer** editor. Drum-machine style programming is documented in [Drummer Sequencers](drummer_sequencers.md).
 
+Use the pen beside the device name to rename it. See [Device Names](performance.md#device-names) for editing controls, validation, and import/export behavior.
+
 ## Collapse the Panel
 
 Melodic, drummer, and controller groups collapse independently. The shared tempo remains above the groups. Each group has its own Add button, which expands it. Panels start expanded and remember your choice across view switches until browser reload. Collapsing does not stop playback or discard edits.

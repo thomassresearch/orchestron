@@ -1,3 +1,4 @@
+import { performanceDeviceDisplayName } from "../lib/performanceDeviceNames";
 import { CollapsiblePanel } from "./CollapsiblePanel";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
@@ -884,7 +885,7 @@ export function MultitrackArranger({
         id: track.id,
         kind: "sequencer",
         index,
-        title: copy.melodicSequencerWithIndex(index + 1),
+        title: performanceDeviceDisplayName(track.name, copy.melodicSequencerWithIndex(index + 1)),
         subtitle: buildTrackSubtitle("sequencer", track.midiChannel, patchByChannel, null),
         padLoopPattern: track.padLoopPattern,
         padTransportStepCounts: track.pads.map((pad) => sequencerTransportStepCount(track.timing, pad.lengthBeats)),
@@ -898,7 +899,7 @@ export function MultitrackArranger({
         id: track.id,
         kind: "drummer",
         index,
-        title: copy.drummerSequencerWithIndex(index + 1),
+        title: performanceDeviceDisplayName(track.name, copy.drummerSequencerWithIndex(index + 1)),
         subtitle: buildTrackSubtitle("drummer", track.midiChannel, patchByChannel, null),
         padLoopPattern: track.padLoopPattern,
         padTransportStepCounts: track.pads.map((pad) => sequencerTransportStepCount(track.timing, pad.lengthBeats)),
@@ -912,7 +913,7 @@ export function MultitrackArranger({
         id: track.id,
         kind: "controller",
         index,
-        title: copy.controllerSequencerWithIndex(index + 1),
+        title: performanceDeviceDisplayName(track.name, copy.controllerSequencerWithIndex(index + 1)),
         subtitle: buildTrackSubtitle("controller", null, patchByChannel, track.controllerNumber),
         padLoopPattern: track.padLoopPattern,
         padTransportStepCounts: track.pads.map((pad) => sequencerTransportStepCount(track.timing, pad.lengthBeats)),
@@ -1799,7 +1800,7 @@ export function MultitrackArranger({
             <div key={track.key} className="rounded-lg border border-slate-700 bg-slate-900/70 p-1.5">
               <div className="grid grid-cols-[280px_minmax(0,1fr)] gap-1.5">
                 <div className="rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1.5">
-                  <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-100">{track.title}</div>
+                  <div className="break-words text-xs font-semibold text-slate-100 [overflow-wrap:anywhere]">{track.title}</div>
                   <div className="mt-0.5 text-[11px] text-slate-400">{track.subtitle}</div>
                 </div>
 

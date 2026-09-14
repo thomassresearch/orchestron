@@ -174,6 +174,7 @@ export default function App() {
   const pushEvent = useAppStore((state) => state.pushEvent);
 
   const setSequencerBpm = useAppStore((state) => state.setSequencerBpm);
+  const renamePerformanceDevice = useAppStore((state) => state.renamePerformanceDevice);
   const addSequencerTrack = useAppStore((state) => state.addSequencerTrack);
   const removeSequencerTrack = useAppStore((state) => state.removeSequencerTrack);
   const setSequencerTrackEnabled = useAppStore((state) => state.setSequencerTrackEnabled);
@@ -1791,6 +1792,7 @@ export default function App() {
     onStopInstruments: onStopInstrumentEngine
   };
   const sequencerPerformanceActions = {
+    onRenamePerformanceDevice: renamePerformanceDevice,
     onPerformanceNameChange: (name: string) => setCurrentPerformanceMeta(name, performanceDescription),
     onPerformanceDescriptionChange: (description: string) => setCurrentPerformanceMeta(performanceName, description),
     onNewPerformance: onNewCurrentPerformance,

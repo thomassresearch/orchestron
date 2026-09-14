@@ -1,0 +1,52 @@
+{
+  "config": {
+    "version": 12,
+    "instruments": [],
+    "sequencer": {
+      "tracks": [
+        {
+          "id": "tracks-1",
+          "name": "Warm Lead"
+        }
+      ],
+      "drummerTracks": [
+        {
+          "id": "drummerTracks-1",
+          "name": "Broken Beat"
+        }
+      ],
+      "controllerSequencers": [
+        {
+          "id": "controllerSequencers-1",
+          "name": "Filter Sweep"
+        }
+      ],
+      "arpeggiators": [
+        {
+          "id": "arpeggiators-1",
+          "name": "Rising Arp"
+        }
+      ],
+      "pianoRolls": [
+        {
+          "id": "pianoRolls-1",
+          "name": "Clavier été 🎹"
+        }
+      ],
+      "midiControllers": [
+        {
+          "id": "midiControllers-1",
+          "name": "Manual Modulation"
+        }
+      ]
+    }
+  },
+  "legacyNames": {
+    "tracks": "Duplicate",
+    "drummerTracks": "duplicate",
+    "controllerSequencers": "<b>Filter</b>",
+    "arpeggiators": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "pianoRolls": "Clavier été 🎹",
+    "midiControllers": "Manual Modulation"
+  }
+}

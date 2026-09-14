@@ -1,3 +1,4 @@
+import type { RenamePerformanceDevice } from "../../lib/performanceDeviceNames";
 import type { PanelCollapseState, PerformPanelId } from "../CollapsiblePanel";
 import type {
   ArrangerLoopSelection,
@@ -49,6 +50,7 @@ export interface SequencerPageInstrumentActions {
 }
 
 export interface SequencerPagePerformanceActions {
+  onRenamePerformanceDevice: RenamePerformanceDevice;
   onPerformanceNameChange: (value: string) => void;
   onPerformanceDescriptionChange: (value: string) => void;
   onNewPerformance: () => void;

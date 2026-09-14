@@ -1,3 +1,5 @@
+import { PerformanceDeviceName } from "./sequencer/PerformanceDeviceName";
+import { performanceDeviceDisplayName, type PerformanceDeviceKind } from "../lib/performanceDeviceNames";
 import { CollapsiblePanel } from "./CollapsiblePanel";
 import { PatchPicker } from "./PatchPicker";
 import { PerformanceControllerRack, PerformanceControllerSyncStatus } from "./sequencer/PerformanceControllerRack";
@@ -336,6 +338,7 @@ export function SequencerPage({
     onStopInstruments
   } = instrumentActions;
   const {
+    onRenamePerformanceDevice,
     onPerformanceNameChange,
     onPerformanceDescriptionChange,
     onNewPerformance,
@@ -556,6 +559,11 @@ export function SequencerPage({
     selectedPerformance?.name.trim() ||
     performanceName.trim() ||
     (currentPerformanceId ? `#${currentPerformanceId}` : ui.current);
+
+  const renderDeviceName = (kind: PerformanceDeviceKind, device: { id: string; name: string }, fallback: string) => (
+    <PerformanceDeviceName key={`${currentPerformanceId ?? "workspace"}:${kind}:${device.id}`} kind={kind}
+      device={device} fallback={fallback} sequencer={sequencer} guiLanguage={guiLanguage} onRename={onRenamePerformanceDevice} />
+  );
 
   const configFileInputRef = useRef<HTMLInputElement | null>(null);
   const [stepSelectPreview, setStepSelectPreview] = useState<Record<string, string>>({});
@@ -1176,7 +1184,7 @@ export function SequencerPage({
             const modeLabel = modeLabels[track.mode];
             const scaleValue = `${track.scaleRoot}:${track.scaleType}`;
             const stepIndices = Array.from({ length: track.stepCount }, (_, index) => index);
-            const trackDisplayLabel = ui.sequencerWithIndex(trackIndex + 1);
+            const trackDisplayLabel = performanceDeviceDisplayName(track.name, ui.sequencerWithIndex(trackIndex + 1));
             const syncTargetValue = track.syncToTrackId ?? "";
             const trackIsRunning = sequencer.isPlaying && track.enabled;
             const absoluteTransportSubunit = sequencer.isPlaying
@@ -1233,9 +1241,7 @@ export function SequencerPage({
                   >
                     ::
                   </div>
-                  <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-200">
-                    {trackDisplayLabel}
-                  </div>
+                  {renderDeviceName("tracks", track, ui.sequencerWithIndex(trackIndex + 1))}
                   <span className={transportStateClass}>{trackStateLabel(track, sequencer.isPlaying, ui)}</span>
                   <button
                     type="button"
@@ -1296,7 +1302,7 @@ export function SequencerPage({
                             }
                             return (
                               <option key={`${track.id}-sync-${candidateTrack.id}`} value={candidateTrack.id}>
-                                {ui.sequencerWithIndex(candidateIndex + 1)}
+                                {performanceDeviceDisplayName(candidateTrack.name, ui.sequencerWithIndex(candidateIndex + 1))}
                               </option>
                             );
                           })}
@@ -1973,9 +1979,7 @@ export function SequencerPage({
                       ) : null}
 
                       <div className="mb-2 flex flex-wrap items-center gap-2">
-                        <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-200">
-                          {ui.drummerSequencerWithIndex(trackIndex + 1)}
-                        </div>
+                        {renderDeviceName("drummerTracks", track, ui.drummerSequencerWithIndex(trackIndex + 1))}
                         <span className={transportStateClass}>{trackStateLabel(track, sequencer.isPlaying, ui)}</span>
                         <button
                           type="button"
@@ -2400,9 +2404,7 @@ export function SequencerPage({
                       />
                     ) : null}
                     <div className="mb-2 flex flex-wrap items-center gap-2">
-                      <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-200">
-                        {controllerSequencer.name || ui.controllerSequencerWithIndex(controllerSequencerIndex + 1)}
-                      </div>
+                      {renderDeviceName("controllerSequencers", controllerSequencer, ui.controllerSequencerWithIndex(controllerSequencerIndex + 1))}
                       <span className={transportStateClass}>
                         {controllerSequencerIsRunning ? ui.running : ui.stopped}
                       </span>
@@ -2719,9 +2721,7 @@ export function SequencerPage({
                   />
                 ) : null}
                 <div className="mb-2 flex flex-wrap items-center gap-2">
-                  <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-200">
-                    {arpeggiator.name || ui.arpeggiatorWithIndex(arpeggiatorIndex + 1)}
-                  </div>
+                  {renderDeviceName("arpeggiators", arpeggiator, ui.arpeggiatorWithIndex(arpeggiatorIndex + 1))}
                   <span className={transportStateClass}>{arpeggiator.enabled ? ui.running : ui.stopped}</span>
                   <button
                     type="button"
@@ -3132,9 +3132,7 @@ export function SequencerPage({
             return (
               <article key={roll.id} className="rounded-xl border border-slate-700 bg-slate-900/65 p-2.5">
                 <div className="mb-2 flex flex-wrap items-center gap-2">
-                  <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-200">
-                    {roll.name || ui.pianoRollWithIndex(rollIndex + 1)}
-                  </div>
+                  {renderDeviceName("pianoRolls", roll, ui.pianoRollWithIndex(rollIndex + 1))}
                   <span className={transportStateClass}>{roll.enabled ? ui.running : ui.stopped}</span>
                   <button
                     type="button"
@@ -3267,10 +3265,8 @@ export function SequencerPage({
           <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {sequencer.midiControllers.map((controller, controllerIndex) => (
               <article key={controller.id} className="rounded-xl border border-slate-700 bg-slate-900/65 p-2.5">
-                <div className="mb-2 flex items-center gap-2">
-                  <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-200">
-                    {controller.name || ui.controllerWithIndex(controllerIndex + 1)}
-                  </div>
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  {renderDeviceName("midiControllers", controller, ui.controllerWithIndex(controllerIndex + 1))}
                   <span className={transportStateClass}>{controller.enabled ? ui.running : ui.stopped}</span>
                 </div>
 

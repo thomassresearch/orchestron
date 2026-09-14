@@ -4,6 +4,8 @@
 
 The MIDI Controllers panel provides manual CC control lanes with interactive knobs.
 
+Use the pen beside the device name to rename it. See [Device Names](performance.md#device-names) for editing controls, validation, and import/export behavior.
+
 ## Collapse the Panel
 
 Collapse the MIDI Controllers header to hide the knobs and their settings. The count, Add button and help remain available; adding a controller expands the group. Panels start expanded and remember your choice across view switches until browser reload. Collapsing does not stop playback or discard edits.
