@@ -69,7 +69,7 @@ export const APP_COPY: Record<GuiLanguage, AppCopy> = {
   english: {
     appIconAlt: "Orchestron icon",
     appTitle: "Orchestron",
-    appDescription: "Visual opcode patching with realtime CSound sessions and macOS MIDI loopback support.",
+    appDescription: "Visual opcode patching with realtime CSound performance sessions",
     guiLanguage: "GUI Language",
     instrumentDesign: "Instrument Design",
     perform: "Perform",
@@ -127,7 +127,7 @@ export const APP_COPY: Record<GuiLanguage, AppCopy> = {
   german: {
     appIconAlt: "Orchestron-Icon",
     appTitle: "Orchestron",
-    appDescription: "Visuelles Opcode-Patching mit Echtzeit-CSound-Sessions und macOS-MIDI-Loopback-Unterstuetzung.",
+    appDescription: "Visuelles Opcode-Patching mit Echtzeit-CSound-Performance-Sessions",
     guiLanguage: "GUI-Sprache",
     instrumentDesign: "Instrument-Design",
     perform: "Performance",
@@ -186,7 +186,7 @@ export const APP_COPY: Record<GuiLanguage, AppCopy> = {
     appIconAlt: "Icone Orchestron",
     appTitle: "Orchestron",
     appDescription:
-      "Patching visuel d'opcodes avec sessions CSound temps reel et support loopback MIDI macOS.",
+      "Patching visuel d'opcodes avec sessions de performance CSound en temps reel",
     guiLanguage: "Langue GUI",
     instrumentDesign: "Design instrument",
     perform: "Performance",
@@ -247,7 +247,7 @@ export const APP_COPY: Record<GuiLanguage, AppCopy> = {
     appIconAlt: "Icono de Orchestron",
     appTitle: "Orchestron",
     appDescription:
-      "Patching visual de opcodes con sesiones CSound en tiempo real y soporte de loopback MIDI en macOS.",
+      "Patching visual de opcodes con sesiones de interpretacion CSound en tiempo real",
     guiLanguage: "Idioma de GUI",
     instrumentDesign: "Diseno de instrumento",
     perform: "Performance",
