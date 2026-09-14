@@ -472,36 +472,14 @@
         }
       },
       {
-        "id": "203853cb-546e-44fc-ad91-0f9b2e9b2ab4",
-        "opcode": "outleta",
-        "params": {
-          "sname": "sendl"
-        },
-        "position": {
-          "x": 14716.545642381978,
-          "y": 1273.6130532891118
-        }
-      },
-      {
-        "id": "198ea69d-4333-4415-96d5-26c3b9a525e1",
-        "opcode": "outleta",
-        "params": {
-          "sname": "sendr"
-        },
-        "position": {
-          "x": 14689.162191079638,
-          "y": 1428.386698891364
-        }
-      },
-      {
         "id": "1e5cbc58-7173-4e54-9629-26666759058f",
         "opcode": "outleta",
         "params": {
           "sname": "dryl"
         },
         "position": {
-          "x": 14672.04120322723,
-          "y": 1570.779960775607
+          "x": 14587.92042119842,
+          "y": 1515.8743797742682
         }
       },
       {
@@ -511,8 +489,8 @@
           "sname": "dryr"
         },
         "position": {
-          "x": 14672.565075381865,
-          "y": 1810.0903727698187
+          "x": 14588.444293353054,
+          "y": 1755.18479176848
         }
       }
     ],
@@ -770,18 +748,6 @@
         "to_port_id": "iscal"
       },
       {
-        "from_node_id": "48cfb005-1c41-4a6e-b536-b358506932dd",
-        "from_port_id": "aleft",
-        "to_node_id": "203853cb-546e-44fc-ad91-0f9b2e9b2ab4",
-        "to_port_id": "asignal"
-      },
-      {
-        "from_node_id": "48cfb005-1c41-4a6e-b536-b358506932dd",
-        "from_port_id": "aright",
-        "to_node_id": "198ea69d-4333-4415-96d5-26c3b9a525e1",
-        "to_port_id": "asignal"
-      },
-      {
         "from_node_id": "bd40cc76-3325-4328-8e53-af78e0205166",
         "from_port_id": "iout",
         "to_node_id": "58aa53d7-1386-453d-b78b-66839a91d490",
@@ -971,26 +937,6 @@
               "from_port_id": "iamp"
             }
           ]
-        },
-        "203853cb-546e-44fc-ad91-0f9b2e9b2ab4::asignal": {
-          "expression": "0.2*in1",
-          "inputs": [
-            {
-              "token": "in1",
-              "from_node_id": "48cfb005-1c41-4a6e-b536-b358506932dd",
-              "from_port_id": "aleft"
-            }
-          ]
-        },
-        "198ea69d-4333-4415-96d5-26c3b9a525e1::asignal": {
-          "expression": "0.25*in1",
-          "inputs": [
-            {
-              "token": "in1",
-              "from_node_id": "48cfb005-1c41-4a6e-b536-b358506932dd",
-              "from_port_id": "aright"
-            }
-          ]
         }
       },
       "gen_nodes": {
@@ -1039,7 +985,6 @@
         }
       },
       "audio_blocks": {
-        "5b63e348-3660-43c1-b78d-9e1b2c03866f": true,
         "da1915f2-efb3-4429-bbd8-bc300f67e1f4": true
       }
     },
@@ -1056,17 +1001,6 @@
       "role": "custom",
       "groups": [
         {
-          "id": "5b63e348-3660-43c1-b78d-9e1b2c03866f",
-          "name": "Stereo Output",
-          "direction": "output",
-          "layout": "stereo",
-          "ports": [
-            "sendl",
-            "sendr"
-          ],
-          "purpose": "main"
-        },
-        {
           "id": "da1915f2-efb3-4429-bbd8-bc300f67e1f4",
           "name": "Stereo Output",
           "direction": "output",
@@ -1079,7 +1013,7 @@
         }
       ],
       "mainInput": null,
-      "mainOutput": "5b63e348-3660-43c1-b78d-9e1b2c03866f",
+      "mainOutput": null,
       "guided": false
     },
     "control_flow": {}
