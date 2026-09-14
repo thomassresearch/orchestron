@@ -1,0 +1,735 @@
+{
+  "sourcePatchId": "94a7c447-e728-4e30-8c5c-9e6e3d57ffc0",
+  "name": "The Real TB303",
+  "description": "Sawtooth TB-303 bass with Accent and Slide implemented via midi note velocity.\nVelocity selects flags only; there is no continuous velocity gain. \n- MIDI velocity 1-63: normal\n-  64-95: slide\n- 96-111: accent\n- 112-127: accent + slide. \nAccent changes iamp from 0.4 to 0.9 and filter-envelope amount from 0.4 to 0.8.\nMIDI controllers: CC10: cutoff 40-16000 Hz, logarithmic (49 approximately 404 Hz). CC11: resonance 0-0.98 (114 approximately 0.88). Both controllers follow the played MIDI channel and use 10 ms smoothing.\nPerformance controller iamp / Drive: 0.1-32x, logarithmic, default 1x. Multiplies the original accent-dependent iamp before tanh; new notes read the performance knob.\nSlide: portk half-time 60 ms versus 1 ms for regular notes, retaining the prior voice state. For reliable previous-note glide use a single-note line, begin with a non-slide note, and leave at least 50 ms after note-off for voice reuse; overlapping/release-tail voices do not share pitch history. This is the native portk implementation, not a legato note-priority engine.\nRoute Stereo Output through the performance mixer to Master.\nDrive output compensation: post-tanh gain (1 + 0.025 * drive) / (1.025 * drive). The 1x sound is unchanged; higher Drive primarily adds distortion with only a small level increase (approximately +1.4 dB RMS at 32x in the reference phrase). This is a fixed compensation curve, not a loudness limiter; level response varies with notes and filter settings.",
+  "isTemplate": false,
+  "alwaysOn": false,
+  "instrumentType": "bass",
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "pitch_cpsmidi",
+        "opcode": "cpsmidi",
+        "params": {},
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "id": "velocity_scale_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 1
+        },
+        "position": {
+          "x": 0,
+          "y": 270
+        }
+      },
+      {
+        "id": "velocity_ampmidi",
+        "opcode": "ampmidi",
+        "params": {},
+        "position": {
+          "x": 260,
+          "y": 270
+        }
+      },
+      {
+        "id": "env_attack_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.003
+        },
+        "position": {
+          "x": 0,
+          "y": 600
+        }
+      },
+      {
+        "id": "env_decay_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.3
+        },
+        "position": {
+          "x": 0,
+          "y": 800
+        }
+      },
+      {
+        "id": "env_sustain_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.01
+        },
+        "position": {
+          "x": 0,
+          "y": 1000
+        }
+      },
+      {
+        "id": "env_release_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.05
+        },
+        "position": {
+          "x": 0,
+          "y": 1200
+        }
+      },
+      {
+        "id": "envelope_mxadsr",
+        "opcode": "mxadsr",
+        "params": {},
+        "position": {
+          "x": 540,
+          "y": 750
+        }
+      },
+      {
+        "id": "saw_vco2",
+        "opcode": "vco2",
+        "params": {
+          "kamp": 0.25,
+          "imode": 0
+        },
+        "position": {
+          "x": 950,
+          "y": 0
+        }
+      },
+      {
+        "id": "effect_1_moogladder",
+        "opcode": "moogladder",
+        "params": {},
+        "position": {
+          "x": 1944.0067993324196,
+          "y": 55.70265773745842
+        }
+      },
+      {
+        "id": "output_pan2",
+        "opcode": "pan2",
+        "params": {
+          "xp": 0.5,
+          "imode": 0
+        },
+        "position": {
+          "x": 2837.2088935702354,
+          "y": 116.77722004779427
+        }
+      },
+      {
+        "id": "iamp_drive",
+        "opcode": "perf_controller",
+        "params": {
+          "min": 0.1,
+          "max": 32,
+          "default": 1,
+          "scale": "logarithmic",
+          "label": "iamp / Drive"
+        },
+        "position": {
+          "x": 2180,
+          "y": 730
+        }
+      },
+      {
+        "id": "accent_flag",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 586.734634163764,
+          "y": 257.3154660198933
+        }
+      },
+      {
+        "id": "portamento_flag",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 495.5122217228038,
+          "y": 462.15800645201864
+        }
+      },
+      {
+        "id": "slide_portk",
+        "opcode": "portk",
+        "params": {},
+        "position": {
+          "x": 660.4076293264437,
+          "y": -38.307467818115285
+        }
+      },
+      {
+        "id": "cutoff_cc10",
+        "opcode": "midictrl",
+        "params": {
+          "inum": 10,
+          "imin": 0,
+          "imax": 1
+        },
+        "position": {
+          "x": 733.9729646264478,
+          "y": 539.6412004771702
+        }
+      },
+      {
+        "id": "resonance_cc11",
+        "opcode": "midictrl",
+        "params": {
+          "inum": 11,
+          "imin": 0,
+          "imax": 0.98
+        },
+        "position": {
+          "x": 1257.987948214427,
+          "y": 759.0701873259569
+        }
+      },
+      {
+        "id": "cutoff_smooth",
+        "opcode": "portk",
+        "params": {
+          "khtim": 0.01,
+          "isig": 400
+        },
+        "position": {
+          "x": 1018.2532969298577,
+          "y": 493.68462994783465
+        }
+      },
+      {
+        "id": "resonance_smooth",
+        "opcode": "portk",
+        "params": {
+          "khtim": 0.01,
+          "isig": 0.88
+        },
+        "position": {
+          "x": 1603.5152899544707,
+          "y": 665.0239733068915
+        }
+      },
+      {
+        "id": "filter_sum",
+        "opcode": "k_to_a",
+        "params": {},
+        "position": {
+          "x": 1299.750432635982,
+          "y": 353.80301828072345
+        }
+      },
+      {
+        "id": "filter_limit",
+        "opcode": "limit",
+        "params": {
+          "xmin": 40,
+          "xmax": 16000
+        },
+        "position": {
+          "x": 1525.641407836473,
+          "y": 359.3446321341751
+        }
+      },
+      {
+        "id": "filter_to_k",
+        "opcode": "downsamp",
+        "params": {},
+        "position": {
+          "x": 1688.9615425603884,
+          "y": 149.68874454183367
+        }
+      },
+      {
+        "id": "highpass_atone",
+        "opcode": "atone",
+        "params": {
+          "khp": 150
+        },
+        "position": {
+          "x": 2212.8012672332684,
+          "y": 29.882950137047644
+        }
+      },
+      {
+        "id": "vca_envelope",
+        "opcode": "k_to_a",
+        "params": {},
+        "position": {
+          "x": 2160,
+          "y": 440
+        }
+      },
+      {
+        "id": "soft_tanh",
+        "opcode": "tanh",
+        "params": {},
+        "position": {
+          "x": 2524.3800865281723,
+          "y": 164.15550326126694
+        }
+      },
+      {
+        "id": "drive_compensation",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 2582.9730583066284,
+          "y": 451.70975512544067
+        }
+      },
+      {
+        "id": "0d568c1f-1984-418f-9da0-bcd76f603e72",
+        "opcode": "const_i",
+        "params": {
+          "value": "10"
+        },
+        "position": {
+          "x": 361.52605858150815,
+          "y": 631.0691435745401
+        }
+      },
+      {
+        "id": "2c22da09-c23e-4b07-830e-947592179dd0",
+        "opcode": "const_i",
+        "params": {
+          "value": "11"
+        },
+        "position": {
+          "x": 929.4325661508925,
+          "y": 891.3249985740567
+        }
+      },
+      {
+        "id": "4f581c79-0680-4d74-a075-ff4934223401",
+        "opcode": "perf_controller",
+        "params": {
+          "min": 0.1,
+          "max": 2,
+          "default": 1,
+          "scale": "linear",
+          "label": "Slide"
+        },
+        "position": {
+          "x": 141.09331515416497,
+          "y": 140.26745912937983
+        }
+      },
+      {
+        "id": "output_left",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 3123.3673012845857,
+          "y": 106.2496537205961
+        }
+      },
+      {
+        "id": "output_right",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 3123.3673012845857,
+          "y": 366.24965372059575
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "velocity_scale_const",
+        "from_port_id": "iout",
+        "to_node_id": "velocity_ampmidi",
+        "to_port_id": "iscal"
+      },
+      {
+        "from_node_id": "env_attack_const",
+        "from_port_id": "iout",
+        "to_node_id": "envelope_mxadsr",
+        "to_port_id": "iatt"
+      },
+      {
+        "from_node_id": "env_decay_const",
+        "from_port_id": "iout",
+        "to_node_id": "envelope_mxadsr",
+        "to_port_id": "idec"
+      },
+      {
+        "from_node_id": "env_sustain_const",
+        "from_port_id": "iout",
+        "to_node_id": "envelope_mxadsr",
+        "to_port_id": "islev"
+      },
+      {
+        "from_node_id": "env_release_const",
+        "from_port_id": "iout",
+        "to_node_id": "envelope_mxadsr",
+        "to_port_id": "irel"
+      },
+      {
+        "from_node_id": "saw_vco2",
+        "from_port_id": "asig",
+        "to_node_id": "effect_1_moogladder",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "output_pan2",
+        "from_port_id": "aleft",
+        "to_node_id": "output_left",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "output_pan2",
+        "from_port_id": "aright",
+        "to_node_id": "output_right",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "velocity_ampmidi",
+        "from_port_id": "iamp",
+        "to_node_id": "accent_flag",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "velocity_ampmidi",
+        "from_port_id": "iamp",
+        "to_node_id": "portamento_flag",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "slide_portk",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "portamento_flag",
+        "from_port_id": "kout",
+        "to_node_id": "slide_portk",
+        "to_port_id": "khtim"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "slide_portk",
+        "to_port_id": "isig"
+      },
+      {
+        "from_node_id": "velocity_ampmidi",
+        "from_port_id": "iamp",
+        "to_node_id": "slide_portk",
+        "to_port_id": "isig"
+      },
+      {
+        "from_node_id": "slide_portk",
+        "from_port_id": "kout",
+        "to_node_id": "saw_vco2",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "cutoff_cc10",
+        "from_port_id": "kval",
+        "to_node_id": "cutoff_smooth",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "resonance_cc11",
+        "from_port_id": "kval",
+        "to_node_id": "resonance_smooth",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "cutoff_smooth",
+        "from_port_id": "kout",
+        "to_node_id": "filter_sum",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "envelope_mxadsr",
+        "from_port_id": "kenv",
+        "to_node_id": "filter_sum",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "accent_flag",
+        "from_port_id": "kout",
+        "to_node_id": "filter_sum",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "filter_sum",
+        "from_port_id": "aout",
+        "to_node_id": "filter_limit",
+        "to_port_id": "xin"
+      },
+      {
+        "from_node_id": "filter_limit",
+        "from_port_id": "xout",
+        "to_node_id": "filter_to_k",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "filter_to_k",
+        "from_port_id": "kout",
+        "to_node_id": "effect_1_moogladder",
+        "to_port_id": "kcf"
+      },
+      {
+        "from_node_id": "resonance_smooth",
+        "from_port_id": "kout",
+        "to_node_id": "effect_1_moogladder",
+        "to_port_id": "kres"
+      },
+      {
+        "from_node_id": "effect_1_moogladder",
+        "from_port_id": "aout",
+        "to_node_id": "highpass_atone",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "envelope_mxadsr",
+        "from_port_id": "kenv",
+        "to_node_id": "vca_envelope",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "highpass_atone",
+        "from_port_id": "aout",
+        "to_node_id": "soft_tanh",
+        "to_port_id": "xin"
+      },
+      {
+        "from_node_id": "vca_envelope",
+        "from_port_id": "aout",
+        "to_node_id": "soft_tanh",
+        "to_port_id": "xin"
+      },
+      {
+        "from_node_id": "accent_flag",
+        "from_port_id": "kout",
+        "to_node_id": "soft_tanh",
+        "to_port_id": "xin"
+      },
+      {
+        "from_node_id": "iamp_drive",
+        "from_port_id": "iout",
+        "to_node_id": "soft_tanh",
+        "to_port_id": "xin"
+      },
+      {
+        "from_node_id": "soft_tanh",
+        "from_port_id": "aout",
+        "to_node_id": "output_pan2",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "iamp_drive",
+        "from_port_id": "iout",
+        "to_node_id": "drive_compensation",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "drive_compensation",
+        "from_port_id": "aout",
+        "to_node_id": "output_pan2",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "0d568c1f-1984-418f-9da0-bcd76f603e72",
+        "from_port_id": "iout",
+        "to_node_id": "cutoff_cc10",
+        "to_port_id": "inum"
+      },
+      {
+        "from_node_id": "2c22da09-c23e-4b07-830e-947592179dd0",
+        "from_port_id": "iout",
+        "to_node_id": "resonance_cc11",
+        "to_port_id": "inum"
+      },
+      {
+        "from_node_id": "4f581c79-0680-4d74-a075-ff4934223401",
+        "from_port_id": "iout",
+        "to_node_id": "slide_portk",
+        "to_port_id": "khtim"
+      }
+    ],
+    "ui_layout": {
+      "audio_blocks": {
+        "main-output": true
+      },
+      "input_formulas": {
+        "accent_flag::a": {
+          "expression": "floor((vel * 128 + 32.001) / 128)",
+          "inputs": [
+            {
+              "token": "vel",
+              "from_node_id": "velocity_ampmidi",
+              "from_port_id": "iamp"
+            }
+          ]
+        },
+        "portamento_flag::a": {
+          "expression": "floor((vel * 128 + 64.001) / 128) - floor((vel * 128 + 32.001) / 128) + floor((vel * 128 + 16.001) / 128)",
+          "inputs": [
+            {
+              "token": "vel",
+              "from_node_id": "velocity_ampmidi",
+              "from_port_id": "iamp"
+            }
+          ]
+        },
+        "slide_portk::khtim": {
+          "expression": "in1 * (0.001 + slide * 0.059)",
+          "inputs": [
+            {
+              "token": "slide",
+              "from_node_id": "portamento_flag",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "in1",
+              "from_node_id": "4f581c79-0680-4d74-a075-ff4934223401",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "slide_portk::isig": {
+          "expression": "pitch * (1 - (floor((vel * 128 + 64.001) / 128) - floor((vel * 128 + 32.001) / 128) + floor((vel * 128 + 16.001) / 128))) - (floor((vel * 128 + 64.001) / 128) - floor((vel * 128 + 32.001) / 128) + floor((vel * 128 + 16.001) / 128))",
+          "inputs": [
+            {
+              "token": "pitch",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "vel",
+              "from_node_id": "velocity_ampmidi",
+              "from_port_id": "iamp"
+            }
+          ]
+        },
+        "cutoff_smooth::ksig": {
+          "expression": "40 * ampdb(cc * 52.04119982655925)",
+          "inputs": [
+            {
+              "token": "cc",
+              "from_node_id": "cutoff_cc10",
+              "from_port_id": "kval"
+            }
+          ]
+        },
+        "filter_sum::kin": {
+          "expression": "cutoff + env * 0.6 * 4000 * (0.4 + accent * 0.4)",
+          "inputs": [
+            {
+              "token": "cutoff",
+              "from_node_id": "cutoff_smooth",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "env",
+              "from_node_id": "envelope_mxadsr",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "accent",
+              "from_node_id": "accent_flag",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "soft_tanh::xin": {
+          "expression": "signal * env * (0.4 + accent * 0.5) * drive * 1.5",
+          "inputs": [
+            {
+              "token": "signal",
+              "from_node_id": "highpass_atone",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "env",
+              "from_node_id": "vca_envelope",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "accent",
+              "from_node_id": "accent_flag",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "drive",
+              "from_node_id": "iamp_drive",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "output_pan2::asig": {
+          "expression": "signal * 1.4142135623730951 * compensation",
+          "inputs": [
+            {
+              "token": "signal",
+              "from_node_id": "soft_tanh",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "compensation",
+              "from_node_id": "drive_compensation",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "drive_compensation::ksig": {
+          "expression": "(1 + 0.025 * drive) / (1.025 * drive)",
+          "inputs": [
+            {
+              "token": "drive",
+              "from_node_id": "iamp_drive",
+              "from_port_id": "iout"
+            }
+          ]
+        }
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 3000,
+      "ksmps": 16,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1
+    },
+    "audio_interface": {
+      "role": "instrument",
+      "groups": [
+        {
+          "id": "main-output",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainInput": null,
+      "mainOutput": "main-output",
+      "guided": true
+    },
+    "control_flow": {}
+  }
+}

@@ -44,6 +44,36 @@ from backend.tests.api_test_support import (
 from backend.tests.stk_test_support import STK_CONTROLLERS
 
 
+def test_opcodes_include_atone_filters_with_manual_signatures(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        response = client.get("/api/opcodes")
+        assert response.status_code == 200
+        by_name = {item["name"]: item for item in response.json()}
+
+    for name in ("atone", "atonek", "atonex"):
+        opcode = by_name[name]
+        rate = "k" if name == "atonek" else "a"
+        cutoff = "xhp" if name == "atonex" else "khp"
+        expected_inputs = [(f"{rate}sig", rate, True), (cutoff, "k", True)]
+        if name == "atonex":
+            expected_inputs.append(("inumlayer", "i", False))
+        expected_inputs.append(("iskip", "i", False))
+        assert opcode["category"] == "filter"
+        assert opcode["documentation_url"] == f"https://csound.com/docs/manual/{name}.html"
+        assert opcode["documentation_url"] in opcode["documentation_markdown"]
+        assert "highpass" in opcode["tags"]
+        assert [(p["id"], p["signal_type"], p["required"]) for p in opcode["inputs"]] == expected_inputs
+        assert [(p["id"], p["signal_type"]) for p in opcode["outputs"]] == [(f"{rate}out", rate)]
+        inputs = {p["id"]: p for p in opcode["inputs"]}
+        assert inputs[f"{rate}sig"]["default"] is None
+        assert inputs[f"{rate}sig"]["accepted_signal_types"] == (["k", "i"] if rate == "k" else [])
+        assert inputs[cutoff]["default"] == (10 if name == "atonek" else 200)
+        assert inputs[cutoff]["accepted_signal_types"] == (["a", "k", "i"] if name == "atonex" else ["k", "i"])
+        assert inputs["iskip"]["default"] == 0
+        if name == "atonex":
+            assert inputs["inumlayer"]["default"] == 4
+
+
 def test_opcodes_include_all_stk_instruments_and_manual_controller_pairs(tmp_path: Path) -> None:
     with _client(tmp_path) as client:
         response = client.get("/api/opcodes")

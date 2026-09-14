@@ -59,6 +59,18 @@ The opcode documentation modal provides:
 - Tags
 - Direct link to the Csound reference page (`Open Csound Reference`)
 
+## Atone High-Pass Filters
+
+Search for `atone` or `highpass` in the `filter` category:
+
+- [atone](https://csound.com/docs/manual/atone.html) filters an audio signal (`asig`) and produces audio (`aout`). Its `khp` cutoff accepts control-rate or init-rate values and starts at 200 Hz.
+- [atonek](https://csound.com/docs/manual/atonek.html) filters a control signal (`ksig`) and produces control output (`kout`) for modulation. Its `khp` cutoff starts at 10 Hz. Both inputs accept control-rate or init-rate values.
+- [atonex](https://csound.com/docs/manual/atonex.html) cascades multiple `atone` stages for a sharper cutoff. Its audio input/output are `asig`/`aout`; `xhp` accepts audio-rate, control-rate, or init-rate cutoff values and starts at 200 Hz. The optional init-rate `inumlayer` sets the stage count and defaults to 4.
+
+Each filter exposes optional init-rate `iskip`: 0 clears its internal state at initialization, while a nonzero value retains previous state. The default is 0. Setting only `iskip` on `atonex` retains the default four layers. Cutoff defaults are editor starting values; Csound requires a cutoff argument.
+
+Connect the audio outputs of `atone` and `atonex` to downstream audio nodes or both `outs` inputs. Connect `atonek` to a control input such as oscillator amplitude or frequency. The node's `?` help documents every port in English, German, French, and Spanish.
+
 ## STK Instruments
 
 Search for `stk` to find the 27 Synthesis Toolkit instruments in the `physical_modeling`, `fm`, and `oscillator` categories. They include strings, winds, percussion, voices, organs, and electric pianos. Each node produces one mono audio signal; connect it to both `outs` inputs for centered stereo output.

@@ -501,6 +501,92 @@ def test_stereo_reverbs_compile_with_manual_argument_order(opcode_name: str, exp
     )
 
 
+def _atone_patch(name: str, params: dict | None = None) -> PatchDocument:
+    rate = "k" if name == "atonek" else "a"
+    nodes = [
+        NodeInstance(id="source", opcode=f"const_{rate}", params={"value": 0.2}),
+        NodeInstance(id="filter", opcode=name, params=params or {}),
+    ]
+    connections = [Connection(
+        from_node_id="source", from_port_id=f"{rate}out", to_node_id="filter", to_port_id=f"{rate}sig",
+    )]
+    if rate == "k":
+        nodes.append(NodeInstance(id="osc", opcode="vco2", params={"kcps": 440}))
+        connections.append(Connection(
+            from_node_id="filter", from_port_id="kout", to_node_id="osc", to_port_id="kamp",
+        ))
+    nodes.append(NodeInstance(id="out", opcode="outs"))
+    for channel in ("left", "right"):
+        connections.append(Connection(
+            from_node_id="osc" if rate == "k" else "filter",
+            from_port_id="asig" if rate == "k" else "aout", to_node_id="out", to_port_id=channel,
+        ))
+    return PatchDocument(name=f"{name} compile test", graph=PatchGraph(nodes=nodes, connections=connections))
+
+
+@pytest.mark.parametrize(
+    ("name", "params", "expected_tail"),
+    [
+        ("atone", {}, "200, 0"),
+        ("atone", {"khp": 4000, "iskip": 1}, "4000, 1"),
+        ("atonek", {}, "10, 0"),
+        ("atonek", {"khp": 25, "iskip": 1}, "25, 1"),
+        ("atonex", {}, "200, 4, 0"),
+        ("atonex", {"inumlayer": 8}, "200, 8, 0"),
+        ("atonex", {"iskip": 1}, "200, 4, 1"),
+        ("atonex", {"xhp": 800, "inumlayer": 2, "iskip": 1}, "800, 2, 1"),
+    ],
+)
+def test_atone_compile_preserves_argument_order_and_optional_defaults(
+    name: str, params: dict, expected_tail: str,
+) -> None:
+    artifact = CompilerService(OpcodeService(icon_prefix="/static/icons")).compile_patch(
+        _atone_patch(name, params), midi_input="0", rtmidi_module="alsaseq",
+    )
+    rate = "k" if name == "atonek" else "a"
+    line = next(line.strip() for line in orc_code_lines(artifact.orc) if f" {name} " in line)
+    assert line == f"{rate}_filter_{rate}out_2 {name} {rate}_source_{rate}out_1, {expected_tail}"
+    assert "__VS_OPTIONAL_OMIT__" not in artifact.orc
+
+
+@pytest.mark.parametrize("source_rate", ["a", "k", "i"])
+@pytest.mark.parametrize(
+    ("name", "target_port", "accepted_rates"),
+    [
+        ("atone", "asig", "a"),
+        ("atone", "khp", "ki"),
+        ("atone", "iskip", "i"),
+        ("atonek", "ksig", "ki"),
+        ("atonek", "khp", "ki"),
+        ("atonek", "iskip", "i"),
+        ("atonex", "asig", "a"),
+        ("atonex", "xhp", "aki"),
+        ("atonex", "inumlayer", "i"),
+        ("atonex", "iskip", "i"),
+    ],
+)
+def test_atone_connected_inputs_enforce_manual_rates(
+    name: str, target_port: str, accepted_rates: str, source_rate: str,
+) -> None:
+    patch = _atone_patch(name)
+    patch.graph.nodes.insert(0, NodeInstance(id="mod", opcode=f"const_{source_rate}", params={"value": 1}))
+    patch.graph.connections = [
+        c for c in patch.graph.connections if (c.to_node_id, c.to_port_id) != ("filter", target_port)
+    ]
+    patch.graph.connections.append(Connection(
+        from_node_id="mod", from_port_id=f"{source_rate}out", to_node_id="filter", to_port_id=target_port,
+    ))
+    compiler = CompilerService(OpcodeService(icon_prefix="/static/icons"))
+    if source_rate not in accepted_rates:
+        with pytest.raises(CompilationError) as error:
+            compiler.compile_patch(patch, midi_input="0", rtmidi_module="alsaseq")
+        assert any("Signal type mismatch" in diagnostic for diagnostic in error.value.diagnostics)
+        return
+    artifact = compiler.compile_patch(patch, midi_input="0", rtmidi_module="alsaseq")
+    line = next(line.strip() for line in orc_code_lines(artifact.orc) if f" {name} " in line)
+    assert f"{source_rate}_mod_{source_rate}out_1" in line
+
+
 def _stk_patch(name: str, params: dict | None = None) -> PatchDocument:
     return PatchDocument(
         name=f"{name} compile test",

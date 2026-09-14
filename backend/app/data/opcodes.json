@@ -2381,6 +2381,193 @@
     "icon_filename": "moogladder.svg"
   },
   {
+    "name": "atone",
+    "category": "filter",
+    "description": "Audio-rate high-pass filter complementary to tone.",
+    "documentation_markdown": "### `atone`\n\nAudio-rate high-pass filter complementary to tone.\n\n**Reference**\n- [Csound opcode manual](https://csound.com/docs/manual/atone.html)",
+    "documentation_url": "https://csound.com/docs/manual/atone.html",
+    "inputs": [
+      {
+        "id": "asig",
+        "name": "aIn",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Audio-rate signal to filter."
+      },
+      {
+        "id": "khp",
+        "name": "Cutoff",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": 200,
+        "description": "Half-power frequency in Hz."
+      },
+      {
+        "id": "iskip",
+        "name": "SkipInit",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": false,
+        "default": 0,
+        "description": "Zero clears filter state at initialization; nonzero preserves previous state. Defaults to 0."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "aout",
+        "name": "aOut",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Filtered audio-rate signal."
+      }
+    ],
+    "template": "{aout} atone {asig}, {khp}, {iskip}",
+    "tags": [
+      "filter",
+      "highpass",
+      "atone",
+      "audio"
+    ],
+    "icon_filename": "moogladder.svg"
+  },
+  {
+    "name": "atonek",
+    "category": "filter",
+    "description": "Control-rate high-pass filter complementary to tonek.",
+    "documentation_markdown": "### `atonek`\n\nControl-rate high-pass filter complementary to tonek.\n\n**Reference**\n- [Csound opcode manual](https://csound.com/docs/manual/atonek.html)",
+    "documentation_url": "https://csound.com/docs/manual/atonek.html",
+    "inputs": [
+      {
+        "id": "ksig",
+        "name": "kIn",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": null,
+        "description": "Control-rate signal to filter."
+      },
+      {
+        "id": "khp",
+        "name": "Cutoff",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": 10,
+        "description": "Half-power frequency in Hz."
+      },
+      {
+        "id": "iskip",
+        "name": "SkipInit",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": false,
+        "default": 0,
+        "description": "Zero clears filter state at initialization; nonzero preserves previous state. Defaults to 0."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "kout",
+        "name": "kOut",
+        "signal_type": "k",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Filtered control-rate signal."
+      }
+    ],
+    "template": "{kout} atonek {ksig}, {khp}, {iskip}",
+    "tags": [
+      "filter",
+      "highpass",
+      "atone",
+      "control"
+    ],
+    "icon_filename": "moogladder.svg"
+  },
+  {
+    "name": "atonex",
+    "category": "filter",
+    "description": "Cascaded atone high-pass filters with a sharper cutoff.",
+    "documentation_markdown": "### `atonex`\n\nCascaded atone high-pass filters with a sharper cutoff.\n\n**Reference**\n- [Csound opcode manual](https://csound.com/docs/manual/atonex.html)",
+    "documentation_url": "https://csound.com/docs/manual/atonex.html",
+    "inputs": [
+      {
+        "id": "asig",
+        "name": "aIn",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Audio-rate signal to filter."
+      },
+      {
+        "id": "xhp",
+        "name": "Cutoff",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "a",
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": 200,
+        "description": "Half-power frequency in Hz; accepts audio-rate or control-rate modulation."
+      },
+      {
+        "id": "inumlayer",
+        "name": "Layers",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": false,
+        "default": 4,
+        "description": "Number of serial filter stages; defaults to 4."
+      },
+      {
+        "id": "iskip",
+        "name": "SkipInit",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": false,
+        "default": 0,
+        "description": "Zero clears filter state at initialization; nonzero preserves previous state. Defaults to 0."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "aout",
+        "name": "aOut",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Filtered audio-rate signal."
+      }
+    ],
+    "template": "{aout} atonex {asig}, {xhp}, {inumlayer}, {iskip}",
+    "tags": [
+      "filter",
+      "highpass",
+      "atone",
+      "cascade"
+    ],
+    "icon_filename": "moogladder.svg"
+  },
+  {
     "name": "butterhp",
     "category": "filter",
     "description": "Second-order Butterworth high-pass filter.",

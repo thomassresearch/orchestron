@@ -2,7 +2,7 @@
 
 **Navigation:** [Up](instrument_design.md) | [Prev](instrument_import_export.md) | [Next](../performance/performance.md)
 
-This appendix is generated from `backend/app/data/opcodes.json` and currently lists **174** user-selectable opcodes and editor constructs in the Instrument Design opcode catalog.
+This appendix is generated from `backend/app/data/opcodes.json` and currently lists **177** user-selectable opcodes and editor constructs in the Instrument Design opcode catalog.
 
 ## How To Use This Appendix
 
@@ -22,7 +22,7 @@ This appendix is generated from `backend/app/data/opcodes.json` and currently li
 | distortion | 4 |
 | dynamics | 2 |
 | envelope | 12 |
-| filter | 16 |
+| filter | 19 |
 | fm | 17 |
 | math | 3 |
 | midi | 7 |
@@ -120,6 +120,9 @@ These nodes generate structured Csound conditionals; they are not ordinary opcod
 
 | Opcode | Inputs | Outputs | Short Description |
 | --- | --- | --- | --- |
+| atone | 3 (a, k, i) | 1 (a) | Audio-rate high-pass filter complementary to tone. |
+| atonek | 3 (k, k, i) | 1 (k) | Control-rate high-pass filter complementary to tonek. |
+| atonex | 4 (a, k, i, i) | 1 (a) | Cascaded atone high-pass filters with a sharper cutoff. |
 | butterbp | 4 (a, k, k, i) | 1 (a) | Second-order Butterworth band-pass filter. |
 | butterbr | 4 (a, k, k, i) | 1 (a) | Second-order Butterworth band-reject filter. |
 | butterhp | 3 (a, k, i) | 1 (a) | Second-order Butterworth high-pass filter. |

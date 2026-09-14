@@ -1,0 +1,180 @@
+{
+  "sourcePatchId": "f73ce6f1-d2a2-467b-b464-ec9719e8a211",
+  "name": "Overdrive",
+  "description": "Distortion effect",
+  "isTemplate": false,
+  "alwaysOn": true,
+  "instrumentType": "continuous",
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "531430a9-ffe6-46db-9b49-3ae70e4493a9",
+        "opcode": "powershape",
+        "params": {
+          "kshapeamount": 0.5,
+          "ifullscale": 1
+        },
+        "position": {
+          "x": -91.46322190016508,
+          "y": -69.7132273837924
+        }
+      },
+      {
+        "id": "66da3bef-7b2f-4f08-84f2-1328d94dc628",
+        "opcode": "powershape",
+        "params": {
+          "kshapeamount": 0.5,
+          "ifullscale": 1
+        },
+        "position": {
+          "x": -85.40991540439427,
+          "y": 165.13602821156383
+        }
+      },
+      {
+        "id": "c61494c7-26ca-49f3-a1e8-140fdec1693a",
+        "opcode": "perf_controller",
+        "params": {
+          "min": 0.1,
+          "max": 25,
+          "default": 0.5,
+          "scale": "logarithmic",
+          "label": "Drive"
+        },
+        "position": {
+          "x": -496.4875790080987,
+          "y": 169.70679463353008
+        }
+      },
+      {
+        "id": "7954af8e-b985-4e23-b1b0-2df2b07b9b4a",
+        "opcode": "inleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": -483.9586261631921,
+          "y": -57.04686712939292
+        }
+      },
+      {
+        "id": "4c0b57e5-fb58-410d-9a66-4c1f1f79f009",
+        "opcode": "inleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": -483.9586261631921,
+          "y": 122.95313287060708
+        }
+      },
+      {
+        "id": "afa16d6d-08fe-45cc-a106-399ded738b96",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 258.69945172127336,
+          "y": -56.376827543601394
+        }
+      },
+      {
+        "id": "3d3c0b2f-d3b5-4669-89d3-464f4ee2d33a",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 258.69945172127336,
+          "y": 123.6231724563986
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "7954af8e-b985-4e23-b1b0-2df2b07b9b4a",
+        "from_port_id": "asignal",
+        "to_node_id": "531430a9-ffe6-46db-9b49-3ae70e4493a9",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "4c0b57e5-fb58-410d-9a66-4c1f1f79f009",
+        "from_port_id": "asignal",
+        "to_node_id": "66da3bef-7b2f-4f08-84f2-1328d94dc628",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "531430a9-ffe6-46db-9b49-3ae70e4493a9",
+        "from_port_id": "aout",
+        "to_node_id": "afa16d6d-08fe-45cc-a106-399ded738b96",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "66da3bef-7b2f-4f08-84f2-1328d94dc628",
+        "from_port_id": "aout",
+        "to_node_id": "3d3c0b2f-d3b5-4669-89d3-464f4ee2d33a",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "c61494c7-26ca-49f3-a1e8-140fdec1693a",
+        "from_port_id": "iout",
+        "to_node_id": "531430a9-ffe6-46db-9b49-3ae70e4493a9",
+        "to_port_id": "kshapeamount"
+      },
+      {
+        "from_node_id": "c61494c7-26ca-49f3-a1e8-140fdec1693a",
+        "from_port_id": "iout",
+        "to_node_id": "66da3bef-7b2f-4f08-84f2-1328d94dc628",
+        "to_port_id": "kshapeamount"
+      }
+    ],
+    "ui_layout": {
+      "audio_blocks": {
+        "af380b94-4ffe-424f-a332-47915b18009a": true,
+        "dd16dace-cdfe-45c2-9831-1d6afba3d4ea": true
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 1500,
+      "ksmps": 32,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1
+    },
+    "audio_interface": {
+      "role": "custom",
+      "groups": [
+        {
+          "id": "af380b94-4ffe-424f-a332-47915b18009a",
+          "name": "Stereo Input",
+          "direction": "input",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        },
+        {
+          "id": "dd16dace-cdfe-45c2-9831-1d6afba3d4ea",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainInput": "af380b94-4ffe-424f-a332-47915b18009a",
+      "mainOutput": "dd16dace-cdfe-45c2-9831-1d6afba3d4ea",
+      "guided": false
+    },
+    "control_flow": {}
+  }
+}

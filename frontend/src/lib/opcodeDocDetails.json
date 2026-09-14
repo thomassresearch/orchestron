@@ -7588,5 +7588,119 @@
         "spanish": "Ajuste de tasa init en las unidades configuradas, leído al inicio de la nota. Conecte iout a una envolvente, parámetro de efecto u otra entrada que acepte I-rate."
       }
     }
+  },
+  "atone": {
+    "description": {
+      "english": "Audio high-pass filter complementary to tone.",
+      "german": "Audio-Hochpassfilter komplementär zu tone.",
+      "french": "Filtre passe-haut audio complémentaire de tone.",
+      "spanish": "Filtro paso alto de audio complementario de tone."
+    },
+    "inputs": {
+      "asig": {
+        "english": "Audio-rate input signal.",
+        "german": "Eingangssignal mit Audiorate.",
+        "french": "Signal d’entrée à fréquence audio.",
+        "spanish": "Señal de entrada de audio."
+      },
+      "khp": {
+        "english": "Half-power frequency in Hz, at control or init rate. Editor default: 200 Hz.",
+        "german": "Halbleistungsfrequenz in Hz mit Kontroll- oder Initialisierungsrate. Editor-Standard: 200 Hz.",
+        "french": "Fréquence de demi-puissance en Hz, à fréquence de contrôle ou à l’initialisation. Valeur initiale dans l’éditeur : 200 Hz.",
+        "spanish": "Frecuencia de media potencia en Hz, de control o inicialización. Valor inicial del editor: 200 Hz."
+      },
+      "iskip": {
+        "english": "Initialization: 0 clears filter state; nonzero preserves it. Default: 0.",
+        "german": "Initialisierung: 0 löscht den Filterzustand; ein Wert ungleich 0 erhält ihn. Standard: 0.",
+        "french": "Initialisation : 0 efface l’état du filtre ; une valeur non nulle le conserve. Valeur par défaut : 0.",
+        "spanish": "Inicialización: 0 borra el estado del filtro; un valor distinto de cero lo conserva. Predeterminado: 0."
+      }
+    },
+    "outputs": {
+      "aout": {
+        "english": "Filtered audio-rate output signal.",
+        "german": "Gefiltertes Ausgangssignal mit Audiorate.",
+        "french": "Signal de sortie filtré à fréquence audio.",
+        "spanish": "Señal de salida de audio filtrada."
+      }
+    }
+  },
+  "atonek": {
+    "description": {
+      "english": "Control-rate high-pass filter complementary to tonek.",
+      "german": "Hochpassfilter mit Kontrollrate komplementär zu tonek.",
+      "french": "Filtre passe-haut à fréquence de contrôle complémentaire de tonek.",
+      "spanish": "Filtro paso alto de control complementario de tonek."
+    },
+    "inputs": {
+      "ksig": {
+        "english": "Control-rate input signal; init-rate values are also accepted.",
+        "german": "Eingangssignal mit Kontrollrate; Werte mit Initialisierungsrate sind ebenfalls zulässig.",
+        "french": "Signal d’entrée à fréquence de contrôle ; les valeurs d’initialisation sont aussi acceptées.",
+        "spanish": "Señal de entrada de control; también admite valores de inicialización."
+      },
+      "khp": {
+        "english": "Half-power frequency in Hz, at control or init rate. Editor default: 10 Hz.",
+        "german": "Halbleistungsfrequenz in Hz mit Kontroll- oder Initialisierungsrate. Editor-Standard: 10 Hz.",
+        "french": "Fréquence de demi-puissance en Hz, à fréquence de contrôle ou à l’initialisation. Valeur initiale dans l’éditeur : 10 Hz.",
+        "spanish": "Frecuencia de media potencia en Hz, de control o inicialización. Valor inicial del editor: 10 Hz."
+      },
+      "iskip": {
+        "english": "Initialization: 0 clears filter state; nonzero preserves it. Default: 0.",
+        "german": "Initialisierung: 0 löscht den Filterzustand; ein Wert ungleich 0 erhält ihn. Standard: 0.",
+        "french": "Initialisation : 0 efface l’état du filtre ; une valeur non nulle le conserve. Valeur par défaut : 0.",
+        "spanish": "Inicialización: 0 borra el estado del filtro; un valor distinto de cero lo conserva. Predeterminado: 0."
+      }
+    },
+    "outputs": {
+      "kout": {
+        "english": "Filtered control-rate output signal.",
+        "german": "Gefiltertes Ausgangssignal mit Kontrollrate.",
+        "french": "Signal de sortie filtré à fréquence de contrôle.",
+        "spanish": "Señal de salida de control filtrada."
+      }
+    }
+  },
+  "atonex": {
+    "description": {
+      "english": "Cascaded atone filters for a sharper high-pass cutoff.",
+      "german": "Kaskadierte atone-Filter für eine steilere Hochpassflanke.",
+      "french": "Filtres atone en cascade pour une coupure passe-haut plus abrupte.",
+      "spanish": "Filtros atone en cascada para un corte paso alto más pronunciado."
+    },
+    "inputs": {
+      "asig": {
+        "english": "Audio-rate input signal.",
+        "german": "Eingangssignal mit Audiorate.",
+        "french": "Signal d’entrée à fréquence audio.",
+        "spanish": "Señal de entrada de audio."
+      },
+      "xhp": {
+        "english": "Half-power frequency in Hz; accepts audio, control, or init rate. Editor default: 200 Hz.",
+        "german": "Halbleistungsfrequenz in Hz; akzeptiert Audio-, Kontroll- oder Initialisierungsrate. Editor-Standard: 200 Hz.",
+        "french": "Fréquence de demi-puissance en Hz ; accepte les fréquences audio, de contrôle ou les valeurs d’initialisation. Valeur initiale dans l’éditeur : 200 Hz.",
+        "spanish": "Frecuencia de media potencia en Hz; admite audio, control o inicialización. Valor inicial del editor: 200 Hz."
+      },
+      "inumlayer": {
+        "english": "Number of serial filter stages, set at initialization. Default: 4.",
+        "german": "Anzahl serieller Filterstufen, bei der Initialisierung festgelegt. Standard: 4.",
+        "french": "Nombre d’étages de filtre en série, fixé à l’initialisation. Valeur par défaut : 4.",
+        "spanish": "Número de etapas de filtro en serie, fijado al inicializar. Predeterminado: 4."
+      },
+      "iskip": {
+        "english": "Initialization: 0 clears filter state; nonzero preserves it. Default: 0.",
+        "german": "Initialisierung: 0 löscht den Filterzustand; ein Wert ungleich 0 erhält ihn. Standard: 0.",
+        "french": "Initialisation : 0 efface l’état du filtre ; une valeur non nulle le conserve. Valeur par défaut : 0.",
+        "spanish": "Inicialización: 0 borra el estado del filtro; un valor distinto de cero lo conserva. Predeterminado: 0."
+      }
+    },
+    "outputs": {
+      "aout": {
+        "english": "Filtered audio-rate output signal.",
+        "german": "Gefiltertes Ausgangssignal mit Audiorate.",
+        "french": "Signal de sortie filtré à fréquence audio.",
+        "spanish": "Señal de salida de audio filtrada."
+      }
+    }
   }
 }
