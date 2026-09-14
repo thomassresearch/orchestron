@@ -6,11 +6,19 @@ interface PatchPickerProps {
   patches: PatchListItem[];
   guiLanguage: GuiLanguage;
   label: string;
-  templateToken: string;
+  ariaLabel?: string;
+  templateToken?: string;
+  disabled?: boolean;
+  align?: "left" | "right";
+  triggerClassName?: string;
   onSelectPatch: (patchId: string) => void;
 }
 
-export function PatchPicker({ patches, guiLanguage, label, templateToken, onSelectPatch }: PatchPickerProps) {
+export function PatchPicker({
+  patches, guiLanguage, label, ariaLabel, templateToken = "", disabled = false, align = "right",
+  triggerClassName = "rounded-lg border border-slate-600 bg-slate-950 px-3 py-1.5 text-sm text-slate-100",
+  onSelectPatch
+}: PatchPickerProps) {
   const copy = instrumentTypeCopy(guiLanguage);
   const popupId = useId();
   const root = useRef<HTMLDivElement>(null);
@@ -29,6 +37,10 @@ export function PatchPicker({ patches, guiLanguage, label, templateToken, onSele
     setExpanded(new Set());
     if (restoreFocus) trigger.current?.focus();
   }, []);
+
+  useEffect(() => {
+    if (disabled) close(false);
+  }, [disabled, close]);
 
   useEffect(() => {
     if (!open) return;
@@ -66,6 +78,7 @@ export function PatchPicker({ patches, guiLanguage, label, templateToken, onSele
   }, [patches, guiLanguage, search]);
 
   const select = (patchId: string) => {
+    if (disabled) return;
     close();
     onSelectPatch(patchId);
   };
@@ -94,14 +107,15 @@ export function PatchPicker({ patches, guiLanguage, label, templateToken, onSele
 
   return (
     <div ref={root} className="relative min-w-0">
-      <button ref={trigger} type="button" aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? popupId : undefined}
+      <button ref={trigger} type="button" aria-label={ariaLabel} title={label} disabled={disabled}
+        aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? popupId : undefined}
         onClick={() => open ? close() : setOpen(true)}
-        className="flex w-full items-center justify-between gap-2 rounded-lg border border-slate-600 bg-slate-950 px-3 py-1.5 text-sm text-slate-100 outline-none focus-visible:ring focus-visible:ring-accent/40">
-        {label}<span aria-hidden="true">▾</span>
+        className={`flex w-full items-center justify-between gap-2 outline-none focus-visible:ring focus-visible:ring-accent/40 disabled:cursor-not-allowed disabled:text-slate-500 ${triggerClassName}`}>
+        <span className="truncate">{label}</span><span aria-hidden="true" className="shrink-0">▾</span>
       </button>
       {open && (
-        <div id={popupId} role="dialog" aria-label={label} onKeyDown={onKeyDown}
-          className="absolute right-0 top-full z-50 mt-2 w-[min(24rem,calc(100vw-3rem))] rounded-xl border border-slate-600 bg-slate-950 p-3 shadow-xl">
+        <div id={popupId} role="dialog" aria-label={ariaLabel ?? label} onKeyDown={onKeyDown}
+          className={`absolute ${align === "left" ? "left-0" : "right-0"} top-full z-50 mt-2 w-[min(24rem,calc(100vw-3rem))] rounded-xl border border-slate-600 bg-slate-950 p-3 shadow-xl`}>
           <input ref={input} type="search" aria-label={copy.search} aria-describedby={`${popupId}-guidance`}
             placeholder={copy.search} value={query}
             onChange={(event) => {

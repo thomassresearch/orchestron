@@ -43,6 +43,8 @@ While instruments run, adding/removing assignments, changing patch/channel assig
 ### Add Instrument
 
 - Use `Add Instrument` to create another rack slot.
+- Open the slot's patch picker to browse instruments in collapsed type groups: Percussion, Melody, Bass, Effects / Noise, and Continuous (always-on). Expand a group to see its instruments alphabetically.
+- Search names and descriptions across all types by entering at least four characters; results appear after a 500 ms typing pause. Clear the search to return to browsing. Template patches are excluded from the rack picker.
 - This enables multi-instrument performances driven by different MIDI channels.
 - Continuous effects run as explicit rack instances. Adding an insert creates a dedicated instance automatically; simply saving an effect in the library does not start it.
 - In the `orchestron-performance-creator` CLI, use `edit instruments list` to discover stable rack binding IDs and audio ports. Build arbitrary chains with `edit routes add/remove/clear/list`, or run `edit add-standard-effects` to add the standard reverb, compressor, and speaker-output send/dry matrix.

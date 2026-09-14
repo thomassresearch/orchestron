@@ -1,4 +1,5 @@
 import { CollapsiblePanel } from "./CollapsiblePanel";
+import { PatchPicker } from "./PatchPicker";
 import { PerformanceControllerRack, PerformanceControllerSyncStatus } from "./sequencer/PerformanceControllerRack";
 import { PerformMixer } from "./PerformMixer";
 import { audioCopy } from "../lib/audioCopy";
@@ -863,21 +864,19 @@ export function SequencerPage({
     return (
       <div key={binding.id} className={cardClassName}>
         <div className="grid grid-cols-[minmax(0,_1fr)_110px_auto] items-end gap-2">
-          <label className="flex min-w-0 flex-col gap-1">
+          <div className="flex min-w-0 flex-col gap-1">
             <span className="text-[10px] uppercase tracking-[0.16em] text-slate-400">{ui.patch(index + 1)}</span>
-            <select
-              value={binding.patchId}
-              onChange={(event) => onInstrumentPatchChange(binding.id, event.target.value)}
+            <PatchPicker
+              patches={patches}
+              guiLanguage={guiLanguage}
+              label={selectedPatch?.name ?? `${audioCopy(guiLanguage)("missing")}: ${binding.patchId}`}
+              ariaLabel={ui.patch(index + 1)}
+              onSelectPatch={(patchId) => onInstrumentPatchChange(binding.id, patchId)}
               disabled={instrumentsRunning}
-              className={rackAssignmentSelectClass}
-            >
-              {patches.map((patch) => (
-                <option key={`rack-${binding.id}-${patch.id}`} value={patch.id}>
-                  {patch.name}
-                </option>
-              ))}
-            </select>
-          </label>
+              align="left"
+              triggerClassName={rackAssignmentSelectClass}
+            />
+          </div>
           {isAlwaysOn ? (
             <div className="flex flex-col gap-1">
               <span className="text-[10px] uppercase tracking-[0.16em] text-slate-400">{ui.channel}</span>

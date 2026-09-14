@@ -23,6 +23,33 @@ beforeEach(() => vi.useFakeTimers());
 afterEach(() => { cleanup(); vi.clearAllTimers(); vi.useRealTimers(); });
 
 describe("patch picker", () => {
+  it("locks rack selection when disabled and resets an open search before unlocking", () => {
+    const select = vi.fn();
+    const props = { patches, guiLanguage: "english" as const, label: "Zulu Pad", ariaLabel: "Patch 1", onSelectPatch: select };
+    const { rerender } = render(<PatchPicker {...props} disabled />);
+    const trigger = screen.getByRole("button", { name: "Patch 1" });
+    expect((trigger as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(trigger);
+    expect(screen.queryByRole("dialog")).toBeNull();
+
+    rerender(<PatchPicker {...props} />);
+    fireEvent.click(trigger);
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "bright" } });
+    tick(250);
+    rerender(<PatchPicker {...props} disabled />);
+    tick(500);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(select).not.toHaveBeenCalled();
+
+    rerender(<PatchPicker {...props} />);
+    fireEvent.click(trigger);
+    expect((screen.getByRole("searchbox") as HTMLInputElement).value).toBe("");
+    expect(screen.getByRole("button", { name: "Melody 2" }).getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(screen.getByRole("button", { name: "Percussion 1" }));
+    fireEvent.click(screen.getByRole("button", { name: "Bass Drum" }));
+    expect(select).toHaveBeenCalledExactlyOnceWith("b");
+  });
+
   it("starts collapsed with counts, expands alphabetically and selects a patch", () => {
     const { select, input } = setup();
     expect(document.activeElement).toBe(input);
