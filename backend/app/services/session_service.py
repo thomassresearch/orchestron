@@ -73,6 +73,7 @@ from backend.app.services.browser_clock_policy import (
 )
 from backend.app.services.browser_clock_runtime import BrowserClockRuntimeCoordinator
 from backend.app.services.sequencer_runtime import SessionSequencerRuntime
+from backend.app.services.sequencer_preparation import SequencerPreparationService, SupersededConfigurationError
 from backend.app.services.session_admission import SessionAdmissionController
 from backend.app.services.session_connection_registry import SessionConnectionRegistry
 from backend.app.services.session_instrument_resolver import SessionInstrumentResolver
@@ -98,6 +99,7 @@ class SessionService:
         self._admission = SessionAdmissionController(settings)
         self._browser_clock_runtime = BrowserClockRuntimeCoordinator()
         self._performance_runtime = SessionPerformanceRuntimeCoordinator(settings, self._publish_from_thread)
+        self._preparation = SequencerPreparationService()
         self._sessions: dict[str, RuntimeSession] = {}
         self._connections = SessionConnectionRegistry()
         self._frontend_heartbeat_watchdogs: dict[str, dict[str, asyncio.Task[None]]] = {}
@@ -430,6 +432,7 @@ class SessionService:
     async def stop_session(self, session_id: str) -> SessionActionResponse:
         self._remember_running_loop()
         runtime = await self._get_session(session_id)
+        self._invalidate_configuration(runtime)
         await self._disconnect_browser_clock_controller(
             session_id,
             detail="Session stopped.",
@@ -450,6 +453,7 @@ class SessionService:
     async def panic_session(self, session_id: str) -> SessionActionResponse:
         self._remember_running_loop()
         runtime = await self._get_session(session_id)
+        self._invalidate_configuration(runtime)
         if runtime.midi_router is not None:
             runtime.midi_router.panic()
         detail = runtime.worker.panic()
@@ -956,6 +960,64 @@ class SessionService:
 
         return SessionActionResponse(session_id=runtime.session_id, state=runtime.state, detail=detail)
 
+    async def start_configuration_compiler(self) -> None:
+        await self._preparation.start()
+
+    async def shutdown(self) -> None:
+        for runtime in list(self._sessions.values()):
+            self._invalidate_configuration(runtime)
+        await self._preparation.close()
+        for runtime in list(self._sessions.values()):
+            if runtime.sequencer is not None:
+                runtime.sequencer.shutdown()
+            runtime.worker.stop()
+        tasks = [*self._session_idle_tasks.values(), *self._frontend_auto_stop_tasks.values(),
+                 *self._browser_clock_auto_stop_tasks.values(),
+                 *(task for group in self._frontend_heartbeat_watchdogs.values() for task in group.values())]
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+
+    def _invalidate_configuration(self, runtime: RuntimeSession) -> None:
+        with runtime.configuration_lock:
+            runtime.configuration_generation += 1
+        self._preparation.invalidate(runtime.session_id)
+
+    async def _prepare_session_configuration(
+        self, runtime: RuntimeSession, request: SessionSequencerConfigRequest,
+        *, start: bool = False, position: int | None = None,
+    ) -> SessionSequencerStatus:
+        with runtime.configuration_lock:
+            runtime.configuration_generation += 1
+            generation = runtime.configuration_generation
+        sequencer = self._ensure_sequencer(runtime)
+
+        async def apply(prepared):
+            def at_boundary():
+                with runtime.configuration_lock:
+                    if generation != runtime.configuration_generation:
+                        raise SupersededConfigurationError()
+                    status = sequencer.apply_prepared(prepared)
+                    if arpeggiator_generation == runtime.arpeggiator_generation:
+                        self._ensure_midi_router(runtime).configure(request.arpeggiators, tempo_bpm=request.timing.tempo_bpm)
+                    if start:
+                        status = sequencer.start(position)
+                    return self._status_with_arpeggiators(runtime, status)
+            return await asyncio.to_thread(runtime.worker.run_at_render_boundary, at_boundary)
+
+        arpeggiator_generation = runtime.arpeggiator_generation
+        try:
+            return await self._preparation.submit(
+                runtime.session_id, request, self._performance_runtime.controller_default_channels(runtime), apply,
+            )
+        except SupersededConfigurationError as exc:
+            raise HTTPException(status_code=409, detail="Sequencer update superseded or session stopped.") from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        except Exception as exc:
+            logger.exception("Sequencer preparation failed")
+            raise HTTPException(status_code=500, detail="Failed to prepare sequencer configuration.") from exc
+
     async def configure_session_sequencer(
         self,
         session_id: str,
@@ -963,17 +1025,7 @@ class SessionService:
     ) -> SessionSequencerStatus:
         self._remember_running_loop()
         runtime = await self._get_session(session_id)
-        sequencer = self._ensure_sequencer(runtime)
-
-        try:
-            status = sequencer.configure(request)
-            self._ensure_midi_router(runtime).configure(
-                request.arpeggiators,
-                tempo_bpm=request.timing.tempo_bpm,
-            )
-            status = self._status_with_arpeggiators(runtime, status)
-        except ValueError as exc:
-            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        status = await self._prepare_session_configuration(runtime, request)
 
         await self._publish(
             runtime.session_id,
@@ -1000,6 +1052,7 @@ class SessionService:
                 request.arpeggiators,
                 tempo_bpm=request.tempo_bpm,
             )
+            runtime.arpeggiator_generation += 1
             status = router.status()
         except ValueError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
@@ -1024,19 +1077,22 @@ class SessionService:
         if not runtime.worker.is_running:
             await self.start_session(session_id)
 
-        sequencer = self._ensure_sequencer(runtime)
+        if request.config is not None:
+            status = await self._prepare_session_configuration(runtime, request.config, start=True, position=request.position_step)
+        else:
+            with runtime.configuration_lock:
+                generation = runtime.configuration_generation
 
-        try:
-            if request.config is not None:
-                sequencer.configure(request.config)
-                self._ensure_midi_router(runtime).configure(
-                    request.config.arpeggiators,
-                    tempo_bpm=request.config.timing.tempo_bpm,
-                )
-            status = sequencer.start(request.position_step)
-            status = self._status_with_arpeggiators(runtime, status)
-        except ValueError as exc:
-            raise HTTPException(status_code=422, detail=str(exc)) from exc
+            def start_at_boundary():
+                with runtime.configuration_lock:
+                    if generation != runtime.configuration_generation:
+                        raise HTTPException(status_code=409, detail="Sequencer start superseded.")
+                    return self._status_with_arpeggiators(runtime, self._ensure_sequencer(runtime).start(request.position_step))
+
+            status = await asyncio.to_thread(
+                runtime.worker.run_at_render_boundary,
+                start_at_boundary,
+            )
 
         await self._publish(
             runtime.session_id,
@@ -1051,6 +1107,7 @@ class SessionService:
     async def stop_session_sequencer(self, session_id: str) -> SessionSequencerStatus:
         self._remember_running_loop()
         runtime = await self._get_session(session_id)
+        self._invalidate_configuration(runtime)
         sequencer = self._ensure_sequencer(runtime)
         status = sequencer.stop()
         status = self._status_with_arpeggiators(runtime, status)
@@ -1157,6 +1214,7 @@ class SessionService:
                 return
             raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found")
 
+        self._invalidate_configuration(runtime)
         await self._disconnect_browser_clock_controller(
             session_id,
             detail=detail,

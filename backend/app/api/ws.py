@@ -232,6 +232,17 @@ async def browser_clock_controller(websocket: WebSocket, session_id: str) -> Non
                     await send_json({"type": "engine_error", "detail": str(exc)})
 
     render_worker_task = asyncio.create_task(render_worker(), name=f"ws-browser-clock-render:{session_id}")
+    start_tasks: set[asyncio.Task] = set()
+
+    async def prepare_start(request: BrowserClockSequencerStartControlRequest) -> None:
+        # Keep receiving refills, Stop and pad commands while the compiler works.
+        try:
+            response = await container.session_service.browser_clock_start_sequencer(session_id, connection_id, request)
+            await send_json(response)
+        except HTTPException as exc:
+            await send_json({"type": "engine_error", "detail": _http_error_detail(exc.detail)})
+        except (WebSocketDisconnect, RuntimeError):
+            pass
 
     try:
         while True:
@@ -331,12 +342,11 @@ async def browser_clock_controller(websocket: WebSocket, session_id: str) -> Non
                     continue
 
                 if message_type == "sequencer_start":
-                    response = await container.session_service.browser_clock_start_sequencer(
-                        session_id,
-                        connection_id,
-                        BrowserClockSequencerStartControlRequest.model_validate(payload),
-                    )
-                    await send_json(response)
+                    request = BrowserClockSequencerStartControlRequest.model_validate(payload)
+                    task = asyncio.create_task(prepare_start(request), name=f"ws-sequencer-start:{session_id}")
+                    start_tasks.add(task)
+                    task.add_done_callback(start_tasks.discard)
+                    await asyncio.sleep(0)
                     continue
 
                 if message_type in {"sequencer_stop", "sequencer_rewind", "sequencer_forward"}:
@@ -394,6 +404,9 @@ async def browser_clock_controller(websocket: WebSocket, session_id: str) -> Non
     except WebSocketDisconnect:
         pass
     finally:
+        for task in start_tasks:
+            task.cancel()
+        await asyncio.gather(*start_tasks, return_exceptions=True)
         try:
             render_queue.put_nowait(None)
         except asyncio.QueueFull:

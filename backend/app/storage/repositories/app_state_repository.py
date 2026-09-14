@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
+
+from sqlalchemy import select
 
 from backend.app.models.app_state import AppStateDocument
 from backend.app.services.persisted_json_limits import dump_compact_json
@@ -19,6 +22,11 @@ class AppStateRepository:
                 return None
             return self._to_document(record)
 
+    def get_created_at(self, state_id: str = "last") -> datetime | None:
+        with self._db_session_factory() as db:
+            value = db.scalar(select(AppStateRecord.created_at).where(AppStateRecord.id == state_id))
+            return ensure_utc(value) if value is not None else None
+
     def upsert(self, document: AppStateDocument) -> AppStateDocument:
         with self._db_session_factory() as db:
             record = db.get(AppStateRecord, document.id)
@@ -33,7 +41,9 @@ class AppStateRepository:
                 record.state_json = dump_compact_json(document.state)
                 record.updated_at = document.updated_at
             db.add(record)
-            return self._to_document(record)
+            # The caller already validated this document. Avoid parsing and
+            # validating the entire saved performance a second time.
+            return document
 
     @staticmethod
     def _to_document(record: AppStateRecord) -> AppStateDocument:

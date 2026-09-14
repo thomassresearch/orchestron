@@ -1,3 +1,4 @@
+import { mergedSequencerState, playbackValues } from "../lib/mergedSequencerState";
 import type { StoreApi } from "zustand";
 
 import { normalizeArrangerLoopSelection } from "../lib/arrangerTransport";
@@ -134,27 +135,6 @@ export function createTransportStoreActions(
           : null;
       }
       set({
-        sequencer: {
-          ...sequencer,
-          isPlaying: isPlaying === true,
-          tracks: sequencer.tracks.map((track) => ({
-            ...track,
-            queuedPad: isPlaying ? track.queuedPad : null,
-            padLoopPosition: isPlaying ? track.padLoopPosition : null,
-            queuedEnabled: isPlaying ? track.queuedEnabled : null
-          })),
-          drummerTracks: sequencer.drummerTracks.map((track) => ({
-            ...track,
-            queuedPad: isPlaying ? track.queuedPad : null,
-            padLoopPosition: isPlaying ? track.padLoopPosition : null,
-            queuedEnabled: isPlaying ? track.queuedEnabled : null
-          })),
-          controllerSequencers: sequencer.controllerSequencers.map((controllerSequencer) => ({
-            ...controllerSequencer,
-            queuedPad: isPlaying ? controllerSequencer.queuedPad : null,
-            padLoopPosition: isPlaying ? controllerSequencer.padLoopPosition : null
-          }))
-        },
         sequencerRuntime: {
           ...sequencerRuntime,
           isPlaying: isPlaying === true,
@@ -184,7 +164,7 @@ export function createTransportStoreActions(
     },
 
     syncSequencerRuntime: ({ isPlaying, transportStepCount, playhead, cycle, transportSubunit, tracks, drummerTracks }) => {
-      const sequencer = get().sequencer;
+      const sequencer = mergedSequencerState(get().sequencer, get().sequencerRuntime);
       const sequencerRuntime = get().sequencerRuntime;
       const nextIsPlaying = isPlaying === true;
       const boundedStepCount = normalizeTransportStepCount(transportStepCount ?? sequencerRuntime.stepCount);
@@ -200,7 +180,6 @@ export function createTransportStoreActions(
           : Math.max(0, Math.floor(transportSubunit));
       const trackPayload = new Map((tracks ?? []).map((track) => [track.trackId, track]));
       const drummerTrackPayload = new Map((drummerTracks ?? []).map((track) => [track.trackId, track]));
-      let sequencerChanged = sequencer.isPlaying !== nextIsPlaying;
       const nextTracks = sequencer.tracks.map((track) => {
         const payload = trackPayload.get(track.id);
         if (!payload) {
@@ -208,7 +187,6 @@ export function createTransportStoreActions(
             if (track.queuedPad === null && track.padLoopPosition === null && track.queuedEnabled === null) {
               return track;
             }
-            sequencerChanged = true;
             return {
               ...track,
               queuedPad: null,
@@ -270,7 +248,6 @@ export function createTransportStoreActions(
           return track;
         }
 
-        sequencerChanged = true;
         return {
           ...track,
           activePad: nextActivePad,
@@ -308,7 +285,6 @@ export function createTransportStoreActions(
             if (track.queuedPad === null && track.padLoopPosition === null && track.queuedEnabled === null) {
               return track;
             }
-            sequencerChanged = true;
             return {
               ...track,
               queuedPad: null,
@@ -363,7 +339,6 @@ export function createTransportStoreActions(
           return track;
         }
 
-        sequencerChanged = true;
         return {
           ...track,
           activePad: nextActivePad,
@@ -385,15 +360,6 @@ export function createTransportStoreActions(
               padLoopPosition: null
             }
       );
-      if (
-        !nextIsPlaying &&
-        nextControllerSequencers.some(
-          (controllerSequencer, index) => controllerSequencer !== sequencer.controllerSequencers[index]
-        )
-      ) {
-        sequencerChanged = true;
-      }
-
       const nextTrackLocalStepById: Record<string, number | null> = {};
       for (const track of nextTracks) {
         const payload = trackPayload.get(track.id);
@@ -436,17 +402,6 @@ export function createTransportStoreActions(
       }
 
       set({
-        ...(sequencerChanged
-          ? {
-              sequencer: {
-                ...sequencer,
-                isPlaying: nextIsPlaying,
-                tracks: nextTracks,
-                controllerSequencers: nextControllerSequencers,
-                drummerTracks: nextDrummerTracks
-              }
-            }
-          : {}),
         sequencerRuntime: {
           ...sequencerRuntime,
           isPlaying: nextIsPlaying,
@@ -456,7 +411,10 @@ export function createTransportStoreActions(
           transportSubunit: nextTransportSubunit,
           trackLocalStepById: nextTrackLocalStepById,
           drummerTrackLocalStepById: nextDrummerTrackLocalStepById,
-          controllerRuntimePadStartSubunitById: nextControllerRuntimePadStartStepById
+          controllerRuntimePadStartSubunitById: nextControllerRuntimePadStartStepById,
+          trackStateById: Object.fromEntries(nextTracks.map(t => [t.id, playbackValues(t)])),
+          drummerStateById: Object.fromEntries(nextDrummerTracks.map(t => [t.id, playbackValues(t)])),
+          controllerStateById: Object.fromEntries(nextControllerSequencers.map(t => [t.id, playbackValues(t)]))
         }
       });
     },

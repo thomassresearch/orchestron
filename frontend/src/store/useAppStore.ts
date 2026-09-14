@@ -8,6 +8,7 @@ import { createPerformanceControllerActions } from "./appStorePerformanceControl
 import { createMixerActions, initialMixerState } from "./appStoreMixer";
 import { emptyAudioGraph, emptyMixer, migrateAudio, cleanBindings } from "../lib/audioRouting";
 import { create } from "zustand";
+import { mergedSequencerState } from "../lib/mergedSequencerState";
 
 import { api, isApiError } from "../api/client";
 import {
@@ -54,7 +55,7 @@ import {
   initialSequencerRuntimeState,
   initialSequencerState,
   initialTab,
-  isSequencerRuntimeOnlyUpdate,
+  shouldDeferSequencerPersistence,
   normalizeAppPage,
   normalizeEngineConfig,
   normalizeMidiInputSelection,
@@ -121,6 +122,7 @@ export const useAppStore = create<AppStore>((set, get) => {
 
     sequencer: initialSequencerState,
     sequencerRuntime: initialSequencerRuntimeState,
+    sequencerEditRevision: 0,
     sequencerInstruments: [],
     currentPerformanceId: null,
     performanceName: "Untitled Performance",
@@ -664,7 +666,7 @@ export const useAppStore = create<AppStore>((set, get) => {
 
       set({ loading: true, error: null });
       try {
-        const snapshot = buildSequencerConfigSnapshot(state.sequencer, state.sequencerInstruments, state.audioGraph, state.mixer);
+        const snapshot = buildSequencerConfigSnapshot(mergedSequencerState(state.sequencer, state.sequencerRuntime), state.sequencerInstruments, state.audioGraph, state.mixer);
         const selectedPatchIds = [
           ...new Set(snapshot.instruments.map((instrument) => instrument.patchId.trim()).filter((patchId) => patchId.length > 0))
         ];
@@ -1073,20 +1075,26 @@ function schedulePersistedAppState(snapshot: PersistedAppState): void {
   }, APP_STATE_PERSIST_DEBOUNCE_MS);
 }
 
-useAppStore.subscribe((state) => {
+// A replacement engine session never inherits the previous session's playback overlays.
+useAppStore.subscribe((state, previous) => {
+  if (state.activeSessionId !== previous.activeSessionId) {
+    useAppStore.setState({ sequencerRuntime: sequencerRuntimeStateFromSequencer({ ...state.sequencer, isPlaying: false }) });
+  }
+});
+
+useAppStore.subscribe((state, previous) => {
   if (!state.hasLoadedBootstrap) {
     return;
   }
 
   const watchState = capturePersistWatchState(state);
-  if (!hasPersistableStateChange(watchState, lastPersistWatchState)) {
+  const transportStopped = previous.sequencerRuntime.isPlaying && !state.sequencerRuntime.isPlaying;
+  if (!transportStopped && !hasPersistableStateChange(watchState, lastPersistWatchState)) {
     return;
   }
-  if (isSequencerRuntimeOnlyUpdate(watchState, lastPersistWatchState)) {
-    // Runtime transport ticks should not trigger full persisted snapshot rebuilds.
-    // Sequencer edits made while running are still captured on the next non-runtime transition (e.g. stop).
-    return;
-  }
+  // Preserve the existing rule: sequencer-only autosaves wait until transport
+  // stops (or another persistable setting changes). Explicit Save still works.
+  if (shouldDeferSequencerPersistence(watchState, lastPersistWatchState, state.sequencerRuntime.isPlaying)) return;
 
   const snapshot = buildPersistedAppStateSnapshot(state);
   lastPersistWatchState = watchState;

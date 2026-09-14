@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
+import threading
 
 from backend.app.engine.csound_worker import CsoundWorker
 from backend.app.models.audio import AudioGraph, MixerState
@@ -25,6 +26,9 @@ class RuntimeSession:
     worker: CsoundWorker = field(default_factory=CsoundWorker)
     midi_router: Any = None
     sequencer: Any = None
+    configuration_generation: int = 0
+    arpeggiator_generation: int = 0
+    configuration_lock: Any = field(default_factory=threading.Lock)
 
     @property
     def patch_id(self) -> str:

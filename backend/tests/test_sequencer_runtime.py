@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from backend.app.models.session import SessionSequencerConfigRequest
 from backend.app.services import sequencer_runtime
 from backend.app.services.sequencer_runtime import SessionSequencerRuntime
@@ -37,6 +39,96 @@ def _note_on_messages(midi_service: _FakeMidiService) -> list[list[int]]:
             if len(message) == 3 and (message[0] & 0xF0) == 0x90 and message[2] > 0:
                 note_ons.append(message)
     return note_ons
+
+
+@pytest.mark.parametrize("change", ["notes", "remove", "disable", "channel", "shorten"])
+def test_prepared_edit_preserves_transport_and_releases_only_affected_notes(change: str) -> None:
+    from backend.app.services.sequencer_runtime_config import compile_sequencer_runtime_config
+
+    midi = _FakeMidiService()
+    runtime = SessionSequencerRuntime(session_id="edit", midi_service=midi, midi_input_selector="test",
+        controller_default_channels=(1,), clock_mode="render_driven", publish_event=lambda *_: None)
+    payload = {"playback_end_step": 10000, "tracks": [{
+        "track_id": "lead", "midi_channel": 2, "length_beats": 4,
+        "pads": [{"pad_index": 0, "length_beats": 4, "steps": [{"note": 60, "hold": True}]}],
+    }]}
+    request = SessionSequencerConfigRequest.model_validate(payload)
+    runtime.configure(request)
+    runtime.start()
+    runtime.advance_render_block(sample_rate=48000, ksmps=16)
+    position, remainder = runtime._absolute_subunit, runtime._render_subunit_remainder
+    assert runtime._active_notes["lead"] == {60}
+    midi.calls.clear()
+    if change == "notes":
+        request.tracks[0].pads[0].steps[0].note = 72
+    elif change == "remove":
+        request.tracks.clear()
+    elif change == "disable":
+        request.tracks[0].enabled = False
+    elif change == "channel":
+        request.tracks[0].midi_channel = 3
+    else:
+        runtime._absolute_subunit = 10000
+        position = runtime._absolute_subunit
+        request.playback_end_step = 1
+    runtime.apply_prepared(compile_sequencer_runtime_config(request, controller_default_channels=(1,)))
+    assert runtime._absolute_subunit == position
+    assert runtime._render_subunit_remainder == remainder
+    messages = [message for _, batch, _ in midi.calls for message in batch]
+    if change == "notes":
+        assert runtime._active_notes["lead"] == {60}
+        assert messages == []
+    elif change == "shorten":
+        assert not runtime.status().running
+        assert runtime._active_notes["lead"] == set()
+    else:
+        assert [0x81, 60, 0] in messages
+        assert not runtime._active_notes.get("lead")
+
+
+def test_constant_controller_edit_is_audible_at_application_without_waiting_for_loop() -> None:
+    from backend.app.services.sequencer_runtime_config import compile_sequencer_runtime_config
+
+    midi = _FakeMidiService()
+    runtime = SessionSequencerRuntime(session_id="curve-edit", midi_service=midi, midi_input_selector="test",
+        controller_default_channels=(1,), clock_mode="render_driven", publish_event=lambda *_: None)
+    request = SessionSequencerConfigRequest.model_validate({"playback_end_step": 10000, "controller_tracks": [{
+        "track_id": "filter", "controller_number": 74, "pads": [{"pad_index": 0, "length_beats": 16,
+        "keypoints": [{"position": 0, "value": 30}, {"position": 1, "value": 30}]}],
+    }]})
+    runtime.configure(request)
+    runtime.start()
+    runtime.advance_render_block(sample_rate=48000, ksmps=16)
+    midi.calls.clear()
+    request.controller_tracks[0].pads[0].keypoints[0].value = 90
+    runtime.apply_prepared(compile_sequencer_runtime_config(request, controller_default_channels=(1,)))
+    assert [0xB0, 74, 90] in [message for _, batch, _ in midi.calls for message in batch]
+
+
+def test_changed_synced_timing_matches_transport_position_without_history_replay(monkeypatch) -> None:
+    from backend.app.services.sequencer_runtime_config import compile_sequencer_runtime_config
+
+    def new_runtime():
+        return SessionSequencerRuntime(session_id="sync-edit", midi_service=_FakeMidiService(), midi_input_selector="test",
+            controller_default_channels=(1,), clock_mode="render_driven", publish_event=lambda *_: None)
+
+    request = SessionSequencerConfigRequest.model_validate({"playback_end_step": 10000, "tracks": [
+        {"track_id": "master", "midi_channel": 1, "length_beats": 2},
+        {"track_id": "follower", "midi_channel": 2, "length_beats": 4, "sync_to_track_id": "master"},
+    ]})
+    runtime = new_runtime()
+    runtime.configure(request)
+    runtime.start(position_step=83)
+    request.tracks[1].timing = request.timing.model_copy(update={"beat_rate_numerator": 3, "beat_rate_denominator": 2})
+    reference = new_runtime()
+    reference.configure(request)
+    reference.start(position_step=83)
+    monkeypatch.setattr(runtime, "_apply_absolute_subunit_locked", lambda *_: pytest.fail("history replay during apply"))
+    runtime.apply_prepared(compile_sequencer_runtime_config(request, controller_default_channels=(1,)))
+    assert runtime.status().transport_subunit == reference.status().transport_subunit
+    actual = runtime._config.tracks["follower"]
+    expected = reference._config.tracks["follower"]
+    assert (actual.active_pad, actual.phase_offset_subunit, actual.enabled) == (expected.active_pad, expected.phase_offset_subunit, expected.enabled)
 
 
 def test_midi_schedule_lead_is_100ms() -> None:

@@ -1,3 +1,4 @@
+import { mergedSequencerState, playbackValues } from "../lib/mergedSequencerState";
 import { nextPerformanceDeviceName } from "../lib/performanceDeviceNames";
 import type { StoreApi } from "zustand";
 
@@ -900,7 +901,7 @@ export function createPerformanceControlStoreActions(
     },
 
     syncControllerSequencerRuntime: (updates) => {
-      const sequencer = get().sequencer;
+      const sequencer = mergedSequencerState(get().sequencer, get().sequencerRuntime);
       const sequencerRuntime = get().sequencerRuntime;
       const byId = new Map(updates.map((update) => [update.controllerSequencerId, update]));
       if (byId.size === 0) {
@@ -985,22 +986,11 @@ export function createPerformanceControlStoreActions(
       }
 
       set({
-        ...(controllerSequencersChanged
-          ? {
-              sequencer: {
-                ...sequencer,
-                controllerSequencers: nextControllerSequencers
-              }
-            }
-          : {}),
-        ...(runtimeChanged
-          ? {
-              sequencerRuntime: {
-                ...sequencerRuntime,
-                controllerRuntimePadStartSubunitById: nextControllerRuntimePadStartSubunitById
-              }
-            }
-          : {})
+        sequencerRuntime: {
+          ...sequencerRuntime,
+          controllerRuntimePadStartSubunitById: nextControllerRuntimePadStartSubunitById,
+          controllerStateById: Object.fromEntries(nextControllerSequencers.map(t => [t.id, playbackValues(t)]))
+        }
       });
     },
 

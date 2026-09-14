@@ -1,3 +1,6 @@
+import { SequencerConfigSync } from "../lib/sequencerConfigSync";
+import { consumeSequencerEnablementCommands } from "../store/sequencerEdits";
+import { mergedSequencerState } from "../lib/mergedSequencerState";
 import { useCallback, useEffect, useMemo, useRef, type MutableRefObject } from "react";
 
 import { api, wsBaseUrl } from "../api/client";
@@ -124,12 +127,14 @@ export function useSequencerRuntimeController({
   syncSequencerRuntime,
   syncSequencerTransportRuntime
 }: UseSequencerRuntimeControllerParams): UseSequencerRuntimeControllerResult {
+  const authoredRevision = useAppStore(state => state.sequencerEditRevision);
+  const configSyncRef = useRef<SequencerConfigSync<SessionSequencerConfigRequest, SessionSequencerStatus> | null>(null);
   const sequencerRef = useRef(sequencer);
   const sequencerSessionIdRef = useRef<string | null>(null);
   const sequencerStatusPollRef = useRef<number | null>(null);
   const sequencerPollInFlightRef = useRef(false);
   const sequencerConfigSyncPendingRef = useRef(false);
-  const sequencerConfigSyncVersionRef = useRef(0);
+  const transportRequestVersionRef = useRef(0);
   const applySequencerStatusRef = useRef<
     (status: SessionSequencerStatus, options?: ApplySequencerStatusOptions) => void
   >(() => undefined);
@@ -476,6 +481,25 @@ export function useSequencerRuntimeController({
     }
   };
 
+  const configSyncErrorRef = useRef((error: unknown) => {
+    setSequencerError(`${errors.failedToUpdateSequencerConfig}: ${error instanceof Error ? error.message : String(error)}`);
+  });
+  configSyncErrorRef.current = (error: unknown) => {
+    setSequencerError(`${errors.failedToUpdateSequencerConfig}: ${error instanceof Error ? error.message : String(error)}`);
+  };
+  if (configSyncRef.current === null) {
+    configSyncRef.current = new SequencerConfigSync(
+      (sessionId, payload) => {
+        const response = api.configureSessionSequencer(sessionId, payload);
+        consumeSequencerEnablementCommands(useAppStore.setState, useAppStore.getState, payload);
+        return response;
+      },
+      status => applySequencerStatusRef.current(status, { preserveLocalEnablement: false }),
+      error => configSyncErrorRef.current(error),
+      pending => { sequencerConfigSyncPendingRef.current = pending; }
+    );
+  }
+
   const syncSequencerStatusFromServer = useCallback(
     async (sessionId: string, options?: { silentError?: boolean }): Promise<void> => {
       if (sequencerPollInFlightRef.current || sequencerConfigSyncPendingRef.current) {
@@ -631,6 +655,8 @@ export function useSequencerRuntimeController({
 
   const stopSequencerTransport = useCallback(
     async (resetPlayhead: boolean): Promise<void> => {
+      const version = ++transportRequestVersionRef.current;
+      configSyncRef.current?.stop();
       const sessionId = resolveSequencerSessionId();
       sequencerConfigSyncPendingRef.current = false;
       if (sessionId) {
@@ -639,8 +665,10 @@ export function useSequencerRuntimeController({
             effectiveAudioOutputMode === "browser_clock"
               ? await browserClockClientRef.current.stopSequencer(sessionId)
               : await api.stopSessionSequencer(sessionId);
+          if (version !== transportRequestVersionRef.current) return;
           applySequencerStatus(status);
         } catch {
+          if (version !== transportRequestVersionRef.current) return;
           syncSequencerRuntime({ isPlaying: false });
         }
       } else {
@@ -675,11 +703,14 @@ export function useSequencerRuntimeController({
       return;
     }
 
+    const version = ++transportRequestVersionRef.current;
     try {
-      const currentSequencerState = useAppStore.getState().sequencer;
+      const store = useAppStore.getState();
+      const currentSequencerState = mergedSequencerState(store.sequencer, store.sequencerRuntime);
       sequencerRef.current = currentSequencerState;
+      configSyncRef.current?.baseline(sessionId, store.sequencerEditRevision);
       const payload: SessionSequencerStartRequest = {
-        config: buildBackendSequencerConfig(currentSequencerState),
+        config: buildBackendSequencerConfig(store.sequencer),
         position_step: sequencerAbsoluteTransportStep(
           currentSequencerState.playhead,
           currentSequencerState.cycle,
@@ -693,9 +724,11 @@ export function useSequencerRuntimeController({
               positionStep: payload.position_step
             })
           : await api.startSessionSequencer(sessionId, payload);
+      if (version !== transportRequestVersionRef.current || useAppStore.getState().activeSessionId !== sessionId) return;
       sequencerSessionIdRef.current = sessionId;
       applySequencerStatus(status);
     } catch (transportError) {
+      if (version !== transportRequestVersionRef.current || useAppStore.getState().activeSessionId !== sessionId) return;
       if (invalidateMissingRuntimeSession(sessionId, transportError)) {
         return;
       }
@@ -827,18 +860,15 @@ export function useSequencerRuntimeController({
   );
 
   const markSequencerConfigSyncPending = useCallback((): void => {
-    if (sequencerRef.current.isPlaying) {
-      sequencerConfigSyncVersionRef.current += 1;
-      sequencerConfigSyncPendingRef.current = true;
-    }
+    // Run after the authoring action, so a no-op cannot leave polling suspended.
+    queueMicrotask(() => {
+      const state = useAppStore.getState();
+      const sessionId = state.activeSessionId;
+      if (sessionId && configSyncRef.current?.needsEdit(sessionId, state.sequencerEditRevision)) {
+        sequencerConfigSyncPendingRef.current = true;
+      }
+    });
   }, []);
-
-  const sequencerConfigSyncSignature = useMemo(() => {
-    if (!sequencer.isPlaying) {
-      return null;
-    }
-    return JSON.stringify(buildBackendSequencerConfig(sequencerConfig));
-  }, [buildBackendSequencerConfig, sequencer.isPlaying, sequencerConfig]);
 
   const arpeggiatorConfigSyncSignature = useMemo(() => {
     if (activeSessionState !== "running") {
@@ -889,81 +919,27 @@ export function useSequencerRuntimeController({
   }, [effectiveAudioOutputMode, resolveSequencerSessionId, sequencer.isPlaying]);
 
   useEffect(() => {
-    if (!sequencer.isPlaying) {
-      sequencerConfigSyncPendingRef.current = false;
-      sequencerConfigSyncVersionRef.current += 1;
-      return;
-    }
-
+    if (!sequencer.isPlaying || activeSessionState !== "running") return;
     const sessionId = resolveSequencerSessionId();
-    if (!sessionId || !sequencerConfigSyncSignature) {
-      sequencerConfigSyncPendingRef.current = false;
-      sequencerConfigSyncVersionRef.current += 1;
-      return;
+    if (sessionId && configSyncRef.current?.needsEdit(sessionId, authoredRevision)) {
+      try {
+        configSyncRef.current.edit(sessionId, authoredRevision, buildBackendSequencerConfig(sequencerConfig));
+      } catch (error) {
+        // Consume this revision without retrying on playback/status renders.
+        configSyncRef.current.baseline(sessionId, authoredRevision);
+        configSyncErrorRef.current(error);
+      }
     }
+  }, [activeSessionState, authoredRevision, buildBackendSequencerConfig, resolveSequencerSessionId, sequencer.isPlaying, sequencerConfig]);
 
-    const payload = JSON.parse(sequencerConfigSyncSignature) as SessionSequencerConfigRequest;
-    const syncVersion = sequencerConfigSyncVersionRef.current + 1;
-    sequencerConfigSyncVersionRef.current = syncVersion;
-    sequencerConfigSyncPendingRef.current = true;
+  useEffect(() => {
+    if (!sequencer.isPlaying) configSyncRef.current?.stop();
+  }, [sequencer.isPlaying]);
 
-    const syncTimer = window.setTimeout(() => {
-      const syncRequest =
-        effectiveAudioOutputMode === "browser_clock"
-          ? browserClockClientRef.current.startSequencer(sessionId, { config: payload, positionStep: null })
-          : api.configureSessionSequencer(sessionId, payload);
-
-      void syncRequest
-        .then((status) => {
-          if (sequencerConfigSyncVersionRef.current !== syncVersion) {
-            return;
-          }
-          applySequencerStatus(status, { preserveLocalEnablement: false });
-        })
-        .catch((syncError) => {
-          if (sequencerConfigSyncVersionRef.current !== syncVersion) {
-            return;
-          }
-          if (invalidateMissingRuntimeSession(sessionId, syncError)) {
-            return;
-          }
-          setSequencerError(
-            syncError instanceof Error
-              ? `${errors.failedToUpdateSequencerConfig}: ${syncError.message}`
-              : errors.failedToUpdateSequencerConfig
-          );
-        })
-        .finally(() => {
-          if (sequencerConfigSyncVersionRef.current !== syncVersion) {
-            return;
-          }
-          sequencerConfigSyncPendingRef.current = false;
-          if (
-            sequencerRef.current.isPlaying &&
-            !sequencerRef.current.tracks.some((track) => track.enabled || track.queuedEnabled === true) &&
-            !sequencerRef.current.drummerTracks.some((track) => track.enabled || track.queuedEnabled === true) &&
-            !sequencerRef.current.controllerSequencers.some((controllerSequencer) => controllerSequencer.enabled)
-          ) {
-            void stopSequencerTransport(false);
-          }
-        });
-    }, 80);
-
-    return () => {
-      window.clearTimeout(syncTimer);
-    };
-  }, [
-    applySequencerStatus,
-    browserClockClientRef,
-    effectiveAudioOutputMode,
-    errors.failedToUpdateSequencerConfig,
-    invalidateMissingRuntimeSession,
-    resolveSequencerSessionId,
-    sequencer.isPlaying,
-    sequencerConfigSyncSignature,
-    setSequencerError,
-    stopSequencerTransport
-  ]);
+  useEffect(() => () => {
+    transportRequestVersionRef.current += 1;
+    configSyncRef.current?.stop();
+  }, [activeSessionId]);
 
   useEffect(() => {
     if (activeSessionState !== "running" || !arpeggiatorConfigSyncSignature) {

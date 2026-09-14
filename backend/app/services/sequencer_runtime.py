@@ -108,22 +108,151 @@ class SessionSequencerRuntime:
             self._midi_input_selector = midi_input_selector
 
     def configure(self, request: SessionSequencerConfigRequest) -> SessionSequencerStatus:
+        """Synchronous convenience for offline callers; live APIs prepare in a process."""
+        prepared = compile_sequencer_runtime_config(
+            request, controller_default_channels=self._controller_default_channels,
+        )
+        return self.apply_prepared(prepared)
+
+    def apply_prepared(self, next_config: SequencerRuntimeConfig) -> SessionSequencerStatus:
+        """Install prepared data at a render boundary without replaying past events."""
         with self._lock:
-            previous_config = self._config
-            next_config = compile_sequencer_runtime_config(
-                request,
-                controller_default_channels=self._controller_default_channels,
-            )
-            self._release_reconfigured_track_notes_locked(previous_config, next_config)
+            previous = self._config
+            changed_note_tracks: set[str] = set()
+            for kind in ("tracks", "controller_tracks"):
+                old_tracks = getattr(previous, kind) if previous else {}
+                for identity, track in getattr(next_config, kind).items():
+                    old = old_tracks.get(identity)
+                    compatible = old is not None and (
+                        self._phase_signature(old) == self._phase_signature(track)
+                        or (isinstance(track, SequencerTrackRuntime) and track.queued_enabled is not None
+                            and self._phase_signature(old)[1:] == self._phase_signature(track)[1:])
+                    )
+                    if compatible:
+                        for field in ("active_pad", "enabled", "pad_loop_position", "phase_offset_subunit", "sequence_ended"):
+                            setattr(track, field, getattr(old, field))
+                        if isinstance(track, ControllerSequencerTrackRuntime):
+                            track.last_value = old.last_value
+                    else:
+                        if kind == "tracks":
+                            changed_note_tracks.add(identity)
+                        self._position_prepared_track(track, self._absolute_subunit)
+                        if old is not None and (
+                            track.configured_active_pad == old.configured_active_pad
+                            and track.pad_loop_sequence == old.pad_loop_sequence
+                            and track.pad_loop_enabled == old.pad_loop_enabled
+                            and old.active_pad in track.pads
+                            and not track.sequence_ended
+                        ):
+                            # A timing edit must not undo a manually launched pad.
+                            track.active_pad = old.active_pad
+                    if old is not None:
+                        if track.configured_queued_pad == old.configured_queued_pad:
+                            track.queued_pad = old.queued_pad
+                        if isinstance(track, SequencerTrackRuntime) and track.queued_enabled is None and track.configured_enabled == old.configured_enabled:
+                            track.queued_enabled = old.queued_enabled
+                        if isinstance(track, SequencerTrackRuntime) and track.queued_enabled is not None:
+                            track.configured_enabled = track.queued_enabled
+                    if track.queued_pad not in track.pads:
+                        track.queued_pad = None
+            self._reposition_changed_sync_tracks(next_config, changed_note_tracks)
+            self._release_reconfigured_track_notes_locked(previous, next_config)
             self._config = next_config
-            self._absolute_subunit = self._normalize_stopped_absolute_subunit_locked(self._absolute_subunit, next_config)
-            self._apply_absolute_subunit_locked(next_config, self._absolute_subunit)
+            if previous is None:
+                self._absolute_subunit = self._normalize_stopped_absolute_subunit_locked(self._absolute_subunit, next_config)
+            self._active_notes = {identity: self._active_notes.get(identity, set()) for identity in next_config.tracks}
+            if self._running and not next_config.playback_loop and self._absolute_subunit >= next_config.playback_end_subunit:
+                self._running = False
+                self._stop_event.set()
+                self._send_all_notes_off_locked()
+                for notes in self._active_notes.values():
+                    notes.clear()
+                self._emit_render_transport_event_locked("stopped", {"transport_subunit": self._absolute_subunit})
+            if self._running:
+                for track in next_config.controller_tracks.values():
+                    value = self._controller_track_value_at_current_subunit_locked(track, self._absolute_subunit)
+                    old = previous.controller_tracks.get(track.track_id) if previous else None
+                    routing_changed = old is None or (old.controller_number, old.target_channels) != (track.controller_number, track.target_channels)
+                    if value is not None and (value != track.last_value or routing_changed):
+                        self._send_messages_locked([
+                            self._control_change_message(channel, track.controller_number, value)
+                            for channel in track.target_channels
+                        ])
+                        track.last_value = value
             self._reset_render_event_cursor_locked(next_config)
-            next_active_notes: dict[str, set[int]] = {}
-            for track_id in next_config.tracks:
-                next_active_notes[track_id] = set(self._active_notes.get(track_id, set()))
-            self._active_notes = next_active_notes
             return self._status_locked()
+
+    def _reposition_changed_sync_tracks(self, config: SequencerRuntimeConfig, changed: set[str]) -> None:
+        visited: set[str] = set()
+
+        def position(track_id: str) -> None:
+            if track_id in visited:
+                return
+            visited.add(track_id)
+            track = config.tracks[track_id]
+            master = config.tracks.get(track.sync_to_track_id)
+            if master is None:
+                return
+            position(master.track_id)
+            if track_id not in changed and master.track_id not in changed:
+                return
+            changed.add(track_id)
+            if not master.enabled:
+                return
+            anchor = master.phase_offset_subunit
+            if master.pad_loop_enabled and master.pad_loop_position is not None:
+                for token in master.pad_loop_sequence[:master.pad_loop_position]:
+                    anchor -= (self._transport_subunit_count_for_pad(master, token) if token >= 0
+                               else self._transport_subunit_count_for_length(abs(token), master.timing))
+            self._position_prepared_track(track, max(0, self._absolute_subunit - anchor))
+            track.phase_offset_subunit += anchor
+
+        for track_id in config.tracks:
+            position(track_id)
+
+    @staticmethod
+    def _phase_signature(track: SequencerTrackRuntime | ControllerSequencerTrackRuntime) -> tuple:
+        return (
+            track.configured_enabled, track.configured_active_pad, track.pad_loop_enabled,
+            track.pad_loop_repeat, track.pad_loop_sequence,
+            track.timing.beat_rate_numerator, track.timing.beat_rate_denominator,
+            tuple((index, pad.transport_subunit_count) for index, pad in sorted(track.pads.items())),
+            getattr(track, "sync_to_track_id", None),
+        )
+
+    def _position_prepared_track(self, track: SequencerTrackRuntime | ControllerSequencerTrackRuntime, position: int) -> None:
+        track.active_pad = track.configured_active_pad
+        track.enabled = track.configured_enabled
+        track.sequence_ended = False
+        track.pad_loop_position = None
+        if not track.enabled:
+            return
+        sequence = track.pad_loop_sequence if track.pad_loop_enabled else ()
+        if not sequence:
+            duration = self._transport_subunit_count_for_pad(track, track.active_pad)
+            track.phase_offset_subunit = position - position % duration
+            return
+        durations = [
+            self._transport_subunit_count_for_pad(track, token) if token >= 0
+            else self._transport_subunit_count_for_length(abs(token), track.timing)
+            for token in sequence
+        ]
+        total = max(1, sum(durations))
+        if not track.pad_loop_repeat and position >= total:
+            track.enabled = False
+            track.sequence_ended = True
+            return
+        offset = position % total
+        phase = position - offset
+        for index, (token, duration) in enumerate(zip(sequence, durations, strict=True)):
+            if token >= 0:
+                track.active_pad = token
+            if offset < duration:
+                track.pad_loop_position = index
+                track.phase_offset_subunit = phase
+                break
+            offset -= duration
+            phase += duration
 
     def queue_pad(self, track_id: str, pad_index: int | None) -> SessionSequencerStatus:
         with self._lock:
@@ -861,6 +990,7 @@ class SessionSequencerRuntime:
                         self._reset_pad_loop_for_start_locked(track)
                         track.phase_offset_subunit = next_subunit
                         track.enabled = True
+                        track.configured_enabled = True
                         track.sequence_ended = False
                         track.queued_enabled = None
                         track_started_on_boundary = True
@@ -868,6 +998,7 @@ class SessionSequencerRuntime:
                     track.queued_enabled = None
                 elif local_boundary_reached:
                     track.enabled = False
+                    track.configured_enabled = False
                     track.sequence_ended = False
                     track.queued_enabled = None
                     if release_notes:
@@ -1556,7 +1687,7 @@ class SessionSequencerRuntime:
             if (
                 next_track is None
                 or next_track.midi_channel != previous_track.midi_channel
-                or not next_track.configured_enabled
+                or not next_track.enabled
             ):
                 self._release_track_notes_locked(track_id, previous_track.midi_channel)
 

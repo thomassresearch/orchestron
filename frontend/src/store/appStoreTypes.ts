@@ -70,6 +70,7 @@ export interface AppStore {
   renamePerformanceDevice: RenamePerformanceDevice;
   sequencer: SequencerState;
   sequencerRuntime: SequencerRuntimeState;
+  sequencerEditRevision: number;
   sequencerInstruments: SequencerInstrumentBinding[];
   audioGraph: AudioGraph;
   mixer: MixerState;

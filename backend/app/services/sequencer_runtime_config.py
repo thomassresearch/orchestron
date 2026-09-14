@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from functools import lru_cache
+
 from backend.app.models.session import (
     SessionControllerSequencerKeypointConfig,
     SessionSequencerConfigRequest,
@@ -95,19 +97,6 @@ def _normalize_controller_keypoints(
     return ((0.0, boundary_value), *interior, (1.0, boundary_value))
 
 
-def _controller_curve_control_points(
-    keypoints: tuple[tuple[float, int], ...],
-) -> tuple[tuple[float, int], ...]:
-    if not keypoints:
-        return _normalize_controller_keypoints([])
-    return _normalize_controller_keypoints(
-        [
-            SessionControllerSequencerKeypointConfig(position=position, value=value)
-            for position, value in keypoints
-        ]
-    )
-
-
 def _catmull_rom_1d(p0: float, p1: float, p2: float, p3: float, t: float) -> float:
     t2 = t * t
     t3 = t2 * t
@@ -124,7 +113,7 @@ def _sample_controller_curve_value(
     normalized_position: float,
 ) -> int:
     t = _clamp_controller_position(normalized_position)
-    points = _controller_curve_control_points(keypoints)
+    points = keypoints
     if len(points) <= 1:
         return 0
     if t <= 0.0:
@@ -194,9 +183,21 @@ def _compile_controller_pad_runtime(
     step_count = _step_count_for_length(length_beats, timing)
     transport_subunit_count = _transport_subunit_count_for_length(length_beats, timing)
     normalized_keypoints = _normalize_controller_keypoints(keypoints)
+    return _compiled_controller_pad(normalized_keypoints, length_beats, step_count, transport_subunit_count)
+
+
+@lru_cache(maxsize=512)
+def _compiled_controller_pad(
+    normalized_keypoints: tuple[tuple[float, int], ...],
+    length_beats: int,
+    step_count: int,
+    transport_subunit_count: int,
+) -> ControllerSequencerPadRuntime:
     events: list[ControllerSequencerEventRuntime] = []
 
-    for event_offset in range(0, transport_subunit_count, CONTROLLER_AUTOMATION_SUBUNIT_QUANTUM):
+    constant = all(value == normalized_keypoints[0][1] for _, value in normalized_keypoints)
+    offsets = (0,) if constant else range(0, transport_subunit_count, CONTROLLER_AUTOMATION_SUBUNIT_QUANTUM)
+    for event_offset in offsets:
         normalized_position = event_offset / float(max(1, transport_subunit_count))
         value = _sample_controller_curve_value(normalized_keypoints, normalized_position)
         if not events or events[-1].value != value:
@@ -342,10 +343,12 @@ def compile_sequencer_runtime_config(
             enabled=track_request.enabled,
             configured_enabled=track_request.enabled,
             queued_enabled=track_request.queued_enabled,
+            configured_queued_enabled=track_request.queued_enabled,
             pads=pads,
             active_pad=active_pad,
             configured_active_pad=active_pad,
             queued_pad=queued_pad,
+            configured_queued_pad=queued_pad,
             pad_loop_enabled=track_request.pad_loop_enabled,
             pad_loop_repeat=track_request.pad_loop_repeat,
             pad_loop_sequence=_normalize_pad_loop_sequence(track_request.pad_loop_sequence),
@@ -363,9 +366,11 @@ def compile_sequencer_runtime_config(
         track_length_beats = track_request.length_beats if 1 <= track_request.length_beats <= 16 else 4
         track_step_count = _step_count_for_length(track_length_beats, track_timing)
         track_transport_subunit_count = _transport_subunit_count_for_length(track_length_beats, track_timing)
+        supplied_indexes = {pad.pad_index for pad in track_request.pads}
         pads = {
             index: _compile_controller_pad_runtime([], length_beats=track_length_beats, timing=track_timing)
             for index in range(DEFAULT_PAD_COUNT)
+            if index not in supplied_indexes
         }
         for pad in track_request.pads:
             pad_length_beats = (
@@ -398,6 +403,7 @@ def compile_sequencer_runtime_config(
             active_pad=active_pad,
             configured_active_pad=active_pad,
             queued_pad=queued_pad,
+            configured_queued_pad=queued_pad,
             pad_loop_enabled=track_request.pad_loop_enabled,
             pad_loop_repeat=track_request.pad_loop_repeat,
             pad_loop_sequence=_normalize_pad_loop_sequence(track_request.pad_loop_sequence),

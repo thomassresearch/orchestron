@@ -1,4 +1,5 @@
 import { instrumentMetadata } from "../lib/instrumentTypes";
+import { mergedSequencerState } from "../lib/mergedSequencerState";
 import { normalizeControllerValues, performanceControllerDefaults, reconcileControllerValues } from "../lib/performanceControllers";
 import { controlFlowIssues, patchSchemaVersion } from "../lib/controlFlow";
 import { normalizeStereoChannelNames } from "../lib/audioBlocks";
@@ -1389,7 +1390,10 @@ export function sequencerRuntimeStateFromSequencer(sequencer: SequencerState): S
     trackLocalStepById,
     drummerTrackLocalStepById,
     controllerRuntimePadStartSubunitById,
-    arpeggiatorStatusById
+    arpeggiatorStatusById,
+    trackStateById: {},
+    drummerStateById: {},
+    controllerStateById: {}
   };
 }
 
@@ -2337,7 +2341,7 @@ export function buildPersistedAppStateSnapshot(state: AppStore): PersistedAppSta
       }
     })),
     activeInstrumentTabId: state.activeInstrumentTabId,
-    sequencer: sequencerSnapshotForPersistence(state.sequencer),
+    sequencer: sequencerSnapshotForPersistence(mergedSequencerState(state.sequencer, state.sequencerRuntime)),
     sequencerInstruments: cleanBindings(state.sequencerInstruments),
     audioGraph: state.audioGraph,
     mixer: state.mixer,
@@ -2387,28 +2391,13 @@ export function hasPersistableStateChange(current: PersistWatchState, previous: 
   );
 }
 
-export function isSequencerRuntimeOnlyUpdate(current: PersistWatchState, previous: PersistWatchState | null): boolean {
-  if (!previous || !current.sequencer.isPlaying) {
-    return false;
-  }
-  if (
-    current.activePage !== previous.activePage ||
-    current.guiLanguage !== previous.guiLanguage ||
-    current.browserClockLatencySettings !== previous.browserClockLatencySettings ||
-    current.instrumentTabs !== previous.instrumentTabs ||
-    current.activeInstrumentTabId !== previous.activeInstrumentTabId ||
-    current.sequencerInstruments !== previous.sequencerInstruments ||
-    current.audioGraph !== previous.audioGraph ||
-    current.mixer !== previous.mixer ||
-    current.currentPerformanceId !== previous.currentPerformanceId ||
-    current.performanceName !== previous.performanceName ||
-    current.performanceDescription !== previous.performanceDescription ||
-    current.activeMidiInput !== previous.activeMidiInput
-  ) {
-    return false;
-  }
-  return current.sequencer !== previous.sequencer;
+export function shouldDeferSequencerPersistence(
+  current: PersistWatchState, previous: PersistWatchState | null, isPlaying: boolean
+): boolean {
+  return previous !== null && isPlaying && current.sequencer !== previous.sequencer &&
+    !hasPersistableStateChange({ ...current, sequencer: previous.sequencer }, previous);
 }
+
 
 export function defaultParams(opcode: OpcodeSpec): Record<string, string | number | boolean> {
   if (opcode.name === "perf_controller") return { ...performanceControllerDefaults };

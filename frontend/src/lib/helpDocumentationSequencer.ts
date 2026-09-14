@@ -888,6 +888,8 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 
 ### Editing Rules
 
+Edits to the displayed pad are combined after 80 ms and take effect at the next engine block without resetting transport. If preparation fails, the previous configuration keeps playing and your edit remains local; make another edit or restart to retry.
+
 - Click the background to add an interior point, drag points to reshape the curve, and double-click an interior point to remove it.
 - The first and last points act as boundary anchors so the loop always has a defined start and end.
 - If the same CC is driven from multiple sources, the latest transmitted value wins at the receiver.`,
@@ -898,6 +900,8 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 - Das \`Beat-Verhaeltnis\` aendert, wie schnell die Kurve gegen den gemeinsamen Transport zyklisch laeuft; das ist nuetzlich fuer langsame Sweeps oder schnellere rhythmische Modulation.
 
 ### Bearbeitungsregeln
+
+Aenderungen am angezeigten Pad werden nach 80 ms zusammengefasst und beim naechsten Engine-Block ohne Transport-Neustart wirksam. Bei einem Fehler spielt die bisherige Konfiguration weiter; die Aenderung bleibt lokal. Erneut bearbeiten oder neu starten, um es nochmals zu versuchen.
 
 - Hintergrund anklicken, um einen inneren Punkt hinzuzufuegen; Punkte ziehen, um die Kurve zu formen; einen inneren Punkt doppelklicken, um ihn zu entfernen.
 - Der erste und letzte Punkt sind Randanker, sodass die Schleife immer einen definierten Start und ein definiertes Ende hat.
@@ -910,6 +914,8 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 
 ### Regles d'edition
 
+Les modifications du pad affiche sont regroupees apres 80 ms et appliquees au prochain bloc audio sans reinitialiser le transport. En cas d'echec, la configuration precedente continue et la modification reste locale ; modifiez a nouveau ou redemarrez pour reessayer.
+
 - Cliquez sur le fond pour ajouter un point interieur, faites glisser les points pour remodeler la courbe et double-cliquez un point interieur pour le supprimer.
 - Le premier et le dernier point servent d'ancrages de bord, de sorte que la boucle garde toujours un debut et une fin definis.
 - Si le meme CC est pilote par plusieurs sources, c'est la valeur envoyee en dernier qui gagne cote recepteur.`,
@@ -920,6 +926,8 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 - \`Beat Ratio\` cambia la velocidad con la que la curva cicla frente al transporte compartido; resulta util para barridos lentos o modulaciones ritmicas mas rapidas.
 
 ### Reglas de edicion
+
+Los cambios del pad mostrado se agrupan tras 80 ms y se aplican en el siguiente bloque de audio sin reiniciar el transporte. Si falla la preparacion, sigue sonando la configuracion anterior y el cambio queda local; edita de nuevo o reinicia para reintentar.
 
 - Haz clic en el fondo para agregar un punto interior, arrastra puntos para remodelar la curva y haz doble clic en un punto interior para eliminarlo.
 - El primer y el ultimo punto actuan como anclas de borde, de modo que el bucle siempre tiene un inicio y un final definidos.

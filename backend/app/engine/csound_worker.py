@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ctypes
+from concurrent.futures import Future
 import inspect
 import logging
 import os
@@ -63,6 +64,8 @@ class CsoundWorker:
         self._running = False
         self._lock = threading.Lock()
         self._render_lock = threading.Lock()
+        self._boundary_lock = threading.Lock()
+        self._boundary_actions: list[tuple[Callable[[], Any], Future[Any]]] = []
         self._mixer_lock = threading.Lock()
         self._control_pending: dict[str, float] = {}
         self._mixer_meters: dict[str, dict[str, str]] = {}
@@ -410,6 +413,7 @@ class CsoundWorker:
             source_frames_rendered = 0
             before_block_arity = self._callback_arity(before_block)
             for block_index in range(requested_blocks):
+                self._apply_boundary_actions()
                 block_start_sample = sample_start + source_frames_rendered
                 block_end_sample = block_start_sample + source_ksmps
                 if before_block is not None:
@@ -483,6 +487,7 @@ class CsoundWorker:
         sample_start = self._render_sample_cursor
         before_block_arity = self._callback_arity(before_block)
         for block_index in range(block_count):
+            self._apply_boundary_actions()
             block_start_sample = sample_start + (block_index * source_ksmps)
             if before_block is not None:
                 if before_block_arity >= 2:
@@ -504,6 +509,26 @@ class CsoundWorker:
             target_frame_count=target_frames,
             pcm_f32le=pcm.tobytes(),
         )
+
+    def run_at_render_boundary(self, action: Callable[[], Any]) -> Any:
+        """Called off the API loop; apply before a block or under idle render ownership."""
+        result: Future[Any] = Future()
+        with self._boundary_lock:
+            self._boundary_actions.append((action, result))
+        # The active renderer can consume the action at its next k-block. Taking
+        # ownership also guarantees completion if no further PCM is requested.
+        with self._render_lock:
+            self._apply_boundary_actions()
+        return result.result()
+
+    def _apply_boundary_actions(self) -> None:
+        with self._boundary_lock:
+            actions, self._boundary_actions = self._boundary_actions, []
+        for action, result in actions:
+            try:
+                result.set_result(action())
+            except Exception as exc:
+                result.set_exception(exc)
 
     def _stop_ctcsound(self) -> None:
         self._runtime_sr = 0

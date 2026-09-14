@@ -1,3 +1,4 @@
+import { sequencerEditAccess } from "./sequencerEdits";
 import { validatePerformanceDeviceName } from "../lib/performanceDeviceNames";
 import type { StoreApi } from "zustand";
 
@@ -28,6 +29,9 @@ export function createSequencerStoreActions(
   set: AppStoreSet,
   get: AppStoreGet,
 ): SequencerStoreActions {
+  const edit = sequencerEditAccess(set, get);
+  const transport = createTransportStoreActions(set, get);
+  const controls = createPerformanceControlStoreActions(set, get);
   return {
     renamePerformanceDevice: (kind, id, name) => {
       const sequencer = get().sequencer;
@@ -42,9 +46,16 @@ export function createSequencerStoreActions(
       }
       return result;
     },
-    ...createSequencerTrackStoreActions(set, get),
-    ...createPerformanceControlStoreActions(set, get),
-    ...createTransportStoreActions(set, get)
+    ...createSequencerTrackStoreActions(edit.set, edit.get),
+    ...createPerformanceControlStoreActions(edit.set, edit.get),
+    ...createTransportStoreActions(edit.set, edit.get),
+    applySequencerConfigSnapshot: createSequencerTrackStoreActions(set, get).applySequencerConfigSnapshot,
+    syncSequencerRuntime: transport.syncSequencerRuntime,
+    syncSequencerTransportRuntime: transport.syncSequencerTransportRuntime,
+    setSequencerPlaying: transport.setSequencerPlaying,
+    setSequencerPlayhead: transport.setSequencerPlayhead,
+    setSequencerTransportAbsoluteStep: transport.setSequencerTransportAbsoluteStep,
+    syncControllerSequencerRuntime: controls.syncControllerSequencerRuntime,
+    syncArpeggiatorRuntime: controls.syncArpeggiatorRuntime
   };
 }
-

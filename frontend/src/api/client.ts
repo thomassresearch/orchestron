@@ -47,7 +47,7 @@ export function isApiError(error: unknown): error is ApiError {
   return error instanceof ApiError;
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+async function request<T>(path: string, init?: RequestInit, discardResponse = false): Promise<T> {
   const providedHeaders = new Headers(init?.headers ?? {});
   const isFormDataBody = typeof FormData !== "undefined" && init?.body instanceof FormData;
   if (!isFormDataBody && !providedHeaders.has("Content-Type")) {
@@ -65,6 +65,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   if (response.status === 204) {
+    return undefined as T;
+  }
+
+  if (discardResponse) {
+    await response.body?.cancel();
     return undefined as T;
   }
 
@@ -136,10 +141,10 @@ export const api = {
   getRuntimeConfig: () => request<RuntimeConfigResponse>("/runtime-config"),
   getAppState: () => request<AppStateResponse>("/app-state"),
   saveAppState: (state: PersistedAppState) =>
-    request<AppStateResponse>("/app-state", {
+    request<void>("/app-state", {
       method: "PUT",
       body: JSON.stringify({ state })
-    }),
+    }, true),
   listPatches: () => request<PatchListItem[]>("/patches"),
   listPerformances: () => request<PerformanceListItem[]>("/performances"),
   getPatch: (patchId: string) => request<Patch>(`/patches/${patchId}`),

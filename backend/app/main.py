@@ -117,7 +117,11 @@ async def lifespan(app: FastAPI):
     settings.gen_audio_assets_dir.mkdir(parents=True, exist_ok=True)
 
     app.state.container = _build_container(settings)
-    yield
+    try:
+        await app.state.container.session_service.start_configuration_compiler()
+        yield
+    finally:
+        await app.state.container.session_service.shutdown()
 
 
 def create_app() -> FastAPI:

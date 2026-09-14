@@ -196,7 +196,6 @@ export default function App() {
   const transposeSequencerTrackPadInScale = useAppStore((state) => state.transposeSequencerTrackPadInScale);
   const transposeSequencerTrackPadDiatonic = useAppStore((state) => state.transposeSequencerTrackPadDiatonic);
   const setSequencerTrackActivePad = useAppStore((state) => state.setSequencerTrackActivePad);
-  const setSequencerTrackQueuedPad = useAppStore((state) => state.setSequencerTrackQueuedPad);
   const setSequencerTrackPadLoopEnabled = useAppStore((state) => state.setSequencerTrackPadLoopEnabled);
   const setSequencerTrackPadLoopRepeat = useAppStore((state) => state.setSequencerTrackPadLoopRepeat);
   const setSequencerTrackPadLoopPattern = useAppStore((state) => state.setSequencerTrackPadLoopPattern);
@@ -220,7 +219,6 @@ export default function App() {
   const clearDrummerSequencerTrackSteps = useAppStore((state) => state.clearDrummerSequencerTrackSteps);
   const copyDrummerSequencerPad = useAppStore((state) => state.copyDrummerSequencerPad);
   const setDrummerSequencerTrackActivePad = useAppStore((state) => state.setDrummerSequencerTrackActivePad);
-  const setDrummerSequencerTrackQueuedPad = useAppStore((state) => state.setDrummerSequencerTrackQueuedPad);
   const setDrummerSequencerTrackPadLoopEnabled = useAppStore((state) => state.setDrummerSequencerTrackPadLoopEnabled);
   const setDrummerSequencerTrackPadLoopRepeat = useAppStore((state) => state.setDrummerSequencerTrackPadLoopRepeat);
   const setDrummerSequencerTrackPadLoopPattern = useAppStore((state) => state.setDrummerSequencerTrackPadLoopPattern);
@@ -935,7 +933,7 @@ export default function App() {
     if (!pendingSequencerTransportStartRef.current || activeSessionState !== "running") {
       return;
     }
-    if (useAppStore.getState().sequencer.isPlaying || sequencerTransportStartInFlightRef.current) {
+    if (useAppStore.getState().sequencerRuntime.isPlaying || sequencerTransportStartInFlightRef.current) {
       pendingSequencerTransportStartRef.current = false;
       return;
     }
@@ -957,7 +955,7 @@ export default function App() {
 
   const startSequencerTransportFromUserAction = useCallback(() => {
     if (
-      useAppStore.getState().sequencer.isPlaying ||
+      useAppStore.getState().sequencerRuntime.isPlaying ||
       pendingSequencerTransportStartRef.current ||
       sequencerTransportStartInFlightRef.current
     ) {
@@ -1038,7 +1036,8 @@ export default function App() {
   );
 
   const applyArrangerTransportTrackStates = useCallback((): boolean => {
-    const currentSequencer = useAppStore.getState().sequencer;
+    const state = useAppStore.getState();
+    const currentSequencer = mergedSequencerState(state.sequencer, state.sequencerRuntime);
     let hasArrangerTrack = false;
 
     for (const track of currentSequencer.tracks) {
@@ -1077,7 +1076,8 @@ export default function App() {
   ]);
 
   const stopArrangerPadLoopTracks = useCallback(() => {
-    const currentSequencer = useAppStore.getState().sequencer;
+    const state = useAppStore.getState();
+    const currentSequencer = mergedSequencerState(state.sequencer, state.sequencerRuntime);
     for (const track of currentSequencer.tracks) {
       if (track.padLoopEnabled && (track.enabled || track.queuedEnabled !== null)) {
         markSequencerConfigSyncPending();
@@ -1109,7 +1109,7 @@ export default function App() {
     arrangerTransportActiveRef.current = hasArrangerTrack;
     if (!hasArrangerTrack) {
       pendingSequencerTransportStartRef.current = false;
-      if (useAppStore.getState().sequencer.isPlaying) {
+      if (useAppStore.getState().sequencerRuntime.isPlaying) {
         void stopSequencerTransport(false)
           .then(() => {
             applyArrangerTransportTrackStates();
@@ -1815,7 +1815,8 @@ export default function App() {
       arrangerTransportActiveRef.current = false;
       stopArrangerPadLoopTracks();
 
-      const nextSequencer = useAppStore.getState().sequencer;
+      const state = useAppStore.getState();
+      const nextSequencer = mergedSequencerState(state.sequencer, state.sequencerRuntime);
       if (hasEnabledPerformanceSequencer(nextSequencer)) {
         if (resetPlayhead && !nextSequencer.isPlaying) {
           resetArrangerTransportToSelectionStart();
@@ -1889,9 +1890,6 @@ export default function App() {
       }
 
       void queueSequencerPadRuntime(sessionId, trackId, padIndex)
-        .then(() => {
-          setSequencerTrackQueuedPad(trackId, padIndex);
-        })
         .catch((queueError) => {
           setSequencerError(
             queueError instanceof Error
@@ -1952,7 +1950,6 @@ export default function App() {
         for (const row of drummerTrack.rows) {
           await queueSequencerPadRuntime(sessionId, drummerRowRuntimeTrackId(trackId, row.id), padIndex);
         }
-        setDrummerSequencerTrackQueuedPad(trackId, padIndex);
       })().catch((queueError) => {
         setSequencerError(
           queueError instanceof Error

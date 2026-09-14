@@ -9,6 +9,10 @@ Orchestron is a visual instrument workshop built on the power of Csound — not 
 
 Read the complete user documentation in [user_documentation.md](documentation/user_documentation.md).
 
+Realtime sequencer edits now prepare in a persistent compiler process and apply at an engine block boundary while preserving transport. Ordinary playback and automatic pad changes do not trigger full reconfiguration. Notes and curves edit the displayed pad; rapid edits coalesce after 80 ms. See [editing during playback](documentation/performance/live_status_and_safety_controls.md#editing-during-playback). Audio buffering, Csound threading and synthesis settings are unchanged. Run `.venv/bin/python -m backend.tools.benchmark_sequencer_preparation` to measure cold, cached and one-pad preparation using the versioned TB303 test fixture.
+
+App-state autosave runs its validation and database work in a worker thread so saving a live edit does not block the audio refill API.
+
 The [Audio Mixer and Routing guide](documentation/performance/audio_mixer_and_routing.md) covers Master, inserts, pre/post sends and routing repair with current screenshots. [Draft audition](documentation/instrument_design/runtime_panel_and_compilation.md#audition-a-draft) explains isolated and current-performance previews.
 
 - Backend: FastAPI + CSound Python integration

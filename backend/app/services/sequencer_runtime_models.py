@@ -9,14 +9,14 @@ from backend.app.services.sequencer_runtime_constants import (
 )
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class SequencerStepRuntime:
     notes: tuple[int, ...]
     hold: bool = False
     velocity: int = 100
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class SequencerPadRuntime:
     length_beats: int
     step_count: int
@@ -26,13 +26,13 @@ class SequencerPadRuntime:
     mode: str | None = None
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class ControllerSequencerEventRuntime:
     offset_subunit: int
     value: int
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class ControllerSequencerPadRuntime:
     length_beats: int
     step_count: int
@@ -61,6 +61,8 @@ class SequencerTrackRuntime:
     active_pad: int = 0
     configured_active_pad: int = 0
     queued_pad: int | None = None
+    configured_queued_pad: int | None = None
+    configured_queued_enabled: bool | None = None
     pad_loop_enabled: bool = False
     pad_loop_repeat: bool = True
     pad_loop_sequence: tuple[int, ...] = ()
@@ -84,6 +86,7 @@ class ControllerSequencerTrackRuntime:
     active_pad: int = 0
     configured_active_pad: int = 0
     queued_pad: int | None = None
+    configured_queued_pad: int | None = None
     pad_loop_enabled: bool = False
     pad_loop_repeat: bool = True
     pad_loop_sequence: tuple[int, ...] = ()

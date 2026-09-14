@@ -425,12 +425,24 @@ export interface SequencerState {
   midiControllers: MidiControllerState[];
 }
 
+export interface SequencerTrackPlaybackState {
+  activePad?: number;
+  queuedPad?: number | null;
+  queuedEnabled?: boolean | null;
+  enabled?: boolean;
+  padLoopPosition?: number | null;
+  runtimePadStartSubunit?: number | null;
+}
+
 export interface SequencerRuntimeState {
   isPlaying: boolean;
   stepCount: number;
   playhead: number;
   cycle: number;
   transportSubunit: number;
+  trackStateById: Record<string, SequencerTrackPlaybackState>;
+  drummerStateById: Record<string, SequencerTrackPlaybackState>;
+  controllerStateById: Record<string, SequencerTrackPlaybackState>;
   trackLocalStepById: Record<string, number | null>;
   drummerTrackLocalStepById: Record<string, number | null>;
   controllerRuntimePadStartSubunitById: Record<string, number | null>;

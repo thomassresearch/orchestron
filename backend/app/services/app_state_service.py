@@ -31,21 +31,23 @@ class AppStateService:
         if not document:
             raise HTTPException(status_code=404, detail="App state not found")
 
-        return AppStateResponse(state=document.state, updated_at=document.updated_at)
+        return AppStateResponse.model_construct(state=document.state, updated_at=document.updated_at)
 
     def save_last_state(self, request: AppStateUpdateRequest) -> AppStateResponse:
-        existing = self._repository.get("last")
+        created_at = self._repository.get_created_at("last")
         now = datetime.now(timezone.utc)
 
         self._validate_state(request.state)
-        document = AppStateDocument(
+        # JsonValue validation already happened on AppStateUpdateRequest. Keep
+        # this same validated tree instead of rebuilding it for every wrapper.
+        document = AppStateDocument.model_construct(
             id="last",
             state=request.state,
-            created_at=existing.created_at if existing else now,
+            created_at=created_at or now,
             updated_at=now,
         )
         persisted = self._repository.upsert(document)
-        return AppStateResponse(state=persisted.state, updated_at=persisted.updated_at)
+        return AppStateResponse.model_construct(state=persisted.state, updated_at=persisted.updated_at)
 
     def _validate_state(self, state: dict) -> None:
         try:
