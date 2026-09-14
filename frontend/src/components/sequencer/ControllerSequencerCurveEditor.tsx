@@ -330,7 +330,15 @@ export const ControllerSequencerCurveEditor = memo(function ControllerSequencerC
         className="h-40 w-full cursor-crosshair overflow-visible rounded-lg border border-slate-700 bg-slate-950"
       >
         <defs>
-          <linearGradient id={`controller-curve-${controllerSequencer.id}`} x1="0%" y1="0%" x2="100%" y2="0%">
+          {/* Flat curves have no bounding-box height, so anchor the gradient to the editor. */}
+          <linearGradient
+            id={`controller-curve-${controllerSequencer.id}`}
+            gradientUnits="userSpaceOnUse"
+            x1={0}
+            y1={0}
+            x2={width}
+            y2={0}
+          >
             <stop offset="0%" stopColor="#67e8f9" />
             <stop offset="55%" stopColor="#5eead4" />
             <stop offset="100%" stopColor="#2dd4bf" />

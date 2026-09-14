@@ -49,6 +49,8 @@ This defines the repeat length for the curve sampling relative to that controlle
 
 The curve editor is an interactive graph view (spline-based curve display and sampling).
 
+When all keypoints have the same value, the curve appears as a horizontal line across the editor. This also applies to the minimum (`0`) and maximum (`127`) CC values.
+
 Supported interactions:
 
 - Click background to add a point (interior points only)
