@@ -63,6 +63,7 @@ it("discards the editor on a performance switch or device removal", () => {
   const { rerender, container } = render(<Page />);
   fireEvent.click(screen.getByRole("button", { name: "Rename: Warm Lead" }));
   fireEvent.change(container.querySelector('input[aria-invalid]')!, { target: { value: "Unsaved draft" } });
+  act(() => useAppStore.setState(state => ({ performanceWorkspaceGeneration: state.performanceWorkspaceGeneration + 1 })));
   rerender(<Page performanceId="second" />);
   expect(container.querySelector('input[aria-invalid]')).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Rename: Warm Lead" }));

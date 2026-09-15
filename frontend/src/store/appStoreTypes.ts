@@ -87,6 +87,8 @@ export interface AppStore {
   ensureMaster: () => Promise<string>;
 
   currentPerformanceId: string | null;
+  /** UI lifetime only; excludes ordinary saves, edits and transport ticks. */
+  performanceWorkspaceGeneration: number;
   performanceName: string;
   performanceDescription: string;
 

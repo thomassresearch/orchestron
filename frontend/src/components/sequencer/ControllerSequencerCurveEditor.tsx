@@ -70,7 +70,7 @@ export const ControllerSequencerCurveEditor = memo(function ControllerSequencerC
     transportSubunitDurationMs: number;
     timestampMs: number;
   } | null>(null);
-  const [playbackTransportSubunit, setPlaybackTransportSubunit] = useState<number>(0);
+  const [playbackTransportSubunit, setPlaybackTransportSubunit] = useState<number>(() => playbackTransport?.transportSubunit ?? 0);
 
   useEffect(() => {
     const svg = svgRef.current;

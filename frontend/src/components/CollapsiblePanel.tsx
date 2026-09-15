@@ -25,12 +25,13 @@ interface CollapsiblePanelProps {
   actions?: ReactNode;
   help?: ReactNode;
   collapsedSummary?: ReactNode;
+  unmountOnCollapse?: boolean;
   children: ReactNode;
 }
 
 export function CollapsiblePanel({
   title, collapsed, onCollapsedChange, className = "", titleClassName = "",
-  actions, help, collapsedSummary, children
+  actions, help, collapsedSummary, children, unmountOnCollapse = false
 }: CollapsiblePanelProps) {
   const bodyId = useId();
   return (
@@ -51,7 +52,7 @@ export function CollapsiblePanel({
       {help}
       {collapsed && collapsedSummary ? <div className="mt-2 min-w-0">{collapsedSummary}</div> : null}
       <div id={bodyId} hidden={collapsed} className="mt-3 min-w-0">
-        {children}
+        {unmountOnCollapse && collapsed ? null : children}
       </div>
     </section>
   );

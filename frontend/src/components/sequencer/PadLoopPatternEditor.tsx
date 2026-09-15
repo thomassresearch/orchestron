@@ -1,3 +1,4 @@
+import { editorContainerLengths, pruneEditorSelections, usePerformanceEditorState } from "./PerformanceEditorState";
 import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   CSSProperties,
@@ -364,8 +365,8 @@ export const PadLoopPatternEditor = memo(function PadLoopPatternEditor({
   onPadLoopRepeatChange,
   onPadLoopPatternChange
 }: PadLoopPatternEditorProps) {
-  const [activeContainer, setActiveContainer] = useState<PadLoopContainerRef>({ kind: "root" });
-  const [selectionByContainer, setSelectionByContainer] = useState<Record<string, number[]>>({});
+  const [activeContainer, setActiveContainer] = usePerformanceEditorState<PadLoopContainerRef>(`device:${track.id}`, `padLoopContainer:${hostId}`, { kind: "root" });
+  const [selectionByContainer, setSelectionByContainer] = usePerformanceEditorState<Record<string, number[]>>(`device:${track.id}`, `padLoopSelection:${hostId}`, {});
   const [contextMenu, setContextMenu] = useState<PadLoopContextMenuState | null>(null);
   const [dropTarget, setDropTarget] = useState<{ containerKey: string; index: number } | null>(null);
   const draggedItemRef = useRef<PadLoopItemDragPayload | null>(null);
@@ -419,6 +420,10 @@ export const PadLoopPatternEditor = memo(function PadLoopPatternEditor({
   }, [activeContainer, track.padLoopPattern]);
 
   useEffect(() => {
+    setSelectionByContainer(previous => pruneEditorSelections(previous, editorContainerLengths(track.padLoopPattern)));
+  }, [track.padLoopPattern, setSelectionByContainer]);
+
+  useEffect(() => {
     if (!contextMenu) {
       return;
     }
@@ -437,8 +442,9 @@ export const PadLoopPatternEditor = memo(function PadLoopPatternEditor({
   }, [contextMenu]);
 
   const selectedIndexesFor = useCallback(
-    (container: PadLoopContainerRef): number[] => selectionByContainer[padLoopContainerKey(container)] ?? [],
-    [selectionByContainer]
+    (container: PadLoopContainerRef): number[] => (selectionByContainer[padLoopContainerKey(container)] ?? [])
+      .filter(index => index < (getPadLoopContainerSequence(track.padLoopPattern, container)?.length ?? 0)),
+    [selectionByContainer, track.padLoopPattern]
   );
 
   const setSelectionFor = useCallback((container: PadLoopContainerRef, nextIndexes: number[]) => {

@@ -545,6 +545,7 @@ export default function App() {
     browserAudioTransport,
     displayedSequencer,
     displayedSequencerTransportSubunit,
+    readPlaybackTransportSubunit,
     moveSequencerTransport,
     seekSequencerTransport,
     onApplyBrowserClockLatencySettings,
@@ -560,6 +561,8 @@ export default function App() {
     markSequencerConfigSyncPending
   } = useSequencerRuntimeController({
     activePage,
+    melodicVisualsVisible: !collapsedPanels.melodic,
+    drummerVisualsVisible: !collapsedPanels.drummer,
     activeSessionId,
     activeSessionState,
     browserClockLatencySettings,
@@ -1762,6 +1765,7 @@ export default function App() {
     instrumentBindings: sequencerInstruments,
     sequencer: displayedSequencer,
     sequencerTransportSubunit: displayedSequencerTransportSubunit,
+    readPlaybackTransportSubunit,
     currentPerformanceId,
     performanceName,
     performanceDescription,

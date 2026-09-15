@@ -1,4 +1,5 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { usePerformanceEditorState } from "./PerformanceEditorState";
+import { useEffect, useId, useRef } from "react";
 import { performanceDeviceNameCopy } from "../../lib/performanceDeviceNameCopy";
 import {
   performanceDeviceDisplayName, validatePerformanceDeviceName,
@@ -18,9 +19,9 @@ interface Props {
 export function PerformanceDeviceName({ kind, device, fallback, sequencer, guiLanguage, onRename }: Props) {
   const copy = performanceDeviceNameCopy[guiLanguage];
   const name = performanceDeviceDisplayName(device.name, fallback);
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(device.name);
-  const [saveError, setSaveError] = useState<PerformanceDeviceNameError | null>(null);
+  const [editing, setEditing] = usePerformanceEditorState(`device:${device.id}`, `nameEditing:${kind}`, false);
+  const [draft, setDraft] = usePerformanceEditorState(`device:${device.id}`, `nameDraft:${kind}`, device.name);
+  const [saveError, setSaveError] = usePerformanceEditorState<PerformanceDeviceNameError | null>(`device:${device.id}`, `nameError:${kind}`, null);
   const inputRef = useRef<HTMLInputElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const inputId = useId();
@@ -28,16 +29,21 @@ export function PerformanceDeviceName({ kind, device, fallback, sequencer, guiLa
   const validation = validatePerformanceDeviceName(sequencer, kind, device.id, draft);
   const error = validation.ok ? saveError : validation.error;
 
+  const previousEditing = useRef(editing);
+  const focusFrame = useRef<number | null>(null);
+  useEffect(() => () => { if (focusFrame.current !== null) cancelAnimationFrame(focusFrame.current); }, []);
   useEffect(() => {
-    if (editing) {
+    if (editing && !previousEditing.current) {
       inputRef.current?.focus();
       inputRef.current?.select();
     }
+    previousEditing.current = editing;
   }, [editing]);
 
   const close = () => {
     setEditing(false);
-    requestAnimationFrame(() => buttonRef.current?.focus());
+    if (focusFrame.current !== null) cancelAnimationFrame(focusFrame.current);
+    focusFrame.current = requestAnimationFrame(() => { focusFrame.current = null; buttonRef.current?.focus(); });
   };
   const save = () => {
     if (!validation.ok) return;

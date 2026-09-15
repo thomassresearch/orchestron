@@ -1,0 +1,383 @@
+{
+  "config": {
+    "version": 12,
+    "instruments": [
+      {
+        "id": "binding-collapse-test",
+        "patchId": "patch-collapse-test",
+        "midiChannel": 1,
+        "level": 8,
+        "effectSourceIds": [],
+        "effectRoutes": []
+      }
+    ],
+    "sequencer": {
+      "tracks": [
+        {
+          "id": "tracks-1",
+          "name": "Warm Lead",
+          "enabled": true,
+          "lengthBeats": 4,
+          "padLoopEnabled": true,
+          "padLoopRepeat": true,
+          "padLoopPattern": {
+            "rootSequence": [
+              {
+                "type": "pad",
+                "padIndex": 0
+              },
+              {
+                "type": "pad",
+                "padIndex": 1
+              }
+            ],
+            "groups": [
+              {
+                "id": "group-1",
+                "name": "Phrase",
+                "sequence": [
+                  {
+                    "type": "pad",
+                    "padIndex": 0
+                  }
+                ]
+              }
+            ],
+            "superGroups": []
+          },
+          "midiChannel": 1,
+          "pads": [
+            {
+              "lengthBeats": 4,
+              "scaleRoot": "C",
+              "scaleType": "minor",
+              "mode": "aeolian",
+              "steps": [
+                {
+                  "note": 60,
+                  "hold": false,
+                  "chord": "none",
+                  "velocity": 60
+                },
+                {
+                  "note": null,
+                  "hold": false,
+                  "chord": "none",
+                  "velocity": 60
+                },
+                {
+                  "note": 63,
+                  "hold": false,
+                  "chord": "none",
+                  "velocity": 60
+                },
+                {
+                  "note": null,
+                  "hold": false,
+                  "chord": "none",
+                  "velocity": 60
+                },
+                {
+                  "note": 67,
+                  "hold": false,
+                  "chord": "none",
+                  "velocity": 60
+                },
+                {
+                  "note": null,
+                  "hold": false,
+                  "chord": "none",
+                  "velocity": 60
+                },
+                {
+                  "note": 70,
+                  "hold": false,
+                  "chord": "none",
+                  "velocity": 60
+                },
+                {
+                  "note": null,
+                  "hold": false,
+                  "chord": "none",
+                  "velocity": 60
+                }
+              ]
+            },
+            {
+              "lengthBeats": 4,
+              "scaleRoot": "C",
+              "scaleType": "minor",
+              "mode": "aeolian",
+              "steps": [
+                {
+                  "note": 72,
+                  "hold": false,
+                  "chord": "none",
+                  "velocity": 60
+                },
+                {
+                  "note": null,
+                  "hold": false,
+                  "chord": "none",
+                  "velocity": 60
+                },
+                {
+                  "note": 70,
+                  "hold": false,
+                  "chord": "none",
+                  "velocity": 60
+                },
+                {
+                  "note": null,
+                  "hold": false,
+                  "chord": "none",
+                  "velocity": 60
+                },
+                {
+                  "note": 67,
+                  "hold": false,
+                  "chord": "none",
+                  "velocity": 60
+                },
+                {
+                  "note": null,
+                  "hold": false,
+                  "chord": "none",
+                  "velocity": 60
+                },
+                {
+                  "note": 63,
+                  "hold": false,
+                  "chord": "none",
+                  "velocity": 60
+                },
+                {
+                  "note": null,
+                  "hold": false,
+                  "chord": "none",
+                  "velocity": 60
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "drummerTracks": [
+        {
+          "id": "drummerTracks-1",
+          "name": "Broken Beat",
+          "enabled": true,
+          "lengthBeats": 4,
+          "padLoopEnabled": true,
+          "padLoopRepeat": true,
+          "padLoopPattern": {
+            "rootSequence": [
+              {
+                "type": "pad",
+                "padIndex": 0
+              },
+              {
+                "type": "pad",
+                "padIndex": 1
+              }
+            ],
+            "groups": [
+              {
+                "id": "group-1",
+                "name": "Phrase",
+                "sequence": [
+                  {
+                    "type": "pad",
+                    "padIndex": 0
+                  }
+                ]
+              }
+            ],
+            "superGroups": []
+          },
+          "midiChannel": 1,
+          "pads": [
+            {
+              "lengthBeats": 4,
+              "rows": [
+                {
+                  "rowId": "drum-row-1",
+                  "steps": [
+                    {
+                      "active": true,
+                      "velocity": 50
+                    },
+                    {
+                      "active": false,
+                      "velocity": 50
+                    },
+                    {
+                      "active": false,
+                      "velocity": 50
+                    },
+                    {
+                      "active": false,
+                      "velocity": 50
+                    },
+                    {
+                      "active": true,
+                      "velocity": 50
+                    },
+                    {
+                      "active": false,
+                      "velocity": 50
+                    },
+                    {
+                      "active": false,
+                      "velocity": 50
+                    },
+                    {
+                      "active": false,
+                      "velocity": 50
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "lengthBeats": 4,
+              "rows": [
+                {
+                  "rowId": "drum-row-1",
+                  "steps": [
+                    {
+                      "active": true,
+                      "velocity": 50
+                    },
+                    {
+                      "active": false,
+                      "velocity": 50
+                    },
+                    {
+                      "active": false,
+                      "velocity": 50
+                    },
+                    {
+                      "active": false,
+                      "velocity": 50
+                    },
+                    {
+                      "active": true,
+                      "velocity": 50
+                    },
+                    {
+                      "active": false,
+                      "velocity": 50
+                    },
+                    {
+                      "active": false,
+                      "velocity": 50
+                    },
+                    {
+                      "active": false,
+                      "velocity": 50
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "controllerSequencers": [
+        {
+          "id": "controllerSequencers-1",
+          "name": "Filter Sweep",
+          "enabled": true,
+          "lengthBeats": 4,
+          "padLoopEnabled": true,
+          "padLoopRepeat": true,
+          "padLoopPattern": {
+            "rootSequence": [
+              {
+                "type": "pad",
+                "padIndex": 0
+              },
+              {
+                "type": "pad",
+                "padIndex": 1
+              }
+            ],
+            "groups": [
+              {
+                "id": "group-1",
+                "name": "Phrase",
+                "sequence": [
+                  {
+                    "type": "pad",
+                    "padIndex": 0
+                  }
+                ]
+              }
+            ],
+            "superGroups": []
+          },
+          "keypoints": [
+            {
+              "id": "start",
+              "position": 0,
+              "value": 0
+            },
+            {
+              "id": "end",
+              "position": 1,
+              "value": 127
+            }
+          ]
+        }
+      ],
+      "arpeggiators": [
+        {
+          "id": "arpeggiators-1",
+          "name": "Rising Arp"
+        }
+      ],
+      "pianoRolls": [
+        {
+          "id": "pianoRolls-1",
+          "name": "Clavier été 🎹",
+          "enabled": true
+        }
+      ],
+      "midiControllers": [
+        {
+          "id": "midiControllers-1",
+          "name": "Manual Modulation"
+        }
+      ]
+    }
+  },
+  "patches": [
+    {
+      "id": "patch-collapse-test",
+      "name": "Audit Synth",
+      "description": "Fixture for collapsed GUI tests",
+      "is_template": false,
+      "always_on": false,
+      "instrument_type": "melody",
+      "audio_inlet_names": [],
+      "audio_outlet_names": [
+        "left",
+        "right"
+      ],
+      "has_direct_output": true,
+      "schema_version": 1,
+      "updated_at": "2026-09-15T00:00:00Z",
+      "performance_controllers": [
+        {
+          "node_id": "cutoff",
+          "min": 20,
+          "max": 20000,
+          "default": 1000,
+          "scale": "logarithmic",
+          "label": "Cutoff"
+        }
+      ]
+    }
+  ]
+}

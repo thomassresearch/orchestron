@@ -1,0 +1,149 @@
+{
+  "browser": "153.0.8010.36",
+  "durationSeconds": 15,
+  "results": [
+    {
+      "label": "expanded",
+      "before": {
+        "counts": {},
+        "commits": 0,
+        "reactMs": 0,
+        "mutationCount": 0,
+        "diagnostics": {
+          "sampleRate": 24000,
+          "queuedFrames": 3296,
+          "pendingRenderFrames": 0,
+          "underrunCount": 0,
+          "overrunCount": 0,
+          "renderTimeRatio": 0.06495703125
+        },
+        "errors": [],
+        "maximumAudioPeak": 0,
+        "elementCount": 17558,
+        "hiddenBodyChildren": [],
+        "runtime": {
+          "isPlaying": true,
+          "transportSubunit": 30660
+        }
+      },
+      "after": {
+        "counts": {
+          "RackBody": 241,
+          "MixerBody": 241,
+          "Meter": 858,
+          "MelodicSequencersBody": 241,
+          "buildSequencerNoteOptions": 1928,
+          "DrummerSequencersBody": 241,
+          "ControllerSequencersBody": 241,
+          "ArpeggiatorsBody": 241,
+          "PianoRollsBody": 241,
+          "MidiControllersBody": 241,
+          "MultitrackArrangerBody": 241,
+          "buildControllerCurvePath": 56
+        },
+        "commits": 894,
+        "reactMs": 9859.17000412941,
+        "mutationCount": 31686,
+        "diagnostics": {
+          "sampleRate": 24000,
+          "queuedFrames": 3296,
+          "pendingRenderFrames": 0,
+          "underrunCount": 0,
+          "overrunCount": 0,
+          "renderTimeRatio": 0.09997265625000001
+        },
+        "errors": [],
+        "maximumAudioPeak": 0.6321311558546207,
+        "elementCount": 17558,
+        "hiddenBodyChildren": [],
+        "runtime": {
+          "isPlaying": true,
+          "transportSubunit": 24360
+        }
+      },
+      "mainThread": {
+        "TaskDuration": 14.536874999999998,
+        "ScriptDuration": 11.076694,
+        "LayoutDuration": 0.16299200000000003,
+        "RecalcStyleDuration": 0.332151,
+        "LayoutCount": 435,
+        "RecalcStyleCount": 860
+      },
+      "underruns": 0
+    },
+    {
+      "label": "collapsed",
+      "before": {
+        "counts": {},
+        "commits": 0,
+        "reactMs": 0,
+        "mutationCount": 0,
+        "diagnostics": {
+          "sampleRate": 24000,
+          "queuedFrames": 3296,
+          "pendingRenderFrames": 0,
+          "underrunCount": 0,
+          "overrunCount": 0,
+          "renderTimeRatio": 0.086497375
+        },
+        "errors": [],
+        "maximumAudioPeak": 0,
+        "elementCount": 106,
+        "hiddenBodyChildren": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "runtime": {
+          "isPlaying": true,
+          "transportSubunit": 62160
+        }
+      },
+      "after": {
+        "counts": {},
+        "commits": 240,
+        "reactMs": 200.7349995970726,
+        "mutationCount": 265,
+        "diagnostics": {
+          "sampleRate": 24000,
+          "queuedFrames": 3296,
+          "pendingRenderFrames": 0,
+          "underrunCount": 0,
+          "overrunCount": 0,
+          "renderTimeRatio": 0.06665428125
+        },
+        "errors": [],
+        "maximumAudioPeak": 0.6321311558546207,
+        "elementCount": 106,
+        "hiddenBodyChildren": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "runtime": {
+          "isPlaying": true,
+          "transportSubunit": 55440
+        }
+      },
+      "mainThread": {
+        "TaskDuration": 0.6254680000000015,
+        "ScriptDuration": 0.4032669999999996,
+        "LayoutDuration": 0.03415199999999996,
+        "RecalcStyleDuration": 0,
+        "LayoutCount": 235,
+        "RecalcStyleCount": 0
+      },
+      "underruns": 0
+    }
+  ]
+}

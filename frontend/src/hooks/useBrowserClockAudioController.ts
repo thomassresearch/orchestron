@@ -29,6 +29,8 @@ interface UseBrowserClockAudioControllerParams {
   sequencerRuntime: SequencerRuntimeState;
   setBrowserClockLatencySettings: (settings: BrowserClockLatencySettings) => void;
   visualUpdatesEnabled: boolean;
+  melodicVisualsVisible?: boolean;
+  drummerVisualsVisible?: boolean;
 }
 
 interface UseBrowserClockAudioControllerResult {
@@ -41,6 +43,7 @@ interface UseBrowserClockAudioControllerResult {
   disconnectBrowserClockAudio: () => void;
   displayedSequencer: SequencerState;
   displayedSequencerTransportSubunit: number;
+  readPlaybackTransportSubunit: () => number | null;
   effectiveAudioOutputMode: SessionAudioOutputMode | null;
   effectiveAudioOutputModeRef: MutableRefObject<SessionAudioOutputMode | null>;
   onApplyBrowserClockLatencySettings: (settings: BrowserClockLatencySettings) => void;
@@ -69,7 +72,9 @@ export function useBrowserClockAudioController({
   sequencer,
   sequencerRuntime,
   setBrowserClockLatencySettings,
-  visualUpdatesEnabled
+  visualUpdatesEnabled,
+  melodicVisualsVisible = true,
+  drummerVisualsVisible = true
 }: UseBrowserClockAudioControllerParams): UseBrowserClockAudioControllerResult {
   const runtimeConfigRef = useRef<RuntimeConfigResponse | null>(null);
   const runtimeConfigPromiseRef = useRef<Promise<RuntimeConfigResponse> | null>(null);
@@ -135,6 +140,10 @@ export function useBrowserClockAudioController({
     effectiveAudioOutputModeRef.current = effectiveAudioOutputMode;
   }, [effectiveAudioOutputMode]);
 
+  const readPlaybackTransportSubunit = useCallback(() =>
+    effectiveAudioOutputModeRef.current === "browser_clock"
+      ? browserClockClientRef.current.getPlaybackTransportSubunit() : null, []);
+
   const displayedSequencerTransportSubunit = useMemo(() => {
     if (effectiveAudioOutputMode !== "browser_clock" || !sequencer.isPlaying) {
       return sequencerRuntime.transportSubunit;
@@ -176,7 +185,7 @@ export function useBrowserClockAudioController({
     let frameId = 0;
     let previousSignature: number | null = null;
     let cancelled = false;
-    const visualTracks = [...sequencer.tracks, ...sequencer.drummerTracks].map((track) => ({
+    const visualTracks = [...(melodicVisualsVisible ? sequencer.tracks : []), ...(drummerVisualsVisible ? sequencer.drummerTracks : [])].map((track) => ({
       anchor: typeof track.runtimePadStartSubunit === "number" ? track.runtimePadStartSubunit : 0,
       span: Math.max(1, Math.round(sequencerTransportSubunitsPerLocalStep(track.timing))),
       stepCount: Math.max(1, track.stepCount)
@@ -215,7 +224,7 @@ export function useBrowserClockAudioController({
       cancelled = true;
       window.cancelAnimationFrame(frameId);
     };
-  }, [effectiveAudioOutputMode, sequencer, visualUpdatesEnabled]);
+  }, [effectiveAudioOutputMode, sequencer, visualUpdatesEnabled, melodicVisualsVisible, drummerVisualsVisible]);
 
   const disconnectBrowserClockAudio = useCallback(() => {
     void browserClockClientRef.current.disconnect();
@@ -283,6 +292,7 @@ export function useBrowserClockAudioController({
     disconnectBrowserClockAudio,
     displayedSequencer,
     displayedSequencerTransportSubunit,
+    readPlaybackTransportSubunit,
     effectiveAudioOutputMode,
     effectiveAudioOutputModeRef,
     onApplyBrowserClockLatencySettings,

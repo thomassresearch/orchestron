@@ -18,9 +18,15 @@ Melodic sequencers, drummer sequencers, controller sequencers, arpeggiators, pia
 
 ## Collapsible Panels
 
-Click a panel title or focus it and press Enter or Space to collapse or expand its contents. Header actions, status and help remain available. Panels collapse independently, start expanded and remember your choices across view switches until browser reload. Adding a device opens its group. Collapsing preserves edits and does not stop playback. The shared tempo stays outside the sequencer groups; Mixer keeps its existing behavior.
+Click a panel title or focus it and press Enter or Space to collapse or expand its contents. Header actions, status and help remain available. Panels collapse independently, start expanded and remember your choices across view switches until browser reload. Adding a device opens its group. Collapsing preserves edits and does not stop playback. The shared tempo stays outside the sequencer groups.
 
 Instrument Rack, Melodic Sequencers, Drummer Sequencers, Controller Sequencers, Arpeggiators, Piano Rolls (keyboards), MIDI Controllers, and Multitrack Arranger each have their own toggle. Empty drummer/controller groups keep their Add buttons. The arranger appears when at least one melodic, drummer, or controller sequencer exists. These layout choices are not saved into performances or exports.
+
+Collapsed visual bodies are suspended: hidden grids and timelines are not built, animation loops stop, and hidden meters unsubscribe. This includes the Mixer and each nested routing, matrix, diagram, channel-mapping, diagnostic and insert section. Playback, pad switching, MIDI processing, audio controls and meter collection continue. Visible headers, rack summary, shared tempo and footer transport status keep updating. Expanding displays the current playback position and latest meters immediately, without replaying missed animation frames.
+
+Draft names and controller values, validation feedback, arpeggiator preset drafts, pad-loop selections, open containers, arranger clipboard, zoom and scroll positions survive collapse/expand while the Perform page remains open. Nested Mixer sections remember their open state when a parent collapses. New, Load and Import clear retained editor state after successfully replacing the workspace, even when reloading the same performance. Saving does not clear it. Removed devices and invalid selections are discarded; restored scroll positions are limited to the current content. This temporary editor state is not stored in performance files or browser storage and does not survive a page reload or leaving Perform.
+
+Collapsing closes temporary menus and pickers, cancels active drag previews and releases manually held piano notes. Already-applied edits remain, and existing input save/commit rules still apply. Sequenced notes continue playing. Offscreen panels that remain expanded still render normally. Collapsing reduces visual work; any reduction in audio dropouts depends on the workload and audio system.
 
 The collapsed rack shows channel and patch name in one horizontally scrolling row. See [Compact Rack](instrument_rack_and_engine_transport.md#compact-rack) for continuous instruments, long names, and keyboard scrolling.
 

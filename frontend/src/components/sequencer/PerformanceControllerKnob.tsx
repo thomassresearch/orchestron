@@ -1,18 +1,20 @@
-import { useRef, useState } from "react";
+import { usePerformanceEditorState, type EditorOwner } from "./PerformanceEditorState";
+import { useRef } from "react";
 import { controllerPosition, controllerTicks, controllerValue } from "../../lib/performanceControllers";
 import { performanceControllerCopy } from "../../lib/performanceControllerCopy";
 import type { GuiLanguage, PerformanceControllerDefinition } from "../../types";
 
 const display = (value: number) => Number(value.toPrecision(5)).toString();
 
-export function PerformanceControllerKnob({ definition, value, language, onChange, onReset }: {
+export function PerformanceControllerKnob({ definition, value, language, onChange, onReset, editorOwner = "rack" }: {
   definition: PerformanceControllerDefinition; value: number; language: GuiLanguage;
+  editorOwner?: EditorOwner;
   onChange: (value: number) => void; onReset: () => void;
 }) {
   const copy = performanceControllerCopy(language);
   const drag = useRef<{ pointer: number; y: number; position: number } | null>(null);
   const cancelEntry = useRef(false);
-  const [draft, setDraft] = useState<string | null>(null);
+  const [draft, setDraft] = usePerformanceEditorState<string | null>(editorOwner, `controller:${definition.node_id}:draft`, null);
   const invalid = !!definition.error;
   const position = invalid ? 0 : controllerPosition(value, definition);
   const angle = (position * 270 - 135) * Math.PI / 180;

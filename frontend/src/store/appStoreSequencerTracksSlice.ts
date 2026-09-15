@@ -287,6 +287,7 @@ export function createSequencerTrackStoreActions(
         const parsed = parseSequencerConfigSnapshot(snapshot, availableInstrumentPatches, fallbackPatchId);
 
         set({
+          performanceWorkspaceGeneration: state.performanceWorkspaceGeneration + 1,
           sequencer: parsed.sequencer,
           sequencerRuntime: sequencerRuntimeStateFromSequencer(parsed.sequencer),
           sequencerInstruments: parsed.instruments,

@@ -24,6 +24,7 @@ export interface SequencerPageData {
   instrumentBindings: SequencerInstrumentBinding[];
   sequencer: SequencerState;
   sequencerTransportSubunit: number;
+  readPlaybackTransportSubunit?: () => number | null;
   currentPerformanceId: string | null;
   performanceName: string;
   performanceDescription: string;

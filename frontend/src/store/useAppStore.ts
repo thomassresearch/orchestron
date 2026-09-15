@@ -124,6 +124,7 @@ export const useAppStore = create<AppStore>((set, get) => {
     sequencerRuntime: initialSequencerRuntimeState,
     sequencerEditRevision: 0,
     sequencerInstruments: [],
+    performanceWorkspaceGeneration: 0,
     currentPerformanceId: null,
     performanceName: "Untitled Performance",
     performanceDescription: "",
@@ -465,6 +466,7 @@ export const useAppStore = create<AppStore>((set, get) => {
           sequencerRuntime: sequencerRuntimeStateFromSequencer(parsed.sequencer),
           sequencerInstruments: parsed.instruments,
           audioGraph: parsed.audioGraph, mixer: parsed.mixer, migrationNotice: parsed.migrationNotice,
+          performanceWorkspaceGeneration: get().performanceWorkspaceGeneration + 1,
           currentPerformanceId: performance.id,
           performanceName: performance.name,
           performanceDescription: performance.description,
@@ -536,6 +538,7 @@ export const useAppStore = create<AppStore>((set, get) => {
       if (get().activeSessionState === "running") { set({ error: "Stop to edit routing" }); return; }
       const nextSequencer = emptyPerformanceSequencerState();
       set({
+        performanceWorkspaceGeneration: get().performanceWorkspaceGeneration + 1,
         sequencer: nextSequencer,
         sequencerRuntime: sequencerRuntimeStateFromSequencer(nextSequencer),
         sequencerInstruments: [],

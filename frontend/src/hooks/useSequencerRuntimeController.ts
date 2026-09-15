@@ -55,6 +55,8 @@ type SequencerRuntimeControllerErrors = {
 };
 
 interface UseSequencerRuntimeControllerParams {
+  melodicVisualsVisible?: boolean;
+  drummerVisualsVisible?: boolean;
   activePage: AppPage;
   activeSessionId: string | null;
   activeSessionState: SessionState;
@@ -87,6 +89,7 @@ interface UseSequencerRuntimeControllerResult {
   browserAudioTransport: "browser_clock" | "off";
   displayedSequencer: SequencerState;
   displayedSequencerTransportSubunit: number;
+  readPlaybackTransportSubunit: () => number | null;
   onApplyBrowserClockLatencySettings: (settings: BrowserClockLatencySettings) => void;
   primeBrowserClockAudio: () => void;
   queueSequencerPadRuntime: (sessionId: string, trackId: string, padIndex: number | null) => Promise<SessionSequencerStatus>;
@@ -108,6 +111,8 @@ type ApplySequencerStatusOptions = {
 
 export function useSequencerRuntimeController({
   activePage,
+  melodicVisualsVisible,
+  drummerVisualsVisible,
   activeSessionId,
   activeSessionState,
   browserClockLatencySettings,
@@ -154,6 +159,7 @@ export function useSequencerRuntimeController({
     disconnectBrowserClockAudio,
     displayedSequencer,
     displayedSequencerTransportSubunit,
+    readPlaybackTransportSubunit,
     effectiveAudioOutputMode,
     effectiveAudioOutputModeRef,
     onApplyBrowserClockLatencySettings,
@@ -168,6 +174,8 @@ export function useSequencerRuntimeController({
     sequencer,
     sequencerRuntime,
     setBrowserClockLatencySettings,
+    melodicVisualsVisible,
+    drummerVisualsVisible,
     visualUpdatesEnabled: activePage === "sequencer"
   });
 
@@ -1084,6 +1092,7 @@ export function useSequencerRuntimeController({
     browserAudioTransport,
     displayedSequencer,
     displayedSequencerTransportSubunit,
+    readPlaybackTransportSubunit,
     onApplyBrowserClockLatencySettings,
     primeBrowserClockAudio,
     queueSequencerPadRuntime,

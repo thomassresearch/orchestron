@@ -1,3 +1,4 @@
+import { EditorScope, editorContainerLengths, pruneEditorSelections, usePerformanceEditorState } from "./sequencer/PerformanceEditorState";
 import { performanceDeviceDisplayName } from "../lib/performanceDeviceNames";
 import { CollapsiblePanel } from "./CollapsiblePanel";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -75,14 +76,14 @@ type ArrangerContextMenuState = {
   trackId: string;
   container: PadLoopContainerRef;
   target:
-    | {
-        kind: "root";
-        step: number;
-      }
-    | {
-        kind: "sequence";
-        index: number;
-      };
+  | {
+    kind: "root";
+    step: number;
+  }
+  | {
+    kind: "sequence";
+    index: number;
+  };
 };
 
 type RootDragState = {
@@ -336,10 +337,10 @@ function movedSelectionIndexesForSequence(
   }
 
   let cursor = 0;
-  for (let index = 0; index < sequence.length; index += 1) {
+  for (let index = 0;index < sequence.length;index += 1) {
     if (cursor === targetStartStep) {
       let matches = true;
-      for (let offset = 0; offset < blockItems.length; offset += 1) {
+      for (let offset = 0;offset < blockItems.length;offset += 1) {
         const sequenceItem = sequence[index + offset];
         if (!sequenceItem || !samePatternItem(sequenceItem, blockItems[offset])) {
           matches = false;
@@ -348,7 +349,7 @@ function movedSelectionIndexesForSequence(
       }
       if (matches) {
         const selected: number[] = [];
-        for (let offset = 0; offset < blockItems.length; offset += 1) {
+        for (let offset = 0;offset < blockItems.length;offset += 1) {
           if (blockItems[offset]?.type !== "pause") {
             selected.push(index + offset);
           }
@@ -536,7 +537,7 @@ function materializeRootInsertionSequence(
   let inserted = false;
 
   if (plan.mode === "gap" && plan.gap) {
-    for (let index = 0; index < sequence.length; index += 1) {
+    for (let index = 0;index < sequence.length;index += 1) {
       if (index === plan.gap.startSourceIndex) {
         const beforeSteps = plan.targetStartStep - plan.gap.startStep;
         const afterSteps = plan.gap.endStep - (plan.targetStartStep + blockStepCount);
@@ -822,35 +823,27 @@ function isAdditiveSelection(event: ReactMouseEvent): boolean {
   );
 }
 
-export function MultitrackArranger({
+function MultitrackArrangerBody({
   collapsed,
-  onCollapsedChange,
-  guiLanguage,
   copy,
   sequencer,
   patches,
   instrumentBindings,
-  onTransportPlay,
-  onTransportStop,
-  onTransportStopDoubleClick,
-  onTransportRewind,
-  onTransportFastForward,
   onArrangerLoopSelectionChange,
   onSequencerTrackPadLoopPatternChange,
   onDrummerSequencerTrackPadLoopPatternChange,
   onControllerSequencerPadLoopPatternChange,
-  onHelpRequest
 }: MultitrackArrangerProps) {
   const timelineViewportRef = useRef<HTMLDivElement | null>(null);
   const timelineScrollbarRef = useRef<HTMLDivElement | null>(null);
   const selectionRulerRef = useRef<HTMLDivElement | null>(null);
-  const [openContainerByTrack, setOpenContainerByTrack] = useState<Record<string, PadLoopContainerRef>>({});
-  const [selectionByContainer, setSelectionByContainer] = useState<Record<string, number[]>>({});
+  const [openContainerByTrack, setOpenContainerByTrack] = usePerformanceEditorState<Record<string, PadLoopContainerRef>>("arranger", "openContainerByTrack", {});
+  const [selectionByContainer, setSelectionByContainer] = usePerformanceEditorState<Record<string, number[]>>("arranger", "selectionByContainer", {});
   const [contextMenu, setContextMenu] = useState<ArrangerContextMenuState | null>(null);
-  const [clipboard, setClipboard] = useState<PadLoopPatternClipboardState | null>(null);
-  const [stepPixelWidth, setStepPixelWidth] = useState<number>(DEFAULT_STEP_PIXEL_WIDTH);
-  const [timelineViewportWidth, setTimelineViewportWidth] = useState<number>(0);
-  const [timelineScrollLeft, setTimelineScrollLeft] = useState<number>(0);
+  const [clipboard, setClipboard] = usePerformanceEditorState<PadLoopPatternClipboardState | null>("arranger", "clipboard", null);
+  const [stepPixelWidth] = usePerformanceEditorState<number>("arranger", "stepPixelWidth", DEFAULT_STEP_PIXEL_WIDTH);
+  const [timelineViewportWidth, setTimelineViewportWidth] = usePerformanceEditorState<number>("arranger", "timelineViewportWidth", 0);
+  const [timelineScrollLeft, setTimelineScrollLeft] = usePerformanceEditorState<number>("arranger", "timelineScrollLeft", 0);
   const [rootDragPreview, setRootDragPreview] = useState<RootDragPreview | null>(null);
   const dragStateRef = useRef<RootDragState | null>(null);
   const selectionDragRef = useRef<SelectionDragState | null>(null);
@@ -1000,7 +993,7 @@ export function MultitrackArranger({
       const allTokens: ArrangerTimelineToken[] = [];
       const visibleTokens: ArrangerTimelineToken[] = [];
       let cursor = 0;
-      for (let index = 0; index < sequence.length; index += 1) {
+      for (let index = 0;index < sequence.length;index += 1) {
         const item = sequence[index];
         const stepCount = countSteps(item);
         const startStep = cursor;
@@ -1242,6 +1235,11 @@ export function MultitrackArranger({
   }, [arrangerTracks, openContainerByTrack]);
 
   useEffect(() => {
+    const lengths = Object.assign({}, ...arrangerTracks.map(track => editorContainerLengths(track.padLoopPattern, `${track.id}:`)));
+    setSelectionByContainer(previous => pruneEditorSelections(previous, lengths));
+  }, [arrangerTracks, setSelectionByContainer]);
+
+  useEffect(() => {
     if (!contextMenu) {
       return;
     }
@@ -1261,9 +1259,11 @@ export function MultitrackArranger({
 
   const getSelection = useCallback(
     (trackId: string, container: PadLoopContainerRef): number[] => {
-      return selectionByContainer[selectionKey(trackId, container)] ?? [];
+      const track = arrangerTracks.find(item => item.id === trackId);
+      const length = track ? getPadLoopContainerSequence(track.padLoopPattern, container)?.length ?? 0 : 0;
+      return (selectionByContainer[selectionKey(trackId, container)] ?? []).filter(index => index < length);
     },
-    [selectionByContainer]
+    [selectionByContainer, arrangerTracks]
   );
 
   const setSelection = useCallback((trackId: string, container: PadLoopContainerRef, indexes: number[]) => {
@@ -1338,7 +1338,7 @@ export function MultitrackArranger({
         const countSteps = tokenStepCounter(track, basePattern);
         const allTokens: ArrangerTimelineToken[] = [];
         let cursor = 0;
-        for (let index = 0; index < sequence.length; index += 1) {
+        for (let index = 0;index < sequence.length;index += 1) {
           const item = sequence[index];
           const stepCount = countSteps(item);
           allTokens.push({
@@ -1652,11 +1652,11 @@ export function MultitrackArranger({
     },
     [maxTimelineScrollLeft]
   );
-  const zoomPercent = Math.round((stepPixelWidth / DEFAULT_STEP_PIXEL_WIDTH) * 100);
-  const canZoomOut = stepPixelWidth > minStepPixelWidth + 1e-6;
-  const canZoomIn = stepPixelWidth < MAX_STEP_PIXEL_WIDTH;
-  const transportButtonClass =
-    "inline-flex h-8 w-8 items-center justify-center rounded-md border border-amber-400/50 bg-amber-400/10 text-amber-100 transition hover:bg-amber-400/20 disabled:cursor-not-allowed disabled:opacity-45";
+  const [, setMetrics] = usePerformanceEditorState("arranger", "metrics", { minStepPixelWidth: DEFAULT_STEP_PIXEL_WIDTH, fitStepPixelWidth: DEFAULT_STEP_PIXEL_WIDTH });
+  useEffect(() => {
+    setMetrics(previous => previous.minStepPixelWidth === minStepPixelWidth && previous.fitStepPixelWidth === fitStepPixelWidth
+      ? previous : { minStepPixelWidth, fitStepPixelWidth });
+  }, [minStepPixelWidth, fitStepPixelWidth, setMetrics]);
 
   useEffect(() => {
     const viewport = timelineViewportRef.current;
@@ -1693,90 +1693,7 @@ export function MultitrackArranger({
   }
 
   return (
-    <CollapsiblePanel
-      title={copy.title}
-      collapsed={collapsed}
-      onCollapsedChange={onCollapsedChange}
-      className="mt-4 overscroll-x-none rounded-xl border border-amber-700/45 bg-slate-950/85 p-3"
-      titleClassName="text-amber-200"
-      help={onHelpRequest ? <HelpIconButton guiLanguage={guiLanguage} onClick={() => onHelpRequest("sequencer_multitrack_arranger")} /> : null}
-      actions={<>
-        <span className="rounded-md border border-slate-700 bg-slate-900 px-2 py-0.5 font-mono text-[10px] text-slate-300">
-          {copy.deviceSummary}
-        </span>
-        <div className="ml-auto flex flex-wrap items-center gap-1.5">
-          <button
-            type="button"
-            onClick={onTransportRewind}
-            className={transportButtonClass}
-            title={copy.transportRewind}
-            aria-label={copy.transportRewind}
-          >
-            <CassetteIcon kind="rewind" />
-          </button>
-          <button
-            type="button"
-            onClick={onTransportStop}
-            onDoubleClick={onTransportStopDoubleClick}
-            className={transportButtonClass}
-            title={copy.transportStop}
-            aria-label={copy.transportStop}
-          >
-            <CassetteIcon kind="stop" />
-          </button>
-          <button
-            type="button"
-            onClick={onTransportPlay}
-            className={transportButtonClass}
-            title={copy.transportPlay}
-            aria-label={copy.transportPlay}
-          >
-            <CassetteIcon kind="play" />
-          </button>
-          <button
-            type="button"
-            onClick={onTransportFastForward}
-            className={transportButtonClass}
-            title={copy.transportFastForward}
-            aria-label={copy.transportFastForward}
-          >
-            <CassetteIcon kind="fastForward" />
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setStepPixelWidth(Math.min(MAX_STEP_PIXEL_WIDTH, fitStepPixelWidth));
-              setTimelineScrollLeft(0);
-            }}
-            disabled={timelineViewportWidth <= 0}
-            className="rounded border border-slate-700 bg-slate-900 px-2 py-0.5 text-[10px] text-slate-200 transition hover:border-slate-500 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {copy.zoomFit}
-          </button>
-          <button
-            type="button"
-            onClick={() =>
-              setStepPixelWidth((value) => Math.max(minStepPixelWidth, value * 0.85))
-            }
-            disabled={!canZoomOut}
-            className="rounded border border-slate-700 bg-slate-900 px-2 py-0.5 text-[10px] text-slate-200 transition hover:border-slate-500 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {copy.zoomOut}
-          </button>
-          <button
-            type="button"
-            onClick={() => setStepPixelWidth((value) => Math.min(MAX_STEP_PIXEL_WIDTH, value * 1.15))}
-            disabled={!canZoomIn}
-            className="rounded border border-slate-700 bg-slate-900 px-2 py-0.5 text-[10px] text-slate-200 transition hover:border-slate-500 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {copy.zoomIn}
-          </button>
-          <span className="rounded border border-slate-700 bg-slate-900 px-2 py-0.5 font-mono text-[10px] text-slate-300">
-            {zoomPercent}%
-          </span>
-        </div>
-      </>}
-    >
+    <>
       <div className="mb-2 grid grid-cols-[280px_minmax(0,1fr)] gap-2 text-[10px] uppercase tracking-[0.14em] text-slate-500">
         <div>{copy.instrumentColumn}</div>
         <div>{copy.timelineColumn}</div>
@@ -1883,9 +1800,8 @@ export function MultitrackArranger({
                       return (
                         <div
                           key={`${track.id}-root-${token.sourceIndex}`}
-                          className={`absolute top-1 flex h-5 items-center rounded-md border px-1 text-[10px] ${tokenClass(token.item)} ${
-                            selected ? "ring-2 ring-cyan-300/60" : ""
-                          } ${tokenIsDragged && preview && !preview.valid ? "opacity-45" : ""}`}
+                          className={`absolute top-1 flex h-5 items-center rounded-md border px-1 text-[10px] ${tokenClass(token.item)} ${selected ? "ring-2 ring-cyan-300/60" : ""
+                            } ${tokenIsDragged && preview && !preview.valid ? "opacity-45" : ""}`}
                           style={{ left: `${tokenStart * stepPixelWidth}px`, width: `${tokenWidth}px` }}
                         >
                           <button
@@ -1955,11 +1871,10 @@ export function MultitrackArranger({
 
                     {rootDragPreview && rootDragPreview.trackId === track.id ? (
                       <span
-                        className={`pointer-events-none absolute inset-y-0 z-30 w-[2px] rounded-full ${
-                          rootDragPreview.valid
+                        className={`pointer-events-none absolute inset-y-0 z-30 w-[2px] rounded-full ${rootDragPreview.valid
                             ? "bg-cyan-300/90 shadow-[0_0_6px_rgba(103,232,249,0.8)]"
                             : "bg-rose-300/60"
-                        }`}
+                          }`}
                         style={{ left: `${rootDragPreview.visualStartStep * stepPixelWidth}px` }}
                         aria-hidden
                       />
@@ -2088,21 +2003,21 @@ export function MultitrackArranger({
           close={() => setContextMenu(null)}
         />
       ) : null}
-    </CollapsiblePanel>
+    </>
   );
 }
 
 type OpenedContainerEditorProps = {
   track: ArrangerTrack;
   container:
-    | {
-        kind: "group";
-        id: string;
-      }
-    | {
-        kind: "super";
-        id: string;
-      };
+  | {
+    kind: "group";
+    id: string;
+  }
+  | {
+    kind: "super";
+    id: string;
+  };
   buildTimeline: (
     track: ArrangerTrack,
     container: PadLoopContainerRef,
@@ -2243,9 +2158,8 @@ function OpenedContainerEditor({
                     onPatternCommit(nextPattern);
                   }
                 }}
-                className={`inline-flex items-center gap-1 rounded-md border px-2 py-0 text-[10px] ${tokenClass(token.item)} ${
-                  selected ? "ring-2 ring-cyan-300/60" : ""
-                }`}
+                className={`inline-flex items-center gap-1 rounded-md border px-2 py-0 text-[10px] ${tokenClass(token.item)} ${selected ? "ring-2 ring-cyan-300/60" : ""
+                  }`}
                 style={{ width: `${Math.max(token.stepCount * stepPixelWidth, 32)}px` }}
                 onContextMenu={(event) => {
                   event.preventDefault();
@@ -2463,9 +2377,8 @@ function ArrangerContextMenu({
             }
             setOpenSubmenu((current) => (current === submenuKey ? null : submenuKey));
           }}
-          className={`flex w-full items-center justify-between rounded px-2 py-1 text-left text-xs transition ${
-            enabled ? "text-slate-200 hover:bg-slate-800" : "cursor-not-allowed text-slate-500"
-          }`}
+          className={`flex w-full items-center justify-between rounded px-2 py-1 text-left text-xs transition ${enabled ? "text-slate-200 hover:bg-slate-800" : "cursor-not-allowed text-slate-500"
+            }`}
         >
           <span>{label}</span>
           <span className={`text-[10px] ${enabled ? accentClass : "text-slate-500"}`}>▸</span>
@@ -2523,9 +2436,8 @@ function ArrangerContextMenu({
             close();
           }
         }}
-        className={`flex w-full items-center justify-between rounded px-2 py-1 text-left text-xs transition ${
-          canCopy ? "text-slate-200 hover:bg-slate-800" : "cursor-not-allowed text-slate-500"
-        }`}
+        className={`flex w-full items-center justify-between rounded px-2 py-1 text-left text-xs transition ${canCopy ? "text-slate-200 hover:bg-slate-800" : "cursor-not-allowed text-slate-500"
+          }`}
       >
         <span>{copy.contextMenuCopy}</span>
         <span className="text-[10px] text-slate-400">{selection.length}</span>
@@ -2540,9 +2452,8 @@ function ArrangerContextMenu({
           }
         }}
         title={!canPaste ? copy.contextMenuPasteDisabled : undefined}
-        className={`flex w-full items-center justify-between rounded px-2 py-1 text-left text-xs transition ${
-          canPaste ? "text-slate-200 hover:bg-slate-800" : "cursor-not-allowed text-slate-500"
-        }`}
+        className={`flex w-full items-center justify-between rounded px-2 py-1 text-left text-xs transition ${canPaste ? "text-slate-200 hover:bg-slate-800" : "cursor-not-allowed text-slate-500"
+          }`}
       >
         <span>{copy.contextMenuPaste}</span>
         <span className="text-[10px] text-slate-400">{clipboard?.items.length ?? 0}</span>
@@ -2554,9 +2465,8 @@ function ArrangerContextMenu({
         type="button"
         disabled={!canGroup}
         onClick={() => handleAction("group")}
-        className={`flex w-full items-center justify-between rounded px-2 py-1 text-left text-xs transition ${
-          canGroup ? "text-slate-200 hover:bg-slate-800" : "cursor-not-allowed text-slate-500"
-        }`}
+        className={`flex w-full items-center justify-between rounded px-2 py-1 text-left text-xs transition ${canGroup ? "text-slate-200 hover:bg-slate-800" : "cursor-not-allowed text-slate-500"
+          }`}
       >
         <span>{copy.contextMenuGroup}</span>
         <span className="text-[10px] text-orange-300">A..Z</span>
@@ -2566,9 +2476,8 @@ function ArrangerContextMenu({
         type="button"
         disabled={!canSuper}
         onClick={() => handleAction("super")}
-        className={`flex w-full items-center justify-between rounded px-2 py-1 text-left text-xs transition ${
-          canSuper ? "text-slate-200 hover:bg-slate-800" : "cursor-not-allowed text-slate-500"
-        }`}
+        className={`flex w-full items-center justify-between rounded px-2 py-1 text-left text-xs transition ${canSuper ? "text-slate-200 hover:bg-slate-800" : "cursor-not-allowed text-slate-500"
+          }`}
       >
         <span>{copy.contextMenuSuperGroup}</span>
         <span className="text-[10px] text-violet-300">I..X</span>
@@ -2578,9 +2487,8 @@ function ArrangerContextMenu({
         type="button"
         disabled={!hasUngroupableSelection}
         onClick={() => handleAction("ungroup")}
-        className={`flex w-full items-center justify-between rounded px-2 py-1 text-left text-xs transition ${
-          hasUngroupableSelection ? "text-slate-200 hover:bg-slate-800" : "cursor-not-allowed text-slate-500"
-        }`}
+        className={`flex w-full items-center justify-between rounded px-2 py-1 text-left text-xs transition ${hasUngroupableSelection ? "text-slate-200 hover:bg-slate-800" : "cursor-not-allowed text-slate-500"
+          }`}
       >
         <span>{copy.contextMenuUngroup}</span>
         <span className="text-[10px] text-slate-400">inline</span>
@@ -2590,9 +2498,8 @@ function ArrangerContextMenu({
         type="button"
         disabled={!canRemove}
         onClick={() => handleAction("remove")}
-        className={`flex w-full items-center justify-between rounded px-2 py-1 text-left text-xs transition ${
-          canRemove ? "text-rose-200 hover:bg-rose-500/10" : "cursor-not-allowed text-slate-500"
-        }`}
+        className={`flex w-full items-center justify-between rounded px-2 py-1 text-left text-xs transition ${canRemove ? "text-rose-200 hover:bg-rose-500/10" : "cursor-not-allowed text-slate-500"
+          }`}
       >
         <span>{copy.contextMenuRemove}</span>
         <span className="text-[10px] text-slate-400">{selection.length}</span>
@@ -2603,4 +2510,106 @@ function ArrangerContextMenu({
       ) : null}
     </div>
   );
+}
+
+export function MultitrackArranger(props: MultitrackArrangerProps) {
+  return <EditorScope><MultitrackArrangerShell {...props} /></EditorScope>;
+}
+function MultitrackArrangerShell(props: MultitrackArrangerProps) {
+  const { collapsed, onCollapsedChange, guiLanguage, copy, onHelpRequest, onTransportRewind, onTransportStop, onTransportStopDoubleClick, onTransportPlay, onTransportFastForward } = props;
+  const [stepPixelWidth, setStepPixelWidth] = usePerformanceEditorState<number>("arranger", "stepPixelWidth", DEFAULT_STEP_PIXEL_WIDTH);
+  const [timelineViewportWidth] = usePerformanceEditorState<number>("arranger", "timelineViewportWidth", 0);
+  const [, setTimelineScrollLeft] = usePerformanceEditorState<number>("arranger", "timelineScrollLeft", 0);
+  const [{ minStepPixelWidth, fitStepPixelWidth }] = usePerformanceEditorState("arranger", "metrics", { minStepPixelWidth: DEFAULT_STEP_PIXEL_WIDTH, fitStepPixelWidth: DEFAULT_STEP_PIXEL_WIDTH });
+  const canZoomOut = stepPixelWidth > minStepPixelWidth + 1e-6;
+  const canZoomIn = stepPixelWidth < MAX_STEP_PIXEL_WIDTH - 1e-6;
+  const zoomPercent = Math.round((stepPixelWidth / DEFAULT_STEP_PIXEL_WIDTH) * 100);
+  const transportButtonClass = "inline-flex h-8 w-8 items-center justify-center rounded-md border border-amber-400/50 bg-amber-400/10 text-amber-100 transition hover:bg-amber-400/20 disabled:cursor-not-allowed disabled:opacity-45";
+  if (props.sequencer.tracks.length + props.sequencer.drummerTracks.length + props.sequencer.controllerSequencers.length === 0) return null;
+  return (<CollapsiblePanel unmountOnCollapse
+    title={copy.title}
+    collapsed={collapsed}
+    onCollapsedChange={onCollapsedChange}
+    className="mt-4 overscroll-x-none rounded-xl border border-amber-700/45 bg-slate-950/85 p-3"
+    titleClassName="text-amber-200"
+    help={onHelpRequest ? <HelpIconButton guiLanguage={guiLanguage} onClick={() => onHelpRequest("sequencer_multitrack_arranger")} /> : null}
+    actions={<>
+      <span className="rounded-md border border-slate-700 bg-slate-900 px-2 py-0.5 font-mono text-[10px] text-slate-300">
+        {copy.deviceSummary}
+      </span>
+      <div className="ml-auto flex flex-wrap items-center gap-1.5">
+        <button
+          type="button"
+          onClick={onTransportRewind}
+          className={transportButtonClass}
+          title={copy.transportRewind}
+          aria-label={copy.transportRewind}
+        >
+          <CassetteIcon kind="rewind" />
+        </button>
+        <button
+          type="button"
+          onClick={onTransportStop}
+          onDoubleClick={onTransportStopDoubleClick}
+          className={transportButtonClass}
+          title={copy.transportStop}
+          aria-label={copy.transportStop}
+        >
+          <CassetteIcon kind="stop" />
+        </button>
+        <button
+          type="button"
+          onClick={onTransportPlay}
+          className={transportButtonClass}
+          title={copy.transportPlay}
+          aria-label={copy.transportPlay}
+        >
+          <CassetteIcon kind="play" />
+        </button>
+        <button
+          type="button"
+          onClick={onTransportFastForward}
+          className={transportButtonClass}
+          title={copy.transportFastForward}
+          aria-label={copy.transportFastForward}
+        >
+          <CassetteIcon kind="fastForward" />
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setStepPixelWidth(Math.min(MAX_STEP_PIXEL_WIDTH, fitStepPixelWidth));
+            setTimelineScrollLeft(0);
+          }}
+          disabled={timelineViewportWidth <= 0}
+          className="rounded border border-slate-700 bg-slate-900 px-2 py-0.5 text-[10px] text-slate-200 transition hover:border-slate-500 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {copy.zoomFit}
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            setStepPixelWidth((value) => Math.max(minStepPixelWidth, value * 0.85))
+          }
+          disabled={!canZoomOut}
+          className="rounded border border-slate-700 bg-slate-900 px-2 py-0.5 text-[10px] text-slate-200 transition hover:border-slate-500 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {copy.zoomOut}
+        </button>
+        <button
+          type="button"
+          onClick={() => setStepPixelWidth((value) => Math.min(MAX_STEP_PIXEL_WIDTH, value * 1.15))}
+          disabled={!canZoomIn}
+          className="rounded border border-slate-700 bg-slate-900 px-2 py-0.5 text-[10px] text-slate-200 transition hover:border-slate-500 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {copy.zoomIn}
+        </button>
+        <span className="rounded border border-slate-700 bg-slate-900 px-2 py-0.5 font-mono text-[10px] text-slate-300">
+          {zoomPercent}%
+        </span>
+      </div>
+    </>}
+  >
+    <MultitrackArrangerBody {...props} />
+  </CollapsiblePanel>);
 }

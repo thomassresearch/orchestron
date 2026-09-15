@@ -1,3 +1,4 @@
+import { useRetainedScroll } from "./PerformanceEditorState";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 
@@ -466,6 +467,9 @@ export const PianoRollKeyboard = memo(function PianoRollKeyboard({
   const [activePianoNotes, setActivePianoNotes] = useState<Record<number, true>>({});
   const pianoPointerNotesRef = useRef<Record<number, { note: number; channel: number }>>({});
   const pianoKeyboardViewportRef = useRef<HTMLDivElement | null>(null);
+  const saveScroll = useRetainedScroll(pianoKeyboardViewportRef, `device:${roll.id}`, "keyboardScroll");
+  const scrollTimer = useRef<number | null>(null);
+  useEffect(() => () => { if (scrollTimer.current !== null) window.clearTimeout(scrollTimer.current); }, []);
   const [pianoHasOverflow, setPianoHasOverflow] = useState(false);
   const [pianoCanScrollLeft, setPianoCanScrollLeft] = useState(false);
   const [pianoCanScrollRight, setPianoCanScrollRight] = useState(false);
@@ -505,7 +509,9 @@ export const PianoRollKeyboard = memo(function PianoRollKeyboard({
         left: direction * PIANO_SCROLL_STEP_PX,
         behavior: "smooth"
       });
-      window.setTimeout(() => {
+      if (scrollTimer.current !== null) window.clearTimeout(scrollTimer.current);
+      scrollTimer.current = window.setTimeout(() => {
+        scrollTimer.current = null;
         updatePianoScrollState();
       }, 220);
     },
@@ -598,14 +604,16 @@ export const PianoRollKeyboard = memo(function PianoRollKeyboard({
     setActivePianoNotes({});
   }, [interactive, onNoteOff, roll.id]);
 
+  const noteOffRef = useRef(onNoteOff);
+  noteOffRef.current = onNoteOff;
   useEffect(() => {
     return () => {
       for (const held of Object.values(pianoPointerNotesRef.current)) {
-        onNoteOff(roll.id, held.note, held.channel);
+        noteOffRef.current(roll.id, held.note, held.channel);
       }
       pianoPointerNotesRef.current = {};
     };
-  }, [onNoteOff, roll.id]);
+  }, [roll.id]);
 
   return (
     <div className="relative rounded-xl border border-slate-700 bg-slate-950/70 p-2.5">
@@ -636,7 +644,7 @@ export const PianoRollKeyboard = memo(function PianoRollKeyboard({
 
       <div
         ref={pianoKeyboardViewportRef}
-        onScroll={updatePianoScrollState}
+        onScroll={() => { saveScroll(); updatePianoScrollState(); }}
         className="overflow-x-auto pb-1"
       >
         <div

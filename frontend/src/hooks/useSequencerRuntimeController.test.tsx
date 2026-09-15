@@ -45,7 +45,7 @@ beforeEach(() => {
   const client = { connect: vi.fn().mockResolvedValue(undefined), stopSequencer: vi.fn().mockResolvedValue(status(0, false)) };
   const browser = { browserClockClientRef: { current: client as unknown as ReturnType<typeof useBrowserClockAudioController>["browserClockClientRef"]["current"] }, browserAudioError: null, browserAudioDiagnostics: null,
     browserAudioStatus: "live" as const, browserAudioTransport: "browser_clock" as const,
-    disconnectBrowserAudio: noop, disconnectBrowserClockAudio: noop, displayedSequencerTransportSubunit: 0,
+    disconnectBrowserAudio: noop, disconnectBrowserClockAudio: noop, displayedSequencerTransportSubunit: 0, readPlaybackTransportSubunit: () => null,
     effectiveAudioOutputMode: "browser_clock" as const, effectiveAudioOutputModeRef: { current: "browser_clock" as const },
     onApplyBrowserClockLatencySettings: noop, reportBrowserAudioConnectionError: noop, resetBrowserAudioState: noop,
     runtimeAudioOutputMode: "browser_clock" as const };
