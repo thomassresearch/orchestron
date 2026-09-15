@@ -491,3 +491,30 @@ def test_seek_applies_new_loop_bounds_and_position_together(playing: bool) -> No
     if playing:
         runtime.advance_render_block(sample_rate=48000, ksmps=64)
         assert runtime.status().transport_subunit > 4 * 420
+
+
+def test_controller_channel_edit_sends_current_value_and_preserves_transport_and_queue() -> None:
+    from backend.app.services.sequencer_runtime_config import compile_sequencer_runtime_config
+
+    midi = _FakeMidiService()
+    runtime = SessionSequencerRuntime(session_id="channel-edit", midi_service=midi, midi_input_selector="test",
+        controller_default_channels=(1,), clock_mode="render_driven", publish_event=lambda *_: None)
+    request = SessionSequencerConfigRequest.model_validate({"playback_end_step": 10000, "controller_tracks": [{
+        "track_id": "filter", "controller_number": 74, "target_channels": [1, 16],
+        "pads": [{"pad_index": index, "length_beats": 4,
+            "keypoints": [{"position": 0, "value": 30}, {"position": 1, "value": 30}]} for index in (0, 1)],
+    }]})
+    runtime.configure(request)
+    runtime.start()
+    runtime.advance_render_block(sample_rate=48000, ksmps=16)
+    assert {tuple(message) for _, batch, _ in midi.calls for message in batch if message[0] & 0xF0 == 0xB0} == {
+        (0xB0, 74, 30), (0xBF, 74, 30)}
+    runtime.queue_pad("filter", 1)
+    position = runtime._absolute_subunit
+    midi.calls.clear()
+    request.controller_tracks[0].target_channels = [2, 16]
+    runtime.apply_prepared(compile_sequencer_runtime_config(request, controller_default_channels=(1,)))
+    assert runtime._absolute_subunit == position
+    assert runtime.status().running
+    assert runtime.status().controller_tracks[0].queued_pad == 1
+    assert [message for _, batch, _ in midi.calls for message in batch] == [[0xB1, 74, 30], [0xBF, 74, 30]]

@@ -27,10 +27,19 @@ Each controller lane includes:
 - Controller name label (`Controller N` if unnamed)
 - Running/stopped state badge
 - `Controller #` field (`0..127`)
+- **MIDI Channels** checkboxes at the top right: 1–8 above 9–16
 - `Start` / `Stop` enable toggle
 - `Remove` button
 - Knob control (value `0..127`)
 - Numeric value display
+
+## MIDI Channels
+
+Check the channels that should receive this lane's CC messages. All 16 are checked by default (OMNI); at least one must remain checked. The last checked box cannot be unchecked until another channel is selected.
+
+When the lane and instrument session are running, changing channels immediately sends the current value to the new selection. Unchecked channels retain their last received value. Starting a lane or session, changing the CC number, and adjusting the knob all use the selected channels.
+
+The selection survives Save/Load Performance, browser reload, native JSON/ZIP export/import, and both CSD exports. Older performances without a selection load with all 16 channels checked. Controllers using the same CC on different channels can have independent values; overlapping mappings receive the latest transmitted value.
 
 ## Knob Interaction
 

@@ -61,7 +61,7 @@ describe("instance override persistence", () => {
   it("round-trips snapshots, app state, sessions, and import ID remapping independently per instance", () => {
     const bindings = [{ ...binding, performanceControllerValues: { attack: 0.3 } }, { ...binding, id: "two", midiChannel: 2, performanceControllerValues: { attack: 2.7 } }];
     const snapshot = buildSequencerConfigSnapshot(defaultSequencerState(), bindings, emptyAudioGraph(), emptyMixer());
-    expect(snapshot.version).toBe(12);
+    expect(snapshot.version).toBe(13);
     expect(parseSequencerConfigSnapshot(JSON.parse(JSON.stringify(snapshot)), [patch], null).instruments.map((item) => item.performanceControllerValues)).toEqual([{ attack: 0.3 }, { attack: 2.7 }]);
     expect(normalizePersistedSequencerInstruments(cleanBindings(bindings), [patch], null).map((item) => item.performanceControllerValues)).toEqual([{ attack: 0.3 }, { attack: 2.7 }]);
     const assignments = normalizeSessionInstrumentAssignments(bindings);

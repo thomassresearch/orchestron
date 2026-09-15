@@ -133,9 +133,9 @@ def test_csd_exports_only_device_assignments_and_routed_continuous_instances(tmp
                 for message in track
                 if message.type == "control_change" and message.control == 10
             }
-            assert seeded_channels == {1, 3, 4, 5, 6}
+            assert seeded_channels == set(range(1, 17))  # OMNI does not select additional instruments.
         else:
-            assert "i 9000 0 0.000021 138 91" not in csd  # Omitted MIDI channel 2.
+            assert "i 9000 0 0.000021 138 91" in csd  # CC remains OMNI even though channel 2 has no exported instrument.
         assert "; role: Master processor" in csd
         assert "; insert for: Offline Instrument [source]" in csd
         assert "; audio route:send kind:send" in csd

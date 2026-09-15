@@ -1,3 +1,4 @@
+import { normalizeControllerTargetChannels } from "../lib/midiControllerChannels";
 import { instrumentMetadata } from "../lib/instrumentTypes";
 import { mergedSequencerState } from "../lib/mergedSequencerState";
 import { normalizeControllerValues, performanceControllerDefaults, reconcileControllerValues } from "../lib/performanceControllers";
@@ -1102,6 +1103,7 @@ export function defaultMidiController(index = 1): MidiControllerState {
     id: `cc-${index}`,
     name: `Controller ${index}`,
     controllerNumber: clampInt(index - 1, 0, 127),
+    targetChannels: normalizeControllerTargetChannels(undefined),
     value: 0,
     enabled: false
   };
@@ -1122,6 +1124,7 @@ export function defaultControllerSequencer(
     id: `cc-seq-${index}`,
     name: `Controller Sequencer ${index}`,
     controllerNumber: clampInt(index - 1, 0, 127),
+    targetChannels: normalizeControllerTargetChannels(undefined),
     timing: normalizeSequencerTiming(timing),
     lengthBeats: activePadState.lengthBeats,
     stepCount: activePadState.stepCount,
@@ -1307,6 +1310,7 @@ export function normalizeControllerSequencerState(
     id,
     name,
     controllerNumber,
+    targetChannels: normalizeControllerTargetChannels(controllerSequencer.targetChannels),
     timing: controllerTiming,
     lengthBeats: activePadState.lengthBeats,
     stepCount: activePadState.stepCount,
@@ -1869,6 +1873,7 @@ export function normalizeMidiControllerState(raw: unknown, index: number): MidiC
     id,
     name,
     controllerNumber,
+    targetChannels: normalizeControllerTargetChannels(controller.targetChannels),
     value,
     enabled
   };
@@ -2825,7 +2830,7 @@ export function buildSequencerConfigSnapshot(
     timing
   );
   return {
-    version: 12,
+    version: 13,
     audioGraph: structuredClone(audioGraph),
     mixer: structuredClone(mixer),
     instruments: instruments
@@ -2937,6 +2942,7 @@ export function buildSequencerConfigSnapshot(
         id: controller.id.length > 0 ? controller.id : `cc-${index + 1}`,
         name: controller.name.trim().length > 0 ? controller.name : `Controller ${index + 1}`,
         controllerNumber: normalizeControllerNumber(controller.controllerNumber),
+        targetChannels: normalizeControllerTargetChannels(controller.targetChannels),
         value: normalizeControllerValue(controller.value),
         enabled: controller.enabled === true
       })),
@@ -2947,6 +2953,7 @@ export function buildSequencerConfigSnapshot(
             ? controllerSequencer.name
             : `Controller Sequencer ${index + 1}`,
         controllerNumber: normalizeControllerNumber(controllerSequencer.controllerNumber),
+        targetChannels: normalizeControllerTargetChannels(controllerSequencer.targetChannels),
         timing: normalizeSequencerTiming(controllerSequencer.timing),
         lengthBeats: normalizeControllerSequencerLengthBeats(controllerSequencer.lengthBeats),
         stepCount: normalizeTransportStepCount(controllerSequencer.stepCount),
@@ -3025,7 +3032,8 @@ export function parseSequencerConfigSnapshot(
     payload.version !== 9 &&
     payload.version !== 10 &&
     payload.version !== 11 &&
-    payload.version !== 12
+    payload.version !== 12 &&
+    payload.version !== 13
   ) {
     throw new Error("Unsupported sequencer config version.");
   }

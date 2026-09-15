@@ -642,7 +642,7 @@ Controller-track fields include:
 - `pad_loop_sequence`
 - `enabled`
 - `pads`
-- `target_channels`
+- `target_channels` (the GUI and CLI supply the controller sequencer’s selected channels explicitly)
 
 Sequencer-specific model details:
 
@@ -791,3 +791,9 @@ Backend regression coverage lives primarily in:
 - `backend/tests/test_csound_worker.py`
 
 Those tests are the best executable reference for edge cases not obvious from the route signatures alone.
+
+### Performance controller channel selections
+
+Performance config version 13 adds `targetChannels` to manual MIDI controllers and controller sequencers. Frontend and CLI snapshot normalization accepts versions 1–13 and defaults missing selections to channels 1–16. App-state version 2 and native bundle-envelope version 1 are unchanged.
+
+Manual lanes in `PerformanceCsdExportRequest.midiControllers` accept `targetChannels`: a nonempty list of integer channels 1–16, defaulting to all 16 when omitted. Entries are deduplicated and sorted. Both CSD modes seed values per `(channel, controllerNumber)`; later enabled lanes override only matching pairs. Controller sequencers use the existing `target_channels` runtime field; omitted/empty direct runtime requests retain the existing session-channel fallback.

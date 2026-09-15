@@ -1,3 +1,4 @@
+import { normalizeControllerTargetChannels } from "../lib/midiControllerChannels";
 import { mergedSequencerState, playbackValues } from "../lib/mergedSequencerState";
 import { nextPerformanceDeviceName } from "../lib/performanceDeviceNames";
 import type { StoreApi } from "zustand";
@@ -70,11 +71,13 @@ export type PerformanceControlStoreActions = Pick<
   | "removeMidiController"
   | "setMidiControllerEnabled"
   | "setMidiControllerNumber"
+  | "setMidiControllerTargetChannels"
   | "setMidiControllerValue"
   | "addControllerSequencer"
   | "removeControllerSequencer"
   | "setControllerSequencerEnabled"
   | "setControllerSequencerNumber"
+  | "setControllerSequencerTargetChannels"
   | "setControllerSequencerActivePad"
   | "setControllerSequencerQueuedPad"
   | "copyControllerSequencerPad"
@@ -281,6 +284,20 @@ export function createPerformanceControlStoreActions(
       });
     },
 
+    setMidiControllerTargetChannels: (id, channels) => {
+      if (channels.length === 0) return;
+      const targetChannels = normalizeControllerTargetChannels(channels);
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          midiControllers: sequencer.midiControllers.map((controller) =>
+            controller.id === id ? { ...controller, targetChannels } : controller
+          )
+        }
+      });
+    },
+
     setMidiControllerNumber: (controllerId, controllerNumber) => {
       const normalizedNumber = normalizeControllerNumber(controllerNumber);
       const sequencer = get().sequencer;
@@ -381,6 +398,20 @@ export function createPerformanceControlStoreActions(
             [controllerSequencerId]:
               !nextEnabled || runtimeResetRequired ? null : (controllerRuntime[controllerSequencerId] ?? null)
           }
+        }
+      });
+    },
+
+    setControllerSequencerTargetChannels: (id, channels) => {
+      if (channels.length === 0) return;
+      const targetChannels = normalizeControllerTargetChannels(channels);
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          controllerSequencers: sequencer.controllerSequencers.map((controller) =>
+            controller.id === id ? { ...controller, targetChannels } : controller
+          )
         }
       });
     },

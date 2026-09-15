@@ -39,7 +39,7 @@ The Performance page provides two offline Csound render exports:
 
 - `Export CSD (MIDI)` creates the traditional ZIP with a compiled CSD and a separate MIDI file.
 - `Export CSD (SCORE)` creates a ZIP with the performance notes and controller sweeps embedded as Csound score events.
-- Both CSD export modes seed enabled manual MIDI Controller lane values at time 0 on every exported instrument channel.
+- Both CSD export modes seed enabled manual MIDI Controller lane values at time 0 on their selected MIDI channels (all 16 by default).
 
 Both modes select instruments by device assignment and mixer routing:
 
@@ -63,7 +63,7 @@ The MIDI ZIP contains:
 - Always-on effect instruments started with Csound `alwayson`
 - A finite `f 0 ...` score duration sized for the exported arranger playback plus a release-tail buffer
 - The arranger playback rendered as a `.mid` file from beginning to arrangement end
-- Enabled manual MIDI Controller lane values written into the MIDI file at tick 0 on every exported instrument channel
+- Enabled manual MIDI Controller lane values written into the MIDI file at tick 0 on their selected MIDI channels (all 16 by default)
 - Uploaded bundled sample audio / SoundFont files used by the exported instruments
 - A `README.txt` with the exact Csound command line needed to render the package
 
@@ -225,3 +225,9 @@ Offline rendering remains 48 kHz with ksmps=1, float WAV output, packaged assets
 Native JSON/ZIP bundles and both CSD export modes preserve each rack instance’s `performanceControllerValues`, keyed by the `perf_controller` node ID. Unchanged controls use patch defaults; reset removes the override. Version 12 adds these values while preserving version 11 routing and mixer data; versions 1–11 still load. Patch-ID remapping during import preserves node identities and their settings.
 
 CSD (MIDI) and CSD (SCORE) initialize values in the Csound orchestra before notes and continuous instruments start. No additional MIDI CC messages or external control client are required. Export waits for outstanding live controller updates and reports synchronization failures. Standalone patch exports use defaults. See [Performance controllers](performance_controllers.md).
+
+## MIDI controller channel selections (version 13)
+
+Version 13 stores each MIDI Controller and Controller Sequencer's `targetChannels` selection as a sorted list of MIDI channels 1–16. At least one channel is required. Selections survive Save/Load Performance, browser reload, and native JSON/ZIP export/import. Versions 1–12 still load; missing channel selections default to all 16 channels (OMNI).
+
+Both CSD modes route manual initial values and automated curves to the selected channels. Manual lanes sharing a CC number keep independent values on different channels; at render start, the later enabled lane wins only where both channel and CC number overlap. Channel selection does not change which instruments are included in the CSD. The native bundle envelope remains version 1, and browser app state remains version 2.

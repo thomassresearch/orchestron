@@ -1,3 +1,4 @@
+import { MidiChannelSelector } from "./sequencer/MidiChannelSelector";
 import { useAppStore } from "../store/useAppStore";
 import { PerformanceEditorProvider, usePerformanceEditorState, RetainedScroll, type EditorOwner } from "./sequencer/PerformanceEditorState";
 import { PerformanceDeviceName } from "./sequencer/PerformanceDeviceName";
@@ -436,6 +437,7 @@ function useSequencerPageContext({
     onRemoveMidiController,
     onMidiControllerEnabledChange,
     onMidiControllerNumberChange,
+    onMidiControllerTargetChannelsChange,
     onMidiControllerValueChange
   } = midiControllerActions;
   const {
@@ -443,6 +445,7 @@ function useSequencerPageContext({
     onRemoveControllerSequencer,
     onControllerSequencerEnabledChange,
     onControllerSequencerNumberChange,
+    onControllerSequencerTargetChannelsChange,
     onControllerSequencerMeterNumeratorChange,
     onControllerSequencerMeterDenominatorChange,
     onControllerSequencerStepsPerBeatChange,
@@ -735,6 +738,7 @@ function useSequencerPageContext({
     onControllerSequencerClearSteps,
     onRemoveControllerSequencer,
     onControllerSequencerNumberChange,
+    onControllerSequencerTargetChannelsChange,
     onControllerSequencerMeterNumeratorChange,
     onControllerSequencerMeterDenominatorChange,
     onControllerSequencerStepsPerBeatChange,
@@ -762,6 +766,7 @@ function useSequencerPageContext({
     onPianoRollNoteOn,
     onPianoRollNoteOff,
     onMidiControllerNumberChange,
+    onMidiControllerTargetChannelsChange,
     onMidiControllerEnabledChange,
     onRemoveMidiController,
     onMidiControllerValueChange,
@@ -2789,6 +2794,7 @@ function ControllerSequencersBody({ context }: { context: ReturnType<typeof useS
     canRemovePerformDevice,
     controlLabelClass,
     onControllerSequencerNumberChange,
+    onControllerSequencerTargetChannelsChange,
     controlFieldClass,
     onControllerSequencerMeterNumeratorChange,
     onControllerSequencerMeterDenominatorChange,
@@ -2849,6 +2855,8 @@ function ControllerSequencersBody({ context }: { context: ReturnType<typeof useS
               >
                 {ui.clearSteps}
               </button>
+              <MidiChannelSelector channels={controllerSequencer.targetChannels} ui={ui}
+                onChange={(channels) => onControllerSequencerTargetChannelsChange(controllerSequencer.id, channels)} />
               <button
                 type="button"
                 onClick={() => onRemoveControllerSequencer(controllerSequencer.id)}
@@ -3730,6 +3738,7 @@ function MidiControllersBody({ context }: { context: ReturnType<typeof useSequen
     transportStateClass,
     controlLabelClass,
     onMidiControllerNumberChange,
+    onMidiControllerTargetChannelsChange,
     controlFieldClass,
     onMidiControllerEnabledChange,
     transportStopButtonClass,
@@ -3748,9 +3757,15 @@ function MidiControllersBody({ context }: { context: ReturnType<typeof useSequen
       <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
         {sequencer.midiControllers.map((controller, controllerIndex) => (
           <article key={controller.id} className="rounded-xl border border-slate-700 bg-slate-900/65 p-2.5">
-            <div className="mb-2 flex flex-wrap items-center gap-2">
-              {renderDeviceName("midiControllers", controller, ui.controllerWithIndex(controllerIndex + 1))}
-              <span className={transportStateClass}>{controller.enabled ? ui.running : ui.stopped}</span>
+            <div className="mb-2 flex items-start justify-between gap-2">
+              <div className="flex min-w-0 flex-col items-start gap-2">
+                {renderDeviceName("midiControllers", controller, ui.controllerWithIndex(controllerIndex + 1))}
+                <span className={transportStateClass}>{controller.enabled ? ui.running : ui.stopped}</span>
+              </div>
+              <div className="ml-auto min-w-0 shrink-0">
+                <MidiChannelSelector channels={controller.targetChannels} rows={2} ui={ui}
+                  onChange={(channels) => onMidiControllerTargetChannelsChange(controller.id, channels)} />
+              </div>
             </div>
 
             <div className="mb-2 flex flex-wrap items-end gap-2">

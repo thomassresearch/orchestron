@@ -312,6 +312,7 @@ export interface MidiControllerState {
   id: string;
   name: string;
   controllerNumber: number;
+  targetChannels: number[];
   value: number;
   enabled: boolean;
 }
@@ -388,6 +389,7 @@ export interface ControllerSequencerState {
   id: string;
   name: string;
   controllerNumber: number;
+  targetChannels: number[];
   timing: SequencerTimingConfig;
   lengthBeats: ControllerSequencerPadLengthBeats;
   stepCount: number;
@@ -498,7 +500,7 @@ export interface SequencerInstrumentBinding {
 }
 
 export interface SequencerConfigSnapshot {
-  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
+  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13;
   audioGraph?: AudioGraph;
   mixer?: MixerState;
   instruments: Array<{
@@ -583,6 +585,7 @@ export interface SequencerConfigSnapshot {
       id: string;
       name: string;
       controllerNumber: number;
+      targetChannels?: number[];
       value: number;
       enabled: boolean;
     }>;
@@ -590,6 +593,7 @@ export interface SequencerConfigSnapshot {
       id: string;
       name: string;
       controllerNumber: number;
+      targetChannels?: number[];
       lengthBeats?: ControllerSequencerPadLengthBeats;
       stepCount?: number;
       activePad: number;

@@ -21,7 +21,7 @@ from urllib import error, parse, request
 DEFAULT_API_URL = os.environ.get("ORCHESTRON_API_URL", "http://localhost:8000/api")
 SESSION_DIR = Path(".orchestron")
 SESSION_FILE = SESSION_DIR / "edit-session.json"
-CURRENT_CONFIG_VERSION = 12
+CURRENT_CONFIG_VERSION = 13
 DEFAULT_PAD_COUNT = 8
 MAX_STEPS_PER_PAD = 128
 PAD_LOOP_PAUSE_BEATS = {1, 2, 4, 8, 16}
@@ -1490,6 +1490,11 @@ def empty_performance_config(*, tempo: int = 120) -> dict[str, Any]:
     }
 
 
+def normalize_controller_target_channels(value: Any) -> list[int]:
+    channels = sorted({channel for channel in value if type(channel) is int and 1 <= channel <= 16}) if isinstance(value, list) else []
+    return channels or list(range(1, 17))
+
+
 def ensure_sequencer(config: dict[str, Any]) -> dict[str, Any]:
     sequencer = config.setdefault("sequencer", {})
     timing = sequencer.setdefault("timing", default_timing())
@@ -1503,6 +1508,10 @@ def ensure_sequencer(config: dict[str, Any]) -> dict[str, Any]:
     sequencer.setdefault("pianoRolls", [])
     sequencer.setdefault("midiControllers", [])
     sequencer.setdefault("controllerSequencers", [])
+    for kind in ("midiControllers", "controllerSequencers"):
+        for controller in sequencer[kind]:
+            if isinstance(controller, dict):
+                controller["targetChannels"] = normalize_controller_target_channels(controller.get("targetChannels"))
     sequencer.setdefault("arpeggiators", [])
     sequencer.setdefault("arpeggiatorPresets", [])
     return sequencer
@@ -3034,6 +3043,7 @@ def add_controller_sequencer_to_config(
         "id": next_track_id(tracks, "cc-seq"),
         "name": name or f"Controller Sequencer {len(tracks) + 1}",
         "controllerNumber": controller_number,
+        "targetChannels": list(range(1, 17)),
         "timing": timing,
         "lengthBeats": active_pad_state["lengthBeats"],
         "stepCount": active_pad_state["stepCount"],
@@ -3066,6 +3076,7 @@ def add_midi_controller_to_config(
         "id": next_track_id(controllers, "cc"),
         "name": name or f"Controller {len(controllers) + 1}",
         "controllerNumber": controller_number,
+        "targetChannels": list(range(1, 17)),
         "value": value,
         "enabled": enabled,
     }
@@ -3698,6 +3709,7 @@ def build_runtime_config(config: dict[str, Any]) -> dict[str, Any]:
             {
                 "track_id": ctrl.get("id", "cc-seq-1"),
                 "controller_number": int(ctrl.get("controllerNumber", 0)),
+                "target_channels": normalize_controller_target_channels(ctrl.get("targetChannels")),
                 "timing": timing_to_runtime(ctrl_timing),
                 "length_beats": int(ctrl.get("lengthBeats", 4)),
                 "active_pad": int(ctrl.get("activePad", 0)),

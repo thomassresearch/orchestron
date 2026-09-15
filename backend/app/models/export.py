@@ -5,7 +5,7 @@ from backend.app.models.performance_controller import ControllerNumber
 from backend.app.models.audio import AudioGraph, MixerState
 
 import math
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -76,7 +76,7 @@ class ExportPerformanceInstrumentAssignment(BaseModel):
 class ExportPerformanceConfig(BaseModel):
     audio_graph: AudioGraph | None = Field(default=None, alias="audioGraph")
     mixer: MixerState = Field(default_factory=MixerState)
-    version: int = Field(default=1, ge=1, le=12)
+    version: int = Field(default=1, ge=1, le=13)
     instruments: list[ExportPerformanceInstrumentAssignment] = Field(default_factory=list, max_length=64)
 
     @model_validator(mode="after")
@@ -135,11 +135,20 @@ class PerformanceExportPayload(BaseModel):
 
 
 class PerformanceCsdMidiControllerState(BaseModel):
+    target_channels: list[Annotated[int, Field(strict=True, ge=1, le=16)]] = Field(
+        default_factory=lambda: list(range(1, 17)), alias="targetChannels", min_length=1, max_length=16
+    )
+
     controller_number: int = Field(alias="controllerNumber", ge=0, le=127)
     value: int = Field(ge=0, le=127)
     enabled: bool = True
 
     model_config = ConfigDict(populate_by_name=True)
+
+    @field_validator("target_channels")
+    @classmethod
+    def normalize_target_channels(cls, channels: list[int]) -> list[int]:
+        return sorted(set(channels))
 
 
 class PerformanceCsdExportRequest(BaseModel):
@@ -187,7 +196,11 @@ class PerformanceCsdExportRequest(BaseModel):
         playback_end_subunit = (
             self.sequencer_config.playback_start_step + max(1, int(playback_steps))
         ) * _OFFLINE_TRANSPORT_SUBUNITS_PER_STEP
-        event_count = 0
+        event_count = len({
+            (channel, controller.controller_number)
+            for controller in self.midi_controllers if controller.enabled
+            for channel in controller.target_channels
+        })
         note_activity_events: dict[int, list[tuple[int, str, tuple[int, ...]]]] = {}
         arpeggiator_input_channels = {
             arpeggiator.input_channel

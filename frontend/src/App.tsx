@@ -1,3 +1,5 @@
+import { useMidiControllerRouting } from "./hooks/useMidiControllerRouting";
+import { normalizeControllerTargetChannels } from "./lib/midiControllerChannels";
 import { INITIAL_PANEL_COLLAPSE_STATE, type PanelId } from "./components/CollapsiblePanel";
 import { stereoCatalogEntries } from "./lib/stereoCatalog";
 import { AuditionPanel } from "./components/AuditionPanel";
@@ -133,7 +135,6 @@ export default function App() {
 
   const activeSessionId = useAppStore((state) => state.activeSessionId);
   const activeSessionState = useAppStore((state) => state.activeSessionState);
-  const activeSessionInstruments = useAppStore((state) => state.activeSessionInstruments);
   const activeMidiInput = useAppStore((state) => state.activeMidiInput);
   const compileOutput = useAppStore((state) => state.compileOutput);
   const events = useAppStore((state) => state.events);
@@ -232,13 +233,11 @@ export default function App() {
   const setPianoRollMode = useAppStore((state) => state.setPianoRollMode);
   const addMidiController = useAppStore((state) => state.addMidiController);
   const removeMidiController = useAppStore((state) => state.removeMidiController);
-  const setMidiControllerEnabled = useAppStore((state) => state.setMidiControllerEnabled);
-  const setMidiControllerNumber = useAppStore((state) => state.setMidiControllerNumber);
-  const setMidiControllerValue = useAppStore((state) => state.setMidiControllerValue);
   const addControllerSequencer = useAppStore((state) => state.addControllerSequencer);
   const removeControllerSequencer = useAppStore((state) => state.removeControllerSequencer);
   const setControllerSequencerEnabled = useAppStore((state) => state.setControllerSequencerEnabled);
   const setControllerSequencerNumber = useAppStore((state) => state.setControllerSequencerNumber);
+  const setControllerSequencerTargetChannels = useAppStore((state) => state.setControllerSequencerTargetChannels);
   const setControllerSequencerActivePad = useAppStore((state) => state.setControllerSequencerActivePad);
   const setControllerSequencerQueuedPad = useAppStore((state) => state.setControllerSequencerQueuedPad);
   const copyControllerSequencerPad = useAppStore((state) => state.copyControllerSequencerPad);
@@ -435,6 +434,7 @@ export default function App() {
         return {
           track_id: controllerSequencer.id,
           controller_number: controllerSequencer.controllerNumber,
+          target_channels: normalizeControllerTargetChannels(controllerSequencer.targetChannels),
           timing: {
             tempo_bpm: controllerSequencer.timing.tempoBPM,
             meter_numerator: controllerSequencer.timing.meterNumerator,
@@ -534,7 +534,6 @@ export default function App() {
     };
   }, []);
   const pianoRollNoteSessionRef = useRef(new Map<string, string>());
-  const midiControllerInitSessionRef = useRef<string | null>(null);
   const pendingSequencerTransportStartRef = useRef(false);
   const sequencerTransportStartInFlightRef = useRef(false);
   const arrangerTransportActiveRef = useRef(false);
@@ -1325,127 +1324,10 @@ export default function App() {
     [activeSessionState, primeBrowserClockAudio, sendAllNotesOff, setPianoRollEnabled, startSession]
   );
 
-  const collectMidiControllerChannels = useCallback(() => {
-    const channels = new Set<number>();
-
-    if (activeSessionInstruments.length > 0) {
-      for (const instrument of activeSessionInstruments) {
-        if (instrument.midi_channel > 0) {
-          channels.add(Math.max(1, Math.min(16, Math.round(instrument.midi_channel))));
-        }
-      }
-    } else {
-      for (const instrument of sequencerInstruments) {
-        if (instrument.midiChannel > 0) {
-          channels.add(Math.max(1, Math.min(16, Math.round(instrument.midiChannel))));
-        }
-      }
-    }
-
-    if (channels.size === 0) {
-      channels.add(1);
-    }
-
-    return [...channels];
-  }, [activeSessionInstruments, sequencerInstruments]);
-
-  const sendMidiControllerValue = useCallback(
-    async (controllerNumber: number, value: number, sessionIdOverride?: string) => {
-      const normalizedController = Math.max(0, Math.min(127, Math.round(controllerNumber)));
-      const normalizedValue = Math.max(0, Math.min(127, Math.round(value)));
-      const channels = collectMidiControllerChannels();
-
-      await Promise.all(
-        channels.map((channel) =>
-          sendDirectMidiEvent(
-            {
-              type: "control_change",
-              channel,
-              controller: normalizedController,
-              value: normalizedValue
-            },
-            sessionIdOverride
-          )
-        )
-      );
-    },
-    [collectMidiControllerChannels, sendDirectMidiEvent]
-  );
-
-  const onMidiControllerEnabledChange = useCallback(
-    (controllerId: string, enabled: boolean) => {
-      setMidiControllerEnabled(controllerId, enabled);
-      if (!enabled || activeSessionState !== "running" || !activeSessionId) {
-        return;
-      }
-
-      const controller = sequencerRef.current.midiControllers.find((entry) => entry.id === controllerId);
-      if (!controller) {
-        return;
-      }
-
-      void sendMidiControllerValue(controller.controllerNumber, controller.value, activeSessionId).catch((error) => {
-        setSequencerError(error instanceof Error ? error.message : appCopy.errors.failedToSendMidiControllerValue);
-      });
-    },
-    [
-      activeSessionId,
-      activeSessionState,
-      appCopy.errors.failedToSendMidiControllerValue,
-      sendMidiControllerValue,
-      setMidiControllerEnabled
-    ]
-  );
-
-  const onMidiControllerNumberChange = useCallback(
-    (controllerId: string, controllerNumber: number) => {
-      setMidiControllerNumber(controllerId, controllerNumber);
-      if (activeSessionState !== "running" || !activeSessionId) {
-        return;
-      }
-
-      const controller = sequencerRef.current.midiControllers.find((entry) => entry.id === controllerId);
-      if (!controller || !controller.enabled) {
-        return;
-      }
-
-      void sendMidiControllerValue(controllerNumber, controller.value, activeSessionId).catch((error) => {
-        setSequencerError(error instanceof Error ? error.message : appCopy.errors.failedToSendMidiControllerValue);
-      });
-    },
-    [
-      activeSessionId,
-      activeSessionState,
-      appCopy.errors.failedToSendMidiControllerValue,
-      sendMidiControllerValue,
-      setMidiControllerNumber
-    ]
-  );
-
-  const onMidiControllerValueChange = useCallback(
-    (controllerId: string, value: number) => {
-      setMidiControllerValue(controllerId, value);
-      if (activeSessionState !== "running" || !activeSessionId) {
-        return;
-      }
-
-      const controller = sequencerRef.current.midiControllers.find((entry) => entry.id === controllerId);
-      if (!controller || !controller.enabled) {
-        return;
-      }
-
-      void sendMidiControllerValue(controller.controllerNumber, value, activeSessionId).catch((error) => {
-        setSequencerError(error instanceof Error ? error.message : appCopy.errors.failedToSendMidiControllerValue);
-      });
-    },
-    [
-      activeSessionId,
-      activeSessionState,
-      appCopy.errors.failedToSendMidiControllerValue,
-      sendMidiControllerValue,
-      setMidiControllerValue
-    ]
-  );
+  const { onMidiControllerEnabledChange, onMidiControllerNumberChange,
+    onMidiControllerValueChange, onMidiControllerTargetChannelsChange } = useMidiControllerRouting({
+    activeSessionId, activeSessionState, sendDirectMidiEvent, setSequencerError, errors: appCopy.errors
+  });
 
   const buildCurrentPerformanceExport = useCallback(async (purpose: "native" | "csd" = "native") => {
     await useAppStore.getState().flushMixer();
@@ -1500,6 +1382,7 @@ export default function App() {
           .filter((controller) => controller.enabled)
           .map((controller) => ({
             controllerNumber: controller.controllerNumber,
+            targetChannels: controller.targetChannels,
             value: controller.value,
             enabled: controller.enabled
           }))
@@ -1650,35 +1533,6 @@ export default function App() {
     },
     [markSequencerConfigSyncPending, setControllerSequencerEnabled, startSequencerTransportFromUserAction]
   );
-
-  useEffect(() => {
-    if (activeSessionState !== "running" || !activeSessionId) {
-      midiControllerInitSessionRef.current = null;
-      return;
-    }
-    if (midiControllerInitSessionRef.current === activeSessionId) {
-      return;
-    }
-
-    midiControllerInitSessionRef.current = activeSessionId;
-    const startedControllers = sequencerRef.current.midiControllers.filter((controller) => controller.enabled);
-    if (startedControllers.length === 0) {
-      return;
-    }
-
-    void Promise.all(
-      startedControllers.map((controller) =>
-      sendMidiControllerValue(controller.controllerNumber, controller.value, activeSessionId)
-      )
-    ).catch((error) => {
-      setSequencerError(error instanceof Error ? error.message : appCopy.errors.failedToInitializeMidiControllers);
-    });
-  }, [
-    activeSessionId,
-    activeSessionState,
-    appCopy.errors.failedToInitializeMidiControllers,
-    sendMidiControllerValue
-  ]);
 
   const applyDeleteSelectionPlan = useCallback(
     (plan: DeleteSelectionDialogState) => {
@@ -1975,6 +1829,7 @@ export default function App() {
     onAddMidiController: addMidiController,
     onRemoveMidiController: removeMidiController,
     onMidiControllerEnabledChange,
+    onMidiControllerTargetChannelsChange,
     onMidiControllerNumberChange: onMidiControllerNumberChange,
     onMidiControllerValueChange: onMidiControllerValueChange
   };
@@ -1983,6 +1838,7 @@ export default function App() {
     onRemoveControllerSequencer: removeControllerSequencer,
     onControllerSequencerEnabledChange,
     onControllerSequencerNumberChange: setControllerSequencerNumber,
+    onControllerSequencerTargetChannelsChange: setControllerSequencerTargetChannels,
     onControllerSequencerMeterNumeratorChange: setControllerSequencerMeterNumerator,
     onControllerSequencerMeterDenominatorChange: setControllerSequencerMeterDenominator,
     onControllerSequencerStepsPerBeatChange: setControllerSequencerStepsPerBeat,

@@ -1040,7 +1040,7 @@ Los cambios del pad mostrado se agrupan tras 80 ms y se aplican en el siguiente 
 
 - CC messages are sent immediately when the instrument session is running and the lane is enabled.
 - Up to six lanes can coexist, which is useful for filter, resonance, mix, or macro controls in one performance.
-- If multiple destinations listen to the same CC mapping, all of them react to the transmitted value.
+- Destinations on selected MIDI channels that listen to the same CC mapping react to the transmitted value.
 - Both CSD exports include enabled lane values at render start so \`midictrl\` patches start from the same manual CC state.`,
     german: `### Manuelle CC-Spuren
 
@@ -1052,7 +1052,7 @@ Los cambios del pad mostrado se agrupan tras 80 ms y se aplican en el siguiente 
 
 - CC-Nachrichten werden sofort gesendet, wenn die Instrument-Session laeuft und die Spur aktiviert ist.
 - Bis zu sechs Spuren koennen parallel existieren; das ist praktisch fuer Filter-, Resonanz-, Mix- oder Macro-Steuerungen in einer Performance.
-- Wenn mehrere Ziele auf dieselbe CC-Zuordnung hoeren, reagieren alle auf den gesendeten Wert.
+- Ziele auf den ausgewählten MIDI-Kanälen mit derselben CC-Zuordnung reagieren auf den gesendeten Wert.
 - Beide CSD-Exporte uebernehmen aktivierte Spurwerte beim Renderstart, damit \`midictrl\`-Patches mit demselben manuellen CC-Zustand starten.`,
     french: `### Voies CC manuelles
 
@@ -1064,7 +1064,7 @@ Los cambios del pad mostrado se agrupan tras 80 ms y se aplican en el siguiente 
 
 - Les messages CC partent immediatement quand la session instrument tourne et que la voie est activee.
 - Jusqu'a six voies peuvent coexister, utile pour des controles de filtre, resonance, mix ou macro dans une meme performance.
-- Si plusieurs destinations ecoutent le meme mapping CC, elles reagissent toutes a la valeur transmise.
+- Les destinations sur les canaux MIDI cochés avec le même mapping CC réagissent à la valeur transmise.
 - Les deux exports CSD incluent les valeurs des voies activees au debut du rendu afin que les patches \`midictrl\` partent du meme etat CC manuel.`,
     spanish: `### Pistas CC manuales
 
@@ -1076,7 +1076,7 @@ Los cambios del pad mostrado se agrupan tras 80 ms y se aplican en el siguiente 
 
 - Los mensajes CC se envian inmediatamente cuando la sesion de instrumentos esta en marcha y la pista esta activada.
 - Pueden coexistir hasta seis pistas, lo que resulta util para controles de filtro, resonancia, mezcla o macros dentro de una misma performance.
-- Si varios destinos escuchan el mismo mapeo CC, todos reaccionan al valor transmitido.
+- Los destinos en los canales MIDI marcados con el mismo mapeo CC reaccionan al valor transmitido.
 - Ambos exports CSD incluyen los valores de las pistas activadas al empezar el render para que los patches \`midictrl\` arranquen con el mismo estado CC manual.`
   },
 };
@@ -1095,4 +1095,34 @@ for (const language of ["english", "german", "french", "spanish"] as const) {
     sequencerHelpDocuments[id][language].markdown += "\n\n" + collapsiblePanelHelp[language].perform;
   }
   sequencerHelpDocuments.sequencer_instrument_rack[language].markdown += "\n\n" + collapsiblePanelHelp[language].rack;
+}
+
+
+const controllerChannelHelp = {
+  english: `### MIDI Channels
+
+Check the channels that receive this device's CC messages. All 16 are checked by default (OMNI), including when loading older performances. At least one must remain checked. Selections are saved and included in native JSON/ZIP and both CSD exports.
+
+Controller sequencers show 1–16 beside Clear Steps in one scrolling row; the selection applies to all pads. Channel edits follow the 80 ms live-edit path without resetting transport or queued pads. Manual controllers show 1–8 above 9–16 at the top right; changing channels while enabled immediately sends the current value to the new selection. Removed channels retain their last value.`,
+  german: `### MIDI-Kanäle
+
+Die Kanäle auswählen, die CC-Nachrichten dieses Geräts empfangen sollen. Standardmäßig sind alle 16 ausgewählt (OMNI), auch beim Laden älterer Performances. Mindestens einer muss ausgewählt bleiben. Die Auswahl wird gespeichert und in native JSON/ZIP- sowie beide CSD-Exporte übernommen.
+
+Controller-Sequencer zeigen 1–16 neben „Steps loeschen“ in einer horizontal scrollbaren Zeile; die Auswahl gilt für alle Pads. Kanaländerungen folgen dem 80-ms-Live-Edit-Ablauf ohne Transport oder vorgemerkte Pads zurückzusetzen. Manuelle Controller zeigen oben rechts 1–8 über 9–16; bei aktivem Controller wird der aktuelle Wert sofort an die neue Auswahl gesendet. Abgewählte Kanäle behalten ihren letzten Wert.`,
+  french: `### Canaux MIDI
+
+Cochez les canaux qui reçoivent les messages CC de cet appareil. Les 16 sont cochés par défaut (OMNI), y compris au chargement des anciennes performances. Au moins un doit rester coché. La sélection est enregistrée et incluse dans les exports natifs JSON/ZIP et les deux exports CSD.
+
+Les séquenceurs contrôleur affichent 1–16 près de « Effacer pas », sur une ligne à défilement horizontal ; la sélection s'applique à tous les pads. Les changements suivent le délai de 80 ms sans réinitialiser le transport ni les pads en attente. Les contrôleurs manuels affichent 1–8 au-dessus de 9–16 en haut à droite ; changer les canaux pendant leur activation envoie immédiatement la valeur actuelle à la nouvelle sélection. Les canaux décochés conservent leur dernière valeur.`,
+  spanish: `### Canales MIDI
+
+Marca los canales que reciben los mensajes CC de este dispositivo. Los 16 están marcados por defecto (OMNI), también al cargar performances antiguas. Al menos uno debe permanecer marcado. La selección se guarda y se incluye en los exports nativos JSON/ZIP y en ambos exports CSD.
+
+Los secuenciadores controladores muestran 1–16 junto a « Limpiar pasos » en una fila con desplazamiento horizontal; la selección se aplica a todos los pads. Los cambios siguen el flujo de edición de 80 ms sin reiniciar el transporte ni los pads en cola. Los controladores manuales muestran 1–8 sobre 9–16 arriba a la derecha; cambiar los canales mientras están activados envía el valor actual inmediatamente a la nueva selección. Los canales desmarcados conservan su último valor.`
+};
+
+for (const language of ["english", "german", "french", "spanish"] as const) {
+  for (const id of ["sequencer_controller_sequencer", "sequencer_midi_controllers"] as const) {
+    sequencerHelpDocuments[id][language].markdown += "\n\n" + controllerChannelHelp[language];
+  }
 }

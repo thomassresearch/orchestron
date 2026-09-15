@@ -600,7 +600,6 @@ class PerformanceExportService:
         self._append_initial_midi_controller_events(
             capture=capture,
             request=request,
-            target_channels=controller_default_channels,
         )
         router = PerformanceMidiRouter(
             enqueue_timestamped_midi=capture.enqueue_timestamped_midi,
@@ -687,28 +686,22 @@ class PerformanceExportService:
         *,
         capture: _MidiCaptureService,
         request: PerformanceCsdExportRequest,
-        target_channels: tuple[int, ...],
     ) -> None:
-        controller_values: dict[int, int] = {}
+        controller_values: dict[tuple[int, int], int] = {}
         for controller in request.midi_controllers:
             if not controller.enabled:
                 continue
-            controller_values[int(controller.controller_number)] = int(controller.value)
+            for channel in controller.target_channels:
+                controller_values[(channel, int(controller.controller_number))] = int(controller.value)
 
         if not controller_values:
             return
 
-        channels = tuple(sorted({max(1, min(16, int(channel))) for channel in target_channels})) or (1,)
-        for controller_number, value in controller_values.items():
-            for channel in channels:
-                capture._append_event(
-                    time_seconds=0.0,
-                    message=[
-                        0xB0 + ((channel - 1) & 0x0F),
-                        controller_number,
-                        value,
-                    ],
-                )
+        for (channel, controller_number), value in controller_values.items():
+            capture._append_event(
+                time_seconds=0.0,
+                message=[0xB0 + (channel - 1), controller_number, value],
+            )
 
     def _raise_if_no_note_on_events(self, events: list[CapturedMidiEvent]) -> None:
         if not self._has_note_on_events(events):
@@ -1039,7 +1032,7 @@ class PerformanceExportService:
                 f"csound {csd_file_name}",
                 "",
                 "The WAV is written as 32-bit float to preserve the same headroom as live browser-clock audio.",
-                "Enabled MIDI Controller lane values are written at time 0 on each assigned instrument channel.",
+                "Enabled MIDI Controller lane values are written at time 0 on their selected MIDI channels (all 16 by default).",
                 "",
                 "If you need a longer release tail, increase the final 'f 0 ...' duration line in the CSD.",
                 "",
@@ -1077,7 +1070,7 @@ class PerformanceExportService:
                 f"csound {csd_file_name}",
                 "",
                 "The WAV is written as 32-bit float to preserve the same headroom as live browser-clock audio.",
-                "Enabled MIDI Controller lane values are written at time 0 on each assigned instrument channel.",
+                "Enabled MIDI Controller lane values are written at time 0 on their selected MIDI channels (all 16 by default).",
                 "",
                 "If you need a longer release tail, increase the final 'f 0 ...' duration line in the CSD.",
                 "",

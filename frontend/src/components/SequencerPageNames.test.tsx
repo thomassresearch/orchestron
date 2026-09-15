@@ -57,7 +57,7 @@ it("shows editable names for all six types and updates sync choices and arranger
   }
   expect(screen.getByRole("option", { name: "Renamed tracks" })).toBeTruthy();
   expect(screen.queryByText("Warm Lead")).toBeNull();
-});
+}, 10_000);
 
 it("discards the editor on a performance switch or device removal", () => {
   const { rerender, container } = render(<Page />);

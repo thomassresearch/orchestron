@@ -153,6 +153,7 @@ export interface SequencerPageMidiControllerActions {
   onRemoveMidiController: (controllerId: string) => void;
   onMidiControllerEnabledChange: (controllerId: string, enabled: boolean) => void;
   onMidiControllerNumberChange: (controllerId: string, controllerNumber: number) => void;
+  onMidiControllerTargetChannelsChange: (id: string, channels: number[]) => void;
   onMidiControllerValueChange: (controllerId: string, value: number) => void;
 }
 
@@ -161,6 +162,7 @@ export interface SequencerPageControllerSequencerActions {
   onRemoveControllerSequencer: (controllerSequencerId: string) => void;
   onControllerSequencerEnabledChange: (controllerSequencerId: string, enabled: boolean) => void;
   onControllerSequencerNumberChange: (controllerSequencerId: string, controllerNumber: number) => void;
+  onControllerSequencerTargetChannelsChange: (id: string, channels: number[]) => void;
   onControllerSequencerMeterNumeratorChange: (controllerSequencerId: string, numerator: number) => void;
   onControllerSequencerMeterDenominatorChange: (controllerSequencerId: string, denominator: number) => void;
   onControllerSequencerStepsPerBeatChange: (controllerSequencerId: string, stepsPerBeat: number) => void;

@@ -56,6 +56,7 @@ export interface PerformanceCsdExportRequestPayload {
   eventSource?: "midiFile" | "score";
   midiControllers?: Array<{
     controllerNumber: number;
+    targetChannels?: number[];
     value: number;
     enabled: boolean;
   }>;

@@ -235,12 +235,14 @@ export interface AppStore {
   removeMidiController: (controllerId: string) => void;
   setMidiControllerEnabled: (controllerId: string, enabled: boolean) => void;
   setMidiControllerNumber: (controllerId: string, controllerNumber: number) => void;
+  setMidiControllerTargetChannels: (id: string, channels: number[]) => void;
   setMidiControllerValue: (controllerId: string, value: number) => void;
 
   addControllerSequencer: () => void;
   removeControllerSequencer: (controllerSequencerId: string) => void;
   setControllerSequencerEnabled: (controllerSequencerId: string, enabled: boolean) => void;
   setControllerSequencerNumber: (controllerSequencerId: string, controllerNumber: number) => void;
+  setControllerSequencerTargetChannels: (id: string, channels: number[]) => void;
   setControllerSequencerActivePad: (controllerSequencerId: string, padIndex: number) => void;
   setControllerSequencerQueuedPad: (
     controllerSequencerId: string,

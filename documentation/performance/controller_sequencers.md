@@ -34,12 +34,21 @@ Each controller sequencer provides:
 - Running/stopped state badge
 - `Start` / `Stop` enable toggle; can be used manually while the multitrack arranger is stopped
 - `Controller #` (`0..127`)
+- **MIDI Channels** checkboxes, 1–16 in one row beside `Clear Steps`
 - `Meter` (`2..7` over `4` or `8`)
 - `Grid` (`2`, `4`, or `8`, steps per beat)
 - `Beat Ratio` (`1:1`, `2:1`, `3:2`, `4:3`, `3:4`, `5:4`, `4:5`, `7:4`)
 - Curve length in beats (`1..8`, plus `16`)
 - CC label preview (`CC N`)
 - Curve editor
+
+### MIDI Channels
+
+Check the channels that receive the curve's CC messages. All 16 are checked by default (OMNI); at least one must remain checked. The row scrolls horizontally on narrow screens. This is a device setting shared by all its pads.
+
+Channel edits use the same 80 ms live-edit synchronization as curve edits and take effect at the next engine block without restarting transport or losing queued pads. The current curve value is sent to the new selection. Removed channels retain their last received value.
+
+Selections survive Save/Load Performance, browser reload, native JSON/ZIP export/import, and both CSD export modes. Older performances without the setting load with all 16 channels checked.
 
 ### Curve Length (`1..8`, plus `16`, beats)
 

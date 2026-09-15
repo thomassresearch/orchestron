@@ -2568,11 +2568,10 @@ def test_performance_csd_midi_export_seeds_enabled_midi_controller_values(tmp_pa
         if message.type == "control_change" and message.control in {10, 11}
     )
 
-    assert seeded_controllers[:4] == [
-        (0, 10, 91),
-        (3, 10, 91),
-        (0, 11, 37),
-        (3, 11, 37),
+    assert seeded_controllers[:32] == [
+        (channel, controller, value)
+        for controller, value in [(10, 91), (11, 37)]
+        for channel in range(16)
     ]
     assert (0, 12, 99) not in seeded_controllers
     assert (3, 12, 99) not in seeded_controllers
@@ -2627,6 +2626,9 @@ def test_performance_csd_score_export_seeds_enabled_midi_controller_values(tmp_p
     assert "i 9000 0 0.000021 395 37" in csd
     assert "i 9000 0 0.000021 12 99" not in csd
     assert "i 9000 0 0.000021 396 99" not in csd
+    for channel in range(16):
+        assert f"gk_vcs_score_cc[{channel * 128 + 10}] init 91" in csd
+        assert f"i 9000 0 0.000021 {channel * 128 + 11} 37" in csd
     assert "gk_vcs_score_cc[10] init 91" in csd
     assert "gk_vcs_score_cc[11] init 37" in csd
     assert "gk_vcs_score_cc[394] init 91" in csd
@@ -6365,3 +6367,74 @@ def test_perf_controller_opcode_metadata(tmp_path: Path) -> None:
         assert opcode["outputs"][0]["signal_type"] == "i"
         assert opcode["documentation_url"] == "https://csound.com/docs/manual/chnget.html"
         assert "virtual" in opcode["documentation_markdown"].lower()
+
+
+@pytest.mark.parametrize("event_source", ["midiFile", "score"])
+def test_performance_csd_exports_respect_controller_channel_selections(tmp_path: Path, event_source: str) -> None:
+    payload = _performance_csd_export_payload()
+    payload["eventSource"] = event_source
+    payload["performanceExport"]["performance"]["config"]["version"] = 13
+    payload["midiControllers"] = [
+        {"controllerNumber": 74, "value": 30, "targetChannels": [1, 16]},
+        {"controllerNumber": 74, "value": 90, "targetChannels": [2, 16]},
+        {"controllerNumber": 74, "value": 99, "targetChannels": [3], "enabled": False},
+    ]
+    automated = payload["sequencerConfig"]["controller_tracks"][0]
+    automated["target_channels"] = [1, 16]
+    with _client(tmp_path) as client:
+        response = client.post("/api/bundles/export/performance-csd", json=payload)
+        assert response.status_code == 200, response.text
+        with zipfile.ZipFile(BytesIO(response.content)) as archive:
+            if event_source == "midiFile":
+                messages = [message for _, message in _midi_messages_with_absolute_ticks(archive.read("Offline_Export/Offline_Export.mid"))
+                            if message.type == "control_change"]
+                assert [(message.channel + 1, message.value) for message in messages if message.control == 74] == [
+                    (1, 30), (16, 90), (2, 90)]
+                assert {message.channel + 1 for message in messages if message.control == 1} == {1, 16}
+            else:
+                csd = archive.read("Offline_Export/Offline_Export.csd").decode()
+                setters = [line.split() for line in csd.splitlines() if line.startswith("i 9000 ")]
+                assert {(int(row[4]) // 128 + 1, int(row[5])) for row in setters if int(row[4]) % 128 == 74} == {
+                    (1, 30), (2, 90), (16, 90)}
+                assert {int(row[4]) // 128 + 1 for row in setters if int(row[4]) % 128 == 1} == {1, 16}
+                for channel, value in [(1, 30), (2, 90), (16, 90)]:
+                    assert f"gk_vcs_score_cc[{(channel - 1) * 128 + 74}] init {value}" in csd
+
+
+@pytest.mark.parametrize("channels", [[], [0], [17], [1.5], [True], ["1"], list(range(1, 18))])
+def test_csd_export_rejects_invalid_manual_controller_channels(tmp_path: Path, channels: list) -> None:
+    payload = _performance_csd_export_payload()
+    payload["midiControllers"] = [{"controllerNumber": 74, "value": 30, "targetChannels": channels}]
+    with _client(tmp_path) as client:
+        response = client.post("/api/bundles/export/performance-csd", json=payload)
+        assert response.status_code == 422
+        assert "targetChannels" in response.text
+
+
+@pytest.mark.parametrize("archive_format", ["json", "zip"])
+def test_controller_channels_survive_performance_storage_and_native_bundles(tmp_path: Path, archive_format: str) -> None:
+    payload = _performance_csd_export_payload()["performanceExport"]
+    config = payload["performance"]["config"]
+    config["version"] = 13
+    config["sequencer"] = {
+        "midiControllers": [{"id": "manual", "controllerNumber": 74, "value": 30, "targetChannels": [1, 16]}],
+        "controllerSequencers": [{"id": "curve", "controllerNumber": 71, "targetChannels": [2, 8]}],
+    }
+    with _client(tmp_path) as client:
+        saved = client.post("/api/performances", json={"name": "Channels", "config": config})
+        assert saved.status_code == 201
+        assert client.get(f'/api/performances/{saved.json()["id"]}').json()["config"] == config
+        updated = client.put(f'/api/performances/{saved.json()["id"]}', json={"config": config})
+        assert updated.status_code == 200
+        exported = client.post("/api/bundles/export/performance", json=payload)
+        assert exported.status_code == 200
+        data = exported.content
+        if archive_format == "zip":
+            buffer = BytesIO()
+            with zipfile.ZipFile(buffer, "w") as archive:
+                archive.writestr("performance.orch.json", data)
+            data = buffer.getvalue()
+        imported = client.post("/api/bundles/import/expand", content=data,
+            headers={"Content-Type": "application/octet-stream", "X-File-Name": f"channels.orch.{archive_format}"})
+        assert imported.status_code == 200
+        assert imported.json()["performance"]["config"] == config
