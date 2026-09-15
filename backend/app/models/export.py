@@ -76,7 +76,7 @@ class ExportPerformanceInstrumentAssignment(BaseModel):
 class ExportPerformanceConfig(BaseModel):
     audio_graph: AudioGraph | None = Field(default=None, alias="audioGraph")
     mixer: MixerState = Field(default_factory=MixerState)
-    version: int = Field(default=1, ge=1, le=14)
+    version: int = Field(default=1, ge=1, le=15)
     instruments: list[ExportPerformanceInstrumentAssignment] = Field(default_factory=list, max_length=64)
 
     @model_validator(mode="after")
@@ -674,11 +674,14 @@ def _estimate_arpeggiator_events(
     if active_notes and interval_start is not None:
         intervals.append((interval_start, playback_end_subunit, max(1, interval_max_notes)))
 
-    rate_beats = _ARPEGGIATOR_RATE_BEATS.get(str(arpeggiator.rate), 0.25)
-    generated_notes_per_step = 1
-    if arpeggiator.pattern == "chord":
-        generated_notes_per_step = max(1, int(arpeggiator.octaves))
-
+    if arpeggiator.processing_mode == "mute":
+        return 0
+    if arpeggiator.processing_mode == "bypass":
+        return sum(len(notes) for _, _, notes in activity_events) + 2 * 128
+    if arpeggiator.hold_mode != "off":
+        first = min((at for at, kind, _ in activity_events if kind != "off"), default=playback_end_subunit)
+        max_notes = min(128, sum(len(notes) for _, kind, notes in activity_events if kind != "off"))
+        intervals = [(first, playback_end_subunit, max(1, max_notes))]
     event_count = 0
     for interval_start, interval_end, max_held_notes in intervals:
         clipped_start = max(playback_start_subunit, interval_start)
@@ -686,13 +689,13 @@ def _estimate_arpeggiator_events(
         if clipped_end <= clipped_start:
             continue
         duration_beats = (clipped_end - clipped_start) / float(_OFFLINE_TRANSPORT_SUBUNITS_PER_BEAT)
-        step_count = max(0, math.ceil(duration_beats / max(1e-6, rate_beats)))
-        if arpeggiator.pattern == "chord":
-            notes_per_step = max(1, max_held_notes * generated_notes_per_step)
-        else:
-            notes_per_step = generated_notes_per_step
-        event_count += step_count * notes_per_step * 2
+        estimates = []
+        for pad in arpeggiator.pads:
+            rate = _ARPEGGIATOR_RATE_BEATS[str(pad.rate)]
+            notes = min(128, max_held_notes * pad.octaves) if pad.pattern == "chord" or any(s.kind == "chord" for s in pad.steps) else 1
+            strikes = max(s.ratchets for s in pad.steps)
+            estimates.append(math.ceil(duration_beats / rate) * notes * strikes * 2)
+        event_count += max(estimates, default=0)
         if event_count > OFFLINE_CSD_EXPORT_MAX_MIDI_EVENTS:
             return event_count
-
     return event_count

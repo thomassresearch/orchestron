@@ -24,6 +24,7 @@ export type BrowserClockWorkerSequencerRequest =
       request_id: string;
       config?: SessionSequencerConfigRequest | null;
       position_step?: number | null;
+      arranger_active?: boolean;
     }
   | {
       type: "sequencer_stop" | "sequencer_rewind" | "sequencer_forward";

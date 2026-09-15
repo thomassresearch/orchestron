@@ -101,6 +101,8 @@ class SessionSequencerRuntime:
         self._render_subunit_remainder = 0.0
         self._next_render_event_subunit: int | None = None
         self._render_block_start_sample: int | None = None
+        self._render_event_delay_seconds: float | None = None
+        self._render_event_sample: int | None = None
         self._render_transport_events: list[RenderTransportEvent] = []
 
     def set_midi_input(self, midi_input_selector: str) -> None:
@@ -425,6 +427,8 @@ class SessionSequencerRuntime:
                 None if block_start_sample is None else max(0, int(block_start_sample))
             )
 
+            self._render_event_delay_seconds = 0.0
+            self._render_event_sample = self._render_block_start_sample
             if self._render_subunit_remainder <= _RENDER_SUBUNIT_EPSILON:
                 self._render_subunit_remainder = 0.0
                 self._perform_render_block_events_locked(config, self._absolute_subunit)
@@ -452,6 +456,11 @@ class SessionSequencerRuntime:
                     subunits_to_advance = 0
                     break
 
+                # Events inside a large render block retain their individual sample positions.
+                self._render_event_delay_seconds = max(0.0, block_seconds -
+                    (self._render_subunit_remainder - distance_to_event) * subunit_duration)
+                self._render_event_sample = None if block_start_sample is None else block_start_sample + round(
+                    self._render_event_delay_seconds * sample_rate)
                 self._advance_render_to_event_locked(config, next_event_subunit)
                 self._render_subunit_remainder = max(
                     0.0,
@@ -469,6 +478,8 @@ class SessionSequencerRuntime:
             if self._render_subunit_remainder <= _RENDER_SUBUNIT_EPSILON:
                 self._render_subunit_remainder = 0.0
 
+            self._render_event_delay_seconds = None
+            self._render_event_sample = None
             return config.timing.tempo_bpm
 
     def drain_render_transport_events(
@@ -495,6 +506,11 @@ class SessionSequencerRuntime:
         kind: Literal["step", "pad_switches", "loop", "stopped"],
         payload: dict[str, Any],
     ) -> None:
+        if kind in {"loop", "stopped"}:
+            notify = getattr(self._midi_service, "transport_discontinuity", None)
+            if notify is not None:
+                notify(float(payload.get("transport_subunit", 0)) / _TRANSPORT_SUBUNITS_PER_BEAT,
+                       stopped=kind == "stopped", sample=self._render_event_sample)
         if self._clock_mode != "render_driven" or self._render_block_start_sample is None:
             event_type = "sequencer_step" if kind == "step" else "sequencer_pad_switches"
             if kind in {"step", "pad_switches"}:
@@ -502,7 +518,7 @@ class SessionSequencerRuntime:
             return
         self._render_transport_events.append(
             RenderTransportEvent(
-                engine_sample=self._render_block_start_sample,
+                engine_sample=self._render_event_sample if self._render_event_sample is not None else self._render_block_start_sample,
                 kind=kind,
                 payload=payload,
             )
@@ -1675,9 +1691,11 @@ class SessionSequencerRuntime:
         if not active_notes:
             return
 
+        track = self._config.tracks.get(track_id) if self._config is not None else None
         self._send_messages_locked(
             [self._note_off_message(midi_channel, note) for note in sorted(active_notes)],
             delivery_delay_seconds=delivery_delay_seconds,
+            source_context=self._source_context_for_track(track) if track is not None else None,
         )
         active_notes.clear()
 
@@ -1716,6 +1734,8 @@ class SessionSequencerRuntime:
         delivery_delay_seconds: float | None = None,
         source_context: MidiSourceContext | None = None,
     ) -> None:
+        if delivery_delay_seconds is None:
+            delivery_delay_seconds = self._render_event_delay_seconds or None
         try:
             contextual_send = getattr(self._midi_service, "send_scheduled_message_with_context", None)
             if callable(contextual_send) and source_context is not None:
@@ -1743,6 +1763,8 @@ class SessionSequencerRuntime:
     ) -> None:
         if not messages:
             return
+        if delivery_delay_seconds is None:
+            delivery_delay_seconds = self._render_event_delay_seconds or None
         try:
             contextual_send_many = getattr(self._midi_service, "send_scheduled_messages_with_context", None)
             contextual_send_one = getattr(self._midi_service, "send_scheduled_message_with_context", None)

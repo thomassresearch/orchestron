@@ -11,6 +11,8 @@ import type { AppCopy } from "./lib/appUiCopy";
 import { sequencerTransportStepsPerBeat } from "./lib/sequencer";
 import { drummerRowRuntimeTrackId } from "./lib/sequencerRuntime";
 import type {
+  ArpeggiatorPadState,
+  SessionArpeggiatorPadConfig,
   Connection,
   GuiLanguage,
   DrummerSequencerTrackState,
@@ -53,33 +55,29 @@ export function DeferredModalFallback() {
   );
 }
 
-export function buildBackendArpeggiatorConfigs(
-  state: SequencerState
-): NonNullable<SessionArpeggiatorConfigRequest["arpeggiators"]> {
-  return state.arpeggiators.map((arpeggiator) => ({
-    arpeggiator_id: arpeggiator.id,
-    enabled: arpeggiator.enabled,
-    input_channel: arpeggiator.inputChannel,
-    target_channel: arpeggiator.targetChannel,
-    rate: arpeggiator.rate,
-    gate_ratio: arpeggiator.gateRatio,
-    swing: arpeggiator.swing,
-    octaves: arpeggiator.octaves,
-    pattern: arpeggiator.pattern,
-    latch: arpeggiator.latch,
-    velocity_mode: arpeggiator.velocityMode,
-    fixed_velocity: arpeggiator.fixedVelocity,
-    accent_cycle: arpeggiator.accentCycle,
-    probability: arpeggiator.probability,
-    repeats: arpeggiator.repeats,
-    humanize_ms: arpeggiator.humanizeMs,
-    humanize_velocity: arpeggiator.humanizeVelocity,
-    transpose: arpeggiator.transpose,
-    scale_quantize: arpeggiator.scaleQuantize,
-    scale_root: arpeggiator.scaleRoot,
-    scale_type: arpeggiator.scaleType,
-    mode: arpeggiator.mode,
-    restart_mode: arpeggiator.restartMode
+export function buildBackendArpeggiatorPad(pad: ArpeggiatorPadState): SessionArpeggiatorPadConfig {
+  return {
+    rate: pad.rate, gate_ratio: pad.gateRatio, swing: pad.swing, octaves: pad.octaves,
+    pattern: pad.pattern, velocity_mode: pad.velocityMode, fixed_velocity: pad.fixedVelocity,
+    accent_cycle: [], probability: pad.probability, repeats: pad.repeats,
+    humanize_ms: pad.humanizeMs, humanize_velocity: pad.humanizeVelocity, transpose: pad.transpose,
+    scale_quantize: pad.scaleMode !== "off", scale_root: pad.scaleRoot, scale_type: pad.scaleType, mode: pad.mode,
+    length_beats: pad.lengthBeats, octave_traversal: pad.octaveTraversal, scale_mode: pad.scaleMode,
+    rotation: pad.rotation, advance_rests: pad.advanceRests, random_seed: pad.randomSeed, random_mode: pad.randomMode,
+    steps: pad.steps.map(step => ({ kind: step.kind, note_position: step.notePosition, velocity: step.velocity,
+      gate_ratio: step.gateRatio, probability: step.probability, ratchets: step.ratchets }))
+  };
+}
+
+export function buildBackendArpeggiatorConfigs(state: SequencerState): SessionArpeggiatorConfigRequest["arpeggiators"] {
+  return state.arpeggiators.map(arp => ({
+    ...buildBackendArpeggiatorPad(arp.pads[arp.activePad]),
+    arpeggiator_id: arp.id, enabled: arp.enabled, input_channel: arp.inputChannel, target_channel: arp.targetChannel,
+    latch: false, restart_mode: arp.restartMode, playback_mode: arp.playbackMode, processing_mode: arp.processingMode,
+    hold_mode: arp.holdMode, launch_quantize: arp.launchQuantize, active_pad: arp.activePad,
+    pad_loop_enabled: arp.padLoopEnabled, pad_loop_repeat: arp.padLoopRepeat,
+    pad_loop_sequence: compileArrangerTransportSequence(arp.padLoopPattern, arp.activePad),
+    pads: arp.pads.map(buildBackendArpeggiatorPad)
   }));
 }
 

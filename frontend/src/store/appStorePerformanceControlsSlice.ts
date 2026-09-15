@@ -1141,6 +1141,8 @@ export function createPerformanceControlStoreActions(
               {
                 ...arpeggiator,
                 ...update,
+                pads: update.pads ?? arpeggiator.pads.map((pad, padIndex) => padIndex === arpeggiator.activePad
+                  ? normalizeArpeggiatorSettings({ ...pad, ...update }) : pad),
                 id: arpeggiator.id,
                 inputChannel: nextInputChannel,
                 targetChannel: nextTargetChannel
@@ -1161,7 +1163,7 @@ export function createPerformanceControlStoreActions(
       });
     },
 
-    applyArpeggiatorPreset: (arpeggiatorId, presetId) => {
+    applyArpeggiatorPreset: (arpeggiatorId, presetId, padIndex) => {
       const sequencer = get().sequencer;
       const preset = sequencer.arpeggiatorPresets.find((entry) => entry.id === presetId);
       if (!preset) {
@@ -1176,6 +1178,8 @@ export function createPerformanceControlStoreActions(
               ? {
                   ...arpeggiator,
                   ...settings,
+                  pads: arpeggiator.pads.map((pad, i) => i === (padIndex ?? arpeggiator.activePad) ? settings : pad),
+                  padPresetIds: arpeggiator.padPresetIds.map((id, i) => i === (padIndex ?? arpeggiator.activePad) ? preset.id : id),
                   presetId: preset.id
                 }
               : arpeggiator
@@ -1185,26 +1189,29 @@ export function createPerformanceControlStoreActions(
       });
     },
 
-    saveArpeggiatorPreset: (arpeggiatorId, presetName) => {
+    saveArpeggiatorPreset: (arpeggiatorId, presetName, padIndex, update = false) => {
       const sequencer = get().sequencer;
       const arpeggiator = sequencer.arpeggiators.find((entry) => entry.id === arpeggiatorId);
       const name = presetName.trim();
       if (!arpeggiator || name.length === 0) {
         return;
       }
+      const selectedPad = padIndex ?? arpeggiator.activePad;
+      const existingPreset = update ? sequencer.arpeggiatorPresets.find(p => p.id === arpeggiator.padPresetIds[selectedPad] && !p.builtin) : undefined;
       const preset: ArpeggiatorPresetState = {
-        id: crypto.randomUUID(),
+        id: existingPreset?.id ?? crypto.randomUUID(),
         name,
         builtin: false,
-        settings: normalizeArpeggiatorSettings(arpeggiator)
+        settings: normalizeArpeggiatorSettings(arpeggiator.pads[selectedPad])
       };
       set({
         sequencer: {
           ...sequencer,
           arpeggiators: sequencer.arpeggiators.map((entry) =>
-            entry.id === arpeggiatorId ? { ...entry, presetId: preset.id } : entry
+            entry.id === arpeggiatorId ? { ...entry, presetId: preset.id,
+              padPresetIds: entry.padPresetIds.map((id, i) => i === selectedPad ? preset.id : id) } : entry
           ),
-          arpeggiatorPresets: normalizeArpeggiatorPresets([...sequencer.arpeggiatorPresets, preset])
+          arpeggiatorPresets: normalizeArpeggiatorPresets([...sequencer.arpeggiatorPresets.filter(p => p.id !== preset.id), preset])
         },
         error: null
       });
@@ -1239,6 +1246,7 @@ export function createPerformanceControlStoreActions(
               ? null
               : normalizeStepVelocity(update.lastVelocity);
         nextStatusById[arpeggiator.id] = {
+          status: update.status ?? nextStatusById[arpeggiator.id]?.status,
           heldNotes: nextHeldNotes,
           activeNote: nextActiveNote,
           stepIndex: nextStepIndex,

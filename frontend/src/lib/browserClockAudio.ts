@@ -63,6 +63,8 @@ export class BrowserClockAudioClient {
   private connectedSessionId: string | null = null;
   private pendingConnect: { resolve: () => void; reject: (error: Error) => void } | null = null;
   private connectPromise: Promise<void> | null = null;
+  private pipelinePromise: Promise<void> | null = null;
+  private pipelineGeneration = 0;
   private pendingMixerRequests = new Map<string, { resolve: (result: MixerResponse) => void; reject: (error: Error) => void; timeoutId: number }>();
   private pendingSequencerRequests = new Map<string, PendingSequencerRequest>();
   private workerPrimed = false;
@@ -90,6 +92,9 @@ export class BrowserClockAudioClient {
     }
 
     await this.prepareAudioPipeline();
+    // Priming, automatic connection and Play can arrive together during startup.
+    if (this.connectedSessionId === sessionId) return;
+    if (this.connectPromise && this.sessionId === sessionId) return this.connectPromise;
     const context = this.audioContext;
     if (!context || !this.sampleBufferSab || !this.stateBufferSab) {
       throw new Error("Browser audio pipeline is unavailable.");
@@ -127,6 +132,7 @@ export class BrowserClockAudioClient {
   }
 
   async disconnect(): Promise<void> {
+    this.pipelineGeneration += 1;
     releaseMixerTransport(this.connectedSessionId);
     this.postWorker({ type: "disconnect" }, true);
     this.worker?.terminate();
@@ -185,12 +191,13 @@ export class BrowserClockAudioClient {
 
   async startSequencer(
     sessionId: string,
-    payload: { config?: SessionSequencerConfigRequest | null; positionStep?: number | null }
+    payload: { config?: SessionSequencerConfigRequest | null; positionStep?: number | null; arrangerActive?: boolean }
   ): Promise<SessionSequencerStatus> {
     return this.sendSequencerRequest(sessionId, {
       type: "sequencer_start",
       request_id: nextRequestId(),
       config: payload.config ?? null,
+      arranger_active: payload.arrangerActive ?? false,
       position_step: payload.positionStep ?? null
     });
   }
@@ -241,6 +248,14 @@ export class BrowserClockAudioClient {
   }
 
   private async prepareAudioPipeline(): Promise<void> {
+    if (this.pipelinePromise) return this.pipelinePromise;
+    const promise = this.initializeAudioPipeline();
+    this.pipelinePromise = promise;
+    try { await promise; }
+    finally { if (this.pipelinePromise === promise) this.pipelinePromise = null; }
+  }
+
+  private async initializeAudioPipeline(): Promise<void> {
     if (typeof SharedArrayBuffer === "undefined") {
       throw new Error("SharedArrayBuffer is unavailable. Browser-clock audio requires COOP/COEP isolation.");
     }
@@ -249,8 +264,13 @@ export class BrowserClockAudioClient {
       return;
     }
 
+    const generation = this.pipelineGeneration;
     const context = new AudioContext({ latencyHint: "interactive" });
     await context.audioWorklet.addModule(WORKLET_MODULE_URL);
+    if (generation !== this.pipelineGeneration) {
+      await context.close();
+      throw new Error("Browser audio preparation cancelled.");
+    }
     const capacityFrames = Math.max(16_384, Math.round(context.sampleRate * RING_BUFFER_DURATION_SECONDS));
     const sampleSab = new SharedArrayBuffer(capacityFrames * CHANNELS * Float32Array.BYTES_PER_ELEMENT);
     const stateSab = new SharedArrayBuffer(BROWSER_CLOCK_STATE_LENGTH * Uint32Array.BYTES_PER_ELEMENT);

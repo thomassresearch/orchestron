@@ -12,6 +12,7 @@ from backend.app.services.persisted_json_limits import (
     assert_persisted_json_limits,
 )
 from backend.app.storage.repositories.app_state_repository import AppStateRepository
+from backend.app.services.arpeggiator_migration import migrate_arpeggiators
 from backend.app.services.master_migration import normalize_master_app_state, repository_lookup
 
 
@@ -34,7 +35,7 @@ class AppStateService:
         if not document:
             raise HTTPException(status_code=404, detail="App state not found")
 
-        state = normalize_master_app_state(document.state, self._patch_lookup)
+        state = self._normalize_state(document.state)
         return AppStateResponse.model_construct(state=state, updated_at=document.updated_at)
 
     def save_last_state(self, request: AppStateUpdateRequest) -> AppStateResponse:
@@ -42,7 +43,7 @@ class AppStateService:
         now = datetime.now(timezone.utc)
 
         self._validate_state(request.state)
-        state = normalize_master_app_state(request.state, self._patch_lookup)
+        state = self._normalize_state(request.state)
         if state is not request.state:
             self._validate_state(state)
         # JsonValue validation already happened on AppStateUpdateRequest. Keep
@@ -55,6 +56,12 @@ class AppStateService:
         )
         persisted = self._repository.upsert(document)
         return AppStateResponse.model_construct(state=persisted.state, updated_at=persisted.updated_at)
+
+    def _normalize_state(self, state: dict) -> dict:
+        try:
+            return migrate_arpeggiators(normalize_master_app_state(state, self._patch_lookup))
+        except ValueError as err:
+            raise HTTPException(status_code=422, detail=str(err)) from err
 
     def _validate_state(self, state: dict) -> None:
         try:

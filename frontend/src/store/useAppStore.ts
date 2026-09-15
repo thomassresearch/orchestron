@@ -972,7 +972,11 @@ export const useAppStore = create<AppStore>((set, get) => {
       set({ loading: true, error: null });
       try {
         const response = await api.stopSession(sessionId);
-        set({ activeSessionState: response.state, loading: false });
+        set({
+          activeSessionState: response.state,
+          loading: false,
+          sequencerRuntime: { ...get().sequencerRuntime, arpeggiatorStatusById: {} }
+        });
       } catch (error) {
         set({
           loading: false,

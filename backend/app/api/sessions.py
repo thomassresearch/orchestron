@@ -11,6 +11,8 @@ from pydantic import BaseModel, Field, model_validator
 from backend.app.models.session import (
     BindMidiInputRequest,
     CompileResponse,
+    ArpeggiatorCommand,
+    ArrangerTransportRequest,
     SessionArpeggiatorConfigRequest,
     SessionArpeggiatorStatus,
     SessionSequencerConfigRequest,
@@ -138,6 +140,18 @@ async def configure_arpeggiators(
     container: AppContainer = Depends(get_container),
 ) -> list[SessionArpeggiatorStatus]:
     return await container.session_service.configure_session_arpeggiators(session_id, request)
+
+
+@router.post("/{session_id}/arpeggiators/{arpeggiator_id}/command", response_model=list[SessionArpeggiatorStatus])
+async def command_arpeggiator(session_id: str, arpeggiator_id: str, request: ArpeggiatorCommand,
+                             container: AppContainer = Depends(get_container)):
+    return await container.session_service.command_session_arpeggiator(session_id, arpeggiator_id, request)
+
+
+@router.put("/{session_id}/sequencer/arranger", response_model=SessionSequencerStatus)
+async def set_arranger_active(session_id: str, request: ArrangerTransportRequest,
+                             container: AppContainer = Depends(get_container)):
+    return await container.session_service.set_session_arranger_active(session_id, request.active)
 
 
 @router.post("/{session_id}/sequencer/start", response_model=SessionSequencerStatus)

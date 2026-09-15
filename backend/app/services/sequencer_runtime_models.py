@@ -147,5 +147,5 @@ class SequencerRuntimeConfig:
 @dataclass(slots=True)
 class RenderTransportEvent:
     engine_sample: int
-    kind: Literal["step", "pad_switches", "loop", "stopped"]
+    kind: Literal["step", "pad_switches", "loop", "stopped", "arpeggiators"]
     payload: dict[str, Any]

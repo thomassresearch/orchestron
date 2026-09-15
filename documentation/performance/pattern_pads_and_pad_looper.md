@@ -4,6 +4,10 @@
 
 Pattern pads are the per-track pattern banks (`P1..P8`). They support live switching, copying, and pad-loop sequencing for melodic, drummer, and controller sequencers (with transposition available on melodic sequencer pads only).
 
+## Arpeggiator Variations
+
+Arpeggiators also have eight pads and the same Pad Looper/group editing conventions. Each pad stores a complete musical variation. Its 1–32-step rhythm is independent of its 1–8 or 16 master-beat arrangement duration. Click a pad to edit; use its play button to queue a launch at the next cycle or master bar. Repeated identical pads continue the phrase; a changed pad restarts it. Manual launch takes over until **Return to arrangement**. See [Arpeggiators](arpeggiators.md).
+
 ## Pattern Pads Overview
 
 Each melodic sequencer, drummer sequencer, and controller sequencer contains 8 pattern pads:

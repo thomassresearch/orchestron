@@ -21,7 +21,7 @@ from urllib import error, parse, request
 DEFAULT_API_URL = os.environ.get("ORCHESTRON_API_URL", "http://localhost:8000/api")
 SESSION_DIR = Path(".orchestron")
 SESSION_FILE = SESSION_DIR / "edit-session.json"
-CURRENT_CONFIG_VERSION = 14
+CURRENT_CONFIG_VERSION = 15
 DEFAULT_PAD_COUNT = 8
 MAX_STEPS_PER_PAD = 128
 PAD_LOOP_PAUSE_BEATS = {1, 2, 4, 8, 16}
@@ -1674,6 +1674,70 @@ def config_instruments(config: dict[str, Any]) -> list[dict[str, Any]]:
     return [instrument for instrument in instruments if isinstance(instrument, dict)]
 
 
+def normalize_arpeggiator_pad(raw: dict[str, Any]) -> dict[str, Any]:
+    """Canonical v15 musical data, independent of a device's routing and transport."""
+    defaults = {
+        "lengthBeats": 4, "rate": "1/16", "gateRatio": 0.72, "swing": 0.0,
+        "octaves": 1, "pattern": "up", "octaveTraversal": "range", "velocityMode": "input",
+        "fixedVelocity": 100, "accentCycle": [], "probability": 1.0, "repeats": 1,
+        "humanizeMs": 0.0, "humanizeVelocity": 0, "transpose": 0,
+        "scaleQuantize": False, "scaleMode": "off", "scaleRoot": "C",
+        "scaleType": "minor", "mode": "aeolian", "rotation": 0, "advanceRests": False,
+        "randomSeed": 42622, "randomMode": "repeat",
+    }
+    pad = {key: copy.deepcopy(raw.get(key, value)) for key, value in defaults.items()}
+    if "scaleMode" not in raw:
+        pad["scaleMode"] = "source" if raw.get("scaleQuantize") else "off"
+    step = {"kind": "next", "notePosition": 1, "velocity": 100, "gateRatio": None,
+            "probability": 1.0, "ratchets": 1}
+    steps = raw.get("steps")
+    if steps is None and raw.get("velocityMode") == "accent" and raw.get("accentCycle"):
+        steps = [{"velocity": round(max(1, min(127, value)) / 127 * 100)} for value in raw["accentCycle"]]
+        pad.update(velocityMode="fixed", fixedVelocity=127)
+    if steps is None:
+        steps = [{} for _ in range(16)]
+    if not isinstance(steps, list) or not 1 <= len(steps) <= 32:
+        raise OrchestronCliError("invalid_arp_steps", "An arpeggiator rhythm needs 1–32 steps.")
+    pad["steps"] = [{**step, **item} for item in steps]
+    return pad
+
+
+def normalize_arpeggiator(arp: dict[str, Any]) -> dict[str, Any]:
+    pads = arp.get("pads")
+    if not pads:
+        arp.update(playbackMode="arranger", holdMode="off", restartMode="free", latch=False)
+        pads = [normalize_arpeggiator_pad(arp)]
+    if not isinstance(pads, list) or len(pads) > 8:
+        raise OrchestronCliError("invalid_arp_pads", "An arpeggiator supports eight pads.")
+    arp["pads"] = [normalize_arpeggiator_pad(pads[index] if index < len(pads) else {}) for index in range(8)]
+    for key, value in {"playbackMode": "arranger", "holdMode": "off", "processingMode": "active",
+                       "restartMode": "free", "activePad": 0, "padLoopEnabled": True,
+                       "padLoopRepeat": True, "launchQuantize": "cycle",
+                       "padPresetIds": [arp.get("presetId")] + [None] * 7,
+                       "padLoopPattern": {"rootSequence": [{"type": "pad", "padIndex": 0}], "groups": [], "superGroups": []}}.items():
+        arp.setdefault(key, value)
+    for key in ("heldNotes", "activeNote", "stepIndex", "lastVelocity", "runtimeStatus"):
+        arp.pop(key, None)
+    return arp
+
+
+def arpeggiator_runtime_config(arp: dict[str, Any]) -> dict[str, Any]:
+    arp = normalize_arpeggiator(copy.deepcopy(arp))
+    def wire(value):
+        if isinstance(value, list):
+            return [wire(item) for item in value]
+        if isinstance(value, dict):
+            return {re.sub(r"(?<!^)(?=[A-Z])", "_", key).lower(): wire(item) for key, item in value.items()}
+        return value
+    result = wire({key: arp[key] for key in (
+        "playbackMode", "holdMode", "processingMode", "restartMode", "activePad",
+        "padLoopEnabled", "padLoopRepeat", "launchQuantize", "pads")})
+    result.update(arpeggiator_id=arp.get("id", "arp-1"), enabled=bool(arp.get("enabled", False)),
+                  input_channel=int(arp.get("inputChannel", 3)), target_channel=int(arp.get("targetChannel", 1)),
+                  pad_loop_sequence=compile_pad_loop_sequence(arp))
+    return result
+
+
 def normalize_performance_config(
     config: dict[str, Any],
     patches: list[dict[str, Any]],
@@ -1752,7 +1816,11 @@ def normalize_performance_config(
                 mixer["sends"][row["id"]] = {"gainDb": 0, "tap": "post"}
         instrument.pop("effectRoutes", None)
         instrument.pop("effectSourceIds", None)
-    ensure_sequencer(config)
+    sequencer = ensure_sequencer(config)
+    for arp in sequencer.get("arpeggiators", []):
+        normalize_arpeggiator(arp)
+    for preset in sequencer.get("arpeggiatorPresets", []):
+        preset["settings"] = normalize_arpeggiator_pad(preset.get("settings", {}))
     return config
 
 
@@ -3129,6 +3197,7 @@ def add_arpeggiator_to_config(
         "mode": "aeolian",
         "restartMode": "first_note",
     }
+    normalize_arpeggiator(arp)
     arps.append(arp)
     return arp
 
@@ -3734,41 +3803,19 @@ def build_runtime_config(config: dict[str, Any]) -> dict[str, Any]:
                 ],
             }
         )
-    arpeggiators = [
-        {
-            "arpeggiator_id": arp.get("id", "arp-1"),
-            "enabled": bool(arp.get("enabled", False)),
-            "input_channel": int(arp.get("inputChannel", 3)),
-            "target_channel": int(arp.get("targetChannel", 1)),
-            "rate": arp.get("rate", "1/16"),
-            "gate_ratio": float(arp.get("gateRatio", 0.72)),
-            "swing": float(arp.get("swing", 0.0)),
-            "octaves": int(arp.get("octaves", 1)),
-            "pattern": arp.get("pattern", "up"),
-            "latch": bool(arp.get("latch", False)),
-            "velocity_mode": arp.get("velocityMode", "input"),
-            "fixed_velocity": int(arp.get("fixedVelocity", 100)),
-            "accent_cycle": arp.get("accentCycle", []),
-            "probability": float(arp.get("probability", 1.0)),
-            "repeats": int(arp.get("repeats", 1)),
-            "humanize_ms": float(arp.get("humanizeMs", 0.0)),
-            "humanize_velocity": int(arp.get("humanizeVelocity", 0)),
-            "transpose": int(arp.get("transpose", 0)),
-            "scale_quantize": bool(arp.get("scaleQuantize", False)),
-            "scale_root": arp.get("scaleRoot", "C"),
-            "scale_type": arp.get("scaleType", "minor"),
-            "mode": arp.get("mode", "aeolian"),
-            "restart_mode": arp.get("restartMode", "first_note"),
-        }
-        for arp in sequencer.get("arpeggiators", [])
-        if isinstance(arp, dict)
-    ]
+    arpeggiators = [arpeggiator_runtime_config(arp) for arp in sequencer.get("arpeggiators", []) if isinstance(arp, dict)]
     if not tracks and not controller_tracks and not arpeggiators:
         raise OrchestronCliError(
             "runtime_config_empty",
             "Cannot push runtime config: no sequencer, controller, or arpeggiator tracks exist.",
             retry=["Add a melodic, drummer, controller, or arpeggiator device before pushing runtime config."],
         )
+    duration_beats = 1
+    for device in [*tracks, *controller_tracks, *arpeggiators]:
+        sequence = device["pad_loop_sequence"] or [device["active_pad"]]
+        lengths = {pad.get("pad_index", index): pad.get("length_beats", 4) for index, pad in enumerate(device["pads"])}
+        duration_beats = max(duration_beats, sum(lengths.get(token, 4) if token >= 0 else -token for token in sequence))
+    end_step = math.ceil(duration_beats * 8)
     return {
         "timing": {
             "tempo_bpm": int(timing.get("tempoBPM", 120)),
@@ -3780,7 +3827,7 @@ def build_runtime_config(config: dict[str, Any]) -> dict[str, Any]:
         },
         "step_count": 8,
         "playback_start_step": 0,
-        "playback_end_step": 8,
+        "playback_end_step": end_step,
         "playback_loop": False,
         "tracks": tracks,
         "controller_tracks": controller_tracks,

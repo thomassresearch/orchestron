@@ -219,6 +219,14 @@ export const api = {
       method: "PUT",
       body: JSON.stringify(payload)
     }),
+  commandArpeggiator: (sessionId: string, arpeggiatorId: string, payload: import("../types").ArpeggiatorCommand) =>
+    request<SessionArpeggiatorStatus[]>(`/sessions/${sessionId}/arpeggiators/${arpeggiatorId}/command`, {
+      method: "POST", body: JSON.stringify(payload)
+    }),
+  setArrangerActive: (sessionId: string, active: boolean) =>
+    request<SessionSequencerStatus>(`/sessions/${sessionId}/sequencer/arranger`, {
+      method: "PUT", body: JSON.stringify({ active })
+    }),
   configureSessionArpeggiators: (sessionId: string, payload: SessionArpeggiatorConfigRequest) =>
     request<SessionArpeggiatorStatus[]>(`/sessions/${sessionId}/arpeggiators/config`, {
       method: "PUT",

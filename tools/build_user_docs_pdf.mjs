@@ -345,6 +345,12 @@ function parseBlocks(markdown) {
       continue;
     }
 
+    if (trimmed === "<!-- pagebreak -->") {
+      blocks.push({ type: "pagebreak" });
+      index += 1;
+      continue;
+    }
+
     const headingMatch = /^#{1,6}\s+(.+)$/.exec(trimmed);
     if (headingMatch) {
       const level = Math.min(6, Math.max(1, (trimmed.match(/^#+/)?.[0].length ?? 1)));
@@ -536,6 +542,10 @@ function renderBlocks(blocks, context) {
   const headingCounts = new Map();
 
   for (const block of blocks) {
+    if (block.type === "pagebreak") {
+      html.push('<div style="page-break-before: always;"></div>');
+      continue;
+    }
     if (block.type === "heading") {
       const base = slugify(block.text) || "section";
       const count = headingCounts.get(base) ?? 0;

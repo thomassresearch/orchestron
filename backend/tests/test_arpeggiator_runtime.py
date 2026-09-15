@@ -63,6 +63,7 @@ def _arp_config(*, enabled: bool = True, input_channel: int = 2, target_channel:
             "gate_ratio": 0.7,
             "octaves": 1,
             "pattern": "up",
+            "playback_mode": "live",
         }
     )
 

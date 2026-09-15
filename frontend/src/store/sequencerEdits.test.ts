@@ -43,7 +43,7 @@ describe("authored configuration and sounding pads", () => {
     expect(state.buildSequencerConfigSnapshot().sequencer.tracks[0].activePad).toBe(2);
   });
 
-  it("edits the sounding controller curve and ignores names and arpeggiator-only edits", () => {
+  it("edits controller curves and observes arpeggiator arrangement additions", () => {
     useAppStore.getState().addControllerSequencer();
     const controller = useAppStore.getState().sequencer.controllerSequencers[0];
     useAppStore.getState().syncControllerSequencerRuntime([{ controllerSequencerId: controller.id, activePad: 3 }]);
@@ -55,7 +55,7 @@ describe("authored configuration and sounding pads", () => {
     expect(useAppStore.getState().sequencerEditRevision).toBe(revision + 1);
     useAppStore.getState().renamePerformanceDevice("controllerSequencers", controller.id, "Renamed");
     useAppStore.getState().addArpeggiator();
-    expect(useAppStore.getState().sequencerEditRevision).toBe(revision + 1);
+    expect(useAppStore.getState().sequencerEditRevision).toBe(revision + 2);
   });
 
   it("discards playback overlays when the engine session is replaced", () => {

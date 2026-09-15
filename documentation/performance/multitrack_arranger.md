@@ -2,7 +2,7 @@
 
 **Navigation:** [Up](performance.md) | [Prev](pattern_pads_and_pad_looper.md) | [Next](controller_sequencers.md)
 
-The **Multitrack Arranger** is a shared timeline view for pad-loop arrangements across all sequencer types. It appears on the Perform page when at least one melodic sequencer, drummer sequencer, or controller sequencer exists.
+The **Multitrack Arranger** is a shared timeline view for pad-loop arrangements across all sequencer types. It appears on the Perform page when at least one melodic sequencer, drummer sequencer, controller sequencer, or arpeggiator exists.
 
 ## Collapse the Panel
 
@@ -15,6 +15,7 @@ The arranger shows one row per track:
 - melodic sequencers
 - drummer sequencers
 - controller sequencers
+- arpeggiators in Arranger mode, labeled with device and target names
 
 Each row includes:
 
@@ -44,7 +45,7 @@ The arranger header provides cassette-style transport controls with icon buttons
 - `Fast forward`: move the playhead `1` beat forward
 - `?`: open the integrated multilingual help modal for a concise arranger workflow summary
 
-The transport controls the pad-loop arrangement for melodic sequencers, drummer sequencers, and controller sequencers. Individual sequencer `Start` / `Stop` buttons remain available for composing and auditioning patterns outside arranger playback. Arpeggiators, piano rolls, and manual MIDI controller lanes remain individually controlled.
+The transport controls the pad-loop arrangement for melodic sequencers, drummer sequencers, and controller sequencers. Individual sequencer `Start` / `Stop` buttons remain available for composing and auditioning patterns outside arranger playback. Arpeggiators in Arranger mode follow this transport and use their own pad durations. Live arpeggiators, piano rolls and manual MIDI controllers remain independently controlled.
 
 Double-click `Stop` to reset the playhead to the selected loop start. If no loop range is selected, the playhead resets to step `0`.
 
@@ -134,7 +135,7 @@ When a timeline container is focused:
 - Arranger edits write directly into each track's pad-loop pattern state.
 - Playback range selection is stored with the performance and restored when the performance is loaded again.
 - The section currently shows `1 device (auto)` as the device summary.
-- If no sequencer-type tracks exist, the multitrack arranger is hidden.
+- Arpeggiator-only performances also show the arranger. Live arpeggiators do not contribute to arrangement bounds.
 
 ## Screenshot
 

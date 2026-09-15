@@ -50,7 +50,10 @@ async def export_performance_bundle(
     payload: dict[str, object],
     container: AppContainer = Depends(get_container),
 ) -> Response:
-    payload = normalize_master_bundle(payload, repository_lookup(container.patch_repository))
+    try:
+        payload = normalize_master_bundle(payload, repository_lookup(container.patch_repository))
+    except ValueError as err:
+        raise HTTPException(status_code=422, detail=str(err)) from err
     return _build_export_response(
         payload=payload,
         json_entry_name="performance.orch.json",

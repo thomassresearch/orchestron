@@ -32,7 +32,7 @@ Use [draft auditioning](documentation/instrument_design/runtime_panel_and_compil
 
 ## Build patterns and arrangements
 
-Create melodies, bass lines, drum patterns, and movement in the same performance. Melodic sequencers offer scales, modes, individual notes, and chords; drummer sequencers let you shape each hit's velocity. Draw controller curves for repeating changes to MIDI-controlled parameters, and use arpeggiators to turn held notes into rhythmic phrases.
+Create melodies, bass lines, drum patterns, and movement in the same performance. Melodic sequencers offer scales, modes, individual notes, and chords; drummer sequencers let you shape each hit's velocity. Draw controller curves for repeating changes to MIDI-controlled parameters, and use beat-synchronized arpeggiators to drive existing MIDI instruments with editable rhythms, ties, ratchets and eight musical variation pads. Arpeggiators can follow their own arranger lanes or run independently in Live mode.
 
 Pattern pads hold variations you can launch while playing or chain with the Pad Looper. Each sequencer can use its own meter, grid, and beat ratio around a shared tempo. Explore patterns of different lengths, odd meters, and rhythms that move against one another.
 

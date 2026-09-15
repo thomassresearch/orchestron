@@ -624,6 +624,8 @@ class PerformanceExportService:
             tempo_bpm=request.sequencer_config.timing.tempo_bpm,
         )
 
+        router.set_transport(beat=0, running=True, sample=0,
+                             bar_beats=request.sequencer_config.timing.meter_numerator)
         scheduled_time = 0.0
         deadline = _monotonic_seconds() + OFFLINE_CSD_EXPORT_MAX_WALL_SECONDS
         with runtime._lock:
@@ -655,14 +657,15 @@ class PerformanceExportService:
                         current_subunit,
                         scheduled_time=scheduled_time,
                     )
-                    capture.current_time_seconds = scheduled_time
-                    capture.current_sample = int(round(scheduled_time * OFFLINE_RENDER_SR))
+                    block_end_sample = int(round(scheduled_time * OFFLINE_RENDER_SR))
                     router.advance_render_block(
                         block_start_sample=block_start_sample,
-                        block_end_sample=max(block_start_sample + 1, capture.current_sample),
+                        block_end_sample=max(block_start_sample + 1, block_end_sample),
                         sample_rate=OFFLINE_RENDER_SR,
                         tempo_bpm=request.sequencer_config.timing.tempo_bpm,
                     )
+                    capture.current_time_seconds = scheduled_time
+                    capture.current_sample = block_end_sample
                     capture.raise_if_event_budget_exceeded()
         finally:
             router.shutdown()
@@ -671,11 +674,12 @@ class PerformanceExportService:
         with runtime._lock:
             config = runtime._config
             if config is not None:
+                consumed_channels = {arp.input_channel for arp in request.sequencer_config.arpeggiators}
                 for track_id, active_notes in runtime._active_notes.items():
                     if not active_notes:
                         continue
                     track = config.tracks.get(track_id)
-                    if track is None:
+                    if track is None or track.midi_channel in consumed_channels:
                         continue
                     for note in sorted(active_notes):
                         capture._append_event(

@@ -53,12 +53,12 @@ def _controller_fixture():
     return config, patches
 
 
-@pytest.mark.parametrize("version", range(1, 15))
+@pytest.mark.parametrize("version", range(1, 16))
 def test_controller_values_survive_normalization_runtime_and_patch_id_remap(version):
     config, patches = _controller_fixture()
     config["version"] = version
     restored = normalize_performance_config(json.loads(json.dumps(config)), patches)
-    assert restored["version"] == 14
+    assert restored["version"] == 15
     assignments = orchestron_cli.session_assignments_from_config(restored)
     assert [a["performance_controller_values"] for a in assignments] == [{"attack": 0.04}, {"attack": 1.2}]
     remapped = orchestron_cli.remap_snapshot_patch_ids(restored, {"patch": "copy"}, [{**patches[0], "id": "copy"}])
@@ -386,7 +386,7 @@ def test_version_ten_normalization_expands_legacy_effect_sources() -> None:
 
     normalize_performance_config(config, patches)
 
-    assert config["version"] == 14
+    assert config["version"] == 15
     assert config["instruments"][0]["id"] == "instrument-1"
     assert config["instruments"][1]["midiChannel"] == 0
     assert [{"sourceId": r["sourceId"], "channel": r["sourcePort"]} for r in config["audioGraph"]["routes"]] == [
@@ -778,7 +778,7 @@ def test_controller_channel_defaults_and_roundtrip(version):
     del curve["targetChannels"]
     del manual["targetChannels"]
     normalized = normalize_performance_config(json.loads(json.dumps(config)), [])
-    assert normalized["version"] == 14
+    assert normalized["version"] == 15
     assert normalized["sequencer"]["midiControllers"][0]["targetChannels"] == list(range(1, 17))
     assert orchestron_cli.build_runtime_config(normalized)["controller_tracks"][0]["target_channels"] == list(range(1, 17))
     normalized["sequencer"]["controllerSequencers"][0]["targetChannels"] = [16, 1, 16, 0, True, "2"]
@@ -796,3 +796,18 @@ def test_route_to_internal_master_needs_no_target_patch_or_binding():
     assert row['targetId'] == '$master'
     assert row['targetPort'] == 'left'
     assert len(config['instruments']) == 1
+
+
+def test_arpeggiator_pad_migration_and_runtime_contract():
+    config = orchestron_cli.empty_performance_config()
+    arp = orchestron_cli.add_arpeggiator_to_config(config, input_channel=6, target_channel=5,
+            name="Pulse", pattern="down", rate="1/8T", octaves=2, enabled=True)
+    assert len(arp["pads"]) == 8
+    assert arp["playbackMode"] == "arranger"
+    arp["pads"][3].update(lengthBeats=7, steps=[{"kind": "chord", "ratchets": 3}])
+    wire = orchestron_cli.build_runtime_config(config)["arpeggiators"][0]
+    assert wire["pads"][0]["rate"] == "1/8T"
+    assert wire["pads"][3]["length_beats"] == 7
+    assert wire["pads"][3]["steps"][0]["ratchets"] == 3
+    assert wire["pad_loop_sequence"] == [0]
+    assert normalize_performance_config(config, [])["version"] == 15

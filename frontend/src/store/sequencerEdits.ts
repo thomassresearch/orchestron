@@ -14,7 +14,11 @@ export function sequencerEditSignature(state: SequencerState): string {
     !["name", "runtimeLocalStep", "runtimePadStartSubunit", "padLoopPosition", "steps", "keypoints"].includes(key))))
     .sort((a, b) => String(a.id).localeCompare(String(b.id)));
   return JSON.stringify({ timing: state.timing, arrangerLoopSelection: state.arrangerLoopSelection,
-    tracks: tracks(state.tracks), drummerTracks: tracks(state.drummerTracks), controllerSequencers: tracks(state.controllerSequencers) });
+    tracks: tracks(state.tracks), drummerTracks: tracks(state.drummerTracks), controllerSequencers: tracks(state.controllerSequencers),
+    arpeggiatorArrangement: state.arpeggiators.filter(arp => arp.playbackMode === "arranger").map(arp => ({
+      id: arp.id, loop: arp.padLoopEnabled, repeat: arp.padLoopRepeat, pattern: arp.padLoopPattern,
+      durations: arp.pads.map(pad => pad.lengthBeats)
+    })) });
 }
 
 function changedFields(authored: object, displayed: object, edited: object): RecordValue {

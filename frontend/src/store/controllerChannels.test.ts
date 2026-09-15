@@ -26,7 +26,7 @@ it("preserves channels through snapshots, native JSON and autosave restoration",
   store.setMidiControllerTargetChannels(store.sequencer.midiControllers[0].id, [16, 1]);
   store.setControllerSequencerTargetChannels(store.sequencer.controllerSequencers[0].id, [3, 9]);
   const snapshot = useAppStore.getState().buildSequencerConfigSnapshot();
-  expect(snapshot.version).toBe(14);
+  expect(snapshot.version).toBe(15);
   const native = buildPerformanceExportPayload({ snapshot, selectedPatches: [], performanceName: "Channels", performanceDescription: "" });
   const restored = parsePerformanceExportPayload(JSON.parse(JSON.stringify(native.payload)));
   expect(restored).not.toBeNull();

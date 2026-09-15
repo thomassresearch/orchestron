@@ -83,6 +83,7 @@ interface UseSequencerRuntimeControllerParams {
 }
 
 interface UseSequencerRuntimeControllerResult {
+  cancelPendingArpeggiatorEdits: () => void;
   browserAudioError: string | null;
   browserAudioDiagnostics: import("../audio/browserClockWorkerProtocol").BrowserClockWorkerDiagnostics | null;
   browserAudioStatus: "off" | "connecting" | "live" | "error";
@@ -98,7 +99,7 @@ interface UseSequencerRuntimeControllerResult {
   sendAllNotesOff: (channel: number) => void;
   sendDirectMidiEvent: (payload: SessionMidiEventRequest, sessionIdOverride?: string) => Promise<void>;
   sequencerRef: MutableRefObject<SequencerState>;
-  startSequencerTransport: () => Promise<void>;
+  startSequencerTransport: (arrangerActive?: boolean) => Promise<void>;
   stopSequencerTransport: (resetPlayhead: boolean) => Promise<void>;
   moveSequencerTransport: (deltaSteps: number) => Promise<void>;
   seekSequencerTransport: (positionStep: number) => Promise<void>;
@@ -270,6 +271,7 @@ export function useSequencerRuntimeController({
       syncArpeggiatorRuntime(
         arpeggiators.map((arpeggiator) => ({
           arpeggiatorId: arpeggiator.arpeggiator_id,
+          status: arpeggiator,
           heldNotes: arpeggiator.held_notes,
           activeNote: arpeggiator.active_note,
           stepIndex: arpeggiator.step_index,
@@ -461,6 +463,10 @@ export function useSequencerRuntimeController({
   applyBrowserClockTransportEventsRef.current = (transportEvents) => {
     const visualTrackingEnabled = activePage === "sequencer" && document.visibilityState === "visible";
     for (const transportEvent of transportEvents) {
+      if (transportEvent.kind === "arpeggiators") {
+        applyArpeggiatorStatus(transportEvent.payload.arpeggiators as SessionArpeggiatorStatus[]);
+        continue;
+      }
       if (transportEvent.kind === "stopped") {
         syncSequencerTransportRuntime({ isPlaying: false });
         continue;
@@ -664,11 +670,15 @@ export function useSequencerRuntimeController({
     };
   }, [activeSessionId, effectiveAudioOutputModeRef, pushEvent]);
 
+  const arpeggiatorSyncCancelRef = useRef<() => void>(() => {});
+  const cancelPendingArpeggiatorEdits = useCallback(() => arpeggiatorSyncCancelRef.current(), []);
+
   const stopSequencerTransport = useCallback(
     async (resetPlayhead: boolean): Promise<void> => {
       const version = ++transportRequestVersionRef.current;
       sequencerSeekPendingRef.current = false;
       configSyncRef.current?.stop();
+      arpeggiatorSyncCancelRef.current();
       const sessionId = resolveSequencerSessionId();
       sequencerConfigSyncPendingRef.current = false;
       if (sessionId) {
@@ -702,7 +712,7 @@ export function useSequencerRuntimeController({
     ]
   );
 
-  const startSequencerTransport = useCallback(async (): Promise<void> => {
+  const startSequencerTransport = useCallback(async (arrangerActive = false): Promise<void> => {
     setSequencerError(null);
     if (activeSessionState !== "running") {
       setSequencerError(errors.startInstrumentsFirstForSequencer);
@@ -723,6 +733,7 @@ export function useSequencerRuntimeController({
       sequencerRef.current = currentSequencerState;
       configSyncRef.current?.baseline(sessionId, store.sequencerEditRevision);
       const payload: SessionSequencerStartRequest = {
+        arranger_active: arrangerActive,
         config: buildBackendSequencerConfig(store.sequencer),
         position_step: sequencerAbsoluteTransportStep(
           currentSequencerState.playhead,
@@ -734,6 +745,7 @@ export function useSequencerRuntimeController({
         effectiveAudioOutputMode === "browser_clock"
           ? await browserClockClientRef.current.startSequencer(sessionId, {
               config: payload.config,
+              arrangerActive: payload.arranger_active,
               positionStep: payload.position_step
             })
           : await api.startSessionSequencer(sessionId, payload);
@@ -1010,14 +1022,16 @@ export function useSequencerRuntimeController({
       return;
     }
 
+    let cancelled = false;
     const payload = JSON.parse(arpeggiatorConfigSyncSignature) as SessionArpeggiatorConfigRequest;
     const syncTimer = window.setTimeout(() => {
       void api
         .configureSessionArpeggiators(sessionId, payload)
         .then((status) => {
-          applyArpeggiatorStatus(status);
+          if (!cancelled) applyArpeggiatorStatus(status);
         })
         .catch((syncError) => {
+          if (cancelled) return;
           if (invalidateMissingRuntimeSession(sessionId, syncError)) {
             return;
           }
@@ -1029,9 +1043,12 @@ export function useSequencerRuntimeController({
         });
     }, 80);
 
-    return () => {
+    const cancel = () => {
+      cancelled = true;
       window.clearTimeout(syncTimer);
     };
+    arpeggiatorSyncCancelRef.current = cancel;
+    return cancel;
   }, [
     activeSessionId,
     activeSessionState,
@@ -1049,12 +1066,14 @@ export function useSequencerRuntimeController({
     if (
       sequencer.tracks.some((track) => track.enabled || track.queuedEnabled === true) ||
       sequencer.drummerTracks.some((track) => track.enabled || track.queuedEnabled === true) ||
-      sequencer.controllerSequencers.some((controllerSequencer) => controllerSequencer.enabled)
+      sequencer.controllerSequencers.some((controllerSequencer) => controllerSequencer.enabled) ||
+      sequencer.arpeggiators.some(arp => arp.enabled && arp.playbackMode === "arranger")
     ) {
       return;
     }
     void stopSequencerTransport(false);
   }, [
+    sequencer.arpeggiators,
     sequencer.controllerSequencers,
     sequencer.drummerTracks,
     sequencer.isPlaying,
@@ -1079,13 +1098,14 @@ export function useSequencerRuntimeController({
     stopSequencerTransport
   ]);
 
-  useEffect(() => {
-    return () => {
-      void stopSequencerTransport(false);
-    };
-  }, [stopSequencerTransport]);
+  const stopSequencerTransportRef = useRef(stopSequencerTransport);
+  stopSequencerTransportRef.current = stopSequencerTransport;
+  useEffect(() => () => {
+    void stopSequencerTransportRef.current(false);
+  }, []);
 
   return {
+    cancelPendingArpeggiatorEdits,
     browserAudioError,
     browserAudioDiagnostics,
     browserAudioStatus,

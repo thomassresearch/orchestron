@@ -237,3 +237,11 @@ Both CSD modes route manual initial values and automated curves to the selected 
 The fixed Master is stored as `$master` in `audioGraph.masterId`, route endpoints, mixer strips and insert ownership. It has no instrument assignment or patch definition. Native imports normalize designated neutral legacy Masters before importing patches, preventing duplicate library entries. Both CSD modes generate the internal output and initialize its saved controls and inserts. Direct Audio Output paths retain their own controls and continue to bypass Master.
 
 Versions 1–13 remain readable. App state remains version 2 and native bundle envelopes remain version 1. See [Master migration and repair](audio_mixer_and_routing.md#upgrading-existing-masters) for backups, customized processors and missing references.
+
+## Arpeggiator Patterns (version 15)
+
+Current saves and exports write performance config **15** and accept versions **1–15**. App-state remains version 2; the native envelope remains version 1. Arpeggiators store eight musical pads, rhythm steps, seeds, processing/hold/playback settings, and Pad Looper arrangements. User presets store musical pad settings only.
+
+On load/import, old musical settings migrate to P1 and accent cycles become step velocities. The remaining pads use defaults. Old performances adopt Arranger synchronization, Hold Off, Continue, corrected swing and full-range ordering; there is no legacy playback engine. Migration stays in memory until normal Save/export. See [Arpeggiator migration](arpeggiators.md#migration-to-performance-version-15).
+
+MIDI and SCORE CSD exports use the same arpeggiator scheduler as live audio, including source timestamps, pad boundaries, rests, ties, ratchets, overlap and seeded variation. Export event estimates account for chord expansion, Hold and ratchets; the existing hard event and time limits still apply. Export contains sequenced inputs; live keyboard gestures must be represented as sequence data to appear offline.

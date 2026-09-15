@@ -352,8 +352,10 @@ export const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
       random: "Random"
     },
     arpeggiatorRestartModeLabels: {
-      free: "Free",
-      first_note: "First Note"
+      free: "Continue",
+      first_note: "First held note",
+      beat: "Every beat",
+      bar: "Every bar"
     },
     globalSequencerClock: "Global Sequencer Clock",
     bpm: "BPM",
@@ -544,8 +546,10 @@ export const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
       random: "Zufall"
     },
     arpeggiatorRestartModeLabels: {
-      free: "Frei",
-      first_note: "Erste Note"
+      free: "Fortsetzen",
+      first_note: "Erste gehaltene Note",
+      beat: "Jeder Beat",
+      bar: "Jeder Takt"
     },
     globalSequencerClock: "Globale Sequencer-Clock",
     bpm: "BPM",
@@ -736,8 +740,10 @@ export const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
       random: "Aleatoire"
     },
     arpeggiatorRestartModeLabels: {
-      free: "Libre",
-      first_note: "Premiere note"
+      free: "Continuer",
+      first_note: "Première note maintenue",
+      beat: "Chaque temps",
+      bar: "Chaque mesure"
     },
     globalSequencerClock: "Horloge globale du sequenceur",
     bpm: "BPM",
@@ -928,8 +934,10 @@ export const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
       random: "Aleatoria"
     },
     arpeggiatorRestartModeLabels: {
-      free: "Libre",
-      first_note: "Primera nota"
+      free: "Continuar",
+      first_note: "Primera nota retenida",
+      beat: "Cada pulso",
+      bar: "Cada compás"
     },
     globalSequencerClock: "Reloj global del secuenciador",
     bpm: "BPM",

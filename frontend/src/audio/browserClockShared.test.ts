@@ -47,9 +47,11 @@ describe("browser clock shared math", () => {
       coalesceAudibleTransportEvents([
         event("step", 1),
         event("step", 2),
+        event("arpeggiators", 2),
         event("pad_switches", 3),
-        event("loop", 4)
+        event("loop", 4),
+        event("arpeggiators", 5)
       ])
-    ).toEqual([event("step", 2), event("pad_switches", 3), event("loop", 4)]);
+    ).toEqual([event("step", 2), event("pad_switches", 3), event("loop", 4), event("arpeggiators", 5)]);
   });
 });

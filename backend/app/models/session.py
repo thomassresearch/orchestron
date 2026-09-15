@@ -64,7 +64,7 @@ ArpeggiatorPattern = Literal[
 ]
 ArpeggiatorRate = Literal["1/1", "1/2", "1/4", "1/8", "1/16", "1/32", "1/8T", "1/16T", "1/8D", "1/16D"]
 ArpeggiatorVelocityMode = Literal["input", "fixed", "accent", "random"]
-ArpeggiatorRestartMode = Literal["free", "first_note"]
+ArpeggiatorRestartMode = Literal["free", "first_note", "beat", "bar"]
 
 
 def _is_valid_pad_loop_token(token: int) -> bool:
@@ -236,6 +236,7 @@ class BrowserClockTimingReportRequest(BaseModel):
 
 
 class BrowserClockSequencerStartControlRequest(BaseModel):
+    arranger_active: bool = False
     type: Literal["sequencer_start"]
     request_id: str = Field(min_length=1, max_length=128)
     config: "SessionSequencerConfigRequest | None" = None
@@ -477,17 +478,23 @@ class SessionControllerSequencerTrackConfig(BaseModel):
         return self
 
 
-class SessionArpeggiatorConfig(BaseModel):
-    arpeggiator_id: str = Field(min_length=1, max_length=256)
-    enabled: bool = False
-    input_channel: int = Field(ge=1, le=16)
-    target_channel: int = Field(ge=1, le=16)
+class ArpeggiatorStepConfig(BaseModel):
+    kind: Literal["next", "position", "rest", "tie", "chord"] = "next"
+    note_position: int = Field(default=1, ge=1, le=128)
+    velocity: int = Field(default=100, ge=0, le=200)
+    gate_ratio: float | None = Field(default=None, ge=0.05, le=2.0)
+    probability: float = Field(default=1.0, ge=0, le=1)
+    ratchets: int = Field(default=1, ge=1, le=4)
+
+
+class ArpeggiatorPadConfig(BaseModel):
+    length_beats: ControllerSequencerPadLengthBeats = 4
     rate: ArpeggiatorRate = "1/16"
-    gate_ratio: float = Field(default=0.72, ge=0.05, le=1.0)
+    gate_ratio: float = Field(default=0.72, ge=0.05, le=2.0)
     swing: float = Field(default=0.0, ge=0.0, le=0.75)
     octaves: int = Field(default=1, ge=1, le=4)
     pattern: ArpeggiatorPattern = "up"
-    latch: bool = False
+    octave_traversal: Literal["range", "octave"] = "range"
     velocity_mode: ArpeggiatorVelocityMode = "input"
     fixed_velocity: int = Field(default=100, ge=1, le=127)
     accent_cycle: list[int] = Field(default_factory=list, max_length=32)
@@ -497,10 +504,77 @@ class SessionArpeggiatorConfig(BaseModel):
     humanize_velocity: int = Field(default=0, ge=0, le=32)
     transpose: int = Field(default=0, ge=-24, le=24)
     scale_quantize: bool = False
+    scale_mode: Literal["off", "source", "custom"] = "off"
     scale_root: SequencerScaleRoot = "C"
     scale_type: SequencerScaleType = "minor"
     mode: SequencerMode = "aeolian"
-    restart_mode: ArpeggiatorRestartMode = "first_note"
+    rotation: int = Field(default=0, ge=0, le=31)
+    advance_rests: bool = False
+    random_seed: int = Field(default=42622, ge=0, le=2147483647)
+    random_mode: Literal["repeat", "evolve"] = "repeat"
+    steps: list[ArpeggiatorStepConfig] = Field(
+        default_factory=lambda: [ArpeggiatorStepConfig() for _ in range(16)], min_length=1, max_length=32,
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def migrate_settings(cls, value):
+        if not isinstance(value, dict):
+            return value
+        value = dict(value)
+        if "scale_mode" not in value:
+            value["scale_mode"] = "source" if value.get("scale_quantize") else "off"
+        if "steps" not in value and value.get("velocity_mode") == "accent" and value.get("accent_cycle"):
+            accents = value["accent_cycle"][:32]
+            # Old accents were absolute MIDI velocities, not percentages.
+            value["steps"] = [{"velocity": round(max(1, min(127, v)) / 127 * 100)} for v in accents]
+            if value.get("velocity_mode") == "accent":
+                value["velocity_mode"] = "fixed"
+                value["fixed_velocity"] = 127
+        return value
+
+
+class SessionArpeggiatorConfig(ArpeggiatorPadConfig):
+    # Flat musical fields remain accepted for older API clients; pads are canonical.
+    arpeggiator_id: str = Field(min_length=1, max_length=256)
+    enabled: bool = False
+    input_channel: int = Field(ge=1, le=16)
+    target_channel: int = Field(ge=1, le=16)
+    playback_mode: Literal["arranger", "live"] = "arranger"
+    processing_mode: Literal["active", "bypass", "mute"] = "active"
+    latch: bool = False
+    hold_mode: Literal["off", "replace", "toggle"] = "off"
+    restart_mode: ArpeggiatorRestartMode = "free"
+    active_pad: int = Field(default=0, ge=0, le=7)
+    pad_loop_enabled: bool = True
+    pad_loop_repeat: bool = True
+    pad_loop_sequence: list[int] = Field(default_factory=lambda: [0], max_length=8192)
+    launch_quantize: Literal["cycle", "bar"] = "cycle"
+    pads: list[ArpeggiatorPadConfig] = Field(default_factory=list, max_length=8)
+
+    @model_validator(mode="after")
+    def complete_pads(self):
+        if any(not _is_valid_pad_loop_token(token) for token in self.pad_loop_sequence):
+            raise ValueError("Invalid arpeggiator pad sequence token")
+        if not self.pads:
+            self.pads = [ArpeggiatorPadConfig.model_validate(self.model_dump(exclude={"pads"}))]
+        self.pads += [ArpeggiatorPadConfig() for _ in range(8 - len(self.pads))]
+        return self
+
+
+class ArpeggiatorCommand(BaseModel):
+    command: Literal["launch", "cancel", "arrangement", "clear"]
+    pad_index: int | None = Field(default=None, ge=0, le=7)
+
+    @model_validator(mode="after")
+    def require_pad(self):
+        if self.command == "launch" and self.pad_index is None:
+            raise ValueError("launch requires pad_index")
+        return self
+
+
+class ArrangerTransportRequest(BaseModel):
+    active: bool
 
 
 def _validate_arpeggiator_routes(arpeggiators: list[SessionArpeggiatorConfig]) -> None:
@@ -544,8 +618,8 @@ class SessionSequencerConfigRequest(BaseModel):
     def validate_unique_track_ids(self) -> "SessionSequencerConfigRequest":
         if self.playback_end_step <= self.playback_start_step:
             raise ValueError("playback_end_step must be greater than playback_start_step.")
-        if not self.tracks and not self.controller_tracks:
-            raise ValueError("At least one sequencer track or controller track must be configured.")
+        if not self.tracks and not self.controller_tracks and not self.arpeggiators:
+            raise ValueError("At least one sequencer, controller, or arpeggiator must be configured.")
         seen: set[str] = set()
         for track in self.tracks:
             if track.track_id in seen:
@@ -571,6 +645,7 @@ class SessionSequencerConfigRequest(BaseModel):
 class SessionSequencerStartRequest(BaseModel):
     config: SessionSequencerConfigRequest | None = None
     position_step: int | None = Field(default=None, ge=0)
+    arranger_active: bool = False
 
 
 class SessionSequencerSeekRequest(BaseModel):
@@ -623,8 +698,19 @@ class SessionArpeggiatorStatus(BaseModel):
     step_index: int = Field(default=0, ge=0)
     last_velocity: int | None = Field(default=None, ge=0, le=127)
 
+    active_notes: list[int] = Field(default_factory=list)
+    active_pad: int = 0
+    queued_pad: int | None = None
+    pad_loop_position: int | None = None
+    manual_override: bool = False
+    cycle: int = 0
+    state: Literal["stopped", "waiting_notes", "waiting_arranger", "playing", "bypassed", "muted", "pause"] = "stopped"
+    effective_scale: str = "off"
+    preview_notes: list[list[int]] = Field(default_factory=list)
+
 
 class SessionSequencerStatus(BaseModel):
+    arranger_active: bool = False
     session_id: str
     running: bool
     timing: SessionSequencerTimingConfig

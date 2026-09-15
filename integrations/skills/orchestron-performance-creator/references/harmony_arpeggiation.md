@@ -66,3 +66,11 @@ Useful arp variants:
 - Reduced: sparse notes, lower velocity, or missing downbeat.
 
 Connect arp variants to pad-loop functions so arpeggiation helps the arrangement move rather than acting as decoration.
+
+## Version 15 pattern data
+
+The CLI writes v15 and accepts v1–15. `edit arpeggiators add` creates a repeating P1 arrangement in Arranger mode with Hold Off and Continue. Input/target channels still route to an existing MIDI instrument. Old flat settings migrate to P1 during load; other pads use defaults. User presets migrate to pad settings.
+
+Each `pads[0..7]` entry stores `lengthBeats` (1–8 or 16), `steps` (1–32), rate, pattern, octaves, `octaveTraversal`, expression, transpose, `scaleMode`, rotation, `advanceRests`, `randomSeed` and `randomMode`. Step keys are `kind` (`next`, `position`, `rest`, `tie`, `chord`), `notePosition` (1–128, wrapping), `velocity` (0–200 percent), nullable `gateRatio` (0.05–2), `probability` (0–1) and `ratchets` (1–4). The runtime builder converts these to snake_case and compiles the same Pad Looper groups/pauses as other tracks.
+
+Device fields are `playbackMode` (`arranger`/`live`), `processingMode` (`active`/`bypass`/`mute`), `holdMode` (`off`/`replace`/`toggle`), `restartMode` (`free`/`first_note`/`beat`/`bar`), `launchQuantize` (`cycle`/`bar`), `activePad`, `padLoopEnabled`, `padLoopRepeat`, and `padLoopPattern`. Musical presets never overwrite these fields. Keep rhythm length independent of pad duration; repeated identical pads continue the rhythm.

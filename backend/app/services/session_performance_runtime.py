@@ -55,6 +55,7 @@ class SessionPerformanceRuntimeCoordinator:
             enqueue_timestamped_midi=runtime.worker.enqueue_timestamped_midi,
             current_engine_sample=lambda runtime=runtime: runtime.worker.render_sample_cursor,
             output_name="engine:internal",
+            collect_status_events=True,
             max_pending_inputs=self._settings.arpeggiator_pending_input_max_events,
             max_future_samples=lambda runtime=runtime: self.manual_midi_max_future_samples(runtime),
         )
@@ -72,7 +73,7 @@ class SessionPerformanceRuntimeCoordinator:
         status: SessionSequencerStatus,
     ) -> SessionSequencerStatus:
         router = self.ensure_midi_router(runtime)
-        return status.model_copy(update={"arpeggiators": router.status()})
+        return status.model_copy(update={"arpeggiators": router.status(), "arranger_active": router.arranger_running})
 
     @staticmethod
     def controller_default_channels(runtime: RuntimeSession) -> tuple[int, ...]:

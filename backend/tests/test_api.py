@@ -38,10 +38,12 @@ from backend.tests.api_test_support import (
     _audio_source_patch_payload,
     _audio_source_patch_payload_with_outlet_names,
     _client,
+    _create_running_session,
     _minimal_patch_payload,
     _sequencer_timing,
 )
 from backend.tests.stk_test_support import STK_CONTROLLERS
+from backend.app.services.arpeggiator_migration import migrate_arpeggiators
 
 
 def test_opcodes_include_atone_filters_with_manual_signatures(tmp_path: Path) -> None:
@@ -523,10 +525,10 @@ def test_performance_device_names_survive_storage_and_json_bundle(tmp_path: Path
         created = client.post("/api/performances", json={"name": "Named devices", "config": config})
         assert created.status_code == 201
         performance_id = created.json()["id"]
-        assert client.get(f"/api/performances/{performance_id}").json()["config"] == config
+        assert client.get(f"/api/performances/{performance_id}").json()["config"] == migrate_arpeggiators(config)
         updated = client.put(f"/api/performances/{performance_id}", json={"config": config})
         assert updated.status_code == 200
-        assert updated.json()["config"] == config
+        assert updated.json()["config"] == migrate_arpeggiators(config)
         payload = {
             "format": "orchestron.performance", "version": 1,
             "performance": {"name": "Named devices", "description": "", "config": config},
@@ -538,7 +540,7 @@ def test_performance_device_names_survive_storage_and_json_bundle(tmp_path: Path
         imported = client.post("/api/bundles/import/expand", content=exported.content,
                                headers={"X-File-Name": "names.orch.json", "Content-Type": "application/json"})
         assert imported.status_code == 200
-        assert imported.json()["performance"]["config"] == config
+        assert imported.json()["performance"]["config"] == migrate_arpeggiators(config)
 
 
 def test_performance_create_rejects_oversized_config_document(tmp_path: Path) -> None:
@@ -2201,11 +2203,11 @@ def test_performance_bundle_export_uses_zip_when_patch_definitions_reference_gen
             assert f"audio/{stored_name}" in entries
             exported_json = json.loads(archive.read("performance.orch.json").decode("utf-8"))
             assert exported_json["format"] == "orchestron.performance"
-            assert exported_json["performance"]["config"] == payload["performance"]["config"]
+            assert exported_json["performance"]["config"] == migrate_arpeggiators(payload["performance"]["config"])
         imported = client.post("/api/bundles/import/expand", content=response.content,
                                headers={"X-File-Name": "names.orch.zip", "Content-Type": "application/zip"})
         assert imported.status_code == 200
-        assert imported.json()["performance"]["config"] == payload["performance"]["config"]
+        assert imported.json()["performance"]["config"] == migrate_arpeggiators(payload["performance"]["config"])
 
 
 def test_patch_bundle_export_uses_zip_when_sfload_asset_is_referenced(tmp_path: Path) -> None:
@@ -6437,7 +6439,7 @@ def test_controller_channels_survive_performance_storage_and_native_bundles(tmp_
         imported = client.post("/api/bundles/import/expand", content=data,
             headers={"Content-Type": "application/octet-stream", "X-File-Name": f"channels.orch.{archive_format}"})
         assert imported.status_code == 200
-        assert imported.json()["performance"]["config"] == config
+        assert imported.json()["performance"]["config"] == migrate_arpeggiators(config)
 
 
 def test_internal_master_save_restore_preview_and_repair(tmp_path: Path) -> None:
@@ -6495,3 +6497,109 @@ def test_legacy_master_bundle_expansion_does_not_recreate_library_patch(tmp_path
             assert converted['patch_definitions'] == []
             assert converted['performance']['config']['audioGraph']['masterId'] == '$master'
             assert client.get('/api/patches').json() == []
+
+
+def test_arpeggiator_v15_api_commands_validate_and_preserve_working_configuration(tmp_path):
+    with _client(tmp_path) as client:
+        session = _create_running_session(client)
+        base = f"/api/sessions/{session}"
+        config = {"arpeggiators": [{"arpeggiator_id": "arp", "input_channel": 6, "target_channel": 5,
+                                   "enabled": True, "pads": [{"steps": [{"kind": "chord", "ratchets": 4}]}]}]}
+        response = client.put(base + "/arpeggiators/config", json=config)
+        assert response.status_code == 200
+        assert response.json()[0]["state"] == "waiting_arranger"
+        for command in ({"command": "launch", "pad_index": 3}, {"command": "cancel"},
+                        {"command": "arrangement"}, {"command": "clear"}):
+            assert client.post(base + "/arpeggiators/arp/command", json=command).status_code == 200
+        assert client.post(base + "/arpeggiators/arp/command", json={"command": "launch"}).status_code == 422
+        invalid = json.loads(json.dumps(config))
+        invalid["arpeggiators"][0]["pads"][0]["steps"][0]["ratchets"] = 5
+        assert client.put(base + "/arpeggiators/config", json=invalid).status_code == 422
+        assert client.post(base + "/arpeggiators/arp/command", json={"command": "clear"}).json()[0]["enabled"]
+        transport = {"tracks": [], **config, "playback_end_step": 32}
+        response = client.post(base + "/sequencer/start", json={"config": transport, "arranger_active": True})
+        assert response.status_code == 200
+        response = client.put(base + "/sequencer/arranger", json={"active": False})
+        assert response.status_code == 200
+        assert response.json()["running"]  # Generic transport stays independent.
+
+
+def test_arpeggiator_status_travels_with_audible_pcm_markers(tmp_path):
+    with _client(tmp_path) as client:
+        session_id = _create_running_session(client)
+        base = f"/api/sessions/{session_id}"
+        response = client.put(base + "/arpeggiators/config", json={"arpeggiators": [{
+            "arpeggiator_id": "arp", "input_channel": 2, "target_channel": 1,
+            "enabled": True, "playback_mode": "live"}]})
+        assert response.status_code == 200
+        with client.websocket_connect(f"/ws/sessions/{session_id}/browser-clock") as socket:
+            socket.send_json({"type": "claim_controller", "audio_context_sample_rate": 48000,
+                              "queue_low_water_frames": 1024, "queue_high_water_frames": 2048,
+                              "max_blocks_per_request": 8})
+            assert socket.receive_json()["type"] == "stream_config"
+            socket.send_json({"type": "manual_midi", "midi": {
+                "type": "note_on", "channel": 2, "note": 60, "velocity": 100}})
+            socket.send_json({"type": "request_render", "block_count": 8})
+            metadata = socket.receive_json()
+            socket.receive_bytes()
+            markers = [event for event in metadata["transport_events"] if event["kind"] == "arpeggiators"]
+            assert markers
+            assert any(event["payload"]["arpeggiators"][0]["active_notes"] == [60] for event in markers)
+            assert all(0 <= event["target_frame_offset"] <= metadata["target_frame_count"] for event in markers)
+
+
+@pytest.mark.parametrize("version", range(1, 15))
+def test_arpeggiator_legacy_save_migrates_pads_without_mutating_input(tmp_path, version):
+    from backend.app.services.arpeggiator_migration import migrate_arpeggiators
+    old = {"version": version, "sequencer": {"arpeggiators": [{"id": "old", "name": "Old",
+           "inputChannel": 6, "targetChannel": 5, "latch": True, "restartMode": "first_note",
+           "pattern": "down", "octaves": 3, "rate": "1/8T", "velocityMode": "accent",
+           "accentCycle": [127, 64]}], "arpeggiatorPresets": [{"id": "mine", "settings": {"rate": "1/8T"}}]}}
+    migrated = migrate_arpeggiators(old)
+    arp = migrated["sequencer"]["arpeggiators"][0]
+    assert "pads" not in old["sequencer"]["arpeggiators"][0]
+    assert (arp["playbackMode"], arp["holdMode"], arp["restartMode"]) == ("arranger", "off", "free")
+    assert len(arp["pads"]) == 8
+    assert arp["pads"][0]["rate"] == "1/8T"
+    assert [step["velocity"] for step in arp["pads"][0]["steps"]] == [100, 50]
+    assert arp["pads"][0]["fixedVelocity"] == 127
+    assert len(arp["pads"][1]["steps"]) == 16
+    assert migrate_arpeggiators(migrated) == migrated
+
+
+@pytest.mark.parametrize("block_size", [1, 64, 511, 24000])
+def test_arpeggiator_export_and_live_render_share_event_timeline(block_size):
+    from backend.app.services.arpeggiator_runtime import PerformanceMidiRouter
+    from backend.app.services.sequencer_runtime import SessionSequencerRuntime
+    from backend.app.services.performance_export_service import _MidiCaptureService
+    fixture = Path(__file__).parent / "fixtures/performances/arpeggiator_patterns.runtime.json"
+    payload = _performance_csd_export_payload()
+    payload["sequencerConfig"] = json.loads(fixture.read_text())
+    request = PerformanceCsdExportRequest.model_validate(payload)
+    exporter = PerformanceExportService(compiler_service=None, gen_asset_service=None)
+    offline = exporter._capture_offline_midi_events(request=request, controller_default_channels=(5, 6))
+    assert not any(event.message[0] in (0x95, 0x85) for event in offline)
+    capture = _MidiCaptureService(max_events=10000)
+    router = PerformanceMidiRouter(enqueue_timestamped_midi=capture.enqueue_timestamped_midi,
+                                   current_engine_sample=lambda: capture.current_sample)
+    runtime = SessionSequencerRuntime(session_id="live", midi_service=router, midi_input_selector="live", controller_default_channels=(5, 6),
+                                     publish_event=lambda *_: None, clock_mode="render_driven")
+    runtime.configure(request.sequencer_config)
+    router.configure(request.sequencer_config.arpeggiators, tempo_bpm=120)
+    router.set_transport(beat=0, running=True, sample=0)
+    runtime.start(0)
+    end = 144000
+    for sample in range(0, end, block_size):
+        capture.current_sample = sample
+        capture.current_time_seconds = sample / 48000
+        size = min(block_size, end - sample)
+        runtime.advance_render_block(sample_rate=48000, ksmps=size, block_start_sample=sample)
+        router.advance_render_block(block_start_sample=sample, block_end_sample=sample + size, sample_rate=48000)
+        if sample < 48001 <= sample + size:
+            assert router.status()[0].held_notes == [62, 65, 69]
+    capture.current_sample = end
+    router.shutdown()
+    def notes(events):
+        return sorted((round(e.time_seconds * 48000), e.message) for e in events if e.message[0] in (0x94, 0x84))
+    assert notes(capture.events) == notes(offline)
+    assert sum(e.message[0] == 0x94 for e in offline) == sum(e.message[0] == 0x84 for e in offline)

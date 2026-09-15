@@ -1,3 +1,4 @@
+import { arpeggiatorHelp } from "./helpDocumentationArpeggiator";
 import { collapsiblePanelHelp } from "./helpDocumentationPanels";
 import { performanceControllerHelp } from "./helpDocumentationPerformanceControllers";
 import { audioRoutingHelp } from "./helpDocumentationAudio";
@@ -239,12 +240,12 @@ Esta ayuda se aplica a una tarjeta individual de secuenciador melodico.
       title: "Multitrack Arranger",
       markdown: `## Multitrack Arranger
 
-Arrange melodic sequencers, drummer sequencers, and controller sequencers on one shared timeline.
+Arrange melodic, drummer and controller sequencers plus arpeggiators on one shared timeline.
 
 - Use cassette transport to rewind, stop, play, or fast-forward pad-loop-driven sequencers in one-beat blocks.
 - \`Play\` starts sequencers whose \`Pad Looper\` is on and stops sequencers whose \`Pad Looper\` is off so arranger playback stays synchronized.
 - \`Stop\` stops pad-loop-driven sequencers while manually started non-pad-loop sequencers can keep running.
-- Arpeggiators, piano rolls, and manual MIDI controller lanes stay individually controlled.
+- Arranger arpeggiators follow Play/Stop, seeks and loops. Each pad has its own duration, independent of its rhythm cycle. Live arpeggiators, piano rolls and manual MIDI controllers stay individually controlled.
 - Drag root-timeline tokens to reorder pads, groups, and super-groups.
 - Use the right-click menu to insert pads, existing groups, or existing super-groups into a matching pause gap or at the end.
 - Copy and paste selected pads, groups, and super-groups from the context menu to duplicate phrases.
@@ -256,12 +257,12 @@ Arrange melodic sequencers, drummer sequencers, and controller sequencers on one
       title: "Multitrack Arranger",
       markdown: `## Multitrack Arranger
 
-Ordnet melodische Sequencer, Drummer-Sequencer und Controller-Sequencer auf einer gemeinsamen Timeline an.
+Ordnet Melodie-, Drummer- und Controller-Sequencer sowie Arpeggiatoren auf einer gemeinsamen Timeline an.
 
 - Mit dem Kassetten-Transport Pad-Loop-gesteuerte Sequencer in Beat-Bloecken zurueckspulen, stoppen, starten oder vorspulen.
 - \`Play\` startet Sequencer mit aktivem \`Pad Looper\` und stoppt Sequencer mit ausgeschaltetem \`Pad Looper\`, damit der Arranger synchron bleibt.
 - \`Stop\` stoppt Pad-Loop-gesteuerte Sequencer; manuell gestartete Sequencer ohne Pad-Loop koennen weiterlaufen.
-- Arpeggiatoren, Piano-Rolls und manuelle MIDI-Controller-Lanes bleiben einzeln gesteuert.
+- Arpeggiatoren im Arranger-Modus folgen Play/Stop, Positionswechseln und Loops. Jedes Pad hat eine eigene Dauer, unabhaengig vom Rhythmuszyklus. Live-Arpeggiatoren, Piano-Rolls und manuelle MIDI-Controller bleiben einzeln gesteuert.
 - Tokens auf der Root-Timeline ziehen, um Pads, Gruppen und Super-Gruppen neu anzuordnen.
 - Mit dem Rechtsklick-Menue Pads, vorhandene Gruppen oder vorhandene Super-Gruppen in eine passende Pause oder ans Ende einfuegen.
 - Ausgewaehlte Pads, Gruppen und Super-Gruppen per Kontextmenue kopieren und einfuegen, um Phrasen zu duplizieren.
@@ -273,12 +274,12 @@ Ordnet melodische Sequencer, Drummer-Sequencer und Controller-Sequencer auf eine
       title: "Arrangeur multipiste",
       markdown: `## Arrangeur multipiste
 
-Organise les sequenceurs melodiques, les sequenceurs batterie et les sequenceurs controleur sur une timeline partagee.
+Organise les sequenceurs melodiques, batterie et controleur ainsi que les arpegiateurs sur une timeline partagee.
 
 - Utiliser le transport cassette pour revenir en arriere, arreter, lancer ou avancer les sequenceurs pilotes par pad looper par blocs d'un temps.
 - \`Play\` demarre les sequenceurs dont le \`Pad Looper\` est actif et arrete ceux dont le \`Pad Looper\` est inactif pour garder l'arrangeur synchronise.
 - \`Stop\` arrete les sequenceurs pilotes par pad looper ; les sequenceurs sans pad looper lances manuellement peuvent continuer.
-- Les arpegiateurs, piano rolls et lanes de controleur MIDI manuel restent controles individuellement.
+- Les arpegiateurs en mode Arrangeur suivent Play/Stop, les changements de position et les boucles. Chaque pad a une duree independante du cycle rythmique. Les arpegiateurs Live, piano rolls et controleurs MIDI manuels restent controles individuellement.
 - Faire glisser les jetons de la timeline principale pour reordonner pads, groupes et super-groupes.
 - Utiliser le menu contextuel pour inserer des pads, des groupes existants ou des super-groupes existants dans une pause adaptee ou a la fin.
 - Copier et coller des pads, groupes et super-groupes selectionnes depuis le menu contextuel pour dupliquer des phrases.
@@ -290,12 +291,12 @@ Organise les sequenceurs melodiques, les sequenceurs batterie et les sequenceurs
       title: "Arreglador multipista",
       markdown: `## Arreglador multipista
 
-Organiza secuenciadores melodicos, secuenciadores de bateria y secuenciadores de control en una linea de tiempo compartida.
+Organiza secuenciadores melodicos, de bateria y de control junto con arpegiadores en una linea de tiempo compartida.
 
 - Usa el transporte tipo casete para rebobinar, detener, reproducir o adelantar secuenciadores guiados por pad looper en bloques de un pulso.
 - \`Play\` inicia los secuenciadores con \`Pad Looper\` activo y detiene los que tienen \`Pad Looper\` apagado para mantener sincronizado el arreglador.
 - \`Stop\` detiene los secuenciadores guiados por pad looper; los secuenciadores sin pad looper iniciados manualmente pueden seguir sonando.
-- Los arpegiadores, piano rolls y lanes de controlador MIDI manual siguen controlados individualmente.
+- Los arpegiadores en modo Arreglador siguen Play/Stop, cambios de posicion y bucles. Cada pad tiene una duracion independiente del ciclo ritmico. Los arpegiadores Live, piano rolls y controladores MIDI manuales siguen controlados individualmente.
 - Arrastra los tokens de la linea principal para reordenar pads, grupos y supergrupos.
 - Usa el menu contextual para insertar pads, grupos existentes o supergrupos existentes en una pausa adecuada o al final.
 - Copia y pega pads, grupos y supergrupos seleccionados desde el menu contextual para duplicar frases.
@@ -441,74 +442,10 @@ Automatiza un valor MIDI CC en el tiempo mediante una curva.
     }
   },
   sequencer_arpeggiator: {
-    english: {
-      title: "Arpeggiator",
-      markdown: `## Arpeggiator
-
-Click the pen beside the device name to rename it. Save/Enter applies; Cancel/Escape discards. Clicking elsewhere does not save. Names must be nonempty, use at most 65 Unicode characters, contain no HTML or angle brackets, and be unique across all six device types in the performance (ignoring case and surrounding whitespace). Names retain their capitalization and survive save/load and JSON/ZIP export/import. Existing imported names remain intact until renamed.
-
-Route held notes through a backend-run arpeggiator.
-
-- Start/stop each arpeggiator independently from the arranger transport.
-- \`Input Channel\` is the virtual channel that melodic sequencers, piano rolls, drummer/external note sources, or other note senders play into.
-- \`Target Channel\` is the rack instrument channel that receives the generated arpeggiated notes.
-- Choose rate, gate, swing, octave range, repeats, pattern, probability, transpose, and restart behavior.
-- Use latch, scale quantize, scale root/type, and mode to shape how incoming notes are held and corrected.
-- Velocity modes can follow input velocity, use a fixed value, apply an accent cycle, or randomize output.
-- Built-in presets and user-saved presets are stored with the performance.
-- Held notes, active note, and the 16-step activity display reflect backend runtime state.`
-    },
-    german: {
-      title: "Arpeggiator",
-      markdown: `## Arpeggiator
-
-Zum Umbenennen auf den Stift neben dem Gerätenamen klicken. Speichern/Enter übernimmt, Abbrechen/Escape verwirft den Entwurf. Ein Klick außerhalb speichert nicht. Namen dürfen nicht leer sein, höchstens 65 Unicode-Zeichen enthalten und weder HTML noch spitze Klammern verwenden. Sie müssen über alle sechs Gerätetypen der Performance eindeutig sein; Groß-/Kleinschreibung und äußere Leerzeichen werden dabei ignoriert. Die Schreibweise bleibt erhalten, auch beim Speichern/Laden und JSON/ZIP-Export/Import. Vorhandene importierte Namen bleiben bis zum Umbenennen erhalten.
-
-Leitet gehaltene Noten durch einen backend-gesteuerten Arpeggiator.
-
-- Jeden Arpeggiator unabhaengig vom Arranger-Transport starten/stoppen.
-- \`Eingangskanal\` ist der virtuelle Kanal, in den melodische Sequencer, Piano Rolls, Drummer-/externe Notenquellen oder andere Noten-Sender spielen.
-- \`Zielkanal\` ist der Rack-Instrumentkanal, der die erzeugten Arpeggio-Noten empfaengt.
-- Rate, Gate, Swing, Oktavbereich, Wiederholungen, Pattern, Wahrscheinlichkeit, Transposition und Neustart-Verhalten waehlen.
-- Latch, Skalenquantisierung, Grundton/Skalentyp und Modus formen, wie eingehende Noten gehalten und korrigiert werden.
-- Velocity-Modi koennen Eingangs-Velocity folgen, einen festen Wert nutzen, eine Akzentfolge anwenden oder Ausgaben zufaellig variieren.
-- Eingebaute Presets und benutzerdefinierte Presets werden mit der Performance gespeichert.
-- Gehaltene Noten, aktive Note und die 16-Step-Aktivitaetsanzeige spiegeln den Backend-Runtime-Zustand.`
-    },
-    french: {
-      title: "Arpegiateur",
-      markdown: `## Arpegiateur
-
-Cliquez sur le stylo à droite du nom pour le modifier. Enregistrer/Entrée applique ; Annuler/Échap abandonne. Cliquer ailleurs ne sauvegarde pas. Le nom doit être non vide, comporter au maximum 65 caractères Unicode, sans HTML ni chevrons, et être unique parmi les six types d’appareils de la performance, sans tenir compte de la casse ni des espaces aux extrémités. La casse est conservée, ainsi que les noms lors de l’enregistrement, du chargement et de l’export/import JSON/ZIP. Les noms importés existants restent intacts jusqu’à leur modification.
-
-Fait passer les notes tenues par un arpegiateur execute cote backend.
-
-- Demarrer/arreter chaque arpegiateur independamment du transport arrangeur.
-- \`Canal entree\` est le canal virtuel joue par les sequenceurs melodiques, piano rolls, sources de notes batterie/externes ou autres emetteurs de notes.
-- \`Canal cible\` est le canal d'instrument du rack qui recoit les notes arpegiees generees.
-- Choisir vitesse, gate, swing, plage d'octaves, repetitions, pattern, probabilite, transposition et redemarrage.
-- Utiliser latch, quantification de gamme, tonique/type de gamme et mode pour definir comment les notes entrantes sont maintenues et corrigees.
-- Les modes velocite peuvent suivre la velocite d'entree, utiliser une valeur fixe, appliquer un cycle d'accents ou randomiser la sortie.
-- Les presets integres et les presets utilisateur sont stockes avec la performance.
-- Notes tenues, note active et affichage d'activite sur 16 pas refletent l'etat runtime backend.`
-    },
-    spanish: {
-      title: "Arpegiador",
-      markdown: `## Arpegiador
-
-Haz clic en el lápiz a la derecha del nombre para editarlo. Guardar/Enter aplica; Cancelar/Escape descarta. Hacer clic fuera no guarda. El nombre no puede estar vacío, debe tener como máximo 65 caracteres Unicode, no puede contener HTML ni corchetes angulares y debe ser único entre los seis tipos de dispositivos de la performance, sin distinguir mayúsculas ni espacios en los extremos. Se conservan las mayúsculas y los nombres al guardar, cargar y exportar/importar JSON/ZIP. Los nombres importados existentes se mantienen hasta que se renombren.
-
-Enruta notas retenidas por un arpegiador ejecutado en el backend.
-
-- Inicia/detiene cada arpegiador independientemente del transporte del arreglador.
-- \`Canal de entrada\` es el canal virtual que recibe notas de secuenciadores melodicos, piano rolls, fuentes de notas de bateria/externas u otros emisores de notas.
-- \`Canal destino\` es el canal de instrumento del rack que recibe las notas arpegiadas generadas.
-- Elige velocidad, gate, swing, rango de octavas, repeticiones, patron, probabilidad, transposicion y comportamiento de reinicio.
-- Usa latch, cuantizacion de escala, raiz/tipo de escala y modo para definir como se retienen y corrigen las notas entrantes.
-- Los modos de velocity pueden seguir la entrada, usar un valor fijo, aplicar un ciclo de acentos o aleatorizar la salida.
-- Los presets integrados y los presets de usuario se guardan con la performance.
-- Notas retenidas, nota activa y visualizacion de actividad de 16 pasos reflejan el estado runtime del backend.`
-    }
+    english: { title: "Arpeggiator", markdown: arpeggiatorHelp.english },
+    german: { title: "Arpeggiator", markdown: arpeggiatorHelp.german },
+    french: { title: "Arpégiateur", markdown: arpeggiatorHelp.french },
+    spanish: { title: "Arpegiador", markdown: arpeggiatorHelp.spanish }
   },
   sequencer_piano_rolls: {
     english: {
@@ -936,52 +873,6 @@ Los cambios del pad mostrado se agrupan tras 80 ms y se aplican en el siguiente 
 - Haz clic en el fondo para agregar un punto interior, arrastra puntos para remodelar la curva y haz doble clic en un punto interior para eliminarlo.
 - El primer y el ultimo punto actuan como anclas de borde, de modo que el bucle siempre tiene un inicio y un final definidos.
 - Si el mismo CC esta controlado por varias fuentes, en el receptor prevalece el ultimo valor transmitido.`
-  },
-  sequencer_arpeggiator: {
-    english: `### Routing Notes
-
-- Arpeggiator input channels must stay unique so each virtual instrument receives only its intended note stream.
-- The target channel cannot be another arpeggiator input channel, so arpeggiators do not chain into one another.
-- When an arpeggiator is stopped, notes on its input channel are consumed without producing arpeggiated output.
-
-### Runtime Notes
-
-- Arpeggiators run on the backend while the instrument session is active.
-- They do not follow arranger Play/Stop; each arpeggiator has its own Start/Stop control.
-- Saved performances restore arpeggiator routing, enabled state, settings, and user presets, but not transient held-note state.`,
-    german: `### Routing-Hinweise
-
-- Arpeggiator-Eingangskanaele muessen eindeutig bleiben, damit jedes virtuelle Instrument nur seinen vorgesehenen Notenstrom empfaengt.
-- Der Zielkanal darf kein anderer Arpeggiator-Eingangskanal sein; Arpeggiatoren werden daher nicht ineinander verkettet.
-- Wenn ein Arpeggiator gestoppt ist, werden Noten auf seinem Eingangskanal verbraucht, ohne Arpeggio-Ausgabe zu erzeugen.
-
-### Runtime-Hinweise
-
-- Arpeggiatoren laufen im Backend, solange die Instrument-Session aktiv ist.
-- Sie folgen nicht dem Arranger-Play/Stop; jeder Arpeggiator hat eine eigene Start/Stop-Steuerung.
-- Gespeicherte Performances stellen Routing, Aktiv-Zustand, Einstellungen und Benutzer-Presets wieder her, aber keine transient gehaltenen Noten.`,
-    french: `### Notes de routage
-
-- Les canaux d'entree des arpegiateurs doivent rester uniques afin que chaque instrument virtuel recoive seulement son flux de notes.
-- Le canal cible ne peut pas etre un autre canal d'entree d'arpegiateur ; les arpegiateurs ne sont donc pas chaines entre eux.
-- Quand un arpegiateur est arrete, les notes de son canal d'entree sont consommees sans produire de sortie arpegiee.
-
-### Notes runtime
-
-- Les arpegiateurs tournent cote backend tant que la session instrument est active.
-- Ils ne suivent pas Play/Stop de l'arrangeur ; chaque arpegiateur possede son propre controle Start/Stop.
-- Les performances sauvegardees restaurent routage, etat actif, reglages et presets utilisateur, mais pas les notes tenues transitoires.`,
-    spanish: `### Notas de ruteo
-
-- Los canales de entrada de arpegiador deben ser unicos para que cada instrumento virtual reciba solo su flujo de notas previsto.
-- El canal destino no puede ser otro canal de entrada de arpegiador, asi que los arpegiadores no se encadenan entre si.
-- Cuando un arpegiador esta detenido, las notas de su canal de entrada se consumen sin producir salida arpegiada.
-
-### Notas runtime
-
-- Los arpegiadores corren en el backend mientras la sesion de instrumentos esta activa.
-- No siguen Play/Stop del arreglador; cada arpegiador tiene su propio control Start/Stop.
-- Las performances guardadas restauran ruteo, estado activo, ajustes y presets de usuario, pero no el estado transitorio de notas retenidas.`
   },
   sequencer_piano_rolls: {
     english: `### Live Input Behavior

@@ -32,11 +32,17 @@ export function coalesceAudibleTransportEvents(
   events: AudibleBrowserClockTransportEvent[]
 ): AudibleBrowserClockTransportEvent[] {
   let lastStepIndex = -1;
+  let lastArpeggiatorIndex = -1;
   for (let index = events.length - 1; index >= 0; index -= 1) {
-    if (events[index].kind === "step") {
+    if (events[index].kind === "step" && lastStepIndex < 0) {
       lastStepIndex = index;
-      break;
+    }
+    if (events[index].kind === "arpeggiators" && lastArpeggiatorIndex < 0) {
+      lastArpeggiatorIndex = index;
     }
   }
-  return events.filter((event, index) => event.kind !== "step" || index === lastStepIndex);
+  return events.filter((event, index) => (
+    (event.kind !== "step" || index === lastStepIndex) &&
+    (event.kind !== "arpeggiators" || index === lastArpeggiatorIndex)
+  ));
 }

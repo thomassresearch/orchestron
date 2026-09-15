@@ -51,6 +51,7 @@ import type {
   ArrangerLoopSelection,
   AppPage,
   ArpeggiatorPattern,
+  ArpeggiatorStep,
   ArpeggiatorPresetState,
   ArpeggiatorRate,
   ArpeggiatorRestartMode,
@@ -130,7 +131,7 @@ export const ARPEGGIATOR_PATTERNS: readonly ArpeggiatorPattern[] = [
   "outside_in"
 ];
 export const ARPEGGIATOR_VELOCITY_MODES: readonly ArpeggiatorVelocityMode[] = ["input", "fixed", "accent", "random"];
-export const ARPEGGIATOR_RESTART_MODES: readonly ArpeggiatorRestartMode[] = ["free", "first_note"];
+export const ARPEGGIATOR_RESTART_MODES: readonly ArpeggiatorRestartMode[] = ["free", "first_note", "beat", "bar"];
 
 export type ArpeggiatorPresetSettings = ArpeggiatorPresetState["settings"];
 
@@ -140,7 +141,6 @@ export const DEFAULT_ARPEGGIATOR_SETTINGS: ArpeggiatorPresetSettings = {
   swing: 0,
   octaves: 1,
   pattern: "up",
-  latch: false,
   velocityMode: "input",
   fixedVelocity: 100,
   accentCycle: [127, 96, 112, 96],
@@ -153,7 +153,14 @@ export const DEFAULT_ARPEGGIATOR_SETTINGS: ArpeggiatorPresetSettings = {
   scaleRoot: "C",
   scaleType: "minor",
   mode: "aeolian",
-  restartMode: "first_note"
+  lengthBeats: 4,
+  octaveTraversal: "range",
+  scaleMode: "off",
+  rotation: 0,
+  advanceRests: false,
+  randomSeed: 42622,
+  randomMode: "repeat",
+  steps: Array.from({ length: 16 }, () => ({ kind: "next", notePosition: 1, velocity: 100, gateRatio: null, probability: 1, ratchets: 1 }))
 };
 
 export const BUILTIN_ARPEGGIATOR_PRESETS: ArpeggiatorPresetState[] = [
@@ -185,7 +192,9 @@ export const BUILTIN_ARPEGGIATOR_PRESETS: ArpeggiatorPresetState[] = [
       gateRatio: 0.42,
       octaves: 3,
       pattern: "up_down",
-      velocityMode: "accent",
+      velocityMode: "fixed",
+      fixedVelocity: 127,
+      steps: [127, 72, 96, 72, 116, 72, 96, 72].map(velocity => ({ kind: "next", notePosition: 1, velocity: Math.round(velocity / 127 * 100), gateRatio: null, probability: 1, ratchets: 1 })),
       accentCycle: [127, 72, 96, 72, 116, 72, 96, 72]
     }
   },
@@ -482,7 +491,22 @@ export function normalizeArpeggiatorVelocityMode(value: unknown): ArpeggiatorVel
 export function normalizeArpeggiatorRestartMode(value: unknown): ArpeggiatorRestartMode {
   return typeof value === "string" && ARPEGGIATOR_RESTART_MODES.includes(value as ArpeggiatorRestartMode)
     ? (value as ArpeggiatorRestartMode)
-    : DEFAULT_ARPEGGIATOR_SETTINGS.restartMode;
+    : "free";
+}
+
+export function normalizeArpeggiatorSteps(raw: unknown, accents: unknown[] = []): ArpeggiatorStep[] {
+  const source = Array.isArray(raw) && raw.length ? raw.slice(0, 32) :
+    Array.from({ length: accents.length || 16 }, (_, index) => ({ velocity: accents.length ? Math.round(Number(accents[index]) / 127 * 100) : 100 }));
+  return source.map((entry) => {
+    const step = entry && typeof entry === "object" ? entry as Record<string, unknown> : {};
+    const kind = ["next", "position", "rest", "tie", "chord"].includes(String(step.kind)) ? step.kind as ArpeggiatorStep["kind"] : "next";
+    const gate = step.gateRatio ?? step.gate_ratio;
+    return { kind, notePosition: clampInt(Number(step.notePosition ?? step.note_position ?? 1), 1, 128),
+      velocity: clampInt(Number(step.velocity ?? 100), 0, 200),
+      gateRatio: typeof gate === "number" ? Math.max(.05, Math.min(2, gate)) : null,
+      probability: typeof step.probability === "number" ? Math.max(0, Math.min(1, step.probability)) : 1,
+      ratchets: clampInt(Number(step.ratchets ?? 1), 1, 4) };
+  });
 }
 
 export function normalizeArpeggiatorSettings(raw: unknown): ArpeggiatorPresetSettings {
@@ -495,15 +519,15 @@ export function normalizeArpeggiatorSettings(raw: unknown): ArpeggiatorPresetSet
   const accentRaw = Array.isArray(source.accentCycle ?? source.accent_cycle)
     ? ((source.accentCycle ?? source.accent_cycle) as unknown[])
     : DEFAULT_ARPEGGIATOR_SETTINGS.accentCycle;
+  const legacyAccent = !Array.isArray(source.steps) && (source.velocityMode ?? source.velocity_mode) === "accent";
   return {
     rate: normalizeArpeggiatorRate(source.rate),
-    gateRatio: typeof source.gateRatio === "number" ? Math.max(0.05, Math.min(1, source.gateRatio)) : typeof source.gate_ratio === "number" ? Math.max(0.05, Math.min(1, source.gate_ratio)) : DEFAULT_ARPEGGIATOR_SETTINGS.gateRatio,
+    gateRatio: typeof source.gateRatio === "number" ? Math.max(0.05, Math.min(2, source.gateRatio)) : typeof source.gate_ratio === "number" ? Math.max(0.05, Math.min(2, source.gate_ratio)) : DEFAULT_ARPEGGIATOR_SETTINGS.gateRatio,
     swing: typeof source.swing === "number" ? Math.max(0, Math.min(0.75, source.swing)) : DEFAULT_ARPEGGIATOR_SETTINGS.swing,
     octaves: typeof source.octaves === "number" ? clampInt(source.octaves, 1, 4) : DEFAULT_ARPEGGIATOR_SETTINGS.octaves,
     pattern: normalizeArpeggiatorPattern(source.pattern),
-    latch: source.latch === true,
-    velocityMode: normalizeArpeggiatorVelocityMode(source.velocityMode ?? source.velocity_mode),
-    fixedVelocity: normalizeStepVelocity(source.fixedVelocity ?? source.fixed_velocity ?? DEFAULT_ARPEGGIATOR_SETTINGS.fixedVelocity),
+    velocityMode: legacyAccent ? "fixed" : normalizeArpeggiatorVelocityMode(source.velocityMode ?? source.velocity_mode),
+    fixedVelocity: legacyAccent ? 127 : normalizeStepVelocity(source.fixedVelocity ?? source.fixed_velocity ?? DEFAULT_ARPEGGIATOR_SETTINGS.fixedVelocity),
     accentCycle: accentRaw.slice(0, 32).map((value) => normalizeStepVelocity(value)),
     probability:
       typeof source.probability === "number" && Number.isFinite(source.probability)
@@ -527,7 +551,15 @@ export function normalizeArpeggiatorSettings(raw: unknown): ArpeggiatorPresetSet
     scaleRoot: normalizeSequencerScaleRoot(source.scaleRoot ?? source.scale_root ?? DEFAULT_ARPEGGIATOR_SETTINGS.scaleRoot),
     scaleType,
     mode,
-    restartMode: normalizeArpeggiatorRestartMode(source.restartMode ?? source.restart_mode)
+    lengthBeats: normalizeControllerSequencerLengthBeats(source.lengthBeats ?? source.length_beats ?? 4),
+    octaveTraversal: (source.octaveTraversal ?? source.octave_traversal) === "octave" ? "octave" : "range",
+    scaleMode: (source.scaleMode ?? source.scale_mode) === "custom" ? "custom" :
+      (source.scaleMode ?? source.scale_mode) === "source" || source.scaleMode === undefined && source.scale_mode === undefined && (source.scaleQuantize ?? source.scale_quantize) === true ? "source" : "off",
+    rotation: clampInt(Number(source.rotation ?? 0), 0, 31),
+    advanceRests: (source.advanceRests ?? source.advance_rests) === true,
+    randomSeed: clampInt(Number(source.randomSeed ?? source.random_seed ?? 42622), 0, 2147483647),
+    randomMode: (source.randomMode ?? source.random_mode) === "evolve" ? "evolve" : "repeat",
+    steps: normalizeArpeggiatorSteps(source.steps, legacyAccent ? accentRaw : [])
   };
 }
 
@@ -1157,6 +1189,18 @@ export function defaultArpeggiator(
     targetChannel: clampInt(targetChannel, 1, 16),
     presetId: preset?.id ?? null,
     ...settings,
+    playbackMode: "arranger",
+    processingMode: "active",
+    holdMode: "off",
+    latch: false,
+    restartMode: "free",
+    launchQuantize: "cycle",
+    activePad: 0,
+    pads: Array.from({ length: 8 }, () => normalizeArpeggiatorSettings(settings)),
+    padPresetIds: Array.from({ length: 8 }, () => preset?.id ?? null),
+    padLoopEnabled: true,
+    padLoopRepeat: true,
+    padLoopPattern: normalizePadLoopPatternBundle(undefined, [0]).padLoopPattern,
     heldNotes: [],
     activeNote: null,
     stepIndex: 0,
@@ -1170,7 +1214,10 @@ export function normalizeArpeggiatorState(raw: unknown, index: number): Arpeggia
     return fallback;
   }
   const source = raw as Record<string, unknown>;
-  const settings = normalizeArpeggiatorSettings(source);
+  const activePad = normalizePadIndex(Number(source.activePad ?? source.active_pad ?? 0));
+  const rawPads = Array.isArray(source.pads) ? source.pads : null;
+  const pads = Array.from({ length: 8 }, (_, pad) => normalizeArpeggiatorSettings(rawPads?.[pad] ?? (pad === 0 ? source : DEFAULT_ARPEGGIATOR_SETTINGS)));
+  const settings = pads[activePad];
   const heldNotesRaw = Array.isArray(source.heldNotes ?? source.held_notes) ? ((source.heldNotes ?? source.held_notes) as unknown[]) : [];
   return {
     id: typeof source.id === "string" && source.id.trim().length > 0 ? source.id : fallback.id,
@@ -1190,6 +1237,17 @@ export function normalizeArpeggiatorState(raw: unknown, index: number): Arpeggia
           : fallback.targetChannel,
     presetId: typeof source.presetId === "string" ? source.presetId : typeof source.preset_id === "string" ? source.preset_id : null,
     ...settings,
+    playbackMode: source.playbackMode === "live" || source.playback_mode === "live" ? "live" : "arranger",
+    processingMode: source.processingMode === "bypass" ? "bypass" : source.processingMode === "mute" ? "mute" : "active",
+    holdMode: rawPads && source.holdMode === "replace" ? "replace" : rawPads && source.holdMode === "toggle" ? "toggle" : "off",
+    latch: false,
+    restartMode: rawPads ? normalizeArpeggiatorRestartMode(source.restartMode) : "free",
+    launchQuantize: source.launchQuantize === "bar" ? "bar" : "cycle",
+    activePad, pads,
+    padPresetIds: Array.from({ length: 8 }, (_, i) => Array.isArray(source.padPresetIds) && typeof source.padPresetIds[i] === "string" ? source.padPresetIds[i] : i === 0 && typeof source.presetId === "string" ? source.presetId : null),
+    padLoopEnabled: source.padLoopEnabled !== false,
+    padLoopRepeat: source.padLoopRepeat !== false,
+    padLoopPattern: normalizePadLoopPatternBundle(source.padLoopPattern, [0]).padLoopPattern,
     heldNotes: heldNotesRaw.map((value) => normalizeStepNote(value)).filter((value): value is number => value !== null),
     activeNote: normalizeStepNote(source.activeNote ?? source.active_note),
     stepIndex: typeof source.stepIndex === "number" ? Math.max(0, Math.round(source.stepIndex)) : typeof source.step_index === "number" ? Math.max(0, Math.round(source.step_index)) : 0,
@@ -2830,7 +2888,7 @@ export function buildSequencerConfigSnapshot(
     timing
   );
   return {
-    version: 14,
+    version: 15,
     audioGraph: structuredClone(audioGraph),
     mixer: structuredClone(mixer),
     instruments: instruments
@@ -2997,7 +3055,13 @@ export function buildSequencerConfigSnapshot(
         inputChannel: clampInt(arpeggiator.inputChannel, 1, 16),
         targetChannel: clampInt(arpeggiator.targetChannel, 1, 16),
         presetId: arpeggiator.presetId,
-        ...normalizeArpeggiatorSettings(arpeggiator)
+        ...normalizeArpeggiatorSettings(arpeggiator),
+        playbackMode: arpeggiator.playbackMode, processingMode: arpeggiator.processingMode,
+        holdMode: arpeggiator.holdMode, latch: false, restartMode: arpeggiator.restartMode,
+        launchQuantize: arpeggiator.launchQuantize, activePad: arpeggiator.activePad,
+        pads: arpeggiator.pads.map(normalizeArpeggiatorSettings), padPresetIds: [...arpeggiator.padPresetIds],
+        padLoopEnabled: arpeggiator.padLoopEnabled, padLoopRepeat: arpeggiator.padLoopRepeat,
+        padLoopPattern: arpeggiator.padLoopPattern
       })),
       arpeggiatorPresets: sequencer.arpeggiatorPresets
         .filter((preset) => preset.builtin !== true)
@@ -3034,7 +3098,8 @@ export function parseSequencerConfigSnapshot(
     payload.version !== 11 &&
     payload.version !== 12 &&
     payload.version !== 13 &&
-    payload.version !== 14
+    payload.version !== 14 &&
+    payload.version !== 15
   ) {
     throw new Error("Unsupported sequencer config version.");
   }

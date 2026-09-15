@@ -312,11 +312,12 @@ export interface AppStore {
   removeArpeggiator: (arpeggiatorId: string) => void;
   setArpeggiatorEnabled: (arpeggiatorId: string, enabled: boolean) => void;
   updateArpeggiator: (arpeggiatorId: string, update: Partial<ArpeggiatorState>) => void;
-  applyArpeggiatorPreset: (arpeggiatorId: string, presetId: string) => void;
-  saveArpeggiatorPreset: (arpeggiatorId: string, presetName: string) => void;
+  applyArpeggiatorPreset: (arpeggiatorId: string, presetId: string, padIndex?: number) => void;
+  saveArpeggiatorPreset: (arpeggiatorId: string, presetName: string, padIndex?: number, update?: boolean) => void;
   syncArpeggiatorRuntime: (
     updates: Array<{
       arpeggiatorId: string;
+      status?: import("../types").SessionArpeggiatorStatus;
       heldNotes?: number[];
       activeNote?: number | null;
       stepIndex?: number;

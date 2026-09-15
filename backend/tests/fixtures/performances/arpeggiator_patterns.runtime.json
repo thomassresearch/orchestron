@@ -1,0 +1,165 @@
+{
+  "timing": {
+    "tempo_bpm": 120,
+    "steps_per_beat": 8
+  },
+  "step_count": 48,
+  "playback_end_step": 48,
+  "tracks": [
+    {
+      "track_id": "chords",
+      "midi_channel": 6,
+      "timing": {
+        "tempo_bpm": 120,
+        "steps_per_beat": 4
+      },
+      "length_beats": 4,
+      "enabled": true,
+      "pads": [
+        {
+          "pad_index": 0,
+          "length_beats": 4,
+          "steps": [
+            {
+              "note": [
+                60,
+                64,
+                67
+              ],
+              "hold": true,
+              "velocity": 100
+            },
+            {
+              "note": null,
+              "hold": true,
+              "velocity": 100
+            },
+            {
+              "note": null,
+              "hold": true,
+              "velocity": 100
+            },
+            {
+              "note": null,
+              "hold": true,
+              "velocity": 100
+            },
+            {
+              "note": null,
+              "hold": true,
+              "velocity": 100
+            },
+            {
+              "note": null,
+              "hold": true,
+              "velocity": 100
+            },
+            {
+              "note": null,
+              "hold": false,
+              "velocity": 100
+            },
+            {
+              "note": null,
+              "hold": false,
+              "velocity": 100
+            },
+            {
+              "note": [
+                62,
+                65,
+                69
+              ],
+              "hold": true,
+              "velocity": 100
+            },
+            {
+              "note": null,
+              "hold": true,
+              "velocity": 100
+            },
+            {
+              "note": null,
+              "hold": true,
+              "velocity": 100
+            },
+            {
+              "note": null,
+              "hold": true,
+              "velocity": 100
+            },
+            {
+              "note": null,
+              "hold": true,
+              "velocity": 100
+            },
+            {
+              "note": null,
+              "hold": true,
+              "velocity": 100
+            },
+            {
+              "note": null,
+              "hold": false,
+              "velocity": 100
+            },
+            {
+              "note": null,
+              "hold": false,
+              "velocity": 100
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "arpeggiators": [
+    {
+      "arpeggiator_id": "arp",
+      "input_channel": 6,
+      "target_channel": 5,
+      "enabled": true,
+      "hold_mode": "off",
+      "pad_loop_sequence": [
+        0,
+        0,
+        1
+      ],
+      "pads": [
+        {
+          "length_beats": 2,
+          "swing": 0.3,
+          "steps": [
+            {
+              "kind": "next"
+            },
+            {
+              "kind": "tie"
+            },
+            {
+              "kind": "rest"
+            },
+            {
+              "kind": "position",
+              "note_position": 4,
+              "ratchets": 2
+            },
+            {
+              "kind": "chord",
+              "gate_ratio": 1.5
+            }
+          ]
+        },
+        {
+          "length_beats": 2,
+          "pattern": "down",
+          "rate": "1/8T",
+          "random_seed": 8743,
+          "humanize_ms": 3,
+          "humanize_velocity": 5,
+          "probability": 0.8
+        }
+      ]
+    }
+  ]
+}

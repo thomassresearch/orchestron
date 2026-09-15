@@ -113,13 +113,14 @@ export function mergedSequencerState(
       arpeggiator.heldNotes === runtime.heldNotes &&
       arpeggiator.activeNote === runtime.activeNote &&
       arpeggiator.stepIndex === runtime.stepIndex &&
-      arpeggiator.lastVelocity === runtime.lastVelocity
+      arpeggiator.lastVelocity === runtime.lastVelocity && arpeggiator.runtimeStatus === runtime.status
     ) {
       return arpeggiator;
     }
     arpeggiatorRuntimeChanged = true;
     return {
       ...arpeggiator,
+      runtimeStatus: runtime.status,
       heldNotes: runtime.heldNotes,
       activeNote: runtime.activeNote,
       stepIndex: runtime.stepIndex,

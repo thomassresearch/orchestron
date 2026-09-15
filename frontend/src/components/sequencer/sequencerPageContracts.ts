@@ -199,12 +199,13 @@ export interface SequencerPageControllerSequencerActions {
 }
 
 export interface SequencerPageArpeggiatorActions {
+  onArpeggiatorCommand?: (id: string, command: import("../../types").ArpeggiatorCommand) => void;
   onAddArpeggiator: () => void;
   onRemoveArpeggiator: (arpeggiatorId: string) => void;
   onArpeggiatorEnabledChange: (arpeggiatorId: string, enabled: boolean) => void;
   onArpeggiatorChange: (arpeggiatorId: string, update: Partial<ArpeggiatorState>) => void;
-  onArpeggiatorPresetApply: (arpeggiatorId: string, presetId: string) => void;
-  onArpeggiatorPresetSave: (arpeggiatorId: string, presetName: string) => void;
+  onArpeggiatorPresetApply: (arpeggiatorId: string, presetId: string, padIndex?: number) => void;
+  onArpeggiatorPresetSave: (arpeggiatorId: string, presetName: string, padIndex?: number, update?: boolean) => void;
 }
 
 export interface SequencerPageProps {

@@ -1,0 +1,256 @@
+from __future__ import annotations
+
+from fractions import Fraction
+
+import pytest
+
+from backend.app.models.session import ArpeggiatorCommand, SessionArpeggiatorConfig
+from backend.app.services.arpeggiator_runtime import PerformanceMidiRouter
+
+
+class Playback:
+    def __init__(self, *, collect_status_events=False, **settings):
+        self.sample = 0
+        self.events = []
+        self.router = PerformanceMidiRouter(enqueue_timestamped_midi=self.capture,
+                                            current_engine_sample=lambda: self.sample,
+                                            collect_status_events=collect_status_events)
+        self.config = SessionArpeggiatorConfig(arpeggiator_id="arp", input_channel=2, target_channel=1,
+                                              enabled=True, **settings)
+        self.router.configure([self.config], tempo_bpm=120)
+        if self.config.playback_mode == "arranger":
+            self.router.set_transport(beat=0, running=True, sample=0)
+
+    def capture(self, message, **kwargs):
+        self.events.append((message, kwargs["target_engine_sample"]))
+        return True
+
+    def note(self, notes=(60, 64, 67), sample=0, on=True):
+        for note in notes:
+            self.router.route_message([0x91 if on else 0x81, note, 100 if on else 0],
+                                       source="test", target_engine_sample=sample)
+
+    def advance(self, end, block=64):
+        while self.sample < end:
+            stop = min(end, self.sample + block)
+            self.router.advance_render_block(block_start_sample=self.sample, block_end_sample=stop, sample_rate=48000)
+            self.sample = stop
+
+    @property
+    def attacks(self):
+        return [(m[1], at) for m, at in self.events if m[0] == 0x90]
+
+
+def test_master_sync_enters_on_next_step_and_chords_preserve_phase():
+    p = Playback()
+    p.note(sample=1000)
+    p.note(sample=7000, on=False)
+    p.note((62, 65, 69), sample=7500)
+    p.advance(19000)
+    assert p.attacks == [(64, 6000), (69, 12000), (62, 18000)]
+
+
+@pytest.mark.parametrize("block", [1, 64, 511, 30000])
+def test_swing_keeps_pair_duration_and_is_block_independent(block):
+    p = Playback(swing=.5)
+    p.note()
+    p.advance(25000, block)
+    assert [at for _, at in p.attacks] == [0, 7500, 12000, 19500, 24000]
+
+
+@pytest.mark.parametrize("rate,beats", [("1/8T", Fraction(1, 3)), ("1/16T", Fraction(1, 6)), ("1/8D", Fraction(3, 4))])
+def test_rational_rates_do_not_accumulate_rounding(rate, beats):
+    p = Playback(rate=rate)
+    p.router.configure([p.config], tempo_bpm=137)
+    p.note()
+    p.advance(480000, 4096)
+    assert [at for _, at in p.attacks] == [round(i * beats * 48000 * 60 / 137) for i in range(len(p.attacks))]
+
+
+def test_hold_replace_repeated_chord_never_toggles_off():
+    p = Playback(hold_mode="replace")
+    p.note()
+    p.note(sample=500, on=False)
+    p.note(sample=7000)
+    p.note(sample=7500, on=False)
+    p.note((62, 65, 69), sample=13000)
+    p.advance(19000)
+    assert p.router.status()[0].held_notes == [62, 65, 69]
+    assert len(p.attacks) == 4
+
+
+def test_hold_off_silences_rests_and_clear_cancels_pending_notes():
+    p = Playback(gate_ratio=2)
+    p.note()
+    p.note(sample=1000, on=False)
+    p.advance(7000)
+    assert p.attacks == [(60, 0)]
+    assert not p.router.status()[0].active_notes
+    p.note(sample=12000)
+    p.router.command("arp", ArpeggiatorCommand(command="clear"))
+    p.advance(19000)
+    assert p.attacks == [(60, 0)]
+
+
+def test_same_sample_key_tap_does_not_leave_a_physically_held_note():
+    p = Playback(playback_mode="live")
+    p.note((60,), sample=100)
+    p.note((60,), sample=100, on=False)
+    p.advance(12000)
+    assert p.router.status()[0].held_notes == []
+    assert not p.attacks
+
+
+def test_audible_status_marks_notes_and_pad_launch_at_their_engine_samples():
+    p = Playback(collect_status_events=True, pads=[{"steps": [{"kind": "next"}] * 4}, {"pattern": "down"}])
+    p.note(sample=1000)
+    p.advance(2000)
+    p.router.command("arp", ArpeggiatorCommand(command="launch", pad_index=1))
+    p.advance(25000)
+    markers = p.router.drain_render_status_events()
+    statuses = [(event.engine_sample, event.payload["arpeggiators"][0]) for event in markers]
+    assert any(sample == 6000 and status["active_notes"] for sample, status in statuses)
+    assert any(status["queued_pad"] == 1 for _, status in statuses)
+    assert any(sample == 24000 and status["active_pad"] == 1 and status["manual_override"] for sample, status in statuses)
+    assert p.router.drain_render_status_events() == []
+
+
+def test_down_orders_complete_octave_range():
+    p = Playback(pattern="down", octaves=2)
+    p.note()
+    p.advance(31000)
+    assert [note for note, _ in p.attacks] == [79, 76, 72, 67, 64, 60]
+
+
+def test_rhythm_rests_ties_positions_and_ratchets():
+    p = Playback(pads=[{"steps": [{"kind": "position", "note_position": 2}, {"kind": "tie"},
+                                  {"kind": "rest"}, {"kind": "chord", "ratchets": 2}]}])
+    p.note()
+    p.advance(24000)
+    assert p.attacks == [(64, 0), (60, 18000), (64, 18000), (67, 18000),
+                         (60, 21000), (64, 21000), (67, 21000)]
+    assert ([0x80, 64, 0], 12000) in p.events
+
+
+def test_rhythm_wrap_does_not_reset_note_order_and_same_pad_continues():
+    p = Playback(pads=[{"length_beats": 1, "steps": [{"kind": "next"}] * 5}], pad_loop_sequence=[0, 0])
+    p.note()
+    p.advance(61000)
+    assert [n for n, _ in p.attacks] == [60, 64, 67, 60, 64, 67, 60, 64, 67, 60, 64]
+
+
+def test_changed_pad_and_pause_boundaries_apply_within_large_block():
+    p = Playback(pads=[{"length_beats": 1}, {"length_beats": 1, "pattern": "down"}], pad_loop_sequence=[0, -1, 1])
+    p.note()
+    p.advance(61000, 61000)
+    assert p.attacks == [(60, 0), (64, 6000), (67, 12000), (60, 18000), (67, 48000), (64, 54000), (60, 60000)]
+
+
+def test_launch_takes_over_and_return_restores_arrangement():
+    p = Playback(pads=[{"steps": [{"kind": "next"}] * 4}, {"pattern": "down"}])
+    p.note()
+    p.advance(1000)
+    p.router.command("arp", ArpeggiatorCommand(command="launch", pad_index=1))
+    p.advance(25000)
+    assert p.attacks[-1] == (67, 24000)
+    assert p.router.status()[0].manual_override
+    p.router.command("arp", ArpeggiatorCommand(command="arrangement"))
+    p.advance(31000)
+    assert p.router.status()[0].active_pad == 0
+    assert not p.router.status()[0].manual_override
+
+
+def test_arranger_stop_releases_hold_but_live_arp_keeps_running():
+    for mode in ("live", "arranger"):
+        p = Playback(playback_mode=mode, hold_mode="replace")
+        p.note()
+        p.advance(1000)
+        p.router.set_transport(beat=Fraction(1, 24), running=False, sample=1000)
+        p.advance(13000)
+        assert len(p.attacks) == (3 if mode == "live" else 1)
+
+
+def test_seed_is_reproducible_and_preview_does_not_change_music():
+    outputs = []
+    for block in (64, 4096):
+        p = Playback(pattern="random", probability=.7, humanize_ms=4, humanize_velocity=10)
+        p.note()
+        p.router.status()
+        p.advance(193000, block)
+        outputs.append(p.events)
+    assert outputs[0] == outputs[1]
+
+
+def test_bypass_balances_notes_on_mode_change():
+    p = Playback(processing_mode="bypass")
+    p.note(sample=1000)
+    p.advance(2000)
+    assert p.attacks == [(60, 1000), (64, 1000), (67, 1000)]
+    p.router.configure([p.config.model_copy(update={"processing_mode": "mute"})], tempo_bpm=120)
+    p.advance(7000)
+    assert sum(m[0] == 0x80 for m, _ in p.events) == 3
+
+
+def test_seek_with_swing_joins_delayed_subdivision_and_loop_reconstructs_phrase():
+    p = Playback(swing=.5)
+    p.note()
+    p.advance(1000)
+    p.router.set_transport(beat=Fraction(3, 10), running=True, sample=1000)
+    p.advance(8000)
+    assert p.attacks[1] == (64, 1300)  # Beat .3125 remains ahead of the seek.
+    p.router.set_transport(beat=0, running=True, sample=8000)
+    p.advance(16000)
+    assert (60, 8000) in p.attacks
+    assert (64, 15500) in p.attacks
+
+
+def test_first_note_restart_changes_rhythm_without_moving_clock():
+    p = Playback(restart_mode="first_note", pads=[{"steps": [{"kind": "chord"}, {"kind": "rest"}, {"kind": "next"}]}])
+    p.note(sample=1000)
+    p.note(sample=7000, on=False)
+    p.note((62, 65), sample=9000)
+    p.advance(13000)
+    assert p.attacks == [(60, 6000), (64, 6000), (67, 6000), (62, 12000), (65, 12000)]
+
+
+def test_beat_restart_and_pause_resume_do_not_emit_overdue_bursts():
+    p = Playback(restart_mode="beat", pads=[{"length_beats": 1, "steps": [{"kind": "position", "note_position": 3}, {"kind": "rest"}]}], pad_loop_sequence=[0, -1, 0])
+    p.note()
+    p.advance(61000, 61000)
+    assert p.attacks == [(67, 0), (67, 12000), (67, 48000), (67, 60000)]
+
+
+def test_live_stop_restarts_clock_on_next_input_and_rate_edit_keeps_subdivisions():
+    p = Playback(playback_mode="live")
+    p.note()
+    p.advance(7000)
+    p.router.configure([p.config.model_copy(update={"enabled": False})], tempo_bpm=120)
+    p.advance(80000)
+    p.router.configure([p.config], tempo_bpm=120)
+    p.note((65,), sample=81000)
+    p.advance(82000)
+    assert p.attacks[-1] == (65, 81000)
+    pads = [pad.model_copy(update={"rate": "1/4"}) for pad in p.config.pads]
+    p.router.configure([p.config.model_copy(update={"pads": pads})], tempo_bpm=120)
+    p.advance(110000)
+    assert p.attacks[-1] == (65, 105000)
+
+
+def test_tempo_change_preserves_beat_and_random_repeat_is_per_cycle():
+    p = Playback(pattern="random")
+    p.note()
+    p.advance(192000)
+    assert [n for n, _ in p.attacks[:16]] == [n for n, _ in p.attacks[16:32]]
+    p.router.configure([p.config], tempo_bpm=60)
+    p.advance(217000)
+    assert [at for _, at in p.attacks[-3:]] == [192000, 204000, 216000]
+
+
+def test_scale_and_toggle_hold_use_incoming_pitches():
+    p = Playback(hold_mode="toggle", pads=[{"scale_mode": "custom", "scale_root": "C", "mode": "ionian", "steps": [{"kind": "position", "note_position": 5}]}])
+    p.note((61, 66))
+    p.note((61, 66), sample=1000, on=False)
+    p.note((61,), sample=2000)
+    p.advance(7000)
+    assert p.router.status()[0].held_notes == [66]
+    assert p.attacks == [(60, 0), (65, 6000)]

@@ -33,6 +33,7 @@ from backend.app.models.session import (
     HostMidiEventsRequest,
     HostMidiRegisterRequest,
     MidiInputRef,
+    ArpeggiatorCommand,
     SessionArpeggiatorConfigRequest,
     SessionArpeggiatorStatus,
     SessionSequencerConfigRequest,
@@ -644,6 +645,7 @@ class SessionService:
             SessionSequencerStartRequest(
                 config=request.config,
                 position_step=request.position_step,
+                arranger_active=request.arranger_active,
             ),
         )
         return self._browser_clock_sequencer_status_message(
@@ -770,6 +772,7 @@ class SessionService:
             engine_sample_start=render.engine_sample_start,
             engine_sample_end=render.engine_sample_end,
         )
+        transport_events.extend(router.drain_render_status_events())
         timeline_segments, serialized_transport_events = self._browser_clock_transport_timeline(
             engine_sample_start=render.engine_sample_start,
             engine_sample_end=render.engine_sample_end,
@@ -982,11 +985,12 @@ class SessionService:
     def _invalidate_configuration(self, runtime: RuntimeSession) -> None:
         with runtime.configuration_lock:
             runtime.configuration_generation += 1
+            runtime.arpeggiator_generation += 1
         self._preparation.invalidate(runtime.session_id)
 
     async def _prepare_session_configuration(
         self, runtime: RuntimeSession, request: SessionSequencerConfigRequest,
-        *, start: bool = False, position: int | None = None, seek: bool = False,
+        *, start: bool = False, position: int | None = None, seek: bool = False, arranger_active: bool | None = None,
     ) -> SessionSequencerStatus:
         with runtime.configuration_lock:
             runtime.configuration_generation += 1
@@ -1003,6 +1007,11 @@ class SessionService:
                         self._ensure_midi_router(runtime).configure(request.arpeggiators, tempo_bpm=request.timing.tempo_bpm)
                     if start:
                         status = sequencer.start(position)
+                    if start or seek:
+                        router = self._ensure_midi_router(runtime)
+                        router.set_transport(beat=status.transport_subunit / 3360,
+                            running=router.arranger_running if arranger_active is None else arranger_active,
+                            bar_beats=status.timing.meter_numerator)
                     return self._status_with_arpeggiators(runtime, status)
             return await asyncio.to_thread(runtime.worker.run_at_render_boundary, at_boundary)
 
@@ -1047,14 +1056,18 @@ class SessionService:
         self._remember_running_loop()
         runtime = await self._get_session(session_id)
 
-        try:
-            router = self._ensure_midi_router(runtime)
-            router.configure(
-                request.arpeggiators,
-                tempo_bpm=request.tempo_bpm,
-            )
+        with runtime.configuration_lock:
             runtime.arpeggiator_generation += 1
-            status = router.status()
+            generation = runtime.arpeggiator_generation
+        try:
+            def configure_at_boundary():
+                with runtime.configuration_lock:
+                    if generation != runtime.arpeggiator_generation:
+                        raise HTTPException(status_code=409, detail="Arpeggiator edit superseded.")
+                    router = self._ensure_midi_router(runtime)
+                    router.configure(request.arpeggiators, tempo_bpm=request.tempo_bpm)
+                    return router.status()
+            status = await asyncio.to_thread(runtime.worker.run_at_render_boundary, configure_at_boundary)
         except ValueError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
 
@@ -1068,6 +1081,30 @@ class SessionService:
         )
         return status
 
+    async def command_session_arpeggiator(self, session_id: str, arpeggiator_id: str,
+                                          request: ArpeggiatorCommand) -> list[SessionArpeggiatorStatus]:
+        runtime = await self._get_session(session_id)
+        def command_at_boundary():
+            router = self._ensure_midi_router(runtime)
+            router.command(arpeggiator_id, request)
+            return router.status()
+        try:
+            return await asyncio.to_thread(runtime.worker.run_at_render_boundary, command_at_boundary)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    async def set_session_arranger_active(self, session_id: str, active: bool) -> SessionSequencerStatus:
+        runtime = await self._get_session(session_id)
+        if not active:
+            with runtime.configuration_lock:
+                runtime.arpeggiator_generation += 1
+        def at_boundary():
+            status = self._ensure_sequencer(runtime).status()
+            self._ensure_midi_router(runtime).set_transport(beat=status.transport_subunit / 3360,
+                running=active, bar_beats=status.timing.meter_numerator)
+            return self._status_with_arpeggiators(runtime, status)
+        return await asyncio.to_thread(runtime.worker.run_at_render_boundary, at_boundary)
+
     async def start_session_sequencer(
         self,
         session_id: str,
@@ -1079,7 +1116,7 @@ class SessionService:
             await self.start_session(session_id)
 
         if request.config is not None:
-            status = await self._prepare_session_configuration(runtime, request.config, start=True, position=request.position_step)
+            status = await self._prepare_session_configuration(runtime, request.config, start=True, position=request.position_step, arranger_active=request.arranger_active)
         else:
             with runtime.configuration_lock:
                 generation = runtime.configuration_generation
@@ -1088,7 +1125,10 @@ class SessionService:
                 with runtime.configuration_lock:
                     if generation != runtime.configuration_generation:
                         raise HTTPException(status_code=409, detail="Sequencer start superseded.")
-                    return self._status_with_arpeggiators(runtime, self._ensure_sequencer(runtime).start(request.position_step))
+                    status = self._ensure_sequencer(runtime).start(request.position_step)
+                    self._ensure_midi_router(runtime).set_transport(beat=status.transport_subunit / 3360,
+                        running=request.arranger_active, bar_beats=status.timing.meter_numerator)
+                    return self._status_with_arpeggiators(runtime, status)
 
             status = await asyncio.to_thread(
                 runtime.worker.run_at_render_boundary,
@@ -1120,6 +1160,7 @@ class SessionService:
         self._invalidate_configuration(runtime)
         sequencer = self._ensure_sequencer(runtime)
         status = sequencer.stop()
+        self._ensure_midi_router(runtime).set_transport(beat=status.transport_subunit / 3360, running=False)
         status = self._status_with_arpeggiators(runtime, status)
 
         await self._publish(runtime.session_id, "sequencer_stopped", {"cycle": status.cycle})
@@ -1151,8 +1192,13 @@ class SessionService:
         self._remember_running_loop()
         runtime = await self._get_session(session_id)
         sequencer = self._ensure_sequencer(runtime)
-        status = sequencer.rewind_cycle()
-        status = self._status_with_arpeggiators(runtime, status)
+        def rewind_at_boundary():
+            status = sequencer.rewind_cycle()
+            router = self._ensure_midi_router(runtime)
+            router.transport_discontinuity(status.transport_subunit / 3360)
+            return self._status_with_arpeggiators(runtime, status)
+
+        status = await asyncio.to_thread(runtime.worker.run_at_render_boundary, rewind_at_boundary)
 
         await self._publish(
             runtime.session_id,
@@ -1165,8 +1211,13 @@ class SessionService:
         self._remember_running_loop()
         runtime = await self._get_session(session_id)
         sequencer = self._ensure_sequencer(runtime)
-        status = sequencer.forward_cycle()
-        status = self._status_with_arpeggiators(runtime, status)
+        def forward_at_boundary():
+            status = sequencer.forward_cycle()
+            router = self._ensure_midi_router(runtime)
+            router.transport_discontinuity(status.transport_subunit / 3360)
+            return self._status_with_arpeggiators(runtime, status)
+
+        status = await asyncio.to_thread(runtime.worker.run_at_render_boundary, forward_at_boundary)
 
         await self._publish(
             runtime.session_id,

@@ -47,7 +47,7 @@ const MAX_STEP_PIXEL_WIDTH = 24;
 const TOKEN_REORDER_DRAG_MIME = "application/x-visualcsound-arranger-token";
 const SELECTION_DRAG_THRESHOLD_PX = 4;
 
-type ArrangerTrackKind = "sequencer" | "drummer" | "controller";
+type ArrangerTrackKind = "sequencer" | "drummer" | "controller" | "arpeggiator";
 
 type ArrangerTrack = {
   key: string;
@@ -170,6 +170,7 @@ type MultitrackArrangerProps = {
   onSequencerTrackPadLoopPatternChange: (trackId: string, pattern: PadLoopPatternState) => void;
   onDrummerSequencerTrackPadLoopPatternChange: (trackId: string, pattern: PadLoopPatternState) => void;
   onControllerSequencerPadLoopPatternChange: (controllerSequencerId: string, pattern: PadLoopPatternState) => void;
+  onArpeggiatorPadLoopPatternChange?: (id: string, pattern: PadLoopPatternState) => void;
   onHelpRequest?: (helpDocId: HelpDocId) => void;
 };
 
@@ -833,6 +834,7 @@ function MultitrackArrangerBody({
   onSequencerTrackPadLoopPatternChange,
   onDrummerSequencerTrackPadLoopPatternChange,
   onControllerSequencerPadLoopPatternChange,
+  onArpeggiatorPadLoopPatternChange,
 }: MultitrackArrangerProps) {
   const timelineViewportRef = useRef<HTMLDivElement | null>(null);
   const timelineScrollbarRef = useRef<HTMLDivElement | null>(null);
@@ -915,8 +917,15 @@ function MultitrackArrangerBody({
         enabled: track.enabled
       });
     });
+    sequencer.arpeggiators.filter(arp => arp.playbackMode !== "live").forEach((arp, index) => tracks.push({
+      key: `arpeggiator:${arp.id}`, id: arp.id, kind: "arpeggiator", index, title: arp.name,
+      subtitle: buildTrackSubtitle("sequencer", arp.targetChannel, patchByChannel, null),
+      padLoopPattern: arp.padLoopPattern,
+      padTransportStepCounts: arp.pads.map(pad => pad.lengthBeats * stepGridQuantum),
+      defaultPadTransportStepCount: arp.lengthBeats * stepGridQuantum, enabled: arp.enabled
+    }));
     return tracks;
-  }, [copy, patchByChannel, sequencer.controllerSequencers, sequencer.drummerTracks, sequencer.tracks]);
+  }, [sequencer.arpeggiators, stepGridQuantum, copy, patchByChannel, sequencer.controllerSequencers, sequencer.drummerTracks, sequencer.tracks]);
 
   const commitTrackPattern = useCallback(
     (track: ArrangerTrack, nextPattern: PadLoopPatternState) => {
@@ -928,9 +937,14 @@ function MultitrackArrangerBody({
         onDrummerSequencerTrackPadLoopPatternChange(track.id, nextPattern);
         return;
       }
+      if (track.kind === "arpeggiator") {
+        onArpeggiatorPadLoopPatternChange?.(track.id, nextPattern);
+        return;
+      }
       onControllerSequencerPadLoopPatternChange(track.id, nextPattern);
     },
     [
+      onArpeggiatorPadLoopPatternChange,
       onControllerSequencerPadLoopPatternChange,
       onDrummerSequencerTrackPadLoopPatternChange,
       onSequencerTrackPadLoopPatternChange

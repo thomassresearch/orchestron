@@ -75,7 +75,7 @@ def replace_neutral_master(config: dict, old: str) -> dict:
     # Version 14 changes the audio model; earlier unrelated migrations still
     # belong to the existing v1–10 reader.
     if result.get("version", 11) >= 11:
-        result["version"] = 14
+        result["version"] = max(14, result.get("version", 14))
     return result
 
 
@@ -100,7 +100,7 @@ def normalize_master_config(config: dict, lookup) -> dict:
         result = deepcopy(config)
         result["audioGraph"]["masterId"] = MASTER
         if result.get("version", 11) >= 11:
-            result["version"] = 14
+            result["version"] = max(14, result.get("version", 14))
         return result
     binding = next((b for b in config.get("instruments", []) if b.get("id") == old), None)
     definitions = config.get("patchDefinitions", config.get("patch_definitions", []))
@@ -135,7 +135,7 @@ def normalize_master_config(config: dict, lookup) -> dict:
     if len(routes) > 1024:
         return config  # Preserve a full custom graph for manual repair.
     if result.get("version", 11) >= 11:
-        result["version"] = 14
+        result["version"] = max(14, result.get("version", 14))
     return result
 
 
@@ -147,7 +147,8 @@ def normalize_master_bundle(payload: dict, lookup=lambda _: None) -> dict:
         return payload
     by_id = {p["sourcePatchId"]: p for p in definitions}
     config = payload["performance"]["config"]
-    normalized = normalize_master_config(config, lambda key: by_id.get(key) or lookup(key))
+    from backend.app.services.arpeggiator_migration import migrate_arpeggiators
+    normalized = migrate_arpeggiators(normalize_master_config(config, lambda key: by_id.get(key) or lookup(key)))
     if normalized is config:
         return payload
     result = deepcopy(payload)

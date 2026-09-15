@@ -367,7 +367,8 @@ export default function App() {
         selection === null &&
         (resolvedState.tracks.some(trackShouldRunContinuously) ||
           resolvedState.drummerTracks.some(trackShouldRunContinuously) ||
-          resolvedState.controllerSequencers.some(trackShouldRunContinuously));
+          resolvedState.controllerSequencers.some(trackShouldRunContinuously) ||
+          resolvedState.arpeggiators.some(arp => arp.playbackMode === "arranger" && arp.padLoopEnabled && arp.padLoopRepeat));
       const resolvedPlaybackStartStep = exportMode ? 0 : playbackStartStep;
       const resolvedPlaybackEndStep = exportMode
         ? Math.max(sequencerTransportStepsPerBeat(resolvedState.timing), arrangementEndStep)
@@ -521,7 +522,9 @@ export default function App() {
         playback_loop: resolvedPlaybackLoop,
         tracks: transportTracks,
         controller_tracks: controllerTracks,
-        arpeggiators: buildBackendArpeggiatorConfigs(resolvedState)
+        arpeggiators: buildBackendArpeggiatorConfigs(resolvedState).map((arp, index) => ({
+          ...arp, enabled: exportMode && arp.playback_mode === "arranger" ? resolvedState.arpeggiators[index].padLoopEnabled : arp.enabled
+        }))
       };
     },
     [appCopy.errors]
@@ -557,6 +560,7 @@ export default function App() {
     sequencerRef,
     startSequencerTransport,
     stopSequencerTransport,
+    cancelPendingArpeggiatorEdits,
     markSequencerConfigSyncPending
   } = useSequencerRuntimeController({
     activePage,
@@ -942,7 +946,7 @@ export default function App() {
 
     pendingSequencerTransportStartRef.current = false;
     sequencerTransportStartInFlightRef.current = true;
-    void startSequencerTransport()
+    void startSequencerTransport(arrangerTransportActiveRef.current)
       .catch((error) => {
         setSequencerError(error instanceof Error ? error.message : appCopy.errors.failedToStartSequencer);
       })
@@ -987,12 +991,6 @@ export default function App() {
     }
     startPendingSequencerTransport();
   }, [activeSessionState, startPendingSequencerTransport]);
-
-  useEffect(() => {
-    if (activeSessionState !== "running") {
-      pendingSequencerTransportStartRef.current = false;
-    }
-  }, [activeSessionState]);
 
   useEffect(() => {
     if (!sequencer.isPlaying) {
@@ -1069,8 +1067,13 @@ export default function App() {
       }
     }
 
+    for (const arp of currentSequencer.arpeggiators) {
+      if (arp.playbackMode !== "arranger") continue;
+      hasArrangerTrack = hasArrangerTrack || arp.padLoopEnabled;
+      setArpeggiatorEnabled(arp.id, arp.padLoopEnabled);
+    }
     return hasArrangerTrack;
-  }, [
+  }, [setArpeggiatorEnabled,
     markSequencerConfigSyncPending,
     setControllerSequencerEnabled,
     setDrummerSequencerTrackEnabled,
@@ -1123,8 +1126,12 @@ export default function App() {
       return;
     }
 
-    startSequencerTransportFromUserAction();
-  }, [applyArrangerTransportTrackStates, startSequencerTransportFromUserAction, stopSequencerTransport]);
+    if (useAppStore.getState().sequencerRuntime.isPlaying) {
+      void startSequencerTransport(true);
+    } else {
+      startSequencerTransportFromUserAction();
+    }
+  }, [startSequencerTransport, applyArrangerTransportTrackStates, startSequencerTransportFromUserAction, stopSequencerTransport]);
 
   const onDrummerSequencerRowKeyPreview = useCallback(
     (note: number, channel: number) => {
@@ -1189,6 +1196,7 @@ export default function App() {
 
   const stopPerformance = useCallback(
     async (resetTransport: boolean) => {
+      pendingSequencerTransportStartRef.current = false;
       arrangerTransportActiveRef.current = false;
       if (sequencerRef.current.isPlaying) {
         await stopSequencerTransport(false);
@@ -1660,6 +1668,9 @@ export default function App() {
     (resetPlayhead: boolean) => {
       setSequencerError(null);
       arrangerTransportActiveRef.current = false;
+      cancelPendingArpeggiatorEdits();
+      const sessionId = useAppStore.getState().activeSessionId;
+      if (sessionId) void api.setArrangerActive(sessionId, false).catch(error => setSequencerError(String(error)));
       stopArrangerPadLoopTracks();
 
       const state = useAppStore.getState();
@@ -1683,6 +1694,7 @@ export default function App() {
         });
     },
     [
+      cancelPendingArpeggiatorEdits,
       resetArrangerTransportToSelectionStart,
       stopArrangerPadLoopTracks,
       stopSequencerTransport
@@ -1887,7 +1899,25 @@ export default function App() {
   const sequencerArpeggiatorActions = {
     onAddArpeggiator: addArpeggiator,
     onRemoveArpeggiator: removeArpeggiator,
-    onArpeggiatorEnabledChange: setArpeggiatorEnabled,
+    onArpeggiatorEnabledChange: (id: string, enabled: boolean) => {
+      setArpeggiatorEnabled(id, enabled);
+      const arp = useAppStore.getState().sequencer.arpeggiators.find(a => a.id === id);
+      if (enabled && arp?.playbackMode === "live" && activeSessionState !== "running") {
+        primeBrowserClockAudio();
+        void startSession();
+      }
+    },
+    onArpeggiatorCommand: (id: string, command: import("./types").ArpeggiatorCommand) => {
+      const sessionId = useAppStore.getState().activeSessionId;
+      if (!sessionId || activeSessionState !== "running") {
+        if (command.command === "launch" && command.pad_index !== undefined) updateArpeggiator(id, { activePad: command.pad_index });
+        return;
+      }
+      void api.commandArpeggiator(sessionId, id, command).then(statuses => syncArpeggiatorRuntime(statuses.map(status => ({
+        arpeggiatorId: status.arpeggiator_id, status, heldNotes: status.held_notes, activeNote: status.active_note,
+        stepIndex: status.step_index, lastVelocity: status.last_velocity
+      })))).catch(error => setSequencerError(String(error)));
+    },
     onArpeggiatorChange: updateArpeggiator,
     onArpeggiatorPresetApply: applyArpeggiatorPreset,
     onArpeggiatorPresetSave: saveArpeggiatorPreset

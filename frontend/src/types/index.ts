@@ -329,21 +329,23 @@ export type ArpeggiatorPattern =
   | "outside_in";
 export type ArpeggiatorRate = "1/1" | "1/2" | "1/4" | "1/8" | "1/16" | "1/32" | "1/8T" | "1/16T" | "1/8D" | "1/16D";
 export type ArpeggiatorVelocityMode = "input" | "fixed" | "accent" | "random";
-export type ArpeggiatorRestartMode = "free" | "first_note";
+export type ArpeggiatorRestartMode = "free" | "first_note" | "beat" | "bar";
 
-export interface ArpeggiatorState {
-  id: string;
-  name: string;
-  enabled: boolean;
-  inputChannel: number;
-  targetChannel: number;
-  presetId: string | null;
+export interface ArpeggiatorStep {
+  kind: "next" | "position" | "rest" | "tie" | "chord";
+  notePosition: number;
+  velocity: number;
+  gateRatio: number | null;
+  probability: number;
+  ratchets: number;
+}
+
+export interface ArpeggiatorPadState {
   rate: ArpeggiatorRate;
   gateRatio: number;
   swing: number;
   octaves: number;
   pattern: ArpeggiatorPattern;
-  latch: boolean;
   velocityMode: ArpeggiatorVelocityMode;
   fixedVelocity: number;
   accentCycle: number[];
@@ -356,20 +358,46 @@ export interface ArpeggiatorState {
   scaleRoot: SequencerScaleRoot;
   scaleType: SequencerScaleType;
   mode: SequencerMode;
+  lengthBeats: ControllerSequencerPadLengthBeats;
+  octaveTraversal: "range" | "octave";
+  scaleMode: "off" | "source" | "custom";
+  rotation: number;
+  advanceRests: boolean;
+  randomSeed: number;
+  randomMode: "repeat" | "evolve";
+  steps: ArpeggiatorStep[];
+}
+
+export interface ArpeggiatorState extends ArpeggiatorPadState {
+  id: string;
+  name: string;
+  enabled: boolean;
+  inputChannel: number;
+  targetChannel: number;
+  presetId: string | null;
+  playbackMode: "arranger" | "live";
+  processingMode: "active" | "bypass" | "mute";
+  holdMode: "off" | "replace" | "toggle";
+  latch: boolean;
   restartMode: ArpeggiatorRestartMode;
+  launchQuantize: "cycle" | "bar";
+  activePad: number;
+  pads: ArpeggiatorPadState[];
+  padPresetIds: Array<string | null>;
+  padLoopEnabled: boolean;
+  padLoopRepeat: boolean;
+  padLoopPattern: PadLoopPatternState;
   heldNotes: number[];
   activeNote: number | null;
   stepIndex: number;
   lastVelocity: number | null;
+  runtimeStatus?: SessionArpeggiatorStatus;
 }
 
 export interface ArpeggiatorPresetState {
   id: string;
   name: string;
-  settings: Omit<
-    ArpeggiatorState,
-    "id" | "name" | "enabled" | "inputChannel" | "targetChannel" | "presetId" | "heldNotes" | "activeNote" | "stepIndex" | "lastVelocity"
-  >;
+  settings: ArpeggiatorPadState;
   builtin?: boolean;
 }
 
@@ -451,6 +479,7 @@ export interface SequencerRuntimeState {
   arpeggiatorStatusById: Record<
     string,
     {
+      status?: SessionArpeggiatorStatus;
       heldNotes: number[];
       activeNote: number | null;
       stepIndex: number;
@@ -500,7 +529,7 @@ export interface SequencerInstrumentBinding {
 }
 
 export interface SequencerConfigSnapshot {
-  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14;
+  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15;
   audioGraph?: AudioGraph;
   mixer?: MixerState;
   instruments: Array<{
@@ -610,33 +639,8 @@ export interface SequencerConfigSnapshot {
         value: number;
       }>;
     }>;
-    arpeggiators?: Array<{
-      id: string;
-      name: string;
-      enabled: boolean;
-      inputChannel: number;
-      targetChannel: number;
-      presetId: string | null;
-      rate: ArpeggiatorRate;
-      gateRatio: number;
-      swing: number;
-      octaves: number;
-      pattern: ArpeggiatorPattern;
-      latch: boolean;
-      velocityMode: ArpeggiatorVelocityMode;
-      fixedVelocity: number;
-      accentCycle: number[];
-      probability: number;
-      repeats: number;
-      humanizeMs: number;
-      humanizeVelocity: number;
-      transpose: number;
-      scaleQuantize: boolean;
-      scaleRoot: SequencerScaleRoot;
-      scaleType: SequencerScaleType;
-      mode: SequencerMode;
-      restartMode: ArpeggiatorRestartMode;
-    }>;
+    arpeggiators?: Array<Omit<ArpeggiatorState, "heldNotes" | "activeNote" | "stepIndex" | "lastVelocity" | "runtimeStatus">>;
+
     arpeggiatorPresets?: ArpeggiatorPresetState[];
   };
 }
@@ -814,17 +818,12 @@ export interface SessionArpeggiatorConfigRequest {
   arpeggiators: SessionArpeggiatorConfig[];
 }
 
-export interface SessionArpeggiatorConfig {
-  arpeggiator_id: string;
-  enabled: boolean;
-  input_channel: number;
-  target_channel: number;
+export interface SessionArpeggiatorPadConfig {
   rate: ArpeggiatorRate;
   gate_ratio: number;
   swing: number;
   octaves: number;
   pattern: ArpeggiatorPattern;
-  latch: boolean;
   velocity_mode: ArpeggiatorVelocityMode;
   fixed_velocity: number;
   accent_cycle: number[];
@@ -837,10 +836,39 @@ export interface SessionArpeggiatorConfig {
   scale_root: SequencerScaleRoot;
   scale_type: SequencerScaleType;
   mode: SequencerMode;
-  restart_mode: ArpeggiatorRestartMode;
+  length_beats: number;
+  octave_traversal: "range" | "octave";
+  scale_mode: "off" | "source" | "custom";
+  rotation: number;
+  advance_rests: boolean;
+  random_seed: number;
+  random_mode: "repeat" | "evolve";
+  steps: Array<{ kind: ArpeggiatorStep["kind"]; note_position: number; velocity: number;
+    gate_ratio: number | null; probability: number; ratchets: number }>;
 }
 
+export interface SessionArpeggiatorConfig extends SessionArpeggiatorPadConfig {
+  arpeggiator_id: string;
+  enabled: boolean;
+  input_channel: number;
+  target_channel: number;
+  latch: boolean;
+  restart_mode: ArpeggiatorRestartMode;
+  playback_mode: "arranger" | "live";
+  processing_mode: "active" | "bypass" | "mute";
+  hold_mode: "off" | "replace" | "toggle";
+  launch_quantize: "cycle" | "bar";
+  active_pad: number;
+  pad_loop_enabled: boolean;
+  pad_loop_repeat: boolean;
+  pad_loop_sequence: number[];
+  pads: SessionArpeggiatorPadConfig[];
+}
+
+export type ArpeggiatorCommand = { command: "launch" | "cancel" | "arrangement" | "clear"; pad_index?: number };
+
 export interface SessionSequencerStartRequest {
+  arranger_active?: boolean;
   config?: SessionSequencerConfigRequest;
   position_step?: number;
 }
@@ -894,9 +922,19 @@ export interface SessionArpeggiatorStatus {
   active_note: number | null;
   step_index: number;
   last_velocity: number | null;
+  active_notes?: number[];
+  active_pad?: number;
+  queued_pad?: number | null;
+  pad_loop_position?: number | null;
+  manual_override?: boolean;
+  cycle?: number;
+  state?: "stopped" | "waiting_notes" | "waiting_arranger" | "playing" | "bypassed" | "muted" | "pause";
+  effective_scale?: string;
+  preview_notes?: number[][];
 }
 
 export interface SessionSequencerStatus {
+  arranger_active?: boolean;
   session_id: string;
   running: boolean;
   timing: SessionSequencerTimingConfig;
@@ -1083,7 +1121,7 @@ export interface BrowserClockTimelineSegment {
 
 export interface BrowserClockTransportEvent {
   target_frame_offset: number;
-  kind: "step" | "pad_switches" | "loop" | "stopped";
+  kind: "step" | "pad_switches" | "loop" | "stopped" | "arpeggiators";
   payload: Record<string, unknown>;
 }
 

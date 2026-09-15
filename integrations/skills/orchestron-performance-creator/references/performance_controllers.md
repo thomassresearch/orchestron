@@ -47,7 +47,7 @@ Two bindings may refer to the same patch while owning different values:
 
 This is an assignment excerpt; preserve the performance's sequencer, `audioGraph`, mixer, and other configuration fields. Node IDs identify controls; duplicate labels and moved nodes remain independent. An omitted key follows the patch default. Never materialize defaults into every assignment, because that would freeze untouched settings. If replacing a binding's patch, clear its overrides; copying/importing a patch preserves node IDs and corresponding overrides even when its patch ID is remapped.
 
-The CLI reads performance versions 1–14 and saves version 14 while retaining routing migrations. Overrides survive staged edits, commit/load, native JSON/ZIP imports/exports, and runtime creation. Both CSD (MIDI) and CSD (SCORE) exports initialize resolved instance settings without a controller client or MIDI CC events. Standalone patch compilation/export and isolated audition use defaults; audition within a performance uses that instance's overrides.
+The CLI reads performance versions 1–15 and saves version 15 while retaining routing migrations. Overrides survive staged edits, commit/load, native JSON/ZIP imports/exports, and runtime creation. Both CSD (MIDI) and CSD (SCORE) exports initialize resolved instance settings without a controller client or MIDI CC events. Standalone patch compilation/export and isolated audition use defaults; audition within a performance uses that instance's overrides.
 
 ## Live updates
 

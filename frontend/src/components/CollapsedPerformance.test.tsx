@@ -232,14 +232,14 @@ it("retains rack controller drafts and clears them only on a new workspace gener
 it("shows pad switches received while hidden and retains the arpeggiator preset draft", () => {
   render(<Page />);
   togglePanel("Arpeggiators");
-  const preset = screen.getByRole("textbox", { name: "Save Preset" });
+  const preset = screen.getByRole("textbox", { name: "Save as preset" });
   fireEvent.change(preset, { target: { value: "Unfinished preset" } });
   togglePanel("Arpeggiators");
   act(() => useAppStore.getState().syncSequencerRuntime({ isPlaying: true, tracks: [{ trackId: "tracks-1", activePad: 1, queuedPad: null }] }));
   togglePanel("Melodic Sequencers");
   expect(screen.getAllByRole("button", { name: "P2" }).some(button => button.className.includes("bg-accent/25"))).toBe(true);
   togglePanel("Arpeggiators");
-  expect((screen.getByRole("textbox", { name: "Save Preset" }) as HTMLInputElement).value).toBe("Unfinished preset");
+  expect((screen.getByRole("textbox", { name: "Save as preset" }) as HTMLInputElement).value).toBe("Unfinished preset");
 });
 
 it("removes body-owned global listeners and meter subscriptions under Strict Mode", () => {

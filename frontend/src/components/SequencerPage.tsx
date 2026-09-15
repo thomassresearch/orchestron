@@ -1,3 +1,4 @@
+import { ArpeggiatorEditor } from "./sequencer/ArpeggiatorEditor";
 import { MidiChannelSelector } from "./sequencer/MidiChannelSelector";
 import { useAppStore } from "../store/useAppStore";
 import { PerformanceEditorProvider, usePerformanceEditorState, RetainedScroll, type EditorOwner } from "./sequencer/PerformanceEditorState";
@@ -57,10 +58,6 @@ import {
   type PianoRollHighlightTheory
 } from "./sequencer/PianoRollKeyboard";
 import type {
-  ArpeggiatorPattern,
-  ArpeggiatorRate,
-  ArpeggiatorRestartMode,
-  ArpeggiatorVelocityMode,
   DrummerSequencerTrackState,
   SequencerInstrumentBinding,
   SequencerChord,
@@ -77,20 +74,7 @@ const SEQUENCER_PAD_DRAG_MIME = "application/x-visualcsound-sequencer-pad";
 const SEQUENCER_TRACK_DRAG_MIME = "application/x-visualcsound-sequencer-track";
 const SEQUENCER_STEP_DRAG_MIME = "application/x-visualcsound-sequencer-step";
 const PAD_TRANSPOSE_LONG_PRESS_MS = 350;
-const ARPEGGIATOR_RATES: readonly ArpeggiatorRate[] = ["1/1", "1/2", "1/4", "1/8", "1/16", "1/32", "1/8T", "1/16T", "1/8D", "1/16D"];
-const ARPEGGIATOR_PATTERNS: readonly ArpeggiatorPattern[] = [
-  "up",
-  "down",
-  "up_down",
-  "down_up",
-  "as_played",
-  "random",
-  "chord",
-  "inside_out",
-  "outside_in"
-];
-const ARPEGGIATOR_VELOCITY_MODES: readonly ArpeggiatorVelocityMode[] = ["input", "fixed", "accent", "random"];
-const ARPEGGIATOR_RESTART_MODES: readonly ArpeggiatorRestartMode[] = ["free", "first_note"];
+
 
 type SequencerPadDragPayload = {
   trackId: string;
@@ -464,6 +448,7 @@ function useSequencerPageContext({
   const {
     onAddArpeggiator,
     onRemoveArpeggiator,
+    onArpeggiatorCommand,
     onArpeggiatorEnabledChange,
     onArpeggiatorChange,
     onArpeggiatorPresetApply,
@@ -752,6 +737,7 @@ function useSequencerPageContext({
     onControllerSequencerKeypointAdd,
     onControllerSequencerKeypointChange,
     onControllerSequencerKeypointRemove,
+    onArpeggiatorCommand,
     onArpeggiatorEnabledChange,
     onRemoveArpeggiator,
     onArpeggiatorChange,
@@ -1048,7 +1034,7 @@ function SequencerPageContent(props: SequencerPageProps) {
           <MidiControllersBody context={context} />
         </CollapsiblePanel>
 
-        {sequencer.tracks.length + sequencer.drummerTracks.length + sequencer.controllerSequencers.length > 0 ? (
+        {sequencer.tracks.length + sequencer.drummerTracks.length + sequencer.controllerSequencers.length + sequencer.arpeggiators.length > 0 ? (
           <MultitrackArranger
             collapsed={collapsedPanels.arranger}
             onCollapsedChange={(collapsed) => onPanelCollapsedChange("arranger", collapsed)}
@@ -1066,6 +1052,7 @@ function SequencerPageContent(props: SequencerPageProps) {
             onSequencerTrackPadLoopPatternChange={onSequencerTrackPadLoopPatternChange}
             onDrummerSequencerTrackPadLoopPatternChange={onDrummerSequencerTrackPadLoopPatternChange}
             onControllerSequencerPadLoopPatternChange={onControllerSequencerPadLoopPatternChange}
+            onArpeggiatorPadLoopPatternChange={(id, pattern) => context.onArpeggiatorChange(id, { padLoopPattern: pattern })}
             onHelpRequest={onHelpRequest}
           />
         ) : null}
@@ -3116,420 +3103,21 @@ function ControllerSequencersBody({ context }: { context: ReturnType<typeof useS
 }
 
 function ArpeggiatorsBody({ context }: { context: ReturnType<typeof useSequencerPageContext> }) {
-  const {
-    sequencer,
-    onHelpRequest,
-    guiLanguage,
-    renderDeviceName,
-    ui,
-    transportStateClass,
-    onArpeggiatorEnabledChange,
-    transportStopButtonClass,
-    transportStartButtonClass,
-    onRemoveArpeggiator,
-    canRemovePerformDevice,
-    controlLabelClass,
-    onArpeggiatorChange,
-    controlFieldClass,
-    onArpeggiatorPresetApply,
-    scaleOptions,
-    modeOptions,
-    onArpeggiatorPresetSave,
-  } = context;
-  const [arpeggiatorPresetDrafts, setArpeggiatorPresetDrafts] = usePerformanceEditorState<Record<string, string>>("page", "arpeggiatorPresetDrafts", {});
-  return <>
-    <div className="grid gap-3 xl:grid-cols-2">
-      {sequencer.arpeggiators.map((arpeggiator, arpeggiatorIndex) => {
-        const presetDraft = arpeggiatorPresetDrafts[arpeggiator.id] ?? "";
-        const activeStep = ((arpeggiator.stepIndex % 16) + 16) % 16;
-        const visualizationVelocity = Math.max(18, arpeggiator.lastVelocity ?? 72);
-        const accentCycleText = arpeggiator.accentCycle.join(",");
-        return (
-          <article
-            key={arpeggiator.id}
-            className="relative rounded-xl border border-slate-700 bg-slate-900/65 p-2.5 pr-10"
-          >
-            {onHelpRequest ? (
-              <HelpIconButton
-                guiLanguage={guiLanguage}
-                onClick={() => onHelpRequest("sequencer_arpeggiator")}
-                className="absolute right-2 top-2 z-10 inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-500 bg-slate-950/90 text-xs font-bold text-slate-100 transition hover:border-accent hover:text-accent"
-              />
-            ) : null}
-            <div className="mb-2 flex flex-wrap items-center gap-2">
-              {renderDeviceName("arpeggiators", arpeggiator, ui.arpeggiatorWithIndex(arpeggiatorIndex + 1))}
-              <span className={transportStateClass}>{arpeggiator.enabled ? ui.running : ui.stopped}</span>
-              <button
-                type="button"
-                onClick={() => onArpeggiatorEnabledChange(arpeggiator.id, !arpeggiator.enabled)}
-                className={arpeggiator.enabled ? transportStopButtonClass : transportStartButtonClass}
-              >
-                {arpeggiator.enabled ? ui.stop : ui.start}
-              </button>
-              <button
-                type="button"
-                onClick={() => onRemoveArpeggiator(arpeggiator.id)}
-                disabled={!canRemovePerformDevice}
-                className="ml-auto rounded-md border border-rose-500/60 bg-rose-500/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-rose-200 transition hover:bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {ui.remove}
-              </button>
-            </div>
-
-            <div className="mb-3 grid gap-2 md:grid-cols-3">
-              <label className="flex flex-col gap-1">
-                <span className={controlLabelClass}>{ui.inputChannel}</span>
-                <input
-                  type="number"
-                  min={1}
-                  max={16}
-                  value={arpeggiator.inputChannel}
-                  onChange={(event) => onArpeggiatorChange(arpeggiator.id, { inputChannel: Number(event.target.value) })}
-                  className={`${controlFieldClass} w-full`}
-                />
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className={controlLabelClass}>{ui.targetChannel}</span>
-                <input
-                  type="number"
-                  min={1}
-                  max={16}
-                  value={arpeggiator.targetChannel}
-                  onChange={(event) => onArpeggiatorChange(arpeggiator.id, { targetChannel: Number(event.target.value) })}
-                  className={`${controlFieldClass} w-full`}
-                />
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className={controlLabelClass}>{ui.preset}</span>
-                <select
-                  value={arpeggiator.presetId ?? ""}
-                  onChange={(event) => {
-                    if (event.target.value) {
-                      onArpeggiatorPresetApply(arpeggiator.id, event.target.value);
-                    }
-                  }}
-                  className={controlFieldClass}
-                >
-                  <option value="" disabled>
-                    {ui.preset}
-                  </option>
-                  {sequencer.arpeggiatorPresets.map((preset) => (
-                    <option key={`${arpeggiator.id}-${preset.id}`} value={preset.id}>
-                      {preset.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-
-            <div className="mb-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-              <label className="flex flex-col gap-1">
-                <span className={controlLabelClass}>{ui.rate}</span>
-                <select
-                  value={arpeggiator.rate}
-                  onChange={(event) => onArpeggiatorChange(arpeggiator.id, { rate: event.target.value as ArpeggiatorRate })}
-                  className={controlFieldClass}
-                >
-                  {ARPEGGIATOR_RATES.map((rate) => (
-                    <option key={`${arpeggiator.id}-rate-${rate}`} value={rate}>
-                      {rate}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className={controlLabelClass}>{ui.pattern}</span>
-                <select
-                  value={arpeggiator.pattern}
-                  onChange={(event) =>
-                    onArpeggiatorChange(arpeggiator.id, { pattern: event.target.value as ArpeggiatorPattern })
-                  }
-                  className={controlFieldClass}
-                >
-                  {ARPEGGIATOR_PATTERNS.map((pattern) => (
-                    <option key={`${arpeggiator.id}-pattern-${pattern}`} value={pattern}>
-                      {ui.arpeggiatorPatternLabels[pattern]}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className={controlLabelClass}>{ui.gate}</span>
-                <input
-                  type="number"
-                  min={5}
-                  max={100}
-                  value={Math.round(arpeggiator.gateRatio * 100)}
-                  onChange={(event) => onArpeggiatorChange(arpeggiator.id, { gateRatio: Number(event.target.value) / 100 })}
-                  className={controlFieldClass}
-                />
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className={controlLabelClass}>{ui.swing}</span>
-                <input
-                  type="number"
-                  min={0}
-                  max={75}
-                  value={Math.round(arpeggiator.swing * 100)}
-                  onChange={(event) => onArpeggiatorChange(arpeggiator.id, { swing: Number(event.target.value) / 100 })}
-                  className={controlFieldClass}
-                />
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className={controlLabelClass}>{ui.octaves}</span>
-                <input
-                  type="number"
-                  min={1}
-                  max={4}
-                  value={arpeggiator.octaves}
-                  onChange={(event) => onArpeggiatorChange(arpeggiator.id, { octaves: Number(event.target.value) })}
-                  className={controlFieldClass}
-                />
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className={controlLabelClass}>{ui.repeats}</span>
-                <input
-                  type="number"
-                  min={1}
-                  max={4}
-                  value={arpeggiator.repeats}
-                  onChange={(event) => onArpeggiatorChange(arpeggiator.id, { repeats: Number(event.target.value) })}
-                  className={controlFieldClass}
-                />
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className={controlLabelClass}>{ui.transpose}</span>
-                <input
-                  type="number"
-                  min={-24}
-                  max={24}
-                  value={arpeggiator.transpose}
-                  onChange={(event) => onArpeggiatorChange(arpeggiator.id, { transpose: Number(event.target.value) })}
-                  className={controlFieldClass}
-                />
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className={controlLabelClass}>{ui.probability}</span>
-                <input
-                  type="number"
-                  min={0}
-                  max={100}
-                  value={Math.round(arpeggiator.probability * 100)}
-                  onChange={(event) => onArpeggiatorChange(arpeggiator.id, { probability: Number(event.target.value) / 100 })}
-                  className={controlFieldClass}
-                />
-              </label>
-            </div>
-
-            <div className="mb-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-              <label className="flex flex-col gap-1">
-                <span className={controlLabelClass}>{ui.velocityMode}</span>
-                <select
-                  value={arpeggiator.velocityMode}
-                  onChange={(event) =>
-                    onArpeggiatorChange(arpeggiator.id, { velocityMode: event.target.value as ArpeggiatorVelocityMode })
-                  }
-                  className={controlFieldClass}
-                >
-                  {ARPEGGIATOR_VELOCITY_MODES.map((mode) => (
-                    <option key={`${arpeggiator.id}-vel-${mode}`} value={mode}>
-                      {ui.arpeggiatorVelocityModeLabels[mode]}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className={controlLabelClass}>{ui.fixedVelocity}</span>
-                <input
-                  type="number"
-                  min={1}
-                  max={127}
-                  value={arpeggiator.fixedVelocity}
-                  onChange={(event) => onArpeggiatorChange(arpeggiator.id, { fixedVelocity: Number(event.target.value) })}
-                  className={controlFieldClass}
-                />
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className={controlLabelClass}>{ui.humanizeMs}</span>
-                <input
-                  type="number"
-                  min={0}
-                  max={50}
-                  value={arpeggiator.humanizeMs}
-                  onChange={(event) => onArpeggiatorChange(arpeggiator.id, { humanizeMs: Number(event.target.value) })}
-                  className={controlFieldClass}
-                />
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className={controlLabelClass}>{ui.humanizeVelocity}</span>
-                <input
-                  type="number"
-                  min={0}
-                  max={32}
-                  value={arpeggiator.humanizeVelocity}
-                  onChange={(event) =>
-                    onArpeggiatorChange(arpeggiator.id, { humanizeVelocity: Number(event.target.value) })
-                  }
-                  className={controlFieldClass}
-                />
-              </label>
-              <label className="flex flex-col gap-1 sm:col-span-2">
-                <span className={controlLabelClass}>{ui.accentCycle}</span>
-                <input
-                  type="text"
-                  value={accentCycleText}
-                  onChange={(event) =>
-                    onArpeggiatorChange(arpeggiator.id, {
-                      accentCycle: event.target.value
-                        .split(",")
-                        .map((value) => Number(value.trim()))
-                        .filter((value) => Number.isFinite(value))
-                    })
-                  }
-                  className={controlFieldClass}
-                />
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className={controlLabelClass}>{ui.restartMode}</span>
-                <select
-                  value={arpeggiator.restartMode}
-                  onChange={(event) =>
-                    onArpeggiatorChange(arpeggiator.id, { restartMode: event.target.value as ArpeggiatorRestartMode })
-                  }
-                  className={controlFieldClass}
-                >
-                  {ARPEGGIATOR_RESTART_MODES.map((mode) => (
-                    <option key={`${arpeggiator.id}-restart-${mode}`} value={mode}>
-                      {ui.arpeggiatorRestartModeLabels[mode]}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <div className="flex flex-wrap items-end gap-3">
-                <label className="inline-flex items-center gap-2 text-xs text-slate-300">
-                  <input
-                    type="checkbox"
-                    checked={arpeggiator.latch}
-                    onChange={(event) => onArpeggiatorChange(arpeggiator.id, { latch: event.target.checked })}
-                    className="h-4 w-4 rounded border-slate-600 bg-slate-950 accent-cyan-300"
-                  />
-                  {ui.latch}
-                </label>
-                <label className="inline-flex items-center gap-2 text-xs text-slate-300">
-                  <input
-                    type="checkbox"
-                    checked={arpeggiator.scaleQuantize}
-                    onChange={(event) => onArpeggiatorChange(arpeggiator.id, { scaleQuantize: event.target.checked })}
-                    className="h-4 w-4 rounded border-slate-600 bg-slate-950 accent-cyan-300"
-                  />
-                  {ui.scaleQuantize}
-                </label>
-              </div>
-            </div>
-
-            <div className="mb-3 grid gap-2 sm:grid-cols-2">
-              <label className="flex flex-col gap-1">
-                <span className={controlLabelClass}>{ui.scale}</span>
-                <select
-                  value={`${arpeggiator.scaleRoot}:${arpeggiator.scaleType}`}
-                  onChange={(event) => {
-                    const selected = parseSequencerScaleValue(event.target.value);
-                    if (selected) {
-                      onArpeggiatorChange(arpeggiator.id, {
-                        scaleRoot: selected.root,
-                        scaleType: selected.type
-                      });
-                    }
-                  }}
-                  className={controlFieldClass}
-                >
-                  {scaleOptions.map((option) => (
-                    <option key={`${arpeggiator.id}-scale-${option.value}`} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className={controlLabelClass}>{ui.mode}</span>
-                <select
-                  value={arpeggiator.mode}
-                  onChange={(event) => onArpeggiatorChange(arpeggiator.id, { mode: event.target.value as SequencerMode })}
-                  className={controlFieldClass}
-                >
-                  {modeOptions.map((option) => (
-                    <option key={`${arpeggiator.id}-mode-${option.value}`} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-
-            <div className="mb-3 flex flex-wrap items-end gap-2">
-              <label className="flex min-w-[180px] flex-1 flex-col gap-1">
-                <span className={controlLabelClass}>{ui.savePreset}</span>
-                <input
-                  type="text"
-                  value={presetDraft}
-                  placeholder={ui.presetNamePlaceholder}
-                  onChange={(event) =>
-                    setArpeggiatorPresetDrafts((previous) => ({
-                      ...previous,
-                      [arpeggiator.id]: event.target.value
-                    }))
-                  }
-                  className={controlFieldClass}
-                />
-              </label>
-              <button
-                type="button"
-                onClick={() => {
-                  onArpeggiatorPresetSave(arpeggiator.id, presetDraft);
-                  setArpeggiatorPresetDrafts((previous) => ({ ...previous, [arpeggiator.id]: "" }));
-                }}
-                disabled={presetDraft.trim().length === 0}
-                className="rounded-md border border-cyan-400/55 bg-cyan-400/15 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-200 transition hover:bg-cyan-400/25 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {ui.savePreset}
-              </button>
-            </div>
-
-            <div className="rounded-lg border border-cyan-900/55 bg-slate-950/80 p-2">
-              <div className="mb-2 flex flex-wrap gap-2 text-[10px] uppercase tracking-[0.14em] text-slate-400">
-                <span>
-                  {ui.heldNotes}:{" "}
-                  <span className="font-mono text-cyan-100">
-                    {arpeggiator.heldNotes.length > 0 ? arpeggiator.heldNotes.join(" ") : "-"}
-                  </span>
-                </span>
-                <span>
-                  {ui.activeNote}:{" "}
-                  <span className="font-mono text-cyan-100">{arpeggiator.activeNote ?? "-"}</span>
-                </span>
-              </div>
-              <div className="grid h-16 grid-cols-[repeat(16,minmax(0,1fr))] items-end gap-1">
-                {Array.from({ length: 16 }, (_, step) => {
-                  const isActive = arpeggiator.enabled && arpeggiator.heldNotes.length > 0 && step === activeStep;
-                  const height = isActive ? visualizationVelocity : 18 + ((step * 19) % 42);
-                  return (
-                    <div
-                      key={`${arpeggiator.id}-viz-${step}`}
-                      className={`rounded-sm transition-all duration-150 ${isActive
-                          ? "bg-cyan-200 shadow-[0_0_18px_rgba(103,232,249,0.65)]"
-                          : "bg-cyan-700/35"
-                        }`}
-                      style={{ height: `${Math.min(100, Math.max(12, height))}%` }}
-                    />
-                  );
-                })}
-              </div>
-            </div>
-          </article>
-        );
-      })}
-    </div>
-  </>;
+  const { sequencer, guiLanguage, ui, renderDeviceName, onHelpRequest, instrumentBindings, patches,
+    canRemovePerformDevice, instrumentsRunning, onArpeggiatorChange, onArpeggiatorEnabledChange,
+    onRemoveArpeggiator, onArpeggiatorPresetApply, onArpeggiatorPresetSave, onArpeggiatorCommand } = context;
+  return <div className="grid gap-3">{sequencer.arpeggiators.map((arp, index) => <ArpeggiatorEditor
+    key={arp.id} arp={arp} language={guiLanguage} ui={ui}
+    name={renderDeviceName("arpeggiators", arp, ui.arpeggiatorWithIndex(index + 1))}
+    help={onHelpRequest ? <HelpIconButton guiLanguage={guiLanguage} onClick={() => onHelpRequest("sequencer_arpeggiator")} /> : null}
+    presets={sequencer.arpeggiatorPresets} instruments={instrumentBindings} patches={patches}
+    canRemove={canRemovePerformDevice} engineRunning={instrumentsRunning} transportPlaying={sequencer.isPlaying}
+    stepsPerBeat={sequencerTransportStepsPerBeat(sequencer.timing)}
+    onChange={update => onArpeggiatorChange(arp.id, update)} onEnabled={enabled => onArpeggiatorEnabledChange(arp.id, enabled)}
+    onRemove={() => onRemoveArpeggiator(arp.id)} onCommand={command => onArpeggiatorCommand?.(arp.id, command)}
+    onPreset={(id, pad) => onArpeggiatorPresetApply(arp.id, id, pad)}
+    onSave={(name, pad, update) => onArpeggiatorPresetSave(arp.id, name, pad, update)}
+  />)}</div>;
 }
 
 function PianoRollsBody({ context }: { context: ReturnType<typeof useSequencerPageContext> }) {
