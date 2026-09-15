@@ -29,7 +29,7 @@ The toolbar includes:
 ## Patch Metadata
 
 - `Patch Name` is the display name used in the patch library and performance rack dropdowns for normal patches.
-- `Description` is a three-line patch note field and accepts up to 2048 characters.
+- `Description` is a three-line patch note field and accepts up to 2048 characters. Hover over the field to see the full description in a tooltip.
 - `Template?` marks the patch as a reusable starter graph. Template patches show a `TEMPLATE` token beside their name and are excluded from Perform rack instrument choices.
 - `Instrument Type` offers Percussion, Melody, Bass, Effects / Noise, and Continuous (always-on). Choosing Continuous enables always-on scheduling; every other type uses MIDI activation. Continuous patches run when added to the Perform rack and started. They may generate audio without an inlet. Receiving audio requires an actual inlet, independently of activation. Musical role is separate interface metadata.
 - Metadata updates affect the current tab immediately, but they are not stored in the patch library until you save.

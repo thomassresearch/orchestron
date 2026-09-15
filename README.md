@@ -28,6 +28,8 @@ Start with a playable instrument, a drumset, an audio effect, an audio output pa
 
 *An instrument takes shape as a graph: this pad combines oscillators, envelopes, filters, and delay.*
 
+Hover over an instrument's description in Instrument Design to read the full text in a tooltip.
+
 Use [draft auditioning](documentation/instrument_design/runtime_panel_and_compilation.md#audition-a-draft) to hear an unfinished patch on its own or in the context of a performance before saving it. The [Instrument Design guide](documentation/instrument_design/instrument_design.md) walks through the editor, formulas, tables, and patch library.
 
 ## Build patterns and arrangements
@@ -49,6 +51,8 @@ Lay out those patterns in the **multitrack arranger** to build an introduction, 
 Explore the guides to [sequencer editing](documentation/performance/sequencer_tracks_and_steps.md), [pattern pads](documentation/performance/pattern_pads_and_pad_looper.md), [arpeggiators](documentation/performance/arpeggiators.md), and the [multitrack arranger](documentation/performance/multitrack_arranger.md).
 
 ## Perform and shape the mix
+
+Performance descriptions show three lines with automatic wrapping. Scroll vertically through longer descriptions or hover over the field to read the full text.
 
 Load instruments into the Perform rack, assign MIDI channels, and play from the on-screen keyboards or an external MIDI source. Scale highlighting provides harmonic guidance while you improvise. Manual MIDI controls and controller sequencers can each send to your chosen MIDI channels, with all 16 selected by default (OMNI). Six assignable MIDI controls let you adjust sounds as you play; instruments can also expose their own [performance controls](documentation/performance/performance_controllers.md) for settings such as envelope times or distortion.
 

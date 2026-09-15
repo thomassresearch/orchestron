@@ -13,6 +13,7 @@ export const sequencerHelpDocuments: HelpDocumentSet<SequencerHelpDocId> = {
 Manage performance-level instrument assignments.
 
 - Set performance name and description.
+- The description shows three automatically wrapped lines. Scroll vertically for longer text, or hover over the field to see the full description.
 - Load and save performance presets.
 - Assign saved patches to MIDI channels.
 - Open a slot's patch picker to browse collapsed instrument-type groups, or search names and descriptions across all types after at least four characters and a 500 ms typing pause. Templates are excluded.
@@ -26,6 +27,7 @@ Manage performance-level instrument assignments.
 Verwaltet Instrument-Zuordnungen auf Performance-Ebene.
 
 - Performance-Name und Beschreibung setzen.
+- Die Beschreibung zeigt drei Zeilen mit automatischem Zeilenumbruch. Längeren Text vertikal scrollen oder mit der Maus über das Feld fahren, um die vollständige Beschreibung anzuzeigen.
 - Performance-Presets laden und speichern.
 - Gespeicherte Patches MIDI-Kanälen zuweisen.
 - Die Patch-Auswahl eines Rack-Platzes öffnen, um eingeklappte Instrumententyp-Gruppen zu durchsuchen. Ab vier Zeichen und nach 500 ms Tipp-Pause werden Namen und Beschreibungen über alle Typen hinweg durchsucht. Vorlagen sind ausgeschlossen.
@@ -39,6 +41,7 @@ Verwaltet Instrument-Zuordnungen auf Performance-Ebene.
 Gestion des affectations d'instruments au niveau performance.
 
 - Définir nom et description de performance.
+- La description affiche trois lignes avec retour automatique à la ligne. Faites défiler verticalement les textes plus longs ou survolez le champ pour voir la description complète.
 - Charger et enregistrer des presets de performance.
 - Affecter des patches sauvegardés à des canaux MIDI.
 - Ouvrir le sélecteur de patch d'un emplacement pour parcourir les groupes repliés par type d'instrument, ou rechercher dans les noms et descriptions de tous les types après au moins quatre caractères et une pause de saisie de 500 ms. Les modèles sont exclus.
@@ -52,6 +55,7 @@ Gestion des affectations d'instruments au niveau performance.
 Gestiona asignaciones de instrumentos a nivel de performance.
 
 - Define nombre y descripción de performance.
+- La descripción muestra tres líneas con ajuste automático de texto. Desplázate verticalmente para leer textos más largos o pasa el ratón sobre el campo para ver la descripción completa.
 - Carga y guarda presets de performance.
 - Asigna patches guardados a canales MIDI.
 - Abre el selector de patch de una ranura para explorar grupos contraídos por tipo de instrumento, o buscar en nombres y descripciones de todos los tipos tras escribir al menos cuatro caracteres y hacer una pausa de 500 ms. Las plantillas quedan excluidas.

@@ -1217,13 +1217,16 @@ function RackBody({ context }: { context: ReturnType<typeof useSequencerPageCont
         />
       </label>
 
-      <label className="flex flex-col gap-1 lg:col-span-2">
+      <label className="flex min-w-0 flex-col gap-1 lg:col-span-2">
         <span className="text-[10px] uppercase tracking-[0.18em] text-slate-400">{ui.description}</span>
-        <input
+        <textarea
           value={performanceDescription}
           onChange={(event) => onPerformanceDescriptionChange(event.target.value)}
           placeholder={ui.performanceDescriptionPlaceholder}
-          className="rounded-md border border-slate-600 bg-slate-950 px-2 py-1.5 text-xs text-slate-100 outline-none ring-accent/40 transition focus:ring"
+          rows={3}
+          wrap="soft"
+          title={performanceDescription}
+          className="w-full resize-none overflow-x-hidden overflow-y-auto whitespace-pre-wrap break-words rounded-md border border-slate-600 bg-slate-950 px-2 py-1.5 text-xs text-slate-100 outline-none ring-accent/40 transition focus:ring"
         />
       </label>
 

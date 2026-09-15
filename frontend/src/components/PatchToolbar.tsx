@@ -252,6 +252,7 @@ export function PatchToolbar(props: PatchToolbarProps) {
           <textarea
             className="h-[4.5rem] resize-none rounded-lg border border-slate-600 bg-slate-950 px-3 py-1.5 font-body text-sm leading-5 text-slate-100 outline-none ring-accent/40 transition focus:ring"
             value={props.patchDescription}
+            title={props.patchDescription}
             onChange={(event) =>
               props.onPatchDescriptionChange(event.target.value.slice(0, PATCH_DESCRIPTION_MAX_LENGTH))
             }

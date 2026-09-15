@@ -13,6 +13,7 @@ export const instrumentHelpDocuments: HelpDocumentSet<InstrumentHelpDocId> = {
 Use this area to organize patch files and main patch actions.
 
 - Rename the current patch and edit its three-line description field, up to 2048 characters.
+- Hover over the description field to see the full description in a tooltip.
 - Load an existing patch into the current tab.
 - Create a new patch draft.
 - Save the current patch to the backend.
@@ -28,6 +29,7 @@ Each instrument tab keeps its own editable graph snapshot.`
 Dieser Bereich steuert Patch-Dateien und Hauptaktionen.
 
 - Aktuellen Patch umbenennen und das dreizeilige Beschreibungsfeld mit bis zu 2048 Zeichen bearbeiten.
+- Mit der Maus über das Beschreibungsfeld fahren, um die vollständige Beschreibung als Tooltip anzuzeigen.
 - Vorhandenen Patch in den aktuellen Tab laden.
 - Neuen Patch-Entwurf erstellen.
 - Aktuellen Patch im Backend speichern.
@@ -43,6 +45,7 @@ Jeder Instrument-Tab behält eine eigene bearbeitbare Graph-Kopie.`
 Cette zone gère les fichiers de patch et les actions principales.
 
 - Renommer le patch courant et modifier son champ de description sur trois lignes, jusqu'a 2048 caracteres.
+- Survolez le champ de description pour voir la description complète dans une infobulle.
 - Charger un patch existant dans l'onglet courant.
 - Créer un nouveau brouillon de patch.
 - Enregistrer le patch courant sur le backend.
@@ -58,6 +61,7 @@ Chaque onglet instrument garde son propre état de graphe éditable.`
 Esta zona controla archivos de patch y acciones principales.
 
 - Renombrar el patch actual y editar su campo de descripcion de tres lineas, hasta 2048 caracteres.
+- Pasa el ratón sobre el campo de descripción para ver la descripción completa en una ayuda emergente.
 - Cargar un patch existente en la pestaña actual.
 - Crear un nuevo borrador de patch.
 - Guardar el patch actual en el backend.
