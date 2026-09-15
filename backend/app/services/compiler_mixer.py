@@ -28,6 +28,7 @@ from backend.app.services.compiler_common import CompilationError
 from backend.app.services.compiler_graph import compile_graph_context, resolve_shared_engine, validate_target_channels
 from backend.app.services.performance_controller_service import controller_bindings
 from backend.app.services.orc_metadata import format_csd_comment_value, instrument_metadata_comments
+from backend.app.services.internal_master import MASTER, internal_master_target
 
 
 OUTPUT = "$output"
@@ -99,6 +100,10 @@ class ResolvedMixerGraph:
             raise CompilationError(["Audio mixing requires unique, stable instance IDs."])
         if len(targets) > 64:
             raise CompilationError(["A performance supports at most 64 patch instances."])
+        if MASTER in self.by_id or OUTPUT in self.by_id:
+            raise CompilationError(["Rack instances cannot use reserved audio endpoint IDs."])
+        if graph.master_id == MASTER:
+            self.by_id[MASTER] = internal_master_target()
         self.raw_ports: dict[str, dict[str, list[str]]] = {}
         self.direct_ports: dict[str, dict[str, tuple[str, str]]] = {}
         self.sides: dict[str, dict[str, str]] = {}
@@ -270,7 +275,7 @@ class ResolvedMixerGraph:
                     )
                 )
             inlets = audio_port_names(target.patch.graph, opcode="inleta")
-            if inlets and not any(r.target_id == identity and r.target_stage == "input" for r in self.routes):
+            if identity != MASTER and inlets and not any(r.target_id == identity and r.target_stage == "input" for r in self.routes):
                 self.diagnostics.append(
                     AudioDiagnostic(
                         code="no_audio_source",
@@ -291,6 +296,8 @@ class ResolvedMixerGraph:
 
         for identity, target in self.by_id.items():
             interface = target.patch.graph.audio_interface
+            if identity == MASTER and not any(r.target_id == MASTER for r in self.routes):
+                continue
             for direction, ports in (
                 ("input", audio_port_names(target.patch.graph, opcode="inleta")),
                 ("output", list(self.raw_ports[identity])),
@@ -526,22 +533,29 @@ def compile_mixer_bundle(
 
     for identity, target in resolved.by_id.items():
         stage = "patch:" + identity
-        compiled = emitter.compile_instrument_lines(
-            target.patch,
-            graph_context=compile_graph_context(target.patch.graph, service._opcode_service),
-            instrument_number=int(manifest["instrumentReferences"][identity]),
-            instrument_name=names[stage],
-            global_scope_key=token(identity),
-            allow_packaged_asset_paths=allow_packaged_asset_paths,
-            performance_input_mode=performance_input_mode,
-            score_midi_channel=target.midi_channel,
-            direct_output_ports=resolved.direct_ports[identity],
-            performance_controllers=controller_bindings(target, identity),
-        )
-        bodies[stage] = compiled.instrument_lines
-        header += compiled.global_header_lines
-        sfloads += compiled.sfload_global_requests
-        warnings += compiled.diagnostics
+        if identity == MASTER:
+            left, right = resolved.direct_ports[identity]["output"]
+            bodies[stage] = [
+                'a_left inleta "left"', 'a_right inleta "right"',
+                f"outleta {quote(left)}, a_left", f"outleta {quote(right)}, a_right",
+            ]
+        else:
+            compiled = emitter.compile_instrument_lines(
+                target.patch,
+                graph_context=compile_graph_context(target.patch.graph, service._opcode_service),
+                instrument_number=int(manifest["instrumentReferences"][identity]),
+                instrument_name=names[stage],
+                global_scope_key=token(identity),
+                allow_packaged_asset_paths=allow_packaged_asset_paths,
+                performance_input_mode=performance_input_mode,
+                score_midi_channel=target.midi_channel,
+                direct_output_ports=resolved.direct_ports[identity],
+                performance_controllers=controller_bindings(target, identity),
+            )
+            bodies[stage] = compiled.instrument_lines
+            header += compiled.global_header_lines
+            sfloads += compiled.sfload_global_requests
+            warnings += compiled.diagnostics
         lines = ["k_meter metro 15"]
         for field in ("gain", "left", "right", "mute"):
             ramp(lines, identity, "strip", field, field)

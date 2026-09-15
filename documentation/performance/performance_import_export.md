@@ -27,7 +27,7 @@ A performance export includes:
 - Custom names for all six performance device types, including names created through the CLI. Existing names are preserved on import; the GUI applies its name validation only when renaming a device.
 - Sequencer/drummer-sequencer/arpeggiator/piano-roll/controller/controller-sequencer configuration snapshot
 - Instrument assignments with stable instance IDs
-- Explicit audio routes, Master selection, insert ownership, strip gain/balance/mute/solo, and send level/pre-post settings
+- Explicit audio routes, internal Master settings, insert ownership, strip gain/balance/mute/solo, and send level/pre-post settings
 - Referenced patch definitions for the instruments currently assigned in the performance rack
 - Patch names (included in the snapshot for easier remapping on import)
 
@@ -45,7 +45,7 @@ Both modes select instruments by device assignment and mixer routing:
 
 - Include rack instances whose MIDI channel is assigned to a melodic sequencer, drummer sequencer, piano-roll keyboard or arpeggiator output. An arpeggiator input alone is not an instrument assignment.
 - Device assignments count even when the device is stopped, disabled or has an empty pattern. Selection does not depend on whether a note happens during the exported arrangement.
-- Include continuous (`always on`) instruments referenced by mixer routes, Master selection or insert ownership. Continuous generators with implicit direct audio output are also included.
+- Include continuous (`always on`) instruments referenced by mixer routes, internal Master settings or insert ownership. Continuous generators with implicit direct audio output are also included.
 - Omit other rack instances, routes and mixer controls belonging to those omitted instances, and assets used exclusively by omitted patches. Native `Export` still preserves the complete rack.
 
 Each CSD starts with a comment header containing the performance title, description and creation timestamp, followed by an Orchestron attribution, a short summary of Orchestron's visual instrument design, performance devices, audio routing and portable Csound export features, plus the project GitHub link. Each exported instrument also has CSD comments containing its name, description, rack instance ID and Csound reference. Multiline descriptions remain comments on every line. Routing comments identify source/destination instruments and ports, raw/strip stages, insert ownership, Master processing, direct paths that bypass Master, pre/post-fader taps, and initial gain, balance, mute and solo settings. Mixer instruments are emitted in signal-flow order.
@@ -231,3 +231,9 @@ CSD (MIDI) and CSD (SCORE) initialize values in the Csound orchestra before note
 Version 13 stores each MIDI Controller and Controller Sequencer's `targetChannels` selection as a sorted list of MIDI channels 1–16. At least one channel is required. Selections survive Save/Load Performance, browser reload, and native JSON/ZIP export/import. Versions 1–12 still load; missing channel selections default to all 16 channels (OMNI).
 
 Both CSD modes route manual initial values and automated curves to the selected channels. Manual lanes sharing a CC number keep independent values on different channels; at render start, the later enabled lane wins only where both channel and CC number overlap. Channel selection does not change which instruments are included in the CSD. The native bundle envelope remains version 1, and browser app state remains version 2.
+
+## Internal Master (version 14)
+
+The fixed Master is stored as `$master` in `audioGraph.masterId`, route endpoints, mixer strips and insert ownership. It has no instrument assignment or patch definition. Native imports normalize designated neutral legacy Masters before importing patches, preventing duplicate library entries. Both CSD modes generate the internal output and initialize its saved controls and inserts. Direct Audio Output paths retain their own controls and continue to bypass Master.
+
+Versions 1–13 remain readable. App state remains version 2 and native bundle envelopes remain version 1. See [Master migration and repair](audio_mixer_and_routing.md#upgrading-existing-masters) for backups, customized processors and missing references.

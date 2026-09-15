@@ -98,6 +98,7 @@ async function requestBlob(path: string, init?: RequestInit): Promise<{ blob: Bl
 }
 
 export const api = {
+  repairPerformanceMaster: (config: SequencerConfigSnapshot) => request<SequencerConfigSnapshot>("/performances/repair-master", { method: "POST", body: JSON.stringify({ config }) }),
   listOpcodes: () => request<OpcodeSpec[]>("/opcodes"),
   exportPatchBundle: (payload: Record<string, unknown>) =>
     requestBlob("/bundles/export/patch", { method: "POST", body: JSON.stringify(payload) }),

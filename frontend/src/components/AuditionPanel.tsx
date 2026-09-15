@@ -63,11 +63,10 @@ export function AuditionPanel({ stopPerformance, buildConfig }: { stopPerformanc
         }
         if (!patch.always_on) midi.push(row.midiChannel || 1);
       } else {
-        const output = audioTemplate("output"); output.id = crypto.randomUUID(); output.created_at = patch.created_at; output.updated_at = patch.updated_at; inline.push(output);
-        assignments.push({ id: "preview-output", patch_id: output.id, midi_channel: 0 }); graph.masterId = "preview-output";
+        graph.masterId = "$master";
         const ports = patch.graph.audio_interface?.groups.find((g) => g.id === patch.graph.audio_interface?.mainOutput)?.ports ?? audioPorts(patch.graph, "output");
         if (ports.length !== 2) throw new Error(t("mapping") + ": " + ports.join(" / "));
-        graph.routes.push(...ports.map((sourcePort, i) => newRoute({ sourceId: "preview", sourcePort, targetId: "preview-output", targetPort: i ? "right" : "left", kind: "main", sourceStage: "strip", targetStage: "input" })));
+        graph.routes.push(...ports.map((sourcePort, i) => newRoute({ sourceId: "preview", sourcePort, targetId: "$master", targetPort: i ? "right" : "left", kind: "main", sourceStage: "strip", targetStage: "input" })));
         const inlets = patch.graph.audio_interface?.groups.find((g) => g.id === patch.graph.audio_interface?.mainInput)?.ports ?? audioPorts(patch.graph, "input");
         if (inlets.length) {
           const source = sourceId === "builtin-instrument" ? audioTemplate("instrument") : await api.getPatch(sourceId);

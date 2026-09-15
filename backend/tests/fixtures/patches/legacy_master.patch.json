@@ -1,10 +1,9 @@
 {
-  "sourcePatchId": "43a682c7-0ba3-4a7a-81a4-175bc89d1495",
   "name": "Master",
   "description": "",
-  "isTemplate": false,
-  "alwaysOn": true,
-  "instrumentType": "continuous",
+  "is_template": false,
+  "always_on": true,
+  "instrument_type": "continuous",
   "schema_version": 1,
   "graph": {
     "nodes": [
@@ -15,8 +14,8 @@
           "sname": "left"
         },
         "position": {
-          "x": 0,
-          "y": 0
+          "x": 0.0,
+          "y": 0.0
         }
       },
       {
@@ -26,8 +25,8 @@
           "sname": "right"
         },
         "position": {
-          "x": 0,
-          "y": 180
+          "x": 0.0,
+          "y": 0.0
         }
       },
       {
@@ -35,8 +34,8 @@
         "opcode": "outs",
         "params": {},
         "position": {
-          "x": 500,
-          "y": 0
+          "x": 0.0,
+          "y": 0.0
         }
       }
     ],
@@ -62,7 +61,7 @@
       "nchnls": 2,
       "software_buffer": 128,
       "hardware_buffer": 512,
-      "0dbfs": 1
+      "0dbfs": 1.0
     },
     "audio_interface": {
       "role": "output",
@@ -95,5 +94,8 @@
       "guided": true
     },
     "control_flow": {}
-  }
+  },
+  "id": "legacy-master-patch",
+  "created_at": "2026-01-01T00:00:00Z",
+  "updated_at": "2026-01-01T00:00:00Z"
 }

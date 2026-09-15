@@ -53,12 +53,12 @@ def _controller_fixture():
     return config, patches
 
 
-@pytest.mark.parametrize("version", range(1, 13))
+@pytest.mark.parametrize("version", range(1, 15))
 def test_controller_values_survive_normalization_runtime_and_patch_id_remap(version):
     config, patches = _controller_fixture()
     config["version"] = version
     restored = normalize_performance_config(json.loads(json.dumps(config)), patches)
-    assert restored["version"] == 13
+    assert restored["version"] == 14
     assignments = orchestron_cli.session_assignments_from_config(restored)
     assert [a["performance_controller_values"] for a in assignments] == [{"attack": 0.04}, {"attack": 1.2}]
     remapped = orchestron_cli.remap_snapshot_patch_ids(restored, {"patch": "copy"}, [{**patches[0], "id": "copy"}])
@@ -386,7 +386,7 @@ def test_version_ten_normalization_expands_legacy_effect_sources() -> None:
 
     normalize_performance_config(config, patches)
 
-    assert config["version"] == 13
+    assert config["version"] == 14
     assert config["instruments"][0]["id"] == "instrument-1"
     assert config["instruments"][1]["midiChannel"] == 0
     assert [{"sourceId": r["sourceId"], "channel": r["sourcePort"]} for r in config["audioGraph"]["routes"]] == [
@@ -778,7 +778,7 @@ def test_controller_channel_defaults_and_roundtrip(version):
     del curve["targetChannels"]
     del manual["targetChannels"]
     normalized = normalize_performance_config(json.loads(json.dumps(config)), [])
-    assert normalized["version"] == 13
+    assert normalized["version"] == 14
     assert normalized["sequencer"]["midiControllers"][0]["targetChannels"] == list(range(1, 17))
     assert orchestron_cli.build_runtime_config(normalized)["controller_tracks"][0]["target_channels"] == list(range(1, 17))
     normalized["sequencer"]["controllerSequencers"][0]["targetChannels"] = [16, 1, 16, 0, True, "2"]
@@ -786,3 +786,13 @@ def test_controller_channel_defaults_and_roundtrip(version):
     restored = normalize_performance_config(json.loads(json.dumps(normalized)), [])
     assert restored["sequencer"]["midiControllers"][0]["targetChannels"] == [3, 9]
     assert orchestron_cli.build_runtime_config(restored)["controller_tracks"][0]["target_channels"] == [1, 16]
+
+
+def test_route_to_internal_master_needs_no_target_patch_or_binding():
+    config = orchestron_cli.empty_performance_config()
+    config['instruments'] = [{'id': 'lead', 'patchId': 'patch', 'midiChannel': 1}]
+    row = add_effect_route_to_config(config, {'patch': {'audio_outlet_names': ['left', 'right']}},
+                                     source_id='lead', channel='left', target_id='$master', target_port='left')
+    assert row['targetId'] == '$master'
+    assert row['targetPort'] == 'left'
+    assert len(config['instruments']) == 1

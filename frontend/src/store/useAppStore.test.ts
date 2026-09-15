@@ -91,7 +91,7 @@ describe("app store sequencer behavior", () => {
     );
   });
 
-  it("round-trips a version 13 sequencer configuration and rebuilds runtime state", () => {
+  it("round-trips a version 14 sequencer configuration and rebuilds runtime state", () => {
     useAppStore.setState({
       patches: [performablePatch],
       sequencerInstruments: [instrumentBinding]
@@ -99,7 +99,7 @@ describe("app store sequencer behavior", () => {
     useAppStore.getState().setSequencerBpm(137);
     const snapshot = useAppStore.getState().buildSequencerConfigSnapshot();
 
-    expect(snapshot.version).toBe(13);
+    expect(snapshot.version).toBe(14);
     expect(snapshot.instruments).toEqual([
       expect.objectContaining({
         id: instrumentBinding.id,

@@ -75,7 +75,7 @@ class MixerSend(AudioModel):
 
 
 class MixerState(AudioModel):
-    strips: dict[str, MixerStrip] = Field(default_factory=dict, max_length=64)
+    strips: dict[str, MixerStrip] = Field(default_factory=dict, max_length=65)
     sends: dict[str, MixerSend] = Field(default_factory=dict, max_length=1024)
 
 
@@ -112,7 +112,7 @@ class AudioDiagnostic(AudioModel):
 
 
 class MixerUpdate(AudioModel):
-    strips: dict[str, MixerStrip] = Field(default_factory=dict, max_length=64)
+    strips: dict[str, MixerStrip] = Field(default_factory=dict, max_length=65)
     sends: dict[str, MixerSend] = Field(default_factory=dict, max_length=1024)
     revision: int | None = Field(default=None, ge=0)
 

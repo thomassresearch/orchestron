@@ -28,3 +28,5 @@ dependencies on the developer examples. Production Vite builds use
 that file or the `examples/` directory to exist.
 
 `instrument_types.json` defines shared legacy-classification cases for the Python backend and TypeScript frontend. Keep both inference helpers aligned with these cases; no developer examples are read by the tests.
+
+`legacy_master.patch.json` and `performances/legacy_master.json` are fixed neutral-Master migration inputs. They exercise v14 migration and audio equivalence without depending on developer examples.

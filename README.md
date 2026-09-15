@@ -17,7 +17,7 @@ This application was built using the Codex App with `GPT-5.3-Codex`, `GPT-5.4`, 
 
 Build a sound from the inside out. In **Instrument Design**, connect Csound building blocks, called opcodes, into a patch: an oscillator makes a tone, an envelope shapes its attack and decay, a filter changes its colour, and modulation brings it into motion. Follow the connections to see how each part contributes to the result.
 
-Start with a playable instrument, a drumset, an audio effect, an output/Master processor, or an empty canvas. Turn a promising experiment into a reusable template, keep several instruments open in tabs, and return to unfinished ideas later.
+Start with a playable instrument, a drumset, an audio effect, an audio output patch, or an empty canvas. Turn a promising experiment into a reusable template, keep several instruments open in tabs, and return to unfinished ideas later.
 
 - **Synths and textures:** combine oscillators, filters, envelopes, physical models, and effects for basses, leads, bells, pads, and evolving soundscapes.
 - **Sample-based sounds:** upload audio or SoundFonts, and use the table editor to build waveforms and shape how samples are played.
@@ -56,7 +56,7 @@ Load instruments into the Perform rack, assign MIDI channels, and play from the 
 
 *Play a melody with harmonic guidance and reach for MIDI controls beneath the keyboard.*
 
-Mix instruments and effect returns with volume faders, pan or balance, mute, solo, and meters. Add an insert to one instrument, send several instruments to a shared effect, and shape the combined sound through Master. A routing matrix and diagram help you follow where the audio goes.
+Mix instruments and effect returns with volume faders, pan or balance, mute, solo, and meters. Add an insert to one instrument, send several instruments to a shared effect, and shape the combined sound through Master. Every performance has a fixed internal Master with its own controls and inserts, without adding an instrument to your library. A routing matrix and diagram help you follow where the audio goes.
 
 ![Instrument and effect-return mixer strips with an insert, a post-fader send, and a Master strip](screenshots/perform_mixer_sends_inserts_master.png)
 

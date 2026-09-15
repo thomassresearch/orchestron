@@ -21,7 +21,7 @@ from urllib import error, parse, request
 DEFAULT_API_URL = os.environ.get("ORCHESTRON_API_URL", "http://localhost:8000/api")
 SESSION_DIR = Path(".orchestron")
 SESSION_FILE = SESSION_DIR / "edit-session.json"
-CURRENT_CONFIG_VERSION = 13
+CURRENT_CONFIG_VERSION = 14
 DEFAULT_PAD_COUNT = 8
 MAX_STEPS_PER_PAD = 128
 PAD_LOOP_PAUSE_BEATS = {1, 2, 4, 8, 16}
@@ -1468,7 +1468,7 @@ def empty_performance_config(*, tempo: int = 120) -> dict[str, Any]:
     timing = default_timing(tempo)
     return {
         "version": CURRENT_CONFIG_VERSION,
-        "audioGraph": {"routes": [], "masterId": None, "insertOwners": {}},
+        "audioGraph": {"routes": [], "masterId": "$master", "insertOwners": {}},
         "mixer": {"strips": {}, "sends": {}},
         "instruments": [],
         "sequencer": {
@@ -1681,7 +1681,8 @@ def normalize_performance_config(
     if config.get("version", 1) not in range(1, CURRENT_CONFIG_VERSION + 1):
         raise OrchestronCliError("unsupported_version", "Unsupported performance version.")
     config["version"] = CURRENT_CONFIG_VERSION
-    graph = config.setdefault("audioGraph", {"routes": [], "masterId": None, "insertOwners": {}})
+    graph = config.setdefault("audioGraph", {"routes": [], "masterId": "$master", "insertOwners": {}})
+    graph["masterId"] = graph.get("masterId") or "$master"
     mixer = config.setdefault("mixer", {"strips": {}, "sends": {}})
     instruments = config_instruments(config)
     if len(instruments) > 64 or len(graph["routes"]) > 1024:
@@ -1830,9 +1831,9 @@ def add_effect_route_to_config(
     target_port: str | None = None,
 ) -> dict[str, str]:
     source = instrument_by_binding_id(config, source_id)
-    target = instrument_by_binding_id(config, target_id)
+    target = {} if target_id == "$master" else instrument_by_binding_id(config, target_id)
     source_patch = patches_by_id.get(str(source.get("patchId", "")))
-    target_patch = patches_by_id.get(str(target.get("patchId", "")))
+    target_patch = {"name": "Master", "audio_inlet_names": ["left", "right"]} if target_id == "$master" else patches_by_id.get(str(target.get("patchId", "")))
     if source_patch is None:
         raise OrchestronCliError("unknown_patch", f"Source binding '{source_id}' references an unknown patch.")
     if target_patch is None:

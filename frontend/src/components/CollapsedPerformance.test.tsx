@@ -130,7 +130,7 @@ it("retains nested Mixer expansion and forms but omits closed diagnostics constr
   render(<Page />);
   expect(diagnostics).not.toHaveBeenCalled();
   const routingDetails = details("Audio routing");
-  const source = within(routingDetails).getAllByRole("combobox")[1];
+  const source = within(routingDetails).getAllByRole("combobox")[0];
   fireEvent.change(source, { target: { value: "binding-collapse-test" } });
   const subdetails = [...routingDetails.querySelectorAll("details")];
   expect(subdetails.length).toBeGreaterThan(0);
@@ -141,7 +141,7 @@ it("retains nested Mixer expansion and forms but omits closed diagnostics constr
   expect(details("Audio routing").open).toBe(false);
   toggleDetails("Audio routing", true);
   expect(details(label).open).toBe(true);
-  expect((within(details("Audio routing")).getAllByRole("combobox")[1] as HTMLSelectElement).value).toBe("binding-collapse-test");
+  expect((within(details("Audio routing")).getAllByRole("combobox")[0] as HTMLSelectElement).value).toBe("binding-collapse-test");
 });
 
 it("releases manually held piano notes once when the keyboard collapses", () => {
@@ -252,14 +252,14 @@ it("removes body-owned global listeners and meter subscriptions under Strict Mod
     return () => { active.delete(callback); unsubscribe(); };
   });
   render(<StrictMode><Page initiallyCollapsed={false} /></StrictMode>);
-  expect(active.size).toBe(2);
+  expect(active.size).toBe(3);
   for (const name of ["Instrument Rack", "Melodic Sequencers", "Drummer Sequencers", "Controller Sequencers", "Arpeggiators", "Piano Rolls", "MIDI Controllers \\(1/6\\)", "Multitrack Arranger"]) togglePanel(name);
   toggleDetails("Mixer", false);
   expect(active.size).toBe(0); expect(frames.size).toBe(0); expect(observers.size).toBe(0);
   for (const [event, handler] of add.mock.calls.filter(([event]) => ["resize", "pointermove", "pointerup", "mousedown", "keydown"].includes(event))) {
     expect(remove.mock.calls.some(([removedEvent, removedHandler]) => event === removedEvent && handler === removedHandler)).toBe(true);
   }
-  toggleDetails("Mixer", true); expect(active.size).toBe(2);
+  toggleDetails("Mixer", true); expect(active.size).toBe(3);
 });
 
 it("keeps pending audio-control synchronization alive when Mixer collapses", async () => {
@@ -270,7 +270,7 @@ it("keeps pending audio-control synchronization alive when Mixer collapses", asy
     useAppStore.setState({ activeSessionId: "collapse-audio-test", activeSessionAudioSignature: JSON.stringify({ graph: state.audioGraph, patches: state.patches.map(patch => [patch.id, patch.updated_at]) }) });
     vi.spyOn(api, "getMixer").mockResolvedValue({ mixer: state.mixer, revision: 1 });
     const update = vi.spyOn(api, "updateMixer").mockResolvedValue({ mixer: state.mixer, revision: 2 });
-    fireEvent.change(screen.getByRole("spinbutton", { name: "Gain dB" }), { target: { value: "-9" } });
+    fireEvent.change(screen.getAllByRole("spinbutton", { name: "Gain dB" })[0], { target: { value: "-9" } });
     toggleDetails("Mixer", false);
     await act(() => vi.advanceTimersByTimeAsync(100));
     expect(update).toHaveBeenCalledWith("collapse-audio-test", expect.objectContaining({ strips: expect.objectContaining({ "binding-collapse-test": expect.objectContaining({ gainDb: -9 }) }) }), 1);

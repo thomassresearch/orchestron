@@ -123,7 +123,7 @@ def test_performance_csd_modes_embed_mixer_and_preserve_velocities(tmp_path, mod
         imported = client.post(
             "/api/bundles/import/expand", content=native.content, headers={"X-File-Name": "mix.orch.json"}
         )
-        assert imported.json()["performance"]["config"] == config
+        assert imported.json()["performance"]["config"] == {**config, "version": 14, "audioGraph": {**config["audioGraph"], "masterId": "$master"}}
 
 
 def test_browser_controller_mixer_updates_require_ownership_and_acknowledge(tmp_path):

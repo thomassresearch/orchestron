@@ -1,6 +1,17 @@
 import type { AudioGraph, AudioInterface, AudioRoute, MixerState, MixerStrip, PatchListItem, SequencerInstrumentBinding } from "../types";
 
-export const emptyAudioGraph = (): AudioGraph => ({ routes: [], masterId: null, insertOwners: {} });
+export const MASTER = "$master";
+/** Display/port metadata only: never added to the patch library or rack. */
+export const masterEndpoint: PatchListItem = {
+  id: MASTER, name: "Master", description: "", is_template: false, always_on: true,
+  instrument_type: "continuous", schema_version: 1, updated_at: "",
+  audio_inlet_names: ["left", "right"], audio_outlet_names: [], has_direct_output: true,
+  audio_interface: { role: "output", mainInput: "input", mainOutput: "output", groups: [
+    { id: "input", name: "Stereo Input", direction: "input", layout: "stereo", ports: ["left", "right"], purpose: "main" },
+    { id: "output", name: "Audio Output", direction: "output", layout: "stereo", ports: ["$direct.left", "$direct.right"], purpose: "main" }
+  ] }
+};
+export const emptyAudioGraph = (): AudioGraph => ({ routes: [], masterId: MASTER, insertOwners: {} });
 export const emptyMixer = (): MixerState => ({ strips: {}, sends: {} });
 export const defaultStrip = (): MixerStrip => ({ gainDb: 0, balance: 0, mute: false, solo: false });
 export const legacyGainDb = (level?: number): number => 20 * Math.log10(Math.max(1, Math.min(10, level ?? 10)) / 10);
@@ -35,14 +46,14 @@ export function validateAudioState(graph: AudioGraph, mixer: MixerState): void {
     if (!object(route) || [route.id, route.sourceId, route.sourcePort, route.targetId, route.targetPort].some((v) => typeof v !== "string" || !v || v.length > 128) || ids.has(route.id) || !["main", "send", "insert", "custom"].includes(route.kind) || !["raw", "strip"].includes(route.sourceStage) || !["input", "strip"].includes(route.targetStage)) throw new Error("Invalid or duplicate audio route");
     ids.add(route.id);
   }
-  if (!object(mixer) || !object(mixer.strips) || !object(mixer.sends) || Object.keys(mixer.strips).length > 64 || Object.keys(mixer.sends).length > 1024) throw new Error("Invalid mixer state");
+  if (!object(mixer) || !object(mixer.strips) || !object(mixer.sends) || Object.keys(mixer.strips).filter(id => id !== MASTER).length > 64 || Object.keys(mixer.sends).length > 1024) throw new Error("Invalid mixer state");
   const gain = (value: unknown, max: number) => value === null || (typeof value === "number" && Number.isFinite(value) && value >= -60 && value <= max);
   for (const strip of Object.values(mixer.strips)) if (!object(strip) || !gain(strip.gainDb, 12) || !Number.isFinite(strip.balance) || Math.abs(strip.balance) > 1 || typeof strip.mute !== "boolean" || typeof strip.solo !== "boolean") throw new Error("Invalid mixer strip");
   for (const send of Object.values(mixer.sends)) if (!object(send) || !gain(send.gainDb, 6) || !["pre", "post"].includes(send.tap)) throw new Error("Invalid mixer send");
 }
 export function migrateAudio(bindings: SequencerInstrumentBinding[], patches: PatchListItem[], graph?: AudioGraph, mixer?: MixerState) {
   if (graph) validateAudioState(graph, mixer ?? emptyMixer());
-  if (graph) return { audioGraph: structuredClone(graph), mixer: structuredClone(mixer ?? emptyMixer()), migrationNotice: false };
+  if (graph) return { audioGraph: { ...structuredClone(graph), masterId: graph.masterId ?? MASTER }, mixer: structuredClone(mixer ?? emptyMixer()), migrationNotice: false };
   const audioGraph = emptyAudioGraph();
   const result = emptyMixer();
   const byId = new Map(bindings.map((b) => [b.id, patches.find((p) => p.id === b.patchId)]));
@@ -87,8 +98,11 @@ export function suggestedInterface(patch: PatchListItem): AudioInterface {
 /** Structural preview; backend resolution remains authoritative for playback/export. */
 export function audioGraphDiagnostics(bindings: SequencerInstrumentBinding[], patches: PatchListItem[], graph: AudioGraph): import("../types").AudioDiagnostic[] {
   const byId = new Map(bindings.map((b) => [b.id, patches.find((p) => p.id === b.patchId)]));
+  byId.set(MASTER, masterEndpoint);
   const result: import("../types").AudioDiagnostic[] = [];
   const edges: [string,string][] = [];
+  if (graph.masterId && graph.masterId !== MASTER && !byId.get(graph.masterId)) result.push({code:"missing_master",severity:"error",instanceId:graph.masterId,message:graph.masterId});
+  if (!graph.routes.some(r => r.targetId === MASTER && r.targetStage === "strip")) edges.push([`raw:${MASTER}`,`strip:${MASTER}`]);
   for (const binding of bindings) {
     const patch = byId.get(binding.id);
     if (!patch) result.push({code:"missing_patch",severity:"error",instanceId:binding.id,message:binding.patchId});

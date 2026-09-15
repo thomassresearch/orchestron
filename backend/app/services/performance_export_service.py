@@ -22,6 +22,7 @@ from backend.app.services.gen_asset_service import GenAssetService
 from backend.app.services.arpeggiator_runtime import PerformanceMidiRouter
 from backend.app.services.sequencer_runtime import SessionSequencerRuntime
 from backend.app.services.performance_export_selection import select_performance_csd_instruments
+from backend.app.services.master_migration import normalize_master_bundle
 
 OFFLINE_RENDER_SR = 48_000
 OFFLINE_RENDER_KSMPS = 1
@@ -162,6 +163,10 @@ class PerformanceExportService:
         self._gen_asset_service = gen_asset_service
 
     def build_performance_csd_archive(self, request: PerformanceCsdExportRequest) -> bytes:
+        exported = request.performance_export
+        if exported.performance.config.audio_graph is not None:
+            normalized = normalize_master_bundle(exported.model_dump(mode="json", by_alias=True))
+            request = request.model_copy(update={"performance_export": type(exported).model_validate(normalized)})
         request = request.model_copy(update={"performance_export": select_performance_csd_instruments(request)})
         base_name = self._sanitize_file_base_name(request.performance_export.performance.name)
         bundle_root = PurePosixPath(base_name)

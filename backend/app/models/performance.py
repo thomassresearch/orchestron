@@ -22,6 +22,10 @@ class PerformanceUpdateRequest(BaseModel):
     config: dict[str, JsonValue] | None = None
 
 
+class MasterRepairRequest(BaseModel):
+    config: dict[str, JsonValue]
+
+
 class PerformanceResponse(PerformanceBase):
     id: str
     created_at: datetime

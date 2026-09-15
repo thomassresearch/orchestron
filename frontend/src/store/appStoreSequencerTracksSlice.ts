@@ -1,5 +1,5 @@
 import { nextPerformanceDeviceName } from "../lib/performanceDeviceNames";
-import { legacyGainDb, newRoute, mainPorts } from "../lib/audioRouting";
+import { legacyGainDb, newRoute } from "../lib/audioRouting";
 import type { StoreApi } from "zustand";
 
 import { insertPadLoopItem, removePadLoopItemsFromContainer } from "../lib/padLoopPattern";
@@ -168,14 +168,8 @@ export function createSequencerTrackStoreActions(
         error: null
       });
       if (selectedPatch?.audio_interface?.guided && selectedPatch.audio_interface.role === "instrument") {
-        void get().ensureMaster().then((masterId) => {
-          const current = get();
-          if (current.audioGraph.routes.some((r) => r.sourceId === binding.id)) return;
-          const ports = mainPorts(selectedPatch, "output");
-          const masterPatchId = current.sequencerInstruments.find((b) => b.id === masterId)?.patchId;
-          const inputs = mainPorts(current.patches.find((p) => p.id === masterPatchId), "input");
-          if (ports.length === 2 && inputs.length === 2) current.setAudioGraph({ ...current.audioGraph, routes: [...current.audioGraph.routes, ...ports.map((sourcePort, i) => newRoute({ sourceId: binding.id, sourcePort, targetId: masterId, targetPort: inputs[i], kind: "main", sourceStage: "strip", targetStage: "input" }))] });
-        }).catch((e: unknown) => set({ error: e instanceof Error ? e.message : "Master creation failed" }));
+        try { get().ensureMaster(); }
+        catch (e) { set({ error: e instanceof Error ? e.message : "Master routing failed" }); }
       }
     },
 
@@ -222,12 +216,8 @@ export function createSequencerTrackStoreActions(
         )
       });
       if (patch?.audio_interface?.guided && patch.audio_interface.role === "instrument" && !get().audioGraph.routes.some((r) => r.sourceId === bindingId)) {
-        void get().ensureMaster().then((masterId) => {
-          const current = get(); const ports = mainPorts(patch, "output");
-          const masterPatchId = current.sequencerInstruments.find((b) => b.id === masterId)?.patchId;
-          const inputs = mainPorts(current.patches.find((p) => p.id === masterPatchId), "input");
-          if (ports.length === 2 && inputs.length === 2 && !current.audioGraph.routes.some((r) => r.sourceId === bindingId)) current.setAudioGraph({ ...current.audioGraph, routes: [...current.audioGraph.routes, ...ports.map((sourcePort, i) => newRoute({ sourceId: bindingId, sourcePort, targetId: masterId, targetPort: inputs[i], kind: "main", sourceStage: "strip", targetStage: "input" }))] });
-        }).catch((e: unknown) => set({ error: String(e) }));
+        try { get().ensureMaster(); }
+        catch (e) { set({ error: e instanceof Error ? e.message : "Master routing failed" }); }
       }
     },
 

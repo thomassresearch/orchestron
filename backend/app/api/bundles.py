@@ -21,6 +21,7 @@ from backend.app.services.gen_asset_references import (
 )
 from backend.app.services.gen_asset_service import GenAudioAssetQuotaExceededError
 from backend.app.services.performance_export_service import PerformanceExportService
+from backend.app.services.master_migration import normalize_master_bundle, repository_lookup
 
 router = APIRouter(prefix="/bundles", tags=["bundles"])
 
@@ -49,6 +50,7 @@ async def export_performance_bundle(
     payload: dict[str, object],
     container: AppContainer = Depends(get_container),
 ) -> Response:
+    payload = normalize_master_bundle(payload, repository_lookup(container.patch_repository))
     return _build_export_response(
         payload=payload,
         json_entry_name="performance.orch.json",
@@ -101,6 +103,11 @@ async def expand_import_bundle(
             filename=x_file_name,
             container=container,
         )
+        if isinstance(parsed, dict):
+            if parsed.get("format") == "orchestron.performance" and isinstance(parsed.get("performance"), dict) and isinstance(parsed["performance"].get("config"), dict):
+                parsed = normalize_master_bundle(parsed, repository_lookup(container.patch_repository))
+            elif isinstance(parsed.get("audioGraph"), dict):
+                parsed = container.performance_service.normalize_config(parsed)
     except ImportBundleTooLargeError as err:
         raise HTTPException(status_code=413, detail=str(err)) from err
     except GenAudioAssetQuotaExceededError as err:

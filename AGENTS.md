@@ -101,9 +101,11 @@ it measures cold, cached, and one-pad preparation using the versioned TB303 test
   of arranger playback; retain the documented seek/reset behavior.
 - Rack/topology changes lock while instruments run; mixer controls remain live. Direct output
   bypasses Master but retains strip controls. Legacy Level migrates to dB audio gain, not velocity.
-- Mixer persistence arrived in performance config v11; current serializers/CLI write v13 and
-  accept v1–13. App state remains v2. Distinguish these from the native bundle envelope version.
+- Mixer persistence arrived in performance config v11; current serializers/CLI write v14 and
+  accept v1–14. App state remains v2. Distinguish these from the native bundle envelope version.
   Preserve types, device names, routing, mixer state, and instance overrides across round trips.
+- Master is the fixed `$master` endpoint, with no library patch or rack slot. Preserve its
+  strip/inserts and direct-output bypass; see routing docs for legacy migration and backups.
 - `perf_controller` values are per-instance I-rate settings: new notes adopt changes; continuous
   instruments require restart. Save Performance, native bundles, and both CSD modes preserve them.
 - Collapsed panels suspend visual work and meter subscriptions while playback continues.

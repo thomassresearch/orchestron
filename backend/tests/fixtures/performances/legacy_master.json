@@ -1,0 +1,53 @@
+{
+  "version": 13,
+  "instruments": [
+    {
+      "id": "source",
+      "patchId": "source-patch",
+      "midiChannel": 1
+    },
+    {
+      "id": "old-master",
+      "patchId": "legacy-master-patch",
+      "midiChannel": 0
+    }
+  ],
+  "audioGraph": {
+    "masterId": "old-master",
+    "insertOwners": {},
+    "routes": [
+      {
+        "id": "feed-left",
+        "sourceId": "source",
+        "sourcePort": "left",
+        "targetId": "old-master",
+        "targetPort": "left",
+        "kind": "main",
+        "sourceStage": "strip",
+        "targetStage": "input"
+      },
+      {
+        "id": "feed-right",
+        "sourceId": "source",
+        "sourcePort": "right",
+        "targetId": "old-master",
+        "targetPort": "right",
+        "kind": "main",
+        "sourceStage": "strip",
+        "targetStage": "input"
+      }
+    ]
+  },
+  "mixer": {
+    "strips": {
+      "old-master": {
+        "gainDb": -1.4,
+        "balance": 0.2,
+        "mute": false,
+        "solo": false
+      }
+    },
+    "sends": {}
+  },
+  "sequencer": {}
+}

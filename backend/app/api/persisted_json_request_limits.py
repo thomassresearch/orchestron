@@ -73,7 +73,7 @@ class PersistedJsonRequestLimitMiddleware:
             return self._settings.patch_graph_max_bytes + PERSISTED_JSON_REQUEST_OVERHEAD_BYTES
         if method == "PUT" and path.startswith(f"{patches_path}/"):
             return self._settings.patch_graph_max_bytes + PERSISTED_JSON_REQUEST_OVERHEAD_BYTES
-        if method == "POST" and path == performances_path:
+        if method == "POST" and path in (performances_path, f"{performances_path}/repair-master"):
             return self._settings.performance_config_max_bytes + PERSISTED_JSON_REQUEST_OVERHEAD_BYTES
         if method == "PUT" and path.startswith(f"{performances_path}/"):
             return self._settings.performance_config_max_bytes + PERSISTED_JSON_REQUEST_OVERHEAD_BYTES

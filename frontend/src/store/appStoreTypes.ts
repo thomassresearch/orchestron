@@ -84,7 +84,7 @@ export interface AppStore {
   performanceControllerSyncError: string | null;
   setPerformanceControllerValue: (bindingId: string, nodeId: string, value: number | null) => void;
   flushPerformanceControllers: () => Promise<void>;
-  ensureMaster: () => Promise<string>;
+  ensureMaster: () => string;
 
   currentPerformanceId: string | null;
   /** UI lifetime only; excludes ordinary saves, edits and transport ticks. */

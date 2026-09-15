@@ -45,7 +45,7 @@ The toolbar includes:
 
 ### New
 
-- Opens the built-in creation chooser: Playable instrument, Drumset, Audio effect, Output / Master processor, or Empty patch.
+- Opens the built-in creation chooser: Playable instrument, Drumset, Audio effect, Audio Output, or Empty patch.
 - Creates an unsaved draft with the selected starter graph and default engine settings.
 - This draft is not yet stored in the patch library until `Save` is used.
 
@@ -103,7 +103,7 @@ The toolbar includes:
 
 ## Built-in creation choices
 
-New and New from template offer Playable instrument (MIDI pitch/velocity, sine oscillator and madsr), Audio effect (stereo pass-through), Output / Master processor (stereo input to direct output), and Empty patch. These choices work without saved templates. Guided instruments connect to an ordinary neutral Master when added to a performance.
+New and New from template offer Playable instrument (MIDI pitch/velocity, sine oscillator and madsr), Audio effect (stereo pass-through), Audio Output (stereo input to direct output), and Empty patch. These choices work without saved templates. Guided instruments connect to an fixed internal Master when added to a performance.
 
 ### Choose a starter
 
@@ -112,10 +112,10 @@ New and New from template offer Playable instrument (MIDI pitch/velocity, sine o
 | Playable instrument | Melody; MIDI notes; named stereo output; pitch, velocity, sine oscillator and envelope | Save, add to Perform, and play its MIDI channel. |
 | Drumset | Percussion; MIDI notes; named stereo output; analog drum voices | Save, add to Perform, and sequence its drum notes. |
 | Audio effect | Continuous; named stereo input and output, initially pass-through | Add processing between the input and output before using it as an effect. |
-| Output / Master processor | Continuous; stereo input to Direct Audio Output (`outs`) | Save for use as a Master/output processor. |
+| Audio Output | Continuous; stereo input to Direct Audio Output (`outs`) | Save for use as a custom output processor. |
 | Empty patch | Melody; empty graph for custom design | Build and compile the required signal path. |
 
-Role describes the patch's audio interface; Instrument Type determines whether it runs continuously or on MIDI notes. Audio effect and Master starters use Continuous; use Effects / Noise for MIDI-triggered sound effects. Naming a patch “Master” alone does not select it as the performance's Master. Use the Mixer Master selector or Create neutral Master.
+Role describes the patch's audio interface; Instrument Type determines whether it runs continuously or on MIDI notes. Audio effect and Audio Output starters use Continuous; use Effects / Noise for MIDI-triggered sound effects. Every performance has a fixed internal Master. It has no editable patch or rack assignment; add processing through its mixer inserts.
 
 <p align="center">
   <img src="../../screenshots/instrument_builtin_patch_chooser.png" alt="Built-in patch creation chooser" width="600" style="max-width: 100%; height: auto;" />
@@ -126,7 +126,7 @@ Role describes the patch's audio interface; Instrument Type determines whether i
 
 Existing always-on patches become Continuous without changing playback. Other older patches are classified from their names first, then descriptions: drum/percussion terms precede bass terms, followed by melodic and sound-effect terms. Unmatched patches default to Melody. Review the inferred Instrument Type and change it when needed; later name or description edits do not reclassify a patch.
 
-Types are saved with the patch and retained in clones, templates, restored tabs, and instrument/performance JSON or ZIP bundles. New playable and empty patches default to Melody, drumsets to Percussion, and effect/Master starters to Continuous.
+Types are saved with the patch and retained in clones, templates, restored tabs, and instrument/performance JSON or ZIP bundles. New playable and empty patches default to Melody, drumsets to Percussion, and effect/output starters to Continuous.
 
 ## Screenshots
 

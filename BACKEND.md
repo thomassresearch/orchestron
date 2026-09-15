@@ -794,6 +794,12 @@ Those tests are the best executable reference for edge cases not obvious from th
 
 ### Performance controller channel selections
 
-Performance config version 13 adds `targetChannels` to manual MIDI controllers and controller sequencers. Frontend and CLI snapshot normalization accepts versions 1–13 and defaults missing selections to channels 1–16. App-state version 2 and native bundle-envelope version 1 are unchanged.
+Performance config version 13 adds `targetChannels` to manual MIDI controllers and controller sequencers. Frontend and CLI snapshot normalization accepts versions 1–14 and defaults missing selections to channels 1–16. App-state version 2 and native bundle-envelope version 1 are unchanged.
 
 Manual lanes in `PerformanceCsdExportRequest.midiControllers` accept `targetChannels`: a nonempty list of integer channels 1–16, defaulting to all 16 when omitted. Entries are deduplicated and sorted. Both CSD modes seed values per `(channel, controllerNumber)`; later enabled lanes override only matching pairs. Controller sequencers use the existing `target_channels` runtime field; omitted/empty direct runtime requests retain the existing session-channel fallback.
+
+### Internal Master (performance config v14)
+
+`$master` is a reserved mixer endpoint with fixed `left`/`right` inputs and `$direct.left`/`$direct.right` outputs for strip/insert routing. The compiler emits its body internally. It is excluded from patch storage and the 64 user-instrument quota; mixer state allows one additional strip. Frontend and CLI write performance config v14 and accept v1–14; app-state and native envelope versions are unchanged.
+
+Saved performance/app-state read and write boundaries and native import/export normalize designated legacy Masters through `master_migration`. SQLite startup invokes the same backed-up, idempotent cleanup exposed by `backend.tools.migrate_internal_master`. `POST /api/performances/repair-master` accepts `{config: ...}` and returns a converted config without saving it; it only replaces missing Masters with compatible stereo port mappings. See [migration and repair](documentation/performance/audio_mixer_and_routing.md#upgrading-existing-masters).

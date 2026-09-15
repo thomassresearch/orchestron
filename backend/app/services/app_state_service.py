@@ -12,6 +12,7 @@ from backend.app.services.persisted_json_limits import (
     assert_persisted_json_limits,
 )
 from backend.app.storage.repositories.app_state_repository import AppStateRepository
+from backend.app.services.master_migration import normalize_master_app_state, repository_lookup
 
 
 class AppStateService:
@@ -19,10 +20,12 @@ class AppStateService:
         self,
         repository: AppStateRepository,
         *,
+        patch_repository=None,
         max_state_bytes: int = DEFAULT_APP_STATE_MAX_BYTES,
         max_string_bytes: int = DEFAULT_PERSISTED_JSON_STRING_MAX_BYTES,
     ):
         self._repository = repository
+        self._patch_lookup = repository_lookup(patch_repository)
         self._max_state_bytes = max_state_bytes
         self._max_string_bytes = max_string_bytes
 
@@ -31,18 +34,22 @@ class AppStateService:
         if not document:
             raise HTTPException(status_code=404, detail="App state not found")
 
-        return AppStateResponse.model_construct(state=document.state, updated_at=document.updated_at)
+        state = normalize_master_app_state(document.state, self._patch_lookup)
+        return AppStateResponse.model_construct(state=state, updated_at=document.updated_at)
 
     def save_last_state(self, request: AppStateUpdateRequest) -> AppStateResponse:
         created_at = self._repository.get_created_at("last")
         now = datetime.now(timezone.utc)
 
         self._validate_state(request.state)
+        state = normalize_master_app_state(request.state, self._patch_lookup)
+        if state is not request.state:
+            self._validate_state(state)
         # JsonValue validation already happened on AppStateUpdateRequest. Keep
         # this same validated tree instead of rebuilding it for every wrapper.
         document = AppStateDocument.model_construct(
             id="last",
-            state=request.state,
+            state=state,
             created_at=created_at or now,
             updated_at=now,
         )

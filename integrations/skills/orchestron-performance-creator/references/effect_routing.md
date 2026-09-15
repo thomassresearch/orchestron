@@ -1,10 +1,10 @@
 # Always-On Effect Routing
 
-Performance configuration version 13 retains the version-11 routing model: stable rack instance IDs, one authoritative `audioGraph.routes` list, and mixer values keyed by instance/route ID. Version 13 also preserves each manual MIDI controller and controller sequencer’s `targetChannels` list (channels 1–16, default all). It stores per-instrument `performanceControllerValues`; see [performance controllers](performance_controllers.md).
+Performance configuration version 14 retains the version-11 routing model: stable rack instance IDs, one authoritative `audioGraph.routes` list, and mixer values keyed by instance/route ID. Version 13 also preserves each manual MIDI controller and controller sequencer’s `targetChannels` list (channels 1–16, default all). It stores per-instrument `performanceControllerValues`; see [performance controllers](performance_controllers.md).
 
 ```json
 {
-  "version": 13,
+  "version": 14,
   "instruments": [{"id":"lead","patchId":"lead-patch","midiChannel":1},{"id":"reverb","patchId":"reverb-patch","midiChannel":0}],
   "audioGraph": {"masterId":null,"insertOwners":{},"routes":[{"id":"send-left","sourceId":"lead","sourcePort":"sendl","targetId":"reverb","targetPort":"left","kind":"send","sourceStage":"strip","targetStage":"input"}]},
   "mixer": {"strips":{"lead":{"gainDb":-6,"balance":0,"mute":false,"solo":false}},"sends":{"send-left":{"gainDb":-12,"tap":"post"}}}
@@ -60,3 +60,5 @@ orchestron_cli --json edit rebuild-runtime
 ```
 
 The replacement is created, configured, and compiled before the old runtime is stopped. By default it preserves the old running state. If replacement startup fails, the CLI attempts to restart the old session and removes the replacement. An externally attached session is never replaced unless `--replace-external` is explicitly supplied.
+
+The permanent `$master` endpoint has exact `left` and `right` inlets. It needs no patch or rack assignment. Use `--target '$master' --inlet left` (or `right`) for routes into Master; shell quotes preserve the literal dollar sign. Its mixer controls and inserts are saved per performance.

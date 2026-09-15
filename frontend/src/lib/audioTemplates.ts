@@ -37,6 +37,6 @@ export function audioTemplate(kind: BuiltinTemplate): Patch {
     groups.push({ id: "main-output", name: kind === "output" ? "Direct Audio Output" : "Stereo Output", direction: "output", layout: "stereo", ports: kind === "output" ? ["$direct.left", "$direct.right"] : ["left", "right"], purpose: "main" });
     graph.audio_interface = { role: kind, groups, mainInput: kind === "instrument" ? null : "main-input", mainOutput: "main-output", guided: true };
   }
-  const names = { instrument: "Playable instrument", effect: "Audio effect", output: "Master", empty: "Empty patch" };
+  const names = { instrument: "Playable instrument", effect: "Audio effect", output: "Audio Output", empty: "Empty patch" };
   return { id: `builtin-${kind}`, name: names[kind], description: "", is_template: false, instrument_type: kind === "effect" || kind === "output" ? "continuous" : "melody", always_on: kind === "effect" || kind === "output", schema_version: 1, graph, created_at: "", updated_at: "" };
 }

@@ -6438,3 +6438,60 @@ def test_controller_channels_survive_performance_storage_and_native_bundles(tmp_
             headers={"Content-Type": "application/octet-stream", "X-File-Name": f"channels.orch.{archive_format}"})
         assert imported.status_code == 200
         assert imported.json()["performance"]["config"] == config
+
+
+def test_internal_master_save_restore_preview_and_repair(tmp_path: Path) -> None:
+    from backend.tests.test_internal_master import legacy_patch, legacy_config
+    from backend.tests.test_mixer_audio import source
+
+    with _client(tmp_path) as client:
+        saved_source = client.post('/api/patches', json=source(direct=False, always_on=False).patch.model_dump(mode='json')).json()
+        old_master = client.post('/api/patches', json=legacy_patch()).json()
+        config = legacy_config()
+        config['instruments'][0]['patchId'] = saved_source['id']
+        config['instruments'][1]['patchId'] = old_master['id']
+        config['audioGraph']['routes'] = config['audioGraph']['routes'][:1]
+        saved = client.post('/api/performances', json={'name': 'Migration', 'config': config})
+        assert saved.status_code == 201, saved.text
+        migrated = saved.json()['config']
+        assert migrated['version'] == 14
+        assert migrated['instruments'] == config['instruments'][:1]
+        assert migrated['mixer']['strips']['$master']['gainDb'] == -1.4
+        assert client.get('/api/performances/' + saved.json()['id']).json()['config'] == migrated
+        state = {'version': 2, 'sequencerInstruments': config['instruments'], 'audioGraph': config['audioGraph'], 'mixer': config['mixer']}
+        restored = client.put('/api/app-state', json={'state': state})
+        assert restored.status_code == 200, restored.text
+        assert client.get('/api/app-state').json()['state']['audioGraph']['masterId'] == '$master'
+        session = {'instruments': [{'id': 'source', 'patch_id': saved_source['id'], 'midi_channel': 1}],
+                   'audio_graph': migrated['audioGraph'], 'mixer': migrated['mixer']}
+        count = len(client.get('/api/patches').json())
+        for endpoint, body in [('/api/sessions', session), ('/api/sessions/preview', {'session': session, 'patches': [saved_source]})]:
+            created = client.post(endpoint, json=body)
+            assert created.status_code == 201, created.text
+            compiled = client.post('/api/sessions/' + created.json()['session_id'] + '/compile')
+            assert compiled.status_code == 200, compiled.text
+            assert '$master' in compiled.json()['manifest']['meters']
+        assert len(client.get('/api/patches').json()) == count
+        config['instruments'][1]['patchId'] = 'deleted-master'
+        config['mixer']['strips']['old-master']['gainDb'] = -8.7
+        repaired = client.post('/api/performances/repair-master', json={'config': config})
+        assert repaired.status_code == 200, repaired.text
+        assert repaired.json()['mixer']['strips']['$master']['gainDb'] == -8.7
+        config['audioGraph']['routes'][0]['targetPort'] = 'unknown'
+        assert client.post('/api/performances/repair-master', json={'config': config}).status_code == 422
+
+
+def test_legacy_master_bundle_expansion_does_not_recreate_library_patch(tmp_path: Path) -> None:
+    from backend.tests.test_internal_master import legacy_patch, legacy_config
+
+    patch = legacy_patch()
+    patch['sourcePatchId'] = patch.pop('id')
+    payload = {'format': 'orchestron.performance', 'version': 1, 'performance': {'name': 'Old', 'config': legacy_config()}, 'patch_definitions': [patch]}
+    with _client(tmp_path) as client:
+        for _ in range(2):
+            response = client.post('/api/bundles/import/expand', content=json.dumps(payload), headers={'X-File-Name': 'old.orch.json'})
+            assert response.status_code == 200, response.text
+            converted = response.json()
+            assert converted['patch_definitions'] == []
+            assert converted['performance']['config']['audioGraph']['masterId'] == '$master'
+            assert client.get('/api/patches').json() == []

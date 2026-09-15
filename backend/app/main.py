@@ -41,6 +41,15 @@ def _build_container(settings: Settings) -> AppContainer:
 
     database = Database(settings.database_url)
     database.create_all()
+    if database.engine.url.get_backend_name() == "sqlite" and database.engine.url.database not in (None, "", ":memory:"):
+        from backend.tools.migrate_internal_master import migrate_database
+
+        migrate_database(
+            Path(database.engine.url.database), apply=True,
+            max_config_bytes=settings.performance_config_max_bytes,
+            max_state_bytes=settings.app_state_max_bytes,
+            max_string_bytes=settings.persisted_json_string_max_bytes,
+        )
 
     patch_repository = PatchRepository(database.session)
     app_state_repository = AppStateRepository(database.session)
@@ -61,11 +70,13 @@ def _build_container(settings: Settings) -> AppContainer:
     )
     app_state_service = AppStateService(
         repository=app_state_repository,
+        patch_repository=patch_repository,
         max_state_bytes=settings.app_state_max_bytes,
         max_string_bytes=settings.persisted_json_string_max_bytes,
     )
     performance_service = PerformanceService(
         repository=performance_repository,
+        patch_repository=patch_repository,
         max_config_bytes=settings.performance_config_max_bytes,
         max_string_bytes=settings.persisted_json_string_max_bytes,
     )

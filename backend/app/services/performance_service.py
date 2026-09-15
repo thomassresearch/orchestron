@@ -19,6 +19,7 @@ from backend.app.services.persisted_json_limits import (
     assert_persisted_json_limits,
 )
 from backend.app.storage.repositories.performance_repository import PerformanceRepository
+from backend.app.services.master_migration import normalize_master_config, repository_lookup
 
 
 class PerformanceService:
@@ -26,10 +27,12 @@ class PerformanceService:
         self,
         repository: PerformanceRepository,
         *,
+        patch_repository=None,
         max_config_bytes: int = DEFAULT_PERFORMANCE_CONFIG_MAX_BYTES,
         max_string_bytes: int = DEFAULT_PERSISTED_JSON_STRING_MAX_BYTES,
     ):
         self._repository = repository
+        self._patch_lookup = repository_lookup(patch_repository)
         self._max_config_bytes = max_config_bytes
         self._max_string_bytes = max_string_bytes
 
@@ -40,7 +43,7 @@ class PerformanceService:
             id=str(uuid4()),
             name=request.name,
             description=request.description,
-            config=request.config,
+            config=self.normalize_config(request.config),
             created_at=now,
             updated_at=now,
         )
@@ -51,6 +54,7 @@ class PerformanceService:
         document = self._repository.get(performance_id)
         if not document:
             raise HTTPException(status_code=404, detail=f"Performance '{performance_id}' not found")
+        document = document.model_copy(update={"config": self.normalize_config(document.config)})
         return PerformanceResponse.model_validate(document.model_dump())
 
     def list_performances(self) -> list[PerformanceListItem]:
@@ -74,7 +78,7 @@ class PerformanceService:
             id=existing.id,
             name=request.name if request.name is not None else existing.name,
             description=request.description if request.description is not None else existing.description,
-            config=request.config if request.config is not None else existing.config,
+            config=self.normalize_config(request.config if request.config is not None else existing.config),
             created_at=existing.created_at,
             updated_at=datetime.now(timezone.utc),
         )
@@ -103,3 +107,9 @@ class PerformanceService:
             raise HTTPException(status_code=422, detail=str(err)) from err
         except ValueError as err:
             raise HTTPException(status_code=422, detail="config must be serializable as JSON.") from err
+
+    def normalize_config(self, config: dict) -> dict:
+        self._validate_config(config)
+        result = normalize_master_config(config, self._patch_lookup)
+        self._validate_config(result)
+        return result

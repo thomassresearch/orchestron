@@ -2830,7 +2830,7 @@ export function buildSequencerConfigSnapshot(
     timing
   );
   return {
-    version: 13,
+    version: 14,
     audioGraph: structuredClone(audioGraph),
     mixer: structuredClone(mixer),
     instruments: instruments
@@ -3033,7 +3033,8 @@ export function parseSequencerConfigSnapshot(
     payload.version !== 10 &&
     payload.version !== 11 &&
     payload.version !== 12 &&
-    payload.version !== 13
+    payload.version !== 13 &&
+    payload.version !== 14
   ) {
     throw new Error("Unsupported sequencer config version.");
   }

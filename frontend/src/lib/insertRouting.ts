@@ -1,4 +1,4 @@
-import { mainPorts, newRoute } from "./audioRouting";
+import { MASTER, masterEndpoint, mainPorts, newRoute } from "./audioRouting";
 import type { AudioGraph, PatchListItem, SequencerInstrumentBinding } from "../types";
 
 export function insertChain(graph: AudioGraph, owner: string): string[] | null {
@@ -19,7 +19,7 @@ export function wireInsertChain(graph: AudioGraph, bindings: SequencerInstrument
   const owned = Object.keys(graph.insertOwners).filter((id) => graph.insertOwners[id] === owner);
   const involved = new Set([...owned, ...chain]);
   const routes = graph.routes.filter((r) => !(r.kind === "insert" && (involved.has(r.sourceId) || involved.has(r.targetId))));
-  const patch = (id: string) => patches.find((p) => p.id === bindings.find((b) => b.id === id)?.patchId);
+  const patch = (id: string) => id === MASTER ? masterEndpoint : patches.find((p) => p.id === bindings.find((b) => b.id === id)?.patchId);
   for (let i = 0; i <= chain.length && chain.length > 0; i++) {
     const sourceId = i === 0 ? owner : chain[i - 1];
     const targetId = i === chain.length ? owner : chain[i];

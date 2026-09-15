@@ -9,7 +9,7 @@ Collapsing Mixer suspends its visual contents and meter subscriptions while audi
 ## Build your first mix
 
 1. In Instrument Design, choose **New → Playable instrument**, name the draft and **Save** it. Create and save an **Audio effect** when you need a processor. The built-in effect is a stereo pass-through starter; add your processing inside its graph.
-2. In Perform, use **Add Instrument** and select the saved instrument. Set its MIDI channel. Guided instruments connect to an ordinary neutral Master automatically. For existing patches, inspect their destination labels and use **Create neutral Master** / **Route through Master** if needed.
+2. In Perform, use **Add Instrument** and select the saved instrument. Set its MIDI channel. Guided instruments connect to the fixed internal Master automatically. For existing patches, inspect their destination labels and use **Route through Master** if needed.
 3. Expand **Mixer** below the rack. Each strip header selects its source for the routing editor. The Master strip stays pinned at the right; scroll horizontally when the rack has many strips.
 4. Start with 0 dB gain and centered Pan / Balance. Build routes and insert chains while stopped, then open **Routing diagnostics → Check routing**.
 5. Click **Start Instruments** and play via a piano roll, sequencer or MIDI input. Change gain, balance, mute/solo and existing send settings while listening. Watch strip meters and the final Audio Output meter.
@@ -28,7 +28,7 @@ Collapsing Mixer suspends its visual contents and meter subscriptions while audi
 | Pre-fader send | After inserts → send amount → destination |
 | Post-fader send | After pan/balance and fader → send amount → destination |
 | Return | Summed inputs → effect patch → inserts → balance → return fader |
-| Master | Incoming routes → Master patch/inserts → balance → Master fader → Audio Output |
+| Master | Incoming routes → internal stereo bus → inserts → balance → Master fader → Audio Output |
 
 Effects drawn inside an instrument graph run per voice. Perform inserts receive summed voices. Each inserted effect is a dedicated rack instance. Reordering an insert changes explicit connections; if custom connections no longer form a simple chain, **Custom routing** preserves those connections.
 
@@ -48,7 +48,7 @@ A **return** is a continuous rack instance that can receive sends from several s
 4. On the source strip, find **Send → [return name]**. New sends start at silence; enter a value such as -12 dB to hear the return.
 5. Choose **Post-fader** when the send should follow the source's fader/balance, or **Pre-fader** for an independent send amount. The source's Mute still silences either kind of send.
 
-Adding a send does not replace the main output route. Avoid adding duplicate connections: parallel paths sum and can increase output level. Up to 1,024 individual channel connections and 64 rack instances (including processors) are supported; a stereo pair uses two connections.
+Adding a send does not replace the main output route. Avoid adding duplicate connections: parallel paths sum and can increase output level. Up to 1,024 individual channel connections and 64 rack instances (including processors, excluding internal Master) are supported; a stereo pair uses two connections.
 
 ## Controls
 
@@ -75,7 +75,7 @@ Open **Routing diagram** to follow the same connections as source → destinatio
 </p>
 <p align="center"><em>The send's left and right mappings expanded in Destination matrix. Matrix and diagram show the same routes, including the dedicated insert's input and return-to-strip connections.</em></p>
 
-**Route through Master** replaces the selected strip's main routes with stereo connections to the designated Master in this performance. Sends and custom routes are retained. A neutral Master is an ordinary saved output patch; **Create neutral Master** creates/selects it when none exists. The **Master** dropdown can designate another eligible direct-output rack patch, but changing that designation alone does not rewire incoming routes.
+**Route through Master** replaces the selected strip's main routes with stereo connections to the designated Master in this performance. Sends and custom routes are retained. Master is a fixed internal stereo output with volume, balance, mute, meters and effect inserts. It is always available, has no editable patch and occupies no library entry or rack slot. Its controls and inserts belong to the performance. **Audio Output** remains available as an editable starter for custom output processors.
 
 New guided instruments connect to Master automatically. Loading an older performance preserves its authored direct/custom paths. Master gain or mute affects only paths routed into Master: a direct strip can still be audible. Check the **Direct Audio Output** badge and the final Audio Output meter when tracking down sound that remains after lowering Master.
 
@@ -102,7 +102,7 @@ Expand **Routing diagnostics** and click **Check routing** after editing connect
 
 ## Persistence and compatibility
 
-Performance configuration version 11 stores stable instance IDs, explicit routes, mixer strips, send settings, Master and insert ownership. App state version 2 saves this same model. Save/Load, Clone and native JSON/ZIP bundles preserve the current settings. Mixer automation recording is not included.
+Performance configuration version 14 stores Master as an internal endpoint, with stable instance IDs, explicit routes, mixer strips, sends and insert ownership. Versions 1–13 remain readable. App state version 2 saves this same model. Save/Load, Clone and native JSON/ZIP bundles preserve the current settings. Mixer automation recording is not included.
 
 Versions 1–10 convert old Level values using `20 * log10(level / 10)`, including continuous effects. Missing Level means 0 dB. Legacy inlet selection is resolved once and saved explicitly. Level no longer scales MIDI velocity; velocity-sensitive patches can therefore change timbre after migration. Authored note velocities remain unchanged.
 
@@ -114,6 +114,18 @@ Session creation and validation accept `audio_graph` and `mixer`. `GET /api/sess
 
 `POST /api/sessions/preview` accepts a session plus inline draft patch definitions. It creates a transient runtime without saving drafts into the patch library. Normal stop/delete session operations clean it up.
 
-The performance CLI preserves version 11 routing and mixer data. `--level` is deprecated and converts to audio gain. New CLI routes require exact destination inlet selection when names differ; `--inlet` makes that mapping explicit.
+The performance CLI writes version 14 and preserves routing and mixer data. `--level` is deprecated and converts to audio gain. New CLI routes require exact destination inlet selection when names differ; `--inlet` makes that mapping explicit.
 
 **Navigation:** [Up](performance.md) | [Prev](instrument_rack_and_engine_transport.md) | [Next](sequencer_tracks_and_steps.md)
+
+<div style="page-break-before: always;"></div>
+
+## Upgrading existing Masters
+
+On backend startup, the SQLite library is migrated before it is served. The migration creates a sibling `.before-internal-master-<timestamp>.bak` database backup before changing data. Repeated starts make no further changes after migration.
+
+Known neutral Master graphs are replaced by the internal output while preserving each performance's routes, gain, balance, mute and inserts. Customized Masters retain their processing as ordinary rack instruments feeding the internal Master. Unreferenced neutral Master copies are removed from the library only after references in saved performances and app state have been migrated. Modified patches, edited drafts and patches still used elsewhere are retained.
+
+A genuinely missing legacy patch stays visible for repair. While stopped, **Replace missing Master with internal output** transfers compatible stereo connections and saved Master controls; save the performance afterward. Unknown port mappings must first be repaired in the routing matrix.
+
+To preview the migration manually with the backend stopped, run `uv run python -m backend.tools.migrate_internal_master --database backend/data/visualcsound.db`. Add `--apply` to create a backup and apply it. Use the actual database path for Docker or custom installations. To roll back, stop the backend and restore the backup together with the previous application version.
