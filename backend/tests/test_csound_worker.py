@@ -5,6 +5,7 @@ import pytest
 
 from backend.app.engine.csound_worker import CsoundWorker
 from backend.app.engine.ctcsound_loader import load_ctcsound_module
+from backend.app.engine.browser_audio_pcm import resample_stereo_block_linear
 
 
 def test_rtmidi_candidates_prefer_requested_and_normalize_quotes(monkeypatch) -> None:
@@ -508,6 +509,59 @@ def test_browser_clock_mock_runtime_resamples_to_requested_output_rate(monkeypat
     assert len(render.pcm_f32le) == 139 * 2 * 4
 
     worker.stop()
+
+
+@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+@pytest.mark.parametrize("channels", [1, 2, 4])
+@pytest.mark.parametrize("target_sample_rate", [48_000, 44_100])
+def test_browser_clock_reuses_pcm_storage_without_overwriting_returned_audio(
+    monkeypatch, dtype, channels, target_sample_rate
+) -> None:
+    monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "true")
+
+    class FakeCsound:
+        def __init__(self):
+            self.output = np.empty((16, channels), dtype=dtype)
+            self.calls = 0
+
+        def performKsmps(self):  # noqa: N802
+            self.calls += 1
+            self.output[:] = self.calls + np.arange(channels) / 8
+            return 0
+
+        def spout(self):
+            return self.output
+
+    worker = CsoundWorker()
+    worker._backend = "ctcsound"
+    worker._audio_output_mode = "browser_clock"
+    worker._csound = FakeCsound()
+    worker._running = True
+    worker._runtime_sr = 48_000
+    worker._runtime_nchnls = channels
+    worker._runtime_ksmps = 16
+    previous_results = []
+    cursor = 0
+    storage = None
+    capacity = 0
+    for blocks in (3, 1, 5, 2):
+        first_call = worker._csound.calls + 1
+        result = worker.render_blocks(block_count=blocks, target_sample_rate=target_sample_rate)
+        expected = np.repeat(np.arange(first_call, first_call + blocks, dtype=np.float32), 16)
+        expected = np.column_stack((expected, expected + (0 if channels == 1 else 1 / 8)))
+        expected = resample_stereo_block_linear(
+            expected, source_sample_rate=48_000, target_sample_rate=target_sample_rate
+        )
+        previous_results.append((result, expected))
+        assert result.target_frame_count == len(expected)
+        assert (result.engine_sample_start, result.engine_sample_end) == (cursor, cursor + blocks * 16)
+        cursor = result.engine_sample_end
+        if blocks <= capacity:
+            assert worker._pcm_render_buffer is storage
+        storage = worker._pcm_render_buffer
+        capacity = max(capacity, blocks)
+        for prior, samples in previous_results:
+            np.testing.assert_array_equal(np.frombuffer(prior.pcm_f32le, dtype=np.float32).reshape(-1, 2), samples)
 
 
 def test_browser_clock_ctcsound_runtime_resamples_merged_blocks_once_per_request(monkeypatch) -> None:

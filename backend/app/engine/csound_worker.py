@@ -75,6 +75,7 @@ class CsoundWorker:
         self._runtime_nchnls = 0
         self._runtime_ksmps = 0
         self._render_sample_cursor = 0
+        self._pcm_render_buffer: Any | None = None
         self._host_midi_enabled = False
         self._host_midi_buffer = bytearray()
         self._host_midi_lock = threading.Lock()
@@ -409,7 +410,12 @@ class CsoundWorker:
 
             import numpy as np  # type: ignore
 
-            rendered_blocks: list[Any] = []
+            requested_frames = requested_blocks * source_ksmps
+            # Render ownership protects this reusable storage. Grow only when
+            # necessary; tobytes below gives each response independent ownership.
+            if self._pcm_render_buffer is None or self._pcm_render_buffer.shape[0] < requested_frames:
+                self._pcm_render_buffer = np.empty((requested_frames, 2), dtype=np.float32)
+            merged = self._pcm_render_buffer[:requested_frames]
             source_frames_rendered = 0
             before_block_arity = self._callback_arity(before_block)
             for block_index in range(requested_blocks):
@@ -433,11 +439,11 @@ class CsoundWorker:
                         self._running = False
                     raise RuntimeError(f"CSound performKsmps exited with status {result}")
 
-                block = normalize_csound_spout_to_stereo(
+                normalize_csound_spout_to_stereo(
                     csound.spout(),
                     source_channels=source_nchnls,
+                    out=merged[source_frames_rendered:source_frames_rendered + source_ksmps],
                 )
-                rendered_blocks.append(block)
                 source_frames_rendered += source_ksmps
                 self._capture_mixer_meters(csound, block_end_sample, source_sr)
                 # The next block (and MIDI received while this request is still
@@ -445,11 +451,6 @@ class CsoundWorker:
                 # not the cursor captured when the request began.
                 with self._lock:
                     self._render_sample_cursor = block_end_sample
-
-            if rendered_blocks:
-                merged = np.concatenate(rendered_blocks, axis=0)
-            else:
-                merged = np.zeros((0, 2), dtype=np.float32)
 
             if source_sr != target_sample_rate:
                 merged = resample_stereo_block_linear(

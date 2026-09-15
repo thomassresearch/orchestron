@@ -5,11 +5,14 @@ from typing import Any
 DEFAULT_BROWSER_AUDIO_SAMPLE_RATE = 48_000
 
 
-def normalize_csound_spout_to_stereo(spout: Any, *, source_channels: int) -> Any:
+def normalize_csound_spout_to_stereo(spout: Any, *, source_channels: int, out: Any = None) -> Any:
+    """Normalize spout, optionally copying/casting directly into caller-owned storage."""
     import numpy as np  # type: ignore
 
-    raw = np.asarray(spout, dtype=np.float32)
+    raw = np.asarray(spout, dtype=np.float32 if out is None else None)
     if raw.size == 0:
+        if out is not None:
+            raise ValueError("Csound spout is empty.")
         return np.zeros((0, 2), dtype=np.float32)
 
     channels = max(1, int(source_channels))
@@ -26,8 +29,18 @@ def normalize_csound_spout_to_stereo(spout: Any, *, source_channels: int) -> Any
         flattened = raw.reshape(-1)
         frame_count = flattened.size // channels
         if frame_count == 0:
+            if out is not None:
+                raise ValueError("Csound spout has no complete frames.")
             return np.zeros((0, 2), dtype=np.float32)
         frames = flattened[: frame_count * channels].reshape(frame_count, channels)
+
+    if out is not None:
+        if out.shape != (frames.shape[0], 2):
+            raise ValueError("PCM output buffer must match the spout frame count and have two channels.")
+        # Broadcasting duplicates mono; copyto casts Csound's doubles without
+        # allocating a temporary float32 block. Copy before performKsmps reuses spout.
+        np.copyto(out, frames[:, :2], casting="unsafe")
+        return out
 
     if frames.shape[1] == 1:
         mono = frames[:, 0:1]
