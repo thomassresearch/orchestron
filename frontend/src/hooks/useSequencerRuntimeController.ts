@@ -98,6 +98,7 @@ interface UseSequencerRuntimeControllerResult {
   startSequencerTransport: () => Promise<void>;
   stopSequencerTransport: (resetPlayhead: boolean) => Promise<void>;
   moveSequencerTransport: (deltaSteps: number) => Promise<void>;
+  seekSequencerTransport: (positionStep: number) => Promise<void>;
   markSequencerConfigSyncPending: () => void;
 }
 
@@ -128,6 +129,7 @@ export function useSequencerRuntimeController({
   syncSequencerTransportRuntime
 }: UseSequencerRuntimeControllerParams): UseSequencerRuntimeControllerResult {
   const authoredRevision = useAppStore(state => state.sequencerEditRevision);
+  const sequencerSeekPendingRef = useRef(false);
   const configSyncRef = useRef<SequencerConfigSync<SessionSequencerConfigRequest, SessionSequencerStatus> | null>(null);
   const sequencerRef = useRef(sequencer);
   const sequencerSessionIdRef = useRef<string | null>(null);
@@ -502,14 +504,15 @@ export function useSequencerRuntimeController({
 
   const syncSequencerStatusFromServer = useCallback(
     async (sessionId: string, options?: { silentError?: boolean }): Promise<void> => {
-      if (sequencerPollInFlightRef.current || sequencerConfigSyncPendingRef.current) {
+      if (sequencerPollInFlightRef.current || sequencerConfigSyncPendingRef.current || sequencerSeekPendingRef.current) {
         return;
       }
 
       sequencerPollInFlightRef.current = true;
+      const version = transportRequestVersionRef.current;
       try {
         const status = await api.getSessionSequencerStatus(sessionId);
-        if (sequencerConfigSyncPendingRef.current) {
+        if (sequencerConfigSyncPendingRef.current || sequencerSeekPendingRef.current || version !== transportRequestVersionRef.current) {
           return;
         }
         applySequencerStatusRef.current(status);
@@ -656,6 +659,7 @@ export function useSequencerRuntimeController({
   const stopSequencerTransport = useCallback(
     async (resetPlayhead: boolean): Promise<void> => {
       const version = ++transportRequestVersionRef.current;
+      sequencerSeekPendingRef.current = false;
       configSyncRef.current?.stop();
       const sessionId = resolveSequencerSessionId();
       sequencerConfigSyncPendingRef.current = false;
@@ -704,6 +708,7 @@ export function useSequencerRuntimeController({
     }
 
     const version = ++transportRequestVersionRef.current;
+    sequencerSeekPendingRef.current = false;
     try {
       const store = useAppStore.getState();
       const currentSequencerState = mergedSequencerState(store.sequencer, store.sequencerRuntime);
@@ -751,6 +756,51 @@ export function useSequencerRuntimeController({
     setSequencerError,
     syncSequencerRuntime
   ]);
+
+  const seekSequencerTransport = useCallback(
+    async (positionStep: number): Promise<void> => {
+      const store = useAppStore.getState();
+      const currentState = mergedSequencerState(store.sequencer, store.sequencerRuntime);
+      const { arrangementEndStep, selection } = arrangerPlaybackBounds(currentState);
+      const targetStep = clampArrangerSeekStep(
+        positionStep, selection, arrangementEndStep, sequencerTransportStepsPerBeat(currentState.timing)
+      );
+      if (!currentState.isPlaying) {
+        setSequencerTransportAbsoluteStep(targetStep);
+        return;
+      }
+      const sessionId = resolveSequencerSessionId();
+      if (!sessionId) {
+        setSequencerError(errors.noActiveInstrumentSessionForSequencer);
+        return;
+      }
+      const version = ++transportRequestVersionRef.current;
+      setSequencerError(null);
+      // This request includes the current authored revision, including the loop
+      // change. Cancel its debounced config update so bounds and seek stay atomic.
+      configSyncRef.current?.baseline(sessionId, store.sequencerEditRevision);
+      sequencerSeekPendingRef.current = true;
+      setSequencerTransportAbsoluteStep(targetStep);
+      try {
+        // Both audio modes use the same backend render-driven transport.
+        const config = buildBackendSequencerConfig(store.sequencer);
+        const response = api.seekSessionSequencer(sessionId, { config, position_step: targetStep });
+        consumeSequencerEnablementCommands(useAppStore.setState, useAppStore.getState, config);
+        const status = await response;
+        if (version !== transportRequestVersionRef.current || useAppStore.getState().activeSessionId !== sessionId) return;
+        applySequencerStatus(status);
+      } catch (error) {
+        if (version !== transportRequestVersionRef.current || useAppStore.getState().activeSessionId !== sessionId) return;
+        if (!invalidateMissingRuntimeSession(sessionId, error)) {
+          setSequencerError(error instanceof Error ? error.message : "Failed to move sequencer transport.");
+        }
+      } finally {
+        if (version === transportRequestVersionRef.current) sequencerSeekPendingRef.current = false;
+      }
+    },
+    [applySequencerStatus, buildBackendSequencerConfig, errors.noActiveInstrumentSessionForSequencer,
+      invalidateMissingRuntimeSession, resolveSequencerSessionId, setSequencerError, setSequencerTransportAbsoluteStep]
+  );
 
   const moveSequencerTransport = useCallback(
     async (deltaSteps: number): Promise<void> => {
@@ -938,6 +988,7 @@ export function useSequencerRuntimeController({
 
   useEffect(() => () => {
     transportRequestVersionRef.current += 1;
+    sequencerSeekPendingRef.current = false;
     configSyncRef.current?.stop();
   }, [activeSessionId]);
 
@@ -1044,6 +1095,7 @@ export function useSequencerRuntimeController({
     startSequencerTransport,
     stopSequencerTransport,
     moveSequencerTransport,
+    seekSequencerTransport,
     markSequencerConfigSyncPending
   };
 }

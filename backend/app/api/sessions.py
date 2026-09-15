@@ -16,6 +16,7 @@ from backend.app.models.session import (
     SessionSequencerConfigRequest,
     SessionSequencerQueuePadRequest,
     SessionSequencerStartRequest,
+    SessionSequencerSeekRequest,
     SessionSequencerStatus,
     SessionMidiEventRequest,
     SessionActionResponse,
@@ -146,6 +147,15 @@ async def start_sequencer(
     container: AppContainer = Depends(get_container),
 ) -> SessionSequencerStatus:
     return await container.session_service.start_session_sequencer(session_id, request)
+
+
+@router.post("/{session_id}/sequencer/seek", response_model=SessionSequencerStatus)
+async def seek_sequencer(
+    session_id: str,
+    request: SessionSequencerSeekRequest,
+    container: AppContainer = Depends(get_container),
+) -> SessionSequencerStatus:
+    return await container.session_service.seek_session_sequencer(session_id, request)
 
 
 @router.post("/{session_id}/sequencer/stop", response_model=SessionSequencerStatus)

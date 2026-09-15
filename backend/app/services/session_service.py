@@ -38,6 +38,7 @@ from backend.app.models.session import (
     SessionSequencerConfigRequest,
     SessionSequencerQueuePadRequest,
     SessionSequencerStartRequest,
+    SessionSequencerSeekRequest,
     SessionSequencerStatus,
     SessionMidiEventRequest,
     SessionActionResponse,
@@ -985,7 +986,7 @@ class SessionService:
 
     async def _prepare_session_configuration(
         self, runtime: RuntimeSession, request: SessionSequencerConfigRequest,
-        *, start: bool = False, position: int | None = None,
+        *, start: bool = False, position: int | None = None, seek: bool = False,
     ) -> SessionSequencerStatus:
         with runtime.configuration_lock:
             runtime.configuration_generation += 1
@@ -997,7 +998,7 @@ class SessionService:
                 with runtime.configuration_lock:
                     if generation != runtime.configuration_generation:
                         raise SupersededConfigurationError()
-                    status = sequencer.apply_prepared(prepared)
+                    status = sequencer.apply_prepared(prepared, position_step=position if seek else None)
                     if arpeggiator_generation == runtime.arpeggiator_generation:
                         self._ensure_midi_router(runtime).configure(request.arpeggiators, tempo_bpm=request.timing.tempo_bpm)
                     if start:
@@ -1103,6 +1104,15 @@ class SessionService:
             },
         )
         return status
+
+    async def seek_session_sequencer(
+        self, session_id: str, request: SessionSequencerSeekRequest,
+    ) -> SessionSequencerStatus:
+        self._remember_running_loop()
+        runtime = await self._get_session(session_id)
+        return await self._prepare_session_configuration(
+            runtime, request.config, position=request.position_step, seek=True,
+        )
 
     async def stop_session_sequencer(self, session_id: str) -> SessionSequencerStatus:
         self._remember_running_loop()

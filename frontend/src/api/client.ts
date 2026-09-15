@@ -22,6 +22,7 @@ import type {
   SessionSequencerConfigRequest,
   SessionSequencerQueuePadRequest,
   SessionSequencerStartRequest,
+  SessionSequencerSeekRequest,
   SessionSequencerStatus,
   SessionMidiEventRequest,
   SessionInfo
@@ -231,6 +232,11 @@ export const api = {
     request<SessionSequencerStatus>(`/sessions/${sessionId}/sequencer/stop`, { method: "POST" }),
   getSessionSequencerStatus: (sessionId: string) =>
     request<SessionSequencerStatus>(`/sessions/${sessionId}/sequencer/status`),
+  seekSessionSequencer: (sessionId: string, payload: SessionSequencerSeekRequest) =>
+    request<SessionSequencerStatus>(`/sessions/${sessionId}/sequencer/seek`, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }),
   rewindSessionSequencerCycle: (sessionId: string) =>
     request<SessionSequencerStatus>(`/sessions/${sessionId}/sequencer/rewind`, { method: "POST" }),
   forwardSessionSequencerCycle: (sessionId: string) =>

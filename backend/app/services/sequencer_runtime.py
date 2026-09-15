@@ -114,7 +114,9 @@ class SessionSequencerRuntime:
         )
         return self.apply_prepared(prepared)
 
-    def apply_prepared(self, next_config: SequencerRuntimeConfig) -> SessionSequencerStatus:
+    def apply_prepared(
+        self, next_config: SequencerRuntimeConfig, *, position_step: int | None = None,
+    ) -> SessionSequencerStatus:
         """Install prepared data at a render boundary without replaying past events."""
         with self._lock:
             previous = self._config
@@ -161,6 +163,10 @@ class SessionSequencerRuntime:
             if previous is None:
                 self._absolute_subunit = self._normalize_stopped_absolute_subunit_locked(self._absolute_subunit, next_config)
             self._active_notes = {identity: self._active_notes.get(identity, set()) for identity in next_config.tracks}
+            if position_step is not None:
+                # Install bounds and seek together, before an old position could
+                # stop playback against the new range.
+                self._seek_absolute_subunit_locked(int(position_step) * _TRANSPORT_SUBUNITS_PER_STEP)
             if self._running and not next_config.playback_loop and self._absolute_subunit >= next_config.playback_end_subunit:
                 self._running = False
                 self._stop_event.set()
@@ -1366,8 +1372,11 @@ class SessionSequencerRuntime:
         self._scheduled_visible_until_time = None
 
     def _seek_steps_locked(self, delta_steps: int) -> SessionSequencerStatus:
-        config = self._ensure_config()
         target_subunit = self._absolute_subunit + (int(delta_steps) * _TRANSPORT_SUBUNITS_PER_STEP)
+        return self._seek_absolute_subunit_locked(target_subunit)
+
+    def _seek_absolute_subunit_locked(self, target_subunit: int) -> SessionSequencerStatus:
+        config = self._ensure_config()
         normalized_target = self._normalize_seek_absolute_subunit_locked(
             target_subunit,
             config,
@@ -1383,6 +1392,7 @@ class SessionSequencerRuntime:
                 notes.clear()
 
         self._apply_absolute_subunit_locked(config, normalized_target)
+        self._render_subunit_remainder = 0.0
         self._reset_render_event_cursor_locked(config)
         return self._status_locked()
 

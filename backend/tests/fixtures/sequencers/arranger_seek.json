@@ -1,0 +1,67 @@
+{
+  "timing": {
+    "tempo_bpm": 120,
+    "steps_per_beat": 4
+  },
+  "step_count": 32,
+  "playback_end_step": 128,
+  "tracks": [
+    {
+      "track_id": "lead",
+      "midi_channel": 1,
+      "length_beats": 4,
+      "pad_loop_enabled": true,
+      "pad_loop_repeat": true,
+      "pad_loop_sequence": [
+        0,
+        1
+      ],
+      "pads": [
+        {
+          "pad_index": 0,
+          "length_beats": 4,
+          "steps": [
+            60,
+            60,
+            60,
+            60,
+            60,
+            60,
+            60,
+            60,
+            60,
+            60,
+            60,
+            60,
+            60,
+            60,
+            60,
+            60
+          ]
+        },
+        {
+          "pad_index": 1,
+          "length_beats": 4,
+          "steps": [
+            67,
+            67,
+            67,
+            67,
+            67,
+            67,
+            67,
+            67,
+            67,
+            67,
+            67,
+            67,
+            67,
+            67,
+            67,
+            67
+          ]
+        }
+      ]
+    }
+  ]
+}

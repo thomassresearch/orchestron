@@ -841,6 +841,11 @@ export interface SessionSequencerStartRequest {
   position_step?: number;
 }
 
+export interface SessionSequencerSeekRequest {
+  config: SessionSequencerConfigRequest;
+  position_step: number;
+}
+
 export interface SessionSequencerQueuePadRequest {
   pad_index: number | null;
 }

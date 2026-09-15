@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import time
 from pathlib import Path
 
@@ -1705,3 +1706,31 @@ def test_session_backend_arpeggiator_config_does_not_reconfigure_sequencer_trans
 
 
 
+
+
+def test_arranger_seek_updates_range_without_stopping_or_starting_transport(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        session_id = _create_running_session(client)
+        base = f"/api/sessions/{session_id}/sequencer"
+        config = json.loads((Path(__file__).parent / "fixtures/sequencers/arranger_seek.json").read_text())
+        assert client.post(f"{base}/start", json={"config": config, "position_step": 48}).status_code == 200
+        config.update(playback_start_step=32, playback_end_step=40, playback_loop=True)
+        response = client.post(f"{base}/seek", json={"config": config, "position_step": 32})
+        assert response.status_code == 200, response.text
+        assert response.json()["running"] is True
+        assert response.json()["transport_subunit"] == 32 * 420
+        assert response.json()["tracks"][0]["active_pad"] == 1
+
+        config.update(playback_start_step=0, playback_end_step=16, playback_loop=False)
+        response = client.post(f"{base}/seek", json={"config": config, "position_step": 4})
+        assert response.status_code == 200, response.text
+        assert response.json()["running"] is True
+        assert response.json()["transport_subunit"] == 4 * 420
+        assert response.json()["tracks"][0]["active_pad"] == 0
+
+        assert client.post(f"{base}/stop").status_code == 200
+        response = client.post(f"{base}/seek", json={"config": config, "position_step": 8})
+        assert response.status_code == 200, response.text
+        assert response.json()["running"] is False
+        assert response.json()["transport_subunit"] == 8 * 420
+        assert client.post(f"{base}/seek", json={"config": config, "position_step": -1}).status_code == 422

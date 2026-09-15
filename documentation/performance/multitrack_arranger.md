@@ -113,8 +113,11 @@ Arranger timeline controls:
 
 Above the horizontal scrollbar, the arranger shows a shared loop-range ruler quantized to beat blocks.
 
-- drag on the ruler to define a playback range, including a single beat
-- click the highlighted range to clear the selection
+- click anywhere on the ruler to clear any loop selection and move the playhead to the clicked beat
+- if playback is running, it continues from that beat; if stopped, it stays stopped
+- drag on the ruler in either direction to preview a playback range, including a single beat; release to activate it
+- if the playhead is outside a newly selected range, it jumps to the range start
+- cancelling a drag leaves the previous range and playback position unchanged
 - the selected span is highlighted across all arranger rows
 - when a range is selected, playback loops inside that range
 - when no range is selected, playback continues until stopped; continuously looping tracks keep cycling according to their own repeat settings

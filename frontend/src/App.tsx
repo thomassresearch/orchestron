@@ -42,7 +42,6 @@ import {
   absoluteTransportStep as sequencerAbsoluteTransportStep,
   arrangerTransportExtent,
   arrangerPlaybackBounds,
-  clampArrangerSeekStep,
   compileArrangerTransportSequence
 } from "./lib/arrangerTransport";
 import {
@@ -547,6 +546,7 @@ export default function App() {
     displayedSequencer,
     displayedSequencerTransportSubunit,
     moveSequencerTransport,
+    seekSequencerTransport,
     onApplyBrowserClockLatencySettings,
     primeBrowserClockAudio,
     queueSequencerPadRuntime,
@@ -1222,29 +1222,18 @@ export default function App() {
   }, [appCopy.errors.failedToStopInstrumentEngine, stopPerformance]);
 
   const handleArrangerLoopSelectionChange = useCallback(
-    (selection: SequencerState["arrangerLoopSelection"]) => {
+    (selection: SequencerState["arrangerLoopSelection"], positionStep?: number) => {
       setSequencerArrangerLoopSelection(selection);
-      if (!selection) {
-        return;
-      }
-      const currentState = sequencerRef.current;
-      const currentAbsoluteStep = sequencerAbsoluteTransportStep(
-        currentState.playhead,
-        currentState.cycle,
-        currentState.stepCount
+      const runtime = useAppStore.getState().sequencerRuntime;
+      const currentStep = sequencerAbsoluteTransportStep(runtime.playhead, runtime.cycle, runtime.stepCount);
+      const targetStep = positionStep ?? (
+        selection && (currentStep < selection.startStep || currentStep >= selection.endStep)
+          ? selection.startStep
+          : currentStep
       );
-      if (currentAbsoluteStep >= selection.startStep && currentAbsoluteStep < selection.endStep) {
-        return;
-      }
-      const nextAbsoluteStep = clampArrangerSeekStep(
-        currentAbsoluteStep,
-        selection,
-        Math.max(selection.endStep, selection.startStep + sequencerTransportStepsPerBeat(currentState.timing)),
-        sequencerTransportStepsPerBeat(currentState.timing)
-      );
-      setSequencerTransportAbsoluteStep(nextAbsoluteStep);
+      void seekSequencerTransport(targetStep);
     },
-    [setSequencerArrangerLoopSelection, setSequencerTransportAbsoluteStep]
+    [seekSequencerTransport, setSequencerArrangerLoopSelection]
   );
 
   const onPianoRollNoteOn = useCallback(

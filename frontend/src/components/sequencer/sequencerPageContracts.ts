@@ -70,7 +70,7 @@ export interface SequencerPageTransportActions {
   onSequencerCycleForward: () => void;
   onSequencerTransportStart: () => void;
   onSequencerTransportStop: (resetPlayhead: boolean) => void;
-  onSequencerArrangerLoopSelectionChange: (selection: ArrangerLoopSelection | null) => void;
+  onSequencerArrangerLoopSelectionChange: (selection: ArrangerLoopSelection | null, positionStep?: number) => void;
 }
 
 export interface SequencerPageMelodicTrackActions {

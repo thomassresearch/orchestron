@@ -1,0 +1,40 @@
+{
+  "config": {
+    "version": 12,
+    "instruments": [],
+    "sequencer": {
+      "tracks": [
+        {
+          "id": "lead",
+          "name": "Lead",
+          "lengthBeats": 4,
+          "enabled": true,
+          "padLoopEnabled": true,
+          "padLoopRepeat": true,
+          "padLoopPattern": {
+            "rootSequence": [
+              {
+                "type": "pad",
+                "padIndex": 0
+              },
+              {
+                "type": "pad",
+                "padIndex": 1
+              }
+            ],
+            "groups": [],
+            "superGroups": []
+          },
+          "pads": [
+            {
+              "lengthBeats": 4
+            },
+            {
+              "lengthBeats": 4
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import pytest
 
 from backend.app.models.session import SessionSequencerConfigRequest
@@ -437,3 +440,54 @@ def test_render_driven_pad_boundary_batches_switches_without_status_snapshots() 
         for switch in switches
     )
     assert payload["tracks"]
+
+
+@pytest.mark.parametrize("playing", [False, True])
+def test_seek_applies_new_loop_bounds_and_position_together(playing: bool) -> None:
+    from backend.app.services.sequencer_runtime_config import compile_sequencer_runtime_config
+
+    midi = _FakeMidiService()
+    runtime = SessionSequencerRuntime(session_id="seek", midi_service=midi, midi_input_selector="test",
+        controller_default_channels=(1,), clock_mode="render_driven", publish_event=lambda *_: None)
+    request = SessionSequencerConfigRequest.model_validate(json.loads(
+        (Path(__file__).parent / "fixtures/sequencers/arranger_seek.json").read_text()
+    ))
+    runtime.configure(request)
+    runtime.start(position_step=48)
+    runtime.advance_render_block(sample_rate=48000, ksmps=64)
+    if not playing:
+        runtime.stop()
+    midi.calls.clear()
+
+    request.playback_start_step = 32
+    request.playback_end_step = 40
+    request.playback_loop = True
+    status = runtime.apply_prepared(compile_sequencer_runtime_config(request, controller_default_channels=(1,)),
+        position_step=32)
+    assert status.running is playing
+    assert status.transport_subunit == 32 * 420
+    assert status.tracks[0].active_pad == 1
+    if playing:
+        assert [0x80, 67, 0] in [message for _, batch, _ in midi.calls for message in batch]
+        midi.calls.clear()
+        runtime.advance_render_block(sample_rate=48000, ksmps=64)
+        assert [0x90, 67, 100] in _note_on_messages(midi), "seek must play the note at the target beat"
+        positions = []
+        for _ in range(800):
+            runtime.advance_render_block(sample_rate=48000, ksmps=64)
+            positions.append(runtime.status().transport_subunit)
+        assert all(32 * 420 <= position < 40 * 420 for position in positions)
+        assert any(after < before for before, after in zip(positions, positions[1:]))
+
+    # Clearing a late loop and jumping back must not stop at the new end first.
+    request.playback_start_step = 0
+    request.playback_end_step = 32
+    request.playback_loop = False
+    status = runtime.apply_prepared(compile_sequencer_runtime_config(request, controller_default_channels=(1,)),
+        position_step=4)
+    assert status.running is playing
+    assert status.transport_subunit == 4 * 420
+    assert status.tracks[0].active_pad == 0
+    if playing:
+        runtime.advance_render_block(sample_rate=48000, ksmps=64)
+        assert runtime.status().transport_subunit > 4 * 420

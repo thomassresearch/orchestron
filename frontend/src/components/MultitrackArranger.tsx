@@ -165,7 +165,7 @@ type MultitrackArrangerProps = {
   onTransportStopDoubleClick: () => void;
   onTransportRewind: () => void;
   onTransportFastForward: () => void;
-  onArrangerLoopSelectionChange: (selection: ArrangerLoopSelection | null) => void;
+  onArrangerLoopSelectionChange: (selection: ArrangerLoopSelection | null, positionStep?: number) => void;
   onSequencerTrackPadLoopPatternChange: (trackId: string, pattern: PadLoopPatternState) => void;
   onDrummerSequencerTrackPadLoopPatternChange: (trackId: string, pattern: PadLoopPatternState) => void;
   onControllerSequencerPadLoopPatternChange: (controllerSequencerId: string, pattern: PadLoopPatternState) => void;
@@ -854,6 +854,7 @@ export function MultitrackArranger({
   const [rootDragPreview, setRootDragPreview] = useState<RootDragPreview | null>(null);
   const dragStateRef = useRef<RootDragState | null>(null);
   const selectionDragRef = useRef<SelectionDragState | null>(null);
+  const [selectionPreview, setSelectionPreview] = useState<ArrangerLoopSelection | null>(null);
   const stepGridQuantum = sequencerTransportStepsPerBeat(sequencer.timing);
 
   const patchNameById = useMemo(() => {
@@ -1069,6 +1070,9 @@ export function MultitrackArranger({
     [absoluteTransportStep, maxRootSteps, stepGridQuantum, wrapTransportDisplay]
   );
   const loopSelection = useMemo(() => {
+    if (selectionPreview) {
+      return selectionPreview;
+    }
     if (!sequencer.arrangerLoopSelection) {
       return null;
     }
@@ -1084,7 +1088,7 @@ export function MultitrackArranger({
       startStep: boundedStart,
       endStep: boundedEnd
     };
-  }, [maxRootSteps, sequencer.arrangerLoopSelection, stepGridQuantum]);
+  }, [maxRootSteps, selectionPreview, sequencer.arrangerLoopSelection, stepGridQuantum]);
 
   const rawStepFromClientX = useCallback(
     (clientX: number): number => {
@@ -1139,13 +1143,6 @@ export function MultitrackArranger({
     [maxRootSteps, rawStepFromClientX, stepGridQuantum]
   );
 
-  const commitSelection = useCallback(
-    (anchorStep: number, clientX: number) => {
-      onArrangerLoopSelectionChange(selectionFromClientX(anchorStep, clientX));
-    },
-    [onArrangerLoopSelectionChange, selectionFromClientX]
-  );
-
   const handleSelectionPointerDown = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
       if (event.pointerType === "mouse" && event.button !== 0) {
@@ -1178,9 +1175,9 @@ export function MultitrackArranger({
       if (!dragState.dragging) {
         return;
       }
-      commitSelection(dragState.anchorStep, event.clientX);
+      setSelectionPreview(selectionFromClientX(dragState.anchorStep, event.clientX));
     },
-    [commitSelection]
+    [selectionFromClientX]
   );
 
   const handleSelectionPointerEnd = useCallback(
@@ -1190,25 +1187,26 @@ export function MultitrackArranger({
         return;
       }
       event.preventDefault();
-      const currentStep = stepFromClientX(event.clientX);
       const movedFarEnough = Math.abs(event.clientX - dragState.startClientX) >= SELECTION_DRAG_THRESHOLD_PX;
-      if (!dragState.dragging && movedFarEnough) {
-        commitSelection(dragState.anchorStep, event.clientX);
-      } else if (!dragState.dragging) {
-        if (
-          loopSelection &&
-          currentStep >= loopSelection.startStep &&
-          currentStep < loopSelection.endStep
-        ) {
-          onArrangerLoopSelectionChange(null);
-        } else {
-          commitSelection(currentStep, event.clientX);
-        }
-      }
       selectionDragRef.current = null;
+      setSelectionPreview(null);
+      if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+      if (dragState.dragging || movedFarEnough) {
+        onArrangerLoopSelectionChange(selectionFromClientX(dragState.anchorStep, event.clientX));
+      } else {
+        onArrangerLoopSelectionChange(null, stepFromClientX(event.clientX));
+      }
     },
-    [commitSelection, loopSelection, onArrangerLoopSelectionChange, stepFromClientX]
+    [onArrangerLoopSelectionChange, selectionFromClientX, stepFromClientX]
   );
+
+  const handleSelectionPointerCancel = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+    if (selectionDragRef.current?.pointerId !== event.pointerId) return;
+    selectionDragRef.current = null;
+    setSelectionPreview(null);
+  }, []);
 
   useEffect(() => {
     const nextOpenByTrack: Record<string, PadLoopContainerRef> = {};
@@ -2025,8 +2023,9 @@ export function MultitrackArranger({
           onPointerDown={handleSelectionPointerDown}
           onPointerMove={handleSelectionPointerMove}
           onPointerUp={handleSelectionPointerEnd}
-          onPointerCancel={handleSelectionPointerEnd}
-          className="relative h-7 overflow-hidden rounded border border-slate-700 bg-slate-900/65"
+          onPointerCancel={handleSelectionPointerCancel}
+          onLostPointerCapture={handleSelectionPointerCancel}
+          className="relative h-7 touch-none select-none overflow-hidden rounded border border-slate-700 bg-slate-900/65"
           title={loopSelection ? copy.clearSelection : copy.selectionHint}
           aria-label={copy.selectionHint}
         >

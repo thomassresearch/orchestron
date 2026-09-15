@@ -798,6 +798,7 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 
 - \`Play\` starts tracks whose \`Pad Looper\` is on and stops tracks whose \`Pad Looper\` is off. \`Stop\` stops pad-loop tracks, and double-click \`Stop\` resets to the loop start or beat \`0\` when no manually running track keeps transport active.
 - Right-click menus insert pads/groups into a gap or the sequence end, and \`Copy\` / \`Paste\` duplicate whole phrase blocks.
+- Click anywhere on the loop ruler to clear the loop and move the playhead to that beat. Playback continues if already running; stopped playback stays stopped. Drag to preview a range and release to loop it, including a single beat. If the playhead is outside the new range, it jumps to the range start.
 - Loop range selection constrains playback to the highlighted beat span without rewriting the stored arrangement.`,
     german: `### Aufbau der Timeline
 
@@ -809,6 +810,7 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 
 - \`Play\` startet Spuren mit aktivem \`Pad Looper\` und stoppt Spuren mit ausgeschaltetem \`Pad Looper\`. \`Stop\` stoppt Pad-Loop-Spuren; Doppelklick auf \`Stop\` setzt auf Loop-Start oder Beat \`0\` zurueck, wenn keine manuell laufende Spur den Transport aktiv haelt.
 - Rechtsklick-Menues fuegen Pads/Gruppen in eine Luecke oder ans Sequenzende ein, und \`Copy\` / \`Paste\` duplizieren ganze Phrasenbloecke.
+- Ein Klick auf die Loop-Leiste loescht den Loop und setzt den Playhead auf diesen Beat. Laufende Wiedergabe geht dort weiter; gestoppte Wiedergabe bleibt gestoppt. Ziehen zeigt den Bereich an, Loslassen aktiviert den Loop, auch fuer einen Beat. Liegt der Playhead ausserhalb, springt er zum Bereichsanfang.
 - Die Loop-Bereichsauswahl begrenzt die Wiedergabe auf den markierten Beat-Bereich, ohne das gespeicherte Arrangement umzuschreiben.`,
     french: `### Structure de la timeline
 
@@ -820,6 +822,7 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 
 - \`Play\` lance les pistes dont le \`Pad Looper\` est actif et arrete celles dont le \`Pad Looper\` est inactif. \`Stop\` arrete les pistes pad-loop ; un double-clic sur \`Stop\` revient au debut de boucle ou au temps \`0\` si aucune piste lancee manuellement ne garde le transport actif.
 - Les menus clic droit inserent pads/groupes dans un vide ou en fin de sequence, et \`Copy\` / \`Paste\` dupliquent des blocs de phrase entiers.
+- Cliquez sur la regle de boucle pour effacer la boucle et placer le playhead sur ce temps. La lecture continue si elle est active ; sinon elle reste arretee. Glissez pour previsualiser une plage, puis relachez pour la repeter, meme sur un seul temps. Si le playhead est hors de la plage, il revient au debut.
 - La selection de boucle limite la lecture a la plage de temps surlignee sans reecrire l'arrangement stocke.`,
     spanish: `### Estructura de la linea de tiempo
 
@@ -831,6 +834,7 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 
 - \`Play\` inicia las pistas con \`Pad Looper\` activo y detiene las que tienen \`Pad Looper\` apagado. \`Stop\` detiene las pistas con pad looper; el doble clic en \`Stop\` vuelve al inicio del bucle o al pulso \`0\` si ninguna pista iniciada manualmente mantiene activo el transporte.
 - Los menus de clic derecho insertan pads/grupos en un hueco o al final de la secuencia, y \`Copy\` / \`Paste\` duplican bloques completos de frase.
+- Haz clic en la regla de bucle para borrar el bucle y mover el playhead a ese pulso. La reproduccion continua si ya esta activa; si esta detenida, sigue detenida. Arrastra para previsualizar un rango y suelta para repetirlo, incluso de un solo pulso. Si el playhead esta fuera, salta al inicio del rango.
 - La seleccion de rango de bucle limita la reproduccion al tramo resaltado sin reescribir el arreglo guardado.`
   },
   sequencer_drummer_sequencer: {

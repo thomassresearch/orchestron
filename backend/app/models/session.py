@@ -573,6 +573,11 @@ class SessionSequencerStartRequest(BaseModel):
     position_step: int | None = Field(default=None, ge=0)
 
 
+class SessionSequencerSeekRequest(BaseModel):
+    config: SessionSequencerConfigRequest
+    position_step: int = Field(ge=0)
+
+
 class SessionSequencerQueuePadRequest(BaseModel):
     pad_index: int | None = Field(default=None, ge=0, le=7)
 
