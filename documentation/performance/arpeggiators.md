@@ -77,6 +77,13 @@ Presets apply only to the editing pad. **Modified** marks changes from its prese
 
 Live edits coalesce for 80 ms and apply at audio render boundaries, preserving transport and pending launches. Invalid edits retain the working configuration. Status updates never resubmit musical settings. Collapse hides visual work while preserving playback, pad selection, details and drafts.
 
+## Screenshot
+
+<p align="center">
+  <img src="../../screenshots/perform_arpeggiator.png" alt="Arpeggiator with routing, musical pads, rhythm grid, harmony settings and Pad Looper" width="1100" style="max-width: 100%; height: auto;" />
+</p>
+<p align="center"><em>Arpeggiator showing its input and target routing, eight musical pads, per-step rhythm controls, custom harmony settings, and Pad Looper sequence.</em></p>
+
 ## Migration to Performance Version 15
 
 Versions 1–14 load in memory into the new model. Existing settings become P1; the other seven pads use defaults. Identities, routes, rate, order, octaves, expression and user presets are retained; old accent cycles become grid velocities.
