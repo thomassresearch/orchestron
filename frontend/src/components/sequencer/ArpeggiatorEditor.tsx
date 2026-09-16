@@ -1,10 +1,11 @@
-import { useRef, type ReactNode } from "react";
+import { useId, useRef, type ReactNode } from "react";
 import type { ArpeggiatorCommand, ArpeggiatorPadState, ArpeggiatorPresetState, ArpeggiatorState, ArpeggiatorStep, GuiLanguage, PatchListItem, SequencerInstrumentBinding } from "../../types";
 import { ARPEGGIATOR_PATTERNS, ARPEGGIATOR_RATES, normalizeArpeggiatorSettings } from "../../store/appStoreModel";
 import { PadLoopPatternEditor } from "./PadLoopPatternEditor";
 import { usePerformanceEditorState } from "./PerformanceEditorState";
 import { arpeggiatorCopy } from "./arpeggiatorCopy";
 import type { SequencerUiCopy } from "./sequencerUiCopy";
+import { scaleDegreeBorderBackground } from "../../lib/scaleDegreeColors";
 
 const field = "min-w-0 rounded-md border border-slate-600 bg-slate-950 px-2 py-1.5 text-sm text-slate-100";
 const button = "rounded-md border border-slate-600 px-2 py-1 text-xs hover:border-cyan-300 disabled:opacity-40";
@@ -31,6 +32,7 @@ export function ArpeggiatorEditor({ arp, language, ui, name, help, presets, inst
   const [expanded, setExpanded] = usePerformanceEditorState<Record<string, boolean>>(owner, "arpExpanded", {});
   const [linked, setLinked] = usePerformanceEditorState<number | null>(owner, "arpLinked", null);
   const gridRef = useRef<HTMLDivElement>(null);
+  const previewId = useId();
   const pad = arp.pads[editingPad];
   const stepIndex = Math.min(selection, pad.steps.length - 1);
   const step = pad.steps[stepIndex];
@@ -51,8 +53,12 @@ export function ArpeggiatorEditor({ arp, language, ui, name, help, presets, inst
     <header className="flex flex-wrap items-center gap-2">{name}<span role="status" className="rounded-full border border-cyan-900 px-2 py-1 text-xs text-cyan-100">{hasTarget ? c[state] : c.missing}</span>
       <button className={button} onClick={() => onEnabled(!engineRunning || !arp.enabled)}>{engineRunning && arp.enabled ? ui.stop : ui.start}</button>
       <button className={`${button} ml-auto text-rose-200`} disabled={!canRemove} onClick={onRemove}>{ui.remove}</button>{help}</header>
-    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-      {select(ui.targetChannel, String(arp.targetChannel), [[String(arp.targetChannel), hasTarget ? `${arp.targetChannel} · ${targets.filter(i => i.midiChannel === arp.targetChannel).map(i => patches.find(p => p.id === i.patchId)?.name ?? i.patchId).join(" + ")}` : `${arp.targetChannel} · ${c.missing}`], ...targets.filter(i => i.midiChannel !== arp.targetChannel).map(i => [String(i.midiChannel), `${i.midiChannel} · ${patches.find(p => p.id === i.patchId)?.name ?? i.patchId}`] as [string, string])], value => onChange({ targetChannel: Number(value) }))}
+    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,2fr)] items-end gap-2 sm:col-span-2 lg:col-span-3">
+        {number(ui.inputChannel, arp.inputChannel, 1, 16, v => onChange({ inputChannel: v }))}
+        <span aria-hidden="true" className="pb-1.5 text-lg leading-5 text-slate-400">→</span>
+        {select(ui.targetChannel, String(arp.targetChannel), [[String(arp.targetChannel), hasTarget ? `${arp.targetChannel} · ${targets.filter(i => i.midiChannel === arp.targetChannel).map(i => patches.find(p => p.id === i.patchId)?.name ?? i.patchId).join(" + ")}` : `${arp.targetChannel} · ${c.missing}`], ...targets.filter(i => i.midiChannel !== arp.targetChannel).map(i => [String(i.midiChannel), `${i.midiChannel} · ${patches.find(p => p.id === i.patchId)?.name ?? i.patchId}`] as [string, string])], value => onChange({ targetChannel: Number(value) }))}
+      </div>
       {select(c.playback, arp.playbackMode, [["arranger", c.arranger], ["live", c.live]], v => onChange({ playbackMode: v as ArpeggiatorState["playbackMode"] }))}
       {select(c.active, arp.processingMode, [["active", c.active], ["bypass", c.bypass], ["mute", c.mute]], v => onChange({ processingMode: v as ArpeggiatorState["processingMode"] }))}
       {select(c.hold, arp.holdMode, [["off", c.off], ["replace", c.replace], ["toggle", c.toggle]], v => onChange({ holdMode: v as ArpeggiatorState["holdMode"] }))}
@@ -75,14 +81,24 @@ export function ArpeggiatorEditor({ arp, language, ui, name, help, presets, inst
       {number(c.cycle, pad.steps.length, 1, 32, v => updatePad({ steps: Array.from({ length: v }, (_, i) => pad.steps[i] ?? { kind: "next", notePosition: 1, velocity: 100, gateRatio: null, probability: 1, ratchets: 1 }) }))}
       {select(c.duration, String(pad.lengthBeats), [1, 2, 3, 4, 5, 6, 7, 8, 16].map(v => [String(v), String(v)]), v => updatePad({ lengthBeats: Number(v) as ArpeggiatorPadState["lengthBeats"] }))}
     </div>
-    <div ref={gridRef} role="group" aria-label={c.cycle} className="grid gap-1 overflow-x-auto rounded-lg bg-slate-950 p-2" style={{ gridTemplateColumns: `repeat(${pad.steps.length}, minmax(32px, 1fr))` }}>
-      {pad.steps.map((s, i) => <div key={i} className={`flex h-32 flex-col rounded border ${stepIndex === i ? "border-cyan-200" : "border-slate-700"} ${playingPad === editingPad && arp.enabled && runtime?.state === "playing" && arp.stepIndex === i ? "bg-cyan-900/70" : "bg-slate-900"}`}>
-        <button className="flex min-h-0 flex-1 flex-col justify-between p-1 text-xs" aria-label={`${c.step} ${i + 1}: ${c[s.kind]}`} aria-pressed={stepIndex === i} onClick={() => setSelection(i)} onDoubleClick={() => updatePad({ steps: pad.steps.map((entry, j) => j === i ? { ...entry, kind: entry.kind === "rest" ? "next" : "rest" } : entry) })}
+    <div ref={gridRef} role="group" aria-label={c.cycle} className="grid gap-1 overflow-x-auto rounded-lg bg-slate-950 p-2" style={{ gridTemplateColumns: `repeat(${pad.steps.length}, minmax(56px, 1fr))` }}>
+      {pad.steps.map((s, i) => {
+        const notes = playingPad === editingPad && s.kind !== "rest" && s.kind !== "tie" ? runtime?.preview_notes?.[i] ?? [] : [];
+        const reportedDegrees = runtime?.preview_degrees?.[i];
+        const degrees = pad.scaleMode !== "off" && reportedDegrees?.length === notes.length
+          ? reportedDegrees.filter((degree): degree is number => degree !== null && Number.isInteger(degree) && degree >= 1 && degree <= 7) : [];
+        const noteLabels = notes.map(noteName).join(" ");
+        const description = notes.length ? `${c.previewNotes}: ${noteLabels}${degrees.length ? `; ${c.scaleDegrees}: ${[...new Set(degrees)].sort((a, b) => a - b).join(", ")}` : ""}` : undefined;
+        const borderBackground = scaleDegreeBorderBackground(degrees);
+        return <div key={i} className={`relative flex h-32 min-w-0 flex-col rounded border-2 border-slate-700 ${stepIndex === i ? "outline outline-2 outline-offset-1 outline-cyan-200" : ""} ${playingPad === editingPad && arp.enabled && runtime?.state === "playing" && arp.stepIndex === i ? "bg-cyan-900/70" : "bg-slate-900"}`}>
+        {borderBackground ? <span aria-hidden="true" className="pointer-events-none absolute -inset-0.5 rounded-[inherit] p-0.5" style={{ background: borderBackground, mask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)", maskComposite: "exclude" }} /> : null}
+        <button className="flex min-h-0 min-w-0 flex-1 flex-col justify-between rounded-sm p-1 text-xs focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white" aria-label={`${c.step} ${i + 1}: ${c[s.kind]}`} aria-describedby={description ? `${previewId}-${i}` : undefined} title={description} aria-pressed={stepIndex === i} onClick={() => setSelection(i)} onDoubleClick={() => updatePad({ steps: pad.steps.map((entry, j) => j === i ? { ...entry, kind: entry.kind === "rest" ? "next" : "rest" } : entry) })}
           onKeyDown={e => { const kinds: Record<string, ArpeggiatorStep["kind"]> = { " ": s.kind === "rest" ? "next" : "rest", Delete: "rest", Backspace: "rest", t: "tie", c: "chord", n: "next" }; if (e.key in kinds) { e.preventDefault(); setSelection(i); updatePad({ steps: pad.steps.map((entry, j) => j === i ? { ...entry, kind: kinds[e.key] } : entry) }); } else if (e.key === "ArrowRight" || e.key === "ArrowLeft") { e.preventDefault(); const next = (i + (e.key === "ArrowRight" ? 1 : -1) + pad.steps.length) % pad.steps.length; setSelection(next); gridRef.current?.querySelectorAll("button")[next]?.focus(); } }}>
           <span className="text-slate-400">{i + 1}</span><span>{s.kind === "next" ? "↑" : s.kind === "position" ? s.notePosition : s.kind === "rest" ? "·" : s.kind === "tie" ? "—" : "≡"}</span>
-          <span className="truncate text-[9px] text-cyan-200">{playingPad === editingPad ? runtime?.preview_notes?.[i]?.map(noteName).join(" ") : ""}</span></button>
+          <span className="w-full truncate text-center text-[18px] leading-6 text-cyan-200">{noteLabels}</span></button>
+        {description ? <span id={`${previewId}-${i}`} className="sr-only">{description}</span> : null}
         <input type="range" min={0} max={200} step={1} value={s.velocity} aria-label={`${c.velocity} ${i + 1}`} className="h-10 w-full accent-cyan-300" style={{ writingMode: "vertical-lr", direction: "rtl" }} onChange={e => updatePad({ steps: pad.steps.map((entry, j) => j === i ? { ...entry, velocity: Number(e.target.value) } : entry) })} />
-      </div>)}
+      </div>; })}
     </div>
     <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
       {select(`${c.step} ${stepIndex + 1}`, step.kind, ["next", "position", "rest", "tie", "chord"].map(v => [v, c[v as ArpeggiatorStep["kind"]]]), v => updateStep({ kind: v as ArpeggiatorStep["kind"] }))}
@@ -117,7 +133,6 @@ export function ArpeggiatorEditor({ arp, language, ui, name, help, presets, inst
       {number(c.rotation, pad.rotation, 0, pad.steps.length - 1, v => updatePad({ rotation: v }))}
       <label className="text-xs"><input type="checkbox" checked={pad.advanceRests} onChange={e => updatePad({ advanceRests: e.target.checked })} /> {c.advance}</label>
     </>)}
-    {section("routing", <>{number(ui.inputChannel, arp.inputChannel, 1, 16, v => onChange({ inputChannel: v }))}<span className="text-xs text-slate-400">MIDI {arp.inputChannel} → {arp.name} → MIDI {arp.targetChannel}</span></>)}
     <div className="flex flex-wrap items-center gap-2"><label className="flex-1 text-xs">{c.saveAs}<input className={`${field} ml-2`} value={draft} placeholder={ui.presetNamePlaceholder} onChange={e => setDraft(e.target.value)} /></label><span className="text-xs text-amber-200">{modified ? c.modified : ""}</span><button className={button} disabled={!preset || preset.builtin || !modified} onClick={() => { if (preset) onSave(preset.name, editingPad, true); }}>{c.update}</button><button className={button} disabled={!draft.trim()} onClick={() => { onSave(draft, editingPad); setDraft(""); }}>{c.saveAs}</button></div>
     <PadLoopPatternEditor ui={ui} hostId={arp.id} track={{ ...arp, padLoopPosition: runtime?.pad_loop_position ?? null }} stepsPerBeat={stepsPerBeat} padStepCounts={arp.pads.map(p => p.lengthBeats * stepsPerBeat)} defaultPadStepCount={4 * stepsPerBeat} isPlaying={transportPlaying && arp.playbackMode === "arranger"} linkedPadLoopStepPosition={linked} onLinkedPadLoopStepPositionChange={setLinked} onPadLoopEnabledChange={v => onChange({ padLoopEnabled: v })} onPadLoopRepeatChange={v => onChange({ padLoopRepeat: v })} onPadLoopPatternChange={v => onChange({ padLoopPattern: v })} />
   </article>;

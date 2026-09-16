@@ -2,7 +2,7 @@
 
 **Navigation:** [Up](performance.md) | [Prev](controller_sequencers.md) | [Next](piano_rolls.md)
 
-An arpeggiator processes MIDI notes and drives an existing rack instrument. Send chords from a melodic sequencer, an on-screen keyboard, or external MIDI to its **Input Channel**. Choose the named instrument in **Target Channel**. Inputs must be unique; an arpeggiator cannot target another arpeggiator input.
+An arpeggiator processes MIDI notes and drives an existing rack instrument. Send chords from a melodic sequencer, an on-screen keyboard, or external MIDI to its **Input Channel**. Choose the named instrument in **Target Channel**. Both controls are always visible in the top row, with **Input Channel → Target Channel** showing the MIDI direction. Inputs must be unique; an arpeggiator cannot target another arpeggiator input.
 
 ## Start and Synchronize
 
@@ -56,6 +56,10 @@ Select a step, then choose its action:
 Velocity bars scale incoming accents in percent. Each step also has probability, a gate override and **1–4 ratchets**. Gate supports **5–200%**; values above 100% overlap different pitches. **Use pad gate** clears the step override. Rests and probability misses keep the automatic note cursor stationary unless **Advance through rests** is enabled. **Note repeats** repeats an automatic pitch before moving on. **Rotation** changes the rhythm's starting step.
 
 Keyboard editing: Left/Right selects adjacent steps; Space toggles a rest; Delete/Backspace inserts a rest; T inserts a tie; C plays the chord; N restores Next note. Double-click also toggles a rest. Controls have accessible text labels.
+
+Note previews use large 18 px labels. Narrow grids scroll horizontally; long chord labels stay on one line with an ellipsis. Hover over a step for the complete note list and scale degrees, also available to screen readers.
+
+With **Follow source** or **Custom** scale handling, step borders use the piano keyboard’s degree colours: **1 red, 2 orange, 3 yellow, 4 green, 5 teal, 6 blue, 7 violet**. Degrees describe the generated pitches after transposition and quantization. Follow source uses each note’s incoming scale context, with the pad’s scale as fallback. Octave repetitions keep the same colour. Chords show equal, distinct border segments for their degrees, ordered 1–7. **Scale Off**, missing previews, rests and ties keep neutral borders. Previews and colours appear only when editing the playing pad. A cyan outer outline marks the selected step independently of its degree colour; the playback background and keyboard focus remain separate.
 
 ## Expression and Harmony
 

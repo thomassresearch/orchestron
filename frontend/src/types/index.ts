@@ -931,6 +931,7 @@ export interface SessionArpeggiatorStatus {
   state?: "stopped" | "waiting_notes" | "waiting_arranger" | "playing" | "bypassed" | "muted" | "pause";
   effective_scale?: string;
   preview_notes?: number[][];
+  preview_degrees?: Array<Array<number | null>>;
 }
 
 export interface SessionSequencerStatus {

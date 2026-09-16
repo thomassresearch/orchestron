@@ -5,7 +5,7 @@ from fractions import Fraction
 import pytest
 
 from backend.app.models.session import ArpeggiatorCommand, SessionArpeggiatorConfig
-from backend.app.services.arpeggiator_runtime import PerformanceMidiRouter
+from backend.app.services.arpeggiator_runtime import MidiSourceContext, PerformanceMidiRouter
 
 
 class Playback:
@@ -172,13 +172,86 @@ def test_arranger_stop_releases_hold_but_live_arp_keeps_running():
 
 def test_seed_is_reproducible_and_preview_does_not_change_music():
     outputs = []
-    for block in (64, 4096):
-        p = Playback(pattern="random", probability=.7, humanize_ms=4, humanize_velocity=10)
+    for block, read_preview in ((64, False), (64, True), (4096, True)):
+        p = Playback(pattern="random", probability=.7, humanize_ms=4, humanize_velocity=10,
+                     scale_mode="custom", scale_root="D", mode="dorian")
         p.note()
-        p.router.status()
+        p.advance(1)
+        if read_preview:
+            for _ in range(3):
+                assert p.router.status()[0].preview_degrees
         p.advance(193000, block)
         outputs.append(p.events)
-    assert outputs[0] == outputs[1]
+    assert outputs[0] == outputs[1] == outputs[2]
+
+
+@pytest.mark.parametrize("mode,notes", [
+    ("ionian", [60, 62, 64, 65, 67, 69, 71]),
+    ("dorian", [60, 62, 63, 65, 67, 69, 70]),
+    ("phrygian", [60, 61, 63, 65, 67, 68, 70]),
+    ("lydian", [60, 62, 64, 66, 67, 69, 71]),
+    ("mixolydian", [60, 62, 64, 65, 67, 69, 70]),
+    ("aeolian", [60, 62, 63, 65, 67, 68, 70]),
+    ("locrian", [60, 61, 63, 65, 66, 68, 70]),
+])
+def test_preview_degrees_cover_every_mode_and_repeat_across_octaves(mode, notes):
+    p = Playback(pads=[{"scale_mode": "custom", "scale_root": "C", "mode": mode,
+                        "octaves": 2, "steps": [{"kind": "next"}] * 14}])
+    p.note(notes)
+    p.advance(1)
+    status = p.router.status()[0]
+    assert status.preview_notes == [[note] for note in notes + [note + 12 for note in notes]]
+    assert status.preview_degrees == [[degree] for degree in list(range(1, 8)) * 2]
+
+
+@pytest.mark.parametrize("transpose,notes,expected_notes,expected_degrees", [
+    (1, [60, 61, 66], [60, 62, 67], [1, 2, 5]),
+    (24, [127], [127], [5]),
+    (-24, [0], [0], [1]),
+])
+def test_preview_degrees_use_final_transposed_quantized_pitch(transpose, notes, expected_notes, expected_degrees):
+    p = Playback(pads=[{"scale_mode": "custom", "scale_root": "C", "mode": "ionian",
+                        "transpose": transpose, "steps": [{"kind": "chord"}]}])
+    p.note(notes)
+    p.advance(1)
+    status = p.router.status()[0]
+    assert status.preview_notes == [expected_notes]
+    assert status.preview_degrees == [expected_degrees]
+
+
+@pytest.mark.parametrize("scale_mode,expected_degrees", [
+    ("source", [1, 1, 4]), ("custom", [5, 1, 5]), ("off", [None, None, None]),
+])
+def test_preview_degrees_follow_each_source_or_use_the_pad_scale(scale_mode, expected_degrees):
+    p = Playback(pads=[{"scale_mode": scale_mode, "scale_root": "F", "mode": "lydian",
+                        "steps": [{"kind": "chord"}, {"kind": "rest"}, {"kind": "tie"}]}])
+    for note, context in [(60, MidiSourceContext(source_id="a", scale_root="C", mode="ionian")),
+                          (65, None),
+                          (72, MidiSourceContext(source_id="b", scale_root="G", mode="mixolydian"))]:
+        p.router.route_message([0x91, note, 100], source="test", target_engine_sample=0, source_context=context)
+    p.advance(1)
+    status = p.router.status()[0]
+    assert status.preview_notes == [[60, 65, 72], [], []]
+    assert status.preview_degrees == [expected_degrees, [], []]
+    p.router.command("arp", ArpeggiatorCommand(command="clear"))
+    assert p.router.status()[0].preview_notes == [[], [], []]
+    assert p.router.status()[0].preview_degrees == [[], [], []]
+
+
+def test_preview_degrees_change_with_the_playing_pad():
+    p = Playback(pads=[{"scale_mode": "custom", "scale_root": "C", "mode": "ionian",
+                        "steps": [{"kind": "next"}]},
+                       {"scale_mode": "custom", "scale_root": "F", "mode": "lydian",
+                        "steps": [{"kind": "next"}]}])
+    p.note([60])
+    p.advance(1)
+    assert p.router.status()[0].preview_degrees == [[1]]
+    p.router.command("arp", ArpeggiatorCommand(command="launch", pad_index=1))
+    p.advance(6001)
+    status = p.router.status()[0]
+    assert status.active_pad == 1
+    assert status.preview_notes == [[60]]
+    assert status.preview_degrees == [[5]]
 
 
 def test_bypass_balances_notes_on_mode_change():

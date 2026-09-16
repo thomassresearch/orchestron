@@ -707,6 +707,7 @@ class SessionArpeggiatorStatus(BaseModel):
     state: Literal["stopped", "waiting_notes", "waiting_arranger", "playing", "bypassed", "muted", "pause"] = "stopped"
     effective_scale: str = "off"
     preview_notes: list[list[int]] = Field(default_factory=list)
+    preview_degrees: list[list[Literal[1, 2, 3, 4, 5, 6, 7] | None]] = Field(default_factory=list)
 
 
 class SessionSequencerStatus(BaseModel):

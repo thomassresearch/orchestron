@@ -664,14 +664,28 @@ class PerformanceMidiRouter:
             return [self._rng(state, index - index % state.pad.repeats, 1).choice(pool)]
         return [ordered[(state.note_index // state.pad.repeats) % len(ordered)]] if ordered else []
 
-    def _output_note(self, state: ArpeggiatorRuntimeState, held: HeldNote) -> int:
-        note = _clamp_midi_note(held.note + state.pad.transpose)
+    @staticmethod
+    def _note_scale(state: ArpeggiatorRuntimeState, held: HeldNote) -> tuple[SequencerScaleRoot, SequencerMode] | None:
         if state.pad.scale_mode == "off":
-            return note
+            return None
         context = held.source_context if state.pad.scale_mode == "source" else None
         root = context.scale_root if context and context.scale_root else state.pad.scale_root
         mode = context.mode if context and context.mode else state.pad.mode
-        return self._quantize_note_to_scale(note, root, mode)
+        return root, mode
+
+    def _output_note(self, state: ArpeggiatorRuntimeState, held: HeldNote) -> int:
+        note = _clamp_midi_note(held.note + state.pad.transpose)
+        scale = self._note_scale(state, held)
+        return self._quantize_note_to_scale(note, *scale) if scale else note
+
+    def _preview_degree(self, state: ArpeggiatorRuntimeState, held: HeldNote, note: int) -> int | None:
+        scale = self._note_scale(state, held)
+        if scale is None:
+            return None
+        root, mode = scale
+        interval = (note - _ROOT_PITCH_CLASS[root]) % 12
+        intervals = _MODE_INTERVALS[mode]
+        return intervals.index(interval) + 1 if interval in intervals else None
 
     def _step(self, state: ArpeggiatorRuntimeState, sample: int) -> None:
         pad, index = state.pad, state.step_index
@@ -799,11 +813,14 @@ class PerformanceMidiRouter:
                     mode = context.mode if use_source and context.mode else state.pad.mode
                     scale = f"{root} {mode}"
                 preview = []
+                preview_degrees = []
                 cursor = state.note_index
                 state.note_index = 0
                 for index, step in enumerate(state.pad.steps):
                     notes = [] if step.kind in {"rest", "tie"} else self._select(state, step.kind, step.note_position, index)
-                    preview.append([self._output_note(state, n) for n in notes])
+                    output_notes = [self._output_note(state, n) for n in notes]
+                    preview.append(output_notes)
+                    preview_degrees.append([self._preview_degree(state, held, note) for held, note in zip(notes, output_notes)])
                     if step.kind not in {"rest", "tie"} or state.pad.advance_rests:
                         state.note_index += 1
                 state.note_index = cursor
@@ -814,7 +831,7 @@ class PerformanceMidiRouter:
                     active_notes=active, step_index=state.displayed_step, cycle=max(0, state.step_index - 1) // len(state.pad.steps),
                     last_velocity=state.last_velocity, active_pad=state.active_pad, queued_pad=state.queued_pad,
                     pad_loop_position=state.pad_loop_position, manual_override=state.manual_override, state=label,
-                    effective_scale=scale, preview_notes=preview))
+                    effective_scale=scale, preview_notes=preview, preview_degrees=preview_degrees))
             return result
 
     def shutdown(self) -> None:

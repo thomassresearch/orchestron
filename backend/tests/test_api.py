@@ -6524,13 +6524,15 @@ def test_arpeggiator_v15_api_commands_validate_and_preserve_working_configuratio
         assert response.json()["running"]  # Generic transport stays independent.
 
 
-def test_arpeggiator_status_travels_with_audible_pcm_markers(tmp_path):
+@pytest.mark.parametrize("scale_mode,degree", [("off", None), ("custom", 1)])
+def test_arpeggiator_status_travels_with_audible_pcm_markers(tmp_path, scale_mode, degree):
     with _client(tmp_path) as client:
         session_id = _create_running_session(client)
         base = f"/api/sessions/{session_id}"
         response = client.put(base + "/arpeggiators/config", json={"arpeggiators": [{
             "arpeggiator_id": "arp", "input_channel": 2, "target_channel": 1,
-            "enabled": True, "playback_mode": "live"}]})
+            "enabled": True, "playback_mode": "live", "pads": [{
+                "scale_mode": scale_mode, "scale_root": "C", "mode": "ionian"}]}]})
         assert response.status_code == 200
         with client.websocket_connect(f"/ws/sessions/{session_id}/browser-clock") as socket:
             socket.send_json({"type": "claim_controller", "audio_context_sample_rate": 48000,
@@ -6545,6 +6547,13 @@ def test_arpeggiator_status_travels_with_audible_pcm_markers(tmp_path):
             markers = [event for event in metadata["transport_events"] if event["kind"] == "arpeggiators"]
             assert markers
             assert any(event["payload"]["arpeggiators"][0]["active_notes"] == [60] for event in markers)
+            sounding = next(event["payload"]["arpeggiators"][0] for event in markers
+                            if event["payload"]["arpeggiators"][0]["active_notes"] == [60])
+            assert sounding["preview_notes"] == [[60]] * 16
+            assert sounding["preview_degrees"] == [[degree]] * 16
+            cleared = client.post(base + "/arpeggiators/arp/command", json={"command": "clear"})
+            assert cleared.status_code == 200
+            assert cleared.json()[0]["preview_degrees"] == [[]] * 16
             assert all(0 <= event["target_frame_offset"] <= metadata["target_frame_count"] for event in markers)
 
 
