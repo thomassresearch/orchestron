@@ -35,7 +35,7 @@ Two bindings may refer to the same patch while owning different values:
 
 ```json
 {
-  "version": 12,
+  "version": 15,
   "instruments": [
     {"id": "bass", "patchId": "lead-patch-id", "midiChannel": 1,
      "performanceControllerValues": {"attack": 0.01, "drive": 2.5}},
@@ -50,6 +50,22 @@ This is an assignment excerpt; preserve the performance's sequencer, `audioGraph
 The CLI reads performance versions 1–15 and saves version 15 while retaining routing migrations. Overrides survive staged edits, commit/load, native JSON/ZIP imports/exports, and runtime creation. Both CSD (MIDI) and CSD (SCORE) exports initialize resolved instance settings without a controller client or MIDI CC events. Standalone patch compilation/export and isolated audition use defaults; audition within a performance uses that instance's overrides.
 
 ## Live updates
+
+### Compressor and reverb settings
+
+Effect parameters are separate from the return fader and send amounts documented in [mixer controls](mixer.md). For a discovered effect binding:
+
+```bash
+uv run orchestron_cli --json edit performance-controllers list --binding compressor
+# Replace NODE_ID with an actual discovered node, and use its reported range:
+uv run orchestron_cli --json edit performance-controllers set --binding compressor --node NODE_ID --value 0.04
+```
+
+The Compressor Effect in the inspected TB303 Demo exposes Rise, Fall, Upper, Lower and Threshold. These labels and their units/ranges come from that patch; do not assume conventional compressor parameters or reuse its UUIDs for another library. Reverb and delay patches may expose different controls or none at all. If no suitable control exists, mixer commands can still change the send/return level, but cannot tune the effect algorithm.
+
+Continuous effects keep initialized values until rack restart. Validate and commit the override, then rebuild a CLI-owned runtime to hear it. Ordinary mixer gain, balance, mute and send changes remain live without restarting.
+
+### Apply to an attached runtime
 
 For an existing attached runtime whose rack and patch definitions are unchanged:
 

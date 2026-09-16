@@ -1,0 +1,509 @@
+{
+  "name": "EBM DW — String Ensemble",
+  "graph_sha256": "359fa5dfd8aaf05e0d00cca7909998857771a3ee4c95ce02d0d342b1eb2254ce",
+  "sample_rate": 48000,
+  "channels": 2,
+  "format": "32-bit float WAV",
+  "velocity_rms_40_80_120": [
+    0.005878015721866178,
+    0.011756031443732357,
+    0.017634047163562504
+  ],
+  "velocity_response": true,
+  "default_headroom_6db": true,
+  "results": {
+    "audition": {
+      "file": "auditions/string_ensemble.wav",
+      "peak": 0.120487742125988,
+      "peak_dbfs": -18.381142679679318,
+      "rms": [
+        0.014313743591302476,
+        0.013383312308285163
+      ],
+      "dc": [
+        -9.50814423311342e-10,
+        -5.8711147922600614e-08
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.6490846180119056,
+      "duration": 40.5,
+      "finite": true,
+      "overrides": {},
+      "passed": true,
+      "spectrograms": [
+        "validation/spectrograms/string_ensemble/string_ensemble.mel.png",
+        "validation/spectrograms/string_ensemble/string_ensemble.stft.png"
+      ]
+    },
+    "velocity_40": {
+      "file": "validation/renders/string_ensemble/string_ensemble__velocity_40.wav",
+      "peak": 0.019851524382829666,
+      "peak_dbfs": -34.04412276982371,
+      "rms": [
+        0.002721825809027555,
+        0.0028476574093073983
+      ],
+      "dc": [
+        -7.068087403279647e-10,
+        1.6373527299847155e-10
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.8252294002413377,
+      "duration": 26.250666666666667,
+      "finite": true,
+      "overrides": {},
+      "passed": true
+    },
+    "velocity_80": {
+      "file": "validation/renders/string_ensemble/string_ensemble__velocity_80.wav",
+      "peak": 0.03970304876565933,
+      "peak_dbfs": -28.023522856544083,
+      "rms": [
+        0.00544365161805511,
+        0.0056953148186147965
+      ],
+      "dc": [
+        -1.4136174806559295e-09,
+        3.274705459969431e-10
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.8252293949704284,
+      "duration": 26.250666666666667,
+      "finite": true,
+      "overrides": {},
+      "passed": true
+    },
+    "velocity_120": {
+      "file": "validation/renders/string_ensemble/string_ensemble__velocity_120.wav",
+      "peak": 0.059554573148489,
+      "peak_dbfs": -24.501697675430457,
+      "rms": [
+        0.008165477426483065,
+        0.008542972226891998
+      ],
+      "dc": [
+        -2.1206214441547192e-09,
+        4.909414157413189e-10
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.8252293930722444,
+      "duration": 26.250666666666667,
+      "finite": true,
+      "overrides": {},
+      "passed": true
+    },
+    "probe_default": {
+      "file": "validation/renders/string_ensemble/string_ensemble__probe_default.wav",
+      "peak": 0.049628809094429016,
+      "peak_dbfs": -26.08532292237768,
+      "rms": [
+        0.007182418615427514,
+        0.007530425084975456
+      ],
+      "dc": [
+        -1.7757816484124495e-09,
+        5.954746723046583e-10
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.8195820056897882,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {},
+      "passed": true,
+      "spectrograms": [
+        "validation/spectrograms/string_ensemble/string_ensemble__probe_default.mel.png",
+        "validation/spectrograms/string_ensemble/string_ensemble__probe_default.stft.png"
+      ]
+    },
+    "attack_min": {
+      "file": "validation/renders/string_ensemble/string_ensemble__attack_min.wav",
+      "peak": 0.049627553671598434,
+      "peak_dbfs": -26.08554264560453,
+      "rms": [
+        0.0073150363783532095,
+        0.00771967866080274
+      ],
+      "dc": [
+        -1.0750402441877082e-08,
+        -1.2478779802191337e-08
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.8028192896613603,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_attack": 0.001
+      },
+      "passed": true,
+      "difference_rms": 0.0017421061002632359,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/string_ensemble/string_ensemble__attack_min.mel.png",
+        "validation/spectrograms/string_ensemble/string_ensemble__attack_min.stft.png"
+      ]
+    },
+    "attack_max": {
+      "file": "validation/renders/string_ensemble/string_ensemble__attack_max.wav",
+      "peak": 0.05023445934057236,
+      "peak_dbfs": -25.979965351385378,
+      "rms": [
+        0.006326202214105371,
+        0.006587135994356794
+      ],
+      "dc": [
+        -6.2773366767275e-10,
+        9.798263335293575e-10
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.8071182996785529,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_attack": 4
+      },
+      "passed": true,
+      "difference_rms": 0.0027417798970579017,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/string_ensemble/string_ensemble__attack_max.mel.png",
+        "validation/spectrograms/string_ensemble/string_ensemble__attack_max.stft.png"
+      ]
+    },
+    "release_min": {
+      "file": "validation/renders/string_ensemble/string_ensemble__release_min.wav",
+      "peak": 0.049628809094429016,
+      "peak_dbfs": -26.08532292237768,
+      "rms": [
+        0.006825615510440501,
+        0.007133062080250864
+      ],
+      "dc": [
+        -2.1668586040026915e-09,
+        -1.9920919203804507e-09
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.8284618980196395,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_release": 0.02
+      },
+      "passed": true,
+      "difference_rms": 0.0022250050213770455,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/string_ensemble/string_ensemble__release_min.mel.png",
+        "validation/spectrograms/string_ensemble/string_ensemble__release_min.stft.png"
+      ]
+    },
+    "release_max": {
+      "file": "validation/renders/string_ensemble/string_ensemble__release_max.wav",
+      "peak": 0.049628809094429016,
+      "peak_dbfs": -26.08532292237768,
+      "rms": [
+        0.008267617093284116,
+        0.00832809677598541
+      ],
+      "dc": [
+        -1.7383979861327915e-09,
+        7.152033726797455e-10
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.8144999959573833,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_release": 8
+      },
+      "passed": true,
+      "difference_rms": 0.003150486473474965,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/string_ensemble/string_ensemble__release_max.mel.png",
+        "validation/spectrograms/string_ensemble/string_ensemble__release_max.stft.png"
+      ]
+    },
+    "tone_min": {
+      "file": "validation/renders/string_ensemble/string_ensemble__tone_min.wav",
+      "peak": 0.028267789632081985,
+      "peak_dbfs": -30.974162986997666,
+      "rms": [
+        0.004693711688194535,
+        0.004963283508471762
+      ],
+      "dc": [
+        2.4570451695925628e-12,
+        5.293517410239199e-13
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.8761398070989174,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_tone": 300
+      },
+      "passed": true,
+      "difference_rms": 0.011520808582189455,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/string_ensemble/string_ensemble__tone_min.mel.png",
+        "validation/spectrograms/string_ensemble/string_ensemble__tone_min.stft.png"
+      ]
+    },
+    "tone_max": {
+      "file": "validation/renders/string_ensemble/string_ensemble__tone_max.wav",
+      "peak": 0.04765275865793228,
+      "peak_dbfs": -26.438239052564242,
+      "rms": [
+        0.006977202127683336,
+        0.00728398158401495
+      ],
+      "dc": [
+        1.774211183609881e-08,
+        3.9521049152956034e-09
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.8169205451350766,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_tone": 7000
+      },
+      "passed": true,
+      "difference_rms": 0.0022817143900194146,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/string_ensemble/string_ensemble__tone_max.mel.png",
+        "validation/spectrograms/string_ensemble/string_ensemble__tone_max.stft.png"
+      ]
+    },
+    "detune_min": {
+      "file": "validation/renders/string_ensemble/string_ensemble__detune_min.wav",
+      "peak": 0.06316404044628143,
+      "peak_dbfs": -23.990601940785957,
+      "rms": [
+        0.014487425537371413,
+        0.013124050375256196
+      ],
+      "dc": [
+        2.7668653553892766e-09,
+        2.7559220372611576e-09
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.7957601853327829,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_detune": 0
+      },
+      "passed": true,
+      "difference_rms": 0.009525714788766522,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/string_ensemble/string_ensemble__detune_min.mel.png",
+        "validation/spectrograms/string_ensemble/string_ensemble__detune_min.stft.png"
+      ]
+    },
+    "detune_max": {
+      "file": "validation/renders/string_ensemble/string_ensemble__detune_max.wav",
+      "peak": 0.04793268069624901,
+      "peak_dbfs": -26.38736563713358,
+      "rms": [
+        0.006756645723679291,
+        0.006430354628603052
+      ],
+      "dc": [
+        -1.4521068326641304e-09,
+        1.0803827994670221e-09
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.7619982814442409,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_detune": 20
+      },
+      "passed": true,
+      "difference_rms": 0.00573208067070187,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/string_ensemble/string_ensemble__detune_max.mel.png",
+        "validation/spectrograms/string_ensemble/string_ensemble__detune_max.stft.png"
+      ]
+    },
+    "chorus_min": {
+      "file": "validation/renders/string_ensemble/string_ensemble__chorus_min.wav",
+      "peak": 0.05574460327625275,
+      "peak_dbfs": -25.07594341969184,
+      "rms": [
+        0.008396187193695531,
+        0.008233264881207904
+      ],
+      "dc": [
+        -2.5621592440780473e-13,
+        -4.7147256832169535e-14
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.8459264027297536,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_chorus": 0
+      },
+      "passed": true,
+      "difference_rms": 0.0024367481989562515,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/string_ensemble/string_ensemble__chorus_min.mel.png",
+        "validation/spectrograms/string_ensemble/string_ensemble__chorus_min.stft.png"
+      ]
+    },
+    "chorus_max": {
+      "file": "validation/renders/string_ensemble/string_ensemble__chorus_max.wav",
+      "peak": 0.05104156211018562,
+      "peak_dbfs": -25.8415208528804,
+      "rms": [
+        0.0068281752307846584,
+        0.007402749123926189
+      ],
+      "dc": [
+        -3.2280138185595663e-09,
+        1.0821842498900373e-09
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.6685610233936505,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_chorus": 1
+      },
+      "passed": true,
+      "difference_rms": 0.0019937030727441834,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/string_ensemble/string_ensemble__chorus_max.mel.png",
+        "validation/spectrograms/string_ensemble/string_ensemble__chorus_max.stft.png"
+      ]
+    },
+    "reverb_min": {
+      "file": "validation/renders/string_ensemble/string_ensemble__reverb_min.wav",
+      "peak": 0.043462932109832764,
+      "peak_dbfs": -27.23761957035751,
+      "rms": [
+        0.004704550940338134,
+        0.0050222615572822465
+      ],
+      "dc": [
+        -3.007945652795667e-10,
+        1.0603997668975351e-10
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.9054724912363434,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_reverb": 0
+      },
+      "passed": true,
+      "difference_rms": 0.0039699801934507065,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/string_ensemble/string_ensemble__reverb_min.mel.png",
+        "validation/spectrograms/string_ensemble/string_ensemble__reverb_min.stft.png"
+      ]
+    },
+    "reverb_max": {
+      "file": "validation/renders/string_ensemble/string_ensemble__reverb_max.wav",
+      "peak": 0.11138424277305603,
+      "peak_dbfs": -19.063524865604677,
+      "rms": [
+        0.01604871028034171,
+        0.01670007953063152
+      ],
+      "dc": [
+        -5.462095619713147e-09,
+        1.8174295852235502e-09
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.6457887302752691,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_reverb": 0.7
+      },
+      "passed": true,
+      "difference_rms": 0.009924950482024077,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/string_ensemble/string_ensemble__reverb_max.mel.png",
+        "validation/spectrograms/string_ensemble/string_ensemble__reverb_max.stft.png"
+      ]
+    },
+    "stress": {
+      "file": "validation/renders/string_ensemble/string_ensemble__stress.wav",
+      "peak": 0.4125320315361023,
+      "peak_dbfs": -7.690846489951935,
+      "rms": [
+        0.052171570986390296,
+        0.048420122860034824
+      ],
+      "dc": [
+        3.532118256832387e-08,
+        -2.792581339899914e-07
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.20528057910625955,
+      "duration": 30.0,
+      "finite": true,
+      "overrides": {
+        "ctl_release": 8,
+        "ctl_reverb": 0.7
+      },
+      "passed": true,
+      "spectrograms": [
+        "validation/spectrograms/string_ensemble/string_ensemble__stress.mel.png",
+        "validation/spectrograms/string_ensemble/string_ensemble__stress.stft.png"
+      ]
+    }
+  },
+  "spectrograms_inspected": true,
+  "listened": false,
+  "passed": true,
+  "spectrogram_settings": {
+    "n_fft": 4096,
+    "hop_length": 512,
+    "n_mels": 128,
+    "fmin": 20,
+    "fmax": 24000,
+    "vmin": -100,
+    "vmax": 0
+  },
+  "review_sheets": [
+    "validation/review/string_ensemble/attack.mel.png",
+    "validation/review/string_ensemble/release.mel.png",
+    "validation/review/string_ensemble/tone.mel.png",
+    "validation/review/string_ensemble/detune.mel.png",
+    "validation/review/string_ensemble/chorus.mel.png",
+    "validation/review/string_ensemble/reverb.mel.png",
+    "validation/review/string_ensemble/attack.stft.png",
+    "validation/review/string_ensemble/release.stft.png",
+    "validation/review/string_ensemble/tone.stft.png",
+    "validation/review/string_ensemble/detune.stft.png",
+    "validation/review/string_ensemble/chorus.stft.png",
+    "validation/review/string_ensemble/reverb.stft.png"
+  ],
+  "visual_review": {
+    "method": "Opened Mel and log-STFT atlas PNGs containing every original two-channel audition, default/control-extreme and stress view.",
+    "observation": "Detuned harmonic layers and independent chorus movement are visible on both channels; slow attack, chord overlaps and extended reverb/release fade smoothly.",
+    "images": [
+      {
+        "path": "validation/review/string_ensemble__mel.png",
+        "sha256": "6c9e3d7b96ee8e43b0be1a6396ff260c86bb01b387b7767bf21fb2a0ade16546"
+      },
+      {
+        "path": "validation/review/string_ensemble__stft.png",
+        "sha256": "6fd49b75141d3109690cb54a9b599c8a1c1c7f962bdb92966567fcf2775bc4a7"
+      }
+    ]
+  }
+}

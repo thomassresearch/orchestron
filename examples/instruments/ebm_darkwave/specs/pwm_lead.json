@@ -1,0 +1,82 @@
+{
+  "name": "EBM DW — PWM Lead",
+  "description": "Hollow pulse lead with true pulse-width modulation, light stereo chorus and filtered echoes.",
+  "family": "subtractive",
+  "envelope": {
+    "attack": 0.01,
+    "decay": 0.25,
+    "sustain": 0.65,
+    "release": 0.25
+  },
+  "layers": [
+    {
+      "id": "pulse",
+      "opcode": "vco2",
+      "gain": 0.23,
+      "mode": 2
+    }
+  ],
+  "output": {
+    "pan": 0.5
+  },
+  "design": {
+    "slug": "pwm_lead",
+    "instrument_type": "melody",
+    "register": [
+      48,
+      84
+    ],
+    "output_gain": 0.65,
+    "controls": {
+      "attack": {
+        "label": "Attack (s)",
+        "min": 0.001,
+        "max": 0.5,
+        "default": 0.01,
+        "scale": "logarithmic"
+      },
+      "release": {
+        "label": "Release (s)",
+        "min": 0.02,
+        "max": 1.5,
+        "default": 0.25,
+        "scale": "logarithmic"
+      },
+      "tone": {
+        "label": "Tone (Hz)",
+        "min": 300,
+        "max": 7000,
+        "default": 2300,
+        "scale": "logarithmic"
+      },
+      "pulse_width": {
+        "label": "Pulse Width",
+        "min": 0.25,
+        "max": 0.65,
+        "default": 0.45,
+        "scale": "linear"
+      },
+      "pwm_depth": {
+        "label": "PWM Depth",
+        "min": 0,
+        "max": 0.2,
+        "default": 0.13,
+        "scale": "linear"
+      },
+      "motion_rate": {
+        "label": "Motion Rate (Hz)",
+        "min": 0.05,
+        "max": 3,
+        "default": 0.45,
+        "scale": "logarithmic"
+      },
+      "space": {
+        "label": "Space",
+        "min": 0,
+        "max": 0.7,
+        "default": 0.22,
+        "scale": "linear"
+      }
+    }
+  }
+}

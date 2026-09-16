@@ -33,10 +33,9 @@ FORMULA_LITERAL_IDENTIFIERS = frozenset({"sr"})
 FORMULA_OPERATORS = ("+", "-", "*", "/")
 STANDARD_REVERB_PATCH_NAME = "reverb effect"
 STANDARD_COMPRESSOR_PATCH_NAME = "compressor effect"
-STANDARD_SPEAKER_PATCH_NAME = "speaker output"
 STANDARD_REVERB_BINDING_ID = "standard-reverb-effect"
 STANDARD_COMPRESSOR_BINDING_ID = "standard-compressor-effect"
-STANDARD_SPEAKER_BINDING_ID = "standard-speaker-output"
+MASTER = "$master"
 DIRECT_OUT_SEND_GAIN_EXPRESSION = "0.1 * in1"
 
 SCALE_ROOTS = {
@@ -1631,6 +1630,41 @@ def patch_audio_port_names(patch: dict[str, Any], *, opcode: str) -> list[str]:
     return []
 
 
+def patch_output_ports(patch: dict[str, Any]) -> list[str]:
+    ports = patch_audio_port_names(patch, opcode="outleta")
+    if patch.get("has_direct_output") or any(
+        node.get("opcode") == "outs" for node in patch.get("graph", {}).get("nodes", [])
+    ):
+        ports = [*ports, "$direct.left", "$direct.right"]
+    return list(dict.fromkeys(ports))
+
+
+def default_mixer_strip() -> dict[str, Any]:
+    return {"gainDb": 0.0, "balance": 0.0, "mute": False, "solo": False}
+
+
+def mixer_number(value: Any, *, field: str, minimum: float, maximum: float) -> float:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        number = float("nan")
+    if isinstance(value, bool) or not math.isfinite(number) or not minimum <= number <= maximum:
+        raise OrchestronCliError("invalid_mixer_value", f"{field} must be finite and between {minimum} and {maximum}.")
+    return number
+
+
+def mixer_gain(value: Any, *, maximum: float) -> float | None:
+    if value is None or value == "silence":
+        return None
+    return mixer_number(value, field="gainDb", minimum=-60, maximum=maximum)
+
+
+def route_identity(route: dict[str, Any]) -> tuple:
+    return tuple(route.get(key) for key in (
+        "sourceId", "sourcePort", "targetId", "targetPort", "kind", "sourceStage", "targetStage",
+    ))
+
+
 def normalize_effect_route_rows(value: Any) -> list[dict[str, str]]:
     if not isinstance(value, list):
         return []
@@ -1748,6 +1782,8 @@ def normalize_performance_config(
     graph = config.setdefault("audioGraph", {"routes": [], "masterId": "$master", "insertOwners": {}})
     graph["masterId"] = graph.get("masterId") or "$master"
     mixer = config.setdefault("mixer", {"strips": {}, "sends": {}})
+    mixer.setdefault("strips", {}).setdefault(MASTER, default_mixer_strip())
+    mixer.setdefault("sends", {})
     instruments = config_instruments(config)
     if len(instruments) > 64 or len(graph["routes"]) > 1024:
         raise OrchestronCliError("audio_graph_limit", "Maximum: 64 patch instances and 1,024 channel connections.")
@@ -1897,7 +1933,10 @@ def add_effect_route_to_config(
     channel: str,
     target_id: str,
     target_port: str | None = None,
+    kind: str = "custom",
 ) -> dict[str, str]:
+    if kind not in {"main", "send", "custom"}:
+        raise OrchestronCliError("invalid_route_kind", "Choose main, send, or custom routing.")
     source = instrument_by_binding_id(config, source_id)
     target = {} if target_id == "$master" else instrument_by_binding_id(config, target_id)
     source_patch = patches_by_id.get(str(source.get("patchId", "")))
@@ -1912,11 +1951,11 @@ def add_effect_route_to_config(
             f"Target binding '{target_id}' patch '{target_patch.get('name')}' has no inleta ports.",
         )
     normalized_channel = channel.strip()
-    source_outlets = patch_audio_port_names(source_patch, opcode="outleta")
+    source_outlets = patch_output_ports(source_patch)
     if normalized_channel not in source_outlets:
         raise OrchestronCliError(
             "effect_source_outlet_not_found",
-            f"Source binding '{source_id}' has no outleta channel named '{normalized_channel}'.",
+            f"Source binding '{source_id}' has no output port named '{normalized_channel}'.",
             retry=[f"Use one of: {', '.join(source_outlets) or '(none)'}."],
         )
     inlets = patch_audio_port_names(target_patch, opcode="inleta")
@@ -1926,12 +1965,12 @@ def add_effect_route_to_config(
     if "audioGraph" not in config:
         normalize_performance_config(config, list(patches_by_id.values()))
     graph = config["audioGraph"]
-    for row in graph["routes"]:
-        if (row["sourceId"], row["sourcePort"], row["targetId"], row["targetPort"]) == (source_id, normalized_channel, target_id, inlet):
-            return row
+    row = {"id": str(uuid4()), "sourceId": source_id, "sourcePort": normalized_channel, "targetId": target_id, "targetPort": inlet, "kind": kind, "sourceStage": "strip", "targetStage": "input"}
+    for existing in graph["routes"]:
+        if route_identity(existing) == route_identity(row):
+            return existing
     if len(graph["routes"]) >= 1024:
         raise OrchestronCliError("too_many_effect_routes", "Maximum: 1,024 channel connections.")
-    row = {"id": str(uuid4()), "sourceId": source_id, "sourcePort": normalized_channel, "targetId": target_id, "targetPort": inlet, "kind": "custom", "sourceStage": "strip", "targetStage": "input"}
     edges = []
     replaced = {r["targetId"] for r in graph["routes"] if r.get("targetStage") == "strip"}
     for instrument in config_instruments(config):
@@ -1956,7 +1995,15 @@ def add_effect_route_to_config(
     for node in adjacency:
         visit(node)
     graph["routes"].append(row)
+    if kind == "send":
+        config.setdefault("mixer", {}).setdefault("sends", {})[row["id"]] = {"gainDb": None, "tap": "post"}
     return row
+
+
+def remove_audio_routes(config: dict[str, Any], route_ids: set[str]) -> None:
+    config["audioGraph"]["routes"] = [r for r in config["audioGraph"]["routes"] if r["id"] not in route_ids]
+    for route_id in route_ids:
+        config.get("mixer", {}).get("sends", {}).pop(route_id, None)
 
 
 def remove_effect_route_from_config(
@@ -2122,70 +2169,6 @@ def graph_with_direct_outs_replaced_by_outletas(graph: dict[str, Any]) -> tuple[
     return next_graph, True
 
 
-def unique_patch_copy_name(base_name: str, taken_names: set[str]) -> str:
-    seed = f"{(base_name.strip() or 'Instrument')}_new"
-    candidate = seed
-    index = 2
-    while normalize_name_key(candidate) in taken_names:
-        candidate = f"{seed}_{index}"
-        index += 1
-    taken_names.add(normalize_name_key(candidate))
-    return candidate
-
-
-def label_key(label: str) -> str:
-    return re.sub(r"[^a-z0-9]+", "", label.lower())
-
-
-def label_is_send(label: str) -> bool:
-    key = label_key(label)
-    return any(token in key for token in ("send", "aux", "fx", "wet", "effect", "verb", "reverb"))
-
-
-def label_is_dry(label: str) -> bool:
-    key = label_key(label)
-    if "dry" in key:
-        return True
-    return key in {"l", "r", "left", "right", "outl", "outr", "mainl", "mainr", "outputl", "outputr"}
-
-
-def stereo_side_for_label(label: str, labels: list[str]) -> str | None:
-    lower = label.lower()
-    labels_by_lower = {item.lower(): item for item in labels}
-    if lower in {"left", "l"} or lower.endswith("left"):
-        return "left"
-    if lower in {"right", "r"} or lower.endswith("right"):
-        return "right"
-    if lower.endswith("l") and f"{lower[:-1]}r" in labels_by_lower:
-        return "left"
-    if lower.endswith("r") and f"{lower[:-1]}l" in labels_by_lower:
-        return "right"
-    return None
-
-
-def stereo_order(labels: list[str]) -> list[str]:
-    def sort_key(label: str) -> tuple[int, str]:
-        side = stereo_side_for_label(label, labels)
-        if side == "left":
-            return 0, label.lower()
-        if side == "right":
-            return 1, label.lower()
-        return 2, label.lower()
-
-    return sorted(dict.fromkeys(labels), key=sort_key)
-
-
-def source_labels_for_role(labels: list[str], *, role: str) -> list[str]:
-    if role == "send":
-        return stereo_order([label for label in labels if label_is_send(label)])
-    if role == "dry":
-        explicit = [label for label in labels if label_is_dry(label)]
-        if explicit:
-            return stereo_order(explicit)
-        return stereo_order([label for label in labels if not label_is_send(label)])
-    return stereo_order(labels)
-
-
 def source_ids_from_routes(routes: list[dict[str, str]]) -> list[str]:
     result: list[str] = []
     seen: set[str] = set()
@@ -2198,63 +2181,54 @@ def source_ids_from_routes(routes: list[dict[str, str]]) -> list[str]:
     return result[:16]
 
 
-def ensure_binding_id(binding: dict[str, Any], *, seed: str, used_ids: set[str]) -> str:
-    raw_id = binding.get("id")
-    if isinstance(raw_id, str) and raw_id.strip() and raw_id not in used_ids:
-        used_ids.add(raw_id)
-        return raw_id
-    candidate = seed
-    index = 2
-    while candidate in used_ids:
-        candidate = f"{seed}-{index}"
-        index += 1
-    binding["id"] = candidate
-    used_ids.add(candidate)
-    return candidate
-
-
 def ensure_standard_effect_binding(
     instruments: list[dict[str, Any]],
     *,
     binding_id: str,
     patch: dict[str, Any],
+    insert_owners: dict[str, str],
 ) -> dict[str, Any]:
-    for instrument in instruments:
-        if instrument.get("id") == binding_id or instrument.get("patchId") == patch.get("id"):
-            if instrument.get("patchId") != patch["id"]:
-                instrument["performanceControllerValues"] = {}
-            instrument["id"] = binding_id
-            instrument["patchId"] = patch["id"]
-            instrument["patchName"] = patch["name"]
-            instrument["midiChannel"] = 0
-            instrument["level"] = clamp_int(instrument.get("level", 10), 1, 10, field="level")
-            instrument.setdefault("effectSourceIds", [])
-            instrument.setdefault("effectRoutes", [])
-            return instrument
+    preferred = next((i for i in instruments if i["id"] == binding_id), None)
+    if preferred and (preferred["patchId"] != patch["id"] or preferred["id"] in insert_owners):
+        raise OrchestronCliError("standard_binding_conflict", f"Binding '{binding_id}' is already used by another patch or an insert.",
+            retry=["Configure explicit routes for the intended effect instances."])
+    matches = [i for i in instruments if i["patchId"] == patch["id"] and i["id"] not in insert_owners]
+    if not preferred and len(matches) > 1:
+        raise OrchestronCliError("ambiguous_standard_effect", f"Multiple rack instances use '{patch['name']}'.",
+            retry=["Configure explicit routes using the intended binding IDs."])
+    if preferred or matches:
+        return preferred or matches[0]
     binding = {
         "id": binding_id,
         "patchId": patch["id"],
         "patchName": patch["name"],
         "midiChannel": 0,
-        "level": 10,
-        "effectSourceIds": [],
-        "effectRoutes": [],
+        "performanceControllerValues": {},
     }
     instruments.append(binding)
     return binding
 
 
-def require_audio_ports(patch: dict[str, Any], *, opcode: str, role: str) -> list[str]:
-    graph = require_patch_graph(patch)
-    ports = graph_audio_port_names(graph, opcode=opcode)
-    if not ports:
-        raise OrchestronCliError(
-            "missing_audio_route_ports",
-            f"Standard {role} patch '{patch.get('name')}' has no {opcode} labels.",
-            path="graph.nodes",
-            retry=[f"Edit the patch so it exposes named {opcode} ports before building the standard effect matrix."],
-        )
-    return ports
+def main_stereo_ports(patch: dict[str, Any], *, direction: str) -> list[str]:
+    ports = patch_output_ports(patch) if direction == "output" else patch_audio_port_names(patch, opcode="inleta")
+    interface = patch.get("audio_interface") or patch.get("graph", {}).get("audio_interface") or {}
+    selected = interface.get("mainOutput" if direction == "output" else "mainInput")
+    if selected:
+        group = next((g for g in interface.get("groups", []) if g.get("id") == selected and g.get("direction") == direction), {})
+        members = group.get("ports", [])
+        if group.get("layout") == "stereo" and len(members) == 2 and all(p in ports for p in members):
+            return members
+    else:
+        lower = {p.lower(): p for p in ports}
+        dry = ["dryl", "dryr"]
+        if direction == "output" and all(p in lower for p in dry):
+            return [lower[p] for p in dry]
+        pairs = [pair for pair in (("left", "right"), ("l", "r"), ("$direct.left", "$direct.right"))
+                 if all(p in lower for p in pair)]
+        if len(pairs) == 1:
+            return [lower[p] for p in pairs[0]]
+    raise OrchestronCliError("ambiguous_stereo_ports", f"Patch '{patch.get('name')}' needs an unambiguous main stereo {direction}.",
+        retry=["Declare a main stereo audio-interface group, or use `edit routes add` with exact ports."])
 
 
 def resolve_standard_patch(
@@ -2276,49 +2250,6 @@ def resolve_standard_patch(
     return patch
 
 
-def route_entries(source_id: str, labels: list[str]) -> list[dict[str, str]]:
-    return [{"sourceId": source_id, "channel": label} for label in labels]
-
-
-def standard_effect_routes_for_sources(
-    source_bindings: list[dict[str, Any]],
-    source_patches_by_binding_id: dict[str, dict[str, Any]],
-    *,
-    reverb_binding_id: str,
-    reverb_patch: dict[str, Any],
-    compressor_binding_id: str,
-    compressor_patch: dict[str, Any],
-) -> tuple[list[dict[str, str]], list[dict[str, str]], list[str]]:
-    warnings: list[str] = []
-    reverb_routes: list[dict[str, str]] = []
-    compressor_routes: list[dict[str, str]] = []
-
-    for binding in source_bindings:
-        binding_id = str(binding["id"])
-        patch = source_patches_by_binding_id[binding_id]
-        outlet_labels = graph_audio_port_names(require_patch_graph(patch), opcode="outleta")
-        send_labels = source_labels_for_role(outlet_labels, role="send")
-        dry_labels = source_labels_for_role(outlet_labels, role="dry")
-        if send_labels:
-            reverb_routes.extend(route_entries(binding_id, send_labels))
-        else:
-            warnings.append(f"Instrument '{binding.get('patchName', binding.get('patchId'))}' has no send outleta labels.")
-        if dry_labels:
-            compressor_routes.extend(route_entries(binding_id, dry_labels))
-        else:
-            warnings.append(f"Instrument '{binding.get('patchName', binding.get('patchId'))}' has no dry outleta labels.")
-
-    reverb_outlets = graph_audio_port_names(require_patch_graph(reverb_patch), opcode="outleta")
-    if reverb_outlets:
-        compressor_routes.extend(route_entries(reverb_binding_id, source_labels_for_role(reverb_outlets, role="all")))
-    else:
-        warnings.append(f"Reverb patch '{reverb_patch.get('name')}' has no outleta labels for the compressor input.")
-
-    compressor_outlets = graph_audio_port_names(require_patch_graph(compressor_patch), opcode="outleta")
-    speaker_routes = route_entries(compressor_binding_id, source_labels_for_role(compressor_outlets, role="all"))
-    if not speaker_routes:
-        warnings.append(f"Compressor patch '{compressor_patch.get('name')}' has no outleta labels for the speaker input.")
-    return reverb_routes, compressor_routes, warnings
 
 
 def ensure_standard_effect_matrix(
@@ -2327,175 +2258,95 @@ def ensure_standard_effect_matrix(
     *,
     reverb_patch_ref: str = STANDARD_REVERB_PATCH_NAME,
     compressor_patch_ref: str = STANDARD_COMPRESSOR_PATCH_NAME,
-    speaker_patch_ref: str = STANDARD_SPEAKER_PATCH_NAME,
+    speaker_patch_ref: str | None = None,
+    send_gain_db: Any = None,
     merge: bool = False,
 ) -> dict[str, Any]:
-    raw_instruments = config.setdefault("instruments", [])
-    if not isinstance(raw_instruments, list):
-        raise OrchestronCliError("invalid_instruments", "config.instruments must be a list.", path="config.instruments")
-    previous_routes = copy.deepcopy(config.get("audioGraph", {}).get("routes", []))
-    previous_sends = copy.deepcopy(config.get("mixer", {}).get("sends", {}))
-    instruments = [instrument for instrument in raw_instruments if isinstance(instrument, dict)]
-    config["instruments"] = instruments
-
+    if speaker_patch_ref is not None:
+        raise OrchestronCliError("obsolete_speaker_option", "--speaker-patch is obsolete; this preset outputs to the built-in Master.",
+            retry=["Omit --speaker-patch. Use explicit routes for a custom output processor."])
+    send_gain = mixer_gain(send_gain_db, maximum=6)
     patches = client.get("/patches")
-    taken_names = {normalize_name_key(str(patch.get("name", ""))) for patch in patches}
-    used_binding_ids: set[str] = set()
-    source_bindings: list[dict[str, Any]] = []
-    source_patches_by_binding_id: dict[str, dict[str, Any]] = {}
-    converted_sources: list[dict[str, str]] = []
+    candidate = normalize_performance_config(copy.deepcopy(config), patches)
+    graph, mixer = candidate["audioGraph"], candidate["mixer"]
+    graph["masterId"] = MASTER
+    reverb_patch = resolve_standard_patch(client, patches, [reverb_patch_ref], role="reverb")
+    compressor_patch = resolve_standard_patch(client, patches, [compressor_patch_ref], role="compressor")
+    if reverb_patch["id"] == compressor_patch["id"]:
+        raise OrchestronCliError("duplicate_standard_effect", "Choose separate reverb and compressor patches.")
+    reverb = ensure_standard_effect_binding(candidate["instruments"], binding_id=STANDARD_REVERB_BINDING_ID,
+        patch=reverb_patch, insert_owners=graph["insertOwners"])
+    compressor = ensure_standard_effect_binding(candidate["instruments"], binding_id=STANDARD_COMPRESSOR_BINDING_ID,
+        patch=compressor_patch, insert_owners=graph["insertOwners"])
+    for binding in (reverb, compressor):
+        mixer["strips"].setdefault(binding["id"], default_mixer_strip())
+    details = {p["id"]: p for p in patches}
+    details.update({p["id"]: p for p in (reverb_patch, compressor_patch)})
+    reverb_inputs = main_stereo_ports(reverb_patch, direction="input")
+    compressor_inputs = main_stereo_ports(compressor_patch, direction="input")
+    reverb_outputs = main_stereo_ports(reverb_patch, direction="output")
+    compressor_outputs = main_stereo_ports(compressor_patch, direction="output")
+    source_bindings = []
+    desired = []
 
-    for index, instrument in enumerate(instruments):
-        patch_id = instrument.get("patchId")
-        if not isinstance(patch_id, str) or not patch_id.strip():
+    def connect(source_id, outputs, target_id, inputs, kind):
+        for outlet, inlet in zip(outputs, inputs, strict=True):
+            desired.append({"sourceId": source_id, "sourcePort": outlet, "targetId": target_id,
+                            "targetPort": inlet, "kind": kind, "sourceStage": "strip", "targetStage": "input"})
+
+    for binding in candidate["instruments"]:
+        if binding["id"] in graph["insertOwners"] or binding["id"] in {reverb["id"], compressor["id"]}:
             continue
-        midi_channel = clamp_int(instrument.get("midiChannel", 1), 0, 16, field=f"config.instruments[{index}].midiChannel")
-        if midi_channel <= 0:
+        patch = details.get(binding["patchId"])
+        if patch is None:
+            raise OrchestronCliError("unknown_patch", f"Unknown patch for binding '{binding['id']}'.")
+        if binding["midiChannel"] == 0 and patch_audio_port_names(patch, opcode="inleta"):
             continue
-        binding_id = ensure_binding_id(instrument, seed=f"instrument-{midi_channel}", used_ids=used_binding_ids)
-        patch = client.get(f"/patches/{parse.quote(patch_id)}")
-        graph = require_patch_graph(patch)
-        converted_graph, converted = graph_with_direct_outs_replaced_by_outletas(graph)
-        if converted:
-            new_name = unique_patch_copy_name(str(patch.get("name", "Instrument")), taken_names)
-            payload = {
-                "name": new_name,
-                "description": patch.get("description", ""),
-                "schema_version": patch.get("schema_version", 1),
-                "graph": converted_graph,
-                "is_template": False,
-                "always_on": False,
-            }
-            saved = client.post("/patches", payload)
-            patch = {**payload, **saved, "graph": saved.get("graph", converted_graph)}
-            patches.append({"id": patch["id"], "name": patch["name"]})
-            instrument["patchId"] = patch["id"]
-            instrument["patchName"] = patch["name"]
-            converted_sources.append({"fromPatchId": patch_id, "toPatchId": patch["id"], "name": patch["name"]})
-        else:
-            instrument["patchName"] = patch.get("name", instrument.get("patchName"))
-        source_bindings.append(instrument)
-        source_patches_by_binding_id[binding_id] = patch
+        # Full graphs support older backends without list-item audio metadata.
+        patch = {**patch, **client.get(f"/patches/{parse.quote(binding['patchId'])}")}
+        details[binding["patchId"]] = patch
+        outputs = main_stereo_ports(patch, direction="output")
+        source_bindings.append(binding)
+        connect(binding["id"], outputs, compressor["id"], compressor_inputs, "main")
+        connect(binding["id"], outputs, reverb["id"], reverb_inputs, "send")
+    connect(reverb["id"], reverb_outputs, compressor["id"], compressor_inputs, "main")
+    connect(compressor["id"], compressor_outputs, MASTER, ["left", "right"], "main")
 
-    for instrument in instruments:
-        if isinstance(instrument, dict) and isinstance(instrument.get("id"), str):
-            used_binding_ids.add(instrument["id"])
+    wanted = {route_identity(r) for r in desired}
+    main_sources = {(r["sourceId"], r["sourcePort"]) for r in desired if r["kind"] == "main"}
+    effect_targets = {reverb["id"], compressor["id"]}
+    removed_ids = set()
+    for route in graph["routes"]:
+        if route_identity(route) in wanted:
+            continue
+        replaces_main = (route["kind"] == "main" and route["sourceStage"] == "strip"
+                         and (route["sourceId"], route["sourcePort"]) in main_sources)
+        replaces_custom = (not merge and route["kind"] == "custom" and route["targetStage"] == "input"
+                           and route["targetId"] in effect_targets)
+        if replaces_main or replaces_custom:
+            removed_ids.add(route["id"])
+    remove_audio_routes(candidate, removed_ids)
+    previous_ids = {r["id"] for r in graph["routes"]}
+    for desired_route in desired:
+        route = add_effect_route_to_config(candidate, details, source_id=desired_route["sourceId"],
+            channel=desired_route["sourcePort"], target_id=desired_route["targetId"],
+            target_port=desired_route["targetPort"], kind=desired_route["kind"])
+        if route["kind"] == "send" and route["id"] not in previous_ids:
+            mixer["sends"][route["id"]] = {"gainDb": send_gain, "tap": "post"}
 
-    reverb_patch = resolve_standard_patch(client, patches, [reverb_patch_ref], role="reverb effect")
-    compressor_patch = resolve_standard_patch(client, patches, [compressor_patch_ref], role="compressor effect")
-    speaker_refs = [speaker_patch_ref]
-    if normalize_name_key(speaker_patch_ref) == normalize_name_key(STANDARD_SPEAKER_PATCH_NAME):
-        speaker_refs.append("speaker ouput")
-    speaker_patch = resolve_standard_patch(client, patches, speaker_refs, role="speaker output")
-
-    require_audio_ports(reverb_patch, opcode="inleta", role="reverb effect")
-    require_audio_ports(reverb_patch, opcode="outleta", role="reverb effect")
-    require_audio_ports(compressor_patch, opcode="inleta", role="compressor effect")
-    require_audio_ports(speaker_patch, opcode="inleta", role="speaker output")
-    require_audio_ports(compressor_patch, opcode="outleta", role="compressor effect")
-
-    reverb_binding = ensure_standard_effect_binding(
-        instruments,
-        binding_id=STANDARD_REVERB_BINDING_ID,
-        patch=reverb_patch,
-    )
-    compressor_binding = ensure_standard_effect_binding(
-        instruments,
-        binding_id=STANDARD_COMPRESSOR_BINDING_ID,
-        patch=compressor_patch,
-    )
-    speaker_binding = ensure_standard_effect_binding(
-        instruments,
-        binding_id=STANDARD_SPEAKER_BINDING_ID,
-        patch=speaker_patch,
-    )
-
-    reverb_routes, compressor_routes, warnings = standard_effect_routes_for_sources(
-        source_bindings,
-        source_patches_by_binding_id,
-        reverb_binding_id=STANDARD_REVERB_BINDING_ID,
-        reverb_patch=reverb_patch,
-        compressor_binding_id=STANDARD_COMPRESSOR_BINDING_ID,
-        compressor_patch=compressor_patch,
-    )
-    speaker_routes = route_entries(
-        STANDARD_COMPRESSOR_BINDING_ID,
-        source_labels_for_role(graph_audio_port_names(require_patch_graph(compressor_patch), opcode="outleta"), role="all"),
-    )
-
-    patch_details_by_id = {
-        str(patch["id"]): patch
-        for patch in [
-            *source_patches_by_binding_id.values(),
-            reverb_patch,
-            compressor_patch,
-            speaker_patch,
-        ]
-    }
-    if not merge:
-        clear_effect_routes_for_target(config, target_id=STANDARD_REVERB_BINDING_ID)
-        clear_effect_routes_for_target(config, target_id=STANDARD_COMPRESSOR_BINDING_ID)
-        clear_effect_routes_for_target(config, target_id=STANDARD_SPEAKER_BINDING_ID)
-    for route in reverb_routes:
-        add_effect_route_to_config(
-            config,
-            patch_details_by_id,
-            source_id=route["sourceId"],
-            channel=route["channel"],
-            target_id=STANDARD_REVERB_BINDING_ID,
-            target_port=legacy_audio_inlet(route["channel"], patch_audio_port_names(patch_details_by_id[str(instrument_by_binding_id(config, route["sourceId"])["patchId"])], opcode="outleta"), patch_audio_port_names(reverb_patch, opcode="inleta")),
-        )
-    for route in compressor_routes:
-        add_effect_route_to_config(
-            config,
-            patch_details_by_id,
-            source_id=route["sourceId"],
-            channel=route["channel"],
-            target_id=STANDARD_COMPRESSOR_BINDING_ID,
-            target_port=legacy_audio_inlet(route["channel"], patch_audio_port_names(patch_details_by_id[str(instrument_by_binding_id(config, route["sourceId"])["patchId"])], opcode="outleta"), patch_audio_port_names(compressor_patch, opcode="inleta")),
-        )
-    for route in speaker_routes:
-        add_effect_route_to_config(
-            config,
-            patch_details_by_id,
-            source_id=route["sourceId"],
-            channel=route["channel"],
-            target_id=STANDARD_SPEAKER_BINDING_ID,
-            target_port=legacy_audio_inlet(route["channel"], patch_audio_port_names(patch_details_by_id[str(instrument_by_binding_id(config, route["sourceId"])["patchId"])], opcode="outleta"), patch_audio_port_names(speaker_patch, opcode="inleta")),
-        )
-
-    def route_key(route):
-        return tuple(route.get(key) for key in ("sourceId", "sourcePort", "targetId", "targetPort", "kind", "sourceStage", "targetStage"))
-    previous_by_key = {route_key(r): r for r in previous_routes}
-    for route in config["audioGraph"]["routes"]:
-        old = previous_by_key.get(route_key(route))
-        if old:
-            config["mixer"]["sends"].pop(route["id"], None)
-            route["id"] = old["id"]
-            if old["id"] in previous_sends:
-                config["mixer"]["sends"][old["id"]] = previous_sends[old["id"]]
-    for binding in config_instruments(config):
-        for key in ("level", "effectRoutes", "effectSourceIds"):
-            binding.pop(key, None)
-
-    reverb_routes = [r for r in config["audioGraph"]["routes"] if r["targetId"] == reverb_binding["id"]]
-    compressor_routes = [r for r in config["audioGraph"]["routes"] if r["targetId"] == compressor_binding["id"]]
-    speaker_routes = [r for r in config["audioGraph"]["routes"] if r["targetId"] == speaker_binding["id"]]
-
+    validation = client.post("/sessions/validate-instruments", session_audio_request(candidate))
+    config.clear()
+    config.update(candidate)
     return {
         "sourceInstruments": len(source_bindings),
-        "convertedSources": converted_sources,
+        "convertedSources": [],
+        "masterId": MASTER,
         "standardEffects": [
-            {"role": "reverb", "bindingId": STANDARD_REVERB_BINDING_ID, "patchId": reverb_patch["id"], "routes": len(reverb_routes)},
-            {
-                "role": "compressor",
-                "bindingId": STANDARD_COMPRESSOR_BINDING_ID,
-                "patchId": compressor_patch["id"],
-                "routes": len(compressor_routes),
-            },
-            {"role": "speaker", "bindingId": STANDARD_SPEAKER_BINDING_ID, "patchId": speaker_patch["id"], "routes": len(speaker_routes)},
+            {"role": role, "bindingId": binding["id"], "patchId": binding["patchId"],
+             "routes": sum(r["targetId"] == binding["id"] for r in graph["routes"])}
+            for role, binding in (("reverb", reverb), ("compressor", compressor))
         ],
-        "warnings": warnings,
+        "warnings": validation.get("diagnostics", []),
     }
 
 
@@ -4288,6 +4139,8 @@ def command_edit_instruments_list(args: argparse.Namespace, ctx: CliContext) -> 
                 "gainDb": config["mixer"]["strips"].get(binding_id, {}).get("gainDb", 0),
                 "audioInlets": patch_audio_port_names(patch, opcode="inleta"),
                 "audioOutlets": patch_audio_port_names(patch, opcode="outleta"),
+                "audioOutputs": patch_output_ports(patch),
+                "audioInterface": patch.get("audio_interface"),
                 "incomingRoutes": incoming_counts.get(binding_id, 0),
                 "outgoingRoutes": outgoing_counts.get(binding_id, 0),
             }
@@ -4303,7 +4156,7 @@ def command_edit_instruments_list(args: argparse.Namespace, ctx: CliContext) -> 
             ("outgoingRoutes", "Out"),
         ],
         ctx,
-        detail_columns=[("audioInlets", "Audio inlets"), ("audioOutlets", "Audio outlets")],
+        detail_columns=[("audioInlets", "Audio inlets"), ("audioOutputs", "Audio outputs")],
     )
 
 
@@ -4358,6 +4211,60 @@ def push_performance_controllers(client: ApiClient, session_id: str, config: dic
             client.put(f"/sessions/{parse.quote(session_id, safe='')}/instruments/{parse.quote(instrument['id'], safe='')}/performance-controllers", {"values": values})
 
 
+def command_edit_mixer(args: argparse.Namespace, ctx: CliContext) -> None:
+    patches = ApiClient(ctx.api_url, timeout=ctx.timeout).get("/patches")
+
+    def apply(config: dict[str, Any]) -> dict[str, Any]:
+        normalize_performance_config(config, patches)
+        mixer = config["mixer"]
+        send_routes = {r["id"] for r in config["audioGraph"]["routes"] if r["kind"] == "send"}
+        if args.mixer_command == "list":
+            return {"strips": {identity: {**default_mixer_strip(), **values} for identity, values in mixer["strips"].items()}, "sends": {
+                route_id: {"gainDb": None, "tap": "post", **mixer["sends"].get(route_id, {})}
+                for route_id in sorted(send_routes)
+            }}
+        changes = {}
+        maximum = 12 if args.mixer_command == "strip" else 6
+        if hasattr(args, "gain_db"):
+            changes["gainDb"] = mixer_gain(args.gain_db, maximum=maximum)
+        if args.mixer_command == "strip":
+            if args.binding != MASTER:
+                instrument_by_binding_id(config, args.binding)
+            if getattr(args, "balance", None) is not None:
+                changes["balance"] = mixer_number(args.balance, field="balance", minimum=-1, maximum=1)
+            for field in ("mute", "solo"):
+                value = getattr(args, field, None)
+                if value is not None:
+                    if field == "solo" and args.binding == MASTER:
+                        raise OrchestronCliError("master_has_no_solo", "Master has gain, balance and mute controls, but no solo control.")
+                    if not isinstance(value, bool):
+                        raise OrchestronCliError("invalid_mixer_value", f"{field} must be a boolean.")
+                    changes[field] = value
+            selected = [args.binding]
+            section = "strips"
+            defaults = default_mixer_strip()
+        else:
+            selected = list(dict.fromkeys(args.route))
+            unknown = set(selected) - send_routes
+            if unknown:
+                raise OrchestronCliError("unknown_mixer_send", f"Not a send route: {', '.join(sorted(unknown))}.",
+                    retry=["Run `edit routes list` and select IDs whose kind is send."])
+            if getattr(args, "tap", None) is not None:
+                if args.tap not in {"pre", "post"}:
+                    raise OrchestronCliError("invalid_mixer_value", "Send tap must be pre or post.")
+                changes["tap"] = args.tap
+            section = "sends"
+            defaults = {"gainDb": None, "tap": "post"}
+        if not changes:
+            raise OrchestronCliError("missing_mixer_changes", "Supply at least one mixer control to change.")
+        for identity in selected:
+            mixer[section][identity] = {**defaults, **mixer[section].get(identity, {}), **changes}
+        return {section: {identity: mixer[section][identity] for identity in selected}}
+
+    result = apply(load_edit_session(ctx.session_file)["config"]) if args.mixer_command == "list" else update_session_config(ctx, apply)
+    print_payload(result, ctx)
+
+
 def command_edit_add_instrument(args: argparse.Namespace, ctx: CliContext) -> None:
     client = ApiClient(ctx.api_url, timeout=ctx.timeout)
     patch_ref = find_by_id_or_name(client.get("/patches"), args.patch, kind="patch")
@@ -4391,6 +4298,8 @@ def command_edit_add_instrument(args: argparse.Namespace, ctx: CliContext) -> No
                 else f"always-on-{normalize_name_key(str(patch_ref['name'])).replace(' ', '-')}"
             )
         )
+        if id_seed in {MASTER, "$output"}:
+            raise OrchestronCliError("reserved_audio_endpoint", f"'{id_seed}' is an internal endpoint, not a rack binding.")
         if args.binding_id and id_seed in used_ids:
             raise OrchestronCliError(
                 "duplicate_instrument_binding",
@@ -4425,7 +4334,8 @@ def command_edit_add_standard_effects(args: argparse.Namespace, ctx: CliContext)
             client,
             reverb_patch_ref=args.reverb_patch,
             compressor_patch_ref=args.compressor_patch,
-            speaker_patch_ref=args.speaker_patch,
+            speaker_patch_ref=getattr(args, "speaker_patch", None),
+            send_gain_db=getattr(args, "send_gain_db", None),
             merge=args.merge,
         )
 
@@ -4444,16 +4354,21 @@ def command_edit_routes_list(args: argparse.Namespace, ctx: CliContext) -> None:
         "/sessions/validate-instruments",
         session_audio_request(config),
     )
-    rows = [{"sourceId": r["sourceId"], "sourceOutlet": r["sourcePort"], "targetId": r["targetId"], "targetInlet": r["targetPort"], "id": r["id"]} for r in config["audioGraph"]["routes"] if not args.target or args.target == r["targetId"]]
+    rows = [{**r, "sourceOutlet": r["sourcePort"], "targetInlet": r["targetPort"],
+             **({"send": {"gainDb": None, "tap": "post", **config["mixer"]["sends"].get(r["id"], {})}} if r["kind"] == "send" else {})}
+            for r in config["audioGraph"]["routes"] if not args.target or args.target == r["targetId"]]
     print_table(
         rows,
         [
+            ("id", "Route ID"),
+            ("kind", "Kind"),
             ("sourceId", "Source"),
             ("sourceOutlet", "Outlet"),
             ("targetId", "Target"),
             ("targetInlet", "Inlet"),
         ],
         ctx,
+        detail_columns=[("sourceStage", "Source stage"), ("targetStage", "Target stage"), ("send", "Send")],
     )
 
 
@@ -4471,6 +4386,7 @@ def command_edit_routes_add(args: argparse.Namespace, ctx: CliContext) -> None:
             channel=args.outlet,
             target_id=args.target,
             target_port=getattr(args, "inlet", None),
+            kind=getattr(args, "kind", "custom"),
         )
         validation = client.post(
             "/sessions/validate-instruments",
@@ -4484,6 +4400,7 @@ def command_edit_routes_add(args: argparse.Namespace, ctx: CliContext) -> None:
                 and item.get("source_id") == args.source
                 and item.get("source_outlet") == args.outlet
                 and item.get("target_id") == args.target
+                and item.get("target_inlet") == route["targetPort"]
             ),
             None,
         )
@@ -4493,7 +4410,18 @@ def command_edit_routes_add(args: argparse.Namespace, ctx: CliContext) -> None:
 
 
 def command_edit_routes_remove(args: argparse.Namespace, ctx: CliContext) -> None:
+    route_id = getattr(args, "id", None)
+    legacy = [getattr(args, name, None) for name in ("source", "outlet", "target")]
+    if (route_id and any(legacy)) or (not route_id and not all(legacy)):
+        raise OrchestronCliError("invalid_route_selection", "Use either --id ROUTE_ID or all of --source, --outlet and --target.")
+
     def mutate(config: dict[str, Any]) -> dict[str, Any]:
+        if route_id:
+            found = any(r["id"] == route_id for r in config.get("audioGraph", {}).get("routes", []))
+            if not found:
+                raise OrchestronCliError("unknown_route", f"Unknown route ID '{route_id}'.")
+            remove_audio_routes(config, {route_id})
+            return {"removed": True, "id": route_id}
         changed = remove_effect_route_from_config(
             config,
             source_id=args.source,
@@ -5023,28 +4951,48 @@ def build_parser() -> argparse.ArgumentParser:
         if operation == "set":
             command.add_argument("--value", required=True, type=float, help="Finite value within the patch controller range.")
         command.set_defaults(func=command_edit_performance_controllers)
-    routes = edit_sub.add_parser("routes", help="List, add, remove, and clear staged always-on audio routes.")
+    mixer = edit_sub.add_parser("mixer", help="Inspect and edit staged strip, Master and send controls.")
+    mixer_sub = mixer.add_subparsers(dest="mixer_command", required=True)
+    mixer_list = mixer_sub.add_parser("list", help="List effective strip and send values, including Master.")
+    mixer_list.set_defaults(func=command_edit_mixer)
+    for section in ("strip", "send"):
+        section_parser = mixer_sub.add_parser(section)
+        section_sub = section_parser.add_subparsers(dest="mixer_operation", required=True)
+        setter = section_sub.add_parser("set", help=f"Change selected {section} controls without resetting other values.")
+        setter.add_argument("--gain-db", default=argparse.SUPPRESS, help="Gain in dB, or 'silence' for exact silence.")
+        if section == "strip":
+            setter.add_argument("--binding", required=True, help="Rack binding ID or literal '$master'.")
+            setter.add_argument("--balance", type=float, help="Pan/balance from -1 to +1.")
+            setter.add_argument("--mute", action=argparse.BooleanOptionalAction, default=None)
+            setter.add_argument("--solo", action=argparse.BooleanOptionalAction, default=None)
+        else:
+            setter.add_argument("--route", action="append", required=True, help="Send route ID; repeat for stereo updates.")
+            setter.add_argument("--tap", choices=["pre", "post"])
+        setter.set_defaults(func=command_edit_mixer)
+    routes = edit_sub.add_parser("routes", help="List, add, remove, and clear staged audio routes, including Master.")
     routes_sub = routes.add_subparsers(dest="routes_command", required=True)
     routes_list = routes_sub.add_parser("list", help="List routes with backend-resolved target inlet labels.")
-    routes_list.add_argument("--target", help="Optional target rack binding ID filter.")
+    routes_list.add_argument("--target", help="Optional target binding ID or '$master' filter.")
     routes_list.set_defaults(func=command_edit_routes_list)
-    routes_add = routes_sub.add_parser("add", help="Route one source outleta channel to an always-on rack target.")
+    routes_add = routes_sub.add_parser("add", help="Route one exact source output to an effect or Master.")
     routes_add.add_argument("--source", required=True, help="Source rack binding ID.")
-    routes_add.add_argument("--outlet", required=True, help="Exact source outleta channel label.")
+    routes_add.add_argument("--outlet", required=True, help="Exact source output, including '$direct.left/right' when present.")
     routes_add.add_argument("--inlet", help="Exact target inlet; required when outlet names do not match.")
-    routes_add.add_argument("--target", required=True, help="Always-on target rack binding ID.")
+    routes_add.add_argument("--target", required=True, help="Target rack binding ID or '$master'.")
+    routes_add.add_argument("--kind", choices=["main", "send", "custom"], default="custom", help="Route kind; sends start silent and post-fader. Default: custom.")
     routes_add.set_defaults(func=command_edit_routes_add)
     routes_remove = routes_sub.add_parser("remove", help="Remove one source outlet route from an always-on target.")
-    routes_remove.add_argument("--source", required=True, help="Source rack binding ID.")
-    routes_remove.add_argument("--outlet", required=True, help="Exact source outleta channel label.")
-    routes_remove.add_argument("--target", required=True, help="Always-on target rack binding ID.")
+    routes_remove.add_argument("--id", help="Remove exactly this route ID, including its send controls.")
+    routes_remove.add_argument("--source", help="Source rack binding ID for legacy selection.")
+    routes_remove.add_argument("--outlet", help="Exact source output for legacy selection.")
+    routes_remove.add_argument("--target", help="Target rack binding ID or '$master' for legacy selection.")
     routes_remove.set_defaults(func=command_edit_routes_remove)
     routes_clear = routes_sub.add_parser("clear", help="Clear all incoming routes from one always-on target.")
-    routes_clear.add_argument("--target", required=True, help="Always-on target rack binding ID.")
+    routes_clear.add_argument("--target", required=True, help="Target rack binding ID or '$master'.")
     routes_clear.set_defaults(func=command_edit_routes_clear)
     add_fx = edit_sub.add_parser(
         "add-standard-effects",
-        help="Add the standard always-on reverb, compressor, and speaker-output routing matrix.",
+        help="Route dry instruments and reverb through a compressor into the built-in Master.",
     )
     add_fx.add_argument("--reverb-patch", default=STANDARD_REVERB_PATCH_NAME, help="Reverb always-on patch ID or exact name.")
     add_fx.add_argument(
@@ -5052,11 +5000,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=STANDARD_COMPRESSOR_PATCH_NAME,
         help="Compressor always-on patch ID or exact name.",
     )
-    add_fx.add_argument("--speaker-patch", default=STANDARD_SPEAKER_PATCH_NAME, help="Speaker-output always-on patch ID or exact name.")
+    add_fx.add_argument("--speaker-patch", help="Obsolete: rejected; the preset uses the built-in Master.")
+    add_fx.add_argument("--send-gain-db", default="silence", help="Initial gain for new reverb sends, or 'silence' (default). Existing sends retain their values.")
     add_fx.add_argument(
         "--merge",
         action="store_true",
-        help="Preserve additional routes already configured on the three standard effect targets.",
+        help="Preserve additional custom routes on the reverb and compressor targets.",
     )
     add_fx.set_defaults(func=command_edit_add_standard_effects)
     add_mel = edit_sub.add_parser("add-melodic", help="Add a melodic sequencer with explicit step/chord patterns.")

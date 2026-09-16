@@ -1,0 +1,565 @@
+{
+  "name": "EBM DW — Choir Drone",
+  "graph_sha256": "4777bfb8cece0aaf58c9de925a329b1d1b6dc73b92936d8c5c59f9fc1dcb109c",
+  "sample_rate": 48000,
+  "channels": 2,
+  "format": "32-bit float WAV",
+  "velocity_rms_40_80_120": [
+    0.009375041477256953,
+    0.018750082954513907,
+    0.028125124431750363
+  ],
+  "velocity_response": true,
+  "default_headroom_6db": true,
+  "results": {
+    "audition": {
+      "file": "auditions/choir_drone.wav",
+      "peak": 0.29698503017425537,
+      "peak_dbfs": -10.5453088235255,
+      "rms": [
+        0.046800407851816196,
+        0.04707299508172292
+      ],
+      "dc": [
+        -2.050977899107398e-09,
+        2.884184429334182e-08
+      ],
+      "last_second_peak": 1.317269746548748e-15,
+      "stereo_correlation": 0.8059571506082341,
+      "duration": 42.0,
+      "finite": true,
+      "overrides": {},
+      "passed": true,
+      "spectrograms": [
+        "validation/spectrograms/choir_drone/choir_drone.mel.png",
+        "validation/spectrograms/choir_drone/choir_drone.stft.png"
+      ]
+    },
+    "velocity_40": {
+      "file": "validation/renders/choir_drone/choir_drone__velocity_40.wav",
+      "peak": 0.03951838240027428,
+      "peak_dbfs": -28.064016812564997,
+      "rms": [
+        0.005009209859577605,
+        0.00461938187256996
+      ],
+      "dc": [
+        -9.189974414219484e-10,
+        2.1032342890934538e-09
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.4925235545982811,
+      "duration": 26.250666666666667,
+      "finite": true,
+      "overrides": {},
+      "passed": true
+    },
+    "velocity_80": {
+      "file": "validation/renders/choir_drone/choir_drone__velocity_80.wav",
+      "peak": 0.07903676480054855,
+      "peak_dbfs": -22.043416899285372,
+      "rms": [
+        0.01001841971915521,
+        0.00923876374513992
+      ],
+      "dc": [
+        -1.8379948828438968e-09,
+        4.2064685781869075e-09
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.49252355102320566,
+      "duration": 26.250666666666667,
+      "finite": true,
+      "overrides": {},
+      "passed": true
+    },
+    "velocity_120": {
+      "file": "validation/renders/choir_drone/choir_drone__velocity_120.wav",
+      "peak": 0.11855514347553253,
+      "peak_dbfs": -18.521591991103477,
+      "rms": [
+        0.015027629578841293,
+        0.013858145619895392
+      ],
+      "dc": [
+        -2.757369358012375e-09,
+        6.310028343691841e-09
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.49252355009318827,
+      "duration": 26.250666666666667,
+      "finite": true,
+      "overrides": {},
+      "passed": true
+    },
+    "probe_default": {
+      "file": "validation/renders/choir_drone/choir_drone__probe_default.wav",
+      "peak": 0.09879595786333084,
+      "peak_dbfs": -20.105216475365214,
+      "rms": [
+        0.013340551454523506,
+        0.012515136489264377
+      ],
+      "dc": [
+        -2.6935083341813036e-09,
+        5.884629028266143e-09
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.4786491562973883,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {},
+      "passed": true,
+      "spectrograms": [
+        "validation/spectrograms/choir_drone/choir_drone__probe_default.mel.png",
+        "validation/spectrograms/choir_drone/choir_drone__probe_default.stft.png"
+      ]
+    },
+    "attack_min": {
+      "file": "validation/renders/choir_drone/choir_drone__attack_min.wav",
+      "peak": 0.10605690628290176,
+      "peak_dbfs": -19.489220911096353,
+      "rms": [
+        0.01379739920478282,
+        0.01295185270733911
+      ],
+      "dc": [
+        -1.8119453008169607e-08,
+        -1.3216768303429683e-08
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.47206218950531903,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_attack": 0.001
+      },
+      "passed": true,
+      "difference_rms": 0.0037868687724813958,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/choir_drone/choir_drone__attack_min.mel.png",
+        "validation/spectrograms/choir_drone/choir_drone__attack_min.stft.png"
+      ]
+    },
+    "attack_max": {
+      "file": "validation/renders/choir_drone/choir_drone__attack_max.wav",
+      "peak": 0.1075582504272461,
+      "peak_dbfs": -19.36712541494952,
+      "rms": [
+        0.012533566460549317,
+        0.011931211994545995
+      ],
+      "dc": [
+        -1.6758750811185368e-09,
+        5.583478983086648e-09
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.4659770915464537,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_attack": 4
+      },
+      "passed": true,
+      "difference_rms": 0.00437977831244698,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/choir_drone/choir_drone__attack_max.mel.png",
+        "validation/spectrograms/choir_drone/choir_drone__attack_max.stft.png"
+      ]
+    },
+    "release_min": {
+      "file": "validation/renders/choir_drone/choir_drone__release_min.wav",
+      "peak": 0.09879595786333084,
+      "peak_dbfs": -20.105216475365214,
+      "rms": [
+        0.01187742899976524,
+        0.010841297282337457
+      ],
+      "dc": [
+        -5.249321176607348e-10,
+        8.447887201030906e-09
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.4972171115094832,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_release": 0.02
+      },
+      "passed": true,
+      "difference_rms": 0.006070003613314765,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/choir_drone/choir_drone__release_min.mel.png",
+        "validation/spectrograms/choir_drone/choir_drone__release_min.stft.png"
+      ]
+    },
+    "release_max": {
+      "file": "validation/renders/choir_drone/choir_drone__release_max.wav",
+      "peak": 0.09879595786333084,
+      "peak_dbfs": -20.105216475365214,
+      "rms": [
+        0.014533090967995519,
+        0.013674864565522664
+      ],
+      "dc": [
+        -3.825587566779423e-09,
+        6.341688407431857e-09
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.47441150974013835,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_release": 8
+      },
+      "passed": true,
+      "difference_rms": 0.003746807439535242,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/choir_drone/choir_drone__release_max.mel.png",
+        "validation/spectrograms/choir_drone/choir_drone__release_max.stft.png"
+      ]
+    },
+    "vowel_min": {
+      "file": "validation/renders/choir_drone/choir_drone__vowel_min.wav",
+      "peak": 0.30265939235687256,
+      "peak_dbfs": -10.380916883700706,
+      "rms": [
+        0.053272229740944116,
+        0.04427675747331563
+      ],
+      "dc": [
+        -2.545900554804797e-09,
+        5.995289386818855e-09
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.7502455237130201,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_vowel": 0
+      },
+      "passed": true,
+      "difference_rms": 0.04172139231990525,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/choir_drone/choir_drone__vowel_min.mel.png",
+        "validation/spectrograms/choir_drone/choir_drone__vowel_min.stft.png"
+      ]
+    },
+    "vowel_max": {
+      "file": "validation/renders/choir_drone/choir_drone__vowel_max.wav",
+      "peak": 0.15354639291763306,
+      "peak_dbfs": -16.275207629272426,
+      "rms": [
+        0.021857665105787256,
+        0.013297793810107823
+      ],
+      "dc": [
+        -2.618404637507838e-09,
+        6.214826873386658e-09
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": -0.08674489766029309,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_vowel": 1
+      },
+      "passed": true,
+      "difference_rms": 0.016008698274230418,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/choir_drone/choir_drone__vowel_max.mel.png",
+        "validation/spectrograms/choir_drone/choir_drone__vowel_max.stft.png"
+      ]
+    },
+    "breath_min": {
+      "file": "validation/renders/choir_drone/choir_drone__breath_min.wav",
+      "peak": 0.09883350133895874,
+      "peak_dbfs": -20.101916375358137,
+      "rms": [
+        0.01334052914100233,
+        0.012514988072474777
+      ],
+      "dc": [
+        -1.5988731563560203e-09,
+        2.5332026893750426e-10
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.47864761123445776,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_breath": 0
+      },
+      "passed": true,
+      "difference_rms": 8.866883753562615e-05,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/choir_drone/choir_drone__breath_min.mel.png",
+        "validation/spectrograms/choir_drone/choir_drone__breath_min.stft.png"
+      ]
+    },
+    "breath_max": {
+      "file": "validation/renders/choir_drone/choir_drone__breath_max.wav",
+      "peak": 0.09859884530305862,
+      "peak_dbfs": -20.122563421550282,
+      "rms": [
+        0.013350382286658828,
+        0.012526165829746244
+      ],
+      "dc": [
+        -8.439194277570848e-09,
+        3.545181022023199e-08
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.47859285494540593,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_breath": 1
+      },
+      "passed": true,
+      "difference_rms": 0.00046551139267300197,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/choir_drone/choir_drone__breath_max.mel.png",
+        "validation/spectrograms/choir_drone/choir_drone__breath_max.stft.png"
+      ]
+    },
+    "motion_min": {
+      "file": "validation/renders/choir_drone/choir_drone__motion_min.wav",
+      "peak": 0.10348367691040039,
+      "peak_dbfs": -19.702562972606653,
+      "rms": [
+        0.013493136064532648,
+        0.01293318932383118
+      ],
+      "dc": [
+        -2.854849638983318e-09,
+        5.519053885531267e-09
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.4679945213337915,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_motion": 0
+      },
+      "passed": true,
+      "difference_rms": 0.003606866402456838,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/choir_drone/choir_drone__motion_min.mel.png",
+        "validation/spectrograms/choir_drone/choir_drone__motion_min.stft.png"
+      ]
+    },
+    "motion_max": {
+      "file": "validation/renders/choir_drone/choir_drone__motion_max.wav",
+      "peak": 0.09883423894643784,
+      "peak_dbfs": -20.10185155165802,
+      "rms": [
+        0.0138452429171196,
+        0.013547225882345259
+      ],
+      "dc": [
+        -1.7148881862055658e-09,
+        5.708307237441746e-09
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.4478836452509618,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_motion": 1
+      },
+      "passed": true,
+      "difference_rms": 0.0076492635309485255,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/choir_drone/choir_drone__motion_max.mel.png",
+        "validation/spectrograms/choir_drone/choir_drone__motion_max.stft.png"
+      ]
+    },
+    "tone_min": {
+      "file": "validation/renders/choir_drone/choir_drone__tone_min.wav",
+      "peak": 0.0716577023267746,
+      "peak_dbfs": -22.894742428226778,
+      "rms": [
+        0.012360114671637633,
+        0.011185572679463747
+      ],
+      "dc": [
+        -2.5075473869184954e-11,
+        -1.2001306885996276e-10
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.7187127417512325,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_tone": 700
+      },
+      "passed": true,
+      "difference_rms": 0.014544024864607822,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/choir_drone/choir_drone__tone_min.mel.png",
+        "validation/spectrograms/choir_drone/choir_drone__tone_min.stft.png"
+      ]
+    },
+    "tone_max": {
+      "file": "validation/renders/choir_drone/choir_drone__tone_max.wav",
+      "peak": 0.09711676836013794,
+      "peak_dbfs": -20.254115550646198,
+      "rms": [
+        0.012885398625814696,
+        0.012083191470105954
+      ],
+      "dc": [
+        -5.371031140233208e-10,
+        2.614866188252214e-09
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.48622859468205154,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_tone": 8000
+      },
+      "passed": true,
+      "difference_rms": 0.0036533304139819453,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/choir_drone/choir_drone__tone_max.mel.png",
+        "validation/spectrograms/choir_drone/choir_drone__tone_max.stft.png"
+      ]
+    },
+    "reverb_min": {
+      "file": "validation/renders/choir_drone/choir_drone__reverb_min.wav",
+      "peak": 0.05627632886171341,
+      "peak_dbfs": -24.99348482286319,
+      "rms": [
+        0.007730564135722755,
+        0.0076641072354641645
+      ],
+      "dc": [
+        -2.608780252829593e-10,
+        6.040594911116151e-10
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.9813870360163895,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_reverb": 0
+      },
+      "passed": true,
+      "difference_rms": 0.009588884647497856,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/choir_drone/choir_drone__reverb_min.mel.png",
+        "validation/spectrograms/choir_drone/choir_drone__reverb_min.stft.png"
+      ]
+    },
+    "reverb_max": {
+      "file": "validation/renders/choir_drone/choir_drone__reverb_max.wav",
+      "peak": 0.17189998924732208,
+      "peak_dbfs": -15.294483009578189,
+      "rms": [
+        0.02376925420623016,
+        0.02244840107025786
+      ],
+      "dc": [
+        -5.5829269029345234e-09,
+        1.2155690991807548e-08
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.22809088334367264,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_reverb": 0.7
+      },
+      "passed": true,
+      "difference_rms": 0.011386800515547723,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/choir_drone/choir_drone__reverb_max.mel.png",
+        "validation/spectrograms/choir_drone/choir_drone__reverb_max.stft.png"
+      ]
+    },
+    "stress": {
+      "file": "validation/renders/choir_drone/choir_drone__stress.wav",
+      "peak": 0.7346776723861694,
+      "peak_dbfs": -2.678063172265224,
+      "rms": [
+        0.09771224975471436,
+        0.08701072071453941
+      ],
+      "dc": [
+        2.336337358915895e-09,
+        1.0963838166840385e-07
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.335872999833486,
+      "duration": 30.0,
+      "finite": true,
+      "overrides": {
+        "ctl_release": 8,
+        "ctl_reverb": 0.7
+      },
+      "passed": true,
+      "spectrograms": [
+        "validation/spectrograms/choir_drone/choir_drone__stress.mel.png",
+        "validation/spectrograms/choir_drone/choir_drone__stress.stft.png"
+      ]
+    }
+  },
+  "spectrograms_inspected": true,
+  "listened": false,
+  "passed": true,
+  "spectrogram_settings": {
+    "n_fft": 4096,
+    "hop_length": 512,
+    "n_mels": 128,
+    "fmin": 20,
+    "fmax": 24000,
+    "vmin": -100,
+    "vmax": 0
+  },
+  "review_sheets": [
+    "validation/review/choir_drone/attack.mel.png",
+    "validation/review/choir_drone/release.mel.png",
+    "validation/review/choir_drone/vowel.mel.png",
+    "validation/review/choir_drone/breath.mel.png",
+    "validation/review/choir_drone/motion.mel.png",
+    "validation/review/choir_drone/tone.mel.png",
+    "validation/review/choir_drone/reverb.mel.png",
+    "validation/review/choir_drone/attack.stft.png",
+    "validation/review/choir_drone/release.stft.png",
+    "validation/review/choir_drone/vowel.stft.png",
+    "validation/review/choir_drone/breath.stft.png",
+    "validation/review/choir_drone/motion.stft.png",
+    "validation/review/choir_drone/tone.stft.png",
+    "validation/review/choir_drone/reverb.stft.png"
+  ],
+  "visual_review": {
+    "method": "Opened Mel and log-STFT atlas PNGs containing every original two-channel audition, default/control-extreme and stress view.",
+    "observation": "Vowel controls shift formant emphasis; slow onset and release remain visible; stereo movement and chord tails remain continuous at stress settings.",
+    "images": [
+      {
+        "path": "validation/review/choir_drone__mel.png",
+        "sha256": "fdb4d0696ff62ede98b24771fe09b6da2a0b3abad8e74c1b423ece8960e403a4"
+      },
+      {
+        "path": "validation/review/choir_drone__stft.png",
+        "sha256": "b39cda191309b590114350f0fad75a12bb1c8e0d46d640cf31484d94882bc235"
+      }
+    ]
+  }
+}

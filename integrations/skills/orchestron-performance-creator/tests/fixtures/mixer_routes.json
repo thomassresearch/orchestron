@@ -1,0 +1,32 @@
+{
+  "version": 15,
+  "instruments": [
+    {"id": "lead", "patchId": "source-patch", "midiChannel": 1, "performanceControllerValues": {}},
+    {"id": "compressor", "patchId": "compressor-patch", "midiChannel": 0, "performanceControllerValues": {}},
+    {"id": "delay", "patchId": "delay-patch", "midiChannel": 0, "performanceControllerValues": {}},
+    {"id": "master-insert", "patchId": "insert-patch", "midiChannel": 0, "performanceControllerValues": {}}
+  ],
+  "audioGraph": {
+    "masterId": "$master",
+    "insertOwners": {"master-insert": "$master"},
+    "routes": [
+      {"id":"dry-left","sourceId":"lead","sourcePort":"dryl","targetId":"compressor","targetPort":"left","kind":"main","sourceStage":"strip","targetStage":"input"},
+      {"id":"dry-right","sourceId":"lead","sourcePort":"dryr","targetId":"compressor","targetPort":"right","kind":"main","sourceStage":"strip","targetStage":"input"},
+      {"id":"send-left","sourceId":"lead","sourcePort":"dryl","targetId":"delay","targetPort":"left","kind":"send","sourceStage":"strip","targetStage":"input"},
+      {"id":"send-right","sourceId":"lead","sourcePort":"dryr","targetId":"delay","targetPort":"right","kind":"send","sourceStage":"strip","targetStage":"input"},
+      {"id":"comp-left","sourceId":"compressor","sourcePort":"left","targetId":"$master","targetPort":"left","kind":"main","sourceStage":"strip","targetStage":"input"},
+      {"id":"comp-right","sourceId":"compressor","sourcePort":"right","targetId":"$master","targetPort":"right","kind":"main","sourceStage":"strip","targetStage":"input"},
+      {"id":"delay-left","sourceId":"delay","sourcePort":"left","targetId":"$master","targetPort":"left","kind":"main","sourceStage":"strip","targetStage":"input"},
+      {"id":"delay-right","sourceId":"delay","sourcePort":"right","targetId":"$master","targetPort":"right","kind":"main","sourceStage":"strip","targetStage":"input"},
+      {"id":"insert-in-left","sourceId":"$master","sourcePort":"$direct.left","targetId":"master-insert","targetPort":"left","kind":"insert","sourceStage":"raw","targetStage":"input"},
+      {"id":"insert-in-right","sourceId":"$master","sourcePort":"$direct.right","targetId":"master-insert","targetPort":"right","kind":"insert","sourceStage":"raw","targetStage":"input"},
+      {"id":"insert-out-left","sourceId":"master-insert","sourcePort":"left","targetId":"$master","targetPort":"$direct.left","kind":"insert","sourceStage":"strip","targetStage":"strip"},
+      {"id":"insert-out-right","sourceId":"master-insert","sourcePort":"right","targetId":"$master","targetPort":"$direct.right","kind":"insert","sourceStage":"strip","targetStage":"strip"}
+    ]
+  },
+  "mixer": {
+    "strips": {"lead":{"gainDb":-6,"balance":0.25,"mute":false,"solo":false},"$master":{"gainDb":-3,"balance":0,"mute":false,"solo":false}},
+    "sends": {"send-left":{"gainDb":-12,"tap":"pre"},"send-right":{"gainDb":-12,"tap":"pre"}}
+  },
+  "sequencer": {}
+}

@@ -102,7 +102,7 @@ Expand **Routing diagnostics** and click **Check routing** after editing connect
 
 ## Persistence and compatibility
 
-Performance configuration version 14 stores Master as an internal endpoint, with stable instance IDs, explicit routes, mixer strips, sends and insert ownership. Versions 1–13 remain readable. App state version 2 saves this same model. Save/Load, Clone and native JSON/ZIP bundles preserve the current settings. Mixer automation recording is not included.
+Performance configuration version 15 retains the internal Master introduced in version 14, with stable instance IDs, explicit routes, mixer strips, sends and insert ownership. Versions 1–14 remain readable. App state version 2 saves this same model. Save/Load, Clone and native JSON/ZIP bundles preserve the current settings. Mixer automation recording is not included.
 
 Versions 1–10 convert old Level values using `20 * log10(level / 10)`, including continuous effects. Missing Level means 0 dB. Legacy inlet selection is resolved once and saved explicitly. Level no longer scales MIDI velocity; velocity-sensitive patches can therefore change timbre after migration. Authored note velocities remain unchanged.
 
@@ -114,11 +114,29 @@ Session creation and validation accept `audio_graph` and `mixer`. `GET /api/sess
 
 `POST /api/sessions/preview` accepts a session plus inline draft patch definitions. It creates a transient runtime without saving drafts into the patch library. Normal stop/delete session operations clean it up.
 
-The performance CLI writes version 14 and preserves routing and mixer data. `--level` is deprecated and converts to audio gain. New CLI routes require exact destination inlet selection when names differ; `--inlet` makes that mapping explicit.
+The performance CLI writes version 15 and preserves routing, mixer data, instance settings and existing insert chains. `--level` is deprecated and converts to audio gain. New CLI routes require exact destination inlet selection when names differ; `--inlet` makes that mapping explicit.
+
+### Author a mix with the performance CLI
+
+The performance creator skill can stage main/send routes, strip and Master controls, and atomic stereo send updates. From its directory, with a staged performance and the named effect patches available:
+
+```bash
+uv run orchestron_cli --json edit add-standard-effects --send-gain-db -12
+uv run orchestron_cli --json edit routes list
+uv run orchestron_cli --json edit mixer list
+uv run orchestron_cli --json edit mixer strip set \
+  --binding '$master' --gain-db -3
+```
+
+The optional preset routes dry instrument outputs and a shared reverb return through a compressor into Master. No speaker instrument is required. It redirects existing direct outputs without cloning patches; new sends default to silence unless an initial amount is supplied. Repeating the preset preserves matching route IDs and saved mixer settings.
+
+For explicit routing, `edit routes add --kind main|send|custom` selects the path type. Quote `$master` and `$direct.left/right` in shell commands. Main routes capture direct output ports; send/custom routes alone leave their direct-output bypass active. Remove an exact connection with `edit routes remove --id ROUTE_ID`.
+
+Use `edit mixer strip set --binding ID` for gain, balance, mute/solo (Master has no solo), and `edit mixer send set --route LEFT_ID --route RIGHT_ID` for a stereo send's gain and pre/post tap. Add `--gain-db silence` for exact silence. Omitted controls retain their saved values. Use the app for insert creation/reordering; the CLI preserves existing insert chains.
+
+Validate and commit to save the mix. `edit push-runtime` applies mixer values to a matching live runtime; use `edit rebuild-runtime` after routing changes. Continuous-effect parameter overrides require rack restart, whereas ordinary mixer controls remain live. Full CLI examples are in the [performance creator skill](../../integrations/skills/orchestron-performance-creator/SKILL.md).
 
 **Navigation:** [Up](performance.md) | [Prev](instrument_rack_and_engine_transport.md) | [Next](sequencer_tracks_and_steps.md)
-
-<div style="page-break-before: always;"></div>
 
 ## Upgrading existing Masters
 

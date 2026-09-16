@@ -1,0 +1,565 @@
+{
+  "name": "EBM DW — Dark PWM Pad",
+  "graph_sha256": "5dd233f0bc5db0c645c840b49fd362cebd2a1074629e41e9bd0a8548e7ae49bc",
+  "sample_rate": 48000,
+  "channels": 2,
+  "format": "32-bit float WAV",
+  "velocity_rms_40_80_120": [
+    0.01629090871225259,
+    0.03258181742450518,
+    0.04887272613838382
+  ],
+  "velocity_response": true,
+  "default_headroom_6db": true,
+  "results": {
+    "audition": {
+      "file": "auditions/dark_pwm_pad.wav",
+      "peak": 0.21489468216896057,
+      "peak_dbfs": -13.355486630445832,
+      "rms": [
+        0.029498506407089287,
+        0.03246604869689167
+      ],
+      "dc": [
+        -2.478566247423104e-10,
+        3.4720684891256094e-09
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.5007518583151482,
+      "duration": 42.0,
+      "finite": true,
+      "overrides": {},
+      "passed": true,
+      "spectrograms": [
+        "validation/spectrograms/dark_pwm_pad/dark_pwm_pad.mel.png",
+        "validation/spectrograms/dark_pwm_pad/dark_pwm_pad.stft.png"
+      ]
+    },
+    "velocity_40": {
+      "file": "validation/renders/dark_pwm_pad/dark_pwm_pad__velocity_40.wav",
+      "peak": 0.0334966778755188,
+      "peak_dbfs": -29.49996526336689,
+      "rms": [
+        0.008348888780309469,
+        0.007775337944366245
+      ],
+      "dc": [
+        -1.4044142136764331e-10,
+        3.3146074816306236e-11
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.8358614144941016,
+      "duration": 26.250666666666667,
+      "finite": true,
+      "overrides": {},
+      "passed": true
+    },
+    "velocity_80": {
+      "file": "validation/renders/dark_pwm_pad/dark_pwm_pad__velocity_80.wav",
+      "peak": 0.0669933557510376,
+      "peak_dbfs": -23.479365350087264,
+      "rms": [
+        0.016697777560618937,
+        0.01555067588873249
+      ],
+      "dc": [
+        -2.8088284273528663e-10,
+        6.629214963261247e-11
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.8358614113885393,
+      "duration": 26.250666666666667,
+      "finite": true,
+      "overrides": {},
+      "passed": true
+    },
+    "velocity_120": {
+      "file": "validation/renders/dark_pwm_pad/dark_pwm_pad__velocity_120.wav",
+      "peak": 0.1004900261759758,
+      "peak_dbfs": -19.95754081296709,
+      "rms": [
+        0.02504666634062048,
+        0.02332601383439835
+      ],
+      "dc": [
+        -4.210379836519251e-10,
+        9.990754400925289e-11
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.8358614109084925,
+      "duration": 26.250666666666667,
+      "finite": true,
+      "overrides": {},
+      "passed": true
+    },
+    "probe_default": {
+      "file": "validation/renders/dark_pwm_pad/dark_pwm_pad__probe_default.wav",
+      "peak": 0.0837416872382164,
+      "peak_dbfs": -21.54116586271828,
+      "rms": [
+        0.02208747611796776,
+        0.020530610980918115
+      ],
+      "dc": [
+        -3.7007978331733204e-10,
+        9.504332763974526e-11
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.8354123339896017,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {},
+      "passed": true,
+      "spectrograms": [
+        "validation/spectrograms/dark_pwm_pad/dark_pwm_pad__probe_default.mel.png",
+        "validation/spectrograms/dark_pwm_pad/dark_pwm_pad__probe_default.stft.png"
+      ]
+    },
+    "attack_min": {
+      "file": "validation/renders/dark_pwm_pad/dark_pwm_pad__attack_min.wav",
+      "peak": 0.08068054914474487,
+      "peak_dbfs": -21.864623089274478,
+      "rms": [
+        0.022739088891783586,
+        0.02108095524292134
+      ],
+      "dc": [
+        4.026540721391641e-09,
+        -5.0566161548328386e-09
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.8368957079010885,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_attack": 0.001
+      },
+      "passed": true,
+      "difference_rms": 0.0058659807111864255,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/dark_pwm_pad/dark_pwm_pad__attack_min.mel.png",
+        "validation/spectrograms/dark_pwm_pad/dark_pwm_pad__attack_min.stft.png"
+      ]
+    },
+    "attack_max": {
+      "file": "validation/renders/dark_pwm_pad/dark_pwm_pad__attack_max.wav",
+      "peak": 0.08014310151338577,
+      "peak_dbfs": -21.92267709030372,
+      "rms": [
+        0.020777749682368354,
+        0.019125833696853722
+      ],
+      "dc": [
+        -2.443565716049507e-10,
+        -5.527215910366483e-11
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.8365931161469727,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_attack": 4
+      },
+      "passed": true,
+      "difference_rms": 0.007277790300138057,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/dark_pwm_pad/dark_pwm_pad__attack_max.mel.png",
+        "validation/spectrograms/dark_pwm_pad/dark_pwm_pad__attack_max.stft.png"
+      ]
+    },
+    "release_min": {
+      "file": "validation/renders/dark_pwm_pad/dark_pwm_pad__release_min.wav",
+      "peak": 0.0837416872382164,
+      "peak_dbfs": -21.54116586271828,
+      "rms": [
+        0.019652823249830323,
+        0.018466236486171843
+      ],
+      "dc": [
+        -6.642078468286471e-10,
+        -7.424082420222092e-10
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.8334992654692139,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_release": 0.02
+      },
+      "passed": true,
+      "difference_rms": 0.008974120000305993,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/dark_pwm_pad/dark_pwm_pad__release_min.mel.png",
+        "validation/spectrograms/dark_pwm_pad/dark_pwm_pad__release_min.stft.png"
+      ]
+    },
+    "release_max": {
+      "file": "validation/renders/dark_pwm_pad/dark_pwm_pad__release_max.wav",
+      "peak": 0.0837416872382164,
+      "peak_dbfs": -21.54116586271828,
+      "rms": [
+        0.02400541711831297,
+        0.02228034940692282
+      ],
+      "dc": [
+        -4.5908211491541416e-10,
+        8.624045472663927e-11
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.8345123200591077,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_release": 8
+      },
+      "passed": true,
+      "difference_rms": 0.006279938160620716,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/dark_pwm_pad/dark_pwm_pad__release_max.mel.png",
+        "validation/spectrograms/dark_pwm_pad/dark_pwm_pad__release_max.stft.png"
+      ]
+    },
+    "tone_min": {
+      "file": "validation/renders/dark_pwm_pad/dark_pwm_pad__tone_min.wav",
+      "peak": 0.034187112003564835,
+      "peak_dbfs": -29.322751703805338,
+      "rms": [
+        0.006558762762532235,
+        0.006095149010407581
+      ],
+      "dc": [
+        3.0417875466725724e-11,
+        7.749997056902606e-11
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.847460964839008,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_tone": 200
+      },
+      "passed": true,
+      "difference_rms": 0.027201048217616108,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/dark_pwm_pad/dark_pwm_pad__tone_min.mel.png",
+        "validation/spectrograms/dark_pwm_pad/dark_pwm_pad__tone_min.stft.png"
+      ]
+    },
+    "tone_max": {
+      "file": "validation/renders/dark_pwm_pad/dark_pwm_pad__tone_max.wav",
+      "peak": 0.07880882918834686,
+      "peak_dbfs": -22.068502489554763,
+      "rms": [
+        0.020735634414483034,
+        0.019258847472654012
+      ],
+      "dc": [
+        3.381397245474625e-08,
+        1.279734539838061e-08
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.8321038816391046,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_tone": 5000
+      },
+      "passed": true,
+      "difference_rms": 0.008609449460374858,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/dark_pwm_pad/dark_pwm_pad__tone_max.mel.png",
+        "validation/spectrograms/dark_pwm_pad/dark_pwm_pad__tone_max.stft.png"
+      ]
+    },
+    "pulse_blend_min": {
+      "file": "validation/renders/dark_pwm_pad/dark_pwm_pad__pulse_blend_min.wav",
+      "peak": 0.06752405315637589,
+      "peak_dbfs": -23.410829938247243,
+      "rms": [
+        0.016886619686500896,
+        0.015799235887445213
+      ],
+      "dc": [
+        1.7028170109999633e-11,
+        6.847577954552647e-13
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.8477140012379653,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_pulse_blend": 0
+      },
+      "passed": true,
+      "difference_rms": 0.006144251916109261,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/dark_pwm_pad/dark_pwm_pad__pulse_blend_min.mel.png",
+        "validation/spectrograms/dark_pwm_pad/dark_pwm_pad__pulse_blend_min.stft.png"
+      ]
+    },
+    "pulse_blend_max": {
+      "file": "validation/renders/dark_pwm_pad/dark_pwm_pad__pulse_blend_max.wav",
+      "peak": 0.10722233355045319,
+      "peak_dbfs": -19.394294903404912,
+      "rms": [
+        0.026727081774665595,
+        0.024775531089788482
+      ],
+      "dc": [
+        -6.870720523709768e-10,
+        1.7287342822488227e-10
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.8104666427774508,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_pulse_blend": 1
+      },
+      "passed": true,
+      "difference_rms": 0.0050271152058000285,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/dark_pwm_pad/dark_pwm_pad__pulse_blend_max.mel.png",
+        "validation/spectrograms/dark_pwm_pad/dark_pwm_pad__pulse_blend_max.stft.png"
+      ]
+    },
+    "motion_depth_min": {
+      "file": "validation/renders/dark_pwm_pad/dark_pwm_pad__motion_depth_min.wav",
+      "peak": 0.07992246747016907,
+      "peak_dbfs": -21.946622329441166,
+      "rms": [
+        0.022300002560235364,
+        0.02084764238327368
+      ],
+      "dc": [
+        -6.222790131464872e-11,
+        -1.500311869425681e-11
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.8471917515827435,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_motion_depth": 0
+      },
+      "passed": true,
+      "difference_rms": 0.002569305329397425,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/dark_pwm_pad/dark_pwm_pad__motion_depth_min.mel.png",
+        "validation/spectrograms/dark_pwm_pad/dark_pwm_pad__motion_depth_min.stft.png"
+      ]
+    },
+    "motion_depth_max": {
+      "file": "validation/renders/dark_pwm_pad/dark_pwm_pad__motion_depth_max.wav",
+      "peak": 0.0834943875670433,
+      "peak_dbfs": -21.566854329988576,
+      "rms": [
+        0.02109055839037462,
+        0.019416557872286362
+      ],
+      "dc": [
+        -8.282945511243148e-13,
+        5.119148008056656e-10
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.8125833264944233,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_motion_depth": 1
+      },
+      "passed": true,
+      "difference_rms": 0.0033310186888667365,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/dark_pwm_pad/dark_pwm_pad__motion_depth_max.mel.png",
+        "validation/spectrograms/dark_pwm_pad/dark_pwm_pad__motion_depth_max.stft.png"
+      ]
+    },
+    "motion_rate_min": {
+      "file": "validation/renders/dark_pwm_pad/dark_pwm_pad__motion_rate_min.wav",
+      "peak": 0.08095647394657135,
+      "peak_dbfs": -21.83496831514859,
+      "rms": [
+        0.02206302068381972,
+        0.020587467051281918
+      ],
+      "dc": [
+        -2.1091201989506524e-10,
+        3.310603449376135e-10
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.8413616171125313,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_motion_rate": 0.02
+      },
+      "passed": true,
+      "difference_rms": 0.003107556244148605,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/dark_pwm_pad/dark_pwm_pad__motion_rate_min.mel.png",
+        "validation/spectrograms/dark_pwm_pad/dark_pwm_pad__motion_rate_min.stft.png"
+      ]
+    },
+    "motion_rate_max": {
+      "file": "validation/renders/dark_pwm_pad/dark_pwm_pad__motion_rate_max.wav",
+      "peak": 0.08302586525678635,
+      "peak_dbfs": -21.61573179383523,
+      "rms": [
+        0.022088723777244235,
+        0.020630720247662052
+      ],
+      "dc": [
+        -7.8518673168372e-11,
+        -1.8816047694555754e-10
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.840302914864321,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_motion_rate": 0.8
+      },
+      "passed": true,
+      "difference_rms": 0.003050112234065074,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/dark_pwm_pad/dark_pwm_pad__motion_rate_max.mel.png",
+        "validation/spectrograms/dark_pwm_pad/dark_pwm_pad__motion_rate_max.stft.png"
+      ]
+    },
+    "space_min": {
+      "file": "validation/renders/dark_pwm_pad/dark_pwm_pad__space_min.wav",
+      "peak": 0.039168428629636765,
+      "peak_dbfs": -28.141277025089,
+      "rms": [
+        0.00905829401888495,
+        0.00868051124474485
+      ],
+      "dc": [
+        -4.143006937295857e-11,
+        1.1345010666570691e-11
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.9623666561212968,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_space": 0
+      },
+      "passed": true,
+      "difference_rms": 0.013328793159147902,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/dark_pwm_pad/dark_pwm_pad__space_min.mel.png",
+        "validation/spectrograms/dark_pwm_pad/dark_pwm_pad__space_min.stft.png"
+      ]
+    },
+    "space_max": {
+      "file": "validation/renders/dark_pwm_pad/dark_pwm_pad__space_max.wav",
+      "peak": 0.16297610104084015,
+      "peak_dbfs": -15.757521525056507,
+      "rms": [
+        0.04043272476644273,
+        0.037183174801558284
+      ],
+      "dc": [
+        -8.093604476479322e-10,
+        2.08014087143035e-10
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.7368147937059842,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_space": 0.7
+      },
+      "passed": true,
+      "difference_rms": 0.017771724212590472,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/dark_pwm_pad/dark_pwm_pad__space_max.mel.png",
+        "validation/spectrograms/dark_pwm_pad/dark_pwm_pad__space_max.stft.png"
+      ]
+    },
+    "stress": {
+      "file": "validation/renders/dark_pwm_pad/dark_pwm_pad__stress.wav",
+      "peak": 0.5795751214027405,
+      "peak_dbfs": -4.737805302850996,
+      "rms": [
+        0.08411993494099965,
+        0.08546035747257745
+      ],
+      "dc": [
+        2.155435006676718e-09,
+        2.067029872572764e-08
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.1934484391390607,
+      "duration": 30.0,
+      "finite": true,
+      "overrides": {
+        "ctl_release": 8,
+        "ctl_space": 0.7
+      },
+      "passed": true,
+      "spectrograms": [
+        "validation/spectrograms/dark_pwm_pad/dark_pwm_pad__stress.mel.png",
+        "validation/spectrograms/dark_pwm_pad/dark_pwm_pad__stress.stft.png"
+      ]
+    }
+  },
+  "spectrograms_inspected": true,
+  "listened": false,
+  "passed": true,
+  "spectrogram_settings": {
+    "n_fft": 4096,
+    "hop_length": 512,
+    "n_mels": 128,
+    "fmin": 20,
+    "fmax": 24000,
+    "vmin": -100,
+    "vmax": 0
+  },
+  "review_sheets": [
+    "validation/review/dark_pwm_pad/attack.mel.png",
+    "validation/review/dark_pwm_pad/release.mel.png",
+    "validation/review/dark_pwm_pad/tone.mel.png",
+    "validation/review/dark_pwm_pad/pulse_blend.mel.png",
+    "validation/review/dark_pwm_pad/motion_depth.mel.png",
+    "validation/review/dark_pwm_pad/motion_rate.mel.png",
+    "validation/review/dark_pwm_pad/space.mel.png",
+    "validation/review/dark_pwm_pad/attack.stft.png",
+    "validation/review/dark_pwm_pad/release.stft.png",
+    "validation/review/dark_pwm_pad/tone.stft.png",
+    "validation/review/dark_pwm_pad/pulse_blend.stft.png",
+    "validation/review/dark_pwm_pad/motion_depth.stft.png",
+    "validation/review/dark_pwm_pad/motion_rate.stft.png",
+    "validation/review/dark_pwm_pad/space.stft.png"
+  ],
+  "visual_review": {
+    "method": "Opened Mel and log-STFT atlas PNGs containing every original two-channel audition, default/control-extreme and stress view.",
+    "observation": "Triangle/pulse blend changes harmonic density; PWM and filter motion vary over time while the fundamental stays stable; long release fades completely.",
+    "images": [
+      {
+        "path": "validation/review/dark_pwm_pad__mel.png",
+        "sha256": "ee3cc9ce2f3a0aeb5d493a4ea5904458e0c0c0d2e01f859004210e47f5558df9"
+      },
+      {
+        "path": "validation/review/dark_pwm_pad__stft.png",
+        "sha256": "0a3f37c9a8ccce61752d53ac47cc4b38b8bde76f20b54e246e012ee264522451"
+      }
+    ]
+  }
+}

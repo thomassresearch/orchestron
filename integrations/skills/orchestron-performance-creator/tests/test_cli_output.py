@@ -265,7 +265,7 @@ def test_direct_outs_graph_is_replaced_by_dry_and_send_outletas() -> None:
     assert formulas[f"{outleta_by_label['sendr']}::asignal"]["inputs"][0]["from_node_id"] == "right_src"
 
 
-def test_standard_effect_matrix_converts_direct_outputs_and_routes_chain() -> None:
+def test_standard_effect_matrix_redirects_direct_outputs_without_cloning() -> None:
     patches = {
         "lead": {
             "id": "lead",
@@ -291,14 +291,6 @@ def test_standard_effect_matrix_converts_direct_outputs_and_routes_chain() -> No
             "graph": _routing_graph(inlets=("left", "right"), outlets=("left", "right")),
             "always_on": True,
         },
-        "speaker": {
-            "id": "speaker",
-            "name": "speaker output",
-            "description": "",
-            "schema_version": 1,
-            "graph": _routing_graph(inlets=("left", "right")),
-            "always_on": True,
-        },
     }
 
     class FakeApiClient:
@@ -313,11 +305,8 @@ def test_standard_effect_matrix_converts_direct_outputs_and_routes_chain() -> No
             raise AssertionError(f"Unexpected GET {path}")
 
         def post(self, path: str, payload: object) -> object:
-            assert path == "/patches"
-            assert isinstance(payload, dict)
-            patch_id = "lead-new"
-            patches[patch_id] = {"id": patch_id, **payload}
-            return patches[patch_id]
+            assert path == "/sessions/validate-instruments"
+            return {"diagnostics": []}
 
     config = {
         "version": 8,
@@ -327,34 +316,37 @@ def test_standard_effect_matrix_converts_direct_outputs_and_routes_chain() -> No
 
     result = ensure_standard_effect_matrix(config, FakeApiClient())
 
-    assert result["convertedSources"] == [{"fromPatchId": "lead", "toPatchId": "lead-new", "name": "Lead_new"}]
-    source, reverb, compressor, speaker = config["instruments"]
+    assert result["convertedSources"] == []
+    source, reverb, compressor = config["instruments"]
     assert source["id"] == "instrument-1"
-    assert source["patchId"] == "lead-new"
+    assert source["patchId"] == "lead"
+    assert "outs" in {n["opcode"] for n in patches["lead"]["graph"]["nodes"]}
+    assert config["audioGraph"]["masterId"] == "$master"
     assert reverb["patchId"] == "reverb"
     assert reverb["midiChannel"] == 0
     def incoming(identity):
         return [{"sourceId": r["sourceId"], "channel": r["sourcePort"]} for r in config["audioGraph"]["routes"] if r["targetId"] == identity]
 
     assert incoming(reverb["id"]) == [
-        {"sourceId": "instrument-1", "channel": "sendl"},
-        {"sourceId": "instrument-1", "channel": "sendr"},
+        {"sourceId": "instrument-1", "channel": "$direct.left"},
+        {"sourceId": "instrument-1", "channel": "$direct.right"},
     ]
     assert incoming(compressor["id"]) == [
-        {"sourceId": "instrument-1", "channel": "dryl"},
-        {"sourceId": "instrument-1", "channel": "dryr"},
+        {"sourceId": "instrument-1", "channel": "$direct.left"},
+        {"sourceId": "instrument-1", "channel": "$direct.right"},
         {"sourceId": "standard-reverb-effect", "channel": "left"},
         {"sourceId": "standard-reverb-effect", "channel": "right"},
     ]
-    assert incoming(speaker["id"]) == [
+    assert incoming("$master") == [
         {"sourceId": "standard-compressor-effect", "channel": "left"},
         {"sourceId": "standard-compressor-effect", "channel": "right"},
     ]
 
-    before = list(config["audioGraph"]["routes"])
+    assert all(s == {"gainDb": None, "tap": "post"} for s in config["mixer"]["sends"].values())
+    before = copy.deepcopy(config)
     second_result = ensure_standard_effect_matrix(config, FakeApiClient())
     assert second_result["convertedSources"] == []
-    assert config["audioGraph"]["routes"] == before
+    assert config == before
     assert all("level" not in b and "effectRoutes" not in b for b in config["instruments"])
 
 

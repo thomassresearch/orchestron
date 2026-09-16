@@ -20,10 +20,10 @@ Typical agent workflow:
 2. List available patches and existing performances.
 3. Start an edit session for a new or existing performance.
 4. Add instrument assignments before sequencers.
-5. Add melodic, drum, controller, or arpeggiator tracks with CLI flags or a YAML/JSON score spec.
+5. Connect exact main/send routes to effects and the built-in Master, and stage mixer levels. Add melodic, drum, controller, or arpeggiator tracks with CLI flags or a YAML/JSON score spec.
 6. Validate the staged edit.
 7. Commit only after validation succeeds.
-8. Optionally push the staged config to a live runtime session for testing.
+8. Optionally push mixer/controller/sequencer values to a matching live runtime, or rebuild it after rack or route changes.
 
 Common commands:
 
@@ -47,6 +47,23 @@ See the skill references for supported melodic step/chord syntax and score-spec 
 
 - [`skills/orchestron-performance-creator/references/chord_syntax.md`](skills/orchestron-performance-creator/references/chord_syntax.md)
 - [`skills/orchestron-performance-creator/references/score_spec.md`](skills/orchestron-performance-creator/references/score_spec.md)
+
+### Mixer and Master routing
+
+Every performance has the built-in `$master` endpoint with exact `left/right` inputs; it needs no speaker patch or rack assignment. Use `edit instruments list` to discover instance IDs and routable outputs, including `$direct.left/right` for direct-output patches. Quote dollar-prefixed identifiers in the shell.
+
+From the skill directory, with a staged performance and the required effect patches available:
+
+```bash
+uv run orchestron_cli --json edit add-standard-effects --send-gain-db -12
+uv run orchestron_cli --json edit routes list
+uv run orchestron_cli --json edit mixer list
+uv run orchestron_cli --json edit mixer strip set --binding '$master' --gain-db -3
+```
+
+This optional preset sends instrument main outputs and a shared reverb return through a compressor into Master. It reuses routable direct outputs without cloning patches. New sends otherwise start silent; `edit mixer send set` accepts repeated `--route` IDs to change a stereo pair atomically. `edit routes add --kind main|send|custom` supports explicit routing, and `edit routes remove --id` removes one exact connection. The obsolete `--speaker-patch` flag reports an error before editing.
+
+See [routing](skills/orchestron-performance-creator/references/effect_routing.md), [mixer controls and TB303 Demo](skills/orchestron-performance-creator/references/mixer.md), and [the optional preset](skills/orchestron-performance-creator/references/standard_effect_patching.md). Existing insert chains are preserved; use the app to create or reorder inserts. Tests use a versioned synthetic mix in the skill's `tests/fixtures/`, independent of developer examples.
 
 ## Example: AI Generated Nr1
 

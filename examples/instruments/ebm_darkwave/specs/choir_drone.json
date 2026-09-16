@@ -1,0 +1,94 @@
+{
+  "name": "EBM DW — Choir Drone",
+  "description": "Synthetic gothic choir using three animated vowel formants, detuned pulses and a trace of breath. Sample-free, played with sustained notes.",
+  "family": "subtractive",
+  "envelope": {
+    "attack": 1.2,
+    "decay": 2,
+    "sustain": 0.75,
+    "release": 4
+  },
+  "layers": [
+    {
+      "id": "pulse_a",
+      "opcode": "vco2",
+      "gain": 0.19,
+      "mode": 2
+    },
+    {
+      "id": "pulse_b",
+      "opcode": "vco2",
+      "gain": 0.19,
+      "mode": 2
+    },
+    {
+      "id": "air",
+      "opcode": "noise",
+      "gain": 0.04,
+      "color": 0
+    }
+  ],
+  "output": {
+    "pan": 0.5
+  },
+  "design": {
+    "slug": "choir_drone",
+    "instrument_type": "melody",
+    "register": [
+      43,
+      76
+    ],
+    "output_gain": 0.65,
+    "controls": {
+      "attack": {
+        "label": "Attack (s)",
+        "min": 0.001,
+        "max": 4,
+        "default": 1.2,
+        "scale": "logarithmic"
+      },
+      "release": {
+        "label": "Release (s)",
+        "min": 0.02,
+        "max": 8,
+        "default": 4,
+        "scale": "logarithmic"
+      },
+      "vowel": {
+        "label": "Vowel (Oo–Ah)",
+        "min": 0,
+        "max": 1,
+        "default": 0.6,
+        "scale": "linear"
+      },
+      "breath": {
+        "label": "Breath",
+        "min": 0,
+        "max": 1,
+        "default": 0.16,
+        "scale": "linear"
+      },
+      "motion": {
+        "label": "Motion",
+        "min": 0,
+        "max": 1,
+        "default": 0.3,
+        "scale": "linear"
+      },
+      "tone": {
+        "label": "Tone (Hz)",
+        "min": 700,
+        "max": 8000,
+        "default": 4300,
+        "scale": "logarithmic"
+      },
+      "reverb": {
+        "label": "Reverb",
+        "min": 0,
+        "max": 0.7,
+        "default": 0.32,
+        "scale": "linear"
+      }
+    }
+  }
+}

@@ -1,0 +1,8 @@
+# Reproducible intermediates and full control sweeps are retained locally.
+graphs/
+validation/renders/
+validation/spectrograms/
+validation/review/
+auditions/*.csd
+auditions/*.log
+validation/library_before.json

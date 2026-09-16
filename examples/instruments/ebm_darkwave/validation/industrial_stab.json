@@ -1,0 +1,567 @@
+{
+  "name": "EBM DW — Industrial Stab",
+  "graph_sha256": "df3fe1b16be1e7104b302f6d7117c04a225c35beaca022a8822e0c5df36e33c4",
+  "sample_rate": 48000,
+  "channels": 2,
+  "format": "32-bit float WAV",
+  "velocity_rms_40_80_120": [
+    0.036995487294767655,
+    0.049488375482838,
+    0.05476569346198512
+  ],
+  "velocity_response": true,
+  "default_headroom_6db": true,
+  "results": {
+    "audition": {
+      "file": "auditions/industrial_stab.wav",
+      "peak": 0.4172377288341522,
+      "peak_dbfs": -7.592328545483941,
+      "rms": [
+        0.050947833464247534,
+        0.05042027361880992
+      ],
+      "dc": [
+        -2.523306204102991e-12,
+        -8.858200096628041e-13
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.9185439146481646,
+      "duration": 18.149333333333335,
+      "finite": true,
+      "overrides": {},
+      "passed": true,
+      "spectrograms": [
+        "validation/spectrograms/industrial_stab/industrial_stab.mel.png",
+        "validation/spectrograms/industrial_stab/industrial_stab.stft.png"
+      ]
+    },
+    "velocity_40": {
+      "file": "validation/renders/industrial_stab/industrial_stab__velocity_40.wav",
+      "peak": 0.1580973118543625,
+      "peak_dbfs": -16.02151028721818,
+      "rms": [
+        0.010184141423500144,
+        0.0097648509567775
+      ],
+      "dc": [
+        -2.3704713067379393e-13,
+        3.3283860533433255e-13
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.963019683552102,
+      "duration": 13.750666666666667,
+      "finite": true,
+      "overrides": {},
+      "passed": true
+    },
+    "velocity_80": {
+      "file": "validation/renders/industrial_stab/industrial_stab__velocity_80.wav",
+      "peak": 0.2030992954969406,
+      "peak_dbfs": -13.845831661132998,
+      "rms": [
+        0.013646293469912325,
+        0.013038175873321593
+      ],
+      "dc": [
+        2.7524894990282043e-13,
+        4.733034605816828e-13
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.9646100672479312,
+      "duration": 13.750666666666667,
+      "finite": true,
+      "overrides": {},
+      "passed": true
+    },
+    "velocity_120": {
+      "file": "validation/renders/industrial_stab/industrial_stab__velocity_120.wav",
+      "peak": 0.21918171644210815,
+      "peak_dbfs": -13.183913527428402,
+      "rms": [
+        0.015107377623015797,
+        0.014422380913854515
+      ],
+      "dc": [
+        -7.222009141249684e-14,
+        7.344084714261238e-13
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.9642878861070362,
+      "duration": 13.750666666666667,
+      "finite": true,
+      "overrides": {},
+      "passed": true
+    },
+    "probe_default": {
+      "file": "validation/renders/industrial_stab/industrial_stab__probe_default.wav",
+      "peak": 0.21777991950511932,
+      "peak_dbfs": -13.239643341022973,
+      "rms": [
+        0.01686143983632579,
+        0.01608904800543966
+      ],
+      "dc": [
+        1.615837467059137e-13,
+        -1.552176996771488e-14
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.9648063726409057,
+      "duration": 20.750666666666667,
+      "finite": true,
+      "overrides": {},
+      "passed": true,
+      "spectrograms": [
+        "validation/spectrograms/industrial_stab/industrial_stab__probe_default.mel.png",
+        "validation/spectrograms/industrial_stab/industrial_stab__probe_default.stft.png"
+      ]
+    },
+    "attack_min": {
+      "file": "validation/renders/industrial_stab/industrial_stab__attack_min.wav",
+      "peak": 0.2196112871170044,
+      "peak_dbfs": -13.166906853959874,
+      "rms": [
+        0.016821796809081288,
+        0.016052408642532608
+      ],
+      "dc": [
+        -5.153927381877178e-13,
+        -2.625234733704945e-13
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.964715578634972,
+      "duration": 20.750666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_attack": 0.001
+      },
+      "passed": true,
+      "difference_rms": 0.0002598820302390668,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/industrial_stab/industrial_stab__attack_min.mel.png",
+        "validation/spectrograms/industrial_stab/industrial_stab__attack_min.stft.png"
+      ]
+    },
+    "attack_max": {
+      "file": "validation/renders/industrial_stab/industrial_stab__attack_max.wav",
+      "peak": 0.1979571282863617,
+      "peak_dbfs": -14.068577100292273,
+      "rms": [
+        0.02340209649920302,
+        0.022151318544342366
+      ],
+      "dc": [
+        3.952789755436203e-14,
+        2.559782002832082e-13
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.9756309256174102,
+      "duration": 20.750666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_attack": 0.5
+      },
+      "passed": true,
+      "difference_rms": 0.02220127453153178,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/industrial_stab/industrial_stab__attack_max.mel.png",
+        "validation/spectrograms/industrial_stab/industrial_stab__attack_max.stft.png"
+      ]
+    },
+    "release_min": {
+      "file": "validation/renders/industrial_stab/industrial_stab__release_min.wav",
+      "peak": 0.21777991950511932,
+      "peak_dbfs": -13.239643341022973,
+      "rms": [
+        0.015422360296119769,
+        0.014891018735444168
+      ],
+      "dc": [
+        -1.6666729054253752e-13,
+        -1.9849382758610396e-13
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.9607631569435611,
+      "duration": 20.750666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_release": 0.02
+      },
+      "passed": true,
+      "difference_rms": 0.006293631859253524,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/industrial_stab/industrial_stab__release_min.mel.png",
+        "validation/spectrograms/industrial_stab/industrial_stab__release_min.stft.png"
+      ]
+    },
+    "release_max": {
+      "file": "validation/renders/industrial_stab/industrial_stab__release_max.wav",
+      "peak": 0.21779359877109528,
+      "peak_dbfs": -13.2390977771186,
+      "rms": [
+        0.03054276509650044,
+        0.028947736162028975
+      ],
+      "dc": [
+        -5.131484621536064e-13,
+        -4.797923277611903e-13
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.9774382571836736,
+      "duration": 20.750666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_release": 1.5
+      },
+      "passed": true,
+      "difference_rms": 0.023860303720656825,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/industrial_stab/industrial_stab__release_max.mel.png",
+        "validation/spectrograms/industrial_stab/industrial_stab__release_max.stft.png"
+      ]
+    },
+    "clang_min": {
+      "file": "validation/renders/industrial_stab/industrial_stab__clang_min.wav",
+      "peak": 0.17471067607402802,
+      "peak_dbfs": -15.15361111403659,
+      "rms": [
+        0.017243683902404692,
+        0.016555338912521353
+      ],
+      "dc": [
+        -2.2730759369004018e-13,
+        -6.601443878173615e-13
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.9701623901001203,
+      "duration": 20.750666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_clang": 0.2
+      },
+      "passed": true,
+      "difference_rms": 0.027173765659926095,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/industrial_stab/industrial_stab__clang_min.mel.png",
+        "validation/spectrograms/industrial_stab/industrial_stab__clang_min.stft.png"
+      ]
+    },
+    "clang_max": {
+      "file": "validation/renders/industrial_stab/industrial_stab__clang_max.wav",
+      "peak": 0.2514723539352417,
+      "peak_dbfs": -11.990195058548876,
+      "rms": [
+        0.016685472697031228,
+        0.017092732837156826
+      ],
+      "dc": [
+        6.244981620515087e-13,
+        1.2219651250911325e-13
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.9166313298407868,
+      "duration": 20.750666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_clang": 8
+      },
+      "passed": true,
+      "difference_rms": 0.023562090675261833,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/industrial_stab/industrial_stab__clang_max.mel.png",
+        "validation/spectrograms/industrial_stab/industrial_stab__clang_max.stft.png"
+      ]
+    },
+    "noise_min": {
+      "file": "validation/renders/industrial_stab/industrial_stab__noise_min.wav",
+      "peak": 0.21435092389583588,
+      "peak_dbfs": -13.37749280504517,
+      "rms": [
+        0.016861134415316763,
+        0.016090524478834287
+      ],
+      "dc": [
+        -5.399241869084139e-13,
+        -2.15514581096084e-13
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.9647919371703355,
+      "duration": 20.750666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_noise": 0
+      },
+      "passed": true,
+      "difference_rms": 0.0005032409413788264,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/industrial_stab/industrial_stab__noise_min.mel.png",
+        "validation/spectrograms/industrial_stab/industrial_stab__noise_min.stft.png"
+      ]
+    },
+    "noise_max": {
+      "file": "validation/renders/industrial_stab/industrial_stab__noise_max.wav",
+      "peak": 0.22159498929977417,
+      "peak_dbfs": -13.088801281765798,
+      "rms": [
+        0.016861935343846106,
+        0.016086815092173575
+      ],
+      "dc": [
+        1.1848402165036088e-13,
+        -3.5706735454330567e-13
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.964711721418037,
+      "duration": 20.750666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_noise": 1
+      },
+      "passed": true,
+      "difference_rms": 0.0010330365126636082,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/industrial_stab/industrial_stab__noise_max.mel.png",
+        "validation/spectrograms/industrial_stab/industrial_stab__noise_max.stft.png"
+      ]
+    },
+    "decay_min": {
+      "file": "validation/renders/industrial_stab/industrial_stab__decay_min.wav",
+      "peak": 0.1496770828962326,
+      "peak_dbfs": -16.4968937905477,
+      "rms": [
+        0.0067693463232682246,
+        0.006762528157149561
+      ],
+      "dc": [
+        -2.8544396209523884e-13,
+        -1.8656365493592664e-13
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.9287223557062342,
+      "duration": 20.750666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_decay": 0.04
+      },
+      "passed": true,
+      "difference_rms": 0.01575056258737601,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/industrial_stab/industrial_stab__decay_min.mel.png",
+        "validation/spectrograms/industrial_stab/industrial_stab__decay_min.stft.png"
+      ]
+    },
+    "decay_max": {
+      "file": "validation/renders/industrial_stab/industrial_stab__decay_max.wav",
+      "peak": 0.2409151792526245,
+      "peak_dbfs": -12.362716714190736,
+      "rms": [
+        0.02824117479617371,
+        0.02616398782073407
+      ],
+      "dc": [
+        3.5735077259295186e-13,
+        -8.358949066872288e-13
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.9681453241414638,
+      "duration": 20.750666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_decay": 1
+      },
+      "passed": true,
+      "difference_rms": 0.02353853973636491,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/industrial_stab/industrial_stab__decay_max.mel.png",
+        "validation/spectrograms/industrial_stab/industrial_stab__decay_max.stft.png"
+      ]
+    },
+    "drive_min": {
+      "file": "validation/renders/industrial_stab/industrial_stab__drive_min.wav",
+      "peak": 0.30253973603248596,
+      "peak_dbfs": -10.384351527251589,
+      "rms": [
+        0.02221803839781987,
+        0.021310050602245365
+      ],
+      "dc": [
+        3.8949103066228866e-13,
+        3.2912260780812e-14
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.9625589142884587,
+      "duration": 20.750666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_drive": 1
+      },
+      "passed": true,
+      "difference_rms": 0.007161947573933988,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/industrial_stab/industrial_stab__drive_min.mel.png",
+        "validation/spectrograms/industrial_stab/industrial_stab__drive_min.stft.png"
+      ]
+    },
+    "drive_max": {
+      "file": "validation/renders/industrial_stab/industrial_stab__drive_max.wav",
+      "peak": 0.10165087133646011,
+      "peak_dbfs": -19.85777788601917,
+      "rms": [
+        0.00857883254548683,
+        0.008193258241923075
+      ],
+      "dc": [
+        2.535047830825171e-13,
+        2.5765512213330406e-14
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.9617936763155709,
+      "duration": 20.750666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_drive": 8
+      },
+      "passed": true,
+      "difference_rms": 0.008485215103734099,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/industrial_stab/industrial_stab__drive_max.mel.png",
+        "validation/spectrograms/industrial_stab/industrial_stab__drive_max.stft.png"
+      ]
+    },
+    "space_min": {
+      "file": "validation/renders/industrial_stab/industrial_stab__space_min.wav",
+      "peak": 0.1513843536376953,
+      "peak_dbfs": -16.398380182313993,
+      "rms": [
+        0.015829508691749306,
+        0.015829508691749306
+      ],
+      "dc": [
+        -6.031641943131733e-13,
+        -6.031641943131733e-13
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 1.0,
+      "duration": 20.750666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_space": 0
+      },
+      "passed": true,
+      "difference_rms": 0.004673653435685439,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/industrial_stab/industrial_stab__space_min.mel.png",
+        "validation/spectrograms/industrial_stab/industrial_stab__space_min.stft.png"
+      ]
+    },
+    "space_max": {
+      "file": "validation/renders/industrial_stab/industrial_stab__space_max.wav",
+      "peak": 0.5964744091033936,
+      "peak_dbfs": -4.488163687772022,
+      "rms": [
+        0.02785939083907041,
+        0.025453829229548072
+      ],
+      "dc": [
+        4.955914238453652e-13,
+        -2.9746031611231783e-13
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.7083189572865013,
+      "duration": 20.750666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_space": 0.6
+      },
+      "passed": true,
+      "difference_rms": 0.01689705473907127,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/industrial_stab/industrial_stab__space_max.mel.png",
+        "validation/spectrograms/industrial_stab/industrial_stab__space_max.stft.png"
+      ]
+    },
+    "stress": {
+      "file": "validation/renders/industrial_stab/industrial_stab__stress.wav",
+      "peak": 0.8919833898544312,
+      "peak_dbfs": -0.9928646560140625,
+      "rms": [
+        0.029876371717947898,
+        0.030339075746606322
+      ],
+      "dc": [
+        1.3264074465870113e-12,
+        1.0966547159766426e-12
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.21570012487544898,
+      "duration": 21.5,
+      "finite": true,
+      "overrides": {
+        "ctl_release": 1.5,
+        "ctl_clang": 8,
+        "ctl_drive": 8,
+        "ctl_space": 0.6
+      },
+      "passed": true,
+      "spectrograms": [
+        "validation/spectrograms/industrial_stab/industrial_stab__stress.mel.png",
+        "validation/spectrograms/industrial_stab/industrial_stab__stress.stft.png"
+      ]
+    }
+  },
+  "spectrograms_inspected": true,
+  "listened": false,
+  "passed": true,
+  "spectrogram_settings": {
+    "n_fft": 4096,
+    "hop_length": 512,
+    "n_mels": 128,
+    "fmin": 20,
+    "fmax": 24000,
+    "vmin": -100,
+    "vmax": 0
+  },
+  "review_sheets": [
+    "validation/review/industrial_stab/attack.mel.png",
+    "validation/review/industrial_stab/release.mel.png",
+    "validation/review/industrial_stab/clang.mel.png",
+    "validation/review/industrial_stab/noise.mel.png",
+    "validation/review/industrial_stab/decay.mel.png",
+    "validation/review/industrial_stab/drive.mel.png",
+    "validation/review/industrial_stab/space.mel.png",
+    "validation/review/industrial_stab/attack.stft.png",
+    "validation/review/industrial_stab/release.stft.png",
+    "validation/review/industrial_stab/clang.stft.png",
+    "validation/review/industrial_stab/noise.stft.png",
+    "validation/review/industrial_stab/decay.stft.png",
+    "validation/review/industrial_stab/drive.stft.png",
+    "validation/review/industrial_stab/space.stft.png"
+  ],
+  "visual_review": {
+    "method": "Opened Mel and log-STFT atlas PNGs containing every original two-channel audition, default/control-extreme and stress view.",
+    "observation": "Intentional broadband strike and metallic partials decay rapidly; noise and clang vary the transient; long release on the early-off probe is visibly distinct.",
+    "images": [
+      {
+        "path": "validation/review/industrial_stab__mel.png",
+        "sha256": "82d146147cb923a0ed503bd26a8e8b91b2b94fddeccbfbd39e858ab938569841"
+      },
+      {
+        "path": "validation/review/industrial_stab__stft.png",
+        "sha256": "93f40ca1dea011e68de3afca8df31d3fcf08d27a18fbeaf9118bb47d0f7a89f6"
+      }
+    ]
+  }
+}

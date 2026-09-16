@@ -1,0 +1,527 @@
+{
+  "sourcePatchId": "f080a771-3e72-400d-a362-f430cd28445f",
+  "name": "EBM DW — FM Bass",
+  "description": "Metallic two-operator bass with a fast index envelope and a steady low body. Suggested MIDI 28–55. Velocity-sensitive; settings apply to new notes. Motion rates are Hz; echoes are fixed time. Route Stereo Output through the mixer to Master.",
+  "isTemplate": false,
+  "alwaysOn": false,
+  "instrumentType": "bass",
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "pitch_cpsmidi",
+        "opcode": "cpsmidi",
+        "params": {},
+        "position": {
+          "x": 40.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "velocity_scale_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 1.0
+        },
+        "position": {
+          "x": 40.0,
+          "y": 270.0
+        }
+      },
+      {
+        "id": "velocity_ampmidi",
+        "opcode": "ampmidi",
+        "params": {},
+        "position": {
+          "x": 350.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "env_decay_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.15
+        },
+        "position": {
+          "x": 40.0,
+          "y": 500.0
+        }
+      },
+      {
+        "id": "env_sustain_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.35
+        },
+        "position": {
+          "x": 40.0,
+          "y": 730.0
+        }
+      },
+      {
+        "id": "amp_madsr",
+        "opcode": "madsr",
+        "params": {},
+        "position": {
+          "x": 350.0,
+          "y": 270.0
+        }
+      },
+      {
+        "id": "amp_velocity_envelope",
+        "opcode": "k_mul",
+        "params": {},
+        "position": {
+          "x": 660.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "fm_gain",
+        "opcode": "const_k",
+        "params": {
+          "value": 0.25
+        },
+        "position": {
+          "x": 40.0,
+          "y": 960.0
+        }
+      },
+      {
+        "id": "fm_amp",
+        "opcode": "k_mul",
+        "params": {},
+        "position": {
+          "x": 970.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "fm_foscili",
+        "opcode": "foscili",
+        "params": {
+          "xcar": 1,
+          "ifn": 1
+        },
+        "position": {
+          "x": 1280.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "output_pan2",
+        "opcode": "pan2",
+        "params": {
+          "xp": 0.5,
+          "imode": 0
+        },
+        "position": {
+          "x": 2520.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "ctl_attack",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Attack (s)",
+          "min": 0.001,
+          "max": 0.5,
+          "default": 0.003,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": 40.0,
+          "y": 1190.0
+        }
+      },
+      {
+        "id": "ctl_release",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Release (s)",
+          "min": 0.02,
+          "max": 1.5,
+          "default": 0.06,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": 40.0,
+          "y": 1420.0
+        }
+      },
+      {
+        "id": "ctl_fm_depth",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "FM Depth",
+          "min": 0.05,
+          "max": 8,
+          "default": 2.8,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": 40.0,
+          "y": 1650.0
+        }
+      },
+      {
+        "id": "ctl_ratio",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Ratio",
+          "min": 0.5,
+          "max": 4,
+          "default": 2,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 40.0,
+          "y": 1880.0
+        }
+      },
+      {
+        "id": "ctl_fm_decay",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "FM Decay (s)",
+          "min": 0.02,
+          "max": 0.6,
+          "default": 0.09,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": 40.0,
+          "y": 2110.0
+        }
+      },
+      {
+        "id": "ctl_tone",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Tone (Hz)",
+          "min": 300,
+          "max": 9000,
+          "default": 4000,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": 40.0,
+          "y": 2340.0
+        }
+      },
+      {
+        "id": "ctl_drive",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Drive",
+          "min": 1,
+          "max": 6,
+          "default": 1.4,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": 40.0,
+          "y": 2570.0
+        }
+      },
+      {
+        "id": "fm_decay_envelope",
+        "opcode": "linseg",
+        "params": {
+          "ia": 1,
+          "ib": 0
+        },
+        "position": {
+          "x": 350.0,
+          "y": 500.0
+        }
+      },
+      {
+        "id": "voice_filter",
+        "opcode": "moogladder2",
+        "params": {
+          "xres": 0.18
+        },
+        "position": {
+          "x": 1590.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "saturation",
+        "opcode": "distort1",
+        "params": {
+          "kshape1": 0,
+          "kshape2": 0,
+          "imode": 1
+        },
+        "position": {
+          "x": 1900.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "dc_filter",
+        "opcode": "butterhp",
+        "params": {
+          "xfreq": 22
+        },
+        "position": {
+          "x": 2210.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "output_left",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 2830.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "output_right",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 2830.0,
+          "y": 270.0
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "velocity_scale_const",
+        "from_port_id": "iout",
+        "to_node_id": "velocity_ampmidi",
+        "to_port_id": "iscal"
+      },
+      {
+        "from_node_id": "env_decay_const",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "idec"
+      },
+      {
+        "from_node_id": "env_sustain_const",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "islev"
+      },
+      {
+        "from_node_id": "velocity_ampmidi",
+        "from_port_id": "iamp",
+        "to_node_id": "amp_velocity_envelope",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "amp_madsr",
+        "from_port_id": "kenv",
+        "to_node_id": "amp_velocity_envelope",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "fm_amp",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "fm_gain",
+        "from_port_id": "kout",
+        "to_node_id": "fm_amp",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "fm_amp",
+        "from_port_id": "kout",
+        "to_node_id": "fm_foscili",
+        "to_port_id": "xamp"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "fm_foscili",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "output_pan2",
+        "from_port_id": "aleft",
+        "to_node_id": "output_left",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "output_pan2",
+        "from_port_id": "aright",
+        "to_node_id": "output_right",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "ctl_attack",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "iatt"
+      },
+      {
+        "from_node_id": "ctl_release",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "irel"
+      },
+      {
+        "from_node_id": "ctl_fm_decay",
+        "from_port_id": "iout",
+        "to_node_id": "fm_decay_envelope",
+        "to_port_id": "idur1"
+      },
+      {
+        "from_node_id": "ctl_fm_depth",
+        "from_port_id": "iout",
+        "to_node_id": "fm_foscili",
+        "to_port_id": "kndx"
+      },
+      {
+        "from_node_id": "fm_decay_envelope",
+        "from_port_id": "kenv",
+        "to_node_id": "fm_foscili",
+        "to_port_id": "kndx"
+      },
+      {
+        "from_node_id": "ctl_ratio",
+        "from_port_id": "iout",
+        "to_node_id": "fm_foscili",
+        "to_port_id": "xmod"
+      },
+      {
+        "from_node_id": "fm_foscili",
+        "from_port_id": "asig",
+        "to_node_id": "voice_filter",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "ctl_tone",
+        "from_port_id": "iout",
+        "to_node_id": "voice_filter",
+        "to_port_id": "xcf"
+      },
+      {
+        "from_node_id": "voice_filter",
+        "from_port_id": "aout",
+        "to_node_id": "saturation",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "ctl_drive",
+        "from_port_id": "iout",
+        "to_node_id": "saturation",
+        "to_port_id": "kpregain"
+      },
+      {
+        "from_node_id": "ctl_drive",
+        "from_port_id": "iout",
+        "to_node_id": "saturation",
+        "to_port_id": "kpostgain"
+      },
+      {
+        "from_node_id": "saturation",
+        "from_port_id": "aout",
+        "to_node_id": "dc_filter",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "dc_filter",
+        "from_port_id": "aout",
+        "to_node_id": "output_pan2",
+        "to_port_id": "asig"
+      }
+    ],
+    "ui_layout": {
+      "audio_blocks": {
+        "main-output": true
+      },
+      "input_formulas": {
+        "fm_foscili::kndx": {
+          "expression": "depth * (.04 + .96 * sweep)",
+          "inputs": [
+            {
+              "token": "depth",
+              "from_node_id": "ctl_fm_depth",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "sweep",
+              "from_node_id": "fm_decay_envelope",
+              "from_port_id": "kenv"
+            }
+          ]
+        },
+        "saturation::kpregain": {
+          "expression": "drive * 3",
+          "inputs": [
+            {
+              "token": "drive",
+              "from_node_id": "ctl_drive",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "saturation::kpostgain": {
+          "expression": "1 / (1 + .55 * (drive - 1))",
+          "inputs": [
+            {
+              "token": "drive",
+              "from_node_id": "ctl_drive",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "output_pan2::asig": {
+          "expression": "audio * 0.6",
+          "inputs": [
+            {
+              "token": "audio",
+              "from_node_id": "dc_filter",
+              "from_port_id": "aout"
+            }
+          ]
+        }
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 750,
+      "ksmps": 64,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1.0
+    },
+    "audio_interface": {
+      "role": "instrument",
+      "groups": [
+        {
+          "id": "main-output",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainInput": null,
+      "mainOutput": "main-output",
+      "guided": true
+    },
+    "control_flow": {}
+  }
+}

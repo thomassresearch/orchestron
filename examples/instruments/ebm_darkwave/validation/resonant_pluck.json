@@ -1,0 +1,567 @@
+{
+  "name": "EBM DW — Resonant Pluck",
+  "graph_sha256": "3ca6dc1ff9abb6c8b76578240be3858069078c2a61778b5d4ef2d6e2138b6fae",
+  "sample_rate": 48000,
+  "channels": 2,
+  "format": "32-bit float WAV",
+  "velocity_rms_40_80_120": [
+    0.002577934620429737,
+    0.005155869240859474,
+    0.007733803867631939
+  ],
+  "velocity_response": true,
+  "default_headroom_6db": true,
+  "results": {
+    "audition": {
+      "file": "auditions/resonant_pluck.wav",
+      "peak": 0.08134584128856659,
+      "peak_dbfs": -21.793292899187584,
+      "rms": [
+        0.005820358583951178,
+        0.0058714086744583996
+      ],
+      "dc": [
+        1.543317096242924e-13,
+        -9.117498755867633e-15
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.9872127691806752,
+      "duration": 18.149333333333335,
+      "finite": true,
+      "overrides": {},
+      "passed": true,
+      "spectrograms": [
+        "validation/spectrograms/resonant_pluck/resonant_pluck.mel.png",
+        "validation/spectrograms/resonant_pluck/resonant_pluck.stft.png"
+      ]
+    },
+    "velocity_40": {
+      "file": "validation/renders/resonant_pluck/resonant_pluck__velocity_40.wav",
+      "peak": 0.025273824110627174,
+      "peak_dbfs": -31.946580824844673,
+      "rms": [
+        0.0006953022341364653,
+        0.0006953022387791683
+      ],
+      "dc": [
+        -2.347595670700783e-14,
+        -2.2345232602933352e-14
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.984045016098996,
+      "duration": 13.750666666666667,
+      "finite": true,
+      "overrides": {},
+      "passed": true
+    },
+    "velocity_80": {
+      "file": "validation/renders/resonant_pluck/resonant_pluck__velocity_80.wav",
+      "peak": 0.05054764822125435,
+      "peak_dbfs": -25.92598091156505,
+      "rms": [
+        0.0013906044682729306,
+        0.0013906044775583366
+      ],
+      "dc": [
+        -4.695191341401566e-14,
+        -4.4690465205866703e-14
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.9840449227930056,
+      "duration": 13.750666666666667,
+      "finite": true,
+      "overrides": {},
+      "passed": true
+    },
+    "velocity_120": {
+      "file": "validation/renders/resonant_pluck/resonant_pluck__velocity_120.wav",
+      "peak": 0.07582147419452667,
+      "peak_dbfs": -22.40415551707216,
+      "rms": [
+        0.0020859067041272272,
+        0.00208590671804063
+      ],
+      "dc": [
+        1.49928862876236e-13,
+        1.3592085384929566e-13
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.9840449115524116,
+      "duration": 13.750666666666667,
+      "finite": true,
+      "overrides": {},
+      "passed": true
+    },
+    "probe_default": {
+      "file": "validation/renders/resonant_pluck/resonant_pluck__probe_default.wav",
+      "peak": 0.06318455934524536,
+      "peak_dbfs": -23.987780779431485,
+      "rms": [
+        0.002009320809786067,
+        0.0020093210524579886
+      ],
+      "dc": [
+        -1.91037464048586e-14,
+        -1.3088844072729106e-14
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.9840594735242965,
+      "duration": 20.750666666666667,
+      "finite": true,
+      "overrides": {},
+      "passed": true,
+      "spectrograms": [
+        "validation/spectrograms/resonant_pluck/resonant_pluck__probe_default.mel.png",
+        "validation/spectrograms/resonant_pluck/resonant_pluck__probe_default.stft.png"
+      ]
+    },
+    "attack_min": {
+      "file": "validation/renders/resonant_pluck/resonant_pluck__attack_min.wav",
+      "peak": 0.06314647942781448,
+      "peak_dbfs": -23.993017148473662,
+      "rms": [
+        0.002000927354137244,
+        0.0020009279014332596
+      ],
+      "dc": [
+        -3.747066042814192e-15,
+        -9.587411943789807e-16
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.984057492499482,
+      "duration": 20.750666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_attack": 0.001
+      },
+      "passed": true,
+      "difference_rms": 9.761522392742697e-05,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/resonant_pluck/resonant_pluck__attack_min.mel.png",
+        "validation/spectrograms/resonant_pluck/resonant_pluck__attack_min.stft.png"
+      ]
+    },
+    "attack_max": {
+      "file": "validation/renders/resonant_pluck/resonant_pluck__attack_max.wav",
+      "peak": 0.03224755823612213,
+      "peak_dbfs": -29.830063285520218,
+      "rms": [
+        0.0017306650574183751,
+        0.0017192492699429662
+      ],
+      "dc": [
+        -3.180383467557462e-14,
+        -2.8337506961668368e-14
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.9856932612203283,
+      "duration": 20.750666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_attack": 0.5
+      },
+      "passed": true,
+      "difference_rms": 0.002320827636233432,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/resonant_pluck/resonant_pluck__attack_max.mel.png",
+        "validation/spectrograms/resonant_pluck/resonant_pluck__attack_max.stft.png"
+      ]
+    },
+    "release_min": {
+      "file": "validation/renders/resonant_pluck/resonant_pluck__release_min.wav",
+      "peak": 0.06318455934524536,
+      "peak_dbfs": -23.987780779431485,
+      "rms": [
+        0.0019396444219833401,
+        0.0019396444288710287
+      ],
+      "dc": [
+        -2.567743548378577e-14,
+        -2.4146808830635792e-14
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.9845858964072072,
+      "duration": 20.750666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_release": 0.02
+      },
+      "passed": true,
+      "difference_rms": 0.00048785026552154666,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/resonant_pluck/resonant_pluck__release_min.mel.png",
+        "validation/spectrograms/resonant_pluck/resonant_pluck__release_min.stft.png"
+      ]
+    },
+    "release_max": {
+      "file": "validation/renders/resonant_pluck/resonant_pluck__release_max.wav",
+      "peak": 0.06331363320350647,
+      "peak_dbfs": -23.97005528226023,
+      "rms": [
+        0.002461550756161195,
+        0.002477439592057121
+      ],
+      "dc": [
+        -3.1166415964054884e-15,
+        -9.899402399512908e-14
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.9858068914100228,
+      "duration": 20.750666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_release": 1.5
+      },
+      "passed": true,
+      "difference_rms": 0.001371467802475981,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/resonant_pluck/resonant_pluck__release_max.mel.png",
+        "validation/spectrograms/resonant_pluck/resonant_pluck__release_max.stft.png"
+      ]
+    },
+    "tone_min": {
+      "file": "validation/renders/resonant_pluck/resonant_pluck__tone_min.wav",
+      "peak": 0.06320067495107651,
+      "peak_dbfs": -23.98556567297165,
+      "rms": [
+        0.002038446000817585,
+        0.0020384486424978292
+      ],
+      "dc": [
+        7.883342170099148e-14,
+        6.828916444579588e-14
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.9837213703570628,
+      "duration": 20.750666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_tone": 200
+      },
+      "passed": true,
+      "difference_rms": 0.0005553002249770435,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/resonant_pluck/resonant_pluck__tone_min.mel.png",
+        "validation/spectrograms/resonant_pluck/resonant_pluck__tone_min.stft.png"
+      ]
+    },
+    "tone_max": {
+      "file": "validation/renders/resonant_pluck/resonant_pluck__tone_max.wav",
+      "peak": 0.05918201059103012,
+      "peak_dbfs": -24.55620569268069,
+      "rms": [
+        0.0018761036657553786,
+        0.001876103649631382
+      ],
+      "dc": [
+        -6.295635742934219e-14,
+        -6.80878772954034e-14
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.9842282363945919,
+      "duration": 20.750666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_tone": 5000
+      },
+      "passed": true,
+      "difference_rms": 0.0007637428642635351,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/resonant_pluck/resonant_pluck__tone_max.mel.png",
+        "validation/spectrograms/resonant_pluck/resonant_pluck__tone_max.stft.png"
+      ]
+    },
+    "resonance_min": {
+      "file": "validation/renders/resonant_pluck/resonant_pluck__resonance_min.wav",
+      "peak": 0.10177116841077805,
+      "peak_dbfs": -19.847504788429447,
+      "rms": [
+        0.005785267641039395,
+        0.005785267585803905
+      ],
+      "dc": [
+        3.068033022433081e-13,
+        3.0859180070838334e-13
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.9831937888583677,
+      "duration": 20.750666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_resonance": 0
+      },
+      "passed": true,
+      "difference_rms": 0.0040176236898060115,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/resonant_pluck/resonant_pluck__resonance_min.mel.png",
+        "validation/spectrograms/resonant_pluck/resonant_pluck__resonance_min.stft.png"
+      ]
+    },
+    "resonance_max": {
+      "file": "validation/renders/resonant_pluck/resonant_pluck__resonance_max.wav",
+      "peak": 0.05163068696856499,
+      "peak_dbfs": -25.741841928777728,
+      "rms": [
+        0.0015188291130262207,
+        0.0015188200239848186
+      ],
+      "dc": [
+        3.8601633633378545e-14,
+        3.9673140165014043e-14
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.9861395242568076,
+      "duration": 20.750666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_resonance": 0.82
+      },
+      "passed": true,
+      "difference_rms": 0.000940436235970711,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/resonant_pluck/resonant_pluck__resonance_max.mel.png",
+        "validation/spectrograms/resonant_pluck/resonant_pluck__resonance_max.stft.png"
+      ]
+    },
+    "filter_envelope_min": {
+      "file": "validation/renders/resonant_pluck/resonant_pluck__filter_envelope_min.wav",
+      "peak": 0.060172416269779205,
+      "peak_dbfs": -24.412050974566938,
+      "rms": [
+        0.002386628605512622,
+        0.0023866286160394486
+      ],
+      "dc": [
+        1.308910632670767e-13,
+        1.0584202199240574e-13
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.9836960995899613,
+      "duration": 20.750666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_filter_envelope": 0
+      },
+      "passed": true,
+      "difference_rms": 0.0018552004165896423,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/resonant_pluck/resonant_pluck__filter_envelope_min.mel.png",
+        "validation/spectrograms/resonant_pluck/resonant_pluck__filter_envelope_min.stft.png"
+      ]
+    },
+    "filter_envelope_max": {
+      "file": "validation/renders/resonant_pluck/resonant_pluck__filter_envelope_max.wav",
+      "peak": 0.05962032452225685,
+      "peak_dbfs": -24.492113287355302,
+      "rms": [
+        0.0018984244641981687,
+        0.0018984246979109548
+      ],
+      "dc": [
+        4.463494062281094e-14,
+        4.569600205052263e-14
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.9841160938290805,
+      "duration": 20.750666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_filter_envelope": 8000
+      },
+      "passed": true,
+      "difference_rms": 0.0007334194407984935,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/resonant_pluck/resonant_pluck__filter_envelope_max.mel.png",
+        "validation/spectrograms/resonant_pluck/resonant_pluck__filter_envelope_max.stft.png"
+      ]
+    },
+    "decay_min": {
+      "file": "validation/renders/resonant_pluck/resonant_pluck__decay_min.wav",
+      "peak": 0.06282752752304077,
+      "peak_dbfs": -24.037000618263818,
+      "rms": [
+        0.0008910591195086725,
+        0.0008910591195086725
+      ],
+      "dc": [
+        1.560972719933903e-14,
+        1.560813025928072e-14
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.987654525105457,
+      "duration": 20.750666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_decay": 0.04
+      },
+      "passed": true,
+      "difference_rms": 0.0016793079300644997,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/resonant_pluck/resonant_pluck__decay_min.mel.png",
+        "validation/spectrograms/resonant_pluck/resonant_pluck__decay_min.stft.png"
+      ]
+    },
+    "decay_max": {
+      "file": "validation/renders/resonant_pluck/resonant_pluck__decay_max.wav",
+      "peak": 0.06322167813777924,
+      "peak_dbfs": -23.982679611148427,
+      "rms": [
+        0.0032753813184002167,
+        0.0032965883551499923
+      ],
+      "dc": [
+        7.123133036007646e-14,
+        7.902690758989787e-14
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.985742753018412,
+      "duration": 20.750666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_decay": 1.5
+      },
+      "passed": true,
+      "difference_rms": 0.0022173581997014234,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/resonant_pluck/resonant_pluck__decay_max.mel.png",
+        "validation/spectrograms/resonant_pluck/resonant_pluck__decay_max.stft.png"
+      ]
+    },
+    "echo_min": {
+      "file": "validation/renders/resonant_pluck/resonant_pluck__echo_min.wav",
+      "peak": 0.06318455934524536,
+      "peak_dbfs": -23.987780779431485,
+      "rms": [
+        0.0019967212744503495,
+        0.0019967212744503495
+      ],
+      "dc": [
+        -3.0457199202182415e-14,
+        -3.0457199202182415e-14
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 1.0,
+      "duration": 20.750666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_echo": 0
+      },
+      "passed": true,
+      "difference_rms": 0.00022466690417522056,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/resonant_pluck/resonant_pluck__echo_min.mel.png",
+        "validation/spectrograms/resonant_pluck/resonant_pluck__echo_min.stft.png"
+      ]
+    },
+    "echo_max": {
+      "file": "validation/renders/resonant_pluck/resonant_pluck__echo_max.wav",
+      "peak": 0.06318455934524536,
+      "peak_dbfs": -23.987780779431485,
+      "rms": [
+        0.0021459761685098744,
+        0.0021459770703014342
+      ],
+      "dc": [
+        -1.7853270190343527e-14,
+        -2.2141522318633495e-14
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.8288063563827455,
+      "duration": 20.750666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_echo": 0.7
+      },
+      "passed": true,
+      "difference_rms": 0.0005616672602832066,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/resonant_pluck/resonant_pluck__echo_max.mel.png",
+        "validation/spectrograms/resonant_pluck/resonant_pluck__echo_max.stft.png"
+      ]
+    },
+    "stress": {
+      "file": "validation/renders/resonant_pluck/resonant_pluck__stress.wav",
+      "peak": 0.15706786513328552,
+      "peak_dbfs": -16.07825318307547,
+      "rms": [
+        0.0034853995729107376,
+        0.003485399662686998
+      ],
+      "dc": [
+        -6.266804680314812e-14,
+        -6.569787506012428e-14
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.8676795668135705,
+      "duration": 21.5,
+      "finite": true,
+      "overrides": {
+        "ctl_release": 1.5,
+        "ctl_resonance": 0.82,
+        "ctl_filter_envelope": 8000,
+        "ctl_echo": 0.7
+      },
+      "passed": true,
+      "spectrograms": [
+        "validation/spectrograms/resonant_pluck/resonant_pluck__stress.mel.png",
+        "validation/spectrograms/resonant_pluck/resonant_pluck__stress.stft.png"
+      ]
+    }
+  },
+  "spectrograms_inspected": true,
+  "listened": false,
+  "passed": true,
+  "spectrogram_settings": {
+    "n_fft": 4096,
+    "hop_length": 512,
+    "n_mels": 128,
+    "fmin": 20,
+    "fmax": 24000,
+    "vmin": -100,
+    "vmax": 0
+  },
+  "review_sheets": [
+    "validation/review/resonant_pluck/attack.mel.png",
+    "validation/review/resonant_pluck/release.mel.png",
+    "validation/review/resonant_pluck/tone.mel.png",
+    "validation/review/resonant_pluck/resonance.mel.png",
+    "validation/review/resonant_pluck/filter_envelope.mel.png",
+    "validation/review/resonant_pluck/decay.mel.png",
+    "validation/review/resonant_pluck/echo.mel.png",
+    "validation/review/resonant_pluck/attack.stft.png",
+    "validation/review/resonant_pluck/release.stft.png",
+    "validation/review/resonant_pluck/tone.stft.png",
+    "validation/review/resonant_pluck/resonance.stft.png",
+    "validation/review/resonant_pluck/filter_envelope.stft.png",
+    "validation/review/resonant_pluck/decay.stft.png",
+    "validation/review/resonant_pluck/echo.stft.png"
+  ],
+  "visual_review": {
+    "method": "Opened Mel and log-STFT atlas PNGs containing every original two-channel audition, default/control-extreme and stress view.",
+    "observation": "Brief resonant filter sweep and discrete delayed repetitions; longer decay/release retains partials for longer; all tails finish without residual oscillation.",
+    "images": [
+      {
+        "path": "validation/review/resonant_pluck__mel.png",
+        "sha256": "7da001718830fdad81c937b490a14e6b02ef81ca50d0e4b98dddb85a790a5f2d"
+      },
+      {
+        "path": "validation/review/resonant_pluck__stft.png",
+        "sha256": "bf08474194db9dd5122e2dafb5a75878a6cb82df4959201429342d3ce894fd35"
+      }
+    ]
+  }
+}

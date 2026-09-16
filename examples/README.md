@@ -13,6 +13,11 @@ The [Goa / Psy Explorations pack](instruments/goa_psy_explorations/README.md) ad
 six more instruments with built-in echoes and reverb: acid lead, FM bleeps,
 vowel talker, laser zaps, stepped bubbles, and a rising noise/FM effect.
 
+The [EBM / Dark Wave pack](instruments/ebm_darkwave/README.md) adds thirteen
+instruments with per-instance controls: leads, strings, pads, brass, three basses,
+plucks, a glass bell, a synthetic choir, industrial stabs, and noise/metal effects.
+It includes native exports, WAV auditions, reproducible source specs, and validation results.
+
 ## Import an instrument (Instrument Design -> Import)
 
 1. Open the **Instrument Design** tab.

@@ -1,0 +1,642 @@
+{
+  "sourcePatchId": "d6a771a3-056b-4a69-9ddc-0abaed75603b",
+  "name": "EBM DW — Sequencer Bass",
+  "description": "Lean dry pulse/saw bass for short external sixteenth-note sequences. Velocity changes filter brightness; no built-in sequencer. Suggested MIDI 28–60. Velocity-sensitive; settings apply to new notes. Motion rates are Hz; echoes are fixed time. Route Stereo Output through the mixer to Master.",
+  "isTemplate": false,
+  "alwaysOn": false,
+  "instrumentType": "bass",
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "pitch_cpsmidi",
+        "opcode": "cpsmidi",
+        "params": {},
+        "position": {
+          "x": 40.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "velocity_scale_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 1.0
+        },
+        "position": {
+          "x": 40.0,
+          "y": 270.0
+        }
+      },
+      {
+        "id": "velocity_ampmidi",
+        "opcode": "ampmidi",
+        "params": {},
+        "position": {
+          "x": 350.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "env_sustain_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.08
+        },
+        "position": {
+          "x": 40.0,
+          "y": 500.0
+        }
+      },
+      {
+        "id": "amp_madsr",
+        "opcode": "madsr",
+        "params": {},
+        "position": {
+          "x": 350.0,
+          "y": 270.0
+        }
+      },
+      {
+        "id": "amp_velocity_envelope",
+        "opcode": "k_mul",
+        "params": {},
+        "position": {
+          "x": 660.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "pulse_gain",
+        "opcode": "const_k",
+        "params": {
+          "value": 0.15
+        },
+        "position": {
+          "x": 40.0,
+          "y": 730.0
+        }
+      },
+      {
+        "id": "pulse_amp",
+        "opcode": "k_mul",
+        "params": {},
+        "position": {
+          "x": 970.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "pulse_vco2",
+        "opcode": "vco2",
+        "params": {
+          "imode": 2
+        },
+        "position": {
+          "x": 1280.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "saw_a_gain",
+        "opcode": "const_k",
+        "params": {
+          "value": 0.09
+        },
+        "position": {
+          "x": 40.0,
+          "y": 960.0
+        }
+      },
+      {
+        "id": "saw_a_amp",
+        "opcode": "k_mul",
+        "params": {},
+        "position": {
+          "x": 970.0,
+          "y": 270.0
+        }
+      },
+      {
+        "id": "saw_a_vco2",
+        "opcode": "vco2",
+        "params": {
+          "imode": 0
+        },
+        "position": {
+          "x": 1280.0,
+          "y": 270.0
+        }
+      },
+      {
+        "id": "output_pan2",
+        "opcode": "pan2",
+        "params": {
+          "xp": 0.5,
+          "imode": 0
+        },
+        "position": {
+          "x": 2830.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "ctl_attack",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Attack (s)",
+          "min": 0.001,
+          "max": 0.5,
+          "default": 0.003,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": 40.0,
+          "y": 1190.0
+        }
+      },
+      {
+        "id": "ctl_release",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Release (s)",
+          "min": 0.02,
+          "max": 1.5,
+          "default": 0.06,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": 40.0,
+          "y": 1420.0
+        }
+      },
+      {
+        "id": "ctl_tone",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Tone (Hz)",
+          "min": 120,
+          "max": 3500,
+          "default": 650,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": 40.0,
+          "y": 1650.0
+        }
+      },
+      {
+        "id": "ctl_resonance",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Resonance",
+          "min": 0,
+          "max": 0.75,
+          "default": 0.2,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 40.0,
+          "y": 1880.0
+        }
+      },
+      {
+        "id": "ctl_decay",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Decay (s)",
+          "min": 0.03,
+          "max": 0.4,
+          "default": 0.11,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": 40.0,
+          "y": 2110.0
+        }
+      },
+      {
+        "id": "ctl_accent",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Accent",
+          "min": 0,
+          "max": 1,
+          "default": 0.65,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 40.0,
+          "y": 2340.0
+        }
+      },
+      {
+        "id": "ctl_drive",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Drive",
+          "min": 1,
+          "max": 6,
+          "default": 1.3,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": 40.0,
+          "y": 2570.0
+        }
+      },
+      {
+        "id": "source_sum",
+        "opcode": "mix2",
+        "params": {
+          "b": 0
+        },
+        "position": {
+          "x": 1590.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "voice_filter",
+        "opcode": "moogladder2",
+        "params": {},
+        "position": {
+          "x": 1900.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "filter_decay_envelope",
+        "opcode": "linseg",
+        "params": {
+          "ia": 1,
+          "ib": 0
+        },
+        "position": {
+          "x": 350.0,
+          "y": 500.0
+        }
+      },
+      {
+        "id": "saturation",
+        "opcode": "distort1",
+        "params": {
+          "kshape1": 0,
+          "kshape2": 0,
+          "imode": 1
+        },
+        "position": {
+          "x": 2210.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "dc_filter",
+        "opcode": "butterhp",
+        "params": {
+          "xfreq": 22
+        },
+        "position": {
+          "x": 2520.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "output_left",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 3140.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "output_right",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 3140.0,
+          "y": 270.0
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "velocity_scale_const",
+        "from_port_id": "iout",
+        "to_node_id": "velocity_ampmidi",
+        "to_port_id": "iscal"
+      },
+      {
+        "from_node_id": "env_sustain_const",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "islev"
+      },
+      {
+        "from_node_id": "velocity_ampmidi",
+        "from_port_id": "iamp",
+        "to_node_id": "amp_velocity_envelope",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "amp_madsr",
+        "from_port_id": "kenv",
+        "to_node_id": "amp_velocity_envelope",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "pulse_amp",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "pulse_gain",
+        "from_port_id": "kout",
+        "to_node_id": "pulse_amp",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "pulse_amp",
+        "from_port_id": "kout",
+        "to_node_id": "pulse_vco2",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "saw_a_amp",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "saw_a_gain",
+        "from_port_id": "kout",
+        "to_node_id": "saw_a_amp",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "saw_a_amp",
+        "from_port_id": "kout",
+        "to_node_id": "saw_a_vco2",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "output_pan2",
+        "from_port_id": "aleft",
+        "to_node_id": "output_left",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "output_pan2",
+        "from_port_id": "aright",
+        "to_node_id": "output_right",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "ctl_attack",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "iatt"
+      },
+      {
+        "from_node_id": "ctl_release",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "irel"
+      },
+      {
+        "from_node_id": "ctl_decay",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "idec"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "pulse_vco2",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "saw_a_vco2",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "pulse_vco2",
+        "from_port_id": "asig",
+        "to_node_id": "source_sum",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "saw_a_vco2",
+        "from_port_id": "asig",
+        "to_node_id": "source_sum",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "source_sum",
+        "from_port_id": "aout",
+        "to_node_id": "voice_filter",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "ctl_resonance",
+        "from_port_id": "iout",
+        "to_node_id": "voice_filter",
+        "to_port_id": "xres"
+      },
+      {
+        "from_node_id": "ctl_decay",
+        "from_port_id": "iout",
+        "to_node_id": "filter_decay_envelope",
+        "to_port_id": "idur1"
+      },
+      {
+        "from_node_id": "ctl_tone",
+        "from_port_id": "iout",
+        "to_node_id": "voice_filter",
+        "to_port_id": "xcf"
+      },
+      {
+        "from_node_id": "filter_decay_envelope",
+        "from_port_id": "kenv",
+        "to_node_id": "voice_filter",
+        "to_port_id": "xcf"
+      },
+      {
+        "from_node_id": "velocity_ampmidi",
+        "from_port_id": "iamp",
+        "to_node_id": "voice_filter",
+        "to_port_id": "xcf"
+      },
+      {
+        "from_node_id": "ctl_accent",
+        "from_port_id": "iout",
+        "to_node_id": "voice_filter",
+        "to_port_id": "xcf"
+      },
+      {
+        "from_node_id": "voice_filter",
+        "from_port_id": "aout",
+        "to_node_id": "saturation",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "ctl_drive",
+        "from_port_id": "iout",
+        "to_node_id": "saturation",
+        "to_port_id": "kpregain"
+      },
+      {
+        "from_node_id": "ctl_drive",
+        "from_port_id": "iout",
+        "to_node_id": "saturation",
+        "to_port_id": "kpostgain"
+      },
+      {
+        "from_node_id": "saturation",
+        "from_port_id": "aout",
+        "to_node_id": "dc_filter",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "dc_filter",
+        "from_port_id": "aout",
+        "to_node_id": "output_pan2",
+        "to_port_id": "asig"
+      }
+    ],
+    "ui_layout": {
+      "audio_blocks": {
+        "main-output": true
+      },
+      "input_formulas": {
+        "pulse_vco2::kcps": {
+          "expression": "pitch",
+          "inputs": [
+            {
+              "token": "pitch",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "saw_a_vco2::kcps": {
+          "expression": "pitch * 0.9965",
+          "inputs": [
+            {
+              "token": "pitch",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "source_sum::a": {
+          "expression": "s0 + s1",
+          "inputs": [
+            {
+              "token": "s0",
+              "from_node_id": "pulse_vco2",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "s1",
+              "from_node_id": "saw_a_vco2",
+              "from_port_id": "asig"
+            }
+          ]
+        },
+        "voice_filter::xcf": {
+          "expression": "tone + 2600 * sweep * (.2 + .8 * velocity * accent)",
+          "inputs": [
+            {
+              "token": "tone",
+              "from_node_id": "ctl_tone",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "sweep",
+              "from_node_id": "filter_decay_envelope",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "velocity",
+              "from_node_id": "velocity_ampmidi",
+              "from_port_id": "iamp"
+            },
+            {
+              "token": "accent",
+              "from_node_id": "ctl_accent",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "saturation::kpregain": {
+          "expression": "drive * 3",
+          "inputs": [
+            {
+              "token": "drive",
+              "from_node_id": "ctl_drive",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "saturation::kpostgain": {
+          "expression": "1 / (1 + .55 * (drive - 1))",
+          "inputs": [
+            {
+              "token": "drive",
+              "from_node_id": "ctl_drive",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "output_pan2::asig": {
+          "expression": "audio * 0.58",
+          "inputs": [
+            {
+              "token": "audio",
+              "from_node_id": "dc_filter",
+              "from_port_id": "aout"
+            }
+          ]
+        }
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 750,
+      "ksmps": 64,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1.0
+    },
+    "audio_interface": {
+      "role": "instrument",
+      "groups": [
+        {
+          "id": "main-output",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainInput": null,
+      "mainOutput": "main-output",
+      "guided": true
+    },
+    "control_flow": {}
+  }
+}

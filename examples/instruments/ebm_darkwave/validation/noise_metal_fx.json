@@ -1,0 +1,565 @@
+{
+  "name": "EBM DW — Noise Metal FX",
+  "graph_sha256": "93feaac59242ace296b01611c2668b8b64ffa280db6871aa585f53ff7e03dc45",
+  "sample_rate": 48000,
+  "channels": 2,
+  "format": "32-bit float WAV",
+  "velocity_rms_40_80_120": [
+    0.00518113440064794,
+    0.01036226880129588,
+    0.015543403200617775
+  ],
+  "velocity_response": true,
+  "default_headroom_6db": true,
+  "results": {
+    "audition": {
+      "file": "auditions/noise_metal_fx.wav",
+      "peak": 0.12910836935043335,
+      "peak_dbfs": -17.780912080326523,
+      "rms": [
+        0.011468730577411391,
+        0.013519971927052803
+      ],
+      "dc": [
+        6.594036171479715e-14,
+        -8.916632129449661e-14
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.12741336162595082,
+      "duration": 41.0,
+      "finite": true,
+      "overrides": {},
+      "passed": true,
+      "spectrograms": [
+        "validation/spectrograms/noise_metal_fx/noise_metal_fx.mel.png",
+        "validation/spectrograms/noise_metal_fx/noise_metal_fx.stft.png"
+      ]
+    },
+    "velocity_40": {
+      "file": "validation/renders/noise_metal_fx/noise_metal_fx__velocity_40.wav",
+      "peak": 0.021113354712724686,
+      "peak_dbfs": -33.508855118335646,
+      "rms": [
+        0.002467032328538555,
+        0.0025778780857716585
+      ],
+      "dc": [
+        -5.798117373096843e-15,
+        1.0141866835201092e-14
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.11467765819561498,
+      "duration": 26.250666666666667,
+      "finite": true,
+      "overrides": {},
+      "passed": true
+    },
+    "velocity_80": {
+      "file": "validation/renders/noise_metal_fx/noise_metal_fx__velocity_80.wav",
+      "peak": 0.04222670942544937,
+      "peak_dbfs": -27.488255205056017,
+      "rms": [
+        0.00493406465707711,
+        0.005155756171543317
+      ],
+      "dc": [
+        -1.1596234746193686e-14,
+        2.0283733670402185e-14
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.11467765624297552,
+      "duration": 26.250666666666667,
+      "finite": true,
+      "overrides": {},
+      "passed": true
+    },
+    "velocity_120": {
+      "file": "validation/renders/noise_metal_fx/noise_metal_fx__velocity_120.wav",
+      "peak": 0.06334006041288376,
+      "peak_dbfs": -23.966430534795386,
+      "rms": [
+        0.007401096983881066,
+        0.007733634258110072
+      ],
+      "dc": [
+        -7.102682761497217e-14,
+        -5.378498719492675e-14
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.11467765503166188,
+      "duration": 26.250666666666667,
+      "finite": true,
+      "overrides": {},
+      "passed": true
+    },
+    "probe_default": {
+      "file": "validation/renders/noise_metal_fx/noise_metal_fx__probe_default.wav",
+      "peak": 0.052783384919166565,
+      "peak_dbfs": -25.550055251406683,
+      "rms": [
+        0.006513517647278679,
+        0.006832865307904736
+      ],
+      "dc": [
+        -2.9836998612796434e-14,
+        3.4662545550555836e-14
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.0930490287976209,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {},
+      "passed": true,
+      "spectrograms": [
+        "validation/spectrograms/noise_metal_fx/noise_metal_fx__probe_default.mel.png",
+        "validation/spectrograms/noise_metal_fx/noise_metal_fx__probe_default.stft.png"
+      ]
+    },
+    "attack_min": {
+      "file": "validation/renders/noise_metal_fx/noise_metal_fx__attack_min.wav",
+      "peak": 0.052897460758686066,
+      "peak_dbfs": -25.53130349878922,
+      "rms": [
+        0.006629574699387201,
+        0.006928840529358414
+      ],
+      "dc": [
+        1.9163691925600297e-13,
+        -9.116757559116512e-15
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.07250695253520713,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_attack": 0.001
+      },
+      "passed": true,
+      "difference_rms": 0.0016556924256359588,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/noise_metal_fx/noise_metal_fx__attack_min.mel.png",
+        "validation/spectrograms/noise_metal_fx/noise_metal_fx__attack_min.stft.png"
+      ]
+    },
+    "attack_max": {
+      "file": "validation/renders/noise_metal_fx/noise_metal_fx__attack_max.wav",
+      "peak": 0.0436045341193676,
+      "peak_dbfs": -27.209366984977066,
+      "rms": [
+        0.005975725040711821,
+        0.006300860474309283
+      ],
+      "dc": [
+        6.609306228958635e-14,
+        -2.0389703924526236e-13
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": -0.07793228341675879,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_attack": 4
+      },
+      "passed": true,
+      "difference_rms": 0.0026465477914773363,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/noise_metal_fx/noise_metal_fx__attack_max.mel.png",
+        "validation/spectrograms/noise_metal_fx/noise_metal_fx__attack_max.stft.png"
+      ]
+    },
+    "release_min": {
+      "file": "validation/renders/noise_metal_fx/noise_metal_fx__release_min.wav",
+      "peak": 0.052783384919166565,
+      "peak_dbfs": -25.550055251406683,
+      "rms": [
+        0.006061888580304127,
+        0.006329920146861446
+      ],
+      "dc": [
+        -9.038984612888524e-14,
+        -4.436496199139267e-14
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.10847431128412652,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_release": 0.02
+      },
+      "passed": true,
+      "difference_rms": 0.0024433087391292295,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/noise_metal_fx/noise_metal_fx__release_min.mel.png",
+        "validation/spectrograms/noise_metal_fx/noise_metal_fx__release_min.stft.png"
+      ]
+    },
+    "release_max": {
+      "file": "validation/renders/noise_metal_fx/noise_metal_fx__release_max.wav",
+      "peak": 0.052783384919166565,
+      "peak_dbfs": -25.550055251406683,
+      "rms": [
+        0.007239460572156606,
+        0.007577686571072409
+      ],
+      "dc": [
+        -8.37420250141692e-15,
+        4.371479451649911e-14
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.11663494598412776,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_release": 8
+      },
+      "passed": true,
+      "difference_rms": 0.002527200534337982,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/noise_metal_fx/noise_metal_fx__release_max.mel.png",
+        "validation/spectrograms/noise_metal_fx/noise_metal_fx__release_max.stft.png"
+      ]
+    },
+    "metal_blend_min": {
+      "file": "validation/renders/noise_metal_fx/noise_metal_fx__metal_blend_min.wav",
+      "peak": 0.0311121828854084,
+      "peak_dbfs": -30.141390339169863,
+      "rms": [
+        0.002883007376788565,
+        0.0028117244857141384
+      ],
+      "dc": [
+        -1.69574766574709e-15,
+        2.861355655018296e-14
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.2776699871907335,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_metal_blend": 0
+      },
+      "passed": true,
+      "difference_rms": 0.006561783753496643,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/noise_metal_fx/noise_metal_fx__metal_blend_min.mel.png",
+        "validation/spectrograms/noise_metal_fx/noise_metal_fx__metal_blend_min.stft.png"
+      ]
+    },
+    "metal_blend_max": {
+      "file": "validation/renders/noise_metal_fx/noise_metal_fx__metal_blend_max.wav",
+      "peak": 0.10287296026945114,
+      "peak_dbfs": -19.753975254792305,
+      "rms": [
+        0.01570518111120374,
+        0.01657508502293769
+      ],
+      "dc": [
+        4.817829925470569e-13,
+        1.0819184485630397e-14
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.07580450750666516,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_metal_blend": 1
+      },
+      "passed": true,
+      "difference_rms": 0.009842675631413746,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/noise_metal_fx/noise_metal_fx__metal_blend_max.mel.png",
+        "validation/spectrograms/noise_metal_fx/noise_metal_fx__metal_blend_max.stft.png"
+      ]
+    },
+    "color_min": {
+      "file": "validation/renders/noise_metal_fx/noise_metal_fx__color_min.wav",
+      "peak": 0.010884118266403675,
+      "peak_dbfs": -39.26413495679551,
+      "rms": [
+        0.001218511998598879,
+        0.0012572368713131441
+      ],
+      "dc": [
+        2.6992597575856804e-14,
+        -5.395857724590689e-14
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.4729897293672356,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_color": 200
+      },
+      "passed": true,
+      "difference_rms": 0.007161684446940918,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/noise_metal_fx/noise_metal_fx__color_min.mel.png",
+        "validation/spectrograms/noise_metal_fx/noise_metal_fx__color_min.stft.png"
+      ]
+    },
+    "color_max": {
+      "file": "validation/renders/noise_metal_fx/noise_metal_fx__color_max.wav",
+      "peak": 0.06125161796808243,
+      "peak_dbfs": -24.25764869752839,
+      "rms": [
+        0.0073893995547580455,
+        0.007119986097492712
+      ],
+      "dc": [
+        5.543437226077831e-14,
+        -2.1734806208524965e-13
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.18757164933798823,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_color": 7000
+      },
+      "passed": true,
+      "difference_rms": 0.008395433503553379,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/noise_metal_fx/noise_metal_fx__color_max.mel.png",
+        "validation/spectrograms/noise_metal_fx/noise_metal_fx__color_max.stft.png"
+      ]
+    },
+    "sweep_depth_min": {
+      "file": "validation/renders/noise_metal_fx/noise_metal_fx__sweep_depth_min.wav",
+      "peak": 0.0475616455078125,
+      "peak_dbfs": -26.454862566937187,
+      "rms": [
+        0.006447498567461665,
+        0.006547077837205826
+      ],
+      "dc": [
+        -3.50210386806939e-14,
+        -4.4579920712022596e-14
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": -0.03975727974405611,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_sweep_depth": 0
+      },
+      "passed": true,
+      "difference_rms": 0.0049464743820081735,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/noise_metal_fx/noise_metal_fx__sweep_depth_min.mel.png",
+        "validation/spectrograms/noise_metal_fx/noise_metal_fx__sweep_depth_min.stft.png"
+      ]
+    },
+    "sweep_depth_max": {
+      "file": "validation/renders/noise_metal_fx/noise_metal_fx__sweep_depth_max.wav",
+      "peak": 0.051621731370687485,
+      "peak_dbfs": -25.7433486699515,
+      "rms": [
+        0.006758674239657186,
+        0.007156399009101697
+      ],
+      "dc": [
+        -4.368074597997725e-14,
+        5.3223351296379536e-15
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.23741455140870973,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_sweep_depth": 1
+      },
+      "passed": true,
+      "difference_rms": 0.003672036694572598,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/noise_metal_fx/noise_metal_fx__sweep_depth_max.mel.png",
+        "validation/spectrograms/noise_metal_fx/noise_metal_fx__sweep_depth_max.stft.png"
+      ]
+    },
+    "motion_rate_min": {
+      "file": "validation/renders/noise_metal_fx/noise_metal_fx__motion_rate_min.wav",
+      "peak": 0.04900743439793587,
+      "peak_dbfs": -26.194760655311295,
+      "rms": [
+        0.006575689894969263,
+        0.006769791190800996
+      ],
+      "dc": [
+        1.597617368159559e-14,
+        5.50581774986683e-14
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.2392163032413951,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_motion_rate": 0.02
+      },
+      "passed": true,
+      "difference_rms": 0.00597800444173499,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/noise_metal_fx/noise_metal_fx__motion_rate_min.mel.png",
+        "validation/spectrograms/noise_metal_fx/noise_metal_fx__motion_rate_min.stft.png"
+      ]
+    },
+    "motion_rate_max": {
+      "file": "validation/renders/noise_metal_fx/noise_metal_fx__motion_rate_max.wav",
+      "peak": 0.05279089882969856,
+      "peak_dbfs": -25.54881887081429,
+      "rms": [
+        0.005622738612952054,
+        0.005984811664784615
+      ],
+      "dc": [
+        1.263784807909214e-13,
+        5.183621249838543e-14
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": -0.06591216404547524,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_motion_rate": 2
+      },
+      "passed": true,
+      "difference_rms": 0.005220854150617799,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/noise_metal_fx/noise_metal_fx__motion_rate_max.mel.png",
+        "validation/spectrograms/noise_metal_fx/noise_metal_fx__motion_rate_max.stft.png"
+      ]
+    },
+    "space_min": {
+      "file": "validation/renders/noise_metal_fx/noise_metal_fx__space_min.wav",
+      "peak": 0.020804159343242645,
+      "peak_dbfs": -33.63699657071281,
+      "rms": [
+        0.0029260234353544793,
+        0.0029260234353544793
+      ],
+      "dc": [
+        3.3184898517437495e-14,
+        3.3184898517437495e-14
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.9999999999999998,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_space": 0
+      },
+      "passed": true,
+      "difference_rms": 0.0057320675506526714,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/noise_metal_fx/noise_metal_fx__space_min.mel.png",
+        "validation/spectrograms/noise_metal_fx/noise_metal_fx__space_min.stft.png"
+      ]
+    },
+    "space_max": {
+      "file": "validation/renders/noise_metal_fx/noise_metal_fx__space_max.wav",
+      "peak": 0.08553444594144821,
+      "peak_dbfs": -21.3571790692607,
+      "rms": [
+        0.010187958449492947,
+        0.012313005355099814
+      ],
+      "dc": [
+        2.440780769502841e-13,
+        7.905520965097016e-14
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": -0.046644124807888314,
+      "duration": 27.250666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_space": 0.75
+      },
+      "passed": true,
+      "difference_rms": 0.005209556429017655,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/noise_metal_fx/noise_metal_fx__space_max.mel.png",
+        "validation/spectrograms/noise_metal_fx/noise_metal_fx__space_max.stft.png"
+      ]
+    },
+    "stress": {
+      "file": "validation/renders/noise_metal_fx/noise_metal_fx__stress.wav",
+      "peak": 0.357829213142395,
+      "peak_dbfs": -8.92648413123429,
+      "rms": [
+        0.03616928062546582,
+        0.044980448731556634
+      ],
+      "dc": [
+        -6.694055376974818e-13,
+        1.1882297314269265e-12
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": -0.02119263642203734,
+      "duration": 30.0,
+      "finite": true,
+      "overrides": {
+        "ctl_release": 8,
+        "ctl_space": 0.75
+      },
+      "passed": true,
+      "spectrograms": [
+        "validation/spectrograms/noise_metal_fx/noise_metal_fx__stress.mel.png",
+        "validation/spectrograms/noise_metal_fx/noise_metal_fx__stress.stft.png"
+      ]
+    }
+  },
+  "spectrograms_inspected": true,
+  "listened": false,
+  "passed": true,
+  "spectrogram_settings": {
+    "n_fft": 4096,
+    "hop_length": 512,
+    "n_mels": 128,
+    "fmin": 20,
+    "fmax": 24000,
+    "vmin": -100,
+    "vmax": 0
+  },
+  "review_sheets": [
+    "validation/review/noise_metal_fx/attack.mel.png",
+    "validation/review/noise_metal_fx/release.mel.png",
+    "validation/review/noise_metal_fx/metal_blend.mel.png",
+    "validation/review/noise_metal_fx/color.mel.png",
+    "validation/review/noise_metal_fx/sweep_depth.mel.png",
+    "validation/review/noise_metal_fx/motion_rate.mel.png",
+    "validation/review/noise_metal_fx/space.mel.png",
+    "validation/review/noise_metal_fx/attack.stft.png",
+    "validation/review/noise_metal_fx/release.stft.png",
+    "validation/review/noise_metal_fx/metal_blend.stft.png",
+    "validation/review/noise_metal_fx/color.stft.png",
+    "validation/review/noise_metal_fx/sweep_depth.stft.png",
+    "validation/review/noise_metal_fx/motion_rate.stft.png",
+    "validation/review/noise_metal_fx/space.stft.png"
+  ],
+  "visual_review": {
+    "method": "Opened Mel and log-STFT atlas PNGs containing every original two-channel audition, default/control-extreme and stress view.",
+    "observation": "Noise-to-metal blend moves between broadband texture and discrete partials; sweep depth/rate change spectral motion; both channels and extended tails remain present.",
+    "images": [
+      {
+        "path": "validation/review/noise_metal_fx__mel.png",
+        "sha256": "a1650d7bc23d06275d55f3f528b7f5824d39d1a11a792ed780cce6264a6c480a"
+      },
+      {
+        "path": "validation/review/noise_metal_fx__stft.png",
+        "sha256": "43272f90589861fee30581e61fea7b4fe12afbaeb82c3ef046857019b893f698"
+      }
+    ]
+  }
+}

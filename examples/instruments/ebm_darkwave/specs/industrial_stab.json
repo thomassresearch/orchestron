@@ -1,0 +1,91 @@
+{
+  "name": "EBM DW — Industrial Stab",
+  "description": "Pitched metallic FM strike with a separate short noise transient, distortion and compact room ambience.",
+  "family": "fm_pad",
+  "envelope": {
+    "attack": 0.003,
+    "decay": 0.25,
+    "sustain": 0,
+    "release": 0.15
+  },
+  "layers": [
+    {
+      "id": "fm",
+      "opcode": "foscili",
+      "gain": 0.17,
+      "carrier_ratio": 1,
+      "mod_ratio": 3.17,
+      "mod_index": 1,
+      "table": 1
+    },
+    {
+      "id": "air",
+      "opcode": "noise",
+      "gain": 0.14,
+      "color": 0
+    }
+  ],
+  "output": {
+    "pan": 0.5
+  },
+  "design": {
+    "slug": "industrial_stab",
+    "instrument_type": "percussion",
+    "register": [
+      36,
+      84
+    ],
+    "output_gain": 0.65,
+    "controls": {
+      "attack": {
+        "label": "Attack (s)",
+        "min": 0.001,
+        "max": 0.5,
+        "default": 0.003,
+        "scale": "logarithmic"
+      },
+      "release": {
+        "label": "Release (s)",
+        "min": 0.02,
+        "max": 1.5,
+        "default": 0.15,
+        "scale": "logarithmic"
+      },
+      "clang": {
+        "label": "Clang",
+        "min": 0.2,
+        "max": 8,
+        "default": 3,
+        "scale": "logarithmic"
+      },
+      "noise": {
+        "label": "Noise",
+        "min": 0,
+        "max": 1,
+        "default": 0.32,
+        "scale": "linear"
+      },
+      "decay": {
+        "label": "Decay (s)",
+        "min": 0.04,
+        "max": 1,
+        "default": 0.25,
+        "scale": "logarithmic"
+      },
+      "drive": {
+        "label": "Drive",
+        "min": 1,
+        "max": 8,
+        "default": 3,
+        "scale": "logarithmic"
+      },
+      "space": {
+        "label": "Space",
+        "min": 0,
+        "max": 0.6,
+        "default": 0.13,
+        "scale": "linear"
+      }
+    }
+  }
+}

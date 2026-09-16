@@ -1,32 +1,43 @@
-# Standard Always-On Effect Patching
+# Optional Reverb and Compressor Preset
 
-Every Orchestron performance should include these always-on patches:
+Use this preset when the requested mix calls for shared reverb followed by bus compression. Effects are optional; a performance can simply route instruments into the built-in Master.
 
-- `reverb effect`
-- `compressor effect`
-- `speaker output`
-
-Use `orchestron_cli edit add-standard-effects` after adding playable instruments. The command is an idempotent convenience preset built on the same generic route operations documented in `effect_routing.md`. It adds the three effect patches and creates this matrix:
-
-1. Instrument effect-send outlets, normally `sendl` and `sendr`, route to the `reverb effect` inputs.
-2. Instrument dry outlets, normally `dryl` and `dryr`, plus reverb outputs route to the `compressor effect` inputs.
-3. Compressor outputs route to the `speaker output` inputs.
-
-Route entries use the actual `outleta` labels from each source patch. Labels may differ by patch; the compiler maps exact matches first, then stereo-style names such as `dryl`/`dryr`, `sendl`/`sendr`, `left`/`right`, or `l`/`r` onto the target `inleta` labels.
-
-If a playable instrument still outputs directly through `outs`, duplicate the patch with suffix `_new` and replace each `outs` node with four `outleta` nodes:
-
-- Former `outs.left` source -> `dryl`
-- Former `outs.left` source -> `sendl` with input formula `0.1 * in1`
-- Former `outs.right` source -> `dryr`
-- Former `outs.right` source -> `sendr` with input formula `0.1 * in1`
-
-The CLI performs this conversion automatically when building the standard effect matrix, updates the instrument assignment to the `_new` patch, and embeds all selected patch definitions when the performance is committed.
-
-By default, rerunning the command rebuilds incoming routes on the three standard targets while preserving unrelated effect assignments. Pass `--merge` to preserve additional custom routes already attached to those standard targets. Inspect the result with:
+From this skill's directory, after adding the source instruments:
 
 ```bash
-orchestron_cli --json edit instruments list
-orchestron_cli --json edit routes list
-orchestron_cli --json edit validate
+uv run orchestron_cli --json edit add-standard-effects --send-gain-db -12
+uv run orchestron_cli --json edit routes list
+uv run orchestron_cli --json edit mixer list
+uv run orchestron_cli --json edit validate
 ```
+
+The preset requires existing continuous reverb and compressor patches. Discover their actual names/IDs; defaults resolve “reverb effect” and “compressor effect” case-insensitively. Override with `--reverb-patch` and `--compressor-patch`.
+
+## Signal flow
+
+| Connection | Route kind |
+| --- | --- |
+| Instrument main stereo output → compressor input | main |
+| Same instrument output → reverb input | send |
+| Reverb output → compressor input | main |
+| Compressor output → built-in Master left/right | main |
+
+Only reverb and compressor instances are added. No speaker/output patch is required or created. `--speaker-patch` is obsolete and fails before making changes; omit it.
+
+New sends default to silence/post-fader; `--send-gain-db -12` explicitly initializes new sends at -12 dB. Existing sends retain their gain and tap, even when this flag is supplied again. The preset leaves existing strip gain, balance, mute/solo and performance-controller settings intact; it does not tune compression or reverb parameters.
+
+## Port selection and preservation
+
+Declared main stereo audio-interface groups take precedence. For older outputs, an exact conventional `dryl/dryr` pair is preferred; otherwise one unambiguous `left/right`, `l/r`, or `$direct.left/right` pair is accepted. Inputs require a declared main stereo group or an unambiguous conventional pair. Ambiguous or non-stereo interfaces require explicit routes instead.
+
+Main outputs supply both the dry path and the send, including for direct-output patches. The preset does not clone patches, replace `outs`, require dedicated send outlets, or add `0.1 * in1` formulas. Existing extra outputs/formulas remain unchanged.
+
+Matching existing effect instances retain their binding IDs. Ambiguous repeated effects or conflicts with reserved preset bindings require explicit routing. Insert instances are excluded from effect reuse and source selection. Existing insert ownership and wiring are preserved.
+
+The preset replaces participating main-output destinations, including reverb and compressor outputs, with the matrix above. Unrelated Master inputs, other effect returns, and additional sends remain. By default it removes additional custom connections into the selected reverb/compressor; use `--merge` to retain those custom connections. Review intentional parallel paths to avoid summing unwanted copies.
+
+Matching routes retain their IDs and send controls; repeated application is idempotent. The full candidate is backend-validated before the staged edit is saved. No patch library entries or saved performances are changed by this command. Use `edit commit` to save and `edit rebuild-runtime` after changing a live runtime's topology.
+
+## Relationship to TB303 Demo
+
+The demo illustrates the current Master/mixer model, not a compulsory effect chain. Its dry instruments feed a compressor into Master, while selected pre/post sends feed a Delay Effect that returns **directly to Master**. This preset deliberately sends its reverb return **through the compressor**. See the [mixer walkthrough](mixer.md#tb303-demo-walkthrough) to author either arrangement explicitly.

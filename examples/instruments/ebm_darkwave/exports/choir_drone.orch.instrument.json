@@ -1,0 +1,1338 @@
+{
+  "sourcePatchId": "4681e28c-dfe0-47e5-91b9-f05f98ec4bef",
+  "name": "EBM DW — Choir Drone",
+  "description": "Synthetic gothic choir using three animated vowel formants, detuned pulses and a trace of breath. Sample-free, played with sustained notes. Suggested MIDI 43–76. Velocity-sensitive; settings apply to new notes. Motion rates are Hz; echoes are fixed time. Route Stereo Output through the mixer to Master.",
+  "isTemplate": false,
+  "alwaysOn": false,
+  "instrumentType": "melody",
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "pitch_cpsmidi",
+        "opcode": "cpsmidi",
+        "params": {},
+        "position": {
+          "x": 40.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "velocity_scale_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 1.0
+        },
+        "position": {
+          "x": 40.0,
+          "y": 270.0
+        }
+      },
+      {
+        "id": "velocity_ampmidi",
+        "opcode": "ampmidi",
+        "params": {},
+        "position": {
+          "x": 350.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "env_decay_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 2.0
+        },
+        "position": {
+          "x": 40.0,
+          "y": 500.0
+        }
+      },
+      {
+        "id": "env_sustain_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.75
+        },
+        "position": {
+          "x": 40.0,
+          "y": 730.0
+        }
+      },
+      {
+        "id": "amp_madsr",
+        "opcode": "madsr",
+        "params": {},
+        "position": {
+          "x": 350.0,
+          "y": 270.0
+        }
+      },
+      {
+        "id": "amp_velocity_envelope",
+        "opcode": "k_mul",
+        "params": {},
+        "position": {
+          "x": 660.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "pulse_a_gain",
+        "opcode": "const_k",
+        "params": {
+          "value": 0.19
+        },
+        "position": {
+          "x": 40.0,
+          "y": 960.0
+        }
+      },
+      {
+        "id": "pulse_a_amp",
+        "opcode": "k_mul",
+        "params": {},
+        "position": {
+          "x": 970.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "pulse_a_vco2",
+        "opcode": "vco2",
+        "params": {
+          "imode": 2
+        },
+        "position": {
+          "x": 1280.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "pulse_b_gain",
+        "opcode": "const_k",
+        "params": {
+          "value": 0.19
+        },
+        "position": {
+          "x": 40.0,
+          "y": 1190.0
+        }
+      },
+      {
+        "id": "pulse_b_amp",
+        "opcode": "k_mul",
+        "params": {},
+        "position": {
+          "x": 970.0,
+          "y": 270.0
+        }
+      },
+      {
+        "id": "pulse_b_vco2",
+        "opcode": "vco2",
+        "params": {
+          "imode": 2
+        },
+        "position": {
+          "x": 1280.0,
+          "y": 270.0
+        }
+      },
+      {
+        "id": "air_gain",
+        "opcode": "const_k",
+        "params": {
+          "value": 0.04
+        },
+        "position": {
+          "x": 40.0,
+          "y": 1420.0
+        }
+      },
+      {
+        "id": "air_amp",
+        "opcode": "k_mul",
+        "params": {},
+        "position": {
+          "x": 970.0,
+          "y": 500.0
+        }
+      },
+      {
+        "id": "air_noise",
+        "opcode": "noise",
+        "params": {
+          "beta": 0
+        },
+        "position": {
+          "x": 1280.0,
+          "y": 500.0
+        }
+      },
+      {
+        "id": "output_pan2",
+        "opcode": "pan2",
+        "params": {
+          "xp": 0.5,
+          "imode": 0
+        },
+        "position": {
+          "x": 3140.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "ctl_attack",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Attack (s)",
+          "min": 0.001,
+          "max": 4,
+          "default": 1.2,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": 40.0,
+          "y": 1650.0
+        }
+      },
+      {
+        "id": "ctl_release",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Release (s)",
+          "min": 0.02,
+          "max": 8,
+          "default": 4,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": 40.0,
+          "y": 1880.0
+        }
+      },
+      {
+        "id": "ctl_vowel",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Vowel (Oo–Ah)",
+          "min": 0,
+          "max": 1,
+          "default": 0.6,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 40.0,
+          "y": 2110.0
+        }
+      },
+      {
+        "id": "ctl_breath",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Breath",
+          "min": 0,
+          "max": 1,
+          "default": 0.16,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 40.0,
+          "y": 2340.0
+        }
+      },
+      {
+        "id": "ctl_motion",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Motion",
+          "min": 0,
+          "max": 1,
+          "default": 0.3,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 40.0,
+          "y": 2570.0
+        }
+      },
+      {
+        "id": "ctl_tone",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Tone (Hz)",
+          "min": 700,
+          "max": 8000,
+          "default": 4300,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": 40.0,
+          "y": 2800.0
+        }
+      },
+      {
+        "id": "ctl_reverb",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Reverb",
+          "min": 0,
+          "max": 0.7,
+          "default": 0.32,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 40.0,
+          "y": 3030.0
+        }
+      },
+      {
+        "id": "motion_lfo",
+        "opcode": "lfo",
+        "params": {
+          "kamp": 1,
+          "kcps": 0.11,
+          "itype": 0
+        },
+        "position": {
+          "x": 40.0,
+          "y": 3260.0
+        }
+      },
+      {
+        "id": "voiced_mix",
+        "opcode": "mix2",
+        "params": {
+          "b": 0
+        },
+        "position": {
+          "x": 1590.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "formant_0",
+        "opcode": "butterbp",
+        "params": {
+          "xband": 130
+        },
+        "position": {
+          "x": 1900.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "formant_1",
+        "opcode": "butterbp",
+        "params": {
+          "xband": 180
+        },
+        "position": {
+          "x": 1900.0,
+          "y": 270.0
+        }
+      },
+      {
+        "id": "formant_2",
+        "opcode": "butterbp",
+        "params": {
+          "xband": 250
+        },
+        "position": {
+          "x": 1900.0,
+          "y": 500.0
+        }
+      },
+      {
+        "id": "breath_filter",
+        "opcode": "butterhp",
+        "params": {
+          "xfreq": 2200
+        },
+        "position": {
+          "x": 1590.0,
+          "y": 270.0
+        }
+      },
+      {
+        "id": "vowel_mix",
+        "opcode": "mix2",
+        "params": {
+          "b": 0
+        },
+        "position": {
+          "x": 2210.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "voice_filter",
+        "opcode": "moogladder2",
+        "params": {
+          "xres": 0.18
+        },
+        "position": {
+          "x": 2520.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "dc_filter",
+        "opcode": "butterhp",
+        "params": {
+          "xfreq": 22
+        },
+        "position": {
+          "x": 2830.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "effect_tail",
+        "opcode": "xtratim",
+        "params": {},
+        "position": {
+          "x": 350.0,
+          "y": 500.0
+        }
+      },
+      {
+        "id": "chorus_left_lfo",
+        "opcode": "lfo",
+        "params": {
+          "kamp": 1,
+          "kcps": 0.23,
+          "itype": 0
+        },
+        "position": {
+          "x": 40.0,
+          "y": 3490.0
+        }
+      },
+      {
+        "id": "chorus_left",
+        "opcode": "vdelay3",
+        "params": {
+          "imd": 35
+        },
+        "position": {
+          "x": 3450.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "chorus_mix_left",
+        "opcode": "mix2",
+        "params": {
+          "b": 0
+        },
+        "position": {
+          "x": 3760.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "room_predelay_left",
+        "opcode": "delay",
+        "params": {
+          "idlt": 0.017
+        },
+        "position": {
+          "x": 4070.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "room_left",
+        "opcode": "reverb2",
+        "params": {
+          "krvt": 2.8,
+          "khf": 0.45,
+          "iskip": 0
+        },
+        "position": {
+          "x": 4380.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "audio_ctl_reverb_iout",
+        "opcode": "k_to_a",
+        "params": {},
+        "position": {
+          "x": 350.0,
+          "y": 730.0
+        }
+      },
+      {
+        "id": "room_mix_left",
+        "opcode": "mix2",
+        "params": {
+          "b": 0
+        },
+        "position": {
+          "x": 4690.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "final_level_left",
+        "opcode": "mix2",
+        "params": {
+          "b": 0
+        },
+        "position": {
+          "x": 5000.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "chorus_right_lfo",
+        "opcode": "lfo",
+        "params": {
+          "kamp": 1,
+          "kcps": 0.31,
+          "itype": 0
+        },
+        "position": {
+          "x": 40.0,
+          "y": 3720.0
+        }
+      },
+      {
+        "id": "chorus_right",
+        "opcode": "vdelay3",
+        "params": {
+          "imd": 35
+        },
+        "position": {
+          "x": 3450.0,
+          "y": 270.0
+        }
+      },
+      {
+        "id": "chorus_mix_right",
+        "opcode": "mix2",
+        "params": {
+          "b": 0
+        },
+        "position": {
+          "x": 3760.0,
+          "y": 270.0
+        }
+      },
+      {
+        "id": "room_predelay_right",
+        "opcode": "delay",
+        "params": {
+          "idlt": 0.029
+        },
+        "position": {
+          "x": 4070.0,
+          "y": 270.0
+        }
+      },
+      {
+        "id": "room_right",
+        "opcode": "reverb2",
+        "params": {
+          "krvt": 2.604,
+          "khf": 0.45,
+          "iskip": 0
+        },
+        "position": {
+          "x": 4380.0,
+          "y": 270.0
+        }
+      },
+      {
+        "id": "room_mix_right",
+        "opcode": "mix2",
+        "params": {
+          "b": 0
+        },
+        "position": {
+          "x": 4690.0,
+          "y": 270.0
+        }
+      },
+      {
+        "id": "final_level_right",
+        "opcode": "mix2",
+        "params": {
+          "b": 0
+        },
+        "position": {
+          "x": 5000.0,
+          "y": 270.0
+        }
+      },
+      {
+        "id": "output_left",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 5310.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "output_right",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 5310.0,
+          "y": 270.0
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "velocity_scale_const",
+        "from_port_id": "iout",
+        "to_node_id": "velocity_ampmidi",
+        "to_port_id": "iscal"
+      },
+      {
+        "from_node_id": "env_decay_const",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "idec"
+      },
+      {
+        "from_node_id": "env_sustain_const",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "islev"
+      },
+      {
+        "from_node_id": "velocity_ampmidi",
+        "from_port_id": "iamp",
+        "to_node_id": "amp_velocity_envelope",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "amp_madsr",
+        "from_port_id": "kenv",
+        "to_node_id": "amp_velocity_envelope",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "pulse_a_amp",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "pulse_a_gain",
+        "from_port_id": "kout",
+        "to_node_id": "pulse_a_amp",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "pulse_a_amp",
+        "from_port_id": "kout",
+        "to_node_id": "pulse_a_vco2",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "pulse_b_amp",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "pulse_b_gain",
+        "from_port_id": "kout",
+        "to_node_id": "pulse_b_amp",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "pulse_b_amp",
+        "from_port_id": "kout",
+        "to_node_id": "pulse_b_vco2",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "air_gain",
+        "from_port_id": "kout",
+        "to_node_id": "air_amp",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "air_amp",
+        "from_port_id": "kout",
+        "to_node_id": "air_noise",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "ctl_attack",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "iatt"
+      },
+      {
+        "from_node_id": "ctl_release",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "irel"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "pulse_a_vco2",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "pulse_b_vco2",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "ctl_motion",
+        "from_port_id": "iout",
+        "to_node_id": "pulse_a_vco2",
+        "to_port_id": "kpw"
+      },
+      {
+        "from_node_id": "motion_lfo",
+        "from_port_id": "kout",
+        "to_node_id": "pulse_a_vco2",
+        "to_port_id": "kpw"
+      },
+      {
+        "from_node_id": "ctl_motion",
+        "from_port_id": "iout",
+        "to_node_id": "pulse_b_vco2",
+        "to_port_id": "kpw"
+      },
+      {
+        "from_node_id": "motion_lfo",
+        "from_port_id": "kout",
+        "to_node_id": "pulse_b_vco2",
+        "to_port_id": "kpw"
+      },
+      {
+        "from_node_id": "pulse_a_vco2",
+        "from_port_id": "asig",
+        "to_node_id": "voiced_mix",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "pulse_b_vco2",
+        "from_port_id": "asig",
+        "to_node_id": "voiced_mix",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "voiced_mix",
+        "from_port_id": "aout",
+        "to_node_id": "formant_0",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "ctl_vowel",
+        "from_port_id": "iout",
+        "to_node_id": "formant_0",
+        "to_port_id": "xfreq"
+      },
+      {
+        "from_node_id": "ctl_motion",
+        "from_port_id": "iout",
+        "to_node_id": "formant_0",
+        "to_port_id": "xfreq"
+      },
+      {
+        "from_node_id": "motion_lfo",
+        "from_port_id": "kout",
+        "to_node_id": "formant_0",
+        "to_port_id": "xfreq"
+      },
+      {
+        "from_node_id": "voiced_mix",
+        "from_port_id": "aout",
+        "to_node_id": "formant_1",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "ctl_vowel",
+        "from_port_id": "iout",
+        "to_node_id": "formant_1",
+        "to_port_id": "xfreq"
+      },
+      {
+        "from_node_id": "ctl_motion",
+        "from_port_id": "iout",
+        "to_node_id": "formant_1",
+        "to_port_id": "xfreq"
+      },
+      {
+        "from_node_id": "motion_lfo",
+        "from_port_id": "kout",
+        "to_node_id": "formant_1",
+        "to_port_id": "xfreq"
+      },
+      {
+        "from_node_id": "voiced_mix",
+        "from_port_id": "aout",
+        "to_node_id": "formant_2",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "ctl_vowel",
+        "from_port_id": "iout",
+        "to_node_id": "formant_2",
+        "to_port_id": "xfreq"
+      },
+      {
+        "from_node_id": "ctl_motion",
+        "from_port_id": "iout",
+        "to_node_id": "formant_2",
+        "to_port_id": "xfreq"
+      },
+      {
+        "from_node_id": "motion_lfo",
+        "from_port_id": "kout",
+        "to_node_id": "formant_2",
+        "to_port_id": "xfreq"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "air_amp",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "ctl_breath",
+        "from_port_id": "iout",
+        "to_node_id": "air_amp",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "air_noise",
+        "from_port_id": "aout",
+        "to_node_id": "breath_filter",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "formant_0",
+        "from_port_id": "aout",
+        "to_node_id": "vowel_mix",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "formant_1",
+        "from_port_id": "aout",
+        "to_node_id": "vowel_mix",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "formant_2",
+        "from_port_id": "aout",
+        "to_node_id": "vowel_mix",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "breath_filter",
+        "from_port_id": "aout",
+        "to_node_id": "vowel_mix",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "vowel_mix",
+        "from_port_id": "aout",
+        "to_node_id": "voice_filter",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "ctl_tone",
+        "from_port_id": "iout",
+        "to_node_id": "voice_filter",
+        "to_port_id": "xcf"
+      },
+      {
+        "from_node_id": "voice_filter",
+        "from_port_id": "aout",
+        "to_node_id": "dc_filter",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "dc_filter",
+        "from_port_id": "aout",
+        "to_node_id": "output_pan2",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "ctl_release",
+        "from_port_id": "iout",
+        "to_node_id": "effect_tail",
+        "to_port_id": "iextradur"
+      },
+      {
+        "from_node_id": "output_pan2",
+        "from_port_id": "aleft",
+        "to_node_id": "chorus_left",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "chorus_left_lfo",
+        "from_port_id": "kout",
+        "to_node_id": "chorus_left",
+        "to_port_id": "adel"
+      },
+      {
+        "from_node_id": "output_pan2",
+        "from_port_id": "aleft",
+        "to_node_id": "chorus_mix_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "chorus_left",
+        "from_port_id": "aout",
+        "to_node_id": "chorus_mix_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "chorus_mix_left",
+        "from_port_id": "aout",
+        "to_node_id": "room_predelay_left",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "room_predelay_left",
+        "from_port_id": "aout",
+        "to_node_id": "room_left",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "ctl_reverb",
+        "from_port_id": "iout",
+        "to_node_id": "audio_ctl_reverb_iout",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "chorus_mix_left",
+        "from_port_id": "aout",
+        "to_node_id": "room_mix_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "room_left",
+        "from_port_id": "aout",
+        "to_node_id": "room_mix_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "audio_ctl_reverb_iout",
+        "from_port_id": "aout",
+        "to_node_id": "room_mix_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "room_mix_left",
+        "from_port_id": "aout",
+        "to_node_id": "final_level_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "final_level_left",
+        "from_port_id": "aout",
+        "to_node_id": "output_left",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "output_pan2",
+        "from_port_id": "aright",
+        "to_node_id": "chorus_right",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "chorus_right_lfo",
+        "from_port_id": "kout",
+        "to_node_id": "chorus_right",
+        "to_port_id": "adel"
+      },
+      {
+        "from_node_id": "output_pan2",
+        "from_port_id": "aright",
+        "to_node_id": "chorus_mix_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "chorus_right",
+        "from_port_id": "aout",
+        "to_node_id": "chorus_mix_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "chorus_mix_right",
+        "from_port_id": "aout",
+        "to_node_id": "room_predelay_right",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "room_predelay_right",
+        "from_port_id": "aout",
+        "to_node_id": "room_right",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "chorus_mix_right",
+        "from_port_id": "aout",
+        "to_node_id": "room_mix_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "room_right",
+        "from_port_id": "aout",
+        "to_node_id": "room_mix_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "audio_ctl_reverb_iout",
+        "from_port_id": "aout",
+        "to_node_id": "room_mix_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "room_mix_right",
+        "from_port_id": "aout",
+        "to_node_id": "final_level_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "final_level_right",
+        "from_port_id": "aout",
+        "to_node_id": "output_right",
+        "to_port_id": "asignal"
+      }
+    ],
+    "ui_layout": {
+      "audio_blocks": {
+        "main-output": true
+      },
+      "input_formulas": {
+        "pulse_a_vco2::kcps": {
+          "expression": "pitch * 0.9965",
+          "inputs": [
+            {
+              "token": "pitch",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "pulse_b_vco2::kcps": {
+          "expression": "pitch * 1.0035",
+          "inputs": [
+            {
+              "token": "pitch",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "pulse_a_vco2::kpw": {
+          "expression": ".45 + .08 * depth * motion",
+          "inputs": [
+            {
+              "token": "depth",
+              "from_node_id": "ctl_motion",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "motion",
+              "from_node_id": "motion_lfo",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "pulse_b_vco2::kpw": {
+          "expression": ".45 + .08 * depth * motion",
+          "inputs": [
+            {
+              "token": "depth",
+              "from_node_id": "ctl_motion",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "motion",
+              "from_node_id": "motion_lfo",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "voiced_mix::a": {
+          "expression": "a + b",
+          "inputs": [
+            {
+              "token": "a",
+              "from_node_id": "pulse_a_vco2",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "b",
+              "from_node_id": "pulse_b_vco2",
+              "from_port_id": "asig"
+            }
+          ]
+        },
+        "formant_0::xfreq": {
+          "expression": "(320 + 480 * vowel) * (1 + .025 * depth * motion)",
+          "inputs": [
+            {
+              "token": "vowel",
+              "from_node_id": "ctl_vowel",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "depth",
+              "from_node_id": "ctl_motion",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "motion",
+              "from_node_id": "motion_lfo",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "formant_1::xfreq": {
+          "expression": "(800 + 400 * vowel) * (1 + .025 * depth * motion)",
+          "inputs": [
+            {
+              "token": "vowel",
+              "from_node_id": "ctl_vowel",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "depth",
+              "from_node_id": "ctl_motion",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "motion",
+              "from_node_id": "motion_lfo",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "formant_2::xfreq": {
+          "expression": "(2300 + 500 * vowel) * (1 + .025 * depth * motion)",
+          "inputs": [
+            {
+              "token": "vowel",
+              "from_node_id": "ctl_vowel",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "depth",
+              "from_node_id": "ctl_motion",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "motion",
+              "from_node_id": "motion_lfo",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "air_amp::a": {
+          "expression": "envelope * amount",
+          "inputs": [
+            {
+              "token": "envelope",
+              "from_node_id": "amp_velocity_envelope",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "amount",
+              "from_node_id": "ctl_breath",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "vowel_mix::a": {
+          "expression": "1.8 * f0 + 1.3 * f1 + .8 * f2 + air",
+          "inputs": [
+            {
+              "token": "f0",
+              "from_node_id": "formant_0",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "f1",
+              "from_node_id": "formant_1",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "f2",
+              "from_node_id": "formant_2",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "air",
+              "from_node_id": "breath_filter",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "effect_tail::iextradur": {
+          "expression": "release + 11.2",
+          "inputs": [
+            {
+              "token": "release",
+              "from_node_id": "ctl_release",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "chorus_left::adel": {
+          "expression": "14 + 3 * motion",
+          "inputs": [
+            {
+              "token": "motion",
+              "from_node_id": "chorus_left_lfo",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "chorus_mix_left::a": {
+          "expression": "dry * 0.9375 + wet * 0.125",
+          "inputs": [
+            {
+              "token": "dry",
+              "from_node_id": "output_pan2",
+              "from_port_id": "aleft"
+            },
+            {
+              "token": "wet",
+              "from_node_id": "chorus_left",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "room_mix_left::a": {
+          "expression": "dry + amount * wet",
+          "inputs": [
+            {
+              "token": "dry",
+              "from_node_id": "chorus_mix_left",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "wet",
+              "from_node_id": "room_left",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "amount",
+              "from_node_id": "audio_ctl_reverb_iout",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "final_level_left::a": {
+          "expression": "audio * 0.65",
+          "inputs": [
+            {
+              "token": "audio",
+              "from_node_id": "room_mix_left",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "chorus_right::adel": {
+          "expression": "19 + 3 * motion",
+          "inputs": [
+            {
+              "token": "motion",
+              "from_node_id": "chorus_right_lfo",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "chorus_mix_right::a": {
+          "expression": "dry * 0.9375 + wet * 0.125",
+          "inputs": [
+            {
+              "token": "dry",
+              "from_node_id": "output_pan2",
+              "from_port_id": "aright"
+            },
+            {
+              "token": "wet",
+              "from_node_id": "chorus_right",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "room_mix_right::a": {
+          "expression": "dry + amount * wet",
+          "inputs": [
+            {
+              "token": "dry",
+              "from_node_id": "chorus_mix_right",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "wet",
+              "from_node_id": "room_right",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "amount",
+              "from_node_id": "audio_ctl_reverb_iout",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "final_level_right::a": {
+          "expression": "audio * 0.65",
+          "inputs": [
+            {
+              "token": "audio",
+              "from_node_id": "room_mix_right",
+              "from_port_id": "aout"
+            }
+          ]
+        }
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 750,
+      "ksmps": 64,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1.0
+    },
+    "audio_interface": {
+      "role": "instrument",
+      "groups": [
+        {
+          "id": "main-output",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainInput": null,
+      "mainOutput": "main-output",
+      "guided": true
+    },
+    "control_flow": {}
+  }
+}

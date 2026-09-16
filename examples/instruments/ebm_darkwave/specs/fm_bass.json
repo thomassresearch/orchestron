@@ -1,0 +1,85 @@
+{
+  "name": "EBM DW — FM Bass",
+  "description": "Metallic two-operator bass with a fast index envelope and a steady low body.",
+  "family": "fm_pad",
+  "envelope": {
+    "attack": 0.003,
+    "decay": 0.15,
+    "sustain": 0.35,
+    "release": 0.06
+  },
+  "layers": [
+    {
+      "id": "fm",
+      "opcode": "foscili",
+      "gain": 0.25,
+      "carrier_ratio": 1,
+      "mod_ratio": 2,
+      "mod_index": 1,
+      "table": 1
+    }
+  ],
+  "output": {
+    "pan": 0.5
+  },
+  "design": {
+    "slug": "fm_bass",
+    "instrument_type": "bass",
+    "register": [
+      28,
+      55
+    ],
+    "output_gain": 0.6,
+    "controls": {
+      "attack": {
+        "label": "Attack (s)",
+        "min": 0.001,
+        "max": 0.5,
+        "default": 0.003,
+        "scale": "logarithmic"
+      },
+      "release": {
+        "label": "Release (s)",
+        "min": 0.02,
+        "max": 1.5,
+        "default": 0.06,
+        "scale": "logarithmic"
+      },
+      "fm_depth": {
+        "label": "FM Depth",
+        "min": 0.05,
+        "max": 8,
+        "default": 2.8,
+        "scale": "logarithmic"
+      },
+      "ratio": {
+        "label": "Ratio",
+        "min": 0.5,
+        "max": 4,
+        "default": 2,
+        "scale": "linear"
+      },
+      "fm_decay": {
+        "label": "FM Decay (s)",
+        "min": 0.02,
+        "max": 0.6,
+        "default": 0.09,
+        "scale": "logarithmic"
+      },
+      "tone": {
+        "label": "Tone (Hz)",
+        "min": 300,
+        "max": 9000,
+        "default": 4000,
+        "scale": "logarithmic"
+      },
+      "drive": {
+        "label": "Drive",
+        "min": 1,
+        "max": 6,
+        "default": 1.4,
+        "scale": "logarithmic"
+      }
+    }
+  }
+}

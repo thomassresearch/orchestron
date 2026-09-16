@@ -1,0 +1,566 @@
+{
+  "name": "EBM DW — Sequencer Bass",
+  "graph_sha256": "479a6c7c8ed4f538f5adefaa03dc80dbd486433fd201c476140aad71a68a9160",
+  "sample_rate": 48000,
+  "channels": 2,
+  "format": "32-bit float WAV",
+  "velocity_rms_40_80_120": [
+    0.034407455186002675,
+    0.055433994245220004,
+    0.06876820037923358
+  ],
+  "velocity_response": true,
+  "default_headroom_6db": true,
+  "results": {
+    "audition": {
+      "file": "auditions/sequencer_bass.wav",
+      "peak": 0.4277968406677246,
+      "peak_dbfs": -7.375248541416052,
+      "rms": [
+        0.05515037797173051,
+        0.05515037797173051
+      ],
+      "dc": [
+        -8.616223625845298e-06,
+        -8.616223625845298e-06
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.9999999999999999,
+      "duration": 18.06,
+      "finite": true,
+      "overrides": {},
+      "passed": true,
+      "spectrograms": [
+        "validation/spectrograms/sequencer_bass/sequencer_bass.mel.png",
+        "validation/spectrograms/sequencer_bass/sequencer_bass.stft.png"
+      ]
+    },
+    "velocity_40": {
+      "file": "validation/renders/sequencer_bass/sequencer_bass__velocity_40.wav",
+      "peak": 0.2809056043624878,
+      "peak_dbfs": -11.028791921598698,
+      "rms": [
+        0.009291858794740426,
+        0.009291858794740426
+      ],
+      "dc": [
+        -5.5340243208012306e-08,
+        -5.5340243208012306e-08
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.9999999999999998,
+      "duration": 13.750666666666667,
+      "finite": true,
+      "overrides": {},
+      "passed": true
+    },
+    "velocity_80": {
+      "file": "validation/renders/sequencer_bass/sequencer_bass__velocity_80.wav",
+      "peak": 0.35334643721580505,
+      "peak_dbfs": -9.035985666173895,
+      "rms": [
+        0.01498136222454989,
+        0.01498136222454989
+      ],
+      "dc": [
+        -1.1056497696005373e-07,
+        -1.1056497696005373e-07
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 1.0,
+      "duration": 13.750666666666667,
+      "finite": true,
+      "overrides": {},
+      "passed": true
+    },
+    "velocity_120": {
+      "file": "validation/renders/sequencer_bass/sequencer_bass__velocity_120.wav",
+      "peak": 0.38266560435295105,
+      "peak_dbfs": -8.343611445922019,
+      "rms": [
+        0.01860294745371021,
+        0.01860294745371021
+      ],
+      "dc": [
+        -1.6555478450770158e-07,
+        -1.6555478450770158e-07
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 1.0,
+      "duration": 13.750666666666667,
+      "finite": true,
+      "overrides": {},
+      "passed": true
+    },
+    "probe_default": {
+      "file": "validation/renders/sequencer_bass/sequencer_bass__probe_default.wav",
+      "peak": 0.37220919132232666,
+      "peak_dbfs": -8.58425813236503,
+      "rms": [
+        0.02096831706975433,
+        0.02096831706975433
+      ],
+      "dc": [
+        -1.8452709451557876e-08,
+        -1.8452709451557876e-08
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 1.0,
+      "duration": 18.750666666666667,
+      "finite": true,
+      "overrides": {},
+      "passed": true,
+      "spectrograms": [
+        "validation/spectrograms/sequencer_bass/sequencer_bass__probe_default.mel.png",
+        "validation/spectrograms/sequencer_bass/sequencer_bass__probe_default.stft.png"
+      ]
+    },
+    "attack_min": {
+      "file": "validation/renders/sequencer_bass/sequencer_bass__attack_min.wav",
+      "peak": 0.37609103322029114,
+      "peak_dbfs": -8.494140418463518,
+      "rms": [
+        0.020917660891430236,
+        0.020917660891430236
+      ],
+      "dc": [
+        -1.8452496524613163e-08,
+        -1.8452496524613163e-08
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 1.0,
+      "duration": 18.750666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_attack": 0.001
+      },
+      "passed": true,
+      "difference_rms": 0.00035648145404643626,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/sequencer_bass/sequencer_bass__attack_min.mel.png",
+        "validation/spectrograms/sequencer_bass/sequencer_bass__attack_min.stft.png"
+      ]
+    },
+    "attack_max": {
+      "file": "validation/renders/sequencer_bass/sequencer_bass__attack_max.wav",
+      "peak": 0.32780760526657104,
+      "peak_dbfs": -9.687619496885116,
+      "rms": [
+        0.03167523045522099,
+        0.03167523045522099
+      ],
+      "dc": [
+        -1.8452329336646562e-08,
+        -1.8452329336646562e-08
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 1.0,
+      "duration": 18.750666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_attack": 0.5
+      },
+      "passed": true,
+      "difference_rms": 0.02384344602614589,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/sequencer_bass/sequencer_bass__attack_max.mel.png",
+        "validation/spectrograms/sequencer_bass/sequencer_bass__attack_max.stft.png"
+      ]
+    },
+    "release_min": {
+      "file": "validation/renders/sequencer_bass/sequencer_bass__release_min.wav",
+      "peak": 0.37220919132232666,
+      "peak_dbfs": -8.58425813236503,
+      "rms": [
+        0.02095748054859026,
+        0.02095748054859026
+      ],
+      "dc": [
+        4.333016979454274e-07,
+        4.333016979454274e-07
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 1.0,
+      "duration": 18.750666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_release": 0.02
+      },
+      "passed": true,
+      "difference_rms": 0.000554344228477621,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/sequencer_bass/sequencer_bass__release_min.mel.png",
+        "validation/spectrograms/sequencer_bass/sequencer_bass__release_min.stft.png"
+      ]
+    },
+    "release_max": {
+      "file": "validation/renders/sequencer_bass/sequencer_bass__release_max.wav",
+      "peak": 0.37220919132232666,
+      "peak_dbfs": -8.58425813236503,
+      "rms": [
+        0.021288011395579863,
+        0.021288011395579863
+      ],
+      "dc": [
+        1.1723048053678328e-08,
+        1.1723048053678328e-08
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.9999999999999998,
+      "duration": 18.750666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_release": 1.5
+      },
+      "passed": true,
+      "difference_rms": 0.00358650811842276,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/sequencer_bass/sequencer_bass__release_max.mel.png",
+        "validation/spectrograms/sequencer_bass/sequencer_bass__release_max.stft.png"
+      ]
+    },
+    "tone_min": {
+      "file": "validation/renders/sequencer_bass/sequencer_bass__tone_min.wav",
+      "peak": 0.36948928236961365,
+      "peak_dbfs": -8.647963089915851,
+      "rms": [
+        0.021701403957469757,
+        0.021701403957469757
+      ],
+      "dc": [
+        -4.160666141842692e-07,
+        -4.160666141842692e-07
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 1.0,
+      "duration": 18.750666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_tone": 120
+      },
+      "passed": true,
+      "difference_rms": 0.02152888574668963,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/sequencer_bass/sequencer_bass__tone_min.mel.png",
+        "validation/spectrograms/sequencer_bass/sequencer_bass__tone_min.stft.png"
+      ]
+    },
+    "tone_max": {
+      "file": "validation/renders/sequencer_bass/sequencer_bass__tone_max.wav",
+      "peak": 0.37618133425712585,
+      "peak_dbfs": -8.49205515020743,
+      "rms": [
+        0.02039520226131106,
+        0.02039520226131106
+      ],
+      "dc": [
+        -5.837556398306275e-09,
+        -5.837556398306275e-09
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 1.0,
+      "duration": 18.750666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_tone": 3500
+      },
+      "passed": true,
+      "difference_rms": 0.00866857163488833,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/sequencer_bass/sequencer_bass__tone_max.mel.png",
+        "validation/spectrograms/sequencer_bass/sequencer_bass__tone_max.stft.png"
+      ]
+    },
+    "resonance_min": {
+      "file": "validation/renders/sequencer_bass/sequencer_bass__resonance_min.wav",
+      "peak": 0.38475748896598816,
+      "peak_dbfs": -8.296258365084922,
+      "rms": [
+        0.03134252141207508,
+        0.03134252141207508
+      ],
+      "dc": [
+        -6.983565727100239e-08,
+        -6.983565727100239e-08
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.9999999999999999,
+      "duration": 18.750666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_resonance": 0
+      },
+      "passed": true,
+      "difference_rms": 0.012893956892887217,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/sequencer_bass/sequencer_bass__resonance_min.mel.png",
+        "validation/spectrograms/sequencer_bass/sequencer_bass__resonance_min.stft.png"
+      ]
+    },
+    "resonance_max": {
+      "file": "validation/renders/sequencer_bass/sequencer_bass__resonance_max.wav",
+      "peak": 0.3196648061275482,
+      "peak_dbfs": -9.906103505154572,
+      "rms": [
+        0.01211656076135489,
+        0.01211656076135489
+      ],
+      "dc": [
+        -1.2751696156589914e-08,
+        -1.2751696156589914e-08
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 1.0,
+      "duration": 18.750666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_resonance": 0.75
+      },
+      "passed": true,
+      "difference_rms": 0.011885561556885055,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/sequencer_bass/sequencer_bass__resonance_max.mel.png",
+        "validation/spectrograms/sequencer_bass/sequencer_bass__resonance_max.stft.png"
+      ]
+    },
+    "decay_min": {
+      "file": "validation/renders/sequencer_bass/sequencer_bass__decay_min.wav",
+      "peak": 0.3666738271713257,
+      "peak_dbfs": -8.714401769194385,
+      "rms": [
+        0.018266651120833595,
+        0.018266651120833595
+      ],
+      "dc": [
+        -1.845212051600337e-08,
+        -1.845212051600337e-08
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 1.0,
+      "duration": 18.750666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_decay": 0.03
+      },
+      "passed": true,
+      "difference_rms": 0.007887694526998343,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/sequencer_bass/sequencer_bass__decay_min.mel.png",
+        "validation/spectrograms/sequencer_bass/sequencer_bass__decay_min.stft.png"
+      ]
+    },
+    "decay_max": {
+      "file": "validation/renders/sequencer_bass/sequencer_bass__decay_max.wav",
+      "peak": 0.3734791874885559,
+      "peak_dbfs": -8.554671893609779,
+      "rms": [
+        0.02848739892801036,
+        0.02848739892801036
+      ],
+      "dc": [
+        -1.8452370250342627e-08,
+        -1.8452370250342627e-08
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 1.0,
+      "duration": 18.750666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_decay": 0.4
+      },
+      "passed": true,
+      "difference_rms": 0.014730329543095173,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/sequencer_bass/sequencer_bass__decay_max.mel.png",
+        "validation/spectrograms/sequencer_bass/sequencer_bass__decay_max.stft.png"
+      ]
+    },
+    "accent_min": {
+      "file": "validation/renders/sequencer_bass/sequencer_bass__accent_min.wav",
+      "peak": 0.36514967679977417,
+      "peak_dbfs": -8.750581588476734,
+      "rms": [
+        0.020958890187034,
+        0.020958890187034
+      ],
+      "dc": [
+        -1.8452615644825367e-08,
+        -1.8452615644825367e-08
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 1.0,
+      "duration": 18.750666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_accent": 0
+      },
+      "passed": true,
+      "difference_rms": 0.0026225250140281893,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/sequencer_bass/sequencer_bass__accent_min.mel.png",
+        "validation/spectrograms/sequencer_bass/sequencer_bass__accent_min.stft.png"
+      ]
+    },
+    "accent_max": {
+      "file": "validation/renders/sequencer_bass/sequencer_bass__accent_max.wav",
+      "peak": 0.373850017786026,
+      "peak_dbfs": -8.546051887112236,
+      "rms": [
+        0.020963957249535016,
+        0.020963957249535016
+      ],
+      "dc": [
+        -1.8452300981631037e-08,
+        -1.8452300981631037e-08
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.9999999999999998,
+      "duration": 18.750666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_accent": 1
+      },
+      "passed": true,
+      "difference_rms": 0.0008894157772400563,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/sequencer_bass/sequencer_bass__accent_max.mel.png",
+        "validation/spectrograms/sequencer_bass/sequencer_bass__accent_max.stft.png"
+      ]
+    },
+    "drive_min": {
+      "file": "validation/renders/sequencer_bass/sequencer_bass__drive_min.wav",
+      "peak": 0.4078843891620636,
+      "peak_dbfs": -7.789258319767976,
+      "rms": [
+        0.019966309140609404,
+        0.019966309140609404
+      ],
+      "dc": [
+        -1.6595264140532453e-08,
+        -1.6595264140532453e-08
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 0.9999999999999998,
+      "duration": 18.750666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_drive": 1
+      },
+      "passed": true,
+      "difference_rms": 0.001889986286525926,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/sequencer_bass/sequencer_bass__drive_min.mel.png",
+        "validation/spectrograms/sequencer_bass/sequencer_bass__drive_min.stft.png"
+      ]
+    },
+    "drive_max": {
+      "file": "validation/renders/sequencer_bass/sequencer_bass__drive_max.wav",
+      "peak": 0.12445210665464401,
+      "peak_dbfs": -18.09995495005214,
+      "rms": [
+        0.021114451306279137,
+        0.021114451306279137
+      ],
+      "dc": [
+        -2.1024565188649472e-08,
+        -2.1024565188649472e-08
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 1.0,
+      "duration": 18.750666666666667,
+      "finite": true,
+      "overrides": {
+        "ctl_drive": 6
+      },
+      "passed": true,
+      "difference_rms": 0.008745481442480548,
+      "control_audible_change": true,
+      "spectrograms": [
+        "validation/spectrograms/sequencer_bass/sequencer_bass__drive_max.mel.png",
+        "validation/spectrograms/sequencer_bass/sequencer_bass__drive_max.stft.png"
+      ]
+    },
+    "stress": {
+      "file": "validation/renders/sequencer_bass/sequencer_bass__stress.wav",
+      "peak": 0.12345976382493973,
+      "peak_dbfs": -18.169491163225185,
+      "rms": [
+        0.012378098068690935,
+        0.012378098068690935
+      ],
+      "dc": [
+        6.13231522739005e-09,
+        6.13231522739005e-09
+      ],
+      "last_second_peak": 0.0,
+      "stereo_correlation": 1.0,
+      "duration": 21.5,
+      "finite": true,
+      "overrides": {
+        "ctl_release": 1.5,
+        "ctl_resonance": 0.75,
+        "ctl_drive": 6
+      },
+      "passed": true,
+      "spectrograms": [
+        "validation/spectrograms/sequencer_bass/sequencer_bass__stress.mel.png",
+        "validation/spectrograms/sequencer_bass/sequencer_bass__stress.stft.png"
+      ]
+    }
+  },
+  "spectrograms_inspected": true,
+  "listened": false,
+  "passed": true,
+  "spectrogram_settings": {
+    "n_fft": 4096,
+    "hop_length": 512,
+    "n_mels": 128,
+    "fmin": 20,
+    "fmax": 24000,
+    "vmin": -100,
+    "vmax": 0
+  },
+  "review_sheets": [
+    "validation/review/sequencer_bass/attack.mel.png",
+    "validation/review/sequencer_bass/release.mel.png",
+    "validation/review/sequencer_bass/tone.mel.png",
+    "validation/review/sequencer_bass/resonance.mel.png",
+    "validation/review/sequencer_bass/decay.mel.png",
+    "validation/review/sequencer_bass/accent.mel.png",
+    "validation/review/sequencer_bass/drive.mel.png",
+    "validation/review/sequencer_bass/attack.stft.png",
+    "validation/review/sequencer_bass/release.stft.png",
+    "validation/review/sequencer_bass/tone.stft.png",
+    "validation/review/sequencer_bass/resonance.stft.png",
+    "validation/review/sequencer_bass/decay.stft.png",
+    "validation/review/sequencer_bass/accent.stft.png",
+    "validation/review/sequencer_bass/drive.stft.png"
+  ],
+  "visual_review": {
+    "method": "Opened Mel and log-STFT atlas PNGs containing every original two-channel audition, default/control-extreme and stress view.",
+    "observation": "Tight repeated attacks remain distinct; cutoff/resonance/accent change brightness; dry channels match and release ends without a reverb tail.",
+    "images": [
+      {
+        "path": "validation/review/sequencer_bass__mel.png",
+        "sha256": "af2d2325e8421e433ee5485fac5a1162f35aedbe4950c04c6c9f75e9718277af"
+      },
+      {
+        "path": "validation/review/sequencer_bass__stft.png",
+        "sha256": "152a53351f38de406de708c7542077f1f6abcae12bc0d2817ea5ac715fc3e14b"
+      }
+    ]
+  }
+}

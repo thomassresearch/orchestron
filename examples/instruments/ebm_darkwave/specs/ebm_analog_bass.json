@@ -1,0 +1,94 @@
+{
+  "name": "EBM DW — EBM Analog Bass",
+  "description": "Hard dry EBM bass with a snappy resonant filter, quiet octave sub and compensated saturation.",
+  "family": "subtractive",
+  "envelope": {
+    "attack": 0.003,
+    "decay": 0.15,
+    "sustain": 0.35,
+    "release": 0.06
+  },
+  "layers": [
+    {
+      "id": "saw_a",
+      "opcode": "vco2",
+      "gain": 0.13,
+      "mode": 0
+    },
+    {
+      "id": "pulse",
+      "opcode": "vco2",
+      "gain": 0.06,
+      "mode": 2
+    },
+    {
+      "id": "sub",
+      "opcode": "oscili",
+      "gain": 0.12,
+      "table": 1
+    }
+  ],
+  "output": {
+    "pan": 0.5
+  },
+  "design": {
+    "slug": "ebm_analog_bass",
+    "instrument_type": "bass",
+    "register": [
+      28,
+      55
+    ],
+    "output_gain": 0.65,
+    "controls": {
+      "attack": {
+        "label": "Attack (s)",
+        "min": 0.001,
+        "max": 0.5,
+        "default": 0.003,
+        "scale": "logarithmic"
+      },
+      "release": {
+        "label": "Release (s)",
+        "min": 0.02,
+        "max": 1.5,
+        "default": 0.06,
+        "scale": "logarithmic"
+      },
+      "cutoff": {
+        "label": "Cutoff (Hz)",
+        "min": 80,
+        "max": 3000,
+        "default": 380,
+        "scale": "logarithmic"
+      },
+      "resonance": {
+        "label": "Resonance",
+        "min": 0,
+        "max": 0.8,
+        "default": 0.3,
+        "scale": "linear"
+      },
+      "filter_decay": {
+        "label": "Filter Decay (s)",
+        "min": 0.025,
+        "max": 0.5,
+        "default": 0.13,
+        "scale": "logarithmic"
+      },
+      "sub": {
+        "label": "Sub",
+        "min": 0,
+        "max": 1,
+        "default": 0.3,
+        "scale": "linear"
+      },
+      "drive": {
+        "label": "Drive",
+        "min": 1,
+        "max": 8,
+        "default": 2,
+        "scale": "logarithmic"
+      }
+    }
+  }
+}

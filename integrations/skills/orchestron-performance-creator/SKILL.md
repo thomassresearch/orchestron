@@ -1,6 +1,6 @@
 ---
 name: orchestron-performance-creator
-description: Use when creating, editing, importing, validating, committing, or live-testing Orchestron performances through orchestron_cli, including musical structure, score specs, MIDI automation, arpeggiators, patch formulas, bundle imports, and per-instance instrument customization with perf_controller settings.
+description: Create, edit, import, validate, save, and live-test Orchestron performances through orchestron_cli, including musical structure, mixer and Master routing, shared effects, MIDI automation, and per-instance perf_controller settings.
 ---
 
 # Orchestron Performance Creator
@@ -9,7 +9,7 @@ Use this skill to create or edit Orchestron performances through the skill-local
 
 ## CLI Entry Point
 
-From `integrations/skills/orchestron-performance-creator/`:
+From this skill's directory (the installed skill or `integrations/skills/orchestron-performance-creator/`):
 
 ```bash
 uv run orchestron_cli --api-url http://localhost:8000/api -h
@@ -27,7 +27,7 @@ or use the thin wrapper:
 uv run python integrations/skills/orchestron-performance-creator/scripts/orchestron_cli.py --json health
 ```
 
-Use `--json` for agent-readable output and retry hints:
+Use `--json` for agent-readable output (`{"ok":true,"result":...}`) and structured `error.retry` hints:
 
 ```bash
 uv run orchestron_cli --json health
@@ -43,7 +43,7 @@ If the backend is not running, ask the user whether to start it with `make run` 
 4. Start an edit session from an existing performance or a new draft.
 5. Add instruments first, then run `edit instruments list` to discover their stable binding IDs and audio ports.
    For per-performance sound customization, read `references/performance_controllers.md`, discover the patch's controller node IDs, and stage overrides using `edit performance-controllers set`.
-6. Add arbitrary instrument-to-always-on or always-on-to-always-on routes with `edit routes`; use `edit add-standard-effects` only for the standard convenience matrix.
+6. Read `references/effect_routing.md` and `references/mixer.md` to connect main outputs and sends and set strip/return/Master levels. The built-in `$master` needs no patch or rack instance. Use the optional `edit add-standard-effects --send-gain-db -12` only when the user wants dry instruments and reverb feeding a compressor into Master; read `references/standard_effect_patching.md` first. Effects are not mandatory.
 7. Add sequencers/controllers/arpeggiators with explicit flags or a YAML/JSON score spec.
 8. Run `edit validate`; this asks the backend to resolve every source outlet to its target inlet and rejects missing ports, invalid targets, and feedback loops.
 9. Commit only after validation succeeds.
@@ -57,15 +57,17 @@ uv run orchestron_cli --json patches formulas set "Lead Patch" --target filter.x
 uv run orchestron_cli --json performances list
 uv run orchestron_cli --json edit begin --new --name "Agent Sketch"
 uv run orchestron_cli --json edit add-instrument --patch "TB303" --channel 2 --binding-id bass
-uv run orchestron_cli --json edit add-instrument --patch "reverb effect" --binding-id reverb
 uv run orchestron_cli --json edit instruments list
 uv run orchestron_cli --json edit performance-controllers list --binding bass
 # Use an actual node ID reported by the preceding command:
 uv run orchestron_cli --json edit performance-controllers set --binding bass --node attack --value 0.04
 uv run orchestron_cli --json edit performance-controllers reset --binding bass --node attack
-uv run orchestron_cli --json edit routes add --source bass --outlet sendl --target reverb
+# Optional preset, after confirming the reverb/compressor patches exist:
+uv run orchestron_cli --json edit add-standard-effects --send-gain-db -12
 uv run orchestron_cli --json edit routes list
-uv run orchestron_cli --json edit add-standard-effects
+uv run orchestron_cli --json edit mixer list
+uv run orchestron_cli --json edit mixer strip set --binding bass --gain-db -6
+uv run orchestron_cli --json edit mixer strip set --binding '$master' --gain-db -3
 uv run orchestron_cli --json edit add-melodic --channel 2 --steps "s0=C3:min7/4s s4=F3:dom7/4s"
 uv run orchestron_cli --json edit add-melodic --channel 2 --grid-pattern "C3 . . ." --pad-grid-pattern "2=F3 . . ." --pad-loop "A P4 A" --pad-loop-group "A=1 2"
 uv run orchestron_cli --json edit add-drummer --channel 10 --groove backbeat
@@ -89,8 +91,9 @@ CLI and data formats:
 - For YAML/JSON score specs, read `references/score_spec.md`.
 - For `perf_controller` discovery, per-instance overrides, reset, persistence, exports, and live updates, read `references/performance_controllers.md`. These I-rate instrument settings are separate from MIDI CC controllers and controller sequencers.
 - For patch graph input formulas such as `0.1 * in1`, read `references/patch_formulas.md`.
-- For arbitrary always-on effect routing, port discovery, validation, and runtime replacement, read `references/effect_routing.md`.
-- For the standard always-on effect matrix, read `references/standard_effect_patching.md`.
+- For main/send routing, port discovery, Master, direct output, validation, and runtime replacement, read `references/effect_routing.md`.
+- For strip/return/Master gain, balance, mute/solo, stereo send updates, and the TB303 Demo walkthrough, read `references/mixer.md`.
+- For the optional reverb/compressor preset through Master, read `references/standard_effect_patching.md`.
 
 Composition and genre guidance:
 

@@ -1,0 +1,88 @@
+{
+  "name": "EBM DW — Dark PWM Pad",
+  "description": "Shadowy triangle/pulse pad with slow PWM and filter movement, chorus and restrained reverb.",
+  "family": "subtractive",
+  "envelope": {
+    "attack": 1.2,
+    "decay": 2,
+    "sustain": 0.75,
+    "release": 4
+  },
+  "layers": [
+    {
+      "id": "triangle",
+      "opcode": "vco2",
+      "gain": 0.2,
+      "mode": 12
+    },
+    {
+      "id": "pulse",
+      "opcode": "vco2",
+      "gain": 0.15,
+      "mode": 2
+    }
+  ],
+  "output": {
+    "pan": 0.5
+  },
+  "design": {
+    "slug": "dark_pwm_pad",
+    "instrument_type": "melody",
+    "register": [
+      43,
+      79
+    ],
+    "output_gain": 0.5,
+    "controls": {
+      "attack": {
+        "label": "Attack (s)",
+        "min": 0.001,
+        "max": 4,
+        "default": 1.2,
+        "scale": "logarithmic"
+      },
+      "release": {
+        "label": "Release (s)",
+        "min": 0.02,
+        "max": 8,
+        "default": 4,
+        "scale": "logarithmic"
+      },
+      "tone": {
+        "label": "Tone (Hz)",
+        "min": 200,
+        "max": 5000,
+        "default": 1300,
+        "scale": "logarithmic"
+      },
+      "pulse_blend": {
+        "label": "Pulse Blend",
+        "min": 0,
+        "max": 1,
+        "default": 0.55,
+        "scale": "linear"
+      },
+      "motion_depth": {
+        "label": "Motion Depth",
+        "min": 0,
+        "max": 1,
+        "default": 0.45,
+        "scale": "linear"
+      },
+      "motion_rate": {
+        "label": "Motion Rate (Hz)",
+        "min": 0.02,
+        "max": 0.8,
+        "default": 0.13,
+        "scale": "logarithmic"
+      },
+      "space": {
+        "label": "Space",
+        "min": 0,
+        "max": 0.7,
+        "default": 0.3,
+        "scale": "linear"
+      }
+    }
+  }
+}
