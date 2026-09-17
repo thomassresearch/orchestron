@@ -1343,14 +1343,18 @@ def parse_pad_loop_pattern(raw: Any, *, field: str = "pad_loop") -> dict[str, An
         groups = []
         super_groups = []
         root_sequence = parse_pad_loop_sequence(raw, context="root", group_ids=set(), super_group_ids=set(), field=field)
-    if (groups or super_groups) and not root_sequence:
-        raise OrchestronCliError(
-            "pad_loop_root_missing",
-            f"{field} defines groups but no root sequence references them.",
-            path=field,
-            retry=["Add a root sequence such as `A B` or `I P4 I`."],
-        )
-    return {"rootSequence": root_sequence, "groups": groups, "superGroups": super_groups}
+    pattern = {"rootSequence": root_sequence, "groups": groups, "superGroups": super_groups}
+    validate_pad_loop_library(pattern)
+    return pattern
+
+
+def validate_pad_loop_library(pattern: dict[str, Any]) -> None:
+    for items in [pattern["rootSequence"], *(definition["sequence"] for definition in
+                  [*pattern["groups"], *pattern["superGroups"]])]:
+        compile_pad_loop_items(pattern, items, depth=0)
+        for item in items:
+            if item["type"] in {"group", "super"} and not compile_pad_loop_items(pattern, [item], depth=0):
+                raise OrchestronCliError("empty_pad_loop_reference", "Fill a definition before placing it.")
 
 
 def parse_pad_loop_pattern_from_cli(
@@ -1381,13 +1385,9 @@ def parse_pad_loop_pattern_from_cli(
         super_group_ids=super_group_ids,
         field="pad_loop",
     )
-    if (groups or super_groups) and not root:
-        raise OrchestronCliError(
-            "pad_loop_root_missing",
-            "Pad-loop groups require --pad-loop to reference them.",
-            retry=["Add --pad-loop \"A B\" or --pad-loop \"I I\"."],
-        )
-    return {"rootSequence": root, "groups": groups, "superGroups": super_groups}
+    pattern = {"rootSequence": root, "groups": groups, "superGroups": super_groups}
+    validate_pad_loop_library(pattern)
+    return pattern
 
 
 def apply_pad_loop_settings(
@@ -1398,12 +1398,16 @@ def apply_pad_loop_settings(
     repeat: bool,
 ) -> None:
     if pattern is not None:
+        validate_pad_loop_library(pattern)
+        compiled = compile_pad_loop_items(pattern, pattern.get("rootSequence", []), depth=0)
         track["padLoopPattern"] = pattern
-        track["padLoopSequence"] = compile_pad_loop_items(pattern, pattern.get("rootSequence", []), depth=0)[:256]
+        track["padLoopSequence"] = compiled
     if enabled is not None:
         track["padLoopEnabled"] = enabled
     elif pattern is not None and track.get("padLoopSequence"):
         track["padLoopEnabled"] = True
+    if not track.get("padLoopSequence"):
+        track["padLoopEnabled"] = False
     track["padLoopRepeat"] = repeat
 
 
@@ -2660,7 +2664,7 @@ def add_melodic_track_to_config(
     pad_definitions: list[dict[str, Any]] | None = None,
     pad_loop_pattern: dict[str, Any] | None = None,
     pad_loop_enabled: bool | None = None,
-    pad_loop_repeat: bool = True,
+    pad_loop_repeat: bool = False,
 ) -> dict[str, Any]:
     validate_melodic_theory(scale_root=scale_root, scale_type=scale_type, mode=mode)
     active_pad = parse_internal_pad_index(active_pad, field="active_pad")
@@ -2822,7 +2826,7 @@ def add_drummer_track_to_config(
     pad_definitions: list[dict[str, Any]] | None = None,
     pad_loop_pattern: dict[str, Any] | None = None,
     pad_loop_enabled: bool | None = None,
-    pad_loop_repeat: bool = True,
+    pad_loop_repeat: bool = False,
     include_primary_pad: bool = True,
 ) -> dict[str, Any]:
     active_pad = parse_internal_pad_index(active_pad, field="active_pad")
@@ -2933,7 +2937,7 @@ def add_controller_sequencer_to_config(
     pad_definitions: list[dict[str, Any]] | None = None,
     pad_loop_pattern: dict[str, Any] | None = None,
     pad_loop_enabled: bool | None = None,
-    pad_loop_repeat: bool = True,
+    pad_loop_repeat: bool = False,
     include_primary_pad: bool = True,
 ) -> dict[str, Any]:
     active_pad = parse_internal_pad_index(active_pad, field="active_pad")
@@ -3158,7 +3162,7 @@ def has_pad_loop_pattern_content(raw: Any) -> bool:
 
 def score_pad_loop_settings(track_spec: dict[str, Any], *, field: str) -> tuple[dict[str, Any] | None, bool | None, bool]:
     enabled = parse_optional_bool(first_mapping_value(track_spec, "pad_loop_enabled", "padLoopEnabled"), field=f"{field}.pad_loop_enabled")
-    repeat_raw = first_mapping_value(track_spec, "pad_loop_repeat", "padLoopRepeat", default=True)
+    repeat_raw = first_mapping_value(track_spec, "pad_loop_repeat", "padLoopRepeat", default=False)
     repeat = parse_optional_bool(repeat_raw, field=f"{field}.pad_loop_repeat")
     repeat = True if repeat is None else repeat
     raw_loop = first_mapping_value(track_spec, "pad_loop", "padLoop", "pad_loop_pattern", "padLoopPattern")
@@ -3630,10 +3634,12 @@ def compile_pad_loop_sequence(track: dict[str, Any]) -> list[int]:
     if isinstance(pattern, dict):
         compiled = compile_pad_loop_items(pattern, pattern.get("rootSequence", []), depth=0)
         if compiled:
-            return compiled[:256]
+            return compiled
     sequence = track.get("padLoopSequence")
     if isinstance(sequence, list) and sequence:
-        return [int(item) for item in sequence if isinstance(item, int)][:256]
+        if len(sequence) > 256:
+            raise OrchestronCliError("pad_loop_sequence_too_long", "Expanded sequences may contain at most 256 tokens.")
+        return [int(item) for item in sequence if isinstance(item, int)]
     return [int(track.get("activePad", 0))]
 
 
@@ -3656,8 +3662,8 @@ def compile_pad_loop_items(pattern: dict[str, Any], items: Any, *, depth: int) -
                 result.extend(compile_pad_loop_items(pattern, groups.get(item.get("groupId"), []), depth=depth + 1))
             elif item_type == "super":
                 result.extend(compile_pad_loop_items(pattern, supers.get(item.get("superGroupId"), []), depth=depth + 1))
-        if len(result) >= 256:
-            break
+        if len(result) > 256:
+            raise OrchestronCliError("pad_loop_sequence_too_long", "Expanded sequences may contain at most 256 tokens.")
     return result
 
 
@@ -4635,7 +4641,7 @@ def pad_loop_args(args: argparse.Namespace) -> tuple[dict[str, Any] | None, bool
         group_assignments=getattr(args, "pad_loop_group", None),
         super_group_assignments=getattr(args, "pad_loop_super_group", None),
     )
-    return pattern, getattr(args, "pad_loop_enabled", None), bool(getattr(args, "pad_loop_repeat", True))
+    return pattern, getattr(args, "pad_loop_enabled", None), bool(getattr(args, "pad_loop_repeat", False))
 
 
 def melodic_pad_definitions_from_args(args: argparse.Namespace) -> list[dict[str, Any]]:
@@ -5025,7 +5031,7 @@ def add_pad_loop_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--pad-loop-group", action="append", default=[], metavar="ID=SEQUENCE", help="Reusable group definition; may repeat. Example: A='1 2 P4 2'.")
     parser.add_argument("--pad-loop-super-group", action="append", default=[], metavar="ID=SEQUENCE", help="Reusable super-group definition; may repeat. Example: I='A B B A'.")
     parser.add_argument("--pad-loop-enabled", action=argparse.BooleanOptionalAction, default=None, help="Enable pad looper. Defaults on when --pad-loop compiles to a sequence.")
-    parser.add_argument("--pad-loop-repeat", action=argparse.BooleanOptionalAction, default=True, help="Repeat pad-loop sequence. Default: on.")
+    parser.add_argument("--pad-loop-repeat", action=argparse.BooleanOptionalAction, default=False, help="Repeat arrangement sequence. Default: off.")
 
 
 def build_parser() -> argparse.ArgumentParser:

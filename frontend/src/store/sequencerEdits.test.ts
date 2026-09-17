@@ -24,8 +24,9 @@ describe("authored configuration and sounding pads", () => {
     expect(useAppStore.getState().sequencerEditRevision).toBe(before.sequencerEditRevision);
   });
 
-  it("edits the sounding note pad while preserving the saved starting pad and transport", () => {
+  it("edits the selected note pad while preserving the saved starting pad and transport", () => {
     const original = useAppStore.getState().sequencer.tracks[0];
+    useAppStore.getState().selectSequencerEditingPad(original.id, 2);
     useAppStore.getState().syncSequencerRuntime({ isPlaying: true, playhead: 7, cycle: 2,
       tracks: [{ trackId: original.id, activePad: 2, enabled: true, queuedPad: 3 }] });
     const revision = useAppStore.getState().sequencerEditRevision;
@@ -40,12 +41,13 @@ describe("authored configuration and sounding pads", () => {
     expect(view).toMatchObject({ isPlaying: true, playhead: 7, cycle: 2 });
     expect(view.tracks[0]).toMatchObject({ activePad: 2, queuedPad: 3 });
     expect(view.tracks[0].steps).toBe(track.pads[2].steps);
-    expect(state.buildSequencerConfigSnapshot().sequencer.tracks[0].activePad).toBe(2);
+    expect(state.buildSequencerConfigSnapshot().sequencer.tracks[0].activePad).toBe(original.activePad);
   });
 
   it("edits controller curves and observes arpeggiator arrangement additions", () => {
     useAppStore.getState().addControllerSequencer();
     const controller = useAppStore.getState().sequencer.controllerSequencers[0];
+    useAppStore.getState().selectSequencerEditingPad(controller.id, 3);
     useAppStore.getState().syncControllerSequencerRuntime([{ controllerSequencerId: controller.id, activePad: 3 }]);
     const revision = useAppStore.getState().sequencerEditRevision;
     const point = controller.pads[3].keypoints[0];
@@ -97,4 +99,24 @@ describe("authored configuration and sounding pads", () => {
     expect(shouldDeferSequencerPersistence(edited, before, false)).toBe(false);
     expect(shouldDeferSequencerPersistence({ ...edited, performanceName: "Renamed performance" }, before, true)).toBe(false);
   });
+});
+
+it("keeps the chosen edit target through playback changes and does not persist audition overrides", () => {
+  useAppStore.setState(useAppStore.getInitialState(), true);
+  const store = useAppStore.getState();
+  const track = store.sequencer.tracks[0];
+  store.selectSequencerEditingPad(track.id, 4);
+  store.syncSequencerRuntime({ isPlaying: true, tracks: [{ trackId: track.id, activePad: 2, enabled: true }] });
+  useAppStore.setState({ performanceAuditions: { [track.id]: { active: true, queued: null } } });
+  store.setSequencerTrackStepNote(track.id, 0, 78);
+  const edited = useAppStore.getState();
+  expect(edited.sequencer.tracks[0].pads[4].steps[0].note).toBe(78);
+  expect(edited.sequencer.tracks[0].pads[2]).toEqual(track.pads[2]);
+  expect(edited.sequencerEditingPads[track.id]).toBe(4);
+  const snapshot = edited.buildSequencerConfigSnapshot();
+  expect(snapshot.sequencer.tracks[0].activePad).toBe(track.activePad);
+  expect(snapshot.sequencer.tracks[0].enabled).toBe(track.enabled);
+  expect(JSON.stringify(snapshot)).not.toContain("audition");
+  store.setSequencerTrackActivePad(track.id, 4);
+  expect(useAppStore.getState().sequencer.tracks[0].activePad).toBe(4);
 });

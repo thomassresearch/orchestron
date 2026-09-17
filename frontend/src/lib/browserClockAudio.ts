@@ -223,6 +223,10 @@ export class BrowserClockAudioClient {
     });
   }
 
+  async audition(sessionId: string, request: import("../types").SessionAuditionRequest): Promise<SessionSequencerStatus> {
+    return this.sendSequencerRequest(sessionId, { ...request, type: "audition", request_id: nextRequestId() });
+  }
+
   async queuePad(sessionId: string, trackId: string, padIndex: number | null): Promise<SessionSequencerStatus> {
     return this.sendSequencerRequest(sessionId, {
       type: "queue_pad",

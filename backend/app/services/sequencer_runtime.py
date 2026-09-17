@@ -12,6 +12,7 @@ from typing import Protocol
 
 from backend.app.models.session import (
     SessionSequencerConfigRequest,
+    SessionAuditionRequest,
     SessionControllerSequencerTrackStatus,
     SessionSequencerStatus,
     SessionSequencerTimingConfig,
@@ -95,6 +96,11 @@ class SessionSequencerRuntime:
         self._thread: threading.Thread | None = None
 
         self._config: SequencerRuntimeConfig | None = None
+        self._auditions: dict[str, dict[str, Any]] = {}
+        self._audition_simulating = False
+        self._audition_standalone = False
+        self._audition_status_tracks: set[str] = set()
+        self._authored_bounds: tuple[int, int, bool] | None = None
         self._running = False
         self._absolute_subunit = 0
         self._scheduled_visible_subunit = 0
@@ -126,11 +132,23 @@ class SessionSequencerRuntime:
         """Install prepared data at a render boundary without replaying past events."""
         with self._lock:
             previous = self._config
+            identities = set(next_config.tracks) | set(next_config.controller_tracks)
+            self._auditions = {key: value for key, value in self._auditions.items() if key in identities}
+            if self._audition_standalone:
+                self._authored_bounds = (next_config.playback_start_subunit, next_config.playback_end_subunit, next_config.playback_loop)
+                next_config.playback_start_subunit = 0
+                next_config.playback_end_subunit = 2**60
+                next_config.playback_loop = False
             changed_note_tracks: set[str] = set()
             for kind in ("tracks", "controller_tracks"):
                 old_tracks = getattr(previous, kind) if previous else {}
                 for identity, track in getattr(next_config, kind).items():
                     old = old_tracks.get(identity)
+                    audition = self._auditions.get(identity)
+                    if audition:
+                        audition["authored"] = self._authored_track_fields(track)
+                        if audition.get("sequence"):
+                            self._overlay_audition(track, audition["sequence"])
                     compatible = old is not None and (
                         self._phase_signature(old) == self._phase_signature(track)
                         or (isinstance(track, SequencerTrackRuntime) and track.queued_enabled is not None
@@ -144,7 +162,9 @@ class SessionSequencerRuntime:
                     else:
                         if kind == "tracks":
                             changed_note_tracks.add(identity)
-                        self._position_prepared_track(track, self._absolute_subunit)
+                        origin = audition.get("origin", 0) if audition and audition.get("sequence") else 0
+                        self._position_prepared_track(track, max(0, self._absolute_subunit - origin))
+                        track.phase_offset_subunit += origin
                         if old is not None and (
                             track.configured_active_pad == old.configured_active_pad
                             and track.pad_loop_sequence == old.pad_loop_sequence
@@ -161,6 +181,8 @@ class SessionSequencerRuntime:
                             track.queued_enabled = old.queued_enabled
                         if isinstance(track, SequencerTrackRuntime) and track.queued_enabled is not None:
                             track.configured_enabled = track.queued_enabled
+                    if self._audition_standalone and not audition:
+                        track.enabled = False
                     if track.queued_pad not in track.pads:
                         track.queued_pad = None
             self._reposition_changed_sync_tracks(next_config, changed_note_tracks)
@@ -270,6 +292,118 @@ class SessionSequencerRuntime:
             offset -= duration
             phase += duration
 
+    @staticmethod
+    def _authored_track_fields(track):
+        fields = ("configured_enabled", "configured_active_pad", "pad_loop_enabled", "pad_loop_repeat", "pad_loop_sequence")
+        result = {key: getattr(track, key) for key in fields}
+        if isinstance(track, SequencerTrackRuntime):
+            result["sync_to_track_id"] = track.sync_to_track_id
+        return result
+
+    @staticmethod
+    def _overlay_audition(track, sequence):
+        track.pad_loop_enabled = track.pad_loop_repeat = track.configured_enabled = True
+        track.pad_loop_sequence = tuple(sequence)
+        track.queued_pad = None
+        if isinstance(track, SequencerTrackRuntime):
+            track.queued_enabled = None
+            track.sync_to_track_id = None
+
+    def audition_status(self):
+        return {identity: {"active": bool(state.get("sequence")), "queued": state.get("action")}
+                for identity, state in self._auditions.items()}
+
+    def start_audition_clock(self):
+        with self._lock:
+            if self._running:
+                return
+            config = self._ensure_config()
+            self._audition_standalone = True
+            self._authored_bounds = (config.playback_start_subunit, config.playback_end_subunit, config.playback_loop)
+            config.playback_start_subunit = 0
+            # No song is running. Keep its shared clock advancing while definitions repeat.
+            config.playback_end_subunit = 2**60
+            config.playback_loop = False
+            self.start()
+            for track in [*config.tracks.values(), *config.controller_tracks.values()]:
+                track.enabled = False
+
+    def audition(self, request: SessionAuditionRequest) -> SessionSequencerStatus:
+        with self._lock:
+            config = self._ensure_config()
+            all_tracks = {**config.tracks, **config.controller_tracks}
+            # Validate every row before touching any row of a drummer.
+            if any(identity not in all_tracks for identity in request.track_ids):
+                raise ValueError("Audition track is not configured.")
+            targets = [all_tracks[identity] for identity in request.track_ids]
+            if any(token >= 0 and token not in track.pads for track in targets for token in request.sequence):
+                raise ValueError("Audition pad is not configured.")
+            was_running = self._running
+            if not was_running and request.action == "start":
+                self.start_audition_clock()
+            at = max((self._next_track_cycle_boundary_subunit(t, self._absolute_subunit)
+                      for t in targets), default=self._absolute_subunit) if was_running else self._absolute_subunit
+            for track in targets:
+                identity = track.track_id
+                state = self._auditions.get(identity)
+                if request.action == "cancel":
+                    if state:
+                        state.pop("action", None)
+                        if not state.get("sequence"):
+                            del self._auditions[identity]
+                    continue
+                if request.action != "start" and state is None:
+                    continue
+                if state is None:
+                    state = {"authored": self._authored_track_fields(track)}
+                    self._auditions[identity] = state
+                state.update(action=request.action, pending=tuple(request.sequence),
+                    boundary=self._absolute_subunit if request.action == "stop" else at)
+                if request.action == "stop" or at == self._absolute_subunit:
+                    self._apply_audition_command(track, self._absolute_subunit)
+            self._audition_status_tracks.update(request.track_ids)
+            self._reset_render_event_cursor_locked(config)
+            return self._status_locked()
+
+    def _apply_audition_command(self, track, at: int) -> bool:
+        state = self._auditions.get(track.track_id)
+        if self._audition_simulating or not state or not state.get("action") or at < state["boundary"]:
+            return False
+        action = state.pop("action")
+        if isinstance(track, SequencerTrackRuntime):
+            self._release_track_notes_locked(track.track_id, track.midi_channel)
+        else:
+            track.last_value = None
+        if action == "start":
+            state["sequence"] = state["pending"]
+            state["origin"] = at
+            self._overlay_audition(track, state["sequence"])
+            self._position_prepared_track(track, 0)
+            track.phase_offset_subunit += at
+        else:
+            for key, value in state["authored"].items():
+                setattr(track, key, value)
+            self._position_prepared_track(track, at)
+            if action == "stop":
+                track.enabled = False
+            del self._auditions[track.track_id]
+        return True
+
+    def clear_auditions(self, *, stop: bool = False) -> None:
+        with self._lock:
+            config = self._ensure_config()
+            self._audition_status_tracks.update(self._auditions)
+            for identity in list(self._auditions):
+                track = config.tracks.get(identity) or config.controller_tracks.get(identity)
+                if track:
+                    self._auditions[identity].update(action="stop" if stop else "return", boundary=self._absolute_subunit)
+                    self._apply_audition_command(track, self._absolute_subunit)
+            if self._authored_bounds:
+                config.playback_start_subunit, config.playback_end_subunit, config.playback_loop = self._authored_bounds
+            self._authored_bounds = None
+            self._audition_standalone = False
+            self._reset_render_event_cursor_locked(config)
+
     def queue_pad(self, track_id: str, pad_index: int | None) -> SessionSequencerStatus:
         with self._lock:
             config = self._ensure_config()
@@ -377,6 +511,7 @@ class SessionSequencerRuntime:
     def stop(self) -> SessionSequencerStatus:
         thread: threading.Thread | None = None
         with self._lock:
+            self.clear_auditions(stop=True)
             if not self._running:
                 return self._status_locked()
 
@@ -432,15 +567,20 @@ class SessionSequencerRuntime:
                 raise RuntimeError("Render-driven advancement is only available in render_driven mode.")
 
             config = self._ensure_config()
-            if not self._running:
-                return config.timing.tempo_bpm
-
             self._render_block_start_sample = (
                 None if block_start_sample is None else max(0, int(block_start_sample))
             )
 
             self._render_event_delay_seconds = 0.0
             self._render_event_sample = self._render_block_start_sample
+            if self._audition_status_tracks:
+                self._emit_render_transport_event_locked("pad_switches",
+                    self._sequencer_pad_switches_event_payload_locked(config,
+                        [{"track_id": identity} for identity in sorted(self._audition_status_tracks)]))
+                self._audition_status_tracks.clear()
+            if not self._running:
+                self._render_event_delay_seconds = self._render_event_sample = None
+                return config.timing.tempo_bpm
             if self._render_subunit_remainder <= _RENDER_SUBUNIT_EPSILON:
                 self._render_subunit_remainder = 0.0
                 self._perform_render_block_events_locked(config, self._absolute_subunit)
@@ -631,7 +771,7 @@ class SessionSequencerRuntime:
         attacks = [(base + offset, base, index, pad.steps[index]) for offset, index in positions]
         boundary = base + pad.transport_subunit_count
         # An anticipated attack belongs to the upcoming occurrence, not the outgoing one.
-        if pad.note_offsets and pad.note_offsets[0] < 0 and (boundary < config.playback_end_subunit or config.playback_loop):
+        if not self._auditions.get(track.track_id, {}).get("action") and pad.note_offsets and pad.note_offsets[0] < 0 and (boundary < config.playback_end_subunit or config.playback_loop):
             following = self._following_note_track(track, boundary)
             if boundary >= config.playback_end_subunit:
                 following = copy(track)
@@ -825,6 +965,7 @@ class SessionSequencerRuntime:
             switch_payloads.extend(self._advance_controller_tracks_for_next_subunit_locked(config, next_subunit))
             if next_subunit >= config.playback_end_subunit:
                 self._absolute_subunit = config.playback_end_subunit
+                self.clear_auditions(stop=True)
                 self._running = False
                 self._stop_event.set()
                 self._emit_render_transport_event_locked(
@@ -1146,6 +1287,9 @@ class SessionSequencerRuntime:
         _, next_cycle = self._transport_position_locked(config, next_subunit)
 
         for track_id, track in config.tracks.items():
+            if self._apply_audition_command(track, next_subunit):
+                switch_payloads.append({"track_id": track_id, "active_pad": track.active_pad, "cycle": next_cycle})
+                continue
             local_boundary_reached = self._track_cycle_boundary_reached_for_next_subunit(track, next_subunit)
             manual_pad_switch_applied = False
             track_started_on_boundary = False
@@ -1228,7 +1372,7 @@ class SessionSequencerRuntime:
 
         for track_id in config.sync_master_track_ids:
             track = config.tracks.get(track_id)
-            if track is not None and self._track_at_sync_boundary_locked(track, next_subunit):
+            if track_id not in self._auditions and track is not None and self._track_at_sync_boundary_locked(track, next_subunit):
                 sync_master_triggered_ids.add(track_id)
 
         if sync_master_triggered_ids:
@@ -1268,6 +1412,9 @@ class SessionSequencerRuntime:
         _, next_cycle = self._transport_position_locked(config, next_subunit)
 
         for track in config.controller_tracks.values():
+            if self._apply_audition_command(track, next_subunit):
+                switch_payloads.append({"track_id": track.track_id, "active_pad": track.active_pad, "cycle": next_cycle})
+                continue
             local_boundary_reached = self._track_cycle_boundary_reached_for_next_subunit(track, next_subunit)
             manual_pad_switch_applied = False
             if not local_boundary_reached or not track.enabled:
@@ -1479,6 +1626,7 @@ class SessionSequencerRuntime:
             next_controller_change = self._next_controller_change_subunit_locked(track, current_subunit)
             if next_controller_change is not None:
                 candidates.append(next_controller_change)
+        candidates.extend(state["boundary"] for state in self._auditions.values() if state.get("action") and state["boundary"] > current_subunit)
         candidates.append(config.playback_end_subunit)
         return min(candidate for candidate in candidates if candidate > current_subunit)
 
@@ -1498,6 +1646,7 @@ class SessionSequencerRuntime:
             track.queued_pad = None
             self._reset_controller_track_runtime_for_absolute_subunit_locked(track)
 
+        self._audition_simulating = True
         simulated_subunit = 0
         while True:
             next_boundary = self._next_cycle_event_subunit_locked(config, simulated_subunit)
@@ -1532,6 +1681,20 @@ class SessionSequencerRuntime:
                 else None
             )
 
+        self._audition_simulating = False
+        for track in [*config.tracks.values(), *config.controller_tracks.values()]:
+            state = self._auditions.get(track.track_id)
+            if state and state.get("action"):
+                # A seek/wrap is itself a shared boundary. Resolve the queued intent
+                # there, rather than silently discarding a replacement or return.
+                state["boundary"] = normalized_absolute
+                self._apply_audition_command(track, normalized_absolute)
+            elif state and state.get("sequence"):
+                state["origin"] = normalized_absolute
+                self._position_prepared_track(track, 0)
+                track.phase_offset_subunit += normalized_absolute
+            elif self._audition_standalone:
+                track.enabled = False
         self._absolute_subunit = normalized_absolute
         self._scheduled_visible_subunit = normalized_absolute
         self._scheduled_visible_until_time = None
@@ -1671,6 +1834,7 @@ class SessionSequencerRuntime:
                 switch_payloads.extend(self._advance_controller_tracks_for_next_subunit_locked(config, next_subunit))
                 if next_subunit >= config.playback_end_subunit:
                     self._absolute_subunit = config.playback_end_subunit
+                    self.clear_auditions(stop=True)
                     self._running = False
                     self._stop_event.set()
                 else:
@@ -1715,6 +1879,7 @@ class SessionSequencerRuntime:
             "running": self._running,
             "step_count": max(1, config.step_count),
             "transport_subunit": visible_absolute_subunit,
+            "auditions": self.audition_status(),
             "tracks": [
                 {
                     "track_id": track.track_id,
@@ -1991,6 +2156,7 @@ class SessionSequencerRuntime:
 
         return SessionSequencerStatus(
             session_id=self._session_id,
+            auditions=self.audition_status(),
             running=self._running,
             timing=SessionSequencerTimingConfig(
                 tempo_bpm=config.timing.tempo_bpm,

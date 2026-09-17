@@ -1,3 +1,4 @@
+import { arrangementHelp } from "./arrangementHelp";
 import { arpeggiatorHelp } from "./helpDocumentationArpeggiator";
 import { collapsiblePanelHelp } from "./helpDocumentationPanels";
 import { performanceControllerHelp } from "./helpDocumentationPerformanceControllers";
@@ -76,7 +77,6 @@ Program step-based melodic or rhythmic patterns.
 - Set MIDI channel, scale, mode, and adjust each melodic sequencer's own meter/grid timing plus beat ratio.
 - Synchronize a melodic sequencer to another melodic sequencer with \`Sync To\`.
 - Reorder melodic sequencers by dragging the \`::\` handle on each sequencer card.
-- Use pattern pads (P1..P8) for queued pattern changes on running sequencers and instant pattern edits on stopped sequencers.
 - Copy a pattern pad by dragging one pad and dropping it onto another pad (copies notes and pad scale/mode settings).
 - \`Beat Ratio\` changes how fast each sequencer advances against the shared transport without changing the stored pad length, meter, or grid.
 - Pad edge transpose buttons (\`-\` / \`+\`):
@@ -99,7 +99,6 @@ Programmiert schrittbasierte melodische oder rhythmische Patterns.
 - MIDI-Kanal, Skala, Modus, Takt-/Raster-Zeitbasis und Beat-Verhaeltnis jedes melodischen Sequencers setzen.
 - Einen melodischen Sequencer ueber \`Sync zu\` mit einem anderen melodischen Sequencer synchronisieren.
 - Reihenfolge der melodischen Sequencer per Drag-and-drop am \`::\`-Handle jeder Sequencer-Karte aendern.
-- Pattern-Pads (P1..P8) fuer geplante Pattern-Wechsel bei laufenden Sequencern und fuer sofortige Pad-Wechsel bei gestoppten Sequencern nutzen.
 - Ein Pattern-Pad per Drag-and-drop auf ein anderes Pad ziehen, um es zu kopieren (kopiert Noten sowie Pad-Skala/Modus-Einstellungen).
 - Das Beat-Verhaeltnis aendert nur die Abspielgeschwindigkeit gegenueber dem gemeinsamen Transport; gespeicherte Pad-Laenge, Taktart und Raster bleiben gleich.
 - Transpositions-Tasten am Pad-Rand (\`-\` / \`+\`):
@@ -171,7 +170,6 @@ This help applies to one melodic sequencer card.
 - Use this sequencer's meter/grid timing, beat ratio, and pattern-pad length in beats (\`1..8\`), including the current meter numerator when needed.
 - Drag the sequencer \`::\` handle in the header to reorder melodic sequencers in the panel.
 - Clear all steps for the current sequencer.
-- Use pattern pads (P1..P8) to queue changes for a running sequencer or switch immediately when that sequencer is stopped.
 - \`Beat Ratio\` changes playback speed against the shared transport while keeping the stored pad length, meter, and grid unchanged.
 - Use pad transpose buttons for short-click degree transpose (also remaps configured step chords to matching diatonic chord types when available) and long-press tonic/key-step transpose.
 - Edit each step note, hold state, and velocity.
@@ -191,7 +189,6 @@ Diese Hilfe gilt fuer eine einzelne Karte eines melodischen Sequencers.
 - Die Takt-/Raster-Zeitbasis, das Beat-Verhaeltnis und die Pattern-Pad-Laenge in Beats dieses melodischen Sequencers nutzen (\`1..8\`), bei Bedarf direkt inklusive des aktuellen Taktzaehlers.
 - Das \`::\`-Handle in der Kopfzeile ziehen, um melodische Sequencer im Panel umzusortieren.
 - Alle Schritte dieses Sequencers loeschen.
-- Pattern-Pads (P1..P8) verwenden, um laufende Sequencer vorzumerken oder gestoppte Sequencer sofort umzuschalten.
 - Das Beat-Verhaeltnis aendert nur die Abspielgeschwindigkeit gegenueber dem gemeinsamen Transport; gespeicherte Pad-Laenge, Taktart und Raster bleiben gleich.
 - Pad-Transpositionsknöpfe für kurzen Klick (Stufentransposition; aktualisiert konfigurierte Step-Akkorde wenn möglich auf passende diatonische Akkordtypen) und langen Druck (Tonika/Key-Step-Transpose) nutzen.
 - Pro Schritt Note, Hold-Zustand und Velocity bearbeiten.
@@ -211,7 +208,6 @@ Cette aide s'applique a une carte individuelle de sequenceur melodique.
 - Utiliser la mesure/grille, le ratio de temps et la longueur du pad en temps de ce sequenceur (\`1..8\`), avec le numerateur courant propose si besoin.
 - Glisser la poignee \`::\` de l'en-tete pour reordonner les sequenceurs melodiques dans le panneau.
 - Effacer tous les pas de ce sequenceur.
-- Utiliser les pads de pattern (P1..P8) pour mettre en file d'attente un sequenceur en lecture ou changer immediatement un sequenceur arrete.
 - Le ratio de temps change seulement la vitesse de lecture face au transport partage ; la longueur stockee du pad, la mesure et la grille restent identiques.
 - Utiliser les boutons de transposition de pad pour clic court (transposition par degré; met aussi à jour les accords de pas configurés vers des types diatoniques correspondants quand c'est possible) et appui long (tonique / transposition par degré de tonalité).
 - Modifier note, état hold et vélocité pour chaque pas.
@@ -231,7 +227,6 @@ Esta ayuda se aplica a una tarjeta individual de secuenciador melodico.
 - Usa la metrica/cuadricula, la relacion de pulso y la longitud del pad de este secuenciador en pulsos (\`1..8\`), con el numerador actual disponible cuando haga falta.
 - Arrastra el asa \`::\` del encabezado para reordenar los secuenciadores melodicos en el panel.
 - Borra todos los pasos de este secuenciador.
-- Usa pads de patrón (P1..P8) para poner en cola un secuenciador en reproduccion o cambiar de inmediato uno detenido.
 - La relacion de pulso solo cambia la velocidad frente al transporte compartido; la longitud guardada del pad, el compas y la cuadricula siguen iguales.
 - Usa los botones de transposición del pad para clic corto (transposición por grado; también actualiza los acordes configurados del paso a tipos diatónicos correspondientes cuando sea posible) y pulsación larga (tónica / transposición por grado tonal).
 - Edita nota, estado hold y velocidad de cada paso.
@@ -240,74 +235,10 @@ Esta ayuda se aplica a una tarjeta individual de secuenciador melodico.
     }
   },
   sequencer_multitrack_arranger: {
-    english: {
-      title: "Multitrack Arranger",
-      markdown: `## Multitrack Arranger
-
-Arrange melodic, drummer and controller sequencers plus arpeggiators on one shared timeline.
-
-- Use cassette transport to rewind, stop, play, or fast-forward pad-loop-driven sequencers in one-beat blocks.
-- \`Play\` starts sequencers whose \`Pad Looper\` is on and stops sequencers whose \`Pad Looper\` is off so arranger playback stays synchronized.
-- \`Stop\` stops pad-loop-driven sequencers while manually started non-pad-loop sequencers can keep running.
-- Arranger arpeggiators follow Play/Stop, seeks and loops. Each pad has its own duration, independent of its rhythm cycle. Live arpeggiators, piano rolls and manual MIDI controllers stay individually controlled.
-- Drag root-timeline tokens to reorder pads, groups, and super-groups.
-- Use the right-click menu to insert pads, existing groups, or existing super-groups into a matching pause gap or at the end.
-- Copy and paste selected pads, groups, and super-groups from the context menu to duplicate phrases.
-- Click a group or super-group token to open its nested editor and build longer phrases.
-- Click \`Fit\` to show the full length of the longest track without horizontal scrolling and return the view to the start.
-- Use the loop ruler and zoom controls to focus playback on a selected arranger range, down to a single beat.`
-    },
-    german: {
-      title: "Multitrack Arranger",
-      markdown: `## Multitrack Arranger
-
-Ordnet Melodie-, Drummer- und Controller-Sequencer sowie Arpeggiatoren auf einer gemeinsamen Timeline an.
-
-- Mit dem Kassetten-Transport Pad-Loop-gesteuerte Sequencer in Beat-Bloecken zurueckspulen, stoppen, starten oder vorspulen.
-- \`Play\` startet Sequencer mit aktivem \`Pad Looper\` und stoppt Sequencer mit ausgeschaltetem \`Pad Looper\`, damit der Arranger synchron bleibt.
-- \`Stop\` stoppt Pad-Loop-gesteuerte Sequencer; manuell gestartete Sequencer ohne Pad-Loop koennen weiterlaufen.
-- Arpeggiatoren im Arranger-Modus folgen Play/Stop, Positionswechseln und Loops. Jedes Pad hat eine eigene Dauer, unabhaengig vom Rhythmuszyklus. Live-Arpeggiatoren, Piano-Rolls und manuelle MIDI-Controller bleiben einzeln gesteuert.
-- Tokens auf der Root-Timeline ziehen, um Pads, Gruppen und Super-Gruppen neu anzuordnen.
-- Mit dem Rechtsklick-Menue Pads, vorhandene Gruppen oder vorhandene Super-Gruppen in eine passende Pause oder ans Ende einfuegen.
-- Ausgewaehlte Pads, Gruppen und Super-Gruppen per Kontextmenue kopieren und einfuegen, um Phrasen zu duplizieren.
-- Auf ein Gruppen- oder Super-Gruppen-Token klicken, um den verschachtelten Editor fuer laengere Phrasen zu oeffnen.
-- Mit \`Einpassen\` die gesamte Laenge der laengsten Spur ohne horizontales Scrollen anzeigen und die Ansicht an den Anfang setzen.
-- Mit Loop-Lineal und Zoom die Wiedergabe auf einen ausgewaehlten Arranger-Bereich bis hin zu einem einzelnen Beat fokussieren.`
-    },
-    french: {
-      title: "Arrangeur multipiste",
-      markdown: `## Arrangeur multipiste
-
-Organise les sequenceurs melodiques, batterie et controleur ainsi que les arpegiateurs sur une timeline partagee.
-
-- Utiliser le transport cassette pour revenir en arriere, arreter, lancer ou avancer les sequenceurs pilotes par pad looper par blocs d'un temps.
-- \`Play\` demarre les sequenceurs dont le \`Pad Looper\` est actif et arrete ceux dont le \`Pad Looper\` est inactif pour garder l'arrangeur synchronise.
-- \`Stop\` arrete les sequenceurs pilotes par pad looper ; les sequenceurs sans pad looper lances manuellement peuvent continuer.
-- Les arpegiateurs en mode Arrangeur suivent Play/Stop, les changements de position et les boucles. Chaque pad a une duree independante du cycle rythmique. Les arpegiateurs Live, piano rolls et controleurs MIDI manuels restent controles individuellement.
-- Faire glisser les jetons de la timeline principale pour reordonner pads, groupes et super-groupes.
-- Utiliser le menu contextuel pour inserer des pads, des groupes existants ou des super-groupes existants dans une pause adaptee ou a la fin.
-- Copier et coller des pads, groupes et super-groupes selectionnes depuis le menu contextuel pour dupliquer des phrases.
-- Cliquer sur un jeton de groupe ou de super-groupe pour ouvrir son editeur imbrique et construire des phrases plus longues.
-- Cliquer sur \`Ajuster\` pour afficher toute la longueur de la piste la plus longue sans defilement horizontal et revenir au debut.
-- Utiliser la regle de boucle et le zoom pour concentrer la lecture sur une plage choisie de l'arrangeur, jusqu'a un seul temps.`
-    },
-    spanish: {
-      title: "Arreglador multipista",
-      markdown: `## Arreglador multipista
-
-Organiza secuenciadores melodicos, de bateria y de control junto con arpegiadores en una linea de tiempo compartida.
-
-- Usa el transporte tipo casete para rebobinar, detener, reproducir o adelantar secuenciadores guiados por pad looper en bloques de un pulso.
-- \`Play\` inicia los secuenciadores con \`Pad Looper\` activo y detiene los que tienen \`Pad Looper\` apagado para mantener sincronizado el arreglador.
-- \`Stop\` detiene los secuenciadores guiados por pad looper; los secuenciadores sin pad looper iniciados manualmente pueden seguir sonando.
-- Los arpegiadores en modo Arreglador siguen Play/Stop, cambios de posicion y bucles. Cada pad tiene una duracion independiente del ciclo ritmico. Los arpegiadores Live, piano rolls y controladores MIDI manuales siguen controlados individualmente.
-- Arrastra los tokens de la linea principal para reordenar pads, grupos y supergrupos.
-- Usa el menu contextual para insertar pads, grupos existentes o supergrupos existentes en una pausa adecuada o al final.
-- Copia y pega pads, grupos y supergrupos seleccionados desde el menu contextual para duplicar frases.
-- Haz clic en un token de grupo o supergrupo para abrir su editor anidado y construir frases mas largas.
-- Haz clic en \`Ajustar\` para mostrar toda la longitud de la pista mas larga sin desplazamiento horizontal y volver al inicio.
-- Usa la regla de bucle y el zoom para centrar la reproduccion en un rango concreto del arreglador, incluso de un solo pulso.`
-    }
+    english: { title: "Multitrack Arranger", markdown: arrangementHelp.english },
+    german: { title: "Multitrack Arranger", markdown: arrangementHelp.german },
+    french: { title: "Arrangeur multipiste", markdown: arrangementHelp.french },
+    spanish: { title: "Arreglador multipista", markdown: arrangementHelp.spanish }
   },
   sequencer_drummer_sequencer: {
     english: {
@@ -323,7 +254,6 @@ Drum-machine style step sequencer for fixed MIDI drum keys.
 - Set per-cell velocity (0..127) for active hits by clicking and dragging up or down.
 - Active hits show red LEDs; during playback the current-step active LEDs flash green.
 - Use this drummer sequencer's meter/grid timing, beat ratio, and pad lengths in beats (\`1..8\`), including the current meter numerator when needed.
-- Use pattern pads (P1..P8) for queued switching while the drummer sequencer is running, instant switching while it is stopped, and pad-loop sequences.
 - \`Beat Ratio\` changes how fast the row pattern cycles against the shared transport without changing the stored beat length.
 - No chord editing or transposition controls are used in this sequencer type.`
     },
@@ -340,7 +270,6 @@ Drum-Machine-Step-Sequencer fuer feste MIDI-Drum-Keys.
 - Velocity pro Zelle (0..127) fuer aktive Hits durch Klicken und Ziehen nach oben oder unten setzen.
 - Aktive Hits sind rot; beim Abspielen blinken aktive LEDs im aktuellen Schritt gruen.
 - Die Takt-/Raster-Zeitbasis, das Beat-Verhaeltnis und Pad-Laengen dieses Drummer-Sequencers in Beats nutzen (\`1..8\`), bei Bedarf direkt inklusive des aktuellen Taktzaehlers.
-- Pattern-Pads (P1..P8) fuer Warteschlangen-Wechsel waehrend des Laufens, sofortige Wechsel im gestoppten Zustand und beat-basierte Pad-Loop-Sequenzen nutzen.
 - Das Beat-Verhaeltnis aendert nur, wie schnell das Row-Pattern gegenueber dem gemeinsamen Transport laeuft.
 - Keine Akkord- oder Transpositionsfunktionen in diesem Sequencer-Typ.`
     },
@@ -357,7 +286,6 @@ Séquenceur pas à pas type boîte à rythmes pour des touches MIDI fixes.
 - Régler la vélocité par cellule (0..127) pour les frappes actives en cliquant et en faisant glisser vers le haut ou vers le bas.
 - Les frappes actives sont rouges ; en lecture, les LED actives du pas courant clignotent en vert.
 - Utiliser la mesure/grille, le ratio de temps et les longueurs de pad en temps de ce sequenceur batterie (\`1..8\`), avec le numerateur courant propose si besoin.
-- Utiliser les pads de pattern (P1..P8) pour mise en file d'attente pendant la lecture, changement immediat a l'arret et sequences de boucle basees sur les temps.
 - Le ratio de temps change seulement la vitesse du motif de lignes face au transport partage.
 - Pas d'édition d'accords ni de transposition pour ce type de séquenceur.`
     },
@@ -374,7 +302,6 @@ Secuenciador por pasos estilo caja de ritmos para teclas MIDI fijas.
 - Ajusta velocidad por celda (0..127) para golpes activos haciendo clic y arrastrando hacia arriba o hacia abajo.
 - Los golpes activos se muestran en rojo; durante reproducción, los LEDs activos del paso actual parpadean en verde.
 - Usa la metrica/cuadricula, la relacion de pulso y las longitudes de pad en pulsos de este secuenciador de bateria (\`1..8\`), con el numerador actual disponible cuando haga falta.
-- Usa pads de patron (P1..P8) para cambios en cola durante la reproduccion, cambios inmediatos cuando esta detenido y secuencias de bucle basadas en pulsos.
 - La relacion de pulso solo cambia la velocidad del patron de filas frente al transporte compartido.
 - Sin edición de acordes ni controles de transposición en este tipo de secuenciador.`
     }
@@ -634,7 +561,6 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 - \`Meter\`, \`Grid\`, \`Beats\`, and \`Beat Ratio\` belong to each sequencer individually, so one performance can mix different bar lengths and playback speeds.
 - Steps are derived as \`beats * grid\`; a \`4\`-beat pad at grid \`4\` yields \`16\` editable steps.
 - \`Sync To\` lets one sequencer follow another sequencer's cycle boundary instead of free-running against the shared transport.
-- Pattern pad changes queue to the next loop boundary while a sequencer is running, and switch immediately while it is stopped.
 
 ### Step Programming Notes
 
@@ -647,7 +573,6 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 - \`Takt\`, \`Raster\`, \`Beats\` und \`Beat-Verhaeltnis\` gehoeren zu jedem Sequencer einzeln, sodass eine Performance unterschiedliche Taktlaengen und Abspielgeschwindigkeiten mischen kann.
 - Die Schrittzahl ergibt sich aus \`beats * grid\`; ein \`4\`-Beat-Pad mit Raster \`4\` ergibt \`16\` bearbeitbare Schritte.
 - \`Sync zu\` laesst einen Sequencer an der Zyklusgrenze eines anderen Sequencers folgen, statt frei gegen den gemeinsamen Transport zu laufen.
-- Pattern-Pad-Wechsel werden im laufenden Zustand bis zur naechsten Loop-Grenze vorgemerkt und im gestoppten Zustand sofort umgeschaltet.
 
 ### Hinweise zur Step-Programmierung
 
@@ -660,7 +585,6 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 - \`Meter\`, \`Grid\`, \`Beats\` et \`Beat Ratio\` appartiennent a chaque sequenceur individuellement ; une meme performance peut donc melanger plusieurs longueurs de mesure et vitesses de lecture.
 - Le nombre de pas vaut \`beats * grid\` ; un pad de \`4\` temps avec une grille \`4\` donne \`16\` pas editables.
 - \`Sync vers\` permet a un sequenceur de suivre la frontiere de cycle d'un autre sequenceur au lieu de tourner librement sur le transport partage.
-- Les changements de pad sont mis en file jusqu'a la prochaine frontiere de boucle pendant la lecture et s'appliquent immediatement quand le sequenceur est arrete.
 
 ### Notes sur l'edition des pas
 
@@ -673,7 +597,6 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 - \`Meter\`, \`Grid\`, \`Beats\` y \`Beat Ratio\` pertenecen a cada secuenciador por separado, asi que una misma performance puede mezclar longitudes de compas y velocidades distintas.
 - Los pasos se derivan como \`beats * grid\`; un pad de \`4\` pulsos con cuadricula \`4\` produce \`16\` pasos editables.
 - \`Sync con\` permite que un secuenciador siga el limite de ciclo de otro en lugar de correr libremente contra el transporte compartido.
-- Los cambios de pad se ponen en cola hasta el siguiente limite de bucle mientras el secuenciador esta en marcha y cambian al instante cuando esta detenido.
 
 ### Notas sobre la programacion por pasos
 
@@ -686,7 +609,7 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
     english: `### Editing One Sequencer Card
 
 - \`Start\` and \`Stop\` only arm this sequencer; the rack's instrument engine must already be running before notes will sound.
-- \`Clear Steps\` resets the active pattern pad of this sequencer, not every pad in the performance.
+- \`Clear Steps\` resets the selected editing pad of this sequencer, not every pad in the performance.
 - \`Beats\` changes the pad length in beats, while \`Meter\` and \`Grid\` determine how many editable steps fit inside that span.
 
 ### Pads And Copy Behavior
@@ -697,7 +620,7 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
     german: `### Eine Sequencer-Karte bearbeiten
 
 - \`Start\` und \`Stop\` schalten nur diesen Sequencer scharf; die Instrument-Engine des Racks muss bereits laufen, damit Noten hoerbar sind.
-- \`Clear Steps\` setzt nur das aktive Pattern-Pad dieses Sequencers zurueck, nicht alle Pads der Performance.
+- \`Clear Steps\` setzt nur das zur Bearbeitung ausgewählte Pattern-Pad dieses Sequencers zurueck, nicht alle Pads der Performance.
 - \`Beats\` aendert die Pad-Laenge in Beats, waehrend \`Takt\` und \`Raster\` festlegen, wie viele bearbeitbare Schritte in diese Laenge passen.
 
 ### Pad- und Kopierverhalten
@@ -728,56 +651,6 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 - Arrastrar el asa \`::\` de un paso copia datos de nota/acorde/velocidad a otro paso, incluso entre secuenciadores melodicos.
 - La transposicion corta mantiene tonica y modo y mueve las notas por grado; la pulsacion larga mueve la tonica del propio pad.`
   },
-  sequencer_multitrack_arranger: {
-    english: `### Timeline Structure
-
-- Each row represents one melodic, drummer, or controller sequencer and reuses that track's pads, groups, and super-groups.
-- Root tokens \`1..8\`, letter groups, and roman-numeral super-groups all resolve to beat-based spans on the shared playhead.
-- Pause gaps stay hidden in the root overview, but they are recreated automatically whenever timing must be preserved.
-
-### Playback And Editing
-
-- \`Play\` starts tracks whose \`Pad Looper\` is on and stops tracks whose \`Pad Looper\` is off. \`Stop\` stops pad-loop tracks, and double-click \`Stop\` resets to the loop start or beat \`0\` when no manually running track keeps transport active.
-- Right-click menus insert pads/groups into a gap or the sequence end, and \`Copy\` / \`Paste\` duplicate whole phrase blocks.
-- Click anywhere on the loop ruler to clear the loop and move the playhead to that beat. Playback continues if already running; stopped playback stays stopped. Drag to preview a range and release to loop it, including a single beat. If the playhead is outside the new range, it jumps to the range start.
-- Loop range selection constrains playback to the highlighted beat span without rewriting the stored arrangement.`,
-    german: `### Aufbau der Timeline
-
-- Jede Zeile repraesentiert einen melodischen Sequencer, Drummer-Sequencer oder Controller-Sequencer und nutzt dessen Pads, Gruppen und Super-Gruppen.
-- Root-Tokens \`1..8\`, Buchstaben-Gruppen und roemische Super-Gruppen werden alle in beat-basierte Bereiche auf dem gemeinsamen Playhead aufgeloest.
-- Pausenbereiche bleiben in der Root-Uebersicht verborgen, werden aber automatisch wieder erzeugt, sobald das Timing erhalten bleiben muss.
-
-### Wiedergabe und Bearbeitung
-
-- \`Play\` startet Spuren mit aktivem \`Pad Looper\` und stoppt Spuren mit ausgeschaltetem \`Pad Looper\`. \`Stop\` stoppt Pad-Loop-Spuren; Doppelklick auf \`Stop\` setzt auf Loop-Start oder Beat \`0\` zurueck, wenn keine manuell laufende Spur den Transport aktiv haelt.
-- Rechtsklick-Menues fuegen Pads/Gruppen in eine Luecke oder ans Sequenzende ein, und \`Copy\` / \`Paste\` duplizieren ganze Phrasenbloecke.
-- Ein Klick auf die Loop-Leiste loescht den Loop und setzt den Playhead auf diesen Beat. Laufende Wiedergabe geht dort weiter; gestoppte Wiedergabe bleibt gestoppt. Ziehen zeigt den Bereich an, Loslassen aktiviert den Loop, auch fuer einen Beat. Liegt der Playhead ausserhalb, springt er zum Bereichsanfang.
-- Die Loop-Bereichsauswahl begrenzt die Wiedergabe auf den markierten Beat-Bereich, ohne das gespeicherte Arrangement umzuschreiben.`,
-    french: `### Structure de la timeline
-
-- Chaque ligne represente un sequenceur melodique, batterie ou controleur et reutilise les pads, groupes et super-groupes de cette piste.
-- Les jetons racine \`1..8\`, les groupes lettres et les super-groupes en chiffres romains se resolvent tous en segments bases sur les temps du playhead partage.
-- Les silences restent caches dans la vue racine, mais sont recrees automatiquement quand il faut preserver le timing.
-
-### Lecture et edition
-
-- \`Play\` lance les pistes dont le \`Pad Looper\` est actif et arrete celles dont le \`Pad Looper\` est inactif. \`Stop\` arrete les pistes pad-loop ; un double-clic sur \`Stop\` revient au debut de boucle ou au temps \`0\` si aucune piste lancee manuellement ne garde le transport actif.
-- Les menus clic droit inserent pads/groupes dans un vide ou en fin de sequence, et \`Copy\` / \`Paste\` dupliquent des blocs de phrase entiers.
-- Cliquez sur la regle de boucle pour effacer la boucle et placer le playhead sur ce temps. La lecture continue si elle est active ; sinon elle reste arretee. Glissez pour previsualiser une plage, puis relachez pour la repeter, meme sur un seul temps. Si le playhead est hors de la plage, il revient au debut.
-- La selection de boucle limite la lecture a la plage de temps surlignee sans reecrire l'arrangement stocke.`,
-    spanish: `### Estructura de la linea de tiempo
-
-- Cada fila representa un secuenciador melodico, de bateria o controlador y reutiliza los pads, grupos y supergrupos de esa pista.
-- Los tokens raiz \`1..8\`, los grupos con letras y los supergrupos en numeros romanos se resuelven como tramos basados en pulsos sobre el playhead compartido.
-- Los huecos de pausa permanecen ocultos en la vista raiz, pero se recrean automaticamente cuando hace falta conservar el timing.
-
-### Reproduccion y edicion
-
-- \`Play\` inicia las pistas con \`Pad Looper\` activo y detiene las que tienen \`Pad Looper\` apagado. \`Stop\` detiene las pistas con pad looper; el doble clic en \`Stop\` vuelve al inicio del bucle o al pulso \`0\` si ninguna pista iniciada manualmente mantiene activo el transporte.
-- Los menus de clic derecho insertan pads/grupos en un hueco o al final de la secuencia, y \`Copy\` / \`Paste\` duplican bloques completos de frase.
-- Haz clic en la regla de bucle para borrar el bucle y mover el playhead a ese pulso. La reproduccion continua si ya esta activa; si esta detenida, sigue detenida. Arrastra para previsualizar un rango y suelta para repetirlo, incluso de un solo pulso. Si el playhead esta fuera, salta al inicio del rango.
-- La seleccion de rango de bucle limita la reproduccion al tramo resaltado sin reescribir el arreglo guardado.`
-  },
   sequencer_drummer_sequencer: {
     english: `### Row And Hit Model
 
@@ -788,7 +661,6 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 ### Timing And Pads
 
 - \`Meter\`, \`Grid\`, \`Beats\`, and \`Beat Ratio\` work like melodic sequencers, but pad content stores row/hit data instead of note/chord data.
-- Pattern pad changes queue to the next loop boundary while the drummer sequencer is running, and switch immediately while it is stopped.
 - Drummer pads do not use scale, chord, or transpose controls.`,
     german: `### Zeilen- und Hit-Modell
 
@@ -799,7 +671,6 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 ### Timing und Pads
 
 - \`Takt\`, \`Raster\`, \`Beats\` und \`Beat-Verhaeltnis\` funktionieren wie bei melodischen Sequencern, aber der Pad-Inhalt speichert Row-/Hit-Daten statt Noten-/Akkord-Daten.
-- Pattern-Pad-Wechsel werden im laufenden Zustand bis zur naechsten Loop-Grenze vorgemerkt und im gestoppten Zustand sofort umgeschaltet.
 - Drummer-Pads verwenden keine Skalen-, Akkord- oder Transpositionssteuerungen.`,
     french: `### Modele des lignes et impacts
 
@@ -810,7 +681,6 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 ### Timing et pads
 
 - \`Meter\`, \`Grid\`, \`Beats\` et \`Beat Ratio\` fonctionnent comme pour les sequenceurs melodiques, mais le contenu du pad stocke des donnees ligne/impact au lieu de notes/accords.
-- Les changements de pattern pad sont mis en file jusqu'a la prochaine frontiere de boucle pendant la lecture et s'appliquent immediatement a l'arret.
 - Les pads batterie n'utilisent ni gamme, ni accords, ni commandes de transposition.`,
     spanish: `### Modelo de filas y golpes
 
@@ -821,7 +691,6 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 ### Timing y pads
 
 - \`Meter\`, \`Grid\`, \`Beats\` y \`Beat Ratio\` funcionan como en los secuenciadores melodicos, pero el contenido del pad guarda datos de fila/golpe en lugar de notas/acordes.
-- Los cambios de pad se ponen en cola hasta el siguiente limite de bucle mientras el secuenciador de bateria esta en marcha y cambian al instante cuando esta detenido.
 - Los pads de bateria no usan controles de escala, acorde ni transposicion.`
   },
   sequencer_controller_sequencer: {
@@ -1047,5 +916,11 @@ La duración y extensiones HOLD se desplazan con el ataque; el siguiente ataque 
 for (const language of ["english", "german", "french", "spanish"] as const) {
   for (const id of ["sequencer_tracks", "sequencer_drummer_sequencer"] as const) {
     sequencerHelpDocuments[id][language].markdown += "\n\n" + noteTimingHelp[language];
+  }
+}
+
+for (const language of ["english", "german", "french", "spanish"] as const) {
+  for (const id of ["sequencer_tracks", "sequencer_track_editor", "sequencer_drummer_sequencer", "sequencer_controller_sequencer", "sequencer_arpeggiator"] as const) {
+    sequencerHelpDocuments[id][language].markdown += "\n\n" + arrangementHelp[language];
   }
 }

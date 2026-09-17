@@ -654,6 +654,31 @@ class SessionSequencerSeekRequest(BaseModel):
     position_step: int = Field(ge=0)
 
 
+class SessionAuditionRequest(BaseModel):
+    """Session-only override. Never part of a performance or bundle."""
+    action: Literal["start", "cancel", "stop", "return"]
+    track_ids: list[str] = Field(default_factory=list, max_length=128)
+    arpeggiator_id: str | None = Field(default=None, min_length=1, max_length=256)
+    sequence: list[int] = Field(default_factory=list, max_length=256)
+
+    @model_validator(mode="after")
+    def valid_target_and_tokens(self):
+        if bool(self.track_ids) == bool(self.arpeggiator_id):
+            raise ValueError("Specify tracks or one arpeggiator.")
+        if len(set(self.track_ids)) != len(self.track_ids) or any(not i or len(i) > 256 for i in self.track_ids):
+            raise ValueError("Invalid track identifiers.")
+        if self.action == "start" and not self.sequence:
+            raise ValueError("An audition requires a playable sequence.")
+        if any(t not in set(range(8)) | {-1, -2, -4, -8, -16} for t in self.sequence):
+            raise ValueError("Invalid audition token.")
+        return self
+
+
+class BrowserClockAuditionRequest(SessionAuditionRequest):
+    type: Literal["audition"]
+    request_id: str = Field(min_length=1, max_length=128)
+
+
 class SessionSequencerQueuePadRequest(BaseModel):
     pad_index: int | None = Field(default=None, ge=0, le=7)
 
@@ -712,6 +737,7 @@ class SessionArpeggiatorStatus(BaseModel):
 
 
 class SessionSequencerStatus(BaseModel):
+    auditions: dict[str, dict[str, Any]] = Field(default_factory=dict)
     arranger_active: bool = False
     session_id: str
     running: bool

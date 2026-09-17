@@ -6,7 +6,7 @@ An arpeggiator processes MIDI notes and drives an existing rack instrument. Send
 
 ## Start and Synchronize
 
-**Arranger** is the default playback mode. Arranger Play starts arpeggiators with Pad Looper enabled; Stop silences them while independent Live devices and manually started sequencers can continue. Incoming chords join the next subdivision of the shared beat. Chord changes preserve the phrase position. Seeks and selected loop wraps reconstruct the phrase at the destination; finite arrangements stop at their end.
+**Arranger** is the default playback mode. Arranger Play starts arpeggiators with Arrangement as playback source; Stop silences them while independent Live devices and manually started sequencers can continue. Incoming chords join the next subdivision of the shared beat. Chord changes preserve the phrase position. Seeks and selected loop wraps reconstruct the phrase at the destination; finite arrangements stop at their end.
 
 **Live** runs independently while the instrument engine is active. Its Start button can start the engine. The first incoming note establishes the Live clock; subsequent chords retain its pulse. Both modes use global BPM, including tempo changes.
 
@@ -35,9 +35,9 @@ Each pad has two independent lengths:
 
 For example, a five-step rhythm continues across successive four-beat occurrences of P1. Changing to P2 restarts the musical cursors at that launch boundary. Arrangement pauses silence output while still tracking incoming pitches.
 
-Drag one pad onto another to copy its musical variation. Pad Looper supports the same pads, groups, super-groups, pauses and repeat controls as other devices. New arpeggiators repeat P1. Their named arranger lanes contribute to Fit, arrangement bounds, seeking and both CSD exports, including performances containing only arpeggiators.
+Drag one pad onto another to copy its musical variation. The shared phrase library defines groups and supergroups; song placement and repeat controls live in the multitrack arranger. New arpeggiators play P1 once. Their named arranger lanes contribute to Fit, arrangement bounds, seeking and both CSD exports, including performances containing only arpeggiators.
 
-Manual launches use **Next cycle** by default, or **Next master bar**. Stopped launches select immediately. **Cancel launch** removes a queued launch. A manual launch takes over from Pad Looper; **Return to arrangement** restores the pad and phrase at the current transport position.
+In Live mode, pad launches use **Next cycle** by default, or **Next master bar**. Stopped launches select immediately and Cancel launch removes a queued launch. In Arranger mode, pad play buttons audition the definition at the next pad/rest boundary; Return to arrangement restores the authored song at the next boundary.
 
 <!-- pagebreak -->
 
@@ -89,3 +89,6 @@ Versions 1–14 load in memory into the new model. Existing settings become P1; 
 Existing performances adopt Arranger mode, Hold Off, Continue, corrected swing and full-range ordering, so they can sound different. Save/export writes version 16; app-state version 2 and native bundle-envelope version 1 stay unchanged. Runtime positions and held notes are not saved.
 
 **Navigation:** [Up](performance.md) | [Prev](controller_sequencers.md) | [Next](piano_rolls.md)
+
+
+In Arranger mode, use **Audition** for a selected pad or phrase. It repeats temporarily from the next boundary; Return to arrangement restores the current song position at the next boundary. Stop audition stops this device. Audition state is excluded from saves and exports. See [Multitrack Arranger](multitrack_arranger.md).

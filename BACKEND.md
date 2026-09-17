@@ -555,6 +555,7 @@ Supported message types:
 - `claim_controller` opens the controller session and returns the stream configuration.
 - `request_render` asks the backend to render PCM blocks and returns JSON metadata followed by the raw PCM bytes.
 - `manual_midi` forwards a direct MIDI event through the browser-clock controller path.
+- `audition` accepts the same session-only command as `POST /api/sessions/{session_id}/sequencer/audition`, plus `request_id`. `action` is `start`, `cancel`, `stop`, or `return`. Choose `track_ids` (one device; all drummer rows together) or `arpeggiator_id`. Start requires a compiled `sequence` of at most 256 existing pad/pause tokens. Commands run at the render boundary; launches and returns follow the next pad/rest boundary, while Stop is immediate. Seeks/loops resolve pending commands at their destination. Authored configuration stays separate; HTTP acknowledgments and audible PCM markers report `auditions`. No audition state is persisted or exported.
 - `sequencer_start`, `sequencer_stop`, `sequencer_rewind`, and `sequencer_forward` control the sequencer from the browser.
 - `queue_pad` queues a pad switch for the active track.
 - `release_controller` releases browser ownership of the controller session.

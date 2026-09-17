@@ -1,3 +1,5 @@
+import { compileDefinition } from "../lib/arrangementEditing";
+import type { AuditionDevice } from "../components/sequencer/PerformanceAudition";
 import { SequencerConfigSync } from "../lib/sequencerConfigSync";
 import { consumeSequencerEnablementCommands } from "../store/sequencerEdits";
 import { mergedSequencerState } from "../lib/mergedSequencerState";
@@ -11,6 +13,7 @@ import {
 } from "../lib/arrangerTransport";
 import { sequencerTransportStepsPerBeat } from "../lib/sequencer";
 import {
+  drummerRowRuntimeTrackId,
   aggregateDrummerRuntimeTrackLocalSteps,
   aggregateDrummerRuntimeTrackStatuses,
   isSessionNotFoundApiError,
@@ -23,6 +26,9 @@ import {
 } from "../lib/sequencerRuntime";
 import { useAppStore } from "../store/useAppStore";
 import type {
+  SessionAuditionRequest,
+  PadLoopPatternItem,
+  PerformanceAuditionStatus,
   BrowserClockLatencySettings,
   AppPage,
   DrummerSequencerTrackState,
@@ -83,6 +89,7 @@ interface UseSequencerRuntimeControllerParams {
 }
 
 interface UseSequencerRuntimeControllerResult {
+  auditionDevice: AuditionDevice;
   cancelPendingArpeggiatorEdits: () => void;
   browserAudioError: string | null;
   browserAudioDiagnostics: import("../audio/browserClockWorkerProtocol").BrowserClockWorkerDiagnostics | null;
@@ -134,6 +141,16 @@ export function useSequencerRuntimeController({
   syncSequencerRuntime,
   syncSequencerTransportRuntime
 }: UseSequencerRuntimeControllerParams): UseSequencerRuntimeControllerResult {
+  type AuditionDefinition = { item: PadLoopPatternItem; sequence: string; request: SessionAuditionRequest; previous?: AuditionDefinition; replacing?: boolean };
+  const auditionDefinitions = useRef(new Map<string, AuditionDefinition>());
+  const auditionCommandVersion = useRef(new Map<string, number>());
+  const refreshAuditions = useRef<(sessionId: string) => Promise<void>>(async () => {});
+  const workspaceGeneration = useAppStore(state => state.performanceWorkspaceGeneration);
+  useEffect(() => {
+    auditionDefinitions.current.clear();
+
+    useAppStore.setState({ performanceAuditions: {} });
+  }, [activeSessionId, workspaceGeneration]);
   const authoredRevision = useAppStore(state => state.sequencerEditRevision);
   const sequencerSeekPendingRef = useRef(false);
   const configSyncRef = useRef<SequencerConfigSync<SessionSequencerConfigRequest, SessionSequencerStatus> | null>(null);
@@ -284,6 +301,9 @@ export function useSequencerRuntimeController({
 
   const applySequencerStatus = useCallback(
     (status: SessionSequencerStatus, options?: ApplySequencerStatusOptions) => {
+      if (status.auditions) {
+        useAppStore.setState({ performanceAuditions: Object.fromEntries(Object.entries(status.auditions).map(([id, value]) => [parseDrummerRowRuntimeTrackId(id)?.drummerTrackId ?? id, value])) });
+      }
       const preserveLocalEnablement =
         status.running && (options?.preserveLocalEnablement ?? sequencerConfigSyncPendingRef.current);
       const melodicTrackStatuses = status.tracks.filter((track) => parseDrummerRowRuntimeTrackId(track.track_id) === null);
@@ -463,11 +483,20 @@ export function useSequencerRuntimeController({
   applyBrowserClockTransportEventsRef.current = (transportEvents) => {
     const visualTrackingEnabled = activePage === "sequencer" && document.visibilityState === "visible";
     for (const transportEvent of transportEvents) {
+      const auditionStates = (transportEvent.payload as { auditions?: PerformanceAuditionStatus }).auditions;
+      if (auditionStates) {
+        const arpIds = new Set(useAppStore.getState().sequencer.arpeggiators.map(a => a.id));
+        const retained = Object.fromEntries(Object.entries(useAppStore.getState().performanceAuditions).filter(([id]) => transportEvent.kind === "arpeggiators" ? !arpIds.has(id) : arpIds.has(id)));
+        useAppStore.setState({ performanceAuditions: { ...retained, ...Object.fromEntries(Object.entries(auditionStates).map(([id,value]) => [parseDrummerRowRuntimeTrackId(id)?.drummerTrackId ?? id, value])) } });
+      }
+
       if (transportEvent.kind === "arpeggiators") {
         applyArpeggiatorStatus(transportEvent.payload.arpeggiators as SessionArpeggiatorStatus[]);
         continue;
       }
       if (transportEvent.kind === "stopped") {
+        useAppStore.setState({ performanceAuditions: {} });
+        auditionDefinitions.current.clear();
         syncSequencerTransportRuntime({ isPlaying: false });
         continue;
       }
@@ -508,7 +537,7 @@ export function useSequencerRuntimeController({
       (sessionId, payload) => {
         const response = api.configureSessionSequencer(sessionId, payload);
         consumeSequencerEnablementCommands(useAppStore.setState, useAppStore.getState, payload);
-        return response;
+        return response.then(async status => { await refreshAuditions.current(sessionId); return status; });
       },
       status => applySequencerStatusRef.current(status, { preserveLocalEnablement: false }),
       error => configSyncErrorRef.current(error),
@@ -732,6 +761,7 @@ export function useSequencerRuntimeController({
       const currentSequencerState = mergedSequencerState(store.sequencer, store.sequencerRuntime);
       sequencerRef.current = currentSequencerState;
       configSyncRef.current?.baseline(sessionId, store.sequencerEditRevision);
+      if (arrangerActive) auditionDefinitions.current.clear();
       const payload: SessionSequencerStartRequest = {
         arranger_active: arrangerActive,
         config: buildBackendSequencerConfig(store.sequencer),
@@ -892,6 +922,79 @@ export function useSequencerRuntimeController({
     [applySequencerStatus, browserClockClientRef, effectiveAudioOutputMode]
   );
 
+  const auditionDevice = useCallback<AuditionDevice>(async (deviceId, itemOrAction) => {
+    const version = (auditionCommandVersion.current.get(deviceId) ?? 0) + 1;
+    auditionCommandVersion.current.set(deviceId, version);
+    const generation = useAppStore.getState().performanceWorkspaceGeneration;
+    let commandSession: string | null = null;
+    try {
+      const item = typeof itemOrAction === "object" ? itemOrAction : null;
+      const previousDefinition = auditionDefinitions.current.get(deviceId);
+      if (previousDefinition && !useAppStore.getState().performanceAuditions[deviceId]?.queued) {
+        previousDefinition.replacing = false;
+        previousDefinition.previous = undefined;
+      }
+      if (item && useAppStore.getState().activeSessionState !== "running") {
+        void browserClockClientRef.current.prime();
+        await useAppStore.getState().startSession();
+      }
+      const store = useAppStore.getState();
+      const sessionId = store.activeSessionId;
+      commandSession = sessionId;
+      if (!sessionId || store.activeSessionState !== "running") throw new Error(errors.noActiveRuntimeSession);
+      const current = () => useAppStore.getState().activeSessionId === sessionId && useAppStore.getState().performanceWorkspaceGeneration === generation && auditionCommandVersion.current.get(deviceId) === version;
+      const device = [...store.sequencer.tracks, ...store.sequencer.drummerTracks, ...store.sequencer.controllerSequencers, ...store.sequencer.arpeggiators].find(d => d.id === deviceId);
+      if (!device) return;
+      const request: SessionAuditionRequest = { action: item ? "start" : itemOrAction as SessionAuditionRequest["action"],
+        ...("playbackMode" in device ? { arpeggiator_id: deviceId } : { track_ids: "rows" in device ? device.rows.map(row => drummerRowRuntimeTrackId(deviceId, row.id)) : [deviceId] }) };
+      if (item) {
+        request.sequence = compileDefinition(device.padLoopPattern, item);
+        if (!request.sequence.length) return;
+        // Compilation finishes before a new override can replace audible material.
+        configSyncRef.current?.baseline(sessionId, store.sequencerEditRevision);
+        await api.configureSessionSequencer(sessionId, buildBackendSequencerConfig(store.sequencer));
+        if (!current()) return;
+      }
+      const status = effectiveAudioOutputModeRef.current === "browser_clock"
+        ? await browserClockClientRef.current.audition(sessionId, request)
+        : await api.auditionSequence(sessionId, request);
+      if (!current()) return;
+      const transition = status.auditions?.[request.arpeggiator_id ?? request.track_ids?.[0] ?? deviceId];
+      const existing = auditionDefinitions.current.get(deviceId);
+      if (item) auditionDefinitions.current.set(deviceId, { item, sequence: JSON.stringify(request.sequence), request,
+        replacing: transition?.queued === "start",
+        previous: transition?.active && transition.queued === "start" ? existing?.replacing ? existing.previous : existing : undefined });
+      else if (request.action === "stop") auditionDefinitions.current.delete(deviceId);
+      else if (request.action === "cancel" && existing?.replacing) {
+        if (existing.previous) auditionDefinitions.current.set(deviceId, existing.previous);
+        else auditionDefinitions.current.delete(deviceId);
+      }
+      sequencerSessionIdRef.current = sessionId;
+      applySequencerStatus(status);
+    } catch (error) {
+      if (useAppStore.getState().performanceWorkspaceGeneration === generation && auditionCommandVersion.current.get(deviceId) === version && (!commandSession || useAppStore.getState().activeSessionId === commandSession)) setSequencerError(error instanceof Error ? error.message : String(error));
+    }
+  }, [applySequencerStatus, browserClockClientRef, buildBackendSequencerConfig, effectiveAudioOutputModeRef, errors.noActiveRuntimeSession, setSequencerError]);
+
+  refreshAuditions.current = async sessionId => {
+    for (const [id, audition] of auditionDefinitions.current) {
+      if (useAppStore.getState().activeSessionId !== sessionId) return;
+      if (!useAppStore.getState().performanceAuditions[id]) { auditionDefinitions.current.delete(id); continue; }
+      const transition = useAppStore.getState().performanceAuditions[id];
+      if (!transition.queued) { audition.previous = undefined; audition.replacing = false; }
+      if (transition.queued === "return") continue;
+      const seq = useAppStore.getState().sequencer;
+      const device = [...seq.tracks, ...seq.drummerTracks, ...seq.controllerSequencers, ...seq.arpeggiators].find(d => d.id === id);
+      if (!device) { auditionDefinitions.current.delete(id); continue; }
+      const sequence = compileDefinition(device.padLoopPattern, audition.item);
+      if (JSON.stringify(sequence) === audition.sequence) continue;
+      const request = { ...audition.request, action: sequence.length ? "start" as const : "stop" as const, sequence };
+      await api.auditionSequence(sessionId, request);
+      if (sequence.length) audition.sequence = JSON.stringify(sequence);
+      else auditionDefinitions.current.delete(id);
+    }
+  };
+
   const sendDirectMidiEvent = useCallback(
     async (payload: SessionMidiEventRequest, sessionIdOverride?: string): Promise<void> => {
       const sessionId = sessionIdOverride ?? activeSessionId;
@@ -1027,8 +1130,8 @@ export function useSequencerRuntimeController({
     const syncTimer = window.setTimeout(() => {
       void api
         .configureSessionArpeggiators(sessionId, payload)
-        .then((status) => {
-          if (!cancelled) applyArpeggiatorStatus(status);
+        .then(async (status) => {
+          if (!cancelled) { await refreshAuditions.current(sessionId); applyArpeggiatorStatus(status); }
         })
         .catch((syncError) => {
           if (cancelled) return;
@@ -1105,6 +1208,7 @@ export function useSequencerRuntimeController({
   }, []);
 
   return {
+    auditionDevice,
     cancelPendingArpeggiatorEdits,
     browserAudioError,
     browserAudioDiagnostics,

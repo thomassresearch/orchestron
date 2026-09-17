@@ -1,3 +1,4 @@
+import { validateArrangementEdit } from "../lib/arrangementEditing";
 import { normalizeTimingOffset } from "../lib/sequencer";
 import { nextPerformanceDeviceName } from "../lib/performanceDeviceNames";
 import { legacyGainDb, newRoute } from "../lib/audioRouting";
@@ -281,6 +282,8 @@ export function createSequencerTrackStoreActions(
 
         set({
           performanceWorkspaceGeneration: state.performanceWorkspaceGeneration + 1,
+          sequencerEditingPads: {},
+          performanceAuditions: {},
           sequencer: parsed.sequencer,
           sequencerRuntime: sequencerRuntimeStateFromSequencer(parsed.sequencer),
           sequencerInstruments: parsed.instruments,
@@ -1173,7 +1176,7 @@ export function createSequencerTrackStoreActions(
             track.id === trackId
               ? {
                   ...track,
-                  padLoopEnabled: enabled === true
+                  padLoopEnabled: enabled === true && track.padLoopPattern.rootSequence.length > 0
                 }
               : track
           )
@@ -1200,6 +1203,8 @@ export function createSequencerTrackStoreActions(
 
     setSequencerTrackPadLoopPattern: (trackId, pattern) => {
       const sequencer = get().sequencer;
+      const previousPattern = sequencer.tracks.find(item => item.id === trackId)?.padLoopPattern;
+      if (previousPattern) validateArrangementEdit(previousPattern, pattern);
       const normalizedPattern = normalizePadLoopPatternForState(pattern);
       set({
         sequencer: {
@@ -1209,6 +1214,7 @@ export function createSequencerTrackStoreActions(
               ? {
                   ...track,
                   padLoopPattern: normalizedPattern.padLoopPattern,
+                  padLoopEnabled: normalizedPattern.padLoopPattern.rootSequence.length > 0 && (track.padLoopEnabled || track.padLoopPattern.rootSequence.length === 0),
                   padLoopSequence: normalizedPattern.padLoopSequence
                 }
               : track
@@ -1240,6 +1246,7 @@ export function createSequencerTrackStoreActions(
             return {
               ...track,
               padLoopPattern: normalizedPattern.padLoopPattern,
+              padLoopEnabled: normalizedPattern.padLoopPattern.rootSequence.length > 0 && (track.padLoopEnabled || track.padLoopPattern.rootSequence.length === 0),
               padLoopSequence: normalizedPattern.padLoopSequence
             };
           })
@@ -1273,6 +1280,7 @@ export function createSequencerTrackStoreActions(
             return {
               ...track,
               padLoopPattern: normalizedPattern.padLoopPattern,
+              padLoopEnabled: normalizedPattern.padLoopPattern.rootSequence.length > 0 && (track.padLoopEnabled || track.padLoopPattern.rootSequence.length === 0),
               padLoopSequence: normalizedPattern.padLoopSequence
             };
           })
@@ -1790,7 +1798,7 @@ export function createSequencerTrackStoreActions(
             track.id === trackId
               ? {
                   ...track,
-                  padLoopEnabled: enabled === true
+                  padLoopEnabled: enabled === true && track.padLoopPattern.rootSequence.length > 0
                 }
               : track
           )
@@ -1817,6 +1825,8 @@ export function createSequencerTrackStoreActions(
 
     setDrummerSequencerTrackPadLoopPattern: (trackId, pattern) => {
       const sequencer = get().sequencer;
+      const previousPattern = sequencer.drummerTracks.find(item => item.id === trackId)?.padLoopPattern;
+      if (previousPattern) validateArrangementEdit(previousPattern, pattern);
       const normalizedPattern = normalizePadLoopPatternForState(pattern);
       set({
         sequencer: {
@@ -1826,6 +1836,7 @@ export function createSequencerTrackStoreActions(
               ? {
                   ...track,
                   padLoopPattern: normalizedPattern.padLoopPattern,
+                  padLoopEnabled: normalizedPattern.padLoopPattern.rootSequence.length > 0 && (track.padLoopEnabled || track.padLoopPattern.rootSequence.length === 0),
                   padLoopSequence: normalizedPattern.padLoopSequence
                 }
               : track
@@ -1857,6 +1868,7 @@ export function createSequencerTrackStoreActions(
             return {
               ...track,
               padLoopPattern: normalizedPattern.padLoopPattern,
+              padLoopEnabled: normalizedPattern.padLoopPattern.rootSequence.length > 0 && (track.padLoopEnabled || track.padLoopPattern.rootSequence.length === 0),
               padLoopSequence: normalizedPattern.padLoopSequence
             };
           })
@@ -1890,6 +1902,7 @@ export function createSequencerTrackStoreActions(
             return {
               ...track,
               padLoopPattern: normalizedPattern.padLoopPattern,
+              padLoopEnabled: normalizedPattern.padLoopPattern.rootSequence.length > 0 && (track.padLoopEnabled || track.padLoopPattern.rootSequence.length === 0),
               padLoopSequence: normalizedPattern.padLoopSequence
             };
           })

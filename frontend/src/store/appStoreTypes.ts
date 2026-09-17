@@ -71,6 +71,9 @@ export interface AppStore {
   sequencer: SequencerState;
   sequencerRuntime: SequencerRuntimeState;
   sequencerEditRevision: number;
+  performanceAuditions: import("../types").PerformanceAuditionStatus;
+  sequencerEditingPads: Record<string, number>;
+  selectSequencerEditingPad: (id: string, pad: number) => void;
   sequencerInstruments: SequencerInstrumentBinding[];
   audioGraph: AudioGraph;
   mixer: MixerState;

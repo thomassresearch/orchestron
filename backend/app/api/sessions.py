@@ -17,6 +17,7 @@ from backend.app.models.session import (
     SessionArpeggiatorStatus,
     SessionSequencerConfigRequest,
     SessionSequencerQueuePadRequest,
+    SessionAuditionRequest,
     SessionSequencerStartRequest,
     SessionSequencerSeekRequest,
     SessionSequencerStatus,
@@ -227,3 +228,9 @@ async def bind_midi_input(
 async def delete_session(session_id: str, container: AppContainer = Depends(get_container)) -> Response:
     await container.session_service.delete_session(session_id)
     return Response(status_code=204)
+
+
+@router.post("/{session_id}/sequencer/audition", response_model=SessionSequencerStatus)
+async def audition_sequence(session_id: str, request: SessionAuditionRequest,
+                            container: AppContainer = Depends(get_container)) -> SessionSequencerStatus:
+    return await container.session_service.audition_session(session_id, request)

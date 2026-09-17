@@ -16,6 +16,7 @@ const config = configFixture as SessionSequencerConfigRequest;
 const buildConfig = vi.fn(() => config);
 const buildArpeggiators = vi.fn(() => ({ tempo_bpm: 120, arpeggiators: [] }));
 const setError = vi.fn();
+const audition = vi.fn();
 const errors = { noActiveRuntimeSession: "Missing runtime", startInstrumentsFirstForSequencer: "Start first",
   noActiveInstrumentSessionForSequencer: "Missing session", failedToStartSequencer: "Start failed",
   failedToSyncSequencerStatus: "Sync failed", failedToUpdateSequencerConfig: "Config failed",
@@ -42,7 +43,8 @@ beforeEach(() => {
   useAppStore.setState(useAppStore.getInitialState(), true);
   useAppStore.getState().applySequencerConfigSnapshot(fixture.config);
   useAppStore.setState({ activeSessionId: "session", activeSessionState: "running" });
-  const client = { connect: vi.fn().mockResolvedValue(undefined), stopSequencer: vi.fn().mockResolvedValue(status(0, false)) };
+  audition.mockReset().mockResolvedValue({ ...status(0), auditions: {} });
+  const client = { audition, connect: vi.fn().mockResolvedValue(undefined), stopSequencer: vi.fn().mockResolvedValue(status(0, false)) };
   const browser = { browserClockClientRef: { current: client as unknown as ReturnType<typeof useBrowserClockAudioController>["browserClockClientRef"]["current"] }, browserAudioError: null, browserAudioDiagnostics: null,
     browserAudioStatus: "live" as const, browserAudioTransport: "browser_clock" as const,
     disconnectBrowserAudio: noop, disconnectBrowserClockAudio: noop, displayedSequencerTransportSubunit: 0, readPlaybackTransportSubunit: () => null,
@@ -103,4 +105,31 @@ it("ignores a seek response after Stop", async () => {
   await act(() => result.current.stopSequencerTransport(false));
   await act(async () => { respond(status(24)); await seek; });
   expect(useAppStore.getState().sequencerRuntime.isPlaying).toBe(false);
+});
+
+
+it("cancels a launch that is still preparing without sending a stale audition", async () => {
+  let prepared!: (value: SessionSequencerStatus) => void;
+  vi.mocked(api.configureSessionSequencer).mockImplementationOnce(() => new Promise(resolve => { prepared = resolve; }));
+  const { result } = setup(true);
+  const id = useAppStore.getState().sequencer.tracks[0].id;
+  let start!: Promise<void>;
+  act(() => { start = result.current.auditionDevice(id, { type: "pad", padIndex: 1 }); });
+  await act(() => result.current.auditionDevice(id, "cancel"));
+  await act(async () => { prepared(status(0)); await start; });
+  expect(audition).toHaveBeenCalledExactlyOnceWith("session", { action: "cancel", track_ids: [id] });
+  expect(useAppStore.getState().performanceAuditions).toEqual({});
+});
+
+it("ignores audition responses from a replaced performance workspace", async () => {
+  let respond!: (value: SessionSequencerStatus) => void;
+  audition.mockImplementationOnce(() => new Promise(resolve => { respond = resolve; }));
+  const { result } = setup(true);
+  const id = useAppStore.getState().sequencer.tracks[0].id;
+  let start!: Promise<void>;
+  await act(async () => { start = result.current.auditionDevice(id, { type: "pad", padIndex: 1 }); await Promise.resolve(); });
+  act(() => { useAppStore.setState(state => ({ performanceWorkspaceGeneration: state.performanceWorkspaceGeneration + 1 })); });
+  await act(async () => { respond({ ...status(24), auditions: { [id]: { active: true, queued: null } } }); await start; });
+  expect(useAppStore.getState().performanceAuditions).toEqual({});
+  expect(useAppStore.getState().sequencerRuntime.transportSubunit).not.toBe(24 * 420);
 });

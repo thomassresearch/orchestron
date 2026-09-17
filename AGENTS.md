@@ -96,8 +96,12 @@ it measures cold, cached, and one-pad preparation using the versioned TB303 test
 - Tempo is global; sequencers retain independent meter, grid, and rational beat ratios.
   Preserve polymeter/polyrhythm without floating-point clock drift. Note and controller pads
   switch at loop boundaries; arpeggiators run in the backend with unique input MIDI channels.
-- Arranger Play starts Pad Looper-enabled sequencers and stops others. Arranger Stop preserves
-  manually started non-pad-loop sequencers and the rack engine. Piano-roll Start is independent
+- Arranger alone edits song order. Playback source uses `padLoopEnabled`; lane end behavior
+  uses `padLoopRepeat`. Delete leaves equivalent rests; closing time is explicit. Retain unused
+  definitions and trailing rests. See the arranger reference for hierarchy and import fallback.
+- Audition is session-only, boundary-applied, and uses the shared clock. Save/export reads
+  authored state. Arranger Play clears auditions and starts Arrangement tracks; Stop clears
+  auditions and preserves independently started Manual pads tracks and the rack engine. Piano-roll Start is independent
   of arranger playback; retain the documented seek/reset behavior.
 - Rack/topology changes lock while instruments run; mixer controls remain live. Direct output
   bypasses Master but retains strip controls. Legacy Level migrates to dB audio gain, not velocity.

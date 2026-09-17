@@ -130,3 +130,16 @@ def test_cli_mixer_roundtrip_push_and_graph_validation_with_master_insert(tmp_pa
             "targetId": "compressor", "targetPort": "left", "kind": "custom", "sourceStage": "strip", "targetStage": "input"})
         with pytest.raises(cli.OrchestronCliError):
             api.post("/sessions/validate-instruments", cli.session_audio_request(broken))
+
+
+def test_cli_accepts_definition_library_without_song_and_rejects_expansion_overflow():
+    pattern = cli.parse_pad_loop_pattern_from_cli(root_sequence=None, group_assignments=["A=1 P2"], super_group_assignments=["I=A P4"])
+    assert pattern["rootSequence"] == []
+    assert cli.compile_pad_loop_items(pattern, pattern["superGroups"][0]["sequence"], depth=0) == [0, -2, -4]
+    track = {"activePad": 0, "padLoopEnabled": True}
+    cli.apply_pad_loop_settings(track, pattern=pattern, enabled=True, repeat=False)
+    assert not track["padLoopEnabled"]
+    assert track["padLoopPattern"]["groups"]
+    huge = {"groups": [{"id": "A", "sequence": [{"type": "pad", "padIndex": 0}] * 129}], "superGroups": []}
+    with pytest.raises(cli.OrchestronCliError, match="256"):
+        cli.compile_pad_loop_items(huge, [{"type": "group", "groupId": "A"}] * 2, depth=0)

@@ -6677,3 +6677,56 @@ def test_note_timing_survives_storage_and_native_bundle(tmp_path: Path, archive_
         actual = imported.json()["performance"]["config"]
         assert actual["version"] == 16
         assert actual["sequencer"]["drummerTracks"] == config["sequencer"]["drummerTracks"]
+
+
+def test_audition_api_is_session_only_and_validates_batches_before_application(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        session_id = _create_running_session(client, patch_name="Audition API")
+        prefix = f"/api/sessions/{session_id}/sequencer"
+        config = {"timing": _sequencer_timing(), "playback_end_step": 128, "tracks": [
+            {"track_id": "lead", "midi_channel": 1, "enabled": False, "pad_loop_enabled": True,
+             "pad_loop_repeat": False, "pad_loop_sequence": [0, -4],
+             "pads": [{"pad_index": 0, "length_beats": 4, "steps": [{"note": 60}]}]}]}
+        assert client.put(f"{prefix}/config", json=config).status_code == 200
+        for invalid in [[], [8], [-3], [0] * 257]:
+            response = client.post(f"{prefix}/audition", json={"action": "start", "track_ids": ["lead"], "sequence": invalid})
+            assert response.status_code == 422
+        response = client.post(f"{prefix}/audition", json={"action": "start", "track_ids": ["lead", "missing"], "sequence": [0]})
+        assert response.status_code == 422
+        assert client.get(f"{prefix}/status").json()["auditions"] == {}
+        response = client.post(f"{prefix}/audition", json={"action": "start", "track_ids": ["lead"], "sequence": [0, -2]})
+        assert response.status_code == 200, response.text
+        assert response.json()["auditions"]["lead"]["active"]
+        assert client.post(f"{prefix}/stop").json()["auditions"] == {}
+        assert client.post(f"{prefix}/start", json={"config": config, "arranger_active": True}).json()["auditions"] == {}
+
+
+def test_browser_clock_audition_commands_and_audible_status(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        session_id = _create_running_session(client, patch_name="Audition browser clock")
+        base = f"/api/sessions/{session_id}/sequencer"
+        config = {"tracks": [{"track_id": "lead", "enabled": False,
+            "pads": [{"pad_index": 0, "steps": [{"note": 60}]}]}]}
+        assert client.put(base + "/config", json=config).status_code == 200
+        with client.websocket_connect(f"/ws/sessions/{session_id}/browser-clock") as socket:
+            socket.send_json({"type": "claim_controller", "audio_context_sample_rate": 48000,
+                "queue_low_water_frames": 1024, "queue_high_water_frames": 2048, "max_blocks_per_request": 8})
+            assert socket.receive_json()["type"] == "stream_config"
+            socket.send_json({"type": "audition", "request_id": "first", "action": "start",
+                "track_ids": ["lead"], "sequence": [0, -2]})
+            response = socket.receive_json()
+            assert response["request_id"] == "first"
+            assert response["sequencer_status"]["auditions"]["lead"]["active"]
+            socket.send_json({"type": "request_render", "block_count": 8})
+            metadata = socket.receive_json()
+            socket.receive_bytes()
+            assert any(event["payload"].get("auditions", {}).get("lead", {}).get("active")
+                for event in metadata["transport_events"])
+            for action, expected in [("start", "start"), ("cancel", None), ("return", "return"), ("cancel", None)]:
+                socket.send_json({"type": "audition", "request_id": action, "action": action,
+                    "track_ids": ["lead"], "sequence": [0] if action == "start" else []})
+                status = socket.receive_json()["sequencer_status"]
+                assert status["auditions"]["lead"] == {"active": True, "queued": expected}
+            socket.send_json({"type": "audition", "request_id": "stop", "action": "stop", "track_ids": ["lead"]})
+            status = socket.receive_json()["sequencer_status"]
+            assert status["auditions"] == {} and not status["running"]

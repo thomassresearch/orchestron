@@ -42,7 +42,7 @@ Each drummer sequencer card provides:
 - `Grid` (`2`, `4`, or `8`, steps per beat)
 - `Beat Ratio` (`1:1`, `2:1`, `3:2`, `4:3`, `3:4`, `5:4`, `4:5`, `7:4`)
 - `Beats` (`1..8`, with the current meter numerator exposed directly)
-- Pad Looper controls (same concept as melodic sequencers)
+- Playback source and reusable phrase library (same as melodic sequencers)
 
 ## Drum Rows (`Keys`)
 
@@ -110,7 +110,7 @@ Use **Left/Right** arrow keys for timing and **Up/Down** for velocity. Right-cli
 
 The performance CLI can discover tracks with `edit sequencers list` and inspect or change offsets with `edit step-timing list|set|reset`. Pads use 1–8; steps are zero-based. YAML/JSON scores also support per-note timing. See the [skill timing reference](../../integrations/skills/orchestron-performance-creator/references/step_timing.md) for the full workflow and examples.
 
-## Pattern Pads and Pad Looper
+## Pattern Pads and Reusable Phrases
 
 Drummer sequencers support the same `P1..P8` pattern-pad workflow as melodic sequencers.
 
@@ -120,7 +120,7 @@ Drummer pad length is stored in beats, while meter, grid, and beat ratio are con
 
 This keeps drummer pads beat-based while still allowing one-bar patterns in odd meters such as `3/4`, `5/4`, or `7/8` by matching the pad beat count to the meter, while `Beat Ratio` changes how fast the row pattern cycles against the shared transport without changing the stored beat length.
 
-They also support pad-loop sequences (`Pad Looper`, `Repeat`, pad sequence list).
+Edit pad contents and reusable groups/supergroups here. Place them only in the multitrack arranger. Playback source chooses Arrangement or Manual pads; repetition is set in the arranger lane. Click selects a pad; Launch pad or Audition starts it explicitly.
 
 Differences vs melodic sequencer pads:
 
@@ -139,6 +139,6 @@ Differences vs melodic sequencer pads:
 - Kick / snare / hat step programming
 - Percussion layers with multiple rows
 - Switching between groove variations using pattern pads
-- Automating drum pattern changes with pad looper while performing on piano roll/controllers
+- Automating drum pattern changes with the arranger while performing on piano roll/controllers
 
 **Navigation:** [Up](performance.md) | [Prev](sequencer_tracks_and_steps.md) | [Next](pattern_pads_and_pad_looper.md)

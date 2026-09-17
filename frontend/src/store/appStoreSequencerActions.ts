@@ -30,6 +30,7 @@ export function createSequencerStoreActions(
   get: AppStoreGet,
 ): SequencerStoreActions {
   const edit = sequencerEditAccess(set, get);
+  const playback = sequencerEditAccess(set, get, false);
   const transport = createTransportStoreActions(set, get);
   const controls = createPerformanceControlStoreActions(set, get);
   return {
@@ -49,6 +50,10 @@ export function createSequencerStoreActions(
     ...createSequencerTrackStoreActions(edit.set, edit.get),
     ...createPerformanceControlStoreActions(edit.set, edit.get),
     ...createTransportStoreActions(edit.set, edit.get),
+    setSequencerTrackActivePad: createSequencerTrackStoreActions(playback.set, playback.get).setSequencerTrackActivePad,
+    setDrummerSequencerTrackActivePad: createSequencerTrackStoreActions(playback.set, playback.get).setDrummerSequencerTrackActivePad,
+    setControllerSequencerActivePad: createPerformanceControlStoreActions(playback.set, playback.get).setControllerSequencerActivePad,
+    buildSequencerConfigSnapshot: createSequencerTrackStoreActions(set, get).buildSequencerConfigSnapshot,
     applySequencerConfigSnapshot: createSequencerTrackStoreActions(set, get).applySequencerConfigSnapshot,
     syncSequencerRuntime: transport.syncSequencerRuntime,
     syncSequencerTransportRuntime: transport.syncSequencerTransportRuntime,

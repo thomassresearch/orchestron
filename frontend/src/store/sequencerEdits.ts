@@ -1,7 +1,7 @@
 import type { StoreApi } from "zustand";
 import type { SequencerState, SequencerTrackPlaybackState, SessionSequencerConfigRequest } from "../types";
 import { parseDrummerRowRuntimeTrackId } from "../lib/sequencerRuntime";
-import { mergedSequencerState } from "../lib/mergedSequencerState";
+import { mergedSequencerState, playbackTrack } from "../lib/mergedSequencerState";
 import type { AppStore } from "./appStoreTypes";
 
 const playbackKeys = ["activePad", "queuedPad", "queuedEnabled", "enabled", "padLoopPosition", "runtimePadStartSubunit"] as const;
@@ -29,9 +29,16 @@ function changedFields(authored: object, displayed: object, edited: object): Rec
   return result;
 }
 
-/** Editors read the sounding pad; only their changes are committed to authorship. */
-export function sequencerEditAccess(set: StoreApi<AppStore>["setState"], get: () => AppStore) {
-  const read = (): AppStore => { const state = get(); return { ...state, sequencer: mergedSequencerState(state.sequencer, state.sequencerRuntime) }; };
+/** Project explicit editor targets without changing authored or sounding pad selection. */
+export function sequencerEditingView(state: SequencerState, selections: Record<string, number>): SequencerState {
+  const project = <T extends { id: string; activePad: number; pads: object[] }>(track: T): T =>
+    selections[track.id] === undefined ? track : playbackTrack(track, { activePad: selections[track.id] });
+  return { ...state, tracks: state.tracks.map(project), drummerTracks: state.drummerTracks.map(project), controllerSequencers: state.controllerSequencers.map(project) };
+}
+
+/** Only edits to the displayed pad are committed; editor selection is never playback intent. */
+export function sequencerEditAccess(set: StoreApi<AppStore>["setState"], get: () => AppStore, editSelection = true) {
+  const read = (): AppStore => { const state = get(); return { ...state, sequencer: sequencerEditingView(mergedSequencerState(state.sequencer, state.sequencerRuntime), editSelection ? { ...Object.fromEntries([...state.sequencer.tracks, ...state.sequencer.drummerTracks, ...state.sequencer.controllerSequencers].map(t => [t.id, t.activePad])), ...state.sequencerEditingPads } : {}) }; };
   const write: StoreApi<AppStore>["setState"] = (update) => {
     const state = get();
     const displayed = read();

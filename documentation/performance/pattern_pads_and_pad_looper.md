@@ -1,219 +1,31 @@
-# Pattern Pads, Queued Switching, and Pad Looper
+# Pattern Pads and Reusable Phrases
 
 **Navigation:** [Up](performance.md) | [Prev](drummer_sequencers.md) | [Next](multitrack_arranger.md)
 
-Pattern pads are the per-track pattern banks (`P1..P8`). They support live switching, copying, and pad-loop sequencing for melodic, drummer, and controller sequencers (with transposition available on melodic sequencer pads only).
+Each sequencer has eight pattern slots, P1–P8. Click a pad to select it for editing. Playback and queued launches never change this editing selection. The Playing and Queued indicators show what is sounding separately.
 
-## Arpeggiator Variations
+## Pad contents
 
-Arpeggiators also have eight pads and the same Pad Looper/group editing conventions. Each pad stores a complete musical variation. Its 1–32-step rhythm is independent of its 1–8 or 16 master-beat arrangement duration. Click a pad to edit; use its play button to queue a launch at the next cycle or master bar. Repeated identical pads continue the phrase; a changed pad restarts it. Manual launch takes over until **Return to arrangement**. See [Arpeggiators](arpeggiators.md).
+Melodic pads store notes, chords, holds, timing offsets and theory settings. Drummer pads store hits and velocities for each row. Controller pads store automation curves. Arpeggiator pads store complete musical variations and rhythm steps.
 
-## Pattern Pads Overview
+Pad lengths are 1–8 local beats for melodic and drummer devices, and 1–8 or 16 beats for controller and arpeggiator devices. Arpeggiator durations use master beats. Meter, grid and beat ratio belong to the owning sequencer; tempo is shared.
 
-Each melodic sequencer, drummer sequencer, and controller sequencer contains 8 pattern pads:
+Drag one pad onto another to copy it explicitly. Melodic pad edge buttons transpose by a scale degree on a short press, or change the diatonic key on a long press. Drummer and controller pads do not use these transpose controls.
 
-- `P1` to `P8`
-- one active pad
-- optional queued pad during live playback
+## Reusable groups and supergroups
 
-Pad length is stored per pad in beats:
+The **Patterns and phrases** library has explicit New group and New supergroup actions. Groups use letter IDs and contain pads/rests. Supergroups use Roman numeral IDs and contain pads/rests/groups. Song order is edited only in the [arranger](multitrack_arranger.md), whose Edit action opens this same definition editor.
 
-- melodic sequencer pads: `1..8` beats
-- drummer sequencer pads: `1..8` beats
-- controller sequencer pads: `1..8` beats, plus `16` beats
+Choose a definition to edit its contents. Add items, select them, drag to reorder, or delete to close up the phrase. Deleting inside a definition changes the phrase itself; it does not leave an absolute-time gap. Definition edits affect every occurrence. Duration changes shift following song material, as stated in the editor.
 
-Meter and grid belong to the owning sequencer instance, not to individual pads.
+Unused definitions remain in the library through save/load and import/export. Empty definitions are valid drafts but cannot be placed or auditioned. A referenced definition cannot be emptied: remove its occurrences and references first. **Delete definition** is disabled while the arrangement or another definition uses it; the library lists those uses. Removing or ungrouping a song occurrence leaves the definition intact.
 
-The pad-length controls keep the common musical shortcuts (`1`, `2`, `4`, `8`) visible and also expose the owning sequencer's current meter numerator directly, so a `3/4`, `5/4`, or `7/8` sequencer can reach a one-bar pad length without leaving the beat-based model.
+A pattern container and its expanded sequence may contain at most 256 tokens. Over-limit edits fail as a whole rather than dropping musical content. Pause lengths remain 1, 2, 4, 8 and 16 beats; longer visible rests combine these existing tokens.
 
-Each pad stores the pattern content for that track:
+## Playback source and audition
 
-- melodic sequencers: step notes/holds and related pad theory state used by pad operations
-- drummer sequencers: per-row drum hits and per-hit velocities
-- controller sequencers: controller curve/keypoint patterns
+**Playback source: Arrangement** follows the song timeline. Its Stop/Repeat-at-end option lives in the arranger lane. **Manual pads** enables a separate Launch pad action for jamming. Selection alone never starts sound.
 
-## Pad States
+In Arrangement mode, use **Audition** for a pad or phrase. It temporarily replaces only that track at the next boundary and repeats independently of its saved repeat setting. With transport stopped it starts only this track, using the normal instrument startup flow. **Return to arrangement** restores the authored song at the current position on the next boundary; **Stop audition** stops the track. See the [arranger transport contract](multitrack_arranger.md#playback-and-audition).
 
-Pad buttons use visual states to indicate:
-
-- Active pad
-- Queued pad (will switch on loop boundary)
-- Idle pad
-
-## Live Pad Switching
-
-Pad press behavior depends on transport state:
-
-- When sequencer transport is stopped: pad selection changes immediately
-- When sequencer transport is running and that sequencer is also running: the pad switch is queued and applied on the next loop boundary, restarting the new pad at step `0`
-- When sequencer transport is running but that sequencer is stopped: pad selection still changes immediately for editing
-
-This avoids mid-pattern timing glitches and keeps pattern changes musical.
-
-## Pad Copy (Drag-and-Drop)
-
-You can copy one pad onto another by dragging and dropping pad buttons.
-
-What gets copied:
-
-- step note/hold data
-- pad scale/mode settings used by pad-aware behavior (as documented in the integrated help)
-
-This is the fastest way to create variations.
-
-## Pad Edge Transpose Buttons (`-` / `+`) (Melodic Sequencer Pads)
-
-Melodic sequencer pad buttons include small edge buttons for transposition.
-
-Drummer sequencer pads do **not** include transpose edge buttons.
-
-### Short Press (Quick Click)
-
-- Transposes stored notes within the current scale by one degree up/down
-- Keeps the same scale root and mode
-
-Use this for quick harmonic variants of the same pattern.
-
-### Long Press (Hold, about 350 ms)
-
-- Performs a diatonic key-step transpose (moves pad tonic/root to adjacent scale degree)
-- Keeps the mode
-- Updates the pad scale root accordingly
-
-Use this to move the pattern to a new key center while preserving mode character.
-
-## Pad Looper (Pad Sequence)
-
-Each track includes a **Pad Looper** section that can play a sequence of pattern tokens automatically.
-
-Controls:
-
-- `Pad Looper: On/Off`
-- `Repeat: On/Off`
-- Pad Sequence entry area
-
-### Building The Pad Sequence
-
-You can add pad steps to the pad-loop sequence by:
-
-- Clicking the sequence area and pressing keyboard `1..8`
-- Dragging pad buttons into the sequence area
-
-### Pause Tokens (Silence Patterns)
-
-The pad looper supports explicit silence tokens:
-
-- `P1`
-- `P2`
-- `P4`
-- `P8`
-- `P16`
-
-Each token inserts a pause segment for the given number of beats.
-
-How to use them:
-
-- Click a pause token button to append it to the current sequence editor
-- Drag a pause token into root, group, or super-group sequences
-
-Pause tokens are always available in the editor token list, even when not used anywhere in the pattern.
-
-### Sequence Display
-
-The pad sequence area shows:
-
-- ordered sequence tokens (pads, pauses, groups, super-groups)
-- remove (`x`) button per sequence item
-- current pad-loop position highlight while running
-
-### Nested Pad Sequences (Groups and Super-Groups)
-
-The pad looper now supports **nested pattern sequences** on all sequencer types.
-
-You can build reusable structures in two hierarchy levels:
-
-- **Groups** labeled with capital letters (`A`, `B`, `C`, ...)
-- **Super-groups** labeled with roman numerals (`I`, `II`, `III`, ...)
-
-This lets you create sequences such as:
-
-- root sequence: `A B B A`
-- where `A` and `B` are reusable grouped pad patterns
-
-#### Creating Groups / Super-Groups
-
-- In the pad sequence editor, select multiple sequence items (Ctrl/Cmd-click)
-- Right-click to open the context menu
-- Choose:
-  - `Group` to create a lettered group
-  - `Super-group` to create a roman-numeral super-group (from selected groups)
-
-#### Editing Groups (Reference-Based)
-
-- Click a group (`A`) or super-group (`II`) to open/edit it
-- The selected group expands into its own editable sequence area
-- Changes are stored by reference, so **all occurrences** of that group/super-group in the root sequence use the updated content
-
-You can edit grouped content by:
-
-- reordering items (drag-and-drop)
-- adding pads (`1..8` or drag pad buttons)
-- adding pause tokens (`P1`, `P2`, `P4`, `P8`, `P16`)
-- removing items
-- ungrouping selected items back inline
-
-#### Recursion / Hierarchy Rules
-
-To prevent recursive pattern definitions, hierarchy rules are enforced:
-
-- groups can contain pads and pause tokens
-- super-groups can contain pads, pause tokens, and groups
-- root sequence can contain pads, pause tokens, groups, and super-groups
-- same-level or higher-level nesting is blocked
-
-#### Playback Highlighting (Nested)
-
-While the sequencer is running, the pad looper highlights:
-
-- the currently playing item in the **root sequence**
-- the active group/super-group reference when the runtime position is inside it
-- the currently playing item **inside an opened group/super-group editor**
-
-#### Visual Color Coding
-
-Nested pad-sequence tokens are color-coded by hierarchy:
-
-- pads: green shades
-- pauses (`P1`, `P2`, `P4`, `P8`, `P16`): cyan shades
-- groups (`A`, `B`, `C`, ...): orange shades
-- super-groups (`I`, `II`, `III`, ...): violet shades
-
-### Repeat Toggle
-
-- `Repeat: On` loops the pad sequence continuously
-- `Repeat: Off` runs through the programmed pad sequence once and then stops that sequencer
-- `Pad Looper: Off` leaves the sequencer on its current pad instead of stepping through the pad sequence
-
-## When To Use Pad Looper vs Manual Pad Presses
-
-Use manual pad presses for performance improvisation.
-
-Use pad looper when you want:
-
-- repeatable song-form-like pattern changes
-- scripted variation cycles
-- hands-free movement through pad banks while you play piano rolls/controllers
-
-## Screenshots
-
-<p align="center">
-  <img src="../../screenshots/perform_pattern_pads_pad_looper_transpose.png" alt="Pattern pads and pad looper" width="900" style="max-width: 100%; height: auto;" />
-</p>
-<p align="center"><em>Pattern pads with transpose edge buttons and pad-loop sequence controls.</em></p>
-
-<p align="center">
-  <img src="../../screenshots/perform_sequencers_nested_pattern_pad_sequences.png" alt="Nested pad-loop sequences with groups and super-groups" width="900" style="max-width: 100%; height: auto;" />
-</p>
-<p align="center"><em>Nested pad-loop editor with reusable groups (A, B, C, ...) and super-groups (I, II, III, ...).</em></p>
-
-**Navigation:** [Up](performance.md) | [Prev](drummer_sequencers.md) | [Next](multitrack_arranger.md)
+Arpeggiators in independent Live mode keep their existing cycle/bar launch quantization. Their Arranger mode uses the shared definition library and temporary audition.

@@ -1,9 +1,11 @@
+import { PerformanceAuditionControls } from "./sequencer/PerformanceAudition";
+import { sequencerEditingView } from "../store/sequencerEdits";
 import { NoteTimingControl, noteTimingCopy, timingDescription } from "./sequencer/NoteTimingControl";
 import { normalizeTimingOffset } from "../lib/sequencer";
 import { ArpeggiatorEditor } from "./sequencer/ArpeggiatorEditor";
 import { MidiChannelSelector } from "./sequencer/MidiChannelSelector";
 import { useAppStore } from "../store/useAppStore";
-import { PerformanceEditorProvider, usePerformanceEditorState, RetainedScroll, type EditorOwner } from "./sequencer/PerformanceEditorState";
+import { OpenArrangerContext, PerformanceEditorProvider, usePerformanceEditorState, RetainedScroll, type EditorOwner } from "./sequencer/PerformanceEditorState";
 import { PerformanceDeviceName } from "./sequencer/PerformanceDeviceName";
 import { performanceDeviceDisplayName, type PerformanceDeviceKind } from "../lib/performanceDeviceNames";
 import { CollapsiblePanel } from "./CollapsiblePanel";
@@ -799,7 +801,7 @@ export function SequencerPage(props: SequencerPageProps) {
     ...[...props.data.sequencer.tracks, ...props.data.sequencer.drummerTracks, ...props.data.sequencer.controllerSequencers, ...props.data.sequencer.arpeggiators, ...props.data.sequencer.pianoRolls, ...props.data.sequencer.midiControllers].map(device => `device:${device.id}` as const),
     ...props.data.instrumentBindings.map(binding => `binding:${binding.id}` as const),
     ...routes.map(route => `route:${route.id}` as const)];
-  return <PerformanceEditorProvider key={generation} owners={owners}><SequencerPageContent {...props} /></PerformanceEditorProvider>;
+  return <PerformanceEditorProvider key={generation} owners={owners}><OpenArrangerContext.Provider value={() => props.onPanelCollapsedChange("arranger", false)}><SequencerPageContent {...props} /></OpenArrangerContext.Provider></PerformanceEditorProvider>;
 }
 function SequencerPageContent(props: SequencerPageProps) {
   const context = useSequencerPageContext(props);
@@ -1059,6 +1061,19 @@ function SequencerPageContent(props: SequencerPageProps) {
             onDrummerSequencerTrackPadLoopPatternChange={onDrummerSequencerTrackPadLoopPatternChange}
             onControllerSequencerPadLoopPatternChange={onControllerSequencerPadLoopPatternChange}
             onArpeggiatorPadLoopPatternChange={(id, pattern) => context.onArpeggiatorChange(id, { padLoopPattern: pattern })}
+            onPlaybackChange={(kind, id, source, repeat) => {
+              if (kind === "sequencer") { context.onSequencerTrackPadLoopEnabledChange(id, source); context.onSequencerTrackPadLoopRepeatChange(id, repeat); }
+              else if (kind === "drummer") { context.onDrummerSequencerTrackPadLoopEnabledChange(id, source); context.onDrummerSequencerTrackPadLoopRepeatChange(id, repeat); }
+              else if (kind === "controller") { context.onControllerSequencerPadLoopEnabledChange(id, source); context.onControllerSequencerPadLoopRepeatChange(id, repeat); }
+              else context.onArpeggiatorChange(id, { padLoopEnabled: source, padLoopRepeat: repeat });
+            }}
+            onEditPad={kind => onPanelCollapsedChange(kind === "sequencer" ? "melodic" : kind === "drummer" ? "drummer" : kind === "controller" ? "controller" : "arpeggiators", false)}
+            onPadCopy={(kind, id, from, to) => {
+              if (kind === "sequencer") context.onSequencerPadCopy(id, from, to);
+              else if (kind === "drummer") context.onDrummerSequencerPadCopy(id, from, to);
+              else if (kind === "controller") context.onControllerSequencerPadCopy(id, from, to);
+              else { const arp = context.sequencer.arpeggiators.find(a => a.id === id); if (arp) context.onArpeggiatorChange(id, { pads: arp.pads.map((p, i) => i === to ? structuredClone(arp.pads[from]) : p) }); }
+            }}
             onHelpRequest={onHelpRequest}
           />
         ) : null}
@@ -1348,7 +1363,7 @@ function RackBody({ context }: { context: ReturnType<typeof useSequencerPageCont
 
 function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequencerPageContext> }) {
   const {
-    sequencer,
+    sequencer: playbackSequencer,
     scaleTypeLabels,
     modeLabels,
     ui,
@@ -1394,6 +1409,16 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
     onSequencerTrackStepTimingOffsetChange,
     onSequencerPadTransposeLong,
   } = context;
+  const editingPads = useAppStore(state => state.sequencerEditingPads);
+  const selectEditingPad = useAppStore(state => state.selectSequencerEditingPad);
+  const authored = useAppStore(state => state.sequencer);
+  const sequencer = sequencerEditingView(playbackSequencer, editingPads);
+  useEffect(() => {
+    for (const track of [...authored.tracks, ...authored.drummerTracks, ...authored.controllerSequencers]) {
+      if (editingPads[track.id] === undefined) selectEditingPad(track.id, track.activePad);
+    }
+  }, [authored, editingPads, selectEditingPad]);
+
   const [stepSelectPreview, setStepSelectPreview] = usePerformanceEditorState<Record<string, string>>("page", "stepSelectPreview", {});
   const padTransposePressRef = useRef<Record<string, { timerId: number; longPressTriggered: boolean }>>({});
   const padTransposePressKey = useCallback((trackId: string, padIndex: number, direction: -1 | 1) => {
@@ -1488,15 +1513,16 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
         const absoluteTransportSubunit = sequencer.isPlaying
           ? sequencerTransportSubunit
           : sequencerAbsoluteTransportStepValue(sequencer) * sequencerTransportSubunitsPerStep();
-        const localPlayhead = displayedLocalStepFromPlayback(
+        const localPlayhead = sequencer.isPlaying && playbackSequencer.tracks.find(t => t.id === track.id)?.activePad !== track.activePad ? -1 : displayedLocalStepFromPlayback(
           track,
           absoluteTransportSubunit,
-          sequencer.isPlaying
+          sequencer.isPlaying && playbackSequencer.tracks.find(t => t.id === track.id)?.activePad === track.activePad
         );
 
         return (
           <article
             key={track.id}
+            id={`sequencer-${track.id}`}
             onDragOver={(event) => {
               if (!dragEventHasMimeType(event, SEQUENCER_TRACK_DRAG_MIME)) {
                 return;
@@ -1740,8 +1766,10 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
                 </div>
               </div>
 
+              <PerformanceAuditionControls id={track.id} language={guiLanguage} editingPad={track.activePad} playingPad={playbackSequencer.tracks.find(t => t.id === track.id)?.activePad} queuedPad={track.queuedPad} playing={sequencer.isPlaying && track.enabled} item={{ type: "pad", padIndex: track.activePad }} manualLaunch={track.padLoopEnabled ? undefined : () => { onSequencerPadPress(track.id, track.activePad); if (!sequencer.isPlaying || !track.enabled) onSequencerTrackEnabledChange(track.id, true); }} />
               <PadLoopPatternEditor
                 ui={ui}
+                guiLanguage={guiLanguage}
                 hostId={track.id}
                 track={track}
                 stepsPerBeat={sequencerTransportStepsPerBeat(track.timing)}
@@ -1782,7 +1810,7 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
                       <button
                         type="button"
                         draggable
-                        onClick={() => onSequencerPadPress(track.id, padIndex)}
+                        onClick={() => selectEditingPad(track.id, padIndex)}
                         onDragStart={(event) => {
                           const payload = JSON.stringify({ trackId: track.id, padIndex });
                           event.dataTransfer.effectAllowed = "copy";
@@ -2236,7 +2264,7 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
 
 function DrummerSequencersBody({ context }: { context: ReturnType<typeof useSequencerPageContext> }) {
   const {
-    sequencer,
+    sequencer: playbackSequencer,
     sequencerTransportSubunit,
     onHelpRequest,
     guiLanguage,
@@ -2273,6 +2301,16 @@ function DrummerSequencersBody({ context }: { context: ReturnType<typeof useSequ
     onDrummerSequencerCellVelocityChange,
     onDrummerSequencerCellTimingOffsetChange,
   } = context;
+  const editingPads = useAppStore(state => state.sequencerEditingPads);
+  const selectEditingPad = useAppStore(state => state.selectSequencerEditingPad);
+  const authored = useAppStore(state => state.sequencer);
+  const sequencer = sequencerEditingView(playbackSequencer, editingPads);
+  useEffect(() => {
+    for (const track of [...authored.tracks, ...authored.drummerTracks, ...authored.controllerSequencers]) {
+      if (editingPads[track.id] === undefined) selectEditingPad(track.id, track.activePad);
+    }
+  }, [authored, editingPads, selectEditingPad]);
+
   const [timingTarget, setTimingTarget] = useState<{ trackId: string; rowId: string; step: number; padIndex: number } | null>(null);
   const [drummerVelocityDragState, setDrummerVelocityDragState] = useState<DrummerVelocityDragState | null>(null);
   const drummerLedDragRef = useRef<{
@@ -2381,16 +2419,17 @@ function DrummerSequencersBody({ context }: { context: ReturnType<typeof useSequ
         const absoluteTransportSubunit = sequencer.isPlaying
           ? sequencerTransportSubunit
           : sequencerAbsoluteTransportStepValue(sequencer) * sequencerTransportSubunitsPerStep();
-        const localPlayhead = displayedLocalStepFromPlayback(
+        const localPlayhead = sequencer.isPlaying && playbackSequencer.drummerTracks.find(t => t.id === track.id)?.activePad !== track.activePad ? -1 : displayedLocalStepFromPlayback(
           track,
           absoluteTransportSubunit,
-          sequencer.isPlaying
+          sequencer.isPlaying && playbackSequencer.drummerTracks.find(t => t.id === track.id)?.activePad === track.activePad
         );
         const trackIsRunning = sequencer.isPlaying && track.enabled;
 
         return (
           <article
             key={track.id}
+            id={`sequencer-${track.id}`}
             className="relative rounded-xl border border-slate-700 bg-slate-900/70 p-2.5 pr-10"
           >
             {onHelpRequest ? (
@@ -2545,8 +2584,10 @@ function DrummerSequencersBody({ context }: { context: ReturnType<typeof useSequ
                 </div>
               </div>
 
+              <PerformanceAuditionControls id={track.id} language={guiLanguage} editingPad={track.activePad} playingPad={playbackSequencer.drummerTracks.find(t => t.id === track.id)?.activePad} queuedPad={track.queuedPad} playing={sequencer.isPlaying && track.enabled} item={{ type: "pad", padIndex: track.activePad }} manualLaunch={track.padLoopEnabled ? undefined : () => { onDrummerSequencerPadPress(track.id, track.activePad); if (!sequencer.isPlaying || !track.enabled) onDrummerSequencerTrackEnabledChange(track.id, true); }} />
               <PadLoopPatternEditor
                 ui={ui}
+                guiLanguage={guiLanguage}
                 hostId={track.id}
                 track={track}
                 stepsPerBeat={sequencerTransportStepsPerBeat(track.timing)}
@@ -2580,7 +2621,7 @@ function DrummerSequencersBody({ context }: { context: ReturnType<typeof useSequ
                       <button
                         type="button"
                         draggable
-                        onClick={() => onDrummerSequencerPadPress(track.id, padIndex)}
+                        onClick={() => selectEditingPad(track.id, padIndex)}
                         onDragStart={(event) => {
                           const payload = JSON.stringify({ trackId: track.id, padIndex });
                           event.dataTransfer.effectAllowed = "copy";
@@ -2823,7 +2864,7 @@ function DrummerSequencersBody({ context }: { context: ReturnType<typeof useSequ
 
 function ControllerSequencersBody({ context }: { context: ReturnType<typeof useSequencerPageContext> }) {
   const {
-    sequencer,
+    sequencer: playbackSequencer,
     onHelpRequest,
     guiLanguage,
     renderDeviceName,
@@ -2857,15 +2898,26 @@ function ControllerSequencersBody({ context }: { context: ReturnType<typeof useS
     onControllerSequencerKeypointChange,
     onControllerSequencerKeypointRemove,
   } = context;
+  const editingPads = useAppStore(state => state.sequencerEditingPads);
+  const selectEditingPad = useAppStore(state => state.selectSequencerEditingPad);
+  const authored = useAppStore(state => state.sequencer);
+  const sequencer = sequencerEditingView(playbackSequencer, editingPads);
+  useEffect(() => {
+    for (const track of [...authored.tracks, ...authored.drummerTracks, ...authored.controllerSequencers]) {
+      if (editingPads[track.id] === undefined) selectEditingPad(track.id, track.activePad);
+    }
+  }, [authored, editingPads, selectEditingPad]);
+
 
   return <>
     <div className="space-y-3">
       {sequencer.controllerSequencers.map((controllerSequencer, controllerSequencerIndex) => {
-        const controllerSequencerIsRunning = sequencer.isPlaying && controllerSequencer.enabled;
+        const controllerSequencerIsRunning = sequencer.isPlaying && controllerSequencer.enabled && playbackSequencer.controllerSequencers.find(t => t.id === controllerSequencer.id)?.activePad === controllerSequencer.activePad;
 
         return (
           <article
             key={controllerSequencer.id}
+            id={`sequencer-${controllerSequencer.id}`}
             className="relative rounded-xl border border-slate-700 bg-slate-900/70 p-2.5 pr-10"
           >
             {onHelpRequest ? (
@@ -3040,8 +3092,10 @@ function ControllerSequencersBody({ context }: { context: ReturnType<typeof useS
                 CC {controllerSequencer.controllerNumber}
               </div>
 
+              <PerformanceAuditionControls id={controllerSequencer.id} language={guiLanguage} editingPad={controllerSequencer.activePad} playingPad={playbackSequencer.controllerSequencers.find(t => t.id === controllerSequencer.id)?.activePad} queuedPad={controllerSequencer.queuedPad} playing={sequencer.isPlaying && controllerSequencer.enabled} item={{ type: "pad", padIndex: controllerSequencer.activePad }} manualLaunch={controllerSequencer.padLoopEnabled ? undefined : () => { onControllerSequencerPadPress(controllerSequencer.id, controllerSequencer.activePad); if (!sequencer.isPlaying || !controllerSequencer.enabled) onControllerSequencerEnabledChange(controllerSequencer.id, true); }} />
               <PadLoopPatternEditor
                 ui={ui}
+                guiLanguage={guiLanguage}
                 hostId={controllerSequencer.id}
                 track={controllerSequencer}
                 stepsPerBeat={sequencerTransportStepsPerBeat(controllerSequencer.timing)}
@@ -3085,7 +3139,7 @@ function ControllerSequencersBody({ context }: { context: ReturnType<typeof useS
                       key={`${controllerSequencer.id}-pad-${padIndex}`}
                       type="button"
                       draggable
-                      onClick={() => onControllerSequencerPadPress(controllerSequencer.id, padIndex)}
+                      onClick={() => selectEditingPad(controllerSequencer.id, padIndex)}
                       onDragStart={(event) => {
                         const payload = JSON.stringify({ trackId: controllerSequencer.id, padIndex });
                         event.dataTransfer.effectAllowed = "copy";
@@ -3134,7 +3188,7 @@ function ControllerSequencersBody({ context }: { context: ReturnType<typeof useS
               ui={ui}
               controllerSequencer={controllerSequencer}
               playbackTransport={
-                sequencer.isPlaying && controllerSequencer.enabled
+                sequencer.isPlaying && controllerSequencer.enabled && playbackSequencer.controllerSequencers.find(t => t.id === controllerSequencer.id)?.activePad === controllerSequencer.activePad
                   ? {
                     transportSubunit: sequencerTransportSubunit,
                     transportSubunitDurationMs:

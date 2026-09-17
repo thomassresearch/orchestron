@@ -1,3 +1,4 @@
+import { PerformanceAuditionContext } from "./components/sequencer/PerformanceAudition";
 import { useMidiControllerRouting } from "./hooks/useMidiControllerRouting";
 import { normalizeControllerTargetChannels } from "./lib/midiControllerChannels";
 import { INITIAL_PANEL_COLLAPSE_STATE, type PanelId } from "./components/CollapsiblePanel";
@@ -555,6 +556,7 @@ export default function App() {
     seekSequencerTransport,
     onApplyBrowserClockLatencySettings,
     primeBrowserClockAudio,
+    auditionDevice,
     queueSequencerPadRuntime,
     resolveSequencerSessionId,
     runtimeAudioOutputMode,
@@ -1343,7 +1345,7 @@ export default function App() {
   const buildCurrentPerformanceExport = useCallback(async (purpose: "native" | "csd" = "native") => {
     await useAppStore.getState().flushMixer();
     await useAppStore.getState().flushPerformanceControllers();
-    const exportState = structuredClone(sequencerRef.current);
+    const exportState = structuredClone(useAppStore.getState().sequencer);
     const snapshot = structuredClone(buildSequencerConfigSnapshot());
     // CSD export validates routing after the backend selects device/routing
     // instruments. Native exports still validate the complete saved rack.
@@ -2164,7 +2166,7 @@ export default function App() {
 
         {activePage === "sequencer" && (
           <Suspense fallback={<DeferredPageFallback />}>
-            <LazySequencerPage
+            <PerformanceAuditionContext.Provider value={auditionDevice}><LazySequencerPage
               collapsedPanels={collapsedPanels}
               onPanelCollapsedChange={setPanelCollapsed}
               data={sequencerPageData}
@@ -2178,7 +2180,7 @@ export default function App() {
               controllerSequencerActions={sequencerControllerSequencerActions}
               arpeggiatorActions={sequencerArpeggiatorActions}
               onHelpRequest={onHelpRequest}
-            />
+            /></PerformanceAuditionContext.Provider>
           </Suspense>
         )}
 

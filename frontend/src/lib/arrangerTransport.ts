@@ -1,4 +1,4 @@
-import { compilePadLoopPattern, decodePadLoopPauseToken, normalizePadIndex } from "./padLoopPattern";
+import { compilePadLoopPattern, decodePadLoopPauseToken } from "./padLoopPattern";
 import { sequencerTransportStepCount, sequencerTransportStepsPerBeat } from "./sequencer";
 import type {
   ArrangerLoopSelection,
@@ -57,13 +57,9 @@ export function transportPositionFromAbsoluteStep(
 
 export function compileArrangerTransportSequence(
   pattern: PadLoopPatternState,
-  fallbackPadIndex: number
+  _fallbackPadIndex: number
 ): number[] {
-  const compiled = compilePadLoopPattern(pattern).sequence;
-  if (compiled.length > 0) {
-    return compiled;
-  }
-  return [normalizePadIndex(fallbackPadIndex)];
+  return compilePadLoopPattern(pattern).sequence;
 }
 
 export function stepCountForTransportToken(
@@ -75,13 +71,13 @@ export function stepCountForTransportToken(
   if (token >= 0) {
     const candidate = padTransportStepCounts[Math.round(token)];
     if (typeof candidate === "number" && Number.isFinite(candidate) && candidate > 0) {
-      return Math.max(1, Math.round(candidate));
+      return candidate;
     }
     return Math.max(1, Math.round(defaultPadTransportStepCount));
   }
   const pauseStepCount = decodePadLoopPauseToken(token);
   if (pauseStepCount !== null) {
-    return pauseStepCount * Math.max(1, Math.round(transportStepsPerBeat));
+    return pauseStepCount * transportStepsPerBeat;
   }
   return Math.max(1, Math.round(defaultPadTransportStepCount));
 }
@@ -103,9 +99,9 @@ function trackTransportExtent(track: SequencerTrackState): number {
   const sequence = compileArrangerTransportSequence(track.padLoopPattern, track.activePad);
   return transportSequenceStepCount(
     sequence,
-    track.pads.map((pad) => sequencerTransportStepCount(track.timing, pad.lengthBeats)),
+    track.pads.map((pad) => sequencerTransportStepCount(track.timing, pad.lengthBeats) * track.timing.beatRateDenominator / track.timing.beatRateNumerator),
     sequencerTransportStepCount(track.timing, track.lengthBeats),
-    sequencerTransportStepsPerBeat(track.timing)
+    sequencerTransportStepsPerBeat(track.timing) * track.timing.beatRateDenominator / track.timing.beatRateNumerator
   );
 }
 
@@ -113,9 +109,9 @@ function drummerTrackTransportExtent(track: DrummerSequencerTrackState): number 
   const sequence = compileArrangerTransportSequence(track.padLoopPattern, track.activePad);
   return transportSequenceStepCount(
     sequence,
-    track.pads.map((pad) => sequencerTransportStepCount(track.timing, pad.lengthBeats)),
+    track.pads.map((pad) => sequencerTransportStepCount(track.timing, pad.lengthBeats) * track.timing.beatRateDenominator / track.timing.beatRateNumerator),
     sequencerTransportStepCount(track.timing, track.lengthBeats),
-    sequencerTransportStepsPerBeat(track.timing)
+    sequencerTransportStepsPerBeat(track.timing) * track.timing.beatRateDenominator / track.timing.beatRateNumerator
   );
 }
 
@@ -123,9 +119,9 @@ function controllerSequencerTransportExtent(track: ControllerSequencerState): nu
   const sequence = compileArrangerTransportSequence(track.padLoopPattern, track.activePad);
   return transportSequenceStepCount(
     sequence,
-    track.pads.map((pad) => sequencerTransportStepCount(track.timing, pad.lengthBeats)),
+    track.pads.map((pad) => sequencerTransportStepCount(track.timing, pad.lengthBeats) * track.timing.beatRateDenominator / track.timing.beatRateNumerator),
     sequencerTransportStepCount(track.timing, track.lengthBeats),
-    sequencerTransportStepsPerBeat(track.timing)
+    sequencerTransportStepsPerBeat(track.timing) * track.timing.beatRateDenominator / track.timing.beatRateNumerator
   );
 }
 
@@ -149,7 +145,7 @@ export function arrangerTransportExtent(
       compileArrangerTransportSequence(arp.padLoopPattern, arp.activePad),
       arp.pads.map(pad => pad.lengthBeats * stepQuantum), arp.lengthBeats * stepQuantum, stepQuantum));
   }
-  return quantizeStep(maxStep, stepQuantum);
+  return Math.ceil(maxStep);
 }
 
 export function normalizeArrangerLoopSelection(

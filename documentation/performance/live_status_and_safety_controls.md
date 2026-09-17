@@ -74,3 +74,10 @@ See [Runtime Panel and Compilation Workflow](../instrument_design/runtime_panel_
 <p align="center"><em>Footer status bar with playhead/cycle/MIDI input.</em></p>
 
 **Navigation:** [Up](performance.md) | [Prev](performance_import_export.md) | [Next](../configuration/configuration.md)
+
+
+## Definition audition
+
+Audition is a session-only track override on the shared transport. A running track switches at its next pad/rest boundary after preparation succeeds; failures preserve current playback and edited drafts. Other tracks continue. Return to arrangement locates the authored sequence at the then-current song position, including pauses and finite endings. Stop audition clears the override and stops only that track.
+
+Arranger Play clears all auditions before applying normal playback-source behavior. Arranger Stop clears/stops auditions while preserving independently started manual tracks. Seeks and loop wraps restart active auditions from their first token at the destination. Removing devices, replacing the performance or engine session, and engine shutdown clear transient audition state. Runtime status never becomes authored configuration.

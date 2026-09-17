@@ -1,3 +1,4 @@
+import { validateArrangementEdit } from "../lib/arrangementEditing";
 import { normalizeControllerTargetChannels } from "../lib/midiControllerChannels";
 import { mergedSequencerState, playbackValues } from "../lib/mergedSequencerState";
 import { nextPerformanceDeviceName } from "../lib/performanceDeviceNames";
@@ -553,7 +554,7 @@ export function createPerformanceControlStoreActions(
             controllerSequencer.id === controllerSequencerId
               ? {
                   ...controllerSequencer,
-                  padLoopEnabled: nextEnabled,
+                  padLoopEnabled: nextEnabled && controllerSequencer.padLoopPattern.rootSequence.length > 0,
                   padLoopPosition:
                     nextEnabled && isPlaying ? controllerSequencer.padLoopPosition : null
                 }
@@ -582,6 +583,8 @@ export function createPerformanceControlStoreActions(
 
     setControllerSequencerPadLoopPattern: (controllerSequencerId, pattern) => {
       const sequencer = get().sequencer;
+      const previousPattern = sequencer.controllerSequencers.find(item => item.id === controllerSequencerId)?.padLoopPattern;
+      if (previousPattern) validateArrangementEdit(previousPattern, pattern);
       const normalizedPattern = normalizePadLoopPatternForState(pattern);
       set({
         sequencer: {
@@ -591,6 +594,7 @@ export function createPerformanceControlStoreActions(
               ? {
                   ...controllerSequencer,
                   padLoopPattern: normalizedPattern.padLoopPattern,
+                  padLoopEnabled: normalizedPattern.padLoopPattern.rootSequence.length > 0 && (controllerSequencer.padLoopEnabled || controllerSequencer.padLoopPattern.rootSequence.length === 0),
                   padLoopSequence: normalizedPattern.padLoopSequence
                 }
               : controllerSequencer
@@ -622,6 +626,7 @@ export function createPerformanceControlStoreActions(
             return {
               ...controllerSequencer,
               padLoopPattern: normalizedPattern.padLoopPattern,
+              padLoopEnabled: normalizedPattern.padLoopPattern.rootSequence.length > 0 && (controllerSequencer.padLoopEnabled || controllerSequencer.padLoopPattern.rootSequence.length === 0),
               padLoopSequence: normalizedPattern.padLoopSequence
             };
           })
@@ -657,6 +662,7 @@ export function createPerformanceControlStoreActions(
             return {
               ...controllerSequencer,
               padLoopPattern: normalizedPattern.padLoopPattern,
+              padLoopEnabled: normalizedPattern.padLoopPattern.rootSequence.length > 0 && (controllerSequencer.padLoopEnabled || controllerSequencer.padLoopPattern.rootSequence.length === 0),
               padLoopSequence: normalizedPattern.padLoopSequence
             };
           })
@@ -1119,6 +1125,7 @@ export function createPerformanceControlStoreActions(
       }
       const requestedInput =
         typeof update.inputChannel === "number" ? clampInt(update.inputChannel, 1, 16) : existing.inputChannel;
+      if (update.padLoopPattern) validateArrangementEdit(existing.padLoopPattern, update.padLoopPattern);
       const nextInputChannel = unavailableInputChannels.has(requestedInput) ? existing.inputChannel : requestedInput;
       const arpeggiatorInputChannels = new Set([...otherArpeggiatorInputChannels, nextInputChannel]);
       const requestedTarget =
@@ -1141,6 +1148,7 @@ export function createPerformanceControlStoreActions(
               {
                 ...arpeggiator,
                 ...update,
+                padLoopEnabled: update.padLoopPattern ? update.padLoopPattern.rootSequence.length > 0 && (arpeggiator.padLoopEnabled || !arpeggiator.padLoopPattern.rootSequence.length) : update.padLoopEnabled ?? arpeggiator.padLoopEnabled,
                 pads: update.pads ?? arpeggiator.pads.map((pad, padIndex) => padIndex === arpeggiator.activePad
                   ? normalizeArpeggiatorSettings({ ...pad, ...update }) : pad),
                 id: arpeggiator.id,

@@ -38,6 +38,8 @@ from backend.app.models.session import (
     SessionArpeggiatorStatus,
     SessionSequencerConfigRequest,
     SessionSequencerQueuePadRequest,
+    SessionAuditionRequest,
+    BrowserClockAuditionRequest,
     SessionSequencerStartRequest,
     SessionSequencerSeekRequest,
     SessionSequencerStatus,
@@ -1002,6 +1004,9 @@ class SessionService:
                 with runtime.configuration_lock:
                     if generation != runtime.configuration_generation:
                         raise SupersededConfigurationError()
+                    if start and arranger_active:
+                        sequencer.clear_auditions()
+                        self._ensure_midi_router(runtime).clear_auditions()
                     status = sequencer.apply_prepared(prepared, position_step=position if seek else None)
                     if arpeggiator_generation == runtime.arpeggiator_generation:
                         self._ensure_midi_router(runtime).configure(request.arpeggiators, tempo_bpm=request.timing.tempo_bpm)
@@ -1099,6 +1104,8 @@ class SessionService:
             with runtime.configuration_lock:
                 runtime.arpeggiator_generation += 1
         def at_boundary():
+            self._ensure_sequencer(runtime).clear_auditions(stop=not active)
+            self._ensure_midi_router(runtime).clear_auditions(stop=not active)
             status = self._ensure_sequencer(runtime).status()
             self._ensure_midi_router(runtime).set_transport(beat=status.transport_subunit / 3360,
                 running=active, bar_beats=status.timing.meter_numerator)
@@ -1125,6 +1132,9 @@ class SessionService:
                 with runtime.configuration_lock:
                     if generation != runtime.configuration_generation:
                         raise HTTPException(status_code=409, detail="Sequencer start superseded.")
+                    if request.arranger_active:
+                        self._ensure_sequencer(runtime).clear_auditions()
+                        self._ensure_midi_router(runtime).clear_auditions()
                     status = self._ensure_sequencer(runtime).start(request.position_step)
                     self._ensure_midi_router(runtime).set_transport(beat=status.transport_subunit / 3360,
                         running=request.arranger_active, bar_beats=status.timing.meter_numerator)
@@ -1160,11 +1170,38 @@ class SessionService:
         self._invalidate_configuration(runtime)
         sequencer = self._ensure_sequencer(runtime)
         status = sequencer.stop()
+        self._ensure_midi_router(runtime).clear_auditions(stop=True)
         self._ensure_midi_router(runtime).set_transport(beat=status.transport_subunit / 3360, running=False)
         status = self._status_with_arpeggiators(runtime, status)
 
         await self._publish(runtime.session_id, "sequencer_stopped", {"cycle": status.cycle})
         return status
+
+    async def audition_session(self, session_id: str, request: SessionAuditionRequest) -> SessionSequencerStatus:
+        runtime = await self._get_session(session_id)
+        def at_boundary():
+            sequencer = self._ensure_sequencer(runtime)
+            router = self._ensure_midi_router(runtime)
+            if request.arpeggiator_id:
+                router.audition(request, transport_running=sequencer.status().running)
+                if request.action == "start":
+                    sequencer.start_audition_clock()
+                status = sequencer.status()
+            else:
+                status = sequencer.audition(request)
+            if request.action == "stop" and sequencer._audition_standalone and not sequencer.audition_status() and not router.audition_status():
+                status = sequencer.stop()
+            return self._status_with_arpeggiators(runtime, status)
+        try:
+            return await asyncio.to_thread(runtime.worker.run_at_render_boundary, at_boundary)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    async def browser_clock_audition(self, session_id: str, connection_id: str,
+                                    request: BrowserClockAuditionRequest) -> dict[str, object]:
+        await self.require_browser_clock_controller(session_id, connection_id)
+        status = await self.audition_session(session_id, request)
+        return self._browser_clock_sequencer_status_message(request_id=request.request_id, action=request.type, status=status)
 
     async def queue_session_sequencer_pad(
         self,
@@ -1519,7 +1556,9 @@ class SessionService:
         runtime: RuntimeSession,
         status: SessionSequencerStatus,
     ) -> SessionSequencerStatus:
-        return self._performance_runtime.status_with_arpeggiators(runtime, status)
+        status = self._performance_runtime.status_with_arpeggiators(runtime, status)
+        status.auditions.update(self._ensure_midi_router(runtime).audition_status())
+        return status
 
     @staticmethod
     def _controller_default_channels_for_runtime(runtime: RuntimeSession) -> tuple[int, ...]:

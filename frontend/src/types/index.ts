@@ -938,6 +938,7 @@ export interface SessionArpeggiatorStatus {
 }
 
 export interface SessionSequencerStatus {
+  auditions?: PerformanceAuditionStatus;
   arranger_active?: boolean;
   session_id: string;
   running: boolean;
@@ -1224,3 +1225,11 @@ export interface SessionEvent {
   type: string;
   payload: JsonObject;
 }
+
+export interface SessionAuditionRequest {
+  action: "start" | "cancel" | "stop" | "return";
+  track_ids?: string[];
+  arpeggiator_id?: string;
+  sequence?: number[];
+}
+export type PerformanceAuditionStatus = Record<string, { active: boolean; queued: SessionAuditionRequest["action"] | null }>;

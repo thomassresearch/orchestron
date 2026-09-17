@@ -249,3 +249,10 @@ MIDI and SCORE CSD exports use the same arpeggiator scheduler as live audio, inc
 ## Per-note timing (version 16)
 
 Current saves and exports write performance config **16** and accept versions **1–16**. Melodic steps and drummer cells store `timingOffsetPercent`, an integer from −50 to +50; missing values mean zero. Browser app state remains version 2 and the native bundle envelope remains version 1. CLI runtime conversion maps this value to `timing_offset_percent`. MIDI and SCORE exports use the same shifted attacks and releases as live playback, within each format's timing resolution.
+
+
+## Arrangement compatibility and temporary audition
+
+The arrangement remains performance format v16, with imports of v1–16. Root sequences, group/supergroup references and pause tokens retain their meaning. Unused and empty draft definitions survive round trips. An imported enabled empty arrangement becomes an explicit occurrence of its previous active pad, retaining its repeat behavior. New empty lanes use Manual pads.
+
+Save, autosave, native bundles and both CSD modes read authored configuration. Temporary audition selection, queued commands, playback position and active-pad/enablement overrides are excluded; edits to musical content still save normally.

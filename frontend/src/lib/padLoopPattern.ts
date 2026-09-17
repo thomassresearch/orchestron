@@ -272,8 +272,8 @@ function parseItemArray(raw: unknown): PadLoopPatternItem[] {
       continue;
     }
     sequence.push(item);
-    if (sequence.length >= PAD_LOOP_COMPILED_MAX_LENGTH) {
-      break;
+    if (sequence.length > PAD_LOOP_COMPILED_MAX_LENGTH) {
+      throw new Error("Pattern sequences may contain at most 256 tokens.");
     }
   }
   return sequence;
@@ -305,8 +305,8 @@ function parseGroupDefinitions(
       id,
       sequence: parseItemArray(record.sequence ?? record.items ?? record.rootSequence ?? record.root_sequence)
     });
-    if (result.length >= MAX_PATTERN_DEFINITIONS) {
-      break;
+    if (result.length > MAX_PATTERN_DEFINITIONS) {
+      throw new Error("A library may contain at most 256 definitions of each kind.");
     }
   }
   return result;
@@ -381,53 +381,7 @@ function sanitizePatternWithHierarchyRules(pattern: PadLoopPatternState): PadLoo
   }));
   const sanitizedRootSequence = sanitizeRootSequence(pattern.rootSequence);
 
-  // Keep only definitions that are reachable from the main sequence.
-  const reachableSuperGroupIds = new Set<string>();
-  const reachableGroupIds = new Set<string>();
-  for (const item of sanitizedRootSequence) {
-    if (item.type === "group") {
-      reachableGroupIds.add(item.groupId);
-      continue;
-    }
-    if (item.type === "super") {
-      reachableSuperGroupIds.add(item.superGroupId);
-    }
-  }
-
-  for (const group of sanitizedSuperGroups) {
-    if (!reachableSuperGroupIds.has(group.id)) {
-      continue;
-    }
-    for (const item of group.sequence) {
-      if (item.type === "group") {
-        reachableGroupIds.add(item.groupId);
-      }
-    }
-  }
-
-  const filteredGroups = sanitizedGroups.filter((group) => reachableGroupIds.has(group.id));
-  const filteredGroupIds = new Set(filteredGroups.map((group) => group.id));
-
-  const filteredSuperGroups = sanitizedSuperGroups
-    .filter((group) => reachableSuperGroupIds.has(group.id))
-    .map((group) => ({
-      ...group,
-      sequence: group.sequence.filter(
-        (item) => item.type === "pad" || (item.type === "group" && filteredGroupIds.has(item.groupId))
-      )
-    }));
-
-  return {
-    rootSequence: sanitizedRootSequence.filter(
-      (item) =>
-        item.type === "pad" ||
-        item.type === "pause" ||
-        (item.type === "group" && filteredGroupIds.has(item.groupId)) ||
-        (item.type === "super" && reachableSuperGroupIds.has(item.superGroupId))
-    ),
-    groups: filteredGroups,
-    superGroups: filteredSuperGroups
-  };
+  return { rootSequence: sanitizedRootSequence, groups: sanitizedGroups, superGroups: sanitizedSuperGroups };
 }
 
 export function normalizePadLoopPatternState(
@@ -1033,38 +987,8 @@ export function ungroupPadLoopItemsInContainer(
     return pattern;
   }
   const selectedSet = new Set(sorted);
-  const firstSelected = sorted[0];
-  const replacement: PadLoopPatternItem[] = [];
-  let didUngroup = false;
-  for (const index of sorted) {
-    const item = sequence[index];
-    if (!item) {
-      continue;
-    }
-    if (item.type === "pad") {
-      replacement.push(clonePadLoopPatternItem(item));
-      continue;
-    }
-    didUngroup = true;
-    for (const nested of resolvedImmediateSequence(pattern, item)) {
-      if (canInsertItemIntoPadLoopContainer(pattern, container, nested)) {
-        replacement.push(nested);
-      }
-    }
-  }
-  if (!didUngroup) {
-    return pattern;
-  }
-  const nextSequence: PadLoopPatternItem[] = [];
-  for (let index = 0; index < sequence.length; index += 1) {
-    if (index === firstSelected) {
-      nextSequence.push(...replacement.map(clonePadLoopPatternItem));
-    }
-    if (selectedSet.has(index)) {
-      continue;
-    }
-    nextSequence.push(clonePadLoopPatternItem(sequence[index]));
-  }
+  const nextSequence = sequence.flatMap((item, index) => selectedSet.has(index)
+    ? resolvedImmediateSequence(pattern, item) : [clonePadLoopPatternItem(item)]);
   return replaceContainerSequence(pattern, container, nextSequence);
 }
 
@@ -1076,7 +1000,7 @@ export function compilePadLoopPattern(pattern: PadLoopPatternState): CompiledPad
 
   const appendItem = (item: PadLoopPatternItem, path: string[]): void => {
     if (sequence.length >= PAD_LOOP_COMPILED_MAX_LENGTH) {
-      return;
+      throw new Error("Expanded pattern sequences may contain at most 256 tokens.");
     }
     if (item.type === "pad") {
       sequence.push(normalizePadIndex(item.padIndex));
@@ -1096,9 +1020,6 @@ export function compilePadLoopPattern(pattern: PadLoopPatternState): CompiledPad
       }
       for (const nested of group.sequence) {
         appendItem(nested, [...path, `group:${item.groupId}`]);
-        if (sequence.length >= PAD_LOOP_COMPILED_MAX_LENGTH) {
-          return;
-        }
       }
       return;
     }
@@ -1111,9 +1032,6 @@ export function compilePadLoopPattern(pattern: PadLoopPatternState): CompiledPad
     }
     for (const nested of superGroup.sequence) {
       appendItem(nested, [...path, `super:${item.superGroupId}`]);
-      if (sequence.length >= PAD_LOOP_COMPILED_MAX_LENGTH) {
-        return;
-      }
     }
   };
 
@@ -1121,9 +1039,6 @@ export function compilePadLoopPattern(pattern: PadLoopPatternState): CompiledPad
     const start = sequence.length;
     appendItem(item, []);
     rootRanges.push({ start, end: sequence.length });
-    if (sequence.length >= PAD_LOOP_COMPILED_MAX_LENGTH) {
-      break;
-    }
   }
 
   return {

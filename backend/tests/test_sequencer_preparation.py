@@ -199,3 +199,23 @@ def test_autosave_does_not_block_the_audio_api_event_loop(tmp_path, monkeypatch)
         finally:
             release.set()
         assert saving.result(timeout=5).status_code == 200
+
+
+def test_failed_preparation_keeps_active_audition_and_authored_sequence(tmp_path, monkeypatch):
+    with _client(tmp_path) as client:
+        session_id = _create_running_session(client)
+        base = f"/api/sessions/{session_id}/sequencer"
+        authored = configuration()
+        assert client.put(base + "/config", json=authored).status_code == 200
+        assert client.post(base + "/audition", json={"action": "start", "track_ids": ["lead"], "sequence": [1, -2]}).status_code == 200
+        service = client.app.state.container.session_service
+        async def fail(*_):
+            raise RuntimeError("preparation failed")
+        monkeypatch.setattr(service._preparation, "prepare", fail)
+        assert client.put(base + "/config", json=configuration(137)).status_code == 500
+        status = client.get(base + "/status").json()
+        assert status["running"] and status["auditions"]["lead"]["active"]
+        assert status["tracks"][0]["active_pad"] == 1 and status["timing"]["tempo_bpm"] == 120
+        sequencer = service._sessions[session_id].sequencer
+        sequencer.clear_auditions()
+        assert not sequencer._config.tracks["lead"].pad_loop_enabled

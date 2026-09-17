@@ -327,3 +327,71 @@ def test_scale_and_toggle_hold_use_incoming_pitches():
     p.advance(7000)
     assert p.router.status()[0].held_notes == [66]
     assert p.attacks == [(60, 0), (65, 6000)]
+
+
+def test_arranger_definition_audition_boundary_pause_return_and_stop():
+    from backend.app.models.session import SessionAuditionRequest
+    p = Playback(playback_mode="arranger", pad_loop_enabled=True, pad_loop_repeat=False,
+                 pad_loop_sequence=[0, -4, 0], collect_status_events=True)
+    p.note()
+    p.advance(24000)
+    original = p.config.model_dump()
+    p.router.audition(SessionAuditionRequest(action="start", arpeggiator_id="arp", sequence=[1, -2]))
+    assert p.router.audition_status()["arp"]["queued"] == "start"
+    p.advance(96001)
+    assert p.router.status()[0].active_pad == 1
+    assert p.router.audition_status()["arp"]["active"]
+    p.router.audition(SessionAuditionRequest(action="return", arpeggiator_id="arp"))
+    p.advance(192001)
+    assert not p.router.audition_status()
+    assert p.router.status()[0].active_pad == 0
+    assert p.config.model_dump() == original
+    p.router.audition(SessionAuditionRequest(action="start", arpeggiator_id="arp", sequence=[0]))
+    p.router.audition(SessionAuditionRequest(action="stop", arpeggiator_id="arp"))
+    p.advance(200001)
+    assert p.router.status()[0].state == "stopped"
+    assert not p.router.audition_status()
+
+
+def test_stopped_arranger_audition_uses_shared_seek_and_keeps_live_mode_separate():
+    from backend.app.models.session import SessionAuditionRequest
+    p = Playback(playback_mode="arranger")
+    p.router.set_transport(beat=0, running=False, sample=0)
+    p.advance(1)
+    p.router.audition(SessionAuditionRequest(action="start", arpeggiator_id="arp", sequence=[1, -2]))
+    p.note()
+    p.advance(24001)
+    p.router.transport_discontinuity(10, sample=p.sample)
+    p.advance(24002)
+    assert p.router.status()[0].active_pad == 1
+    assert p.router.status()[0].pad_loop_position == 0
+    live = Playback(playback_mode="live")
+    with pytest.raises(ValueError, match="Arranger"):
+        live.router.audition(SessionAuditionRequest(action="start", arpeggiator_id="arp", sequence=[0]))
+
+
+def test_disabled_arranger_audition_waits_for_shared_boundary():
+    from backend.app.models.session import SessionAuditionRequest
+    p = Playback(playback_mode="arranger")
+    p.router.configure([p.config.model_copy(update={"enabled": False})], tempo_bpm=120)
+    p.advance(24000)
+    p.router.audition(SessionAuditionRequest(action="start", arpeggiator_id="arp", sequence=[1]))
+    assert p.router.audition_status()["arp"] == {"active": False, "queued": "start"}
+    p.advance(96001)
+    assert p.router.audition_status()["arp"] == {"active": True, "queued": None}
+    assert p.router.status()[0].active_pad == 1
+
+
+def test_seek_applies_queued_audition_replacement_at_destination():
+    from backend.app.models.session import SessionAuditionRequest
+    p = Playback(playback_mode="arranger")
+    p.advance(24000)
+    p.router.audition(SessionAuditionRequest(action="start", arpeggiator_id="arp", sequence=[1, -2]))
+    p.router.transport_discontinuity(10, sample=p.sample)
+    p.advance(24001)
+    assert p.router.audition_status()["arp"] == {"active": True, "queued": None}
+    assert p.router.status()[0].active_pad == 1
+    p.router.audition(SessionAuditionRequest(action="start", arpeggiator_id="arp", sequence=[2]))
+    p.router.transport_discontinuity(12, sample=p.sample)
+    p.advance(24002)
+    assert p.router.status()[0].active_pad == 2

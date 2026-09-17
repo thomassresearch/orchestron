@@ -11,6 +11,7 @@ from typing import Callable, Iterable, Protocol
 
 from backend.app.models.session import (
     ArpeggiatorCommand,
+    SessionAuditionRequest,
     ArpeggiatorPadConfig,
     SessionArpeggiatorConfig,
     SessionArpeggiatorStatus,
@@ -61,6 +62,10 @@ class PendingInputEvent:
 @dataclass(slots=True)
 class ArpeggiatorRuntimeState:
     config: SessionArpeggiatorConfig
+    audition_sequence: tuple[int, ...] = ()
+    audition_origin: Fraction = Fraction(0)
+    audition_pending: tuple[str, tuple[int, ...], Fraction] | None = None
+    audition_stopped: bool = False
     held_notes: dict[int, HeldNote] = field(default_factory=dict)
     physical_notes: dict[tuple[str, int], HeldNote] = field(default_factory=dict)
     active_notes: dict[int, int] = field(default_factory=dict)
@@ -237,9 +242,9 @@ class PerformanceMidiRouter:
                     old = state.config
                     reset = (old.input_channel, old.target_channel, old.playback_mode, old.processing_mode) != (
                         config.input_channel, config.target_channel, config.playback_mode, config.processing_mode)
-                    if reset or not config.enabled:
+                    if reset or not config.enabled and not state.audition_sequence:
                         self._clear(state, self._current_engine_sample())
-                    if not config.enabled:
+                    if not config.enabled and not state.audition_sequence:
                         state.anchor_beat = None
                         state.step_index = state.note_index = state.phrase_offset = 0
                     state.config = config
@@ -302,6 +307,20 @@ class PerformanceMidiRouter:
                 if state.queued_beat is not None:
                     state.queued_beat += delta
                 continue
+            if was_running and not running:
+                state.audition_sequence = ()
+                state.audition_pending = None
+                state.audition_stopped = False
+            if state.audition_pending and reset:
+                action, sequence, _ = state.audition_pending
+                state.audition_pending = (action, sequence, beat)
+                self._apply_audition(state, beat, sample)
+                continue
+            if state.audition_sequence and reset:
+                state.audition_origin = beat
+                state.anchor_beat = None
+                self._locate(state, beat, reset=True)
+                continue
             if reset or was_running != running:
                 self._release(state, sample)
                 state.queued_pad = state.queued_beat = None
@@ -311,6 +330,60 @@ class PerformanceMidiRouter:
                     state.anchor_beat = None
                 else:
                     self._locate(state, beat, reset=True)
+
+    def audition_status(self):
+        return {key: {"active": bool(state.audition_sequence), "queued": state.audition_pending[0] if state.audition_pending else None}
+                for key, state in self._states.items() if state.audition_sequence or state.audition_pending}
+
+    def audition(self, request: SessionAuditionRequest, *, transport_running: bool | None = None) -> None:
+        with self._lock:
+            state = self._states.get(request.arpeggiator_id)
+            if state is None or state.config.playback_mode != "arranger":
+                raise ValueError("Definition audition requires an Arranger arpeggiator.")
+            if any(token >= len(state.config.pads) for token in request.sequence):
+                raise ValueError("Audition pad is not configured.")
+            sample = self._current_engine_sample()
+            beat = self._beat(sample)
+            if request.action == "cancel":
+                state.audition_pending = None
+            else:
+                boundary = state.boundary_beat
+                if boundary is None or boundary <= beat:
+                    length = Fraction(state.pad.length_beats)
+                    anchor = state.anchor_beat if state.anchor_beat is not None else Fraction(0)
+                    boundary = anchor + ((beat - anchor) // length + 1) * length
+                running = self._arranger_intent or bool(state.audition_sequence) if transport_running is None else transport_running
+                immediate = request.action == "stop" or not running
+                state.audition_pending = (request.action, tuple(request.sequence), beat if immediate else boundary)
+                if immediate:
+                    self._apply_audition(state, beat, sample)
+            self._status_dirty = True
+
+    def _apply_audition(self, state, beat, sample):
+        pending = state.audition_pending
+        if not pending or beat < pending[2]:
+            return
+        action, sequence, at = pending
+        state.audition_pending = None
+        state.audition_sequence = sequence if action == "start" else ()
+        state.audition_stopped = action == "stop"
+        state.audition_origin = at
+        state.manual_override = False
+        state.anchor_beat = None
+        state.step_index = state.note_index = state.phrase_offset = 0
+        self._release(state, sample)
+        self._locate(state, at, reset=True)
+
+    def clear_auditions(self, *, stop: bool = False):
+        with self._lock:
+            beat = self._beat(self._sample)
+            for state in self._states.values():
+                if state.audition_sequence or state.audition_pending:
+                    state.audition_pending = ("stop" if stop else "return", (), beat)
+                    self._apply_audition(state, beat, self._sample)
+                if not stop:
+                    state.audition_stopped = False
+            self._status_dirty = True
 
     def command(self, arpeggiator_id: str, command: ArpeggiatorCommand) -> None:
         with self._lock:
@@ -343,27 +416,29 @@ class PerformanceMidiRouter:
                     state.queued_beat = state.anchor_beat + ((beat - state.anchor_beat) // cycle + 1) * cycle
 
     def _running(self, state: ArpeggiatorRuntimeState) -> bool:
-        return state.config.enabled and (state.config.playback_mode == "live" or self._arranger_running)
+        return not state.audition_stopped and (bool(state.audition_sequence) or state.config.enabled and (state.config.playback_mode == "live" or self._arranger_running))
 
     def _locate(self, state: ArpeggiatorRuntimeState, beat: Fraction, *, reset: bool = False) -> None:
         config = state.config
-        if not config.pad_loop_enabled or state.manual_override or config.playback_mode == "live":
+        if not state.audition_sequence and (not config.pad_loop_enabled or state.manual_override or config.playback_mode == "live"):
             state.boundary_beat = None
             state.paused = False
             if state.anchor_beat is None:
                 state.anchor_beat = beat if config.playback_mode == "live" else Fraction(0)
             return
-        sequence = config.pad_loop_sequence or [config.active_pad]
+        origin = state.audition_origin if state.audition_sequence else Fraction(0)
+        position = max(Fraction(0), beat - origin)
+        sequence = state.audition_sequence or config.pad_loop_sequence or [config.active_pad]
         lengths = [Fraction(config.pads[t].length_beats if t >= 0 else -t) for t in sequence]
         total = sum(lengths, Fraction(0))
-        if not config.pad_loop_repeat and beat >= total:
+        if not state.audition_sequence and not config.pad_loop_repeat and position >= total:
             state.paused = True
             state.boundary_beat = None
             self._release(state, self._sample)
             return
-        cycle_start = (beat // total) * total
-        local = beat - cycle_start
-        start = cycle_start
+        cycle_start = (position // total) * total
+        local = position - cycle_start
+        start = origin + cycle_start
         index = 0
         for index, length in enumerate(lengths):
             if local < length:
@@ -388,7 +463,7 @@ class PerformanceMidiRouter:
                 run_start -= lengths[previous]
                 previous -= 1
             if all(t == token for t in sequence):
-                run_start = Fraction(0)
+                run_start = origin
             state.anchor_beat = run_start
             state.step_index = self._index_at_or_after(state, beat)
             state.phrase_offset = 0
@@ -543,6 +618,8 @@ class PerformanceMidiRouter:
                 if self._transport_events:
                     candidates.append(max(block_start_sample, self._transport_events[0][0]))
                 for state in self._states.values():
+                    if state.audition_pending:
+                        candidates.append(max(self._sample, self._sample_for(state.audition_pending[2])))
                     if state.outputs:
                         candidates.append(max(block_start_sample, state.outputs[0][0]))
                     if not self._running(state):
@@ -565,6 +642,7 @@ class PerformanceMidiRouter:
                 self._inputs(sample)
                 beat = self._beat(sample)
                 for state in self._states.values():
+                    self._apply_audition(state, beat, sample)
                     if self._running(state):
                         if state.queued_beat is not None and self._sample_for(state.queued_beat) <= sample:
                             self._release(state, sample)
@@ -586,7 +664,7 @@ class PerformanceMidiRouter:
         self._status_dirty = False
         if not self._collect_status_events:
             return
-        payload = {"arpeggiators": [status.model_dump(mode="json") for status in self.status()]}
+        payload = {"arpeggiators": [status.model_dump(mode="json") for status in self.status()], "auditions": self.audition_status()}
         if payload != self._last_status_payload:
             self._status_events.append(RenderTransportEvent(engine_sample=sample, kind="arpeggiators", payload=payload))
             self._last_status_payload = payload
@@ -795,9 +873,9 @@ class PerformanceMidiRouter:
             for state in self._states.values():
                 config = state.config
                 label = "playing"
-                if not config.enabled:
+                if state.audition_stopped or not config.enabled and not state.audition_sequence:
                     label = "stopped"
-                elif config.playback_mode == "arranger" and not self._arranger_running:
+                elif config.playback_mode == "arranger" and not self._arranger_running and not state.audition_sequence:
                     label = "waiting_arranger"
                 elif config.processing_mode != "active":
                     label = "bypassed" if config.processing_mode == "bypass" else "muted"

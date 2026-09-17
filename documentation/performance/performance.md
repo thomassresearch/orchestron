@@ -40,7 +40,7 @@ The collapsed rack shows channel and patch name in one horizontally scrolling ro
 - Start/stop the instrument engine session
 - Create multiple melodic sequencers, drummer sequencers, and controller sequencers
 - Add backend-run arpeggiators that turn held notes into routed arpeggiated instrument output
-- Use pattern pads with queued switching and pad-loop sequences
+- Edit reusable pads and phrases, assemble song order in the arranger, and audition phrases without changing the song
 - Arrange multiple track timelines in the multitrack arranger with shared transport and loop-range playback
 - Perform live with piano rolls and manual MIDI controller knobs
 - Save/load/clone/delete performances
@@ -53,7 +53,7 @@ The collapsed rack shows channel and patch name in one horizontally scrolling ro
 - [Audio Mixer and Routing](audio_mixer_and_routing.md)
 - [Melodic Sequencers and Step Editing](sequencer_tracks_and_steps.md)
 - [Drummer Sequencers](drummer_sequencers.md)
-- [Pattern Pads, Queued Switching, and Pad Looper](pattern_pads_and_pad_looper.md)
+- [Pattern Pads and Reusable Phrases](pattern_pads_and_pad_looper.md)
 - [Multitrack Arranger](multitrack_arranger.md)
 - [Controller Sequencers](controller_sequencers.md)
 - [Arpeggiators](arpeggiators.md)

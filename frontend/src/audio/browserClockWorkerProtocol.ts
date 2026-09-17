@@ -19,6 +19,7 @@ export const BROWSER_CLOCK_STATE_TRANSPORT_VERSION = 7;
 export const BROWSER_CLOCK_STATE_LENGTH = 8;
 
 export type BrowserClockWorkerSequencerRequest =
+  | ({ type: "audition"; request_id: string } & import("../types").SessionAuditionRequest)
   | {
       type: "sequencer_start";
       request_id: string;

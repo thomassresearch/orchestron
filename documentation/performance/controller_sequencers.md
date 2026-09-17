@@ -83,7 +83,7 @@ This makes it easy to understand exactly what value is being sent at each transp
 - Controller sequencers run alongside melodic sequencers on the same backend transport clock.
 - Curve edits are combined after an 80 ms editing pause and prepared while the previous curve keeps playing. They take effect at the next engine block without resetting transport. The editor modifies the displayed pad even when the arranger selected it automatically.
 - See [Editing During Playback](live_status_and_safety_controls.md#editing-during-playback) for failure handling and transport behavior.
-- While transport is running, pad presses are queued and applied on the next controller-pad boundary.
+- Pad clicks select the editing pad without changing playback. Launch pad in Manual pads mode queues the selected pad at the next boundary; Audition temporarily plays it in Arrangement mode.
 - You can combine automated controller sequencers with manual MIDI controller knob lanes on the same performance page.
 - If you automate the same CC number from multiple sources, the last-sent value wins at the MIDI receiver side (plan mappings accordingly).
 

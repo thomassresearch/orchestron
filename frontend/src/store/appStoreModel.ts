@@ -1,7 +1,6 @@
 import { normalizeTimingOffset } from "../lib/sequencer";
 import { normalizeControllerTargetChannels } from "../lib/midiControllerChannels";
 import { instrumentMetadata } from "../lib/instrumentTypes";
-import { mergedSequencerState } from "../lib/mergedSequencerState";
 import { normalizeControllerValues, performanceControllerDefaults, reconcileControllerValues } from "../lib/performanceControllers";
 import { controlFlowIssues, patchSchemaVersion } from "../lib/controlFlow";
 import { normalizeStereoChannelNames } from "../lib/audioBlocks";
@@ -906,18 +905,21 @@ export function normalizePadLoopSequence(raw: unknown): number[] {
       continue;
     }
     sequence.push(normalizedToken);
-    if (sequence.length >= 256) {
-      break;
-    }
+    if (sequence.length > 256) throw new Error("Sequence limit: 256.");
   }
   return sequence;
 }
 
 export function normalizePadLoopPatternBundle(
   rawPattern: unknown,
-  rawLegacySequence?: unknown
+  rawLegacySequence?: unknown,
+  legacyFallbackPad?: number
 ): { padLoopPattern: PadLoopPatternState; padLoopSequence: number[] } {
   const normalized = normalizePadLoopPatternState(rawPattern, rawLegacySequence);
+  if (!normalized.compiledSequence.length && legacyFallbackPad !== undefined) {
+    normalized.pattern.rootSequence = [{ type: "pad", padIndex: normalizePadIndex(legacyFallbackPad) }];
+    normalized.compiledSequence = [normalizePadIndex(legacyFallbackPad)];
+  }
   return {
     padLoopPattern: normalized.pattern,
     padLoopSequence: normalized.compiledSequence
@@ -1071,7 +1073,7 @@ export function defaultSequencerTrack(
     queuedPad: null,
     padLoopPosition: null,
     padLoopEnabled: false,
-    padLoopRepeat: true,
+    padLoopRepeat: false,
     padLoopSequence: [],
     padLoopPattern: createEmptyPadLoopPattern(),
     pads,
@@ -1102,7 +1104,7 @@ export function defaultDrummerSequencerTrack(
     queuedPad: null,
     padLoopPosition: null,
     padLoopEnabled: false,
-    padLoopRepeat: true,
+    padLoopRepeat: false,
     padLoopSequence: [],
     padLoopPattern: createEmptyPadLoopPattern(),
     rows,
@@ -1173,7 +1175,7 @@ export function defaultControllerSequencer(
     queuedPad: null,
     padLoopPosition: null,
     padLoopEnabled: false,
-    padLoopRepeat: true,
+    padLoopRepeat: false,
     padLoopSequence: [],
     padLoopPattern: createEmptyPadLoopPattern(),
     pads,
@@ -1208,7 +1210,7 @@ export function defaultArpeggiator(
     pads: Array.from({ length: 8 }, () => normalizeArpeggiatorSettings(settings)),
     padPresetIds: Array.from({ length: 8 }, () => preset?.id ?? null),
     padLoopEnabled: true,
-    padLoopRepeat: true,
+    padLoopRepeat: false,
     padLoopPattern: normalizePadLoopPatternBundle(undefined, [0]).padLoopPattern,
     heldNotes: [],
     activeNote: null,
@@ -1256,7 +1258,7 @@ export function normalizeArpeggiatorState(raw: unknown, index: number): Arpeggia
     padPresetIds: Array.from({ length: 8 }, (_, i) => Array.isArray(source.padPresetIds) && typeof source.padPresetIds[i] === "string" ? source.padPresetIds[i] : i === 0 && typeof source.presetId === "string" ? source.presetId : null),
     padLoopEnabled: source.padLoopEnabled !== false,
     padLoopRepeat: source.padLoopRepeat !== false,
-    padLoopPattern: normalizePadLoopPatternBundle(source.padLoopPattern, [0]).padLoopPattern,
+    padLoopPattern: normalizePadLoopPatternBundle(source.padLoopPattern, undefined, source.padLoopEnabled !== false ? activePad : undefined).padLoopPattern,
     heldNotes: heldNotesRaw.map((value) => normalizeStepNote(value)).filter((value): value is number => value !== null),
     activeNote: normalizeStepNote(source.activeNote ?? source.active_note),
     stepIndex: typeof source.stepIndex === "number" ? Math.max(0, Math.round(source.stepIndex)) : typeof source.step_index === "number" ? Math.max(0, Math.round(source.step_index)) : 0,
@@ -1335,11 +1337,12 @@ export function normalizeControllerSequencerState(
       : (controllerSequencer.padLoopEnabled ?? controllerSequencer.pad_loop_enabled) === true;
   const padLoopRepeat =
     controllerSequencer.padLoopRepeat === undefined && controllerSequencer.pad_loop_repeat === undefined
-      ? fallback.padLoopRepeat
+      ? true
       : (controllerSequencer.padLoopRepeat ?? controllerSequencer.pad_loop_repeat) !== false;
   const { padLoopPattern, padLoopSequence } = normalizePadLoopPatternBundle(
     controllerSequencer.padLoopPattern ?? controllerSequencer.pad_loop_pattern,
-    controllerSequencer.padLoopSequence ?? controllerSequencer.pad_loop_sequence
+    controllerSequencer.padLoopSequence ?? controllerSequencer.pad_loop_sequence,
+    padLoopEnabled ? activePad : undefined
   );
   const enabled = typeof controllerSequencer.enabled === "boolean" ? controllerSequencer.enabled : fallback.enabled;
 
@@ -1672,11 +1675,12 @@ export function normalizeSequencerTrackWithTiming(
       : (track.padLoopEnabled ?? track.pad_loop_enabled) === true;
   const padLoopRepeat =
     track.padLoopRepeat === undefined && track.pad_loop_repeat === undefined
-      ? fallback.padLoopRepeat
+      ? true
       : (track.padLoopRepeat ?? track.pad_loop_repeat) !== false;
   const { padLoopPattern, padLoopSequence } = normalizePadLoopPatternBundle(
     track.padLoopPattern ?? track.pad_loop_pattern,
-    track.padLoopSequence ?? track.pad_loop_sequence
+    track.padLoopSequence ?? track.pad_loop_sequence,
+    padLoopEnabled ? activePad : undefined
   );
   const enabled = typeof track.enabled === "boolean" ? track.enabled : fallback.enabled;
   const queuedEnabled = typeof track.queuedEnabled === "boolean" ? track.queuedEnabled : null;
@@ -1778,11 +1782,12 @@ export function normalizeDrummerSequencerTrack(
       : (track.padLoopEnabled ?? track.pad_loop_enabled) === true;
   const padLoopRepeat =
     track.padLoopRepeat === undefined && track.pad_loop_repeat === undefined
-      ? fallback.padLoopRepeat
+      ? true
       : (track.padLoopRepeat ?? track.pad_loop_repeat) !== false;
   const { padLoopPattern, padLoopSequence } = normalizePadLoopPatternBundle(
     track.padLoopPattern ?? track.pad_loop_pattern,
-    track.padLoopSequence ?? track.pad_loop_sequence
+    track.padLoopSequence ?? track.pad_loop_sequence,
+    padLoopEnabled ? activePad : undefined
   );
   const enabled = typeof track.enabled === "boolean" ? track.enabled : fallback.enabled;
   const queuedEnabled = typeof track.queuedEnabled === "boolean" ? track.queuedEnabled : null;
@@ -2413,7 +2418,7 @@ export function buildPersistedAppStateSnapshot(state: AppStore): PersistedAppSta
       }
     })),
     activeInstrumentTabId: state.activeInstrumentTabId,
-    sequencer: sequencerSnapshotForPersistence(mergedSequencerState(state.sequencer, state.sequencerRuntime)),
+    sequencer: sequencerSnapshotForPersistence(state.sequencer),
     sequencerInstruments: cleanBindings(state.sequencerInstruments),
     audioGraph: state.audioGraph,
     mixer: state.mixer,
@@ -2934,7 +2939,7 @@ export function buildSequencerConfigSnapshot(
         mode: normalizeSequencerMode(track.mode),
         activePad: normalizePadIndex(track.activePad),
         queuedPad: track.queuedPad === null ? null : normalizePadIndex(track.queuedPad),
-        padLoopEnabled: track.padLoopEnabled === true,
+        padLoopEnabled: track.padLoopEnabled === true && track.padLoopPattern.rootSequence.length > 0,
         padLoopRepeat: track.padLoopRepeat !== false,
         padLoopSequence: normalizePadLoopSequence(track.padLoopSequence),
         padLoopPattern: track.padLoopPattern,
@@ -2984,7 +2989,7 @@ export function buildSequencerConfigSnapshot(
           stepCount: normalizeTransportStepCount(track.stepCount),
           activePad: normalizePadIndex(track.activePad),
           queuedPad: track.queuedPad === null ? null : normalizePadIndex(track.queuedPad),
-          padLoopEnabled: track.padLoopEnabled === true,
+          padLoopEnabled: track.padLoopEnabled === true && track.padLoopPattern.rootSequence.length > 0,
           padLoopRepeat: track.padLoopRepeat !== false,
           padLoopSequence: normalizePadLoopSequence(track.padLoopSequence),
           padLoopPattern: track.padLoopPattern,
@@ -3026,7 +3031,7 @@ export function buildSequencerConfigSnapshot(
         stepCount: normalizeTransportStepCount(controllerSequencer.stepCount),
         activePad: normalizePadIndex(controllerSequencer.activePad),
         queuedPad: controllerSequencer.queuedPad === null ? null : normalizePadIndex(controllerSequencer.queuedPad),
-        padLoopEnabled: controllerSequencer.padLoopEnabled === true,
+        padLoopEnabled: controllerSequencer.padLoopEnabled === true && controllerSequencer.padLoopPattern.rootSequence.length > 0,
         padLoopRepeat: controllerSequencer.padLoopRepeat !== false,
         padLoopSequence: normalizePadLoopSequence(controllerSequencer.padLoopSequence),
         padLoopPattern: controllerSequencer.padLoopPattern,
@@ -3069,7 +3074,7 @@ export function buildSequencerConfigSnapshot(
         holdMode: arpeggiator.holdMode, latch: false, restartMode: arpeggiator.restartMode,
         launchQuantize: arpeggiator.launchQuantize, activePad: arpeggiator.activePad,
         pads: arpeggiator.pads.map(normalizeArpeggiatorSettings), padPresetIds: [...arpeggiator.padPresetIds],
-        padLoopEnabled: arpeggiator.padLoopEnabled, padLoopRepeat: arpeggiator.padLoopRepeat,
+        padLoopEnabled: arpeggiator.padLoopEnabled && arpeggiator.padLoopPattern.rootSequence.length > 0, padLoopRepeat: arpeggiator.padLoopRepeat,
         padLoopPattern: arpeggiator.padLoopPattern
       })),
       arpeggiatorPresets: sequencer.arpeggiatorPresets

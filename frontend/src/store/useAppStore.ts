@@ -8,7 +8,6 @@ import { createPerformanceControllerActions } from "./appStorePerformanceControl
 import { createMixerActions, initialMixerState } from "./appStoreMixer";
 import { emptyAudioGraph, emptyMixer, migrateAudio, cleanBindings } from "../lib/audioRouting";
 import { create } from "zustand";
-import { mergedSequencerState } from "../lib/mergedSequencerState";
 
 import { api, isApiError } from "../api/client";
 import {
@@ -123,6 +122,9 @@ export const useAppStore = create<AppStore>((set, get) => {
     sequencer: initialSequencerState,
     sequencerRuntime: initialSequencerRuntimeState,
     sequencerEditRevision: 0,
+    sequencerEditingPads: {},
+    performanceAuditions: {},
+    selectSequencerEditingPad: (id, pad) => set(state => ({ sequencerEditingPads: { ...state.sequencerEditingPads, [id]: Math.max(0, Math.min(7, Math.round(pad))) } })),
     sequencerInstruments: [],
     performanceWorkspaceGeneration: 0,
     currentPerformanceId: null,
@@ -467,6 +469,8 @@ export const useAppStore = create<AppStore>((set, get) => {
           sequencerInstruments: parsed.instruments,
           audioGraph: parsed.audioGraph, mixer: parsed.mixer, migrationNotice: parsed.migrationNotice,
           performanceWorkspaceGeneration: get().performanceWorkspaceGeneration + 1,
+          sequencerEditingPads: {},
+          performanceAuditions: {},
           currentPerformanceId: performance.id,
           performanceName: performance.name,
           performanceDescription: performance.description,
@@ -539,6 +543,8 @@ export const useAppStore = create<AppStore>((set, get) => {
       const nextSequencer = emptyPerformanceSequencerState();
       set({
         performanceWorkspaceGeneration: get().performanceWorkspaceGeneration + 1,
+        sequencerEditingPads: {},
+        performanceAuditions: {},
         sequencer: nextSequencer,
         sequencerRuntime: sequencerRuntimeStateFromSequencer(nextSequencer),
         sequencerInstruments: [],
@@ -669,7 +675,7 @@ export const useAppStore = create<AppStore>((set, get) => {
 
       set({ loading: true, error: null });
       try {
-        const snapshot = buildSequencerConfigSnapshot(mergedSequencerState(state.sequencer, state.sequencerRuntime), state.sequencerInstruments, state.audioGraph, state.mixer);
+        const snapshot = buildSequencerConfigSnapshot(state.sequencer, state.sequencerInstruments, state.audioGraph, state.mixer);
         const selectedPatchIds = [
           ...new Set(snapshot.instruments.map((instrument) => instrument.patchId.trim()).filter((patchId) => patchId.length > 0))
         ];
@@ -1085,7 +1091,7 @@ function schedulePersistedAppState(snapshot: PersistedAppState): void {
 // A replacement engine session never inherits the previous session's playback overlays.
 useAppStore.subscribe((state, previous) => {
   if (state.activeSessionId !== previous.activeSessionId) {
-    useAppStore.setState({ sequencerRuntime: sequencerRuntimeStateFromSequencer({ ...state.sequencer, isPlaying: false }) });
+    useAppStore.setState({ performanceAuditions: {}, sequencerRuntime: sequencerRuntimeStateFromSequencer({ ...state.sequencer, isPlaying: false }) });
   }
 });
 

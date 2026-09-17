@@ -193,13 +193,13 @@ it("cancels a pending transpose long-press when the melodic panel unmounts", () 
   } finally { view.unmount(); vi.useRealTimers(); }
 });
 
-it("preserves arranger zoom, selection, clipboard and scroll and closes its context menu", () => {
+it("preserves arranger zoom, selection, clipboard and scroll with its visible palette", () => {
   const { container } = render(<Page />); togglePanel("Multitrack Arranger");
   fireEvent.click(screen.getByRole("button", { name: "Zoom +" }));
   let list = container.querySelector('[role="list"]')!;
   const token = within(list as HTMLElement).getByRole("button", { name: "1" });
   fireEvent.click(token); fireEvent.contextMenu(list, { clientX: 100, clientY: 30 });
-  fireEvent.click(screen.getByRole("button", { name: /^Copy\s*1$/ }));
+  fireEvent.click(screen.getByRole("button", { name: /^Copy$/ }));
   const selectedStyle = token.parentElement!.style.width;
   const scrollbar = container.querySelector(".h-4.overflow-x-auto")!;
   Object.defineProperty(scrollbar, "clientWidth", { value: 100 });
@@ -211,9 +211,10 @@ it("preserves arranger zoom, selection, clipboard and scroll and closes its cont
   expect(restored.parentElement!.style.width).toBe(selectedStyle);
   expect(restored.parentElement!.className).toContain("ring-2");
   expect(container.querySelector(".h-4.overflow-x-auto")!.scrollLeft).toBe(30);
-  expect(screen.queryByRole("button", { name: /^Copy/ })).toBeNull();
+  expect(screen.getByRole("button", { name: /^Copy$/ })).toBeTruthy();
   noop.mockClear(); fireEvent.contextMenu(list, { clientX: 100, clientY: 30 });
-  fireEvent.click(screen.getByRole("button", { name: /^Paste\s*1$/ }));
+  fireEvent.change(screen.getByRole("spinbutton", { name: /Position/ }), { target: { value: "32" } });
+  fireEvent.click(screen.getByRole("button", { name: /^Paste$/ }));
   expect(noop).toHaveBeenCalledWith("tracks-1", expect.objectContaining({ rootSequence: expect.any(Array) }));
 });
 
@@ -237,7 +238,8 @@ it("shows pad switches received while hidden and retains the arpeggiator preset 
   togglePanel("Arpeggiators");
   act(() => useAppStore.getState().syncSequencerRuntime({ isPlaying: true, tracks: [{ trackId: "tracks-1", activePad: 1, queuedPad: null }] }));
   togglePanel("Melodic Sequencers");
-  expect(screen.getAllByRole("button", { name: "P2" }).some(button => button.className.includes("bg-accent/25"))).toBe(true);
+  expect(screen.getAllByRole("button", { name: "P1" }).some(button => button.className.includes("bg-accent/25"))).toBe(true);
+  expect(screen.getByText("Playing: P2")).toBeTruthy();
   togglePanel("Arpeggiators");
   expect((screen.getByRole("textbox", { name: "Save as preset" }) as HTMLInputElement).value).toBe("Unfinished preset");
 });

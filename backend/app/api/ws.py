@@ -17,6 +17,7 @@ from backend.app.models.session import (
     BrowserClockClockSyncRequest,
     BrowserClockManualMidiRequest,
     BrowserClockQueuePadControlRequest,
+    BrowserClockAuditionRequest,
     BrowserClockReleaseControllerRequest,
     BrowserClockRequestRenderRequest,
     BrowserClockSequencerCommandRequest,
@@ -355,6 +356,12 @@ async def browser_clock_controller(websocket: WebSocket, session_id: str) -> Non
                         connection_id,
                         BrowserClockSequencerCommandRequest.model_validate(payload),
                     )
+                    await send_json(response)
+                    continue
+
+                if message_type == "audition":
+                    response = await container.session_service.browser_clock_audition(
+                        session_id, connection_id, BrowserClockAuditionRequest.model_validate(payload))
                     await send_json(response)
                     continue
 

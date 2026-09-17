@@ -518,3 +518,147 @@ def test_controller_channel_edit_sends_current_value_and_preserves_transport_and
     assert runtime.status().running
     assert runtime.status().controller_tracks[0].queued_pad == 1
     assert [message for _, batch, _ in midi.calls for message in batch] == [[0xB1, 74, 30], [0xBF, 74, 30]]
+
+
+def _audition_runtime(*, repeat=False):
+    runtime = SessionSequencerRuntime(session_id="audition", midi_service=_FakeMidiService(), midi_input_selector="test",
+        controller_default_channels=(1,), clock_mode="render_driven", publish_event=lambda *_: None)
+    request = SessionSequencerConfigRequest.model_validate({"playback_end_step": 256, "tracks": [
+        {"track_id": identity, "midi_channel": channel, "pad_loop_enabled": True,
+         "pad_loop_repeat": repeat, "pad_loop_sequence": [0, -4, 1],
+         "pads": [{"pad_index": index, "length_beats": 4, "steps": [{"note": 60 + index}]} for index in range(2)]}
+        for identity, channel in [("lead", 1), ("other", 2)]]})
+    runtime.configure(request)
+    return runtime, request
+
+
+def test_audition_boundary_return_into_rest_and_finite_end_preserves_other_track():
+    from backend.app.models.session import SessionAuditionRequest
+    runtime, request = _audition_runtime()
+    runtime.start()
+    runtime._absolute_subunit = 3360
+    runtime.audition(SessionAuditionRequest(action="start", track_ids=["lead"], sequence=[1, -2]))
+    assert runtime.status().auditions == {"lead": {"active": False, "queued": "start"}}
+    runtime._advance_render_to_event_locked(runtime._config, 4 * 3360)
+    lead = runtime._config.tracks["lead"]
+    other = runtime._config.tracks["other"]
+    assert (lead.active_pad, lead.pad_loop_position, lead.phase_offset_subunit) == (1, 0, 4 * 3360)
+    assert (other.pad_loop_position, other.phase_offset_subunit) == (1, 4 * 3360)
+    runtime.audition(SessionAuditionRequest(action="return", track_ids=["lead"]))
+    runtime._advance_render_to_event_locked(runtime._config, 8 * 3360)
+    assert lead.active_pad == 1 and lead.pad_loop_position == 2
+    assert not runtime.status().auditions
+    # Returning past an authored finite end leaves the track ended.
+    runtime.audition(SessionAuditionRequest(action="start", track_ids=["lead"], sequence=[1]))
+    runtime._advance_render_to_event_locked(runtime._config, 12 * 3360)
+    runtime.audition(SessionAuditionRequest(action="return", track_ids=["lead"]))
+    runtime._advance_render_to_event_locked(runtime._config, 16 * 3360)
+    assert not lead.enabled and lead.sequence_ended
+    assert request.tracks[0].pad_loop_sequence == [0, -4, 1]
+    assert not request.tracks[0].pad_loop_repeat
+
+
+def test_stopped_audition_only_starts_target_and_seek_restarts_first_token():
+    from backend.app.models.session import SessionAuditionRequest
+    runtime, request = _audition_runtime()
+    runtime.audition(SessionAuditionRequest(action="start", track_ids=["lead"], sequence=[1, -2]))
+    assert runtime.status().running
+    assert runtime._config.tracks["lead"].enabled
+    assert not runtime._config.tracks["other"].enabled
+    runtime._seek_absolute_subunit_locked(48 * 420)
+    lead = runtime._config.tracks["lead"]
+    assert lead.active_pad == 1 and lead.pad_loop_position == 0
+    assert lead.phase_offset_subunit == runtime._absolute_subunit
+    assert not runtime._config.tracks["other"].enabled
+    runtime.configure(request)
+    assert runtime._config.tracks["lead"].pad_loop_sequence == (1, -2)
+    runtime.stop()
+    assert runtime.status().auditions == {}
+    assert runtime._config.tracks["lead"].pad_loop_sequence == (0, -4, 1)
+
+
+def test_audition_rejects_invalid_drummer_batch_atomically_and_cancels_pending():
+    from backend.app.models.session import SessionAuditionRequest
+    runtime, _ = _audition_runtime()
+    runtime.start()
+    with pytest.raises(ValueError):
+        runtime.audition(SessionAuditionRequest(action="start", track_ids=["lead", "missing"], sequence=[1]))
+    assert not runtime.status().auditions
+    runtime.audition(SessionAuditionRequest(action="start", track_ids=["lead", "other"], sequence=[1, -1]))
+    assert runtime._auditions["lead"]["boundary"] == runtime._auditions["other"]["boundary"]
+    runtime.audition(SessionAuditionRequest(action="cancel", track_ids=["lead", "other"]))
+    assert not runtime.status().auditions
+
+
+def test_audition_waits_for_disabled_track_boundary_and_returns_into_rest():
+    from backend.app.models.session import SessionAuditionRequest
+    runtime, request = _audition_runtime()
+    request.tracks[0].enabled = False
+    runtime.configure(request)
+    runtime.start()
+    runtime._absolute_subunit = 3360
+    runtime.audition(SessionAuditionRequest(action="start", track_ids=["lead"], sequence=[-1, 1]))
+    assert runtime.status().auditions["lead"] == {"active": False, "queued": "start"}
+    runtime._advance_render_to_event_locked(runtime._config, 4 * 3360)
+    assert runtime._config.tracks["lead"].pad_loop_position == 0
+    runtime.audition(SessionAuditionRequest(action="return", track_ids=["lead"]))
+    runtime._advance_render_to_event_locked(runtime._config, 5 * 3360)
+    assert not runtime._config.tracks["lead"].enabled
+    assert not runtime.status().auditions
+
+    # An enabled arrangement resumes in its authored silence at beat five.
+    runtime, request = _audition_runtime()
+    runtime.start()
+    runtime._absolute_subunit = 3360
+    runtime.audition(SessionAuditionRequest(action="start", track_ids=["lead"], sequence=[-1, 1]))
+    runtime._advance_render_to_event_locked(runtime._config, 4 * 3360)
+    runtime.audition(SessionAuditionRequest(action="return", track_ids=["lead"]))
+    runtime._advance_render_to_event_locked(runtime._config, 5 * 3360)
+    lead = runtime._config.tracks["lead"]
+    assert lead.enabled and lead.pad_loop_position == 1
+    assert runtime._current_pad_loop_token(lead) == -4
+    assert lead.phase_offset_subunit == 4 * 3360
+    assert runtime._config.tracks["other"].pad_loop_position == 1
+
+
+def test_controller_audition_keeps_rational_boundaries_and_restarts_on_song_loop():
+    from backend.app.models.session import SessionAuditionRequest
+    runtime, request = _audition_runtime()
+    payload = request.model_dump()
+    payload.update(playback_loop=True, playback_end_step=64, controller_tracks=[{
+        "track_id": "filter", "controller_number": 74, "enabled": True,
+        "timing": {**request.timing.model_dump(), "beat_rate_numerator": 3, "beat_rate_denominator": 2},
+        "pad_loop_enabled": True, "pad_loop_repeat": False, "pad_loop_sequence": [0, -4],
+        "pads": [{"pad_index": index, "length_beats": 4,
+            "keypoints": [{"position": 0, "value": 30 + index}, {"position": 1, "value": 30 + index}]} for index in (0, 1)],
+    }])
+    runtime.configure(SessionSequencerConfigRequest.model_validate(payload))
+    runtime.start()
+    runtime._absolute_subunit = 3360
+    runtime.audition(SessionAuditionRequest(action="start", track_ids=["filter"], sequence=[1, -1]))
+    boundary = 4 * 3360 * 2 // 3
+    assert runtime._auditions["filter"]["boundary"] == boundary
+    runtime._advance_render_to_event_locked(runtime._config, boundary)
+    track = runtime._config.controller_tracks["filter"]
+    assert track.active_pad == 1 and track.phase_offset_subunit == boundary
+    runtime._advance_render_to_event_locked(runtime._config, 64 * 420)
+    assert runtime._absolute_subunit == 0
+    assert track.active_pad == 1 and track.pad_loop_position == 0 and track.phase_offset_subunit == 0
+    runtime.audition(SessionAuditionRequest(action="stop", track_ids=["filter"]))
+    assert not track.enabled and not runtime.status().auditions
+    assert runtime._config.tracks["other"].enabled
+
+
+def test_seek_applies_pending_audition_replacement_and_return_at_destination():
+    from backend.app.models.session import SessionAuditionRequest
+    runtime, _ = _audition_runtime()
+    runtime.audition(SessionAuditionRequest(action="start", track_ids=["lead"], sequence=[0]))
+    runtime.audition(SessionAuditionRequest(action="start", track_ids=["lead"], sequence=[1, -2]))
+    runtime._seek_absolute_subunit_locked(5 * 3360)
+    lead = runtime._config.tracks["lead"]
+    assert lead.active_pad == 1 and lead.phase_offset_subunit == 5 * 3360
+    assert runtime.audition_status()["lead"] == {"active": True, "queued": None}
+    runtime.audition(SessionAuditionRequest(action="return", track_ids=["lead"]))
+    runtime._seek_absolute_subunit_locked(6 * 3360)
+    assert not runtime.audition_status()
+    assert runtime._current_pad_loop_token(lead) == -4

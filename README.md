@@ -38,7 +38,7 @@ Create melodies, bass lines, drum patterns, and movement in the same performance
 
 Arpeggiator steps show large note previews and scale-degree borders using the piano keyboard’s colours. Chord borders show separate colour segments; Scale Off keeps borders neutral. Hover over a step to read its full note preview and scale degrees.
 
-Pattern pads hold variations you can launch while playing or chain with the Pad Looper. Each sequencer can use its own meter, grid, and beat ratio around a shared tempo. Explore patterns of different lengths, odd meters, and rhythms that move against one another.
+Pattern pads hold reusable variations. Assemble song order in the multitrack arranger with pads, groups, supergroups and rests; edit their contents in each sequencer. Audition a phrase temporarily while the other tracks continue, then return to the authored song. Each sequencer can use its own meter, grid, and beat ratio around a shared tempo. Explore patterns of different lengths, odd meters, and rhythms that move against one another.
 
 ![Two melodic sequencers with pattern pads above a controller automation curve](screenshots/perform_sequencer_types.png)
 

@@ -21,6 +21,7 @@ import type {
   SessionCreateResponse,
   SessionSequencerConfigRequest,
   SessionSequencerQueuePadRequest,
+  SessionAuditionRequest,
   SessionSequencerStartRequest,
   SessionSequencerSeekRequest,
   SessionSequencerStatus,
@@ -250,6 +251,8 @@ export const api = {
     request<SessionSequencerStatus>(`/sessions/${sessionId}/sequencer/rewind`, { method: "POST" }),
   forwardSessionSequencerCycle: (sessionId: string) =>
     request<SessionSequencerStatus>(`/sessions/${sessionId}/sequencer/forward`, { method: "POST" }),
+  auditionSequence: (sessionId: string, payload: SessionAuditionRequest) =>
+    request<SessionSequencerStatus>(`/sessions/${sessionId}/sequencer/audition`, { method: "POST", body: JSON.stringify(payload) }),
   queueSessionSequencerPad: (sessionId: string, trackId: string, payload: SessionSequencerQueuePadRequest) =>
     request<SessionSequencerStatus>(`/sessions/${sessionId}/sequencer/tracks/${trackId}/queue-pad`, {
       method: "POST",

@@ -7,6 +7,8 @@ export type EditorOwner = "page" | "rack" | "arranger" | "mixer" | `device:${str
 type Entry = { owner: EditorOwner; value: unknown };
 type EditorState = { entries: Record<string, Entry> };
 export const createPerformanceEditorStore = () => createStore<EditorState>(() => ({ entries: {} }));
+export const OpenArrangerContext = createContext<(() => void) | null>(null);
+export const useOpenArranger = () => useContext(OpenArrangerContext);
 const EditorContext = createContext<ReturnType<typeof createPerformanceEditorStore> | null>(null);
 
 export function editorContainerLengths(pattern: PadLoopPatternState, prefix = ""): Record<string, number> {
