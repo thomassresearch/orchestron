@@ -82,13 +82,13 @@ it("keeps borders neutral without matching degree metadata or when Scale is Off"
 it("hides stale previews on other pads and steps edited into rests or ties", () => {
   const props = previewProps();
   const { rerender } = render(<ArpeggiatorEditor {...props} />);
-  fireEvent.click(screen.getByRole("button", { name: "Editing P2" }));
+  fireEvent.click(screen.getByRole("button", { name: "Editing #2" }));
   const step = screen.getByRole("button", { name: "Step 1: Next note" });
   expect(step.title).toBe("");
   expect(stepBorder(step)).toBeNull();
   rerender(<ArpeggiatorEditor {...props} arp={{ ...props.arp, runtimeStatus: { ...props.arp.runtimeStatus!, active_pad: 1 } }} />);
   expect(step.title).toBe("Preview notes: C4"); // The second pad has Scale Off.
-  fireEvent.click(screen.getByRole("button", { name: "Editing P1" }));
+  fireEvent.click(screen.getByRole("button", { name: "Editing #1" }));
   for (const kind of ["rest", "tie"] as const) {
     const arp = { ...props.arp, pads: props.arp.pads.map(pad => ({ ...pad, steps: pad.steps.map(s => ({ ...s, kind })) })) };
     rerender(<ArpeggiatorEditor {...props} arp={arp} />);
@@ -98,7 +98,7 @@ it("hides stale previews on other pads and steps edited into rests or ties", () 
   }
 });
 
-it("keeps legacy pitches, accents and routing in P1 while adopting the new transport defaults", () => {
+it("keeps legacy pitches, accents and routing in #1 while adopting the new transport defaults", () => {
   const arp = normalizeArpeggiatorState({ id: "arp", inputChannel: 6, targetChannel: 5, rate: "1/8T", pattern: "down", octaves: 3, latch: true,
     velocityMode: "accent", accentCycle: [127, 64], restartMode: "first_note", presetId: "mine" }, 0);
   expect(arp).toMatchObject({ playbackMode: "arranger", holdMode: "off", restartMode: "free", inputChannel: 6, targetChannel: 5 });
@@ -125,7 +125,7 @@ it("edits the selected pad through keyboard and pointer controls while another p
     engineRunning: true, transportPlaying: true, stepsPerBeat: 8, onChange: change, onEnabled: vi.fn(), onRemove: vi.fn(),
     onCommand: command, onPreset: preset, onSave: vi.fn() };
   const { rerender } = render(<ArpeggiatorEditor {...props} />);
-  fireEvent.click(screen.getByRole("button", { name: "Editing P3" }));
+  fireEvent.click(screen.getByRole("button", { name: "Editing #3" }));
   fireEvent.keyDown(screen.getByRole("button", { name: "Step 1: Next note" }), { key: "t" });
   expect(change.mock.lastCall?.[0].pads[2].steps[0].kind).toBe("tie");
   expect(change.mock.lastCall?.[0].pads[0].steps[0].kind).toBe("next");
@@ -133,8 +133,8 @@ it("edits the selected pad through keyboard and pointer controls while another p
   expect(preset).toHaveBeenCalledWith("test", 2);
   const playing = { ...arp, activePad: 1 } as ArpeggiatorState;
   rerender(<ArpeggiatorEditor {...props} arp={playing} />);
-  expect(screen.getByRole("button", { name: "Editing P3" }).getAttribute("aria-pressed")).toBe("true");
-  fireEvent.click(screen.getByRole("button", { name: "Launch P4" }));
+  expect(screen.getByRole("button", { name: "Editing #3" }).getAttribute("aria-pressed")).toBe("true");
+  fireEvent.click(screen.getByRole("button", { name: "Launch #4" }));
   expect(command).toHaveBeenCalledWith({ command: "launch", pad_index: 3 });
   rerender(<ArpeggiatorEditor {...props} arp={{ ...arp, enabled: true, playbackMode: "live" }} engineRunning={false} />);
   fireEvent.click(screen.getByRole("button", { name: "Start" }));

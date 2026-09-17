@@ -2,6 +2,7 @@ import { usePerformanceAudition } from "./PerformanceAudition";
 import { useState } from "react";
 import type { GuiLanguage, PadLoopPatternItem, PadLoopPatternState } from "../../types";
 import { arrangementCopy } from "../../lib/arrangementCopy";
+import { patternItemButtonClass } from "../../lib/patternItemPresentation";
 import { compileDefinition, createDefinition, definitionItem, definitionUses, deleteDefinition, validateArrangementEdit, type DefinitionRef } from "../../lib/arrangementEditing";
 import { canInsertItemIntoPadLoopContainer, getPadLoopContainerSequence, groupPadLoopItemsInContainer, insertPadLoopItem, itemDisplayLabel, movePadLoopItemWithinContainer, removePadLoopItemsFromContainer, ungroupPadLoopItemsInContainer } from "../../lib/padLoopPattern";
 import { useOpenArranger, usePerformanceEditorState } from "./PerformanceEditorState";
@@ -88,7 +89,7 @@ export function PadLoopPatternEditor({ track, guiLanguage = "english", onPadLoop
     </div>
     <div className="flex flex-wrap gap-1">
       {[...pattern.groups.map(g => ({ kind: "group" as const, id: g.id })), ...pattern.superGroups.map(g => ({ kind: "super" as const, id: g.id }))].map(ref =>
-        <button key={`${ref.kind}:${ref.id}`} className={button} aria-pressed={active?.id === ref.id && active.kind === ref.kind}
+        <button key={`${ref.kind}:${ref.id}`} className={patternItemButtonClass(ref.kind)} aria-pressed={active?.id === ref.id && active.kind === ref.kind}
           onClick={() => { setSelected(ref); setSelection([]); }}>{ref.kind === "group" ? c.group : c.super} {ref.id}</button>)}
     </div>
     {active ? <>
@@ -101,7 +102,7 @@ export function PadLoopPatternEditor({ track, guiLanguage = "english", onPadLoop
       <p className="text-xs text-slate-400">{c.shared}</p>
       <div className="flex flex-wrap gap-1" aria-label={c.add}>
         {[...references, ...([1, 2, 4, 8, 16] as const).map(lengthBeats => ({ type: "pause" as const, lengthBeats }))].filter(item =>
-          canInsertItemIntoPadLoopContainer(pattern, active, item) && compileDefinition(pattern, item).length > 0).map((item, index) => <button key={index} className={button}
+          canInsertItemIntoPadLoopContainer(pattern, active, item) && compileDefinition(pattern, item).length > 0).map((item, index) => <button key={index} className={patternItemButtonClass(item.type)}
           draggable onDragEnd={endArrangementDrag} onDragStart={event => { beginArrangementDrag(track.id, item); event.dataTransfer.setData(ARRANGEMENT_ITEM_MIME, JSON.stringify({ trackId: track.id, item })); }}
           onClick={() => change(() => insertPadLoopItem(pattern, active, sequence.length, item))}>{label(item)}</button>)}
       </div>
@@ -124,7 +125,7 @@ export function PadLoopPatternEditor({ track, guiLanguage = "english", onPadLoop
             const from = e.dataTransfer.getData("application/x-orchestron-phrase-index");
             if (from !== "") { e.preventDefault(); e.stopPropagation(); const data = JSON.parse(from); if (data.trackId === track.id && data.id === active.id && data.kind === active.kind) change(() => movePadLoopItemWithinContainer(pattern, active, data.index, index)); }
           }}>
-          <button className={button} draggable aria-pressed={selection.includes(index)} onDragStart={e => e.dataTransfer.setData("application/x-orchestron-phrase-index", JSON.stringify({ trackId: track.id, ...active, index }))}
+          <button className={patternItemButtonClass(item.type)} draggable aria-pressed={selection.includes(index)} onDragStart={e => e.dataTransfer.setData("application/x-orchestron-phrase-index", JSON.stringify({ trackId: track.id, ...active, index }))}
             onClick={e => setSelection(e.ctrlKey || e.metaKey || e.shiftKey ? selection.includes(index) ? selection.filter(i => i !== index) : [...selection, index] : [index])}>{label(item)}</button>
           <button className={button} aria-label={`${c.closeGap} ${label(item)}`} onClick={() => change(() => removePadLoopItemsFromContainer(pattern, active, [index]))}>×</button>
         </div>)}

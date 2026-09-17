@@ -112,7 +112,7 @@ The performance CLI can discover tracks with `edit sequencers list` and inspect 
 
 ## Pattern Pads and Reusable Phrases
 
-Drummer sequencers support the same `P1..P8` pattern-pad workflow as melodic sequencers.
+Drummer sequencers support the same `#1..#8` pattern-pad workflow as melodic sequencers.
 
 If a drummer sequencer is running, pad changes are queued to the next loop boundary. If it is stopped, pad changes apply immediately so you can edit another pad while the shared transport keeps running elsewhere.
 

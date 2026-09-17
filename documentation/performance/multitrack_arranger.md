@@ -4,6 +4,8 @@
 
 The arranger is the only editor of song order. Each lane places references to its eight pads, reusable groups and supergroups, and rests. Sequencers edit the contents of those definitions. Editing a shared definition changes every occurrence; changing its duration shifts following material on that lane.
 
+Pads are labelled **1–8** in arranger lanes and palettes, and **#1–#8** in sequencers and phrase editors. Pads are green, groups are red, and supergroups are violet throughout the sequencers, phrase libraries, palettes and arranger lanes. Rests keep their dark styling; the number in **Rest 1/2/4/8/16** is its duration in local beats, while a pad number identifies a reusable slot. Selection outlines and Playing/Queued indicators remain separate from these type colours.
+
 ## Compact track headers
 
 Each lane starts collapsed. Click the triangle or track title (Enter/Space when focused) to open or close its editing tools. Clicking an occurrence selects it and opens the lane; the triangle can close it again while retaining the editing context. Clicking empty timeline space clears occurrence highlights and chooses the insertion position without changing panel expansion. Edit definition and Open in arranger open the required editors explicitly.

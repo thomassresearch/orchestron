@@ -3,6 +3,8 @@ import type { GuiLanguage } from "../types";
 export const arrangementHelp: Record<GuiLanguage, string> = {
   english: `## Song order and reusable phrases
 
+Pads use 1–8 in arranger lanes and palettes, and #1–#8 in sequencers and phrase editors. Pads are green, groups red and supergroups violet in sequencers and arranger lanes. Rests stay dark and show their duration in beats. Pad numbers identify reusable slots, not durations. Selection outlines and Playing/Queued indicators remain distinct.
+
 The triangle beside a track title opens or closes its editor. Clicking an occurrence opens it; clicking empty timeline space clears highlights without changing expansion. Patterns and phrases and Playback settings have their own disclosures, collapsed by default. Closing retains editing context; New/Load/Import resets the layout.
 
 Mute/Solo affects this lane only, even when lanes share an instrument. Multiple solos are allowed; explicit mute wins. Dashed amber Mute means suppressed by another Solo. Muted lanes keep advancing; unmute resumes future events at the current position. Existing notes release normally and CC values stay at their last applied value until another update. Drummer rows act together. Solo preserves needed arpeggiator inputs and processing; explicit mute still wins. External MIDI and independent Live arpeggiators are outside solo selection. Lane controls survive engine restart but reset on New/Load/Import or reload and are never saved or exported. Mixer controls remain independent.
@@ -17,6 +19,8 @@ Audition temporarily repeats a pad or phrase on this track, beginning at its nex
 
 Arranger Play clears auditions, starts Arrangement lanes and stops Manual pads sequencers. Stop clears auditions and stops Arrangement lanes while preserving independently started manual tracks. Live arpeggiators retain their existing behavior. Audition state is never saved or exported; musical edits still save normally.`,
   german: `## Songfolge und wiederverwendbare Phrasen
+
+Pads heißen in Arranger-Spuren und Paletten 1–8, in Sequencern und Phraseneditoren #1–#8. Pads sind grün, Gruppen rot und Supergruppen violett. Pausen bleiben dunkel und zeigen ihre Dauer in Beats. Pad-Nummern bezeichnen wiederverwendbare Speicherplätze, keine Dauer. Auswahlrahmen sowie Wiedergabe- und Vormerkanzeigen bleiben getrennt.
 
 Das Dreieck neben dem Spurnamen öffnet oder schließt den Editor. Ein Vorkommen öffnet ihn; ein Klick in freie Timeline-Fläche hebt Markierungen auf, ohne den Editor zu öffnen oder zu schließen. Patterns und Phrasen sowie Wiedergabeeinstellungen haben eigene, anfangs geschlossene Bereiche. Der Bearbeitungszustand bleibt beim Schließen erhalten; Neu/Laden/Import setzt das Layout zurück.
 
@@ -33,6 +37,8 @@ Vorhören wiederholt ein Pad oder eine Phrase ab der nächsten Pad-/Pausengrenze
 Arranger-Play beendet Vorhören, startet Arrangement-Spuren und stoppt manuelle Sequencer. Stop beendet Vorhören und Arrangement-Spuren; unabhängig gestartete manuelle Spuren laufen weiter. Live-Arpeggiatoren bleiben unabhängig. Vorhörzustände werden weder gespeichert noch exportiert; musikalische Änderungen werden normal gespeichert.`,
   french: `## Ordre du morceau et phrases réutilisables
 
+Les pads sont nommés 1–8 dans les pistes et palettes de l’arrangeur, et #1–#8 dans les séquenceurs et éditeurs de phrases. Les pads sont verts, les groupes rouges et les supergroupes violets dans les séquenceurs et les pistes de l’arrangeur. Les silences restent sombres et indiquent leur durée en temps. Les numéros de pad désignent des emplacements réutilisables, pas des durées. Les contours de sélection et les indicateurs Lecture/En attente restent distincts.
+
 Le triangle à côté du nom de piste ouvre ou ferme son éditeur. Cliquer une occurrence l’ouvre ; cliquer un espace vide efface les sélections sans changer l’ouverture. Motifs et phrases et Réglages de lecture ont leurs propres volets, fermés par défaut. Fermer conserve le contexte d’édition ; Nouveau/Charger/Importer réinitialise la disposition.
 
 Muet/Solo agit uniquement sur cette piste, même si plusieurs pistes partagent un instrument. Plusieurs solos sont possibles ; Muet explicite prime. Un bouton Muet ambre en pointillés indique l’exclusion par un autre Solo. Les pistes muettes avancent toujours ; leur réactivation reprend les événements futurs à la position actuelle. Les notes en cours se terminent normalement ; les valeurs CC restent jusqu’à une nouvelle mise à jour. Les lignes de batterie changent ensemble. Solo conserve les entrées et traitements d’arpégiateur nécessaires ; Muet explicite reste prioritaire. Le MIDI externe et les arpégiateurs Live indépendants restent hors de la sélection Solo. Ces contrôles survivent au redémarrage du moteur, se réinitialisent sur Nouveau/Charger/Importer ou rechargement et ne sont jamais sauvegardés ni exportés. Le mixeur reste indépendant.
@@ -47,6 +53,8 @@ Source de lecture choisit Arrangement ou Pads manuels. À la fin choisit Arrête
 
 Play termine les écoutes, lance les pistes Arrangement et arrête les séquenceurs manuels. Stop termine les écoutes et pistes Arrangement, en préservant les pistes manuelles lancées séparément. Les arpégiateurs Live restent indépendants. L’écoute temporaire n’est ni sauvegardée ni exportée ; les modifications musicales le sont.`,
   spanish: `## Orden del tema y frases reutilizables
+
+Los pads se llaman 1–8 en las pistas y paletas del arreglador, y #1–#8 en los secuenciadores y editores de frases. Los pads son verdes, los grupos rojos y los supergrupos violetas en los secuenciadores y las pistas del arreglador. Los silencios siguen oscuros e indican su duración en pulsos. Los números de pad identifican espacios reutilizables, no duraciones. Los contornos de selección y los indicadores Reproducción/En espera se mantienen diferenciados.
 
 El triángulo junto al nombre abre o cierra el editor de pista. Pulsar una aparición lo abre; pulsar un hueco borra las selecciones sin cambiar la apertura. Patrones y frases y Ajustes de reproducción tienen sus propios paneles, cerrados por defecto. Cerrar conserva el contexto de edición; Nuevo/Cargar/Importar restablece el diseño.
 

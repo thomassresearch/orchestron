@@ -142,7 +142,7 @@ The performance CLI can discover tracks with `edit sequencers list` and inspect 
 
 ## Related Features
 
-- Pattern pads (P1..P8), queued pad switching, pad copying, transposition, and phrase library and arranger controls are documented in [Pattern Pads and Reusable Phrases](pattern_pads_and_pad_looper.md).
+- Pattern pads (#1..#8), queued pad switching, pad copying, transposition, and phrase library and arranger controls are documented in [Pattern Pads and Reusable Phrases](pattern_pads_and_pad_looper.md).
 
 ## Screenshots
 

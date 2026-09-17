@@ -121,7 +121,7 @@ Programme des patterns mélodiques ou rythmiques par pas.
 - Regler canal MIDI, gamme, mode, mesure/grille et ratio de temps propres a chaque sequenceur melodique.
 - Synchroniser un sequenceur melodique a un autre via \`Sync vers\`.
 - Reordonner les sequenceurs melodiques par glisser-deposer avec la poignee \`::\` de chaque carte.
-- Utiliser les pads P1..P8 pour file d'attente sur les sequenceurs en lecture et changement immediat sur les sequenceurs arretes.
+- Utiliser les pads #1..#8 pour file d'attente sur les sequenceurs en lecture et changement immediat sur les sequenceurs arretes.
 - Copier un pad de pattern en le glissant-deposant sur un autre pad (copie les notes et les réglages de gamme/mode du pad).
 - Le ratio de temps change seulement la vitesse de lecture face au transport partage ; la longueur stockee du pad, la mesure et la grille restent identiques.
 - Boutons de transposition sur le bord du pad (\`-\` / \`+\`) :
@@ -144,7 +144,7 @@ Programa patrones melódicos o rítmicos por pasos.
 - Ajusta canal MIDI, escala, modo, metrica/cuadricula y relacion de pulso propias de cada secuenciador melodico.
 - Sincroniza un secuenciador melodico con otro usando \`Sync con\`.
 - Reordena los secuenciadores melodicos arrastrando el asa \`::\` en cada tarjeta.
-- Usa pads P1..P8 para cambios en cola en secuenciadores en reproduccion y cambios inmediatos en secuenciadores detenidos.
+- Usa pads #1..#8 para cambios en cola en secuenciadores en reproduccion y cambios inmediatos en secuenciadores detenidos.
 - Copia un pad de patrón arrastrándolo y soltándolo sobre otro pad (copia notas y ajustes de escala/modo del pad).
 - La relacion de pulso solo cambia la velocidad frente al transporte compartido; la longitud guardada del pad, el compas y la cuadricula no cambian.
 - Botones de transposición en el borde del pad (\`-\` / \`+\`):
@@ -614,7 +614,7 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 
 ### Pads And Copy Behavior
 
-- P1..P8 are alternate pattern memories for the same sequencer.
+- #1..#8 are alternate pattern memories for the same sequencer.
 - Dragging a step \`::\` handle copies note/chord/velocity data to another step, including across melodic sequencers.
 - Short pad transpose keeps the current tonic and mode and shifts notes by scale degree; long press moves the pad tonic itself.`,
     german: `### Eine Sequencer-Karte bearbeiten
@@ -625,7 +625,7 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 
 ### Pad- und Kopierverhalten
 
-- P1..P8 sind alternative Pattern-Speicher fuer denselben Sequencer.
+- #1..#8 sind alternative Pattern-Speicher fuer denselben Sequencer.
 - Das Ziehen eines Schritt-\`::\`-Handles kopiert Noten-/Akkord-/Velocity-Daten auf einen anderen Schritt, auch ueber mehrere melodische Sequencer hinweg.
 - Kurze Pad-Transposition behaelt Tonika und Modus bei und verschiebt Noten nach Skalenstufen; langer Druck verschiebt die Tonika des Pads selbst.`,
     french: `### Edition d'une carte de sequenceur
@@ -636,7 +636,7 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 
 ### Comportement des pads et copies
 
-- P1..P8 sont des memoires de pattern alternatives pour le meme sequenceur.
+- #1..#8 sont des memoires de pattern alternatives pour le meme sequenceur.
 - Faire glisser la poignee \`::\` d'un pas copie les donnees note/accord/velocite vers un autre pas, y compris entre sequenceurs melodiques.
 - Une transposition courte conserve tonique et mode et deplace les notes par degre ; un appui long deplace la tonique du pad elle-meme.`,
     spanish: `### Edicion de una tarjeta de secuenciador
@@ -647,7 +647,7 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 
 ### Comportamiento de pads y copias
 
-- P1..P8 son memorias alternativas de patron para el mismo secuenciador.
+- #1..#8 son memorias alternativas de patron para el mismo secuenciador.
 - Arrastrar el asa \`::\` de un paso copia datos de nota/acorde/velocidad a otro paso, incluso entre secuenciadores melodicos.
 - La transposicion corta mantiene tonica y modo y mueve las notas por grado; la pulsacion larga mueve la tonica del propio pad.`
   },

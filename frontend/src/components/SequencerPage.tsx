@@ -1,3 +1,4 @@
+import { PATTERN_ITEM_COLORS, patternPadClass } from "../lib/patternItemPresentation";
 import { PerformanceAuditionControls } from "./sequencer/PerformanceAudition";
 import { sequencerEditingView } from "../store/sequencerEdits";
 import { NoteTimingControl, noteTimingCopy, timingDescription } from "./sequencer/NoteTimingControl";
@@ -1795,21 +1796,13 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
                   const isActivePad = track.activePad === padIndex;
                   const isQueuedPad = track.queuedPad === padIndex;
                   const padHasContent = (track.pads[padIndex]?.steps ?? []).some((step) => step.note !== null);
-                  const inactivePadMainClass = padHasContent
-                    ? "border-cyan-700/65 bg-slate-900 text-cyan-100 hover:border-cyan-500/70 hover:bg-slate-800/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_0_1px_rgba(34,211,238,0.08)]"
-                    : "border-slate-700 bg-slate-900 text-slate-300 hover:border-slate-500";
-                  const padAccentClass = isActivePad
-                    ? "border-accent/70 bg-accent/10 text-accent hover:bg-accent/15"
-                    : isQueuedPad
-                      ? "border-amber-400/60 bg-amber-500/5 text-amber-300 hover:bg-amber-500/10"
-                      : padHasContent
-                        ? "border-cyan-800/70 bg-cyan-500/5 text-cyan-200 hover:border-cyan-600/80 hover:bg-cyan-500/10"
-                        : "border-slate-700 bg-slate-950/85 text-slate-300 hover:border-slate-500 hover:bg-slate-900";
+                  const padAccentClass = `${PATTERN_ITEM_COLORS.pad} hover:border-emerald-400`;
                   return (
                     <div key={`${track.id}-pad-${padIndex}`} className="relative">
                       <button
                         type="button"
                         draggable
+                        aria-pressed={isActivePad}
                         onClick={() => selectEditingPad(track.id, padIndex)}
                         onDragStart={(event) => {
                           const payload = JSON.stringify({ trackId: track.id, padIndex });
@@ -1829,18 +1822,13 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
                           }
                           onSequencerPadCopy(track.id, payload.padIndex, padIndex);
                         }}
-                        className={`w-full rounded-md border px-5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] transition ${isActivePad
-                            ? "border-accent bg-accent/25 text-accent"
-                            : isQueuedPad
-                              ? "border-amber-400/70 bg-amber-500/10 text-amber-300"
-                              : inactivePadMainClass
-                          }`}
+                        className={`w-full rounded-md border px-5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] transition ${patternPadClass(isActivePad, isQueuedPad)}`}
                       >
-                        P{padIndex + 1}
+                        #{padIndex + 1}
                       </button>
                       {padHasContent ? (
                         <span
-                          className="pointer-events-none absolute right-1 top-1 z-20 h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_8px_rgba(34,211,238,0.7)]"
+                          className="pointer-events-none absolute right-1 top-1 z-20 h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_8px_rgba(110,231,183,0.7)]"
                           aria-hidden="true"
                         />
                       ) : null}
@@ -1862,7 +1850,7 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
                           onSequencerPadTransposeShort(track.id, padIndex, -1);
                         }}
                         className={`absolute inset-y-0 left-0 z-10 flex w-4 items-center justify-center rounded-l-md border text-[10px] font-bold transition ${padAccentClass}`}
-                        aria-label={`Transpose pattern pad ${padIndex + 1} down (click: in-scale, hold: key-step)`}
+                        aria-label={`Transpose pattern pad #${padIndex + 1} down (click: in-scale, hold: key-step)`}
                         title="Short: transpose notes in scale | Long: move key down by degree"
                       >
                         -
@@ -1885,7 +1873,7 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
                           onSequencerPadTransposeShort(track.id, padIndex, 1);
                         }}
                         className={`absolute inset-y-0 right-0 z-10 flex w-4 items-center justify-center rounded-r-md border text-[10px] font-bold transition ${padAccentClass}`}
-                        aria-label={`Transpose pattern pad ${padIndex + 1} up (click: in-scale, hold: key-step)`}
+                        aria-label={`Transpose pattern pad #${padIndex + 1} up (click: in-scale, hold: key-step)`}
                         title="Short: transpose notes in scale | Long: move key up by degree"
                       >
                         +
@@ -2613,14 +2601,12 @@ function DrummerSequencersBody({ context }: { context: ReturnType<typeof useSequ
                   const padHasContent = (track.pads[padIndex]?.rows ?? []).some((row) =>
                     row.steps.some((cell) => cell.active)
                   );
-                  const inactivePadMainClass = padHasContent
-                    ? "border-rose-700/65 bg-slate-900 text-rose-100 hover:border-rose-500/70 hover:bg-slate-800/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_0_1px_rgba(251,113,133,0.08)]"
-                    : "border-slate-700 bg-slate-900 text-slate-300 hover:border-slate-500";
                   return (
                     <div key={`${track.id}-drum-pad-${padIndex}`} className="relative">
                       <button
                         type="button"
                         draggable
+                        aria-pressed={isActivePad}
                         onClick={() => selectEditingPad(track.id, padIndex)}
                         onDragStart={(event) => {
                           const payload = JSON.stringify({ trackId: track.id, padIndex });
@@ -2640,18 +2626,13 @@ function DrummerSequencersBody({ context }: { context: ReturnType<typeof useSequ
                           }
                           onDrummerSequencerPadCopy(track.id, payload.padIndex, padIndex);
                         }}
-                        className={`w-full rounded-md border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] transition ${isActivePad
-                            ? "border-rose-400 bg-rose-500/20 text-rose-100"
-                            : isQueuedPad
-                              ? "border-amber-400/70 bg-amber-500/10 text-amber-300"
-                              : inactivePadMainClass
-                          }`}
+                        className={`w-full rounded-md border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] transition ${patternPadClass(isActivePad, isQueuedPad)}`}
                       >
-                        P{padIndex + 1}
+                        #{padIndex + 1}
                       </button>
                       {padHasContent ? (
                         <span
-                          className="pointer-events-none absolute right-1 top-1 z-20 h-1.5 w-1.5 rounded-full bg-rose-300 shadow-[0_0_8px_rgba(251,113,133,0.7)]"
+                          className="pointer-events-none absolute right-1 top-1 z-20 h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_8px_rgba(110,231,183,0.7)]"
                           aria-hidden="true"
                         />
                       ) : null}
@@ -3162,20 +3143,15 @@ function ControllerSequencersBody({ context }: { context: ReturnType<typeof useS
                         }
                         onControllerSequencerPadCopy(controllerSequencer.id, payload.padIndex, padIndex);
                       }}
-                      className={`relative w-full rounded-md border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] transition ${isActive
-                          ? "border-teal-300 bg-teal-400/20 text-teal-100"
-                          : isQueued
-                            ? "border-amber-400/70 bg-amber-400/10 text-amber-100"
-                            : "border-slate-700 bg-slate-900/50 text-slate-200 hover:bg-slate-800/55"
-                        }`}
+                      className={`relative w-full rounded-md border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] transition ${patternPadClass(isActive, isQueued)}`}
                       aria-pressed={isActive}
-                      aria-label={`Controller pattern pad ${padIndex + 1}${isQueued ? " queued" : isActive ? " active" : ""}`}
+                      aria-label={`Controller pattern pad #${padIndex + 1}${isQueued ? " queued" : isActive ? " active" : ""}`}
                     >
-                      P{padIndex + 1}
+                      #{padIndex + 1}
                       {padHasContent ? (
                         <span
                           aria-hidden="true"
-                          className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-cyan-300"
+                          className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-emerald-300"
                         />
                       ) : null}
                     </button>

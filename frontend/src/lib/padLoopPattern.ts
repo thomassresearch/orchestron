@@ -1049,7 +1049,7 @@ export function compilePadLoopPattern(pattern: PadLoopPatternState): CompiledPad
 
 export function itemDisplayLabel(item: PadLoopPatternItem): string {
   if (item.type === "pad") {
-    return String(normalizePadIndex(item.padIndex) + 1);
+    return `#${normalizePadIndex(item.padIndex) + 1}`;
   }
   if (item.type === "pause") {
     return `P${item.lengthBeats}`;

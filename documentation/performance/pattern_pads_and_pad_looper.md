@@ -2,7 +2,9 @@
 
 **Navigation:** [Up](performance.md) | [Prev](drummer_sequencers.md) | [Next](multitrack_arranger.md)
 
-Each sequencer has eight pattern slots, P1–P8. Click a pad to select it for editing. Playback and queued launches never change this editing selection. The Playing and Queued indicators show what is sounding separately.
+Each sequencer has eight pattern slots, #1–#8. Click a pad to select it for editing. Playback and queued launches never change this editing selection. The Playing and Queued indicators show what is sounding separately.
+
+Pads are labelled **1–8** in arranger lanes and palettes, and **#1–#8** in sequencers and phrase editors. Pads are green, groups are red, and supergroups are violet throughout the sequencers, phrase libraries, palettes and arranger lanes. Rests keep their dark styling; the number in **Rest 1/2/4/8/16** is its duration in local beats, while a pad number identifies a reusable slot. Selection outlines and Playing/Queued indicators remain separate from these type colours.
 
 ## Pad contents
 

@@ -16,9 +16,9 @@ export function PerformanceAuditionControls({ id, language, item, manualLaunch, 
   const c = arrangementCopy(language);
   const button = "rounded border border-slate-600 px-2 py-1 text-xs hover:border-cyan-300 disabled:opacity-40";
   return <div className="flex flex-wrap items-center gap-2 text-xs text-slate-300">
-    {editingPad !== undefined && <span>{c.editing}: P{editingPad + 1}</span>}
-    {playing && playingPad !== undefined && <span className="text-emerald-300">{c.playing}: P{playingPad + 1}</span>}
-    {queuedPad != null && <span className="text-amber-200">{c.queued}: P{queuedPad + 1}</span>}
+    {editingPad !== undefined && <span>{c.editing}: #{editingPad + 1}</span>}
+    {playing && playingPad !== undefined && <span className="text-emerald-300">{c.playing}: #{playingPad + 1}</span>}
+    {queuedPad != null && <span className="text-amber-200">{c.queued}: #{queuedPad + 1}</span>}
     {manualLaunch ? <button className={button} onClick={manualLaunch}>{c.launch}</button> : item && audition &&
       <button className={button} onClick={() => void audition(id, item)}>{c.audition}</button>}
     {status?.active && <span className="text-cyan-300">{c.auditioning}</span>}

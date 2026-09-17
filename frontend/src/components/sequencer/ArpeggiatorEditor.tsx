@@ -1,3 +1,4 @@
+import { patternPadClass } from "../../lib/patternItemPresentation";
 import { PerformanceAuditionControls, usePerformanceAudition } from "./PerformanceAudition";
 import { useAppStore } from "../../store/useAppStore";
 import { useId, useRef, type ReactNode } from "react";
@@ -68,12 +69,12 @@ export function ArpeggiatorEditor({ arp, language, ui, name, help, presets, inst
       {select(c.hold, arp.holdMode, [["off", c.off], ["replace", c.replace], ["toggle", c.toggle]], v => onChange({ holdMode: v as ArpeggiatorState["holdMode"] }))}
     </div>
     <div className="flex flex-wrap items-center gap-2 text-xs"><span>{ui.heldNotes}: <span className="font-mono text-cyan-100">{arp.heldNotes.map(noteName).join(" ") || "—"}</span></span><span>{ui.activeNote}: {(runtime?.active_notes ?? (arp.activeNote === null ? [] : [arp.activeNote])).map(noteName).join(" ") || "—"}</span><button className={`${button} ml-auto`} onClick={() => onCommand({ command: "clear" })}>{c.clear}</button></div>
-    <div className="flex gap-1" aria-label={c.editing}>{arp.pads.map((_, i) => <div key={i} className={`flex flex-1 rounded-lg border ${editingPad === i ? "border-cyan-300 bg-cyan-950/60" : "border-slate-600"}`}>
-      <button draggable className="min-w-0 flex-1 px-1 py-2 text-xs" aria-label={`${c.editing} P${i + 1}`} aria-pressed={editingPad === i} onClick={() => { setEditingPad(i); setSelection(0); }}
+    <div className="flex gap-1" aria-label={c.editing}>{arp.pads.map((_, i) => <div key={i} className={`flex flex-1 rounded-lg border ${patternPadClass(editingPad === i, runtime?.queued_pad === i)}`}>
+      <button draggable className="min-w-0 flex-1 px-1 py-2 text-xs" aria-label={`${c.editing} #${i + 1}`} aria-pressed={editingPad === i} onClick={() => { setEditingPad(i); setSelection(0); }}
         onDragStart={e => { e.dataTransfer.setData("application/x-visualcsound-sequencer-pad", JSON.stringify({ trackId: arp.id, padIndex: i })); }}
         onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); try { const data = JSON.parse(e.dataTransfer.getData("application/x-visualcsound-sequencer-pad")) as { trackId: string; padIndex: number }; if (data.trackId === arp.id && arp.pads[data.padIndex]) onChange({ pads: arp.pads.map((p, n) => n === i ? normalizeArpeggiatorSettings(arp.pads[data.padIndex]) : p) }); } catch { /* Ignore unrelated drags. */ } }}>
-        P{i + 1}{arp.enabled && playingPad === i ? " ●" : ""}{runtime?.queued_pad === i ? " ◷" : ""}</button>
-      <button className="border-l border-slate-600 px-1 text-cyan-200" aria-label={`${c.launch} P${i + 1}`} onClick={() => arp.playbackMode === "arranger" && audition ? void audition(arp.id, { type: "pad", padIndex: i }) : onCommand({ command: "launch", pad_index: i })}>▶</button></div>)}</div>
+        #{i + 1}{arp.enabled && playingPad === i ? " ●" : ""}{runtime?.queued_pad === i ? " ◷" : ""}</button>
+      <button className="border-l border-slate-600 px-1 text-cyan-200" aria-label={`${c.launch} #${i + 1}`} onClick={() => arp.playbackMode === "arranger" && audition ? void audition(arp.id, { type: "pad", padIndex: i }) : onCommand({ command: "launch", pad_index: i })}>▶</button></div>)}</div>
     <p className="text-[11px] text-slate-400">{c.hint}</p>
     <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
       {select(ui.preset, presetId ?? "", [["", ui.preset], ...presets.map(p => [p.id, p.name] as [string, string])], v => { if (v) onPreset(v, editingPad); })}

@@ -186,7 +186,7 @@ it("cancels a pending transpose long-press when the melodic panel unmounts", () 
   const view = render(<Page />); togglePanel("Melodic Sequencers");
   vi.useFakeTimers();
   try {
-    fireEvent.pointerDown(screen.getByRole("button", { name: "Transpose pattern pad 1 up (click: in-scale, hold: key-step)" }), { pointerId: 1, pointerType: "mouse", button: 0 });
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Transpose pattern pad #1 up (click: in-scale, hold: key-step)" }), { pointerId: 1, pointerType: "mouse", button: 0 });
     togglePanel("Melodic Sequencers"); noop.mockClear();
     act(() => vi.advanceTimersByTime(1000));
     expect(noop).not.toHaveBeenCalled();
@@ -238,8 +238,8 @@ it("shows pad switches received while hidden and retains the arpeggiator preset 
   togglePanel("Arpeggiators");
   act(() => useAppStore.getState().syncSequencerRuntime({ isPlaying: true, tracks: [{ trackId: "tracks-1", activePad: 1, queuedPad: null }] }));
   togglePanel("Melodic Sequencers");
-  expect(screen.getAllByRole("button", { name: "P1" }).some(button => button.className.includes("bg-accent/25"))).toBe(true);
-  expect(screen.getByText("Playing: P2")).toBeTruthy();
+  expect(screen.getAllByRole("button", { name: "#1" }).some(button => button.getAttribute("aria-pressed") === "true")).toBe(true);
+  expect(screen.getByText("Playing: #2")).toBeTruthy();
   togglePanel("Arpeggiators");
   expect((screen.getByRole("textbox", { name: "Save as preset" }) as HTMLInputElement).value).toBe("Unfinished preset");
 });

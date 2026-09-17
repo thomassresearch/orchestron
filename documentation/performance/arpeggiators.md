@@ -26,16 +26,16 @@ Straight, triplet and dotted rates use musical beat positions. Swing alternates 
 
 ## Eight Musical Pads
 
-Each pad stores a complete musical variation: order, rate, octave range, transpose, expression, harmony, rhythm, rotation and random seed. Click **P1–P8** to choose the editing pad. Use its separate play button to launch it. The playing pad has a dot; a queued pad has a clock mark. Automatic pad changes leave your editing pad and unfinished preset name in place.
+Each pad stores a complete musical variation: order, rate, octave range, transpose, expression, harmony, rhythm, rotation and random seed. Click **#1–#8** to choose the editing pad. Use its separate play button to launch it. The playing pad has a dot; a queued pad has a clock mark. Automatic pad changes leave your editing pad and unfinished preset name in place.
 
 Each pad has two independent lengths:
 
 - **Rhythm steps:** 1–32 steps (default 16 sixteenths).
 - **Pad duration:** 1–8 or 16 master beats (default four beats), used by the arranger.
 
-For example, a five-step rhythm continues across successive four-beat occurrences of P1. Changing to P2 restarts the musical cursors at that launch boundary. Arrangement pauses silence output while still tracking incoming pitches.
+For example, a five-step rhythm continues across successive four-beat occurrences of #1. Changing to #2 restarts the musical cursors at that launch boundary. Arrangement pauses silence output while still tracking incoming pitches.
 
-Drag one pad onto another to copy its musical variation. The shared phrase library defines groups and supergroups; song placement and repeat controls live in the multitrack arranger. New arpeggiators play P1 once. Their named arranger lanes contribute to Fit, arrangement bounds, seeking and both CSD exports, including performances containing only arpeggiators.
+Drag one pad onto another to copy its musical variation. The shared phrase library defines groups and supergroups; song placement and repeat controls live in the multitrack arranger. New arpeggiators play #1 once. Their named arranger lanes contribute to Fit, arrangement bounds, seeking and both CSD exports, including performances containing only arpeggiators.
 
 In Live mode, pad launches use **Next cycle** by default, or **Next master bar**. Stopped launches select immediately and Cancel launch removes a queued launch. In Arranger mode, pad play buttons audition the definition at the next pad/rest boundary; Return to arrangement restores the authored song at the next boundary.
 
@@ -84,7 +84,7 @@ Live edits coalesce for 80 ms and apply at audio render boundaries, preserving t
 
 ## Migration to Performance Version 15
 
-Versions 1–14 load in memory into the new model. Existing settings become P1; the other seven pads use defaults. Identities, routes, rate, order, octaves, expression and user presets are retained; old accent cycles become grid velocities.
+Versions 1–14 load in memory into the new model. Existing settings become #1; the other seven pads use defaults. Identities, routes, rate, order, octaves, expression and user presets are retained; old accent cycles become grid velocities.
 
 Existing performances adopt Arranger mode, Hold Off, Continue, corrected swing and full-range ordering, so they can sound different. Save/export writes version 16; app-state version 2 and native bundle-envelope version 1 stay unchanged. Runtime positions and held notes are not saved.
 

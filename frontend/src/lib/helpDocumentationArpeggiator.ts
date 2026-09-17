@@ -13,7 +13,7 @@ Hold defaults to Off, preserving input rests. Hold and replace remembers a relea
 
 ### Pads and Grid
 
-Click P1–P8 to edit; use the separate play button to launch. Drag pads to copy. Editing stays on your selected pad while playback changes. A rhythm has 1–32 steps, independently of its pad duration (1–8 or 16 master beats). New pads use 16 sixteenths and four beats. Repeated identical pads continue the phrase; changing pads restarts it. Edit reusable groups and supergroups in Patterns and phrases; place them with rests in the multitrack arranger. In Arrangement mode, the play button auditions at the next pad/rest boundary until Return to arrangement. In Live mode, launches retain the Next cycle or Next master bar setting.
+Click #1–#8 to edit; use the separate play button to launch. Drag pads to copy. Editing stays on your selected pad while playback changes. A rhythm has 1–32 steps, independently of its pad duration (1–8 or 16 master beats). New pads use 16 sixteenths and four beats. Repeated identical pads continue the phrase; changing pads restarts it. Edit reusable groups and supergroups in Patterns and phrases; place them with rests in the multitrack arranger. In Arrangement mode, the play button auditions at the next pad/rest boundary until Return to arrangement. In Live mode, launches retain the Next cycle or Next master bar setting.
 
 Steps play Next note, a wrapping Chord-note position, Rest, Tie or Chord. Positions use the ascending octave-expanded input pool. Ties extend the preceding note/chord; an initial tie is silent. Set relative velocity bars, gate up to 200%, probability and 1–4 ratchets. Rests/misses keep the note cursor unless Advance through rests is enabled. Note repeats repeats pitches. Left/Right moves selection; Space toggles rest; Delete inserts rest; T ties; C plays a chord; N restores Next note.
 
@@ -25,7 +25,7 @@ Swing keeps each pair's duration. Full range expands octaves before note order; 
 
 Presets apply to the editing pad only. Modified, Update preset and Save as preset preserve routing and other pads. Changes coalesce for 80 ms and apply at audio boundaries without resetting transport. Invalid changes retain the working configuration. Collapse preserves editing state and playback.
 
-Version 15 migrates older settings into P1, accents into velocity steps, and other pads to defaults. Existing performances adopt Arranger, Hold Off, Continue, corrected swing and full-range ordering. Save/export persists the migration; runtime held notes and queued launches are not saved.`,
+Version 15 migrates older settings into #1, accents into velocity steps, and other pads to defaults. Existing performances adopt Arranger, Hold Off, Continue, corrected swing and full-range ordering. Save/export persists the migration; runtime held notes and queued launches are not saved.`,
   german: `## Arpeggiator
 
 Noten an den eindeutigen Eingangskanal senden; der benannte Zielkanal spielt ein vorhandenes Rack-Instrument. Beide Bedienelemente sind in der obersten Zeile als Eingangskanal → Zielkanal immer sichtbar. Quellen können Sequencer, Bildschirmtastatur oder externes MIDI sein. Arpeggiatoren lassen sich nicht verketten.
@@ -38,7 +38,7 @@ Halten ist zunächst Aus und erhält Eingangspausen. Halten und ersetzen merkt s
 
 ### Pads und Raster
 
-P1–P8 zum Bearbeiten wählen; die separate Play-Taste startet das Pad. Ziehen kopiert Pads. Automatische Wechsel ändern das bearbeitete Pad nicht. Ein Rhythmus hat 1–32 Schritte, unabhängig von seiner Pad-Dauer (1–8 oder 16 Master-Beats). Standard: 16 Sechzehntel und vier Beats. Dasselbe Pad läuft über Wiederholungen weiter; ein anderes Pad startet die Phrase neu. Wiederverwendbare Gruppen und Supergruppen unter Patterns und Phrasen bearbeiten; im Multitrack-Arranger mit Pausen platzieren. Im Arrangement-Modus startet Play das Vorhören an der nächsten Pad-/Pausengrenze bis Zurück zum Arrangement. Im Live-Modus bleibt die Einstellung Nächster Zyklus oder Master-Takt erhalten.
+#1–#8 zum Bearbeiten wählen; die separate Play-Taste startet das Pad. Ziehen kopiert Pads. Automatische Wechsel ändern das bearbeitete Pad nicht. Ein Rhythmus hat 1–32 Schritte, unabhängig von seiner Pad-Dauer (1–8 oder 16 Master-Beats). Standard: 16 Sechzehntel und vier Beats. Dasselbe Pad läuft über Wiederholungen weiter; ein anderes Pad startet die Phrase neu. Wiederverwendbare Gruppen und Supergruppen unter Patterns und Phrasen bearbeiten; im Multitrack-Arranger mit Pausen platzieren. Im Arrangement-Modus startet Play das Vorhören an der nächsten Pad-/Pausengrenze bis Zurück zum Arrangement. Im Live-Modus bleibt die Einstellung Nächster Zyklus oder Master-Takt erhalten.
 
 Schritte spielen Nächste Note, eine umlaufende Akkordnotenposition, Pause, Bindung oder Akkord. Positionen beziehen sich auf den aufsteigenden, um Oktaven erweiterten Notenvorrat. Bindungen verlängern die vorige Note/den Akkord; ohne Vorgänger bleiben sie stumm. Relative Velocity, Gate bis 200%, Wahrscheinlichkeit und 1–4 Mehrfachanschläge sind pro Schritt einstellbar. Pausen/Fehlschläge behalten den Notenzeiger; Bei Pausen weiterschalten ändert dies. Notenwiederholungen wiederholt Tonhöhen. Links/Rechts wählt, Leertaste schaltet Pause um, Entf setzt Pause, T bindet, C spielt den Akkord, N setzt Nächste Note.
 
@@ -50,7 +50,7 @@ Swing erhält die Dauer jedes Paars. Gesamter Bereich erweitert Oktaven vor der 
 
 Presets gelten nur für das bearbeitete Pad. Geändert, Preset aktualisieren und Als Preset speichern erhalten Routing und andere Pads. Änderungen werden nach 80 ms am Audioblock übernommen; ungültige Änderungen ersetzen die spielende Konfiguration nicht. Einklappen erhält Entwürfe und Wiedergabe.
 
-Version 15 übernimmt alte Einstellungen nach P1, Akzente als Velocity-Schritte und Standardwerte für andere Pads. Bestehende Performances verwenden Arranger, Halten Aus, Weiterlaufen, korrigierten Swing und den gesamten Oktavbereich. Speichern/Export schreibt die Migration; gehaltene Noten und vorgemerkte Starts werden nicht gespeichert.`,
+Version 15 übernimmt alte Einstellungen nach #1, Akzente als Velocity-Schritte und Standardwerte für andere Pads. Bestehende Performances verwenden Arranger, Halten Aus, Weiterlaufen, korrigierten Swing und den gesamten Oktavbereich. Speichern/Export schreibt die Migration; gehaltene Noten und vorgemerkte Starts werden nicht gespeichert.`,
   french: `## Arpégiateur
 
 Envoyez des notes au canal d’entrée unique ; le canal cible nommé joue un instrument existant du rack. Les deux commandes restent visibles sur la première ligne : Canal entree → Canal cible. Les sources peuvent être les séquenceurs, le clavier ou le MIDI externe. Les arpégiateurs ne se chaînent pas.
@@ -63,7 +63,7 @@ Maintien est Désactivé par défaut pour respecter les silences d’entrée. Ma
 
 ### Pads et grille
 
-Cliquez P1–P8 pour éditer ; le bouton de lecture séparé lance le pad. Glisser copie les pads. Les changements automatiques ne déplacent pas l’édition. Le cycle comporte 1–32 pas, indépendamment de la durée du pad (1–8 ou 16 temps maîtres). Par défaut : 16 doubles croches et quatre temps. Le même pad poursuit la phrase ; un pad différent la redémarre. Les groupes et supergroupes se modifient dans Motifs et phrases et se placent avec les silences dans l’arrangeur multipiste. En mode Arrangement, la lecture lance une écoute à la prochaine limite de pad/silence, jusqu’au Retour à l’arrangement. Le mode Live conserve le prochain cycle ou la prochaine mesure maître.
+Cliquez #1–#8 pour éditer ; le bouton de lecture séparé lance le pad. Glisser copie les pads. Les changements automatiques ne déplacent pas l’édition. Le cycle comporte 1–32 pas, indépendamment de la durée du pad (1–8 ou 16 temps maîtres). Par défaut : 16 doubles croches et quatre temps. Le même pad poursuit la phrase ; un pad différent la redémarre. Les groupes et supergroupes se modifient dans Motifs et phrases et se placent avec les silences dans l’arrangeur multipiste. En mode Arrangement, la lecture lance une écoute à la prochaine limite de pad/silence, jusqu’au Retour à l’arrangement. Le mode Live conserve le prochain cycle ou la prochaine mesure maître.
 
 Actions : Note suivante, Position dans l’accord avec retour circulaire, Silence, Liaison ou Accord. Les positions utilisent les notes ascendantes étendues aux octaves. Une liaison prolonge la note/l’accord précédent, sinon elle reste silencieuse. Réglez vélocité relative, durée jusqu’à 200%, probabilité et 1–4 répétitions rapides. Les silences/échecs gardent le curseur de notes sauf avec Avancer pendant les silences. Répétitions de note répète les hauteurs. Gauche/Droite sélectionne, Espace alterne silence, Suppr insère silence, T lie, C joue l’accord, N restaure Note suivante.
 
@@ -75,7 +75,7 @@ Le swing conserve la durée de chaque paire. Toute la tessiture étend les octav
 
 Les presets s’appliquent au pad édité. Modifié, Actualiser le preset et Enregistrer un preset préservent routage et autres pads. Les modifications sont regroupées pendant 80 ms puis appliquées au bloc audio ; une erreur conserve la configuration jouée. Replier conserve brouillons et lecture.
 
-La version 15 migre les anciens réglages vers P1, les accents vers les vélocités et initialise les autres pads. Les performances adoptent Arrangeur, maintien désactivé, Continuer, swing corrigé et tessiture complète. Enregistrer/exporter persiste cette migration ; les notes maintenues et lancements en attente ne sont pas sauvegardés.`,
+La version 15 migre les anciens réglages vers #1, les accents vers les vélocités et initialise les autres pads. Les performances adoptent Arrangeur, maintien désactivé, Continuer, swing corrigé et tessiture complète. Enregistrer/exporter persiste cette migration ; les notes maintenues et lancements en attente ne sont pas sauvegardés.`,
   spanish: `## Arpegiador
 
 Envíe notas al canal de entrada exclusivo; el canal destino con nombre toca un instrumento existente del rack. Ambos controles están siempre visibles en la fila superior como Canal de entrada → Canal destino. Las fuentes pueden ser secuenciadores, teclado o MIDI externo. Los arpegiadores no se encadenan.
@@ -88,7 +88,7 @@ Retener está Desactivado por defecto y conserva los silencios de entrada. Reten
 
 ### Pads y cuadrícula
 
-Pulse P1–P8 para editar; el botón de reproducción separado lanza el pad. Arrastrar copia pads. Los cambios automáticos conservan el pad editado. El ritmo tiene 1–32 pasos, independientemente de su duración (1–8 o 16 pulsos maestros). Por defecto: 16 semicorcheas y cuatro pulsos. Repetir el mismo pad continúa la frase; cambiar de pad la reinicia. Edita grupos y supergrupos en Patrones y frases y colócalos con silencios en el arreglador multipista. En modo Arreglo, la reproducción inicia una escucha en el siguiente límite de pad/silencio, hasta Volver al arreglo. El modo Live conserva el siguiente ciclo o compás maestro.
+Pulse #1–#8 para editar; el botón de reproducción separado lanza el pad. Arrastrar copia pads. Los cambios automáticos conservan el pad editado. El ritmo tiene 1–32 pasos, independientemente de su duración (1–8 o 16 pulsos maestros). Por defecto: 16 semicorcheas y cuatro pulsos. Repetir el mismo pad continúa la frase; cambiar de pad la reinicia. Edita grupos y supergrupos en Patrones y frases y colócalos con silencios en el arreglador multipista. En modo Arreglo, la reproducción inicia una escucha en el siguiente límite de pad/silencio, hasta Volver al arreglo. El modo Live conserva el siguiente ciclo o compás maestro.
 
 Acciones: Siguiente nota, Posición en el acorde circular, Silencio, Ligadura o Acorde. Las posiciones usan el conjunto ascendente ampliado por octavas. Una ligadura prolonga la nota/acorde anterior; sin anterior queda en silencio. Ajuste velocidad relativa, duración hasta 200%, probabilidad y 1–4 repeticiones rápidas. Los silencios/fallos conservan el cursor salvo con Avanzar en silencios. Repeticiones de nota repite alturas. Izquierda/Derecha selecciona, Espacio alterna silencio, Supr inserta silencio, T liga, C toca acorde, N restaura Siguiente nota.
 
@@ -100,5 +100,5 @@ Swing conserva la duración de cada pareja. Rango completo amplía octavas antes
 
 Los presets afectan solo al pad editado. Modificado, Actualizar preset y Guardar como preset conservan rutas y otros pads. Los cambios se agrupan durante 80 ms y se aplican en el bloque de audio; un error conserva la configuración activa. Contraer conserva borradores y reproducción.
 
-La versión 15 migra los ajustes antiguos a P1, los acentos a velocidades e inicializa los demás pads. Las performances adoptan Arreglador, retención desactivada, Continuar, swing corregido y rango completo. Guardar/exportar persiste la migración; notas retenidas y lanzamientos pendientes no se guardan.`
+La versión 15 migra los ajustes antiguos a #1, los acentos a velocidades e inicializa los demás pads. Las performances adoptan Arreglador, retención desactivada, Continuar, swing corregido y rango completo. Guardar/exportar persiste la migración; notas retenidas y lanzamientos pendientes no se guardan.`
 };
