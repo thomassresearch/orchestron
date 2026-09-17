@@ -1,0 +1,251 @@
+{
+  "valid": true,
+  "config_version": 15,
+  "instrument_count": 9,
+  "always_on_count": 0,
+  "resolved_route_count": 20,
+  "instruments": [
+    {
+      "performance_controller_values": {},
+      "id": "drums",
+      "patch_id": "979b006c-d2a5-47c1-836c-9f3f30453ddf",
+      "midi_channel": 10,
+      "effect_source_ids": [],
+      "effect_routes": []
+    },
+    {
+      "performance_controller_values": {
+        "ctl_tone": 600.0,
+        "ctl_decay": 0.09,
+        "ctl_release": 0.045,
+        "ctl_drive": 1.7,
+        "ctl_resonance": 0.28
+      },
+      "id": "bass",
+      "patch_id": "d6a771a3-056b-4a69-9ddc-0abaed75603b",
+      "midi_channel": 1,
+      "effect_source_ids": [],
+      "effect_routes": []
+    },
+    {
+      "performance_controller_values": {
+        "ctl_clang": 2.6,
+        "ctl_noise": 0.2,
+        "ctl_decay": 0.16,
+        "ctl_drive": 2.2,
+        "ctl_space": 0.08
+      },
+      "id": "strikes",
+      "patch_id": "8602f55b-cd7f-4f32-bd8e-c01f998288ec",
+      "midi_channel": 2,
+      "effect_source_ids": [],
+      "effect_routes": []
+    },
+    {
+      "performance_controller_values": {
+        "ctl_tone": 750.0,
+        "ctl_attack": 1.4,
+        "ctl_release": 2.4,
+        "ctl_motion_depth": 0.25,
+        "ctl_space": 0.28
+      },
+      "id": "clouds",
+      "patch_id": "1c823ae5-f5f5-4cbf-ac3b-4ca883fb6b68",
+      "midi_channel": 3,
+      "effect_source_ids": [],
+      "effect_routes": []
+    },
+    {
+      "performance_controller_values": {
+        "ctl_tone": 1800.0,
+        "ctl_vibrato": 4.0,
+        "ctl_echo": 0.15,
+        "ctl_chorus": 0.2,
+        "ctl_release": 0.22
+      },
+      "id": "theme",
+      "patch_id": "fd59788a-4a07-4515-8ef6-977fe69ec569",
+      "midi_channel": 4,
+      "effect_source_ids": [],
+      "effect_routes": []
+    },
+    {
+      "performance_controller_values": {
+        "ctl_tone": 2300.0,
+        "ctl_attack": 0.9,
+        "ctl_release": 3.0,
+        "ctl_chorus": 0.6,
+        "ctl_reverb": 0.22
+      },
+      "id": "sunlight",
+      "patch_id": "41eb999e-9cc4-4380-8086-3da9fdbcebd4",
+      "midi_channel": 5,
+      "effect_source_ids": [],
+      "effect_routes": []
+    },
+    {
+      "performance_controller_values": {
+        "ctl_tone": 950.0,
+        "ctl_attack": 0.09,
+        "ctl_release": 0.8,
+        "ctl_filter_envelope": 1400.0,
+        "ctl_filter_decay": 0.65,
+        "ctl_space": 0.18
+      },
+      "id": "sunrays",
+      "patch_id": "612db40c-e83f-4d26-a447-b2efd391ff0d",
+      "midi_channel": 6,
+      "effect_source_ids": [],
+      "effect_routes": []
+    },
+    {
+      "performance_controller_values": {
+        "ctl_ratio": 2.0,
+        "ctl_fm_depth": 0.7,
+        "ctl_tone": 4200.0,
+        "ctl_space": 0.3,
+        "ctl_decay": 2.0
+      },
+      "id": "glints",
+      "patch_id": "fac3faea-086f-448c-9581-8692bc30cca1",
+      "midi_channel": 7,
+      "effect_source_ids": [],
+      "effect_routes": []
+    },
+    {
+      "performance_controller_values": {
+        "ctl_color": 1000.0,
+        "ctl_metal_blend": 0.3,
+        "ctl_space": 0.35,
+        "ctl_release": 2.5
+      },
+      "id": "weather",
+      "patch_id": "e77f6354-8a77-4473-850c-91758ee210d0",
+      "midi_channel": 8,
+      "effect_source_ids": [],
+      "effect_routes": []
+    }
+  ],
+  "resolved_routes": [
+    {
+      "source_id": "drums",
+      "source_outlet": "left",
+      "target_id": "$master",
+      "target_inlet": "left"
+    },
+    {
+      "source_id": "drums",
+      "source_outlet": "right",
+      "target_id": "$master",
+      "target_inlet": "right"
+    },
+    {
+      "source_id": "bass",
+      "source_outlet": "left",
+      "target_id": "$master",
+      "target_inlet": "left"
+    },
+    {
+      "source_id": "bass",
+      "source_outlet": "right",
+      "target_id": "$master",
+      "target_inlet": "right"
+    },
+    {
+      "source_id": "strikes",
+      "source_outlet": "left",
+      "target_id": "$master",
+      "target_inlet": "left"
+    },
+    {
+      "source_id": "strikes",
+      "source_outlet": "right",
+      "target_id": "$master",
+      "target_inlet": "right"
+    },
+    {
+      "source_id": "clouds",
+      "source_outlet": "left",
+      "target_id": "$master",
+      "target_inlet": "left"
+    },
+    {
+      "source_id": "clouds",
+      "source_outlet": "right",
+      "target_id": "$master",
+      "target_inlet": "right"
+    },
+    {
+      "source_id": "theme",
+      "source_outlet": "left",
+      "target_id": "$master",
+      "target_inlet": "left"
+    },
+    {
+      "source_id": "theme",
+      "source_outlet": "right",
+      "target_id": "$master",
+      "target_inlet": "right"
+    },
+    {
+      "source_id": "sunlight",
+      "source_outlet": "left",
+      "target_id": "$master",
+      "target_inlet": "left"
+    },
+    {
+      "source_id": "sunlight",
+      "source_outlet": "right",
+      "target_id": "$master",
+      "target_inlet": "right"
+    },
+    {
+      "source_id": "sunrays",
+      "source_outlet": "left",
+      "target_id": "$master",
+      "target_inlet": "left"
+    },
+    {
+      "source_id": "sunrays",
+      "source_outlet": "right",
+      "target_id": "$master",
+      "target_inlet": "right"
+    },
+    {
+      "source_id": "glints",
+      "source_outlet": "left",
+      "target_id": "$master",
+      "target_inlet": "left"
+    },
+    {
+      "source_id": "glints",
+      "source_outlet": "right",
+      "target_id": "$master",
+      "target_inlet": "right"
+    },
+    {
+      "source_id": "weather",
+      "source_outlet": "left",
+      "target_id": "$master",
+      "target_inlet": "left"
+    },
+    {
+      "source_id": "weather",
+      "source_outlet": "right",
+      "target_id": "$master",
+      "target_inlet": "right"
+    },
+    {
+      "source_id": "$master",
+      "source_outlet": "$direct.left",
+      "target_id": "$output",
+      "target_inlet": "left"
+    },
+    {
+      "source_id": "$master",
+      "source_outlet": "$direct.right",
+      "target_id": "$output",
+      "target_inlet": "right"
+    }
+  ]
+}

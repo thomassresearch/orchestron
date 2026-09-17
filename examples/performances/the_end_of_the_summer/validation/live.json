@@ -1,0 +1,21 @@
+{
+  "state": "running",
+  "instrument_count": 9,
+  "route_count": 18,
+  "sequencer_running": true,
+  "arranger_active": true,
+  "tempo": {
+    "tempo_bpm": 112,
+    "meter_numerator": 4,
+    "meter_denominator": 4,
+    "steps_per_beat": 8,
+    "beat_rate_numerator": 1,
+    "beat_rate_denominator": 1
+  },
+  "current_step": 6,
+  "cycle": 176,
+  "browser_observation": "Live Global Sequencer Clock running; advancing playhead; stereo Audio Output meters observed at L -39 dB and R -37 dB during the intro.",
+  "listening": "Subjective listening not performed.",
+  "later_browser_observation": "Playhead observed at 2/8 cycle 194, in the first sunlight passage.",
+  "final_state": "Stopped engine; song loaded; playhead 1/8 cycle 0; complete arranger fitted to view."
+}

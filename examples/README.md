@@ -5,18 +5,27 @@ This folder contains example exports for Orchestron in two subfolders:
 - `instruments/` contains exported instrument files (`*.orch.instrument.json`, `*.orch.instrument.zip`)
 - `performances/` contains exported performance files (`*.orch.json`, `*.orch.zip`)
 
-The [EDM, techno and psy trance pack](instruments/edm_techno_psy/README.md) includes
-six customizable synth instruments, native exports, MIDI-driven WAV auditions,
-and reproducible patch-generation code.
+The EDM, techno and psy trance instruments are available as native exports:
+[Rubber Core FM Bass](instruments/Rubber_Core_FM_Bass.orch.instrument.json),
+[Prism FM Pluck](instruments/Prism_FM_Pluck.orch.instrument.json),
+[Furnace Techno Stab](instruments/Furnace_Techno_Stab.orch.instrument.json),
+[Undertow Motion Pad](instruments/Undertow_Motion_Pad.orch.instrument.json),
+[Goa Ray Lead](instruments/Goa_Ray_Lead.orch.instrument.json), and
+[Psy Rotor Bass](instruments/Psy_Rotor_Bass.orch.instrument.json).
 
-The [Goa / Psy Explorations pack](instruments/goa_psy_explorations/README.md) adds
+The [Goa / Psytrance guide](instruments/GOA_PSYTRANCE.md) describes
 six more instruments with built-in echoes and reverb: acid lead, FM bleeps,
 vowel talker, laser zaps, stepped bubbles, and a rising noise/FM effect.
 
-The [EBM / Dark Wave pack](instruments/ebm_darkwave/README.md) adds thirteen
+The [EBM / Dark Wave guide](instruments/EBM_DARKWAVE_INSTR.md) describes thirteen
 instruments with per-instance controls: leads, strings, pads, brass, three basses,
 plucks, a glass bell, a synthetic choir, industrial stabs, and noise/metal effects.
-It includes native exports, WAV auditions, reproducible source specs, and validation results.
+Both guides include native export links, sound descriptions, suggested registers, and control ranges and defaults.
+
+[The End of the Summer](performances/the_end_of_the_summer/README.md) is a six-minute
+dark-wave performance using Analog Drumkit and eight EBM / Dark Wave instruments.
+It includes an editable arrangement, native and Csound exports, a reproducible score,
+and a WAV render with two warm passages within the industrial groove.
 
 ## Import an instrument (Instrument Design -> Import)
 

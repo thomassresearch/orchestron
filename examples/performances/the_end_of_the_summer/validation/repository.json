@@ -1,0 +1,16 @@
+{
+  "frontend_build": "passed",
+  "docker_frontend_build": "passed",
+  "new_local_documentation_links_checked": 27,
+  "new_broken_links": [],
+  "pre_existing_broken_index_links": [
+    "instruments/edm_techno_psy/README.md",
+    "instruments/goa_psy_explorations/README.md"
+  ],
+  "shared_build_inputs_present": [
+    "examples/instruments/template/analog_drumkit.patch.json",
+    "backend/tests/fixtures/patches/analog_drumkit.patch.json"
+  ],
+  "ruff": "passed",
+  "git_diff_check": "passed"
+}

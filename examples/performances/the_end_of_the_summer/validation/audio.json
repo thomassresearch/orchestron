@@ -1,0 +1,191 @@
+{
+  "render_digest": "0a3ccd74827cb6274b40c99be9ec78345be15044eddf007ffe31ba16cf16f03c",
+  "midiFile": {
+    "sample_rate": 48000,
+    "channels": 2,
+    "duration_seconds": 363.49445833333334,
+    "peak_dbfs": -12.89706953945916,
+    "peak_by_channel_dbfs": [
+      -13.190484297830434,
+      -12.89706953945916
+    ],
+    "rms_by_channel_dbfs": [
+      -34.538716549920764,
+      -34.64448326597598
+    ],
+    "dc_by_channel": [
+      2.7182135768825952e-05,
+      2.7181582599492476e-05
+    ],
+    "final_second_peak_dbfs": -240.0,
+    "clipped_samples": 0,
+    "finite": true,
+    "sections": [
+      {
+        "name": "Clouds",
+        "start_seconds": 0.0,
+        "end_seconds": 34.28570833333333,
+        "peak_dbfs": -13.587035691134183,
+        "rms_dbfs": -38.531975612687134
+      },
+      {
+        "name": "Machinery",
+        "start_seconds": 34.28570833333333,
+        "end_seconds": 102.85714583333333,
+        "peak_dbfs": -13.618859769855515,
+        "rms_dbfs": -33.452831952413796
+      },
+      {
+        "name": "First sunlight",
+        "start_seconds": 102.85714583333333,
+        "end_seconds": 120.0,
+        "peak_dbfs": -16.912018401366712,
+        "rms_dbfs": -35.880294410771214
+      },
+      {
+        "name": "Clouds return",
+        "start_seconds": 120.0,
+        "end_seconds": 188.5714375,
+        "peak_dbfs": -13.886258648719265,
+        "rms_dbfs": -33.26411764313137
+      },
+      {
+        "name": "Open sky",
+        "start_seconds": 188.5714375,
+        "end_seconds": 222.85714583333333,
+        "peak_dbfs": -16.802074165895064,
+        "rms_dbfs": -36.504152267519
+      },
+      {
+        "name": "Warmth within the machine",
+        "start_seconds": 222.85714583333333,
+        "end_seconds": 291.4285625,
+        "peak_dbfs": -12.89706953945916,
+        "rms_dbfs": -33.08524115922899
+      },
+      {
+        "name": "Unwinding",
+        "start_seconds": 291.4285625,
+        "end_seconds": 325.71429166666667,
+        "peak_dbfs": -14.003606620701577,
+        "rms_dbfs": -34.82999746582457
+      },
+      {
+        "name": "A little warmth survives",
+        "start_seconds": 325.71429166666667,
+        "end_seconds": 360.0,
+        "peak_dbfs": -26.267875952765102,
+        "rms_dbfs": -44.89604387086889
+      }
+    ],
+    "csd_sha256": "5ef63be997f3d6cdb3a1c714e1d3d225fc0f47cdffaea78cc077876c76dcd7d6",
+    "wav_sha256": "2268fdfc8d1034b6fec57d0db77a12c4a53c4739a210ef6b3b0e5080ffa2266e"
+  },
+  "score": {
+    "sample_rate": 48000,
+    "channels": 2,
+    "duration_seconds": 363.4946458333333,
+    "peak_dbfs": -12.83349195818662,
+    "peak_by_channel_dbfs": [
+      -13.03519520202677,
+      -12.83349195818662
+    ],
+    "rms_by_channel_dbfs": [
+      -34.5403511862903,
+      -34.63961848798097
+    ],
+    "dc_by_channel": [
+      2.71792661144317e-05,
+      2.7178766491655356e-05
+    ],
+    "final_second_peak_dbfs": -240.0,
+    "clipped_samples": 0,
+    "finite": true,
+    "sections": [
+      {
+        "name": "Clouds",
+        "start_seconds": 0.0,
+        "end_seconds": 34.28570833333333,
+        "peak_dbfs": -14.302245542021279,
+        "rms_dbfs": -38.53092187362674
+      },
+      {
+        "name": "Machinery",
+        "start_seconds": 34.28570833333333,
+        "end_seconds": 102.85714583333333,
+        "peak_dbfs": -13.571458705363247,
+        "rms_dbfs": -33.45017628767415
+      },
+      {
+        "name": "First sunlight",
+        "start_seconds": 102.85714583333333,
+        "end_seconds": 120.0,
+        "peak_dbfs": -17.096648448706194,
+        "rms_dbfs": -35.88035725385271
+      },
+      {
+        "name": "Clouds return",
+        "start_seconds": 120.0,
+        "end_seconds": 188.5714375,
+        "peak_dbfs": -13.19206644383496,
+        "rms_dbfs": -33.262593875341636
+      },
+      {
+        "name": "Open sky",
+        "start_seconds": 188.5714375,
+        "end_seconds": 222.85714583333333,
+        "peak_dbfs": -16.948319350949777,
+        "rms_dbfs": -36.5003706468262
+      },
+      {
+        "name": "Warmth within the machine",
+        "start_seconds": 222.85714583333333,
+        "end_seconds": 291.4285625,
+        "peak_dbfs": -12.83349195818662,
+        "rms_dbfs": -33.08577959585604
+      },
+      {
+        "name": "Unwinding",
+        "start_seconds": 291.4285625,
+        "end_seconds": 325.71429166666667,
+        "peak_dbfs": -13.795343461517406,
+        "rms_dbfs": -34.826692940709044
+      },
+      {
+        "name": "A little warmth survives",
+        "start_seconds": 325.71429166666667,
+        "end_seconds": 360.0,
+        "peak_dbfs": -26.464541523980397,
+        "rms_dbfs": -44.88258124688561
+      }
+    ],
+    "csd_sha256": "2caac4df52c0a5d5cc5143cd7ef86c7b9eaaae51082b8732e1caa52296ba3cfc",
+    "wav_sha256": "66d1fb21b3e1d62407d3ed6bd212b49eb91e9ece4260c73a4ccb0de96ebdd49f"
+  },
+  "midi_note_events": 3028,
+  "balanced_note_on_off": true,
+  "actual_listening": "Not performed: no audio-listening tool available. Numerical and visual checks are separate.",
+  "visual_inspection": {
+    "opened": [
+      "validation/The_End_of_the_Summer.mel.png",
+      "validation/The_End_of_the_Summer.stft.png",
+      "validation/First_sunlight_preview.mel.png",
+      "validation/First_sunlight_preview.stft.png"
+    ],
+    "observations": [
+      "Both channels carry signal throughout active sections.",
+      "Warm passages near 103\u2013120 and 189\u2013223 seconds show sustained harmonic bands and fewer broadband drum transients.",
+      "The first-sunlight close-up shows clear low-register bass articulation, reduced percussion, and overlapping chord decay.",
+      "Final texture loses the rhythmic attacks and fades to silence before the end of the exported tail buffer."
+    ],
+    "status": "Inspected after the final sound render"
+  },
+  "overview_images": [
+    "validation/The_End_of_the_Summer.mel.png",
+    "validation/The_End_of_the_Summer.stft.png"
+  ],
+  "transition_images": [
+    "validation/First_sunlight_preview.mel.png",
+    "validation/First_sunlight_preview.stft.png"
+  ]
+}

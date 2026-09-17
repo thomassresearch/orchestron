@@ -1,0 +1,15 @@
+{
+  "performanceId": "5f8b713f-1490-4369-ad7c-c29617f062cf",
+  "name": "The End of the Summer",
+  "patchIds": {
+    "drums": "979b006c-d2a5-47c1-836c-9f3f30453ddf",
+    "bass": "d6a771a3-056b-4a69-9ddc-0abaed75603b",
+    "strikes": "8602f55b-cd7f-4f32-bd8e-c01f998288ec",
+    "clouds": "1c823ae5-f5f5-4cbf-ac3b-4ca883fb6b68",
+    "theme": "fd59788a-4a07-4515-8ef6-977fe69ec569",
+    "sunlight": "41eb999e-9cc4-4380-8086-3da9fdbcebd4",
+    "sunrays": "612db40c-e83f-4d26-a447-b2efd391ff0d",
+    "glints": "fac3faea-086f-448c-9581-8692bc30cca1",
+    "weather": "e77f6354-8a77-4473-850c-91758ee210d0"
+  }
+}

@@ -1,0 +1,4 @@
+work/
+auditions/*.wav
+validation/*.png
+validation/live-session.json

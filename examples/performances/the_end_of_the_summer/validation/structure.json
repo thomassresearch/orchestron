@@ -1,0 +1,58 @@
+{
+  "duration_seconds": 360,
+  "bars": 168,
+  "tracks": [
+    {
+      "track": "voice-1",
+      "beats": 672
+    },
+    {
+      "track": "voice-2",
+      "beats": 672
+    },
+    {
+      "track": "voice-3",
+      "beats": 672
+    },
+    {
+      "track": "voice-4",
+      "beats": 672
+    },
+    {
+      "track": "voice-5",
+      "beats": 672
+    },
+    {
+      "track": "voice-6",
+      "beats": 672
+    },
+    {
+      "track": "voice-7",
+      "beats": 672
+    },
+    {
+      "track": "voice-8",
+      "beats": 672
+    },
+    {
+      "track": "drumrow:drum-1:key-35",
+      "beats": 672
+    },
+    {
+      "track": "drumrow:drum-1:key-36",
+      "beats": 672
+    },
+    {
+      "track": "drumrow:drum-1:key-38",
+      "beats": 672
+    },
+    {
+      "track": "drumrow:drum-1:key-42",
+      "beats": 672
+    },
+    {
+      "track": "drumrow:drum-1:key-46",
+      "beats": 672
+    }
+  ]
+}
