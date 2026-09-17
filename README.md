@@ -44,7 +44,7 @@ Pattern pads hold reusable variations. Assemble song order in the multitrack arr
 
 *Melodic patterns and controller curves bring notes and movement into the same performance.*
 
-Lay out those patterns in the **multitrack arranger** to build an introduction, repeat a phrase, bring drums in, or leave space for a change of mood. Melodic, drummer, and controller tracks share one timeline, with looping and navigation controls for working on a passage.
+Lay out those patterns in the **multitrack arranger** to build an introduction, repeat a phrase, bring drums in, or leave space for a change of mood. Melodic, drummer, and controller tracks share one timeline, with looping and navigation controls for working on a passage. Compact track headers expand with a triangle; playback settings and phrase libraries can stay folded away. Mute or solo individual lanes—even when they share an instrument—without losing their place in the song. These temporary lane controls do not change the mixer or saved performance.
 
 ![Melodic, drummer, and controller pattern blocks arranged on a shared timeline](screenshots/perform_multitrack_arranger.png)
 

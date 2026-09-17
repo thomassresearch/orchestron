@@ -51,7 +51,7 @@ class SessionPerformanceRuntimeCoordinator:
         return runtime.midi_router
 
     def create_midi_router(self, runtime: RuntimeSession) -> PerformanceMidiRouter:
-        return PerformanceMidiRouter(
+        router = PerformanceMidiRouter(
             enqueue_timestamped_midi=runtime.worker.enqueue_timestamped_midi,
             current_engine_sample=lambda runtime=runtime: runtime.worker.render_sample_cursor,
             output_name="engine:internal",
@@ -59,6 +59,9 @@ class SessionPerformanceRuntimeCoordinator:
             max_pending_inputs=self._settings.arpeggiator_pending_input_max_events,
             max_future_samples=lambda runtime=runtime: self.manual_midi_max_future_samples(runtime),
         )
+
+        router.lane_output = getattr(runtime.worker, "lane_output", None)
+        return router
 
     def manual_midi_max_future_samples(self, runtime: RuntimeSession) -> int:
         sample_rate = max(1, int(runtime.worker.runtime_sample_rate or self._settings.default_sr))

@@ -4,6 +4,22 @@
 
 The arranger is the only editor of song order. Each lane places references to its eight pads, reusable groups and supergroups, and rests. Sequencers edit the contents of those definitions. Editing a shared definition changes every occurrence; changing its duration shifts following material on that lane.
 
+## Compact track headers
+
+Each lane starts collapsed. Click the triangle or track title (Enter/Space when focused) to open or close its editing tools. Clicking an occurrence selects it and opens the lane; the triangle can close it again while retaining the editing context. Clicking empty timeline space clears occurrence highlights and chooses the insertion position without changing panel expansion. Edit definition and Open in arranger open the required editors explicitly.
+
+**Patterns and phrases** has its own disclosure header in the sequencer and arranger. **Playback settings** contains Playback source and, for Arrangement lanes, At end. Both start collapsed. Disclosure choices survive view switches; New/Load/Import resets them. Closing panels preserves drafts, selections and scroll, cancels active gestures, and leaves playback running.
+
+## Temporary lane Mute and Solo
+
+The small **Mute** and **Solo** buttons control this sequencer lane, independently of the instrument mixer. Several lanes can drive the same instrument and still be controlled separately. A drummer's rows act together. Multiple Solo buttons may be active; explicitly muted lanes stay muted. A dashed amber Mute button indicates suppression by another lane's Solo.
+
+Lanes keep advancing through pads, rests, loops and auditions while suppressed. Changes apply at the next available engine block; already buffered audio still plays. New attacks are suppressed, while sounding notes complete their scheduled releases and effects decay normally. Unmuting resumes future events at the current position without retriggering held notes. Controller lanes stop sending CC values while muted; the last applied value remains until an active source updates it.
+
+Solo preserves the upstream inputs and downstream arpeggiator processing needed by the selected lane. Explicit mute overrides these dependencies. External MIDI and independent Live arpeggiators remain outside arranger solo selection. Instrument mixer mute/solo still applies independently.
+
+Lane controls survive transport stop/start and engine restart within this performance. They reset on New/Load/Import and browser reload; deleted lanes lose their controls. Save, autosave, native bundles and both CSD exports exclude this temporary state.
+
 ## Place and move material
 
 Select a lane to show its palette and Add controls. Choose a pad, group, supergroup or rest, then drag it to the timeline or use Add at the displayed position. Empty phrase drafts cannot be placed. The ruler numbers master bars and beats; each lane snaps to whole local beats using its existing beat ratio. Drop previews show the resulting master-beat position and duration.

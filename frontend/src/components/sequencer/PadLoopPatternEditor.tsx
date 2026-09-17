@@ -42,6 +42,9 @@ export function PadLoopPatternEditor({ track, guiLanguage = "english", onPadLoop
   const [selected, setSelected] = usePerformanceEditorState<DefinitionRef | null>(`device:${track.id}`, "definition", null);
   const [selection, setSelection] = usePerformanceEditorState<number[]>(`device:${track.id}`, "definitionSelection", []);
   const [, selectLane] = usePerformanceEditorState<string | null>("arranger", "selectedLane", null);
+  const [expanded, setExpanded] = usePerformanceEditorState(`device:${track.id}`, hideSource ? "definitionOpen" : "libraryOpen", false);
+  const [, expandLane] = usePerformanceEditorState(`device:${track.id}`, "arrangerExpanded", false);
+  const [, expandArrangerDefinition] = usePerformanceEditorState(`device:${track.id}`, "definitionOpen", false);
   const [error, setError] = useState(false);
   const active = selected && getPadLoopContainerSequence(pattern, selected) !== null ? selected : null;
   const sequence = active ? getPadLoopContainerSequence(pattern, active) ?? [] : [];
@@ -68,14 +71,17 @@ export function PadLoopPatternEditor({ track, guiLanguage = "english", onPadLoop
   ];
   return <section className="min-w-0 space-y-2 rounded border border-slate-700 p-2" aria-label={c.library}>
     <div className="flex flex-wrap items-center gap-2">
-      <span className="text-xs font-semibold text-slate-200">{c.library}</span>
+      <button className="text-xs font-semibold text-slate-200" aria-expanded={expanded} onClick={() => { setExpanded(!expanded); endArrangementDrag(); }}><span aria-hidden>{expanded ? "▾" : "▸"}</span> {c.library}</button>
+    </div>
+    {expanded && <>
+    <div className="flex flex-wrap items-center gap-2">
       {!hideSource && <>
         <label className="text-xs text-slate-300">{c.source} <select className={button} value={track.padLoopEnabled ? "arrangement" : "manual"}
           onChange={e => onPadLoopEnabledChange(e.target.value === "arrangement")}>
           <option value="manual">{c.manual}</option>
           <option value="arrangement" disabled={!pattern.rootSequence.length}>{c.arrangement}</option>
         </select></label>
-        <button className={button} onClick={() => { selectLane(track.id); openArranger?.(); requestAnimationFrame(() => document.getElementById("multitrack-arranger")?.scrollIntoView({ block: "center" })); }}>{c.open}</button>
+        <button className={button} onClick={() => { selectLane(track.id); expandLane(true); expandArrangerDefinition(true); openArranger?.(); requestAnimationFrame(() => document.getElementById("multitrack-arranger")?.scrollIntoView({ block: "center" })); }}>{c.open}</button>
       </>}
       <button className={button} onClick={() => create("group")}>{c.newGroup}</button>
       <button className={button} onClick={() => create("super")}>{c.newSuper}</button>
@@ -130,5 +136,6 @@ export function PadLoopPatternEditor({ track, guiLanguage = "english", onPadLoop
       </div>
     </> : <p className="text-xs text-slate-400">{c.fill}</p>}
     {error && <p role="alert" className="text-xs text-red-300">{c.blocked}</p>}
+    </>}
   </section>;
 }

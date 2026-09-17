@@ -311,6 +311,9 @@ class BrowserClockWorkerRuntime {
         this.pendingChunk = { metadata: message, request: this.pendingRequests.shift() ?? fallback };
         return;
       }
+      case "sequencer_error":
+        this.post({ type: "sequencer_error", requestId: message.request_id, detail: message.detail });
+        return;
       case "sequencer_status":
         this.post({
           type: "sequencer_status",

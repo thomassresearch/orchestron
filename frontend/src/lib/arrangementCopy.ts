@@ -1,6 +1,7 @@
 import type { GuiLanguage } from "../types";
 
 const en = {
+  settings: "Playback settings", mute: "Mute", solo: "Solo", laneOnly: "Only this lane; existing notes finish their releases.", soloSuppressed: "Suppressed by another lane’s Solo", outputError: "Lane output update failed.",
   library: "Patterns and phrases", source: "Playback source", arrangement: "Arrangement", manual: "Manual pads",
   atEnd: "At end", once: "Stop track", repeat: "Repeat track sequence", open: "Open in arranger",
   newGroup: "New group", newSuper: "New supergroup", group: "Group", super: "Supergroup", rest: "Rest",
@@ -17,6 +18,7 @@ const en = {
 };
 export type ArrangementCopy = typeof en;
 const de: ArrangementCopy = {
+  settings: "Wiedergabeeinstellungen", mute: "Mute", solo: "Solo", laneOnly: "Nur diese Spur; klingende Noten klingen aus.", soloSuppressed: "Durch Solo einer anderen Spur stumm", outputError: "Spurausgabe konnte nicht aktualisiert werden.",
   library: "Patterns und Phrasen", source: "Wiedergabequelle", arrangement: "Arrangement", manual: "Manuelle Pads",
   atEnd: "Am Ende", once: "Spur stoppen", repeat: "Spursequenz wiederholen", open: "Im Arranger öffnen",
   newGroup: "Neue Gruppe", newSuper: "Neue Supergruppe", group: "Gruppe", super: "Supergruppe", rest: "Pause",
@@ -32,6 +34,7 @@ const de: ArrangementCopy = {
   manualHint: "Arranger-Start stoppt manuelle Sequencer.", fill: "Eine Phrase zum Bearbeiten wählen.", newEmpty: "Unbenutztes Pad"
 };
 const fr: ArrangementCopy = {
+  settings: "Réglages de lecture", mute: "Muet", solo: "Solo", laneOnly: "Cette piste uniquement ; les notes en cours se terminent.", soloSuppressed: "Désactivée par le Solo d’une autre piste", outputError: "Échec de la mise à jour de la sortie de piste.",
   library: "Motifs et phrases", source: "Source de lecture", arrangement: "Arrangement", manual: "Pads manuels",
   atEnd: "À la fin", once: "Arrêter la piste", repeat: "Répéter la séquence", open: "Ouvrir dans l’arrangeur",
   newGroup: "Nouveau groupe", newSuper: "Nouveau supergroupe", group: "Groupe", super: "Supergroupe", rest: "Silence",
@@ -47,6 +50,7 @@ const fr: ArrangementCopy = {
   manualHint: "La lecture de l’arrangeur arrête les séquenceurs manuels.", fill: "Choisir une phrase à modifier.", newEmpty: "Pad inutilisé"
 };
 const es: ArrangementCopy = {
+  settings: "Ajustes de reproducción", mute: "Mute", solo: "Solo", laneOnly: "Solo esta pista; las notas activas terminan normalmente.", soloSuppressed: "Silenciada por el Solo de otra pista", outputError: "No se pudo actualizar la salida de la pista.",
   library: "Patrones y frases", source: "Fuente de reproducción", arrangement: "Arreglo", manual: "Pads manuales",
   atEnd: "Al finalizar", once: "Detener pista", repeat: "Repetir secuencia", open: "Abrir en el arreglador",
   newGroup: "Nuevo grupo", newSuper: "Nuevo supergrupo", group: "Grupo", super: "Supergrupo", rest: "Silencio",

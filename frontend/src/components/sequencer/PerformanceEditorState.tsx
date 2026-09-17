@@ -82,6 +82,13 @@ export function usePerformanceEditorState<T>(owner: EditorOwner, field: string, 
   return [value, setValue];
 }
 
+/** Clear occurrence highlights without changing any editor's expansion or insertion position. */
+export function useClearArrangementSelection() {
+  const store = useContext(EditorContext);
+  return () => store?.setState(state => ({ entries: Object.fromEntries(Object.entries(state.entries).map(([key, entry]) =>
+    JSON.parse(key)[1] === "arrangerSelection" ? [key, { ...entry, value: [] }] : [key, entry])) }));
+}
+
 export function useRetainedScroll(ref: RefObject<HTMLElement>, owner: EditorOwner, field: string) {
   const [position, setPosition] = usePerformanceEditorState(owner, field, { left: 0, top: 0 });
   // Restore once per mount, after layout. Browsers clamp offsets to the current content bounds.

@@ -1,3 +1,4 @@
+import { reconcileLaneOutput } from "../lib/laneOutput";
 import { instrumentMetadata } from "../lib/instrumentTypes";
 import { executeStereoCommand, reconcileAudioGraph, deleteAudioGraphItems } from "../lib/audioBlocks";
 import { addControlFlowBlock, BRANCH_OPCODES, patchSchemaVersion } from "../lib/controlFlow";
@@ -1087,6 +1088,13 @@ function schedulePersistedAppState(snapshot: PersistedAppState): void {
     void flushPersistedAppState();
   }, APP_STATE_PERSIST_DEBOUNCE_MS);
 }
+
+reconcileLaneOutput(useAppStore.getState().sequencer);
+useAppStore.subscribe((state, previous) => {
+  if (state.sequencer !== previous.sequencer || state.performanceWorkspaceGeneration !== previous.performanceWorkspaceGeneration) {
+    reconcileLaneOutput(state.sequencer, state.performanceWorkspaceGeneration !== previous.performanceWorkspaceGeneration);
+  }
+});
 
 // A replacement engine session never inherits the previous session's playback overlays.
 useAppStore.subscribe((state, previous) => {

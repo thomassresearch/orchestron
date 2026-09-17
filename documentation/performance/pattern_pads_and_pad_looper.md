@@ -14,7 +14,7 @@ Drag one pad onto another to copy it explicitly. Melodic pad edge buttons transp
 
 ## Reusable groups and supergroups
 
-The **Patterns and phrases** library has explicit New group and New supergroup actions. Groups use letter IDs and contain pads/rests. Supergroups use Roman numeral IDs and contain pads/rests/groups. Song order is edited only in the [arranger](multitrack_arranger.md), whose Edit action opens this same definition editor.
+Click the triangle beside **Patterns and phrases** to expand or collapse the library. It starts collapsed, retains the selected definition when closed, and remembers its disclosure state separately in the sequencer and arranger. The library has explicit New group and New supergroup actions. Groups use letter IDs and contain pads/rests. Supergroups use Roman numeral IDs and contain pads/rests/groups. Song order is edited only in the [arranger](multitrack_arranger.md), whose Edit action opens this same definition editor.
 
 Choose a definition to edit its contents. Add items, select them, drag to reorder, or delete to close up the phrase. Deleting inside a definition changes the phrase itself; it does not leave an absolute-time gap. Definition edits affect every occurrence. Duration changes shift following song material, as stated in the editor.
 

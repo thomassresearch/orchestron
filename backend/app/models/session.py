@@ -605,7 +605,23 @@ class SessionArpeggiatorConfigRequest(BaseModel):
         return self
 
 
+class LaneOutputControl(BaseModel):
+    mute: bool = False
+    solo: bool = False
+
+
+class SessionLaneOutputRequest(BaseModel):
+    revision: int = Field(ge=0)
+    lanes: dict[str, LaneOutputControl] = Field(default_factory=dict, max_length=272)
+
+
+class BrowserClockLaneOutputRequest(SessionLaneOutputRequest):
+    type: Literal["lane_output"]
+    request_id: str = Field(min_length=1, max_length=128)
+
+
 class SessionSequencerConfigRequest(BaseModel):
+    lane_output: SessionLaneOutputRequest | None = None
     timing: SessionSequencerTimingConfig = Field(default_factory=SessionSequencerTimingConfig)
     step_count: int = Field(default=16, ge=1)
     playback_start_step: int = Field(default=0, ge=0)
@@ -631,6 +647,12 @@ class SessionSequencerConfigRequest(BaseModel):
                 raise ValueError(f"Duplicate track_id '{track.track_id}'.")
             seen.add(track.track_id)
         _validate_arpeggiator_routes(self.arpeggiators)
+        if self.lane_output is not None:
+            lane_ids = {t.track_id.split(":")[1] if t.track_id.startswith("drumrow:") and len(t.track_id.split(":")) == 3 else t.track_id for t in self.tracks}
+            lane_ids.update(t.track_id for t in self.controller_tracks)
+            lane_ids.update(a.arpeggiator_id for a in self.arpeggiators if a.playback_mode == "arranger")
+            if self.lane_output.lanes.keys() - lane_ids:
+                raise ValueError("Unknown arranger lane.")
         for track in self.tracks:
             if track.sync_to_track_id is None:
                 continue
@@ -737,6 +759,7 @@ class SessionArpeggiatorStatus(BaseModel):
 
 
 class SessionSequencerStatus(BaseModel):
+    lane_output: dict[str, Any] = Field(default_factory=dict)
     auditions: dict[str, dict[str, Any]] = Field(default_factory=dict)
     arranger_active: bool = False
     session_id: str

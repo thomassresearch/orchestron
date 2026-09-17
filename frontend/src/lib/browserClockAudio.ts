@@ -1,3 +1,4 @@
+import { withLaneOutput } from "./laneOutput";
 import { publishMeters, releaseMixerTransport, setMixerTransport } from "./mixerRuntime";
 import type { MixerState, MixerResponse } from "../types";
 import { wsBaseUrl } from "../api/client";
@@ -196,7 +197,7 @@ export class BrowserClockAudioClient {
     return this.sendSequencerRequest(sessionId, {
       type: "sequencer_start",
       request_id: nextRequestId(),
-      config: payload.config ?? null,
+      config: payload.config ? withLaneOutput(payload.config) : null,
       arranger_active: payload.arrangerActive ?? false,
       position_step: payload.positionStep ?? null
     });
@@ -221,6 +222,10 @@ export class BrowserClockAudioClient {
       type: "sequencer_forward",
       request_id: nextRequestId()
     });
+  }
+
+  async setLaneOutput(sessionId: string, request: import("../types").SessionLaneOutputRequest): Promise<SessionSequencerStatus> {
+    return this.sendSequencerRequest(sessionId, { ...request, type: "lane_output", request_id: nextRequestId() });
   }
 
   async audition(sessionId: string, request: import("../types").SessionAuditionRequest): Promise<SessionSequencerStatus> {
@@ -333,6 +338,15 @@ export class BrowserClockAudioClient {
         this.finishConnect(null);
         this.syncStatus();
         return;
+      case "sequencer_error": {
+        const pending = this.pendingSequencerRequests.get(message.requestId);
+        if (pending) {
+          window.clearTimeout(pending.timeoutId);
+          this.pendingSequencerRequests.delete(message.requestId);
+          pending.reject(new Error(message.detail));
+        }
+        return;
+      }
       case "sequencer_status": {
         const pending = this.pendingSequencerRequests.get(message.requestId);
         if (pending) {

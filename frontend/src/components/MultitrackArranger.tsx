@@ -1,7 +1,8 @@
+import { LaneOutputButtons } from "./sequencer/LaneOutputButtons";
 import { PerformanceAuditionControls } from "./sequencer/PerformanceAudition";
 import { useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
-import { EditorScope, usePerformanceEditorState } from "./sequencer/PerformanceEditorState";
+import { EditorScope, EditorDetails, useClearArrangementSelection, usePerformanceEditorState } from "./sequencer/PerformanceEditorState";
 import { CollapsiblePanel } from "./CollapsiblePanel";
 import { HelpIconButton } from "./HelpIconButton";
 import { PadLoopPatternEditor, ARRANGEMENT_ITEM_MIME, beginArrangementDrag, currentArrangementDrag, endArrangementDrag } from "./sequencer/PadLoopPatternEditor";
@@ -172,7 +173,7 @@ function MultitrackArrangerBody(props: MultitrackArrangerProps) {
     <div ref={viewport} className="ml-[228px] overflow-hidden" aria-hidden><div className="relative h-6" style={{ width, transform: `translateX(${-scroll}px)` }}>
       {Array.from({ length: Math.ceil(totalSteps / quantum) }, (_, beat) => <span key={beat} className="absolute text-xs text-slate-400" style={{ left: beat * quantum * zoom }}>{beat % sequencer.timing.meterNumerator === 0 ? `${Math.floor(beat / sequencer.timing.meterNumerator) + 1}.1` : zoom * quantum >= 40 ? `·${beat % sequencer.timing.meterNumerator + 1}` : ""}</span>)}
     </div></div>
-    <div className="space-y-2">{lanes.map(lane => <ArrangerLane key={lane.id} lane={lane} props={props} selected={selectedLane === lane.id} select={() => selectLane(lane.id)} commit={pattern => commit(lane, pattern)}
+    <div className="space-y-1">{lanes.map(lane => <ArrangerLane key={lane.id} lane={lane} props={props} selected={selectedLane === lane.id} select={() => selectLane(lane.id)} commit={pattern => commit(lane, pattern)}
       clipboard={clipboard} setClipboard={setClipboard} zoom={zoom * quantum * lane.beatScale} width={width} scroll={scroll} playhead={playhead} />)}</div>
     <div className="mt-2 grid grid-cols-[220px_minmax(0,1fr)] gap-2">
       <span className="text-xs text-slate-400">{c.loop}</span>
@@ -201,15 +202,19 @@ function ArrangerLane({ lane, props, selected, select, commit, clipboard, setCli
   const [position, setPosition] = usePerformanceEditorState(owner, "arrangerPosition", 0);
   const [item, setItem] = usePerformanceEditorState<PadLoopPatternItem>(owner, "arrangerItem", { type: "pad", padIndex: 0 });
   const [, setDefinition] = usePerformanceEditorState<DefinitionRef | null>(owner, "definition", null);
-  const [definitionOpen, openDefinition] = usePerformanceEditorState(owner, "definitionOpen", false);
+  const [, openDefinition] = usePerformanceEditorState(owner, "definitionOpen", false);
   const [error, setError] = useState("");
   const [dragPreview, setDragPreview] = useState<{ start: number; duration: number; valid: boolean } | null>(null);
-  const [menu, setMenu] = useState(false);
+  const [expanded, setExpanded] = usePerformanceEditorState(owner, "arrangerExpanded", false);
+  const clearSelection = useClearArrangementSelection();
+  const openLane = () => { select(); setExpanded(true); };
+  const toggleLane = () => { setExpanded(!expanded); drag.current = null; setDragPreview(null); endArrangementDrag(); };
   const drag = useRef<{ x: number; start: number; indexes: number[]; restDuration?: number } | null>(null);
+  useEffect(() => () => { drag.current = null; endArrangementDrag(); }, []);
   const spans = arrangementSpans(lane.pattern, lane.padBeats);
   const indexes = selection.filter(i => i < lane.pattern.rootSequence.length);
   useEffect(() => { setSelection(previous => previous.every(i => i < lane.pattern.rootSequence.length) ? previous : previous.filter(i => i < lane.pattern.rootSequence.length)); }, [lane.pattern.rootSequence.length, setSelection]);
-  const attempt = (edit: () => PadLoopPatternState) => { try { commit(edit()); setError(""); setSelection([]); setMenu(false); } catch (error) { setError(error instanceof Error && error.message === "Occupied destination." ? c.collision : c.blocked); } };
+  const attempt = (edit: () => PadLoopPatternState) => { try { commit(edit()); setError(""); setSelection([]); } catch (error) { setError(error instanceof Error && error.message === "Occupied destination." ? c.collision : c.blocked); } };
   const label = (value: PadLoopPatternItem) => value.type === "pause" ? `${c.rest} ${value.lengthBeats}` : itemDisplayLabel(value);
   const refs: PadLoopPatternItem[] = [...Array.from({ length: 8 }, (_, padIndex): PadLoopPatternItem => ({ type: "pad", padIndex })), ...lane.pattern.groups.map(g => definitionItem({ kind: "group", id: g.id })), ...lane.pattern.superGroups.map(g => definitionItem({ kind: "super", id: g.id })), ...([1, 2, 4, 8, 16] as const).map(lengthBeats => ({ type: "pause" as const, lengthBeats }))];
   const duration = (value: PadLoopPatternItem) => compileDefinition(lane.pattern, value).reduce((n, token) => n + (token < 0 ? -token : lane.padBeats[token]), 0);
@@ -241,17 +246,28 @@ function ArrangerLane({ lane, props, selected, select, commit, clipboard, setCli
     if (source?.type === "pad") editPad(source.padIndex);
     if (source?.type === "group" || source?.type === "super") { setDefinition(source.type === "group" ? { kind: "group", id: source.groupId } : { kind: "super", id: source.superGroupId }); openDefinition(true); }
   };
-  return <section className={`rounded border p-2 ${selected ? "border-cyan-700" : "border-slate-700"}`}>
+  return <section aria-label={lane.title} className={`rounded border px-2 py-1 ${selected ? "border-cyan-700" : "border-slate-700"}`}>
     <div className="grid grid-cols-[204px_minmax(0,1fr)] gap-2">
-      <div className="space-y-1"><button className="text-left text-xs font-semibold text-slate-100" onClick={select}>{lane.title}</button><div className="text-[11px] text-slate-400">{lane.subtitle}</div>
-        <label className="block text-xs text-slate-400">{c.source}<select className={`${button} w-full`} value={lane.source ? "arrangement" : "manual"} onChange={e => props.onPlaybackChange?.(lane.kind, lane.id, e.target.value === "arrangement", lane.repeat)}>
-          <option value="manual">{c.manual}</option><option value="arrangement" disabled={!lane.pattern.rootSequence.length}>{c.arrangement}</option></select></label>
-        {lane.source && <label className="block text-xs text-slate-400">{c.atEnd}<select className={`${button} w-full`} value={String(lane.repeat)} onChange={e => props.onPlaybackChange?.(lane.kind, lane.id, true, e.target.value === "true")}><option value="false">{c.once}</option><option value="true">{c.repeat}</option></select></label>}
+      <div className="min-w-0">
+        <div className="flex h-6 items-center gap-1">
+          <button className="min-w-0 flex-1 truncate text-left text-xs font-semibold text-slate-100" title={lane.title} aria-expanded={expanded} onClick={toggleLane}><span aria-hidden>{expanded ? "▾" : "▸"}</span> {lane.title}</button>
+          <LaneOutputButtons id={lane.id} language={props.guiLanguage} />
+        </div>
+        <div className="flex min-w-0 items-start gap-1">
+          <span className="min-w-0 flex-1 truncate text-[10px] text-slate-400" title={lane.subtitle}>{lane.subtitle}</span>
+          <EditorDetails owner={owner} field="playbackSettings" summary={c.settings} className="max-w-full text-[10px] text-slate-400" summaryClassName="cursor-pointer">
+            {() => <div className="space-y-1 py-1">
+              <label className="block">{c.source}<select className={`${button} w-full`} value={lane.source ? "arrangement" : "manual"} onChange={e => props.onPlaybackChange?.(lane.kind, lane.id, e.target.value === "arrangement", lane.repeat)}>
+                <option value="manual">{c.manual}</option><option value="arrangement" disabled={!lane.pattern.rootSequence.length}>{c.arrangement}</option></select></label>
+              {lane.source && <label className="block">{c.atEnd}<select className={`${button} w-full`} value={String(lane.repeat)} onChange={e => props.onPlaybackChange?.(lane.kind, lane.id, true, e.target.value === "true")}><option value="false">{c.once}</option><option value="true">{c.repeat}</option></select></label>}
+            </div>}
+          </EditorDetails>
+        </div>
       </div>
       <div className="min-w-0 overflow-hidden" onWheel={e => { const element = e.currentTarget.closest('#multitrack-arranger')?.querySelector('.h-4.overflow-x-auto'); if (element) element.scrollLeft += e.deltaX || e.deltaY; }}>
         <div role="list" tabIndex={0} aria-label={`${lane.title} ${c.arrangement}`} className="relative h-12 touch-none rounded border border-slate-700 bg-slate-950" style={{ width, transform: `translateX(${-scroll}px)`, backgroundImage: "linear-gradient(to right, #1e293b 1px, transparent 1px)", backgroundSize: `${zoom}px 100%` }}
-          onClick={e => { select(); if (e.target === e.currentTarget) { setSelection([]); setPosition(Math.max(0, Math.round((e.clientX - e.currentTarget.getBoundingClientRect().left) / zoom))); } }}
-          onContextMenu={e => { e.preventDefault(); select(); setPosition(Math.max(0, Math.round((e.clientX - e.currentTarget.getBoundingClientRect().left) / zoom))); setMenu(true); }}
+          onClick={e => { if (e.target === e.currentTarget) { clearSelection(); setSelection([]); setPosition(Math.max(0, Math.round((e.clientX - e.currentTarget.getBoundingClientRect().left) / zoom))); } }}
+          onContextMenu={e => { e.preventDefault(); openLane(); setPosition(Math.max(0, Math.round((e.clientX - e.currentTarget.getBoundingClientRect().left) / zoom))); }}
           onKeyDown={e => { if (["INPUT", "SELECT"].includes((e.target as HTMLElement).tagName)) return;
             if (["Delete", "Backspace"].includes(e.key)) { e.preventDefault(); remove(e.shiftKey); }
             if (/^[1-8]$/.test(e.key) && !e.ctrlKey && !e.metaKey) insert([{ type: "pad", padIndex: Number(e.key) - 1 }]);
@@ -266,7 +282,7 @@ function ArrangerLane({ lane, props, selected, select, commit, clipboard, setCli
           onPointerCancel={() => { drag.current = null; setDragPreview(null); }}>
           {spans.map(span => <div key={span.indexes[0]} className={`absolute top-1 flex h-9 items-center overflow-hidden rounded border px-1 text-xs ${span.item.type === "pause" ? "border-slate-600 bg-slate-800/60 text-slate-300" : span.item.type === "pad" ? "border-emerald-700 bg-emerald-950 text-emerald-100" : "border-orange-700 bg-orange-950 text-orange-100"} ${span.indexes.some(i => indexes.includes(i)) ? "ring-2 ring-cyan-400" : ""}`} style={{ left: span.start * zoom, width: Math.max(10, span.duration * zoom) }}>
             {span.item.type !== "pause" && <button className="mr-1" aria-label={props.copy.dragToken} onPointerDown={e => { e.preventDefault(); const use = indexes.includes(span.indexes[0]) ? indexes : span.indexes; drag.current = { x: e.clientX, start: spans.find(s => s.indexes.includes(use[0]))?.start ?? span.start, indexes: use }; e.currentTarget.parentElement?.parentElement?.setPointerCapture?.(e.pointerId); }}>⠿</button>}
-            <button className="min-w-0 truncate text-left" onClick={e => { e.stopPropagation(); select(); setPosition(span.start); setSelection(e.ctrlKey || e.metaKey || e.shiftKey ? span.indexes.some(i => indexes.includes(i)) ? indexes.filter(i => !span.indexes.includes(i)) : [...indexes, ...span.indexes] : span.indexes); }} onDoubleClick={() => { setSelection(span.indexes); if (span.item.type === "pad") editPad(span.item.padIndex); else if (span.item.type !== "pause") { setDefinition(span.item.type === "group" ? { kind: "group", id: span.item.groupId } : { kind: "super", id: span.item.superGroupId }); openDefinition(true); } }}>{span.item.type === "pause" ? `${c.rest} · ${span.duration}` : label(span.item)}</button>
+            <button className="min-w-0 truncate text-left" onClick={e => { e.stopPropagation(); openLane(); setPosition(span.start); setSelection(e.ctrlKey || e.metaKey || e.shiftKey ? span.indexes.some(i => indexes.includes(i)) ? indexes.filter(i => !span.indexes.includes(i)) : [...indexes, ...span.indexes] : span.indexes); }} onDoubleClick={() => { setSelection(span.indexes); if (span.item.type === "pad") editPad(span.item.padIndex); else if (span.item.type !== "pause") { setDefinition(span.item.type === "group" ? { kind: "group", id: span.item.groupId } : { kind: "super", id: span.item.superGroupId }); openDefinition(true); } }}>{span.item.type === "pause" ? `${c.rest} · ${span.duration}` : label(span.item)}</button>
             {span.item.type === "pause" && <button className="absolute inset-y-0 right-0 w-2 cursor-ew-resize bg-slate-500/40" aria-label={c.duration} onPointerDown={e => { e.preventDefault(); drag.current = { x: e.clientX, start: span.start, indexes: span.indexes, restDuration: span.duration }; e.currentTarget.parentElement?.parentElement?.setPointerCapture?.(e.pointerId); }} />}
           </div>)}
           {dragPreview && <span className={`pointer-events-none absolute inset-y-0 border-2 ${dragPreview.valid ? "border-cyan-300 bg-cyan-500/20" : "border-red-400 bg-red-500/20"}`} style={{ left: dragPreview.start * zoom, width: dragPreview.duration * zoom }}>{Number((dragPreview.start * lane.beatScale).toFixed(4))} · {Number((dragPreview.duration * lane.beatScale).toFixed(4))}</span>}
@@ -274,7 +290,7 @@ function ArrangerLane({ lane, props, selected, select, commit, clipboard, setCli
         </div>
       </div>
     </div>
-    {(selected || menu) && <div className="mt-2 space-y-2">
+    {expanded && <div className="mt-2 space-y-2">
       <div className="flex flex-wrap items-center gap-2">
         <label className="text-xs text-slate-300">{c.position} <input type="number" className={`${button} w-20`} min={0} value={Number((position * lane.beatScale).toFixed(6))} step={lane.beatScale} onChange={e => setPosition(Math.max(0, Math.round(Number(e.target.value) / lane.beatScale)))} /></label>
         <select className={button} aria-label={c.add} value={JSON.stringify(item)} onChange={e => setItem(JSON.parse(e.target.value))}>{refs.map((ref, i) => <option key={i} value={JSON.stringify(ref)} disabled={!compileDefinition(lane.pattern, ref).length}>{label(ref)}</option>)}</select>
@@ -298,14 +314,13 @@ function ArrangerLane({ lane, props, selected, select, commit, clipboard, setCli
         <button className={button} disabled={indexes.length !== 1 || lane.pattern.rootSequence[indexes[0]]?.type === "pause"} onClick={edit}>{c.edit}</button>
         {(["group", "super"] as const).map(kind => <button key={kind} className={button} disabled={!canCreatePadLoopGroupFromSelection(lane.pattern, { kind: "root" }, indexes, kind) || [...indexes].sort((a,b) => a-b).some((value,i,all) => i > 0 && value !== all[i-1]+1)} onClick={() => attempt(() => groupPadLoopItemsInContainer(lane.pattern, { kind: "root" }, indexes, kind))}>{kind === "group" ? c.newGroup : c.newSuper}</button>)}
         <button className={button} disabled={!indexes.some(i => ["group", "super"].includes(lane.pattern.rootSequence[i].type))} onClick={() => attempt(() => ungroupPadLoopItemsInContainer(lane.pattern, { kind: "root" }, indexes))}>{props.copy.contextMenuUngroup}</button>
-        <button className={button} onClick={() => openDefinition(!definitionOpen)}>{c.library}</button>
       </div>
       {indexes.length > 0 && spans.find(span => span.item.type === "pause" && span.indexes[0] === indexes[0]) && (() => {
         const span = spans.find(s => s.indexes[0] === indexes[0])!;
         return <label className="text-xs text-slate-300">{c.duration} <input className={`${button} w-20`} type="number" min={1} step={1} value={span.duration} onChange={e => attempt(() => ({ ...lane.pattern, rootSequence: [...lane.pattern.rootSequence.slice(0, span.indexes[0]), ...restTokens(Number(e.target.value)), ...lane.pattern.rootSequence.slice(span.indexes[span.indexes.length - 1] + 1)] }))} /></label>;
       })()}
     </div>}
-    {definitionOpen && <div className="mt-2"><PadLoopPatternEditor ui={SEQUENCER_UI_COPY[props.guiLanguage]} guiLanguage={props.guiLanguage} hostId={lane.id} track={{ id: lane.id, enabled: lane.enabled, padLoopEnabled: lane.source, padLoopRepeat: lane.repeat, padLoopPattern: lane.pattern, padLoopPosition: null }}
+    {expanded && <div className="mt-2"><PadLoopPatternEditor ui={SEQUENCER_UI_COPY[props.guiLanguage]} guiLanguage={props.guiLanguage} hostId={lane.id} track={{ id: lane.id, enabled: lane.enabled, padLoopEnabled: lane.source, padLoopRepeat: lane.repeat, padLoopPattern: lane.pattern, padLoopPosition: null }}
       stepsPerBeat={1} padStepCounts={lane.padBeats} defaultPadStepCount={4} isPlaying={props.sequencer.isPlaying} linkedPadLoopStepPosition={null} onLinkedPadLoopStepPositionChange={() => {}} onPadLoopEnabledChange={() => {}} onPadLoopRepeatChange={() => {}} onPadLoopPatternChange={commit} hideSource /></div>}
     {error && <p className="mt-1 text-xs text-red-300" role="alert">{error}</p>}
   </section>;

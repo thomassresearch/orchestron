@@ -196,3 +196,43 @@ def test_sequencer_notes_can_drive_arpeggiator_target_instrument() -> None:
     _advance_router(router)
 
     assert [message for message, _sample in capture.messages if message[0] & 0xF0 == 0x90] == [[0x90, 60, 100]]
+
+
+def test_lane_gate_preserves_other_held_sources_and_suppresses_queued_ratchets():
+    from backend.app.engine.lane_output import LaneOutputGate
+    from backend.app.services.arpeggiator_runtime import MidiSourceContext
+    import heapq
+    from types import SimpleNamespace
+
+    capture = _CaptureMidi()
+    router = _router(capture)
+    arp = _arp_config().model_copy(update={"playback_mode": "arranger"})
+    gate = LaneOutputGate()
+    gate.configure(SimpleNamespace(tracks=[SimpleNamespace(track_id=key, midi_channel=2) for key in ("a", "b")],
+        controller_tracks=[], arpeggiators=[arp]))
+    router.lane_output = gate
+    router.configure([arp], tempo_bpm=120)
+    router.set_transport(beat=0, running=True)
+    for source in ("a", "b"):
+        router.route_message([0x91, 60, 100], source="sequencer", source_context=MidiSourceContext(source_id=source))
+    _advance_router(router)
+    gate.apply(1, {"b": {"mute": True, "solo": False}})
+    state = router._states["arp"]
+    assert router._pool(state)[0].source_context.source_id == "a"
+    state.pad.octave_traversal = "octave"
+    assert router._select(state, "advance", 1, 0)[0].source_context.source_id == "a"
+    # A precomputed future ratchet retains its feeder identity at delivery.
+    state.voice_sources[1000] = "b"
+    state.voice_ends[1000] = 300
+    heapq.heappush(state.outputs, (100, 1, 67, 100, 1000))
+    heapq.heappush(state.outputs, (300, 0, 67, 0, 1000))
+    capture.messages.clear()
+    _advance_router(router, start=64, end=320)
+    assert not any(message[1] == 67 for message, _ in capture.messages)
+    # Each input release must still reach the per-source held-note tracker.
+    router.route_message([0x81, 60, 0], source="sequencer", source_context=MidiSourceContext(source_id="b"))
+    _advance_router(router, start=320, end=384)
+    assert ("b", 60) not in state.physical_notes
+    assert ("a", 60) in state.physical_notes
+    router._release(state, 384)
+    assert not state.voice_sources

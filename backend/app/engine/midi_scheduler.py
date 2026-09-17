@@ -5,6 +5,8 @@ import heapq
 import threading
 from typing import Callable
 
+from backend.app.engine.lane_output import LaneOutputGate
+
 
 @dataclass(order=True, slots=True)
 class EngineMidiEvent:
@@ -20,6 +22,7 @@ class EngineMidiEvent:
 
 class EngineMidiScheduler:
     def __init__(self, *, max_events: int = 16_384) -> None:
+        self.lane_output = LaneOutputGate()
         self._max_events = max(1, int(max_events))
         self._lock = threading.Lock()
         self._events: list[EngineMidiEvent] = []
@@ -44,6 +47,7 @@ class EngineMidiScheduler:
     def reset(self) -> None:
         with self._lock:
             self._events.clear()
+            self.lane_output.reset_notes()
             self._sequence = 0
             self._overflow_count = 0
             self._engine_sample_rate = 0
@@ -115,7 +119,8 @@ class EngineMidiScheduler:
                 if event.target_engine_sample < block_start_sample:
                     event.late = True
                     event.target_engine_sample = block_start_sample
-                drained.append(event)
+                if self.lane_output.allows(event.source, event.message):
+                    drained.append(event)
         return drained
 
 

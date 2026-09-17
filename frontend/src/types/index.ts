@@ -806,6 +806,7 @@ export interface SessionControllerSequencerTrackConfig {
 }
 
 export interface SessionSequencerConfigRequest {
+  lane_output?: SessionLaneOutputRequest;
   timing: SessionSequencerTimingConfig;
   step_count: number;
   playback_start_step?: number;
@@ -938,6 +939,7 @@ export interface SessionArpeggiatorStatus {
 }
 
 export interface SessionSequencerStatus {
+  lane_output?: { revision: number; lanes: Record<string, { mute: boolean; solo: boolean; suppressed: boolean }> };
   auditions?: PerformanceAuditionStatus;
   arranger_active?: boolean;
   session_id: string;
@@ -1172,6 +1174,7 @@ export interface BrowserClockEngineErrorMessage {
 }
 
 export type BrowserClockServerMessage =
+  | { type: "sequencer_error"; request_id: string; detail: string }
   | ({ type: "mixer_ack"; request_id: string } & MixerResponse)
   | { type: "mixer_error"; request_id: string; detail: string }
   | BrowserClockStreamConfigMessage
@@ -1233,3 +1236,5 @@ export interface SessionAuditionRequest {
   sequence?: number[];
 }
 export type PerformanceAuditionStatus = Record<string, { active: boolean; queued: SessionAuditionRequest["action"] | null }>;
+
+export interface SessionLaneOutputRequest { revision: number; lanes: Record<string, { mute: boolean; solo: boolean }> }

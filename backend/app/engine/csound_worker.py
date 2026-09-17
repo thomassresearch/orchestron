@@ -201,6 +201,10 @@ class CsoundWorker:
             delivery_delay_seconds=delivery_delay_seconds,
         )
 
+    @property
+    def lane_output(self):
+        return self._midi_scheduler.lane_output
+
     def enqueue_timestamped_midi(
         self,
         message: list[int],

@@ -103,6 +103,9 @@ it measures cold, cached, and one-pad preparation using the versioned TB303 test
   authored state. Arranger Play clears auditions and starts Arrangement tracks; Stop clears
   auditions and preserves independently started Manual pads tracks and the rack engine. Piano-roll Start is independent
   of arranger playback; retain the documented seek/reset behavior.
+- Arranger lane Mute/Solo gates source-tagged MIDI without stopping its clock; controls are
+  temporary, independent of the mixer, and excluded from save/export. See arranger and backend
+  references for dependency, revision, and note-release contracts.
 - Rack/topology changes lock while instruments run; mixer controls remain live. Direct output
   bypasses Master but retains strip controls. Legacy Level migrates to dB audio gain, not velocity.
 - Mixer persistence arrived in performance config v11; current serializers/CLI write v16 and

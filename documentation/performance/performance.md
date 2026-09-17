@@ -85,3 +85,5 @@ The collapsed rack shows channel and patch name in one horizontally scrolling ro
 <p align="center"><em>Perform mixer with a post-fader send, dedicated insert and pinned Master. See the following chapters for rack and sequencer controls.</em></p>
 
 **Navigation:** [Up](../user_documentation.md) | [Prev](../instrument_design/supported_opcodes.md) | [Next](instrument_rack_and_engine_transport.md)
+
+Arranger lane tools, Patterns and phrases, and Playback settings have separate disclosures that start collapsed. Lane Mute/Solo is temporary and independent of the instrument mixer; see [compact tracks and lane controls](multitrack_arranger.md#temporary-lane-mute-and-solo).

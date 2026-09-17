@@ -18,6 +18,7 @@ from backend.app.models.session import (
     BrowserClockManualMidiRequest,
     BrowserClockQueuePadControlRequest,
     BrowserClockAuditionRequest,
+    BrowserClockLaneOutputRequest,
     BrowserClockReleaseControllerRequest,
     BrowserClockRequestRenderRequest,
     BrowserClockSequencerCommandRequest,
@@ -357,6 +358,16 @@ async def browser_clock_controller(websocket: WebSocket, session_id: str) -> Non
                         BrowserClockSequencerCommandRequest.model_validate(payload),
                     )
                     await send_json(response)
+                    continue
+
+                if message_type == "lane_output":
+                    try:
+                        response = await container.session_service.browser_clock_lane_output(
+                            session_id, connection_id, BrowserClockLaneOutputRequest.model_validate(payload))
+                        await send_json(response)
+                    except (HTTPException, ValueError) as exc:
+                        await send_json({"type": "sequencer_error", "request_id": payload.get("request_id"),
+                                         "detail": str(getattr(exc, "detail", exc))})
                     continue
 
                 if message_type == "audition":

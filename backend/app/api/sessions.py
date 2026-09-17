@@ -18,6 +18,7 @@ from backend.app.models.session import (
     SessionSequencerConfigRequest,
     SessionSequencerQueuePadRequest,
     SessionAuditionRequest,
+    SessionLaneOutputRequest,
     SessionSequencerStartRequest,
     SessionSequencerSeekRequest,
     SessionSequencerStatus,
@@ -234,3 +235,9 @@ async def delete_session(session_id: str, container: AppContainer = Depends(get_
 async def audition_sequence(session_id: str, request: SessionAuditionRequest,
                             container: AppContainer = Depends(get_container)) -> SessionSequencerStatus:
     return await container.session_service.audition_session(session_id, request)
+
+
+@router.put("/{session_id}/sequencer/lane-output", response_model=SessionSequencerStatus)
+async def set_lane_output(session_id: str, request: SessionLaneOutputRequest,
+                          container: AppContainer = Depends(get_container)) -> SessionSequencerStatus:
+    return await container.session_service.set_lane_output(session_id, request)

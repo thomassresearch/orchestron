@@ -1,3 +1,4 @@
+import { withLaneOutput } from "../lib/laneOutput";
 import type { InstrumentType } from "../types";
 import type { SessionInstrumentAssignment } from "../types";
 import type { AudioGraph, MixerState, MixerResponse } from "../types";
@@ -218,7 +219,7 @@ export const api = {
   configureSessionSequencer: (sessionId: string, payload: SessionSequencerConfigRequest) =>
     request<SessionSequencerStatus>(`/sessions/${sessionId}/sequencer/config`, {
       method: "PUT",
-      body: JSON.stringify(payload)
+      body: JSON.stringify(withLaneOutput(payload))
     }),
   commandArpeggiator: (sessionId: string, arpeggiatorId: string, payload: import("../types").ArpeggiatorCommand) =>
     request<SessionArpeggiatorStatus[]>(`/sessions/${sessionId}/arpeggiators/${arpeggiatorId}/command`, {
@@ -236,7 +237,7 @@ export const api = {
   startSessionSequencer: (sessionId: string, payload: SessionSequencerStartRequest) =>
     request<SessionSequencerStatus>(`/sessions/${sessionId}/sequencer/start`, {
       method: "POST",
-      body: JSON.stringify(payload)
+      body: JSON.stringify({ ...payload, config: payload.config ? withLaneOutput(payload.config) : payload.config })
     }),
   stopSessionSequencer: (sessionId: string) =>
     request<SessionSequencerStatus>(`/sessions/${sessionId}/sequencer/stop`, { method: "POST" }),
@@ -245,12 +246,14 @@ export const api = {
   seekSessionSequencer: (sessionId: string, payload: SessionSequencerSeekRequest) =>
     request<SessionSequencerStatus>(`/sessions/${sessionId}/sequencer/seek`, {
       method: "POST",
-      body: JSON.stringify(payload)
+      body: JSON.stringify({ ...payload, config: payload.config ? withLaneOutput(payload.config) : payload.config })
     }),
   rewindSessionSequencerCycle: (sessionId: string) =>
     request<SessionSequencerStatus>(`/sessions/${sessionId}/sequencer/rewind`, { method: "POST" }),
   forwardSessionSequencerCycle: (sessionId: string) =>
     request<SessionSequencerStatus>(`/sessions/${sessionId}/sequencer/forward`, { method: "POST" }),
+  setLaneOutput: (sessionId: string, payload: import("../types").SessionLaneOutputRequest) =>
+    request<SessionSequencerStatus>(`/sessions/${sessionId}/sequencer/lane-output`, { method: "PUT", body: JSON.stringify(payload) }),
   auditionSequence: (sessionId: string, payload: SessionAuditionRequest) =>
     request<SessionSequencerStatus>(`/sessions/${sessionId}/sequencer/audition`, { method: "POST", body: JSON.stringify(payload) }),
   queueSessionSequencerPad: (sessionId: string, trackId: string, payload: SessionSequencerQueuePadRequest) =>

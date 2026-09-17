@@ -6730,3 +6730,74 @@ def test_browser_clock_audition_commands_and_audible_status(tmp_path: Path) -> N
             socket.send_json({"type": "audition", "request_id": "stop", "action": "stop", "track_ids": ["lead"]})
             status = socket.receive_json()["sequencer_status"]
             assert status["auditions"] == {} and not status["running"]
+
+
+def test_lane_output_api_is_temporary_atomic_and_revisioned(tmp_path: Path) -> None:
+    config = json.loads((Path(__file__).parent / "fixtures/sequencers/arranger_seek.json").read_text())
+    config["tracks"].append({**config["tracks"][0], "track_id": "other"})
+    with _client(tmp_path) as client:
+        session_id = _create_running_session(client, patch_name="Lane controls")
+        base = f"/api/sessions/{session_id}/sequencer"
+        assert client.put(base + "/config", json=config).status_code == 200
+        request = {"revision": 1, "lanes": {"lead": {"solo": True}}}
+        response = client.put(base + "/lane-output", json=request)
+        assert response.status_code == 200, response.text
+        assert response.json()["lane_output"]["lanes"]["other"]["suppressed"]
+        before = client.get(base + "/status").json()
+        assert client.put(base + "/lane-output", json={"revision": 0, "lanes": {}}).status_code == 409
+        assert client.put(base + "/lane-output", json={"revision": 2, "lanes": {"lead": {"mute": True}, "missing": {}}}).status_code == 422
+        assert client.get(base + "/status").json() == before
+        # A configuration captured before the latest command cannot restore old controls.
+        config["lane_output"] = {"revision": 0, "lanes": {}}
+        # Regular configuration/stop/start retain controls without changing authored enablement.
+        assert client.put(base + "/config", json=config).json()["lane_output"] == before["lane_output"]
+        assert client.post(base + "/stop").json()["lane_output"] == before["lane_output"]
+        status = client.post(base + "/start", json={"config": config, "arranger_active": True}).json()
+        assert status["lane_output"] == before["lane_output"]
+        assert all(track["enabled"] for track in status["tracks"])
+        assert client.post(base + "/audition", json={"action": "start", "track_ids": ["lead"], "sequence": [1]}).json()["lane_output"] == before["lane_output"]
+        config["lane_output"] = {"revision": 2, "lanes": {}}
+        assert not client.post(base + "/seek", json={"config": config, "position_step": 9}).json()["lane_output"]["lanes"]["other"]["suppressed"]
+
+
+def test_browser_clock_lane_output_errors_preserve_connection_and_audible_status(tmp_path: Path) -> None:
+    config = json.loads((Path(__file__).parent / "fixtures/sequencers/arranger_seek.json").read_text())
+    with _client(tmp_path) as client:
+        session_id = _create_running_session(client, patch_name="Lane controls WebSocket")
+        base = f"/api/sessions/{session_id}/sequencer"
+        assert client.put(base + "/config", json=config).status_code == 200
+        with client.websocket_connect(f"/ws/sessions/{session_id}/browser-clock") as socket:
+            socket.send_json({"type": "claim_controller", "audio_context_sample_rate": 48000,
+                "queue_low_water_frames": 1024, "queue_high_water_frames": 2048, "max_blocks_per_request": 8})
+            assert socket.receive_json()["type"] == "stream_config"
+            socket.send_json({"type": "lane_output", "request_id": "mute", "revision": 3, "lanes": {"lead": {"mute": True}}})
+            response = socket.receive_json()
+            assert response["request_id"] == "mute"
+            assert response["sequencer_status"]["lane_output"]["lanes"]["lead"]["mute"]
+            socket.send_json({"type": "lane_output", "request_id": "old", "revision": 2, "lanes": {}})
+            error = socket.receive_json()
+            assert error["type"] == "sequencer_error" and error["request_id"] == "old"
+            socket.send_json({"type": "request_render", "block_count": 8})
+            metadata = socket.receive_json()
+            socket.receive_bytes()
+            assert any(event["payload"].get("lane_output", {}).get("revision") == 3 for event in metadata["transport_events"])
+            assert client.get(base + "/status").json()["lane_output"]["lanes"]["lead"]["mute"]
+
+
+@pytest.mark.parametrize("event_source", ["midiFile", "score"])
+def test_lane_output_has_no_effect_on_offline_exports(tmp_path: Path, event_source: str) -> None:
+    payload = _performance_csd_export_payload()
+    payload["eventSource"] = event_source
+    payload["performanceExport"]["performance"]["config"]["version"] = 16
+    with _client(tmp_path) as client:
+        baseline = client.post("/api/bundles/export/performance-csd", json=payload)
+        assert baseline.status_code == 200, baseline.text
+        # Even an explicit runtime snapshot must never mute an offline export.
+        payload["sequencerConfig"]["lane_output"] = {"revision": 10, "lanes": {
+            "voice-1": {"mute": True}, "cc-1": {"solo": True}}}
+        muted = client.post("/api/bundles/export/performance-csd", json=payload)
+        assert muted.status_code == 200, muted.text
+        with zipfile.ZipFile(BytesIO(baseline.content)) as expected, zipfile.ZipFile(BytesIO(muted.content)) as actual:
+            assert actual.namelist() == expected.namelist()
+            for name in expected.namelist():
+                assert actual.read(name) == expected.read(name)

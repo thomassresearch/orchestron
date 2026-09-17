@@ -19,6 +19,7 @@ from backend.app.models.session import (
     SequencerScaleRoot,
 )
 from backend.app.services.sequencer_runtime_models import RenderTransportEvent
+from backend.app.engine.lane_output import LaneOutputGate, lane_id
 
 
 class TimestampedMidiEnqueue(Protocol):
@@ -70,6 +71,7 @@ class ArpeggiatorRuntimeState:
     physical_notes: dict[tuple[str, int], HeldNote] = field(default_factory=dict)
     active_notes: dict[int, int] = field(default_factory=dict)
     voice_ends: dict[int, int] = field(default_factory=dict)
+    voice_sources: dict[int, str] = field(default_factory=dict)
     outputs: list[tuple[int, int, int, int, int]] = field(default_factory=list)
     step_index: int = 0
     note_index: int = 0
@@ -177,6 +179,7 @@ class PerformanceMidiRouter:
         self._max_future_samples = max_future_samples
         self._lock = threading.RLock()
         self._states: dict[str, ArpeggiatorRuntimeState] = {}
+        self.lane_output: LaneOutputGate | None = None
         self._input_channel_to_id: dict[int, str] = {}
         self._pending_inputs: list[PendingInputEvent] = []
         self._transport_events: list[tuple[int, int, Fraction, bool, bool]] = []
@@ -229,6 +232,8 @@ class PerformanceMidiRouter:
         if len(channels) != len(set(channels)) or any(c.target_channel in channels for c in configs):
             raise ValueError("Arpeggiators require unique inputs and cannot target another arpeggiator input.")
         with self._lock:
+            if self.lane_output:
+                self.lane_output.configure_arpeggiators(configs)
             self._status_dirty = True
             self._set_tempo(tempo_bpm, self._current_engine_sample())
             new_states = {}
@@ -522,7 +527,7 @@ class PerformanceMidiRouter:
                 context = source_context or MidiSourceContext(source_id=source)
                 heapq.heappush(self._pending_inputs, PendingInputEvent(max(0, sample), self._sequence, key, normalized, context))
                 return True
-        return self._enqueue_timestamped_midi(list(normalized), source=source, target_engine_sample=target_engine_sample,
+        return self._enqueue_timestamped_midi(list(normalized), source=f"lane:{source_context.source_id}" if source_context and source_context.source_id else source, target_engine_sample=target_engine_sample,
             delivery_delay_seconds=delivery_delay_seconds, source_timestamp_ns=source_timestamp_ns,
             mapped_backend_monotonic_ns=mapped_backend_monotonic_ns, sync_stale=sync_stale)
 
@@ -553,6 +558,10 @@ class PerformanceMidiRouter:
             events.sort(key=input_order)
             replace_on_attack = False
             for event in events:
+                context = event.source_context
+                source = f"lane:{context.source_id}" if context and context.source_id and context.source_id not in {"input", "manual", "host"} else "input"
+                if self.lane_output and not self.lane_output.allows(source, event.message, stage=f"input:{key}"):
+                    continue
                 status, note, velocity = event.message[0] & 0xf0, event.message[1], event.message[2]
                 source = event.source_context.source_id if event.source_context else "input"
                 physical_key = (source or "input", note)
@@ -585,7 +594,7 @@ class PerformanceMidiRouter:
                     elif is_off:
                         self._off(state, note, sample)
                     elif status == 0xb0:
-                        self._emit([0xb0 + state.config.target_channel - 1, note, velocity], sample)
+                        self._emit([0xb0 + state.config.target_channel - 1, note, velocity], sample, state)
             if state.config.hold_mode == "off":
                 state.held_notes = {entry.note: entry for entry in state.physical_notes.values()}
             if not state.held_notes and state.config.processing_mode != "bypass":
@@ -660,11 +669,17 @@ class PerformanceMidiRouter:
                 self._record_status(sample)
             self._sample = block_end_sample
 
+    def lane_output_changed(self) -> None:
+        with self._lock:
+            self._record_status(self._current_engine_sample())
+
     def _record_status(self, sample: int) -> None:
         self._status_dirty = False
         if not self._collect_status_events:
             return
         payload = {"arpeggiators": [status.model_dump(mode="json") for status in self.status()], "auditions": self.audition_status()}
+        if self.lane_output:
+            payload["lane_output"] = self.lane_output.status()
         if payload != self._last_status_payload:
             self._status_events.append(RenderTransportEvent(engine_sample=sample, kind="arpeggiators", payload=payload))
             self._last_status_payload = payload
@@ -693,10 +708,27 @@ class PerformanceMidiRouter:
             return cycles * sum(advances(i) for i in range(len(pad.steps))) + sum(advances(i) for i in range(remainder))
         return sum(advances(i) for i in range(count))
 
+    def _held_source_blocked(self, held: HeldNote) -> bool:
+        return bool(self.lane_output and held.source_context and held.source_context.source_id
+                    and lane_id(held.source_context.source_id) in self.lane_output.blocked)
+
+    def _held_pool(self, state: ArpeggiatorRuntimeState) -> list[HeldNote]:
+        held_pool = []
+        for held in sorted(state.held_notes.values(), key=lambda n: (n.note, n.order)):
+            if self._held_source_blocked(held):
+                replacement = next((candidate for candidate in state.physical_notes.values()
+                                    if candidate.note == held.note and not self._held_source_blocked(candidate)), None)
+                if replacement is None:
+                    continue
+                held = replacement
+            held_pool.append(held)
+        return held_pool
+
     def _pool(self, state: ArpeggiatorRuntimeState) -> list[HeldNote]:
         pool: dict[int, HeldNote] = {}
+        held_pool = self._held_pool(state)
         for octave in range(state.pad.octaves):
-            for held in sorted(state.held_notes.values(), key=lambda n: (n.note, n.order)):
+            for held in held_pool:
                 note = held.note + octave * 12
                 if note <= 127:
                     pool.setdefault(note, HeldNote(note, held.velocity, held.order + octave * 1_000_000, held.source_context))
@@ -732,7 +764,7 @@ class PerformanceMidiRouter:
             return pool
         if state.pad.octave_traversal == "octave":
             ordered = []
-            base = sorted(state.held_notes.values(), key=lambda n: n.note)
+            base = self._held_pool(state)
             for octave in range(state.pad.octaves):
                 ordered.extend(self._order([HeldNote(n.note + octave * 12, n.velocity, n.order, n.source_context)
                                             for n in base if n.note + octave * 12 <= 127], state.pad.pattern, self._rng(state, index, 1)))
@@ -811,6 +843,8 @@ class PerformanceMidiRouter:
                             end = max(end, next_sample + self._tie_extension(state, index + 1)) if self._tie_extension(state, index + 1) else end
                         self._sequence += 1
                         voice = self._sequence
+                        if held.source_context and held.source_context.source_id:
+                            state.voice_sources[voice] = held.source_context.source_id
                         heapq.heappush(state.outputs, (start, 1, note, velocity, voice))
                         heapq.heappush(state.outputs, (end, 0, note, 0, voice))
                         state.voice_ends[voice] = end
@@ -833,30 +867,37 @@ class PerformanceMidiRouter:
             voice = self._sequence
         state.active_notes[note] = voice
         state.last_velocity = velocity
-        self._emit(_note_on_message(state.config.target_channel, note, velocity), sample)
+        self._emit(_note_on_message(state.config.target_channel, note, velocity), sample, state)
 
     def _off(self, state: ArpeggiatorRuntimeState, note: int, sample: int) -> None:
         voice = state.active_notes.pop(note, None)
         if voice is not None:
             state.voice_ends.pop(voice, None)
-            self._emit(_note_off_message(state.config.target_channel, note), sample)
+            state.voice_sources.pop(voice, None)
+            self._emit(_note_off_message(state.config.target_channel, note), sample, state)
 
     def _outputs(self, state: ArpeggiatorRuntimeState, sample: int) -> None:
         while state.outputs and state.outputs[0][0] <= sample:
             at, kind, note, velocity, voice = heapq.heappop(state.outputs)
             if kind:
+                source = state.voice_sources.get(voice)
+                if self.lane_output and source and lane_id(source) in self.lane_output.blocked:
+                    state.voice_ends.pop(voice, None)
+                    state.voice_sources.pop(voice, None)
+                    continue
                 self._attack(state, note, velocity, max(at, sample), voice)
             elif state.active_notes.get(note) == voice and state.voice_ends.get(voice) == at:
                 self._off(state, note, max(at, sample))
 
-    def _emit(self, message: list[int], sample: int) -> None:
-        self._enqueue_timestamped_midi(message, source="arpeggiator", target_engine_sample=max(0, sample))
+    def _emit(self, message: list[int], sample: int, state: ArpeggiatorRuntimeState) -> None:
+        self._enqueue_timestamped_midi(message, source=f"lane:{state.config.arpeggiator_id}" if state.config.playback_mode == "arranger" else "arpeggiator", target_engine_sample=max(0, sample))
 
     def _release(self, state: ArpeggiatorRuntimeState, sample: int) -> None:
         for note in list(state.active_notes):
             self._off(state, note, sample)
         state.outputs.clear()
         state.voice_ends.clear()
+        state.voice_sources.clear()
         state.last_notes.clear()
 
     def _clear(self, state: ArpeggiatorRuntimeState, sample: int) -> None:

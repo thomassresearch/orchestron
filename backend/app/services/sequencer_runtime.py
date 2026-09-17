@@ -214,7 +214,7 @@ class SessionSequencerRuntime:
                         self._send_messages_locked([
                             self._control_change_message(channel, track.controller_number, value)
                             for channel in track.target_channels
-                        ])
+                        ], source_context=MidiSourceContext(source_id=track.track_id))
                         track.last_value = value
             self._refresh_timed_releases(next_config)
             self._reset_render_event_cursor_locked(next_config)
@@ -727,7 +727,6 @@ class SessionSequencerRuntime:
         config: SequencerRuntimeConfig,
         transport_subunit: int,
     ) -> None:
-        controller_messages: list[list[int]] = []
         self._perform_note_events_locked(config, transport_subunit)
 
         for track in config.controller_tracks.values():
@@ -735,11 +734,9 @@ class SessionSequencerRuntime:
             if value is None or value == track.last_value:
                 continue
             track.last_value = value
-            for channel in track.target_channels:
-                controller_messages.append(self._control_change_message(channel, track.controller_number, value))
-
-        if controller_messages:
-            self._send_messages_locked(controller_messages)
+            self._send_messages_locked([self._control_change_message(channel, track.controller_number, value)
+                                        for channel in track.target_channels],
+                                       source_context=MidiSourceContext(source_id=track.track_id))
 
     def _following_note_track(self, track: SequencerTrackRuntime, boundary: int) -> SequencerTrackRuntime | None:
         """Preview a local boundary without consuming queues or publishing state."""
@@ -1754,7 +1751,6 @@ class SessionSequencerRuntime:
                 if scheduled_time is None
                 else max(0.0, scheduled_time - time.perf_counter())
             )
-            controller_messages: list[list[int]] = []
             self._perform_note_events_locked(config, transport_subunit, event_delivery_delay_seconds)
 
             for track in config.controller_tracks.values():
@@ -1762,16 +1758,10 @@ class SessionSequencerRuntime:
                 if value is None or value == track.last_value:
                     continue
                 track.last_value = value
-                for channel in track.target_channels:
-                    controller_messages.append(
-                        self._control_change_message(channel, track.controller_number, value)
-                    )
-
-            if controller_messages:
-                self._send_messages_locked(
-                    controller_messages,
-                    delivery_delay_seconds=event_delivery_delay_seconds,
-                )
+                self._send_messages_locked([self._control_change_message(channel, track.controller_number, value)
+                                            for channel in track.target_channels],
+                                           delivery_delay_seconds=event_delivery_delay_seconds,
+                                           source_context=MidiSourceContext(source_id=track.track_id))
 
             next_subunit = self._next_event_subunit_locked(config, transport_subunit)
             next_wait_subunits = max(1, next_subunit - transport_subunit)
@@ -1980,7 +1970,7 @@ class SessionSequencerRuntime:
         self._send_messages_locked(
             [self._note_off_message(midi_channel, note) for note in sorted(active_notes)],
             delivery_delay_seconds=delivery_delay_seconds,
-            source_context=self._source_context_for_track(track) if track is not None else None,
+            source_context=self._source_context_for_track(track) if track is not None else MidiSourceContext(source_id=track_id),
         )
         active_notes.clear()
 
@@ -2200,8 +2190,6 @@ class SessionSequencerRuntime:
         pad = track.pads.get(track.active_pad)
         scale_root = pad.scale_root if pad and pad.scale_root is not None else track.scale_root
         mode = pad.mode if pad and pad.mode is not None else track.mode
-        if scale_root is None and mode is None:
-            return None
         return MidiSourceContext(
             source_id=track.track_id,
             scale_root=scale_root,  # type: ignore[arg-type]

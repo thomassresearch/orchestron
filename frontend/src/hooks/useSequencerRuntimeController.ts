@@ -1,3 +1,4 @@
+import { acknowledgeLaneOutput, setLaneOutputSender } from "../lib/laneOutput";
 import { compileDefinition } from "../lib/arrangementEditing";
 import type { AuditionDevice } from "../components/sequencer/PerformanceAudition";
 import { SequencerConfigSync } from "../lib/sequencerConfigSync";
@@ -241,6 +242,13 @@ export function useSequencerRuntimeController({
     [disconnectBrowserAudio, errors.noActiveRuntimeSession, setSequencerError, setSequencerPlayhead, syncSequencerRuntime]
   );
 
+  useEffect(() => {
+    if (!activeSessionId || activeSessionState !== "running") return setLaneOutputSender(null);
+    return setLaneOutputSender(request => effectiveAudioOutputMode === "browser_clock"
+      ? browserClockClientRef.current.setLaneOutput(activeSessionId, request)
+      : api.setLaneOutput(activeSessionId, request));
+  }, [activeSessionId, activeSessionState, effectiveAudioOutputMode, browserClockClientRef, workspaceGeneration]);
+
   const ensureBrowserClockConnection = useCallback(
     async (sessionId: string): Promise<void> => {
       try {
@@ -301,6 +309,7 @@ export function useSequencerRuntimeController({
 
   const applySequencerStatus = useCallback(
     (status: SessionSequencerStatus, options?: ApplySequencerStatusOptions) => {
+      acknowledgeLaneOutput(status);
       if (status.auditions) {
         useAppStore.setState({ performanceAuditions: Object.fromEntries(Object.entries(status.auditions).map(([id, value]) => [parseDrummerRowRuntimeTrackId(id)?.drummerTrackId ?? id, value])) });
       }

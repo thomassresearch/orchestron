@@ -39,6 +39,8 @@ from backend.app.models.session import (
     SessionSequencerConfigRequest,
     SessionSequencerQueuePadRequest,
     SessionAuditionRequest,
+    SessionLaneOutputRequest,
+    BrowserClockLaneOutputRequest,
     BrowserClockAuditionRequest,
     SessionSequencerStartRequest,
     SessionSequencerSeekRequest,
@@ -1007,6 +1009,10 @@ class SessionService:
                     if start and arranger_active:
                         sequencer.clear_auditions()
                         self._ensure_midi_router(runtime).clear_auditions()
+                    gate = runtime.worker.lane_output
+                    gate.configure(request)
+                    if request.lane_output is not None and request.lane_output.revision > gate.revision:
+                        gate.apply(request.lane_output.revision, {key: value.model_dump() for key, value in request.lane_output.lanes.items()})
                     status = sequencer.apply_prepared(prepared, position_step=position if seek else None)
                     if arpeggiator_generation == runtime.arpeggiator_generation:
                         self._ensure_midi_router(runtime).configure(request.arpeggiators, tempo_bpm=request.timing.tempo_bpm)
@@ -1176,6 +1182,26 @@ class SessionService:
 
         await self._publish(runtime.session_id, "sequencer_stopped", {"cycle": status.cycle})
         return status
+
+    async def set_lane_output(self, session_id: str, request: SessionLaneOutputRequest) -> SessionSequencerStatus:
+        runtime = await self._get_session(session_id)
+        def at_boundary():
+            gate = runtime.worker.lane_output
+            gate.apply(request.revision, {key: value.model_dump() for key, value in request.lanes.items()})
+            self._ensure_midi_router(runtime).lane_output_changed()
+            return self._status_with_arpeggiators(runtime, self._ensure_sequencer(runtime).status())
+        try:
+            status = await asyncio.to_thread(runtime.worker.run_at_render_boundary, at_boundary)
+        except ValueError as exc:
+            raise HTTPException(status_code=409 if "Stale" in str(exc) else 422, detail=str(exc)) from exc
+        await self._publish(session_id, "lane_output", status.lane_output)
+        return status
+
+    async def browser_clock_lane_output(self, session_id: str, connection_id: str,
+                                        request: BrowserClockLaneOutputRequest) -> dict[str, object]:
+        await self.require_browser_clock_controller(session_id, connection_id)
+        status = await self.set_lane_output(session_id, request)
+        return self._browser_clock_sequencer_status_message(request_id=request.request_id, action=request.type, status=status)
 
     async def audition_session(self, session_id: str, request: SessionAuditionRequest) -> SessionSequencerStatus:
         runtime = await self._get_session(session_id)
@@ -1558,6 +1584,7 @@ class SessionService:
     ) -> SessionSequencerStatus:
         status = self._performance_runtime.status_with_arpeggiators(runtime, status)
         status.auditions.update(self._ensure_midi_router(runtime).audition_status())
+        status.lane_output = runtime.worker.lane_output.status()
         return status
 
     @staticmethod

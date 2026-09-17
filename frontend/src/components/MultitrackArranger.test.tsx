@@ -1,10 +1,14 @@
 // @vitest-environment jsdom
 import type { ComponentProps } from "react";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within, act, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import fixture from "../../../backend/tests/fixtures/performances/arranger_seek.json";
 import { useAppStore } from "../store/useAppStore";
+import { useLaneOutput } from "../lib/laneOutput";
 import { MultitrackArranger } from "./MultitrackArranger";
+import { PadLoopPatternEditor } from "./sequencer/PadLoopPatternEditor";
+import { PerformanceEditorProvider } from "./sequencer/PerformanceEditorState";
+import { SEQUENCER_UI_COPY } from "./sequencer/sequencerUiCopy";
 
 const selectionChanged = vi.fn();
 const noop = () => {};
@@ -100,4 +104,98 @@ it("maps a scrolled, zoomed ruler to the correct beat", () => {
   fireEvent.pointerDown(ruler, event);
   fireEvent.pointerUp(ruler, event);
   expect(selectionChanged).toHaveBeenCalledExactlyOnceWith(null, 24);
+});
+
+
+it("collapses a selected lane, clears highlights on empty space, and reopens on occurrence selection", () => {
+  setup();
+  const lane = screen.getAllByRole("region")[0];
+  const ui = within(lane);
+  const toggle = ui.getAllByRole("button")[0];
+  const timeline = ui.getByRole("list");
+  const clip = within(timeline).getAllByRole("button").find(button => button.textContent === "1")!;
+  expect(toggle.getAttribute("aria-expanded")).toBe("false");
+  expect(ui.queryByText("New pattern")).toBeNull();
+  fireEvent.click(clip);
+  expect(toggle.getAttribute("aria-expanded")).toBe("true");
+  expect(clip.parentElement?.className).toContain("ring-2");
+  fireEvent.click(toggle);
+  expect(toggle.getAttribute("aria-expanded")).toBe("false");
+  expect(ui.queryByText("New pattern")).toBeNull();
+  fireEvent.click(timeline, { clientX: 250 });
+  expect(clip.parentElement?.className).not.toContain("ring-2");
+  expect(toggle.getAttribute("aria-expanded")).toBe("false");
+  fireEvent.click(clip);
+  expect(toggle.getAttribute("aria-expanded")).toBe("true");
+  expect(ui.getByText("New pattern")).toBeTruthy();
+});
+
+it("keeps playback settings and the phrase library independently collapsible", async () => {
+  setup();
+  const lane = screen.getAllByRole("region")[0];
+  const ui = within(lane);
+  const toggle = ui.getAllByRole("button")[0];
+  const settings = ui.getByText("Playback settings").parentElement as HTMLDetailsElement;
+  expect(settings.open).toBe(false);
+  expect(ui.queryByLabelText("Playback source")).toBeNull();
+  await act(async () => { settings.open = true; fireEvent(settings, new Event("toggle")); });
+  await waitFor(() => expect(ui.getByLabelText("Playback source")).toBeTruthy());
+  expect(toggle.getAttribute("aria-expanded")).toBe("false");
+  fireEvent.click(toggle);
+  const library = ui.getByRole("button", { name: "Patterns and phrases" });
+  expect(library.getAttribute("aria-expanded")).toBe("false");
+  fireEvent.click(library);
+  expect(library.getAttribute("aria-expanded")).toBe("true");
+  fireEvent.click(library);
+  expect(library.getAttribute("aria-expanded")).toBe("false");
+  fireEvent.click(toggle);
+  fireEvent.click(toggle);
+  expect(ui.getByRole("button", { name: "Patterns and phrases" }).getAttribute("aria-expanded")).toBe("false");
+});
+
+it("toggles only lane state without changing the mixer, transport, or lane expansion", () => {
+  setup();
+  const ui = within(screen.getAllByRole("region")[0]);
+  const state = useAppStore.getState();
+  fireEvent.click(ui.getByRole("button", { name: "Mute" }));
+  expect(ui.getByRole("button", { name: "Mute" }).getAttribute("aria-pressed")).toBe("true");
+  expect(useAppStore.getState().mixer).toBe(state.mixer);
+  expect(useAppStore.getState().sequencer).toBe(state.sequencer);
+  expect(useAppStore.getState().sequencerEditRevision).toBe(state.sequencerEditRevision);
+  expect(ui.getAllByRole("button")[0].getAttribute("aria-expanded")).toBe("false");
+  expect(Object.values(useLaneOutput.getState().lanes).some(value => value.mute)).toBe(true);
+});
+
+it("opens the selected definition in the arranger and retains disclosures across view changes until workspace reset", () => {
+  vi.stubGlobal("requestAnimationFrame", () => 0);
+  const track = useAppStore.getState().sequencer.tracks[0];
+  useAppStore.getState().applySequencerConfigSnapshot({ ...fixture.config, sequencer: { tracks: [{ ...track,
+    padLoopPattern: { ...track.padLoopPattern, groups: [{ id: "A", sequence: [{ type: "pad", padIndex: 0 }] }] }
+  }] } });
+  const current = useAppStore.getState().sequencer.tracks[0];
+  function Workspace({ generation = 0, library = true }) {
+    return <PerformanceEditorProvider key={generation}>
+      {library ? <PadLoopPatternEditor track={current} ui={SEQUENCER_UI_COPY.english} hostId={current.id}
+        stepsPerBeat={1} padStepCounts={Array(8).fill(4)} defaultPadStepCount={4} isPlaying={false}
+        linkedPadLoopStepPosition={null} onLinkedPadLoopStepPositionChange={noop}
+        onPadLoopEnabledChange={noop} onPadLoopRepeatChange={noop} onPadLoopPatternChange={noop} /> : <Arranger />}
+    </PerformanceEditorProvider>;
+  }
+  const view = render(<Workspace />);
+  fireEvent.click(screen.getByRole("button", { name: "Patterns and phrases" }));
+  fireEvent.click(screen.getByRole("button", { name: "Group A" }));
+  fireEvent.click(screen.getByRole("button", { name: "Patterns and phrases" }));
+  expect(screen.queryByText("Editing: A")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Patterns and phrases" }));
+  expect(screen.getByText("Editing: A")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Open in arranger" }));
+  view.rerender(<Workspace library={false} />);
+  expect(screen.getByText("Editing: A")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Patterns and phrases" }));
+  view.rerender(<Workspace />);
+  expect(screen.getByText("Editing: A")).toBeTruthy(); // Independent sequencer disclosure.
+  view.rerender(<Workspace library={false} />);
+  expect(screen.queryByText("Editing: A")).toBeNull();
+  view.rerender(<Workspace library={false} generation={1} />);
+  expect(screen.queryByRole("button", { name: "Patterns and phrases" })).toBeNull();
 });
