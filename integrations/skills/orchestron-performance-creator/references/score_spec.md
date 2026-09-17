@@ -44,6 +44,8 @@ Apply it:
 uv run orchestron_cli --json edit apply-score path/to/score.yaml
 ```
 
+For early/late placement, see [per-note timing](step_timing.md): melodic `events` and object-form `progression` entries accept `timing_offset_percent`; melodic/drummer tracks and pads accept `step_timing` lists. Values are integer percentages from −50 to +50. These additions retain score-spec version 1.
+
 Melodic explicit events:
 
 ```yaml

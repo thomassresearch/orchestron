@@ -1,6 +1,6 @@
 ---
 name: orchestron-performance-creator
-description: Create, edit, import, validate, save, and live-test Orchestron performances through orchestron_cli, including musical structure, mixer and Master routing, shared effects, MIDI automation, and per-instance perf_controller settings.
+description: Create, edit, import, validate, save, and live-test Orchestron performances through orchestron_cli, including musical structure, mixer and Master routing, shared effects, MIDI automation, per-note timing for syncopated patterns, and per-instance perf_controller settings.
 ---
 
 # Orchestron Performance Creator
@@ -45,6 +45,7 @@ If the backend is not running, ask the user whether to start it with `make run` 
    For per-performance sound customization, read `references/performance_controllers.md`, discover the patch's controller node IDs, and stage overrides using `edit performance-controllers set`.
 6. Read `references/effect_routing.md` and `references/mixer.md` to connect main outputs and sends and set strip/return/Master levels. The built-in `$master` needs no patch or rack instance. Use the optional `edit add-standard-effects --send-gain-db -12` only when the user wants dry instruments and reverb feeding a compressor into Master; read `references/standard_effect_patching.md` first. Effects are not mandatory.
 7. Add sequencers/controllers/arpeggiators with explicit flags or a YAML/JSON score spec.
+   For selected early/late notes or syncopated patterns, read [per-note timing](references/step_timing.md). Use `edit sequencers list` to discover tracks, then `edit step-timing list|set|reset` to inspect or adjust individual melodic steps and drum hits.
 8. Run `edit validate`; this asks the backend to resolve every source outlet to its target inlet and rejects missing ports, invalid targets, and feedback loops.
 9. Commit only after validation succeeds.
 10. For live testing, use `edit create-runtime --start`. After rack, patch-definition, or route changes, use `edit rebuild-runtime`; use `edit push-runtime` when only sequencer, mixer, or performance-controller values changed. Always-on instruments need a rack restart to adopt controller changes.
@@ -89,6 +90,7 @@ CLI and data formats:
 
 - For melodic step/chord syntax, read `references/chord_syntax.md`.
 - For YAML/JSON score specs, read `references/score_spec.md`.
+- For early/late notes, syncopated patterns, CLI timing inspection/editing, and score timing fields, read [per-note timing](references/step_timing.md).
 - For `perf_controller` discovery, per-instance overrides, reset, persistence, exports, and live updates, read `references/performance_controllers.md`. These I-rate instrument settings are separate from MIDI CC controllers and controller sequencers.
 - For patch graph input formulas such as `0.1 * in1`, read `references/patch_formulas.md`.
 - For main/send routing, port discovery, Master, direct output, validation, and runtime replacement, read `references/effect_routing.md`.

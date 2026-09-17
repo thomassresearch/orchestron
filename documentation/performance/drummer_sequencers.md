@@ -108,6 +108,8 @@ Drag a hit **left/right** to adjust timing, or **up/down** to adjust velocity. T
 
 Use **Left/Right** arrow keys for timing and **Up/Down** for velocity. Right-click a hit, or press **Shift+F10**, to open its Timing controls with a slider, numeric field and reset. The controls affect that hit in the displayed pad. Closing or collapsing the editor ends the gesture.
 
+The performance CLI can discover tracks with `edit sequencers list` and inspect or change offsets with `edit step-timing list|set|reset`. Pads use 1–8; steps are zero-based. YAML/JSON scores also support per-note timing. See the [skill timing reference](../../integrations/skills/orchestron-performance-creator/references/step_timing.md) for the full workflow and examples.
+
 ## Pattern Pads and Pad Looper
 
 Drummer sequencers support the same `P1..P8` pattern-pad workflow as melodic sequencers.

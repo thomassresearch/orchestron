@@ -418,7 +418,7 @@ def default_timing(tempo: int = 120) -> dict[str, int]:
 
 
 def default_step() -> dict[str, Any]:
-    return {"note": None, "chord": "none", "hold": False, "velocity": 127}
+    return {"note": None, "chord": "none", "hold": False, "velocity": 127, "timingOffsetPercent": 0}
 
 
 def empty_pad_loop_pattern() -> dict[str, Any]:
@@ -2742,7 +2742,7 @@ def default_drum_rows() -> list[dict[str, Any]]:
 
 
 def empty_drum_cell() -> dict[str, Any]:
-    return {"active": False, "velocity": 100}
+    return {"active": False, "velocity": 100, "timingOffsetPercent": 0}
 
 
 def drum_groove_hits(groove: str, step_count: int) -> dict[str, list[tuple[int, int]]]:
@@ -3472,7 +3472,157 @@ def apply_score_spec_to_config(config: dict[str, Any], spec: dict[str, Any]) -> 
             )
         else:
             raise OrchestronCliError("unsupported_score_track", f"Unsupported track type '{track_type}'.", path=f"tracks[{index}].type")
+        if track_type in ("melodic", "drummer"):
+            apply_score_step_timing(created[-1], track_type, track_spec, field=f"tracks[{index}]")
     return created
+
+
+def timing_integer(value: Any, low: int, high: int, *, field: str, cli: bool = False) -> int:
+    if cli and isinstance(value, str) and re.fullmatch(r"[+-]?\d+", value):
+        value = int(value)
+    if type(value) is not int or not low <= value <= high:
+        raise OrchestronCliError(
+            "invalid_step_timing", f"{field} must be an integer from {low} through {high}.", path=field,
+            retry=["Use whole percentages in -50..50, zero-based steps, and an existing pad/row."],
+        )
+    return value
+
+
+def note_sequencers(config: dict[str, Any]) -> list[tuple[str, dict[str, Any]]]:
+    sequencer = config.get("sequencer", {})
+    return [(kind, track) for kind, collection in (("melodic", "tracks"), ("drummer", "drummerTracks"))
+            for track in sequencer.get(collection, []) if isinstance(track, dict)]
+
+
+def timing_track(config: dict[str, Any], track_id: str) -> tuple[str, dict[str, Any]]:
+    matches = [(kind, track) for kind, track in note_sequencers(config) if track.get("id") == track_id]
+    if len(matches) != 1:
+        raise OrchestronCliError(
+            "unknown_or_ambiguous_sequencer", f"Expected one melodic/drummer sequencer with ID '{track_id}'.",
+            path="track", retry=["Run `edit sequencers list` and use a unique track ID."],
+        )
+    return matches[0]
+
+
+def timing_cell(raw: Any, kind: str) -> dict[str, Any]:
+    if isinstance(raw, dict):
+        return dict(raw)
+    if kind == "melodic":
+        return {**default_step(), "note": raw if type(raw) is int else None}
+    return {**empty_drum_cell(), "active": raw is True or type(raw) is int,
+            "velocity": raw if type(raw) is int else 127}
+
+
+def step_timing_targets(
+    track: dict[str, Any], kind: str, pad_index: int, steps: list[int] | None,
+    *, row_id: str | None = None, key: int | None = None, editing: bool = False, field: str = "step_timing",
+) -> list[tuple[dict[str, Any], list[Any], int]]:
+    pads = track.get("pads", [])
+    if pad_index >= len(pads) or not isinstance(pads[pad_index], dict):
+        raise OrchestronCliError("missing_pattern_pad", f"Pad {pad_index + 1} is missing.", path=field)
+    pad = pads[pad_index]
+    count = int(pad.get("stepCount", resolved_pad_steps(pad.get("lengthBeats", 4), track.get("timing") or default_timing())))
+    indices = list(range(count)) if steps is None else list(dict.fromkeys(steps))
+    for index in indices:
+        timing_integer(index, 0, count - 1, field=f"{field}.at_step")
+    if kind == "melodic":
+        if row_id is not None or key is not None:
+            raise OrchestronCliError("unexpected_drum_selector", "Melodic timing does not take a drum row/key.", path=field)
+        rows = [({}, pad.get("steps", []))]
+    else:
+        if editing and row_id is None and key is None:
+            raise OrchestronCliError("missing_drum_selector", "Drummer timing edits require --row or --key.", path=field,
+                                     retry=["Run `edit sequencers list` to discover drum rows and keys."])
+        matches = [row for row in track.get("rows", []) if
+                   (row_id is None or row.get("id") == row_id) and (key is None or row.get("key") == key)]
+        if not matches or ((row_id is not None or key is not None) and len(matches) != 1):
+            raise OrchestronCliError("unknown_or_ambiguous_drum_row", "The drum selector must identify exactly one row.",
+                                     path=field, retry=["Use --row with a row ID from `edit sequencers list`."])
+        rows = []
+        for row in matches:
+            pad_rows = [entry for entry in pad.get("rows", []) if entry.get("rowId") == row.get("id")]
+            if len(pad_rows) != 1:
+                raise OrchestronCliError("missing_drum_pad_row", "The pad must contain exactly one matching drum row.", path=field)
+            rows.append(({"rowId": row["id"], "key": row["key"]}, pad_rows[0].get("steps", [])))
+    targets = []
+    for metadata, cells in rows:
+        if any(index >= len(cells) for index in indices):
+            raise OrchestronCliError("missing_pattern_step", "The selected pad has missing step data.", path=field)
+        targets.extend(({"pad": pad_index + 1, "step": index, **metadata}, cells, index) for index in indices)
+    return targets
+
+
+def set_step_timing_targets(track: dict[str, Any], kind: str, targets: list, percent: int) -> None:
+    for metadata, cells, index in targets:
+        cells[index] = {**timing_cell(cells[index], kind), "timingOffsetPercent": percent}
+        # Older frontend snapshots also mirror the displayed melodic pad on the track.
+        if kind == "melodic" and metadata["pad"] - 1 == track.get("activePad", 0) and "steps" in track:
+            track["steps"] = copy.deepcopy(cells)
+
+
+def step_timing_result(config: dict[str, Any], track: dict[str, Any], kind: str, targets: list) -> dict[str, Any]:
+    sequencer = config.get("sequencer", {})
+    global_timing = timing_to_runtime(sequencer.get("timing") or default_timing())
+    local = timing_to_runtime(track.get("timing") or sequencer.get("timing") or default_timing())
+    # Tempo is global, whereas subdivision and beat ratio belong to the device.
+    step_ms = 60000 / global_timing["tempo_bpm"] / local["steps_per_beat"] * local["beat_rate_denominator"] / local["beat_rate_numerator"]
+    result = []
+    for metadata, cells, index in targets:
+        cell = timing_cell(cells[index], kind)
+        percent = timing_integer(cell.get("timingOffsetPercent", 0), -50, 50, field="timingOffsetPercent")
+        identity = {key: cell.get(key) for key in ("note", "chord", "hold", "velocity")} if kind == "melodic" else {
+            "active": cell.get("active", False), "velocity": cell.get("velocity", 100)}
+        result.append({**metadata, **identity, "timingOffsetPercent": percent,
+                       "timingOffsetMilliseconds": round(percent / 100 * step_ms, 6)})
+    return {"trackId": track["id"], "name": track.get("name"), "type": kind, "steps": result}
+
+
+def apply_score_step_timing(track: dict[str, Any], kind: str, spec: dict[str, Any], *, field: str) -> None:
+    """Resolve all timing after material generation, then apply without changing that material."""
+    primary = parse_score_pad_index(spec, fallback=0, field=field)
+    definitions = [(spec, primary, field)] + [
+        (pad, parse_score_pad_index(pad, fallback=index, field=f"{field}.pads[{index}]"), f"{field}.pads[{index}]")
+        for index, pad in enumerate(score_pads(spec, field=field))
+    ]
+    changes = []
+    seen = set()
+    for definition, pad_index, source in definitions:
+        assignments = []
+        entries = definition.get("step_timing", [])
+        if not isinstance(entries, list):
+            raise OrchestronCliError("invalid_step_timing", "step_timing must be a list.", path=f"{source}.step_timing")
+        assignments.extend((entry, f"{source}.step_timing[{index}]") for index, entry in enumerate(entries))
+        if kind == "melodic":
+            # Match the existing material precedence; do not silently accept timing on unused events.
+            selected = None if isinstance(definition.get("steps"), (str, list)) else "events" if isinstance(definition.get("events"), list) else "progression"
+            for collection in ("events", "progression"):
+                cursor = 0
+                material = definition.get(collection)
+                for index, entry in enumerate(material if isinstance(material, list) else []):
+                    default_duration = definition.get("length_beats", spec.get("length_beats", 4))
+                    at = entry.get("at_step", cursor if collection == "progression" else 0) if isinstance(entry, dict) else cursor
+                    duration = entry.get("duration_steps", default_duration) if isinstance(entry, dict) else default_duration
+                    if isinstance(entry, dict) and "timing_offset_percent" in entry:
+                        path = f"{source}.{collection}[{index}]"
+                        if selected != collection:
+                            raise OrchestronCliError("unused_event_timing", "Timing is attached to unused musical material.", path=path)
+                        assignments.append(({"at_step": at, "timing_offset_percent": entry["timing_offset_percent"]}, path))
+                    if collection == "progression":
+                        cursor = clamp_int(at, 0, MAX_STEPS_PER_PAD - 1, field=source) + clamp_int(duration, 1, MAX_STEPS_PER_PAD, field=source)
+        for entry, path in assignments:
+            if not isinstance(entry, dict):
+                raise OrchestronCliError("invalid_step_timing", "Timing entries must be objects.", path=path)
+            at = timing_integer(entry.get("at_step"), 0, MAX_STEPS_PER_PAD - 1, field=f"{path}.at_step")
+            percent = timing_integer(entry.get("timing_offset_percent"), -50, 50, field=f"{path}.timing_offset_percent")
+            key = timing_integer(entry["key"], 0, 127, field=f"{path}.key") if "key" in entry else None
+            targets = step_timing_targets(track, kind, pad_index, [at], key=key, editing=True, field=path)
+            identity = (pad_index, targets[0][0].get("rowId"), at)
+            if identity in seen:
+                raise OrchestronCliError("duplicate_step_timing", "Timing is assigned more than once to the same step/hit.", path=path)
+            seen.add(identity)
+            changes.append((targets, percent))
+    for targets, percent in changes:
+        set_step_timing_targets(track, kind, targets, percent)
 
 
 def compile_pad_loop_sequence(track: dict[str, Any]) -> list[int]:
@@ -4086,6 +4236,38 @@ def update_session_config(ctx: CliContext, mutator) -> dict[str, Any]:
     session["dirty"] = True
     save_edit_session(ctx.session_file, session)
     return result
+
+
+def command_edit_sequencers_list(args: argparse.Namespace, ctx: CliContext) -> None:
+    config = load_edit_session(ctx.session_file).get("config", {})
+    result = []
+    for kind, track in note_sequencers(config):
+        result.append({**summarize_device(track), "type": kind, "activePad": int(track.get("activePad", 0)) + 1,
+                       "pads": [{"pad": index + 1, "stepCount": pad.get("stepCount"), "lengthBeats": pad.get("lengthBeats")}
+                                for index, pad in enumerate(track.get("pads", []))],
+                       "rows": copy.deepcopy(track.get("rows", []))})
+    print_payload({"sequencers": result}, ctx)
+
+
+def command_edit_step_timing(args: argparse.Namespace, ctx: CliContext) -> None:
+    editing = args.timing_command != "list"
+    pad_index = parse_user_pad_index(args.pad, field="pad")
+    steps = [timing_integer(step, 0, MAX_STEPS_PER_PAD - 1, field="step", cli=True) for step in args.step] if args.step else None
+    key = timing_integer(args.key, 0, 127, field="key", cli=True) if args.key is not None else None
+    percent = timing_integer(args.percent, -50, 50, field="percent", cli=True) if args.timing_command == "set" else 0
+
+    def operation(config: dict[str, Any]) -> dict[str, Any]:
+        kind, track = timing_track(config, args.track)
+        targets = step_timing_targets(track, kind, pad_index, steps, row_id=args.row, key=key, editing=editing)
+        if editing:
+            set_step_timing_targets(track, kind, targets, percent)
+        return step_timing_result(config, track, kind, targets)
+
+    if editing:
+        result = update_session_config(ctx, operation)
+    else:
+        result = operation(load_edit_session(ctx.session_file).get("config", {}))
+    print_payload(result, ctx)
 
 
 def command_edit_status(args: argparse.Namespace, ctx: CliContext) -> None:
@@ -4932,6 +5114,24 @@ def build_parser() -> argparse.ArgumentParser:
     begin.set_defaults(func=command_edit_begin)
     status = edit_sub.add_parser("status", help="Show the active staged edit session summary.")
     status.set_defaults(func=command_edit_status)
+    sequencers = edit_sub.add_parser("sequencers", help="Discover staged melodic/drummer tracks, pads and rows.")
+    sequencers_sub = sequencers.add_subparsers(dest="sequencers_command", required=True)
+    sequencers_sub.add_parser("list", help="List track IDs, pad lengths and drum row IDs/keys.").set_defaults(func=command_edit_sequencers_list)
+    step_timing = edit_sub.add_parser("step-timing", help="Read or edit early/late offsets of individual notes/hits.")
+    timing_sub = step_timing.add_subparsers(dest="timing_command", required=True)
+    for action in ("list", "set", "reset"):
+        timing_parser = timing_sub.add_parser(action, help={"list": "Inspect offsets and tempo-scaled milliseconds.",
+                                                          "set": "Set selected steps to a signed percentage.",
+                                                          "reset": "Restore selected steps to zero offset."}[action])
+        timing_parser.add_argument("--track", required=True, help="Exact melodic/drummer track ID from edit sequencers list.")
+        timing_parser.add_argument("--pad", required=True, help="Pattern pad, 1..8 or P1..P8.")
+        timing_parser.add_argument("--step", action="append", required=action != "list", help="Zero-based step index; repeat to select several. List defaults to all steps in the pad.")
+        drum_selector = timing_parser.add_mutually_exclusive_group()
+        drum_selector.add_argument("--row", help="Drum row ID; required for drum edits unless --key is used.")
+        drum_selector.add_argument("--key", help="MIDI drum key 0..127, only when it identifies one row.")
+        if action == "set":
+            timing_parser.add_argument("--percent", required=True, help="Whole percentage of a local step, -50..50; negative is early.")
+        timing_parser.set_defaults(func=command_edit_step_timing)
     instruments = edit_sub.add_parser("instruments", help="Inspect staged rack instrument assignments and audio ports.")
     instruments_sub = instruments.add_subparsers(dest="instruments_command", required=True)
     instruments_list = instruments_sub.add_parser("list", help="List rack binding IDs, patches, channels, and audio ports.")

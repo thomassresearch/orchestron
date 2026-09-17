@@ -57,4 +57,6 @@ uv run orchestron_cli edit add-melodic \
   --pad-loop-group "A=1 2"
 ```
 
+To shift selected attacks, use [per-note timing commands or score fields](step_timing.md). Compact note/chord tokens keep the syntax above.
+
 Avoid arbitrary MIDI note arrays unless the implementation later extends the persisted model. Raw voicings do not round-trip cleanly through the current GUI chord selector.

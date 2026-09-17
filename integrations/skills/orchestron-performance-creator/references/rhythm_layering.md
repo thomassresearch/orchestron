@@ -31,6 +31,8 @@ Put asymmetry on top of the scaffold rather than replacing it. For example, keep
 
 Medium syncopation usually produces stronger groove than maximal syncopation. Keep harmony and rhythm in low-to-medium complexity when physical groove is the priority. A good pattern has a clear anchor plus one source of rhythmic friction.
 
+For deliberate anticipation or laid-back placement, use [per-note timing](step_timing.md) to shift selected notes within a straight pattern. Keep the beat ratio unchanged when only a few attacks should move. The reference covers reading/editing offsets through the CLI and generating them in score specs.
+
 Useful friction devices:
 
 - Offbeat bass or stab accents.

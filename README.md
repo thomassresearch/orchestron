@@ -64,7 +64,7 @@ Load instruments into the Perform rack, assign MIDI channels, and play from the 
 
 Mix instruments and effect returns with volume faders, pan or balance, mute, solo, and meters. Add an insert to one instrument, send several instruments to a shared effect, and shape the combined sound through Master. Every performance has a fixed internal Master with its own controls and inserts, without adding an instrument to your library. A routing matrix and diagram help you follow where the audio goes.
 
-The [performance creator skill](integrations/skills/orchestron-performance-creator/SKILL.md) can also configure Master routing, shared effects, mixer strips, and pre/post-fader sends through its CLI. Its optional reverb/compressor preset outputs through Master without adding a speaker instrument.
+The [performance creator skill](integrations/skills/orchestron-performance-creator/SKILL.md) can also configure Master routing, shared effects, mixer strips, and pre/post-fader sends through its CLI. It can inspect and edit per-note timing, or generate syncopated melodic/drum patterns with timing in YAML/JSON scores. Its optional reverb/compressor preset outputs through Master without adding a speaker instrument.
 
 ![Instrument and effect-return mixer strips with an insert, a post-fader send, and a Master strip](screenshots/perform_mixer_sends_inserts_master.png)
 

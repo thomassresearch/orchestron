@@ -134,6 +134,8 @@ Copying steps or pads preserves timing. Clear Steps resets it. Inactive drum cel
 
 Use the **Timing** slider or signed percentage field in each step to adjust its position. The reset arrow restores zero. The slider supports arrow keys; the note/chord copy handle also copies timing.
 
+The performance CLI can discover tracks with `edit sequencers list` and inspect or change offsets with `edit step-timing list|set|reset`. Pads use 1–8; steps are zero-based. YAML/JSON scores also support per-note timing. See the [skill timing reference](../../integrations/skills/orchestron-performance-creator/references/step_timing.md) for the full workflow and examples.
+
 ## Clear Steps
 
 `Clear Steps` resets the current melodic sequencer step contents (for the active pad pattern context) so you can quickly reprogram it.

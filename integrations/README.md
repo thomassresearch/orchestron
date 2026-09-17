@@ -37,6 +37,8 @@ uv run --project integrations/skills/orchestron-performance-creator orchestron_c
 uv run --project integrations/skills/orchestron-performance-creator orchestron_cli --json edit commit
 ```
 
+Use `edit sequencers list` to discover melodic/drummer track IDs, pads and drum rows. `edit step-timing list|set|reset` reads and edits selected early/late offsets without changing the notes or groove. See [per-note timing](skills/orchestron-performance-creator/references/step_timing.md) for step indexing, drum selection and score examples.
+
 For larger arrangements, use a score spec and apply it to an active edit session:
 
 ```bash
