@@ -6612,3 +6612,68 @@ def test_arpeggiator_export_and_live_render_share_event_timeline(block_size):
         return sorted((round(e.time_seconds * 48000), e.message) for e in events if e.message[0] in (0x94, 0x84))
     assert notes(capture.events) == notes(offline)
     assert sum(e.message[0] == 0x94 for e in offline) == sum(e.message[0] == 0x84 for e in offline)
+
+
+@pytest.mark.parametrize("event_source", ["midiFile", "score"])
+def test_performance_exports_preserve_per_note_timing(tmp_path: Path, event_source: str) -> None:
+    payload = _performance_csd_export_payload()
+    payload["eventSource"] = event_source
+    payload["performanceExport"]["performance"]["config"]["version"] = 16
+    payload["sequencerConfig"]["tracks"][0]["pads"][0]["steps"] = [
+        None, {"note": 60, "velocity": 100, "timing_offset_percent": -20}, None, None,
+    ]
+    with _client(tmp_path) as client:
+        response = client.post("/api/bundles/export/performance-csd", json=payload)
+        assert response.status_code == 200, response.text
+        with zipfile.ZipFile(BytesIO(response.content)) as archive:
+            if event_source == "midiFile":
+                events = [(tick, msg.type) for tick, msg in _midi_messages_with_absolute_ticks(
+                    archive.read("Offline_Export/Offline_Export.mid")) if msg.type in {"note_on", "note_off"}]
+                assert events == [(96, "note_on"), (216, "note_off")]
+            else:
+                csd = archive.read("Offline_Export/Offline_Export.csd").decode()
+                assert "i 1 0.1 0.125 60 100" in csd
+
+
+@pytest.mark.parametrize("value", [-51, 51, 0.5, True, "20"])
+def test_sequencer_api_rejects_invalid_timing_offsets(tmp_path: Path, value) -> None:
+    with _client(tmp_path) as client:
+        response = client.put("/api/sessions/unknown/sequencer/config", json={
+            "tracks": [{"track_id": "lead", "pads": [{"pad_index": 0, "steps": [
+                {"note": 60, "timing_offset_percent": value},
+            ]}]}],
+        })
+        assert response.status_code == 422
+        assert "timing_offset_percent" in response.text
+
+
+@pytest.mark.parametrize("archive_format", ["json", "zip"])
+def test_note_timing_survives_storage_and_native_bundle(tmp_path: Path, archive_format: str) -> None:
+    payload = _performance_csd_export_payload()["performanceExport"]
+    config = payload["performance"]["config"]
+    config.update(version=16, sequencer={
+        "tracks": [{"id": "lead", "pads": [{"steps": [{"note": 60, "timingOffsetPercent": -20}]}]}],
+        "drummerTracks": [{"id": "drums", "pads": [{"rows": [{"rowId": "snare", "steps": [
+            {"active": True, "velocity": 90, "timingOffsetPercent": 25}]}]}]}],
+        "arpeggiators": [{"id": "arp", "inputChannel": 3}],
+    })
+    with _client(tmp_path) as client:
+        saved = client.post("/api/performances", json={"name": "Timing", "config": config})
+        assert saved.status_code == 201
+        restored = client.get(f'/api/performances/{saved.json()["id"]}').json()["config"]
+        assert restored["version"] == 16  # Arpeggiator migration must not downgrade it.
+        assert restored["sequencer"]["tracks"] == config["sequencer"]["tracks"]
+        response = client.post("/api/bundles/export/performance", json=payload)
+        assert response.status_code == 200
+        data = response.content
+        if archive_format == "zip":
+            buffer = BytesIO()
+            with zipfile.ZipFile(buffer, "w") as archive:
+                archive.writestr("timing.orch.json", data)
+            data = buffer.getvalue()
+        imported = client.post("/api/bundles/import/expand", content=data,
+            headers={"Content-Type": "application/octet-stream", "X-File-Name": f"timing.orch.{archive_format}"})
+        assert imported.status_code == 200
+        actual = imported.json()["performance"]["config"]
+        assert actual["version"] == 16
+        assert actual["sequencer"]["drummerTracks"] == config["sequencer"]["drummerTracks"]

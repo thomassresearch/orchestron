@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from bisect import bisect_right
+from bisect import bisect_left, bisect_right
+from copy import copy
 import logging
 import threading
 import time
@@ -17,6 +18,7 @@ from backend.app.models.session import (
     SessionSequencerTrackStatus,
 )
 from backend.app.services.arpeggiator_runtime import MidiSourceContext
+from backend.app.services.sequencer_note_timing import SoundingTimedNote
 from backend.app.services.sequencer_runtime_config import (
     clamp_controller_value as _clamp_controller_value,
     clamp_midi_note as _clamp_midi_note,
@@ -98,6 +100,8 @@ class SessionSequencerRuntime:
         self._scheduled_visible_subunit = 0
         self._scheduled_visible_until_time: float | None = None
         self._active_notes: dict[str, set[int]] = {}
+        self._timed_notes: dict[str, SoundingTimedNote] = {}
+        self._last_timed_attack: dict[str, tuple[int, int, int]] = {}
         self._render_subunit_remainder = 0.0
         self._next_render_event_subunit: int | None = None
         self._render_block_start_sample: int | None = None
@@ -165,6 +169,9 @@ class SessionSequencerRuntime:
             if previous is None:
                 self._absolute_subunit = self._normalize_stopped_absolute_subunit_locked(self._absolute_subunit, next_config)
             self._active_notes = {identity: self._active_notes.get(identity, set()) for identity in next_config.tracks}
+            for identity, track in next_config.tracks.items():
+                if track.has_timing_offsets and self._active_notes[identity] and identity not in self._timed_notes:
+                    self._timed_notes[identity] = SoundingTimedNote(self._absolute_subunit - 1, 0, None)
             if position_step is not None:
                 # Install bounds and seek together, before an old position could
                 # stop playback against the new range.
@@ -187,6 +194,7 @@ class SessionSequencerRuntime:
                             for channel in track.target_channels
                         ])
                         track.last_value = value
+            self._refresh_timed_releases(next_config)
             self._reset_render_event_cursor_locked(next_config)
             return self._status_locked()
 
@@ -268,6 +276,8 @@ class SessionSequencerRuntime:
             track = config.tracks.get(track_id)
             if track is not None:
                 self._queue_note_track_pad_locked(track_id, track, pad_index)
+                self._refresh_timed_releases(config)
+                self._reset_render_event_cursor_locked(config)
                 return self._status_locked()
 
             controller_track = config.controller_tracks.get(track_id)
@@ -345,6 +355,8 @@ class SessionSequencerRuntime:
             requested_position_step = self._absolute_subunit // _TRANSPORT_SUBUNITS_PER_STEP if position_step is None else position_step
             requested_subunit = max(0, int(round(requested_position_step))) * _TRANSPORT_SUBUNITS_PER_STEP
             self._absolute_subunit = self._normalize_start_absolute_subunit_locked(requested_subunit, config)
+            self._timed_notes.clear()
+            self._last_timed_attack.clear()
             self._apply_absolute_subunit_locked(config, self._absolute_subunit)
             self._reset_render_event_cursor_locked(config)
 
@@ -576,27 +588,7 @@ class SessionSequencerRuntime:
         transport_subunit: int,
     ) -> None:
         controller_messages: list[list[int]] = []
-        for track_id, track in config.tracks.items():
-            pad_runtime = self._active_pad_runtime(track)
-            active_notes = self._active_notes.setdefault(track_id, set())
-            if not track.enabled or pad_runtime is None or not pad_runtime.steps:
-                self._release_track_notes_locked(track_id, track.midi_channel)
-                continue
-            if not self._local_step_boundary_reached(track, transport_subunit):
-                continue
-            local_step = self._local_step_for(track, transport_subunit)
-            step_state = pad_runtime.steps[local_step]
-            notes = step_state.notes
-            if notes:
-                self._release_track_notes_locked(track_id, track.midi_channel)
-                self._send_messages_locked(
-                    [self._note_on_message(track.midi_channel, note, step_state.velocity) for note in notes],
-                    source_context=self._source_context_for_track(track),
-                )
-                for note in notes:
-                    active_notes.add(note)
-            elif not step_state.hold:
-                self._release_track_notes_locked(track_id, track.midi_channel)
+        self._perform_note_events_locked(config, transport_subunit)
 
         for track in config.controller_tracks.values():
             value = self._controller_track_value_at_current_subunit_locked(track, transport_subunit)
@@ -609,6 +601,139 @@ class SessionSequencerRuntime:
         if controller_messages:
             self._send_messages_locked(controller_messages)
 
+    def _following_note_track(self, track: SequencerTrackRuntime, boundary: int) -> SequencerTrackRuntime | None:
+        """Preview a local boundary without consuming queues or publishing state."""
+        if not track.enabled or track.queued_enabled is False:
+            return None
+        following = copy(track)
+        manual = track.queued_pad is not None and track.queued_pad != track.active_pad
+        if manual:
+            following.active_pad = track.queued_pad
+            following.queued_pad = None
+        token, stopped = self._pad_loop_boundary_action_locked(following, manual_switch_applied=manual)
+        if stopped:
+            return None
+        if token is not None and token >= 0:
+            following.active_pad = token
+        following.phase_offset_subunit = boundary
+        return following
+
+    def _timed_attacks(self, track: SequencerTrackRuntime, now: int, config: SequencerRuntimeConfig):
+        pad = self._active_pad_runtime(track)
+        if pad is None or not pad.steps:
+            return ()
+        local = self._local_transport_offset_for(track, now)
+        base = now - local
+        cursor = bisect_left(pad.note_offsets, local)
+        positions = list(zip(pad.note_offsets[cursor:cursor + 2], pad.note_step_indices[cursor:cursor + 2]))
+        if local == 0 and pad.note_offsets and pad.note_offsets[0] < 0:
+            positions.insert(0, (0, pad.note_step_indices[0]))
+        attacks = [(base + offset, base, index, pad.steps[index]) for offset, index in positions]
+        boundary = base + pad.transport_subunit_count
+        # An anticipated attack belongs to the upcoming occurrence, not the outgoing one.
+        if pad.note_offsets and pad.note_offsets[0] < 0 and (boundary < config.playback_end_subunit or config.playback_loop):
+            following = self._following_note_track(track, boundary)
+            if boundary >= config.playback_end_subunit:
+                following = copy(track)
+                self._position_prepared_track(following, config.playback_start_subunit)
+                if (not following.enabled or config.playback_start_subunit != following.phase_offset_subunit
+                        or track.queued_enabled is False or track.queued_pad not in (None, track.active_pad)):
+                    following = None
+            master = config.tracks.get(track.sync_to_track_id)
+            sync_reset = master is not None and self._track_at_sync_boundary_locked(master, boundary)
+            if (following is not None and following.active_pad == track.active_pad
+                    and self._active_pad_runtime(following) is not None and not sync_reset
+                    and track.queued_enabled is not True):
+                offset, index = pad.note_offsets[0], pad.note_step_indices[0]
+                attacks.append((boundary + offset, boundary, index, pad.steps[index]))
+        return attacks
+
+    def _nominal_note_end(self, track: SequencerTrackRuntime, base: int, after: int) -> int | None:
+        """Find the next legacy note/rest boundary, including HOLDs across pads."""
+        seen: set[tuple[int, int | None]] = set()
+        candidate = track
+        while True:
+            pad = self._active_pad_runtime(candidate)
+            if pad is None:
+                return base
+            span = self._transport_subunits_per_local_step(candidate)
+            terminals = pad.terminating_step_indices
+            index = bisect_right(terminals, (after - base) // span)
+            if index < len(terminals):
+                return base + terminals[index] * span
+            boundary = base + pad.transport_subunit_count
+            following = self._following_note_track(candidate, boundary)
+            if following is None:
+                return boundary
+            signature = (following.active_pad, following.pad_loop_position)
+            if signature in seen:
+                return None  # All-HOLD cycle: sustain until a command or another attack.
+            seen.add(signature)
+            candidate, base = following, boundary
+
+    def _refresh_timed_releases(self, config: SequencerRuntimeConfig) -> None:
+        for track_id, sounding in list(self._timed_notes.items()):
+            track = config.tracks.get(track_id)
+            if track is None or not track.enabled:
+                continue
+            base = self._absolute_subunit - self._local_transport_offset_for(track, self._absolute_subunit)
+            # A release shifted past an already traversed boundary still belongs to its note.
+            if sounding.nominal_end is None or sounding.nominal_end >= base:
+                sounding.nominal_end = self._nominal_note_end(track, base, sounding.nominal_start)
+            if sounding.release_subunit is not None and sounding.release_subunit <= self._absolute_subunit:
+                self._release_track_notes_locked(track_id, track.midi_channel)
+
+    def _perform_note_events_locked(self, config: SequencerRuntimeConfig, now: int, delay: float | None = None) -> None:
+        for track_id, track in config.tracks.items():
+            pad = self._active_pad_runtime(track)
+            if not track.enabled or pad is None or not pad.steps:
+                self._release_track_notes_locked(track_id, track.midi_channel, delivery_delay_seconds=delay)
+                continue
+            sounding = self._timed_notes.get(track_id)
+            if not track.has_timing_offsets and sounding is None:
+                # Preserve the original zero-offset path, including legacy HOLD semantics.
+                if not self._local_step_boundary_reached(track, now):
+                    continue
+                step = pad.steps[self._local_step_for(track, now)]
+                if not step.notes:
+                    if not step.hold:
+                        self._release_track_notes_locked(track_id, track.midi_channel, delivery_delay_seconds=delay)
+                    continue
+                base = now - self._local_transport_offset_for(track, now)
+                self._last_timed_attack[track_id] = (track.active_pad, base, self._local_step_for(track, now))
+            else:
+                if sounding is not None and sounding.release_subunit is not None and sounding.release_subunit <= now:
+                    self._release_track_notes_locked(track_id, track.midi_channel, delivery_delay_seconds=delay)
+                matches = [attack for attack in self._timed_attacks(track, now, config) if attack[0] == now]
+                if not matches:
+                    continue
+                _, base, index, step = matches[-1]
+                identity = (track.active_pad, base, index)
+                if self._last_timed_attack.get(track_id) == identity:
+                    continue
+                self._last_timed_attack[track_id] = identity
+                nominal = base + index * self._transport_subunits_per_local_step(track)
+                origin = track
+                current_base = now - self._local_transport_offset_for(track, now)
+                if base > current_base:
+                    origin = self._following_note_track(track, base) or track
+                    if config.playback_loop and base == config.playback_end_subunit:
+                        origin = copy(track)
+                        self._position_prepared_track(origin, config.playback_start_subunit)
+                end = self._nominal_note_end(origin, base, nominal)
+                self._release_track_notes_locked(track_id, track.midi_channel, delivery_delay_seconds=delay)
+                self._timed_notes[track_id] = SoundingTimedNote(nominal, now - nominal, end)
+            self._release_untimed_notes_before_attack(track, delay)
+            self._send_messages_locked(
+                [self._note_on_message(track.midi_channel, note, step.velocity) for note in step.notes],
+                delivery_delay_seconds=delay, source_context=self._source_context_for_track(track),
+            )
+            self._active_notes.setdefault(track_id, set()).update(step.notes)
+
+    def _release_untimed_notes_before_attack(self, track: SequencerTrackRuntime, delay: float | None) -> None:
+        if track.track_id not in self._timed_notes:
+            self._release_track_notes_locked(track.track_id, track.midi_channel, delivery_delay_seconds=delay)
+
     def _reset_render_event_cursor_locked(self, config: SequencerRuntimeConfig) -> None:
         if self._clock_mode != "render_driven":
             self._next_render_event_subunit = None
@@ -617,6 +742,24 @@ class SessionSequencerRuntime:
             self._next_render_event_subunit = None
             return
         self._next_render_event_subunit = self._next_event_subunit_locked(config, self._absolute_subunit)
+
+    def _remap_timed_loop(self, config: SequencerRuntimeConfig, previous_pads: dict[str, int]) -> None:
+        distance = config.playback_end_subunit - config.playback_start_subunit
+        for track_id, sounding in list(self._timed_notes.items()):
+            track = config.tracks.get(track_id)
+            if track is None:
+                continue
+            if (sounding.nominal_start == config.playback_end_subunit
+                    and track.enabled and track.active_pad == previous_pads.get(track_id)):
+                sounding.nominal_start -= distance
+                if sounding.nominal_end is not None:
+                    sounding.nominal_end -= distance
+                identity = self._last_timed_attack.get(track_id)
+                if identity is not None:
+                    self._last_timed_attack[track_id] = (identity[0], identity[1] - distance, identity[2])
+            else:
+                self._release_track_notes_locked(track_id, track.midi_channel)
+                self._last_timed_attack.pop(track_id, None)
 
     def _advance_render_to_event_locked(
         self,
@@ -642,6 +785,7 @@ class SessionSequencerRuntime:
                 if track.enabled
             }
             self._apply_absolute_subunit_locked(config, config.playback_start_subunit)
+            self._remap_timed_loop(config, previous_active_pads)
             self._emit_render_transport_event_locked(
                 "loop",
                 {
@@ -1323,6 +1467,11 @@ class SessionSequencerRuntime:
                 pad_runtime = self._active_pad_runtime(track)
                 if pad_runtime is not None and pad_runtime.steps:
                     candidates.append(self._next_local_step_boundary_subunit(track, current_subunit))
+                    if track.has_timing_offsets or track.track_id in self._timed_notes:
+                        candidates.extend(at for at, _, _, _ in self._timed_attacks(track, current_subunit, config) if at > current_subunit)
+                        sounding = self._timed_notes.get(track.track_id)
+                        if sounding is not None and sounding.release_subunit is not None and sounding.release_subunit > current_subunit:
+                            candidates.append(sounding.release_subunit)
         for track in config.controller_tracks.values():
             if not track.enabled:
                 continue
@@ -1407,6 +1556,8 @@ class SessionSequencerRuntime:
             for notes in self._active_notes.values():
                 notes.clear()
 
+        self._timed_notes.clear()
+        self._last_timed_attack.clear()
         self._apply_absolute_subunit_locked(config, normalized_target)
         self._render_subunit_remainder = 0.0
         self._reset_render_event_cursor_locked(config)
@@ -1441,40 +1592,7 @@ class SessionSequencerRuntime:
                 else max(0.0, scheduled_time - time.perf_counter())
             )
             controller_messages: list[list[int]] = []
-            for track_id, track in config.tracks.items():
-                pad_runtime = self._active_pad_runtime(track)
-                active_notes = self._active_notes.setdefault(track_id, set())
-                if not track.enabled or pad_runtime is None or not pad_runtime.steps:
-                    self._release_track_notes_locked(
-                        track_id,
-                        track.midi_channel,
-                        delivery_delay_seconds=event_delivery_delay_seconds,
-                    )
-                    continue
-                if not self._local_step_boundary_reached(track, transport_subunit):
-                    continue
-                local_step = self._local_step_for(track, transport_subunit)
-                step_state = pad_runtime.steps[local_step]
-                notes = step_state.notes
-                if notes:
-                    self._release_track_notes_locked(
-                        track_id,
-                        track.midi_channel,
-                        delivery_delay_seconds=event_delivery_delay_seconds,
-                    )
-                    self._send_messages_locked(
-                        [self._note_on_message(track.midi_channel, note, step_state.velocity) for note in notes],
-                        delivery_delay_seconds=event_delivery_delay_seconds,
-                        source_context=self._source_context_for_track(track),
-                    )
-                    for note in notes:
-                        active_notes.add(note)
-                elif not step_state.hold:
-                    self._release_track_notes_locked(
-                        track_id,
-                        track.midi_channel,
-                        delivery_delay_seconds=event_delivery_delay_seconds,
-                    )
+            self._perform_note_events_locked(config, transport_subunit, event_delivery_delay_seconds)
 
             for track in config.controller_tracks.values():
                 value = self._controller_track_value_at_current_subunit_locked(track, transport_subunit)
@@ -1520,6 +1638,7 @@ class SessionSequencerRuntime:
                     if track.enabled
                 }
                 self._apply_absolute_subunit_locked(config, config.playback_start_subunit)
+                self._remap_timed_loop(config, previous_active_pads)
                 for track_id, previous_active_pad in previous_active_pads.items():
                     track = config.tracks.get(track_id)
                     if track and track.enabled and track.active_pad != previous_active_pad:
@@ -1687,6 +1806,7 @@ class SessionSequencerRuntime:
         *,
         delivery_delay_seconds: float | None = None,
     ) -> None:
+        self._timed_notes.pop(track_id, None)
         active_notes = self._active_notes.get(track_id)
         if not active_notes:
             return
@@ -1720,6 +1840,8 @@ class SessionSequencerRuntime:
                 self._release_track_notes_locked(track_id, previous_track.midi_channel)
 
     def _send_all_notes_off_locked(self) -> None:
+        self._timed_notes.clear()
+        self._last_timed_attack.clear()
         config = self._config
         if config is None:
             return

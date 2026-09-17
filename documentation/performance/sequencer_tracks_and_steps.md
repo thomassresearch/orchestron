@@ -122,6 +122,18 @@ Step cells visually indicate:
 - Out-of-scale programmed note
 - Rest / hold combinations
 
+## Early and Late Notes
+
+Timing moves an individual attack by **−50% to +50% of one local step**, in 1% increments. Zero means **On grid**. The millisecond readout follows the current tempo, grid and beat ratio: at 120 BPM with Grid 4 and ratio 1:1, −20% is 25 ms early. Timing belongs to each pad and does not change its length, meter or playback speed.
+
+Moving a note also moves its release, preserving its length and any HOLD extension. A following attack can shorten the preceding note to avoid overlap. Chords move together. If neighboring attacks land at exactly the same instant, the later logical step wins.
+
+An early first step plays before the boundary when the same pad repeats. On a fresh start or a different-pad launch it plays at the boundary instead. Queued stops, pauses and finite arrangement ends suppress repeat anticipation. A command received after an anticipated attack has already sounded cannot undo that attack.
+
+Copying steps or pads preserves timing. Clear Steps resets it. Inactive drum cells retain their timing for reactivation. Old performances load on grid; Save/Load, browser restoration, native bundles and both CSD export modes preserve offsets. Timing edits during playback use the normal coalesced live-edit workflow.
+
+Use the **Timing** slider or signed percentage field in each step to adjust its position. The reset arrow restores zero. The slider supports arrow keys; the note/chord copy handle also copies timing.
+
 ## Clear Steps
 
 `Clear Steps` resets the current melodic sequencer step contents (for the active pad pattern context) so you can quickly reprogram it.

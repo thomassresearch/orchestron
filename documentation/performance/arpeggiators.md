@@ -86,6 +86,6 @@ Live edits coalesce for 80 ms and apply at audio render boundaries, preserving t
 
 Versions 1–14 load in memory into the new model. Existing settings become P1; the other seven pads use defaults. Identities, routes, rate, order, octaves, expression and user presets are retained; old accent cycles become grid velocities.
 
-Existing performances adopt Arranger mode, Hold Off, Continue, corrected swing and full-range ordering, so they can sound different. Save/export writes version 15; app-state version 2 and native bundle-envelope version 1 stay unchanged. Runtime positions and held notes are not saved.
+Existing performances adopt Arranger mode, Hold Off, Continue, corrected swing and full-range ordering, so they can sound different. Save/export writes version 16; app-state version 2 and native bundle-envelope version 1 stay unchanged. Runtime positions and held notes are not saved.
 
 **Navigation:** [Up](performance.md) | [Prev](controller_sequencers.md) | [Next](piano_rolls.md)

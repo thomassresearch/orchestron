@@ -190,6 +190,7 @@ export default function App() {
   const setSequencerTrackStepChord = useAppStore((state) => state.setSequencerTrackStepChord);
   const setSequencerTrackStepHold = useAppStore((state) => state.setSequencerTrackStepHold);
   const setSequencerTrackStepVelocity = useAppStore((state) => state.setSequencerTrackStepVelocity);
+  const setSequencerTrackStepTimingOffset = useAppStore((state) => state.setSequencerTrackStepTimingOffset);
   const copySequencerTrackStepSettings = useAppStore((state) => state.copySequencerTrackStepSettings);
   const clearSequencerTrackSteps = useAppStore((state) => state.clearSequencerTrackSteps);
   const copySequencerTrackPad = useAppStore((state) => state.copySequencerTrackPad);
@@ -216,6 +217,7 @@ export default function App() {
   const setDrummerSequencerRowKey = useAppStore((state) => state.setDrummerSequencerRowKey);
   const toggleDrummerSequencerCell = useAppStore((state) => state.toggleDrummerSequencerCell);
   const setDrummerSequencerCellVelocity = useAppStore((state) => state.setDrummerSequencerCellVelocity);
+  const setDrummerSequencerCellTimingOffset = useAppStore((state) => state.setDrummerSequencerCellTimingOffset);
   const clearDrummerSequencerTrackSteps = useAppStore((state) => state.clearDrummerSequencerTrackSteps);
   const copyDrummerSequencerPad = useAppStore((state) => state.copyDrummerSequencerPad);
   const setDrummerSequencerTrackActivePad = useAppStore((state) => state.setDrummerSequencerTrackActivePad);
@@ -417,6 +419,7 @@ export default function App() {
               return {
                 note: notes.length === 0 ? null : notes.length === 1 ? notes[0] : notes,
                 hold: step.hold,
+                timing_offset_percent: step.timingOffsetPercent ?? 0,
                 velocity: normalizeMidiVelocity(step.velocity)
               };
             })
@@ -1729,6 +1732,7 @@ export default function App() {
     onSequencerTrackStepChordChange: setSequencerTrackStepChord,
     onSequencerTrackStepHoldChange: setSequencerTrackStepHold,
     onSequencerTrackStepVelocityChange: setSequencerTrackStepVelocity,
+    onSequencerTrackStepTimingOffsetChange: setSequencerTrackStepTimingOffset,
     onSequencerTrackStepCopy: copySequencerTrackStepSettings,
     onSequencerTrackClearSteps: clearSequencerTrackSteps,
     onSequencerTrackReorder: moveSequencerTrack,
@@ -1788,6 +1792,7 @@ export default function App() {
     onDrummerSequencerRowKeyPreview: onDrummerSequencerRowKeyPreview,
     onDrummerSequencerCellToggle: toggleDrummerSequencerCell,
     onDrummerSequencerCellVelocityChange: setDrummerSequencerCellVelocity,
+    onDrummerSequencerCellTimingOffsetChange: setDrummerSequencerCellTimingOffset,
     onDrummerSequencerTrackClearSteps: clearDrummerSequencerTrackSteps,
     onDrummerSequencerPadPress: (trackId: string, padIndex: number) => {
       const drummerTrack = sequencerRef.current.drummerTracks.find((track) => track.id === trackId);

@@ -159,6 +159,7 @@ export type SequencerChord =
   | "minmaj7";
 
 export interface SequencerStepState {
+  timingOffsetPercent?: number;
   note: number | null;
   chord: SequencerChord;
   hold: boolean;
@@ -186,6 +187,7 @@ export interface SequencerTimingConfig {
 }
 
 export interface DrummerSequencerCellState {
+  timingOffsetPercent?: number;
   active: boolean;
   velocity: number;
 }
@@ -529,7 +531,7 @@ export interface SequencerInstrumentBinding {
 }
 
 export interface SequencerConfigSnapshot {
-  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15;
+  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16;
   audioGraph?: AudioGraph;
   mixer?: MixerState;
   instruments: Array<{
@@ -732,6 +734,7 @@ export interface PerformanceListItem {
 }
 
 export interface SessionSequencerStepConfig {
+  timing_offset_percent?: number;
   note: number | Array<number> | null;
   hold: boolean;
   velocity?: number;

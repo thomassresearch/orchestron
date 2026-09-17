@@ -1021,3 +1021,31 @@ for (const language of ["english", "german", "french", "spanish"] as const) {
     sequencerHelpDocuments[id][language].markdown += "\n\n" + controllerChannelHelp[language];
   }
 }
+
+const noteTimingHelp = {
+  english: `### Early / late timing
+
+Move notes, chords or drum hits by −50% to +50% of a local step. Timing scales with tempo; the readout also shows milliseconds. Melodic steps have a slider, percentage field and reset. Drag drum hits left/right for timing and up/down for velocity; the first direction locks the edit. Left/Right arrows adjust timing. Right-click or Shift+F10 opens precise controls.
+
+Note length and HOLD extensions move with the attack; the next attack can shorten an overlapping note. Early step 1 anticipates same-pad repeats but plays at the boundary on fresh starts or different-pad launches. Stops, pauses and finite endings suppress anticipation. Copying preserves timing; Clear Steps resets it. Inactive hits retain their setting. Saves, native bundles and both CSD exports preserve timing.`,
+  german: `### Frühes / spätes Timing
+
+Noten, Akkorde oder Drum-Schläge um −50% bis +50% eines lokalen Schritts verschieben. Timing folgt dem Tempo; die Anzeige zeigt auch Millisekunden. Melodie-Schritte haben Schieberegler, Prozentfeld und Reset. Drum-Schläge links/rechts für Timing, hoch/runter für Anschlagstärke ziehen; die erste Richtung legt den Parameter fest. Links/Rechts-Pfeile ändern Timing. Rechtsklick oder Shift+F10 öffnet genaue Regler.
+
+Notenlänge und HOLD-Verlängerungen werden mitverschoben; der nächste Anschlag kann eine überlappende Note kürzen. Ein früher erster Schritt wird bei Wiederholung desselben Pads vorgezogen, bei Neustart oder Pad-Wechsel an der Grenze gespielt. Stopps, Pausen und endliche Enden verhindern das Vorziehen. Kopieren erhält Timing, Schritte löschen setzt es zurück. Inaktive Schläge behalten den Wert. Speichern, native Bundles und beide CSD-Exporte erhalten Timing.`,
+  french: `### Placement en avance / en retard
+
+Décalez notes, accords ou frappes de −50% à +50% d'un pas local. Le placement suit le tempo ; l'affichage indique aussi les millisecondes. Les pas mélodiques ont un curseur, un champ de pourcentage et une réinitialisation. Glissez les frappes gauche/droite pour le placement, haut/bas pour la vélocité ; la première direction fixe le paramètre. Les flèches gauche/droite règlent le placement. Clic droit ou Shift+F10 ouvre les réglages précis.
+
+La durée et les prolongations HOLD suivent l'attaque ; l'attaque suivante peut raccourcir une note qui chevauche. Un premier pas anticipé précède la répétition du même pad, mais joue à la limite au démarrage ou lors d'un changement de pad. Arrêts, pauses et fins empêchent l'anticipation. La copie conserve le placement ; effacer les pas le réinitialise. Les frappes inactives gardent leur valeur. Sauvegardes, bundles natifs et les deux exports CSD conservent le placement.`,
+  spanish: `### Tiempo adelantado / retrasado
+
+Desplaza notas, acordes o golpes entre −50% y +50% de un paso local. El tiempo sigue el tempo; la lectura también muestra milisegundos. Los pasos melódicos tienen deslizador, porcentaje y reinicio. Arrastra golpes izquierda/derecha para tiempo, arriba/abajo para velocidad; la primera dirección fija el parámetro. Las flechas izquierda/derecha ajustan el tiempo. Clic derecho o Shift+F10 abre controles precisos.
+
+La duración y extensiones HOLD se desplazan con el ataque; el siguiente ataque puede acortar una nota solapada. El primer paso adelantado anticipa repeticiones del mismo pad, pero suena en el límite al iniciar o cambiar de pad. Paradas, pausas y finales impiden anticipar. Copiar conserva el tiempo; borrar pasos lo restablece. Los golpes inactivos conservan su valor. Guardados, bundles nativos y ambos exports CSD conservan el tiempo.`
+};
+for (const language of ["english", "german", "french", "spanish"] as const) {
+  for (const id of ["sequencer_tracks", "sequencer_drummer_sequencer"] as const) {
+    sequencerHelpDocuments[id][language].markdown += "\n\n" + noteTimingHelp[language];
+  }
+}

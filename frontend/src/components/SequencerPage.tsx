@@ -1,3 +1,5 @@
+import { NoteTimingControl, noteTimingCopy, timingDescription } from "./sequencer/NoteTimingControl";
+import { normalizeTimingOffset } from "../lib/sequencer";
 import { ArpeggiatorEditor } from "./sequencer/ArpeggiatorEditor";
 import { MidiChannelSelector } from "./sequencer/MidiChannelSelector";
 import { useAppStore } from "../store/useAppStore";
@@ -371,6 +373,7 @@ function useSequencerPageContext({
     onSequencerTrackStepChordChange,
     onSequencerTrackStepHoldChange,
     onSequencerTrackStepVelocityChange,
+    onSequencerTrackStepTimingOffsetChange,
     onSequencerTrackStepCopy,
     onSequencerTrackClearSteps,
     onSequencerTrackReorder,
@@ -398,6 +401,7 @@ function useSequencerPageContext({
     onDrummerSequencerRowKeyPreview,
     onDrummerSequencerCellToggle,
     onDrummerSequencerCellVelocityChange,
+    onDrummerSequencerCellTimingOffsetChange,
     onDrummerSequencerTrackClearSteps,
     onDrummerSequencerPadPress,
     onDrummerSequencerPadCopy,
@@ -698,6 +702,7 @@ function useSequencerPageContext({
     onSequencerTrackStepNoteChange,
     onSequencerTrackStepChordChange,
     onSequencerTrackStepVelocityChange,
+    onSequencerTrackStepTimingOffsetChange,
     onSequencerPadTransposeLong,
     onDrummerSequencerTrackEnabledChange,
     onDrummerSequencerTrackClearSteps,
@@ -719,6 +724,7 @@ function useSequencerPageContext({
     onDrummerSequencerRowRemove,
     onDrummerSequencerCellToggle,
     onDrummerSequencerCellVelocityChange,
+    onDrummerSequencerCellTimingOffsetChange,
     onControllerSequencerEnabledChange,
     onControllerSequencerClearSteps,
     onRemoveControllerSequencer,
@@ -1385,6 +1391,7 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
     onSequencerTrackStepNoteChange,
     onSequencerTrackStepChordChange,
     onSequencerTrackStepVelocityChange,
+    onSequencerTrackStepTimingOffsetChange,
     onSequencerPadTransposeLong,
   } = context;
   const [stepSelectPreview, setStepSelectPreview] = usePerformanceEditorState<Record<string, string>>("page", "stepSelectPreview", {});
@@ -1951,7 +1958,7 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
                           }}
                           className="absolute left-0 top-0 inline-flex cursor-grab select-none rounded px-1 py-0.5 text-[8px] text-slate-500 hover:bg-slate-800/80 hover:text-slate-300 active:cursor-grabbing"
                           aria-label={`Step ${step + 1}: drag to copy settings`}
-                          title="Drag onto another step to copy note/chord/octave/velocity"
+                          title="Drag onto another step to copy note/chord/octave/velocity/timing"
                         >
                           ::
                         </div>
@@ -2193,6 +2200,9 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
                         />
                       </label>
 
+                      <NoteTimingControl value={stepState?.timingOffsetPercent ?? 0} timing={track.timing}
+                        language={guiLanguage} onChange={(value) => onSequencerTrackStepTimingOffsetChange?.(track.id, step, value)} />
+
                       <div
                         className={`mt-1 text-center text-[10px] ${noteValue === null
                             ? holdActive
@@ -2261,7 +2271,9 @@ function DrummerSequencersBody({ context }: { context: ReturnType<typeof useSequ
     onDrummerSequencerRowRemove,
     onDrummerSequencerCellToggle,
     onDrummerSequencerCellVelocityChange,
+    onDrummerSequencerCellTimingOffsetChange,
   } = context;
+  const [timingTarget, setTimingTarget] = useState<{ trackId: string; rowId: string; step: number; padIndex: number } | null>(null);
   const [drummerVelocityDragState, setDrummerVelocityDragState] = useState<DrummerVelocityDragState | null>(null);
   const drummerLedDragRef = useRef<{
     pointerId: number;
@@ -2269,6 +2281,10 @@ function DrummerSequencersBody({ context }: { context: ReturnType<typeof useSequ
     rowId: string;
     stepIndex: number;
     startY: number;
+    startX: number;
+    startTiming: number;
+    padIndex: number;
+    axis: "timing" | "velocity" | null;
     startVelocity: number;
     startedActive: boolean;
     moved: boolean;
@@ -2280,7 +2296,9 @@ function DrummerSequencersBody({ context }: { context: ReturnType<typeof useSequ
       rowId: string,
       stepIndex: number,
       active: boolean,
-      velocity: number
+      velocity: number,
+      timingOffsetPercent: number,
+      padIndex: number
     ) => {
       if (event.pointerType === "mouse" && event.button !== 0) {
         return;
@@ -2299,6 +2317,10 @@ function DrummerSequencersBody({ context }: { context: ReturnType<typeof useSequ
         rowId,
         stepIndex,
         startY: event.clientY,
+        startX: event.clientX,
+        startTiming: timingOffsetPercent,
+        padIndex,
+        axis: null,
         startVelocity: Math.max(0, Math.min(127, Math.round(velocity))),
         startedActive: active,
         moved: false
@@ -2310,29 +2332,32 @@ function DrummerSequencersBody({ context }: { context: ReturnType<typeof useSequ
   const handleDrummerLedPointerMove = useCallback(
     (event: ReactPointerEvent<HTMLButtonElement>) => {
       const drag = drummerLedDragRef.current;
-      if (!drag || drag.pointerId !== event.pointerId) {
+      if (!drag || drag.pointerId !== event.pointerId || sequencer.drummerTracks.find(track => track.id === drag.trackId)?.activePad !== drag.padIndex) {
         return;
       }
       event.preventDefault();
       const deltaY = drag.startY - event.clientY;
-      const nextVelocity = Math.max(0, Math.min(127, drag.startVelocity + Math.round(deltaY)));
-      if (Math.abs(deltaY) >= 2) {
-        drag.moved = true;
-        setDrummerVelocityDragState({
-          trackId: drag.trackId,
-          rowId: drag.rowId,
-          stepIndex: drag.stepIndex,
-          velocity: nextVelocity
-        });
+      const deltaX = event.clientX - drag.startX;
+      if (!drag.axis && Math.max(Math.abs(deltaX), Math.abs(deltaY)) >= 4) {
+        drag.axis = Math.abs(deltaX) > Math.abs(deltaY) ? "timing" : "velocity";
       }
-      onDrummerSequencerCellVelocityChange(drag.trackId, drag.rowId, drag.stepIndex, nextVelocity);
+      if (!drag.axis) return;
+      drag.moved = true;
+      if (drag.axis === "timing") {
+        onDrummerSequencerCellTimingOffsetChange?.(drag.trackId, drag.rowId, drag.stepIndex,
+          normalizeTimingOffset(drag.startTiming + deltaX));
+      } else {
+        const nextVelocity = Math.max(0, Math.min(127, drag.startVelocity + Math.round(deltaY)));
+        setDrummerVelocityDragState({ trackId: drag.trackId, rowId: drag.rowId, stepIndex: drag.stepIndex, velocity: nextVelocity });
+        onDrummerSequencerCellVelocityChange(drag.trackId, drag.rowId, drag.stepIndex, nextVelocity);
+      }
     },
-    [onDrummerSequencerCellVelocityChange]
+    [onDrummerSequencerCellVelocityChange, onDrummerSequencerCellTimingOffsetChange, sequencer.drummerTracks]
   );
   const handleDrummerLedPointerEnd = useCallback(
     (event: ReactPointerEvent<HTMLButtonElement>) => {
       const drag = drummerLedDragRef.current;
-      if (!drag || drag.pointerId !== event.pointerId) {
+      if (!drag || drag.pointerId !== event.pointerId || sequencer.drummerTracks.find(track => track.id === drag.trackId)?.activePad !== drag.padIndex) {
         return;
       }
       event.preventDefault();
@@ -2343,7 +2368,7 @@ function DrummerSequencersBody({ context }: { context: ReturnType<typeof useSequ
       drummerLedDragRef.current = null;
       setDrummerVelocityDragState(null);
     },
-    [onDrummerSequencerCellToggle]
+    [onDrummerSequencerCellToggle, sequencer.drummerTracks]
   );
   const cancelDrummerLedPointer = useCallback(() => {
     drummerLedDragRef.current = null;
@@ -2595,6 +2620,19 @@ function DrummerSequencersBody({ context }: { context: ReturnType<typeof useSequ
               </div>
             </div>
 
+            {timingTarget?.trackId === track.id && timingTarget.padIndex === track.activePad && (() => {
+              const cell = track.pads[track.activePad]?.rows.find(row => row.rowId === timingTarget.rowId)?.steps[timingTarget.step];
+              const row = track.rows.find(row => row.id === timingTarget.rowId);
+              if (!cell || !row) return null;
+              const copy = noteTimingCopy[guiLanguage];
+              return <div className="flex items-center gap-2 rounded border border-slate-600 p-2" role="group" aria-label={noteTimingCopy[guiLanguage].timing}>
+                <span className="text-xs text-slate-300">{copy.key} {row.key} · {copy.step} {timingTarget.step + 1}</span>
+                <div className="w-48"><NoteTimingControl value={cell.timingOffsetPercent ?? 0} timing={track.timing} language={guiLanguage}
+                  onChange={value => onDrummerSequencerCellTimingOffsetChange?.(track.id, timingTarget.rowId, timingTarget.step, value)} />
+                </div>
+                <button type="button" onClick={() => setTimingTarget(null)} aria-label={noteTimingCopy[guiLanguage].close}>×</button>
+              </div>;
+            })()}
             <RetainedScroll owner={`device:${track.id}`} field="grid" className="overflow-x-auto pb-1">
               <div
                 className="grid w-full items-center gap-x-1 gap-y-1"
@@ -2701,13 +2739,28 @@ function DrummerSequencersBody({ context }: { context: ReturnType<typeof useSequ
                                 row.id,
                                 step,
                                 cell.active,
-                                cell.velocity
+                                cell.velocity,
+                                cell.timingOffsetPercent ?? 0,
+                                track.activePad
                               )
                             }
                             onPointerMove={handleDrummerLedPointerMove}
                             onPointerUp={handleDrummerLedPointerEnd}
                             onPointerCancel={cancelDrummerLedPointer}
+                            onContextMenu={(event) => {
+                              event.preventDefault();
+                              setTimingTarget({ trackId: track.id, rowId: row.id, step, padIndex: track.activePad });
+                            }}
                             onKeyDown={(event) => {
+                              if ((event.shiftKey && event.key === "F10") || event.key === "ContextMenu") {
+                                event.preventDefault();
+                                setTimingTarget({ trackId: track.id, rowId: row.id, step, padIndex: track.activePad });
+                              }
+                              if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+                                event.preventDefault();
+                                onDrummerSequencerCellTimingOffsetChange?.(track.id, row.id, step,
+                                  normalizeTimingOffset((cell.timingOffsetPercent ?? 0) + (event.key === "ArrowLeft" ? -1 : 1)));
+                              }
                               if (event.key === " " || event.key === "Enter") {
                                 event.preventDefault();
                                 onDrummerSequencerCellToggle(track.id, row.id, step);
@@ -2742,15 +2795,16 @@ function DrummerSequencersBody({ context }: { context: ReturnType<typeof useSequ
                                 : "border-slate-700 bg-slate-900/35 hover:bg-slate-800/35"
                               }`}
                             aria-pressed={cell.active}
-                            aria-label={`Step ${step + 1}, drum key ${row.key}, velocity ${cell.velocity}`}
-                            title={`Step ${step + 1} | key ${row.key} | velocity ${cell.velocity} (drag up/down to change)`}
+                            aria-label={`Step ${step + 1}, drum key ${row.key}, velocity ${cell.velocity}, ${timingDescription(cell.timingOffsetPercent ?? 0, track.timing, guiLanguage)}`}
+                            title={`${noteTimingCopy[guiLanguage].drumHint} | ${timingDescription(cell.timingOffsetPercent ?? 0, track.timing, guiLanguage)}`}
                           >
                             {draggedVelocity !== null ? (
                               <span className="pointer-events-none absolute -top-6 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-full border border-rose-300/70 bg-slate-950/95 px-2 py-0.5 font-mono text-[10px] text-rose-100 shadow-[0_8px_20px_rgba(2,6,23,0.45)]">
                                 {ui.dragVelocity(draggedVelocity)}
                               </span>
                             ) : null}
-                            <span className={ledDotClass} style={ledDotStyle} aria-hidden="true" />
+                            <span className={ledDotClass} style={{ ...ledDotStyle, transform: `translateX(${(cell.timingOffsetPercent ?? 0) * 0.18}px)` }} aria-hidden="true" />
+                            {!!cell.timingOffsetPercent && <span className="pointer-events-none absolute bottom-0 right-0 font-mono text-[8px] text-slate-300">{cell.timingOffsetPercent > 0 ? "+" : ""}{cell.timingOffsetPercent}%</span>}
                             <span className="sr-only">{cell.velocity}</span>
                           </button>
                         );

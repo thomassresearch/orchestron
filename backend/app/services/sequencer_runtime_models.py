@@ -14,6 +14,7 @@ class SequencerStepRuntime:
     notes: tuple[int, ...]
     hold: bool = False
     velocity: int = 100
+    timing_offset_percent: int = 0
 
 
 @dataclass(frozen=True, slots=True)
@@ -22,6 +23,9 @@ class SequencerPadRuntime:
     step_count: int
     transport_subunit_count: int
     steps: tuple[SequencerStepRuntime, ...]
+    note_offsets: tuple[int, ...] = ()
+    note_step_indices: tuple[int, ...] = ()
+    terminating_step_indices: tuple[int, ...] = ()
     scale_root: str | None = None
     mode: str | None = None
 
@@ -69,6 +73,7 @@ class SequencerTrackRuntime:
     pad_loop_position: int | None = None
     phase_offset_subunit: int = 0
     sequence_ended: bool = False
+    has_timing_offsets: bool = False
 
 
 @dataclass(slots=True)

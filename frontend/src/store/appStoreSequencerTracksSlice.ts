@@ -1,3 +1,4 @@
+import { normalizeTimingOffset } from "../lib/sequencer";
 import { nextPerformanceDeviceName } from "../lib/performanceDeviceNames";
 import { legacyGainDb, newRoute } from "../lib/audioRouting";
 import type { StoreApi } from "zustand";
@@ -96,6 +97,7 @@ export type SequencerTrackStoreActions = Pick<
   | "setSequencerTrackStepChord"
   | "setSequencerTrackStepHold"
   | "setSequencerTrackStepVelocity"
+  | "setSequencerTrackStepTimingOffset"
   | "copySequencerTrackStepSettings"
   | "clearSequencerTrackSteps"
   | "copySequencerTrackPad"
@@ -122,6 +124,7 @@ export type SequencerTrackStoreActions = Pick<
   | "setDrummerSequencerRowKey"
   | "toggleDrummerSequencerCell"
   | "setDrummerSequencerCellVelocity"
+  | "setDrummerSequencerCellTimingOffset"
   | "clearDrummerSequencerTrackSteps"
   | "copyDrummerSequencerPad"
   | "setDrummerSequencerTrackActivePad"
@@ -796,6 +799,48 @@ export function createSequencerTrackStoreActions(
       });
     },
 
+    setSequencerTrackStepTimingOffset: (trackId, index, timingOffsetPercent) => {
+      if (index < 0 || index >= STEP_CAPACITY) {
+        return;
+      }
+
+      const sequencer = get().sequencer;
+      const normalizedOffset = normalizeTimingOffset(timingOffsetPercent);
+      set({
+        sequencer: {
+          ...sequencer,
+          tracks: sequencer.tracks.map((track) => {
+            if (track.id !== trackId) {
+              return track;
+            }
+
+            const pads = track.pads.map((pad) => ({
+              ...pad,
+              steps: cloneSequencerSteps(pad.steps)
+            }));
+            const activePad = normalizePadIndex(track.activePad);
+            const activePadState = pads[activePad] ?? fallbackSequencerPadStateForTrack(track);
+            const steps = cloneSequencerSteps(activePadState.steps);
+            const stepState = steps[index] ?? createEmptySequencerStep();
+            steps[index] = {
+              ...stepState,
+              timingOffsetPercent: normalizedOffset
+            };
+            pads[activePad] = {
+              ...activePadState,
+              steps
+            };
+
+            return {
+              ...track,
+              pads,
+              steps
+            };
+          })
+        }
+      });
+    },
+
     copySequencerTrackStepSettings: (sourceTrackId, sourceIndex, targetTrackId, targetIndex) => {
       if (
         !Number.isFinite(sourceIndex) ||
@@ -840,6 +885,7 @@ export function createSequencerTrackStoreActions(
               ...targetStep,
               note: normalizeStepNote(sourceStep.note),
               chord: normalizeSequencerChord(sourceStep.chord),
+              timingOffsetPercent: normalizeTimingOffset(sourceStep.timingOffsetPercent),
               velocity: normalizeStepVelocity(sourceStep.velocity)
             };
             pads[activePad] = {
@@ -1573,6 +1619,44 @@ export function createSequencerTrackStoreActions(
               nextSteps[stepIndex] = {
                 ...current,
                 velocity: normalizedVelocity
+              };
+              return { ...row, steps: nextSteps };
+            });
+            nextPads[activePad] = { ...pad, rows: nextRows };
+            return {
+              ...track,
+              pads: nextPads
+            };
+          })
+        }
+      });
+    },
+
+    setDrummerSequencerCellTimingOffset: (trackId, rowId, stepIndex, timingOffsetPercent) => {
+      if (stepIndex < 0 || stepIndex >= STEP_CAPACITY) {
+        return;
+      }
+      const normalizedOffset = normalizeTimingOffset(timingOffsetPercent);
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          drummerTracks: sequencer.drummerTracks.map((track) => {
+            if (track.id !== trackId) {
+              return track;
+            }
+            const activePad = normalizePadIndex(track.activePad);
+            const nextPads = cloneDrummerSequencerPads(track.pads).map((pad) => alignDrummerPadRowsToTrackRows(pad, track.rows));
+            const pad = nextPads[activePad] ?? fallbackDrummerSequencerPadStateForTrack(track);
+            const nextRows = pad.rows.map((row) => {
+              if (row.rowId !== rowId) {
+                return row;
+              }
+              const nextSteps = cloneDrummerSequencerCells(row.steps);
+              const current = nextSteps[stepIndex] ?? createEmptyDrummerSequencerCell();
+              nextSteps[stepIndex] = {
+                ...current,
+                timingOffsetPercent: normalizedOffset
               };
               return { ...row, steps: nextSteps };
             });

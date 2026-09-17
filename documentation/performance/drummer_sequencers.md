@@ -94,6 +94,20 @@ While dragging vertically on a hit, the UI also shows a live numeric `velocity: 
   - `Enter` / `Space` toggles the hit
   - `Arrow Up` / `Arrow Down` adjusts velocity
 
+## Early and Late Notes
+
+Timing moves an individual attack by **−50% to +50% of one local step**, in 1% increments. Zero means **On grid**. The millisecond readout follows the current tempo, grid and beat ratio: at 120 BPM with Grid 4 and ratio 1:1, −20% is 25 ms early. Timing belongs to each pad and does not change its length, meter or playback speed.
+
+Moving a note also moves its release, preserving its length and any HOLD extension. A following attack can shorten the preceding note to avoid overlap. Chords move together. If neighboring attacks land at exactly the same instant, the later logical step wins.
+
+An early first step plays before the boundary when the same pad repeats. On a fresh start or a different-pad launch it plays at the boundary instead. Queued stops, pauses and finite arrangement ends suppress repeat anticipation. A command received after an anticipated attack has already sounded cannot undo that attack.
+
+Copying steps or pads preserves timing. Clear Steps resets it. Inactive drum cells retain their timing for reactivation. Old performances load on grid; Save/Load, browser restoration, native bundles and both CSD export modes preserve offsets. Timing edits during playback use the normal coalesced live-edit workflow.
+
+Drag a hit **left/right** to adjust timing, or **up/down** to adjust velocity. The first drag direction locks the property until release; clicking without dragging still toggles the hit. Changed hits show a signed percentage and a displaced indicator.
+
+Use **Left/Right** arrow keys for timing and **Up/Down** for velocity. Right-click a hit, or press **Shift+F10**, to open its Timing controls with a slider, numeric field and reset. The controls affect that hit in the displayed pad. Closing or collapsing the editor ends the gesture.
+
 ## Pattern Pads and Pad Looper
 
 Drummer sequencers support the same `P1..P8` pattern-pad workflow as melodic sequencers.

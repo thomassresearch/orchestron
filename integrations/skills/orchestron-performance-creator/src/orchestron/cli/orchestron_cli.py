@@ -21,7 +21,7 @@ from urllib import error, parse, request
 DEFAULT_API_URL = os.environ.get("ORCHESTRON_API_URL", "http://localhost:8000/api")
 SESSION_DIR = Path(".orchestron")
 SESSION_FILE = SESSION_DIR / "edit-session.json"
-CURRENT_CONFIG_VERSION = 15
+CURRENT_CONFIG_VERSION = 16
 DEFAULT_PAD_COUNT = 8
 MAX_STEPS_PER_PAD = 128
 PAD_LOOP_PAUSE_BEATS = {1, 2, 4, 8, 16}
@@ -3541,6 +3541,7 @@ def build_runtime_config(config: dict[str, Any]) -> dict[str, Any]:
                         {
                             "note": chord_notes(step.get("note"), str(step.get("chord", "none"))),
                             "hold": bool(step.get("hold", False)),
+                            "timing_offset_percent": step.get("timingOffsetPercent", 0),
                             "velocity": max(0, min(127, int(step.get("velocity", 100)))),
                         }
                     )
@@ -3595,7 +3596,7 @@ def build_runtime_config(config: dict[str, Any]) -> dict[str, Any]:
                 steps = []
                 for cell in (pad_row or {}).get("steps", []):
                     if isinstance(cell, dict) and cell.get("active"):
-                        steps.append({"note": int(row.get("key", 36)), "hold": False, "velocity": int(cell.get("velocity", 100))})
+                        steps.append({"note": int(row.get("key", 36)), "hold": False, "timing_offset_percent": cell.get("timingOffsetPercent", 0), "velocity": int(cell.get("velocity", 100))})
                     else:
                         steps.append({"note": None, "hold": False, "velocity": 1})
                 pads.append({"pad_index": pad_index, "length_beats": int(pad.get("lengthBeats", 4)), "steps": steps})

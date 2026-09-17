@@ -794,13 +794,13 @@ Those tests are the best executable reference for edge cases not obvious from th
 
 ### Performance controller channel selections
 
-Performance config version 13 adds `targetChannels` to manual MIDI controllers and controller sequencers. Frontend and CLI snapshot normalization accepts versions 1–15 and defaults missing selections to channels 1–16. App-state version 2 and native bundle-envelope version 1 are unchanged.
+Performance config version 13 adds `targetChannels` to manual MIDI controllers and controller sequencers. Frontend and CLI snapshot normalization accepts versions 1–16 and defaults missing selections to channels 1–16. App-state version 2 and native bundle-envelope version 1 are unchanged.
 
 Manual lanes in `PerformanceCsdExportRequest.midiControllers` accept `targetChannels`: a nonempty list of integer channels 1–16, defaulting to all 16 when omitted. Entries are deduplicated and sorted. Both CSD modes seed values per `(channel, controllerNumber)`; later enabled lanes override only matching pairs. Controller sequencers use the existing `target_channels` runtime field; omitted/empty direct runtime requests retain the existing session-channel fallback.
 
 ### Internal Master (performance config v14)
 
-`$master` is a reserved mixer endpoint with fixed `left`/`right` inputs and `$direct.left`/`$direct.right` outputs for strip/insert routing. The compiler emits its body internally. It is excluded from patch storage and the 64 user-instrument quota; mixer state allows one additional strip. Frontend and CLI write performance config v15 and accept v1–15; app-state and native envelope versions are unchanged.
+`$master` is a reserved mixer endpoint with fixed `left`/`right` inputs and `$direct.left`/`$direct.right` outputs for strip/insert routing. The compiler emits its body internally. It is excluded from patch storage and the 64 user-instrument quota; mixer state allows one additional strip. Frontend and CLI write performance config v16 and accept v1–16; app-state and native envelope versions are unchanged.
 
 Saved performance/app-state read and write boundaries and native import/export normalize designated legacy Masters through `master_migration`. SQLite startup invokes the same backed-up, idempotent cleanup exposed by `backend.tools.migrate_internal_master`. `POST /api/performances/repair-master` accepts `{config: ...}` and returns a converted config without saving it; it only replaces missing Masters with compatible stereo port mappings. See [migration and repair](documentation/performance/audio_mixer_and_routing.md#upgrading-existing-masters).
 
@@ -811,3 +811,7 @@ Saved performance/app-state read and write boundaries and native import/export n
 `arranger_active` in sequencer start/status is independent of generic `running`. `PUT /api/sessions/{id}/sequencer/arranger` changes arranger intent without stopping independently running sequencers. `POST /api/sessions/{id}/arpeggiators/{arp}/command` accepts `launch` (with `pad_index`), `cancel`, `arrangement`, and `clear`. Commands and validated/coalesced musical configurations apply at render boundaries; generation checks invalidate superseded updates.
 
 Status reports playing/queued pads, manual takeover, phrase cycle/step, held and sounding pitches, effective scale and preview. These are runtime data, not configuration. Native/app-state/performance migration is in `arpeggiator_migration.py`; frontend and standalone CLI normalize matching camelCase v15 data. See [arpeggiators](documentation/performance/arpeggiators.md) for musical behavior and migration defaults.
+
+### Per-note timing (performance config v16)
+
+Melodic steps and drummer cells save `timingOffsetPercent`; the session API accepts strict integer `timing_offset_percent` in −50..50, default 0. The shared note scheduler shifts attacks and owned releases in transport subunits. It retains HOLD length, clips against the next attack, and anticipates early first steps only on confirmed same-pad repeats. Fresh starts and different-pad launches clamp the first attack to the boundary. Later logical steps win equal-time collisions. Live edits preserve transport and do not replay consumed note occurrences. MIDI/SCORE offline capture shares the event path. Arpeggiator migration must not downgrade v16 snapshots.

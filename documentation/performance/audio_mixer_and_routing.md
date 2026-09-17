@@ -114,7 +114,7 @@ Session creation and validation accept `audio_graph` and `mixer`. `GET /api/sess
 
 `POST /api/sessions/preview` accepts a session plus inline draft patch definitions. It creates a transient runtime without saving drafts into the patch library. Normal stop/delete session operations clean it up.
 
-The performance CLI writes version 15 and preserves routing, mixer data, instance settings and existing insert chains. `--level` is deprecated and converts to audio gain. New CLI routes require exact destination inlet selection when names differ; `--inlet` makes that mapping explicit.
+The performance CLI writes version 16 and preserves routing, mixer data, instance settings and existing insert chains. `--level` is deprecated and converts to audio gain. New CLI routes require exact destination inlet selection when names differ; `--inlet` makes that mapping explicit.
 
 ### Author a mix with the performance CLI
 

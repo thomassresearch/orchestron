@@ -1,3 +1,4 @@
+import { normalizeTimingOffset } from "../lib/sequencer";
 import { normalizeControllerTargetChannels } from "../lib/midiControllerChannels";
 import { instrumentMetadata } from "../lib/instrumentTypes";
 import { mergedSequencerState } from "../lib/mergedSequencerState";
@@ -426,6 +427,7 @@ export function createEmptySequencerStep(): SequencerStepState {
     note: null,
     chord: "none",
     hold: false,
+    timingOffsetPercent: 0,
     velocity: 127
   };
 }
@@ -435,6 +437,7 @@ export function cloneSequencerStep(step: SequencerStepState): SequencerStepState
     note: step.note,
     chord: normalizeSequencerChord(step.chord),
     hold: step.hold,
+    timingOffsetPercent: normalizeTimingOffset(step.timingOffsetPercent),
     velocity: step.velocity
   };
 }
@@ -583,6 +586,7 @@ export function normalizeArpeggiatorPreset(raw: unknown, index: number): Arpeggi
 export function createEmptyDrummerSequencerCell(): DrummerSequencerCellState {
   return {
     active: false,
+    timingOffsetPercent: 0,
     velocity: 127
   };
 }
@@ -590,6 +594,7 @@ export function createEmptyDrummerSequencerCell(): DrummerSequencerCellState {
 export function cloneDrummerSequencerCell(cell: DrummerSequencerCellState): DrummerSequencerCellState {
   return {
     active: cell.active === true,
+    timingOffsetPercent: normalizeTimingOffset(cell.timingOffsetPercent),
     velocity: normalizeStepVelocity(cell.velocity)
   };
 }
@@ -616,17 +621,19 @@ export function normalizeDrummerSequencerCell(raw: unknown): DrummerSequencerCel
     if (typeof raw === "number" && Number.isFinite(raw)) {
       return {
         active: true,
+        timingOffsetPercent: 0,
         velocity: normalizeStepVelocity(raw)
       };
     }
     if (raw === true) {
-      return { active: true, velocity: 127 };
+      return { active: true, timingOffsetPercent: 0, velocity: 127 };
     }
     return createEmptyDrummerSequencerCell();
   }
   const cell = raw as Record<string, unknown>;
   return {
     active: cell.active === true || cell.on === true || cell.enabled === true,
+    timingOffsetPercent: normalizeTimingOffset(cell.timingOffsetPercent ?? cell.timing_offset_percent),
     velocity: normalizeStepVelocity(cell.velocity ?? cell.vel)
   };
 }
@@ -737,6 +744,7 @@ export function normalizeSequencerStep(value: unknown): SequencerStepState {
       note: normalizeStepNote(step.note ?? step.notes ?? step.value),
       chord: normalizeSequencerChord(step.chord),
       hold: normalizeStepHold(step.hold),
+      timingOffsetPercent: normalizeTimingOffset(step.timingOffsetPercent ?? step.timing_offset_percent),
       velocity: normalizeStepVelocity(step.velocity ?? step.vel)
     };
   }
@@ -745,6 +753,7 @@ export function normalizeSequencerStep(value: unknown): SequencerStepState {
     note: normalizeStepNote(value),
     chord: "none",
     hold: false,
+    timingOffsetPercent: 0,
     velocity: 127
   };
 }
@@ -2888,7 +2897,7 @@ export function buildSequencerConfigSnapshot(
     timing
   );
   return {
-    version: 15,
+    version: 16,
     audioGraph: structuredClone(audioGraph),
     mixer: structuredClone(mixer),
     instruments: instruments
@@ -3099,7 +3108,8 @@ export function parseSequencerConfigSnapshot(
     payload.version !== 12 &&
     payload.version !== 13 &&
     payload.version !== 14 &&
-    payload.version !== 15
+    payload.version !== 15 &&
+    payload.version !== 16
   ) {
     throw new Error("Unsupported sequencer config version.");
   }

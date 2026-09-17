@@ -54,5 +54,5 @@ def migrate_arpeggiators(config: dict) -> dict:
         if isinstance(preset, dict):
             preset["settings"] = camel_keys(ArpeggiatorPadConfig.model_validate(snake_keys(preset.get("settings", {}))).model_dump(mode="json"))
     if isinstance(result.get("version"), int) and result["version"] >= 11:
-        result["version"] = 15
+        result["version"] = max(15, result["version"])
     return result

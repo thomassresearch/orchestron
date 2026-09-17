@@ -69,7 +69,7 @@ Connect arp variants to pad-loop functions so arpeggiation helps the arrangement
 
 ## Version 15 pattern data
 
-The CLI writes v15 and accepts v1–15. `edit arpeggiators add` creates a repeating P1 arrangement in Arranger mode with Hold Off and Continue. Input/target channels still route to an existing MIDI instrument. Old flat settings migrate to P1 during load; other pads use defaults. User presets migrate to pad settings.
+The CLI writes v16 and accepts v1–16. `edit arpeggiators add` creates a repeating P1 arrangement in Arranger mode with Hold Off and Continue. Input/target channels still route to an existing MIDI instrument. Old flat settings migrate to P1 during load; other pads use defaults. User presets migrate to pad settings.
 
 Each `pads[0..7]` entry stores `lengthBeats` (1–8 or 16), `steps` (1–32), rate, pattern, octaves, `octaveTraversal`, expression, transpose, `scaleMode`, rotation, `advanceRests`, `randomSeed` and `randomMode`. Step keys are `kind` (`next`, `position`, `rest`, `tie`, `chord`), `notePosition` (1–128, wrapping), `velocity` (0–200 percent), nullable `gateRatio` (0.05–2), `probability` (0–1) and `ratchets` (1–4). The runtime builder converts these to snake_case and compiles the same Pad Looper groups/pauses as other tracks.
 

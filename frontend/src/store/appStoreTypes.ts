@@ -162,6 +162,7 @@ export interface AppStore {
   setSequencerTrackStepChord: (trackId: string, index: number, chord: SequencerChord) => void;
   setSequencerTrackStepHold: (trackId: string, index: number, hold: boolean) => void;
   setSequencerTrackStepVelocity: (trackId: string, index: number, velocity: number) => void;
+  setSequencerTrackStepTimingOffset: (trackId: string, index: number, timingOffsetPercent: number) => void;
   copySequencerTrackStepSettings: (
     sourceTrackId: string,
     sourceIndex: number,
@@ -208,6 +209,12 @@ export interface AppStore {
     rowId: string,
     stepIndex: number,
     velocity: number
+  ) => void;
+  setDrummerSequencerCellTimingOffset: (
+    trackId: string,
+    rowId: string,
+    stepIndex: number,
+    timingOffsetPercent: number
   ) => void;
   clearDrummerSequencerTrackSteps: (trackId: string) => void;
   copyDrummerSequencerPad: (trackId: string, sourcePadIndex: number, targetPadIndex: number) => void;

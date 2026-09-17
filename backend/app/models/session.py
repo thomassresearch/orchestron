@@ -337,6 +337,7 @@ SequencerStepNotes = int | list[int] | None
 
 
 class SessionSequencerStepConfig(BaseModel):
+    timing_offset_percent: int = Field(default=0, ge=-50, le=50, strict=True)
     note: SequencerStepNotes = None
     hold: bool = False
     velocity: int | None = Field(default=None, ge=0, le=127)

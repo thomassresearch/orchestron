@@ -1131,3 +1131,12 @@ export function findMatchingMidiOutput(access: MIDIAccess, targetName: string): 
     null
   );
 }
+
+/** A musical offset, independent of BPM and playback state. */
+export function normalizeTimingOffset(value: unknown): number {
+  return typeof value === "number" && Number.isFinite(value) ? Math.max(-50, Math.min(50, Math.round(value))) : 0;
+}
+
+export function timingOffsetMilliseconds(percent: number, timing: SequencerTimingConfig): number {
+  return percent / 100 * 60000 / timing.tempoBPM / timing.stepsPerBeat * timing.beatRateDenominator / timing.beatRateNumerator;
+}

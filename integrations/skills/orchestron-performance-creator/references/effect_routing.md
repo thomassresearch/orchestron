@@ -71,7 +71,7 @@ A shared return is a continuous rack instance with its own strip and potentially
 
 This CLI preserves existing insert routes, ownership, and settings through edits, commit/import/export, and runtime rebuilds. It does not create/reorder/remove insert chains as a unit; use Orchestron's mixer for those operations. Do not treat arbitrary insert connections as ordinary main routes.
 
-The CLI reads configurations v1–15 and writes v15 (distinct from native bundle envelope v1). Legacy Level values migrate to audio dB, never MIDI velocity. Existing custom/legacy output processors remain supported; do not delete a patch simply because its name contains “speaker” or “Master”.
+The CLI reads configurations v1–16 and writes v16 (distinct from native bundle envelope v1). Legacy Level values migrate to audio dB, never MIDI velocity. Existing custom/legacy output processors remain supported; do not delete a patch simply because its name contains “speaker” or “Master”.
 
 ## Validate and run
 

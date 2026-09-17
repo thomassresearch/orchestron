@@ -214,6 +214,7 @@ export function buildDrummerRowTrackConfigs(
           }
           return {
             note: row.key,
+            timing_offset_percent: cell.timingOffsetPercent ?? 0,
             hold: false,
             velocity: normalizeMidiVelocity(cell.velocity)
           };

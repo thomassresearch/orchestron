@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from dataclasses import replace
+from backend.app.services.sequencer_note_timing import note_positions, terminating_steps
+
 from functools import lru_cache
 
 from backend.app.models.session import (
@@ -154,6 +157,7 @@ def _normalize_step(
         return SequencerStepRuntime(
             notes=_normalize_step_notes(value.note),
             hold=bool(value.hold),
+            timing_offset_percent=value.timing_offset_percent,
             velocity=clamp_midi_velocity(
                 value.velocity if value.velocity is not None else default_velocity
             ),
@@ -326,10 +330,17 @@ def compile_sequencer_runtime_config(
                 mode=pad.mode or track_request.mode,
             )
 
+        for index, pad in pads.items():
+            positions = note_positions(pad.steps, track_timing.transport_subunits_per_local_step)
+            pads[index] = replace(pad, note_offsets=tuple(at for at, _ in positions),
+                                  note_step_indices=tuple(step for _, step in positions),
+                                  terminating_step_indices=terminating_steps(pad.steps))
+
         active_pad = track_request.active_pad if track_request.active_pad in pads else 0
         queued_pad = track_request.queued_pad if track_request.queued_pad in pads else None
         tracks[track_request.track_id] = SequencerTrackRuntime(
             track_id=track_request.track_id,
+            has_timing_offsets=any(step.timing_offset_percent for pad in pads.values() for step in pad.steps),
             midi_channel=track_request.midi_channel,
             timing=track_timing,
             scale_root=track_request.scale_root,

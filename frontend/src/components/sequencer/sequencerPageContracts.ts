@@ -91,6 +91,7 @@ export interface SequencerPageMelodicTrackActions {
   onSequencerTrackStepChordChange: (trackId: string, index: number, chord: SequencerChord) => void;
   onSequencerTrackStepHoldChange: (trackId: string, index: number, hold: boolean) => void;
   onSequencerTrackStepVelocityChange: (trackId: string, index: number, velocity: number) => void;
+  onSequencerTrackStepTimingOffsetChange?: (trackId: string, index: number, timingOffsetPercent: number) => void;
   onSequencerTrackStepCopy: (
     sourceTrackId: string,
     sourceIndex: number,
@@ -126,6 +127,7 @@ export interface SequencerPageDrummerTrackActions {
   onDrummerSequencerRowKeyPreview?: (key: number, channel: number) => void;
   onDrummerSequencerCellToggle: (trackId: string, rowId: string, stepIndex: number, active?: boolean) => void;
   onDrummerSequencerCellVelocityChange: (trackId: string, rowId: string, stepIndex: number, velocity: number) => void;
+  onDrummerSequencerCellTimingOffsetChange?: (trackId: string, rowId: string, stepIndex: number, timingOffsetPercent: number) => void;
   onDrummerSequencerTrackClearSteps: (trackId: string) => void;
   onDrummerSequencerPadPress: (trackId: string, padIndex: number) => void;
   onDrummerSequencerPadCopy: (trackId: string, sourcePadIndex: number, targetPadIndex: number) => void;
