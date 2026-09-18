@@ -76,6 +76,10 @@ Orchestron separates:
 
 This supports guided note entry and better readability in the sequencer step editor and piano roll highlighting.
 
+## Pattern Workspace
+
+The upper-right [pattern workspace](pattern_pads_and_pad_looper.md) assembles pads and reusable phrases with drag-and-drop. Cmd/Ctrl-click selects items to group; right-click splits groups. Apply commits shared phrase edits explicitly. Play loops the whole workspace; hold a speaker for 250 ms to preview an individual pad or phrase until release. Only pads with a note above zero velocity are green; rests, holds without notes and zero-velocity patterns stay dark. Selection outlines remain separate.
+
 ## Step Editor (Per-Step Note Programming)
 
 Each step cell supports:

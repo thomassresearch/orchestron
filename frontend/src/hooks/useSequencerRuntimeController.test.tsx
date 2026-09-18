@@ -181,3 +181,67 @@ it("keeps the stopped song cursor through preview status and audible clock updat
   expect(startSequencer).toHaveBeenCalledWith("session", expect.objectContaining({ positionStep: 8, arrangerActive: true }));
   expect(useAppStore.getState().sequencerRuntime.arrangerActive).toBe(true);
 });
+
+it("compiles temporary workspace items without changing authored song order", async () => {
+  const { result } = setup(false);
+  const track = useAppStore.getState().sequencer.tracks[0];
+  const original = structuredClone(track.padLoopPattern);
+  await act(() => result.current.auditionDevice(track.id, { action: "workspace_start", gestureId: "workspace", items: [{ type: "pad", padIndex: 1 }, { type: "pause", lengthBeats: 2 }] }));
+  expect(audition).toHaveBeenCalledWith("session", expect.objectContaining({ action: "workspace_start", sequence: [1, -2], track_ids: [track.id] }));
+  expect(useAppStore.getState().sequencer.tracks[0].padLoopPattern).toEqual(original);
+  await act(() => result.current.auditionDevice(track.id, { action: "workspace_end", gestureId: "workspace" }));
+  expect(audition).toHaveBeenLastCalledWith("session", expect.objectContaining({ action: "workspace_end", revision: 2 }));
+});
+
+it("cancels workspace preparation without allowing a late launch", async () => {
+  let prepared!: (value: SessionSequencerStatus) => void;
+  vi.mocked(api.configureSessionSequencer).mockImplementationOnce(() => new Promise(resolve => { prepared = resolve; }));
+  const { result } = setup(false);
+  const id = useAppStore.getState().sequencer.tracks[0].id;
+  let start!: Promise<void>;
+  act(() => { start = result.current.auditionDevice(id, { action: "workspace_start", gestureId: "workspace", items: [{ type: "pad", padIndex: 0 }] }); });
+  await act(() => result.current.auditionDevice(id, { action: "workspace_end", gestureId: "workspace" }));
+  await act(async () => { prepared(status(0)); await start; });
+  expect(audition).toHaveBeenCalledExactlyOnceWith("session", expect.objectContaining({ action: "workspace_end", revision: 2 }));
+});
+
+it("keeps speaker commands independent from workspace updates and ends all drummer rows together", async () => {
+  useAppStore.getState().addDrummerSequencerTrack();
+  const { result } = setup(false);
+  const track = useAppStore.getState().sequencer.drummerTracks[0];
+  const start = { action: "workspace_start" as const, gestureId: "workspace", items: [{ type: "pad" as const, padIndex: 0 }] };
+  await act(() => result.current.auditionDevice(track.id, start));
+  await act(() => result.current.auditionDevice(track.id, { action: "preview_start", gestureId: "speaker", item: { type: "pad", padIndex: 1 } }));
+  await act(() => result.current.auditionDevice(track.id, { ...start, items: [{ type: "pad", padIndex: 2 }] }));
+  await act(() => result.current.auditionDevice(track.id, { action: "preview_end", gestureId: "speaker" }));
+  expect(audition.mock.calls.map(call => call[1].action)).toEqual(["workspace_start", "preview_start", "workspace_start", "preview_end"]);
+  expect(audition.mock.calls.every(call => call[1].track_ids.length === track.rows.length)).toBe(true);
+  expect(audition.mock.calls.map(call => call[1].revision)).toEqual([1, 2, 2, 3]);
+});
+
+it("retains a playing workspace after failed preparation and can still stop it", async () => {
+  const { result } = setup(false);
+  const id = useAppStore.getState().sequencer.tracks[0].id;
+  const command = { action: "workspace_start" as const, gestureId: "workspace", items: [{ type: "pad" as const, padIndex: 0 }] };
+  await act(() => result.current.auditionDevice(id, command));
+  vi.mocked(api.configureSessionSequencer).mockRejectedValueOnce(new Error("Preparation failed"));
+  await act(async () => { await expect(result.current.auditionDevice(id, { ...command, items: [{ type: "pad", padIndex: 1 }] })).rejects.toThrow("Preparation failed"); });
+  expect(audition).toHaveBeenCalledTimes(1);
+  expect(setError).toHaveBeenLastCalledWith("Preparation failed");
+  await act(() => result.current.auditionDevice(id, { action: "workspace_end", gestureId: "workspace" }));
+  expect(audition).toHaveBeenLastCalledWith("session", expect.objectContaining({ action: "workspace_end", revision: 3 }));
+});
+
+it.each(["transport", "performance"])("cancels workspace preparation on %s changes without late restoration", async reason => {
+  let prepared!: (value: SessionSequencerStatus) => void;
+  vi.mocked(api.configureSessionSequencer).mockImplementationOnce(() => new Promise(resolve => { prepared = resolve; }));
+  const { result } = setup(true);
+  const id = useAppStore.getState().sequencer.tracks[0].id;
+  let start!: Promise<void>;
+  act(() => { start = result.current.auditionDevice(id, { action: "workspace_start", gestureId: "workspace", items: [{ type: "pad", padIndex: 0 }] }); });
+  if (reason === "transport") await act(() => result.current.stopSequencerTransport(false));
+  else act(() => { useAppStore.setState(state => ({ performanceWorkspaceGeneration: state.performanceWorkspaceGeneration + 1 })); });
+  await act(async () => { prepared(status(0)); await start; });
+  await act(() => result.current.auditionDevice(id, { action: "workspace_end", gestureId: "workspace" }));
+  expect(audition).not.toHaveBeenCalled();
+});

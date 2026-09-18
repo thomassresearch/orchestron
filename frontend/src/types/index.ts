@@ -1234,13 +1234,13 @@ export interface SessionEvent {
 }
 
 export interface SessionAuditionRequest {
-  action: "start" | "cancel" | "stop" | "return" | "preview_start" | "preview_end";
+  action: "start" | "cancel" | "stop" | "return" | "preview_start" | "preview_end" | "workspace_start" | "workspace_end";
   gesture_id?: string;
   revision?: number;
   track_ids?: string[];
   arpeggiator_id?: string;
   sequence?: number[];
 }
-export type PerformanceAuditionStatus = Record<string, { active: boolean; queued: SessionAuditionRequest["action"] | null; preview_gesture?: string; preview_revision?: number; preview_active?: boolean }>;
+export type PerformanceAuditionStatus = Record<string, { active: boolean; queued: SessionAuditionRequest["action"] | null; preview_gesture?: string; preview_revision?: number; preview_active?: boolean; workspace_gesture?: string; workspace_active?: boolean; workspace_queued?: boolean }>;
 
 export interface SessionLaneOutputRequest { revision: number; lanes: Record<string, { mute: boolean; solo: boolean }> }

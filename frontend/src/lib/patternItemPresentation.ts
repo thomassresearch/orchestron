@@ -8,10 +8,10 @@ export const PATTERN_ITEM_COLORS: Record<PadLoopPatternItem["type"], string> = {
   pause: "border-slate-600 bg-slate-900 text-slate-200"
 };
 
-export function patternItemButtonClass(type: PadLoopPatternItem["type"]): string {
-  return `rounded border px-2 py-1 text-xs hover:border-accent disabled:opacity-40 aria-pressed:ring-2 aria-pressed:ring-cyan-400 ${PATTERN_ITEM_COLORS[type]}`;
+export function patternItemButtonClass(type: PadLoopPatternItem["type"], hasContent = true): string {
+  return `rounded border px-2 py-1 text-xs hover:border-accent disabled:opacity-40 aria-pressed:ring-2 aria-pressed:ring-cyan-400 ${PATTERN_ITEM_COLORS[type === "pad" && !hasContent ? "pause" : type]}`;
 }
 
-export function patternPadClass(editing: boolean, queued: boolean): string {
-  return `${PATTERN_ITEM_COLORS.pad} hover:border-emerald-400 ${editing ? "ring-2 ring-cyan-400" : ""} ${queued ? "outline outline-1 outline-offset-2 outline-amber-400" : ""}`;
+export function patternPadClass(editing: boolean, queued: boolean, hasContent = true): string {
+  return `${PATTERN_ITEM_COLORS[hasContent ? "pad" : "pause"]} hover:border-emerald-400 ${editing ? "ring-2 ring-cyan-400" : ""} ${queued ? "outline outline-1 outline-offset-2 outline-amber-400" : ""}`;
 }

@@ -4,7 +4,7 @@
 
 Each sequencer has eight pattern slots, #1–#8. Click a pad to select it for editing. Playback and queued launches never change this editing selection. The Playing and Queued indicators show what is sounding separately.
 
-Pads are labelled **1–8** in arranger lanes and palettes, and **#1–#8** in sequencers and phrase editors. Pads are green, groups are red, and supergroups are violet throughout the sequencers, phrase libraries, palettes and arranger lanes. Rests keep their dark styling; the number in **Rest 1/2/4/8/16** is its duration in local beats, while a pad number identifies a reusable slot. Selection outlines and Playing/Queued indicators remain separate from these type colours.
+Pads are labelled **1–8** in arranger lanes and palettes, and **#1–#8** in sequencers and phrase editors. In melodic and drummer sequencers, pads are green only when their playable steps contain at least one note or active hit with velocity above zero; empty, hold-only and zero-velocity pads stay dark. Selection and queued outlines still appear on empty pads. Groups are red and supergroups violet. Arranger palettes and controller/arpeggiator workflows retain their existing availability and colour rules. Rests keep their dark styling; the number in **Rest 1/2/4/8/16** is its duration in local beats, while a pad number identifies a reusable slot. Selection outlines and Playing/Queued indicators remain separate from these type colours.
 
 ## Pad contents
 
@@ -14,22 +14,32 @@ Pad lengths are 1–8 local beats for melodic and drummer devices, and 1–8 or 
 
 Drag one pad onto another to copy it explicitly. Melodic pad edge buttons transpose by a scale degree on a short press, or change the diatonic key on a long press. Drummer and controller pads do not use these transpose controls.
 
-## Reusable groups and supergroups
+## Pattern workspace
 
-Click the triangle beside **Patterns and phrases** to expand or collapse the library. It starts collapsed, retains the selected definition when closed, and remembers its disclosure state in the sequencer. The library has explicit New group and New supergroup actions. Groups use letter IDs and contain pads/rests. Supergroups use Roman numeral IDs and contain pads/rests/groups. Song order is edited only in the [arranger](multitrack_arranger.md), where phrases are edited by ungrouping, rearranging, and regrouping. Open in arranger focuses the selected definition in its lane palette.
+Melodic and drummer sequencers show an always-visible **Pattern workspace** in the upper-right header area. On narrow screens it stacks below the musical controls. The eight pads and step grid remain below the header.
 
-Choose a definition to edit its contents. Add items, select them, drag to reorder, or delete to close up the phrase. Deleting inside a definition changes the phrase itself; it does not leave an absolute-time gap. Definition edits affect every occurrence. Duration changes shift following song material, as stated in the editor.
+Drag pads or saved groups/supergroups into **Free workspace** to assemble a phrase. A drop inserts at the visible marker; dragging an existing item or selection moves it. Dragging one of the eight pads onto another still copies that pad. Workspace references stay within their owning sequencer.
 
-Unused definitions remain in the library through save/load and import/export. Empty definitions are valid drafts but cannot be placed or auditioned. A referenced definition cannot be emptied: remove its occurrences and references first. **Delete definition** is disabled while the arrangement or another definition uses it; the library lists those uses. Removing or ungrouping a song occurrence leaves the definition intact.
+Click an item to select it. Cmd/Ctrl-click toggles extra items; Shift-click selects a range. **Group** gathers at least two selected pads/rests in left-to-right order, including separated selections, and places the new group at the first selected position. **Supergroup** also accepts groups. Unselected items retain their relative order. These actions create reusable definitions immediately; groups use letter IDs and supergroups Roman numeral IDs. Groups cannot contain groups; supergroups cannot contain supergroups.
 
-A pattern container and its expanded sequence may contain at most 256 tokens. Over-limit edits fail as a whole rather than dropping musical content. Pause lengths remain 1, 2, 4, 8 and 16 beats; longer visible rests combine these existing tokens.
+Right-click an item, or use Shift+F10, for **Edit**, **Group**, **Supergroup**, **Ungroup**, and **Remove**. Ungroup expands one level locally and keeps the saved definition. Delete/Backspace removes selected workspace items and closes the gap. Use **Add rest…** for rests of 1, 2, 4, 8 or 16 local beats. Long assemblies scroll horizontally; the saved phrase palette has a bounded height.
+
+Choose a saved phrase or double-click a workspace group/supergroup to edit its draft. **Apply** updates every saved use; **Save as new** creates an independent definition. **Discard changes** restores its saved contents. The editor lists arrangement/phrase uses and warns that changing duration shifts later song material. Workspace construction never edits song order; place saved phrases in the [arranger](multitrack_arranger.md). **Open in arranger** focuses the selected definition there.
+
+Each definition has a separate draft, and the free workspace is retained when switching between definitions. Drafts, selection and scroll survive panel collapse and view switches. New/Load/Import and browser reload clear temporary drafts. Loose workspace items and unapplied edits are excluded from save, autosave and export; Group/Supergroup creation and Apply save through the existing performance workflow.
+
+**Delete definition** is in the saved phrase's context menu. It is disabled while the arrangement, another definition, or a workspace draft uses the definition. An unapplied draft for that definition also prevents deletion. Empty definitions remain valid drafts but cannot be placed or auditioned; a referenced definition cannot be applied empty. Each container and its expanded sequence is limited to 256 tokens. Invalid edits fail as a whole and leave the current draft intact.
+
+Controllers and arpeggiators keep their collapsible phrase editor and immediate definition edits.
 
 ## Playback source and audition
 
 **Playback source: Arrangement** follows the song timeline. Its Stop/Repeat-at-end option lives in the arranger lane. **Manual pads** enables a separate Launch pad action for jamming. Selection alone never starts sound.
 
-In the sequencer’s Arrangement mode, use **Audition** for a pad or phrase. It temporarily replaces only that track at the next boundary and repeats independently of its saved repeat setting. With transport stopped it starts only this track, using the normal instrument startup flow. **Return to arrangement** restores the authored song at the current position on the next boundary; **Stop audition** stops the track. See the [arranger transport contract](multitrack_arranger.md#playback-and-audition).
+The play button beside the workspace loops the **entire displayed assembly**, regardless of selection. Click it again to restore the track's previous arrangement, manual pad or stopped state. It works before saving a phrase. Workspace edits enter at the next cycle boundary after the normal 80 ms coalescing delay. Failed preparation retains the previous sound and the edited draft; another edit or explicit restart retries.
 
-Arpeggiators in independent Live mode keep their existing cycle/bar launch quantization. Their Arranger mode uses the shared definition library and temporary audition.
+Every pad, group and supergroup has a separate speaker button. Hold for **250 ms** to begin a momentary preview; shorter clicks do nothing. Preview repeats until release. With the arranger running it enters at the next lane cycle boundary; with the arranger stopped it starts at an audio block without moving the song cursor. Space/Enter supports the same hold/release gesture. The speaker never selects, transposes or drags its item.
 
-The arranger provides separate momentary speaker previews: hold for 250 ms, release to restore previous playback immediately at the current song position. Its context menus also set saved, per-definition colours. These changes leave sequencer controls and default colours unchanged.
+A speaker preview temporarily overrides workspace playback, then returns to that workspace at the current clock position. Stopping the workspace restores the original track state. Releasing before preparation or a queued boundary cancels the preview. Pointer cancellation, focus loss and leaving the view end speaker previews; collapse/navigation also end workspace playback. Arranger Play/Stop cancels both layers, and late replies/releases cannot restart them. Other tracks continue and lane Mute/Solo stays effective.
+
+Controller sequencers and arranger-mode arpeggiators retain **Audition**, **Return to arrangement**, **Stop audition** and **Cancel launch**. Independent Live arpeggiators retain their cycle/bar launch quantization. The arranger's speaker previews and saved per-definition colours remain available.

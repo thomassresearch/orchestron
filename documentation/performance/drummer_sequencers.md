@@ -42,7 +42,7 @@ Each drummer sequencer card provides:
 - `Grid` (`2`, `4`, or `8`, steps per beat)
 - `Beat Ratio` (`1:1`, `2:1`, `3:2`, `4:3`, `3:4`, `5:4`, `4:5`, `7:4`)
 - `Beats` (`1..8`, with the current meter numerator exposed directly)
-- Playback source and reusable phrase library (same as melodic sequencers)
+- Playback source and upper-right pattern workspace (same as melodic sequencers)
 
 ## Drum Rows (`Keys`)
 
@@ -120,7 +120,7 @@ Drummer pad length is stored in beats, while meter, grid, and beat ratio are con
 
 This keeps drummer pads beat-based while still allowing one-bar patterns in odd meters such as `3/4`, `5/4`, or `7/8` by matching the pad beat count to the meter, while `Beat Ratio` changes how fast the row pattern cycles against the shared transport without changing the stored beat length.
 
-Edit pad contents and reusable groups/supergroups here. Place them only in the multitrack arranger. Playback source chooses Arrangement or Manual pads; repetition is set in the arranger lane. Click selects a pad; Launch pad or Audition starts it explicitly.
+Edit pad contents here and assemble reusable groups/supergroups in the upper-right [pattern workspace](pattern_pads_and_pad_looper.md). Drop and reorder pads, Cmd/Ctrl-click to group selections, and right-click to ungroup. Apply commits edits to existing phrases; loose workspace items stay temporary. Play loops the assembly, and holding a speaker for 250 ms previews one item until release. Place saved phrases in the multitrack arranger. Playback source chooses Arrangement or Manual pads; repetition is set in the arranger lane. Click selects a pad; Launch pad starts it explicitly.
 
 Differences vs melodic sequencer pads:
 

@@ -2,7 +2,7 @@
 
 **Navigation:** [Up](performance.md) | [Prev](pattern_pads_and_pad_looper.md) | [Next](controller_sequencers.md)
 
-The arranger is the only editor of song order. Each lane places references to its eight pads, reusable groups and supergroups, and rests. Sequencers edit pad contents and retain their existing phrase editor. In the arranger, edit phrases by ungrouping, rearranging, and regrouping timeline material. Editing a shared definition changes every occurrence; changing its duration shifts following material on that lane.
+The arranger is the only editor of song order. Each lane places references to its eight pads, reusable groups and supergroups, and rests. Sequencers edit pad contents; melodic and drummer devices assemble reusable phrases in their upper-right pattern workspace. In the arranger, edit phrases by ungrouping, rearranging, and regrouping timeline material. Editing a shared definition changes every occurrence; changing its duration shifts following material on that lane.
 
 Pads are labelled **1–8** in arranger lanes and palettes, and **#1–#8** in sequencers and phrase editors. Pads are green, groups are red, and supergroups are violet throughout the sequencers, phrase libraries, palettes and arranger lanes. Rests keep their dark styling; the number in **Rest 1/2/4/8/16** is its duration in local beats, while a pad number identifies a reusable slot. Right-click a musical item or palette entry to Set colour or Reset colour. Custom colours apply to every occurrence of that definition within its lane and are saved with the performance. The picker offers swatches and a custom colour; text contrast adjusts automatically. Sequencer colours remain the defaults for now. Selection outlines and Playing/Queued indicators remain separate from these colours.
 
@@ -10,7 +10,7 @@ Pads are labelled **1–8** in arranger lanes and palettes, and **#1–#8** in s
 
 Each lane starts collapsed. Click the triangle or track title (Enter/Space when focused) to open or close its editing tools. Click anywhere in an occurrence box to select it and open the lane; the triangle can close it again while retaining the editing context. Clicking empty timeline space clears occurrence highlights and chooses the insertion position without changing panel expansion. Double-click a pad or choose Edit pattern to open its sequencer editor. Open in arranger opens the lane and focuses the definition in its palette.
 
-The expanded lane shows **Position (master beats)** followed by the wrapping palette. There is no separate Patterns and phrases panel in the arranger; the sequencer retains its own library. **Playback settings** contains Playback source and, for Arrangement lanes, At end, and starts collapsed. Disclosure choices survive view switches; New/Load/Import resets them. Closing panels preserves drafts, selections and scroll, cancels active gestures and momentary previews, and leaves normal playback running.
+The expanded lane shows **Position (master beats)** followed by the wrapping palette. There is no separate Patterns and phrases panel in the arranger; melodic and drummer sequencers provide their own pattern workspace. **Playback settings** contains Playback source and, for Arrangement lanes, At end, and starts collapsed. Disclosure choices survive view switches; New/Load/Import resets them. Closing panels preserves drafts, selections and scroll, cancels active gestures and momentary previews, and leaves normal playback running.
 
 ## Temporary lane Mute and Solo
 
@@ -61,7 +61,7 @@ Hold Space/Enter on a focused speaker for the same behaviour. Releasing outside 
 
 With the arranger stopped, preview starts only that lane through the normal instrument startup flow. The song cursor stays fixed and the Stop button stays highlighted. Play resumes the song from that cursor. During song playback, Play is highlighted instead. Seeks and loop wraps restart held previews at their first token on the shared clock. During song playback, song range/end remain authoritative. Arranger arpeggiators support previews; independent Live arpeggiators remain unchanged.
 
-The sequencer's existing **Audition**, **Return to arrangement**, **Stop audition**, and **Cancel launch** controls remain unchanged in this pass. Those launches/returns still follow pad/rest boundaries.
+Melodic and drummer sequencers use a [pattern workspace](pattern_pads_and_pad_looper.md) with a Play/Stop toggle and the same momentary speakers. A speaker held over workspace playback restores the workspace on release; stopping the workspace restores the prior lane state. Controller sequencers and arpeggiators retain their existing Audition/Return/Stop controls.
 
 ## Saved format
 

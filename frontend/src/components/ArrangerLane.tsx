@@ -12,6 +12,8 @@ import { EditorDetails, useClearArrangementSelection, usePerformanceEditorState 
 import { LaneOutputButtons } from "./sequencer/LaneOutputButtons";
 import { ArrangerSpeaker } from "./sequencer/ArrangerSpeaker";
 import { ArrangerContextMenu, type ArrangerMenuTarget } from "./sequencer/ArrangerContextMenu";
+import { workspaceUsesDefinition, type PatternWorkspaceDraft } from "../lib/patternWorkspace";
+import { patternWorkspaceCopy } from "./sequencer/patternWorkspaceCopy";
 
 const button = "rounded border border-slate-600 bg-slate-900 px-2 py-1 text-xs text-slate-200 hover:border-accent disabled:opacity-40";
 const menuButton = "block w-full rounded px-2 py-1.5 text-left hover:bg-slate-700 focus:bg-slate-700 disabled:opacity-40";
@@ -26,6 +28,9 @@ export function ArrangerLane({ lane, props, selected, select, commit, zoom, widt
 }) {
   const c = arrangementCopy(props.guiLanguage);
   const owner = `device:${lane.id}` as const;
+  const [workspaceDrafts] = usePerformanceEditorState<Record<string, PatternWorkspaceDraft>>(owner, "workspaceDrafts", {});
+  const deletionUses = (ref: DefinitionRef) => [...definitionUses(lane.pattern, ref),
+    ...(workspaceUsesDefinition(lane.pattern, workspaceDrafts, ref) ? [patternWorkspaceCopy(props.guiLanguage).draftUse] : [])];
   const [selection, setSelection] = usePerformanceEditorState<number[]>(owner, "arrangerSelection", []);
   const [position, setPosition] = usePerformanceEditorState(owner, "arrangerPosition", 0);
   const [expanded, setExpanded] = usePerformanceEditorState(owner, "arrangerExpanded", false);
@@ -226,8 +231,8 @@ export function ArrangerLane({ lane, props, selected, select, commit, zoom, widt
         {musicalMenu && <><button role="menuitem" className={menuButton} onClick={() => { setColor(lane.pattern.definitionColors?.[definitionColorKey(menu.item!)] ?? swatches[0]); setPanel("color"); }}>{c.setColor}</button>
           <button role="menuitem" className={menuButton} disabled={!lane.pattern.definitionColors?.[definitionColorKey(menu.item!)]} onClick={() => attempt(() => setDefinitionColor(lane.pattern, menu.item!), indexes)}>{c.resetColor}</button></>}
         {menu.palette && menuRef && <>
-          <button role="menuitem" className={menuButton} disabled={definitionUses(lane.pattern, menuRef).length > 0} onClick={() => attempt(() => deleteDefinition(lane.pattern, menuRef))}>{c.removeDefinition}</button>
-          {definitionUses(lane.pattern, menuRef).length > 0 && <p className="px-2 py-1 text-slate-400">{c.used}: {definitionUses(lane.pattern, menuRef).join(", ")}</p>}
+          <button role="menuitem" className={menuButton} disabled={deletionUses(menuRef).length > 0} onClick={() => attempt(() => deleteDefinition(lane.pattern, menuRef))}>{c.removeDefinition}</button>
+          {deletionUses(menuRef).length > 0 && <p className="px-2 py-1 text-slate-400">{c.used}: {deletionUses(menuRef).join(", ")}</p>}
         </>}
       </>}
       {panel === "rest" && <div className="space-y-2">

@@ -790,3 +790,153 @@ def test_cancel_preview_before_boundary_leaves_notes_and_clock_untouched():
     assert lead.phase_offset_subunit == phase and lead.active_pad == 0
     assert runtime._absolute_subunit == 3360 and runtime.status().arranger_active
     assert not runtime.status().auditions
+
+
+def _workspace_command(action="workspace_start", revision=1, sequence=None, gesture="workspace", targets=None):
+    from backend.app.models.session import SessionAuditionRequest
+    return SessionAuditionRequest(action=action, gesture_id=gesture, revision=revision,
+        track_ids=targets or ["lead"], sequence=(sequence or [1, -2]) if action == "workspace_start" else [])
+
+
+def test_workspace_preview_layers_restore_manual_phase_and_stopped_state():
+    runtime, request = _preview_runtime()
+    request.tracks[0].pad_loop_enabled = False
+    runtime.configure(request)
+    runtime.start()
+    runtime._midi_service.arranger_running = False
+    lead = runtime._config.tracks["lead"]
+    lead.active_pad = 1
+    lead.phase_offset_subunit = 420
+    runtime._absolute_subunit = 840
+    runtime.audition(_workspace_command())
+    workspace_origin = runtime._auditions["lead"]["origin"]
+    assert runtime.audition_status()["lead"]["workspace_active"]
+    runtime.audition(_preview_command())
+    assert runtime.audition_status()["lead"]["preview_active"]
+    runtime._absolute_subunit = 1260
+    runtime.audition(_preview_command("preview_end", 2))
+    assert runtime._auditions["lead"]["origin"] == workspace_origin
+    assert "preview" not in runtime._auditions["lead"]
+    runtime.audition(_workspace_command("workspace_end", 2))
+    assert not runtime.audition_status()
+    assert lead.enabled and lead.active_pad == 1 and lead.phase_offset_subunit == 420
+    runtime.clear_auditions(stop=True)
+    lead.enabled = False
+    runtime.audition(_workspace_command(revision=3))
+    runtime.audition(_workspace_command("workspace_end", 4))
+    assert not lead.enabled
+
+
+def test_workspace_update_under_speaker_returns_to_updated_workspace_then_original():
+    runtime, _ = _preview_runtime()
+    runtime.audition(_workspace_command())
+    runtime.audition(_preview_command())
+    sounding = runtime._auditions["lead"]["sequence"]
+    runtime.audition(_workspace_command(revision=2, sequence=[0, -1, 1]))
+    assert runtime._auditions["lead"]["sequence"] == sounding
+    pending = runtime._auditions["lead"]["preview"]["previous"]
+    runtime._seek_absolute_subunit_locked(pending["boundary"])
+    runtime.audition(_preview_command("preview_end", 2))
+    assert runtime._auditions["lead"]["sequence"] == (0, -1, 1)
+    runtime.audition(_workspace_command("workspace_end", 3))
+    assert not runtime._config.tracks["lead"].enabled
+    assert not runtime.audition_status()
+
+
+def test_workspace_updates_follow_hidden_cycle_and_release_keeps_elapsed_position():
+    runtime, _ = _preview_runtime()
+    beat = 3360
+    runtime.audition(_workspace_command(sequence=[-1, 0]))
+    runtime.audition(_preview_command())
+    runtime._absolute_subunit = 420
+    runtime.audition(_workspace_command(revision=2, sequence=[0, -1, 1]))
+    pending = runtime._auditions["lead"]["preview"]["previous"]
+    assert pending["boundary"] == beat  # Workspace rest, not the four-beat speaker pad.
+    runtime._absolute_subunit = 2 * beat
+    runtime.audition(_preview_command("preview_end", 2))
+    lead = runtime._config.tracks["lead"]
+    assert runtime._auditions["lead"]["origin"] == beat
+    assert lead.phase_offset_subunit == beat and lead.active_pad == 0
+    assert runtime._local_transport_offset_for(lead, runtime._absolute_subunit) == beat
+
+
+@pytest.mark.parametrize("release_beat", [3, 6])
+def test_repeated_workspace_updates_under_speaker_use_already_due_replacement(release_beat):
+    runtime, _ = _preview_runtime()
+    beat = 3360
+    runtime.audition(_workspace_command(sequence=[-1, 0]))
+    runtime.audition(_preview_command())
+    runtime.audition(_workspace_command(revision=2, sequence=[0, -1, 1]))
+    runtime._absolute_subunit = 2 * beat
+    runtime.audition(_workspace_command(revision=3, sequence=[-2, 1]))
+    pending = runtime._auditions["lead"]["preview"]["previous"]
+    assert pending["boundary"] == 5 * beat
+    runtime._absolute_subunit = release_beat * beat
+    runtime.audition(_preview_command("preview_end", 2))
+    lead = runtime._config.tracks["lead"]
+    expected_origin = (1 if release_beat == 3 else 5) * beat
+    assert runtime._auditions["lead"]["origin"] == expected_origin
+    assert lead.phase_offset_subunit == expected_origin and lead.pad_loop_position == 0
+    assert runtime._current_pad_loop_token(lead) == (0 if release_beat == 3 else -2)
+
+
+def test_seek_resets_every_audition_layer_before_nested_restoration():
+    from backend.app.models.session import SessionAuditionRequest
+    runtime, _ = _preview_runtime()
+    runtime.audition(SessionAuditionRequest(action="start", track_ids=["lead"], sequence=[0, -1]))
+    runtime.audition(_workspace_command())
+    runtime.audition(_preview_command())
+    runtime._seek_absolute_subunit_locked(5 * 3360)
+    runtime.audition(_preview_command("preview_end", 2))
+    runtime.audition(_workspace_command("workspace_end", 2))
+    lead = runtime._config.tracks["lead"]
+    assert runtime._auditions["lead"]["origin"] == 5 * 3360
+    assert lead.phase_offset_subunit == 5 * 3360 and lead.pad_loop_position == 0
+
+
+def test_workspace_stop_during_speaker_cannot_be_undone_by_late_release():
+    runtime, _ = _preview_runtime()
+    runtime.audition(_workspace_command())
+    runtime.audition(_preview_command())
+    runtime.audition(_workspace_command("workspace_end", 2))
+    runtime.audition(_preview_command("preview_end", 2))
+    assert not runtime.audition_status()
+    assert not runtime._config.tracks["lead"].enabled
+    with pytest.raises(ValueError, match="Stale"):
+        runtime.audition(_workspace_command())
+
+
+def test_workspace_queued_cancel_rows_and_reconfiguration_preserve_authored_data():
+    runtime, request = _preview_runtime()
+    runtime.start()
+    runtime._absolute_subunit = 420
+    targets = ["lead", "other"]
+    runtime.audition(_workspace_command(targets=targets))
+    assert runtime.audition_status()["lead"]["workspace_queued"]
+    assert runtime._auditions["lead"]["boundary"] == runtime._auditions["other"]["boundary"]
+    runtime.audition(_workspace_command("workspace_end", 2, targets=targets))
+    assert not runtime.audition_status()
+    runtime.audition(_workspace_command(revision=3, targets=targets))
+    boundary = runtime._auditions["lead"]["boundary"]
+    runtime._advance_render_to_event_locked(runtime._config, boundary)
+    runtime.audition(_preview_command(targets=targets))
+    runtime.configure(request)
+    runtime.audition(_workspace_command("workspace_end", 4, targets=targets))
+    assert runtime._config.tracks["lead"].pad_loop_sequence == tuple(request.tracks[0].pad_loop_sequence)
+    assert runtime._config.tracks["other"].pad_loop_sequence == tuple(request.tracks[1].pad_loop_sequence)
+    assert not runtime.audition_status()
+
+
+def test_workspace_restores_existing_latched_audition_and_rejects_partial_drummer_batch():
+    from backend.app.models.session import SessionAuditionRequest
+    runtime, _ = _preview_runtime()
+    runtime.audition(SessionAuditionRequest(action="start", track_ids=["lead"], sequence=[0, -1]))
+    previous = dict(runtime._auditions["lead"])
+    with pytest.raises(ValueError):
+        runtime.audition(_workspace_command(targets=["lead", "missing"]))
+    assert runtime._auditions["lead"] == previous
+    runtime.audition(_workspace_command())
+    runtime.audition(_preview_command())
+    runtime.audition(_workspace_command("workspace_end", 2))
+    assert runtime._auditions["lead"]["sequence"] == previous["sequence"]
+    assert runtime._auditions["lead"]["origin"] == previous["origin"]

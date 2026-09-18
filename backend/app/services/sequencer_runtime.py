@@ -99,6 +99,7 @@ class SessionSequencerRuntime:
         self._config: SequencerRuntimeConfig | None = None
         self._auditions: dict[str, dict[str, Any]] = {}
         self._preview_commands = PreviewCommands()
+        self._workspace_commands = PreviewCommands()
         self._audition_simulating = False
         self._audition_standalone = False
         self._audition_status_tracks: set[str] = set()
@@ -137,6 +138,7 @@ class SessionSequencerRuntime:
             identities = set(next_config.tracks) | set(next_config.controller_tracks)
             self._auditions = {key: value for key, value in self._auditions.items() if key in identities}
             self._preview_commands.retain(identities)
+            self._workspace_commands.retain(identities)
             if self._audition_standalone:
                 self._authored_bounds = (next_config.playback_start_subunit, next_config.playback_end_subunit, next_config.playback_loop)
                 next_config.playback_start_subunit = 0
@@ -315,6 +317,8 @@ class SessionSequencerRuntime:
     def audition_status(self):
         return {identity: {"active": bool(state.get("sequence")), "queued": state.get("action")}
                 | ({"preview_gesture": state["preview"]["gesture"], "preview_revision": state["preview"]["revision"], "preview_active": state["preview"].get("applied", False)} if state.get("preview") else {})
+                | ({"workspace_gesture": state["workspace"]["gesture"], "workspace_active": state["workspace"].get("applied", False),
+                    "workspace_queued": bool((state["preview"]["previous"] if state.get("preview") else state).get("action"))} if state.get("workspace") else {})
                 for identity, state in self._auditions.items()}
 
     def _arranger_active(self) -> bool:
@@ -347,6 +351,8 @@ class SessionSequencerRuntime:
                 raise ValueError("Audition pad is not configured.")
             if request.action.startswith("preview_"):
                 return self._preview(request, targets)
+            if request.action.startswith("workspace_"):
+                return self._workspace(request, targets)
             was_running = self._running
             if not was_running and request.action == "start":
                 self.start_audition_clock()
@@ -357,6 +363,7 @@ class SessionSequencerRuntime:
                 state = self._auditions.get(identity)
                 if state:
                     state.pop("preview", None)
+                    state.pop("workspace", None)
                 if request.action == "cancel":
                     if state:
                         state.pop("action", None)
@@ -375,6 +382,76 @@ class SessionSequencerRuntime:
             self._audition_status_tracks.update(request.track_ids)
             self._reset_render_event_cursor_locked(config)
             return self._status_locked()
+
+    def _workspace(self, request, targets):
+        """One latched workspace below the existing momentary-preview layer."""
+        if not self._workspace_commands.accept(request.track_ids, request):
+            return self._status_locked()
+        at = self._absolute_subunit
+        if request.action == "workspace_start":
+            for track in targets:
+                state = self._auditions.get(track.track_id)
+                if state and state.get("preview") and not state.get("workspace"):
+                    self._end_preview(track, at)
+        snapshots = {track.track_id: {
+            "gesture": request.gesture_id, "previous": deepcopy(self._auditions.get(track.track_id)), "applied": False,
+            "running": self._running and track.enabled, "manual": not track.pad_loop_enabled,
+            "active_pad": track.active_pad, "phase": track.phase_offset_subunit,
+            "queued_pad": track.queued_pad, "queued_enabled": getattr(track, "queued_enabled", None),
+        } for track in targets}
+        if request.action == "workspace_start" and not self._running:
+            self.start_audition_clock()
+            at = self._absolute_subunit
+        # Updates enter at the next cycle even during standalone workspace playback.
+        updating = any(self._auditions.get(t.track_id, {}).get("workspace") for t in targets)
+        boundary = max((self._workspace_boundary(t, at) for t in targets), default=at) if self._arranger_active() or updating else at
+        for track in targets:
+            state = self._auditions.get(track.track_id)
+            if request.action == "workspace_end":
+                if not state or state.get("workspace", {}).get("gesture") != request.gesture_id:
+                    continue
+                if state.get("preview"):
+                    self._end_preview(track, at)
+                self._end_override(track, at, "workspace")
+                continue
+            # Updates to an existing workspace stay beneath a held speaker.
+            under_preview = state and state.get("preview")
+            base = state["preview"]["previous"] if under_preview else state
+            if under_preview and base and base.get("action") == "start" and base["boundary"] <= at:
+                base = {**base, "sequence": base["pending"], "origin": base["boundary"],
+                        "workspace": {**base["workspace"], "applied": True}}
+                base.pop("action")
+            snapshot = base.get("workspace", snapshots[track.track_id]) if base else snapshots[track.track_id]
+            snapshot["gesture"] = request.gesture_id
+            authored = state["authored"] if state else self._authored_track_fields(track)
+            next_state = {**(base or {}), "authored": authored, "workspace": snapshot,
+                          "action": "start", "pending": tuple(request.sequence), "boundary": boundary}
+            if under_preview:
+                state["preview"]["previous"] = next_state
+                state["workspace"] = snapshot
+            else:
+                self._auditions[track.track_id] = next_state
+                self._apply_audition_command(track, at)
+        self._audition_status_tracks.update(request.track_ids)
+        self._reset_render_event_cursor_locked(self._ensure_config())
+        return self._status_locked()
+
+    def _workspace_boundary(self, track, at):
+        state = self._auditions.get(track.track_id, {})
+        previous = state.get("preview", {}).get("previous")
+        if previous and previous.get("workspace"):
+            # A held speaker has its own cycle. Edits follow the workspace clock
+            # continuing underneath it, including an already-due replacement.
+            hidden = copy(track)
+            due = previous.get("action") == "start" and previous["boundary"] <= at
+            sequence = previous.get("pending") if due else previous.get("sequence")
+            if sequence:
+                origin = previous["boundary"] if due else previous["origin"]
+                self._overlay_audition(hidden, sequence)
+                self._position_prepared_track(hidden, max(0, at - origin))
+                hidden.phase_offset_subunit += origin
+                return self._next_track_cycle_boundary_subunit(hidden, at)
+        return self._next_track_cycle_boundary_subunit(track, at)
 
     def _preview(self, request, targets):
         if not self._preview_commands.accept(request.track_ids, request):
@@ -412,8 +489,11 @@ class SessionSequencerRuntime:
         return self._status_locked()
 
     def _end_preview(self, track, at):
+        self._end_override(track, at, "preview")
+
+    def _end_override(self, track, at, layer):
         state = self._auditions.pop(track.track_id)
-        snapshot = state["preview"]
+        snapshot = state[layer]
         if not snapshot["applied"]:
             if snapshot["previous"]:
                 self._auditions[track.track_id] = snapshot["previous"]
@@ -444,7 +524,11 @@ class SessionSequencerRuntime:
         if isinstance(track, SequencerTrackRuntime):
             track.queued_enabled = snapshot["queued_enabled"]
         if previous and previous.get("action") and previous["boundary"] <= at:
-            self._apply_audition_command(track, at)
+            boundary = previous["boundary"]
+            self._apply_audition_command(track, boundary)
+            if previous.get("sequence") and track.track_id in self._auditions:
+                self._position_prepared_track(track, max(0, at - boundary))
+                track.phase_offset_subunit += boundary
 
     def _apply_audition_command(self, track, at: int) -> bool:
         state = self._auditions.get(track.track_id)
@@ -458,6 +542,8 @@ class SessionSequencerRuntime:
         if action == "start":
             if state.get("preview"):
                 state["preview"]["applied"] = True
+            elif state.get("workspace"):
+                state["workspace"]["applied"] = True
             state["sequence"] = state["pending"]
             state["origin"] = at
             self._overlay_audition(track, state["sequence"])
@@ -1764,13 +1850,8 @@ class SessionSequencerRuntime:
         self._audition_simulating = False
         for track in [*config.tracks.values(), *config.controller_tracks.values()]:
             state = self._auditions.get(track.track_id)
-            if state and state.get("preview"):
-                state["preview"]["phase"] = 0
-                previous = state["preview"]["previous"]
-                if previous:
-                    previous["origin"] = normalized_absolute
-                    if previous.get("action"):
-                        previous["boundary"] = normalized_absolute
+            if state:
+                self._reset_audition_origins(state, normalized_absolute)
             if state and state.get("action"):
                 # A seek/wrap is itself a shared boundary. Resolve the queued intent
                 # there, rather than silently discarding a replacement or return.
@@ -1785,6 +1866,18 @@ class SessionSequencerRuntime:
         self._absolute_subunit = normalized_absolute
         self._scheduled_visible_subunit = normalized_absolute
         self._scheduled_visible_until_time = None
+
+    @staticmethod
+    def _reset_audition_origins(state, at):
+        state["origin"] = at
+        if state.get("action"):
+            state["boundary"] = at
+        for layer in ("workspace", "preview"):
+            snapshot = state.get(layer)
+            if snapshot:
+                snapshot["phase"] = 0
+                if snapshot["previous"]:
+                    SessionSequencerRuntime._reset_audition_origins(snapshot["previous"], at)
 
     def _seek_steps_locked(self, delta_steps: int) -> SessionSequencerStatus:
         target_subunit = self._absolute_subunit + (int(delta_steps) * _TRANSPORT_SUBUNITS_PER_STEP)

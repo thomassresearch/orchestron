@@ -6875,3 +6875,33 @@ def test_lane_output_has_no_effect_on_offline_exports(tmp_path: Path, event_sour
             assert actual.namelist() == expected.namelist()
             for name in expected.namelist():
                 assert actual.read(name) == expected.read(name)
+
+
+def test_workspace_audition_http_websocket_layers_and_validation(tmp_path: Path) -> None:
+    config = json.loads((Path(__file__).parent / "fixtures/sequencers/momentary_preview.json").read_text())
+    with _client(tmp_path) as client:
+        session_id = _create_running_session(client, patch_name="Workspace audition")
+        base = f"/api/sessions/{session_id}/sequencer"
+        assert client.put(base + "/config", json=config).status_code == 200
+        start = {"action": "workspace_start", "gesture_id": "workspace", "revision": 1, "track_ids": ["lead"], "sequence": [0, -2, 1]}
+        for invalid in [{"gesture_id": None}, {"sequence": []}, {"sequence": [0] * 257}, {"track_ids": ["lead", "missing"]}, {"track_ids": [], "arpeggiator_id": "arp"}]:
+            assert client.post(base + "/audition", json={**start, **invalid}).status_code == 422
+        result = client.post(base + "/audition", json=start)
+        assert result.status_code == 200, result.text
+        assert result.json()["auditions"]["lead"]["workspace_active"]
+        assert not result.json()["arranger_active"]
+        preview = {"action": "preview_start", "gesture_id": "speaker", "revision": 1, "track_ids": ["lead"], "sequence": [1]}
+        assert client.post(base + "/audition", json=preview).json()["auditions"]["lead"]["preview_active"]
+        with client.websocket_connect(f"/ws/sessions/{session_id}/browser-clock") as socket:
+            socket.send_json({"type": "claim_controller", "audio_context_sample_rate": 48000,
+                "queue_low_water_frames": 1024, "queue_high_water_frames": 2048, "max_blocks_per_request": 8})
+            assert socket.receive_json()["type"] == "stream_config"
+            socket.send_json({"type": "audition", "request_id": "release-speaker", "action": "preview_end", "gesture_id": "speaker", "revision": 2, "track_ids": ["lead"]})
+            status = socket.receive_json()["sequencer_status"]
+            assert status["auditions"]["lead"]["workspace_active"]
+            assert "preview_gesture" not in status["auditions"]["lead"]
+            end = {"type": "audition", "request_id": "stop-workspace", "action": "workspace_end", "gesture_id": "workspace", "revision": 2, "track_ids": ["lead"]}
+            socket.send_json(end)
+            status = socket.receive_json()["sequencer_status"]
+            assert not status["auditions"] and not status["running"]
+            assert client.post(base + "/audition", json=start).status_code == 409

@@ -678,7 +678,7 @@ class SessionSequencerSeekRequest(BaseModel):
 
 class SessionAuditionRequest(BaseModel):
     """Session-only override. Never part of a performance or bundle."""
-    action: Literal["start", "cancel", "stop", "return", "preview_start", "preview_end"]
+    action: Literal["start", "cancel", "stop", "return", "preview_start", "preview_end", "workspace_start", "workspace_end"]
     gesture_id: str | None = Field(default=None, min_length=1, max_length=128)
     revision: int | None = Field(default=None, ge=0)
     track_ids: list[str] = Field(default_factory=list, max_length=128)
@@ -691,10 +691,12 @@ class SessionAuditionRequest(BaseModel):
             raise ValueError("Specify tracks or one arpeggiator.")
         if len(set(self.track_ids)) != len(self.track_ids) or any(not i or len(i) > 256 for i in self.track_ids):
             raise ValueError("Invalid track identifiers.")
-        if self.action in {"start", "preview_start"} and not self.sequence:
+        if self.action in {"start", "preview_start", "workspace_start"} and not self.sequence:
             raise ValueError("An audition requires a playable sequence.")
-        if self.action.startswith("preview_") and (self.gesture_id is None or self.revision is None):
+        if self.action.startswith(("preview_", "workspace_")) and (self.gesture_id is None or self.revision is None):
             raise ValueError("A preview requires a gesture identity and revision.")
+        if self.action.startswith("workspace_") and self.arpeggiator_id:
+            raise ValueError("Workspace audition requires sequencer tracks.")
         if any(t not in set(range(8)) | {-1, -2, -4, -8, -16} for t in self.sequence):
             raise ValueError("Invalid audition token.")
         return self

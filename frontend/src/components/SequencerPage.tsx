@@ -1,3 +1,6 @@
+import { PatternWorkspace } from "./sequencer/PatternWorkspace";
+import { ArrangerSpeaker } from "./sequencer/ArrangerSpeaker";
+import { melodicPadHasSound, drummerPadHasSound } from "../lib/patternWorkspace";
 import { PATTERN_ITEM_COLORS, patternPadClass } from "../lib/patternItemPresentation";
 import { PerformanceAuditionControls } from "./sequencer/PerformanceAudition";
 import { sequencerEditingView } from "../store/sequencerEdits";
@@ -1394,10 +1397,7 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
     onSequencerTrackStepsPerBeatChange,
     onSequencerTrackBeatRateChange,
     onSequencerTrackStepCountChange,
-    linkedPadLoopStepPosition,
-    setLinkedPadLoopStepPosition,
     onSequencerTrackPadLoopEnabledChange,
-    onSequencerTrackPadLoopRepeatChange,
     onSequencerTrackPadLoopPatternChange,
     onSequencerPadPress,
     onSequencerPadCopy,
@@ -1767,22 +1767,12 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
                 </div>
               </div>
 
-              <PerformanceAuditionControls id={track.id} language={guiLanguage} editingPad={track.activePad} playingPad={playbackSequencer.tracks.find(t => t.id === track.id)?.activePad} queuedPad={track.queuedPad} playing={sequencer.isPlaying && track.enabled} item={{ type: "pad", padIndex: track.activePad }} manualLaunch={track.padLoopEnabled ? undefined : () => { onSequencerPadPress(track.id, track.activePad); if (!sequencer.isPlaying || !track.enabled) onSequencerTrackEnabledChange(track.id, true); }} />
-              <PadLoopPatternEditor
-                ui={ui}
-                guiLanguage={guiLanguage}
-                hostId={track.id}
-                track={track}
-                stepsPerBeat={sequencerTransportStepsPerBeat(track.timing)}
-                padStepCounts={track.pads.map((pad) => sequencerTransportStepCount(track.timing, pad.lengthBeats))}
-                defaultPadStepCount={sequencerTransportStepCount(track.timing, track.lengthBeats)}
-                isPlaying={sequencer.isPlaying}
-                linkedPadLoopStepPosition={linkedPadLoopStepPosition}
-                onLinkedPadLoopStepPositionChange={setLinkedPadLoopStepPosition}
-                onPadLoopEnabledChange={(enabled) => onSequencerTrackPadLoopEnabledChange(track.id, enabled)}
-                onPadLoopRepeatChange={(repeat) => onSequencerTrackPadLoopRepeatChange(track.id, repeat)}
-                onPadLoopPatternChange={(pattern) => onSequencerTrackPadLoopPatternChange(track.id, pattern)}
-              />
+              <div className="min-w-0 space-y-2">
+              <PerformanceAuditionControls compact id={track.id} language={guiLanguage} editingPad={track.activePad} playingPad={playbackSequencer.tracks.find(t => t.id === track.id)?.activePad} queuedPad={track.queuedPad} playing={sequencer.isPlaying && track.enabled} item={{ type: "pad", padIndex: track.activePad }} manualLaunch={track.padLoopEnabled ? undefined : () => { onSequencerPadPress(track.id, track.activePad); if (!sequencer.isPlaying || !track.enabled) onSequencerTrackEnabledChange(track.id, true); }} />
+              <PatternWorkspace track={track} language={guiLanguage}
+                onSourceChange={enabled => onSequencerTrackPadLoopEnabledChange(track.id, enabled)}
+                onPatternChange={pattern => onSequencerTrackPadLoopPatternChange(track.id, pattern)} />
+              </div>
             </div>
 
             <div className="mb-2 text-[11px] text-slate-500">
@@ -1795,8 +1785,8 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
                 {Array.from({ length: 8 }, (_, padIndex) => {
                   const isActivePad = track.activePad === padIndex;
                   const isQueuedPad = track.queuedPad === padIndex;
-                  const padHasContent = (track.pads[padIndex]?.steps ?? []).some((step) => step.note !== null);
-                  const padAccentClass = `${PATTERN_ITEM_COLORS.pad} hover:border-emerald-400`;
+                  const padHasContent = melodicPadHasSound(track.pads[padIndex]);
+                  const padAccentClass = `${PATTERN_ITEM_COLORS[padHasContent ? "pad" : "pause"]} hover:border-emerald-400`;
                   return (
                     <div key={`${track.id}-pad-${padIndex}`} className="relative">
                       <button
@@ -1822,16 +1812,13 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
                           }
                           onSequencerPadCopy(track.id, payload.padIndex, padIndex);
                         }}
-                        className={`w-full rounded-md border px-5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] transition ${patternPadClass(isActivePad, isQueuedPad)}`}
+                        className={`w-full rounded-md border py-1.5 pl-5 pr-10 text-[10px] font-semibold uppercase tracking-[0.12em] transition ${patternPadClass(isActivePad, isQueuedPad, padHasContent)}`}
                       >
                         #{padIndex + 1}
                       </button>
-                      {padHasContent ? (
-                        <span
-                          className="pointer-events-none absolute right-1 top-1 z-20 h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_8px_rgba(110,231,183,0.7)]"
-                          aria-hidden="true"
-                        />
-                      ) : null}
+                      <div className="absolute right-4 top-0.5 z-20">
+                        <ArrangerSpeaker id={track.id} item={{ type: "pad", padIndex }} label={`#${padIndex + 1}`} language={guiLanguage} />
+                      </div>
                       <button
                         type="button"
                         onClick={(event) => {
@@ -2275,10 +2262,7 @@ function DrummerSequencersBody({ context }: { context: ReturnType<typeof useSequ
     onDrummerSequencerTrackStepsPerBeatChange,
     onDrummerSequencerTrackBeatRateChange,
     onDrummerSequencerTrackStepCountChange,
-    linkedPadLoopStepPosition,
-    setLinkedPadLoopStepPosition,
     onDrummerSequencerTrackPadLoopEnabledChange,
-    onDrummerSequencerTrackPadLoopRepeatChange,
     onDrummerSequencerTrackPadLoopPatternChange,
     onDrummerSequencerPadPress,
     onDrummerSequencerPadCopy,
@@ -2463,7 +2447,8 @@ function DrummerSequencersBody({ context }: { context: ReturnType<typeof useSequ
               </button>
             </div>
 
-            <div className="mb-2 flex flex-wrap items-end gap-2">
+            <div className="mb-2 grid gap-3 lg:grid-cols-[minmax(320px,420px)_minmax(0,1fr)] lg:items-start">
+              <div className="flex flex-wrap items-end gap-2">
               <label className="flex flex-col gap-1">
                 <span className={controlLabelClass}>{ui.midiChannel}</span>
                 <input
@@ -2572,24 +2557,13 @@ function DrummerSequencersBody({ context }: { context: ReturnType<typeof useSequ
                 </div>
               </div>
 
-              <PerformanceAuditionControls id={track.id} language={guiLanguage} editingPad={track.activePad} playingPad={playbackSequencer.drummerTracks.find(t => t.id === track.id)?.activePad} queuedPad={track.queuedPad} playing={sequencer.isPlaying && track.enabled} item={{ type: "pad", padIndex: track.activePad }} manualLaunch={track.padLoopEnabled ? undefined : () => { onDrummerSequencerPadPress(track.id, track.activePad); if (!sequencer.isPlaying || !track.enabled) onDrummerSequencerTrackEnabledChange(track.id, true); }} />
-              <PadLoopPatternEditor
-                ui={ui}
-                guiLanguage={guiLanguage}
-                hostId={track.id}
-                track={track}
-                stepsPerBeat={sequencerTransportStepsPerBeat(track.timing)}
-                padStepCounts={track.pads.map((pad) => sequencerTransportStepCount(track.timing, pad.lengthBeats))}
-                defaultPadStepCount={sequencerTransportStepCount(track.timing, track.lengthBeats)}
-                isPlaying={sequencer.isPlaying}
-                linkedPadLoopStepPosition={linkedPadLoopStepPosition}
-                onLinkedPadLoopStepPositionChange={setLinkedPadLoopStepPosition}
-                onPadLoopEnabledChange={(enabled) => onDrummerSequencerTrackPadLoopEnabledChange(track.id, enabled)}
-                onPadLoopRepeatChange={(repeat) => onDrummerSequencerTrackPadLoopRepeatChange(track.id, repeat)}
-                onPadLoopPatternChange={(pattern) =>
-                  onDrummerSequencerTrackPadLoopPatternChange(track.id, pattern)
-                }
-              />
+              </div>
+              <div className="min-w-0 space-y-2">
+              <PerformanceAuditionControls compact id={track.id} language={guiLanguage} editingPad={track.activePad} playingPad={playbackSequencer.drummerTracks.find(t => t.id === track.id)?.activePad} queuedPad={track.queuedPad} playing={sequencer.isPlaying && track.enabled} item={{ type: "pad", padIndex: track.activePad }} manualLaunch={track.padLoopEnabled ? undefined : () => { onDrummerSequencerPadPress(track.id, track.activePad); if (!sequencer.isPlaying || !track.enabled) onDrummerSequencerTrackEnabledChange(track.id, true); }} />
+              <PatternWorkspace track={track} language={guiLanguage}
+                onSourceChange={enabled => onDrummerSequencerTrackPadLoopEnabledChange(track.id, enabled)}
+                onPatternChange={pattern => onDrummerSequencerTrackPadLoopPatternChange(track.id, pattern)} />
+              </div>
             </div>
 
             <div className="mb-2">
@@ -2598,9 +2572,7 @@ function DrummerSequencersBody({ context }: { context: ReturnType<typeof useSequ
                 {Array.from({ length: 8 }, (_, padIndex) => {
                   const isActivePad = track.activePad === padIndex;
                   const isQueuedPad = track.queuedPad === padIndex;
-                  const padHasContent = (track.pads[padIndex]?.rows ?? []).some((row) =>
-                    row.steps.some((cell) => cell.active)
-                  );
+                  const padHasContent = drummerPadHasSound(track.pads[padIndex]);
                   return (
                     <div key={`${track.id}-drum-pad-${padIndex}`} className="relative">
                       <button
@@ -2626,16 +2598,13 @@ function DrummerSequencersBody({ context }: { context: ReturnType<typeof useSequ
                           }
                           onDrummerSequencerPadCopy(track.id, payload.padIndex, padIndex);
                         }}
-                        className={`w-full rounded-md border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] transition ${patternPadClass(isActivePad, isQueuedPad)}`}
+                        className={`w-full rounded-md border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] transition ${patternPadClass(isActivePad, isQueuedPad, padHasContent)}`}
                       >
                         #{padIndex + 1}
                       </button>
-                      {padHasContent ? (
-                        <span
-                          className="pointer-events-none absolute right-1 top-1 z-20 h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_8px_rgba(110,231,183,0.7)]"
-                          aria-hidden="true"
-                        />
-                      ) : null}
+                      <div className="absolute right-1 top-0.5 z-20">
+                        <ArrangerSpeaker id={track.id} item={{ type: "pad", padIndex }} label={`#${padIndex + 1}`} language={guiLanguage} />
+                      </div>
                     </div>
                   );
                 })}

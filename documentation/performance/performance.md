@@ -86,4 +86,4 @@ The collapsed rack shows channel and patch name in one horizontally scrolling ro
 
 **Navigation:** [Up](../user_documentation.md) | [Prev](../instrument_design/supported_opcodes.md) | [Next](instrument_rack_and_engine_transport.md)
 
-Arranger lane palettes and Playback settings have separate disclosures that start collapsed. Patterns and phrases remains a sequencer-only panel; the arranger uses context menus for grouping and ungrouping. Lane Mute/Solo is temporary and independent of the instrument mixer; see [compact tracks and lane controls](multitrack_arranger.md#temporary-lane-mute-and-solo).
+Arranger lane palettes and Playback settings have separate disclosures that start collapsed. Melodic and drummer sequencers have an always-visible upper-right pattern workspace for assembling reusable phrases; controller and arpeggiator phrase panels remain collapsible. The arranger uses context menus for grouping and ungrouping. Lane Mute/Solo is temporary and independent of the instrument mixer; see [compact tracks and lane controls](multitrack_arranger.md#temporary-lane-mute-and-solo).

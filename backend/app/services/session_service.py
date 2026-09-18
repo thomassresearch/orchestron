@@ -1222,10 +1222,16 @@ class SessionService:
                 after.get(identity, {}).get("preview_active") and not after[identity].get("queued") for identity in identities
             ) or request.action == "preview_end" and any(
                 before.get(identity, {}).get("preview_active") and before[identity].get("preview_gesture") == request.gesture_id for identity in identities)
-            if preview_changed and before != after:
+            workspace_changed = request.action == "workspace_start" and any(
+                after.get(identity, {}).get("workspace_active") and not after[identity].get("workspace_queued") and not after[identity].get("preview_active")
+                or before.get(identity, {}).get("preview_active") and not after.get(identity, {}).get("preview_active") for identity in identities
+            ) or request.action == "workspace_end" and any(
+                (before.get(identity, {}).get("workspace_active") or before.get(identity, {}).get("preview_active"))
+                and before[identity].get("workspace_gesture") == request.gesture_id for identity in identities)
+            if (preview_changed or workspace_changed) and before != after:
                 runtime.worker.release_lane_events(identities)
                 router.discard_future_lane_inputs(identities)
-            if request.action in {"stop", "preview_end"} and sequencer._audition_standalone and not sequencer.audition_status() and not router.audition_status():
+            if request.action in {"stop", "preview_end", "workspace_end"} and sequencer._audition_standalone and not sequencer.audition_status() and not router.audition_status():
                 status = sequencer.stop()
             return self._status_with_arpeggiators(runtime, status)
         try:
