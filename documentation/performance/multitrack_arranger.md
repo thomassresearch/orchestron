@@ -24,7 +24,7 @@ Lane controls survive transport stop/start and engine restart within this perfor
 
 ## Place and move material
 
-Expand a lane to show its palette of eight pads, groups, supergroups and rests on the Position row. Drag a palette item to add an occurrence. Clicking an entry only focuses it. Empty phrase drafts cannot be placed or previewed. Add, Insert, Paste, Duplicate and number-key placement are removed from the arranger; sequencer editing shortcuts remain unchanged.
+Expand a lane to show its palette of populated pattern pads, groups, supergroups and rests on the Position row. Melodic, drummer and arpeggiator pads appear only when they contain a non-rest step; their original numbers are preserved. Empty pads remain editable in the sequencer, and existing timeline occurrences remain intact. Controller curves remain available, including zero-valued curves. Drag a palette item to add an occurrence. Clicking an entry only focuses it. Empty phrase drafts cannot be placed or previewed. Add, Insert, Paste, Duplicate and number-key placement are removed from the arranger; sequencer editing shortcuts remain unchanged.
 
 Drop at an element edge to insert and shift later material on this lane. Drop musical material inside a rest when it fits to replace that portion of silence. Drop after the final element to fill the gap with supported pause tokens and append. Dropping inside occupied musical material is rejected with a red preview. Rest palette items insert time at boundaries or extend the lane after its end.
 

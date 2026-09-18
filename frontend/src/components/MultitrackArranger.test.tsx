@@ -139,6 +139,11 @@ function musicalLane() {
   useAppStore.getState().setSequencerTrackPadLoopPattern(track.id, { rootSequence: [
     { type: "pad", padIndex: 0 }, { type: "pad", padIndex: 1 }, { type: "group", groupId: "A" }
   ], groups: [{ id: "A", sequence: [{ type: "pad", padIndex: 0 }] }], superGroups: [] });
+  const store = useAppStore.getState();
+  for (const pad of [0, 2]) {
+    store.selectSequencerEditingPad(track.id, pad);
+    store.setSequencerTrackStepNote(track.id, 0, 60);
+  }
   setup();
   const lane = screen.getAllByRole("region")[0];
   return { lane, timeline: within(lane).getByRole("list"), pattern: () => useAppStore.getState().sequencer.tracks[0].padLoopPattern };

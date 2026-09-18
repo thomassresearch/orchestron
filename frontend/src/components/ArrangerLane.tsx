@@ -44,7 +44,7 @@ export function ArrangerLane({ lane, props, selected, select, commit, zoom, widt
   const clearSelection = useClearArrangementSelection();
   const spans = arrangementSpans(lane.pattern, lane.padBeats);
   const indexes = selection.filter(i => i < lane.pattern.rootSequence.length);
-  const refs: PadLoopPatternItem[] = [...Array.from({ length: 8 }, (_, padIndex): PadLoopPatternItem => ({ type: "pad", padIndex })),
+  const refs: PadLoopPatternItem[] = [...lane.availablePads.map((padIndex): PadLoopPatternItem => ({ type: "pad", padIndex })),
     ...lane.pattern.groups.map(g => definitionItem({ kind: "group", id: g.id })),
     ...lane.pattern.superGroups.map(g => definitionItem({ kind: "super", id: g.id })),
     ...([1, 2, 4, 8, 16] as const).map(lengthBeats => ({ type: "pause" as const, lengthBeats }))];
@@ -194,10 +194,10 @@ export function ArrangerLane({ lane, props, selected, select, commit, zoom, widt
     </div>
     {expanded && <div ref={palette} className="mt-2 flex flex-wrap items-center gap-1" aria-label={c.library}>
       <label className="mr-1 whitespace-nowrap text-xs text-slate-300">{c.position} <input type="number" className={`${button} w-20`} min={0} value={Number((position * lane.beatScale).toFixed(6))} step={lane.beatScale} onChange={event => setPosition(Math.max(0, Math.round(Number(event.target.value) / lane.beatScale)))} /></label>
-      {refs.map((item, index) => {
+      {refs.map(item => {
         const playable = compileDefinition(lane.pattern, item).length > 0;
         const name = item.type === "group" ? `${c.group} ${item.groupId}` : item.type === "super" ? `${c.super} ${item.superGroupId}` : label(item);
-        return <div key={index} className={`flex items-center rounded border px-1 text-xs ${PATTERN_ITEM_COLORS[item.type]} ${!playable ? "opacity-50" : ""}`} style={definitionColorStyle(lane.pattern, item)}
+        return <div key={item.type === "pause" ? `pause:${item.lengthBeats}` : definitionColorKey(item)} className={`flex items-center rounded border px-1 text-xs ${PATTERN_ITEM_COLORS[item.type]} ${!playable ? "opacity-50" : ""}`} style={definitionColorStyle(lane.pattern, item)}
           draggable={playable} onDragEnd={endArrangementDrag} onDragStart={event => { beginArrangementDrag(lane.id, item); event.dataTransfer.effectAllowed = "copy"; event.dataTransfer.setData(ARRANGEMENT_ITEM_MIME, JSON.stringify({ trackId: lane.id, item })); }}
           onContextMenu={event => showMenu(event, item, [], true)}>
           <button type="button" className="px-1 py-1 focus-visible:outline focus-visible:outline-cyan-300" data-definition={definitionColorKey(item)} title={c.dragHint}
