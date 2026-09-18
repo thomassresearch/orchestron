@@ -6732,6 +6732,65 @@ def test_browser_clock_audition_commands_and_audible_status(tmp_path: Path) -> N
             assert status["auditions"] == {} and not status["running"]
 
 
+@pytest.mark.parametrize("archive_format", ["json", "zip"])
+def test_definition_colours_survive_native_bundles_and_performance_storage(tmp_path: Path, archive_format: str) -> None:
+    payload = _performance_csd_export_payload()["performanceExport"]
+    config = payload["performance"]["config"]
+    config["version"] = 16
+    fixture = json.loads((Path(__file__).parent / "fixtures/performances/device_names.json").read_text())
+    config["sequencer"] = fixture["config"]["sequencer"]
+    pattern = {"rootSequence": [{"type": "pad", "padIndex": 0}],
+        "groups": [{"id": "A", "sequence": []}], "superGroups": [],
+        "definitionColors": {"pad:0": "#123456", "group:A": "#abcdef"}}
+    config["sequencer"]["tracks"][0]["padLoopPattern"] = pattern
+    with _client(tmp_path) as client:
+        saved = client.post("/api/performances", json={"name": "Colours", "config": config})
+        assert saved.status_code == 201
+        assert saved.json()["config"]["sequencer"]["tracks"][0]["padLoopPattern"] == pattern
+        exported = client.post("/api/bundles/export/performance", json=payload)
+        assert exported.status_code == 200
+        data = exported.content
+        if archive_format == "zip":
+            buffer = BytesIO()
+            with zipfile.ZipFile(buffer, "w") as archive:
+                archive.writestr("performance.orch.json", data)
+            data = buffer.getvalue()
+        imported = client.post("/api/bundles/import/expand", content=data,
+            headers={"Content-Type": "application/octet-stream", "X-File-Name": f"colours.orch.{archive_format}"})
+        assert imported.status_code == 200
+        assert imported.json()["performance"]["config"]["sequencer"]["tracks"][0]["padLoopPattern"] == pattern
+
+
+def test_momentary_preview_http_websocket_ordering_and_persistence(tmp_path: Path) -> None:
+    config = json.loads((Path(__file__).parent / "fixtures/sequencers/momentary_preview.json").read_text())
+    with _client(tmp_path) as client:
+        session_id = _create_running_session(client, patch_name="Momentary preview")
+        base = f"/api/sessions/{session_id}/sequencer"
+        assert client.put(base + "/config", json=config).status_code == 200
+        start = {"action": "preview_start", "gesture_id": "hold", "revision": 1, "track_ids": ["lead"], "sequence": [1]}
+        assert client.post(base + "/audition", json={**start, "gesture_id": None}).status_code == 422
+        assert client.post(base + "/audition", json={**start, "track_ids": ["lead", "missing"]}).status_code == 422
+        result = client.post(base + "/audition", json=start)
+        assert result.status_code == 200, result.text
+        assert result.json()["auditions"]["lead"]["preview_gesture"] == "hold"
+        assert not next(t for t in result.json()["tracks"] if t["track_id"] == "other")["enabled"]
+        with client.websocket_connect(f"/ws/sessions/{session_id}/browser-clock") as socket:
+            socket.send_json({"type": "claim_controller", "audio_context_sample_rate": 48000,
+                "queue_low_water_frames": 1024, "queue_high_water_frames": 2048, "max_blocks_per_request": 8})
+            assert socket.receive_json()["type"] == "stream_config"
+            end = {"action": "preview_end", "gesture_id": "hold", "revision": 2, "track_ids": ["lead"]}
+            socket.send_json({**end, "type": "audition", "request_id": "release"})
+            status = socket.receive_json()["sequencer_status"]
+            assert not status["auditions"] and not status["running"]
+            assert client.post(base + "/audition", json=start).status_code == 409
+            socket.send_json({**start, "type": "audition", "request_id": "stale"})
+            error = socket.receive_json()
+            assert error["type"] == "sequencer_error" and error["request_id"] == "stale"
+            socket.send_json({**start, "revision": 3, "type": "audition", "request_id": "again"})
+            assert socket.receive_json()["sequencer_status"]["auditions"]["lead"]["active"]
+            assert client.post(base + "/audition", json={**end, "revision": 4}).json()["auditions"] == {}
+
+
 def test_lane_output_api_is_temporary_atomic_and_revisioned(tmp_path: Path) -> None:
     config = json.loads((Path(__file__).parent / "fixtures/sequencers/arranger_seek.json").read_text())
     config["tracks"].append({**config["tracks"][0], "track_id": "other"})

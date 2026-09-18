@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from bisect import bisect_left, bisect_right
-from copy import copy
+from copy import copy, deepcopy
 import logging
 import threading
 import time
@@ -19,6 +19,7 @@ from backend.app.models.session import (
     SessionSequencerTrackStatus,
 )
 from backend.app.services.arpeggiator_runtime import MidiSourceContext
+from backend.app.services.preview_commands import PreviewCommands
 from backend.app.services.sequencer_note_timing import SoundingTimedNote
 from backend.app.services.sequencer_runtime_config import (
     clamp_controller_value as _clamp_controller_value,
@@ -97,6 +98,7 @@ class SessionSequencerRuntime:
 
         self._config: SequencerRuntimeConfig | None = None
         self._auditions: dict[str, dict[str, Any]] = {}
+        self._preview_commands = PreviewCommands()
         self._audition_simulating = False
         self._audition_standalone = False
         self._audition_status_tracks: set[str] = set()
@@ -134,6 +136,7 @@ class SessionSequencerRuntime:
             previous = self._config
             identities = set(next_config.tracks) | set(next_config.controller_tracks)
             self._auditions = {key: value for key, value in self._auditions.items() if key in identities}
+            self._preview_commands.retain(identities)
             if self._audition_standalone:
                 self._authored_bounds = (next_config.playback_start_subunit, next_config.playback_end_subunit, next_config.playback_loop)
                 next_config.playback_start_subunit = 0
@@ -311,6 +314,7 @@ class SessionSequencerRuntime:
 
     def audition_status(self):
         return {identity: {"active": bool(state.get("sequence")), "queued": state.get("action")}
+                | ({"preview_gesture": state["preview"]["gesture"], "preview_revision": state["preview"]["revision"]} if state.get("preview") else {})
                 for identity, state in self._auditions.items()}
 
     def start_audition_clock(self):
@@ -338,6 +342,8 @@ class SessionSequencerRuntime:
             targets = [all_tracks[identity] for identity in request.track_ids]
             if any(token >= 0 and token not in track.pads for track in targets for token in request.sequence):
                 raise ValueError("Audition pad is not configured.")
+            if request.action.startswith("preview_"):
+                return self._preview(request, targets)
             was_running = self._running
             if not was_running and request.action == "start":
                 self.start_audition_clock()
@@ -346,6 +352,8 @@ class SessionSequencerRuntime:
             for track in targets:
                 identity = track.track_id
                 state = self._auditions.get(identity)
+                if state:
+                    state.pop("preview", None)
                 if request.action == "cancel":
                     if state:
                         state.pop("action", None)
@@ -364,6 +372,70 @@ class SessionSequencerRuntime:
             self._audition_status_tracks.update(request.track_ids)
             self._reset_render_event_cursor_locked(config)
             return self._status_locked()
+
+    def _preview(self, request, targets):
+        if not self._preview_commands.accept(request.track_ids, request):
+            return self._status_locked()
+        at = self._absolute_subunit
+        was_running = self._running
+        # Capture before a standalone clock disables the non-preview lanes.
+        snapshots = {track.track_id: {
+            "gesture": request.gesture_id, "previous": deepcopy(self._auditions.get(track.track_id)),
+            "running": was_running and track.enabled, "manual": not track.pad_loop_enabled,
+            "active_pad": track.active_pad, "phase": track.phase_offset_subunit,
+            "queued_pad": track.queued_pad, "queued_enabled": getattr(track, "queued_enabled", None),
+        } for track in targets}
+        if request.action == "preview_start" and not was_running:
+            self.start_audition_clock()
+            at = self._absolute_subunit
+        for track in targets:
+            state = self._auditions.get(track.track_id)
+            if request.action == "preview_end":
+                if state and state.get("preview", {}).get("gesture") == request.gesture_id:
+                    self._end_preview(track, at)
+                continue
+            # Rapid replacement keeps the original restoration target, not a
+            # stack of momentary previews that could outlive their mouse press.
+            snapshot = state.get("preview", snapshots[track.track_id]) if state else snapshots[track.track_id]
+            snapshot["gesture"] = request.gesture_id
+            snapshot["revision"] = request.revision
+            authored = state["authored"] if state else self._authored_track_fields(track)
+            self._auditions[track.track_id] = {"authored": authored, "preview": snapshot,
+                "action": "start", "pending": tuple(request.sequence), "boundary": at}
+            self._apply_audition_command(track, at)
+        self._audition_status_tracks.update(request.track_ids)
+        self._reset_render_event_cursor_locked(self._ensure_config())
+        return self._status_locked()
+
+    def _end_preview(self, track, at):
+        state = self._auditions.pop(track.track_id)
+        snapshot = state["preview"]
+        if isinstance(track, SequencerTrackRuntime):
+            self._release_track_notes_locked(track.track_id, track.midi_channel)
+        else:
+            track.last_value = None
+        for key, value in state["authored"].items():
+            setattr(track, key, value)
+        previous = snapshot["previous"]
+        origin = 0
+        if previous:
+            previous["authored"] = state["authored"]
+            self._auditions[track.track_id] = previous
+            if previous.get("sequence"):
+                self._overlay_audition(track, previous["sequence"])
+                origin = previous["origin"]
+        elif snapshot["manual"]:
+            track.configured_active_pad = snapshot["active_pad"]
+            origin = snapshot["phase"]
+        self._position_prepared_track(track, max(0, at - origin))
+        track.phase_offset_subunit += origin
+        if not snapshot["running"]:
+            track.enabled = False
+        track.queued_pad = snapshot["queued_pad"]
+        if isinstance(track, SequencerTrackRuntime):
+            track.queued_enabled = snapshot["queued_enabled"]
+        if previous and previous.get("action") and previous["boundary"] <= at:
+            self._apply_audition_command(track, at)
 
     def _apply_audition_command(self, track, at: int) -> bool:
         state = self._auditions.get(track.track_id)
@@ -1681,6 +1753,13 @@ class SessionSequencerRuntime:
         self._audition_simulating = False
         for track in [*config.tracks.values(), *config.controller_tracks.values()]:
             state = self._auditions.get(track.track_id)
+            if state and state.get("preview"):
+                state["preview"]["phase"] = 0
+                previous = state["preview"]["previous"]
+                if previous:
+                    previous["origin"] = normalized_absolute
+                    if previous.get("action"):
+                        previous["boundary"] = normalized_absolute
             if state and state.get("action"):
                 # A seek/wrap is itself a shared boundary. Resolve the queued intent
                 # there, rather than silently discarding a replacement or return.

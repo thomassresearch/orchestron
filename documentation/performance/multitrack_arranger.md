@@ -2,15 +2,15 @@
 
 **Navigation:** [Up](performance.md) | [Prev](pattern_pads_and_pad_looper.md) | [Next](controller_sequencers.md)
 
-The arranger is the only editor of song order. Each lane places references to its eight pads, reusable groups and supergroups, and rests. Sequencers edit the contents of those definitions. Editing a shared definition changes every occurrence; changing its duration shifts following material on that lane.
+The arranger is the only editor of song order. Each lane places references to its eight pads, reusable groups and supergroups, and rests. Sequencers edit pad contents and retain their existing phrase editor. In the arranger, edit phrases by ungrouping, rearranging, and regrouping timeline material. Editing a shared definition changes every occurrence; changing its duration shifts following material on that lane.
 
-Pads are labelled **1–8** in arranger lanes and palettes, and **#1–#8** in sequencers and phrase editors. Pads are green, groups are red, and supergroups are violet throughout the sequencers, phrase libraries, palettes and arranger lanes. Rests keep their dark styling; the number in **Rest 1/2/4/8/16** is its duration in local beats, while a pad number identifies a reusable slot. Selection outlines and Playing/Queued indicators remain separate from these type colours.
+Pads are labelled **1–8** in arranger lanes and palettes, and **#1–#8** in sequencers and phrase editors. Pads are green, groups are red, and supergroups are violet throughout the sequencers, phrase libraries, palettes and arranger lanes. Rests keep their dark styling; the number in **Rest 1/2/4/8/16** is its duration in local beats, while a pad number identifies a reusable slot. Right-click a musical item or palette entry to Set colour or Reset colour. Custom colours apply to every occurrence of that definition within its lane and are saved with the performance. The picker offers swatches and a custom colour; text contrast adjusts automatically. Sequencer colours remain the defaults for now. Selection outlines and Playing/Queued indicators remain separate from these colours.
 
 ## Compact track headers
 
-Each lane starts collapsed. Click the triangle or track title (Enter/Space when focused) to open or close its editing tools. Clicking an occurrence selects it and opens the lane; the triangle can close it again while retaining the editing context. Clicking empty timeline space clears occurrence highlights and chooses the insertion position without changing panel expansion. Edit definition and Open in arranger open the required editors explicitly.
+Each lane starts collapsed. Click the triangle or track title (Enter/Space when focused) to open or close its editing tools. Click anywhere in an occurrence box to select it and open the lane; the triangle can close it again while retaining the editing context. Clicking empty timeline space clears occurrence highlights and chooses the insertion position without changing panel expansion. Double-click a pad or choose Edit pattern to open its sequencer editor. Open in arranger opens the lane and focuses the definition in its palette.
 
-**Patterns and phrases** has its own disclosure header in the sequencer and arranger. **Playback settings** contains Playback source and, for Arrangement lanes, At end. Both start collapsed. Disclosure choices survive view switches; New/Load/Import resets them. Closing panels preserves drafts, selections and scroll, cancels active gestures, and leaves playback running.
+The expanded lane shows **Position (master beats)** followed by the wrapping palette. There is no separate Patterns and phrases panel in the arranger; the sequencer retains its own library. **Playback settings** contains Playback source and, for Arrangement lanes, At end, and starts collapsed. Disclosure choices survive view switches; New/Load/Import resets them. Closing panels preserves drafts, selections and scroll, cancels active gestures and momentary previews, and leaves normal playback running.
 
 ## Temporary lane Mute and Solo
 
@@ -24,22 +24,26 @@ Lane controls survive transport stop/start and engine restart within this perfor
 
 ## Place and move material
 
-Select a lane to show its palette and Add controls. Choose a pad, group, supergroup or rest, then drag it to the timeline or use Add at the displayed position. Empty phrase drafts cannot be placed. The ruler numbers master bars and beats; each lane snaps to whole local beats using its existing beat ratio. Drop previews show the resulting master-beat position and duration.
+Expand a lane to show its palette of eight pads, groups, supergroups and rests on the Position row. Drag a palette item to add an occurrence. Clicking an entry only focuses it. Empty phrase drafts cannot be placed or previewed. Add, Insert, Paste, Duplicate and number-key placement are removed from the arranger; sequencer editing shortcuts remain unchanged.
 
-Musical items fit into available silence or extend the lane. A move leaves equal-duration silence at the source and preserves all unselected positions. Red previews reject occupied destinations. **Insert and shift later items** inserts at an item boundary and shifts only that lane. Adding a rest always inserts time at a boundary.
+Drop at an element edge to insert and shift later material on this lane. Drop musical material inside a rest when it fits to replace that portion of silence. Drop after the final element to fill the gap with supported pause tokens and append. Dropping inside occupied musical material is rejected with a red preview. Rest palette items insert time at boundaries or extend the lane after its end.
 
-**New pattern** opens an unused existing pad slot. It never overwrites another pattern or creates a ninth pad. **Duplicate occurrence** keeps the shared definition reference. **Create variation** copies a pad into an available slot, or creates a new group/supergroup definition, and retargets only the selected occurrence.
+The ruler numbers master bars and beats. Placement snaps to whole local beats using the lane's beat ratio; previews show the exact master-beat position and duration. Drag an occurrence body to move it, or move a contiguous selection together. Moves leave equivalent silence at the source; dropping at the original position changes nothing. Placement stays within the originating lane. Invalid or over-limit edits leave the whole arrangement unchanged.
 
-Double-click a pad to edit it in its sequencer. Select a group or supergroup and use **Edit**, or double-click it, to open the same definition editor used by the sequencer. Group, Supergroup and Ungroup work on selected phrase contents; ungrouping keeps the original definition in the library.
+Right-click to open lane actions. Right-clicking a selected occurrence preserves the selection; right-clicking another selects it. Cmd/Ctrl-click toggles additional selections. Grouping requires at least two adjacent selected elements. **Group** accepts pads/rests; **Supergroup** also accepts groups. **Ungroup** expands one level and retains the reusable definition in the palette.
+
+After ungrouping, rearrange the material, then select and group it again. Choose **Create new definition** (the default) to leave other occurrences unchanged, or explicitly select **Update existing definition** to update all its references. The dialog lists uses and explains that duration changes shift following material. Groups retain letter IDs and supergroups Roman numeral IDs.
+
+**Create variation** copies a pad into an unused slot, or copies a group/supergroup under a new ID, and retargets only the selected occurrence. It inherits the source colour. The eight-pad limit remains. Palette context menus allow deleting unused definitions; referenced definitions list their uses and cannot be deleted.
+
+Use Enter/Space to select a focused occurrence, Cmd/Ctrl-click for multiple selection, and Shift+F10 or the Context Menu key for its menu. Arrow keys navigate occurrences or menu actions; Escape closes menus and cancels gestures. Menus return focus to their originating item.
 
 ## Delete and resize rests
 
 - **Delete/Backspace** and **Remove, leave gap** replace selected musical occurrences with equal-duration silence. Other occurrences keep their positions.
 - **Remove and close gap** (also Shift+Delete) removes selected musical occurrences or rest spans and closes their time on this lane. Multiple selections form one edit.
-- Consecutive pause tokens appear as one rest span. Drag its right edge or edit its Duration field to resize it in whole local beats, shifting later items.
+- Consecutive pause tokens appear as one rest span. Drag its right edge or choose Duration from its context menu to resize it in whole local beats, shifting later items.
 - Leading, internal, trailing and rest-only arrangements are preserved. Trailing silence contributes to Fit, playback duration, repetition and exports.
-
-Click to select an occurrence; Ctrl/Cmd/Shift+click adds to the selection. Drag the handle to move a contiguous selection. Ctrl/Cmd+C/V copies and pastes; keys 1–8 place a pad at the current position. Right-click selects a placement position and exposes the lane actions.
 
 ## Playback and audition
 
@@ -49,14 +53,20 @@ For Arrangement lanes, **At end: Stop track | Repeat track sequence** controls t
 
 **Play** ends all auditions, starts Arrangement lanes and stops Manual pads sequencers. It starts the instrument engine when needed. **Stop** clears and stops auditions and Arrangement lanes while preserving independently started manual sequencers. It leaves the rack engine running. Double-click Stop resets to the loop start or song start when no manual track keeps transport active.
 
-Use **Audition** on a selected pad, group or supergroup to hear it temporarily. During playback it takes over only that track at the next pad/rest boundary, from its first token, and repeats until stopped. Other tracks continue. Editing, Playing, Queued and Auditioning are separate states; selecting a pad never launches it.
+Every musical occurrence and available pad/group/supergroup has a small speaker icon near its right edge. Hold it for **250 ms** to begin a momentary preview from its first token. Shorter clicks do nothing. Preview starts at the next available audio block after preparation, without waiting for a pad boundary; existing audio buffering still contributes latency. It repeats while held. Selecting content never launches it.
 
-**Return to arrangement** waits for the next boundary, then restores the authored sequence at the current song position. It can return into a rest or an already-ended finite track. **Stop audition** stops this track and clears its override without restarting its arrangement. Cancel launch discards a pending change.
+Release the speaker to end preview and restore the lane's previous playback at the current shared-clock position. An Arrangement lane can return into a rest or a finite track that has ended. Previously stopped lanes stay stopped. Independently playing manual pads and existing sequencer auditions are restored. Other lanes continue and lane Mute/Solo remains effective. Releases preserve other lanes sharing an instrument/channel.
 
-With transport stopped, Audition starts only the selected track. Seeks and loop wraps restart active auditions at their first token on the shared clock. Queued audition replacements or returns take effect at the seek or loop destination. During song playback, the song's range and end remain authoritative. Arranger arpeggiators support definition audition; independent Live arpeggiators retain their own existing launch controls.
+Hold Space/Enter on a focused speaker for the same behaviour. Releasing outside it, cancelling the gesture, losing focus, collapsing, or leaving the view ends the preview. Preparation failures retain current playback; releasing before preparation finishes prevents a late launch. Transport Play/Stop cancels previews, and a late release cannot restart playback.
+
+With transport stopped, preview starts only that lane through the normal instrument startup flow. Seeks and loop wraps restart held previews at their first token on the shared clock. During song playback, song range/end remain authoritative. Arranger arpeggiators support previews; independent Live arpeggiators remain unchanged.
+
+The sequencer's existing **Audition**, **Return to arrangement**, **Stop audition**, and **Cancel launch** controls remain unchanged in this pass. Those launches/returns still follow pad/rest boundaries.
 
 ## Saved format
 
 Performances still store root sequences, pads, groups, supergroups and supported pause tokens. Version 16 and imports of versions 1–16 remain supported; the app-state and native bundle envelope versions are unchanged. Old enabled arrangements that resolve to no tokens are imported as an explicit occurrence of their former active pad, preserving their repeat setting and sound.
 
-Audition commands, selection, position, sounding pads and temporary enablement are session state. Save, autosave, native bundles and both CSD exports use authored data. Musical edits made while auditioning save normally.
+Optional `definitionColors` metadata maps typed definition references (`pad:0`, `group:A`, `super:I`) to hexadecimal colours. It does not change sequence compilation or trigger audio preparation. Missing/invalid colours use type defaults. Save/load, autosave, native bundles and CLI handling retain valid colours. CSD audio ignores them.
+
+Audition/preview commands and restoration state, selection, position, sounding pads and temporary enablement are session state. Save, autosave, native bundles and both CSD exports use authored data. Musical edits made while auditioning save normally.

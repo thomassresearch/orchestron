@@ -371,9 +371,13 @@ async def browser_clock_controller(websocket: WebSocket, session_id: str) -> Non
                     continue
 
                 if message_type == "audition":
-                    response = await container.session_service.browser_clock_audition(
-                        session_id, connection_id, BrowserClockAuditionRequest.model_validate(payload))
-                    await send_json(response)
+                    try:
+                        response = await container.session_service.browser_clock_audition(
+                            session_id, connection_id, BrowserClockAuditionRequest.model_validate(payload))
+                        await send_json(response)
+                    except (HTTPException, ValidationError, ValueError) as exc:
+                        await send_json({"type": "sequencer_error", "request_id": payload.get("request_id"),
+                            "detail": _http_error_detail(exc.detail) if isinstance(exc, HTTPException) else str(exc)})
                     continue
 
                 if message_type == "queue_pad":

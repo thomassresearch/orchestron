@@ -123,6 +123,15 @@ class EngineMidiScheduler:
                     drained.append(event)
         return drained
 
+    def release_sources(self, sources: set[str], *, sample: int) -> None:
+        """Discard replaced material, then release delivered voices with source ownership."""
+        with self._lock:
+            self._events = [event for event in self._events if event.source not in sources]
+            heapq.heapify(self._events)
+            for source, message in self.lane_output.source_releases(sources):
+                self._sequence += 1
+                heapq.heappush(self._events, EngineMidiEvent(sample, self._sequence, source, bytes(message)))
+
 
 class ClockDomainMapping:
     _STALE_AFTER_NS = 1_000_000_000

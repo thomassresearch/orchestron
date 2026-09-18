@@ -8,11 +8,7 @@ import { canInsertItemIntoPadLoopContainer, getPadLoopContainerSequence, groupPa
 import { useOpenArranger, usePerformanceEditorState } from "./PerformanceEditorState";
 import type { SequencerUiCopy } from "./sequencerUiCopy";
 
-let arrangementDrag: { trackId: string; item: PadLoopPatternItem } | null = null;
-export const currentArrangementDrag = () => arrangementDrag;
-export const beginArrangementDrag = (trackId: string, item: PadLoopPatternItem) => { arrangementDrag = { trackId, item }; };
-export const endArrangementDrag = () => { arrangementDrag = null; };
-export const ARRANGEMENT_ITEM_MIME = "application/x-orchestron-pattern-reference";
+import { endArrangementDrag, beginArrangementDrag, ARRANGEMENT_ITEM_MIME } from "../../lib/arrangementDrag";
 const button = "rounded border border-slate-600 bg-slate-900 px-2 py-1 text-xs text-slate-200 hover:border-accent disabled:opacity-40";
 type Props = {
   ui: Pick<SequencerUiCopy, "padLoopSequence" | "padLoopSequenceEmpty" | "padLoopSequenceHint" | "padLooper" | "repeat" | "on" | "off" | "remove">;
@@ -45,7 +41,7 @@ export function PadLoopPatternEditor({ track, guiLanguage = "english", onPadLoop
   const [, selectLane] = usePerformanceEditorState<string | null>("arranger", "selectedLane", null);
   const [expanded, setExpanded] = usePerformanceEditorState(`device:${track.id}`, hideSource ? "definitionOpen" : "libraryOpen", false);
   const [, expandLane] = usePerformanceEditorState(`device:${track.id}`, "arrangerExpanded", false);
-  const [, expandArrangerDefinition] = usePerformanceEditorState(`device:${track.id}`, "definitionOpen", false);
+  const [, focusArrangerDefinition] = usePerformanceEditorState<PadLoopPatternItem | null>(`device:${track.id}`, "arrangerFocusDefinition", null);
   const [error, setError] = useState(false);
   const active = selected && getPadLoopContainerSequence(pattern, selected) !== null ? selected : null;
   const sequence = active ? getPadLoopContainerSequence(pattern, active) ?? [] : [];
@@ -82,7 +78,7 @@ export function PadLoopPatternEditor({ track, guiLanguage = "english", onPadLoop
           <option value="manual">{c.manual}</option>
           <option value="arrangement" disabled={!pattern.rootSequence.length}>{c.arrangement}</option>
         </select></label>
-        <button className={button} onClick={() => { selectLane(track.id); expandLane(true); expandArrangerDefinition(true); openArranger?.(); requestAnimationFrame(() => document.getElementById("multitrack-arranger")?.scrollIntoView({ block: "center" })); }}>{c.open}</button>
+        <button className={button} onClick={() => { selectLane(track.id); expandLane(true); focusArrangerDefinition(active ? definitionItem(active) : { type: "pad", padIndex: 0 }); openArranger?.(); requestAnimationFrame(() => document.getElementById("multitrack-arranger")?.scrollIntoView({ block: "center" })); }}>{c.open}</button>
       </>}
       <button className={button} onClick={() => create("group")}>{c.newGroup}</button>
       <button className={button} onClick={() => create("super")}>{c.newSuper}</button>

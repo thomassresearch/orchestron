@@ -44,7 +44,7 @@ beforeEach(() => {
   useAppStore.getState().applySequencerConfigSnapshot(fixture.config);
   useAppStore.setState({ activeSessionId: "session", activeSessionState: "running" });
   audition.mockReset().mockResolvedValue({ ...status(0), auditions: {} });
-  const client = { audition, connect: vi.fn().mockResolvedValue(undefined), stopSequencer: vi.fn().mockResolvedValue(status(0, false)) };
+  const client = { audition, prime: vi.fn().mockResolvedValue(undefined), connect: vi.fn().mockResolvedValue(undefined), stopSequencer: vi.fn().mockResolvedValue(status(0, false)) };
   const browser = { browserClockClientRef: { current: client as unknown as ReturnType<typeof useBrowserClockAudioController>["browserClockClientRef"]["current"] }, browserAudioError: null, browserAudioDiagnostics: null,
     browserAudioStatus: "live" as const, browserAudioTransport: "browser_clock" as const,
     disconnectBrowserAudio: noop, disconnectBrowserClockAudio: noop, displayedSequencerTransportSubunit: 0, readPlaybackTransportSubunit: () => null,
@@ -132,4 +132,29 @@ it("ignores audition responses from a replaced performance workspace", async () 
   await act(async () => { respond({ ...status(24), auditions: { [id]: { active: true, queued: null } } }); await start; });
   expect(useAppStore.getState().performanceAuditions).toEqual({});
   expect(useAppStore.getState().sequencerRuntime.transportSubunit).not.toBe(24 * 420);
+});
+
+it("releases a momentary gesture during preparation and suppresses its late launch", async () => {
+  let prepared!: (value: SessionSequencerStatus) => void;
+  vi.mocked(api.configureSessionSequencer).mockImplementationOnce(() => new Promise(resolve => { prepared = resolve; }));
+  const { result } = setup(true);
+  const id = useAppStore.getState().sequencer.tracks[0].id;
+  let start!: Promise<void>;
+  act(() => { start = result.current.auditionDevice(id, { action: "preview_start", gestureId: "hold", item: { type: "pad", padIndex: 1 } }); });
+  await act(() => result.current.auditionDevice(id, { action: "preview_end", gestureId: "hold" }));
+  await act(async () => { prepared(status(0)); await start; });
+  expect(audition).toHaveBeenCalledExactlyOnceWith("session", { action: "preview_end", gesture_id: "hold", revision: 2, track_ids: [id] });
+});
+
+it("transport stop cancels a prepared preview and its later release cannot resume a lane", async () => {
+  let prepared!: (value: SessionSequencerStatus) => void;
+  vi.mocked(api.configureSessionSequencer).mockImplementationOnce(() => new Promise(resolve => { prepared = resolve; }));
+  const { result } = setup(true);
+  const id = useAppStore.getState().sequencer.tracks[0].id;
+  let start!: Promise<void>;
+  act(() => { start = result.current.auditionDevice(id, { action: "preview_start", gestureId: "hold", item: { type: "pad", padIndex: 1 } }); });
+  await act(() => result.current.stopSequencerTransport(false));
+  await act(async () => { prepared(status(0)); await start; });
+  await act(() => result.current.auditionDevice(id, { action: "preview_end", gestureId: "hold" }));
+  expect(audition).not.toHaveBeenCalled();
 });

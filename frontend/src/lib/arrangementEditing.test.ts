@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { arrangementSpans, createDefinition, deleteDefinition, definitionUses, firstUnusedPad, moveArrangementItems, placeArrangementItems, removeArrangementItems, validateArrangementEdit } from "./arrangementEditing";
+import { arrangementSpans, createDefinition, deleteDefinition, definitionUses, firstUnusedPad, moveArrangementItems, placeArrangementItems, removeArrangementItems, resolveArrangementDrop, groupArrangementSelection, validateArrangementEdit } from "./arrangementEditing";
 import { compilePadLoopPattern, normalizePadLoopPatternState, ungroupPadLoopItemsInContainer } from "./padLoopPattern";
 import type { PadLoopPatternItem, PadLoopPatternState } from "../types";
 const pad = (padIndex = 0): PadLoopPatternItem => ({ type: "pad", padIndex });
@@ -8,6 +8,34 @@ const pattern = (rootSequence: PadLoopPatternItem[] = []): PadLoopPatternState =
 const durations = [4, 2, 8, 4, 4, 4, 4, 4];
 
 describe("arrangement occurrences and reusable definitions", () => {
+  it("resolves boundary insertion, silence placement and tail gaps using the same edit as the preview", () => {
+    const value = pattern([pad(), pad(1), rest(8), pad(2)]);
+    const inserted = resolveArrangementDrop(value, [pad(1)], 4.05, durations, 72);
+    expect(inserted).toMatchObject({ position: 4, duration: 2, insert: true });
+    expect(arrangementSpans(inserted.pattern, durations).filter(s => s.item.type !== "pause").map(s => s.start)).toEqual([0, 4, 6, 16]);
+    const moved = resolveArrangementDrop(value, [pad()], 4, durations, 72, [0]);
+    expect(moved.pattern.rootSequence[0]).toEqual(rest(4));
+    expect(arrangementSpans(moved.pattern, durations).filter(s => s.item.type !== "pause").map(s => s.start)).toEqual([4, 8, 18]);
+    expect(resolveArrangementDrop(value, [pad()], 0, durations, 72, [0]).pattern).toBe(value);
+    expect(() => resolveArrangementDrop(value, [pad()], 2, durations, 72)).toThrow("Occupied destination");
+    expect(resolveArrangementDrop(value, [pad()], 8, durations, 72).pattern.rootSequence).toEqual([pad(), pad(1), rest(2), pad(), rest(2), pad(2)]);
+    const tail = resolveArrangementDrop(value, [pad()], 25, durations, 72);
+    expect(tail.pattern.rootSequence.slice(-3)).toEqual([rest(2), rest(1), pad()]);
+    expect(() => resolveArrangementDrop(value, [rest(1)], 9, durations, 72)).toThrow();
+    expect(() => resolveArrangementDrop(value, [pad(), pad(2)], 25, durations, 72, [0, 3])).toThrow();
+  });
+  it("regroups into new or existing definitions atomically and permits mixed supergroup contents", () => {
+    const value = { ...pattern([pad(), rest(2), { type: "group" as const, groupId: "A" }]), groups: [{ id: "A", sequence: [pad(1)] }] };
+    const updated = groupArrangementSelection(value, [0, 1], "group", "A");
+    expect(updated.pattern.rootSequence).toEqual([{ type: "group", groupId: "A" }, { type: "group", groupId: "A" }]);
+    expect(compilePadLoopPattern(updated.pattern).sequence).toEqual([0, -2, 0, -2]);
+    const created = groupArrangementSelection(value, [0, 1], "group");
+    expect(created.ref.id).toBe("B");
+    expect(created.pattern.groups[0]).toEqual(value.groups[0]);
+    expect(groupArrangementSelection(value, [0, 1, 2], "super").pattern.superGroups[0].sequence).toEqual(value.rootSequence);
+    expect(() => groupArrangementSelection(value, [0, 2], "super")).toThrow();
+    expect(() => groupArrangementSelection(value, [0, 1, 2], "group")).toThrow();
+  });
   it("retains unused and empty definitions and direct supergroup rests", () => {
     const value: PadLoopPatternState = { rootSequence: [{ type: "super", superGroupId: "I" }], groups: [{ id: "A", sequence: [] }, { id: "B", sequence: [pad(1)] }], superGroups: [{ id: "I", sequence: [rest(2), pad(), rest(4)] }, { id: "II", sequence: [] }] };
     expect(normalizePadLoopPatternState(value).pattern).toEqual(value);

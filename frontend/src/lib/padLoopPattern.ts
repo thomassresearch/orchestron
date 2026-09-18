@@ -5,6 +5,7 @@ import type {
   PadLoopPatternState,
   PadLoopSuperGroupPatternState
 } from "../types";
+import { normalizeDefinitionColors } from "./definitionColors";
 
 export const PAD_LOOP_PAD_COUNT = 8;
 export const PAD_LOOP_COMPILED_MAX_LENGTH = 256;
@@ -188,6 +189,7 @@ function samePadLoopPatternSequence(a: PadLoopPatternItem[], b: PadLoopPatternIt
 
 export function clonePadLoopPattern(pattern: PadLoopPatternState): PadLoopPatternState {
   return {
+    ...(pattern.definitionColors ? { definitionColors: { ...pattern.definitionColors } } : {}),
     rootSequence: pattern.rootSequence.map(clonePadLoopPatternItem),
     groups: pattern.groups.map((group) => ({
       id: group.id,
@@ -381,7 +383,9 @@ function sanitizePatternWithHierarchyRules(pattern: PadLoopPatternState): PadLoo
   }));
   const sanitizedRootSequence = sanitizeRootSequence(pattern.rootSequence);
 
-  return { rootSequence: sanitizedRootSequence, groups: sanitizedGroups, superGroups: sanitizedSuperGroups };
+  const next = { rootSequence: sanitizedRootSequence, groups: sanitizedGroups, superGroups: sanitizedSuperGroups };
+  const definitionColors = normalizeDefinitionColors(pattern.definitionColors, next);
+  return { ...next, ...(definitionColors ? { definitionColors } : {}) };
 }
 
 export function normalizePadLoopPatternState(
@@ -395,6 +399,7 @@ export function normalizePadLoopPatternState(
     const groups = parseGroupDefinitions(record.groups, "group");
     const superGroups = parseGroupDefinitions(record.superGroups ?? record.super_groups, "super");
     pattern = {
+      definitionColors: record.definitionColors as Record<string, string> | undefined,
       rootSequence: parseItemArray(record.rootSequence ?? record.root_sequence ?? record.sequence ?? record.items),
       groups: groups.map((group): PadLoopGroupPatternState => ({
         id: group.id,
@@ -1091,9 +1096,6 @@ export function canCreatePadLoopGroupFromSelection(
   }
   const items = selected.map((index) => sequence[index]).filter(Boolean);
   if (items.some((item) => itemLevel(item) >= targetLevel)) {
-    return false;
-  }
-  if (target === "super" && items.some((item) => item.type !== "group")) {
     return false;
   }
   return true;

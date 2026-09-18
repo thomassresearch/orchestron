@@ -246,6 +246,8 @@ export interface PadLoopSuperGroupPatternState {
 }
 
 export interface PadLoopPatternState {
+  /** Optional display metadata; never compiled or sent to the audio engine. */
+  definitionColors?: Record<string, string>;
   rootSequence: PadLoopPatternItem[];
   groups: PadLoopGroupPatternState[];
   superGroups: PadLoopSuperGroupPatternState[];
@@ -1230,11 +1232,13 @@ export interface SessionEvent {
 }
 
 export interface SessionAuditionRequest {
-  action: "start" | "cancel" | "stop" | "return";
+  action: "start" | "cancel" | "stop" | "return" | "preview_start" | "preview_end";
+  gesture_id?: string;
+  revision?: number;
   track_ids?: string[];
   arpeggiator_id?: string;
   sequence?: number[];
 }
-export type PerformanceAuditionStatus = Record<string, { active: boolean; queued: SessionAuditionRequest["action"] | null }>;
+export type PerformanceAuditionStatus = Record<string, { active: boolean; queued: SessionAuditionRequest["action"] | null; preview_gesture?: string; preview_revision?: number }>;
 
 export interface SessionLaneOutputRequest { revision: number; lanes: Record<string, { mute: boolean; solo: boolean }> }

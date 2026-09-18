@@ -3,6 +3,21 @@ from __future__ import annotations
 from backend.app.engine.midi_scheduler import ClockDomainMapping, EngineMidiScheduler
 
 
+def test_preview_transition_discards_pending_lane_events_without_cutting_shared_pitch():
+    scheduler = EngineMidiScheduler()
+    for source in ("lane:lead", "lane:other"):
+        scheduler.enqueue([0x90, 60, 100], source=source, target_engine_sample=0)
+    assert len(scheduler.drain_block(block_start_sample=0, block_end_sample=1)) == 2
+    scheduler.enqueue([0x90, 64, 100], source="lane:lead", target_engine_sample=20)
+    scheduler.enqueue([0x80, 64, 0], source="lane:lead", target_engine_sample=30)
+    scheduler.enqueue([0xB0, 74, 64], source="lane:lead", target_engine_sample=40)
+    scheduler.enqueue([0x80, 60, 0], source="lane:other", target_engine_sample=50)
+    scheduler.release_sources({"lane:lead"}, sample=10)
+    assert scheduler.drain_block(block_start_sample=10, block_end_sample=50) == []
+    remaining = scheduler.drain_block(block_start_sample=50, block_end_sample=51)
+    assert [(event.source, list(event.message)) for event in remaining] == [("lane:other", [0x80, 60, 0])]
+
+
 def test_engine_midi_scheduler_drains_events_in_block_order() -> None:
     scheduler = EngineMidiScheduler()
 

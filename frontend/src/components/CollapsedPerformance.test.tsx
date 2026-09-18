@@ -193,29 +193,27 @@ it("cancels a pending transpose long-press when the melodic panel unmounts", () 
   } finally { view.unmount(); vi.useRealTimers(); }
 });
 
-it("preserves arranger zoom, selection, clipboard and scroll with its visible palette", () => {
+it("preserves arranger zoom, selection, position and scroll while closing menus on collapse", () => {
   const { container } = render(<Page />); togglePanel("Multitrack Arranger");
   fireEvent.click(screen.getByRole("button", { name: "Zoom +" }));
-  let list = container.querySelector('[role="list"]')!;
-  const token = within(list as HTMLElement).getByRole("button", { name: "1" });
-  fireEvent.click(token); fireEvent.contextMenu(list, { clientX: 100, clientY: 30 });
-  fireEvent.click(screen.getByRole("button", { name: /^Copy$/ }));
-  const selectedStyle = token.parentElement!.style.width;
+  const list = container.querySelector('[role="list"]')!;
+  const token = within(list as HTMLElement).getAllByRole("listitem")[0];
+  fireEvent.click(token);
+  const selectedStyle = token.style.width;
+  fireEvent.change(screen.getByRole("spinbutton", { name: /Position/ }), { target: { value: "32" } });
   const scrollbar = container.querySelector(".h-4.overflow-x-auto")!;
   Object.defineProperty(scrollbar, "clientWidth", { value: 100 });
   fireEvent.scroll(scrollbar, { target: { scrollLeft: 30 } });
-  fireEvent.contextMenu(list, { clientX: 100, clientY: 30 });
+  fireEvent.contextMenu(token, { clientX: 100, clientY: 30 });
+  expect(screen.getByRole("menu")).toBeTruthy();
   togglePanel("Multitrack Arranger"); tick(4); togglePanel("Multitrack Arranger");
-  list = container.querySelector('[role="list"]')!;
-  const restored = within(list as HTMLElement).getByRole("button", { name: "1" });
-  expect(restored.parentElement!.style.width).toBe(selectedStyle);
-  expect(restored.parentElement!.className).toContain("ring-2");
+  const restored = within(container.querySelector('[role="list"]') as HTMLElement).getAllByRole("listitem")[0];
+  expect(restored.style.width).toBe(selectedStyle);
+  expect(restored.className).toContain("ring-2");
   expect(container.querySelector(".h-4.overflow-x-auto")!.scrollLeft).toBe(30);
-  expect(screen.getByRole("button", { name: /^Copy$/ })).toBeTruthy();
-  noop.mockClear(); fireEvent.contextMenu(list, { clientX: 100, clientY: 30 });
-  fireEvent.change(screen.getByRole("spinbutton", { name: /Position/ }), { target: { value: "32" } });
-  fireEvent.click(screen.getByRole("button", { name: /^Paste$/ }));
-  expect(noop).toHaveBeenCalledWith("tracks-1", expect.objectContaining({ rootSequence: expect.any(Array) }));
+  expect((screen.getByRole("spinbutton", { name: /Position/ }) as HTMLInputElement).value).toBe("32");
+  expect(screen.queryByRole("menu")).toBeNull();
+  expect(screen.queryByRole("button", { name: /^Paste$/ })).toBeNull();
 });
 
 it("retains rack controller drafts and clears them only on a new workspace generation", () => {
@@ -299,7 +297,7 @@ it("retains asynchronous Mixer feedback across collapse but isolates results fro
 it("discards deleted arranger selections so adding positions later does not revive them", () => {
   const { container } = render(<Page />); togglePanel("Multitrack Arranger");
   const list = container.querySelector('[role="list"]')!;
-  fireEvent.click(within(list as HTMLElement).getByRole("button", { name: "2" }));
+  fireEvent.click(within(list as HTMLElement).getAllByRole("listitem")[1]);
   togglePanel("Multitrack Arranger");
   const pattern = useAppStore.getState().sequencer.tracks[0].padLoopPattern;
   const replace = (rootSequence: typeof pattern.rootSequence) => act(() => useAppStore.setState(state => ({
@@ -307,6 +305,6 @@ it("discards deleted arranger selections so adding positions later does not revi
   })));
   replace(pattern.rootSequence.slice(0, 1)); togglePanel("Multitrack Arranger");
   replace(pattern.rootSequence);
-  const second = within(container.querySelector('[role="list"]') as HTMLElement).getByRole("button", { name: "2" });
-  expect(second.parentElement!.className).not.toContain("ring-2");
+  const second = within(container.querySelector('[role="list"]') as HTMLElement).getAllByRole("listitem")[1];
+  expect(second.className).not.toContain("ring-2");
 });

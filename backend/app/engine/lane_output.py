@@ -71,6 +71,12 @@ class LaneOutputGate:
         self._notes.clear()
         self._sounding.clear()
 
+    def source_releases(self, sources: set[str]) -> list[tuple[str, list[int]]]:
+        """Release only voices actually delivered; ownership is consumed at delivery."""
+        return [(source.removeprefix("output:"), [0x80 + channel, note, 0])
+                for (source, channel, note), sounded in self._notes.items()
+                if sounded and source.startswith("output:") and source.removeprefix("output:") in sources]
+
     def allows(self, source: str, message: bytes | tuple[int, ...] | list[int], *, stage: str = "output") -> bool:
         status, note, velocity = message
         channel, kind = status & 15, status & 0xf0

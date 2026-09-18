@@ -143,3 +143,12 @@ def test_cli_accepts_definition_library_without_song_and_rejects_expansion_overf
     huge = {"groups": [{"id": "A", "sequence": [{"type": "pad", "padIndex": 0}] * 129}], "superGroups": []}
     with pytest.raises(cli.OrchestronCliError, match="256"):
         cli.compile_pad_loop_items(huge, [{"type": "group", "groupId": "A"}] * 2, depth=0)
+
+
+def test_cli_preserves_valid_definition_colours_without_changing_music():
+    raw = {"rootSequence": [{"type": "group", "groupId": "A"}],
+           "groups": [{"id": "A", "sequence": [{"type": "pad", "padIndex": 0}]}], "superGroups": [],
+           "definitionColors": {"pad:0": "#ABCDEF", "group:A": "#113355", "pad:8": "#123456", "super:I": "red"}}
+    pattern = cli.parse_pad_loop_pattern(raw)
+    assert pattern["definitionColors"] == {"pad:0": "#abcdef", "group:A": "#113355"}
+    assert cli.compile_pad_loop_items(pattern, pattern["rootSequence"], depth=0) == [0]

@@ -1344,6 +1344,13 @@ def parse_pad_loop_pattern(raw: Any, *, field: str = "pad_loop") -> dict[str, An
         super_groups = []
         root_sequence = parse_pad_loop_sequence(raw, context="root", group_ids=set(), super_group_ids=set(), field=field)
     pattern = {"rootSequence": root_sequence, "groups": groups, "superGroups": super_groups}
+    if isinstance(raw, dict) and isinstance(raw.get("definitionColors"), dict):
+        keys = {*(f"pad:{i}" for i in range(8)), *(f"group:{g['id']}" for g in groups),
+                *(f"super:{g['id']}" for g in super_groups)}
+        colors = {key: value.lower() for key, value in raw["definitionColors"].items()
+                  if key in keys and isinstance(value, str) and re.fullmatch(r"#[0-9a-fA-F]{6}", value)}
+        if colors:
+            pattern["definitionColors"] = colors
     validate_pad_loop_library(pattern)
     return pattern
 

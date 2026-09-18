@@ -99,7 +99,8 @@ it measures cold, cached, and one-pad preparation using the versioned TB303 test
 - Arranger alone edits song order. Playback source uses `padLoopEnabled`; lane end behavior
   uses `padLoopRepeat`. Delete leaves equivalent rests; closing time is explicit. Retain unused
   definitions and trailing rests. See the arranger reference for hierarchy and import fallback.
-- Audition is session-only, boundary-applied, and uses the shared clock. Save/export reads
+- Audition is session-only and uses the shared clock. Sequencer audition follows boundaries;
+  arranger speaker previews start after a 250 ms hold and restore prior playback on release at a render block. Save/export reads
   authored state. Arranger Play clears auditions and starts Arrangement tracks; Stop clears
   auditions and preserves independently started Manual pads tracks and the rack engine. Piano-roll Start is independent
   of arranger playback; retain the documented seek/reset behavior.
@@ -110,7 +111,8 @@ it measures cold, cached, and one-pad preparation using the versioned TB303 test
   bypasses Master but retains strip controls. Legacy Level migrates to dB audio gain, not velocity.
 - Mixer persistence arrived in performance config v11; current serializers/CLI write v16 and
   accept v1–16. App state remains v2. Distinguish these from the native bundle envelope version.
-  Preserve types, device names, routing, mixer state, and instance overrides across round trips.
+  Preserve types, device names, routing, mixer state, instance overrides and optional
+  `padLoopPattern.definitionColors` display metadata across round trips. Colours never trigger audio preparation.
 - Master is the fixed `$master` endpoint, with no library patch or rack slot. Preserve its
   strip/inserts and direct-output bypass; see routing docs for legacy migration and backups.
 - `perf_controller` values are per-instance I-rate settings: new notes adopt changes; continuous

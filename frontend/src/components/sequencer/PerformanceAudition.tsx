@@ -1,9 +1,10 @@
 import { createContext, useContext } from "react";
-import type { GuiLanguage, PadLoopPatternItem, SessionAuditionRequest } from "../../types";
+import type { GuiLanguage, PadLoopPatternItem } from "../../types";
 import { arrangementCopy } from "../../lib/arrangementCopy";
 import { useAppStore } from "../../store/useAppStore";
 
-export type AuditionDevice = (id: string, itemOrAction: PadLoopPatternItem | Exclude<SessionAuditionRequest["action"], "start">) => Promise<void>;
+export type PreviewCommand = { action: "preview_arm" | "preview_start" | "preview_end"; gestureId: string; item?: PadLoopPatternItem };
+export type AuditionDevice = (id: string, itemOrAction: PadLoopPatternItem | "cancel" | "stop" | "return" | PreviewCommand) => Promise<void>;
 export const PerformanceAuditionContext = createContext<AuditionDevice | null>(null);
 export const usePerformanceAudition = () => useContext(PerformanceAuditionContext);
 

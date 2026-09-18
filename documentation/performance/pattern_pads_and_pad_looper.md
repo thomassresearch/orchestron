@@ -16,7 +16,7 @@ Drag one pad onto another to copy it explicitly. Melodic pad edge buttons transp
 
 ## Reusable groups and supergroups
 
-Click the triangle beside **Patterns and phrases** to expand or collapse the library. It starts collapsed, retains the selected definition when closed, and remembers its disclosure state separately in the sequencer and arranger. The library has explicit New group and New supergroup actions. Groups use letter IDs and contain pads/rests. Supergroups use Roman numeral IDs and contain pads/rests/groups. Song order is edited only in the [arranger](multitrack_arranger.md), whose Edit action opens this same definition editor.
+Click the triangle beside **Patterns and phrases** to expand or collapse the library. It starts collapsed, retains the selected definition when closed, and remembers its disclosure state in the sequencer. The library has explicit New group and New supergroup actions. Groups use letter IDs and contain pads/rests. Supergroups use Roman numeral IDs and contain pads/rests/groups. Song order is edited only in the [arranger](multitrack_arranger.md), where phrases are edited by ungrouping, rearranging, and regrouping. Open in arranger focuses the selected definition in its lane palette.
 
 Choose a definition to edit its contents. Add items, select them, drag to reorder, or delete to close up the phrase. Deleting inside a definition changes the phrase itself; it does not leave an absolute-time gap. Definition edits affect every occurrence. Duration changes shift following song material, as stated in the editor.
 
@@ -28,6 +28,8 @@ A pattern container and its expanded sequence may contain at most 256 tokens. Ov
 
 **Playback source: Arrangement** follows the song timeline. Its Stop/Repeat-at-end option lives in the arranger lane. **Manual pads** enables a separate Launch pad action for jamming. Selection alone never starts sound.
 
-In Arrangement mode, use **Audition** for a pad or phrase. It temporarily replaces only that track at the next boundary and repeats independently of its saved repeat setting. With transport stopped it starts only this track, using the normal instrument startup flow. **Return to arrangement** restores the authored song at the current position on the next boundary; **Stop audition** stops the track. See the [arranger transport contract](multitrack_arranger.md#playback-and-audition).
+In the sequencer’s Arrangement mode, use **Audition** for a pad or phrase. It temporarily replaces only that track at the next boundary and repeats independently of its saved repeat setting. With transport stopped it starts only this track, using the normal instrument startup flow. **Return to arrangement** restores the authored song at the current position on the next boundary; **Stop audition** stops the track. See the [arranger transport contract](multitrack_arranger.md#playback-and-audition).
 
 Arpeggiators in independent Live mode keep their existing cycle/bar launch quantization. Their Arranger mode uses the shared definition library and temporary audition.
+
+The arranger provides separate momentary speaker previews: hold for 250 ms, release to restore previous playback immediately at the current song position. Its context menus also set saved, per-definition colours. These changes leave sequencer controls and default colours unchanged.

@@ -7,7 +7,7 @@ import heapq
 import math
 from fractions import Fraction
 import threading
-from typing import Callable, Iterable, Protocol
+from typing import Any, Callable, Iterable, Protocol
 
 from backend.app.models.session import (
     ArpeggiatorCommand,
@@ -20,6 +20,7 @@ from backend.app.models.session import (
 )
 from backend.app.services.sequencer_runtime_models import RenderTransportEvent
 from backend.app.engine.lane_output import LaneOutputGate, lane_id
+from backend.app.services.preview_commands import PreviewCommands
 
 
 class TimestampedMidiEnqueue(Protocol):
@@ -63,6 +64,7 @@ class PendingInputEvent:
 @dataclass(slots=True)
 class ArpeggiatorRuntimeState:
     config: SessionArpeggiatorConfig
+    preview: dict[str, Any] | None = None
     audition_sequence: tuple[int, ...] = ()
     audition_origin: Fraction = Fraction(0)
     audition_pending: tuple[str, tuple[int, ...], Fraction] | None = None
@@ -179,6 +181,7 @@ class PerformanceMidiRouter:
         self._max_future_samples = max_future_samples
         self._lock = threading.RLock()
         self._states: dict[str, ArpeggiatorRuntimeState] = {}
+        self._preview_commands = PreviewCommands()
         self.lane_output: LaneOutputGate | None = None
         self._input_channel_to_id: dict[int, str] = {}
         self._pending_inputs: list[PendingInputEvent] = []
@@ -274,6 +277,7 @@ class PerformanceMidiRouter:
                 if key not in new_states:
                     self._clear(state, self._current_engine_sample())
             self._states = new_states
+            self._preview_commands.retain(new_states)
             self._input_channel_to_id = {c.input_channel: c.arpeggiator_id for c in configs}
             self._pending_inputs = [e for e in self._pending_inputs if e.arpeggiator_id in new_states]
             heapq.heapify(self._pending_inputs)
@@ -313,6 +317,7 @@ class PerformanceMidiRouter:
                     state.queued_beat += delta
                 continue
             if was_running and not running:
+                state.preview = None
                 state.audition_sequence = ()
                 state.audition_pending = None
                 state.audition_stopped = False
@@ -322,6 +327,9 @@ class PerformanceMidiRouter:
                 self._apply_audition(state, beat, sample)
                 continue
             if state.audition_sequence and reset:
+                if state.preview:
+                    state.preview["fields"]["audition_origin"] = beat
+                    state.preview["fields"]["anchor_beat"] = None
                 state.audition_origin = beat
                 state.anchor_beat = None
                 self._locate(state, beat, reset=True)
@@ -338,6 +346,7 @@ class PerformanceMidiRouter:
 
     def audition_status(self):
         return {key: {"active": bool(state.audition_sequence), "queued": state.audition_pending[0] if state.audition_pending else None}
+                | ({"preview_gesture": state.preview["gesture"], "preview_revision": state.preview["revision"]} if state.preview else {})
                 for key, state in self._states.items() if state.audition_sequence or state.audition_pending}
 
     def audition(self, request: SessionAuditionRequest, *, transport_running: bool | None = None) -> None:
@@ -349,6 +358,10 @@ class PerformanceMidiRouter:
                 raise ValueError("Audition pad is not configured.")
             sample = self._current_engine_sample()
             beat = self._beat(sample)
+            if request.action.startswith("preview_"):
+                self._preview(state, request, beat, sample)
+                return
+            state.preview = None
             if request.action == "cancel":
                 state.audition_pending = None
             else:
@@ -363,6 +376,33 @@ class PerformanceMidiRouter:
                 if immediate:
                     self._apply_audition(state, beat, sample)
             self._status_dirty = True
+
+    def _preview(self, state, request, beat, sample):
+        if not self._preview_commands.accept([request.arpeggiator_id], request):
+            return
+        if request.action == "preview_start":
+            if state.preview is None:
+                state.preview = {"running": self._running(state), "fields": {key: getattr(state, key) for key in (
+                    "audition_sequence", "audition_origin", "audition_pending", "audition_stopped",
+                    "manual_override", "active_pad", "anchor_beat", "queued_pad", "queued_beat")}}
+            state.preview["gesture"] = request.gesture_id
+            state.preview["revision"] = request.revision
+            state.audition_pending = ("start", tuple(request.sequence), beat)
+            self._apply_audition(state, beat, sample)
+        elif state.preview and state.preview["gesture"] == request.gesture_id:
+            snapshot, state.preview = state.preview, None
+            self._release(state, sample)
+            for key, value in snapshot["fields"].items():
+                setattr(state, key, value)
+            state.step_index = state.note_index = state.phrase_offset = 0
+            self._locate(state, beat, reset=True)
+            if state.anchor_beat is not None:
+                state.step_index = self._index_at_or_after(state, beat)
+            if not snapshot["running"]:
+                state.audition_stopped = True
+            if state.audition_pending and state.audition_pending[2] <= beat:
+                self._apply_audition(state, beat, sample)
+        self._status_dirty = True
 
     def _apply_audition(self, state, beat, sample):
         pending = state.audition_pending
@@ -383,6 +423,7 @@ class PerformanceMidiRouter:
         with self._lock:
             beat = self._beat(self._sample)
             for state in self._states.values():
+                state.preview = None
                 if state.audition_sequence or state.audition_pending:
                     state.audition_pending = ("stop" if stop else "return", (), beat)
                     self._apply_audition(state, beat, self._sample)
@@ -534,6 +575,13 @@ class PerformanceMidiRouter:
     def _max_future_sample_horizon(self) -> int | None:
         value = self._max_future_samples
         return None if value is None else max(0, int(value() if callable(value) else value))
+
+    def discard_future_lane_inputs(self, identities: list[str]) -> None:
+        with self._lock:
+            now = self._current_engine_sample()
+            self._pending_inputs = [event for event in self._pending_inputs
+                if event.target_sample <= now or not event.source_context or event.source_context.source_id not in identities]
+            heapq.heapify(self._pending_inputs)
 
     def _inputs(self, sample: int) -> None:
         groups: dict[str, list[PendingInputEvent]] = {}

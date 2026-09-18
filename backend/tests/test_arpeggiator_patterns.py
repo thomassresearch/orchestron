@@ -353,6 +353,33 @@ def test_arranger_definition_audition_boundary_pause_return_and_stop():
     assert not p.router.audition_status()
 
 
+def test_arranger_momentary_preview_returns_immediately_into_rest_and_preserves_latched_audition():
+    from backend.app.models.session import SessionAuditionRequest
+    p = Playback(playback_mode="arranger", pad_loop_enabled=True, pad_loop_repeat=False, pad_loop_sequence=[0, -4, 0])
+    p.note()
+    p.advance(24000)
+    start = SessionAuditionRequest(action="preview_start", arpeggiator_id="arp", sequence=[1], gesture_id="hold", revision=1)
+    end = SessionAuditionRequest(action="preview_end", arpeggiator_id="arp", gesture_id="hold", revision=2)
+    p.router.audition(start)
+    assert p.router.status()[0].active_pad == 1
+    assert p.router.audition_status()["arp"]["preview_gesture"] == "hold"
+    p.advance(120000)
+    p.router.audition(end)
+    assert p.router._states["arp"].paused
+    assert not p.router.audition_status()
+    p.router.audition(SessionAuditionRequest(action="start", arpeggiator_id="arp", sequence=[2]))
+    p.advance(192001)
+    p.router.audition(start.model_copy(update={"revision": 3}))
+    p.router.audition(end.model_copy(update={"revision": 4}))
+    assert p.router._states["arp"].audition_sequence == (2,)
+    assert p.router.status()[0].active_pad == 2
+    with pytest.raises(ValueError, match="Stale"):
+        p.router.audition(start)
+    p.router.clear_auditions(stop=True)
+    p.router.audition(end.model_copy(update={"revision": 5}))
+    assert p.router.status()[0].state == "stopped"
+
+
 def test_stopped_arranger_audition_uses_shared_seek_and_keeps_live_mode_separate():
     from backend.app.models.session import SessionAuditionRequest
     p = Playback(playback_mode="arranger")

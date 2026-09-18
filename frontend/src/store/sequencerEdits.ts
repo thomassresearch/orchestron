@@ -18,7 +18,7 @@ export function sequencerEditSignature(state: SequencerState): string {
     arpeggiatorArrangement: state.arpeggiators.filter(arp => arp.playbackMode === "arranger").map(arp => ({
       id: arp.id, loop: arp.padLoopEnabled, repeat: arp.padLoopRepeat, pattern: arp.padLoopPattern,
       durations: arp.pads.map(pad => pad.lengthBeats)
-    })) });
+    })) }, (key, value) => key === "definitionColors" ? undefined : value);
 }
 
 function changedFields(authored: object, displayed: object, edited: object): RecordValue {

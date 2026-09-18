@@ -532,6 +532,105 @@ def _audition_runtime(*, repeat=False):
     return runtime, request
 
 
+def _preview_runtime():
+    runtime, _ = _audition_runtime()
+    request = SessionSequencerConfigRequest.model_validate_json(
+        (Path(__file__).parent / "fixtures/sequencers/momentary_preview.json").read_text())
+    runtime.configure(request)
+    return runtime, request
+
+
+def _preview_command(action="preview_start", revision=1, gesture="hold", targets=None):
+    from backend.app.models.session import SessionAuditionRequest
+    return SessionAuditionRequest(action=action, gesture_id=gesture, revision=revision,
+        track_ids=targets or ["lead"], sequence=[1, -2] if action == "preview_start" else [])
+
+
+@pytest.mark.parametrize("return_beat,enabled,token", [(2, True, 0), (5, True, -4), (13, False, None)])
+def test_momentary_preview_starts_immediately_and_returns_at_current_song_position(return_beat, enabled, token):
+    runtime, request = _preview_runtime()
+    runtime.start()
+    beat = runtime._transport_subunit_count_for_length(1, runtime._config.tracks["lead"].timing)
+    runtime._advance_render_to_event_locked(runtime._config, beat)
+    other_before = runtime._config.tracks["other"].phase_offset_subunit
+    runtime.audition(_preview_command())
+    lead = runtime._config.tracks["lead"]
+    assert lead.active_pad == 1 and lead.phase_offset_subunit == beat
+    assert runtime._config.tracks["other"].phase_offset_subunit == other_before
+    assert runtime.status().auditions["lead"]["preview_gesture"] == "hold"
+    runtime._advance_render_to_event_locked(runtime._config, return_beat * beat)
+    runtime.audition(_preview_command("preview_end", 2))
+    assert lead.enabled == enabled
+    if enabled:
+        assert runtime._current_pad_loop_token(lead) == token
+    else:
+        assert lead.sequence_ended
+    assert not runtime.status().auditions
+    assert request.tracks[0].pad_loop_sequence == [0, -4, 1]
+
+
+def test_preview_preserves_manual_phase_stopped_tracks_and_existing_audition():
+    from backend.app.models.session import SessionAuditionRequest
+    runtime, request = _preview_runtime()
+    request.tracks[0].pad_loop_enabled = False
+    runtime.configure(request)
+    runtime.start()
+    lead = runtime._config.tracks["lead"]
+    lead.active_pad = 1
+    lead.phase_offset_subunit = 420
+    runtime._absolute_subunit = 840
+    runtime.audition(_preview_command())
+    runtime._absolute_subunit = 1260
+    runtime.audition(_preview_command("preview_end", 2))
+    assert lead.enabled and lead.active_pad == 1 and lead.phase_offset_subunit == 420
+    runtime.audition(SessionAuditionRequest(action="start", track_ids=["lead"], sequence=[0, -1]))
+    runtime._seek_absolute_subunit_locked(3000)
+    previous = dict(runtime._auditions["lead"])
+    runtime.audition(_preview_command(revision=3))
+    runtime.audition(_preview_command("preview_end", 4))
+    assert runtime._auditions["lead"]["sequence"] == previous["sequence"]
+    assert runtime._auditions["lead"]["origin"] == previous["origin"]
+    runtime.clear_auditions(stop=True)
+    runtime.audition(_preview_command(revision=5))
+    runtime.audition(_preview_command("preview_end", 6))
+    assert not lead.enabled
+
+
+def test_preview_ordering_batch_atomicity_and_late_release_after_transport_reset():
+    runtime, _ = _preview_runtime()
+    runtime.start()
+    with pytest.raises(ValueError):
+        runtime.audition(_preview_command(targets=["lead", "missing"]))
+    assert not runtime.status().auditions
+    runtime.audition(_preview_command(targets=["lead", "other"]))
+    assert runtime._auditions["lead"]["origin"] == runtime._auditions["other"]["origin"]
+    runtime.audition(_preview_command(revision=2, gesture="new", targets=["lead", "other"]))
+    runtime.audition(_preview_command("preview_end", 3, targets=["lead", "other"]))
+    assert runtime.status().auditions["lead"]["preview_gesture"] == "new"
+    with pytest.raises(ValueError, match="Stale"):
+        runtime.audition(_preview_command(revision=1))
+    runtime.clear_auditions(stop=True)
+    runtime.audition(_preview_command("preview_end", 4, gesture="new", targets=["lead", "other"]))
+    assert not runtime.status().auditions
+    assert not runtime._config.tracks["lead"].enabled
+    # Release received before delayed launch creates an ordering tombstone.
+    runtime.audition(_preview_command("preview_end", 6))
+    with pytest.raises(ValueError, match="Stale"):
+        runtime.audition(_preview_command(revision=5))
+
+
+def test_standalone_preview_return_does_not_enable_other_stopped_lanes():
+    runtime, _ = _preview_runtime()
+    runtime.audition(_preview_command())
+    assert runtime._config.tracks["lead"].enabled
+    assert not runtime._config.tracks["other"].enabled
+    runtime._seek_absolute_subunit_locked(1680)
+    assert runtime._auditions["lead"]["origin"] == 1680
+    runtime.audition(_preview_command("preview_end", 2))
+    assert not runtime._config.tracks["lead"].enabled
+    assert not runtime._config.tracks["other"].enabled
+
+
 def test_audition_boundary_return_into_rest_and_finite_end_preserves_other_track():
     from backend.app.models.session import SessionAuditionRequest
     runtime, request = _audition_runtime()

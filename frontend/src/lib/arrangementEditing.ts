@@ -1,8 +1,10 @@
 import type { PadLoopPatternItem, PadLoopPatternState } from "../types";
 import {
   clonePadLoopPattern, compilePadLoopPattern, nextPadLoopGroupId, nextPadLoopSuperGroupId,
+  canCreatePadLoopGroupFromSelection,
   type PadLoopContainerRef
 } from "./padLoopPattern";
+import { normalizeDefinitionColors } from "./definitionColors";
 
 export type DefinitionRef = Exclude<PadLoopContainerRef, { kind: "root" }>;
 
@@ -68,8 +70,11 @@ export function createDefinition(pattern: PadLoopPatternState, kind: "group" | "
 
 export function deleteDefinition(pattern: PadLoopPatternState, ref: DefinitionRef): PadLoopPatternState {
   if (definitionUses(pattern, ref).length) return pattern;
-  return { ...pattern, groups: ref.kind === "group" ? pattern.groups.filter(g => g.id !== ref.id) : pattern.groups,
+  const next = { ...pattern, groups: ref.kind === "group" ? pattern.groups.filter(g => g.id !== ref.id) : pattern.groups,
     superGroups: ref.kind === "super" ? pattern.superGroups.filter(g => g.id !== ref.id) : pattern.superGroups };
+  next.definitionColors = normalizeDefinitionColors(next.definitionColors, next);
+  if (!next.definitionColors) delete next.definitionColors;
+  return next;
 }
 
 export function restTokens(beats: number): PadLoopPatternItem[] {
@@ -141,6 +146,74 @@ export function moveArrangementItems(pattern: PadLoopPatternState, indexes: numb
   const items = sorted.map(index => pattern.rootSequence[index]);
   const beatsFor = (item: PadLoopPatternItem) => compileDefinition(pattern, item).reduce((n, token) => n + (token < 0 ? -token : padBeats[token] ?? 4), 0);
   return placeArrangementItems(removeArrangementItems(pattern, sorted, beatsFor), items, position, padBeats);
+}
+
+export function contiguousArrangementSelection(indexes: number[]): boolean {
+  const sorted = [...new Set(indexes)].sort((a, b) => a - b);
+  return sorted.length > 0 && sorted.every((value, i) => i === 0 || value === sorted[i - 1] + 1);
+}
+
+/** Resolve once for both the preview and commit. Coordinates are local beats. */
+export function resolveArrangementDrop(pattern: PadLoopPatternState, items: PadLoopPatternItem[], rawPosition: number,
+  padBeats: number[], pixelsPerBeat: number, movingIndexes?: number[]) {
+  const spans = arrangementSpans(pattern, padBeats);
+  const end = spans.reduce((n, span) => n + span.duration, 0);
+  const boundaries = [...spans.map(span => span.start), end];
+  const nearest = boundaries.reduce((best, value) => Math.abs(value - rawPosition) < Math.abs(best - rawPosition) ? value : best, 0);
+  // A narrow edge target leaves the body available for explicit overlap rejection.
+  const adjacent = spans.filter(span => span.start === nearest || span.start + span.duration === nearest);
+  const tolerance = Math.min(6 / pixelsPerBeat, ...adjacent.map(span => span.duration / 4));
+  const boundary = Math.abs(nearest - rawPosition) <= tolerance;
+  const position = boundary ? nearest : Math.max(0, Math.round(rawPosition));
+  const beatsFor = (item: PadLoopPatternItem) => compileDefinition(pattern, item).reduce((n, token) => n + (token < 0 ? -token : padBeats[token]), 0);
+  const duration = items.reduce((n, item) => n + beatsFor(item), 0);
+  let source = pattern;
+  if (movingIndexes) {
+    if (!contiguousArrangementSelection(movingIndexes)) throw new Error("Move a contiguous block.");
+    const start = spans.find(span => span.indexes.includes(Math.min(...movingIndexes)))?.start;
+    if (position === start) return { pattern, position, duration, insert: false };
+    source = removeArrangementItems(pattern, movingIndexes, beatsFor);
+  }
+  if (!boundary && position < end) {
+    const target = spans.find(span => rawPosition >= span.start && rawPosition < span.start + span.duration);
+    if (target?.item.type !== "pause" || items.some(item => item.type === "pause")) throw new Error("Occupied destination.");
+  }
+  // Source deletion can merge rest spans and hide a former boundary. Insert by
+  // splitting its rest explicitly, without relying on the rendered span list.
+  let next: PadLoopPatternState;
+  if (boundary && position < end) {
+    const before: PadLoopPatternItem[] = [], after: PadLoopPatternItem[] = [];
+    let cursor = 0;
+    for (const item of source.rootSequence) {
+      const length = beatsFor(item);
+      if (cursor + length <= position) before.push(item);
+      else if (cursor >= position) after.push(item);
+      else if (item.type === "pause") { before.push(...restTokens(position - cursor)); after.push(...restTokens(cursor + length - position)); }
+      else throw new Error("Occupied destination.");
+      cursor += length;
+    }
+    if (items.some(item => !compileDefinition(pattern, item).length)) throw new Error("Empty definition.");
+    next = { ...source, rootSequence: [...before, ...items, ...after] };
+    validateArrangementEdit(pattern, next);
+  } else next = placeArrangementItems(source, items, position, padBeats);
+  return { pattern: next, position, duration, insert: boundary && position < end };
+}
+
+/** Replace selected material and optionally update a shared definition atomically. */
+export function groupArrangementSelection(pattern: PadLoopPatternState, indexes: number[], kind: "group" | "super", existingId?: string) {
+  const sorted = [...new Set(indexes)].sort((a, b) => a - b);
+  if (!contiguousArrangementSelection(sorted) || !canCreatePadLoopGroupFromSelection(pattern, { kind: "root" }, sorted, kind)) throw new Error("Invalid group selection.");
+  const sequence = sorted.map(index => pattern.rootSequence[index]);
+  const result = existingId ? { pattern: clonePadLoopPattern(pattern), ref: { kind, id: existingId } as DefinitionRef }
+    : createDefinition(pattern, kind, sequence);
+  if (existingId) {
+    const definition = (kind === "group" ? result.pattern.groups : result.pattern.superGroups).find(g => g.id === existingId);
+    if (!definition) throw new Error("Unknown definition.");
+    definition.sequence = structuredClone(sequence);
+  }
+  result.pattern.rootSequence.splice(sorted[0], sorted.length, definitionItem(result.ref));
+  validateArrangementEdit(pattern, result.pattern);
+  return result;
 }
 
 /** An empty pad that is already referenced is still occupied song content. */

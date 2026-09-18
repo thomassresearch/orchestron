@@ -205,6 +205,9 @@ class CsoundWorker:
     def lane_output(self):
         return self._midi_scheduler.lane_output
 
+    def release_lane_events(self, identities: list[str]) -> None:
+        self._midi_scheduler.release_sources({f"lane:{identity}" for identity in identities}, sample=self._render_sample_cursor)
+
     def enqueue_timestamped_midi(
         self,
         message: list[int],

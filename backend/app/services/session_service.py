@@ -1208,20 +1208,26 @@ class SessionService:
         def at_boundary():
             sequencer = self._ensure_sequencer(runtime)
             router = self._ensure_midi_router(runtime)
+            before = router.audition_status() if request.arpeggiator_id else sequencer.audition_status()
             if request.arpeggiator_id:
                 router.audition(request, transport_running=sequencer.status().running)
-                if request.action == "start":
+                if request.action in {"start", "preview_start"}:
                     sequencer.start_audition_clock()
                 status = sequencer.status()
             else:
                 status = sequencer.audition(request)
-            if request.action == "stop" and sequencer._audition_standalone and not sequencer.audition_status() and not router.audition_status():
+            after = router.audition_status() if request.arpeggiator_id else sequencer.audition_status()
+            if request.action.startswith("preview_") and before != after:
+                identities = [request.arpeggiator_id] if request.arpeggiator_id else request.track_ids
+                runtime.worker.release_lane_events(identities)
+                router.discard_future_lane_inputs(identities)
+            if request.action in {"stop", "preview_end"} and sequencer._audition_standalone and not sequencer.audition_status() and not router.audition_status():
                 status = sequencer.stop()
             return self._status_with_arpeggiators(runtime, status)
         try:
             return await asyncio.to_thread(runtime.worker.run_at_render_boundary, at_boundary)
         except ValueError as exc:
-            raise HTTPException(status_code=422, detail=str(exc)) from exc
+            raise HTTPException(status_code=409 if "Stale preview" in str(exc) else 422, detail=str(exc)) from exc
 
     async def browser_clock_audition(self, session_id: str, connection_id: str,
                                     request: BrowserClockAuditionRequest) -> dict[str, object]:

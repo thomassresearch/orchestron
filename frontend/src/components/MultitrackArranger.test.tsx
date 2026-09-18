@@ -22,11 +22,15 @@ function Arranger() {
   return <MultitrackArranger collapsed={false} onCollapsedChange={noop} guiLanguage="english" copy={copy}
     sequencer={sequencer} patches={[]} instrumentBindings={[]} onTransportPlay={noop} onTransportStop={noop}
     onTransportStopDoubleClick={noop} onTransportRewind={noop} onTransportFastForward={noop}
-    onArrangerLoopSelectionChange={selectionChanged} onSequencerTrackPadLoopPatternChange={noop}
+    onArrangerLoopSelectionChange={selectionChanged} onSequencerTrackPadLoopPatternChange={(id, pattern) => useAppStore.getState().setSequencerTrackPadLoopPattern(id, pattern)}
     onDrummerSequencerTrackPadLoopPatternChange={noop} onControllerSequencerPadLoopPatternChange={noop} />;
 }
 
 beforeEach(() => {
+  vi.stubGlobal("DragEvent", class extends MouseEvent {
+    dataTransfer: DataTransfer | null;
+    constructor(type: string, init: DragEventInit) { super(type, init); this.dataTransfer = init.dataTransfer ?? null; }
+  });
   vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
   vi.stubGlobal("PointerEvent", class extends MouseEvent {
     pointerId: number;
@@ -113,24 +117,88 @@ it("collapses a selected lane, clears highlights on empty space, and reopens on 
   const ui = within(lane);
   const toggle = ui.getAllByRole("button")[0];
   const timeline = ui.getByRole("list");
-  const clip = within(timeline).getAllByRole("button").find(button => button.textContent === "1")!;
+  const clip = within(timeline).getAllByRole("listitem")[0];
   expect(toggle.getAttribute("aria-expanded")).toBe("false");
-  expect(ui.queryByText("New pattern")).toBeNull();
+  expect(ui.queryByLabelText("Patterns and phrases")).toBeNull();
   fireEvent.click(clip);
   expect(toggle.getAttribute("aria-expanded")).toBe("true");
-  expect(clip.parentElement?.className).toContain("ring-2");
+  expect(clip.className).toContain("ring-2");
   fireEvent.click(toggle);
   expect(toggle.getAttribute("aria-expanded")).toBe("false");
-  expect(ui.queryByText("New pattern")).toBeNull();
+  expect(ui.queryByLabelText("Patterns and phrases")).toBeNull();
   fireEvent.click(timeline, { clientX: 250 });
-  expect(clip.parentElement?.className).not.toContain("ring-2");
+  expect(clip.className).not.toContain("ring-2");
   expect(toggle.getAttribute("aria-expanded")).toBe("false");
   fireEvent.click(clip);
   expect(toggle.getAttribute("aria-expanded")).toBe("true");
-  expect(ui.getByText("New pattern")).toBeTruthy();
+  expect(ui.getByLabelText("Patterns and phrases")).toBeTruthy();
 });
 
-it("keeps playback settings and the phrase library independently collapsible", async () => {
+function musicalLane() {
+  const track = useAppStore.getState().sequencer.tracks[0];
+  useAppStore.getState().setSequencerTrackPadLoopPattern(track.id, { rootSequence: [
+    { type: "pad", padIndex: 0 }, { type: "pad", padIndex: 1 }, { type: "group", groupId: "A" }
+  ], groups: [{ id: "A", sequence: [{ type: "pad", padIndex: 0 }] }], superGroups: [] });
+  setup();
+  const lane = screen.getAllByRole("region")[0];
+  return { lane, timeline: within(lane).getByRole("list"), pattern: () => useAppStore.getState().sequencer.tracks[0].padLoopPattern };
+}
+
+it("preserves modifier selection on right-click and explicitly updates an existing group", () => {
+  const { timeline, pattern } = musicalLane();
+  const clips = within(timeline).getAllByRole("listitem");
+  fireEvent.click(clips[0]); fireEvent.click(clips[1], { metaKey: true });
+  fireEvent.contextMenu(clips[0], { clientX: 100, clientY: 100 });
+  expect(clips[1].getAttribute("aria-selected")).toBe("true");
+  fireEvent.click(screen.getByRole("menuitem", { name: "Group…" }));
+  const dialog = screen.getByRole("dialog");
+  expect((within(dialog).getByRole("combobox") as HTMLSelectElement).value).toBe("");
+  fireEvent.change(within(dialog).getByRole("combobox"), { target: { value: "A" } });
+  expect(within(dialog).getByText(/Edits update all occurrences/)).toBeTruthy();
+  fireEvent.click(within(dialog).getByRole("button", { name: "Apply" }));
+  expect(pattern().rootSequence).toEqual([{ type: "group", groupId: "A" }, { type: "group", groupId: "A" }]);
+  expect(pattern().groups[0].sequence).toEqual([{ type: "pad", padIndex: 0 }, { type: "pad", padIndex: 1 }]);
+});
+
+it("places only through drag/drop, inserts at boundaries, and rejects occupied bodies", () => {
+  const { lane, timeline, pattern } = musicalLane();
+  fireEvent.click(within(timeline).getAllByRole("listitem")[0]);
+  const original = pattern();
+  fireEvent.keyDown(timeline, { key: "3" }); fireEvent.keyDown(timeline, { key: "v", metaKey: true });
+  expect(pattern()).toBe(original);
+  expect(within(lane).queryByRole("button", { name: /^Add|^Insert|^Paste|^Duplicate/ })).toBeNull();
+  const entry = within(lane).getByRole("button", { name: "3" });
+  fireEvent.click(entry); expect(pattern()).toBe(original);
+  const data = new Map<string, string>();
+  const dataTransfer = { setData: (key: string, value: string) => data.set(key, value), getData: (key: string) => data.get(key) ?? "" };
+  fireEvent.dragStart(entry.parentElement!, { dataTransfer });
+  const firstWidth = parseFloat(within(timeline).getAllByRole("listitem")[0].style.width);
+  fireEvent.drop(timeline, { clientX: firstWidth, dataTransfer });
+  expect(pattern().rootSequence.slice(0, 3)).toEqual([{ type: "pad", padIndex: 0 }, { type: "pad", padIndex: 2 }, { type: "pad", padIndex: 1 }]);
+  const inserted = pattern();
+  fireEvent.drop(timeline, { clientX: firstWidth / 2, dataTransfer });
+  expect(pattern()).toBe(inserted);
+  expect(screen.getByRole("alert").textContent).toContain("does not fit");
+});
+
+it("sets a shared colour through a keyboard context menu and keeps audio revision unchanged", () => {
+  const { lane, timeline, pattern } = musicalLane();
+  const clip = within(timeline).getAllByRole("listitem")[0];
+  const revision = useAppStore.getState().sequencerEditRevision;
+  fireEvent.keyDown(clip, { key: "F10", shiftKey: true });
+  fireEvent.click(screen.getByRole("menuitem", { name: "Set colour…" }));
+  fireEvent.change(screen.getByLabelText("Custom colour"), { target: { value: "#ccaa33" } });
+  fireEvent.click(screen.getByRole("button", { name: "Apply" }));
+  expect(pattern().definitionColors).toEqual({ "pad:0": "#ccaa33" });
+  expect(clip.style.backgroundColor).toBe("rgb(204, 170, 51)");
+  expect(within(lane).getByRole("button", { name: "1" }).parentElement!.style.backgroundColor).toBe("rgb(204, 170, 51)");
+  expect(useAppStore.getState().sequencerEditRevision).toBe(revision);
+  fireEvent.contextMenu(clip);
+  fireEvent.keyDown(screen.getByRole("menu"), { key: "Escape" });
+  expect(document.activeElement).toBe(clip);
+});
+
+it("keeps playback settings independent and replaces the phrase panel with a palette", async () => {
   setup();
   const lane = screen.getAllByRole("region")[0];
   const ui = within(lane);
@@ -142,15 +210,10 @@ it("keeps playback settings and the phrase library independently collapsible", a
   await waitFor(() => expect(ui.getByLabelText("Playback source")).toBeTruthy());
   expect(toggle.getAttribute("aria-expanded")).toBe("false");
   fireEvent.click(toggle);
-  const library = ui.getByRole("button", { name: "Patterns and phrases" });
-  expect(library.getAttribute("aria-expanded")).toBe("false");
-  fireEvent.click(library);
-  expect(library.getAttribute("aria-expanded")).toBe("true");
-  fireEvent.click(library);
-  expect(library.getAttribute("aria-expanded")).toBe("false");
   fireEvent.click(toggle);
   fireEvent.click(toggle);
-  expect(ui.getByRole("button", { name: "Patterns and phrases" }).getAttribute("aria-expanded")).toBe("false");
+  expect(ui.queryByRole("button", { name: "Patterns and phrases" })).toBeNull();
+  expect(ui.getByLabelText("Patterns and phrases")).toBeTruthy();
 });
 
 it("toggles only lane state without changing the mixer, transport, or lane expansion", () => {
@@ -190,8 +253,8 @@ it("opens the selected definition in the arranger and retains disclosures across
   expect(screen.getByText("Editing: A")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Open in arranger" }));
   view.rerender(<Workspace library={false} />);
-  expect(screen.getByText("Editing: A")).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: "Patterns and phrases" }));
+  expect(screen.queryByText("Editing: A")).toBeNull();
+  expect(screen.getByRole("button", { name: "Group A" })).toBe(document.activeElement);
   view.rerender(<Workspace />);
   expect(screen.getByText("Editing: A")).toBeTruthy(); // Independent sequencer disclosure.
   view.rerender(<Workspace library={false} />);
