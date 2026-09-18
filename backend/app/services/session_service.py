@@ -1217,8 +1217,12 @@ class SessionService:
             else:
                 status = sequencer.audition(request)
             after = router.audition_status() if request.arpeggiator_id else sequencer.audition_status()
-            if request.action.startswith("preview_") and before != after:
-                identities = [request.arpeggiator_id] if request.arpeggiator_id else request.track_ids
+            identities = [request.arpeggiator_id] if request.arpeggiator_id else request.track_ids
+            preview_changed = request.action == "preview_start" and any(
+                after.get(identity, {}).get("preview_active") and not after[identity].get("queued") for identity in identities
+            ) or request.action == "preview_end" and any(
+                before.get(identity, {}).get("preview_active") and before[identity].get("preview_gesture") == request.gesture_id for identity in identities)
+            if preview_changed and before != after:
                 runtime.worker.release_lane_events(identities)
                 router.discard_future_lane_inputs(identities)
             if request.action in {"stop", "preview_end"} and sequencer._audition_standalone and not sequencer.audition_status() and not router.audition_status():

@@ -13,7 +13,7 @@ import {
   arrangerPlaybackBounds,
   clampArrangerSeekStep
 } from "../lib/arrangerTransport";
-import { sequencerTransportStepsPerBeat } from "../lib/sequencer";
+import { sequencerTransportStepsPerBeat, sequencerTransportSubunitsPerStep } from "../lib/sequencer";
 import {
   drummerRowRuntimeTrackId,
   aggregateDrummerRuntimeTrackLocalSteps,
@@ -340,6 +340,7 @@ export function useSequencerRuntimeController({
       );
       syncSequencerRuntime({
         isPlaying: status.running,
+        arrangerActive: status.arranger_active,
         transportStepCount: status.step_count,
         playhead: status.current_step,
         cycle: status.cycle,
@@ -405,6 +406,7 @@ export function useSequencerRuntimeController({
       );
       syncSequencerTransportRuntime({
         isPlaying: payload.running,
+        arrangerActive: payload.arranger_active,
         transportStepCount: payload.step_count,
         playhead: payload.current_step,
         cycle: payload.cycle,
@@ -495,6 +497,7 @@ export function useSequencerRuntimeController({
       if (melodicUpdates.length > 0 || drummerUpdates.length > 0) {
         syncSequencerRuntime({
           isPlaying: payload.running,
+          arrangerActive: payload.arranger_active,
           transportStepCount: payload.step_count,
           playhead: payload.current_step,
           cycle: payload.cycle,
@@ -802,7 +805,8 @@ export function useSequencerRuntimeController({
       const payload: SessionSequencerStartRequest = {
         arranger_active: arrangerActive,
         config: buildBackendSequencerConfig(store.sequencer),
-        position_step: sequencerAbsoluteTransportStep(
+        position_step: arrangerActive && store.sequencerRuntime.arrangerTransportSubunit !== undefined
+          ? Math.floor(store.sequencerRuntime.arrangerTransportSubunit / sequencerTransportSubunitsPerStep()) : sequencerAbsoluteTransportStep(
           currentSequencerState.playhead,
           currentSequencerState.cycle,
           currentSequencerState.stepCount
@@ -893,6 +897,11 @@ export function useSequencerRuntimeController({
     async (deltaSteps: number): Promise<void> => {
       const currentState = sequencerRef.current;
       const { arrangementEndStep, selection } = arrangerPlaybackBounds(currentState);
+      const runtime = useAppStore.getState().sequencerRuntime;
+      if (runtime.arrangerActive === false && runtime.arrangerTransportSubunit !== undefined) {
+        await seekSequencerTransport(Math.floor(runtime.arrangerTransportSubunit / sequencerTransportSubunitsPerStep()) + deltaSteps);
+        return;
+      }
       const currentAbsoluteStep = sequencerAbsoluteTransportStep(
         currentState.playhead,
         currentState.cycle,
@@ -936,6 +945,7 @@ export function useSequencerRuntimeController({
       }
     },
     [
+      seekSequencerTransport,
       applySequencerStatus,
       browserClockClientRef,
       effectiveAudioOutputMode,

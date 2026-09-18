@@ -17,6 +17,8 @@ const buildConfig = vi.fn(() => config);
 const buildArpeggiators = vi.fn(() => ({ tempo_bpm: 120, arpeggiators: [] }));
 const setError = vi.fn();
 const audition = vi.fn();
+const startSequencer = vi.fn();
+let audioParams: Parameters<typeof useBrowserClockAudioController>[0];
 const errors = { noActiveRuntimeSession: "Missing runtime", startInstrumentsFirstForSequencer: "Start first",
   noActiveInstrumentSessionForSequencer: "Missing session", failedToStartSequencer: "Start failed",
   failedToSyncSequencerStatus: "Sync failed", failedToUpdateSequencerConfig: "Config failed",
@@ -44,14 +46,15 @@ beforeEach(() => {
   useAppStore.getState().applySequencerConfigSnapshot(fixture.config);
   useAppStore.setState({ activeSessionId: "session", activeSessionState: "running" });
   audition.mockReset().mockResolvedValue({ ...status(0), auditions: {} });
-  const client = { audition, prime: vi.fn().mockResolvedValue(undefined), connect: vi.fn().mockResolvedValue(undefined), stopSequencer: vi.fn().mockResolvedValue(status(0, false)) };
+  startSequencer.mockReset().mockImplementation(async (_session, request) => ({ ...status(request.positionStep), arranger_active: request.arrangerActive }));
+  const client = { audition, startSequencer, prime: vi.fn().mockResolvedValue(undefined), connect: vi.fn().mockResolvedValue(undefined), stopSequencer: vi.fn().mockResolvedValue(status(0, false)) };
   const browser = { browserClockClientRef: { current: client as unknown as ReturnType<typeof useBrowserClockAudioController>["browserClockClientRef"]["current"] }, browserAudioError: null, browserAudioDiagnostics: null,
     browserAudioStatus: "live" as const, browserAudioTransport: "browser_clock" as const,
     disconnectBrowserAudio: noop, disconnectBrowserClockAudio: noop, displayedSequencerTransportSubunit: 0, readPlaybackTransportSubunit: () => null,
     effectiveAudioOutputMode: "browser_clock" as const, effectiveAudioOutputModeRef: { current: "browser_clock" as const },
     onApplyBrowserClockLatencySettings: noop, reportBrowserAudioConnectionError: noop, resetBrowserAudioState: noop,
     runtimeAudioOutputMode: "browser_clock" as const };
-  vi.mocked(useBrowserClockAudioController).mockImplementation(params => ({ ...browser, displayedSequencer: params.sequencer }));
+  vi.mocked(useBrowserClockAudioController).mockImplementation(params => { audioParams = params; return { ...browser, displayedSequencer: params.sequencer }; });
   vi.spyOn(api, "seekSessionSequencer").mockImplementation(async (_session, request) => status(request.position_step));
   vi.spyOn(api, "configureSessionSequencer").mockResolvedValue(status(0));
   vi.spyOn(api, "configureSessionArpeggiators").mockResolvedValue([]);
@@ -157,4 +160,24 @@ it("transport stop cancels a prepared preview and its later release cannot resum
   await act(async () => { prepared(status(0)); await start; });
   await act(() => result.current.auditionDevice(id, { action: "preview_end", gestureId: "hold" }));
   expect(audition).not.toHaveBeenCalled();
+});
+
+it("keeps the stopped song cursor through preview status and audible clock updates, then resumes there", async () => {
+  const { result } = setup(false);
+  await act(() => result.current.seekSequencerTransport(8));
+  audition.mockResolvedValueOnce({ ...status(16), arranger_active: false, auditions: {} });
+  const id = useAppStore.getState().sequencer.tracks[0].id;
+  await act(() => result.current.auditionDevice(id, { action: "preview_start", gestureId: "hold", item: { type: "pad", padIndex: 1 } }));
+  expect(useAppStore.getState().sequencerRuntime).toMatchObject({
+    isPlaying: true, arrangerActive: false, transportSubunit: 16 * 420, arrangerTransportSubunit: 8 * 420
+  });
+  act(() => audioParams.applyBrowserClockTransportEventsRef.current([{
+    kind: "step", target_frame: 48000, target_frame_offset: 0, payload: { ...status(24), previous_step: 16, arranger_active: false }
+  }]));
+  expect(useAppStore.getState().sequencerRuntime).toMatchObject({
+    transportSubunit: 24 * 420, arrangerTransportSubunit: 8 * 420, arrangerActive: false
+  });
+  await act(() => result.current.startSequencerTransport(true));
+  expect(startSequencer).toHaveBeenCalledWith("session", expect.objectContaining({ positionStep: 8, arrangerActive: true }));
+  expect(useAppStore.getState().sequencerRuntime.arrangerActive).toBe(true);
 });

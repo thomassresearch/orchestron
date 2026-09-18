@@ -1,3 +1,5 @@
+import { useAppStore } from "../store/useAppStore";
+import { sequencerTransportSubunitsPerStep } from "../lib/sequencer";
 import { ArrangerLane } from "./ArrangerLane";
 import { useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
@@ -153,7 +155,10 @@ function MultitrackArrangerBody(props: MultitrackArrangerProps) {
     cancel();
   };
   const selection = rangePreview ?? sequencer.arrangerLoopSelection;
-  const playhead = (sequencer.cycle * sequencer.stepCount + sequencer.playhead) * zoom;
+  const arrangerActive = useAppStore(state => state.sequencerRuntime.arrangerActive);
+  const arrangerPosition = useAppStore(state => state.sequencerRuntime.arrangerTransportSubunit);
+  const playhead = (arrangerActive === false && arrangerPosition !== undefined
+    ? arrangerPosition / sequencerTransportSubunitsPerStep() : sequencer.cycle * sequencer.stepCount + sequencer.playhead) * zoom;
   const commit = (lane: Lane, pattern: PadLoopPatternState) => {
     validateArrangementEdit(lane.pattern, pattern);
     if (lane.kind === "sequencer") props.onSequencerTrackPadLoopPatternChange(lane.id, pattern);
@@ -196,6 +201,8 @@ function MultitrackArrangerShell(props: MultitrackArrangerProps) {
   const canZoomOut = stepPixelWidth > minStepPixelWidth + 1e-6;
   const canZoomIn = stepPixelWidth < MAX_STEP_PIXEL_WIDTH - 1e-6;
   const zoomPercent = Math.round((stepPixelWidth / DEFAULT_STEP_PIXEL_WIDTH) * 100);
+  const arrangerActive = useAppStore(state => state.sequencerRuntime.arrangerActive) ?? props.sequencer.isPlaying;
+  const activeTransportClass = " ring-2 ring-amber-300 !bg-amber-300 !text-slate-950";
   const transportButtonClass = "inline-flex h-8 w-8 items-center justify-center rounded-md border border-amber-400/50 bg-amber-400/10 text-amber-100 transition hover:bg-amber-400/20 disabled:cursor-not-allowed disabled:opacity-45";
   if (props.sequencer.tracks.length + props.sequencer.drummerTracks.length + props.sequencer.controllerSequencers.length + props.sequencer.arpeggiators.length === 0) return null;
   return (<CollapsiblePanel unmountOnCollapse
@@ -223,7 +230,8 @@ function MultitrackArrangerShell(props: MultitrackArrangerProps) {
           type="button"
           onClick={onTransportStop}
           onDoubleClick={onTransportStopDoubleClick}
-          className={transportButtonClass}
+          className={transportButtonClass + (!arrangerActive ? activeTransportClass : "")}
+          aria-pressed={!arrangerActive}
           title={copy.transportStop}
           aria-label={copy.transportStop}
         >
@@ -232,7 +240,8 @@ function MultitrackArrangerShell(props: MultitrackArrangerProps) {
         <button
           type="button"
           onClick={onTransportPlay}
-          className={transportButtonClass}
+          className={transportButtonClass + (arrangerActive ? activeTransportClass : "")}
+          aria-pressed={arrangerActive}
           title={copy.transportPlay}
           aria-label={copy.transportPlay}
         >

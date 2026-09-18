@@ -13,6 +13,7 @@ import {
 import {
   sequencerRuntimeAtAbsoluteStep,
   sequencerRuntimeAtPlayhead,
+  arrangerTransportRuntime,
   syncSequencerTransportRuntimeState
 } from "../lib/sequencerRuntimeState";
 import type { DrummerSequencerStepCount } from "../types";
@@ -138,6 +139,7 @@ export function createTransportStoreActions(
         sequencerRuntime: {
           ...sequencerRuntime,
           isPlaying: isPlaying === true,
+          ...(isPlaying ? {} : { arrangerActive: false }),
           trackLocalStepById: nextTrackLocalStepById,
           drummerTrackLocalStepById: nextDrummerTrackLocalStepById,
           controllerRuntimePadStartSubunitById: nextControllerRuntimePadStartStepById
@@ -163,7 +165,7 @@ export function createTransportStoreActions(
       });
     },
 
-    syncSequencerRuntime: ({ isPlaying, transportStepCount, playhead, cycle, transportSubunit, tracks, drummerTracks }) => {
+    syncSequencerRuntime: ({ isPlaying, arrangerActive, transportStepCount, playhead, cycle, transportSubunit, tracks, drummerTracks }) => {
       const sequencer = mergedSequencerState(get().sequencer, get().sequencerRuntime);
       const sequencerRuntime = get().sequencerRuntime;
       const nextIsPlaying = isPlaying === true;
@@ -404,6 +406,7 @@ export function createTransportStoreActions(
       set({
         sequencerRuntime: {
           ...sequencerRuntime,
+          ...arrangerTransportRuntime(sequencerRuntime, nextIsPlaying, nextTransportSubunit, arrangerActive),
           isPlaying: nextIsPlaying,
           stepCount: boundedStepCount,
           cycle: normalizedCycle,

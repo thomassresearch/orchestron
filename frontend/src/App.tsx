@@ -1,4 +1,5 @@
 import { PerformanceAuditionContext } from "./components/sequencer/PerformanceAudition";
+import { cancelArrangerPreviewGestures } from "./lib/arrangerPreviewGesture";
 import { useMidiControllerRouting } from "./hooks/useMidiControllerRouting";
 import { normalizeControllerTargetChannels } from "./lib/midiControllerChannels";
 import { INITIAL_PANEL_COLLAPSE_STATE, type PanelId } from "./components/CollapsiblePanel";
@@ -1673,6 +1674,9 @@ export default function App() {
     (resetPlayhead: boolean) => {
       setSequencerError(null);
       arrangerTransportActiveRef.current = false;
+      useAppStore.setState(state => ({ sequencerRuntime: { ...state.sequencerRuntime, arrangerActive: false,
+        arrangerTransportSubunit: state.sequencerRuntime.arrangerTransportSubunit ?? state.sequencerRuntime.transportSubunit } }));
+      cancelArrangerPreviewGestures();
       cancelPendingArpeggiatorEdits();
       const sessionId = useAppStore.getState().activeSessionId;
       if (sessionId) void api.setArrangerActive(sessionId, false).catch(error => setSequencerError(String(error)));

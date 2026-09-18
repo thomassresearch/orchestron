@@ -8,6 +8,7 @@ import type { SequencerRuntimeState } from "../types";
 
 export interface SequencerTransportRuntimeSync {
   isPlaying: boolean;
+  arrangerActive?: boolean;
   transportStepCount?: number;
   playhead?: number;
   cycle?: number;
@@ -42,6 +43,7 @@ export function sequencerRuntimeAtPlayhead(
   return {
     ...runtime,
     playhead: normalizedPlayhead,
+    arrangerTransportSubunit: (Math.max(0, Math.round(runtime.cycle)) * stepCount + normalizedPlayhead) * sequencerTransportSubunitsPerStep(),
     transportSubunit:
       Math.max(0, Math.round(runtime.cycle)) * stepCount * sequencerTransportSubunitsPerStep() +
       normalizedPlayhead * sequencerTransportSubunitsPerStep()
@@ -59,6 +61,7 @@ export function sequencerRuntimeAtAbsoluteStep(
     ...runtime,
     playhead,
     cycle,
+    arrangerTransportSubunit: normalizedStep * sequencerTransportSubunitsPerStep(),
     transportSubunit: normalizedStep * sequencerTransportSubunitsPerStep()
   };
 }
@@ -121,6 +124,7 @@ export function syncSequencerTransportRuntimeState(
 
   return {
     ...runtime,
+    ...arrangerTransportRuntime(runtime, nextIsPlaying, transportSubunit, payload.arrangerActive),
     isPlaying: nextIsPlaying,
     stepCount,
     playhead,
@@ -130,4 +134,11 @@ export function syncSequencerTransportRuntimeState(
     drummerTrackLocalStepById,
     controllerRuntimePadStartSubunitById
   };
+}
+
+/** The song cursor is independent of clocks used by manual pads and previews. */
+export function arrangerTransportRuntime(runtime: SequencerRuntimeState, running: boolean, subunit: number, active?: boolean) {
+  const arrangerActive = running && (active ?? runtime.arrangerActive ?? false);
+  return { arrangerActive, arrangerTransportSubunit: arrangerActive || runtime.arrangerActive
+    ? subunit : runtime.arrangerTransportSubunit ?? runtime.transportSubunit };
 }

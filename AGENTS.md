@@ -100,7 +100,8 @@ it measures cold, cached, and one-pad preparation using the versioned TB303 test
   uses `padLoopRepeat`. Delete leaves equivalent rests; closing time is explicit. Retain unused
   definitions and trailing rests. See the arranger reference for hierarchy and import fallback.
 - Audition is session-only and uses the shared clock. Sequencer audition follows boundaries;
-  arranger speaker previews start after a 250 ms hold and restore prior playback on release at a render block. Save/export reads
+  arranger speaker previews use a 250 ms hold, then the next cycle boundary while the arranger runs,
+  or a render block while stopped without moving its cursor. Release restores prior playback. Save/export reads
   authored state. Arranger Play clears auditions and starts Arrangement tracks; Stop clears
   auditions and preserves independently started Manual pads tracks and the rack engine. Piano-roll Start is independent
   of arranger playback; retain the documented seek/reset behavior.

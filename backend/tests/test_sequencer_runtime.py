@@ -547,7 +547,7 @@ def _preview_command(action="preview_start", revision=1, gesture="hold", targets
 
 
 @pytest.mark.parametrize("return_beat,enabled,token", [(2, True, 0), (5, True, -4), (13, False, None)])
-def test_momentary_preview_starts_immediately_and_returns_at_current_song_position(return_beat, enabled, token):
+def test_momentary_preview_waits_for_cycle_and_returns_at_current_song_position(return_beat, enabled, token):
     runtime, request = _preview_runtime()
     runtime.start()
     beat = runtime._transport_subunit_count_for_length(1, runtime._config.tracks["lead"].timing)
@@ -555,8 +555,14 @@ def test_momentary_preview_starts_immediately_and_returns_at_current_song_positi
     other_before = runtime._config.tracks["other"].phase_offset_subunit
     runtime.audition(_preview_command())
     lead = runtime._config.tracks["lead"]
-    assert lead.active_pad == 1 and lead.phase_offset_subunit == beat
+    assert lead.active_pad == 0 and lead.phase_offset_subunit == 0
+    assert runtime.status().auditions["lead"]["queued"] == "start"
+    assert not runtime.status().auditions["lead"]["preview_active"]
     assert runtime._config.tracks["other"].phase_offset_subunit == other_before
+    if return_beat >= 4:
+        runtime._advance_render_to_event_locked(runtime._config, 4 * beat)
+        assert lead.active_pad == 1 and lead.phase_offset_subunit == 4 * beat
+        assert runtime.status().auditions["lead"]["preview_active"]
     assert runtime.status().auditions["lead"]["preview_gesture"] == "hold"
     runtime._advance_render_to_event_locked(runtime._config, return_beat * beat)
     runtime.audition(_preview_command("preview_end", 2))
@@ -575,11 +581,13 @@ def test_preview_preserves_manual_phase_stopped_tracks_and_existing_audition():
     request.tracks[0].pad_loop_enabled = False
     runtime.configure(request)
     runtime.start()
+    runtime._midi_service.arranger_running = False
     lead = runtime._config.tracks["lead"]
     lead.active_pad = 1
     lead.phase_offset_subunit = 420
     runtime._absolute_subunit = 840
     runtime.audition(_preview_command())
+    assert runtime.status().auditions["lead"]["preview_active"]
     runtime._absolute_subunit = 1260
     runtime.audition(_preview_command("preview_end", 2))
     assert lead.enabled and lead.active_pad == 1 and lead.phase_offset_subunit == 420
@@ -603,6 +611,9 @@ def test_preview_ordering_batch_atomicity_and_late_release_after_transport_reset
         runtime.audition(_preview_command(targets=["lead", "missing"]))
     assert not runtime.status().auditions
     runtime.audition(_preview_command(targets=["lead", "other"]))
+    boundary = runtime._auditions["lead"]["boundary"]
+    assert boundary == runtime._auditions["other"]["boundary"]
+    runtime._advance_render_to_event_locked(runtime._config, boundary)
     assert runtime._auditions["lead"]["origin"] == runtime._auditions["other"]["origin"]
     runtime.audition(_preview_command(revision=2, gesture="new", targets=["lead", "other"]))
     runtime.audition(_preview_command("preview_end", 3, targets=["lead", "other"]))
@@ -622,6 +633,8 @@ def test_preview_ordering_batch_atomicity_and_late_release_after_transport_reset
 def test_standalone_preview_return_does_not_enable_other_stopped_lanes():
     runtime, _ = _preview_runtime()
     runtime.audition(_preview_command())
+    assert runtime.status().running and not runtime.status().arranger_active
+    assert runtime.status().auditions["lead"]["preview_active"]
     assert runtime._config.tracks["lead"].enabled
     assert not runtime._config.tracks["other"].enabled
     runtime._seek_absolute_subunit_locked(1680)
@@ -761,3 +774,19 @@ def test_seek_applies_pending_audition_replacement_and_return_at_destination():
     runtime._seek_absolute_subunit_locked(6 * 3360)
     assert not runtime.audition_status()
     assert runtime._current_pad_loop_token(lead) == -4
+
+
+def test_cancel_preview_before_boundary_leaves_notes_and_clock_untouched():
+    runtime, _ = _preview_runtime()
+    runtime.start()
+    runtime._advance_render_to_event_locked(runtime._config, 3360)
+    midi = runtime._midi_service
+    before = list(midi.calls)
+    lead = runtime._config.tracks["lead"]
+    phase = lead.phase_offset_subunit
+    runtime.audition(_preview_command())
+    runtime.audition(_preview_command("preview_end", 2))
+    assert midi.calls == before
+    assert lead.phase_offset_subunit == phase and lead.active_pad == 0
+    assert runtime._absolute_subunit == 3360 and runtime.status().arranger_active
+    assert not runtime.status().auditions

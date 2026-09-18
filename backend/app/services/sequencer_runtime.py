@@ -314,8 +314,11 @@ class SessionSequencerRuntime:
 
     def audition_status(self):
         return {identity: {"active": bool(state.get("sequence")), "queued": state.get("action")}
-                | ({"preview_gesture": state["preview"]["gesture"], "preview_revision": state["preview"]["revision"]} if state.get("preview") else {})
+                | ({"preview_gesture": state["preview"]["gesture"], "preview_revision": state["preview"]["revision"], "preview_active": state["preview"].get("applied", False)} if state.get("preview") else {})
                 for identity, state in self._auditions.items()}
+
+    def _arranger_active(self) -> bool:
+        return self._running and bool(getattr(self._midi_service, "arranger_running", not self._audition_standalone))
 
     def start_audition_clock(self):
         with self._lock:
@@ -378,9 +381,10 @@ class SessionSequencerRuntime:
             return self._status_locked()
         at = self._absolute_subunit
         was_running = self._running
+        boundary = max((self._next_track_cycle_boundary_subunit(t, at) for t in targets), default=at) if self._arranger_active() else at
         # Capture before a standalone clock disables the non-preview lanes.
         snapshots = {track.track_id: {
-            "gesture": request.gesture_id, "previous": deepcopy(self._auditions.get(track.track_id)),
+            "gesture": request.gesture_id, "previous": deepcopy(self._auditions.get(track.track_id)), "applied": False,
             "running": was_running and track.enabled, "manual": not track.pad_loop_enabled,
             "active_pad": track.active_pad, "phase": track.phase_offset_subunit,
             "queued_pad": track.queued_pad, "queued_enabled": getattr(track, "queued_enabled", None),
@@ -400,8 +404,8 @@ class SessionSequencerRuntime:
             snapshot["gesture"] = request.gesture_id
             snapshot["revision"] = request.revision
             authored = state["authored"] if state else self._authored_track_fields(track)
-            self._auditions[track.track_id] = {"authored": authored, "preview": snapshot,
-                "action": "start", "pending": tuple(request.sequence), "boundary": at}
+            self._auditions[track.track_id] = {**(state or {}), "authored": authored, "preview": snapshot,
+                "action": "start", "pending": tuple(request.sequence), "boundary": boundary}
             self._apply_audition_command(track, at)
         self._audition_status_tracks.update(request.track_ids)
         self._reset_render_event_cursor_locked(self._ensure_config())
@@ -410,6 +414,11 @@ class SessionSequencerRuntime:
     def _end_preview(self, track, at):
         state = self._auditions.pop(track.track_id)
         snapshot = state["preview"]
+        if not snapshot["applied"]:
+            if snapshot["previous"]:
+                self._auditions[track.track_id] = snapshot["previous"]
+                self._auditions[track.track_id]["authored"] = state["authored"]
+            return
         if isinstance(track, SequencerTrackRuntime):
             self._release_track_notes_locked(track.track_id, track.midi_channel)
         else:
@@ -447,6 +456,8 @@ class SessionSequencerRuntime:
         else:
             track.last_value = None
         if action == "start":
+            if state.get("preview"):
+                state["preview"]["applied"] = True
             state["sequence"] = state["pending"]
             state["origin"] = at
             self._overlay_audition(track, state["sequence"])
@@ -1946,6 +1957,7 @@ class SessionSequencerRuntime:
             "current_step": current_step,
             "cycle": cycle,
             "running": self._running,
+            "arranger_active": self._arranger_active(),
             "step_count": max(1, config.step_count),
             "transport_subunit": visible_absolute_subunit,
             "auditions": self.audition_status(),
@@ -2226,6 +2238,7 @@ class SessionSequencerRuntime:
         return SessionSequencerStatus(
             session_id=self._session_id,
             auditions=self.audition_status(),
+            arranger_active=self._arranger_active(),
             running=self._running,
             timing=SessionSequencerTimingConfig(
                 tempo_bpm=config.timing.tempo_bpm,

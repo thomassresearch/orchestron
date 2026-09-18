@@ -267,3 +267,24 @@ it("opens the selected definition in the arranger and retains disclosures across
   view.rerender(<Workspace library={false} generation={1} />);
   expect(screen.queryByRole("button", { name: "Patterns and phrases" })).toBeNull();
 });
+
+it("highlights the arranger transport state and freezes its cursor during a stopped audition", () => {
+  useAppStore.setState(state => ({ sequencerRuntime: { ...state.sequencerRuntime,
+    isPlaying: true, arrangerActive: false, transportSubunit: 24 * 420, arrangerTransportSubunit: 8 * 420 } }));
+  const { ruler } = setup();
+  const play = screen.getByRole("button", { name: "transportPlay" });
+  const stop = screen.getByRole("button", { name: "transportStop" });
+  expect(play.getAttribute("aria-pressed")).toBe("false");
+  expect(stop.getAttribute("aria-pressed")).toBe("true");
+  expect(stop.className).toContain("ring-2");
+  const cursor = ruler.querySelector(".bg-amber-200") as HTMLElement;
+  expect(cursor.style.left).toBe("72px");
+  act(() => useAppStore.setState(state => ({ sequencerRuntime: { ...state.sequencerRuntime,
+    transportSubunit: 32 * 420 } })));
+  expect(cursor.style.left).toBe("72px");
+  act(() => useAppStore.setState(state => ({ sequencerRuntime: { ...state.sequencerRuntime, arrangerActive: true } })));
+  expect(play.getAttribute("aria-pressed")).toBe("true");
+  expect(play.className).toContain("ring-2");
+  expect(stop.getAttribute("aria-pressed")).toBe("false");
+  expect(stop.className).not.toContain("ring-2");
+});

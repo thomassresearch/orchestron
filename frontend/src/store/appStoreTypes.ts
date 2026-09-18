@@ -342,6 +342,7 @@ export interface AppStore {
   setSequencerArrangerLoopSelection: (selection: ArrangerLoopSelection | null) => void;
   syncSequencerRuntime: (payload: {
     isPlaying: boolean;
+    arrangerActive?: boolean;
     transportStepCount?: number;
     playhead?: number;
     cycle?: number;

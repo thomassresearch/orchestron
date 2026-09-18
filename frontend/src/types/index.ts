@@ -470,6 +470,8 @@ export interface SequencerTrackPlaybackState {
 
 export interface SequencerRuntimeState {
   isPlaying: boolean;
+  arrangerActive?: boolean;
+  arrangerTransportSubunit?: number;
   stepCount: number;
   playhead: number;
   cycle: number;
@@ -1239,6 +1241,6 @@ export interface SessionAuditionRequest {
   arpeggiator_id?: string;
   sequence?: number[];
 }
-export type PerformanceAuditionStatus = Record<string, { active: boolean; queued: SessionAuditionRequest["action"] | null; preview_gesture?: string; preview_revision?: number }>;
+export type PerformanceAuditionStatus = Record<string, { active: boolean; queued: SessionAuditionRequest["action"] | null; preview_gesture?: string; preview_revision?: number; preview_active?: boolean }>;
 
 export interface SessionLaneOutputRequest { revision: number; lanes: Record<string, { mute: boolean; solo: boolean }> }

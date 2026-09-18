@@ -20,6 +20,7 @@ export type SequencerStepEventPayload = {
   current_step: number;
   cycle: number;
   running: boolean;
+  arranger_active?: boolean;
   step_count: number;
   transport_subunit: number;
   tracks: SequencerRuntimeTrackDelta[];
@@ -33,6 +34,7 @@ export type SequencerPadSwitchEventPayload = {
   cycle: number;
   current_step: number;
   running: boolean;
+  arranger_active?: boolean;
   step_count: number;
   transport_subunit: number;
   tracks: SequencerRuntimeTrackDelta[];
@@ -184,6 +186,7 @@ export function parseSequencerStepEventPayload(event: SessionEvent): SequencerSt
     current_step: payload.current_step,
     cycle: payload.cycle,
     running: payload.running,
+    ...(typeof payload.arranger_active === "boolean" ? { arranger_active: payload.arranger_active } : {}),
     step_count: payload.step_count,
     transport_subunit: payload.transport_subunit,
     tracks,
@@ -245,6 +248,7 @@ function parseSequencerRuntimeDelta(
     cycle: payload.cycle,
     current_step: payload.current_step,
     running: payload.running,
+    ...(typeof payload.arranger_active === "boolean" ? { arranger_active: payload.arranger_active } : {}),
     step_count: payload.step_count,
     transport_subunit: payload.transport_subunit,
     tracks,

@@ -346,7 +346,7 @@ class PerformanceMidiRouter:
 
     def audition_status(self):
         return {key: {"active": bool(state.audition_sequence), "queued": state.audition_pending[0] if state.audition_pending else None}
-                | ({"preview_gesture": state.preview["gesture"], "preview_revision": state.preview["revision"]} if state.preview else {})
+                | ({"preview_gesture": state.preview["gesture"], "preview_revision": state.preview["revision"], "preview_active": state.preview.get("applied", False)} if state.preview else {})
                 for key, state in self._states.items() if state.audition_sequence or state.audition_pending}
 
     def audition(self, request: SessionAuditionRequest, *, transport_running: bool | None = None) -> None:
@@ -382,15 +382,24 @@ class PerformanceMidiRouter:
             return
         if request.action == "preview_start":
             if state.preview is None:
-                state.preview = {"running": self._running(state), "fields": {key: getattr(state, key) for key in (
+                state.preview = {"running": self._running(state), "applied": False, "fields": {key: getattr(state, key) for key in (
                     "audition_sequence", "audition_origin", "audition_pending", "audition_stopped",
                     "manual_override", "active_pad", "anchor_beat", "queued_pad", "queued_beat")}}
             state.preview["gesture"] = request.gesture_id
             state.preview["revision"] = request.revision
-            state.audition_pending = ("start", tuple(request.sequence), beat)
+            boundary = state.boundary_beat
+            if boundary is None or boundary <= beat:
+                length = Fraction(state.pad.length_beats)
+                anchor = state.anchor_beat if state.anchor_beat is not None else Fraction(0)
+                boundary = anchor + ((beat - anchor) // length + 1) * length
+            state.audition_pending = ("start", tuple(request.sequence), boundary if self._arranger_intent else beat)
             self._apply_audition(state, beat, sample)
         elif state.preview and state.preview["gesture"] == request.gesture_id:
             snapshot, state.preview = state.preview, None
+            if not snapshot["applied"]:
+                state.audition_pending = snapshot["fields"]["audition_pending"]
+                self._status_dirty = True
+                return
             self._release(state, sample)
             for key, value in snapshot["fields"].items():
                 setattr(state, key, value)
@@ -409,6 +418,8 @@ class PerformanceMidiRouter:
         if not pending or beat < pending[2]:
             return
         action, sequence, at = pending
+        if action == "start" and state.preview:
+            state.preview["applied"] = True
         state.audition_pending = None
         state.audition_sequence = sequence if action == "start" else ()
         state.audition_stopped = action == "stop"

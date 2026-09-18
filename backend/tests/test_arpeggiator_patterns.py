@@ -361,6 +361,10 @@ def test_arranger_momentary_preview_returns_immediately_into_rest_and_preserves_
     start = SessionAuditionRequest(action="preview_start", arpeggiator_id="arp", sequence=[1], gesture_id="hold", revision=1)
     end = SessionAuditionRequest(action="preview_end", arpeggiator_id="arp", gesture_id="hold", revision=2)
     p.router.audition(start)
+    assert p.router.status()[0].active_pad == 0
+    assert p.router.audition_status()["arp"]["queued"] == "start"
+    assert not p.router.audition_status()["arp"]["preview_active"]
+    p.advance(96001)
     assert p.router.status()[0].active_pad == 1
     assert p.router.audition_status()["arp"]["preview_gesture"] == "hold"
     p.advance(120000)
@@ -422,3 +426,25 @@ def test_seek_applies_queued_audition_replacement_at_destination():
     p.router.transport_discontinuity(12, sample=p.sample)
     p.advance(24002)
     assert p.router.status()[0].active_pad == 2
+
+
+def test_cancel_queued_preview_preserves_arpeggiator_then_stopped_preview_launches_immediately():
+    from backend.app.models.session import SessionAuditionRequest
+    p = Playback(playback_mode="arranger")
+    p.note()
+    p.advance(24000)
+    before = list(p.events)
+    start = SessionAuditionRequest(action="preview_start", arpeggiator_id="arp", sequence=[1], gesture_id="hold", revision=1)
+    end = SessionAuditionRequest(action="preview_end", arpeggiator_id="arp", gesture_id="hold", revision=2)
+    p.router.audition(start)
+    p.router.audition(end)
+    assert p.events == before
+    assert not p.router.audition_status()
+    p.router.set_transport(beat=1, running=False, sample=p.sample)
+    p.advance(24001)
+    p.router.audition(start.model_copy(update={"revision": 3}))
+    assert not p.router.arranger_running
+    assert p.router.audition_status()["arp"]["preview_active"]
+    assert p.router.status()[0].active_pad == 1
+    p.router.audition(end.model_copy(update={"revision": 4}))
+    assert p.router.status()[0].state == "stopped"

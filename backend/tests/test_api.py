@@ -6773,6 +6773,8 @@ def test_momentary_preview_http_websocket_ordering_and_persistence(tmp_path: Pat
         result = client.post(base + "/audition", json=start)
         assert result.status_code == 200, result.text
         assert result.json()["auditions"]["lead"]["preview_gesture"] == "hold"
+        assert result.json()["running"] and not result.json()["arranger_active"]
+        assert result.json()["auditions"]["lead"]["preview_active"]
         assert not next(t for t in result.json()["tracks"] if t["track_id"] == "other")["enabled"]
         with client.websocket_connect(f"/ws/sessions/{session_id}/browser-clock") as socket:
             socket.send_json({"type": "claim_controller", "audio_context_sample_rate": 48000,
@@ -6787,8 +6789,21 @@ def test_momentary_preview_http_websocket_ordering_and_persistence(tmp_path: Pat
             error = socket.receive_json()
             assert error["type"] == "sequencer_error" and error["request_id"] == "stale"
             socket.send_json({**start, "revision": 3, "type": "audition", "request_id": "again"})
-            assert socket.receive_json()["sequencer_status"]["auditions"]["lead"]["active"]
+            status = socket.receive_json()["sequencer_status"]
+            assert status["auditions"]["lead"]["active"]
+            assert status["running"] and not status["arranger_active"]
             assert client.post(base + "/audition", json={**end, "revision": 4}).json()["auditions"] == {}
+            assert client.post(base + "/start", json={"config": config, "arranger_active": True}).json()["arranger_active"]
+            socket.send_json({**start, "revision": 5, "type": "audition", "request_id": "queued"})
+            status = socket.receive_json()["sequencer_status"]
+            assert status["arranger_active"]
+            assert status["auditions"]["lead"]["queued"] == "start"
+            assert not status["auditions"]["lead"]["preview_active"]
+            assert client.post(base + "/audition", json={**end, "revision": 6}).json()["auditions"] == {}
+            status = client.post(base + "/audition", json={**start, "revision": 7}).json()
+            assert status["auditions"]["lead"]["queued"] == "start"
+            socket.send_json({**end, "revision": 8, "type": "audition", "request_id": "cancel-queued"})
+            assert socket.receive_json()["sequencer_status"]["auditions"] == {}
 
 
 def test_lane_output_api_is_temporary_atomic_and_revisioned(tmp_path: Path) -> None:
