@@ -5,7 +5,6 @@ import { normalizeControllerTargetChannels } from "./lib/midiControllerChannels"
 import { INITIAL_PANEL_COLLAPSE_STATE, type PanelId } from "./components/CollapsiblePanel";
 import { stereoCatalogEntries } from "./lib/stereoCatalog";
 import { AuditionPanel } from "./components/AuditionPanel";
-import { AudioGraphEditor } from "./components/AudioGraphEditor";
 import { audioTemplate, type BuiltinTemplate } from "./lib/audioTemplates";
 import { audioCopy } from "./lib/audioCopy";
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -89,6 +88,7 @@ import type {
   SessionSequencerConfigRequest
 } from "./types";
 
+const LazyAudioGraphEditor = lazy(() => import("./components/AudioGraphEditor").then((module) => ({ default: module.AudioGraphEditor })));
 const LazyConfigPage = lazy(() =>
   import("./components/ConfigPage").then((module) => ({ default: module.ConfigPage }))
 );
@@ -2124,23 +2124,25 @@ export default function App() {
                   </div>
                 </div>
                 <div className="min-h-0 flex-1">
-                  <AudioGraphEditor
-                    patchId={currentPatch.id}
-                    onDeleteAudioGroup={(groupId) => setDeleteSelectionDialog(buildGraphSelectionDeletePlan(currentPatch.graph, { nodeIds: [], connections: [] }, opcodes, appCopy, guiLanguage, [groupId]))}
-                    guiLanguage={guiLanguage}
-                    graph={currentPatch.graph}
-                    graphLabel={currentPatch.name.trim().length > 0 ? currentPatch.name.trim() : "Untitled Patch"}
-                    graphBadgeLabel={currentPatch.is_template ? appCopy.templateToken : undefined}
-                    opcodes={editorOpcodes}
-                    viewportKey={`${activeInstrumentTabId}:${currentPatch.id ?? "draft"}`}
-                    onGraphChange={onGraphChange}
-                    onSelectionChange={setSelection}
-                    onAddOpcodeAtPosition={addNodeFromOpcode}
-                    onOpcodeHelpRequest={onOpcodeHelpRequest}
-                    opcodeHelpLabel={documentationCopy.showDocumentation}
-                    onDeleteSelection={onDeleteSelection}
-                    canDeleteSelection={selectedCount > 0}
-                  />
+                  <Suspense fallback={<DeferredPageFallback />}>
+                    <LazyAudioGraphEditor
+                      patchId={currentPatch.id}
+                      onDeleteAudioGroup={(groupId) => setDeleteSelectionDialog(buildGraphSelectionDeletePlan(currentPatch.graph, { nodeIds: [], connections: [] }, opcodes, appCopy, guiLanguage, [groupId]))}
+                      guiLanguage={guiLanguage}
+                      graph={currentPatch.graph}
+                      graphLabel={currentPatch.name.trim().length > 0 ? currentPatch.name.trim() : "Untitled Patch"}
+                      graphBadgeLabel={currentPatch.is_template ? appCopy.templateToken : undefined}
+                      opcodes={editorOpcodes}
+                      viewportKey={`${activeInstrumentTabId}:${currentPatch.id ?? "draft"}`}
+                      onGraphChange={onGraphChange}
+                      onSelectionChange={setSelection}
+                      onAddOpcodeAtPosition={addNodeFromOpcode}
+                      onOpcodeHelpRequest={onOpcodeHelpRequest}
+                      opcodeHelpLabel={documentationCopy.showDocumentation}
+                      onDeleteSelection={onDeleteSelection}
+                      canDeleteSelection={selectedCount > 0}
+                    />
+                  </Suspense>
                 </div>
               </section>
 
