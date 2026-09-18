@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import type { SequencerTrackState } from "../../types";
+import type { DrummerSequencerTrackState, SequencerTrackState } from "../../types";
 import { useAppStore } from "../../store/useAppStore";
 import { PatternWorkspace } from "./PatternWorkspace";
 import { PerformanceEditorProvider } from "./PerformanceEditorState";
@@ -10,10 +10,10 @@ import { PerformanceAuditionContext } from "./PerformanceAudition";
 import { cancelArrangerPreviewGestures } from "../../lib/arrangerPreviewGesture";
 
 const audition = vi.fn().mockResolvedValue(undefined);
-let current: SequencerTrackState;
-function Editor({ shown = true }: { shown?: boolean }) {
+let current: SequencerTrackState | DrummerSequencerTrackState;
+function Editor({ shown = true, drummer = false }: { shown?: boolean; drummer?: boolean }) {
   const [track, setTrack] = useState(() => {
-    const t = structuredClone(useAppStore.getInitialState().sequencer.tracks[0]);
+    const t = structuredClone(drummer ? useAppStore.getState().sequencer.drummerTracks[0] : useAppStore.getInitialState().sequencer.tracks[0]);
     t.padLoopPattern = { rootSequence: [], groups: [], superGroups: [] };
     return t;
   });
@@ -78,7 +78,47 @@ it("edits shared definitions only on Apply and can save independent copies", () 
   fireEvent.click(screen.getByRole("button", { name: "Free workspace" }));
   expect(within(strip()).getAllByRole("listitem")).toHaveLength(2);
   fireEvent.contextMenu(screen.getByRole("button", { name: "Group A" }));
-  expect((screen.getByRole("menuitem", { name: "Delete definition" }) as HTMLButtonElement).disabled).toBe(true);
+  expect((screen.getByRole("menuitem", { name: "Delete definition" }) as HTMLButtonElement).disabled).toBe(false);
+});
+
+it("deletes an unused group despite free-workspace references and its own edited draft", () => {
+  render(<Editor />); createGroup();
+  fireEvent.click(screen.getByRole("button", { name: "Group A" }));
+  dropPad(3, screen.getByRole("list", { name: "Editing A" }));
+  fireEvent.contextMenu(screen.getByRole("button", { name: "Group A" }));
+  fireEvent.click(screen.getByRole("menuitem", { name: "Delete definition" }));
+  expect(current.padLoopPattern.groups).toEqual([]);
+  expect(within(strip()).getAllByRole("listitem").map(el => el.textContent)).toEqual(["#1", "#3", "#2"]);
+  expect(screen.queryByRole("button", { name: "Group A" })).toBeNull();
+  expect(screen.queryByText(/workspace draft/)).toBeNull();
+});
+
+it.each([false, true])("highlights the audible workspace occurrence independently of selection (drummer=%s)", drummer => {
+  if (drummer) useAppStore.getState().addDrummerSequencerTrack();
+  render(<Editor drummer={drummer} />); createGroup(); dropPad(0);
+  fireEvent.change(screen.getByLabelText("Add rest…"), { target: { value: "1" } });
+  fireEvent.click(within(strip()).getByRole("button", { name: "#2" }));
+  fireEvent.click(screen.getByRole("button", { name: "Play workspace" }));
+  const gesture = audition.mock.calls[0][1].gestureId;
+  const emit = (position: number | null, preview = false) => act(() => useAppStore.setState({ performanceAuditions: { [current.id]: {
+    active: true, queued: null, workspace_gesture: gesture, workspace_active: true, workspace_sequence: [0, 2, 1, 0, -1], workspace_position: position, preview_active: preview
+  } } }));
+  expect(strip().querySelector("[aria-current]")).toBeNull(); // Preparation is not playback.
+  for (const [position, name] of [[0, "A"], [1, "A"], [2, "#2"], [3, "#1"], [4, "Rest 1"], [0, "A"]] as const) {
+    emit(position);
+    expect(strip().querySelectorAll("[aria-current]")).toHaveLength(1);
+    expect(strip().querySelector("[aria-current]")?.textContent).toBe(name);
+    expect(strip().querySelector("[aria-current]")?.parentElement?.className).toContain("outline-amber");
+    expect(within(strip()).getByRole("button", { name: "#2" }).getAttribute("aria-pressed")).toBe("true");
+  }
+  emit(null, true); expect(strip().querySelector("[aria-current]")).toBeNull();
+  emit(2); expect(strip().querySelector("[aria-current]")?.textContent).toBe("#2");
+  dropPad(4); // The old audible sequence cannot highlight a newly edited draft.
+  expect(strip().querySelector("[aria-current]")).toBeNull();
+  act(() => useAppStore.setState(state => ({ performanceAuditions: { [current.id]: { ...state.performanceAuditions[current.id], workspace_sequence: [0, 2, 1, 0, -1, 4], workspace_position: 5 } } })));
+  expect(strip().querySelector("[aria-current]")?.textContent).toBe("#5");
+  fireEvent.click(screen.getByRole("button", { name: "Stop workspace" }));
+  expect(strip().querySelector("[aria-current]")).toBeNull();
 });
 
 it("loops the whole workspace, updates it after edits and restores on collapse", async () => {

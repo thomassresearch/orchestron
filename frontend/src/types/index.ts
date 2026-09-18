@@ -1241,6 +1241,6 @@ export interface SessionAuditionRequest {
   arpeggiator_id?: string;
   sequence?: number[];
 }
-export type PerformanceAuditionStatus = Record<string, { active: boolean; queued: SessionAuditionRequest["action"] | null; preview_gesture?: string; preview_revision?: number; preview_active?: boolean; workspace_gesture?: string; workspace_active?: boolean; workspace_queued?: boolean }>;
+export type PerformanceAuditionStatus = Record<string, { active: boolean; queued: SessionAuditionRequest["action"] | null; preview_gesture?: string; preview_revision?: number; preview_active?: boolean; workspace_gesture?: string; workspace_active?: boolean; workspace_queued?: boolean; workspace_sequence?: number[]; workspace_position?: number | null }>;
 
 export interface SessionLaneOutputRequest { revision: number; lanes: Record<string, { mute: boolean; solo: boolean }> }

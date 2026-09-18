@@ -332,7 +332,15 @@ export function useSequencerRuntimeController({
     (status: SessionSequencerStatus, options?: ApplySequencerStatusOptions) => {
       acknowledgeLaneOutput(status);
       if (status.auditions) {
-        useAppStore.setState({ performanceAuditions: Object.fromEntries(Object.entries(status.auditions).map(([id, value]) => [parseDrummerRowRuntimeTrackId(id)?.drummerTrackId ?? id, value])) });
+        const audible = useAppStore.getState().performanceAuditions;
+        useAppStore.setState({ performanceAuditions: Object.fromEntries(Object.entries(status.auditions).map(([runtimeId, value]) => {
+          const id = parseDrummerRowRuntimeTrackId(runtimeId)?.drummerTrackId ?? runtimeId;
+          if (!value.workspace_gesture || effectiveAudioOutputModeRef.current !== "browser_clock") return [id, value];
+          const previous = audible[id]?.workspace_gesture === value.workspace_gesture ? audible[id] : undefined;
+          // Command acknowledgments describe render-ahead state. Only audible PCM
+          // markers advance the workspace highlight in browser-clock mode.
+          return [id, { ...value, workspace_sequence: previous?.workspace_sequence ?? [], workspace_position: previous?.workspace_position ?? null }];
+        })) });
       }
       const preserveLocalEnablement =
         status.running && (options?.preserveLocalEnablement ?? sequencerConfigSyncPendingRef.current);

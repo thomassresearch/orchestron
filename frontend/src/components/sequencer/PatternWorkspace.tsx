@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState, type DragEvent, type KeyboardEvent, type MouseEvent } from "react";
 import type { DrummerSequencerTrackState, GuiLanguage, PadLoopPatternItem, PadLoopPatternState, SequencerTrackState } from "../../types";
 import { arrangementCopy } from "../../lib/arrangementCopy";
-import { compileDefinition, createDefinition, definitionItem, definitionUses, deleteDefinition, type DefinitionRef } from "../../lib/arrangementEditing";
+import { compileDefinition, createDefinition, definitionItem, definitionUses, type DefinitionRef } from "../../lib/arrangementEditing";
 import { ARRANGEMENT_ITEM_MIME, beginArrangementDrag, endArrangementDrag } from "../../lib/arrangementDrag";
 import { ARRANGER_PREVIEW_CANCEL } from "../../lib/arrangerPreviewGesture";
 import { itemDisplayLabel } from "../../lib/padLoopPattern";
 import { patternItemButtonClass } from "../../lib/patternItemPresentation";
-import { applyWorkspaceDefinition, drummerPadHasSound, groupWorkspaceItems, melodicPadHasSound, moveWorkspaceItems, splitWorkspaceItems, validateWorkspace, workspaceSelection, workspaceUsesDefinition, type PatternWorkspaceDraft } from "../../lib/patternWorkspace";
+import { applyWorkspaceDefinition, deleteWorkspaceDefinition, drummerPadHasSound, groupWorkspaceItems, melodicPadHasSound, moveWorkspaceItems, splitWorkspaceItems, validateWorkspace, workspacePlayingIndex, workspaceSelection, type PatternWorkspaceDraft } from "../../lib/patternWorkspace";
 import { useAppStore } from "../../store/useAppStore";
 import { ArrangerContextMenu, type ArrangerMenuTarget } from "./ArrangerContextMenu";
 import { ArrangerSpeaker } from "./ArrangerSpeaker";
@@ -47,6 +47,7 @@ export function PatternWorkspace({ track, language, onPatternChange, onSourceCha
   const saved = active ? (active.kind === "group" ? pattern.groups : pattern.superGroups).find(g => g.id === active.id)?.sequence : undefined;
   const items = drafts[key]?.items ?? saved ?? [];
   const selection = workspaceSelection(drafts[key]?.selection ?? [], items.length);
+  const playingIndex = workspacePlayingIndex(pattern, items, status, gesture);
   const dirty = !!active && JSON.stringify(items) !== JSON.stringify(saved);
   const uses = active ? definitionUses(pattern, active) : [];
   let tokens: number[] = [];
@@ -66,7 +67,7 @@ export function PatternWorkspace({ track, language, onPatternChange, onSourceCha
     const cancel = () => { gestureRef.current = null; setGesture(null); };
     window.addEventListener(ARRANGER_PREVIEW_CANCEL, cancel);
     return () => { window.removeEventListener(ARRANGER_PREVIEW_CANCEL, cancel); stop(); endArrangementDrag(); };
-  }, [stop]);
+  }, [key, stop]);
   useEffect(() => {
     if (!gesture || lastSubmitted.current === signature) return;
     if (!tokens.length) { stop(); return; }
@@ -110,7 +111,7 @@ export function PatternWorkspace({ track, language, onPatternChange, onSourceCha
   });
   const split = (indexes = selection) => editItems(splitWorkspaceItems(pattern, items, indexes));
   const remove = (indexes = selection) => editItems(items.filter((_, i) => !indexes.includes(i)));
-  const deleteUses = (ref: DefinitionRef) => [...definitionUses(pattern, ref), ...(workspaceUsesDefinition(pattern, drafts, ref) ? [c.draftUse] : [])];
+  const deleteUses = (ref: DefinitionRef) => definitionUses(pattern, ref);
   const showMenu = (event: MouseEvent<HTMLElement> | KeyboardEvent<HTMLElement>, index?: number, ref?: DefinitionRef) => {
     event.preventDefault(); event.stopPropagation();
     const indexes = index === undefined ? [] : selection.includes(index) ? selection : [index];
@@ -166,7 +167,7 @@ export function PatternWorkspace({ track, language, onPatternChange, onSourceCha
     <div className="flex flex-wrap items-center gap-1">
       <button type="button" className={`${button} ${gesture ? "border-cyan-400 text-cyan-200" : ""}`} aria-label={gesture ? c.stop : c.play} aria-pressed={!!gesture} disabled={!audition || !gesture && !tokens.length} onClick={play}>{gesture ? "■" : "▶"}</button>
       <span className="mr-auto text-xs text-slate-300">{active ? `${a.editing}: ${active.id}` : c.free}{dirty ? ` · ${c.changes}` : ""}</span>
-      {gesture && <span className="text-xs text-cyan-300">{status?.workspace_queued ? c.queued : c.auditioning}</span>}
+      {gesture && <span className="text-xs text-cyan-300">{status?.workspace_queued ? c.queued : c.auditioning}{playingIndex >= 0 && `: ${label(items[playingIndex])}`}</span>}
       <button className={button} disabled={!canGroup("group")} onClick={() => group("group")}>{c.group}</button>
       <button className={button} disabled={!canGroup("super")} onClick={() => group("super")}>{c.super}</button>
       <select className={button} aria-label={c.rest} value="" onChange={e => editItems([...items, { type: "pause", lengthBeats: Number(e.target.value) as 1 | 2 | 4 | 8 | 16 }])}>
@@ -179,10 +180,10 @@ export function PatternWorkspace({ track, language, onPatternChange, onSourceCha
       onClick={e => { if (e.target === e.currentTarget) setDraft(items); }}
       onKeyDown={e => { if (e.key === "Escape") { setMenu(null); setDropIndex(null); endArrangementDrag(); } if (["Delete", "Backspace"].includes(e.key)) { e.preventDefault(); remove(); } }}>
       {!items.length && <span className="text-xs text-slate-400">{c.empty}</span>}
-      {items.map((item, index) => <div role="listitem" key={index} className={`flex shrink-0 items-center rounded ${dropIndex === index ? "border-l-2 border-cyan-300" : "border-l-2 border-transparent"}`}
+      {items.map((item, index) => <div role="listitem" key={index} className={`flex shrink-0 items-center rounded ${playingIndex === index ? "outline outline-2 outline-offset-2 outline-amber-300" : ""} ${dropIndex === index ? "border-l-2 border-cyan-300" : "border-l-2 border-transparent"}`}
         onDragOver={e => { e.preventDefault(); e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); setDropIndex(e.clientX < r.left + r.width / 2 ? index : index + 1); }}
         onDrop={e => drop(e, dropIndex ?? index)}>
-        <button className={patternItemButtonClass(item.type, hasContent(item))} draggable aria-pressed={selection.includes(index)}
+        <button className={patternItemButtonClass(item.type, hasContent(item))} draggable aria-pressed={selection.includes(index)} aria-current={playingIndex === index ? "true" : undefined}
           onClick={e => select(index, e)} onDoubleClick={() => { const ref = itemRef(item); if (ref) open(ref); else if (item.type === "pad") useAppStore.getState().selectSequencerEditingPad(track.id, item.padIndex); }}
           onContextMenu={e => showMenu(e, index)} onKeyDown={e => menuKey(e, index)}
           onDragStart={e => { const indexes = selection.includes(index) ? selection : [index]; setDraft(items, indexes); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData(MOVE_MIME, JSON.stringify({ trackId: track.id, key, indexes })); }}
@@ -210,7 +211,8 @@ export function PatternWorkspace({ track, language, onPatternChange, onSourceCha
         <button role="menuitem" className={menuButton} onClick={() => remove(menu.indexes)}>{c.remove}</button>
       </>}
       {menu.ref && menu.palette && <>
-        <button role="menuitem" className={menuButton} disabled={deleteUses(menu.ref).length > 0} onClick={() => attempt(() => { const ref = menu.ref!; onPatternChange(deleteDefinition(pattern, ref)); setDrafts(previous => Object.fromEntries(Object.entries(previous).filter(([draftKey]) => draftKey !== refKey(ref)))); if (active && refKey(active) === refKey(ref)) open(null); })}>{c.delete}</button>
+        <button role="menuitem" className={menuButton} disabled={deleteUses(menu.ref).length > 0} onClick={() => attempt(() => { const ref = menu.ref!; const result = deleteWorkspaceDefinition(pattern, drafts, ref); onPatternChange(result.pattern); setDrafts(result.drafts); if (active && refKey(active) === refKey(ref)) open(null); })}>{c.delete}</button>
+        {!deleteUses(menu.ref).length && <p className="p-2 text-slate-400">{c.deleteHint}</p>}
         {deleteUses(menu.ref).length > 0 && <p className="p-2 text-slate-400">{a.used}: {deleteUses(menu.ref).map(use => use === "Arrangement" ? a.arrangement : use).join(", ")}</p>}
       </>}
     </ArrangerContextMenu>}

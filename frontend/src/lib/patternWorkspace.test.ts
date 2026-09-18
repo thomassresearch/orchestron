@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { applyWorkspaceDefinition, drummerPadHasSound, groupWorkspaceItems, melodicPadHasSound, moveWorkspaceItems, splitWorkspaceItems, validateWorkspace } from "./patternWorkspace";
+import { applyWorkspaceDefinition, deleteWorkspaceDefinition, drummerPadHasSound, groupWorkspaceItems, melodicPadHasSound, moveWorkspaceItems, splitWorkspaceItems, validateWorkspace, workspacePlayingIndex } from "./patternWorkspace";
 import { patternPadClass } from "./patternItemPresentation";
 import { useAppStore } from "../store/useAppStore";
 import type { PadLoopPatternItem, PadLoopPatternState } from "../types";
@@ -83,4 +83,35 @@ it("updates content detection after pad copying and clearing", () => {
   store.selectSequencerEditingPad(drummer.id, 1);
   store.clearDrummerSequencerTrackSteps(drummer.id);
   expect(drummerPadHasSound(useAppStore.getState().sequencer.drummerTracks[0].pads[1])).toBe(false);
+});
+
+it("expands deleted definitions in every retained draft and remaps selections", () => {
+  const pattern: PadLoopPatternState = { rootSequence: [], groups: [{ id: "A", sequence: [pad(0), pad(1)] }], superGroups: [{ id: "I", sequence: [pad(2)] }] };
+  const ref = { type: "group" as const, groupId: "A" };
+  const drafts = { free: { items: [pad(7), ref, pad(6), ref], selection: [1, 2] },
+    "group:A": { items: [pad(4)], selection: [] }, "super:I": { items: [ref, pad(5)], selection: [1] } };
+  const deleted = deleteWorkspaceDefinition(pattern, drafts, { kind: "group", id: "A" });
+  expect(deleted.pattern.groups).toEqual([]);
+  expect(deleted.drafts.free).toEqual({ items: [pad(7), pad(0), pad(1), pad(6), pad(0), pad(1)], selection: [1, 2, 3] });
+  expect(deleted.drafts["super:I"]).toEqual({ items: [pad(0), pad(1), pad(5)], selection: [2] });
+  expect(deleted.drafts["group:A"]).toBeUndefined();
+  expect(pattern.groups).toHaveLength(1);
+  expect(drafts.free.items).toHaveLength(4);
+  expect(() => deleteWorkspaceDefinition({ ...pattern, rootSequence: [ref] }, drafts, { kind: "group", id: "A" })).toThrow(/saved material/);
+  expect(() => deleteWorkspaceDefinition({ ...pattern, superGroups: [{ id: "I", sequence: [ref] }] }, drafts, { kind: "group", id: "A" })).toThrow(/saved material/);
+});
+
+it("deletes supergroups by expanding one level and highlights nested and repeated occurrences", () => {
+  const pattern: PadLoopPatternState = { rootSequence: [], groups: [{ id: "A", sequence: [pad(0), pad(1)] }], superGroups: [{ id: "I", sequence: [{ type: "group", groupId: "A" }, pad(2)] }] };
+  const items: PadLoopPatternItem[] = [pad(0), { type: "super", superGroupId: "I" }, { type: "group", groupId: "A" }];
+  const status = { active: true, queued: null, workspace_gesture: "play", workspace_active: true, workspace_sequence: [0, 0, 1, 2, 0, 1], workspace_position: 2 };
+  expect(workspacePlayingIndex(pattern, items, status, "play")).toBe(1);
+  expect(workspacePlayingIndex(pattern, items, { ...status, workspace_position: 4 }, "play")).toBe(2);
+  expect(workspacePlayingIndex(pattern, items, status, "other")).toBe(-1);
+  expect(workspacePlayingIndex(pattern, items, { ...status, workspace_active: false }, "play")).toBe(-1);
+  expect(workspacePlayingIndex(pattern, items, { ...status, workspace_position: 99 }, "play")).toBe(-1);
+  const result = deleteWorkspaceDefinition(pattern, { free: { items, selection: [1] } }, { kind: "super", id: "I" });
+  expect(result.pattern.groups).toEqual(pattern.groups);
+  expect(result.pattern.superGroups).toEqual([]);
+  expect(result.drafts.free).toEqual({ items: [pad(0), { type: "group", groupId: "A" }, pad(2), { type: "group", groupId: "A" }], selection: [1, 2] });
 });

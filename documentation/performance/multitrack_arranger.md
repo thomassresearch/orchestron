@@ -34,7 +34,7 @@ Right-click to open lane actions. Right-clicking a selected occurrence preserves
 
 After ungrouping, rearrange the material, then select and group it again. Choose **Create new definition** (the default) to leave other occurrences unchanged, or explicitly select **Update existing definition** to update all its references. The dialog lists uses and explains that duration changes shift following material. Groups retain letter IDs and supergroups Roman numeral IDs.
 
-**Create variation** copies a pad into an unused slot, or copies a group/supergroup under a new ID, and retargets only the selected occurrence. It inherits the source colour. The eight-pad limit remains. Palette context menus allow deleting unused definitions; referenced definitions list their uses and cannot be deleted.
+**Create variation** copies a pad into an unused slot, or copies a group/supergroup under a new ID, and retargets only the selected occurrence. It inherits the source colour. The eight-pad limit remains. Palette context menus allow deleting unused definitions; saved references list their uses and block deletion. Temporary workspace references expand into the saved contents, including retained drafts in closed panels; the deleted definition’s own draft is removed.
 
 Use Enter/Space to select a focused occurrence, Cmd/Ctrl-click for multiple selection, and Shift+F10 or the Context Menu key for its menu. Arrow keys navigate occurrences or menu actions; Escape closes menus and cancels gestures. Menus return focus to their originating item.
 

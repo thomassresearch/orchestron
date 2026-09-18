@@ -28,7 +28,7 @@ Choose a saved phrase or double-click a workspace group/supergroup to edit its d
 
 Each definition has a separate draft, and the free workspace is retained when switching between definitions. Drafts, selection and scroll survive panel collapse and view switches. New/Load/Import and browser reload clear temporary drafts. Loose workspace items and unapplied edits are excluded from save, autosave and export; Group/Supergroup creation and Apply save through the existing performance workflow.
 
-**Delete definition** is in the saved phrase's context menu. It is disabled while the arrangement, another definition, or a workspace draft uses the definition. An unapplied draft for that definition also prevents deletion. Empty definitions remain valid drafts but cannot be placed or auditioned; a referenced definition cannot be applied empty. Each container and its expanded sequence is limited to 256 tokens. Invalid edits fail as a whole and leave the current draft intact.
+**Delete definition** is available in saved phrase and arranger palettes. Saved arrangement or phrase references block deletion. Temporary references expand into the saved contents, preserving order and selection even in closed workspaces; the definition’s own draft is removed. Empty definitions can remain drafts but cannot be placed or auditioned. Referenced definitions cannot be applied empty. Containers and expanded sequences are limited to 256 tokens; invalid edits leave drafts unchanged.
 
 Controllers and arpeggiators keep their collapsible phrase editor and immediate definition edits.
 
@@ -36,7 +36,7 @@ Controllers and arpeggiators keep their collapsible phrase editor and immediate 
 
 **Playback source: Arrangement** follows the song timeline. Its Stop/Repeat-at-end option lives in the arranger lane. **Manual pads** enables a separate Launch pad action for jamming. Selection alone never starts sound.
 
-The play button beside the workspace loops the **entire displayed assembly**, regardless of selection. Click it again to restore the track's previous arrangement, manual pad or stopped state. It works before saving a phrase. Workspace edits enter at the next cycle boundary after the normal 80 ms coalescing delay. Failed preparation retains the previous sound and the edited draft; another edit or explicit restart retries.
+The play button beside the workspace loops the **entire displayed assembly**, regardless of selection. An amber outline follows the currently playing pad, group, supergroup or rest, independently of the cyan editing selection. It follows audible playback, including repeated pads and loop wrap; a momentary speaker preview hides the workspace outline until release. Click it again to restore the track's previous arrangement, manual pad or stopped state. It works before saving a phrase. Workspace edits enter at the next cycle boundary after the normal 80 ms coalescing delay. Failed preparation retains the previous sound and the edited draft; another edit or explicit restart retries.
 
 Every pad, group and supergroup has a separate speaker button. Hold for **250 ms** to begin a momentary preview; shorter clicks do nothing. Preview repeats until release. With the arranger running it enters at the next lane cycle boundary; with the arranger stopped it starts at an audio block without moving the song cursor. Space/Enter supports the same hold/release gesture. The speaker never selects, transposes or drags its item.
 

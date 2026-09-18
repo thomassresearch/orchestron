@@ -5,8 +5,10 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import fixture from "../../../backend/tests/fixtures/performances/arranger_seek.json";
 import { useAppStore } from "../store/useAppStore";
 import { useLaneOutput } from "../lib/laneOutput";
+import { ARRANGEMENT_ITEM_MIME } from "../lib/arrangementDrag";
 import { MultitrackArranger } from "./MultitrackArranger";
 import { PadLoopPatternEditor } from "./sequencer/PadLoopPatternEditor";
+import { PatternWorkspace } from "./sequencer/PatternWorkspace";
 import { PerformanceEditorProvider } from "./sequencer/PerformanceEditorState";
 import { SEQUENCER_UI_COPY } from "./sequencer/sequencerUiCopy";
 
@@ -266,6 +268,31 @@ it("opens the selected definition in the arranger and retains disclosures across
   expect(screen.queryByText("Editing: A")).toBeNull();
   view.rerender(<Workspace library={false} generation={1} />);
   expect(screen.queryByRole("button", { name: "Patterns and phrases" })).toBeNull();
+});
+
+it("deletes unused phrases from the arranger even with a retained workspace and clears its editing context", () => {
+  const id = useAppStore.getState().sequencer.tracks[0].id;
+  useAppStore.getState().setSequencerTrackPadLoopPattern(id, { rootSequence: [], groups: [{ id: "A", sequence: [{ type: "pad", padIndex: 0 }] }], superGroups: [] });
+  function Workspace({ library = true }) {
+    const track = useAppStore(state => state.sequencer.tracks[0]);
+    return <PerformanceEditorProvider>{library ? <PatternWorkspace track={track} language="english" onPatternChange={pattern => useAppStore.getState().setSequencerTrackPadLoopPattern(id, pattern)} onSourceChange={noop} /> : <Arranger />}</PerformanceEditorProvider>;
+  }
+  const view = render(<Workspace />);
+  fireEvent.drop(screen.getByRole("list", { name: "Free workspace" }), { dataTransfer: {
+    getData: (type: string) => type === ARRANGEMENT_ITEM_MIME ? JSON.stringify({ trackId: id, item: { type: "group", groupId: "A" } }) : ""
+  } });
+  expect(within(screen.getByRole("list", { name: "Free workspace" })).getByRole("button", { name: "A" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Group A" }));
+  view.rerender(<Workspace library={false} />);
+  const lane = screen.getAllByRole("region")[0];
+  fireEvent.click(within(lane).getAllByRole("button")[0]);
+  fireEvent.contextMenu(within(lane).getByRole("button", { name: "Group A" }));
+  expect((screen.getByRole("menuitem", { name: "Delete definition" }) as HTMLButtonElement).disabled).toBe(false);
+  fireEvent.click(screen.getByRole("menuitem", { name: "Delete definition" }));
+  expect(useAppStore.getState().sequencer.tracks[0].padLoopPattern.groups).toEqual([]);
+  view.rerender(<Workspace />);
+  expect(within(screen.getByRole("list", { name: "Free workspace" })).getByRole("button", { name: "#1" })).toBeTruthy();
+  expect(screen.queryByRole("list", { name: "Editing A" })).toBeNull();
 });
 
 it("highlights the arranger transport state and freezes its cursor during a stopped audition", () => {

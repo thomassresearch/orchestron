@@ -827,6 +827,64 @@ def test_workspace_preview_layers_restore_manual_phase_and_stopped_state():
     assert not lead.enabled
 
 
+def test_workspace_status_tracks_occurrences_rests_and_wrap_for_all_drummer_rows():
+    runtime, _ = _preview_runtime()
+    targets = ["lead", "other"]
+    sequence = [0, 0, -1, 1]
+    runtime.audition(_workspace_command(sequence=sequence, targets=targets))
+    for beat, position in [(0, 0), (4, 1), (8, 2), (9, 3), (13, 0)]:
+        if beat:
+            runtime._advance_render_to_event_locked(runtime._config, beat * 3360)
+        for identity in targets:
+            status = runtime.audition_status()[identity]
+            assert status["workspace_sequence"] == sequence
+            assert status["workspace_position"] == position
+            marker = runtime._sequencer_runtime_delta_payload_locked(runtime._config)["auditions"][identity]
+            assert marker == status
+    runtime.audition(_preview_command(targets=targets))
+    assert all(runtime.audition_status()[identity]["workspace_position"] is None for identity in targets)
+    runtime.audition(_preview_command("preview_end", 2, targets=targets))
+    assert all(runtime.audition_status()[identity]["workspace_position"] == 0 for identity in targets)
+    runtime.audition(_workspace_command("workspace_end", 2, targets=targets))
+    assert not runtime.audition_status()
+
+
+def test_workspace_status_keeps_audible_sequence_until_queued_edit_starts():
+    runtime, _ = _preview_runtime()
+    runtime.start()
+    runtime.audition(_workspace_command(sequence=[0, 1]))
+    queued = runtime.audition_status()["lead"]
+    assert queued["workspace_position"] is None and queued["workspace_sequence"] == []
+    runtime._advance_render_to_event_locked(runtime._config, 4 * 3360)
+    runtime.audition(_workspace_command(revision=2, sequence=[1, 0]))
+    queued = runtime.audition_status()["lead"]
+    assert queued["workspace_position"] == 0 and queued["workspace_sequence"] == [0, 1]
+    assert queued["workspace_queued"]
+    runtime._advance_render_to_event_locked(runtime._config, 8 * 3360)
+    playing = runtime.audition_status()["lead"]
+    assert playing["workspace_position"] == 0 and playing["workspace_sequence"] == [1, 0]
+    assert not playing["workspace_queued"]
+
+
+def test_repeated_workspace_pad_emits_a_boundary_marker_without_a_global_step_change():
+    runtime, request = _preview_runtime()
+    request.tracks[0].timing.beat_rate_numerator = 2
+    request.tracks[0].pads[0].length_beats = 1
+    runtime.configure(request)
+    runtime.start()
+    runtime._midi_service.arranger_running = False
+    runtime._absolute_subunit = 210
+    runtime.audition(_workspace_command(sequence=[0, 0]))
+    runtime._advance_render_to_event_locked(runtime._config, 1680)
+    runtime._render_block_start_sample = 100
+    runtime._render_event_sample = 100
+    runtime._advance_render_to_event_locked(runtime._config, 1890)
+    assert runtime._absolute_subunit // 420 == 4
+    event = runtime._render_transport_events[-1]
+    assert event.kind == "pad_switches"
+    assert event.payload["auditions"]["lead"]["workspace_position"] == 1
+
+
 def test_workspace_update_under_speaker_returns_to_updated_workspace_then_original():
     runtime, _ = _preview_runtime()
     runtime.audition(_workspace_command())

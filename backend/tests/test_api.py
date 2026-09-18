@@ -6889,9 +6889,13 @@ def test_workspace_audition_http_websocket_layers_and_validation(tmp_path: Path)
         result = client.post(base + "/audition", json=start)
         assert result.status_code == 200, result.text
         assert result.json()["auditions"]["lead"]["workspace_active"]
+        assert result.json()["auditions"]["lead"]["workspace_sequence"] == start["sequence"]
+        assert result.json()["auditions"]["lead"]["workspace_position"] == 0
         assert not result.json()["arranger_active"]
         preview = {"action": "preview_start", "gesture_id": "speaker", "revision": 1, "track_ids": ["lead"], "sequence": [1]}
-        assert client.post(base + "/audition", json=preview).json()["auditions"]["lead"]["preview_active"]
+        preview_status = client.post(base + "/audition", json=preview).json()["auditions"]["lead"]
+        assert preview_status["preview_active"]
+        assert preview_status["workspace_position"] is None
         with client.websocket_connect(f"/ws/sessions/{session_id}/browser-clock") as socket:
             socket.send_json({"type": "claim_controller", "audio_context_sample_rate": 48000,
                 "queue_low_water_frames": 1024, "queue_high_water_frames": 2048, "max_blocks_per_request": 8})
@@ -6899,6 +6903,8 @@ def test_workspace_audition_http_websocket_layers_and_validation(tmp_path: Path)
             socket.send_json({"type": "audition", "request_id": "release-speaker", "action": "preview_end", "gesture_id": "speaker", "revision": 2, "track_ids": ["lead"]})
             status = socket.receive_json()["sequencer_status"]
             assert status["auditions"]["lead"]["workspace_active"]
+            assert status["auditions"]["lead"]["workspace_sequence"] == start["sequence"]
+            assert status["auditions"]["lead"]["workspace_position"] == 0
             assert "preview_gesture" not in status["auditions"]["lead"]
             end = {"type": "audition", "request_id": "stop-workspace", "action": "workspace_end", "gesture_id": "workspace", "revision": 2, "track_ids": ["lead"]}
             socket.send_json(end)

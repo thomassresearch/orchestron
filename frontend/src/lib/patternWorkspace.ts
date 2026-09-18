@@ -1,14 +1,36 @@
-import type { DrummerSequencerPadState, PadLoopPatternItem, PadLoopPatternState, SequencerPadState } from "../types";
-import { createDefinition, definitionItem, validateArrangementEdit, type DefinitionRef } from "./arrangementEditing";
+import type { DrummerSequencerPadState, PadLoopPatternItem, PadLoopPatternState, PerformanceAuditionStatus, SequencerPadState } from "../types";
+import { createDefinition, definitionItem, definitionUses, deleteDefinition, validateArrangementEdit, type DefinitionRef } from "./arrangementEditing";
 import { compilePadLoopPattern } from "./padLoopPattern";
 
 export type PatternWorkspaceDraft = { items: PadLoopPatternItem[]; selection: number[] };
 
-/** Includes unsaved references even when their workspace panel is unmounted. */
-export function workspaceUsesDefinition(pattern: PadLoopPatternState, drafts: Record<string, PatternWorkspaceDraft>, ref: DefinitionRef): boolean {
-  return Object.entries(drafts).some(([key, draft]) => draft.items.some(item => ref.kind === "group"
-    ? item.type === "group" && item.groupId === ref.id : item.type === "super" && item.superGroupId === ref.id) ||
-    key === `${ref.kind}:${ref.id}` && JSON.stringify(draft.items) !== JSON.stringify((ref.kind === "group" ? pattern.groups : pattern.superGroups).find(g => g.id === ref.id)?.sequence));
+/** Deleting an unused saved definition preserves temporary assemblies by expanding its references. */
+export function deleteWorkspaceDefinition(pattern: PadLoopPatternState, drafts: Record<string, PatternWorkspaceDraft>, ref: DefinitionRef) {
+  if (definitionUses(pattern, ref).length) throw new Error("Definition is used by saved material.");
+  const sequence = (ref.kind === "group" ? pattern.groups : pattern.superGroups).find(g => g.id === ref.id)?.sequence;
+  if (!sequence) throw new Error("Definition no longer exists.");
+  const nextDrafts = Object.fromEntries(Object.entries(drafts).filter(([key]) => key !== `${ref.kind}:${ref.id}`).map(([key, draft]) => {
+    const items: PadLoopPatternItem[] = [], selection: number[] = [];
+    for (const [index, item] of draft.items.entries()) {
+      const matches = ref.kind === "group" ? item.type === "group" && item.groupId === ref.id : item.type === "super" && item.superGroupId === ref.id;
+      const replacement = matches ? structuredClone(sequence) : [item];
+      if (draft.selection.includes(index)) selection.push(...replacement.map((_, i) => items.length + i));
+      items.push(...replacement);
+    }
+    return [key, { items, selection }];
+  }));
+  return { pattern: deleteDefinition(pattern, ref), drafts: nextDrafts };
+}
+
+/** Resolve audible flattened tokens to the displayed occurrence, including repeated pads and nested phrases. */
+export function workspacePlayingIndex(pattern: PadLoopPatternState, items: PadLoopPatternItem[], status: PerformanceAuditionStatus[string] | undefined, gesture: string | null): number {
+  if (!gesture || status?.workspace_gesture !== gesture || !status.workspace_active || status.preview_active || status.workspace_position == null) return -1;
+  try {
+    const compiled = compilePadLoopPattern({ ...pattern, rootSequence: items });
+    // Edits may be waiting at the cycle boundary. Never map the old sequence onto a new draft.
+    if (JSON.stringify(compiled.sequence) !== JSON.stringify(status.workspace_sequence)) return -1;
+    return compiled.rootRanges.findIndex(range => status.workspace_position! >= range.start && status.workspace_position! < range.end);
+  } catch { return -1; }
 }
 
 export function melodicPadHasSound(pad?: SequencerPadState): boolean {

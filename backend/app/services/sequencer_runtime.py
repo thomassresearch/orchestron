@@ -315,11 +315,23 @@ class SessionSequencerRuntime:
             track.sync_to_track_id = None
 
     def audition_status(self):
-        return {identity: {"active": bool(state.get("sequence")), "queued": state.get("action")}
-                | ({"preview_gesture": state["preview"]["gesture"], "preview_revision": state["preview"]["revision"], "preview_active": state["preview"].get("applied", False)} if state.get("preview") else {})
-                | ({"workspace_gesture": state["workspace"]["gesture"], "workspace_active": state["workspace"].get("applied", False),
-                    "workspace_queued": bool((state["preview"]["previous"] if state.get("preview") else state).get("action"))} if state.get("workspace") else {})
-                for identity, state in self._auditions.items()}
+        result = {}
+        for identity, state in self._auditions.items():
+            status = {"active": bool(state.get("sequence")), "queued": state.get("action")}
+            preview = state.get("preview")
+            if preview:
+                status.update(preview_gesture=preview["gesture"], preview_revision=preview["revision"], preview_active=preview.get("applied", False))
+            workspace = state.get("workspace")
+            if workspace:
+                base = preview["previous"] if preview else state
+                track = self._config.tracks.get(identity) or self._config.controller_tracks.get(identity)
+                active = workspace.get("applied", False)
+                audible = active and self._running and track.enabled and not (preview and preview.get("applied"))
+                status.update(workspace_gesture=workspace["gesture"], workspace_active=active,
+                    workspace_queued=bool(base.get("action")), workspace_sequence=list(base.get("sequence", ())) if active else [],
+                    workspace_position=track.pad_loop_position if audible else None)
+            result[identity] = status
+        return result
 
     def _arranger_active(self) -> bool:
         return self._running and bool(getattr(self._midi_service, "arranger_running", not self._audition_standalone))
@@ -1456,6 +1468,8 @@ class SessionSequencerRuntime:
             if self._apply_audition_command(track, next_subunit):
                 switch_payloads.append({"track_id": track_id, "active_pad": track.active_pad, "cycle": next_cycle})
                 continue
+            previous_position = track.pad_loop_position
+            previous_switch_count = len(switch_payloads)
             local_boundary_reached = self._track_cycle_boundary_reached_for_next_subunit(track, next_subunit)
             manual_pad_switch_applied = False
             track_started_on_boundary = False
@@ -1535,6 +1549,11 @@ class SessionSequencerRuntime:
                         )
                 else:
                     self._set_track_phase_offset_for_boundary_locked(track, next_subunit)
+
+            if (self._auditions.get(track_id, {}).get("workspace") and track.pad_loop_position != previous_position
+                    and len(switch_payloads) == previous_switch_count):
+                # Repeated pads and rests still advance the visible workspace occurrence.
+                switch_payloads.append({"track_id": track_id, "active_pad": track.active_pad, "cycle": next_cycle})
 
         for track_id in config.sync_master_track_ids:
             track = config.tracks.get(track_id)

@@ -232,6 +232,26 @@ it("retains a playing workspace after failed preparation and can still stop it",
   expect(audition).toHaveBeenLastCalledWith("session", expect.objectContaining({ action: "workspace_end", revision: 3 }));
 });
 
+it("advances workspace highlighting only from audible markers, not render-ahead acknowledgments", async () => {
+  const { result } = setup(false);
+  const id = useAppStore.getState().sequencer.tracks[0].id;
+  const initial = { active: true, queued: null, workspace_gesture: "workspace", workspace_active: true, workspace_sequence: [0, 1], workspace_position: 1 };
+  audition.mockResolvedValueOnce({ ...status(0), auditions: { [id]: initial } });
+  await act(() => result.current.auditionDevice(id, { action: "workspace_start", gestureId: "workspace", items: [{ type: "pad", padIndex: 0 }, { type: "pad", padIndex: 1 }] }));
+  expect(useAppStore.getState().performanceAuditions[id].workspace_position).toBeNull();
+  const emit = (value: typeof initial) => act(() => audioParams.applyBrowserClockTransportEventsRef.current([{
+    kind: "step", target_frame: 48000, target_frame_offset: 0, payload: { ...status(0), previous_step: 0, auditions: { [id]: value } }
+  }]));
+  emit(initial);
+  expect(useAppStore.getState().performanceAuditions[id].workspace_position).toBe(1);
+  const replacement = { ...initial, workspace_sequence: [1, 0], workspace_position: 0 };
+  audition.mockResolvedValueOnce({ ...status(0), auditions: { [id]: replacement } });
+  await act(() => result.current.auditionDevice(id, { action: "workspace_start", gestureId: "workspace", items: [{ type: "pad", padIndex: 1 }, { type: "pad", padIndex: 0 }] }));
+  expect(useAppStore.getState().performanceAuditions[id]).toMatchObject({ workspace_position: 1, workspace_sequence: [0, 1] });
+  emit(replacement);
+  expect(useAppStore.getState().performanceAuditions[id]).toMatchObject({ workspace_position: 0, workspace_sequence: [1, 0] });
+});
+
 it.each(["transport", "performance"])("cancels workspace preparation on %s changes without late restoration", async reason => {
   let prepared!: (value: SessionSequencerStatus) => void;
   vi.mocked(api.configureSessionSequencer).mockImplementationOnce(() => new Promise(resolve => { prepared = resolve; }));
