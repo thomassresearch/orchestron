@@ -140,7 +140,7 @@ function MultitrackArrangerBody(props: MultitrackArrangerProps) {
     setMetrics(old => old.fitStepPixelWidth === fit ? old : { minStepPixelWidth: Math.min(DEFAULT_STEP_PIXEL_WIDTH, fit), fitStepPixelWidth: fit });
   }, [viewportWidth, totalSteps, setMetrics]);
   useEffect(() => { if (scrollbar.current && scrollbar.current.scrollLeft !== scroll) scrollbar.current.scrollLeft = scroll; }, [scroll]);
-  const rawPosition = (x: number) => Math.max(0, (x - (ruler.current?.getBoundingClientRect().left ?? 0) + scroll) / zoom);
+  const rawPosition = (x: number) => Math.max(0, (x - (ruler.current?.getBoundingClientRect().left ?? 0) - (ruler.current?.clientLeft ?? 0) + scroll) / zoom);
   const snapped = (x: number) => Math.min(totalSteps, Math.floor(rawPosition(x) / quantum) * quantum);
   const rangeAt = (x: number): ArrangerLoopSelection => {
     const start = gesture.current!.start;
@@ -167,13 +167,13 @@ function MultitrackArrangerBody(props: MultitrackArrangerProps) {
     else props.onArpeggiatorPadLoopPatternChange?.(lane.id, pattern);
   };
   return <>
-    <div className="mb-2 grid grid-cols-[220px_minmax(0,1fr)] gap-2 text-xs text-slate-400"><div>{copy.instrumentColumn}</div><div>{copy.timelineColumn}</div></div>
-    <div ref={viewport} className="ml-[228px] overflow-hidden" aria-hidden><div className="relative h-6" style={{ width, transform: `translateX(${-scroll}px)` }}>
+    <div className="mb-2 grid grid-cols-[204px_minmax(0,1fr)] gap-2 border border-transparent px-2 text-xs text-slate-400"><div>{copy.instrumentColumn}</div><div>{copy.timelineColumn}</div></div>
+    <div ref={viewport} className="ml-[222px] mr-[10px] overflow-hidden" aria-hidden><div className="relative h-6" style={{ width, transform: `translateX(${-scroll}px)` }}>
       {Array.from({ length: Math.ceil(totalSteps / quantum) }, (_, beat) => <span key={beat} className="absolute text-xs text-slate-400" style={{ left: beat * quantum * zoom }}>{beat % sequencer.timing.meterNumerator === 0 ? `${Math.floor(beat / sequencer.timing.meterNumerator) + 1}.1` : zoom * quantum >= 40 ? `·${beat % sequencer.timing.meterNumerator + 1}` : ""}</span>)}
     </div></div>
     <div className="space-y-1">{lanes.map(lane => <ArrangerLane key={lane.id} lane={lane} props={props} selected={selectedLane === lane.id} select={() => selectLane(lane.id)} commit={pattern => commit(lane, pattern)}
       zoom={zoom * quantum * lane.beatScale} width={width} scroll={scroll} playhead={playhead} />)}</div>
-    <div className="mt-2 grid grid-cols-[220px_minmax(0,1fr)] gap-2">
+    <div className="mt-2 grid grid-cols-[204px_minmax(0,1fr)] gap-2 border border-transparent px-2">
       <span className="text-xs text-slate-400">{c.loop}</span>
       <div ref={ruler} aria-label={copy.selectionHint} className="relative h-7 touch-none select-none overflow-hidden rounded border border-slate-700"
         onPointerDown={e => { if (e.button !== 0 && e.pointerType === "mouse") return; e.preventDefault(); gesture.current = { id: e.pointerId, x: e.clientX, start: Math.min(totalSteps - quantum, snapped(e.clientX)), moved: false }; e.currentTarget.setPointerCapture?.(e.pointerId); }}
@@ -185,7 +185,7 @@ function MultitrackArrangerBody(props: MultitrackArrangerProps) {
         </div>
       </div>
     </div>
-    <div ref={scrollbar} className="ml-[228px] mt-2 h-4 overflow-x-auto overflow-y-hidden" onScroll={e => { if (e.currentTarget.clientWidth > 0) setScroll(e.currentTarget.scrollLeft); }}><div style={{ width, height: 1 }} /></div>
+    <div ref={scrollbar} className="ml-[222px] mr-[10px] mt-2 h-4 overflow-x-auto overflow-y-hidden" onScroll={e => { if (e.currentTarget.clientWidth > 0) setScroll(e.currentTarget.scrollLeft); }}><div style={{ width, height: 1 }} /></div>
   </>;
 }
 

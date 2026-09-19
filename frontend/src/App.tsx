@@ -43,7 +43,6 @@ import { validateImportConflictItems } from "./lib/importDialogs";
 import { mergedSequencerState } from "./lib/mergedSequencerState";
 import {
   absoluteTransportStep as sequencerAbsoluteTransportStep,
-  arrangerTransportExtent,
   arrangerPlaybackBounds,
   compileArrangerTransportSequence
 } from "./lib/arrangerTransport";
@@ -59,7 +58,7 @@ import { useAppStore } from "./store/useAppStore";
 import orchestronIcon from "./assets/orchestron-icon.png";
 import {
   MAX_BACKEND_SEQUENCER_NOTE_TRACKS,
-  UNBOUNDED_PLAYBACK_END_STEP,
+  buildSequencerPlaybackRange,
   type DeletePatchDialogState,
   type DeleteSelectionDialogState,
   DeferredModalFallback,
@@ -77,7 +76,6 @@ import {
   sanitizeCsdFileBaseName,
   sanitizeInstrumentDefinitionFileBaseName,
   sanitizePerformanceFileBaseName,
-  trackShouldRunContinuously,
   transportStepCountFromPerformanceSequencers,
 } from "./appOrchestration";
 import type {
@@ -354,7 +352,8 @@ export default function App() {
   const buildBackendSequencerConfig = useCallback(
     (
       state?: SequencerState,
-      mode: "runtime" | "export" = "runtime"
+      mode: "runtime" | "export" = "runtime",
+      arrangerActive = useAppStore.getState().sequencerRuntime.arrangerActive ?? false
     ): SessionSequencerConfigRequest => {
       const resolvedState = state ?? useAppStore.getState().sequencer;
       const transportStepCount = transportStepCountFromPerformanceSequencers(
@@ -363,23 +362,8 @@ export default function App() {
         resolvedState.drummerTracks,
         resolvedState.controllerSequencers
       );
-      const { playbackStartStep, playbackEndStep, playbackLoop, selection } = arrangerPlaybackBounds(resolvedState);
-      const arrangementEndStep = arrangerTransportExtent(resolvedState);
+      const playbackRange = buildSequencerPlaybackRange(resolvedState, mode, arrangerActive);
       const exportMode = mode === "export";
-      const hasUnboundedPlayback =
-        !exportMode &&
-        selection === null &&
-        (resolvedState.tracks.some(trackShouldRunContinuously) ||
-          resolvedState.drummerTracks.some(trackShouldRunContinuously) ||
-          resolvedState.controllerSequencers.some(trackShouldRunContinuously) ||
-          resolvedState.arpeggiators.some(arp => arp.playbackMode === "arranger" && arp.padLoopEnabled && arp.padLoopRepeat));
-      const resolvedPlaybackStartStep = exportMode ? 0 : playbackStartStep;
-      const resolvedPlaybackEndStep = exportMode
-        ? Math.max(sequencerTransportStepsPerBeat(resolvedState.timing), arrangementEndStep)
-        : hasUnboundedPlayback
-          ? UNBOUNDED_PLAYBACK_END_STEP
-          : playbackEndStep;
-      const resolvedPlaybackLoop = exportMode ? false : playbackLoop;
       const useRuntimeQueues = !exportMode;
       const melodicTracks = resolvedState.tracks.map((track) => {
         const trackVelocity = 127;
@@ -522,9 +506,7 @@ export default function App() {
           beat_rate_denominator: 1
         },
         step_count: transportStepCount,
-        playback_start_step: resolvedPlaybackStartStep,
-        playback_end_step: resolvedPlaybackEndStep,
-        playback_loop: resolvedPlaybackLoop,
+        ...playbackRange,
         tracks: transportTracks,
         controller_tracks: controllerTracks,
         arpeggiators: buildBackendArpeggiatorConfigs(resolvedState).map((arp, index) => ({

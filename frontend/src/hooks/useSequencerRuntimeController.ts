@@ -73,7 +73,8 @@ interface UseSequencerRuntimeControllerParams {
   buildBackendArpeggiatorConfig: (state?: SequencerState) => SessionArpeggiatorConfigRequest;
   buildBackendSequencerConfig: (
     state?: SequencerState,
-    mode?: "runtime" | "export"
+    mode?: "runtime" | "export",
+    arrangerActive?: boolean
   ) => SessionSequencerConfigRequest;
   errors: SequencerRuntimeControllerErrors;
   events: SessionEvent[];
@@ -826,7 +827,7 @@ export function useSequencerRuntimeController({
       if (arrangerActive) auditionDefinitions.current.clear();
       const payload: SessionSequencerStartRequest = {
         arranger_active: arrangerActive,
-        config: buildBackendSequencerConfig(store.sequencer),
+        config: buildBackendSequencerConfig(store.sequencer, "runtime", arrangerActive),
         position_step: arrangerActive && store.sequencerRuntime.arrangerTransportSubunit !== undefined
           ? Math.floor(store.sequencerRuntime.arrangerTransportSubunit / sequencerTransportSubunitsPerStep()) : sequencerAbsoluteTransportStep(
           currentSequencerState.playhead,

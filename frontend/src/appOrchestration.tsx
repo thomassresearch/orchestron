@@ -5,6 +5,7 @@ import { audioCopy } from "./lib/audioCopy";
 import { stereoCopy } from "./lib/stereoCopy";
 import type { EditorSelection } from "./components/ReteNodeEditor";
 import {
+  arrangerPlaybackBounds,
   compileArrangerTransportSequence
 } from "./lib/arrangerTransport";
 import type { AppCopy } from "./lib/appUiCopy";
@@ -148,6 +149,29 @@ export function trackShouldRunContinuously(
   }
 ): boolean {
   return track.enabled && (!track.padLoopEnabled || track.padLoopRepeat);
+}
+
+export function buildSequencerPlaybackRange(
+  state: SequencerState,
+  mode: "runtime" | "export",
+  arrangerActive: boolean
+): Pick<SessionSequencerConfigRequest, "playback_start_step" | "playback_end_step" | "playback_loop"> {
+  const bounds = arrangerPlaybackBounds(state);
+  if (mode === "export") {
+    return { playback_start_step: 0, playback_end_step: bounds.arrangementEndStep, playback_loop: false };
+  }
+  // Lane repeat settings cannot extend a song started by the arranger.
+  const unbounded = !arrangerActive && bounds.selection === null && (
+    state.tracks.some(trackShouldRunContinuously) ||
+    state.drummerTracks.some(trackShouldRunContinuously) ||
+    state.controllerSequencers.some(trackShouldRunContinuously) ||
+    state.arpeggiators.some(arp => arp.playbackMode === "arranger" && arp.padLoopEnabled && arp.padLoopRepeat)
+  );
+  return {
+    playback_start_step: bounds.playbackStartStep,
+    playback_end_step: unbounded ? UNBOUNDED_PLAYBACK_END_STEP : bounds.playbackEndStep,
+    playback_loop: bounds.playbackLoop
+  };
 }
 
 export function enabledForSequencerConfigExport(

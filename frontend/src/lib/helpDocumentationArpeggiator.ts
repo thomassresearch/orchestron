@@ -3,6 +3,8 @@ import type { GuiLanguage } from "../types";
 export const arpeggiatorHelp: Record<GuiLanguage, string> = {
   english: `## Arpeggiator
 
+The device uses the same green Start and orange Stop buttons as the other devices.
+
 Send notes to the unique Input Channel; the named Target Channel receives the generated MIDI and plays an existing rack instrument. Both controls are always visible in the top row as Input Channel → Target Channel. Inputs can come from sequencers, keyboards or external MIDI. Arpeggiators cannot chain.
 
 ### Playback and Hold
@@ -27,6 +29,8 @@ Presets apply to the editing pad only. Modified, Update preset and Save as prese
 
 Version 15 migrates older settings into #1, accents into velocity steps, and other pads to defaults. Existing performances adopt Arranger, Hold Off, Continue, corrected swing and full-range ordering. Save/export persists the migration; runtime held notes and queued launches are not saved.`,
   german: `## Arpeggiator
+
+Das Gerät verwendet dieselben grünen Start- und orangefarbenen Stop-Tasten wie die anderen Geräte.
 
 Noten an den eindeutigen Eingangskanal senden; der benannte Zielkanal spielt ein vorhandenes Rack-Instrument. Beide Bedienelemente sind in der obersten Zeile als Eingangskanal → Zielkanal immer sichtbar. Quellen können Sequencer, Bildschirmtastatur oder externes MIDI sein. Arpeggiatoren lassen sich nicht verketten.
 
@@ -53,6 +57,8 @@ Presets gelten nur für das bearbeitete Pad. Geändert, Preset aktualisieren und
 Version 15 übernimmt alte Einstellungen nach #1, Akzente als Velocity-Schritte und Standardwerte für andere Pads. Bestehende Performances verwenden Arranger, Halten Aus, Weiterlaufen, korrigierten Swing und den gesamten Oktavbereich. Speichern/Export schreibt die Migration; gehaltene Noten und vorgemerkte Starts werden nicht gespeichert.`,
   french: `## Arpégiateur
 
+L’appareil utilise les mêmes boutons Start verts et Stop orange que les autres appareils.
+
 Envoyez des notes au canal d’entrée unique ; le canal cible nommé joue un instrument existant du rack. Les deux commandes restent visibles sur la première ligne : Canal entree → Canal cible. Les sources peuvent être les séquenceurs, le clavier ou le MIDI externe. Les arpégiateurs ne se chaînent pas.
 
 ### Lecture et maintien
@@ -77,6 +83,8 @@ Les presets s’appliquent au pad édité. Modifié, Actualiser le preset et Enr
 
 La version 15 migre les anciens réglages vers #1, les accents vers les vélocités et initialise les autres pads. Les performances adoptent Arrangeur, maintien désactivé, Continuer, swing corrigé et tessiture complète. Enregistrer/exporter persiste cette migration ; les notes maintenues et lancements en attente ne sont pas sauvegardés.`,
   spanish: `## Arpegiador
+
+El dispositivo usa los mismos botones Start verdes y Stop naranjas que los demás dispositivos.
 
 Envíe notas al canal de entrada exclusivo; el canal destino con nombre toca un instrumento existente del rack. Ambos controles están siempre visibles en la fila superior como Canal de entrada → Canal destino. Las fuentes pueden ser secuenciadores, teclado o MIDI externo. Los arpegiadores no se encadenan.
 

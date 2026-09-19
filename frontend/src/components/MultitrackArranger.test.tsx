@@ -315,3 +315,13 @@ it("highlights the arranger transport state and freezes its cursor during a stop
   expect(stop.getAttribute("aria-pressed")).toBe("false");
   expect(stop.className).not.toContain("ring-2");
 });
+
+
+it("measures ruler seeks from inside its border at beat boundaries", () => {
+  const { ruler } = setup();
+  Object.defineProperty(ruler, "clientLeft", { value: 1 });
+  const justBeforeBeat = { ...pointer(8), clientX: 100 + 1 + 8 * 9 - 0.5 };
+  fireEvent.pointerDown(ruler, justBeforeBeat);
+  fireEvent.pointerUp(ruler, justBeforeBeat);
+  expect(selectionChanged).toHaveBeenCalledExactlyOnceWith(null, 0);
+});

@@ -178,6 +178,7 @@ it("keeps the stopped song cursor through preview status and audible clock updat
     transportSubunit: 24 * 420, arrangerTransportSubunit: 8 * 420, arrangerActive: false
   });
   await act(() => result.current.startSequencerTransport(true));
+  expect(buildConfig).toHaveBeenLastCalledWith(useAppStore.getState().sequencer, "runtime", true);
   expect(startSequencer).toHaveBeenCalledWith("session", expect.objectContaining({ positionStep: 8, arrangerActive: true }));
   expect(useAppStore.getState().sequencerRuntime.arrangerActive).toBe(true);
 });
@@ -292,4 +293,11 @@ it.each(["workspace_start", "preview_start"] as const)("rejects prepared arpeggi
   act(() => useAppStore.setState(state => ({ sequencer: { ...state.sequencer, arpeggiators: state.sequencer.arpeggiators.map(arp => ({ ...arp, playbackMode: "live" })) } })));
   await act(async () => { prepared(status(0)); await start; });
   expect(audition).not.toHaveBeenCalled();
+});
+
+it("starts independent device transport with explicit manual bounds", async () => {
+  const { result } = setup(false);
+  await act(() => result.current.startSequencerTransport(false));
+  expect(buildConfig).toHaveBeenLastCalledWith(useAppStore.getState().sequencer, "runtime", false);
+  expect(startSequencer).toHaveBeenLastCalledWith("session", expect.objectContaining({ arrangerActive: false }));
 });

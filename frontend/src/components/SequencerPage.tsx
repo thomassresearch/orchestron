@@ -1,3 +1,4 @@
+import { transportStartButtonClass, transportStopButtonClass } from "./sequencer/transportButtonStyles";
 import { PatternWorkspace } from "./sequencer/PatternWorkspace";
 import { ArrangerSpeaker } from "./sequencer/ArrangerSpeaker";
 import { melodicPadHasSound, drummerPadHasSound, controllerPadHasContent } from "../lib/patternWorkspace";
@@ -622,10 +623,6 @@ function useSequencerPageContext({
     setDeletePerformanceDialogOpen(false);
     onDeletePerformance();
   }, [onDeletePerformance]);
-  const transportStartButtonClass =
-    "rounded-md border border-emerald-400/55 bg-emerald-400/20 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-300 transition hover:bg-emerald-400/30 disabled:cursor-not-allowed disabled:opacity-50";
-  const transportStopButtonClass =
-    "rounded-md border border-amber-400/55 bg-amber-400/20 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-200 transition hover:bg-amber-400/30 disabled:cursor-not-allowed disabled:opacity-50";
   const transportStateClass =
     "rounded-full border border-slate-700 bg-slate-950 px-2 py-0.5 font-mono text-[10px] text-slate-300";
   const controlLabelClass = "text-[10px] uppercase tracking-[0.18em] text-slate-400";

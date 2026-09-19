@@ -1,7 +1,7 @@
 {
   "sourcePatchId": "94a7c447-e728-4e30-8c5c-9e6e3d57ffc0",
   "name": "The Real TB303",
-  "description": "Sawtooth TB-303 bass with Accent and Slide implemented via midi note velocity.\nVelocity selects flags only; there is no continuous velocity gain. \n- MIDI velocity 1-63: normal\n-  64-95: slide\n- 96-111: accent\n- 112-127: accent + slide. \nAccent changes iamp from 0.4 to 0.9 and filter-envelope amount from 0.4 to 0.8.\nMIDI controllers: CC10: cutoff 40-16000 Hz, logarithmic (49 approximately 404 Hz). CC11: resonance 0-0.98 (114 approximately 0.88). Both controllers follow the played MIDI channel and use 10 ms smoothing.\nPerformance controller iamp / Drive: 0.1-32x, logarithmic, default 1x. Multiplies the original accent-dependent iamp before tanh; new notes read the performance knob.\nSlide: portk half-time 60 ms versus 1 ms for regular notes, retaining the prior voice state. For reliable previous-note glide use a single-note line, begin with a non-slide note, and leave at least 50 ms after note-off for voice reuse; overlapping/release-tail voices do not share pitch history. This is the native portk implementation, not a legato note-priority engine.\nRoute Stereo Output through the performance mixer to Master.\nDrive output compensation: post-tanh gain (1 + 0.025 * drive) / (1.025 * drive). The 1x sound is unchanged; higher Drive primarily adds distortion with only a small level increase (approximately +1.4 dB RMS at 32x in the reference phrase). This is a fixed compensation curve, not a loudness limiter; level response varies with notes and filter settings.",
+  "description": "Sawtooth TB-303 bass. MIDI velocity selects flags, without continuous velocity gain: 1-63 normal; 64-95 slide; 96-111 accent; 112-127 accent + slide.\nPerformance controllers (read by new notes):\n- Env Mod: 0-1 linear, default 0.6. Filter sweep = envelope * Env Mod * 4000 * (0.4 + accentFlag * Accent * 0.4).\n- Decay (s): 0.03-3 seconds logarithmic, default 0.3. Controls only the separate filter envelope; amplitude decay remains 0.3 seconds.\n- Accent: 0-1 linear, default 1. Scales accented-step filter and iamp boosts together; 0 removes both boosts. iamp = 0.4 + accentFlag * Accent * 0.5.\n- iamp / Drive: 0.1-32x logarithmic, default 1x; multiplies iamp before tanh. Post-tanh compensation (1 + 0.025 * drive) / (1.025 * drive) limits level changes; this is a fixed curve, not a loudness limiter.\n- Slide: 0.1-2x linear, default 1x. Multiplies portk half-time: 60 ms for slide, 1 ms for regular notes at 1x.\nAll new defaults preserve the original sound. Existing controller IDs and settings are retained.\nMIDI CC10: cutoff 40-16000 Hz logarithmic (49 approximately 404 Hz); CC11: resonance 0-0.98 (114 approximately 0.88). Both follow the played MIDI channel with 10 ms smoothing.\nSlide retains prior voice state. Use a single-note line, start with a non-slide note, and leave at least 50 ms after note-off for voice reuse. Overlapping/release-tail voices do not share pitch history; this is native portk, not a legato note-priority engine.\nRoute Stereo Output through the performance mixer to Master.",
   "isTemplate": false,
   "alwaysOn": false,
   "instrumentType": "bass",
@@ -141,9 +141,7 @@
       {
         "id": "accent_flag",
         "opcode": "k_mul",
-        "params": {
-          "b": 1
-        },
+        "params": {},
         "position": {
           "x": 586.734634163764,
           "y": 257.3154660198933
@@ -325,6 +323,60 @@
         }
       },
       {
+        "id": "tb303_env_mod",
+        "opcode": "perf_controller",
+        "params": {
+          "min": 0,
+          "max": 1,
+          "default": 0.6,
+          "scale": "linear",
+          "label": "Env Mod"
+        },
+        "position": {
+          "x": 950,
+          "y": 1500
+        }
+      },
+      {
+        "id": "tb303_filter_decay",
+        "opcode": "perf_controller",
+        "params": {
+          "min": 0.03,
+          "max": 3,
+          "default": 0.3,
+          "scale": "logarithmic",
+          "label": "Decay (s)"
+        },
+        "position": {
+          "x": 0,
+          "y": 1500
+        }
+      },
+      {
+        "id": "tb303_accent",
+        "opcode": "perf_controller",
+        "params": {
+          "min": 0,
+          "max": 2,
+          "default": 1,
+          "scale": "linear",
+          "label": "Accent"
+        },
+        "position": {
+          "x": 0,
+          "y": 1800
+        }
+      },
+      {
+        "id": "filter_envelope_mxadsr",
+        "opcode": "mxadsr",
+        "params": {},
+        "position": {
+          "x": 540,
+          "y": 1500
+        }
+      },
+      {
         "id": "output_left",
         "opcode": "outleta",
         "params": {
@@ -457,7 +509,7 @@
         "to_port_id": "kin"
       },
       {
-        "from_node_id": "envelope_mxadsr",
+        "from_node_id": "filter_envelope_mxadsr",
         "from_port_id": "kenv",
         "to_node_id": "filter_sum",
         "to_port_id": "kin"
@@ -563,6 +615,42 @@
         "from_port_id": "iout",
         "to_node_id": "slide_portk",
         "to_port_id": "khtim"
+      },
+      {
+        "from_node_id": "env_attack_const",
+        "from_port_id": "iout",
+        "to_node_id": "filter_envelope_mxadsr",
+        "to_port_id": "iatt"
+      },
+      {
+        "from_node_id": "tb303_filter_decay",
+        "from_port_id": "iout",
+        "to_node_id": "filter_envelope_mxadsr",
+        "to_port_id": "idec"
+      },
+      {
+        "from_node_id": "env_sustain_const",
+        "from_port_id": "iout",
+        "to_node_id": "filter_envelope_mxadsr",
+        "to_port_id": "islev"
+      },
+      {
+        "from_node_id": "env_release_const",
+        "from_port_id": "iout",
+        "to_node_id": "filter_envelope_mxadsr",
+        "to_port_id": "irel"
+      },
+      {
+        "from_node_id": "tb303_env_mod",
+        "from_port_id": "iout",
+        "to_node_id": "filter_sum",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "tb303_accent",
+        "from_port_id": "iout",
+        "to_node_id": "accent_flag",
+        "to_port_id": "b"
       }
     ],
     "ui_layout": {
@@ -631,7 +719,7 @@
           ]
         },
         "filter_sum::kin": {
-          "expression": "cutoff + env * 0.6 * 4000 * (0.4 + accent * 0.4)",
+          "expression": "cutoff + env * env_mod * 4000 * (0.4 + accent * 0.4)",
           "inputs": [
             {
               "token": "cutoff",
@@ -640,13 +728,18 @@
             },
             {
               "token": "env",
-              "from_node_id": "envelope_mxadsr",
+              "from_node_id": "filter_envelope_mxadsr",
               "from_port_id": "kenv"
             },
             {
               "token": "accent",
               "from_node_id": "accent_flag",
               "from_port_id": "kout"
+            },
+            {
+              "token": "env_mod",
+              "from_node_id": "tb303_env_mod",
+              "from_port_id": "iout"
             }
           ]
         },
