@@ -31,7 +31,8 @@ it("shares audio preparation and connection when prime, engine startup and arran
     }
   }
   vi.stubGlobal("AudioContext", FakeContext); vi.stubGlobal("AudioWorkletNode", FakeNode); vi.stubGlobal("Worker", FakeWorker);
-  const client = new BrowserClockAudioClient({ onStatusChange: vi.fn(), onErrorChange: vi.fn(), onSequencerStatus: vi.fn(),
+  const onSequencerStatus = vi.fn();
+  const client = new BrowserClockAudioClient({ onStatusChange: vi.fn(), onErrorChange: vi.fn(), onSequencerStatus,
     getLatencySettings: () => ({} as BrowserClockLatencySettings) });
   const prime = client.prime(); const automatic = client.connect("session");
   const play = client.startSequencer("session", { arrangerActive: true });
@@ -41,5 +42,11 @@ it("shares audio preparation and connection when prime, engine startup and arran
   expect(contexts).toHaveLength(1); expect(workers).toHaveLength(1);
   expect(workers[0].messages.filter(m => m.type === "connect")).toHaveLength(1);
   expect(workers[0].messages.find(m => m.type === "sequencer_request")).toMatchObject({ request: { type: "sequencer_start", arranger_active: true } });
+  onSequencerStatus.mockClear();
+  // Scoped commands are applied by their owner's generation guard, not a second
+  // unguarded callback that could resurrect an obsolete Play after Stop.
+  expect(await client.deviceTransport("session", { action: "play", track_ids: ["lead"] })).toBe(status);
+  workers[0].onmessage?.({ data: { type: "sequencer_status", requestId: "expired", sequencerStatus: status } });
+  expect(onSequencerStatus).not.toHaveBeenCalled();
   await client.disconnect();
 });

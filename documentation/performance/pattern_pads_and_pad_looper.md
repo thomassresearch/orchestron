@@ -34,7 +34,9 @@ All four device types use this workspace, including Live arpeggiators. Live mode
 
 ## Playback source and audition
 
-**Playback source: Arrangement** follows the song timeline. Its Stop/Repeat-at-end option lives in the arranger lane. **Manual pads** enables a separate Launch pad action for jamming. Selection alone never starts sound.
+**Playback source: Arrangement** follows the song timeline. Device Play works while the arranger is stopped: the first device starts at the selected loop's beginning, or at the stopped song cursor without a loop; a cursor at song end restarts from the beginning. Other Arrangement devices join that position. Its Stop/Repeat-at-end option lives in the arranger lane.
+
+With **Manual pads**, device Play repeats the pad selected for editing from its beginning. Launch pad switches a running manual device at its normal pad boundary. Selection alone never starts sound. Manual pads continue through arrangement seeks, loops and endings. Arranger Play adds all arrangement backing parts while preserving playing manual pads; Arranger Stop removes the backing parts and temporary playback, preserving independent manual pads. Device Stop affects only that device. Groups and supergroups play through speakers or workspace Play, never implicitly through device Play.
 
 The play button beside the workspace loops the **entire displayed assembly**, regardless of selection. An amber outline follows the currently playing pad, group, supergroup or rest, independently of the cyan editing selection. It follows audible playback, including repeated pads and loop wrap; a momentary speaker preview hides the workspace outline until release. Click it again to restore the track's previous arrangement, manual pad or stopped state. It works before saving a phrase. Workspace edits enter at the next cycle boundary after the normal 80 ms coalescing delay. Failed preparation retains the previous sound and the edited draft; another edit or explicit restart retries.
 

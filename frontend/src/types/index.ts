@@ -470,6 +470,9 @@ export interface SequencerTrackPlaybackState {
 
 export interface SequencerRuntimeState {
   isPlaying: boolean;
+  independentSources?: boolean;
+  arrangementRunning?: boolean;
+  arrangementPlaybackSubunit?: number;
   arrangerActive?: boolean;
   arrangerTransportSubunit?: number;
   stepCount: number;
@@ -881,6 +884,16 @@ export interface SessionSequencerStartRequest {
   position_step?: number;
 }
 
+export interface SessionDeviceTransportRequest {
+  action: "play" | "stop";
+  arranger?: boolean;
+  track_ids?: string[];
+  arpeggiator_id?: string;
+  pad_index?: number;
+  position_step?: number;
+  config?: SessionSequencerConfigRequest;
+}
+
 export interface SessionSequencerSeekRequest {
   config: SessionSequencerConfigRequest;
   position_step: number;
@@ -943,6 +956,9 @@ export interface SessionArpeggiatorStatus {
 }
 
 export interface SessionSequencerStatus {
+  independent_sources?: boolean;
+  arrangement_running?: boolean;
+  arrangement_transport_subunit?: number | null;
   lane_output?: { revision: number; lanes: Record<string, { mute: boolean; solo: boolean; suppressed: boolean }> };
   auditions?: PerformanceAuditionStatus;
   arranger_active?: boolean;

@@ -341,6 +341,9 @@ export interface AppStore {
   setSequencerStepsPerBeat: (stepsPerBeat: number) => void;
   setSequencerArrangerLoopSelection: (selection: ArrangerLoopSelection | null) => void;
   syncSequencerRuntime: (payload: {
+    independentSources?: boolean;
+    arrangementRunning?: boolean;
+    arrangementPlaybackSubunit?: number;
     isPlaying: boolean;
     arrangerActive?: boolean;
     transportStepCount?: number;

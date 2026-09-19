@@ -155,9 +155,8 @@ function MultitrackArrangerBody(props: MultitrackArrangerProps) {
     cancel();
   };
   const selection = rangePreview ?? sequencer.arrangerLoopSelection;
-  const arrangerActive = useAppStore(state => state.sequencerRuntime.arrangerActive);
   const arrangerPosition = useAppStore(state => state.sequencerRuntime.arrangerTransportSubunit);
-  const playhead = (arrangerActive === false && arrangerPosition !== undefined
+  const playhead = (arrangerPosition !== undefined
     ? arrangerPosition / sequencerTransportSubunitsPerStep() : sequencer.cycle * sequencer.stepCount + sequencer.playhead) * zoom;
   const commit = (lane: Lane, pattern: PadLoopPatternState) => {
     validateArrangementEdit(lane.pattern, pattern);

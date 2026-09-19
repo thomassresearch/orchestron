@@ -91,7 +91,7 @@ export function mergedSequencerState(
       : controllerSequencer.runtimePadStartSubunit;
     const runtimePadStartSubunit =
       typeof runtimeValue === "number" && Number.isFinite(runtimeValue)
-        ? Math.max(0, Math.floor(runtimeValue))
+        ? Math.floor(runtimeValue)
         : null;
     if (runtimePadStartSubunit === controllerSequencer.runtimePadStartSubunit) {
       return controllerSequencer;

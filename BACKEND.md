@@ -591,6 +591,7 @@ Binding a new MIDI input:
 | Method | Path | Request body | Response | Notes |
 | --- | --- | --- | --- | --- |
 | `PUT` | `/api/sessions/{session_id}/sequencer/config` | `SessionSequencerConfigRequest` | `SessionSequencerStatus` | Replaces the active sequencer configuration. |
+| `POST` | `/api/sessions/{session_id}/sequencer/device-transport` | `SessionDeviceTransportRequest` | `SessionSequencerStatus` | Plays/stops one complete device or the arranger while preserving independent manual playback. |
 | `POST` | `/api/sessions/{session_id}/sequencer/start` | `SessionSequencerStartRequest` | `SessionSequencerStatus` | Starts the sequencer thread; auto-starts the session if needed. |
 | `POST` | `/api/sessions/{session_id}/sequencer/stop` | none | `SessionSequencerStatus` | Stops the sequencer and sends note-off/all-notes-off cleanup. |
 | `GET` | `/api/sessions/{session_id}/sequencer/status` | none | `SessionSequencerStatus` | Reads current transport and track state. |
@@ -820,3 +821,11 @@ Status reports playing/queued pads, manual takeover, phrase cycle/step, held and
 ### Per-note timing (performance config v16)
 
 Melodic steps and drummer cells save `timingOffsetPercent`; the session API accepts strict integer `timing_offset_percent` in −50..50, default 0. The shared note scheduler shifts attacks and owned releases in transport subunits. It retains HOLD length, clips against the next attack, and anticipates early first steps only on confirmed same-pad repeats. Fresh starts and different-pad launches clamp the first attack to the boundary. Later logical steps win equal-time collisions. Live edits preserve transport and do not replay consumed note occurrences. MIDI/SCORE offline capture shares the event path. Arpeggiator migration must not downgrade v16 snapshots.
+
+### Independent device transport
+
+`device_transport` on the browser-clock WebSocket and the matching HTTP route accept `action: play|stop`, exactly one of `arranger: true`, `track_ids` (one device, all drummer rows), or `arpeggiator_id`, plus optional `config`, `pad_index` and `position_step`. Configuration preparation and the command apply atomically at a render boundary. Stop invalidates pending commands for its target; arranger commands invalidate all older device starts. Failed preparation retains the previous runtime. Clients serialize starts for different devices and ignore superseded responses.
+
+This command opts the session into a monotonic shared sequencer clock with a separate arrangement-position mapping. First independent Arrangement Play starts at the marked loop start or supplied stopped song cursor; subsequent devices join its position. Manual Play uses the explicitly selected pad. Arranger Play starts Arrangement sources and retains independent Manual pads; arranger Stop ends Arrangement sources and temporary playback. Song seeks, loops and finite endings affect Arrangement sources only. Live arpeggiators retain their independent clock and input behavior.
+
+Status and PCM markers add `independent_sources`, `arrangement_running` and `arrangement_transport_subunit`; `arranger_active` continues to describe the global arranger control. `transport_subunit` is the shared clock. Device `runtime_pad_start_subunit` is a signed phase anchor in that clock (it can precede zero when joining partway through a song pad). The GUI keeps a separate stopped arranger cursor. Playback intent, pad overrides and clock mappings are session-only; authored configuration, performance v16, exports and legacy transport clients retain their contracts.

@@ -12,6 +12,7 @@ from typing import Any, Callable, Iterable, Protocol
 from backend.app.models.session import (
     ArpeggiatorCommand,
     SessionAuditionRequest,
+    SessionDeviceTransportRequest,
     ArpeggiatorPadConfig,
     SessionArpeggiatorConfig,
     SessionArpeggiatorStatus,
@@ -64,6 +65,8 @@ class PendingInputEvent:
 @dataclass(slots=True)
 class ArpeggiatorRuntimeState:
     config: SessionArpeggiatorConfig
+    source_playing: bool | None = None
+    source_origin: Fraction = Fraction(0)
     preview: dict[str, Any] | None = None
     workspace: dict[str, Any] | None = None
     audition_sequence: tuple[int, ...] = ()
@@ -188,6 +191,9 @@ class PerformanceMidiRouter:
         self._input_channel_to_id: dict[int, str] = {}
         self._pending_inputs: list[PendingInputEvent] = []
         self._transport_events: list[tuple[int, int, Fraction, bool, bool]] = []
+        self._source_song_events: list[tuple[int, int, Fraction, bool, bool]] = []
+        self._source_mode = False
+        self._source_song_origin = Fraction(0)
         self._sequence = 0
         self._tempo_bpm = 120
         self._sample_rate = 48_000
@@ -246,20 +252,24 @@ class PerformanceMidiRouter:
                 state = self._states.get(config.arpeggiator_id)
                 if state is None:
                     state = ArpeggiatorRuntimeState(config=config, active_pad=config.active_pad)
+                    if self._source_mode and config.playback_mode == "arranger":
+                        state.source_playing = False
                     if config.playback_mode == "arranger" and self._arranger_running:
                         self._locate(state, self._beat(self._sample), reset=True)
                 else:
                     old = state.config
                     reset = (old.input_channel, old.target_channel, old.playback_mode, old.processing_mode) != (
                         config.input_channel, config.target_channel, config.playback_mode, config.processing_mode)
-                    if reset or old.enabled and not config.enabled:
+                    if reset or old.enabled and not config.enabled and state.source_playing is None:
                         self._cancel_overrides(state, self._beat(self._current_engine_sample()), self._current_engine_sample())
-                    if reset or not config.enabled and not state.audition_sequence:
+                    if reset or not config.enabled and state.source_playing is None and not state.audition_sequence:
                         self._clear(state, self._current_engine_sample())
-                    if not config.enabled and not state.audition_sequence:
+                    if not config.enabled and state.source_playing is None and not state.audition_sequence:
                         state.anchor_beat = None
                         state.step_index = state.note_index = state.phrase_offset = 0
                     state.config = config
+                    if old.playback_mode != config.playback_mode:
+                        state.source_playing = False if self._source_mode and config.playback_mode == "arranger" else None
                     if reset or not old.enabled and config.enabled:
                         state.audition_stopped = False
                     if reset or old.active_pad != config.active_pad and not self._running(state):
@@ -278,6 +288,10 @@ class PerformanceMidiRouter:
                     if (old.pad_loop_sequence != config.pad_loop_sequence or old.pad_loop_enabled != config.pad_loop_enabled
                             or [p.length_beats for p in old.pads] != [p.length_beats for p in config.pads]):
                         state.boundary_beat = self._beat(self._sample)
+                    if state.source_playing and old.pad_loop_enabled != config.pad_loop_enabled:
+                        state.source_origin = self._source_song_origin if config.pad_loop_enabled else self._beat(self._sample)
+                        state.anchor_beat = None
+                        self._locate(state, self._beat(self._sample), reset=True)
                 new_states[config.arpeggiator_id] = state
             for key, state in self._states.items():
                 if key not in new_states:
@@ -627,7 +641,112 @@ class PerformanceMidiRouter:
                     state.queued_beat = state.anchor_beat + ((beat - state.anchor_beat) // cycle + 1) * cycle
 
     def _running(self, state: ArpeggiatorRuntimeState) -> bool:
-        return not state.audition_stopped and (bool(state.audition_sequence) or state.config.enabled and (state.config.playback_mode == "live" or self._arranger_running))
+        enabled = state.source_playing if state.source_playing is not None else (
+            state.config.enabled and (state.config.playback_mode == "live" or self._arranger_running))
+        return not state.audition_stopped and (bool(state.audition_sequence) or enabled)
+
+    @property
+    def source_playing(self) -> bool:
+        return any(state.source_playing for state in self._states.values())
+
+    @property
+    def source_arrangement_playing(self) -> bool:
+        return any(state.source_playing and state.config.pad_loop_enabled for state in self._states.values())
+
+    def source_uses_arrangement(self, identity: str) -> bool:
+        state = self._states.get(identity)
+        if state is None or state.config.playback_mode != "arranger":
+            raise ValueError("Device must be an Arranger-mode arpeggiator.")
+        return state.config.pad_loop_enabled
+
+    def source_device_transport(self, request: SessionDeviceTransportRequest, *, position: float):
+        with self._lock:
+            if request.arpeggiator_id:
+                self.source_uses_arrangement(request.arpeggiator_id)
+            self._source_mode = True
+            sample = self._current_engine_sample()
+            beat = self._beat(sample)
+            for state in self._states.values():
+                if state.config.playback_mode != "arranger":
+                    continue
+                if state.source_playing is None:
+                    state.source_playing = state.config.enabled and self._arranger_running
+                if not (request.arranger and state.config.pad_loop_enabled or state.config.arpeggiator_id == request.arpeggiator_id):
+                    continue
+                self._cancel_overrides(state, beat, sample)
+                self._release(state, sample)
+                state.source_playing = request.action == "play"
+                state.audition_stopped = False
+                state.queued_pad = state.queued_beat = None
+                state.manual_override = False
+                state.anchor_beat = None
+                state.boundary_beat = None
+                state.step_index = state.note_index = state.phrase_offset = 0
+                if state.source_playing:
+                    state.source_origin = beat - Fraction(position) if state.config.pad_loop_enabled else beat
+                    if not state.config.pad_loop_enabled:
+                        state.active_pad = state.active_pad if request.pad_index is None else request.pad_index
+                    self._locate(state, beat, reset=True)
+            self._status_dirty = True
+
+    def source_song_transport(self, *, position: float, running: bool, arranger: bool,
+                              reset: bool, sample: int | None = None):
+        with self._lock:
+            self._source_mode = True
+            self._arranger_intent = arranger
+            sample = self._current_engine_sample() if sample is None else sample
+            self._sequence += 1
+            heapq.heappush(self._source_song_events, (sample, self._sequence, Fraction(position), running, reset))
+
+    def _apply_source_song(self, sample: int, position: Fraction, running: bool, reset: bool):
+        beat = self._beat(sample)
+        self._source_song_origin = beat - position
+        for state in self._states.values():
+            if state.config.playback_mode != "arranger":
+                continue
+            if state.source_playing is None:
+                state.source_playing = False
+            if not state.config.pad_loop_enabled:
+                continue
+            state.source_origin = self._source_song_origin
+            if reset and running and (state.audition_pending or state.audition_sequence):
+                self._release(state, sample)
+                for snapshot in (state.preview, state.workspace):
+                    if snapshot:
+                        fields = snapshot["fields"]
+                        fields["audition_origin"] = beat
+                        fields["anchor_beat"] = None
+                        if fields["audition_pending"]:
+                            action, sequence, _ = fields["audition_pending"]
+                            fields["audition_pending"] = (action, sequence, beat)
+                state.audition_origin = beat
+                state.anchor_beat = None
+                if state.audition_pending:
+                    action, sequence, _ = state.audition_pending
+                    state.audition_pending = (action, sequence, beat)
+                    self._apply_audition(state, beat, sample)
+                else:
+                    self._locate(state, beat, reset=True)
+                continue
+            if not state.source_playing:
+                continue
+            if not running:
+                self._cancel_overrides(state, beat, sample)
+                self._release(state, sample)
+                state.source_playing = False
+                state.boundary_beat = None
+            elif reset and not state.audition_sequence:
+                self._locate(state, beat, reset=True)
+        self._status_dirty = True
+
+    def stop_source_transport(self):
+        with self._lock:
+            self._source_song_events.clear()
+            for state in self._states.values():
+                if state.source_playing is not None:
+                    state.source_playing = False
+                    self._release(state, self._current_engine_sample())
+            self._status_dirty = True
 
     def _locate(self, state: ArpeggiatorRuntimeState, beat: Fraction, *, reset: bool = False) -> None:
         config = state.config
@@ -635,10 +754,15 @@ class PerformanceMidiRouter:
             state.boundary_beat = None
             state.paused = False
             if state.anchor_beat is None:
-                state.anchor_beat = beat if config.playback_mode == "live" else Fraction(0)
+                state.anchor_beat = beat if config.playback_mode == "live" else state.source_origin
             return
-        origin = state.audition_origin if state.audition_sequence else Fraction(0)
+        origin = state.audition_origin if state.audition_sequence else state.source_origin
         position = max(Fraction(0), beat - origin)
+        if self._source_mode and not state.audition_sequence and not config.pad_loop_sequence:
+            state.paused = True
+            state.boundary_beat = None
+            self._release(state, self._sample)
+            return
         sequence = state.audition_sequence or config.pad_loop_sequence or [config.active_pad]
         lengths = [Fraction(config.pads[t].length_beats if t >= 0 else -t) for t in sequence]
         total = sum(lengths, Fraction(0))
@@ -757,7 +881,7 @@ class PerformanceMidiRouter:
             state = self._states.get(key)
             if state is None:
                 continue
-            if not (state.config.enabled or state.audition_sequence or state.preview or state.workspace):
+            if not (state.config.enabled or state.source_playing or state.audition_sequence or state.preview or state.workspace):
                 # Releases still retire physical notes received during a stopped-device audition.
                 events = [event for event in events if event.message[0] & 0xf0 == 0x80
                           or event.message[0] & 0xf0 == 0x90 and event.message[2] == 0
@@ -848,6 +972,8 @@ class PerformanceMidiRouter:
                     candidates.append(max(block_start_sample, self._pending_inputs[0].target_sample))
                 if self._transport_events:
                     candidates.append(max(block_start_sample, self._transport_events[0][0]))
+                if self._source_song_events:
+                    candidates.append(max(block_start_sample, self._source_song_events[0][0]))
                 for state in self._states.values():
                     if state.audition_pending:
                         candidates.append(max(self._sample, self._sample_for(state.audition_pending[2])))
@@ -874,6 +1000,9 @@ class PerformanceMidiRouter:
                 while self._transport_events and self._transport_events[0][0] <= sample:
                     _, _, beat, running, reset = heapq.heappop(self._transport_events)
                     self._apply_transport(sample, beat, running, reset)
+                while self._source_song_events and self._source_song_events[0][0] <= sample:
+                    _, _, position, running, reset = heapq.heappop(self._source_song_events)
+                    self._apply_source_song(sample, position, running, reset)
                 self._inputs(sample)
                 beat = self._beat(sample)
                 for state in self._states.values():
@@ -1141,9 +1270,9 @@ class PerformanceMidiRouter:
             for state in self._states.values():
                 config = state.config
                 label = "playing"
-                if state.audition_stopped or not config.enabled and not state.audition_sequence:
+                if state.audition_stopped or not (state.source_playing if state.source_playing is not None else config.enabled) and not state.audition_sequence:
                     label = "stopped"
-                elif config.playback_mode == "arranger" and not self._arranger_running and not state.audition_sequence:
+                elif config.playback_mode == "arranger" and state.source_playing is None and not self._arranger_running and not state.audition_sequence:
                     label = "waiting_arranger"
                 elif config.processing_mode != "active":
                     label = "bypassed" if config.processing_mode == "bypass" else "muted"
@@ -1171,7 +1300,7 @@ class PerformanceMidiRouter:
                         state.note_index += 1
                 state.note_index = cursor
                 active = sorted(state.active_notes)
-                result.append(SessionArpeggiatorStatus(arpeggiator_id=config.arpeggiator_id, enabled=config.enabled,
+                result.append(SessionArpeggiatorStatus(arpeggiator_id=config.arpeggiator_id, enabled=state.source_playing if state.source_playing is not None else config.enabled,
                     input_channel=config.input_channel, target_channel=config.target_channel,
                     held_notes=sorted(state.held_notes), active_note=active[0] if active else None,
                     active_notes=active, step_index=state.displayed_step, cycle=max(0, state.step_index - 1) // len(state.pad.steps),
@@ -1182,6 +1311,7 @@ class PerformanceMidiRouter:
 
     def shutdown(self) -> None:
         with self._lock:
+            self.stop_source_transport()
             for state in self._states.values():
                 self._clear(state, self._current_engine_sample())
             self._pending_inputs.clear()

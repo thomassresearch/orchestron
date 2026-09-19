@@ -6913,6 +6913,121 @@ def test_workspace_audition_http_websocket_layers_and_validation(tmp_path: Path)
             assert client.post(base + "/audition", json=start).status_code == 409
 
 
+@pytest.mark.parametrize("preview", [False, True])
+def test_device_play_after_arranger_stop_renders_real_csound_audio(tmp_path, monkeypatch, preview):
+    import numpy as np
+    from backend.tests.csound_test_support import load_patch_fixture
+    from backend.tests.test_sequencer_source_transport import runtime as source_fixture
+
+    with _client(tmp_path) as client:
+        monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "false")
+        patch = client.post("/api/patches", json=load_patch_fixture("velocity_if").model_dump(mode="json"))
+        assert patch.status_code == 201, patch.text
+        created = client.post("/api/sessions", json={"patch_id": patch.json()["id"]})
+        assert created.status_code == 201, created.text
+        session = created.json()["session_id"]
+        assert client.post(f"/api/sessions/{session}/compile").status_code == 200
+        base = f"/api/sessions/{session}/sequencer"
+        config = source_fixture()[1].model_dump(mode="json")
+        response = client.post(base + "/device-transport", json={"action": "play", "arranger": True, "config": config})
+        assert response.status_code == 200, response.text
+        runtime = client.app.state.container.session_service._sessions[session]
+        assert runtime.worker.backend == "ctcsound", "This regression must use actual synthesis."
+        with client.websocket_connect(f"/ws/sessions/{session}/browser-clock") as socket:
+            socket.send_json({"type": "claim_controller", "audio_context_sample_rate": 48000,
+                "queue_low_water_frames": 1024, "queue_high_water_frames": 2048, "max_blocks_per_request": 512})
+            assert socket.receive_json()["type"] == "stream_config"
+
+            def render():
+                socket.send_json({"type": "request_render", "block_count": 512})
+                metadata = socket.receive_json()
+                assert metadata["type"] == "render_chunk", metadata
+                return np.frombuffer(socket.receive_bytes(), dtype="<f4")
+
+            def transport(**request):
+                socket.send_json({"type": "device_transport", "request_id": "control", **request})
+                response = socket.receive_json()
+                assert response["type"] == "sequencer_status", response
+                return response["sequencer_status"]
+
+            assert np.max(np.abs(render())) > .001
+            transport(action="stop", arranger=True)
+            render()  # Allow release tails to decay.
+            assert np.max(np.abs(render())) < .00001
+            if preview:
+                for action, revision in [("preview_start", 1), ("preview_end", 2)]:
+                    socket.send_json({"type": "audition", "request_id": action, "action": action,
+                        "track_ids": ["lead"], "sequence": [1], "gesture_id": "speaker", "revision": revision})
+                    assert socket.receive_json()["type"] == "sequencer_status"
+                    render()
+            status = transport(action="play", track_ids=["lead"], position_step=0)
+            assert status["running"] and not status["arranger_active"]
+            assert np.max(np.abs(render())) > .001
+            transport(action="stop", track_ids=["lead"])
+            render()
+            assert np.max(np.abs(render())) < .00001
+
+
+def test_device_transport_starts_and_stops_all_drummer_rows_atomically(tmp_path):
+    from backend.tests.test_sequencer_source_transport import runtime as source_fixture
+    config = source_fixture()[1].model_dump(mode="json")
+    rows = ["drumrow:kit:kick", "drumrow:kit:snare"]
+    for track, identity in zip(config["tracks"], rows):
+        track["track_id"] = identity
+    with _client(tmp_path) as client:
+        session = _create_running_session(client)
+        base = f"/api/sessions/{session}/sequencer"
+        assert client.post(base + "/device-transport", json={"action": "play", "track_ids": rows[:1], "config": config}).status_code == 422
+        response = client.post(base + "/device-transport", json={"action": "play", "track_ids": rows, "config": config})
+        assert response.status_code == 200, response.text
+        status = response.json()
+        assert [t["enabled"] for t in status["tracks"]] == [True, True, False]
+        assert status["tracks"][0]["runtime_pad_start_subunit"] == status["tracks"][1]["runtime_pad_start_subunit"]
+        response = client.post(base + "/device-transport", json={"action": "stop", "track_ids": rows})
+        assert response.status_code == 200 and not response.json()["running"]
+        assert not any(t["enabled"] for t in response.json()["tracks"])
+
+
+def test_device_transport_http_and_browser_clock_preserve_manual_lane(tmp_path):
+    from backend.tests.test_sequencer_source_transport import runtime as source_fixture
+    config = source_fixture(loop=True)[1].model_dump(mode="json")
+    with _client(tmp_path) as client:
+        session = _create_running_session(client)
+        base = f"/api/sessions/{session}/sequencer"
+        response = client.post(base + "/device-transport", json={"action": "play", "track_ids": ["manual"], "pad_index": 1, "config": config})
+        assert response.status_code == 200, response.text
+        assert response.json()["independent_sources"] and not response.json()["arranger_active"]
+        assert next(t for t in response.json()["tracks"] if t["track_id"] == "manual")["active_pad"] == 1
+        assert not next(t for t in response.json()["tracks"] if t["track_id"] == "lead")["enabled"]
+        response = client.post(base + "/device-transport", json={"action": "play", "arranger": True, "config": config})
+        assert response.status_code == 200, response.text
+        assert response.json()["arranger_active"]
+        response = client.post(base + "/device-transport", json={"action": "stop", "arranger": True})
+        assert response.status_code == 200, response.text
+        assert response.json()["running"] and not response.json()["arranger_active"]
+        assert next(t for t in response.json()["tracks"] if t["track_id"] == "manual")["enabled"]
+        with client.websocket_connect(f"/ws/sessions/{session}/browser-clock") as socket:
+            socket.send_json({"type": "claim_controller", "audio_context_sample_rate": 48000,
+                "queue_low_water_frames": 1024, "queue_high_water_frames": 2048, "max_blocks_per_request": 8})
+            assert socket.receive_json()["type"] == "stream_config"
+            socket.send_json({"type": "device_transport", "request_id": "lead-play", "action": "play", "track_ids": ["lead"]})
+            response = socket.receive_json()
+            assert response["type"] == "sequencer_status", response
+            assert response["request_id"] == "lead-play"
+            status = response["sequencer_status"]
+            assert status["arrangement_running"] and not status["arranger_active"]
+            assert status["arrangement_transport_subunit"] == 8 * 420
+            assert next(t for t in status["tracks"] if t["track_id"] == "lead")["enabled"]
+            socket.send_json({"type": "request_render", "block_count": 8})
+            metadata = socket.receive_json()
+            socket.receive_bytes()
+            assert any(event["payload"].get("independent_sources") for event in metadata["transport_events"])
+        before = client.get(base + "/status").json()
+        invalid = client.post(base + "/device-transport", json={"action": "play", "track_ids": ["lead", "manual"], "config": config})
+        assert invalid.status_code == 422
+        assert client.get(base + "/status").json()["tracks"] == before["tracks"]
+
+
 @pytest.mark.parametrize("kind", ["controller", "arranger", "live"])
 def test_controller_and_arpeggiator_workspace_api_and_audible_status(tmp_path: Path, kind: str) -> None:
     config = json.loads((Path(__file__).parent / "fixtures/sequencers/momentary_preview.json").read_text())

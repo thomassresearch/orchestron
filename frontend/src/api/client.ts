@@ -225,6 +225,11 @@ export const api = {
     request<SessionArpeggiatorStatus[]>(`/sessions/${sessionId}/arpeggiators/${arpeggiatorId}/command`, {
       method: "POST", body: JSON.stringify(payload)
     }),
+  deviceTransport: (sessionId: string, payload: import("../types").SessionDeviceTransportRequest) =>
+    request<SessionSequencerStatus>(`/sessions/${sessionId}/sequencer/device-transport`, {
+      method: "POST", body: JSON.stringify({ ...payload, config: payload.config ? withLaneOutput(payload.config) : undefined })
+    }),
+
   setArrangerActive: (sessionId: string, active: boolean) =>
     request<SessionSequencerStatus>(`/sessions/${sessionId}/sequencer/arranger`, {
       method: "PUT", body: JSON.stringify({ active })

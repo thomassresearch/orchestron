@@ -983,7 +983,7 @@ export function createPerformanceControlStoreActions(
             : update.runtimePadStartSubunit;
         const normalizedRuntimePadStartSubunit =
           typeof runtimeCandidate === "number" && Number.isFinite(runtimeCandidate)
-            ? Math.max(0, Math.floor(runtimeCandidate))
+            ? Math.floor(runtimeCandidate)
             : null;
         const nextRuntimePadStartSubunit = nextEnabled ? normalizedRuntimePadStartSubunit : null;
         if (

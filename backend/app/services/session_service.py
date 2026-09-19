@@ -37,6 +37,8 @@ from backend.app.models.session import (
     SessionArpeggiatorConfigRequest,
     SessionArpeggiatorStatus,
     SessionSequencerConfigRequest,
+    SessionDeviceTransportRequest,
+    BrowserClockDeviceTransportRequest,
     SessionSequencerQueuePadRequest,
     SessionAuditionRequest,
     SessionLaneOutputRequest,
@@ -990,11 +992,14 @@ class SessionService:
         with runtime.configuration_lock:
             runtime.configuration_generation += 1
             runtime.arpeggiator_generation += 1
+            runtime.device_transport_epoch += 1
         self._preparation.invalidate(runtime.session_id)
 
     async def _prepare_session_configuration(
         self, runtime: RuntimeSession, request: SessionSequencerConfigRequest,
         *, start: bool = False, position: int | None = None, seek: bool = False, arranger_active: bool | None = None,
+        device_command: SessionDeviceTransportRequest | None = None,
+        device_generation: tuple[str, int, int] | None = None,
     ) -> SessionSequencerStatus:
         with runtime.configuration_lock:
             runtime.configuration_generation += 1
@@ -1006,6 +1011,11 @@ class SessionService:
                 with runtime.configuration_lock:
                     if generation != runtime.configuration_generation:
                         raise SupersededConfigurationError()
+                    if device_generation and not self._device_command_current(runtime, device_generation):
+                        raise SupersededConfigurationError()
+                    if device_command:
+                        self._validate_device_transport(device_command, request)
+                        sequencer.sources.activate()
                     if start and arranger_active:
                         sequencer.clear_auditions()
                         self._ensure_midi_router(runtime).clear_auditions()
@@ -1013,12 +1023,15 @@ class SessionService:
                     gate.configure(request)
                     if request.lane_output is not None and request.lane_output.revision > gate.revision:
                         gate.apply(request.lane_output.revision, {key: value.model_dump() for key, value in request.lane_output.lanes.items()})
-                    status = sequencer.apply_prepared(prepared, position_step=position if seek else None)
+                    status = sequencer.apply_prepared(prepared, position_step=position if seek else None,
+                                                     device_command=device_command is not None)
                     if arpeggiator_generation == runtime.arpeggiator_generation:
                         self._ensure_midi_router(runtime).configure(request.arpeggiators, tempo_bpm=request.timing.tempo_bpm)
+                    if device_command:
+                        return self._apply_device_transport(runtime, device_command)
                     if start:
                         status = sequencer.start(position)
-                    if start or seek:
+                    if (start or seek) and not sequencer.sources.active:
                         router = self._ensure_midi_router(runtime)
                         router.set_transport(beat=status.transport_subunit / 3360,
                             running=router.arranger_running if arranger_active is None else arranger_active,
@@ -1177,11 +1190,94 @@ class SessionService:
         sequencer = self._ensure_sequencer(runtime)
         status = sequencer.stop()
         self._ensure_midi_router(runtime).clear_auditions(stop=True)
+        self._ensure_midi_router(runtime).stop_source_transport()
         self._ensure_midi_router(runtime).set_transport(beat=status.transport_subunit / 3360, running=False)
         status = self._status_with_arpeggiators(runtime, status)
 
         await self._publish(runtime.session_id, "sequencer_stopped", {"cycle": status.cycle})
         return status
+
+    @staticmethod
+    def _validate_device_transport(request: SessionDeviceTransportRequest, config: SessionSequencerConfigRequest):
+        from backend.app.engine.lane_output import lane_id
+        tracks = {t.track_id for t in [*config.tracks, *config.controller_tracks]}
+        targets = set(request.track_ids)
+        if not targets.issubset(tracks):
+            raise ValueError("Device track is not configured.")
+        if targets:
+            lanes = {lane_id(identity) for identity in targets}
+            if len(lanes) != 1 or {identity for identity in tracks if lane_id(identity) in lanes} != targets:
+                raise ValueError("Target one complete device, including all drummer rows.")
+            if request.pad_index is not None and any(request.pad_index not in {p.pad_index for p in t.pads}
+                    for t in [*config.tracks, *config.controller_tracks] if t.track_id in targets):
+                raise ValueError("Device pad is not configured.")
+        if request.arpeggiator_id and not any(a.arpeggiator_id == request.arpeggiator_id and a.playback_mode == "arranger" for a in config.arpeggiators):
+            raise ValueError("Device must be an Arranger-mode arpeggiator.")
+
+    def _apply_device_transport(self, runtime: RuntimeSession, request: SessionDeviceTransportRequest):
+        sequencer = self._ensure_sequencer(runtime)
+        router = self._ensure_midi_router(runtime)
+        if request.arpeggiator_id:
+            router.source_uses_arrangement(request.arpeggiator_id)
+        from backend.app.engine.lane_output import lane_id
+        tracks = sequencer.sources.tracks()
+        if request.track_ids:
+            lanes = {lane_id(identity) for identity in request.track_ids}
+            if len(lanes) != 1 or {identity for identity in tracks if lane_id(identity) in lanes} != set(request.track_ids):
+                raise ValueError("Target one complete configured device, including all drummer rows.")
+            if request.pad_index is not None and any(request.pad_index not in tracks[identity].pads for identity in request.track_ids):
+                raise ValueError("Device pad is not configured.")
+        identities = request.track_ids or ([request.arpeggiator_id] if request.arpeggiator_id else [
+            identity for identity, track in tracks.items() if sequencer.sources.is_arrangement(track)])
+        if request.arranger:
+            identities = list(set(identities) | set(sequencer.audition_status()) | set(router.audition_status()) | {
+                identity for identity, state in router._states.items()
+                if state.config.playback_mode == "arranger" and state.config.pad_loop_enabled})
+        runtime.worker.release_lane_events(identities)
+        router.discard_future_lane_inputs(identities)
+        status = sequencer.device_transport(request)
+        return self._status_with_arpeggiators(runtime, status)
+
+    @staticmethod
+    def _device_command_current(runtime: RuntimeSession, token: tuple[str, int, int]) -> bool:
+        key, generation, epoch = token
+        return runtime.device_transport_epoch == epoch and runtime.device_transport_generations.get(key) == generation
+
+    async def device_transport(self, session_id: str, request: SessionDeviceTransportRequest) -> SessionSequencerStatus:
+        runtime = await self._get_session(session_id)
+        from backend.app.engine.lane_output import lane_id
+        key = "$arranger" if request.arranger else request.arpeggiator_id or lane_id(request.track_ids[0])
+        with runtime.configuration_lock:
+            if request.arranger:
+                runtime.device_transport_epoch += 1
+            elif request.action == "stop":
+                # A pending global Play must not re-enable this device after Stop.
+                # Already sounding devices retain their current state.
+                runtime.device_transport_generations["$arranger"] = runtime.device_transport_generations.get("$arranger", 0) + 1
+            generation = runtime.device_transport_generations.get(key, 0) + 1
+            runtime.device_transport_generations[key] = generation
+            token = (key, generation, runtime.device_transport_epoch)
+        if request.action == "play" and not runtime.worker.is_running:
+            await self.start_session(session_id)
+        if not self._device_command_current(runtime, token):
+            raise HTTPException(status_code=409, detail="Device command superseded.")
+        if request.config is not None:
+            return await self._prepare_session_configuration(runtime, request.config, device_command=request, device_generation=token)
+        def at_boundary():
+            with runtime.configuration_lock:
+                if not self._device_command_current(runtime, token):
+                    raise HTTPException(status_code=409, detail="Device command superseded.")
+                return self._apply_device_transport(runtime, request)
+        try:
+            return await asyncio.to_thread(runtime.worker.run_at_render_boundary, at_boundary)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    async def browser_clock_device_transport(self, session_id: str, connection_id: str,
+                                            request: BrowserClockDeviceTransportRequest) -> dict[str, object]:
+        await self.require_browser_clock_controller(session_id, connection_id)
+        status = await self.device_transport(session_id, request)
+        return self._browser_clock_sequencer_status_message(request_id=request.request_id, action=request.type, status=status)
 
     async def set_lane_output(self, session_id: str, request: SessionLaneOutputRequest) -> SessionSequencerStatus:
         runtime = await self._get_session(session_id)
@@ -1233,6 +1329,9 @@ class SessionService:
                 router.discard_future_lane_inputs(identities)
             if request.action in {"stop", "preview_end", "workspace_end"} and sequencer._audition_standalone and not sequencer.audition_status() and not router.audition_status():
                 status = sequencer.stop()
+            if sequencer.sources.active:
+                sequencer.sources.stop_if_idle()
+                status = sequencer.status()
             return self._status_with_arpeggiators(runtime, status)
         try:
             return await asyncio.to_thread(runtime.worker.run_at_render_boundary, at_boundary)

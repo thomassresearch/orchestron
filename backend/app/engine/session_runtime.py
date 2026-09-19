@@ -28,6 +28,8 @@ class RuntimeSession:
     sequencer: Any = None
     configuration_generation: int = 0
     arpeggiator_generation: int = 0
+    device_transport_epoch: int = 0
+    device_transport_generations: dict[str, int] = field(default_factory=dict)
     configuration_lock: Any = field(default_factory=threading.Lock)
 
     @property

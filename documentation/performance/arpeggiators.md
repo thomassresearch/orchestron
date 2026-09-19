@@ -8,7 +8,7 @@ An arpeggiator processes MIDI notes and drives an existing rack instrument. Send
 
 The device uses the shared green **Start** and orange **Stop** button styles.
 
-**Arranger** is the default playback mode. Arranger Play starts arpeggiators with Arrangement as playback source; Stop silences them while independent Live devices and manually started sequencers can continue. Incoming chords join the next subdivision of the shared beat. Chord changes preserve the phrase position. Seeks and selected loop wraps reconstruct the phrase at the destination; finite arrangements stop at their end.
+**Arranger** is the default playback mode. Device Play starts the chosen playback source independently: Arrangement starts at the selected song loop or stopped arranger cursor, joining any Arrangement devices already playing; Manual pads starts the selected editing pad from its beginning. Arranger Play starts all Arrangement-source devices. Arranger Stop stops those devices and clears previews/workspace playback while preserving independently playing Manual pads and Live devices. Incoming chords join the next subdivision of the shared beat. Chord changes preserve the phrase position. Seeks and selected loop wraps reconstruct Arrangement phrases at the destination; finite arrangements stop at their end. Manual pads retain their phase through these song operations. Both sources still need input notes to make sound.
 
 **Live** runs independently while the instrument engine is active. Its Start button can start the engine. The first incoming note establishes the Live clock; subsequent chords retain its pulse. Both modes use global BPM, including tempo changes.
 

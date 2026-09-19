@@ -16,6 +16,9 @@ export type ControllerSequencerRuntimeDelta = {
 };
 
 export type SequencerStepEventPayload = {
+  independent_sources?: boolean;
+  arrangement_running?: boolean;
+  arrangement_transport_subunit?: number | null;
   previous_step: number;
   current_step: number;
   cycle: number;
@@ -106,6 +109,20 @@ function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
 
+function sourceTransportDelta(payload: Record<string, unknown>) {
+  return {
+    ...(typeof payload.independent_sources === "boolean" ? { independent_sources: payload.independent_sources } : {}),
+    ...(typeof payload.arrangement_running === "boolean" ? { arrangement_running: payload.arrangement_running } : {}),
+    ...(isFiniteNumber(payload.arrangement_transport_subunit) ? { arrangement_transport_subunit: payload.arrangement_transport_subunit } : {})
+  };
+}
+
+export function sourceTransportSync(payload: Pick<import("../types").SessionSequencerStatus,
+  "independent_sources" | "arrangement_running" | "arrangement_transport_subunit">) {
+  return { independentSources: payload.independent_sources, arrangementRunning: payload.arrangement_running,
+    arrangementPlaybackSubunit: payload.arrangement_transport_subunit ?? undefined };
+}
+
 function isOptionalFiniteNumber(value: unknown): value is number | null | undefined {
   return value === undefined || value === null || isFiniteNumber(value);
 }
@@ -187,6 +204,7 @@ export function parseSequencerStepEventPayload(event: SessionEvent): SequencerSt
     cycle: payload.cycle,
     running: payload.running,
     ...(typeof payload.arranger_active === "boolean" ? { arranger_active: payload.arranger_active } : {}),
+    ...sourceTransportDelta(payload),
     step_count: payload.step_count,
     transport_subunit: payload.transport_subunit,
     tracks,
@@ -249,6 +267,7 @@ function parseSequencerRuntimeDelta(
     current_step: payload.current_step,
     running: payload.running,
     ...(typeof payload.arranger_active === "boolean" ? { arranger_active: payload.arranger_active } : {}),
+    ...sourceTransportDelta(payload),
     step_count: payload.step_count,
     transport_subunit: payload.transport_subunit,
     tracks,

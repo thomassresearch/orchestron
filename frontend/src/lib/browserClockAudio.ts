@@ -31,6 +31,7 @@ type BrowserClockCallbacks = {
 };
 
 type PendingSequencerRequest = {
+  notify: boolean;
   resolve: (status: SessionSequencerStatus) => void;
   reject: (error: Error) => void;
   timeoutId: number;
@@ -210,6 +211,13 @@ export class BrowserClockAudioClient {
     });
   }
 
+  async deviceTransport(sessionId: string, payload: import("../types").SessionDeviceTransportRequest): Promise<SessionSequencerStatus> {
+    return this.sendSequencerRequest(sessionId, {
+      ...payload, type: "device_transport", request_id: nextRequestId(),
+      ...(payload.config ? { config: withLaneOutput(payload.config) } : {})
+    });
+  }
+
   async rewindSequencer(sessionId: string): Promise<SessionSequencerStatus> {
     return this.sendSequencerRequest(sessionId, {
       type: "sequencer_rewind",
@@ -251,7 +259,7 @@ export class BrowserClockAudioClient {
         this.pendingSequencerRequests.delete(request.request_id);
         reject(new Error("Timed out waiting for browser-clock sequencer response."));
       }, SEQUENCER_REQUEST_TIMEOUT_MS);
-      this.pendingSequencerRequests.set(request.request_id, { resolve, reject, timeoutId });
+      this.pendingSequencerRequests.set(request.request_id, { resolve, reject, timeoutId, notify: request.type !== "device_transport" });
       this.postWorker({ type: "sequencer_request", request });
     });
   }
@@ -354,7 +362,9 @@ export class BrowserClockAudioClient {
           this.pendingSequencerRequests.delete(message.requestId);
           pending.resolve(message.sequencerStatus);
         }
-        this.callbacks.onSequencerStatus(message.sequencerStatus);
+        // Scoped commands apply their own status after checking request/session
+        // generations. Expired replies must never revive a stopped device.
+        if (pending?.notify) this.callbacks.onSequencerStatus(message.sequencerStatus);
         return;
       }
       case "audible_events":

@@ -105,9 +105,10 @@ it measures cold, cached, and one-pad preparation using the versioned TB303 test
 - Audition is session-only and uses the shared clock. Live arpeggiator audition follows cycle/bar launch quantization;
   arranger speaker previews use a 250 ms hold, then the next cycle boundary while the arranger runs,
   or a render block while stopped without moving its cursor. Release restores prior playback. Save/export reads
-  authored state. Arranger Play clears auditions and starts Arrangement tracks; Stop clears
+  authored state. Arranger Play clears auditions, starts Arrangement tracks and preserves independent Manual pads; Stop clears
   auditions and preserves independently started Manual pads tracks and the rack engine. Piano-roll Start is independent
   of arranger playback; retain the documented seek/reset behavior.
+- Device Play explicitly starts its source. Arrangement devices share a song-position mapping; Manual pads retain phase through song seeks/loops/end and arranger controls. Runtime intent and signed phase anchors never enter saved configuration. See backend independent-device transport.
 - Arranger lane Mute/Solo gates source-tagged MIDI without stopping its clock; controls are
   temporary, independent of the mixer, and excluded from save/export. See arranger and backend
   references for dependency, revision, and note-release contracts.

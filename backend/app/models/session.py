@@ -671,6 +671,30 @@ class SessionSequencerStartRequest(BaseModel):
     arranger_active: bool = False
 
 
+class SessionDeviceTransportRequest(BaseModel):
+    """Explicit, session-only transport intent for one device or the arranger."""
+    action: Literal["play", "stop"]
+    arranger: bool = False
+    track_ids: list[str] = Field(default_factory=list, max_length=128)
+    arpeggiator_id: str | None = Field(default=None, min_length=1, max_length=256)
+    pad_index: int | None = Field(default=None, ge=0, le=7)
+    position_step: int | None = Field(default=None, ge=0)
+    config: SessionSequencerConfigRequest | None = None
+
+    @model_validator(mode="after")
+    def valid_target(self):
+        if sum((self.arranger, bool(self.track_ids), bool(self.arpeggiator_id))) != 1:
+            raise ValueError("Specify the arranger, tracks, or one arpeggiator.")
+        if len(set(self.track_ids)) != len(self.track_ids) or any(not i or len(i) > 256 for i in self.track_ids):
+            raise ValueError("Invalid track identifiers.")
+        return self
+
+
+class BrowserClockDeviceTransportRequest(SessionDeviceTransportRequest):
+    type: Literal["device_transport"]
+    request_id: str = Field(min_length=1, max_length=128)
+
+
 class SessionSequencerSeekRequest(BaseModel):
     config: SessionSequencerConfigRequest
     position_step: int = Field(ge=0)
@@ -721,7 +745,7 @@ class SessionSequencerTrackStatus(BaseModel):
     pad_loop_position: int | None = Field(default=None, ge=0)
     enabled: bool = True
     queued_enabled: bool | None = None
-    runtime_pad_start_subunit: int | None = Field(default=None, ge=0)
+    runtime_pad_start_subunit: int | None = None
     active_notes: list[int] = Field(default_factory=list)
 
 
@@ -735,7 +759,7 @@ class SessionControllerSequencerTrackStatus(BaseModel):
     queued_pad: int | None = Field(default=None, ge=0, le=7)
     pad_loop_position: int | None = Field(default=None, ge=0)
     enabled: bool = True
-    runtime_pad_start_subunit: int | None = Field(default=None, ge=0)
+    runtime_pad_start_subunit: int | None = None
     last_value: int | None = Field(default=None, ge=0, le=127)
     target_channels: list[int] = Field(default_factory=list)
 
@@ -766,6 +790,9 @@ class SessionSequencerStatus(BaseModel):
     lane_output: dict[str, Any] = Field(default_factory=dict)
     auditions: dict[str, dict[str, Any]] = Field(default_factory=dict)
     arranger_active: bool = False
+    independent_sources: bool = False
+    arrangement_running: bool = False
+    arrangement_transport_subunit: int | None = Field(default=None, ge=0)
     session_id: str
     running: bool
     timing: SessionSequencerTimingConfig

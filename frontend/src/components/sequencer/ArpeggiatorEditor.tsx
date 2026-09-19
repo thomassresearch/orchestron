@@ -29,7 +29,7 @@ type Props = {
 };
 
 export function ArpeggiatorEditor({ arp, language, ui, name, help, presets, instruments, patches, canRemove,
-  engineRunning, transportPlaying, onChange, onEnabled, onRemove, onCommand, onPreset, onSave }: Props) {
+  engineRunning, onChange, onEnabled, onRemove, onCommand, onPreset, onSave }: Props) {
   const c = arpeggiatorCopy(language);
   const [commandRevision, setCommandRevision] = useState(0);
   const command = (value: ArpeggiatorCommand) => { setCommandRevision(revision => revision + 1); onCommand(value); };
@@ -46,13 +46,14 @@ export function ArpeggiatorEditor({ arp, language, ui, name, help, presets, inst
   const stepIndex = Math.min(selection, pad.steps.length - 1);
   const step = pad.steps[stepIndex];
   const runtime = arp.runtimeStatus;
+  const devicePlaying = engineRunning && (arp.playbackMode === "live" ? arp.enabled : !!runtime?.enabled);
   const playingPad = runtime?.active_pad ?? arp.activePad;
   const presetId = arp.padPresetIds[editingPad];
   const preset = presets.find(p => p.id === presetId);
   const modified = !!preset && JSON.stringify(normalizeArpeggiatorSettings(preset.settings)) !== JSON.stringify(normalizeArpeggiatorSettings(pad));
   const targets = instruments.filter(i => i.midiChannel > 0 && i.midiChannel !== arp.inputChannel);
   const hasTarget = targets.some(i => i.midiChannel === arp.targetChannel);
-  const state = !engineRunning || !arp.enabled ? "stopped" : runtime?.state ?? (arp.playbackMode === "arranger" ? "waiting_arranger" : "waiting_notes");
+  const state = !engineRunning ? "stopped" : runtime?.state ?? (devicePlaying ? "waiting_notes" : "stopped");
   const updatePad = (update: Partial<ArpeggiatorPadState>) => onChange({ pads: arp.pads.map((p, i) => i === editingPad ? normalizeArpeggiatorSettings({ ...p, ...update }) : p) });
   const updateStep = (update: Partial<ArpeggiatorStep>) => updatePad({ steps: pad.steps.map((s, i) => i === stepIndex ? { ...s, ...update } : s) });
   const select = (label: string, value: string, options: Array<[string, string]>, change: (value: string) => void) => <label className="flex min-w-0 flex-col gap-1 text-xs text-slate-300">{label}<select className={field} value={value} onChange={e => change(e.target.value)}>{options.map(([key, text]) => <option key={key} value={key}>{text}</option>)}</select></label>;
@@ -60,7 +61,7 @@ export function ArpeggiatorEditor({ arp, language, ui, name, help, presets, inst
   const section = (key: keyof typeof c, children: ReactNode) => <details className="rounded-lg border border-slate-700 p-2" open={expanded[key] ?? false} onToggle={e => { const open = e.currentTarget.open; if (open !== !!expanded[key]) setExpanded(v => ({ ...v, [key]: open })); }}><summary className="cursor-pointer text-xs font-semibold text-slate-300">{c[key]}</summary><div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">{children}</div></details>;
   return <article id={`sequencer-${arp.id}`} className="min-w-0 space-y-3 rounded-xl border border-slate-700 bg-slate-900/65 p-3">
     <header className="flex flex-wrap items-center gap-2">{name}<span role="status" className="rounded-full border border-cyan-900 px-2 py-1 text-xs text-cyan-100">{hasTarget ? c[state] : c.missing}</span>
-      <button type="button" className={engineRunning && arp.enabled ? transportStopButtonClass : transportStartButtonClass} onClick={() => onEnabled(!engineRunning || !arp.enabled)}>{engineRunning && arp.enabled ? ui.stop : ui.start}</button>
+      <button type="button" className={devicePlaying ? transportStopButtonClass : transportStartButtonClass} onClick={() => onEnabled(!devicePlaying)}>{devicePlaying ? ui.stop : ui.start}</button>
       <button className={`${button} ml-auto text-rose-200`} disabled={!canRemove} onClick={onRemove}>{ui.remove}</button>{help}</header>
     <div className="grid gap-3 xl:grid-cols-[minmax(320px,420px)_minmax(0,1fr)]">
     <div className="min-w-0 space-y-2">
@@ -78,8 +79,8 @@ export function ArpeggiatorEditor({ arp, language, ui, name, help, presets, inst
     </div>
     <div className="min-w-0 space-y-2">
       <PerformanceAuditionControls compact id={arp.id} language={language} editingPad={editingPad} playingPad={playingPad} queuedPad={runtime?.queued_pad}
-        playing={runtime?.state === "playing" || transportPlaying && arp.enabled}
-        manualLaunch={arp.playbackMode === "live" || !arp.padLoopEnabled ? () => { if (!engineRunning || !arp.enabled) onEnabled(true); command({ command: "launch", pad_index: editingPad }); } : undefined} />
+        playing={devicePlaying}
+        manualLaunch={arp.playbackMode === "live" || !arp.padLoopEnabled ? () => { if (!devicePlaying && arp.playbackMode === "arranger") { onEnabled(true); return; } if (!devicePlaying) onEnabled(true); command({ command: "launch", pad_index: editingPad }); } : undefined} />
       <PatternWorkspace key={previewContext} track={{ ...arp, activePad: editingPad }} language={language} hideArrangement={arp.playbackMode === "live"}
         padHasContent={index => arpeggiatorPadHasSound(arp.pads[index])}
         onSourceChange={padLoopEnabled => onChange({ padLoopEnabled })} onPatternChange={padLoopPattern => onChange({ padLoopPattern })} />

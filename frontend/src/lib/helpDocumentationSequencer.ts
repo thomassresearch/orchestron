@@ -1,4 +1,5 @@
 import { patternWorkspaceHelp } from "./helpDocumentationPatternWorkspace";
+import { independentPlaybackHelp } from "./helpDocumentationIndependentPlayback";
 import { arrangementHelp } from "./arrangementHelp";
 import { arpeggiatorHelp } from "./helpDocumentationArpeggiator";
 import { collapsiblePanelHelp } from "./helpDocumentationPanels";
@@ -166,7 +167,7 @@ Click the pen beside the device name to rename it. Save/Enter applies; Cancel/Es
 
 This help applies to one melodic sequencer card.
 
-- Start/stop the sequencer independently while the arranger is stopped (instrument transport must be running to start).
+- Start/stop the sequencer independently while the arranger is stopped (Play starts the instrument engine when needed).
 - Set MIDI channel, \`Sync To\` target, scale root/type, and mode for note generation.
 - Use this sequencer's meter/grid timing, beat ratio, and pattern-pad length in beats (\`1..8\`), including the current meter numerator when needed.
 - Drag the sequencer \`::\` handle in the header to reorder melodic sequencers in the panel.
@@ -185,7 +186,7 @@ Zum Umbenennen auf den Stift neben dem Gerätenamen klicken. Speichern/Enter üb
 
 Diese Hilfe gilt fuer eine einzelne Karte eines melodischen Sequencers.
 
-- Sequencer separat starten/stoppen, waehrend der Arranger gestoppt ist (zum Starten muss der Instrument-Transport laufen).
+- Sequencer separat starten/stoppen, waehrend der Arranger gestoppt ist (Play startet die Instrument-Engine bei Bedarf).
 - MIDI-Kanal, \`Sync zu\`-Ziel, Skalen-Grundton/-Typ und Modus für die Notenerzeugung setzen.
 - Die Takt-/Raster-Zeitbasis, das Beat-Verhaeltnis und die Pattern-Pad-Laenge in Beats dieses melodischen Sequencers nutzen (\`1..8\`), bei Bedarf direkt inklusive des aktuellen Taktzaehlers.
 - Das \`::\`-Handle in der Kopfzeile ziehen, um melodische Sequencer im Panel umzusortieren.
@@ -204,7 +205,7 @@ Cliquez sur le stylo à droite du nom pour le modifier. Enregistrer/Entrée appl
 
 Cette aide s'applique a une carte individuelle de sequenceur melodique.
 
-- Demarrer/arreter le sequenceur independamment pendant que l'arrangeur est arrete (le transport instrument doit etre actif pour demarrer).
+- Demarrer/arreter le sequenceur independamment pendant que l'arrangeur est arrete (Play démarre le moteur audio si nécessaire).
 - Régler canal MIDI, cible \`Sync vers\`, tonique/type de gamme et mode pour la génération de notes.
 - Utiliser la mesure/grille, le ratio de temps et la longueur du pad en temps de ce sequenceur (\`1..8\`), avec le numerateur courant propose si besoin.
 - Glisser la poignee \`::\` de l'en-tete pour reordonner les sequenceurs melodiques dans le panneau.
@@ -223,7 +224,7 @@ Haz clic en el lápiz a la derecha del nombre para editarlo. Guardar/Enter aplic
 
 Esta ayuda se aplica a una tarjeta individual de secuenciador melodico.
 
-- Inicia/detiene el secuenciador de forma independiente mientras el arreglador esta detenido (el transporte de instrumentos debe estar activo para iniciar).
+- Inicia/detiene el secuenciador de forma independiente mientras el arreglador esta detenido (Play inicia el motor de audio cuando es necesario).
 - Ajusta canal MIDI, destino \`Sync con\`, raíz/tipo de escala y modo para la generación de notas.
 - Usa la metrica/cuadricula, la relacion de pulso y la longitud del pad de este secuenciador en pulsos (\`1..8\`), con el numerador actual disponible cuando haga falta.
 - Arrastra el asa \`::\` del encabezado para reordenar los secuenciadores melodicos en el panel.
@@ -316,7 +317,7 @@ Click the pen beside the device name to rename it. Save/Enter applies; Cancel/Es
 
 Automate a MIDI CC value over time with a curve.
 
-- Start/stop this controller sequencer independently while the arranger is stopped (instrument transport must be running to start).
+- Start/stop this controller sequencer independently while the arranger is stopped (Play starts the instrument engine when needed).
 - Set the MIDI controller number (\`0..127\`).
 - Choose the repeating curve length in beats (\`1..8\`, plus \`16\` for longer controller loops) and set the beat ratio.
 - Use the curve editor to add, move, and shape key points.
@@ -332,7 +333,7 @@ Zum Umbenennen auf den Stift neben dem Gerätenamen klicken. Speichern/Enter üb
 
 Automatisiert einen MIDI-CC-Wert über die Zeit mit einer Kurve.
 
-- Diesen Controller-Sequencer separat starten/stoppen, waehrend der Arranger gestoppt ist (zum Starten muss der Instrument-Transport laufen).
+- Diesen Controller-Sequencer separat starten/stoppen, waehrend der Arranger gestoppt ist (Play startet die Instrument-Engine bei Bedarf).
 - MIDI-Controller-Nummer (\`0..127\`) festlegen.
 - Die wiederholte Kurvenlaenge in Beats waehlen (\`1..8\`, plus \`16\` fuer laengere Controller-Loops) und das Beat-Verhaeltnis setzen.
 - Im Kurveneditor Keypoints hinzufügen, verschieben und formen.
@@ -348,7 +349,7 @@ Cliquez sur le stylo à droite du nom pour le modifier. Enregistrer/Entrée appl
 
 Automatise une valeur MIDI CC dans le temps avec une courbe.
 
-- Démarrer/arrêter ce séquenceur contrôleur indépendamment pendant que l'arrangeur est arrêté (le transport instrument doit être actif pour démarrer).
+- Démarrer/arrêter ce séquenceur contrôleur indépendamment pendant que l'arrangeur est arrêté (Play démarre le moteur audio si nécessaire).
 - Définir le numéro de contrôleur MIDI (\`0..127\`).
 - Choisir la longueur repetee de la courbe en temps (\`1..8\`, plus \`16\` pour les boucles controleur plus longues) et regler le ratio de temps.
 - Utiliser l'éditeur de courbe pour ajouter, déplacer et façonner des points-clés.
@@ -364,7 +365,7 @@ Haz clic en el lápiz a la derecha del nombre para editarlo. Guardar/Enter aplic
 
 Automatiza un valor MIDI CC en el tiempo mediante una curva.
 
-- Inicia/detiene este secuenciador controlador de forma independiente mientras el arreglador está detenido (el transporte de instrumentos debe estar activo para iniciar).
+- Inicia/detiene este secuenciador controlador de forma independiente mientras el arreglador está detenido (Play inicia el motor de audio cuando es necesario).
 - Define el número de controlador MIDI (\`0..127\`).
 - Elige la longitud repetida de la curva en pulsos (\`1..8\`, mas \`16\` para bucles de controlador mas largos) y ajusta la relacion de pulso.
 - Usa el editor de curva para agregar, mover y dar forma a puntos clave.
@@ -609,7 +610,7 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
   sequencer_track_editor: {
     english: `### Editing One Sequencer Card
 
-- \`Start\` and \`Stop\` only arm this sequencer; the rack's instrument engine must already be running before notes will sound.
+- \`Start\` and \`Stop\` control only this sequencer; Play starts the instrument engine when needed.
 - \`Clear Steps\` resets the selected editing pad of this sequencer, not every pad in the performance.
 - \`Beats\` changes the pad length in beats, while \`Meter\` and \`Grid\` determine how many editable steps fit inside that span.
 
@@ -620,7 +621,7 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 - Short pad transpose keeps the current tonic and mode and shifts notes by scale degree; long press moves the pad tonic itself.`,
     german: `### Eine Sequencer-Karte bearbeiten
 
-- \`Start\` und \`Stop\` schalten nur diesen Sequencer scharf; die Instrument-Engine des Racks muss bereits laufen, damit Noten hoerbar sind.
+- \`Start\` und \`Stop\` steuern nur diesen Sequencer; Play startet die Instrument-Engine bei Bedarf.
 - \`Clear Steps\` setzt nur das zur Bearbeitung ausgewählte Pattern-Pad dieses Sequencers zurueck, nicht alle Pads der Performance.
 - \`Beats\` aendert die Pad-Laenge in Beats, waehrend \`Takt\` und \`Raster\` festlegen, wie viele bearbeitbare Schritte in diese Laenge passen.
 
@@ -631,7 +632,7 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 - Kurze Pad-Transposition behaelt Tonika und Modus bei und verschiebt Noten nach Skalenstufen; langer Druck verschiebt die Tonika des Pads selbst.`,
     french: `### Edition d'une carte de sequenceur
 
-- \`Start\` et \`Stop\` n'arment que ce sequenceur ; le moteur instrument du rack doit deja tourner pour entendre des notes.
+- \`Start\` et \`Stop\` commandent seulement ce séquenceur ; Play démarre le moteur audio si nécessaire.
 - \`Clear Steps\` reinitialise uniquement le pad de pattern actif de ce sequenceur, pas tous les pads de la performance.
 - \`Beats\` change la longueur du pad en temps, tandis que \`Meter\` et \`Grid\` determinent combien de pas editables tiennent dans cette duree.
 
@@ -642,7 +643,7 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 - Une transposition courte conserve tonique et mode et deplace les notes par degre ; un appui long deplace la tonique du pad elle-meme.`,
     spanish: `### Edicion de una tarjeta de secuenciador
 
-- \`Start\` y \`Stop\` solo activan este secuenciador; el motor de instrumentos del rack ya debe estar en marcha para que suenen notas.
+- \`Start\` y \`Stop\` controlan solo este secuenciador; Play inicia el motor de audio cuando es necesario.
 - \`Clear Steps\` reinicia solo el pad de patron activo de este secuenciador, no todos los pads de la performance.
 - \`Beats\` cambia la longitud del pad en pulsos, mientras \`Meter\` y \`Grid\` determinan cuantos pasos editables caben en ese tramo.
 
@@ -929,5 +930,11 @@ for (const language of ["english", "german", "french", "spanish"] as const) {
 for (const language of ["english", "german", "french", "spanish"] as const) {
   for (const id of ["sequencer_tracks", "sequencer_track_editor", "sequencer_drummer_sequencer", "sequencer_controller_sequencer", "sequencer_arpeggiator"] as const) {
     sequencerHelpDocuments[id][language].markdown += "\n\n" + patternWorkspaceHelp[language];
+  }
+}
+
+for (const language of ["english", "german", "french", "spanish"] as const) {
+  for (const id of ["sequencer_tracks", "sequencer_drummer_sequencer", "sequencer_controller_sequencer", "sequencer_arpeggiator", "sequencer_multitrack_arranger"] as const) {
+    sequencerHelpDocuments[id][language].markdown += "\n\n" + independentPlaybackHelp[language];
   }
 }

@@ -94,6 +94,44 @@ def test_preparation_does_not_block_rendering_or_lose_concurrent_commands(
             assert not sequencer.status().running
 
 
+@pytest.mark.parametrize("interruption", ["device_stop", "arranger_stop", "other_stop", "failure", "arranger_play"])
+def test_scoped_preparation_preserves_other_devices_and_obeys_newer_stop(tmp_path, monkeypatch, interruption):
+    from backend.tests.test_sequencer_source_transport import runtime as source_fixture
+    config = source_fixture()[1].model_dump(mode="json")
+    with _client(tmp_path) as client, ThreadPoolExecutor(max_workers=2) as requests:
+        session = _create_running_session(client)
+        base = f"/api/sessions/{session}/sequencer/device-transport"
+        assert client.post(base, json={"action": "play", "track_ids": ["manual"], "pad_index": 1, "config": config}).status_code == 200
+        service = client.app.state.container.session_service
+        sequencer = service._sessions[session].sequencer
+        original = service._preparation.prepare
+        entered, release = threading.Event(), threading.Event()
+
+        async def paused(request, channels):
+            entered.set()
+            assert await asyncio.to_thread(release.wait, 5)
+            if interruption == "failure":
+                raise RuntimeError("compiler failed")
+            return await original(request, channels)
+
+        monkeypatch.setattr(service._preparation, "prepare", paused)
+        start_target = {"arranger": True} if interruption == "arranger_play" else {"track_ids": ["lead"]}
+        start = requests.submit(client.post, base, json={"action": "play", **start_target, "config": config})
+        assert entered.wait(5)
+        try:
+            if interruption != "failure":
+                target = {"arranger": True} if interruption == "arranger_stop" else {"track_ids": ["backing" if interruption == "other_stop" else "lead"]}
+                assert client.post(base, json={"action": "stop", **target}).status_code == 200
+        finally:
+            release.set()
+        response = start.result(timeout=5)
+        assert response.status_code == (500 if interruption == "failure" else 200 if interruption == "other_stop" else 409)
+        assert sequencer._config.tracks["manual"].enabled
+        assert sequencer._config.tracks["manual"].active_pad == 1
+        assert sequencer._config.tracks["lead"].enabled is (interruption == "other_stop")
+        assert not sequencer._config.tracks["backing"].enabled
+
+
 def test_preparation_pending_queue_keeps_only_latest_per_session() -> None:
     from backend.app.models.session import SessionSequencerConfigRequest
     from backend.app.services.sequencer_preparation import SequencerPreparationService, SupersededConfigurationError

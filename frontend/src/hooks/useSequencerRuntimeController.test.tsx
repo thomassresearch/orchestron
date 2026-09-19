@@ -5,6 +5,7 @@ import fixture from "../../../backend/tests/fixtures/performances/arranger_seek.
 import configFixture from "../../../backend/tests/fixtures/sequencers/arranger_seek.json";
 import { api } from "../api/client";
 import { mergedSequencerState } from "../lib/mergedSequencerState";
+import { buildPerformanceExportPayload } from "../lib/bundleImportExport";
 import { useAppStore } from "../store/useAppStore";
 import type { SessionSequencerConfigRequest, SessionSequencerStatus } from "../types";
 import { useBrowserClockAudioController } from "./useBrowserClockAudioController";
@@ -18,6 +19,7 @@ const buildArpeggiators = vi.fn(() => ({ tempo_bpm: 120, arpeggiators: [] }));
 const setError = vi.fn();
 const audition = vi.fn();
 const startSequencer = vi.fn();
+const deviceTransport = vi.fn();
 let audioParams: Parameters<typeof useBrowserClockAudioController>[0];
 const errors = { noActiveRuntimeSession: "Missing runtime", startInstrumentsFirstForSequencer: "Start first",
   noActiveInstrumentSessionForSequencer: "Missing session", failedToStartSequencer: "Start failed",
@@ -47,7 +49,10 @@ beforeEach(() => {
   useAppStore.setState({ activeSessionId: "session", activeSessionState: "running" });
   audition.mockReset().mockResolvedValue({ ...status(0), auditions: {} });
   startSequencer.mockReset().mockImplementation(async (_session, request) => ({ ...status(request.positionStep), arranger_active: request.arrangerActive }));
-  const client = { audition, startSequencer, prime: vi.fn().mockResolvedValue(undefined), connect: vi.fn().mockResolvedValue(undefined), stopSequencer: vi.fn().mockResolvedValue(status(0, false)) };
+  deviceTransport.mockReset().mockImplementation(async (_session, request) => ({ ...status(0, request.action === "play"),
+    independent_sources: true, arranger_active: !!request.arranger && request.action === "play",
+    arrangement_running: request.action === "play", arrangement_transport_subunit: (request.position_step ?? 0) * 420 }));
+  const client = { audition, startSequencer, deviceTransport, prime: vi.fn().mockResolvedValue(undefined), connect: vi.fn().mockResolvedValue(undefined), stopSequencer: vi.fn().mockResolvedValue(status(0, false)) };
   const browser = { browserClockClientRef: { current: client as unknown as ReturnType<typeof useBrowserClockAudioController>["browserClockClientRef"]["current"] }, browserAudioError: null, browserAudioDiagnostics: null,
     browserAudioStatus: "live" as const, browserAudioTransport: "browser_clock" as const,
     disconnectBrowserAudio: noop, disconnectBrowserClockAudio: noop, displayedSequencerTransportSubunit: 0, readPlaybackTransportSubunit: () => null,
@@ -300,4 +305,88 @@ it("starts independent device transport with explicit manual bounds", async () =
   await act(() => result.current.startSequencerTransport(false));
   expect(buildConfig).toHaveBeenLastCalledWith(useAppStore.getState().sequencer, "runtime", false);
   expect(startSequencer).toHaveBeenLastCalledWith("session", expect.objectContaining({ arrangerActive: false }));
+});
+
+it("uses explicit device Play after arranger Play/Stop without changing authored enablement", async () => {
+  const { result } = setup(false);
+  const id = useAppStore.getState().sequencer.tracks[0].id;
+  const authored = useAppStore.getState().sequencer;
+  const saved = useAppStore.getState().buildSequencerConfigSnapshot();
+  await act(() => result.current.transportDevice(null, true));
+  await act(() => result.current.transportDevice(null, false));
+  await act(() => result.current.transportDevice(id, true));
+  expect(deviceTransport.mock.calls.map(([, request]) => request.action)).toEqual(["play", "stop", "play"]);
+  expect(deviceTransport).toHaveBeenLastCalledWith("session", expect.objectContaining({ track_ids: [id], action: "play", config }));
+  expect(useAppStore.getState().sequencer).toBe(authored);
+  expect(useAppStore.getState().sequencerRuntime.arrangerActive).toBe(false);
+  expect(startSequencer).not.toHaveBeenCalled();
+  const after = useAppStore.getState().buildSequencerConfigSnapshot();
+  expect(after).toEqual(saved);
+  const exported = buildPerformanceExportPayload({ snapshot: after, selectedPatches: [], performanceName: "Test", performanceDescription: "" });
+  expect(JSON.stringify(exported.payload)).not.toMatch(/independentSources|arrangementPlaybackSubunit|pending_starts|source_origin/);
+});
+
+it("continues device Play when starting the engine replaces the stopped rack session", async () => {
+  useAppStore.setState({ activeSessionState: "compiled" });
+  const startSession = vi.fn(async () => {
+    useAppStore.setState({ activeSessionId: null, activeSessionState: "idle" });
+    await Promise.resolve();
+    useAppStore.setState({ activeSessionId: "new-session", activeSessionState: "running" });
+  });
+  useAppStore.setState({ startSession });
+  const { result } = setup(false);
+  const id = useAppStore.getState().sequencer.tracks[0].id;
+  await act(() => result.current.transportDevice(id, true));
+  expect(startSession).toHaveBeenCalledOnce();
+  expect(deviceTransport).toHaveBeenCalledWith("new-session", expect.objectContaining({ track_ids: [id], action: "play" }));
+});
+
+it("plays the editing pad in Manual pads mode without changing saved pad selection", async () => {
+  const { result } = setup(false);
+  const id = useAppStore.getState().sequencer.tracks[0].id;
+  act(() => {
+    useAppStore.getState().setSequencerTrackPadLoopEnabled(id, false);
+    useAppStore.getState().selectSequencerEditingPad(id, 3);
+  });
+  const original = useAppStore.getState().sequencer.tracks[0].activePad;
+  await act(() => result.current.transportDevice(id, true));
+  expect(deviceTransport).toHaveBeenLastCalledWith("session", expect.objectContaining({ pad_index: 3 }));
+  expect(useAppStore.getState().sequencer.tracks[0].activePad).toBe(original);
+});
+
+it("serializes backing-device starts and batches every drummer row", async () => {
+  useAppStore.getState().addDrummerSequencerTrack();
+  const { result } = setup(false);
+  const store = useAppStore.getState();
+  const melody = store.sequencer.tracks[0].id;
+  const drummer = store.sequencer.drummerTracks[0];
+  await act(async () => { await Promise.all([result.current.transportDevice(melody, true), result.current.transportDevice(drummer.id, true)]); });
+  expect(deviceTransport).toHaveBeenCalledTimes(2);
+  expect(deviceTransport.mock.calls[1][1].track_ids).toEqual(drummer.rows.map(row => `drumrow:${drummer.id}:${row.id}`));
+});
+
+it("Stop bypasses pending Play and ignores its late acknowledgment", async () => {
+  const { result } = setup(false);
+  const id = useAppStore.getState().sequencer.tracks[0].id;
+  let resolve!: (value: SessionSequencerStatus) => void;
+  deviceTransport.mockImplementationOnce(() => new Promise(r => { resolve = r; }));
+  let play!: Promise<void>;
+  await act(async () => { play = result.current.transportDevice(id, true); await Promise.resolve(); });
+  await act(() => result.current.transportDevice(id, false));
+  expect(deviceTransport.mock.calls[1][1].action).toBe("stop");
+  await act(async () => { resolve(status(16)); await play; });
+  expect(useAppStore.getState().sequencerRuntime.isPlaying).toBe(false);
+});
+
+it("uses the song marker for the arranger cursor and retains it during independent playback", async () => {
+  setup(true);
+  act(() => audioParams.applySequencerStatusRef.current({ ...status(100), independent_sources: true,
+    arranger_active: true, arrangement_running: true, arrangement_transport_subunit: 8 * 420 }));
+  expect(useAppStore.getState().sequencerRuntime.arrangerTransportSubunit).toBe(8 * 420);
+  act(() => audioParams.applySequencerStatusRef.current({ ...status(101), independent_sources: true,
+    arranger_active: false, arrangement_running: false, arrangement_transport_subunit: 9 * 420 }));
+  act(() => audioParams.applySequencerStatusRef.current({ ...status(110), independent_sources: true,
+    arranger_active: false, arrangement_running: true, arrangement_transport_subunit: 16 * 420 }));
+  expect(useAppStore.getState().sequencerRuntime.arrangerTransportSubunit).toBe(9 * 420);
+  expect(useAppStore.getState().sequencerRuntime.transportSubunit).toBe(110 * 420);
 });

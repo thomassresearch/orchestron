@@ -12,6 +12,7 @@ from pydantic import ValidationError
 
 from backend.app.core.container import AppContainer
 from backend.app.models.session import (
+    BrowserClockDeviceTransportRequest,
     BROWSER_CLOCK_RENDER_QUEUE_MAXSIZE,
     BrowserClockClaimControllerRequest,
     BrowserClockClockSyncRequest,
@@ -341,6 +342,23 @@ async def browser_clock_controller(websocket: WebSocket, session_id: str) -> Non
                         BrowserClockTimingReportRequest.model_validate(payload),
                         server_received_ns=server_received_ns,
                     )
+                    continue
+
+                if message_type == "device_transport":
+                    request = BrowserClockDeviceTransportRequest.model_validate(payload)
+                    async def device_command(request=request):
+                        try:
+                            response = await container.session_service.browser_clock_device_transport(session_id, connection_id, request)
+                            await send_json(response)
+                        except (HTTPException, ValueError) as exc:
+                            await send_json({"type": "sequencer_error", "request_id": request.request_id,
+                                             "detail": str(getattr(exc, "detail", exc))})
+                        except (WebSocketDisconnect, RuntimeError):
+                            pass
+                    task = asyncio.create_task(device_command(), name=f"ws-device-transport:{session_id}")
+                    start_tasks.add(task)
+                    task.add_done_callback(start_tasks.discard)
+                    await asyncio.sleep(0)
                     continue
 
                 if message_type == "sequencer_start":

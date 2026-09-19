@@ -76,7 +76,8 @@ class SessionPerformanceRuntimeCoordinator:
         status: SessionSequencerStatus,
     ) -> SessionSequencerStatus:
         router = self.ensure_midi_router(runtime)
-        return status.model_copy(update={"arpeggiators": router.status(), "arranger_active": router.arranger_running})
+        return status.model_copy(update={"arpeggiators": router.status(),
+            "arranger_active": status.arranger_active if status.independent_sources else router.arranger_running})
 
     @staticmethod
     def controller_default_channels(runtime: RuntimeSession) -> tuple[int, ...]:

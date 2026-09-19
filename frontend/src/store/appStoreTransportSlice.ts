@@ -165,7 +165,7 @@ export function createTransportStoreActions(
       });
     },
 
-    syncSequencerRuntime: ({ isPlaying, arrangerActive, transportStepCount, playhead, cycle, transportSubunit, tracks, drummerTracks }) => {
+    syncSequencerRuntime: ({ isPlaying, arrangerActive, independentSources, arrangementRunning, arrangementPlaybackSubunit, transportStepCount, playhead, cycle, transportSubunit, tracks, drummerTracks }) => {
       const sequencer = mergedSequencerState(get().sequencer, get().sequencerRuntime);
       const sequencerRuntime = get().sequencerRuntime;
       const nextIsPlaying = isPlaying === true;
@@ -228,7 +228,7 @@ export function createTransportStoreActions(
             ? track.runtimePadStartSubunit
             : payload.runtimePadStartSubunit === null
               ? null
-              : Math.max(0, Math.floor(payload.runtimePadStartSubunit));
+              : Math.floor(payload.runtimePadStartSubunit);
         const selectedPad = track.pads[nextActivePad] ?? track.pads[0];
         const nextScaleRoot = selectedPad?.scaleRoot ?? track.scaleRoot;
         const nextScaleType = selectedPad?.scaleType ?? track.scaleType;
@@ -326,7 +326,7 @@ export function createTransportStoreActions(
             ? track.runtimePadStartSubunit
             : payload.runtimePadStartSubunit === null
               ? null
-              : Math.max(0, Math.floor(payload.runtimePadStartSubunit));
+              : Math.floor(payload.runtimePadStartSubunit);
 
         if (
           nextActivePad === track.activePad &&
@@ -406,7 +406,8 @@ export function createTransportStoreActions(
       set({
         sequencerRuntime: {
           ...sequencerRuntime,
-          ...arrangerTransportRuntime(sequencerRuntime, nextIsPlaying, nextTransportSubunit, arrangerActive),
+          ...arrangerTransportRuntime(sequencerRuntime, nextIsPlaying, nextTransportSubunit, arrangerActive,
+            { independentSources, arrangementRunning, arrangementPlaybackSubunit }),
           isPlaying: nextIsPlaying,
           stepCount: boundedStepCount,
           cycle: normalizedCycle,

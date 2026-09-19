@@ -7,6 +7,9 @@ import {
 import type { SequencerRuntimeState } from "../types";
 
 export interface SequencerTransportRuntimeSync {
+  independentSources?: boolean;
+  arrangementRunning?: boolean;
+  arrangementPlaybackSubunit?: number;
   isPlaying: boolean;
   arrangerActive?: boolean;
   transportStepCount?: number;
@@ -107,7 +110,7 @@ export function syncSequencerTransportRuntimeState(
     controllerRuntimePadStartSubunitById[controllerTrack.controllerSequencerId] =
       !nextIsPlaying || runtimePadStartSubunit === undefined || runtimePadStartSubunit === null
         ? null
-        : Math.max(0, Math.floor(runtimePadStartSubunit));
+        : Math.floor(runtimePadStartSubunit);
   }
 
   if (!nextIsPlaying) {
@@ -124,7 +127,7 @@ export function syncSequencerTransportRuntimeState(
 
   return {
     ...runtime,
-    ...arrangerTransportRuntime(runtime, nextIsPlaying, transportSubunit, payload.arrangerActive),
+    ...arrangerTransportRuntime(runtime, nextIsPlaying, transportSubunit, payload.arrangerActive, payload),
     isPlaying: nextIsPlaying,
     stepCount,
     playhead,
@@ -137,8 +140,15 @@ export function syncSequencerTransportRuntimeState(
 }
 
 /** The song cursor is independent of clocks used by manual pads and previews. */
-export function arrangerTransportRuntime(runtime: SequencerRuntimeState, running: boolean, subunit: number, active?: boolean) {
+export function arrangerTransportRuntime(runtime: SequencerRuntimeState, running: boolean, subunit: number, active?: boolean,
+  source: Pick<SequencerTransportRuntimeSync, "independentSources" | "arrangementRunning" | "arrangementPlaybackSubunit"> = {}) {
   const arrangerActive = running && (active ?? runtime.arrangerActive ?? false);
-  return { arrangerActive, arrangerTransportSubunit: arrangerActive || runtime.arrangerActive
-    ? subunit : runtime.arrangerTransportSubunit ?? runtime.transportSubunit };
+  const independentSources = source.independentSources ?? runtime.independentSources;
+  const arrangementPlaybackSubunit = source.arrangementPlaybackSubunit ?? runtime.arrangementPlaybackSubunit;
+  return { arrangerActive,
+    ...(independentSources === undefined ? {} : { independentSources, arrangementPlaybackSubunit,
+      arrangementRunning: source.arrangementRunning ?? runtime.arrangementRunning }),
+    arrangerTransportSubunit: arrangerActive || runtime.arrangerActive
+      ? independentSources ? arrangementPlaybackSubunit ?? subunit : subunit
+      : runtime.arrangerTransportSubunit ?? runtime.transportSubunit };
 }

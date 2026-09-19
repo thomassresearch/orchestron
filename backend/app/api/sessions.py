@@ -16,6 +16,7 @@ from backend.app.models.session import (
     SessionArpeggiatorConfigRequest,
     SessionArpeggiatorStatus,
     SessionSequencerConfigRequest,
+    SessionDeviceTransportRequest,
     SessionSequencerQueuePadRequest,
     SessionAuditionRequest,
     SessionLaneOutputRequest,
@@ -154,6 +155,12 @@ async def command_arpeggiator(session_id: str, arpeggiator_id: str, request: Arp
 async def set_arranger_active(session_id: str, request: ArrangerTransportRequest,
                              container: AppContainer = Depends(get_container)):
     return await container.session_service.set_session_arranger_active(session_id, request.active)
+
+
+@router.post("/{session_id}/sequencer/device-transport", response_model=SessionSequencerStatus)
+async def device_transport(session_id: str, payload: SessionDeviceTransportRequest,
+                           container: AppContainer = Depends(get_container)) -> SessionSequencerStatus:
+    return await container.session_service.device_transport(session_id, payload)
 
 
 @router.post("/{session_id}/sequencer/start", response_model=SessionSequencerStatus)

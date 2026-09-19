@@ -23,6 +23,7 @@ import {
   parseDrummerRowRuntimeTrackId,
   parseSequencerPadSwitchesEventPayload,
   parseSequencerStepEventPayload,
+  sourceTransportSync,
   shouldLogSessionEvent,
   type SequencerPadSwitchesEventPayload,
   type SequencerStepEventPayload
@@ -30,6 +31,7 @@ import {
 import { useAppStore } from "../store/useAppStore";
 import type {
   SessionAuditionRequest,
+  SessionDeviceTransportRequest,
   PadLoopPatternItem,
   PerformanceAuditionStatus,
   BrowserClockLatencySettings,
@@ -93,6 +95,7 @@ interface UseSequencerRuntimeControllerParams {
 }
 
 interface UseSequencerRuntimeControllerResult {
+  transportDevice: (deviceId: string | null, playing: boolean) => Promise<void>;
   auditionDevice: AuditionDevice;
   cancelPendingArpeggiatorEdits: () => void;
   browserAudioError: string | null;
@@ -156,6 +159,8 @@ export function useSequencerRuntimeController({
   type AuditionDefinition = { item: PadLoopPatternItem; sequence: string; request: SessionAuditionRequest; previous?: AuditionDefinition; replacing?: boolean };
   const auditionDefinitions = useRef(new Map<string, AuditionDefinition>());
   const auditionCommandVersion = useRef(new Map<string, number>());
+  const deviceCommandVersions = useRef(new Map<string, number>());
+  const deviceCommandQueue = useRef(Promise.resolve());
   const previewGestures = useRef(new Map<string, { gesture: string; generation: number; session?: string; definition?: AuditionDefinition }>());
   const workspaceGestures = useRef(new Map<string, { gesture: string; generation: number; session?: string }>());
   const refreshAuditions = useRef<(sessionId: string) => Promise<void>>(async () => {});
@@ -165,6 +170,10 @@ export function useSequencerRuntimeController({
     const previous = previewLifecycle.current;
     previewLifecycle.current = { id: activeSessionId, state: activeSessionState, generation: workspaceGeneration };
     if (previous.generation !== workspaceGeneration || previous.id && previous.id !== activeSessionId || previous.state === "running" && activeSessionState !== "running") {
+      // Starting a stopped engine may replace its compiled rack/session.
+      if (previous.generation !== workspaceGeneration || previous.state === "running") {
+        for (const [id, version] of deviceCommandVersions.current) deviceCommandVersions.current.set(id, version + 1);
+      }
       for (const id of auditionCommandVersion.current.keys()) auditionCommandVersion.current.set(id, auditionCommandVersion.current.get(id)! + 1);
       previewGestures.current.clear();
       workspaceGestures.current.clear();
@@ -360,6 +369,7 @@ export function useSequencerRuntimeController({
       );
       syncSequencerRuntime({
         isPlaying: status.running,
+        ...sourceTransportSync(status),
         arrangerActive: status.arranger_active,
         transportStepCount: status.step_count,
         playhead: status.current_step,
@@ -426,6 +436,7 @@ export function useSequencerRuntimeController({
       );
       syncSequencerTransportRuntime({
         isPlaying: payload.running,
+        ...sourceTransportSync(payload),
         arrangerActive: payload.arranger_active,
         transportStepCount: payload.step_count,
         playhead: payload.current_step,
@@ -446,6 +457,7 @@ export function useSequencerRuntimeController({
     (payload: SequencerPadSwitchesEventPayload) => {
       const preserveLocalEnablement = payload.running && sequencerConfigSyncPendingRef.current;
       applyBrowserClockSequencerStepEvent({
+        ...payload,
         previous_step: payload.current_step,
         current_step: payload.current_step,
         cycle: payload.cycle,
@@ -517,6 +529,7 @@ export function useSequencerRuntimeController({
       if (melodicUpdates.length > 0 || drummerUpdates.length > 0) {
         syncSequencerRuntime({
           isPlaying: payload.running,
+          ...sourceTransportSync(payload),
           arrangerActive: payload.arranger_active,
           transportStepCount: payload.step_count,
           playhead: payload.current_step,
@@ -550,7 +563,8 @@ export function useSequencerRuntimeController({
         previewGestures.current.clear();
       workspaceGestures.current.clear();
         cancelArrangerPreviewGestures();
-        syncSequencerTransportRuntime({ isPlaying: false });
+        syncSequencerTransportRuntime({ isPlaying: false,
+          ...sourceTransportSync(transportEvent.payload) });
         continue;
       }
       if (transportEvent.kind === "loop") {
@@ -757,6 +771,7 @@ export function useSequencerRuntimeController({
 
   const stopSequencerTransport = useCallback(
     async (resetPlayhead: boolean): Promise<void> => {
+      for (const [id, version] of deviceCommandVersions.current) deviceCommandVersions.current.set(id, version + 1);
       for (const id of auditionCommandVersion.current.keys()) auditionCommandVersion.current.set(id, auditionCommandVersion.current.get(id)! + 1);
       previewGestures.current.clear();
       workspaceGestures.current.clear();
@@ -797,6 +812,71 @@ export function useSequencerRuntimeController({
       syncSequencerRuntime
     ]
   );
+
+  const transportDevice = useCallback((deviceId: string | null, playing: boolean): Promise<void> => {
+    const key = deviceId ?? "$arranger";
+    if (!deviceId) {
+      for (const [id, version] of deviceCommandVersions.current) deviceCommandVersions.current.set(id, version + 1);
+      cancelArrangerPreviewGestures();
+    } else if (!playing) {
+      deviceCommandVersions.current.set("$arranger", (deviceCommandVersions.current.get("$arranger") ?? 0) + 1);
+    }
+    const version = (deviceCommandVersions.current.get(key) ?? 0) + 1;
+    deviceCommandVersions.current.set(key, version);
+    const generation = useAppStore.getState().performanceWorkspaceGeneration;
+    const initialSession = useAppStore.getState().activeSessionState === "running" ? useAppStore.getState().activeSessionId : null;
+    const current = () => deviceCommandVersions.current.get(key) === version &&
+      useAppStore.getState().performanceWorkspaceGeneration === generation &&
+      (!initialSession || useAppStore.getState().activeSessionId === initialSession);
+    const affected = deviceId ? [deviceId] : [...new Set([...auditionDefinitions.current.keys(), ...previewGestures.current.keys(), ...workspaceGestures.current.keys()])];
+    for (const id of affected) {
+      for (const commandKey of [id, `workspace:${id}`]) auditionCommandVersion.current.set(commandKey, (auditionCommandVersion.current.get(commandKey) ?? 0) + 1);
+      auditionDefinitions.current.delete(id);
+      previewGestures.current.delete(id);
+      workspaceGestures.current.delete(id);
+    }
+    const run = async () => {
+      if (!current()) return;
+      setSequencerError(null);
+      try {
+        if (playing && useAppStore.getState().activeSessionState !== "running") {
+          browserClockClientRef.current.prime();
+          await useAppStore.getState().startSession();
+        }
+        if (!current()) return;
+        const store = useAppStore.getState();
+        const session = store.activeSessionId;
+        if (!session || store.activeSessionState !== "running") return;
+        const device = [...store.sequencer.tracks, ...store.sequencer.drummerTracks,
+          ...store.sequencer.controllerSequencers, ...store.sequencer.arpeggiators].find(d => d.id === deviceId);
+        if (deviceId && !device) return;
+        const config = playing ? buildBackendSequencerConfig(store.sequencer, "runtime", true) : undefined;
+        const request: SessionDeviceTransportRequest = {
+          action: playing ? "play" : "stop", config,
+          ...(device ? "playbackMode" in device ? { arpeggiator_id: device.id } :
+            { track_ids: "rows" in device ? device.rows.map(row => drummerRowRuntimeTrackId(device.id, row.id)) : [device.id] }
+            : { arranger: true }),
+          ...(device && !device.padLoopEnabled ? { pad_index: store.sequencerEditingPads[device.id] ?? device.activePad } : {}),
+          position_step: Math.floor((store.sequencerRuntime.arrangerTransportSubunit ?? store.sequencerRuntime.transportSubunit) / sequencerTransportSubunitsPerStep())
+        };
+        if (playing) configSyncRef.current?.baseline(session, store.sequencerEditRevision);
+        const result = effectiveAudioOutputModeRef.current === "browser_clock"
+          ? await browserClockClientRef.current.deviceTransport(session, request)
+          : await api.deviceTransport(session, request);
+        if (!current() || useAppStore.getState().activeSessionId !== session) return;
+        sequencerSessionIdRef.current = session;
+        applySequencerStatus(result, { preserveLocalEnablement: false });
+      } catch (error) {
+        if (current()) setSequencerError(error instanceof Error ? error.message : String(error));
+      }
+    };
+    // Starts prepare serially, so starting several backing devices retains every
+    // command. Stop bypasses this queue to cancel preparation already in flight.
+    if (!playing) return run();
+    const task = deviceCommandQueue.current.then(run);
+    deviceCommandQueue.current = task;
+    return task;
+  }, [applySequencerStatus, browserClockClientRef, buildBackendSequencerConfig, effectiveAudioOutputModeRef, setSequencerError]);
 
   const startSequencerTransport = useCallback(async (arrangerActive = false): Promise<void> => {
     if (arrangerActive) {
@@ -879,8 +959,14 @@ export function useSequencerRuntimeController({
       const targetStep = clampArrangerSeekStep(
         positionStep, selection, arrangementEndStep, sequencerTransportStepsPerBeat(currentState.timing)
       );
+      const moveCursor = () => {
+        if (store.sequencerRuntime.independentSources) {
+          useAppStore.setState(state => ({ sequencerRuntime: { ...state.sequencerRuntime,
+            arrangerTransportSubunit: targetStep * sequencerTransportSubunitsPerStep() } }));
+        } else setSequencerTransportAbsoluteStep(targetStep);
+      };
       if (!currentState.isPlaying) {
-        setSequencerTransportAbsoluteStep(targetStep);
+        moveCursor();
         return;
       }
       const sessionId = resolveSequencerSessionId();
@@ -894,7 +980,7 @@ export function useSequencerRuntimeController({
       // change. Cancel its debounced config update so bounds and seek stay atomic.
       configSyncRef.current?.baseline(sessionId, store.sequencerEditRevision);
       sequencerSeekPendingRef.current = true;
-      setSequencerTransportAbsoluteStep(targetStep);
+      moveCursor();
       try {
         // Both audio modes use the same backend render-driven transport.
         const config = buildBackendSequencerConfig(store.sequencer);
@@ -921,7 +1007,7 @@ export function useSequencerRuntimeController({
       const currentState = sequencerRef.current;
       const { arrangementEndStep, selection } = arrangerPlaybackBounds(currentState);
       const runtime = useAppStore.getState().sequencerRuntime;
-      if (runtime.arrangerActive === false && runtime.arrangerTransportSubunit !== undefined) {
+      if ((runtime.independentSources || runtime.arrangerActive === false) && runtime.arrangerTransportSubunit !== undefined) {
         await seekSequencerTransport(Math.floor(runtime.arrangerTransportSubunit / sequencerTransportSubunitsPerStep()) + deltaSteps);
         return;
       }
@@ -1319,7 +1405,7 @@ export function useSequencerRuntimeController({
   ]);
 
   useEffect(() => {
-    if (!sequencer.isPlaying || sequencerConfigSyncPendingRef.current) {
+    if (useAppStore.getState().sequencerRuntime.independentSources || !sequencer.isPlaying || sequencerConfigSyncPendingRef.current) {
       return;
     }
     if (
@@ -1364,6 +1450,7 @@ export function useSequencerRuntimeController({
   }, []);
 
   return {
+    transportDevice,
     auditionDevice,
     cancelPendingArpeggiatorEdits,
     browserAudioError,
