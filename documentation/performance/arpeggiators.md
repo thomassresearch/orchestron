@@ -28,7 +28,7 @@ Straight, triplet and dotted rates use musical beat positions. Swing alternates 
 
 ## Eight Musical Pads
 
-Each pad stores a complete musical variation: order, rate, octave range, transpose, expression, harmony, rhythm, rotation and random seed. Click **#1–#8** to choose the editing pad. Hold its separate speaker for 250 ms to preview it. Use Launch pad for an explicit launch in Live/manual mode. The playing pad has a dot; a queued pad has a clock mark. Automatic pad changes leave your editing pad and unfinished preset name in place.
+Each pad stores a complete musical variation: order, rate, octave range, transpose, expression, harmony, rhythm, rotation and random seed. Click **#1–#8** to choose the editing pad. In Arranger mode with Manual pads running, this also queues the pad at the next launch boundary (rhythm cycle by default). The queued pad has an orange outline, then turns blue-green when playing. Clicking the playing pad cancels the queue. Hold its separate speaker for 250 ms to preview it. Use Launch pad for an explicit launch in Live/manual mode. The playing pad has a dot; a queued pad has a clock mark. Automatic pad changes leave your editing pad and unfinished preset name in place.
 
 Each pad has two independent lengths:
 

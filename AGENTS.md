@@ -108,7 +108,7 @@ it measures cold, cached, and one-pad preparation using the versioned TB303 test
   authored state. Arranger Play clears auditions, starts Arrangement tracks and preserves independent Manual pads; Stop clears
   auditions and preserves independently started Manual pads tracks and the rack engine. Piano-roll Start is independent
   of arranger playback; retain the documented seek/reset behavior.
-- Device Play explicitly starts its source. Arrangement devices share a song-position mapping; Manual pads retain phase through song seeks/loops/end and arranger controls. Runtime intent and signed phase anchors never enter saved configuration. See backend independent-device transport.
+- Device Play explicitly starts its source. Running Manual pads clicks select for editing and queue at pattern boundaries (orange queued, cyan playing); stopped/Arrangement pad clicks only select for editing. Arrangement devices share a song-position mapping; Manual pads retain phase through song seeks/loops/end and arranger controls. Runtime intent and signed phase anchors never enter saved configuration. See backend independent-device transport.
 - Arranger lane Mute/Solo gates source-tagged MIDI without stopping its clock; controls are
   temporary, independent of the mixer, and excluded from save/export. See arranger and backend
   references for dependency, revision, and note-release contracts.

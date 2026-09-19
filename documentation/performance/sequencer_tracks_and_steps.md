@@ -78,7 +78,7 @@ This supports guided note entry and better readability in the sequencer step edi
 
 ## Pattern Workspace
 
-The upper-right [pattern workspace](pattern_pads_and_pad_looper.md) assembles pads and reusable phrases with drag-and-drop. Cmd/Ctrl-click selects items to group; right-click splits groups. Apply commits shared phrase edits explicitly. Play loops the whole workspace; hold a speaker for 250 ms to preview an individual pad or phrase until release. Only pads with a note above zero velocity are green; rests, holds without notes and zero-velocity patterns stay dark. Selection outlines remain separate.
+The upper-right [pattern workspace](pattern_pads_and_pad_looper.md) assembles pads and reusable phrases with drag-and-drop. Cmd/Ctrl-click selects items to group; right-click splits groups. Apply commits shared phrase edits explicitly. Play loops the whole workspace; hold a speaker for 250 ms to preview an individual pad or phrase until release. Only pads with a note above zero velocity are green; rests, holds without notes and zero-velocity patterns stay dark. Selection outlines remain separate. With Manual pads running, click another pattern pad to queue it for the end of the current pattern: its outline is orange while queued and blue-green once playing. While stopped or using Arrangement, clicks only select the editing pad.
 
 ## Step Editor (Per-Step Note Programming)
 

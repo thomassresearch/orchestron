@@ -12,6 +12,6 @@ export function patternItemButtonClass(type: PadLoopPatternItem["type"], hasCont
   return `rounded border px-2 py-1 text-xs hover:border-accent disabled:opacity-40 aria-pressed:ring-2 aria-pressed:ring-cyan-400 ${PATTERN_ITEM_COLORS[type === "pad" && !hasContent ? "pause" : type]}`;
 }
 
-export function patternPadClass(editing: boolean, queued: boolean, hasContent = true): string {
-  return `${PATTERN_ITEM_COLORS[hasContent ? "pad" : "pause"]} hover:border-emerald-400 ${editing ? "ring-2 ring-cyan-400" : ""} ${queued ? "outline outline-1 outline-offset-2 outline-amber-400" : ""}`;
+export function patternPadClass(highlighted: boolean, queued: boolean, hasContent = true): string {
+  return `${PATTERN_ITEM_COLORS[hasContent ? "pad" : "pause"]} hover:border-emerald-400 ${queued ? "outline outline-1 outline-offset-2 outline-amber-400" : highlighted ? "ring-2 ring-cyan-400" : ""}`;
 }

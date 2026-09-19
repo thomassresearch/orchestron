@@ -39,6 +39,38 @@ function stepBorder(button: HTMLElement) {
   return button.parentElement?.querySelector<HTMLElement>(":scope > span[aria-hidden='true']");
 }
 
+it("queues Manual pads clicks in Arranger mode and highlights the pad reported as playing", () => {
+  const props = previewProps();
+  props.arp.padLoopEnabled = false;
+  const { rerender } = render(<ArpeggiatorEditor {...props} />);
+  const pad = (index: number) => screen.getByRole("button", { name: `Editing #${index + 1}` });
+  fireEvent.click(pad(1));
+  expect(props.onCommand).toHaveBeenLastCalledWith({ command: "launch", pad_index: 1 });
+  expect(pad(1).getAttribute("aria-pressed")).toBe("true");
+  rerender(<ArpeggiatorEditor {...props} arp={{ ...props.arp, runtimeStatus: { ...props.arp.runtimeStatus!, queued_pad: 1 } }} />);
+  expect(pad(0).parentElement?.className).toContain("ring-cyan-400");
+  expect(pad(1).parentElement?.className).toContain("outline-amber-400");
+  expect(pad(1).parentElement?.className).not.toContain("ring-cyan-400");
+  fireEvent.click(pad(0));
+  expect(props.onCommand).toHaveBeenLastCalledWith({ command: "cancel" });
+  fireEvent.click(pad(1));
+  rerender(<ArpeggiatorEditor {...props} arp={{ ...props.arp, runtimeStatus: { ...props.arp.runtimeStatus!, active_pad: 1, queued_pad: null } }} />);
+  expect(pad(1).parentElement?.className).toContain("ring-cyan-400");
+  expect(pad(1).parentElement?.className).not.toContain("outline-amber-400");
+  expect(pad(0).parentElement?.className).not.toContain("ring-cyan-400");
+});
+
+it.each(["arrangement", "stopped", "live"])("keeps %s arpeggiator pad clicks as editing selection", mode => {
+  const props = previewProps();
+  props.arp.padLoopEnabled = mode === "arrangement";
+  if (mode === "stopped") props.engineRunning = false;
+  if (mode === "live") props.arp.playbackMode = "live";
+  render(<ArpeggiatorEditor {...props} />);
+  fireEvent.click(screen.getByRole("button", { name: "Editing #2" }));
+  expect(props.onCommand).not.toHaveBeenCalled();
+  expect(useAppStore.getState().sequencerEditingPads[props.arp.id]).toBe(1);
+});
+
 it("shows degree borders and complete accessible chord previews alongside selection and playback", () => {
   render(<ArpeggiatorEditor {...previewProps()} />);
   const steps = within(screen.getByRole("group", { name: "Rhythm steps" })).getAllByRole("button");

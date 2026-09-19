@@ -26,7 +26,8 @@ it("only highlights playable nonzero-velocity attacks, including MIDI note zero"
   drum.rows[0].steps[0].velocity = 1;
   expect(drummerPadHasSound(drum)).toBe(true);
   expect(patternPadClass(true, true, false)).not.toContain("bg-emerald");
-  expect(patternPadClass(true, true, false)).toContain("ring-cyan");
+  expect(patternPadClass(true, false, false)).toContain("ring-cyan");
+  expect(patternPadClass(true, true, false)).not.toContain("ring-cyan");
   expect(patternPadClass(true, true, false)).toContain("outline-amber");
 });
 

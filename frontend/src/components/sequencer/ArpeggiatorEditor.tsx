@@ -47,6 +47,7 @@ export function ArpeggiatorEditor({ arp, language, ui, name, help, presets, inst
   const step = pad.steps[stepIndex];
   const runtime = arp.runtimeStatus;
   const devicePlaying = engineRunning && (arp.playbackMode === "live" ? arp.enabled : !!runtime?.enabled);
+  const manualPlayback = devicePlaying && arp.playbackMode === "arranger" && !arp.padLoopEnabled;
   const playingPad = runtime?.active_pad ?? arp.activePad;
   const presetId = arp.padPresetIds[editingPad];
   const preset = presets.find(p => p.id === presetId);
@@ -86,8 +87,11 @@ export function ArpeggiatorEditor({ arp, language, ui, name, help, presets, inst
         onSourceChange={padLoopEnabled => onChange({ padLoopEnabled })} onPatternChange={padLoopPattern => onChange({ padLoopPattern })} />
     </div>
     </div>
-    <div className="grid grid-cols-4 gap-1 sm:grid-cols-8" aria-label={c.editing}>{arp.pads.map((_, i) => <div key={i} className={`flex min-w-0 rounded-lg border ${patternPadClass(editingPad === i, runtime?.queued_pad === i, arpeggiatorPadHasSound(arp.pads[i]))}`}>
-      <button draggable className="min-w-0 flex-1 px-1 py-2 text-xs" aria-label={`${c.editing} #${i + 1}`} aria-pressed={editingPad === i} onClick={() => { setEditingPad(i); setSelection(0); }}
+    <div className="grid grid-cols-4 gap-1 sm:grid-cols-8" aria-label={c.editing}>{arp.pads.map((_, i) => <div key={i} className={`flex min-w-0 rounded-lg border ${patternPadClass(manualPlayback ? playingPad === i : editingPad === i, runtime?.queued_pad === i, arpeggiatorPadHasSound(arp.pads[i]))}`}>
+      <button draggable className="min-w-0 flex-1 px-1 py-2 text-xs" aria-label={`${c.editing} #${i + 1}`} aria-pressed={editingPad === i} onClick={() => {
+        setEditingPad(i); setSelection(0);
+        if (manualPlayback) command(i === playingPad ? { command: "cancel" } : { command: "launch", pad_index: i });
+      }}
         onDragStart={e => { e.dataTransfer.setData("application/x-visualcsound-sequencer-pad", JSON.stringify({ trackId: arp.id, padIndex: i })); }}
         onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); try { const data = JSON.parse(e.dataTransfer.getData("application/x-visualcsound-sequencer-pad")) as { trackId: string; padIndex: number }; if (data.trackId === arp.id && arp.pads[data.padIndex]) onChange({ pads: arp.pads.map((p, n) => n === i ? normalizeArpeggiatorSettings(arp.pads[data.padIndex]) : p) }); } catch { /* Ignore unrelated drags. */ } }}>
         #{i + 1}{arp.enabled && playingPad === i ? " ●" : ""}{runtime?.queued_pad === i ? " ◷" : ""}</button>

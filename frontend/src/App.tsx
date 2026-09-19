@@ -1500,7 +1500,7 @@ export default function App() {
         return;
       }
 
-      void queueSequencerPadRuntime(sessionId, trackId, padIndex)
+      void queueSequencerPadRuntime(sessionId, trackId, track.activePad === padIndex ? null : padIndex)
         .catch((queueError) => {
           setSequencerError(
             queueError instanceof Error
@@ -1564,7 +1564,7 @@ export default function App() {
 
       void (async () => {
         for (const row of drummerTrack.rows) {
-          await queueSequencerPadRuntime(sessionId, drummerRowRuntimeTrackId(trackId, row.id), padIndex);
+          await queueSequencerPadRuntime(sessionId, drummerRowRuntimeTrackId(trackId, row.id), drummerTrack.activePad === padIndex ? null : padIndex);
         }
       })().catch((queueError) => {
         setSequencerError(

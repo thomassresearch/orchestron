@@ -114,6 +114,44 @@ def test_song_end_and_arranger_actions_preserve_manual_playback():
     assert track(engine, "manual").enabled
 
 
+@pytest.mark.parametrize("controller", [False, True])
+def test_manual_pad_queue_switches_at_its_own_boundary_during_arrangement_loops(controller):
+    engine, config, midi = runtime(loop=True)
+    if controller:
+        config.controller_tracks = SessionSequencerConfigRequest.model_validate({"controller_tracks": [{
+            "track_id": "filter", "controller_number": 74, "enabled": False, "pad_loop_enabled": False,
+            "pads": [{"pad_index": index, "length_beats": 4,
+                "keypoints": [{"position": 0, "value": value}, {"position": 1, "value": value}]}
+                for index, value in [(0, 30), (1, 90)]]}]}).controller_tracks
+        engine.configure(config)
+    identity = "filter" if controller else "manual"
+    def get_track():
+        return engine._config.controller_tracks[identity] if controller else track(engine, identity)
+
+    command(engine, track=identity, pad_index=0)
+    command(engine)
+    duration = engine._transport_subunit_count_for_pad(get_track(), 0) // 420
+    advance(engine, 3)
+    engine.queue_pad(identity, 1)
+    engine.queue_pad(identity, None)
+    assert get_track().queued_pad is None
+    engine.queue_pad(identity, 1)
+    advance(engine, duration - 4)
+    assert get_track().active_pad == 0
+    assert get_track().queued_pad == 1
+    # A live edit must not discard a pending click or move its boundary.
+    engine.apply_prepared(compile_sequencer_runtime_config(config, controller_default_channels=(1,)))
+    midi.calls.clear()
+    advance(engine, 1)
+    assert get_track().active_pad == 1
+    assert get_track().queued_pad is None
+    assert engine._local_transport_offset_for(get_track(), engine._absolute_subunit) == 0
+    messages = [message for _, batch, _ in midi.calls for message in batch]
+    assert ([0xB0, 74, 90] if controller else [0x92, 72, 100]) in messages
+    assert engine.sources.arrangement_running
+    assert engine.sources.manual_pads[identity] == 1
+
+
 def test_explicit_play_restarts_ended_lane_without_authored_enablement_change():
     engine, config, _ = runtime()
     command(engine)

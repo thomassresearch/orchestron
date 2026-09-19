@@ -1506,6 +1506,8 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
         const trackDisplayLabel = performanceDeviceDisplayName(track.name, ui.sequencerWithIndex(trackIndex + 1));
         const syncTargetValue = track.syncToTrackId ?? "";
         const trackIsRunning = sequencer.isPlaying && track.enabled;
+        const manualPlayback = trackIsRunning && !track.padLoopEnabled;
+        const playingPad = playbackSequencer.tracks.find(t => t.id === track.id)?.activePad;
         const absoluteTransportSubunit = sequencer.isPlaying
           ? sequencerTransportSubunit
           : sequencerAbsoluteTransportStepValue(sequencer) * sequencerTransportSubunitsPerStep();
@@ -1788,7 +1790,10 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
                         type="button"
                         draggable
                         aria-pressed={isActivePad}
-                        onClick={() => selectEditingPad(track.id, padIndex)}
+                        onClick={() => {
+                          selectEditingPad(track.id, padIndex);
+                          if (manualPlayback) onSequencerPadPress(track.id, padIndex);
+                        }}
                         onDragStart={(event) => {
                           const payload = JSON.stringify({ trackId: track.id, padIndex });
                           event.dataTransfer.effectAllowed = "copy";
@@ -1807,7 +1812,7 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
                           }
                           onSequencerPadCopy(track.id, payload.padIndex, padIndex);
                         }}
-                        className={`w-full rounded-md border py-1.5 pl-5 pr-10 text-[10px] font-semibold uppercase tracking-[0.12em] transition ${patternPadClass(isActivePad, isQueuedPad, padHasContent)}`}
+                        className={`w-full rounded-md border py-1.5 pl-5 pr-10 text-[10px] font-semibold uppercase tracking-[0.12em] transition ${patternPadClass(manualPlayback ? playingPad === padIndex : isActivePad, isQueuedPad, padHasContent)}`}
                       >
                         #{padIndex + 1}
                       </button>
@@ -2392,6 +2397,8 @@ function DrummerSequencersBody({ context }: { context: ReturnType<typeof useSequ
           sequencer.isPlaying && playbackSequencer.drummerTracks.find(t => t.id === track.id)?.activePad === track.activePad
         );
         const trackIsRunning = sequencer.isPlaying && track.enabled;
+        const manualPlayback = trackIsRunning && !track.padLoopEnabled;
+        const playingPad = playbackSequencer.drummerTracks.find(t => t.id === track.id)?.activePad;
 
         return (
           <article
@@ -2574,7 +2581,10 @@ function DrummerSequencersBody({ context }: { context: ReturnType<typeof useSequ
                         type="button"
                         draggable
                         aria-pressed={isActivePad}
-                        onClick={() => selectEditingPad(track.id, padIndex)}
+                        onClick={() => {
+                          selectEditingPad(track.id, padIndex);
+                          if (manualPlayback) onDrummerSequencerPadPress(track.id, padIndex);
+                        }}
                         onDragStart={(event) => {
                           const payload = JSON.stringify({ trackId: track.id, padIndex });
                           event.dataTransfer.effectAllowed = "copy";
@@ -2593,7 +2603,7 @@ function DrummerSequencersBody({ context }: { context: ReturnType<typeof useSequ
                           }
                           onDrummerSequencerPadCopy(track.id, payload.padIndex, padIndex);
                         }}
-                        className={`w-full rounded-md border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] transition ${patternPadClass(isActivePad, isQueuedPad, padHasContent)}`}
+                        className={`w-full rounded-md border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] transition ${patternPadClass(manualPlayback ? playingPad === padIndex : isActivePad, isQueuedPad, padHasContent)}`}
                       >
                         #{padIndex + 1}
                       </button>
@@ -2854,7 +2864,9 @@ function ControllerSequencersBody({ context }: { context: ReturnType<typeof useS
   return <>
     <div className="space-y-3">
       {sequencer.controllerSequencers.map((controllerSequencer, controllerSequencerIndex) => {
-        const controllerSequencerIsRunning = sequencer.isPlaying && controllerSequencer.enabled && playbackSequencer.controllerSequencers.find(t => t.id === controllerSequencer.id)?.activePad === controllerSequencer.activePad;
+        const controllerSequencerIsRunning = sequencer.isPlaying && controllerSequencer.enabled;
+        const manualPlayback = controllerSequencerIsRunning && !controllerSequencer.padLoopEnabled;
+        const playingPad = playbackSequencer.controllerSequencers.find(t => t.id === controllerSequencer.id)?.activePad;
 
         return (
           <article
@@ -3058,7 +3070,10 @@ function ControllerSequencersBody({ context }: { context: ReturnType<typeof useS
                     <button
                       type="button"
                       draggable
-                      onClick={() => selectEditingPad(controllerSequencer.id, padIndex)}
+                      onClick={() => {
+                        selectEditingPad(controllerSequencer.id, padIndex);
+                        if (manualPlayback) onControllerSequencerPadPress(controllerSequencer.id, padIndex);
+                      }}
                       onDragStart={(event) => {
                         const payload = JSON.stringify({ trackId: controllerSequencer.id, padIndex });
                         event.dataTransfer.effectAllowed = "copy";
@@ -3081,7 +3096,7 @@ function ControllerSequencersBody({ context }: { context: ReturnType<typeof useS
                         }
                         onControllerSequencerPadCopy(controllerSequencer.id, payload.padIndex, padIndex);
                       }}
-                      className={`relative w-full rounded-md border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] transition ${patternPadClass(isActive, isQueued, padHasContent)}`}
+                      className={`relative w-full rounded-md border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] transition ${patternPadClass(manualPlayback ? playingPad === padIndex : isActive, isQueued, padHasContent)}`}
                       aria-pressed={isActive}
                       aria-label={`Controller pattern pad #${padIndex + 1}${isQueued ? " queued" : isActive ? " active" : ""}`}
                     >
