@@ -695,8 +695,6 @@ class SessionAuditionRequest(BaseModel):
             raise ValueError("An audition requires a playable sequence.")
         if self.action.startswith(("preview_", "workspace_")) and (self.gesture_id is None or self.revision is None):
             raise ValueError("A preview requires a gesture identity and revision.")
-        if self.action.startswith("workspace_") and self.arpeggiator_id:
-            raise ValueError("Workspace audition requires sequencer tracks.")
         if any(t not in set(range(8)) | {-1, -2, -4, -8, -16} for t in self.sequence):
             raise ValueError("Invalid audition token.")
         return self

@@ -1,5 +1,6 @@
 import { expect, it } from "vitest";
-import { applyWorkspaceDefinition, deleteWorkspaceDefinition, drummerPadHasSound, groupWorkspaceItems, melodicPadHasSound, moveWorkspaceItems, splitWorkspaceItems, validateWorkspace, workspacePlayingIndex } from "./patternWorkspace";
+import { arpeggiatorPadHasSound, controllerPadHasContent, applyWorkspaceDefinition, deleteWorkspaceDefinition, drummerPadHasSound, groupWorkspaceItems, melodicPadHasSound, moveWorkspaceItems, splitWorkspaceItems, validateWorkspace, workspacePlayingIndex } from "./patternWorkspace";
+import { normalizeArpeggiatorSettings } from "../store/appStoreModel";
 import { patternPadClass } from "./patternItemPresentation";
 import { useAppStore } from "../store/useAppStore";
 import type { PadLoopPatternItem, PadLoopPatternState } from "../types";
@@ -114,4 +115,28 @@ it("deletes supergroups by expanding one level and highlights nested and repeate
   expect(result.pattern.groups).toEqual(pattern.groups);
   expect(result.pattern.superGroups).toEqual([]);
   expect(result.drafts.free).toEqual({ items: [pad(0), { type: "group", groupId: "A" }, pad(2), { type: "group", groupId: "A" }], selection: [1, 2] });
+});
+
+
+it("uses controller curve content and arpeggiator playable attacks for pad styling", () => {
+  const cc = { lengthBeats: 4 as const, stepCount: 16, keypoints: [{ id: "a", position: 0, value: 0 }, { id: "b", position: 1, value: 0 }] };
+  expect(controllerPadHasContent(cc)).toBe(false);
+  cc.keypoints[0].value = 64;
+  expect(controllerPadHasContent(cc)).toBe(true);
+  cc.keypoints[0].value = 0; cc.keypoints.push({ id: "c", position: .5, value: 0 });
+  expect(controllerPadHasContent(cc)).toBe(true);
+  const arp = normalizeArpeggiatorSettings({});
+  expect(arpeggiatorPadHasSound(arp)).toBe(true);
+  for (const kind of ["rest", "tie"] as const) {
+    arp.steps.forEach(step => { step.kind = kind; });
+    expect(arpeggiatorPadHasSound(arp)).toBe(false);
+  }
+  arp.steps[0].kind = "position"; arp.steps[0].velocity = 0;
+  expect(arpeggiatorPadHasSound(arp)).toBe(false);
+  arp.steps[0].velocity = 100; arp.steps[0].probability = 0;
+  expect(arpeggiatorPadHasSound(arp)).toBe(false);
+  arp.steps[0].probability = .5;
+  expect(arpeggiatorPadHasSound(arp)).toBe(true);
+  arp.probability = 0;
+  expect(arpeggiatorPadHasSound(arp)).toBe(false);
 });

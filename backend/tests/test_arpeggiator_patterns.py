@@ -448,3 +448,203 @@ def test_cancel_queued_preview_preserves_arpeggiator_then_stopped_preview_launch
     assert p.router.status()[0].active_pad == 1
     p.router.audition(end.model_copy(update={"revision": 4}))
     assert p.router.status()[0].state == "stopped"
+
+
+def temporary(action="workspace_start", revision=1, sequence=(1, -1, 2), gesture="workspace"):
+    from backend.app.models.session import SessionAuditionRequest
+    return SessionAuditionRequest(action=action, revision=revision, sequence=list(sequence) if action.endswith("start") else [],
+                                  gesture_id=gesture, arpeggiator_id="arp")
+
+
+@pytest.mark.parametrize("quantize,boundary", [("cycle", 96000), ("bar", 96000)])
+@pytest.mark.parametrize("action", ["workspace_start", "preview_start"])
+def test_live_temporary_launch_quantizes_and_cancel_does_not_release(quantize, boundary, action):
+    p = Playback(playback_mode="live", launch_quantize=quantize)
+    # A two-beat rhythm distinguishes cycle from bar without changing pad duration.
+    if quantize == "cycle":
+        pads = list(p.config.pads)
+        pads[0] = pads[0].model_copy(update={"steps": pads[0].steps[:8]})
+        p.config = p.config.model_copy(update={"pads": pads})
+        p.router.configure([p.config], tempo_bpm=120)
+        boundary = 48000
+    p.note()
+    p.advance(12000)
+    before = list(p.events)
+    p.router.audition(temporary(action))
+    assert p.router.audition_status()["arp"]["queued"] == "start"
+    p.router.audition(temporary(action.replace("start", "end"), 2))
+    assert p.events == before
+    p.router.audition(temporary(action, 3))
+    p.advance(boundary)
+    assert p.router.status()[0].active_pad == 0
+    p.advance(boundary + 1)
+    assert p.router.status()[0].active_pad == 1
+
+
+@pytest.mark.parametrize("mode", ["live", "arranger"])
+def test_workspace_nested_restore_keeps_phase_current_chord_and_saved_config(mode):
+    p = Playback(playback_mode=mode)
+    p.note()
+    p.advance(12000)
+    original = p.config.model_dump()
+    p.router.audition(temporary())
+    p.advance(96001)
+    assert p.router.audition_status()["arp"]["workspace_active"]
+    p.router.audition(temporary("preview_start", sequence=(3,), gesture="speaker"))
+    p.advance(192001)
+    assert p.router.status()[0].active_pad == 3
+    assert p.router.audition_status()["arp"]["workspace_position"] is None
+    p.note(sample=193000, on=False)
+    p.note((62, 65), sample=193001)
+    p.advance(230000)
+    p.router.audition(temporary("preview_end", 2, gesture="speaker"))
+    assert p.router.status()[0].active_pad == 2
+    assert p.router.audition_status()["arp"]["workspace_position"] == 2
+    assert p.router.status()[0].held_notes == [62, 65]
+    p.router.audition(temporary("workspace_end", 2))
+    assert p.router.status()[0].active_pad == 0
+    assert p.router._states["arp"].anchor_beat == 0
+    assert p.router.status()[0].held_notes == [62, 65]
+    assert p.router._states["arp"].config.model_dump() == original
+    p.advance(240001)
+    assert p.attacks[-1][1] == 240000
+    assert not p.router.audition_status()
+
+
+@pytest.mark.parametrize("mode", ["live", "arranger"])
+def test_stopped_workspace_accepts_notes_without_authored_enablement(mode):
+    p = Playback(playback_mode=mode)
+    p.config = p.config.model_copy(update={"enabled": False})
+    p.router.configure([p.config], tempo_bpm=120)
+    p.router.set_transport(beat=0, running=False)
+    p.advance(1)
+    p.router.audition(temporary(sequence=(1,)))
+    p.note(sample=10)
+    p.advance(12001)
+    assert p.attacks and p.router.status()[0].held_notes == [60, 64, 67]
+    assert not p.router.status()[0].enabled
+    p.router.audition(temporary("workspace_end", 2))
+    assert p.router.status()[0].state == "stopped"
+    count = len(p.attacks)
+    p.advance(24001)
+    assert len(p.attacks) == count
+    p.router.configure([p.config.model_copy(update={"enabled": True})], tempo_bpm=120)
+    if mode == "live":
+        assert p.router._running(p.router._states["arp"])
+
+
+def test_hidden_workspace_edits_use_hidden_boundary_and_audible_markers_include_repeats():
+    p = Playback(playback_mode="live", collect_status_events=True)
+    p.router.audition(temporary(sequence=(-1, 0)))  # No established clock: immediate.
+    p.router.audition(temporary("preview_start", sequence=(3,), gesture="speaker"))
+    p.advance(24001)
+    p.router.audition(temporary(revision=2, sequence=(1, 1, -1)))
+    p.advance(120001)  # Hidden edit applies at beat five.
+    p.router.audition(temporary(revision=3, sequence=(2, -1)))
+    p.advance(220000)
+    p.router.audition(temporary("preview_end", 2, gesture="speaker"))
+    state = p.router._states["arp"]
+    assert state.audition_sequence == (2, -1)
+    assert state.audition_origin == 9
+    assert state.pad_loop_position == 0
+    p.router.audition(temporary("workspace_end", 4))
+    p.router.audition(temporary(revision=5, sequence=(1, 1, -1)))
+    p.advance(440001)
+    positions = [event.payload.get("auditions", {}).get("arp", {}).get("workspace_position") for event in p.router.drain_render_status_events()]
+    assert 0 in positions and 1 in positions and 2 in positions
+
+
+def test_workspace_stop_transport_and_configuration_cancel_without_late_restore():
+    for change in ("workspace", "transport", "routing", "mode"):
+        p = Playback(playback_mode="live")
+        p.note()
+        p.advance(1)
+        p.router.audition(temporary())
+        p.advance(96001)
+        p.router.audition(temporary("preview_start", gesture="speaker"))
+        p.advance(192001)
+        if change == "workspace":
+            p.router.audition(temporary("workspace_end", 2))
+        elif change == "transport":
+            p.router.clear_auditions(stop=True)
+        else:
+            updates = {"target_channel": 3} if change == "routing" else {"playback_mode": "arranger"}
+            p.router.configure([p.config.model_copy(update=updates)], tempo_bpm=120)
+        p.router.audition(temporary("preview_end", 2, gesture="speaker"))
+        p.router.audition(temporary("workspace_end", 3))
+        assert not p.router.audition_status()
+        if change in {"workspace", "transport"}:
+            assert p.router._running(p.router._states["arp"])
+            assert p.router._states["arp"].anchor_beat == 0
+        with pytest.raises(ValueError, match="Stale"):
+            p.router.audition(temporary())
+
+
+def test_zero_velocity_is_silent_in_arpeggiator_workspace():
+    p = Playback(playback_mode="live")
+    pads = [pad.model_copy(update={"steps": [step.model_copy(update={"velocity": 0}) for step in pad.steps]}) for pad in p.config.pads]
+    p.router.configure([p.config.model_copy(update={"pads": pads})], tempo_bpm=120)
+    p.router.audition(temporary(sequence=(0,)))
+    p.note()
+    p.advance(30000)
+    assert not p.attacks
+
+
+def test_first_live_note_during_preview_establishes_restored_pulse():
+    p = Playback(playback_mode="live")
+    p.router.audition(temporary())
+    p.note((60,), sample=1000)
+    p.advance(12000)
+    p.router.audition(temporary("workspace_end", 2))
+    assert p.router._states["arp"].anchor_beat == Fraction(1, 24)
+    p.advance(19001)
+    assert p.attacks[-1] == (60, 19000)
+
+
+def test_disabled_device_consumes_note_releases_after_audition():
+    p = Playback(playback_mode="live")
+    p.router.configure([p.config.model_copy(update={"enabled": False})], tempo_bpm=120)
+    p.router.audition(temporary())
+    p.note((60,))
+    p.advance(1000)
+    p.router.audition(temporary("workspace_end", 2))
+    p.note((60,), sample=1001, on=False)
+    p.advance(2000)
+    assert not p.router._states["arp"].physical_notes
+    assert not p.router.status()[0].held_notes
+
+
+def test_live_workspace_output_owns_notes_independently_on_shared_channel():
+    from backend.app.engine.midi_scheduler import EngineMidiScheduler
+    scheduler = EngineMidiScheduler()
+    p = Playback(playback_mode="live")
+    p.router._enqueue_timestamped_midi = lambda message, **kwargs: scheduler.enqueue(message, **kwargs)[0]
+    p.router.audition(temporary())
+    scheduler.enqueue([0x90, 60, 100], source="lane:other", target_engine_sample=0)
+    p.note((60,))
+    p.advance(1)
+    attacks = scheduler.drain_block(block_start_sample=0, block_end_sample=1)
+    assert {event.source for event in attacks} == {"lane:other", "lane:arp"}
+    p.router.audition(temporary("workspace_end", 2))
+    scheduler.release_sources({"lane:arp"}, sample=1)
+    assert scheduler.drain_block(block_start_sample=1, block_end_sample=2) == []
+    scheduler.enqueue([0x80, 60, 0], source="lane:other", target_engine_sample=2)
+    assert len(scheduler.drain_block(block_start_sample=2, block_end_sample=3)) == 1
+
+
+def test_workspace_edits_apply_while_speaker_is_still_waiting_for_live_cycle():
+    p = Playback(playback_mode="live")
+    pads = [pad.model_copy(update={"length_beats": 1}) for pad in p.config.pads]
+    p.router.configure([p.config.model_copy(update={"pads": pads})], tempo_bpm=120)
+    p.router.audition(temporary(sequence=(0, 0)))
+    p.note((60,))
+    p.advance(1000)
+    p.router.audition(temporary("preview_start", sequence=(3,), gesture="speaker"))
+    p.router.audition(temporary(revision=2, sequence=(1,)))
+    p.advance(24001)
+    assert p.router.status()[0].active_pad == 1
+    status = p.router.audition_status()["arp"]
+    assert not status["preview_active"] and status["workspace_sequence"] == [1]
+    p.router.audition(temporary("preview_end", 2, gesture="speaker"))
+    assert p.router.status()[0].active_pad == 1
+    assert p.router._states["arp"].audition_origin == 1

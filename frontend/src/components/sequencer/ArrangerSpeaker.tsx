@@ -20,7 +20,7 @@ export function ArrangerSpeaker({ id, item, label, language, disabled = false }:
     setPressed(null);
     if (!current) return;
     clearTimeout(current.timer);
-    if (current.started) void audition?.(id, { action: "preview_end", gestureId: current.gesture });
+    if (current.started) void audition?.(id, { action: "preview_end", gestureId: current.gesture }).catch(() => {});
   }, [audition, id]);
   const itemKey = JSON.stringify(item);
   useEffect(() => {
@@ -39,7 +39,9 @@ export function ArrangerSpeaker({ id, item, label, language, disabled = false }:
     current.timer = setTimeout(() => {
       if (hold.current !== current) return;
       current.started = true;
-      void audition(id, { action: "preview_start", gestureId: current.gesture, item });
+      void audition(id, { action: "preview_start", gestureId: current.gesture, item }).catch(() => {
+        if (hold.current === current) release();
+      });
     }, 250);
   };
   return <button type="button" draggable={false} disabled={disabled || !audition}

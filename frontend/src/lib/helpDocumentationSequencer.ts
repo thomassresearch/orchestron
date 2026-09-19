@@ -927,7 +927,7 @@ for (const language of ["english", "german", "french", "spanish"] as const) {
 }
 
 for (const language of ["english", "german", "french", "spanish"] as const) {
-  for (const id of ["sequencer_tracks", "sequencer_track_editor", "sequencer_drummer_sequencer"] as const) {
+  for (const id of ["sequencer_tracks", "sequencer_track_editor", "sequencer_drummer_sequencer", "sequencer_controller_sequencer", "sequencer_arpeggiator"] as const) {
     sequencerHelpDocuments[id][language].markdown += "\n\n" + patternWorkspaceHelp[language];
   }
 }

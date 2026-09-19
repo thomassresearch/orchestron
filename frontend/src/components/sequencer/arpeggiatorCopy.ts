@@ -60,10 +60,10 @@ const labels = {
   bypassed: ["Bypassed", "Durchgeleitet", "Contourné", "Paso directo"],
   muted: ["Muted", "Stumm", "Muet", "Silenciado"],
   pause: ["Arrangement pause", "Arrangement-Pause", "Silence de l’arrangement", "Silencio del arreglo"],
-  hint: ["Select a pad to edit; use its play button to launch. Drag pads to copy. Space toggles a step; Delete inserts a rest; T ties; C plays the chord.",
-    "Pad zum Bearbeiten wählen; mit seiner Play-Taste starten. Pads zum Kopieren ziehen. Leertaste schaltet einen Schritt um; Entf setzt eine Pause, T bindet, C spielt den Akkord.",
-    "Sélectionnez un pad pour l’éditer ; lancez-le avec son bouton de lecture. Glissez les pads pour copier. Espace active un pas ; Suppr insère un silence ; T lie ; C joue l’accord.",
-    "Seleccione un pad para editar; use su botón de reproducción para lanzarlo. Arrastre pads para copiar. Espacio alterna un paso; Supr inserta silencio; T liga; C toca el acorde."],
+  hint: ["Select a pad to edit; hold its speaker for 250 ms to preview. Assemble phrases in the workspace. Drag pads to copy. Space toggles a step; Delete inserts a rest; T ties; C plays the chord.",
+    "Pad zum Bearbeiten wählen; Lautsprecher für eine Vorschau 250 ms halten. Phrasen in der Arbeitsfläche zusammenstellen. Pads zum Kopieren ziehen. Leertaste schaltet einen Schritt um; Entf setzt eine Pause, T bindet, C spielt den Akkord.",
+    "Sélectionnez un pad ; maintenez son haut-parleur 250 ms pour l’écouter. Assemblez des phrases dans l’atelier. Glissez les pads pour copier. Espace active un pas ; Suppr insère un silence ; T lie ; C joue l’accord.",
+    "Seleccione un pad; mantenga su altavoz 250 ms para escucharlo. Monte frases en el taller. Arrastre pads para copiar. Espacio alterna un paso; Supr inserta silencio; T liga; C toca el acorde."],
 } as const;
 
 export function arpeggiatorCopy(language: GuiLanguage): Record<keyof typeof labels, string> {

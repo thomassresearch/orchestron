@@ -1211,7 +1211,7 @@ class SessionService:
             before = router.audition_status() if request.arpeggiator_id else sequencer.audition_status()
             if request.arpeggiator_id:
                 router.audition(request, transport_running=sequencer.status().running)
-                if request.action in {"start", "preview_start"}:
+                if request.action in {"start", "preview_start", "workspace_start"}:
                     sequencer.start_audition_clock()
                 status = sequencer.status()
             else:

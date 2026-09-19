@@ -56,6 +56,12 @@ This defines the repeat length for the curve sampling relative to that controlle
 
 `Beat Ratio` changes how quickly the controller sequencer moves through that curve relative to the shared transport. Faster ratios create repeating automation polyrhythms without changing the stored keypoint positions.
 
+## Pattern Workspace
+
+The always-visible workspace sits beside the musical controls, or below them on narrow screens. Drag pads into it, select several with Cmd/Ctrl-click, then Group or Supergroup. Reorder by dragging, split through the context menu, and Apply shared phrase changes explicitly. See [Pattern Workspace](pattern_pads_and_pad_looper.md#pattern-workspace) for editing, deletion and retained drafts.
+
+Play loops the displayed assembly and outlines its current pad, phrase or rest. Hold a speaker for 250 ms to temporarily override it; release resumes the workspace at its current position. Stop restores prior playback. Controller curves and channel routing remain effective. Two zero-valued endpoints alone look empty; additional points or nonzero values highlight the pad. This is a content indicator: zero still sends a valid CC value.
+
 ## Curve Editor Interactions
 
 The curve editor is an interactive graph view (spline-based curve display and sampling).
@@ -83,7 +89,7 @@ This makes it easy to understand exactly what value is being sent at each transp
 - Controller sequencers run alongside melodic sequencers on the same backend transport clock.
 - Curve edits are combined after an 80 ms editing pause and prepared while the previous curve keeps playing. They take effect at the next engine block without resetting transport. The editor modifies the displayed pad even when the arranger selected it automatically.
 - See [Editing During Playback](live_status_and_safety_controls.md#editing-during-playback) for failure handling and transport behavior.
-- Pad clicks select the editing pad without changing playback. Launch pad in Manual pads mode queues the selected pad at the next boundary; Audition temporarily plays it in Arrangement mode.
+- Pad clicks select the editing pad without changing playback. Launch pad in Manual pads mode queues the selected pad at the next boundary; the separate speaker previews it after a 250 ms hold.
 - You can combine automated controller sequencers with manual MIDI controller knob lanes on the same performance page.
 - If you automate the same CC number from multiple sources, the last-sent value wins at the MIDI receiver side (plan mappings accordingly).
 

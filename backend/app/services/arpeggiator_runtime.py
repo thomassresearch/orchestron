@@ -65,6 +65,7 @@ class PendingInputEvent:
 class ArpeggiatorRuntimeState:
     config: SessionArpeggiatorConfig
     preview: dict[str, Any] | None = None
+    workspace: dict[str, Any] | None = None
     audition_sequence: tuple[int, ...] = ()
     audition_origin: Fraction = Fraction(0)
     audition_pending: tuple[str, tuple[int, ...], Fraction] | None = None
@@ -182,6 +183,7 @@ class PerformanceMidiRouter:
         self._lock = threading.RLock()
         self._states: dict[str, ArpeggiatorRuntimeState] = {}
         self._preview_commands = PreviewCommands()
+        self._workspace_commands = PreviewCommands()
         self.lane_output: LaneOutputGate | None = None
         self._input_channel_to_id: dict[int, str] = {}
         self._pending_inputs: list[PendingInputEvent] = []
@@ -250,12 +252,16 @@ class PerformanceMidiRouter:
                     old = state.config
                     reset = (old.input_channel, old.target_channel, old.playback_mode, old.processing_mode) != (
                         config.input_channel, config.target_channel, config.playback_mode, config.processing_mode)
+                    if reset or old.enabled and not config.enabled:
+                        self._cancel_overrides(state, self._beat(self._current_engine_sample()), self._current_engine_sample())
                     if reset or not config.enabled and not state.audition_sequence:
                         self._clear(state, self._current_engine_sample())
                     if not config.enabled and not state.audition_sequence:
                         state.anchor_beat = None
                         state.step_index = state.note_index = state.phrase_offset = 0
                     state.config = config
+                    if reset or not old.enabled and config.enabled:
+                        state.audition_stopped = False
                     if reset or old.active_pad != config.active_pad and not self._running(state):
                         state.active_pad = config.active_pad
                         state.anchor_beat = None
@@ -278,6 +284,7 @@ class PerformanceMidiRouter:
                     self._clear(state, self._current_engine_sample())
             self._states = new_states
             self._preview_commands.retain(new_states)
+            self._workspace_commands.retain(new_states)
             self._input_channel_to_id = {c.input_channel: c.arpeggiator_id for c in configs}
             self._pending_inputs = [e for e in self._pending_inputs if e.arpeggiator_id in new_states]
             heapq.heapify(self._pending_inputs)
@@ -315,8 +322,24 @@ class PerformanceMidiRouter:
                     state.anchor_beat += delta
                 if state.queued_beat is not None:
                     state.queued_beat += delta
+                if state.boundary_beat is not None:
+                    state.boundary_beat += delta
+                state.audition_origin += delta
+                if state.audition_pending:
+                    action, sequence, at = state.audition_pending
+                    state.audition_pending = (action, sequence, at + delta)
+                for snapshot in (state.preview, state.workspace):
+                    if snapshot:
+                        fields = snapshot["fields"]
+                        for key in ("anchor_beat", "queued_beat", "audition_origin"):
+                            if fields[key] is not None:
+                                fields[key] += delta
+                        if fields["audition_pending"]:
+                            action, sequence, at = fields["audition_pending"]
+                            fields["audition_pending"] = (action, sequence, at + delta)
                 continue
             if was_running and not running:
+                state.workspace = None
                 state.preview = None
                 state.audition_sequence = ()
                 state.audition_pending = None
@@ -327,9 +350,13 @@ class PerformanceMidiRouter:
                 self._apply_audition(state, beat, sample)
                 continue
             if state.audition_sequence and reset:
-                if state.preview:
-                    state.preview["fields"]["audition_origin"] = beat
-                    state.preview["fields"]["anchor_beat"] = None
+                for snapshot in (state.preview, state.workspace):
+                    if snapshot:
+                        snapshot["fields"]["audition_origin"] = beat
+                        snapshot["fields"]["anchor_beat"] = None
+                        if snapshot["fields"]["audition_pending"]:
+                            action, sequence, _ = snapshot["fields"]["audition_pending"]
+                            snapshot["fields"]["audition_pending"] = (action, sequence, beat)
                 state.audition_origin = beat
                 state.anchor_beat = None
                 self._locate(state, beat, reset=True)
@@ -345,73 +372,194 @@ class PerformanceMidiRouter:
                     self._locate(state, beat, reset=True)
 
     def audition_status(self):
-        return {key: {"active": bool(state.audition_sequence), "queued": state.audition_pending[0] if state.audition_pending else None}
-                | ({"preview_gesture": state.preview["gesture"], "preview_revision": state.preview["revision"], "preview_active": state.preview.get("applied", False)} if state.preview else {})
-                for key, state in self._states.items() if state.audition_sequence or state.audition_pending}
+        result = {}
+        for key, state in self._states.items():
+            if not (state.audition_sequence or state.audition_pending or state.preview or state.workspace):
+                continue
+            status = {"active": bool(state.audition_sequence), "queued": state.audition_pending[0] if state.audition_pending else None}
+            if state.preview:
+                status.update(preview_gesture=state.preview["gesture"], preview_revision=state.preview["revision"],
+                              preview_active=state.preview["applied"])
+            if state.workspace:
+                base = state.preview["fields"] if state.preview else self._override_fields(state)
+                active = state.workspace["applied"]
+                audible = active and not (state.preview and state.preview["applied"])
+                status.update(workspace_gesture=state.workspace["gesture"], workspace_active=active,
+                              workspace_queued=bool(base["audition_pending"]),
+                              workspace_sequence=list(base["audition_sequence"]) if active else [],
+                              workspace_position=state.pad_loop_position if audible else None)
+            result[key] = status
+        return result
+
+    def _launch_boundary(self, state, beat):
+        if state.config.playback_mode == "live":
+            if not self._running(state) or state.anchor_beat is None:
+                return beat
+            if state.config.launch_quantize == "bar":
+                return Fraction((beat // self._bar_beats + 1) * self._bar_beats)
+            cycle = self._rate(state.pad) * len(state.pad.steps)
+            return state.anchor_beat + ((beat - state.anchor_beat) // cycle + 1) * cycle
+        if not self._arranger_intent:
+            return beat
+        if state.boundary_beat is not None and state.boundary_beat > beat:
+            return state.boundary_beat
+        length = Fraction(state.pad.length_beats)
+        anchor = state.anchor_beat if state.anchor_beat is not None else Fraction(0)
+        return anchor + ((beat - anchor) // length + 1) * length
+
+    @staticmethod
+    def _override_fields(state):
+        return {key: getattr(state, key) for key in (
+            "audition_sequence", "audition_origin", "audition_pending", "audition_stopped",
+            "manual_override", "active_pad", "anchor_beat", "queued_pad", "queued_beat",
+            "step_index", "note_index", "phrase_offset", "last_restart")}
+
+    def _snapshot(self, state, request):
+        return {"running": self._running(state), "applied": False, "fields": self._override_fields(state),
+                "gesture": request.gesture_id, "revision": request.revision}
 
     def audition(self, request: SessionAuditionRequest, *, transport_running: bool | None = None) -> None:
         with self._lock:
             state = self._states.get(request.arpeggiator_id)
-            if state is None or state.config.playback_mode != "arranger":
+            temporary = request.action.startswith(("preview_", "workspace_"))
+            if state is None or not temporary and state.config.playback_mode != "arranger":
                 raise ValueError("Definition audition requires an Arranger arpeggiator.")
             if any(token >= len(state.config.pads) for token in request.sequence):
                 raise ValueError("Audition pad is not configured.")
             sample = self._current_engine_sample()
             beat = self._beat(sample)
+            if request.action.startswith("workspace_"):
+                self._workspace(state, request, beat, sample)
+                return
             if request.action.startswith("preview_"):
                 self._preview(state, request, beat, sample)
                 return
-            state.preview = None
+            self._cancel_overrides(state, beat, sample)
             if request.action == "cancel":
                 state.audition_pending = None
             else:
-                boundary = state.boundary_beat
-                if boundary is None or boundary <= beat:
+                boundary = self._launch_boundary(state, beat)
+                running = self._arranger_intent or bool(state.audition_sequence) if transport_running is None else transport_running
+                # Legacy latched auditions also replace at a boundary while stopped.
+                if running and boundary <= beat:
                     length = Fraction(state.pad.length_beats)
                     anchor = state.anchor_beat if state.anchor_beat is not None else Fraction(0)
                     boundary = anchor + ((beat - anchor) // length + 1) * length
-                running = self._arranger_intent or bool(state.audition_sequence) if transport_running is None else transport_running
                 immediate = request.action == "stop" or not running
                 state.audition_pending = (request.action, tuple(request.sequence), beat if immediate else boundary)
                 if immediate:
                     self._apply_audition(state, beat, sample)
             self._status_dirty = True
 
+    def _workspace(self, state, request, beat, sample):
+        if not self._workspace_commands.accept([request.arpeggiator_id], request):
+            return
+        if request.action == "workspace_end":
+            if state.workspace and state.workspace["gesture"] == request.gesture_id:
+                self._end_override(state, "preview", beat, sample)
+                self._end_override(state, "workspace", beat, sample)
+            return
+        if state.workspace is None:
+            self._end_override(state, "preview", beat, sample)
+            boundary = self._launch_boundary(state, beat)
+            state.workspace = self._snapshot(state, request)
+        else:
+            self._apply_workspace_below_pending_preview(state, beat, sample)
+            # A hidden workspace continues on its own clock below a speaker.
+            fields = state.preview["fields"] if state.preview else self._override_fields(state)
+            pending = fields["audition_pending"]
+            if pending and pending[2] <= beat:
+                fields.update(audition_sequence=pending[1], audition_origin=pending[2], audition_pending=None)
+                state.workspace["applied"] = True
+            sequence = fields["audition_sequence"]
+            boundary = self._sequence_boundary(state, sequence, fields["audition_origin"], beat) if sequence else self._launch_boundary(state, beat)
+        state.workspace.update(gesture=request.gesture_id, revision=request.revision)
+        pending = ("start", tuple(request.sequence), boundary)
+        if state.preview:
+            state.preview["fields"]["audition_pending"] = pending
+        else:
+            state.audition_pending = pending
+            self._apply_audition(state, beat, sample)
+        self._status_dirty = True
+
+    @staticmethod
+    def _sequence_boundary(state, sequence, origin, beat):
+        lengths = [Fraction(state.config.pads[t].length_beats if t >= 0 else -t) for t in sequence]
+        total = sum(lengths, Fraction(0))
+        start = origin + ((beat - origin) // total) * total
+        for length in lengths:
+            start += length
+            if start > beat:
+                return start
+        return start
+
+    def _apply_workspace_below_pending_preview(self, state, beat, sample):
+        preview = state.preview
+        if not preview or preview["applied"] or not state.workspace:
+            return
+        pending = preview["fields"]["audition_pending"]
+        if not pending or pending[2] > beat:
+            return
+        # The workspace is still audible until the speaker's own launch boundary.
+        speaker_pending = state.audition_pending
+        state.preview = None
+        state.audition_pending = pending
+        self._apply_audition(state, beat, sample)
+        self._locate(state, beat, reset=True)
+        preview["fields"] = self._override_fields(state)
+        state.preview = preview
+        state.audition_pending = speaker_pending
+
     def _preview(self, state, request, beat, sample):
         if not self._preview_commands.accept([request.arpeggiator_id], request):
             return
         if request.action == "preview_start":
+            boundary = self._launch_boundary(state, beat)
             if state.preview is None:
-                state.preview = {"running": self._running(state), "applied": False, "fields": {key: getattr(state, key) for key in (
-                    "audition_sequence", "audition_origin", "audition_pending", "audition_stopped",
-                    "manual_override", "active_pad", "anchor_beat", "queued_pad", "queued_beat")}}
-            state.preview["gesture"] = request.gesture_id
-            state.preview["revision"] = request.revision
-            boundary = state.boundary_beat
-            if boundary is None or boundary <= beat:
-                length = Fraction(state.pad.length_beats)
-                anchor = state.anchor_beat if state.anchor_beat is not None else Fraction(0)
-                boundary = anchor + ((beat - anchor) // length + 1) * length
-            state.audition_pending = ("start", tuple(request.sequence), boundary if self._arranger_intent else beat)
+                state.preview = self._snapshot(state, request)
+            state.preview.update(gesture=request.gesture_id, revision=request.revision)
+            state.audition_pending = ("start", tuple(request.sequence), boundary)
             self._apply_audition(state, beat, sample)
         elif state.preview and state.preview["gesture"] == request.gesture_id:
-            snapshot, state.preview = state.preview, None
-            if not snapshot["applied"]:
-                state.audition_pending = snapshot["fields"]["audition_pending"]
-                self._status_dirty = True
-                return
-            self._release(state, sample)
-            for key, value in snapshot["fields"].items():
-                setattr(state, key, value)
-            state.step_index = state.note_index = state.phrase_offset = 0
-            self._locate(state, beat, reset=True)
-            if state.anchor_beat is not None:
-                state.step_index = self._index_at_or_after(state, beat)
-            if not snapshot["running"]:
-                state.audition_stopped = True
-            if state.audition_pending and state.audition_pending[2] <= beat:
-                self._apply_audition(state, beat, sample)
+            self._end_override(state, "preview", beat, sample)
         self._status_dirty = True
+
+    def _end_override(self, state, layer, beat, sample):
+        snapshot = getattr(state, layer)
+        if snapshot is None:
+            return
+        setattr(state, layer, None)
+        self._status_dirty = True
+        if not snapshot["applied"]:
+            state.audition_pending = snapshot["fields"]["audition_pending"]
+            return
+        self._release(state, sample)
+        for key, value in snapshot["fields"].items():
+            setattr(state, key, value)
+        # Input/held notes belong to the live MIDI stream, never to a snapshot.
+        if state.audition_sequence or state.config.playback_mode == "arranger":
+            self._locate(state, beat, reset=True)
+        else:
+            state.boundary_beat = None
+            state.paused = False
+        if state.queued_beat is not None and state.queued_beat <= beat:
+            state.active_pad = state.queued_pad
+            state.anchor_beat = state.queued_beat
+            state.manual_override = True
+            state.queued_pad = state.queued_beat = None
+            state.phrase_offset = 0
+        if state.anchor_beat is not None:
+            state.step_index = self._index_at_or_after(state, beat)
+            state.note_index = self._note_cursor_before(state, max(0, state.step_index - state.phrase_offset))
+        if not snapshot["running"] and state.config.enabled:
+            state.audition_stopped = True
+        if state.audition_pending and state.audition_pending[2] <= beat:
+            self._apply_audition(state, beat, sample)
+            self._locate(state, beat, reset=True)
+
+    def _cancel_overrides(self, state, beat, sample):
+        self._end_override(state, "preview", beat, sample)
+        self._end_override(state, "workspace", beat, sample)
 
     def _apply_audition(self, state, beat, sample):
         pending = state.audition_pending
@@ -420,11 +568,14 @@ class PerformanceMidiRouter:
         action, sequence, at = pending
         if action == "start" and state.preview:
             state.preview["applied"] = True
+        elif action == "start" and state.workspace:
+            state.workspace["applied"] = True
         state.audition_pending = None
         state.audition_sequence = sequence if action == "start" else ()
         state.audition_stopped = action == "stop"
         state.audition_origin = at
         state.manual_override = False
+        state.queued_pad = state.queued_beat = None
         state.anchor_beat = None
         state.step_index = state.note_index = state.phrase_offset = 0
         self._release(state, sample)
@@ -434,7 +585,9 @@ class PerformanceMidiRouter:
         with self._lock:
             beat = self._beat(self._sample)
             for state in self._states.values():
-                state.preview = None
+                self._cancel_overrides(state, beat, self._sample)
+                if state.config.playback_mode == "live":
+                    continue
                 if state.audition_sequence or state.audition_pending:
                     state.audition_pending = ("stop" if stop else "return", (), beat)
                     self._apply_audition(state, beat, self._sample)
@@ -450,6 +603,7 @@ class PerformanceMidiRouter:
                 raise ValueError("Arpeggiator does not exist")
             sample = self._current_engine_sample()
             beat = self._beat(sample)
+            self._cancel_overrides(state, beat, sample)
             if command.command == "clear":
                 self._clear(state, sample)
             elif command.command == "cancel":
@@ -601,8 +755,13 @@ class PerformanceMidiRouter:
             groups.setdefault(event.arpeggiator_id, []).append(event)
         for key, events in groups.items():
             state = self._states.get(key)
-            if state is None or not state.config.enabled:
+            if state is None:
                 continue
+            if not (state.config.enabled or state.audition_sequence or state.preview or state.workspace):
+                # Releases still retire physical notes received during a stopped-device audition.
+                events = [event for event in events if event.message[0] & 0xf0 == 0x80
+                          or event.message[0] & 0xf0 == 0x90 and event.message[2] == 0
+                          or event.message[0] & 0xf0 == 0xb0 and event.message[1] in {120, 123}]
             first_note = False
             # Release the old chord before replacing it. A new note's attack and
             # release can share one sample; retain their order to avoid latching it.
@@ -660,6 +819,10 @@ class PerformanceMidiRouter:
                 self._release(state, sample)
             if state.held_notes and self._running(state):
                 beat = self._beat(sample)
+                if state.config.playback_mode == "live":
+                    for snapshot in (state.workspace, state.preview):
+                        if snapshot and snapshot["running"] and not snapshot["fields"]["audition_sequence"] and snapshot["fields"]["anchor_beat"] is None:
+                            snapshot["fields"].update(anchor_beat=beat, step_index=0, note_index=0, phrase_offset=0)
                 if state.anchor_beat is None:
                     state.anchor_beat = beat if state.config.playback_mode == "live" else Fraction(0)
                     state.step_index = self._index_at_or_after(state, beat)
@@ -688,6 +851,10 @@ class PerformanceMidiRouter:
                 for state in self._states.values():
                     if state.audition_pending:
                         candidates.append(max(self._sample, self._sample_for(state.audition_pending[2])))
+                    if state.preview and not state.preview["applied"] and state.workspace:
+                        pending = state.preview["fields"]["audition_pending"]
+                        if pending:
+                            candidates.append(max(self._sample, self._sample_for(pending[2])))
                     if state.outputs:
                         candidates.append(max(block_start_sample, state.outputs[0][0]))
                     if not self._running(state):
@@ -710,6 +877,7 @@ class PerformanceMidiRouter:
                 self._inputs(sample)
                 beat = self._beat(sample)
                 for state in self._states.values():
+                    self._apply_workspace_below_pending_preview(state, beat, sample)
                     self._apply_audition(state, beat, sample)
                     if self._running(state):
                         if state.queued_beat is not None and self._sample_for(state.queued_beat) <= sample:
@@ -761,7 +929,7 @@ class PerformanceMidiRouter:
             step = pad.steps[(index + pad.rotation) % len(pad.steps)]
             if step.kind == "tie":
                 return False
-            return pad.advance_rests or step.kind != "rest" and self._rng(state, index).random() < pad.probability * step.probability
+            return pad.advance_rests or step.kind != "rest" and step.velocity > 0 and self._rng(state, index).random() < pad.probability * step.probability
         if pad.random_mode == "repeat":
             cycles, remainder = divmod(count, len(pad.steps))
             return cycles * sum(advances(i) for i in range(len(pad.steps))) + sum(advances(i) for i in range(remainder))
@@ -870,7 +1038,7 @@ class PerformanceMidiRouter:
         state.displayed_step = (phrase_index + pad.rotation) % len(pad.steps)
         next_sample = self._sample_for(self._step_beat(state, index + 1))
         interval_samples = max(1, next_sample - sample)
-        hit = step.kind not in {"rest", "tie"} and self._rng(state, phrase_index).random() < pad.probability * step.probability
+        hit = step.kind not in {"rest", "tie"} and step.velocity > 0 and self._rng(state, phrase_index).random() < pad.probability * step.probability
         if self._running(state) and state.config.processing_mode == "active" and state.held_notes:
             if step.kind == "tie":
                 for note in state.last_notes:
@@ -949,7 +1117,7 @@ class PerformanceMidiRouter:
                 self._off(state, note, max(at, sample))
 
     def _emit(self, message: list[int], sample: int, state: ArpeggiatorRuntimeState) -> None:
-        self._enqueue_timestamped_midi(message, source=f"lane:{state.config.arpeggiator_id}" if state.config.playback_mode == "arranger" else "arpeggiator", target_engine_sample=max(0, sample))
+        self._enqueue_timestamped_midi(message, source=f"lane:{state.config.arpeggiator_id}", target_engine_sample=max(0, sample))
 
     def _release(self, state: ArpeggiatorRuntimeState, sample: int) -> None:
         for note in list(state.active_notes):

@@ -99,10 +99,10 @@ it measures cold, cached, and one-pad preparation using the versioned TB303 test
 - Arranger alone edits song order. Playback source uses `padLoopEnabled`; lane end behavior
   uses `padLoopRepeat`. Delete leaves equivalent rests; closing time is explicit. Retain unused
   definitions and trailing rests. See the arranger reference for hierarchy and import fallback.
-- Melodic/drummer pattern workspaces keep loose items and per-definition drafts in editor state;
+- Melodic/drummer/controller/arpeggiator pattern workspaces keep loose items and per-definition drafts in editor state;
   Group creates a definition, Apply updates all uses, and only the arranger edits song order.
   Workspace Play is a temporary layer below 250 ms speaker previews; stopping restores prior playback.
-- Audition is session-only and uses the shared clock. Controller/arpeggiator audition follows boundaries;
+- Audition is session-only and uses the shared clock. Live arpeggiator audition follows cycle/bar launch quantization;
   arranger speaker previews use a 250 ms hold, then the next cycle boundary while the arranger runs,
   or a render block while stopped without moving its cursor. Release restores prior playback. Save/export reads
   authored state. Arranger Play clears auditions and starts Arrangement tracks; Stop clears

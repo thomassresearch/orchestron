@@ -275,7 +275,7 @@ it("deletes unused phrases from the arranger even with a retained workspace and 
   useAppStore.getState().setSequencerTrackPadLoopPattern(id, { rootSequence: [], groups: [{ id: "A", sequence: [{ type: "pad", padIndex: 0 }] }], superGroups: [] });
   function Workspace({ library = true }) {
     const track = useAppStore(state => state.sequencer.tracks[0]);
-    return <PerformanceEditorProvider>{library ? <PatternWorkspace track={track} language="english" onPatternChange={pattern => useAppStore.getState().setSequencerTrackPadLoopPattern(id, pattern)} onSourceChange={noop} /> : <Arranger />}</PerformanceEditorProvider>;
+    return <PerformanceEditorProvider>{library ? <PatternWorkspace padHasContent={() => true} track={track} language="english" onPatternChange={pattern => useAppStore.getState().setSequencerTrackPadLoopPattern(id, pattern)} onSourceChange={noop} /> : <Arranger />}</PerformanceEditorProvider>;
   }
   const view = render(<Workspace />);
   fireEvent.drop(screen.getByRole("list", { name: "Free workspace" }), { dataTransfer: {

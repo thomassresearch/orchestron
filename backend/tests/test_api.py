@@ -6911,3 +6911,43 @@ def test_workspace_audition_http_websocket_layers_and_validation(tmp_path: Path)
             status = socket.receive_json()["sequencer_status"]
             assert not status["auditions"] and not status["running"]
             assert client.post(base + "/audition", json=start).status_code == 409
+
+
+@pytest.mark.parametrize("kind", ["controller", "arranger", "live"])
+def test_controller_and_arpeggiator_workspace_api_and_audible_status(tmp_path: Path, kind: str) -> None:
+    config = json.loads((Path(__file__).parent / "fixtures/sequencers/momentary_preview.json").read_text())
+    identity = "filter" if kind == "controller" else "arp"
+    target = {"track_ids": [identity]} if kind == "controller" else {"arpeggiator_id": identity}
+    config["controller_tracks"] = [{"track_id": "filter", "controller_number": 74, "target_channels": [1],
+        "pads": [{"pad_index": i, "length_beats": 1, "keypoints": [{"position": 0, "value": 30 + i}]} for i in (0, 1)]}]
+    config["arpeggiators"] = [{"arpeggiator_id": "arp", "input_channel": 2, "target_channel": 1,
+                              "playback_mode": "live" if kind == "live" else "arranger", "enabled": False}]
+    with _client(tmp_path) as client:
+        session = _create_running_session(client, patch_name="Controller/arp workspace")
+        base = f"/api/sessions/{session}/sequencer"
+        assert client.put(base + "/config", json=config).status_code == 200
+        start = {**target, "action": "workspace_start", "gesture_id": "workspace", "revision": 1, "sequence": [0, -1, 1]}
+        for invalid in ({"sequence": []}, {"sequence": [8]}, {"sequence": [0] * 257}, {"revision": None}):
+            assert client.post(base + "/audition", json={**start, **invalid}).status_code == 422
+        response = client.post(base + "/audition", json=start)
+        assert response.status_code == 200, response.text
+        state = response.json()["auditions"][identity]
+        assert state["workspace_active"] and state["workspace_position"] == 0
+        assert not response.json()["arranger_active"]
+        # Another workspace must not be lost when router-only audible markers arrive.
+        other = client.post(base + "/audition", json={"action": "workspace_start", "gesture_id": "other", "revision": 1, "track_ids": ["lead"], "sequence": [1]})
+        assert identity in other.json()["auditions"] and "lead" in other.json()["auditions"]
+        with client.websocket_connect(f"/ws/sessions/{session}/browser-clock") as socket:
+            socket.send_json({"type": "claim_controller", "audio_context_sample_rate": 48000,
+                "queue_low_water_frames": 1024, "queue_high_water_frames": 2048, "max_blocks_per_request": 8})
+            assert socket.receive_json()["type"] == "stream_config"
+            socket.send_json({"type": "request_render", "block_count": 8})
+            metadata = socket.receive_json()
+            socket.receive_bytes()
+            assert any(event["payload"].get("auditions", {}).get(identity, {}).get("workspace_sequence") == [0, -1, 1]
+                       for event in metadata["transport_events"])
+            socket.send_json({"type": "audition", "request_id": "end", **target, "action": "workspace_end", "gesture_id": "workspace", "revision": 2})
+            status = socket.receive_json()["sequencer_status"]
+            assert identity not in status["auditions"] and "lead" in status["auditions"]
+        assert client.post(base + "/audition", json=start).status_code == 409
+        assert client.post(base + "/stop").json()["auditions"] == {}

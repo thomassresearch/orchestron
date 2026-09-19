@@ -120,6 +120,14 @@ type ApplySequencerStatusOptions = {
   preserveLocalEnablement?: boolean;
 };
 
+// Routing/mode changes invalidate prepared auditions without discarding another device's preview.
+function auditionContext(id: string) {
+  const sequencer = useAppStore.getState().sequencer;
+  const arp = sequencer.arpeggiators.find(device => device.id === id);
+  return arp ? JSON.stringify([arp.inputChannel, arp.targetChannel, arp.playbackMode, arp.processingMode, arp.enabled])
+    : [...sequencer.tracks, ...sequencer.drummerTracks, ...sequencer.controllerSequencers].some(device => device.id === id) ? id : null;
+}
+
 export function useSequencerRuntimeController({
   activePage,
   melodicVisualsVisible,
@@ -986,6 +994,7 @@ export function useSequencerRuntimeController({
   const auditionDevice = useCallback<AuditionDevice>(async (deviceId, itemOrAction) => {
     if (typeof itemOrAction === "object" && "action" in itemOrAction && (itemOrAction.action === "workspace_start" || itemOrAction.action === "workspace_end")) {
       const command = itemOrAction;
+      const context = auditionContext(deviceId);
       const generation = useAppStore.getState().performanceWorkspaceGeneration;
       const previous = workspaceGestures.current.get(deviceId);
       if (command.action === "workspace_end" && previous?.gesture !== command.gestureId) return;
@@ -995,11 +1004,11 @@ export function useSequencerRuntimeController({
       const versionKey = `workspace:${deviceId}`;
       const version = (auditionCommandVersion.current.get(versionKey) ?? 0) + 1;
       auditionCommandVersion.current.set(versionKey, version);
-      const current = () => useAppStore.getState().performanceWorkspaceGeneration === generation && auditionCommandVersion.current.get(versionKey) === version &&
+      const current = () => auditionContext(deviceId) === context && useAppStore.getState().performanceWorkspaceGeneration === generation && auditionCommandVersion.current.get(versionKey) === version &&
         (command.action === "workspace_start" ? workspaceGestures.current.get(deviceId) === entry : !workspaceGestures.current.has(deviceId));
       try {
         const initial = useAppStore.getState();
-        const device = [...initial.sequencer.tracks, ...initial.sequencer.drummerTracks].find(d => d.id === deviceId);
+        const device = [...initial.sequencer.tracks, ...initial.sequencer.drummerTracks, ...initial.sequencer.controllerSequencers, ...initial.sequencer.arpeggiators].find(d => d.id === deviceId);
         if (!device) return;
         const sequence = command.action === "workspace_start" ? compilePadLoopPattern({ ...device.padLoopPattern, rootSequence: command.items ?? [] }).sequence : [];
         if (command.action === "workspace_start" && !sequence.length) throw new Error("An audition requires a playable sequence.");
@@ -1017,7 +1026,7 @@ export function useSequencerRuntimeController({
         if (entry.session && entry.session !== session) return;
         entry.session = session;
         const request: SessionAuditionRequest = { action: command.action, gesture_id: command.gestureId, revision: version,
-          track_ids: "rows" in device ? device.rows.map(row => drummerRowRuntimeTrackId(deviceId, row.id)) : [deviceId], sequence };
+          ...("playbackMode" in device ? { arpeggiator_id: deviceId } : { track_ids: "rows" in device ? device.rows.map(row => drummerRowRuntimeTrackId(deviceId, row.id)) : [deviceId] }), sequence };
         if (!previous || command.action === "workspace_end") {
           previewGestures.current.delete(deviceId);
           auditionCommandVersion.current.set(deviceId, (auditionCommandVersion.current.get(deviceId) ?? 0) + 1);
@@ -1048,6 +1057,7 @@ export function useSequencerRuntimeController({
       const key = `workspace:${deviceId}`;
       auditionCommandVersion.current.set(key, (auditionCommandVersion.current.get(key) ?? 0) + 1);
     }
+    const context = auditionContext(deviceId);
     const existingGesture = previewGestures.current.get(deviceId);
     if (preview?.action === "preview_end" && existingGesture?.gesture !== preview.gestureId) return;
     const version = (auditionCommandVersion.current.get(deviceId) ?? 0) + 1;
@@ -1070,12 +1080,12 @@ export function useSequencerRuntimeController({
       const store = useAppStore.getState();
       const sessionId = store.activeSessionId;
       commandSession = sessionId;
-      if (generation !== store.performanceWorkspaceGeneration || auditionCommandVersion.current.get(deviceId) !== version) return;
+      if (auditionContext(deviceId) !== context || generation !== store.performanceWorkspaceGeneration || auditionCommandVersion.current.get(deviceId) !== version) return;
       if (preview?.action === "preview_end" && (!sessionId || store.activeSessionState !== "running" || existingGesture?.session && existingGesture.session !== sessionId)) return;
       if (!sessionId || store.activeSessionState !== "running") throw new Error(errors.noActiveRuntimeSession);
       const gesture = previewGestures.current.get(deviceId);
       if (gesture) gesture.session = sessionId;
-      const current = () => useAppStore.getState().activeSessionId === sessionId && useAppStore.getState().performanceWorkspaceGeneration === generation && auditionCommandVersion.current.get(deviceId) === version;
+      const current = () => auditionContext(deviceId) === context && useAppStore.getState().activeSessionId === sessionId && useAppStore.getState().performanceWorkspaceGeneration === generation && auditionCommandVersion.current.get(deviceId) === version;
       const device = [...store.sequencer.tracks, ...store.sequencer.drummerTracks, ...store.sequencer.controllerSequencers, ...store.sequencer.arpeggiators].find(d => d.id === deviceId);
       if (!device) return;
       const request: SessionAuditionRequest = { action: preview ? preview.action as "preview_start" | "preview_end" : item ? "start" : itemOrAction as SessionAuditionRequest["action"],

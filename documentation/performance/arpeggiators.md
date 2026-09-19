@@ -26,7 +26,7 @@ Straight, triplet and dotted rates use musical beat positions. Swing alternates 
 
 ## Eight Musical Pads
 
-Each pad stores a complete musical variation: order, rate, octave range, transpose, expression, harmony, rhythm, rotation and random seed. Click **#1–#8** to choose the editing pad. Use its separate play button to launch it. The playing pad has a dot; a queued pad has a clock mark. Automatic pad changes leave your editing pad and unfinished preset name in place.
+Each pad stores a complete musical variation: order, rate, octave range, transpose, expression, harmony, rhythm, rotation and random seed. Click **#1–#8** to choose the editing pad. Hold its separate speaker for 250 ms to preview it. Use Launch pad for an explicit launch in Live/manual mode. The playing pad has a dot; a queued pad has a clock mark. Automatic pad changes leave your editing pad and unfinished preset name in place.
 
 Each pad has two independent lengths:
 
@@ -37,9 +37,17 @@ For example, a five-step rhythm continues across successive four-beat occurrence
 
 Drag one pad onto another to copy its musical variation. The shared phrase library defines groups and supergroups; song placement and repeat controls live in the multitrack arranger. New arpeggiators play #1 once. Their named arranger lanes contribute to Fit, arrangement bounds, seeking and both CSD exports, including performances containing only arpeggiators.
 
-In Live mode, pad launches use **Next cycle** by default, or **Next master bar**. Stopped launches select immediately and Cancel launch removes a queued launch. In Arranger mode, pad play buttons audition the definition at the next pad/rest boundary; Return to arrangement restores the authored song at the next boundary.
+In Live mode, pad launches use **Next cycle** by default, or **Next master bar**. Stopped launches select immediately and Cancel launch removes a queued launch. In Arranger mode, held speakers start at the next pad/rest boundary while the arranger runs, or at an audio block while stopped. Releasing restores the previous playback.
 
-<!-- pagebreak -->
+## Pattern Workspace in Arranger and Live
+
+The upper-right workspace offers the same drag assembly, Group/Supergroup, local Ungroup and explicit Apply/Save as new/Discard controls as the other sequencers. It stacks beneath routing controls on narrow screens; pads and the rhythm grid remain full-width. See [Pattern Workspace](pattern_pads_and_pad_looper.md#pattern-workspace) for draft retention and definition deletion.
+
+Play loops the entire displayed assembly, highlighting its current pad, phrase or rest. Its phrase timing uses pad duration, independently of rhythm length. A speaker held for 250 ms overrides the workspace until release; the workspace resumes at its current clock position. Stop restores the prior arrangement, manual or stopped state. Edits enter at the next workspace cycle boundary.
+
+Live starts follow Next cycle or Next master bar when a Live clock is established, otherwise an audio block. Live hides arrangement-only controls but keeps phrase editing and audition available. Input or held notes are required; no test chord is generated. Hold and Active/Bypass/Mute still apply. Chord changes during audition remain current when the underlying Live pulse resumes. A temporarily auditioned stopped device accepts notes without changing its saved Start/Stop setting.
+
+Green pads contain a note-producing step with positive velocity and probability. Rest-only, tie-only, zero-velocity and fully suppressed pads remain dark, regardless of held notes. Selection and queued outlines remain separate. Zero-velocity steps are silent.
 
 ## Edit the Rhythm Grid
 
@@ -78,9 +86,9 @@ Presets apply only to the editing pad. **Modified** marks changes from its prese
 Live edits coalesce for 80 ms and apply at audio render boundaries, preserving transport and pending launches. Invalid edits retain the working configuration. Status updates never resubmit musical settings. Collapse hides visual work while preserving playback, pad selection, details and drafts.
 
 <p align="center">
-  <img src="../../screenshots/perform_arpeggiator.png" alt="Arpeggiator with routing, musical pads, rhythm grid, harmony settings and Pad Looper" width="1100" style="max-width: 100%; height: auto;" />
+  <img src="../../screenshots/perform_arpeggiator.png" alt="Arpeggiator with routing, musical pads, rhythm grid, harmony settings and pattern workspace" width="1100" style="max-width: 100%; height: auto;" />
 </p>
-<p align="center"><em>Arpeggiator showing its input and target routing, eight musical pads, per-step rhythm controls, custom harmony settings, and Pad Looper sequence.</em></p>
+<p align="center"><em>Arpeggiator showing its input and target routing, eight musical pads, per-step rhythm controls, custom harmony settings, and pattern workspace sequence.</em></p>
 
 ## Migration to Performance Version 15
 
@@ -89,6 +97,3 @@ Versions 1–14 load in memory into the new model. Existing settings become #1; 
 Existing performances adopt Arranger mode, Hold Off, Continue, corrected swing and full-range ordering, so they can sound different. Save/export writes version 16; app-state version 2 and native bundle-envelope version 1 stay unchanged. Runtime positions and held notes are not saved.
 
 **Navigation:** [Up](performance.md) | [Prev](controller_sequencers.md) | [Next](piano_rolls.md)
-
-
-In Arranger mode, use **Audition** for a selected pad or phrase. It repeats temporarily from the next boundary; Return to arrangement restores the current song position at the next boundary. Stop audition stops this device. Audition state is excluded from saves and exports. See [Multitrack Arranger](multitrack_arranger.md).

@@ -1,4 +1,4 @@
-import type { DrummerSequencerPadState, PadLoopPatternItem, PadLoopPatternState, PerformanceAuditionStatus, SequencerPadState } from "../types";
+import type { ArpeggiatorPadState, ControllerSequencerPadState, DrummerSequencerPadState, PadLoopPatternItem, PadLoopPatternState, PerformanceAuditionStatus, SequencerPadState } from "../types";
 import { createDefinition, definitionItem, definitionUses, deleteDefinition, validateArrangementEdit, type DefinitionRef } from "./arrangementEditing";
 import { compilePadLoopPattern } from "./padLoopPattern";
 
@@ -39,6 +39,15 @@ export function melodicPadHasSound(pad?: SequencerPadState): boolean {
 
 export function drummerPadHasSound(pad?: DrummerSequencerPadState): boolean {
   return !!pad?.rows.some(row => row.steps.slice(0, pad.stepCount).some(cell => cell.active && cell.velocity > 0));
+}
+
+export function controllerPadHasContent(pad?: ControllerSequencerPadState): boolean {
+  return !!pad && (pad.keypoints.length > 2 || pad.keypoints.some(point => point.value !== 0));
+}
+
+export function arpeggiatorPadHasSound(pad?: ArpeggiatorPadState): boolean {
+  return !!pad && pad.probability > 0 && pad.steps.some(step =>
+    step.kind !== "rest" && step.kind !== "tie" && step.velocity > 0 && step.probability > 0);
 }
 
 export function workspaceSelection(indexes: number[], length: number): number[] {

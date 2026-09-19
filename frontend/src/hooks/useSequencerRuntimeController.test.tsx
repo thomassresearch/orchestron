@@ -265,3 +265,31 @@ it.each(["transport", "performance"])("cancels workspace preparation on %s chang
   await act(() => result.current.auditionDevice(id, { action: "workspace_end", gestureId: "workspace" }));
   expect(audition).not.toHaveBeenCalled();
 });
+
+
+it.each(["controller", "arpeggiator"])("targets %s workspaces and preserves authored definitions", async kind => {
+  if (kind === "controller") useAppStore.getState().addControllerSequencer();
+  else useAppStore.getState().addArpeggiator();
+  const { result } = setup(false);
+  const device = kind === "controller" ? useAppStore.getState().sequencer.controllerSequencers[0] : useAppStore.getState().sequencer.arpeggiators[0];
+  const before = structuredClone(device.padLoopPattern);
+  await act(() => result.current.auditionDevice(device.id, { action: "workspace_start", gestureId: "workspace", items: [{ type: "pad", padIndex: 0 }, { type: "pause", lengthBeats: 1 }] }));
+  expect(audition).toHaveBeenCalledWith("session", expect.objectContaining({ sequence: [0, -1], ...(kind === "controller" ? { track_ids: [device.id] } : { arpeggiator_id: device.id }) }));
+  expect(device.padLoopPattern).toEqual(before);
+  await act(() => result.current.auditionDevice(device.id, { action: "workspace_end", gestureId: "workspace" }));
+});
+
+it.each(["workspace_start", "preview_start"] as const)("rejects prepared arpeggiator %s after a mode change", async action => {
+  useAppStore.getState().addArpeggiator();
+  let prepared!: (value: SessionSequencerStatus) => void;
+  vi.mocked(api.configureSessionSequencer).mockImplementationOnce(() => new Promise(resolve => { prepared = resolve; }));
+  const { result } = setup(false);
+  const id = useAppStore.getState().sequencer.arpeggiators[0].id;
+  let start!: Promise<void>;
+  act(() => { start = result.current.auditionDevice(id, action === "workspace_start"
+    ? { action, gestureId: "pending", items: [{ type: "pad", padIndex: 0 }] }
+    : { action, gestureId: "pending", item: { type: "pad", padIndex: 0 } }); });
+  act(() => useAppStore.setState(state => ({ sequencer: { ...state.sequencer, arpeggiators: state.sequencer.arpeggiators.map(arp => ({ ...arp, playbackMode: "live" })) } })));
+  await act(async () => { prepared(status(0)); await start; });
+  expect(audition).not.toHaveBeenCalled();
+});

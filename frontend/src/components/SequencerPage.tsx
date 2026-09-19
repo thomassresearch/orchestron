@@ -1,6 +1,6 @@
 import { PatternWorkspace } from "./sequencer/PatternWorkspace";
 import { ArrangerSpeaker } from "./sequencer/ArrangerSpeaker";
-import { melodicPadHasSound, drummerPadHasSound } from "../lib/patternWorkspace";
+import { melodicPadHasSound, drummerPadHasSound, controllerPadHasContent } from "../lib/patternWorkspace";
 import { PATTERN_ITEM_COLORS, patternPadClass } from "../lib/patternItemPresentation";
 import { PerformanceAuditionControls } from "./sequencer/PerformanceAudition";
 import { sequencerEditingView } from "../store/sequencerEdits";
@@ -34,7 +34,6 @@ import {
   SEQUENCER_MODE_OPTIONS,
   SEQUENCER_SCALE_OPTIONS,
   sequencerPadLengthBeatOptions,
-  sequencerTransportStepCount,
   sequencerTransportSubunitCount,
   sequencerTransportSubunitDurationSeconds,
   sequencerTransportSubunitsPerLocalStep,
@@ -51,7 +50,6 @@ import {
 } from "./sequencer/sequencerUiCopy";
 import { MidiControllerKnob } from "./sequencer/MidiControllerKnob";
 import { ControllerSequencerCurveEditor } from "./sequencer/ControllerSequencerCurveEditor";
-import { PadLoopPatternEditor } from "./sequencer/PadLoopPatternEditor";
 import type { SequencerPageProps } from "./sequencer/sequencerPageContracts";
 import {
   PianoRollKeyboard,
@@ -1769,7 +1767,7 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
 
               <div className="min-w-0 space-y-2">
               <PerformanceAuditionControls compact id={track.id} language={guiLanguage} editingPad={track.activePad} playingPad={playbackSequencer.tracks.find(t => t.id === track.id)?.activePad} queuedPad={track.queuedPad} playing={sequencer.isPlaying && track.enabled} item={{ type: "pad", padIndex: track.activePad }} manualLaunch={track.padLoopEnabled ? undefined : () => { onSequencerPadPress(track.id, track.activePad); if (!sequencer.isPlaying || !track.enabled) onSequencerTrackEnabledChange(track.id, true); }} />
-              <PatternWorkspace track={track} language={guiLanguage}
+              <PatternWorkspace track={track} padHasContent={index => melodicPadHasSound(track.pads[index])} language={guiLanguage}
                 onSourceChange={enabled => onSequencerTrackPadLoopEnabledChange(track.id, enabled)}
                 onPatternChange={pattern => onSequencerTrackPadLoopPatternChange(track.id, pattern)} />
               </div>
@@ -2560,7 +2558,7 @@ function DrummerSequencersBody({ context }: { context: ReturnType<typeof useSequ
               </div>
               <div className="min-w-0 space-y-2">
               <PerformanceAuditionControls compact id={track.id} language={guiLanguage} editingPad={track.activePad} playingPad={playbackSequencer.drummerTracks.find(t => t.id === track.id)?.activePad} queuedPad={track.queuedPad} playing={sequencer.isPlaying && track.enabled} item={{ type: "pad", padIndex: track.activePad }} manualLaunch={track.padLoopEnabled ? undefined : () => { onDrummerSequencerPadPress(track.id, track.activePad); if (!sequencer.isPlaying || !track.enabled) onDrummerSequencerTrackEnabledChange(track.id, true); }} />
-              <PatternWorkspace track={track} language={guiLanguage}
+              <PatternWorkspace track={track} padHasContent={index => drummerPadHasSound(track.pads[index])} language={guiLanguage}
                 onSourceChange={enabled => onDrummerSequencerTrackPadLoopEnabledChange(track.id, enabled)}
                 onPatternChange={pattern => onDrummerSequencerTrackPadLoopPatternChange(track.id, pattern)} />
               </div>
@@ -2836,10 +2834,7 @@ function ControllerSequencersBody({ context }: { context: ReturnType<typeof useS
     onControllerSequencerStepsPerBeatChange,
     onControllerSequencerBeatRateChange,
     onControllerSequencerStepCountChange,
-    linkedPadLoopStepPosition,
-    setLinkedPadLoopStepPosition,
     onControllerSequencerPadLoopEnabledChange,
-    onControllerSequencerPadLoopRepeatChange,
     onControllerSequencerPadLoopPatternChange,
     onControllerSequencerPadPress,
     onControllerSequencerPadCopy,
@@ -2913,7 +2908,8 @@ function ControllerSequencersBody({ context }: { context: ReturnType<typeof useS
               </button>
             </div>
 
-            <div className="mb-2 flex flex-wrap items-end gap-2">
+            <div className="mb-2 grid gap-3 xl:grid-cols-[minmax(320px,420px)_minmax(0,1fr)]">
+            <div className="flex flex-wrap content-start items-end gap-2">
               <label className="flex min-w-[120px] flex-col gap-1">
                 <span className={controlLabelClass}>{ui.controllerNumber}</span>
                 <input
@@ -3042,33 +3038,14 @@ function ControllerSequencersBody({ context }: { context: ReturnType<typeof useS
                 CC {controllerSequencer.controllerNumber}
               </div>
 
-              <PerformanceAuditionControls id={controllerSequencer.id} language={guiLanguage} editingPad={controllerSequencer.activePad} playingPad={playbackSequencer.controllerSequencers.find(t => t.id === controllerSequencer.id)?.activePad} queuedPad={controllerSequencer.queuedPad} playing={sequencer.isPlaying && controllerSequencer.enabled} item={{ type: "pad", padIndex: controllerSequencer.activePad }} manualLaunch={controllerSequencer.padLoopEnabled ? undefined : () => { onControllerSequencerPadPress(controllerSequencer.id, controllerSequencer.activePad); if (!sequencer.isPlaying || !controllerSequencer.enabled) onControllerSequencerEnabledChange(controllerSequencer.id, true); }} />
-              <PadLoopPatternEditor
-                ui={ui}
-                guiLanguage={guiLanguage}
-                hostId={controllerSequencer.id}
-                track={controllerSequencer}
-                stepsPerBeat={sequencerTransportStepsPerBeat(controllerSequencer.timing)}
-                padStepCounts={controllerSequencer.pads.map((pad) =>
-                  sequencerTransportStepCount(controllerSequencer.timing, pad.lengthBeats)
-                )}
-                defaultPadStepCount={sequencerTransportStepCount(
-                  controllerSequencer.timing,
-                  controllerSequencer.lengthBeats
-                )}
-                isPlaying={sequencer.isPlaying}
-                linkedPadLoopStepPosition={linkedPadLoopStepPosition}
-                onLinkedPadLoopStepPositionChange={setLinkedPadLoopStepPosition}
-                onPadLoopEnabledChange={(enabled) =>
-                  onControllerSequencerPadLoopEnabledChange(controllerSequencer.id, enabled)
-                }
-                onPadLoopRepeatChange={(repeat) =>
-                  onControllerSequencerPadLoopRepeatChange(controllerSequencer.id, repeat)
-                }
-                onPadLoopPatternChange={(pattern) =>
-                  onControllerSequencerPadLoopPatternChange(controllerSequencer.id, pattern)
-                }
-              />
+            </div>
+            <div className="min-w-0 space-y-2">
+              <PerformanceAuditionControls compact id={controllerSequencer.id} language={guiLanguage} editingPad={controllerSequencer.activePad} playingPad={playbackSequencer.controllerSequencers.find(t => t.id === controllerSequencer.id)?.activePad} queuedPad={controllerSequencer.queuedPad} playing={sequencer.isPlaying && controllerSequencer.enabled} item={{ type: "pad", padIndex: controllerSequencer.activePad }} manualLaunch={controllerSequencer.padLoopEnabled ? undefined : () => { onControllerSequencerPadPress(controllerSequencer.id, controllerSequencer.activePad); if (!sequencer.isPlaying || !controllerSequencer.enabled) onControllerSequencerEnabledChange(controllerSequencer.id, true); }} />
+              <PatternWorkspace track={controllerSequencer} language={guiLanguage}
+                padHasContent={index => controllerPadHasContent(controllerSequencer.pads[index])}
+                onSourceChange={enabled => onControllerSequencerPadLoopEnabledChange(controllerSequencer.id, enabled)}
+                onPatternChange={pattern => onControllerSequencerPadLoopPatternChange(controllerSequencer.id, pattern)} />
+            </div>
             </div>
 
             <div className="mb-2">
@@ -3078,15 +3055,10 @@ function ControllerSequencersBody({ context }: { context: ReturnType<typeof useS
                   const pad = controllerSequencer.pads[padIndex] ?? null;
                   const isActive = controllerSequencer.activePad === padIndex;
                   const isQueued = controllerSequencer.queuedPad === padIndex;
-                  const padEndValue =
-                    pad && pad.keypoints.length > 0 ? (pad.keypoints[pad.keypoints.length - 1]?.value ?? 0) : 0;
-                  const padHasContent =
-                    (pad?.keypoints.length ?? 0) > 2 ||
-                    (pad?.keypoints[0]?.value ?? 0) !== 0 ||
-                    padEndValue !== 0;
+                  const padHasContent = controllerPadHasContent(pad ?? undefined);
                   return (
+                    <div key={`${controllerSequencer.id}-pad-${padIndex}`} className="flex min-w-0 items-stretch gap-1">
                     <button
-                      key={`${controllerSequencer.id}-pad-${padIndex}`}
                       type="button"
                       draggable
                       onClick={() => selectEditingPad(controllerSequencer.id, padIndex)}
@@ -3112,18 +3084,14 @@ function ControllerSequencersBody({ context }: { context: ReturnType<typeof useS
                         }
                         onControllerSequencerPadCopy(controllerSequencer.id, payload.padIndex, padIndex);
                       }}
-                      className={`relative w-full rounded-md border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] transition ${patternPadClass(isActive, isQueued)}`}
+                      className={`relative w-full rounded-md border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] transition ${patternPadClass(isActive, isQueued, padHasContent)}`}
                       aria-pressed={isActive}
                       aria-label={`Controller pattern pad #${padIndex + 1}${isQueued ? " queued" : isActive ? " active" : ""}`}
                     >
                       #{padIndex + 1}
-                      {padHasContent ? (
-                        <span
-                          aria-hidden="true"
-                          className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-emerald-300"
-                        />
-                      ) : null}
                     </button>
+                    <ArrangerSpeaker id={controllerSequencer.id} item={{ type: "pad", padIndex }} label={`#${padIndex + 1}`} language={guiLanguage} />
+                    </div>
                   );
                 })}
               </div>

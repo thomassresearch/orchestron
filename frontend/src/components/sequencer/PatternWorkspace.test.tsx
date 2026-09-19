@@ -2,24 +2,27 @@
 import { useState } from "react";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import type { DrummerSequencerTrackState, SequencerTrackState } from "../../types";
+import type { ArpeggiatorState, ControllerSequencerState, DrummerSequencerTrackState, SequencerTrackState } from "../../types";
+import { buildPerformanceExportPayload } from "../../lib/bundleImportExport";
 import { useAppStore } from "../../store/useAppStore";
+import { normalizeArpeggiatorState, normalizeControllerSequencerState } from "../../store/appStoreModel";
 import { PatternWorkspace } from "./PatternWorkspace";
 import { PerformanceEditorProvider } from "./PerformanceEditorState";
 import { PerformanceAuditionContext } from "./PerformanceAudition";
 import { cancelArrangerPreviewGestures } from "../../lib/arrangerPreviewGesture";
 
 const audition = vi.fn().mockResolvedValue(undefined);
-let current: SequencerTrackState | DrummerSequencerTrackState;
-function Editor({ shown = true, drummer = false }: { shown?: boolean; drummer?: boolean }) {
+let current: SequencerTrackState | DrummerSequencerTrackState | ControllerSequencerState | ArpeggiatorState;
+const kinds = ["melodic", "controller", "arpeggiator"] as const;
+function Editor({ shown = true, drummer = false, kind = "melodic" }: { shown?: boolean; drummer?: boolean; kind?: typeof kinds[number] }) {
   const [track, setTrack] = useState(() => {
-    const t = structuredClone(drummer ? useAppStore.getState().sequencer.drummerTracks[0] : useAppStore.getInitialState().sequencer.tracks[0]);
+    const t = kind === "arpeggiator" ? normalizeArpeggiatorState({}, 0) : kind === "controller" ? normalizeControllerSequencerState({}, 0, useAppStore.getInitialState().sequencer.timing) : structuredClone(drummer ? useAppStore.getState().sequencer.drummerTracks[0] : useAppStore.getInitialState().sequencer.tracks[0]);
     t.padLoopPattern = { rootSequence: [], groups: [], superGroups: [] };
     return t;
   });
   current = track;
   return <PerformanceAuditionContext.Provider value={audition}><PerformanceEditorProvider>
-    {shown && <PatternWorkspace track={track} language="english" onSourceChange={() => {}} onPatternChange={padLoopPattern => setTrack({ ...track, padLoopPattern })} />}
+    {shown && <PatternWorkspace padHasContent={() => true} track={track} language="english" onSourceChange={() => {}} onPatternChange={padLoopPattern => setTrack({ ...track, padLoopPattern })} />}
   </PerformanceEditorProvider></PerformanceAuditionContext.Provider>;
 }
 const strip = () => screen.getByRole("list", { name: "Free workspace" });
@@ -38,8 +41,8 @@ function createGroup() {
 beforeEach(() => { audition.mockClear(); useAppStore.setState(useAppStore.getInitialState(), true); vi.stubGlobal("PointerEvent", MouseEvent); });
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals(); });
 
-it("assembles and groups separated selections without changing the authored arrangement", () => {
-  render(<Editor />); createGroup();
+it.each(kinds)("assembles and groups separated selections without changing the authored arrangement (%s)", kind => {
+  render(<Editor kind={kind} />); createGroup();
   expect(current.padLoopPattern.rootSequence).toEqual([]);
   expect(current.padLoopPattern.groups).toEqual([{ id: "A", sequence: [{ type: "pad", padIndex: 0 }, { type: "pad", padIndex: 2 }] }]);
   const children = within(strip()).getAllByRole("listitem");
@@ -50,8 +53,8 @@ it("assembles and groups separated selections without changing the authored arra
   expect(current.padLoopPattern.groups).toHaveLength(1);
 });
 
-it("reorders a multi-selection and retains drafts across collapse", () => {
-  const view = render(<Editor />);
+it.each(kinds)("reorders a multi-selection and retains drafts across collapse (%s)", kind => {
+  const view = render(<Editor kind={kind} />);
   dropPad(0); dropPad(1); dropPad(2);
   fireEvent.click(within(strip()).getByRole("button", { name: "#1" }));
   fireEvent.click(within(strip()).getByRole("button", { name: "#2" }), { shiftKey: true });
@@ -60,12 +63,12 @@ it("reorders a multi-selection and retains drafts across collapse", () => {
   fireEvent.drop(strip(), { dataTransfer });
   expect(within(strip()).getAllByRole("listitem").map(el => el.textContent)).toEqual(["#3", "#1", "#2"]);
   expect(within(strip()).getByRole("button", { name: "#1" }).getAttribute("aria-pressed")).toBe("true");
-  view.rerender(<Editor shown={false} />); view.rerender(<Editor />);
+  view.rerender(<Editor kind={kind} shown={false} />); view.rerender(<Editor kind={kind} />);
   expect(within(strip()).getAllByRole("listitem").map(el => el.textContent)).toEqual(["#3", "#1", "#2"]);
 });
 
-it("edits shared definitions only on Apply and can save independent copies", () => {
-  render(<Editor />); createGroup();
+it.each(kinds)("edits shared definitions only on Apply and can save independent copies (%s)", kind => {
+  render(<Editor kind={kind} />); createGroup();
   fireEvent.click(screen.getByRole("button", { name: "Group A" }));
   const editor = screen.getByRole("list", { name: "Editing A" });
   dropPad(3, editor);
@@ -81,8 +84,8 @@ it("edits shared definitions only on Apply and can save independent copies", () 
   expect((screen.getByRole("menuitem", { name: "Delete definition" }) as HTMLButtonElement).disabled).toBe(false);
 });
 
-it("deletes an unused group despite free-workspace references and its own edited draft", () => {
-  render(<Editor />); createGroup();
+it.each(kinds)("deletes an unused group despite free-workspace references and its own edited draft (%s)", kind => {
+  render(<Editor kind={kind} />); createGroup();
   fireEvent.click(screen.getByRole("button", { name: "Group A" }));
   dropPad(3, screen.getByRole("list", { name: "Editing A" }));
   fireEvent.contextMenu(screen.getByRole("button", { name: "Group A" }));
@@ -93,9 +96,10 @@ it("deletes an unused group despite free-workspace references and its own edited
   expect(screen.queryByText(/workspace draft/)).toBeNull();
 });
 
-it.each([false, true])("highlights the audible workspace occurrence independently of selection (drummer=%s)", drummer => {
+it.each(["melodic", "controller", "arpeggiator", "drummer"] as const)("highlights the audible workspace occurrence independently of selection (%s)", device => {
+  const drummer = device === "drummer";
   if (drummer) useAppStore.getState().addDrummerSequencerTrack();
-  render(<Editor drummer={drummer} />); createGroup(); dropPad(0);
+  render(<Editor drummer={drummer} kind={drummer ? "melodic" : device} />); createGroup(); dropPad(0);
   fireEvent.change(screen.getByLabelText("Add rest…"), { target: { value: "1" } });
   fireEvent.click(within(strip()).getByRole("button", { name: "#2" }));
   fireEvent.click(screen.getByRole("button", { name: "Play workspace" }));
@@ -152,8 +156,8 @@ it("retains separate definition drafts and scroll positions and discards explici
   expect(within(retained).getAllByRole("listitem")).toHaveLength(2);
 });
 
-it("builds a supergroup from groups and ungroups only one level", () => {
-  render(<Editor />); createGroup();
+it.each(kinds)("builds a supergroup from groups and ungroups only one level (%s)", kind => {
+  render(<Editor kind={kind} />); createGroup();
   dropPad(3);
   fireEvent.click(within(strip()).getByRole("button", { name: "#2" }));
   fireEvent.click(within(strip()).getByRole("button", { name: "#4" }), { ctrlKey: true });
@@ -184,4 +188,27 @@ it("rejects cross-track drops and over-limit edits as a whole", () => {
   fireEvent.drop(strip(), { dataTransfer: transfer({ "application/x-visualcsound-sequencer-pad": JSON.stringify({ trackId: current.id, padIndex: 10 }) }) });
   expect(screen.getByRole("alert")).toBeTruthy();
   expect(within(strip()).queryAllByRole("listitem")).toHaveLength(0);
+});
+
+
+it.each(["controller", "arpeggiator"] as const)("persists %s definitions without drafts or audition state", kind => {
+  render(<Editor kind={kind} />); createGroup();
+  fireEvent.click(screen.getByRole("button", { name: "Group A" }));
+  dropPad(5, screen.getByRole("list", { name: "Editing A" })); // Deliberately unapplied.
+  fireEvent.click(screen.getByRole("button", { name: "Play workspace" }));
+  const device = current;
+  act(() => useAppStore.setState(state => ({
+    sequencer: { ...state.sequencer,
+      ...("controllerNumber" in device ? { controllerSequencers: [device] } : "playbackMode" in device ? { arpeggiators: [device] } : {}) },
+    performanceAuditions: { [device.id]: { active: true, queued: null, workspace_gesture: "session-only", workspace_active: true, workspace_sequence: [0, 2, 5], workspace_position: 2 } }
+  })));
+  const snapshot = useAppStore.getState().buildSequencerConfigSnapshot();
+  const { payload } = buildPerformanceExportPayload({ snapshot, selectedPatches: [], performanceName: "Workspace test", performanceDescription: "" });
+  const saved = kind === "controller" ? payload.performance.config.sequencer.controllerSequencers?.[0] : payload.performance.config.sequencer.arpeggiators?.[0];
+  expect(saved?.padLoopPattern?.groups[0].sequence).toEqual([{ type: "pad", padIndex: 0 }, { type: "pad", padIndex: 2 }]);
+  expect(saved?.padLoopPattern?.rootSequence).toEqual([]);
+  expect(JSON.stringify(payload)).not.toMatch(/workspaceDrafts|workspace_gesture|session-only|workspace_position/);
+  act(() => useAppStore.getState().applySequencerConfigSnapshot(payload.performance.config));
+  const restored = kind === "controller" ? useAppStore.getState().sequencer.controllerSequencers[0] : useAppStore.getState().sequencer.arpeggiators[0];
+  expect(restored.padLoopPattern.groups).toEqual(device.padLoopPattern.groups);
 });

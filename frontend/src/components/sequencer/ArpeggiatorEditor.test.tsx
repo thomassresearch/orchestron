@@ -134,7 +134,9 @@ it("edits the selected pad through keyboard and pointer controls while another p
   const playing = { ...arp, activePad: 1 } as ArpeggiatorState;
   rerender(<ArpeggiatorEditor {...props} arp={playing} />);
   expect(screen.getByRole("button", { name: "Editing #3" }).getAttribute("aria-pressed")).toBe("true");
-  fireEvent.click(screen.getByRole("button", { name: "Launch #4" }));
+  rerender(<ArpeggiatorEditor {...props} arp={{ ...playing, playbackMode: "live" }} />);
+  fireEvent.click(screen.getByRole("button", { name: "Editing #4" }));
+  fireEvent.click(screen.getByRole("button", { name: "Launch pad" }));
   expect(command).toHaveBeenCalledWith({ command: "launch", pad_index: 3 });
   rerender(<ArpeggiatorEditor {...props} arp={{ ...arp, enabled: true, playbackMode: "live" }} engineRunning={false} />);
   fireEvent.click(screen.getByRole("button", { name: "Start" }));

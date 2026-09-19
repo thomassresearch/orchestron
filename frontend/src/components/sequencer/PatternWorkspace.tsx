@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState, type DragEvent, type KeyboardEvent, type MouseEvent } from "react";
-import type { DrummerSequencerTrackState, GuiLanguage, PadLoopPatternItem, PadLoopPatternState, SequencerTrackState } from "../../types";
+import type { GuiLanguage, PadLoopPatternItem, PadLoopPatternState } from "../../types";
 import { arrangementCopy } from "../../lib/arrangementCopy";
 import { compileDefinition, createDefinition, definitionItem, definitionUses, type DefinitionRef } from "../../lib/arrangementEditing";
 import { ARRANGEMENT_ITEM_MIME, beginArrangementDrag, endArrangementDrag } from "../../lib/arrangementDrag";
 import { ARRANGER_PREVIEW_CANCEL } from "../../lib/arrangerPreviewGesture";
 import { itemDisplayLabel } from "../../lib/padLoopPattern";
 import { patternItemButtonClass } from "../../lib/patternItemPresentation";
-import { applyWorkspaceDefinition, deleteWorkspaceDefinition, drummerPadHasSound, groupWorkspaceItems, melodicPadHasSound, moveWorkspaceItems, splitWorkspaceItems, validateWorkspace, workspacePlayingIndex, workspaceSelection, type PatternWorkspaceDraft } from "../../lib/patternWorkspace";
+import { applyWorkspaceDefinition, deleteWorkspaceDefinition, groupWorkspaceItems, moveWorkspaceItems, splitWorkspaceItems, validateWorkspace, workspacePlayingIndex, workspaceSelection, type PatternWorkspaceDraft } from "../../lib/patternWorkspace";
 import { useAppStore } from "../../store/useAppStore";
 import { ArrangerContextMenu, type ArrangerMenuTarget } from "./ArrangerContextMenu";
 import { ArrangerSpeaker } from "./ArrangerSpeaker";
@@ -22,8 +22,9 @@ type Menu = ArrangerMenuTarget & { ref?: DefinitionRef; palette?: boolean; index
 const refKey = (ref: DefinitionRef) => `${ref.kind}:${ref.id}`;
 const itemRef = (item: PadLoopPatternItem): DefinitionRef | undefined => item.type === "group" ? { kind: "group", id: item.groupId } : item.type === "super" ? { kind: "super", id: item.superGroupId } : undefined;
 
-export function PatternWorkspace({ track, language, onPatternChange, onSourceChange }: {
-  track: SequencerTrackState | DrummerSequencerTrackState; language: GuiLanguage;
+export function PatternWorkspace({ track, language, onPatternChange, onSourceChange, padHasContent, hideArrangement = false }: {
+  track: { id: string; activePad: number; padLoopEnabled: boolean; padLoopPattern: PadLoopPatternState; pads: Array<{ lengthBeats: number }> }; language: GuiLanguage;
+  padHasContent: (index: number) => boolean; hideArrangement?: boolean;
   onPatternChange: (pattern: PadLoopPatternState) => void; onSourceChange: (enabled: boolean) => void;
 }) {
   const c = patternWorkspaceCopy(language), a = arrangementCopy(language);
@@ -124,7 +125,7 @@ export function PatternWorkspace({ track, language, onPatternChange, onSourceCha
     if (event.key === "ContextMenu" || event.key === "F10" && event.shiftKey) showMenu(event, index, ref);
   };
   const label = (item: PadLoopPatternItem) => item.type === "pause" ? `${a.rest} ${item.lengthBeats}` : itemDisplayLabel(item);
-  const hasContent = (item: PadLoopPatternItem) => item.type !== "pad" || ("rows" in track ? drummerPadHasSound(track.pads[item.padIndex]) : melodicPadHasSound(track.pads[item.padIndex]));
+  const hasContent = (item: PadLoopPatternItem) => item.type !== "pad" || padHasContent(item.padIndex);
   const drop = (event: DragEvent, position: number) => {
     event.preventDefault(); event.stopPropagation(); setDropIndex(null);
     attempt(() => {
@@ -150,10 +151,10 @@ export function PatternWorkspace({ track, language, onPatternChange, onSourceCha
   return <section className="min-w-0 space-y-2 rounded-lg border border-slate-700 bg-slate-950/40 p-2" aria-label={c.workspace}>
     <div className="flex flex-wrap items-center gap-2 text-xs">
       <span className="font-semibold text-slate-200">{c.workspace}</span>
-      <label className="ml-auto text-slate-400">{a.source} <select className={button} value={track.padLoopEnabled ? "arrangement" : "manual"} onChange={e => onSourceChange(e.target.value === "arrangement")}>
+      {!hideArrangement && <><label className="ml-auto text-slate-400">{a.source} <select className={button} value={track.padLoopEnabled ? "arrangement" : "manual"} onChange={e => onSourceChange(e.target.value === "arrangement")}>
         <option value="manual">{a.manual}</option><option value="arrangement" disabled={!pattern.rootSequence.length}>{a.arrangement}</option>
       </select></label>
-      <button className={button} onClick={() => { selectLane(track.id); expandLane(true); focusDefinition(active ? definitionItem(active) : { type: "pad", padIndex: track.activePad }); openArranger?.(); requestAnimationFrame(() => document.getElementById("multitrack-arranger")?.scrollIntoView({ block: "center" })); }}>{a.open}</button>
+      <button className={button} onClick={() => { selectLane(track.id); expandLane(true); focusDefinition(active ? definitionItem(active) : { type: "pad", padIndex: track.activePad }); openArranger?.(); requestAnimationFrame(() => document.getElementById("multitrack-arranger")?.scrollIntoView({ block: "center" })); }}>{a.open}</button></>}
     </div>
     <RetainedScroll owner={owner} field="workspacePalette" className="flex max-h-20 flex-wrap items-center gap-1 overflow-y-auto" aria-label={c.saved}>
       <button className={button} aria-pressed={!active} onClick={() => open(null)}>{c.free}</button>
