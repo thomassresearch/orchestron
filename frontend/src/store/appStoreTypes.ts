@@ -50,6 +50,7 @@ export interface InstrumentTabState {
 }
 
 export interface AppStore {
+  applyArrangementRangeEdit: (updates: import("../lib/arrangementRange").ArrangementRangeUpdate[]) => void;
   loading: boolean;
   error: string | null;
   hasLoadedBootstrap: boolean;

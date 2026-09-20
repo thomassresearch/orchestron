@@ -7,6 +7,7 @@ import { AuditionPanel } from "./components/AuditionPanel";
 import { audioTemplate, type BuiltinTemplate } from "./lib/audioTemplates";
 import { audioCopy } from "./lib/audioCopy";
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPerformanceEditorStore } from "./components/sequencer/PerformanceEditorState";
 
 import { api } from "./api/client";
 import { ConfirmationListDialog } from "./components/ConfirmationListDialog";
@@ -105,6 +106,8 @@ export default function App() {
   const error = useAppStore((state) => state.error);
 
   const activePage = useAppStore((state) => state.activePage);
+  const workspaceGeneration = useAppStore(state => state.performanceWorkspaceGeneration);
+  const performanceEditors = useMemo(() => ({ generation: workspaceGeneration, store: createPerformanceEditorStore() }), [workspaceGeneration]);
   const setActivePage = useAppStore((state) => state.setActivePage);
   const guiLanguage = useAppStore((state) => state.guiLanguage);
   const setGuiLanguage = useAppStore((state) => state.setGuiLanguage);
@@ -1932,6 +1935,7 @@ export default function App() {
         {activePage === "sequencer" && (
           <Suspense fallback={<DeferredPageFallback />}>
             <PerformanceAuditionContext.Provider value={auditionDevice}><LazySequencerPage
+              editorStore={performanceEditors.store}
               collapsedPanels={collapsedPanels}
               onPanelCollapsedChange={setPanelCollapsed}
               data={sequencerPageData}

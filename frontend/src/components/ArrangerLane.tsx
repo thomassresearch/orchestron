@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent, type ReactNode } from "react";
+import { sequencerTransportSubunitsPerBeat } from "../lib/sequencer";
 import type { Lane, MultitrackArrangerProps } from "./MultitrackArranger";
 import type { PadLoopPatternItem, PadLoopPatternState } from "../types";
 import { arrangementCopy } from "../lib/arrangementCopy";
@@ -22,9 +23,10 @@ type Menu = ArrangerMenuTarget & { item?: PadLoopPatternItem; indexes: number[];
 type Drag = { x: number; start: number; indexes: number[]; moved: boolean; restDuration?: number };
 type Preview = { position: number; duration: number; valid: boolean; insert: boolean };
 
-export function ArrangerLane({ lane, props, selected, select, commit, zoom, width, scroll, playhead }: {
+export function ArrangerLane({ lane, props, selected, select, commit, zoom, width, scroll, playhead, rangeOverlay, rangeSelection, rangeActions }: {
   lane: Lane; props: MultitrackArrangerProps; selected: boolean; select: () => void; commit: (pattern: PadLoopPatternState) => void;
   zoom: number; width: number; scroll: number; playhead: number;
+  rangeOverlay?: ReactNode; rangeSelection?: { start: number; end: number }; rangeActions?: (close: () => void) => ReactNode;
 }) {
   const c = arrangementCopy(props.guiLanguage);
   const owner = `device:${lane.id}` as const;
@@ -158,7 +160,7 @@ export function ArrangerLane({ lane, props, selected, select, commit, zoom, widt
         </div>
       </div>
       <div className="min-w-0 overflow-hidden" onWheel={event => { const element = event.currentTarget.closest('#multitrack-arranger')?.querySelector('.h-4.overflow-x-auto'); if (element) element.scrollLeft += event.deltaX || event.deltaY; }}>
-        <div role="list" tabIndex={0} aria-label={`${lane.title} ${c.arrangement}`} className="relative h-12 touch-none rounded border border-slate-700 bg-slate-950"
+        <div role="list" data-arrangement-lane={lane.id} tabIndex={0} aria-label={`${lane.title} ${c.arrangement}`} className="relative h-12 touch-none rounded border border-slate-700 bg-slate-950"
           style={{ width, transform: `translateX(${-scroll}px)`, backgroundImage: "linear-gradient(to right, #1e293b 1px, transparent 1px)", backgroundSize: `${zoom}px 100%` }}
           onClick={event => { if (event.target === event.currentTarget) { if (draggedClick.current) { draggedClick.current = false; return; } clearSelection(); setSelection([]); setPosition(Math.max(0, Math.round((event.clientX - event.currentTarget.getBoundingClientRect().left) / zoom))); } }}
           onContextMenu={event => { if (event.target === event.currentTarget) showMenu(event, undefined, indexes); }}
@@ -172,7 +174,7 @@ export function ArrangerLane({ lane, props, selected, select, commit, zoom, widt
           onDragLeave={event => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setPreview(null); }}
           onDrop={event => { event.preventDefault(); setPreview(null); try { const payload = JSON.parse(event.dataTransfer.getData(ARRANGEMENT_ITEM_MIME)); if (payload.trackId !== lane.id) throw new Error(c.blocked); attempt(() => resolve((event.clientX - event.currentTarget.getBoundingClientRect().left) / zoom, [payload.item]).pattern); } catch { setError(c.blocked); } endArrangementDrag(); }}
           onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={cancelDrag} onLostPointerCapture={() => { if (drag.current) cancelDrag(); }}>
-          {spans.map(span => <div key={span.indexes[0]} role="listitem" tabIndex={0} aria-label={`${label(span.item)} · ${Number((span.start * lane.beatScale).toFixed(4))}`} aria-selected={span.indexes.some(i => indexes.includes(i))}
+          {spans.map(span => <div key={span.indexes[0]} role="listitem" data-arrangement-occurrence data-range-start={span.start * lane.beatScale * sequencerTransportSubunitsPerBeat()} tabIndex={0} aria-label={`${label(span.item)} · ${Number((span.start * lane.beatScale).toFixed(4))}`} aria-selected={span.indexes.some(i => indexes.includes(i)) || !!rangeSelection && span.start < rangeSelection.end && span.start + span.duration > rangeSelection.start}
             className={`absolute top-1 flex h-9 cursor-grab select-none items-center overflow-hidden rounded border px-1 text-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 ${span.item.type === "pause" ? "border-slate-600 bg-slate-800/60 text-slate-300" : PATTERN_ITEM_COLORS[span.item.type]} ${span.indexes.some(i => indexes.includes(i)) ? "ring-2 ring-cyan-400" : ""}`}
             style={{ left: span.start * zoom, width: Math.max(10, span.duration * zoom), ...definitionColorStyle(lane.pattern, span.item) }}
             onClick={event => { event.stopPropagation(); if (draggedClick.current) { draggedClick.current = false; return; } selectSpan(span.indexes, span.start, event); }}
@@ -193,6 +195,7 @@ export function ArrangerLane({ lane, props, selected, select, commit, zoom, widt
           </div>)}
           {preview && <span className={`pointer-events-none absolute inset-y-0 border-2 ${preview.valid ? "border-cyan-300 bg-cyan-500/20" : "border-red-400 bg-red-500/20"}`} style={{ left: preview.position * zoom, width: preview.duration * zoom }}>
             {Number((preview.position * lane.beatScale).toFixed(4))} · {Number((preview.duration * lane.beatScale).toFixed(4))}{preview.insert && <span className="sr-only"> {c.insert}</span>}</span>}
+          {rangeOverlay}
           <span className="pointer-events-none absolute inset-y-0 w-px bg-amber-200" style={{ left: playhead }} />
         </div>
       </div>
@@ -214,6 +217,7 @@ export function ArrangerLane({ lane, props, selected, select, commit, zoom, widt
     </div>}
     {menu && <ArrangerContextMenu target={menu} title={c.actions} dialog={panel !== "actions"} onClose={closeMenu}>
       {panel === "actions" && <>
+        {!menu.palette && rangeActions && <>{rangeActions(closeMenu)}<hr className="my-1 border-slate-700" /></>}
         {menu.item?.type === "pad" && <button role="menuitem" className={menuButton} onClick={() => { editPad(menu.item!.type === "pad" ? menu.item!.padIndex : 0); closeMenu(); }}>{c.editPattern}</button>}
         {!menu.palette && <>
           {musicalMenu && <button role="menuitem" className={menuButton} disabled={menu.indexes.length !== 1 || menu.item?.type === "pad" && lane.unusedPad < 0} onClick={vary}>{c.variation}</button>}

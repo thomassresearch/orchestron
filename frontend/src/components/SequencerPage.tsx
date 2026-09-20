@@ -800,7 +800,7 @@ export function SequencerPage(props: SequencerPageProps) {
     ...[...props.data.sequencer.tracks, ...props.data.sequencer.drummerTracks, ...props.data.sequencer.controllerSequencers, ...props.data.sequencer.arpeggiators, ...props.data.sequencer.pianoRolls, ...props.data.sequencer.midiControllers].map(device => `device:${device.id}` as const),
     ...props.data.instrumentBindings.map(binding => `binding:${binding.id}` as const),
     ...routes.map(route => `route:${route.id}` as const)];
-  return <PerformanceEditorProvider key={generation} owners={owners}><OpenArrangerContext.Provider value={() => props.onPanelCollapsedChange("arranger", false)}><SequencerPageContent {...props} /></OpenArrangerContext.Provider></PerformanceEditorProvider>;
+  return <PerformanceEditorProvider key={generation} owners={owners} retainedStore={props.editorStore}><OpenArrangerContext.Provider value={() => props.onPanelCollapsedChange("arranger", false)}><SequencerPageContent {...props} /></OpenArrangerContext.Provider></PerformanceEditorProvider>;
 }
 function SequencerPageContent(props: SequencerPageProps) {
   const context = useSequencerPageContext(props);
@@ -1056,6 +1056,7 @@ function SequencerPageContent(props: SequencerPageProps) {
             onTransportRewind={onSequencerCycleRewind}
             onTransportFastForward={onSequencerCycleForward}
             onArrangerLoopSelectionChange={onSequencerArrangerLoopSelectionChange}
+            onArrangementRangeChange={updates => useAppStore.getState().applyArrangementRangeEdit(updates)}
             onSequencerTrackPadLoopPatternChange={onSequencerTrackPadLoopPatternChange}
             onDrummerSequencerTrackPadLoopPatternChange={onDrummerSequencerTrackPadLoopPatternChange}
             onControllerSequencerPadLoopPatternChange={onControllerSequencerPadLoopPatternChange}

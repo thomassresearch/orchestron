@@ -7,6 +7,7 @@ export type EditorOwner = "page" | "rack" | "arranger" | "mixer" | `device:${str
 type Entry = { owner: EditorOwner; value: unknown };
 type EditorState = { entries: Record<string, Entry> };
 export const createPerformanceEditorStore = () => createStore<EditorState>(() => ({ entries: {} }));
+export type PerformanceEditorStore = ReturnType<typeof createPerformanceEditorStore>;
 export const OpenArrangerContext = createContext<(() => void) | null>(null);
 export const useOpenArranger = () => useContext(OpenArrangerContext);
 const EditorContext = createContext<ReturnType<typeof createPerformanceEditorStore> | null>(null);
@@ -32,8 +33,8 @@ export function pruneEditorSelections(selections: Record<string, number[]>, leng
 }
 
 /** UI-only state. The provider is keyed by workspace generation, never persisted or sent to audio. */
-export function PerformanceEditorProvider({ owners, children }: { owners?: EditorOwner[]; children: ReactNode }) {
-  const [store] = useState(createPerformanceEditorStore);
+export function PerformanceEditorProvider({ owners, children, retainedStore }: { owners?: EditorOwner[]; children: ReactNode; retainedStore?: PerformanceEditorStore }) {
+  const [store] = useState(() => retainedStore ?? createPerformanceEditorStore());
   const ownerSignature = JSON.stringify(owners);
   useEffect(() => {
     if (!ownerSignature) return;
@@ -87,6 +88,16 @@ export function useClearArrangementSelection() {
   const store = useContext(EditorContext);
   return () => store?.setState(state => ({ entries: Object.fromEntries(Object.entries(state.entries).map(([key, entry]) =>
     JSON.parse(key)[1] === "arrangerSelection" ? [key, { ...entry, value: [] }] : [key, entry])) }));
+}
+
+/** Keep a lane's existing Position field in sync with clicks handled by the range surface. */
+export function useSetArrangementPosition() {
+  const store = useContext(EditorContext);
+  return (id: string, value: number) => {
+    const owner: EditorOwner = `device:${id}`;
+    const key = JSON.stringify([owner, "arrangerPosition"]);
+    store?.setState(state => ({ entries: { ...state.entries, [key]: { owner, value } } }));
+  };
 }
 
 export function useRetainedScroll(ref: RefObject<HTMLElement>, owner: EditorOwner, field: string) {

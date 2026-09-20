@@ -24,7 +24,7 @@ Lane controls survive transport stop/start and engine restart within this perfor
 
 ## Place and move material
 
-Expand a lane to show its palette of populated pattern pads, groups, supergroups and rests on the Position row. Melodic, drummer and arpeggiator pads appear only when they contain a non-rest step; their original numbers are preserved. Empty pads remain editable in the sequencer, and existing timeline occurrences remain intact. Controller curves remain available, including zero-valued curves. Drag a palette item to add an occurrence. Clicking an entry only focuses it. Empty phrase drafts cannot be placed or previewed. Add, Insert, Paste, Duplicate and number-key placement are removed from the arranger; sequencer editing shortcuts remain unchanged.
+Expand a lane to show its palette of populated pattern pads, groups, supergroups and rests on the Position row. Melodic, drummer and arpeggiator pads appear only when they contain a non-rest step; their original numbers are preserved. Empty pads remain editable in the sequencer, and existing timeline occurrences remain intact. Controller curves remain available, including zero-valued curves. Drag a palette item to add an occurrence. Clicking an entry only focuses it. Empty phrase drafts cannot be placed or previewed. There are no placement toolbar buttons or number-key placement shortcuts; copy, paste and duplicate are available for timeline ranges through the context menu and keyboard.
 
 Drop at an element edge to insert and shift later material on this lane. Drop musical material inside a rest when it fits to replace that portion of silence. Drop after the final element to fill the gap with supported pause tokens and append. Dropping inside occupied musical material is rejected with a red preview. Rest palette items insert time at boundaries or extend the lane after its end.
 
@@ -37,6 +37,36 @@ After ungrouping, rearrange the material, then select and group it again. Choose
 **Create variation** copies a pad into an unused slot, or copies a group/supergroup under a new ID, and retargets only the selected occurrence. It inherits the source colour. The eight-pad limit remains. Palette context menus allow deleting unused definitions; saved references list their uses and block deletion. Temporary workspace references expand into the saved contents, including retained drafts in closed panels; the deleted definition’s own draft is removed.
 
 Use Enter/Space to select a focused occurrence, Cmd/Ctrl-click for multiple selection, and Shift+F10 or the Context Menu key for its menu. Arrow keys navigate occurrences or menu actions; Escape closes menus and cancels gestures. Menus return focus to their originating item.
+
+## Copy and insert song sections
+
+Drag the **top beat ruler** to select a section across every arranger lane, including collapsed and muted lanes. To select some lanes, drag a rectangle from empty timeline background, or **Shift-drag** over existing elements. The cyan highlight includes silence and displays its duration in master beats and the number of selected lanes. Selection expands outwards to preserve whole pads, groups and supergroups across all included lanes; rests can split at whole local beats. Lanes with different beat ratios may therefore expand the range farther than expected: check the preview before releasing.
+
+The top ruler’s cyan **edit position** is separate from playback. Click it to choose a paste position. The bottom **Loop selected range** ruler retains its seek and playback-loop behavior. Selecting or copying material does not seek or change the loop.
+
+For two 16-beat sections **A–B**, select the first 16 beats and choose **Duplicate — insert time, all lanes**, or press **Cmd/Ctrl+Shift+D**. The result is **A–A–B**. The new copy stays selected, so the same command can repeat it again.
+
+| Action | Shortcut | Result |
+| --- | --- | --- |
+| Copy range | Cmd/Ctrl+C | Copies selected lanes and the entire range duration, including silence. |
+| Paste — overwrite | Cmd/Ctrl+V | Replaces that interval on copied lanes without shifting later material. |
+| Paste — insert time, all lanes | Cmd/Ctrl+Shift+V | Inserts the copied duration across all lanes, shifting later material together. Unselected lanes receive silence where needed. |
+| Paste — insert, copied lanes only | Context menu | Shifts later material only on the copied lanes. |
+| Duplicate — insert time, all lanes | Cmd/Ctrl+Shift+D | Inserts a copy immediately after the selection and shifts every lane’s later material. |
+| Duplicate — insert, selected lanes only | Context menu | Inserts the copy after the selection and shifts only its lanes. |
+| Undo range edit / Redo range edit | Cmd/Ctrl+Z / Cmd/Ctrl+Shift+Z | Reverses or restores one complete multi-lane range edit. Ctrl+Y also redoes. |
+
+Right-click inside the highlighted range to keep the selection and open its commands. Right-click elsewhere in a timeline or on the ruler to choose a destination; occurrence menus also contain paste actions. **Shift+arrows** extends a selection in time or across lanes. **Shift+F10** opens its menu. Shortcuts apply only inside the arranger, outside text fields and controls.
+
+**Alt/Option-drag a selected occurrence** to copy the entire range with overwrite behavior. Hold **Shift** as well to insert time across all lanes. The destination preview states Overwrite or Insert, its position and the affected lanes; red indicates an invalid destination and explains why. Escape, pointer cancellation or loss of focus cancels the gesture. Ordinary occurrence dragging exits range selection and retains its lane-local move behavior. Delete commands remain occurrence actions; select individual occurrences before deleting them.
+
+Paste keeps the copied lane assignments. It does not remap instruments or copy between performances. Copies reuse their original pads, groups, supergroups and colours. **Create variation** separates an occurrence’s definition; for independent note or controller edits, create a variation of its pad too. The eight-pad limit still applies.
+
+Insertion requires a musical boundary on every shifted lane; overwrite requires valid start and end boundaries. Durations and rests must be whole local beats. Invalid boundaries, missing lanes, changed definitions/durations or sequence limits reject the whole edit. Empty space after a lane ends copies as silence. Insertion leaves already-ended lanes unchanged unless receiving copied material. Automatic repetitions are not expanded.
+
+Range edits preserve Playback source, Repeat, the transport cursor and loop coordinates, including dormant arrangements on Manual-pad lanes. Independently playing Manual pads continue. During playback, the whole edit follows the normal live-preparation workflow; preparation failure retains the previous playing configuration and the edited draft.
+
+Selection, clipboard and up to 50 range undo steps survive collapse and view switches. New/Load/Import resets them; save/export excludes them. Undo restores arrangement contents only. Other sequence, definition, pad-duration, beat-ratio or lane-membership edits invalidate history, even while closed. Notes, colours, mixer and transport updates preserve it. This history covers range edits only. After definition or duration changes, copy again.
 
 ## Delete and resize rests
 

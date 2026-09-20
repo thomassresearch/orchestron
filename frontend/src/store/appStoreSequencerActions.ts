@@ -1,4 +1,5 @@
 import { sequencerEditAccess } from "./sequencerEdits";
+import { createArrangementRangeActions } from "./appStoreArrangementRange";
 import { validatePerformanceDeviceName } from "../lib/performanceDeviceNames";
 import type { StoreApi } from "zustand";
 
@@ -20,7 +21,7 @@ type AppStoreSet = StoreApi<AppStore>["setState"];
 type AppStoreGet = StoreApi<AppStore>["getState"];
 
 export type SequencerStoreActions =
-  & Pick<AppStore, "renamePerformanceDevice">
+  & Pick<AppStore, "renamePerformanceDevice" | "applyArrangementRangeEdit">
   & SequencerTrackStoreActions
   & PerformanceControlStoreActions
   & TransportStoreActions;
@@ -34,6 +35,7 @@ export function createSequencerStoreActions(
   const transport = createTransportStoreActions(set, get);
   const controls = createPerformanceControlStoreActions(set, get);
   return {
+    ...createArrangementRangeActions(edit.set, edit.get),
     renamePerformanceDevice: (kind, id, name) => {
       const sequencer = get().sequencer;
       const result = validatePerformanceDeviceName(sequencer, kind, id, name);

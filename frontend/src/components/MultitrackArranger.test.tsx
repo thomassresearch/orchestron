@@ -25,7 +25,8 @@ function Arranger() {
     sequencer={sequencer} patches={[]} instrumentBindings={[]} onTransportPlay={noop} onTransportStop={noop}
     onTransportStopDoubleClick={noop} onTransportRewind={noop} onTransportFastForward={noop}
     onArrangerLoopSelectionChange={selectionChanged} onSequencerTrackPadLoopPatternChange={(id, pattern) => useAppStore.getState().setSequencerTrackPadLoopPattern(id, pattern)}
-    onDrummerSequencerTrackPadLoopPatternChange={noop} onControllerSequencerPadLoopPatternChange={noop} />;
+    onDrummerSequencerTrackPadLoopPatternChange={noop} onControllerSequencerPadLoopPatternChange={noop}
+    onArrangementRangeChange={updates => useAppStore.getState().applyArrangementRangeEdit(updates)} />;
 }
 
 beforeEach(() => {
@@ -167,7 +168,7 @@ it("preserves modifier selection on right-click and explicitly updates an existi
   expect(pattern().groups[0].sequence).toEqual([{ type: "pad", padIndex: 0 }, { type: "pad", padIndex: 1 }]);
 });
 
-it("places only through drag/drop, inserts at boundaries, and rejects occupied bodies", () => {
+it("retains palette drag placement, inserts at boundaries, and rejects occupied bodies", () => {
   const { lane, timeline, pattern } = musicalLane();
   fireEvent.click(within(timeline).getAllByRole("listitem")[0]);
   const original = pattern();

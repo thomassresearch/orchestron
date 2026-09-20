@@ -211,6 +211,7 @@ export interface SequencerPageArpeggiatorActions {
 }
 
 export interface SequencerPageProps {
+  editorStore?: import("./PerformanceEditorState").PerformanceEditorStore;
   collapsedPanels: PanelCollapseState;
   onPanelCollapsedChange: (panel: PerformPanelId, collapsed: boolean) => void;
   data: SequencerPageData;
@@ -225,4 +226,3 @@ export interface SequencerPageProps {
   arpeggiatorActions: SequencerPageArpeggiatorActions;
   onHelpRequest?: (helpDocId: HelpDocId) => void;
 }
-

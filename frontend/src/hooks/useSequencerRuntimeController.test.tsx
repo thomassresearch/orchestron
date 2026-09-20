@@ -6,8 +6,10 @@ import configFixture from "../../../backend/tests/fixtures/sequencers/arranger_s
 import { api } from "../api/client";
 import { mergedSequencerState } from "../lib/mergedSequencerState";
 import { buildPerformanceExportPayload } from "../lib/bundleImportExport";
+import { buildBackendArpeggiatorConfigs } from "../appOrchestration";
+import { arrangementRangeLanes } from "../lib/arrangementRange";
 import { useAppStore } from "../store/useAppStore";
-import type { SessionSequencerConfigRequest, SessionSequencerStatus } from "../types";
+import type { SequencerState, SessionSequencerConfigRequest, SessionSequencerStatus } from "../types";
 import { useBrowserClockAudioController } from "./useBrowserClockAudioController";
 import { useSequencerRuntimeController } from "./useSequencerRuntimeController";
 
@@ -30,15 +32,22 @@ function status(step: number, running = true): SessionSequencerStatus {
   return { running, current_step: step % 32, cycle: Math.floor(step / 32), step_count: 32,
     transport_subunit: step * 420, tracks: [], controller_tracks: [], arpeggiators: [] } as unknown as SessionSequencerStatus;
 }
-function setup(playing: boolean) {
+function setup(playing: boolean, builders?: {
+  sequencer: (state?: SequencerState) => SessionSequencerConfigRequest;
+  arpeggiators: (state?: SequencerState) => ReturnType<typeof buildBackendArpeggiatorRequest>;
+}) {
   useAppStore.getState().setSequencerPlaying(playing);
   return renderHook(() => {
     const store = useAppStore();
     return useSequencerRuntimeController({ ...store, activePage: "sequencer",
       sequencer: mergedSequencerState(store.sequencer, store.sequencerRuntime), sequencerConfig: store.sequencer,
-      buildBackendSequencerConfig: buildConfig, buildBackendArpeggiatorConfig: buildArpeggiators,
+      buildBackendSequencerConfig: builders?.sequencer ?? buildConfig, buildBackendArpeggiatorConfig: builders?.arpeggiators ?? buildArpeggiators,
       errors, setSequencerError: setError });
   });
+}
+
+function buildBackendArpeggiatorRequest(state = useAppStore.getState().sequencer) {
+  return { tempo_bpm: state.timing.tempoBPM, arpeggiators: buildBackendArpeggiatorConfigs(state) };
 }
 
 beforeEach(() => {
@@ -67,6 +76,58 @@ beforeEach(() => {
   buildConfig.mockClear();
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers(); });
+
+it.each([false, true])("sends a range edit with arpeggiators as one live configuration, including preparation failure=%s", async fail => {
+  useAppStore.getState().addArpeggiator();
+  const arp = useAppStore.getState().sequencer.arpeggiators[0];
+  useAppStore.getState().updateArpeggiator(arp.id, { playbackMode: "arranger", padLoopEnabled: true });
+  const build = vi.fn((state = useAppStore.getState().sequencer): SessionSequencerConfigRequest => ({ ...config,
+    timing: { ...config.timing, tempo_bpm: state.timing.tempoBPM },
+    tracks: config.tracks.map((track, index) => ({ ...track, pad_loop_sequence: state.tracks[index]?.padLoopSequence ?? track.pad_loop_sequence })),
+    arpeggiators: buildBackendArpeggiatorConfigs(state) }));
+  const { result } = setup(false, { sequencer: build, arpeggiators: buildBackendArpeggiatorRequest });
+  await act(() => result.current.startSequencerTransport(true));
+  await act(() => vi.advanceTimersByTimeAsync(100));
+  vi.mocked(api.configureSessionSequencer).mockClear();
+  vi.mocked(api.configureSessionArpeggiators).mockClear();
+  startSequencer.mockClear(); deviceTransport.mockClear();
+  if (fail) vi.mocked(api.configureSessionSequencer).mockRejectedValueOnce(new Error("Preparation failed"));
+  else vi.mocked(api.configureSessionSequencer).mockResolvedValueOnce(status(0));
+  const before = useAppStore.getState();
+  const updates = arrangementRangeLanes(before.sequencer).map(lane => ({ id: lane.id, kind: lane.kind,
+    rootSequence: [{ type: "pad" as const, padIndex: 0 }, { type: "pad" as const, padIndex: 0 }, { type: "pad" as const, padIndex: 1 }] }));
+  act(() => before.applyArrangementRangeEdit(updates));
+  const edited = useAppStore.getState().sequencer;
+  await act(() => vi.advanceTimersByTimeAsync(100));
+  expect(api.configureSessionSequencer).toHaveBeenCalledTimes(1);
+  expect(api.configureSessionSequencer).toHaveBeenLastCalledWith("session", expect.objectContaining({
+    tracks: expect.arrayContaining([expect.objectContaining({ pad_loop_sequence: [0, 0, 1] })]),
+    arpeggiators: buildBackendArpeggiatorConfigs(edited) }));
+  expect(api.configureSessionArpeggiators).not.toHaveBeenCalled();
+  expect(startSequencer).not.toHaveBeenCalled(); expect(deviceTransport).not.toHaveBeenCalled();
+  expect(useAppStore.getState().sequencerRuntime.transportSubunit).toBe(before.sequencerRuntime.transportSubunit);
+  expect(arrangementRangeLanes(useAppStore.getState().sequencer).map(lane => lane.pattern.rootSequence)).toEqual(updates.map(update => update.rootSequence));
+  await act(() => vi.advanceTimersByTimeAsync(500));
+  expect(api.configureSessionSequencer).toHaveBeenCalledTimes(1);
+  if (fail) expect(setError).toHaveBeenCalledWith(expect.stringContaining("Preparation failed"));
+  // Once the arranger stops, restoring an earlier arp configuration must still
+  // reach independently running devices, even if it matches the last block edit.
+  await act(() => result.current.stopSequencerTransport(false));
+  vi.mocked(api.configureSessionArpeggiators).mockClear();
+  act(() => useAppStore.getState().updateArpeggiator(arp.id, { gateRatio: 0.65 }));
+  await act(() => vi.advanceTimersByTimeAsync(100));
+  act(() => useAppStore.getState().updateArpeggiator(arp.id, { gateRatio: arp.gateRatio }));
+  await act(() => vi.advanceTimersByTimeAsync(100));
+  expect(api.configureSessionArpeggiators).toHaveBeenCalledTimes(2);
+  // Live-mode arp changes still use their dedicated endpoint because they do not
+  // increment the authored arrangement revision.
+  act(() => useAppStore.getState().updateArpeggiator(arp.id, { playbackMode: "live" }));
+  await act(() => vi.advanceTimersByTimeAsync(100));
+  vi.mocked(api.configureSessionArpeggiators).mockClear();
+  act(() => useAppStore.getState().updateArpeggiator(arp.id, { gateRatio: 0.65 }));
+  await act(() => vi.advanceTimersByTimeAsync(100));
+  expect(api.configureSessionArpeggiators).toHaveBeenCalledTimes(1);
+});
 
 it("moves stopped playback locally without starting or contacting the runtime", async () => {
   const { result } = setup(false);

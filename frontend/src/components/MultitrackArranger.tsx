@@ -1,6 +1,9 @@
 import { useAppStore } from "../store/useAppStore";
 import { sequencerTransportSubunitsPerStep } from "../lib/sequencer";
 import { ArrangerLane } from "./ArrangerLane";
+import { useArrangementRangeEditing } from "./sequencer/useArrangementRangeEditing";
+import { arrangementRangeLanes, type ArrangementRangeUpdate } from "../lib/arrangementRange";
+import { sequencerTransportSubunitsPerBeat } from "../lib/sequencer";
 import { useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { EditorScope, usePerformanceEditorState } from "./sequencer/PerformanceEditorState";
@@ -61,6 +64,7 @@ export type MultitrackArrangerProps = {
   onTransportRewind: () => void;
   onTransportFastForward: () => void;
   onArrangerLoopSelectionChange: (selection: ArrangerLoopSelection | null, positionStep?: number) => void;
+  onArrangementRangeChange: (updates: ArrangementRangeUpdate[]) => void;
   onSequencerTrackPadLoopPatternChange: (trackId: string, pattern: PadLoopPatternState) => void;
   onDrummerSequencerTrackPadLoopPatternChange: (trackId: string, pattern: PadLoopPatternState) => void;
   onControllerSequencerPadLoopPatternChange: (controllerSequencerId: string, pattern: PadLoopPatternState) => void;
@@ -127,7 +131,10 @@ function MultitrackArrangerBody(props: MultitrackArrangerProps) {
     ...sequencer.arpeggiators.filter(t => t.playbackMode === "arranger").map((t): Lane => ({ id: t.id, kind: "arpeggiator", title: t.name, subtitle: channelLabel(t.targetChannel), pattern: t.padLoopPattern, padBeats: t.pads.map(p => p.lengthBeats), beatScale: 1, source: t.padLoopEnabled, repeat: t.padLoopRepeat, activePad: t.activePad, enabled: t.enabled, availablePads: t.pads.flatMap((p, i) => p.steps.some(s => s.kind !== "rest") ? [i] : []), unusedPad: firstUnusedPad(t.padLoopPattern, t.pads.map(p => p.steps.every(s => s.kind === "rest"))) }))
   ];
   const totalSteps = Math.max(quantum, sequencer.stepCount, ...lanes.map(lane => arrangementSpans(lane.pattern, lane.padBeats).reduce((sum, s) => sum + s.duration * lane.beatScale * quantum, 0)));
-  const width = Math.max((totalSteps + quantum * 4) * zoom, viewportWidth);
+  const rangeEditor = useArrangementRangeEditing({ lanes: arrangementRangeLanes(sequencer), titles: Object.fromEntries(lanes.map(lane => [lane.id, lane.title])),
+    language: props.guiLanguage, pixelsPerSubunit: zoom / sequencerTransportSubunitsPerStep(), scroll, ruler: viewport, commit: props.onArrangementRangeChange });
+  const visibleSteps = Math.max(totalSteps, rangeEditor.extent / sequencerTransportSubunitsPerStep());
+  const width = Math.max((visibleSteps + quantum * 4) * zoom, viewportWidth);
   useEffect(() => {
     const element = viewport.current;
     if (!element) return;
@@ -167,11 +174,18 @@ function MultitrackArrangerBody(props: MultitrackArrangerProps) {
   };
   return <>
     <div className="mb-2 grid grid-cols-[204px_minmax(0,1fr)] gap-2 border border-transparent px-2 text-xs text-slate-400"><div>{copy.instrumentColumn}</div><div>{copy.timelineColumn}</div></div>
-    <div ref={viewport} className="ml-[222px] mr-[10px] overflow-hidden" aria-hidden><div className="relative h-6" style={{ width, transform: `translateX(${-scroll}px)` }}>
-      {Array.from({ length: Math.ceil(totalSteps / quantum) }, (_, beat) => <span key={beat} className="absolute text-xs text-slate-400" style={{ left: beat * quantum * zoom }}>{beat % sequencer.timing.meterNumerator === 0 ? `${Math.floor(beat / sequencer.timing.meterNumerator) + 1}.1` : zoom * quantum >= 40 ? `·${beat % sequencer.timing.meterNumerator + 1}` : ""}</span>)}
+    <div ref={rangeEditor.surface} tabIndex={0} role="group" aria-label={rangeEditor.c.actions} className="focus-visible:outline focus-visible:outline-1 focus-visible:outline-cyan-400" {...rangeEditor.bindings}>
+    <div ref={viewport} data-range-ruler tabIndex={0} role="group" aria-label={rangeEditor.c.ruler} title={rangeEditor.c.hint} className="ml-[222px] mr-[10px] touch-none select-none overflow-hidden"><div className="relative h-6" style={{ width, transform: `translateX(${-scroll}px)` }}>
+      {Array.from({ length: Math.ceil(visibleSteps / quantum) }, (_, beat) => <span key={beat} className="absolute text-xs text-slate-400" style={{ left: beat * quantum * zoom }}>{beat % sequencer.timing.meterNumerator === 0 ? `${Math.floor(beat / sequencer.timing.meterNumerator) + 1}.1` : zoom * quantum >= 40 ? `·${beat % sequencer.timing.meterNumerator + 1}` : ""}</span>)}
+      {rangeEditor.overlay()}
     </div></div>
     <div className="space-y-1">{lanes.map(lane => <ArrangerLane key={lane.id} lane={lane} props={props} selected={selectedLane === lane.id} select={() => selectLane(lane.id)} commit={pattern => commit(lane, pattern)}
+      rangeOverlay={rangeEditor.overlay(lane.id)} rangeActions={rangeEditor.menuActions}
+      rangeSelection={rangeEditor.range?.laneIds.includes(lane.id) ? { start: rangeEditor.range.startSubunit / sequencerTransportSubunitsPerBeat() / lane.beatScale, end: rangeEditor.range.endSubunit / sequencerTransportSubunitsPerBeat() / lane.beatScale } : undefined}
       zoom={zoom * quantum * lane.beatScale} width={width} scroll={scroll} playhead={playhead} />)}</div>
+    {rangeEditor.status}
+    {rangeEditor.menu}
+    </div>
     <div className="mt-2 grid grid-cols-[204px_minmax(0,1fr)] gap-2 border border-transparent px-2">
       <span className="text-xs text-slate-400">{c.loop}</span>
       <div ref={ruler} aria-label={copy.selectionHint} className="relative h-7 touch-none select-none overflow-hidden rounded border border-slate-700"

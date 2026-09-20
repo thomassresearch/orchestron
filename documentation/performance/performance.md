@@ -26,7 +26,7 @@ Instrument Rack, Melodic Sequencers, Drummer Sequencers, Controller Sequencers, 
 
 Collapsed visual bodies are suspended: hidden grids and timelines are not built, animation loops stop, and hidden meters unsubscribe. This includes the Mixer and each nested routing, matrix, diagram, channel-mapping, diagnostic and insert section. Playback, pad switching, MIDI processing, audio controls and meter collection continue. Visible headers, rack summary, shared tempo and footer transport status keep updating. Expanding displays the current playback position and latest meters immediately, without replaying missed animation frames.
 
-Draft names and controller values, validation feedback, arpeggiator preset drafts, pad-loop selections, open containers, arranger selections, zoom and scroll positions survive collapse/expand while the Perform page remains open. Nested Mixer sections remember their open state when a parent collapses. New, Load and Import clear retained editor state after successfully replacing the workspace, even when reloading the same performance. Saving does not clear it. Removed devices and invalid selections are discarded; restored scroll positions are limited to the current content. This temporary editor state is not stored in performance files or browser storage and does not survive a page reload or leaving Perform.
+Draft names and controller values, validation feedback, arpeggiator preset drafts, pad-loop selections, open containers, arranger selections, range clipboard and undo history, zoom and scroll positions survive collapse/expand and switching away from Perform. Nested Mixer sections remember their open state when a parent collapses. New, Load and Import clear retained editor state after successfully replacing the workspace, even when reloading the same performance. Saving does not clear it. Removed devices and invalid selections are discarded; restored scroll positions are limited to the current content. This temporary editor state is not stored in performance files or browser storage and does not survive a page reload.
 
 Collapsing closes temporary menus and pickers, cancels active drag previews and releases manually held piano notes. Already-applied edits remain, and existing input save/commit rules still apply. Sequenced notes continue playing. Offscreen panels that remain expanded still render normally. Collapsing reduces visual work; any reduction in audio dropouts depends on the workload and audio system.
 
@@ -42,6 +42,7 @@ The collapsed rack shows channel and patch name in one horizontally scrolling ro
 - Add backend-run arpeggiators that turn held notes into routed arpeggiated instrument output
 - Edit reusable pads and phrases, assemble song order in the arranger, and audition phrases without changing the song
 - Arrange multiple track timelines in the multitrack arranger with shared transport and loop-range playback
+- Copy song sections across all or selected lanes, overwrite destinations, or insert time and shift later material together
 - Perform live with piano rolls and manual MIDI controller knobs
 - Save/load/clone/delete performances
 - Import/export performance bundles (with optional patch definitions)

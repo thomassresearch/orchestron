@@ -1285,6 +1285,7 @@ export function useSequencerRuntimeController({
     });
   }, []);
 
+  const bundledArpeggiatorEdit = useRef<{ sessionId: string; signature: string } | null>(null);
   const arpeggiatorConfigSyncSignature = useMemo(() => {
     if (activeSessionState !== "running") {
       return null;
@@ -1338,7 +1339,14 @@ export function useSequencerRuntimeController({
     const sessionId = resolveSequencerSessionId();
     if (sessionId && configSyncRef.current?.needsEdit(sessionId, authoredRevision)) {
       try {
-        configSyncRef.current.edit(sessionId, authoredRevision, buildBackendSequencerConfig(sequencerConfig));
+        const payload = buildBackendSequencerConfig(sequencerConfig);
+        if (payload.arpeggiators) {
+          // The combined request prepares these lanes together. A second, standalone
+          // arpeggiator request could otherwise apply half of a multitrack range edit.
+          arpeggiatorSyncCancelRef.current();
+          bundledArpeggiatorEdit.current = { sessionId, signature: JSON.stringify({ tempo_bpm: payload.timing.tempo_bpm, arpeggiators: payload.arpeggiators }) };
+        }
+        configSyncRef.current.edit(sessionId, authoredRevision, payload);
       } catch (error) {
         // Consume this revision without retrying on playback/status renders.
         configSyncRef.current.baseline(sessionId, authoredRevision);
@@ -1348,7 +1356,10 @@ export function useSequencerRuntimeController({
   }, [activeSessionState, authoredRevision, buildBackendSequencerConfig, resolveSequencerSessionId, sequencer.isPlaying, sequencerConfig]);
 
   useEffect(() => {
-    if (!sequencer.isPlaying) configSyncRef.current?.stop();
+    if (!sequencer.isPlaying) {
+      configSyncRef.current?.stop();
+      bundledArpeggiatorEdit.current = null;
+    }
   }, [sequencer.isPlaying]);
 
   useEffect(() => () => {
@@ -1359,6 +1370,7 @@ export function useSequencerRuntimeController({
 
   useEffect(() => {
     if (activeSessionState !== "running" || !arpeggiatorConfigSyncSignature) {
+      bundledArpeggiatorEdit.current = null;
       return;
     }
 
@@ -1366,6 +1378,9 @@ export function useSequencerRuntimeController({
     if (!sessionId) {
       return;
     }
+
+    if (bundledArpeggiatorEdit.current?.sessionId === sessionId && bundledArpeggiatorEdit.current.signature === arpeggiatorConfigSyncSignature) return;
+    bundledArpeggiatorEdit.current = null;
 
     let cancelled = false;
     const payload = JSON.parse(arpeggiatorConfigSyncSignature) as SessionArpeggiatorConfigRequest;
