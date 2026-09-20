@@ -6761,6 +6761,52 @@ def test_definition_colours_survive_native_bundles_and_performance_storage(tmp_p
         assert imported.json()["performance"]["config"]["sequencer"]["tracks"][0]["padLoopPattern"] == pattern
 
 
+@pytest.mark.parametrize("archive_format", ["json", "zip"])
+def test_arranger_history_survives_storage_app_state_and_native_bundles(tmp_path: Path, archive_format: str) -> None:
+    payload = _performance_csd_export_payload()["performanceExport"]
+    config = payload["performance"]["config"]
+    fixture = json.loads((Path(__file__).parent / "fixtures/performances/arranger_seek.json").read_text())
+    config["version"] = 16
+    config["sequencer"] = fixture["config"]["sequencer"]
+    track = config["sequencer"]["tracks"][0]
+    history = {
+        "version": 1,
+        "cursor": 1,
+        "entries": [
+            {"action": "source", "labels": [track["name"]], "changes": [
+                {"id": track["id"], "kind": "sequencer", "before": {"source": False}, "after": {"source": True}},
+            ]},
+            {"action": "repeat", "labels": [track["name"]], "changes": [
+                {"id": track["id"], "kind": "sequencer", "before": {"repeat": track["padLoopRepeat"]}, "after": {"repeat": not track["padLoopRepeat"]}},
+            ]},
+        ],
+        "basis": [{"id": track["id"], "kind": "sequencer", "pattern": track["padLoopPattern"],
+            "source": True, "repeat": track["padLoopRepeat"], "lengths": [pad["lengthBeats"] for pad in track["pads"]], "ratio": [1, 1], "pads": {}}],
+    }
+    config["arrangerHistory"] = history
+    with _client(tmp_path) as client:
+        saved = client.post("/api/performances", json={"name": "History", "config": config})
+        assert saved.status_code == 201, saved.text
+        path = f'/api/performances/{saved.json()["id"]}'
+        assert client.get(path).json()["config"]["arrangerHistory"] == history
+        assert client.put(path, json={"config": config}).json()["config"]["arrangerHistory"] == history
+        state = {"version": 2, "sequencer": config["sequencer"], "arrangerHistory": history}
+        assert client.put("/api/app-state", json={"state": state}).status_code == 200
+        assert client.get("/api/app-state").json()["state"]["arrangerHistory"] == history
+        exported = client.post("/api/bundles/export/performance", json=payload)
+        assert exported.status_code == 200
+        data = exported.content
+        if archive_format == "zip":
+            buffer = BytesIO()
+            with zipfile.ZipFile(buffer, "w") as archive:
+                archive.writestr("performance.orch.json", data)
+            data = buffer.getvalue()
+        imported = client.post("/api/bundles/import/expand", content=data,
+            headers={"Content-Type": "application/octet-stream", "X-File-Name": f"history.orch.{archive_format}"})
+        assert imported.status_code == 200, imported.text
+        assert imported.json()["performance"]["config"]["arrangerHistory"] == history
+
+
 def test_momentary_preview_http_websocket_ordering_and_persistence(tmp_path: Path) -> None:
     config = json.loads((Path(__file__).parent / "fixtures/sequencers/momentary_preview.json").read_text())
     with _client(tmp_path) as client:

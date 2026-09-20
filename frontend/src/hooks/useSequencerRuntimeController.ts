@@ -1,3 +1,4 @@
+import { playingArrangerSourceChanges } from "../store/arrangerHistory";
 import { acknowledgeLaneOutput, setLaneOutputSender } from "../lib/laneOutput";
 import { compilePadLoopPattern } from "../lib/padLoopPattern";
 import { compileDefinition } from "../lib/arrangementEditing";
@@ -877,6 +878,10 @@ export function useSequencerRuntimeController({
     deviceCommandQueue.current = task;
     return task;
   }, [applySequencerStatus, browserClockClientRef, buildBackendSequencerConfig, effectiveAudioOutputModeRef, setSequencerError]);
+
+  useEffect(() => useAppStore.subscribe((state, previous) => {
+    for (const id of playingArrangerSourceChanges(state, previous)) void transportDevice(id, true);
+  }), [transportDevice]);
 
   const startSequencerTransport = useCallback(async (arrangerActive = false): Promise<void> => {
     if (arrangerActive) {

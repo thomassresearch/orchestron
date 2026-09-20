@@ -24,9 +24,8 @@ function Arranger() {
   return <MultitrackArranger collapsed={false} onCollapsedChange={noop} guiLanguage="english" copy={copy}
     sequencer={sequencer} patches={[]} instrumentBindings={[]} onTransportPlay={noop} onTransportStop={noop}
     onTransportStopDoubleClick={noop} onTransportRewind={noop} onTransportFastForward={noop}
-    onArrangerLoopSelectionChange={selectionChanged} onSequencerTrackPadLoopPatternChange={(id, pattern) => useAppStore.getState().setSequencerTrackPadLoopPattern(id, pattern)}
-    onDrummerSequencerTrackPadLoopPatternChange={noop} onControllerSequencerPadLoopPatternChange={noop}
-    onArrangementRangeChange={updates => useAppStore.getState().applyArrangementRangeEdit(updates)} />;
+    onArrangerLoopSelectionChange={selectionChanged}
+    onArrangementRangeChange={(updates, action) => useAppStore.getState().applyArrangementRangeEdit(updates, action)} />;
 }
 
 beforeEach(() => {

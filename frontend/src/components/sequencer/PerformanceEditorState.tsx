@@ -1,7 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type Dispatch, type HTMLAttributes, type ReactNode, type RefObject, type SetStateAction } from "react";
 import { createStore } from "zustand/vanilla";
 import { useStore } from "zustand";
-import type { PadLoopPatternState } from "../../types";
+import type { PadLoopPatternItem, PadLoopPatternState } from "../../types";
+import { useAppStore } from "../../store/useAppStore";
+import { arrangementRangeLanes } from "../../lib/arrangementRange";
+import type { PatternWorkspaceDraft } from "../../lib/patternWorkspace";
 
 export type EditorOwner = "page" | "rack" | "arranger" | "mixer" | `device:${string}` | `binding:${string}` | `route:${string}`;
 type Entry = { owner: EditorOwner; value: unknown };
@@ -35,6 +38,34 @@ export function pruneEditorSelections(selections: Record<string, number[]>, leng
 /** UI-only state. The provider is keyed by workspace generation, never persisted or sent to audio. */
 export function PerformanceEditorProvider({ owners, children, retainedStore }: { owners?: EditorOwner[]; children: ReactNode; retainedStore?: PerformanceEditorStore }) {
   const [store] = useState(() => retainedStore ?? createPerformanceEditorStore());
+  useEffect(() => useAppStore.subscribe((state, previous) => {
+    if (state.arrangerHistoryRestoreRevision === previous.arrangerHistoryRestoreRevision) return;
+    const before = arrangementRangeLanes(previous.sequencer);
+    const after = arrangementRangeLanes(state.sequencer);
+    store.setState(editor => ({ entries: Object.fromEntries(Object.entries(editor.entries).map(([key, entry]) => {
+      const [owner, field] = JSON.parse(key) as [EditorOwner, string];
+      if (field === "arrangerSelection") return [key, { ...entry, value: [] }];
+      if (["editRange", "arrangerUngroupOrigin", "arrangerFocusDefinition"].includes(field)) return [key, { ...entry, value: null }];
+      if (!owner.startsWith("device:")) return [key, entry];
+      const id = owner.slice(7), pattern = after.find(l => l.id === id)?.pattern, old = before.find(l => l.id === id)?.pattern;
+      if (!pattern || !old) return [key, entry];
+      const exists = (kind: string, id: string) => (kind === "group" ? pattern.groups : pattern.superGroups).some(g => g.id === id);
+      if (field === "workspaceDefinition") {
+        const ref = entry.value as { kind: string; id: string } | null;
+        return [key, ref && !exists(ref.kind, ref.id) ? { ...entry, value: null } : entry];
+      }
+      if (field !== "workspaceDrafts") return [key, entry];
+      const expand = (item: PadLoopPatternItem): PadLoopPatternItem[] => {
+        if (item.type === "group" && !exists("group", item.groupId)) return structuredClone(old.groups.find(g => g.id === item.groupId)?.sequence ?? []);
+        if (item.type === "super" && !exists("super", item.superGroupId)) return (old.superGroups.find(g => g.id === item.superGroupId)?.sequence ?? []).flatMap(expand);
+        return [item];
+      };
+      const drafts = entry.value as Record<string, PatternWorkspaceDraft>;
+      return [key, { ...entry, value: Object.fromEntries(Object.entries(drafts).filter(([name]) => {
+        const [kind, id] = name.split(":"); return !["group", "super"].includes(kind) || exists(kind, id);
+      }).map(([name, draft]) => [name, { ...draft, items: draft.items.flatMap(expand), selection: [] }])) }];
+    })) }));
+  }), [store]);
   const ownerSignature = JSON.stringify(owners);
   useEffect(() => {
     if (!ownerSignature) return;

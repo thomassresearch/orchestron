@@ -1,3 +1,4 @@
+import { createArrangerHistoryActions, emptyArrangerHistory, historyMatches, readArrangerHistory } from "./arrangerHistory";
 import { reconcileLaneOutput } from "../lib/laneOutput";
 import { instrumentMetadata } from "../lib/instrumentTypes";
 import { executeStereoCommand, reconcileAudioGraph, deleteAudioGraphItems } from "../lib/audioBlocks";
@@ -100,6 +101,7 @@ export const useAppStore = create<AppStore>((set, get) => {
 
   return {
     ...initialMixerState(),
+    ...createArrangerHistoryActions(set, get),
     ...createMixerActions(set, get),
     ...createPerformanceControllerActions(set, get),
     performanceControllerSyncError: null,
@@ -123,6 +125,9 @@ export const useAppStore = create<AppStore>((set, get) => {
     sequencer: initialSequencerState,
     sequencerRuntime: initialSequencerRuntimeState,
     sequencerEditRevision: 0,
+    arrangerHistory: emptyArrangerHistory(),
+    arrangerHistoryNotice: false,
+    arrangerHistoryRestoreRevision: 0,
     sequencerEditingPads: {},
     performanceAuditions: {},
     selectSequencerEditingPad: (id, pad) => set(state => ({ sequencerEditingPads: { ...state.sequencerEditingPads, [id]: Math.max(0, Math.min(7, Math.round(pad))) } })),
@@ -253,6 +258,7 @@ export const useAppStore = create<AppStore>((set, get) => {
           let instrumentTabs: InstrumentTabState[] = [createInstrumentTab(currentPatch)];
           let activeInstrumentTabId = instrumentTabs[0].id;
           let sequencer = defaultSequencerState();
+          let restoredHistory = readArrangerHistory(undefined, sequencer);
           let sequencerRuntime = sequencerRuntimeStateFromSequencer(sequencer);
           let sequencerInstruments = defaultSequencerInstruments(patches, currentPatch);
           let currentPerformanceId: string | null = null;
@@ -289,6 +295,7 @@ export const useAppStore = create<AppStore>((set, get) => {
                 browserClockLatencySettings
               );
               sequencer = normalizeSequencerState(payload.sequencer);
+              restoredHistory = readArrangerHistory(payload.arrangerHistory, sequencer);
               sequencerRuntime = sequencerRuntimeStateFromSequencer(sequencer);
 
               const availableInstrumentPatches = performablePatches(patches);
@@ -351,6 +358,7 @@ export const useAppStore = create<AppStore>((set, get) => {
             })),
             activeInstrumentTabId,
             sequencer: sequencerSnapshotForPersistence(sequencer),
+            arrangerHistory: restoredHistory.arrangerHistory,
             sequencerInstruments: cleanBindings(sequencerInstruments),
             audioGraph, mixer,
             currentPerformanceId,
@@ -367,6 +375,7 @@ export const useAppStore = create<AppStore>((set, get) => {
             instrumentTabs,
             activeInstrumentTabId,
             sequencer,
+            arrangerHistory: restoredHistory.arrangerHistory,
             sequencerInstruments,
             audioGraph, mixer,
             currentPerformanceId,
@@ -388,6 +397,7 @@ export const useAppStore = create<AppStore>((set, get) => {
             activeInstrumentTabId,
             currentPatch,
             sequencer,
+            ...restoredHistory,
             sequencerRuntime,
             sequencerInstruments,
             audioGraph, mixer, migrationNotice,
@@ -466,6 +476,8 @@ export const useAppStore = create<AppStore>((set, get) => {
         set({
           patches: hydrated.patches,
           sequencer: parsed.sequencer,
+          arrangerHistory: parsed.arrangerHistory,
+          arrangerHistoryNotice: parsed.arrangerHistoryNotice,
           sequencerRuntime: sequencerRuntimeStateFromSequencer(parsed.sequencer),
           sequencerInstruments: parsed.instruments,
           audioGraph: parsed.audioGraph, mixer: parsed.mixer, migrationNotice: parsed.migrationNotice,
@@ -547,6 +559,8 @@ export const useAppStore = create<AppStore>((set, get) => {
         sequencerEditingPads: {},
         performanceAuditions: {},
         sequencer: nextSequencer,
+        arrangerHistory: emptyArrangerHistory(),
+        arrangerHistoryNotice: false,
         sequencerRuntime: sequencerRuntimeStateFromSequencer(nextSequencer),
         sequencerInstruments: [],
         ...initialMixerState(),
@@ -676,7 +690,7 @@ export const useAppStore = create<AppStore>((set, get) => {
 
       set({ loading: true, error: null });
       try {
-        const snapshot = buildSequencerConfigSnapshot(state.sequencer, state.sequencerInstruments, state.audioGraph, state.mixer);
+        const snapshot = buildSequencerConfigSnapshot(state.sequencer, state.sequencerInstruments, state.audioGraph, state.mixer, state.arrangerHistory);
         const selectedPatchIds = [
           ...new Set(snapshot.instruments.map((instrument) => instrument.patchId.trim()).filter((patchId) => patchId.length > 0))
         ];
@@ -1089,6 +1103,14 @@ function schedulePersistedAppState(snapshot: PersistedAppState): void {
   }, APP_STATE_PERSIST_DEBOUNCE_MS);
 }
 
+// Invalidate outside the component lifetime, including edits made while collapsed.
+useAppStore.subscribe((state, previous) => {
+  if (state.sequencer !== previous.sequencer && state.arrangerHistory === previous.arrangerHistory &&
+      state.arrangerHistory.entries.length && !historyMatches(state.sequencer, state.arrangerHistory)) {
+    useAppStore.setState({ arrangerHistory: emptyArrangerHistory(), arrangerHistoryNotice: true });
+  }
+});
+
 reconcileLaneOutput(useAppStore.getState().sequencer);
 useAppStore.subscribe((state, previous) => {
   if (state.sequencer !== previous.sequencer || state.performanceWorkspaceGeneration !== previous.performanceWorkspaceGeneration) {
@@ -1104,6 +1126,8 @@ useAppStore.subscribe((state, previous) => {
 });
 
 useAppStore.subscribe((state, previous) => {
+  // A prior subscriber may have invalidated history in a nested update.
+  if (state !== useAppStore.getState()) return;
   if (!state.hasLoadedBootstrap) {
     return;
   }

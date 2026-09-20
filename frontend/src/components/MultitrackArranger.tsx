@@ -1,3 +1,5 @@
+import type { ArrangerActionCode } from "../store/arrangerHistory";
+import { ArrangerHistoryControls } from "./sequencer/ArrangerHistoryControls";
 import { useAppStore } from "../store/useAppStore";
 import { sequencerTransportSubunitsPerStep } from "../lib/sequencer";
 import { ArrangerLane } from "./ArrangerLane";
@@ -64,14 +66,8 @@ export type MultitrackArrangerProps = {
   onTransportRewind: () => void;
   onTransportFastForward: () => void;
   onArrangerLoopSelectionChange: (selection: ArrangerLoopSelection | null, positionStep?: number) => void;
-  onArrangementRangeChange: (updates: ArrangementRangeUpdate[]) => void;
-  onSequencerTrackPadLoopPatternChange: (trackId: string, pattern: PadLoopPatternState) => void;
-  onDrummerSequencerTrackPadLoopPatternChange: (trackId: string, pattern: PadLoopPatternState) => void;
-  onControllerSequencerPadLoopPatternChange: (controllerSequencerId: string, pattern: PadLoopPatternState) => void;
-  onArpeggiatorPadLoopPatternChange?: (id: string, pattern: PadLoopPatternState) => void;
-  onPlaybackChange?: (kind: ArrangerTrackKind, id: string, source: boolean, repeat: boolean) => void;
+  onArrangementRangeChange: (updates: ArrangementRangeUpdate[], action?: ArrangerActionCode) => void;
   onEditPad?: (kind: ArrangerTrackKind, id: string, pad: number) => void;
-  onPadCopy?: (kind: ArrangerTrackKind, id: string, source: number, target: number) => void;
   onHelpRequest?: (helpDocId: HelpDocId) => void;
 };
 function CassetteIcon({ kind }: { kind: "rewind" | "stop" | "play" | "fastForward" }) {
@@ -165,12 +161,10 @@ function MultitrackArrangerBody(props: MultitrackArrangerProps) {
   const arrangerPosition = useAppStore(state => state.sequencerRuntime.arrangerTransportSubunit);
   const playhead = (arrangerPosition !== undefined
     ? arrangerPosition / sequencerTransportSubunitsPerStep() : sequencer.cycle * sequencer.stepCount + sequencer.playhead) * zoom;
-  const commit = (lane: Lane, pattern: PadLoopPatternState) => {
+  const commit = (lane: Lane, pattern: PadLoopPatternState, action: ArrangerActionCode, copyPad?: { from: number; to: number }) => {
     validateArrangementEdit(lane.pattern, pattern);
-    if (lane.kind === "sequencer") props.onSequencerTrackPadLoopPatternChange(lane.id, pattern);
-    else if (lane.kind === "drummer") props.onDrummerSequencerTrackPadLoopPatternChange(lane.id, pattern);
-    else if (lane.kind === "controller") props.onControllerSequencerPadLoopPatternChange(lane.id, pattern);
-    else props.onArpeggiatorPadLoopPatternChange?.(lane.id, pattern);
+    useAppStore.getState().commitArrangerEdit(action, [{ id: lane.id, kind: lane.kind, pattern, copyPad,
+      source: pattern.rootSequence.length > 0 && (lane.source || lane.pattern.rootSequence.length === 0) }]);
   };
   return <>
     <div className="mb-2 grid grid-cols-[204px_minmax(0,1fr)] gap-2 border border-transparent px-2 text-xs text-slate-400"><div>{copy.instrumentColumn}</div><div>{copy.timelineColumn}</div></div>
@@ -179,7 +173,7 @@ function MultitrackArrangerBody(props: MultitrackArrangerProps) {
       {Array.from({ length: Math.ceil(visibleSteps / quantum) }, (_, beat) => <span key={beat} className="absolute text-xs text-slate-400" style={{ left: beat * quantum * zoom }}>{beat % sequencer.timing.meterNumerator === 0 ? `${Math.floor(beat / sequencer.timing.meterNumerator) + 1}.1` : zoom * quantum >= 40 ? `·${beat % sequencer.timing.meterNumerator + 1}` : ""}</span>)}
       {rangeEditor.overlay()}
     </div></div>
-    <div className="space-y-1">{lanes.map(lane => <ArrangerLane key={lane.id} lane={lane} props={props} selected={selectedLane === lane.id} select={() => selectLane(lane.id)} commit={pattern => commit(lane, pattern)}
+    <div className="space-y-1">{lanes.map(lane => <ArrangerLane key={lane.id} lane={lane} props={props} selected={selectedLane === lane.id} select={() => selectLane(lane.id)} commit={(pattern, action, copyPad) => commit(lane, pattern, action, copyPad)}
       rangeOverlay={rangeEditor.overlay(lane.id)} rangeActions={rangeEditor.menuActions}
       rangeSelection={rangeEditor.range?.laneIds.includes(lane.id) ? { start: rangeEditor.range.startSubunit / sequencerTransportSubunitsPerBeat() / lane.beatScale, end: rangeEditor.range.endSubunit / sequencerTransportSubunitsPerBeat() / lane.beatScale } : undefined}
       zoom={zoom * quantum * lane.beatScale} width={width} scroll={scroll} playhead={playhead} />)}</div>
@@ -203,7 +197,15 @@ function MultitrackArrangerBody(props: MultitrackArrangerProps) {
 }
 
 export function MultitrackArranger(props: MultitrackArrangerProps) {
-  return <div id="multitrack-arranger"><EditorScope><MultitrackArrangerShell {...props} /></EditorScope></div>;
+  return <div id="multitrack-arranger" onKeyDownCapture={event => {
+    if ((event.target as HTMLElement).closest("input,textarea,select,[contenteditable=true]")) return;
+    const key = event.key.toLowerCase();
+    if ((event.metaKey || event.ctrlKey) && ["z", "y"].includes(key)) {
+      event.preventDefault(); event.stopPropagation();
+      const store = useAppStore.getState();
+      if (event.shiftKey || key === "y") store.redoArranger(); else store.undoArranger();
+    }
+  }}><EditorScope><MultitrackArrangerShell {...props} /></EditorScope></div>;
 }
 function MultitrackArrangerShell(props: MultitrackArrangerProps) {
   const { collapsed, onCollapsedChange, guiLanguage, copy, onHelpRequest, onTransportRewind, onTransportStop, onTransportStopDoubleClick, onTransportPlay, onTransportFastForward } = props;
@@ -229,6 +231,7 @@ function MultitrackArrangerShell(props: MultitrackArrangerProps) {
       <span className="rounded-md border border-slate-700 bg-slate-900 px-2 py-0.5 font-mono text-[10px] text-slate-300">
         {copy.deviceSummary}
       </span>
+      <ArrangerHistoryControls language={guiLanguage} collapsed={collapsed} />
       <div className="ml-auto flex flex-wrap items-center gap-1.5">
         <button
           type="button"

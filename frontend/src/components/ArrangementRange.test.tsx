@@ -17,9 +17,7 @@ function Arranger({ collapsed = false }: { collapsed?: boolean }) {
   return <MultitrackArranger collapsed={collapsed} onCollapsedChange={noop} guiLanguage="english" copy={copy}
     sequencer={sequencer} patches={[]} instrumentBindings={[]} onTransportPlay={noop} onTransportStop={noop} onTransportStopDoubleClick={noop}
     onTransportRewind={noop} onTransportFastForward={noop} onArrangerLoopSelectionChange={loopChanged}
-    onSequencerTrackPadLoopPatternChange={(id, pattern) => useAppStore.getState().setSequencerTrackPadLoopPattern(id, pattern)}
-    onDrummerSequencerTrackPadLoopPatternChange={noop} onControllerSequencerPadLoopPatternChange={noop}
-    onArrangementRangeChange={updates => useAppStore.getState().applyArrangementRangeEdit(updates)} />;
+    onArrangementRangeChange={(updates, action) => useAppStore.getState().applyArrangementRangeEdit(updates, action)} />;
 }
 function Workspace({ store, visible = true, collapsed = false }: { store: PerformanceEditorStore; visible?: boolean; collapsed?: boolean }) {
   return visible ? <PerformanceEditorProvider retainedStore={store}><Arranger collapsed={collapsed} /></PerformanceEditorProvider> : null;
@@ -161,7 +159,7 @@ it.each(["pointerCancel", "lostPointerCapture", "escape", "blur"])("cancels %s w
   expect(surface.querySelector("[data-range-preview]")).toBeNull();
 });
 
-it("keeps range, clipboard and history through collapse and page remount, and resets with a new workspace store", () => {
+it("keeps saved history through editor remounts while resetting session-only clipboard", () => {
   const view = setup();
   select(view.ruler); shortcut(view.surface, "c"); shortcut(view.surface, "d", true);
   view.rerender(<Workspace store={view.store} collapsed />);
@@ -175,23 +173,23 @@ it("keeps range, clipboard and history through collapse and page remount, and re
   destination(ruler, 16); shortcut(surface, "v", true); expect(root()).toHaveLength(6);
   view.rerender(<Workspace store={view.store} visible={false} />);
   view.rerender(<Workspace store={createPerformanceEditorStore()} />);
-  shortcut(screen.getByRole("group", { name: "Range actions" }), "z"); expect(root()).toHaveLength(6);
+  shortcut(screen.getByRole("group", { name: "Range actions" }), "z"); expect(root()).toHaveLength(4);
   shortcut(screen.getByRole("group", { name: "Range actions" }), "v");
   expect(screen.getByRole("alert").textContent).toBe("Copy a range first.");
 });
 
-it("invalidates history after an external structural edit while preserving it through runtime and colour updates", () => {
+it("keeps history through runtime updates and clears it for external changes to recorded patterns", () => {
   const { ruler, surface } = setup();
   select(ruler); shortcut(surface, "d", true);
   act(() => useAppStore.getState().syncSequencerRuntime({ isPlaying: true, playhead: 7, cycle: 2 }));
+  shortcut(surface, "z"); expect(root()).toHaveLength(4);
+  shortcut(surface, "z", true); expect(root()).toHaveLength(6);
   const track = useAppStore.getState().sequencer.tracks[0];
   act(() => useAppStore.getState().setSequencerTrackPadLoopPattern(track.id, { ...track.padLoopPattern, definitionColors: { "pad:0": "#123456" } }));
-  shortcut(surface, "z"); expect(root()).toHaveLength(4);
+  expect(useAppStore.getState().arrangerHistory.entries).toHaveLength(0);
+  shortcut(surface, "z"); expect(root()).toHaveLength(6);
   expect(useAppStore.getState().sequencer.tracks[0].padLoopPattern.definitionColors).toEqual({ "pad:0": "#123456" });
-  shortcut(surface, "z", true); expect(root()).toHaveLength(6);
-  act(() => useAppStore.getState().setSequencerTrackPadLoopPattern(track.id, { ...track.padLoopPattern, rootSequence: [pad(1)] }));
-  const after = useAppStore.getState();
-  shortcut(surface, "z"); expect(useAppStore.getState()).toBe(after);
+  expect(screen.getByRole("status").textContent).toContain("history was cleared");
 });
 
 it("maps zoomed and scrolled ruler positions without seeking the loop transport", () => {

@@ -50,7 +50,14 @@ export interface InstrumentTabState {
 }
 
 export interface AppStore {
-  applyArrangementRangeEdit: (updates: import("../lib/arrangementRange").ArrangementRangeUpdate[]) => void;
+  arrangerHistory: import("./arrangerHistory").ArrangerHistory;
+  arrangerHistoryNotice: boolean;
+  arrangerHistoryRestoreRevision: number;
+  commitArrangerEdit: (action: import("./arrangerHistory").ArrangerActionCode, updates: import("./arrangerHistory").ArrangerUpdate[]) => void;
+  undoArranger: () => void;
+  redoArranger: () => void;
+  goToArrangerHistory: (cursor: number) => void;
+  applyArrangementRangeEdit: (updates: import("../lib/arrangementRange").ArrangementRangeUpdate[], action?: import("./arrangerHistory").ArrangerActionCode) => void;
   loading: boolean;
   error: string | null;
   hasLoadedBootstrap: boolean;

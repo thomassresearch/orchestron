@@ -1,3 +1,4 @@
+import type { ArrangerActionCode } from "../store/arrangerHistory";
 import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent, type ReactNode } from "react";
 import { sequencerTransportSubunitsPerBeat } from "../lib/sequencer";
 import type { Lane, MultitrackArrangerProps } from "./MultitrackArranger";
@@ -24,7 +25,7 @@ type Drag = { x: number; start: number; indexes: number[]; moved: boolean; restD
 type Preview = { position: number; duration: number; valid: boolean; insert: boolean };
 
 export function ArrangerLane({ lane, props, selected, select, commit, zoom, width, scroll, playhead, rangeOverlay, rangeSelection, rangeActions }: {
-  lane: Lane; props: MultitrackArrangerProps; selected: boolean; select: () => void; commit: (pattern: PadLoopPatternState) => void;
+  lane: Lane; props: MultitrackArrangerProps; selected: boolean; select: () => void; commit: (pattern: PadLoopPatternState, action: ArrangerActionCode, copyPad?: { from: number; to: number }) => void;
   zoom: number; width: number; scroll: number; playhead: number;
   rangeOverlay?: ReactNode; rangeSelection?: { start: number; end: number }; rangeActions?: (close: () => void) => ReactNode;
 }) {
@@ -45,6 +46,7 @@ export function ArrangerLane({ lane, props, selected, select, commit, zoom, widt
   const [color, setColor] = useState(swatches[0]);
   const [error, setError] = useState("");
   const [preview, setPreview] = useState<Preview | null>(null);
+  const restoreRevision = useAppStore(state => state.arrangerHistoryRestoreRevision);
   const drag = useRef<Drag | null>(null);
   const draggedClick = useRef(false);
   const palette = useRef<HTMLDivElement>(null);
@@ -60,11 +62,12 @@ export function ArrangerLane({ lane, props, selected, select, commit, zoom, widt
   const openLane = () => { select(); setExpanded(true); };
   const cancelDrag = () => { drag.current = null; setPreview(null); endArrangementDrag(); };
   const closeMenu = () => setMenu(null);
-  const attempt = (edit: () => PadLoopPatternState, nextSelection: number[] = []) => {
-    try { commit(edit()); setError(""); setSelection(nextSelection); closeMenu(); return true; }
+  const attempt = (action: ArrangerActionCode, edit: () => PadLoopPatternState, nextSelection: number[] = [], copyPad?: { from: number; to: number }) => {
+    try { commit(edit(), action, copyPad); setError(""); setSelection(nextSelection); closeMenu(); return true; }
     catch (cause) { setError(cause instanceof Error && cause.message === "Occupied destination." ? c.collision : c.blocked); return false; }
   };
   useEffect(() => () => { drag.current = null; endArrangementDrag(); }, []);
+  useEffect(() => { drag.current = null; setPreview(null); setMenu(null); endArrangementDrag(); }, [restoreRevision]);
   useEffect(() => {
     if (!expanded || !focusedDefinition) return;
     const key = definitionColorKey(focusedDefinition);
@@ -109,18 +112,18 @@ export function ArrangerLane({ lane, props, selected, select, commit, zoom, widt
     if (!current || !current.moved && Math.abs(event.clientX - current.x) < 4) return;
     draggedClick.current = true;
     if (current.restDuration !== undefined) {
-      attempt(() => ({ ...lane.pattern, rootSequence: [...lane.pattern.rootSequence.slice(0, current.indexes[0]),
+      attempt("rest", () => ({ ...lane.pattern, rootSequence: [...lane.pattern.rootSequence.slice(0, current.indexes[0]),
         ...restTokens(Math.max(1, current.restDuration! + Math.round((event.clientX - current.x) / zoom))), ...lane.pattern.rootSequence.slice(current.indexes[current.indexes.length - 1] + 1)] }));
-    } else attempt(() => resolve(current.start + (event.clientX - current.x) / zoom, current.indexes.map(i => lane.pattern.rootSequence[i]), current.indexes).pattern);
+    } else attempt("move", () => resolve(current.start + (event.clientX - current.x) / zoom, current.indexes.map(i => lane.pattern.rootSequence[i]), current.indexes).pattern);
   };
   const vary = () => {
     if (!menu?.item || menu.item.type === "pause") return;
     const source = menu.item;
-    attempt(() => {
+    attempt("variation", () => {
       let next = lane.pattern;
       let target: PadLoopPatternItem;
       if (source.type === "pad") {
-        if (lane.unusedPad < 0 || !props.onPadCopy) throw new Error(c.noSlot);
+        if (lane.unusedPad < 0) throw new Error(c.noSlot);
         target = { type: "pad", padIndex: lane.unusedPad };
       } else {
         const definition = source.type === "group" ? lane.pattern.groups.find(g => g.id === source.groupId) : lane.pattern.superGroups.find(g => g.id === source.superGroupId);
@@ -130,9 +133,8 @@ export function ArrangerLane({ lane, props, selected, select, commit, zoom, widt
       next = { ...next, rootSequence: next.rootSequence.map((item, i) => i === menu.indexes[0] ? target : item) };
       next = setDefinitionColor(next, target, lane.pattern.definitionColors?.[definitionColorKey(source)]);
       validateArrangementEdit(lane.pattern, next);
-      if (source.type === "pad") props.onPadCopy!(lane.kind, lane.id, source.padIndex, lane.unusedPad);
       return next;
-    });
+    }, [], source.type === "pad" ? { from: source.padIndex, to: lane.unusedPad } : undefined);
   };
   const canGroup = (kind: "group" | "super") => !!menu && contiguousArrangementSelection(menu.indexes)
     && canCreatePadLoopGroupFromSelection(lane.pattern, { kind: "root" }, menu.indexes, kind);
@@ -152,9 +154,9 @@ export function ArrangerLane({ lane, props, selected, select, commit, zoom, widt
           <span className="min-w-0 flex-1 truncate text-[10px] text-slate-400" title={lane.subtitle}>{lane.subtitle}</span>
           <EditorDetails owner={owner} field="playbackSettings" summary={c.settings} className="max-w-full text-[10px] text-slate-400" summaryClassName="cursor-pointer">
             {() => <div className="space-y-1 py-1">
-              <label className="block">{c.source}<select className={`${button} w-full`} value={lane.source ? "arrangement" : "manual"} onChange={e => props.onPlaybackChange?.(lane.kind, lane.id, e.target.value === "arrangement", lane.repeat)}>
+              <label className="block">{c.source}<select className={`${button} w-full`} value={lane.source ? "arrangement" : "manual"} onChange={e => useAppStore.getState().commitArrangerEdit("source", [{ id: lane.id, kind: lane.kind, source: e.target.value === "arrangement" && lane.pattern.rootSequence.length > 0 }])}>
                 <option value="manual">{c.manual}</option><option value="arrangement" disabled={!lane.pattern.rootSequence.length}>{c.arrangement}</option></select></label>
-              {lane.source && <label className="block">{c.atEnd}<select className={`${button} w-full`} value={String(lane.repeat)} onChange={e => props.onPlaybackChange?.(lane.kind, lane.id, true, e.target.value === "true")}><option value="false">{c.once}</option><option value="true">{c.repeat}</option></select></label>}
+              {lane.source && <label className="block">{c.atEnd}<select className={`${button} w-full`} value={String(lane.repeat)} onChange={e => useAppStore.getState().commitArrangerEdit("repeat", [{ id: lane.id, kind: lane.kind, repeat: e.target.value === "true" }])}><option value="false">{c.once}</option><option value="true">{c.repeat}</option></select></label>}
             </div>}
           </EditorDetails>
         </div>
@@ -166,13 +168,13 @@ export function ArrangerLane({ lane, props, selected, select, commit, zoom, widt
           onContextMenu={event => { if (event.target === event.currentTarget) showMenu(event, undefined, indexes); }}
           onKeyDown={event => {
             if ((event.target as HTMLElement).closest("button,input,select")) return;
-            if (["Delete", "Backspace"].includes(event.key)) { event.preventDefault(); attempt(() => removeArrangementItems(lane.pattern, indexes, duration, event.shiftKey)); }
+            if (["Delete", "Backspace"].includes(event.key)) { event.preventDefault(); attempt(event.shiftKey ? "closeGap" : "remove", () => removeArrangementItems(lane.pattern, indexes, duration, event.shiftKey)); }
             if (event.key === "Escape") { cancelDrag(); closeMenu(); }
             if (event.target === event.currentTarget && (event.key === "ContextMenu" || event.shiftKey && event.key === "F10")) showMenu(event, undefined, indexes);
           }}
           onDragOver={event => { const payload = currentArrangementDrag(); if (payload?.trackId !== lane.id) return; event.preventDefault(); event.dataTransfer.dropEffect = "copy"; previewDrop((event.clientX - event.currentTarget.getBoundingClientRect().left) / zoom, [payload.item]); }}
           onDragLeave={event => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setPreview(null); }}
-          onDrop={event => { event.preventDefault(); setPreview(null); try { const payload = JSON.parse(event.dataTransfer.getData(ARRANGEMENT_ITEM_MIME)); if (payload.trackId !== lane.id) throw new Error(c.blocked); attempt(() => resolve((event.clientX - event.currentTarget.getBoundingClientRect().left) / zoom, [payload.item]).pattern); } catch { setError(c.blocked); } endArrangementDrag(); }}
+          onDrop={event => { event.preventDefault(); setPreview(null); try { const payload = JSON.parse(event.dataTransfer.getData(ARRANGEMENT_ITEM_MIME)); if (payload.trackId !== lane.id) throw new Error(c.blocked); attempt("place", () => resolve((event.clientX - event.currentTarget.getBoundingClientRect().left) / zoom, [payload.item]).pattern); } catch { setError(c.blocked); } endArrangementDrag(); }}
           onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={cancelDrag} onLostPointerCapture={() => { if (drag.current) cancelDrag(); }}>
           {spans.map(span => <div key={span.indexes[0]} role="listitem" data-arrangement-occurrence data-range-start={span.start * lane.beatScale * sequencerTransportSubunitsPerBeat()} tabIndex={0} aria-label={`${label(span.item)} · ${Number((span.start * lane.beatScale).toFixed(4))}`} aria-selected={span.indexes.some(i => indexes.includes(i)) || !!rangeSelection && span.start < rangeSelection.end && span.start + span.duration > rangeSelection.start}
             className={`absolute top-1 flex h-9 cursor-grab select-none items-center overflow-hidden rounded border px-1 text-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 ${span.item.type === "pause" ? "border-slate-600 bg-slate-800/60 text-slate-300" : PATTERN_ITEM_COLORS[span.item.type]} ${span.indexes.some(i => indexes.includes(i)) ? "ring-2 ring-cyan-400" : ""}`}
@@ -226,18 +228,18 @@ export function ArrangerLane({ lane, props, selected, select, commit, zoom, widt
           <button role="menuitem" className={menuButton} disabled={!menu.indexes.some(i => ["group", "super"].includes(lane.pattern.rootSequence[i]?.type))} onClick={() => {
             const source = menu.indexes.length === 1 ? lane.pattern.rootSequence[menu.indexes[0]] : undefined;
             const ref = source?.type === "group" ? { kind: "group" as const, id: source.groupId } : source?.type === "super" ? { kind: "super" as const, id: source.superGroupId } : null;
-            if (attempt(() => ungroupPadLoopItemsInContainer(lane.pattern, { kind: "root" }, menu.indexes))) setOrigin(ref);
+            if (attempt("ungroup", () => ungroupPadLoopItemsInContainer(lane.pattern, { kind: "root" }, menu.indexes))) setOrigin(ref);
           }}>{props.copy.contextMenuUngroup}</button>
-          <button role="menuitem" className={menuButton} disabled={!menu.indexes.some(i => lane.pattern.rootSequence[i]?.type !== "pause")} onClick={() => attempt(() => removeArrangementItems(lane.pattern, menu.indexes, duration))}>{c.remove}</button>
-          <button role="menuitem" className={menuButton} disabled={!menu.indexes.length} onClick={() => attempt(() => removeArrangementItems(lane.pattern, menu.indexes, duration, true))}>{c.closeGap}</button>
+          <button role="menuitem" className={menuButton} disabled={!menu.indexes.some(i => lane.pattern.rootSequence[i]?.type !== "pause")} onClick={() => attempt("remove", () => removeArrangementItems(lane.pattern, menu.indexes, duration))}>{c.remove}</button>
+          <button role="menuitem" className={menuButton} disabled={!menu.indexes.length} onClick={() => attempt("closeGap", () => removeArrangementItems(lane.pattern, menu.indexes, duration, true))}>{c.closeGap}</button>
           {menu.item?.type === "pause" && <button role="menuitem" className={menuButton} disabled={spans.filter(span => span.indexes.some(i => menu.indexes.includes(i))).length !== 1} onClick={() => { const span = spans.find(s => s.indexes.includes(menu.indexes[0])); setRestDuration(String(span?.duration ?? 1)); setPanel("rest"); }}>{c.duration}…</button>}
         </>}
         {musicalMenu && <><button role="menuitem" className={menuButton} onClick={() => { setColor(lane.pattern.definitionColors?.[definitionColorKey(menu.item!)] ?? swatches[0]); setPanel("color"); }}>{c.setColor}</button>
-          <button role="menuitem" className={menuButton} disabled={!lane.pattern.definitionColors?.[definitionColorKey(menu.item!)]} onClick={() => attempt(() => setDefinitionColor(lane.pattern, menu.item!), indexes)}>{c.resetColor}</button></>}
+          <button role="menuitem" className={menuButton} disabled={!lane.pattern.definitionColors?.[definitionColorKey(menu.item!)]} onClick={() => attempt("color", () => setDefinitionColor(lane.pattern, menu.item!), indexes)}>{c.resetColor}</button></>}
         {menu.palette && menuRef && <>
           <button role="menuitem" className={menuButton} disabled={deletionUses(menuRef).length > 0} onClick={() => {
             let nextDrafts = workspaceDrafts;
-            if (attempt(() => { const result = deleteWorkspaceDefinition(lane.pattern, workspaceDrafts, menuRef); nextDrafts = result.drafts; return result.pattern; })) {
+            if (attempt("deleteDefinition", () => { const result = deleteWorkspaceDefinition(lane.pattern, workspaceDrafts, menuRef); nextDrafts = result.drafts; return result.pattern; })) {
               setWorkspaceDrafts(nextDrafts);
               setWorkspaceDefinition(current => current?.kind === menuRef.kind && current.id === menuRef.id ? null : current);
             }
@@ -248,7 +250,7 @@ export function ArrangerLane({ lane, props, selected, select, commit, zoom, widt
       </>}
       {panel === "rest" && <div className="space-y-2">
         <label>{c.duration} <input className={`${button} w-20`} type="number" min={1} step={1} value={restDuration} onChange={event => setRestDuration(event.target.value)} /></label>
-        <div><button className={button} onClick={() => attempt(() => {
+        <div><button className={button} onClick={() => attempt("rest", () => {
           const span = spans.find(s => s.indexes.includes(menu.indexes[0]));
           if (!span || Number(restDuration) < 1) throw new Error(c.blocked);
           return { ...lane.pattern, rootSequence: [...lane.pattern.rootSequence.slice(0, span.indexes[0]), ...restTokens(Number(restDuration)), ...lane.pattern.rootSequence.slice(span.indexes[span.indexes.length - 1] + 1)] };
@@ -258,14 +260,14 @@ export function ArrangerLane({ lane, props, selected, select, commit, zoom, widt
         <p>{c.setColor} {menu.item && label(menu.item)}</p>
         <div className="flex flex-wrap gap-2">{swatches.map(value => <button key={value} className={`h-6 w-6 rounded border ${color === value ? "ring-2 ring-cyan-300" : ""}`} aria-label={value} style={{ backgroundColor: value }} onClick={() => setColor(value)} />)}</div>
         <label className="flex items-center gap-2">{c.customColor}<input type="color" value={color} onChange={event => setColor(event.target.value)} /></label>
-        <button className={button} onClick={() => attempt(() => setDefinitionColor(lane.pattern, menu.item!, color), indexes)}>{c.apply}</button> <button className={button} onClick={closeMenu}>{c.cancelEdit}</button>
+        <button className={button} onClick={() => attempt("color", () => setDefinitionColor(lane.pattern, menu.item!, color), indexes)}>{c.apply}</button> <button className={button} onClick={closeMenu}>{c.cancelEdit}</button>
       </div>}
       {(panel === "group" || panel === "super") && <div className="space-y-2">
         <label className="block">{panel === "group" ? c.group : c.super}<select className={`${button} mt-1 w-full`} value={groupTarget} onChange={event => setGroupTarget(event.target.value)}>
           <option value="">{c.newDefinition}</option><optgroup label={c.updateDefinition}>{[...(panel === "group" ? lane.pattern.groups : lane.pattern.superGroups)].sort((a, b) => Number(b.id === origin?.id && origin.kind === panel) - Number(a.id === origin?.id && origin.kind === panel)).map(g => <option key={g.id} value={g.id}>{g.id}</option>)}</optgroup>
         </select></label>
         {groupTarget && <><p>{c.used}: {definitionUses(lane.pattern, { kind: panel, id: groupTarget }).join(", ") || "—"}</p><p className="text-amber-200">{c.shared}</p></>}
-        <button className={button} onClick={() => attempt(() => groupArrangementSelection(lane.pattern, menu.indexes, panel, groupTarget || undefined).pattern, [Math.min(...menu.indexes)])}>{c.apply}</button> <button className={button} onClick={closeMenu}>{c.cancelEdit}</button>
+        <button className={button} onClick={() => attempt(panel, () => groupArrangementSelection(lane.pattern, menu.indexes, panel, groupTarget || undefined).pattern, [Math.min(...menu.indexes)])}>{c.apply}</button> <button className={button} onClick={closeMenu}>{c.cancelEdit}</button>
       </div>}
     </ArrangerContextMenu>}
     {error && <p className="mt-1 text-xs text-red-300" role="alert">{error}</p>}

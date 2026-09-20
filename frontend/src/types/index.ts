@@ -538,6 +538,7 @@ export interface SequencerInstrumentBinding {
 }
 
 export interface SequencerConfigSnapshot {
+  arrangerHistory?: import("../store/arrangerHistory").ArrangerHistory;
   version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16;
   audioGraph?: AudioGraph;
   mixer?: MixerState;
@@ -688,6 +689,7 @@ export interface BrowserClockLatencySettings {
 }
 
 export interface PersistedAppState {
+  arrangerHistory?: import("../store/arrangerHistory").ArrangerHistory;
   version: 1 | 2;
   audioGraph?: AudioGraph;
   mixer?: MixerState;

@@ -54,7 +54,7 @@ For two 16-beat sections **A–B**, select the first 16 beats and choose **Dupli
 | Paste — insert, copied lanes only | Context menu | Shifts later material only on the copied lanes. |
 | Duplicate — insert time, all lanes | Cmd/Ctrl+Shift+D | Inserts a copy immediately after the selection and shifts every lane’s later material. |
 | Duplicate — insert, selected lanes only | Context menu | Inserts the copy after the selection and shifts only its lanes. |
-| Undo range edit / Redo range edit | Cmd/Ctrl+Z / Cmd/Ctrl+Shift+Z | Reverses or restores one complete multi-lane range edit. Ctrl+Y also redoes. |
+| Undo / Redo | Cmd/Ctrl+Z / Cmd/Ctrl+Shift+Z | Reverses or restores one complete arranger action, including multi-lane range edits. Ctrl+Y also redoes. |
 
 Right-click inside the highlighted range to keep the selection and open its commands. Right-click elsewhere in a timeline or on the ruler to choose a destination; occurrence menus also contain paste actions. **Shift+arrows** extends a selection in time or across lanes. **Shift+F10** opens its menu. Shortcuts apply only inside the arranger, outside text fields and controls.
 
@@ -66,7 +66,19 @@ Insertion requires a musical boundary on every shifted lane; overwrite requires 
 
 Range edits preserve Playback source, Repeat, the transport cursor and loop coordinates, including dormant arrangements on Manual-pad lanes. Independently playing Manual pads continue. During playback, the whole edit follows the normal live-preparation workflow; preparation failure retains the previous playing configuration and the edited draft.
 
-Selection, clipboard and up to 50 range undo steps survive collapse and view switches. New/Load/Import resets them; save/export excludes them. Undo restores arrangement contents only. Other sequence, definition, pad-duration, beat-ratio or lane-membership edits invalidate history, even while closed. Notes, colours, mixer and transport updates preserve it. This history covers range edits only. After definition or duration changes, copy again.
+Selection and clipboard survive collapse and view switches within the session. New/Load/Import resets them; save/export excludes them. After definition or duration changes, copy again.
+
+## Undo and redo
+
+The two curved-arrow buttons immediately to the right of the device summary undo or redo one arranger action. Their tooltips describe the next action; unavailable directions are disabled. The same history is available through context menus and **Cmd/Ctrl+Z**, **Cmd/Ctrl+Shift+Z**, or **Ctrl+Y** inside the arranger. Text fields retain their normal editing shortcuts.
+
+Hold either button for **500 ms** to open its history without taking a step. Undo lists past actions, newest first; choosing one undoes that action and everything after it. Redo lists future actions in execution order; choosing one restores through that action. The result applies as one update. Arrow Down on a focused button opens the menu; arrows navigate, Enter selects, and Escape closes it. Menus also close on outside clicks, collapse, view changes and performance replacement.
+
+History retains **25 actions total across Undo and Redo**, including placement, movement, deletion, rest resizing, range edits, grouping/ungrouping, definition updates/deletion, variations, colours, Playback source and Repeat. A completed drag, multi-lane edit or pad variation is one action. Failed, cancelled and unchanged edits do not count. After undoing, making a new arranger edit discards the future actions and starts a new branch.
+
+Both past and future are saved with the performance, autosave and native exports. Load/Import restores the incoming history; New and older files start empty. History survives collapse and view switches. Invalid or incompatible saved history is discarded with a notice while the musical performance still loads.
+
+Changes outside the arranger are not recorded. Changes to related arrangement fields, shared definitions, pad lengths, beat ratios, removed lanes or a pad slot restored by a variation clear the entire history with a brief notice, even while the arranger is closed. Unrelated notes, mixer controls, Mute/Solo, transport, auditions and editor navigation preserve it. Undo does not restore the playhead, loop coordinates or editor selections, and does not overwrite unrelated musical edits. During playback, musical restoration follows the normal live-edit preparation rules; colour-only restoration does not prepare audio. Independently running devices keep their playback, with source changes applied only to the affected devices.
 
 ## Delete and resize rests
 
@@ -101,7 +113,7 @@ Melodic and drummer sequencers use a [pattern workspace](pattern_pads_and_pad_lo
 
 ## Saved format
 
-Performances still store root sequences, pads, groups, supergroups and supported pause tokens. Version 16 and imports of versions 1–16 remain supported; the app-state and native bundle envelope versions are unchanged. Old enabled arrangements that resolve to no tokens are imported as an explicit occurrence of their former active pad, preserving their repeat setting and sound.
+Performances store root sequences, pads, groups, supergroups and supported pause tokens. Optional `arrangerHistory` metadata has its own version 1 and stores up to 25 transactions with a current cursor; it is excluded from audio configuration. Version 16 and imports of versions 1–16 remain supported; the app-state and native bundle envelope versions are unchanged. Old enabled arrangements that resolve to no tokens are imported as an explicit occurrence of their former active pad, preserving their repeat setting and sound.
 
 Optional `definitionColors` metadata maps typed definition references (`pad:0`, `group:A`, `super:I`) to hexadecimal colours. It does not change sequence compilation or trigger audio preparation. Missing/invalid colours use type defaults. Save/load, autosave, native bundles and CLI handling retain valid colours. CSD audio ignores them.
 

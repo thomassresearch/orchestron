@@ -35,7 +35,7 @@ export function createSequencerStoreActions(
   const transport = createTransportStoreActions(set, get);
   const controls = createPerformanceControlStoreActions(set, get);
   return {
-    ...createArrangementRangeActions(edit.set, edit.get),
+    ...createArrangementRangeActions(get),
     renamePerformanceDevice: (kind, id, name) => {
       const sequencer = get().sequencer;
       const result = validatePerformanceDeviceName(sequencer, kind, id, name);

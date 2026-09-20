@@ -841,9 +841,6 @@ function SequencerPageContent(props: SequencerPageProps) {
     onSequencerCycleRewind,
     onSequencerCycleForward,
     onSequencerArrangerLoopSelectionChange,
-    onSequencerTrackPadLoopPatternChange,
-    onDrummerSequencerTrackPadLoopPatternChange,
-    onControllerSequencerPadLoopPatternChange,
     midiInputName,
     deletePerformanceDialogOpen,
     closeDeletePerformanceDialog,
@@ -1056,24 +1053,8 @@ function SequencerPageContent(props: SequencerPageProps) {
             onTransportRewind={onSequencerCycleRewind}
             onTransportFastForward={onSequencerCycleForward}
             onArrangerLoopSelectionChange={onSequencerArrangerLoopSelectionChange}
-            onArrangementRangeChange={updates => useAppStore.getState().applyArrangementRangeEdit(updates)}
-            onSequencerTrackPadLoopPatternChange={onSequencerTrackPadLoopPatternChange}
-            onDrummerSequencerTrackPadLoopPatternChange={onDrummerSequencerTrackPadLoopPatternChange}
-            onControllerSequencerPadLoopPatternChange={onControllerSequencerPadLoopPatternChange}
-            onArpeggiatorPadLoopPatternChange={(id, pattern) => context.onArpeggiatorChange(id, { padLoopPattern: pattern })}
-            onPlaybackChange={(kind, id, source, repeat) => {
-              if (kind === "sequencer") { context.onSequencerTrackPadLoopEnabledChange(id, source); context.onSequencerTrackPadLoopRepeatChange(id, repeat); }
-              else if (kind === "drummer") { context.onDrummerSequencerTrackPadLoopEnabledChange(id, source); context.onDrummerSequencerTrackPadLoopRepeatChange(id, repeat); }
-              else if (kind === "controller") { context.onControllerSequencerPadLoopEnabledChange(id, source); context.onControllerSequencerPadLoopRepeatChange(id, repeat); }
-              else context.onArpeggiatorChange(id, { padLoopEnabled: source, padLoopRepeat: repeat });
-            }}
+            onArrangementRangeChange={(updates, action) => useAppStore.getState().applyArrangementRangeEdit(updates, action)}
             onEditPad={kind => onPanelCollapsedChange(kind === "sequencer" ? "melodic" : kind === "drummer" ? "drummer" : kind === "controller" ? "controller" : "arpeggiators", false)}
-            onPadCopy={(kind, id, from, to) => {
-              if (kind === "sequencer") context.onSequencerPadCopy(id, from, to);
-              else if (kind === "drummer") context.onDrummerSequencerPadCopy(id, from, to);
-              else if (kind === "controller") context.onControllerSequencerPadCopy(id, from, to);
-              else { const arp = context.sequencer.arpeggiators.find(a => a.id === id); if (arp) context.onArpeggiatorChange(id, { pads: arp.pads.map((p, i) => i === to ? structuredClone(arp.pads[from]) : p) }); }
-            }}
             onHelpRequest={onHelpRequest}
           />
         ) : null}

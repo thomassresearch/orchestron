@@ -54,6 +54,15 @@ def effect_payload(name):
     return payload
 
 
+def test_cli_normalization_preserves_optional_arranger_history():
+    config = cli.empty_performance_config()
+    config["arrangerHistory"] = {"version": 1, "cursor": 0, "entries": [], "basis": []}
+    history = copy.deepcopy(config["arrangerHistory"])
+    normalized = cli.normalize_performance_config(config, [])
+    assert normalized["version"] == 16
+    assert normalized["arrangerHistory"] == history
+
+
 def test_cli_preset_validates_and_compiles_direct_outputs_without_speaker_or_patch_writes(tmp_path):
     with _client(tmp_path) as client:
         source_payload = _audio_source_patch_payload(name="Direct Source")

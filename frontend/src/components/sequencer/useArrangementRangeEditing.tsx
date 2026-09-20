@@ -1,3 +1,6 @@
+import { useAppStore } from "../../store/useAppStore";
+import { arrangerHistoryCopy } from "../../lib/arrangerHistoryCopy";
+import type { ArrangerActionCode } from "../../store/arrangerHistory";
 import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent, type RefObject } from "react";
 import type { GuiLanguage } from "../../types";
 import { ArrangementRangeError, arrangementRangeSignature, copyArrangementRange, placeArrangementRange, resolveArrangementRange,
@@ -8,8 +11,6 @@ import { arrangementSpans } from "../../lib/arrangementEditing";
 import { ArrangerContextMenu, type ArrangerMenuTarget } from "./ArrangerContextMenu";
 import { useClearArrangementSelection, usePerformanceEditorState, useSetArrangementPosition } from "./PerformanceEditorState";
 
-type Transaction = { before: ArrangementRangeUpdate[]; after: ArrangementRangeUpdate[]; beforeRange: ArrangementRange | null; afterRange: ArrangementRange; beforeCursor: number; afterCursor: number };
-type History = { signature: string; past: Transaction[]; future: Transaction[] };
 type Gesture = { id: number; x: number; y: number; lastX: number; lastY: number; anchor: number; lane: number | null; moved: boolean; copy?: ArrangementRangeClipboard; source?: ArrangementRange };
 type Preview = { range: ArrangementRange; affected: string[]; mode: ArrangementRangeMode; error: string };
 const editable = "button,input,textarea,select,[contenteditable=true]";
@@ -17,15 +18,18 @@ const menuButton = "block w-full rounded px-2 py-1.5 text-left hover:bg-slate-70
 
 export function useArrangementRangeEditing({ lanes, titles, language, pixelsPerSubunit, scroll, ruler, commit }: {
   lanes: RangeLane[]; titles: Record<string, string>; language: GuiLanguage; pixelsPerSubunit: number; scroll: number;
-  ruler: RefObject<HTMLDivElement>; commit: (updates: ArrangementRangeUpdate[]) => void;
+  ruler: RefObject<HTMLDivElement>; commit: (updates: ArrangementRangeUpdate[], action?: ArrangerActionCode) => void;
 }) {
-  const c = arrangementRangeCopy(language);
+  const hc = arrangerHistoryCopy(language);
+  const c = { ...arrangementRangeCopy(language), undo: hc.undo, redo: hc.redo };
   const beat = sequencerTransportSubunitsPerBeat();
   const signature = arrangementRangeSignature(lanes);
   const [range, setRange] = usePerformanceEditorState<ArrangementRange | null>("arranger", "editRange", null);
   const [cursor, setCursor] = usePerformanceEditorState("arranger", "editCursor", 0);
   const [clipboard, setClipboard] = usePerformanceEditorState<ArrangementRangeClipboard | null>("arranger", "rangeClipboard", null);
-  const [history, setHistory] = usePerformanceEditorState<History>("arranger", "rangeHistory", { signature, past: [], future: [] });
+  const history = useAppStore(state => state.arrangerHistory);
+  const previousSignature = useRef(signature);
+  const restoreRevision = useAppStore(state => state.arrangerHistoryRestoreRevision);
   const [selectionPreview, setSelectionPreview] = useState<ArrangementRange | null>(null);
   const [preview, setPreview] = useState<Preview | null>(null);
   const [menu, setMenu] = useState<ArrangerMenuTarget | null>(null);
@@ -38,18 +42,17 @@ export function useArrangementRangeEditing({ lanes, titles, language, pixelsPerS
   const clearItems = useClearArrangementSelection();
   const setLanePosition = useSetArrangementPosition();
   const currentRange = selectionPreview ?? range;
-  const validHistory = history.signature === signature;
-  const canUndo = validHistory && history.past.length > 0, canRedo = validHistory && history.future.length > 0;
+  const canUndo = history.cursor > 0, canRedo = history.cursor < history.entries.length;
   const message = (cause: unknown) => {
     const problem = cause instanceof ArrangementRangeError ? cause : new ArrangementRangeError("limit");
     return `${problem.laneId && titles[problem.laneId] ? `${titles[problem.laneId]}: ` : ""}${c[problem.code]}`;
   };
   useEffect(() => {
-    if (history.signature === signature) return;
-    setHistory({ signature, past: [], future: [] });
-    setRange(null);
-  }, [signature, history.signature, setHistory, setRange]);
+    if (previousSignature.current !== signature) setRange(null);
+    previousSignature.current = signature;
+  }, [signature, setRange]);
   const cancel = () => { gesture.current = null; setSelectionPreview(null); setPreview(null); };
+  useEffect(() => { gesture.current = null; setSelectionPreview(null); setPreview(null); setMenu(null); }, [restoreRevision]);
   useEffect(() => {
     const blur = () => { gesture.current = null; setSelectionPreview(null); setPreview(null); };
     window.addEventListener("blur", blur);
@@ -82,18 +85,17 @@ export function useArrangementRangeEditing({ lanes, titles, language, pixelsPerS
       setClipboard(copyArrangementRange(lanes, range)); setNotice(c.copied); setError("");
     } catch (cause) { setError(message(cause)); }
   };
-  const apply = (source: ArrangementRangeClipboard | null, at: number, mode: ArrangementRangeMode) => {
+  const apply = (source: ArrangementRangeClipboard | null, at: number, mode: ArrangementRangeMode, duplicate = false) => {
     if (!source) { setError(c.noClipboard); return; }
     try {
       const after = placeArrangementRange(lanes, source, at, mode);
-      const before = after.map(update => ({ id: update.id, kind: update.kind, rootSequence: structuredClone(lanes.find(l => l.id === update.id)!.pattern.rootSequence) }));
       const nextLanes = lanes.map(lane => ({ ...lane, pattern: { ...lane.pattern, rootSequence: after.find(u => u.id === lane.id)?.rootSequence ?? lane.pattern.rootSequence } }));
       const afterRange = { startSubunit: at, endSubunit: at + source.durationSubunits, laneIds: source.lanes.map(l => l.id) };
       const nextSignature = arrangementRangeSignature(nextLanes);
       if (nextSignature !== signature) {
-        commit(after);
-        const transaction = { before, after, beforeRange: range, afterRange, beforeCursor: cursor, afterCursor: at };
-        setHistory({ signature: nextSignature, past: [...(validHistory ? history.past : []), transaction].slice(-50), future: [] });
+        previousSignature.current = nextSignature;
+        const action = mode === "overwrite" ? "overwrite" : mode === "insert-all" ? duplicate ? "duplicateAll" : "insertAll" : duplicate ? "duplicateSelected" : "insertSelected";
+        commit(after, action);
       }
       clearItems(); setRange(afterRange); setCursor(at); setError(""); setNotice(""); keyboardAnchor.current = null;
     } catch (cause) { setError(message(cause)); }
@@ -101,23 +103,13 @@ export function useArrangementRangeEditing({ lanes, titles, language, pixelsPerS
   const duplicate = (mode: ArrangementRangeMode) => {
     try {
       if (!range) throw new ArrangementRangeError("empty");
-      apply(copyArrangementRange(lanes, range), range.endSubunit, mode);
+      apply(copyArrangementRange(lanes, range), range.endSubunit, mode, true);
     } catch (cause) { setError(message(cause)); }
   };
   const restore = (redo: boolean) => {
-    const from = redo ? history.future : history.past;
-    if (!validHistory || !from.length) return;
-    const transaction = from[from.length - 1];
-    const updates = redo ? transaction.after : transaction.before;
-    try {
-      commit(updates);
-      const nextLanes = lanes.map(lane => ({ ...lane, pattern: { ...lane.pattern, rootSequence: updates.find(u => u.id === lane.id)?.rootSequence ?? lane.pattern.rootSequence } }));
-      setHistory({ signature: arrangementRangeSignature(nextLanes),
-        past: redo ? [...history.past, transaction] : history.past.slice(0, -1),
-        future: redo ? history.future.slice(0, -1) : [...history.future, transaction] });
-      setRange(redo ? transaction.afterRange : transaction.beforeRange); setCursor(redo ? transaction.afterCursor : transaction.beforeCursor);
-      clearItems(); setError(""); setNotice(""); keyboardAnchor.current = null;
-    } catch (cause) { setError(message(cause)); }
+    const store = useAppStore.getState();
+    if (redo) store.redoArranger(); else store.undoArranger();
+    clearItems(); setError(""); setNotice(""); keyboardAnchor.current = null;
   };
   const updateGesture = (x: number, y: number, shift: boolean): Preview | ArrangementRange | null => {
     const g = gesture.current;
@@ -216,12 +208,11 @@ export function useArrangementRangeEditing({ lanes, titles, language, pixelsPerS
     }
     const modifier = event.metaKey || event.ctrlKey;
     const key = event.key.toLowerCase();
-    if (modifier && ["c", "v", "z", "y"].includes(key) || modifier && event.shiftKey && key === "d") {
+    if (modifier && ["c", "v"].includes(key) || modifier && event.shiftKey && key === "d") {
       event.preventDefault(); event.stopPropagation();
       if (key === "c") tryCopy();
       if (key === "v") apply(clipboard, cursor, event.shiftKey ? "insert-all" : "overwrite");
       if (key === "d") duplicate("insert-all");
-      if (key === "z" || key === "y") restore(event.shiftKey || key === "y");
       return;
     }
     if (event.key === "ContextMenu" || event.shiftKey && event.key === "F10") {

@@ -1,3 +1,4 @@
+import { emptyArrangerHistory, readArrangerHistory, type ArrangerHistory } from "./arrangerHistory";
 import { normalizeTimingOffset } from "../lib/sequencer";
 import { normalizeControllerTargetChannels } from "../lib/midiControllerChannels";
 import { instrumentMetadata } from "../lib/instrumentTypes";
@@ -247,6 +248,7 @@ export const BUILTIN_ARPEGGIATOR_PRESETS: ArpeggiatorPresetState[] = [
 ];
 
 export type PersistWatchState = {
+  arrangerHistory: ArrangerHistory;
   activePage: AppPage;
   guiLanguage: GuiLanguage;
   browserClockLatencySettings: BrowserClockLatencySettings;
@@ -2399,6 +2401,7 @@ export function sequencerSnapshotForPersistence(sequencer: SequencerState): Sequ
 export function buildPersistedAppStateSnapshot(state: AppStore): PersistedAppState {
   return {
     version: APP_STATE_VERSION,
+    arrangerHistory: structuredClone(state.arrangerHistory),
     activePage: normalizeAppPage(state.activePage),
     guiLanguage: normalizeGuiLanguage(state.guiLanguage),
     browserClockLatencySettings: normalizeBrowserClockLatencySettings(state.browserClockLatencySettings),
@@ -2431,6 +2434,7 @@ export function buildPersistedAppStateSnapshot(state: AppStore): PersistedAppSta
 
 export function capturePersistWatchState(state: AppStore): PersistWatchState {
   return {
+    arrangerHistory: state.arrangerHistory,
     activePage: state.activePage,
     guiLanguage: state.guiLanguage,
     browserClockLatencySettings: state.browserClockLatencySettings,
@@ -2452,6 +2456,7 @@ export function hasPersistableStateChange(current: PersistWatchState, previous: 
     return true;
   }
   return (
+    current.arrangerHistory !== previous.arrangerHistory ||
     current.activePage !== previous.activePage ||
     current.guiLanguage !== previous.guiLanguage ||
     current.browserClockLatencySettings !== previous.browserClockLatencySettings ||
@@ -2471,8 +2476,8 @@ export function hasPersistableStateChange(current: PersistWatchState, previous: 
 export function shouldDeferSequencerPersistence(
   current: PersistWatchState, previous: PersistWatchState | null, isPlaying: boolean
 ): boolean {
-  return previous !== null && isPlaying && current.sequencer !== previous.sequencer &&
-    !hasPersistableStateChange({ ...current, sequencer: previous.sequencer }, previous);
+  return previous !== null && isPlaying && (current.sequencer !== previous.sequencer || current.arrangerHistory !== previous.arrangerHistory) &&
+    !hasPersistableStateChange({ ...current, sequencer: previous.sequencer, arrangerHistory: previous.arrangerHistory }, previous);
 }
 
 
@@ -2893,7 +2898,8 @@ export function buildSequencerConfigSnapshot(
   sequencer: SequencerState,
   instruments: SequencerInstrumentBinding[],
   audioGraph: AudioGraph = emptyAudioGraph(),
-  mixer: MixerState = emptyMixer()
+  mixer: MixerState = emptyMixer(),
+  arrangerHistory: ArrangerHistory = emptyArrangerHistory()
 ): SequencerConfigSnapshot {
   const timing = normalizeSequencerTiming(sequencer.timing);
   const transportStepCount = transportStepCountForPerformanceTracks(
@@ -2903,6 +2909,7 @@ export function buildSequencerConfigSnapshot(
   );
   return {
     version: 16,
+    arrangerHistory: structuredClone(arrangerHistory),
     audioGraph: structuredClone(audioGraph),
     mixer: structuredClone(mixer),
     instruments: instruments
@@ -3092,7 +3099,7 @@ export function parseSequencerConfigSnapshot(
   snapshot: unknown,
   availablePatches: PatchListItem[],
   fallbackPatchId: string | null
-): { sequencer: SequencerState; instruments: SequencerInstrumentBinding[]; audioGraph: AudioGraph; mixer: MixerState; migrationNotice: boolean } {
+): { sequencer: SequencerState; instruments: SequencerInstrumentBinding[]; audioGraph: AudioGraph; mixer: MixerState; migrationNotice: boolean; arrangerHistory: ArrangerHistory; arrangerHistoryNotice: boolean } {
   if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) {
     throw new Error("Invalid sequencer config file.");
   }
@@ -3167,6 +3174,7 @@ export function parseSequencerConfigSnapshot(
   }
 
   return {
+    ...readArrangerHistory(payload.arrangerHistory, sequencer),
     sequencer,
     instruments: sequencerInstrumentsForPerformablePatches(instruments, availablePatches),
     ...migrateAudio(instruments, availablePatches, Number(payload.version) >= 11 ? payload.audioGraph as AudioGraph : undefined, payload.mixer as MixerState | undefined)

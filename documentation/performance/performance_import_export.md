@@ -24,6 +24,7 @@ File extensions:
 A performance export includes:
 
 - Performance metadata (`name`, `description`)
+- Up to 25 arranger Undo/Redo actions and their current history position, including redo actions after an undo. New performances and older files without history start empty; incompatible history is discarded with a notice.
 - Custom names for all six performance device types, including names created through the CLI. Existing names are preserved on import; the GUI applies its name validation only when renaming a device.
 - Sequencer/drummer-sequencer/arpeggiator/piano-roll/controller/controller-sequencer configuration snapshot
 - Instrument assignments with stable instance IDs
