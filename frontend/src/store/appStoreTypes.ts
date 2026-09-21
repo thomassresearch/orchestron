@@ -347,6 +347,7 @@ export interface AppStore {
   setSequencerMeterNumerator: (numerator: number) => void;
   setSequencerMeterDenominator: (denominator: number) => void;
   setSequencerStepsPerBeat: (stepsPerBeat: number) => void;
+  setSequencerArrangerSongLoopEnabled: (enabled: boolean) => void;
   setSequencerArrangerLoopSelection: (selection: ArrangerLoopSelection | null) => void;
   syncSequencerRuntime: (payload: {
     independentSources?: boolean;

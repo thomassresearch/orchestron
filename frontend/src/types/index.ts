@@ -450,6 +450,7 @@ export interface SequencerState {
   playhead: number;
   cycle: number;
   arrangerLoopSelection: ArrangerLoopSelection | null;
+  arrangerSongLoopEnabled: boolean;
   tracks: SequencerTrackState[];
   drummerTracks: DrummerSequencerTrackState[];
   controllerSequencers: ControllerSequencerState[];
@@ -573,6 +574,7 @@ export interface SequencerConfigSnapshot {
     stepsPerBeat?: SequencerStepsPerBeat;
     stepCount?: number;
     arrangerLoopSelection?: ArrangerLoopSelection | null;
+    arrangerSongLoopEnabled?: boolean;
     tracks: Array<{
       id: string;
       name: string;

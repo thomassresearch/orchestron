@@ -172,7 +172,7 @@ export function normalizeArrangerLoopSelection(
 }
 
 export function arrangerPlaybackBounds(
-  sequencer: Pick<SequencerState, "arrangerLoopSelection" | "tracks" | "drummerTracks" | "controllerSequencers" | "arpeggiators" | "timing">
+  sequencer: Pick<SequencerState, "arrangerLoopSelection" | "arrangerSongLoopEnabled" | "tracks" | "drummerTracks" | "controllerSequencers" | "arpeggiators" | "timing">
 ): {
   arrangementEndStep: number;
   selection: ArrangerLoopSelection | null;
@@ -188,7 +188,7 @@ export function arrangerPlaybackBounds(
     selection,
     playbackStartStep: selection?.startStep ?? 0,
     playbackEndStep: selection?.endStep ?? arrangementEndStep,
-    playbackLoop: selection !== null
+    playbackLoop: selection !== null || sequencer.arrangerSongLoopEnabled
   };
 }
 

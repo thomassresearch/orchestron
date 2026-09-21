@@ -39,6 +39,7 @@ export type TransportStoreActions = Pick<
   | "setSequencerMeterDenominator"
   | "setSequencerStepsPerBeat"
   | "setSequencerArrangerLoopSelection"
+  | "setSequencerArrangerSongLoopEnabled"
   | "setSequencerPlaying"
   | "setSequencerPlayhead"
   | "setSequencerTransportAbsoluteStep"
@@ -100,6 +101,10 @@ export function createTransportStoreActions(
         sequencer: nextSequencer,
         sequencerRuntime: sequencerRuntimeStateFromSequencer(nextSequencer)
       });
+    },
+
+    setSequencerArrangerSongLoopEnabled: (enabled) => {
+      set({ sequencer: { ...get().sequencer, arrangerSongLoopEnabled: enabled } });
     },
 
     setSequencerArrangerLoopSelection: (selection) => {

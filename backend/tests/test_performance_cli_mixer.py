@@ -161,3 +161,12 @@ def test_cli_preserves_valid_definition_colours_without_changing_music():
     pattern = cli.parse_pad_loop_pattern(raw)
     assert pattern["definitionColors"] == {"pad:0": "#abcdef", "group:A": "#113355"}
     assert cli.compile_pad_loop_items(pattern, pattern["rootSequence"], depth=0) == [0]
+
+
+@pytest.mark.parametrize("enabled", [False, True])
+def test_cli_normalization_preserves_song_loop(enabled):
+    config = cli.empty_performance_config()
+    config["sequencer"]["arrangerSongLoopEnabled"] = enabled
+    normalized = cli.normalize_performance_config(config, [])
+    assert normalized["version"] == 16
+    assert normalized["sequencer"]["arrangerSongLoopEnabled"] is enabled

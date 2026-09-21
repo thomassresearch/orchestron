@@ -824,6 +824,8 @@ Melodic steps and drummer cells save `timingOffsetPercent`; the session API acce
 
 ### Independent device transport
 
+Optional performance/app-state `sequencer.arrangerSongLoopEnabled` defaults to false in the frontend. The frontend maps whole-song looping to the existing finite `playback_start_step`, `playback_end_step` and `playback_loop` configuration; a marked range takes precedence and loops regardless of this flag. Live toggles preserve the current song position. Storage and native bundles retain the field without a version change, and CSD exports remain finite.
+
 `device_transport` on the browser-clock WebSocket and the matching HTTP route accept `action: play|stop`, exactly one of `arranger: true`, `track_ids` (one device, all drummer rows), or `arpeggiator_id`, plus optional `config`, `pad_index` and `position_step`. Configuration preparation and the command apply atomically at a render boundary. Stop invalidates pending commands for its target; arranger commands invalidate all older device starts. Failed preparation retains the previous runtime. Clients serialize starts for different devices and ignore superseded responses.
 
 This command opts the session into a monotonic shared sequencer clock with a separate arrangement-position mapping. First independent Arrangement Play starts at the marked loop start or supplied stopped song cursor; subsequent devices join its position. Manual Play uses the explicitly selected pad. Arranger Play starts Arrangement sources and retains independent Manual pads; arranger Stop ends Arrangement sources and temporary playback. Song seeks, loops and finite endings affect Arrangement sources only. Live arpeggiators retain their independent clock and input behavior.

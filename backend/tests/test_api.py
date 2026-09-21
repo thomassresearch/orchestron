@@ -7112,3 +7112,34 @@ def test_controller_and_arpeggiator_workspace_api_and_audible_status(tmp_path: P
             assert identity not in status["auditions"] and "lead" in status["auditions"]
         assert client.post(base + "/audition", json=start).status_code == 409
         assert client.post(base + "/stop").json()["auditions"] == {}
+
+
+@pytest.mark.parametrize("enabled", [False, True])
+@pytest.mark.parametrize("archive_format", ["json", "zip"])
+def test_arranger_song_loop_survives_storage_app_state_and_native_bundles(tmp_path: Path, enabled: bool, archive_format: str) -> None:
+    payload = _performance_csd_export_payload()["performanceExport"]
+    config = payload["performance"]["config"]
+    config["version"] = 16
+    config["sequencer"] = json.loads((Path(__file__).parent / "fixtures/performances/arranger_seek.json").read_text())["config"]["sequencer"]
+    config["sequencer"]["arrangerSongLoopEnabled"] = enabled
+    with _client(tmp_path) as client:
+        saved = client.post("/api/performances", json={"name": "Song loop", "config": config})
+        assert saved.status_code == 201, saved.text
+        path = f'/api/performances/{saved.json()["id"]}'
+        assert client.get(path).json()["config"]["sequencer"]["arrangerSongLoopEnabled"] is enabled
+        assert client.put(path, json={"config": config}).json()["config"]["sequencer"]["arrangerSongLoopEnabled"] is enabled
+        state = {"version": 2, "sequencer": config["sequencer"]}
+        assert client.put("/api/app-state", json={"state": state}).status_code == 200
+        assert client.get("/api/app-state").json()["state"]["sequencer"]["arrangerSongLoopEnabled"] is enabled
+        exported = client.post("/api/bundles/export/performance", json=payload)
+        assert exported.status_code == 200, exported.text
+        data = exported.content
+        if archive_format == "zip":
+            buffer = BytesIO()
+            with zipfile.ZipFile(buffer, "w") as archive:
+                archive.writestr("performance.orch.json", data)
+            data = buffer.getvalue()
+        imported = client.post("/api/bundles/import/expand", content=data,
+            headers={"Content-Type": "application/octet-stream", "X-File-Name": f"loop.orch.{archive_format}"})
+        assert imported.status_code == 200, imported.text
+        assert imported.json()["performance"]["config"]["sequencer"]["arrangerSongLoopEnabled"] is enabled

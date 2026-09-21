@@ -6,7 +6,7 @@ import configFixture from "../../../backend/tests/fixtures/sequencers/arranger_s
 import { api } from "../api/client";
 import { mergedSequencerState } from "../lib/mergedSequencerState";
 import { buildPerformanceExportPayload } from "../lib/bundleImportExport";
-import { buildBackendArpeggiatorConfigs } from "../appOrchestration";
+import { buildSequencerPlaybackRange, buildBackendArpeggiatorConfigs } from "../appOrchestration";
 import { arrangementRangeLanes } from "../lib/arrangementRange";
 import { useAppStore } from "../store/useAppStore";
 import type { SequencerState, SessionSequencerConfigRequest, SessionSequencerStatus } from "../types";
@@ -450,4 +450,23 @@ it("uses the song marker for the arranger cursor and retains it during independe
     arranger_active: false, arrangement_running: true, arrangement_transport_subunit: 16 * 420 }));
   expect(useAppStore.getState().sequencerRuntime.arrangerTransportSubunit).toBe(9 * 420);
   expect(useAppStore.getState().sequencerRuntime.transportSubunit).toBe(110 * 420);
+});
+
+it("applies song-loop toggles during playback without seeking or restarting", async () => {
+  const build = (state = useAppStore.getState().sequencer) => ({ ...config, ...buildSequencerPlaybackRange(state, "runtime", true) });
+  const { result } = setup(false, { sequencer: build, arpeggiators: buildBackendArpeggiatorRequest });
+  await act(() => result.current.startSequencerTransport(true));
+  await act(() => vi.advanceTimersByTimeAsync(100));
+  startSequencer.mockClear(); deviceTransport.mockClear();
+  for (const enabled of [true, false]) {
+    vi.mocked(api.configureSessionSequencer).mockClear();
+    const before = useAppStore.getState().sequencerRuntime;
+    act(() => useAppStore.getState().setSequencerArrangerSongLoopEnabled(enabled));
+    await act(() => vi.advanceTimersByTimeAsync(100));
+    expect(api.configureSessionSequencer).toHaveBeenCalledExactlyOnceWith("session", expect.objectContaining({ playback_loop: enabled }));
+    expect(useAppStore.getState().sequencerRuntime).toEqual(before);
+    expect(api.seekSessionSequencer).not.toHaveBeenCalled();
+    expect(startSequencer).not.toHaveBeenCalled();
+    expect(deviceTransport).not.toHaveBeenCalled();
+  }
 });

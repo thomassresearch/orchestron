@@ -161,7 +161,7 @@ export function buildSequencerPlaybackRange(
     return { playback_start_step: 0, playback_end_step: bounds.arrangementEndStep, playback_loop: false };
   }
   // Lane repeat settings cannot extend a song started by the arranger.
-  const unbounded = !arrangerActive && bounds.selection === null && (
+  const unbounded = !arrangerActive && !bounds.playbackLoop && (
     state.tracks.some(trackShouldRunContinuously) ||
     state.drummerTracks.some(trackShouldRunContinuously) ||
     state.controllerSequencers.some(trackShouldRunContinuously) ||

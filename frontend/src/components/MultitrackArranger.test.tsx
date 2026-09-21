@@ -325,3 +325,42 @@ it("measures ruler seeks from inside its border at beat boundaries", () => {
   fireEvent.pointerUp(ruler, justBeforeBeat);
   expect(selectionChanged).toHaveBeenCalledExactlyOnceWith(null, 0);
 });
+
+it("places an accessible song-loop toggle before rewind without starting playback", () => {
+  setup();
+  const toggle = screen.getByRole("button", { name: "Loop song" });
+  expect(toggle.nextElementSibling?.getAttribute("aria-label")).toBe("transportRewind");
+  expect(toggle.getAttribute("aria-pressed")).toBe("false");
+  const runtime = useAppStore.getState().sequencerRuntime;
+  fireEvent.click(toggle);
+  expect(toggle.getAttribute("aria-pressed")).toBe("true");
+  expect(toggle.className).toContain("ring-2");
+  expect(useAppStore.getState().sequencerRuntime).toMatchObject({ isPlaying: false, transportSubunit: runtime.transportSubunit });
+  fireEvent.click(toggle);
+  expect(toggle.getAttribute("aria-pressed")).toBe("false");
+});
+
+it("previews and commits a small rightward move into the following rest as one undoable edit", () => {
+  const track = useAppStore.getState().sequencer.tracks[0];
+  const original = { rootSequence: [{ type: "pad" as const, padIndex: 0 }, { type: "pause" as const, lengthBeats: 8 as const }, { type: "pad" as const, padIndex: 1 }], groups: [], superGroups: [] };
+  useAppStore.getState().setSequencerTrackPadLoopPattern(track.id, original);
+  setup();
+  const timeline = screen.getAllByRole("list")[0];
+  const clip = within(timeline).getAllByRole("listitem")[0];
+  const pixelBeat = parseFloat(clip.style.width) / track.pads[0].lengthBeats;
+  const event = { pointerId: 1, button: 0, clientX: 10 };
+  const before = useAppStore.getState().arrangerHistory.cursor;
+  fireEvent.pointerDown(clip, event);
+  fireEvent.pointerMove(clip, { ...event, clientX: 10 + pixelBeat });
+  const preview = timeline.querySelector("span.border-2") as HTMLElement;
+  expect(preview.className).toContain("border-cyan-300");
+  expect(preview.style.left).toBe(`${pixelBeat}px`);
+  fireEvent.pointerUp(clip, { ...event, clientX: 10 + pixelBeat });
+  expect(useAppStore.getState().sequencer.tracks[0].padLoopPattern.rootSequence.slice(0, 2)).toEqual([
+    { type: "pause", lengthBeats: 1 }, { type: "pad", padIndex: 0 }
+  ]);
+  expect(useAppStore.getState().arrangerHistory.cursor).toBe(before + 1);
+  expect(screen.queryByRole("alert")).toBeNull();
+  act(() => useAppStore.getState().undoArranger());
+  expect(useAppStore.getState().sequencer.tracks[0].padLoopPattern).toEqual(original);
+});

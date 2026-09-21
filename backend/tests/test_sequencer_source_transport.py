@@ -403,3 +403,32 @@ def test_independent_arpeggiator_keeps_play_intent_through_processing_edits():
     before = len(p.attacks)
     p.advance(25000)
     assert len(p.attacks) > before
+
+
+def test_whole_song_loop_live_toggle_preserves_position_and_manual_phase():
+    engine, config, _ = runtime()
+    command(engine, track="manual", pad_index=1)
+    advance(engine, 3)
+    command(engine, track=None)
+    advance(engine, 10)
+    position = engine.sources.position()
+    manual_origin = engine.sources.manual_origins["manual"]
+    config.playback_loop = True
+    engine.configure(config)
+    assert engine.sources.position() == position
+    assert engine.sources.bounds == (0, 64 * 420, True)
+    advance(engine, 64)
+    assert engine.sources.position() == position
+    assert engine.status().arranger_active
+    assert engine.sources.manual_origins["manual"] == manual_origin
+    assert track(engine, "manual").enabled
+    config.playback_loop = False
+    engine.configure(config)
+    assert engine.sources.position() == position
+    advance(engine, 64)
+    assert engine.sources.position() == 64 * 420
+    assert not engine.status().arranger_active
+    assert not track(engine, "lead").enabled
+    assert track(engine, "manual").enabled
+    assert engine.sources.manual_origins["manual"] == manual_origin
+    engine.stop()

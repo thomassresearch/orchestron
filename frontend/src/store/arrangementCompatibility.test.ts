@@ -24,3 +24,13 @@ it("counts rest-only and trailing silence with rational beat ratios", () => {
   const sequencer = { ...result.sequencer, drummerTracks: [], controllerSequencers: [], arpeggiators: [], tracks: [{ ...track, ...phrase, timing: { ...track.timing, beatRateNumerator: 3 as const, beatRateDenominator: 2 as const } }] };
   expect(arrangerTransportExtent(sequencer)).toBe(16 * 8);
 });
+
+it.each([false, true])("round-trips whole-song loop=%s without changing format versions", enabled => {
+  const result = parseSequencerConfigSnapshot(fixture.config, [], "fixture-patch");
+  expect(result.sequencer.arrangerSongLoopEnabled).toBe(false);
+  result.sequencer.arrangerSongLoopEnabled = enabled;
+  const saved = buildSequencerConfigSnapshot(result.sequencer, result.instruments);
+  expect(saved.version).toBe(16);
+  expect(saved.sequencer.arrangerSongLoopEnabled).toBe(enabled);
+  expect(parseSequencerConfigSnapshot(saved, [], "fixture-patch").sequencer.arrangerSongLoopEnabled).toBe(enabled);
+});

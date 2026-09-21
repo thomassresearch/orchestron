@@ -13,7 +13,7 @@ export function sequencerEditSignature(state: SequencerState): string {
   const tracks = (items: Array<object>) => items.map(item => Object.fromEntries(Object.entries(item).filter(([key]) =>
     !["name", "runtimeLocalStep", "runtimePadStartSubunit", "padLoopPosition", "steps", "keypoints"].includes(key))))
     .sort((a, b) => String(a.id).localeCompare(String(b.id)));
-  return JSON.stringify({ timing: state.timing, arrangerLoopSelection: state.arrangerLoopSelection,
+  return JSON.stringify({ timing: state.timing, arrangerLoopSelection: state.arrangerLoopSelection, arrangerSongLoopEnabled: state.arrangerSongLoopEnabled,
     tracks: tracks(state.tracks), drummerTracks: tracks(state.drummerTracks), controllerSequencers: tracks(state.controllerSequencers),
     arpeggiatorArrangement: state.arpeggiators.filter(arp => arp.playbackMode === "arranger").map(arp => ({
       id: arp.id, loop: arp.padLoopEnabled, repeat: arp.padLoopRepeat, pattern: arp.padLoopPattern,

@@ -83,3 +83,21 @@ describe("arranger playback range", () => {
     });
   });
 });
+
+it.each([false, true])("keeps whole-song loop=%s bounded and lets marked ranges take precedence", enabled => {
+  const state = normalizeSequencerState(fixture.config.sequencer);
+  state.arrangerSongLoopEnabled = enabled;
+  state.tracks[0].enabled = true;
+  state.tracks[0].padLoopRepeat = true;
+  expect(buildSequencerPlaybackRange(state, "runtime", true)).toEqual({
+    playback_start_step: 0, playback_end_step: arrangerTransportExtent(state), playback_loop: enabled
+  });
+  if (enabled) expect(buildSequencerPlaybackRange(state, "runtime", false).playback_end_step).toBe(arrangerTransportExtent(state));
+  state.arrangerLoopSelection = { startStep: 8, endStep: 24 };
+  expect(buildSequencerPlaybackRange(state, "runtime", true)).toEqual({
+    playback_start_step: 8, playback_end_step: 24, playback_loop: true
+  });
+  expect(buildSequencerPlaybackRange(state, "export", true)).toEqual({
+    playback_start_step: 0, playback_end_step: arrangerTransportExtent(state), playback_loop: false
+  });
+});

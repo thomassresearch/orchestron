@@ -70,7 +70,12 @@ export type MultitrackArrangerProps = {
   onEditPad?: (kind: ArrangerTrackKind, id: string, pad: number) => void;
   onHelpRequest?: (helpDocId: HelpDocId) => void;
 };
-function CassetteIcon({ kind }: { kind: "rewind" | "stop" | "play" | "fastForward" }) {
+function CassetteIcon({ kind }: { kind: "rewind" | "stop" | "play" | "fastForward" | "loop" }) {
+  if (kind === "loop") {
+    return <svg viewBox="0 0 20 20" className="h-3.5 w-3.5 fill-none stroke-current" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M15 3l3 3-3 3M18 6H6a3 3 0 0 0-3 3M5 17l-3-3 3-3M2 14h12a3 3 0 0 0 3-3" />
+    </svg>;
+  }
   if (kind === "stop") {
     return (
       <svg viewBox="0 0 20 20" className="h-3.5 w-3.5 fill-current" aria-hidden>
@@ -233,6 +238,16 @@ function MultitrackArrangerShell(props: MultitrackArrangerProps) {
       </span>
       <ArrangerHistoryControls language={guiLanguage} collapsed={collapsed} />
       <div className="ml-auto flex flex-wrap items-center gap-1.5">
+        <button
+          type="button"
+          onClick={() => useAppStore.getState().setSequencerArrangerSongLoopEnabled(!props.sequencer.arrangerSongLoopEnabled)}
+          className={transportButtonClass + (props.sequencer.arrangerSongLoopEnabled ? activeTransportClass : "")}
+          aria-pressed={props.sequencer.arrangerSongLoopEnabled}
+          title={arrangementCopy(guiLanguage).loopSong}
+          aria-label={arrangementCopy(guiLanguage).loopSong}
+        >
+          <CassetteIcon kind="loop" />
+        </button>
         <button
           type="button"
           onClick={onTransportRewind}

@@ -198,3 +198,22 @@ it.each(["cursor", "limit", "lane", "field", "basis", "action"])("discards inval
   expect(parsed.arrangerHistoryNotice).toBe(true);
   expect(parsed.sequencer.tracks[0].padLoopPattern).toEqual(lane().padLoopPattern);
 });
+
+it("saves song looping while keeping it outside undo history and preserving transport", () => {
+  place(2);
+  const before = store();
+  before.setSequencerArrangerSongLoopEnabled(true);
+  expect(store().sequencerEditRevision).toBe(before.sequencerEditRevision + 1);
+  expect(store().sequencerRuntime).toEqual(before.sequencerRuntime);
+  expect(store().arrangerHistory).toEqual(before.arrangerHistory);
+  const saved = store().buildSequencerConfigSnapshot();
+  const persisted = buildPersistedAppStateSnapshot(store());
+  expect(persisted.sequencer.arrangerSongLoopEnabled).toBe(true);
+  store().undoArranger();
+  expect(store().sequencer.arrangerSongLoopEnabled).toBe(true);
+  store().redoArranger();
+  expect(store().sequencer.arrangerSongLoopEnabled).toBe(true);
+  store().setSequencerArrangerSongLoopEnabled(false);
+  store().applySequencerConfigSnapshot(saved);
+  expect(store().sequencer.arrangerSongLoopEnabled).toBe(true);
+});

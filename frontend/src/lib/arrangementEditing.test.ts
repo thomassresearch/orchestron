@@ -79,3 +79,25 @@ describe("arrangement occurrences and reusable definitions", () => {
     expect(firstUnusedPad(value, Array(8).fill(true))).toBe(1);
   });
 });
+
+it.each(["pad", "group", "super", "selection"])("moves %s symmetrically through its vacated span and adjacent rests", kind => {
+  const items: PadLoopPatternItem[] = kind === "pad" ? [pad()]
+    : kind === "group" ? [{ type: "group", groupId: "A" }]
+    : kind === "super" ? [{ type: "super", superGroupId: "I" }] : [pad(), pad(1)];
+  const length = kind === "selection" ? 6 : 4;
+  const value: PadLoopPatternState = { rootSequence: [rest(8), ...items, rest(8), pad(2)],
+    groups: [{ id: "A", sequence: [pad()] }], superGroups: [{ id: "I", sequence: [{ type: "group", groupId: "A" }] }] };
+  const original = structuredClone(value);
+  const indexes = items.map((_, i) => i + 1);
+  for (const position of [7, 9, 13, 16]) {
+    const moved = resolveArrangementDrop(value, items, position, durations, 72, indexes);
+    expect(moved.insert).toBe(false);
+    const spans = arrangementSpans(moved.pattern, durations);
+    expect(spans.filter(s => s.item.type !== "pause").map(s => s.start)).toEqual(
+      kind === "selection" ? [position, position + 4, 16 + length] : [position, 16 + length]);
+    expect(spans[0]).toMatchObject({ start: 0, duration: position, item: { type: "pause" } });
+    if (position < 16) expect(spans[spans.length - 2]).toMatchObject({ start: position + length, duration: 16 - position, item: { type: "pause" } });
+  }
+  expect(() => resolveArrangementDrop(value, items, 17, durations, 72, indexes)).toThrow("Occupied destination");
+  expect(value).toEqual(original);
+});

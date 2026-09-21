@@ -175,7 +175,8 @@ export function resolveArrangementDrop(pattern: PadLoopPatternState, items: PadL
     source = removeArrangementItems(pattern, movingIndexes, beatsFor);
   }
   if (!boundary && position < end) {
-    const target = spans.find(span => rawPosition >= span.start && rawPosition < span.start + span.duration);
+    // A move may overlap its vacated source, which is now available silence.
+    const target = arrangementSpans(source, padBeats).find(span => rawPosition >= span.start && rawPosition < span.start + span.duration);
     if (target?.item.type !== "pause" || items.some(item => item.type === "pause")) throw new Error("Occupied destination.");
   }
   // Source deletion can merge rest spans and hide a former boundary. Insert by

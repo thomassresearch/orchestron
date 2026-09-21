@@ -14,7 +14,7 @@ const en = {
   duplicate: "Duplicate occurrence", variation: "Create variation", duration: "Duration (beats)", position: "Position (master beats)",
   blocked: "This edit is not allowed: check phrase references, timing, and the 256-token limit.",
   collision: "The item does not fit here. Choose an empty span or insert at an item boundary.",
-  loop: "Loop selected range", emptyLane: "Add an item to enable arrangement playback.", beats: "beats", select: "Select lane",
+  loopSong: "Loop song", loop: "Loop selected range", emptyLane: "Add an item to enable arrangement playback.", beats: "beats", select: "Select lane",
   manualHint: "Arranger Play stops manual sequencers.", fill: "Choose a phrase to edit.", newEmpty: "Unused pad"
 };
 export type ArrangementCopy = typeof en;
@@ -32,7 +32,7 @@ const de: ArrangementCopy = {
   duplicate: "Vorkommen duplizieren", variation: "Variation erstellen", duration: "Dauer (Beats)", position: "Position (Master-Beats)",
   blocked: "Diese Änderung ist nicht möglich: Phrasenreferenzen, Timing und das Limit von 256 Tokens prüfen.",
   collision: "Das Element passt hier nicht. Eine freie Stelle wählen oder an einer Elementgrenze einfügen.",
-  loop: "Ausgewählten Bereich wiederholen", emptyLane: "Ein Element hinzufügen, um das Arrangement zu aktivieren.", beats: "Beats", select: "Spur wählen",
+  loopSong: "Song wiederholen", loop: "Ausgewählten Bereich wiederholen", emptyLane: "Ein Element hinzufügen, um das Arrangement zu aktivieren.", beats: "Beats", select: "Spur wählen",
   manualHint: "Arranger-Start stoppt manuelle Sequencer.", fill: "Eine Phrase zum Bearbeiten wählen.", newEmpty: "Unbenutztes Pad"
 };
 const fr: ArrangementCopy = {
@@ -49,7 +49,7 @@ const fr: ArrangementCopy = {
   duplicate: "Dupliquer l’occurrence", variation: "Créer une variation", duration: "Durée (temps)", position: "Position (temps maîtres)",
   blocked: "Modification impossible : vérifier les références, le timing et la limite de 256 éléments.",
   collision: "L’élément ne tient pas ici. Choisir un espace libre ou insérer à une limite d’élément.",
-  loop: "Boucler la plage sélectionnée", emptyLane: "Ajouter un élément pour activer l’arrangement.", beats: "temps", select: "Choisir la piste",
+  loopSong: "Boucler le morceau", loop: "Boucler la plage sélectionnée", emptyLane: "Ajouter un élément pour activer l’arrangement.", beats: "temps", select: "Choisir la piste",
   manualHint: "La lecture de l’arrangeur arrête les séquenceurs manuels.", fill: "Choisir une phrase à modifier.", newEmpty: "Pad inutilisé"
 };
 const es: ArrangementCopy = {
@@ -66,7 +66,7 @@ const es: ArrangementCopy = {
   duplicate: "Duplicar aparición", variation: "Crear variación", duration: "Duración (pulsos)", position: "Posición (pulsos maestros)",
   blocked: "Cambio no permitido: revisar referencias, sincronización y el límite de 256 elementos.",
   collision: "El elemento no cabe aquí. Elegir un hueco o insertar en el límite de un elemento.",
-  loop: "Repetir intervalo seleccionado", emptyLane: "Añadir un elemento para activar el arreglo.", beats: "pulsos", select: "Elegir pista",
+  loopSong: "Repetir canción", loop: "Repetir intervalo seleccionado", emptyLane: "Añadir un elemento para activar el arreglo.", beats: "pulsos", select: "Elegir pista",
   manualHint: "Iniciar el arreglador detiene los secuenciadores manuales.", fill: "Elegir una frase para editar.", newEmpty: "Pad sin usar"
 };
 export function arrangementCopy(language: GuiLanguage): ArrangementCopy {
