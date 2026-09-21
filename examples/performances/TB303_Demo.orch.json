@@ -1,12 +1,419 @@
 {
   "format": "orchestron.performance",
   "version": 1,
-  "exported_at": "2026-09-19T15:55:34.153Z",
+  "exported_at": "2026-09-21T15:50:17.140Z",
   "performance": {
     "name": "TB303 Demo",
     "description": "Demo of \"The Real TB303\" instrument and of the new Arpeggiator",
     "config": {
       "version": 16,
+      "arrangerHistory": {
+        "version": 1,
+        "entries": [
+          {
+            "action": "move",
+            "labels": [
+              "Bells"
+            ],
+            "changes": [
+              {
+                "id": "b0cbf54c-9a63-4bd3-bef6-d0647bd82c07",
+                "kind": "sequencer",
+                "before": {
+                  "pattern": {
+                    "rootSequence": [
+                      {
+                        "type": "pause",
+                        "lengthBeats": 4
+                      },
+                      {
+                        "type": "pad",
+                        "padIndex": 0
+                      },
+                      {
+                        "type": "pause",
+                        "lengthBeats": 4
+                      },
+                      {
+                        "type": "pad",
+                        "padIndex": 1
+                      }
+                    ],
+                    "groups": [],
+                    "superGroups": []
+                  }
+                },
+                "after": {
+                  "pattern": {
+                    "rootSequence": [
+                      {
+                        "type": "pause",
+                        "lengthBeats": 4
+                      },
+                      {
+                        "type": "pause",
+                        "lengthBeats": 1
+                      },
+                      {
+                        "type": "pad",
+                        "padIndex": 0
+                      },
+                      {
+                        "type": "pause",
+                        "lengthBeats": 2
+                      },
+                      {
+                        "type": "pause",
+                        "lengthBeats": 1
+                      },
+                      {
+                        "type": "pad",
+                        "padIndex": 1
+                      }
+                    ],
+                    "groups": [],
+                    "superGroups": []
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "action": "move",
+            "labels": [
+              "Bells"
+            ],
+            "changes": [
+              {
+                "id": "b0cbf54c-9a63-4bd3-bef6-d0647bd82c07",
+                "kind": "sequencer",
+                "before": {
+                  "pattern": {
+                    "rootSequence": [
+                      {
+                        "type": "pause",
+                        "lengthBeats": 4
+                      },
+                      {
+                        "type": "pause",
+                        "lengthBeats": 1
+                      },
+                      {
+                        "type": "pad",
+                        "padIndex": 0
+                      },
+                      {
+                        "type": "pause",
+                        "lengthBeats": 2
+                      },
+                      {
+                        "type": "pause",
+                        "lengthBeats": 1
+                      },
+                      {
+                        "type": "pad",
+                        "padIndex": 1
+                      }
+                    ],
+                    "groups": [],
+                    "superGroups": []
+                  }
+                },
+                "after": {
+                  "pattern": {
+                    "rootSequence": [
+                      {
+                        "type": "pause",
+                        "lengthBeats": 2
+                      },
+                      {
+                        "type": "pause",
+                        "lengthBeats": 1
+                      },
+                      {
+                        "type": "pad",
+                        "padIndex": 0
+                      },
+                      {
+                        "type": "pause",
+                        "lengthBeats": 4
+                      },
+                      {
+                        "type": "pause",
+                        "lengthBeats": 1
+                      },
+                      {
+                        "type": "pad",
+                        "padIndex": 1
+                      }
+                    ],
+                    "groups": [],
+                    "superGroups": []
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "action": "move",
+            "labels": [
+              "Bells"
+            ],
+            "changes": [
+              {
+                "id": "b0cbf54c-9a63-4bd3-bef6-d0647bd82c07",
+                "kind": "sequencer",
+                "before": {
+                  "pattern": {
+                    "rootSequence": [
+                      {
+                        "type": "pause",
+                        "lengthBeats": 2
+                      },
+                      {
+                        "type": "pause",
+                        "lengthBeats": 1
+                      },
+                      {
+                        "type": "pad",
+                        "padIndex": 0
+                      },
+                      {
+                        "type": "pause",
+                        "lengthBeats": 4
+                      },
+                      {
+                        "type": "pause",
+                        "lengthBeats": 1
+                      },
+                      {
+                        "type": "pad",
+                        "padIndex": 1
+                      }
+                    ],
+                    "groups": [],
+                    "superGroups": []
+                  }
+                },
+                "after": {
+                  "pattern": {
+                    "rootSequence": [
+                      {
+                        "type": "pause",
+                        "lengthBeats": 4
+                      },
+                      {
+                        "type": "pause",
+                        "lengthBeats": 1
+                      },
+                      {
+                        "type": "pad",
+                        "padIndex": 0
+                      },
+                      {
+                        "type": "pause",
+                        "lengthBeats": 2
+                      },
+                      {
+                        "type": "pause",
+                        "lengthBeats": 1
+                      },
+                      {
+                        "type": "pad",
+                        "padIndex": 1
+                      }
+                    ],
+                    "groups": [],
+                    "superGroups": []
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "action": "move",
+            "labels": [
+              "Bells"
+            ],
+            "changes": [
+              {
+                "id": "b0cbf54c-9a63-4bd3-bef6-d0647bd82c07",
+                "kind": "sequencer",
+                "before": {
+                  "pattern": {
+                    "rootSequence": [
+                      {
+                        "type": "pause",
+                        "lengthBeats": 4
+                      },
+                      {
+                        "type": "pause",
+                        "lengthBeats": 1
+                      },
+                      {
+                        "type": "pad",
+                        "padIndex": 0
+                      },
+                      {
+                        "type": "pause",
+                        "lengthBeats": 2
+                      },
+                      {
+                        "type": "pause",
+                        "lengthBeats": 1
+                      },
+                      {
+                        "type": "pad",
+                        "padIndex": 1
+                      }
+                    ],
+                    "groups": [],
+                    "superGroups": []
+                  }
+                },
+                "after": {
+                  "pattern": {
+                    "rootSequence": [
+                      {
+                        "type": "pause",
+                        "lengthBeats": 4
+                      },
+                      {
+                        "type": "pause",
+                        "lengthBeats": 2
+                      },
+                      {
+                        "type": "pad",
+                        "padIndex": 0
+                      },
+                      {
+                        "type": "pause",
+                        "lengthBeats": 2
+                      },
+                      {
+                        "type": "pad",
+                        "padIndex": 1
+                      }
+                    ],
+                    "groups": [],
+                    "superGroups": []
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "action": "move",
+            "labels": [
+              "Bells"
+            ],
+            "changes": [
+              {
+                "id": "b0cbf54c-9a63-4bd3-bef6-d0647bd82c07",
+                "kind": "sequencer",
+                "before": {
+                  "pattern": {
+                    "rootSequence": [
+                      {
+                        "type": "pause",
+                        "lengthBeats": 4
+                      },
+                      {
+                        "type": "pause",
+                        "lengthBeats": 2
+                      },
+                      {
+                        "type": "pad",
+                        "padIndex": 0
+                      },
+                      {
+                        "type": "pause",
+                        "lengthBeats": 2
+                      },
+                      {
+                        "type": "pad",
+                        "padIndex": 1
+                      }
+                    ],
+                    "groups": [],
+                    "superGroups": []
+                  }
+                },
+                "after": {
+                  "pattern": {
+                    "rootSequence": [
+                      {
+                        "type": "pause",
+                        "lengthBeats": 4
+                      },
+                      {
+                        "type": "pad",
+                        "padIndex": 0
+                      },
+                      {
+                        "type": "pause",
+                        "lengthBeats": 4
+                      },
+                      {
+                        "type": "pad",
+                        "padIndex": 1
+                      }
+                    ],
+                    "groups": [],
+                    "superGroups": []
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "cursor": 5,
+        "basis": [
+          {
+            "id": "b0cbf54c-9a63-4bd3-bef6-d0647bd82c07",
+            "kind": "sequencer",
+            "pattern": {
+              "rootSequence": [
+                {
+                  "type": "pause",
+                  "lengthBeats": 4
+                },
+                {
+                  "type": "pad",
+                  "padIndex": 0
+                },
+                {
+                  "type": "pause",
+                  "lengthBeats": 4
+                },
+                {
+                  "type": "pad",
+                  "padIndex": 1
+                }
+              ],
+              "groups": [],
+              "superGroups": []
+            },
+            "source": true,
+            "repeat": true,
+            "lengths": [
+              4,
+              4,
+              4,
+              4,
+              4,
+              4,
+              4,
+              4
+            ],
+            "ratio": [
+              1,
+              1
+            ],
+            "pads": {}
+          }
+        ]
+      },
       "audioGraph": {
         "routes": [
           {
@@ -401,6 +808,7 @@
         "meterDenominator": 4,
         "stepsPerBeat": 4,
         "stepCount": 8,
+        "arrangerSongLoopEnabled": true,
         "arrangerLoopSelection": null,
         "tracks": [
           {

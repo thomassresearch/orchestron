@@ -232,6 +232,8 @@ Because this is a standard FastAPI app, `/docs`, `/redoc`, and `/openapi.json` a
 | `GET` | `/client` | none | Built frontend app or `503` JSON | Served by `StaticFiles` when `frontend/dist` exists. |
 | `GET` | `/static/...` | none | Static files | Includes opcode icons and other app static files. |
 
+The frontend entry URLs (`/client`, `/client/`, `/client/index.html`) send `Cache-Control: no-cache`, including conditional `304` responses, so browser reloads revalidate which content-hashed bundles to load after a deployment. Static asset caching remains unchanged.
+
 ### Opcodes
 
 | Method | Path | Request body | Response | Notes |

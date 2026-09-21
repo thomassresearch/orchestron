@@ -162,6 +162,10 @@ def create_app() -> FastAPI:
         if request.url.path.startswith("/client"):
             response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
             response.headers["Cross-Origin-Embedder-Policy"] = "require-corp"
+        if request.url.path in {"/client", "/client/", "/client/index.html"}:
+            # Revalidate the entry page after deployments so it selects the new
+            # content-hashed bundles instead of keeping an older application.
+            response.headers["Cache-Control"] = "no-cache"
         return response
 
     static_root = Path(settings.static_dir)

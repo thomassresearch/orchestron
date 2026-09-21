@@ -7143,3 +7143,29 @@ def test_arranger_song_loop_survives_storage_app_state_and_native_bundles(tmp_pa
             headers={"Content-Type": "application/octet-stream", "X-File-Name": f"loop.orch.{archive_format}"})
         assert imported.status_code == 200, imported.text
         assert imported.json()["performance"]["config"]["sequencer"]["arrangerSongLoopEnabled"] is enabled
+
+
+@pytest.mark.parametrize("path", ["/client", "/client/", "/client/index.html"])
+def test_frontend_entry_revalidates_after_rebuild(tmp_path: Path, path: str) -> None:
+    with _client(tmp_path) as client:
+        response = client.get(path)
+        assert response.status_code == 200
+        assert response.headers["cache-control"] == "no-cache"
+        assert response.headers["cross-origin-opener-policy"] == "same-origin"
+        assert response.headers["cross-origin-embedder-policy"] == "require-corp"
+        etag = response.headers["etag"]
+        unchanged = client.get(path, headers={"If-None-Match": etag})
+        assert unchanged.status_code == 304
+        assert unchanged.headers["cache-control"] == "no-cache"
+        (tmp_path / "frontend_dist" / "index.html").write_text("<!doctype html><html><body>new-build</body></html>")
+        updated = client.get(path, headers={"If-None-Match": etag})
+        assert updated.status_code == 200
+        assert "new-build" in updated.text
+        assert updated.headers["etag"] != etag
+        assert updated.headers["cache-control"] == "no-cache"
+        assets = tmp_path / "frontend_dist" / "assets"
+        assets.mkdir()
+        (assets / "index-hashed.js").write_text("export const build = 'new';")
+        asset = client.get("/client/assets/index-hashed.js")
+        assert asset.status_code == 200
+        assert "cache-control" not in asset.headers
