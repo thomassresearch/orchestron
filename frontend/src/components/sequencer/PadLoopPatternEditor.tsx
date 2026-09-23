@@ -7,6 +7,7 @@ import { compileDefinition, createDefinition, definitionItem, definitionUses, de
 import { canInsertItemIntoPadLoopContainer, getPadLoopContainerSequence, groupPadLoopItemsInContainer, insertPadLoopItem, itemDisplayLabel, movePadLoopItemWithinContainer, removePadLoopItemsFromContainer, ungroupPadLoopItemsInContainer } from "../../lib/padLoopPattern";
 import { useOpenArranger, usePerformanceEditorState } from "./PerformanceEditorState";
 import type { SequencerUiCopy } from "./sequencerUiCopy";
+import { PlaybackSourceToggle } from "./PlaybackSourceToggle";
 
 import { endArrangementDrag, beginArrangementDrag, ARRANGEMENT_ITEM_MIME } from "../../lib/arrangementDrag";
 const button = "rounded border border-slate-600 bg-slate-900 px-2 py-1 text-xs text-slate-200 hover:border-accent disabled:opacity-40";
@@ -73,11 +74,8 @@ export function PadLoopPatternEditor({ track, guiLanguage = "english", onPadLoop
     {expanded && <>
     <div className="flex flex-wrap items-center gap-2">
       {!hideSource && <>
-        <label className="text-xs text-slate-300">{c.source} <select className={button} value={track.padLoopEnabled ? "arrangement" : "manual"}
-          onChange={e => onPadLoopEnabledChange(e.target.value === "arrangement")}>
-          <option value="manual">{c.manual}</option>
-          <option value="arrangement" disabled={!pattern.rootSequence.length}>{c.arrangement}</option>
-        </select></label>
+        <PlaybackSourceToggle language={guiLanguage} arrangement={track.padLoopEnabled}
+          hasArrangement={pattern.rootSequence.length > 0} onChange={onPadLoopEnabledChange} />
         <button className={button} onClick={() => { selectLane(track.id); expandLane(true); focusArrangerDefinition(active ? definitionItem(active) : { type: "pad", padIndex: 0 }); openArranger?.(); requestAnimationFrame(() => document.getElementById("multitrack-arranger")?.scrollIntoView({ block: "center" })); }}>{c.open}</button>
       </>}
       <button className={button} onClick={() => create("group")}>{c.newGroup}</button>

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import type { ComponentProps } from "react";
-import { cleanup, fireEvent, render, screen, within, act, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within, act } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import fixture from "../../../backend/tests/fixtures/performances/arranger_seek.json";
 import { useAppStore } from "../store/useAppStore";
@@ -205,22 +205,22 @@ it("sets a shared colour through a keyboard context menu and keeps audio revisio
   expect(document.activeElement).toBe(clip);
 });
 
-it("keeps playback settings independent and replaces the phrase panel with a palette", async () => {
+it("keeps playback source and end settings out of arranger lanes while retaining the palette", () => {
   setup();
   const lane = screen.getAllByRole("region")[0];
   const ui = within(lane);
   const toggle = ui.getAllByRole("button")[0];
-  const settings = ui.getByText("Playback settings").parentElement as HTMLDetailsElement;
-  expect(settings.open).toBe(false);
+  expect(ui.queryByText("Playback settings")).toBeNull();
   expect(ui.queryByLabelText("Playback source")).toBeNull();
-  await act(async () => { settings.open = true; fireEvent(settings, new Event("toggle")); });
-  await waitFor(() => expect(ui.getByLabelText("Playback source")).toBeTruthy());
+  expect(ui.queryByLabelText("At end")).toBeNull();
   expect(toggle.getAttribute("aria-expanded")).toBe("false");
   fireEvent.click(toggle);
   fireEvent.click(toggle);
   fireEvent.click(toggle);
   expect(ui.queryByRole("button", { name: "Patterns and phrases" })).toBeNull();
   expect(ui.getByLabelText("Patterns and phrases")).toBeTruthy();
+  expect(ui.queryByText("Playback settings")).toBeNull();
+  expect(ui.queryByRole("group", { name: "Playback source" })).toBeNull();
 });
 
 it("toggles only lane state without changing the mixer, transport, or lane expansion", () => {

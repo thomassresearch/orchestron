@@ -58,6 +58,8 @@ This defines the repeat length for the curve sampling relative to that controlle
 
 ## Pattern Workspace
 
+The **Playback source** toggle chooses **Arrangement** or **Manual pads**. New controller sequencers use Manual pads until their first item is placed on an arranger lane, which selects Arrangement. Later choices are saved with the performance. **Loop song** in the arranger controls repeating or stopping at the song end.
+
 The always-visible workspace sits beside the musical controls, or below them on narrow screens. Drag pads into it, select several with Cmd/Ctrl-click, then Group or Supergroup. Reorder by dragging, split through the context menu, and Apply shared phrase changes explicitly. See [Pattern Workspace](pattern_pads_and_pad_looper.md#pattern-workspace) for editing, deletion and retained drafts.
 
 Play loops the displayed assembly and outlines its current pad, phrase or rest. Hold a speaker for 250 ms to temporarily override it; release resumes the workspace at its current position. Stop restores prior playback. Controller curves and channel routing remain effective. Two zero-valued endpoints alone look empty; additional points or nonzero values highlight the pad. This is a content indicator: zero still sends a valid CC value.

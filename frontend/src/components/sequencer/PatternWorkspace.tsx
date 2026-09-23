@@ -13,6 +13,7 @@ import { ArrangerSpeaker } from "./ArrangerSpeaker";
 import { RetainedScroll, useOpenArranger, usePerformanceEditorState } from "./PerformanceEditorState";
 import { usePerformanceAudition } from "./PerformanceAudition";
 import { patternWorkspaceCopy } from "./patternWorkspaceCopy";
+import { PlaybackSourceToggle } from "./PlaybackSourceToggle";
 
 const button = "rounded border border-slate-600 bg-slate-900 px-2 py-1 text-xs text-slate-200 hover:border-accent disabled:opacity-40";
 const menuButton = "block w-full rounded px-2 py-1.5 text-left hover:bg-slate-700 disabled:opacity-40";
@@ -151,9 +152,8 @@ export function PatternWorkspace({ track, language, onPatternChange, onSourceCha
   return <section className="min-w-0 space-y-2 rounded-lg border border-slate-700 bg-slate-950/40 p-2" aria-label={c.workspace}>
     <div className="flex flex-wrap items-center gap-2 text-xs">
       <span className="font-semibold text-slate-200">{c.workspace}</span>
-      {!hideArrangement && <><label className="ml-auto text-slate-400">{a.source} <select className={button} value={track.padLoopEnabled ? "arrangement" : "manual"} onChange={e => onSourceChange(e.target.value === "arrangement")}>
-        <option value="manual">{a.manual}</option><option value="arrangement" disabled={!pattern.rootSequence.length}>{a.arrangement}</option>
-      </select></label>
+      {!hideArrangement && <><PlaybackSourceToggle language={language} arrangement={track.padLoopEnabled}
+        hasArrangement={pattern.rootSequence.length > 0} onChange={onSourceChange} />
       <button className={button} onClick={() => { selectLane(track.id); expandLane(true); focusDefinition(active ? definitionItem(active) : { type: "pad", padIndex: track.activePad }); openArranger?.(); requestAnimationFrame(() => document.getElementById("multitrack-arranger")?.scrollIntoView({ block: "center" })); }}>{a.open}</button></>}
     </div>
     <RetainedScroll owner={owner} field="workspacePalette" className="flex max-h-20 flex-wrap items-center gap-1 overflow-y-auto" aria-label={c.saved}>

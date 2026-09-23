@@ -34,7 +34,9 @@ All four device types use this workspace, including Live arpeggiators. Live mode
 
 ## Playback source and audition
 
-**Playback source: Arrangement** follows the song timeline. Device Play works while the arranger is stopped: the first device starts at the selected loop's beginning, or at the stopped song cursor without a loop; a cursor at song end restarts from the beginning. Other Arrangement devices join that position. Its Stop/Repeat-at-end option lives in the arranger lane.
+The **Playback source** toggle in each sequencer switches between **Arrangement** and **Manual pads**. New devices default to Manual pads; placing their first item on an arranger lane selects Arrangement. Later choices are saved with the performance and retained through edits and reloads.
+
+**Arrangement** follows the song timeline. Device Play works while the arranger is stopped: the first device starts at the selected loop's beginning, or at the stopped song cursor without a loop; a cursor at song end restarts from the beginning. Other Arrangement devices join that position. The arranger’s **Loop song** toggle chooses whether song playback repeats or stops at the end.
 
 With **Manual pads**, device Play repeats the pad selected for editing from its beginning. Click another pad to select it for editing and queue it for the end of the current pattern. The queued pad has an orange outline; the playing pad stays blue-green until the switch, when the new pad turns blue-green. Clicking the playing pad cancels the queue; clicking another pad replaces the queued choice. Launch pad also queues the selected pad. While stopped or using Arrangement, pad clicks only select for editing. Manual pads continue through arrangement seeks, loops and endings. Arranger Play adds all arrangement backing parts while preserving playing manual pads; Arranger Stop removes the backing parts and temporary playback, preserving independent manual pads. Device Stop affects only that device. Groups and supergroups play through speakers or workspace Play, never implicitly through device Play.
 

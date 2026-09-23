@@ -22,7 +22,7 @@ function Editor({ shown = true, drummer = false, kind = "melodic" }: { shown?: b
   });
   current = track;
   return <PerformanceAuditionContext.Provider value={audition}><PerformanceEditorProvider>
-    {shown && <PatternWorkspace padHasContent={() => true} track={track} language="english" onSourceChange={() => {}} onPatternChange={padLoopPattern => setTrack({ ...track, padLoopPattern })} />}
+    {shown && <PatternWorkspace padHasContent={() => true} track={track} language="english" onSourceChange={padLoopEnabled => setTrack({ ...track, padLoopEnabled })} onPatternChange={padLoopPattern => setTrack({ ...track, padLoopPattern })} />}
   </PerformanceEditorProvider></PerformanceAuditionContext.Provider>;
 }
 const strip = () => screen.getByRole("list", { name: "Free workspace" });
@@ -40,6 +40,24 @@ function createGroup() {
 }
 beforeEach(() => { audition.mockClear(); useAppStore.setState(useAppStore.getInitialState(), true); vi.stubGlobal("PointerEvent", MouseEvent); });
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals(); });
+
+it("switches playback source with buttons and retains the choice across collapse", () => {
+  const view = render(<Editor />);
+  const source = () => within(screen.getByRole("group", { name: "Playback source" }));
+  expect(source().queryByRole("combobox")).toBeNull();
+  expect(source().getByRole("button", { name: "Manual pads" }).getAttribute("aria-pressed")).toBe("true");
+  expect((source().getByRole("button", { name: "Arrangement" }) as HTMLButtonElement).disabled).toBe(true);
+  // The arranger adds the first occurrence and selects Arrangement.
+  act(() => { current.padLoopPattern.rootSequence = [{ type: "pad", padIndex: 0 }]; current.padLoopEnabled = true; });
+  view.rerender(<Editor />);
+  expect(source().getByRole("button", { name: "Arrangement" }).getAttribute("aria-pressed")).toBe("true");
+  fireEvent.click(source().getByRole("button", { name: "Manual pads" }));
+  expect(current.padLoopEnabled).toBe(false);
+  view.rerender(<Editor shown={false} />); view.rerender(<Editor />);
+  expect(source().getByRole("button", { name: "Manual pads" }).getAttribute("aria-pressed")).toBe("true");
+  fireEvent.click(source().getByRole("button", { name: "Arrangement" }));
+  expect(current.padLoopEnabled).toBe(true);
+});
 
 it.each(kinds)("assembles and groups separated selections without changing the authored arrangement (%s)", kind => {
   render(<Editor kind={kind} />); createGroup();

@@ -173,6 +173,11 @@ export function createArrangerHistoryActions(set: StoreApi<AppStore>["setState"]
         seen.add(key);
         const requested: Values = { ...(update.pattern ? { pattern: update.pattern } : {}),
           ...(update.source !== undefined ? { source: update.source } : {}), ...(update.repeat !== undefined ? { repeat: update.repeat } : {}) };
+        // First placement also selects Arrangement for range pastes and other entry points.
+        // Once populated, timeline edits retain the device's saved source choice.
+        if (update.source === undefined && update.pattern && !track.padLoopPattern.rootSequence.length && update.pattern.rootSequence.length) {
+          requested.source = true;
+        }
         if (update.copyPad) {
           const { from, to } = update.copyPad;
           if (![from, to].every(i => Number.isInteger(i) && i >= 0 && i < 8)) throw new Error("Invalid pad slot.");

@@ -37,7 +37,7 @@ Each pad has two independent lengths:
 
 For example, a five-step rhythm continues across successive four-beat occurrences of #1. Changing to #2 restarts the musical cursors at that launch boundary. Arrangement pauses silence output while still tracking incoming pitches.
 
-Drag one pad onto another to copy its musical variation. The shared phrase library defines groups and supergroups; song placement and repeat controls live in the multitrack arranger. New arpeggiators play #1 once. Their named arranger lanes contribute to Fit, arrangement bounds, seeking and both CSD exports, including performances containing only arpeggiators.
+Drag one pad onto another to copy its musical variation. The shared phrase library defines groups and supergroups; song placement and repeat controls live in the multitrack arranger. New arpeggiators start with Manual pads and an empty arrangement. The Playback source toggle selects Arrangement or Manual pads; placing the first item on the lane selects Arrangement, and subsequent source choices are saved. Their named arranger lanes contribute to Fit, arrangement bounds, seeking and both CSD exports, including performances containing only arpeggiators.
 
 In Live mode, pad launches use **Next cycle** by default, or **Next master bar**. Stopped launches select immediately and Cancel launch removes a queued launch. In Arranger mode, held speakers start at the next pad/rest boundary while the arranger runs, or at an audio block while stopped. Releasing restores the previous playback.
 

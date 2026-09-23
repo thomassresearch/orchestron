@@ -10,7 +10,7 @@ import { canCreatePadLoopGroupFromSelection, itemDisplayLabel, ungroupPadLoopIte
 import { definitionColorKey, definitionColorStyle, setDefinitionColor } from "../lib/definitionColors";
 import { PATTERN_ITEM_COLORS } from "../lib/patternItemPresentation";
 import { useAppStore } from "../store/useAppStore";
-import { EditorDetails, useClearArrangementSelection, usePerformanceEditorState } from "./sequencer/PerformanceEditorState";
+import { useClearArrangementSelection, usePerformanceEditorState } from "./sequencer/PerformanceEditorState";
 import { LaneOutputButtons } from "./sequencer/LaneOutputButtons";
 import { ArrangerSpeaker } from "./sequencer/ArrangerSpeaker";
 import { ArrangerContextMenu, type ArrangerMenuTarget } from "./sequencer/ArrangerContextMenu";
@@ -150,16 +150,7 @@ export function ArrangerLane({ lane, props, selected, select, commit, zoom, widt
             onClick={() => { setExpanded(!expanded); cancelDrag(); closeMenu(); }}><span aria-hidden>{expanded ? "▾" : "▸"}</span> {lane.title}</button>
           <LaneOutputButtons id={lane.id} language={props.guiLanguage} />
         </div>
-        <div className="flex min-w-0 items-start gap-1">
-          <span className="min-w-0 flex-1 truncate text-[10px] text-slate-400" title={lane.subtitle}>{lane.subtitle}</span>
-          <EditorDetails owner={owner} field="playbackSettings" summary={c.settings} className="max-w-full text-[10px] text-slate-400" summaryClassName="cursor-pointer">
-            {() => <div className="space-y-1 py-1">
-              <label className="block">{c.source}<select className={`${button} w-full`} value={lane.source ? "arrangement" : "manual"} onChange={e => useAppStore.getState().commitArrangerEdit("source", [{ id: lane.id, kind: lane.kind, source: e.target.value === "arrangement" && lane.pattern.rootSequence.length > 0 }])}>
-                <option value="manual">{c.manual}</option><option value="arrangement" disabled={!lane.pattern.rootSequence.length}>{c.arrangement}</option></select></label>
-              {lane.source && <label className="block">{c.atEnd}<select className={`${button} w-full`} value={String(lane.repeat)} onChange={e => useAppStore.getState().commitArrangerEdit("repeat", [{ id: lane.id, kind: lane.kind, repeat: e.target.value === "true" }])}><option value="false">{c.once}</option><option value="true">{c.repeat}</option></select></label>}
-            </div>}
-          </EditorDetails>
-        </div>
+        <div className="truncate text-[10px] text-slate-400" title={lane.subtitle}>{lane.subtitle}</div>
       </div>
       <div className="min-w-0 overflow-hidden" onWheel={event => { const element = event.currentTarget.closest('#multitrack-arranger')?.querySelector('.h-4.overflow-x-auto'); if (element) element.scrollLeft += event.deltaX || event.deltaY; }}>
         <div role="list" data-arrangement-lane={lane.id} tabIndex={0} aria-label={`${lane.title} ${c.arrangement}`} className="relative h-12 touch-none rounded border border-slate-700 bg-slate-950"

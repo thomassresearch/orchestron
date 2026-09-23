@@ -10,7 +10,7 @@ Pads are labelled **1–8** in arranger lanes and palettes, and **#1–#8** in s
 
 Each lane starts collapsed. Click the triangle or track title (Enter/Space when focused) to open or close its editing tools. Click anywhere in an occurrence box to select it and open the lane; the triangle can close it again while retaining the editing context. Clicking empty timeline space clears occurrence highlights and chooses the insertion position without changing panel expansion. Double-click a pad or choose Edit pattern to open its sequencer editor. Open in arranger opens the lane and focuses the definition in its palette.
 
-The expanded lane shows **Position (master beats)** followed by the wrapping palette. There is no separate Patterns and phrases panel in the arranger; melodic and drummer sequencers provide their own pattern workspace. **Playback settings** contains Playback source and, for Arrangement lanes, At end, and starts collapsed. Disclosure choices survive view switches; New/Load/Import resets them. Closing panels preserves drafts, selections and scroll, cancels active gestures and momentary previews, and leaves normal playback running.
+The expanded lane shows **Position (master beats)** followed by the wrapping palette. There is no separate Patterns and phrases panel in the arranger; melodic and drummer sequencers provide their own pattern workspace. Choose Playback source in the sequencer; the arranger transport provides the Loop song toggle for repeating or stopping at the song end. Disclosure choices survive view switches; New/Load/Import resets them. Closing panels preserves drafts, selections and scroll, cancels active gestures and momentary previews, and leaves normal playback running.
 
 ## Temporary lane Mute and Solo
 
@@ -64,7 +64,7 @@ Paste keeps the copied lane assignments. It does not remap instruments or copy b
 
 Insertion requires a musical boundary on every shifted lane; overwrite requires valid start and end boundaries. Durations and rests must be whole local beats. Invalid boundaries, missing lanes, changed definitions/durations or sequence limits reject the whole edit. Empty space after a lane ends copies as silence. Insertion leaves already-ended lanes unchanged unless receiving copied material. Automatic repetitions are not expanded.
 
-Range edits preserve Playback source, Repeat, the transport cursor and loop coordinates, including dormant arrangements on Manual-pad lanes. Independently playing Manual pads continue. During playback, the whole edit follows the normal live-preparation workflow; preparation failure retains the previous playing configuration and the edited draft.
+After the first placement selects Arrangement, range edits preserve Playback source, Repeat, the transport cursor and loop coordinates, including dormant arrangements on Manual-pad lanes. Independently playing Manual pads continue. During playback, the whole edit follows the normal live-preparation workflow; preparation failure retains the previous playing configuration and the edited draft.
 
 Selection and clipboard survive collapse and view switches within the session. New/Load/Import resets them; save/export excludes them. After definition or duration changes, copy again.
 
@@ -74,7 +74,7 @@ The two curved-arrow buttons immediately to the right of the device summary undo
 
 Hold either button for **500 ms** to open its history without taking a step. Undo lists past actions, newest first; choosing one undoes that action and everything after it. Redo lists future actions in execution order; choosing one restores through that action. The result applies as one update. Arrow Down on a focused button opens the menu; arrows navigate, Enter selects, and Escape closes it. Menus also close on outside clicks, collapse, view changes and performance replacement.
 
-History retains **25 actions total across Undo and Redo**, including placement, movement, deletion, rest resizing, range edits, grouping/ungrouping, definition updates/deletion, variations, colours, Playback source and Repeat. A completed drag, multi-lane edit or pad variation is one action. Failed, cancelled and unchanged edits do not count. After undoing, making a new arranger edit discards the future actions and starts a new branch.
+History retains **25 actions total across Undo and Redo**, including placement, movement, deletion, rest resizing, range edits, grouping/ungrouping, definition updates/deletion, variations, colours and the automatic source change on first placement. Older saved source/repeat history entries remain supported. A completed drag, multi-lane edit or pad variation is one action. Failed, cancelled and unchanged edits do not count. After undoing, making a new arranger edit discards the future actions and starts a new branch.
 
 Both past and future are saved with the performance, autosave and native exports. Load/Import restores the incoming history; New and older files start empty. History survives collapse and view switches. Invalid or incompatible saved history is discarded with a notice while the musical performance still loads.
 
@@ -89,9 +89,9 @@ Changes outside the arranger are not recorded. Changes to related arrangement fi
 
 ## Playback and audition
 
-Each lane has **Playback source: Arrangement | Manual pads**. The same setting appears in the sequencer. Empty lanes use Manual pads. Adding the first occurrence enables Arrangement; closing all time returns to Manual pads. Ordinary deletion leaves rests and retains Arrangement.
+**Playback source** is a two-option toggle in each sequencer: **Arrangement | Manual pads**. New devices use Manual pads until the first item is placed on their arranger lane, which selects Arrangement automatically. Subsequent source choices are saved with the performance and survive later edits and reloads. Closing all time returns an empty lane to Manual pads; ordinary deletion leaves rests and retains the selected source.
 
-For Arrangement lanes, **At end: Stop track | Repeat track sequence** controls the whole authored sequence. New devices stop at the end; imported repeat settings remain intact. **Loop selected range** is the separate shared transport loop. Click its ruler to seek and clear the loop, or drag a range to loop it. Rewind/Fast forward move one master beat. Fit shows the whole longest lane, including trailing rests.
+The arranger controls provide **Loop song** to repeat or stop at the song end. Imported per-lane repeat settings remain intact. **Loop selected range** is the separate shared transport loop. Click its ruler to seek and clear the loop, or drag a range to loop it. Rewind/Fast forward move one master beat. Fit shows the whole longest lane, including trailing rests.
 
 **Play** runs from the current cursor to the end of the longest lane, including trailing rests. **Loop song** is the repeat-arrows toggle immediately left of Rewind: when enabled, playback returns to the beginning at the song end; when disabled, it stops at the end. Changing it during playback keeps the current position, and changing it while stopped does not start playback. The toggle is saved with the performance and defaults to off for new and older performances. It is independent of arranger Undo/Redo. With a marked loop range, playback repeats only that range regardless of the Loop song toggle; clearing the range restores the selected whole-song behavior. **Repeat track sequence** can repeat a shorter lane within these bounds; it never extends song playback beyond the end. The loop ruler and lane playheads share the same horizontal origin when zooming and scrolling.
 
