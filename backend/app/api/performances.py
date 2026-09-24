@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from fastapi.responses import JSONResponse
+
 from fastapi import APIRouter, Depends, Response, HTTPException
 
 from backend.app.api.deps import get_container
@@ -18,7 +20,7 @@ router = APIRouter(prefix="/performances", tags=["performances"])
 
 
 @router.post("/repair-master")
-def repair_master(request: MasterRepairRequest, container: AppContainer = Depends(get_container)) -> dict:
+def repair_master(request: MasterRepairRequest, container: AppContainer = Depends(get_container)) -> Response:
     """Explicit, non-persisting replacement of a missing stereo Master."""
     config = request.config
     container.performance_service._validate_config(config)
@@ -37,37 +39,46 @@ def repair_master(request: MasterRepairRequest, container: AppContainer = Depend
             raise HTTPException(status_code=422, detail="Repair the missing Master's input port mapping first.")
     result = replace_neutral_master(config, old)
     container.performance_service._validate_config(result)
-    return result
+    return JSONResponse(result)
 
 
 @router.post("", response_model=PerformanceResponse, status_code=201)
-async def create_performance(
+def create_performance(
     request: PerformanceCreateRequest,
     container: AppContainer = Depends(get_container),
-) -> PerformanceResponse:
-    return container.performance_service.create_performance(request)
+) -> Response:
+    return Response(
+        container.performance_service.create_performance(request).model_dump_json(by_alias=True),
+        media_type="application/json",
+        status_code=201,
+    )
 
 
 @router.get("", response_model=list[PerformanceListItem])
-async def list_performances(container: AppContainer = Depends(get_container)) -> list[PerformanceListItem]:
-    return container.performance_service.list_performances()
+def list_performances(container: AppContainer = Depends(get_container)) -> Response:
+    return JSONResponse([item.model_dump(mode="json", by_alias=True) for item in container.performance_service.list_performances()])
 
 
 @router.get("/{performance_id}", response_model=PerformanceResponse)
-async def get_performance(performance_id: str, container: AppContainer = Depends(get_container)) -> PerformanceResponse:
-    return container.performance_service.get_performance(performance_id)
+def get_performance(performance_id: str, container: AppContainer = Depends(get_container)) -> Response:
+    return Response(
+        container.performance_service.get_performance(performance_id).model_dump_json(by_alias=True), media_type="application/json"
+    )
 
 
 @router.put("/{performance_id}", response_model=PerformanceResponse)
-async def update_performance(
+def update_performance(
     performance_id: str,
     request: PerformanceUpdateRequest,
     container: AppContainer = Depends(get_container),
-) -> PerformanceResponse:
-    return container.performance_service.update_performance(performance_id, request)
+) -> Response:
+    return Response(
+        container.performance_service.update_performance(performance_id, request).model_dump_json(by_alias=True),
+        media_type="application/json",
+    )
 
 
 @router.delete("/{performance_id}", status_code=204)
-async def delete_performance(performance_id: str, container: AppContainer = Depends(get_container)) -> Response:
+def delete_performance(performance_id: str, container: AppContainer = Depends(get_container)) -> Response:
     container.performance_service.delete_performance(performance_id)
     return Response(status_code=204)

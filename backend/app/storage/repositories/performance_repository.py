@@ -5,7 +5,7 @@ from typing import Sequence
 
 from sqlalchemy import desc, select
 
-from backend.app.models.performance import PerformanceDocument
+from backend.app.models.performance import PerformanceDocument, PerformanceListItem
 from backend.app.services.persisted_json_limits import dump_compact_json
 from backend.app.storage.db import PerformanceRecord
 from backend.app.storage.repositories.contracts import DbSessionFactory, ensure_utc
@@ -34,6 +34,14 @@ class PerformanceRepository:
             if not record:
                 return None
             return self._to_document(record)
+
+    def list_items(self) -> list[PerformanceListItem]:
+        with self._db_session_factory() as db:
+            rows = db.execute(select(PerformanceRecord.id, PerformanceRecord.name,
+                PerformanceRecord.description, PerformanceRecord.updated_at)
+                .order_by(desc(PerformanceRecord.updated_at)))
+            return [PerformanceListItem(id=row.id, name=row.name, description=row.description,
+                updated_at=ensure_utc(row.updated_at)) for row in rows]
 
     def list(self) -> Sequence[PerformanceDocument]:
         with self._db_session_factory() as db:

@@ -26,12 +26,12 @@ import {
   parsePerformanceExportPayload,
   partitionImportConflictItems,
   resolveImportedPerformanceConfig,
-  resolvePatchImportOperation,
+  planPatchImports,
   resolvePerformanceImportOperation,
   type ExportedPatchDefinition,
   type PerformanceCsdExportRequestPayload
 } from "./lib/bundleImportExport";
-import { findPatchByName, findPerformanceByName, toPatchListItem } from "./lib/patchCatalog";
+import { findPatchByName, findPerformanceByName } from "./lib/patchCatalog";
 import { documentationUiCopy } from "./lib/documentationUi";
 import {
   APP_COPY,
@@ -849,14 +849,14 @@ export default function App() {
   const onImportInstrumentDefinitionFile = useCallback(
     (file: File) => {
       void (async () => {
-        const parsed = await api.expandImportBundle(file);
+        const parsed = await api.expandImportBundle(file, true);
         const patchDefinitions = extractImportPatchDefinitions(parsed);
 
         if (patchDefinitions.length === 0) {
           throw new Error("Import file does not contain an instrument definition.");
         }
 
-        let patchCatalog = [...patches];
+        const patchCatalog = [...patches];
         let conflictDecisions = collectPatchImportConflictItems(patchDefinitions, patchCatalog);
         if (conflictDecisions.length > 0) {
           const decision = await requestImportConflictDialog(conflictDecisions);
@@ -872,27 +872,9 @@ export default function App() {
 
         const { patchConflictsBySourceId } = partitionImportConflictItems(conflictDecisions);
 
-        let firstImportedPatchId: string | null = null;
-        for (const definition of patchDefinitions) {
-          const operation = resolvePatchImportOperation(definition, patchCatalog, patchConflictsBySourceId);
-          if (operation.type === "skip") {
-            continue;
-          }
-
-          const importedPatch =
-            operation.type === "update"
-              ? await api.updatePatch(operation.patchId, operation.payload)
-              : await api.createPatch(operation.payload);
-          const importedPatchListItem = toPatchListItem(importedPatch);
-          patchCatalog =
-            operation.type === "update"
-              ? patchCatalog.map((patch) => (patch.id === importedPatch.id ? importedPatchListItem : patch))
-              : [importedPatchListItem, ...patchCatalog];
-
-          if (!firstImportedPatchId) {
-            firstImportedPatchId = importedPatch.id;
-          }
-        }
+        const { plan } = planPatchImports(patchDefinitions, patchCatalog, patchConflictsBySourceId);
+        const committed = await api.commitImportBundle(file, plan);
+        const firstImportedPatchId = committed.patches[0]?.id;
 
         if (patchDefinitions.length > 0) {
           await refreshPatches();
@@ -1215,11 +1197,12 @@ export default function App() {
   const onImportSequencerConfig = useCallback(
     (file: File) => {
       void (async () => {
-        const parsed = await api.expandImportBundle(file);
+        const parsed = await api.expandImportBundle(file, true);
         const exported = parsePerformanceExportPayload(parsed);
 
         if (!exported) {
-          applySequencerConfigSnapshot(parsed);
+          const expanded = await api.expandImportBundle(file);
+          applySequencerConfigSnapshot(expanded);
           setSequencerError(null);
           return;
         }
@@ -1259,31 +1242,10 @@ export default function App() {
         }
 
         const { patchConflictsBySourceId, performanceConflict } = partitionImportConflictItems(conflictDecisions);
-        const patchIdMap = new Map<string, string>();
-
-        if (selection.importPatchDefinitions) {
-          for (const definition of exported.patch_definitions) {
-            const operation = resolvePatchImportOperation(definition, patchCatalog, patchConflictsBySourceId);
-            if (operation.type === "skip") {
-              continue;
-            }
-
-            const importedPatch =
-              operation.type === "update"
-                ? await api.updatePatch(operation.patchId, operation.payload)
-                : await api.createPatch(operation.payload);
-            const importedPatchListItem = toPatchListItem(importedPatch);
-            patchCatalog =
-              operation.type === "update"
-                ? patchCatalog.map((patch) => (patch.id === importedPatch.id ? importedPatchListItem : patch))
-                : [importedPatchListItem, ...patchCatalog];
-
-            patchIdMap.set(definition.sourcePatchId, importedPatch.id);
-          }
-          if (exported.patch_definitions.length > 0) {
-            patchCatalog = await refreshPatches();
-          }
-        }
+        const { plan, catalog, patchIdMap } = planPatchImports(
+          selection.importPatchDefinitions ? exported.patch_definitions : [], patchCatalog, patchConflictsBySourceId
+        );
+        patchCatalog = catalog;
 
         if (selection.importPerformance) {
           const resolvedConfig = resolveImportedPerformanceConfig(exported, patchIdMap, patchCatalog);
@@ -1300,14 +1262,13 @@ export default function App() {
             performanceConflict,
             resolvedConfig
           );
-          const savedPerformance =
-            operation.type === "update"
-              ? await api.updatePerformance(operation.performanceId, operation.payload)
-              : await api.createPerformance(operation.payload);
-
-          await refreshPerformances();
-          await loadPerformance(savedPerformance.id);
+          plan.performance = operation;
         }
+
+        const committed = await api.commitImportBundle(file, plan);
+        await refreshPatches();
+        await refreshPerformances();
+        if (committed.performance) await loadPerformance(committed.performance.id);
 
         setSequencerError(null);
       })().catch((error) => {

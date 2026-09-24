@@ -12,6 +12,7 @@ import type {
 
 import type { ImportConflictDialogItem } from "./importDialogs";
 import {
+  toPatchListItem,
   findPatchByName,
   findPerformanceByName,
   remapSnapshotPatchIds,
@@ -168,9 +169,14 @@ export function parsePerformanceExportPayload(raw: unknown): PerformanceExportPa
   }
 
   const rawPatchDefinitions = Array.isArray(raw.patch_definitions) ? raw.patch_definitions : [];
-  const parsedPatchDefinitions = rawPatchDefinitions
-    .map((entry) => parseExportedPatchDefinition(entry))
-    .filter((entry): entry is ExportedPatchDefinition => entry !== null);
+  const parsedPatchDefinitions = rawPatchDefinitions.map((entry) => {
+    const definition = parseExportedPatchDefinition(entry);
+    if (!definition) throw new Error("Import contains an invalid instrument definition.");
+    return definition;
+  });
+  if (new Set(parsedPatchDefinitions.map(patch => patch.sourcePatchId)).size !== parsedPatchDefinitions.length) {
+    throw new Error("Import contains duplicate sourcePatchId values.");
+  }
 
   const performanceName =
     typeof raw.performance.name === "string" && raw.performance.name.trim().length > 0
@@ -361,6 +367,33 @@ export function resolvePatchImportOperation(
     type: "create",
     payload
   };
+}
+
+export interface BundleImportPlan {
+  patches: Array<{ id: string; sourcePatchId: string; name: string; type: "create" | "update" }>;
+  performance?: PerformanceImportOperation;
+}
+
+export function planPatchImports(
+  definitions: ExportedPatchDefinition[], patches: PatchListItem[], conflicts: Map<string, ImportConflictDialogItem>
+): { plan: BundleImportPlan; catalog: PatchListItem[]; patchIdMap: Map<string, string> } {
+  const plan: BundleImportPlan = { patches: [] };
+  let catalog = [...patches];
+  const patchIdMap = new Map<string, string>();
+  for (const definition of definitions) {
+    const operation = resolvePatchImportOperation(definition, catalog, conflicts);
+    if (operation.type === "skip") continue;
+    const id = operation.type === "update" ? operation.patchId : crypto.randomUUID();
+    if (plan.patches.some(patch => patch.id === id)) {
+      throw new Error("Two imported instruments target the same library entry. Choose distinct names.");
+    }
+    plan.patches.push({ id, sourcePatchId: definition.sourcePatchId, name: operation.payload.name, type: operation.type });
+    patchIdMap.set(definition.sourcePatchId, id);
+    const timestamp = new Date().toISOString();
+    const item = toPatchListItem({ ...operation.payload, id, created_at: timestamp, updated_at: timestamp });
+    catalog = [item, ...catalog.filter(patch => patch.id !== id)];
+  }
+  return { plan, catalog, patchIdMap };
 }
 
 export function resolveImportedPerformanceConfig(

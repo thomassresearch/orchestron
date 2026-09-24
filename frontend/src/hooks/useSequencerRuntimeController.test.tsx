@@ -87,7 +87,7 @@ it.each([false, true])("sends a range edit with arpeggiators as one live configu
     tracks: config.tracks.map((track, index) => ({ ...track, pad_loop_sequence: state.tracks[index]?.padLoopSequence ?? track.pad_loop_sequence })),
     arpeggiators: buildBackendArpeggiatorConfigs(state) }));
   const { result } = setup(false, { sequencer: build, arpeggiators: buildBackendArpeggiatorRequest });
-  await act(() => result.current.startSequencerTransport(true));
+  await act(() => result.current.transportDevice(null, true));
   await act(() => vi.advanceTimersByTimeAsync(100));
   vi.mocked(api.configureSessionSequencer).mockClear();
   vi.mocked(api.configureSessionArpeggiators).mockClear();
@@ -244,9 +244,9 @@ it("keeps the stopped song cursor through preview status and audible clock updat
   expect(useAppStore.getState().sequencerRuntime).toMatchObject({
     transportSubunit: 24 * sequencerTransportSubunitsPerStep(), arrangerTransportSubunit: 8 * sequencerTransportSubunitsPerStep(), arrangerActive: false
   });
-  await act(() => result.current.startSequencerTransport(true));
+  await act(() => result.current.transportDevice(null, true));
   expect(buildConfig).toHaveBeenLastCalledWith(useAppStore.getState().sequencer, "runtime", true);
-  expect(startSequencer).toHaveBeenCalledWith("session", expect.objectContaining({ positionStep: 8, arrangerActive: true }));
+  expect(deviceTransport).toHaveBeenCalledWith("session", expect.objectContaining({ position_step: 8, arranger: true }));
   expect(useAppStore.getState().sequencerRuntime.arrangerActive).toBe(true);
 });
 
@@ -362,11 +362,11 @@ it.each(["workspace_start", "preview_start"] as const)("rejects prepared arpeggi
   expect(audition).not.toHaveBeenCalled();
 });
 
-it("starts independent device transport with explicit manual bounds", async () => {
+it("starts independent device transport with shared song bounds", async () => {
   const { result } = setup(false);
-  await act(() => result.current.startSequencerTransport(false));
-  expect(buildConfig).toHaveBeenLastCalledWith(useAppStore.getState().sequencer, "runtime", false);
-  expect(startSequencer).toHaveBeenLastCalledWith("session", expect.objectContaining({ arrangerActive: false }));
+  await act(() => result.current.transportDevice(useAppStore.getState().sequencer.tracks[0].id, true));
+  expect(buildConfig).toHaveBeenLastCalledWith(useAppStore.getState().sequencer, "runtime", true);
+  expect(deviceTransport).toHaveBeenLastCalledWith("session", expect.objectContaining({ track_ids: [useAppStore.getState().sequencer.tracks[0].id] }));
 });
 
 it("uses explicit device Play after arranger Play/Stop without changing authored enablement", async () => {
@@ -456,7 +456,7 @@ it("uses the song marker for the arranger cursor and retains it during independe
 it("applies song-loop toggles during playback without seeking or restarting", async () => {
   const build = (state = useAppStore.getState().sequencer) => ({ ...config, ...buildSequencerPlaybackRange(state, "runtime", true) });
   const { result } = setup(false, { sequencer: build, arpeggiators: buildBackendArpeggiatorRequest });
-  await act(() => result.current.startSequencerTransport(true));
+  await act(() => result.current.transportDevice(null, true));
   await act(() => vi.advanceTimersByTimeAsync(100));
   startSequencer.mockClear(); deviceTransport.mockClear();
   for (const enabled of [true, false]) {

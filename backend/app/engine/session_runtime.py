@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 import threading
+import asyncio
 
 from backend.app.engine.csound_worker import CsoundWorker
 from backend.app.models.audio import AudioGraph, MixerState
@@ -31,6 +32,9 @@ class RuntimeSession:
     device_transport_epoch: int = 0
     device_transport_generations: dict[str, int] = field(default_factory=dict)
     configuration_lock: Any = field(default_factory=threading.Lock)
+    lifecycle_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
+    closing: bool = False
+    stopping: bool = False
 
     @property
     def patch_id(self) -> str:

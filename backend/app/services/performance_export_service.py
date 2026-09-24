@@ -3,9 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path, PurePosixPath
+from typing import BinaryIO
 import re
 from time import perf_counter as _monotonic_seconds
-from unittest.mock import patch
 import zipfile
 
 from backend.app.models.export import (
@@ -162,7 +162,7 @@ class PerformanceExportService:
         self._compiler_service = compiler_service
         self._gen_asset_service = gen_asset_service
 
-    def build_performance_csd_archive(self, request: PerformanceCsdExportRequest) -> bytes:
+    def build_performance_csd_archive(self, request: PerformanceCsdExportRequest, *, output: BinaryIO | None = None) -> bytes | None:
         exported = request.performance_export
         if exported.performance.config.audio_graph is not None:
             normalized = normalize_master_bundle(exported.model_dump(mode="json", by_alias=True))
@@ -267,7 +267,7 @@ class PerformanceExportService:
                 output_wave_name=output_wave_name,
             )
 
-        archive_buffer = BytesIO()
+        archive_buffer = output if output is not None else BytesIO()
         with zipfile.ZipFile(archive_buffer, mode="w", compression=zipfile.ZIP_DEFLATED) as archive:
             archive.writestr(str(bundle_root / csd_file_name), csd.encode("utf-8"))
             if midi_bytes is not None:
@@ -276,9 +276,9 @@ class PerformanceExportService:
             if warnings:
                 archive.writestr(str(bundle_root / "WARNINGS.txt"), "\n".join(warnings).encode("utf-8"))
             for asset in bundled_assets:
-                archive.writestr(str(bundle_root / asset.archive_path), asset.source_path.read_bytes())
+                archive.write(asset.source_path, str(bundle_root / asset.archive_path))
 
-        return archive_buffer.getvalue()
+        return archive_buffer.getvalue() if output is None else None
 
     def _rewrite_patch_definitions_for_export(
         self,
@@ -613,6 +613,7 @@ class PerformanceExportService:
         )
         runtime = SessionSequencerRuntime(
             session_id="performance-export",
+            clock=lambda: capture.current_time_seconds,
             midi_service=router,  # type: ignore[arg-type]
             midi_input_selector="offline-export",
             controller_default_channels=controller_default_channels,
@@ -632,41 +633,37 @@ class PerformanceExportService:
             runtime._running = True
 
         try:
-            with patch(
-                "backend.app.services.sequencer_runtime.time.perf_counter",
-                side_effect=lambda: capture.current_time_seconds,
-            ):
-                while True:
-                    if _monotonic_seconds() > deadline:
-                        raise OfflineMidiExportTimeoutError(
-                            "Offline performance CSD export MIDI generation exceeded "
-                            f"{OFFLINE_CSD_EXPORT_MAX_WALL_SECONDS:.1f} seconds."
-                        )
-                    with runtime._lock:
-                        if not runtime._running:
-                            break
-                        config = runtime._config
-                        current_subunit = runtime._absolute_subunit
-                    if config is None:
+            while True:
+                if _monotonic_seconds() > deadline:
+                    raise OfflineMidiExportTimeoutError(
+                        "Offline performance CSD export MIDI generation exceeded "
+                        f"{OFFLINE_CSD_EXPORT_MAX_WALL_SECONDS:.1f} seconds."
+                    )
+                with runtime._lock:
+                    if not runtime._running:
                         break
-                    capture.current_time_seconds = scheduled_time
-                    capture.current_sample = int(round(scheduled_time * OFFLINE_RENDER_SR))
-                    block_start_sample = capture.current_sample
-                    scheduled_time += runtime._perform_subunit_event(
-                        config,
-                        current_subunit,
-                        scheduled_time=scheduled_time,
-                    )
-                    block_end_sample = int(round(scheduled_time * OFFLINE_RENDER_SR))
-                    router.advance_render_block(
-                        block_start_sample=block_start_sample,
-                        block_end_sample=max(block_start_sample + 1, block_end_sample),
-                        sample_rate=OFFLINE_RENDER_SR,
-                        tempo_bpm=request.sequencer_config.timing.tempo_bpm,
-                    )
-                    capture.current_time_seconds = scheduled_time
-                    capture.current_sample = block_end_sample
-                    capture.raise_if_event_budget_exceeded()
+                    config = runtime._config
+                    current_subunit = runtime._absolute_subunit
+                if config is None:
+                    break
+                capture.current_time_seconds = scheduled_time
+                capture.current_sample = int(round(scheduled_time * OFFLINE_RENDER_SR))
+                block_start_sample = capture.current_sample
+                scheduled_time += runtime._perform_subunit_event(
+                    config,
+                    current_subunit,
+                    scheduled_time=scheduled_time,
+                )
+                block_end_sample = int(round(scheduled_time * OFFLINE_RENDER_SR))
+                router.advance_render_block(
+                    block_start_sample=block_start_sample,
+                    block_end_sample=max(block_start_sample + 1, block_end_sample),
+                    sample_rate=OFFLINE_RENDER_SR,
+                    tempo_bpm=request.sequencer_config.timing.tempo_bpm,
+                )
+                capture.current_time_seconds = scheduled_time
+                capture.current_sample = block_end_sample
+                capture.raise_if_event_budget_exceeded()
         finally:
             router.shutdown()
         capture.raise_if_event_budget_exceeded()

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterable, Callable, Iterable
 from dataclasses import dataclass
+from contextlib import contextmanager
+import asyncio
 import filecmp
 import hashlib
 import os
@@ -157,21 +159,24 @@ class GenAssetService:
                         continue
                     next_size = size + len(chunk)
                     self._raise_if_upload_exceeds_max(next_size)
-                    output.write(chunk)
+                    await asyncio.to_thread(output.write, chunk)
                     size = next_size
 
             if size <= 0:
                 raise ValueError("Audio upload is empty.")
 
-            with self._quota_lock:
-                try:
-                    self._raise_if_new_assets_exceed_quota_unlocked(1, size, action="Audio upload")
-                except GenAudioAssetQuotaExceededError:
-                    if quota_retry is None:
-                        raise
-                    quota_retry()
-                    self._raise_if_new_assets_exceed_quota_unlocked(1, size, action="Audio upload")
-                os.replace(temp_path, target_path)
+            def finish_upload():
+                with self._quota_lock:
+                    try:
+                        self._raise_if_new_assets_exceed_quota_unlocked(1, size, action="Audio upload")
+                    except GenAudioAssetQuotaExceededError:
+                        if quota_retry is None:
+                            raise
+                        quota_retry()
+                        self._raise_if_new_assets_exceed_quota_unlocked(1, size, action="Audio upload")
+                    os.replace(temp_path, target_path)
+
+            await asyncio.to_thread(finish_upload)
         except Exception:
             try:
                 temp_path.unlink(missing_ok=True)
@@ -196,6 +201,19 @@ class GenAssetService:
         except ValueError as err:
             raise ValueError("Audio asset path escapes configured asset directory.") from err
         return resolved
+
+    @contextmanager
+    def import_batch(self, stored_names: Iterable[str]):
+        """Rollback only files created by this batch; serialize quota/write ownership."""
+        with self._quota_lock:
+            paths = [self.resolve_audio_path(name) for name in stored_names]
+            new_paths = [path for path in paths if not path.exists()]
+            try:
+                yield
+            except Exception:
+                for path in new_paths:
+                    path.unlink(missing_ok=True)
+                raise
 
     def import_audio_bytes_with_stored_name(
         self,

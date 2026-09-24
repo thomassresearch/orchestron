@@ -18,6 +18,7 @@ dependencies = [
   "idna>=3.18",
   "starlette>=1.3.1",
   "cryptography>=50.0.0",
+  "python-multipart>=0.0.32",
 ]
 
 [project.optional-dependencies]

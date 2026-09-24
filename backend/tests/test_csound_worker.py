@@ -1,11 +1,73 @@
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
+import threading
+
 import numpy as np
 import pytest
 
 from backend.app.engine.csound_worker import CsoundWorker
 from backend.app.engine.ctcsound_loader import load_ctcsound_module
 from backend.app.engine.browser_audio_pcm import resample_stereo_block_linear
+
+
+def test_stop_waits_for_render_ownership_and_prevents_late_pcm(monkeypatch):
+    monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "true")
+    worker = CsoundWorker()
+    worker.start("sr = 48000\nksmps = 64\nnchnls = 2", "unused", "null")
+    entered, release, stopping = threading.Event(), threading.Event(), threading.Event()
+
+    def before_block(_):
+        entered.set()
+        assert release.wait(5)
+
+    def stop():
+        stopping.set()
+        return worker.stop()
+
+    with ThreadPoolExecutor(max_workers=2) as threads:
+        render = threads.submit(worker.render_blocks, block_count=1, target_sample_rate=48000, before_block=before_block)
+        assert entered.wait(5)
+        stopping_task = threads.submit(stop)
+        assert stopping.wait(5)
+        try:
+            assert not stopping_task.done()
+        finally:
+            release.set()
+        assert render.result(timeout=5).engine_sample_end == 64
+        assert stopping_task.result(timeout=5) == "stopped"
+    assert worker.render_sample_cursor == 0
+    with pytest.raises(RuntimeError, match="must be running"):
+        worker.render_blocks(block_count=1, target_sample_rate=48000)
+
+
+def test_stop_cleans_up_native_engine_after_perform_failure(monkeypatch):
+    monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "true")
+    worker = CsoundWorker()
+    worker.start("sr = 48000\nksmps = 64\nnchnls = 2", "unused", "null")
+    calls = []
+
+    class FailedEngine:
+        def performKsmps(self):
+            return 1
+
+        def stop(self):
+            calls.append("stop")
+
+        def cleanup(self):
+            calls.append("cleanup")
+
+        def reset(self):
+            calls.append("reset")
+
+    worker._backend = "ctcsound"
+    worker._csound = FailedEngine()
+    with pytest.raises(RuntimeError, match="performKsmps"):
+        worker.render_blocks(block_count=1, target_sample_rate=48000)
+    assert not worker.is_running
+    assert worker.stop() == "stopped"
+    assert calls == ["stop", "cleanup", "reset"]
+    assert worker._csound is None
 
 
 def test_rtmidi_candidates_prefer_requested_and_normalize_quotes(monkeypatch) -> None:
@@ -450,7 +512,6 @@ def test_browser_clock_mock_runtime_renders_exact_block_windows(monkeypatch) -> 
 
     assert start.audio_mode == "browser_clock"
     assert worker.is_running is True
-    assert worker._thread is None
 
     observed_cursors: list[tuple[int, int]] = []
 

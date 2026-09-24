@@ -62,14 +62,14 @@ Per patch, you can choose:
 - `Rename` (disable overwrite and provide a new target name)
 - `Skip` (patch imports only)
 
-The dialog validates name collisions before proceeding.
+The dialog validates name collisions before proceeding. Cancelling leaves the library and audio storage unchanged. After confirmation, the selected patches and their new audio assets are saved together; a failed import rolls back the whole batch. Invalid definitions and duplicate source IDs are rejected before anything is stored.
 
 ## Audio Dependency Handling
 
 For ZIP imports that include referenced GEN01 audio or `sfload` SoundFont assets:
 
 - Orchestron validates the archive structure
-- Imports the audio files into backend storage automatically
+- Imports the selected patches' audio files into backend storage after confirmation
 - Restores the patch graph with the asset references intact
 - Rejects archives that exceed backend bundle limits before unpacking large members
 

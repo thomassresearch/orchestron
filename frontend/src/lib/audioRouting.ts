@@ -78,13 +78,6 @@ export function migrateAudio(bindings: SequencerInstrumentBinding[], patches: Pa
 export function cleanBindings(bindings: SequencerInstrumentBinding[]) {
   return bindings.map((b) => ({ id: b.id, patchId: b.patchId, midiChannel: b.midiChannel, performanceControllerValues: { ...b.performanceControllerValues } }));
 }
-/** Display projection only. Editors always write the explicit graph. */
-export function bindingsWithIncomingRoutes(bindings: SequencerInstrumentBinding[], graph: AudioGraph) {
-  return bindings.map((binding) => ({ ...binding,
-    effectSourceIds: [...new Set(graph.routes.filter((r) => r.targetId === binding.id).map((r) => r.sourceId))],
-    effectRoutes: graph.routes.filter((r) => r.targetId === binding.id).map((r) => ({ sourceId: r.sourceId, channel: r.sourcePort }))
-  }));
-}
 export function suggestedInterface(patch: PatchListItem): AudioInterface {
   const groups = (["input", "output"] as const).flatMap((direction) => {
     const ports = direction === "input" ? patch.audio_inlet_names : outputPorts(patch);

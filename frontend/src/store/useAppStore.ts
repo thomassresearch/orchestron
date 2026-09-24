@@ -83,10 +83,14 @@ export { ALWAYS_ON_REQUIRES_INLETA_MESSAGE } from "./appStoreModel";
 
 let persistTimer: ReturnType<typeof setTimeout> | null = null;
 let persistInFlight = false;
+let persistFailures = 0;
 let pendingPersistSnapshot: PersistedAppState | null = null;
 let lastPersistedSignature: string | null = null;
 let lastPersistWatchState: PersistWatchState | null = null;
 let bootstrapLoadInFlight: Promise<void> | null = null;
+let sessionCreationInFlight: Promise<string> | null = null;
+let sessionStartInFlight: Promise<void> | null = null;
+let sessionRequestGeneration = 0;
 
 export const useAppStore = create<AppStore>((set, get) => {
   const commitCurrentPatch = (patch: EditablePatch, extra?: Partial<AppStore>) => {
@@ -97,6 +101,39 @@ export const useAppStore = create<AppStore>((set, get) => {
       ...extra,
       currentPatch: patch,
       instrumentTabs
+    });
+  };
+
+  const patchRequests = new Map<string, number>();
+  const beginPatchRequest = () => {
+    const state = get();
+    const tabId = state.activeInstrumentTabId;
+    const generation = (patchRequests.get(tabId) ?? 0) + 1;
+    patchRequests.set(tabId, generation);
+    return { tabId, generation, patch: state.currentPatch };
+  };
+  const finishPatchRequest = (
+    request: ReturnType<typeof beginPatchRequest>, saved: EditablePatch,
+    preserveEdits: boolean, extra: Partial<AppStore> = {}
+  ) => {
+    const state = get();
+    const tab = state.instrumentTabs.find(item => item.id === request.tabId);
+    if (!tab || patchRequests.get(request.tabId) !== request.generation) {
+      set(extra);
+      return;
+    }
+    let patch = saved;
+    if (tab.patch !== request.patch) {
+      if (!preserveEdits || tab.patch.id !== request.patch.id) {
+        set(extra);
+        return;
+      }
+      patch = { ...tab.patch, id: saved.id, created_at: saved.created_at, updated_at: saved.updated_at };
+    }
+    set({
+      ...extra,
+      instrumentTabs: updatePatchInTabs(state.instrumentTabs, request.tabId, patch),
+      ...(state.activeInstrumentTabId === request.tabId ? { currentPatch: patch } : {})
     });
   };
 
@@ -173,6 +210,7 @@ export const useAppStore = create<AppStore>((set, get) => {
     },
 
     closeInstrumentTab: (tabId) => {
+      patchRequests.delete(tabId);
       const state = get();
       if (state.instrumentTabs.length <= 1) {
         const replacement = createInstrumentTab();
@@ -434,11 +472,13 @@ export const useAppStore = create<AppStore>((set, get) => {
         return;
       }
 
+      const request = beginPatchRequest();
       set({ loading: true, error: null });
       try {
         const patch = await api.getPatch(patchId);
         const currentPatch = normalizePatch(patch);
-        commitCurrentPatch(currentPatch, { loading: false, error: null });
+        finishPatchRequest(request, currentPatch, false);
+        set({ loading: false, error: null });
       } catch (error) {
         set({
           loading: false,
@@ -638,6 +678,7 @@ export const useAppStore = create<AppStore>((set, get) => {
 
 
       commitCurrentPatch(current, { loading: true, error: null });
+      const request = beginPatchRequest();
 
       try {
         const payload = {
@@ -666,7 +707,7 @@ export const useAppStore = create<AppStore>((set, get) => {
           ? sequencerInstrumentsForPerformablePatches(state.sequencerInstruments, patches)
           : defaultSequencerInstruments(patches, normalizedPatch);
 
-        commitCurrentPatch(normalizedPatch, {
+        finishPatchRequest(request, normalizedPatch, true, {
           patches,
           sequencerInstruments,
           loading: false,
@@ -768,6 +809,7 @@ export const useAppStore = create<AppStore>((set, get) => {
       };
 
       commitCurrentPatch(nextPatch, { error: null });
+      const request = beginPatchRequest();
 
       const normalizedGraph = normalizePatchGraph(nextPatch.graph);
 
@@ -804,7 +846,7 @@ export const useAppStore = create<AppStore>((set, get) => {
           ? sequencerInstrumentsForPerformablePatches(state.sequencerInstruments, patches)
           : defaultSequencerInstruments(patches, resolvedPatch);
 
-        commitCurrentPatch(resolvedPatch, {
+        finishPatchRequest(request, resolvedPatch, true, {
           patches,
           sequencerInstruments,
           error: null
@@ -817,20 +859,50 @@ export const useAppStore = create<AppStore>((set, get) => {
     },
 
     ensureSession: async () => {
-      const requestedAssignments = normalizeSessionInstrumentAssignments(get().sequencerInstruments);
-      const audioSignature = JSON.stringify({ graph: get().audioGraph, patches: get().patches.map((p) => [p.id, p.updated_at]) });
-      const sameAudio = get().activeSessionAudioSignature === audioSignature;
-      let sessionId = get().activeSessionId;
+      if (sessionCreationInFlight) return sessionCreationInFlight;
+      const generation = sessionRequestGeneration;
+      const task = (async () => {
+        const requestedBindings = get().sequencerInstruments;
+        const requestedAssignments = normalizeSessionInstrumentAssignments(requestedBindings);
+        const audioSignature = JSON.stringify({ graph: get().audioGraph, patches: get().patches.map((p) => [p.id, p.updated_at]) });
+        const setupIsCurrent = () => generation === sessionRequestGeneration &&
+          requestedBindings === get().sequencerInstruments &&
+          audioSignature === JSON.stringify({ graph: get().audioGraph, patches: get().patches.map(p => [p.id, p.updated_at]) });
+        const sameAudio = get().activeSessionAudioSignature === audioSignature;
+        let sessionId = get().activeSessionId;
 
-      if (sessionId && sameAudio && sameAssignments(requestedAssignments, get().activeSessionInstruments)) {
-        try {
-          await api.getSession(sessionId);
-          await get().flushMixer();
-          await get().flushPerformanceControllers();
-          return sessionId;
-        } catch (error) {
-          if (!isApiError(error) || error.status !== 404) {
-            throw error;
+        if (sessionId && sameAudio && sameAssignments(requestedAssignments, get().activeSessionInstruments)) {
+          try {
+            await api.getSession(sessionId);
+            await get().flushMixer();
+            await get().flushPerformanceControllers();
+            return sessionId;
+          } catch (error) {
+            if (!isApiError(error) || error.status !== 404) {
+              throw error;
+            }
+
+            set({
+              activeSessionId: null,
+              activeSessionState: "idle",
+              activeSessionInstruments: [],
+              compileOutput: null,
+              events: []
+            });
+            sessionId = null;
+          }
+        }
+
+        if (sessionId && (!sameAudio || !sameAssignments(requestedAssignments, get().activeSessionInstruments))) {
+          try {
+            await api.stopSession(sessionId);
+          } catch {
+            // Ignore if session wasn't running.
+          }
+          try {
+            await api.deleteSession(sessionId);
+          } catch {
+            // Ignore cleanup failures and continue with a fresh session.
           }
 
           set({
@@ -842,57 +914,49 @@ export const useAppStore = create<AppStore>((set, get) => {
           });
           sessionId = null;
         }
-      }
 
-      if (sessionId && (!sameAudio || !sameAssignments(requestedAssignments, get().activeSessionInstruments))) {
-        try {
-          await api.stopSession(sessionId);
-        } catch {
-          // Ignore if session wasn't running.
+        if (sessionId) {
+          return sessionId;
         }
-        try {
+
+        const session = await api.createSession(requestedAssignments, get().audioGraph, get().mixer);
+        if (!setupIsCurrent()) {
+          await api.deleteSession(session.session_id);
+          throw new Error("Instrument session creation was cancelled because the setup changed.");
+        }
+        sessionId = session.session_id;
+
+        const midiInput = get().activeMidiInput;
+        let boundMidiInput = midiInput;
+        if (midiInput) {
+          try {
+            const boundSession = await api.bindMidiInput(sessionId, midiInput);
+            boundMidiInput = boundSession.midi_input ?? midiInput;
+          } catch {
+            // Keep session creation successful even if MIDI binding fails.
+          }
+        }
+
+        if (!setupIsCurrent()) {
           await api.deleteSession(sessionId);
-        } catch {
-          // Ignore cleanup failures and continue with a fresh session.
+          throw new Error("Instrument session creation was cancelled.");
         }
-
         set({
-          activeSessionId: null,
-          activeSessionState: "idle",
-          activeSessionInstruments: [],
-          compileOutput: null,
-          events: []
+          activeSessionId: sessionId,
+          activeSessionAudioSignature: audioSignature,
+          activeSessionState: session.state,
+          activeMidiInput: boundMidiInput,
+          activeSessionInstruments: session.instruments.length > 0 ? session.instruments : requestedAssignments
         });
-        sessionId = null;
-      }
 
-      if (sessionId) {
         return sessionId;
+      })();
+      sessionCreationInFlight = task;
+      try {
+        return await task;
+      } finally {
+        if (sessionCreationInFlight === task) sessionCreationInFlight = null;
       }
-
-      const session = await api.createSession(requestedAssignments, get().audioGraph, get().mixer);
-      sessionId = session.session_id;
-
-      const midiInput = get().activeMidiInput;
-      let boundMidiInput = midiInput;
-      if (midiInput) {
-        try {
-          const boundSession = await api.bindMidiInput(sessionId, midiInput);
-          boundMidiInput = boundSession.midi_input ?? midiInput;
-        } catch {
-          // Keep session creation successful even if MIDI binding fails.
-        }
-      }
-
-      set({
-        activeSessionId: sessionId,
-        activeSessionAudioSignature: audioSignature,
-        activeSessionState: session.state,
-        activeMidiInput: boundMidiInput,
-        activeSessionInstruments: session.instruments.length > 0 ? session.instruments : requestedAssignments
-      });
-
-      return sessionId;
     },
 
     compileSession: async () => {
@@ -970,22 +1034,38 @@ export const useAppStore = create<AppStore>((set, get) => {
     },
 
     startSession: async () => {
-      set({ loading: true, error: null });
+      if (sessionStartInFlight) return sessionStartInFlight;
+      const generation = sessionRequestGeneration;
+      const task = (async () => {
+        set({ loading: true, error: null });
+        try {
+          const sessionId = await get().ensureSession();
+          if (generation !== sessionRequestGeneration) return;
+          if (get().activeSessionState === "running") { set({ loading: false }); return; }
+          const compileOutput = await api.compileSession(sessionId);
+          if (generation !== sessionRequestGeneration) return;
+          const response = await api.startSession(sessionId);
+          if (generation !== sessionRequestGeneration || get().activeSessionId !== sessionId) {
+            await api.stopSession(sessionId);
+            return;
+          }
+          set({ compileOutput, activeSessionState: response.state, loading: false });
+        } catch (error) {
+          if (generation === sessionRequestGeneration) set({ loading: false, activeSessionState: "error",
+            error: error instanceof Error ? error.message : "Failed to start session" });
+        }
+      })();
+      sessionStartInFlight = task;
       try {
-        const sessionId = await get().ensureSession();
-        const compileOutput = await api.compileSession(sessionId);
-        const response = await api.startSession(sessionId);
-        set({ compileOutput, activeSessionState: response.state, loading: false });
-      } catch (error) {
-        set({
-          loading: false,
-          activeSessionState: "error",
-          error: error instanceof Error ? error.message : "Failed to start session"
-        });
+        await task;
+      } finally {
+        if (sessionStartInFlight === task) sessionStartInFlight = null;
       }
     },
 
     stopSession: async () => {
+      sessionRequestGeneration += 1;
+      set({ loading: false });
       const sessionId = get().activeSessionId;
       if (!sessionId) {
         return;
@@ -1076,9 +1156,11 @@ async function flushPersistedAppState(): Promise<void> {
   try {
     await api.saveAppState(snapshot);
     lastPersistedSignature = signature;
+    persistFailures = 0;
   } catch {
-    // Retry failed saves when the next state change occurs.
-    pendingPersistSnapshot = snapshot;
+    // A newer edit may already be waiting while this request was in flight.
+    pendingPersistSnapshot ??= snapshot;
+    persistFailures += 1;
   } finally {
     persistInFlight = false;
     if (pendingPersistSnapshot) {
@@ -1088,7 +1170,7 @@ async function flushPersistedAppState(): Promise<void> {
       persistTimer = setTimeout(() => {
         persistTimer = null;
         void flushPersistedAppState();
-      }, APP_STATE_PERSIST_DEBOUNCE_MS);
+      }, Math.min(30_000, APP_STATE_PERSIST_DEBOUNCE_MS * 2 ** Math.min(persistFailures, 7)));
     }
   }
 }

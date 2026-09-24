@@ -39,6 +39,8 @@ Each piano roll has:
 - `Scale`
 - `Mode`
 
+Each MIDI-driven rack instrument requires a unique MIDI channel. Set the piano roll to the channel of the instrument you want to play.
+
 ## Scale/Mode Following Behavior During Live Playback
 
 When the instrument engine is running and a piano roll is enabled, the piano roll can follow the currently running melodic sequencers for harmonic guidance.

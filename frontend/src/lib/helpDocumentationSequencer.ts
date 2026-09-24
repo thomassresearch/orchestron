@@ -715,7 +715,7 @@ Los cambios del pad mostrado se agrupan tras 80 ms y se aplican en el siguiente 
     english: `### Live Input Behavior
 
 - A piano roll only sends notes when its own lane is enabled and the instrument engine is running; its Start control can bring up the engine without starting the arranger transport.
-- Use the MIDI channel to target one rack instrument or intentionally layer several instruments on the same channel.
+- Use the MIDI channel to target one rack instrument. Each MIDI-driven rack instrument requires a unique channel.
 - The on-screen keyboard spans \`C1..B7\` and uses pointer press/release gestures for note on/off.
 
 ### Scale Guidance
@@ -726,7 +726,7 @@ Los cambios del pad mostrado se agrupan tras 80 ms y se aplican en el siguiente 
     german: `### Live-Eingabeverhalten
 
 - Eine Piano Roll sendet nur dann Noten, wenn ihre eigene Spur aktiviert ist und die Instrument-Engine laeuft; ihr Start-Button kann die Engine starten, ohne den Arranger-Transport zu starten.
-- Ueber den MIDI-Kanal kann gezielt ein Rack-Instrument angesteuert oder bewusst ein Layer mehrerer Instrumente auf demselben Kanal gebaut werden.
+- Ueber den MIDI-Kanal wird ein Rack-Instrument angesteuert. Jedes MIDI-gesteuerte Rack-Instrument braucht einen eigenen Kanal.
 - Die Onscreen-Tastatur reicht von \`C1..B7\` und nutzt Pointer-Press/Release fuer Note On/Off.
 
 ### Skalenfuehrung
@@ -737,7 +737,7 @@ Los cambios del pad mostrado se agrupan tras 80 ms y se aplican en el siguiente 
     french: `### Comportement en entree live
 
 - Un piano roll n'envoie des notes que si sa propre voie est active et que le moteur instrument tourne ; son bouton Start peut lancer le moteur sans lancer le transport arrangeur.
-- Utilisez le canal MIDI pour viser un instrument du rack ou pour superposer volontairement plusieurs instruments sur le meme canal.
+- Utilisez le canal MIDI pour viser un instrument du rack. Chaque instrument pilote par MIDI doit avoir son propre canal.
 - Le clavier a l'ecran couvre \`C1..B7\` et utilise des gestes de pression/relachement du pointeur pour les note on/off.
 
 ### Guidage tonal
@@ -748,7 +748,7 @@ Los cambios del pad mostrado se agrupan tras 80 ms y se aplican en el siguiente 
     spanish: `### Comportamiento de entrada en vivo
 
 - Un piano roll solo envia notas cuando su propia pista esta activada y el motor de instrumentos esta en marcha; su control Start puede iniciar el motor sin iniciar el transporte del arreglador.
-- Usa el canal MIDI para apuntar a un instrumento del rack o para superponer intencionalmente varios instrumentos en el mismo canal.
+- Usa el canal MIDI para apuntar a un instrumento del rack. Cada instrumento controlado por MIDI necesita un canal propio.
 - El teclado en pantalla cubre \`C1..B7\` y utiliza gestos de pulsar/soltar con el puntero para note on/off.
 
 ### Guia tonal

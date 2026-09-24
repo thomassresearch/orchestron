@@ -72,7 +72,7 @@ The SCORE ZIP contains the same compiled instruments and bundled assets, but omi
 
 Only assets stored through Orchestron's upload/import flow are bundled. GEN01 and `sfload` nodes must reference uploaded assets; compile, session start, and offline performance CSD export reject raw filesystem `samplePath` values instead of passing them to Csound.
 
-Offline performance CSD export is bounded before synthesis starts: looping playback is rejected, playback ranges are limited to 65,536 transport steps, a single step can carry at most 16 notes, and the estimated MIDI event budget is limited to 200,000 events. MIDI generation also stops if it exceeds the event budget or takes more than 5 seconds.
+Offline performance CSD export is bounded before synthesis starts: looping playback is rejected, both the range length and its absolute end position are limited to 65,536 transport steps, a single step can carry at most 16 notes, and the estimated MIDI event budget is limited to 200,000 events. MIDI generation also stops if it exceeds the event budget or takes more than 5 seconds. The CSD export request is limited to the configured bundle JSON size (8 MiB by default).
 
 ZIP layout:
 
@@ -149,7 +149,7 @@ When importing a full performance bundle, you can choose whether to import:
 - `performance`
 - `patch definitions` (if present in the bundle)
 
-You may import either or both.
+You may import either or both. The preview stores no audio assets. Cancelling either dialog leaves the library and audio storage unchanged. After confirmation, all selected instruments, the performance, and new audio assets are saved together. A failure rolls back that batch. Malformed instrument definitions and duplicate source IDs are rejected before storage.
 
 Typical uses:
 

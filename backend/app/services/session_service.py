@@ -132,9 +132,9 @@ class SessionService:
         client_key = self._admission.normalize_client_key(client_key)
         await self._reserve_session_create(client_key)
         committed = False
-        instruments = self._instrument_resolver.resolve_request(request)
 
-        try:
+        def build_runtime(request: SessionCreateRequest) -> RuntimeSession:
+            instruments = self._instrument_resolver.resolve_request(request)
             resolver = self._resolver_for_patches(preview_patches or {})
             levels = [i.level for i in instruments]
             instruments = resolver.normalize(instruments)
@@ -172,7 +172,10 @@ class SessionService:
                 ),
             )
             self._performance_runtime.initialize(runtime)
+            return runtime
 
+        try:
+            runtime = await asyncio.to_thread(build_runtime, request)
             async with self._lock:
                 self._sessions[runtime.session_id] = runtime
                 self._admission.commit_session(runtime.session_id, client_key)
@@ -201,6 +204,11 @@ class SessionService:
         request: SessionInstrumentValidationRequest,
     ) -> SessionInstrumentValidationResponse:
         self._remember_running_loop()
+        return await asyncio.to_thread(self._validate_session_instruments, request)
+
+    def _validate_session_instruments(
+        self, request: SessionInstrumentValidationRequest
+    ) -> SessionInstrumentValidationResponse:
         instruments = self._instrument_resolver.normalize(list(request.instruments))
         try:
             graph, mixer = normalize_audio_inputs([self._instrument_resolver.compile_target(i) for i in instruments], request.audio_graph, request.mixer, [i.level for i in request.instruments])
@@ -258,7 +266,7 @@ class SessionService:
     async def frontend_connected(self, session_id: str, connection_id: str) -> None:
         self._remember_running_loop()
         async with self._lock:
-            if session_id not in self._sessions:
+            if session_id not in self._sessions or self._sessions[session_id].closing:
                 return
             self._touch_session_activity_unlocked(session_id)
             self._cancel_frontend_auto_stop_task_unlocked(session_id)
@@ -322,11 +330,17 @@ class SessionService:
 
     async def update_performance_controllers(self, session_id: str, assignment_id: str, values: dict[str, float]) -> dict:
         runtime = await self._get_session(session_id)
+        async with runtime.lifecycle_lock:
+            self._assert_session_open(runtime)
+            return await self._update_performance_controllers(runtime, assignment_id, values)
+
+    async def _update_performance_controllers(self, runtime: RuntimeSession, assignment_id: str, values: dict[str, float]) -> dict:
+        assignment = next((item for item in runtime.instruments if item.id == assignment_id), None)
+        if assignment is None:
+            raise HTTPException(status_code=404, detail="Unknown rack instrument.")
+        resolver = self._resolver_for_patches(runtime.preview_patches)
+        target = await asyncio.to_thread(resolver.compile_target, assignment)
         async with self._lock:
-            assignment = next((item for item in runtime.instruments if item.id == assignment_id), None)
-            if assignment is None:
-                raise HTTPException(status_code=404, detail="Unknown rack instrument.")
-            target = self._resolver_for_patches(runtime.preview_patches).compile_target(assignment)
             try:
                 definitions = controller_definitions(target.patch.graph)
                 normalized = validate_controller_values(definitions, values)
@@ -354,21 +368,26 @@ class SessionService:
     async def compile_session(self, session_id: str) -> CompileResponse:
         self._remember_running_loop()
         runtime = await self._get_session(session_id)
-        targets = [
-            self._resolver_for_patches(runtime.preview_patches).compile_target(assignment)
-            for assignment in runtime.instruments
-        ]
+        async with runtime.lifecycle_lock:
+            self._assert_session_open(runtime)
+            if runtime.worker.is_running:
+                raise HTTPException(status_code=409, detail="Stop the session before compiling it.")
+            return await self._compile_runtime(runtime)
 
-        midi_device = self._resolve_runtime_midi_backend_selector(runtime)
-
-        try:
-            artifact = self._compiler_service.compile_patch_bundle(
+    async def _compile_runtime(self, runtime: RuntimeSession) -> CompileResponse:
+        def compile_artifact():
+            resolver = self._resolver_for_patches(runtime.preview_patches)
+            targets = [resolver.compile_target(assignment) for assignment in runtime.instruments]
+            return self._compiler_service.compile_patch_bundle(
                 targets=targets,
-                midi_input=midi_device,
+                midi_input=self._resolve_runtime_midi_backend_selector(runtime),
                 rtmidi_module=self._settings.default_rtmidi_module,
                 audio_graph=runtime.audio_graph,
                 mixer=runtime.mixer,
             )
+
+        try:
+            artifact = await asyncio.to_thread(compile_artifact)
         except CompilationError as error:
             runtime.state = SessionState.ERROR
             await self._publish(runtime.session_id, "compile_failed", {"errors": " | ".join(error.diagnostics)})
@@ -391,16 +410,20 @@ class SessionService:
     async def start_session(self, session_id: str) -> SessionActionResponse:
         self._remember_running_loop()
         runtime = await self._get_session(session_id)
+        async with runtime.lifecycle_lock:
+            self._assert_session_open(runtime)
+            return await self._start_runtime(runtime)
 
+    async def _start_runtime(self, runtime: RuntimeSession) -> SessionActionResponse:
         if not runtime.compile_artifact or (runtime.state != SessionState.RUNNING and
                 (runtime.audio_graph is not None or runtime.compile_artifact.manifest.get("performanceControllers"))):
-            await self.compile_session(session_id)
+            await self._compile_runtime(runtime)
 
         assert runtime.compile_artifact is not None
         was_running = runtime.state == SessionState.RUNNING
 
         try:
-            result = runtime.worker.start(
+            result = await asyncio.to_thread(runtime.worker.start,
                 runtime.compile_artifact.csd,
                 midi_input=self._resolve_runtime_midi_backend_selector(runtime),
                 rtmidi_module=self._settings.default_rtmidi_module,
@@ -439,9 +462,25 @@ class SessionService:
             detail=result.detail,
         )
 
-    async def stop_session(self, session_id: str) -> SessionActionResponse:
+    async def stop_session(self, session_id: str, *, only_if_disconnected: str | None = None) -> SessionActionResponse:
         self._remember_running_loop()
         runtime = await self._get_session(session_id)
+        async with runtime.lifecycle_lock:
+            self._assert_session_open(runtime)
+            async with self._lock:
+                connected = (self._connections.has_browser_controller(session_id)
+                    if only_if_disconnected == "browser_clock_controller_disconnect"
+                    else self._connections.has_frontend(session_id))
+                if only_if_disconnected is not None and connected:
+                    return SessionActionResponse(session_id=session_id, state=runtime.state, detail="Reconnected")
+                runtime.stopping = True
+            try:
+                return await self._stop_runtime(runtime)
+            finally:
+                runtime.stopping = False
+
+    async def _stop_runtime(self, runtime: RuntimeSession) -> SessionActionResponse:
+        session_id = runtime.session_id
         self._invalidate_configuration(runtime)
         await self._disconnect_browser_clock_controller(
             session_id,
@@ -453,7 +492,7 @@ class SessionService:
             runtime.sequencer.stop()
         if runtime.midi_router is not None:
             runtime.midi_router.shutdown()
-        detail = runtime.worker.stop()
+        detail = await asyncio.to_thread(runtime.worker.stop)
         runtime.state = SessionState.COMPILED if runtime.compile_artifact else SessionState.IDLE
 
         await self._publish(runtime.session_id, "stopped", {"detail": detail})
@@ -500,6 +539,9 @@ class SessionService:
         )
 
         async with self._lock:
+            self._assert_session_open(runtime)
+            if runtime.stopping or not runtime.worker.is_running:
+                raise HTTPException(status_code=409, detail="Session is stopping.")
             self._cancel_browser_clock_auto_stop_task_unlocked(session_id)
             previous = self._connections.replace_browser_controller(session_id, lease)
 
@@ -982,7 +1024,7 @@ class SessionService:
         for runtime in list(self._sessions.values()):
             if runtime.sequencer is not None:
                 runtime.sequencer.shutdown()
-            runtime.worker.stop()
+            await asyncio.to_thread(runtime.worker.stop)
         tasks = [*self._session_idle_tasks.values(), *self._frontend_auto_stop_tasks.values(),
                  *self._browser_clock_auto_stop_tasks.values(),
                  *(task for group in self._frontend_heartbeat_watchdogs.values() for task in group.values())]
@@ -1450,23 +1492,28 @@ class SessionService:
     ) -> None:
         async with self._lock:
             runtime = self._sessions.get(session_id)
+            if runtime is not None:
+                if runtime.closing:
+                    return
+                runtime.closing = True
         if runtime is None:
             if missing_ok:
                 return
             raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found")
 
-        self._invalidate_configuration(runtime)
-        await self._disconnect_browser_clock_controller(
-            session_id,
-            detail=detail,
-            close_code=close_code,
-            close_reason=close_reason,
-        )
-        if runtime.sequencer is not None:
-            runtime.sequencer.shutdown()
-        if runtime.midi_router is not None:
-            runtime.midi_router.shutdown()
-        runtime.worker.stop()
+        async with runtime.lifecycle_lock:
+            self._invalidate_configuration(runtime)
+            await self._disconnect_browser_clock_controller(
+                session_id,
+                detail=detail,
+                close_code=close_code,
+                close_reason=close_reason,
+            )
+            if runtime.sequencer is not None:
+                runtime.sequencer.shutdown()
+            if runtime.midi_router is not None:
+                runtime.midi_router.shutdown()
+            await asyncio.to_thread(runtime.worker.stop)
 
         heartbeat_tasks_to_cancel: list[asyncio.Task[None]] = []
         auto_stop_task_to_cancel: asyncio.Task[None] | None = None
@@ -1478,6 +1525,7 @@ class SessionService:
             heartbeat_tasks = self._frontend_heartbeat_watchdogs.pop(session_id, {})
             heartbeat_tasks_to_cancel = list(heartbeat_tasks.values())
             self._connections.clear_frontend(session_id)
+            self._connections.remove_browser_controller(session_id)
             auto_stop_task_to_cancel = self._frontend_auto_stop_tasks.pop(session_id, None)
             browser_clock_auto_stop_task = self._browser_clock_auto_stop_tasks.pop(session_id, None)
             idle_task_to_cancel = self._session_idle_tasks.pop(session_id, None)
@@ -1586,10 +1634,16 @@ class SessionService:
             now_server_ns=now_server_ns or time.perf_counter_ns(),
         )
 
+    @staticmethod
+    def _assert_session_open(runtime: RuntimeSession) -> None:
+        if runtime.closing:
+            raise HTTPException(status_code=409, detail="Session is being deleted.")
+
     async def _get_session(self, session_id: str) -> RuntimeSession:
         async with self._lock:
             runtime = self._sessions.get(session_id)
             if runtime is not None:
+                self._assert_session_open(runtime)
                 self._touch_session_activity_unlocked(session_id)
         if not runtime:
             raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found")
@@ -1987,7 +2041,7 @@ class SessionService:
 
         logger.info("Auto-stopping session '%s' after frontend loss (%s)", session_id, reason)
         try:
-            await self.stop_session(session_id)
+            await self.stop_session(session_id, only_if_disconnected=reason)
         except HTTPException as exc:
             if exc.status_code != 404:
                 logger.warning(

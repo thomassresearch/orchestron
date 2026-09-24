@@ -7236,3 +7236,114 @@ def test_legacy_meter_roundtrips_storage_app_state_and_native_bundle_once(tmp_pa
         content = exported.json()
         assert content['version'] == 1
         assert content['performance']['config'] == expected
+
+
+def test_compile_running_session_preserves_active_artifact(tmp_path):
+    with _client(tmp_path) as client:
+        session_id = _create_running_session(client)
+        runtime = client.app.state.container.session_service._sessions[session_id]
+        artifact = runtime.compile_artifact
+        response = client.post(f"/api/sessions/{session_id}/compile")
+        assert response.status_code == 409
+        assert runtime.worker.is_running
+        assert runtime.compile_artifact is artifact
+        assert runtime.state.value == "running"
+
+
+def test_export_rejects_large_absolute_start_before_estimating(tmp_path, monkeypatch):
+    def estimate(*_):
+        raise AssertionError("Invalid absolute range reached the event estimator")
+    monkeypatch.setattr(PerformanceCsdExportRequest, "_estimate_offline_midi_event_count", estimate)
+    payload = _performance_csd_export_payload()
+    payload["sequencerConfig"].update(playback_start_step=10**12, playback_end_step=10**12 + 1)
+    with _client(tmp_path) as client:
+        response = client.post("/api/bundles/export/performance-csd", json=payload)
+        assert response.status_code == 422
+        assert "absolute end" in response.text
+
+
+def _transactional_import_zip():
+    patch = _minimal_patch_payload(name="Imported")
+    patch["sourcePatchId"] = "source"
+    patch["graph"]["ui_layout"] = {"sfload_nodes": {"asset": {"sampleAsset": {"stored_name": "import.sf2"}}}}
+    archive = BytesIO()
+    with zipfile.ZipFile(archive, "w") as output:
+        output.writestr("instrument.json", json.dumps(patch))
+        output.writestr("audio/import.sf2", b"RIFF fake test soundfont")
+    return archive.getvalue()
+
+
+def test_import_preview_does_not_store_assets_and_commit_is_atomic(tmp_path):
+    archive = _transactional_import_zip()
+    with _client(tmp_path) as client:
+        assets = tmp_path / "gen_audio_assets"
+        preview = client.post("/api/bundles/import/expand?preview=true", content=archive)
+        assert preview.status_code == 200, preview.text
+        assert not list(assets.iterdir())
+        plan = {"patches": [{"id": "imported", "sourcePatchId": "source", "type": "create", "name": "Imported"}],
+                "performance": {"type": "update", "performanceId": "missing", "payload": {"name": "Song", "config": {}}}}
+        response = client.post("/api/bundles/import/commit", files={"bundle": ("instrument.zip", archive)},
+                               data={"plan": json.dumps(plan)})
+        assert response.status_code == 404, response.text
+        assert client.get("/api/patches").json() == []
+        assert not list(assets.iterdir())
+        del plan["performance"]
+        response = client.post("/api/bundles/import/commit", files={"bundle": ("instrument.zip", archive)},
+                               data={"plan": json.dumps(plan)})
+        assert response.status_code == 200, response.text
+        assert response.json()["patches"][0]["id"] == "imported"
+        assert (assets / "import.sf2").exists()
+        assert client.get("/api/patches/imported").status_code == 200
+
+
+@pytest.mark.parametrize("invalid", ["duplicate", "malformed"])
+def test_import_rejects_invalid_definitions_before_assets(tmp_path, invalid):
+    definition = {**_minimal_patch_payload(name="Valid"), "sourcePatchId": "same"}
+    definitions = [definition, definition if invalid == "duplicate" else {"name": "Broken"}]
+    with _client(tmp_path) as client:
+        response = client.post("/api/bundles/import/expand", json={"patch_definitions": definitions})
+        assert response.status_code == 400
+        assert list((tmp_path / "gen_audio_assets").iterdir()) == []
+
+
+def test_offline_export_does_not_replace_the_process_clock(tmp_path, monkeypatch):
+    import time
+    from backend.app.services.sequencer_runtime import SessionSequencerRuntime
+    original = SessionSequencerRuntime._perform_subunit_event
+    clock = time.perf_counter
+    observed = []
+
+    def observe(self, *args, **kwargs):
+        observed.append(time.perf_counter is clock)
+        return original(self, *args, **kwargs)
+
+    monkeypatch.setattr(SessionSequencerRuntime, "_perform_subunit_event", observe)
+    with _client(tmp_path) as client:
+        response = client.post("/api/bundles/export/performance-csd", json=_performance_csd_export_payload())
+        assert response.status_code == 200, response.text
+    assert observed and all(observed)
+
+
+def test_export_validation_leaves_audio_event_loop_available(tmp_path, monkeypatch):
+    import threading
+    from concurrent.futures import ThreadPoolExecutor
+    entered, release = threading.Event(), threading.Event()
+    original = PerformanceCsdExportRequest._estimate_offline_midi_event_count
+
+    def paused(self, *args):
+        entered.set()
+        assert release.wait(5)
+        return original(self, *args)
+
+    monkeypatch.setattr(PerformanceCsdExportRequest, "_estimate_offline_midi_event_count", paused)
+    with _client(tmp_path) as client, ThreadPoolExecutor(max_workers=2) as requests:
+        session_id = _create_running_session(client)
+        exporting = requests.submit(client.post, "/api/bundles/export/performance-csd", json=_performance_csd_export_payload())
+        assert entered.wait(5)
+        try:
+            status = requests.submit(client.get, f"/api/sessions/{session_id}/sequencer/status")
+            assert status.result(timeout=2).status_code == 200
+            assert not exporting.done()
+        finally:
+            release.set()
+        assert exporting.result(timeout=5).status_code == 200

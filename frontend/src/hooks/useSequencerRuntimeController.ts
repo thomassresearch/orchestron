@@ -44,7 +44,6 @@ import type {
   SessionEvent,
   SessionMidiEventRequest,
   SessionSequencerConfigRequest,
-  SessionSequencerStartRequest,
   SessionSequencerStatus,
   SessionState,
   SequencerRuntimeState,
@@ -114,7 +113,6 @@ interface UseSequencerRuntimeControllerResult {
   sendAllNotesOff: (channel: number) => void;
   sendDirectMidiEvent: (payload: SessionMidiEventRequest, sessionIdOverride?: string) => Promise<void>;
   sequencerRef: MutableRefObject<SequencerState>;
-  startSequencerTransport: (arrangerActive?: boolean) => Promise<void>;
   stopSequencerTransport: (resetPlayhead: boolean) => Promise<void>;
   moveSequencerTransport: (deltaSteps: number) => Promise<void>;
   seekSequencerTransport: (positionStep: number) => Promise<void>;
@@ -883,79 +881,6 @@ export function useSequencerRuntimeController({
     for (const id of playingArrangerSourceChanges(state, previous)) void transportDevice(id, true);
   }), [transportDevice]);
 
-  const startSequencerTransport = useCallback(async (arrangerActive = false): Promise<void> => {
-    if (arrangerActive) {
-      for (const id of auditionCommandVersion.current.keys()) auditionCommandVersion.current.set(id, auditionCommandVersion.current.get(id)! + 1);
-      previewGestures.current.clear();
-      workspaceGestures.current.clear();
-      cancelArrangerPreviewGestures();
-    }
-    setSequencerError(null);
-    if (activeSessionState !== "running") {
-      setSequencerError(errors.startInstrumentsFirstForSequencer);
-      return;
-    }
-
-    const sessionId = activeSessionId;
-    if (!sessionId) {
-      setSequencerError(errors.noActiveInstrumentSessionForSequencer);
-      return;
-    }
-
-    const version = ++transportRequestVersionRef.current;
-    sequencerSeekPendingRef.current = false;
-    try {
-      const store = useAppStore.getState();
-      const currentSequencerState = mergedSequencerState(store.sequencer, store.sequencerRuntime);
-      sequencerRef.current = currentSequencerState;
-      configSyncRef.current?.baseline(sessionId, store.sequencerEditRevision);
-      if (arrangerActive) auditionDefinitions.current.clear();
-      const payload: SessionSequencerStartRequest = {
-        arranger_active: arrangerActive,
-        config: buildBackendSequencerConfig(store.sequencer, "runtime", arrangerActive),
-        position_step: arrangerActive && store.sequencerRuntime.arrangerTransportSubunit !== undefined
-          ? Math.floor(store.sequencerRuntime.arrangerTransportSubunit / sequencerTransportSubunitsPerStep()) : sequencerAbsoluteTransportStep(
-          currentSequencerState.playhead,
-          currentSequencerState.cycle,
-          currentSequencerState.stepCount
-        )
-      };
-      const status =
-        effectiveAudioOutputMode === "browser_clock"
-          ? await browserClockClientRef.current.startSequencer(sessionId, {
-              config: payload.config,
-              arrangerActive: payload.arranger_active,
-              positionStep: payload.position_step
-            })
-          : await api.startSessionSequencer(sessionId, payload);
-      if (version !== transportRequestVersionRef.current || useAppStore.getState().activeSessionId !== sessionId) return;
-      sequencerSessionIdRef.current = sessionId;
-      applySequencerStatus(status);
-    } catch (transportError) {
-      if (version !== transportRequestVersionRef.current || useAppStore.getState().activeSessionId !== sessionId) return;
-      if (invalidateMissingRuntimeSession(sessionId, transportError)) {
-        return;
-      }
-      syncSequencerRuntime({ isPlaying: false });
-      setSequencerError(
-        transportError instanceof Error ? transportError.message : errors.failedToStartSequencer
-      );
-    }
-  }, [
-    activeSessionId,
-    activeSessionState,
-    applySequencerStatus,
-    browserClockClientRef,
-    buildBackendSequencerConfig,
-    effectiveAudioOutputMode,
-    errors.failedToStartSequencer,
-    errors.noActiveInstrumentSessionForSequencer,
-    errors.startInstrumentsFirstForSequencer,
-    invalidateMissingRuntimeSession,
-    setSequencerError,
-    syncSequencerRuntime
-  ]);
-
   const seekSequencerTransport = useCallback(
     async (positionStep: number): Promise<void> => {
       const store = useAppStore.getState();
@@ -1488,7 +1413,6 @@ export function useSequencerRuntimeController({
     sendAllNotesOff,
     sendDirectMidiEvent,
     sequencerRef,
-    startSequencerTransport,
     stopSequencerTransport,
     moveSequencerTransport,
     seekSequencerTransport,

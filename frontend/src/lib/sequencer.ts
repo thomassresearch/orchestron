@@ -200,9 +200,6 @@ function clampFloat(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
-function normalizeName(name: string): string {
-  return name.trim().toLowerCase().replace(/\s+/g, " ");
-}
 
 export function clampSequencerBpm(bpm: number): number {
   return clampInt(bpm, 30, 300);
@@ -885,16 +882,7 @@ export function linkedScaleTypeForMode(mode: SequencerMode): SequencerScaleType 
   return "neutral";
 }
 
-export function sequencerScaleLabel(scaleRoot: SequencerScaleRoot, scaleType: SequencerScaleType): string {
-  if (scaleType === "neutral") {
-    return scaleRoot;
-  }
-  return `${scaleRoot} ${scaleType}`;
-}
 
-export function sequencerModeLabel(mode: SequencerMode): string {
-  return SEQUENCER_MODE_OPTIONS.find((option) => option.value === mode)?.label ?? mode;
-}
 
 export function parseSequencerScaleValue(value: string): { root: SequencerScaleRoot; type: SequencerScaleType } | null {
   const [rawRoot, rawType] = value.split(":");
@@ -1044,19 +1032,8 @@ export function buildSequencerNoteOptions(scaleRoot: SequencerScaleRoot, mode: S
   return options;
 }
 
-export function sequencerStepDurationMs(bpm: number): number {
-  return sequencerStepDurationSeconds(bpm) * 1000;
-}
 
-export function sequencerGateDurationMs(stepDurationMs: number): number {
-  return Math.max(10, Math.round(stepDurationMs * 0.8));
-}
 
-export function nextSequencerStep(currentStep: number, stepCount: number): number {
-  const boundedStepCount = Math.max(1, Math.round(stepCount));
-  const next = (Math.round(currentStep) + 1) % boundedStepCount;
-  return next < 0 ? next + boundedStepCount : next;
-}
 
 export function noteOnMessage(note: number, midiChannel: number, velocity = 100): [number, number, number] {
   const channel = clampSequencerChannel(midiChannel) - 1;
@@ -1068,13 +1045,6 @@ export function noteOffMessage(note: number, midiChannel: number): [number, numb
   return [0x80 + channel, clampSequencerNote(note), 0];
 }
 
-export function allNotesOffMessages(midiChannel: number): [number, number, number][] {
-  const channel = clampSequencerChannel(midiChannel) - 1;
-  return [
-    [0xb0 + channel, 123, 0],
-    [0xb0 + channel, 120, 0]
-  ];
-}
 
 export function resolveMidiInputName(midiInputId: string | null, midiInputs: MidiInputRef[]): string | null {
   if (!midiInputId) {
@@ -1086,26 +1056,6 @@ export function resolveMidiInputName(midiInputId: string | null, midiInputs: Mid
   return selected?.name ?? null;
 }
 
-export function findMatchingMidiOutput(access: MIDIAccess, targetName: string): MIDIOutput | null {
-  const outputs = Array.from(access.outputs.values());
-  if (outputs.length === 0) {
-    return null;
-  }
-
-  const normalizedTarget = normalizeName(targetName);
-
-  return (
-    outputs.find((output) => normalizeName(output.name ?? "") === normalizedTarget) ??
-    outputs.find((output) => {
-      const normalizedOutputName = normalizeName(output.name ?? "");
-      return (
-        normalizedOutputName.includes(normalizedTarget) ||
-        normalizedTarget.includes(normalizedOutputName)
-      );
-    }) ??
-    null
-  );
-}
 
 /** A musical offset, independent of BPM and playback state. */
 export function normalizeTimingOffset(value: unknown): number {

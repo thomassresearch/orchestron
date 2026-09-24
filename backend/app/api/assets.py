@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from starlette.concurrency import run_in_threadpool
+
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 
 from backend.app.api.deps import get_container
@@ -17,7 +19,7 @@ async def upload_gen_audio_asset(
     x_file_name: str | None = Header(default=None, alias="X-File-Name"),
     container: AppContainer = Depends(get_container),
 ) -> GenAudioAssetUploadResponse:
-    _reject_declared_oversized_upload(
+    await run_in_threadpool(_reject_declared_oversized_upload,
         content_length=request.headers.get("content-length"),
         container=container,
     )

@@ -42,11 +42,11 @@ class PatchService:
         self._max_ui_layout_bytes = max_ui_layout_bytes
         self._max_string_bytes = max_string_bytes
 
-    def create_patch(self, request: PatchCreateRequest) -> PatchResponse:
+    def create_patch(self, request: PatchCreateRequest, *, patch_id: str | None = None) -> PatchResponse:
         now = datetime.now(timezone.utc)
         self._validate_graph(request.graph)
         document = PatchDocument(
-            id=str(uuid4()),
+            id=patch_id or str(uuid4()),
             name=request.name,
             description=request.description,
             is_template=request.is_template,

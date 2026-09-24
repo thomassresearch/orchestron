@@ -4,6 +4,19 @@ from backend.app.models.performance_controller import ControllerNumber
 
 from backend.app.models.audio import AudioGraph, MixerState
 
+from backend.app.models.controller_curve import (
+    normalize_controller_keypoints as _normalize_controller_keypoints,
+    sample_controller_curve_value as _sample_controller_curve_value,
+)
+from backend.app.models.sequencer_constants import (
+    TRANSPORT_SUBUNITS_PER_STEP as _OFFLINE_TRANSPORT_SUBUNITS_PER_STEP,
+    TRANSPORT_SUBUNITS_PER_BEAT as _OFFLINE_TRANSPORT_SUBUNITS_PER_BEAT,
+    CONTROLLER_AUTOMATION_SUBUNIT_QUANTUM as _OFFLINE_CONTROLLER_AUTOMATION_SUBUNIT_QUANTUM,
+    MAX_SEQUENCER_STEPS as _OFFLINE_MAX_STEPS_PER_PAD,
+    DEFAULT_PAD_COUNT as _OFFLINE_DEFAULT_PAD_COUNT,
+    PAUSE_BEAT_COUNTS as _OFFLINE_PAUSE_BEAT_COUNTS,
+)
+
 import math
 from typing import Annotated, Literal
 
@@ -13,7 +26,6 @@ from backend.app.models.instrument_type import InstrumentType, infer_instrument_
 from backend.app.models.patch import PatchGraph
 from backend.app.models.session import (
     SessionArpeggiatorConfig,
-    SessionControllerSequencerKeypointConfig,
     SessionControllerSequencerPadConfig,
     SessionControllerSequencerTrackConfig,
     SessionSequencerConfigRequest,
@@ -28,13 +40,6 @@ OFFLINE_CSD_EXPORT_MAX_PLAYBACK_STEPS = 65_536
 OFFLINE_CSD_EXPORT_MAX_MIDI_EVENTS = 200_000
 OFFLINE_CSD_EXPORT_MAX_STEP_NOTES = 16
 OFFLINE_CSD_EXPORT_MAX_WALL_SECONDS = 5.0
-_OFFLINE_TRANSPORT_STEPS_PER_BEAT = 8
-_OFFLINE_TRANSPORT_SUBUNITS_PER_STEP = 2520
-_OFFLINE_TRANSPORT_SUBUNITS_PER_BEAT = _OFFLINE_TRANSPORT_STEPS_PER_BEAT * _OFFLINE_TRANSPORT_SUBUNITS_PER_STEP
-_OFFLINE_CONTROLLER_AUTOMATION_SUBUNIT_QUANTUM = 168
-_OFFLINE_MAX_STEPS_PER_PAD = 128
-_OFFLINE_DEFAULT_PAD_COUNT = 8
-_OFFLINE_PAUSE_BEAT_COUNTS = {1, 2, 4, 8, 16, 32}
 _ARPEGGIATOR_RATE_BEATS: dict[str, float] = {
     "1/1": 4.0,
     "1/2": 2.0,
@@ -170,6 +175,9 @@ class PerformanceCsdExportRequest(BaseModel):
                 "Offline performance CSD export playback range exceeds "
                 f"{OFFLINE_CSD_EXPORT_MAX_PLAYBACK_STEPS} transport steps."
             )
+        if config.playback_end_step > OFFLINE_CSD_EXPORT_MAX_PLAYBACK_STEPS:
+            raise ValueError("Offline performance CSD export absolute end exceeds "
+                             f"{OFFLINE_CSD_EXPORT_MAX_PLAYBACK_STEPS} transport steps.")
         if config.playback_loop:
             raise ValueError("Offline performance CSD export does not support looping playback.")
 
@@ -475,91 +483,6 @@ def _estimate_note_track_events(
         release_notes(sequence_end_subunit)
     release_notes(playback_end_subunit)
     return (event_count, activity_events)
-
-
-def _clamp_controller_position(value: float) -> float:
-    return max(0.0, min(1.0, float(value)))
-
-
-def _clamp_controller_value(value: float) -> int:
-    return max(0, min(127, int(round(value))))
-
-
-def _normalize_controller_keypoints(
-    raw: list[SessionControllerSequencerKeypointConfig],
-) -> tuple[tuple[float, int], ...]:
-    epsilon = 1e-6
-    normalized = sorted(
-        (
-            _clamp_controller_position(point.position),
-            _clamp_controller_value(point.value),
-        )
-        for point in raw
-    )
-
-    start_point: tuple[float, int] | None = None
-    end_point: tuple[float, int] | None = None
-    interior: list[tuple[float, int]] = []
-    for position, value in normalized:
-        if position <= epsilon:
-            start_point = (0.0, value)
-            continue
-        if position >= 1.0 - epsilon:
-            end_point = (1.0, value)
-            continue
-        if interior and abs(interior[-1][0] - position) <= epsilon:
-            interior[-1] = (position, value)
-        else:
-            interior.append((position, value))
-
-    if start_point is None:
-        start_point = (0.0, 0)
-    if end_point is None:
-        end_point = (1.0, 0)
-
-    boundary_value = _clamp_controller_value(start_point[1])
-    start_point = (0.0, boundary_value)
-    end_point = (1.0, boundary_value)
-    return (start_point, *interior, end_point)
-
-
-def _catmull_rom_1d(p0: float, p1: float, p2: float, p3: float, t: float) -> float:
-    t2 = t * t
-    t3 = t2 * t
-    return 0.5 * (
-        (2.0 * p1)
-        + (-p0 + p2) * t
-        + (2.0 * p0 - 5.0 * p1 + 4.0 * p2 - p3) * t2
-        + (-p0 + 3.0 * p1 - 3.0 * p2 + p3) * t3
-    )
-
-
-def _sample_controller_curve_value(
-    keypoints: tuple[tuple[float, int], ...],
-    normalized_position: float,
-) -> int:
-    t = _clamp_controller_position(normalized_position)
-    points = keypoints or _normalize_controller_keypoints([])
-    if len(points) <= 1:
-        return 0
-    if t <= 0.0:
-        return _clamp_controller_value(points[0][1])
-    if t >= 1.0:
-        return _clamp_controller_value(points[-1][1])
-
-    segment_index = 0
-    for index in range(len(points) - 1):
-        if t <= points[index + 1][0]:
-            segment_index = index
-            break
-
-    p1 = points[segment_index]
-    p2 = points[min(len(points) - 1, segment_index + 1)]
-    p0 = points[max(0, segment_index - 1)]
-    p3 = points[min(len(points) - 1, segment_index + 2)]
-    span = max(1e-6, p2[0] - p1[0])
-    local_t = max(0.0, min(1.0, (t - p1[0]) / span))
-    return _clamp_controller_value(_catmull_rom_1d(p0[1], p1[1], p2[1], p3[1], local_t))
 
 
 def _controller_pad_events(

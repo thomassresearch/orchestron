@@ -1,13 +1,19 @@
 from __future__ import annotations
 
-from io import BytesIO
 import json
 from tempfile import SpooledTemporaryFile
 from typing import BinaryIO
 import zipfile
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
-from fastapi.responses import JSONResponse, Response
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse, Response, StreamingResponse
+from pydantic import ValidationError
+from starlette.background import BackgroundTask
+from starlette.concurrency import run_in_threadpool
+from starlette.datastructures import UploadFile
+from starlette.formparsers import MultiPartException, MultiPartParser
+from backend.app.services.bundle_import_service import BundleImportPlan, apply_import_plan, import_definitions
 
 from backend.app.api.deps import get_container
 from backend.app.core.container import AppContainer
@@ -33,8 +39,80 @@ class ImportBundleTooLargeError(ValueError):
     pass
 
 
+def _normalize_import_payload(parsed: object, container: AppContainer) -> object:
+    # Validate every definition before migrations or asset writes. Never silently
+    # drop malformed or duplicate entries and then remap the wrong instrument.
+    import_definitions(parsed)
+    if isinstance(parsed, dict):
+        if parsed.get("format") == "orchestron.performance":
+            parsed = normalize_master_bundle(parsed, repository_lookup(container.patch_repository))
+        elif isinstance(parsed.get("audioGraph"), dict):
+            parsed = container.performance_service.normalize_config(parsed)
+    return parsed
+
+
+@router.post("/import/commit")
+async def commit_import_bundle(request: Request, container: AppContainer = Depends(get_container)) -> JSONResponse:
+    max_size = container.settings.bundle_import_max_bytes + container.settings.bundle_import_json_max_bytes + 64 * 1024
+    _reject_declared_oversized_import(content_length=request.headers.get("content-length"), max_size=max_size)
+
+    async def limited_stream():
+        size = 0
+        async for chunk in request.stream():
+            size += len(chunk)
+            if size > max_size:
+                # MultiPartParser closes its temporary files on this exception.
+                raise MultiPartException("Bundle import exceeds maximum request size.")
+            yield chunk
+
+    try:
+        form = await MultiPartParser(
+            request.headers,
+            limited_stream(),
+            max_files=1,
+            max_fields=1,
+            max_part_size=container.settings.bundle_import_json_max_bytes,
+        ).parse()
+    except MultiPartException as err:
+        raise HTTPException(status_code=413, detail=str(err)) from err
+    try:
+        bundle, raw_plan = form.get("bundle"), form.get("plan")
+        if not isinstance(bundle, UploadFile) or not isinstance(raw_plan, str):
+            raise ValueError("Import requires a bundle file and a plan.")
+        if (bundle.size or 0) > container.settings.bundle_import_max_bytes:
+            raise ImportBundleTooLargeError("Bundle import file exceeds maximum size.")
+
+        def commit():
+            plan = BundleImportPlan.model_validate_json(raw_plan)
+            parsed = _expand_import_payload(
+                payload_file=bundle.file, filename=bundle.filename, container=container, preview=True
+            )
+            selected_ids = {p.sourcePatchId for p in plan.patches}
+            selected = {
+                "patch_definitions": [
+                    d.model_dump(mode="json") for d in import_definitions(parsed) if d.source_patch_id in selected_ids
+                ]
+            }
+            asset_names = collect_referenced_gen_audio_stored_names_from_payload(selected)
+            # Hold asset ownership until SQLite commits; any validation, storage,
+            # or commit failure removes only files created by this import.
+            with container.gen_asset_service.import_batch(asset_names):
+                _expand_import_payload(
+                    payload_file=bundle.file, filename=bundle.filename, container=container, asset_names=asset_names
+                )
+                return JSONResponse(apply_import_plan(container, plan, parsed))
+
+        return await run_in_threadpool(commit)
+    except (ImportBundleTooLargeError, GenAudioAssetQuotaExceededError) as err:
+        raise HTTPException(status_code=413, detail=str(err)) from err
+    except ValueError as err:
+        raise HTTPException(status_code=400, detail=str(err)) from err
+    finally:
+        await form.close()
+
+
 @router.post("/export/patch")
-async def export_patch_bundle(
+def export_patch_bundle(
     payload: dict[str, object],
     container: AppContainer = Depends(get_container),
 ) -> Response:
@@ -46,7 +124,7 @@ async def export_patch_bundle(
 
 
 @router.post("/export/performance")
-async def export_performance_bundle(
+def export_performance_bundle(
     payload: dict[str, object],
     container: AppContainer = Depends(get_container),
 ) -> Response:
@@ -61,26 +139,69 @@ async def export_performance_bundle(
     )
 
 
+async def _parse_csd_export_request(
+    request: Request, container: AppContainer = Depends(get_container)
+) -> PerformanceCsdExportRequest:
+    try:
+        payload_file = await _read_limited_import_body(
+            request=request, max_size=container.settings.bundle_import_json_max_bytes
+        )
+    except ImportBundleTooLargeError as err:
+        raise HTTPException(status_code=413, detail=str(err)) from err
+    except ValueError as err:
+        raise HTTPException(status_code=400, detail=str(err)) from err
+    try:
+
+        def parse():
+            return PerformanceCsdExportRequest.model_validate_json(payload_file.read())
+
+        return await run_in_threadpool(parse)
+    except ValidationError as err:
+        raise RequestValidationError(err.errors()) from err
+    finally:
+        payload_file.close()
+
+
 @router.post("/export/performance-csd")
-async def export_performance_csd_bundle(
-    payload: PerformanceCsdExportRequest,
+def export_performance_csd_bundle(
+    payload: PerformanceCsdExportRequest = Depends(_parse_csd_export_request),
     container: AppContainer = Depends(get_container),
 ) -> Response:
     exporter = PerformanceExportService(
         compiler_service=container.compiler_service,
         gen_asset_service=container.gen_asset_service,
     )
+    archive_file = SpooledTemporaryFile(max_size=1024 * 1024)
     try:
-        archive_bytes = exporter.build_performance_csd_archive(payload)
+        exporter.build_performance_csd_archive(payload, output=archive_file)
     except ValueError as err:
+        archive_file.close()
         raise HTTPException(status_code=400, detail=str(err)) from err
     except CompilationError as err:
+        archive_file.close()
         raise HTTPException(status_code=422, detail={"diagnostics": err.diagnostics}) from err
 
-    return Response(
-        content=archive_bytes,
+    except Exception:
+        archive_file.close()
+        raise
+    return _archive_response(archive_file)
+
+
+def _archive_response(archive_file: BinaryIO) -> StreamingResponse:
+    archive_file.seek(0)
+
+    def chunks():
+        try:
+            while chunk := archive_file.read(64 * 1024):
+                yield chunk
+        finally:
+            archive_file.close()
+
+    return StreamingResponse(
+        chunks(),
         media_type="application/zip",
         headers={"X-Orchestron-Export-Format": "zip"},
+        background=BackgroundTask(archive_file.close),
     )
 
 
@@ -88,6 +209,7 @@ async def export_performance_csd_bundle(
 async def expand_import_bundle(
     request: Request,
     x_file_name: str | None = Header(default=None, alias="X-File-Name"),
+    preview: bool = False,
     container: AppContainer = Depends(get_container),
 ) -> JSONResponse:
     _reject_declared_oversized_import(
@@ -101,16 +223,14 @@ async def expand_import_bundle(
             request=request,
             max_size=container.settings.bundle_import_max_bytes,
         )
-        parsed = _expand_import_payload(
-            payload_file=payload_file,
-            filename=x_file_name,
-            container=container,
-        )
-        if isinstance(parsed, dict):
-            if parsed.get("format") == "orchestron.performance" and isinstance(parsed.get("performance"), dict) and isinstance(parsed["performance"].get("config"), dict):
-                parsed = normalize_master_bundle(parsed, repository_lookup(container.patch_repository))
-            elif isinstance(parsed.get("audioGraph"), dict):
-                parsed = container.performance_service.normalize_config(parsed)
+
+        def expand():
+            parsed = _expand_import_payload(
+                payload_file=payload_file, filename=x_file_name, container=container, preview=preview
+            )
+            return JSONResponse(content=parsed)
+
+        response = await run_in_threadpool(expand)
     except ImportBundleTooLargeError as err:
         raise HTTPException(status_code=413, detail=str(err)) from err
     except GenAudioAssetQuotaExceededError as err:
@@ -121,7 +241,7 @@ async def expand_import_bundle(
         if payload_file is not None:
             payload_file.close()
 
-    return JSONResponse(content=parsed)
+    return response
 
 
 def _build_export_response(
@@ -139,7 +259,7 @@ def _build_export_response(
             headers={"X-Orchestron-Export-Format": "json"},
         )
 
-    archive_buffer = BytesIO()
+    archive_buffer = SpooledTemporaryFile(max_size=1024 * 1024)
     try:
         with zipfile.ZipFile(archive_buffer, mode="w", compression=zipfile.ZIP_DEFLATED) as archive:
             archive.writestr(json_entry_name, json_bytes)
@@ -147,15 +267,14 @@ def _build_export_response(
                 source_path = container.gen_asset_service.resolve_audio_path(stored_name)
                 if not source_path.exists():
                     raise ValueError(f"Referenced GEN audio asset '{stored_name}' does not exist on the backend.")
-                archive.writestr(f"audio/{stored_name}", source_path.read_bytes())
+                archive.write(source_path, f"audio/{stored_name}")
     except ValueError as err:
+        archive_buffer.close()
         raise HTTPException(status_code=400, detail=str(err)) from err
-
-    return Response(
-        content=archive_buffer.getvalue(),
-        media_type="application/zip",
-        headers={"X-Orchestron-Export-Format": "zip"},
-    )
+    except Exception:
+        archive_buffer.close()
+        raise
+    return _archive_response(archive_buffer)
 
 
 def _expand_import_payload(
@@ -163,32 +282,37 @@ def _expand_import_payload(
     payload_file: BinaryIO,
     filename: str | None,
     container: AppContainer,
+    preview: bool = False,
+    asset_names: set[str] | None = None,
 ) -> object:
     payload_file.seek(0)
     prefix = payload_file.read(4)
     payload_file.seek(0)
     if _looks_like_zip(prefix=prefix, filename=filename):
-        return _expand_zip_import_payload(payload_file=payload_file, container=container)
+        return _expand_zip_import_payload(
+            payload_file=payload_file, container=container, preview=preview, asset_names=asset_names
+        )
 
     try:
         payload = _read_limited_file_bytes(
             payload_file,
             max_size=container.settings.bundle_import_json_max_bytes,
             too_large_message=(
-                "Import JSON exceeds maximum size "
-                f"({container.settings.bundle_import_json_max_bytes} bytes)."
+                f"Import JSON exceeds maximum size ({container.settings.bundle_import_json_max_bytes} bytes)."
             ),
         )
         decoded = payload.decode("utf-8")
     except UnicodeDecodeError as err:
         raise ValueError("Import file is neither valid UTF-8 JSON nor a ZIP archive.") from err
     try:
-        return json.loads(decoded)
+        return _normalize_import_payload(json.loads(decoded), container)
     except json.JSONDecodeError as err:
         raise ValueError(f"Import JSON could not be parsed: {err.msg}") from err
 
 
-def _expand_zip_import_payload(*, payload_file: BinaryIO, container: AppContainer) -> object:
+def _expand_zip_import_payload(
+    *, payload_file: BinaryIO, container: AppContainer, preview: bool = False, asset_names: set[str] | None = None
+) -> object:
     payload_file.seek(0)
     try:
         archive = zipfile.ZipFile(payload_file)
@@ -221,7 +345,10 @@ def _expand_zip_import_payload(*, payload_file: BinaryIO, container: AppContaine
         except json.JSONDecodeError as err:
             raise ValueError(f"Import ZIP JSON could not be parsed: {err.msg}") from err
 
+        parsed = _normalize_import_payload(parsed, container)
         referenced_names = collect_referenced_gen_audio_stored_names_from_payload(parsed)
+        if asset_names is not None:
+            referenced_names &= asset_names
         if not referenced_names:
             return parsed
 
@@ -229,18 +356,30 @@ def _expand_zip_import_payload(*, payload_file: BinaryIO, container: AppContaine
             expected_member_name = f"audio/{stored_name}"
             member = member_by_normalized_name.get(expected_member_name)
             if member is None:
-                raise ValueError(
-                    f"Import ZIP is missing referenced GEN audio asset 'audio/{stored_name}'."
-                )
-        _assert_zip_audio_members_fit_quota(
-            container=container,
-            member_by_normalized_name=member_by_normalized_name,
-            referenced_names=referenced_names,
-        )
+                raise ValueError(f"Import ZIP is missing referenced GEN audio asset 'audio/{stored_name}'.")
 
-        for stored_name in sorted(referenced_names):
-            member = member_by_normalized_name[f"audio/{stored_name}"]
-            _import_zip_audio_member(container=container, archive=archive, member=member, stored_name=stored_name)
+        if preview:
+            # Check decompression/CRC and all definitions before user confirmation.
+            for stored_name in sorted(referenced_names):
+                for _chunk in _iter_zip_member_chunks(
+                    archive=archive,
+                    member=member_by_normalized_name[f"audio/{stored_name}"],
+                    max_size=container.gen_asset_service.max_audio_asset_bytes,
+                    too_large_message="Audio import payload exceeds maximum size.",
+                ):
+                    pass
+        else:
+            with container.gen_asset_service.import_batch(referenced_names):
+                _assert_zip_audio_members_fit_quota(
+                    container=container,
+                    member_by_normalized_name=member_by_normalized_name,
+                    referenced_names=referenced_names,
+                )
+                for stored_name in sorted(referenced_names):
+                    member = member_by_normalized_name[f"audio/{stored_name}"]
+                    _import_zip_audio_member(
+                        container=container, archive=archive, member=member, stored_name=stored_name
+                    )
 
         return parsed
 
@@ -268,10 +407,8 @@ async def _read_limited_import_body(*, request: Request, max_size: int) -> Binar
                 continue
             next_size = size + len(chunk)
             if next_size > max_size:
-                raise ImportBundleTooLargeError(
-                    f"Bundle import exceeds maximum request size ({max_size} bytes)."
-                )
-            payload_file.write(chunk)
+                raise ImportBundleTooLargeError(f"Bundle import exceeds maximum request size ({max_size} bytes).")
+            await run_in_threadpool(payload_file.write, chunk)
             size = next_size
         if size <= 0:
             raise ValueError("Import file is empty.")
@@ -290,8 +427,7 @@ def _validate_zip_import_metadata(
     entries = archive.infolist()
     if len(entries) > container.settings.bundle_import_zip_max_members:
         raise ImportBundleTooLargeError(
-            "Import ZIP contains too many members "
-            f"({container.settings.bundle_import_zip_max_members} maximum)."
+            f"Import ZIP contains too many members ({container.settings.bundle_import_zip_max_members} maximum)."
         )
 
     total_uncompressed_size = 0
@@ -314,13 +450,9 @@ def _validate_zip_import_metadata(
             continue
         if normalized_name in member_by_normalized_name:
             raise ValueError("Import ZIP contains duplicate member paths.")
-        if (
-            is_root_json_entry(normalized_name)
-            and member.file_size > container.settings.bundle_import_json_max_bytes
-        ):
+        if is_root_json_entry(normalized_name) and member.file_size > container.settings.bundle_import_json_max_bytes:
             raise ImportBundleTooLargeError(
-                "Import ZIP JSON file exceeds maximum size "
-                f"({container.settings.bundle_import_json_max_bytes} bytes)."
+                f"Import ZIP JSON file exceeds maximum size ({container.settings.bundle_import_json_max_bytes} bytes)."
             )
         if (
             normalized_name.startswith("audio/")

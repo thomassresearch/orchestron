@@ -108,8 +108,16 @@ export const api = {
     requestBlob("/bundles/export/performance", { method: "POST", body: JSON.stringify(payload) }),
   exportPerformanceCsdBundle: (payload: Record<string, unknown>) =>
     requestBlob("/bundles/export/performance-csd", { method: "POST", body: JSON.stringify(payload) }),
-  expandImportBundle: async (file: File) => {
-    const response = await fetch(`${API_BASE}/bundles/import/expand`, {
+  commitImportBundle: async (file: File, plan: import("../lib/bundleImportExport").BundleImportPlan): Promise<{ patches: Patch[]; performance: Performance | null }> => {
+    const body = new FormData();
+    body.append("bundle", file);
+    body.append("plan", JSON.stringify(plan));
+    const response = await fetch(`${API_BASE}/bundles/import/commit`, { method: "POST", body });
+    if (!response.ok) throw new ApiError(response.status, response.statusText, await response.text());
+    return response.json();
+  },
+  expandImportBundle: async (file: File, preview = false) => {
+    const response = await fetch(`${API_BASE}/bundles/import/expand?preview=${preview}`, {
       method: "POST",
       headers: {
         "X-File-Name": file.name,

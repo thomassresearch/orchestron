@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from fastapi.responses import JSONResponse
+
 from fastapi import APIRouter, Depends, Response
 
 from backend.app.api.deps import get_container
@@ -10,33 +12,37 @@ router = APIRouter(prefix="/patches", tags=["patches"])
 
 
 @router.post("", response_model=PatchResponse, status_code=201)
-async def create_patch(
+def create_patch(
     request: PatchCreateRequest,
     container: AppContainer = Depends(get_container),
-) -> PatchResponse:
-    return container.patch_service.create_patch(request)
+) -> Response:
+    return Response(
+        container.patch_service.create_patch(request).model_dump_json(by_alias=True), media_type="application/json", status_code=201
+    )
 
 
 @router.get("", response_model=list[PatchListItem])
-async def list_patches(container: AppContainer = Depends(get_container)) -> list[PatchListItem]:
-    return container.patch_service.list_patches()
+def list_patches(container: AppContainer = Depends(get_container)) -> Response:
+    return JSONResponse([item.model_dump(mode="json", by_alias=True) for item in container.patch_service.list_patches()])
 
 
 @router.get("/{patch_id}", response_model=PatchResponse)
-async def get_patch(patch_id: str, container: AppContainer = Depends(get_container)) -> PatchResponse:
-    return container.patch_service.get_patch(patch_id)
+def get_patch(patch_id: str, container: AppContainer = Depends(get_container)) -> Response:
+    return Response(container.patch_service.get_patch(patch_id).model_dump_json(by_alias=True), media_type="application/json")
 
 
 @router.put("/{patch_id}", response_model=PatchResponse)
-async def update_patch(
+def update_patch(
     patch_id: str,
     request: PatchUpdateRequest,
     container: AppContainer = Depends(get_container),
-) -> PatchResponse:
-    return container.patch_service.update_patch(patch_id, request)
+) -> Response:
+    return Response(
+        container.patch_service.update_patch(patch_id, request).model_dump_json(by_alias=True), media_type="application/json"
+    )
 
 
 @router.delete("/{patch_id}", status_code=204)
-async def delete_patch(patch_id: str, container: AppContainer = Depends(get_container)) -> Response:
+def delete_patch(patch_id: str, container: AppContainer = Depends(get_container)) -> Response:
     container.patch_service.delete_patch(patch_id)
     return Response(status_code=204)

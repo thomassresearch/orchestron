@@ -280,20 +280,24 @@ Each `PortSpec` includes `id`, `name`, `signal_type`, `accepted_signal_types`, `
 | `POST` | `/api/bundles/export/patch` | arbitrary JSON object | `application/json` or `application/zip` | Exports a patch payload. |
 | `POST` | `/api/bundles/export/performance` | arbitrary JSON object | `application/json` or `application/zip` | Exports a performance payload. |
 | `POST` | `/api/bundles/export/performance-csd` | `PerformanceCsdExportRequest` | `application/zip` | Exports an offline Csound render package. |
-| `POST` | `/api/bundles/import/expand` | raw JSON bytes or ZIP bytes | expanded JSON payload | Optional `X-File-Name` header helps ZIP detection. Returns `400` for malformed imports. |
+| `POST` | `/api/bundles/import/expand` | raw JSON bytes or ZIP bytes | expanded JSON payload | Optional `X-File-Name` header helps ZIP detection. `?preview=true` validates without storing assets. Returns `400` for malformed imports. |
+| `POST` | `/api/bundles/import/commit` | multipart `bundle` file and JSON `plan` field | imported patches and optional performance | Commits selected definitions and assets together after confirmation. |
 
 Bundle behavior:
 
 - If the export payload does not reference stored GEN/sample assets, the response is plain JSON with header `X-Orchestron-Export-Format: json`.
 - If the payload references stored audio assets, the response becomes a ZIP archive with header `X-Orchestron-Export-Format: zip`.
+- Archive compression and writes run in a worker thread. ZIP output spills to a temporary file above 1 MiB and streams in 64 KiB chunks; assets are copied into the archive without loading each complete file. CSD request parsing and event estimation also run in a worker thread, with the configured bundle JSON size limit.
 - Patch exports place the JSON at `instrument.orch.instrument.json`.
 - Performance exports place the JSON at `performance.orch.json`.
 - Referenced audio files are stored under `audio/<stored_name>` inside the ZIP.
-- Offline performance CSD exports reject looping playback, playback ranges above 65,536 transport steps, step note lists above 16 notes, and estimated MIDI event counts above 200,000 before export work starts. MIDI synthesis also has an event-count fuse and a 5 second wall-clock fuse.
+- Offline performance CSD exports reject looping playback, playback range lengths or absolute end positions above 65,536 transport steps, step note lists above 16 notes, and estimated MIDI event counts above 200,000 before export work starts. MIDI synthesis also has an event-count fuse and a 5 second wall-clock fuse.
 - Offline performance CSD exports reject raw GEN01/`sfload` `samplePath` values and legacy `sfload` `filename` parameters. Only uploaded/imported assets are rewritten to archive-local `assets/<stored_name>` references.
 
 Import behavior:
 
+- Native UI imports preview first, then send a commit plan with unique source and destination IDs. Library writes share one SQLite transaction; asset writes hold batch ownership and remove only newly created files on failure. Existing asset contents are never overwritten. The legacy expand endpoint still stores assets by default for CLI compatibility.
+- Malformed definitions and duplicate source IDs are rejected before normalization or asset writes.
 - Raw UTF-8 JSON is returned as parsed JSON.
 - ZIP imports must contain exactly one JSON file at the archive root.
 - Audio members must live under `audio/`.
@@ -845,3 +849,7 @@ Global BPM is quarter-note based. `SessionSequencerTimingConfig.beat_unit` defau
 The shared clock uses 20,160 integer subunits/quarter, eight transport steps/quarter, and 2,520 subunits/transport step. All supported local steps and speed ratios divide exactly, including /8 triplets. Controller sampling quantum is 168 subunits, preserving its former sampling frequency. Browser audible markers, arpeggiator integration and both CSD exports use this same clock. Offset rounding differs from the old clock by at most its previous precision.
 
 `sequencer_timing_migration.py` runs once before normalization for performance v1–16 and app state v1–2. Legacy /8 melodic/drum/controller lengths double and subdivision halves, including rests, nested definitions, workspace drafts, and arranger history basis/before/after data. Arrays and ratios stay intact; derived step counts and compiled sequences are rebuilt by readers. History basis includes the meter denominator, defaulting to 4 for older metadata. Fixtures in `backend/tests/fixtures/sequencers/timing_migration.json` define matching frontend/backend/standalone CLI conversion. Native bundle envelope versions do not change.
+
+### Session lifecycle ownership
+
+Compile, Start, Stop, and Delete serialize through each session's lifecycle lock. Compiling a running engine returns `409`; live configuration edits retain their existing preparation path. A reconnect is checked again after acquiring lifecycle ownership, and a deleting session rejects new controller claims. Engine Start/Stop share render ownership with `performKsmps`, including cleanup after a failed render.

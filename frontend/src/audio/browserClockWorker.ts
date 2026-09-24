@@ -171,13 +171,12 @@ class BrowserClockWorkerRuntime {
     const socket = new WebSocket(message.websocketUrl);
     socket.binaryType = "arraybuffer";
     this.socket = socket;
-    socket.onopen = () => this.sendClaim();
+    socket.onopen = () => { if (this.socket === socket) this.sendClaim(); };
     socket.onmessage = (event) => this.handleSocketPayload(socket, event.data);
-    socket.onerror = () => this.fail("Browser-clock websocket error.");
+    socket.onerror = () => { if (this.socket === socket) this.fail("Browser-clock websocket error."); };
     socket.onclose = (event) => {
-      if (this.socket === socket) {
-        this.socket = null;
-      }
+      if (this.socket !== socket) return;
+      this.socket = null;
       if (this.sessionId !== null) {
         this.fail(event.reason?.trim() || "Browser-clock connection closed.");
       }

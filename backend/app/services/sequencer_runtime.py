@@ -86,6 +86,7 @@ class SessionSequencerRuntime:
         publish_event: PublishEventFn,
         *,
         clock_mode: Literal["wall_clock", "render_driven"] = "wall_clock",
+        clock: Callable[[], float] | None = None,
     ) -> None:
         self._session_id = session_id
         self._midi_service = midi_service
@@ -93,6 +94,7 @@ class SessionSequencerRuntime:
         self._controller_default_channels = controller_default_channels
         self._publish_event = publish_event
         self._clock_mode = clock_mode
+        self._clock = clock or (lambda: time.perf_counter())
 
         self._lock = threading.RLock()
         self._stop_event = threading.Event()
@@ -895,11 +897,11 @@ class SessionSequencerRuntime:
         )
 
     def _run(self) -> None:
-        next_event_time = time.perf_counter() + 0.01
+        next_event_time = self._clock() + 0.01
         wait_duration = 0.01
 
         while not self._stop_event.is_set():
-            now = time.perf_counter()
+            now = self._clock()
 
             with self._lock:
                 if not self._running:
@@ -931,7 +933,7 @@ class SessionSequencerRuntime:
             )
             next_event_time += wait_duration
 
-            now = time.perf_counter()
+            now = self._clock()
             if next_event_time < now - (wait_duration * 2.0):
                 next_event_time = now + wait_duration
 
@@ -1726,7 +1728,7 @@ class SessionSequencerRuntime:
             return self._absolute_subunit
         if (
             self._scheduled_visible_until_time is not None
-            and time.perf_counter() < self._scheduled_visible_until_time
+            and self._clock() < self._scheduled_visible_until_time
         ):
             return self._scheduled_visible_subunit
         return self._absolute_subunit
@@ -2019,7 +2021,7 @@ class SessionSequencerRuntime:
             event_delivery_delay_seconds = (
                 None
                 if scheduled_time is None
-                else max(0.0, scheduled_time - time.perf_counter())
+                else max(0.0, scheduled_time - self._clock())
             )
             self._perform_note_events_locked(config, transport_subunit, event_delivery_delay_seconds)
 
@@ -2045,7 +2047,7 @@ class SessionSequencerRuntime:
             boundary_delivery_delay_seconds = (
                 None
                 if boundary_scheduled_time is None
-                else max(0.0, boundary_scheduled_time - time.perf_counter())
+                else max(0.0, boundary_scheduled_time - self._clock())
             )
             current_visible_step = transport_subunit // _TRANSPORT_SUBUNITS_PER_STEP
 

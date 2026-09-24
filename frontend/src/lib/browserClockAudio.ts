@@ -93,7 +93,11 @@ export class BrowserClockAudioClient {
       await this.disconnect();
     }
 
+    const generation = this.pipelineGeneration;
     await this.prepareAudioPipeline();
+    if (generation !== this.pipelineGeneration) {
+      throw new Error("Browser audio connection cancelled.");
+    }
     // Priming, automatic connection and Play can arrive together during startup.
     if (this.connectedSessionId === sessionId) return;
     if (this.connectPromise && this.sessionId === sessionId) return this.connectPromise;
@@ -135,6 +139,8 @@ export class BrowserClockAudioClient {
 
   async disconnect(): Promise<void> {
     this.pipelineGeneration += 1;
+    this.pipelinePromise = null;
+    this.connectPromise = null;
     releaseMixerTransport(this.connectedSessionId);
     this.postWorker({ type: "disconnect" }, true);
     this.worker?.terminate();
@@ -152,20 +158,22 @@ export class BrowserClockAudioClient {
       this.audioNode.disconnect();
       this.audioNode = null;
     }
-    if (this.audioContext) {
-      try {
-        await this.audioContext.close();
-      } catch {
-        // Browser shutdown is best effort.
-      }
-      this.audioContext = null;
-    }
+    const context = this.audioContext;
+    this.audioContext = null;
     this.sampleBufferSab = null;
     this.stateBufferSab = null;
     this.stateBuffer = null;
     this.capacityFrames = 0;
     this.callbacks.onStatusChange("off");
     this.callbacks.onErrorChange(null);
+    if (context) {
+      context.onstatechange = null;
+      try {
+        await context.close();
+      } catch {
+        // Browser shutdown is best effort.
+      }
+    }
   }
 
   refreshLatencySettings(): void {
@@ -303,7 +311,9 @@ export class BrowserClockAudioClient {
         stateBuffer: stateSab
       }
     });
-    node.onprocessorerror = () => this.handleFatalError("Browser audio processor failed.");
+    node.onprocessorerror = () => {
+      if (this.audioNode === node) this.handleFatalError("Browser audio processor failed.");
+    };
     node.connect(context.destination);
 
     const worker = new Worker(new URL("../audio/browserClockWorker.ts", import.meta.url), {
@@ -311,9 +321,11 @@ export class BrowserClockAudioClient {
       name: "browser-clock-audio"
     });
     worker.onmessage = (event: MessageEvent<BrowserClockWorkerToMainMessage>) => {
-      this.handleWorkerMessage(event.data);
+      if (this.worker === worker) this.handleWorkerMessage(event.data);
     };
-    worker.onerror = () => this.handleFatalError("Browser audio worker failed.");
+    worker.onerror = () => {
+      if (this.worker === worker) this.handleFatalError("Browser audio worker failed.");
+    };
 
     context.onstatechange = () => this.syncStatus();
     this.audioContext = context;

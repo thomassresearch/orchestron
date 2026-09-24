@@ -50,3 +50,42 @@ it("shares audio preparation and connection when prime, engine startup and arran
   expect(onSequencerStatus).not.toHaveBeenCalled();
   await client.disconnect();
 });
+
+it("keeps the replacement pipeline when an old AudioContext finishes closing", async () => {
+  let closeOld!: () => void;
+  const closing = new Promise<void>(resolve => { closeOld = resolve; });
+  let count = 0;
+  const workers: FakeWorker[] = [];
+  class FakeContext {
+    number = ++count; state = "running"; sampleRate = 48000; destination = {}; onstatechange = null;
+    audioWorklet = { addModule: async () => {} };
+    close() { return this.number === 1 ? closing : Promise.resolve(); }
+    async resume() {}
+  }
+  class FakeNode { port = {}; connect() {} disconnect() {} }
+  class FakeWorker {
+    onmessage: ((event: { data: unknown }) => void) | null = null;
+    onerror: (() => void) | null = null;
+    constructor() { workers.push(this); }
+    terminate() {}
+    postMessage(message: BrowserClockMainToWorkerMessage) {
+      if (message.type === "connect") queueMicrotask(() => this.onmessage?.({ data: { type: "connected", sessionId: message.sessionId, sequencerStatus: {} } }));
+    }
+  }
+  vi.stubGlobal("AudioContext", FakeContext); vi.stubGlobal("AudioWorkletNode", FakeNode); vi.stubGlobal("Worker", FakeWorker);
+  const onErrorChange = vi.fn();
+  const client = new BrowserClockAudioClient({ onStatusChange: vi.fn(), onErrorChange, onSequencerStatus: vi.fn(),
+    getLatencySettings: () => ({} as BrowserClockLatencySettings) });
+  await client.connect("old");
+  const disconnecting = client.disconnect();
+  await client.connect("new");
+  workers[0].onerror?.();
+  workers[0].onmessage?.({ data: { type: "error", message: "stale failure" } });
+  closeOld();
+  await disconnecting;
+  expect(client.getPlaybackTransportSubunit()).toBe(0);
+  expect(onErrorChange).not.toHaveBeenCalledWith("stale failure");
+  await client.connect("new");
+  expect(workers).toHaveLength(2);
+  await client.disconnect();
+});

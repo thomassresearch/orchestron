@@ -8,7 +8,6 @@ import os
 import re
 import sys
 import threading
-import time
 from dataclasses import dataclass
 from typing import Any, Callable
 
@@ -60,7 +59,6 @@ class CsoundWorker:
         self._gen_audio_assets_dir = os.path.abspath(configured_assets_dir) if configured_assets_dir else None
         self._csound_performance_logging = bool(csound_performance_logging)
         self._csound: Any | None = None
-        self._thread: threading.Thread | None = None
         self._running = False
         self._lock = threading.Lock()
         self._render_lock = threading.Lock()
@@ -151,7 +149,9 @@ class CsoundWorker:
         return self._midi_scheduler.overflow_count
 
     def start(self, csd: str, midi_input: str, rtmidi_module: str) -> EngineStartResult:
-        with self._lock:
+        # Render ownership must precede the state lock everywhere: rendering
+        # releases the state lock while calling into Csound.
+        with self._render_lock, self._lock:
             if self._running:
                 return EngineStartResult(
                     backend=self._backend,
@@ -159,6 +159,8 @@ class CsoundWorker:
                     audio_mode=self._audio_output_mode,
                 )
 
+            if self._csound is not None:
+                self._stop_ctcsound()
             with self._mixer_lock:
                 self._control_pending.clear()
             self._running = True
@@ -169,13 +171,14 @@ class CsoundWorker:
                     result = self._start_mock(csd)
             except Exception:
                 self._running = False
+                self._stop_ctcsound()
                 raise
 
             return result
 
     def stop(self) -> str:
-        with self._lock:
-            if not self._running:
+        with self._render_lock, self._lock:
+            if not self._running and self._csound is None and self._runtime_sr == 0:
                 return "already stopped"
 
             if self._backend == "ctcsound":
@@ -320,7 +323,6 @@ class CsoundWorker:
             self._runtime_ksmps = source_ksmps
             self._render_sample_cursor = 0
             self._host_midi_enabled = True
-            self._thread = None
             self._midi_scheduler.reset()
             self._midi_scheduler.set_engine_sample_rate(source_sr)
 
@@ -399,6 +401,8 @@ class CsoundWorker:
             raise RuntimeError("Session must be running before rendering browser-clock audio.")
 
         with self._render_lock:
+            if not self.is_running:
+                raise RuntimeError("Session must be running before rendering browser-clock audio.")
             if self._backend != "ctcsound" or self._csound is None:
                 return self._render_mock_blocks(
                     block_count=requested_blocks,
@@ -558,7 +562,6 @@ class CsoundWorker:
             logger.exception("Failed to stop CSound cleanly")
         finally:
             self._csound = None
-            self._thread = None
 
     def _apply_gen_audio_search_dir_option(self, csound: Any) -> None:
         if not self._gen_audio_assets_dir:
@@ -981,16 +984,7 @@ class CsoundWorker:
         )
 
     def _stop_mock(self) -> None:
-        # The loop checks _running; clearing it is enough.
-        self._thread = None
         self._runtime_sr = 0
         self._runtime_nchnls = 0
         self._runtime_ksmps = 0
         self._render_sample_cursor = 0
-
-    def _mock_loop(self) -> None:
-        while True:
-            with self._lock:
-                if not self._running:
-                    return
-            time.sleep(0.1)

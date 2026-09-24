@@ -60,16 +60,7 @@ class PerformanceService:
         return PerformanceResponse.model_validate(document.model_dump())
 
     def list_performances(self) -> list[PerformanceListItem]:
-        documents = self._repository.list()
-        return [
-            PerformanceListItem(
-                id=document.id,
-                name=document.name,
-                description=document.description,
-                updated_at=document.updated_at,
-            )
-            for document in documents
-        ]
+        return self._repository.list_items()
 
     def update_performance(self, performance_id: str, request: PerformanceUpdateRequest) -> PerformanceResponse:
         existing = self._repository.get(performance_id)
