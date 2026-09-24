@@ -1,3 +1,4 @@
+import { sequencerBeatGroups } from "../../lib/sequencerTimingPresentation";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   MouseEvent as ReactMouseEvent,
@@ -79,7 +80,7 @@ export const ControllerSequencerCurveEditor = memo(function ControllerSequencerC
     }
 
     const updateWidth = () => {
-      const nextWidth = Math.max(320, Math.round(svg.clientWidth || svg.getBoundingClientRect().width || 960));
+      const nextWidth = Math.max(1, Math.round(svg.clientWidth || svg.getBoundingClientRect().width || 960));
       setWidth((previous) => (previous === nextWidth ? previous : nextWidth));
     };
 
@@ -320,11 +321,21 @@ export const ControllerSequencerCurveEditor = memo(function ControllerSequencerC
     [controllerSequencer.keypoints]
   );
 
+  const beatGroups = sequencerBeatGroups(controllerSequencer.timing, controllerSequencer.stepCount);
+  const minimumLabelBeats = Math.ceil(28 * controllerSequencer.lengthBeats / width);
+  const labelEvery = minimumLabelBeats <= 1 ? 1
+    : Math.ceil(minimumLabelBeats / controllerSequencer.timing.meterNumerator) * controllerSequencer.timing.meterNumerator;
+
   return (
     <div className="rounded-xl border border-teal-700/50 bg-slate-950/70 p-2">
+      <div className="mb-1 flex text-[11px] text-slate-400" aria-hidden="true">
+        {beatGroups.map((group, index) =>
+          <span key={group.start} className="min-w-0 flex-1 whitespace-nowrap">{index % labelEvery === 0 ? `${group.bar}.${group.beat}` : ""}</span>)}
+      </div>
       <svg
         ref={svgRef}
         viewBox={`0 0 ${width} ${height}`}
+        preserveAspectRatio="none"
         role="img"
         aria-label={ui.curveEditorHint}
         className="h-40 w-full cursor-crosshair overflow-visible rounded-lg border border-slate-700 bg-slate-950"
@@ -368,8 +379,9 @@ export const ControllerSequencerCurveEditor = memo(function ControllerSequencerC
             />
           );
         })}
-        {Array.from({ length: 9 }, (_, index) => {
-          const x = (index / 8) * width;
+        {beatGroups.map(group => {
+          const index = group.start / controllerSequencer.timing.stepsPerBeat;
+          const x = index / controllerSequencer.lengthBeats * width;
           return (
             <line
               key={`grid-x-${index}`}
@@ -377,8 +389,9 @@ export const ControllerSequencerCurveEditor = memo(function ControllerSequencerC
               y1={0}
               x2={x}
               y2={height}
-              stroke={index === 0 || index === 8 ? "rgba(100,116,139,0.45)" : "rgba(51,65,85,0.3)"}
-              strokeWidth={1}
+              stroke={group.barStart ? "rgba(148,163,184,0.7)" : "rgba(100,116,139,0.45)"}
+              strokeWidth={group.barStart ? 2 : 1}
+              pointerEvents="none"
             />
           );
         })}

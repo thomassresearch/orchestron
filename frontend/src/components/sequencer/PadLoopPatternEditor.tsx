@@ -4,7 +4,7 @@ import type { GuiLanguage, PadLoopPatternItem, PadLoopPatternState } from "../..
 import { arrangementCopy } from "../../lib/arrangementCopy";
 import { patternItemButtonClass } from "../../lib/patternItemPresentation";
 import { compileDefinition, createDefinition, definitionItem, definitionUses, deleteDefinition, validateArrangementEdit, type DefinitionRef } from "../../lib/arrangementEditing";
-import { canInsertItemIntoPadLoopContainer, getPadLoopContainerSequence, groupPadLoopItemsInContainer, insertPadLoopItem, itemDisplayLabel, movePadLoopItemWithinContainer, removePadLoopItemsFromContainer, ungroupPadLoopItemsInContainer } from "../../lib/padLoopPattern";
+import { PAD_LOOP_PAUSE_BEAT_OPTIONS, canInsertItemIntoPadLoopContainer, getPadLoopContainerSequence, groupPadLoopItemsInContainer, insertPadLoopItem, itemDisplayLabel, movePadLoopItemWithinContainer, removePadLoopItemsFromContainer, ungroupPadLoopItemsInContainer } from "../../lib/padLoopPattern";
 import { useOpenArranger, usePerformanceEditorState } from "./PerformanceEditorState";
 import type { SequencerUiCopy } from "./sequencerUiCopy";
 import { PlaybackSourceToggle } from "./PlaybackSourceToggle";
@@ -95,7 +95,7 @@ export function PadLoopPatternEditor({ track, guiLanguage = "english", onPadLoop
       </div>
       <p className="text-xs text-slate-400">{c.shared}</p>
       <div className="flex flex-wrap gap-1" aria-label={c.add}>
-        {[...references, ...([1, 2, 4, 8, 16] as const).map(lengthBeats => ({ type: "pause" as const, lengthBeats }))].filter(item =>
+        {[...references, ...PAD_LOOP_PAUSE_BEAT_OPTIONS.map(lengthBeats => ({ type: "pause" as const, lengthBeats }))].filter(item =>
           canInsertItemIntoPadLoopContainer(pattern, active, item) && compileDefinition(pattern, item).length > 0).map((item, index) => <button key={index} className={patternItemButtonClass(item.type)}
           draggable onDragEnd={endArrangementDrag} onDragStart={event => { beginArrangementDrag(track.id, item); event.dataTransfer.setData(ARRANGEMENT_ITEM_MIME, JSON.stringify({ trackId: track.id, item })); }}
           onClick={() => change(() => insertPadLoopItem(pattern, active, sequence.length, item))}>{label(item)}</button>)}

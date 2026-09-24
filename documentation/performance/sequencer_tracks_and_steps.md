@@ -8,6 +8,8 @@ This page covers the **melodic sequencer** editor. Drum-machine style programmin
 
 Use the pen beside the device name to rename it. See [Device Names](performance.md#device-names) for editing controls, validation, and import/export behavior.
 
+See [Sequencer timing](sequencer_timing.md) for triplets, beat grouping, editing behavior and legacy compatibility (EN/DE/FR/ES).
+
 ## Collapse the Panel
 
 Melodic, drummer, and controller groups collapse independently. The shared tempo remains above the groups. Each group has its own Add button, which expands it. Panels start expanded and remember your choice across view switches until browser reload. Collapsing does not stop playback or discard edits.
@@ -40,24 +42,24 @@ Each melodic sequencer card provides:
 - `Scale` (root + scale type)
 - `Mode` (Ionian, Dorian, Phrygian, Lydian, Mixolydian, Aeolian, Locrian)
 - `Meter` (`2..7` over `4` or `8`)
-- `Grid` (`2`, `4`, or `8`, steps per beat)
-- `Beat Ratio` (`1:1`, `2:1`, `3:2`, `4:3`, `3:4`, `5:4`, `4:5`, `7:4`)
-- `Beats` (`1..8`, with the current meter numerator exposed directly)
+- `Subdivision` (1, 2, 3, 4, 6 or 8 steps per local meter beat)
+- `Advanced timing → Playback speed` (`1:1`, `2:1`, `3:2`, `4:3`, `3:4`, `5:4`, `4:5`, `7:4`)
+- `Pattern length` (every integer from 1–16 local beats; whole bars show both units)
 
 The step editor width is derived from the sequencer's own timing and length:
 
-- steps per beat = the sequencer's selected `Grid`
+- steps per beat = the sequencer's selected `Subdivision`
 - pad steps = `beats * steps per beat`
 - default timing (`4/4`, grid `4`) gives `16` steps for a `4`-beat pad
 - odd meters can still use matching one-bar pad lengths such as `3` beats in `3/4` or `5` beats in `5/4`
 
-`Beat Ratio` changes how quickly the sequencer advances relative to the shared transport beat without changing its stored pad length, meter, or grid:
+`Advanced timing → Playback speed` changes how quickly the sequencer advances relative to the shared transport beat without changing its stored pad length, meter, or grid:
 
 - `1:1` keeps normal speed
 - ratios above `1:1` make the melodic sequencer run faster
 - ratios below `1:1` make the melodic sequencer run slower
 
-This is separate from `Meter` and `Grid`, so you can combine polymeter and true polyrhythm on the same performance page.
+This is separate from `Meter` and `Subdivision`, so you can combine polymeter and true polyrhythm on the same performance page.
 
 ### Queued Start/Stop State Labels
 
@@ -130,7 +132,7 @@ Step cells visually indicate:
 
 ## Early and Late Notes
 
-Timing moves an individual attack by **−50% to +50% of one local step**, in 1% increments. Zero means **On grid**. The millisecond readout follows the current tempo, grid and beat ratio: at 120 BPM with Grid 4 and ratio 1:1, −20% is 25 ms early. Timing belongs to each pad and does not change its length, meter or playback speed.
+Timing moves an individual attack by **−50% to +50% of one local step**, in 1% increments. Zero means **On grid**. The millisecond readout follows the current tempo, grid and beat ratio: at 120 BPM with 4/4, Subdivision 4 and speed 1×, −20% is 25 ms early. Timing belongs to each pad and does not change its length, meter or playback speed.
 
 Moving a note also moves its release, preserving its length and any HOLD extension. A following attack can shorten the preceding note to avoid overlap. Chords move together. If neighboring attacks land at exactly the same instant, the later logical step wins.
 

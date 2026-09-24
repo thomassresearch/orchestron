@@ -1,3 +1,5 @@
+import { BeatGroupHeaders, SequencerTimingControls } from "./sequencer/SequencerTimingControls";
+import { sequencerStepBoundary } from "../lib/sequencerTimingPresentation";
 import { transportStartButtonClass, transportStopButtonClass } from "./sequencer/transportButtonStyles";
 import { PatternWorkspace } from "./sequencer/PatternWorkspace";
 import { ArrangerSpeaker } from "./sequencer/ArrangerSpeaker";
@@ -29,12 +31,9 @@ import type {
 import {
   buildSequencerChordOptions,
   buildSequencerNoteOptions,
-  controllerSequencerPadLengthBeatOptions,
   parseSequencerScaleValue,
-  SEQUENCER_BEAT_RATE_OPTIONS,
   SEQUENCER_MODE_OPTIONS,
   SEQUENCER_SCALE_OPTIONS,
-  sequencerPadLengthBeatOptions,
   sequencerTransportSubunitCount,
   sequencerTransportSubunitDurationSeconds,
   sequencerTransportSubunitsPerLocalStep,
@@ -265,18 +264,6 @@ function displayedLocalStepFromPlayback(
   return localStepFromTransportPosition(track, absoluteTransportSubunit);
 }
 
-function parseBeatRateValue(value: string): { numerator: number; denominator: number } | null {
-  const [rawNumerator, rawDenominator] = value.split(":");
-  const numerator = Number(rawNumerator);
-  const denominator = Number(rawDenominator);
-  if (!Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator <= 0) {
-    return null;
-  }
-  return {
-    numerator: Math.round(numerator),
-    denominator: Math.round(denominator)
-  };
-}
 
 interface RunningSequencerTheory {
   scaleRoot: SequencerScaleRoot;
@@ -1652,97 +1639,12 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
                 </div>
 
                 <div className="flex flex-wrap items-end gap-2">
-                  <label className="flex flex-col gap-1">
-                    <span className={controlLabelClass}>{ui.meter}</span>
-                    <div className="flex items-center gap-1">
-                      <select
-                        value={track.timing.meterNumerator}
-                        onChange={(event) =>
-                          onSequencerTrackMeterNumeratorChange(track.id, Number(event.target.value))
-                        }
-                        className={`${controlFieldClass} w-20`}
-                      >
-                        {[2, 3, 4, 5, 6, 7].map((value) => (
-                          <option key={`${track.id}-meter-numerator-${value}`} value={value}>
-                            {value}
-                          </option>
-                        ))}
-                      </select>
-                      <span className="text-slate-400">/</span>
-                      <select
-                        value={track.timing.meterDenominator}
-                        onChange={(event) =>
-                          onSequencerTrackMeterDenominatorChange(track.id, Number(event.target.value))
-                        }
-                        className={`${controlFieldClass} w-20`}
-                      >
-                        {[4, 8].map((value) => (
-                          <option key={`${track.id}-meter-denominator-${value}`} value={value}>
-                            {value}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </label>
-
-                  <label className="flex flex-col gap-1">
-                    <span className={controlLabelClass}>{ui.grid}</span>
-                    <select
-                      value={track.timing.stepsPerBeat}
-                      onChange={(event) =>
-                        onSequencerTrackStepsPerBeatChange(track.id, Number(event.target.value))
-                      }
-                      className={`${controlFieldClass} w-24`}
-                    >
-                      {[2, 4, 8].map((value) => (
-                        <option key={`${track.id}-steps-per-beat-${value}`} value={value}>
-                          {value}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-
-                  <label className="flex flex-col gap-1">
-                    <span className={controlLabelClass}>{ui.beatRate}</span>
-                    <select
-                      value={`${track.timing.beatRateNumerator}:${track.timing.beatRateDenominator}`}
-                      onChange={(event) => {
-                        const beatRate = parseBeatRateValue(event.target.value);
-                        if (beatRate) {
-                          onSequencerTrackBeatRateChange(track.id, beatRate.numerator, beatRate.denominator);
-                        }
-                      }}
-                      className={`${controlFieldClass} w-28`}
-                    >
-                      {SEQUENCER_BEAT_RATE_OPTIONS.map((option) => (
-                        <option
-                          key={`${track.id}-beat-rate-${option.label}`}
-                          value={`${option.numerator}:${option.denominator}`}
-                        >
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-
-                  <div className="flex flex-col gap-1">
-                    <span className={controlLabelClass}>{ui.beats}</span>
-                    <div className="inline-flex flex-wrap gap-1 rounded-lg border border-slate-600 bg-slate-950 p-1">
-                      {sequencerPadLengthBeatOptions(track.timing.meterNumerator, track.lengthBeats).map((count) => (
-                        <button
-                          key={`${track.id}-steps-${count}`}
-                          type="button"
-                          onClick={() => onSequencerTrackStepCountChange(track.id, count)}
-                          className={`rounded-md px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.14em] transition ${track.lengthBeats === count
-                              ? "bg-accent/30 text-accent"
-                              : "text-slate-300 hover:bg-slate-800"
-                            }`}
-                        >
-                          {count}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                  <SequencerTimingControls id={track.id} timing={track.timing} lengthBeats={track.lengthBeats} pads={track.pads} language={guiLanguage}
+                onMeterNumerator={value => onSequencerTrackMeterNumeratorChange(track.id, value)}
+                onMeterDenominator={value => onSequencerTrackMeterDenominatorChange(track.id, value)}
+                onSubdivision={value => onSequencerTrackStepsPerBeatChange(track.id, value)}
+                onLength={value => onSequencerTrackStepCountChange(track.id, value)}
+                onSpeed={(n, d) => onSequencerTrackBeatRateChange(track.id, n, d)} />
                 </div>
               </div>
 
@@ -1861,6 +1763,7 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
                   minWidth: `${Math.max(760, track.stepCount * 116)}px`
                 }}
               >
+                <BeatGroupHeaders timing={track.timing} stepCount={track.stepCount} language={guiLanguage} />
                 {stepIndices.map((step) => {
                   const stepState = track.steps[step];
                   const noteValue = stepState?.note ?? null;
@@ -1904,6 +1807,7 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
                   return (
                     <div
                       key={`${track.id}-step-${step}`}
+                      style={{ borderLeftWidth: sequencerStepBoundary(track.timing, step).barStart ? 3 : sequencerStepBoundary(track.timing, step).beatStart ? 2 : 1 }}
                       onDragOver={(event) => {
                         if (!dragEventHasMimeType(event, SEQUENCER_STEP_DRAG_MIME)) {
                           return;
@@ -2381,6 +2285,7 @@ function DrummerSequencersBody({ context }: { context: ReturnType<typeof useSequ
         const trackIsRunning = sequencer.isPlaying && track.enabled;
         const manualPlayback = trackIsRunning && !track.padLoopEnabled;
         const playingPad = playbackSequencer.drummerTracks.find(t => t.id === track.id)?.activePad;
+        const stepMinWidth = Math.max(20, Math.ceil(96 / track.timing.stepsPerBeat));
 
         return (
           <article
@@ -2445,101 +2350,12 @@ function DrummerSequencersBody({ context }: { context: ReturnType<typeof useSequ
                 />
               </label>
 
-              <label className="flex flex-col gap-1">
-                <span className={controlLabelClass}>{ui.meter}</span>
-                <div className="flex items-center gap-1">
-                  <select
-                    value={track.timing.meterNumerator}
-                    onChange={(event) =>
-                      onDrummerSequencerTrackMeterNumeratorChange(track.id, Number(event.target.value))
-                    }
-                    className={`${controlFieldClass} w-20`}
-                  >
-                    {[2, 3, 4, 5, 6, 7].map((value) => (
-                      <option key={`${track.id}-drum-meter-numerator-${value}`} value={value}>
-                        {value}
-                      </option>
-                    ))}
-                  </select>
-                  <span className="text-slate-400">/</span>
-                  <select
-                    value={track.timing.meterDenominator}
-                    onChange={(event) =>
-                      onDrummerSequencerTrackMeterDenominatorChange(track.id, Number(event.target.value))
-                    }
-                    className={`${controlFieldClass} w-20`}
-                  >
-                    {[4, 8].map((value) => (
-                      <option key={`${track.id}-drum-meter-denominator-${value}`} value={value}>
-                        {value}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </label>
-
-              <label className="flex flex-col gap-1">
-                <span className={controlLabelClass}>{ui.grid}</span>
-                <select
-                  value={track.timing.stepsPerBeat}
-                  onChange={(event) =>
-                    onDrummerSequencerTrackStepsPerBeatChange(track.id, Number(event.target.value))
-                  }
-                  className={`${controlFieldClass} w-24`}
-                >
-                  {[2, 4, 8].map((value) => (
-                    <option key={`${track.id}-drum-steps-per-beat-${value}`} value={value}>
-                      {value}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="flex flex-col gap-1">
-                <span className={controlLabelClass}>{ui.beatRate}</span>
-                <select
-                  value={`${track.timing.beatRateNumerator}:${track.timing.beatRateDenominator}`}
-                  onChange={(event) => {
-                    const beatRate = parseBeatRateValue(event.target.value);
-                    if (beatRate) {
-                      onDrummerSequencerTrackBeatRateChange(
-                        track.id,
-                        beatRate.numerator,
-                        beatRate.denominator
-                      );
-                    }
-                  }}
-                  className={`${controlFieldClass} w-28`}
-                >
-                  {SEQUENCER_BEAT_RATE_OPTIONS.map((option) => (
-                    <option
-                      key={`${track.id}-drum-beat-rate-${option.label}`}
-                      value={`${option.numerator}:${option.denominator}`}
-                    >
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <div className="flex flex-col gap-1">
-                <span className={controlLabelClass}>{ui.beats}</span>
-                <div className="inline-flex flex-wrap gap-1 rounded-lg border border-slate-600 bg-slate-950 p-1">
-                  {sequencerPadLengthBeatOptions(track.timing.meterNumerator, track.lengthBeats).map((count) => (
-                    <button
-                      key={`${track.id}-drum-steps-${count}`}
-                      type="button"
-                      onClick={() => onDrummerSequencerTrackStepCountChange(track.id, count)}
-                      className={`rounded-md px-2 py-1 text-xs font-semibold uppercase tracking-[0.14em] transition ${track.lengthBeats === count
-                          ? "bg-rose-500/20 text-rose-200"
-                          : "text-slate-300 hover:bg-slate-800"
-                        }`}
-                    >
-                      {count}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <SequencerTimingControls id={track.id} timing={track.timing} lengthBeats={track.lengthBeats} pads={track.pads} language={guiLanguage}
+                onMeterNumerator={value => onDrummerSequencerTrackMeterNumeratorChange(track.id, value)}
+                onMeterDenominator={value => onDrummerSequencerTrackMeterDenominatorChange(track.id, value)}
+                onSubdivision={value => onDrummerSequencerTrackStepsPerBeatChange(track.id, value)}
+                onLength={value => onDrummerSequencerTrackStepCountChange(track.id, value)}
+                onSpeed={(n, d) => onDrummerSequencerTrackBeatRateChange(track.id, n, d)} />
 
               </div>
               <div className="min-w-0 space-y-2">
@@ -2615,10 +2431,11 @@ function DrummerSequencersBody({ context }: { context: ReturnType<typeof useSequ
               <div
                 className="grid w-full items-center gap-x-1 gap-y-1"
                 style={{
-                  gridTemplateColumns: `minmax(136px, 136px) repeat(${track.stepCount}, minmax(20px, 1fr))`,
-                  minWidth: `${136 + track.stepCount * 21}px`
+                  gridTemplateColumns: `minmax(136px, 136px) repeat(${track.stepCount}, minmax(${stepMinWidth}px, 1fr))`,
+                  minWidth: `${140 + track.stepCount * (stepMinWidth + 4)}px`
                 }}
               >
+                <BeatGroupHeaders timing={track.timing} stepCount={track.stepCount} language={guiLanguage} offset={1} />
                 <div className="rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-slate-400">
                   Keys
                 </div>
@@ -2627,6 +2444,7 @@ function DrummerSequencersBody({ context }: { context: ReturnType<typeof useSequ
                   return (
                     <div
                       key={`${track.id}-drum-header-${step}`}
+                      style={{ borderLeftWidth: sequencerStepBoundary(track.timing, step).barStart ? 3 : sequencerStepBoundary(track.timing, step).beatStart ? 2 : 1 }}
                       className={`flex h-5 min-w-0 items-center justify-center rounded border font-mono text-[9px] ${isCurrentStep
                           ? "border-emerald-400/80 bg-emerald-400/15 text-emerald-200"
                           : "border-slate-700 bg-slate-950/70 text-slate-400"
@@ -2709,6 +2527,7 @@ function DrummerSequencersBody({ context }: { context: ReturnType<typeof useSequ
                         return (
                           <button
                             key={`${track.id}-drum-led-${row.id}-${step}`}
+                            style={{ borderLeftWidth: sequencerStepBoundary(track.timing, step).barStart ? 3 : sequencerStepBoundary(track.timing, step).beatStart ? 2 : 1 }}
                             type="button"
                             onPointerDown={(event) =>
                               handleDrummerLedPointerDown(
@@ -2915,115 +2734,12 @@ function ControllerSequencersBody({ context }: { context: ReturnType<typeof useS
                 />
               </label>
 
-              <label className="flex flex-col gap-1">
-                <span className={controlLabelClass}>{ui.meter}</span>
-                <div className="flex items-center gap-1">
-                  <select
-                    value={controllerSequencer.timing.meterNumerator}
-                    onChange={(event) =>
-                      onControllerSequencerMeterNumeratorChange(
-                        controllerSequencer.id,
-                        Number(event.target.value)
-                      )
-                    }
-                    className={`${controlFieldClass} w-20`}
-                  >
-                    {[2, 3, 4, 5, 6, 7].map((value) => (
-                      <option key={`${controllerSequencer.id}-meter-numerator-${value}`} value={value}>
-                        {value}
-                      </option>
-                    ))}
-                  </select>
-                  <span className="text-slate-400">/</span>
-                  <select
-                    value={controllerSequencer.timing.meterDenominator}
-                    onChange={(event) =>
-                      onControllerSequencerMeterDenominatorChange(
-                        controllerSequencer.id,
-                        Number(event.target.value)
-                      )
-                    }
-                    className={`${controlFieldClass} w-20`}
-                  >
-                    {[4, 8].map((value) => (
-                      <option key={`${controllerSequencer.id}-meter-denominator-${value}`} value={value}>
-                        {value}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </label>
-
-              <label className="flex flex-col gap-1">
-                <span className={controlLabelClass}>{ui.grid}</span>
-                <select
-                  value={controllerSequencer.timing.stepsPerBeat}
-                  onChange={(event) =>
-                    onControllerSequencerStepsPerBeatChange(
-                      controllerSequencer.id,
-                      Number(event.target.value)
-                    )
-                  }
-                  className={`${controlFieldClass} w-24`}
-                >
-                  {[2, 4, 8].map((value) => (
-                    <option key={`${controllerSequencer.id}-steps-per-beat-${value}`} value={value}>
-                      {value}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="flex flex-col gap-1">
-                <span className={controlLabelClass}>{ui.beatRate}</span>
-                <select
-                  value={`${controllerSequencer.timing.beatRateNumerator}:${controllerSequencer.timing.beatRateDenominator}`}
-                  onChange={(event) => {
-                    const beatRate = parseBeatRateValue(event.target.value);
-                    if (beatRate) {
-                      onControllerSequencerBeatRateChange(
-                        controllerSequencer.id,
-                        beatRate.numerator,
-                        beatRate.denominator
-                      );
-                    }
-                  }}
-                  className={`${controlFieldClass} w-28`}
-                >
-                  {SEQUENCER_BEAT_RATE_OPTIONS.map((option) => (
-                    <option
-                      key={`${controllerSequencer.id}-beat-rate-${option.label}`}
-                      value={`${option.numerator}:${option.denominator}`}
-                    >
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <div className="flex flex-col gap-1">
-                <span className={controlLabelClass}>{ui.beats}</span>
-                <div className="inline-flex flex-wrap gap-1 rounded-lg border border-slate-600 bg-slate-950 p-1">
-                  {controllerSequencerPadLengthBeatOptions(
-                    controllerSequencer.timing.meterNumerator,
-                    controllerSequencer.lengthBeats
-                  ).map((option) => (
-                    <button
-                      key={`${controllerSequencer.id}-rate-${option}`}
-                      type="button"
-                      onClick={() =>
-                        onControllerSequencerStepCountChange(controllerSequencer.id, option)
-                      }
-                      className={`rounded-md px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.14em] transition ${controllerSequencer.lengthBeats === option
-                          ? "bg-teal-400/20 text-teal-200"
-                          : "text-slate-300 hover:bg-slate-800"
-                        }`}
-                    >
-                      {option}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <SequencerTimingControls id={controllerSequencer.id} timing={controllerSequencer.timing} lengthBeats={controllerSequencer.lengthBeats} pads={controllerSequencer.pads} language={guiLanguage} controller
+                onMeterNumerator={value => onControllerSequencerMeterNumeratorChange(controllerSequencer.id, value)}
+                onMeterDenominator={value => onControllerSequencerMeterDenominatorChange(controllerSequencer.id, value)}
+                onSubdivision={value => onControllerSequencerStepsPerBeatChange(controllerSequencer.id, value)}
+                onLength={value => onControllerSequencerStepCountChange(controllerSequencer.id, value)}
+                onSpeed={(n, d) => onControllerSequencerBeatRateChange(controllerSequencer.id, n, d)} />
 
               <div className="rounded-md border border-slate-700 bg-slate-950 px-2 py-1 font-mono text-xs text-slate-200">
                 CC {controllerSequencer.controllerNumber}

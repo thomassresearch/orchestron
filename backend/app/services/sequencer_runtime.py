@@ -269,7 +269,7 @@ class SessionSequencerRuntime:
         return (
             track.configured_enabled, track.configured_active_pad, track.pad_loop_enabled,
             track.pad_loop_repeat, track.pad_loop_sequence,
-            track.timing.beat_rate_numerator, track.timing.beat_rate_denominator,
+            track.timing.beat_rate_numerator, track.timing.beat_rate_denominator, track.timing.beat_unit,
             tuple((index, pad.transport_subunit_count) for index, pad in sorted(track.pads.items())),
             getattr(track, "sync_to_track_id", None),
         )
@@ -1242,7 +1242,7 @@ class SessionSequencerRuntime:
     def _transport_subunit_count_for_length(length_beats: int, timing: SequencerTimingRuntime) -> int:
         return (
             max(1, length_beats) *
-            _TRANSPORT_SUBUNITS_PER_BEAT *
+            timing.local_beat_subunits *
             timing.beat_rate_denominator
         ) // timing.beat_rate_numerator
 
@@ -2378,6 +2378,7 @@ class SessionSequencerRuntime:
                     steps_per_beat=track.timing.steps_per_beat,
                     beat_rate_numerator=track.timing.beat_rate_numerator,
                     beat_rate_denominator=track.timing.beat_rate_denominator,
+                    beat_unit=track.timing.beat_unit,
                 ),
                 length_beats=self._length_beats_for_pad(track, track.active_pad),
                 step_count=self._active_pad_step_count(track),
@@ -2403,6 +2404,7 @@ class SessionSequencerRuntime:
                     steps_per_beat=track.timing.steps_per_beat,
                     beat_rate_numerator=track.timing.beat_rate_numerator,
                     beat_rate_denominator=track.timing.beat_rate_denominator,
+                    beat_unit=track.timing.beat_unit,
                 ),
                 length_beats=self._length_beats_for_pad(track, track.active_pad),
                 step_count=self._active_pad_step_count(track),
@@ -2430,6 +2432,7 @@ class SessionSequencerRuntime:
                 steps_per_beat=config.timing.steps_per_beat,
                 beat_rate_numerator=config.timing.beat_rate_numerator,
                 beat_rate_denominator=config.timing.beat_rate_denominator,
+                beat_unit=config.timing.beat_unit,
             ),
             step_count=max(1, config.step_count),
             current_step=current_step,

@@ -29,12 +29,12 @@ OFFLINE_CSD_EXPORT_MAX_MIDI_EVENTS = 200_000
 OFFLINE_CSD_EXPORT_MAX_STEP_NOTES = 16
 OFFLINE_CSD_EXPORT_MAX_WALL_SECONDS = 5.0
 _OFFLINE_TRANSPORT_STEPS_PER_BEAT = 8
-_OFFLINE_TRANSPORT_SUBUNITS_PER_STEP = 420
+_OFFLINE_TRANSPORT_SUBUNITS_PER_STEP = 2520
 _OFFLINE_TRANSPORT_SUBUNITS_PER_BEAT = _OFFLINE_TRANSPORT_STEPS_PER_BEAT * _OFFLINE_TRANSPORT_SUBUNITS_PER_STEP
-_OFFLINE_CONTROLLER_AUTOMATION_SUBUNIT_QUANTUM = 28
+_OFFLINE_CONTROLLER_AUTOMATION_SUBUNIT_QUANTUM = 168
 _OFFLINE_MAX_STEPS_PER_PAD = 128
 _OFFLINE_DEFAULT_PAD_COUNT = 8
-_OFFLINE_PAUSE_BEAT_COUNTS = {1, 2, 4, 8, 16}
+_OFFLINE_PAUSE_BEAT_COUNTS = {1, 2, 4, 8, 16, 32}
 _ARPEGGIATOR_RATE_BEATS: dict[str, float] = {
     "1/1": 4.0,
     "1/2": 2.0,
@@ -76,7 +76,7 @@ class ExportPerformanceInstrumentAssignment(BaseModel):
 class ExportPerformanceConfig(BaseModel):
     audio_graph: AudioGraph | None = Field(default=None, alias="audioGraph")
     mixer: MixerState = Field(default_factory=MixerState)
-    version: int = Field(default=1, ge=1, le=16)
+    version: int = Field(default=1, ge=1, le=17)
     instruments: list[ExportPerformanceInstrumentAssignment] = Field(default_factory=list, max_length=64)
 
     @model_validator(mode="after")
@@ -330,7 +330,7 @@ def _normalized_pad_loop_sequence(raw_sequence: list[int]) -> tuple[int, ...]:
 def _transport_subunits_for_length(length_beats: int, timing: SessionSequencerTimingConfig) -> int:
     return (
         max(1, int(length_beats))
-        * _OFFLINE_TRANSPORT_SUBUNITS_PER_BEAT
+        * (_OFFLINE_TRANSPORT_SUBUNITS_PER_BEAT * 4 // (timing.meter_denominator if timing.beat_unit == "meter" else 4))
         * max(1, int(timing.beat_rate_denominator))
     ) // max(1, int(timing.beat_rate_numerator))
 
@@ -343,7 +343,7 @@ def _transport_subunits_per_local_step(timing: SessionSequencerTimingConfig) -> 
     return max(
         1,
         (
-            _OFFLINE_TRANSPORT_SUBUNITS_PER_BEAT
+            (_OFFLINE_TRANSPORT_SUBUNITS_PER_BEAT * 4 // (timing.meter_denominator if timing.beat_unit == "meter" else 4))
             * max(1, int(timing.beat_rate_denominator))
         )
         // (max(1, int(timing.beat_rate_numerator)) * max(1, int(timing.steps_per_beat))),

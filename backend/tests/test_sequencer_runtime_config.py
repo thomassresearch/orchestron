@@ -23,9 +23,9 @@ def test_controller_curves_match_complete_pre_optimization_sequences(case: dict)
         [SessionControllerSequencerKeypointConfig.model_validate(point) for point in case["keypoints"]],
         length_beats=case["length_beats"], timing=SequencerTimingRuntime(**case["timing"]),
     )
-    assert [[event.offset_subunit, event.value] for event in pad.events] == case["events"]
+    assert [[event.offset_subunit, event.value] for event in pad.events] == [[offset * 6, value] for offset, value in case["events"]]
     assert pad.step_count == case["step_count"]
-    assert pad.transport_subunit_count == case["transport_subunit_count"]
+    assert pad.transport_subunit_count == case["transport_subunit_count"] * 6
 
 
 def test_controller_cache_is_bounded_reused_and_immutable() -> None:

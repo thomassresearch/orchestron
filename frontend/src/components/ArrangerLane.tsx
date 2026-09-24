@@ -6,7 +6,7 @@ import type { PadLoopPatternItem, PadLoopPatternState } from "../types";
 import { arrangementCopy } from "../lib/arrangementCopy";
 import { ARRANGEMENT_ITEM_MIME, beginArrangementDrag, currentArrangementDrag, endArrangementDrag } from "../lib/arrangementDrag";
 import { arrangementSpans, compileDefinition, contiguousArrangementSelection, createDefinition, definitionItem, definitionUses, groupArrangementSelection, removeArrangementItems, resolveArrangementDrop, restTokens, validateArrangementEdit, type DefinitionRef } from "../lib/arrangementEditing";
-import { canCreatePadLoopGroupFromSelection, itemDisplayLabel, ungroupPadLoopItemsInContainer } from "../lib/padLoopPattern";
+import { PAD_LOOP_PAUSE_BEAT_OPTIONS, canCreatePadLoopGroupFromSelection, itemDisplayLabel, ungroupPadLoopItemsInContainer } from "../lib/padLoopPattern";
 import { definitionColorKey, definitionColorStyle, setDefinitionColor } from "../lib/definitionColors";
 import { PATTERN_ITEM_COLORS } from "../lib/patternItemPresentation";
 import { useAppStore } from "../store/useAppStore";
@@ -56,7 +56,7 @@ export function ArrangerLane({ lane, props, selected, select, commit, zoom, widt
   const refs: PadLoopPatternItem[] = [...lane.availablePads.map((padIndex): PadLoopPatternItem => ({ type: "pad", padIndex })),
     ...lane.pattern.groups.map(g => definitionItem({ kind: "group", id: g.id })),
     ...lane.pattern.superGroups.map(g => definitionItem({ kind: "super", id: g.id })),
-    ...([1, 2, 4, 8, 16] as const).map(lengthBeats => ({ type: "pause" as const, lengthBeats }))];
+    ...PAD_LOOP_PAUSE_BEAT_OPTIONS.map(lengthBeats => ({ type: "pause" as const, lengthBeats }))];
   const label = (item: PadLoopPatternItem) => item.type === "pad" ? String(item.padIndex + 1) : item.type === "pause" ? `${c.rest} ${item.lengthBeats}` : itemDisplayLabel(item);
   const duration = (item: PadLoopPatternItem) => compileDefinition(lane.pattern, item).reduce((n, token) => n + (token < 0 ? -token : lane.padBeats[token]), 0);
   const openLane = () => { select(); setExpanded(true); };

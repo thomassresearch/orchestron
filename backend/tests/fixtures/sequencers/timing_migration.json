@@ -1,0 +1,1765 @@
+[
+  {
+    "name": "nested-six-eight",
+    "appState": false,
+    "input": {
+      "version": 16,
+      "sequencer": {
+        "tracks": [
+          {
+            "id": "lead",
+            "timing": {
+              "tempoBPM": 120,
+              "meterNumerator": 6,
+              "meterDenominator": 8,
+              "stepsPerBeat": 8,
+              "beatRateNumerator": 7,
+              "beatRateDenominator": 4
+            },
+            "lengthBeats": 6,
+            "stepCount": 48,
+            "pads": [
+              {
+                "lengthBeats": 6,
+                "stepCount": 48,
+                "steps": [
+                  {
+                    "note": 60,
+                    "velocity": 93,
+                    "hold": true,
+                    "timingOffsetPercent": -23
+                  },
+                  null,
+                  {
+                    "note": 67
+                  }
+                ]
+              }
+            ],
+            "padLoopPattern": {
+              "rootSequence": [
+                {
+                  "type": "group",
+                  "groupId": "g"
+                },
+                {
+                  "type": "pause",
+                  "lengthBeats": 16
+                }
+              ],
+              "groups": [
+                {
+                  "id": "g",
+                  "sequence": [
+                    {
+                      "type": "pad",
+                      "padIndex": 0
+                    },
+                    {
+                      "type": "pause",
+                      "lengthBeats": 2
+                    }
+                  ]
+                }
+              ],
+              "superGroups": [
+                {
+                  "id": "s",
+                  "sequence": [
+                    {
+                      "type": "group",
+                      "groupId": "g"
+                    }
+                  ]
+                }
+              ]
+            },
+            "padLoopSequence": [
+              0,
+              -2,
+              -16
+            ],
+            "workspaceDrafts": {
+              "group:g": {
+                "items": [
+                  {
+                    "type": "pause",
+                    "lengthBeats": 16
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "id": "straight",
+            "timing": {
+              "tempoBPM": 120,
+              "meterNumerator": 6,
+              "meterDenominator": 4,
+              "stepsPerBeat": 8,
+              "beatRateNumerator": 7,
+              "beatRateDenominator": 4
+            },
+            "stepCount": 16,
+            "pads": [
+              {
+                "stepCount": 16
+              }
+            ]
+          }
+        ],
+        "drummerTracks": [
+          {
+            "id": "drums",
+            "timing": {
+              "tempoBPM": 120,
+              "meterNumerator": 6,
+              "meterDenominator": 8,
+              "stepsPerBeat": 8,
+              "beatRateNumerator": 7,
+              "beatRateDenominator": 4
+            },
+            "lengthBeats": 6,
+            "stepCount": 48,
+            "pads": [
+              {
+                "lengthBeats": 6,
+                "stepCount": 48,
+                "steps": [
+                  {
+                    "note": 60,
+                    "velocity": 93,
+                    "hold": true,
+                    "timingOffsetPercent": -23
+                  },
+                  null,
+                  {
+                    "note": 67
+                  }
+                ]
+              }
+            ],
+            "padLoopPattern": {
+              "rootSequence": [
+                {
+                  "type": "group",
+                  "groupId": "g"
+                },
+                {
+                  "type": "pause",
+                  "lengthBeats": 16
+                }
+              ],
+              "groups": [
+                {
+                  "id": "g",
+                  "sequence": [
+                    {
+                      "type": "pad",
+                      "padIndex": 0
+                    },
+                    {
+                      "type": "pause",
+                      "lengthBeats": 2
+                    }
+                  ]
+                }
+              ],
+              "superGroups": [
+                {
+                  "id": "s",
+                  "sequence": [
+                    {
+                      "type": "group",
+                      "groupId": "g"
+                    }
+                  ]
+                }
+              ]
+            },
+            "padLoopSequence": [
+              0,
+              -2,
+              -16
+            ],
+            "workspaceDrafts": {
+              "group:g": {
+                "items": [
+                  {
+                    "type": "pause",
+                    "lengthBeats": 16
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "controllerSequencers": [
+          {
+            "id": "cc",
+            "timing": {
+              "tempoBPM": 120,
+              "meterNumerator": 6,
+              "meterDenominator": 8,
+              "stepsPerBeat": 2,
+              "beatRateNumerator": 7,
+              "beatRateDenominator": 4
+            },
+            "lengthBeats": 16,
+            "stepCount": 32,
+            "pads": [
+              {
+                "lengthBeats": 16,
+                "stepCount": 32,
+                "keypoints": [
+                  {
+                    "position": 0,
+                    "value": 1
+                  },
+                  {
+                    "position": 0.37,
+                    "value": 90
+                  },
+                  {
+                    "position": 1,
+                    "value": 0
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "arrangerHistory": {
+        "version": 1,
+        "cursor": 1,
+        "basis": [
+          {
+            "kind": "sequencer",
+            "id": "lead",
+            "lengths": [
+              6
+            ],
+            "ratio": [
+              7,
+              4
+            ],
+            "pads": {
+              "0": {
+                "lengthBeats": 6,
+                "stepCount": 48,
+                "steps": [
+                  {
+                    "note": 60,
+                    "velocity": 93,
+                    "hold": true,
+                    "timingOffsetPercent": -23
+                  },
+                  null,
+                  {
+                    "note": 67
+                  }
+                ]
+              }
+            },
+            "pattern": {
+              "rootSequence": [
+                {
+                  "type": "group",
+                  "groupId": "g"
+                },
+                {
+                  "type": "pause",
+                  "lengthBeats": 16
+                }
+              ],
+              "groups": [
+                {
+                  "id": "g",
+                  "sequence": [
+                    {
+                      "type": "pad",
+                      "padIndex": 0
+                    },
+                    {
+                      "type": "pause",
+                      "lengthBeats": 2
+                    }
+                  ]
+                }
+              ],
+              "superGroups": [
+                {
+                  "id": "s",
+                  "sequence": [
+                    {
+                      "type": "group",
+                      "groupId": "g"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "entries": [
+          {
+            "action": "rest",
+            "changes": [
+              {
+                "kind": "sequencer",
+                "id": "lead",
+                "before": {
+                  "pattern": {
+                    "rootSequence": [
+                      {
+                        "type": "group",
+                        "groupId": "g"
+                      },
+                      {
+                        "type": "pause",
+                        "lengthBeats": 16
+                      }
+                    ],
+                    "groups": [
+                      {
+                        "id": "g",
+                        "sequence": [
+                          {
+                            "type": "pad",
+                            "padIndex": 0
+                          },
+                          {
+                            "type": "pause",
+                            "lengthBeats": 2
+                          }
+                        ]
+                      }
+                    ],
+                    "superGroups": [
+                      {
+                        "id": "s",
+                        "sequence": [
+                          {
+                            "type": "group",
+                            "groupId": "g"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "after": {
+                  "pattern": {
+                    "rootSequence": [
+                      {
+                        "type": "group",
+                        "groupId": "g"
+                      },
+                      {
+                        "type": "pause",
+                        "lengthBeats": 16
+                      }
+                    ],
+                    "groups": [
+                      {
+                        "id": "g",
+                        "sequence": [
+                          {
+                            "type": "pad",
+                            "padIndex": 0
+                          },
+                          {
+                            "type": "pause",
+                            "lengthBeats": 2
+                          }
+                        ]
+                      }
+                    ],
+                    "superGroups": [
+                      {
+                        "id": "s",
+                        "sequence": [
+                          {
+                            "type": "group",
+                            "groupId": "g"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "pads": {
+                    "0": {
+                      "lengthBeats": 6,
+                      "stepCount": 48,
+                      "steps": [
+                        {
+                          "note": 60,
+                          "velocity": 93,
+                          "hold": true,
+                          "timingOffsetPercent": -23
+                        },
+                        null,
+                        {
+                          "note": 67
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "expected": {
+      "version": 17,
+      "sequencer": {
+        "tracks": [
+          {
+            "id": "lead",
+            "timing": {
+              "tempoBPM": 120,
+              "meterNumerator": 6,
+              "meterDenominator": 8,
+              "stepsPerBeat": 4,
+              "beatRateNumerator": 7,
+              "beatRateDenominator": 4
+            },
+            "lengthBeats": 12,
+            "stepCount": 48,
+            "pads": [
+              {
+                "lengthBeats": 12,
+                "stepCount": 48,
+                "steps": [
+                  {
+                    "note": 60,
+                    "velocity": 93,
+                    "hold": true,
+                    "timingOffsetPercent": -23
+                  },
+                  null,
+                  {
+                    "note": 67
+                  }
+                ]
+              }
+            ],
+            "padLoopPattern": {
+              "rootSequence": [
+                {
+                  "type": "group",
+                  "groupId": "g"
+                },
+                {
+                  "type": "pause",
+                  "lengthBeats": 32
+                }
+              ],
+              "groups": [
+                {
+                  "id": "g",
+                  "sequence": [
+                    {
+                      "type": "pad",
+                      "padIndex": 0
+                    },
+                    {
+                      "type": "pause",
+                      "lengthBeats": 4
+                    }
+                  ]
+                }
+              ],
+              "superGroups": [
+                {
+                  "id": "s",
+                  "sequence": [
+                    {
+                      "type": "group",
+                      "groupId": "g"
+                    }
+                  ]
+                }
+              ]
+            },
+            "padLoopSequence": [
+              0,
+              -4,
+              -32
+            ],
+            "workspaceDrafts": {
+              "group:g": {
+                "items": [
+                  {
+                    "type": "pause",
+                    "lengthBeats": 32
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "id": "straight",
+            "timing": {
+              "tempoBPM": 120,
+              "meterNumerator": 6,
+              "meterDenominator": 4,
+              "stepsPerBeat": 8,
+              "beatRateNumerator": 7,
+              "beatRateDenominator": 4
+            },
+            "stepCount": 16,
+            "pads": [
+              {
+                "stepCount": 16,
+                "lengthBeats": 4
+              }
+            ],
+            "lengthBeats": 4
+          }
+        ],
+        "drummerTracks": [
+          {
+            "id": "drums",
+            "timing": {
+              "tempoBPM": 120,
+              "meterNumerator": 6,
+              "meterDenominator": 8,
+              "stepsPerBeat": 4,
+              "beatRateNumerator": 7,
+              "beatRateDenominator": 4
+            },
+            "lengthBeats": 12,
+            "stepCount": 48,
+            "pads": [
+              {
+                "lengthBeats": 12,
+                "stepCount": 48,
+                "steps": [
+                  {
+                    "note": 60,
+                    "velocity": 93,
+                    "hold": true,
+                    "timingOffsetPercent": -23
+                  },
+                  null,
+                  {
+                    "note": 67
+                  }
+                ]
+              }
+            ],
+            "padLoopPattern": {
+              "rootSequence": [
+                {
+                  "type": "group",
+                  "groupId": "g"
+                },
+                {
+                  "type": "pause",
+                  "lengthBeats": 32
+                }
+              ],
+              "groups": [
+                {
+                  "id": "g",
+                  "sequence": [
+                    {
+                      "type": "pad",
+                      "padIndex": 0
+                    },
+                    {
+                      "type": "pause",
+                      "lengthBeats": 4
+                    }
+                  ]
+                }
+              ],
+              "superGroups": [
+                {
+                  "id": "s",
+                  "sequence": [
+                    {
+                      "type": "group",
+                      "groupId": "g"
+                    }
+                  ]
+                }
+              ]
+            },
+            "padLoopSequence": [
+              0,
+              -4,
+              -32
+            ],
+            "workspaceDrafts": {
+              "group:g": {
+                "items": [
+                  {
+                    "type": "pause",
+                    "lengthBeats": 32
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "controllerSequencers": [
+          {
+            "id": "cc",
+            "timing": {
+              "tempoBPM": 120,
+              "meterNumerator": 6,
+              "meterDenominator": 8,
+              "stepsPerBeat": 1,
+              "beatRateNumerator": 7,
+              "beatRateDenominator": 4
+            },
+            "lengthBeats": 32,
+            "stepCount": 32,
+            "pads": [
+              {
+                "lengthBeats": 32,
+                "stepCount": 32,
+                "keypoints": [
+                  {
+                    "position": 0,
+                    "value": 1
+                  },
+                  {
+                    "position": 0.37,
+                    "value": 90
+                  },
+                  {
+                    "position": 1,
+                    "value": 0
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "arrangerHistory": {
+        "version": 1,
+        "cursor": 1,
+        "basis": [
+          {
+            "kind": "sequencer",
+            "id": "lead",
+            "lengths": [
+              12
+            ],
+            "ratio": [
+              7,
+              4
+            ],
+            "pads": {
+              "0": {
+                "lengthBeats": 12,
+                "stepCount": 48,
+                "steps": [
+                  {
+                    "note": 60,
+                    "velocity": 93,
+                    "hold": true,
+                    "timingOffsetPercent": -23
+                  },
+                  null,
+                  {
+                    "note": 67
+                  }
+                ]
+              }
+            },
+            "pattern": {
+              "rootSequence": [
+                {
+                  "type": "group",
+                  "groupId": "g"
+                },
+                {
+                  "type": "pause",
+                  "lengthBeats": 32
+                }
+              ],
+              "groups": [
+                {
+                  "id": "g",
+                  "sequence": [
+                    {
+                      "type": "pad",
+                      "padIndex": 0
+                    },
+                    {
+                      "type": "pause",
+                      "lengthBeats": 4
+                    }
+                  ]
+                }
+              ],
+              "superGroups": [
+                {
+                  "id": "s",
+                  "sequence": [
+                    {
+                      "type": "group",
+                      "groupId": "g"
+                    }
+                  ]
+                }
+              ]
+            },
+            "meterDenominator": 8
+          }
+        ],
+        "entries": [
+          {
+            "action": "rest",
+            "changes": [
+              {
+                "kind": "sequencer",
+                "id": "lead",
+                "before": {
+                  "pattern": {
+                    "rootSequence": [
+                      {
+                        "type": "group",
+                        "groupId": "g"
+                      },
+                      {
+                        "type": "pause",
+                        "lengthBeats": 32
+                      }
+                    ],
+                    "groups": [
+                      {
+                        "id": "g",
+                        "sequence": [
+                          {
+                            "type": "pad",
+                            "padIndex": 0
+                          },
+                          {
+                            "type": "pause",
+                            "lengthBeats": 4
+                          }
+                        ]
+                      }
+                    ],
+                    "superGroups": [
+                      {
+                        "id": "s",
+                        "sequence": [
+                          {
+                            "type": "group",
+                            "groupId": "g"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "after": {
+                  "pattern": {
+                    "rootSequence": [
+                      {
+                        "type": "group",
+                        "groupId": "g"
+                      },
+                      {
+                        "type": "pause",
+                        "lengthBeats": 32
+                      }
+                    ],
+                    "groups": [
+                      {
+                        "id": "g",
+                        "sequence": [
+                          {
+                            "type": "pad",
+                            "padIndex": 0
+                          },
+                          {
+                            "type": "pause",
+                            "lengthBeats": 4
+                          }
+                        ]
+                      }
+                    ],
+                    "superGroups": [
+                      {
+                        "id": "s",
+                        "sequence": [
+                          {
+                            "type": "group",
+                            "groupId": "g"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "pads": {
+                    "0": {
+                      "lengthBeats": 12,
+                      "stepCount": 48,
+                      "steps": [
+                        {
+                          "note": 60,
+                          "velocity": 93,
+                          "hold": true,
+                          "timingOffsetPercent": -23
+                        },
+                        null,
+                        {
+                          "note": 67
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "browser-state",
+    "appState": true,
+    "input": {
+      "version": 2,
+      "sequencer": {
+        "tracks": [
+          {
+            "id": "lead",
+            "timing": {
+              "tempoBPM": 120,
+              "meterNumerator": 6,
+              "meterDenominator": 8,
+              "stepsPerBeat": 8,
+              "beatRateNumerator": 7,
+              "beatRateDenominator": 4
+            },
+            "lengthBeats": 6,
+            "stepCount": 48,
+            "pads": [
+              {
+                "lengthBeats": 6,
+                "stepCount": 48,
+                "steps": [
+                  {
+                    "note": 60,
+                    "velocity": 93,
+                    "hold": true,
+                    "timingOffsetPercent": -23
+                  },
+                  null,
+                  {
+                    "note": 67
+                  }
+                ]
+              }
+            ],
+            "padLoopPattern": {
+              "rootSequence": [
+                {
+                  "type": "group",
+                  "groupId": "g"
+                },
+                {
+                  "type": "pause",
+                  "lengthBeats": 16
+                }
+              ],
+              "groups": [
+                {
+                  "id": "g",
+                  "sequence": [
+                    {
+                      "type": "pad",
+                      "padIndex": 0
+                    },
+                    {
+                      "type": "pause",
+                      "lengthBeats": 2
+                    }
+                  ]
+                }
+              ],
+              "superGroups": [
+                {
+                  "id": "s",
+                  "sequence": [
+                    {
+                      "type": "group",
+                      "groupId": "g"
+                    }
+                  ]
+                }
+              ]
+            },
+            "padLoopSequence": [
+              0,
+              -2,
+              -16
+            ],
+            "workspaceDrafts": {
+              "group:g": {
+                "items": [
+                  {
+                    "type": "pause",
+                    "lengthBeats": 16
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "id": "straight",
+            "timing": {
+              "tempoBPM": 120,
+              "meterNumerator": 6,
+              "meterDenominator": 4,
+              "stepsPerBeat": 8,
+              "beatRateNumerator": 7,
+              "beatRateDenominator": 4
+            },
+            "stepCount": 16,
+            "pads": [
+              {
+                "stepCount": 16
+              }
+            ]
+          }
+        ],
+        "drummerTracks": [
+          {
+            "id": "drums",
+            "timing": {
+              "tempoBPM": 120,
+              "meterNumerator": 6,
+              "meterDenominator": 8,
+              "stepsPerBeat": 8,
+              "beatRateNumerator": 7,
+              "beatRateDenominator": 4
+            },
+            "lengthBeats": 6,
+            "stepCount": 48,
+            "pads": [
+              {
+                "lengthBeats": 6,
+                "stepCount": 48,
+                "steps": [
+                  {
+                    "note": 60,
+                    "velocity": 93,
+                    "hold": true,
+                    "timingOffsetPercent": -23
+                  },
+                  null,
+                  {
+                    "note": 67
+                  }
+                ]
+              }
+            ],
+            "padLoopPattern": {
+              "rootSequence": [
+                {
+                  "type": "group",
+                  "groupId": "g"
+                },
+                {
+                  "type": "pause",
+                  "lengthBeats": 16
+                }
+              ],
+              "groups": [
+                {
+                  "id": "g",
+                  "sequence": [
+                    {
+                      "type": "pad",
+                      "padIndex": 0
+                    },
+                    {
+                      "type": "pause",
+                      "lengthBeats": 2
+                    }
+                  ]
+                }
+              ],
+              "superGroups": [
+                {
+                  "id": "s",
+                  "sequence": [
+                    {
+                      "type": "group",
+                      "groupId": "g"
+                    }
+                  ]
+                }
+              ]
+            },
+            "padLoopSequence": [
+              0,
+              -2,
+              -16
+            ],
+            "workspaceDrafts": {
+              "group:g": {
+                "items": [
+                  {
+                    "type": "pause",
+                    "lengthBeats": 16
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "controllerSequencers": [
+          {
+            "id": "cc",
+            "timing": {
+              "tempoBPM": 120,
+              "meterNumerator": 6,
+              "meterDenominator": 8,
+              "stepsPerBeat": 2,
+              "beatRateNumerator": 7,
+              "beatRateDenominator": 4
+            },
+            "lengthBeats": 16,
+            "stepCount": 32,
+            "pads": [
+              {
+                "lengthBeats": 16,
+                "stepCount": 32,
+                "keypoints": [
+                  {
+                    "position": 0,
+                    "value": 1
+                  },
+                  {
+                    "position": 0.37,
+                    "value": 90
+                  },
+                  {
+                    "position": 1,
+                    "value": 0
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "arrangerHistory": {
+        "version": 1,
+        "cursor": 1,
+        "basis": [
+          {
+            "kind": "sequencer",
+            "id": "lead",
+            "lengths": [
+              6
+            ],
+            "ratio": [
+              7,
+              4
+            ],
+            "pads": {
+              "0": {
+                "lengthBeats": 6,
+                "stepCount": 48,
+                "steps": [
+                  {
+                    "note": 60,
+                    "velocity": 93,
+                    "hold": true,
+                    "timingOffsetPercent": -23
+                  },
+                  null,
+                  {
+                    "note": 67
+                  }
+                ]
+              }
+            },
+            "pattern": {
+              "rootSequence": [
+                {
+                  "type": "group",
+                  "groupId": "g"
+                },
+                {
+                  "type": "pause",
+                  "lengthBeats": 16
+                }
+              ],
+              "groups": [
+                {
+                  "id": "g",
+                  "sequence": [
+                    {
+                      "type": "pad",
+                      "padIndex": 0
+                    },
+                    {
+                      "type": "pause",
+                      "lengthBeats": 2
+                    }
+                  ]
+                }
+              ],
+              "superGroups": [
+                {
+                  "id": "s",
+                  "sequence": [
+                    {
+                      "type": "group",
+                      "groupId": "g"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "entries": [
+          {
+            "action": "rest",
+            "changes": [
+              {
+                "kind": "sequencer",
+                "id": "lead",
+                "before": {
+                  "pattern": {
+                    "rootSequence": [
+                      {
+                        "type": "group",
+                        "groupId": "g"
+                      },
+                      {
+                        "type": "pause",
+                        "lengthBeats": 16
+                      }
+                    ],
+                    "groups": [
+                      {
+                        "id": "g",
+                        "sequence": [
+                          {
+                            "type": "pad",
+                            "padIndex": 0
+                          },
+                          {
+                            "type": "pause",
+                            "lengthBeats": 2
+                          }
+                        ]
+                      }
+                    ],
+                    "superGroups": [
+                      {
+                        "id": "s",
+                        "sequence": [
+                          {
+                            "type": "group",
+                            "groupId": "g"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "after": {
+                  "pattern": {
+                    "rootSequence": [
+                      {
+                        "type": "group",
+                        "groupId": "g"
+                      },
+                      {
+                        "type": "pause",
+                        "lengthBeats": 16
+                      }
+                    ],
+                    "groups": [
+                      {
+                        "id": "g",
+                        "sequence": [
+                          {
+                            "type": "pad",
+                            "padIndex": 0
+                          },
+                          {
+                            "type": "pause",
+                            "lengthBeats": 2
+                          }
+                        ]
+                      }
+                    ],
+                    "superGroups": [
+                      {
+                        "id": "s",
+                        "sequence": [
+                          {
+                            "type": "group",
+                            "groupId": "g"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "pads": {
+                    "0": {
+                      "lengthBeats": 6,
+                      "stepCount": 48,
+                      "steps": [
+                        {
+                          "note": 60,
+                          "velocity": 93,
+                          "hold": true,
+                          "timingOffsetPercent": -23
+                        },
+                        null,
+                        {
+                          "note": 67
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "expected": {
+      "version": 3,
+      "sequencer": {
+        "tracks": [
+          {
+            "id": "lead",
+            "timing": {
+              "tempoBPM": 120,
+              "meterNumerator": 6,
+              "meterDenominator": 8,
+              "stepsPerBeat": 4,
+              "beatRateNumerator": 7,
+              "beatRateDenominator": 4
+            },
+            "lengthBeats": 12,
+            "stepCount": 48,
+            "pads": [
+              {
+                "lengthBeats": 12,
+                "stepCount": 48,
+                "steps": [
+                  {
+                    "note": 60,
+                    "velocity": 93,
+                    "hold": true,
+                    "timingOffsetPercent": -23
+                  },
+                  null,
+                  {
+                    "note": 67
+                  }
+                ]
+              }
+            ],
+            "padLoopPattern": {
+              "rootSequence": [
+                {
+                  "type": "group",
+                  "groupId": "g"
+                },
+                {
+                  "type": "pause",
+                  "lengthBeats": 32
+                }
+              ],
+              "groups": [
+                {
+                  "id": "g",
+                  "sequence": [
+                    {
+                      "type": "pad",
+                      "padIndex": 0
+                    },
+                    {
+                      "type": "pause",
+                      "lengthBeats": 4
+                    }
+                  ]
+                }
+              ],
+              "superGroups": [
+                {
+                  "id": "s",
+                  "sequence": [
+                    {
+                      "type": "group",
+                      "groupId": "g"
+                    }
+                  ]
+                }
+              ]
+            },
+            "padLoopSequence": [
+              0,
+              -4,
+              -32
+            ],
+            "workspaceDrafts": {
+              "group:g": {
+                "items": [
+                  {
+                    "type": "pause",
+                    "lengthBeats": 32
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "id": "straight",
+            "timing": {
+              "tempoBPM": 120,
+              "meterNumerator": 6,
+              "meterDenominator": 4,
+              "stepsPerBeat": 8,
+              "beatRateNumerator": 7,
+              "beatRateDenominator": 4
+            },
+            "stepCount": 16,
+            "pads": [
+              {
+                "stepCount": 16,
+                "lengthBeats": 4
+              }
+            ],
+            "lengthBeats": 4
+          }
+        ],
+        "drummerTracks": [
+          {
+            "id": "drums",
+            "timing": {
+              "tempoBPM": 120,
+              "meterNumerator": 6,
+              "meterDenominator": 8,
+              "stepsPerBeat": 4,
+              "beatRateNumerator": 7,
+              "beatRateDenominator": 4
+            },
+            "lengthBeats": 12,
+            "stepCount": 48,
+            "pads": [
+              {
+                "lengthBeats": 12,
+                "stepCount": 48,
+                "steps": [
+                  {
+                    "note": 60,
+                    "velocity": 93,
+                    "hold": true,
+                    "timingOffsetPercent": -23
+                  },
+                  null,
+                  {
+                    "note": 67
+                  }
+                ]
+              }
+            ],
+            "padLoopPattern": {
+              "rootSequence": [
+                {
+                  "type": "group",
+                  "groupId": "g"
+                },
+                {
+                  "type": "pause",
+                  "lengthBeats": 32
+                }
+              ],
+              "groups": [
+                {
+                  "id": "g",
+                  "sequence": [
+                    {
+                      "type": "pad",
+                      "padIndex": 0
+                    },
+                    {
+                      "type": "pause",
+                      "lengthBeats": 4
+                    }
+                  ]
+                }
+              ],
+              "superGroups": [
+                {
+                  "id": "s",
+                  "sequence": [
+                    {
+                      "type": "group",
+                      "groupId": "g"
+                    }
+                  ]
+                }
+              ]
+            },
+            "padLoopSequence": [
+              0,
+              -4,
+              -32
+            ],
+            "workspaceDrafts": {
+              "group:g": {
+                "items": [
+                  {
+                    "type": "pause",
+                    "lengthBeats": 32
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "controllerSequencers": [
+          {
+            "id": "cc",
+            "timing": {
+              "tempoBPM": 120,
+              "meterNumerator": 6,
+              "meterDenominator": 8,
+              "stepsPerBeat": 1,
+              "beatRateNumerator": 7,
+              "beatRateDenominator": 4
+            },
+            "lengthBeats": 32,
+            "stepCount": 32,
+            "pads": [
+              {
+                "lengthBeats": 32,
+                "stepCount": 32,
+                "keypoints": [
+                  {
+                    "position": 0,
+                    "value": 1
+                  },
+                  {
+                    "position": 0.37,
+                    "value": 90
+                  },
+                  {
+                    "position": 1,
+                    "value": 0
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "arrangerHistory": {
+        "version": 1,
+        "cursor": 1,
+        "basis": [
+          {
+            "kind": "sequencer",
+            "id": "lead",
+            "lengths": [
+              12
+            ],
+            "ratio": [
+              7,
+              4
+            ],
+            "pads": {
+              "0": {
+                "lengthBeats": 12,
+                "stepCount": 48,
+                "steps": [
+                  {
+                    "note": 60,
+                    "velocity": 93,
+                    "hold": true,
+                    "timingOffsetPercent": -23
+                  },
+                  null,
+                  {
+                    "note": 67
+                  }
+                ]
+              }
+            },
+            "pattern": {
+              "rootSequence": [
+                {
+                  "type": "group",
+                  "groupId": "g"
+                },
+                {
+                  "type": "pause",
+                  "lengthBeats": 32
+                }
+              ],
+              "groups": [
+                {
+                  "id": "g",
+                  "sequence": [
+                    {
+                      "type": "pad",
+                      "padIndex": 0
+                    },
+                    {
+                      "type": "pause",
+                      "lengthBeats": 4
+                    }
+                  ]
+                }
+              ],
+              "superGroups": [
+                {
+                  "id": "s",
+                  "sequence": [
+                    {
+                      "type": "group",
+                      "groupId": "g"
+                    }
+                  ]
+                }
+              ]
+            },
+            "meterDenominator": 8
+          }
+        ],
+        "entries": [
+          {
+            "action": "rest",
+            "changes": [
+              {
+                "kind": "sequencer",
+                "id": "lead",
+                "before": {
+                  "pattern": {
+                    "rootSequence": [
+                      {
+                        "type": "group",
+                        "groupId": "g"
+                      },
+                      {
+                        "type": "pause",
+                        "lengthBeats": 32
+                      }
+                    ],
+                    "groups": [
+                      {
+                        "id": "g",
+                        "sequence": [
+                          {
+                            "type": "pad",
+                            "padIndex": 0
+                          },
+                          {
+                            "type": "pause",
+                            "lengthBeats": 4
+                          }
+                        ]
+                      }
+                    ],
+                    "superGroups": [
+                      {
+                        "id": "s",
+                        "sequence": [
+                          {
+                            "type": "group",
+                            "groupId": "g"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "after": {
+                  "pattern": {
+                    "rootSequence": [
+                      {
+                        "type": "group",
+                        "groupId": "g"
+                      },
+                      {
+                        "type": "pause",
+                        "lengthBeats": 32
+                      }
+                    ],
+                    "groups": [
+                      {
+                        "id": "g",
+                        "sequence": [
+                          {
+                            "type": "pad",
+                            "padIndex": 0
+                          },
+                          {
+                            "type": "pause",
+                            "lengthBeats": 4
+                          }
+                        ]
+                      }
+                    ],
+                    "superGroups": [
+                      {
+                        "id": "s",
+                        "sequence": [
+                          {
+                            "type": "group",
+                            "groupId": "g"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "pads": {
+                    "0": {
+                      "lengthBeats": 12,
+                      "stepCount": 48,
+                      "steps": [
+                        {
+                          "note": 60,
+                          "velocity": 93,
+                          "hold": true,
+                          "timingOffsetPercent": -23
+                        },
+                        null,
+                        {
+                          "note": 67
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "global-timing",
+    "appState": false,
+    "input": {
+      "version": 1,
+      "sequencer": {
+        "timing": {
+          "tempoBPM": 120,
+          "meterNumerator": 6,
+          "meterDenominator": 8,
+          "stepsPerBeat": 2,
+          "beatRateNumerator": 7,
+          "beatRateDenominator": 4
+        },
+        "tracks": [
+          {
+            "id": "old",
+            "stepCount": 16,
+            "pads": [
+              {
+                "stepCount": 16
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "expected": {
+      "version": 17,
+      "sequencer": {
+        "timing": {
+          "tempoBPM": 120,
+          "meterNumerator": 6,
+          "meterDenominator": 8,
+          "stepsPerBeat": 2,
+          "beatRateNumerator": 7,
+          "beatRateDenominator": 4
+        },
+        "tracks": [
+          {
+            "id": "old",
+            "stepCount": 16,
+            "pads": [
+              {
+                "stepCount": 16,
+                "lengthBeats": 8
+              }
+            ],
+            "lengthBeats": 8,
+            "timing": {
+              "tempoBPM": 120,
+              "meterNumerator": 6,
+              "meterDenominator": 8,
+              "stepsPerBeat": 1,
+              "beatRateNumerator": 7,
+              "beatRateDenominator": 4
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "flat-snake-override",
+    "appState": false,
+    "input": {
+      "version": 1,
+      "sequencer": {
+        "timing": {
+          "meterDenominator": 4,
+          "stepsPerBeat": 4
+        },
+        "tracks": [
+          {
+            "id": "snake",
+            "meter_denominator": 8,
+            "steps_per_beat": 8,
+            "length_beats": 6
+          }
+        ]
+      }
+    },
+    "expected": {
+      "version": 17,
+      "sequencer": {
+        "timing": {
+          "meterDenominator": 4,
+          "stepsPerBeat": 4
+        },
+        "tracks": [
+          {
+            "id": "snake",
+            "meter_denominator": 8,
+            "steps_per_beat": 8,
+            "length_beats": 12,
+            "lengthBeats": 12,
+            "timing": {
+              "meterDenominator": 8,
+              "stepsPerBeat": 4
+            }
+          }
+        ]
+      }
+    }
+  }
+]

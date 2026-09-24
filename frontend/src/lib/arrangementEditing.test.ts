@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { arrangementSpans, createDefinition, deleteDefinition, definitionUses, firstUnusedPad, moveArrangementItems, placeArrangementItems, removeArrangementItems, resolveArrangementDrop, groupArrangementSelection, validateArrangementEdit } from "./arrangementEditing";
+import { restTokens, arrangementSpans, createDefinition, deleteDefinition, definitionUses, firstUnusedPad, moveArrangementItems, placeArrangementItems, removeArrangementItems, resolveArrangementDrop, groupArrangementSelection, validateArrangementEdit } from "./arrangementEditing";
 import { compilePadLoopPattern, normalizePadLoopPatternState, ungroupPadLoopItemsInContainer } from "./padLoopPattern";
 import type { PadLoopPatternItem, PadLoopPatternState } from "../types";
 const pad = (padIndex = 0): PadLoopPatternItem => ({ type: "pad", padIndex });
@@ -100,4 +100,8 @@ it.each(["pad", "group", "super", "selection"])("moves %s symmetrically through 
   }
   expect(() => resolveArrangementDrop(value, items, 17, durations, 72, indexes)).toThrow("Occupied destination");
   expect(value).toEqual(original);
+});
+
+it("retains a 32-beat rest as one item when filling or removing a long pattern", () => {
+  expect(restTokens(32)).toEqual([{type:"pause",lengthBeats:32}]);
 });

@@ -1,3 +1,4 @@
+import { migrateSequencerTiming } from "../lib/sequencerTimingMigration";
 import { emptyArrangerHistory, readArrangerHistory, type ArrangerHistory } from "./arrangerHistory";
 import { normalizeTimingOffset } from "../lib/sequencer";
 import { normalizeControllerTargetChannels } from "../lib/midiControllerChannels";
@@ -111,7 +112,7 @@ export const DEFAULT_PAD_COUNT = 8;
 export const MAX_MIDI_CONTROLLERS = 6;
 export const MAX_ARPEGGIATORS = 8;
 export const DEFAULT_DRUMMER_ROW_KEYS = [36, 38, 42, 46] as const;
-export const APP_STATE_VERSION = 2 as const;
+export const APP_STATE_VERSION = 3 as const;
 export const APP_STATE_PERSIST_DEBOUNCE_MS = 400;
 export const AUDIO_RATE_MIN = 22000;
 export const AUDIO_RATE_MAX = 48000;
@@ -349,11 +350,8 @@ export function resolveTransportStepCount(timing: SequencerTimingConfig): number
 export function normalizeSequencerPadLengthBeats(value: unknown): SequencerPadLengthBeats {
   if (typeof value === "number" && Number.isFinite(value)) {
     const rounded = Math.round(value);
-    if (rounded >= 1 && rounded <= 8) {
+    if (rounded >= 1 && rounded <= 16) {
       return clampSequencerPadLengthBeats(rounded);
-    }
-    if (rounded === 16) {
-      return 4;
     }
     if (rounded === 32) {
       return 8;
@@ -376,11 +374,8 @@ export function normalizeDrummerSequencerStepCount(value: unknown): number {
 export function normalizeControllerSequencerLengthBeats(value: unknown): ControllerSequencerPadLengthBeats {
   if (typeof value === "number" && Number.isFinite(value)) {
     const rounded = Math.round(value);
-    if ((rounded >= 1 && rounded <= 8) || rounded === 16) {
+    if (rounded >= 1 && rounded <= 32) {
       return clampControllerSequencerPadLengthBeats(rounded);
-    }
-    if (rounded === 32) {
-      return 8;
     }
     if (rounded === 64) {
       return 16;
@@ -513,6 +508,13 @@ export function normalizeArpeggiatorSteps(raw: unknown, accents: unknown[] = [])
   });
 }
 
+function normalizeArpeggiatorLengthBeats(raw: unknown): ArpeggiatorPresetSettings["lengthBeats"] {
+  const value = typeof raw === "number" && Number.isFinite(raw) ? Math.round(raw) : 4;
+  if (value === 32) return 8;
+  if (value === 64) return 16;
+  return (value >= 1 && value <= 8 || value === 16) ? value as ArpeggiatorPresetSettings["lengthBeats"] : 4;
+}
+
 export function normalizeArpeggiatorSettings(raw: unknown): ArpeggiatorPresetSettings {
   const source = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
   const scaleType = normalizeSequencerScaleType(source.scaleType ?? source.scale_type ?? DEFAULT_ARPEGGIATOR_SETTINGS.scaleType);
@@ -555,7 +557,7 @@ export function normalizeArpeggiatorSettings(raw: unknown): ArpeggiatorPresetSet
     scaleRoot: normalizeSequencerScaleRoot(source.scaleRoot ?? source.scale_root ?? DEFAULT_ARPEGGIATOR_SETTINGS.scaleRoot),
     scaleType,
     mode,
-    lengthBeats: normalizeControllerSequencerLengthBeats(source.lengthBeats ?? source.length_beats ?? 4),
+    lengthBeats: normalizeArpeggiatorLengthBeats(source.lengthBeats ?? source.length_beats ?? 4),
     octaveTraversal: (source.octaveTraversal ?? source.octave_traversal) === "octave" ? "octave" : "range",
     scaleMode: (source.scaleMode ?? source.scale_mode) === "custom" ? "custom" :
       (source.scaleMode ?? source.scale_mode) === "source" || source.scaleMode === undefined && source.scale_mode === undefined && (source.scaleQuantize ?? source.scale_quantize) === true ? "source" : "off",
@@ -1588,6 +1590,7 @@ export function updateSequencerTrackTimingState(
   update: Partial<SequencerTimingConfig>
 ): SequencerTrackState {
   const nextTiming = mergeSequencerTiming(track.timing, update);
+  if (track.pads.some(pad => pad.lengthBeats * nextTiming.stepsPerBeat > STEP_CAPACITY)) return track;
   return syncSequencerTrackTiming({ ...track, timing: nextTiming }, nextTiming);
 }
 
@@ -1596,6 +1599,7 @@ export function updateDrummerTrackTimingState(
   update: Partial<SequencerTimingConfig>
 ): DrummerSequencerTrackState {
   const nextTiming = mergeSequencerTiming(track.timing, update);
+  if (track.pads.some(pad => pad.lengthBeats * nextTiming.stepsPerBeat > STEP_CAPACITY)) return track;
   return syncDrummerTrackTiming({ ...track, timing: nextTiming }, nextTiming);
 }
 
@@ -1604,6 +1608,7 @@ export function updateControllerSequencerTimingState(
   update: Partial<SequencerTimingConfig>
 ): ControllerSequencerState {
   const nextTiming = mergeSequencerTiming(controllerSequencer.timing, update);
+  if (controllerSequencer.pads.some(pad => pad.lengthBeats * nextTiming.stepsPerBeat > STEP_CAPACITY)) return controllerSequencer;
   return syncControllerSequencerTiming({ ...controllerSequencer, timing: nextTiming }, nextTiming);
 }
 
@@ -2911,7 +2916,7 @@ export function buildSequencerConfigSnapshot(
     timing
   );
   return {
-    version: 16,
+    version: 17,
     arrangerHistory: structuredClone(arrangerHistory),
     audioGraph: structuredClone(audioGraph),
     mixer: structuredClone(mixer),
@@ -3108,7 +3113,7 @@ export function parseSequencerConfigSnapshot(
     throw new Error("Invalid sequencer config file.");
   }
 
-  const payload = snapshot as Record<string, unknown>;
+  const payload = migrateSequencerTiming(snapshot) as Record<string, unknown>;
   if (
     payload.version !== 1 &&
     payload.version !== 2 &&
@@ -3125,7 +3130,8 @@ export function parseSequencerConfigSnapshot(
     payload.version !== 13 &&
     payload.version !== 14 &&
     payload.version !== 15 &&
-    payload.version !== 16
+    payload.version !== 16 &&
+    payload.version !== 17
   ) {
     throw new Error("Unsupported sequencer config version.");
   }

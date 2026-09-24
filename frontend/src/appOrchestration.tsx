@@ -209,6 +209,7 @@ export function buildDrummerRowTrackConfigs(
       meter_denominator: drummerTrack.timing.meterDenominator,
       steps_per_beat: drummerTrack.timing.stepsPerBeat,
       beat_rate_numerator: drummerTrack.timing.beatRateNumerator,
+      beat_unit: "meter",
       beat_rate_denominator: drummerTrack.timing.beatRateDenominator
     },
     length_beats: drummerTrack.lengthBeats,

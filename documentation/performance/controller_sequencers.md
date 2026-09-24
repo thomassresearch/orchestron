@@ -6,6 +6,8 @@ Controller Sequencers automate MIDI CC values using editable curves.
 
 Use the pen beside the device name to rename it. See [Device Names](performance.md#device-names) for editing controls, validation, and import/export behavior.
 
+See [Sequencer timing](sequencer_timing.md) for triplets, beat grouping, editing behavior and legacy compatibility (EN/DE/FR/ES).
+
 ## Collapse the Panel
 
 The controller group collapses independently of melodic and drummer sequencers. Its header and Add button remain available even when empty; adding a controller sequencer expands the group. Panels start expanded and remember your choice across view switches until browser reload. Collapsing does not stop playback or discard edits.
@@ -36,9 +38,9 @@ Each controller sequencer provides:
 - `Controller #` (`0..127`)
 - **MIDI Channels** checkboxes, 1–16 in one row beside `Clear Steps`
 - `Meter` (`2..7` over `4` or `8`)
-- `Grid` (`2`, `4`, or `8`, steps per beat)
-- `Beat Ratio` (`1:1`, `2:1`, `3:2`, `4:3`, `3:4`, `5:4`, `4:5`, `7:4`)
-- Curve length in beats (`1..8`, plus `16`)
+- `Subdivision` (1, 2, 3, 4, 6 or 8 steps per local meter beat)
+- `Advanced timing → Playback speed` (`1:1`, `2:1`, `3:2`, `4:3`, `3:4`, `5:4`, `4:5`, `7:4`)
+- `Pattern length` (every integer from 1–32 local beats, subject to 128 steps)
 - CC label preview (`CC N`)
 - Curve editor
 
@@ -50,11 +52,11 @@ Channel edits use the same 80 ms live-edit synchronization as curve edits and ta
 
 Selections survive Save/Load Performance, browser reload, native JSON/ZIP export/import, and both CSD export modes. Older performances without the setting load with all 16 channels checked.
 
-### Curve Length (`1..8`, plus `16`, beats)
+### Pattern Length (1–32 local beats)
 
 This defines the repeat length for the curve sampling relative to that controller sequencer's own timing. Keypoints stay normalized across the full pad duration, so the same curve shape stretches automatically when you choose a longer beat length.
 
-`Beat Ratio` changes how quickly the controller sequencer moves through that curve relative to the shared transport. Faster ratios create repeating automation polyrhythms without changing the stored keypoint positions.
+`Advanced timing → Playback speed` changes how quickly the controller sequencer moves through that curve relative to the shared transport. Faster ratios create repeating automation polyrhythms without changing the stored keypoint positions.
 
 ## Pattern Workspace
 

@@ -109,6 +109,11 @@ class SequencerTimingRuntime:
     steps_per_beat: int
     beat_rate_numerator: int = 1
     beat_rate_denominator: int = 1
+    beat_unit: Literal["quarter", "meter"] = "quarter"
+
+    @property
+    def local_beat_subunits(self) -> int:
+        return TRANSPORT_SUBUNITS_PER_BEAT * 4 // (self.meter_denominator if self.beat_unit == "meter" else 4)
 
     @property
     def steps_per_bar(self) -> int:
@@ -120,7 +125,7 @@ class SequencerTimingRuntime:
 
     @property
     def step_duration_seconds(self) -> float:
-        return self.beat_duration_seconds / float(self.steps_per_beat)
+        return self.transport_subunits_per_local_step * self.transport_subunit_duration_seconds
 
     @property
     def transport_step_duration_seconds(self) -> float:
@@ -133,7 +138,7 @@ class SequencerTimingRuntime:
     @property
     def transport_subunits_per_local_step(self) -> int:
         return (
-            TRANSPORT_SUBUNITS_PER_BEAT * self.beat_rate_denominator
+            self.local_beat_subunits * self.beat_rate_denominator
         ) // (self.beat_rate_numerator * self.steps_per_beat)
 
 

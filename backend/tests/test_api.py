@@ -44,6 +44,8 @@ from backend.tests.api_test_support import (
 )
 from backend.tests.stk_test_support import STK_CONTROLLERS
 from backend.app.services.arpeggiator_migration import migrate_arpeggiators
+from backend.app.services.sequencer_timing_migration import migrate_sequencer_timing
+from backend.app.services.sequencer_runtime_constants import TRANSPORT_SUBUNITS_PER_STEP
 
 
 def test_opcodes_include_atone_filters_with_manual_signatures(tmp_path: Path) -> None:
@@ -124,12 +126,12 @@ def test_app_state_round_trip(tmp_path: Path) -> None:
         saved = client.put("/api/app-state", json=payload)
         assert saved.status_code == 200
         saved_body = saved.json()
-        assert saved_body["state"] == payload["state"]
+        assert saved_body["state"] == migrate_sequencer_timing(payload["state"], app_state=True)
         first_updated_at = saved_body["updated_at"]
 
         loaded = client.get("/api/app-state")
         assert loaded.status_code == 200
-        assert loaded.json()["state"] == payload["state"]
+        assert loaded.json()["state"] == migrate_sequencer_timing(payload["state"], app_state=True)
 
         updated = client.put(
             "/api/app-state",
@@ -479,7 +481,7 @@ def test_performance_crud_round_trips_config_payload(tmp_path: Path) -> None:
         assert create_response.status_code == 201
         created = create_response.json()
         performance_id = created["id"]
-        assert created["config"] == performance_config
+        assert created["config"] == migrate_sequencer_timing(performance_config)
 
         list_response = client.get("/api/performances")
         assert list_response.status_code == 200
@@ -488,7 +490,7 @@ def test_performance_crud_round_trips_config_payload(tmp_path: Path) -> None:
         get_response = client.get(f"/api/performances/{performance_id}")
         assert get_response.status_code == 200
         assert get_response.json()["name"] == "Live Set A"
-        assert get_response.json()["config"] == performance_config
+        assert get_response.json()["config"] == migrate_sequencer_timing(performance_config)
 
         updated_config = {
             **performance_config,
@@ -505,7 +507,7 @@ def test_performance_crud_round_trips_config_payload(tmp_path: Path) -> None:
         updated = update_response.json()
         assert updated["name"] == "Live Set A (Updated)"
         assert updated["description"] == "Updated arrangement"
-        assert updated["config"] == updated_config
+        assert updated["config"] == migrate_sequencer_timing(updated_config)
 
         delete_response = client.delete(f"/api/performances/{performance_id}")
         assert delete_response.status_code == 204
@@ -525,10 +527,10 @@ def test_performance_device_names_survive_storage_and_json_bundle(tmp_path: Path
         created = client.post("/api/performances", json={"name": "Named devices", "config": config})
         assert created.status_code == 201
         performance_id = created.json()["id"]
-        assert client.get(f"/api/performances/{performance_id}").json()["config"] == migrate_arpeggiators(config)
+        assert client.get(f"/api/performances/{performance_id}").json()["config"] == migrate_sequencer_timing(migrate_arpeggiators(config))
         updated = client.put(f"/api/performances/{performance_id}", json={"config": config})
         assert updated.status_code == 200
-        assert updated.json()["config"] == migrate_arpeggiators(config)
+        assert updated.json()["config"] == migrate_sequencer_timing(migrate_arpeggiators(config))
         payload = {
             "format": "orchestron.performance", "version": 1,
             "performance": {"name": "Named devices", "description": "", "config": config},
@@ -540,7 +542,7 @@ def test_performance_device_names_survive_storage_and_json_bundle(tmp_path: Path
         imported = client.post("/api/bundles/import/expand", content=exported.content,
                                headers={"X-File-Name": "names.orch.json", "Content-Type": "application/json"})
         assert imported.status_code == 200
-        assert imported.json()["performance"]["config"] == migrate_arpeggiators(config)
+        assert imported.json()["performance"]["config"] == migrate_sequencer_timing(migrate_arpeggiators(config))
 
 
 def test_performance_create_rejects_oversized_config_document(tmp_path: Path) -> None:
@@ -2203,11 +2205,11 @@ def test_performance_bundle_export_uses_zip_when_patch_definitions_reference_gen
             assert f"audio/{stored_name}" in entries
             exported_json = json.loads(archive.read("performance.orch.json").decode("utf-8"))
             assert exported_json["format"] == "orchestron.performance"
-            assert exported_json["performance"]["config"] == migrate_arpeggiators(payload["performance"]["config"])
+            assert exported_json["performance"]["config"] == migrate_sequencer_timing(migrate_arpeggiators(payload["performance"]["config"]))
         imported = client.post("/api/bundles/import/expand", content=response.content,
                                headers={"X-File-Name": "names.orch.zip", "Content-Type": "application/zip"})
         assert imported.status_code == 200
-        assert imported.json()["performance"]["config"] == migrate_arpeggiators(payload["performance"]["config"])
+        assert imported.json()["performance"]["config"] == migrate_sequencer_timing(migrate_arpeggiators(payload["performance"]["config"]))
 
 
 def test_patch_bundle_export_uses_zip_when_sfload_asset_is_referenced(tmp_path: Path) -> None:
@@ -6425,7 +6427,7 @@ def test_controller_channels_survive_performance_storage_and_native_bundles(tmp_
     with _client(tmp_path) as client:
         saved = client.post("/api/performances", json={"name": "Channels", "config": config})
         assert saved.status_code == 201
-        assert client.get(f'/api/performances/{saved.json()["id"]}').json()["config"] == config
+        assert client.get(f'/api/performances/{saved.json()["id"]}').json()["config"] == migrate_sequencer_timing(config)
         updated = client.put(f'/api/performances/{saved.json()["id"]}', json={"config": config})
         assert updated.status_code == 200
         exported = client.post("/api/bundles/export/performance", json=payload)
@@ -6439,7 +6441,7 @@ def test_controller_channels_survive_performance_storage_and_native_bundles(tmp_
         imported = client.post("/api/bundles/import/expand", content=data,
             headers={"Content-Type": "application/octet-stream", "X-File-Name": f"channels.orch.{archive_format}"})
         assert imported.status_code == 200
-        assert imported.json()["performance"]["config"] == migrate_arpeggiators(config)
+        assert imported.json()["performance"]["config"] == migrate_sequencer_timing(migrate_arpeggiators(config))
 
 
 def test_internal_master_save_restore_preview_and_repair(tmp_path: Path) -> None:
@@ -6456,7 +6458,7 @@ def test_internal_master_save_restore_preview_and_repair(tmp_path: Path) -> None
         saved = client.post('/api/performances', json={'name': 'Migration', 'config': config})
         assert saved.status_code == 201, saved.text
         migrated = saved.json()['config']
-        assert migrated['version'] == 14
+        assert migrated['version'] == 17
         assert migrated['instruments'] == config['instruments'][:1]
         assert migrated['mixer']['strips']['$master']['gainDb'] == -1.4
         assert client.get('/api/performances/' + saved.json()['id']).json()['config'] == migrated
@@ -6661,7 +6663,7 @@ def test_note_timing_survives_storage_and_native_bundle(tmp_path: Path, archive_
         saved = client.post("/api/performances", json={"name": "Timing", "config": config})
         assert saved.status_code == 201
         restored = client.get(f'/api/performances/{saved.json()["id"]}').json()["config"]
-        assert restored["version"] == 16  # Arpeggiator migration must not downgrade it.
+        assert restored["version"] == 17  # Arpeggiator migration must not downgrade it.
         assert restored["sequencer"]["tracks"] == config["sequencer"]["tracks"]
         response = client.post("/api/bundles/export/performance", json=payload)
         assert response.status_code == 200
@@ -6675,7 +6677,7 @@ def test_note_timing_survives_storage_and_native_bundle(tmp_path: Path, archive_
             headers={"Content-Type": "application/octet-stream", "X-File-Name": f"timing.orch.{archive_format}"})
         assert imported.status_code == 200
         actual = imported.json()["performance"]["config"]
-        assert actual["version"] == 16
+        assert actual["version"] == 17
         assert actual["sequencer"]["drummerTracks"] == config["sequencer"]["drummerTracks"]
 
 
@@ -7062,7 +7064,7 @@ def test_device_transport_http_and_browser_clock_preserve_manual_lane(tmp_path):
             assert response["request_id"] == "lead-play"
             status = response["sequencer_status"]
             assert status["arrangement_running"] and not status["arranger_active"]
-            assert status["arrangement_transport_subunit"] == 8 * 420
+            assert status["arrangement_transport_subunit"] == 8 * TRANSPORT_SUBUNITS_PER_STEP
             assert next(t for t in status["tracks"] if t["track_id"] == "lead")["enabled"]
             socket.send_json({"type": "request_render", "block_count": 8})
             metadata = socket.receive_json()
@@ -7169,3 +7171,68 @@ def test_frontend_entry_revalidates_after_rebuild(tmp_path: Path, path: str) -> 
         asset = client.get("/client/assets/index-hashed.js")
         assert asset.status_code == 200
         assert "cache-control" not in asset.headers
+
+
+@pytest.mark.parametrize('denominator,length,quarters', [(4, 4, 4), (8, 6, 3)])
+@pytest.mark.parametrize('source', ['midiFile', 'score'])
+def test_meter_triplets_export_at_the_same_times_in_both_csd_modes(tmp_path, denominator, length, quarters, source):
+    payload = _performance_csd_export_payload()
+    payload['eventSource'] = source
+    payload['sequencerConfig'].update(playback_end_step=quarters * 8, tracks=[{
+        'track_id': 'triplets', 'midi_channel': 1, 'length_beats': length,
+        'timing': {'tempo_bpm': 120, 'meter_denominator': denominator, 'steps_per_beat': 3, 'beat_unit': 'meter'},
+        'pads': [{'pad_index': 0, 'length_beats': length, 'steps': [60] * (length * 3)}],
+    }])
+    with _client(tmp_path) as client:
+        response = client.post('/api/bundles/export/performance-csd', json=payload)
+        assert response.status_code == 200, response.text
+        with zipfile.ZipFile(BytesIO(response.content)) as archive:
+            if source == 'midiFile':
+                midi = archive.read('Offline_Export/Offline_Export.mid')
+                attacks = [tick for tick, msg in _midi_messages_with_absolute_ticks(midi) if msg.type == 'note_on' and msg.velocity > 0]
+                ticks = mido.MidiFile(file=BytesIO(midi)).ticks_per_beat
+                assert attacks == [i * ticks * 4 / denominator / 3 for i in range(length * 3)]
+            else:
+                csd = archive.read('Offline_Export/Offline_Export.csd').decode()
+                rows = [line.split() for line in csd.splitlines() if line.startswith('i 1 ')]
+                assert len(rows) == length * 3
+                assert [float(row[2]) for row in rows] == pytest.approx([i * 2 / denominator / 3 for i in range(length * 3)], abs=5e-7)
+
+
+def test_session_meter_discriminator_and_capacity_are_validated(tmp_path):
+    with _client(tmp_path) as client:
+        session = _create_running_session(client, patch_name='Meter API')
+        base = f'/api/sessions/{session}/sequencer/config'
+        payload = {'tracks': [{'track_id': 'bass', 'length_beats': 4, 'timing': {'steps_per_beat': 3, 'meter_denominator': 8}}]}
+        legacy = client.put(base, json=payload)
+        assert legacy.status_code == 200, legacy.text
+        assert legacy.json()['tracks'][0]['timing']['beat_unit'] == 'quarter'
+        payload['tracks'][0]['timing']['beat_unit'] = 'meter'
+        assert client.put(base, json=payload).json()['tracks'][0]['step_count'] == 12
+        invalid = {'controller_tracks': [{'track_id': 'cc', 'controller_number': 74, 'length_beats': 4,
+            'timing': {'steps_per_beat': 6, 'beat_unit': 'meter'}, 'pads': [{'pad_index': 1, 'length_beats': 32}]}]}
+        response = client.put(base, json=invalid)
+        assert response.status_code == 422
+        assert '128 steps' in response.text
+        invalid['controller_tracks'][0]['timing']['steps_per_beat'] = 4
+        assert client.put(base, json=invalid).status_code == 200
+
+
+def test_legacy_meter_roundtrips_storage_app_state_and_native_bundle_once(tmp_path):
+    cases = json.loads((Path(__file__).parent / 'fixtures/sequencers/timing_migration.json').read_text())
+    config, expected = cases[0]['input'], cases[0]['expected']
+    with _client(tmp_path) as client:
+        saved = client.post('/api/performances', json={'name': 'Legacy timing', 'config': config})
+        assert saved.status_code == 201
+        assert saved.json()['config'] == expected
+        assert client.get(f'/api/performances/{saved.json()["id"]}').json()['config'] == expected
+        state = client.put('/api/app-state', json={'state': cases[1]['input']})
+        assert state.status_code == 200, state.text
+        assert state.json()['state'] == cases[1]['expected']
+        bundle = _performance_csd_export_payload()['performanceExport']
+        bundle['performance']['config'] = config
+        exported = client.post('/api/bundles/export/performance', json=bundle)
+        assert exported.status_code == 200, exported.text
+        content = exported.json()
+        assert content['version'] == 1
+        assert content['performance']['config'] == expected

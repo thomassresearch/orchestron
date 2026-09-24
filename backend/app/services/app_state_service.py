@@ -13,6 +13,7 @@ from backend.app.services.persisted_json_limits import (
 )
 from backend.app.storage.repositories.app_state_repository import AppStateRepository
 from backend.app.services.arpeggiator_migration import migrate_arpeggiators
+from backend.app.services.sequencer_timing_migration import migrate_sequencer_timing
 from backend.app.services.master_migration import normalize_master_app_state, repository_lookup
 
 
@@ -59,7 +60,11 @@ class AppStateService:
 
     def _normalize_state(self, state: dict) -> dict:
         try:
-            return migrate_arpeggiators(normalize_master_app_state(state, self._patch_lookup))
+            normalized = normalize_master_app_state(state, self._patch_lookup)
+            result = migrate_arpeggiators(normalized)
+            if result is not normalized:
+                result["version"] = normalized.get("version", 1)
+            return migrate_sequencer_timing(result, app_state=True)
         except ValueError as err:
             raise HTTPException(status_code=422, detail=str(err)) from err
 

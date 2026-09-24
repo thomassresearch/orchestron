@@ -1,3 +1,4 @@
+import { sequencerTransportSubunitsPerStep } from "../lib/sequencer";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MutableRefObject } from "react";
 
@@ -57,7 +58,7 @@ function transportPositionFromTransportSubunit(transportSubunit: number, stepCou
   cycle: number;
 } {
   const boundedStepCount = Math.max(1, Math.round(stepCount));
-  const absoluteStep = Math.max(0, Math.floor(transportSubunit / 420));
+  const absoluteStep = Math.max(0, Math.floor(transportSubunit / sequencerTransportSubunitsPerStep()));
   return {
     playhead: absoluteStep % boundedStepCount,
     cycle: Math.floor(absoluteStep / boundedStepCount)
@@ -191,7 +192,7 @@ export function useBrowserClockAudioController({
       stepCount: Math.max(1, track.stepCount)
     }));
     const visualSignature = (transportSubunit: number): number => {
-      let signature = Math.floor(transportSubunit / 420) >>> 0;
+      let signature = Math.floor(transportSubunit / sequencerTransportSubunitsPerStep()) >>> 0;
       for (let index = 0; index < visualTracks.length; index += 1) {
         const track = visualTracks[index];
         const localStep = Math.floor(Math.max(0, transportSubunit - track.anchor) / track.span) % track.stepCount;

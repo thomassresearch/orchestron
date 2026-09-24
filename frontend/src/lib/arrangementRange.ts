@@ -23,9 +23,9 @@ export class ArrangementRangeError extends Error {
 export function arrangementRangeLanes(sequencer: SequencerState): RangeLane[] {
   const beat = sequencerTransportSubunitsPerBeat();
   return [
-    ...sequencer.tracks.map(t => ({ id: t.id, kind: "sequencer" as const, pattern: t.padLoopPattern, padBeats: t.pads.map(p => p.lengthBeats), beatSubunits: beat * t.timing.beatRateDenominator / t.timing.beatRateNumerator })),
-    ...sequencer.drummerTracks.map(t => ({ id: t.id, kind: "drummer" as const, pattern: t.padLoopPattern, padBeats: t.pads.map(p => p.lengthBeats), beatSubunits: beat * t.timing.beatRateDenominator / t.timing.beatRateNumerator })),
-    ...sequencer.controllerSequencers.map(t => ({ id: t.id, kind: "controller" as const, pattern: t.padLoopPattern, padBeats: t.pads.map(p => p.lengthBeats), beatSubunits: beat * t.timing.beatRateDenominator / t.timing.beatRateNumerator })),
+    ...sequencer.tracks.map(t => ({ id: t.id, kind: "sequencer" as const, pattern: t.padLoopPattern, padBeats: t.pads.map(p => p.lengthBeats), beatSubunits: beat * 4 / t.timing.meterDenominator * t.timing.beatRateDenominator / t.timing.beatRateNumerator })),
+    ...sequencer.drummerTracks.map(t => ({ id: t.id, kind: "drummer" as const, pattern: t.padLoopPattern, padBeats: t.pads.map(p => p.lengthBeats), beatSubunits: beat * 4 / t.timing.meterDenominator * t.timing.beatRateDenominator / t.timing.beatRateNumerator })),
+    ...sequencer.controllerSequencers.map(t => ({ id: t.id, kind: "controller" as const, pattern: t.padLoopPattern, padBeats: t.pads.map(p => p.lengthBeats), beatSubunits: beat * 4 / t.timing.meterDenominator * t.timing.beatRateDenominator / t.timing.beatRateNumerator })),
     ...sequencer.arpeggiators.filter(t => t.playbackMode === "arranger").map(t => ({ id: t.id, kind: "arpeggiator" as const, pattern: t.padLoopPattern, padBeats: t.pads.map(p => p.lengthBeats), beatSubunits: beat }))
   ];
 }

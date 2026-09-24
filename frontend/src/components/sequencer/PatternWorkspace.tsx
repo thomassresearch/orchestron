@@ -4,7 +4,7 @@ import { arrangementCopy } from "../../lib/arrangementCopy";
 import { compileDefinition, createDefinition, definitionItem, definitionUses, type DefinitionRef } from "../../lib/arrangementEditing";
 import { ARRANGEMENT_ITEM_MIME, beginArrangementDrag, endArrangementDrag } from "../../lib/arrangementDrag";
 import { ARRANGER_PREVIEW_CANCEL } from "../../lib/arrangerPreviewGesture";
-import { itemDisplayLabel } from "../../lib/padLoopPattern";
+import { PAD_LOOP_PAUSE_BEAT_OPTIONS, itemDisplayLabel } from "../../lib/padLoopPattern";
 import { patternItemButtonClass } from "../../lib/patternItemPresentation";
 import { applyWorkspaceDefinition, deleteWorkspaceDefinition, groupWorkspaceItems, moveWorkspaceItems, splitWorkspaceItems, validateWorkspace, workspacePlayingIndex, workspaceSelection, type PatternWorkspaceDraft } from "../../lib/patternWorkspace";
 import { useAppStore } from "../../store/useAppStore";
@@ -172,7 +172,7 @@ export function PatternWorkspace({ track, language, onPatternChange, onSourceCha
       <button className={button} disabled={!canGroup("group")} onClick={() => group("group")}>{c.group}</button>
       <button className={button} disabled={!canGroup("super")} onClick={() => group("super")}>{c.super}</button>
       <select className={button} aria-label={c.rest} value="" onChange={e => editItems([...items, { type: "pause", lengthBeats: Number(e.target.value) as 1 | 2 | 4 | 8 | 16 }])}>
-        <option value="" disabled>{c.rest}</option>{[1, 2, 4, 8, 16].map(value => <option key={value} value={value}>{a.rest} {value}</option>)}
+        <option value="" disabled>{c.rest}</option>{PAD_LOOP_PAUSE_BEAT_OPTIONS.map(value => <option key={value} value={value}>{a.rest} {value}</option>)}
       </select>
     </div>
     <RetainedScroll key={key} owner={owner} field={`workspaceStrip:${key}`} role="list" aria-label={active ? `${a.editing} ${active.id}` : c.free} tabIndex={0}

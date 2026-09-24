@@ -746,6 +746,7 @@ export function createPerformanceControlStoreActions(
             if (controllerSequencer.id !== controllerSequencerId) {
               return controllerSequencer;
             }
+            if (normalizedLengthBeats * controllerSequencer.timing.stepsPerBeat > 128) return controllerSequencer;
             const normalizedStepCount = resolvedControllerPadStepCount(
               normalizedLengthBeats,
               controllerSequencer.timing

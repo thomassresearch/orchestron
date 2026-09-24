@@ -20,6 +20,7 @@ from backend.app.services.persisted_json_limits import (
 )
 from backend.app.storage.repositories.performance_repository import PerformanceRepository
 from backend.app.services.arpeggiator_migration import migrate_arpeggiators
+from backend.app.services.sequencer_timing_migration import migrate_sequencer_timing
 from backend.app.services.master_migration import normalize_master_config, repository_lookup
 
 
@@ -112,7 +113,7 @@ class PerformanceService:
     def normalize_config(self, config: dict) -> dict:
         self._validate_config(config)
         try:
-            result = migrate_arpeggiators(normalize_master_config(config, self._patch_lookup))
+            result = migrate_sequencer_timing(migrate_arpeggiators(normalize_master_config(config, self._patch_lookup)))
         except ValueError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
         self._validate_config(result)

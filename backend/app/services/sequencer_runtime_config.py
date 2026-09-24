@@ -145,7 +145,7 @@ def _step_count_for_length(length_beats: int, timing: SequencerTimingRuntime) ->
 
 def _transport_subunit_count_for_length(length_beats: int, timing: SequencerTimingRuntime) -> int:
     return (
-        max(1, length_beats) * TRANSPORT_SUBUNITS_PER_BEAT * timing.beat_rate_denominator
+        max(1, length_beats) * timing.local_beat_subunits * timing.beat_rate_denominator
     ) // timing.beat_rate_numerator
 
 
@@ -284,6 +284,7 @@ def compile_sequencer_runtime_config(
         steps_per_beat=TRANSPORT_STEPS_PER_BEAT,
         beat_rate_numerator=1,
         beat_rate_denominator=1,
+        beat_unit=request.timing.beat_unit,
     )
     step_quantum = TRANSPORT_STEPS_PER_BEAT
     subunit_quantum = TRANSPORT_SUBUNITS_PER_BEAT
@@ -298,8 +299,9 @@ def compile_sequencer_runtime_config(
             steps_per_beat=track_request.timing.steps_per_beat,
             beat_rate_numerator=track_request.timing.beat_rate_numerator,
             beat_rate_denominator=track_request.timing.beat_rate_denominator,
+            beat_unit=track_request.timing.beat_unit,
         )
-        track_length_beats = track_request.length_beats if 1 <= track_request.length_beats <= 8 else 4
+        track_length_beats = track_request.length_beats if 1 <= track_request.length_beats <= 16 else 4
         track_step_count = _step_count_for_length(track_length_beats, track_timing)
         track_transport_subunit_count = _transport_subunit_count_for_length(track_length_beats, track_timing)
         pads: dict[int, SequencerPadRuntime] = {
@@ -317,7 +319,7 @@ def compile_sequencer_runtime_config(
         for pad in track_request.pads:
             pad_length_beats = (
                 pad.length_beats
-                if pad.length_beats is not None and 1 <= pad.length_beats <= 8
+                if pad.length_beats is not None and 1 <= pad.length_beats <= 16
                 else track_length_beats
             )
             pad_step_count = _step_count_for_length(pad_length_beats, track_timing)
@@ -373,8 +375,9 @@ def compile_sequencer_runtime_config(
             steps_per_beat=track_request.timing.steps_per_beat,
             beat_rate_numerator=track_request.timing.beat_rate_numerator,
             beat_rate_denominator=track_request.timing.beat_rate_denominator,
+            beat_unit=track_request.timing.beat_unit,
         )
-        track_length_beats = track_request.length_beats if 1 <= track_request.length_beats <= 16 else 4
+        track_length_beats = track_request.length_beats if 1 <= track_request.length_beats <= 32 else 4
         track_step_count = _step_count_for_length(track_length_beats, track_timing)
         track_transport_subunit_count = _transport_subunit_count_for_length(track_length_beats, track_timing)
         supplied_indexes = {pad.pad_index for pad in track_request.pads}
@@ -386,7 +389,7 @@ def compile_sequencer_runtime_config(
         for pad in track_request.pads:
             pad_length_beats = (
                 pad.length_beats
-                if pad.length_beats is not None and 1 <= pad.length_beats <= 16
+                if pad.length_beats is not None and 1 <= pad.length_beats <= 32
                 else track_length_beats
             )
             pads[pad.pad_index] = _compile_controller_pad_runtime(

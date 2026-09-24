@@ -249,13 +249,19 @@ MIDI and SCORE CSD exports use the same arpeggiator scheduler as live audio, inc
 
 ## Per-note timing (version 16)
 
-Current saves and exports write performance config **16** and accept versions **1–16**. Melodic steps and drummer cells store `timingOffsetPercent`, an integer from −50 to +50; missing values mean zero. Browser app state remains version 2 and the native bundle envelope remains version 1. CLI runtime conversion maps this value to `timing_offset_percent`. MIDI and SCORE exports use the same shifted attacks and releases as live playback, within each format's timing resolution.
+Current saves and exports write performance config **17** and accept versions **1–17**. Melodic steps and drummer cells store `timingOffsetPercent`, an integer from −50 to +50; missing values mean zero. Browser app state is version 3 (reads 1–3) and the native bundle envelope remains version 1. CLI runtime conversion maps this value to `timing_offset_percent`. MIDI and SCORE exports use the same shifted attacks and releases as live playback, within each format's timing resolution.
 
 
 ## Arrangement compatibility and temporary audition
 
-The arrangement remains performance format v16, with imports of v1–16. Root sequences, group/supergroup references and pause tokens retain their meaning. Unused and empty draft definitions survive round trips. An imported enabled empty arrangement becomes an explicit occurrence of its previous active pad, retaining its repeat behavior. New empty lanes use Manual pads.
+The arrangement uses performance format v17, with imports of v1–17. Root sequences, group/supergroup references and pause tokens retain their meaning. Unused and empty draft definitions survive round trips. An imported enabled empty arrangement becomes an explicit occurrence of its previous active pad, retaining its repeat behavior. New empty lanes use Manual pads.
 
 Save, autosave, native bundles and both CSD modes read authored configuration. Temporary audition selection, queued commands, playback position and active-pad/enablement overrides are excluded; edits to musical content still save normally.
 
 Optional `padLoopPattern.definitionColors` stores per-definition display colours in performance v16. Keys are `pad:0`–`pad:7`, `group:<ID>` and `super:<ID>`; values are six-digit hexadecimal colours. Invalid/missing entries use defaults. Unused definitions retain their colours. Save/load, autosave, native bundles and CLI handling preserve valid metadata; compiled sequences and both CSD modes ignore it. Momentary speaker previews and their restoration state remain excluded from every persistence path.
+
+## Meter timing migration (version 17)
+
+Before normalization, legacy /8 melodic/drum/controller tracks double local beat lengths and halve steps per beat. Notes, holds, velocities, offsets, curve positions and speed ratios are retained. Rests, nested phrases, workspace drafts and arranger history (including its basis and before/after pads) convert together. New lengths support 1–16 melodic/drum beats and 1–32 controller beats; rests include 32. Derived counts and compiled sequences are rebuilt. The 128-step capacity remains enforced. Migration is idempotent and preserves on-grid schedules and arrangement positions; timing-offset rounding stays within the previous clock precision.
+
+Performance config v17 and app state v3 carry the new meter-beat meaning. The native JSON/ZIP envelope remains v1. New session/CLI requests explicitly use `beat_unit: "meter"`; omission preserves quarter-beat interpretation for older API clients. See [Sequencer timing (EN/DE/FR/ES)](sequencer_timing.md).

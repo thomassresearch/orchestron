@@ -1,3 +1,4 @@
+import { sequencerTransportSubunitsPerStep } from "../lib/sequencer";
 // @vitest-environment jsdom
 import type { ComponentProps } from "react";
 import { cleanup, fireEvent, render, screen, within, act } from "@testing-library/react";
@@ -297,7 +298,7 @@ it("deletes unused phrases from the arranger even with a retained workspace and 
 
 it("highlights the arranger transport state and freezes its cursor during a stopped audition", () => {
   useAppStore.setState(state => ({ sequencerRuntime: { ...state.sequencerRuntime,
-    isPlaying: true, arrangerActive: false, transportSubunit: 24 * 420, arrangerTransportSubunit: 8 * 420 } }));
+    isPlaying: true, arrangerActive: false, transportSubunit: 24 * sequencerTransportSubunitsPerStep(), arrangerTransportSubunit: 8 * sequencerTransportSubunitsPerStep() } }));
   const { ruler } = setup();
   const play = screen.getByRole("button", { name: "transportPlay" });
   const stop = screen.getByRole("button", { name: "transportStop" });
@@ -307,7 +308,7 @@ it("highlights the arranger transport state and freezes its cursor during a stop
   const cursor = ruler.querySelector(".bg-amber-200") as HTMLElement;
   expect(cursor.style.left).toBe("72px");
   act(() => useAppStore.setState(state => ({ sequencerRuntime: { ...state.sequencerRuntime,
-    transportSubunit: 32 * 420 } })));
+    transportSubunit: 32 * sequencerTransportSubunitsPerStep() } })));
   expect(cursor.style.left).toBe("72px");
   act(() => useAppStore.setState(state => ({ sequencerRuntime: { ...state.sequencerRuntime, arrangerActive: true } })));
   expect(play.getAttribute("aria-pressed")).toBe("true");

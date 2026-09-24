@@ -99,9 +99,9 @@ function trackTransportExtent(track: SequencerTrackState): number {
   const sequence = compileArrangerTransportSequence(track.padLoopPattern, track.activePad);
   return transportSequenceStepCount(
     sequence,
-    track.pads.map((pad) => sequencerTransportStepCount(track.timing, pad.lengthBeats) * track.timing.beatRateDenominator / track.timing.beatRateNumerator),
+    track.pads.map((pad) => sequencerTransportStepCount(track.timing, pad.lengthBeats)),
     sequencerTransportStepCount(track.timing, track.lengthBeats),
-    sequencerTransportStepsPerBeat(track.timing) * track.timing.beatRateDenominator / track.timing.beatRateNumerator
+    sequencerTransportStepCount(track.timing, 1)
   );
 }
 
@@ -109,9 +109,9 @@ function drummerTrackTransportExtent(track: DrummerSequencerTrackState): number 
   const sequence = compileArrangerTransportSequence(track.padLoopPattern, track.activePad);
   return transportSequenceStepCount(
     sequence,
-    track.pads.map((pad) => sequencerTransportStepCount(track.timing, pad.lengthBeats) * track.timing.beatRateDenominator / track.timing.beatRateNumerator),
+    track.pads.map((pad) => sequencerTransportStepCount(track.timing, pad.lengthBeats)),
     sequencerTransportStepCount(track.timing, track.lengthBeats),
-    sequencerTransportStepsPerBeat(track.timing) * track.timing.beatRateDenominator / track.timing.beatRateNumerator
+    sequencerTransportStepCount(track.timing, 1)
   );
 }
 
@@ -119,9 +119,9 @@ function controllerSequencerTransportExtent(track: ControllerSequencerState): nu
   const sequence = compileArrangerTransportSequence(track.padLoopPattern, track.activePad);
   return transportSequenceStepCount(
     sequence,
-    track.pads.map((pad) => sequencerTransportStepCount(track.timing, pad.lengthBeats) * track.timing.beatRateDenominator / track.timing.beatRateNumerator),
+    track.pads.map((pad) => sequencerTransportStepCount(track.timing, pad.lengthBeats)),
     sequencerTransportStepCount(track.timing, track.lengthBeats),
-    sequencerTransportStepsPerBeat(track.timing) * track.timing.beatRateDenominator / track.timing.beatRateNumerator
+    sequencerTransportStepCount(track.timing, 1)
   );
 }
 

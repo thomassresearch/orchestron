@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from backend.app.services.sequencer_runtime_constants import TRANSPORT_SUBUNITS_PER_BEAT
+
 from typing import TYPE_CHECKING
 
 from backend.app.models.session import SessionDeviceTransportRequest
@@ -25,7 +27,7 @@ class SequencerSourceTransport:
         self.arrangement_running = False
         self.origin = 0
         self.cursor = 0
-        self.bounds = (0, 3360, False)
+        self.bounds = (0, TRANSPORT_SUBUNITS_PER_BEAT, False)
         self.playing: set[str] = set()
         self.pending_starts: set[str] = set()
         self.manual_pads: dict[str, int] = {}
@@ -158,7 +160,7 @@ class SequencerSourceTransport:
     def router_song(self, reset: bool = True):
         callback = getattr(self.runtime._midi_service, "source_song_transport", None)
         if callback:
-            callback(position=self.position() / 3360, running=self.arrangement_running,
+            callback(position=self.position() / TRANSPORT_SUBUNITS_PER_BEAT, running=self.arrangement_running,
                      arranger=self.arranger_active, reset=reset, sample=self.runtime._render_event_sample)
 
     def has_arrangement_devices(self):
@@ -195,7 +197,7 @@ class SequencerSourceTransport:
             self.set_playing(track, play, request.pad_index)
         router_command = getattr(runtime._midi_service, "source_device_transport", None)
         if router_command and (request.arpeggiator_id or request.arranger):
-            router_command(request, position=self.position() / 3360)
+            router_command(request, position=self.position() / TRANSPORT_SUBUNITS_PER_BEAT)
         if not self.has_arrangement_devices():
             self.cursor = self.position()
             self.arrangement_running = self.arranger_active = False

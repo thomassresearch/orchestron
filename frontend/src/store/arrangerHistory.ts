@@ -17,7 +17,7 @@ type Identity = { id: string; kind: ArrangementLaneKind };
 type Values = { pattern?: PadLoopPatternState; source?: boolean; repeat?: boolean; pads?: Record<string, Pad> };
 type Change = Identity & { before: Values; after: Values };
 export type ArrangerHistoryEntry = { action: ArrangerActionCode; labels: string[]; changes: Change[] };
-type Basis = Identity & { pattern: PadLoopPatternState; source: boolean; repeat: boolean; lengths: number[]; ratio: number[]; pads: Record<string, Pad>; rows?: string[] };
+type Basis = Identity & { pattern: PadLoopPatternState; source: boolean; repeat: boolean; lengths: number[]; ratio: number[]; meterDenominator?: number; pads: Record<string, Pad>; rows?: string[] };
 export type ArrangerHistory = { version: 1; entries: ArrangerHistoryEntry[]; cursor: number; basis: Basis[] };
 export type ArrangerUpdate = Identity & Omit<Values, "pads"> & { copyPad?: { from: number; to: number } };
 export const emptyArrangerHistory = (): ArrangerHistory => ({ version: 1, entries: [], cursor: 0, basis: [] });
@@ -71,13 +71,14 @@ export function historyBasis(state: SequencerState, entries: ArrangerHistoryEntr
   return [...lanes.values()].map(lane => {
     const track = trackFor(state, lane);
     return { id: lane.id, kind: lane.kind, pattern: track.padLoopPattern, source: track.padLoopEnabled, repeat: track.padLoopRepeat,
+      meterDenominator: "timing" in track ? track.timing.meterDenominator : 4,
       lengths: track.pads.map(p => p.lengthBeats), ratio: "timing" in track ? [track.timing.beatRateNumerator, track.timing.beatRateDenominator] : [1, 1],
       pads: Object.fromEntries([...lane.slots].map(slot => [slot, track.pads[Number(slot)]])),
       ...("rows" in track ? { rows: track.rows.map(row => row.id) } : {}) };
   });
 }
 export function historyMatches(state: SequencerState, history: ArrangerHistory): boolean {
-  try { return equal(history.basis, historyBasis(state, history.entries)); } catch { return false; }
+  try { return equal(history.basis.map(basis => ({ ...basis, meterDenominator: basis.meterDenominator ?? 4 })), historyBasis(state, history.entries)); } catch { return false; }
 }
 /** Source changes must also update an independently running device's transport intent. */
 export function playingArrangerSourceChanges(state: AppStore, previous: AppStore): string[] {

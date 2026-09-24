@@ -26,13 +26,13 @@ it("preserves channels through snapshots, native JSON and autosave restoration",
   store.setMidiControllerTargetChannels(store.sequencer.midiControllers[0].id, [16, 1]);
   store.setControllerSequencerTargetChannels(store.sequencer.controllerSequencers[0].id, [3, 9]);
   const snapshot = useAppStore.getState().buildSequencerConfigSnapshot();
-  expect(snapshot.version).toBe(16);
+  expect(snapshot.version).toBe(17);
   const native = buildPerformanceExportPayload({ snapshot, selectedPatches: [], performanceName: "Channels", performanceDescription: "" });
   const restored = parsePerformanceExportPayload(JSON.parse(JSON.stringify(native.payload)));
   expect(restored).not.toBeNull();
   useAppStore.getState().applySequencerConfigSnapshot(restored!.performance.config);
   const persisted = JSON.parse(JSON.stringify(buildPersistedAppStateSnapshot(useAppStore.getState())));
-  expect(persisted.version).toBe(2);
+  expect(persisted.version).toBe(3);
   const reloaded = normalizeSequencerState(persisted.sequencer);
   expect(reloaded.midiControllers[0].targetChannels).toEqual([1, 16]);
   expect(reloaded.controllerSequencers[0].targetChannels).toEqual([3, 9]);

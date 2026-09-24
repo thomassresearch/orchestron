@@ -45,9 +45,9 @@ def advance(runtime, capture, until):
             capture.sample += count
     else:
         with patch("backend.app.services.sequencer_runtime.time.perf_counter", side_effect=lambda: capture.sample / 6720):
-            while runtime._running and runtime._absolute_subunit < until:
-                capture.sample = runtime._absolute_subunit
-                runtime._perform_subunit_event(runtime._config, capture.sample, scheduled_time=capture.sample / 6720)
+            while runtime._running and runtime._absolute_subunit < until * 6:
+                capture.sample = runtime._absolute_subunit / 6
+                runtime._perform_subunit_event(runtime._config, runtime._absolute_subunit, scheduled_time=capture.sample / 6720)
 
 
 def notes(capture):
@@ -158,7 +158,7 @@ def test_seek_cancels_owned_release_and_does_not_chase_past_attack():
     runtime, capture, _ = make_runtime([None, {"note": 60, "timing_offset_percent": -20}, None, None])
     advance(runtime, capture, 750)
     with runtime._lock:
-        runtime._seek_absolute_subunit_locked(1800)
+        runtime._seek_absolute_subunit_locked(1800 * 6)
     capture.sample = 1800
     advance(runtime, capture, 3000)
     assert [msg[1] for _, msg in notes(capture) if msg[0] == 0x90] == [60]

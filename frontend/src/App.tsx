@@ -377,6 +377,7 @@ export default function App() {
             meter_denominator: track.timing.meterDenominator,
             steps_per_beat: track.timing.stepsPerBeat,
             beat_rate_numerator: track.timing.beatRateNumerator,
+            beat_unit: "meter" as const,
             beat_rate_denominator: track.timing.beatRateDenominator
           },
           scale_root: track.scaleRoot,
@@ -430,6 +431,7 @@ export default function App() {
             meter_denominator: controllerSequencer.timing.meterDenominator,
             steps_per_beat: controllerSequencer.timing.stepsPerBeat,
             beat_rate_numerator: controllerSequencer.timing.beatRateNumerator,
+            beat_unit: "meter" as const,
             beat_rate_denominator: controllerSequencer.timing.beatRateDenominator
           },
           length_beats: controllerSequencer.lengthBeats,
@@ -461,6 +463,7 @@ export default function App() {
                   meter_numerator: resolvedState.timing.meterNumerator,
                   meter_denominator: resolvedState.timing.meterDenominator,
                   steps_per_beat: 8,
+                  beat_unit: "meter",
                   beat_rate_numerator: 1,
                   beat_rate_denominator: 1
                 },
@@ -501,6 +504,7 @@ export default function App() {
           meter_numerator: resolvedState.timing.meterNumerator,
           meter_denominator: resolvedState.timing.meterDenominator,
           steps_per_beat: 8,
+          beat_unit: "meter",
           beat_rate_numerator: 1,
           beat_rate_denominator: 1
         },

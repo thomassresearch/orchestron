@@ -118,6 +118,7 @@ it.each(["melodic", "controller", "arpeggiator", "drummer"] as const)("highlight
   const drummer = device === "drummer";
   if (drummer) useAppStore.getState().addDrummerSequencerTrack();
   render(<Editor drummer={drummer} kind={drummer ? "melodic" : device} />); createGroup(); dropPad(0);
+  expect(screen.getByRole("option", { name: "Rest 32" })).toBeTruthy();
   fireEvent.change(screen.getByLabelText("Add rest…"), { target: { value: "1" } });
   fireEvent.click(within(strip()).getByRole("button", { name: "#2" }));
   fireEvent.click(screen.getByRole("button", { name: "Play workspace" }));

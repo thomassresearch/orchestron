@@ -654,9 +654,9 @@ Controller-track fields include:
 
 Sequencer-specific model details:
 
-- Note pads use up to 8 pads per track and allow pad lengths from `1..8` beats.
-- Controller pads also use 8 pads but allow lengths from `1..8` plus `16` beats.
-- Pad loop sequences accept either pad indexes `0..7` or pause tokens `-1`, `-2`, `-4`, `-8`, `-16`.
+- Note pads use up to 8 pads per track and allow pad lengths from `1..16` local meter beats.
+- Controller pads also use 8 pads but allow lengths from `1..32` local meter beats.
+- Pad loop sequences accept either pad indexes `0..7` or pause tokens `-1`, `-2`, `-4`, `-8`, `-16`, `-32`.
 - Controller keypoints are normalized into a curve over `position` `0.0..1.0` and `value` `0..127`.
 - Empty `target_channels` on controller tracks fall back to the session instrument MIDI channels, or channel `1` if none are available.
 
@@ -808,7 +808,7 @@ Manual lanes in `PerformanceCsdExportRequest.midiControllers` accept `targetChan
 
 ### Internal Master (performance config v14)
 
-`$master` is a reserved mixer endpoint with fixed `left`/`right` inputs and `$direct.left`/`$direct.right` outputs for strip/insert routing. The compiler emits its body internally. It is excluded from patch storage and the 64 user-instrument quota; mixer state allows one additional strip. Frontend and CLI write performance config v16 and accept v1–16; app-state and native envelope versions are unchanged.
+`$master` is a reserved mixer endpoint with fixed `left`/`right` inputs and `$direct.left`/`$direct.right` outputs for strip/insert routing. The compiler emits its body internally. It is excluded from patch storage and the 64 user-instrument quota; mixer state allows one additional strip. Frontend and CLI write performance config v17 and accept v1–17; app state is v3 (reads v1–3); native envelopes are unchanged.
 
 Saved performance/app-state read and write boundaries and native import/export normalize designated legacy Masters through `master_migration`. SQLite startup invokes the same backed-up, idempotent cleanup exposed by `backend.tools.migrate_internal_master`. `POST /api/performances/repair-master` accepts `{config: ...}` and returns a converted config without saving it; it only replaces missing Masters with compatible stereo port mappings. See [migration and repair](documentation/performance/audio_mixer_and_routing.md#upgrading-existing-masters).
 
@@ -837,3 +837,11 @@ Status and PCM markers add `independent_sources`, `arrangement_running` and `arr
 ### Arranger history metadata
 
 Performance config v16 and app-state v2 optionally include `arrangerHistory` (metadata version 1): up to 25 arranger transactions, a cursor, and dependencies for safe restoration. Storage, migrations, native bundles and CLI normalization preserve it. The frontend validates metadata against authored lanes on load and invalidates conflicting history after external edits; invalid metadata does not prevent musical data from loading. History never enters runtime configuration or audio preparation signatures. Existing persisted JSON limits include history.
+
+### Meter timing (performance v17, app state v3)
+
+Global BPM is quarter-note based. `SessionSequencerTimingConfig.beat_unit` defaults to `quarter` for old API clients; current frontend/CLI requests explicitly send `meter`. In meter mode the local beat is `4 / meter_denominator` quarters. Subdivisions are 1, 2, 3, 4, 6, 8; all pads must satisfy `length_beats * steps_per_beat <= 128`, including inactive pads. Melodic/drum lengths are 1–16, controller lengths 1–32. Arpeggiator authoring is unchanged.
+
+The shared clock uses 20,160 integer subunits/quarter, eight transport steps/quarter, and 2,520 subunits/transport step. All supported local steps and speed ratios divide exactly, including /8 triplets. Controller sampling quantum is 168 subunits, preserving its former sampling frequency. Browser audible markers, arpeggiator integration and both CSD exports use this same clock. Offset rounding differs from the old clock by at most its previous precision.
+
+`sequencer_timing_migration.py` runs once before normalization for performance v1–16 and app state v1–2. Legacy /8 melodic/drum/controller lengths double and subdivision halves, including rests, nested definitions, workspace drafts, and arranger history basis/before/after data. Arrays and ratios stay intact; derived step counts and compiled sequences are rebuilt by readers. History basis includes the meter denominator, defaulting to 4 for older metadata. Fixtures in `backend/tests/fixtures/sequencers/timing_migration.json` define matching frontend/backend/standalone CLI conversion. Native bundle envelope versions do not change.

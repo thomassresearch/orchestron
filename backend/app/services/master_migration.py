@@ -148,7 +148,8 @@ def normalize_master_bundle(payload: dict, lookup=lambda _: None) -> dict:
     by_id = {p["sourcePatchId"]: p for p in definitions}
     config = payload["performance"]["config"]
     from backend.app.services.arpeggiator_migration import migrate_arpeggiators
-    normalized = migrate_arpeggiators(normalize_master_config(config, lambda key: by_id.get(key) or lookup(key)))
+    from backend.app.services.sequencer_timing_migration import migrate_sequencer_timing
+    normalized = migrate_sequencer_timing(migrate_arpeggiators(normalize_master_config(config, lambda key: by_id.get(key) or lookup(key))))
     if normalized is config:
         return payload
     result = deepcopy(payload)
@@ -161,7 +162,7 @@ def normalize_master_bundle(payload: dict, lookup=lambda _: None) -> dict:
 
 
 def normalize_master_app_state(state: dict, lookup) -> dict:
-    if state.get("version") != 2 or not isinstance(state.get("audioGraph"), dict):
+    if state.get("version") not in (2, 3) or not isinstance(state.get("audioGraph"), dict):
         return state
     config = {"version": 14, "instruments": state.get("sequencerInstruments", []),
               "audioGraph": state["audioGraph"], "mixer": state.get("mixer", {})}

@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 import json
 import math
+from fractions import Fraction
 from uuid import uuid4
 import os
 from pathlib import Path
@@ -21,10 +22,10 @@ from urllib import error, parse, request
 DEFAULT_API_URL = os.environ.get("ORCHESTRON_API_URL", "http://localhost:8000/api")
 SESSION_DIR = Path(".orchestron")
 SESSION_FILE = SESSION_DIR / "edit-session.json"
-CURRENT_CONFIG_VERSION = 16
+CURRENT_CONFIG_VERSION = 17
 DEFAULT_PAD_COUNT = 8
 MAX_STEPS_PER_PAD = 128
-PAD_LOOP_PAUSE_BEATS = {1, 2, 4, 8, 16}
+PAD_LOOP_PAUSE_BEATS = {1, 2, 4, 8, 16, 32}
 MAX_PAD_LOOP_DEFINITIONS = 256
 INPUT_FORMULAS_LAYOUT_KEY = "input_formulas"
 FORMULA_TARGET_KEY_SEPARATOR = "::"
@@ -138,7 +139,7 @@ GM_DRUMS = {
     "crash": 49,
 }
 PAD_REF_RE = re.compile(r"^(?:p|pad)?([1-8])$", re.IGNORECASE)
-PAD_LOOP_PAUSE_RE = re.compile(r"^P(1|2|4|8|16)$", re.IGNORECASE)
+PAD_LOOP_PAUSE_RE = re.compile(r"^P(1|2|4|8|16|32)$", re.IGNORECASE)
 PAD_LOOP_GROUP_ID_RE = re.compile(r"^[A-Z]+$")
 PAD_LOOP_SUPER_GROUP_ID_RE = re.compile(r"^[IVXLCDM]+$")
 FORMULA_IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
@@ -1079,11 +1080,11 @@ def assert_pad_loop_item_allowed(item: dict[str, Any], *, context: str, field: s
 
 
 def pad_loop_pause_item(length_beats: Any, *, field: str) -> dict[str, Any]:
-    length = parse_int_range(length_beats, 1, 16, field=field)
+    length = parse_int_range(length_beats, 1, 32, field=field)
     if length not in PAD_LOOP_PAUSE_BEATS:
         raise OrchestronCliError(
             "invalid_pad_loop_pause",
-            f"{field} must be one of P1, P2, P4, P8, or P16.",
+            f"{field} must be one of P1, P2, P4, P8, P16, or P32.",
             path=field,
         )
     return {"type": "pause", "lengthBeats": length}
@@ -1201,7 +1202,7 @@ def parse_string_pad_loop_item(
         f"Unsupported pad-loop token '{token}' in {field}.",
         path=field,
         retry=[
-            "Use pads 1..8, pauses P1/P2/P4/P8/P16, group labels like A, or super-group labels like I.",
+            "Use pads 1..8, pauses P1/P2/P4/P8/P16/P32, group labels like A, or super-group labels like I.",
             "Use prefixes such as group:A or super:I when a token is ambiguous.",
         ],
     )
@@ -1419,7 +1420,10 @@ def apply_pad_loop_settings(
 
 
 def resolved_pad_steps(length_beats: int, timing: dict[str, Any]) -> int:
-    return max(1, min(MAX_STEPS_PER_PAD, int(length_beats) * int(timing.get("stepsPerBeat", 4))))
+    count = int(length_beats) * int(timing.get("stepsPerBeat", 4))
+    if not 1 <= count <= MAX_STEPS_PER_PAD:
+        raise OrchestronCliError("pad_step_limit", "A sequencer pad cannot exceed 128 steps.")
+    return count
 
 
 def default_melodic_pad(
@@ -1455,7 +1459,7 @@ def default_drummer_pad(rows: list[dict[str, Any]], *, length_beats: int, timing
 
 
 def default_controller_pad(*, length_beats: int, timing: dict[str, Any]) -> dict[str, Any]:
-    step_count = max(1, min(MAX_STEPS_PER_PAD, length_beats * int(timing.get("stepsPerBeat", 4))))
+    step_count = resolved_pad_steps(length_beats, timing)
     return {
         "lengthBeats": length_beats,
         "stepCount": step_count,
@@ -1789,6 +1793,11 @@ def normalize_performance_config(
 ) -> dict[str, Any]:
     if config.get("version", 1) not in range(1, CURRENT_CONFIG_VERSION + 1):
         raise OrchestronCliError("unsupported_version", "Unsupported performance version.")
+    from orchestron.timing_migration import migrate_sequencer_timing
+    migrated = migrate_sequencer_timing(config)
+    if migrated is not config:
+        config.clear()
+        config.update(migrated)
     config["version"] = CURRENT_CONFIG_VERSION
     graph = config.setdefault("audioGraph", {"routes": [], "masterId": "$master", "insertOwners": {}})
     graph["masterId"] = graph.get("masterId") or "$master"
@@ -2634,7 +2643,7 @@ def merge_pad_definitions(
 
 
 def configured_melodic_pad(definition: dict[str, Any], *, timing: dict[str, Any]) -> dict[str, Any]:
-    length_beats = parse_int_range(definition.get("length_beats", 4), 1, 8, field="length_beats")
+    length_beats = parse_int_range(definition.get("length_beats", 4), 1, 16, field="length_beats")
     scale_root = str(definition.get("scale_root", "C"))
     scale_type = str(definition.get("scale_type", "minor"))
     mode = str(definition.get("mode", "aeolian"))
@@ -2802,7 +2811,7 @@ def drum_groove_hits(groove: str, step_count: int) -> dict[str, list[tuple[int, 
 
 
 def configured_drummer_pad(rows: list[dict[str, Any]], definition: dict[str, Any], *, timing: dict[str, Any]) -> dict[str, Any]:
-    length_beats = parse_int_range(definition.get("length_beats", 4), 1, 8, field="length_beats")
+    length_beats = parse_int_range(definition.get("length_beats", 4), 1, 16, field="length_beats")
     step_count = resolved_pad_steps(length_beats, timing)
     row_steps = {row["id"]: [empty_drum_cell() for _ in range(MAX_STEPS_PER_PAD)] for row in rows}
     name_by_key = {key: name for name, key in GM_DRUMS.items()}
@@ -2923,8 +2932,8 @@ def parse_curve(value: str) -> list[dict[str, Any]]:
 
 
 def configured_controller_pad(definition: dict[str, Any], *, timing: dict[str, Any]) -> dict[str, Any]:
-    length_beats = parse_int_range(definition.get("length_beats", 8), 1, 16, field="length_beats")
-    step_count = max(1, min(MAX_STEPS_PER_PAD, length_beats * int(timing.get("stepsPerBeat", 4))))
+    length_beats = parse_int_range(definition.get("length_beats", 8), 1, 32, field="length_beats")
+    step_count = resolved_pad_steps(length_beats, timing)
     return {
         "lengthBeats": length_beats,
         "stepCount": step_count,
@@ -3235,7 +3244,7 @@ def melodic_pad_definition_from_score(
             )
         return None
     pad_index = parse_score_pad_index(spec, fallback=fallback_pad_index, field=field)
-    length_beats = clamp_int(spec.get("length_beats", default_length_beats), 1, 8, field=f"{field}.length_beats")
+    length_beats = clamp_int(spec.get("length_beats", default_length_beats), 1, 16, field=f"{field}.length_beats")
     local_key = str(first_mapping_value(spec, "key", "scale_root", default=key))
     local_mode = str(spec.get("mode", mode))
     scale_root = str(spec.get("scale_root", local_key))
@@ -3313,7 +3322,7 @@ def melodic_pad_definitions_from_score(
     mode: str,
 ) -> tuple[int, list[dict[str, Any]]]:
     active_pad = parse_score_pad_index(track_spec, fallback=0, field=field)
-    length_beats = clamp_int(track_spec.get("length_beats", 4), 1, 8, field=f"{field}.length_beats")
+    length_beats = clamp_int(track_spec.get("length_beats", 4), 1, 16, field=f"{field}.length_beats")
     scale_type = str(track_spec.get("scale_type", "minor"))
     velocity = clamp_int(track_spec.get("velocity", 100), 1, 127, field=f"{field}.velocity")
     pads = score_pads(track_spec, field=field)
@@ -3350,7 +3359,7 @@ def melodic_pad_definitions_from_score(
 
 def drummer_pad_definitions_from_score(track_spec: dict[str, Any], *, field: str) -> tuple[int, bool, list[dict[str, Any]]]:
     active_pad = parse_score_pad_index(track_spec, fallback=0, field=field)
-    length_beats = clamp_int(track_spec.get("length_beats", 4), 1, 8, field=f"{field}.length_beats")
+    length_beats = clamp_int(track_spec.get("length_beats", 4), 1, 16, field=f"{field}.length_beats")
     pads = score_pads(track_spec, field=field)
     definitions = []
     include_primary = not pads or "groove" in track_spec
@@ -3358,7 +3367,7 @@ def drummer_pad_definitions_from_score(track_spec: dict[str, Any], *, field: str
         definitions.append(
             {
                 "pad_index": parse_score_pad_index(pad_spec, fallback=pad_list_index, field=f"{field}.pads[{pad_list_index}]"),
-                "length_beats": clamp_int(pad_spec.get("length_beats", length_beats), 1, 8, field=f"{field}.pads[{pad_list_index}].length_beats"),
+                "length_beats": clamp_int(pad_spec.get("length_beats", length_beats), 1, 16, field=f"{field}.pads[{pad_list_index}].length_beats"),
                 "groove": str(pad_spec.get("groove", "backbeat")),
             }
         )
@@ -3367,7 +3376,7 @@ def drummer_pad_definitions_from_score(track_spec: dict[str, Any], *, field: str
 
 def controller_pad_definitions_from_score(track_spec: dict[str, Any], *, field: str) -> tuple[int, bool, list[dict[str, Any]]]:
     active_pad = parse_score_pad_index(track_spec, fallback=0, field=field)
-    length_beats = clamp_int(track_spec.get("length_beats", 8), 1, 16, field=f"{field}.length_beats")
+    length_beats = clamp_int(track_spec.get("length_beats", 8), 1, 32, field=f"{field}.length_beats")
     pads = score_pads(track_spec, field=field)
     definitions = []
     include_primary = not pads or "curve" in track_spec
@@ -3375,7 +3384,7 @@ def controller_pad_definitions_from_score(track_spec: dict[str, Any], *, field: 
         definitions.append(
             {
                 "pad_index": parse_score_pad_index(pad_spec, fallback=pad_list_index, field=f"{field}.pads[{pad_list_index}]"),
-                "length_beats": clamp_int(pad_spec.get("length_beats", length_beats), 1, 16, field=f"{field}.pads[{pad_list_index}].length_beats"),
+                "length_beats": clamp_int(pad_spec.get("length_beats", length_beats), 1, 32, field=f"{field}.pads[{pad_list_index}].length_beats"),
                 "curve": str(pad_spec.get("curve", "slow_sweep")),
             }
         )
@@ -3403,7 +3412,7 @@ def apply_score_spec_to_config(config: dict[str, Any], spec: dict[str, Any]) -> 
         if track_type == "melodic":
             field = f"tracks[{index}]"
             channel = clamp_int(track_spec.get("channel", default_channel), 1, 16, field=f"{field}.channel")
-            length_beats = clamp_int(track_spec.get("length_beats", 4), 1, 8, field=f"{field}.length_beats")
+            length_beats = clamp_int(track_spec.get("length_beats", 4), 1, 16, field=f"{field}.length_beats")
             track_key = str(track_spec.get("key", key))
             track_mode = str(track_spec.get("mode", mode))
             active_pad, pad_definitions = melodic_pad_definitions_from_score(track_spec, field=field, key=track_key, mode=track_mode)
@@ -3437,7 +3446,7 @@ def apply_score_spec_to_config(config: dict[str, Any], spec: dict[str, Any]) -> 
                     config,
                     channel=clamp_int(track_spec.get("channel", 10), 1, 16, field=f"{field}.channel"),
                     name=track_spec.get("name") if isinstance(track_spec.get("name"), str) else None,
-                    length_beats=clamp_int(track_spec.get("length_beats", 4), 1, 8, field=f"{field}.length_beats"),
+                    length_beats=clamp_int(track_spec.get("length_beats", 4), 1, 16, field=f"{field}.length_beats"),
                     groove=str(track_spec.get("groove", "backbeat")),
                     enabled=bool(track_spec.get("enabled", True)),
                     active_pad=active_pad,
@@ -3457,7 +3466,7 @@ def apply_score_spec_to_config(config: dict[str, Any], spec: dict[str, Any]) -> 
                     config,
                     controller_number=clamp_int(track_spec.get("cc", track_spec.get("controller_number", 74)), 0, 127, field=f"{field}.cc"),
                     name=track_spec.get("name") if isinstance(track_spec.get("name"), str) else None,
-                    length_beats=clamp_int(track_spec.get("length_beats", 8), 1, 16, field=f"{field}.length_beats"),
+                    length_beats=clamp_int(track_spec.get("length_beats", 8), 1, 32, field=f"{field}.length_beats"),
                     curve=str(track_spec.get("curve", "slow_sweep")),
                     enabled=bool(track_spec.get("enabled", True)),
                     active_pad=active_pad,
@@ -3576,7 +3585,7 @@ def step_timing_result(config: dict[str, Any], track: dict[str, Any], kind: str,
     global_timing = timing_to_runtime(sequencer.get("timing") or default_timing())
     local = timing_to_runtime(track.get("timing") or sequencer.get("timing") or default_timing())
     # Tempo is global, whereas subdivision and beat ratio belong to the device.
-    step_ms = 60000 / global_timing["tempo_bpm"] / local["steps_per_beat"] * local["beat_rate_denominator"] / local["beat_rate_numerator"]
+    step_ms = 60000 / global_timing["tempo_bpm"] * 4 / local["meter_denominator"] / local["steps_per_beat"] * local["beat_rate_denominator"] / local["beat_rate_numerator"]
     result = []
     for metadata, cells, index in targets:
         cell = timing_cell(cells[index], kind)
@@ -3664,7 +3673,7 @@ def compile_pad_loop_items(pattern: dict[str, Any], items: Any, *, depth: int) -
             if item_type == "pad":
                 result.append(max(0, min(7, int(item.get("padIndex", 0)))))
             elif item_type == "pause":
-                result.append(-max(1, min(16, int(item.get("lengthBeats", 1)))))
+                result.append(-max(1, min(32, int(item.get("lengthBeats", 1)))))
             elif item_type == "group":
                 result.extend(compile_pad_loop_items(pattern, groups.get(item.get("groupId"), []), depth=depth + 1))
             elif item_type == "super":
@@ -3674,12 +3683,13 @@ def compile_pad_loop_items(pattern: dict[str, Any], items: Any, *, depth: int) -
     return result
 
 
-def timing_to_runtime(timing: dict[str, Any]) -> dict[str, int]:
+def timing_to_runtime(timing: dict[str, Any]) -> dict[str, Any]:
     return {
         "tempo_bpm": int(timing.get("tempoBPM", timing.get("tempo_bpm", 120))),
         "meter_numerator": int(timing.get("meterNumerator", timing.get("meter_numerator", 4))),
         "meter_denominator": int(timing.get("meterDenominator", timing.get("meter_denominator", 4))),
         "steps_per_beat": int(timing.get("stepsPerBeat", timing.get("steps_per_beat", 4))),
+        "beat_unit": "meter",
         "beat_rate_numerator": int(timing.get("beatRateNumerator", timing.get("beat_rate_numerator", 1))),
         "beat_rate_denominator": int(timing.get("beatRateDenominator", timing.get("beat_rate_denominator", 1))),
     }
@@ -3829,7 +3839,10 @@ def build_runtime_config(config: dict[str, Any]) -> dict[str, Any]:
     for device in [*tracks, *controller_tracks, *arpeggiators]:
         sequence = device["pad_loop_sequence"] or [device["active_pad"]]
         lengths = {pad.get("pad_index", index): pad.get("length_beats", 4) for index, pad in enumerate(device["pads"])}
-        duration_beats = max(duration_beats, sum(lengths.get(token, 4) if token >= 0 else -token for token in sequence))
+        local_timing = device.get("timing", {})  # Arpeggiators retain shared quarter beats.
+        beat_scale = Fraction(4 * local_timing.get("beat_rate_denominator", 1),
+                              local_timing.get("meter_denominator", 4) * local_timing.get("beat_rate_numerator", 1))
+        duration_beats = max(duration_beats, beat_scale * sum(lengths.get(token, 4) if token >= 0 else -token for token in sequence))
     end_step = math.ceil(duration_beats * 8)
     return {
         "timing": {
@@ -3837,6 +3850,7 @@ def build_runtime_config(config: dict[str, Any]) -> dict[str, Any]:
             "meter_numerator": int(timing.get("meterNumerator", 4)),
             "meter_denominator": int(timing.get("meterDenominator", 4)),
             "steps_per_beat": 8,
+            "beat_unit": "meter",
             "beat_rate_numerator": 1,
             "beat_rate_denominator": 1,
         },
@@ -4686,7 +4700,7 @@ def command_edit_add_melodic(args: argparse.Namespace, ctx: CliContext) -> None:
             config,
             channel=clamp_int(args.channel, 1, 16, field="channel"),
             name=args.name,
-            length_beats=clamp_int(args.length_beats, 1, 8, field="length_beats"),
+            length_beats=clamp_int(args.length_beats, 1, 16, field="length_beats"),
             scale_root=args.scale_root,
             scale_type=args.scale_type,
             mode=args.mode,
@@ -4712,7 +4726,7 @@ def command_edit_add_drummer(args: argparse.Namespace, ctx: CliContext) -> None:
             config,
             channel=clamp_int(args.channel, 1, 16, field="channel"),
             name=args.name,
-            length_beats=clamp_int(args.length_beats, 1, 8, field="length_beats"),
+            length_beats=clamp_int(args.length_beats, 1, 16, field="length_beats"),
             groove=args.groove,
             enabled=args.enabled,
             active_pad=parse_user_pad_index(args.pad, field="pad"),
@@ -4733,7 +4747,7 @@ def command_edit_add_controller_sequencer(args: argparse.Namespace, ctx: CliCont
             config,
             controller_number=clamp_int(args.cc, 0, 127, field="cc"),
             name=args.name,
-            length_beats=clamp_int(args.length_beats, 1, 16, field="length_beats"),
+            length_beats=clamp_int(args.length_beats, 1, 32, field="length_beats"),
             curve=args.curve,
             enabled=args.enabled,
             active_pad=parse_user_pad_index(args.pad, field="pad"),
@@ -5225,7 +5239,7 @@ def build_parser() -> argparse.ArgumentParser:
     add_mel = edit_sub.add_parser("add-melodic", help="Add a melodic sequencer with explicit step/chord patterns.")
     add_mel.add_argument("--channel", required=True, type=int, help="MIDI channel 1..16.")
     add_mel.add_argument("--name", help="Track name.")
-    add_mel.add_argument("--length-beats", type=int, default=4, help="Pad length in beats, 1..8.")
+    add_mel.add_argument("--length-beats", type=int, default=4, help="Pad length, 1..16 meter beats.")
     add_mel.add_argument("--scale-root", default="C", choices=sorted(SCALE_ROOTS.keys()), help="Scale root.")
     add_mel.add_argument("--scale-type", default="minor", choices=sorted(SCALE_TYPES), help="Scale type.")
     add_mel.add_argument("--mode", default="aeolian", choices=sorted(MODE_INTERVALS.keys()), help="Mode.")
@@ -5251,7 +5265,7 @@ def build_parser() -> argparse.ArgumentParser:
     add_cc_seq = edit_sub.add_parser("add-controller-sequencer", help="Add a controller sequencer curve.")
     add_cc_seq.add_argument("--cc", required=True, type=int, help="Controller number 0..127.")
     add_cc_seq.add_argument("--name", help="Track name.")
-    add_cc_seq.add_argument("--length-beats", type=int, default=8, help="Curve length, 1..16 beats.")
+    add_cc_seq.add_argument("--length-beats", type=int, default=8, help="Curve length, 1..32 meter beats.")
     add_cc_seq.add_argument("--pad", default="1", help="Pattern pad for --curve, 1..8 or P1..P8. Default: 1.")
     add_cc_seq.add_argument("--curve", default="slow_sweep", help="Curve preset or position:value pairs, for example 0:24,0.5:96,1:48.")
     add_cc_seq.add_argument("--pad-curve", action="append", default=[], metavar="PAD=CURVE", help="Additional pad controller curve; may repeat. Example: 2=triangle.")

@@ -1,3 +1,4 @@
+import { sequencerTransportSubunitsPerStep } from "../lib/sequencer";
 // @vitest-environment jsdom
 import { Profiler, StrictMode, useState } from "react";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
@@ -37,7 +38,7 @@ function toggleDetails(name: string, open: boolean) {
   const node = details(name);
   act(() => { node.open = open; fireEvent(node, new Event("toggle")); });
 }
-function tick(step: number) { act(() => useAppStore.getState().syncSequencerRuntime({ isPlaying: true, playhead: step, cycle: 0, transportSubunit: step * 420 })); }
+function tick(step: number) { act(() => useAppStore.getState().syncSequencerRuntime({ isPlaying: true, playhead: step, cycle: 0, transportSubunit: step * sequencerTransportSubunitsPerStep() })); }
 function runFrame(now: number) { act(() => { const batch = [...frames.values()]; frames.clear(); batch.forEach(cb => cb(now)); }); }
 
 beforeEach(() => {
@@ -72,7 +73,7 @@ it("does not build collapsed device grids or run their observers and animation f
   for (let step = 1; step <= 12; step++) tick(step);
   expect(notes).not.toHaveBeenCalled(); expect(curves).not.toHaveBeenCalled();
   expect(frames.size).toBe(0); expect(observers.size).toBe(0);
-  expect(useAppStore.getState().sequencerRuntime.transportSubunit).toBe(12 * 420);
+  expect(useAppStore.getState().sequencerRuntime.transportSubunit).toBe(12 * sequencerTransportSubunitsPerStep());
   expect(screen.getByText(/playhead: 5/)).toBeTruthy();
 });
 

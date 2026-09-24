@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from backend.app.services.sequencer_runtime_constants import TRANSPORT_SUBUNITS_PER_STEP
+
 from copy import deepcopy
 
 import pytest
@@ -32,7 +34,7 @@ def command(engine, action="play", track="lead", **values):
 
 
 def advance(engine, steps):
-    target = engine._absolute_subunit + steps * 420
+    target = engine._absolute_subunit + steps * TRANSPORT_SUBUNITS_PER_STEP
     while engine._running and engine._absolute_subunit < target:
         next_at = min(target, engine._next_event_subunit_locked(engine._config, engine._absolute_subunit))
         engine._advance_render_to_event_locked(engine._config, next_at)
@@ -59,7 +61,7 @@ def test_arranger_stop_then_device_play_uses_cursor_and_recovers_from_preview(pr
     assert engine.status().running and not engine.status().arranger_active
     assert track(engine, "lead").enabled
     assert not track(engine, "backing").enabled
-    assert engine.sources.position() >= 24 * 420
+    assert engine.sources.position() >= 24 * TRANSPORT_SUBUNITS_PER_STEP
     assert _note_on_messages(midi)
 
 
@@ -69,13 +71,13 @@ def test_loop_start_and_join_share_song_position_without_restarting_manual():
     advance(engine, 3)
     origin = track(engine, "manual").phase_offset_subunit
     command(engine, position_step=15)
-    assert engine.sources.position() == 8 * 420
+    assert engine.sources.position() == 8 * TRANSPORT_SUBUNITS_PER_STEP
     advance(engine, 5)
     command(engine, track="backing")
     assert track(engine, "lead").phase_offset_subunit == track(engine, "backing").phase_offset_subunit
-    assert engine.sources.position() == 13 * 420
+    assert engine.sources.position() == 13 * TRANSPORT_SUBUNITS_PER_STEP
     advance(engine, 7)
-    assert engine.sources.position() == 8 * 420
+    assert engine.sources.position() == 8 * TRANSPORT_SUBUNITS_PER_STEP
     assert track(engine, "manual").phase_offset_subunit == origin
     assert track(engine, "manual").active_pad == 1
     assert engine.status().tracks[0].runtime_pad_start_subunit is not None
@@ -130,7 +132,7 @@ def test_manual_pad_queue_switches_at_its_own_boundary_during_arrangement_loops(
 
     command(engine, track=identity, pad_index=0)
     command(engine)
-    duration = engine._transport_subunit_count_for_pad(get_track(), 0) // 420
+    duration = engine._transport_subunit_count_for_pad(get_track(), 0) // TRANSPORT_SUBUNITS_PER_STEP
     advance(engine, 3)
     engine.queue_pad(identity, 1)
     engine.queue_pad(identity, None)
@@ -168,8 +170,8 @@ def test_manual_seek_continuity_and_local_stop():
     command(engine, track="manual", pad_index=1)
     advance(engine, 5)
     command(engine)
-    engine._seek_absolute_subunit_locked(20 * 420)
-    assert engine._local_transport_offset_for(track(engine, "manual"), engine._absolute_subunit) == 5 * 420
+    engine._seek_absolute_subunit_locked(20 * TRANSPORT_SUBUNITS_PER_STEP)
+    assert engine._local_transport_offset_for(track(engine, "manual"), engine._absolute_subunit) == 5 * TRANSPORT_SUBUNITS_PER_STEP
     command(engine, "stop")
     assert track(engine, "manual").enabled
     assert not track(engine, "lead").enabled
@@ -187,7 +189,7 @@ def test_manual_midi_timing_is_identical_with_song_loops_seeks_and_global_contro
         for block in range(2000):
             if with_song:
                 if block == 200:
-                    engine._seek_absolute_subunit_locked(15 * 420)
+                    engine._seek_absolute_subunit_locked(15 * TRANSPORT_SUBUNITS_PER_STEP)
                 elif block == 400:
                     command(engine, track=None)
                 elif block == 800:
@@ -268,7 +270,7 @@ def test_source_switch_without_loop_uses_requested_stopped_cursor():
     config.tracks[2].pad_loop_enabled = True
     engine.apply_prepared(compile_sequencer_runtime_config(config, controller_default_channels=(1,)), device_command=True)
     command(engine, track="manual", position_step=24)
-    assert engine.sources.position() == 24 * 420
+    assert engine.sources.position() == 24 * TRANSPORT_SUBUNITS_PER_STEP
     assert track(engine, "manual").active_pad == 0
 
 
@@ -328,7 +330,7 @@ def test_shortening_song_stops_only_arrangement_but_atomic_seek_uses_new_range()
     phase = track(engine, "manual").phase_offset_subunit
     config.playback_end_step = 16
     engine.apply_prepared(compile_sequencer_runtime_config(config, controller_default_channels=(1,)), position_step=8)
-    assert track(engine, "lead").enabled and engine.sources.position() == 8 * 420
+    assert track(engine, "lead").enabled and engine.sources.position() == 8 * TRANSPORT_SUBUNITS_PER_STEP
     assert track(engine, "manual").phase_offset_subunit == phase
     config.playback_end_step = 4
     engine.configure(config)
@@ -351,7 +353,7 @@ def test_controller_tracks_output_while_arranger_stopped_and_restore_after_previ
     advance(engine, 2)
     engine.audition(SessionAuditionRequest(action="preview_end", track_ids=["filter"], gesture_id="cc", revision=2))
     assert engine._config.controller_tracks["filter"].enabled
-    assert engine.sources.position() == 11 * 420
+    assert engine.sources.position() == 11 * TRANSPORT_SUBUNITS_PER_STEP
 
 
 @pytest.mark.parametrize("manual", [False, True])
@@ -416,7 +418,7 @@ def test_whole_song_loop_live_toggle_preserves_position_and_manual_phase():
     config.playback_loop = True
     engine.configure(config)
     assert engine.sources.position() == position
-    assert engine.sources.bounds == (0, 64 * 420, True)
+    assert engine.sources.bounds == (0, 64 * TRANSPORT_SUBUNITS_PER_STEP, True)
     advance(engine, 64)
     assert engine.sources.position() == position
     assert engine.status().arranger_active
@@ -426,7 +428,7 @@ def test_whole_song_loop_live_toggle_preserves_position_and_manual_phase():
     engine.configure(config)
     assert engine.sources.position() == position
     advance(engine, 64)
-    assert engine.sources.position() == 64 * 420
+    assert engine.sources.position() == 64 * TRANSPORT_SUBUNITS_PER_STEP
     assert not engine.status().arranger_active
     assert not track(engine, "lead").enabled
     assert track(engine, "manual").enabled

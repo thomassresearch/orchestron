@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from backend.app.services.sequencer_runtime_constants import TRANSPORT_SUBUNITS_PER_STEP
+
 import json
 import time
 from pathlib import Path
@@ -734,14 +736,14 @@ def test_session_backend_sequencer_polyrhythm_beat_rate_advances_local_step_betw
                 assert status_response.status_code == 200
                 status = status_response.json()
                 transport_subunit = int(status["transport_subunit"])
-                if 560 <= transport_subunit < 840:
+                if 560 * 6 <= transport_subunit < 840 * 6:
                     target_status = status
                     break
 
             assert target_status is not None, "Expected to observe the 3:2 local-step window before transport step 2."
             assert target_status["current_step"] == 1
             assert target_status["tracks"][0]["local_step"] == 1
-            assert target_status["transport_subunit"] < 840
+            assert target_status["transport_subunit"] < 840 * 6
 
             stop_response = client.post(f"/api/sessions/{session_id}/sequencer/stop")
             assert stop_response.status_code == 200
@@ -1718,19 +1720,19 @@ def test_arranger_seek_updates_range_without_stopping_or_starting_transport(tmp_
         response = client.post(f"{base}/seek", json={"config": config, "position_step": 32})
         assert response.status_code == 200, response.text
         assert response.json()["running"] is True
-        assert response.json()["transport_subunit"] == 32 * 420
+        assert response.json()["transport_subunit"] == 32 * TRANSPORT_SUBUNITS_PER_STEP
         assert response.json()["tracks"][0]["active_pad"] == 1
 
         config.update(playback_start_step=0, playback_end_step=16, playback_loop=False)
         response = client.post(f"{base}/seek", json={"config": config, "position_step": 4})
         assert response.status_code == 200, response.text
         assert response.json()["running"] is True
-        assert response.json()["transport_subunit"] == 4 * 420
+        assert response.json()["transport_subunit"] == 4 * TRANSPORT_SUBUNITS_PER_STEP
         assert response.json()["tracks"][0]["active_pad"] == 0
 
         assert client.post(f"{base}/stop").status_code == 200
         response = client.post(f"{base}/seek", json={"config": config, "position_step": 8})
         assert response.status_code == 200, response.text
         assert response.json()["running"] is False
-        assert response.json()["transport_subunit"] == 8 * 420
+        assert response.json()["transport_subunit"] == 8 * TRANSPORT_SUBUNITS_PER_STEP
         assert client.post(f"{base}/seek", json={"config": config, "position_step": -1}).status_code == 422

@@ -1,6 +1,6 @@
 import type { PadLoopPatternItem, PadLoopPatternState } from "../types";
 import {
-  clonePadLoopPattern, compilePadLoopPattern, nextPadLoopGroupId, nextPadLoopSuperGroupId,
+  PAD_LOOP_PAUSE_BEAT_OPTIONS, clonePadLoopPattern, compilePadLoopPattern, nextPadLoopGroupId, nextPadLoopSuperGroupId,
   canCreatePadLoopGroupFromSelection,
   type PadLoopContainerRef
 } from "./padLoopPattern";
@@ -37,7 +37,7 @@ export function validateArrangementEdit(_previous: PadLoopPatternState, next: Pa
     if (items.length > 256) throw new Error("Sequence limit: 256.");
     for (const item of items) {
       const valid = item.type === "pad" ? Number.isInteger(item.padIndex) && item.padIndex >= 0 && item.padIndex < 8
-        : item.type === "pause" ? [1,2,4,8,16].includes(item.lengthBeats)
+        : item.type === "pause" ? PAD_LOOP_PAUSE_BEAT_OPTIONS.includes(item.lengthBeats)
         : item.type === "group" ? level >= 2 && groupIds.has(item.groupId)
         : item.type === "super" && level === 3 && superIds.has(item.superGroupId);
       if (!valid) throw new Error("Invalid phrase hierarchy or reference.");
@@ -80,7 +80,7 @@ export function deleteDefinition(pattern: PadLoopPatternState, ref: DefinitionRe
 export function restTokens(beats: number): PadLoopPatternItem[] {
   if (!Number.isInteger(beats) || beats < 0) throw new Error("Rest duration must be a whole number of beats.");
   const result: PadLoopPatternItem[] = [];
-  for (const size of [16, 8, 4, 2, 1] as const) {
+  for (const size of [...PAD_LOOP_PAUSE_BEAT_OPTIONS].reverse()) {
     while (beats >= size) {
       result.push({ type: "pause", lengthBeats: size });
       beats -= size;

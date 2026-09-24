@@ -1,3 +1,4 @@
+import { migrateSequencerTiming } from "../lib/sequencerTimingMigration";
 import { createArrangerHistoryActions, emptyArrangerHistory, historyMatches, readArrangerHistory } from "./arrangerHistory";
 import { reconcileLaneOutput } from "../lib/laneOutput";
 import { instrumentMetadata } from "../lib/instrumentTypes";
@@ -274,8 +275,8 @@ export const useAppStore = create<AppStore>((set, get) => {
           let activeMidiInput = preferredMidi ?? midiInputs[0]?.id ?? null;
 
           if (persistedState && typeof persistedState === "object" && !Array.isArray(persistedState)) {
-            const payload = persistedState as Partial<PersistedAppState>;
-            if (payload.version === APP_STATE_VERSION || payload.version === 1) {
+            const payload = migrateSequencerTiming(persistedState, true) as Partial<PersistedAppState>;
+            if (payload.version === APP_STATE_VERSION || payload.version === 2 || payload.version === 1) {
               const restoredTabs = normalizePersistedInstrumentTabs(payload.instrumentTabs);
               if (restoredTabs.length > 0) {
                 instrumentTabs = restoredTabs;
@@ -306,7 +307,7 @@ export const useAppStore = create<AppStore>((set, get) => {
                 fallbackPatchId
               );
 
-              ({ audioGraph, mixer, migrationNotice } = migrateAudio(sequencerInstruments, patches, payload.version === 2 ? payload.audioGraph : undefined, payload.mixer));
+              ({ audioGraph, mixer, migrationNotice } = migrateAudio(sequencerInstruments, patches, (payload.version ?? 1) >= 2 ? payload.audioGraph : undefined, payload.mixer));
 
               currentPerformanceId =
                 typeof payload.currentPerformanceId === "string" &&

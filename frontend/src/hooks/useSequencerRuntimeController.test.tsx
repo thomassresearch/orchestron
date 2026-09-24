@@ -1,3 +1,4 @@
+import { sequencerTransportSubunitsPerStep } from "../lib/sequencer";
 // @vitest-environment jsdom
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
@@ -30,7 +31,7 @@ const errors = { noActiveRuntimeSession: "Missing runtime", startInstrumentsFirs
 
 function status(step: number, running = true): SessionSequencerStatus {
   return { running, current_step: step % 32, cycle: Math.floor(step / 32), step_count: 32,
-    transport_subunit: step * 420, tracks: [], controller_tracks: [], arpeggiators: [] } as unknown as SessionSequencerStatus;
+    transport_subunit: step * sequencerTransportSubunitsPerStep(), tracks: [], controller_tracks: [], arpeggiators: [] } as unknown as SessionSequencerStatus;
 }
 function setup(playing: boolean, builders?: {
   sequencer: (state?: SequencerState) => SessionSequencerConfigRequest;
@@ -60,7 +61,7 @@ beforeEach(() => {
   startSequencer.mockReset().mockImplementation(async (_session, request) => ({ ...status(request.positionStep), arranger_active: request.arrangerActive }));
   deviceTransport.mockReset().mockImplementation(async (_session, request) => ({ ...status(0, request.action === "play"),
     independent_sources: true, arranger_active: !!request.arranger && request.action === "play",
-    arrangement_running: request.action === "play", arrangement_transport_subunit: (request.position_step ?? 0) * 420 }));
+    arrangement_running: request.action === "play", arrangement_transport_subunit: (request.position_step ?? 0) * sequencerTransportSubunitsPerStep() }));
   const client = { audition, startSequencer, deviceTransport, prime: vi.fn().mockResolvedValue(undefined), connect: vi.fn().mockResolvedValue(undefined), stopSequencer: vi.fn().mockResolvedValue(status(0, false)) };
   const browser = { browserClockClientRef: { current: client as unknown as ReturnType<typeof useBrowserClockAudioController>["browserClockClientRef"]["current"] }, browserAudioError: null, browserAudioDiagnostics: null,
     browserAudioStatus: "live" as const, browserAudioTransport: "browser_clock" as const,
@@ -133,7 +134,7 @@ it("moves stopped playback locally without starting or contacting the runtime", 
   const { result } = setup(false);
   await act(() => result.current.seekSequencerTransport(24));
   const { sequencerRuntime } = useAppStore.getState();
-  expect(sequencerRuntime.transportSubunit).toBe(24 * 420);
+  expect(sequencerRuntime.transportSubunit).toBe(24 * sequencerTransportSubunitsPerStep());
   expect(sequencerRuntime.isPlaying).toBe(false);
   expect(api.seekSessionSequencer).not.toHaveBeenCalled();
 });
@@ -150,7 +151,7 @@ it("seeks running playback with the newly cleared loop and suppresses its deboun
   await act(() => vi.advanceTimersByTimeAsync(100));
   expect(api.configureSessionSequencer).not.toHaveBeenCalled();
   expect(useAppStore.getState().sequencerRuntime.isPlaying).toBe(true);
-  expect(useAppStore.getState().sequencerRuntime.transportSubunit).toBe(8 * 420);
+  expect(useAppStore.getState().sequencerRuntime.transportSubunit).toBe(8 * sequencerTransportSubunitsPerStep());
 });
 
 it("ignores an older seek response after a newer click", async () => {
@@ -162,7 +163,7 @@ it("ignores an older seek response after a newer click", async () => {
   act(() => { first = result.current.seekSequencerTransport(8); second = result.current.seekSequencerTransport(24); });
   await act(async () => { responses[1](status(24)); await second; });
   await act(async () => { responses[0](status(8)); await first; });
-  expect(useAppStore.getState().sequencerRuntime.transportSubunit).toBe(24 * 420);
+  expect(useAppStore.getState().sequencerRuntime.transportSubunit).toBe(24 * sequencerTransportSubunitsPerStep());
 });
 
 it("ignores a seek response after Stop", async () => {
@@ -200,7 +201,7 @@ it("ignores audition responses from a replaced performance workspace", async () 
   act(() => { useAppStore.setState(state => ({ performanceWorkspaceGeneration: state.performanceWorkspaceGeneration + 1 })); });
   await act(async () => { respond({ ...status(24), auditions: { [id]: { active: true, queued: null } } }); await start; });
   expect(useAppStore.getState().performanceAuditions).toEqual({});
-  expect(useAppStore.getState().sequencerRuntime.transportSubunit).not.toBe(24 * 420);
+  expect(useAppStore.getState().sequencerRuntime.transportSubunit).not.toBe(24 * sequencerTransportSubunitsPerStep());
 });
 
 it("releases a momentary gesture during preparation and suppresses its late launch", async () => {
@@ -235,13 +236,13 @@ it("keeps the stopped song cursor through preview status and audible clock updat
   const id = useAppStore.getState().sequencer.tracks[0].id;
   await act(() => result.current.auditionDevice(id, { action: "preview_start", gestureId: "hold", item: { type: "pad", padIndex: 1 } }));
   expect(useAppStore.getState().sequencerRuntime).toMatchObject({
-    isPlaying: true, arrangerActive: false, transportSubunit: 16 * 420, arrangerTransportSubunit: 8 * 420
+    isPlaying: true, arrangerActive: false, transportSubunit: 16 * sequencerTransportSubunitsPerStep(), arrangerTransportSubunit: 8 * sequencerTransportSubunitsPerStep()
   });
   act(() => audioParams.applyBrowserClockTransportEventsRef.current([{
     kind: "step", target_frame: 48000, target_frame_offset: 0, payload: { ...status(24), previous_step: 16, arranger_active: false }
   }]));
   expect(useAppStore.getState().sequencerRuntime).toMatchObject({
-    transportSubunit: 24 * 420, arrangerTransportSubunit: 8 * 420, arrangerActive: false
+    transportSubunit: 24 * sequencerTransportSubunitsPerStep(), arrangerTransportSubunit: 8 * sequencerTransportSubunitsPerStep(), arrangerActive: false
   });
   await act(() => result.current.startSequencerTransport(true));
   expect(buildConfig).toHaveBeenLastCalledWith(useAppStore.getState().sequencer, "runtime", true);
@@ -442,14 +443,14 @@ it("Stop bypasses pending Play and ignores its late acknowledgment", async () =>
 it("uses the song marker for the arranger cursor and retains it during independent playback", async () => {
   setup(true);
   act(() => audioParams.applySequencerStatusRef.current({ ...status(100), independent_sources: true,
-    arranger_active: true, arrangement_running: true, arrangement_transport_subunit: 8 * 420 }));
-  expect(useAppStore.getState().sequencerRuntime.arrangerTransportSubunit).toBe(8 * 420);
+    arranger_active: true, arrangement_running: true, arrangement_transport_subunit: 8 * sequencerTransportSubunitsPerStep() }));
+  expect(useAppStore.getState().sequencerRuntime.arrangerTransportSubunit).toBe(8 * sequencerTransportSubunitsPerStep());
   act(() => audioParams.applySequencerStatusRef.current({ ...status(101), independent_sources: true,
-    arranger_active: false, arrangement_running: false, arrangement_transport_subunit: 9 * 420 }));
+    arranger_active: false, arrangement_running: false, arrangement_transport_subunit: 9 * sequencerTransportSubunitsPerStep() }));
   act(() => audioParams.applySequencerStatusRef.current({ ...status(110), independent_sources: true,
-    arranger_active: false, arrangement_running: true, arrangement_transport_subunit: 16 * 420 }));
-  expect(useAppStore.getState().sequencerRuntime.arrangerTransportSubunit).toBe(9 * 420);
-  expect(useAppStore.getState().sequencerRuntime.transportSubunit).toBe(110 * 420);
+    arranger_active: false, arrangement_running: true, arrangement_transport_subunit: 16 * sequencerTransportSubunitsPerStep() }));
+  expect(useAppStore.getState().sequencerRuntime.arrangerTransportSubunit).toBe(9 * sequencerTransportSubunitsPerStep());
+  expect(useAppStore.getState().sequencerRuntime.transportSubunit).toBe(110 * sequencerTransportSubunitsPerStep());
 });
 
 it("applies song-loop toggles during playback without seeking or restarting", async () => {

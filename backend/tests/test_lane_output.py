@@ -1,3 +1,4 @@
+from backend.app.services.sequencer_runtime_constants import TRANSPORT_SUBUNITS_PER_STEP
 from types import SimpleNamespace
 
 import pytest
@@ -125,7 +126,7 @@ def test_muted_render_progress_seek_loop_and_audition_match_unmuted_tracks():
         gate.apply(2, {})
         assert runtime.status().transport_subunit == position
         runtime.apply_prepared(compile_sequencer_runtime_config(request, controller_default_channels=(1,)), position_step=9)
-        assert runtime.status().transport_subunit == 9 * 420
+        assert runtime.status().transport_subunit == 9 * TRANSPORT_SUBUNITS_PER_STEP
         rendered.append((runtime.status().model_dump(exclude={"session_id"}), events))
     assert rendered[0][0] == rendered[1][0]
     def other_attacks(events):

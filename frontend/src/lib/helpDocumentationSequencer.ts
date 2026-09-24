@@ -1,3 +1,4 @@
+import { sequencerTimingHelp } from "./helpDocumentationSequencerTiming";
 import { patternWorkspaceHelp } from "./helpDocumentationPatternWorkspace";
 import { independentPlaybackHelp } from "./helpDocumentationIndependentPlayback";
 import { arrangementHelp } from "./arrangementHelp";
@@ -76,11 +77,9 @@ Click the pen beside the device name to rename it. Save/Enter applies; Cancel/Es
 Program step-based melodic or rhythmic patterns.
 
 - Add/remove melodic sequencers.
-- Set MIDI channel, scale, mode, and adjust each melodic sequencer's own meter/grid timing plus beat ratio.
 - Synchronize a melodic sequencer to another melodic sequencer with \`Sync To\`.
 - Reorder melodic sequencers by dragging the \`::\` handle on each sequencer card.
 - Copy a pattern pad by dragging one pad and dropping it onto another pad (copies notes and pad scale/mode settings).
-- \`Beat Ratio\` changes how fast each sequencer advances against the shared transport without changing the stored pad length, meter, or grid.
 - Pad edge transpose buttons (\`-\` / \`+\`):
 - Short click: transpose the stored notes to the previous/next degree within the current scale (scale root and mode stay the same), and update configured step chords to matching diatonic chord types for the transposed step when available.
 - Long press: move the pad tonic to the previous/next degree (key-step transpose), keep the mode, and update the pad scale root.
@@ -98,11 +97,9 @@ Zum Umbenennen auf den Stift neben dem Gerätenamen klicken. Speichern/Enter üb
 Programmiert schrittbasierte melodische oder rhythmische Patterns.
 
 - Melodische Sequencer hinzufuegen/entfernen.
-- MIDI-Kanal, Skala, Modus, Takt-/Raster-Zeitbasis und Beat-Verhaeltnis jedes melodischen Sequencers setzen.
 - Einen melodischen Sequencer ueber \`Sync zu\` mit einem anderen melodischen Sequencer synchronisieren.
 - Reihenfolge der melodischen Sequencer per Drag-and-drop am \`::\`-Handle jeder Sequencer-Karte aendern.
 - Ein Pattern-Pad per Drag-and-drop auf ein anderes Pad ziehen, um es zu kopieren (kopiert Noten sowie Pad-Skala/Modus-Einstellungen).
-- Das Beat-Verhaeltnis aendert nur die Abspielgeschwindigkeit gegenueber dem gemeinsamen Transport; gespeicherte Pad-Laenge, Taktart und Raster bleiben gleich.
 - Transpositions-Tasten am Pad-Rand (\`-\` / \`+\`):
 - Kurzer Klick: gespeicherte Noten zur vorherigen/nächsten Stufe innerhalb der aktuellen Skala verschieben (Grundton und Modus bleiben gleich) und konfigurierte Step-Akkorde auf passende diatonische Akkordtypen für den transponierten Schritt aktualisieren (falls verfügbar).
 - Langer Klick: Tonika zur vorherigen/nächsten Stufe verschieben (Key-Step-Transpose), Modus beibehalten und Pad-Grundton der Skala aktualisieren.
@@ -169,10 +166,8 @@ This help applies to one melodic sequencer card.
 
 - Start/stop the sequencer independently while the arranger is stopped (Play starts the instrument engine when needed).
 - Set MIDI channel, \`Sync To\` target, scale root/type, and mode for note generation.
-- Use this sequencer's meter/grid timing, beat ratio, and pattern-pad length in beats (\`1..8\`), including the current meter numerator when needed.
 - Drag the sequencer \`::\` handle in the header to reorder melodic sequencers in the panel.
 - Clear all steps for the current sequencer.
-- \`Beat Ratio\` changes playback speed against the shared transport while keeping the stored pad length, meter, and grid unchanged.
 - Use pad transpose buttons for short-click degree transpose (also remaps configured step chords to matching diatonic chord types when available) and long-press tonic/key-step transpose.
 - Edit each step note, hold state, and velocity.
 - Set a per-step chord; the \`5\` option emits the root and perfect fifth and is marked diatonic only when both notes fit the current mode.
@@ -188,10 +183,8 @@ Diese Hilfe gilt fuer eine einzelne Karte eines melodischen Sequencers.
 
 - Sequencer separat starten/stoppen, waehrend der Arranger gestoppt ist (Play startet die Instrument-Engine bei Bedarf).
 - MIDI-Kanal, \`Sync zu\`-Ziel, Skalen-Grundton/-Typ und Modus für die Notenerzeugung setzen.
-- Die Takt-/Raster-Zeitbasis, das Beat-Verhaeltnis und die Pattern-Pad-Laenge in Beats dieses melodischen Sequencers nutzen (\`1..8\`), bei Bedarf direkt inklusive des aktuellen Taktzaehlers.
 - Das \`::\`-Handle in der Kopfzeile ziehen, um melodische Sequencer im Panel umzusortieren.
 - Alle Schritte dieses Sequencers loeschen.
-- Das Beat-Verhaeltnis aendert nur die Abspielgeschwindigkeit gegenueber dem gemeinsamen Transport; gespeicherte Pad-Laenge, Taktart und Raster bleiben gleich.
 - Pad-Transpositionsknöpfe für kurzen Klick (Stufentransposition; aktualisiert konfigurierte Step-Akkorde wenn möglich auf passende diatonische Akkordtypen) und langen Druck (Tonika/Key-Step-Transpose) nutzen.
 - Pro Schritt Note, Hold-Zustand und Velocity bearbeiten.
 - Pro Schritt einen Akkord setzen; die Option \`5\` sendet Grundton und reine Quinte und wird nur dann als diatonisch markiert, wenn beide Noten in den aktuellen Modus passen.
@@ -207,7 +200,6 @@ Cette aide s'applique a une carte individuelle de sequenceur melodique.
 
 - Demarrer/arreter le sequenceur independamment pendant que l'arrangeur est arrete (Play démarre le moteur audio si nécessaire).
 - Régler canal MIDI, cible \`Sync vers\`, tonique/type de gamme et mode pour la génération de notes.
-- Utiliser la mesure/grille, le ratio de temps et la longueur du pad en temps de ce sequenceur (\`1..8\`), avec le numerateur courant propose si besoin.
 - Glisser la poignee \`::\` de l'en-tete pour reordonner les sequenceurs melodiques dans le panneau.
 - Effacer tous les pas de ce sequenceur.
 - Le ratio de temps change seulement la vitesse de lecture face au transport partage ; la longueur stockee du pad, la mesure et la grille restent identiques.
@@ -226,7 +218,6 @@ Esta ayuda se aplica a una tarjeta individual de secuenciador melodico.
 
 - Inicia/detiene el secuenciador de forma independiente mientras el arreglador esta detenido (Play inicia el motor de audio cuando es necesario).
 - Ajusta canal MIDI, destino \`Sync con\`, raíz/tipo de escala y modo para la generación de notas.
-- Usa la metrica/cuadricula, la relacion de pulso y la longitud del pad de este secuenciador en pulsos (\`1..8\`), con el numerador actual disponible cuando haga falta.
 - Arrastra el asa \`::\` del encabezado para reordenar los secuenciadores melodicos en el panel.
 - Borra todos los pasos de este secuenciador.
 - La relacion de pulso solo cambia la velocidad frente al transporte compartido; la longitud guardada del pad, el compas y la cuadricula siguen iguales.
@@ -255,8 +246,6 @@ Drum-machine style step sequencer for fixed MIDI drum keys.
 - Program steps by toggling row LEDs on/off for each step.
 - Set per-cell velocity (0..127) for active hits by clicking and dragging up or down.
 - Active hits show red LEDs; during playback the current-step active LEDs flash green.
-- Use this drummer sequencer's meter/grid timing, beat ratio, and pad lengths in beats (\`1..8\`), including the current meter numerator when needed.
-- \`Beat Ratio\` changes how fast the row pattern cycles against the shared transport without changing the stored beat length.
 - No chord editing or transposition controls are used in this sequencer type.`
     },
     german: {
@@ -271,8 +260,6 @@ Drum-Machine-Step-Sequencer fuer feste MIDI-Drum-Keys.
 - Steps programmieren durch Ein/Aus der LED pro Reihe und Schritt.
 - Velocity pro Zelle (0..127) fuer aktive Hits durch Klicken und Ziehen nach oben oder unten setzen.
 - Aktive Hits sind rot; beim Abspielen blinken aktive LEDs im aktuellen Schritt gruen.
-- Die Takt-/Raster-Zeitbasis, das Beat-Verhaeltnis und Pad-Laengen dieses Drummer-Sequencers in Beats nutzen (\`1..8\`), bei Bedarf direkt inklusive des aktuellen Taktzaehlers.
-- Das Beat-Verhaeltnis aendert nur, wie schnell das Row-Pattern gegenueber dem gemeinsamen Transport laeuft.
 - Keine Akkord- oder Transpositionsfunktionen in diesem Sequencer-Typ.`
     },
     french: {
@@ -287,7 +274,6 @@ Séquenceur pas à pas type boîte à rythmes pour des touches MIDI fixes.
 - Programmer les pas en activant/désactivant les LED par ligne et par pas.
 - Régler la vélocité par cellule (0..127) pour les frappes actives en cliquant et en faisant glisser vers le haut ou vers le bas.
 - Les frappes actives sont rouges ; en lecture, les LED actives du pas courant clignotent en vert.
-- Utiliser la mesure/grille, le ratio de temps et les longueurs de pad en temps de ce sequenceur batterie (\`1..8\`), avec le numerateur courant propose si besoin.
 - Le ratio de temps change seulement la vitesse du motif de lignes face au transport partage.
 - Pas d'édition d'accords ni de transposition pour ce type de séquenceur.`
     },
@@ -303,7 +289,6 @@ Secuenciador por pasos estilo caja de ritmos para teclas MIDI fijas.
 - Programa pasos activando/desactivando LEDs por fila y paso.
 - Ajusta velocidad por celda (0..127) para golpes activos haciendo clic y arrastrando hacia arriba o hacia abajo.
 - Los golpes activos se muestran en rojo; durante reproducción, los LEDs activos del paso actual parpadean en verde.
-- Usa la metrica/cuadricula, la relacion de pulso y las longitudes de pad en pulsos de este secuenciador de bateria (\`1..8\`), con el numerador actual disponible cuando haga falta.
 - La relacion de pulso solo cambia la velocidad del patron de filas frente al transporte compartido.
 - Sin edición de acordes ni controles de transposición en este tipo de secuenciador.`
     }
@@ -319,9 +304,7 @@ Automate a MIDI CC value over time with a curve.
 
 - Start/stop this controller sequencer independently while the arranger is stopped (Play starts the instrument engine when needed).
 - Set the MIDI controller number (\`0..127\`).
-- Choose the repeating curve length in beats (\`1..8\`, plus \`16\` for longer controller loops) and set the beat ratio.
 - Use the curve editor to add, move, and shape key points.
-- \`Beat Ratio\` changes how quickly the curve advances against the shared transport without moving the stored key points.
 - The curve loops continuously while the lane is running.
 - The displayed \`CC n\` badge shows the target controller currently sent.`
     },
@@ -335,9 +318,7 @@ Automatisiert einen MIDI-CC-Wert über die Zeit mit einer Kurve.
 
 - Diesen Controller-Sequencer separat starten/stoppen, waehrend der Arranger gestoppt ist (Play startet die Instrument-Engine bei Bedarf).
 - MIDI-Controller-Nummer (\`0..127\`) festlegen.
-- Die wiederholte Kurvenlaenge in Beats waehlen (\`1..8\`, plus \`16\` fuer laengere Controller-Loops) und das Beat-Verhaeltnis setzen.
 - Im Kurveneditor Keypoints hinzufügen, verschieben und formen.
-- Das Beat-Verhaeltnis aendert nur, wie schnell die Kurve gegenueber dem gemeinsamen Transport laeuft; gespeicherte Keypoints bleiben unveraendert.
 - Die Kurve läuft in einer Schleife, solange die Spur aktiv ist.
 - Das angezeigte \`CC n\`-Badge zeigt den aktuell gesendeten Ziel-Controller.`
     },
@@ -351,7 +332,6 @@ Automatise une valeur MIDI CC dans le temps avec une courbe.
 
 - Démarrer/arrêter ce séquenceur contrôleur indépendamment pendant que l'arrangeur est arrêté (Play démarre le moteur audio si nécessaire).
 - Définir le numéro de contrôleur MIDI (\`0..127\`).
-- Choisir la longueur repetee de la courbe en temps (\`1..8\`, plus \`16\` pour les boucles controleur plus longues) et regler le ratio de temps.
 - Utiliser l'éditeur de courbe pour ajouter, déplacer et façonner des points-clés.
 - Le ratio de temps change seulement la vitesse de lecture de la courbe face au transport partage ; les points-cles stockes restent au meme endroit.
 - La courbe boucle en continu pendant l'exécution de la piste.
@@ -367,7 +347,6 @@ Automatiza un valor MIDI CC en el tiempo mediante una curva.
 
 - Inicia/detiene este secuenciador controlador de forma independiente mientras el arreglador está detenido (Play inicia el motor de audio cuando es necesario).
 - Define el número de controlador MIDI (\`0..127\`).
-- Elige la longitud repetida de la curva en pulsos (\`1..8\`, mas \`16\` para bucles de controlador mas largos) y ajusta la relacion de pulso.
 - Usa el editor de curva para agregar, mover y dar forma a puntos clave.
 - La relacion de pulso solo cambia la velocidad de la curva frente al transporte compartido; los puntos guardados no se mueven.
 - La curva se repite en bucle mientras la pista esté activa.
@@ -560,7 +539,6 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
   sequencer_tracks: {
     english: `### Timing Model
 
-- \`Meter\`, \`Grid\`, \`Beats\`, and \`Beat Ratio\` belong to each sequencer individually, so one performance can mix different bar lengths and playback speeds.
 - Steps are derived as \`beats * grid\`; a \`4\`-beat pad at grid \`4\` yields \`16\` editable steps.
 - \`Sync To\` lets one sequencer follow another sequencer's cycle boundary instead of free-running against the shared transport.
 
@@ -572,7 +550,6 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 - \`HOLD\` sustains the previous note instead of sending a fresh note trigger on that step.`,
     german: `### Timing-Modell
 
-- \`Takt\`, \`Raster\`, \`Beats\` und \`Beat-Verhaeltnis\` gehoeren zu jedem Sequencer einzeln, sodass eine Performance unterschiedliche Taktlaengen und Abspielgeschwindigkeiten mischen kann.
 - Die Schrittzahl ergibt sich aus \`beats * grid\`; ein \`4\`-Beat-Pad mit Raster \`4\` ergibt \`16\` bearbeitbare Schritte.
 - \`Sync zu\` laesst einen Sequencer an der Zyklusgrenze eines anderen Sequencers folgen, statt frei gegen den gemeinsamen Transport zu laufen.
 
@@ -584,7 +561,6 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 - \`HOLD\` verlaengert die vorherige Note, statt in diesem Schritt einen neuen Note-Trigger zu senden.`,
     french: `### Modele temporel
 
-- \`Meter\`, \`Grid\`, \`Beats\` et \`Beat Ratio\` appartiennent a chaque sequenceur individuellement ; une meme performance peut donc melanger plusieurs longueurs de mesure et vitesses de lecture.
 - Le nombre de pas vaut \`beats * grid\` ; un pad de \`4\` temps avec une grille \`4\` donne \`16\` pas editables.
 - \`Sync vers\` permet a un sequenceur de suivre la frontiere de cycle d'un autre sequenceur au lieu de tourner librement sur le transport partage.
 
@@ -596,7 +572,6 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 - \`HOLD\` prolonge la note precedente au lieu d'envoyer un nouveau declenchement sur ce pas.`,
     spanish: `### Modelo temporal
 
-- \`Meter\`, \`Grid\`, \`Beats\` y \`Beat Ratio\` pertenecen a cada secuenciador por separado, asi que una misma performance puede mezclar longitudes de compas y velocidades distintas.
 - Los pasos se derivan como \`beats * grid\`; un pad de \`4\` pulsos con cuadricula \`4\` produce \`16\` pasos editables.
 - \`Sync con\` permite que un secuenciador siga el limite de ciclo de otro en lugar de correr libremente contra el transporte compartido.
 
@@ -612,7 +587,6 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 
 - \`Start\` and \`Stop\` control only this sequencer; Play starts the instrument engine when needed.
 - \`Clear Steps\` resets the selected editing pad of this sequencer, not every pad in the performance.
-- \`Beats\` changes the pad length in beats, while \`Meter\` and \`Grid\` determine how many editable steps fit inside that span.
 
 ### Pads And Copy Behavior
 
@@ -623,7 +597,6 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 
 - \`Start\` und \`Stop\` steuern nur diesen Sequencer; Play startet die Instrument-Engine bei Bedarf.
 - \`Clear Steps\` setzt nur das zur Bearbeitung ausgewählte Pattern-Pad dieses Sequencers zurueck, nicht alle Pads der Performance.
-- \`Beats\` aendert die Pad-Laenge in Beats, waehrend \`Takt\` und \`Raster\` festlegen, wie viele bearbeitbare Schritte in diese Laenge passen.
 
 ### Pad- und Kopierverhalten
 
@@ -634,7 +607,6 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 
 - \`Start\` et \`Stop\` commandent seulement ce séquenceur ; Play démarre le moteur audio si nécessaire.
 - \`Clear Steps\` reinitialise uniquement le pad de pattern actif de ce sequenceur, pas tous les pads de la performance.
-- \`Beats\` change la longueur du pad en temps, tandis que \`Meter\` et \`Grid\` determinent combien de pas editables tiennent dans cette duree.
 
 ### Comportement des pads et copies
 
@@ -645,7 +617,6 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 
 - \`Start\` y \`Stop\` controlan solo este secuenciador; Play inicia el motor de audio cuando es necesario.
 - \`Clear Steps\` reinicia solo el pad de patron activo de este secuenciador, no todos los pads de la performance.
-- \`Beats\` cambia la longitud del pad en pulsos, mientras \`Meter\` y \`Grid\` determinan cuantos pasos editables caben en ese tramo.
 
 ### Comportamiento de pads y copias
 
@@ -662,7 +633,6 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 
 ### Timing And Pads
 
-- \`Meter\`, \`Grid\`, \`Beats\`, and \`Beat Ratio\` work like melodic sequencers, but pad content stores row/hit data instead of note/chord data.
 - Drummer pads do not use scale, chord, or transpose controls.`,
     german: `### Zeilen- und Hit-Modell
 
@@ -672,7 +642,6 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 
 ### Timing und Pads
 
-- \`Takt\`, \`Raster\`, \`Beats\` und \`Beat-Verhaeltnis\` funktionieren wie bei melodischen Sequencern, aber der Pad-Inhalt speichert Row-/Hit-Daten statt Noten-/Akkord-Daten.
 - Drummer-Pads verwenden keine Skalen-, Akkord- oder Transpositionssteuerungen.`,
     french: `### Modele des lignes et impacts
 
@@ -682,7 +651,6 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 
 ### Timing et pads
 
-- \`Meter\`, \`Grid\`, \`Beats\` et \`Beat Ratio\` fonctionnent comme pour les sequenceurs melodiques, mais le contenu du pad stocke des donnees ligne/impact au lieu de notes/accords.
 - Les pads batterie n'utilisent ni gamme, ni accords, ni commandes de transposition.`,
     spanish: `### Modelo de filas y golpes
 
@@ -692,15 +660,12 @@ export const sequencerHelpAppendices: HelpDocumentAppendixSet<SequencerHelpDocId
 
 ### Timing y pads
 
-- \`Meter\`, \`Grid\`, \`Beats\` y \`Beat Ratio\` funcionan como en los secuenciadores melodicos, pero el contenido del pad guarda datos de fila/golpe en lugar de notas/acordes.
 - Los pads de bateria no usan controles de escala, acorde ni transposicion.`
   },
   sequencer_controller_sequencer: {
     english: `### Curve Playback
 
 - The selected controller number is sent repeatedly from the sampled curve while this lane is running.
-- Curve length changes the loop duration, but key points keep their relative position across the full span.
-- \`Beat Ratio\` changes how quickly the curve cycles against the shared transport, which is useful for slow sweeps or faster rhythmic modulation.
 
 ### Editing Rules
 
@@ -713,7 +678,6 @@ Edits to the displayed pad are combined after 80 ms and take effect at the next 
 
 - Die gewaehlte Controller-Nummer wird waehrend des Laufens dieser Spur fortlaufend aus der gesampelten Kurve gesendet.
 - Die Kurvenlaenge aendert die Loop-Dauer, aber Keypoints behalten ihre relative Position ueber die gesamte Laenge.
-- Das \`Beat-Verhaeltnis\` aendert, wie schnell die Kurve gegen den gemeinsamen Transport zyklisch laeuft; das ist nuetzlich fuer langsame Sweeps oder schnellere rhythmische Modulation.
 
 ### Bearbeitungsregeln
 
@@ -726,7 +690,6 @@ Aenderungen am angezeigten Pad werden nach 80 ms zusammengefasst und beim naechs
 
 - Le numero de controleur choisi est emis en continu depuis la courbe echantillonnee tant que cette piste tourne.
 - La longueur de courbe change la duree de boucle, mais les points-cles gardent leur position relative sur toute la plage.
-- \`Beat Ratio\` change la vitesse de cycle de la courbe face au transport partage ; c'est utile pour des sweeps lents ou des modulations rythmiques plus rapides.
 
 ### Regles d'edition
 
@@ -739,7 +702,6 @@ Les modifications du pad affiche sont regroupees apres 80 ms et appliquees au pr
 
 - El numero de controlador elegido se envia de forma continua desde la curva muestreada mientras esta pista esta en marcha.
 - La longitud de la curva cambia la duracion del bucle, pero los puntos clave mantienen su posicion relativa en todo el tramo.
-- \`Beat Ratio\` cambia la velocidad con la que la curva cicla frente al transporte compartido; resulta util para barridos lentos o modulaciones ritmicas mas rapidas.
 
 ### Reglas de edicion
 
@@ -936,5 +898,11 @@ for (const language of ["english", "german", "french", "spanish"] as const) {
 for (const language of ["english", "german", "french", "spanish"] as const) {
   for (const id of ["sequencer_tracks", "sequencer_drummer_sequencer", "sequencer_controller_sequencer", "sequencer_arpeggiator", "sequencer_multitrack_arranger"] as const) {
     sequencerHelpDocuments[id][language].markdown += "\n\n" + independentPlaybackHelp[language];
+  }
+}
+
+for (const language of ["english", "german", "french", "spanish"] as const) {
+  for (const id of ["sequencer_tracks", "sequencer_drummer_sequencer", "sequencer_controller_sequencer", "sequencer_track_editor"] as const) {
+    sequencerHelpDocuments[id][language].markdown += "\n\n" + sequencerTimingHelp[language];
   }
 }

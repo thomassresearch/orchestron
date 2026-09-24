@@ -128,9 +128,9 @@ it("persists the cursor, defers autosave during playback, and accepts legacy fil
   const before = capturePersistWatchState(store());
   place(2); place(3); store().undoArranger();
   const saved = store().buildSequencerConfigSnapshot();
-  expect(saved.version).toBe(16);
+  expect(saved.version).toBe(17);
   const app = buildPersistedAppStateSnapshot(store());
-  expect(app.version).toBe(2);
+  expect(app.version).toBe(3);
   expect(readArrangerHistory(JSON.parse(JSON.stringify(app.arrangerHistory)), store().sequencer).arrangerHistory).toEqual(store().arrangerHistory);
   expect(shouldDeferSequencerPersistence(capturePersistWatchState(store()), before, true)).toBe(true);
   expect(parseSequencerConfigSnapshot(saved, [], null).arrangerHistory.cursor).toBe(1);
@@ -216,4 +216,41 @@ it("saves song looping while keeping it outside undo history and preserving tran
   store().setSequencerArrangerSongLoopEnabled(false);
   store().applySequencerConfigSnapshot(saved);
   expect(store().sequencer.arrangerSongLoopEnabled).toBe(true);
+});
+
+it("migrates legacy /8 history basis and before/after values and retains undo/redo", () => {
+  place(2); place(3); store().undoArranger();
+  const legacy = structuredClone(store().buildSequencerConfigSnapshot());
+  legacy.version = 16;
+  legacy.sequencer.tracks[0].timing!.meterDenominator = 8;
+  for (const basis of legacy.arrangerHistory!.basis) delete basis.meterDenominator;
+  store().applySequencerConfigSnapshot(legacy);
+  expect(store().arrangerHistoryNotice).toBe(false);
+  expect(store().arrangerHistory.cursor).toBe(1);
+  expect(lane().pads[0].lengthBeats).toBe(8);
+  expect(lane().timing.stepsPerBeat).toBe(2);
+  expect(historyMatches(store().sequencer, store().arrangerHistory)).toBe(true);
+  store().redoArranger(); expect(root()).toEqual([pad(3)]);
+  store().undoArranger(); expect(root()).toEqual([pad(2)]);
+  const roundtrip = store().buildSequencerConfigSnapshot();
+  store().applySequencerConfigSnapshot(roundtrip);
+  expect(store().arrangerHistoryNotice).toBe(false);
+  expect(lane().pads[0].lengthBeats).toBe(8);
+});
+
+it("restores copied pads through migrated /8 undo history without losing hidden notes", () => {
+  const original = structuredClone(lane().pads[0]);
+  store().commitArrangerEdit("variation", [{id:lane().id,kind:"sequencer",copyPad:{from:0,to:3},pattern:{...lane().padLoopPattern,rootSequence:[pad(3)]}}]);
+  const legacy = structuredClone(store().buildSequencerConfigSnapshot());
+  legacy.version = 16;
+  legacy.sequencer.tracks[0].timing!.meterDenominator = 8;
+  for (const basis of legacy.arrangerHistory!.basis) delete basis.meterDenominator;
+  store().applySequencerConfigSnapshot(legacy);
+  expect(store().arrangerHistoryNotice).toBe(false);
+  expect(lane().pads[3].steps).toEqual(original.steps);
+  expect(lane().pads[3].lengthBeats).toBe(original.lengthBeats * 2);
+  store().undoArranger();
+  store().redoArranger();
+  expect(lane().pads[3].steps).toEqual(original.steps);
+  expect(lane().pads[3].stepCount).toBe(original.stepCount);
 });

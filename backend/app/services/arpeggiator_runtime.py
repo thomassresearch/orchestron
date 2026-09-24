@@ -20,6 +20,7 @@ from backend.app.models.session import (
     SequencerScaleRoot,
 )
 from backend.app.services.sequencer_runtime_models import RenderTransportEvent
+from backend.app.services.sequencer_runtime_constants import TRANSPORT_SUBUNITS_PER_BEAT
 from backend.app.engine.lane_output import LaneOutputGate, lane_id
 from backend.app.services.preview_commands import PreviewCommands
 
@@ -319,7 +320,7 @@ class PerformanceMidiRouter:
             self._sequence += 1
             heapq.heappush(self._transport_events, (
                 self._current_engine_sample() if sample is None else sample, self._sequence,
-                Fraction(beat).limit_denominator(3_360_000), running, reset,
+                Fraction(beat).limit_denominator(TRANSPORT_SUBUNITS_PER_BEAT * 1000), running, reset,
             ))
 
     def transport_discontinuity(self, beat: float, *, stopped: bool = False, sample: int | None = None) -> None:

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from backend.app.services.sequencer_runtime_constants import TRANSPORT_SUBUNITS_PER_BEAT
+
 import asyncio
 import logging
 from datetime import datetime, timezone
@@ -1033,7 +1035,7 @@ class SessionService:
                         status = sequencer.start(position)
                     if (start or seek) and not sequencer.sources.active:
                         router = self._ensure_midi_router(runtime)
-                        router.set_transport(beat=status.transport_subunit / 3360,
+                        router.set_transport(beat=status.transport_subunit / TRANSPORT_SUBUNITS_PER_BEAT,
                             running=router.arranger_running if arranger_active is None else arranger_active,
                             bar_beats=status.timing.meter_numerator)
                     return self._status_with_arpeggiators(runtime, status)
@@ -1126,7 +1128,7 @@ class SessionService:
             self._ensure_sequencer(runtime).clear_auditions(stop=not active)
             self._ensure_midi_router(runtime).clear_auditions(stop=not active)
             status = self._ensure_sequencer(runtime).status()
-            self._ensure_midi_router(runtime).set_transport(beat=status.transport_subunit / 3360,
+            self._ensure_midi_router(runtime).set_transport(beat=status.transport_subunit / TRANSPORT_SUBUNITS_PER_BEAT,
                 running=active, bar_beats=status.timing.meter_numerator)
             return self._status_with_arpeggiators(runtime, status)
         return await asyncio.to_thread(runtime.worker.run_at_render_boundary, at_boundary)
@@ -1155,7 +1157,7 @@ class SessionService:
                         self._ensure_sequencer(runtime).clear_auditions()
                         self._ensure_midi_router(runtime).clear_auditions()
                     status = self._ensure_sequencer(runtime).start(request.position_step)
-                    self._ensure_midi_router(runtime).set_transport(beat=status.transport_subunit / 3360,
+                    self._ensure_midi_router(runtime).set_transport(beat=status.transport_subunit / TRANSPORT_SUBUNITS_PER_BEAT,
                         running=request.arranger_active, bar_beats=status.timing.meter_numerator)
                     return self._status_with_arpeggiators(runtime, status)
 
@@ -1191,7 +1193,7 @@ class SessionService:
         status = sequencer.stop()
         self._ensure_midi_router(runtime).clear_auditions(stop=True)
         self._ensure_midi_router(runtime).stop_source_transport()
-        self._ensure_midi_router(runtime).set_transport(beat=status.transport_subunit / 3360, running=False)
+        self._ensure_midi_router(runtime).set_transport(beat=status.transport_subunit / TRANSPORT_SUBUNITS_PER_BEAT, running=False)
         status = self._status_with_arpeggiators(runtime, status)
 
         await self._publish(runtime.session_id, "sequencer_stopped", {"cycle": status.cycle})
@@ -1373,7 +1375,7 @@ class SessionService:
         def rewind_at_boundary():
             status = sequencer.rewind_cycle()
             router = self._ensure_midi_router(runtime)
-            router.transport_discontinuity(status.transport_subunit / 3360)
+            router.transport_discontinuity(status.transport_subunit / TRANSPORT_SUBUNITS_PER_BEAT)
             return self._status_with_arpeggiators(runtime, status)
 
         status = await asyncio.to_thread(runtime.worker.run_at_render_boundary, rewind_at_boundary)
@@ -1392,7 +1394,7 @@ class SessionService:
         def forward_at_boundary():
             status = sequencer.forward_cycle()
             router = self._ensure_midi_router(runtime)
-            router.transport_discontinuity(status.transport_subunit / 3360)
+            router.transport_discontinuity(status.transport_subunit / TRANSPORT_SUBUNITS_PER_BEAT)
             return self._status_with_arpeggiators(runtime, status)
 
         status = await asyncio.to_thread(runtime.worker.run_at_render_boundary, forward_at_boundary)

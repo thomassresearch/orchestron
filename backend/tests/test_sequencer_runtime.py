@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from backend.app.services.sequencer_runtime_constants import TRANSPORT_SUBUNITS_PER_STEP, TRANSPORT_SUBUNITS_PER_BEAT
+
 import json
 from pathlib import Path
 
@@ -295,7 +297,7 @@ def test_sequencer_step_event_carries_lightweight_runtime_delta() -> None:
     assert payload["cycle"] == 0
     assert payload["running"] is True
     assert payload["step_count"] == 8
-    assert payload["transport_subunit"] == 420
+    assert payload["transport_subunit"] == TRANSPORT_SUBUNITS_PER_STEP
     assert "sequencer_status" not in payload
 
     tracks = payload["tracks"]
@@ -465,7 +467,7 @@ def test_seek_applies_new_loop_bounds_and_position_together(playing: bool) -> No
     status = runtime.apply_prepared(compile_sequencer_runtime_config(request, controller_default_channels=(1,)),
         position_step=32)
     assert status.running is playing
-    assert status.transport_subunit == 32 * 420
+    assert status.transport_subunit == 32 * TRANSPORT_SUBUNITS_PER_STEP
     assert status.tracks[0].active_pad == 1
     if playing:
         assert [0x80, 67, 0] in [message for _, batch, _ in midi.calls for message in batch]
@@ -476,7 +478,7 @@ def test_seek_applies_new_loop_bounds_and_position_together(playing: bool) -> No
         for _ in range(800):
             runtime.advance_render_block(sample_rate=48000, ksmps=64)
             positions.append(runtime.status().transport_subunit)
-        assert all(32 * 420 <= position < 40 * 420 for position in positions)
+        assert all(32 * TRANSPORT_SUBUNITS_PER_STEP <= position < 40 * TRANSPORT_SUBUNITS_PER_STEP for position in positions)
         assert any(after < before for before, after in zip(positions, positions[1:]))
 
     # Clearing a late loop and jumping back must not stop at the new end first.
@@ -486,11 +488,11 @@ def test_seek_applies_new_loop_bounds_and_position_together(playing: bool) -> No
     status = runtime.apply_prepared(compile_sequencer_runtime_config(request, controller_default_channels=(1,)),
         position_step=4)
     assert status.running is playing
-    assert status.transport_subunit == 4 * 420
+    assert status.transport_subunit == 4 * TRANSPORT_SUBUNITS_PER_STEP
     assert status.tracks[0].active_pad == 0
     if playing:
         runtime.advance_render_block(sample_rate=48000, ksmps=64)
-        assert runtime.status().transport_subunit > 4 * 420
+        assert runtime.status().transport_subunit > 4 * TRANSPORT_SUBUNITS_PER_STEP
 
 
 def test_controller_channel_edit_sends_current_value_and_preserves_transport_and_queue() -> None:
@@ -584,13 +586,13 @@ def test_preview_preserves_manual_phase_stopped_tracks_and_existing_audition():
     runtime._midi_service.arranger_running = False
     lead = runtime._config.tracks["lead"]
     lead.active_pad = 1
-    lead.phase_offset_subunit = 420
-    runtime._absolute_subunit = 840
+    lead.phase_offset_subunit = TRANSPORT_SUBUNITS_PER_STEP
+    runtime._absolute_subunit = (2 * TRANSPORT_SUBUNITS_PER_STEP)
     runtime.audition(_preview_command())
     assert runtime.status().auditions["lead"]["preview_active"]
     runtime._absolute_subunit = 1260
     runtime.audition(_preview_command("preview_end", 2))
-    assert lead.enabled and lead.active_pad == 1 and lead.phase_offset_subunit == 420
+    assert lead.enabled and lead.active_pad == 1 and lead.phase_offset_subunit == TRANSPORT_SUBUNITS_PER_STEP
     runtime.audition(SessionAuditionRequest(action="start", track_ids=["lead"], sequence=[0, -1]))
     runtime._seek_absolute_subunit_locked(3000)
     previous = dict(runtime._auditions["lead"])
@@ -637,8 +639,8 @@ def test_standalone_preview_return_does_not_enable_other_stopped_lanes():
     assert runtime.status().auditions["lead"]["preview_active"]
     assert runtime._config.tracks["lead"].enabled
     assert not runtime._config.tracks["other"].enabled
-    runtime._seek_absolute_subunit_locked(1680)
-    assert runtime._auditions["lead"]["origin"] == 1680
+    runtime._seek_absolute_subunit_locked((4 * TRANSPORT_SUBUNITS_PER_STEP))
+    assert runtime._auditions["lead"]["origin"] == (4 * TRANSPORT_SUBUNITS_PER_STEP)
     runtime.audition(_preview_command("preview_end", 2))
     assert not runtime._config.tracks["lead"].enabled
     assert not runtime._config.tracks["other"].enabled
@@ -648,23 +650,23 @@ def test_audition_boundary_return_into_rest_and_finite_end_preserves_other_track
     from backend.app.models.session import SessionAuditionRequest
     runtime, request = _audition_runtime()
     runtime.start()
-    runtime._absolute_subunit = 3360
+    runtime._absolute_subunit = TRANSPORT_SUBUNITS_PER_BEAT
     runtime.audition(SessionAuditionRequest(action="start", track_ids=["lead"], sequence=[1, -2]))
     assert runtime.status().auditions == {"lead": {"active": False, "queued": "start"}}
-    runtime._advance_render_to_event_locked(runtime._config, 4 * 3360)
+    runtime._advance_render_to_event_locked(runtime._config, 4 * TRANSPORT_SUBUNITS_PER_BEAT)
     lead = runtime._config.tracks["lead"]
     other = runtime._config.tracks["other"]
-    assert (lead.active_pad, lead.pad_loop_position, lead.phase_offset_subunit) == (1, 0, 4 * 3360)
-    assert (other.pad_loop_position, other.phase_offset_subunit) == (1, 4 * 3360)
+    assert (lead.active_pad, lead.pad_loop_position, lead.phase_offset_subunit) == (1, 0, 4 * TRANSPORT_SUBUNITS_PER_BEAT)
+    assert (other.pad_loop_position, other.phase_offset_subunit) == (1, 4 * TRANSPORT_SUBUNITS_PER_BEAT)
     runtime.audition(SessionAuditionRequest(action="return", track_ids=["lead"]))
-    runtime._advance_render_to_event_locked(runtime._config, 8 * 3360)
+    runtime._advance_render_to_event_locked(runtime._config, 8 * TRANSPORT_SUBUNITS_PER_BEAT)
     assert lead.active_pad == 1 and lead.pad_loop_position == 2
     assert not runtime.status().auditions
     # Returning past an authored finite end leaves the track ended.
     runtime.audition(SessionAuditionRequest(action="start", track_ids=["lead"], sequence=[1]))
-    runtime._advance_render_to_event_locked(runtime._config, 12 * 3360)
+    runtime._advance_render_to_event_locked(runtime._config, 12 * TRANSPORT_SUBUNITS_PER_BEAT)
     runtime.audition(SessionAuditionRequest(action="return", track_ids=["lead"]))
-    runtime._advance_render_to_event_locked(runtime._config, 16 * 3360)
+    runtime._advance_render_to_event_locked(runtime._config, 16 * TRANSPORT_SUBUNITS_PER_BEAT)
     assert not lead.enabled and lead.sequence_ended
     assert request.tracks[0].pad_loop_sequence == [0, -4, 1]
     assert not request.tracks[0].pad_loop_repeat
@@ -677,7 +679,7 @@ def test_stopped_audition_only_starts_target_and_seek_restarts_first_token():
     assert runtime.status().running
     assert runtime._config.tracks["lead"].enabled
     assert not runtime._config.tracks["other"].enabled
-    runtime._seek_absolute_subunit_locked(48 * 420)
+    runtime._seek_absolute_subunit_locked(48 * TRANSPORT_SUBUNITS_PER_STEP)
     lead = runtime._config.tracks["lead"]
     assert lead.active_pad == 1 and lead.pad_loop_position == 0
     assert lead.phase_offset_subunit == runtime._absolute_subunit
@@ -708,28 +710,28 @@ def test_audition_waits_for_disabled_track_boundary_and_returns_into_rest():
     request.tracks[0].enabled = False
     runtime.configure(request)
     runtime.start()
-    runtime._absolute_subunit = 3360
+    runtime._absolute_subunit = TRANSPORT_SUBUNITS_PER_BEAT
     runtime.audition(SessionAuditionRequest(action="start", track_ids=["lead"], sequence=[-1, 1]))
     assert runtime.status().auditions["lead"] == {"active": False, "queued": "start"}
-    runtime._advance_render_to_event_locked(runtime._config, 4 * 3360)
+    runtime._advance_render_to_event_locked(runtime._config, 4 * TRANSPORT_SUBUNITS_PER_BEAT)
     assert runtime._config.tracks["lead"].pad_loop_position == 0
     runtime.audition(SessionAuditionRequest(action="return", track_ids=["lead"]))
-    runtime._advance_render_to_event_locked(runtime._config, 5 * 3360)
+    runtime._advance_render_to_event_locked(runtime._config, 5 * TRANSPORT_SUBUNITS_PER_BEAT)
     assert not runtime._config.tracks["lead"].enabled
     assert not runtime.status().auditions
 
     # An enabled arrangement resumes in its authored silence at beat five.
     runtime, request = _audition_runtime()
     runtime.start()
-    runtime._absolute_subunit = 3360
+    runtime._absolute_subunit = TRANSPORT_SUBUNITS_PER_BEAT
     runtime.audition(SessionAuditionRequest(action="start", track_ids=["lead"], sequence=[-1, 1]))
-    runtime._advance_render_to_event_locked(runtime._config, 4 * 3360)
+    runtime._advance_render_to_event_locked(runtime._config, 4 * TRANSPORT_SUBUNITS_PER_BEAT)
     runtime.audition(SessionAuditionRequest(action="return", track_ids=["lead"]))
-    runtime._advance_render_to_event_locked(runtime._config, 5 * 3360)
+    runtime._advance_render_to_event_locked(runtime._config, 5 * TRANSPORT_SUBUNITS_PER_BEAT)
     lead = runtime._config.tracks["lead"]
     assert lead.enabled and lead.pad_loop_position == 1
     assert runtime._current_pad_loop_token(lead) == -4
-    assert lead.phase_offset_subunit == 4 * 3360
+    assert lead.phase_offset_subunit == 4 * TRANSPORT_SUBUNITS_PER_BEAT
     assert runtime._config.tracks["other"].pad_loop_position == 1
 
 
@@ -746,14 +748,14 @@ def test_controller_audition_keeps_rational_boundaries_and_restarts_on_song_loop
     }])
     runtime.configure(SessionSequencerConfigRequest.model_validate(payload))
     runtime.start()
-    runtime._absolute_subunit = 3360
+    runtime._absolute_subunit = TRANSPORT_SUBUNITS_PER_BEAT
     runtime.audition(SessionAuditionRequest(action="start", track_ids=["filter"], sequence=[1, -1]))
-    boundary = 4 * 3360 * 2 // 3
+    boundary = 4 * TRANSPORT_SUBUNITS_PER_BEAT * 2 // 3
     assert runtime._auditions["filter"]["boundary"] == boundary
     runtime._advance_render_to_event_locked(runtime._config, boundary)
     track = runtime._config.controller_tracks["filter"]
     assert track.active_pad == 1 and track.phase_offset_subunit == boundary
-    runtime._advance_render_to_event_locked(runtime._config, 64 * 420)
+    runtime._advance_render_to_event_locked(runtime._config, 64 * TRANSPORT_SUBUNITS_PER_STEP)
     assert runtime._absolute_subunit == 0
     assert track.active_pad == 1 and track.pad_loop_position == 0 and track.phase_offset_subunit == 0
     runtime.audition(SessionAuditionRequest(action="stop", track_ids=["filter"]))
@@ -766,12 +768,12 @@ def test_seek_applies_pending_audition_replacement_and_return_at_destination():
     runtime, _ = _audition_runtime()
     runtime.audition(SessionAuditionRequest(action="start", track_ids=["lead"], sequence=[0]))
     runtime.audition(SessionAuditionRequest(action="start", track_ids=["lead"], sequence=[1, -2]))
-    runtime._seek_absolute_subunit_locked(5 * 3360)
+    runtime._seek_absolute_subunit_locked(5 * TRANSPORT_SUBUNITS_PER_BEAT)
     lead = runtime._config.tracks["lead"]
-    assert lead.active_pad == 1 and lead.phase_offset_subunit == 5 * 3360
+    assert lead.active_pad == 1 and lead.phase_offset_subunit == 5 * TRANSPORT_SUBUNITS_PER_BEAT
     assert runtime.audition_status()["lead"] == {"active": True, "queued": None}
     runtime.audition(SessionAuditionRequest(action="return", track_ids=["lead"]))
-    runtime._seek_absolute_subunit_locked(6 * 3360)
+    runtime._seek_absolute_subunit_locked(6 * TRANSPORT_SUBUNITS_PER_BEAT)
     assert not runtime.audition_status()
     assert runtime._current_pad_loop_token(lead) == -4
 
@@ -779,7 +781,7 @@ def test_seek_applies_pending_audition_replacement_and_return_at_destination():
 def test_cancel_preview_before_boundary_leaves_notes_and_clock_untouched():
     runtime, _ = _preview_runtime()
     runtime.start()
-    runtime._advance_render_to_event_locked(runtime._config, 3360)
+    runtime._advance_render_to_event_locked(runtime._config, TRANSPORT_SUBUNITS_PER_BEAT)
     midi = runtime._midi_service
     before = list(midi.calls)
     lead = runtime._config.tracks["lead"]
@@ -788,7 +790,7 @@ def test_cancel_preview_before_boundary_leaves_notes_and_clock_untouched():
     runtime.audition(_preview_command("preview_end", 2))
     assert midi.calls == before
     assert lead.phase_offset_subunit == phase and lead.active_pad == 0
-    assert runtime._absolute_subunit == 3360 and runtime.status().arranger_active
+    assert runtime._absolute_subunit == TRANSPORT_SUBUNITS_PER_BEAT and runtime.status().arranger_active
     assert not runtime.status().auditions
 
 
@@ -806,8 +808,8 @@ def test_workspace_preview_layers_restore_manual_phase_and_stopped_state():
     runtime._midi_service.arranger_running = False
     lead = runtime._config.tracks["lead"]
     lead.active_pad = 1
-    lead.phase_offset_subunit = 420
-    runtime._absolute_subunit = 840
+    lead.phase_offset_subunit = TRANSPORT_SUBUNITS_PER_STEP
+    runtime._absolute_subunit = (2 * TRANSPORT_SUBUNITS_PER_STEP)
     runtime.audition(_workspace_command())
     workspace_origin = runtime._auditions["lead"]["origin"]
     assert runtime.audition_status()["lead"]["workspace_active"]
@@ -819,7 +821,7 @@ def test_workspace_preview_layers_restore_manual_phase_and_stopped_state():
     assert "preview" not in runtime._auditions["lead"]
     runtime.audition(_workspace_command("workspace_end", 2))
     assert not runtime.audition_status()
-    assert lead.enabled and lead.active_pad == 1 and lead.phase_offset_subunit == 420
+    assert lead.enabled and lead.active_pad == 1 and lead.phase_offset_subunit == TRANSPORT_SUBUNITS_PER_STEP
     runtime.clear_auditions(stop=True)
     lead.enabled = False
     runtime.audition(_workspace_command(revision=3))
@@ -834,7 +836,7 @@ def test_workspace_status_tracks_occurrences_rests_and_wrap_for_all_drummer_rows
     runtime.audition(_workspace_command(sequence=sequence, targets=targets))
     for beat, position in [(0, 0), (4, 1), (8, 2), (9, 3), (13, 0)]:
         if beat:
-            runtime._advance_render_to_event_locked(runtime._config, beat * 3360)
+            runtime._advance_render_to_event_locked(runtime._config, beat * TRANSPORT_SUBUNITS_PER_BEAT)
         for identity in targets:
             status = runtime.audition_status()[identity]
             assert status["workspace_sequence"] == sequence
@@ -855,12 +857,12 @@ def test_workspace_status_keeps_audible_sequence_until_queued_edit_starts():
     runtime.audition(_workspace_command(sequence=[0, 1]))
     queued = runtime.audition_status()["lead"]
     assert queued["workspace_position"] is None and queued["workspace_sequence"] == []
-    runtime._advance_render_to_event_locked(runtime._config, 4 * 3360)
+    runtime._advance_render_to_event_locked(runtime._config, 4 * TRANSPORT_SUBUNITS_PER_BEAT)
     runtime.audition(_workspace_command(revision=2, sequence=[1, 0]))
     queued = runtime.audition_status()["lead"]
     assert queued["workspace_position"] == 0 and queued["workspace_sequence"] == [0, 1]
     assert queued["workspace_queued"]
-    runtime._advance_render_to_event_locked(runtime._config, 8 * 3360)
+    runtime._advance_render_to_event_locked(runtime._config, 8 * TRANSPORT_SUBUNITS_PER_BEAT)
     playing = runtime.audition_status()["lead"]
     assert playing["workspace_position"] == 0 and playing["workspace_sequence"] == [1, 0]
     assert not playing["workspace_queued"]
@@ -873,13 +875,13 @@ def test_repeated_workspace_pad_emits_a_boundary_marker_without_a_global_step_ch
     runtime.configure(request)
     runtime.start()
     runtime._midi_service.arranger_running = False
-    runtime._absolute_subunit = 210
+    runtime._absolute_subunit = TRANSPORT_SUBUNITS_PER_STEP // 2
     runtime.audition(_workspace_command(sequence=[0, 0]))
-    runtime._advance_render_to_event_locked(runtime._config, 1680)
+    runtime._advance_render_to_event_locked(runtime._config, (4 * TRANSPORT_SUBUNITS_PER_STEP))
     runtime._render_block_start_sample = 100
     runtime._render_event_sample = 100
-    runtime._advance_render_to_event_locked(runtime._config, 1890)
-    assert runtime._absolute_subunit // 420 == 4
+    runtime._advance_render_to_event_locked(runtime._config, TRANSPORT_SUBUNITS_PER_STEP * 9 // 2)
+    assert runtime._absolute_subunit // TRANSPORT_SUBUNITS_PER_STEP == 4
     event = runtime._render_transport_events[-1]
     assert event.kind == "pad_switches"
     assert event.payload["auditions"]["lead"]["workspace_position"] == 1
@@ -903,10 +905,10 @@ def test_workspace_update_under_speaker_returns_to_updated_workspace_then_origin
 
 def test_workspace_updates_follow_hidden_cycle_and_release_keeps_elapsed_position():
     runtime, _ = _preview_runtime()
-    beat = 3360
+    beat = TRANSPORT_SUBUNITS_PER_BEAT
     runtime.audition(_workspace_command(sequence=[-1, 0]))
     runtime.audition(_preview_command())
-    runtime._absolute_subunit = 420
+    runtime._absolute_subunit = TRANSPORT_SUBUNITS_PER_STEP
     runtime.audition(_workspace_command(revision=2, sequence=[0, -1, 1]))
     pending = runtime._auditions["lead"]["preview"]["previous"]
     assert pending["boundary"] == beat  # Workspace rest, not the four-beat speaker pad.
@@ -921,7 +923,7 @@ def test_workspace_updates_follow_hidden_cycle_and_release_keeps_elapsed_positio
 @pytest.mark.parametrize("release_beat", [3, 6])
 def test_repeated_workspace_updates_under_speaker_use_already_due_replacement(release_beat):
     runtime, _ = _preview_runtime()
-    beat = 3360
+    beat = TRANSPORT_SUBUNITS_PER_BEAT
     runtime.audition(_workspace_command(sequence=[-1, 0]))
     runtime.audition(_preview_command())
     runtime.audition(_workspace_command(revision=2, sequence=[0, -1, 1]))
@@ -944,12 +946,12 @@ def test_seek_resets_every_audition_layer_before_nested_restoration():
     runtime.audition(SessionAuditionRequest(action="start", track_ids=["lead"], sequence=[0, -1]))
     runtime.audition(_workspace_command())
     runtime.audition(_preview_command())
-    runtime._seek_absolute_subunit_locked(5 * 3360)
+    runtime._seek_absolute_subunit_locked(5 * TRANSPORT_SUBUNITS_PER_BEAT)
     runtime.audition(_preview_command("preview_end", 2))
     runtime.audition(_workspace_command("workspace_end", 2))
     lead = runtime._config.tracks["lead"]
-    assert runtime._auditions["lead"]["origin"] == 5 * 3360
-    assert lead.phase_offset_subunit == 5 * 3360 and lead.pad_loop_position == 0
+    assert runtime._auditions["lead"]["origin"] == 5 * TRANSPORT_SUBUNITS_PER_BEAT
+    assert lead.phase_offset_subunit == 5 * TRANSPORT_SUBUNITS_PER_BEAT and lead.pad_loop_position == 0
 
 
 def test_workspace_stop_during_speaker_cannot_be_undone_by_late_release():
@@ -967,7 +969,7 @@ def test_workspace_stop_during_speaker_cannot_be_undone_by_late_release():
 def test_workspace_queued_cancel_rows_and_reconfiguration_preserve_authored_data():
     runtime, request = _preview_runtime()
     runtime.start()
-    runtime._absolute_subunit = 420
+    runtime._absolute_subunit = TRANSPORT_SUBUNITS_PER_STEP
     targets = ["lead", "other"]
     runtime.audition(_workspace_command(targets=targets))
     assert runtime.audition_status()["lead"]["workspace_queued"]

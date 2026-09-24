@@ -86,7 +86,7 @@ const client = new BrowserClockAudioClient({
 });
 
 function timing(value) {
-  return { tempo_bpm: value.tempoBPM, meter_numerator: value.meterNumerator,
+  return { beat_unit: "meter", tempo_bpm: value.tempoBPM, meter_numerator: value.meterNumerator,
     meter_denominator: value.meterDenominator, steps_per_beat: value.stepsPerBeat,
     beat_rate_numerator: value.beatRateNumerator, beat_rate_denominator: value.beatRateDenominator };
 }

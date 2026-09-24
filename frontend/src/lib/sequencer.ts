@@ -20,7 +20,7 @@ export const STEP_CAPACITY = MAX_STEPS_PER_PAD;
 export const MAX_SEQUENCERS_PER_TYPE = 16;
 export const SEQUENCER_METER_NUMERATOR_OPTIONS = [2, 3, 4, 5, 6, 7] as const;
 export const SEQUENCER_METER_DENOMINATOR_OPTIONS = [4, 8] as const;
-export const SEQUENCER_STEPS_PER_BEAT_OPTIONS = [2, 4, 8] as const;
+export const SEQUENCER_STEPS_PER_BEAT_OPTIONS = [1, 2, 3, 4, 6, 8] as const;
 export const SEQUENCER_BEAT_RATE_OPTIONS = [
   { numerator: 1, denominator: 1, label: "1:1" },
   { numerator: 2, denominator: 1, label: "2:1" },
@@ -31,12 +31,12 @@ export const SEQUENCER_BEAT_RATE_OPTIONS = [
   { numerator: 4, denominator: 5, label: "4:5" },
   { numerator: 7, denominator: 4, label: "7:4" }
 ] as const;
-export const SEQUENCER_PAD_LENGTH_BEAT_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8] as const;
-export const CONTROLLER_SEQUENCER_PAD_LENGTH_BEAT_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 16] as const;
-export const PAD_LOOP_PAUSE_BEAT_OPTIONS = [1, 2, 4, 8, 16] as const;
+export const SEQUENCER_PAD_LENGTH_BEAT_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16] as const;
+export const CONTROLLER_SEQUENCER_PAD_LENGTH_BEAT_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32] as const;
+export const PAD_LOOP_PAUSE_BEAT_OPTIONS = [1, 2, 4, 8, 16, 32] as const;
 export const CONTROLLER_SEQUENCER_STEP_OPTIONS = CONTROLLER_SEQUENCER_PAD_LENGTH_BEAT_OPTIONS;
 const SEQUENCER_TRANSPORT_STEP_RESOLUTION = 8;
-const SEQUENCER_TRANSPORT_SUBUNITS_PER_STEP = 420;
+const SEQUENCER_TRANSPORT_SUBUNITS_PER_STEP = 2520;
 export const DEFAULT_SEQUENCER_TIMING_CONFIG: SequencerTimingConfig = {
   tempoBPM: 120,
   meterNumerator: 4,
@@ -223,7 +223,7 @@ export function clampSequencerMeterDenominator(value: number): SequencerMeterDen
 }
 
 export function clampSequencerStepsPerBeat(value: number): SequencerStepsPerBeat {
-  return value === 2 || value === 4 || value === 8 ? value : DEFAULT_SEQUENCER_TIMING_CONFIG.stepsPerBeat;
+  return SEQUENCER_STEPS_PER_BEAT_OPTIONS.includes(value as SequencerStepsPerBeat) ? value as SequencerStepsPerBeat : DEFAULT_SEQUENCER_TIMING_CONFIG.stepsPerBeat;
 }
 
 function resolveSequencerBeatRate(
@@ -274,45 +274,18 @@ export function clampControllerSequencerPadLengthBeats(value: number): Controlle
   return 4;
 }
 
-function buildPadLengthBeatOptions<T extends number>(
-  allowedOptions: readonly T[],
-  preferredOptions: readonly number[],
-  meterNumerator: number,
-  selectedLengthBeats?: number
-): T[] {
-  const allowedSet = new Set<number>(allowedOptions as readonly number[]);
-  const options = new Set<number>(preferredOptions);
-  options.add(clampSequencerMeterNumerator(meterNumerator));
-  if (typeof selectedLengthBeats === "number" && Number.isFinite(selectedLengthBeats)) {
-    options.add(Math.round(selectedLengthBeats));
-  }
-  return Array.from(options)
-    .filter((option): option is T => allowedSet.has(option))
-    .sort((left, right) => left - right);
-}
-
 export function sequencerPadLengthBeatOptions(
-  meterNumerator: number,
-  selectedLengthBeats?: number
+  _meterNumerator: number,
+  _selectedLengthBeats?: number
 ): SequencerPadLengthBeats[] {
-  return buildPadLengthBeatOptions(
-    SEQUENCER_PAD_LENGTH_BEAT_OPTIONS,
-    [1, 2, 4, 8],
-    meterNumerator,
-    selectedLengthBeats
-  );
+  return [...SEQUENCER_PAD_LENGTH_BEAT_OPTIONS];
 }
 
 export function controllerSequencerPadLengthBeatOptions(
-  meterNumerator: number,
-  selectedLengthBeats?: number
+  _meterNumerator: number,
+  _selectedLengthBeats?: number
 ): ControllerSequencerPadLengthBeats[] {
-  return buildPadLengthBeatOptions(
-    CONTROLLER_SEQUENCER_PAD_LENGTH_BEAT_OPTIONS,
-    [1, 2, 4, 8, 16],
-    meterNumerator,
-    selectedLengthBeats
-  );
+  return [...CONTROLLER_SEQUENCER_PAD_LENGTH_BEAT_OPTIONS];
 }
 
 export function normalizeSequencerTimingConfig(raw: unknown): SequencerTimingConfig {
@@ -407,7 +380,9 @@ export function sequencerTransportStepCount(
 ): number {
   const resolvedLengthBeats =
     typeof timingOrLengthBeats === "number" ? timingOrLengthBeats : (lengthBeats ?? 1);
-  return Math.max(1, Math.round(resolvedLengthBeats)) * SEQUENCER_TRANSPORT_STEP_RESOLUTION;
+  return typeof timingOrLengthBeats === "number"
+    ? Math.max(1, Math.round(resolvedLengthBeats)) * SEQUENCER_TRANSPORT_STEP_RESOLUTION
+    : sequencerTransportSubunitCount(timingOrLengthBeats, resolvedLengthBeats as ControllerSequencerPadLengthBeats) / sequencerTransportSubunitsPerStep();
 }
 
 export function sequencerTransportSubunitCount(
@@ -417,7 +392,7 @@ export function sequencerTransportSubunitCount(
   const beatRate = resolveSequencerBeatRate(timing.beatRateNumerator, timing.beatRateDenominator);
   return (
     Math.max(1, Math.round(lengthBeats)) *
-    sequencerTransportSubunitsPerBeat() *
+    sequencerTransportSubunitsPerBeat() * 4 / timing.meterDenominator *
     beatRate.denominator
   ) / beatRate.numerator;
 }
@@ -425,7 +400,7 @@ export function sequencerTransportSubunitCount(
 export function sequencerTransportSubunitsPerLocalStep(timing: SequencerTimingConfig): number {
   const beatRate = resolveSequencerBeatRate(timing.beatRateNumerator, timing.beatRateDenominator);
   return (
-    sequencerTransportSubunitsPerBeat() *
+    sequencerTransportSubunitsPerBeat() * 4 / timing.meterDenominator *
     beatRate.denominator
   ) / (beatRate.numerator * clampSequencerStepsPerBeat(timing.stepsPerBeat));
 }
@@ -451,8 +426,8 @@ export function sequencerStepDurationSeconds(
     );
   }
   return (
-    sequencerBeatDurationSeconds(timingOrTempoBPM) *
-    1 /
+    sequencerBeatDurationSeconds(timingOrTempoBPM) * 4 / timingOrTempoBPM.meterDenominator *
+    timingOrTempoBPM.beatRateDenominator / timingOrTempoBPM.beatRateNumerator /
     clampSequencerStepsPerBeat(timingOrTempoBPM.stepsPerBeat)
   );
 }
@@ -1138,5 +1113,5 @@ export function normalizeTimingOffset(value: unknown): number {
 }
 
 export function timingOffsetMilliseconds(percent: number, timing: SequencerTimingConfig): number {
-  return percent / 100 * 60000 / timing.tempoBPM / timing.stepsPerBeat * timing.beatRateDenominator / timing.beatRateNumerator;
+  return percent / 100 * 60000 / timing.tempoBPM * 4 / timing.meterDenominator / timing.stepsPerBeat * timing.beatRateDenominator / timing.beatRateNumerator;
 }

@@ -9,7 +9,7 @@ import { normalizeDefinitionColors } from "./definitionColors";
 
 export const PAD_LOOP_PAD_COUNT = 8;
 export const PAD_LOOP_COMPILED_MAX_LENGTH = 256;
-export const PAD_LOOP_PAUSE_BEAT_OPTIONS: readonly PadLoopPauseBeatCount[] = [1, 2, 4, 8, 16];
+export const PAD_LOOP_PAUSE_BEAT_OPTIONS: readonly PadLoopPauseBeatCount[] = [1, 2, 4, 8, 16, 32];
 export const PAD_LOOP_PAUSE_STEP_OPTIONS = PAD_LOOP_PAUSE_BEAT_OPTIONS;
 const MAX_PATTERN_DEFINITIONS = 256;
 const PAD_LOOP_PAUSE_BEAT_SET = new Set<number>(PAD_LOOP_PAUSE_BEAT_OPTIONS);

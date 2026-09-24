@@ -59,7 +59,7 @@ def test_cli_normalization_preserves_optional_arranger_history():
     config["arrangerHistory"] = {"version": 1, "cursor": 0, "entries": [], "basis": []}
     history = copy.deepcopy(config["arrangerHistory"])
     normalized = cli.normalize_performance_config(config, [])
-    assert normalized["version"] == 16
+    assert normalized["version"] == 17
     assert normalized["arrangerHistory"] == history
 
 
@@ -168,5 +168,35 @@ def test_cli_normalization_preserves_song_loop(enabled):
     config = cli.empty_performance_config()
     config["sequencer"]["arrangerSongLoopEnabled"] = enabled
     normalized = cli.normalize_performance_config(config, [])
-    assert normalized["version"] == 16
+    assert normalized["version"] == 17
     assert normalized["sequencer"]["arrangerSongLoopEnabled"] is enabled
+
+
+def test_cli_migrates_in_place_and_sends_meter_timing_with_new_capacity():
+    config = cli.empty_performance_config()
+    config['version'] = 16
+    config['sequencer']['tracks'] = [{'id': 'bass', 'lengthBeats': 6, 'timing': {
+        **cli.default_timing(), 'meterDenominator': 8, 'stepsPerBeat': 4},
+        'pads': [{'lengthBeats': 6, 'stepCount': 24, 'steps': [60] * 24}]}]
+    assert cli.normalize_performance_config(config, []) is config
+    track = config['sequencer']['tracks'][0]
+    assert track['lengthBeats'] == 12
+    assert track['timing']['stepsPerBeat'] == 2
+    assert cli.timing_to_runtime(track['timing'])['beat_unit'] == 'meter'
+    assert cli.resolved_pad_steps(32, {'stepsPerBeat': 4}) == 128
+    with pytest.raises(cli.OrchestronCliError, match='128'):
+        cli.resolved_pad_steps(32, {'stepsPerBeat': 6})
+
+
+def test_cli_arranger_extent_includes_meter_speed_and_32_beat_rests():
+    config = cli.empty_performance_config()
+    config['sequencer']['tracks'] = [{'id': 'bass', 'lengthBeats': 6, 'timing': {
+        **cli.default_timing(), 'meterDenominator': 8, 'stepsPerBeat': 3, 'beatRateNumerator': 3, 'beatRateDenominator': 2},
+        'pads': [{'lengthBeats': 6, 'steps': [60] * 18}], 'padLoopEnabled': True,
+        'padLoopPattern': {'rootSequence': [{'type': 'pad', 'padIndex': 0}, {'type': 'pause', 'lengthBeats': 32}], 'groups': [], 'superGroups': []}}]
+    runtime = cli.build_runtime_config(config)
+    assert runtime['tracks'][0]['pad_loop_sequence'] == [0, -32]
+    parsed = cli.parse_pad_loop_pattern_from_cli(root_sequence='1 P32', group_assignments=[], super_group_assignments=[])
+    assert cli.compile_pad_loop_items(parsed, parsed['rootSequence'], depth=0) == [0, -32]
+    assert runtime['timing']['beat_unit'] == 'meter'
+    assert runtime['playback_end_step'] == 102  # ceil((6 + 32) * 1/2 * 2/3 * 8)

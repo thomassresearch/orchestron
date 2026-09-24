@@ -13,7 +13,7 @@ it.each(Array.from({ length: 16 }, (_, index) => index + 1))("imports v%s with r
   expect(result.sequencer.tracks[0]).toMatchObject({ activePad: 5, padLoopEnabled: true, padLoopRepeat: false,
     padLoopSequence: [5], padLoopPattern: { rootSequence: [{ type: "pad", padIndex: 5 }], groups: [{ id: "A", sequence: [] }, { id: "B", sequence: [{ type: "pad", padIndex: 1 }] }] } });
   const saved = buildSequencerConfigSnapshot(result.sequencer, result.instruments);
-  expect(saved.version).toBe(16);
+  expect(saved.version).toBe(17);
   expect(parseSequencerConfigSnapshot(saved, [], "fixture-patch").sequencer.tracks[0].padLoopPattern).toEqual(result.sequencer.tracks[0].padLoopPattern);
 });
 
@@ -30,7 +30,7 @@ it.each([false, true])("round-trips whole-song loop=%s without changing format v
   expect(result.sequencer.arrangerSongLoopEnabled).toBe(false);
   result.sequencer.arrangerSongLoopEnabled = enabled;
   const saved = buildSequencerConfigSnapshot(result.sequencer, result.instruments);
-  expect(saved.version).toBe(16);
+  expect(saved.version).toBe(17);
   expect(saved.sequencer.arrangerSongLoopEnabled).toBe(enabled);
   expect(parseSequencerConfigSnapshot(saved, [], "fixture-patch").sequencer.arrangerSongLoopEnabled).toBe(enabled);
 });

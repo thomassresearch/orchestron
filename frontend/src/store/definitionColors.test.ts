@@ -23,6 +23,6 @@ it("saves a colour without changing the audio revision or compiled sequence", ()
   expect(after.sequencerEditRevision).toBe(before.sequencerEditRevision);
   expect(after.sequencer.tracks[0].padLoopSequence).toEqual(track.padLoopSequence);
   const saved = buildSequencerConfigSnapshot(after.sequencer, after.sequencerInstruments, after.audioGraph, after.mixer);
-  expect(saved.version).toBe(16);
+  expect(saved.version).toBe(17);
   expect(parseSequencerConfigSnapshot(saved, [], "fixture-patch").sequencer.tracks[0].padLoopPattern.definitionColors).toEqual({ "pad:0": "#123456" });
 });

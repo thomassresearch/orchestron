@@ -338,8 +338,9 @@ def _sequencer_timing(
     steps_per_beat: int = 4,
     beat_rate_numerator: int = 1,
     beat_rate_denominator: int = 1,
-) -> dict[str, int]:
+) -> dict[str, object]:
     return {
+        "beat_unit": "quarter",
         "tempo_bpm": tempo_bpm,
         "meter_numerator": meter_numerator,
         "meter_denominator": meter_denominator,

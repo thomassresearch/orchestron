@@ -7,15 +7,15 @@ from backend.app.models.audio import AudioGraph, MixerState, AudioDiagnostic
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import StrEnum
-from typing import Any
+from typing import Annotated, Any
 from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
 
-_PAUSE_BEAT_COUNTS: tuple[int, ...] = (1, 2, 4, 8, 16)
+_PAUSE_BEAT_COUNTS: tuple[int, ...] = (1, 2, 4, 8, 16, 32)
 _PAUSE_TOKENS: tuple[int, ...] = tuple(-beat_count for beat_count in _PAUSE_BEAT_COUNTS)
-_SEQUENCER_PAD_LENGTH_BEATS: tuple[int, ...] = (1, 2, 3, 4, 5, 6, 7, 8)
-_CONTROLLER_SEQUENCER_PAD_LENGTH_BEATS: tuple[int, ...] = (1, 2, 3, 4, 5, 6, 7, 8, 16)
+_SEQUENCER_PAD_LENGTH_BEATS: tuple[int, ...] = tuple(range(1, 17))
+_CONTROLLER_SEQUENCER_PAD_LENGTH_BEATS: tuple[int, ...] = tuple(range(1, 33))
 _SEQUENCER_BEAT_RATE_OPTIONS: tuple[tuple[int, int], ...] = (
     (1, 1),
     (2, 1),
@@ -27,8 +27,8 @@ _SEQUENCER_BEAT_RATE_OPTIONS: tuple[tuple[int, int], ...] = (
     (7, 4),
 )
 
-SequencerPadLengthBeats = Literal[1, 2, 3, 4, 5, 6, 7, 8]
-ControllerSequencerPadLengthBeats = Literal[1, 2, 3, 4, 5, 6, 7, 8, 16]
+SequencerPadLengthBeats = Annotated[int, Field(ge=1, le=16)]
+ControllerSequencerPadLengthBeats = Annotated[int, Field(ge=1, le=32)]
 SequencerScaleRoot = Literal[
     "C",
     "C#",
@@ -359,7 +359,8 @@ class SessionSequencerTimingConfig(BaseModel):
     tempo_bpm: int = Field(default=120, ge=30, le=300)
     meter_numerator: Literal[2, 3, 4, 5, 6, 7] = 4
     meter_denominator: Literal[4, 8] = 4
-    steps_per_beat: Literal[2, 4, 8] = 4
+    steps_per_beat: Literal[1, 2, 3, 4, 6, 8] = 4
+    beat_unit: Literal["quarter", "meter"] = "quarter"
     beat_rate_numerator: int = Field(default=1, ge=1)
     beat_rate_denominator: int = Field(default=1, ge=1)
 
@@ -420,6 +421,9 @@ class SessionSequencerTrackConfig(BaseModel):
 
     @model_validator(mode="after")
     def validate_unique_pad_indexes(self) -> "SessionSequencerTrackConfig":
+        if any(length * self.timing.steps_per_beat > 128 for length in
+               [self.length_beats, *(pad.length_beats or self.length_beats for pad in self.pads)]):
+            raise ValueError("A sequencer pad cannot exceed 128 steps.")
         seen: set[int] = set()
         for pad in self.pads:
             if pad.pad_index in seen:
@@ -429,7 +433,7 @@ class SessionSequencerTrackConfig(BaseModel):
             if not _is_valid_pad_loop_token(token):
                 raise ValueError(
                     "pad_loop_sequence[{index}] must be a pad index 0..7 or a pause token "
-                    "-1/-2/-4/-8/-16 in track '{track_id}'.".format(index=index, track_id=self.track_id)
+                    "-1/-2/-4/-8/-16/-32 in track '{track_id}'.".format(index=index, track_id=self.track_id)
                 )
         return self
 
@@ -450,6 +454,9 @@ class SessionControllerSequencerTrackConfig(BaseModel):
 
     @model_validator(mode="after")
     def validate_unique_pad_indexes(self) -> "SessionControllerSequencerTrackConfig":
+        if any(length * self.timing.steps_per_beat > 128 for length in
+               [self.length_beats, *(pad.length_beats or self.length_beats for pad in self.pads)]):
+            raise ValueError("A sequencer pad cannot exceed 128 steps.")
         seen: set[int] = set()
         for pad in self.pads:
             if pad.pad_index in seen:
@@ -459,7 +466,7 @@ class SessionControllerSequencerTrackConfig(BaseModel):
             if not _is_valid_pad_loop_token(token):
                 raise ValueError(
                     "pad_loop_sequence[{index}] must be a pad index 0..7 or a pause token "
-                    "-1/-2/-4/-8/-16 in controller track '{track_id}'.".format(index=index, track_id=self.track_id)
+                    "-1/-2/-4/-8/-16/-32 in controller track '{track_id}'.".format(index=index, track_id=self.track_id)
                 )
         if self.length_beats not in _CONTROLLER_SEQUENCER_PAD_LENGTH_BEATS:
             raise ValueError(
@@ -489,7 +496,7 @@ class ArpeggiatorStepConfig(BaseModel):
 
 
 class ArpeggiatorPadConfig(BaseModel):
-    length_beats: ControllerSequencerPadLengthBeats = 4
+    length_beats: Literal[1, 2, 3, 4, 5, 6, 7, 8, 16] = 4
     rate: ArpeggiatorRate = "1/16"
     gate_ratio: float = Field(default=0.72, ge=0.05, le=2.0)
     swing: float = Field(default=0.0, ge=0.0, le=0.75)

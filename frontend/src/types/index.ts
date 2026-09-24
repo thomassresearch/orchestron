@@ -168,12 +168,12 @@ export interface SequencerStepState {
 
 export type SequencerMeterNumerator = 2 | 3 | 4 | 5 | 6 | 7;
 export type SequencerMeterDenominator = 4 | 8;
-export type SequencerStepsPerBeat = 2 | 4 | 8;
+export type SequencerStepsPerBeat = 1 | 2 | 3 | 4 | 6 | 8;
 export type SequencerBeatRateNumerator = 1 | 2 | 3 | 4 | 5 | 7;
 export type SequencerBeatRateDenominator = 1 | 2 | 3 | 4 | 5;
-export type SequencerPadLengthBeats = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
-export type ControllerSequencerPadLengthBeats = SequencerPadLengthBeats | 16;
-export type PadLoopPauseBeatCount = 1 | 2 | 4 | 8 | 16;
+export type SequencerPadLengthBeats = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16;
+export type ControllerSequencerPadLengthBeats = SequencerPadLengthBeats | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31 | 32;
+export type PadLoopPauseBeatCount = 1 | 2 | 4 | 8 | 16 | 32;
 export type DrummerSequencerStepCount = number;
 export type PadLoopPauseStepCount = PadLoopPauseBeatCount;
 
@@ -362,7 +362,7 @@ export interface ArpeggiatorPadState {
   scaleRoot: SequencerScaleRoot;
   scaleType: SequencerScaleType;
   mode: SequencerMode;
-  lengthBeats: ControllerSequencerPadLengthBeats;
+  lengthBeats: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 16;
   octaveTraversal: "range" | "octave";
   scaleMode: "off" | "source" | "custom";
   rotation: number;
@@ -540,7 +540,7 @@ export interface SequencerInstrumentBinding {
 
 export interface SequencerConfigSnapshot {
   arrangerHistory?: import("../store/arrangerHistory").ArrangerHistory;
-  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16;
+  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17;
   audioGraph?: AudioGraph;
   mixer?: MixerState;
   instruments: Array<{
@@ -579,6 +579,7 @@ export interface SequencerConfigSnapshot {
       id: string;
       name: string;
       midiChannel: number;
+      timing?: SequencerTimingConfig;
       lengthBeats?: SequencerPadLengthBeats;
       stepCount?: number;
       syncToTrackId: string | null;
@@ -599,6 +600,7 @@ export interface SequencerConfigSnapshot {
       id: string;
       name: string;
       midiChannel: number;
+      timing?: SequencerTimingConfig;
       lengthBeats?: SequencerPadLengthBeats;
       stepCount?: number;
       activePad: number;
@@ -635,6 +637,7 @@ export interface SequencerConfigSnapshot {
       name: string;
       controllerNumber: number;
       targetChannels?: number[];
+      timing?: SequencerTimingConfig;
       lengthBeats?: ControllerSequencerPadLengthBeats;
       stepCount?: number;
       activePad: number;
@@ -692,7 +695,7 @@ export interface BrowserClockLatencySettings {
 
 export interface PersistedAppState {
   arrangerHistory?: import("../store/arrangerHistory").ArrangerHistory;
-  version: 1 | 2;
+  version: 1 | 2 | 3;
   audioGraph?: AudioGraph;
   mixer?: MixerState;
   activePage: AppPage;
@@ -756,6 +759,7 @@ export interface SessionSequencerTimingConfig {
   meter_numerator: SequencerMeterNumerator;
   meter_denominator: SequencerMeterDenominator;
   steps_per_beat: SequencerStepsPerBeat;
+  beat_unit?: "quarter" | "meter";
   beat_rate_numerator: SequencerBeatRateNumerator;
   beat_rate_denominator: SequencerBeatRateDenominator;
 }

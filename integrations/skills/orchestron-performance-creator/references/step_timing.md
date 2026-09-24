@@ -5,7 +5,7 @@ Use per-note timing to push or pull selected melodic notes/chords or individual 
 ## Musical meaning
 
 - `timingOffsetPercent` is a whole percentage of one **local sequencer step**, from **−50 to +50**. Negative means early, positive means late; zero/missing means on grid.
-- The equivalent milliseconds scale with global tempo, local grid and beat ratio. At 120 BPM, Grid 4 and ratio 1:1, −20% means 25 ms early. The CLI reports signed `timingOffsetMilliseconds` for inspection; it stores percentages, not milliseconds.
+- The equivalent milliseconds scale with global tempo, local grid and beat ratio. At 120 BPM, 4/4, subdivision 4 and speed 1×, −20% means 25 ms early. The CLI reports signed `timingOffsetMilliseconds` for inspection; it stores percentages, not milliseconds.
 - A melodic step's chord moves together. Drummer offsets belong to individual row cells, independently of other simultaneous hits.
 - The note's release moves with its attack, retaining its length and HOLD extension. A following attack clips overlap; if neighboring attacks coincide, the later logical step wins.
 - An early first step anticipates a confirmed same-pad repeat. Fresh starts and different-pad launches clamp it to the boundary. Queued stops, pauses and finite arrangement ends suppress anticipation; a command cannot undo an attack that has already sounded.
@@ -112,3 +112,9 @@ Offsets and step indices must be integers, not booleans, decimals or numeric str
 ## Persistence
 
 The CLI writes performance config v16 and reads v1–16. Persisted steps/cells use `timingOffsetPercent`; score events and the runtime API use `timing_offset_percent`. Save/load, native bundles, CLI runtime conversion and both CSD export modes preserve supported offsets. App-state version 2, native envelope version 1 and score-spec version 1 remain unchanged.
+
+## Meter timing and compatibility
+
+Performance configurations write v17. The CLI migrates v1–16 before normalization, including /8 pad/rest lengths and saved arranger history. Session requests explicitly send `beat_unit: "meter"`; omitted API values retain legacy quarter-beat interpretation. Subdivision accepts 1, 2, 3, 4, 6, 8; melodic/drum lengths accept 1–16 and controller lengths 1–32, with a strict 128-step limit. Rest tokens include -32. Global BPM remains quarter-note based; /8 local beats last half a quarter. Millisecond offsets include the denominator and playback-speed ratio. Native bundle envelopes are unchanged.
+
+For twelve triplet steps over one 4/4 bar, set `lengthBeats: 4`, timing `meterNumerator: 4`, `meterDenominator: 4`, `stepsPerBeat: 3`, and speed numerator/denominator 1/1. A 6/8 bar uses length 6 and spans three shared quarter beats. See the [multilingual timing guide](../../../../documentation/performance/sequencer_timing.md).

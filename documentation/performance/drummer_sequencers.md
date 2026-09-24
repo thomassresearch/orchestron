@@ -8,6 +8,8 @@ They are optimized for per-step drum hit programming instead of melodic note/cho
 
 Use the pen beside the device name to rename it. See [Device Names](performance.md#device-names) for editing controls, validation, and import/export behavior.
 
+See [Sequencer timing](sequencer_timing.md) for triplets, beat grouping, editing behavior and legacy compatibility (EN/DE/FR/ES).
+
 ## Collapse the Panel
 
 The drummer group collapses independently of melodic and controller sequencers. Its header and Add button remain available even when empty; adding a drummer sequencer expands the group. Panels start expanded and remember your choice across view switches until browser reload. Collapsing does not stop playback or discard edits.
@@ -39,9 +41,9 @@ Each drummer sequencer card provides:
 - `+ Key` (add another drum row)
 - `MIDI Channel` (`1..16`)
 - `Meter` (`2..7` over `4` or `8`)
-- `Grid` (`2`, `4`, or `8`, steps per beat)
-- `Beat Ratio` (`1:1`, `2:1`, `3:2`, `4:3`, `3:4`, `5:4`, `4:5`, `7:4`)
-- `Beats` (`1..8`, with the current meter numerator exposed directly)
+- `Subdivision` (1, 2, 3, 4, 6 or 8 steps per local meter beat)
+- `Advanced timing → Playback speed` (`1:1`, `2:1`, `3:2`, `4:3`, `3:4`, `5:4`, `4:5`, `7:4`)
+- `Pattern length` (every integer from 1–16 local beats; whole bars show both units)
 - Playback source and upper-right pattern workspace (same as melodic sequencers)
 
 ## Drum Rows (`Keys`)
@@ -96,7 +98,7 @@ While dragging vertically on a hit, the UI also shows a live numeric `velocity: 
 
 ## Early and Late Notes
 
-Timing moves an individual attack by **−50% to +50% of one local step**, in 1% increments. Zero means **On grid**. The millisecond readout follows the current tempo, grid and beat ratio: at 120 BPM with Grid 4 and ratio 1:1, −20% is 25 ms early. Timing belongs to each pad and does not change its length, meter or playback speed.
+Timing moves an individual attack by **−50% to +50% of one local step**, in 1% increments. Zero means **On grid**. The millisecond readout follows the current tempo, grid and beat ratio: at 120 BPM with 4/4, Subdivision 4 and speed 1×, −20% is 25 ms early. Timing belongs to each pad and does not change its length, meter or playback speed.
 
 Moving a note also moves its release, preserving its length and any HOLD extension. A following attack can shorten the preceding note to avoid overlap. Chords move together. If neighboring attacks land at exactly the same instant, the later logical step wins.
 
@@ -118,7 +120,7 @@ If a drummer sequencer is running, pad changes are queued to the next loop bound
 
 Drummer pad length is stored in beats, while meter, grid, and beat ratio are configured per drummer sequencer.
 
-This keeps drummer pads beat-based while still allowing one-bar patterns in odd meters such as `3/4`, `5/4`, or `7/8` by matching the pad beat count to the meter, while `Beat Ratio` changes how fast the row pattern cycles against the shared transport without changing the stored beat length.
+This keeps drummer pads beat-based while still allowing one-bar patterns in odd meters such as `3/4`, `5/4`, or `7/8` by matching the pad beat count to the meter, while `Advanced timing → Playback speed` changes how fast the row pattern cycles against the shared transport without changing the stored beat length.
 
 Edit pad contents here and assemble reusable groups/supergroups in the upper-right [pattern workspace](pattern_pads_and_pad_looper.md). Drop and reorder pads, Cmd/Ctrl-click to group selections, and right-click to ungroup. Apply commits edits to existing phrases; loose workspace items stay temporary. Play loops the assembly, and holding a speaker for 250 ms previews one item until release. Place saved phrases in the multitrack arranger. The Playback source toggle chooses Arrangement or Manual pads. New devices use Manual pads; the first item placed on their arranger lane selects Arrangement, and later source choices are saved. Loop song in the arranger controls repetition at the song end. Click selects a pad. While Manual pads is running, clicking another pad also queues all rows for the end of the current pattern. The queued pad has an orange outline, then turns blue-green when playing. While stopped or using Arrangement, clicks only select for editing. Launch pad remains available.
 

@@ -56,3 +56,7 @@ The profiling server reuses the frontend test configuration's fixture isolation:
 `npm --prefix frontend run check` passed: frontend lint, **308 tests in 29 files**, and the production build. The 15 collapse regressions and two workspace-generation regressions cover hidden construction, current playback on expansion, animation/observer/listener/subscription cleanup, nested visibility, retained drafts and selections, clipboard/zoom/scroll, held-note cleanup, pending Mixer synchronization, asynchronous result isolation, successful workspace replacement, deletion and ordinary saves. Strict Mode and repeated toggles are included.
 
 README, performance/Mixer documentation and integrated EN/DE/FR/ES help were updated. `node tools/build_user_docs_pdf.mjs` rebuilt the 115-page PDF; the cover, table of contents, Mixer page and complete performance-panel explanation were rendered and visually checked.
+
+## Timing editor review
+
+With the same isolated Vite server running, open `/tests/performance/timing-review.html`. It loads one melodic, drum and controller fixture locally, with a twelve-step 4/4 triplet melody. It does not bootstrap API, audio or autosave. Timing selectors update the real store. Inspect controls and beat/bar headers at 1440 and 390 pixels, including subdivision 1, partial bars and 32-beat controller curves. The editors retain horizontal scrolling and their usual collapse behavior.
