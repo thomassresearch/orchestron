@@ -55,7 +55,7 @@ GHCR initially creates packages with private visibility. To allow anonymous pull
 
 ## Keep the Two Newest Images
 
-The [Clean up Docker images workflow](../.github/workflows/docker-cleanup.yml) runs after a successful publish, daily at 03:23 UTC, and manually from the repository's Actions tab. Failed or canceled publishing runs do not trigger deletion through the completion event.
+The [Clean up Docker images workflow](../.github/workflows/docker-cleanup.yml) runs after a successful publish, when the cleanup workflow changes on `main`, daily at 03:23 UTC, and manually from the repository's Actions tab. Failed or canceled publishing runs do not trigger deletion through the completion event.
 
 Cleanup also deletes this repository's `.dockerbuild` build-record artifacts, including records from older runs. A manual dry run leaves both images and artifacts untouched; automatic runs and manual runs with dry run disabled delete the build records. The publish workflow no longer creates new build records. Actions caches remain untouched.
 
