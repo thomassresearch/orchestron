@@ -21,6 +21,8 @@ The [Publish Docker image workflow](../.github/workflows/docker-publish.yml) bui
 - `ghcr.io/thomassresearch/orchestron:v1.2.3`
 - `ghcr.io/thomassresearch/orchestron:latest`
 
+The publish workflow disables Docker's automatic build-record artifact upload. The GHCR image remains available, while each run no longer adds a `.dockerbuild` artifact to Actions storage. The Buildx cache uses GitHub's separate Actions cache storage.
+
 Every pushed Git tag is eligible, including prerelease tags. `latest` follows the last successfully published build, including prereleases; it does not select the highest semantic version. Tag names are preserved when valid Docker tags; the workflow replaces unsupported characters such as `/` with `-` and rejects names that still do not meet Docker's tag format or 128-character limit. Prefer Docker-compatible release tags such as `v1.2.3` to avoid naming collisions. Tag deletion does not publish an image.
 
 The image namespace is derived from the lowercase GitHub repository name, so a fork publishes to its own GHCR package. Both workflows use the built-in `GITHUB_TOKEN`; no Docker Hub account or registry password secret is needed.
@@ -53,7 +55,9 @@ GHCR initially creates packages with private visibility. To allow anonymous pull
 
 ## Keep the Two Newest Images
 
-The [Clean up Docker images workflow](../.github/workflows/docker-cleanup.yml) runs after a successful publish, daily at 03:23 UTC, and manually from the repository's Actions tab. Failed or canceled publishing runs do not trigger deletion through the completion event.
+The [Clean up Docker images workflow](../.github/workflows/docker-cleanup.yml) runs after a successful publish, when the cleanup workflow changes on `main`, daily at 03:23 UTC, and manually from the repository's Actions tab. Failed or canceled publishing runs do not trigger deletion through the completion event.
+
+Cleanup also deletes this repository's `.dockerbuild` build-record artifacts, including records from older runs. A manual dry run leaves both images and artifacts untouched; automatic runs and manual runs with dry run disabled delete the build records. The publish workflow no longer creates new build records. Actions caches remain untouched.
 
 Cleanup keeps the two newest tagged image versions by GHCR's last-updated timestamp, rather than sorting their tag names. Multiple tags pointing to the same image, such as `v1.2.3` and `latest`, count as one image. Older tagged images and unreferenced untagged images are deleted. Architecture and attestation manifests needed by either retained image are preserved, including manifests shared with older images. The package UI can therefore show more than two manifest entries even though only two release images remain. Git tags and GitHub releases are unaffected.
 
@@ -63,7 +67,7 @@ To preview cleanup, select **Clean up Docker images → Run workflow** and leave
 
 ## GitHub Permissions
 
-Publishing requests `contents: read` and `packages: write`; cleanup requests `packages: write`. Repository or organization policy must permit those workflow permissions and the actions referenced by the workflows. All action references are pinned to commit SHAs.
+Publishing requests `contents: read` and `packages: write`; cleanup requests `actions: write` for build-record artifact deletion and `packages: write` for image deletion. Repository or organization policy must permit those workflow permissions and the actions referenced by the workflows. All action references are pinned to commit SHAs.
 
 The repository must have **Admin** access to the container package for deletion. Packages first published by this repository's `GITHUB_TOKEN` normally grant that access automatically. For an existing or manually created package, check **Package settings → Manage Actions access** and grant this repository **Admin** access. The source label on published images links the package to the repository.
 

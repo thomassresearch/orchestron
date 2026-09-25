@@ -1,6 +1,9 @@
 name: Clean up Docker images
 
 on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/docker-cleanup.yml']
   workflow_run:
     workflows: ['Publish Docker image']
     types: [completed]
@@ -14,6 +17,7 @@ on:
         default: true
 
 permissions:
+  actions: write
   packages: write
 
 # Must match docker-publish.yml, including the queue policy.
@@ -33,6 +37,23 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
+      - name: Remove Docker build record artifacts
+        if: ${{ github.event_name != 'workflow_dispatch' || !inputs.dry_run }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          artifact_ids=$(gh api --paginate \
+            "repos/$REPOSITORY/actions/artifacts?per_page=100" \
+            --jq '.artifacts[] | select(.name | endswith(".dockerbuild")) | .id')
+          if [ -z "$artifact_ids" ]; then
+            echo 'No Docker build record artifacts to delete.'
+            exit 0
+          fi
+          while IFS= read -r artifact_id; do
+            gh api --method DELETE "repos/$REPOSITORY/actions/artifacts/$artifact_id"
+          done <<< "$artifact_ids"
+
       - name: Resolve the package name
         id: package
         env:
