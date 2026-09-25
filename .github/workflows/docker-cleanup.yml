@@ -1,6 +1,9 @@
 name: Clean up Docker images
 
 on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/docker-cleanup.yml']
   workflow_run:
     workflows: ['Publish Docker image']
     types: [completed]
