@@ -586,10 +586,20 @@ export function normalizeArpeggiatorPreset(raw: unknown, index: number): Arpeggi
   };
 }
 
+export function normalizeDrummerRatchets(value: unknown): number {
+  return typeof value === "number" && Number.isFinite(value) ? clampInt(value, 1, 8) : 1;
+}
+
+export function normalizeRatchetEndVelocity(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? clampInt(value, 0, 127) : null;
+}
+
 export function createEmptyDrummerSequencerCell(): DrummerSequencerCellState {
   return {
     active: false,
     timingOffsetPercent: 0,
+    ratchets: 1,
+    ratchetEndVelocity: null,
     velocity: 127
   };
 }
@@ -597,6 +607,8 @@ export function createEmptyDrummerSequencerCell(): DrummerSequencerCellState {
 export function cloneDrummerSequencerCell(cell: DrummerSequencerCellState): DrummerSequencerCellState {
   return {
     active: cell.active === true,
+    ratchets: normalizeDrummerRatchets(cell.ratchets),
+    ratchetEndVelocity: normalizeRatchetEndVelocity(cell.ratchetEndVelocity),
     timingOffsetPercent: normalizeTimingOffset(cell.timingOffsetPercent),
     velocity: normalizeStepVelocity(cell.velocity)
   };
@@ -623,19 +635,21 @@ export function normalizeDrummerSequencerCell(raw: unknown): DrummerSequencerCel
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
     if (typeof raw === "number" && Number.isFinite(raw)) {
       return {
+        ...createEmptyDrummerSequencerCell(),
         active: true,
-        timingOffsetPercent: 0,
         velocity: normalizeStepVelocity(raw)
       };
     }
     if (raw === true) {
-      return { active: true, timingOffsetPercent: 0, velocity: 127 };
+      return { ...createEmptyDrummerSequencerCell(), active: true };
     }
     return createEmptyDrummerSequencerCell();
   }
   const cell = raw as Record<string, unknown>;
   return {
     active: cell.active === true || cell.on === true || cell.enabled === true,
+    ratchets: normalizeDrummerRatchets(cell.ratchets),
+    ratchetEndVelocity: normalizeRatchetEndVelocity(cell.ratchetEndVelocity ?? cell.ratchet_end_velocity),
     timingOffsetPercent: normalizeTimingOffset(cell.timingOffsetPercent ?? cell.timing_offset_percent),
     velocity: normalizeStepVelocity(cell.velocity ?? cell.vel)
   };
@@ -2916,7 +2930,7 @@ export function buildSequencerConfigSnapshot(
     timing
   );
   return {
-    version: 17,
+    version: 18,
     arrangerHistory: structuredClone(arrangerHistory),
     audioGraph: structuredClone(audioGraph),
     mixer: structuredClone(mixer),
@@ -3131,7 +3145,8 @@ export function parseSequencerConfigSnapshot(
     payload.version !== 14 &&
     payload.version !== 15 &&
     payload.version !== 16 &&
-    payload.version !== 17
+    payload.version !== 17 &&
+    payload.version !== 18
   ) {
     throw new Error("Unsupported sequencer config version.");
   }

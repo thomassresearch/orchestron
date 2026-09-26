@@ -812,7 +812,7 @@ Manual lanes in `PerformanceCsdExportRequest.midiControllers` accept `targetChan
 
 ### Internal Master (performance config v14)
 
-`$master` is a reserved mixer endpoint with fixed `left`/`right` inputs and `$direct.left`/`$direct.right` outputs for strip/insert routing. The compiler emits its body internally. It is excluded from patch storage and the 64 user-instrument quota; mixer state allows one additional strip. Frontend and CLI write performance config v17 and accept v1–17; app state is v3 (reads v1–3); native envelopes are unchanged.
+`$master` is a reserved mixer endpoint with fixed `left`/`right` inputs and `$direct.left`/`$direct.right` outputs for strip/insert routing. The compiler emits its body internally. It is excluded from patch storage and the 64 user-instrument quota; mixer state allows one additional strip. Frontend and CLI write performance config v18 and accept v1–18; app state is v3 (reads v1–3); native envelopes are unchanged.
 
 Saved performance/app-state read and write boundaries and native import/export normalize designated legacy Masters through `master_migration`. SQLite startup invokes the same backed-up, idempotent cleanup exposed by `backend.tools.migrate_internal_master`. `POST /api/performances/repair-master` accepts `{config: ...}` and returns a converted config without saving it; it only replaces missing Masters with compatible stereo port mappings. See [migration and repair](documentation/performance/audio_mixer_and_routing.md#upgrading-existing-masters).
 
@@ -853,3 +853,10 @@ The shared clock uses 20,160 integer subunits/quarter, eight transport steps/qua
 ### Session lifecycle ownership
 
 Compile, Start, Stop, and Delete serialize through each session's lifecycle lock. Compiling a running engine returns `409`; live configuration edits retain their existing preparation path. A reconnect is checked again after acquiring lifecycle ownership, and a deleting session rejects new controller claims. Engine Start/Stop share render ownership with `performKsmps`, including cleanup after a failed render.
+
+
+### Drummer ratchets (performance v18)
+
+Drummer cells persist `ratchets` (integer 1–8, default 1) and nullable `ratchetEndVelocity` (0–127, default null). The shared session step API uses strict `ratchets` and `ratchet_end_velocity`; frontend and standalone CLI conversion preserve both. Missing fields retain single-hit playback. App state remains v3 and native envelopes v1; the meter migration still runs only below performance v17 / app state v3.
+
+Preparation caches rational, absolute strike offsets and linearly interpolated velocities. A started roll snapshots its strikes, pitch and timing; later count/ramp/timing edits apply to its next occurrence. Zero-velocity strikes release their predecessor without emitting a note-on. Owned releases precede retriggers; later logical cells cancel unfinished rolls. Fresh/different-pad launches clamp the first roll as a group, while confirmed same-pad repeats permit anticipation and late tails. Stops, seeks, different pads, arrangement rests, removals and finite ends clear pending rolls. The existing source contexts retain lane mute/solo ownership and independent-device behavior. MIDI and SCORE capture use the same scheduler; export estimates include repeated strikes and downstream arpeggiator activity.

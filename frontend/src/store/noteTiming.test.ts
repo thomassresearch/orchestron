@@ -16,7 +16,7 @@ it("preserves timing through step/pad copy, saved JSON and runtime drum conversi
   store.toggleDrummerSequencerCell(drums.id, drums.rows[0].id, 1, true);
   store.copyDrummerSequencerPad(drums.id, 0, 1);
   const snapshot = store.buildSequencerConfigSnapshot();
-  expect(snapshot.version).toBe(17);
+  expect(snapshot.version).toBe(18);
   const restored = parseSequencerConfigSnapshot(JSON.parse(JSON.stringify(snapshot)), [], null);
   expect(restored.sequencer.tracks[0].pads[0].steps[3].timingOffsetPercent).toBe(-20);
   expect(restored.sequencer.drummerTracks[0].pads[1].rows[0].steps[1].timingOffsetPercent).toBe(25);

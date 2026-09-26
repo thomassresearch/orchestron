@@ -240,6 +240,8 @@ export function buildDrummerRowTrackConfigs(
           return {
             note: row.key,
             timing_offset_percent: cell.timingOffsetPercent ?? 0,
+            ratchets: cell.ratchets ?? 1,
+            ratchet_end_velocity: cell.ratchetEndVelocity ?? null,
             hold: false,
             velocity: normalizeMidiVelocity(cell.velocity)
           };

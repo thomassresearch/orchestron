@@ -187,6 +187,8 @@ export interface SequencerTimingConfig {
 }
 
 export interface DrummerSequencerCellState {
+  ratchets?: number;
+  ratchetEndVelocity?: number | null;
   timingOffsetPercent?: number;
   active: boolean;
   velocity: number;
@@ -540,7 +542,7 @@ export interface SequencerInstrumentBinding {
 
 export interface SequencerConfigSnapshot {
   arrangerHistory?: import("../store/arrangerHistory").ArrangerHistory;
-  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17;
+  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18;
   audioGraph?: AudioGraph;
   mixer?: MixerState;
   instruments: Array<{
@@ -748,6 +750,8 @@ export interface PerformanceListItem {
 }
 
 export interface SessionSequencerStepConfig {
+  ratchets?: number;
+  ratchet_end_velocity?: number | null;
   timing_offset_percent?: number;
   note: number | Array<number> | null;
   hold: boolean;

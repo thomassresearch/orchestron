@@ -1,3 +1,4 @@
+import { DrummerRatchetControl, drummerRatchetCopy } from "./DrummerRatchetControl";
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
@@ -27,6 +28,7 @@ function Page() {
   return <SequencerPage {...actions} drummerTrackActions={{ ...actions.drummerTrackActions,
     onDrummerSequencerCellToggle: state.toggleDrummerSequencerCell,
     onDrummerSequencerCellVelocityChange: state.setDrummerSequencerCellVelocity,
+    onDrummerSequencerCellRatchetsChange: state.setDrummerSequencerCellRatchets,
     onDrummerSequencerCellTimingOffsetChange: state.setDrummerSequencerCellTimingOffset }}
     collapsedPanels={{ ...Object.fromEntries(Object.keys(INITIAL_PANEL_COLLAPSE_STATE).map(key => [key, true])), drummer: false } as SequencerPageProps["collapsedPanels"]}
     data={{ guiLanguage: "english", patches: [], performances: [], instrumentBindings: [], sequencer: state.sequencer,
@@ -77,4 +79,39 @@ it("shows tempo-scaled timing in all supported languages and exposes the slider 
   expect(change).toHaveBeenCalledWith(-10);
   rerender(<NoteTimingControl value={20} timing={{ ...DEFAULT_SEQUENCER_TIMING_CONFIG, tempoBPM: 60 }} language="french" onChange={change} />);
   expect(screen.getByRole("slider").getAttribute("aria-valuetext")).toContain("En retard: +20% (50.0 ms)");
+});
+
+
+it("edits ratchets in the step panel, retains a disabled ramp, and closes on pad selection", () => {
+  render(<Page />);
+  fireEvent.keyDown(hit(), { key: "F10", shiftKey: true });
+  expect(screen.getByRole("group", { name: "Step properties" })).toBeTruthy();
+  fireEvent.change(screen.getByRole("combobox", { name: "Ratchets" }), { target: { value: "4" } });
+  fireEvent.click(screen.getByRole("checkbox", { name: "Velocity ramp" }));
+  fireEvent.change(screen.getByRole("spinbutton", { name: "Final velocity" }), { target: { value: "40" } });
+  expect(cell()).toMatchObject({ active: false, ratchets: 4, ratchetEndVelocity: 40 });
+  expect(hit().getAttribute("aria-label")).toContain("Ratchets: 4");
+  expect(hit().textContent).toContain("×4");
+  fireEvent.change(screen.getByRole("combobox", { name: "Ratchets" }), { target: { value: "1" } });
+  expect((screen.getByRole("spinbutton", { name: "Final velocity" }) as HTMLInputElement).disabled).toBe(true);
+  expect(cell().ratchetEndVelocity).toBe(40);
+  fireEvent.keyDown(screen.getByRole("group", { name: "Step properties" }), { key: "Escape" });
+  expect(screen.queryByRole("group", { name: "Step properties" })).toBeNull();
+  fireEvent.contextMenu(hit());
+  fireEvent.click(screen.getByRole("button", { name: "#2" }));
+  expect(screen.queryByRole("group", { name: "Step properties" })).toBeNull();
+});
+
+
+it.each(["english", "german", "french", "spanish"] as const)("localizes accessible ratchet controls in %s", language => {
+  const copy = drummerRatchetCopy[language];
+  const change = vi.fn();
+  render(<DrummerRatchetControl cell={{ active: true, velocity: 100, ratchets: 4, ratchetEndVelocity: 40 }}
+    language={language} onChange={change} />);
+  expect(screen.getAllByRole("option")).toHaveLength(8);
+  fireEvent.change(screen.getByRole("combobox", { name: copy.ratchets }), { target: { value: "8" } });
+  expect(change).toHaveBeenCalledWith(8, 40);
+  fireEvent.change(screen.getByRole("spinbutton", { name: copy.final }), { target: { value: "0" } });
+  expect(change).toHaveBeenCalledWith(4, 0);
+  expect((screen.getByRole("checkbox", { name: copy.ramp }) as HTMLInputElement).checked).toBe(true);
 });

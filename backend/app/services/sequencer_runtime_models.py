@@ -15,6 +15,17 @@ class SequencerStepRuntime:
     hold: bool = False
     velocity: int = 100
     timing_offset_percent: int = 0
+    ratchets: int = 1
+    ratchet_end_velocity: int | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class RatchetStrike:
+    step_index: int
+    strike_index: int
+    offset: int
+    release_offset: int
+    velocity: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -26,6 +37,7 @@ class SequencerPadRuntime:
     note_offsets: tuple[int, ...] = ()
     note_step_indices: tuple[int, ...] = ()
     terminating_step_indices: tuple[int, ...] = ()
+    ratchet_strikes: tuple[tuple[RatchetStrike, ...], ...] = ()
     scale_root: str | None = None
     mode: str | None = None
 

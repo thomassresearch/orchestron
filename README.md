@@ -54,6 +54,8 @@ Select song sections across all lanes by dragging the arranger’s top beat rule
 
 *Arrange note patterns, drum parts, and automation side by side.*
 
+Program drum rolls with **1–8 ratchets per hit** and an optional velocity ramp. Right-click a drum cell or press **Shift+F10** to set its repeat count and final velocity; **×N** badges show rolls in the grid. Early/late timing moves the whole roll, and native bundles and both CSD exports preserve it. See [drummer ratchets](documentation/performance/drummer_sequencers.md#ratchets-and-velocity-ramps).
+
 Explore the guides to [sequencer editing](documentation/performance/sequencer_tracks_and_steps.md), [pattern pads](documentation/performance/pattern_pads_and_pad_looper.md), [arpeggiators](documentation/performance/arpeggiators.md), and the [multitrack arranger](documentation/performance/multitrack_arranger.md).
 
 ## Perform and shape the mix

@@ -1,3 +1,4 @@
+import { DrummerRatchetControl, drummerRatchetCopy, drummerCellDescription } from "./sequencer/DrummerRatchetControl";
 import { BeatGroupHeaders, SequencerTimingControls } from "./sequencer/SequencerTimingControls";
 import { sequencerStepBoundary } from "../lib/sequencerTimingPresentation";
 import { transportStartButtonClass, transportStopButtonClass } from "./sequencer/transportButtonStyles";
@@ -394,6 +395,7 @@ function useSequencerPageContext({
     onDrummerSequencerCellToggle,
     onDrummerSequencerCellVelocityChange,
     onDrummerSequencerCellTimingOffsetChange,
+    onDrummerSequencerCellRatchetsChange,
     onDrummerSequencerTrackClearSteps,
     onDrummerSequencerPadPress,
     onDrummerSequencerPadCopy,
@@ -713,6 +715,7 @@ function useSequencerPageContext({
     onDrummerSequencerCellToggle,
     onDrummerSequencerCellVelocityChange,
     onDrummerSequencerCellTimingOffsetChange,
+    onDrummerSequencerCellRatchetsChange,
     onControllerSequencerEnabledChange,
     onControllerSequencerClearSteps,
     onRemoveControllerSequencer,
@@ -2158,6 +2161,7 @@ function DrummerSequencersBody({ context }: { context: ReturnType<typeof useSequ
     onDrummerSequencerCellToggle,
     onDrummerSequencerCellVelocityChange,
     onDrummerSequencerCellTimingOffsetChange,
+    onDrummerSequencerCellRatchetsChange,
   } = context;
   const editingPads = useAppStore(state => state.sequencerEditingPads);
   const selectEditingPad = useAppStore(state => state.selectSequencerEditingPad);
@@ -2170,6 +2174,12 @@ function DrummerSequencersBody({ context }: { context: ReturnType<typeof useSequ
   }, [authored, editingPads, selectEditingPad]);
 
   const [timingTarget, setTimingTarget] = useState<{ trackId: string; rowId: string; step: number; padIndex: number } | null>(null);
+  useEffect(() => {
+    if (!timingTarget) return;
+    const track = sequencer.drummerTracks.find(item => item.id === timingTarget.trackId);
+    if (!track || track.activePad !== timingTarget.padIndex || timingTarget.step >= track.stepCount
+        || !track.rows.some(row => row.id === timingTarget.rowId)) setTimingTarget(null);
+  }, [sequencer.drummerTracks, timingTarget]);
   const [drummerVelocityDragState, setDrummerVelocityDragState] = useState<DrummerVelocityDragState | null>(null);
   const drummerLedDragRef = useRef<{
     pointerId: number;
@@ -2419,12 +2429,15 @@ function DrummerSequencersBody({ context }: { context: ReturnType<typeof useSequ
               const row = track.rows.find(row => row.id === timingTarget.rowId);
               if (!cell || !row) return null;
               const copy = noteTimingCopy[guiLanguage];
-              return <div className="flex items-center gap-2 rounded border border-slate-600 p-2" role="group" aria-label={noteTimingCopy[guiLanguage].timing}>
+              return <div key={`${timingTarget.rowId}:${timingTarget.step}`} className="flex flex-wrap items-center gap-3 rounded border border-slate-600 p-2" role="group" aria-label={drummerRatchetCopy[guiLanguage].properties}
+                onKeyDown={event => { if (event.key === "Escape") setTimingTarget(null); }}>
                 <span className="text-xs text-slate-300">{copy.key} {row.key} · {copy.step} {timingTarget.step + 1}</span>
                 <div className="w-48"><NoteTimingControl value={cell.timingOffsetPercent ?? 0} timing={track.timing} language={guiLanguage}
                   onChange={value => onDrummerSequencerCellTimingOffsetChange?.(track.id, timingTarget.rowId, timingTarget.step, value)} />
                 </div>
-                <button type="button" onClick={() => setTimingTarget(null)} aria-label={noteTimingCopy[guiLanguage].close}>×</button>
+                <DrummerRatchetControl cell={cell} language={guiLanguage}
+                  onChange={(count, end) => onDrummerSequencerCellRatchetsChange?.(track.id, timingTarget.rowId, timingTarget.step, count, end)} />
+                <button type="button" className="ml-auto" onClick={() => setTimingTarget(null)} aria-label={drummerRatchetCopy[guiLanguage].close}>×</button>
               </div>;
             })()}
             <RetainedScroll owner={`device:${track.id}`} field="grid" className="overflow-x-auto pb-1">
@@ -2592,8 +2605,8 @@ function DrummerSequencersBody({ context }: { context: ReturnType<typeof useSequ
                                 : "border-slate-700 bg-slate-900/35 hover:bg-slate-800/35"
                               }`}
                             aria-pressed={cell.active}
-                            aria-label={`Step ${step + 1}, drum key ${row.key}, velocity ${cell.velocity}, ${timingDescription(cell.timingOffsetPercent ?? 0, track.timing, guiLanguage)}`}
-                            title={`${noteTimingCopy[guiLanguage].drumHint} | ${timingDescription(cell.timingOffsetPercent ?? 0, track.timing, guiLanguage)}`}
+                            aria-label={`${drummerCellDescription(cell, row.key, step, guiLanguage)}, ${timingDescription(cell.timingOffsetPercent ?? 0, track.timing, guiLanguage)}`}
+                            title={`${noteTimingCopy[guiLanguage].drumHint} ${drummerRatchetCopy[guiLanguage].hint} | ${drummerCellDescription(cell, row.key, step, guiLanguage)} | ${timingDescription(cell.timingOffsetPercent ?? 0, track.timing, guiLanguage)}`}
                           >
                             {draggedVelocity !== null ? (
                               <span className="pointer-events-none absolute -top-6 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-full border border-rose-300/70 bg-slate-950/95 px-2 py-0.5 font-mono text-[10px] text-rose-100 shadow-[0_8px_20px_rgba(2,6,23,0.45)]">
@@ -2601,6 +2614,7 @@ function DrummerSequencersBody({ context }: { context: ReturnType<typeof useSequ
                               </span>
                             ) : null}
                             <span className={ledDotClass} style={{ ...ledDotStyle, transform: `translateX(${(cell.timingOffsetPercent ?? 0) * 0.18}px)` }} aria-hidden="true" />
+                            {(cell.ratchets ?? 1) > 1 && <span className="pointer-events-none absolute left-0.5 top-0 font-mono text-[8px] text-amber-200" aria-hidden="true">×{cell.ratchets}</span>}
                             {!!cell.timingOffsetPercent && <span className="pointer-events-none absolute bottom-0 right-0 font-mono text-[8px] text-slate-300">{cell.timingOffsetPercent > 0 ? "+" : ""}{cell.timingOffsetPercent}%</span>}
                             <span className="sr-only">{cell.velocity}</span>
                           </button>

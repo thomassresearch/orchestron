@@ -18,6 +18,7 @@ from backend.app.models.sequencer_constants import (
 )
 
 import math
+from fractions import Fraction
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -81,7 +82,7 @@ class ExportPerformanceInstrumentAssignment(BaseModel):
 class ExportPerformanceConfig(BaseModel):
     audio_graph: AudioGraph | None = Field(default=None, alias="audioGraph")
     mixer: MixerState = Field(default_factory=MixerState)
-    version: int = Field(default=1, ge=1, le=17)
+    version: int = Field(default=1, ge=1, le=18)
     instruments: list[ExportPerformanceInstrumentAssignment] = Field(default_factory=list, max_length=64)
 
     @model_validator(mode="after")
@@ -219,6 +220,7 @@ class PerformanceCsdExportRequest(BaseModel):
                 track,
                 playback_start_subunit=playback_start_subunit,
                 playback_end_subunit=playback_end_subunit,
+                stop_at_limit=track.midi_channel not in arpeggiator_input_channels,
             )
             if track.midi_channel not in arpeggiator_input_channels:
                 event_count += track_event_count
@@ -421,6 +423,7 @@ def _estimate_note_track_events(
     *,
     playback_start_subunit: int,
     playback_end_subunit: int,
+    stop_at_limit: bool = False,
 ) -> tuple[int, list[tuple[int, str, tuple[int, ...]]]]:
     if not track.enabled:
         return (0, [])
@@ -455,7 +458,7 @@ def _estimate_note_track_events(
         track,
         playback_end_subunit=playback_end_subunit,
     )
-    for token, segment_start, segment_end in segments:
+    for segment_index, (token, segment_start, segment_end) in enumerate(segments):
         if _pause_beat_count_from_token(token) is not None or token < 0:
             release_notes(segment_start)
             continue
@@ -469,12 +472,27 @@ def _estimate_note_track_events(
             step_subunit = segment_start + (local_step * local_step_span)
             if step_subunit >= segment_end:
                 break
-            if step_subunit > playback_end_subunit:
+            # An early cell just outside the nominal range may sound inside it.
+            if step_subunit > playback_end_subunit + local_step_span // 2:
                 break
             step = pad.steps[local_step] if local_step < len(pad.steps) else None
             notes = _sequencer_step_note_values(step)
             if notes:
-                attack_notes(step_subunit, notes)
+                count = step.ratchets if isinstance(step, SessionSequencerStepConfig) else 1
+                # Count every potential strike, including silent ramp endpoints.
+                # This bounds direct output and supplies repeated input activity
+                # to the downstream arpeggiator estimate.
+                attack_start = step_subunit
+                if count > 1:
+                    attack_start += round(Fraction(local_step_span * step.timing_offset_percent, 100))
+                    if local_step == 0 and (segment_index == 0 or segments[segment_index - 1][0] != token):
+                        attack_start = max(segment_start, attack_start)
+                for strike in range(count):
+                    attack_notes(attack_start + round(Fraction(local_step_span * strike, count)), notes)
+                    if stop_at_limit and event_count > OFFLINE_CSD_EXPORT_MAX_MIDI_EVENTS:
+                        return (event_count, activity_events)
+                if count > 1:
+                    release_notes(min(attack_start + local_step_span, playback_end_subunit))
             elif not _sequencer_step_hold(step):
                 release_notes(step_subunit)
 

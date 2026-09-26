@@ -151,7 +151,7 @@ def test_score_patterns_events_progressions_and_drum_pads_round_trip(session, ca
     assert snare["pads"][0]["steps"][4]["timing_offset_percent"] == 15
     drums = restored["sequencer"]["drummerTracks"][1]
     assert drums["pads"][1]["rows"][0]["steps"][0]["timingOffsetPercent"] == -10
-    assert restored["version"] == 16
+    assert restored["version"] == 18
 
 
 @pytest.mark.parametrize("offset", [-51, 51, 1.5, True, "20", None])

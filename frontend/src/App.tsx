@@ -217,6 +217,7 @@ export default function App() {
   const setDrummerSequencerRowKey = useAppStore((state) => state.setDrummerSequencerRowKey);
   const toggleDrummerSequencerCell = useAppStore((state) => state.toggleDrummerSequencerCell);
   const setDrummerSequencerCellVelocity = useAppStore((state) => state.setDrummerSequencerCellVelocity);
+  const setDrummerSequencerCellRatchets = useAppStore((state) => state.setDrummerSequencerCellRatchets);
   const setDrummerSequencerCellTimingOffset = useAppStore((state) => state.setDrummerSequencerCellTimingOffset);
   const clearDrummerSequencerTrackSteps = useAppStore((state) => state.clearDrummerSequencerTrackSteps);
   const copyDrummerSequencerPad = useAppStore((state) => state.copyDrummerSequencerPad);
@@ -1513,6 +1514,7 @@ export default function App() {
     onDrummerSequencerCellToggle: toggleDrummerSequencerCell,
     onDrummerSequencerCellVelocityChange: setDrummerSequencerCellVelocity,
     onDrummerSequencerCellTimingOffsetChange: setDrummerSequencerCellTimingOffset,
+    onDrummerSequencerCellRatchetsChange: setDrummerSequencerCellRatchets,
     onDrummerSequencerTrackClearSteps: clearDrummerSequencerTrackSteps,
     onDrummerSequencerPadPress: (trackId: string, padIndex: number) => {
       const drummerTrack = sequencerRef.current.drummerTracks.find((track) => track.id === trackId);

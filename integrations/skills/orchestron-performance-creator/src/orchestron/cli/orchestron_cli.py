@@ -22,7 +22,7 @@ from urllib import error, parse, request
 DEFAULT_API_URL = os.environ.get("ORCHESTRON_API_URL", "http://localhost:8000/api")
 SESSION_DIR = Path(".orchestron")
 SESSION_FILE = SESSION_DIR / "edit-session.json"
-CURRENT_CONFIG_VERSION = 17
+CURRENT_CONFIG_VERSION = 18
 DEFAULT_PAD_COUNT = 8
 MAX_STEPS_PER_PAD = 128
 PAD_LOOP_PAUSE_BEATS = {1, 2, 4, 8, 16, 32}
@@ -3769,7 +3769,7 @@ def build_runtime_config(config: dict[str, Any]) -> dict[str, Any]:
                 steps = []
                 for cell in (pad_row or {}).get("steps", []):
                     if isinstance(cell, dict) and cell.get("active"):
-                        steps.append({"note": int(row.get("key", 36)), "hold": False, "timing_offset_percent": cell.get("timingOffsetPercent", 0), "velocity": int(cell.get("velocity", 100))})
+                        steps.append({"note": int(row.get("key", 36)), "hold": False, "timing_offset_percent": cell.get("timingOffsetPercent", 0), "ratchets": cell.get("ratchets", 1), "ratchet_end_velocity": cell.get("ratchetEndVelocity"), "velocity": int(cell.get("velocity", 100))})
                     else:
                         steps.append({"note": None, "hold": False, "velocity": 1})
                 pads.append({"pad_index": pad_index, "length_beats": int(pad.get("lengthBeats", 4)), "steps": steps})

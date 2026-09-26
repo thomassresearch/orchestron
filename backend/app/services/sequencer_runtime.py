@@ -22,7 +22,7 @@ from backend.app.models.session import (
 from backend.app.services.arpeggiator_runtime import MidiSourceContext
 from backend.app.services.preview_commands import PreviewCommands
 from backend.app.services.sequencer_source_transport import SequencerSourceTransport
-from backend.app.services.sequencer_note_timing import SoundingTimedNote
+from backend.app.services.sequencer_note_timing import RatchetRoll, SoundingTimedNote
 from backend.app.services.sequencer_runtime_config import (
     clamp_controller_value as _clamp_controller_value,
     clamp_midi_note as _clamp_midi_note,
@@ -115,6 +115,7 @@ class SessionSequencerRuntime:
         self._scheduled_visible_until_time: float | None = None
         self._active_notes: dict[str, set[int]] = {}
         self._timed_notes: dict[str, SoundingTimedNote] = {}
+        self._ratchet_rolls: dict[str, RatchetRoll] = {}
         self._last_timed_attack: dict[str, tuple[int, int, int]] = {}
         self._render_subunit_remainder = 0.0
         self._next_render_event_subunit: int | None = None
@@ -696,6 +697,7 @@ class SessionSequencerRuntime:
                 requested_position_step = self._absolute_subunit // _TRANSPORT_SUBUNITS_PER_STEP if position_step is None else position_step
                 requested_subunit = max(0, int(round(requested_position_step))) * _TRANSPORT_SUBUNITS_PER_STEP
                 self._absolute_subunit = self._normalize_start_absolute_subunit_locked(requested_subunit, config)
+                self._ratchet_rolls.clear()
                 self._timed_notes.clear()
                 self._last_timed_attack.clear()
                 self._apply_absolute_subunit_locked(config, self._absolute_subunit)
@@ -1043,7 +1045,7 @@ class SessionSequencerRuntime:
     def _refresh_timed_releases(self, config: SequencerRuntimeConfig) -> None:
         for track_id, sounding in list(self._timed_notes.items()):
             track = config.tracks.get(track_id)
-            if track is None or not track.enabled:
+            if track is None or not track.enabled or track_id in self._ratchet_rolls:
                 continue
             base = self._absolute_subunit - self._local_transport_offset_for(track, self._absolute_subunit)
             # A release shifted past an already traversed boundary still belongs to its note.
@@ -1051,6 +1053,28 @@ class SessionSequencerRuntime:
                 sounding.nominal_end = self._nominal_note_end(track, base, sounding.nominal_start)
             if sounding.release_subunit is not None and sounding.release_subunit <= self._absolute_subunit:
                 self._release_track_notes_locked(track_id, track.midi_channel)
+
+    def _perform_ratchet_strike(self, track: SequencerTrackRuntime, now: int, delay: float | None) -> None:
+        roll = self._ratchet_rolls.get(track.track_id)
+        if roll is None or roll.next_attack != now:
+            return
+        strike = roll.strikes[roll.next_strike]
+        # The occurrence and strike cursor survive live edits. A zero-velocity
+        # strike releases its predecessor without emitting a MIDI note-on/off alias.
+        roll.next_strike += 1
+        self._next_render_event_subunit = None
+        self._release_track_notes_locked(track.track_id, track.midi_channel,
+                                         delivery_delay_seconds=delay, preserve_roll=True)
+        self._timed_notes[track.track_id] = SoundingTimedNote(
+            roll.nominal_start, roll.start - roll.nominal_start,
+            roll.nominal_start + strike.release_offset,
+        )
+        if strike.velocity > 0:
+            self._send_messages_locked(
+                [self._note_on_message(track.midi_channel, note, strike.velocity) for note in roll.notes],
+                delivery_delay_seconds=delay, source_context=self._source_context_for_track(track),
+            )
+            self._active_notes.setdefault(track.track_id, set()).update(roll.notes)
 
     def _perform_note_events_locked(self, config: SequencerRuntimeConfig, now: int, delay: float | None = None,
                                     *, track_ids: set[str] | None = None) -> None:
@@ -1061,9 +1085,13 @@ class SessionSequencerRuntime:
             if not track.enabled or pad is None or not pad.steps:
                 self._release_track_notes_locked(track_id, track.midi_channel, delivery_delay_seconds=delay)
                 continue
+            roll = self._ratchet_rolls.get(track_id)
+            if roll is not None and roll.pad_index != track.active_pad:
+                self._release_track_notes_locked(track_id, track.midi_channel, delivery_delay_seconds=delay)
+                roll = None
             sounding = self._timed_notes.get(track_id)
-            if not track.has_timing_offsets and sounding is None:
-                # Preserve the original zero-offset path, including legacy HOLD semantics.
+            if not track.has_timing_offsets and sounding is None and roll is None:
+                # Preserve the original single-hit path, including legacy HOLD semantics.
                 if not self._local_step_boundary_reached(track, now):
                     continue
                 step = pad.steps[self._local_step_for(track, now)]
@@ -1075,15 +1103,17 @@ class SessionSequencerRuntime:
                 self._last_timed_attack[track_id] = (track.active_pad, base, self._local_step_for(track, now))
             else:
                 if sounding is not None and sounding.release_subunit is not None and sounding.release_subunit <= now:
-                    self._release_track_notes_locked(track_id, track.midi_channel, delivery_delay_seconds=delay)
-                matches = [attack for attack in self._timed_attacks(track, now, config) if attack[0] == now]
+                    self._release_track_notes_locked(track_id, track.midi_channel, delivery_delay_seconds=delay,
+                                                     preserve_roll=True)
+                if roll is not None and roll.end <= now:
+                    self._ratchet_rolls.pop(track_id, None)
+                matches = [attack for attack in self._timed_attacks(track, now, config) if attack[0] == now
+                           and self._last_timed_attack.get(track_id) != (track.active_pad, attack[1], attack[2])]
                 if not matches:
+                    self._perform_ratchet_strike(track, now, delay)
                     continue
                 _, base, index, step = matches[-1]
-                identity = (track.active_pad, base, index)
-                if self._last_timed_attack.get(track_id) == identity:
-                    continue
-                self._last_timed_attack[track_id] = identity
+                self._last_timed_attack[track_id] = (track.active_pad, base, index)
                 nominal = base + index * self._transport_subunits_per_local_step(track)
                 origin = track
                 current_base = now - self._local_transport_offset_for(track, now)
@@ -1092,8 +1122,14 @@ class SessionSequencerRuntime:
                     if config.playback_loop and base == config.playback_end_subunit:
                         origin = copy(track)
                         self._position_prepared_track(origin, config.playback_start_subunit)
-                end = self._nominal_note_end(origin, base, nominal)
                 self._release_track_notes_locked(track_id, track.midi_channel, delivery_delay_seconds=delay)
+                if step.ratchets > 1:
+                    self._ratchet_rolls[track_id] = RatchetRoll(
+                        track.active_pad, base, nominal, now, step.notes, pad.ratchet_strikes[index],
+                    )
+                    self._perform_ratchet_strike(track, now, delay)
+                    continue
+                end = self._nominal_note_end(origin, base, nominal)
                 self._timed_notes[track_id] = SoundingTimedNote(nominal, now - nominal, end)
             self._release_untimed_notes_before_attack(track, delay)
             self._send_messages_locked(
@@ -1121,8 +1157,14 @@ class SessionSequencerRuntime:
             track = config.tracks.get(track_id)
             if track is None:
                 continue
-            if (sounding.nominal_start == config.playback_end_subunit
+            roll = self._ratchet_rolls.get(track_id)
+            same_pad_roll = (roll is not None and self._local_transport_offset_for(track, config.playback_start_subunit) == 0)
+            if ((sounding.nominal_start == config.playback_end_subunit or same_pad_roll)
                     and track.enabled and track.active_pad == previous_pads.get(track_id)):
+                if roll is not None:
+                    roll.base -= distance
+                    roll.nominal_start -= distance
+                    roll.start -= distance
                 sounding.nominal_start -= distance
                 if sounding.nominal_end is not None:
                     sounding.nominal_end -= distance
@@ -1864,7 +1906,10 @@ class SessionSequencerRuntime:
                 pad_runtime = self._active_pad_runtime(track)
                 if pad_runtime is not None and pad_runtime.steps:
                     candidates.append(self._next_local_step_boundary_subunit(track, current_subunit))
-                    if track.has_timing_offsets or track.track_id in self._timed_notes:
+                    roll = self._ratchet_rolls.get(track.track_id)
+                    if roll is not None:
+                        candidates.extend(at for at in (roll.next_attack, roll.end) if at is not None and at > current_subunit)
+                    if track.has_timing_offsets or track.track_id in self._timed_notes or roll is not None:
                         candidates.extend(at for at, _, _, _ in self._timed_attacks(track, current_subunit, config) if at > current_subunit)
                         sounding = self._timed_notes.get(track.track_id)
                         if sounding is not None and sounding.release_subunit is not None and sounding.release_subunit > current_subunit:
@@ -1988,6 +2033,7 @@ class SessionSequencerRuntime:
             for notes in self._active_notes.values():
                 notes.clear()
 
+        self._ratchet_rolls.clear()
         self._timed_notes.clear()
         self._last_timed_attack.clear()
         self._apply_absolute_subunit_locked(config, normalized_target)
@@ -2235,7 +2281,10 @@ class SessionSequencerRuntime:
         midi_channel: int,
         *,
         delivery_delay_seconds: float | None = None,
+        preserve_roll: bool = False,
     ) -> None:
+        if not preserve_roll:
+            self._ratchet_rolls.pop(track_id, None)
         self._timed_notes.pop(track_id, None)
         active_notes = self._active_notes.get(track_id)
         if not active_notes:
@@ -2259,7 +2308,7 @@ class SessionSequencerRuntime:
 
         for track_id, previous_track in previous_config.tracks.items():
             active_notes = self._active_notes.get(track_id)
-            if not active_notes:
+            if not active_notes and track_id not in self._ratchet_rolls:
                 continue
             next_track = next_config.tracks.get(track_id)
             if (
@@ -2270,6 +2319,7 @@ class SessionSequencerRuntime:
                 self._release_track_notes_locked(track_id, previous_track.midi_channel)
 
     def _send_all_notes_off_locked(self) -> None:
+        self._ratchet_rolls.clear()
         self._timed_notes.clear()
         self._last_timed_attack.clear()
         config = self._config

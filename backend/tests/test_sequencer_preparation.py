@@ -257,3 +257,20 @@ def test_failed_preparation_keeps_active_audition_and_authored_sequence(tmp_path
         sequencer = service._sessions[session_id].sequencer
         sequencer.clear_auditions()
         assert not sequencer._config.tracks["lead"].pad_loop_enabled
+
+
+def test_ratchet_strikes_cross_process_preparation_and_live_configuration(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        session_id = _create_running_session(client)
+        config = configuration()
+        config['tracks'][0]['pads'][0]['steps'] = [
+            {'note': 36, 'velocity': 100, 'ratchets': 4, 'ratchet_end_velocity': 40}]
+        response = client.put(f'/api/sessions/{session_id}/sequencer/config', json=config)
+        assert response.status_code == 200, response.text
+        sequencer = client.app.state.container.session_service._sessions[session_id].sequencer
+        track = sequencer._config.tracks['lead']
+        strikes = track.pads[0].ratchet_strikes[0]
+        assert track.has_timing_offsets
+        assert [strike.velocity for strike in strikes] == [100, 80, 60, 40]
+        span = track.timing.transport_subunits_per_local_step
+        assert [strike.offset for strike in strikes] == [span * i // 4 for i in range(4)]

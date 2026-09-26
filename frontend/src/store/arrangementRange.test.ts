@@ -63,7 +63,7 @@ it("round-trips batch edits in the existing v16 format without session editor da
   before.applyArrangementRangeEdit(lanes.map(lane => ({ id: lane.id, kind: lane.kind, rootSequence: [{ type: "pad", padIndex: 0 }, { type: "pause", lengthBeats: 16 }, { type: "pad", padIndex: 1 }] })));
   const after = useAppStore.getState();
   const saved = buildSequencerConfigSnapshot(after.sequencer, after.sequencerInstruments, after.audioGraph, after.mixer);
-  expect(saved.version).toBe(17);
+  expect(saved.version).toBe(18);
   const restored = parseSequencerConfigSnapshot(saved, [], "fixture-patch").sequencer;
   expect(arrangementRangeLanes(restored).map(l => l.pattern)).toEqual(arrangementRangeLanes(after.sequencer).map(l => l.pattern));
   expect(JSON.stringify(saved)).not.toMatch(/rangeClipboard|rangeHistory|editCursor|editRange/);

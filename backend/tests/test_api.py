@@ -7347,3 +7347,84 @@ def test_export_validation_leaves_audio_event_loop_available(tmp_path, monkeypat
         finally:
             release.set()
         assert exporting.result(timeout=5).status_code == 200
+
+
+@pytest.mark.parametrize('field,value', [
+    ('ratchets', 0), ('ratchets', 9), ('ratchets', 2.5), ('ratchets', True), ('ratchets', '4'),
+    ('ratchet_end_velocity', -1), ('ratchet_end_velocity', 128), ('ratchet_end_velocity', 0.5),
+    ('ratchet_end_velocity', False), ('ratchet_end_velocity', '40'),
+])
+def test_sequencer_api_rejects_invalid_ratchets(tmp_path: Path, field, value) -> None:
+    with _client(tmp_path) as client:
+        response = client.put('/api/sessions/unknown/sequencer/config', json={
+            'tracks': [{'track_id': 'drumrow:drums:kick', 'pads': [{'pad_index': 0,
+                'steps': [{'note': 36, field: value}]}]}]})
+        assert response.status_code == 422
+        assert field in response.text
+
+
+@pytest.mark.parametrize('event_source', ['midiFile', 'score'])
+def test_performance_exports_render_ratchets_and_velocity_ramps(tmp_path: Path, event_source: str) -> None:
+    payload = _performance_csd_export_payload()
+    payload['eventSource'] = event_source
+    payload['performanceExport']['performance']['config']['version'] = 18
+    payload['sequencerConfig']['tracks'][0]['pads'][0]['steps'] = [
+        {'note': 60, 'velocity': 100, 'ratchets': 4, 'ratchet_end_velocity': 40}, None, None, None]
+    with _client(tmp_path) as client:
+        response = client.post('/api/bundles/export/performance-csd', json=payload)
+        assert response.status_code == 200, response.text
+        with zipfile.ZipFile(BytesIO(response.content)) as archive:
+            if event_source == 'midiFile':
+                events = [(tick, msg.velocity) for tick, msg in _midi_messages_with_absolute_ticks(
+                    archive.read('Offline_Export/Offline_Export.mid')) if msg.type == 'note_on']
+                assert events == [(0, 100), (30, 80), (60, 60), (90, 40)]
+            else:
+                csd = archive.read('Offline_Export/Offline_Export.csd').decode()
+                events = [list(map(float, line.split()[2:])) for line in csd.splitlines() if line.startswith('i 1 ')]
+                assert events == [[i * 0.03125, 0.03125, 60, velocity] for i, velocity in enumerate([100, 80, 60, 40])]
+
+
+@pytest.mark.parametrize('archive_format', ['json', 'zip'])
+def test_ratchets_survive_performance_app_state_and_native_bundles(tmp_path: Path, archive_format: str) -> None:
+    payload = _performance_csd_export_payload()['performanceExport']
+    config = payload['performance']['config']
+    config.update(version=18, sequencer={'drummerTracks': [{'id': 'drums', 'pads': [{'rows': [
+        {'rowId': 'kick', 'steps': [{'active': False, 'velocity': 100, 'ratchets': 8, 'ratchetEndVelocity': 0}]}]}]}]})
+    with _client(tmp_path) as client:
+        saved = client.post('/api/performances', json={'name': 'Ratchets', 'config': config})
+        assert saved.status_code == 201
+        actual = client.get(f'/api/performances/{saved.json()["id"]}').json()['config']
+        assert actual['version'] == 18
+        assert actual['sequencer'] == config['sequencer']
+        state = {'version': 3, 'sequencer': config['sequencer']}
+        assert client.put('/api/app-state', json={'state': state}).status_code == 200
+        assert client.get('/api/app-state').json()['state']['sequencer'] == config['sequencer']
+        response = client.post('/api/bundles/export/performance', json=payload)
+        assert response.status_code == 200
+        data = response.content
+        if archive_format == 'zip':
+            buffer = BytesIO()
+            with zipfile.ZipFile(buffer, 'w') as archive:
+                archive.writestr('ratchets.orch.json', data)
+            data = buffer.getvalue()
+        imported = client.post('/api/bundles/import/expand', content=data,
+            headers={'Content-Type': 'application/octet-stream', 'X-File-Name': f'ratchets.orch.{archive_format}'})
+        assert imported.status_code == 200
+        assert imported.json()['performance']['config']['version'] == 18
+        assert imported.json()['performance']['config']['sequencer'] == config['sequencer']
+
+
+def test_ratchets_count_toward_export_event_limit_before_rendering(tmp_path: Path, monkeypatch) -> None:
+    payload = _performance_csd_export_payload()
+    track = payload['sequencerConfig']['tracks'][0]
+    track['pads'][0]['steps'] = [{'note': 60, 'ratchets': 8}] * 4
+    payload['sequencerConfig']['controller_tracks'] = []
+    payload['sequencerConfig']['playback_end_step'] = 8000
+    payload['sequencerConfig']['tracks'] = [{**track, 'track_id': f'drumrow:drums:{i}'} for i in range(4)]
+    def fail_export(*args, **kwargs):
+        raise AssertionError('oversized export must be rejected before rendering')
+    monkeypatch.setattr(PerformanceExportService, 'build_performance_csd_archive', fail_export)
+    with _client(tmp_path) as client:
+        response = client.post('/api/bundles/export/performance-csd', json=payload)
+    assert response.status_code == 422
+    assert 'too many MIDI events' in response.text

@@ -50,6 +50,8 @@ import {
   nextAvailableMidiChannel,
   nextAvailablePerformanceChannel,
   normalizeDrummerSequencerKey,
+  normalizeDrummerRatchets,
+  normalizeRatchetEndVelocity,
   normalizeDrummerSequencerStepCount,
   normalizeEffectRoutesForBindings,
   normalizePadIndex,
@@ -126,6 +128,7 @@ export type SequencerTrackStoreActions = Pick<
   | "toggleDrummerSequencerCell"
   | "setDrummerSequencerCellVelocity"
   | "setDrummerSequencerCellTimingOffset"
+  | "setDrummerSequencerCellRatchets"
   | "clearDrummerSequencerTrackSteps"
   | "copyDrummerSequencerPad"
   | "setDrummerSequencerTrackActivePad"
@@ -1667,6 +1670,46 @@ export function createSequencerTrackStoreActions(
               nextSteps[stepIndex] = {
                 ...current,
                 timingOffsetPercent: normalizedOffset
+              };
+              return { ...row, steps: nextSteps };
+            });
+            nextPads[activePad] = { ...pad, rows: nextRows };
+            return {
+              ...track,
+              pads: nextPads
+            };
+          })
+        }
+      });
+    },
+
+    setDrummerSequencerCellRatchets: (trackId, rowId, stepIndex, ratchets, endVelocity) => {
+      if (stepIndex < 0 || stepIndex >= STEP_CAPACITY) {
+        return;
+      }
+      const count = normalizeDrummerRatchets(ratchets);
+      const finalVelocity = normalizeRatchetEndVelocity(endVelocity);
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          drummerTracks: sequencer.drummerTracks.map((track) => {
+            if (track.id !== trackId) {
+              return track;
+            }
+            const activePad = normalizePadIndex(track.activePad);
+            const nextPads = cloneDrummerSequencerPads(track.pads).map((pad) => alignDrummerPadRowsToTrackRows(pad, track.rows));
+            const pad = nextPads[activePad] ?? fallbackDrummerSequencerPadStateForTrack(track);
+            const nextRows = pad.rows.map((row) => {
+              if (row.rowId !== rowId) {
+                return row;
+              }
+              const nextSteps = cloneDrummerSequencerCells(row.steps);
+              const current = nextSteps[stepIndex] ?? createEmptyDrummerSequencerCell();
+              nextSteps[stepIndex] = {
+                ...current,
+                ratchets: count,
+                ratchetEndVelocity: finalVelocity
               };
               return { ...row, steps: nextSteps };
             });

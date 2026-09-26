@@ -1,3 +1,4 @@
+import { drummerRatchetHelp } from "./helpDocumentationDrummerRatchets";
 import { sequencerTimingHelp } from "./helpDocumentationSequencerTiming";
 import { patternWorkspaceHelp } from "./helpDocumentationPatternWorkspace";
 import { independentPlaybackHelp } from "./helpDocumentationIndependentPlayback";
@@ -905,4 +906,9 @@ for (const language of ["english", "german", "french", "spanish"] as const) {
   for (const id of ["sequencer_tracks", "sequencer_drummer_sequencer", "sequencer_controller_sequencer", "sequencer_track_editor"] as const) {
     sequencerHelpDocuments[id][language].markdown += "\n\n" + sequencerTimingHelp[language];
   }
+}
+
+
+for (const language of ["english", "german", "french", "spanish"] as const) {
+  sequencerHelpDocuments.sequencer_drummer_sequencer[language].markdown += "\n\n" + drummerRatchetHelp[language];
 }

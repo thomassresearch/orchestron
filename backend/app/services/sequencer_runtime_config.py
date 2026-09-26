@@ -6,7 +6,7 @@ from backend.app.models.controller_curve import (
     normalize_controller_keypoints as _normalize_controller_keypoints,
     sample_controller_curve_value as _sample_controller_curve_value,
 )
-from backend.app.services.sequencer_note_timing import note_positions, terminating_steps
+from backend.app.services.sequencer_note_timing import note_positions, ratchet_strikes, terminating_steps
 
 from functools import lru_cache
 
@@ -80,6 +80,8 @@ def _normalize_step(
             notes=_normalize_step_notes(value.note),
             hold=bool(value.hold),
             timing_offset_percent=value.timing_offset_percent,
+            ratchets=value.ratchets,
+            ratchet_end_velocity=value.ratchet_end_velocity,
             velocity=clamp_midi_velocity(
                 value.velocity if value.velocity is not None else default_velocity
             ),
@@ -258,13 +260,14 @@ def compile_sequencer_runtime_config(
             positions = note_positions(pad.steps, track_timing.transport_subunits_per_local_step)
             pads[index] = replace(pad, note_offsets=tuple(at for at, _ in positions),
                                   note_step_indices=tuple(step for _, step in positions),
+                                  ratchet_strikes=ratchet_strikes(pad.steps, track_timing.transport_subunits_per_local_step),
                                   terminating_step_indices=terminating_steps(pad.steps))
 
         active_pad = track_request.active_pad if track_request.active_pad in pads else 0
         queued_pad = track_request.queued_pad if track_request.queued_pad in pads else None
         tracks[track_request.track_id] = SequencerTrackRuntime(
             track_id=track_request.track_id,
-            has_timing_offsets=any(step.timing_offset_percent for pad in pads.values() for step in pad.steps),
+            has_timing_offsets=any(step.timing_offset_percent or step.ratchets > 1 for pad in pads.values() for step in pad.steps),
             midi_channel=track_request.midi_channel,
             timing=track_timing,
             scale_root=track_request.scale_root,

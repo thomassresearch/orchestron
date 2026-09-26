@@ -144,3 +144,25 @@ Differences vs melodic sequencer pads:
 - Automating drum pattern changes with the arranger while performing on piano roll/controllers
 
 **Navigation:** [Up](performance.md) | [Prev](sequencer_tracks_and_steps.md) | [Next](pattern_pads_and_pad_looper.md)
+
+## Ratchets and Velocity Ramps
+
+Right-click a drum cell, or focus it and press **Shift+F10**, to open **Step properties**. Set **Ratchets** to 1–8: 1 is the normal single hit, and higher counts divide one local step into evenly spaced hits. An **×N** badge identifies the roll in the grid. At 120 BPM with Subdivision 4 in 4/4, four hits occur at 0, 31.25, 62.5 and 93.75 ms within a 125 ms step.
+
+Enable **Velocity ramp** and choose **Final velocity** (0–127). The first hit uses the cell's velocity and the remaining hits interpolate to the final value. For four hits, 100 → 40 produces 100, 80, 60, 40. Zero-velocity hits are silent. Disable the ramp for constant velocity. At one hit the ramp controls are disabled, but their values are retained.
+
+Timing shifts the whole roll while preserving its spacing. The next active cell in the same drum row cuts off unfinished repeats; an equal-time collision belongs to the later step. On a fresh start or a different-pad launch an early first roll starts at the boundary. On a confirmed same-pad repeat it can begin early, and a late final roll can finish across that boundary. A stop, seek, different pad, arrangement rest or finite end cancels unfinished rolls. A roll already in progress keeps its count, ramp and timing when those settings are edited; the next occurrence uses the prepared changes.
+
+Editing these properties does not activate an inactive cell. Disabling and re-enabling a cell preserves them; copying pads and saving/exporting preserves them, including hidden steps. Clear Steps restores one hit without a ramp. The panel edits the displayed pad and closes when changing pads, collapsing the drummer section or removing the target. Escape also closes it. Existing click toggles, horizontal timing drags, vertical velocity drags and arrow-key editing remain available.
+
+### Deutsch — Mehrfachanschläge
+
+Rechtsklick oder **Umschalt+F10** öffnet **Schritteigenschaften**. **Mehrfachanschläge** (1–8) verteilen Anschläge gleichmäßig über einen Schritt; **×N** markiert den Wirbel. **Anschlagstärke-Verlauf** interpoliert von der Anschlagstärke der Zelle zur **Letzten Anschlagstärke** (0–127); 0 ist stumm. Bei einem Anschlag bleibt der Verlauf gespeichert, aber deaktiviert. Timing verschiebt den ganzen Wirbel; die nächste aktive Zelle derselben Zeile beendet ihn. Ein laufender Wirbel behält seine Einstellungen bis zum Ende. Stop, Sprung, ein anderes Pad oder eine Arrangement-Pause brechen ihn ab. Inaktive Zellen bleiben inaktiv; Kopien, Speichern und beide CSD-Exporte erhalten die Werte. Schritte löschen setzt sie zurück.
+
+### Français — Répétitions rapides
+
+Clic droit ou **Maj+F10** ouvre **Propriétés du pas**. **Répétitions rapides** (1–8) répartit les frappes régulièrement sur un pas ; **×N** indique le roulement. **Rampe de vélocité** interpole entre la vélocité de la cellule et la **Vélocité finale** (0–127) ; 0 est silencieux. Avec une seule frappe, la rampe reste mémorisée mais désactivée. Le placement décale tout le roulement ; la cellule active suivante de la même ligne l'interrompt. Un roulement commencé conserve ses réglages. Arrêt, déplacement, autre pad ou pause d'arrangement annulent les frappes restantes. Les cellules inactives restent inactives ; copies, sauvegardes et exports CSD conservent les valeurs. Effacer les pas les réinitialise.
+
+### Español — Repeticiones rápidas
+
+Clic derecho o **Mayús+F10** abre **Propiedades del paso**. **Repeticiones rápidas** (1–8) distribuye golpes equidistantes dentro de un paso; **×N** identifica el redoble. **Rampa de velocidad** interpola entre la velocidad de la celda y la **Velocidad final** (0–127); 0 es silencioso. Con un solo golpe, la rampa se conserva pero queda desactivada. El tiempo desplaza todo el redoble; la siguiente celda activa de la misma fila lo interrumpe. Un redoble iniciado conserva sus ajustes. Parada, salto, otro pad o pausa del arreglo cancelan los golpes restantes. Las celdas inactivas siguen inactivas; copias, guardado y exports CSD conservan los valores. Limpiar pasos los restablece.

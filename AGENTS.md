@@ -117,8 +117,8 @@ it measures cold, cached, and one-pad preparation using the versioned TB303 test
   references for dependency, revision, and note-release contracts.
 - Rack/topology changes lock while instruments run; mixer controls remain live. Direct output
   bypasses Master but retains strip controls. Legacy Level migrates to dB audio gain, not velocity.
-- Mixer persistence arrived in performance config v11; current serializers/CLI write v17 and
-  accept v1–17. App state is v3 and reads v1–3. Distinguish these from the native bundle envelope version.
+- Mixer persistence arrived in performance config v11; current serializers/CLI write v18 and
+  accept v1–18. App state is v3 and reads v1–3. Distinguish these from the native bundle envelope version.
   Preserve types, device names, routing, mixer state, instance overrides and optional
   `padLoopPattern.definitionColors` display metadata across round trips. Colours never trigger audio preparation.
 - Master is the fixed `$master` endpoint, with no library patch or rack slot. Preserve its

@@ -337,6 +337,8 @@ SequencerStepNotes = int | list[int] | None
 
 
 class SessionSequencerStepConfig(BaseModel):
+    ratchets: int = Field(default=1, ge=1, le=8, strict=True)
+    ratchet_end_velocity: int | None = Field(default=None, ge=0, le=127, strict=True)
     timing_offset_percent: int = Field(default=0, ge=-50, le=50, strict=True)
     note: SequencerStepNotes = None
     hold: bool = False

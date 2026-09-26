@@ -221,6 +221,7 @@ export interface AppStore {
     stepIndex: number,
     velocity: number
   ) => void;
+  setDrummerSequencerCellRatchets: (trackId: string, rowId: string, stepIndex: number, ratchets: number, endVelocity: number | null) => void;
   setDrummerSequencerCellTimingOffset: (
     trackId: string,
     rowId: string,

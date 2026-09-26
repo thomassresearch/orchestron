@@ -127,6 +127,7 @@ export interface SequencerPageDrummerTrackActions {
   onDrummerSequencerRowKeyPreview?: (key: number, channel: number) => void;
   onDrummerSequencerCellToggle: (trackId: string, rowId: string, stepIndex: number, active?: boolean) => void;
   onDrummerSequencerCellVelocityChange: (trackId: string, rowId: string, stepIndex: number, velocity: number) => void;
+  onDrummerSequencerCellRatchetsChange?: (trackId: string, rowId: string, stepIndex: number, ratchets: number, endVelocity: number | null) => void;
   onDrummerSequencerCellTimingOffsetChange?: (trackId: string, rowId: string, stepIndex: number, timingOffsetPercent: number) => void;
   onDrummerSequencerTrackClearSteps: (trackId: string) => void;
   onDrummerSequencerPadPress: (trackId: string, padIndex: number) => void;

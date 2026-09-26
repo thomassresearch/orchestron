@@ -59,7 +59,7 @@ def test_cli_normalization_preserves_optional_arranger_history():
     config["arrangerHistory"] = {"version": 1, "cursor": 0, "entries": [], "basis": []}
     history = copy.deepcopy(config["arrangerHistory"])
     normalized = cli.normalize_performance_config(config, [])
-    assert normalized["version"] == 17
+    assert normalized["version"] == 18
     assert normalized["arrangerHistory"] == history
 
 
@@ -168,7 +168,7 @@ def test_cli_normalization_preserves_song_loop(enabled):
     config = cli.empty_performance_config()
     config["sequencer"]["arrangerSongLoopEnabled"] = enabled
     normalized = cli.normalize_performance_config(config, [])
-    assert normalized["version"] == 17
+    assert normalized["version"] == 18
     assert normalized["sequencer"]["arrangerSongLoopEnabled"] is enabled
 
 

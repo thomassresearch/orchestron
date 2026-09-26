@@ -3,10 +3,10 @@ import type { GuiLanguage, SequencerTimingConfig } from "../../types";
 import { normalizeTimingOffset, timingOffsetMilliseconds } from "../../lib/sequencer";
 
 export const noteTimingCopy = {
-  english: { step: "Step", key: "Key", timing: "Timing", early: "Early", late: "Late", onGrid: "On grid", reset: "Reset timing", close: "Close timing", drumHint: "Drag left/right: timing; up/down: velocity. Right-click: timing controls. Arrow keys: adjust." },
-  german: { step: "Schritt", key: "Taste", timing: "Timing", early: "Früh", late: "Spät", onGrid: "Im Raster", reset: "Timing zurücksetzen", close: "Timing schließen", drumHint: "Links/rechts ziehen: Timing; hoch/runter: Anschlagstärke. Rechtsklick: Timing-Regler. Pfeiltasten: anpassen." },
-  french: { step: "Pas", key: "Touche", timing: "Placement", early: "En avance", late: "En retard", onGrid: "Sur la grille", reset: "Réinitialiser le placement", close: "Fermer le placement", drumHint: "Glisser gauche/droite : placement ; haut/bas : vélocité. Clic droit : réglages. Flèches : ajuster." },
-  spanish: { step: "Paso", key: "Tecla", timing: "Tiempo", early: "Adelantado", late: "Retrasado", onGrid: "En la cuadrícula", reset: "Restablecer tiempo", close: "Cerrar tiempo", drumHint: "Arrastrar izquierda/derecha: tiempo; arriba/abajo: velocidad. Clic derecho: controles. Flechas: ajustar." }
+  english: { step: "Step", key: "Key", timing: "Timing", early: "Early", late: "Late", onGrid: "On grid", reset: "Reset timing", close: "Close timing", drumHint: "Drag left/right: timing; up/down: velocity. Arrow keys: adjust." },
+  german: { step: "Schritt", key: "Taste", timing: "Timing", early: "Früh", late: "Spät", onGrid: "Im Raster", reset: "Timing zurücksetzen", close: "Timing schließen", drumHint: "Links/rechts ziehen: Timing; hoch/runter: Anschlagstärke. Pfeiltasten: anpassen." },
+  french: { step: "Pas", key: "Touche", timing: "Placement", early: "En avance", late: "En retard", onGrid: "Sur la grille", reset: "Réinitialiser le placement", close: "Fermer le placement", drumHint: "Glisser gauche/droite : placement ; haut/bas : vélocité. Flèches : ajuster." },
+  spanish: { step: "Paso", key: "Tecla", timing: "Tiempo", early: "Adelantado", late: "Retrasado", onGrid: "En la cuadrícula", reset: "Restablecer tiempo", close: "Cerrar tiempo", drumHint: "Arrastrar izquierda/derecha: tiempo; arriba/abajo: velocidad. Flechas: ajustar." }
 } satisfies Record<GuiLanguage, { step: string; key: string; timing: string; early: string; late: string; onGrid: string; reset: string; close: string; drumHint: string }>;
 
 export function timingDescription(value: number, timing: SequencerTimingConfig, language: GuiLanguage): string {
