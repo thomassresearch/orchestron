@@ -59,6 +59,10 @@ The opcode documentation modal provides:
 - Tags
 - Direct link to the Csound reference page (`Open Csound Reference`)
 
+## Monophonic Legato
+
+Use [`midi_legato`](midi_legato.md) for touching or overlapping notes that share a voice. Its live pitch and velocity outputs drive the sound while `madsr` follows the phrase. Gaps restore articulation. The node is opt-in and belongs in the main graph.
+
 ## Atone High-Pass Filters
 
 Search for `atone` or `highpass` in the `filter` category:

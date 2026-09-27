@@ -52,6 +52,7 @@ class ScoreNoteEvent:
     midi_channel: int
     note: int
     velocity: int
+    sequence: int = 0
 
 
 @dataclass(slots=True)
@@ -747,13 +748,16 @@ class PerformanceExportService:
                 f"{index} {event.value}"
             )
 
+        legato_refs = {manifest["noteInstrumentReferences"][identity]
+                       for identity in manifest.get("legatoInstanceIds", [])} if manifest else set()
         for event in note_events:
+            phrase_fields = f" {event.sequence + 1} {event.midi_channel}" if event.instrument_ref in legato_refs else ""
             lines.append(
                 "i "
                 f"{self._format_score_instrument_ref(event.instrument_ref)} "
                 f"{self._format_score_number(event.start_seconds)} "
                 f"{self._format_score_number(event.duration_seconds)} "
-                f"{event.note} {event.velocity}"
+                f"{event.note} {event.velocity}{phrase_fields}"
             )
 
         lines.append(f"f 0 {self._format_duration(duration_seconds)}")
@@ -769,9 +773,10 @@ class PerformanceExportService:
     ) -> list[ScoreNoteEvent]:
         channel_to_instrument_ref = self._score_instrument_ref_by_channel(targets)
         if manifest and manifest.get("instrumentReferences"):
-            channel_to_instrument_ref = {t.midi_channel: manifest["instrumentReferences"][t.assignment_id]
-                                         for t in targets if t.midi_channel > 0}
-        open_notes: dict[tuple[int, int], list[tuple[float, int]]] = {}
+            references = manifest.get("noteInstrumentReferences", manifest["instrumentReferences"])
+            channel_to_instrument_ref = {t.midi_channel: references[t.assignment_id or f"instrument-{index}"]
+                                         for index, t in enumerate(targets, 1) if t.midi_channel > 0}
+        open_notes: dict[tuple[int, int], list[tuple[float, int, int]]] = {}
         score_events: list[ScoreNoteEvent] = []
         skipped_channels: set[int] = set()
         end_time = max((event.time_seconds for event in events), default=0.0)
@@ -780,7 +785,7 @@ class PerformanceExportService:
             queue = open_notes.get((channel, note))
             if not queue:
                 return
-            start_seconds, velocity = queue.pop(0)
+            start_seconds, velocity, sequence = queue.pop(0)
             if not queue:
                 open_notes.pop((channel, note), None)
             instrument_ref = channel_to_instrument_ref.get(channel)
@@ -795,6 +800,7 @@ class PerformanceExportService:
                     midi_channel=channel,
                     note=note,
                     velocity=velocity,
+                    sequence=sequence,
                 )
             )
 
@@ -804,7 +810,7 @@ class PerformanceExportService:
                 while open_notes.get((channel, note)):
                     close_note(channel, note, time_seconds)
 
-        for event in sorted(events, key=lambda item: (item.time_seconds, self._message_priority(item.message))):
+        for event in sorted(events, key=lambda item: (item.time_seconds, self._message_priority(item.message), item.sequence)):
             message = event.message
             if len(message) < 3:
                 continue
@@ -813,7 +819,7 @@ class PerformanceExportService:
             data_1 = int(message[1])
             data_2 = int(message[2])
             if status == 0x90 and data_2 > 0:
-                open_notes.setdefault((channel, data_1), []).append((event.time_seconds, data_2))
+                open_notes.setdefault((channel, data_1), []).append((event.time_seconds, data_2, event.sequence))
             elif status in {0x80, 0x90}:
                 close_note(channel, data_1, event.time_seconds)
             elif status == 0xB0 and data_1 in {120, 123}:

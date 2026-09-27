@@ -26,3 +26,5 @@ tmp/
 output/
 graphify-out/
 .gitattributes
+
+examples/performances/*/

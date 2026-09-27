@@ -136,3 +136,18 @@ def test_perf_controller_has_localized_virtual_opcode_help_and_icon():
         assert set(text) == {"english", "german", "french", "spanish"}
         assert all(value.strip() for value in text.values())
     assert "virtual" in details["description"]["english"].lower()
+
+
+def test_midi_legato_virtual_catalog_and_localized_contract() -> None:
+    root = Path(__file__).resolve().parents[2]
+    opcode = OpcodeService(icon_prefix='/static/icons').get_opcode('midi_legato')
+    assert opcode is not None
+    assert opcode.inputs == []
+    assert [(port.id, port.signal_type.value) for port in opcode.outputs] == [('kfreq', 'k'), ('kvelocity', 'k')]
+    assert (root / 'backend/app' / opcode.icon.lstrip('/')).is_file()
+    details = json.loads((root / 'frontend/src/lib/opcodeDocDetails.json').read_text())['midi_legato']
+    for translated in [details['description'], *details['outputs'].values()]:
+        assert set(translated) == {'english', 'german', 'french', 'spanish'}
+        assert all(value.strip() for value in translated.values())
+    assert '10 ms' in details['description']['english']
+    assert 'no glide' in details['outputs']['kfreq']['english']

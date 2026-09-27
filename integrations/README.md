@@ -39,6 +39,8 @@ uv run --project integrations/skills/orchestron-performance-creator orchestron_c
 
 Use `edit sequencers list` to discover melodic/drummer track IDs, pads and drum rows. `edit step-timing list|set|reset` reads and edits selected early/late offsets without changing the notes or groove. See [per-note timing](skills/orchestron-performance-creator/references/step_timing.md) for step indexing, drum selection and score examples.
 
+Use `edit ratchets list|set|reset` to create drum rolls with 1–8 hits and optional velocity ramps. For example, `edit ratchets set --track drum-1 --pad 1 --key 38 --step 4 --count 4 --end-velocity 40` adds four hits to an existing snare cell. YAML/JSON scores support the same settings through `step_ratchets`. See [drummer ratchets](skills/orchestron-performance-creator/references/step_ratchets.md); inactive cells retain their activation state.
+
 For larger arrangements, use a score spec and apply it to an active edit session:
 
 ```bash

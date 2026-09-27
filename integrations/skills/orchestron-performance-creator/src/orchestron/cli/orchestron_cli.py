@@ -3409,6 +3409,11 @@ def apply_score_spec_to_config(config: dict[str, Any], spec: dict[str, Any]) -> 
         if not isinstance(track_spec, dict):
             raise OrchestronCliError("invalid_score_spec", "track entries must be objects.", path=f"tracks[{index}]")
         track_type = str(track_spec.get("type", "melodic"))
+        if track_type != "drummer":
+            for definition, _, source in score_pad_sources(track_spec, field=f"tracks[{index}]"):
+                if "step_ratchets" in definition:
+                    raise OrchestronCliError("unsupported_ratchet_track", "step_ratchets requires a drummer track.",
+                                             path=f"{source}.step_ratchets")
         if track_type == "melodic":
             field = f"tracks[{index}]"
             channel = clamp_int(track_spec.get("channel", default_channel), 1, 16, field=f"{field}.channel")
@@ -3494,6 +3499,8 @@ def apply_score_spec_to_config(config: dict[str, Any], spec: dict[str, Any]) -> 
             raise OrchestronCliError("unsupported_score_track", f"Unsupported track type '{track_type}'.", path=f"tracks[{index}].type")
         if track_type in ("melodic", "drummer"):
             apply_score_step_timing(created[-1], track_type, track_spec, field=f"tracks[{index}]")
+        if track_type == "drummer":
+            apply_score_step_ratchets(created[-1], track_spec, field=f"tracks[{index}]")
     return created
 
 
@@ -3551,7 +3558,7 @@ def step_timing_targets(
         rows = [({}, pad.get("steps", []))]
     else:
         if editing and row_id is None and key is None:
-            raise OrchestronCliError("missing_drum_selector", "Drummer timing edits require --row or --key.", path=field,
+            raise OrchestronCliError("missing_drum_selector", "Drummer edits require --row or --key.", path=field,
                                      retry=["Run `edit sequencers list` to discover drum rows and keys."])
         matches = [row for row in track.get("rows", []) if
                    (row_id is None or row.get("id") == row_id) and (key is None or row.get("key") == key)]
@@ -3597,16 +3604,19 @@ def step_timing_result(config: dict[str, Any], track: dict[str, Any], kind: str,
     return {"trackId": track["id"], "name": track.get("name"), "type": kind, "steps": result}
 
 
-def apply_score_step_timing(track: dict[str, Any], kind: str, spec: dict[str, Any], *, field: str) -> None:
-    """Resolve all timing after material generation, then apply without changing that material."""
+def score_pad_sources(spec: dict[str, Any], *, field: str) -> list[tuple[dict[str, Any], int, str]]:
     primary = parse_score_pad_index(spec, fallback=0, field=field)
-    definitions = [(spec, primary, field)] + [
+    return [(spec, primary, field)] + [
         (pad, parse_score_pad_index(pad, fallback=index, field=f"{field}.pads[{index}]"), f"{field}.pads[{index}]")
         for index, pad in enumerate(score_pads(spec, field=field))
     ]
+
+
+def apply_score_step_timing(track: dict[str, Any], kind: str, spec: dict[str, Any], *, field: str) -> None:
+    """Resolve all timing after material generation, then apply without changing that material."""
     changes = []
     seen = set()
-    for definition, pad_index, source in definitions:
+    for definition, pad_index, source in score_pad_sources(spec, field=field):
         assignments = []
         entries = definition.get("step_timing", [])
         if not isinstance(entries, list):
@@ -3643,6 +3653,63 @@ def apply_score_step_timing(track: dict[str, Any], kind: str, spec: dict[str, An
             changes.append((targets, percent))
     for targets, percent in changes:
         set_step_timing_targets(track, kind, targets, percent)
+
+
+def ratchet_integer(value: Any, low: int, high: int, *, field: str, cli: bool = False) -> int:
+    if cli and isinstance(value, str) and re.fullmatch(r"[+-]?\d+", value):
+        value = int(value)
+    if type(value) is not int or not low <= value <= high:
+        raise OrchestronCliError(
+            "invalid_step_ratchets", f"{field} must be an integer from {low} through {high}.", path=field,
+            retry=["Use a count in 1..8, final velocity in 0..127, and an existing drum pad/row/step."],
+        )
+    return value
+
+
+def set_step_ratchet_targets(targets: list, count: int, end_velocity: int | None, *, keep_ramp: bool = False) -> None:
+    for _, cells, index in targets:
+        cell = {**timing_cell(cells[index], "drummer"), "ratchets": count}
+        if not keep_ramp:
+            cell["ratchetEndVelocity"] = end_velocity
+        cells[index] = cell
+
+
+def step_ratchet_result(config: dict[str, Any], track: dict[str, Any], targets: list) -> dict[str, Any]:
+    result = step_timing_result(config, track, "drummer", targets)
+    for row, (_, cells, index) in zip(result["steps"], targets):
+        cell = timing_cell(cells[index], "drummer")
+        row["ratchets"] = cell.get("ratchets", 1)
+        row["ratchetEndVelocity"] = cell.get("ratchetEndVelocity")
+    return result
+
+
+def apply_score_step_ratchets(track: dict[str, Any], spec: dict[str, Any], *, field: str) -> None:
+    """Validate every assignment before applying ratchets to the generated groove."""
+    changes = []
+    seen = set()
+    for definition, pad_index, source in score_pad_sources(spec, field=field):
+        entries = definition.get("step_ratchets", [])
+        if not isinstance(entries, list):
+            raise OrchestronCliError("invalid_step_ratchets", "step_ratchets must be a list.", path=f"{source}.step_ratchets")
+        for index, entry in enumerate(entries):
+            path = f"{source}.step_ratchets[{index}]"
+            if not isinstance(entry, dict) or set(entry) - {"at_step", "key", "ratchets", "ratchet_end_velocity"}:
+                raise OrchestronCliError("invalid_step_ratchets",
+                                         "Ratchet entries accept at_step, key, ratchets and optional ratchet_end_velocity.", path=path)
+            at = ratchet_integer(entry.get("at_step"), 0, MAX_STEPS_PER_PAD - 1, field=f"{path}.at_step")
+            key = ratchet_integer(entry.get("key"), 0, 127, field=f"{path}.key")
+            count = ratchet_integer(entry.get("ratchets"), 1, 8, field=f"{path}.ratchets")
+            end_velocity = entry.get("ratchet_end_velocity")
+            if end_velocity is not None:
+                end_velocity = ratchet_integer(end_velocity, 0, 127, field=f"{path}.ratchet_end_velocity")
+            targets = step_timing_targets(track, "drummer", pad_index, [at], key=key, editing=True, field=path)
+            identity = (pad_index, targets[0][0]["rowId"], at)
+            if identity in seen:
+                raise OrchestronCliError("duplicate_step_ratchets", "Ratchets are assigned more than once to the same hit.", path=path)
+            seen.add(identity)
+            changes.append((targets, count, end_velocity))
+    for targets, count, end_velocity in changes:
+        set_step_ratchet_targets(targets, count, end_velocity)
 
 
 def compile_pad_loop_sequence(track: dict[str, Any]) -> list[int]:
@@ -4294,6 +4361,32 @@ def command_edit_step_timing(args: argparse.Namespace, ctx: CliContext) -> None:
         result = update_session_config(ctx, operation)
     else:
         result = operation(load_edit_session(ctx.session_file).get("config", {}))
+    print_payload(result, ctx)
+
+
+def command_edit_ratchets(args: argparse.Namespace, ctx: CliContext) -> None:
+    editing = args.ratchet_command != "list"
+    pad_index = parse_user_pad_index(args.pad, field="pad")
+    steps = [ratchet_integer(step, 0, MAX_STEPS_PER_PAD - 1, field="step", cli=True) for step in args.step] if args.step else None
+    key = ratchet_integer(args.key, 0, 127, field="key", cli=True) if args.key is not None else None
+    count, end_velocity, keep_ramp = 1, None, False
+    if args.ratchet_command == "set":
+        count = ratchet_integer(args.count, 1, 8, field="count", cli=True)
+        if args.end_velocity is not None:
+            end_velocity = ratchet_integer(args.end_velocity, 0, 127, field="end_velocity", cli=True)
+        keep_ramp = args.end_velocity is None and not args.constant
+
+    def operation(config: dict[str, Any]) -> dict[str, Any]:
+        kind, track = timing_track(config, args.track)
+        if kind != "drummer":
+            raise OrchestronCliError("unsupported_ratchet_track", "Ratchet commands require a drummer track.", path="track",
+                                     retry=["Run `edit sequencers list` and select a drummer track ID."])
+        targets = step_timing_targets(track, kind, pad_index, steps, row_id=args.row, key=key, editing=editing, field="step_ratchets")
+        if editing:
+            set_step_ratchet_targets(targets, count, end_velocity, keep_ramp=keep_ramp)
+        return step_ratchet_result(config, track, targets)
+
+    result = update_session_config(ctx, operation) if editing else operation(load_edit_session(ctx.session_file).get("config", {}))
     print_payload(result, ctx)
 
 
@@ -5159,6 +5252,24 @@ def build_parser() -> argparse.ArgumentParser:
         if action == "set":
             timing_parser.add_argument("--percent", required=True, help="Whole percentage of a local step, -50..50; negative is early.")
         timing_parser.set_defaults(func=command_edit_step_timing)
+    ratchets = edit_sub.add_parser("ratchets", help="Inspect, set or reset drummer rolls and velocity ramps.")
+    ratchet_sub = ratchets.add_subparsers(dest="ratchet_command", required=True)
+    for action in ("list", "set", "reset"):
+        ratchet_parser = ratchet_sub.add_parser(action, help={"list": "Inspect counts, ramps, velocity and activation.",
+                                                            "set": "Set selected drum cells to 1..8 hits.",
+                                                            "reset": "Restore one hit with no velocity ramp."}[action])
+        ratchet_parser.add_argument("--track", required=True, help="Exact drummer track ID from edit sequencers list.")
+        ratchet_parser.add_argument("--pad", required=True, help="Pattern pad, 1..8 or P1..P8.")
+        ratchet_parser.add_argument("--step", action="append", required=action != "list", help="Zero-based step index; repeat to select several. List defaults to all steps.")
+        selector = ratchet_parser.add_mutually_exclusive_group(required=action != "list")
+        selector.add_argument("--row", help="Exact drum row ID.")
+        selector.add_argument("--key", help="MIDI drum key 0..127, only when it identifies one row.")
+        if action == "set":
+            ratchet_parser.add_argument("--count", required=True, help="Hits per local step, 1..8. One hit retains but ignores the ramp.")
+            ramp = ratchet_parser.add_mutually_exclusive_group()
+            ramp.add_argument("--end-velocity", help="Final velocity, 0..127; zero is silent. Omit to keep the current ramp.")
+            ramp.add_argument("--constant", action="store_true", help="Remove the ramp and use the cell velocity for every hit.")
+        ratchet_parser.set_defaults(func=command_edit_ratchets)
     instruments = edit_sub.add_parser("instruments", help="Inspect staged rack instrument assignments and audio ports.")
     instruments_sub = instruments.add_subparsers(dest="instruments_command", required=True)
     instruments_list = instruments_sub.add_parser("list", help="List rack binding IDs, patches, channels, and audio ports.")

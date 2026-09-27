@@ -629,7 +629,8 @@ def test_live_workspace_output_owns_notes_independently_on_shared_channel():
     scheduler.release_sources({"lane:arp"}, sample=1)
     assert scheduler.drain_block(block_start_sample=1, block_end_sample=2) == []
     scheduler.enqueue([0x80, 60, 0], source="lane:other", target_engine_sample=2)
-    assert len(scheduler.drain_block(block_start_sample=2, block_end_sample=3)) == 1
+    # The final owner releases both delivered attacks, including the deferred off.
+    assert len(scheduler.drain_block(block_start_sample=2, block_end_sample=3)) == 2
 
 
 def test_workspace_edits_apply_while_speaker_is_still_waiting_for_live_cycle():

@@ -1,0 +1,1846 @@
+{
+  "spine": {
+    "name": "World Drumkit",
+    "description": "World Drumkit synthesis spine; see full voice spec.",
+    "family": "simple_osc",
+    "envelope": {
+      "attack": 0.0007,
+      "decay": 0.002,
+      "sustain": 1,
+      "release": 4
+    },
+    "layers": [
+      {
+        "id": "seed",
+        "opcode": "oscili",
+        "gain": 0.15,
+        "table": -1
+      }
+    ],
+    "output": {
+      "pan": 0.5
+    }
+  },
+  "description": "Sample-free, velocity-sensitive world percussion: 55 strokes, selected by If + MIDI notnum. Custom map; other notes are silent. Short notes retain decay; held notes do not sustain. Four performance controls: Kit tuning, Decay, Brightness, Tabla tuning (independent multiplier; default dayan C4, 261.63 Hz). Synthetic tabla bol approximations; ge bend is preset, not live pressure. Mono voices feed Stereo Output; route to Master.\n\nDeep foundation\n- 36: Dunun open; 37: Dunun muted\n- 38: Surdo open; 39: Surdo damped\n\nHand drums\n- 40: Djembe bass; 41: tone; 42: slap; 43: muted\n- 44: Conga low open; 45: high open; 46: muted; 47: slap\n- 48: Bongo low open; 49: high open; 50: rim; 51: muted\n- 52: Darbuka doum; 53: tek; 54: ka; 55: slap\n\nResonant / expressive\n- 56: Frame drum centre; 57: rim; 58: muted\n- 60: Tabla dayan na; 61: tin; 62: tun; 63: te (dry)\n- 64: Tabla bayan ge; 65: ke (muted); 66: pressure bend\n- 67: Tabla dha (na + ge); 68: dhin (tin + ge)\n- 70: Udu bass air pulse; 71: clay tap; 72: hole slap\n\nWood / dry accents\n- 74: Cajon bass; 75: snare slap; 76: edge\n- 77: Claves; 78: Woodblock low; 79: Woodblock high\n\nMetal\n- 80: Cowbell open; 81: damped\n- 82: Agogo low; 83: Agogo high\n\nShakers / scrapers / jingles\n- 84: Shekere short; 85: accent; 86: long\n- 87: Cabasa short; 88: Cabasa long\n- 89: Guiro short; 90: Guiro long\n- 91: Tambourine hit; 92: shake; 93: damped",
+  "controllers": [
+    {
+      "id": "world_tuning",
+      "label": "Kit tuning",
+      "min": 0.8,
+      "max": 1.25,
+      "default": 1,
+      "scale": "logarithmic"
+    },
+    {
+      "id": "world_decay",
+      "label": "Decay",
+      "min": 0.6,
+      "max": 1.6,
+      "default": 1,
+      "scale": "logarithmic"
+    },
+    {
+      "id": "world_brightness",
+      "label": "Brightness",
+      "min": 0.6,
+      "max": 1.4,
+      "default": 1,
+      "scale": "linear"
+    },
+    {
+      "id": "world_tabla_tuning",
+      "label": "Tabla tuning",
+      "min": 0.75,
+      "max": 1.5,
+      "default": 1,
+      "scale": "logarithmic"
+    }
+  ],
+  "decays": {
+    "tick": 0.018,
+    "snap": 0.055,
+    "short": 0.12,
+    "mid": 0.23,
+    "body": 0.4,
+    "long": 0.65,
+    "ring": 0.9
+  },
+  "motions": {
+    "drop": {
+      "ia": 1.3,
+      "idur1": 0.012,
+      "ib": 1.04,
+      "idur2": 0.08,
+      "ic": 1
+    },
+    "deep": {
+      "ia": 1.55,
+      "idur1": 0.014,
+      "ib": 1.07,
+      "idur2": 0.1,
+      "ic": 1
+    },
+    "small": {
+      "ia": 1.08,
+      "idur1": 0.016,
+      "ib": 1
+    },
+    "udu": {
+      "ia": 1.22,
+      "idur1": 0.02,
+      "ib": 1
+    },
+    "bayan": {
+      "ia": 1.06,
+      "idur1": 0.08,
+      "ib": 1
+    },
+    "bend": {
+      "ia": 0.96,
+      "idur1": 0.08,
+      "ib": 1.31,
+      "idur2": 0.2,
+      "ic": 0.91,
+      "idur3": 0.3,
+      "id": 1
+    }
+  },
+  "textures": {
+    "mallet": {
+      "env": "snap",
+      "level": 0.24,
+      "freq": 950,
+      "band": 1400,
+      "color": 0.25
+    },
+    "skin": {
+      "env": "snap",
+      "level": 0.19,
+      "freq": 1600,
+      "band": 2200,
+      "color": 0.1
+    },
+    "tap": {
+      "env": "tick",
+      "level": 0.3,
+      "freq": 4300,
+      "band": 3800,
+      "color": 0
+    },
+    "slap": {
+      "env": "short",
+      "level": 0.27,
+      "freq": 3800,
+      "band": 4600,
+      "color": 0
+    },
+    "air": {
+      "env": "short",
+      "level": 0.18,
+      "freq": 800,
+      "band": 1200,
+      "color": 0.4
+    },
+    "wires": {
+      "env": "mid",
+      "level": 0.25,
+      "freq": 3200,
+      "band": 4800,
+      "color": 0
+    },
+    "beads_short": {
+      "env": "short",
+      "level": 0.4,
+      "freq": 4500,
+      "band": 6000,
+      "color": 0
+    },
+    "beads_long": {
+      "env": "body",
+      "level": 0.4,
+      "freq": 4500,
+      "band": 6000,
+      "color": 0
+    },
+    "scrape_short": {
+      "env": "short",
+      "level": 0.46,
+      "freq": 2650,
+      "band": 2400,
+      "color": 0
+    },
+    "scrape_long": {
+      "env": "body",
+      "level": 0.42,
+      "freq": 2650,
+      "band": 2400,
+      "color": 0
+    },
+    "jingle_short": {
+      "env": "mid",
+      "level": 0.26,
+      "freq": 6600,
+      "band": 6200,
+      "color": 0
+    },
+    "jingle_long": {
+      "env": "ring",
+      "level": 0.25,
+      "freq": 6600,
+      "band": 6200,
+      "color": 0
+    },
+    "shekere_short": {
+      "env": "short",
+      "level": 0.28,
+      "freq": 2400,
+      "band": 3500,
+      "color": 0.12
+    },
+    "shekere_long": {
+      "env": "body",
+      "level": 0.26,
+      "freq": 2400,
+      "band": 3500,
+      "color": 0.12
+    }
+  },
+  "voices": [
+    {
+      "note": 36,
+      "id": "dunun_open",
+      "name": "Dunun open",
+      "group": "Deep foundation",
+      "partials": [
+        [
+          72,
+          0.19,
+          "long",
+          "drop"
+        ],
+        [
+          114.5,
+          0.062,
+          "body"
+        ],
+        [
+          165,
+          0.026,
+          "mid"
+        ]
+      ],
+      "textures": [
+        [
+          "mallet",
+          0.32
+        ]
+      ]
+    },
+    {
+      "note": 37,
+      "id": "dunun_muted",
+      "name": "Dunun muted",
+      "group": "Deep foundation",
+      "partials": [
+        [
+          77,
+          0.17,
+          "short",
+          "drop"
+        ],
+        [
+          126,
+          0.038,
+          "snap"
+        ]
+      ],
+      "textures": [
+        [
+          "mallet",
+          0.4
+        ]
+      ]
+    },
+    {
+      "note": 38,
+      "id": "surdo_open",
+      "name": "Surdo open",
+      "group": "Deep foundation",
+      "partials": [
+        [
+          52,
+          0.21,
+          "ring",
+          "deep"
+        ],
+        [
+          86,
+          0.04,
+          "body"
+        ],
+        [
+          137,
+          0.014,
+          "mid"
+        ]
+      ],
+      "textures": [
+        [
+          "mallet",
+          0.28
+        ]
+      ]
+    },
+    {
+      "note": 39,
+      "id": "surdo_muted",
+      "name": "Surdo damped",
+      "group": "Deep foundation",
+      "partials": [
+        [
+          58,
+          0.18,
+          "short",
+          "deep"
+        ],
+        [
+          100,
+          0.035,
+          "snap"
+        ]
+      ],
+      "textures": [
+        [
+          "mallet",
+          0.4
+        ]
+      ]
+    },
+    {
+      "note": 40,
+      "id": "djembe_bass",
+      "name": "Djembe bass",
+      "group": "Hand drums",
+      "partials": [
+        [
+          83,
+          0.2,
+          "body",
+          "drop"
+        ],
+        [
+          171,
+          0.035,
+          "mid"
+        ],
+        [
+          254,
+          0.015,
+          "short"
+        ]
+      ],
+      "textures": [
+        [
+          "skin",
+          0.24
+        ]
+      ]
+    },
+    {
+      "note": 41,
+      "id": "djembe_tone",
+      "name": "Djembe tone",
+      "group": "Hand drums",
+      "partials": [
+        [
+          195,
+          0.13,
+          "body",
+          "small"
+        ],
+        [
+          314,
+          0.065,
+          "mid"
+        ],
+        [
+          432,
+          0.031,
+          "short"
+        ],
+        [
+          610,
+          0.012,
+          "snap"
+        ]
+      ],
+      "textures": [
+        [
+          "skin",
+          0.42
+        ]
+      ]
+    },
+    {
+      "note": 42,
+      "id": "djembe_slap",
+      "name": "Djembe slap",
+      "group": "Hand drums",
+      "partials": [
+        [
+          235,
+          0.048,
+          "short"
+        ],
+        [
+          521,
+          0.06,
+          "short"
+        ],
+        [
+          895,
+          0.026,
+          "snap"
+        ]
+      ],
+      "textures": [
+        [
+          "slap",
+          1.05
+        ]
+      ]
+    },
+    {
+      "note": 43,
+      "id": "djembe_muted",
+      "name": "Djembe muted",
+      "group": "Hand drums",
+      "partials": [
+        [
+          208,
+          0.07,
+          "snap"
+        ],
+        [
+          348,
+          0.038,
+          "snap"
+        ]
+      ],
+      "textures": [
+        [
+          "skin",
+          0.7
+        ]
+      ]
+    },
+    {
+      "note": 44,
+      "id": "conga_low",
+      "name": "Conga low open",
+      "group": "Hand drums",
+      "partials": [
+        [
+          162,
+          0.155,
+          "ring",
+          "small"
+        ],
+        [
+          264,
+          0.058,
+          "body"
+        ],
+        [
+          358,
+          0.023,
+          "mid"
+        ]
+      ],
+      "textures": [
+        [
+          "skin",
+          0.24
+        ]
+      ]
+    },
+    {
+      "note": 45,
+      "id": "conga_high",
+      "name": "Conga high open",
+      "group": "Hand drums",
+      "partials": [
+        [
+          218,
+          0.145,
+          "body",
+          "small"
+        ],
+        [
+          357,
+          0.06,
+          "mid"
+        ],
+        [
+          482,
+          0.025,
+          "short"
+        ]
+      ],
+      "textures": [
+        [
+          "skin",
+          0.28
+        ]
+      ]
+    },
+    {
+      "note": 46,
+      "id": "conga_muted",
+      "name": "Conga muted",
+      "group": "Hand drums",
+      "partials": [
+        [
+          228,
+          0.075,
+          "snap"
+        ],
+        [
+          383,
+          0.045,
+          "short"
+        ]
+      ],
+      "textures": [
+        [
+          "skin",
+          0.58
+        ]
+      ]
+    },
+    {
+      "note": 47,
+      "id": "conga_slap",
+      "name": "Conga slap",
+      "group": "Hand drums",
+      "partials": [
+        [
+          248,
+          0.05,
+          "short"
+        ],
+        [
+          504,
+          0.035,
+          "snap"
+        ],
+        [
+          812,
+          0.015,
+          "snap"
+        ]
+      ],
+      "textures": [
+        [
+          "slap",
+          0.87
+        ]
+      ]
+    },
+    {
+      "note": 48,
+      "id": "bongo_low",
+      "name": "Bongo low open",
+      "group": "Hand drums",
+      "partials": [
+        [
+          292,
+          0.14,
+          "body",
+          "small"
+        ],
+        [
+          475,
+          0.05,
+          "mid"
+        ],
+        [
+          647,
+          0.022,
+          "short"
+        ]
+      ],
+      "textures": [
+        [
+          "tap",
+          0.45
+        ]
+      ]
+    },
+    {
+      "note": 49,
+      "id": "bongo_high",
+      "name": "Bongo high open",
+      "group": "Hand drums",
+      "partials": [
+        [
+          394,
+          0.13,
+          "mid",
+          "small"
+        ],
+        [
+          642,
+          0.05,
+          "short"
+        ],
+        [
+          873,
+          0.022,
+          "snap"
+        ]
+      ],
+      "textures": [
+        [
+          "tap",
+          0.5
+        ]
+      ]
+    },
+    {
+      "note": 50,
+      "id": "bongo_rim",
+      "name": "Bongo rim",
+      "group": "Hand drums",
+      "partials": [
+        [
+          790,
+          0.09,
+          "short"
+        ],
+        [
+          1435,
+          0.045,
+          "snap"
+        ],
+        [
+          2045,
+          0.015,
+          "tick"
+        ]
+      ],
+      "textures": [
+        [
+          "tap",
+          0.65
+        ]
+      ]
+    },
+    {
+      "note": 51,
+      "id": "bongo_muted",
+      "name": "Bongo muted",
+      "group": "Hand drums",
+      "partials": [
+        [
+          425,
+          0.08,
+          "snap"
+        ],
+        [
+          706,
+          0.04,
+          "tick"
+        ]
+      ],
+      "textures": [
+        [
+          "tap",
+          0.6
+        ]
+      ]
+    },
+    {
+      "note": 52,
+      "id": "darbuka_doum",
+      "name": "Darbuka doum",
+      "group": "Hand drums",
+      "partials": [
+        [
+          110,
+          0.19,
+          "body",
+          "drop"
+        ],
+        [
+          195,
+          0.036,
+          "mid"
+        ],
+        [
+          282,
+          0.019,
+          "short"
+        ]
+      ],
+      "textures": [
+        [
+          "skin",
+          0.19
+        ]
+      ]
+    },
+    {
+      "note": 53,
+      "id": "darbuka_tek",
+      "name": "Darbuka tek",
+      "group": "Hand drums",
+      "partials": [
+        [
+          472,
+          0.1,
+          "mid"
+        ],
+        [
+          782,
+          0.044,
+          "short"
+        ],
+        [
+          1115,
+          0.022,
+          "snap"
+        ]
+      ],
+      "textures": [
+        [
+          "tap",
+          0.6
+        ]
+      ]
+    },
+    {
+      "note": 54,
+      "id": "darbuka_ka",
+      "name": "Darbuka ka",
+      "group": "Hand drums",
+      "partials": [
+        [
+          438,
+          0.085,
+          "short"
+        ],
+        [
+          742,
+          0.043,
+          "snap"
+        ],
+        [
+          1040,
+          0.02,
+          "tick"
+        ]
+      ],
+      "textures": [
+        [
+          "tap",
+          0.43
+        ]
+      ]
+    },
+    {
+      "note": 55,
+      "id": "darbuka_slap",
+      "name": "Darbuka slap",
+      "group": "Hand drums",
+      "partials": [
+        [
+          318,
+          0.055,
+          "short"
+        ],
+        [
+          708,
+          0.035,
+          "snap"
+        ]
+      ],
+      "textures": [
+        [
+          "slap",
+          0.82
+        ]
+      ]
+    },
+    {
+      "note": 56,
+      "id": "frame_center",
+      "name": "Frame drum centre",
+      "group": "Resonant / expressive",
+      "partials": [
+        [
+          96,
+          0.16,
+          "ring",
+          "small"
+        ],
+        [
+          153,
+          0.053,
+          "body"
+        ],
+        [
+          205,
+          0.026,
+          "mid"
+        ],
+        [
+          276,
+          0.012,
+          "short"
+        ]
+      ],
+      "textures": [
+        [
+          "skin",
+          0.32
+        ]
+      ]
+    },
+    {
+      "note": 57,
+      "id": "frame_rim",
+      "name": "Frame drum rim",
+      "group": "Resonant / expressive",
+      "partials": [
+        [
+          188,
+          0.06,
+          "mid"
+        ],
+        [
+          306,
+          0.065,
+          "body"
+        ],
+        [
+          428,
+          0.035,
+          "mid"
+        ],
+        [
+          586,
+          0.02,
+          "short"
+        ]
+      ],
+      "textures": [
+        [
+          "tap",
+          0.54
+        ]
+      ]
+    },
+    {
+      "note": 58,
+      "id": "frame_muted",
+      "name": "Frame drum muted",
+      "group": "Resonant / expressive",
+      "partials": [
+        [
+          115,
+          0.08,
+          "short"
+        ],
+        [
+          219,
+          0.04,
+          "snap"
+        ]
+      ],
+      "textures": [
+        [
+          "skin",
+          0.6
+        ]
+      ]
+    },
+    {
+      "note": 60,
+      "id": "tabla_na",
+      "name": "Tabla dayan na",
+      "group": "Resonant / expressive",
+      "partials": [
+        [
+          261.63,
+          0.018,
+          "short"
+        ],
+        [
+          523.26,
+          0.097,
+          "long"
+        ],
+        [
+          784.89,
+          0.067,
+          "body"
+        ],
+        [
+          1046.52,
+          0.028,
+          "mid"
+        ],
+        [
+          1308.15,
+          0.014,
+          "short"
+        ]
+      ],
+      "textures": [
+        [
+          "tap",
+          0.3
+        ]
+      ],
+      "tabla": true
+    },
+    {
+      "note": 61,
+      "id": "tabla_tin",
+      "name": "Tabla dayan tin",
+      "group": "Resonant / expressive",
+      "partials": [
+        [
+          261.63,
+          0.12,
+          "ring"
+        ],
+        [
+          523.26,
+          0.06,
+          "long"
+        ],
+        [
+          784.89,
+          0.037,
+          "body"
+        ],
+        [
+          1046.52,
+          0.019,
+          "mid"
+        ]
+      ],
+      "textures": [
+        [
+          "tap",
+          0.16
+        ]
+      ],
+      "tabla": true
+    },
+    {
+      "note": 62,
+      "id": "tabla_tun",
+      "name": "Tabla dayan tun",
+      "group": "Resonant / expressive",
+      "partials": [
+        [
+          261.63,
+          0.15,
+          "long"
+        ],
+        [
+          523.26,
+          0.032,
+          "body"
+        ],
+        [
+          784.89,
+          0.015,
+          "mid"
+        ]
+      ],
+      "textures": [
+        [
+          "tap",
+          0.12
+        ]
+      ],
+      "tabla": true
+    },
+    {
+      "note": 63,
+      "id": "tabla_te",
+      "name": "Tabla dayan te (dry)",
+      "group": "Resonant / expressive",
+      "partials": [
+        [
+          315,
+          0.07,
+          "snap"
+        ],
+        [
+          693,
+          0.035,
+          "tick"
+        ],
+        [
+          1100,
+          0.019,
+          "tick"
+        ]
+      ],
+      "textures": [
+        [
+          "tap",
+          0.72
+        ]
+      ],
+      "tabla": true
+    },
+    {
+      "note": 64,
+      "id": "tabla_ge",
+      "name": "Tabla bayan ge",
+      "group": "Resonant / expressive",
+      "partials": [
+        [
+          112,
+          0.17,
+          "ring",
+          "bayan"
+        ],
+        [
+          224,
+          0.037,
+          "body",
+          "bayan"
+        ],
+        [
+          338,
+          0.015,
+          "mid",
+          "bayan"
+        ]
+      ],
+      "textures": [
+        [
+          "skin",
+          0.18
+        ]
+      ],
+      "tabla": true
+    },
+    {
+      "note": 65,
+      "id": "tabla_ke",
+      "name": "Tabla bayan ke (muted)",
+      "group": "Resonant / expressive",
+      "partials": [
+        [
+          116,
+          0.06,
+          "snap"
+        ],
+        [
+          267,
+          0.022,
+          "tick"
+        ]
+      ],
+      "textures": [
+        [
+          "skin",
+          0.64
+        ]
+      ],
+      "tabla": true
+    },
+    {
+      "note": 66,
+      "id": "tabla_bend",
+      "name": "Tabla bayan pressure bend",
+      "group": "Resonant / expressive",
+      "partials": [
+        [
+          112,
+          0.17,
+          "ring",
+          "bend"
+        ],
+        [
+          224,
+          0.038,
+          "body",
+          "bend"
+        ],
+        [
+          338,
+          0.015,
+          "mid",
+          "bend"
+        ]
+      ],
+      "textures": [
+        [
+          "skin",
+          0.17
+        ]
+      ],
+      "tabla": true
+    },
+    {
+      "note": 67,
+      "id": "tabla_dha",
+      "name": "Tabla dha (na + ge)",
+      "group": "Resonant / expressive",
+      "partials": [
+        [
+          261.63,
+          0.0144,
+          "short"
+        ],
+        [
+          523.26,
+          0.0776,
+          "long"
+        ],
+        [
+          784.89,
+          0.05360000000000001,
+          "body"
+        ],
+        [
+          1046.52,
+          0.022400000000000003,
+          "mid"
+        ],
+        [
+          1308.15,
+          0.011200000000000002,
+          "short"
+        ],
+        [
+          112,
+          0.136,
+          "ring",
+          "bayan"
+        ],
+        [
+          224,
+          0.0296,
+          "body",
+          "bayan"
+        ],
+        [
+          338,
+          0.012,
+          "mid",
+          "bayan"
+        ]
+      ],
+      "textures": [
+        [
+          "tap",
+          0.26
+        ],
+        [
+          "skin",
+          0.15
+        ]
+      ],
+      "tabla": true
+    },
+    {
+      "note": 68,
+      "id": "tabla_dhin",
+      "name": "Tabla dhin (tin + ge)",
+      "group": "Resonant / expressive",
+      "partials": [
+        [
+          261.63,
+          0.096,
+          "ring"
+        ],
+        [
+          523.26,
+          0.048,
+          "long"
+        ],
+        [
+          784.89,
+          0.0296,
+          "body"
+        ],
+        [
+          1046.52,
+          0.0152,
+          "mid"
+        ],
+        [
+          112,
+          0.136,
+          "ring",
+          "bayan"
+        ],
+        [
+          224,
+          0.0296,
+          "body",
+          "bayan"
+        ],
+        [
+          338,
+          0.012,
+          "mid",
+          "bayan"
+        ]
+      ],
+      "textures": [
+        [
+          "tap",
+          0.14
+        ],
+        [
+          "skin",
+          0.15
+        ]
+      ],
+      "tabla": true
+    },
+    {
+      "note": 70,
+      "id": "udu_bass",
+      "name": "Udu bass air pulse",
+      "group": "Resonant / expressive",
+      "partials": [
+        [
+          68,
+          0.2,
+          "body",
+          "udu"
+        ],
+        [
+          410,
+          0.024,
+          "short"
+        ],
+        [
+          685,
+          0.011,
+          "snap"
+        ]
+      ],
+      "textures": [
+        [
+          "air",
+          0.2
+        ]
+      ]
+    },
+    {
+      "note": 71,
+      "id": "udu_tap",
+      "name": "Udu clay tap",
+      "group": "Resonant / expressive",
+      "partials": [
+        [
+          468,
+          0.09,
+          "short"
+        ],
+        [
+          803,
+          0.045,
+          "snap"
+        ],
+        [
+          1289,
+          0.02,
+          "tick"
+        ]
+      ],
+      "textures": [
+        [
+          "tap",
+          0.28
+        ]
+      ]
+    },
+    {
+      "note": 72,
+      "id": "udu_slap",
+      "name": "Udu hole slap",
+      "group": "Resonant / expressive",
+      "partials": [
+        [
+          95,
+          0.11,
+          "short",
+          "udu"
+        ],
+        [
+          548,
+          0.041,
+          "short"
+        ],
+        [
+          920,
+          0.016,
+          "snap"
+        ]
+      ],
+      "textures": [
+        [
+          "air",
+          0.7
+        ],
+        [
+          "tap",
+          0.25
+        ]
+      ]
+    },
+    {
+      "note": 74,
+      "id": "cajon_bass",
+      "name": "Cajon bass",
+      "group": "Wood / dry accents",
+      "partials": [
+        [
+          78,
+          0.17,
+          "body",
+          "drop"
+        ],
+        [
+          155,
+          0.038,
+          "short"
+        ],
+        [
+          231,
+          0.017,
+          "snap"
+        ]
+      ],
+      "textures": [
+        [
+          "wires",
+          0.16
+        ],
+        [
+          "mallet",
+          0.16
+        ]
+      ]
+    },
+    {
+      "note": 75,
+      "id": "cajon_slap",
+      "name": "Cajon snare slap",
+      "group": "Wood / dry accents",
+      "partials": [
+        [
+          185,
+          0.078,
+          "short"
+        ],
+        [
+          394,
+          0.024,
+          "snap"
+        ]
+      ],
+      "textures": [
+        [
+          "wires",
+          1
+        ],
+        [
+          "slap",
+          0.35
+        ]
+      ]
+    },
+    {
+      "note": 76,
+      "id": "cajon_edge",
+      "name": "Cajon edge",
+      "group": "Wood / dry accents",
+      "partials": [
+        [
+          383,
+          0.07,
+          "snap"
+        ],
+        [
+          926,
+          0.032,
+          "tick"
+        ]
+      ],
+      "textures": [
+        [
+          "wires",
+          0.3
+        ],
+        [
+          "tap",
+          0.44
+        ]
+      ]
+    },
+    {
+      "note": 77,
+      "id": "claves",
+      "name": "Claves",
+      "group": "Wood / dry accents",
+      "partials": [
+        [
+          2380,
+          0.13,
+          "short"
+        ],
+        [
+          3870,
+          0.035,
+          "snap"
+        ]
+      ],
+      "textures": [
+        [
+          "tap",
+          0.16
+        ]
+      ]
+    },
+    {
+      "note": 78,
+      "id": "woodblock_low",
+      "name": "Woodblock low",
+      "group": "Wood / dry accents",
+      "partials": [
+        [
+          650,
+          0.125,
+          "short"
+        ],
+        [
+          1495,
+          0.045,
+          "snap"
+        ],
+        [
+          2665,
+          0.012,
+          "tick"
+        ]
+      ],
+      "textures": [
+        [
+          "tap",
+          0.16
+        ]
+      ]
+    },
+    {
+      "note": 79,
+      "id": "woodblock_high",
+      "name": "Woodblock high",
+      "group": "Wood / dry accents",
+      "partials": [
+        [
+          980,
+          0.115,
+          "short"
+        ],
+        [
+          2254,
+          0.043,
+          "snap"
+        ],
+        [
+          4018,
+          0.012,
+          "tick"
+        ]
+      ],
+      "textures": [
+        [
+          "tap",
+          0.16
+        ]
+      ]
+    },
+    {
+      "note": 80,
+      "id": "cowbell_open",
+      "name": "Cowbell open",
+      "group": "Metal",
+      "partials": [
+        [
+          550,
+          0.11,
+          "body"
+        ],
+        [
+          845,
+          0.08,
+          "mid"
+        ],
+        [
+          1435,
+          0.032,
+          "short"
+        ],
+        [
+          2090,
+          0.013,
+          "snap"
+        ]
+      ],
+      "textures": [
+        [
+          "tap",
+          0.13
+        ]
+      ]
+    },
+    {
+      "note": 81,
+      "id": "cowbell_muted",
+      "name": "Cowbell damped",
+      "group": "Metal",
+      "partials": [
+        [
+          550,
+          0.1,
+          "short"
+        ],
+        [
+          845,
+          0.068,
+          "snap"
+        ],
+        [
+          1435,
+          0.025,
+          "tick"
+        ]
+      ],
+      "textures": [
+        [
+          "tap",
+          0.2
+        ]
+      ]
+    },
+    {
+      "note": 82,
+      "id": "agogo_low",
+      "name": "Agogo low",
+      "group": "Metal",
+      "partials": [
+        [
+          710,
+          0.12,
+          "ring"
+        ],
+        [
+          1135,
+          0.052,
+          "body"
+        ],
+        [
+          1909,
+          0.028,
+          "mid"
+        ],
+        [
+          2876,
+          0.01,
+          "short"
+        ]
+      ],
+      "textures": [
+        [
+          "tap",
+          0.15
+        ]
+      ]
+    },
+    {
+      "note": 83,
+      "id": "agogo_high",
+      "name": "Agogo high",
+      "group": "Metal",
+      "partials": [
+        [
+          1055,
+          0.11,
+          "body"
+        ],
+        [
+          1709,
+          0.053,
+          "mid"
+        ],
+        [
+          2828,
+          0.022,
+          "short"
+        ],
+        [
+          4294,
+          0.009,
+          "snap"
+        ]
+      ],
+      "textures": [
+        [
+          "tap",
+          0.15
+        ]
+      ]
+    },
+    {
+      "note": 84,
+      "id": "shekere_short",
+      "name": "Shekere short",
+      "group": "Shakers / scrapers / jingles",
+      "partials": [],
+      "textures": [],
+      "shaker": {
+        "objects": 64,
+        "damping": 0.25,
+        "level": 0.8,
+        "env": "short"
+      },
+      "scrape": {
+        "rate": 81,
+        "width": 0.25,
+        "texture": "shekere_short",
+        "level": 0.9
+      }
+    },
+    {
+      "note": 85,
+      "id": "shekere_accent",
+      "name": "Shekere accent",
+      "group": "Shakers / scrapers / jingles",
+      "partials": [],
+      "textures": [],
+      "shaker": {
+        "objects": 96,
+        "damping": 0.55,
+        "level": 0.28,
+        "env": "mid"
+      },
+      "scrape": {
+        "rate": 64,
+        "width": 0.33,
+        "texture": "shekere_short",
+        "level": 1.15
+      }
+    },
+    {
+      "note": 86,
+      "id": "shekere_long",
+      "name": "Shekere long",
+      "group": "Shakers / scrapers / jingles",
+      "partials": [],
+      "textures": [],
+      "shaker": {
+        "objects": 128,
+        "damping": 0.7,
+        "level": 0.25,
+        "env": "body"
+      },
+      "scrape": {
+        "rate": 48,
+        "width": 0.4,
+        "texture": "shekere_long",
+        "level": 1.1
+      }
+    },
+    {
+      "note": 87,
+      "id": "cabasa_short",
+      "name": "Cabasa short",
+      "group": "Shakers / scrapers / jingles",
+      "partials": [],
+      "textures": [],
+      "scrape": {
+        "rate": 145,
+        "width": 0.28,
+        "texture": "beads_short",
+        "level": 1.7
+      }
+    },
+    {
+      "note": 88,
+      "id": "cabasa_long",
+      "name": "Cabasa long",
+      "group": "Shakers / scrapers / jingles",
+      "partials": [],
+      "textures": [],
+      "scrape": {
+        "rate": 117,
+        "width": 0.35,
+        "texture": "beads_long",
+        "level": 1.5
+      }
+    },
+    {
+      "note": 89,
+      "id": "guiro_short",
+      "name": "Guiro short",
+      "group": "Shakers / scrapers / jingles",
+      "partials": [
+        [
+          2470,
+          0.022,
+          "short"
+        ],
+        [
+          4010,
+          0.01,
+          "snap"
+        ]
+      ],
+      "textures": [],
+      "scrape": {
+        "rate": 72,
+        "width": 0.14,
+        "texture": "scrape_short",
+        "level": 2.3
+      }
+    },
+    {
+      "note": 90,
+      "id": "guiro_long",
+      "name": "Guiro long",
+      "group": "Shakers / scrapers / jingles",
+      "partials": [
+        [
+          2470,
+          0.018,
+          "body"
+        ],
+        [
+          4010,
+          0.008,
+          "mid"
+        ]
+      ],
+      "textures": [],
+      "scrape": {
+        "rate": 48,
+        "width": 0.18,
+        "texture": "scrape_long",
+        "level": 2.0
+      }
+    },
+    {
+      "note": 91,
+      "id": "tambourine_hit",
+      "name": "Tambourine hit",
+      "group": "Shakers / scrapers / jingles",
+      "partials": [
+        [
+          190,
+          0.057,
+          "short"
+        ],
+        [
+          2300,
+          0.046,
+          "mid"
+        ],
+        [
+          5600,
+          0.034,
+          "body"
+        ],
+        [
+          8100,
+          0.018,
+          "mid"
+        ]
+      ],
+      "textures": [
+        [
+          "jingle_short",
+          0.65
+        ]
+      ]
+    },
+    {
+      "note": 92,
+      "id": "tambourine_shake",
+      "name": "Tambourine shake",
+      "group": "Shakers / scrapers / jingles",
+      "partials": [
+        [
+          2300,
+          0.033,
+          "body"
+        ],
+        [
+          5600,
+          0.028,
+          "ring"
+        ],
+        [
+          8100,
+          0.014,
+          "body"
+        ]
+      ],
+      "textures": [],
+      "scrape": {
+        "rate": 22,
+        "width": 0.3,
+        "texture": "jingle_long",
+        "level": 1.0
+      }
+    },
+    {
+      "note": 93,
+      "id": "tambourine_muted",
+      "name": "Tambourine damped",
+      "group": "Shakers / scrapers / jingles",
+      "partials": [
+        [
+          205,
+          0.036,
+          "snap"
+        ],
+        [
+          2300,
+          0.035,
+          "snap"
+        ],
+        [
+          5600,
+          0.025,
+          "short"
+        ],
+        [
+          8100,
+          0.012,
+          "snap"
+        ]
+      ],
+      "textures": [
+        [
+          "jingle_short",
+          0.45
+        ]
+      ]
+    }
+  ]
+}

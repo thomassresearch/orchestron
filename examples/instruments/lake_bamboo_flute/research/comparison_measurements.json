@@ -1,0 +1,116 @@
+{
+  "method": {
+    "sample_rate": 22050,
+    "hann_samples": 1024,
+    "hop_samples": 44,
+    "band_half_width_hz": 45,
+    "amplitude_normalization": "Plots only, one shared reference per excerpt",
+    "caveat": "Harmonic-band energy does not uniquely identify oscillation modes or player technique."
+  },
+  "segments": [
+    {
+      "seconds": [
+        0.3,
+        2.3
+      ],
+      "lower_ridge_median_hz": 294.6529754168296,
+      "octave_over_lower_db_p10_p50_p90": [
+        3.733938050270081,
+        10.64241361618042,
+        13.136859321594239
+      ],
+      "upper_envelope_modulation_peaks_hz": [
+        3.0008165487207403,
+        4.5012248230811105,
+        4.001088731627654
+      ],
+      "detrended_envelope_correlation": -0.0777364150291868,
+      "label": "Riley Lee: normal ro",
+      "file": "unsw_ro.wav"
+    },
+    {
+      "seconds": [
+        11.5,
+        13.3
+      ],
+      "lower_ridge_median_hz": 521.7751629370468,
+      "octave_over_lower_db_p10_p50_p90": [
+        -5.753838348388672,
+        13.889928340911865,
+        34.98373603820801
+      ],
+      "upper_envelope_modulation_peaks_hz": [
+        5.00025196532957,
+        4.444668413626284,
+        3.333501310219713
+      ],
+      "detrended_envelope_correlation": -0.5404876761195323,
+      "label": "Miki Ex. 1.29: rough transition",
+      "file": "miki_techniques.mp3"
+    },
+    {
+      "seconds": [
+        13.8,
+        15.8
+      ],
+      "lower_ridge_median_hz": 475.80129356701946,
+      "octave_over_lower_db_p10_p50_p90": [
+        43.24360275268555,
+        48.839303970336914,
+        54.934739685058595
+      ],
+      "upper_envelope_modulation_peaks_hz": [
+        6.501769188894937,
+        7.001905280348394,
+        6.001633097441481
+      ],
+      "detrended_envelope_correlation": 0.04263950475344011,
+      "label": "Same phrase: settled upper tone",
+      "file": "miki_techniques.mp3"
+    },
+    {
+      "seconds": [
+        9.25,
+        11.19
+      ],
+      "lower_ridge_median_hz": 246.62862669702008,
+      "octave_over_lower_db_p10_p50_p90": [
+        -8.848280906677246,
+        -7.6648643016815186,
+        29.717854881286605
+      ],
+      "upper_envelope_modulation_peaks_hz": [
+        3.0934343434343434,
+        3.609006734006734,
+        6.186868686868687
+      ],
+      "detrended_envelope_correlation": -0.6591110471038617,
+      "label": "Previous patch: nearly exclusive transfer",
+      "file": "revisions/2026-09-26-pressure-switch/auditions/blowing_dynamics.wav",
+      "midi_note": 59,
+      "velocity": 92
+    },
+    {
+      "seconds": [
+        9.25,
+        11.19
+      ],
+      "lower_ridge_median_hz": 246.93546270882507,
+      "octave_over_lower_db_p10_p50_p90": [
+        -5.800248146057129,
+        -4.601131439208984,
+        4.458284664154046
+      ],
+      "upper_envelope_modulation_peaks_hz": [
+        4.640151515151516,
+        4.124579124579125,
+        3.609006734006734
+      ],
+      "detrended_envelope_correlation": 0.10167748909822012,
+      "label": "Revised patch: overlap and irregular exchange",
+      "file": "auditions/blowing_dynamics.wav",
+      "midi_note": 59,
+      "velocity": 92
+    }
+  ]
+}

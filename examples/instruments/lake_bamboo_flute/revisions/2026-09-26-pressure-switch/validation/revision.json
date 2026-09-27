@@ -1,0 +1,14 @@
+{
+  "saved": true,
+  "patchId": "e7dae45d-3aca-4f67-bc7d-fef3ac29e4b7",
+  "instrument_type": "melody",
+  "revision": "breath-first pressure and octave modes",
+  "native_export_preview_roundtrip": true,
+  "controller_ids_preserved": true,
+  "frontend_build": "passed",
+  "docker_frontend_build": "passed (cached)",
+  "auditions": 18,
+  "max_tested_peak_dbfs": -5.527064951801243,
+  "patch_sha256": "b553de2c6e0a209dd64a55863f06751a072f951e83d38d1f3a23f9376dfeac14",
+  "notes": "Previous harmonic revision backed up. Existing patch updated in place; saved performances unchanged."
+}

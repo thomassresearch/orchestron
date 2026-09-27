@@ -48,6 +48,7 @@ MONO_EFFECT_OUTPUTS = {
     "reverb2": ("asig", "aout"),
 }
 KNOWN_OPCODE_INPUTS = {
+    "midi_legato": set(),
     "a_mul": {"a", "b"},
     "ampmidi": {"iscal"},
     "butterhp": {"asig", "xfreq", "iskip"},
@@ -1007,6 +1008,13 @@ def validate_graph_invariants(graph: dict[str, Any]) -> None:
     if not isinstance(connections, list):
         raise PatchCliError("invalid_graph", "Generated graph connections are missing.")
     validate_stereo_output(graph)
+    legato_nodes = [node for node in nodes if node.get("opcode") == "midi_legato"]
+    branch_members = {member for block in (graph.get("control_flow") or {}).values()
+                      for case in block.get("cases", []) for member in case.get("node_ids", [])}
+    if len(legato_nodes) > 1 or any(node["id"] in branch_members for node in legato_nodes):
+        raise PatchCliError("invalid_graph", "Use exactly one midi_legato node, in the main graph.")
+    if any(edge.get("to_node_id") == node["id"] for node in legato_nodes for edge in connections):
+        raise PatchCliError("invalid_graph", "midi_legato has no input sockets.")
     for node in nodes:
         if node.get("opcode") == "perf_controller":
             performance_controller_params(node.get("params") or {})

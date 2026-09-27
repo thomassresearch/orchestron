@@ -1,0 +1,405 @@
+{
+  "passed": true,
+  "spectrograms_inspected": true,
+  "patch_sha256": "b553de2c6e0a209dd64a55863f06751a072f951e83d38d1f3a23f9376dfeac14",
+  "auditions": [
+    {
+      "name": "default",
+      "peak_dbfs": -17.6779336517129,
+      "tail_dbfs": -240.0,
+      "settings": {}
+    },
+    {
+      "name": "flute_attack_min",
+      "peak_dbfs": -17.787142784552692,
+      "tail_dbfs": -240.0,
+      "settings": {
+        "flute_attack": 0.015
+      }
+    },
+    {
+      "name": "flute_attack_max",
+      "peak_dbfs": -17.469776006205706,
+      "tail_dbfs": -240.0,
+      "settings": {
+        "flute_attack": 0.18
+      }
+    },
+    {
+      "name": "flute_release_min",
+      "peak_dbfs": -17.580639585049067,
+      "tail_dbfs": -240.0,
+      "settings": {
+        "flute_release": 0.08
+      }
+    },
+    {
+      "name": "flute_release_max",
+      "peak_dbfs": -14.997275482571217,
+      "tail_dbfs": -240.0,
+      "settings": {
+        "flute_release": 1.2
+      }
+    },
+    {
+      "name": "flute_breath_min",
+      "peak_dbfs": -18.1052683605687,
+      "tail_dbfs": -240.0,
+      "settings": {
+        "flute_breath": 0
+      }
+    },
+    {
+      "name": "flute_breath_max",
+      "peak_dbfs": -17.288000754426076,
+      "tail_dbfs": -240.0,
+      "settings": {
+        "flute_breath": 1
+      }
+    },
+    {
+      "name": "flute_tone_min",
+      "peak_dbfs": -19.07027471104818,
+      "tail_dbfs": -240.0,
+      "settings": {
+        "flute_tone": 1000
+      }
+    },
+    {
+      "name": "flute_tone_max",
+      "peak_dbfs": -17.63706061542491,
+      "tail_dbfs": -240.0,
+      "settings": {
+        "flute_tone": 7500
+      }
+    },
+    {
+      "name": "flute_vibrato_min",
+      "peak_dbfs": -17.6779336517129,
+      "tail_dbfs": -240.0,
+      "settings": {
+        "flute_vibrato": 0
+      }
+    },
+    {
+      "name": "flute_vibrato_max",
+      "peak_dbfs": -17.6779336517129,
+      "tail_dbfs": -240.0,
+      "settings": {
+        "flute_vibrato": 15
+      }
+    },
+    {
+      "name": "velocity",
+      "peak_dbfs": -15.15562490678036,
+      "tail_dbfs": -240.0,
+      "settings": {}
+    },
+    {
+      "name": "retrigger_chord",
+      "peak_dbfs": -5.527064951801243,
+      "tail_dbfs": -240.0,
+      "settings": {}
+    },
+    {
+      "name": "reference_phrase",
+      "peak_dbfs": -16.970011157630612,
+      "tail_dbfs": -240.0,
+      "settings": {}
+    },
+    {
+      "name": "original_phrase",
+      "peak_dbfs": -13.593086757529633,
+      "tail_dbfs": -240.0,
+      "settings": {}
+    },
+    {
+      "name": "blowing_dynamics",
+      "peak_dbfs": -14.45369957753979,
+      "tail_dbfs": -240.0,
+      "settings": {}
+    },
+    {
+      "name": "blowing_dynamics_no_air",
+      "peak_dbfs": -14.8435960842002,
+      "tail_dbfs": -240.0,
+      "settings": {
+        "flute_breath": 0
+      }
+    },
+    {
+      "name": "blowing_registers",
+      "peak_dbfs": -14.803768943417603,
+      "tail_dbfs": -240.0,
+      "settings": {}
+    }
+  ],
+  "velocity_rms_dbfs": [
+    -35.954918955740105,
+    -30.29756036575848,
+    -26.097409812106388,
+    -20.527949369548647
+  ],
+  "controller_responses": {
+    "attack": {
+      "min": -31.361137836169686,
+      "max": -45.381764181656415
+    },
+    "release": {
+      "min": -240.0,
+      "max": -28.626295440869477
+    },
+    "breath": {
+      "min": -41.00048948440652,
+      "max": -24.815035709194866
+    },
+    "tone": {
+      "min": -38.52165926938939,
+      "max": -28.814014653523095
+    },
+    "vibrato": {
+      "min": 1.5726046691681106,
+      "max": 9.361528691218728
+    }
+  },
+  "controller_units": {
+    "attack": "early RMS dBFS",
+    "release": "late RMS dBFS",
+    "breath": "interharmonic power dB relative to total below 7 kHz",
+    "tone": "interharmonic power dB relative to total below 7 kHz",
+    "vibrato": "sustained pitch standard deviation in cents"
+  },
+  "matched_phrase_comparison": {
+    "original_phrase": {
+      "partials_db": [
+        0.0,
+        -16.794198743525,
+        -25.524890922294418,
+        -34.21947535548731,
+        -52.455797573731,
+        -53.28699709348083,
+        -54.89755114697929
+      ],
+      "interharmonic_db": -35.76461994402726
+    },
+    "reference_phrase": {
+      "partials_db": [
+        0.0,
+        -9.272374655905471,
+        -10.55441690101419,
+        -28.928283063045377,
+        -31.008517910076968,
+        -33.65571375591207,
+        -38.430028801559914
+      ],
+      "interharmonic_db": -27.915908676722758
+    }
+  },
+  "blowing_dynamics": [
+    {
+      "velocity": 40,
+      "air_attack_rms_dbfs": -49.072868401953386,
+      "early_tone_peak_dbfs": -240.0,
+      "attack": {
+        "octave_to_fundamental_db": -10.624358575574078,
+        "dominant_hz": 246.68164978463594,
+        "register": 1
+      },
+      "settled": {
+        "octave_to_fundamental_db": -11.270211617311372,
+        "dominant_hz": 247.33551476436702,
+        "register": 1
+      }
+    },
+    {
+      "velocity": 64,
+      "air_attack_rms_dbfs": -43.26948595629946,
+      "early_tone_peak_dbfs": -240.0,
+      "attack": {
+        "octave_to_fundamental_db": -8.043768858840739,
+        "dominant_hz": 247.22387643767422,
+        "register": 1
+      },
+      "settled": {
+        "octave_to_fundamental_db": -11.133727317059554,
+        "dominant_hz": 246.43998172483379,
+        "register": 1
+      }
+    },
+    {
+      "velocity": 80,
+      "air_attack_rms_dbfs": -40.011547052035866,
+      "early_tone_peak_dbfs": -240.0,
+      "attack": {
+        "octave_to_fundamental_db": -8.510614221519221,
+        "dominant_hz": 247.35868873046454,
+        "register": 1
+      },
+      "settled": {
+        "octave_to_fundamental_db": -10.653497347357025,
+        "dominant_hz": 246.6446213295369,
+        "register": 1
+      }
+    },
+    {
+      "velocity": 92,
+      "air_attack_rms_dbfs": -38.655313455830964,
+      "early_tone_peak_dbfs": -240.0,
+      "attack": {
+        "octave_to_fundamental_db": 61.5527226660618,
+        "dominant_hz": 493.41873258942195,
+        "register": 2
+      },
+      "settled": {
+        "octave_to_fundamental_db": -7.864356492299953,
+        "dominant_hz": 246.69535943169367,
+        "register": 1
+      }
+    },
+    {
+      "velocity": 100,
+      "air_attack_rms_dbfs": -36.22079559825954,
+      "early_tone_peak_dbfs": -240.0,
+      "attack": {
+        "octave_to_fundamental_db": 59.48577503358709,
+        "dominant_hz": 494.34757133344397,
+        "register": 2
+      },
+      "settled": {
+        "octave_to_fundamental_db": -8.947353398503369,
+        "dominant_hz": 247.2170265444252,
+        "register": 1
+      }
+    },
+    {
+      "velocity": 116,
+      "air_attack_rms_dbfs": -35.58000249206961,
+      "early_tone_peak_dbfs": -240.0,
+      "attack": {
+        "octave_to_fundamental_db": 59.238618941676116,
+        "dominant_hz": 494.1749693554051,
+        "register": 2
+      },
+      "settled": {
+        "octave_to_fundamental_db": 61.24329403841841,
+        "dominant_hz": 493.65464319846427,
+        "register": 2
+      }
+    },
+    {
+      "velocity": 127,
+      "air_attack_rms_dbfs": -32.91445510298937,
+      "early_tone_peak_dbfs": -240.0,
+      "attack": {
+        "octave_to_fundamental_db": 59.93576690740519,
+        "dominant_hz": 494.21799018578946,
+        "register": 2
+      },
+      "settled": {
+        "octave_to_fundamental_db": 61.03073921911013,
+        "dominant_hz": 493.1576893377036,
+        "register": 2
+      }
+    }
+  ],
+  "register_checks": [
+    {
+      "note": 52,
+      "velocity": 92,
+      "attack": {
+        "octave_to_fundamental_db": 68.27344436537453,
+        "dominant_hz": 328.9400414144748,
+        "register": 2
+      },
+      "settled": {
+        "octave_to_fundamental_db": -7.365585626104735,
+        "dominant_hz": 165.0647578093531,
+        "register": 1
+      }
+    },
+    {
+      "note": 52,
+      "velocity": 116,
+      "attack": {
+        "octave_to_fundamental_db": 65.6897402285439,
+        "dominant_hz": 329.6007115555378,
+        "register": 2
+      },
+      "settled": {
+        "octave_to_fundamental_db": 61.55908958545628,
+        "dominant_hz": 328.9047226197823,
+        "register": 2
+      }
+    },
+    {
+      "note": 64,
+      "velocity": 92,
+      "attack": {
+        "octave_to_fundamental_db": 66.64959974335335,
+        "dominant_hz": 660.0482294086569,
+        "register": 2
+      },
+      "settled": {
+        "octave_to_fundamental_db": -10.028639453277775,
+        "dominant_hz": 329.17557690559397,
+        "register": 1
+      }
+    },
+    {
+      "note": 64,
+      "velocity": 116,
+      "attack": {
+        "octave_to_fundamental_db": 59.24833598531783,
+        "dominant_hz": 658.5911491845503,
+        "register": 2
+      },
+      "settled": {
+        "octave_to_fundamental_db": 58.94812676237157,
+        "dominant_hz": 658.5409930827675,
+        "register": 2
+      }
+    },
+    {
+      "note": 76,
+      "velocity": 92,
+      "attack": {
+        "octave_to_fundamental_db": 58.6585960218023,
+        "dominant_hz": 1319.4741743282334,
+        "register": 2
+      },
+      "settled": {
+        "octave_to_fundamental_db": -10.322260808551482,
+        "dominant_hz": 660.0626614133793,
+        "register": 1
+      }
+    },
+    {
+      "note": 76,
+      "velocity": 116,
+      "attack": {
+        "octave_to_fundamental_db": 57.16227337283372,
+        "dominant_hz": 1318.9565763772882,
+        "register": 2
+      },
+      "settled": {
+        "octave_to_fundamental_db": 55.696809255452,
+        "dominant_hz": 1317.7826339048045,
+        "register": 2
+      }
+    }
+  ],
+  "images": [
+    "/Users/thuber/Projekte/VisualCSound/examples/instruments/lake_bamboo_flute/validation/Flute_validation.mel.png",
+    "/Users/thuber/Projekte/VisualCSound/examples/instruments/lake_bamboo_flute/validation/Flute_validation.stft.png",
+    "/Users/thuber/Projekte/VisualCSound/examples/instruments/lake_bamboo_flute/validation/original_phrase.mel.png",
+    "/Users/thuber/Projekte/VisualCSound/examples/instruments/lake_bamboo_flute/validation/original_phrase.stft.png",
+    "/Users/thuber/Projekte/VisualCSound/examples/instruments/lake_bamboo_flute/validation/reference_phrase.mel.png",
+    "/Users/thuber/Projekte/VisualCSound/examples/instruments/lake_bamboo_flute/validation/reference_phrase.stft.png",
+    "/Users/thuber/Projekte/VisualCSound/examples/instruments/lake_bamboo_flute/validation/blowing_dynamics.mel.png",
+    "/Users/thuber/Projekte/VisualCSound/examples/instruments/lake_bamboo_flute/validation/blowing_dynamics.stft.png",
+    "/Users/thuber/Projekte/VisualCSound/examples/instruments/lake_bamboo_flute/validation/blowing_registers.mel.png",
+    "/Users/thuber/Projekte/VisualCSound/examples/instruments/lake_bamboo_flute/validation/blowing_registers.stft.png"
+  ],
+  "listening": "Not performed; numerical and visual verification only.",
+  "visual_notes": "Opened Mel and log-STFT plots for the complete suite, blowing-velocity demonstration, E3/E4/E5 register demonstration and revised phrase. Breath precedes visible harmonic buildup. Velocity 92/100 changes from octave to fundamental; 116/127 retains the octave until release, then relaxes as pressure stops. Both channels, controller extremes and release tails inspected. Historical original comparison was inspected in the preceding revision; no listening check."
+}

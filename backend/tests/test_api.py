@@ -7428,3 +7428,49 @@ def test_ratchets_count_toward_export_event_limit_before_rendering(tmp_path: Pat
         response = client.post('/api/bundles/export/performance-csd', json=payload)
     assert response.status_code == 422
     assert 'too many MIDI events' in response.text
+
+
+def test_midi_legato_opcode_and_saved_graph_compile(tmp_path: Path) -> None:
+    from backend.tests.csound_test_support import load_patch_fixture
+    patch = load_patch_fixture('midi_legato')
+    payload = patch.model_dump(mode='json', exclude={'id', 'created_at', 'updated_at'})
+    with _client(tmp_path) as client:
+        opcode = next(item for item in client.get('/api/opcodes').json() if item['name'] == 'midi_legato')
+        assert opcode['inputs'] == []
+        assert [(p['id'], p['signal_type']) for p in opcode['outputs']] == [('kfreq', 'k'), ('kvelocity', 'k')]
+        assert opcode['documentation_url'] == 'https://csound.com/docs/manual/release.html'
+        assert 'virtual' in opcode['tags']
+        saved = client.post('/api/patches', json=payload)
+        assert saved.status_code == 201, saved.text
+        identity = saved.json()['id']
+        session = client.post('/api/sessions', json={'patch_id': identity}).json()
+        compiled = client.post(f"/api/sessions/{session['session_id']}/compile")
+        assert compiled.status_code == 200, compiled.text
+        assert 'VCS_LEGATO_PHRASE:' in compiled.json()['orc']
+        reloaded = client.get('/api/patches/' + identity).json()
+        assert reloaded['graph'] == saved.json()['graph']
+        assert reloaded['instrument_type'] == 'melody'
+
+
+@pytest.mark.parametrize('event_source', ['midiFile', 'score'])
+def test_midi_legato_performance_csd_export_uses_note_collectors(tmp_path: Path, event_source: str) -> None:
+    from backend.tests.csound_test_support import load_patch_fixture
+    payload = _performance_csd_export_payload()
+    payload['eventSource'] = event_source
+    payload['performanceExport']['patch_definitions'][0]['graph'] = load_patch_fixture('midi_legato').graph.model_dump(mode='json')
+    with _client(tmp_path) as client:
+        response = client.post('/api/bundles/export/performance-csd', json=payload)
+        assert response.status_code == 200, response.text
+        with zipfile.ZipFile(BytesIO(response.content)) as archive:
+            csd = archive.read('Offline_Export/Offline_Export.csd').decode()
+            assert 'ksmps = 1' in csd
+            assert 'VCS_LEGATO_PHRASE:' in csd
+            assert 'vcs_legato_adsr' in csd
+            if event_source == 'midiFile':
+                assert 'massign 1, 2' in csd
+                assert 'Offline_Export/Offline_Export.mid' in archive.namelist()
+            else:
+                score = csd.split('<CsScore>')[1]
+                assert 'i 1 ' in score
+                assert 'i 2 ' not in score
+                assert 'iSerial = (p6 > 0 ? p6 : iSerial)' in csd

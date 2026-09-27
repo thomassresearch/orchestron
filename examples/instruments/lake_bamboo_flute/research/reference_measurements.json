@@ -1,0 +1,116 @@
+[
+  {
+    "recording": "unsw_ro",
+    "seconds": [
+      0.3,
+      6.2
+    ],
+    "f0_median_hz": 294.9607636095607,
+    "H2_over_H1_db_p10_p50_p90": [
+      8.48716402053833,
+      10.081191539764404,
+      11.53543472290039
+    ],
+    "modulation_H2_top_hz": [
+      3.221106532168778,
+      3.0515746094230534,
+      5.25548960511748
+    ],
+    "detrended_harmonic_envelope_correlation": 0.4841994423595762
+  },
+  {
+    "recording": "miki_techniques",
+    "seconds": [
+      11.5,
+      13.3
+    ],
+    "f0_median_hz": 521.7751629370468,
+    "H2_over_H1_db_p10_p50_p90": [
+      -5.753838348388672,
+      13.889928340911865,
+      34.98373603820801
+    ],
+    "modulation_H2_top_hz": [
+      5.00025196532957,
+      4.444668413626284,
+      3.333501310219713
+    ],
+    "detrended_harmonic_envelope_correlation": -0.4988977777440162
+  },
+  {
+    "recording": "miki_techniques",
+    "seconds": [
+      13.8,
+      17.3
+    ],
+    "f0_median_hz": 477.8002884861053,
+    "H2_over_H1_db_p10_p50_p90": [
+      43.78042984008789,
+      50.99615669250488,
+      57.025000762939456
+    ],
+    "modulation_H2_top_hz": [
+      6.571343422825748,
+      5.99992225562351,
+      7.142764590027988
+    ],
+    "detrended_harmonic_envelope_correlation": 0.01965299504344968
+  },
+  {
+    "recording": "miki_techniques",
+    "seconds": [
+      19.7,
+      22
+    ],
+    "f0_median_hz": 610.0414018583251,
+    "H2_over_H1_db_p10_p50_p90": [
+      -16.08690242767334,
+      0.05575690418481827,
+      25.917704391479504
+    ],
+    "modulation_H2_top_hz": [
+      6.525213068181818,
+      7.830255681818182,
+      3.915127840909091
+    ],
+    "detrended_harmonic_envelope_correlation": -0.11411358711512273
+  },
+  {
+    "recording": "miki_techniques",
+    "seconds": [
+      22.8,
+      26.7
+    ],
+    "f0_median_hz": 585.5096694947861,
+    "H2_over_H1_db_p10_p50_p90": [
+      34.850094604492185,
+      48.441497802734375,
+      55.52556381225586
+    ],
+    "modulation_H2_top_hz": [
+      6.41167302503024,
+      6.1552061040290305,
+      12.56687912905927
+    ],
+    "detrended_harmonic_envelope_correlation": -0.24614659485898663
+  },
+  {
+    "recording": "miki_techniques",
+    "seconds": [
+      76,
+      79
+    ],
+    "f0_median_hz": 395.8260779701959,
+    "H2_over_H1_db_p10_p50_p90": [
+      -10.286045837402343,
+      -0.953791618347168,
+      5.759370422363281
+    ],
+    "modulation_H2_top_hz": [
+      5.6682090364725095,
+      5.334784975503538,
+      6.001633097441481
+    ],
+    "detrended_harmonic_envelope_correlation": 0.2867686044470453
+  }
+]

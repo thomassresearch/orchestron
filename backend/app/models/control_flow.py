@@ -9,7 +9,7 @@ from backend.app.models.source_text import reject_control_characters
 
 BRANCH_OPCODES = frozenset({"If", "Switch"})
 CASE_RESULT = "CaseResult"
-ROOT_ONLY_OPCODES = frozenset({"outs", "inleta", "outleta", "sfload", "maxalloc"})
+ROOT_ONLY_OPCODES = frozenset({"outs", "inleta", "outleta", "sfload", "maxalloc", "midi_legato"})
 
 
 class ControlFlowCase(BaseModel):

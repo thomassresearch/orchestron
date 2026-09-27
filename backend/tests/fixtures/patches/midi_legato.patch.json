@@ -1,0 +1,122 @@
+{
+  "name": "Legato test",
+  "description": "",
+  "is_template": false,
+  "always_on": false,
+  "instrument_type": "melody",
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "legato",
+        "opcode": "midi_legato",
+        "params": {},
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "env",
+        "opcode": "madsr",
+        "params": {
+          "iatt": 0.01,
+          "idec": 0.01,
+          "islev": 0.8,
+          "irel": 0.1
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "osc",
+        "opcode": "oscili",
+        "params": {
+          "ifn": -1
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "freq",
+        "opcode": "k_to_a",
+        "params": {},
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "output",
+        "opcode": "outs",
+        "params": {},
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "limit",
+        "opcode": "maxalloc",
+        "params": {
+          "icount": 1
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "legato",
+        "from_port_id": "kfreq",
+        "to_node_id": "osc",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "env",
+        "from_port_id": "kenv",
+        "to_node_id": "osc",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "legato",
+        "from_port_id": "kfreq",
+        "to_node_id": "freq",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "freq",
+        "from_port_id": "aout",
+        "to_node_id": "output",
+        "to_port_id": "right"
+      },
+      {
+        "from_node_id": "osc",
+        "from_port_id": "asig",
+        "to_node_id": "output",
+        "to_port_id": "left"
+      }
+    ],
+    "ui_layout": {},
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 1500,
+      "ksmps": 32,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "zero_dbfs": 1.0
+    },
+    "audio_interface": null,
+    "control_flow": {}
+  },
+  "id": "fd47be82-bd43-48bf-921d-b4887bdbb73e",
+  "created_at": "2026-09-27T10:02:41.124705Z",
+  "updated_at": "2026-09-27T10:02:41.124788Z"
+}

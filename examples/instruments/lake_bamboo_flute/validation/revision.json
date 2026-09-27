@@ -1,0 +1,16 @@
+{
+  "saved": true,
+  "patchId": "e7dae45d-3aca-4f67-bc7d-fef3ac29e4b7",
+  "instrument_type": "melody",
+  "revision": "recording-informed overlapping register envelopes",
+  "native_export_preview_roundtrip": true,
+  "controller_ids_preserved": true,
+  "frontend_build": "passed",
+  "docker_frontend_build": "passed (cached)",
+  "auditions": 18,
+  "max_tested_peak_dbfs": -5.844327012737151,
+  "patch_sha256": "1a28e059f3e7a48e296a09738a9d5c3d398c8f1263c792cc92eead517f9f249c",
+  "reference_comparison": "research/README.md",
+  "listening_performed": false,
+  "notes": "Pressure-switch revision backed up; existing library patch updated in place; performance data unchanged. Modal-envelope approximation, not a solved air-jet feedback model."
+}

@@ -1,0 +1,117 @@
+{
+  "passed": true,
+  "spectrograms_inspected": true,
+  "patch_sha256": "c179af98775ea64558df965143c916f292b8efe86ebd9de3f1f6a5af072729d0",
+  "auditions": [
+    {
+      "name": "default",
+      "peak_dbfs": -16.383641809442135,
+      "tail_dbfs": -240.0,
+      "settings": {}
+    },
+    {
+      "name": "flute_attack_min",
+      "peak_dbfs": -16.353797555031893,
+      "tail_dbfs": -240.0,
+      "settings": {
+        "flute_attack": 0.015
+      }
+    },
+    {
+      "name": "flute_attack_max",
+      "peak_dbfs": -16.34412229119451,
+      "tail_dbfs": -240.0,
+      "settings": {
+        "flute_attack": 0.18
+      }
+    },
+    {
+      "name": "flute_release_min",
+      "peak_dbfs": -16.336109531756737,
+      "tail_dbfs": -240.0,
+      "settings": {
+        "flute_release": 0.08
+      }
+    },
+    {
+      "name": "flute_release_max",
+      "peak_dbfs": -14.265248382271693,
+      "tail_dbfs": -240.0,
+      "settings": {
+        "flute_release": 1.2
+      }
+    },
+    {
+      "name": "flute_breath_min",
+      "peak_dbfs": -16.39447553417538,
+      "tail_dbfs": -240.0,
+      "settings": {
+        "flute_breath": 0
+      }
+    },
+    {
+      "name": "flute_breath_max",
+      "peak_dbfs": -16.179114499382695,
+      "tail_dbfs": -240.0,
+      "settings": {
+        "flute_breath": 1
+      }
+    },
+    {
+      "name": "flute_tone_min",
+      "peak_dbfs": -16.436945531790712,
+      "tail_dbfs": -240.0,
+      "settings": {
+        "flute_tone": 1000
+      }
+    },
+    {
+      "name": "flute_tone_max",
+      "peak_dbfs": -16.35373035805907,
+      "tail_dbfs": -240.0,
+      "settings": {
+        "flute_tone": 7500
+      }
+    },
+    {
+      "name": "flute_vibrato_min",
+      "peak_dbfs": -16.383641809442135,
+      "tail_dbfs": -240.0,
+      "settings": {
+        "flute_vibrato": 0
+      }
+    },
+    {
+      "name": "flute_vibrato_max",
+      "peak_dbfs": -16.383641809442135,
+      "tail_dbfs": -240.0,
+      "settings": {
+        "flute_vibrato": 15
+      }
+    },
+    {
+      "name": "velocity",
+      "peak_dbfs": -14.554275379522464,
+      "tail_dbfs": -240.0,
+      "settings": {}
+    },
+    {
+      "name": "retrigger_chord",
+      "peak_dbfs": -4.5058404261037195,
+      "tail_dbfs": -240.0,
+      "settings": {}
+    }
+  ],
+  "velocity_rms_dbfs": [
+    -33.62034307912235,
+    -27.5735371154633,
+    -23.092456190786756,
+    -18.995751677976447
+  ],
+  "images": [
+    "/Users/thuber/Projekte/VisualCSound/examples/instruments/lake_bamboo_flute/validation/Flute_validation.mel.png",
+    "/Users/thuber/Projekte/VisualCSound/examples/instruments/lake_bamboo_flute/validation/Flute_validation.stft.png"
+  ],
+  "listening": "Not performed; numerical and visual verification only.",
+  "visual_findings": "Opened Mel and log-STFT comparisons for all 13 auditions: stable harmonic pitch, faint band-limited breath, smooth attacks/releases, matched stereo, clean silence after notes; no unexplained broadband bursts."
+}

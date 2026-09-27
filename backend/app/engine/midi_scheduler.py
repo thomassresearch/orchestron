@@ -121,6 +121,7 @@ class EngineMidiScheduler:
                     event.target_engine_sample = block_start_sample
                 if self.lane_output.allows(event.source, event.message):
                     drained.append(event)
+                    drained.extend([event] * self.lane_output.take_deferred_releases(event.message))
         return drained
 
     def release_sources(self, sources: set[str], *, sample: int) -> None:

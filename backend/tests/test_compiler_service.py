@@ -684,3 +684,33 @@ def test_stk_controller_formula_and_override_skip_middle_pairs() -> None:
     )
     line = next(line.strip() for line in orc_code_lines(artifact.orc) if " STKBandedWG " in line)
     assert line == "a_stk_asignal_1 STKBandedWG 440, 0.2, 4, 0, 16, (1 + 2)"
+
+
+def test_midi_legato_separates_note_collectors_from_audio_and_maxalloc() -> None:
+    from backend.tests.csound_test_support import load_patch_fixture
+    from backend.app.services.compiler_common import PatchInstrumentTarget
+    patch = load_patch_fixture('midi_legato')
+    compiler = CompilerService(OpcodeService(icon_prefix='/static/icons'))
+    artifact = compiler.compile_patch_bundle(
+        [PatchInstrumentTarget(patch=patch, midi_channel=1, assignment_id='flute')],
+        midi_input='0', rtmidi_module='none', performance_input_mode='score')
+    assert artifact.manifest['noteInstrumentReferences'] == {'flute': '1'}
+    assert artifact.manifest['instrumentReferences'] == {'flute': '2'}
+    assert 'maxalloc "vcs_instr_1", 1' in artifact.orc
+    assert 'maxalloc 1,' not in artifact.orc
+    assert artifact.orc.index('instr 1') < artifact.orc.index('instr vcs_instr_1')
+    assert 'alwayson "vcs_instr_1"' in artifact.orc
+    assert 'portk' in artifact.orc and '/ 128, 0.01' in artifact.orc
+
+
+def test_legato_does_not_assign_unassigned_rack_targets_to_all_channels() -> None:
+    from backend.tests.csound_test_support import load_patch_fixture
+    from backend.app.services.compiler_common import PatchInstrumentTarget
+    patch = load_patch_fixture('midi_legato')
+    compiler = CompilerService(OpcodeService(icon_prefix='/static/icons'))
+    artifact = compiler.compile_patch_bundle(
+        [PatchInstrumentTarget(patch=patch, midi_channel=0, assignment_id='unassigned'),
+         PatchInstrumentTarget(patch=patch, midi_channel=1, assignment_id='assigned')],
+        midi_input='0', rtmidi_module='none')
+    assignments = [line for line in artifact.orc.splitlines() if line.startswith('massign ')]
+    assert assignments == ['massign 0, 0', 'massign 1, 3']

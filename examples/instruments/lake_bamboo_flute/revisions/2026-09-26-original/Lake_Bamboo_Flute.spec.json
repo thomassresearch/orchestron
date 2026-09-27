@@ -1,0 +1,22 @@
+{
+  "name": "Lake Bamboo Flute",
+  "description": "Soft, sample-free bamboo-flute-inspired voice: sine-dominant bore, gentle upper harmonics, filtered breath and delayed 5.1 Hz vibrato. Velocity shapes loudness and harmonic colour. Best A3\u2013D6. Five per-instance controls; stereo outlet pair, no internal reverb. Designed for Evening at the Lake.",
+  "family": "simple_osc",
+  "envelope": {
+    "attack": 0.06,
+    "decay": 0.22,
+    "sustain": 0.84,
+    "release": 0.38
+  },
+  "layers": [
+    {
+      "id": "seed",
+      "opcode": "oscili",
+      "gain": 0.4,
+      "table": -1
+    }
+  ],
+  "output": {
+    "pan": 0.5
+  }
+}

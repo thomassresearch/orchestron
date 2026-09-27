@@ -207,3 +207,16 @@ output:
 ## Structured If / Switch graphs
 
 The high-level layer syntax does not generate branching. When editing a full graph, preserve `graph.control_flow` and `schema_version: 2`, including stable case IDs, exclusive `node_ids` membership, result markers, Silence and `ui_layout` formulas/collapse state. Existing formula transformations preserve unknown graph fields. See the [EN/DE/FR/ES patch/API format](../../../../documentation/instrument_design/control_flow.md#patchapi-format) and [complete analog drumkit template](../../../../examples/instruments/template/analog_drumkit.patch.json). Do not lower the schema version when removing the last block.
+
+## Optional monophonic legato
+
+A graph can contain one root-level `midi_legato` node (no inputs), exposing
+`kfreq` and `kvelocity`. Preserve the required `cpsmidi`, `ampmidi` and `madsr`
+spine: the I-rate MIDI nodes supply phrase-initial inputs; connect the live
+outputs to K-rate pitch and amplitude/pressure inputs. `madsr` follows the phrase
+gate. Connected notes preserve state; gaps restart initialization and read the
+performance controllers. Velocity uses MIDI / 128 with a 10 ms half-time, pitch
+has no glide. Keep overshoots in phrase contours, combined with live velocity.
+The backend rejects duplicate/nested legato nodes, Continuous instruments, and
+incompatible native release/turnoff constructs. Existing validation of envelope
+controls, velocity scaling and Stereo Output remains mandatory.

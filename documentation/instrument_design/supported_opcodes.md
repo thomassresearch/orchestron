@@ -2,7 +2,7 @@
 
 **Navigation:** [Up](instrument_design.md) | [Prev](instrument_import_export.md) | [Next](../performance/performance.md)
 
-This appendix is generated from `backend/app/data/opcodes.json` and currently lists **177** user-selectable opcodes and editor constructs in the Instrument Design opcode catalog.
+This appendix is generated from `backend/app/data/opcodes.json` and currently lists **178** user-selectable opcodes and editor constructs in the Instrument Design opcode catalog.
 
 ## How To Use This Appendix
 
@@ -25,7 +25,7 @@ This appendix is generated from `backend/app/data/opcodes.json` and currently li
 | filter | 19 |
 | fm | 17 |
 | math | 3 |
-| midi | 7 |
+| midi | 8 |
 | mixer | 3 |
 | modulation | 10 |
 | noise | 3 |
@@ -178,6 +178,7 @@ These nodes generate structured Csound conditionals; they are not ordinary opcod
 | ampmidicurve | 3 (k, k, k) | 1 (k) | Map MIDI velocity to gain using dynamic range and curve exponent. |
 | ampmidid | 2 (k, i) | 1 (k) | Map MIDI velocity to amplitude using a decibel range. |
 | cpsmidi | - | 1 (i) | Read active MIDI note pitch as cycles-per-second. |
+| midi_legato | - | 2 (k, k) | Opt-in monophonic phrases, immediate pitch and smoothed velocity. |
 | midi_note | 1 (i) | 2 (k, k) | Extract MIDI note frequency and velocity amplitude. |
 | midictrl | 3 (i, i, i) | 1 (k) | Read a MIDI controller value with optional scaling. |
 | notnum | - | 1 (i) | Read the MIDI note number for the current note event. |

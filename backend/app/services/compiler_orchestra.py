@@ -36,6 +36,7 @@ from backend.app.services.compiler_formula import (
 from backend.app.services.compiler_graph import find_port
 from backend.app.services.gen_asset_service import GenAssetService
 from backend.app.services.orc_metadata import format_orc_comment_value
+from backend.app.services.compiler_legato import has_legato, midi_opcode, phrase_prefix
 
 
 CONST_S_VALUE_RE = re.compile(r"[a-z][a-z0-9_]{0,49}")
@@ -61,9 +62,11 @@ class OrchestraEmitter:
         score_midi_channel: int = 0,
         direct_output_ports: dict[str, tuple[str, str]] | None = None,
         performance_controllers: dict | None = None,
+        legato_identity: str | None = None,
     ) -> CompiledInstrumentLines:
         deferred_audio_outlet_inputs: list[str] = []
         deferred_audio_outlets: list[str] = []
+        deferred_audio_declicks: list[str] = []
         diagnostics: list[str] = []
         warnings: list[str] = []
         ui_layout = patch.graph.ui_layout
@@ -76,8 +79,14 @@ class OrchestraEmitter:
         instrument_lines: list[str] = []
         global_header_lines: list[str] = []
         sfload_global_requests: list[SfloadGlobalRequest] = []
+        legato = has_legato(patch)
+        legato_envelopes: list[tuple[list[str], dict[str, str]]] = []
 
-        if performance_input_mode == "score" and score_midi_channel > 0:
+        if legato:
+            assert legato_identity is not None
+            instrument_lines.extend(phrase_prefix(legato_identity))
+
+        if performance_input_mode == "score" and score_midi_channel > 0 and not legato:
             instrument_lines.extend(
                 [
                     "i_vcs_internal_score_note_p4 = p4",
@@ -195,13 +204,16 @@ class OrchestraEmitter:
                 instrument_lines.extend(f"{output_vars[(block_id, channel)]} = {env[channel]}" for channel in block.channels)
                 continue
 
-            if compiled.spec.name == "outleta" or (compiled.spec.name == "outs" and direct_output_ports is not None):
+            if compiled.spec.name == "outleta" or (compiled.spec.name == "outs" and (direct_output_ports is not None or legato)):
                 if compiled.spec.name == "outleta":
                     outlet_names = {"asignal": env["sname"]}
-                else:
+                elif direct_output_ports is not None:
                     left, right = direct_output_ports[compiled.node.id]
                     outlet_names = {"left": self._format_csound_string(left), "right": self._format_csound_string(right)}
+                else:
+                    outlet_names = {"left": "", "right": ""}
                 deferred_audio_outlets.append(self._node_comment(compiled.node.id, compiled.spec.name))
+                direct_signals = []
                 for input_port in compiled.spec.inputs:
                     if input_port.id not in outlet_names:
                         continue
@@ -213,7 +225,16 @@ class OrchestraEmitter:
                         temporary = self._allocate_var_name(rate_counters, compiled.node.id, input_port)
                         deferred_audio_outlet_inputs.append(f"{temporary} = {signal}")
                         signal = temporary
-                    deferred_audio_outlets.append(f"outleta {outlet_names[input_port.id]}, {signal}")
+                    if legato:
+                        declicked = self._allocate_var_name(rate_counters, compiled.node.id, input_port)
+                        deferred_audio_declicks.append(f"{declicked} vcs_legato_declick {signal}, k_vcs_legato_phrase")
+                        signal = declicked
+                    if not outlet_names[input_port.id]:
+                        direct_signals.append(signal)
+                    else:
+                        deferred_audio_outlets.append(f"outleta {outlet_names[input_port.id]}, {signal}")
+                if direct_signals:
+                    deferred_audio_outlets.append("outs " + ", ".join(direct_signals))
                 continue
 
             if compiled.spec.name == "GEN":
@@ -354,6 +375,24 @@ class OrchestraEmitter:
             if compiled.spec.name in {"const_a", "const_i", "const_k"} and "value" not in env:
                 env["value"] = "0"
 
+            if legato:
+                if compiled.spec.name == "madsr":
+                    # Resolve default releases after all input expressions are known.
+                    legato_envelopes.append((instrument_lines, env.copy()))
+                    continue
+                rendered = midi_opcode(compiled.spec.name, env, legato_identity, lambda: self._render_score_midi_opcode(
+                    compiled, env, inbound_index=inbound_index, compiled_nodes=compiled_nodes,
+                    score_midi_channel=score_midi_channel, warnings=warnings,
+                ))
+                if rendered is not None:
+                    instrument_lines.extend([self._node_comment(compiled.node.id, compiled.spec.name), *rendered.splitlines()])
+                    continue
+                if compiled.spec.name == "midictrl" and performance_input_mode != "score":
+                    from backend.app.services.compiler_legato import state_prefix
+                    channel = f"i(gk_{state_prefix(legato_identity)}_channel)"
+                    instrument_lines.append(f"{env['kval']} ctrl7 {channel}, {env['inum']}, {env['imin']}, {env['imax']}")
+                    continue
+
             if performance_input_mode == "score":
                 rendered_score_opcode = self._render_score_midi_opcode(
                     compiled,
@@ -388,6 +427,14 @@ class OrchestraEmitter:
             rendered = self._cleanup_optional_placeholders(rendered)
             instrument_lines.extend([self._node_comment(compiled.node.id, compiled.spec.name), *rendered.splitlines()])
 
+        for lines, env in legato_envelopes:
+            # madsr without ireltim uses the longest release in the instrument.
+            release_time = self._score_env_value(env, "ireltim", "-1")
+            duration = f"(({release_time}) < 0 ? k_vcs_legato_release : ({release_time}))"
+            lines.append(f"{env['kenv']} vcs_legato_adsr k_vcs_legato_gate, {env['iatt']}, "
+                         f"{env['idec']}, {env['islev']}, {duration}, {self._score_env_value(env, 'idel', '0')}")
+            lines.append(f"k_vcs_legato_current_release = max(k_vcs_legato_current_release, {env['irel']})")
+
         instrument_lines = list(prefix_lines)
         for node_id in graph_context.root_order or graph_context.ordered_ids:
             block = patch.graph.control_flow.get(node_id)
@@ -413,6 +460,11 @@ class OrchestraEmitter:
         # consumes them. Interleaving assignments and outlets allows Csound to
         # reuse the first expression's buffer even with explicit variable names.
         instrument_lines.extend(deferred_audio_outlet_inputs)
+        if legato:
+            if legato_envelopes:
+                instrument_lines.append("k_vcs_legato_release = k_vcs_legato_current_release")
+            instrument_lines.append("rireturn")
+        instrument_lines.extend(deferred_audio_declicks)
         instrument_lines.extend(deferred_audio_outlets)
         return CompiledInstrumentLines(
             instrument_lines=instrument_lines,

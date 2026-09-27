@@ -1,0 +1,578 @@
+{
+  "date": "2026-09-26",
+  "patch_id": "7cf6abaf-31f2-4b4a-858c-09b078a7d729",
+  "graph_nodes": 412,
+  "graph_connections": 941,
+  "compile_diagnostics": [],
+  "measurements": {
+    "renders": {
+      "all_strokes": {
+        "peak": 0.22560609877109528,
+        "peak_dbfs": -12.932983286430614,
+        "rms": 0.006804957228232887,
+        "finite": true,
+        "tail_peak": 0.0
+      },
+      "all_strokes_hard": {
+        "peak": 0.28651973605155945,
+        "peak_dbfs": -10.856909151901991,
+        "rms": 0.008650750123939,
+        "finite": true,
+        "tail_peak": 0.0
+      },
+      "unmapped": {
+        "peak": 0.0,
+        "peak_dbfs": -240.0,
+        "rms": 0.0,
+        "finite": true,
+        "tail_peak": 0.0
+      },
+      "velocity": {
+        "peak": 0.3639218807220459,
+        "peak_dbfs": -8.779836635394517,
+        "rms": 0.005781750973688283,
+        "finite": true,
+        "tail_peak": 0.0
+      },
+      "short_trigger": {
+        "peak": 0.10181888937950134,
+        "peak_dbfs": -19.843432889439466,
+        "rms": 0.006172671173506126,
+        "finite": true,
+        "tail_peak": 0.0
+      },
+      "held_trigger": {
+        "peak": 0.11613623052835464,
+        "peak_dbfs": -18.700645482241647,
+        "rms": 0.00564737483304058,
+        "finite": true,
+        "tail_peak": 0.0
+      },
+      "retrigger_polyphony": {
+        "peak": 0.6792165637016296,
+        "peak_dbfs": -3.359834634419161,
+        "rms": 0.021866728145688484,
+        "finite": true,
+        "tail_peak": 0.0
+      },
+      "controllers_default": {
+        "peak": 0.2359190732240677,
+        "peak_dbfs": -12.544738930392032,
+        "rms": 0.0056186356423937565,
+        "finite": true,
+        "tail_peak": 0.0
+      },
+      "world_tuning_min": {
+        "peak": 0.2359190732240677,
+        "peak_dbfs": -12.544738930392032,
+        "rms": 0.005623167328436811,
+        "finite": true,
+        "tail_peak": 0.0
+      },
+      "world_tuning_max": {
+        "peak": 0.2359190732240677,
+        "peak_dbfs": -12.544738930392032,
+        "rms": 0.0056077742664804005,
+        "finite": true,
+        "tail_peak": 0.0
+      },
+      "world_decay_min": {
+        "peak": 0.3249555230140686,
+        "peak_dbfs": -9.763521545432294,
+        "rms": 0.0044159841251318775,
+        "finite": true,
+        "tail_peak": 0.0
+      },
+      "world_decay_max": {
+        "peak": 0.20937572419643402,
+        "peak_dbfs": -13.581473469255984,
+        "rms": 0.007038323432610044,
+        "finite": true,
+        "tail_peak": 0.0
+      },
+      "world_brightness_min": {
+        "peak": 0.18398015201091766,
+        "peak_dbfs": -14.70458053297008,
+        "rms": 0.005448340088755272,
+        "finite": true,
+        "tail_peak": 0.0
+      },
+      "world_brightness_max": {
+        "peak": 0.29085254669189453,
+        "peak_dbfs": -10.72654258371799,
+        "rms": 0.005802652873001089,
+        "finite": true,
+        "tail_peak": 0.0
+      },
+      "world_tabla_tuning_min": {
+        "peak": 0.2359190732240677,
+        "peak_dbfs": -12.544738930392032,
+        "rms": 0.0056195564581203745,
+        "finite": true,
+        "tail_peak": 0.0
+      },
+      "world_tabla_tuning_max": {
+        "peak": 0.2359190732240677,
+        "peak_dbfs": -12.544738930392032,
+        "rms": 0.005617020382934071,
+        "finite": true,
+        "tail_peak": 0.0
+      },
+      "all_controls_max": {
+        "peak": 0.6587753295898438,
+        "peak_dbfs": -3.625253460950722,
+        "rms": 0.016780832338866753,
+        "finite": true,
+        "tail_peak": 0.0
+      },
+      "World_Drumkit_demo": {
+        "peak": 0.272577166557312,
+        "peak_dbfs": -11.290210545485039,
+        "rms": 0.021983370039413343,
+        "finite": true,
+        "tail_peak": 0.0
+      }
+    },
+    "voices": [
+      {
+        "note": 36,
+        "name": "Dunun open",
+        "rms": 0.013366117648541198,
+        "peak": 0.14740625023841858
+      },
+      {
+        "note": 37,
+        "name": "Dunun muted",
+        "rms": 0.00533015315003511,
+        "peak": 0.11296197772026062
+      },
+      {
+        "note": 38,
+        "name": "Surdo open",
+        "rms": 0.01684963715984103,
+        "peak": 0.14201925694942474
+      },
+      {
+        "note": 39,
+        "name": "Surdo damped",
+        "rms": 0.005717700896099625,
+        "peak": 0.11590193957090378
+      },
+      {
+        "note": 40,
+        "name": "Djembe bass",
+        "rms": 0.010653236178699165,
+        "peak": 0.12246517837047577
+      },
+      {
+        "note": 41,
+        "name": "Djembe tone",
+        "rms": 0.0072684680271301915,
+        "peak": 0.12421461194753647
+      },
+      {
+        "note": 42,
+        "name": "Djembe slap",
+        "rms": 0.003354702619777524,
+        "peak": 0.1105477437376976
+      },
+      {
+        "note": 43,
+        "name": "Djembe muted",
+        "rms": 0.001635940369200007,
+        "peak": 0.06489938497543335
+      },
+      {
+        "note": 44,
+        "name": "Conga low open",
+        "rms": 0.012505738707940585,
+        "peak": 0.12412432581186295
+      },
+      {
+        "note": 45,
+        "name": "Conga high open",
+        "rms": 0.007925493224455436,
+        "peak": 0.1167597696185112
+      },
+      {
+        "note": 46,
+        "name": "Conga muted",
+        "rms": 0.0019539327982580146,
+        "peak": 0.07240674644708633
+      },
+      {
+        "note": 47,
+        "name": "Conga slap",
+        "rms": 0.0025246555642085204,
+        "peak": 0.08279021084308624
+      },
+      {
+        "note": 48,
+        "name": "Bongo low open",
+        "rms": 0.007526664542635913,
+        "peak": 0.11147873848676682
+      },
+      {
+        "note": 49,
+        "name": "Bongo high open",
+        "rms": 0.005223350986240857,
+        "peak": 0.09306839108467102
+      },
+      {
+        "note": 50,
+        "name": "Bongo rim",
+        "rms": 0.0027484973606921132,
+        "peak": 0.0802861899137497
+      },
+      {
+        "note": 51,
+        "name": "Bongo muted",
+        "rms": 0.0015228176723773269,
+        "peak": 0.05446004495024681
+      },
+      {
+        "note": 52,
+        "name": "Darbuka doum",
+        "rms": 0.010145005710743681,
+        "peak": 0.12474136799573898
+      },
+      {
+        "note": 53,
+        "name": "Darbuka tek",
+        "rms": 0.004099825624102343,
+        "peak": 0.07732710242271423
+      },
+      {
+        "note": 54,
+        "name": "Darbuka ka",
+        "rms": 0.0024505573324975294,
+        "peak": 0.06359793990850449
+      },
+      {
+        "note": 55,
+        "name": "Darbuka slap",
+        "rms": 0.0025005779678317647,
+        "peak": 0.08810590952634811
+      },
+      {
+        "note": 56,
+        "name": "Frame drum centre",
+        "rms": 0.012894684174023771,
+        "peak": 0.12397045642137527
+      },
+      {
+        "note": 57,
+        "name": "Frame drum rim",
+        "rms": 0.00434553128194229,
+        "peak": 0.09710297733545303
+      },
+      {
+        "note": 58,
+        "name": "Frame drum muted",
+        "rms": 0.0025324322068137365,
+        "peak": 0.07542329281568527
+      },
+      {
+        "note": 60,
+        "name": "Tabla dayan na",
+        "rms": 0.00734316607663737,
+        "peak": 0.0992966815829277
+      },
+      {
+        "note": 61,
+        "name": "Tabla dayan tin",
+        "rms": 0.010316556230454422,
+        "peak": 0.09388087689876556
+      },
+      {
+        "note": 62,
+        "name": "Tabla dayan tun",
+        "rms": 0.01010861306015903,
+        "peak": 0.08988749235868454
+      },
+      {
+        "note": 63,
+        "name": "Tabla dayan te (dry)",
+        "rms": 0.0014140828860788194,
+        "peak": 0.07314946502447128
+      },
+      {
+        "note": 64,
+        "name": "Tabla bayan ge",
+        "rms": 0.013446371238715752,
+        "peak": 0.1060013696551323
+      },
+      {
+        "note": 65,
+        "name": "Tabla bayan ke (muted)",
+        "rms": 0.001304102246604957,
+        "peak": 0.047018226236104965
+      },
+      {
+        "note": 66,
+        "name": "Tabla bayan pressure bend",
+        "rms": 0.013458868889205108,
+        "peak": 0.09963513165712357
+      },
+      {
+        "note": 67,
+        "name": "Tabla dha (na + ge)",
+        "rms": 0.012209401953769182,
+        "peak": 0.14681456983089447
+      },
+      {
+        "note": 68,
+        "name": "Tabla dhin (tin + ge)",
+        "rms": 0.013528083419466498,
+        "peak": 0.1460675299167633
+      },
+      {
+        "note": 70,
+        "name": "Udu bass air pulse",
+        "rms": 0.010551974679301312,
+        "peak": 0.12494546175003052
+      },
+      {
+        "note": 71,
+        "name": "Udu clay tap",
+        "rms": 0.0025938612162840022,
+        "peak": 0.06153582036495209
+      },
+      {
+        "note": 72,
+        "name": "Udu hole slap",
+        "rms": 0.003390726953409827,
+        "peak": 0.0765572339296341
+      },
+      {
+        "note": 74,
+        "name": "Cajon bass",
+        "rms": 0.00909277535505317,
+        "peak": 0.11639738827943802
+      },
+      {
+        "note": 75,
+        "name": "Cajon snare slap",
+        "rms": 0.004072710836004101,
+        "peak": 0.1377045214176178
+      },
+      {
+        "note": 76,
+        "name": "Cajon edge",
+        "rms": 0.0016195844417633558,
+        "peak": 0.05006219819188118
+      },
+      {
+        "note": 77,
+        "name": "Claves",
+        "rms": 0.0037521085661989485,
+        "peak": 0.08813077211380005
+      },
+      {
+        "note": 78,
+        "name": "Woodblock low",
+        "rms": 0.003631188354312798,
+        "peak": 0.09050482511520386
+      },
+      {
+        "note": 79,
+        "name": "Woodblock high",
+        "rms": 0.0033859017392610423,
+        "peak": 0.08145347237586975
+      },
+      {
+        "note": 80,
+        "name": "Cowbell open",
+        "rms": 0.006538829050870144,
+        "peak": 0.1166948527097702
+      },
+      {
+        "note": 81,
+        "name": "Cowbell damped",
+        "rms": 0.0029932161215630074,
+        "peak": 0.0777963176369667
+      },
+      {
+        "note": 82,
+        "name": "Agogo low",
+        "rms": 0.009784350409027073,
+        "peak": 0.10383272916078568
+      },
+      {
+        "note": 83,
+        "name": "Agogo high",
+        "rms": 0.006131870188136652,
+        "peak": 0.093885138630867
+      },
+      {
+        "note": 84,
+        "name": "Shekere short",
+        "rms": 0.0014649062093298056,
+        "peak": 0.1465708613395691
+      },
+      {
+        "note": 85,
+        "name": "Shekere accent",
+        "rms": 0.002348415498848319,
+        "peak": 0.15688662230968475
+      },
+      {
+        "note": 86,
+        "name": "Shekere long",
+        "rms": 0.0037669204546996056,
+        "peak": 0.16469165682792664
+      },
+      {
+        "note": 87,
+        "name": "Cabasa short",
+        "rms": 0.0037327656339053647,
+        "peak": 0.22088399529457092
+      },
+      {
+        "note": 88,
+        "name": "Cabasa long",
+        "rms": 0.006553572401074502,
+        "peak": 0.22560609877109528
+      },
+      {
+        "note": 89,
+        "name": "Guiro short",
+        "rms": 0.0026808530667409057,
+        "peak": 0.15584079921245575
+      },
+      {
+        "note": 90,
+        "name": "Guiro long",
+        "rms": 0.005001905199746714,
+        "peak": 0.19922418892383575
+      },
+      {
+        "note": 91,
+        "name": "Tambourine hit",
+        "rms": 0.003941496955736758,
+        "peak": 0.1131039634346962
+      },
+      {
+        "note": 92,
+        "name": "Tambourine shake",
+        "rms": 0.005083749167829983,
+        "peak": 0.11448932439088821
+      },
+      {
+        "note": 93,
+        "name": "Tambourine damped",
+        "rms": 0.0021583492789167165,
+        "peak": 0.07497698813676834
+      }
+    ],
+    "velocity_rms": {
+      "36": [
+        0.004277157647831234,
+        0.010691134668336917,
+        0.01697435165359223
+      ],
+      "42": [
+        0.0010377100141903289,
+        0.002539630176826225,
+        0.004265279786066034
+      ],
+      "60": [
+        0.002349878875319811,
+        0.005874741524705161,
+        0.009327218953312826
+      ],
+      "64": [
+        0.004303078586846197,
+        0.010756701687243216,
+        0.01707662513638635
+      ],
+      "84": [
+        0.0003942487009939835,
+        0.0012570999415065856,
+        0.0016198797001807214
+      ],
+      "85": [
+        0.0005641155451342876,
+        0.0020294296552465256,
+        0.003811360406120214
+      ],
+      "86": [
+        0.0008933367864714526,
+        0.0027366528227669514,
+        0.005203591481743341
+      ],
+      "87": [
+        0.0011835075595683802,
+        0.0029325006244870187,
+        0.005044600175451928
+      ],
+      "91": [
+        0.00124448137024002,
+        0.0030266805178424247,
+        0.0049054325739687
+      ]
+    },
+    "controller_checks": {
+      "world_tuning": {
+        "min_difference_rms": 0.007477824903993449,
+        "max_difference_rms": 0.007505951443711401
+      },
+      "world_decay": {
+        "min_difference_rms": 0.0028381669143457237,
+        "max_difference_rms": 0.003354960536388938
+      },
+      "world_brightness": {
+        "min_difference_rms": 0.0008430243186565438,
+        "max_difference_rms": 0.0009769375589337007
+      },
+      "world_tabla_tuning": {
+        "min_difference_rms": 0.005740002415652834,
+        "max_difference_rms": 0.005611042566503903
+      }
+    },
+    "short_trigger_tail_preserved": true,
+    "decay_energy_centroid_seconds": [
+      0.025350106300955914,
+      0.04336401494099961,
+      0.07025992640842384
+    ],
+    "status": "passed",
+    "listening": "Not performed; numerical and visual inspection only."
+  },
+  "frontend_build": "passed",
+  "docker_frontend_build": "passed",
+  "spectrogram_inspection": {
+    "status": "passed",
+    "views": [
+      "Mel",
+      "log-frequency STFT"
+    ],
+    "settings": {
+      "sr": 48000,
+      "n_fft": 4096,
+      "hop_length": 256,
+      "n_mels": 128,
+      "fmin": 20,
+      "fmax": 20000,
+      "vmin": -100,
+      "vmax": 0
+    },
+    "inspected": [
+      "all_strokes",
+      "compare_world_tuning",
+      "compare_world_decay",
+      "compare_world_brightness",
+      "compare_world_tabla_tuning",
+      "World_Drumkit_demo"
+    ],
+    "observations": [
+      "Matched left/right output for intentional centre pan.",
+      "Distinct low drums, harmonic tabla, inharmonic bells, and broadband shaker/scraper attacks.",
+      "Pitch movement follows kit and tabla tuning; bayan preset bend is visible.",
+      "Decay comparisons show progressively longer tails; brightness changes the noise band and overtone balance.",
+      "No unexpected persistent tones or abruptly cut tails visible."
+    ],
+    "artifact_directory": "/Users/thuber/.codex/visualizations/2026/09/26/01a0dd2f-91ae-7b10-a6fb-d7bc84f0c537/World_Drumkit"
+  },
+  "listening": "not performed"
+}

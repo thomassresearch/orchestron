@@ -1,0 +1,22 @@
+{
+  "name": "Lake Bamboo Flute",
+  "description": "Breath-first bamboo flute with velocity-driven blowing pressure. Air starts immediately, then the bore tone builds. Soft/medium notes settle on the played pitch; firm attacks briefly overblow and fall back; hard blows sustain the octave while held. The octave mode suppresses fundamental/odd partials and excites its own harmonic series. A pressure-peak/settling model approximates flute behavior; not a full fluid/waveguide simulation. Best E3\u2013E5, playable to D6. Five compatible controls and dry Stereo Output.",
+  "family": "simple_osc",
+  "envelope": {
+    "attack": 0.075,
+    "decay": 0.32,
+    "sustain": 0.88,
+    "release": 0.22
+  },
+  "layers": [
+    {
+      "id": "seed",
+      "opcode": "oscili",
+      "gain": 0.4,
+      "table": -1
+    }
+  ],
+  "output": {
+    "pan": 0.5
+  }
+}

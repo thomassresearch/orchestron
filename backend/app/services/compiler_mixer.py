@@ -29,6 +29,7 @@ from backend.app.services.compiler_graph import compile_graph_context, resolve_s
 from backend.app.services.performance_controller_service import controller_bindings
 from backend.app.services.orc_metadata import format_csd_comment_value, instrument_metadata_comments
 from backend.app.services.internal_master import MASTER, internal_master_target
+from backend.app.services.compiler_legato import LEGATO_OPCODES, collector_lines, has_legato, panic_listener_lines
 
 
 OUTPUT = "$output"
@@ -480,6 +481,14 @@ def compile_mixer_bundle(
     validate_target_channels(targets)
     resolved = ResolvedMixerGraph(targets, graph)
     manifest = resolved.manifest()
+    legato_ids = [identity for identity, target in resolved.by_id.items() if has_legato(target.patch)]
+    listener_count = int(bool(legato_ids) and performance_input_mode != "score")
+    legato_refs = {identity: str(index) for index, identity in enumerate(legato_ids, 1 + listener_count)}
+    if legato_refs:
+        manifest["instrumentReferences"] = {identity: str(int(ref) + len(legato_refs) + listener_count)
+                                            for identity, ref in manifest["instrumentReferences"].items()}
+        manifest["noteInstrumentReferences"] = {**manifest["instrumentReferences"], **legato_refs}
+        manifest["legatoInstanceIds"] = list(legato_refs)
     if set(mixer.strips) - set(manifest["instanceIds"]) or set(mixer.sends) - set(manifest["routeIds"]):
         raise CompilationError(["Mixer controls reference an unknown instance or route."])
     controls = mixer_control_values(manifest, mixer)
@@ -497,13 +506,19 @@ def compile_mixer_bundle(
         "; Mixer routing: patch, strip and route instruments execute in signal-flow order.",
     ]
     header += [f"chnset {value:.17g}, {quote(name)}" for name, value in controls.items()]
+    if legato_refs:
+        header.append(LEGATO_OPCODES)
+        for identity, ref in legato_refs.items():
+            header += collector_lines(identity, int(ref), performance_input_mode)
+        if listener_count:
+            header += panic_listener_lines([(identity, resolved.by_id[identity].midi_channel) for identity in legato_ids])
     if performance_input_mode == "score":
         header += emitter.score_controller_header_lines()
     else:
         header += [
             "massign 0, 0",
             *[
-                f"massign {t.midi_channel}, {manifest['instrumentReferences'][t.assignment_id]}"
+                f"massign {t.midi_channel}, {manifest.get('noteInstrumentReferences', manifest['instrumentReferences'])[t.assignment_id]}"
                 for t in targets
                 if not t.always_on and t.midi_channel > 0
             ],
@@ -551,6 +566,7 @@ def compile_mixer_bundle(
                 score_midi_channel=target.midi_channel,
                 direct_output_ports=resolved.direct_ports[identity],
                 performance_controllers=controller_bindings(target, identity),
+                legato_identity=identity if identity in legato_refs else None,
             )
             bodies[stage] = compiled.instrument_lines
             header += compiled.global_header_lines
@@ -630,7 +646,7 @@ def compile_mixer_bundle(
     header += emitter.render_sfload_global_requests(sfloads)
     header.append("; Continuous patches and mixer stages start with alwayson; note instruments start from MIDI/score events.")
     for stage in resolved.order:
-        if not stage.startswith("patch:") or resolved.by_id[stage[6:]].always_on:
+        if not stage.startswith("patch:") or resolved.by_id[stage[6:]].always_on or stage[6:] in legato_refs:
             header.append(f"alwayson {quote(names[stage])}")
     routes_by_id = {route.id: route for route in resolved.routes}
     for stage in resolved.order:

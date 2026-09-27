@@ -860,3 +860,31 @@ Compile, Start, Stop, and Delete serialize through each session's lifecycle lock
 Drummer cells persist `ratchets` (integer 1–8, default 1) and nullable `ratchetEndVelocity` (0–127, default null). The shared session step API uses strict `ratchets` and `ratchet_end_velocity`; frontend and standalone CLI conversion preserve both. Missing fields retain single-hit playback. App state remains v3 and native envelopes v1; the meter migration still runs only below performance v17 / app state v3.
 
 Preparation caches rational, absolute strike offsets and linearly interpolated velocities. A started roll snapshots its strikes, pitch and timing; later count/ramp/timing edits apply to its next occurrence. Zero-velocity strikes release their predecessor without emitting a note-on. Owned releases precede retriggers; later logical cells cancel unfinished rolls. Fresh/different-pad launches clamp the first roll as a group, while confirmed same-pad repeats permit anticipation and late tails. Stops, seeks, different pads, arrangement rests, removals and finite ends clear pending rolls. The existing source contexts retain lane mute/solo ownership and independent-device behavior. MIDI and SCORE capture use the same scheduler; export estimates include repeated strikes and downstream arpeggiator activity.
+
+### Opt-in monophonic phrases
+
+`compiler_legato.py` lowers a root-level `midi_legato` into per-assignment note
+collectors and a persistent synthesis instrument. Collectors have lower instrument
+numbers than every audio stage and nominate the newest held serial each control
+period. The synthesis prelude consumes the complete boundary, then clears the
+nomination. No nomination means release; a later nomination begins a new phrase.
+This avoids grace windows and stale gates after collector removal. A shared raw
+MIDI observer handles CC120 (which Csound 6 does not release natively), preserving
+note-on order even at a panic boundary. CC123 uses native MIDI release.
+
+`madsr` uses the generated phrase ADSR; `cpsmidi`, `ampmidi`, `notnum` and
+`midi_note` read phrase-initial values. Reinitialization runs only for a new phrase,
+including I-rate performance controllers and initialization contours. Live pitch
+is immediate and velocity uses `portk` with 10 ms half-time. Output declicks run
+outside reinitialization and are all computed before any audio outlet consumes a
+buffer. A release interrupted by a new phrase blends from the last output sample
+for 2 ms. Native release/turnoff constructs other than `madsr` are rejected.
+
+The compiler manifest distinguishes `instrumentReferences` (audio stages) from
+`noteInstrumentReferences` (MIDI/score collectors); `legatoInstanceIds` selects
+phrase targets. Helpers never occupy rack slots or inherit synthesis `maxalloc`.
+SCORE export passes captured event sequence in p6 and channel in p7 so Csound's
+sorting of equal-time events cannot change last-note priority. Ordinary patches
+retain their original compilation path. Runtime source cancellation balances
+previously deferred shared-pitch note-offs when the last source releases, so no
+collector remains stranded. No phrase state enters saved performance data.

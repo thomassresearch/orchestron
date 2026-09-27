@@ -15,7 +15,7 @@ def test_preview_transition_discards_pending_lane_events_without_cutting_shared_
     scheduler.release_sources({"lane:lead"}, sample=10)
     assert scheduler.drain_block(block_start_sample=10, block_end_sample=50) == []
     remaining = scheduler.drain_block(block_start_sample=50, block_end_sample=51)
-    assert [(event.source, list(event.message)) for event in remaining] == [("lane:other", [0x80, 60, 0])]
+    assert [(event.source, list(event.message)) for event in remaining] == [("lane:other", [0x80, 60, 0])] * 2
 
 
 def test_engine_midi_scheduler_drains_events_in_block_order() -> None:

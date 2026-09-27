@@ -1,0 +1,188 @@
+{
+  "passed": true,
+  "spectrograms_inspected": true,
+  "patch_sha256": "e13978f8806794543a087408064c37d97ae171d907db180ec561bd3d39307868",
+  "auditions": [
+    {
+      "name": "default",
+      "peak_dbfs": -15.695129450531795,
+      "tail_dbfs": -240.0,
+      "settings": {}
+    },
+    {
+      "name": "flute_attack_min",
+      "peak_dbfs": -16.091054148400396,
+      "tail_dbfs": -240.0,
+      "settings": {
+        "flute_attack": 0.015
+      }
+    },
+    {
+      "name": "flute_attack_max",
+      "peak_dbfs": -15.599217964848231,
+      "tail_dbfs": -240.0,
+      "settings": {
+        "flute_attack": 0.18
+      }
+    },
+    {
+      "name": "flute_release_min",
+      "peak_dbfs": -15.087083491785675,
+      "tail_dbfs": -240.0,
+      "settings": {
+        "flute_release": 0.08
+      }
+    },
+    {
+      "name": "flute_release_max",
+      "peak_dbfs": -13.491718714545138,
+      "tail_dbfs": -240.0,
+      "settings": {
+        "flute_release": 1.2
+      }
+    },
+    {
+      "name": "flute_breath_min",
+      "peak_dbfs": -16.400206600979338,
+      "tail_dbfs": -240.0,
+      "settings": {
+        "flute_breath": 0
+      }
+    },
+    {
+      "name": "flute_breath_max",
+      "peak_dbfs": -15.07846127168741,
+      "tail_dbfs": -240.0,
+      "settings": {
+        "flute_breath": 1
+      }
+    },
+    {
+      "name": "flute_tone_min",
+      "peak_dbfs": -17.22271765752816,
+      "tail_dbfs": -240.0,
+      "settings": {
+        "flute_tone": 1000
+      }
+    },
+    {
+      "name": "flute_tone_max",
+      "peak_dbfs": -15.6175521937668,
+      "tail_dbfs": -240.0,
+      "settings": {
+        "flute_tone": 7500
+      }
+    },
+    {
+      "name": "flute_vibrato_min",
+      "peak_dbfs": -15.695129450531795,
+      "tail_dbfs": -240.0,
+      "settings": {
+        "flute_vibrato": 0
+      }
+    },
+    {
+      "name": "flute_vibrato_max",
+      "peak_dbfs": -15.695129450531795,
+      "tail_dbfs": -240.0,
+      "settings": {
+        "flute_vibrato": 15
+      }
+    },
+    {
+      "name": "velocity",
+      "peak_dbfs": -13.23569501632793,
+      "tail_dbfs": -240.0,
+      "settings": {}
+    },
+    {
+      "name": "retrigger_chord",
+      "peak_dbfs": -4.129576218263836,
+      "tail_dbfs": -240.0,
+      "settings": {}
+    },
+    {
+      "name": "reference_phrase",
+      "peak_dbfs": -15.39455182630121,
+      "tail_dbfs": -240.0,
+      "settings": {}
+    },
+    {
+      "name": "original_phrase",
+      "peak_dbfs": -13.593086757529633,
+      "tail_dbfs": -240.0,
+      "settings": {}
+    }
+  ],
+  "velocity_rms_dbfs": [
+    -36.457035318401054,
+    -30.362462725184546,
+    -26.172917886086694,
+    -20.716673298723126
+  ],
+  "controller_responses": {
+    "attack": {
+      "min": -29.196684094657158,
+      "max": -40.18178618589519
+    },
+    "release": {
+      "min": -240.0,
+      "max": -28.907681467557076
+    },
+    "breath": {
+      "min": -36.835389520071246,
+      "max": -20.340726452223088
+    },
+    "tone": {
+      "min": -34.06957613540123,
+      "max": -24.332382865911413
+    },
+    "vibrato": {
+      "min": 1.599365278341405,
+      "max": 9.368815797880032
+    }
+  },
+  "controller_units": {
+    "attack": "early RMS dBFS",
+    "release": "late RMS dBFS",
+    "breath": "interharmonic power dB relative to total below 7 kHz",
+    "tone": "interharmonic power dB relative to total below 7 kHz",
+    "vibrato": "sustained pitch standard deviation in cents"
+  },
+  "matched_phrase_comparison": {
+    "original_phrase": {
+      "partials_db": [
+        0.0,
+        -16.794198743525,
+        -25.524890922294418,
+        -34.21947535548731,
+        -52.455797573731,
+        -53.28699709348083,
+        -54.89755114697929
+      ],
+      "interharmonic_db": -35.76461994402726
+    },
+    "reference_phrase": {
+      "partials_db": [
+        0.0,
+        -4.185811396631249,
+        -3.999865976688045,
+        -24.04685761823691,
+        -25.930473177793605,
+        -28.586530391874646,
+        -33.31696954773727
+      ],
+      "interharmonic_db": -23.566063237140934
+    }
+  },
+  "images": [
+    "/Users/thuber/Projekte/VisualCSound/examples/instruments/lake_bamboo_flute/validation/Flute_validation.mel.png",
+    "/Users/thuber/Projekte/VisualCSound/examples/instruments/lake_bamboo_flute/validation/Flute_validation.stft.png",
+    "/Users/thuber/Projekte/VisualCSound/examples/instruments/lake_bamboo_flute/validation/original_phrase.mel.png",
+    "/Users/thuber/Projekte/VisualCSound/examples/instruments/lake_bamboo_flute/validation/original_phrase.stft.png",
+    "/Users/thuber/Projekte/VisualCSound/examples/instruments/lake_bamboo_flute/validation/reference_phrase.mel.png",
+    "/Users/thuber/Projekte/VisualCSound/examples/instruments/lake_bamboo_flute/validation/reference_phrase.stft.png"
+  ],
+  "listening": "Not performed; numerical and visual verification only.",
+  "visual_notes": "Opened both complete-suite Mel and log-STFT images plus paired original/revised phrase plots and both reference plots. Both output channels present; revised H2/H3 and broadband breath visibly stronger, pitch movement on sustained notes, no persistent tone after note release. Max release and repeated/chord cases decay fully. Low-frequency room hum in the source is intentionally absent."
+}

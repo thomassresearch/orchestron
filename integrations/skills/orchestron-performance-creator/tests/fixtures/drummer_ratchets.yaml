@@ -1,0 +1,33 @@
+version: 1
+title: Ratchet variations
+tempo: 120
+tracks:
+  - type: drummer
+    channel: 10
+    pad: 2
+    step_ratchets:
+      - key: 38
+        at_step: 4
+        ratchets: 4
+        ratchet_end_velocity: 40
+    pads:
+      - pad: 2
+        groove: backbeat
+        step_timing:
+          - key: 38
+            at_step: 4
+            timing_offset_percent: -20
+      - pad: 3
+        groove: backbeat
+        step_ratchets:
+          - key: 38
+            at_step: 4
+            ratchets: 8
+            ratchet_end_velocity: 0
+          - key: 38
+            at_step: 5
+            ratchets: 3
+          - key: 36
+            at_step: 0
+            ratchets: 2
+            ratchet_end_velocity: null

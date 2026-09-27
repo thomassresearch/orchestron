@@ -133,6 +133,8 @@ tracks:
     pad_loop: [1, 2, P2, 2]
 ```
 
+Drummer tracks and pads also accept `step_ratchets` entries with `key`, `at_step`, `ratchets` (1–8) and optional `ratchet_end_velocity` (0–127 or null). These settings apply to generated cells without changing their activation or initial velocity. See [drummer ratchets](step_ratchets.md) for full score examples, pad targeting, strict validation and velocity ramps.
+
 Controller curve presets:
 
 ```text

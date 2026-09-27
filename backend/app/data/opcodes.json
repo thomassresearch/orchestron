@@ -5321,6 +5321,34 @@
     "icon_filename": "midi_note.svg"
   },
   {
+    "name": "midi_legato",
+    "category": "midi",
+    "description": "Monophonic last-note-priority phrases with immediate pitch and smoothed velocity.",
+    "documentation_markdown": "### `midi_legato`\n\nOrchestron virtual opcode, once in the main graph of a MIDI instrument. Touching and overlapping notes share one synthesis voice. Pitch changes immediately; velocity (MIDI velocity / 128) follows with a 10 ms half-time. Releasing the newest note returns to the most recently held note. A gap starts a new phrase, even during a release tail. The existing control period defines the boundary; no grace time is added. `cpsmidi`, `ampmidi` and performance controllers provide phrase-initial values. `madsr` follows the phrase gate; initialization contours restart only on a new phrase. Other native release/turnoff opcodes are unsupported. `maxalloc` limits synthesis, never note collectors. Live, sequencer and both CSD exports use the same generated logic.\n\n[Csound release implementation reference](https://csound.com/docs/manual/release.html)",
+    "documentation_url": "https://csound.com/docs/manual/release.html",
+    "inputs": [],
+    "outputs": [
+      {
+        "id": "kfreq",
+        "name": "Frequency (Hz)",
+        "signal_type": "k"
+      },
+      {
+        "id": "kvelocity",
+        "name": "Velocity",
+        "signal_type": "k"
+      }
+    ],
+    "template": "{kfreq}, {kvelocity} midi_legato",
+    "tags": [
+      "midi",
+      "monophonic",
+      "legato",
+      "virtual"
+    ],
+    "icon_filename": "midi_note.svg"
+  },
+  {
     "name": "midictrl",
     "category": "midi",
     "description": "Read a MIDI controller value with optional scaling.",

@@ -1,0 +1,2964 @@
+{
+  "sourcePatchId": "e7dae45d-3aca-4f67-bc7d-fef3ac29e4b7",
+  "name": "Lake Bamboo Flute",
+  "description": "Breath-first bamboo flute with velocity-driven blowing pressure. Air starts immediately, then the bore tone builds. Soft/medium notes settle on the played pitch; firm attacks briefly overblow and fall back; hard blows favor the octave while held. Ground and octave families overlap and exchange strength irregularly near the register boundary, then stabilize away from it. Unequal resonance memory preserves the lower tone through transitions. A recording-informed modal-envelope approximation, not a full air-jet simulation. Best E3\u2013E5, playable to D6. Five compatible controls and dry Stereo Output. Gapless monophonic legato: connected notes preserve the breath, bore and vibrato; pitch changes immediately and velocity follows with a 10 ms half-time. Gaps articulate a new phrase.",
+  "isTemplate": false,
+  "alwaysOn": false,
+  "instrumentType": "melody",
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "pitch_cpsmidi",
+        "opcode": "cpsmidi",
+        "params": {},
+        "position": {
+          "x": 169.07187571485454,
+          "y": -12.618743800467826
+        }
+      },
+      {
+        "id": "velocity_scale_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 1
+        },
+        "position": {
+          "x": -6.243290189748784,
+          "y": 140.710762066008
+        }
+      },
+      {
+        "id": "velocity_ampmidi",
+        "opcode": "ampmidi",
+        "params": {},
+        "position": {
+          "x": 250.0,
+          "y": 150.0
+        }
+      },
+      {
+        "id": "env_attack_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.075
+        },
+        "position": {
+          "x": -355.95163332294374,
+          "y": 473.85560034724745
+        }
+      },
+      {
+        "id": "env_decay_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.32
+        },
+        "position": {
+          "x": -45.097593117843715,
+          "y": 295.0932278941243
+        }
+      },
+      {
+        "id": "env_sustain_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.88
+        },
+        "position": {
+          "x": -73.08419973720524,
+          "y": 435.1493084644148
+        }
+      },
+      {
+        "id": "env_release_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.22
+        },
+        "position": {
+          "x": -361.50318215935454,
+          "y": 335.49487219844946
+        }
+      },
+      {
+        "id": "amp_madsr",
+        "opcode": "madsr",
+        "params": {},
+        "position": {
+          "x": 292.8561261175924,
+          "y": 339.8103711233735
+        }
+      },
+      {
+        "id": "amp_velocity_envelope",
+        "opcode": "k_mul",
+        "params": {},
+        "position": {
+          "x": 521.7667023660022,
+          "y": 192.9851164501847
+        }
+      },
+      {
+        "id": "flute_attack",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Attack (s)",
+          "min": 0.015,
+          "max": 0.18,
+          "default": 0.075,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": -320.0,
+          "y": 600.0
+        }
+      },
+      {
+        "id": "flute_release",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Release (s)",
+          "min": 0.08,
+          "max": 1.2,
+          "default": 0.22,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": -320.0,
+          "y": 860.0
+        }
+      },
+      {
+        "id": "flute_breath",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Breath",
+          "min": 0,
+          "max": 1,
+          "default": 0.55,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -320.0,
+          "y": 1120.0
+        }
+      },
+      {
+        "id": "flute_tone",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Tone (Hz)",
+          "min": 1000,
+          "max": 7500,
+          "default": 4800,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": -320.0,
+          "y": 1380.0
+        }
+      },
+      {
+        "id": "flute_vibrato",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Vibrato (cents)",
+          "min": 0,
+          "max": 15,
+          "default": 9,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -320.0,
+          "y": 1640.0
+        }
+      },
+      {
+        "id": "breath_env",
+        "opcode": "madsr",
+        "params": {
+          "iatt": 0.004,
+          "idec": 0.06,
+          "islev": 1,
+          "idel": 0
+        },
+        "position": {
+          "x": 50.0,
+          "y": 2260.0
+        }
+      },
+      {
+        "id": "blowing_pressure",
+        "opcode": "linseg",
+        "params": {
+          "ia": 0,
+          "idur2": 0.12,
+          "idur3": 0.4,
+          "ib": 1,
+          "ic": 1,
+          "id": 1
+        },
+        "position": {
+          "x": 373.9125133065076,
+          "y": 2265.977399555502
+        }
+      },
+      {
+        "id": "register_threshold",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 650.0,
+          "y": 2260.0
+        }
+      },
+      {
+        "id": "register_balance",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 850.0,
+          "y": 2520.0
+        }
+      },
+      {
+        "id": "competition_rate",
+        "opcode": "jitter",
+        "params": {
+          "kamp": 2.4,
+          "kcpsmin": 2.3,
+          "kcpsmax": 5.7
+        },
+        "position": {
+          "x": 50.0,
+          "y": 2580.0
+        }
+      },
+      {
+        "id": "competition_pulse",
+        "opcode": "lfo",
+        "params": {
+          "kamp": 1,
+          "itype": 0
+        },
+        "position": {
+          "x": 360.0,
+          "y": 2580.0
+        }
+      },
+      {
+        "id": "competition_scatter",
+        "opcode": "randomi",
+        "params": {
+          "kmin": -1,
+          "kmax": 1,
+          "kcps": 17.3,
+          "imode": 3
+        },
+        "position": {
+          "x": 50.0,
+          "y": 2880.0
+        }
+      },
+      {
+        "id": "attack_instability",
+        "opcode": "linseg",
+        "params": {
+          "ia": 1,
+          "idur1": 0.16,
+          "ib": 1,
+          "idur2": 0.65,
+          "ic": 0,
+          "idur3": 3600,
+          "id": 0
+        },
+        "position": {
+          "x": 360.0,
+          "y": 2880.0
+        }
+      },
+      {
+        "id": "competing_modes",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 650.0,
+          "y": 2820.0
+        }
+      },
+      {
+        "id": "octave_mode",
+        "opcode": "portk",
+        "params": {
+          "khtim": 0.006,
+          "isig": 0
+        },
+        "position": {
+          "x": 850.0,
+          "y": 2820.0
+        }
+      },
+      {
+        "id": "ground_resonance",
+        "opcode": "portk",
+        "params": {
+          "khtim": 0.022,
+          "isig": 1
+        },
+        "position": {
+          "x": 1140.0,
+          "y": 2637.001209628584
+        }
+      },
+      {
+        "id": "upper_resonance",
+        "opcode": "portk",
+        "params": {
+          "khtim": 0.009,
+          "isig": 0
+        },
+        "position": {
+          "x": 1140.0,
+          "y": 2880.0
+        }
+      },
+      {
+        "id": "vibrato_delay",
+        "opcode": "linseg",
+        "params": {
+          "ia": 0,
+          "idur1": 0.32,
+          "ib": 0,
+          "idur2": 0.85,
+          "ic": 1,
+          "idur3": 3600,
+          "id": 1
+        },
+        "position": {
+          "x": 39.493214347208664,
+          "y": 616.1658128233177
+        }
+      },
+      {
+        "id": "vibrato_rate",
+        "opcode": "jitter",
+        "params": {
+          "kamp": 0.55,
+          "kcpsmin": 0.45,
+          "kcpsmax": 1.3
+        },
+        "position": {
+          "x": 50.0,
+          "y": 960.0
+        }
+      },
+      {
+        "id": "vibrato_depth",
+        "opcode": "randomi",
+        "params": {
+          "kmin": 0.65,
+          "kmax": 1.2,
+          "kcps": 1.7,
+          "imode": 3
+        },
+        "position": {
+          "x": 50.0,
+          "y": 1220.0
+        }
+      },
+      {
+        "id": "vibrato",
+        "opcode": "lfo",
+        "params": {
+          "itype": 0
+        },
+        "position": {
+          "x": 360.0,
+          "y": 700.0
+        }
+      },
+      {
+        "id": "pitch_drift",
+        "opcode": "randomi",
+        "params": {
+          "kmin": -0.0026,
+          "kmax": 0.0026,
+          "kcps": 1.8,
+          "imode": 3
+        },
+        "position": {
+          "x": 43.30438576922448,
+          "y": 1497.1097270222413
+        }
+      },
+      {
+        "id": "jet_flutter",
+        "opcode": "randomi",
+        "params": {
+          "kmin": -0.00065,
+          "kmax": 0.00065,
+          "kcps": 17,
+          "imode": 3
+        },
+        "position": {
+          "x": -13.156554993405031,
+          "y": 1901.4940449675457
+        }
+      },
+      {
+        "id": "pitch_scoop",
+        "opcode": "linseg",
+        "params": {
+          "ia": -1,
+          "ib": 0.08,
+          "idur2": 0.12,
+          "ic": 0,
+          "idur3": 3600,
+          "id": 0
+        },
+        "position": {
+          "x": 360.0,
+          "y": 960.0
+        }
+      },
+      {
+        "id": "pressure",
+        "opcode": "randomi",
+        "params": {
+          "kmin": -0.09,
+          "kmax": 0.09,
+          "kcps": 3.2,
+          "imode": 3
+        },
+        "position": {
+          "x": 363.6026574840332,
+          "y": 1323.6430112850321
+        }
+      },
+      {
+        "id": "colour_wander",
+        "opcode": "randomi",
+        "params": {
+          "kmin": -0.22,
+          "kmax": 0.22,
+          "kcps": 2.1,
+          "imode": 3
+        },
+        "position": {
+          "x": 371.7578692806871,
+          "y": 1614.8042609057693
+        }
+      },
+      {
+        "id": "harmonic_bloom",
+        "opcode": "linseg",
+        "params": {
+          "ia": 0.75,
+          "idur1": 0.18,
+          "ib": 1.03,
+          "idur2": 0.6,
+          "ic": 0.92,
+          "idur3": 3600,
+          "id": 0.92
+        },
+        "position": {
+          "x": 374.73498495077246,
+          "y": 1899.5363307720422
+        }
+      },
+      {
+        "id": "bore_1",
+        "opcode": "oscil3",
+        "params": {
+          "ifn": -1,
+          "iphs": 0
+        },
+        "position": {
+          "x": 850.0,
+          "y": 50.0
+        }
+      },
+      {
+        "id": "bore_2",
+        "opcode": "oscil3",
+        "params": {
+          "ifn": -1,
+          "iphs": 0
+        },
+        "position": {
+          "x": 850.0,
+          "y": 300.0
+        }
+      },
+      {
+        "id": "bore_3",
+        "opcode": "oscil3",
+        "params": {
+          "ifn": -1,
+          "iphs": 0
+        },
+        "position": {
+          "x": 850.0,
+          "y": 550.0
+        }
+      },
+      {
+        "id": "bore_4",
+        "opcode": "oscil3",
+        "params": {
+          "ifn": -1,
+          "iphs": 0
+        },
+        "position": {
+          "x": 850.0,
+          "y": 800.0
+        }
+      },
+      {
+        "id": "bore_5",
+        "opcode": "oscil3",
+        "params": {
+          "ifn": -1,
+          "iphs": 0
+        },
+        "position": {
+          "x": 850.0,
+          "y": 1050.0
+        }
+      },
+      {
+        "id": "bore_6",
+        "opcode": "oscil3",
+        "params": {
+          "ifn": -1,
+          "iphs": 0
+        },
+        "position": {
+          "x": 850.0,
+          "y": 1300.0
+        }
+      },
+      {
+        "id": "bore_7",
+        "opcode": "oscil3",
+        "params": {
+          "ifn": -1,
+          "iphs": 0
+        },
+        "position": {
+          "x": 850.0,
+          "y": 1550.0
+        }
+      },
+      {
+        "id": "bore_8",
+        "opcode": "oscil3",
+        "params": {
+          "ifn": -1,
+          "iphs": 0
+        },
+        "position": {
+          "x": 850.0,
+          "y": 1800.0
+        }
+      },
+      {
+        "id": "bore_10",
+        "opcode": "oscil3",
+        "params": {
+          "ifn": -1,
+          "iphs": 0
+        },
+        "position": {
+          "x": 850.0,
+          "y": 2300.0
+        }
+      },
+      {
+        "id": "bore_12",
+        "opcode": "oscil3",
+        "params": {
+          "ifn": -1,
+          "iphs": 0
+        },
+        "position": {
+          "x": 850.0,
+          "y": 2800.0
+        }
+      },
+      {
+        "id": "breath_noise",
+        "opcode": "noise",
+        "params": {
+          "beta": 0.12
+        },
+        "position": {
+          "x": 829.7162491277431,
+          "y": 2057.633907890876
+        }
+      },
+      {
+        "id": "breath_band",
+        "opcode": "butterbp",
+        "params": {
+          "xfreq": 2600,
+          "xband": 3600
+        },
+        "position": {
+          "x": 1314.811668542526,
+          "y": 1766.5991620066125
+        }
+      },
+      {
+        "id": "bore_air",
+        "opcode": "butterbp",
+        "params": {},
+        "position": {
+          "x": 1432.3554163438446,
+          "y": 2120.0770822359973
+        }
+      },
+      {
+        "id": "bore_capture",
+        "opcode": "k_to_a",
+        "params": {},
+        "position": {
+          "x": 1112.549585376617,
+          "y": 2429.5113686944956
+        }
+      },
+      {
+        "id": "warmth",
+        "opcode": "butterlp",
+        "params": {},
+        "position": {
+          "x": 1684.4970112393803,
+          "y": 609.8210825238489
+        }
+      },
+      {
+        "id": "output_pan2",
+        "opcode": "pan2",
+        "params": {
+          "xp": 0.5,
+          "imode": 0
+        },
+        "position": {
+          "x": 1657.6115035222058,
+          "y": 258.9280193256896
+        }
+      },
+      {
+        "id": "e6dcfbd9-11c0-47e7-8f30-890a8ce6ebdb",
+        "opcode": "maxalloc",
+        "params": {
+          "icount": 8
+        },
+        "position": {
+          "x": -275.9666597117109,
+          "y": 203.0356774683877
+        }
+      },
+      {
+        "id": "20e4df9d-7061-49a7-8b6b-f6c9f5c50c2d",
+        "opcode": "const_i",
+        "params": {
+          "value": "1"
+        },
+        "position": {
+          "x": -748.5514778552244,
+          "y": 316.1393010299725
+        }
+      },
+      {
+        "id": "midi_legato_live",
+        "opcode": "midi_legato",
+        "params": {},
+        "position": {
+          "x": 2350.0,
+          "y": 900.0
+        }
+      },
+      {
+        "id": "pressure_overshoot",
+        "opcode": "linseg",
+        "params": {
+          "ia": 0,
+          "ib": 1,
+          "idur2": 0.12,
+          "ic": 1,
+          "idur3": 0.4,
+          "id": 0
+        },
+        "position": {
+          "x": 2350.0,
+          "y": 1250.0
+        }
+      },
+      {
+        "id": "live_blowing_pressure",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 2690.0,
+          "y": 1250.0
+        }
+      },
+      {
+        "id": "output_left",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 1950.4315691674947,
+          "y": 220.8518486844414
+        }
+      },
+      {
+        "id": "output_right",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 1950.4315691674947,
+          "y": 400.85184868444105
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "velocity_scale_const",
+        "from_port_id": "iout",
+        "to_node_id": "velocity_ampmidi",
+        "to_port_id": "iscal"
+      },
+      {
+        "from_node_id": "env_decay_const",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "idec"
+      },
+      {
+        "from_node_id": "env_sustain_const",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "islev"
+      },
+      {
+        "from_node_id": "midi_legato_live",
+        "from_port_id": "kvelocity",
+        "to_node_id": "amp_velocity_envelope",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "amp_madsr",
+        "from_port_id": "kenv",
+        "to_node_id": "amp_velocity_envelope",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "output_pan2",
+        "from_port_id": "aleft",
+        "to_node_id": "output_left",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "output_pan2",
+        "from_port_id": "aright",
+        "to_node_id": "output_right",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "flute_attack",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "iatt"
+      },
+      {
+        "from_node_id": "flute_release",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "irel"
+      },
+      {
+        "from_node_id": "flute_attack",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "idel"
+      },
+      {
+        "from_node_id": "velocity_ampmidi",
+        "from_port_id": "iamp",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "idel"
+      },
+      {
+        "from_node_id": "flute_release",
+        "from_port_id": "iout",
+        "to_node_id": "breath_env",
+        "to_port_id": "irel"
+      },
+      {
+        "from_node_id": "flute_release",
+        "from_port_id": "iout",
+        "to_node_id": "breath_env",
+        "to_port_id": "ireltim"
+      },
+      {
+        "from_node_id": "flute_attack",
+        "from_port_id": "iout",
+        "to_node_id": "blowing_pressure",
+        "to_port_id": "idur1"
+      },
+      {
+        "from_node_id": "live_blowing_pressure",
+        "from_port_id": "kout",
+        "to_node_id": "register_threshold",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "breath_env",
+        "from_port_id": "kenv",
+        "to_node_id": "register_threshold",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "register_threshold",
+        "from_port_id": "kout",
+        "to_node_id": "register_balance",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "competition_rate",
+        "from_port_id": "kout",
+        "to_node_id": "competition_pulse",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "register_balance",
+        "from_port_id": "kout",
+        "to_node_id": "competing_modes",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "attack_instability",
+        "from_port_id": "kenv",
+        "to_node_id": "competing_modes",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "midi_legato_live",
+        "from_port_id": "kvelocity",
+        "to_node_id": "competing_modes",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "competition_pulse",
+        "from_port_id": "kout",
+        "to_node_id": "competing_modes",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "competition_scatter",
+        "from_port_id": "kout",
+        "to_node_id": "competing_modes",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "competing_modes",
+        "from_port_id": "kout",
+        "to_node_id": "octave_mode",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "octave_mode",
+        "from_port_id": "kout",
+        "to_node_id": "ground_resonance",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "octave_mode",
+        "from_port_id": "kout",
+        "to_node_id": "upper_resonance",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "vibrato_rate",
+        "from_port_id": "kout",
+        "to_node_id": "vibrato",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "flute_vibrato",
+        "from_port_id": "iout",
+        "to_node_id": "vibrato",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "vibrato_delay",
+        "from_port_id": "kenv",
+        "to_node_id": "vibrato",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "vibrato_depth",
+        "from_port_id": "kout",
+        "to_node_id": "vibrato",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "flute_attack",
+        "from_port_id": "iout",
+        "to_node_id": "pitch_scoop",
+        "to_port_id": "idur1"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "bore_1",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "pressure",
+        "from_port_id": "kout",
+        "to_node_id": "bore_1",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "ground_resonance",
+        "from_port_id": "kout",
+        "to_node_id": "bore_1",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "midi_legato_live",
+        "from_port_id": "kfreq",
+        "to_node_id": "bore_1",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "vibrato",
+        "from_port_id": "kout",
+        "to_node_id": "bore_1",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "pitch_drift",
+        "from_port_id": "kout",
+        "to_node_id": "bore_1",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "jet_flutter",
+        "from_port_id": "kout",
+        "to_node_id": "bore_1",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "pitch_scoop",
+        "from_port_id": "kenv",
+        "to_node_id": "bore_1",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "bore_2",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "pressure",
+        "from_port_id": "kout",
+        "to_node_id": "bore_2",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "ground_resonance",
+        "from_port_id": "kout",
+        "to_node_id": "bore_2",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "midi_legato_live",
+        "from_port_id": "kvelocity",
+        "to_node_id": "bore_2",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "harmonic_bloom",
+        "from_port_id": "kenv",
+        "to_node_id": "bore_2",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "colour_wander",
+        "from_port_id": "kout",
+        "to_node_id": "bore_2",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "midi_legato_live",
+        "from_port_id": "kfreq",
+        "to_node_id": "bore_2",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "upper_resonance",
+        "from_port_id": "kout",
+        "to_node_id": "bore_2",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "midi_legato_live",
+        "from_port_id": "kfreq",
+        "to_node_id": "bore_2",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "vibrato",
+        "from_port_id": "kout",
+        "to_node_id": "bore_2",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "pitch_drift",
+        "from_port_id": "kout",
+        "to_node_id": "bore_2",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "jet_flutter",
+        "from_port_id": "kout",
+        "to_node_id": "bore_2",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "pitch_scoop",
+        "from_port_id": "kenv",
+        "to_node_id": "bore_2",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "bore_3",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "pressure",
+        "from_port_id": "kout",
+        "to_node_id": "bore_3",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "ground_resonance",
+        "from_port_id": "kout",
+        "to_node_id": "bore_3",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "midi_legato_live",
+        "from_port_id": "kvelocity",
+        "to_node_id": "bore_3",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "harmonic_bloom",
+        "from_port_id": "kenv",
+        "to_node_id": "bore_3",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "colour_wander",
+        "from_port_id": "kout",
+        "to_node_id": "bore_3",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "midi_legato_live",
+        "from_port_id": "kfreq",
+        "to_node_id": "bore_3",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "midi_legato_live",
+        "from_port_id": "kfreq",
+        "to_node_id": "bore_3",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "vibrato",
+        "from_port_id": "kout",
+        "to_node_id": "bore_3",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "pitch_drift",
+        "from_port_id": "kout",
+        "to_node_id": "bore_3",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "jet_flutter",
+        "from_port_id": "kout",
+        "to_node_id": "bore_3",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "pitch_scoop",
+        "from_port_id": "kenv",
+        "to_node_id": "bore_3",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "bore_4",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "pressure",
+        "from_port_id": "kout",
+        "to_node_id": "bore_4",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "ground_resonance",
+        "from_port_id": "kout",
+        "to_node_id": "bore_4",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "midi_legato_live",
+        "from_port_id": "kvelocity",
+        "to_node_id": "bore_4",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "harmonic_bloom",
+        "from_port_id": "kenv",
+        "to_node_id": "bore_4",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "colour_wander",
+        "from_port_id": "kout",
+        "to_node_id": "bore_4",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "midi_legato_live",
+        "from_port_id": "kfreq",
+        "to_node_id": "bore_4",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "upper_resonance",
+        "from_port_id": "kout",
+        "to_node_id": "bore_4",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "midi_legato_live",
+        "from_port_id": "kfreq",
+        "to_node_id": "bore_4",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "vibrato",
+        "from_port_id": "kout",
+        "to_node_id": "bore_4",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "pitch_drift",
+        "from_port_id": "kout",
+        "to_node_id": "bore_4",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "jet_flutter",
+        "from_port_id": "kout",
+        "to_node_id": "bore_4",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "pitch_scoop",
+        "from_port_id": "kenv",
+        "to_node_id": "bore_4",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "bore_5",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "pressure",
+        "from_port_id": "kout",
+        "to_node_id": "bore_5",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "ground_resonance",
+        "from_port_id": "kout",
+        "to_node_id": "bore_5",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "midi_legato_live",
+        "from_port_id": "kvelocity",
+        "to_node_id": "bore_5",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "harmonic_bloom",
+        "from_port_id": "kenv",
+        "to_node_id": "bore_5",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "colour_wander",
+        "from_port_id": "kout",
+        "to_node_id": "bore_5",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "midi_legato_live",
+        "from_port_id": "kfreq",
+        "to_node_id": "bore_5",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "midi_legato_live",
+        "from_port_id": "kfreq",
+        "to_node_id": "bore_5",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "vibrato",
+        "from_port_id": "kout",
+        "to_node_id": "bore_5",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "pitch_drift",
+        "from_port_id": "kout",
+        "to_node_id": "bore_5",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "jet_flutter",
+        "from_port_id": "kout",
+        "to_node_id": "bore_5",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "pitch_scoop",
+        "from_port_id": "kenv",
+        "to_node_id": "bore_5",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "bore_6",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "pressure",
+        "from_port_id": "kout",
+        "to_node_id": "bore_6",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "ground_resonance",
+        "from_port_id": "kout",
+        "to_node_id": "bore_6",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "midi_legato_live",
+        "from_port_id": "kvelocity",
+        "to_node_id": "bore_6",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "harmonic_bloom",
+        "from_port_id": "kenv",
+        "to_node_id": "bore_6",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "colour_wander",
+        "from_port_id": "kout",
+        "to_node_id": "bore_6",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "midi_legato_live",
+        "from_port_id": "kfreq",
+        "to_node_id": "bore_6",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "upper_resonance",
+        "from_port_id": "kout",
+        "to_node_id": "bore_6",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "midi_legato_live",
+        "from_port_id": "kfreq",
+        "to_node_id": "bore_6",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "vibrato",
+        "from_port_id": "kout",
+        "to_node_id": "bore_6",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "pitch_drift",
+        "from_port_id": "kout",
+        "to_node_id": "bore_6",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "jet_flutter",
+        "from_port_id": "kout",
+        "to_node_id": "bore_6",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "pitch_scoop",
+        "from_port_id": "kenv",
+        "to_node_id": "bore_6",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "bore_7",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "pressure",
+        "from_port_id": "kout",
+        "to_node_id": "bore_7",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "ground_resonance",
+        "from_port_id": "kout",
+        "to_node_id": "bore_7",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "midi_legato_live",
+        "from_port_id": "kvelocity",
+        "to_node_id": "bore_7",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "harmonic_bloom",
+        "from_port_id": "kenv",
+        "to_node_id": "bore_7",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "colour_wander",
+        "from_port_id": "kout",
+        "to_node_id": "bore_7",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "midi_legato_live",
+        "from_port_id": "kfreq",
+        "to_node_id": "bore_7",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "midi_legato_live",
+        "from_port_id": "kfreq",
+        "to_node_id": "bore_7",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "vibrato",
+        "from_port_id": "kout",
+        "to_node_id": "bore_7",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "pitch_drift",
+        "from_port_id": "kout",
+        "to_node_id": "bore_7",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "jet_flutter",
+        "from_port_id": "kout",
+        "to_node_id": "bore_7",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "pitch_scoop",
+        "from_port_id": "kenv",
+        "to_node_id": "bore_7",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "bore_8",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "pressure",
+        "from_port_id": "kout",
+        "to_node_id": "bore_8",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "upper_resonance",
+        "from_port_id": "kout",
+        "to_node_id": "bore_8",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "midi_legato_live",
+        "from_port_id": "kvelocity",
+        "to_node_id": "bore_8",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "harmonic_bloom",
+        "from_port_id": "kenv",
+        "to_node_id": "bore_8",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "colour_wander",
+        "from_port_id": "kout",
+        "to_node_id": "bore_8",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "midi_legato_live",
+        "from_port_id": "kfreq",
+        "to_node_id": "bore_8",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "midi_legato_live",
+        "from_port_id": "kfreq",
+        "to_node_id": "bore_8",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "vibrato",
+        "from_port_id": "kout",
+        "to_node_id": "bore_8",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "pitch_drift",
+        "from_port_id": "kout",
+        "to_node_id": "bore_8",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "jet_flutter",
+        "from_port_id": "kout",
+        "to_node_id": "bore_8",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "pitch_scoop",
+        "from_port_id": "kenv",
+        "to_node_id": "bore_8",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "bore_10",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "pressure",
+        "from_port_id": "kout",
+        "to_node_id": "bore_10",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "upper_resonance",
+        "from_port_id": "kout",
+        "to_node_id": "bore_10",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "midi_legato_live",
+        "from_port_id": "kvelocity",
+        "to_node_id": "bore_10",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "harmonic_bloom",
+        "from_port_id": "kenv",
+        "to_node_id": "bore_10",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "colour_wander",
+        "from_port_id": "kout",
+        "to_node_id": "bore_10",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "midi_legato_live",
+        "from_port_id": "kfreq",
+        "to_node_id": "bore_10",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "midi_legato_live",
+        "from_port_id": "kfreq",
+        "to_node_id": "bore_10",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "vibrato",
+        "from_port_id": "kout",
+        "to_node_id": "bore_10",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "pitch_drift",
+        "from_port_id": "kout",
+        "to_node_id": "bore_10",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "jet_flutter",
+        "from_port_id": "kout",
+        "to_node_id": "bore_10",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "pitch_scoop",
+        "from_port_id": "kenv",
+        "to_node_id": "bore_10",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "bore_12",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "pressure",
+        "from_port_id": "kout",
+        "to_node_id": "bore_12",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "upper_resonance",
+        "from_port_id": "kout",
+        "to_node_id": "bore_12",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "midi_legato_live",
+        "from_port_id": "kvelocity",
+        "to_node_id": "bore_12",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "harmonic_bloom",
+        "from_port_id": "kenv",
+        "to_node_id": "bore_12",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "colour_wander",
+        "from_port_id": "kout",
+        "to_node_id": "bore_12",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "midi_legato_live",
+        "from_port_id": "kfreq",
+        "to_node_id": "bore_12",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "midi_legato_live",
+        "from_port_id": "kfreq",
+        "to_node_id": "bore_12",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "vibrato",
+        "from_port_id": "kout",
+        "to_node_id": "bore_12",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "pitch_drift",
+        "from_port_id": "kout",
+        "to_node_id": "bore_12",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "jet_flutter",
+        "from_port_id": "kout",
+        "to_node_id": "bore_12",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "pitch_scoop",
+        "from_port_id": "kenv",
+        "to_node_id": "bore_12",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "breath_env",
+        "from_port_id": "kenv",
+        "to_node_id": "breath_noise",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "flute_breath",
+        "from_port_id": "iout",
+        "to_node_id": "breath_noise",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "midi_legato_live",
+        "from_port_id": "kvelocity",
+        "to_node_id": "breath_noise",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "amp_madsr",
+        "from_port_id": "kenv",
+        "to_node_id": "breath_noise",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "pressure",
+        "from_port_id": "kout",
+        "to_node_id": "breath_noise",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "breath_noise",
+        "from_port_id": "aout",
+        "to_node_id": "breath_band",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "amp_madsr",
+        "from_port_id": "kenv",
+        "to_node_id": "bore_capture",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "breath_noise",
+        "from_port_id": "aout",
+        "to_node_id": "bore_air",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "bore_capture",
+        "from_port_id": "aout",
+        "to_node_id": "bore_air",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "midi_legato_live",
+        "from_port_id": "kfreq",
+        "to_node_id": "bore_air",
+        "to_port_id": "xfreq"
+      },
+      {
+        "from_node_id": "octave_mode",
+        "from_port_id": "kout",
+        "to_node_id": "bore_air",
+        "to_port_id": "xfreq"
+      },
+      {
+        "from_node_id": "midi_legato_live",
+        "from_port_id": "kfreq",
+        "to_node_id": "bore_air",
+        "to_port_id": "xband"
+      },
+      {
+        "from_node_id": "bore_1",
+        "from_port_id": "asig",
+        "to_node_id": "warmth",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "bore_2",
+        "from_port_id": "asig",
+        "to_node_id": "warmth",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "bore_3",
+        "from_port_id": "asig",
+        "to_node_id": "warmth",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "bore_4",
+        "from_port_id": "asig",
+        "to_node_id": "warmth",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "bore_5",
+        "from_port_id": "asig",
+        "to_node_id": "warmth",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "bore_6",
+        "from_port_id": "asig",
+        "to_node_id": "warmth",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "bore_7",
+        "from_port_id": "asig",
+        "to_node_id": "warmth",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "bore_8",
+        "from_port_id": "asig",
+        "to_node_id": "warmth",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "bore_10",
+        "from_port_id": "asig",
+        "to_node_id": "warmth",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "bore_12",
+        "from_port_id": "asig",
+        "to_node_id": "warmth",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "breath_band",
+        "from_port_id": "aout",
+        "to_node_id": "warmth",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "bore_air",
+        "from_port_id": "aout",
+        "to_node_id": "warmth",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "flute_tone",
+        "from_port_id": "iout",
+        "to_node_id": "warmth",
+        "to_port_id": "xfreq"
+      },
+      {
+        "from_node_id": "warmth",
+        "from_port_id": "aout",
+        "to_node_id": "output_pan2",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "20e4df9d-7061-49a7-8b6b-f6c9f5c50c2d",
+        "from_port_id": "iout",
+        "to_node_id": "e6dcfbd9-11c0-47e7-8f30-890a8ce6ebdb",
+        "to_port_id": "icount"
+      },
+      {
+        "from_node_id": "flute_attack",
+        "from_port_id": "iout",
+        "to_node_id": "pressure_overshoot",
+        "to_port_id": "idur1"
+      },
+      {
+        "from_node_id": "midi_legato_live",
+        "from_port_id": "kvelocity",
+        "to_node_id": "live_blowing_pressure",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "blowing_pressure",
+        "from_port_id": "kenv",
+        "to_node_id": "live_blowing_pressure",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "pressure_overshoot",
+        "from_port_id": "kenv",
+        "to_node_id": "live_blowing_pressure",
+        "to_port_id": "a"
+      }
+    ],
+    "ui_layout": {
+      "audio_blocks": {
+        "main-output": true
+      },
+      "input_formulas": {
+        "amp_madsr::iatt": {
+          "expression": "attack",
+          "inputs": [
+            {
+              "token": "attack",
+              "from_node_id": "flute_attack",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "amp_madsr::irel": {
+          "expression": "release",
+          "inputs": [
+            {
+              "token": "release",
+              "from_node_id": "flute_release",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "amp_madsr::idel": {
+          "expression": ".022 + .30 * attack + .020 * (1 - velocity)",
+          "inputs": [
+            {
+              "token": "attack",
+              "from_node_id": "flute_attack",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "velocity",
+              "from_node_id": "velocity_ampmidi",
+              "from_port_id": "iamp"
+            }
+          ]
+        },
+        "breath_env::irel": {
+          "expression": ".018 + .16 * release",
+          "inputs": [
+            {
+              "token": "release",
+              "from_node_id": "flute_release",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "breath_env::ireltim": {
+          "expression": ".018 + .16 * release",
+          "inputs": [
+            {
+              "token": "release",
+              "from_node_id": "flute_release",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "blowing_pressure::idur1": {
+          "expression": ".014 + .32 * attack",
+          "inputs": [
+            {
+              "token": "attack",
+              "from_node_id": "flute_attack",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "register_threshold::a": {
+          "expression": "(blow * gate - .815) / .13",
+          "inputs": [
+            {
+              "token": "blow",
+              "from_node_id": "live_blowing_pressure",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "gate",
+              "from_node_id": "breath_env",
+              "from_port_id": "kenv"
+            }
+          ]
+        },
+        "register_balance::a": {
+          "expression": ".5 * (abs(drive) - abs(drive - 1) + 1)",
+          "inputs": [
+            {
+              "token": "drive",
+              "from_node_id": "register_threshold",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "competition_pulse::kcps": {
+          "expression": "6.7 + wander",
+          "inputs": [
+            {
+              "token": "wander",
+              "from_node_id": "competition_rate",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "competing_modes::a": {
+          "expression": "mean + (.78 * 4 * mean * (1 - mean) + .48 * onset * velocity * velocity) * (.78 * pulse + .22 * scatter)",
+          "inputs": [
+            {
+              "token": "mean",
+              "from_node_id": "register_balance",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "onset",
+              "from_node_id": "attack_instability",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "velocity",
+              "from_node_id": "midi_legato_live",
+              "from_port_id": "kvelocity"
+            },
+            {
+              "token": "pulse",
+              "from_node_id": "competition_pulse",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "scatter",
+              "from_node_id": "competition_scatter",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "octave_mode::ksig": {
+          "expression": ".5 * (abs(drive) - abs(drive - 1) + 1)",
+          "inputs": [
+            {
+              "token": "drive",
+              "from_node_id": "competing_modes",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "ground_resonance::ksig": {
+          "expression": ".055 + .945 * (1 - mode)",
+          "inputs": [
+            {
+              "token": "mode",
+              "from_node_id": "octave_mode",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "upper_resonance::ksig": {
+          "expression": "mode",
+          "inputs": [
+            {
+              "token": "mode",
+              "from_node_id": "octave_mode",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "vibrato::kcps": {
+          "expression": "4.8 + wander",
+          "inputs": [
+            {
+              "token": "wander",
+              "from_node_id": "vibrato_rate",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "vibrato::kamp": {
+          "expression": "depth * 0.00057762265 * fade * variation",
+          "inputs": [
+            {
+              "token": "depth",
+              "from_node_id": "flute_vibrato",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "fade",
+              "from_node_id": "vibrato_delay",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "variation",
+              "from_node_id": "vibrato_depth",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "pitch_scoop::idur1": {
+          "expression": ".025 + 1.4 * attack",
+          "inputs": [
+            {
+              "token": "attack",
+              "from_node_id": "flute_attack",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "bore_1::amp": {
+          "expression": "env * (1 + pressure) * (0.4 * ground)",
+          "inputs": [
+            {
+              "token": "env",
+              "from_node_id": "amp_velocity_envelope",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "pressure",
+              "from_node_id": "pressure",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "ground",
+              "from_node_id": "ground_resonance",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "bore_1::freq": {
+          "expression": "pitch * 1 * (1 + vibrato + drift + flutter + .012 * scoop)",
+          "inputs": [
+            {
+              "token": "pitch",
+              "from_node_id": "midi_legato_live",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "vibrato",
+              "from_node_id": "vibrato",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "drift",
+              "from_node_id": "pitch_drift",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "flutter",
+              "from_node_id": "jet_flutter",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "scoop",
+              "from_node_id": "pitch_scoop",
+              "from_port_id": "kenv"
+            }
+          ]
+        },
+        "bore_2::amp": {
+          "expression": "env * (1 + pressure) * (0.3 * ground * (.30 + .70 * velocity) * bloom * (1 + colour) / (1 + (pitch * 1 / 1800) * (pitch * 1 / 1800)) + 0.48 * upper)",
+          "inputs": [
+            {
+              "token": "env",
+              "from_node_id": "amp_velocity_envelope",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "pressure",
+              "from_node_id": "pressure",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "ground",
+              "from_node_id": "ground_resonance",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "velocity",
+              "from_node_id": "midi_legato_live",
+              "from_port_id": "kvelocity"
+            },
+            {
+              "token": "bloom",
+              "from_node_id": "harmonic_bloom",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "colour",
+              "from_node_id": "colour_wander",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "pitch",
+              "from_node_id": "midi_legato_live",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "upper",
+              "from_node_id": "upper_resonance",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "bore_2::freq": {
+          "expression": "pitch * 2 * (1 + vibrato + drift + flutter + .012 * scoop)",
+          "inputs": [
+            {
+              "token": "pitch",
+              "from_node_id": "midi_legato_live",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "vibrato",
+              "from_node_id": "vibrato",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "drift",
+              "from_node_id": "pitch_drift",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "flutter",
+              "from_node_id": "jet_flutter",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "scoop",
+              "from_node_id": "pitch_scoop",
+              "from_port_id": "kenv"
+            }
+          ]
+        },
+        "bore_3::amp": {
+          "expression": "env * (1 + pressure) * (0.19 * ground * (.30 + .70 * velocity) * bloom * (1 + colour) / (1 + (pitch * 1 / 950) * (pitch * 1 / 950)))",
+          "inputs": [
+            {
+              "token": "env",
+              "from_node_id": "amp_velocity_envelope",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "pressure",
+              "from_node_id": "pressure",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "ground",
+              "from_node_id": "ground_resonance",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "velocity",
+              "from_node_id": "midi_legato_live",
+              "from_port_id": "kvelocity"
+            },
+            {
+              "token": "bloom",
+              "from_node_id": "harmonic_bloom",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "colour",
+              "from_node_id": "colour_wander",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "pitch",
+              "from_node_id": "midi_legato_live",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "bore_3::freq": {
+          "expression": "pitch * 3 * (1 + vibrato + drift + flutter + .012 * scoop)",
+          "inputs": [
+            {
+              "token": "pitch",
+              "from_node_id": "midi_legato_live",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "vibrato",
+              "from_node_id": "vibrato",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "drift",
+              "from_node_id": "pitch_drift",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "flutter",
+              "from_node_id": "jet_flutter",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "scoop",
+              "from_node_id": "pitch_scoop",
+              "from_port_id": "kenv"
+            }
+          ]
+        },
+        "bore_4::amp": {
+          "expression": "env * (1 + pressure) * (0.023 * ground * (.30 + .70 * velocity) * bloom * (1 + colour) / (1 + (pitch * 1 / 950) * (pitch * 1 / 950)) + 0.19 * upper * (.30 + .70 * velocity) * bloom * (1 + colour) / (1 + (pitch * 2 / 1800) * (pitch * 2 / 1800)))",
+          "inputs": [
+            {
+              "token": "env",
+              "from_node_id": "amp_velocity_envelope",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "pressure",
+              "from_node_id": "pressure",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "ground",
+              "from_node_id": "ground_resonance",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "velocity",
+              "from_node_id": "midi_legato_live",
+              "from_port_id": "kvelocity"
+            },
+            {
+              "token": "bloom",
+              "from_node_id": "harmonic_bloom",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "colour",
+              "from_node_id": "colour_wander",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "pitch",
+              "from_node_id": "midi_legato_live",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "upper",
+              "from_node_id": "upper_resonance",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "bore_4::freq": {
+          "expression": "pitch * 4 * (1 + vibrato + drift + flutter + .012 * scoop)",
+          "inputs": [
+            {
+              "token": "pitch",
+              "from_node_id": "midi_legato_live",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "vibrato",
+              "from_node_id": "vibrato",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "drift",
+              "from_node_id": "pitch_drift",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "flutter",
+              "from_node_id": "jet_flutter",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "scoop",
+              "from_node_id": "pitch_scoop",
+              "from_port_id": "kenv"
+            }
+          ]
+        },
+        "bore_5::amp": {
+          "expression": "env * (1 + pressure) * (0.018 * ground * (.30 + .70 * velocity) * bloom * (1 + colour) / (1 + (pitch * 1 / 950) * (pitch * 1 / 950)))",
+          "inputs": [
+            {
+              "token": "env",
+              "from_node_id": "amp_velocity_envelope",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "pressure",
+              "from_node_id": "pressure",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "ground",
+              "from_node_id": "ground_resonance",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "velocity",
+              "from_node_id": "midi_legato_live",
+              "from_port_id": "kvelocity"
+            },
+            {
+              "token": "bloom",
+              "from_node_id": "harmonic_bloom",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "colour",
+              "from_node_id": "colour_wander",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "pitch",
+              "from_node_id": "midi_legato_live",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "bore_5::freq": {
+          "expression": "pitch * 5 * (1 + vibrato + drift + flutter + .012 * scoop)",
+          "inputs": [
+            {
+              "token": "pitch",
+              "from_node_id": "midi_legato_live",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "vibrato",
+              "from_node_id": "vibrato",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "drift",
+              "from_node_id": "pitch_drift",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "flutter",
+              "from_node_id": "jet_flutter",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "scoop",
+              "from_node_id": "pitch_scoop",
+              "from_port_id": "kenv"
+            }
+          ]
+        },
+        "bore_6::amp": {
+          "expression": "env * (1 + pressure) * (0.013 * ground * (.30 + .70 * velocity) * bloom * (1 + colour) / (1 + (pitch * 1 / 950) * (pitch * 1 / 950)) + 0.16 * upper * (.30 + .70 * velocity) * bloom * (1 + colour) / (1 + (pitch * 2 / 950) * (pitch * 2 / 950)))",
+          "inputs": [
+            {
+              "token": "env",
+              "from_node_id": "amp_velocity_envelope",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "pressure",
+              "from_node_id": "pressure",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "ground",
+              "from_node_id": "ground_resonance",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "velocity",
+              "from_node_id": "midi_legato_live",
+              "from_port_id": "kvelocity"
+            },
+            {
+              "token": "bloom",
+              "from_node_id": "harmonic_bloom",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "colour",
+              "from_node_id": "colour_wander",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "pitch",
+              "from_node_id": "midi_legato_live",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "upper",
+              "from_node_id": "upper_resonance",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "bore_6::freq": {
+          "expression": "pitch * 6 * (1 + vibrato + drift + flutter + .012 * scoop)",
+          "inputs": [
+            {
+              "token": "pitch",
+              "from_node_id": "midi_legato_live",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "vibrato",
+              "from_node_id": "vibrato",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "drift",
+              "from_node_id": "pitch_drift",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "flutter",
+              "from_node_id": "jet_flutter",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "scoop",
+              "from_node_id": "pitch_scoop",
+              "from_port_id": "kenv"
+            }
+          ]
+        },
+        "bore_7::amp": {
+          "expression": "env * (1 + pressure) * (0.007 * ground * (.30 + .70 * velocity) * bloom * (1 + colour) / (1 + (pitch * 1 / 950) * (pitch * 1 / 950)))",
+          "inputs": [
+            {
+              "token": "env",
+              "from_node_id": "amp_velocity_envelope",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "pressure",
+              "from_node_id": "pressure",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "ground",
+              "from_node_id": "ground_resonance",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "velocity",
+              "from_node_id": "midi_legato_live",
+              "from_port_id": "kvelocity"
+            },
+            {
+              "token": "bloom",
+              "from_node_id": "harmonic_bloom",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "colour",
+              "from_node_id": "colour_wander",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "pitch",
+              "from_node_id": "midi_legato_live",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "bore_7::freq": {
+          "expression": "pitch * 7 * (1 + vibrato + drift + flutter + .012 * scoop)",
+          "inputs": [
+            {
+              "token": "pitch",
+              "from_node_id": "midi_legato_live",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "vibrato",
+              "from_node_id": "vibrato",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "drift",
+              "from_node_id": "pitch_drift",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "flutter",
+              "from_node_id": "jet_flutter",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "scoop",
+              "from_node_id": "pitch_scoop",
+              "from_port_id": "kenv"
+            }
+          ]
+        },
+        "bore_8::amp": {
+          "expression": "env * (1 + pressure) * (0.02 * upper * (.30 + .70 * velocity) * bloom * (1 + colour) / (1 + (pitch * 2 / 950) * (pitch * 2 / 950)))",
+          "inputs": [
+            {
+              "token": "env",
+              "from_node_id": "amp_velocity_envelope",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "pressure",
+              "from_node_id": "pressure",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "upper",
+              "from_node_id": "upper_resonance",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "velocity",
+              "from_node_id": "midi_legato_live",
+              "from_port_id": "kvelocity"
+            },
+            {
+              "token": "bloom",
+              "from_node_id": "harmonic_bloom",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "colour",
+              "from_node_id": "colour_wander",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "pitch",
+              "from_node_id": "midi_legato_live",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "bore_8::freq": {
+          "expression": "pitch * 8 * (1 + vibrato + drift + flutter + .012 * scoop)",
+          "inputs": [
+            {
+              "token": "pitch",
+              "from_node_id": "midi_legato_live",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "vibrato",
+              "from_node_id": "vibrato",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "drift",
+              "from_node_id": "pitch_drift",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "flutter",
+              "from_node_id": "jet_flutter",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "scoop",
+              "from_node_id": "pitch_scoop",
+              "from_port_id": "kenv"
+            }
+          ]
+        },
+        "bore_10::amp": {
+          "expression": "env * (1 + pressure) * (0.014 * upper * (.30 + .70 * velocity) * bloom * (1 + colour) / (1 + (pitch * 2 / 950) * (pitch * 2 / 950)))",
+          "inputs": [
+            {
+              "token": "env",
+              "from_node_id": "amp_velocity_envelope",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "pressure",
+              "from_node_id": "pressure",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "upper",
+              "from_node_id": "upper_resonance",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "velocity",
+              "from_node_id": "midi_legato_live",
+              "from_port_id": "kvelocity"
+            },
+            {
+              "token": "bloom",
+              "from_node_id": "harmonic_bloom",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "colour",
+              "from_node_id": "colour_wander",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "pitch",
+              "from_node_id": "midi_legato_live",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "bore_10::freq": {
+          "expression": "pitch * 10 * (1 + vibrato + drift + flutter + .012 * scoop)",
+          "inputs": [
+            {
+              "token": "pitch",
+              "from_node_id": "midi_legato_live",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "vibrato",
+              "from_node_id": "vibrato",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "drift",
+              "from_node_id": "pitch_drift",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "flutter",
+              "from_node_id": "jet_flutter",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "scoop",
+              "from_node_id": "pitch_scoop",
+              "from_port_id": "kenv"
+            }
+          ]
+        },
+        "bore_12::amp": {
+          "expression": "env * (1 + pressure) * (0.01 * upper * (.30 + .70 * velocity) * bloom * (1 + colour) / (1 + (pitch * 2 / 950) * (pitch * 2 / 950)))",
+          "inputs": [
+            {
+              "token": "env",
+              "from_node_id": "amp_velocity_envelope",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "pressure",
+              "from_node_id": "pressure",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "upper",
+              "from_node_id": "upper_resonance",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "velocity",
+              "from_node_id": "midi_legato_live",
+              "from_port_id": "kvelocity"
+            },
+            {
+              "token": "bloom",
+              "from_node_id": "harmonic_bloom",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "colour",
+              "from_node_id": "colour_wander",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "pitch",
+              "from_node_id": "midi_legato_live",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "bore_12::freq": {
+          "expression": "pitch * 12 * (1 + vibrato + drift + flutter + .012 * scoop)",
+          "inputs": [
+            {
+              "token": "pitch",
+              "from_node_id": "midi_legato_live",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "vibrato",
+              "from_node_id": "vibrato",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "drift",
+              "from_node_id": "pitch_drift",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "flutter",
+              "from_node_id": "jet_flutter",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "scoop",
+              "from_node_id": "pitch_scoop",
+              "from_port_id": "kenv"
+            }
+          ]
+        },
+        "breath_noise::amp": {
+          "expression": "velocity * airenv * breath * (.10 + .50 * (1 - capture) * (1 - capture)) * (.7 + .8 * velocity * velocity) * (1 + pressure)",
+          "inputs": [
+            {
+              "token": "airenv",
+              "from_node_id": "breath_env",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "breath",
+              "from_node_id": "flute_breath",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "velocity",
+              "from_node_id": "midi_legato_live",
+              "from_port_id": "kvelocity"
+            },
+            {
+              "token": "capture",
+              "from_node_id": "amp_madsr",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "pressure",
+              "from_node_id": "pressure",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "breath_band::asig": {
+          "expression": "air",
+          "inputs": [
+            {
+              "token": "air",
+              "from_node_id": "breath_noise",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "bore_capture::kin": {
+          "expression": "capture",
+          "inputs": [
+            {
+              "token": "capture",
+              "from_node_id": "amp_madsr",
+              "from_port_id": "kenv"
+            }
+          ]
+        },
+        "bore_air::asig": {
+          "expression": "air * capture",
+          "inputs": [
+            {
+              "token": "air",
+              "from_node_id": "breath_noise",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "capture",
+              "from_node_id": "bore_capture",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "bore_air::xfreq": {
+          "expression": "pitch * 2.8 * (1 + mode)",
+          "inputs": [
+            {
+              "token": "pitch",
+              "from_node_id": "midi_legato_live",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "mode",
+              "from_node_id": "octave_mode",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "bore_air::xband": {
+          "expression": "pitch * 1.5",
+          "inputs": [
+            {
+              "token": "pitch",
+              "from_node_id": "midi_legato_live",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "warmth::asig": {
+          "expression": "h1 + h2 + h3 + h4 + h5 + h6 + h7 + h8 + h10 + h12 + air + .8 * resonance",
+          "inputs": [
+            {
+              "token": "h1",
+              "from_node_id": "bore_1",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "h2",
+              "from_node_id": "bore_2",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "h3",
+              "from_node_id": "bore_3",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "h4",
+              "from_node_id": "bore_4",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "h5",
+              "from_node_id": "bore_5",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "h6",
+              "from_node_id": "bore_6",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "h7",
+              "from_node_id": "bore_7",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "h8",
+              "from_node_id": "bore_8",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "h10",
+              "from_node_id": "bore_10",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "h12",
+              "from_node_id": "bore_12",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "air",
+              "from_node_id": "breath_band",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "resonance",
+              "from_node_id": "bore_air",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "warmth::xfreq": {
+          "expression": "tone",
+          "inputs": [
+            {
+              "token": "tone",
+              "from_node_id": "flute_tone",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "output_pan2::asig": {
+          "expression": "flute * 0.42",
+          "inputs": [
+            {
+              "token": "flute",
+              "from_node_id": "warmth",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "pressure_overshoot::idur1": {
+          "expression": ".014 + .32 * attack",
+          "inputs": [
+            {
+              "token": "attack",
+              "from_node_id": "flute_attack",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "live_blowing_pressure::a": {
+          "expression": "(.30 + .68 * velocity) * contour + .22 * velocity * velocity * overshoot",
+          "inputs": [
+            {
+              "token": "velocity",
+              "from_node_id": "midi_legato_live",
+              "from_port_id": "kvelocity"
+            },
+            {
+              "token": "contour",
+              "from_node_id": "blowing_pressure",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "overshoot",
+              "from_node_id": "pressure_overshoot",
+              "from_port_id": "kenv"
+            }
+          ]
+        }
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 1500,
+      "ksmps": 32,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1.0
+    },
+    "audio_interface": {
+      "role": "instrument",
+      "groups": [
+        {
+          "id": "main-output",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainInput": null,
+      "mainOutput": "main-output",
+      "guided": true
+    },
+    "control_flow": {}
+  }
+}

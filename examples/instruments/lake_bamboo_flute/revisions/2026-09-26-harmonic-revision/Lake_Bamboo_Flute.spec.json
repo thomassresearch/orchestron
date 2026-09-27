@@ -1,0 +1,22 @@
+{
+  "name": "Lake Bamboo Flute",
+  "description": "Breathy bamboo flute revised against Samurai Flute Sample: strong second/third partials, pressure-dependent harmonic bloom, resonant air, soft breath attacks, a small pitch scoop and irregular delayed vibrato. Synthesized without sampled audio. Best E3\u2013D6; the reference character is strongest E3\u2013E5. Velocity shapes loudness, colour and air. Five compatible per-instance controls; dry Stereo Output, route through Master or a shared room reverb.",
+  "family": "simple_osc",
+  "envelope": {
+    "attack": 0.075,
+    "decay": 0.32,
+    "sustain": 0.88,
+    "release": 0.22
+  },
+  "layers": [
+    {
+      "id": "seed",
+      "opcode": "oscili",
+      "gain": 0.4,
+      "table": -1
+    }
+  ],
+  "output": {
+    "pan": 0.5
+  }
+}

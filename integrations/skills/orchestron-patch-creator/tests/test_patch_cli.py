@@ -19,6 +19,18 @@ from orchestron_patch.cli.orchestron_patch_cli import (  # noqa: E402
 
 
 class PatchCliTests(unittest.TestCase):
+    def test_legato_preserves_required_spine_and_rejects_duplicate_nodes(self) -> None:
+        graph = build_patch_payload({"family": "simple_osc"})["graph"]
+        graph["nodes"].insert(0, {"id": "legato", "opcode": "midi_legato", "params": {}})
+        validate_graph_invariants(graph)
+        graph["nodes"].insert(0, {"id": "other", "opcode": "midi_legato", "params": {}})
+        with self.assertRaisesRegex(PatchCliError, "exactly one"):
+            validate_graph_invariants(graph)
+        graph["nodes"].pop(0)
+        graph["nodes"] = [n for n in graph["nodes"] if n["opcode"] != "ampmidi"]
+        with self.assertRaisesRegex(PatchCliError, "required opcodes"):
+            validate_graph_invariants(graph)
+
     def test_performance_controllers_replace_inputs_and_preserve_graph_spine(self) -> None:
         graph = build_patch_payload({"family": "simple_osc", "performance_controllers": [
             {"id": "attack", "target": "amp_madsr.iatt", "min": 0.001, "max": 5, "default": 0.01, "scale": "logarithmic", "label": "Time"},

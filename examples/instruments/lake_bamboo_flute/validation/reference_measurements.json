@@ -1,0 +1,270 @@
+{
+  "source": "Samurai Flute Sample.m4a",
+  "source_sha256": "f568c2685bdd04c0d2471de74fa9d49226ec491b5e6250164cd98191dd70e6da",
+  "sample_rate": 48000,
+  "analysis": "Channel mean; Hann STFT 8192 / hop 1024; power averaged within each listed window; fundamental searched 120\u2013380 Hz with log-peak interpolation; harmonic energy within \u00b120 Hz. Descriptive measurements, not a perceptual similarity score.",
+  "windows": [
+    {
+      "time": [
+        2.3,
+        3
+      ],
+      "f0": 247.4,
+      "rms": -30.6,
+      "harmonics_db": [
+        0.0,
+        -0.1,
+        7.1,
+        -16.6,
+        -14.8,
+        -16.9,
+        -21.9,
+        -32.8,
+        -42.5,
+        -47.9
+      ]
+    },
+    {
+      "time": [
+        3.5,
+        4
+      ],
+      "f0": 264.2,
+      "rms": -19.4,
+      "harmonics_db": [
+        0.0,
+        -1.9,
+        -8.6,
+        -23.1,
+        -23.5,
+        -22.8,
+        -40.1,
+        -36.6,
+        -46.7,
+        -40.3
+      ]
+    },
+    {
+      "time": [
+        4.7,
+        5.5
+      ],
+      "f0": 248.8,
+      "rms": -19.6,
+      "harmonics_db": [
+        0.0,
+        -2.3,
+        6.1,
+        -19.0,
+        -19.5,
+        -27.0,
+        -31.2,
+        -34.5,
+        -41.6,
+        -49.2
+      ]
+    },
+    {
+      "time": [
+        6,
+        7
+      ],
+      "f0": 246.8,
+      "rms": -26.8,
+      "harmonics_db": [
+        0.0,
+        -3.6,
+        -3.8,
+        -22.8,
+        -18.4,
+        -29.7,
+        -38.2,
+        -44.4,
+        -44.7,
+        -58.5
+      ]
+    },
+    {
+      "time": [
+        8.3,
+        9.1
+      ],
+      "f0": 222.0,
+      "rms": -15.9,
+      "harmonics_db": [
+        0.0,
+        -2.0,
+        9.7,
+        -19.9,
+        -17.2,
+        -36.1,
+        -28.3,
+        -36.6,
+        -34.1,
+        -33.9
+      ]
+    },
+    {
+      "time": [
+        10,
+        10.7
+      ],
+      "f0": 248.5,
+      "rms": -22.7,
+      "harmonics_db": [
+        0.0,
+        3.2,
+        2.6,
+        -18.0,
+        -24.8,
+        -23.0,
+        -34.9,
+        -34.5,
+        -30.7,
+        -45.1
+      ]
+    },
+    {
+      "time": [
+        12,
+        12.8
+      ],
+      "f0": 263.3,
+      "rms": -20.0,
+      "harmonics_db": [
+        0.0,
+        -7.1,
+        -10.4,
+        -23.3,
+        -36.5,
+        -34.8,
+        -47.1,
+        -42.2,
+        -51.9,
+        -54.3
+      ]
+    },
+    {
+      "time": [
+        14,
+        15
+      ],
+      "f0": 247.4,
+      "rms": -25.3,
+      "harmonics_db": [
+        0.0,
+        -2.0,
+        -6.4,
+        -23.8,
+        -24.2,
+        -27.6,
+        -41.0,
+        -40.4,
+        -41.1,
+        -51.8
+      ]
+    },
+    {
+      "time": [
+        16.4,
+        17.1
+      ],
+      "f0": 165.9,
+      "rms": -41.2,
+      "harmonics_db": [
+        0.0,
+        -1.9,
+        -1.9,
+        -14.9,
+        -17.1,
+        -24.0,
+        -33.6,
+        -38.1,
+        -49.0,
+        -46.1
+      ]
+    },
+    {
+      "time": [
+        18.5,
+        19
+      ],
+      "f0": 336.9,
+      "rms": -19.0,
+      "harmonics_db": [
+        0.0,
+        -8.6,
+        -10.0,
+        -27.1,
+        -35.6,
+        -32.3,
+        -45.4,
+        -36.7,
+        -45.5,
+        -51.5
+      ]
+    },
+    {
+      "time": [
+        19.3,
+        20
+      ],
+      "f0": 336.7,
+      "rms": -18.8,
+      "harmonics_db": [
+        0.0,
+        -0.2,
+        -14.4,
+        -11.0,
+        -29.9,
+        -31.4,
+        -37.0,
+        -20.9,
+        -38.8,
+        -44.0
+      ]
+    },
+    {
+      "time": [
+        21,
+        21.7
+      ],
+      "f0": 353.1,
+      "rms": -13.5,
+      "harmonics_db": [
+        0.0,
+        -2.5,
+        1.1,
+        -10.9,
+        -19.3,
+        -19.3,
+        -20.2,
+        -21.6,
+        -21.1,
+        -16.1
+      ]
+    },
+    {
+      "time": [
+        25.5,
+        26.2
+      ],
+      "f0": 336.6,
+      "rms": -24.8,
+      "harmonics_db": [
+        0.0,
+        0.4,
+        -12.0,
+        -25.3,
+        -32.2,
+        -31.4,
+        -37.5,
+        -34.0,
+        -41.6,
+        -44.9
+      ]
+    }
+  ],
+  "interpretation": "Reference has a prominent second harmonic and a strongly variable third, breath between partials, and low-register pitch movement. Do not copy the recording background hum into the instrument.",
+  "listening": "Not performed. Waveform/spectral analysis and visual inspection only."
+}

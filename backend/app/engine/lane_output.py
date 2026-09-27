@@ -25,6 +25,7 @@ class LaneOutputGate:
         self.blocked: frozenset[str] = frozenset()
         self._notes: dict[tuple[str, int, int], bool] = {}
         self._sounding: dict[tuple[int, int], int] = {}
+        self._deferred_releases: dict[tuple[int, int], int] = {}
 
     def configure(self, config: Any) -> None:
         routing = {lane_id(t.track_id): LaneRouting((t.midi_channel,)) for t in config.tracks}
@@ -70,6 +71,18 @@ class LaneOutputGate:
     def reset_notes(self) -> None:
         self._notes.clear()
         self._sounding.clear()
+        self._deferred_releases.clear()
+
+    def take_deferred_releases(self, message: bytes) -> int:
+        """Balance delivered note-ons when the final owner of a shared pitch leaves.
+
+        Earlier owners' offs were suppressed to retain the held pitch. Csound
+        still allocated their collectors, so those offs must eventually arrive.
+        """
+        status, note, velocity = message
+        if status & 0xf0 == 0x80 or status & 0xf0 == 0x90 and not velocity:
+            return self._deferred_releases.pop((status & 15, note), 0)
+        return 0
 
     def source_releases(self, sources: set[str]) -> list[tuple[str, list[int]]]:
         """Release only voices actually delivered; ownership is consumed at delivery."""
@@ -102,6 +115,8 @@ class LaneOutputGate:
                 count = self._sounding.get(pitch, 0) - int(bool(sounded))
                 if count > 0:
                     self._sounding[pitch] = count
+                    if sounded:
+                        self._deferred_releases[pitch] = self._deferred_releases.get(pitch, 0) + 1
                     return False
                 self._sounding.pop(pitch, None)
             return True
@@ -112,4 +127,5 @@ class LaneOutputGate:
                            if k[1] != channel or not k[0].startswith(f"{stage}:")}
             if stage == "output":
                 self._sounding = {pitch: count for pitch, count in self._sounding.items() if pitch[0] != channel}
+                self._deferred_releases = {pitch: count for pitch, count in self._deferred_releases.items() if pitch[0] != channel}
         return not blocked

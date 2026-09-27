@@ -6,7 +6,7 @@ import type { Connection, ControlFlowBlock, ControlFlowCase, NodeInstance, NodeP
 
 export const BRANCH_OPCODES = new Set(["If", "Switch"]);
 export const CASE_RESULT = "CaseResult";
-export const ROOT_ONLY_OPCODES = new Set(["outs", "inleta", "outleta", "sfload", "maxalloc", "If", "Switch", "CaseResult"]);
+export const ROOT_ONLY_OPCODES = new Set(["outs", "inleta", "outleta", "sfload", "maxalloc", "midi_legato", "If", "Switch", "CaseResult"]);
 export const branchChannels = (block: ControlFlowBlock) => block.output_format === "stereo" ? ["left", "right"] : ["left"];
 export const branchCollapsed = (graph: PatchGraph, id: string) => (graph.ui_layout.control_flow_blocks as Record<string, boolean> | undefined)?.[id] === true;
 

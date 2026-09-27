@@ -11,6 +11,11 @@ their own in-memory copy.
   tails, polyphony, MIDI/score equivalence and bundle regressions.
 - `velocity_if.patch.json` is the original velocity-switched sine/saw patch used
   for If-branch spectrum and decay regressions.
+- `midi_legato.patch.json` is a small deterministic oscillator/envelope probe for
+  MIDI and score phrase boundaries, priority, velocity smoothing and phase.
+- `lake_bamboo_flute_legato.patch.json` is a fixed 59-node flute snapshot for
+  phrase-controller, pressure-contour and stereo routing regressions. Tests never
+  load its authoring script or the current library/export files in `examples/`.
 
 The latter two fixtures were recovered from Git revision `cd21a23^`, preserving
 the inputs for the existing audio assertions. Tests load the committed copies;

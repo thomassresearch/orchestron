@@ -30,6 +30,8 @@ Start with a playable instrument, a drumset, an audio effect, an audio output pa
 
 *An instrument takes shape as a graph: this pad combines oscillators, envelopes, filters, and delay.*
 
+Use [`midi_legato`](documentation/instrument_design/midi_legato.md) for monophonic instruments whose touching notes share a breath or envelope. Pitch changes immediately, velocity follows smoothly, and gaps start a new phrase.
+
 Hover over an instrument's description in Instrument Design to read the full text in a tooltip.
 
 Use [draft auditioning](documentation/instrument_design/runtime_panel_and_compilation.md#audition-a-draft) to hear an unfinished patch on its own or in the context of a performance before saving it. The [Instrument Design guide](documentation/instrument_design/instrument_design.md) walks through the editor, formulas, tables, and patch library.
@@ -70,7 +72,7 @@ Load instruments into the Perform rack, assign MIDI channels, and play from the 
 
 Mix instruments and effect returns with volume faders, pan or balance, mute, solo, and meters. Add an insert to one instrument, send several instruments to a shared effect, and shape the combined sound through Master. Every performance has a fixed internal Master with its own controls and inserts, without adding an instrument to your library. A routing matrix and diagram help you follow where the audio goes.
 
-The [performance creator skill](integrations/skills/orchestron-performance-creator/SKILL.md) can also configure Master routing, shared effects, mixer strips, and pre/post-fader sends through its CLI. It can inspect and edit per-note timing, or generate syncopated melodic/drum patterns with timing in YAML/JSON scores. Its optional reverb/compressor preset outputs through Master without adding a speaker instrument.
+The [performance creator skill](integrations/skills/orchestron-performance-creator/SKILL.md) can also configure Master routing, shared effects, mixer strips, and pre/post-fader sends through its CLI. It can inspect and edit per-note timing, or generate syncopated melodic/drum patterns with timing in YAML/JSON scores. Author drum rolls and velocity ramps with `edit ratchets list|set|reset` or score `step_ratchets`; see the [ratchet CLI guide](integrations/skills/orchestron-performance-creator/references/step_ratchets.md). Its optional reverb/compressor preset outputs through Master without adding a speaker instrument.
 
 ![Instrument and effect-return mixer strips with an insert, a post-fader send, and a Master strip](screenshots/perform_mixer_sends_inserts_master.png)
 

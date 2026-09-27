@@ -70,7 +70,7 @@ describe("atomic branch transfers", () => {
     expect(controlFlowIssues(changed)).toEqual([]);
     expect(transferBranchNodes(changed, ["a", "b"], null).control_flow![target.blockId].cases[1].node_ids).toHaveLength(1);
   });
-  it.each(["If", "Switch", "CaseResult", "outs", "inleta", "outleta", "sfload", "maxalloc", "__stereo_output"])("refuses %s in a branch", (opcode) => {
+  it.each(["If", "Switch", "CaseResult", "outs", "inleta", "outleta", "sfload", "maxalloc", "midi_legato", "__stereo_output"])("refuses %s in a branch", (opcode) => {
     const { graph, target } = fixture(); expect(() => addBranchNode(graph, node("bad", opcode), target)).toThrow();
   });
   it("uses the normal catalog defaults and commits case creation as one store update", () => {

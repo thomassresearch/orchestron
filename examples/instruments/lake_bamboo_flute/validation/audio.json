@@ -1,0 +1,557 @@
+{
+  "passed": true,
+  "spectrograms_inspected": true,
+  "patch_sha256": "95c33046f4a7593aba12c123412c0ca0ee04e203d0eda3b16a2863fbfd28e26f",
+  "auditions": [
+    {
+      "name": "default",
+      "peak_dbfs": -16.04546488444171,
+      "tail_dbfs": -240.0,
+      "settings": {}
+    },
+    {
+      "name": "flute_attack_min",
+      "peak_dbfs": -15.335911108424643,
+      "tail_dbfs": -240.0,
+      "settings": {
+        "flute_attack": 0.015
+      }
+    },
+    {
+      "name": "flute_attack_max",
+      "peak_dbfs": -16.069980489290725,
+      "tail_dbfs": -240.0,
+      "settings": {
+        "flute_attack": 0.18
+      }
+    },
+    {
+      "name": "flute_release_min",
+      "peak_dbfs": -16.04546488444171,
+      "tail_dbfs": -240.0,
+      "settings": {
+        "flute_release": 0.08
+      }
+    },
+    {
+      "name": "flute_release_max",
+      "peak_dbfs": -16.04546488444171,
+      "tail_dbfs": -240.0,
+      "settings": {
+        "flute_release": 1.2
+      }
+    },
+    {
+      "name": "flute_breath_min",
+      "peak_dbfs": -16.493069944058423,
+      "tail_dbfs": -240.0,
+      "settings": {
+        "flute_breath": 0
+      }
+    },
+    {
+      "name": "flute_breath_max",
+      "peak_dbfs": -15.607988366994121,
+      "tail_dbfs": -240.0,
+      "settings": {
+        "flute_breath": 1
+      }
+    },
+    {
+      "name": "flute_tone_min",
+      "peak_dbfs": -17.427786382336798,
+      "tail_dbfs": -240.0,
+      "settings": {
+        "flute_tone": 1000
+      }
+    },
+    {
+      "name": "flute_tone_max",
+      "peak_dbfs": -15.961664067808254,
+      "tail_dbfs": -240.0,
+      "settings": {
+        "flute_tone": 7500
+      }
+    },
+    {
+      "name": "flute_vibrato_min",
+      "peak_dbfs": -16.04546488444171,
+      "tail_dbfs": -240.0,
+      "settings": {
+        "flute_vibrato": 0
+      }
+    },
+    {
+      "name": "flute_vibrato_max",
+      "peak_dbfs": -16.04546488444171,
+      "tail_dbfs": -240.0,
+      "settings": {
+        "flute_vibrato": 15
+      }
+    },
+    {
+      "name": "velocity",
+      "peak_dbfs": -14.170921776107319,
+      "tail_dbfs": -240.0,
+      "settings": {}
+    },
+    {
+      "name": "retrigger_chord",
+      "peak_dbfs": -15.665677657068187,
+      "tail_dbfs": -240.0,
+      "settings": {}
+    },
+    {
+      "name": "reference_phrase",
+      "peak_dbfs": -16.35686960718952,
+      "tail_dbfs": -240.0,
+      "settings": {}
+    },
+    {
+      "name": "original_phrase",
+      "peak_dbfs": -13.593086757529633,
+      "tail_dbfs": -240.0,
+      "settings": {}
+    },
+    {
+      "name": "blowing_dynamics",
+      "peak_dbfs": -13.598930200239579,
+      "tail_dbfs": -240.0,
+      "settings": {}
+    },
+    {
+      "name": "blowing_dynamics_no_air",
+      "peak_dbfs": -13.927084378243457,
+      "tail_dbfs": -240.0,
+      "settings": {
+        "flute_breath": 0
+      }
+    },
+    {
+      "name": "blowing_registers",
+      "peak_dbfs": -14.913654258224135,
+      "tail_dbfs": -240.0,
+      "settings": {}
+    },
+    {
+      "name": "legato_phrase",
+      "peak_dbfs": -15.531985274715447,
+      "tail_dbfs": -240.0,
+      "settings": {}
+    },
+    {
+      "name": "separated_phrase",
+      "peak_dbfs": -15.267988457304106,
+      "tail_dbfs": -240.0,
+      "settings": {}
+    }
+  ],
+  "velocity_rms_dbfs": [
+    -36.281793632993306,
+    -29.96542888842013,
+    -25.15722444877167,
+    -19.796895429614235
+  ],
+  "controller_responses": {
+    "attack": {
+      "min": -31.834307752097082,
+      "max": -45.452091639437704
+    },
+    "release": {
+      "min": -240.0,
+      "max": -27.67356999570508
+    },
+    "breath": {
+      "min": -40.733394693247405,
+      "max": -25.31592057693309
+    },
+    "tone": {
+      "min": -38.99874178783556,
+      "max": -29.31073029189072
+    },
+    "vibrato": {
+      "min": 1.744300744336338,
+      "max": 8.924588787246288
+    }
+  },
+  "controller_units": {
+    "attack": "early RMS dBFS",
+    "release": "late RMS dBFS",
+    "breath": "interharmonic power dB relative to total below 7 kHz",
+    "tone": "interharmonic power dB relative to total below 7 kHz",
+    "vibrato": "sustained pitch standard deviation in cents"
+  },
+  "matched_phrase_comparison": {
+    "original_phrase": {
+      "partials_db": [
+        0.0,
+        -16.794198743525,
+        -25.524890922294418,
+        -34.21947535548731,
+        -52.455797573731,
+        -53.28699709348083,
+        -54.89755114697929
+      ],
+      "interharmonic_db": -35.76461994402726
+    },
+    "reference_phrase": {
+      "partials_db": [
+        0.0,
+        -4.508639161611193,
+        -9.292747698051558,
+        -26.09457544830225,
+        -29.458179714627825,
+        -30.42060692385594,
+        -37.82880431216807
+      ],
+      "interharmonic_db": -28.767148580640516
+    }
+  },
+  "blowing_dynamics": [
+    {
+      "velocity": 40,
+      "air_attack_rms_dbfs": -48.93040620565789,
+      "early_tone_peak_dbfs": -240.0,
+      "attack": {
+        "octave_to_fundamental_db": -6.9247002224677505,
+        "dominant_hz": 246.69326595323972,
+        "dominant_component_harmonic": 1
+      },
+      "settled": {
+        "octave_to_fundamental_db": -10.455776620456717,
+        "dominant_hz": 246.8157680328516,
+        "dominant_component_harmonic": 1
+      },
+      "attack_overlap": {
+        "ratio_p10_p50_p90_db": [
+          -7.851452911964679,
+          -7.209622667121915,
+          -6.633672106814093
+        ],
+        "span_db": 1.2177808051505856,
+        "ground_dominance_fraction": 1.0
+      },
+      "settled_overlap": {
+        "ratio_p10_p50_p90_db": [
+          -10.747731291419328,
+          -10.479181834070523,
+          -9.73613476563876
+        ],
+        "span_db": 1.0115965257805684,
+        "ground_dominance_fraction": 1.0
+      }
+    },
+    {
+      "velocity": 64,
+      "air_attack_rms_dbfs": -43.25191776742801,
+      "early_tone_peak_dbfs": -240.0,
+      "attack": {
+        "octave_to_fundamental_db": -6.647475562618151,
+        "dominant_hz": 246.62622111181778,
+        "dominant_component_harmonic": 1
+      },
+      "settled": {
+        "octave_to_fundamental_db": -9.218359603587313,
+        "dominant_hz": 246.43189105070235,
+        "dominant_component_harmonic": 1
+      },
+      "attack_overlap": {
+        "ratio_p10_p50_p90_db": [
+          -8.055133630068989,
+          -6.984080164669762,
+          -5.840241860297852
+        ],
+        "span_db": 2.2148917697711363,
+        "ground_dominance_fraction": 1.0
+      },
+      "settled_overlap": {
+        "ratio_p10_p50_p90_db": [
+          -9.211407585824862,
+          -9.204996848680366,
+          -9.095750681021563
+        ],
+        "span_db": 0.11565690480329849,
+        "ground_dominance_fraction": 1.0
+      }
+    },
+    {
+      "velocity": 80,
+      "air_attack_rms_dbfs": -40.51241586629728,
+      "early_tone_peak_dbfs": -240.0,
+      "attack": {
+        "octave_to_fundamental_db": -5.176176733101778,
+        "dominant_hz": 246.768715547029,
+        "dominant_component_harmonic": 1
+      },
+      "settled": {
+        "octave_to_fundamental_db": -5.761259789388119,
+        "dominant_hz": 246.95138508647617,
+        "dominant_component_harmonic": 1
+      },
+      "attack_overlap": {
+        "ratio_p10_p50_p90_db": [
+          -7.242017821767483,
+          -5.9773581898817545,
+          -4.275959011511003
+        ],
+        "span_db": 2.96605881025648,
+        "ground_dominance_fraction": 1.0
+      },
+      "settled_overlap": {
+        "ratio_p10_p50_p90_db": [
+          -5.808765176725917,
+          -5.729801563577949,
+          -5.652403393032904
+        ],
+        "span_db": 0.15636178369301312,
+        "ground_dominance_fraction": 1.0
+      }
+    },
+    {
+      "velocity": 92,
+      "air_attack_rms_dbfs": -39.23588154302151,
+      "early_tone_peak_dbfs": -240.0,
+      "attack": {
+        "octave_to_fundamental_db": 4.166365444033962,
+        "dominant_hz": 494.14149294875574,
+        "dominant_component_harmonic": 2
+      },
+      "settled": {
+        "octave_to_fundamental_db": -5.397236931005141,
+        "dominant_hz": 247.3893585865856,
+        "dominant_component_harmonic": 1
+      },
+      "attack_overlap": {
+        "ratio_p10_p50_p90_db": [
+          -3.3718555648007396,
+          -0.14518778531542645,
+          11.597100841434843
+        ],
+        "span_db": 14.968956406235582,
+        "ground_dominance_fraction": 0.5116279069767442
+      },
+      "settled_overlap": {
+        "ratio_p10_p50_p90_db": [
+          -6.12028433989265,
+          -5.403186475129269,
+          -4.692307823323446
+        ],
+        "span_db": 1.4279765165692035,
+        "ground_dominance_fraction": 1.0
+      }
+    },
+    {
+      "velocity": 100,
+      "air_attack_rms_dbfs": -37.17977654431685,
+      "early_tone_peak_dbfs": -240.0,
+      "attack": {
+        "octave_to_fundamental_db": 11.503343211020207,
+        "dominant_hz": 493.95482235673273,
+        "dominant_component_harmonic": 2
+      },
+      "settled": {
+        "octave_to_fundamental_db": -1.5234927731370085,
+        "dominant_hz": 247.1207219145313,
+        "dominant_component_harmonic": 1
+      },
+      "attack_overlap": {
+        "ratio_p10_p50_p90_db": [
+          -3.977478356564871,
+          9.4314063812411,
+          22.226359193115165
+        ],
+        "span_db": 26.203837549680035,
+        "ground_dominance_fraction": 0.23837209302325582
+      },
+      "settled_overlap": {
+        "ratio_p10_p50_p90_db": [
+          -4.504190400853318,
+          -1.7946136318972177,
+          1.5554267412161624
+        ],
+        "span_db": 6.059617142069481,
+        "ground_dominance_fraction": 0.6885964912280702
+      }
+    },
+    {
+      "velocity": 116,
+      "air_attack_rms_dbfs": -34.89581128891737,
+      "early_tone_peak_dbfs": -240.0,
+      "attack": {
+        "octave_to_fundamental_db": 19.889189530346343,
+        "dominant_hz": 494.8326020902989,
+        "dominant_component_harmonic": 2
+      },
+      "settled": {
+        "octave_to_fundamental_db": 10.399322744197736,
+        "dominant_hz": 494.07358071462903,
+        "dominant_component_harmonic": 2
+      },
+      "attack_overlap": {
+        "ratio_p10_p50_p90_db": [
+          14.146887677882644,
+          19.3251159622396,
+          24.29185743610356
+        ],
+        "span_db": 10.144969758220915,
+        "ground_dominance_fraction": 0.0
+      },
+      "settled_overlap": {
+        "ratio_p10_p50_p90_db": [
+          6.081279475461982,
+          12.125142670986962,
+          18.8434964040952
+        ],
+        "span_db": 12.762216928633219,
+        "ground_dominance_fraction": 0.0
+      }
+    },
+    {
+      "velocity": 127,
+      "air_attack_rms_dbfs": -33.08020734689302,
+      "early_tone_peak_dbfs": -240.0,
+      "attack": {
+        "octave_to_fundamental_db": 17.32681923254923,
+        "dominant_hz": 493.5012832417927,
+        "dominant_component_harmonic": 2
+      },
+      "settled": {
+        "octave_to_fundamental_db": 27.150288116866733,
+        "dominant_hz": 494.61984644044753,
+        "dominant_component_harmonic": 2
+      },
+      "attack_overlap": {
+        "ratio_p10_p50_p90_db": [
+          14.04033788306193,
+          19.7709414923471,
+          23.771264115724264
+        ],
+        "span_db": 9.730926232662334,
+        "ground_dominance_fraction": 0.0
+      },
+      "settled_overlap": {
+        "ratio_p10_p50_p90_db": [
+          27.05444685252897,
+          27.071157577319028,
+          27.085340918014182
+        ],
+        "span_db": 0.030894065485213673,
+        "ground_dominance_fraction": 0.0
+      }
+    }
+  ],
+  "register_checks": [
+    {
+      "note": 52,
+      "velocity": 92,
+      "attack": {
+        "octave_to_fundamental_db": 4.286231100854769,
+        "dominant_hz": 329.355465847899,
+        "dominant_component_harmonic": 2
+      },
+      "settled": {
+        "octave_to_fundamental_db": -6.5919483637984735,
+        "dominant_hz": 164.72731897249017,
+        "dominant_component_harmonic": 1
+      }
+    },
+    {
+      "note": 52,
+      "velocity": 116,
+      "attack": {
+        "octave_to_fundamental_db": 16.680346149679043,
+        "dominant_hz": 329.21159855088126,
+        "dominant_component_harmonic": 2
+      },
+      "settled": {
+        "octave_to_fundamental_db": 10.267013939443517,
+        "dominant_hz": 328.88611520816914,
+        "dominant_component_harmonic": 2
+      }
+    },
+    {
+      "note": 64,
+      "velocity": 92,
+      "attack": {
+        "octave_to_fundamental_db": 5.475477871737461,
+        "dominant_hz": 658.9562489418613,
+        "dominant_component_harmonic": 2
+      },
+      "settled": {
+        "octave_to_fundamental_db": -5.140002068506453,
+        "dominant_hz": 329.66666555729245,
+        "dominant_component_harmonic": 1
+      }
+    },
+    {
+      "note": 64,
+      "velocity": 116,
+      "attack": {
+        "octave_to_fundamental_db": 18.92684425339943,
+        "dominant_hz": 659.5713412576043,
+        "dominant_component_harmonic": 2
+      },
+      "settled": {
+        "octave_to_fundamental_db": 10.14801586900543,
+        "dominant_hz": 660.5142326157167,
+        "dominant_component_harmonic": 2
+      }
+    },
+    {
+      "note": 76,
+      "velocity": 92,
+      "attack": {
+        "octave_to_fundamental_db": 3.4181908297095047,
+        "dominant_hz": 1318.7835963274536,
+        "dominant_component_harmonic": 2
+      },
+      "settled": {
+        "octave_to_fundamental_db": -6.011111671259394,
+        "dominant_hz": 659.7864790229181,
+        "dominant_component_harmonic": 1
+      }
+    },
+    {
+      "note": 76,
+      "velocity": 116,
+      "attack": {
+        "octave_to_fundamental_db": 19.744725206822682,
+        "dominant_hz": 1321.1164121951151,
+        "dominant_component_harmonic": 2
+      },
+      "settled": {
+        "octave_to_fundamental_db": 10.212847604553751,
+        "dominant_hz": 1318.9262321332824,
+        "dominant_component_harmonic": 2
+      }
+    }
+  ],
+  "images": [
+    "/Users/thuber/Projekte/VisualCSound/examples/instruments/lake_bamboo_flute/validation/Flute_validation.mel.png",
+    "/Users/thuber/Projekte/VisualCSound/examples/instruments/lake_bamboo_flute/validation/Flute_validation.stft.png",
+    "/Users/thuber/Projekte/VisualCSound/examples/instruments/lake_bamboo_flute/validation/original_phrase.mel.png",
+    "/Users/thuber/Projekte/VisualCSound/examples/instruments/lake_bamboo_flute/validation/original_phrase.stft.png",
+    "/Users/thuber/Projekte/VisualCSound/examples/instruments/lake_bamboo_flute/validation/reference_phrase.mel.png",
+    "/Users/thuber/Projekte/VisualCSound/examples/instruments/lake_bamboo_flute/validation/reference_phrase.stft.png",
+    "/Users/thuber/Projekte/VisualCSound/examples/instruments/lake_bamboo_flute/validation/blowing_dynamics.mel.png",
+    "/Users/thuber/Projekte/VisualCSound/examples/instruments/lake_bamboo_flute/validation/blowing_dynamics.stft.png",
+    "/Users/thuber/Projekte/VisualCSound/examples/instruments/lake_bamboo_flute/validation/blowing_registers.mel.png",
+    "/Users/thuber/Projekte/VisualCSound/examples/instruments/lake_bamboo_flute/validation/blowing_registers.stft.png",
+    "/Users/thuber/Projekte/VisualCSound/examples/instruments/lake_bamboo_flute/validation/legato_phrase.mel.png",
+    "/Users/thuber/Projekte/VisualCSound/examples/instruments/lake_bamboo_flute/validation/legato_phrase.stft.png",
+    "/Users/thuber/Projekte/VisualCSound/examples/instruments/lake_bamboo_flute/validation/separated_phrase.mel.png",
+    "/Users/thuber/Projekte/VisualCSound/examples/instruments/lake_bamboo_flute/validation/separated_phrase.stft.png"
+  ],
+  "listening": "Not performed; numerical and visual verification only.",
+  "listening_performed": false,
+  "inspection_notes": "Opened Mel and log-STFT views for the legato and separated phrases and the 241-second controller montage, plus the blowing-dynamics log-STFT. Matching stereo panels; connected pitch steps retain harmonic energy without renewed high-frequency breath attacks; separated notes repeat their breath and tone build-up. Velocity changes preserve ground/octave overlap. Final releases fade to silence.",
+  "inspected_images": [
+    "legato_phrase.mel.png",
+    "legato_phrase.stft.png",
+    "separated_phrase.mel.png",
+    "separated_phrase.stft.png",
+    "Flute_validation.mel.png",
+    "Flute_validation.stft.png",
+    "blowing_dynamics.stft.png"
+  ]
+}

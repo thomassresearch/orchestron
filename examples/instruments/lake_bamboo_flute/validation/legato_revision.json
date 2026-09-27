@@ -1,0 +1,40 @@
+{
+  "patch_id": "e7dae45d-3aca-4f67-bc7d-fef3ac29e4b7",
+  "name": "Lake Bamboo Flute",
+  "node_count_before": 56,
+  "node_count_after": 59,
+  "original_node_positions_preserved": true,
+  "controller_ids_and_settings_preserved": true,
+  "maxalloc_connection_preserved": true,
+  "routing_preserved": true,
+  "instrument_type": "melody",
+  "native_exports_equal": true,
+  "import_preview_equal": true,
+  "saved_performance_count": 18,
+  "saved_performances_unchanged": true,
+  "backend_suite": {
+    "passed": 1223
+  },
+  "final_legato_tests": {
+    "passed": 30
+  },
+  "frontend_tests": {
+    "passed": 676
+  },
+  "patch_cli_tests": {
+    "passed": 16
+  },
+  "frontend_build": "passed",
+  "docker_frontend_build": "passed",
+  "docker_app_applied": true,
+  "audio_auditions": 20,
+  "audio_seconds": 241,
+  "mel_and_log_stft_opened": true,
+  "listening_performed": false,
+  "midi_file_score_panic_equivalence": "passed",
+  "pdf_generated_and_inspected": true,
+  "native_exports": [
+    "/Users/thuber/Projekte/VisualCSound/examples/instruments/lake_bamboo_flute/Lake_Bamboo_Flute.orch.instrument.json",
+    "/Users/thuber/Projekte/VisualCSound/examples/instruments/Lake_Bamboo_Flute.orch.instrument.json"
+  ]
+}

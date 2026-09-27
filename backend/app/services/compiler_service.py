@@ -17,6 +17,7 @@ from backend.app.services.gen_asset_service import GenAssetService
 from backend.app.services.opcode_service import OpcodeService
 from backend.app.services.performance_controller_service import controller_bindings
 from backend.app.services.orc_metadata import format_csd_comment_value, instrument_metadata_comments
+from backend.app.services.compiler_legato import LEGATO_OPCODES, collector_lines, has_legato, panic_listener_lines, validate_legato
 
 
 class CompilerService:
@@ -59,6 +60,10 @@ class CompilerService:
     ) -> CompileArtifact:
         if not targets:
             raise CompilationError(["At least one patch must be provided for compilation."])
+        for target in targets:
+            validate_legato(target.patch)
+            if has_legato(target.patch) and target.always_on:
+                raise CompilationError(["midi_legato cannot be assigned as a continuous instrument."])
 
         controller_manifest = {
             target.assignment_id or f"instrument-{index}": controller_bindings(target, f"instrument-{index}")
@@ -81,6 +86,12 @@ class CompilerService:
         engine = resolve_shared_engine(targets)
 
         instrument_names = self._instrument_names(targets)
+        legato_targets = {index: target for index, target in enumerate(targets, 1) if has_legato(target.patch)}
+        listener_count = int(bool(legato_targets) and performance_input_mode != "score")
+        collector_refs = {index: str(number) for number, index in enumerate(legato_targets, 1 + listener_count)}
+        offset = len(legato_targets) + listener_count
+        note_refs = {target.assignment_id or f"instrument-{index}": collector_refs.get(index, str(index + offset))
+                     for index, target in enumerate(targets, 1)}
 
         orc_lines = [
             f"sr = {engine.sr}",
@@ -89,8 +100,20 @@ class CompilerService:
             f"0dbfs = {engine.zero_dbfs}",
             "",
         ]
+        if legato_targets:
+            orc_lines.extend([LEGATO_OPCODES, ""])
+            for index, target in legato_targets.items():
+                orc_lines.extend(collector_lines(f"{index}_{target.patch.id}", int(collector_refs[index]), performance_input_mode))
+            if listener_count:
+                orc_lines.extend(panic_listener_lines([(f"{index}_{target.patch.id}", target.midi_channel)
+                                                      for index, target in legato_targets.items()]))
         if performance_input_mode == "score":
             orc_lines.extend([*self._orchestra_emitter.score_controller_header_lines(), ""])
+        elif legato_targets:
+            orc_lines.append("massign 0, 0")
+            for index, target in enumerate(targets, 1):
+                if not target.always_on and (target.midi_channel > 0 or len(targets) == 1):
+                    orc_lines.append(f"massign {target.midi_channel}, {note_refs[target.assignment_id or f'instrument-{index}']}")
         else:
             orc_lines.extend(
                 [
@@ -116,6 +139,7 @@ class CompilerService:
                 performance_input_mode=performance_input_mode,
                 score_midi_channel=target.midi_channel,
                 performance_controllers=controller_manifest.get(target.assignment_id or f"instrument-{instrument_number}", {}),
+                legato_identity=f"{instrument_number}_{target.patch.id}" if instrument_number in legato_targets else None,
             )
             compiled_instruments.append((instrument_number, target, compiled_lines))
             global_header_lines.extend(compiled_lines.global_header_lines)
@@ -159,12 +183,17 @@ class CompilerService:
             software_buffer=engine.software_buffer,
             hardware_buffer=engine.hardware_buffer,
         )
-        return CompileArtifact(orc=orc, csd=csd, diagnostics=diagnostics,
-            manifest={"performanceControllers": controller_manifest} if controller_manifest else {})
+        manifest = {"performanceControllers": controller_manifest} if controller_manifest else {}
+        if legato_targets:
+            manifest["instrumentReferences"] = {target.assignment_id or f"instrument-{index}": str(index + offset)
+                                                for index, target in enumerate(targets, 1)}
+            manifest["noteInstrumentReferences"] = note_refs
+            manifest["legatoInstanceIds"] = [targets[index - 1].assignment_id or f"instrument-{index}" for index in legato_targets]
+        return CompileArtifact(orc=orc, csd=csd, diagnostics=diagnostics, manifest=manifest)
 
     @staticmethod
     def _instrument_names(targets: list[PatchInstrumentTarget]) -> list[str] | None:
-        if not any(target.always_on or target.effect_source_ids or target.effect_routes for target in targets):
+        if not any(target.always_on or target.effect_source_ids or target.effect_routes or has_legato(target.patch) for target in targets):
             return None
         return [f"vcs_instr_{index}" for index, _target in enumerate(targets, start=1)]
 
@@ -214,7 +243,7 @@ class CompilerService:
         return [
             f"alwayson {OrchestraEmitter._format_csound_string(instrument_name)}"
             for target, instrument_name in zip(targets, instrument_names, strict=True)
-            if target.always_on
+            if target.always_on or has_legato(target.patch)
         ]
 
     @staticmethod
