@@ -26,7 +26,8 @@ Legacy paths and environment variables retain the VisualCSound name. Keep this g
   Report Docker validation as unperformed if unavailable. Patch/audio validation does not
   substitute for either build.
 - For user-visible workflow/UI changes, update README and relevant `documentation/` pages.
-  Ask the user for new screenshots to save in `screenshots/` when layout or interaction changes.
+  When layout or interaction changes, take new screenshots, save to `screenshots/` (or update existing)
+  and update the relevant documentation to reference the new screenshots.
   Keep labels and integrated help consistent across EN/DE/FR/ES.
 - README is for user capabilities, screenshots, and getting started. Preserve its title/opening
   through the user-documentation link and the full **Built With Codex** section unless the user
