@@ -1,0 +1,27 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/conditional_checks.py\" snapshot",
+            "statusMessage": "Recording source state for conditional checks"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/conditional_checks.py\" check",
+            "timeout": 1200,
+            "statusMessage": "Checking changed frontend and backend code"
+          }
+        ]
+      }
+    ]
+  }
+}
