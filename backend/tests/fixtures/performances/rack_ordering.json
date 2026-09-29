@@ -1,0 +1,374 @@
+{
+  "patches": [
+    {
+      "id": "lead",
+      "name": "Lead",
+      "description": "Rack ordering UI fixture",
+      "is_template": false,
+      "always_on": false,
+      "instrument_type": "melody",
+      "schema_version": 1,
+      "created_at": "2026-09-29",
+      "updated_at": "2026-09-29",
+      "audio_inlet_names": [],
+      "audio_outlet_names": [
+        "left",
+        "right"
+      ],
+      "performance_controllers": [
+        {
+          "node_id": "tone",
+          "min": 0,
+          "max": 1,
+          "default": 0.5,
+          "scale": "linear",
+          "label": "Tone"
+        }
+      ],
+      "graph": {
+        "nodes": [
+          {
+            "id": "tone",
+            "opcode": "perf_controller",
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "params": {
+              "min": 0,
+              "max": 1,
+              "default": 0.5,
+              "scale": "linear",
+              "label": "Tone"
+            }
+          }
+        ],
+        "connections": [],
+        "ui_layout": {},
+        "engine_config": {
+          "sr": 48000,
+          "control_rate": 750,
+          "ksmps": 64,
+          "nchnls": 2,
+          "software_buffer": 256,
+          "hardware_buffer": 1024,
+          "0dbfs": 1
+        }
+      }
+    },
+    {
+      "id": "bass",
+      "name": "Bass",
+      "description": "Rack ordering UI fixture",
+      "is_template": false,
+      "always_on": false,
+      "instrument_type": "melody",
+      "schema_version": 1,
+      "created_at": "2026-09-29",
+      "updated_at": "2026-09-29",
+      "audio_inlet_names": [],
+      "audio_outlet_names": [
+        "left",
+        "right"
+      ],
+      "performance_controllers": [
+        {
+          "node_id": "tone",
+          "min": 0,
+          "max": 1,
+          "default": 0.5,
+          "scale": "linear",
+          "label": "Tone"
+        }
+      ],
+      "graph": {
+        "nodes": [
+          {
+            "id": "tone",
+            "opcode": "perf_controller",
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "params": {
+              "min": 0,
+              "max": 1,
+              "default": 0.5,
+              "scale": "linear",
+              "label": "Tone"
+            }
+          }
+        ],
+        "connections": [],
+        "ui_layout": {},
+        "engine_config": {
+          "sr": 48000,
+          "control_rate": 750,
+          "ksmps": 64,
+          "nchnls": 2,
+          "software_buffer": 256,
+          "hardware_buffer": 1024,
+          "0dbfs": 1
+        }
+      }
+    },
+    {
+      "id": "effect",
+      "name": "Effect",
+      "description": "Rack ordering UI fixture",
+      "is_template": false,
+      "always_on": true,
+      "instrument_type": "continuous",
+      "schema_version": 1,
+      "created_at": "2026-09-29",
+      "updated_at": "2026-09-29",
+      "audio_inlet_names": [
+        "left",
+        "right"
+      ],
+      "audio_outlet_names": [
+        "left",
+        "right"
+      ],
+      "performance_controllers": [
+        {
+          "node_id": "tone",
+          "min": 0,
+          "max": 1,
+          "default": 0.5,
+          "scale": "linear",
+          "label": "Tone"
+        }
+      ],
+      "graph": {
+        "nodes": [
+          {
+            "id": "tone",
+            "opcode": "perf_controller",
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "params": {
+              "min": 0,
+              "max": 1,
+              "default": 0.5,
+              "scale": "linear",
+              "label": "Tone"
+            }
+          }
+        ],
+        "connections": [],
+        "ui_layout": {},
+        "engine_config": {
+          "sr": 48000,
+          "control_rate": 750,
+          "ksmps": 64,
+          "nchnls": 2,
+          "software_buffer": 256,
+          "hardware_buffer": 1024,
+          "0dbfs": 1
+        }
+      }
+    }
+  ],
+  "config": {
+    "version": 18,
+    "instruments": [
+      {
+        "id": "note-1",
+        "patchId": "lead",
+        "midiChannel": 1,
+        "performanceControllerValues": {
+          "tone": 0.1
+        }
+      },
+      {
+        "id": "continuous-1",
+        "patchId": "effect",
+        "midiChannel": 0,
+        "performanceControllerValues": {
+          "tone": 0.2
+        }
+      },
+      {
+        "id": "note-2",
+        "patchId": "lead",
+        "midiChannel": 2,
+        "performanceControllerValues": {
+          "tone": 0.3
+        }
+      },
+      {
+        "id": "continuous-2",
+        "patchId": "effect",
+        "midiChannel": 0,
+        "performanceControllerValues": {
+          "tone": 0.4
+        }
+      },
+      {
+        "id": "note-3",
+        "patchId": "bass",
+        "midiChannel": 3,
+        "performanceControllerValues": {
+          "tone": 0.5
+        }
+      },
+      {
+        "id": "continuous-3",
+        "patchId": "effect",
+        "midiChannel": 0,
+        "performanceControllerValues": {
+          "tone": 0.6
+        }
+      }
+    ],
+    "sequencer": {
+      "tracks": [],
+      "drummerTracks": [],
+      "controllerSequencers": [],
+      "arpeggiators": [],
+      "pianoRolls": [],
+      "midiControllers": []
+    },
+    "audioGraph": {
+      "routes": [
+        {
+          "id": "route-0-left",
+          "sourceId": "note-1",
+          "sourcePort": "left",
+          "targetId": "continuous-1",
+          "targetPort": "left",
+          "kind": "send",
+          "sourceStage": "strip",
+          "targetStage": "input"
+        },
+        {
+          "id": "route-0-right",
+          "sourceId": "note-1",
+          "sourcePort": "right",
+          "targetId": "continuous-1",
+          "targetPort": "right",
+          "kind": "send",
+          "sourceStage": "strip",
+          "targetStage": "input"
+        },
+        {
+          "id": "route-1-left",
+          "sourceId": "continuous-1",
+          "sourcePort": "left",
+          "targetId": "$master",
+          "targetPort": "left",
+          "kind": "main",
+          "sourceStage": "strip",
+          "targetStage": "input"
+        },
+        {
+          "id": "route-1-right",
+          "sourceId": "continuous-1",
+          "sourcePort": "right",
+          "targetId": "$master",
+          "targetPort": "right",
+          "kind": "main",
+          "sourceStage": "strip",
+          "targetStage": "input"
+        },
+        {
+          "id": "route-2-left",
+          "sourceId": "note-1",
+          "sourcePort": "left",
+          "targetId": "continuous-3",
+          "targetPort": "left",
+          "kind": "insert",
+          "sourceStage": "raw",
+          "targetStage": "input"
+        },
+        {
+          "id": "route-2-right",
+          "sourceId": "note-1",
+          "sourcePort": "right",
+          "targetId": "continuous-3",
+          "targetPort": "right",
+          "kind": "insert",
+          "sourceStage": "raw",
+          "targetStage": "input"
+        },
+        {
+          "id": "route-3-left",
+          "sourceId": "continuous-3",
+          "sourcePort": "left",
+          "targetId": "note-1",
+          "targetPort": "left",
+          "kind": "insert",
+          "sourceStage": "strip",
+          "targetStage": "strip"
+        },
+        {
+          "id": "route-3-right",
+          "sourceId": "continuous-3",
+          "sourcePort": "right",
+          "targetId": "note-1",
+          "targetPort": "right",
+          "kind": "insert",
+          "sourceStage": "strip",
+          "targetStage": "strip"
+        }
+      ],
+      "masterId": "$master",
+      "insertOwners": {
+        "continuous-3": "note-1"
+      }
+    },
+    "mixer": {
+      "strips": {
+        "note-1": {
+          "gainDb": 0,
+          "balance": 0.0,
+          "mute": false,
+          "solo": false
+        },
+        "continuous-1": {
+          "gainDb": -1,
+          "balance": 0.1,
+          "mute": false,
+          "solo": false
+        },
+        "note-2": {
+          "gainDb": -2,
+          "balance": 0.2,
+          "mute": false,
+          "solo": false
+        },
+        "continuous-2": {
+          "gainDb": -3,
+          "balance": 0.3,
+          "mute": false,
+          "solo": false
+        },
+        "note-3": {
+          "gainDb": -4,
+          "balance": 0.4,
+          "mute": false,
+          "solo": false
+        },
+        "continuous-3": {
+          "gainDb": -5,
+          "balance": 0.5,
+          "mute": false,
+          "solo": false
+        }
+      },
+      "sends": {
+        "route-0-left": {
+          "gainDb": -12,
+          "tap": "post"
+        },
+        "route-0-right": {
+          "gainDb": -12,
+          "tap": "post"
+        }
+      }
+    }
+  }
+}

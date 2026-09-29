@@ -3,6 +3,7 @@ import { MixerKnob } from "./MixerKnob";
 import { useEffect, useMemo, useSyncExternalStore } from "react";
 import { api } from "../api/client";
 import { audioCopy } from "../lib/audioCopy";
+import { groupRackInstruments } from "../lib/rackOrdering";
 import { MASTER, masterEndpoint, audioGraphDiagnostics, defaultStrip, mainPorts, newRoute, outputPorts, suggestedInterface } from "../lib/audioRouting";
 import { insertChain, wireInsertChain } from "../lib/insertRouting";
 import { meterSnapshot, subscribeMeters } from "../lib/mixerRuntime";
@@ -58,6 +59,8 @@ function MixerBody({ onStop }: { onStop: () => void }) {
   const [error, setError] = usePerformanceEditorState<string | null>("mixer", "error", null);
   const byId = useMemo(() => new Map([[MASTER, masterEndpoint], ...bindings.map((b) => [b.id, patches.find((p) => p.id === b.patchId)] as const)]), [bindings, patches]);
   const endpoints = [...bindings, { id: MASTER }];
+  const rackGroups = groupRackInstruments(bindings, new Map(patches.map(patch => [patch.id, patch])));
+  const stripBindings = [...rackGroups.standard, ...rackGroups.alwaysOn].map(row => row.binding).filter(binding => !graph.insertOwners[binding.id]);
   const missingMaster = graph.masterId && graph.masterId !== MASTER && !byId.get(graph.masterId);
   const repairMaster = async () => {
     if (running) return;
@@ -160,7 +163,7 @@ function MixerBody({ onStop }: { onStop: () => void }) {
       {!master && <button disabled={running} className={`${button} mt-1`} onClick={() => void throughMaster(id)}>{t("routeMaster")}</button>}
     </article>;
   };
-  return <> {notice && <div className="my-2 rounded border border-amber-800 p-2 text-xs text-amber-100">{t("migration")} <button className={button} onClick={() => useAppStore.setState({ migrationNotice: false })}>{t("dismiss")}</button></div>}{(error || syncError) && <div role="alert" className="my-2 text-xs text-rose-300">{error || syncError}</div>}<RetainedScroll owner="mixer" field="stripsScroll" className="my-3 flex gap-2 overflow-x-auto pb-2">{bindings.filter((b) => !graph.insertOwners[b.id]).map((b) => strip(b.id))}{strip(MASTER)}</RetainedScroll><div className="max-w-md text-xs">{t("audioOutput")}<Meter id="$output" name={t("audioOutput")} /></div>{running && <button className={button} onClick={onStop}>{t("stop")}</button>}<EditorDetails owner={"mixer"} field="routing" initiallyOpen className="mt-3 border-t border-slate-800 pt-2" summary={<>{t("routing")}</>}>{() => <>{missingMaster && <button className={button} disabled={running} onClick={() => void repairMaster()}>{t("repairMaster")}</button>}<div className="my-2 flex flex-wrap items-end gap-2">
+  return <> {notice && <div className="my-2 rounded border border-amber-800 p-2 text-xs text-amber-100">{t("migration")} <button className={button} onClick={() => useAppStore.setState({ migrationNotice: false })}>{t("dismiss")}</button></div>}{(error || syncError) && <div role="alert" className="my-2 text-xs text-rose-300">{error || syncError}</div>}<RetainedScroll owner="mixer" field="stripsScroll" className="my-3 flex gap-2 overflow-x-auto pb-2">{stripBindings.map((b) => strip(b.id))}{strip(MASTER)}</RetainedScroll><div className="max-w-md text-xs">{t("audioOutput")}<Meter id="$output" name={t("audioOutput")} /></div>{running && <button className={button} onClick={onStop}>{t("stop")}</button>}<EditorDetails owner={"mixer"} field="routing" initiallyOpen className="mt-3 border-t border-slate-800 pt-2" summary={<>{t("routing")}</>}>{() => <>{missingMaster && <button className={button} disabled={running} onClick={() => void repairMaster()}>{t("repairMaster")}</button>}<div className="my-2 flex flex-wrap items-end gap-2">
     <label className="flex flex-col text-xs">{t("source")}<select className={field} value={selected} disabled={running} onChange={(e) => { select(e.target.value); setSourcePort(""); }}><option value="">—</option>{endpoints.map((b) => <option key={b.id} value={b.id}>{name(b.id)}{b.id !== MASTER ? ` · ${b.id.slice(0, 4)}` : ""}</option>)}</select></label>
     <label className="flex flex-col text-xs">{t("destination")}<select className={field} value={target} disabled={running} onChange={(e) => { setTarget(e.target.value); setTargetPort(""); }}><option value="">—</option><option value="$output">{t("audioOutput")}</option>{endpoints.filter((b) => b.id !== selected && byId.get(b.id)?.audio_inlet_names.length).map((b) => <option key={b.id} value={b.id}>{name(b.id)}{b.id !== MASTER ? ` · ${b.id.slice(0, 4)}` : ""}</option>)}</select></label>
     <label className="text-xs"><input type="checkbox" checked={stereo} disabled={running} onChange={(e) => setStereo(e.target.checked)} /> Stereo</label>

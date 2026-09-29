@@ -124,4 +124,4 @@ If you edit the draft after preparing, prepare again before listening. Preview i
 
 ### Audition notes for branching instruments
 
-The **Test MIDI note** field chooses which note audition sends. A Switch driven by `notnum` starts with its first MIDI-number case (36 for Drumset); other patches start at 60. Change it to 38 or 42 to test the other drums, or to an unmatched note to check Default Silence. [Branching guide (EN/DE/FR/ES)](control_flow.md).
+The **Test MIDI note** field chooses which note audition sends. A Switch driven by `notnum` starts with its first MIDI-number case (36 for Drumset); other patches start at 60. Change it to 38 or 42 to test the other drums, or to an unmatched note to check Default Silence. [Branching guide](control_flow.md).

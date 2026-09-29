@@ -167,6 +167,7 @@ export default function App() {
   const bindMidiInput = useAppStore((state) => state.bindMidiInput);
   const addSequencerInstrument = useAppStore((state) => state.addSequencerInstrument);
   const removeSequencerInstrument = useAppStore((state) => state.removeSequencerInstrument);
+  const moveSequencerInstrument = useAppStore((state) => state.moveSequencerInstrument);
   const updateSequencerInstrumentPatch = useAppStore((state) => state.updateSequencerInstrumentPatch);
   const updateSequencerInstrumentChannel = useAppStore((state) => state.updateSequencerInstrumentChannel);
   const updateSequencerInstrumentLevel = useAppStore((state) => state.updateSequencerInstrumentLevel);
@@ -1389,6 +1390,7 @@ export default function App() {
   const sequencerInstrumentActions = {
     onAddInstrument: addSequencerInstrument,
     onRemoveInstrument: removeSequencerInstrument,
+    onInstrumentReorder: moveSequencerInstrument,
     onInstrumentPatchChange: updateSequencerInstrumentPatch,
     onInstrumentChannelChange: updateSequencerInstrumentChannel,
     onInstrumentLevelChange: updateSequencerInstrumentLevel,

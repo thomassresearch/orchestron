@@ -37,3 +37,5 @@ that file or the `examples/` directory to exist.
 `legacy_master.patch.json` and `performances/legacy_master.json` are fixed neutral-Master migration inputs. They exercise v14 migration and audio equivalence without depending on developer examples.
 
 `sequencers/timing_migration.json` is the shared frontend/backend/standalone-CLI legacy-to-meter timing contract, covering /8 tracks, nested rests, controller keypoints, workspace drafts and history. Existing `controller_curves.json` event offsets retain their historical 3,360-unit clock; current runtime tests multiply those expected offsets by six when checking the 20,160-unit clock.
+
+`performances/rack_ordering.json` is a synthetic UI/persistence fixture with interleaved note-triggered and continuous instances, duplicate patches, controller overrides, sends, and an insert. It exercises rack/mixer ordering without compiling audio or reading developer examples.

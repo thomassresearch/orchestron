@@ -21,6 +21,7 @@ import { PatchPicker } from "./PatchPicker";
 import { PerformanceControllerRack, PerformanceControllerSyncStatus } from "./sequencer/PerformanceControllerRack";
 import { PerformMixer } from "./PerformMixer";
 import { audioCopy } from "../lib/audioCopy";
+import { canReorderRackInstruments, groupRackInstruments, type RackInstrumentBindingRow } from "../lib/rackOrdering";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   ChangeEvent,
@@ -66,7 +67,6 @@ import {
 } from "./sequencer/PianoRollKeyboard";
 import type {
   DrummerSequencerTrackState,
-  SequencerInstrumentBinding,
   SequencerChord,
   SequencerMode,
   SequencerScaleRoot,
@@ -79,6 +79,7 @@ import type {
 const MIXED_SELECT_VALUE = "__mixed__";
 const SEQUENCER_PAD_DRAG_MIME = "application/x-visualcsound-sequencer-pad";
 const SEQUENCER_TRACK_DRAG_MIME = "application/x-visualcsound-sequencer-track";
+const RACK_INSTRUMENT_DRAG_MIME = "application/x-orchestron-rack-instrument";
 const SEQUENCER_STEP_DRAG_MIME = "application/x-visualcsound-sequencer-step";
 const PAD_TRANSPOSE_LONG_PRESS_MS = 350;
 
@@ -102,11 +103,6 @@ type DrummerVelocityDragState = {
   rowId: string;
   stepIndex: number;
   velocity: number;
-};
-
-type RackInstrumentBindingRow = {
-  binding: SequencerInstrumentBinding;
-  index: number;
 };
 
 
@@ -322,6 +318,7 @@ function useSequencerPageContext({
   const {
     onAddInstrument,
     onRemoveInstrument,
+    onInstrumentReorder,
     onInstrumentPatchChange,
     onInstrumentChannelChange,
     onStartInstruments,
@@ -481,22 +478,7 @@ function useSequencerPageContext({
     return sessionState;
   }, [sessionState, ui.running, ui.stopped]);
   const patchById = useMemo(() => new Map(patches.map((patch) => [patch.id, patch])), [patches]);
-  const rackInstrumentRows = useMemo(() => {
-    const standard: RackInstrumentBindingRow[] = [];
-    const alwaysOn: RackInstrumentBindingRow[] = [];
-
-    instrumentBindings.forEach((binding, index) => {
-      const row = { binding, index };
-      const patch = patchById.get(binding.patchId);
-      if (patch?.always_on === true) {
-        alwaysOn.push(row);
-      } else {
-        standard.push(row);
-      }
-    });
-
-    return { standard, alwaysOn };
-  }, [instrumentBindings, patchById]);
+  const rackInstrumentRows = useMemo(() => groupRackInstruments(instrumentBindings, patchById), [instrumentBindings, patchById]);
   const totalPerformDevices =
     sequencer.tracks.length +
     sequencer.drummerTracks.length +
@@ -625,6 +607,7 @@ function useSequencerPageContext({
     "w-full rounded-md border border-slate-600 bg-slate-950 px-2 py-1 text-xs text-slate-100 outline-none ring-accent/40 transition focus:ring disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-slate-900 disabled:text-slate-500";
   return {
     rackInstrumentRows,
+    onInstrumentReorder,
     guiLanguage,
     ui,
     performanceName,
@@ -1111,6 +1094,7 @@ function SequencerPageContent(props: SequencerPageProps) {
 function RackBody({ context }: { context: ReturnType<typeof useSequencerPageContext> }) {
   const {
     rackInstrumentRows,
+    onInstrumentReorder,
     guiLanguage,
     ui,
     performanceName,
@@ -1139,18 +1123,84 @@ function RackBody({ context }: { context: ReturnType<typeof useSequencerPageCont
     onRemoveInstrument,
     rackAssignmentButtonClass,
   } = context;
+  const [draggedBindingId, setDraggedBindingId] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<{ id: string; position: "before" | "after" } | null>(null);
+  const clearDrag = useCallback(() => { setDraggedBindingId(null); setDropTarget(null); }, []);
+  useEffect(clearDrag, [clearDrag, instrumentsRunning, instrumentBindings, patchById]);
+  useEffect(() => {
+    if (!draggedBindingId) return;
+    const cancel = (event: KeyboardEvent) => { if (event.key === "Escape") clearDrag(); };
+    window.addEventListener("keydown", cancel);
+    return () => window.removeEventListener("keydown", cancel);
+  }, [draggedBindingId, clearDrag]);
+  const acceptsDrop = (event: ReactDragEvent, targetId: string) => !instrumentsRunning && !!draggedBindingId &&
+    dragEventHasMimeType(event, RACK_INSTRUMENT_DRAG_MIME) &&
+    canReorderRackInstruments(instrumentBindings, patchById, draggedBindingId, targetId);
+  const dropPosition = (event: ReactDragEvent): "before" | "after" => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    return event.clientY >= rect.top + rect.height / 2 ? "after" : "before";
+  };
   const renderRackInstrumentRow = ({ binding, index }: RackInstrumentBindingRow) => {
     const selectedPatch = patchById.get(binding.patchId);
     const isAlwaysOn = selectedPatch?.always_on === true;
+    const name = selectedPatch?.name ?? `${audioCopy(guiLanguage)("missing")}: ${binding.patchId}`;
     const cardClassName = isAlwaysOn
       ? "rounded-lg border border-blue-800/80 bg-[#020817] px-2 py-2 shadow-[inset_0_1px_0_rgba(59,130,246,0.16)]"
       : "rounded-lg border border-slate-600/80 bg-slate-800/75 px-2 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]";
 
     return (
-      <div key={binding.id} className={cardClassName}>
+      <div key={binding.id} data-rack-binding-id={binding.id} className={`relative ${cardClassName}`}
+        onDragOver={event => {
+          if (!acceptsDrop(event, binding.id)) { setDropTarget(null); return; }
+          event.preventDefault();
+          event.dataTransfer.dropEffect = "move";
+          const position = dropPosition(event);
+          setDropTarget(current => current?.id === binding.id && current.position === position ? current : { id: binding.id, position });
+        }}
+        onDragLeave={event => {
+          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDropTarget(null);
+        }}
+        onDrop={event => {
+          if (!acceptsDrop(event, binding.id)) { clearDrag(); return; }
+          event.preventDefault();
+          try {
+            const payload: unknown = JSON.parse(event.dataTransfer.getData(RACK_INSTRUMENT_DRAG_MIME));
+            if (payload && typeof payload === "object" && "bindingId" in payload && typeof payload.bindingId === "string" && payload.bindingId === draggedBindingId) {
+              onInstrumentReorder(payload.bindingId, binding.id, dropPosition(event));
+            }
+          } catch { /* Ignore malformed or unrelated drag data. */ }
+          clearDrag();
+        }}
+      >
+        {dropTarget?.id === binding.id && !instrumentsRunning && <div aria-hidden="true" data-rack-drop-position={dropTarget.position}
+          className={`pointer-events-none absolute inset-x-0 border-t-2 border-accent ${dropTarget.position === "before" ? "-top-1" : "-bottom-1"}`} />}
         <div className="grid grid-cols-[minmax(0,_1fr)_110px_auto] items-end gap-2">
           <div className="flex min-w-0 flex-col gap-1">
-            <span className="text-[10px] uppercase tracking-[0.16em] text-slate-400">{ui.patch(index + 1)}</span>
+            <div className="flex items-center gap-2">
+              <button type="button" draggable={!instrumentsRunning} disabled={instrumentsRunning}
+                aria-label={`${name}: ${ui.reorderInstrument}`}
+                title={instrumentsRunning ? ui.stopToReorderInstruments : ui.reorderInstrumentHint}
+                onDragStart={event => {
+                  if (instrumentsRunning) { event.preventDefault(); return; }
+                  event.stopPropagation();
+                  setDraggedBindingId(binding.id);
+                  setDropTarget(null);
+                  event.dataTransfer.effectAllowed = "move";
+                  event.dataTransfer.setData(RACK_INSTRUMENT_DRAG_MIME, JSON.stringify({ bindingId: binding.id }));
+                }}
+                onDragEnd={clearDrag}
+                onKeyDown={event => {
+                  if (instrumentsRunning || !["ArrowUp", "ArrowDown"].includes(event.key)) return;
+                  event.preventDefault();
+                  const group = isAlwaysOn ? rackInstrumentRows.alwaysOn : rackInstrumentRows.standard;
+                  const offset = event.key === "ArrowUp" ? -1 : 1;
+                  const target = group[group.findIndex(row => row.binding.id === binding.id) + offset];
+                  if (target) onInstrumentReorder(binding.id, target.binding.id, offset < 0 ? "before" : "after");
+                }}
+                className="inline-flex cursor-grab select-none items-center rounded border border-slate-700 bg-slate-950 px-1.5 font-mono text-[10px] text-slate-400 active:cursor-grabbing disabled:cursor-not-allowed disabled:opacity-40"
+              >::</button>
+              <span className="text-[10px] uppercase tracking-[0.16em] text-slate-400">{ui.patch(index + 1)}</span>
+            </div>
             <PatchPicker
               patches={patches}
               guiLanguage={guiLanguage}
@@ -1321,9 +1371,12 @@ function RackBody({ context }: { context: ReturnType<typeof useSequencerPageCont
             </div>
           ) : null}
           {rackInstrumentRows.alwaysOn.length > 0 ? (
-            <div className="grid items-start gap-2 lg:grid-cols-2 2xl:grid-cols-3">
-              {rackInstrumentRows.alwaysOn.map(renderRackInstrumentRow)}
-            </div>
+            <>
+              {rackInstrumentRows.standard.length > 0 && <hr className="!my-3 border-0 border-t border-slate-600/60" />}
+              <div className="grid items-start gap-2 lg:grid-cols-2 2xl:grid-cols-3">
+                {rackInstrumentRows.alwaysOn.map(renderRackInstrumentRow)}
+              </div>
+            </>
           ) : null}
         </>
       )}
@@ -3166,16 +3219,19 @@ function RackSummary({ context }: { context: ReturnType<typeof useSequencerPageC
       aria-label={ui.instrumentRack}
       className="flex min-w-0 flex-nowrap gap-2 overflow-x-auto whitespace-nowrap pb-1 text-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
     >
-      {[...rackInstrumentRows.standard, ...rackInstrumentRows.alwaysOn].map(({ binding }) => {
+      {[...rackInstrumentRows.standard, ...rackInstrumentRows.alwaysOn].map(({ binding }, index) => {
         const patch = patchById.get(binding.patchId);
         const name = patch?.name ?? `${audioCopy(guiLanguage)("missing")}: ${binding.patchId}`;
         const channel = patch?.always_on ? audioCopy(guiLanguage)("continuous") : `${ui.channel} ${binding.midiChannel}`;
         return (
-          <span key={binding.id} title={`${channel} · ${name}`} className="inline-flex shrink-0 items-center gap-1.5 rounded border border-slate-700 bg-slate-900 px-2 py-1">
-            <span className="text-cyan-200">{channel}</span>
-            <span aria-hidden="true" className="text-slate-500">·</span>
-            <span className="max-w-56 truncate text-slate-200">{name}</span>
-          </span>
+          <Fragment key={binding.id}>
+            {index === rackInstrumentRows.standard.length && index > 0 && <span role="separator" aria-orientation="vertical" className="mx-1 self-stretch border-l border-slate-600/60" />}
+            <span title={`${channel} · ${name}`} className="inline-flex shrink-0 items-center gap-1.5 rounded border border-slate-700 bg-slate-900 px-2 py-1">
+              <span className="text-cyan-200">{channel}</span>
+              <span aria-hidden="true" className="text-slate-500">·</span>
+              <span className="max-w-56 truncate text-slate-200">{name}</span>
+            </span>
+          </Fragment>
         );
       })}
     </RetainedScroll>

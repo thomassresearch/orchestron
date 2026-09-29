@@ -1,4 +1,5 @@
 import { validateArrangementEdit } from "../lib/arrangementEditing";
+import { reorderRackInstruments } from "../lib/rackOrdering";
 import { normalizeTimingOffset } from "../lib/sequencer";
 import { nextPerformanceDeviceName } from "../lib/performanceDeviceNames";
 import { legacyGainDb, newRoute } from "../lib/audioRouting";
@@ -77,6 +78,7 @@ export type SequencerTrackStoreActions = Pick<
   AppStore,
   | "addSequencerInstrument"
   | "removeSequencerInstrument"
+  | "moveSequencerInstrument"
   | "updateSequencerInstrumentPatch"
   | "updateSequencerInstrumentChannel"
   | "updateSequencerInstrumentLevel"
@@ -192,6 +194,14 @@ export function createSequencerTrackStoreActions(
           performablePatches(state.patches)
         )
       });
+    },
+
+    moveSequencerInstrument: (sourceId, targetId, position = "before") => {
+      const state = get();
+      if (state.activeSessionState === "running") return;
+      const patches = new Map(state.patches.map(patch => [patch.id, patch]));
+      const instruments = reorderRackInstruments(state.sequencerInstruments, patches, sourceId, targetId, position);
+      if (instruments !== state.sequencerInstruments) set({ sequencerInstruments: instruments });
     },
 
     updateSequencerInstrumentPatch: (bindingId, patchId) => {

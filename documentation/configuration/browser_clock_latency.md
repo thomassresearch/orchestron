@@ -9,7 +9,6 @@ Orchestron now uses backend audio mode `browser_clock` on every supported platfo
 The `Browser-Clock Latency` section is shown when the backend is running in `browser_clock` mode, for example:
 
 - `docker compose up --build`
-- CLI argument `--audio-output-mode browser_clock`
 - environment variable `VISUALCSOUND_AUDIO_OUTPUT_MODE=browser_clock`
 
 This is the standard runtime path for macOS, Linux, Windows, and Docker. In practice, that means this section describes the normal live-audio path of the app, not a Docker-only special case.

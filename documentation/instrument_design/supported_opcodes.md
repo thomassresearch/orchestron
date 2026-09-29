@@ -60,7 +60,7 @@ This appendix is generated from `backend/app/data/opcodes.json` and currently li
 
 ### control_flow — editor constructs
 
-These nodes generate structured Csound conditionals; they are not ordinary opcode calls. [If, Switch and Drumset (EN/DE/FR/ES)](control_flow.md) documents note-start selection and the managed Case Result boundary.
+These nodes generate structured Csound conditionals; they are not ordinary opcode calls. [If, Switch and Drumset](control_flow.md) documents note-start selection and the managed Case Result boundary.
 
 | Construct | Inputs | Outputs | Short Description |
 | --- | --- | --- | --- |

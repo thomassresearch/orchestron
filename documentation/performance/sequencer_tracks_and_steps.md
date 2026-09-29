@@ -8,7 +8,7 @@ This page covers the **melodic sequencer** editor. Drum-machine style programmin
 
 Use the pen beside the device name to rename it. See [Device Names](performance.md#device-names) for editing controls, validation, and import/export behavior.
 
-See [Sequencer timing](sequencer_timing.md) for triplets, beat grouping, editing behavior and legacy compatibility (EN/DE/FR/ES).
+See [Sequencer timing](sequencer_timing.md) for triplets, beat grouping, editing behavior and legacy compatibility.
 
 ## Collapse the Panel
 
@@ -141,8 +141,6 @@ An early first step plays before the boundary when the same pad repeats. On a fr
 Copying steps or pads preserves timing. Clear Steps resets it. Inactive drum cells retain their timing for reactivation. Old performances load on grid; Save/Load, browser restoration, native bundles and both CSD export modes preserve offsets. Timing edits during playback use the normal coalesced live-edit workflow.
 
 Use the **Timing** slider or signed percentage field in each step to adjust its position. The reset arrow restores zero. The slider supports arrow keys; the note/chord copy handle also copies timing.
-
-The performance CLI can discover tracks with `edit sequencers list` and inspect or change offsets with `edit step-timing list|set|reset`. Pads use 1–8; steps are zero-based. YAML/JSON scores also support per-note timing. See the [skill timing reference](../../integrations/skills/orchestron-performance-creator/references/step_timing.md) for the full workflow and examples.
 
 ## Clear Steps
 

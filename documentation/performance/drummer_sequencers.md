@@ -8,7 +8,7 @@ They are optimized for per-step drum hit programming instead of melodic note/cho
 
 Use the pen beside the device name to rename it. See [Device Names](performance.md#device-names) for editing controls, validation, and import/export behavior.
 
-See [Sequencer timing](sequencer_timing.md) for triplets, beat grouping, editing behavior and legacy compatibility (EN/DE/FR/ES).
+See [Sequencer timing](sequencer_timing.md) for triplets, beat grouping, editing behavior and legacy compatibility.
 
 ## Collapse the Panel
 
@@ -100,7 +100,7 @@ While dragging vertically on a hit, the UI also shows a live numeric `velocity: 
 
 Timing moves an individual attack by **−50% to +50% of one local step**, in 1% increments. Zero means **On grid**. The millisecond readout follows the current tempo, grid and beat ratio: at 120 BPM with 4/4, Subdivision 4 and speed 1×, −20% is 25 ms early. Timing belongs to each pad and does not change its length, meter or playback speed.
 
-Moving a note also moves its release, preserving its length and any HOLD extension. A following attack can shorten the preceding note to avoid overlap. Chords move together. If neighboring attacks land at exactly the same instant, the later logical step wins.
+Moving a hit also moves its release. A following attack in the same drum row can shorten the preceding hit to avoid overlap. If neighboring attacks in that row land at exactly the same instant, the later logical step wins. For repeated hits within a step, see [Ratchets and Velocity Ramps](#ratchets-and-velocity-ramps).
 
 An early first step plays before the boundary when the same pad repeats. On a fresh start or a different-pad launch it plays at the boundary instead. Queued stops, pauses and finite arrangement ends suppress repeat anticipation. A command received after an anticipated attack has already sounded cannot undo that attack.
 
@@ -108,15 +108,13 @@ Copying steps or pads preserves timing. Clear Steps resets it. Inactive drum cel
 
 Drag a hit **left/right** to adjust timing, or **up/down** to adjust velocity. The first drag direction locks the property until release; clicking without dragging still toggles the hit. Changed hits show a signed percentage and a displaced indicator.
 
-Use **Left/Right** arrow keys for timing and **Up/Down** for velocity. Right-click a hit, or press **Shift+F10**, to open its Timing controls with a slider, numeric field and reset. The controls affect that hit in the displayed pad. Closing or collapsing the editor ends the gesture.
-
-The performance CLI can discover tracks with `edit sequencers list` and inspect or change offsets with `edit step-timing list|set|reset`. Pads use 1–8; steps are zero-based. YAML/JSON scores also support per-note timing. See the [skill timing reference](../../integrations/skills/orchestron-performance-creator/references/step_timing.md) for the full workflow and examples.
+Use **Left/Right** arrow keys for timing and **Up/Down** for velocity. Right-click a hit, or press **Shift+F10**, to open **Step properties**, which includes Timing controls with a slider, numeric field and reset. The controls affect that hit in the displayed pad. Closing or collapsing the editor ends the gesture.
 
 ## Pattern Pads and Reusable Phrases
 
 Drummer sequencers support the same `#1..#8` pattern-pad workflow as melodic sequencers.
 
-If a drummer sequencer is running, pad changes are queued to the next loop boundary. If it is stopped, pad changes apply immediately so you can edit another pad while the shared transport keeps running elsewhere.
+While a drummer sequencer is running in Manual pads mode, clicking another pad selects it for editing and queues playback at the next pattern boundary. While stopped or using Arrangement, clicking a pad only selects it for editing.
 
 Drummer pad length is stored in beats, while meter, grid, and beat ratio are configured per drummer sequencer.
 
@@ -151,26 +149,6 @@ Right-click a drum cell, or focus it and press **Shift+F10**, to open **Step pro
 
 Enable **Velocity ramp** and choose **Final velocity** (0–127). The first hit uses the cell's velocity and the remaining hits interpolate to the final value. For four hits, 100 → 40 produces 100, 80, 60, 40. Zero-velocity hits are silent. Disable the ramp for constant velocity. At one hit the ramp controls are disabled, but their values are retained.
 
-Timing shifts the whole roll while preserving its spacing. The next active cell in the same drum row cuts off unfinished repeats; an equal-time collision belongs to the later step. On a fresh start or a different-pad launch an early first roll starts at the boundary. On a confirmed same-pad repeat it can begin early, and a late final roll can finish across that boundary. A stop, seek, different pad, arrangement rest or finite end cancels unfinished rolls. A roll already in progress keeps its count, ramp and timing when those settings are edited; the next occurrence uses the prepared changes.
+Timing shifts the whole roll while preserving its spacing. The next active cell in the same drum row cuts off unfinished repeats; an equal-time collision belongs to the later step. On a fresh start or a different-pad launch an early first roll starts at the boundary. On a confirmed same-pad repeat it can begin early, and a late final roll can finish across that boundary. Stopping or seeking that device, launching a different pad, entering an arrangement rest or reaching its finite end cancels unfinished rolls. Independently running Manual pads retain their rolls through arranger Start, Stop and seeks. A roll already in progress keeps its count, ramp and timing when those settings are edited; the next occurrence uses the prepared changes.
 
 Editing these properties does not activate an inactive cell. Disabling and re-enabling a cell preserves them; copying pads and saving/exporting preserves them, including hidden steps. Clear Steps restores one hit without a ramp. The panel edits the displayed pad and closes when changing pads, collapsing the drummer section or removing the target. Escape also closes it. Existing click toggles, horizontal timing drags, vertical velocity drags and arrow-key editing remain available.
-
-The performance creator CLI supports `edit ratchets list|set|reset`. After discovering IDs with `edit sequencers list`, use `edit ratchets set --track drum-1 --pad 1 --key 38 --step 4 --count 4 --end-velocity 40` to add a ramp to an existing snare hit. `--constant` clears the ramp; omitting ramp flags retains it. YAML/JSON scores accept `step_ratchets` per track or pad. See the [ratchet CLI guide](../../integrations/skills/orchestron-performance-creator/references/step_ratchets.md) for indexing, validation and examples.
-
-### Deutsch — Mehrfachanschläge
-
-Die CLI bietet `edit ratchets list|set|reset` mit `--count`, optional `--end-velocity` oder `--constant`. YAML/JSON-Partituren verwenden `step_ratchets`; siehe [CLI-Anleitung](../../integrations/skills/orchestron-performance-creator/references/step_ratchets.md). Pads zählen ab 1, Schritte ab 0. Inaktive Zellen bleiben inaktiv.
-
-Rechtsklick oder **Umschalt+F10** öffnet **Schritteigenschaften**. **Mehrfachanschläge** (1–8) verteilen Anschläge gleichmäßig über einen Schritt; **×N** markiert den Wirbel. **Anschlagstärke-Verlauf** interpoliert von der Anschlagstärke der Zelle zur **Letzten Anschlagstärke** (0–127); 0 ist stumm. Bei einem Anschlag bleibt der Verlauf gespeichert, aber deaktiviert. Timing verschiebt den ganzen Wirbel; die nächste aktive Zelle derselben Zeile beendet ihn. Ein laufender Wirbel behält seine Einstellungen bis zum Ende. Stop, Sprung, ein anderes Pad oder eine Arrangement-Pause brechen ihn ab. Inaktive Zellen bleiben inaktiv; Kopien, Speichern und beide CSD-Exporte erhalten die Werte. Schritte löschen setzt sie zurück.
-
-### Français — Répétitions rapides
-
-La CLI propose `edit ratchets list|set|reset` avec `--count`, et au choix `--end-velocity` ou `--constant`. Les partitions YAML/JSON utilisent `step_ratchets` ; voir le [guide CLI](../../integrations/skills/orchestron-performance-creator/references/step_ratchets.md). Les pads commencent à 1, les pas à 0. Les cellules inactives restent inactives.
-
-Clic droit ou **Maj+F10** ouvre **Propriétés du pas**. **Répétitions rapides** (1–8) répartit les frappes régulièrement sur un pas ; **×N** indique le roulement. **Rampe de vélocité** interpole entre la vélocité de la cellule et la **Vélocité finale** (0–127) ; 0 est silencieux. Avec une seule frappe, la rampe reste mémorisée mais désactivée. Le placement décale tout le roulement ; la cellule active suivante de la même ligne l'interrompt. Un roulement commencé conserve ses réglages. Arrêt, déplacement, autre pad ou pause d'arrangement annulent les frappes restantes. Les cellules inactives restent inactives ; copies, sauvegardes et exports CSD conservent les valeurs. Effacer les pas les réinitialise.
-
-### Español — Repeticiones rápidas
-
-La CLI ofrece `edit ratchets list|set|reset` con `--count` y, opcionalmente, `--end-velocity` o `--constant`. Las partituras YAML/JSON usan `step_ratchets`; consulta la [guía CLI](../../integrations/skills/orchestron-performance-creator/references/step_ratchets.md). Los pads se numeran desde 1 y los pasos desde 0. Las celdas inactivas siguen inactivas.
-
-Clic derecho o **Mayús+F10** abre **Propiedades del paso**. **Repeticiones rápidas** (1–8) distribuye golpes equidistantes dentro de un paso; **×N** identifica el redoble. **Rampa de velocidad** interpola entre la velocidad de la celda y la **Velocidad final** (0–127); 0 es silencioso. Con un solo golpe, la rampa se conserva pero queda desactivada. El tiempo desplaza todo el redoble; la siguiente celda activa de la misma fila lo interrumpe. Un redoble iniciado conserva sus ajustes. Parada, salto, otro pad o pausa del arreglo cancelan los golpes restantes. Las celdas inactivas siguen inactivas; copias, guardado y exports CSD conservan los valores. Limpiar pasos los restablece.

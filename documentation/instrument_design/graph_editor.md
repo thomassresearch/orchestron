@@ -129,13 +129,13 @@ Ordinary main-graph drags into a case transfer the selection. Ordinary case-memb
 
 The common output carries only the selected case. Collapse preserves selection, positions, viewport, shared input wiring and formulas. **Configure branches** retains **Move selected nodes** with the same transfer validation, plus case editing, Silence and reviewed mono/stereo changes. The built-in **Drumset** template demonstrates overlapping voices.
 
-See [If, Switch and Drumset](control_flow.md) for the complete EN/DE/FR/ES workflow, scope rules and version-2 patch/API format.
+See [If, Switch and Drumset](control_flow.md) for the complete workflow, scope rules and version-2 patch/API format.
 
 ## Stereo blocks and audio interfaces
 
 Stereo Input and Stereo Output are collapsible views of ordinary paired inleta/outleta nodes. Expand them to edit the underlying opcodes and connections. Exact port names and input formulas survive collapsing, expansion, saving and export. Direct Audio Output (outs) stays distinct.
 
-The Orchestron Patch Creator CLI generates a collapsed Stereo Output block with named `left`/`right` channels and a main stereo mapping. Route this group through the performance mixer to Master for playback. In patch specs, output formulas target `output_left.asignal` and `output_right.asignal`.
+Route an instrument’s Stereo Output through the performance mixer to Master for playback.
 
 The interface panel describes musical role, stable group IDs, display names, exact member ports, purpose and designated main input/output. Stereo blocks and their mappings share the same creation and deletion operations. Advanced mono/custom groups remain metadata views; changing a stereo group to another layout exposes the ordinary nodes without deleting them.
 

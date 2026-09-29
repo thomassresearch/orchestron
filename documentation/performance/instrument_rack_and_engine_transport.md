@@ -6,7 +6,7 @@ The Instrument Rack is the top section of the Perform page and controls the live
 
 ## Compact Rack
 
-When collapsed, the rack keeps Add Instrument and Start/Stop available. A single horizontally scrolling row shows MIDI channel and patch name for every instance, including duplicates; continuous instruments show Continuous instead of a channel. Long names have full-name tooltips. Focus the row and use the arrow keys to scroll. Metadata, file actions and detailed controls return when expanded.
+When collapsed, the rack keeps Add Instrument and Start/Stop available. A single horizontally scrolling row shows MIDI channel and patch name for every instance, including duplicates; continuous instruments show Continuous instead of a channel. Long names have full-name tooltips. Note-triggered instruments appear first, followed by continuous instruments, with a thin vertical divider when both groups are present. The row follows the saved rack order; expand the rack to reorder instruments. Focus the row and use the arrow keys to scroll. Metadata, file actions and detailed controls return when expanded.
 
 The header contains rack status, Add Instrument, Start/Stop, and help in both views. Collapse choices survive view switches until browser reload.
 
@@ -34,6 +34,16 @@ These actions operate on the performance configuration (instrument rack + audio 
 
 Each rack entry selects a saved patch and a MIDI channel (1–16), or displays Continuous activation. Up to 64 user patch instances are supported, including processors. Generated mixer stages do not occupy rack slots or MIDI channels. Use distinct MIDI channels for note-triggered instances.
 
+### Instrument Order
+
+Note-triggered instruments appear above continuous (always-on) instruments. A thin horizontal line separates the groups when both are present.
+
+With the instrument engine stopped, drag a card's `::` handle onto another card in the same group. An insertion line shows the destination: the upper half inserts before the target, and the lower half inserts after it. You can also focus the handle and use **↑/↓** to move one position within its group. Instruments cannot move across the divider. Press **Escape** to cancel a drag; collapsing the rack or starting the engine also cancels it.
+
+The compact rack and mixer strips follow this order. Master stays pinned at the right of the mixer, and insert processors remain inside their owner's insert chain. Moving a rack card changes display order without changing MIDI channels, routing, insert processing order, or controller and mixer values. Autosave, Save/Load, Clone, and native export/import preserve the instrument order.
+
+### Instrument Controls
+
 Patches containing [`perf_controller`](performance_controllers.md) show five compact tuning knobs per standard rack-card row; extras wrap below. They remain editable while playing. New notes use updated values; continuous instruments adopt them after restarting the rack. Save Performance stores explicit overrides.
 
 The separate [audio mixer](audio_mixer_and_routing.md) below the rack provides audio faders, pan/balance knobs, mute/solo, pre/post sends, inserts and meters. The old numeric Level field has been removed. Mixer gain affects held notes and external MIDI audio without changing note velocity.
@@ -47,10 +57,7 @@ While instruments run, adding/removing assignments, changing patch/channel assig
 - Search names and descriptions across all types by entering at least four characters; results appear after a 500 ms typing pause. Clear the search to return to browsing. Template patches are excluded from the rack picker.
 - This enables multi-instrument performances driven by different MIDI channels.
 - Continuous effects run as explicit rack instances. Adding an insert creates a dedicated instance automatically; simply saving an effect in the library does not start it.
-- In the `orchestron-performance-creator` CLI, use `edit instruments list` to discover stable rack binding IDs and audio ports. Build main/send paths with `edit routes add/remove/clear/list`, then set strip and send controls with `edit mixer`. The optional `edit add-standard-effects --send-gain-db -12` preset routes dry instruments and a shared reverb through a compressor into the built-in Master; no speaker instance is needed.
 - The button is unavailable while the engine is running; stop instruments before changing rack assignments.
-
-The CLI validates its staged rack through the same backend route resolver used by session creation and compilation. Run `edit validate`, then `edit create-runtime --start` to create a CLI-owned engine session. Because instrument assignments and Csound audio connections are fixed at compile time, use `edit rebuild-runtime` after changing the rack or its routes; `edit push-runtime` updates mixer, sequencer and arpeggiator settings when the compiled rack still matches.
 
 ## Rack Transport (Instrument Engine Control)
 
@@ -89,8 +96,8 @@ If engine start/stop or transport actions fail, the Perform page shows an error 
 ## Screenshots
 
 <p align="center">
-  <img src="../../screenshots/perform_instrument_rack_transport_controls.png" alt="Instrument rack and transport controls" width="1100" style="max-width: 100%; height: auto;" />
+  <img src="../../screenshots/perform_instrument_rack_transport_controls.png" alt="Ratchet drums demo rack with drag handles and a divider between note-triggered and continuous instruments" width="1100" style="max-width: 100%; height: auto;" />
 </p>
-<p align="center"><em>Instrument rack detail with performance metadata, assignments, and transport controls.</em></p>
+<p align="center"><em>Live “Ratchet drums demo” rack: World Drumkit and Flute above the thin divider, with continuous compressor and reverb below. The :: handles reorder instruments within each group while the engine is stopped.</em></p>
 
 **Navigation:** [Up](performance.md) | [Prev](performance.md) | [Next](audio_mixer_and_routing.md)

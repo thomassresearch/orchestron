@@ -8,7 +8,7 @@ The performance description field displays three lines with automatic text wrapp
 
 ## Sequencer timing
 
-Use Meter, Pattern length and Subdivision for melodic, drum and controller sequencers. A one-bar 4/4 pad with three steps per beat displays twelve steps in four labeled beat groups. Playback speed is under Advanced timing. See [Sequencer timing](sequencer_timing.md) for the full guide in EN/DE/FR/ES.
+Use Meter, Pattern length and Subdivision for melodic, drum and controller sequencers. A one-bar 4/4 pad with three steps per beat displays twelve steps in four labeled beat groups. Playback speed is under Advanced timing. See [Sequencer timing](sequencer_timing.md) for the full guide.
 
 ## Device Names
 
@@ -19,7 +19,7 @@ Melodic sequencers, drummer sequencers, controller sequencers, arpeggiators, pia
 - Names must be unique across all six device types within the performance, ignoring case and surrounding whitespace. Validation messages appear while typing, and Save is disabled until the name is valid.
 - Names retain their capitalization. Melodic synchronization choices and arranger track titles show the stored names. New devices receive an unused numbered default name.
 - Renaming preserves device IDs, synchronization, routing, patterns, and playback state. Names survive performance save/load, browser persistence, raw snapshot import, and native JSON/ZIP export/import.
-- Existing/imported names remain intact under the existing loading rules, even if they violate the new editing rules. They display as plain text and need a valid replacement only when renamed. CLI/API acceptance is unchanged.
+- Existing/imported names remain intact under the existing loading rules, even if they violate the new editing rules. They display as plain text and need a valid replacement only when renamed. API acceptance is unchanged.
 
 
 ## Collapsible Panels
@@ -85,9 +85,9 @@ The collapsed rack shows channel and patch name in one horizontally scrolling ro
 ## Screenshots
 
 <p align="center">
-  <img src="../../screenshots/perform_mixer_sends_inserts_master.png" alt="Perform mixer with instrument, stereo return, send, insert and pinned Master" width="1100" style="max-width: 100%; height: auto;" />
+  <img src="../../screenshots/perform_mixer_sends_inserts_master.png" alt="Ratchet drums demo mixer with note-triggered instruments before continuous effects and pinned Master" width="1100" style="max-width: 100%; height: auto;" />
 </p>
-<p align="center"><em>Perform mixer with a post-fader send, dedicated insert and pinned Master. See the following chapters for rack and sequencer controls.</em></p>
+<p align="center"><em>Live “Ratchet drums demo” mixer with World Drumkit and Flute before the continuous effect strips, followed by pinned Master. Playback is stopped. See the following chapters for rack and sequencer controls.</em></p>
 
 **Navigation:** [Up](../user_documentation.md) | [Prev](../instrument_design/supported_opcodes.md) | [Next](instrument_rack_and_engine_transport.md)
 

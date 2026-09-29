@@ -141,6 +141,7 @@ export interface AppStore {
 
   addSequencerInstrument: () => void;
   removeSequencerInstrument: (bindingId: string) => void;
+  moveSequencerInstrument: (sourceId: string, targetId: string, position?: "before" | "after") => void;
   updateSequencerInstrumentPatch: (bindingId: string, patchId: string) => void;
   updateSequencerInstrumentChannel: (bindingId: string, channel: number) => void;
   updateSequencerInstrumentLevel: (bindingId: string, level: number) => void;

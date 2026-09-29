@@ -37,6 +37,7 @@ export interface SequencerPageData {
 export interface SequencerPageInstrumentActions {
   onAddInstrument: () => void;
   onRemoveInstrument: (bindingId: string) => void;
+  onInstrumentReorder: (sourceId: string, targetId: string, position?: "before" | "after") => void;
   onInstrumentPatchChange: (bindingId: string, patchId: string) => void;
   onInstrumentChannelChange: (bindingId: string, channel: number) => void;
   onInstrumentLevelChange: (bindingId: string, level: number) => void;

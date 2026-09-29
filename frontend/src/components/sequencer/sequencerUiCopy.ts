@@ -21,6 +21,9 @@ export type SequencerUiCopy = {
   running: string;
   stopped: string;
   instrumentRack: string;
+  reorderInstrument: string;
+  reorderInstrumentHint: string;
+  stopToReorderInstruments: string;
   state: string;
   performanceName: string;
   performanceNamePlaceholder: string;
@@ -240,6 +243,9 @@ export const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     running: "running",
     stopped: "stopped",
     instrumentRack: "Instrument Rack",
+    reorderInstrument: "Reorder instrument",
+    reorderInstrumentHint: "Drag to reorder within this group, or focus and use ↑/↓.",
+    stopToReorderInstruments: "Stop instruments to change rack order.",
     state: "state",
     performanceName: "Performance Name",
     performanceNamePlaceholder: "Live Set A",
@@ -433,6 +439,9 @@ export const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     running: "laeuft",
     stopped: "gestoppt",
     instrumentRack: "Instrument-Rack",
+    reorderInstrument: "Instrument umordnen",
+    reorderInstrumentHint: "Innerhalb dieser Gruppe ziehen oder fokussieren und ↑/↓ verwenden.",
+    stopToReorderInstruments: "Instrumente stoppen, um die Rack-Reihenfolge zu ändern.",
     state: "status",
     performanceName: "Performance-Name",
     performanceNamePlaceholder: "Live Set A",
@@ -627,6 +636,9 @@ export const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     running: "en cours",
     stopped: "arrete",
     instrumentRack: "Rack instrument",
+    reorderInstrument: "Réordonner l’instrument",
+    reorderInstrumentHint: "Faites glisser dans ce groupe, ou utilisez ↑/↓ après avoir sélectionné la poignée.",
+    stopToReorderInstruments: "Arrêtez les instruments pour modifier l’ordre du rack.",
     state: "etat",
     performanceName: "Nom de performance",
     performanceNamePlaceholder: "Live Set A",
@@ -821,6 +833,9 @@ export const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     running: "ejecutando",
     stopped: "detenido",
     instrumentRack: "Rack de instrumentos",
+    reorderInstrument: "Reordenar instrumento",
+    reorderInstrumentHint: "Arrastra dentro de este grupo o enfoca el asa y usa ↑/↓.",
+    stopToReorderInstruments: "Detén los instrumentos para cambiar el orden del rack.",
     state: "estado",
     performanceName: "Nombre de performance",
     performanceNamePlaceholder: "Live Set A",

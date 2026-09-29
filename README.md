@@ -72,13 +72,13 @@ Load instruments into the Perform rack, assign MIDI channels, and play from the 
 
 Mix instruments and effect returns with volume faders, pan or balance, mute, solo, and meters. Add an insert to one instrument, send several instruments to a shared effect, and shape the combined sound through Master. Every performance has a fixed internal Master with its own controls and inserts, without adding an instrument to your library. A routing matrix and diagram help you follow where the audio goes.
 
-The [performance creator skill](integrations/skills/orchestron-performance-creator/SKILL.md) can also configure Master routing, shared effects, mixer strips, and pre/post-fader sends through its CLI. It can inspect and edit per-note timing, or generate syncopated melodic/drum patterns with timing in YAML/JSON scores. Author drum rolls and velocity ramps with `edit ratchets list|set|reset` or score `step_ratchets`; see the [ratchet CLI guide](integrations/skills/orchestron-performance-creator/references/step_ratchets.md). Its optional reverb/compressor preset outputs through Master without adding a speaker instrument.
+For optional instrument and performance creation with a coding agent, see the [Agent Tooling Appendix](documentation/appendix/appendix.md), including the two creator skills and their command-line utilities.
 
-![Instrument and effect-return mixer strips with an insert, a post-fader send, and a Master strip](screenshots/perform_mixer_sends_inserts_master.png)
+![Ratchet drums demo mixer with World Drumkit and Flute followed by continuous effects and pinned Master](screenshots/perform_mixer_sends_inserts_master.png)
 
-*An instrument strip sends audio to a shared return alongside the Master strip; playback is stopped in this view.*
+*The live “Ratchet drums demo” performance: World Drumkit and Flute appear before the continuous compressor and reverb, with Master pinned at the right. Playback is stopped.*
 
-Notes, controller curves, tempo, and arrangement edits can be applied while playback continues. Mixer controls stay available during performance; stop the instruments before changing rack assignments or audio connections. Collapsible panels let you focus on the part of the setup you are using.
+Notes, controller curves, tempo, and arrangement edits can be applied while playback continues. Mixer controls stay available during performance; stop the instruments before changing rack assignments or audio connections. The rack separates note-triggered and continuous instruments with a thin line. While stopped, drag a card’s `::` handle to reorder instruments within its group; the mixer and compact rack follow the saved order. Collapsible panels let you focus on the part of the setup you are using.
 
 See [Audio Mixer and Routing](documentation/performance/audio_mixer_and_routing.md) and [Editing During Playback](documentation/performance/live_status_and_safety_controls.md#editing-during-playback) for the full workflow.
 

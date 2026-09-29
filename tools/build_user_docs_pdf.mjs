@@ -171,9 +171,16 @@ function isLocalMarkdownLink(target) {
 function collectMarkdownFiles(entryFile, documentationRoot) {
   const files = [];
   const visited = new Set();
+  const deferredAppendices = new Set();
+  const appendixRoot = path.join(documentationRoot, "appendix");
+  const isAppendix = (file) => file.startsWith(`${appendixRoot}${path.sep}`);
 
-  function visit(currentFile) {
+  function visit(currentFile, includeAppendices = false) {
     const normalized = path.normalize(currentFile);
+    if (isAppendix(normalized) && !includeAppendices) {
+      deferredAppendices.add(normalized);
+      return;
+    }
     if (visited.has(normalized)) {
       return;
     }
@@ -195,12 +202,23 @@ function collectMarkdownFiles(entryFile, documentationRoot) {
       if (relativeToDocs.startsWith("..") || path.isAbsolute(relativeToDocs) || relativeToDocs === "") {
         continue;
       }
-      visit(resolved);
+      visit(resolved, includeAppendices);
     }
   }
 
   visit(entryFile);
-  return files;
+  if (deferredAppendices.size > 0) {
+    // The appendix index defines its order, even if a chapter links to a child first.
+    const appendixIndex = path.join(appendixRoot, "appendix.md");
+    if (fs.existsSync(appendixIndex)) {
+      visit(appendixIndex, true);
+    }
+    for (const file of deferredAppendices) {
+      visit(file, true);
+    }
+  }
+  // References found only in the appendix still belong before the appendix itself.
+  return [...files.filter((file) => !isAppendix(file)), ...files.filter(isAppendix)];
 }
 
 function parseHtmlAttributes(fragment) {

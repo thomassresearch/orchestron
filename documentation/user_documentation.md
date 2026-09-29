@@ -52,6 +52,12 @@ When Orchestron is served locally from the backend, opening `http://localhost:80
 - [Browser-Clock Latency](configuration/browser_clock_latency.md)
 - [Persistence and Defaults](configuration/persistence_and_defaults.md)
 
+## [Appendix](appendix/appendix.md)
+
+- [Agent CLI](appendix/agent_cli.md)
+- [Orchestron Patch Creator Skill](appendix/patch_creator_skill.md)
+- [Orchestron Performance Creator Skill](appendix/performance_creator_skill.md)
+
 ## Feature Coverage Map
 
 | Feature | Where It Is Documented |

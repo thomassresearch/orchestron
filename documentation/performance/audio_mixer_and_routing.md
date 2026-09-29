@@ -10,15 +10,15 @@ Collapsing Mixer suspends its visual contents and meter subscriptions while audi
 
 1. In Instrument Design, choose **New → Playable instrument**, name the draft and **Save** it. Create and save an **Audio effect** when you need a processor. The built-in effect is a stereo pass-through starter; add your processing inside its graph.
 2. In Perform, use **Add Instrument** and select the saved instrument. Set its MIDI channel. Guided instruments connect to the fixed internal Master automatically. For existing patches, inspect their destination labels and use **Route through Master** if needed.
-3. Expand **Mixer** below the rack. Each strip header selects its source for the routing editor. The Master strip stays pinned at the right; scroll horizontally when the rack has many strips.
+3. Expand **Mixer** below the rack. Each strip header selects its source for the routing editor. The Master strip stays pinned at the right; scroll horizontally when the rack has many strips. Strips follow the instrument rack’s order, with note-triggered instruments before continuous returns. Stop the instruments and drag the rack’s `::` handles to reorder within either group. This changes display order only; insert processors remain in their owner’s insert chain.
 4. Start with 0 dB gain and centered Pan / Balance. Build routes and insert chains while stopped, then open **Routing diagnostics → Check routing**.
 5. Click **Start Instruments** and play via a piano roll, sequencer or MIDI input. Change gain, balance, mute/solo and existing send settings while listening. Watch strip meters and the final Audio Output meter.
 6. Use **Save Performance** to retain this mix. Stop the engine before adding/removing routes, replacing assignments or reordering inserts.
 
 <p align="center">
-  <img src="../../screenshots/perform_mixer_sends_inserts_master.png" alt="Perform mixer with Sine Lead fader, post-fader send, insert, stereo return and pinned Master" width="900" style="max-width: 100%; height: auto;" />
+  <img src="../../screenshots/perform_mixer_sends_inserts_master.png" alt="Ratchet drums demo mixer with World Drumkit, Flute, Compressor Effect, Reverb Effect and pinned Master" width="900" style="max-width: 100%; height: auto;" />
 </p>
-<p align="center"><em>A stopped example mix: Sine Lead at -6 dB, a -12 dB post-fader send to Stereo Return, and pinned Master. The insert uses a separate instance of the same pass-through patch; no effect processing is implied by its name.</em></p>
+<p align="center"><em>Live “Ratchet drums demo” mixer, stopped: the strips follow the rack’s grouped order, with Master pinned at the right. World Drumkit and Flute have post-fader send controls for Reverb Effect; both sends are set to silence (−∞ dB). This performance has no insert processors.</em></p>
 
 ## Signal flow
 
@@ -102,7 +102,7 @@ Expand **Routing diagnostics** and click **Check routing** after editing connect
 
 ## Persistence and compatibility
 
-Performance configuration version 15 retains the internal Master introduced in version 14, with stable instance IDs, explicit routes, mixer strips, sends and insert ownership. Versions 1–14 remain readable. App state version 2 saves this same model. Save/Load, Clone and native JSON/ZIP bundles preserve the current settings. Mixer automation recording is not included.
+Current performance saves use configuration version 18 and read versions 1–18. They retain the internal Master introduced in version 14, with stable instance IDs, explicit routes, mixer strips, sends and insert ownership. App state version 3 reads versions 1–3 and saves this same model. Save/Load, Clone and native JSON/ZIP bundles preserve the current settings. Mixer automation recording is not included.
 
 Versions 1–10 convert old Level values using `20 * log10(level / 10)`, including continuous effects. Missing Level means 0 dB. Legacy inlet selection is resolved once and saved explicitly. Level no longer scales MIDI velocity; velocity-sensitive patches can therefore change timbre after migration. Authored note velocities remain unchanged.
 
@@ -113,28 +113,6 @@ Both performance CSD modes initialize the same routing, gain, balance, mute, sol
 Session creation and validation accept `audio_graph` and `mixer`. `GET /api/sessions/{id}/mixer` returns desired values and revision; `PUT` accepts batched partial scalar updates and an optional expected revision. Stale revisions return 409. The active browser-clock controller can send the equivalent `mixer_update` message and receive `mixer_ack`/`mixer_error` replies. Updates are queued and applied at render-block boundaries. Meter frames carry engine sample timestamps and are delivered at most 15 times per second.
 
 `POST /api/sessions/preview` accepts a session plus inline draft patch definitions. It creates a transient runtime without saving drafts into the patch library. Normal stop/delete session operations clean it up.
-
-The performance CLI writes version 16 and preserves routing, mixer data, instance settings and existing insert chains. `--level` is deprecated and converts to audio gain. New CLI routes require exact destination inlet selection when names differ; `--inlet` makes that mapping explicit.
-
-### Author a mix with the performance CLI
-
-The performance creator skill can stage main/send routes, strip and Master controls, and atomic stereo send updates. From its directory, with a staged performance and the named effect patches available:
-
-```bash
-uv run orchestron_cli --json edit add-standard-effects --send-gain-db -12
-uv run orchestron_cli --json edit routes list
-uv run orchestron_cli --json edit mixer list
-uv run orchestron_cli --json edit mixer strip set \
-  --binding '$master' --gain-db -3
-```
-
-The optional preset routes dry instrument outputs and a shared reverb return through a compressor into Master. No speaker instrument is required. It redirects existing direct outputs without cloning patches; new sends default to silence unless an initial amount is supplied. Repeating the preset preserves matching route IDs and saved mixer settings.
-
-For explicit routing, `edit routes add --kind main|send|custom` selects the path type. Quote `$master` and `$direct.left/right` in shell commands. Main routes capture direct output ports; send/custom routes alone leave their direct-output bypass active. Remove an exact connection with `edit routes remove --id ROUTE_ID`.
-
-Use `edit mixer strip set --binding ID` for gain, balance, mute/solo (Master has no solo), and `edit mixer send set --route LEFT_ID --route RIGHT_ID` for a stereo send's gain and pre/post tap. Add `--gain-db silence` for exact silence. Omitted controls retain their saved values. Use the app for insert creation/reordering; the CLI preserves existing insert chains.
-
-Validate and commit to save the mix. `edit push-runtime` applies mixer values to a matching live runtime; use `edit rebuild-runtime` after routing changes. Continuous-effect parameter overrides require rack restart, whereas ordinary mixer controls remain live. Full CLI examples are in the [performance creator skill](../../integrations/skills/orchestron-performance-creator/SKILL.md).
 
 **Navigation:** [Up](performance.md) | [Prev](instrument_rack_and_engine_transport.md) | [Next](sequencer_tracks_and_steps.md)
 

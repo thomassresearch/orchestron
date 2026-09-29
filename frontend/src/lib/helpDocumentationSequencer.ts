@@ -21,6 +21,8 @@ Manage performance-level instrument assignments.
 - The description shows three automatically wrapped lines. Scroll vertically for longer text, or hover over the field to see the full description.
 - Load and save performance presets.
 - Assign saved patches to MIDI channels.
+- Note-triggered and continuous instruments are separated by a thin line. While the instrument engine is stopped, drag a card’s \`::\` handle within its group; drop on the upper/lower half to insert before/after. Focus the handle and use ↑/↓ for keyboard reordering. Escape cancels a drag.
+- The compact rack and mixer follow the same order, with Master pinned and insert chains unchanged. Autosave, Save/Load, Clone, and native export/import preserve the order.
 - Open a slot's patch picker to browse collapsed instrument-type groups, or search names and descriptions across all types after at least four characters and a 500 ms typing pause. Templates are excluded.
 - Start and stop instrument engine transport.
 - Import/export sequencer configuration JSON.`
@@ -35,6 +37,8 @@ Verwaltet Instrument-Zuordnungen auf Performance-Ebene.
 - Die Beschreibung zeigt drei Zeilen mit automatischem Zeilenumbruch. Längeren Text vertikal scrollen oder mit der Maus über das Feld fahren, um die vollständige Beschreibung anzuzeigen.
 - Performance-Presets laden und speichern.
 - Gespeicherte Patches MIDI-Kanälen zuweisen.
+- Notengesteuerte und kontinuierliche Instrumente sind durch eine dünne Linie getrennt. Bei gestoppter Instrument-Engine eine Karte am \`::\`-Griff innerhalb ihrer Gruppe ziehen; die obere/untere Hälfte fügt davor/dahinter ein. Den Griff fokussieren und ↑/↓ für die Tastaturbedienung verwenden. Escape bricht das Ziehen ab.
+- Kompaktes Rack und Mixer folgen derselben Reihenfolge; Master bleibt fixiert und Insert-Ketten bleiben unverändert. Autosave, Speichern/Laden, Klonen und nativer Export/Import erhalten die Reihenfolge.
 - Die Patch-Auswahl eines Rack-Platzes öffnen, um eingeklappte Instrumententyp-Gruppen zu durchsuchen. Ab vier Zeichen und nach 500 ms Tipp-Pause werden Namen und Beschreibungen über alle Typen hinweg durchsucht. Vorlagen sind ausgeschlossen.
 - Instrument-Engine starten/stoppen.
 - Sequencer-Konfiguration als JSON importieren/exportieren.`
@@ -49,6 +53,8 @@ Gestion des affectations d'instruments au niveau performance.
 - La description affiche trois lignes avec retour automatique à la ligne. Faites défiler verticalement les textes plus longs ou survolez le champ pour voir la description complète.
 - Charger et enregistrer des presets de performance.
 - Affecter des patches sauvegardés à des canaux MIDI.
+- Une ligne fine sépare les instruments déclenchés par des notes des instruments continus. Lorsque le moteur est arrêté, faites glisser une carte par sa poignée \`::\` dans son groupe ; déposez-la sur la moitié supérieure/inférieure pour l’insérer avant/après. Sélectionnez la poignée et utilisez ↑/↓ pour réordonner au clavier. Échap annule le déplacement.
+- Le rack compact et le mixeur suivent le même ordre ; Master reste fixe et les chaînes d’inserts restent inchangées. La sauvegarde automatique, l’enregistrement/chargement, le clonage et l’export/import natif conservent cet ordre.
 - Ouvrir le sélecteur de patch d'un emplacement pour parcourir les groupes repliés par type d'instrument, ou rechercher dans les noms et descriptions de tous les types après au moins quatre caractères et une pause de saisie de 500 ms. Les modèles sont exclus.
 - Démarrer/arrêter le moteur instrument.
 - Import/export JSON de configuration séquenceur.`
@@ -63,6 +69,8 @@ Gestiona asignaciones de instrumentos a nivel de performance.
 - La descripción muestra tres líneas con ajuste automático de texto. Desplázate verticalmente para leer textos más largos o pasa el ratón sobre el campo para ver la descripción completa.
 - Carga y guarda presets de performance.
 - Asigna patches guardados a canales MIDI.
+- Una línea fina separa los instrumentos activados por notas de los continuos. Con el motor detenido, arrastra una tarjeta por su asa \`::\` dentro de su grupo; suéltala en la mitad superior/inferior para insertarla antes/después. Enfoca el asa y usa ↑/↓ para reordenar con el teclado. Escape cancela el arrastre.
+- El rack compacto y el mezclador siguen el mismo orden; Master permanece fijo y las cadenas de inserciones no cambian. El guardado automático, guardar/cargar, clonar y la exportación/importación nativa conservan el orden.
 - Abre el selector de patch de una ranura para explorar grupos contraídos por tipo de instrumento, o buscar en nombres y descripciones de todos los tipos tras escribir al menos cuatro caracteres y hacer una pausa de 500 ms. Las plantillas quedan excluidas.
 - Inicia y detiene el motor de instrumentos.
 - Importa/exporta JSON de configuración del secuenciador.`
