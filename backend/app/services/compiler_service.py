@@ -7,6 +7,7 @@ from backend.app.models.session import CompileArtifact
 from backend.app.services.compiler_common import (
     CompiledInstrumentLines,
     CompilationError,
+    CompilationProfile,
     PatchInstrumentTarget,
     SfloadGlobalRequest,
 )
@@ -55,6 +56,7 @@ class CompilerService:
         *,
         allow_packaged_asset_paths: bool = False,
         performance_input_mode: str = "midi",
+        profile: CompilationProfile = CompilationProfile.LIVE,
         audio_graph=None,
         mixer=None,
     ) -> CompileArtifact:
@@ -77,7 +79,7 @@ class CompilerService:
             artifact = compile_mixer_bundle(self, targets, audio_graph, mixer or MixerState(),
                 midi_input=midi_input, rtmidi_module=rtmidi_module,
                 allow_packaged_asset_paths=allow_packaged_asset_paths,
-                performance_input_mode=performance_input_mode)
+                performance_input_mode=performance_input_mode, profile=profile)
             if controller_manifest:
                 artifact.manifest["performanceControllers"] = controller_manifest
             return artifact

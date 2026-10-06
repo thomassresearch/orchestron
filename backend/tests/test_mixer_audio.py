@@ -9,7 +9,7 @@ import pytest
 from backend.app.engine.ctcsound_loader import load_ctcsound_module
 from backend.app.models.audio import AudioGraph, AudioRoute, MixerState, MixerStrip
 from backend.app.models.patch import Connection, EngineConfig, NodeInstance, PatchDocument, PatchGraph
-from backend.app.services.compiler_common import PatchInstrumentTarget
+from backend.app.services.compiler_common import CompilationProfile, PatchInstrumentTarget
 from backend.app.services.compiler_mixer import channel
 from backend.app.services.compiler_service import CompilerService
 from backend.app.services.opcode_service import OpcodeService
@@ -35,9 +35,10 @@ def source(identity="source", *, ksmps=32, direct=True, copies=1, always_on=True
     )
 
 
-def compile_audio(targets, graph=None, mixer=None):
+def compile_audio(targets, graph=None, mixer=None, *, profile=CompilationProfile.LIVE, mode="midi"):
     return CompilerService(OpcodeService(icon_prefix="/static/icons")).compile_patch_bundle(
-        targets, audio_graph=graph or AudioGraph(), mixer=mixer or MixerState(), midi_input="0", rtmidi_module="none"
+        targets, audio_graph=graph or AudioGraph(), mixer=mixer or MixerState(), midi_input="0", rtmidi_module="none",
+        profile=profile, performance_input_mode=mode,
     )
 
 

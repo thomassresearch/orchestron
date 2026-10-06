@@ -2382,6 +2382,30 @@ def _midi_messages_with_absolute_ticks(midi_bytes: bytes):
             yield absolute_tick, message
 
 
+@pytest.mark.parametrize("event_source", ["midiFile", "score"])
+def test_performance_csd_export_uses_offline_mixer_profile(tmp_path: Path, event_source: str) -> None:
+    payload = _performance_csd_export_payload()
+    payload["eventSource"] = event_source
+    config = payload["performanceExport"]["performance"]["config"]
+    config.update(version=18, instruments=[{"id": "source", "patchId": "patch-1", "midiChannel": 1}],
+                  audioGraph={"routes": [], "masterId": "$master", "insertOwners": {}},
+                  mixer={"strips": {"source": {"gainDb": -6.020599913279624}}, "sends": {}})
+    with _client(tmp_path) as client:
+        response = client.post("/api/bundles/export/performance-csd", json=payload)
+    assert response.status_code == 200, response.text
+    with zipfile.ZipFile(BytesIO(response.content)) as archive:
+        csd = archive.read("Offline_Export/Offline_Export.csd").decode()
+        readme = archive.read("Offline_Export/README.txt").decode()
+        assert ("Offline_Export/Offline_Export.mid" in archive.namelist()) == (event_source == "midiFile")
+    assert "a_gain = 0.5" in csd
+    assert "vcs_mixer_ramp" not in csd and "__vcs_mixer_" not in csd
+    assert "sr = 48000" in csd and "ksmps = 1" in csd and "f 0 2.5" in csd
+    assert "connect " in csd and "alwayson " in csd
+    assert "-d -W -f -o Offline_Export.wav" in csd and "-m0" not in csd
+    assert "fixed coefficients" in readme and "csound -m0 Offline_Export.csd" in readme
+    assert "suppresses warning-level messages" in readme
+
+
 def test_performance_csd_export_bundle_includes_csd_midi_readme_and_assets(tmp_path: Path) -> None:
     asset_dir = tmp_path / "gen_audio_assets"
     asset_dir.mkdir(parents=True, exist_ok=True)

@@ -92,7 +92,6 @@ def test_performance_csd_modes_embed_mixer_and_preserve_velocities(tmp_path, mod
     from io import BytesIO
     import zipfile
     from backend.tests.test_api import _performance_csd_export_payload
-    from backend.app.services.compiler_mixer import channel
 
     payload = _performance_csd_export_payload()
     config = payload["performanceExport"]["performance"]["config"]
@@ -111,8 +110,10 @@ def test_performance_csd_modes_embed_mixer_and_preserve_velocities(tmp_path, mod
         assert response.status_code == 200, response.text
         with zipfile.ZipFile(BytesIO(response.content)) as archive:
             csd = archive.read("Offline_Export/Offline_Export.csd").decode()
-            assert f'chnset 0.5, "{channel("strip", "one", "gain")}"' in csd
-            assert f'chnset 0, "{channel("strip", "one", "mute")}"' in csd
+            assert "a_gain = 0.5" in csd
+            assert "a_send = 0" in csd  # Muting also gates pre-fader paths.
+            assert "__vcs_mixer_" not in csd
+            assert "vcs_mixer_ramp" not in csd
             assert "sr = 48000" in csd and "ksmps = 1" in csd
             if mode == "midiFile":
                 import mido

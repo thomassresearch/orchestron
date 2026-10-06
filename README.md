@@ -92,6 +92,8 @@ The interface and integrated help are available in **English, German, French, an
 
 Save instruments and performances to your library, or export native bundles to back them up and share them with another Orchestron user. Sample assets travel with ZIP bundles. Native imports validate the bundle before confirmation and save the selected instruments, performance, and new audio assets together; cancelling leaves the library and audio storage unchanged. You can also export an instrument as a Csound `.csd` file, or export an arranged performance as a Csound render package using MIDI or an embedded score. Each performance render package includes instructions for producing an audio file.
 
+Both performance CSD modes optimize offline rendering of the saved mix while preserving musical controller automation and effect tails.
+
 Read about [instrument exchange](documentation/instrument_design/instrument_import_export.md), [performance exports](documentation/performance/performance_import_export.md), and [language and help settings](documentation/configuration/gui_language_and_integrated_help.md).
 
 ## Get started

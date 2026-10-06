@@ -17,6 +17,7 @@ from backend.app.models.export import (
 )
 from backend.app.models.patch import EngineConfig, PatchDocument, PatchGraph
 from backend.app.services.compiler_service import CompilerService, PatchInstrumentTarget
+from backend.app.services.compiler_common import CompilationProfile
 from backend.app.services.compiler_orchestra import OrchestraEmitter, SCORE_CONTROLLER_ARRAY_NAME
 from backend.app.services.gen_asset_service import GenAssetService
 from backend.app.services.arpeggiator_runtime import PerformanceMidiRouter
@@ -194,6 +195,7 @@ class PerformanceExportService:
             rtmidi_module="virtual",
             allow_packaged_asset_paths=True,
             performance_input_mode="score" if request.event_source == "score" else "midi",
+            profile=CompilationProfile.OFFLINE,
             audio_graph=config.audio_graph,
             mixer=config.mixer,
         )
@@ -1017,6 +1019,19 @@ class PerformanceExportService:
         return (transport_steps / 8.0) * beat_duration
 
     @staticmethod
+    def _offline_mixer_readme_lines(csd_file_name: str) -> list[str]:
+        return [
+            "Mixer settings are compiled as fixed coefficients; interactive mixer smoothing and meters are omitted.",
+            "Musical controller automation, instance settings, routing and effect tails are preserved.",
+            "Exported mixer coefficients cannot be adjusted through live mixer control channels.",
+            "",
+            "Csound logging is unchanged; inlet/outlet instance messages can still appear.",
+            f"Optional quiet rendering: csound -m0 {csd_file_name}",
+            "The -m0 option also suppresses warning-level messages.",
+            "",
+        ]
+
+    @staticmethod
     def _build_readme(
         *,
         bundle_directory_name: str,
@@ -1046,6 +1061,7 @@ class PerformanceExportService:
                 "The WAV is written as 32-bit float to preserve the same headroom as live browser-clock audio.",
                 "Enabled MIDI Controller lane values are written at time 0 on their selected MIDI channels (all 16 by default).",
                 "",
+                *PerformanceExportService._offline_mixer_readme_lines(csd_file_name),
                 "If you need a longer release tail, increase the final 'f 0 ...' duration line in the CSD.",
                 "",
             ]
@@ -1084,6 +1100,7 @@ class PerformanceExportService:
                 "The WAV is written as 32-bit float to preserve the same headroom as live browser-clock audio.",
                 "Enabled MIDI Controller lane values are written at time 0 on their selected MIDI channels (all 16 by default).",
                 "",
+                *PerformanceExportService._offline_mixer_readme_lines(csd_file_name),
                 "If you need a longer release tail, increase the final 'f 0 ...' duration line in the CSD.",
                 "",
             ]

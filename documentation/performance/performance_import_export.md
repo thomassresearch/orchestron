@@ -207,6 +207,10 @@ Native bundles and both performance CSD modes capture version 11 routing and mix
 
 Offline rendering remains 48 kHz with ksmps=1, float WAV output, packaged assets and release tails. Equivalent routing and settings are guaranteed, not sample-identical live/offline waveforms. Finite exports without MIDI notes are supported when a routed continuous source can produce audio. Standalone patch exports remain independent of Perform settings. See [Audio mixer and routing](audio_mixer_and_routing.md) for migration and signal flow.
 
+Both performance CSD modes use an offline compilation profile. Saved mixer settings become fixed coefficients, so rendering avoids interactive mixer smoothing and unused peak/RMS meters. These exported coefficients cannot be changed through live mixer control channels. Musical MIDI/controller curves, per-instance settings, synthesis, routing and effect tails retain their existing behavior. Previously exported CSD files are unchanged.
+
+Csound's default logging is preserved: inlet/outlet instance creation and removal messages may still appear as notes play. For optional quiet rendering, run `csound -m0 Offline_Export.csd` from the extracted package directory. This also suppresses warning-level messages; omit `-m0` when diagnosing a render.
+
 ## Screenshots
 
 <p align="center">

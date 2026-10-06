@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from enum import StrEnum
 
 from backend.app.models.patch import Connection, NodeInstance, PatchDocument
 from backend.app.models.opcode import OpcodeSpec
@@ -12,6 +13,13 @@ SFLOAD_NODES_LAYOUT_KEY = "sfload_nodes"
 FORMULA_TARGET_KEY_SEPARATOR = "::"
 DEFAULT_CSOUND_SOFTWARE_BUFFER_SAMPLES = 128
 DEFAULT_CSOUND_HARDWARE_BUFFER_SAMPLES = 512
+
+
+class CompilationProfile(StrEnum):
+    """Execution context, independent of MIDI versus score note delivery."""
+
+    LIVE = "live"
+    OFFLINE = "offline"
 
 
 class CompilationError(Exception):

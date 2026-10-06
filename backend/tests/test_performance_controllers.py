@@ -174,7 +174,8 @@ def test_native_bundle_roundtrip_preserves_controller_definitions_and_overrides(
 
 
 @pytest.mark.parametrize("mode", ["midiFile", "score"])
-def test_both_export_modes_render_instance_settings_without_client(tmp_path, mode):
+@pytest.mark.parametrize("with_mixer", [False, True])
+def test_both_export_modes_render_instance_settings_without_client(tmp_path, mode, with_mixer):
     if not shutil.which("csound"):
         pytest.skip("Csound executable is not installed")
     payload = _performance_csd_export_payload()
@@ -185,6 +186,11 @@ def test_both_export_modes_render_instance_settings_without_client(tmp_path, mod
         {"id": "one", "patchId": "patch-1", "midiChannel": 1, "performanceControllerValues": {"setting": 0.2}},
         {"id": "two", "patchId": "patch-1", "midiChannel": 2, "performanceControllerValues": {"setting": 0.3}},
     ]}
+    if with_mixer:
+        exported["performance"]["config"].update(
+            audioGraph={"routes": [], "masterId": None, "insertOwners": {}},
+            mixer={"strips": {"one": {"gainDb": -6.020599913279624}, "two": {"gainDb": None}}, "sends": {}},
+        )
     second = deepcopy(payload["sequencerConfig"]["tracks"][0])
     second.update(track_id="voice-2", midi_channel=2)
     payload["sequencerConfig"]["tracks"].append(second)
@@ -212,6 +218,6 @@ def test_both_export_modes_render_instance_settings_without_client(tmp_path, mod
             samples = np.frombuffer(chunk, dtype="<f4")
         offset += 8 + size + (size % 2)
     assert samples is not None and len(samples) > 0
-    assert samples.max() == pytest.approx(0.5, abs=1e-7)
+    assert samples.max() == pytest.approx(0.1 if with_mixer else 0.5, abs=1e-7)
     # The retained defaults in the patch definition are independent of performance overrides.
     assert exported["patch_definitions"][0]["graph"]["nodes"][0]["params"] == {}

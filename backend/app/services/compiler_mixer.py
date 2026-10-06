@@ -24,7 +24,7 @@ from backend.app.models.audio import (
 from backend.app.models.session import CompileArtifact
 from backend.app.services.audio_port_names import audio_port_names
 from backend.app.services.audio_routing_service import resolve_audio_routes
-from backend.app.services.compiler_common import CompilationError
+from backend.app.services.compiler_common import CompilationError, CompilationProfile
 from backend.app.services.compiler_graph import compile_graph_context, resolve_shared_engine, validate_target_channels
 from backend.app.services.performance_controller_service import controller_bindings
 from backend.app.services.orc_metadata import format_csd_comment_value, instrument_metadata_comments
@@ -477,10 +477,14 @@ def compile_mixer_bundle(
     rtmidi_module,
     allow_packaged_asset_paths=False,
     performance_input_mode="midi",
+    profile: CompilationProfile = CompilationProfile.LIVE,
 ):
     validate_target_channels(targets)
     resolved = ResolvedMixerGraph(targets, graph)
     manifest = resolved.manifest()
+    live_mixer = profile == CompilationProfile.LIVE
+    if not live_mixer:
+        manifest["meters"] = {}
     legato_ids = [identity for identity, target in resolved.by_id.items() if has_legato(target.patch)]
     listener_count = int(bool(legato_ids) and performance_input_mode != "score")
     legato_refs = {identity: str(index) for index, identity in enumerate(legato_ids, 1 + listener_count)}
@@ -502,10 +506,13 @@ def compile_mixer_bundle(
         f"ksmps = {engine.ksmps}",
         f"nchnls = {engine.nchnls}",
         f"0dbfs = {engine.zero_dbfs}",
-        RAMP_OPCODE,
+        *([RAMP_OPCODE] if live_mixer else []),
         "; Mixer routing: patch, strip and route instruments execute in signal-flow order.",
     ]
-    header += [f"chnset {value:.17g}, {quote(name)}" for name, value in controls.items()]
+    if live_mixer:
+        header += [f"chnset {value:.17g}, {quote(name)}" for name, value in controls.items()]
+    else:
+        header.append("; Offline mixer: saved coefficients; no interactive mixer controls or meters.")
     if legato_refs:
         header.append(LEGATO_OPCODES)
         for identity, ref in legato_refs.items():
@@ -530,12 +537,17 @@ def compile_mixer_bundle(
     def connect(source, outlet, target, inlet):
         header.append(f"connect {quote(names[source])}, {quote(outlet)}, {quote(names[target])}, {quote(inlet)}")
 
-    def ramp(lines, identity, kind, field, variable):
+    def parameter(lines, identity, kind, field, variable):
+        # Retain parameter identity here so future authored automation can emit a
+        # time-varying coefficient independently of the note input mode.
         name = channel(kind, identity, field)
-        lines += [
-            f"k_{variable} chnget {quote(name)}",
-            f"a_{variable} vcs_mixer_ramp k_{variable}, {controls[name]:.17g}",
-        ]
+        if live_mixer:
+            lines += [
+                f"k_{variable} chnget {quote(name)}",
+                f"a_{variable} vcs_mixer_ramp k_{variable}, {controls[name]:.17g}",
+            ]
+        else:
+            lines.append(f"a_{variable} = {controls[name]:.17g}")
 
     def meters(lines, identity, left, right):
         for side, signal in (("L", left), ("R", right)):
@@ -572,9 +584,9 @@ def compile_mixer_bundle(
             header += compiled.global_header_lines
             sfloads += compiled.sfload_global_requests
             warnings += compiled.diagnostics
-        lines = ["k_meter metro 15"]
-        for field in ("gain", "left", "right", "mute"):
-            ramp(lines, identity, "strip", field, field)
+        lines = ["k_meter metro 15"] if live_mixer else []
+        for field in ("gain", "left", "right", "mute") if live_mixer else ("gain", "left", "right"):
+            parameter(lines, identity, "strip", field, field)
         meter_sides = {"left": [], "right": []}
         interface = target.patch.graph.audio_interface
         main_group = next((g for g in interface.groups if g.id == interface.main_output), None) if interface else None
@@ -582,12 +594,12 @@ def compile_mixer_bundle(
         mono_pan_ports = {
             r.source_port for r in resolved.routes if r.source_id == identity and r.id in resolved.route_pans
         }
-        if mono_pan_ports:
+        if live_mixer and mono_pan_ports:
             for side in ("left", "right"):
                 representative = next(
                     r for r in resolved.routes if r.source_id == identity and resolved.route_pans.get(r.id) == side
                 )
-                ramp(lines, representative.id, "route", "pan", "meter_pan_" + side)
+                parameter(lines, representative.id, "route", "pan", "meter_pan_" + side)
         outlets = []
         for raw_name, originals in resolved.raw_ports[identity].items():
             inlet = port(raw_name)
@@ -603,15 +615,16 @@ def compile_mixer_bundle(
             balance = f" * a_{side}" if side else ""
             lines += [f"{var}_post = {var} * a_gain{balance}"]
             outlets += [f"outleta {quote('pre_' + inlet)}, {var}", f"outleta {quote('post_' + inlet)}, {var}_post"]
-            if raw_name in meter_ports:
+            if live_mixer and raw_name in meter_ports:
                 if raw_name in mono_pan_ports:
                     for meter_side in ("left", "right"):
                         meter_sides[meter_side].append(var + "_post * a_mute * a_meter_pan_" + meter_side)
                 else:
                     meter_sides[side or "left"].append(var + "_post * a_mute")
-        for side in ("left", "right"):
-            lines.append(f"a_meter_{side} = " + (" + ".join(meter_sides[side]) or "0"))
-        meters(lines, identity, "a_meter_left", "a_meter_right")
+        if live_mixer:
+            for side in ("left", "right"):
+                lines.append(f"a_meter_{side} = " + (" + ".join(meter_sides[side]) or "0"))
+            meters(lines, identity, "a_meter_left", "a_meter_right")
         bodies["strip:" + identity] = lines + outlets
     for route in resolved.routes:
         stage = "route:" + route.id
@@ -623,14 +636,14 @@ def compile_mixer_bundle(
         else:
             for tap in ("pre", "post"):
                 connect("strip:" + route.source_id, tap + "_" + port(route.source_port), stage, tap)
-            ramp(lines, route.id, "route", "post", "post")
-            ramp(lines, route.id, "route", "pan", "pan")
+            parameter(lines, route.id, "route", "post", "post")
+            parameter(lines, route.id, "route", "pan", "pan")
             lines += [
                 'a_pre inleta "pre"',
                 'a_post_signal inleta "post"',
                 "a_signal = a_pre * (1 - a_post) + a_post_signal * a_post * a_pan",
             ]
-        ramp(lines, route.id, "route", "gain", "send")
+        parameter(lines, route.id, "route", "gain", "send")
         lines += ['a_route_output = a_signal * a_send', 'outleta "out", a_route_output']
         dest = (
             OUTPUT
@@ -640,8 +653,10 @@ def compile_mixer_bundle(
         inlet = port(route.target_port) if route.target_stage == "strip" else route.target_port
         connect(stage, "out", dest, inlet)
         bodies[stage] = lines
-    output = ['a_left inleta "left"', 'a_right inleta "right"', "outs a_left, a_right", "k_meter metro 15"]
-    meters(output, OUTPUT, "a_left", "a_right")
+    output = ['a_left inleta "left"', 'a_right inleta "right"', "outs a_left, a_right"]
+    if live_mixer:
+        output.append("k_meter metro 15")
+        meters(output, OUTPUT, "a_left", "a_right")
     bodies[OUTPUT] = output
     header += emitter.render_sfload_global_requests(sfloads)
     header.append("; Continuous patches and mixer stages start with alwayson; note instruments start from MIDI/score events.")

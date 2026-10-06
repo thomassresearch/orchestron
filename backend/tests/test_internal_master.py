@@ -201,7 +201,10 @@ def test_offline_modes_generate_internal_master_without_a_patch_definition(tmp_p
         with zipfile.ZipFile(BytesIO(response.content)) as archive:
             csd = archive.read("Offline_Export/Offline_Export.csd").decode()
         assert "Master [$master]" in csd
-        assert channel("strip", "$master", "gain") in csd
+        master_strip = csd.split("; mixer stage strip:$master\n", 1)[1].split("endin", 1)[0]
+        gain = 10 ** (old["mixer"]["strips"]["old-master"]["gainDb"] / 20)
+        assert f"a_gain = {gain:.17g}" in master_strip
+        assert channel("strip", "$master", "gain") not in csd
         assert "old-master" not in csd
         native = client.post("/api/bundles/export/performance", json=exported)
         assert native.status_code == 200, native.text
