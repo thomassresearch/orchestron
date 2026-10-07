@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Iterable, Iterator, Sequence
 from typing import Protocol
 
 
@@ -88,3 +88,42 @@ def sample_controller_curve_value(
     span = max(1e-6, p2[0] - p1[0])
     local_t = max(0.0, min(1.0, (t - p1[0]) / span))
     return clamp_controller_value(_catmull_rom_1d(p0[1], p1[1], p2[1], p3[1], local_t))
+
+
+def sample_controller_curve_values(
+    keypoints: tuple[tuple[float, int], ...],
+    positions: Iterable[float],
+) -> Iterator[int]:
+    """Sample normalized keypoints at nondecreasing positions with scalar arithmetic."""
+    if len(keypoints) <= 1:
+        for _ in positions:
+            yield 0
+        return
+    segment_index = -1
+    upper = -1.0
+    for position in positions:
+        t = _clamp_controller_position(position)
+        if t <= 0.0:
+            yield clamp_controller_value(keypoints[0][1])
+            continue
+        if t >= 1.0:
+            yield clamp_controller_value(keypoints[-1][1])
+            continue
+        if segment_index < 0 or t > upper:
+            segment_index = max(0, segment_index)
+            while segment_index < len(keypoints) - 2 and t > keypoints[segment_index + 1][0]:
+                segment_index += 1
+            p1 = keypoints[segment_index]
+            p2 = keypoints[min(len(keypoints) - 1, segment_index + 1)]
+            p0 = keypoints[max(0, segment_index - 1)]
+            p3 = keypoints[min(len(keypoints) - 1, segment_index + 2)]
+            origin, upper = p1[0], p2[0]
+            span = max(1e-6, upper - origin)
+            constant = 2.0 * p1[1]
+            linear = -p0[1] + p2[1]
+            quadratic = 2.0 * p0[1] - 5.0 * p1[1] + 4.0 * p2[1] - p3[1]
+            cubic = -p0[1] + 3.0 * p1[1] - 3.0 * p2[1] + p3[1]
+        local_t = max(0.0, min(1.0, (t - origin) / span))
+        t2 = local_t * local_t
+        t3 = t2 * local_t
+        yield clamp_controller_value(0.5 * (constant + linear * local_t + quadratic * t2 + cubic * t3))

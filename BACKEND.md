@@ -703,6 +703,20 @@ Setting `pad_index` to `null` clears a queued pad change.
 
 Track status includes pad selection, queue state, local step, active notes, controller value, pad-loop position, and enabled flags.
 
+Preparation caches up to 512 immutable note pads and 512 controller pads per compiler
+process. Note keys include the effective steps, velocity, timing, length and scale;
+unused trailing steps do not affect the compiled pad. Mutable track state and pad
+maps are recreated for every configuration. Only missing pads receive defaults.
+Controller compilation samples ascending positions with one interpolation setup per
+segment. Rendering reuses timing calculations within an event and local steps within
+a pad-switch status payload. Compiler requests retain their existing process-pool
+serialization.
+
+The direct Csound binding (used by the macOS fallback) reuses its borrowed NumPy
+output view across render blocks. Compile, Start, Stop, Cleanup and Reset invalidate
+the view before calling Csound. PCM responses still copy the samples into their own
+buffers; the stock `ctcsound` binding is unchanged.
+
 All sequencer validation failures return `422`.
 
 ## WebSocket API

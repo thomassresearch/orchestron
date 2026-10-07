@@ -248,6 +248,8 @@ def _build_direct_csound_class(libcsound: _PrefixedSymbolLibrary) -> type:
         def __init__(self, hostData: object | None = None, pointer_: object | None = None) -> None:
             self.fromPointer = pointer_ is not None
             self.cs = pointer_ if pointer_ is not None else libcsound.csoundCreate(hostData)
+            # Borrowed Csound memory remains valid only within a compiled/started lifecycle.
+            self._spout_view: Any | None = None
             self.extMidiInOpenCbRef: object | None = None
             self.extMidiInCloseCbRef: object | None = None
             self.extMidiOutOpenCbRef: object | None = None
@@ -285,9 +287,11 @@ def _build_direct_csound_class(libcsound: _PrefixedSymbolLibrary) -> type:
             setter(self.cs, int(message_level))
 
         def compileCsdText(self, csd: str) -> int:  # noqa: N802
+            self._spout_view = None
             return int(libcsound.csoundCompileCsdText(self.cs, self._cstring(csd)))
 
         def start(self) -> int:
+            self._spout_view = None
             return int(libcsound.csoundStart(self.cs))
 
         def perform(self) -> int:
@@ -300,12 +304,15 @@ def _build_direct_csound_class(libcsound: _PrefixedSymbolLibrary) -> type:
             return int(libcsound.csoundPerformKsmps(self.cs))
 
         def stop(self) -> None:
+            self._spout_view = None
             libcsound.csoundStop(self.cs)
 
         def cleanup(self) -> int:
+            self._spout_view = None
             return int(libcsound.csoundCleanup(self.cs))
 
         def reset(self) -> None:
+            self._spout_view = None
             libcsound.csoundReset(self.cs)
 
         def inputMessage(self, message: str) -> int:  # noqa: N802
@@ -323,11 +330,15 @@ def _build_direct_csound_class(libcsound: _PrefixedSymbolLibrary) -> type:
         def spout(self) -> Any:
             import numpy as np  # type: ignore
 
+            if self._spout_view is not None:
+                return self._spout_view
             size = max(0, self.ksmps() * self.nchnls())
             if size <= 0:
                 return np.zeros((0,), dtype=np.float64)
             buffer = libcsound.csoundGetSpout(self.cs)
-            return np.ctypeslib.as_array(buffer, shape=(size,))
+            view = np.ctypeslib.as_array(buffer, shape=(size,))
+            self._spout_view = view
+            return view
 
         def setHostImplementedMIDIIO(self, state: bool) -> None:  # noqa: N802
             libcsound.csoundSetHostImplementedMIDIIO(self.cs, int(bool(state)))

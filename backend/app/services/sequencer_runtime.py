@@ -1092,15 +1092,19 @@ class SessionSequencerRuntime:
             sounding = self._timed_notes.get(track_id)
             if not track.has_timing_offsets and sounding is None and roll is None:
                 # Preserve the original single-hit path, including legacy HOLD semantics.
-                if not self._local_step_boundary_reached(track, now):
+                duration = self._active_pad_transport_subunit_count(track)
+                local_offset = (now - track.phase_offset_subunit) % duration
+                step_span = self._transport_subunits_per_local_step(track)
+                if local_offset % step_span:
                     continue
-                step = pad.steps[self._local_step_for(track, now)]
+                local_step = min(max(1, pad.step_count) - 1, local_offset // step_span)
+                step = pad.steps[local_step]
                 if not step.notes:
                     if not step.hold:
                         self._release_track_notes_locked(track_id, track.midi_channel, delivery_delay_seconds=delay)
                     continue
-                base = now - self._local_transport_offset_for(track, now)
-                self._last_timed_attack[track_id] = (track.active_pad, base, self._local_step_for(track, now))
+                base = now - local_offset
+                self._last_timed_attack[track_id] = (track.active_pad, base, local_step)
             else:
                 if sounding is not None and sounding.release_subunit is not None and sounding.release_subunit <= now:
                     self._release_track_notes_locked(track_id, track.midi_channel, delivery_delay_seconds=delay,
@@ -1902,10 +1906,14 @@ class SessionSequencerRuntime:
         candidates = [((current_subunit // _TRANSPORT_SUBUNITS_PER_STEP) + 1) * _TRANSPORT_SUBUNITS_PER_STEP]
         for track in config.tracks.values():
             if track.enabled:
-                candidates.append(self._next_track_cycle_boundary_subunit(track, current_subunit))
+                duration = self._active_pad_transport_subunit_count(track)
+                local_offset = (current_subunit - track.phase_offset_subunit) % duration
+                origin = current_subunit - local_offset
+                candidates.append(origin + max(1, duration))
                 pad_runtime = self._active_pad_runtime(track)
                 if pad_runtime is not None and pad_runtime.steps:
-                    candidates.append(self._next_local_step_boundary_subunit(track, current_subunit))
+                    step_span = self._transport_subunits_per_local_step(track)
+                    candidates.append(origin + ((local_offset // step_span) + 1) * step_span)
                     roll = self._ratchet_rolls.get(track.track_id)
                     if roll is not None:
                         candidates.extend(at for at in (roll.next_attack, roll.end) if at is not None and at > current_subunit)
@@ -2177,7 +2185,9 @@ class SessionSequencerRuntime:
             **self._sequencer_runtime_delta_payload_locked(config),
         }
 
-    def _sequencer_runtime_delta_payload_locked(self, config: SequencerRuntimeConfig) -> dict[str, Any]:
+    def _sequencer_runtime_delta_payload_locked(
+        self, config: SequencerRuntimeConfig, *, local_steps: dict[str, int] | None = None,
+    ) -> dict[str, Any]:
         """Build the WebSocket transport delta without constructing Pydantic status models."""
         visible_absolute_subunit = self._visible_absolute_subunit_locked()
         current_step, cycle = self._transport_position_locked(config, visible_absolute_subunit)
@@ -2193,7 +2203,11 @@ class SessionSequencerRuntime:
             "tracks": [
                 {
                     "track_id": track.track_id,
-                    "local_step": self._local_step_for(track, visible_absolute_subunit),
+                    "local_step": (
+                        local_steps[track.track_id]
+                        if local_steps is not None and track.track_id in local_steps
+                        else self._local_step_for(track, visible_absolute_subunit)
+                    ),
                     **({"runtime_pad_start_subunit": track.phase_offset_subunit if track.enabled else None} if self.sources.active else {}),
                 }
                 for track in config.tracks.values()
@@ -2215,6 +2229,7 @@ class SessionSequencerRuntime:
         """Publish one shared delta for every pad that switched at this boundary."""
         visible_absolute_subunit = self._visible_absolute_subunit_locked()
         switches: list[dict[str, Any]] = []
+        local_steps: dict[str, int] = {}
         for payload in payloads:
             track_id = payload.get("track_id")
             if not isinstance(track_id, str):
@@ -2222,12 +2237,13 @@ class SessionSequencerRuntime:
 
             note_track = config.tracks.get(track_id)
             if note_track is not None:
+                local_steps[track_id] = self._local_step_for(note_track, visible_absolute_subunit)
                 switches.append(
                     {
                         "track_id": note_track.track_id,
                         "track_kind": "note",
                         "active_pad": note_track.active_pad,
-                        "local_step": self._local_step_for(note_track, visible_absolute_subunit),
+                        "local_step": local_steps[track_id],
                         "queued_pad": note_track.queued_pad,
                         "pad_loop_position": note_track.pad_loop_position,
                         "enabled": note_track.enabled,
@@ -2257,7 +2273,7 @@ class SessionSequencerRuntime:
 
         return {
             "switches": switches,
-            **self._sequencer_runtime_delta_payload_locked(config),
+            **self._sequencer_runtime_delta_payload_locked(config, local_steps=local_steps),
         }
 
     @staticmethod

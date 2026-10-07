@@ -6,6 +6,8 @@ from pathlib import Path
 
 import pytest
 
+from backend.app.services import sequencer_runtime_config as config
+
 from backend.app.models.session import SessionSequencerConfigRequest
 from backend.app.services.sequencer_runtime_config import compile_sequencer_runtime_config
 from backend.app.services.sequencer_runtime_constants import TRANSPORT_SUBUNITS_PER_STEP
@@ -153,3 +155,78 @@ def test_compile_sequencer_runtime_config_uses_default_controller_channels_and_e
         for left, right in zip(track.pads[0].events, track.pads[0].events[1:], strict=False)
     )
     assert track.pads[0].event_offsets == tuple(event.offset_subunit for event in track.pads[0].events)
+
+
+def test_note_pad_cache_invalidation_immutability_and_bound():
+    compile_pad = config._cached_note_pad
+    compile_pad.cache_clear()
+    request = SessionSequencerConfigRequest.model_validate({'tracks': [{'track_id': 'lead', 'pads': [
+        {'pad_index': 0, 'steps': [{'note': [60, 64], 'velocity': 101, 'ratchets': 3}]},
+        {'pad_index': 1, 'steps': [67]}]}]})
+    a = config.compile_sequencer_runtime_config(request, controller_default_channels=(1,))
+    b = config.compile_sequencer_runtime_config(request, controller_default_channels=(1,))
+    assert a.tracks['lead'] is not b.tracks['lead']
+    assert a.tracks['lead'].pads[0] is b.tracks['lead'].pads[0]
+    a.tracks['lead'].active_pad = 1
+    assert b.tracks['lead'].active_pad == 0
+    assert a.tracks['lead'].pads is not b.tracks['lead'].pads
+    with pytest.raises(FrozenInstanceError):
+        a.tracks['lead'].pads[0].steps[0].velocity = 1
+    request.tracks[0].pads[0].steps[0].velocity = 57
+    c = config.compile_sequencer_runtime_config(request, controller_default_channels=(1,))
+    assert c.tracks['lead'].pads[0].steps[0].velocity == 57
+    assert a.tracks['lead'].pads[0].steps[0].velocity == 101
+    assert c.tracks['lead'].pads[1] is a.tracks['lead'].pads[1]
+    for index in range(600):
+        compile_pad((), 100, 1, 4, 20160, 5040, str(index), 'aeolian')
+    assert compile_pad.cache_info().currsize == 512
+
+
+@pytest.mark.parametrize(('section', 'field', 'value'), [
+    ('step', 'note', [62, 65]), ('step', 'hold', True), ('step', 'velocity', 57),
+    ('step', 'timing_offset_percent', -37), ('step', 'ratchets', 3),
+    ('step', 'ratchet_end_velocity', 20), ('pad', 'length_beats', 2),
+    ('pad', 'scale_root', 'D'), ('pad', 'mode', 'dorian'),
+    ('track', 'velocity', 58), ('track', 'scale_root', 'E'), ('track', 'mode', 'aeolian'),
+    ('timing', 'steps_per_beat', 8), ('timing', 'beat_rate_numerator', 3),
+    ('timing', 'beat_rate_denominator', 2), ('timing', 'meter_denominator', 8),
+])
+def test_note_cache_key_covers_authored_fields(section, field, value):
+    request = SessionSequencerConfigRequest.model_validate({'tracks': [{
+        'track_id': 'lead', 'length_beats': 1, 'scale_root': 'C', 'mode': 'ionian',
+        'timing': {'beat_unit': 'meter'},
+        'pads': [{'pad_index': 0, 'steps': [{'note': [60, 64], 'ratchets': 2}]}],
+    }]})
+    before = compile_sequencer_runtime_config(request, controller_default_channels=(1,))
+    track = request.tracks[0]
+    target = {'step': track.pads[0].steps[0], 'pad': track.pads[0],
+              'track': track, 'timing': track.timing}[section]
+    setattr(target, field, value)
+    after = compile_sequencer_runtime_config(request, controller_default_channels=(1,))
+    assert before.tracks['lead'].pads[0] != after.tracks['lead'].pads[0]
+
+
+def test_note_cache_ignores_unused_steps_until_pad_is_extended():
+    request = SessionSequencerConfigRequest.model_validate({'tracks': [{
+        'track_id': 'lead', 'length_beats': 1, 'timing': {'steps_per_beat': 4},
+        'pads': [{'pad_index': 0, 'steps': [60, None, None, None, 65]}],
+    }]})
+    before = compile_sequencer_runtime_config(request, controller_default_channels=(1,))
+    request.tracks[0].pads[0].steps[4] = 67
+    after = compile_sequencer_runtime_config(request, controller_default_channels=(1,))
+    assert before.tracks['lead'].pads[0] is after.tracks['lead'].pads[0]
+    request.tracks[0].pads[0].length_beats = 2
+    extended = compile_sequencer_runtime_config(request, controller_default_channels=(1,))
+    assert extended.tracks['lead'].pads[0].steps[4].notes == (67,)
+
+
+@pytest.mark.parametrize('supplied', [[], [0], [0, 3, 7], list(range(8))])
+def test_default_pad_completeness(supplied):
+    request = SessionSequencerConfigRequest.model_validate({'tracks': [{'track_id': 'lead', 'length_beats': 2,
+        'velocity': 57, 'pads': [{'pad_index': index, 'length_beats': 1, 'steps': [60 + index]} for index in supplied]}]})
+    track = config.compile_sequencer_runtime_config(request, controller_default_channels=(1,)).tracks['lead']
+    assert set(track.pads) == set(range(8))
+    for index, pad in track.pads.items():
+        assert pad.length_beats == (1 if index in supplied else 2)
+        assert pad.steps[0].notes == ((60+index,) if index in supplied else ())
+        assert pad.steps[0].velocity == (57 if index in supplied else 100)

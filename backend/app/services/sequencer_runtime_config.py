@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-from dataclasses import replace
+from functools import lru_cache
+
 from backend.app.models.controller_curve import (
     clamp_controller_value as clamp_controller_value,
     normalize_controller_keypoints as _normalize_controller_keypoints,
-    sample_controller_curve_value as _sample_controller_curve_value,
+    sample_controller_curve_values as _sample_controller_curve_values,
 )
 from backend.app.services.sequencer_note_timing import note_positions, ratchet_strikes, terminating_steps
-
-from functools import lru_cache
 
 from backend.app.models.session import (
     SessionControllerSequencerKeypointConfig,
@@ -71,37 +70,6 @@ def _transport_subunit_count_for_length(length_beats: int, timing: SequencerTimi
     ) // timing.beat_rate_numerator
 
 
-def _normalize_step(
-    value: int | list[int] | SessionSequencerStepConfig | None,
-    default_velocity: int,
-) -> SequencerStepRuntime:
-    if isinstance(value, SessionSequencerStepConfig):
-        return SequencerStepRuntime(
-            notes=_normalize_step_notes(value.note),
-            hold=bool(value.hold),
-            timing_offset_percent=value.timing_offset_percent,
-            ratchets=value.ratchets,
-            ratchet_end_velocity=value.ratchet_end_velocity,
-            velocity=clamp_midi_velocity(
-                value.velocity if value.velocity is not None else default_velocity
-            ),
-        )
-    return SequencerStepRuntime(
-        notes=_normalize_step_notes(value),
-        hold=False,
-        velocity=clamp_midi_velocity(default_velocity),
-    )
-
-
-def _normalize_steps(
-    raw_steps: list[int | list[int] | SessionSequencerStepConfig | None],
-    step_count: int,
-    default_velocity: int,
-) -> tuple[SequencerStepRuntime, ...]:
-    padded = raw_steps[:step_count] + [None] * max(0, step_count - len(raw_steps))
-    return tuple(_normalize_step(entry, default_velocity) for entry in padded[:MAX_SEQUENCER_STEPS])
-
-
 def _compile_controller_pad_runtime(
     keypoints: list[SessionControllerSequencerKeypointConfig],
     *,
@@ -125,9 +93,9 @@ def _compiled_controller_pad(
 
     constant = all(value == normalized_keypoints[0][1] for _, value in normalized_keypoints)
     offsets = (0,) if constant else range(0, transport_subunit_count, CONTROLLER_AUTOMATION_SUBUNIT_QUANTUM)
-    for event_offset in offsets:
-        normalized_position = event_offset / float(max(1, transport_subunit_count))
-        value = _sample_controller_curve_value(normalized_keypoints, normalized_position)
+    duration = float(max(1, transport_subunit_count))
+    values = _sample_controller_curve_values(normalized_keypoints, (offset / duration for offset in offsets))
+    for event_offset, value in zip(offsets, values, strict=True):
         if not events or events[-1].value != value:
             events.append(ControllerSequencerEventRuntime(offset_subunit=event_offset, value=value))
 
@@ -196,6 +164,62 @@ def _transport_extent_for_track(
     )
 
 
+_NoteStepKey = tuple[tuple[int, ...], bool, int | None, int, int, int | None]
+
+
+def _note_step_key(
+    steps: list[int | list[int] | SessionSequencerStepConfig | None],
+    step_count: int,
+) -> tuple[_NoteStepKey, ...]:
+    # Trailing authored steps are retained in the request but do not play in this pad.
+    return tuple(
+        (_normalize_step_notes(step.note), bool(step.hold), step.velocity,
+         step.timing_offset_percent, step.ratchets, step.ratchet_end_velocity)
+        if isinstance(step, SessionSequencerStepConfig)
+        else (_normalize_step_notes(step), False, None, 0, 1, None)
+        for step in steps[:step_count]
+    )
+
+
+@lru_cache(maxsize=512)
+def _cached_note_pad(
+    key: tuple[_NoteStepKey, ...],
+    velocity: int,
+    length_beats: int,
+    step_count: int,
+    duration: int,
+    span: int,
+    scale_root: str | None,
+    mode: str | None,
+) -> SequencerPadRuntime:
+    """Share immutable pad data only; each compilation creates fresh track state."""
+    padded = key[:step_count] + (((), False, None, 0, 1, None),) * max(0, step_count - len(key))
+    steps = tuple(
+        SequencerStepRuntime(
+            notes=notes,
+            hold=hold,
+            velocity=clamp_midi_velocity(value if value is not None else velocity),
+            timing_offset_percent=offset,
+            ratchets=ratchets,
+            ratchet_end_velocity=end_velocity,
+        )
+        for notes, hold, value, offset, ratchets, end_velocity in padded[:MAX_SEQUENCER_STEPS]
+    )
+    positions = note_positions(steps, span)
+    return SequencerPadRuntime(
+        length_beats=length_beats,
+        step_count=step_count,
+        transport_subunit_count=duration,
+        steps=steps,
+        scale_root=scale_root,
+        mode=mode,
+        note_offsets=tuple(at for at, _ in positions),
+        note_step_indices=tuple(index for _, index in positions),
+        ratchet_strikes=ratchet_strikes(steps, span),
+        terminating_step_indices=terminating_steps(steps),
+    )
+
+
 def compile_sequencer_runtime_config(
     request: SessionSequencerConfigRequest,
     *,
@@ -228,16 +252,14 @@ def compile_sequencer_runtime_config(
         track_length_beats = track_request.length_beats if 1 <= track_request.length_beats <= 16 else 4
         track_step_count = _step_count_for_length(track_length_beats, track_timing)
         track_transport_subunit_count = _transport_subunit_count_for_length(track_length_beats, track_timing)
+        supplied_indexes = {pad.pad_index for pad in track_request.pads}
         pads: dict[int, SequencerPadRuntime] = {
-            index: SequencerPadRuntime(
-                length_beats=track_length_beats,
-                step_count=track_step_count,
-                transport_subunit_count=track_transport_subunit_count,
-                steps=tuple(SequencerStepRuntime(notes=(), hold=False) for _ in range(track_step_count)),
-                scale_root=track_request.scale_root,
-                mode=track_request.mode,
+            index: _cached_note_pad(
+                (), 100, track_length_beats, track_step_count, track_transport_subunit_count,
+                track_timing.transport_subunits_per_local_step, track_request.scale_root, track_request.mode,
             )
             for index in range(DEFAULT_PAD_COUNT)
+            if index not in supplied_indexes
         }
 
         for pad in track_request.pads:
@@ -247,21 +269,12 @@ def compile_sequencer_runtime_config(
                 else track_length_beats
             )
             pad_step_count = _step_count_for_length(pad_length_beats, track_timing)
-            pads[pad.pad_index] = SequencerPadRuntime(
-                length_beats=pad_length_beats,
-                step_count=pad_step_count,
-                transport_subunit_count=_transport_subunit_count_for_length(pad_length_beats, track_timing),
-                steps=_normalize_steps(pad.steps, pad_step_count, track_request.velocity),
-                scale_root=pad.scale_root or track_request.scale_root,
-                mode=pad.mode or track_request.mode,
+            pads[pad.pad_index] = _cached_note_pad(
+                _note_step_key(pad.steps, pad_step_count), track_request.velocity, pad_length_beats,
+                pad_step_count, _transport_subunit_count_for_length(pad_length_beats, track_timing),
+                track_timing.transport_subunits_per_local_step,
+                pad.scale_root or track_request.scale_root, pad.mode or track_request.mode,
             )
-
-        for index, pad in pads.items():
-            positions = note_positions(pad.steps, track_timing.transport_subunits_per_local_step)
-            pads[index] = replace(pad, note_offsets=tuple(at for at, _ in positions),
-                                  note_step_indices=tuple(step for _, step in positions),
-                                  ratchet_strikes=ratchet_strikes(pad.steps, track_timing.transport_subunits_per_local_step),
-                                  terminating_step_indices=terminating_steps(pad.steps))
 
         active_pad = track_request.active_pad if track_request.active_pad in pads else 0
         queued_pad = track_request.queued_pad if track_request.queued_pad in pads else None

@@ -7242,6 +7242,38 @@ def test_session_meter_discriminator_and_capacity_are_validated(tmp_path):
         assert client.put(base, json=invalid).status_code == 200
 
 
+def test_repeated_note_preparation_applies_edits_without_sharing_playback_state(tmp_path):
+    with _client(tmp_path) as client:
+        session_id = _create_running_session(client, patch_name='Cached note preparation')
+        base = f'/api/sessions/{session_id}/sequencer'
+        payload = {'tracks': [{'track_id': 'lead', 'velocity': 93, 'length_beats': 1,
+            'pads': [{'pad_index': 0, 'steps': [{'note': 60, 'ratchets': 2}]},
+                     {'pad_index': 1, 'steps': [67]}]}]}
+        response = client.put(base + '/config', json=payload)
+        assert response.status_code == 200, response.text
+        sequencer = client.app.state.container.session_service._sessions[session_id].sequencer
+        original = sequencer._config.tracks['lead']
+        assert client.post(base + '/tracks/lead/queue-pad', json={'pad_index': 1}).status_code == 200
+        payload['tracks'][0]['pads'][0]['steps'][0].update(note=62, velocity=57, ratchets=3)
+        response = client.put(base + '/config', json=payload)
+        assert response.status_code == 200, response.text
+        edited = sequencer._config.tracks['lead']
+        assert edited.pads[0].steps[0].notes == (62,)
+        assert edited.pads[0].steps[0].velocity == 57
+        assert len(edited.pads[0].ratchet_strikes[0]) == 3
+        assert original.pads[0].steps[0].notes == (60,)
+        assert original.pads[0].steps[0].velocity == 93
+        assert len(original.pads[0].ratchet_strikes[0]) == 2
+        assert edited.pads[1] == original.pads[1]
+        # Revisit the first cached configuration after playback state has changed.
+        payload['tracks'][0]['pads'][0]['steps'][0] = {'note': 60, 'ratchets': 2}
+        response = client.put(base + '/config', json=payload)
+        assert response.status_code == 200, response.text
+        restored = sequencer._config.tracks['lead']
+        assert restored is not original
+        assert restored.pads[0] == original.pads[0]
+
+
 def test_legacy_meter_roundtrips_storage_app_state_and_native_bundle_once(tmp_path):
     cases = json.loads((Path(__file__).parent / 'fixtures/sequencers/timing_migration.json').read_text())
     config, expected = cases[0]['input'], cases[0]['expected']

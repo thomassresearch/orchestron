@@ -442,6 +442,10 @@ def test_render_driven_pad_boundary_batches_switches_without_status_snapshots() 
         for switch in switches
     )
     assert payload["tracks"]
+    local_steps = {track["track_id"]: track["local_step"] for track in payload["tracks"]}
+    for switch in switches:
+        if switch['track_kind'] == 'note':
+            assert switch['local_step'] == local_steps[switch['track_id']] == 0
 
 
 @pytest.mark.parametrize("playing", [False, True])
