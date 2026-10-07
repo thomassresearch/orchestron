@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="An interactive, animated tour of Orchestron's current browser-clock architecture: native Csound in Docker, browser playback, MIDI, live edits and persistence.">
+  <title>Orchestron — A score becomes sound</title>
+  <style>
+    :root { --bg:#0c1019; --panel:#111824; --ink:#eef1f4; --muted:#a4b0c3; --line:#2b3547; --blue:#69c9ef; --yellow:#f2d475; --green:#87d8aa; --purple:#bc9aea; --red:#ed939f; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--ink); font-family:Inter,"Segoe UI",Arial,sans-serif; }
+    button,input,select { font:inherit; }
+    button,a,input,select { -webkit-tap-highlight-color:transparent; }
+    button { color:inherit; cursor:pointer; }
+    button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[role=button]:focus-visible { outline:2px solid var(--yellow); outline-offset:5px; }
+    a { color:var(--blue); text-underline-offset:4px; }
+    button { border:1px solid var(--line); background:transparent; border-radius:6px; padding:9px 13px; }
+    button:hover { border-color:var(--muted); background:#ffffff08; }
+    button[aria-pressed=true] { color:var(--yellow); border-color:#f2d47577; }
+    .shell { max-width:1536px; margin:auto; padding:27px 48px 25px; }
+    .masthead { display:flex; align-items:center; justify-content:space-between; gap:20px; font-size:11px; letter-spacing:2.4px; }
+    .brand { display:flex; align-items:center; gap:12px; }
+    .brand-mark { width:25px; height:25px; border:1px solid var(--blue); border-radius:50%; position:relative; }
+    .brand-mark:after { content:""; position:absolute; inset:5px; border:1px solid var(--yellow); border-radius:50%; transform:translateX(5px); }
+    .edition { color:var(--muted); letter-spacing:1.1px; text-align:right; }
+    .hero { display:flex; justify-content:space-between; align-items:end; gap:28px; padding:33px 0 25px; }
+    h1 { font:normal clamp(37px,4.1vw,63px)/1.04 Georgia,"Times New Roman",serif; letter-spacing:-1.8px; margin:0; }
+    h1 em { color:var(--blue); font-weight:normal; }
+    .hero p { color:var(--muted); line-height:1.6; margin:12px 0 0; font-size:14px; max-width:650px; }
+    .hero-note { text-align:right; color:var(--muted); font-size:12px; line-height:1.7; flex-shrink:0; padding-bottom:3px; }
+    .hero-note strong { display:block; color:var(--green); font-weight:500; }
+    .chapters { display:grid; grid-template-columns:repeat(6,1fr); border-bottom:1px solid var(--line); }
+    .chapter { text-align:left; border:0; border-radius:0; padding:15px 12px 16px; color:var(--muted); font-size:13px; position:relative; }
+    .chapter span { font:italic 15px Georgia,serif; display:inline-block; margin-right:9px; opacity:.65; }
+    .chapter[aria-pressed=true] { color:var(--ink); background:#ffffff04; }
+    .chapter[aria-pressed=true]:after { content:""; height:2px; background:var(--blue); position:absolute; bottom:-1px; left:12px; right:12px; }
+    .theatre { position:relative; background:radial-gradient(ellipse at 68% 48%,#16213866,transparent 65%); }
+    .diagram { width:100%; height:auto; display:block; overflow:visible; }
+    .diagram text { font-family:Inter,"Segoe UI",Arial,sans-serif; }
+    .diagram .region-title { fill:var(--ink); font:23px Georgia,serif; }
+    .diagram .region-caption { fill:var(--muted); font-size:11px; letter-spacing:1.1px; }
+    .diagram .node { cursor:pointer; transition:opacity .35s; }
+    .diagram .node rect { fill:#111824; stroke:#354158; stroke-width:1; transition:stroke .3s,fill .3s; }
+    .diagram .node .node-title { fill:var(--ink); font-size:16px; font-weight:500; }
+    .diagram .node .node-sub { fill:var(--muted); font-size:12px; }
+    .diagram .node .node-tag { font-size:10px; letter-spacing:1px; }
+    .diagram .node.focused rect { stroke:var(--node-color); fill:#152030; }
+    .diagram .node.selected rect { stroke:var(--yellow); stroke-width:2; }
+    .diagram .node.dim { opacity:.32; }
+    .diagram .node:hover { opacity:1; }
+    .diagram .node:hover rect { stroke:var(--ink); }
+    .diagram .edge { fill:none; stroke-width:1.5; stroke-linecap:round; opacity:.11; transition:opacity .35s; }
+    .diagram .edge.active { opacity:.58; }
+    .diagram .edge-label { font-size:11px; fill:var(--muted); paint-order:stroke; stroke:var(--bg); stroke-width:6px; stroke-linejoin:round; }
+    .diagram .boundary { fill:none; stroke:#28364a; stroke-width:1; }
+    .diagram .particle { filter:url(#glow); }
+    .diagram .chalk { font:italic 17px Georgia,serif; fill:var(--yellow); }
+    .legend { display:flex; gap:23px; flex-wrap:wrap; align-items:center; justify-content:center; color:var(--muted); font-size:11px; padding:0 0 20px; }
+    .legend i { display:inline-block; width:20px; height:2px; margin:0 7px 3px 0; background:var(--swatch); }
+    .legend .hint { margin-left:10px; opacity:.8; }
+    .transport { border-top:1px solid var(--line); border-bottom:1px solid var(--line); padding:14px 0; display:flex; align-items:center; gap:16px; }
+    #play { width:109px; font-size:12px; border-color:#65748a; }
+    #previous,#next { font-size:17px; padding:5px 11px; }
+    .timeline { flex:1; display:flex; gap:12px; align-items:center; }
+    .timeline label { color:var(--muted); font-size:11px; white-space:nowrap; }
+    input[type=range] { width:100%; accent-color:var(--blue); cursor:pointer; height:20px; }
+    .speed-label { font-size:11px; color:var(--muted); display:flex; align-items:center; gap:8px; }
+    select { background:var(--bg); border:1px solid var(--line); border-radius:4px; color:var(--ink); padding:6px; }
+    #phase-number { font-variant-numeric:tabular-nums; font-size:11px; width:35px; color:var(--muted); }
+    .explanation { display:grid; grid-template-columns:1.25fr 1fr; gap:50px; padding:27px 0; min-height:215px; }
+    .eyebrow { color:var(--blue); letter-spacing:2px; font-size:10px; text-transform:uppercase; margin:0 0 10px; }
+    h2 { font:normal 28px/1.18 Georgia,serif; margin:0 0 11px; }
+    .narrative p { font-size:14px; line-height:1.65; color:var(--muted); margin:0; max-width:660px; }
+    .step-heading { font-size:12px; color:var(--yellow); margin:0 0 9px; }
+    .lab { border-left:1px solid var(--line); padding-left:28px; }
+    .formula { font:italic 23px/1.35 Georgia,serif; color:var(--ink); margin-bottom:13px; }
+    .formula small { font:11px Inter,"Segoe UI",Arial,sans-serif; color:var(--muted); display:block; margin-top:6px; }
+    .experiment { display:flex; flex-wrap:wrap; gap:8px; }
+    .experiment button { font-size:12px; }
+    #experiment-result { font-size:12px; line-height:1.6; color:var(--green); min-height:38px; margin:10px 0 0; }
+    .queue { display:flex; gap:3px; height:19px; margin:12px 0 7px; max-width:400px; }
+    .queue span { flex:1; border-radius:1px; background:var(--blue); opacity:.13; }
+    .queue span.filled { opacity:.75; }
+    .queue-label { color:var(--muted); font-size:11px; display:flex; justify-content:space-between; max-width:400px; }
+    .inspector { border-top:1px solid var(--line); display:grid; grid-template-columns:190px 1fr auto; gap:24px; padding:21px 0; align-items:start; }
+    .inspector h3 { margin:0; font:normal 21px Georgia,serif; }
+    .inspector p { margin:0; color:var(--muted); font-size:12px; line-height:1.7; }
+    .inspector a { font-size:11px; white-space:nowrap; }
+    footer { display:flex; justify-content:space-between; gap:20px; border-top:1px solid var(--line); padding-top:17px; font-size:10px; color:var(--muted); line-height:1.7; }
+    footer nav { display:flex; gap:18px; flex-wrap:wrap; }
+    footer a { color:var(--muted); }
+    .mobile-flow { display:none; }
+    .mobile-caption { display:none; }
+    .sr-only { position:absolute; width:1px; height:1px; padding:0; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+    @media(min-width:1600px) { .shell { padding-top:38px; } }
+    @media(max-width:1100px) { .shell { padding:24px; } .hero-note { display:none; } .chapter { padding-left:6px; padding-right:6px; font-size:12px; } .explanation { gap:24px; } }
+    @media(max-width:850px) {
+      .shell { padding:22px 20px; } .masthead { font-size:10px; letter-spacing:1.4px; } .edition { max-width:130px; font-size:9px; }
+      .hero { padding:29px 0 24px; } h1 { letter-spacing:-1px; } .hero p { font-size:13px; }
+      .chapters { grid-template-columns:repeat(3,1fr); gap:4px 0; } .chapter { min-height:48px; font-size:12px; }
+      .diagram { display:none; } .mobile-caption { display:block; color:var(--muted); font-size:11px; padding:20px 0 0; } .mobile-flow { display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:18px 0 24px; }
+      .mobile-node { text-align:left; min-height:86px; padding:13px; position:relative; background:var(--panel); }
+      
+      
+      .mobile-node small { font-size:9px; color:var(--node-color); letter-spacing:1px; display:block; margin-bottom:9px; }
+      .mobile-node strong { font-size:14px; font-weight:500; display:block; margin-bottom:7px; }
+      .mobile-node span { font-size:11px; line-height:1.4; color:var(--muted); display:block; }
+      .mobile-node.current { border-color:var(--node-color); box-shadow:inset 3px 0 var(--node-color); }
+      .legend { justify-content:start; gap:12px 20px; } .legend .hint { flex-basis:100%; margin:0; }
+      .transport { flex-wrap:wrap; gap:10px; } .timeline { order:5; flex-basis:100%; } .speed-label { margin-left:auto; }
+      .explanation { grid-template-columns:1fr; gap:25px; padding:23px 0; } .lab { border-left:0; border-top:1px solid var(--line); padding:23px 0 0; }
+      .inspector { grid-template-columns:1fr; gap:10px; } footer { flex-direction:column; gap:10px; }
+    }
+    @media(prefers-reduced-motion:reduce) { * { transition:none!important; scroll-behavior:auto!important; } }
+  </style>
+</head>
+<body>
+<main class="shell">
+  <header class="masthead"><div class="brand"><span class="brand-mark" aria-hidden="true"></span> ORCHESTRON <span style="color:var(--muted)">/ SYSTEM ANATOMY</span></div><div class="edition">AN INTERACTIVE FIELD GUIDE · 2026</div></header>
+  <section class="hero" aria-labelledby="title">
+    <div><h1>A score becomes <em>sound.</em></h1><p>Follow the signals, cross the process boundaries, and discover who owns time.</p></div>
+    <div class="hero-note"><strong>Current architecture · native Csound</strong>Browser-clock playback / Docker deployment</div>
+  </section>
+  <nav class="chapters" aria-label="Architecture chapters" id="chapters"></nav>
+  <section class="theatre" aria-label="Animated architecture diagram">
+    <svg class="diagram" id="diagram" viewBox="0 0 1320 706" role="group" aria-labelledby="diagram-title" aria-describedby="diagram-desc">
+      <title id="diagram-title">Orchestron's current browser and Docker architecture</title>
+      <desc id="diagram-desc">The browser worker requests audio. The backend advances its sequencer, schedules MIDI and renders native Csound. PCM returns to a shared buffer, consumed by the AudioWorklet. Select a component for details, or explore the six chapters below the title.</desc>
+      <defs>
+        <pattern id="grid" width="28" height="28" patternUnits="userSpaceOnUse"><path d="M 28 0 L 0 0 0 28" fill="none" stroke="#a4b0c3" stroke-opacity=".035" stroke-width="1"/></pattern>
+        <filter id="glow" x="-200%" y="-200%" width="500%" height="500%"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+      <rect width="1320" height="706" fill="url(#grid)"/>
+      <rect class="boundary" x="16" y="35" width="600" height="548" rx="12"/>
+      <rect class="boundary" x="652" y="35" width="652" height="652" rx="12"/>
+      <text class="region-title" x="43" y="69">The browser</text><text class="region-caption" x="365" y="67">OWNS AUDIBLE PLAYBACK</text>
+      <text class="region-title" x="680" y="69">The Docker app</text><text class="region-caption" x="1031" y="67">OWNS AUDIO GENERATION</text>
+      <g id="edges"></g><g id="edge-labels"></g><g id="particles" aria-hidden="true"></g><g id="nodes"></g>
+      <g aria-hidden="true"><text class="chalk" x="58" y="268" id="diagram-thought">Two places. One musical experience.</text><text class="region-caption" x="43" y="603">OPTIONAL · OUTSIDE DOCKER</text></g>
+      <path id="wave" d="M 62 486 L 264 486" fill="none" stroke="#87d8aa" stroke-width="1.5" opacity=".8" aria-hidden="true"/>
+    </svg>
+    <p class="mobile-caption">Chapter components · follow the highlights, tap to look inside.</p>
+    <div class="mobile-flow" id="mobile-flow" aria-label="Components in this chapter"></div>
+    <div class="legend" aria-label="Signal legend"><span><i style="--swatch:var(--blue)"></i>PCM audio</span><span><i style="--swatch:var(--yellow)"></i>Timing &amp; MIDI</span><span><i style="--swatch:var(--purple)"></i>Source &amp; configuration</span><span><i style="--swatch:var(--green)"></i>Saved state</span><span class="hint">Select any component to look inside.</span></div>
+  </section>
+  <div class="transport" aria-label="Animation controls">
+    <button id="play" type="button" aria-pressed="true">Ⅱ Pause</button>
+    <button id="previous" type="button" aria-label="Previous chapter">←</button><button id="next" type="button" aria-label="Next chapter">→</button>
+    <div class="timeline"><label for="progress">Explore the cycle</label><input id="progress" type="range" min="0" max="1000" value="0" aria-label="Animation progress"><output id="phase-number" for="progress" aria-live="off">0%</output></div>
+    <label class="speed-label" for="speed">Speed <select id="speed"><option value="0.5">½×</option><option value="1" selected>1×</option><option value="1.5">1½×</option><option value="2">2×</option></select></label>
+  </div>
+  <section class="explanation" aria-label="Chapter explanation">
+    <div class="narrative"><div class="eyebrow" id="chapter-kicker"></div><h2 id="chapter-title"></h2><div class="step-heading" id="step-heading" aria-live="polite"></div><p id="chapter-body"></p></div>
+    <div class="lab"><div class="formula" id="formula"></div><div class="experiment" id="experiment"></div><p id="experiment-result" aria-live="polite"></p><div class="queue" id="queue" aria-hidden="true"></div><div class="queue-label"><span>Illustrative browser PCM queue</span><span>read → refill</span></div></div>
+  </section>
+  <aside class="inspector" aria-label="Selected component details"><div><div class="eyebrow">Look inside</div><h3 id="inspect-title">Browser audio worker</h3></div><p id="inspect-body"></p><a id="inspect-source" href="../frontend/src/audio/browserClockWorker.ts">View source ↗</a></aside>
+  <footer><span>Illustrative animation, not live telemetry. No audio is played. Motion is slowed down to reveal the sequence.</span><nav aria-label="Architecture references"><a href="../CLOCK_OWNERS.md">Clock ownership</a><a href="../BACKEND.md">Backend reference</a><a href="configuration/browser_clock_latency.md">Browser-clock guide</a></nav></footer>
+</main>
+<script>
+(() => {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const NS = 'http://www.w3.org/2000/svg';
+  const colors = { audio:'#69c9ef', timing:'#f2d475', config:'#bc9aea', saved:'#87d8aa' };
+  const components = {
+    ui:{ x:44,y:110,w:230,h:88,title:'React interface',sub:'Graph editor · arrangement · mixer',tag:'MAIN THREAD',color:'config',source:'../frontend/src/App.tsx',detail:'React, TypeScript, Tailwind and Rete.js provide editing and controls. Browser note gestures carry performance.now() timestamps. React observes audible transport updates; it does not produce PCM or pace the sequencer.' },
+    worker:{ x:356,y:110,w:230,h:88,title:'Browser audio worker',sub:'WebSocket · refills · audible markers',tag:'DEDICATED WORKER',color:'audio',source:'../frontend/src/audio/browserClockWorker.ts',detail:'Owns the PCM WebSocket, render requests and SharedArrayBuffer writes. Releases compact transport markers when the AudioWorklet read cursor reaches their audio frame. Refill work continues independently of React rendering.' },
+    ring:{ x:356,y:330,w:230,h:88,title:'Shared PCM buffer',sub:'A queue of already-rendered samples',tag:'SHARED MEMORY',color:'audio',source:'../frontend/src/audio/browserClockShared.ts',detail:'A shared ring buffer connects the producer worker to the consuming AudioWorklet. Atomic cursors coordinate reads and writes. Startup waits for a high-water target; more buffered audio absorbs jitter but increases live-play latency.' },
+    worklet:{ x:44,y:330,w:230,h:88,title:'AudioWorklet',sub:'Consumes PCM at the audio clock',tag:'AUDIO RENDER THREAD',color:'audio',source:'../frontend/src/audio/browserClockProcessor.js',detail:'The browser audio callback consumes the shared PCM queue, requests refills at low water and counts underruns. It outputs silence for missing frames. This is playback of backend-generated samples, not browser-side synthesis.' },
+    output:{ x:44,y:508,w:230,h:58,title:'Your audio output',sub:'AudioContext → device → listener',tag:'',color:'audio',source:'../frontend/src/lib/browserClockAudio.ts',detail:'The AudioWorklet connects to AudioContext.destination. Browser and hardware audio buffers determine final audible pacing. The sound you hear is behind the backend render cursor by the amount of buffered audio.' },
+    api:{ x:680,y:110,w:225,h:88,title:'FastAPI · sessions',sub:'API · controller lease · clock mapping',tag:'PYTHON · SESSION CONTROL',color:'timing',source:'../backend/app/services/session_service.py',detail:'SessionService coordinates compilation, engine lifecycle, browser-clock control and timestamp mapping. PCM render jobs run in a worker thread. Each render request advances the sequencer and MIDI router before every Csound k-block.' },
+    compiler:{ x:968,y:110,w:280,h:88,title:'Graph → Csound source',sub:'Validate · route · emit orchestra / CSD',tag:'PYTHON · SOURCE COMPILER',color:'config',source:'../backend/app/services/compiler_service.py',detail:'The Python compiler validates patch graphs and emits orchestra/CSD source. It compiles instrument routing, mixer stages and control manifests into the rack. Native Csound subsequently compiles that source into its running engine.' },
+    sequencer:{ x:680,y:330,w:225,h:88,title:'Sequencer runtime',sub:'Pads · transport · controller curves',tag:'RENDER-DRIVEN',color:'timing',source:'../backend/app/services/sequencer_runtime.py',detail:'Owns authored playback and runtime transport: independent device phases, arrangement playback, queued pads and auditions. It advances with rendered audio using rational musical timing, rather than a wall-clock timer.' },
+    midi:{ x:968,y:330,w:280,h:88,title:'MIDI router + scheduler',sub:'Arpeggiators · source gates · event queue',tag:'TARGET ENGINE SAMPLES',color:'timing',source:'../backend/app/engine/midi_scheduler.py',detail:'The backend router runs arpeggiators; the engine scheduler orders timestamped events by target sample and applies source-aware lane gates. The render path drains due MIDI into Csound before each k-block. Internal MIDI needs no OS device.' },
+    csound:{ x:968,y:508,w:280,h:80,title:'Native Csound',sub:'Instruments + effects + mixer → PCM',tag:'CTCSOUND · NATIVE LIBRARY',color:'audio',source:'../backend/app/engine/csound_worker.py',detail:'CsoundWorker owns one native Csound engine per session. It calls performKsmps() on demand, injects MIDI at block boundaries, applies controls, captures meters and packages stereo float PCM. Performance logging is normally suppressed.' },
+    prep:{ x:680,y:508,w:225,h:80,title:'Edit preparation',sub:'Prepared pattern configuration',tag:'SEPARATE PROCESS',color:'config',source:'../backend/app/services/sequencer_preparation.py',detail:'A persistent compiler process prepares sequencer configurations away from rendering. Rapid edits coalesce after 80 ms in the frontend. Successful configurations apply at a render boundary without resetting transport; failed preparation retains previous playback and the edited draft.' },
+    store:{ x:680,y:617,w:568,h:52,title:'SQLite library + asset files',sub:'Patches · performances · app state · samples / SoundFonts',tag:'',color:'saved',source:'../BACKEND.md',detail:'SQLite persists patch, performance and app-state documents; uploaded audio lives on the filesystem. Docker Compose keeps backend/data in a named volume. Active sessions, MIDI queues and transient auditions are runtime state and do not survive a backend restart.' },
+    host:{ x:44,y:617,w:542,h:52,title:'Optional Rust host MIDI helper',sub:'Hardware / DAW → host timestamp → /ws/host-midi',tag:'',color:'timing',source:'../host-midi-helper/README.md',detail:'Runs on the host outside Docker. It captures MIDI from hardware or a DAW, timestamps events with a host monotonic clock and sends them to the backend WebSocket. The backend maps time and schedules final engine-sample delivery.' }
+  };
+  const links = {
+    authored:{d:'M160 110 V91 H732 V110',type:'config',from:'ui',to:'api'},
+    intent:{d:'M274 140 H356',type:'config',from:'ui',to:'worker'},
+    status:{d:'M356 177 H274',type:'audio',from:'worker',to:'ui'},
+    request:{d:'M586 137 H680',type:'timing',from:'worker',to:'api'},
+    advance:{d:'M792 198 V330',type:'timing',from:'api',to:'sequencer'},
+    notes:{d:'M905 374 H968',type:'timing',from:'sequencer',to:'midi'},
+    inject:{d:'M1108 418 V508',type:'timing',from:'midi',to:'csound'},
+    pcm:{d:'M1248 551 H1280 V259 H630 Q618 259 618 247 V229 Q618 217 606 217 H540 V198',type:'audio',from:'csound',to:'worker'},
+    fill:{d:'M471 198 V330',type:'audio',from:'worker',to:'ring'},
+    consume:{d:'M356 374 H274',type:'audio',from:'ring',to:'worklet'},
+    listen:{d:'M159 418 V508',type:'audio',from:'worklet',to:'output'},
+    refill:{d:'M274 348 H311 Q320 348 320 339 V237 Q320 228 329 228 H414 Q426 228 426 216 V198',type:'timing',from:'worklet',to:'worker'},
+    compile:{d:'M905 151 H968',type:'config',from:'api',to:'compiler'},
+    load:{d:'M1248 151 H1265 V475 H1160 V508',type:'config',from:'compiler',to:'csound'},
+    prepare:{d:'M704 198 V293 H666 V548 H680',type:'config',from:'api',to:'prep'},
+    apply:{d:'M792 508 V418',type:'config',from:'prep',to:'sequencer'},
+    save:{d:'M680 165 H660 V643 H680',type:'saved',from:'api',to:'store'},
+    assets:{d:'M1223 617 H1294 V93 H1190 V110',type:'saved',from:'store',to:'compiler'},
+    host:{d:'M586 643 H637 V227 H732 V198',type:'timing',from:'host',to:'api'},
+    manual:{d:'M905 179 H937 V348 H968',type:'timing',from:'api',to:'midi'}
+  };
+  const chapters = [
+    {name:'The whole picture',title:'Two places. One musical experience.',intro:'The browser owns audible playback. The backend owns engine time. A dedicated worker connects them, keeping the React interface out of the audio refill path.',formula:'rendered time ≥ audible time',caption:'The difference is queued audio, not a second song.',thought:'The browser hears.|Csound synthesizes.',nodes:Object.keys(components),edges:['request','advance','notes','inject','pcm','fill','consume','listen','refill','status'],mobile:['ui','worker','api','sequencer','midi','csound','ring','worklet','output'],steps:[['A browser-paced system','Audio consumption creates demand. The backend renders only when the browser requests more samples.',['worker','api','csound','ring','worklet']],['One rack, in native Csound','Instruments, effects and mixer stages run in the native backend engine. The browser receives their rendered output.',['compiler','csound']],['Independent responsibilities','UI, refill work, playback and preparation have separate owners. That separation protects audio from ordinary interface work.',['ui','worker','worklet','prep']]]},
+    {name:'Build an instrument',title:'A graph becomes an orchestra.',intro:'A visual patch is compiled in two stages: Python emits Csound source, then native Csound compiles and starts the engine.',formula:'graph → orchestra → native engine',caption:'The browser edits the graph; Docker compiles and synthesizes.',thought:'A drawing becomes|a program.',nodes:['ui','api','compiler','store','csound'],edges:['authored','compile','assets','load'],mobile:['ui','api','compiler','store','csound'],steps:[['1 / Describe the sound','React and Rete.js capture opcode nodes, formulas and connections. The backend receives the patch and rack configuration.',['ui','api']],['2 / Validate and emit','Python validates connections and generates orchestra/CSD text, including rack routing, continuous effects and mixer stages. Uploaded assets resolve on the backend.',['compiler','store']],['3 / Compile and start','ctcsound loads the generated source into native Csound. The engine is ready for render requests; it does not send audio to a Docker sound device.',['csound']]]},
+    {name:'Follow the audio',title:'Playback pulls the next block.',intro:'Audio flows back from Docker to the browser. Refill requests travel in the opposite direction, driven by buffer consumption.',formula:'Δt = ksmps / sr',caption:'Example: 32 samples / 48,000 Hz ≈ 0.67 ms per Csound block. A request batches blocks.',thought:'Demand goes out.|Audio comes back.',nodes:['worker','api','sequencer','midi','csound','ring','worklet','output'],edges:['refill','request','advance','notes','inject','pcm','fill','consume','listen','status'],mobile:['worklet','worker','api','sequencer','midi','csound','ring','output'],steps:[['1 / Consume, then request','AudioWorklet reads the shared buffer. At low water it signals for a refill; the dedicated worker requests a batch of render blocks over its WebSocket.',['worklet','worker','api']],['2 / Advance, inject, render','For each block, the sequencer and arpeggiator router advance. Due MIDI and pending controls reach Csound before performKsmps() renders the samples.',['sequencer','midi','csound']],['3 / Return and buffer','Stereo float PCM and compact timeline metadata return from the backend. The worker writes PCM into SharedArrayBuffer.',['csound','worker','ring']],['4 / Hear it, then show it','AudioWorklet plays the queued frames. Only as its read cursor reaches a marker does the worker release that audible transport update to React.',['ring','worklet','output','worker','ui']]]},
+    {name:'Place a MIDI note',title:'A timestamp is an intention.',intro:'Browser and host clocks timestamp a gesture. Only the backend render path decides when that gesture enters Csound.',formula:'capture time → engine sample → k-block',caption:'Execution is quantized by ksmps; timestamps are not direct audio callbacks.',thought:'When should this note|enter the sound?',nodes:['ui','worker','host','api','sequencer','midi','csound'],edges:['intent','request','host','manual','notes','inject'],mobile:['ui','host','api','midi','csound'],steps:[['1 / Capture the gesture','An on-screen key uses performance.now(). The optional Rust helper uses its host monotonic clock for external MIDI. Internal sequencer notes originate in the backend.',['ui','host','sequencer']],['2 / Map the clocks','Session clock mapping relates incoming timestamps to backend time and the render cursor. Events are queued at target engine samples.',['api','midi']],['3 / Enter at a block boundary','Before the appropriate k-block, the render path drains due MIDI into Csound. Arpeggiators and source-aware lane controls participate in this backend path.',['midi','csound']]]},
+    {name:'Edit while playing',title:'Prepare away from the sound.',intro:'Pattern edits take a separate preparation path. The old configuration keeps playing until a new one is ready to apply.',formula:'draft → prepare → apply at boundary',caption:'This is sequencer configuration preparation, not rebuilding the instrument DSP graph.',thought:'Prepare first.|Keep the clock moving.',nodes:['ui','worker','api','prep','sequencer','midi','csound','ring','worklet'],edges:['intent','request','prepare','apply','notes','inject','pcm','fill','consume'],mobile:['ui','api','prep','sequencer','csound','worklet'],steps:[['1 / Coalesce the edit','Rapid note, curve and arrangement edits coalesce after 80 ms. The edited draft is sent for preparation while previous playback continues.',['ui','api']],['2 / Prepare in another process','A persistent Python compiler process prepares the next sequencer configuration. Expensive preparation stays outside the render path.',['prep','csound']],['3 / Apply or retain','Successful preparation applies at an engine block boundary without resetting transport. A failure retains previous playback and the edited draft; another edit or explicit restart triggers a retry.',['prep','sequencer','csound']]]},
+    {name:'Keep the music',title:'A saved song outlives a session.',intro:'Authored music and its assets are durable. Audio queues and live transport belong to the current session.',formula:'saved composition ≠ running session',caption:'Docker Compose persists backend/data in a named volume.',thought:'Keep the work.|Recreate the runtime.',nodes:['ui','api','compiler','store','host'],edges:['authored','save','assets'],mobile:['ui','api','store','compiler'],steps:[['1 / Save authored state','Patches, performances and app state go to SQLite. Samples and SoundFonts live in backend asset files. State validation and storage run away from the audio refill path.',['ui','api','store']],['2 / Restart the backend','The library and assets remain in the mounted data volume. Active engine sessions, queued MIDI and temporary audition state are lost.',['store','api']],['3 / Rebuild playback','Loading the authored configuration and starting playback creates a fresh runtime. The source compiler resolves saved patches and assets again.',['store','compiler','api']]]}
+  ];
+  const state = { chapter:0,phase:0,playing:!matchMedia('(prefers-reduced-motion: reduce)').matches,speed:1,selected:'worker',lastStep:-1,stall:false,invalid:false,bursts:[],lastTime:0 };
+  const duration = 20;
+  const nodeEls = {}, edgeEls = {}, particles = [];
+  const noteDot=svgEl('circle',{r:6,fill:colors.timing,class:'particle',display:'none'},$('particles'));
+  function svgEl(name,attrs,parent) { const el=document.createElementNS(NS,name); for(const [key,value] of Object.entries(attrs)) el.setAttribute(key,value); if(parent) parent.append(el); return el; }
+  for(const [type,color] of Object.entries(colors)) {
+    const marker=svgEl('marker',{id:'arrow-'+type,viewBox:'0 0 10 10',refX:9,refY:5,markerWidth:5,markerHeight:5,orient:'auto'},$('diagram').querySelector('defs'));
+    svgEl('path',{d:'M 1 1 L 9 5 L 1 9',fill:'none',stroke:color,'stroke-width':1.4},marker);
+  }
+  for(const [id,link] of Object.entries(links)) {
+    const path=svgEl('path',{d:link.d,class:'edge',stroke:colors[link.type],id:'edge-'+id,'marker-end':'url(#arrow-'+link.type+')'},$('edges'));
+    edgeEls[id]=path;
+    for(let i=0;i<2;i++) { const dot=svgEl('circle',{r:link.type==='audio'?3.2:2.7,fill:colors[link.type],class:'particle'},$('particles')); particles.push({id,path,dot,offset:i/2,length:path.getTotalLength()}); }
+  }
+  const labels=[['REST · patch / saved state',453,85],['request_render',630,121],['PCM + timed markers',1030,248],['write',490,294],['read',315,401],['one k-block',835,294],['MIDI',1130,469],['prepared config',805,469]];
+  for(const [label,x,y] of labels) { const t=svgEl('text',{x,y,class:'edge-label','text-anchor':'middle'},$('edge-labels')); t.textContent=label; }
+  for(const [id,c] of Object.entries(components)) {
+    const g=svgEl('g',{class:'node','data-node':id,role:'button',tabindex:0,'aria-label':c.title+', '+c.tag,style:'--node-color:'+colors[c.color]},$('nodes'));
+    svgEl('rect',{x:c.x,y:c.y,width:c.w,height:c.h,rx:7},g);
+    svgEl('line',{x1:c.x+16,y1:c.y+16,x2:c.x+35,y2:c.y+16,stroke:colors[c.color],'stroke-width':2},g);
+    if(c.tag) { const tag=svgEl('text',{x:c.x+44,y:c.y+19,class:'node-tag',fill:colors[c.color]},g);tag.textContent=c.tag; }
+    const title=svgEl('text',{x:c.x+16,y:c.y+(c.tag?44:25),class:'node-title'},g);title.textContent=c.title;
+    const sub=svgEl('text',{x:c.x+16,y:c.y+(c.tag?65:43),class:'node-sub'},g);sub.textContent=c.sub;
+    if(!c.tag) g.querySelector('line').remove();
+    g.addEventListener('click',()=>inspect(id));
+    g.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();inspect(id);}});
+    nodeEls[id]=g;
+  }
+  chapters.forEach((c,i)=>{const b=document.createElement('button');b.className='chapter';b.type='button';b.innerHTML='<span>0'+(i+1)+'</span>'+c.name;b.addEventListener('click',()=>setChapter(i));$('chapters').append(b);});
+  for(let i=0;i<24;i++) $('queue').append(document.createElement('span'));
+  function inspect(id) {
+    state.selected=id;const c=components[id];$('inspect-title').textContent=c.title;$('inspect-body').textContent=c.detail;$('inspect-source').href=c.source;
+    for(const [key,g] of Object.entries(nodeEls)) {g.classList.toggle('selected',key===id);g.setAttribute('aria-pressed',String(key===id));}
+    document.querySelectorAll('.mobile-node').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.node===id)));
+  }
+  function addAction(label,callback,id) { const b=document.createElement('button');b.type='button';b.textContent=label;if(id)b.id=id;b.addEventListener('click',callback);$('experiment').append(b);return b; }
+  function resetDemo() {state.stall=false;state.invalid=false;state.bursts=[];noteDot.setAttribute('display','none');$('experiment-result').textContent='';}
+  function setChapter(index) {
+    state.chapter=(index+chapters.length)%chapters.length;state.phase=0;state.lastStep=-1;resetDemo();
+    const c=chapters[state.chapter];
+    [...$('chapters').children].forEach((b,i)=>b.setAttribute('aria-pressed',String(i===state.chapter)));
+    $('chapter-kicker').textContent='Chapter '+String(state.chapter+1).padStart(2,'0')+' / '+c.name;
+    $('chapter-title').textContent=c.title;$('formula').replaceChildren(document.createTextNode(c.formula));const small=document.createElement('small');small.textContent=c.caption;$('formula').append(small);
+    $('diagram-thought').replaceChildren();c.thought.split('|').forEach((line,i)=>{const t=svgEl('tspan',{x:58,dy:i?23:0},$('diagram-thought'));t.textContent=line;});$('experiment').replaceChildren();
+    for(const [id,path] of Object.entries(edgeEls))path.classList.toggle('active',c.edges.includes(id));
+    if(state.chapter===0||state.chapter===2) {
+      const b=addAction('Simulate a React stall',()=>{state.stall=!state.stall;b.setAttribute('aria-pressed',String(state.stall));b.textContent=state.stall?'Resume React':'Simulate a React stall';$('experiment-result').textContent=state.stall?'React is visually frozen. The worker still refills PCM; AudioWorklet playback continues.':'React catches up with audible transport markers.';updateFocus();},'stall');b.setAttribute('aria-pressed','false');
+    } else if(state.chapter===1) addAction('Trace compilation',()=>{state.phase=0;state.playing=true;syncPlay();$('experiment-result').textContent='Watch source generation, then native compilation. Samples remain backend assets.';},'trace');
+    else if(state.chapter===3) {
+      addAction('Send a browser note',()=>sendNote(false),'browser-note');addAction('Send a host MIDI note',()=>sendNote(true),'host-note');
+    } else if(state.chapter===4) {
+      addAction('Try a valid edit',()=>edit(false),'valid-edit');addAction('Try an invalid edit',()=>edit(true),'invalid-edit');
+    } else addAction('Simulate backend restart',()=>{state.phase=.4;state.lastStep=-1;state.playing=false;syncPlay();draw();inspect('store');$('experiment-result').textContent='Library + assets retained. Engine sessions, queued MIDI and auditions cleared. Press Play to follow runtime reconstruction.';},'restart');
+    $('mobile-flow').replaceChildren();
+    c.mobile.forEach((id,index)=>{const n=components[id],b=document.createElement('button');b.type='button';b.className='mobile-node';b.dataset.node=id;b.setAttribute('aria-pressed',String(id===state.selected));b.style.setProperty('--node-color',colors[n.color]);const small=document.createElement('small');small.textContent=String(index+1).padStart(2,'0')+' · '+(id==='host'?'HOST':n.x<650?'BROWSER':'DOCKER');const strong=document.createElement('strong');strong.textContent=n.title;const span=document.createElement('span');span.textContent=n.sub;b.append(small,strong,span);b.addEventListener('click',()=>inspect(id));$('mobile-flow').append(b);});
+    draw();
+  }
+  function sendNote(host) {state.phase=0;state.playing=true;state.bursts=[{time:0,edges:host?['host','manual','inject']:['intent','request','manual','inject']}];syncPlay();$('experiment-result').textContent=host?'Host note captured → mapped to backend time → queued for the engine.':'Browser note captured → mapped to backend time → queued for the engine.';inspect(host?'host':'ui');}
+  function edit(invalid) {state.invalid=invalid;state.phase=0;state.lastStep=-1;state.playing=true;syncPlay();$('experiment-result').textContent='Edited draft queued. Previous configuration keeps playing during preparation.';}
+  function syncPlay() {$('play').textContent=state.playing?'Ⅱ Pause':'▶ Play';$('play').setAttribute('aria-pressed',String(state.playing));}
+  function updateFocus() {
+    const c=chapters[state.chapter],step=c.steps[Math.min(c.steps.length-1,Math.floor(state.phase*c.steps.length))];
+    for(const [id,g] of Object.entries(nodeEls)){g.classList.toggle('dim',!c.nodes.includes(id)||(state.stall&&id==='ui'));g.classList.toggle('focused',step[2].includes(id)&&!(state.stall&&id==='ui'));}
+    document.querySelectorAll('.mobile-node').forEach(b=>b.classList.toggle('current',step[2].includes(b.dataset.node)&&!(state.stall&&b.dataset.node==='ui')));
+  }
+  function draw() {
+    const c=chapters[state.chapter],stepIndex=Math.min(c.steps.length-1,Math.floor(state.phase*c.steps.length)),step=c.steps[stepIndex];
+    if(stepIndex!==state.lastStep){state.lastStep=stepIndex;$('step-heading').textContent=step[0];$('chapter-body').textContent=step[1];updateFocus();}
+    if(state.chapter===4&&stepIndex===2){$('experiment-result').textContent=state.invalid?'Preparation failed. Previous playback and the edited draft are retained. No automatic retry.':'Prepared configuration applied at a render boundary. Transport keeps its position.';$('experiment-result').style.color=state.invalid?'var(--red)':'var(--green)';}
+    else $('experiment-result').style.color='var(--green)';
+    edgeEls.apply.style.stroke=state.chapter===4&&state.invalid?'var(--red)':colors.config;
+    const audioCycle=state.phase*5;
+    for(const p of particles){const disabled=!c.edges.includes(p.id)||(state.stall&&['intent','status'].includes(p.id))||(state.chapter===4&&state.invalid&&p.id==='apply');p.dot.style.display=disabled?'none':'';if(!disabled){const t=(audioCycle+p.offset)%1,point=p.path.getPointAtLength(t*p.length);p.dot.setAttribute('cx',point.x);p.dot.setAttribute('cy',point.y);p.dot.setAttribute('opacity',String(Math.min(1,t*12,(1-t)*12)));}}
+    if(state.bursts.length){const burst=state.bursts[0],position=state.phase*duration/5*burst.edges.length;if(position<burst.edges.length){const path=edgeEls[burst.edges[Math.floor(position)]],point=path.getPointAtLength((position%1)*path.getTotalLength());noteDot.setAttribute('display','');noteDot.setAttribute('cx',point.x);noteDot.setAttribute('cy',point.y);}else{noteDot.setAttribute('display','none');state.bursts=[];$('experiment-result').textContent='The note entered native Csound at a k-block boundary. Its sound joins the returning PCM.';}}
+    let wave='';for(let i=0;i<=200;i+=2){const y=481+Math.sin(i*.08-state.phase*80)*Math.sin(i*.019)*9;wave+=(i?' L':'M')+(62+i)+' '+y.toFixed(2);}$('wave').setAttribute('d',wave);
+    const fill=state.chapter===5&&stepIndex===1?0:13+Math.round(Math.sin(state.phase*Math.PI*10)*5);[...$('queue').children].forEach((el,i)=>el.classList.toggle('filled',i<fill));
+    $('progress').value=String(Math.round(state.phase*1000));$('phase-number').value=Math.round(state.phase*100)+'%';
+  }
+  $('play').addEventListener('click',()=>{state.playing=!state.playing;syncPlay();});
+  $('previous').addEventListener('click',()=>setChapter(state.chapter-1));$('next').addEventListener('click',()=>setChapter(state.chapter+1));
+  $('progress').addEventListener('input',event=>{state.phase=Number(event.target.value)/1000;state.playing=false;syncPlay();draw();});
+  $('speed').addEventListener('change',event=>{state.speed=Number(event.target.value);});
+  document.addEventListener('keydown',event=>{if(event.target.closest('button,input,select,a,[role=button]'))return;if(event.code==='Space'){event.preventDefault();state.playing=!state.playing;syncPlay();}else if(event.key==='ArrowRight')setChapter(state.chapter+1);else if(event.key==='ArrowLeft')setChapter(state.chapter-1);});
+  function frame(time){const elapsed=state.lastTime?Math.min((time-state.lastTime)/1000,.1):0;state.lastTime=time;if(state.playing&&!document.hidden){state.phase=(state.phase+elapsed*state.speed/duration)%1;draw();}requestAnimationFrame(frame);}
+  setChapter(0);inspect('worker');syncPlay();requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

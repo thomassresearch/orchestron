@@ -8,6 +8,16 @@ It is organized by chapter and subchapter so you can read it front-to-back or ju
 
 When Orchestron is served locally from the backend, opening `http://localhost:8000/` redirects to the client application at `/client`.
 
+## Interactive Architecture Guide
+
+Open [Orchestron: A score becomes sound](orchestron_architecture_animated.html) in a browser to explore the current Docker architecture. The self-contained page works offline: download the HTML or open the repository file directly. Repository previews such as GitHub show its source instead of running it.
+
+Six animated chapters explain the system map, graph compilation, PCM refills, MIDI timing, live sequencer edits and persistence. Select components for source-linked explanations; use Pause, the timeline and speed controls to inspect the flow. The experiments illustrate a React stall, MIDI notes, successful or failed preparation, and a backend restart. They do not control the application or play audio. Motion starts paused when the browser requests reduced motion, and narrow screens show a compact component view.
+
+![The animated architecture guide showing browser playback and native Csound in Docker](../screenshots/orchestron_architecture_animated.jpg)
+
+The animation describes the existing native Csound runtime. See [clock ownership](../CLOCK_OWNERS.md), the [backend reference](../BACKEND.md) and [browser-clock latency](configuration/browser_clock_latency.md) for implementation details.
+
 ## Scope
 
 - Visual instrument design (opcode graph editor, formulas, GEN tables, compile/runtime testing)

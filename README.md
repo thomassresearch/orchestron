@@ -11,6 +11,8 @@ Read the complete user documentation in [user_documentation.md](documentation/us
 
 Sequencers offer meter, per-pad pattern length and named subdivisions, including triplets. Beat groups show how twelve steps fit into one 4/4 bar; advanced playback speed stays independent. [Timing guide (EN/DE/FR/ES)](documentation/performance/sequencer_timing.md).
 
+Explore the [interactive architecture animation](documentation/orchestron_architecture_animated.html) to follow a patch from the editor to native Csound and browser playback. Download the HTML and open it in a browser; it works offline.
+
 ## Built With Codex
 
 This application was built using the Codex App with `GPT-5.3-Codex`, `GPT-5.4`, `GPT-5.5`, `GPT-5.6-Sol` and `GPT-6-Astra` using **Extra High** reasoning effort. I started development and expected to hit a limit at some point where things fell apart, but that never happened up to now, given me a good intuition on how powerful today's coding agents have become...
