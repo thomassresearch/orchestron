@@ -4,6 +4,12 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+build/
+dist/
+backend/app/services/_sequencer_playback*.so
+backend/app/services/_sequencer_playback*.pyd
+backend/app/services/_sequencer_playback*.so.json
+backend/app/services/_sequencer_playback*.pyd.json
 
 .venv/
 .env

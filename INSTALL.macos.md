@@ -57,6 +57,13 @@ Install backend package + dev dependencies:
 uv pip install -e '.[dev]'
 ```
 
+The install builds the Cython sequencer component when Apple's command-line
+tools are available (`xcode-select --install` installs them). An unavailable
+compiler leaves a working Python fallback. Require compilation with
+`VISUALCSOUND_BUILD_CYTHON=required uv sync --extra dev`; diagnose playback with
+`VISUALCSOUND_SEQUENCER_IMPLEMENTATION=python` when starting the backend.
+See [compiled playback and benchmarks](BACKEND.md#compiled-sequencer-playback).
+
 ## 4. Install frontend dependencies
 
 ```bash

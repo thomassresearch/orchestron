@@ -57,6 +57,13 @@ $env:VISUALCSOUND_HOST_MIDI_TOKEN = "dev-midi-token"
 docker compose up --build
 ```
 
+The image builds and includes the Cython sequencer component; no host compiler
+is needed. Startup logs show the selected implementation. To diagnose playback
+or roll back to Python, set `VISUALCSOUND_SEQUENCER_IMPLEMENTATION=python` in your
+shell and recreate the service with `docker compose up -d`. Restore `auto` to
+use the compiled component again. Buffer settings remain unchanged. See
+[compiled playback and benchmarks](BACKEND.md#compiled-sequencer-playback).
+
 ## 5. Open the application
 
 After startup, open:

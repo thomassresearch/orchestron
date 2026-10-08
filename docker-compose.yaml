@@ -23,6 +23,7 @@ services:
       - info
     environment:
       VISUALCSOUND_AUDIO_OUTPUT_MODE: browser_clock
+      VISUALCSOUND_SEQUENCER_IMPLEMENTATION: ${VISUALCSOUND_SEQUENCER_IMPLEMENTATION:-auto}
       # Avoid synchronous container-log writes on Csound's render path. Set to
       # true temporarily when Csound performance diagnostics are required.
       VISUALCSOUND_CSOUND_PERFORMANCE_LOGGING: "false"

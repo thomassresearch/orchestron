@@ -63,6 +63,12 @@ uv sync --extra dev
 source .venv/bin/activate
 ```
 
+This builds the Cython sequencer component using the compiler from the prerequisites.
+Require compilation with `VISUALCSOUND_BUILD_CYTHON=required uv sync --extra dev`.
+The normal build supports a Python fallback; select it for diagnosis with
+`VISUALCSOUND_SEQUENCER_IMPLEMENTATION=python` when starting the backend.
+See [compiled playback and benchmarks](BACKEND.md#compiled-sequencer-playback).
+
 ## 4. Install frontend dependencies
 
 ```bash

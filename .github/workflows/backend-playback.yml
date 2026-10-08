@@ -1,0 +1,57 @@
+name: Backend playback parity
+
+on:
+  pull_request:
+    paths: ['backend/**', 'pyproject.toml', 'uv.lock', 'hatch_build.py', 'Dockerfile', '.github/workflows/backend-playback.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  parity:
+    # Labels: https://docs.github.com/en/actions/reference/runners/github-hosted-runners
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm, macos-15, macos-15-intel]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Install uv in an isolated tool environment
+        shell: bash
+        run: |
+          python3 -m venv "$RUNNER_TEMP/uv-tool"
+          "$RUNNER_TEMP/uv-tool/bin/pip" install uv==0.11.20
+          echo "$RUNNER_TEMP/uv-tool/bin" >> "$GITHUB_PATH"
+      - name: Install Csound on Linux
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y csound csound-plugins libcsound64-dev libcsnd-dev stk
+      - name: Install Csound on macOS
+        if: runner.os == 'macOS'
+        run: brew install csound
+      - name: Build the extension
+        env:
+          VISUALCSOUND_BUILD_CYTHON: required
+        run: uv sync --frozen --extra dev --python 3.13
+      - name: Lint
+        run: .venv/bin/ruff check backend/app backend/tests backend/tools hatch_build.py
+      - name: Full compiled regression suite
+        env:
+          VISUALCSOUND_SEQUENCER_IMPLEMENTATION: cython
+        run: .venv/bin/python -m pytest backend/tests -q
+      - name: Full Python regression suite
+        env:
+          VISUALCSOUND_SEQUENCER_IMPLEMENTATION: python
+        run: .venv/bin/python -m pytest backend/tests -q
+      - name: Compare MIDI, transport and preparation fingerprints
+        run: .venv/bin/python -m backend.tools.benchmark_cython_playback --check-only --output output/parity
+      - name: Build wheel and source distribution
+        env:
+          VISUALCSOUND_BUILD_CYTHON: required
+        run: uv build
+      - name: Verify installed wheel and stale-binary rollback outside the checkout
+        run: .venv/bin/python -m backend.tools.verify_playback_wheel dist/*.whl

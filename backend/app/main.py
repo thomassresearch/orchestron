@@ -28,6 +28,7 @@ from backend.app.services.opcode_service import OpcodeService
 from backend.app.services.patch_service import PatchService
 from backend.app.services.performance_service import PerformanceService
 from backend.app.services.session_service import SessionService
+from backend.app.services.sequencer_playback import log_implementation
 from backend.app.storage.db import Database
 from backend.app.storage.repositories.patch_repository import PatchRepository
 from backend.app.storage.repositories.app_state_repository import AppStateRepository
@@ -122,6 +123,7 @@ def _build_container(settings: Settings) -> AppContainer:
 async def lifespan(app: FastAPI):
     settings = get_settings()
     configure_logging(settings.debug)
+    log_implementation()
 
     settings.static_dir.mkdir(parents=True, exist_ok=True)
     (settings.static_dir / "icons").mkdir(parents=True, exist_ok=True)

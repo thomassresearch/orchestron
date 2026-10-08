@@ -104,6 +104,10 @@ Read about [instrument exchange](documentation/instrument_design/instrument_impo
 
 Follow the guide for your environment: [macOS](INSTALL.macos.md), [Linux](INSTALL.linux.md), [Windows](INSTALL.windows.md), or [Docker](INSTALL.docker.md). Once Orchestron is running locally, open [Orchestron in your browser](http://localhost:8000/).
 
+macOS and Linux installs can compile the sequencer for faster playback processing;
+Docker includes it prebuilt. A Python fallback remains available. See the platform
+guide for compiler setup and [playback implementation selection](BACKEND.md#compiled-sequencer-playback).
+
 ### Make your first sound
 
 1. Open **Instrument Design**, choose **New**, and select **Playable instrument**.

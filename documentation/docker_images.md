@@ -6,6 +6,15 @@ The repository publishes its root `Dockerfile` to GitHub Container Registry (GHC
 
 Merge both workflow files into the default branch before publishing the first tag. GitHub runs the tag workflow from the tagged commit, and the cleanup workflow must exist on the default branch for its completion and scheduled triggers to work.
 
+For releases containing compiled playback changes, require passing results from
+[Backend playback parity](../.github/workflows/backend-playback.yml) for the release
+revision before publishing. It builds and tests Python and Cython playback on Linux
+ARM64/AMD64 and Apple Silicon/Intel macOS, including installed-wheel and output-parity
+checks. This is a release procedure requirement: the publish workflow does not
+automatically wait for that separate workflow. Retain the paired benchmark and real
+browser stress results described in [compiled playback](../BACKEND.md#compiled-sequencer-playback),
+and keep buffer defaults unchanged unless their own playback validation supports a change.
+
 Push a new tag that contains the workflows, for example:
 
 ```bash

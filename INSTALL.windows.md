@@ -65,6 +65,10 @@ uv sync --extra dev
 
 The activation step is optional if you prefer running commands through `uv run`.
 
+Windows currently uses the Python sequencer. The optional Cython playback build
+targets macOS and Linux; no additional Windows compiler is required.
+See [implementation selection](BACKEND.md#compiled-sequencer-playback).
+
 ## 4. Install frontend dependencies
 
 ```powershell

@@ -102,6 +102,64 @@ The most important settings are:
 
 The CLI flags update the relevant `VISUALCSOUND_*` environment variables before recreating the app.
 
+## Compiled sequencer playback
+
+`sequencer_runtime.py` binds timing/event methods to one kernel at import time.
+`_sequencer_playback.py` is the shared Python reference and Cython source;
+`_sequencer_playback.pxd` gives its pure timing helpers direct C calls. Session
+locks, state ownership, MIDI delivery and preparation stay in the runtime/services.
+Musical positions and signed phase anchors retain arbitrary-size Python integers.
+Only bounded meter/grid/rate arithmetic uses C integers. Render-duration
+temporaries use C doubles with the existing operation order; fast-math is disabled.
+
+Set `VISUALCSOUND_SEQUENCER_IMPLEMENTATION` before starting the backend:
+
+| Value | Startup behavior |
+| --- | --- |
+| `auto` (default) | Use the extension; fall back on a missing, incompatible or stale binary. |
+| `python` | Bypass the extension for diagnosis or rollback. |
+| `cython` | Require a current extension; otherwise fail startup. |
+
+Startup logs the selection and fallback reason. Source stamps detect edits to
+the Python kernel/declarations after compilation, including during development
+reloads. Playback exceptions propagate; partially processed blocks are never
+retried through another implementation.
+
+The Hatch hook builds editable installs and wheels on macOS/Linux, with pinned
+Cython/setuptools build dependencies and no Cython runtime dependency.
+`VISUALCSOUND_BUILD_CYTHON=auto|required|off` selects compilation with a compiler
+failure fallback, mandatory compilation, or a Python-only package. Generated
+binaries/stamps are ignored by Git and Docker's build context. `uv` rebuilds when
+the kernel, declarations, build hook or build setting changes. Restart running
+processes after rebuilding. Docker compiles in `backend-build`, copies the native
+artifact/stamp into the runtime image and verifies it without retaining compilers.
+
+Native Csound and development dependencies are required for these comparisons:
+
+```bash
+make benchmark-runtime
+make benchmark-playback
+uv run --extra dev python -m backend.tools.benchmark_cython_playback \
+  --baseline-source /path/to/frozen/baseline --output output/playback-baseline
+uv run --extra dev python -m backend.tools.benchmark_cython_playback \
+  --check-only --output output/playback-parity
+uv run --extra dev python -m backend.tools.benchmark_cython_playback \
+  --profile --suite dense --output output/playback-profile
+```
+
+The longer benchmark alternates fresh processes, records A/A controls and raw
+median/p95/p99/maximum samples, and checks PCM, MIDI and transport fingerprints.
+Dense and audible API cases use versioned fixtures. Use separate output directories
+for different parameters; completed runs can resume. Keep builds, tests, profiling
+and other benchmark platforms outside timing runs. Run quota experiments separately.
+
+Processing headroom is not an observed dropout rate. Check AudioWorklet
+`underrunCount`, browser `queuedFrames` and backend `render_service_time_ms` during
+real playback with live edits/CPU load before lowering watermarks. This change
+preserves all buffering defaults. CI builds/tests both implementations on Linux
+ARM64/AMD64 and Apple Silicon/Intel macOS; measurements on one architecture do
+not establish a speedup on another.
+
 ## Persistence and Runtime State
 
 The backend uses both SQLite and in-memory process state.

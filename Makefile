@@ -8,7 +8,7 @@ MIDI_PULSE_LDFLAGS := -framework CoreMIDI -framework CoreFoundation
 MIDI_STATS_BIN := tools/midi_stats
 MIDI_STATS_SRC := tools/midi_stats.c
 
-.PHONY: frontend-install frontend-build frontend-test frontend-check backend-test backend-check check benchmark-runtime build test run run-debug midi-pulse-build midi-pulse midi-stats-build midi-stats
+.PHONY: frontend-install frontend-build frontend-test frontend-check backend-test backend-check check benchmark-runtime benchmark-playback build test run run-debug midi-pulse-build midi-pulse midi-stats-build midi-stats
 
 frontend-install:
 	cd frontend && npm install
@@ -33,6 +33,10 @@ check: backend-check backend-test frontend-check
 benchmark-runtime:
 	uv run --extra dev python -m backend.tools.benchmark_browser_clock_render
 	uv run --extra dev python -m backend.tools.benchmark_sequencer_boundary
+
+# Longer native Csound/API comparison; keeps raw paired samples and output hashes.
+benchmark-playback:
+	uv run --extra dev python -m backend.tools.benchmark_cython_playback --output output/playback-comparison
 
 build: frontend-build
 

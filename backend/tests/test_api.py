@@ -7274,6 +7274,34 @@ def test_repeated_note_preparation_applies_edits_without_sharing_playback_state(
         assert restored.pads[0] == original.pads[0]
 
 
+def test_selected_playback_kernel_preserves_queued_pad_boundary_over_pcm_api(tmp_path, monkeypatch):
+    from backend.app.services import sequencer_playback
+    from backend.tests.api_test_support import _BrowserClockRenderDriver
+
+    with _client(tmp_path) as client:
+        session_id = _create_running_session(client, patch_name="Playback kernel boundary")
+        base = f"/api/sessions/{session_id}/sequencer"
+        payload = {"playback_end_step": 64, "tracks": [{"track_id": "lead", "length_beats": 1,
+            "pads": [{"pad_index": 0, "length_beats": 1,
+                      "steps": [{"note": 60, "ratchets": 4, "timing_offset_percent": -25}]},
+                     {"pad_index": 1, "length_beats": 1, "steps": [67]}]}]}
+        assert client.put(base + "/config", json=payload).status_code == 200
+        assert client.post(base + "/start", json={"position_step": 0}).status_code == 200
+        assert client.post(base + "/tracks/lead/queue-pad", json={"pad_index": 1}).status_code == 200
+        sequencer = client.app.state.container.session_service._sessions[session_id].sequencer
+        selected = sequencer.advance_render_block.__func__
+        assert selected is sequencer_playback.kernel.advance_render_block
+        # Selection is fixed before playback, even if the environment changes.
+        monkeypatch.setenv("VISUALCSOUND_SEQUENCER_IMPLEMENTATION", "invalid-after-start")
+        with _BrowserClockRenderDriver(client, session_id, block_count=16) as driver:
+            driver.pump_for(0.4)
+            assert sequencer._config.tracks["lead"].active_pad == 0
+            driver.pump_for(0.2)
+            assert sequencer._config.tracks["lead"].active_pad == 1
+            assert sequencer._config.tracks["lead"].queued_pad is None
+        assert sequencer.advance_render_block.__func__ is selected
+
+
 def test_legacy_meter_roundtrips_storage_app_state_and_native_bundle_once(tmp_path):
     cases = json.loads((Path(__file__).parent / 'fixtures/sequencers/timing_migration.json').read_text())
     config, expected = cases[0]['input'], cases[0]['expected']

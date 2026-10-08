@@ -7,7 +7,16 @@
 .mypy_cache/
 .venv/
 __pycache__/
+**/__pycache__/
 *.py[cod]
+**/*.py[cod]
+build/
+dist/
+output/
+backend/app/services/_sequencer_playback*.so
+backend/app/services/_sequencer_playback*.pyd
+backend/app/services/_sequencer_playback*.so.json
+backend/app/services/_sequencer_playback*.pyd.json
 
 # Frontend artifacts must not overwrite npm ci output in Docker.
 frontend/node_modules/

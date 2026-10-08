@@ -10,22 +10,19 @@ COPY backend/app/data/opcodes.json ../backend/app/data/
 COPY backend/tests/fixtures/ ../backend/tests/fixtures/
 RUN npm run build
 
-FROM python:3.13-slim-bookworm AS app
+FROM python:3.13-slim-bookworm AS backend-base
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     RAWWAVE_PATH=/usr/share/stk/rawwaves
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     alsa-utils \
-    build-essential \
+    dpkg-dev \
     csound \
     csound-plugins \
     libasound2 \
-    libasound2-dev \
-    libffi-dev \
+    libffi8 \
     libjack-jackd2-0 \
-    libjack-jackd2-dev \
-    pkg-config \
     stk \
     && rm -rf /var/lib/apt/lists/*
 
@@ -60,11 +57,24 @@ RUN set -eux; \
 
 RUN pip install --no-cache-dir uv
 
+FROM backend-base AS backend-build
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential libasound2-dev libffi-dev libjack-jackd2-dev pkg-config \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
-COPY pyproject.toml uv.lock README.md ./
+COPY pyproject.toml uv.lock README.md hatch_build.py ./
 COPY backend ./backend
-RUN uv sync --no-dev
-RUN .venv/bin/python -c "import ctcsound, numpy; print('ctcsound/numpy import ok')"
+RUN VISUALCSOUND_BUILD_CYTHON=required uv sync --frozen --no-dev --no-editable
+
+FROM backend-base AS app
+WORKDIR /app
+COPY pyproject.toml uv.lock README.md hatch_build.py ./
+COPY backend ./backend
+COPY --from=backend-build /app/.venv ./.venv
+# Local source precedes site-packages; expose the image's prebuilt extension there.
+COPY --from=backend-build /app/.venv/lib/python3.13/site-packages/backend/app/services/_sequencer_playback*.so* ./backend/app/services/
+RUN VISUALCSOUND_SEQUENCER_IMPLEMENTATION=cython .venv/bin/python -c \
+    "import ctcsound, numpy; from backend.app.services.sequencer_playback import implementation; assert implementation == 'cython'"
 
 COPY frontend ./frontend
 COPY --from=frontend-build /build/frontend/dist ./frontend/dist
