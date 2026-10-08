@@ -7725,5 +7725,131 @@
         "spanish": "Velocidad MIDI normalizada / 128, como ampmidi con escala 1 (máximo 127/128). La primera nota fija el valor inicial; las siguientes y las retomadas siguen con una semivida de 10 ms. Para fórmulas de amplitud y presión del soplo."
       }
     }
+  },
+  "mode": {
+    "description": {
+      "english": "A native mass–spring–damper resonator. Combine parallel modes to model a vibrating body. Normalize each excitation by Q when balancing resonance levels.",
+      "german": "Ein nativer Masse-Feder-Dämpfer-Resonator. Parallele Moden bilden einen schwingenden Korpus nach. Zur Pegelabstimmung die Anregung jeder Mode durch Q teilen.",
+      "french": "Résonateur natif masse–ressort–amortisseur. Plusieurs modes parallèles modélisent un corps vibrant. Diviser chaque excitation par Q pour équilibrer les niveaux.",
+      "spanish": "Resonador nativo de masa, muelle y amortiguador. Varios modos paralelos modelan un cuerpo vibrante. Divida cada excitación por Q para equilibrar los niveles."
+    },
+    "inputs": {
+      "ain": {
+        "english": "Audio excitation.",
+        "german": "Audio-Anregung.",
+        "french": "Excitation audio.",
+        "spanish": "Excitación de audio."
+      },
+      "xfreq": {
+        "english": "Resonance frequency in Hz; accepts audio, control or initialization rate. Csound limits the frequency below its stability boundary.",
+        "german": "Resonanzfrequenz in Hz; Audio-, Kontroll- oder Initialisierungsrate. Csound begrenzt die Frequenz unterhalb der Stabilitätsgrenze.",
+        "french": "Fréquence de résonance en Hz, aux taux audio, contrôle ou initialisation. Csound la limite sous le seuil de stabilité.",
+        "spanish": "Frecuencia de resonancia en Hz, a tasa de audio, control o inicialización. Csound la limita por debajo del umbral de estabilidad."
+      },
+      "xQ": {
+        "english": "Positive quality factor. Higher Q gives a narrower resonance and longer ringing.",
+        "german": "Positiver Gütefaktor. Höheres Q ergibt eine schmalere Resonanz und längeres Nachklingen.",
+        "french": "Facteur de qualité positif. Un Q élevé resserre la résonance et prolonge sa décroissance.",
+        "spanish": "Factor de calidad positivo. Un Q mayor estrecha la resonancia y prolonga su caída."
+      },
+      "iskip": {
+        "english": "Optional initialization flag: 0 clears filter state; nonzero preserves it on reinitialization.",
+        "german": "Optional: 0 löscht den Filterzustand; andere Werte erhalten ihn bei erneuter Initialisierung.",
+        "french": "Optionnel : 0 efface l’état du filtre ; une valeur non nulle le conserve lors de la réinitialisation.",
+        "spanish": "Opcional: 0 borra el estado del filtro; otro valor lo conserva al reinicializar."
+      }
+    },
+    "outputs": {
+      "aout": {
+        "english": "Resonating audio output.",
+        "german": "Resonierendes Audiosignal.",
+        "french": "Signal audio résonant.",
+        "spanish": "Señal de audio resonante."
+      }
+    }
+  },
+  "waveguide_string": {
+    "description": {
+      "english": "Orchestron virtual string model with two independent polarizations. Fractional delays, frequency-dependent losses and mild all-pass dispersion run locally at one sample per control block. The compiler embeds the UDO once. Excitation and body resonances remain external; this is not a native Csound opcode.",
+      "german": "Virtuelles Orchestron-Saitenmodell mit zwei unabhängigen Polarisationen. Bruchteilige Verzögerungen, frequenzabhängige Verluste und dezente Allpass-Dispersion laufen lokal mit einem Sample pro Kontrollblock. Der Compiler bettet die UDO einmal ein. Anregung und Korpusresonanzen bleiben extern; kein nativer Csound-Opcode.",
+      "french": "Modèle de corde virtuel Orchestron à deux polarisations indépendantes. Retards fractionnaires, pertes dépendant de la fréquence et faible dispersion passe-tout fonctionnent localement par échantillon. Le compilateur intègre une seule UDO. Excitation et résonances du corps restent externes ; ce n’est pas un opcode Csound natif.",
+      "spanish": "Modelo virtual de cuerda Orchestron con dos polarizaciones independientes. Retardos fraccionarios, pérdidas dependientes de frecuencia y dispersión suave funcionan localmente por muestra. El compilador incluye una sola UDO. La excitación y las resonancias del cuerpo son externas; no es un opcode nativo de Csound."
+    },
+    "inputs": {
+      "aexc": {
+        "english": "Audio excitation: a short pulse, noise burst, or both.",
+        "german": "Audio-Anregung: kurzer Impuls, Rauschstoß oder beides.",
+        "french": "Excitation audio : impulsion courte, bruit bref ou les deux.",
+        "spanish": "Excitación de audio: impulso corto, ráfaga de ruido o ambos."
+      },
+      "ifreq": {
+        "english": "Fundamental in Hz, fixed per note; clamped to 20 Hz–sr/12. Best tuned for E2–E6.",
+        "german": "Grundfrequenz in Hz, pro Note fest; begrenzt auf 20 Hz–sr/12. Für E2–E6 abgestimmt.",
+        "french": "Fondamentale en Hz, fixe par note ; limitée à 20 Hz–sr/12. Optimisée pour E2–E6.",
+        "spanish": "Fundamental en Hz, fija por nota; limitada a 20 Hz–sr/12. Ajustada para E2–E6."
+      },
+      "idecay": {
+        "english": "Nominal loop T60 in seconds, 0.05–30. Frequency-dependent loss shortens upper partials further.",
+        "german": "Nominale T60 der Schleife in Sekunden, 0,05–30. Frequenzabhängige Verluste verkürzen höhere Teiltöne zusätzlich.",
+        "french": "T60 nominal de la boucle en secondes, 0,05–30. Les pertes fréquentielles raccourcissent davantage les partiels aigus.",
+        "spanish": "T60 nominal del bucle en segundos, 0,05–30. Las pérdidas frecuenciales acortan más los parciales agudos."
+      },
+      "icutoff": {
+        "english": "Loop loss cutoff in Hz, clamped to 100–0.45×sr. Higher values retain more treble.",
+        "german": "Grenzfrequenz der Schleifendämpfung in Hz, begrenzt auf 100–0,45×sr. Höhere Werte erhalten mehr Höhen.",
+        "french": "Fréquence de coupure des pertes en Hz, limitée à 100–0,45×sr. Une valeur élevée conserve les aigus.",
+        "spanish": "Corte de pérdidas del bucle en Hz, limitado a 100–0,45×sr. Valores altos conservan más agudos."
+      },
+      "ipluck": {
+        "english": "Pluck position as a fraction of string length, clamped to 0.02–0.48.",
+        "german": "Zupfposition als Anteil der Saitenlänge, begrenzt auf 0,02–0,48.",
+        "french": "Position de pincement en fraction de longueur, limitée à 0,02–0,48.",
+        "spanish": "Posición de pulsación como fracción de longitud, limitada a 0,02–0,48."
+      },
+      "ipickup": {
+        "english": "Observation position, 0.02–0.48 of string length. Shapes the motion output only.",
+        "german": "Beobachtungsposition, 0,02–0,48 der Saitenlänge. Formt nur den Bewegungsausgang.",
+        "french": "Position d’observation, 0,02–0,48 de la longueur. Modifie uniquement la sortie de mouvement.",
+        "spanish": "Posición de observación, 0,02–0,48 de la longitud. Solo moldea la salida de movimiento."
+      },
+      "idispersion": {
+        "english": "Dispersion amount, 0–1. Stretches upper partials while compensating the fundamental.",
+        "german": "Dispersion, 0–1. Spreizt höhere Teiltöne bei kompensierter Grundfrequenz.",
+        "french": "Dispersion, 0–1. Étire les partiels aigus en compensant la fondamentale.",
+        "spanish": "Dispersión, 0–1. Estira los parciales superiores compensando la fundamental."
+      },
+      "ivariation": {
+        "english": "Natural variation, 0–1: small changes to pluck position, contact filtering and energy; no pitch wobble.",
+        "german": "Natürliche Variation, 0–1: kleine Änderungen an Zupfposition, Kontaktfilter und Energie; keine Tonhöhenschwankung.",
+        "french": "Variation naturelle, 0–1 : petits changements de position, filtrage et énergie ; sans oscillation de hauteur.",
+        "spanish": "Variación natural, 0–1: pequeños cambios de posición, filtrado y energía; sin oscilación de tono."
+      },
+      "iseed": {
+        "english": "Nonzero seed repeats internal variation for identical excitation. Zero draws a fresh seed per voice without resetting shared random state. External noise has its own state.",
+        "german": "Ein Seed ungleich null wiederholt die interne Variation bei gleicher Anregung. Null zieht pro Stimme einen neuen Seed, ohne den gemeinsamen Zufallszustand zurückzusetzen. Externes Rauschen hat einen eigenen Zustand.",
+        "french": "Une graine non nulle répète la variation interne à excitation identique. Zéro tire une nouvelle graine par voix sans réinitialiser l’état aléatoire partagé. Le bruit externe possède son propre état.",
+        "spanish": "Una semilla distinta de cero repite la variación interna con idéntica excitación. Cero obtiene una semilla por voz sin reiniciar el estado aleatorio compartido. El ruido externo tiene su propio estado."
+      },
+      "kgate": {
+        "english": "Damping gate, 0–1. Falling values damp the feedback and outputs. Apply a release envelope after body filters too.",
+        "german": "Dämpfungsgate, 0–1. Sinkende Werte dämpfen Rückkopplung und Ausgänge. Auch hinter Korpusfiltern eine Release-Hüllkurve anwenden.",
+        "french": "Porte d’amortissement, 0–1. Sa baisse amortit la boucle et les sorties. Appliquer aussi une enveloppe de relâchement après le corps.",
+        "spanish": "Puerta de amortiguación, 0–1. Al bajar amortigua el bucle y las salidas. Aplique también una envolvente de liberación después del cuerpo."
+      }
+    },
+    "outputs": {
+      "astring": {
+        "english": "DC-blocked string motion at the observation taps.",
+        "german": "Gleichspannungsfreie Saitenbewegung an den Beobachtungsabgriffen.",
+        "french": "Mouvement de corde sans composante continue aux points d’observation.",
+        "spanish": "Movimiento de cuerda sin componente continua en las tomas de observación."
+      },
+      "abridge": {
+        "english": "DC-blocked bridge drive for external body resonators.",
+        "german": "Gleichspannungsfreies Stegsignal für externe Korpusresonatoren.",
+        "french": "Signal du chevalet sans composante continue pour les résonateurs externes.",
+        "spanish": "Señal del puente sin componente continua para resonadores externos."
+      }
+    }
   }
 }

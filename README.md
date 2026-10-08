@@ -121,7 +121,12 @@ You can also [import example instruments](examples/instruments/) or [load an exa
 
 The [acoustic steel-string guitar pair](examples/instruments/steel_string_guitar/README.md)
 includes a lead with semitone-stepped legato and a polyphonic instrument for chords,
-with velocity-sensitive plucking and finger/plectrum, tone, and sustain controls.
+with a waveguide string model, velocity-sensitive plucking and finger/plectrum,
+tone, and sustain controls.
+
+The new [physical steel-string guitar](examples/instruments/steel_string_waveguide/README.md)
+adds two string polarizations, twelve body resonances, pluck-position and palm-mute controls.
+It includes dry listening previews and a matched-level comparison with the existing guitar.
 
 ### Connect and tune
 

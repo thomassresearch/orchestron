@@ -19,6 +19,7 @@ from backend.app.services.opcode_service import OpcodeService
 from backend.app.services.performance_controller_service import controller_bindings
 from backend.app.services.orc_metadata import format_csd_comment_value, instrument_metadata_comments
 from backend.app.services.compiler_legato import LEGATO_OPCODES, collector_lines, has_legato, panic_listener_lines, validate_legato
+from backend.app.services.compiler_waveguide import waveguide_header
 
 
 class CompilerService:
@@ -102,6 +103,7 @@ class CompilerService:
             f"0dbfs = {engine.zero_dbfs}",
             "",
         ]
+        orc_lines.extend(waveguide_header(targets))
         if legato_targets:
             orc_lines.extend([LEGATO_OPCODES, ""])
             for index, target in legato_targets.items():

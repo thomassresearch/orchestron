@@ -25,8 +25,11 @@ initial velocity sets its pluck strength. A gap starts a new pluck and reads the
 current performance controls. The Slide setting is a smoothing half-time, so
 larger intervals take longer to reach their final fret. The matching polyphonic
 patch gives each note its own pluck for chords and manually timed strums.
-The guitar rounds pitch immediately before its string model, with no pitch
-smoothing afterward. Its default Slide half-time is 0.12 seconds so intermediate
+Both guitars use `wgpluck2` with velocity-sensitive pluck position and adjustable damping.
+Since that model's pitch is fixed at initialization, a period-synchronous delay
+readout transposes the ringing string. The guitar rounds the target pitch before
+this readout, with no pitch smoothing afterward and no new excitation at fret changes.
+Its default Slide half-time is 0.12 seconds so intermediate
 frets have more distinct dwell times. Reset an existing rack override to adopt
 this default.
 

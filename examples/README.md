@@ -45,3 +45,10 @@ and a WAV render with two warm passages within the industrial groove.
 3. Select a file from `examples/performances/`.
 
 During import, the app can also import included patch definitions and handle name conflicts (overwrite, rename, or skip), depending on the export file.
+
+## Physical steel-string guitar
+
+[Steel String Guitar — Physical Model](instruments/steel_string_waveguide/README.md)
+is a sample-free polyphonic guitar with editable excitation and twelve body modes,
+plus pluck-position, palm-mute and natural-variation controls. Its folder contains
+the builder, raw and native patches, dry previews and matched-level comparisons.

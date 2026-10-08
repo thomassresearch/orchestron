@@ -714,3 +714,31 @@ def test_legato_does_not_assign_unassigned_rack_targets_to_all_channels() -> Non
         midi_input='0', rtmidi_module='none')
     assignments = [line for line in artifact.orc.splitlines() if line.startswith('massign ')]
     assert assignments == ['massign 0, 0', 'massign 1, 3']
+
+
+@pytest.mark.parametrize('mixer', [False, True])
+@pytest.mark.parametrize('mode', ['midi', 'score'])
+def test_waveguide_helpers_emit_once_for_multiple_voices(mixer, mode):
+    from backend.tests.csound_test_support import load_patch_fixture
+    from backend.app.services.compiler_common import PatchInstrumentTarget
+    from backend.app.models.audio import AudioGraph, AudioRoute
+    patch = load_patch_fixture('steel_string_waveguide')
+    targets = [PatchInstrumentTarget(patch=patch, midi_channel=i+1, assignment_id=f'g{i}') for i in range(2)]
+    routes = [AudioRoute(id=f'r{i}{side}',sourceId=f'g{i}',sourcePort=side,targetId='$output',targetPort=side)
+              for i in range(2) for side in ['left','right']]
+    artifact = CompilerService(OpcodeService('/static/icons')).compile_patch_bundle(
+        targets, midi_input='0',rtmidi_module='none',performance_input_mode=mode,
+        audio_graph=AudioGraph(routes=routes) if mixer else None)
+    assert artifact.orc.count('opcode vcs_waveguide_string,') == 1
+    assert artifact.orc.count('opcode vcs_wg_rail,') == 1
+    assert artifact.orc.count(' mode ') == 24
+    assert 'setksmps 1' in artifact.orc
+    assert 'gk_vcs_waveguide' not in artifact.orc
+    assert not any(line.strip().startswith('seed ') for line in artifact.orc.splitlines())
+
+
+def test_waveguide_helper_absent_without_waveguide():
+    from backend.tests.csound_test_support import load_patch_fixture
+    artifact = CompilerService(OpcodeService('/static/icons')).compile_patch(
+        load_patch_fixture('steel_string_guitar_polyphonic'),midi_input='0',rtmidi_module='none')
+    assert 'opcode vcs_waveguide_string' not in artifact.orc

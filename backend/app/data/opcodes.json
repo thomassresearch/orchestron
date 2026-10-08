@@ -15794,5 +15794,203 @@
       "virtual"
     ],
     "icon_filename": "midictrl.svg"
+  },
+  {
+    "name": "waveguide_string",
+    "category": "physical_modeling",
+    "description": "Orchestron physical string: two sample-accurate fractional-delay polarizations with loss and dispersion.",
+    "documentation_markdown": "### `waveguide_string`\n\nOrchestron virtual opcode, not a native Csound opcode. Compiles a voice-local UDO with local `setksmps 1`. Two fractional-delay string polarizations include phase-compensated loss and all-pass filters, bounded feedback and mild saturation. No samples or pitch transposition. Inputs are sampled at initialization except audio excitation and the damping gate. Native CSD exports embed the UDO.\n\n[Delay-line building blocks](https://csound.com/docs/manual/deltap3.html) · [Local control blocks](https://csound.com/docs/manual/setksmps.html)",
+    "documentation_url": "https://csound.com/docs/manual/deltap3.html",
+    "inputs": [
+      {
+        "id": "aexc",
+        "name": "aexc",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 0,
+        "description": "Audio excitation; use a short pulse and filtered noise."
+      },
+      {
+        "id": "ifreq",
+        "name": "ifreq",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 220,
+        "description": "Initial frequency in Hz; internally bounded to 20 Hz–sr/12."
+      },
+      {
+        "id": "idecay",
+        "name": "idecay",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 6,
+        "description": "Low-frequency decay time in seconds before additional loop filtering; bounded to 0.05–30."
+      },
+      {
+        "id": "icutoff",
+        "name": "icutoff",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 12000,
+        "description": "Loop loss-filter cutoff in Hz; bounded to 100–0.45*sr."
+      },
+      {
+        "id": "ipluck",
+        "name": "ipluck",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 0.18,
+        "description": "Pluck position as a fraction of string length; bounded to 0.02–0.48."
+      },
+      {
+        "id": "ipickup",
+        "name": "ipickup",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 0.23,
+        "description": "String observation position; bounded to 0.02–0.48."
+      },
+      {
+        "id": "idispersion",
+        "name": "idispersion",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 0.3,
+        "description": "All-pass dispersion amount, 0–1; fundamental phase is compensated."
+      },
+      {
+        "id": "ivariation",
+        "name": "ivariation",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 0.2,
+        "description": "Per-note excitation and position variation, 0–1; no timing or pitch randomization."
+      },
+      {
+        "id": "iseed",
+        "name": "iseed",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 0,
+        "description": "Nonzero seed repeats internal variation. Zero selects an automatic seed without reseeding shared random state."
+      },
+      {
+        "id": "kgate",
+        "name": "kgate",
+        "signal_type": "k",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 1,
+        "description": "Damping gate, 0–1; falling values increase string losses. Connect a release envelope."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "astring",
+        "name": "astring",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "String motion at the observation point."
+      },
+      {
+        "id": "abridge",
+        "name": "abridge",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Bridge motion to drive a body resonance bank."
+      }
+    ],
+    "template": "{astring} = {aexc}\n{astring}, {abridge} vcs_waveguide_string {astring}, {ifreq}, {idecay}, {icutoff}, {ipluck}, {ipickup}, {idispersion}, {ivariation}, {iseed}, {kgate}",
+    "tags": [
+      "physical-modeling",
+      "string",
+      "waveguide",
+      "virtual"
+    ],
+    "icon_filename": "vco.svg"
+  },
+  {
+    "name": "mode",
+    "category": "filter",
+    "description": "Mass-spring-damper resonator for acoustic body modes.",
+    "documentation_markdown": "### `mode`\n\nMass-spring-damper resonator with frequency and quality factor controls. Normalize modal weights and keep frequencies well below sr/pi.\n\n[Csound reference](https://csound.com/docs/manual/mode.html)",
+    "documentation_url": "https://csound.com/docs/manual/mode.html",
+    "inputs": [
+      {
+        "id": "ain",
+        "name": "ain",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 0,
+        "description": ""
+      },
+      {
+        "id": "xfreq",
+        "name": "xfreq",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "a",
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": 220,
+        "description": ""
+      },
+      {
+        "id": "xQ",
+        "name": "xQ",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "a",
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": 8,
+        "description": ""
+      },
+      {
+        "id": "iskip",
+        "name": "iskip",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": false,
+        "default": 0,
+        "description": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "aout",
+        "name": "aout",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": ""
+      }
+    ],
+    "template": "{aout} mode {ain}, {xfreq}, {xQ}, {iskip}",
+    "tags": [
+      "filter",
+      "resonance",
+      "body"
+    ],
+    "icon_filename": "moogladder.svg"
   }
 ]

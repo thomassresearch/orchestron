@@ -30,6 +30,7 @@ from backend.app.services.performance_controller_service import controller_bindi
 from backend.app.services.orc_metadata import format_csd_comment_value, instrument_metadata_comments
 from backend.app.services.internal_master import MASTER, internal_master_target
 from backend.app.services.compiler_legato import LEGATO_OPCODES, collector_lines, has_legato, panic_listener_lines
+from backend.app.services.compiler_waveguide import waveguide_header
 
 
 OUTPUT = "$output"
@@ -509,6 +510,7 @@ def compile_mixer_bundle(
         *([RAMP_OPCODE] if live_mixer else []),
         "; Mixer routing: patch, strip and route instruments execute in signal-flow order.",
     ]
+    header += waveguide_header(targets)
     if live_mixer:
         header += [f"chnset {value:.17g}, {quote(name)}" for name, value in controls.items()]
     else:

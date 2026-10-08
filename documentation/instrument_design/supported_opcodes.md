@@ -2,7 +2,7 @@
 
 **Navigation:** [Up](instrument_design.md) | [Prev](instrument_import_export.md) | [Next](../performance/performance.md)
 
-This appendix is generated from `backend/app/data/opcodes.json` and currently lists **178** user-selectable opcodes and editor constructs in the Instrument Design opcode catalog.
+This appendix is generated from `backend/app/data/opcodes.json` and currently lists **180** user-selectable opcodes and editor constructs in the Instrument Design opcode catalog.
 
 ## How To Use This Appendix
 
@@ -22,7 +22,7 @@ This appendix is generated from `backend/app/data/opcodes.json` and currently li
 | distortion | 4 |
 | dynamics | 2 |
 | envelope | 12 |
-| filter | 19 |
+| filter | 20 |
 | fm | 17 |
 | math | 3 |
 | midi | 8 |
@@ -31,7 +31,7 @@ This appendix is generated from `backend/app/data/opcodes.json` and currently li
 | noise | 3 |
 | oscillator | 19 |
 | output | 1 |
-| physical_modeling | 29 |
+| physical_modeling | 30 |
 | reverb | 4 |
 | routing | 4 |
 | soundfont | 3 |
@@ -130,6 +130,7 @@ These nodes generate structured Csound conditionals; they are not ordinary opcod
 | diode_ladder | 6 (a, k, k, i, i, i) | 1 (a) | Diode ladder low-pass filter model. |
 | exciter | 5 (a, k, k, k, k) | 1 (a) | Harmonic exciter that adds controlled upper partials. |
 | fofilter | 5 (a, k, k, k, i) | 1 (a) | Formant filter. |
+| mode | 4 (a, k, k, i) | 1 (a) | Native mass–spring–damper body resonator. |
 | moogladder | 3 (a, k, k) | 1 (a) | Moog ladder low-pass filter. |
 | moogladder2 | 3 (a, k, k) | 1 (a) | Nonlinear Moog-style ladder filter with audio-rate modulation support. |
 | moogvcf | 5 (a, k, k, i, i) | 1 (a) | Moog ladder voltage-controlled filter emulation. |
@@ -275,6 +276,7 @@ These nodes generate structured Csound conditionals; they are not ordinary opcod
 | wgbowedbar | 9 (k, k, k, k, k, i, i, i, i) | 1 (a) | Waveguide bowed-bar model. |
 | wgclar | 10 (k, k, k, i, i, k, k, k, i, i) | 1 (a) | Waveguide clarinet model. |
 | wgflute | 10 (k, k, k, i, i, k, k, k, i, i) | 1 (a) | Waveguide flute model. |
+| waveguide_string | 10 (a, i, i, i, i, i, i, i, i, k) | 2 (a, a) | Virtual dual-polarization string with local sample feedback and compensated dispersion. |
 | wgpluck2 | 5 (i, k, i, k, k) | 1 (a) | Waveguide plucked string model with pick and reflection controls. |
 | wguide2 | 4 (a, k, k, k) | 1 (a) | Two-point waveguide resonator. |
 
@@ -337,3 +339,5 @@ These nodes generate structured Csound conditionals; they are not ordinary opcod
 | xtratim | 1 (i) | - | Extend current note duration by an additional init-time amount. |
 
 **Navigation:** [Up](instrument_design.md) | [Prev](instrument_import_export.md) | [Next](../performance/performance.md)
+
+See [Physical steel-string guitar](steel_string_waveguide.md) for the editable excitation, string and body example.

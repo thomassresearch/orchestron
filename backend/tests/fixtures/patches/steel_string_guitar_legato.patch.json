@@ -1,6 +1,6 @@
 {
   "name": "Steel String Guitar — Legato",
-  "description": "Sample-free acoustic steel-string guitar: Karplus–Strong string, velocity-sensitive pluck and brightness, finger/plectrum attack blend, and fixed wooden-body resonances. Best E2–E6. Dry centered Stereo Output; route to Master. Note-off damps the string using Release. Connected notes share one decaying string and step through equal-tempered semitones. Newest held note wins; releasing it returns to the previous held note. Gaps pluck again. Velocity and all controls are sampled at phrase start; changing a connected note's velocity does not inject another pluck. Pitch is rounded to whole semitones immediately before the string, with no pitch smoothing afterward. Slide defaults to a 0.12 s half-time for more distinct fret steps; this is not total slide duration.",
+  "description": "Sample-free acoustic steel-string guitar: wgpluck2 waveguide string, velocity-sensitive pluck and brightness, finger/plectrum attack blend, and fixed wooden-body resonances. Best E2–E6. Dry centered Stereo Output; route to Master. Note-off damps the string using Release. Connected notes share one decaying string and step through equal-tempered semitones. Newest held note wins; releasing it returns to the previous held note. Gaps pluck again. Velocity and all controls are sampled at phrase start; changing a connected note's velocity does not inject another pluck. Pitch is rounded to whole semitones before pitch-synchronous transposition, with no pitch smoothing afterward. Slide defaults to a 0.12 s half-time for more distinct fret steps; this is not total slide duration.",
   "is_template": false,
   "schema_version": 1,
   "graph": {
@@ -229,11 +229,8 @@
       },
       {
         "id": "guitar_string",
-        "opcode": "pluck",
-        "params": {
-          "ifn": 0,
-          "imeth": 2
-        },
+        "opcode": "wgpluck2",
+        "params": {},
         "position": {
           "x": 1250,
           "y": -450
@@ -250,6 +247,105 @@
         "position": {
           "x": 940,
           "y": -200
+        }
+      },
+      {
+        "id": "guitar_rail_scale",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 920,
+          "y": -1450
+        }
+      },
+      {
+        "id": "guitar_bridge_pole",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 1230,
+          "y": -1450
+        }
+      },
+      {
+        "id": "guitar_source_period",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 1530,
+          "y": -1450
+        }
+      },
+      {
+        "id": "guitar_shift_zero",
+        "opcode": "k_to_a",
+        "params": {
+          "kin": 0
+        },
+        "position": {
+          "x": 920,
+          "y": -1100
+        }
+      },
+      {
+        "id": "guitar_shift_phase",
+        "opcode": "syncphasor",
+        "params": {
+          "iphs": 0.5
+        },
+        "position": {
+          "x": 1230,
+          "y": -1100
+        }
+      },
+      {
+        "id": "guitar_shift_offset",
+        "opcode": "a_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 1530,
+          "y": -1100
+        }
+      },
+      {
+        "id": "guitar_shift_tap_0",
+        "opcode": "vdelay3",
+        "params": {
+          "imd": 300
+        },
+        "position": {
+          "x": 1850,
+          "y": -1100
+        }
+      },
+      {
+        "id": "guitar_shift_tap_1",
+        "opcode": "vdelay3",
+        "params": {
+          "imd": 300
+        },
+        "position": {
+          "x": 1850,
+          "y": -850
+        }
+      },
+      {
+        "id": "guitar_shift_mix",
+        "opcode": "a_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 2150,
+          "y": -1100
         }
       },
       {
@@ -510,26 +606,164 @@
         "to_port_id": "kamp"
       },
       {
-        "from_node_id": "guitar_pitch",
-        "from_port_id": "kout",
-        "to_node_id": "guitar_string",
-        "to_port_id": "kcps"
-      },
-      {
         "from_node_id": "pitch_cpsmidi",
         "from_port_id": "kfreq",
         "to_node_id": "guitar_string",
         "to_port_id": "icps"
       },
       {
+        "from_node_id": "guitar_pick",
+        "from_port_id": "iout",
+        "to_node_id": "guitar_string",
+        "to_port_id": "iplk"
+      },
+      {
+        "from_node_id": "velocity_ampmidi",
+        "from_port_id": "iamp",
+        "to_node_id": "guitar_string",
+        "to_port_id": "iplk"
+      },
+      {
+        "from_node_id": "guitar_pick",
+        "from_port_id": "iout",
+        "to_node_id": "guitar_string",
+        "to_port_id": "kpick"
+      },
+      {
+        "from_node_id": "guitar_brightness",
+        "from_port_id": "iout",
+        "to_node_id": "guitar_string",
+        "to_port_id": "krefl"
+      },
+      {
         "from_node_id": "guitar_sustain",
         "from_port_id": "iout",
         "to_node_id": "guitar_string",
-        "to_port_id": "iparm1"
+        "to_port_id": "krefl"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "guitar_rail_scale",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "guitar_rail_scale",
+        "from_port_id": "kout",
+        "to_node_id": "guitar_bridge_pole",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "guitar_brightness",
+        "from_port_id": "iout",
+        "to_node_id": "guitar_bridge_pole",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "guitar_sustain",
+        "from_port_id": "iout",
+        "to_node_id": "guitar_bridge_pole",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "guitar_source_period",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "guitar_rail_scale",
+        "from_port_id": "kout",
+        "to_node_id": "guitar_source_period",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "guitar_bridge_pole",
+        "from_port_id": "kout",
+        "to_node_id": "guitar_source_period",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "guitar_shift_zero",
+        "from_port_id": "aout",
+        "to_node_id": "guitar_shift_phase",
+        "to_port_id": "asyncin"
+      },
+      {
+        "from_node_id": "guitar_source_period",
+        "from_port_id": "kout",
+        "to_node_id": "guitar_shift_phase",
+        "to_port_id": "xcps"
+      },
+      {
+        "from_node_id": "guitar_pitch",
+        "from_port_id": "kout",
+        "to_node_id": "guitar_shift_phase",
+        "to_port_id": "xcps"
+      },
+      {
+        "from_node_id": "guitar_shift_phase",
+        "from_port_id": "aphase",
+        "to_node_id": "guitar_shift_offset",
+        "to_port_id": "a"
       },
       {
         "from_node_id": "guitar_string",
         "from_port_id": "asig",
+        "to_node_id": "guitar_shift_tap_0",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "guitar_shift_phase",
+        "from_port_id": "aphase",
+        "to_node_id": "guitar_shift_tap_0",
+        "to_port_id": "adel"
+      },
+      {
+        "from_node_id": "guitar_source_period",
+        "from_port_id": "kout",
+        "to_node_id": "guitar_shift_tap_0",
+        "to_port_id": "adel"
+      },
+      {
+        "from_node_id": "guitar_string",
+        "from_port_id": "asig",
+        "to_node_id": "guitar_shift_tap_1",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "guitar_shift_offset",
+        "from_port_id": "aout",
+        "to_node_id": "guitar_shift_tap_1",
+        "to_port_id": "adel"
+      },
+      {
+        "from_node_id": "guitar_source_period",
+        "from_port_id": "kout",
+        "to_node_id": "guitar_shift_tap_1",
+        "to_port_id": "adel"
+      },
+      {
+        "from_node_id": "guitar_shift_tap_0",
+        "from_port_id": "aout",
+        "to_node_id": "guitar_shift_mix",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "guitar_shift_tap_1",
+        "from_port_id": "aout",
+        "to_node_id": "guitar_shift_mix",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "guitar_shift_phase",
+        "from_port_id": "aphase",
+        "to_node_id": "guitar_shift_mix",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "guitar_shift_mix",
+        "from_port_id": "aout",
         "to_node_id": "guitar_tone",
         "to_port_id": "asig"
       },
@@ -800,16 +1034,6 @@
             }
           ]
         },
-        "guitar_string::kcps": {
-          "expression": "hz",
-          "inputs": [
-            {
-              "token": "hz",
-              "from_node_id": "guitar_pitch",
-              "from_port_id": "kout"
-            }
-          ]
-        },
         "guitar_string::icps": {
           "expression": "hz",
           "inputs": [
@@ -820,13 +1044,198 @@
             }
           ]
         },
-        "guitar_string::iparm1": {
-          "expression": "sustain",
+        "guitar_string::iplk": {
+          "expression": ".23 - .14 * pick - .025 * vel",
           "inputs": [
+            {
+              "token": "pick",
+              "from_node_id": "guitar_pick",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "vel",
+              "from_node_id": "velocity_ampmidi",
+              "from_port_id": "iamp"
+            }
+          ]
+        },
+        "guitar_string::kpick": {
+          "expression": ".22 - .06 * pick",
+          "inputs": [
+            {
+              "token": "pick",
+              "from_node_id": "guitar_pick",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "guitar_string::krefl": {
+          "expression": "(.42 - .24 * bright) / sustain",
+          "inputs": [
+            {
+              "token": "bright",
+              "from_node_id": "guitar_brightness",
+              "from_port_id": "iout"
+            },
             {
               "token": "sustain",
               "from_node_id": "guitar_sustain",
               "from_port_id": "iout"
+            }
+          ]
+        },
+        "guitar_rail_scale::a": {
+          "expression": "ceil(512 / floor(sr / hz))",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "guitar_bridge_pole::a": {
+          "expression": "scale / (1 - (.42 - .24 * bright) / sustain) - 1",
+          "inputs": [
+            {
+              "token": "scale",
+              "from_node_id": "guitar_rail_scale",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "bright",
+              "from_node_id": "guitar_brightness",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "sustain",
+              "from_node_id": "guitar_sustain",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "guitar_source_period::a": {
+          "expression": "(2 * floor(floor(sr / hz) * scale / 2) - 2 + pole / (1 + (1 + pole) * (1 + 2 * pole) / 6 * (6.28318530718 * hz / (sr * scale)) * (6.28318530718 * hz / (sr * scale)))) / scale",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "scale",
+              "from_node_id": "guitar_rail_scale",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "pole",
+              "from_node_id": "guitar_bridge_pole",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "guitar_shift_phase::asyncin": {
+          "expression": "zero",
+          "inputs": [
+            {
+              "token": "zero",
+              "from_node_id": "guitar_shift_zero",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "guitar_shift_phase::xcps": {
+          "expression": "(sr / period - destination) / 2",
+          "inputs": [
+            {
+              "token": "period",
+              "from_node_id": "guitar_source_period",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "destination",
+              "from_node_id": "guitar_pitch",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "guitar_shift_offset::a": {
+          "expression": "phase + .5 - floor(phase + .5)",
+          "inputs": [
+            {
+              "token": "phase",
+              "from_node_id": "guitar_shift_phase",
+              "from_port_id": "aphase"
+            }
+          ]
+        },
+        "guitar_shift_tap_0::asig": {
+          "expression": "string",
+          "inputs": [
+            {
+              "token": "string",
+              "from_node_id": "guitar_string",
+              "from_port_id": "asig"
+            }
+          ]
+        },
+        "guitar_shift_tap_0::adel": {
+          "expression": "2000 * phase * period / sr",
+          "inputs": [
+            {
+              "token": "phase",
+              "from_node_id": "guitar_shift_phase",
+              "from_port_id": "aphase"
+            },
+            {
+              "token": "period",
+              "from_node_id": "guitar_source_period",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "guitar_shift_tap_1::asig": {
+          "expression": "string",
+          "inputs": [
+            {
+              "token": "string",
+              "from_node_id": "guitar_string",
+              "from_port_id": "asig"
+            }
+          ]
+        },
+        "guitar_shift_tap_1::adel": {
+          "expression": "2000 * phase * period / sr",
+          "inputs": [
+            {
+              "token": "phase",
+              "from_node_id": "guitar_shift_offset",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "period",
+              "from_node_id": "guitar_source_period",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "guitar_shift_mix::a": {
+          "expression": "first * (1 - abs(2 * phase - 1)) + second * abs(2 * phase - 1)",
+          "inputs": [
+            {
+              "token": "first",
+              "from_node_id": "guitar_shift_tap_0",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "second",
+              "from_node_id": "guitar_shift_tap_1",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "phase",
+              "from_node_id": "guitar_shift_phase",
+              "from_port_id": "aphase"
             }
           ]
         },
@@ -835,8 +1244,8 @@
           "inputs": [
             {
               "token": "string",
-              "from_node_id": "guitar_string",
-              "from_port_id": "asig"
+              "from_node_id": "guitar_shift_mix",
+              "from_port_id": "aout"
             }
           ]
         },
@@ -1016,7 +1425,7 @@
           ]
         },
         "output_pan2::asig": {
-          "expression": ".35 * audio * gate",
+          "expression": ".26 * audio * gate",
           "inputs": [
             {
               "token": "audio",

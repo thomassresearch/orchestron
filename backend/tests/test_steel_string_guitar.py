@@ -21,6 +21,32 @@ def midi_pitch(hz):
     return 69 + 12 * np.log2(hz / 440)
 
 
+@pytest.mark.parametrize("variant", ["legato", "polyphonic"])
+def test_waveguide_replaces_pluck_with_matching_ports(variant):
+    patch = guitar(variant)
+    strings = [n for n in patch.graph.nodes if n.opcode == "wgpluck2"]
+    assert len(strings) == 1
+    assert not any(n.opcode == "pluck" for n in patch.graph.nodes)
+    ports = {e.to_port_id for e in patch.graph.connections if e.to_node_id == strings[0].id}
+    assert ports == {"iplk", "kamp", "icps", "kpick", "krefl"}
+
+
+@pytest.mark.parametrize("settings", [
+    {"guitar_brightness": 0, "guitar_sustain": 1},
+    {"guitar_brightness": 1, "guitar_sustain": 8},
+])
+def test_waveguide_tuning_across_fretboard_at_damping_extremes(settings):
+    artifact, targets = compile_guitars([guitar("polyphonic")], mode="host", settings=[settings])
+    notes = [(.1 + i * .45, n, 100, .22) for i, n in enumerate(range(40, 89))]
+    audio, _ = render(artifact, targets, note_events(notes), 22.3, mode="host")
+    assert np.isfinite(audio).all() and abs(audio).max() < .71
+    for start, note, _, _ in notes:
+        expected = 440 * 2 ** ((note - 69) / 12)
+        segment = audio[round((start + .04) * 48000):round((start + .2) * 48000), 0]
+        measured = periodic_pitch(segment, expected)
+        assert abs(1200 * np.log2(measured / expected)) < 15, (note, measured)
+
+
 @pytest.mark.parametrize("mode", ["host", "midi", "score"])
 def test_fret_steps_preserve_pluck_and_gap_rearticulates(mode):
     artifact, targets = compile_guitars([guitar()], mode=mode)

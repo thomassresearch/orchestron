@@ -151,3 +151,16 @@ def test_midi_legato_virtual_catalog_and_localized_contract() -> None:
         assert all(value.strip() for value in translated.values())
     assert '10 ms' in details['description']['english']
     assert 'no glide' in details['outputs']['kfreq']['english']
+
+
+@pytest.mark.parametrize('name', ['mode', 'waveguide_string'])
+def test_physical_guitar_catalog_help(name):
+    test_atone_catalog_has_icons_and_complete_localized_help(name)
+    spec = OpcodeService('/static/icons').get_opcode(name)
+    if name == 'mode':
+        assert spec.template == '{aout} mode {ain}, {xfreq}, {xQ}, {iskip}'
+        assert not spec.inputs[-1].required
+        assert spec.inputs[-1].default == 0
+    else:
+        assert [p.signal_type.value for p in spec.inputs] == ['a'] + ['i'] * 8 + ['k']
+        assert [p.id for p in spec.outputs] == ['astring', 'abridge']

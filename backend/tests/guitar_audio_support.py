@@ -109,12 +109,16 @@ def render(artifact, targets, events, seconds, *, mode="score", trace=False, con
             options += f" --midifile={path}"
         elif mode == "host":
             options += " -M0"
-        cs = load_ctcsound_module().Csound()
+        native_module = load_ctcsound_module()
+        cs = native_module.Csound()
         buffered_messages = hasattr(cs, "createMessageBuffer")
         if buffered_messages:
             cs.createMessageBuffer(False)
         worker = CsoundWorker() if mode == "host" else None
+        # API tests can select the mock engine process-wide. This native DSP
+        # harness must bind callbacks to the same real module as its Csound.
         if worker:
+            worker._ctcsound = native_module
             worker._configure_host_midi_callbacks(cs)
         csd = (f"<CsoundSynthesizer>\n<CsOptions>\n{options}\n</CsOptions>\n<CsInstruments>\n{orc}"
                f"\n</CsInstruments>\n<CsScore>\n{score}\n</CsScore>\n</CsoundSynthesizer>")

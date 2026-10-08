@@ -7558,3 +7558,41 @@ def test_midi_legato_performance_csd_export_uses_note_collectors(tmp_path: Path,
                 assert 'i 1 ' in score
                 assert 'i 2 ' not in score
                 assert 'iSerial = (p6 > 0 ? p6 : iSerial)' in csd
+
+
+def test_physical_guitar_opcodes_and_saved_graph_compile(tmp_path: Path) -> None:
+    from backend.tests.csound_test_support import load_patch_fixture
+    patch = load_patch_fixture('steel_string_waveguide')
+    payload = patch.model_dump(mode='json', exclude={'id', 'created_at', 'updated_at'})
+    with _client(tmp_path) as client:
+        catalog = {s['name']: s for s in client.get('/api/opcodes').json()}
+        assert catalog['mode']['documentation_url'] == 'https://csound.com/docs/manual/mode.html'
+        assert [p['id'] for p in catalog['waveguide_string']['outputs']] == ['astring', 'abridge']
+        assert catalog['mode']['inputs'][1]['accepted_signal_types'] == ['a', 'k', 'i']
+        saved = client.post('/api/patches',json=payload)
+        assert saved.status_code == 201, saved.text
+        identity = saved.json()['id']
+        session = client.post('/api/sessions',json={'patch_id':identity}).json()
+        compiled = client.post(f"/api/sessions/{session['session_id']}/compile")
+        assert compiled.status_code == 200, compiled.text
+        assert compiled.json()['orc'].count('opcode vcs_waveguide_string,') == 1
+        assert client.get('/api/patches/'+identity).json()['graph'] == saved.json()['graph']
+        controls = [n for n in saved.json()['graph']['nodes'] if n['opcode'] == 'perf_controller']
+        assert len(controls) == 8
+
+
+@pytest.mark.parametrize('event_source', ['midiFile', 'score'])
+def test_waveguide_performance_csd_export_embeds_udo(tmp_path: Path, event_source: str) -> None:
+    from backend.tests.csound_test_support import load_patch_fixture
+    payload = _performance_csd_export_payload()
+    payload['eventSource'] = event_source
+    payload['performanceExport']['patch_definitions'][0]['graph'] = load_patch_fixture('steel_string_waveguide').graph.model_dump(mode='json')
+    with _client(tmp_path) as client:
+        response = client.post('/api/bundles/export/performance-csd',json=payload)
+        assert response.status_code == 200, response.text
+        with zipfile.ZipFile(BytesIO(response.content)) as archive:
+            csd = archive.read('Offline_Export/Offline_Export.csd').decode()
+            assert csd.count('opcode vcs_waveguide_string,') == 1
+            assert csd.count('opcode vcs_wg_rail,') == 1
+            assert 'ksmps = 1' in csd
+            assert ' mode ' in csd

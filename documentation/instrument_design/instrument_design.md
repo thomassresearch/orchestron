@@ -26,6 +26,7 @@ Patches have an editable Instrument Type. Load Patch browses collapsed type grou
 - [GEN Table Editor (GEN Meta-Opcode)](gen_table_editor.md)
 - [Runtime Panel and Compilation Workflow](runtime_panel_and_compilation.md)
 - [Instrument Import / Export and CSD Export](instrument_import_export.md)
+- [Physical Steel-String Guitar](steel_string_waveguide.md)
 - [Supported Opcodes](supported_opcodes.md)
 
 ## Recommended Workflow
