@@ -22,6 +22,11 @@ instruments with per-instance controls: leads, strings, pads, brass, three basse
 plucks, a glass bell, a synthetic choir, industrial stabs, and noise/metal effects.
 Both guides include native export links, sound descriptions, suggested registers, and control ranges and defaults.
 
+The [acoustic steel-string guitar pair](instruments/steel_string_guitar/README.md)
+provides a monophonic lead with semitone-stepped legato and a matching polyphonic
+guitar for chords and sequenced strums. The guide includes native instruments,
+listening previews, finger/plectrum and tone controls, and reproduction commands.
+
 [The End of the Summer](performances/the_end_of_the_summer/README.md) is a six-minute
 dark-wave performance using Analog Drumkit and eight EBM / Dark Wave instruments.
 It includes an editable arrangement, native and Csound exports, a reproducible score,

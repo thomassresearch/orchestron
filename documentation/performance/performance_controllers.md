@@ -29,6 +29,12 @@ Controllers appear in patch-node order beneath patch and channel. Controls wrap 
 
 For an instrument using [`midi_legato`](../instrument_design/midi_legato.md), settings are sampled at the start of each **phrase**. Touching and overlapping notes keep the same voice and settings; the next note after a gap reads current values.
 
+For example, the [steel-string guitars](../../examples/instruments/steel_string_guitar/README.md)
+expose Finger → Plectrum, Brightness, Body resonance, String sustain, and Release.
+The legato version also exposes Slide half-time. Finger → Plectrum blends attack
+and tone continuously, but its setting is still read at the next phrase or note;
+moving the knob does not morph a string that is already sounding.
+
 ## Save, Reload, and Export
 
 Untouched controls follow the patch default. After a value changes, an explicit instance override remains until reset, including when it is subsequently set to the current default. App state retains edits immediately through the existing persistence workflow; Save Performance is required to update a saved performance. Native JSON/ZIP bundles and both CSD (MIDI) and CSD (SCORE) exports preserve instance values. The CSD contains its initial settings and runs without a controller client. These controls do not send MIDI CC and do not become MIDI automation.

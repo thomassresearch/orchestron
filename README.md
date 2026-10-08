@@ -119,6 +119,10 @@ guide for compiler setup and [playback implementation selection](BACKEND.md#comp
 
 You can also [import example instruments](examples/instruments/) or [load an example performance](examples/performances/). The [examples guide](examples/README.md) explains both routes.
 
+The [acoustic steel-string guitar pair](examples/instruments/steel_string_guitar/README.md)
+includes a lead with semitone-stepped legato and a polyphonic instrument for chords,
+with velocity-sensitive plucking and finger/plectrum, tone, and sustain controls.
+
 ### Connect and tune
 
 The on-screen keyboards, sequencers, and MIDI controls work without external MIDI hardware. To connect a keyboard or DAW, follow [MIDI Setup and Inputs](documentation/configuration/midi_setup_and_inputs.md). On macOS, software-to-software MIDI can use the **IAC Driver** with the [host MIDI helper](host-midi-helper/README.md).

@@ -16,8 +16,12 @@ their own in-memory copy.
 - `lake_bamboo_flute_legato.patch.json` is a fixed 59-node flute snapshot for
   phrase-controller, pressure-contour and stereo routing regressions. Tests never
   load its authoring script or the current library/export files in `examples/`.
+- `steel_string_guitar_legato.patch.json` and `steel_string_guitar_polyphonic.patch.json`
+  are fixed acoustic-guitar snapshots for fret-step continuity, pluck velocity,
+  controller response, independent chord voices and native audio/export tests.
+  Their audio harness accepts patch documents and never reads developer examples.
 
-The latter two fixtures were recovered from Git revision `cd21a23^`, preserving
+The two flute/legato fixtures were recovered from Git revision `cd21a23^`, preserving
 the inputs for the existing audio assertions. Tests load the committed copies;
 they do not read Git history at runtime.
 

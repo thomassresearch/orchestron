@@ -34,3 +34,4 @@ graphify-out/
 .gitattributes
 
 examples/performances/*/
+examples/instruments/*/

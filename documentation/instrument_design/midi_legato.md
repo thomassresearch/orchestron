@@ -16,6 +16,20 @@ Add one **midi_legato** node from **MIDI** to the main graph of a MIDI instrumen
 
 This is an **Orchestron virtual opcode**, not a native Csound opcode. Use it once, outside If/Switch cases, on a MIDI-activated instrument. Native release/turnoff opcodes other than `madsr` are not supported in a legato graph. Patches without this node retain their normal voice behavior. Recompile/restart a running instrument after adding it.
 
+## Steel-string guitar example
+
+The [acoustic steel-string guitar pair](../../examples/instruments/steel_string_guitar/README.md)
+includes a legato patch that rounds its pitch slide to equal-tempered semitones.
+Connected notes preserve the decaying string without another pluck; the phrase's
+initial velocity sets its pluck strength. A gap starts a new pluck and reads the
+current performance controls. The Slide setting is a smoothing half-time, so
+larger intervals take longer to reach their final fret. The matching polyphonic
+patch gives each note its own pluck for chords and manually timed strums.
+The guitar rounds pitch immediately before its string model, with no pitch
+smoothing afterward. Its default Slide half-time is 0.12 seconds so intermediate
+frets have more distinct dwell times. Reset an existing rack override to adopt
+this default.
+
 ## Implementation references
 
 [Csound release](https://csound.com/docs/manual/release.html), [madsr](https://csound.com/docs/manual/madsr.html), [reinit](https://csound.com/docs/manual/reinit.html), [portk](https://csound.com/docs/manual/portk.html).
